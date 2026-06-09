@@ -1,0 +1,12 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // [SOVEREIGN DEVELOPMENT MODE] - فتح القلعة لإتمام التكوين (50% -> 100%)
+    match /{document=**} {
+      // يسمح بالقراءة والكتابة للجميع مؤقتاً لتسهيل الفحص الميداني والمستخدمين الوهميين
+      allow read, write: if true; 
+    }
+  }
+}

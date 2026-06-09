@@ -1,0 +1,6 @@
+{
+  "name": "Radar System",
+  "description": "Radar tracking and monitoring system based on Firebase",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,120 @@
+
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Represents a user in the system, who can be a rider, driver, or admin.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "The unique identifier for the user, matching Firebase Auth UID." },
+        "role": { "type": "string", "enum": ["rider", "driver", "admin"], "description": "The role of the user within the system." },
+        "name": { "type": "string", "description": "The user's full name." },
+        "phone": { "type": "string", "description": "The user's contact phone number." },
+        "governorate": { "type": "string", "description": "The governorate the user belongs to for ad targeting." },
+        "district": { "type": "string", "description": "The district the user belongs to for ad targeting." },
+        "status": { "type": "string", "enum": ["active", "idle", "busy", "rating"], "description": "The current status of a driver." },
+        "gridId": { "type": "string", "description": "The geospatial grid ID for location-based queries." },
+        "rating": { "type": "number", "description": "The user's average rating." },
+        "ratingSum": { "type": "number", "description": "The sum of all ratings received by the user." },
+        "ratingCount": { "type": "number", "description": "The total number of ratings received." },
+        "heartCount": { "type": "number", "description": "The total number of 'favorite' hearts a driver has received." },
+        "penaltyCount": { "type": "number", "description": "Number of times a driver has been penalized for ghosting or violations." },
+        "isRatingRequired": { "type": "boolean", "description": "Flag indicating if a rider must rate their last trip before requesting a new one." },
+        "favoriteDrivers": { "type": "array", "items": { "type": "string" }, "description": "A rider's list of favorite driver UIDs." },
+        "fcmTokens": { "type": "array", "items": { "type": "string" }, "description": "Firebase Cloud Messaging tokens for push notifications." },
+        "deviceId": { "type": "string", "description": "A unique identifier for the user's device to prevent Sybil attacks." },
+        "silencePreference": {
+            "type": "string",
+            "enum": ["silent", "chatty", "neutral"],
+            "description": "The driver's preference for conversation during a trip."
+        },
+        "location": {
+          "type": "object",
+          "properties": {
+            "lat": { "type": "number" },
+            "lng": { "type": "number" }
+          },
+          "description": "The user's last known geo-coordinates."
+        },
+        "vehicle": {
+          "type": "object",
+          "properties": {
+            "year": { "type": "number" },
+            "plate": { "type": "string" },
+            "make": { "type": "string" },
+            "color": { "type": "string" },
+            "sideId": { "type": "string" }
+          }
+        },
+        "affiliation": {
+          "type": "object",
+          "properties": {
+            "type": { "type": "string" },
+            "name": { "type": "string" },
+            "phone": { "type": "string" }
+          }
+        }
+      },
+      "required": ["uid", "role", "name", "phone", "governorate", "district"]
+    },
+    "Trip": {
+      "title": "Trip Request",
+      "description": "Represents a ride request made by a rider.",
+      "type": "object",
+      "properties": {
+        "riderId": { "type": "string" },
+        "driverId": { "type": "string" },
+        "status": { "type": "string", "enum": ["searching", "busy", "completed", "cancelled", "rating", "checkpoint_required", "archived", "in_progress"] },
+        "seats": { "type": "number" },
+        "dropoff": { "type": "string", "description": "The general destination area name." },
+        "pickup": { "type": "string", "format": "uri", "description": "The Google Maps URL for the pickup location." },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "isRatedByRider": { "type": "boolean", "description": "True if the rider has submitted their feedback for this trip." },
+        "isRatedByDriver": { "type": "boolean", "description": "True if the driver has submitted their feedback for this trip." },
+        "pickupCoords": {
+          "type": "object",
+          "properties": {
+            "lat": { "type": "number" },
+            "lng": { "type": "number" }
+          }
+        },
+        "gridId": { "type": "string", "description": "The geospatial grid ID for matching." },
+        "expiresAt": { "type": "number", "description": "Timestamp for when the request expires." },
+        "offerPrice": { "type": "number", "description": "The final price offered by the driver for this trip." },
+        "iteration_count": { "type": "number", "description": "The number of rotation cycles a searching trip has been through." },
+        "auditLog": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "A log of significant events in the trip lifecycle."
+        },
+        "rejectedDrivers": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "A list of driver UIDs who have been rejected or have timed out for this trip."
+        },
+        "ghostBusterStartLocation": {
+            "type": "object",
+            "properties": {
+                "lat": { "type": "number" },
+                "lng": { "type": "number" }
+            },
+            "description": "The driver's location at the moment they accepted the trip, for ghosting detection."
+        }
+      },
+      "required": ["riderId", "status", "seats", "dropoff", "pickup", "createdAt", "pickupCoords", "gridId"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Stores public user profiles."
+    },
+    "/trips/{tripId}": {
+      "schema": { "$ref": "#/entities/Trip" },
+      "description": "Stores all trip requests and their lifecycle states."
+    }
+  },
+  "auth": {
+    "providers": ["phone"]
+  }
+}
