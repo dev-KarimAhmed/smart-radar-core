@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { doc, getDoc, updateDoc, arrayUnion, serverTimestamp, query, collection, where, limit, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, setDoc, arrayUnion, serverTimestamp, query, collection, where, limit, onSnapshot } from 'firebase/firestore';
+import { getDistrictFromCoords } from '@/lib/geospatial';
 import { db } from '@/lib/firebase';
 import { trackSovereignError } from '@/lib/error-tracker';
 import { getSovereignErrorMessage } from '@/core/constants/error-dictionary';
@@ -131,6 +132,45 @@ export function useDriverTransactions(
       };
 
       await updateDoc(tripRef, { offers: arrayUnion(offer) });
+
+      // [الدستور التنفيذي V5.5 - الباب الأول] : توليد الفرصة الإعلانية وتصاعد السعة عند حرق/شذوذ الأسعار وثغرات كوابح السوق
+      if (evaluation.isDumping) {
+        let activeDistrict = user?.district || 'وادي السير';
+        if (tripData.pickupCoords?.lat && tripData.pickupCoords?.lng) {
+          const resolvedGeo = getDistrictFromCoords(tripData.pickupCoords.lat, tripData.pickupCoords.lng);
+          if (resolvedGeo.district) {
+            activeDistrict = resolvedGeo.district;
+          }
+        }
+        
+        const pulseDocRef = doc(db, 'market_pulse', activeDistrict);
+        try {
+          const pulseSnap = await getDoc(pulseDocRef);
+          if (pulseSnap.exists()) {
+            const pData = pulseSnap.data();
+            const prevCount = pData.priceAnomaliesCount || 0;
+            const newCount = prevCount + 1;
+            await updateDoc(pulseDocRef, {
+              priceAnomaliesCount: newCount,
+              priceAnomalyTrend: 'up',
+              emergencyAdCapacityActive: newCount >= 3 // تفعيل السعة الطارئة والمكثفة عند رصد أكثر من حالتين
+            });
+          } else {
+            await setDoc(pulseDocRef, {
+              trend: 'balanced',
+              demand: 5,
+              supply: 5,
+              priceAnomaliesCount: 1,
+              priceAnomalyTrend: 'up',
+              emergencyAdCapacityActive: false
+            });
+          }
+          console.log(`[الباب الأول V5.5] تم تسجيل حالة شذوذ سعري للواء ${activeDistrict}. تم تحويل الأزمة إلى فرصة إعلانية.`);
+        } catch (pulseErr) {
+          console.warn('[V5.5 Market Integrity] Failed to update pricing anomaly pulse:', pulseErr);
+        }
+      }
+
       toast({ title: 'تم إرفاق العرض للراكب', description: 'عرضك معروض في منصة المنافسة السيادية حالاً.' });
       rejectRequest(payload.tripId);
     } catch (e: any) {

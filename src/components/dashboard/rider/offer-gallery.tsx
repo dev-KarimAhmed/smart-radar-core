@@ -6,9 +6,12 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Star, ShieldCheck, Heart, Info, Loader2, X } from 'lucide-react';
+import { Star, ShieldCheck, Heart, Info, Loader2, X, Gift } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import type { Offer } from '@/core/types';
+import { useAuth } from '@/hooks/use-auth';
+import { usePromoStream } from '@/hooks/use-promo-stream';
+import { RadarSovereignIntegrationKernel } from '@/core/logic/sovereign-market-kernel';
 
 const getRankBadge = (rank: 'Platinum' | 'Gold' | 'Silver' | 'Bronze') => {
   switch (rank) {
@@ -37,8 +40,56 @@ const OfferCard = ({
   onInfo: (vehicle: any) => void;
   isSelecting: boolean;
 }) => {
+  const { user } = useAuth();
+  const { activeAds } = usePromoStream(user?.district || 'وادي السير', user?.governorate || 'عمان');
+  
+  // Apply our RadarSovereignIntegrationKernel trigger
+  const benefitAd = React.useMemo(() => {
+    const isPriceBurned = offer.isDumping || offer.driverRank === 'Silver' || offer.driverRank === 'Bronze';
+    if (!isPriceBurned) return null;
+    
+    // Convert to AdSovereignPass format
+    const passAds = activeAds.map(ad => ({
+      adId: ad.id,
+      targetScale: ad.targetDistrict ? 'District' : 'Governorate' as any,
+      targetLocationName: ad.targetDistrict || ad.targetGovernorate || 'وادي السير',
+      adType: ad.adType as any,
+      bannerUrl: ad.content?.posterUrl || ''
+    })).filter(ad => ad.adType === 'RIDER_BENEFIT');
+    
+    // Fallback if none found
+    if (passAds.length === 0) {
+      return {
+        adId: 'promo-rider-benefit-default',
+        title: '🎁 كوبون المنفعة والتعويض للركاب الأحرار',
+        description: 'بسبب حرق الأسعار، تفضّل بخصم 50% على غسيل سيارتك أو كوبون مطعم مجاني في اللواء فوراً!',
+        actionUrl: 'https://wa.me/962790000000',
+        buttonText: 'احصل على الكوبون السيادي'
+      };
+    }
+    
+    const matchedPass = RadarSovereignIntegrationKernel.triggerContextualAdStream(
+      0.12, // deviation ratio >= 10%
+      { role: 'rider', district: user?.district || 'وادي السير', governorate: user?.governorate || 'عمان' },
+      passAds as any
+    );
+    
+    if (matchedPass) {
+      const realAd = activeAds.find(ad => ad.id === matchedPass.adId);
+      return {
+        adId: matchedPass.adId,
+        title: realAd?.content?.title || '🎁 كوبون المنفعة والتعويض',
+        description: realAd?.content?.description || 'كوبون مجاني تقديري للركاب الأحرار للتواصل السريع.',
+        actionUrl: realAd?.action?.actionUrl || realAd?.actionUrl || 'https://wa.me/962790000000',
+        buttonText: realAd?.action?.buttonText || realAd?.buttonText || 'احصل عليه الآن'
+      };
+    }
+    
+    return null;
+  }, [offer.isDumping, offer.driverRank, activeAds, user]);
+
   return (
-    <Card className={`bg-muted/30 border-border hover:border-primary transition-all ${offer.isDumping ? 'border-red-900/40 relative' : ''}`}>
+    <Card className={`bg-muted/30 border-border hover:border-primary transition-all ${offer.isDumping ? 'border-primary/40 relative animate-pulse-slow' : ''}`}>
       <CardContent className="p-4 space-y-3">
         <div className="flex items-center gap-3">
           <Avatar className="w-12 h-12 border-2 border-border">
@@ -77,8 +128,37 @@ const OfferCard = ({
         </div>
 
         {(offer.isDumping || offer.driverRank === 'Silver' || offer.driverRank === 'Bronze') && (
-          <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-2 rounded-md text-xs font-bold text-center animate-pulse">
-            ⚠️ السعر المحروق: هذا السعر أقل بكثير من متوسط السوق؛ قد يؤثر ذلك على جودة الخدمة أو حالة المركبة
+          <div className="space-y-2">
+            <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-2 rounded-md text-[11px] font-bold text-center">
+              ⚠️ السعر المحروق: هذا السعر أقل بكثير من متوسط السوق؛ قد يؤثر ذلك على جودة الخدمة أو حالة المركبة
+            </div>
+            
+            {/* [المادة 3] إعلان المنفعة والتعويض للراكب */}
+            {benefitAd && (
+              <div className="p-3 bg-emerald-950/45 border border-emerald-500/30 rounded-lg text-right font-sans text-xs space-y-2 shadow-md hover:border-emerald-500/50 transition-all">
+                <div className="flex items-center gap-1.5 justify-start text-emerald-400 font-black">
+                  <span className="animate-bounce">🎁</span>
+                  <span>{benefitAd.title}</span>
+                </div>
+                <p className="text-gray-300 leading-relaxed font-semibold text-[11px]">
+                  {benefitAd.description}
+                </p>
+                <div className="pt-1">
+                  <Button 
+                    variant="outline"
+                    size="sm" 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      window.open(benefitAd.actionUrl, '_blank');
+                    }}
+                    className="w-full h-8 bg-emerald-600 hover:bg-emerald-500 hover:text-white border-none text-white text-[10px] font-bold flex items-center justify-center gap-1 select-none"
+                  >
+                    <Gift className="w-3.5 h-3.5" />
+                    <span>{benefitAd.buttonText} ($Zero-Click ROI)</span>
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

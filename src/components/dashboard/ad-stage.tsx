@@ -2,6 +2,7 @@
 
 import React, { useContext, useMemo, useState, useEffect } from 'react';
 import { usePromoStream } from '@/hooks/use-promo-stream';
+import { useMarketPulse } from '@/hooks/use-market-pulse';
 import { getDistrictFromCoords } from '@/lib/geospatial'; 
 import { Button } from '../ui/button';
 import { handleAdAction } from '@/lib/utils';
@@ -36,6 +37,14 @@ export function AdStage() {
   }, [driverOps, riderOps, user]);
 
   const { activeAds, registerClick } = usePromoStream(liveLocation.district, liveLocation.governorate);
+  const { pulseData } = useMarketPulse(true);
+
+  const activeDistrictPulse = useMemo(() => {
+    const d = liveLocation.district;
+    if (!d || !pulseData) return null;
+    return pulseData.find(p => p.id === d) || null;
+  }, [liveLocation.district, pulseData]);
+
   const [currentIndex, setCurrentIndex] = useState(0);
 
   // Auto-advance ads every 5 seconds as dictated by Section 55 Constitution
@@ -121,6 +130,12 @@ export function AdStage() {
                 <span className="flex items-center gap-1 bg-blue-950/80 border border-blue-500/30 text-blue-400 text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full backdrop-blur-md">
                   <Sparkles className="w-3.5 h-3.5 text-blue-400" />
                   لواء: {currentAd.targetDistrict}
+                </span>
+              )}
+              {activeDistrictPulse?.emergencyAdCapacityActive && (
+                <span className="flex items-center gap-1 bg-red-950/90 border border-amber-500/50 text-amber-300 text-[9px] font-black uppercase tracking-wider px-3 py-1 rounded-full backdrop-blur-md shadow-[0_0_15px_rgba(245,158,11,0.2)]">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
+                  حزمة طارئة نشطة: انتباه مكثف [v5.5]
                 </span>
               )}
             </div>

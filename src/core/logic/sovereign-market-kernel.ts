@@ -170,10 +170,62 @@ export const RadarBundleIntegrityKernel = {
   }
 };
 
+// AdSovereignPass Interface [SCR-AD-INTEGRITY-112]
+export interface AdSovereignPass {
+  adId: string;
+  targetScale: 'Governorate' | 'District';
+  targetLocationName: string;
+  adType: 'RIDER_BENEFIT' | 'CAPTAIN_PROFESSIONAL'; // إعلانات منفعة للراكب أو مهنية للسائق
+  bannerUrl: string;
+}
+
+// [SCR-AD-INTEGRITY-112] المحرك النسيجي لربط شذوذ الأسعار ببطاقات المعلنين
+// محصن ومغلق دستورياً - يعمل بالكامل عند حافة الشبكة لضمان صفر كلفة
+export const RadarSovereignIntegrationKernel = {
+  /**
+   * دالة المزاوجة الذكية: تطلق الإعلان المناسب فوراً بناءً على مخرجات كوابح السوق وحرق الأسعار
+   * @param deviationRatio نسبة انحراف حزمة السائق المحتسبة معيارياً (Fare_test)
+   * @param userProfile ملف المستخدم الحالي في الميدان
+   * @param activeAds مصفوفة الإعلانات المحملة محلياً في الذاكرة الحافة IndexedDB
+   */
+  triggerContextualAdStream: function(
+    deviationRatio: number, 
+    userProfile: { role: 'rider' | 'captain'; district: string; governorate: string; },
+    activeAds: AdSovereignPass[]
+  ): AdSovereignPass | null {
+    
+    // 1. تصفية الإعلانات جغرافياً أولاً حسب لواء ومحافظة المستخدم الحالي لمنع الهدر
+    const localAds = activeAds.filter(ad => 
+      ad.targetLocationName === userProfile.district || ad.targetLocationName === userProfile.governorate
+    );
+
+    // 2. تطبيق المادة (3) والمادة (4) من دستور كوابح السوق لتوجيه الإعلان
+    if (deviationRatio >= 0.15) {
+      // السائق مجمّد بسبب تجاوز عتبة الـ 15% -> يتم بث إعلان مهني موجه له فوراً في قمرة العمليات
+      if (userProfile.role === 'captain') {
+        const found = localAds.find(ad => ad.adType === 'CAPTAIN_PROFESSIONAL');
+        if (found) return found;
+      }
+    } 
+    
+    if (deviationRatio >= 0.10) {
+      // السائق في منطقة حرق الأسعار (10%) -> الراكب يرى وسم "السعر المحروق"، وبالموازاة يظهر له إعلان "المنفعة والمكافآت" لتهدئته وجذبه للمعلن
+      if (userProfile.role === 'rider') {
+        const found = localAds.find(ad => ad.adType === 'RIDER_BENEFIT');
+        if (found) return found;
+      }
+    }
+
+    // في حال استقرار النبض السعري تماماً، يتم تدوير الإعلانات المحلية العادية كل 5 ثوانٍ بانتظام
+    return localAds[Math.floor(Math.random() * localAds.length)] || null;
+  }
+};
+
 // قفل الكائن برمجياً لمنع التلاعب الجنائي بالقيم داخل المتصفح (Runtime Freeze)
 try {
   Object.freeze(SovereignMarketKernel);
   Object.freeze(RadarBundleIntegrityKernel);
+  Object.freeze(RadarSovereignIntegrationKernel);
 } catch (e) {
   console.warn("Failed to freeze SovereignMarketKernel structures, fallback applied:", e);
 }

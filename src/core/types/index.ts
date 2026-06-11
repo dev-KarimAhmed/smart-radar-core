@@ -54,6 +54,9 @@ export interface User {
   walletBalanceJD?: number;
   activePackageName?: string;
   walletTransactions?: any[];
+  paidHoursRemaining?: number;
+  bonusHoursRemaining?: number;
+  lastTickTimestamp?: number;
 }
 
 export type TripStatus = 'searching' | 'busy' | 'completed' | 'cancelled' | 'rating' | 'checkpoint_required' | 'archived' | 'in_progress' | 'idle';
@@ -131,6 +134,7 @@ export interface SovereignAd {
   clicksCount?: number;
   whatsapp?: string;
   phone?: string;
+  adType?: 'RIDER_BENEFIT' | 'CAPTAIN_PROFESSIONAL' | 'all' | string;
   // Flat helper properties for UI components
   title?: string;
   description?: string;
@@ -160,6 +164,9 @@ export interface MarketPulse {
   trend: 'high_demand' | 'high_supply' | 'balanced' | string;
   demand: number;
   supply: number;
+  priceAnomaliesCount?: number; // عدد حالات الشذوذ السعري / حرق الأسعار المرصودة
+  priceAnomalyTrend?: 'up' | 'down' | 'stable'; // اتجاه الشذوذ الإعلاني السعري
+  emergencyAdCapacityActive?: boolean; // تفعيل السعة الطارئة والمكثفة
 }
 
 export type RegistrationPayload = any;

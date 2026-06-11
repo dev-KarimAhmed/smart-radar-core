@@ -17,6 +17,8 @@ import { useToast } from '@/hooks/use-toast';
 import { StarRating } from '@/components/ui/star-rating';
 import { DriverPricingCard } from './driver-pricing-card';
 import { usePricingMatrix } from '@/hooks/use-pricing-matrix';
+import { useAuth } from '@/hooks/use-auth';
+import { RadarCaptainDashboard } from './driver/captain-dashboard';
 
 const KineticTrendTicker = React.memo(() => {
   const anonymizedSectors = [
@@ -69,6 +71,29 @@ export function DriverViewTab() {
     endTrip, isEndingTrip, rateAndFinishTrip, isRatingRider, requests,
     driverLocation, rejectRequest, rejectedTripIds, pulseData
   } = useDriverOperations();
+  
+  const { user } = useAuth();
+  
+  const captainProfileData = useMemo(() => {
+    const defaultComments = [
+      'المركبة نظيفة جداً والكابتن متعاون للغاية.',
+      'قيادة متزنة وملتزم تماماً بكوابح الأسعار القانونية باللواء.',
+      'سرعة ممتازة وتواصل حكيم ومحترم ومهذب.'
+    ];
+
+    const ratingVal = user?.rating !== undefined 
+      ? user.rating 
+      : (user?.ratingSum && user?.ratingCount ? user.ratingSum / user.ratingCount : 5.0);
+
+    return {
+      id: user?.uid || 'temp-id',
+      rank: (user?.rank ? user.rank.toUpperCase() : 'GOLD') as 'PLATINUM' | 'GOLD' | 'BRONZE' | 'SILVER',
+      walletHours: user?.paidHoursRemaining !== undefined ? user.paidHoursRemaining : 180, // 3 hours equivalent
+      bonusHours: user?.bonusHoursRemaining !== undefined ? user.bonusHoursRemaining : 120, // 2 hours equivalent
+      rating: ratingVal,
+      weeklyComments: defaultComments
+    };
+  }, [user]);
   
   const { matrix } = usePricingMatrix();
   const { toast } = useToast();
@@ -433,6 +458,11 @@ export function DriverViewTab() {
           onCancel={() => setActivePricingRequest(null)}
         />
       )}
+
+      {/* [SCR-DASH-CAPTAIN-115] قمرة العمليات القيادية لضبط الرصيد والساعات والتعليقات */}
+      <div className="w-full max-w-lg mx-auto pb-24 pt-4 px-2 space-y-4">
+        <RadarCaptainDashboard captainProfile={captainProfileData} />
+      </div>
     </>
   );
 }

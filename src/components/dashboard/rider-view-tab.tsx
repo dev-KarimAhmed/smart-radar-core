@@ -17,6 +17,7 @@ import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useAuth } from '@/hooks/use-auth';
 import { motion } from 'motion/react';
+import { RadarRiderDashboard, HistoricalTrip } from './rider/rider-dashboard';
 
 export function RiderViewTab() {
   const { 
@@ -28,6 +29,49 @@ export function RiderViewTab() {
   } = useRiderOperations();
 
   const { user } = useAuth();
+
+  const riderProfile = React.useMemo(() => {
+    const ratingVal = user?.rating !== undefined 
+      ? user.rating 
+      : (user?.ratingSum && user?.ratingCount ? user.ratingSum / user.ratingCount : 4.8);
+
+    return {
+      id: user?.uid || 'temp-rider-id',
+      rating: ratingVal,
+      governorate: user?.governorate || 'عمان',
+      district: user?.district || 'وادي السير'
+    };
+  }, [user]);
+
+  const tripsWithin72Hours = React.useMemo<HistoricalTrip[]>(() => {
+    return [
+      {
+        tripId: 'h-trip-1',
+        captainName: 'ثائر بني هاني',
+        captainRank: 'PLATINUM',
+        captainPhone: '0799988771',
+        vehicleInfo: 'هيونداي أيونيك لون فضي - موديل 2022',
+        finalPrice: 2.75,
+        timestamp: Date.now() - 3 * 3600 * 1000, // 3 hours ago
+      },
+      {
+        tripId: 'h-trip-2',
+        captainName: 'أسامة النبر',
+        captainRank: 'GOLD',
+        captainPhone: '0788877662',
+        vehicleInfo: 'كيا نيرو لون كحلي - موديل 2021',
+        finalPrice: 3.40,
+        timestamp: Date.now() - 17 * 3600 * 1000, // 17 hours ago
+      }
+    ];
+  }, []);
+
+  const systemMessages = React.useMemo(() => {
+    return [
+      'تنبيه: تم رصد كثافة ركاب مرتفعة في لواء ناعور المجاورة نتيجة تذبذب طفيف في العروض.',
+      `تنبيه ملاحي: أعمال صيانة وإغلاقات مرورية جزئية في شارع اللواء الرئيسي بـلواء ${user?.district || 'وادي السير'}، يرجى احتساب ذلك في الرحلات القادمة.`
+    ];
+  }, [user]);
 
   const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
   const [riderFeedback, setRiderFeedback] = useState({
@@ -71,7 +115,7 @@ export function RiderViewTab() {
 
         {/* Real-time Sovereign Standby Passenger Interface when modal is closed */}
         {!isRequestModalOpen && (
-          <div className="flex flex-col h-full items-center justify-between p-4 pb-20 select-none text-right font-sans min-h-[70vh] relative z-20 pointer-events-none">
+          <div className="h-full overflow-y-auto p-4 pb-28 select-none text-right font-sans relative z-20 pointer-events-none space-y-6 flex flex-col items-center w-full">
             {/* Top Bar Spacer */}
             <div />
 
@@ -88,7 +132,7 @@ export function RiderViewTab() {
                   <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
                   بروتوكول الانتظار السيادي V5.5
                 </span>
-                <span className="text-gray-500 font-mono text-[9px] font-bold">UTC: 2026-06-09</span>
+                <span className="text-gray-500 font-mono text-[9px] font-bold">UTC: 2026-06-10</span>
               </div>
 
               {/* Display Typography */}
@@ -114,12 +158,21 @@ export function RiderViewTab() {
                 className="w-full h-16 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-lg sm:text-xl tracking-tight rounded-2xl shadow-lg shadow-emerald-950/40 hover:scale-[1.02] active:scale-95 transition-all duration-300 border border-emerald-500/20 flex items-center justify-center gap-2"
                 dir="rtl"
               >
-                <span>إطلاق نداء الراصد 🚀</span>
+                <span>إطلق نداء الراصد الموحد 🚀</span>
               </Button>
             </motion.div>
 
+            {/* [SCR-DASH-RIDER-118] غرفة تحكم الراكب وأرشيف الـ 3 أيام المطهّر تلقائياً */}
+            <div className="w-full max-w-lg pointer-events-auto">
+              <RadarRiderDashboard 
+                riderProfile={riderProfile}
+                tripsWithin72Hours={tripsWithin72Hours}
+                systemMessages={systemMessages}
+              />
+            </div>
+
             {/* Bottom Slogan */}
-            <p className="text-[10px] text-gray-500 font-bold text-center leading-normal max-w-xs uppercase bg-black/40 py-1.5 px-4 rounded-full border border-white/5 pointer-events-auto">
+            <p className="text-[10px] text-gray-400 font-bold text-center leading-normal max-w-xs uppercase bg-black/40 py-1.5 px-4 rounded-full border border-white/5 pointer-events-auto">
               🛡️ رادار النبض: $0.00 تكلفة خادم لإنصاف أطراف الرحلة.
             </p>
           </div>

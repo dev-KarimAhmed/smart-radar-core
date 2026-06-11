@@ -16,6 +16,42 @@ export function usePromoStream(district?: string, governorate?: string) {
     // Beautiful default fallback ads with Geo-Grid tags for Jordanian & Iraqi districts
     const defaultPromos: SovereignAd[] = [
       {
+        id: 'promo-rider-benefit-default',
+        status: 'active',
+        adType: 'RIDER_BENEFIT',
+        content: {
+          title: '🎁 كوبون المنفعة والتعويض للركاب الأحرار',
+          description: 'بسبب حرق الأسعار، تفضل بخصم 50% على غسيل سيارتك أو وجبة شاورما مضاعفة في لواء وادي السير فوراً!',
+          posterUrl: 'https://images.unsplash.com/photo-1563206767-5b18f218e8de?auto=format&fit=crop&q=80&w=1200',
+        },
+        action: {
+          buttonText: 'احصل على الكوبون المجاني',
+          actionUrl: 'https://wa.me/962790000000',
+        },
+        targetDistrict: 'وادي السير',
+        targetGovernorate: 'عمان',
+        phone: '0790000000',
+        whatsapp: '962790000000'
+      },
+      {
+        id: 'promo-captain-professional-default',
+        status: 'active',
+        adType: 'CAPTAIN_PROFESSIONAL',
+        content: {
+          title: '🛠️ مركز تكنولوجيا الزيوت والصيانة المعتمد للناقلين',
+          description: 'للقباطنة والناقلين الأحرار: وفر وقت غضبك واستفد من التجميد السعري! احصل على غيار زيت توتال بخصم 25% مجاناً وفحص كمبيوتر فوري لمركبتك.',
+          posterUrl: 'https://images.unsplash.com/photo-1486006920555-c77dce18193b?auto=format&fit=crop&q=80&w=1200',
+        },
+        action: {
+          buttonText: 'احجز دور صيانة سريع',
+          actionUrl: 'https://wa.me/962790000000',
+        },
+        targetDistrict: 'وادي السير',
+        targetGovernorate: 'عمان',
+        phone: '0790000000',
+        whatsapp: '962790000000'
+      },
+      {
         id: 'promo-wadi-seer',
         status: 'active',
         content: {

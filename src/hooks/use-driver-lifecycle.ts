@@ -7,6 +7,7 @@ import { trackSovereignError } from '@/lib/error-tracker';
 import { SOVEREIGN_CONSTANTS } from '@/core/constants/sovereign-protocols';
 import type { User } from '@/core/types';
 import { useToast } from '@/hooks/use-toast';
+import { RadarTimeSubscriptionKernel } from '@/core/logic/time-kernel';
 
 type DriverStatus = 'active' | 'idle' | 'busy' | 'rating';
 
@@ -22,7 +23,7 @@ export function useDriverLifecycle(user: User | null) {
     }
   }, [user]);
 
-  const updateDriverDoc = useCallback(async (data: { status?: DriverStatus; gridId?: string }) => {
+  const updateDriverDoc = useCallback(async (data: Partial<User> & { status?: DriverStatus }) => {
     if (!user?.uid) return;
     try {
       await setDoc(doc(db, 'users', user.uid), data, { merge: true });
@@ -70,47 +71,73 @@ export function useDriverLifecycle(user: User | null) {
     };
   }, [user?.role, driverStatus, resetDormancyTimer, clearTimers]);
 
-  // ⏳ [حزمة شحن الساعات] - Real-time active hour deduction based on real work minutes
+  // ⏳ [حزمة شحن الساعات] - Real-time active hour deduction based on RadarTimeSubscriptionKernel
   useEffect(() => {
-    if (!user?.uid || user.role !== 'driver' || (driverStatus !== 'active' && driverStatus !== 'busy')) {
+    if (!user?.uid || user.role !== 'driver') {
       return;
     }
 
     const interval = setInterval(async () => {
-      const currentHours = user.subscriptionHours !== undefined ? user.subscriptionHours : 14.5;
-      
-      if (currentHours <= 0) {
-        setDriverStatus('idle');
-        await setDoc(doc(db, 'users', user.uid), { 
-          status: 'idle', 
-          subscriptionHours: 0 
+      const isRadarActive = driverStatus === 'active' || driverStatus === 'busy';
+      const paidHours = user.paidHoursRemaining !== undefined ? user.paidHoursRemaining : (user.subscriptionHours !== undefined ? Math.round(user.subscriptionHours * 60) : 870);
+      const bonusHours = user.bonusHoursRemaining !== undefined ? user.bonusHoursRemaining : 0;
+      const lastTick = user.lastTickTimestamp || Date.now();
+
+      const wallet = {
+        captainId: user.uid,
+        paidHoursRemaining: paidHours,
+        bonusHoursRemaining: bonusHours,
+        isRadarActive,
+        lastTickTimestamp: lastTick
+      };
+
+      const result = RadarTimeSubscriptionKernel.processLocalTimeTick(wallet);
+
+      if (result.triggerSync) {
+        const updated = result.updatedWallet;
+        const totalHoursFraction = (updated.paidHoursRemaining + updated.bonusHoursRemaining) / 60;
+
+        if (!updated.isRadarActive && isRadarActive) {
+          setDriverStatus('idle');
+          await setDoc(doc(db, 'users', user.uid), {
+            status: 'idle',
+            paidHoursRemaining: 0,
+            bonusHoursRemaining: 0,
+            subscriptionHours: 0,
+            lastTickTimestamp: updated.lastTickTimestamp
+          }, { merge: true });
+
+          toast({
+            variant: 'destructive',
+            title: '🚨 نفاد باقة ساعات الملاحة',
+            description: 'لقد نفدت حزمة ساعات البث المخصصة لك كلياً. يرجى التوجه لتبويب المحفظة لشحن رصيد ساعات جديد.'
+          });
+        } else {
+          await setDoc(doc(db, 'users', user.uid), {
+            paidHoursRemaining: updated.paidHoursRemaining,
+            bonusHoursRemaining: updated.bonusHoursRemaining,
+            subscriptionHours: Number(totalHoursFraction.toFixed(3)),
+            lastTickTimestamp: updated.lastTickTimestamp
+          }, { merge: true });
+        }
+      } else if (!user.lastTickTimestamp) {
+        await setDoc(doc(db, 'users', user.uid), {
+          lastTickTimestamp: Date.now()
         }, { merge: true });
-        
-        toast({
-          variant: 'destructive',
-          title: '🚨 نفاد باقة ساعات الملاحة',
-          description: 'لقد نفدت حزمة ساعات البث المخصصة لك كلياً. يرجى التوجه لتبويب المحفظة لشحن رصيد ساعات جديد.'
-        });
-        return;
       }
-
-      // Decrement by 1 minute of actual work (1 / 60 of an hour ~ 0.0167 hours)
-      const finalHours = Math.max(0, currentHours - (1 / 60));
-      
-      await setDoc(doc(db, 'users', user.uid), { 
-        subscriptionHours: Number(finalHours.toFixed(3)) 
-      }, { merge: true });
-
-    }, 60000); // Deduct hours every 60 seconds of online work
+    }, 10000); // Check loop every 10 seconds to handle ticks gracefully
 
     return () => clearInterval(interval);
-  }, [user?.uid, user?.role, user?.subscriptionHours, driverStatus, toast]);
+  }, [user?.uid, user?.role, user?.subscriptionHours, user?.paidHoursRemaining, user?.bonusHoursRemaining, user?.lastTickTimestamp, driverStatus, toast]);
 
   const toggleDriverStatus = useCallback(async (desiredStatus: 'active' | 'idle') => {
     if (driverStatus === 'busy' || driverStatus === 'rating') return;
     
-    const currentHours = user?.subscriptionHours !== undefined ? user.subscriptionHours : 14.5;
-    if (desiredStatus === 'active' && currentHours <= 0) {
+    const paidHours = user?.paidHoursRemaining !== undefined ? user.paidHoursRemaining : (user?.subscriptionHours !== undefined ? Math.round(user.subscriptionHours * 60) : 870);
+    const bonusHours = user?.bonusHoursRemaining !== undefined ? user.bonusHoursRemaining : 0;
+    const totalMinutes = paidHours + bonusHours;
+
+    if (desiredStatus === 'active' && totalMinutes <= 0) {
       toast({
         variant: 'destructive',
         title: '🚫 عجز ساعات البث',
@@ -120,8 +147,11 @@ export function useDriverLifecycle(user: User | null) {
     }
 
     setDriverStatus(desiredStatus);
-    await updateDriverDoc({ status: desiredStatus });
-  }, [driverStatus, updateDriverDoc, user?.subscriptionHours, toast]);
+    await updateDriverDoc({ 
+      status: desiredStatus,
+      lastTickTimestamp: desiredStatus === 'active' ? Date.now() : (user?.lastTickTimestamp || Date.now())
+    });
+  }, [driverStatus, updateDriverDoc, user?.paidHoursRemaining, user?.bonusHoursRemaining, user?.subscriptionHours, user?.lastTickTimestamp, toast]);
 
   return {
     driverStatus,

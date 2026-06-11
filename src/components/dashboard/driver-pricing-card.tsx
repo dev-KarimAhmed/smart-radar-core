@@ -9,8 +9,10 @@ import { AlertCircle, ArrowDown, ArrowUp, BarChart2, ShieldAlert, Activity, Tren
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { RadarBundleIntegrityKernel, GlobalPulseDoc } from '@/core/logic/sovereign-market-kernel';
+import { RadarBundleIntegrityKernel, GlobalPulseDoc, RadarSovereignIntegrationKernel, AdSovereignPass } from '@/core/logic/sovereign-market-kernel';
 import { useAuth } from '@/hooks/use-auth';
+import { usePromoStream } from '@/hooks/use-promo-stream';
+import { MessageCircle, Wrench } from 'lucide-react';
 
 interface PricingCardProps {
   mode: 'setup' | 'offer';
@@ -53,6 +55,8 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, re
 
   const { user } = useAuth();
   
+  const { activeAds } = usePromoStream(user?.district || 'وادي السير', user?.governorate || 'عمان');
+
   const currentRating = useMemo(() => {
     if (!user) return 5.0;
     if (user.rating !== undefined) return user.rating;
@@ -79,6 +83,50 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, re
   const isImmuneRisk = useMemo(() => {
     return currentRating <= 4.3;
   }, [currentRating]);
+
+  const professionalAd = useMemo(() => {
+    if (!isBlocked) return null;
+    
+    // Convert to AdSovereignPass
+    const passAds = activeAds.map(ad => ({
+      adId: ad.id,
+      targetScale: ad.targetDistrict ? 'District' : 'Governorate' as any,
+      targetLocationName: ad.targetDistrict || ad.targetGovernorate || 'وادي السير',
+      adType: ad.adType as any,
+      bannerUrl: ad.content?.posterUrl || ''
+    })).filter(ad => ad.adType === 'CAPTAIN_PROFESSIONAL');
+    
+    if (passAds.length === 0) {
+      return {
+        adId: 'promo-captain-professional-default',
+        title: '🛠️ مركز تكنولوجيا الزيوت والصيانة المعتمد للناقلين',
+        description: 'للقباطنة والناقلين الأحرار: وفر وقت غضبك واستفد من التجميد السعري! احصل على غيار زيت توتال بخصم 25% مجاناً وفحص كمبيوتر فوري لمركبتك.',
+        actionUrl: 'https://wa.me/962790000000',
+        buttonText: 'احجز العرض الفوري للناقلين',
+        bannerUrl: 'https://images.unsplash.com/photo-1486006920555-c77dce18193b?auto=format&fit=crop&q=80&w=1200'
+      };
+    }
+    
+    const matchedPass = RadarSovereignIntegrationKernel.triggerContextualAdStream(
+      dynamicDeviationRatio, // deviation ratio here is >= 0.15
+      { role: 'captain', district: user?.district || 'وادي السير', governorate: user?.governorate || 'عمان' },
+      passAds as any
+    );
+    
+    if (matchedPass) {
+      const realAd = activeAds.find(ad => ad.id === matchedPass.adId);
+      return {
+        adId: matchedPass.adId,
+        title: realAd?.content?.title || '🛠️ عرض صيانة مهني معتمد',
+        description: realAd?.content?.description || 'عرض تكنولوجي للناقلين الأحرار في جهتهم الصيانة.',
+        actionUrl: realAd?.action?.actionUrl || realAd?.actionUrl || 'https://wa.me/962790000000',
+        buttonText: realAd?.action?.buttonText || realAd?.buttonText || 'احجز العرض',
+        bannerUrl: realAd?.content?.posterUrl || 'https://images.unsplash.com/photo-1486006920555-c77dce18193b?auto=format&fit=crop&q=80&w=1200'
+      };
+    }
+    
+    return null;
+  }, [isBlocked, activeAds, user, dynamicDeviationRatio]);
 
   useEffect(() => {
     setPulseData({
@@ -177,8 +225,83 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, re
 
   if (mode === 'setup') {
     return (
-       <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="bg-[#091B09] border border-green-800 rounded-xl w-full max-w-lg text-white shadow-2xl overflow-y-auto max-h-[90vh]">
+       <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in-25">
+          <div className="bg-[#091B09] border border-green-800 rounded-xl w-full max-w-lg text-white shadow-2xl overflow-y-auto max-h-[90vh] relative">
+            
+            {/* [المادة 4] تجميد شاشة السائق وعرض الإعلان المهني الموجه عند تجاوز الـ 15% */}
+            {isBlocked && (
+              <div className="absolute inset-0 z-50 bg-[#061206]/98 backdrop-blur-xl p-6 flex flex-col justify-between overflow-y-auto text-right" dir="rtl">
+                <div className="space-y-4">
+                  <div className="flex items-start gap-2.5 text-red-400 border border-red-500/30 bg-red-950/20 p-4 rounded-xl shadow-lg">
+                    <AlertCircle className="w-5 h-5 shrink-0 animate-bounce text-red-500 mt-0.5" />
+                    <div>
+                      <h4 className="text-sm font-black text-red-500">🚫 خطأ في المداخلات: القيمة غير منطقية تشغيلياً</h4>
+                      <p className="text-[11px] text-gray-300 mt-1 leading-normal">
+                        الرادار الذكي لا يقبل نبضاً يهدد استدامة الميدان. تم حظر العرض الخارجي وتجميد الشاشة مؤقتاً لتصحيح أسعارك بما يلائم السوق الموحد.
+                      </p>
+                    </div>
+                  </div>
+
+                  {professionalAd && (
+                    <div className="relative rounded-2xl overflow-hidden border border-amber-500/30 bg-[#140b03]/80 space-y-3 p-4 shadow-xl">
+                      <img 
+                        src={professionalAd.bannerUrl}
+                        alt={professionalAd.title}
+                        className="w-full h-32 object-cover rounded-lg opacity-85 hover:scale-102 transition-all duration-500"
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="space-y-1">
+                        <span className="inline-block bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[9px] font-black px-2.5 py-0.5 rounded-full mb-1">
+                          🛠️ إعلانات مهنية موجهة للناقلين
+                        </span>
+                        <h3 className="text-base font-black text-white">{professionalAd.title}</h3>
+                        <p className="text-[11px] text-gray-300 leading-relaxed">
+                          {professionalAd.description}
+                        </p>
+                      </div>
+                      
+                      <Button 
+                        onClick={() => window.open(professionalAd.actionUrl, '_blank')}
+                        className="w-full h-11 bg-amber-600 hover:bg-amber-500 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-md mt-1"
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                        <span>{professionalAd.buttonText} ($Zero-Click ROI)</span>
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-3 pt-6 border-t border-green-900/40">
+                  <p className="text-center text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                    عُد للحدود الآمنة لتسييل نبضك الرقمي واستقبال ركاب اللواء:
+                  </p>
+                  
+                  <div className="flex gap-2.5">
+                    <Button
+                      onClick={() => {
+                        setMatrix({
+                          shortTripFare: 1.20,
+                          longTripKmRate: 0.25,
+                          minuteRate: 0.05
+                        });
+                        setError('');
+                      }}
+                      className="flex-1 h-12 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-black text-xs flex items-center justify-center gap-1.5 transition-all shadow-md shadow-emerald-950/20"
+                    >
+                      <span>استعادة القيم العادلة للنبض (بضغطة واحدة) ⚖️</span>
+                    </Button>
+                    
+                    <Button
+                      onClick={onCancel}
+                      variant="outline"
+                      className="h-12 px-5 bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10 rounded-xl text-xs font-bold"
+                    >
+                      إلغاء الخروج
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
             
             <div className="p-6 pb-0">
                 <div className="p-4 rounded-xl border border-green-500/30 bg-green-500/5 backdrop-blur-md animate-pulse-slow">
