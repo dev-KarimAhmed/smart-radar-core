@@ -1,4 +1,5 @@
 import { SOVEREIGN_CONSTANTS } from '@/core/constants/sovereign-protocols';
+import { trackSovereignError } from '@/lib/error-tracker';
 
 const EARTH_RADIUS_KM = 6371;
 
@@ -37,7 +38,6 @@ export const extractSovereignCoordinates = (url: string): { lat: number; lng: nu
     }
     return null;
   } catch (error) {
-    const { trackSovereignError } = require('@/lib/error-tracker');
     trackSovereignError(error, { context: 'extractSovereignCoordinates_failed', url });
     return null;
   }

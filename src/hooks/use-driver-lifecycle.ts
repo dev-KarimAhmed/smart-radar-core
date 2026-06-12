@@ -8,6 +8,8 @@ import { SOVEREIGN_CONSTANTS } from '@/core/constants/sovereign-protocols';
 import type { User } from '@/core/types';
 import { useToast } from '@/hooks/use-toast';
 import { RadarTimeSubscriptionKernel } from '@/core/logic/time-kernel';
+import { RadarSovereignCommuteKernel } from '@/lib/commute-kernel';
+import { RadarAntiCheatKernel } from '@/core/logic/anti-cheat-kernel';
 
 type DriverStatus = 'active' | 'idle' | 'busy' | 'rating';
 
@@ -16,6 +18,18 @@ export function useDriverLifecycle(user: User | null) {
   const [isDormancyWarningVisible, setWarning] = useState(false);
   const timers = useRef<{ dormancy: ReturnType<typeof setTimeout> | null; warning: ReturnType<typeof setTimeout> | null }>({ dormancy: null, warning: null });
   const { toast } = useToast();
+
+  const userRef = useRef(user);
+  const statusRef = useRef(driverStatus);
+  const sessionStartRef = useRef<{ dateNow: number; perfNow: number } | null>(null);
+
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
+
+  useEffect(() => {
+    statusRef.current = driverStatus;
+  }, [driverStatus]);
 
   useEffect(() => {
     if (user?.role === 'driver') {
@@ -78,28 +92,65 @@ export function useDriverLifecycle(user: User | null) {
     }
 
     const interval = setInterval(async () => {
-      const isRadarActive = driverStatus === 'active' || driverStatus === 'busy';
-      const paidHours = user.paidHoursRemaining !== undefined ? user.paidHoursRemaining : (user.subscriptionHours !== undefined ? Math.round(user.subscriptionHours * 60) : 870);
-      const bonusHours = user.bonusHoursRemaining !== undefined ? user.bonusHoursRemaining : 0;
-      const lastTick = user.lastTickTimestamp || Date.now();
+      const currentUser = userRef.current;
+      const currentStatus = statusRef.current;
+      if (!currentUser?.uid || currentUser.role !== 'driver') return;
+
+      if (!sessionStartRef.current) {
+        sessionStartRef.current = {
+          dateNow: Date.now(),
+          perfNow: performance.now()
+        };
+      }
+
+      // Calculate real monotonic elapsed time to neutralize any clock modifications (forward or backward)
+      const realElapsedMs = performance.now() - sessionStartRef.current.perfNow;
+      const wallElapsedMs = Date.now() - sessionStartRef.current.dateNow;
+
+      let clientNow = Date.now();
+      // If manual clock alteration is detected (system clock drifted from performance timer by > 15s)
+      if (Math.abs(wallElapsedMs - realElapsedMs) > 15000) {
+        console.warn("🚫 [كشف التلاعب الزمني]: تم رصد تموج مفرط أو يدوي بساعة الجهاز. استرداد الزمن المونوتوني المعاير.");
+        clientNow = sessionStartRef.current.dateNow + realElapsedMs;
+      }
+
+      const isRadarActive = currentStatus === 'active' || currentStatus === 'busy';
+      const paidHours = currentUser.paidHoursRemaining !== undefined ? currentUser.paidHoursRemaining : (currentUser.subscriptionHours !== undefined ? Math.round(currentUser.subscriptionHours * 60) : 870);
+      const bonusHours = currentUser.bonusHoursRemaining !== undefined ? currentUser.bonusHoursRemaining : 0;
+      const lastTick = currentUser.lastTickTimestamp || Date.now();
+
+      // [علاق ثغرة الوقت]: ميزان فحص سلامة الوقت لمنع التلاعب بساعة الهاتف
+      const integrity = RadarAntiCheatKernel.validateTimeIntegrity({
+        paidMinutesRemaining: paidHours,
+        lastServerSyncedTimestamp: lastTick,
+        localTimeDeltaMs: 0
+      }, clientNow);
+
+      if (integrity.isTimeTampered) {
+        clientNow = integrity.correctedNow;
+      }
 
       const wallet = {
-        captainId: user.uid,
+        captainId: currentUser.uid,
         paidHoursRemaining: paidHours,
         bonusHoursRemaining: bonusHours,
         isRadarActive,
         lastTickTimestamp: lastTick
       };
 
-      const result = RadarTimeSubscriptionKernel.processLocalTimeTick(wallet);
+      const result = RadarTimeSubscriptionKernel.processLocalTimeTick(wallet, clientNow);
 
       if (result.triggerSync) {
         const updated = result.updatedWallet;
         const totalHoursFraction = (updated.paidHoursRemaining + updated.bonusHoursRemaining) / 60;
 
+        // [قفل المصافحة الجداري]: تحديث الهاش في المتصفح محلياً فوراً لحبس العداد وحفظ نزاهته
+        const nextHash = RadarSovereignCommuteKernel.generateStateHash(currentUser.uid, updated.paidHoursRemaining, updated.bonusHoursRemaining);
+        localStorage.setItem(`sovereign_shake_${currentUser.uid}`, nextHash);
+
         if (!updated.isRadarActive && isRadarActive) {
           setDriverStatus('idle');
-          await setDoc(doc(db, 'users', user.uid), {
+          await setDoc(doc(db, 'users', currentUser.uid), {
             status: 'idle',
             paidHoursRemaining: 0,
             bonusHoursRemaining: 0,
@@ -113,22 +164,22 @@ export function useDriverLifecycle(user: User | null) {
             description: 'لقد نفدت حزمة ساعات البث المخصصة لك كلياً. يرجى التوجه لتبويب المحفظة لشحن رصيد ساعات جديد.'
           });
         } else {
-          await setDoc(doc(db, 'users', user.uid), {
+          await setDoc(doc(db, 'users', currentUser.uid), {
             paidHoursRemaining: updated.paidHoursRemaining,
             bonusHoursRemaining: updated.bonusHoursRemaining,
             subscriptionHours: Number(totalHoursFraction.toFixed(3)),
             lastTickTimestamp: updated.lastTickTimestamp
           }, { merge: true });
         }
-      } else if (!user.lastTickTimestamp) {
-        await setDoc(doc(db, 'users', user.uid), {
+      } else if (!currentUser.lastTickTimestamp) {
+        await setDoc(doc(db, 'users', currentUser.uid), {
           lastTickTimestamp: Date.now()
         }, { merge: true });
       }
     }, 10000); // Check loop every 10 seconds to handle ticks gracefully
 
     return () => clearInterval(interval);
-  }, [user?.uid, user?.role, user?.subscriptionHours, user?.paidHoursRemaining, user?.bonusHoursRemaining, user?.lastTickTimestamp, driverStatus, toast]);
+  }, [user?.uid, user?.role, toast]);
 
   const toggleDriverStatus = useCallback(async (desiredStatus: 'active' | 'idle') => {
     if (driverStatus === 'busy' || driverStatus === 'rating') return;

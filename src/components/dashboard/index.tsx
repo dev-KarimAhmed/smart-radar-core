@@ -11,6 +11,8 @@ import { AdminViewTab } from './admin-view-tab';
 import { DriverViewTab } from './driver-view-tab';
 import { RiderViewTab } from './rider-view-tab';
 import { WalletTab } from './wallet-tab';
+import { ProfileTab } from './profile-tab';
+import { HistoryTab } from './history-tab';
 
 import React, { useState, useEffect } from 'react';
 
@@ -116,6 +118,19 @@ function DashboardLayout() {
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
+
+  const handleBackgroundClick = (e: React.MouseEvent) => {
+    if (
+      e.target === e.currentTarget || 
+      (e.target as HTMLElement).classList.contains('dashboard-bg-clicker') || 
+      (e.target as HTMLElement).classList.contains('dashboard-inner-clicker')
+    ) {
+      const adStageElement = document.querySelector('.ad-stage-clicktarget');
+      if (adStageElement) {
+        (adStageElement as HTMLElement).click();
+      }
+    }
+  };
   
   const renderContent = () => {
     if (isSovereign) return <AdminViewTab />;
@@ -133,6 +148,14 @@ function DashboardLayout() {
       return <WalletTab />;
     }
 
+    if (hash === '#history') {
+      return <HistoryTab />;
+    }
+
+    if (hash === '#profile') {
+      return <ProfileTab />;
+    }
+
     if (isCaptain) {
       return <DriverViewTab />;
     }
@@ -148,8 +171,22 @@ function DashboardLayout() {
           <AdStage />
           
           {/* المحتوى التفاعلي في الطبقة z-10 - مع التأكد من عدم حجب الأزرار في الهيدر */}
-          <div className="absolute inset-0 z-10 overflow-y-auto pt-4 pb-24 pointer-events-none">
-              <div className="p-4 md:p-8 h-full pointer-events-auto">
+          <div 
+            onClick={handleBackgroundClick}
+            className={`absolute inset-0 z-10 overflow-y-auto pt-4 pb-24 transition-all duration-300 pointer-events-auto dashboard-bg-clicker ${
+              (hash === '#wallet' || hash === '#history' || hash === '#profile') 
+                ? 'bg-black/75 backdrop-blur-sm' 
+                : ''
+            }`}
+          >
+              <div 
+                className="p-4 md:p-8 h-full dashboard-inner-clicker"
+                onClick={(e) => {
+                  if (e.target === e.currentTarget) {
+                    handleBackgroundClick(e);
+                  }
+                }}
+              >
                 <SovereignErrorBoundary>
                   {renderContent()}
                 </SovereignErrorBoundary>

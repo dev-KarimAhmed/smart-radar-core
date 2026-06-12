@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useDriverOperations } from '@/hooks/use-driver-operations';
 
 interface CaptainDashboardProps {
   captainProfile: {
@@ -16,6 +17,8 @@ interface CaptainDashboardProps {
 export const RadarCaptainDashboard: React.FC<CaptainDashboardProps> = ({ captainProfile }) => {
   const [isRadarActive, setIsRadarActive] = useState<boolean>(false);
   const [localHours, setLocalHours] = useState(captainProfile.walletHours);
+  
+  const { currentDistrict, currentH3Cell, driverStatus, isDisconnectionLockActive } = useDriverOperations() || {};
 
   // بروتوكول تجميد الوقت عند الاستراحة - يعمل محلياً بالكامل بصفر كلفة
   useEffect(() => {
@@ -75,15 +78,57 @@ export const RadarCaptainDashboard: React.FC<CaptainDashboardProps> = ({ captain
           <h4 className="text-xs text-amber-500 font-bold uppercase tracking-wider">🏅 الرتبة التشغيلية الحالية:</h4>
           <h3 className="text-xl font-bold text-amber-400">[{captainProfile.rank}]</h3>
           <p className="text-[11px] text-gray-300">
-            🎁 رصيد ساعات البونص الممنوحة مميزاً: <strong className="text-amber-400 text-sm">{captainProfile.bonusHours} ساعة حرة</strong>
+            🎁 رصيد ساعات البونص الممنوحة مميزاً: <strong className="text-amber-400 text-sm">{Math.floor(captainProfile.bonusHours / 60)} ساعة و {captainProfile.bonusHours % 60} دقيقة حرة</strong>
           </p>
-          <p className="text-[10px] text-gray-45.00 leading-normal">
-            * ميزة سيادية: ساعات البونص مُهداة تلقائياً لقاء التزامك بكوابح السوق ونبض الأسعار باللواء؛ استهلكها بحرية تشغيلية مطلقة.
+          <p className="text-[10px] text-gray-400 leading-normal">
+            * ميزة سيادية: ساعات البونص تُمنح تلقائياً لقاء التزامك بكوابح السوق ونبض الأسعار باللواء؛ استهلكها بحرية تشغيلية مطلقة.
           </p>
         </div>
       </div>
 
-      {/* 4. حقل وسيط التقييم والاطلاع الأسبوعي المجهر (المطهر) */}
+      {/* 4. [SCR-COMMUTE-PROTO-155] بوابة الارتحال والذوبان النسيجي اللحظي */}
+      <div className="commute-block mt-4 p-4 bg-[#0a0c10] border border-blue-900/30 rounded-xl space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-white/5 pb-2 gap-2">
+          <h4 className="text-xs font-black text-blue-400">📡 بروتوكول الارتحال والذوبان النسيجي اللحظي [SCR-COMMUTE-PROTO-155]</h4>
+          <div className="flex items-center gap-2">
+            {isDisconnectionLockActive ? (
+              <span className="text-[9px] font-bold text-red-400 bg-red-950/50 border border-red-500/30 px-2 py-0.5 rounded-full animate-pulse">
+                قفل المصافحة: تالف بانتظار الموازنة 🔐
+              </span>
+            ) : (
+              <span className="text-[9px] font-bold text-emerald-400 bg-emerald-950/50 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                قفل المصافحة: مؤمن ومعقم 💎
+              </span>
+            )}
+            <span className="text-[9px] font-bold text-gray-500 bg-blue-950/40 border border-blue-900/20 px-2 py-0.5 rounded-full">
+              الذوبان: نشط وعالي الدقة
+            </span>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-right">
+          <div className="p-2.5 bg-black/50 rounded-lg border border-white/5">
+            <span className="text-[9px] text-gray-500 block">⚓ وتد التسجيل الثابت:</span>
+            <span className="text-[12px] font-bold text-gray-200">لواء {captainProfile.id ? 'وادي السير' : 'وادي السير'}</span>
+          </div>
+          
+          <div className="p-2.5 bg-black/50 rounded-lg border border-blue-500/10">
+            <span className="text-[9px] text-blue-400 block">🚗 صالة المزاد النشطة:</span>
+            <span className="text-[12px] font-black text-emerald-400">لواء {currentDistrict || 'وادي السير'}</span>
+          </div>
+
+          <div className="p-2.5 bg-black/50 rounded-lg border border-white/5 col-span-2 md:col-span-1">
+            <span className="text-[9px] text-gray-500 block">🗺️ خلية H3 اللحظية (Res 9):</span>
+            <span className="text-[10px] font-mono font-bold text-amber-500">{currentH3Cell || '0x892f35ffffffff'}</span>
+          </div>
+        </div>
+
+        <p className="text-[9px] text-gray-400 leading-normal mt-1 pt-2 border-t border-white/5">
+          ℹ️ <strong>ميثاق حرية القوة الملاحية:</strong> يذوب هاتفك فورياً في اللواء الحالي الذي تقف فيه لعرض طلبات ركابها دون قيود جغرافية، مع إبقاء نسيجك الإعلاني مستهدِفاً لوتد منشئك الموثق.
+        </p>
+      </div>
+
+      {/* 5. حقل وسيط التقييم والاطلاع الأسبوعي المجهر (المطهر) */}
       <div className="feedback-block mt-4 p-4 bg-[#0d0d0d] border border-white/5 rounded-xl space-y-3">
         <div className="flex items-center justify-between border-b border-white/5 pb-2">
           <h4 className="text-xs font-bold text-gray-300">⭐️ رصيد الثقة والمناعة الرقمية:</h4>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { doc, updateDoc, runTransaction, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useToast } from './use-toast';
@@ -25,10 +25,20 @@ export function useRiderTransactions(
   const [isConfirmingCheckpoint, setIsConfirmingCheckpoint] = useState(false);
   const [isSelectingOffer, setIsSelectingOffer] = useState(false);
 
+  // Synchronous Execution Locks to eliminate "The Ghost Command Syndrome"
+  const isRequestingRef = useRef(false);
+  const isCancellingRef = useRef(false);
+  const isRatingRef = useRef(false);
+  const isExecutingGuillotineRef = useRef(false);
+  const isConfirmingCheckpointRef = useRef(false);
+  const isSelectingOfferRef = useRef(false);
+
   /**
    * [SCR-2026-069] استدعاء النواة السيادية لإطلاق رادار رحلة جديدة
    */
   const requestRide = useCallback(async (payload: any) => {
+    if (isRequestingRef.current) return;
+    isRequestingRef.current = true;
     setIsRequesting(true);
     
     try {
@@ -46,13 +56,22 @@ export function useRiderTransactions(
         toast({ variant: 'destructive', title: 'فشل إرسال الإشارة الملاحية', description: error.message });
     } finally {
         setIsRequesting(false);
+        isRequestingRef.current = false;
     }
   }, [setInternalStatus, toast]);
   
   const cancelTrip = useCallback(async () => {
     if (!trip?.id) return;
+    if (isCancellingRef.current) return;
+    isCancellingRef.current = true;
     setIsCancelling(true);
     try {
+      if (user?.uid) {
+        const key = `consecutive_cancels_${user.uid}`;
+        const currentCount = parseInt(localStorage.getItem(key) || '0') + 1;
+        localStorage.setItem(key, currentCount.toString());
+        console.log(`⚠️ دبابات التصفية النسيجية: عدد الإلغاءات المتتالية للراكب بلغ [${currentCount}]`);
+      }
       await updateDoc(doc(db, 'trips', trip.id), { status: 'cancelled' });
       resetState();
       toast({ title: 'تم إلغاء الرحلة ملاحياً', description: 'تم التراجع عن رادار التتبع بنجاح.' });
@@ -61,11 +80,14 @@ export function useRiderTransactions(
       toast({ variant: 'destructive', title: 'فشل إلغاء الرحلة', description: getSovereignErrorMessage(error) });
     } finally {
       setIsCancelling(false);
+      isCancellingRef.current = false;
     }
-  }, [trip?.id, resetState, toast]);
+  }, [trip?.id, resetState, toast, user?.uid]);
 
   const rateTrip = useCallback(async (ratings: { driverRating: number; vehicleRating: number; giveHeart: boolean; sensory: any; }) => {
     if (!trip?.id) return;
+    if (isRatingRef.current) return;
+    isRatingRef.current = true;
     setIsRating(true);
     try {
         await callSovereignCloud('submitTripFeedback', { 
@@ -80,13 +102,19 @@ export function useRiderTransactions(
         toast({ variant: 'destructive', title: 'تعذر حفظ التقييم السيادي', description: getSovereignErrorMessage(error) });
     } finally {
         setIsRating(false);
+        isRatingRef.current = false;
     }
   }, [trip, acceptedDriver, resetState, toast]);
 
   const confirmCheckpoint = useCallback(async () => {
     if (!trip?.id) return;
+    if (isConfirmingCheckpointRef.current) return;
+    isConfirmingCheckpointRef.current = true;
     setIsConfirmingCheckpoint(true);
     try {
+        if (user?.uid) {
+          localStorage.setItem(`consecutive_cancels_${user.uid}`, '0');
+        }
         await updateDoc(doc(db, 'trips', trip.id), { status: 'completed', checkpointConfirmed: true });
         toast({ title: "تم تأكيد المربع الملاحي للأمان", description: "الرحلة تمت بموثوقية عالية." });
         setInternalStatus('rating');
@@ -95,11 +123,14 @@ export function useRiderTransactions(
         toast({ variant: 'destructive', title: 'تعذر تأكيد الإحداثيات الميدانية', description: getSovereignErrorMessage(error) });
     } finally {
         setIsConfirmingCheckpoint(false);
+        isConfirmingCheckpointRef.current = false;
     }
-  }, [trip?.id, toast, setInternalStatus]);
+  }, [trip?.id, toast, setInternalStatus, user?.uid]);
 
   const executeRedPathGuillotine = useCallback(async () => {
     if (!trip?.id) return;
+    if (isExecutingGuillotineRef.current) return;
+    isExecutingGuillotineRef.current = true;
     setIsExecutingGuillotine(true);
     try {
       await callSovereignCloud('executeGuillotine', { tripId: trip.id });
@@ -108,11 +139,14 @@ export function useRiderTransactions(
       toast({ variant: 'destructive', title: 'لم تنجح الإزاحة التعسفية', description: getSovereignErrorMessage(error) });
     } finally {
       setIsExecutingGuillotine(false);
+      isExecutingGuillotineRef.current = false;
     }
   }, [trip?.id, toast]);
 
   const selectOffer = useCallback(async (offer: Offer) => {
     if (!trip?.id) return;
+    if (isSelectingOfferRef.current) return;
+    isSelectingOfferRef.current = true;
     setIsSelectingOffer(true);
     try {
       const tripRef = doc(db, 'trips', trip.id);
@@ -142,6 +176,7 @@ export function useRiderTransactions(
       toast({ variant: 'destructive', title: 'لم يكتمل تأكيد العهد بالفارس', description: getSovereignErrorMessage(error) });
     } finally {
       setIsSelectingOffer(false);
+      isSelectingOfferRef.current = false;
     }
   }, [trip, toast]);
 

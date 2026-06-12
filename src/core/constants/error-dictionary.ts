@@ -1,3 +1,5 @@
+import { SOVEREIGN_ERR_DICTIONARY } from '../config/sovereign-errors';
+
 export const SOVEREIGN_ERRORS = {
   // 🔐 Authentication & Authorization Errors
   AUTH_WEAK_PASSWORD: 'كلمة المرور ضعيفة جداً. (6 أحرف على الأقل لتصل للحد الأدنى للمقاييس السيادية).',
@@ -34,6 +36,13 @@ export type SovereignErrorCode = keyof typeof SOVEREIGN_ERRORS;
 
 export function getSovereignErrorMessage(error: any): string {
   const rawCode = error?.code || error?.message || (typeof error === 'string' ? error : 'SYS_UNKNOWN');
+
+  // المطابقة الفورية مع القاموس السيادي الموحد V5.5
+  const rawCodeStr = String(rawCode).trim().toUpperCase();
+  if (SOVEREIGN_ERR_DICTIONARY[rawCodeStr]) {
+    const def = SOVEREIGN_ERR_DICTIONARY[rawCodeStr];
+    return `[${def.code}] ${def.name}: ${def.description} (الإجراء المتخذ: ${def.action})`;
+  }
 
   if (rawCode === 'auth/operation-not-allowed') {
     return SOVEREIGN_ERRORS.AUTH_OPERATION_NOT_ALLOWED;

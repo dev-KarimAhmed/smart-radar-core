@@ -18,13 +18,13 @@ export const RadarTimeSubscriptionKernel = {
    * محرك النبض الزمني المحلي (يعمل في الـ Service Worker كخلفية صامتة)
    * يتم استهلاكه فقط عندما تكون قمرة العمليات نشطة (isRadarActive === true)
    */
-  processLocalTimeTick: function(wallet: SovereignTimeWallet): { updatedWallet: SovereignTimeWallet; triggerSync: boolean } {
+  processLocalTimeTick: function(wallet: SovereignTimeWallet, nowOverride?: number): { updatedWallet: SovereignTimeWallet; triggerSync: boolean } {
     if (!wallet.isRadarActive) {
       // المادة (2): النظام في وضع الاستراحة، الوقت متجمد كلياً وصفر كلفة
       return { updatedWallet: { ...wallet }, triggerSync: false };
     }
 
-    const now = Date.now();
+    const now = nowOverride || Date.now();
     // احتساب الدقائق المستهلكة فعلياً منذ آخر نشاط
     const minutesElapsed = Math.floor((now - wallet.lastTickTimestamp) / this.CONFIG.TICK_INTERVAL_MS);
 

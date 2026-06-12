@@ -14,6 +14,8 @@ import { calculateSovereignDistance, latLngToH3Cell, getH3CellCentroid } from '@
 import { sanitizeUrl, resolveSovereignUrl } from '@/lib/sovereign-digger';
 import { SovereignDict } from '@/lib/sovereign-dictionary';
 import { useLinkCatcher } from './use-link-catcher';
+import { dexieDb, RadarCaptainFavoriteKernel } from '@/lib/dexie-db';
+import { RadarAntiCheatKernel } from '@/core/logic/anti-cheat-kernel';
 
 interface RiderOperationsContextType {
   trip: Trip | null;
@@ -131,7 +133,6 @@ export function RiderOperationsProvider({ children }: { children: ReactNode }) {
         toast({ ...SovereignDict.SUCCESS.LINK_CAPTURED });
       }
     } catch (err) {
-      const { trackSovereignError } = require('@/lib/error-tracker');
       trackSovereignError(err, { context: 'ClipboardPaste_Failed' });
       toast({ variant: 'destructive', ...SovereignDict.ERRORS.SECURITY_BLOCK });
     }
@@ -233,6 +234,33 @@ export function RiderOperationsProvider({ children }: { children: ReactNode }) {
       return;
     }
     
+    const cancelKey = user?.uid ? `consecutive_cancels_${user.uid}` : '';
+    const cancels = cancelKey ? parseInt(localStorage.getItem(cancelKey) || '0') : 0;
+    const initialRiderRating = user?.rating !== undefined ? user.rating : (user?.ratingSum && user?.ratingCount ? user.ratingSum / user.ratingCount : 5.0);
+
+    const throttleResult = RadarAntiCheatKernel.throttleRiderFloodAttack({
+      riderId: user?.uid || 'unknown',
+      activeRequestsCount: (trip && ['searching', 'busy', 'checkpoint_required'].includes(trip.status)) ? 1 : 0,
+      consecutiveCancellations: cancels,
+      trustRating: initialRiderRating
+    });
+
+    if (!throttleResult.allowRequest) {
+      toast({
+        variant: 'destructive',
+        title: '🚨 جدار الحماية النسيجي للراكب',
+        description: throttleResult.updatedRider.trustRating <= 4.2 
+          ? `لقد تجاوزت الحد الأقصى للإلغاءات المتتالية (${cancels}/3). سقط رصيد مناعتك إلى عتبة التطهير الميداني.`
+          : 'يُحظر تماماً قذف أكثر من طلب واحد نشط في نفس الوقت لحماية صالة المزاد من الإغراق الكاذب.'
+      });
+      return;
+    }
+
+    let activeRiderRating = throttleResult.updatedRider.trustRating;
+    if (cancels >= 2) {
+      activeRiderRating = Math.min(activeRiderRating, 4.2); // يسقط رصيد مناعته تلقائياً إلى عتبة التطهير (4.2)
+    }
+
     const currentAnchor = anchorRef.current || { lat: 31.9522, lng: 35.9106 };
     const h3Index = latLngToH3Cell(currentAnchor.lat, currentAnchor.lng, 9);
     const obfuscatedPickupCoords = getH3CellCentroid(currentAnchor.lat, currentAnchor.lng, 9);
@@ -251,12 +279,12 @@ export function RiderOperationsProvider({ children }: { children: ReactNode }) {
         h3Index,
         gridId,
         district: user?.district || 'unknown',
-        riderRating: user?.rating !== undefined ? user.rating : (user?.ratingSum && user?.ratingCount ? user.ratingSum / user.ratingCount : 5.0),
+        riderRating: activeRiderRating,
         riderRatingSum: user?.ratingSum || 0,
         riderRatingCount: user?.ratingCount || 0,
         riderName: user?.name || 'فارس الأفق'
     });
-  }, [rawRequestRide, seats, dropoff, pickup, requiresOfficialRate, estimatedTime, estimatedDistance, user?.district]);
+  }, [rawRequestRide, seats, dropoff, pickup, requiresOfficialRate, estimatedTime, estimatedDistance, user, trip, toast]);
   
   const tripStatus = useMemo(() => {
     if (isRequesting) return 'searching';
@@ -284,9 +312,36 @@ export function RiderOperationsProvider({ children }: { children: ReactNode }) {
 
   const rateTrip = useCallback(async (ratings: any) => {
     if (acceptedDriver?.uid && acceptedDriver?.vehicle?.plate) {
+      if (ratings.giveHeart) {
+        try {
+          const tripObject = {
+            captainId: acceptedDriver.uid || `rated-${Date.now()}`,
+            captainName: acceptedDriver.name || 'كابتن رادار',
+            captainPhone: acceptedDriver.phone || '079000000',
+            vehicleInfo: `${acceptedDriver.vehicle.make || ''} ${acceptedDriver.vehicle.color || ''}`,
+            captainType: (acceptedDriver as any).rank === 'PLATINUM' ? 'careem' : (acceptedDriver as any).rank === 'GOLD' ? 'uber' : 'independent',
+            tripId: trip?.id || `rated-${Date.now()}`
+          };
+          RadarCaptainFavoriteKernel.mummifyTrustedCaptain(tripObject, true);
+
+          await dexieDb.favoriteCaptains.add({
+            tripId: tripObject.tripId,
+            captainName: tripObject.captainName,
+            captainRank: (acceptedDriver as any).rank || 'GOLD',
+            captainPhone: tripObject.captainPhone,
+            vehicleInfo: tripObject.vehicleInfo,
+            finalPrice: Number((trip as any)?.offerPrice || (trip as any)?.price || 3.0),
+            timestamp: Date.now(),
+            heartedAt: Date.now()
+          });
+          console.log("💾 Saved rated driver as favorite to local Dexie database");
+        } catch (e) {
+          console.error("Failed to auto-favorite on trip completion:", e);
+        }
+      }
       await rawRateTrip({ ...ratings, driverId: acceptedDriver.uid, vehicleId: acceptedDriver.vehicle.plate });
     }
-  }, [rawRateTrip, acceptedDriver]);
+  }, [rawRateTrip, acceptedDriver, trip]);
 
   const value = useMemo(() => ({
     trip, tripStatus, acceptedDriver, requestRide, isRequesting, cancelTrip, isCancelling,

@@ -39,6 +39,7 @@ export interface AdInput {
   phone?: string;
   whatsapp?: string;
   buttonText?: string;
+  isPremiumRetentionPaid?: boolean;
 }
 
 export function useAdminAds() {

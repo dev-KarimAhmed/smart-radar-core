@@ -2,11 +2,31 @@ import { useState, useEffect } from 'react';
 import { collection, onSnapshot, query, where, updateDoc, doc, increment, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { SovereignAd } from '@/core/types';
+import { recordLocalClick } from '@/lib/ad-cache-sentry';
+import { trackSovereignError } from '@/lib/error-tracker';
 
 export function usePromoStream(district?: string, governorate?: string) {
   const [activeAds, setActiveAds] = useState<SovereignAd[]>([]);
 
   useEffect(() => {
+    // [SCR-AD-VAULT-128] Mada (1) Zero-Cost Hourly Offline-First Cache Loading
+    if (typeof window !== 'undefined') {
+      try {
+        const cachedRaw = localStorage.getItem('sovereign_local_ad_cache');
+        if (cachedRaw) {
+          const cached = JSON.parse(cachedRaw);
+          const age = Date.now() - cached.timestamp;
+          if (age < 3600000) { // 1 Hour Cache Lifetime
+            console.log(`[بروتوكول الأرشيف الإعلاني] تم تدوير الإعلان محلياً 100% من الذاكرة الحافة (العمر: ${Math.round(age / 1000)} ثانية)`);
+            setActiveAds(cached.ads);
+            return; // Skip server subscription to conserve data and run locally 100%
+          }
+        }
+      } catch (e) {
+        console.error('Error reading local ad cache', e);
+      }
+    }
+
     const q = query(
       collection(db, 'promos'), 
       where('status', '==', 'active'),
@@ -167,6 +187,59 @@ export function usePromoStream(district?: string, governorate?: string) {
         return 0; // متساوية
       });
 
+      // [SCR-AD-VAULT-128] Saving to local Cache and Purging Expired non-hearted ads
+      if (typeof window !== 'undefined') {
+        try {
+          // Save to hourly cache
+          localStorage.setItem('sovereign_local_ad_cache', JSON.stringify({
+            timestamp: Date.now(),
+            ads: sorted
+          }));
+
+          const previouslyCachedRaw = localStorage.getItem('sovereign_local_ad_cache_history');
+          const previousAdsList: any[] = previouslyCachedRaw ? JSON.parse(previouslyCachedRaw) : [];
+          
+          const previousIds = previousAdsList.map(a => a.id);
+          const freshIds = sorted.map(a => a.id);
+          
+          // Expired indices: were in former cache list, but now missing from active Firestore pipeline
+          const expiredIds = previousIds.filter(id => !freshIds.includes(id));
+          
+          if (expiredIds.length > 0) {
+            const heartedRaw = localStorage.getItem('sovereign_hearted_ads') || '[]';
+            const heartedIds: string[] = JSON.parse(heartedRaw);
+            
+            const vaultDetailsRaw = localStorage.getItem('sovereign_ad_vault_details') || '{}';
+            const vaultDetails = JSON.parse(vaultDetailsRaw);
+            let detailsChanged = false;
+
+            expiredIds.forEach(expiredId => {
+              const isHearted = heartedIds.includes(expiredId);
+              if (!isHearted) {
+                // State A: Transitory, not hearted -> Purge from local registry details directly
+                if (vaultDetails[expiredId]) {
+                  delete vaultDetails[expiredId];
+                  detailsChanged = true;
+                }
+                console.log(`[تطهير وسقوط الأجل] تم مسح وإعدام الإعلان العابر ${expiredId} لانتهاء صلاحيته على الخادم سيادياً.`);
+              } else {
+                // State B: Hearted -> Mummified and preserved forever
+                console.log(`[السيادة التخليدية] تم تخليد الإعلان ${expiredId} في خزنة الهاتف نظراً لإشارة القبضة الخضراء 💚`);
+              }
+            });
+
+            if (detailsChanged) {
+              localStorage.setItem('sovereign_ad_vault_details', JSON.stringify(vaultDetails));
+            }
+          }
+
+          // Update cache history for future comparisons
+          localStorage.setItem('sovereign_local_ad_cache_history', JSON.stringify(sorted));
+        } catch (e) {
+          console.error('[الأرشيف والطهير] فشل في تنفيذ دورة حياة التطهير الذاتي', e);
+        }
+      }
+
       setActiveAds(sorted);
     };
 
@@ -187,11 +260,9 @@ export function usePromoStream(district?: string, governorate?: string) {
 
   const registerClick = async (adId: string, locationStr: string) => {
     try {
-      const { recordLocalClick } = require('@/lib/ad-cache-sentry');
       recordLocalClick(adId);
       console.log(`[صفر كلفة] تم تسجيل النقرة محلياً للغلاف الإعلاني: ${adId}`);
     } catch (e) {
-      const { trackSovereignError } = require('@/lib/error-tracker');
       trackSovereignError(e, { context: 'PromoStreamClick_Failed_Edge', adId });
     }
   };

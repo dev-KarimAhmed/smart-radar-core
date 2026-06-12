@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
 import { doc, setDoc, onSnapshot } from 'firebase/firestore';
+import { RadarGeoRefillKernel } from '@/lib/refill-kernel';
 import { 
   Wallet, Sparkles, RefreshCw, Zap, Clock, ShieldCheck, 
   ArrowLeft, CreditCard, ArrowDownLeft, ArrowUpRight, CheckCircle2,
@@ -33,6 +34,8 @@ export function WalletTab() {
   // Local state mirrored with Firestore/localStorage
   const [balanceJD, setBalanceJD] = useState(15.00); // 15 Jordanian Dinars baseline
   const [subscriptionHours, setSubscriptionHours] = useState(14.5); // 14.5 hours baseline
+  const [paidHoursMin, setPaidHoursMin] = useState(180); // in minutes
+  const [bonusHoursMin, setBonusHoursMin] = useState(120); // in minutes
   const [activePackageName, setActivePackageName] = useState('نسيجي مجتزأ');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isChargingFunds, setIsChargingFunds] = useState(false);
@@ -63,6 +66,13 @@ export function WalletTab() {
           setSubscriptionHours(data.subscriptionHours);
         } else if (isDriver) {
           setDoc(userRef, { subscriptionHours: 14.5, activePackageName: 'نبض الوفاء المبدئي' }, { merge: true });
+        }
+
+        if (data.paidHoursRemaining !== undefined) {
+          setPaidHoursMin(data.paidHoursRemaining);
+        }
+        if (data.bonusHoursRemaining !== undefined) {
+          setBonusHoursMin(data.bonusHoursRemaining);
         }
         
         if (data.activePackageName !== undefined) {
@@ -177,14 +187,67 @@ export function WalletTab() {
     setLoading(true);
     setTimeout(async () => {
       const newBalance = balanceJD - cost;
-      const newHours = subscriptionHours + addedHours;
       
+      const r = (user?.rank || 'SILVER').toUpperCase();
+      const captainRank: 'PLATINUM' | 'GOLD' | 'BRONZE' = 
+        r === 'PLATINUM' ? 'PLATINUM' : (r === 'GOLD' ? 'GOLD' : 'BRONZE');
+      
+      const currentPaidMinutes = user?.paidHoursRemaining !== undefined 
+        ? user.paidHoursRemaining 
+        : (user?.subscriptionHours !== undefined ? Math.round(user.subscriptionHours * 60) : 870);
+      const currentBonusMinutes = user?.bonusHoursRemaining !== undefined ? user.bonusHoursRemaining : 0;
+      
+      const homeDistrict = user?.district || 'وادي السير';
+      
+      // 📐 Call constitutional Geo-Anchored Refill API
+      const geoWalletInput = {
+        captainId: user.uid,
+        homeDistrict,
+        paidMinutesRemaining: currentPaidMinutes,
+        bonusMinutesRemaining: currentBonusMinutes,
+        captainRank
+      };
+
+      const gatewayNode = {
+        districtName: homeDistrict,
+        localWalletMerchantId: `CLIQCASH-#SOV-${homeDistrict.toUpperCase()}-99`
+      };
+
+      const refillResult = RadarGeoRefillKernel.executeSovereignRefillByDistrict(
+        geoWalletInput,
+        pkgType === 'pulse' ? 1 : 10,
+        gatewayNode
+      );
+
+      if (!refillResult.success) {
+        setLoading(false);
+        setPurchasingPackage(null);
+        toast({
+          variant: 'destructive',
+          title: 'فشل بروتوكول الشحن الجغرافي',
+          description: refillResult.logMessage
+        });
+        return;
+      }
+
+      const nextPaidMinutes = refillResult.updatedWallet.paidMinutesRemaining;
+      const nextBonusMinutes = refillResult.updatedWallet.bonusMinutesRemaining;
+      const totalHoursFraction = (nextPaidMinutes + nextBonusMinutes) / 60;
+      
+      const addedPaidMinutes = nextPaidMinutes - currentPaidMinutes;
+      const addedBonusMinutes = nextBonusMinutes - currentBonusMinutes;
+
+      const bonusPercent = captainRank === 'PLATINUM' ? 0.25 : (captainRank === 'GOLD' ? 0.15 : 0);
+      const rankText = captainRank === 'PLATINUM' ? 'بلاتيني (+25% بونص سيادي)' : 
+                       captainRank === 'GOLD' ? 'ذهبي (+15% بونص سيادي)' : 'برونزي/فضي';
+      const bonusHoursText = bonusPercent > 0 ? ` + مكافأة رتبة ${rankText} بقيمة ${(addedPaidMinutes * bonusPercent) / 60} ساعات حرة` : '';
+
       const newTx: Transaction = {
         id: 'tx-' + Date.now(),
         type: 'purchase',
         amount: -cost,
         currency: 'د.أ',
-        description: `شراء وتفعيل: ${name}`,
+        description: `تفعيل ذي توجيه جغرافي: ${name}${bonusHoursText}`,
         createdAt: new Date().toLocaleTimeString('ar-JO', { hour: '2-digit', minute: '2-digit' }) + ' - الآن',
         status: 'completed'
       };
@@ -192,7 +255,9 @@ export function WalletTab() {
       const userRef = doc(db, 'users', user.uid);
       await setDoc(userRef, {
         walletBalanceJD: Number(newBalance.toFixed(2)),
-        subscriptionHours: Number(newHours.toFixed(1)),
+        paidHoursRemaining: nextPaidMinutes,
+        bonusHoursRemaining: nextBonusMinutes,
+        subscriptionHours: Number(totalHoursFraction.toFixed(3)),
         activePackageName: pkgType === 'pulse' ? 'باقة النبض الأساسية' : 'باقة العبور الكبرى',
         walletTransactions: [newTx, ...transactions]
       }, { merge: true });
@@ -200,12 +265,14 @@ export function WalletTab() {
       setLoading(false);
       setPurchasingPackage(null);
       toast({
-        title: '⚡ تم التفعيل الفوري للملاحة',
-        description: `مبروك كابتن! تم إمداد البث الملاحي بـ ${addedHours} ساعة عمل إضافية وهي نشطة الآن.`
+        title: '⚡ تم التفعيل الفوري للملاحة الموجهة جغرافياً',
+        description: bonusPercent > 0 
+          ? `مبروك كابتن! تم إمداد البث بـ ${addedHours} ساعة من الباقة بالإضافة إلى ${(addedPaidMinutes * bonusPercent) / 60} ساعات بونص مجانية رتبة ${user?.rank} لواء [${homeDistrict}].`
+          : `مبروك كابتن! تم إمداد البث الملاحي بـ ${addedHours} ساعة عمل لواء [${homeDistrict}].`
       });
     }, 1500);
 
-  }, [balanceJD, subscriptionHours, user?.uid, transactions, toast]);
+  }, [balanceJD, subscriptionHours, user, transactions, toast]);
 
   return (
     <div className="w-full max-w-lg mx-auto pb-10 font-sans text-right" dir="rtl">
@@ -273,6 +340,11 @@ export function WalletTab() {
                   {subscriptionHours.toFixed(1)}
                 </span>
                 <span className="text-xs font-bold text-gray-400 mr-2">ساعة حقيقية</span>
+              </div>
+
+              <div className="flex justify-between items-center text-[10px] text-gray-400 border-t border-emerald-950/40 pt-1.5 pb-1.5 font-mono">
+                <span>باقة مدفوعة: <span className="text-emerald-300 font-extrabold">{(paidHoursMin / 60).toFixed(1)} س</span></span>
+                <span>بونص رتب الكباتن: <span className="text-amber-400 font-extrabold">{(bonusHoursMin / 60).toFixed(1)} س</span></span>
               </div>
 
               <div className="flex items-center justify-between text-[10px] text-gray-400">
@@ -414,6 +486,21 @@ export function WalletTab() {
                   <span>بطاقة دفع</span>
                 </button>
               </div>
+            </div>
+
+            {/* [SCR-GEO-REFILL-158] Local Geo-Routing display info */}
+            <div className="p-3 bg-black/60 rounded-xl border border-emerald-500/20 text-right space-y-1">
+              <div className="flex justify-between items-center text-[11px]">
+                <span className="text-gray-400 font-bold">📍 التوجيه الجغرافي للمحفظة:</span>
+                <span className="text-emerald-400 font-black">لواء {user?.district || 'وادي السير'}</span>
+              </div>
+              <div className="flex justify-between items-center text-[10px] font-mono">
+                <span className="text-gray-400 font-medium">مُعرف الدفع اللامركزي:</span>
+                <span className="text-amber-500 font-bold">CLIQCASH-#SOV-{(user?.district || 'وادي السير').toUpperCase()}-99</span>
+              </div>
+              <p className="text-[9px] text-emerald-500/70 leading-normal pt-1 border-t border-emerald-900/40">
+                ⚠️ الشحن آلي ومثبت رقمياً عند لواء الموطن لضمان صفر هدر مالي تشغيلي وعزل تام للوسطاء عن مالية السائقين.
+              </p>
             </div>
 
             <Button 

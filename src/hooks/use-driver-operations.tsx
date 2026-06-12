@@ -36,6 +36,9 @@ interface DriverOpsContextType {
   pulseData: MarketPulse[];
   loadingPulse: boolean;
   driverSpeed: number;
+  currentDistrict?: string;
+  currentH3Cell?: string;
+  isDisconnectionLockActive?: boolean;
 }
 
 export const DriverOperationsContext = createContext<DriverOpsContextType | undefined>(undefined);
@@ -54,7 +57,8 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
 
   // 2. Local surrounding demand search scanning
   const { 
-    driverLocation, requests, rejectRequest, rejectedTripIds, driverSpeed 
+    driverLocation, requests, rejectRequest, rejectedTripIds, driverSpeed,
+    currentDistrict, currentH3Cell, isDisconnectionLockActive
   } = useDriverRadar(user, driverStatus, updateDriverDoc);
 
   // 3. Transactions & bidding states
@@ -83,13 +87,13 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
     resetDormancyTimer, submitOffer, isSubmittingOffer, endTrip, isEndingTrip,
     rateAndFinishTrip, isRatingRider, toggleRequestList, toggleDriverStatus, requests, driverLocation,
     rejectRequest, rejectedTripIds, requestWeeklyReport, isRequestingReport,
-    pulseData, loadingPulse, driverSpeed
+    pulseData, loadingPulse, driverSpeed, currentDistrict, currentH3Cell, isDisconnectionLockActive
   }), [
     driverStatus, activeRequest, acceptedRider, isDormancyWarningVisible, isRequestListOpen,
     resetDormancyTimer, submitOffer, isSubmittingOffer, endTrip, isEndingTrip,
     rateAndFinishTrip, isRatingRider, toggleRequestList, toggleDriverStatus, requests, driverLocation,
     rejectRequest, rejectedTripIds, requestWeeklyReport, isRequestingReport,
-    pulseData, loadingPulse, driverSpeed
+    pulseData, loadingPulse, driverSpeed, currentDistrict, currentH3Cell, isDisconnectionLockActive
   ]);
 
   return <DriverOperationsContext.Provider value={value}>{children}</DriverOperationsContext.Provider>;

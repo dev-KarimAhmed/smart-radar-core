@@ -15,7 +15,10 @@ export function useRiderTripListener(user: DriverUser | null) {
   const [pulsedDrivers, setPulsedDrivers] = useState<(DriverUser & { distance: number })[]>([]);
   const [isPulsing, setIsPulsing] = useState(false);
 
+  const prevTripRef = useRef<Trip | null>(null);
+
   const resetState = useCallback(() => {
+    prevTripRef.current = null;
     setTrip(null);
     setAcceptedDriver(null);
     setInternalStatus('idle');
@@ -55,25 +58,28 @@ export function useRiderTripListener(user: DriverUser | null) {
       if (!snapshot.empty) {
         const tripDoc = snapshot.docs[0];
         const updatedTrip = { id: tripDoc.id, ...tripDoc.data() } as Trip;
+        const prevTrip = prevTripRef.current;
         
-        setTrip(prevTrip => {
-          if (JSON.stringify(prevTrip) === JSON.stringify(updatedTrip)) {
-            return prevTrip;
-          }
+        if (JSON.stringify(prevTrip) === JSON.stringify(updatedTrip)) {
+          return;
+        }
 
-          if (updatedTrip.status === 'completed' && prevTrip?.status !== 'completed') {
-              setInternalStatus('rating');
-          } else if (updatedTrip.status === 'checkpoint_required') {
-            setInternalStatus('checkpoint_required');
-          } else {
-            setInternalStatus(updatedTrip.status);
-          }
-          
-          if (updatedTrip.status === 'busy' && updatedTrip.driverId && (!acceptedDriverRef.current || acceptedDriverRef.current.uid !== updatedTrip.driverId)) {
-              fetchRealDriverProfile(updatedTrip.driverId);
-          }
-          return updatedTrip;
-        });
+        // Keep local ref synchronized immediately to act as SSOT before state schedules take effect
+        prevTripRef.current = updatedTrip;
+
+        // Determine next status and set it cleanly outside of functional state updater
+        let nextStatus: TripStatus = updatedTrip.status;
+        if (updatedTrip.status === 'completed' && prevTrip?.status !== 'completed') {
+          nextStatus = 'rating';
+        } else if (updatedTrip.status === 'checkpoint_required') {
+          nextStatus = 'checkpoint_required';
+        }
+
+        setInternalStatus(nextStatus);
+
+        if (updatedTrip.status === 'busy' && updatedTrip.driverId && (!acceptedDriverRef.current || acceptedDriverRef.current.uid !== updatedTrip.driverId)) {
+          fetchRealDriverProfile(updatedTrip.driverId);
+        }
 
         // Pulsed Sweep Logic
         if (updatedTrip.status === 'searching' && (!updatedTrip.offers || updatedTrip.offers.length === 0) && !isPulsing) {
@@ -108,6 +114,8 @@ export function useRiderTripListener(user: DriverUser | null) {
                 setIsPulsing(false);
             }
         }
+
+        setTrip(updatedTrip);
       } else {
         // Fallback simulation in dev mode if database is un-seeded or empty to ensure smooth interactive evaluation
         if (import.meta.env.DEV && internalStatus === 'idle') {

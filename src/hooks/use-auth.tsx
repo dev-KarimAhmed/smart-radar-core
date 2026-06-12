@@ -13,6 +13,7 @@ interface AuthContextType {
   loading: boolean;
   promoData: any;
   logout: () => void;
+  loginAsMockUser: (user: SovereignUser) => void;
   isSovereign: boolean;
   isCaptain: boolean;
   isPassenger: boolean;
@@ -80,19 +81,18 @@ function AuthContent({ children }: { children: ReactNode }) {
                     }
                 );
             } else {
-                // 🚩 [SCR-CMD-BYPASS-V1] Sovereign Bypass Protocol for Development
+                // 🚩 [SCR-CMD-BYPASS-V2] Dynamic Sovereign Bypass Protocol for Development
                 if (import.meta.env.DEV) {
-                    console.warn("SOVEREIGN BYPASS PROTOCOL ACTIVE: Injecting mock rider for development.");
-                    const mockRider: SovereignUser = {
-                        uid: 'dev-rider-001',
-                        phone: '+962790000000',
-                        role: 'rider',
-                        name: 'الزعيم السيادي (مطور)',
-                        governorate: 'عمان',
-                        district: 'الجامعة',
-                        isBufferActive: false,
-                    };
-                    setUser(mockRider);
+                    const savedBypass = localStorage.getItem('sovereign_dev_bypass_user');
+                    if (savedBypass) {
+                        try {
+                            setUser(JSON.parse(savedBypass) as SovereignUser);
+                        } catch (e) {
+                            setUser(null);
+                        }
+                    } else {
+                        setUser(null);
+                    }
                     setLoading(false);
                 } else {
                      setUser(null);
@@ -110,7 +110,16 @@ function AuthContent({ children }: { children: ReactNode }) {
     }, []);
 
 
+    const loginAsMockUser = useCallback((mockUser: SovereignUser) => {
+        if (import.meta.env.DEV) {
+            localStorage.setItem('sovereign_dev_bypass_user', JSON.stringify(mockUser));
+            setUser(mockUser);
+        }
+    }, []);
+
     const logout = useCallback(() => {
+        localStorage.removeItem('sovereign_dev_bypass_user');
+        setUser(null);
         signOut(auth).catch((error) => {
             trackSovereignError(error, { context: 'Logout_Execution' });
         });
@@ -120,7 +129,16 @@ function AuthContent({ children }: { children: ReactNode }) {
     const isCaptain = useMemo(() => user?.role === 'driver', [user]);
     const isPassenger = useMemo(() => user?.role === 'rider', [user]);
 
-    const value = useMemo(() => ({ user, loading, promoData, logout, isSovereign, isCaptain, isPassenger }), [user, loading, promoData, logout, isSovereign, isCaptain, isPassenger]);
+    const value = useMemo(() => ({ 
+        user, 
+        loading, 
+        promoData, 
+        logout, 
+        loginAsMockUser,
+        isSovereign, 
+        isCaptain, 
+        isPassenger 
+    }), [user, loading, promoData, logout, loginAsMockUser, isSovereign, isCaptain, isPassenger]);
 
     if (loading && !user) { return null; }
 

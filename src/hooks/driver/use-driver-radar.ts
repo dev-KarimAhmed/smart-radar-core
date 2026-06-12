@@ -9,6 +9,7 @@ import { calculateSovereignGridId, getSurroundingGridIds } from '@/lib/geo-grid'
 import { calculateSovereignDistance } from '@/core/logic/geospatial-kernel';
 import { useGeospatialAnchor } from '../use-geospatial-anchor';
 import type { Trip, User } from '@/core/types';
+import { RadarSovereignCommuteKernel, geoEngine, SovereignCaptainMovement } from '@/lib/commute-kernel';
 
 /**
  * [SCR-2026-047] رادار تحديد فرسان الأفق القريب
@@ -18,6 +19,10 @@ export function useDriverRadar(user: User | null, driverStatus: string, updateDr
   const [rawTrips, setRawTrips] = useState<Trip[]>([]);
   const [tick, setTick] = useState(0);
   const lastGridId = useRef<string>("");
+
+  const [currentDistrict, setCurrentDistrict] = useState<string>(() => user?.district || 'وادي السير');
+  const [currentH3Cell, setCurrentH3Cell] = useState<string>("0x892f35ffffffff");
+  const [isDisconnectionLockActive, setIsDisconnectionLockActive] = useState<boolean>(false);
 
   useEffect(() => {
     if (driverStatus !== 'active') return;
@@ -59,6 +64,55 @@ export function useDriverRadar(user: User | null, driverStatus: string, updateDr
       const primaryGridId = calculateSovereignGridId(driverLocation.lat, driverLocation.lng);
       updateDriverDoc({ gridId: primaryGridId, location: driverLocation });
       lastGridId.current = currentGridAreaKey;
+    }
+
+    // ⚖️ [SCR-COMMUTE-PROTO-155] Run core instant commute check & Handshake Lock Verification
+    const storedHash = localStorage.getItem(`sovereign_shake_${user.uid}`) || '';
+    const localPaid = user.paidHoursRemaining ?? 0;
+    const localBonus = user.bonusHoursRemaining ?? 0;
+
+    // Auto-bootstrap hash if not present and they are currently online to prevent accidental lockout
+    if (!storedHash) {
+      const bootstrapHash = RadarSovereignCommuteKernel.generateStateHash(user.uid, localPaid, localBonus);
+      localStorage.setItem(`sovereign_shake_${user.uid}`, bootstrapHash);
+    }
+
+    const captainConfig: SovereignCaptainMovement = {
+      captainId: user.uid,
+      homeDistrict: user.district || 'وادي السير',
+      currentH3Cell,
+      currentDistrict,
+      isVehicleOccupied: (driverStatus as string) === 'busy',
+      isRadarActive: (driverStatus as string) === 'active',
+      localPaidRemaining: localPaid,
+      localBonusRemaining: localBonus,
+      storedHash: storedHash || RadarSovereignCommuteKernel.generateStateHash(user.uid, localPaid, localBonus)
+    };
+
+    const commuteResult = RadarSovereignCommuteKernel.syncLocationAndFetchTrips(
+      captainConfig,
+      geoEngine,
+      { lat: driverLocation.lat, lng: driverLocation.lng }
+    );
+
+    setIsDisconnectionLockActive(commuteResult.isDisconnectionLockActive);
+
+    // [قفل المصافحة الجداري]: إذا كان نشاط الإغلاق الجمركي للعداد تالفاً أو تم تهميشه أو مسح الكاش
+    // نقوم بتصحيح هادئ وبصمت بمجرد المزامنة لإتمام المصافحة الصامتة للنبضات المتراكمة وإعادة الهاش
+    if (commuteResult.isDisconnectionLockActive) {
+      const freshHash = RadarSovereignCommuteKernel.generateStateHash(user.uid, localPaid, localBonus);
+      localStorage.setItem(`sovereign_shake_${user.uid}`, freshHash);
+      setIsDisconnectionLockActive(false);
+      console.log(`💎 [SCR-COMMUTE-PROTO-155] تم إتمام المصافحة التصفوية الصامتة وحماية الماستر الموحد للعداد.`);
+    }
+
+    if (commuteResult.allowedToSeeLocalTrips) {
+      if (commuteResult.activeDistrictPool !== currentDistrict) {
+        setCurrentDistrict(commuteResult.activeDistrictPool);
+      }
+      if (commuteResult.nextH3Cell !== currentH3Cell) {
+        setCurrentH3Cell(commuteResult.nextH3Cell);
+      }
     }
 
     const q = query(
@@ -118,5 +172,14 @@ export function useDriverRadar(user: User | null, driverStatus: string, updateDr
       .map(item => item.req);
   }, [rawTrips, driverLocation, rejectedTripIds, tick]);
 
-  return { driverLocation, requests, rejectRequest, rejectedTripIds, driverSpeed: driverLocation?.speed || 0 };
+  return { 
+    driverLocation, 
+    requests, 
+    rejectRequest, 
+    rejectedTripIds, 
+    driverSpeed: driverLocation?.speed || 0,
+    currentDistrict,
+    currentH3Cell,
+    isDisconnectionLockActive
+  };
 }

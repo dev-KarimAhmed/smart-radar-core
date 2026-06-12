@@ -115,7 +115,17 @@ export function RiderViewTab() {
 
         {/* Real-time Sovereign Standby Passenger Interface when modal is closed */}
         {!isRequestModalOpen && (
-          <div className="h-full overflow-y-auto p-4 pb-28 select-none text-right font-sans relative z-20 pointer-events-none space-y-6 flex flex-col items-center w-full">
+          <div 
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                const adStageElement = document.querySelector('.ad-stage-clicktarget');
+                if (adStageElement) {
+                  (adStageElement as HTMLElement).click();
+                }
+              }
+            }}
+            className="h-full p-4 pb-28 select-none text-right font-sans relative z-20 pointer-events-auto space-y-6 flex flex-col items-center w-full"
+          >
             {/* Top Bar Spacer */}
             <div />
 

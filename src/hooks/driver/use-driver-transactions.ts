@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { doc, getDoc, updateDoc, setDoc, arrayUnion, serverTimestamp, query, collection, where, limit, onSnapshot } from 'firebase/firestore';
 import { getDistrictFromCoords } from '@/lib/geospatial';
 import { db } from '@/lib/firebase';
@@ -25,6 +25,12 @@ export function useDriverTransactions(
   const [isRatingRider, setIsRatingRider] = useState(false);
   const [isRequestingReport, setIsRequestingReport] = useState(false);
 
+  // Synchronous execution locks for driver transactions
+  const isSubmittingOfferRef = useRef(false);
+  const isEndingTripRef = useRef(false);
+  const isRatingRiderRef = useRef(false);
+  const isRequestingReportRef = useRef(false);
+
   const fetchRealRiderProfile = useCallback(async (riderId: string) => {
     try {
         const riderRef = doc(db, 'users', riderId);
@@ -46,7 +52,7 @@ export function useDriverTransactions(
 
   // Monitor active trip assigned to driver
   useEffect(() => {
-    if (!user?.uid) return;
+    if (!user?.uid || user.role !== 'driver') return;
 
     const q = query(
       collection(db, 'trips'),
@@ -90,11 +96,14 @@ export function useDriverTransactions(
         return;
     }
 
+    if (isSubmittingOfferRef.current) return;
+    isSubmittingOfferRef.current = true;
     setIsSubmittingOffer(true);
     try {
       if (!user.vehicle?.plate) { 
         toast({ variant: 'destructive', title: 'مركبة غير مسجلة', description: 'الرجاء التأكد من ربط الحصان السيادي بمركبة صالحة.' });
         setIsSubmittingOffer(false);
+        isSubmittingOfferRef.current = false;
         return;
       }
 
@@ -178,11 +187,14 @@ export function useDriverTransactions(
       toast({ variant: 'destructive', title: 'فشل إدراج السعر المعروض', description: getSovereignErrorMessage(e) });
     } finally {
       setIsSubmittingOffer(false);
+      isSubmittingOfferRef.current = false;
     }
   }, [user, toast]);
 
   const endTrip = useCallback(async () => {
     if (!activeRequest?.id) return;
+    if (isEndingTripRef.current) return;
+    isEndingTripRef.current = true;
     setIsEndingTrip(true);
     try {
       await updateDoc(doc(db, 'trips', activeRequest.id), { status: 'checkpoint_required' });
@@ -192,11 +204,14 @@ export function useDriverTransactions(
       toast({ variant: 'destructive', title: 'فشل تفعيل المحطة النهائية', description: getSovereignErrorMessage(error) });
     } finally {
       setIsEndingTrip(false);
+      isEndingTripRef.current = false;
     }
   }, [activeRequest?.id, toast]);
 
   const rateAndFinishTrip = useCallback(async (rating: number) => {
     if (!activeRequest?.id || !activeRequest?.riderId) return;
+    if (isRatingRiderRef.current) return;
+    isRatingRiderRef.current = true;
     setIsRatingRider(true);
     try {
       await callSovereignCloud('submitRiderRating', {
@@ -213,10 +228,13 @@ export function useDriverTransactions(
       cleanUpAndReset();
     } finally {
       setIsRatingRider(false);
+      isRatingRiderRef.current = false;
     }
   }, [activeRequest, toast, cleanUpAndReset]);
 
   const requestWeeklyReport = useCallback(async () => {
+    if (isRequestingReportRef.current) return;
+    isRequestingReportRef.current = true;
     setIsRequestingReport(true);
     toast({ title: 'جاري تجميع التقرير السنوي/الأسبوعي المالي ملاحياً...', description: 'يجرى الآن فحص العهد والتصنيفات في قاعدة البيانات.' });
     try {
@@ -234,6 +252,7 @@ export function useDriverTransactions(
       toast({ variant: 'destructive', title: 'لم نتمكن من جمع الإحصاءات حالياً', description: getSovereignErrorMessage(error) });
     } finally {
       setIsRequestingReport(false);
+      isRequestingReportRef.current = false;
     }
   }, [toast]);
 

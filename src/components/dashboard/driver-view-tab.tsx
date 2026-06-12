@@ -69,7 +69,8 @@ export function DriverViewTab() {
     driverStatus, activeRequest, acceptedRider, submitOffer, isSubmittingOffer,
     isRequestListOpen, toggleRequestList, isDormancyWarningVisible, resetDormancyTimer,
     endTrip, isEndingTrip, rateAndFinishTrip, isRatingRider, requests,
-    driverLocation, rejectRequest, rejectedTripIds, pulseData
+    driverLocation, rejectRequest, rejectedTripIds, pulseData,
+    currentDistrict, currentH3Cell
   } = useDriverOperations();
   
   const { user } = useAuth();
@@ -160,13 +161,20 @@ export function DriverViewTab() {
         <div className="absolute inset-0 z-40 flex items-start justify-center bg-background/95 backdrop-blur-md p-4 pt-20 animate-in fade-in-25">
           <Card className="w-full max-w-lg shadow-2xl border-primary/20 glass-effect animate-in slide-in-from-top-4">
             <CardHeader className="p-3 flex flex-row items-center justify-between border-b bg-black/30">
-              <div className="flex items-center gap-3">
-                <CardTitle className="text-lg text-white">
-                  <span className="font-headline tracking-wide">الرادار الميداني</span>
-                </CardTitle>
-                <Badge variant="outline" className="text-primary border-primary bg-black/50">
-                  {primaryRequests.length} متاح
-                </Badge>
+              <div className="flex flex-col md:flex-row md:items-center gap-2">
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-lg text-white">
+                    <span className="font-headline tracking-wide">الرادار الميداني</span>
+                  </CardTitle>
+                  <Badge variant="outline" className="text-primary border-primary bg-black/50">
+                    {primaryRequests.length} متاح
+                  </Badge>
+                </div>
+                {currentDistrict && (
+                  <Badge className="bg-blue-600/20 text-blue-400 border border-blue-500/20 text-[10px] py-0 px-2 font-mono" variant="outline">
+                    لواء: {currentDistrict} • {currentH3Cell?.substring(0, 8)}
+                  </Badge>
+                )}
               </div>
               <Button variant="ghost" size="icon" onClick={() => toggleRequestList(false)} className="text-white hover:bg-white/10 h-8 w-8">
                 <X className="w-5 h-5"/>

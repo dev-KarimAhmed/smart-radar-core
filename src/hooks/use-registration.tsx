@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
 import { signInAnonymously, signOut } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { useToast } from './use-toast';
@@ -15,7 +15,7 @@ interface RegistrationContextType {
   setStep: (step: 'role' | 'personal' | 'affiliation' | 'vehicle' | 'admin') => void;
   role: 'rider' | 'driver' | null;
   setRole: (role: 'rider' | 'driver' | null) => void;
-  personal: { name: string; phone: string; gov: string; district: string };
+  personal: { name: string; phone: string; gov: string; district: string; verificationDoc: string };
   setPersonal: (personal: any) => void;
   affiliation: AffiliationType | null;
   setAffiliation: (affiliation: any) => void;
@@ -37,10 +37,11 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
   const [step, setStep] = useState<'role' | 'personal' | 'affiliation' | 'vehicle' | 'admin'>('role');
   const [role, setRole] = useState<'rider' | 'driver' | null>(null);
-  const [personal, setPersonal] = useState({ name: '', phone: '', gov: '', district: '' });
+  const [personal, setPersonal] = useState({ name: '', phone: '', gov: '', district: '', verificationDoc: '' });
   const [affiliation, setAffiliation] = useState<AffiliationType | null>(null);
   const [vehicle, setVehicle] = useState({ year: '', plate: '', sideId: '', make: '', color: '', officeName: '', officePhone: '', companyName: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isSubmittingRef = useRef(false);
   const [logoTapCount, setLogoTapCount] = useState(0);
   const [adminCreds, setAdminCreds] = useState({ email: '', password: '' });
 
@@ -77,6 +78,8 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
         return;
     }
 
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
     setIsSubmitting(true);
     
     try {
@@ -93,6 +96,8 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
             avatar: `https://picsum.photos/seed/${uid}/100/100`,
             createdAt: serverTimestamp(),
             status: 'active',
+            rating: 5.0, // [SCR-AUTH-PROTO-140] رصيد الثقة الموحد المبدئي (5.0 / 5.0) لكل من الراكب والناقل
+            verificationDoc: personal.verificationDoc || null, // وثائق التحقق مشفرة ومضغوطة محلياً للحافة
         };
 
         if (role === 'driver') {
@@ -121,7 +126,6 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
             Object.assign(newUserProfileData, {
                 affiliation: affiliationPayload,
                 vehicle: vehiclePayload,
-                rating: 5.0,
                 status: 'idle',
                 rank: 'Bronze'
             });
@@ -140,6 +144,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
         }
     } finally {
         setIsSubmitting(false);
+        isSubmittingRef.current = false;
     }
   }, [role, personal, affiliation, vehicle, toast]);
 
