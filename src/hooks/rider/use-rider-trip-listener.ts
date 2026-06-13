@@ -14,6 +14,7 @@ export function useRiderTripListener(user: DriverUser | null) {
   const [acceptedDriver, setAcceptedDriver] = useState<DriverUser | null>(null);
   const [pulsedDrivers, setPulsedDrivers] = useState<(DriverUser & { distance: number })[]>([]);
   const [isPulsing, setIsPulsing] = useState(false);
+  const isPulsingRef = useRef(false);
 
   const prevTripRef = useRef<Trip | null>(null);
 
@@ -82,7 +83,8 @@ export function useRiderTripListener(user: DriverUser | null) {
         }
 
         // Pulsed Sweep Logic
-        if (updatedTrip.status === 'searching' && (!updatedTrip.offers || updatedTrip.offers.length === 0) && !isPulsing) {
+        if (updatedTrip.status === 'searching' && (!updatedTrip.offers || updatedTrip.offers.length === 0) && !isPulsingRef.current) {
+            isPulsingRef.current = true;
             setIsPulsing(true);
             try {
                 const surroundingGridIds = getSurroundingGridIds(updatedTrip.pickupCoords.lat, updatedTrip.pickupCoords.lng);
@@ -111,6 +113,7 @@ export function useRiderTripListener(user: DriverUser | null) {
             } catch (error) {
                 trackSovereignError(error, { context: 'PulsedSweep' });
             } finally {
+                isPulsingRef.current = false;
                 setIsPulsing(false);
             }
         }
@@ -118,7 +121,7 @@ export function useRiderTripListener(user: DriverUser | null) {
         setTrip(updatedTrip);
       } else {
         // Fallback simulation in dev mode if database is un-seeded or empty to ensure smooth interactive evaluation
-        if (import.meta.env.DEV && internalStatus === 'idle') {
+        if (import.meta.env.DEV && prevTripRef.current === null) {
            // We keep the idle state as is
         } else {
            resetState();
@@ -130,7 +133,7 @@ export function useRiderTripListener(user: DriverUser | null) {
     });
 
     return () => unsubscribe();
-  }, [user?.uid, user?.role, resetState, fetchRealDriverProfile, isPulsing, internalStatus]);
+  }, [user?.uid, user?.role, resetState, fetchRealDriverProfile]);
 
   return { trip, acceptedDriver, internalStatus, setInternalStatus, resetState, pulsedDrivers, isPulsing };
 }

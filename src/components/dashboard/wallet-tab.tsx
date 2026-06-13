@@ -58,25 +58,30 @@ export function WalletTab() {
         if (data.walletBalanceJD !== undefined) {
           setBalanceJD(data.walletBalanceJD);
         } else {
-          // Initialize defaults in firestore if empty
-          setDoc(userRef, { walletBalanceJD: 15.00 }, { merge: true });
+          setBalanceJD(15.00);
         }
         
         if (data.subscriptionHours !== undefined) {
           setSubscriptionHours(data.subscriptionHours);
-        } else if (isDriver) {
-          setDoc(userRef, { subscriptionHours: 14.5, activePackageName: 'نبض الوفاء المبدئي' }, { merge: true });
+        } else {
+          setSubscriptionHours(14.5);
         }
 
         if (data.paidHoursRemaining !== undefined) {
           setPaidHoursMin(data.paidHoursRemaining);
+        } else {
+          setPaidHoursMin(180);
         }
         if (data.bonusHoursRemaining !== undefined) {
           setBonusHoursMin(data.bonusHoursRemaining);
+        } else {
+          setBonusHoursMin(120);
         }
         
         if (data.activePackageName !== undefined) {
           setActivePackageName(data.activePackageName);
+        } else {
+          setActivePackageName(isDriver ? 'نبض الوفاء المبدئي' : 'نسيجي مجتزأ');
         }
         
         if (data.walletTransactions !== undefined) {
@@ -113,7 +118,7 @@ export function WalletTab() {
               status: 'completed'
             }
           ];
-          setDoc(userRef, { walletTransactions: defaultTx }, { merge: true });
+          setTransactions(defaultTx);
         }
       }
     });

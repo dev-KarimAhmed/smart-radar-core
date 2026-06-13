@@ -49,20 +49,28 @@ export function useDriverRadar(user: User | null, driverStatus: string, updateDr
     });
   }, []);
 
+  const latVal = driverLocation?.lat;
+  const lngVal = driverLocation?.lng;
+  const driverLocationSpeed = driverLocation?.speed;
+  const driverLocationSource = driverLocation?.source;
+
   useEffect(() => {
-    if (driverStatus !== 'active' || !driverLocation || !user) {
+    if (driverStatus !== 'active' || !latVal || !lngVal || !user) {
       setRawTrips([]);
       return;
     }
 
-    const surroundingGridIds = getSurroundingGridIds(driverLocation.lat, driverLocation.lng);
+    const surroundingGridIds = getSurroundingGridIds(latVal, lngVal);
     const currentGridAreaKey = JSON.stringify(surroundingGridIds.sort());
 
     if (currentGridAreaKey !== lastGridId.current) {
       setRawTrips([]); 
       setRejectedTripIds([]);
-      const primaryGridId = calculateSovereignGridId(driverLocation.lat, driverLocation.lng);
-      updateDriverDoc({ gridId: primaryGridId, location: driverLocation });
+      const primaryGridId = calculateSovereignGridId(latVal, lngVal);
+      updateDriverDoc({
+        gridId: primaryGridId,
+        location: { lat: latVal, lng: lngVal, speed: driverLocationSpeed, source: driverLocationSource || 'fallback' }
+      });
       lastGridId.current = currentGridAreaKey;
     }
 
@@ -92,7 +100,7 @@ export function useDriverRadar(user: User | null, driverStatus: string, updateDr
     const commuteResult = RadarSovereignCommuteKernel.syncLocationAndFetchTrips(
       captainConfig,
       geoEngine,
-      { lat: driverLocation.lat, lng: driverLocation.lng }
+      { lat: latVal, lng: lngVal }
     );
 
     setIsDisconnectionLockActive(commuteResult.isDisconnectionLockActive);
@@ -130,7 +138,7 @@ export function useDriverRadar(user: User | null, driverStatus: string, updateDr
     });
 
     return () => unsubscribe();
-  }, [driverStatus, driverLocation, user?.uid, updateDriverDoc, rejectedTripIds]); 
+  }, [driverStatus, latVal, lngVal, driverLocationSpeed, driverLocationSource, user?.uid, user?.paidHoursRemaining, user?.bonusHoursRemaining, updateDriverDoc]); 
 
   const requests = useMemo(() => {
     if (!driverLocation) return [];

@@ -17,12 +17,12 @@ export function useRiderSidebarRadar() {
   const [nearbyFavorites, setNearbyFavorites] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Memoize favorite IDs to prevent re-renders from array reference changes
-  const favoriteIds = useMemo(() => user?.favoriteDrivers || [], [user?.favoriteDrivers]);
+  const favoriteIdsStr = (user?.favoriteDrivers || []).join(',');
+  const favoriteIds = useMemo(() => favoriteIdsStr ? favoriteIdsStr.split(',') : [], [favoriteIdsStr]);
 
   useEffect(() => {
     // This hook is only for riders with favorite drivers.
-    if (user?.role !== 'rider' || favoriteIds.length === 0) {
+    if (user?.role !== 'rider' || !favoriteIdsStr) {
       setIsLoading(false);
       setNearbyFavorites([]);
       return;
@@ -80,7 +80,7 @@ export function useRiderSidebarRadar() {
       isMounted = false;
       unsubscribe();
     };
-  }, [user?.role, favoriteIds]);
+  }, [user?.role, favoriteIdsStr]);
 
   return { nearbyFavorites, isLoading };
 }

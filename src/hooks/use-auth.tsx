@@ -29,13 +29,13 @@ function AuthContent({ children }: { children: ReactNode }) {
     const { registerDeviceToken } = useSovereignFCM();
 
     useEffect(() => {
-      if (user) {
+      if (user?.uid) {
         registerDeviceToken(user);
       }
-    }, [user, registerDeviceToken]);
+    }, [user?.uid, registerDeviceToken]);
     
     useEffect(() => {
-        if (!user) {
+        if (!user?.uid) {
             setPromoData(null);
             return;
         }
@@ -53,7 +53,7 @@ function AuthContent({ children }: { children: ReactNode }) {
         });
 
         return () => unsubscribe();
-    }, [user]);
+    }, [user?.uid]);
     
     useEffect(() => {
         let unsubscribeUserDoc: (() => void) | null = null;

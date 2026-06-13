@@ -23,6 +23,19 @@ export function useDriverLifecycle(user: User | null) {
   const statusRef = useRef(driverStatus);
   const sessionStartRef = useRef<{ dateNow: number; perfNow: number } | null>(null);
 
+  const lastUidRef = useRef<string | null>(null);
+  const lastProcessedTickRef = useRef<number | null>(null);
+  const localPaidHoursRef = useRef<number | null>(null);
+  const localBonusHoursRef = useRef<number | null>(null);
+
+  if (user?.uid !== lastUidRef.current) {
+    lastUidRef.current = user?.uid || null;
+    lastProcessedTickRef.current = null;
+    localPaidHoursRef.current = null;
+    localBonusHoursRef.current = null;
+    sessionStartRef.current = null;
+  }
+
   useEffect(() => {
     userRef.current = user;
   }, [user]);
@@ -115,9 +128,32 @@ export function useDriverLifecycle(user: User | null) {
       }
 
       const isRadarActive = currentStatus === 'active' || currentStatus === 'busy';
-      const paidHours = currentUser.paidHoursRemaining !== undefined ? currentUser.paidHoursRemaining : (currentUser.subscriptionHours !== undefined ? Math.round(currentUser.subscriptionHours * 60) : 870);
-      const bonusHours = currentUser.bonusHoursRemaining !== undefined ? currentUser.bonusHoursRemaining : 0;
-      const lastTick = currentUser.lastTickTimestamp || Date.now();
+
+      // 🏛️ SSOT Alignment: Initialize or synchronize local refs with remote user document if a refill has happened
+      const initialPaidHours = currentUser.paidHoursRemaining !== undefined ? currentUser.paidHoursRemaining : (currentUser.subscriptionHours !== undefined ? Math.round(currentUser.subscriptionHours * 60) : 870);
+      const initialBonusHours = currentUser.bonusHoursRemaining !== undefined ? currentUser.bonusHoursRemaining : 0;
+      const initialLastTick = currentUser.lastTickTimestamp || Date.now();
+
+      if (localPaidHoursRef.current === null) {
+        localPaidHoursRef.current = initialPaidHours;
+      } else if (initialPaidHours > localPaidHoursRef.current) {
+        // External refill/reset occurred, synchronize upwards
+        localPaidHoursRef.current = initialPaidHours;
+      }
+
+      if (localBonusHoursRef.current === null) {
+        localBonusHoursRef.current = initialBonusHours;
+      } else if (initialBonusHours > localBonusHoursRef.current) {
+        localBonusHoursRef.current = initialBonusHours;
+      }
+
+      if (lastProcessedTickRef.current === null) {
+        lastProcessedTickRef.current = initialLastTick;
+      }
+
+      const paidHours = localPaidHoursRef.current;
+      const bonusHours = localBonusHoursRef.current;
+      const lastTick = lastProcessedTickRef.current;
 
       // [علاق ثغرة الوقت]: ميزان فحص سلامة الوقت لمنع التلاعب بساعة الهاتف
       const integrity = RadarAntiCheatKernel.validateTimeIntegrity({
@@ -143,6 +179,11 @@ export function useDriverLifecycle(user: User | null) {
       if (result.triggerSync) {
         const updated = result.updatedWallet;
         const totalHoursFraction = (updated.paidHoursRemaining + updated.bonusHoursRemaining) / 60;
+
+        // Synchronously update local SSOT refs IMMEDIATELY to prevent double tick on next interval run!
+        localPaidHoursRef.current = updated.paidHoursRemaining;
+        localBonusHoursRef.current = updated.bonusHoursRemaining;
+        lastProcessedTickRef.current = updated.lastTickTimestamp;
 
         // [قفل المصافحة الجداري]: تحديث الهاش في المتصفح محلياً فوراً لحبس العداد وحفظ نزاهته
         const nextHash = RadarSovereignCommuteKernel.generateStateHash(currentUser.uid, updated.paidHoursRemaining, updated.bonusHoursRemaining);

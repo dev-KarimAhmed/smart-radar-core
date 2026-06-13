@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from './use-auth';
 import { useToast } from './use-toast';
 import { trackSovereignError } from '@/lib/error-tracker';
@@ -25,6 +25,7 @@ const DEFAULT_PRICING_MATRIX: PricingMatrix = {
 export function usePricingMatrix() {
   const [matrix, setMatrix] = useState<PricingMatrix>(DEFAULT_PRICING_MATRIX);
   const [isSaving, setIsSaving] = useState(false);
+  const isSavingRef = useRef(false);
   const { toast } = useToast();
   const { user } = useAuth(); 
 
@@ -46,6 +47,8 @@ export function usePricingMatrix() {
         return { success: false, error: errorMsg };
     }
 
+    if (isSavingRef.current) return { success: false, error: 'جاري الحفظ...' };
+    isSavingRef.current = true;
     setIsSaving(true);
     try {
       const { shortTripFare, longTripKmRate, minuteRate, isOperatorLinked } = newMatrix;
@@ -104,6 +107,7 @@ export function usePricingMatrix() {
       return { success: false, error: errorMessage };
     } finally {
       setIsSaving(false);
+      isSavingRef.current = false;
     }
   }, [toast, user]);
 

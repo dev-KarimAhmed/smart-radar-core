@@ -18,6 +18,7 @@ import { VaultTab } from './vault-tab';
 import { useRiderOperations } from '@/hooks/use-rider-operations';
 import { useDriverOperations } from '@/hooks/use-driver-operations';
 import React, { useState, useEffect, useMemo } from 'react';
+import { motion } from 'motion/react';
 
 function SovereignLockoutView({ user, logout }: { user: any, logout: () => void }) {
   const [timeLeft, setTimeLeft] = useState<number>(1800);
@@ -70,9 +71,6 @@ function SovereignLockoutView({ user, logout }: { user: any, logout: () => void 
         <p className="text-sm text-gray-300 leading-relaxed text-right">
           عذراً {user?.role === 'driver' ? 'كابتن' : 'مسافر'} <span className="text-white font-bold">{user?.name}</span>، لقد هبط تقييمك العام عن الحد القانوني الدستوري (4.2)، أو تم اكتشاف ممارسات منافية لدستور كوابح السوق وحرية التسعير المتزنة.
         </p>
-        <button onClick={logout} className="w-full py-3 mt-4 bg-red-900 hover:bg-red-800 text-white rounded-xl transition-all duration-300 font-bold pointer-events-auto relative z-50">
-          تسجيل الخروج السريع
-        </button>
       </div>
     </div>
   );
@@ -92,25 +90,116 @@ function DashboardLayout() {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
+  const tripStatus = useMemo(() => isPassenger ? (riderOps?.tripStatus || 'idle') : 'idle', [isPassenger, riderOps?.tripStatus]);
+  const driverStatus = useMemo(() => isCaptain ? (driverOps?.driverStatus || 'idle') : 'idle', [isCaptain, driverOps?.driverStatus]);
+
+  // 🩸 [بروتوكول الربط الشرياني]: قفل مسارات المستخدم الإجبارية لمنع تمزق الواجهات وفقدان الذاكرة المرحلية
+  useEffect(() => {
+    const criticalRiderStates = ['searching', 'busy', 'rating', 'checkpoint_required'];
+    const criticalDriverStates = ['busy', 'rating'];
+
+    if (hash !== '#' && hash !== '' && hash !== '#/') {
+      if (isPassenger && criticalRiderStates.includes(tripStatus)) {
+        window.location.hash = '#';
+      } else if (isCaptain && criticalDriverStates.includes(driverStatus)) {
+        window.location.hash = '#';
+      }
+    }
+  }, [hash, tripStatus, driverStatus, isPassenger, isCaptain]);
+
   const isStandby = useMemo(() => {
     if (isSovereign) return false;
     if (hash !== '#' && hash !== '' && hash !== '#/') return false;
     
     if (isPassenger) {
       const isRequestModalOpen = riderOps?.isRequestModalOpen || false;
-      const tripStatus = riderOps?.tripStatus || 'idle';
-      if (isRequestModalOpen || tripStatus !== 'idle') return false;
+      const currentTripStatus = riderOps?.tripStatus || 'idle';
+      if (isRequestModalOpen || currentTripStatus !== 'idle') return false;
     }
     
     if (isCaptain) {
-      const driverStatus = driverOps?.driverStatus || 'idle';
+      const currentDriverStatus = driverOps?.driverStatus || 'idle';
       const isRequestListOpen = driverOps?.isRequestListOpen || false;
-      if (driverStatus === 'active' || driverStatus === 'busy' || isRequestListOpen) return false;
+      if (currentDriverStatus === 'active' || currentDriverStatus === 'busy' || isRequestListOpen) return false;
     }
     
     return true;
   }, [isSovereign, hash, isPassenger, isCaptain, riderOps?.isRequestModalOpen, riderOps?.tripStatus, driverOps?.driverStatus, driverOps?.isRequestListOpen]);
   
+  const renderArterialBridge = () => {
+    if (hash === '#' || hash === '' || hash === '#/') return null;
+
+    if (isPassenger && ['searching', 'busy'].includes(tripStatus)) {
+      const activeTrip = riderOps?.trip;
+      const displayPrice = activeTrip?.offerPrice !== undefined && activeTrip?.offerPrice !== -1 
+        ? `${Number(activeTrip.offerPrice).toFixed(2)} د.أ` 
+        : 'سعر مجمّد برادار النبض';
+
+      return (
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-lg mx-auto bg-[#051105]/95 border border-emerald-500/30 rounded-2xl p-4 flex items-center justify-between gap-4 shadow-[0_15px_40px_rgba(16,185,129,0.15)] backdrop-blur-md mb-6 pointer-events-auto"
+          dir="rtl"
+        >
+          <div className="flex items-center gap-3">
+            <span className="relative flex h-3 w-3 shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+            </span>
+            <div className="text-right">
+              <p className="text-xs font-black text-emerald-400 tracking-tight">بث الرحلة الشرياني نشط الآن 📡</p>
+              <p className="text-[10px] text-gray-400 font-bold mt-0.5">القيمة الملتزم بها: <span className="text-white font-mono">{displayPrice}</span></p>
+            </div>
+          </div>
+          
+          <button 
+            onClick={() => { window.location.hash = '#'; }}
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black rounded-xl shadow-lg transition-all duration-300 transform active:scale-95 pointer-events-auto z-[120]"
+          >
+            العودة للملاحة الحية 🚀
+          </button>
+        </motion.div>
+      );
+    }
+
+    if (isCaptain && driverStatus === 'busy') {
+      const activeTrip = driverOps?.activeRequest;
+      const displayPrice = activeTrip?.offerPrice !== undefined && activeTrip?.offerPrice !== -1 
+        ? `${Number(activeTrip.offerPrice).toFixed(2)} د.أ` 
+        : 'قيد الملاحة الميدانية';
+
+      return (
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-lg mx-auto bg-[#071307]/95 border border-emerald-500/30 rounded-2xl p-4 flex items-center justify-between gap-4 shadow-[0_15px_40px_rgba(16,185,129,0.15)] backdrop-blur-md mb-6 pointer-events-auto"
+          dir="rtl"
+        >
+          <div className="flex items-center gap-3">
+            <span className="relative flex h-3 w-3 shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+            </span>
+            <div className="text-right">
+              <p className="text-xs font-black text-emerald-400 tracking-tight">الجسر الشرياني للفرسان: الرحلة جارية</p>
+              <p className="text-[10px] text-gray-400 font-bold mt-0.5">سعر العداد المجمّد: <span className="text-white font-mono">{displayPrice}</span></p>
+            </div>
+          </div>
+          
+          <button 
+            onClick={() => { window.location.hash = '#'; }}
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black rounded-xl shadow-lg transition-all duration-300 transform active:scale-95 pointer-events-auto z-[120]"
+          >
+            العودة لقمرة الميدان 🚀
+          </button>
+        </motion.div>
+      );
+    }
+
+    return null;
+  };
+
   const renderContent = () => {
     if (isSovereign) return <AdminViewTab />;
 
@@ -121,8 +210,6 @@ function DashboardLayout() {
     if (ratingValue < 4.2) {
       return <SovereignLockoutView user={user} logout={logout} />;
     }
-
-    if (isStandby) return null;
 
     if (hash === '#wallet') return <WalletTab />;
     if (hash === '#vault') return <VaultTab />;
@@ -155,8 +242,9 @@ function DashboardLayout() {
         
         {/* الحاوية التي تحمل التبويبات (تسمح بالتمرير للأسفل) */}
         <div className="flex-1 w-full p-4 md:p-8">
+           {renderArterialBridge()}
            <SovereignErrorBoundary>
-             {renderContent()}
+              {renderContent()}
            </SovereignErrorBoundary>
         </div>
         

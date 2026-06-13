@@ -5,7 +5,6 @@ import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider, useAuth } from '@/hooks/use-auth';
 import { RiderOperationsProvider } from '@/hooks/use-rider-operations';
 import { DriverOperationsProvider } from '@/hooks/use-driver-operations';
-import { AdStatsProvider } from '@/hooks/use-ad-stats';
 import { Dashboard } from '@/components/dashboard';
 import LoginPage from '@/components/auth/login-page';
 
@@ -33,10 +32,8 @@ export default function App() {
     <AuthProvider>
       <DriverOperationsProvider>
         <RiderOperationsProvider>
-          <AdStatsProvider>
-            <AppOrchestrator />
-            <Toaster />
-          </AdStatsProvider>
+          <AppOrchestrator />
+          <Toaster />
         </RiderOperationsProvider>
       </DriverOperationsProvider>
     </AuthProvider>
