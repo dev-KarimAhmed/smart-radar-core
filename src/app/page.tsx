@@ -125,7 +125,7 @@ export default function HomePage() {
   );
 
   const handleRoleSelect = (role: RoleKey) => {
-    router.push(`/auth/${authMode}?role=${role}&lang=${lang}`);
+    router.push(`/register?role=${role}&lang=${lang}`);
   };
 
   return (
