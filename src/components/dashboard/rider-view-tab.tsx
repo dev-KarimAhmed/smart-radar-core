@@ -25,7 +25,7 @@ export function RiderViewTab() {
     acceptedDriver, selectOffer, isSelectingOffer, 
     rateTrip, isRating, confirmCheckpoint, isConfirmingCheckpoint,
     executeRedPathGuillotine, isExecutingGuillotine,
-    isRequestModalOpen, openRequestModal
+    isRequestModalOpen, openRequestModal, isRadarActive
   } = useRiderOperations();
 
   const { user } = useAuth();
@@ -163,13 +163,19 @@ export function RiderViewTab() {
               </div>
 
               {/* Launcher Button */}
-              <Button 
-                onClick={openRequestModal}
-                className="w-full h-16 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-lg sm:text-xl tracking-tight rounded-2xl shadow-lg shadow-emerald-950/40 hover:scale-[1.02] active:scale-95 transition-all duration-300 border border-emerald-500/20 flex items-center justify-center gap-2"
-                dir="rtl"
-              >
-                <span>إطلق نداء الراصد الموحد 🚀</span>
-              </Button>
+              {isRadarActive === false ? (
+                <div className="w-full min-h-16 bg-rose-950/20 border-2 border-rose-500/30 text-rose-400 font-extrabold text-xs rounded-2xl flex items-center justify-center p-4 text-center leading-normal">
+                  🚫 الخدمة معلقة مؤقتاً بناءً على القرارات الرسمية
+                </div>
+              ) : (
+                <Button 
+                  onClick={openRequestModal}
+                  className="w-full h-16 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-lg sm:text-xl tracking-tight rounded-2xl shadow-lg shadow-emerald-950/40 hover:scale-[1.02] active:scale-95 transition-all duration-300 border border-emerald-500/20 flex items-center justify-center gap-2"
+                  dir="rtl"
+                >
+                  <span>إطلق نداء الراصد الموحد 🚀</span>
+                </Button>
+              )}
             </motion.div>
 
             {/* [SCR-DASH-RIDER-118] غرفة تحكم الراكب وأرشيف الـ 3 أيام المطهّر تلقائياً */}

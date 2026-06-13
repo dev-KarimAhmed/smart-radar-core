@@ -27,7 +27,8 @@ export function RequestRideModal() {
     estimatedDistance, estimatedTime,
     isLocationConfirmed, calculateSovereignMetrics,
     pasteFromClipboard, resetLocationMetrics,
-    pulsedDrivers = [], isPulsing = false
+    pulsedDrivers = [], isPulsing = false,
+    isRadarActive
   } = useRiderOperations();
 
   const isBlindSpot = estimatedDistance > 0 && estimatedDistance < 0.1;
@@ -259,25 +260,33 @@ export function RequestRideModal() {
         </div>
 
         <DialogFooter className="p-6 bg-black/40 border-t border-white/5">
-          <Button
-            onClick={requestRide}
-            disabled={isRequesting || !isLocationConfirmed || !dropoff}
-            className={cn(
-              "w-full h-16 rounded-2xl font-black text-xl tracking-tighter transition-all",
-              isLocationConfirmed && dropoff 
-                ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_10px_30px_rgba(16,185,129,0.3)] border border-emerald-500/20" 
-                : "bg-white/5 text-white/10 grayscale pointer-events-none"
-            )}
-          >
-            {isRequesting ? (
-              <div className="flex items-center gap-2">
-                <Loader2 className="w-6 h-6 animate-spin text-emerald-400" />
-                <span>يرسل الإشارة الملاحية...</span>
-              </div>
-            ) : (
-              'تفعيل العوامة السيادية للرادار'
-            )}
-          </Button>
+          {isRadarActive === false ? (
+            <div className="w-full h-16 bg-rose-950/20 border border-rose-500/30 rounded-2xl flex items-center justify-center p-3 animate-pulse">
+              <span className="text-xs sm:text-sm font-black text-rose-400 text-center leading-normal">
+                الخدمة معلقة مؤقتاً بناءً على القرارات الرسمية
+              </span>
+            </div>
+          ) : (
+            <Button
+              onClick={requestRide}
+              disabled={isRequesting || !isLocationConfirmed || !dropoff}
+              className={cn(
+                "w-full h-16 rounded-2xl font-black text-xl tracking-tighter transition-all",
+                isLocationConfirmed && dropoff 
+                  ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_10px_30px_rgba(16,185,129,0.3)] border border-emerald-500/20" 
+                  : "bg-white/5 text-white/10 grayscale pointer-events-none"
+              )}
+            >
+              {isRequesting ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="w-6 h-6 animate-spin text-emerald-400" />
+                  <span>يرسل الإشارة الملاحية...</span>
+                </div>
+              ) : (
+                'تفعيل العوامة السيادية للرادار'
+              )}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

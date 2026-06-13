@@ -16,6 +16,7 @@ import { SovereignDict } from '@/lib/sovereign-dictionary';
 import { useLinkCatcher } from './use-link-catcher';
 import { dexieDb, RadarCaptainFavoriteKernel } from '@/lib/dexie-db';
 import { RadarAntiCheatKernel } from '@/core/logic/anti-cheat-kernel';
+import { useSovereignControls } from './use-sovereign-controls';
 
 interface RiderOperationsContextType {
   trip: Trip | null;
@@ -54,6 +55,7 @@ interface RiderOperationsContextType {
   isPulsing: boolean;
   isLocationConfirmed: boolean;
   resetLocationMetrics: () => void;
+  isRadarActive: boolean | null;
 }
 
 export const RiderOperationsContext = createContext<RiderOperationsContextType | undefined>(undefined);
@@ -73,6 +75,31 @@ export function RiderOperationsProvider({ children }: { children: ReactNode }) {
   const [lastCalculatedUrl, setLastCalculatedUrl] = useState('');
   
   const { location: anchorLocation } = useGeospatialAnchor();
+  const { isRadarActive } = useSovereignControls();
+
+  // تدوين الإحداثيات محلياً على الحافة كبصمة مستقرة للتحقيق الجنائي لاحقاً في الـ Local Buffer
+  useEffect(() => {
+    if (anchorLocation && anchorLocation.lat && anchorLocation.lng) {
+      try {
+        const stored = localStorage.getItem('sovereign_gps_local_buffer');
+        const buffer = stored ? JSON.parse(stored) : [];
+        const entry = {
+          lat: anchorLocation.lat,
+          lng: anchorLocation.lng,
+          timestamp: Date.now(),
+          source: anchorLocation.source
+        };
+        // الحفاظ على آخر 10 نقاط ملاحية فقط
+        buffer.push(entry);
+        if (buffer.length > 10) {
+          buffer.shift();
+        }
+        localStorage.setItem('sovereign_gps_local_buffer', JSON.stringify(buffer));
+      } catch (err) {
+        console.warn("Failed to write to local sovereign GPS buffer", err);
+      }
+    }
+  }, [anchorLocation]);
   
   const { capturedLink, clearCapturedLink } = useLinkCatcher();
 
@@ -229,13 +256,21 @@ export function RiderOperationsProvider({ children }: { children: ReactNode }) {
   } = useRiderTransactions(user, trip, acceptedDriver, resetTripListener, setInternalStatus);
   
   const requestRide = useCallback(async () => {
+    if (isRadarActive === false) {
+      toast({
+        variant: 'destructive',
+        title: 'الخدمة معلقة مؤقتاً',
+        description: 'الخدمة معلقة مؤقتاً بناءً على القرارات الرسمية الموحدة لنظام بينكم.',
+      });
+      return;
+    }
+
     if (!pickup) {
       toast({ variant: 'destructive', ...SovereignDict.ERRORS.EMPTY_LINK });
       return;
     }
     
-    const cancelKey = user?.uid ? `consecutive_cancels_${user.uid}` : '';
-    const cancels = cancelKey ? parseInt(localStorage.getItem(cancelKey) || '0') : 0;
+    const cancels = user?.consecutiveCancellations || 0;
     const initialRiderRating = user?.rating !== undefined ? user.rating : (user?.ratingSum && user?.ratingCount ? user.ratingSum / user.ratingCount : 5.0);
 
     const throttleResult = RadarAntiCheatKernel.throttleRiderFloodAttack({
@@ -274,7 +309,6 @@ export function RiderOperationsProvider({ children }: { children: ReactNode }) {
         estimatedTime, 
         estimatedDistance, 
         pickupCoords: obfuscatedPickupCoords, 
-        exactPickupCoords: currentAnchor,
         obfuscatedPickupCoords,
         h3Index,
         gridId,
@@ -349,14 +383,15 @@ export function RiderOperationsProvider({ children }: { children: ReactNode }) {
     isExecutingGuillotine, confirmCheckpoint, isConfirmingCheckpoint, selectOffer, isSelectingOffer,
     seats, setSeats, dropoff, setDropoff, pickup, setPickup: handlePickupChange, requiresOfficialRate, setRequiresOfficialRate,
     isResolvingUrl, openMapsForDestination, calculateSovereignMetrics, pasteFromClipboard, 
-    estimatedDistance, estimatedTime, pulsedDrivers, isPulsing, isLocationConfirmed, resetLocationMetrics
+    estimatedDistance, estimatedTime, pulsedDrivers, isPulsing, isLocationConfirmed, resetLocationMetrics,
+    isRadarActive
   }), [
     trip, tripStatus, acceptedDriver, requestRide, isRequesting, cancelTrip, isCancelling,
     rateTrip, isRating, isRequestModalOpen, openRequestModal, closeRequestModal, executeRedPathGuillotine,
     isExecutingGuillotine, confirmCheckpoint, isConfirmingCheckpoint, selectOffer, isSelectingOffer,
     seats, dropoff, pickup, handlePickupChange, requiresOfficialRate, isResolvingUrl, openMapsForDestination, 
     calculateSovereignMetrics, pasteFromClipboard, estimatedDistance, estimatedTime, pulsedDrivers, 
-    isPulsing, isLocationConfirmed, resetLocationMetrics
+    isPulsing, isLocationConfirmed, resetLocationMetrics, isRadarActive
   ]);
 
   return <RiderOperationsContext.Provider value={value}>{children}</RiderOperationsContext.Provider>;

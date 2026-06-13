@@ -7,6 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { ShieldCheck, Phone, AlertCircle, Clock, Trash2, Send, Heart, Briefcase, X, MessageCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { dexieDb, RadarCaptainFavoriteKernel } from '@/lib/dexie-db';
+import { db, auth } from '@/lib/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 export interface HistoricalTrip {
   tripId: string;
@@ -129,13 +131,40 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({ riderProfil
     }
   };
 
-  const handleSilentReport = (tripId: string) => {
+  const handleSilentReport = async (tripId: string) => {
     if (!reportText.trim()) return;
-    console.log(`📡 نبضة بلاغ جنائي موجهة للسيرفر (1 Write) للرحلة ${tripId}: ${reportText}`);
+    
+    // استدعاء مصفوفة الإحداثيات المخزنة محلياً في جهاز الراكب كدليل جنائي رفقة البلاغ عند الطلب
+    let localBufferCords = '';
+    try {
+      const stored = localStorage.getItem('sovereign_gps_local_buffer');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        localBufferCords = parsed.map((pt: any) => `[${pt.lat.toFixed(5)},${pt.lng.toFixed(5)}@${new Date(pt.timestamp).toISOString().slice(11, 19)}]`).join(', ');
+      }
+    } catch (e) {
+      console.warn("Failed to extract forensic local buffer", e);
+    }
+
+    const payloadText = `${reportText.trim()} | [بصمة الجهاز الموضعية للجريمة الملاحية: ${localBufferCords || 'لا توجد إحداثيات مخزنة بالمسجل المباشر'}]`;
+    
+    try {
+      await addDoc(collection(db, 'silent_reports'), {
+        tripId,
+        reportText: reportText.trim(),
+        payloadText,
+        riderId: auth.currentUser?.uid || riderProfile.id || 'anonymous',
+        timestamp: serverTimestamp()
+      });
+      console.log(`📡 نبضة بلاغ جنائي موجهة للسيرفر (1 Write) للرحلة ${tripId}: ${payloadText}`);
+    } catch (error) {
+      console.error("Failed to submit silent report:", error);
+    }
+    
     setReportText('');
     toast({
       title: '✅ تم إيداع البلاغ في الصندوق الأسود',
-      description: 'تم إيداع البلاغ في الصندوق الأسود الجنائي بنجاح، جاري المراجعة وتقويم الميدان.',
+      description: 'تم إرفاق بصمة الإحداثيات المحلية كدليل جنائي متكامل بالصندوق الأسود بنجاح.',
       variant: 'default',
     });
   };

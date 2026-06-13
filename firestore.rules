@@ -3,10 +3,53 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // [SOVEREIGN DEVELOPMENT MODE] - فتح القلعة لإتمام التكوين (50% -> 100%)
+    // 1. Global default-deny catch-all
     match /{document=**} {
-      // يسمح بالقراءة والكتابة للجميع مؤقتاً لتسهيل الفحص الميداني والمستخدمين الوهميين
-      allow read, write: if true; 
+      allow read, write: if false;
+    }
+
+    // 2. Reusable auth check helper
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // 3. Hardened Collection boundaries
+    match /users/{userId} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /trips/{tripId} {
+      allow create: if request.auth != null && request.resource.data.riderId == request.auth.uid;
+      allow read, update: if request.auth != null && (
+        request.auth.uid == resource.data.riderId || 
+        request.auth.uid == resource.data.driverId || 
+        resource.data.status == "searching"
+      );
+    }
+
+    match /promos/{promoId} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /market_pulse/{pulseId} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /delegates/{delegateId} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /settings/{settingId} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /vehicles/{vehicleId} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /silent_reports/{reportId} {
+      allow create: if isSignedIn();
+      allow read, write: if false; // Strict isolation: no reading/invoking allowed
     }
   }
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Home, History, Wallet, User } from 'lucide-react';
+import { Home, History, Wallet, User, Archive } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
 
@@ -23,6 +23,7 @@ export function BottomNav() {
   const navItems = [
     { href: '#', icon: Home, label: 'الرئيسية' },
     { href: '#history', icon: History, label: 'السجل' },
+    { href: '#vault', icon: Archive, label: 'الخزنة' },
     { href: '#wallet', icon: Wallet, label: 'المحفظة' },
     { href: '#profile', icon: User, label: 'حسابي' },
   ];

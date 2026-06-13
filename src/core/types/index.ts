@@ -33,6 +33,7 @@ export interface User {
   isRatingRequired?: boolean;
   gridId?: string;
   isOperatorLinked?: boolean;
+  consecutiveCancellations?: number;
   affiliation?: {
       type: string;
       name: string;

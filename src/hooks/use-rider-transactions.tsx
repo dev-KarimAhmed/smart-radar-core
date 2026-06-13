@@ -67,10 +67,16 @@ export function useRiderTransactions(
     setIsCancelling(true);
     try {
       if (user?.uid) {
-        const key = `consecutive_cancels_${user.uid}`;
-        const currentCount = parseInt(localStorage.getItem(key) || '0') + 1;
-        localStorage.setItem(key, currentCount.toString());
-        console.log(`⚠️ دبابات التصفية النسيجية: عدد الإلغاءات المتتالية للراكب بلغ [${currentCount}]`);
+        const currentCount = (user.consecutiveCancellations || 0) + 1;
+        let newRating = user.rating ?? 5.0;
+        if (currentCount >= 3) {
+          newRating = 4.19; // طمس رصيد الثقة وتنزيله تحت عتبة 4.2 فوراً لتفعيل الحظر التلقائي
+        }
+        await updateDoc(doc(db, 'users', user.uid), {
+          consecutiveCancellations: currentCount,
+          rating: newRating
+        });
+        console.log(`⚠️ دبابات التصفية النسيجية: عدد الإلغاءات المتتالية للراكب بلغ سحابياً [${currentCount}] والتقييم [${newRating}]`);
       }
       await updateDoc(doc(db, 'trips', trip.id), { status: 'cancelled' });
       resetState();
@@ -82,7 +88,7 @@ export function useRiderTransactions(
       setIsCancelling(false);
       isCancellingRef.current = false;
     }
-  }, [trip?.id, resetState, toast, user?.uid]);
+  }, [trip?.id, resetState, toast, user?.uid, user?.consecutiveCancellations, user?.rating]);
 
   const rateTrip = useCallback(async (ratings: { driverRating: number; vehicleRating: number; giveHeart: boolean; sensory: any; }) => {
     if (!trip?.id) return;
@@ -113,7 +119,9 @@ export function useRiderTransactions(
     setIsConfirmingCheckpoint(true);
     try {
         if (user?.uid) {
-          localStorage.setItem(`consecutive_cancels_${user.uid}`, '0');
+          await updateDoc(doc(db, 'users', user.uid), {
+            consecutiveCancellations: 0
+          });
         }
         await updateDoc(doc(db, 'trips', trip.id), { status: 'completed', checkpointConfirmed: true });
         toast({ title: "تم تأكيد المربع الملاحي للأمان", description: "الرحلة تمت بموثوقية عالية." });
