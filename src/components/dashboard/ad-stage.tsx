@@ -76,7 +76,7 @@ export function AdStage() {
   if (!currentAd) return <div className="relative w-full h-[300px] bg-[#0B1120] z-0" />;
 
   return (
-    <div className="relative w-full h-[300px] z-[10] bg-[#0B1120] pointer-events-auto select-none overflow-hidden" dir="rtl">
+    <div className="relative w-full h-[300px] z-[10] bg-[#0B1120] pointer-events-auto select-none" dir="rtl">
       <AnimatePresence mode="wait">
         <motion.div
           key={currentAd.id}

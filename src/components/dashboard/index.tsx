@@ -136,7 +136,7 @@ function DashboardLayout() {
   
   return (
     // استخدام flex-col لضمان تدفق الصفحة (Doc Flow) والسماح بالتمرير الطبيعي
-    <div className="flex flex-col min-h-screen w-full bg-[#0B1120] text-white">
+    <div className="flex flex-col min-h-screen w-full bg-[#0B1120] text-white overflow-y-auto">
       
       {/* الهيدر ثابت في الأعلى */}
       <header className="sticky top-0 z-[100] w-full shrink-0">
@@ -144,7 +144,7 @@ function DashboardLayout() {
       </header>
       
       {/* المحتوى الرئيسي يتمدد ويسمح بالتمرير (Scroll) */}
-      <main className="flex-1 w-full relative flex flex-col">
+      <main className="flex-1 w-full relative flex flex-col overflow-y-visible">
         
         {/* مسرح الإعلانات يأخذ مساحته الطبيعية في التدفق */}
         {isStandby && (
