@@ -140,7 +140,10 @@ export function useDriverTransactions(
         displayTarget: evaluation.displayTarget
       };
 
-      await updateDoc(tripRef, { offers: arrayUnion(offer) });
+      await callSovereignCloud('submitOffer', {
+        tripId: payload.tripId,
+        offer
+      });
 
       // [الدستور التنفيذي V5.5 - الباب الأول] : توليد الفرصة الإعلانية وتصاعد السعة عند حرق/شذوذ الأسعار وثغرات كوابح السوق
       if (evaluation.isDumping) {
@@ -197,7 +200,9 @@ export function useDriverTransactions(
     isEndingTripRef.current = true;
     setIsEndingTrip(true);
     try {
-      await updateDoc(doc(db, 'trips', activeRequest.id), { status: 'checkpoint_required' });
+      await callSovereignCloud('endTrip', {
+        tripId: activeRequest.id
+      });
       toast({ title: 'طلب تأكيد المربع الميداني', description: 'يرجى الانتظار لحين تأكيد الراكب إتمام المسار.' });
     } catch (error) {
       trackSovereignError(error, { context: 'EndTrip' });

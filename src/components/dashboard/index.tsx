@@ -213,13 +213,20 @@ function DashboardLayout() {
 
     // 🛡️ [RAD-CMD-061]: Rider Memory Isolation & Decoupled Routing Layout
     if (user?.role === 'rider') {
+      const isRequestModalOpen = riderOps?.isRequestModalOpen || false;
+      const currentTripStatus = riderOps?.tripStatus || 'idle';
+      const criticalRiderStates = ['searching', 'busy', 'rating', 'checkpoint_required'];
+
+      // 🩸 [تحصين الذاكرة المرحلية للراكب]: إذا كانت الرحلة نشطة أو بحالة حرجة، نمنع إلغاء تحميل RiderViewTab تماماً مهما تغير الهش لمنع تمزق الواجهات وفقدان حالة تتبع المركبة
+      if (criticalRiderStates.includes(currentTripStatus)) {
+        return <RiderViewTab />;
+      }
+
       if (hash === '#wallet') return <WalletTab />;
       if (hash === '#vault') return <VaultTab />;
       if (hash === '#history') return <HistoryTab />;
       if (hash === '#profile') return <ProfileTab />;
       
-      const isRequestModalOpen = riderOps?.isRequestModalOpen || false;
-      const currentTripStatus = riderOps?.tripStatus || 'idle';
       if (currentTripStatus !== 'idle' || isRequestModalOpen) {
         return <RiderViewTab />;
       }
@@ -251,6 +258,12 @@ function DashboardLayout() {
           </button>
         </div>
       );
+    }
+
+    // 🩸 [تحصين الذاكرة المرحلية للكابتن]: إذا كان الكابتن في رحلة جارية، نمنع إلغاء تحميل DriverViewTab تماماً لمنع تمزق الواجهات وفقدان الذاكرة المرحلية
+    const criticalDriverStates = ['busy', 'rating'];
+    if (isCaptain && criticalDriverStates.includes(driverStatus)) {
+      return <DriverViewTab />;
     }
 
     if (hash === '#wallet') return <WalletTab />;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { doc, updateDoc, arrayUnion, increment } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useToast } from './use-toast';
@@ -14,6 +14,7 @@ import type { User } from '@/core/types';
 export function useSovereignWallet(user: User | null) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const loadingRef = useRef(false);
 
   const rechargeWallet = useCallback(async (amountPaid: number, district: string, gateway: string) => {
     if (!user?.uid) {
@@ -25,6 +26,8 @@ export function useSovereignWallet(user: User | null) {
       return false;
     }
 
+    if (loadingRef.current) return false;
+    loadingRef.current = true;
     setLoading(true);
     try {
       const txId = 'tx-' + Date.now();
@@ -59,6 +62,7 @@ export function useSovereignWallet(user: User | null) {
       return false;
     } finally {
       setLoading(false);
+      loadingRef.current = false;
     }
   }, [user?.uid, toast]);
 

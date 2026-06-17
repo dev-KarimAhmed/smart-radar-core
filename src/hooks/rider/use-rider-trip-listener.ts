@@ -9,8 +9,10 @@ import { getSurroundingGridIds } from '@/lib/geo-grid';
 import { calculateSovereignDistance } from '@/core/logic/geospatial-kernel';
 
 export function useRiderTripListener(user: DriverUser | null) {
-  const [trip, setTrip] = useState<Trip | null>(null);
-  const [internalStatus, setInternalStatus] = useState<TripStatus>('idle');
+  const [listenerState, setListenerState] = useState<{
+    trip: Trip | null;
+    status: TripStatus;
+  }>({ trip: null, status: 'idle' });
   const [acceptedDriver, setAcceptedDriver] = useState<DriverUser | null>(null);
   const [pulsedDrivers, setPulsedDrivers] = useState<(DriverUser & { distance: number })[]>([]);
   const [isPulsing, setIsPulsing] = useState(false);
@@ -20,12 +22,18 @@ export function useRiderTripListener(user: DriverUser | null) {
 
   const resetState = useCallback(() => {
     prevTripRef.current = null;
-    setTrip(null);
+    setListenerState({ trip: null, status: 'idle' });
     setAcceptedDriver(null);
-    setInternalStatus('idle');
     setPulsedDrivers([]);
     setIsPulsing(false);
   }, []);
+
+  const setInternalStatus = useCallback((status: TripStatus) => {
+    setListenerState(prev => ({ ...prev, status }));
+  }, []);
+
+  const trip = listenerState.trip;
+  const internalStatus = listenerState.status;
 
   const fetchRealDriverProfile = useCallback(async (driverId: string) => {
     try {
@@ -51,7 +59,7 @@ export function useRiderTripListener(user: DriverUser | null) {
     const q = query(
       collection(db, 'trips'),
       where('riderId', '==', user.uid),
-      where('status', 'not-in', ['completed', 'cancelled', 'archived']),
+      where('status', 'in', ['searching', 'busy', 'rating', 'completed', 'checkpoint_required', 'cancelled']),
       limit(1)
     );
 
@@ -74,9 +82,10 @@ export function useRiderTripListener(user: DriverUser | null) {
           nextStatus = 'rating';
         } else if (updatedTrip.status === 'checkpoint_required') {
           nextStatus = 'checkpoint_required';
+        } else if (updatedTrip.status === 'cancelled') {
+          resetState();
+          return;
         }
-
-        setInternalStatus(nextStatus);
 
         if (updatedTrip.status === 'busy' && updatedTrip.driverId && (!acceptedDriverRef.current || acceptedDriverRef.current.uid !== updatedTrip.driverId)) {
           fetchRealDriverProfile(updatedTrip.driverId);
@@ -118,7 +127,10 @@ export function useRiderTripListener(user: DriverUser | null) {
             }
         }
 
-        setTrip(updatedTrip);
+        setListenerState({
+          trip: updatedTrip,
+          status: nextStatus
+        });
       } else {
         // Fallback simulation in dev mode if database is un-seeded or empty to ensure smooth interactive evaluation
         if (import.meta.env.DEV && prevTripRef.current === null) {

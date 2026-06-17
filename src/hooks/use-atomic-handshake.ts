@@ -114,7 +114,7 @@ export function useAtomicHandshake(user: User | null, riderCoords: { lat: number
       });
     }, 1000);
 
-    return computedPrice;
+    return { price: computedPrice, h3Cell };
   }, [riderCoords]);
 
   // Clean timers on unmount

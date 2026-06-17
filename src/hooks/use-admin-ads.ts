@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { collection, onSnapshot, query, orderBy, doc, updateDoc, addDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useToast } from './use-toast';
@@ -63,6 +63,7 @@ export function useAdminAds() {
   const [ads, setAds] = useState<SovereignAd[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
+  const isProcessingRef = useRef(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -147,6 +148,8 @@ export function useAdminAds() {
 
   // Create Campaign
   const createAd = useCallback(async (adData: AdInput): Promise<boolean> => {
+    if (isProcessingRef.current) return false;
+    isProcessingRef.current = true;
     setIsProcessing(true);
     try {
       const adModel = {
@@ -178,11 +181,14 @@ export function useAdminAds() {
       return false;
     } finally {
       setIsProcessing(false);
+      isProcessingRef.current = false;
     }
   }, [toast]);
 
   // 1. تعليق / إلغاء تعليق (Pause / Play) - السيادة الإدارية الأولى
   const toggleAdStatus = useCallback(async (adId: string, currentStatus: string) => {
+    if (isProcessingRef.current) return;
+    isProcessingRef.current = true;
     setIsProcessing(true);
     try {
       const adRef = doc(db, 'promos', adId);
@@ -194,11 +200,14 @@ export function useAdminAds() {
       toast({ variant: 'destructive', title: 'فشل السيادة على الحالة' });
     } finally {
       setIsProcessing(false);
+      isProcessingRef.current = false;
     }
   }, [toast]);
 
   // 2. حذف / أرشفة (Delete) - السيادة الإدارية الثانية
   const deleteAd = useCallback(async (adId: string) => {
+    if (isProcessingRef.current) return;
+    isProcessingRef.current = true;
     setIsProcessing(true);
     try {
       const adRef = doc(db, 'promos', adId);
@@ -209,11 +218,14 @@ export function useAdminAds() {
       toast({ variant: 'destructive', title: 'فشل أرشفة الحملة' });
     } finally {
       setIsProcessing(false);
+      isProcessingRef.current = false;
     }
   }, [toast]);
 
   // 3. تجميد العقد (Freeze) - السيادة الإدارية الثالثة
   const freezeAd = useCallback(async (adId: string, isFrozen: boolean) => {
+    if (isProcessingRef.current) return;
+    isProcessingRef.current = true;
     setIsProcessing(true);
     try {
       const adRef = doc(db, 'promos', adId);
@@ -225,11 +237,14 @@ export function useAdminAds() {
       toast({ variant: 'destructive', title: 'فشل تجميد الحملة' });
     } finally {
       setIsProcessing(false);
+      isProcessingRef.current = false;
     }
   }, [toast]);
 
   // 4. تمديد التاريخ والظهور (Extend) - السيادة الإدارية الرابعة
   const extendAd = useCallback(async (adId: string, extraImpressions: number, extraDays: number) => {
+    if (isProcessingRef.current) return;
+    isProcessingRef.current = true;
     setIsProcessing(true);
     try {
       const adRef = doc(db, 'promos', adId);
@@ -248,10 +263,13 @@ export function useAdminAds() {
       toast({ variant: 'destructive', title: 'فشل تمديد معالم الحملة' });
     } finally {
       setIsProcessing(false);
+      isProcessingRef.current = false;
     }
   }, [ads, toast]);
 
   const approveAd = useCallback(async (adId: string) => {
+    if (isProcessingRef.current) return;
+    isProcessingRef.current = true;
     setIsProcessing(true);
     try {
       const adRef = doc(db, 'promos', adId);
@@ -262,6 +280,7 @@ export function useAdminAds() {
       toast({ variant: 'destructive', title: 'فشل الاعتماد', description: error.message || 'خطأ في قاموس السحابة.' });
     } finally {
       setIsProcessing(false);
+      isProcessingRef.current = false;
     }
   }, [toast]);
 
@@ -270,6 +289,8 @@ export function useAdminAds() {
       toast({ variant: 'destructive', title: 'رفض الإجراء', description: 'إفادة المدعي العام (سبب الرفض) إلزامية.' });
       return;
     }
+    if (isProcessingRef.current) return;
+    isProcessingRef.current = true;
     setIsProcessing(true);
     try {
       const adRef = doc(db, 'promos', adId);
@@ -280,6 +301,7 @@ export function useAdminAds() {
       toast({ variant: 'destructive', title: 'فشل الرفض', description: error.message || 'خطأ في قاموس السحابة.' });
     } finally {
       setIsProcessing(false);
+      isProcessingRef.current = false;
     }
   }, [toast]);
 
@@ -289,6 +311,8 @@ export function useAdminAds() {
       toast({ variant: 'destructive', title: 'فشل الإعدام', description: 'يتعين تحديد سبب التطهير الجنائي لتبرير الإبادة الرقمية.' });
       return false;
     }
+    if (isProcessingRef.current) return false;
+    isProcessingRef.current = true;
     setIsProcessing(true);
     try {
       const adRef = doc(db, 'promos', adId);
@@ -318,6 +342,7 @@ export function useAdminAds() {
       return false;
     } finally {
       setIsProcessing(false);
+      isProcessingRef.current = false;
     }
   }, [toast]);
 

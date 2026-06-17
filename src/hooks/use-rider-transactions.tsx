@@ -73,13 +73,19 @@ export function useRiderTransactions(
         if (currentCount >= 3) {
           newRating = 4.19; // طمس رصيد الثقة وتنزيله تحت عتبة 4.2 فوراً لتفعيل الحظر التلقائي
         }
-        await updateDoc(doc(db, 'users', user.uid), {
+        await callSovereignCloud('cancelTrip', {
+          tripId: trip.id,
+          userId: user.uid,
           consecutiveCancellations: currentCount,
-          rating: newRating
+          ratingAdjustment: newRating
         });
         console.log(`⚠️ دبابات التصفية النسيجية: عدد الإلغاءات المتتالية للراكب بلغ سحابياً [${currentCount}] والتقييم [${newRating}]`);
+      } else {
+        await callSovereignCloud('cancelTrip', {
+          tripId: trip.id,
+          userId: ''
+        });
       }
-      await updateDoc(doc(db, 'trips', trip.id), { status: 'cancelled' });
       try {
         await EphemeralMessageKernel.purgeTripMessages(trip.id);
       } catch (chatErr) {
@@ -124,12 +130,11 @@ export function useRiderTransactions(
     isConfirmingCheckpointRef.current = true;
     setIsConfirmingCheckpoint(true);
     try {
-        if (user?.uid) {
-          await updateDoc(doc(db, 'users', user.uid), {
-            consecutiveCancellations: 0
-          });
-        }
-        await updateDoc(doc(db, 'trips', trip.id), { status: 'completed', checkpointConfirmed: true });
+        await callSovereignCloud('confirmCheckpoint', {
+          tripId: trip.id,
+          userId: user?.uid || '',
+          ratingAdjustment: user?.rating ?? 5.0
+        });
         try {
           await EphemeralMessageKernel.purgeTripMessages(trip.id);
         } catch (chatErr) {

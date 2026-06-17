@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -12,6 +12,7 @@ export function useSovereignControls() {
   const { toast } = useToast();
   
   const [isProcessing, setIsProcessing] = useState(false);
+  const isProcessingRef = useRef(false);
   const [isRadarActive, setIsRadarActive] = useState<boolean | null>(null);
 
   // Listen first to settings/system_state Firestore doc
@@ -37,6 +38,8 @@ export function useSovereignControls() {
   }, []);
   
   const toggleKillSwitch = useCallback(async () => {
+    if (isProcessingRef.current) return;
+    isProcessingRef.current = true;
     setIsProcessing(true);
     try {
       if (db) {
@@ -49,7 +52,6 @@ export function useSovereignControls() {
            title: 'تم تعديل العهد السيادي المالي نظاماً',
            description: nextState ? 'تم تفعيل التتبع ورادارات المسارات' : 'تم تعليق رادارات الهواتف وأدوات النقل السيادي للفرسان مؤقتاً.',
          });
-         setIsProcessing(false);
          return;
       }
 
@@ -68,10 +70,13 @@ export function useSovereignControls() {
       });
     } finally {
       setIsProcessing(false);
+      isProcessingRef.current = false;
     }
   }, [isRadarActive, toast]);
 
   const updateFuelIndex = useCallback(async (district: string, newPrice: number) => {
+    if (isProcessingRef.current) return;
+    isProcessingRef.current = true;
     setIsProcessing(true);
     try {
       const fuelIndexFn = httpsCallable(getFunctions(), 'adminUpdateFuelIndex');
@@ -85,6 +90,7 @@ export function useSovereignControls() {
       toast({ title: 'تنبيه: محاكاة محلية لعهد الأسعار', description: `تم تعديل تسعيرة الحصان السيادي في ${district} لتصبح ${newPrice} د.أ.` });
     } finally {
       setIsProcessing(false);
+      isProcessingRef.current = false;
     }
   }, [toast]);
   

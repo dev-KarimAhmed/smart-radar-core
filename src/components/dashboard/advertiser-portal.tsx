@@ -456,7 +456,7 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
   }, [ads, pendingAds]);
 
   return (
-    <div className="w-full min-h-screen flex flex-col overflow-y-auto pb-20 max-w-2xl mx-auto bg-black border border-emerald-500/20 rounded-2xl p-2 sm:p-4 shadow-2xl relative select-none font-sans text-right animate-fade-in" dir="rtl">
+    <div className="w-full flex flex-col pb-20 max-w-2xl mx-auto p-4 sm:p-6 relative select-none font-sans text-right animate-fade-in" dir="rtl">
       
       {/* Decorative Neon Blurs */}
       <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />

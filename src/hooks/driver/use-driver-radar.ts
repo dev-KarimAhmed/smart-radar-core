@@ -54,14 +54,20 @@ export function useDriverRadar(user: User | null, driverStatus: string, updateDr
   const driverLocationSpeed = driverLocation?.speed;
   const driverLocationSource = driverLocation?.source;
 
+  const surroundingGridIds = useMemo(() => {
+    if (!latVal || !lngVal) return [];
+    return getSurroundingGridIds(latVal, lngVal);
+  }, [latVal, lngVal]);
+
+  const currentGridAreaKey = useMemo(() => {
+    return JSON.stringify([...surroundingGridIds].sort());
+  }, [surroundingGridIds]);
+
+  // Hook 1: Location updates and Grid shifting (Only updates Firestore on grid boundary change)
   useEffect(() => {
-    if (driverStatus !== 'active' || !latVal || !lngVal || !user) {
-      setRawTrips([]);
+    if (driverStatus !== 'active' || !latVal || !lngVal) {
       return;
     }
-
-    const surroundingGridIds = getSurroundingGridIds(latVal, lngVal);
-    const currentGridAreaKey = JSON.stringify(surroundingGridIds.sort());
 
     if (currentGridAreaKey !== lastGridId.current) {
       setRawTrips([]); 
@@ -72,6 +78,13 @@ export function useDriverRadar(user: User | null, driverStatus: string, updateDr
         location: { lat: latVal, lng: lngVal, speed: driverLocationSpeed, source: driverLocationSource || 'fallback' }
       });
       lastGridId.current = currentGridAreaKey;
+    }
+  }, [driverStatus, latVal, lngVal, currentGridAreaKey, driverLocationSpeed, driverLocationSource, updateDriverDoc]);
+
+  // Hook 2: Commute handshakes and locks
+  useEffect(() => {
+    if (driverStatus !== 'active' || !latVal || !lngVal || !user) {
+      return;
     }
 
     // ⚖️ [SCR-COMMUTE-PROTO-155] Run core instant commute check & Handshake Lock Verification
@@ -122,6 +135,14 @@ export function useDriverRadar(user: User | null, driverStatus: string, updateDr
         setCurrentH3Cell(commuteResult.nextH3Cell);
       }
     }
+  }, [driverStatus, latVal, lngVal, user, currentDistrict, currentH3Cell]);
+
+  // Hook 3: Stable Trips Subscriber (Zero Network Chattiness)
+  useEffect(() => {
+    if (driverStatus !== 'active' || surroundingGridIds.length === 0) {
+      setRawTrips([]);
+      return;
+    }
 
     const q = query(
       collection(db, 'trips'),
@@ -138,7 +159,8 @@ export function useDriverRadar(user: User | null, driverStatus: string, updateDr
     });
 
     return () => unsubscribe();
-  }, [driverStatus, latVal, lngVal, driverLocationSpeed, driverLocationSource, user?.uid, user?.paidHoursRemaining, user?.bonusHoursRemaining, updateDriverDoc]); 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [driverStatus, currentGridAreaKey]); 
 
   const requests = useMemo(() => {
     if (!driverLocation) return [];

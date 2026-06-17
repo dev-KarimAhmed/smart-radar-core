@@ -294,7 +294,7 @@ function UserMenu({ user, logout, getInitials, getRoleName }: any) {
 
       {user?.role === 'advertiser' && (
         <Dialog open={isAdvertiserOpen} onOpenChange={setIsAdvertiserOpen}>
-          <DialogContent className="max-w-xl bg-black border border-emerald-500/30 p-0 text-white overflow-hidden rounded-3xl">
+          <DialogContent className="max-w-xl max-h-[85vh] bg-black border border-emerald-500/30 p-0 text-white overflow-y-auto rounded-3xl">
             <VisuallyHidden>
               <DialogTitle>بوابة المعلن</DialogTitle>
             </VisuallyHidden>

@@ -65,6 +65,26 @@ export interface SovereignCloudContracts {
     request: void;
     response: { success: boolean; stats?: any; message?: string; newRank?: string };
   };
+
+  cancelTrip: {
+    request: { tripId: string; userId: string; ratingAdjustment?: number; consecutiveCancellations?: number };
+    response: { success: boolean };
+  };
+
+  confirmCheckpoint: {
+    request: { tripId: string; userId: string; ratingAdjustment?: number };
+    response: { success: boolean };
+  };
+
+  endTrip: {
+    request: { tripId: string };
+    response: { success: boolean };
+  };
+
+  submitOffer: {
+    request: { tripId: string; offer: any };
+    response: { success: boolean };
+  };
 }
 
 export async function callSovereignCloud<T extends keyof SovereignCloudContracts>(
@@ -208,6 +228,68 @@ async function simulateSovereignCloud<T extends keyof SovereignCloudContracts>(
           stats: { completedRides: 14, earnedCoins: 120, rating: 4.9 }, 
           newRank: 'Gold' 
         };
+      case 'cancelTrip': {
+        if (payload.tripId) {
+          try {
+            const tripRef = doc(db, 'trips', payload.tripId);
+            await updateDoc(tripRef, { status: 'cancelled' });
+            if (payload.userId) {
+              const userRef = doc(db, 'users', payload.userId);
+              await updateDoc(userRef, {
+                consecutiveCancellations: payload.consecutiveCancellations ?? 1,
+                rating: payload.ratingAdjustment ?? 5.0
+              });
+            }
+            console.log(`[Sovereign Cloud Simulation] Cancelled trip ${payload.tripId} for user ${payload.userId}`);
+          } catch (e) {
+            console.error('[Sovereign Cloud Simulation] Failed to cancel trip:', e);
+          }
+        }
+        return { success: true };
+      }
+      case 'confirmCheckpoint': {
+        if (payload.tripId) {
+          try {
+            const tripRef = doc(db, 'trips', payload.tripId);
+            await updateDoc(tripRef, { status: 'completed', checkpointConfirmed: true });
+            if (payload.userId) {
+              const userRef = doc(db, 'users', payload.userId);
+              await updateDoc(userRef, {
+                rating: payload.ratingAdjustment ?? 5.0
+              });
+            }
+            console.log(`[Sovereign Cloud Simulation] Confirmed checkpoint on trip ${payload.tripId} for user ${payload.userId}`);
+          } catch (e) {
+            console.error('[Sovereign Cloud Simulation] Failed to confirm checkpoint:', e);
+          }
+        }
+        return { success: true };
+      }
+      case 'endTrip': {
+        if (payload.tripId) {
+          try {
+            const tripRef = doc(db, 'trips', payload.tripId);
+            await updateDoc(tripRef, { status: 'checkpoint_required' });
+            console.log(`[Sovereign Cloud Simulation] Ended trip to checkpoint_required: ${payload.tripId}`);
+          } catch (e) {
+            console.error('[Sovereign Cloud Simulation] Failed to end trip:', e);
+          }
+        }
+        return { success: true };
+      }
+      case 'submitOffer': {
+        if (payload.tripId && payload.offer) {
+          try {
+             const tripRef = doc(db, 'trips', payload.tripId);
+             const { arrayUnion } = await import('firebase/firestore');
+             await updateDoc(tripRef, { offers: arrayUnion(payload.offer) });
+             console.log(`[Sovereign Cloud Simulation] Submitted offer on trip ${payload.tripId}`);
+          } catch (e) {
+             console.error('[Sovereign Cloud Simulation] Failed to submit offer:', e);
+          }
+        }
+        return { success: true };
+      }
       default:
         return { success: true };
     }

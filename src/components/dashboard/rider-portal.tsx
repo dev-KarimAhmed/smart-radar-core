@@ -60,11 +60,11 @@ export function RiderPortal() {
 
   // Handle Freezing pricing
   const handleCalculateAndFreeze = () => {
-    const computedPrice = freezePricing(distance);
-    if (computedPrice) {
+    const result = freezePricing(distance);
+    if (result) {
       toast({
         title: "❄️ تم تجميد السعر الجغرافي",
-        description: `تم تثبيت قيمة الرحلة بقيمة [${computedPrice} د.أ] بناءً على تذبذب خلية H3 [${frozenH3 || '9-Res'}].`,
+        description: `تم تثبيت قيمة الرحلة بقيمة [${result.price} د.أ] بناءً على تذبذب خلية H3 [${result.h3Cell}].`,
       });
     }
   };

@@ -73,6 +73,7 @@ export function RiderOperationsProvider({ children }: { children: ReactNode }) {
   const [estimatedDistance, setEstimatedDistance] = useState(0);
   const [estimatedTime, setEstimatedTime] = useState(0);
   const [lastCalculatedUrl, setLastCalculatedUrl] = useState('');
+  const isProgrammaticUpdateRef = useRef(false);
   
   const { location: anchorLocation } = useGeospatialAnchor();
   const { isRadarActive } = useSovereignControls();
@@ -106,6 +107,7 @@ export function RiderOperationsProvider({ children }: { children: ReactNode }) {
   // تفعيل التقاط الروابط المشتركة ميكانيكياً من تطبيق خرائط جوجل بصفر تكلفة سحابية
   useEffect(() => {
     if (capturedLink) {
+      isProgrammaticUpdateRef.current = true;
       setEstimatedDistance(0);
       setEstimatedTime(0);
       const cleanInput = sanitizeUrl(capturedLink);
@@ -117,6 +119,9 @@ export function RiderOperationsProvider({ children }: { children: ReactNode }) {
         title: "تم التقاط الختم الجغرافي",
         description: "تم استقبال الختم الملاحي لخرائط جوجل تلقائياً بصفر تكلفة سحابية.",
       });
+      setTimeout(() => {
+        isProgrammaticUpdateRef.current = false;
+      }, 100);
     }
   }, [capturedLink, clearCapturedLink, toast]);
   
@@ -133,14 +138,21 @@ export function RiderOperationsProvider({ children }: { children: ReactNode }) {
    * يضمن تطابق حالة الحقول مع حالة العدادات (منع تمزق المسار).
    */
   const resetLocationMetrics = useCallback(() => {
+    isProgrammaticUpdateRef.current = true;
     setEstimatedDistance(0);
     setEstimatedTime(0);
     setPickup(''); 
     setLastCalculatedUrl('');
+    setTimeout(() => {
+      isProgrammaticUpdateRef.current = false;
+    }, 100);
   }, []);
 
   // [علاج تزييف الحقيقة] - مراقب يصفر العدادات إذا تم العبث بالرابط بعد الاحتساب
   useEffect(() => {
+    if (isProgrammaticUpdateRef.current) {
+      return;
+    }
     if (pickup !== lastCalculatedUrl && estimatedDistance > 0) {
       setEstimatedDistance(0);
       setEstimatedTime(0);
@@ -183,6 +195,8 @@ export function RiderOperationsProvider({ children }: { children: ReactNode }) {
 
     try {
         setIsResolvingUrl(true);
+        isProgrammaticUpdateRef.current = true;
+        
         const currentUrl = sanitizeUrl(pickup);
         setPickup(currentUrl);
 
@@ -213,8 +227,11 @@ export function RiderOperationsProvider({ children }: { children: ReactNode }) {
         }
     } finally {
         setIsResolvingUrl(false);
+        setTimeout(() => {
+          isProgrammaticUpdateRef.current = false;
+        }, 150);
     }
-  }, [pickup, toast]); 
+  }, [pickup, toast]);  
 
   // [مراقبة الالتماس التلقائي] - بمجرد إدخال أو لصق رابط جديد، يتم التحفيز التلقائي للاحتساب بصفر نقرات وبكامل النزاهة
   const autoTriggeredRef = useRef<string>('');
