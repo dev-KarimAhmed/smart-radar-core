@@ -11,12 +11,14 @@ import type { AffiliationType } from '@/core/types';
 import { doc, setDoc, serverTimestamp, query, collection, where, getDocs, limit } from 'firebase/firestore';
 
 interface RegistrationContextType {
-  step: 'role' | 'personal' | 'affiliation' | 'vehicle' | 'admin';
-  setStep: (step: 'role' | 'personal' | 'affiliation' | 'vehicle' | 'admin') => void;
-  role: 'rider' | 'driver' | null;
-  setRole: (role: 'rider' | 'driver' | null) => void;
+  step: 'role' | 'personal' | 'affiliation' | 'vehicle' | 'admin' | 'advertiser' | 'ProfessionalStep';
+  setStep: (step: 'role' | 'personal' | 'affiliation' | 'vehicle' | 'admin' | 'advertiser' | 'ProfessionalStep') => void;
+  role: 'rider' | 'driver' | 'advertiser' | null;
+  setRole: (role: 'rider' | 'driver' | 'advertiser' | null) => void;
   personal: { name: string; phone: string; gov: string; district: string; verificationDoc: string };
   setPersonal: (personal: any) => void;
+  advertiserProfile: { companyName: string; commercialRegister: string; adLicense: string; businessType: string };
+  setAdvertiserProfile: (profile: any) => void;
   affiliation: AffiliationType | null;
   setAffiliation: (affiliation: any) => void;
   vehicle: any;
@@ -25,6 +27,7 @@ interface RegistrationContextType {
   districts: string[];
   handlePersonalSubmit: (e: React.FormEvent) => void;
   handleVehicleSubmit: (e: React.FormEvent) => void;
+  handleAdvertiserSubmit: (e: React.FormEvent) => void;
   adminCreds: any;
   setAdminCreds: (creds: any) => void;
   handleAdminSubmit: (e: React.FormEvent) => void;
@@ -35,9 +38,10 @@ const RegistrationContext = createContext<RegistrationContextType | undefined>(u
 
 export function RegistrationProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
-  const [step, setStep] = useState<'role' | 'personal' | 'affiliation' | 'vehicle' | 'admin'>('role');
-  const [role, setRole] = useState<'rider' | 'driver' | null>(null);
+  const [step, setStep] = useState<'role' | 'personal' | 'affiliation' | 'vehicle' | 'admin' | 'advertiser' | 'ProfessionalStep'>('role');
+  const [role, setRole] = useState<'rider' | 'driver' | 'advertiser' | null>(null);
   const [personal, setPersonal] = useState({ name: '', phone: '', gov: '', district: '', verificationDoc: '' });
+  const [advertiserProfile, setAdvertiserProfile] = useState({ companyName: '', commercialRegister: '', adLicense: '', businessType: 'commercial' });
   const [affiliation, setAffiliation] = useState<AffiliationType | null>(null);
   const [vehicle, setVehicle] = useState({ year: '', plate: '', sideId: '', make: '', color: '', officeName: '', officePhone: '', companyName: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -66,6 +70,17 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     if (!role || !personal.name || !personal.phone || !personal.gov || !personal.district) {
       toast({ variant: 'destructive', title: 'الرجاء ملء الحقول', description: 'يرجى ملء جميع الحقول المطلوبة للمتابعة.' });
       return;
+    }
+
+    if (role === 'advertiser') {
+      if (!advertiserProfile.companyName || !advertiserProfile.commercialRegister || !advertiserProfile.adLicense) {
+        toast({
+          variant: 'destructive',
+          title: 'البيانات التجارية معلقة ⚠️',
+          description: 'يرجى ملء كافة تفاصيل السجل والترخيص التجاري لإنجاز خطوة التوثيق المهني.'
+        });
+        return;
+      }
     }
     
     const phoneRegex = /^\+9627[789]\d{7}$/;
@@ -129,6 +144,12 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
                 status: 'idle',
                 rank: 'Bronze'
             });
+        } else if (role === 'advertiser') {
+            newUserProfileData.deviceId = getSovereignDeviceId();
+            newUserProfileData.companyName = advertiserProfile.companyName || '';
+            newUserProfileData.commercialRegister = advertiserProfile.commercialRegister || '';
+            newUserProfileData.adLicense = advertiserProfile.adLicense || '';
+            newUserProfileData.businessType = advertiserProfile.businessType || 'commercial';
         } else {
             newUserProfileData.deviceId = getSovereignDeviceId();
         }
@@ -146,18 +167,25 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
         setIsSubmitting(false);
         isSubmittingRef.current = false;
     }
-  }, [role, personal, affiliation, vehicle, toast]);
+  }, [role, personal, affiliation, vehicle, advertiserProfile, toast]);
 
   const handlePersonalSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (role === 'rider') {
       submitRegistration();
+    } else if (role === 'advertiser') {
+      setStep('ProfessionalStep');
     } else {
       setStep('affiliation');
     }
   };
 
   const handleVehicleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    submitRegistration();
+  };
+
+  const handleAdvertiserSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     submitRegistration();
   };
@@ -187,12 +215,14 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     step, setStep,
     role, setRole,
     personal, setPersonal,
+    advertiserProfile, setAdvertiserProfile,
     affiliation, setAffiliation,
     vehicle, setVehicle,
     isSubmitting,
     districts,
     handlePersonalSubmit,
     handleVehicleSubmit,
+    handleAdvertiserSubmit,
     adminCreds, setAdminCreds,
     handleAdminSubmit,
     handleLogoTap,

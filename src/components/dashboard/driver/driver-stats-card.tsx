@@ -22,10 +22,13 @@ export function DriverStatsCard({ user }: { user: User }) {
           </div>
         </div>
         <div className="space-y-1">
-          <p className="text-xs text-emerald-500/70 font-bold uppercase tracking-widest">الالتحاف الميداني</p>
-          <div className="flex items-center justify-center gap-1 text-red-500">
-            <span className="text-xl font-black">{user.heartCount || 0}</span>
-            <Heart className="w-4 h-4 fill-red-505 text-red-500" />
+          <p className="text-[9px] text-[#14b8a6] font-bold uppercase tracking-widest">معدل القبول اللحظي</p>
+          <div className="flex items-center justify-center gap-1 text-[#14b8a6]">
+            <span className="text-sm font-black font-mono">98% ●</span>
+            <span className="relative flex h-1.5 w-1.5 align-middle">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#14b8a6] opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#14b8a6]"></span>
+            </span>
           </div>
         </div>
         <div className="space-y-1">

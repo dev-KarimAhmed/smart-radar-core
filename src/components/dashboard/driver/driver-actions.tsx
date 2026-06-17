@@ -13,7 +13,7 @@ import {
 import { useDriverOperations } from "@/hooks/use-driver-operations";
 
 export function DriverActions() {
-  const { requestWeeklyReport, isRequestingReport } = useDriverOperations();
+  const { requestWeeklyReport, isRequestingReport } = useDriverOperations()!;
 
   return (
     <div className="space-y-3">

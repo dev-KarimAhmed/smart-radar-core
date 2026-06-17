@@ -2,20 +2,21 @@
 
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ShieldQuestion, UserCheck, Car, Key } from 'lucide-react';
+import { ShieldQuestion, UserCheck, Car, Key, Megaphone } from 'lucide-react';
 import { RegistrationProvider, useRegistration } from '@/hooks/use-registration';
 import { RoleStep } from '@/components/auth/RoleStep';
 import { PersonalStep } from '@/components/auth/PersonalStep';
 import { AffiliationStep } from '@/components/auth/AffiliationStep';
 import { VehicleStep } from '@/components/auth/VehicleStep';
 import { AdminStep } from '@/components/auth/AdminStep';
+import { AdvertiserStep } from '@/components/auth/AdvertiserStep';
 import { useAuth } from '@/hooks/use-auth';
 
 function LoginOrchestrator() {
   const { step, handleLogoTap } = useRegistration();
   const { loginAsMockUser } = useAuth();
 
-  const handleDevBypass = (roleType: 'rider' | 'driver' | 'admin') => {
+  const handleDevBypass = (roleType: 'rider' | 'driver' | 'admin' | 'advertiser') => {
     if (roleType === 'rider') {
       loginAsMockUser({
         uid: 'dev-rider-001',
@@ -64,6 +65,21 @@ function LoginOrchestrator() {
         isBufferActive: false,
         rating: 5.0
       });
+    } else if (roleType === 'advertiser') {
+      loginAsMockUser({
+        uid: 'dev-advertiser-001',
+        phone: '+962793333333',
+        role: 'advertiser',
+        name: 'شريان التمويل (معلن تجريبي)',
+        governorate: 'عمان',
+        district: 'الجامعة',
+        isBufferActive: false,
+        rating: 5.0,
+        companyName: 'بينكم لخدمات الإعلام',
+        commercialRegister: 'CR-88294-A',
+        adLicense: 'LIC-990-2026',
+        businessType: 'commercial'
+      });
     }
   };
 
@@ -79,6 +95,9 @@ function LoginOrchestrator() {
         return <VehicleStep />;
       case 'admin':
         return <AdminStep />;
+      case 'advertiser':
+      case 'ProfessionalStep':
+        return <AdvertiserStep />;
       default:
         return <RoleStep />;
     }
@@ -98,6 +117,8 @@ function LoginOrchestrator() {
       case 'affiliation': return 'تحديد الانتماء القطاعي';
       case 'vehicle': return 'البيانات المهنية للمركبة';
       case 'admin': return 'أدخل بيانات الاعتماد للمالك';
+      case 'advertiser':
+      case 'ProfessionalStep': return 'البيانات المهنية والتجارية للمعلن';
       default: return '';
     }
   };
@@ -160,7 +181,7 @@ function LoginOrchestrator() {
                   تتيح محاكاة الأدوار بمرونة تامة واستئصالاً لتزييف الحقائق الفنية.
                 </p>
               </div>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
                   onClick={() => handleDevBypass('rider')}
@@ -184,6 +205,14 @@ function LoginOrchestrator() {
                 >
                   <Key className="h-4 w-4 text-amber-500 mb-1" />
                   <span>مشرف تجريبي</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDevBypass('advertiser')}
+                  className="flex flex-col items-center justify-center p-2.5 rounded-lg bg-[#0B0F19] border border-[#243249] hover:bg-[#161F30] hover:border-[#00ffcc]/50 text-white/85 text-[11px] transition-all cursor-pointer active:scale-95 select-none"
+                >
+                  <Megaphone className="h-4 w-4 text-[#00ffcc] mb-1" />
+                  <span>معلن تجريبي 📢</span>
                 </button>
               </div>
             </div>

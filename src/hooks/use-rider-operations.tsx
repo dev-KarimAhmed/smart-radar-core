@@ -399,6 +399,5 @@ export function RiderOperationsProvider({ children }: { children: ReactNode }) {
 
 export function useRiderOperations() {
   const context = useContext(RiderOperationsContext);
-  if (context === undefined) throw new Error('useRiderOperations must be used within a RiderOperationsProvider');
-  return context;
+  return context || null;
 }

@@ -5,10 +5,11 @@ import { collection, onSnapshot, query, orderBy, doc, updateDoc, addDoc } from '
 import { db } from '@/lib/firebase';
 import { useToast } from './use-toast';
 import { trackSovereignError } from '@/lib/error-tracker';
+import { broadcastSilentPush } from '@/lib/push-notifications';
 
 export interface SovereignAd {
   id: string;
-  status: 'active' | 'paused' | 'archived' | 'frozen';
+  status: 'active' | 'paused' | 'archived' | 'frozen' | 'ACTIVE' | 'PENDING' | 'REJECTED' | 'FROZEN' | string;
   content?: {
     title: string;
     description: string;
@@ -19,6 +20,7 @@ export interface SovereignAd {
   posterUrl?: string;
   phone?: string;
   whatsapp?: string;
+  geoLoc?: string;
   targetDistrict?: string;
   targetGovernorate?: string;
   currentImpressions?: number;
@@ -27,6 +29,16 @@ export interface SovereignAd {
   role?: string;
   endDate?: string;
   createdAt?: any;
+  isPremiumRetentionPaid?: boolean;
+  expirationTimestamp?: number;
+  adType?: string;
+  isSovereignStopped?: boolean;
+  rejectionReason?: string;
+  packageId?: string;
+  geo?: {
+    governorate?: string;
+    district?: string;
+  };
 }
 
 export interface AdInput {
@@ -38,8 +50,13 @@ export interface AdInput {
   targetImpressions: number;
   phone?: string;
   whatsapp?: string;
+  geoLoc?: string;
   buttonText?: string;
   isPremiumRetentionPaid?: boolean;
+  expirationTimestamp?: number;
+  adType?: string;
+  status?: string;
+  packageId?: string;
 }
 
 export function useAdminAds() {
@@ -133,7 +150,7 @@ export function useAdminAds() {
     setIsProcessing(true);
     try {
       const adModel = {
-        status: 'active',
+        status: adData.status || 'PENDING',
         endDate: '2026-12-31',
         createdAt: new Date().toISOString(),
         currentImpressions: 0,
@@ -234,5 +251,75 @@ export function useAdminAds() {
     }
   }, [ads, toast]);
 
-  return { ads, isLoading, isProcessing, createAd, toggleAdStatus, deleteAd, freezeAd, extendAd };
+  const approveAd = useCallback(async (adId: string) => {
+    setIsProcessing(true);
+    try {
+      const adRef = doc(db, 'promos', adId);
+      await updateDoc(adRef, { status: 'ACTIVE', isSovereignStopped: false, rejectionReason: '' });
+      toast({ title: '✅ اعتماد سيادي', description: 'تم قذف الإعلان إلى النهر الميداني بنجاح.' });
+    } catch (error: any) {
+      trackSovereignError(error, { context: 'ApproveAd_Admin' });
+      toast({ variant: 'destructive', title: 'فشل الاعتماد', description: error.message || 'خطأ في قاموس السحابة.' });
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [toast]);
+
+  const rejectAd = useCallback(async (adId: string, reason: string) => {
+    if (!reason.trim()) {
+      toast({ variant: 'destructive', title: 'رفض الإجراء', description: 'إفادة المدعي العام (سبب الرفض) إلزامية.' });
+      return;
+    }
+    setIsProcessing(true);
+    try {
+      const adRef = doc(db, 'promos', adId);
+      await updateDoc(adRef, { status: 'REJECTED', isSovereignStopped: true, rejectionReason: reason });
+      toast({ title: '🚫 إعدام سيادي', description: 'تم رفض الإعلان وتوثيق الإفادة للمعلن.' });
+    } catch (error: any) {
+      trackSovereignError(error, { context: 'RejectAd_Admin' });
+      toast({ variant: 'destructive', title: 'فشل الرفض', description: error.message || 'خطأ في قاموس السحابة.' });
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [toast]);
+
+  // 🛡️ [RAD-MAP-076-KILL-SWITCH] executeAdAnnihilation (Digital Annihilation)
+  const executeAdAnnihilation = useCallback(async (adId: string, reason: string) => {
+    if (!reason.trim()) {
+      toast({ variant: 'destructive', title: 'فشل الإعدام', description: 'يتعين تحديد سبب التطهير الجنائي لتبرير الإبادة الرقمية.' });
+      return false;
+    }
+    setIsProcessing(true);
+    try {
+      const adRef = doc(db, 'promos', adId);
+      
+      // 1. Update Firestore state
+      await updateDoc(adRef, {
+        status: 'REJECTED',
+        isSovereignStopped: true,
+        rejectionReason: `[إبادة رقمية فورية]: ${reason}`
+      });
+
+      // 2. Broadcast Silent Web Push for immediate local cache purge
+      await broadcastSilentPush({
+        type: 'PURGE_AD',
+        targetId: adId,
+        message: `تم تفعيل مقصلة الإجراء وتطهير الإعلان [${adId}] من الذاكرات الميدانية بسبب: ${reason}`
+      });
+
+      toast({
+        title: '💥 تم إعدام وتطهير الإعلان رقمياً',
+        description: 'تم مسح وتغطية البث وإرسال النبضة الصامتة Silent Web Push للتطهير اللحظي.'
+      });
+      return true;
+    } catch (error: any) {
+      trackSovereignError(error, { context: 'AdAnnihilation_Failed' });
+      toast({ variant: 'destructive', title: 'فشل محرك التطهير الكلي', description: error.message || 'خطأ في الإرسال الكوانتي.' });
+      return false;
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [toast]);
+
+  return { ads, isLoading, isProcessing, createAd, toggleAdStatus, deleteAd, freezeAd, extendAd, approveAd, rejectAd, executeAdAnnihilation };
 }

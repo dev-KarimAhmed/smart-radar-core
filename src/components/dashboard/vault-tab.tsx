@@ -18,12 +18,12 @@ export function VaultTab() {
         let detailsDict = JSON.parse(details);
         let changed = false;
 
-        // Auto-purge items older than 30 days
+        // [SCR-AD-VAULT-130] Auto-purge items older than 20 days with sovereign safety limit
         const activeIds = heartedIds.filter((id) => {
           const ad = detailsDict[id];
           if (ad) {
             const savedTime = ad.savedAtTimestamp || now;
-            const isExpired = now - savedTime > 30 * 24 * 60 * 60 * 1000;
+            const isExpired = now - savedTime > 20 * 24 * 60 * 60 * 1000;
             if (isExpired) {
               delete detailsDict[id];
               changed = true;
@@ -73,6 +73,24 @@ export function VaultTab() {
     }
   };
 
+  // [SCR-AD-VAULT-130] Handlers for resetting local safety life clock
+  const handleExtend = (adId: string) => {
+    const nextDetails = { ...vaultDetails };
+    if (nextDetails[adId]) {
+      nextDetails[adId] = {
+        ...nextDetails[adId],
+        savedAtTimestamp: Date.now()
+      };
+      setVaultDetails(nextDetails);
+      localStorage.setItem('sovereign_ad_vault_details', JSON.stringify(nextDetails));
+      
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate([40, 40]);
+      }
+      alert('⚡ تم تمديد خلود الإعلان بنجاح في خزنتك المحلية المعتمدة لـ 20 يوماً حتمية إضافية.');
+    }
+  };
+
   const handleZeroClickAction = (actionType: 'call' | 'whatsapp', contactNumber: string, title?: string) => {
     let url = '';
     const cleanNum = contactNumber.replace(/[^0-9+]/g, '');
@@ -97,7 +115,7 @@ export function VaultTab() {
           </div>
           <div className="text-right">
             <h3 className="text-sm font-black text-[#00ffcc] tracking-wide">خزنة الأرشيف الإعلاني السيادي</h3>
-            <p className="text-[10px] text-gray-400">يتم تخليد كروت الاتصال والخصومات هنا لمدة 30 يوماً حتمية بموافقتك.</p>
+            <p className="text-[10px] text-gray-400">يتم تخليد كروت الاتصال والخصومات هنا لمدة 20 يوماً حتمية بموافقتك.</p>
           </div>
         </div>
         <div className="text-xs bg-black/45 px-3 py-1.5 rounded-xl border border-white/5 font-mono text-emerald-400 font-extrabold shrink-0">
@@ -123,7 +141,7 @@ export function VaultTab() {
           {savedAds.map((ad: any) => {
             const savedTime = ad.savedAtTimestamp || Date.now();
             const daysLeft = Math.ceil(
-              (savedTime + 30 * 24 * 60 * 60 * 1000 - Date.now()) / (24 * 60 * 60 * 1000)
+              (savedTime + 20 * 24 * 60 * 60 * 1000 - Date.now()) / (24 * 60 * 60 * 1000)
             );
 
             return (
@@ -165,15 +183,18 @@ export function VaultTab() {
                 </div>
 
                 {/* Expiration warning and storage controls */}
-                <div className="bg-black/50 p-2.5 rounded-xl border border-white/5 flex items-center justify-between text-[10px]">
+                <div className="bg-black/50 p-2.5 rounded-xl border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[10px]">
                   <span className="text-gray-400 font-sans">
                     مدة الحفظ: <strong className={daysLeft > 7 ? "text-emerald-400" : "text-amber-400 animate-pulse"}>
                       {daysLeft > 0 ? `متبقي ${daysLeft} يوم` : 'ينتهي اليوم'}
                     </strong>
                   </span>
-                  <span className="text-emerald-500/70 text-[9px] uppercase font-bold tracking-wider">
-                    حفظ سيادي مخلد
-                  </span>
+                  <button
+                    onClick={() => handleExtend(ad.id)}
+                    className="px-2.5 py-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-[#00ffcc] font-black border border-emerald-500/20 rounded-lg cursor-pointer transition-all active:scale-95 text-[9px]"
+                  >
+                    🔄 تمديد الحفظ لـ 20 يوماً إضافية
+                  </button>
                 </div>
 
                 {/* Direct Connect Buttons */}

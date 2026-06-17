@@ -28,7 +28,8 @@ service cloud.firestore {
     }
 
     match /promos/{promoId} {
-      allow read, write: if isSignedIn();
+      allow read: if true;
+      allow write: if isSignedIn();
     }
 
     match /market_pulse/{pulseId} {

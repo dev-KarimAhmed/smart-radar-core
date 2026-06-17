@@ -38,7 +38,7 @@ export function getSovereignErrorMessage(error: any): string {
   const rawCode = error?.code || error?.message || (typeof error === 'string' ? error : 'SYS_UNKNOWN');
 
   // المطابقة الفورية مع القاموس السيادي الموحد V5.5
-  const rawCodeStr = String(rawCode).trim().toUpperCase();
+  const rawCodeStr = String(rawCode).trim().toUpperCase().replace(/_/g, '-');
   if (SOVEREIGN_ERR_DICTIONARY[rawCodeStr]) {
     const def = SOVEREIGN_ERR_DICTIONARY[rawCodeStr];
     return `[${def.code}] ${def.name}: ${def.description} (الإجراء المتخذ: ${def.action})`;

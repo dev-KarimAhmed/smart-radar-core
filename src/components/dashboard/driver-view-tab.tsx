@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useState, useMemo } from 'react';
+import React, { useCallback, useState, useMemo, useEffect } from 'react';
 import type { Trip } from '@/core/types';
 import { useDriverOperations } from '@/hooks/use-driver-operations';
 import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card';
@@ -71,7 +71,7 @@ export function DriverViewTab() {
     endTrip, isEndingTrip, rateAndFinishTrip, isRatingRider, requests,
     driverLocation, rejectRequest, rejectedTripIds, pulseData,
     currentDistrict, currentH3Cell
-  } = useDriverOperations();
+  } = useDriverOperations()!;
   
   const { user } = useAuth();
   
@@ -100,6 +100,15 @@ export function DriverViewTab() {
   const { toast } = useToast();
   const [riderRating, setRiderRating] = useState(0);
   const [activePricingRequest, setActivePricingRequest] = useState<Trip | null>(null);
+  const [isDashboardOpen, setIsDashboardOpen] = useState(false);
+
+  useEffect(() => {
+    const handleOpen = () => {
+      setIsDashboardOpen(true);
+    };
+    window.addEventListener('open-captain-dashboard', handleOpen);
+    return () => window.removeEventListener('open-captain-dashboard', handleOpen);
+  }, []);
 
   const visibleRequests = useMemo(() => {
     return requests.filter(req => {
@@ -468,9 +477,49 @@ export function DriverViewTab() {
       )}
 
       {/* [SCR-DASH-CAPTAIN-115] قمرة العمليات القيادية لضبط الرصيد والساعات والتعليقات */}
-      <div className="w-full max-w-lg mx-auto pb-24 pt-4 px-2 space-y-4">
-        <RadarCaptainDashboard captainProfile={captainProfileData} />
+      <div className="w-full max-w-lg mx-auto pb-24 pt-4 px-2">
+        <button 
+          onClick={() => setIsDashboardOpen(true)}
+          className="w-full text-right p-4 rounded-xl border border-emerald-500/20 bg-gradient-to-r from-black via-emerald-950/10 to-black hover:border-emerald-500/40 hover:shadow-[0_0_15px_rgba(0,255,150,0.1)] transition-all group flex items-center justify-between cursor-pointer active:scale-98"
+        >
+          <div>
+            <h3 className="text-sm font-black text-[#00ffcc] flex items-center gap-2">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00ffcc] opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-[#00ffcc]"></span>
+              </span>
+              فتح قمرة العمليات السيادية 🛡️
+            </h3>
+            <p className="text-[10px] text-gray-400 mt-1">اضبط باقة الساعات المتجمدة، واطلع على رصيد الثقة والتعليقات المجهرية</p>
+          </div>
+          <span className="text-xs font-bold text-emerald-400 group-hover:translate-x-1 decoration-transparent transition-transform">←</span>
+        </button>
       </div>
+
+      {isDashboardOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-98 backdrop-blur-md p-4 md:p-6 flex flex-col justify-start animate-in fade-in duration-300" dir="rtl">
+          <div className="w-full max-w-2xl mx-auto space-y-4">
+            <div className="flex items-center justify-between border-b border-white/5 pb-3 mb-2">
+              <span className="text-xs font-black text-emerald-400">نظام الرادار الموحد ● قمرة الحراسة</span>
+              <button 
+                onClick={() => setIsDashboardOpen(false)}
+                className="px-3 py-1 text-xs font-black bg-red-950/40 hover:bg-red-950/60 text-red-400 border border-red-500/30 rounded-lg cursor-pointer transition-all active:scale-95"
+              >
+                إغلاق القمرة ❌
+              </button>
+            </div>
+            
+            <RadarCaptainDashboard captainProfile={captainProfileData} />
+            
+            <button 
+              onClick={() => setIsDashboardOpen(false)}
+              className="w-full py-3 mt-4 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-xl border border-emerald-400/20 shadow-lg cursor-pointer transition-all active:scale-98 text-center"
+            >
+              العودة لرصيف النبض الميداني 📡
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
-import { onAuthStateChanged, signOut, type User as FirebaseUser } from 'firebase/auth';
+import { onAuthStateChanged, signOut, signInAnonymously, type User as FirebaseUser } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { trackSovereignError } from '@/lib/error-tracker';
@@ -58,12 +58,35 @@ function AuthContent({ children }: { children: ReactNode }) {
     useEffect(() => {
         let unsubscribeUserDoc: (() => void) | null = null;
 
-        const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
+        const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
             if (unsubscribeUserDoc) {
                 unsubscribeUserDoc();
+                unsubscribeUserDoc = null;
             }
 
-            if (firebaseUser) {
+            // Check if there is a dynamic bypass user first (only in DEV)
+            const savedBypassStr = import.meta.env.DEV ? localStorage.getItem('sovereign_dev_bypass_user') : null;
+            let bypassUser: SovereignUser | null = null;
+            if (savedBypassStr) {
+                try {
+                    bypassUser = JSON.parse(savedBypassStr) as SovereignUser;
+                } catch (e) {}
+            }
+
+            if (bypassUser) {
+                // We have a bypass user. Set it as our main user context so roles & permissions are active.
+                setUser(bypassUser);
+                setLoading(false);
+
+                // If not authenticated dynamically in Firebase, authenticate anonymously in background
+                if (!firebaseUser) {
+                    try {
+                        await signInAnonymously(auth);
+                    } catch (err) {
+                        trackSovereignError(err, { context: 'Bypass_Anonymous_SignIn' });
+                    }
+                }
+            } else if (firebaseUser) {
                 setLoading(true);
                 const userRef = doc(db, "users", firebaseUser.uid);
                 unsubscribeUserDoc = onSnapshot(userRef,
@@ -71,7 +94,6 @@ function AuthContent({ children }: { children: ReactNode }) {
                         if (docSnap.exists()) {
                             setUser({ uid: docSnap.id, ...docSnap.data() } as SovereignUser);
                         }
-                        // If doc doesn't exist, we just wait for the registration flow to create it.
                         setLoading(false);
                     },
                     (error) => {
@@ -81,23 +103,8 @@ function AuthContent({ children }: { children: ReactNode }) {
                     }
                 );
             } else {
-                // 🚩 [SCR-CMD-BYPASS-V2] Dynamic Sovereign Bypass Protocol for Development
-                if (import.meta.env.DEV) {
-                    const savedBypass = localStorage.getItem('sovereign_dev_bypass_user');
-                    if (savedBypass) {
-                        try {
-                            setUser(JSON.parse(savedBypass) as SovereignUser);
-                        } catch (e) {
-                            setUser(null);
-                        }
-                    } else {
-                        setUser(null);
-                    }
-                    setLoading(false);
-                } else {
-                     setUser(null);
-                     setLoading(false);
-                }
+                setUser(null);
+                setLoading(false);
             }
         });
 
@@ -110,10 +117,17 @@ function AuthContent({ children }: { children: ReactNode }) {
     }, []);
 
 
-    const loginAsMockUser = useCallback((mockUser: SovereignUser) => {
+    const loginAsMockUser = useCallback(async (mockUser: SovereignUser) => {
         if (import.meta.env.DEV) {
             localStorage.setItem('sovereign_dev_bypass_user', JSON.stringify(mockUser));
             setUser(mockUser);
+            if (!auth.currentUser) {
+                try {
+                    await signInAnonymously(auth);
+                } catch (err) {
+                    trackSovereignError(err, { context: 'MockUser_Anonymous_SignIn' });
+                }
+            }
         }
     }, []);
 

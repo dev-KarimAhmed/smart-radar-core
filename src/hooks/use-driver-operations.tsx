@@ -101,6 +101,5 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
 
 export const useDriverOperations = () => {
   const ctx = useContext(DriverOperationsContext);
-  if (!ctx) throw new Error('useDriverOperations must be used within a DriverOperationsProvider');
-  return ctx;
+  return ctx || null;
 };

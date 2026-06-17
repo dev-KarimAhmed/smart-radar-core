@@ -79,8 +79,8 @@ function SovereignLockoutView({ user, logout }: { user: any, logout: () => void 
 function DashboardLayout() {
   const { isSovereign, isCaptain, isPassenger, user, logout } = useAuth();
   const [hash, setHash] = useState(typeof window !== 'undefined' ? window.location.hash || '#' : '#');
-  const riderOps = useRiderOperations();
-  const driverOps = useDriverOperations();
+  const riderOps = useRiderOperations() || {} as any;
+  const driverOps = useDriverOperations() || {} as any;
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -211,13 +211,54 @@ function DashboardLayout() {
       return <SovereignLockoutView user={user} logout={logout} />;
     }
 
+    // 🛡️ [RAD-CMD-061]: Rider Memory Isolation & Decoupled Routing Layout
+    if (user?.role === 'rider') {
+      if (hash === '#wallet') return <WalletTab />;
+      if (hash === '#vault') return <VaultTab />;
+      if (hash === '#history') return <HistoryTab />;
+      if (hash === '#profile') return <ProfileTab />;
+      
+      const isRequestModalOpen = riderOps?.isRequestModalOpen || false;
+      const currentTripStatus = riderOps?.tripStatus || 'idle';
+      if (currentTripStatus !== 'idle' || isRequestModalOpen) {
+        return <RiderViewTab />;
+      }
+      return null;
+    }
+
+    if (user?.role === 'advertiser') {
+      return (
+        <div className="flex flex-col items-center justify-center p-6 text-center space-y-6 max-w-lg mx-auto bg-black/40 border border-emerald-500/15 rounded-2xl animate-fade-in my-8">
+          <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/30 rounded-full flex items-center justify-center mx-auto text-emerald-400 text-3xl animate-bounce">📣</div>
+          <div className="space-y-2">
+            <h2 className="text-xl font-bold text-emerald-400">قمرة التحكم للمعلن السيادي</h2>
+            <p className="text-xs text-gray-400 leading-relaxed max-w-md mx-auto">
+              مرحباً بك كمعلن مهني موثق. تم تأمين حسابك ودراسة ميزانيتك. الآن يمكنك إدارة حملات النبضات، حجز الباقات، وإطلاق الملصقات الإعلانية.
+            </p>
+          </div>
+          <div className="p-3.5 bg-emerald-950/20 border border-emerald-500/10 rounded-xl space-y-1 w-full text-right text-xs">
+            <p className="text-emerald-400 font-bold">✓ البيانات المهنية الموثقة:</p>
+            <p className="text-gray-300">🏢 اسم العلامة: <span className="font-bold text-white">{user.companyName || 'منشأة عامة'}</span></p>
+            <p className="text-gray-300">📝 رقم الترخيص: <span className="font-mono text-white">{user.adLicense || 'معلقة التحديث'}</span></p>
+          </div>
+          <button
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent('open-advertiser-portal'));
+            }}
+            className="w-full py-3 bg-emerald-600 hover:bg-emerald-50 hover:text-emerald-950 text-white font-black text-xs rounded-xl shadow-lg transition-all duration-300 transform active:scale-95 cursor-pointer"
+          >
+            إطلاق معالج الحملات والباقات السيادية 🚀
+          </button>
+        </div>
+      );
+    }
+
     if (hash === '#wallet') return <WalletTab />;
     if (hash === '#vault') return <VaultTab />;
     if (hash === '#history') return <HistoryTab />;
     if (hash === '#profile') return <ProfileTab />;
 
     if (isCaptain) return <DriverViewTab />;
-    if (isPassenger) return <RiderViewTab />;
     return null;
   };
   
@@ -235,13 +276,13 @@ function DashboardLayout() {
         
         {/* مسرح الإعلانات يأخذ مساحته الطبيعية في التدفق */}
         {isStandby && (
-          <div className="w-full shrink-0">
-            <AdStage />
+          <div className="w-full flex-1 flex flex-col relative z-[80] border-b-2 border-[#00ffcc]/30 shadow-[0_10px_30px_rgba(0,255,204,0.1)]">
+            <AdStage isFullScreen={true} />
           </div>
         )}
         
         {/* الحاوية التي تحمل التبويبات (تسمح بالتمرير للأسفل) */}
-        <div className="flex-1 w-full p-4 md:p-8">
+        <div className={`flex-1 w-full p-4 md:p-8 ${isStandby ? 'hidden' : ''}`}>
            {renderArterialBridge()}
            <SovereignErrorBoundary>
               {renderContent()}

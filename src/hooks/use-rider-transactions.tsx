@@ -8,6 +8,7 @@ import { trackSovereignError } from '@/lib/error-tracker';
 import { getSovereignErrorMessage } from '@/core/constants/error-dictionary';
 import { callSovereignCloud } from '@/core/contracts/cloud-bridge';
 import type { Trip, User, Offer } from '@/core/types';
+import { EphemeralMessageKernel } from '@/lib/ephemeral-messages';
 
 export function useRiderTransactions(
     user: User | null, 
@@ -79,6 +80,11 @@ export function useRiderTransactions(
         console.log(`⚠️ دبابات التصفية النسيجية: عدد الإلغاءات المتتالية للراكب بلغ سحابياً [${currentCount}] والتقييم [${newRating}]`);
       }
       await updateDoc(doc(db, 'trips', trip.id), { status: 'cancelled' });
+      try {
+        await EphemeralMessageKernel.purgeTripMessages(trip.id);
+      } catch (chatErr) {
+        console.warn('Silent chat purge error on cancellation:', chatErr);
+      }
       resetState();
       toast({ title: 'تم إلغاء الرحلة ملاحياً', description: 'تم التراجع عن رادار التتبع بنجاح.' });
     } catch (error) { 
@@ -124,6 +130,11 @@ export function useRiderTransactions(
           });
         }
         await updateDoc(doc(db, 'trips', trip.id), { status: 'completed', checkpointConfirmed: true });
+        try {
+          await EphemeralMessageKernel.purgeTripMessages(trip.id);
+        } catch (chatErr) {
+          console.warn('Silent chat purge error on completion:', chatErr);
+        }
         toast({ title: "تم تأكيد المربع الملاحي للأمان", description: "الرحلة تمت بموثوقية عالية." });
         setInternalStatus('rating');
     } catch (error) { 

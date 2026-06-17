@@ -29,7 +29,7 @@ export function RequestRideModal() {
     pasteFromClipboard, resetLocationMetrics,
     pulsedDrivers = [], isPulsing = false,
     isRadarActive
-  } = useRiderOperations();
+  } = useRiderOperations()!;
 
   const isBlindSpot = estimatedDistance > 0 && estimatedDistance < 0.1;
 

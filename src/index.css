@@ -1,1 +1,16 @@
 @import "tailwindcss";
+
+@theme {
+  --color-radar-bg: #090e1a;
+  --color-radar-card: #111827;
+  --color-radar-teal: #14b8a6;
+  --color-radar-text: #f3f4f6;
+  --color-radar-text-sub: #9ca3af;
+}
+
+html, body {
+  overflow-y: auto !important;
+  background-color: #090e1a;
+  color: #f3f4f6;
+  height: 100%;
+}

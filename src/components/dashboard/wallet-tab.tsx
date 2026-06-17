@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Badge } from '@/components/ui/badge';
+import { GeoPaymentGateway } from '@/components/shared/geo-payment-gateway';
 
 interface Transaction {
   id: string;
@@ -438,86 +439,11 @@ export function WalletTab() {
         </div>
       )}
 
-      {/* Interactive recharge overlay / modal using simple state (We can style it seamlessly inside the container!) */}
-      <AnimatePresence>
-        {isChargingFunds && (
-          <motion.div 
-            initial={{ opacity: 0, y: 15 }} 
-            animate={{ opacity: 1, y: 0 }} 
-            exit={{ opacity: 0, y: 15 }}
-            className="mb-6 p-5 bg-[#051405] border border-emerald-500/30 rounded-2xl shadow-xl space-y-4"
-          >
-            <div className="flex justify-between items-center border-b border-emerald-900/30 pb-3">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <CreditCard className="w-4 h-4 text-emerald-400" />
-                شحن الرصيد النقدي للمحفظة الاردنية
-              </h3>
-              <Button variant="ghost" size="sm" onClick={() => setIsChargingFunds(false)} className="text-gray-400 font-bold hover:text-white h-7 px-2">إلغاء</Button>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-gray-400">القيمة بالدينار الأردني (JD)</label>
-              <Input 
-                type="number" 
-                value={fundAmount} 
-                onChange={(e) => setFundAmount(e.target.value)}
-                placeholder="أدخل مبلغ الشحن بالدنانير..."
-                className="bg-black border-emerald-900 text-white font-bold text-lg text-left"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-gray-400 block">بوابة الدفع الإلكتروني المعتمدة</label>
-              <div className="grid grid-cols-3 gap-2">
-                <button 
-                  onClick={() => setSelectedGateway('cliq')}
-                  className={`py-3 px-2 rounded-xl text-center font-bold text-xs flex flex-col items-center justify-center gap-1.5 transition-all text-white border ${selectedGateway === 'cliq' ? 'bg-emerald-950/40 border-emerald-500/70 shadow-sm' : 'bg-black/50 border-emerald-900/30 opacity-70'}`}
-                >
-                  <span className="text-base">🏛️</span>
-                  <span>نظام CliQ</span>
-                </button>
-                <button 
-                  onClick={() => setSelectedGateway('zain')}
-                  className={`py-3 px-2 rounded-xl text-center font-bold text-xs flex flex-col items-center justify-center gap-1.5 transition-all text-white border ${selectedGateway === 'zain' ? 'bg-emerald-950/40 border-emerald-500/70 shadow-sm' : 'bg-black/50 border-emerald-900/30 opacity-70'}`}
-                >
-                  <span className="text-base">📱</span>
-                  <span>Zain Cash</span>
-                </button>
-                <button 
-                  onClick={() => setSelectedGateway('visa')}
-                  className={`py-3 px-2 rounded-xl text-center font-bold text-xs flex flex-col items-center justify-center gap-1.5 transition-all text-white border ${selectedGateway === 'visa' ? 'bg-emerald-950/40 border-emerald-500/70 shadow-sm' : 'bg-black/50 border-emerald-900/30 opacity-70'}`}
-                >
-                  <span className="text-base">💳</span>
-                  <span>بطاقة دفع</span>
-                </button>
-              </div>
-            </div>
-
-            {/* [SCR-GEO-REFILL-158] Local Geo-Routing display info */}
-            <div className="p-3 bg-black/60 rounded-xl border border-emerald-500/20 text-right space-y-1">
-              <div className="flex justify-between items-center text-[11px]">
-                <span className="text-gray-400 font-bold">📍 التوجيه الجغرافي للمحفظة:</span>
-                <span className="text-emerald-400 font-black">لواء {user?.district || 'وادي السير'}</span>
-              </div>
-              <div className="flex justify-between items-center text-[10px] font-mono">
-                <span className="text-gray-400 font-medium">مُعرف الدفع اللامركزي:</span>
-                <span className="text-amber-500 font-bold">CLIQCASH-#SOV-{(user?.district || 'وادي السير').toUpperCase()}-99</span>
-              </div>
-              <p className="text-[9px] text-emerald-500/70 leading-normal pt-1 border-t border-emerald-900/40">
-                ⚠️ الشحن آلي ومثبت رقمياً عند لواء الموطن لضمان صفر هدر مالي تشغيلي وعزل تام للوسطاء عن مالية السائقين.
-              </p>
-            </div>
-
-            <Button 
-              onClick={handleFundWallet}
-              disabled={loading}
-              className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-12 rounded-xl text-sm"
-            >
-              {loading ? <RefreshCw className="w-5 h-5 animate-spin ml-2" /> : 'استكمال تفريغ القوة المالية'}
-            </Button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Geo Payment Gateway Modal Integration */}
+      <GeoPaymentGateway
+        isOpen={isChargingFunds}
+        onClose={() => setIsChargingFunds(false)}
+      />
 
       {/* Package confirmation overlay */}
       <AnimatePresence>

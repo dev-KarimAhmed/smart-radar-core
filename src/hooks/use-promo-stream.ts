@@ -16,7 +16,7 @@ export function usePromoStream(district?: string, governorate?: string) {
         if (cachedRaw) {
           const cached = JSON.parse(cachedRaw);
           const age = Date.now() - cached.timestamp;
-          if (age < 3600000) { // 1 Hour Cache Lifetime
+          if (age < 3600000 && cached.ads && cached.ads.length > 0) { // 1 Hour Cache Lifetime
             console.log(`[بروتوكول الأرشيف الإعلاني] تم تدوير الإعلان محلياً 100% من الذاكرة الحافة (العمر: ${Math.round(age / 1000)} ثانية)`);
             setActiveAds(cached.ads);
             return; // Skip server subscription to conserve data and run locally 100%
@@ -213,23 +213,36 @@ export function usePromoStream(district?: string, governorate?: string) {
             const vaultDetails = JSON.parse(vaultDetailsRaw);
             let detailsChanged = false;
 
+            let heartedChanged = false;
+            let heartedIdsCopy = [...heartedIds];
+
             expiredIds.forEach(expiredId => {
-              const isHearted = heartedIds.includes(expiredId);
-              if (!isHearted) {
-                // State A: Transitory, not hearted -> Purge from local registry details directly
+              const isHearted = heartedIdsCopy.includes(expiredId);
+              const expiredAd = vaultDetails[expiredId];
+              const isRegular = expiredAd && (expiredAd.packageId === 'basic-pulse' || expiredAd.isPremiumRetentionPaid === false);
+
+              if (!isHearted || isRegular) {
+                // State A: Transitory, not hearted OR a regular (non-retention) ad -> Purge fully from local storage
                 if (vaultDetails[expiredId]) {
                   delete vaultDetails[expiredId];
                   detailsChanged = true;
                 }
-                console.log(`[تطهير وسقوط الأجل] تم مسح وإعدام الإعلان العابر ${expiredId} لانتهاء صلاحيته على الخادم سيادياً.`);
+                if (isHearted) {
+                  heartedIdsCopy = heartedIdsCopy.filter(id => id !== expiredId);
+                  heartedChanged = true;
+                }
+                console.log(`[تطهير وسقوط الأجل] تم مسح وإعدام الإعلان العابر ${expiredId} لانتهاء صلاحيته على الخادم سيادياً أو لكونه يتبع الباقة العادية.`);
               } else {
-                // State B: Hearted -> Mummified and preserved forever
-                console.log(`[السيادة التخليدية] تم تخليد الإعلان ${expiredId} في خزنة الهاتف نظراً لإشارة القبضة الخضراء 💚`);
+                // State B: Hearted and Premium/Retention -> Mummified and preserved offline-first
+                console.log(`[السيادة التخليدية] تم تخليد الإعلان الفاخر ${expiredId} في خزنة الهاتف نظراً لإشارة القبضة الخضراء 💚`);
               }
             });
 
             if (detailsChanged) {
               localStorage.setItem('sovereign_ad_vault_details', JSON.stringify(vaultDetails));
+            }
+            if (heartedChanged) {
+              localStorage.setItem('sovereign_hearted_ads', JSON.stringify(heartedIdsCopy));
             }
           }
 
