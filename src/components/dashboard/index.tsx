@@ -7,7 +7,6 @@ import { BottomNav } from '../layout/bottom-nav';
 import { AdStage } from './ad-stage';
 import { SpeedSentry } from '../shared/speed-sentry';
 
-import { AdminViewTab } from './admin-view-tab';
 import { DriverViewTab } from './driver-view-tab';
 import { RiderViewTab } from './rider-view-tab';
 import { WalletTab } from './wallet-tab';
@@ -19,6 +18,9 @@ import { useRiderOperations } from '@/hooks/use-rider-operations';
 import { useDriverOperations } from '@/hooks/use-driver-operations';
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'motion/react';
+import { Loader2 } from 'lucide-react';
+
+const AdminViewTab = React.lazy(() => import('./admin-view-tab').then(m => ({ default: m.AdminViewTab })));
 
 function SovereignLockoutView({ user, logout }: { user: any, logout: () => void }) {
   const [timeLeft, setTimeLeft] = useState<number>(1800);
@@ -201,7 +203,18 @@ function DashboardLayout() {
   };
 
   const renderContent = () => {
-    if (isSovereign) return <AdminViewTab />;
+    if (isSovereign) {
+      return (
+        <React.Suspense fallback={
+          <div className="flex flex-col items-center justify-center p-8 bg-[#090d1a] border border-cyan-900/30 rounded-2xl animate-pulse text-center space-y-4">
+            <Loader2 className="w-8 h-8 animate-spin text-cyan-400 mx-auto" />
+            <p className="text-gray-400 text-xs font-sans">برج الصلاحية: يتم استدعاء قمرة التحكم السيادية لاحقاً...</p>
+          </div>
+        }>
+          <AdminViewTab />
+        </React.Suspense>
+      );
+    }
 
     const ratingValue = user?.rating !== undefined 
       ? user.rating 

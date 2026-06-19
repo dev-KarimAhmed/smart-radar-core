@@ -19,6 +19,8 @@ export function useDriverRadar(user: User | null, driverStatus: string, updateDr
   const [rawTrips, setRawTrips] = useState<Trip[]>([]);
   const [tick, setTick] = useState(0);
   const lastGridId = useRef<string>("");
+  const lastSentLocation = useRef<{ lat: number; lng: number } | null>(null);
+  const lastSentTime = useRef<number>(0);
 
   const [currentDistrict, setCurrentDistrict] = useState<string>(() => user?.district || 'وادي السير');
   const [currentH3Cell, setCurrentH3Cell] = useState<string>("0x892f35ffffffff");
@@ -63,21 +65,49 @@ export function useDriverRadar(user: User | null, driverStatus: string, updateDr
     return JSON.stringify([...surroundingGridIds].sort());
   }, [surroundingGridIds]);
 
-  // Hook 1: Location updates and Grid shifting (Only updates Firestore on grid boundary change)
+  // Hook 1: Location updates and Grid shifting (Only updates Firestore on satisfying throttler constraints: Distance >= 15m OR Time >= 10s)
   useEffect(() => {
     if (driverStatus !== 'active' || !latVal || !lngVal) {
       return;
     }
 
-    if (currentGridAreaKey !== lastGridId.current) {
-      setRawTrips([]); 
-      setRejectedTripIds([]);
+    const now = Date.now();
+    let shouldUpdate = false;
+
+    if (!lastSentLocation.current || lastSentTime.current === 0) {
+      // First update ever: allow immediately
+      shouldUpdate = true;
+    } else {
+      const distanceKm = calculateSovereignDistance(
+        lastSentLocation.current.lat,
+        lastSentLocation.current.lng,
+        latVal,
+        lngVal
+      );
+      const distanceMeters = distanceKm * 1000;
+      const timeElapsedMs = now - lastSentTime.current;
+
+      // [SCR-2026-THROTTLER]: Verify if either Distance >= 15 Meters OR Time >= 10 Seconds is met
+      if (distanceMeters >= 15 || timeElapsedMs >= 10000) {
+        shouldUpdate = true;
+      }
+    }
+
+    if (shouldUpdate) {
+      if (currentGridAreaKey !== lastGridId.current) {
+        setRawTrips([]); 
+        setRejectedTripIds([]);
+        lastGridId.current = currentGridAreaKey;
+      }
+      
       const primaryGridId = calculateSovereignGridId(latVal, lngVal);
       updateDriverDoc({
         gridId: primaryGridId,
         location: { lat: latVal, lng: lngVal, speed: driverLocationSpeed, source: driverLocationSource || 'fallback' }
       });
-      lastGridId.current = currentGridAreaKey;
+
+      lastSentLocation.current = { lat: latVal, lng: lngVal };
+      lastSentTime.current = now;
     }
   }, [driverStatus, latVal, lngVal, currentGridAreaKey, driverLocationSpeed, driverLocationSource, updateDriverDoc]);
 

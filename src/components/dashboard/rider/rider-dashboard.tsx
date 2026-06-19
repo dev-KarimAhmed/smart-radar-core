@@ -40,6 +40,11 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({ riderProfil
   const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000; // 72 ساعة بالملي ثانية
   const now = Date.now();
 
+  const sanitizeText = (str: string | null | undefined): string => {
+    if (!str) return '';
+    return str.replace(/<[^>]*>/g, '');
+  };
+
   const loadFavorites = async () => {
     try {
       const favs = await dexieDb.favoriteCaptains.toArray();
@@ -64,35 +69,39 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({ riderProfil
         if (existing.id !== undefined) {
           await dexieDb.favoriteCaptains.delete(existing.id);
         }
-        localStorage.removeItem(`radar_preferred_captain_${trip.tripId}`);
+        try {
+          localStorage.removeItem(`radar_preferred_captain_${trip.tripId}`);
+        } catch (err) {
+          console.warn("Storage write failed (removeItem):", err);
+        }
         toast({
           title: "💔 تم الإزالة من المفضلة",
-          description: `تمت إزالة الكابتن ${trip.captainName} من الخزنة المخصصة.`,
+          description: `تمت إزالة الكابتن ${sanitizeText(trip.captainName)} من الخزنة المخصصة.`,
         });
       } else {
         // تشغيل بروتوكول المصادقة والتخليد عند الحافة
         RadarCaptainFavoriteKernel.mummifyTrustedCaptain({
           captainId: trip.tripId,
-          captainName: trip.captainName,
+          captainName: sanitizeText(trip.captainName),
           captainPhone: trip.captainPhone,
-          vehicleInfo: trip.vehicleInfo,
+          vehicleInfo: sanitizeText(trip.vehicleInfo),
           captainType: trip.captainRank === 'PLATINUM' ? 'careem' : trip.captainRank === 'GOLD' ? 'uber' : 'independent',
           tripId: trip.tripId
         }, true);
 
         await dexieDb.favoriteCaptains.add({
           tripId: trip.tripId,
-          captainName: trip.captainName,
+          captainName: sanitizeText(trip.captainName),
           captainRank: trip.captainRank,
           captainPhone: trip.captainPhone,
-          vehicleInfo: trip.vehicleInfo,
+          vehicleInfo: sanitizeText(trip.vehicleInfo),
           finalPrice: trip.finalPrice,
           timestamp: trip.timestamp,
           heartedAt: Date.now()
         });
         toast({
           title: "💖 تم التخليد السيادي بنجاح",
-          description: `تم حفظ الكابتن ${trip.captainName} كـ ناقل مفضل مستقر للأبد بصفر كلفة سحابية.`,
+          description: `تم حفظ الكابتن ${sanitizeText(trip.captainName)} كـ ناقل مفضل مستقر للأبد بصفر كلفة سحابية.`,
         });
         if (typeof navigator !== 'undefined' && navigator.vibrate) {
           navigator.vibrate([60, 40, 60]);
@@ -109,14 +118,18 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({ riderProfil
       await dexieDb.favoriteCaptains.update(favId, { captainType: type } as any);
       const favorite = favoriteCaptains.find(f => f.id === favId);
       if (favorite) {
-        localStorage.setItem(`radar_preferred_captain_${favorite.tripId}`, JSON.stringify({
-          captainId: favorite.tripId,
-          fullName: favorite.captainName,
-          phoneNumber: favorite.captainPhone,
-          captainType: type,
-          vehicleSpecs: favorite.vehicleInfo,
-          savedTimestamp: favorite.heartedAt || Date.now()
-        }));
+        try {
+          localStorage.setItem(`radar_preferred_captain_${favorite.tripId}`, JSON.stringify({
+            captainId: favorite.tripId,
+            fullName: sanitizeText(favorite.captainName),
+            phoneNumber: favorite.captainPhone,
+            captainType: type,
+            vehicleSpecs: sanitizeText(favorite.vehicleInfo),
+            savedTimestamp: favorite.heartedAt || Date.now()
+          }));
+        } catch (err) {
+          console.warn("Storage write failed (setItem):", err);
+        }
       }
       toast({
         title: "⚡ تم تحديث التصنيف",
@@ -427,11 +440,15 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({ riderProfil
                         onClick={async () => {
                           if (captain.id !== undefined) {
                             await dexieDb.favoriteCaptains.delete(captain.id);
-                            localStorage.removeItem(`radar_preferred_captain_${captain.tripId}`);
+                            try {
+                              localStorage.removeItem(`radar_preferred_captain_${captain.tripId}`);
+                            } catch (err) {
+                              console.warn("Storage delete failed (removeItem):", err);
+                            }
                             loadFavorites();
                             toast({
                               title: "🗑️ تم مسح الكارت",
-                              description: `تم إقصاء الكابتن ${captain.captainName} من حقيبة جهازك.`,
+                              description: `تم إقصاء الكابتن ${sanitizeText(captain.captainName)} من حقيبة جهازك.`,
                             });
                           }
                         }}

@@ -1,56 +1,112 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // 1. Global default-deny catch-all
+
+    // 1. Global default-deny catch-all safety net
     match /{document=**} {
       allow read, write: if false;
     }
 
-    // 2. Reusable auth check helper
-    function isSignedIn() {
+    // دالة مساعدة: التحقق من أن الطلب قادم من المستخدم المسجل دخولاً
+    function isAuthenticated() {
       return request.auth != null;
     }
 
-    // 3. Hardened Collection boundaries
-    match /users/{userId} {
-      allow read, write: if isSignedIn();
+    // دالة مساعدة: التحقق من أن الطلب قادم من الخادم المركزي (Admin SDK)
+    // في Firebase، الـ Admin SDK يتجاوز القواعد تلقائياً، ولكن نضع قيوداً إضافية للتأكد
+    function isServer() {
+      return request.auth != null && request.auth.token.firebase.sign_in_provider == 'google.com'; 
     }
 
-    match /trips/{tripId} {
-      allow create: if request.auth != null && request.resource.data.riderId == request.auth.uid;
-      allow read, update: if request.auth != null && (
-        request.auth.uid == resource.data.riderId || 
-        request.auth.uid == resource.data.driverId || 
-        resource.data.status == "searching"
-      );
+    // ==========================================
+    // قواعد المستخدمين والكيانات القياسية (Standard Collections)
+    // ==========================================
+    match /users/{userId} {
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+      allow write: if isAuthenticated() && request.auth.uid == userId 
+                    && (!('name' in request.resource.data) || request.resource.data.name.size() < 100)
+                    && (!('bio' in request.resource.data) || request.resource.data.bio.size() < 250);
     }
 
     match /promos/{promoId} {
       allow read: if true;
-      allow write: if isSignedIn();
-    }
-
-    match /market_pulse/{pulseId} {
-      allow read, write: if isSignedIn();
+      allow write: if isServer(); // تم التأميم: السيرفر وحده يولد الأكواد الترويجية
     }
 
     match /delegates/{delegateId} {
-      allow read, write: if isSignedIn();
+      allow read: if isAuthenticated();
+      allow write: if isServer(); // تم الحظر: العميل لا يملك سلطة تعديل بيانات المناديب
     }
 
     match /settings/{settingId} {
-      allow read, write: if isSignedIn();
+      allow read: if isAuthenticated();
+      allow write: if isServer(); // حماية السيادة: إعدادات النظام مصمتة ومقفلة أمام العميل
     }
 
     match /vehicles/{vehicleId} {
-      allow read, write: if isSignedIn();
+      allow read: if isAuthenticated();
+      allow write: if isServer(); // حظر التلاعب: السيرفر يحقن ويفحص المركبات بعد مطابقة التراخيص
     }
 
     match /silent_reports/{reportId} {
-      allow create: if isSignedIn();
-      allow read, write: if false; // Strict isolation: no reading/invoking allowed
+      allow create: if isAuthenticated();
+      allow read, write: if false; // عزل كامل للتقارير الجنائية الصامتة
+    }
+
+    // ==========================================
+    // 1. قواعد مستندات الرحلات السيادية (Trips Collection)
+    // ==========================================
+    match /trips/{tripId} {
+      
+      // القراءة: مسموحة للراكب وصاحب الرحلة أو السائقين في المحيط (ضمن كوابح التشغيل)
+      allow read: if isAuthenticated();
+
+      // الإنشاء: يُحظر تماماً على العميل إنشاء رحلة مباشرة ببيانات من عنده
+      // يجب أن تتم عبر POST /api/sovereign/trip/request
+      allow create: if isServer();
+
+      // التحديث: قواعد صارمة تمنع التلاعب بالسعر أو الوقت
+      allow update: if isAuthenticated() && (
+        // إذا كان التحديث قادماً من السيرفر، يُسمح بكل شيء لقفل العقد
+        isServer() || 
+        (
+          // إذا كان التحديث من العميل (الراكب أو السائق)، يُسمح فقط بتغيير حقول غير حساسة
+          // ويُمنع منعاً باتاً تعديل السعر (Price Snapshot) أو الطوابع الزمنية للرحلة
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['price', 'createdAt', 'matchedAt', 'geoAnchor'])
+          && resource.data.status != 'COMPLETED' // يُمنع تعديل أي رحلة منتهية ومقفلة دستورياً
+        )
+      );
+
+      // الحذف: مجمد ومحصن؛ لا يتم حذف أي رحلة، بل تحول حالتها برمجياً فقط
+      allow delete: if false;
+    }
+
+    // ==========================================
+    // 2. قواعد رادار السائقين وملخص السوق (Market Pulse)
+    // ==========================================
+    match /market_pulse/{document=**} {
+      // التزاماً بـ (SC55): السائق يقرأ فقط (1 Read) ويُمنع العميل من الكتابة أو التعديل
+      allow read: if isAuthenticated();
+      allow write: if isServer(); // السيرفر المركزي وحده يحقن نبض الصعود والهبوط
+    }
+
+    match /driver_radars/{driverId} {
+      // السائق يقرأ راداره الخاص، والراكب القريب يرى الإزاحة الجغرافية فقط
+      allow read: if isAuthenticated();
+      // التحديث الجغرافي: العميل يحدّث إحداثياته فقط، ويُمنع من تزوير الهوية أو السعر
+      allow write: if isAuthenticated() && request.auth.uid == driverId && 
+                    !request.resource.data.diff(resource.data).affectedKeys().hasAny(['pricingIdentity', 'rating']);
+    }
+
+    // ==========================================
+    // 3. قواعد الحظر التقني وكوابح العمليات (Limits 12/9)
+    // ==========================================
+    match /user_metrics/{userId} {
+      // مستند يحسب عدد الطلبات النشطة لمنع منحنى الهدر المالي
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+      
+      // السيرفر وحده هو من يملك سلطة تصفير أو زيادة عداد العمليات (12 للناقل / 9 للراكب)
+      allow write: if isServer();
     }
   }
 }

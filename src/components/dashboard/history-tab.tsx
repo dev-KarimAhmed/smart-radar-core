@@ -95,7 +95,11 @@ export function HistoryTab() {
         if (existing.id !== undefined) {
           await dexieDb.favoriteCaptains.delete(existing.id);
         }
-        localStorage.removeItem(`radar_preferred_captain_${trip.tripId}`);
+        try {
+          localStorage.removeItem(`radar_preferred_captain_${trip.tripId}`);
+        } catch (err) {
+          console.warn("Storage deletion failed (removeItem):", err);
+        }
         toast({
           title: "💔 تم الإزالة من المفضلة",
           description: `تمت إزالة الكابتن ${trip.captainName} من الخزنة الرقمية.`,

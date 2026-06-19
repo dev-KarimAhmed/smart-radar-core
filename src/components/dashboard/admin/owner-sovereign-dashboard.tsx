@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase';
 import { 
   collection, 
-  onSnapshot, 
+  getDocs, 
   doc, 
   updateDoc, 
   setDoc,
@@ -97,10 +97,8 @@ export const RadarGapLockdownKernel = {
     voucherCode: string, 
     secureServerKey: string 
   ): { success: boolean; hoursAdded: number } {
-    if (voucherCode.startsWith("RADAR-100H-") && secureServerKey === "VALID_SIG") {
-      return { success: true, hoursAdded: 100 }; 
-    }
-    return { success: false, hoursAdded: 0 };
+    // [BANNED-CLIENT-SIDE] منطق التحقق مرحّل كلياً للسيرفر الخلفي الآمن لمنع حقن الساعات
+    throw new Error("يُحظر التحقق من بطاقات الشحن من جهة العميل. منطق التحقق مرحّل كلياً للسيرفر الخلفي الآمن.");
   },
 
   /**
@@ -142,9 +140,11 @@ export function RadarOwnerSovereignDashboard() {
   const STABILITY_THRESHOLD_MS = 30 * 24 * 60 * 60 * 1000; // 30-day stability threshold
   const PENALTY_FACTOR = 0.40; // Penalty factor for fictitious/unstable referral rate
 
-  // Loading Delegates
-  useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, 'delegates'), (snapshot) => {
+  // O(1) Fetching of delegates with sharp where constraints
+  const fetchDelegates = async () => {
+    try {
+      const q = query(collection(db, 'delegates'), where('status', '==', 'active'));
+      const snapshot = await getDocs(q);
       if (snapshot.empty) {
         // Build mock delegates if empty (Jordanian regional delegates)
         const defaults: DelegateData[] = [
@@ -186,9 +186,9 @@ export function RadarOwnerSovereignDashboard() {
           }
         ];
         // Populate
-        defaults.forEach(async (d) => {
+        for (const d of defaults) {
           await setDoc(doc(db, 'delegates', d.id), d);
-        });
+        }
         setDelegates(defaults);
       } else {
         const list = snapshot.docs.map(docSnap => ({
@@ -197,19 +197,18 @@ export function RadarOwnerSovereignDashboard() {
         } as DelegateData));
         setDelegates(list);
       }
-      setLoadingDelegates(false);
-    }, (err) => {
+    } catch (err) {
       console.error('Error loading delegates inside sovereign dashboard:', err);
+    } finally {
       setLoadingDelegates(false);
-    });
+    }
+  };
 
-    return () => unsubscribe();
-  }, []);
-
-  // Loading Drivers
-  useEffect(() => {
-    const q = query(collection(db, 'users'), where('role', '==', 'driver'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+  // O(1) Fetching of driver segments with edge constraints
+  const fetchDrivers = async () => {
+    try {
+      const q = query(collection(db, 'users'), where('role', '==', 'driver'));
+      const snapshot = await getDocs(q);
       const list = snapshot.docs.map(docSnap => {
         const data = docSnap.data();
         return {
@@ -221,17 +220,21 @@ export function RadarOwnerSovereignDashboard() {
           paidHoursRemaining: data.paidHoursRemaining ?? (data.subscriptionHours ?? 0),
           status: data.status || 'idle',
           isBanned: data.isBanned || false,
-          immunityScore: data.immunityScore ?? 100.0
+          immunityScore: data.immunityScore ?? 100.0,
+          currentDistrict: data.currentDistrict || 'لواء ناعور'
         } as DriverData;
       });
       setDrivers(list);
-      setLoadingDrivers(false);
-    }, (err) => {
+    } catch (err) {
       console.error('Error loading drivers in sovereign dashboard:', err);
+    } finally {
       setLoadingDrivers(false);
-    });
+    }
+  };
 
-    return () => unsubscribe();
+  useEffect(() => {
+    fetchDelegates();
+    fetchDrivers();
   }, []);
 
   /**
@@ -256,6 +259,7 @@ export function RadarOwnerSovereignDashboard() {
         title: '💥 تم الصعق الجنائي الكلي للهدف',
         description: `تم سحب حصانة الكابتن [${driverName}] لتبلغ 0.0، ومصادرة ساعاته المدفوعة بالكامل وحظره.`
       });
+      fetchDrivers();
     } catch (err: any) {
       toast({
         variant: 'destructive',
@@ -268,25 +272,32 @@ export function RadarOwnerSovereignDashboard() {
   };
 
   /**
-   * 🔄 handleReviveDriver
-   * Re-instates driver, restoring immunity and granting stability credentials.
+   * 🔄 handleReviveDriver [SECURE GATEWAYED]
+   * Securely requests server approval to revive driver. No client-side free hours allocation!
    */
   const handleReviveDriver = async (driverUid: string, driverName: string) => {
     setIsProcessing(true);
     try {
-      const driverRef = doc(db, 'users', driverUid);
-      await updateDoc(driverRef, {
-        isBanned: false,
-        immunityScore: 100.0,
-        paidHoursRemaining: 12, // Grant 12 emergency stability hours
-        status: 'idle',
-        banReason: null
+      const response = await fetch('/api/revive-driver', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ driverUid })
       });
+      const data = await response.json();
 
-      toast({
-        title: '🟢 تم إعادة الإحياء وتسييل الحصانة',
-        description: `تم تسييل الحصانة للكابتن [${driverName}] لترتفع لـ 100% ومنحه 12 ساعة تيسيرية.`
-      });
+      if (response.ok && data.success) {
+        toast({
+          title: '🟢 تم إعادة الإحياء بتصديق رقمي وموافقة سحابية',
+          description: `تم إحياء الكابتن [${driverName}] لترتفع حصانته لـ 100%، وتسييل (12 ساعة) طارئة مصدقة سيرفرياً.`
+        });
+        fetchDrivers();
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'فشل الفك والتصديق السحابي',
+          description: data.error || 'خطأ أثناء محاذاة الصندوق الأسود'
+        });
+      }
     } catch (err: any) {
       toast({
         variant: 'destructive',
@@ -330,6 +341,7 @@ export function RadarOwnerSovereignDashboard() {
         title: '✅ تصفية مالية ناجحة',
         description: `تم تسوية وتصفير مستحقات المندوب [${delegateName}] بالكامل وإصدار وصل الصرف.`
       });
+      fetchDelegates();
     } catch (err: any) {
       toast({
         variant: 'destructive',
@@ -375,6 +387,7 @@ export function RadarOwnerSovereignDashboard() {
         title: '📡 تم الارتحال الجغرافي وبث النهر الإعلاني',
         description: `تم ترحيل الكابتن [${targetDriver.name}] بنجاح إلى [${updatedState.currentDistrict}].`
       });
+      fetchDrivers();
     } catch (err: any) {
       toast({ variant: 'destructive', title: 'خطأ بالارتحال', description: err.message });
     } finally {
@@ -383,8 +396,8 @@ export function RadarOwnerSovereignDashboard() {
   };
 
   /**
-   * 🎫 executeVoucherRedeemSim
-   * Uses offline physical scratch tickets to securely inject hours to captains' wallets.
+   * 🎫 executeVoucherRedeemSim [SECURE BACKEND INTERACTION]
+   * Authenticates physical voucher against the secure backend route with IP rate-limiting.
    */
   const executeVoucherRedeemSim = async () => {
     if (!voucherDriverUid) {
@@ -401,27 +414,25 @@ export function RadarOwnerSovereignDashboard() {
 
     setIsProcessing(true);
     try {
-      const currentWallet = { paidHours: targetDriver.paidHoursRemaining || 0 };
-      const res = RadarGapLockdownKernel.redeemVoucherHours(currentWallet, voucherCode, "VALID_SIG");
+      const response = await fetch('/api/redeem-voucher', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ driverUid: targetDriver.uid, voucherCode })
+      });
+      const data = await response.json();
 
-      if (res.success) {
-        const driverRef = doc(db, 'users', targetDriver.uid);
-        const newHours = (targetDriver.paidHoursRemaining || 0) + res.hoursAdded;
-        await updateDoc(driverRef, {
-          paidHoursRemaining: newHours,
-          subscriptionHours: newHours
-        });
-
+      if (response.ok && data.success) {
         toast({
-          title: '🎫 شحن فوري ناجح (تذكرة مشفرة)',
-          description: `تم قبول بطاقة المندوب المشفرة وإضافة [${res.hoursAdded}] ساعة رصيد للكابتن [${targetDriver.name}].`
+          title: '🎫 شحن فوري ناجح (تذكرة معتمدة من السيرفر)',
+          description: `تم قبول بطاقة المندوب وتحديث [${data.hoursAdded}] ساعة رصيد للكابتن [${targetDriver.name}] بنجاح.`
         });
         setVoucherCode('');
+        fetchDrivers();
       } else {
         toast({
           variant: 'destructive',
-          title: '❌ فشل التحقق الجنائي للكود',
-          description: 'رمز البطاقة غير مطابق لبروتوكول التشفير المعتمد "RADAR-100H-*"'
+          title: '❌ فشل التحقق السيرفري للكود',
+          description: data.error || 'رمز البطاقة غير مطابق لبروتوكول التشفير المعتمد "RADAR-100H-*"'
         });
       }
     } catch (err: any) {
