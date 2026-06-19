@@ -402,60 +402,93 @@ export function AdminViewTab() {
   const { pulseData, loadingPulse } = useMarketPulse(true);
 
   return (
-    <div className="space-y-8">
-      <Tabs defaultValue="dashboard" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-6 h-auto">
-          <TabsTrigger value="dashboard" className="flex-col h-auto py-3">
+    <div className="space-y-8 animate-in fade-in duration-500 w-full" dir="rtl">
+      {/* تم تعيين قمرة المالك كشاشة الافتتاح الأساسية للمشرف */}
+      <Tabs defaultValue="owner" className="w-full">
+        
+        {/* شريط الأزرار السيادي - تم ربط القيم بدقة لمنع الانهيار */}
+        <TabsList className="flex flex-wrap w-full justify-center gap-2 h-auto bg-[#050a0f]/80 border border-[#00ffcc]/10 p-2 rounded-2xl shadow-lg shadow-black/50">
+          
+          <TabsTrigger value="dashboard" className="flex-col h-auto py-3 px-4 hover:bg-white/5 data-[state=active]:bg-[#14b8a6]/20 data-[state=active]:text-[#14b8a6] rounded-xl transition-all">
              <Users className="w-5 h-5 mb-1" />
-             <span>برج المراقبة</span>
+             <span className="text-xs font-bold">برج المراقبة</span>
           </TabsTrigger>
-          <TabsTrigger value="ads" className="flex-col h-auto py-3">
+
+          <TabsTrigger value="ads" className="flex-col h-auto py-3 px-4 hover:bg-white/5 data-[state=active]:bg-[#14b8a6]/20 data-[state=active]:text-[#14b8a6] rounded-xl transition-all">
             <Megaphone className="w-5 h-5 mb-1" />
-             <span>إدارة الإعلانات</span>
+             <span className="text-xs font-bold">إدارة الإعلانات</span>
           </TabsTrigger>
-          <TabsTrigger value="owner" className="flex-col h-auto py-3">
-            <ShieldAlert className="w-5 h-5 mb-1 text-[#ff3366] animate-pulse" />
-            <span className="text-[#ff3366] font-bold">قمرة المالك V5.5 👑</span>
+
+          {/* الزر السيادي الجديد V5.5 */}
+          <TabsTrigger value="owner" className="flex-col h-auto py-3 px-5 bg-red-950/20 hover:bg-red-900/30 data-[state=active]:bg-red-950/60 data-[state=active]:text-[#ff3366] border border-transparent data-[state=active]:border-[#ff3366]/40 rounded-xl transition-all shadow-sm">
+            <ShieldAlert className="w-6 h-6 mb-1 text-[#ff3366] animate-pulse" />
+            <span className="font-black text-xs tracking-wider">👑 V5.5 قمرة المالك</span>
           </TabsTrigger>
-          <TabsTrigger value="delegates" className="flex-col h-auto py-3">
-            <UsersRound className="w-5 h-5 mb-1 text-emerald-400" />
-            <span>جيش المندوبين 📣</span>
+
+          <TabsTrigger value="delegates" className="flex-col h-auto py-3 px-4 hover:bg-white/5 data-[state=active]:bg-emerald-950/40 data-[state=active]:text-emerald-400 rounded-xl transition-all">
+            <UsersRound className="w-5 h-5 mb-1 text-emerald-500" />
+            <span className="text-xs font-bold">جيش المندوبين 📣</span>
           </TabsTrigger>
-           <TabsTrigger value="pulse" className="flex-col h-auto py-3">
+
+           <TabsTrigger value="pulse" className="flex-col h-auto py-3 px-4 hover:bg-white/5 data-[state=active]:bg-[#14b8a6]/20 data-[state=active]:text-[#14b8a6] rounded-xl transition-all">
              <Activity className="w-5 h-5 mb-1" />
-             <span>نبض السوق</span>
+             <span className="text-xs font-bold">نبض السوق</span>
           </TabsTrigger>
-          <TabsTrigger value="controls" className="flex-col h-auto py-3">
+
+          <TabsTrigger value="controls" className="flex-col h-auto py-3 px-4 hover:bg-white/5 data-[state=active]:bg-[#14b8a6]/20 data-[state=active]:text-[#14b8a6] rounded-xl transition-all">
             <Shield className="w-5 h-5 mb-1" />
-            <span>التحكم السيادي</span>
+            <span className="text-xs font-bold">التحكم السيادي</span>
           </TabsTrigger>
         </TabsList>
+
+        {/* ================= حاويات المحتوى (الجسر الحركي) ================= */}
         
-        <TabsContent value="dashboard" className="mt-6 space-y-6">
-            <AdminPulseOverview />
-            <DriversManagementTab />
+        <TabsContent value="dashboard" className="mt-6 outline-none">
+           <SovereignErrorBoundary>
+              <div className="space-y-6">
+                <AdminPulseOverview />
+                <DriversManagementTab />
+              </div>
+           </SovereignErrorBoundary>
         </TabsContent>
-        <TabsContent value="ads" className="mt-6 space-y-8">
-            <SovereignErrorBoundary>
+
+        <TabsContent value="ads" className="mt-6 outline-none">
+           <SovereignErrorBoundary>
+              <div className="space-y-8">
                 <PendingAdsAuditPanel />
-            </SovereignErrorBoundary>
-            <AdsManagementTab />
+                <AdsManagementTab />
+              </div>
+           </SovereignErrorBoundary>
         </TabsContent>
-        <TabsContent value="owner" className="mt-6 space-y-8">
-            <SovereignErrorBoundary>
-                <RadarOwnerSovereignDashboard />
-            </SovereignErrorBoundary>
+
+        {/* 👑 الحاوية المفقودة التي تسببت بالشلل: حاوية قمرة المالك */}
+        <TabsContent value="owner" className="mt-6 outline-none">
+           <SovereignErrorBoundary>
+              <RadarOwnerSovereignDashboard />
+           </SovereignErrorBoundary>
         </TabsContent>
-        <TabsContent value="delegates" className="mt-6">
-            <DelegatesManagementTab />
+
+        <TabsContent value="delegates" className="mt-6 outline-none">
+           <SovereignErrorBoundary>
+              <DelegatesManagementTab />
+           </SovereignErrorBoundary>
         </TabsContent>
-        <TabsContent value="pulse" className="mt-6">
-            <PulseHeatmap pulseData={pulseData} isLoading={loadingPulse} />
+
+        <TabsContent value="pulse" className="mt-6 outline-none">
+           <SovereignErrorBoundary>
+             <PulseHeatmap pulseData={pulseData} isLoading={loadingPulse} />
+           </SovereignErrorBoundary>
         </TabsContent>
-        <TabsContent value="controls" className="mt-6 space-y-8">
-            <KillSwitchPanel />
-            <FuelIndexPanel />
+
+        <TabsContent value="controls" className="mt-6 outline-none space-y-8">
+           <SovereignErrorBoundary>
+             <div className="space-y-8">
+               <KillSwitchPanel />
+               <FuelIndexPanel />
+              </div>
+           </SovereignErrorBoundary>
         </TabsContent>
+
       </Tabs>
     </div>
   );

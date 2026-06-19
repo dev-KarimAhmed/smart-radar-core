@@ -18,29 +18,46 @@ service cloud.firestore {
       return request.auth != null && request.auth.token.firebase.sign_in_provider == 'google.com'; 
     }
 
+    // دالة مساعدة: التحقق من أن الطلب قادم من مشرف أو مالك النظام
+    function isAdmin() {
+      return isAuthenticated() && (
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'owner'
+      );
+    }
+
     // ==========================================
     // قواعد المستخدمين والكيانات القياسية (Standard Collections)
     // ==========================================
     match /users/{userId} {
-      allow read: if isAuthenticated() && request.auth.uid == userId;
+      allow read: if isAuthenticated();
       allow write: if isAuthenticated() && request.auth.uid == userId 
                     && (!('name' in request.resource.data) || request.resource.data.name.size() < 100)
                     && (!('bio' in request.resource.data) || request.resource.data.bio.size() < 250);
     }
 
+    // دالة مساعدة: التحقق من أن المندوب يملك مستند المندوب المطابق لرقم هاتفه
+    function isDelegateDocOwner(docData) {
+      return isAuthenticated() && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'delegate' &&
+             docData != null && 
+             docData.data != null && 
+             docData.data.phone == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.phone;
+    }
+
     match /promos/{promoId} {
       allow read: if true;
-      allow write: if isServer(); // تم التأميم: السيرفر وحده يولد الأكواد الترويجية
+      allow write: if isServer() || isAdmin(); // المشرف أو السيرفر يدير الحملات الترويجية والإعلانات
     }
 
     match /delegates/{delegateId} {
-      allow read: if isAuthenticated();
-      allow write: if isServer(); // تم الحظر: العميل لا يملك سلطة تعديل بيانات المناديب
+      allow read: if isAdmin() || isServer() || isDelegateDocOwner(resource);
+      allow write: if isAdmin() || isServer() || isDelegateDocOwner(resource) || isDelegateDocOwner(request.resource);
     }
 
     match /settings/{settingId} {
       allow read: if isAuthenticated();
-      allow write: if isServer(); // حماية السيادة: إعدادات النظام مصمتة ومقفلة أمام العميل
+      allow write: if isServer() || isAdmin(); // السيرفر أو المشرف يملك تعديل إعدادات النظام السيادي
     }
 
     match /vehicles/{vehicleId} {
@@ -107,6 +124,30 @@ service cloud.firestore {
       
       // السيرفر وحده هو من يملك سلطة تصفير أو زيادة عداد العمليات (12 للناقل / 9 للراكب)
       allow write: if isServer();
+    }
+
+    // ==========================================
+    // 4. دفتر الأستاذ المحاسبي الجنائي المشفر (Immutable Audit Ledger)
+    // ==========================================
+    match /audit_ledger/{ledgerId} {
+      allow create: if isAuthenticated();
+      allow read: if isAdmin() || isServer();
+      allow update, delete: if false;
+    }
+
+    // ==========================================
+    // 5. قواعد الإشعارات الفورية الديكتاتورية المباشرة (Sovereign Pushes)
+    // ==========================================
+    match /sovereign_pushes/{pushId} {
+      allow read, create: if isAuthenticated();
+      allow update, delete: if isServer() || isAdmin();
+    }
+
+    // ==========================================
+    // 6. قواعد غرف الدردشة غير المستدامة والقصيرة المدى (Ephemeral Chats)
+    // ==========================================
+    match /sovereign_ephemeral_chats/{chatId} {
+      allow read, write: if isAuthenticated();
     }
   }
 }

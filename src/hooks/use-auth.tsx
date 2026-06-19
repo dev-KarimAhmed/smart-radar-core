@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
 import { onAuthStateChanged, signOut, signInAnonymously, type User as FirebaseUser } from 'firebase/auth';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { trackSovereignError } from '@/lib/error-tracker';
 import type { User as SovereignUser } from '@/core/types';
@@ -17,6 +17,7 @@ interface AuthContextType {
   isSovereign: boolean;
   isCaptain: boolean;
   isPassenger: boolean;
+  isDelegate: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -85,6 +86,25 @@ function AuthContent({ children }: { children: ReactNode }) {
                     } catch (err) {
                         trackSovereignError(err, { context: 'Bypass_Anonymous_SignIn' });
                     }
+                } else {
+                    // Sync the bypass user properties to Firestore to align security tokens
+                    try {
+                        const userRef = doc(db, 'users', firebaseUser.uid);
+                        await setDoc(userRef, {
+                            uid: firebaseUser.uid,
+                            name: bypassUser.name,
+                            role: bypassUser.role,
+                            governorate: bypassUser.governorate || 'عمان',
+                            district: bypassUser.district || 'الجامعة',
+                            phone: bypassUser.phone || '',
+                            isBufferActive: false,
+                            referralCode: bypassUser.referralCode || '',
+                            referredCount: bypassUser.referredCount || 0,
+                            pendingDues: bypassUser.pendingDues || 0
+                        }, { merge: true });
+                    } catch (err) {
+                        console.error('Error syncing bypass user to Firestore:', err);
+                    }
                 }
             } else if (firebaseUser) {
                 setLoading(true);
@@ -142,6 +162,7 @@ function AuthContent({ children }: { children: ReactNode }) {
     const isSovereign = useMemo(() => user?.role === 'admin', [user]);
     const isCaptain = useMemo(() => user?.role === 'driver', [user]);
     const isPassenger = useMemo(() => user?.role === 'rider', [user]);
+    const isDelegate = useMemo(() => user?.role === 'delegate', [user]);
 
     const value = useMemo(() => ({ 
         user, 
@@ -151,8 +172,9 @@ function AuthContent({ children }: { children: ReactNode }) {
         loginAsMockUser,
         isSovereign, 
         isCaptain, 
-        isPassenger 
-    }), [user, loading, promoData, logout, loginAsMockUser, isSovereign, isCaptain, isPassenger]);
+        isPassenger,
+        isDelegate
+    }), [user, loading, promoData, logout, loginAsMockUser, isSovereign, isCaptain, isPassenger, isDelegate]);
 
     if (loading && !user) { return null; }
 

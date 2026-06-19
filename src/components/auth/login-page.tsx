@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ShieldQuestion, UserCheck, Car, Key, Megaphone } from 'lucide-react';
+import { ShieldQuestion, UserCheck, Car, Key, Megaphone, Users } from 'lucide-react';
 import { RegistrationProvider, useRegistration } from '@/hooks/use-registration';
 import { RoleStep } from '@/components/auth/RoleStep';
 import { PersonalStep } from '@/components/auth/PersonalStep';
@@ -16,7 +16,7 @@ function LoginOrchestrator() {
   const { step, handleLogoTap } = useRegistration();
   const { loginAsMockUser } = useAuth();
 
-  const handleDevBypass = (roleType: 'rider' | 'driver' | 'admin' | 'advertiser') => {
+  const handleDevBypass = (roleType: 'rider' | 'driver' | 'admin' | 'advertiser' | 'delegate') => {
     if (roleType === 'rider') {
       loginAsMockUser({
         uid: 'dev-rider-001',
@@ -79,6 +79,20 @@ function LoginOrchestrator() {
         commercialRegister: 'CR-88294-A',
         adLicense: 'LIC-990-2026',
         businessType: 'commercial'
+      });
+    } else if (roleType === 'delegate') {
+      loginAsMockUser({
+        uid: 'dev-delegate-001',
+        phone: '+962794444444',
+        role: 'delegate',
+        name: 'سفير الميدان (مندوب تجريبي)',
+        governorate: 'عمان',
+        district: 'وادي السير',
+        isBufferActive: false,
+        rating: 4.8,
+        referralCode: 'RAD-JOR-777',
+        referredCount: 142,
+        pendingDues: 85.50
       });
     }
   };
@@ -213,6 +227,14 @@ function LoginOrchestrator() {
                 >
                   <Megaphone className="h-4 w-4 text-[#00ffcc] mb-1" />
                   <span>معلن تجريبي 📢</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDevBypass('delegate')}
+                  className="col-span-2 flex items-center justify-center gap-2 p-2.5 rounded-lg bg-[#0A1128] border border-[#243249] hover:bg-[#111C35] hover:border-amber-500/50 text-amber-300 text-[11px] font-bold transition-all cursor-pointer active:scale-95 select-none shadow-[0_0_15px_rgba(245,158,11,0.08)]"
+                >
+                  <Users className="h-4 w-4 text-amber-400" />
+                  <span>مندوب تجريبي 🤝 (قمرة الوكيل)</span>
                 </button>
               </div>
             </div>

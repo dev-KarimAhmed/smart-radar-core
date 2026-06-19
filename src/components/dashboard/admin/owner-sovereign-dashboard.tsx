@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { db } from '@/lib/firebase';
+import { db, auth } from '@/lib/firebase';
 import { 
   collection, 
   getDocs, 
@@ -233,8 +233,13 @@ export function RadarOwnerSovereignDashboard() {
   };
 
   useEffect(() => {
-    fetchDelegates();
-    fetchDrivers();
+    const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
+      if (firebaseUser) {
+        fetchDelegates();
+        fetchDrivers();
+      }
+    });
+    return () => unsubscribe();
   }, []);
 
   /**

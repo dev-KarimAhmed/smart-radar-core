@@ -1,4 +1,4 @@
-export type UserRole = 'rider' | 'driver' | 'admin' | 'advertiser';
+export type UserRole = 'rider' | 'driver' | 'admin' | 'advertiser' | 'delegate';
 export type AffiliationType = 'smart-app' | 'office-taxi';
 
 export interface LastTripBuffer {
@@ -62,6 +62,9 @@ export interface User {
   paidHoursRemaining?: number;
   bonusHoursRemaining?: number;
   lastTickTimestamp?: number;
+  referralCode?: string;
+  referredCount?: number;
+  pendingDues?: number;
 }
 
 export type TripStatus = 'searching' | 'busy' | 'completed' | 'cancelled' | 'rating' | 'checkpoint_required' | 'archived' | 'in_progress' | 'idle';

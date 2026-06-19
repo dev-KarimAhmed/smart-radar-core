@@ -16,6 +16,7 @@ import { VaultTab } from './vault-tab';
 
 import { useRiderOperations } from '@/hooks/use-rider-operations';
 import { useDriverOperations } from '@/hooks/use-driver-operations';
+import { DelegatePortal } from './delegate-portal';
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'motion/react';
 import { Loader2 } from 'lucide-react';
@@ -271,6 +272,10 @@ function DashboardLayout() {
           </button>
         </div>
       );
+    }
+
+    if (user?.role === 'delegate') {
+      return <DelegatePortal />;
     }
 
     // 🩸 [تحصين الذاكرة المرحلية للكابتن]: إذا كان الكابتن في رحلة جارية، نمنع إلغاء تحميل DriverViewTab تماماً لمنع تمزق الواجهات وفقدان الذاكرة المرحلية

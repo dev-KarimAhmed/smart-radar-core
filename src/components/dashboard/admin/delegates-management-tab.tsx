@@ -26,7 +26,7 @@ import {
   Search,
   Filter
 } from 'lucide-react';
-import { db } from '@/lib/firebase';
+import { db, auth } from '@/lib/firebase';
 import { collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, getDocs } from 'firebase/firestore';
 
 export interface Delegate {
@@ -58,67 +58,78 @@ export function DelegatesManagementTab() {
 
   // Load delegates in realtime from Firestore (or fallback to presets if empty)
   useEffect(() => {
-    setLoading(true);
-    const unsubscribe = onSnapshot(collection(db, 'delegates'), (snapshot) => {
-      if (snapshot.empty) {
-        // Seeding / Mock presets representing Jordanian/Iraqi system
-        const defaultDelegates: Delegate[] = [
-          {
-            id: 'delegate-1',
-            name: 'علاء الحموري دير غبار',
-            phone: '0795544332',
-            referralCode: 'JO-AMMAN-GHUBAR-7',
-            referredCount: 38,
-            deletionRate: 5.2,
-            revivalRate: 88.5,
-            pendingDues: 120.00,
-            dueDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 15 days from now (pending within 30 days)
-            status: 'active',
-            createdAt: new Date().toISOString()
-          },
-          {
-            id: 'delegate-2',
-            name: 'أبو طارق العراقي الكرادة',
-            phone: '0770112233',
-            referralCode: 'IQ-BAGHDAD-KARRADA-9',
-            referredCount: 64,
-            deletionRate: 2.1,
-            revivalRate: 94.2,
-            pendingDues: 245.50,
-            dueDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // overdue (35 days ago, outstanding!)
-            status: 'active',
-            createdAt: new Date().toISOString()
-          },
-          {
-            id: 'delegate-3',
-            name: 'يزن القحطاني صويلح',
-            phone: '0780445566',
-            referralCode: 'JO-SWAILEH-08',
-            referredCount: 14,
-            deletionRate: 14.3, // High deletion rate warning!
-            revivalRate: 45.0,
-            pendingDues: 40.00,
-            dueDate: new Date(Date.now() + 28 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-            status: 'active',
-            createdAt: new Date().toISOString()
+    let unsubscribeSnapshot: (() => void) | null = null;
+
+    const unsubscribeAuth = auth.onAuthStateChanged((firebaseUser) => {
+      if (firebaseUser) {
+        setLoading(true);
+        unsubscribeSnapshot = onSnapshot(collection(db, 'delegates'), (snapshot) => {
+          if (snapshot.empty) {
+            // Seeding / Mock presets representing Jordanian/Iraqi system
+            const defaultDelegates: Delegate[] = [
+              {
+                id: 'delegate-1',
+                name: 'علاء الحموري دير غبار',
+                phone: '0795544332',
+                referralCode: 'JO-AMMAN-GHUBAR-7',
+                referredCount: 38,
+                deletionRate: 5.2,
+                revivalRate: 88.5,
+                pendingDues: 120.00,
+                dueDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 15 days from now (pending within 30 days)
+                status: 'active',
+                createdAt: new Date().toISOString()
+              },
+              {
+                id: 'delegate-2',
+                name: 'أبو طارق العراقي الكرادة',
+                phone: '0770112233',
+                referralCode: 'IQ-BAGHDAD-KARRADA-9',
+                referredCount: 64,
+                deletionRate: 2.1,
+                revivalRate: 94.2,
+                pendingDues: 245.50,
+                dueDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // overdue (35 days ago, outstanding!)
+                status: 'active',
+                createdAt: new Date().toISOString()
+              },
+              {
+                id: 'delegate-3',
+                name: 'يزن القحطاني صويلح',
+                phone: '0780445566',
+                referralCode: 'JO-SWAILEH-08',
+                referredCount: 14,
+                deletionRate: 14.3, // High deletion rate warning!
+                revivalRate: 45.0,
+                pendingDues: 40.00,
+                dueDate: new Date(Date.now() + 28 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                status: 'active',
+                createdAt: new Date().toISOString()
+              }
+            ];
+            
+            setDelegates(defaultDelegates);
+          } else {
+            const list = snapshot.docs.map(docSnap => ({
+              id: docSnap.id,
+              ...docSnap.data()
+            } as Delegate));
+            setDelegates(list);
           }
-        ];
-        
-        setDelegates(defaultDelegates);
-      } else {
-        const list = snapshot.docs.map(docSnap => ({
-          id: docSnap.id,
-          ...docSnap.data()
-        } as Delegate));
-        setDelegates(list);
+          setLoading(false);
+        }, (err) => {
+          console.error("Firestore error loading delegates:", err);
+          setLoading(false);
+        });
       }
-      setLoading(false);
-    }, (err) => {
-      console.error("Firestore error loading delegates:", err);
-      setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribeAuth();
+      if (unsubscribeSnapshot) {
+        unsubscribeSnapshot();
+      }
+    };
   }, []);
 
   const handleCopy = (code: string) => {
@@ -194,17 +205,43 @@ export function DelegatesManagementTab() {
 
   const processPayout = async (id: string) => {
     try {
+      const targetDelegate = delegates.find(d => d.id === id);
+      if (!targetDelegate) return;
+      const amount = targetDelegate.pendingDues;
+
+      const adminIdentity = auth.currentUser ? (auth.currentUser.email || auth.currentUser.uid) : 'SYSTEM_SOVEREIGN_ADMIN';
+
+      // 1. Write immutable forensic trail inside ledger
+      await addDoc(collection(db, 'audit_ledger'), {
+        action: 'DELEGATE_PAYOUT_SETTLEMENT',
+        amountPaid: amount,
+        delegateId: id,
+        delegateName: targetDelegate.name,
+        referralCode: targetDelegate.referralCode,
+        actor: adminIdentity,
+        timestamp: new Date().toISOString(),
+        verified: true,
+        protocol: 'RAD-CMD-083'
+      });
+
+      // 2. Perform the actual mutation in state or firestore
       if (id.startsWith('delegate-')) {
         setDelegates(prev => prev.map(d => d.id === id ? { ...d, pendingDues: 0 } : d));
       } else {
         await updateDoc(doc(db, 'delegates', id), { pendingDues: 0 });
       }
+
       toast({
         title: 'براءة ذمة مالية سيادية',
-        description: 'تم تفريغ وتسوية المستحقات وصرف العوائد نقداً للمندوب.'
+        description: `تم توثيق الفعالية وتصفير مستحقات المندوب بقيمة ${amount} د.أ بنسخة محاسبية مؤمنة بنجاح.`
       });
     } catch (e) {
       console.error(e);
+      toast({
+        variant: 'destructive',
+        title: 'فشل تسوية الصرف',
+        description: 'فشل النظام في تأمين السجل المحاسبي الجنائي للعملية.'
+      });
     }
   };
 
