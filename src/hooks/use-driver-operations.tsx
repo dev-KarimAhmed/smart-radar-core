@@ -82,6 +82,19 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
     }
   }, [driverStatus]);
 
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        sessionStorage.setItem('sovereign_driver_status', String(driverStatus));
+        window.dispatchEvent(new CustomEvent('sovereign-status-change', {
+          detail: { role: 'driver', status: driverStatus }
+        }));
+      } catch (e) {
+        console.error("Failed to update sovereign_driver_status in sessionStorage/dispatchEvent:", e);
+      }
+    }
+  }, [driverStatus]);
+
   const value = useMemo(() => ({
     driverStatus, activeRequest, acceptedRider, isDormancyWarningVisible, isRequestListOpen,
     resetDormancyTimer, submitOffer, isSubmittingOffer, endTrip, isEndingTrip,

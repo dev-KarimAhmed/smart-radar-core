@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { useDriverOperations } from '@/hooks/use-driver-operations';
 import { useToast } from '@/hooks/use-toast';
+import { db } from '@/lib/firebase';
+import { doc, updateDoc, increment } from 'firebase/firestore';
 import { 
   Shield, 
   Clock, 
@@ -35,9 +37,11 @@ interface CaptainDashboardProps {
 
 export const RadarCaptainDashboard: React.FC<CaptainDashboardProps> = ({ captainProfile }) => {
   const { toast } = useToast();
-  const [isRadarActive, setIsRadarActive] = useState<boolean>(false);
-  const [localHours, setLocalHours] = useState<number>(captainProfile.walletHours);
-  const [localBonusHours, setLocalBonusHours] = useState<number>(captainProfile.bonusHours);
+  const { currentDistrict, currentH3Cell, driverStatus, isDisconnectionLockActive, toggleDriverStatus } = useDriverOperations() || {};
+
+  const isRadarActive = driverStatus === 'active' || driverStatus === 'busy';
+  const localHours = captainProfile.walletHours;
+  const localBonusHours = captainProfile.bonusHours;
   const [activePool, setActivePool] = useState<'wallet' | 'bonus'>('wallet');
   
   // Recharging system state
@@ -72,54 +76,10 @@ export const RadarCaptainDashboard: React.FC<CaptainDashboardProps> = ({ captain
     }
   ]);
 
-  const { currentDistrict, currentH3Cell, driverStatus, isDisconnectionLockActive } = useDriverOperations() || {};
-
-  // بروتوكول تجميد الوقت عند الاستراحة - تناقص دقيق محلي في الوقت الصافي
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isRadarActive) {
-      interval = setInterval(() => {
-        if (activePool === 'wallet') {
-          setLocalHours(prev => {
-            if (prev <= 1) {
-              setIsRadarActive(false);
-              toast({
-                variant: 'destructive',
-                title: 'نفد رصيد الساعات الأساسية ⏳',
-                description: 'تم إيقاف النبص وتجميد الجدار الميداني تلقائياً. يرجى الشحن أو التحويل لباقة البونص.'
-              });
-              return 0;
-            }
-            return prev - 1;
-          });
-        } else {
-          setLocalBonusHours(prev => {
-            if (prev <= 1) {
-              setIsRadarActive(false);
-              toast({
-                variant: 'destructive',
-                title: 'نفد رصيد ساعات البونص الممنوحة 🎁',
-                description: 'تم إيقاف النبض وتجميد الجدار العملياتي تلقائياً. يرجى التبديل للرصيد الأساسي.'
-              });
-              return 0;
-            }
-            return prev - 1;
-          });
-        }
-      }, 60000); // 1 minute interval loop
-    }
-    return () => clearInterval(interval);
-  }, [isRadarActive, activePool]);
-
-  // Sync state if props are updated from parent component
-  useEffect(() => {
-    setLocalHours(captainProfile.walletHours);
-    setLocalBonusHours(captainProfile.bonusHours);
-  }, [captainProfile.walletHours, captainProfile.bonusHours]);
-
   const handlePulseToggle = () => {
+    if (!toggleDriverStatus) return;
     const nextState = !isRadarActive;
-    setIsRadarActive(nextState);
+    toggleDriverStatus(nextState ? 'active' : 'idle');
     toast({
       title: nextState ? '📡 تم تشغيل النبض الميداني' : '⏸️ تم تفعيل جدار التجميد والاستراحة',
       description: nextState 
@@ -128,13 +88,26 @@ export const RadarCaptainDashboard: React.FC<CaptainDashboardProps> = ({ captain
     });
   };
 
-  const handleRechargeHours = (hours: number, price: number) => {
-    setLocalHours(prev => prev + hours * 60);
-    setShowRechargeDialog(false);
-    toast({
-      title: '✅ شحن ناجح ومؤمن برمجياً',
-      description: `تم إضافة باقة ساعات عبور صافية مرسلة لوتدك المالي بقيمة ${hours} ساعة بنجاح.`
-    });
+  const handleRechargeHours = async (hours: number, price: number) => {
+    try {
+      const userRef = doc(db, 'users', captainProfile.id);
+      await updateDoc(userRef, {
+        paidHoursRemaining: increment(hours * 60),
+        subscriptionHours: increment(hours)
+      });
+      setShowRechargeDialog(false);
+      toast({
+        title: '✅ شحن ناجح ومؤمن برمجياً',
+        description: `تم إضافة باقة ساعات عبور صافية مرسلة لوتدك المالي بقيمة ${hours} ساعة بنجاح.`
+      });
+    } catch (err) {
+      console.error("Error recharging hours in captain dashboard:", err);
+      toast({
+        variant: 'destructive',
+        title: '❌ فشل في عملية الشحن',
+        description: 'حدث خطأ غير متوقع أثناء تحديث الرصيد السحابي.'
+      });
+    }
   };
 
   // معايير الرتبة وشريط التقدم التفاعلي

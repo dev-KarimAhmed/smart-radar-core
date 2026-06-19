@@ -394,6 +394,19 @@ export function RiderOperationsProvider({ children }: { children: ReactNode }) {
     }
   }, [rawRateTrip, acceptedDriver, trip]);
 
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        sessionStorage.setItem('sovereign_trip_status', String(tripStatus));
+        window.dispatchEvent(new CustomEvent('sovereign-status-change', {
+          detail: { role: 'rider', status: tripStatus }
+        }));
+      } catch (e) {
+        console.error("Failed to update sovereign_trip_status in sessionStorage/dispatchEvent:", e);
+      }
+    }
+  }, [tripStatus]);
+
   const value = useMemo(() => ({
     trip, tripStatus, acceptedDriver, requestRide, isRequesting, cancelTrip, isCancelling,
     rateTrip, isRating, isRequestModalOpen, openRequestModal, closeRequestModal, executeRedPathGuillotine,

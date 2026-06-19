@@ -19,10 +19,38 @@ interface HistoricalTrip {
   timestamp: number;
 }
 
+function HistorySkeleton() {
+  return (
+    <div className="space-y-4 animate-pulse">
+      {[1, 2].map((i) => (
+        <div key={i} className="bg-neutral-900/45 border border-white/5 p-4 rounded-xl space-y-3">
+          <div className="flex justify-between items-start">
+            <div className="space-y-2 w-2/3">
+              <div className="h-4 bg-white/10 rounded w-3/4" />
+              <div className="h-3 bg-white/5 rounded w-1/2" />
+            </div>
+            <div className="h-6 bg-white/10 rounded w-16" />
+          </div>
+          <div className="pt-2 border-t border-white/5 flex gap-2">
+            <div className="h-6 bg-white/5 rounded w-32" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function HistoryTab() {
   const { user, isCaptain, isPassenger } = useAuth();
   const [favoriteCaptains, setFavoriteCaptains] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true); // مضاف خصيصاً لمنع انزياح CLS
   const { toast } = useToast();
+
+  useEffect(() => {
+    // محاكاة مبرهنة لزمن استقرار الذاكرة المحلية لضمان رصانة العرض البصري
+    const timer = setTimeout(() => setLoading(false), 650);
+    return () => clearTimeout(timer);
+  }, []);
 
   const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
   const now = Date.now();
@@ -162,7 +190,9 @@ export function HistoryTab() {
             </CardHeader>
 
             <CardContent className="p-4 space-y-3.5">
-              {riderHistoricalTrips.length === 0 ? (
+              {loading ? (
+                <HistorySkeleton />
+              ) : riderHistoricalTrips.length === 0 ? (
                 <div className="p-8 text-center bg-black/40 border border-dashed border-white/5 rounded-xl">
                   <AlertCircle className="h-8 w-8 text-gray-600 mx-auto mb-2 animate-pulse" />
                   <p className="text-xs text-gray-400 font-medium">لا توجد رحلات نشطة مسجلة في آخر 72 ساعة.</p>
@@ -302,7 +332,9 @@ export function HistoryTab() {
           </CardHeader>
 
           <CardContent className="p-4 space-y-3.5">
-            {captainHistoricalTrips.length === 0 ? (
+            {loading ? (
+              <HistorySkeleton />
+            ) : captainHistoricalTrips.length === 0 ? (
               <div className="p-8 text-center bg-black/40 border border-dashed border-white/5 rounded-xl">
                 <AlertCircle className="h-8 w-8 text-gray-600 mx-auto mb-2 animate-pulse" />
                 <p className="text-xs text-gray-400 font-medium">لا توجد مهام ميدانية منجزة مسجلة للواء حالياً.</p>

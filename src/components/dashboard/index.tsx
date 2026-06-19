@@ -248,6 +248,11 @@ function DashboardLayout() {
     }
 
     if (user?.role === 'advertiser') {
+      if (hash === '#wallet') return <WalletTab />;
+      if (hash === '#vault') return <VaultTab />;
+      if (hash === '#history') return <HistoryTab />;
+      if (hash === '#profile') return <ProfileTab />;
+
       return (
         <div className="flex flex-col items-center justify-center p-6 text-center space-y-6 max-w-lg mx-auto bg-black/40 border border-emerald-500/15 rounded-2xl animate-fade-in my-8">
           <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/30 rounded-full flex items-center justify-center mx-auto text-emerald-400 text-3xl animate-bounce">📣</div>
@@ -275,6 +280,11 @@ function DashboardLayout() {
     }
 
     if (user?.role === 'delegate') {
+      if (hash === '#wallet') return <WalletTab />;
+      if (hash === '#vault') return <VaultTab />;
+      if (hash === '#history') return <HistoryTab />;
+      if (hash === '#profile') return <ProfileTab />;
+
       return <DelegatePortal />;
     }
 

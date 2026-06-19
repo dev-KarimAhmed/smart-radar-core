@@ -71,7 +71,9 @@ function AuthContent({ children }: { children: ReactNode }) {
             if (savedBypassStr) {
                 try {
                     bypassUser = JSON.parse(savedBypassStr) as SovereignUser;
-                } catch (e) {}
+                } catch (e) {
+                    console.error("Failed to parse sovereign_dev_bypass_user from localStorage:", e);
+                }
             }
 
             if (bypassUser) {

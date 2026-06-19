@@ -119,13 +119,20 @@ export function useDriverRadar(user: User | null, driverStatus: string, updateDr
 
     // ⚖️ [SCR-COMMUTE-PROTO-155] Run core instant commute check & Handshake Lock Verification
     const storedHash = localStorage.getItem(`sovereign_shake_${user.uid}`) || '';
-    const localPaid = user.paidHoursRemaining ?? 0;
-    const localBonus = user.bonusHoursRemaining ?? 0;
+    
+    // Read from localStorage to remain perfectly aligned with synchronous tick updates and avoid Firestore async replication lag (State Desync)
+    const storedPaidVal = localStorage.getItem(`sovereign_paid_${user.uid}`);
+    const storedBonusVal = localStorage.getItem(`sovereign_bonus_${user.uid}`);
+    
+    const localPaid = storedPaidVal !== null ? Number(storedPaidVal) : (user.paidHoursRemaining ?? 0);
+    const localBonus = storedBonusVal !== null ? Number(storedBonusVal) : (user.bonusHoursRemaining ?? 0);
 
     // Auto-bootstrap hash if not present and they are currently online to prevent accidental lockout
-    if (!storedHash) {
+    if (!storedHash || storedPaidVal === null || storedBonusVal === null) {
       const bootstrapHash = RadarSovereignCommuteKernel.generateStateHash(user.uid, localPaid, localBonus);
       localStorage.setItem(`sovereign_shake_${user.uid}`, bootstrapHash);
+      localStorage.setItem(`sovereign_paid_${user.uid}`, String(localPaid));
+      localStorage.setItem(`sovereign_bonus_${user.uid}`, String(localBonus));
     }
 
     const captainConfig: SovereignCaptainMovement = {
@@ -149,10 +156,13 @@ export function useDriverRadar(user: User | null, driverStatus: string, updateDr
     setIsDisconnectionLockActive(commuteResult.isDisconnectionLockActive);
 
     // [قفل المصافحة الجداري]: إذا كان نشاط الإغلاق الجمركي للعداد تالفاً أو تم تهميشه أو مسح الكاش
-    // نقوم بتصحيح هادئ وبصمت بمجرد المزامنة لإتمام المصافحة الصامتة للنبضات المتراكمة وإعادة الهاش
+    // نقوم بتصحيح هادئ وبصمت بمجرد المزامنة لإتمام المصافحة الصامتة للنبضات المتراكمة وإعادة الهاش.
+    // We update the hash AND key balances together back into localStorage to prevent transient drift.
     if (commuteResult.isDisconnectionLockActive) {
       const freshHash = RadarSovereignCommuteKernel.generateStateHash(user.uid, localPaid, localBonus);
       localStorage.setItem(`sovereign_shake_${user.uid}`, freshHash);
+      localStorage.setItem(`sovereign_paid_${user.uid}`, String(localPaid));
+      localStorage.setItem(`sovereign_bonus_${user.uid}`, String(localBonus));
       setIsDisconnectionLockActive(false);
       console.log(`💎 [SCR-COMMUTE-PROTO-155] تم إتمام المصافحة التصفوية الصامتة وحماية الماستر الموحد للعداد.`);
     }

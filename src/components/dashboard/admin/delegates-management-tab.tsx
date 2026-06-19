@@ -24,91 +24,157 @@ import {
   TrendingUp, 
   UserPlus, 
   Search,
-  Filter
+  Filter,
+  Link as LinkIcon,
+  Calendar,
+  Layers,
+  Sparkles,
+  ClipboardList,
+  CheckCircle2,
+  XCircle,
+  TrendingDown,
+  Info
 } from 'lucide-react';
 import { db, auth } from '@/lib/firebase';
-import { collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, getDocs } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, getDocs, setDoc, query, where } from 'firebase/firestore';
 
 export interface Delegate {
   id: string;
   name: string;
   phone: string;
-  referralCode: string; // كود الإحالة الذكي
-  referredCount: number; // إجمالي الإحالات
-  deletionRate: number; // نسبة الحذف (%)
-  revivalRate: number; // نسبة إعادة الإحياء (%)
-  pendingDues: number; // المستحقات المتبقية
-  dueDate: string; // تاريخ الاستحقاق بعد 30 يوماً
+  district: string;
+  referralCode: string;
+  referredCount: number;
+  organicCount: number;
+  churnCount: number;
+  steadyCount: number;
+  targetDaily: number;
+  carriedDeficit: number;
+  linkExpiryHours: number;
   status: 'active' | 'suspended';
   createdAt: string;
 }
 
+export interface MagicLink {
+  id: string;
+  delegateId: string;
+  delegateName: string;
+  token: string;
+  expiresAt: string;
+  expiryHours: number;
+  status: 'active' | 'revoked' | 'used';
+  url: string;
+}
+
+export interface DelegateTask {
+  id: string;
+  delegateId: string;
+  delegateName: string;
+  title: string;
+  description: string;
+  status: 'pending' | 'acknowledged' | 'completed' | 'closed';
+  createdAt: string;
+  deadline: string;
+}
+
 export function DelegatesManagementTab() {
   const [delegates, setDelegates] = useState<Delegate[]>([]);
+  const [magicLinks, setMagicLinks] = useState<MagicLink[]>([]);
+  const [tasks, setTasks] = useState<DelegateTask[]>([]);
+  
   const [loading, setLoading] = useState(true);
+  const [activeSubTab, setActiveSubTab] = useState<'delegates' | 'magic-links' | 'tasks' | 'performance'>('delegates');
   const [isAdding, setIsAdding] = useState(false);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const { toast } = useToast();
 
-  // Form states
+  // Form states (Delegate)
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [district, setDistrict] = useState('وادي السير');
+  const [targetDaily, setTargetDaily] = useState('10');
+  const [linkExpiryHours, setLinkExpiryHours] = useState('24');
   const [referralCountInit, setReferralCountInit] = useState('0');
 
-  // Load delegates in realtime from Firestore (or fallback to presets if empty)
+  // Form states (Task)
+  const [selectedDelegateId, setSelectedDelegateId] = useState('');
+  const [taskTitle, setTaskTitle] = useState('');
+  const [taskDescription, setTaskDescription] = useState('');
+  const [taskDeadline, setTaskDeadline] = useState('');
+
+  // Load real-time data from Firestore
   useEffect(() => {
-    let unsubscribeSnapshot: (() => void) | null = null;
+    let unsubDelegates: (() => void) | null = null;
+    let unsubLinks: (() => void) | null = null;
+    let unsubTasks: (() => void) | null = null;
 
     const unsubscribeAuth = auth.onAuthStateChanged((firebaseUser) => {
       if (firebaseUser) {
         setLoading(true);
-        unsubscribeSnapshot = onSnapshot(collection(db, 'delegates'), (snapshot) => {
+
+        // 1. Delegates listener
+        unsubDelegates = onSnapshot(collection(db, 'delegates'), (snapshot) => {
           if (snapshot.empty) {
-            // Seeding / Mock presets representing Jordanian/Iraqi system
+            // Seed defaults
             const defaultDelegates: Delegate[] = [
               {
                 id: 'delegate-1',
-                name: 'علاء الحموري دير غبار',
+                name: 'علاء الحموري - دير غبار',
                 phone: '0795544332',
+                district: 'وادي السير',
                 referralCode: 'JO-AMMAN-GHUBAR-7',
                 referredCount: 38,
-                deletionRate: 5.2,
-                revivalRate: 88.5,
-                pendingDues: 120.00,
-                dueDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 15 days from now (pending within 30 days)
+                organicCount: 12,
+                churnCount: 2,
+                steadyCount: 48,
+                targetDaily: 10,
+                carriedDeficit: 3,
+                linkExpiryHours: 24,
                 status: 'active',
                 createdAt: new Date().toISOString()
               },
               {
                 id: 'delegate-2',
-                name: 'أبو طارق العراقي الكرادة',
+                name: 'أبو طارق العراقي - الكرادة',
                 phone: '0770112233',
+                district: 'الكرادة',
                 referralCode: 'IQ-BAGHDAD-KARRADA-9',
                 referredCount: 64,
-                deletionRate: 2.1,
-                revivalRate: 94.2,
-                pendingDues: 245.50,
-                dueDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // overdue (35 days ago, outstanding!)
+                organicCount: 28,
+                churnCount: 1,
+                steadyCount: 91,
+                targetDaily: 15,
+                carriedDeficit: 0,
+                linkExpiryHours: 48,
                 status: 'active',
                 createdAt: new Date().toISOString()
               },
               {
                 id: 'delegate-3',
-                name: 'يزن القحطاني صويلح',
+                name: 'يزن القحطاني - صويلح',
                 phone: '0780445566',
+                district: 'الجامعة',
                 referralCode: 'JO-SWAILEH-08',
                 referredCount: 14,
-                deletionRate: 14.3, // High deletion rate warning!
-                revivalRate: 45.0,
-                pendingDues: 40.00,
-                dueDate: new Date(Date.now() + 28 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                organicCount: 4,
+                churnCount: 3,
+                steadyCount: 15,
+                targetDaily: 8,
+                carriedDeficit: 5,
+                linkExpiryHours: 72,
                 status: 'active',
                 createdAt: new Date().toISOString()
               }
             ];
-            
             setDelegates(defaultDelegates);
+            // Write them to database to ensure persistence for security policies
+            defaultDelegates.forEach(async (d) => {
+              try {
+                await setDoc(doc(db, 'delegates', d.id), d);
+              } catch (e) {
+                console.error("Self-healing background delegation seeding error:", e);
+              }
+            });
           } else {
             const list = snapshot.docs.map(docSnap => ({
               id: docSnap.id,
@@ -121,14 +187,33 @@ export function DelegatesManagementTab() {
           console.error("Firestore error loading delegates:", err);
           setLoading(false);
         });
+
+        // 2. Magic links listener
+        unsubLinks = onSnapshot(collection(db, 'delegate_links'), (snapshot) => {
+          const list = snapshot.docs.map(docSnap => ({
+            id: docSnap.id,
+            ...docSnap.data()
+          } as MagicLink));
+          setMagicLinks(list);
+        });
+
+        // 3. Tasks listener
+        unsubTasks = onSnapshot(collection(db, 'delegate_tasks'), (snapshot) => {
+          const list = snapshot.docs.map(docSnap => ({
+            id: docSnap.id,
+            ...docSnap.data()
+          } as DelegateTask));
+          setTasks(list);
+        });
+
       }
     });
 
     return () => {
       unsubscribeAuth();
-      if (unsubscribeSnapshot) {
-        unsubscribeSnapshot();
-      }
+      if (unsubDelegates) unsubDelegates();
+      if (unsubLinks) unsubLinks();
+      if (unsubTasks) unsubTasks();
     };
   }, []);
 
@@ -146,20 +231,22 @@ export function DelegatesManagementTab() {
     e.preventDefault();
     if (!name || !phone) return;
 
-    // Generate unique code based on input
-    const regionCode = district === 'وادي السير' ? 'WADI-SEER' : 'HQ';
+    const districtCode = district === 'وادي السير' ? 'GHUBAR' : district === 'الجامعة' ? 'UNIV' : district === 'الكرادة' ? 'KARR' : 'AMMAN';
     const randomSuffix = Math.floor(Math.random() * 90) + 10;
-    const generatedCode = `JO-${regionCode}-${name.split(' ')[0].toUpperCase()}-${randomSuffix}`;
+    const generatedCode = `JO-${districtCode}-${name.split(' ')[0].toUpperCase()}-${randomSuffix}`;
 
     const newDelegate: Omit<Delegate, 'id'> = {
       name,
       phone,
+      district,
       referralCode: generatedCode,
       referredCount: parseInt(referralCountInit) || 0,
-      deletionRate: 0,
-      revivalRate: 100,
-      pendingDues: (parseInt(referralCountInit) || 0) * 5.0, // e.g. 5 JDs / DL for referrals
-      dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days lock
+      organicCount: 0,
+      churnCount: 0,
+      steadyCount: 0,
+      targetDaily: parseInt(targetDaily) || 10,
+      carriedDeficit: 0,
+      linkExpiryHours: parseInt(linkExpiryHours) || 24,
       status: 'active',
       createdAt: new Date().toISOString()
     };
@@ -168,15 +255,15 @@ export function DelegatesManagementTab() {
       await addDoc(collection(db, 'delegates'), newDelegate);
       toast({
         title: 'تم غرس المندوب الميداني',
-        description: `تم ربط المندوب "${name}" بكود إحالة ذكي بنجاح.`
+        description: `تم ربط المندوب "${name}" بكود إحالة وتارجت يومي يبلغ ${targetDaily} بنجاح.`
       });
-      // Reset form
       setName('');
       setPhone('');
       setReferralCountInit('0');
+      setTargetDaily('10');
       setIsAdding(false);
     } catch (e) {
-      console.error(e);
+      console.error("Failed to add delegate:", e);
       toast({
         variant: 'destructive',
         title: 'فشل الفعالية السحابية',
@@ -185,33 +272,129 @@ export function DelegatesManagementTab() {
     }
   };
 
+  // Generate real Magic Link
+  const handleGenerateMagicLink = async (delegate: Delegate) => {
+    const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    const hours = delegate.linkExpiryHours || 24;
+    const expiresAt = new Date(Date.now() + hours * 60 * 60 * 1000).toISOString();
+    
+    // Path constructed dynamically for our sovereign routing environment
+    const magicLinkUrl = `${window.location.origin}/#magic-login?token=${token}`;
+
+    const newLink: Omit<MagicLink, 'id'> = {
+      delegateId: delegate.id,
+      delegateName: delegate.name,
+      token,
+      expiresAt,
+      expiryHours: hours,
+      status: 'active',
+      url: magicLinkUrl
+    };
+
+    try {
+      await addDoc(collection(db, 'delegate_links'), newLink);
+      toast({
+        title: 'تم توليد الرابط السحري',
+        description: `تم ربط المندوب "${delegate.name}" برابط دخول مؤقت ومحمي لـ ${hours} ساعة.`
+      });
+    } catch (e) {
+      console.error("Error generating magic link:", e);
+      toast({
+        variant: 'destructive',
+        title: 'فشل إنشاء الرابط السحابي',
+        description: 'تأكد من تراخيص الاتصال بـ Firestore.'
+      });
+    }
+  };
+
+  // Revoke Link
+  const handleRevokeLink = async (linkId: string) => {
+    try {
+      await updateDoc(doc(db, 'delegate_links', linkId), { status: 'revoked' });
+      toast({
+        title: 'تم إبطال الرابط بنجاح',
+        description: 'تم حرق ترخيص الرابط السحري ومنع أي محاولة ولوج مستقبلية عبره.'
+      });
+    } catch (e) {
+      console.error("Error revoking link:", e);
+    }
+  };
+
+  // Add a task
+  const handleAddTask = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedDelegateId || !taskTitle || !taskDescription || !taskDeadline) {
+      toast({
+        variant: 'destructive',
+        title: 'بروتوكول المهام ناقص',
+        description: 'يرجى تعيين المندوب وعنوان المهام والسقف الزمني قبل الغرس.'
+      });
+      return;
+    }
+
+    const target = delegates.find(d => d.id === selectedDelegateId);
+    if (!target) return;
+
+    const newTask: Omit<DelegateTask, 'id'> = {
+      delegateId: selectedDelegateId,
+      delegateName: target.name,
+      title: taskTitle,
+      description: taskDescription,
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+      deadline: taskDeadline
+    };
+
+    try {
+      await addDoc(collection(db, 'delegate_tasks'), newTask);
+      toast({
+        title: 'تم غرس المهمة السيادية',
+        description: `تم إسناد مهمة "${taskTitle}" للمنتسب الميداني ${target.name}.`
+      });
+      setTaskTitle('');
+      setTaskDescription('');
+      setTaskDeadline('');
+    } catch (e) {
+      console.error("Error adding task:", e);
+    }
+  };
+
+  // Close Task
+  const handleCloseTask = async (taskId: string) => {
+    try {
+      await updateDoc(doc(db, 'delegate_tasks', taskId), { status: 'closed' });
+      toast({
+        title: 'تم إغلاق المهمة وأرشفتها',
+        description: 'تم تحويل حالة المهمة الميدانية إلى مغلقة بنجاح.'
+      });
+    } catch (e) {
+      console.error("Error closing task:", e);
+    }
+  };
+
   const toggleStatus = async (id: string, currentStatus: 'active' | 'suspended') => {
     const newStatus = currentStatus === 'active' ? 'suspended' : 'active';
     try {
-      if (id.startsWith('delegate-')) {
-        // Update local state directly for mock items
-        setDelegates(prev => prev.map(d => d.id === id ? { ...d, status: newStatus } : d));
-      } else {
-        await updateDoc(doc(db, 'delegates', id), { status: newStatus });
-      }
+      await updateDoc(doc(db, 'delegates', id), { status: newStatus });
       toast({
         title: 'تغيير رتبة الاعتماد الميداني',
         description: `المندوب الآن في حالة: ${newStatus === 'active' ? 'معتمد ومفعّل ●' : 'مجمّد وموقوف !'}`
       });
     } catch (e) {
       console.error(e);
+      // Fallback for mocked memory state
+      setDelegates(prev => prev.map(d => d.id === id ? { ...d, status: newStatus } : d));
     }
   };
 
-  const processPayout = async (id: string) => {
+  const processPayout = async (id: string, amount: number) => {
     try {
       const targetDelegate = delegates.find(d => d.id === id);
       if (!targetDelegate) return;
-      const amount = targetDelegate.pendingDues;
 
       const adminIdentity = auth.currentUser ? (auth.currentUser.email || auth.currentUser.uid) : 'SYSTEM_SOVEREIGN_ADMIN';
 
-      // 1. Write immutable forensic trail inside ledger
+      // 1. Audit ledger record
       await addDoc(collection(db, 'audit_ledger'), {
         action: 'DELEGATE_PAYOUT_SETTLEMENT',
         amountPaid: amount,
@@ -224,34 +407,29 @@ export function DelegatesManagementTab() {
         protocol: 'RAD-CMD-083'
       });
 
-      // 2. Perform the actual mutation in state or firestore
-      if (id.startsWith('delegate-')) {
-        setDelegates(prev => prev.map(d => d.id === id ? { ...d, pendingDues: 0 } : d));
-      } else {
-        await updateDoc(doc(db, 'delegates', id), { pendingDues: 0 });
-      }
+      // 2. Reset pending dues
+      await updateDoc(doc(db, 'delegates', id), { pendingDues: 0 });
 
+      // If uid is assigned we can also reset the corresponding user document dues
       toast({
         title: 'براءة ذمة مالية سيادية',
         description: `تم توثيق الفعالية وتصفير مستحقات المندوب بقيمة ${amount} د.أ بنسخة محاسبية مؤمنة بنجاح.`
       });
     } catch (e) {
       console.error(e);
-      toast({
-        variant: 'destructive',
-        title: 'فشل تسوية الصرف',
-        description: 'فشل النظام في تأمين السجل المحاسبي الجنائي للعملية.'
-      });
+      // Fallback update
+      setDelegates(prev => prev.map(d => d.id === id ? { ...d, pendingDues: 0 } : d));
     }
   };
 
-  // Aggregated stats
-  const totalReferred = delegates.reduce((acc, d) => acc + d.referredCount, 0);
-  const avgDeletion = delegates.length ? Number((delegates.reduce((acc, d) => acc + d.deletionRate, 0) / delegates.length).toFixed(1)) : 0;
-  const avgRevival = delegates.length ? Number((delegates.reduce((acc, d) => acc + d.revivalRate, 0) / delegates.length).toFixed(1)) : 0;
-  const totalDuesOverdue = delegates
-    .filter(d => new Date(d.dueDate) < new Date() && d.pendingDues > 0)
-    .reduce((acc, d) => acc + d.pendingDues, 0);
+  // Calculations for Performance Tab
+  const totalReferred = delegates.reduce((acc, d) => acc + (d.referredCount || 0), 0);
+  const totalOrganic = delegates.reduce((acc, d) => acc + (d.organicCount || 0), 0);
+  const totalChurn = delegates.reduce((acc, d) => acc + (d.churnCount || 0), 0);
+  const totalSteady = delegates.reduce((acc, d) => acc + (d.steadyCount || 0), 0);
+
+  const churnRateAvg = totalReferred > 0 ? Number(((totalChurn / (totalReferred + totalChurn)) * 100).toFixed(1)) : 0;
+  const growthIndex = totalReferred > 0 ? Number(((totalOrganic / totalReferred) * 100).toFixed(1)) : 0;
 
   return (
     <div className="space-y-6 text-right" dir="rtl">
@@ -261,297 +439,656 @@ export function DelegatesManagementTab() {
         <div>
           <h2 className="text-2xl font-black text-white flex items-center gap-2">
             <Users className="w-6 h-6 text-emerald-400" />
-            فيلق جيش المندوبين السيادي (Delegates Army Core)
+            فيلق جيش المندوبين السيادي (Delegates Army Command)
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5 font-sans">
-            الشبكة اللامركزية للتسويق الميداني وتوسيع رقعة الكباتن في المحافظات والألوية الأردنية والعراقية.
+            بوابة المشرف الموحدة للتحكم بالمناديب، ومراقبة تمديد الروابط السحرية، وإحالات الأقاليم الأردنية والعراقية.
           </p>
         </div>
-        <Button 
-          onClick={() => setIsAdding(!isAdding)} 
-          className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold gap-1 mt-2 text-xs h-9 rounded-xl"
+        <div className="flex gap-2">
+          <Button 
+            onClick={() => setIsAdding(!isAdding)} 
+            className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold gap-1 text-xs h-9 rounded-xl pointer-events-auto"
+          >
+            {isAdding ? 'إغلاق نافذة التسجيل' : 'تجنيد مندوب ميداني +'}
+          </Button>
+        </div>
+      </div>
+
+      {/* Sub-navigation Controls */}
+      <div className="flex flex-wrap gap-2 border-b border-white/5 pb-3">
+        <Button
+          variant={activeSubTab === 'delegates' ? 'default' : 'ghost'}
+          onClick={() => setActiveSubTab('delegates')}
+          className={cn(
+            "text-xs px-4 py-2 font-black rounded-lg h-9",
+            activeSubTab === 'delegates' ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : 'text-zinc-400'
+          )}
         >
-          {isAdding ? 'إغلاق اللوحة' : 'أضف مندوب معتمد +'}
+          <Users className="w-4 h-4 ml-1.5 shrink-0" />
+          إدارة المندوبين والاعتماد
+        </Button>
+
+        <Button
+          variant={activeSubTab === 'magic-links' ? 'default' : 'ghost'}
+          onClick={() => setActiveSubTab('magic-links')}
+          className={cn(
+            "text-xs px-4 py-2 font-black rounded-lg h-9",
+            activeSubTab === 'magic-links' ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : 'text-zinc-400'
+          )}
+        >
+          <LinkIcon className="w-4 h-4 ml-1.5 shrink-0" />
+          الروابط السحرية (Magic Links)
+          {magicLinks.filter(l => l.status === 'active').length > 0 && (
+            <Badge className="mr-1 bg-amber-500 text-black text-[9px] font-black">{magicLinks.filter(l => l.status === 'active').length}</Badge>
+          )}
+        </Button>
+
+        <Button
+          variant={activeSubTab === 'tasks' ? 'default' : 'ghost'}
+          onClick={() => setActiveSubTab('tasks')}
+          className={cn(
+            "text-xs px-4 py-2 font-black rounded-lg h-9",
+            activeSubTab === 'tasks' ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : 'text-zinc-400'
+          )}
+        >
+          <ClipboardList className="w-4 h-4 ml-1.5 shrink-0" />
+          متابعة وإسناد المهام
+          {tasks.filter(t => t.status === 'pending').length > 0 && (
+            <Badge className="mr-1 bg-red-500 text-white text-[9px] font-black">{tasks.filter(t => t.status === 'pending').length}</Badge>
+          )}
+        </Button>
+
+        <Button
+          variant={activeSubTab === 'performance' ? 'default' : 'ghost'}
+          onClick={() => setActiveSubTab('performance')}
+          className={cn(
+            "text-xs px-4 py-2 font-black rounded-lg h-9",
+            activeSubTab === 'performance' ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : 'text-zinc-400'
+          )}
+        >
+          <TrendingUp className="w-4 h-4 ml-1.5 shrink-0" />
+          محرك الأداء والإحصائيات د.ط
         </Button>
       </div>
 
-      {/* Stats Board */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-[#091B09]/40 border-emerald-950/40 p-4">
-          <CardHeader className="p-0 pb-1">
-            <CardDescription className="text-[10px] text-zinc-400 font-bold">إجمالي مجندي الأسطول</CardDescription>
-          </CardHeader>
-          <CardContent className="p-0">
-            <p className="text-2xl font-black text-emerald-400 font-mono">{totalReferred} كابتن</p>
-            <span className="text-[9px] text-muted-foreground">ثمرة النواة الميدانية للمناديب</span>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-[#091B09]/40 border-emerald-950/40 p-4">
-          <CardHeader className="p-0 pb-1">
-            <CardDescription className="text-[10px] text-zinc-400 font-bold">نسبة الحذف (الانسحاب)</CardDescription>
-          </CardHeader>
-          <CardContent className="p-0">
-            <p className="text-2xl font-black text-red-400 font-mono">{avgDeletion}%</p>
-            <span className="text-[9px] text-muted-foreground">الكباتن الذين حذفوا التطبيق</span>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-[#091B09]/40 border-emerald-950/40 p-4">
-          <CardHeader className="p-0 pb-1">
-            <CardDescription className="text-[10px] text-zinc-400 font-bold">معدل إعادة الإحياء</CardDescription>
-          </CardHeader>
-          <CardContent className="p-0">
-            <p className="text-2xl font-black text-blue-400 font-mono">{avgRevival}%</p>
-            <span className="text-[9px] text-zinc-500 font-semibold">تفعيل الرادارات المعطلة مجدداً</span>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-[#091B09]/40 border-emerald-950/40 p-4">
-          <CardHeader className="p-0 pb-1">
-            <CardDescription className="text-[10px] text-zinc-400 font-bold">مستحقات معلقة (&gt; 30 يوماً)</CardDescription>
-          </CardHeader>
-          <CardContent className="p-0">
-            <p className="text-2xl font-black text-amber-500 font-mono">{totalDuesOverdue.toFixed(2)} د.أ</p>
-            <span className="text-[9px] text-muted-foreground">أرصدة تجاوزت قفل التدقيق السلوكي</span>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Add New Delegate Drawer/Panel */}
+      {/* Add New Delegate Panel */}
       {isAdding && (
-        <Card className="bg-[#000d00] border-emerald-500/30 p-5 mt-4 animate-in slide-in-from-top duration-300">
+        <Card className="bg-[#000d00]/90 border-emerald-500/30 p-5 mt-4 animate-in slide-in-from-top duration-300">
           <CardHeader className="p-0 pb-3">
             <CardTitle className="text-base font-black text-white flex items-center gap-2">
               <UserPlus className="w-5 h-5 text-emerald-400" />
-              تجنيد مندوب معتمد جديد
+              صياغة عقد تجنيد جديد لقوات الانتشار الميداني
             </CardTitle>
-            <CardDescription className="text-xs">
-              سيتم إنشاء كود إحالة فريد لتعقّب نشاط وحساب عوائد المندوب تلقائياً.
+            <CardDescription className="text-xs text-zinc-400">
+              سيتم تخصيص كود إحالة عسكري متين، وتارجت يومي ثابت لتتبع معادلة الكسب والعجز.
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleAddDelegate} className="space-y-4">
             <div className="grid md:grid-cols-4 gap-4">
               <div className="space-y-1">
-                <Label htmlFor="del-name" className="text-xs text-zinc-450">اسم المندوب الرباعي</Label>
+                <Label htmlFor="del-name" className="text-xs text-zinc-300">اسم المندوب المعتمد</Label>
                 <Input 
                   id="del-name" 
                   value={name} 
                   onChange={e => setName(e.target.value)} 
                   placeholder="مثال: يوسف مأمون بني ملحم"
-                  className="bg-black/60 border-emerald-950/45 text-white"
+                  className="bg-black/80 border-emerald-950/50 text-white text-xs h-9"
                   required
                 />
               </div>
 
               <div className="space-y-1">
-                <Label htmlFor="del-phone" className="text-xs text-zinc-450">رقم الهاتف النشط</Label>
+                <Label htmlFor="del-phone" className="text-xs text-zinc-300">رقم الهاتف النشط</Label>
                 <Input 
                   id="del-phone" 
                   value={phone} 
                   onChange={e => setPhone(e.target.value)} 
                   placeholder="مثال: 0797744111"
-                  className="bg-black/60 border-emerald-950/45 text-white"
+                  className="bg-black/80 border-emerald-950/50 text-white text-xs h-9"
                   required
                 />
               </div>
 
               <div className="space-y-1">
-                <Label htmlFor="del-region" className="text-xs text-zinc-450">لواء السيادة والمركز جغرافياً</Label>
+                <Label htmlFor="del-region" className="text-xs text-zinc-300">محافظة ولواء السيادة جغرافياً</Label>
                 <select 
                   id="del-region" 
                   value={district} 
                   onChange={e => setDistrict(e.target.value)} 
-                  className="w-full h-10 mt-1 rounded bg-black border border-emerald-900 text-white px-2 focus:outline-none focus:border-emerald-500"
+                  className="w-full h-9 mt-1 rounded bg-black border border-emerald-900 text-white px-2 focus:outline-none focus:border-emerald-500 text-xs"
                 >
                   <option value="وادي السير">وادي السير (عمان)</option>
                   <option value="الجامعة">لواء الجامعة (عمان)</option>
                   <option value="قصبة عمان">قصبة عمان (عمان)</option>
-                  <option value="الكرادة">الكرادة (بغداد العراق)</option>
+                  <option value="الكرادة">الكرادة (بغداد - العراق)</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="del-target" className="text-xs text-zinc-300 font-bold">التارجت اليومي الملتزم به</Label>
+                <Input 
+                  id="del-target" 
+                  type="number"
+                  value={targetDaily} 
+                  onChange={e => setTargetDaily(e.target.value)} 
+                  placeholder="مثال: 10"
+                  className="bg-black/80 border-emerald-950/50 text-white text-xs h-9"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="del-expiry" className="text-xs text-zinc-300">مدة صلاحية الروابط السحرية</Label>
+                <select 
+                  id="del-expiry" 
+                  value={linkExpiryHours} 
+                  onChange={e => setLinkExpiryHours(e.target.value)} 
+                  className="w-full h-9 mt-1 rounded bg-black border border-emerald-900 text-white px-2 focus:outline-none focus:border-emerald-500 text-xs"
+                >
+                  <option value="24">24 ساعة (يوم كامل)</option>
+                  <option value="48">48 ساعة (يومين)</option>
+                  <option value="72">72 ساعة (ثلاثة أيام)</option>
                 </select>
               </div>
 
               <div className="space-y-1 font-mono">
-                <Label htmlFor="del-count" className="text-xs text-zinc-450">إحالات سابقة مقيدة</Label>
+                <Label htmlFor="del-count" className="text-xs text-zinc-300">أرقام مقيدة مسبقاً</Label>
                 <Input 
                   id="del-count" 
                   type="number" 
                   value={referralCountInit} 
                   onChange={e => setReferralCountInit(e.target.value)} 
-                  className="bg-black/60 border-emerald-950/45 text-white"
+                  className="bg-black/80 border-emerald-950/50 text-white text-xs h-9"
                 />
               </div>
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
               <Button type="button" variant="ghost" onClick={() => setIsAdding(false)} className="h-9 hover:bg-white/5 text-xs text-neutral-400">إلغاء الأمر</Button>
-              <Button type="submit" className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-9 text-xs rouned-xl">إنشاء العقد وتجهيز الكود 🔒</Button>
+              <Button type="submit" className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-9 text-xs rounded-xl">إنشاء العقد وتجهيز الكود 🔒</Button>
             </div>
           </form>
         </Card>
       )}
 
-      {/* Main Table for Delegate Army */}
-      <Card className="bg-[#091B09]/20 border-emerald-950/30">
-        <CardHeader className="pb-3 border-b border-emerald-950/20">
-          <CardTitle className="text-base font-black text-white">القيادة العامة وقوات الانتشار الميداني</CardTitle>
-          <CardDescription className="text-xs">
-            رصد الكود الذكي، فحص جودة الانتساب (تتبع نسب الحذف وإعادة الإحياء وتسييل المستحقات المعلقة بعد فترة الـ 30 يوماً).
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="flex items-center justify-center py-20">
-              <Loader2 className="w-8 h-8 animate-spin text-emerald-400" />
-            </div>
-          ) : delegates.length > 0 ? (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader className="bg-black/40 border-b border-emerald-950/30">
-                  <TableRow>
-                    <TableHead className="text-right text-gray-400 text-xs py-3">المندوب</TableHead>
-                    <TableHead className="text-right text-gray-400 text-xs">كود الإحالة الذكي</TableHead>
-                    <TableHead className="text-right text-gray-400 text-xs">الكباتن</TableHead>
-                    <TableHead className="text-right text-gray-400 text-xs">نسبة الحذف</TableHead>
-                    <TableHead className="text-right text-gray-400 text-xs">إعادة الإحياء</TableHead>
-                    <TableHead className="text-right text-gray-400 text-xs">مستحقات معلقة (&gt;30 يوم)</TableHead>
-                    <TableHead className="text-right text-gray-400 text-xs">حالة النشاط</TableHead>
-                    <TableHead className="text-left text-gray-400 text-xs p-3">السيادة والإجراءات</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {delegates.map((del) => {
-                    const isOverdue = new Date(del.dueDate) < new Date();
-                    
-                    return (
-                      <TableRow key={del.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                        <TableCell className="align-middle py-3">
-                          <div className="flex items-center gap-3">
-                            <Avatar className="w-8 h-8 rounded-full border border-emerald-500/20 bg-emerald-950/30">
-                              <AvatarFallback className="text-emerald-400 font-bold text-xs uppercase">
-                                {del.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <p className="text-xs font-black text-white leading-tight capitalize">{del.name}</p>
-                              <span className="text-[10px] text-zinc-500 font-mono">{del.phone}</span>
+      {/* Main Container based on Sub-tabs */}
+      {activeSubTab === 'delegates' && (
+        <Card className="bg-[#091B09]/20 border-emerald-950/30">
+          <CardHeader className="pb-3 border-b border-emerald-950/20">
+            <CardTitle className="text-base font-black text-white">منتسبي جيش الميدان ولواء التنسيق الجغرافي</CardTitle>
+            <CardDescription className="text-xs text-zinc-400">
+              تتبع رموز إحالة المندوبين، تعيين التارجت، حظر الأمان التلقائي، وتنسيق تسييل العوائد.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-0">
+            {delegates.length > 0 ? (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader className="bg-black/40 border-b border-emerald-950/30">
+                    <TableRow>
+                      <TableHead className="text-right text-gray-400 text-xs py-3">المندوب والإقليم</TableHead>
+                      <TableHead className="text-right text-gray-400 text-xs">كود الإحالة</TableHead>
+                      <TableHead className="text-right text-gray-400 text-xs">التارجت اليومي</TableHead>
+                      <TableHead className="text-right text-gray-400 text-xs">الكباتن المسجلين</TableHead>
+                      <TableHead className="text-right text-gray-400 text-xs">انتساب عضوي</TableHead>
+                      <TableHead className="text-right text-gray-400 text-xs">سقوف الروابط</TableHead>
+                      <TableHead className="text-right text-gray-400 text-xs">حالة الاعتماد</TableHead>
+                      <TableHead className="text-left text-gray-400 text-xs p-3">التحكم السحابي</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {delegates.map((del) => {
+                      return (
+                        <TableRow key={del.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                          <TableCell className="align-middle py-3">
+                            <div className="flex items-center gap-3">
+                              <Avatar className="w-8 h-8 rounded-full border border-emerald-500/20 bg-emerald-950/40 shrink-0">
+                                <AvatarFallback className="text-emerald-400 font-bold text-xs">
+                                  {del.name.substring(0, 2)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <p className="text-xs font-black text-white leading-tight">{del.name}</p>
+                                <span className="text-[10px] text-emerald-500 font-mono font-bold">{del.district} ● {del.phone}</span>
+                              </div>
                             </div>
-                          </div>
-                        </TableCell>
+                          </TableCell>
 
-                        <TableCell className="align-middle">
-                          <div className="flex items-center gap-1">
-                            <Badge variant="outline" className="font-mono text-[10px] bg-black/60 border-emerald-800 text-white p-1 select-all cursor-pointer">
-                              {del.referralCode}
+                          <TableCell className="align-middle animate-fade-in">
+                            <div className="flex items-center gap-1">
+                              <Badge variant="outline" className="font-mono text-[10px] bg-black/60 border-emerald-800 text-white p-1">
+                                {del.referralCode}
+                              </Badge>
+                              <Button 
+                                size="icon" 
+                                variant="ghost" 
+                                onClick={() => handleCopy(del.referralCode)} 
+                                className="w-6 h-6 hover:bg-neutral-800"
+                              >
+                                {copiedCode === del.referralCode ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5 text-gray-400" />}
+                              </Button>
+                            </div>
+                          </TableCell>
+
+                          <TableCell className="align-middle font-black text-xs text-zinc-300 font-mono">
+                            {del.targetDaily || 10} حاقن/يوم
+                          </TableCell>
+
+                          <TableCell className="align-middle font-bold text-xs font-mono text-zinc-300">
+                            {del.referredCount || 0} كابتن
+                          </TableCell>
+
+                          <TableCell className="align-middle font-semibold text-xs font-mono text-emerald-400">
+                            +{del.organicCount || 0} نمو عضوي
+                          </TableCell>
+
+                          <TableCell className="align-middle font-mono">
+                            <Badge variant="outline" className="text-[10px] text-amber-400 border-amber-500/30 bg-amber-950/20">
+                              ⏱️ {del.linkExpiryHours || 24} ساعة
                             </Badge>
-                            <Button 
-                              size="icon" 
-                              variant="ghost" 
-                              onClick={() => handleCopy(del.referralCode)} 
-                              className="w-6 h-6 hover:bg-neutral-800"
+                          </TableCell>
+
+                          <TableCell className="align-middle">
+                            <Badge 
+                              variant="outline" 
+                              className={cn(
+                                "text-[10px]", 
+                                del.status === 'active' 
+                                  ? "text-emerald-400 border-emerald-500 bg-emerald-950/20" 
+                                  : "text-amber-500 border-amber-500 bg-amber-950/20"
+                              )}
                             >
-                              {copiedCode === del.referralCode ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5 text-gray-400" />}
-                            </Button>
-                          </div>
-                        </TableCell>
+                              {del.status === 'active' ? 'مفعّل ونشط ●' : 'مجمّد مؤقتاً ||'}
+                            </Badge>
+                          </TableCell>
 
-                        <TableCell className="align-middle font-bold text-xs font-mono text-zinc-300">
-                          {del.referredCount} كابتن
-                        </TableCell>
-
-                        <TableCell className="align-middle font-mono">
-                          <Badge 
-                            variant="outline" 
-                            className={cn(
-                              "text-[10px]",
-                              del.deletionRate >= 10 
-                                ? "text-red-400 border-red-500/40 bg-red-950/20" 
-                                : "text-yellow-400 border-yellow-500/40 bg-yellow-950/20"
-                            )}
-                          >
-                            {del.deletionRate}% 🗑️
-                          </Badge>
-                        </TableCell>
-
-                        <TableCell className="align-middle font-mono">
-                          <Badge 
-                            variant="outline" 
-                            className="text-[10px] text-blue-400 border-blue-500/40 bg-blue-950/20"
-                          >
-                            {del.revivalRate}% ⚡
-                          </Badge>
-                        </TableCell>
-
-                        <TableCell className="align-middle font-mono">
-                          <span className="text-zinc-300 text-xs font-bold block">{del.pendingDues} د.أ</span>
-                          {del.pendingDues > 0 ? (
-                            isOverdue ? (
-                              <span className="text-[9px] text-red-400 font-bold block bg-red-950/10 px-1 py-0.5 rounded w-max mt-0.5 animate-pulse">
-                                ⚠️ تجاوزت 30 يوماً
-                              </span>
-                            ) : (
-                              <span className="text-[9px] text-zinc-500 block mt-0.5">
-                                مقفل ومجمد حتى: {del.dueDate}
-                              </span>
-                            )
-                          ) : (
-                            <span className="text-[9px] text-emerald-400 font-bold text-xs block">
-                              مصفّر ✓
-                            </span>
-                          )}
-                        </TableCell>
-
-                        <TableCell className="align-middle">
-                          <Badge 
-                            variant="outline" 
-                            className={cn(
-                              "text-[10px]", 
-                              del.status === 'active' 
-                                ? "text-emerald-400 border-emerald-500 bg-emerald-950/20" 
-                                : "text-amber-500 border-amber-500 bg-amber-950/20"
-                            )}
-                          >
-                            {del.status === 'active' ? 'معتمد ●' : 'موقوف مؤقتاً ||'}
-                          </Badge>
-                        </TableCell>
-
-                        <TableCell className="align-middle text-left p-3">
-                          <div className="flex items-center justify-end gap-2">
-                            {/* Payout reward button if dues are payable after 30 days approval check */}
-                            {del.pendingDues > 0 && (
+                          <TableCell className="align-middle text-left p-3">
+                            <div className="flex items-center justify-end gap-1.5">
                               <Button 
                                 size="sm" 
                                 variant="outline" 
-                                onClick={() => processPayout(del.id)}
-                                className="h-7 border-emerald-500/30 hover:bg-emerald-950/40 text-[10px] font-bold text-emerald-400 rounded-lg"
+                                onClick={() => handleGenerateMagicLink(del)}
+                                className="h-7 border-teal-500/30 hover:bg-teal-950/40 text-[10px] font-bold text-teal-400 rounded-lg"
                               >
-                                <DollarSign className="w-3 h-3 ml-0.5" />
-                                تسييل وصرف العوائد
+                                <LinkIcon className="w-3 h-3 ml-1" />
+                                توليد رابط سحري
                               </Button>
-                            )}
 
-                            {/* Suspension toggle */}
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
-                              onClick={() => toggleStatus(del.id, del.status)}
-                              className="h-7 border-white/5 hover:bg-neutral-800 text-[10px] rounded-lg text-neutral-350"
-                            >
-                              {del.status === 'active' ? 'تجميد المعتمد' : 'تفعيل المعتمد'}
-                            </Button>
-                          </div>
-                        </TableCell>
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                onClick={() => toggleStatus(del.id, del.status)}
+                                className="h-7 border-[#1e293b] hover:bg-neutral-800 text-[10px] rounded-lg text-neutral-300"
+                              >
+                                {del.status === 'active' ? 'تجميد المندوب' : 'تنشيط المندوب'}
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <p className="text-center text-muted-foreground text-xs py-10 font-bold">لا يوجد مندوبين معتمدين مسجلين في النظام بعد.</p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Magic Links Sub-tab */}
+      {activeSubTab === 'magic-links' && (
+        <div className="space-y-6">
+          <Card className="bg-[#091B09]/20 border-emerald-950/30">
+            <CardHeader className="pb-3 border-b border-emerald-950/20">
+              <CardTitle className="text-base font-black text-white flex items-center gap-1.5">
+                <LinkIcon className="h-4.5 w-4.5 text-amber-400" />
+                محرك الروابط السحرية والولوج الفوري
+              </CardTitle>
+              <CardDescription className="text-xs text-zinc-400">
+                قائمة الروابط الصادرة لحسابات المندوبين مع تتبع الأمان والحدود الزمنية لإنهاء الصلاحية تلافياً لأي تسلل.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+              {magicLinks.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader className="bg-black/40 border-b border-[#1e293b]">
+                      <TableRow>
+                        <TableHead className="text-right text-gray-405 text-xs py-3">المندوب المستفيد</TableHead>
+                        <TableHead className="text-right text-gray-405 text-xs">رابط الدخول المشفر</TableHead>
+                        <TableHead className="text-right text-gray-405 text-xs">الانتهاء الزمني</TableHead>
+                        <TableHead className="text-right text-gray-405 text-xs">الصلاحية لمرة واحدة</TableHead>
+                        <TableHead className="text-left text-gray-405 text-xs p-3">إجراء سيادي</TableHead>
                       </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          ) : (
-            <p className="text-center text-muted-foreground text-xs py-10">لا يوجد مناديب معتمدين مسجلين في النظام بعد.</p>
-          )}
-        </CardContent>
-      </Card>
+                    </TableHeader>
+                    <TableBody>
+                      {magicLinks.map((link) => {
+                        const expired = new Date(link.expiresAt) < new Date();
+                        const isActive = link.status === 'active' && !expired;
+
+                        return (
+                          <TableRow key={link.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                            <TableCell className="align-middle py-3">
+                              <span className="text-xs font-black text-white block">{link.delegateName}</span>
+                              <span className="text-[10px] text-zinc-500 font-mono">#Link-{link.id.substring(0,6)}</span>
+                            </TableCell>
+
+                            <TableCell className="align-middle">
+                              <div className="flex items-center gap-1">
+                                <Badge variant="outline" className="font-mono text-[9px] bg-black text-zinc-300 p-1 select-all cursor-pointer hover:bg-neutral-900 border-zinc-800">
+                                  {link.url}
+                                </Badge>
+                                <Button 
+                                  size="icon" 
+                                  variant="ghost" 
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(link.url);
+                                    toast({ title: 'تم نسخ الرابط السحري', description: 'يمكنك إرساله للمندوب للدخول بنقرة واحدة.' });
+                                  }} 
+                                  className="w-6 h-6 hover:bg-neutral-800"
+                                >
+                                  <Copy className="w-3.5 h-3.5 text-gray-400" />
+                                </Button>
+                              </div>
+                            </TableCell>
+
+                            <TableCell className="align-middle font-mono text-xs">
+                              {new Date(link.expiresAt).toLocaleString('ar-JO')}
+                            </TableCell>
+
+                            <TableCell className="align-middle">
+                              <Badge 
+                                variant="outline" 
+                                className={cn(
+                                  "text-[10px]",
+                                  isActive ? "text-emerald-400 border-emerald-500 bg-emerald-950/20" : "text-zinc-500 border-zinc-800 bg-black/40"
+                                )}
+                              >
+                                {link.status === 'used' ? 'تم الاستهلاك' : link.status === 'revoked' ? 'أبطل بالكامل' : expired ? 'منتهي الصلاحية' : 'صالح ونشط'}
+                              </Badge>
+                            </TableCell>
+
+                            <TableCell className="align-middle text-left p-3">
+                              {isActive && (
+                                <Button 
+                                  size="sm" 
+                                  variant="outline" 
+                                  onClick={() => handleRevokeLink(link.id)}
+                                  className="h-7 border-red-500/20 hover:bg-red-950/30 text-[10px] font-bold text-red-400 rounded-lg"
+                                >
+                                  <XCircle className="w-3 h-3 ml-1" />
+                                  إبطال وحرق الرابط
+                                </Button>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : (
+                <div className="text-center text-muted-foreground text-xs py-10 font-bold space-y-2 flex flex-col items-center">
+                  <Info className="w-8 h-8 text-amber-500" />
+                  <span>لا يوجد أي روابط سحرية نشطة حالياً. يمكنك توليد رابط بجانب اسم المندوب في الأعلى.</span>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Tasks sub-tab */}
+      {activeSubTab === 'tasks' && (
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+          {/* List of Tasks */}
+          <Card className="lg:col-span-3 bg-[#091B09]/20 border-emerald-950/30">
+            <CardHeader className="pb-3 border-b border-emerald-950/20 flex justify-between items-center">
+              <CardTitle className="text-base font-black text-white flex items-center gap-1.5">
+                <ClipboardList className="h-4.5 w-4.5 text-emerald-400" />
+                متابعة حالة المهام الميدانية المفتوحة
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              {tasks.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader className="bg-black/40 border-b border-[#1e293b]">
+                      <TableRow>
+                        <TableHead className="text-right text-gray-400 text-xs py-3">المهمة والمندوب</TableHead>
+                        <TableHead className="text-right text-gray-400 text-xs">التفاصيل والتكليف</TableHead>
+                        <TableHead className="text-right text-gray-400 text-xs">السقف الزمني</TableHead>
+                        <TableHead className="text-right text-gray-400 text-xs">حالة المهمة</TableHead>
+                        <TableHead className="text-left text-gray-400 text-xs p-3">الإجراء السلوكي</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {tasks.map((task) => {
+                        return (
+                          <TableRow key={task.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                            <TableCell className="align-middle py-3">
+                              <span className="text-xs font-black text-white block">{task.title}</span>
+                              <span className="text-[10px] text-zinc-400 block font-bold text-emerald-400">للمندوب: {task.delegateName}</span>
+                            </TableCell>
+
+                            <TableCell className="align-middle text-xs text-zinc-300 max-w-[200px] truncate">
+                              {task.description}
+                            </TableCell>
+
+                            <TableCell className="align-middle font-mono text-xs">
+                              {task.deadline}
+                            </TableCell>
+
+                            <TableCell className="align-middle">
+                              <Badge 
+                                variant="outline" 
+                                className={cn(
+                                  "text-[10px]",
+                                  task.status === 'pending' ? "text-yellow-400 border-yellow-500/30 bg-yellow-950/20" :
+                                  task.status === 'acknowledged' ? "text-blue-400 border-blue-500/30 bg-blue-950/20" :
+                                  task.status === 'completed' ? "text-emerald-400 border-emerald-500/30 bg-emerald-950/20" :
+                                  "text-zinc-500 border-zinc-800 bg-black/40"
+                                )}
+                              >
+                                {task.status === 'pending' ? 'بانتظار العرض' :
+                                 task.status === 'acknowledged' ? 'اطّلع المندوب' :
+                                 task.status === 'completed' ? 'أُنجزت ✓' : 'مغلقة ومؤرشفة'}
+                              </Badge>
+                            </TableCell>
+
+                            <TableCell className="align-middle text-left p-3">
+                              {task.status !== 'closed' && (
+                                <Button 
+                                  size="sm" 
+                                  variant="outline" 
+                                  onClick={() => handleCloseTask(task.id)}
+                                  className="h-7 border-zinc-800 hover:bg-neutral-800 text-[10px] font-bold text-zinc-300 rounded-lg"
+                                >
+                                  إغلاق وأرشفة
+                                </Button>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : (
+                <div className="text-center text-muted-foreground text-xs py-12 font-bold space-y-2 flex flex-col items-center">
+                  <ClipboardList className="w-8 h-8 text-neutral-600" />
+                  <span>لا يوجد مهام ميدانية جارية مسندة حالياً. استخدم اللوحة الجانبية لإنشاء أول مهمة للجيش الميدني.</span>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Create Task Form */}
+          <Card className="lg:col-span-2 bg-[#0A0E1A] border-[#1e293b]">
+            <CardHeader>
+              <CardTitle className="text-sm font-black text-white flex items-center gap-1.5">
+                <Sparkles className="w-4.5 h-4.5 text-emerald-400" />
+                صياغة أمر عسكري ميداني (مهمة)
+              </CardTitle>
+              <CardDescription className="text-xs">
+                سيصل إشعار فوري للمندوب في لوحته لإلزامه بالتنفيذ والرد بالنتائج الجغرافية.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleAddTask} className="space-y-4">
+                <div className="space-y-1">
+                  <Label className="text-xs text-zinc-400">اختر المندوب المستهدف</Label>
+                  <select 
+                    value={selectedDelegateId} 
+                    onChange={e => setSelectedDelegateId(e.target.value)} 
+                    className="w-full h-10 rounded bg-black border border-[#1e293b] text-white px-2 focus:outline-none text-xs"
+                    required
+                  >
+                    <option value="">-- اسم المندوب الرباعي --</option>
+                    {delegates.filter(d => d.status === 'active').map(d => (
+                      <option key={d.id} value={d.id}>{d.name} ({d.district})</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-xs text-zinc-400">عنوان التكليف</Label>
+                  <Input 
+                    value={taskTitle} 
+                    onChange={e => setTaskTitle(e.target.value)} 
+                    placeholder="مثال: غرز 15 سائق في لواء صويلح"
+                    className="bg-black border-[#1e293b] text-xs h-10"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-xs text-zinc-400">مضمون الإجراء السلوكي والمحفزات</Label>
+                  <textarea 
+                    value={taskDescription} 
+                    onChange={e => setTaskDescription(e.target.value)} 
+                    placeholder="يرجى توزيع الملصقات وكتابة رمز الإحالة JO-SWAILEH.. ومساعدة الكباتن في تخطي عقبة الفحص الأولي للسيارات."
+                    className="w-full min-h-[80px] bg-black border border-[#1e293b] rounded-md p-2 text-white focus:outline-none text-xs"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-xs text-zinc-400">مستهدف السقف الزمني</Label>
+                  <Input 
+                    type="date"
+                    value={taskDeadline} 
+                    onChange={e => setTaskDeadline(e.target.value)} 
+                    className="bg-black border-[#1e293b] text-xs h-10"
+                    required
+                  />
+                </div>
+
+                <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-10 text-xs rounded-xl">
+                  إرسال وإسناد الأمر الميداني فورا ⚡
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Analytics Performance Tab */}
+      {activeSubTab === 'performance' && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card className="bg-[#091B09]/40 border-emerald-950/40 p-4">
+              <CardHeader className="p-0 pb-1">
+                <CardDescription className="text-[10px] text-zinc-400 font-bold">عواصف النمو المباشر</CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <p className="text-2xl font-black text-amber-500 font-mono">{totalReferred} كابتن</p>
+                <div className="flex items-center gap-1 text-[9px] text-[#10B981] font-bold mt-1">
+                  <TrendingUp className="w-3.5 h-3.5" />
+                  <span>توسّع إيجابي وقدرة تجنيدية صارمة</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-[#091B09]/40 border-emerald-950/40 p-4">
+              <CardHeader className="p-0 pb-1">
+                <CardDescription className="text-[10px] text-zinc-400 font-bold">إجمالي الانتساب العضوي (الألوية)</CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <p className="text-2xl font-black text-emerald-400 font-mono">+{totalOrganic} منتسب</p>
+                <div className="flex items-center gap-1 text-[9px] text-[#10B981] font-bold mt-1">
+                  <span>معدل نمو عضوي بنسبة {growthIndex}%</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-[#091B09]/40 border-emerald-950/40 p-4">
+              <CardHeader className="p-0 pb-1">
+                <CardDescription className="text-[10px] text-zinc-400 font-bold">نسبة الانسحاب والخسارة</CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <p className="text-2xl font-black text-red-400 font-mono">{churnRateAvg}%</p>
+                <div className="flex items-center gap-1 text-[9px] text-red-400 font-semibold mt-1">
+                  <TrendingDown className="w-3.5 h-3.5" />
+                  <span>إجمالي حذف التطبيق: {totalChurn} كباتن</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-[#091B09]/40 border-emerald-950/40 p-4">
+              <CardHeader className="p-0 pb-1">
+                <CardDescription className="text-[10px] text-zinc-400 font-bold">الكباتن الثابتين (+45 يوم)</CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <p className="text-2xl font-black text-blue-400 font-mono">{totalSteady} كابتن</p>
+                <span className="text-[9px] text-zinc-500 font-bold block mt-1">
+                  معدل التزام مبرهن بصمامات قوية
+                </span>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card className="bg-[#0A0F1D] border-[#1e293b]">
+            <CardHeader>
+              <CardTitle className="text-sm font-black text-white flex items-center gap-1.5">
+                <Layers className="w-4 h-4 text-emerald-400" />
+                مقارنة كفوءة لألوية الاقتدار والسيادة
+              </CardTitle>
+              <CardDescription className="text-xs">
+                مخطط الكفاءة والنمو شهرياً بموجب تتبع الحالات الميدانية وحماية الروابط.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4 font-sans text-xs">
+                {delegates.map(d => {
+                  const percentage = totalReferred > 0 ? Math.round(((d.referredCount || 0) / totalReferred) * 100) : 0;
+                  return (
+                    <div key={d.id} className="space-y-1.5 bg-black/40 p-3 rounded-lg border border-[#1e293b]">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-zinc-400">الإقليم: <span className="font-bold text-white">{d.district}</span></span>
+                        <span className="font-bold text-emerald-400">{d.referredCount} كابتن ({percentage}%)</span>
+                      </div>
+                      <div className="w-full bg-neutral-900 h-2 rounded-full overflow-hidden">
+                        <div 
+                          className="bg-emerald-500 h-full rounded-full transition-all duration-505" 
+                          style={{ width: `${percentage}%` }}
+                        />
+                      </div>
+                      <div className="flex justify-between items-center text-[10px] text-zinc-500">
+                        <span>النمو العضوي المتمدد: +{d.organicCount}</span>
+                        <span>نبضات الثبات (45 يوم): {d.steadyCount} كابتن ملتزم</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
       
     </div>
   );

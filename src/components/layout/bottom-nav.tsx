@@ -4,8 +4,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { Home, History, Wallet, User, Archive } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
-import { useRiderOperations } from '@/hooks/use-rider-operations';
-import { useDriverOperations } from '@/hooks/use-driver-operations';
 import { useToast } from '@/hooks/use-toast';
 
 
@@ -14,22 +12,38 @@ export function BottomNav() {
   const { user, isSovereign } = useAuth();
   const { toast } = useToast();
 
-  // Safe context extraction within the tree bounds
-  let riderOps: any = null;
-  try {
-    riderOps = useRiderOperations();
-  } catch (err) {}
-
-  let driverOps: any = null;
-  try {
-    driverOps = useDriverOperations();
-  } catch (err) {}
-
   const isPassenger = user?.role === 'rider';
   const isCaptain = user?.role === 'driver';
 
-  const tripStatus = isPassenger ? (riderOps?.tripStatus || 'idle') : 'idle';
-  const driverStatus = isCaptain ? (driverOps?.driverStatus || 'idle') : 'idle';
+  const [tripStatus, setTripStatus] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem('sovereign_trip_status') || 'idle';
+    }
+    return 'idle';
+  });
+
+  const [driverStatus, setDriverStatus] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem('sovereign_driver_status') || 'idle';
+    }
+    return 'idle';
+  });
+
+  useEffect(() => {
+    const handleStatusChange = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail) {
+        const { role, status } = customEvent.detail;
+        if (role === 'rider') {
+          setTripStatus(status || 'idle');
+        } else if (role === 'driver') {
+          setDriverStatus(status || 'idle');
+        }
+      }
+    };
+    window.addEventListener('sovereign-status-change', handleStatusChange);
+    return () => window.removeEventListener('sovereign-status-change', handleStatusChange);
+  }, []);
 
   const isRiderRestricted = isPassenger && ['searching', 'busy', 'rating', 'checkpoint_required'].includes(tripStatus);
   const isDriverRestricted = isCaptain && ['busy', 'rating'].includes(driverStatus);

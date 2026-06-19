@@ -21,8 +21,8 @@ service cloud.firestore {
     // دالة مساعدة: التحقق من أن الطلب قادم من مشرف أو مالك النظام
     function isAdmin() {
       return isAuthenticated() && (
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'owner'
+        request.auth.token.role == 'admin' ||
+        request.auth.token.role == 'owner'
       );
     }
 
@@ -33,16 +33,18 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow write: if isAuthenticated() && request.auth.uid == userId 
                     && (!('name' in request.resource.data) || request.resource.data.name.size() < 100)
-                    && (!('bio' in request.resource.data) || request.resource.data.bio.size() < 250);
+                    && (!('bio' in request.resource.data) || request.resource.data.bio.size() < 250)
+                    // منع تصعيد الصلاحيات وتغيير الدور تلقائياً عبر الواجهة دون ختم مشفر
+                    && (resource == null || !('role' in request.resource.data) || request.resource.data.role == resource.data.role || request.auth.token.role == 'admin' || request.auth.token.role == 'owner');
     }
 
     // دالة مساعدة: التحقق من أن المندوب يملك مستند المندوب المطابق لرقم هاتفه
     function isDelegateDocOwner(docData) {
       return isAuthenticated() && 
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'delegate' &&
+             request.auth.token.role == 'delegate' &&
              docData != null && 
              docData.data != null && 
-             docData.data.phone == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.phone;
+             (docData.data.phone == request.auth.token.phone || docData.data.phone == request.auth.token.phone_number || docData.data.userId == request.auth.uid);
     }
 
     match /promos/{promoId} {

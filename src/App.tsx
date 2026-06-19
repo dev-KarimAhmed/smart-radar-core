@@ -9,6 +9,7 @@ import { Dashboard } from '@/components/dashboard';
 import LoginPage from '@/components/auth/login-page';
 import { useSovereignRouteGuard } from '@/app/routes';
 import { AdvertiserPortal } from '@/components/dashboard/advertiser-portal';
+import { SovereignErrorBoundary } from '@/components/sovereign-error-boundary';
 
 function AppOrchestrator() {
   const { user, loading } = useAuth();
@@ -75,7 +76,9 @@ function AppOrchestrator() {
 export default function App() {
   return (
     <AuthProvider>
-      <AppOrchestrator />
+      <SovereignErrorBoundary>
+        <AppOrchestrator />
+      </SovereignErrorBoundary>
       <Toaster />
     </AuthProvider>
   );

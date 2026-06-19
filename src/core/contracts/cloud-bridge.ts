@@ -144,7 +144,9 @@ async function simulateSovereignCloud<T extends keyof SovereignCloudContracts>(
             if (savedBypass) {
               riderId = JSON.parse(savedBypass).uid;
             }
-          } catch (e) {}
+          } catch (e) {
+            console.error("Failed to parse saved bypass user in cloud-bridge callback:", e);
+          }
         }
 
         if (riderId) {

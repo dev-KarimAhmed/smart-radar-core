@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
-import { doc, setDoc, onSnapshot } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 import { RadarGeoRefillKernel } from '@/lib/refill-kernel';
 import { 
   Wallet, Sparkles, RefreshCw, Zap, Clock, ShieldCheck, 
@@ -48,84 +48,76 @@ export function WalletTab() {
 
   const isDriver = user?.role === 'driver';
 
-  // Listen to the Firestore user doc for live balance state or fallback
+  // Synchronize state with Google AI Studio / useAuth real-time SSOT user object
   useEffect(() => {
-    if (!user?.uid) return;
+    if (!user) return;
     
-    const userRef = doc(db, 'users', user.uid);
-    const unsubscribe = onSnapshot(userRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const data = snapshot.data();
-        if (data.walletBalanceJD !== undefined) {
-          setBalanceJD(data.walletBalanceJD);
-        } else {
-          setBalanceJD(15.00);
-        }
-        
-        if (data.subscriptionHours !== undefined) {
-          setSubscriptionHours(data.subscriptionHours);
-        } else {
-          setSubscriptionHours(14.5);
-        }
+    if (user.walletBalanceJD !== undefined) {
+      setBalanceJD(user.walletBalanceJD);
+    } else {
+      setBalanceJD(15.00);
+    }
+    
+    if (user.subscriptionHours !== undefined) {
+      setSubscriptionHours(user.subscriptionHours);
+    } else {
+      setSubscriptionHours(14.5);
+    }
 
-        if (data.paidHoursRemaining !== undefined) {
-          setPaidHoursMin(data.paidHoursRemaining);
-        } else {
-          setPaidHoursMin(180);
+    if (user.paidHoursRemaining !== undefined) {
+      setPaidHoursMin(user.paidHoursRemaining);
+    } else {
+      setPaidHoursMin(180);
+    }
+    if (user.bonusHoursRemaining !== undefined) {
+      setBonusHoursMin(user.bonusHoursRemaining);
+    } else {
+      setBonusHoursMin(120);
+    }
+    
+    if (user.activePackageName !== undefined) {
+      setActivePackageName(user.activePackageName);
+    } else {
+      setActivePackageName(isDriver ? 'نبض الوفاء المبدئي' : 'نسيجي مجتزأ');
+    }
+    
+    if (user.walletTransactions !== undefined) {
+      setTransactions(user.walletTransactions);
+    } else {
+      // Generate realistic default transactions
+      const defaultTx: Transaction[] = isDriver ? [
+        {
+          id: 'tx-1',
+          type: 'charge',
+          amount: 20.00,
+          currency: 'د.أ',
+          description: 'شحن رصيد نقدي عبر Zain Cash',
+          createdAt: new Date(Date.now() - 3600000 * 4).toLocaleTimeString('ar-JO', { hour: '2-digit', minute: '2-digit' }) + ' - اليوم',
+          status: 'completed'
+        },
+        {
+          id: 'tx-2',
+          type: 'trip_deduction',
+          amount: -0.45,
+          currency: 'ساعة',
+          description: 'استهلاك بث ملاحي لرحلة سياج عمان النشطة',
+          createdAt: new Date(Date.now() - 3600000 * 2).toLocaleTimeString('ar-JO', { hour: '2-digit', minute: '2-digit' }) + ' - اليوم',
+          status: 'completed'
         }
-        if (data.bonusHoursRemaining !== undefined) {
-          setBonusHoursMin(data.bonusHoursRemaining);
-        } else {
-          setBonusHoursMin(120);
+      ] : [
+        {
+          id: 'tx-1',
+          type: 'charge',
+          amount: 15.00,
+          currency: 'د.أ',
+          description: 'شحن رصيد نقدي عبر خدمة CliQ العاجلة',
+          createdAt: '03:12 م - أمس',
+          status: 'completed'
         }
-        
-        if (data.activePackageName !== undefined) {
-          setActivePackageName(data.activePackageName);
-        } else {
-          setActivePackageName(isDriver ? 'نبض الوفاء المبدئي' : 'نسيجي مجتزأ');
-        }
-        
-        if (data.walletTransactions !== undefined) {
-          setTransactions(data.walletTransactions);
-        } else {
-          // Generate realistic default transactions
-          const defaultTx: Transaction[] = isDriver ? [
-            {
-              id: 'tx-1',
-              type: 'charge',
-              amount: 20.00,
-              currency: 'د.أ',
-              description: 'شحن رصيد نقدي عبر Zain Cash',
-              createdAt: new Date(Date.now() - 3600000 * 4).toLocaleTimeString('ar-JO', { hour: '2-digit', minute: '2-digit' }) + ' - اليوم',
-              status: 'completed'
-            },
-            {
-              id: 'tx-2',
-              type: 'trip_deduction',
-              amount: -0.45,
-              currency: 'ساعة',
-              description: 'استهلاك بث ملاحي لرحلة سياج عمان النشطة',
-              createdAt: new Date(Date.now() - 3600000 * 2).toLocaleTimeString('ar-JO', { hour: '2-digit', minute: '2-digit' }) + ' - اليوم',
-              status: 'completed'
-            }
-          ] : [
-            {
-              id: 'tx-1',
-              type: 'charge',
-              amount: 15.00,
-              currency: 'د.أ',
-              description: 'شحن رصيد نقدي عبر خدمة CliQ العاجلة',
-              createdAt: '03:12 م - أمس',
-              status: 'completed'
-            }
-          ];
-          setTransactions(defaultTx);
-        }
-      }
-    });
-
-    return () => unsubscribe();
-  }, [user?.uid, isDriver]);
+      ];
+      setTransactions(defaultTx);
+    }
+  }, [user, isDriver]);
 
   // Handle funding of the local JDs wallet
   const handleFundWallet = useCallback(async () => {

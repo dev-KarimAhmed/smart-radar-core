@@ -29,7 +29,8 @@ import {
   Award,
   AlertTriangle,
   RotateCcw,
-  CheckCircle2
+  CheckCircle2,
+  Shield
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -37,6 +38,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
+import { SovereignDemarcationCatalog } from '@/core/demarcation-catalog';
 
 export interface DelegateData {
   id: string;
@@ -814,9 +816,86 @@ export function RadarOwnerSovereignDashboard() {
           </div>
         </CardContent>
       </Card>
+
+      {/* 📐 [RAD-SSOT-105] DEMARCATION & SECTOR CATALOG INSPECTOR */}
+      <Card className="bg-[#050505] border border-blue-500/15 shadow-[0_8px_32px_rgba(0,0,0,0.5)] rounded-2xl overflow-hidden mt-8">
+        <CardHeader className="bg-blue-950/15 border-b border-blue-500/10 p-5">
+          <CardTitle className="text-blue-400 text-base font-extrabold flex items-center gap-2">
+            <Shield className="w-5 h-5 text-blue-400" />
+            تفتيش كتالوج ترسيم الحدود البرمجية وفصل القطاعات (Sovereign Demarcation Inspector)
+          </CardTitle>
+          <CardDescription className="text-gray-400 text-xs leading-relaxed">
+            المرجع الدستوري لتقسيم المناطق (Regions 1, 2, 3) والقطاعات الخدمية (Sectors) لضمان المسؤولية الأحادية والتعقيم الماسي.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-6 space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 text-right" dir="rtl">
+            
+            {/* Regions List */}
+            <div className="space-y-4">
+              <h3 className="text-xs font-black text-blue-400 tracking-wide border-b border-white/5 pb-2">📂 حدود المناطق البرمجية السيادية (System Regions)</h3>
+              <div className="space-y-3 font-sans">
+                {Object.values(SovereignDemarcationCatalog.regions).map(region => (
+                  <div key={region.id} className="bg-zinc-950 p-4 rounded-xl border border-white/5 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-extrabold text-xs text-white">{region.nameAr}</span>
+                      <Badge className="bg-blue-950/50 border border-blue-500/30 text-blue-400 text-[9px] font-mono px-2 py-0.5">{region.id}</Badge>
+                    </div>
+                    <p className="text-[11px] text-gray-400 leading-relaxed">{region.descriptionAr}</p>
+                    <div className="space-y-1 pt-1">
+                      <span className="text-[10px] text-gray-500 block font-bold">📂 المسارات المحمية:</span>
+                      <div className="flex flex-wrap gap-1">
+                        {region.paths.map(path => (
+                          <code key={path} className="text-[9px] bg-zinc-900 border border-white/5 text-gray-300 px-1 py-0.5 rounded font-mono">{path}</code>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Sectors List */}
+            <div className="space-y-4">
+              <h3 className="text-xs font-black text-[#00ffcc] tracking-wide border-b border-white/5 pb-2">🧱 عزل القطاعات والقطوعات (Domain Sectors)</h3>
+              <div className="space-y-3 font-sans">
+                {Object.values(SovereignDemarcationCatalog.sectors).map(sector => (
+                  <div key={sector.id} className="bg-zinc-950 p-4 rounded-xl border border-white/5 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-extrabold text-xs text-white">{sector.nameAr}</span>
+                      <Badge className="bg-[#003322]/50 border border-[#00ffcc]/30 text-[#00ffcc] text-[9px] font-mono px-2 py-0.5">{sector.id}</Badge>
+                    </div>
+                    <p className="text-[11px] text-gray-400 leading-relaxed">{sector.descriptionAr}</p>
+                    <div className="grid grid-cols-2 gap-2 pt-1 border-t border-white/5">
+                      <div>
+                        <span className="text-[9px] text-gray-500 block font-bold">⚡ الخطافات:</span>
+                        <div className="flex flex-wrap gap-1 mt-0.5">
+                          {sector.hooks.length > 0 ? sector.hooks.map(h => (
+                            <code key={h} className="text-[8px] text-gray-400 font-mono bg-zinc-900 px-0.5 rounded">{h.split('/').pop()}</code>
+                          )) : <span className="text-[8px] text-zinc-500 italic">لا يوجد</span>}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-[9px] text-gray-505 block font-bold">💾 المجموعات:</span>
+                        <div className="flex flex-wrap gap-1 mt-0.5">
+                          {sector.databaseCollections.map(c => (
+                            <code key={c} className="text-[8px] text-amber-500 font-mono bg-zinc-900 px-0.5 rounded">{c}</code>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
+
 
 // 🔒 [RAD-MAP-080-FREEZE] Seal the Sovereign core cabinet module preventing prototype manipulation
 Object.freeze(RadarOwnerSovereignDashboard);

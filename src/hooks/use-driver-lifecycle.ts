@@ -28,12 +28,17 @@ export function useDriverLifecycle(user: User | null) {
   const localPaidHoursRef = useRef<number | null>(null);
   const localBonusHoursRef = useRef<number | null>(null);
 
+  const lastSavedOnServerRef = useRef<{ paid: number; bonus: number } | null>(null);
+  const previousLocalStateRef = useRef<{ paid: number; bonus: number } | null>(null);
+
   if (user?.uid !== lastUidRef.current) {
     lastUidRef.current = user?.uid || null;
     lastProcessedTickRef.current = null;
     localPaidHoursRef.current = null;
     localBonusHoursRef.current = null;
     sessionStartRef.current = null;
+    lastSavedOnServerRef.current = null;
+    previousLocalStateRef.current = null;
   }
 
   useEffect(() => {
@@ -134,17 +139,39 @@ export function useDriverLifecycle(user: User | null) {
       const initialBonusHours = currentUser.bonusHoursRemaining !== undefined ? currentUser.bonusHoursRemaining : 0;
       const initialLastTick = currentUser.lastTickTimestamp || Date.now();
 
-      if (localPaidHoursRef.current === null) {
+      let didImportRemote = false;
+
+      if (localPaidHoursRef.current === null || localBonusHoursRef.current === null) {
         localPaidHoursRef.current = initialPaidHours;
-      } else if (initialPaidHours > localPaidHoursRef.current) {
-        // External refill/reset occurred, synchronize upwards
-        localPaidHoursRef.current = initialPaidHours;
+        localBonusHoursRef.current = initialBonusHours;
+        didImportRemote = true;
+      } else {
+        // Prevent State Desync loop (lagging reverberation of older Firestore writes overwriting newer local state).
+        // Authoritative updates must satisfy either:
+        // 1. Value is greater than current local state (e.g., wallet package refill).
+        // 2. Value has changed but is NOT a lagging echo of our own past written states.
+        const isRefill = initialPaidHours > localPaidHoursRef.current || initialBonusHours > localBonusHoursRef.current;
+        
+        const isTransientEcho = 
+          (lastSavedOnServerRef.current && initialPaidHours === lastSavedOnServerRef.current.paid && initialBonusHours === lastSavedOnServerRef.current.bonus) ||
+          (previousLocalStateRef.current && initialPaidHours === previousLocalStateRef.current.paid && initialBonusHours === previousLocalStateRef.current.bonus);
+
+        const isDivergent = initialPaidHours !== localPaidHoursRef.current || initialBonusHours !== localBonusHoursRef.current;
+
+        if (isRefill || (isDivergent && !isTransientEcho)) {
+          console.log(`📡 [مزامنة الصندوق السيادي]: تم دمج حالة الساعات الخارجية بنجاح منعاً للتزييف: ${initialPaidHours} مدفوعة، ${initialBonusHours} بونص.`);
+          localPaidHoursRef.current = initialPaidHours;
+          localBonusHoursRef.current = initialBonusHours;
+          didImportRemote = true;
+        }
       }
 
-      if (localBonusHoursRef.current === null) {
-        localBonusHoursRef.current = initialBonusHours;
-      } else if (initialBonusHours > localBonusHoursRef.current) {
-        localBonusHoursRef.current = initialBonusHours;
+      if (didImportRemote) {
+        // Update security hash and values in localStorage in perfect synchronicity to avoid false lockout locks
+        const syncHash = RadarSovereignCommuteKernel.generateStateHash(currentUser.uid, localPaidHoursRef.current, localBonusHoursRef.current);
+        localStorage.setItem(`sovereign_shake_${currentUser.uid}`, syncHash);
+        localStorage.setItem(`sovereign_paid_${currentUser.uid}`, String(localPaidHoursRef.current));
+        localStorage.setItem(`sovereign_bonus_${currentUser.uid}`, String(localBonusHoursRef.current));
       }
 
       if (lastProcessedTickRef.current === null) {
@@ -180,6 +207,10 @@ export function useDriverLifecycle(user: User | null) {
         const updated = result.updatedWallet;
         const totalHoursFraction = (updated.paidHoursRemaining + updated.bonusHoursRemaining) / 60;
 
+        // Feed state transition history to prevent feedback loop desync when Firestore pushes lazy snapshots
+        previousLocalStateRef.current = { paid: paidHours, bonus: bonusHours };
+        lastSavedOnServerRef.current = { paid: updated.paidHoursRemaining, bonus: updated.bonusHoursRemaining };
+
         // Synchronously update local SSOT refs IMMEDIATELY to prevent double tick on next interval run!
         localPaidHoursRef.current = updated.paidHoursRemaining;
         localBonusHoursRef.current = updated.bonusHoursRemaining;
@@ -188,6 +219,8 @@ export function useDriverLifecycle(user: User | null) {
         // [قفل المصافحة الجداري]: تحديث الهاش في المتصفح محلياً فوراً لحبس العداد وحفظ نزاهته
         const nextHash = RadarSovereignCommuteKernel.generateStateHash(currentUser.uid, updated.paidHoursRemaining, updated.bonusHoursRemaining);
         localStorage.setItem(`sovereign_shake_${currentUser.uid}`, nextHash);
+        localStorage.setItem(`sovereign_paid_${currentUser.uid}`, String(updated.paidHoursRemaining));
+        localStorage.setItem(`sovereign_bonus_${currentUser.uid}`, String(updated.bonusHoursRemaining));
 
         if (!updated.isRadarActive && isRadarActive) {
           setDriverStatus('idle');

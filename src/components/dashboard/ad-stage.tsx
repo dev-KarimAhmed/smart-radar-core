@@ -31,7 +31,9 @@ const RadarSovereignAdKernel = {
       const cached = localStorage.getItem(cacheKey);
       let currentMetrics = { views: 0, clicks: 0 };
       if (cached) {
-        try { currentMetrics = JSON.parse(cached); } catch (e) {}
+        try { currentMetrics = JSON.parse(cached); } catch (e) {
+          console.error("Failed to parse cached metrics:", e);
+        }
       }
 
       if (type === 'view') currentMetrics.views += 1;
@@ -74,7 +76,9 @@ const RadarSovereignAdKernel = {
 
 try {
   Object.freeze(RadarSovereignAdKernel);
-} catch (e) {}
+} catch (e) {
+  console.warn("Could not freeze RadarSovereignAdKernel (non-breaking):", e);
+}
 
 const VIRTUAL_ADS = [
   {
@@ -151,7 +155,9 @@ export function AdStage({ isFullScreen = false }: { isFullScreen?: boolean }) {
     if (stored) {
       try {
         setHeartedAdIds(JSON.parse(stored));
-      } catch (e) {}
+      } catch (e) {
+        console.error("Failed to parse stored hearted ads:", e);
+      }
     }
   }, []);
 
@@ -195,7 +201,9 @@ export function AdStage({ isFullScreen = false }: { isFullScreen?: boolean }) {
         delete dict[adId];
       }
       localStorage.setItem('sovereign_ad_vault_details', JSON.stringify(dict));
-    } catch (e) {}
+    } catch (e) {
+      console.error("Failed to update sovereign_ad_vault_details cache:", e);
+    }
   };
 
   const openTakeover = (e: React.MouseEvent, ad: any) => {
