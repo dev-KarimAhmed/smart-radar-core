@@ -11,7 +11,7 @@ import { OfferGallery } from './rider/offer-gallery';
 import { VehicleSensoryProfile } from '../shared/VehicleSensoryProfile';
 import { StarRating } from '@/components/ui/star-rating';
 import { Card, CardContent } from '@/components/ui/card';
-import { generateSovereignRouteUrl } from '@/lib/routing';
+import { generateSovereignRouteUrl } from '@/core/logic/geospatial-kernel';
 import { SovereignDict } from '@/lib/sovereign-dictionary';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';

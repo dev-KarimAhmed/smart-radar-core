@@ -23,6 +23,7 @@ import type { AdInput, SovereignAd } from '@/core/types';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 
@@ -44,17 +45,41 @@ const adFormSchema = z.object({
 
 function AdForm({ onFinish, isProcessing }: { onFinish: (data: AdInput) => Promise<boolean>, isProcessing: boolean }) {
   const [open, setOpen] = useState(false);
-  const { register, handleSubmit, control, watch, formState: { errors } } = useForm<AdInput>({
+  const { toast } = useToast();
+  const { register, handleSubmit, control, watch, setValue, formState: { errors } } = useForm<AdInput>({
     resolver: zodResolver(adFormSchema),
-    defaultValues: { role: 'all', targetImpressions: 10000 },
+    defaultValues: { role: 'all', targetImpressions: 10000, buttonText: 'احجز مقعدك الآن 🚀' },
   });
   
   const selectedGov = watch('geo.governorate');
   const districts = useMemo(() => selectedGov ? getDistrictsByGovernorate(selectedGov) : [], [selectedGov]);
 
-  const onSubmit = async (data: AdInput) => {
-    const success = await onFinish({ ...data, endDate: format(data.endDate, 'yyyy-MM-dd') });
+  const onSubmit = async (data: any) => {
+    // Map nested geo object directly to the flat fields that useAdminAds expects
+    const formattedData = {
+      ...data,
+      targetGovernorate: data.geo?.governorate || 'عمان',
+      targetDistrict: data.geo?.district || '',
+      endDate: format(data.endDate, 'yyyy-MM-dd')
+    };
+    const success = await onFinish(formattedData as AdInput);
     if (success) setOpen(false);
+  };
+
+  const onError = (formErrors: any) => {
+    console.error("AdForm validation errors:", formErrors);
+    let errorMessage = "يرجى ملء جميع الحقول المطلوبة بشكل صحيح.\n";
+    if (formErrors.title) errorMessage += `- العنوان: ${formErrors.title.message}\n`;
+    if (formErrors.description) errorMessage += `- الوصف: ${formErrors.description.message}\n`;
+    if (formErrors.posterUrl) errorMessage += `- رابط البوستر: ${formErrors.posterUrl.message}\n`;
+    if (formErrors.actionUrl) errorMessage += `- رابط الإجراء: ${formErrors.actionUrl.message}\n`;
+    if (formErrors.endDate) errorMessage += `- تاريخ الانتهاء مطلوب ونشط.\n`;
+    
+    toast({
+      variant: 'destructive',
+      title: '⚠️ رفض استكمال الاستمارة',
+      description: errorMessage
+    });
   };
 
   return (
@@ -70,7 +95,7 @@ function AdForm({ onFinish, isProcessing }: { onFinish: (data: AdInput) => Promi
           <DialogTitle>منصة الحقن الإعلاني</DialogTitle>
           <DialogDescription>أدخل بيانات الحملة الجديدة لضخها في "نهر الإعلانات" فوراً.</DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit, onError)} className="space-y-4">
           <Input placeholder="عنوان الحملة الجذاب" {...register('title')} />
           {errors.title && <p className="text-red-500 text-xs">{errors.title.message}</p>}
           
@@ -164,12 +189,36 @@ function AdForm({ onFinish, isProcessing }: { onFinish: (data: AdInput) => Promi
               {errors.endDate && <p className="text-red-500 text-xs">{errors.endDate.message?.toString()}</p>}
           </div>
 
-          <DialogFooter>
-            <DialogClose asChild><Button type="button" variant="ghost">إلغاء</Button></DialogClose>
-            <Button type="submit" disabled={isProcessing}>
-              {isProcessing && <Loader2 className="animate-spin ml-2" />}
-              إطلاق الحملة
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 justify-between">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                const opts = { shouldValidate: true, shouldDirty: true };
+                setValue('title', 'حملة النسر الذهبي للمحروقات', opts);
+                setValue('description', 'احصل على خصومات حافلات النهر بخصم يصل إلى 15% على الغيار والوقود المعتمد.', opts);
+                setValue('posterUrl', 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&q=80&w=1000', opts);
+                setValue('actionUrl', 'https://wa.me/962790000000', opts);
+                setValue('buttonText', 'اطلب كرت الخصم الفوري 🚀', opts);
+                setValue('targetImpressions', 15000, opts);
+                setValue('endDate', new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), opts);
+                setValue('geo.governorate', 'عمان', opts);
+                toast({
+                  title: "✨ تم التعبئة التلقائية للنموذج",
+                  description: "تم ملء كافة الحقول بنجاح وبسرعة سيادية. يمكنك الضغط على 'إطلاق الحملة' الآن."
+                });
+              }}
+              className="border-[#00ffcc]/30 text-[#00ffcc] hover:bg-[#00ffcc]/10 font-black text-xs"
+            >
+              🪄 تعبئة تلقائية سريعة
             </Button>
+            <div className="flex gap-2">
+              <DialogClose asChild><Button type="button" variant="ghost">إلغاء</Button></DialogClose>
+              <Button type="submit" disabled={isProcessing}>
+                {isProcessing && <Loader2 className="animate-spin ml-2" />}
+                إطلاق الحملة
+              </Button>
+            </div>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -194,12 +243,16 @@ function AdCampaignCard({
   const targetImpressions = ad.targetImpressions || 1;
   const consumption = (currentImpressions / targetImpressions) * 100;
   const isExpired = ad.endDate ? new Date(ad.endDate) < new Date() : false;
-  const isFrozen = ad.status === 'frozen';
+  
+  const statusLower = (ad.status || '').toLowerCase();
+  const isFrozen = statusLower === 'frozen';
+  const isActive = statusLower === 'active';
+  const isPaused = statusLower === 'paused';
   
   return (
     <Card className={cn(
         "bg-[#091B09]/50 border-emerald-950/40 overflow-hidden flex flex-col transition-all",
-        (ad.status === 'paused' || isFrozen) && 'opacity-65',
+        (isPaused || isFrozen) && 'opacity-65',
         isExpired && 'border-red-500/50',
         isFrozen && 'border-blue-500/40 relative shadow-inner'
     )}>
@@ -209,12 +262,12 @@ function AdCampaignCard({
             <Badge 
               variant={isExpired ? 'destructive' : isFrozen ? 'secondary' : 'outline'} 
               className={cn(
-                ad.status === 'active' && !isExpired && 'text-emerald-400 border-emerald-500/50 bg-emerald-950/20', 
-                ad.status === 'paused' && 'text-yellow-400 border-yellow-500/50 bg-yellow-950/20',
+                isActive && !isExpired && 'text-emerald-400 border-emerald-500/50 bg-emerald-950/20', 
+                isPaused && 'text-yellow-400 border-yellow-500/50 bg-yellow-950/20',
                 isFrozen && 'text-blue-400 border-blue-500/50 bg-blue-950/20'
               )}
             >
-              {isExpired ? 'منتهية' : isFrozen ? 'مجمّد ❄️' : (ad.status === 'active' ? 'نشط ●' : 'معلّق ||')}
+              {isExpired ? 'منتهية' : isFrozen ? 'مجمّد ❄️' : (isActive ? 'نشط ●' : 'معلّق ||')}
             </Badge>
         </div>
         <CardDescription className="flex items-center gap-4 text-[11px] pt-1 text-right">
@@ -273,12 +326,12 @@ function AdCampaignCard({
          <Button 
            variant="outline" 
            size="sm" 
-           onClick={() => onToggle(ad.id, ad.status as 'active' | 'paused')} 
+           onClick={() => onToggle(ad.id, ad.status)} 
            disabled={isFrozen}
            className="h-8 font-bold text-[10px] border-white/5 hover:bg-emerald-950/20"
          >
-            {ad.status === 'active' ? <PauseCircle className="ml-1 w-3.5 h-3.5 text-amber-500"/> : <PlayCircle className="ml-1 w-3.5 h-3.5 text-emerald-500"/>}
-            {ad.status === 'active' ? 'تعليق' : 'تفعيل'}
+            {isActive ? <PauseCircle className="ml-1 w-3.5 h-3.5 text-amber-500"/> : <PlayCircle className="ml-1 w-3.5 h-3.5 text-emerald-500"/>}
+            {isActive ? 'تعليق' : 'تفعيل'}
          </Button>
 
          {/* Sovereign 2: Freeze contract limits */}

@@ -1,0 +1,105 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Represents users, drivers, riders, and delegates details.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "name": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "owner", "driver", "rider", "delegate"] },
+        "phone": { "type": "string" },
+        "bio": { "type": "string" },
+        "isBanned": { "type": "boolean" },
+        "immunityScore": { "type": "number" },
+        "paidHoursRemaining": { "type": "integer" },
+        "governorate": { "type": "string" },
+        "district": { "type": "string" }
+      },
+      "required": ["uid", "name", "role"]
+    },
+    "Promo": {
+      "title": "Promo",
+      "description": "Promotional campaigns or ads metrics.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "code": { "type": "string" },
+        "description": { "type": "string" },
+        "active": { "type": "boolean" }
+      }
+    },
+    "Delegate": {
+      "title": "Delegate",
+      "description": "Information about independent regional delegates.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "district": { "type": "string" },
+        "referralCode": { "type": "string" },
+        "referredCount": { "type": "integer" },
+        "organicCount": { "type": "integer" },
+        "churnCount": { "type": "integer" },
+        "steadyCount": { "type": "integer" },
+        "targetDaily": { "type": "integer" },
+        "carriedDeficit": { "type": "integer" },
+        "linkExpiryHours": { "type": "integer" },
+        "status": { "type": "string", "enum": ["active", "suspended"] }
+      }
+    },
+    "MagicLink": {
+      "title": "MagicLink",
+      "description": "Sovereign delegate transient invitation link.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "delegateId": { "type": "string" },
+        "delegateName": { "type": "string" },
+        "token": { "type": "string" },
+        "expiresAt": { "type": "string" },
+        "expiryHours": { "type": "integer" },
+        "status": { "type": "string", "enum": ["active", "revoked", "used"] },
+        "url": { "type": "string" }
+      }
+    },
+    "DelegateTask": {
+      "title": "DelegateTask",
+      "description": "Field operation tasks issued for delegates.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "delegateId": { "type": "string" },
+        "delegateName": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "acknowledged", "completed", "closed"] },
+        "createdAt": { "type": "string" },
+        "deadline": { "type": "string" }
+      }
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "#/entities/User",
+      "description": "Contains system-wide user profile state and roles."
+    },
+    "/promos/{promoId}": {
+      "schema": "#/entities/Promo",
+      "description": "System promotional events and configurations."
+    },
+    "/delegates/{delegateId}": {
+      "schema": "#/entities/Delegate",
+      "description": "Details pertaining to active sovereign delegates in districts."
+    },
+    "/delegate_links/{linkId}": {
+      "schema": "#/entities/MagicLink",
+      "description": "Tracks transient tokens for delegated user registrations."
+    },
+    "/delegate_tasks/{taskId}": {
+      "schema": "#/entities/DelegateTask",
+      "description": "Contains field operation action tasks assigned to regional delegates."
+    }
+  }
+}

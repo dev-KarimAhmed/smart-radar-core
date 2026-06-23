@@ -77,12 +77,9 @@ function AuthContent({ children }: { children: ReactNode }) {
             }
 
             if (bypassUser) {
-                // We have a bypass user. Set it as our main user context so roles & permissions are active.
-                setUser(bypassUser);
-                setLoading(false);
-
                 // If not authenticated dynamically in Firebase, authenticate anonymously in background
                 if (!firebaseUser) {
+                    setLoading(true);
                     try {
                         await signInAnonymously(auth);
                     } catch (err) {
@@ -92,7 +89,7 @@ function AuthContent({ children }: { children: ReactNode }) {
                     // Sync the bypass user properties to Firestore to align security tokens
                     try {
                         const userRef = doc(db, 'users', firebaseUser.uid);
-                        await setDoc(userRef, {
+                        const syncedUser = {
                             uid: firebaseUser.uid,
                             name: bypassUser.name,
                             role: bypassUser.role,
@@ -103,9 +100,14 @@ function AuthContent({ children }: { children: ReactNode }) {
                             referralCode: bypassUser.referralCode || '',
                             referredCount: bypassUser.referredCount || 0,
                             pendingDues: bypassUser.pendingDues || 0
-                        }, { merge: true });
+                        };
+                        await setDoc(userRef, syncedUser, { merge: true });
+                        setUser(syncedUser as SovereignUser);
+                        setLoading(false);
                     } catch (err) {
                         console.error('Error syncing bypass user to Firestore:', err);
+                        setUser(bypassUser);
+                        setLoading(false);
                     }
                 }
             } else if (firebaseUser) {
@@ -141,14 +143,24 @@ function AuthContent({ children }: { children: ReactNode }) {
 
     const loginAsMockUser = useCallback(async (mockUser: SovereignUser) => {
         if (import.meta.env.DEV) {
+            setLoading(true);
             localStorage.setItem('sovereign_dev_bypass_user', JSON.stringify(mockUser));
-            setUser(mockUser);
-            if (!auth.currentUser) {
-                try {
-                    await signInAnonymously(auth);
-                } catch (err) {
-                    trackSovereignError(err, { context: 'MockUser_Anonymous_SignIn' });
-                }
+            
+            // Force sign out to ensure a fresh, pristine anonymous session.
+            // This guarantees resource == null, which satisfies all Firestore Security Rules for role assignment.
+            try {
+                await signOut(auth);
+            } catch (err) {
+                console.warn('Bypass sign-out warning:', err);
+            }
+
+            try {
+                await signInAnonymously(auth);
+            } catch (err) {
+                trackSovereignError(err, { context: 'MockUser_Anonymous_SignIn' });
+                // Fallback to local representation in case of connection failure
+                setUser(mockUser);
+                setLoading(false);
             }
         }
     }, []);

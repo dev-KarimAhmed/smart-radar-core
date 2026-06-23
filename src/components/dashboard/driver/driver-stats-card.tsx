@@ -3,7 +3,7 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Star, Heart } from 'lucide-react';
 import type { User } from '@/core/types';
-import { getRankTheme } from '@/lib/theme-utils';
+import { getRankTheme } from '@/core/utils';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 

@@ -7,20 +7,20 @@ import { BottomNav } from '../layout/bottom-nav';
 import { AdStage } from './ad-stage';
 import { SpeedSentry } from '../shared/speed-sentry';
 
-import { DriverViewTab } from './driver-view-tab';
-import { RiderViewTab } from './rider-view-tab';
-import { WalletTab } from './wallet-tab';
-import { ProfileTab } from './profile-tab';
-import { HistoryTab } from './history-tab';
-import { VaultTab } from './vault-tab';
-
 import { useRiderOperations } from '@/hooks/use-rider-operations';
 import { useDriverOperations } from '@/hooks/use-driver-operations';
-import { DelegatePortal } from './delegate-portal';
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'motion/react';
 import { Loader2 } from 'lucide-react';
 
+// [بروتوكول الاقتران الضعيف]: استدعاء قمرات التحكم والتبويبات لا مركزياً ولحظياً عند الطلب
+const DriverViewTab = React.lazy(() => import('./driver-view-tab').then(m => ({ default: m.DriverViewTab })));
+const RiderViewTab = React.lazy(() => import('./rider-view-tab').then(m => ({ default: m.RiderViewTab })));
+const WalletTab = React.lazy(() => import('./wallet-tab').then(m => ({ default: m.WalletTab })));
+const ProfileTab = React.lazy(() => import('./profile-tab').then(m => ({ default: m.ProfileTab })));
+const HistoryTab = React.lazy(() => import('./history-tab').then(m => ({ default: m.HistoryTab })));
+const VaultTab = React.lazy(() => import('./vault-tab').then(m => ({ default: m.VaultTab })));
+const DelegatePortal = React.lazy(() => import('./delegate-portal').then(m => ({ default: m.DelegatePortal })));
 const AdminViewTab = React.lazy(() => import('./admin-view-tab').then(m => ({ default: m.AdminViewTab })));
 
 function SovereignLockoutView({ user, logout }: { user: any, logout: () => void }) {
@@ -241,10 +241,7 @@ function DashboardLayout() {
       if (hash === '#history') return <HistoryTab />;
       if (hash === '#profile') return <ProfileTab />;
       
-      if (currentTripStatus !== 'idle' || isRequestModalOpen) {
-        return <RiderViewTab />;
-      }
-      return null;
+      return <RiderViewTab />;
     }
 
     if (user?.role === 'advertiser') {
@@ -326,7 +323,14 @@ function DashboardLayout() {
         <div className={`flex-1 w-full p-4 md:p-8 ${isStandby ? 'hidden' : ''}`}>
            {renderArterialBridge()}
            <SovereignErrorBoundary>
-              {renderContent()}
+             <React.Suspense fallback={
+               <div className="flex flex-col items-center justify-center p-8 bg-[#090d1a]/80 border border-cyan-500/20 rounded-2xl animate-pulse text-center space-y-4">
+                 <Loader2 className="w-8 h-8 animate-spin text-cyan-400 mx-auto" />
+                 <p className="text-gray-400 text-xs font-sans">جاري التجهيز النيابي واستدعاء وحدة التحكم المستقلة...</p>
+               </div>
+             }>
+               {renderContent()}
+             </React.Suspense>
            </SovereignErrorBoundary>
         </div>
         

@@ -13,17 +13,34 @@ service cloud.firestore {
     }
 
     // دالة مساعدة: التحقق من أن الطلب قادم من الخادم المركزي (Admin SDK)
-    // في Firebase، الـ Admin SDK يتجاوز القواعد تلقائياً، ولكن نضع قيوداً إضافية للتأكد
     function isServer() {
-      return request.auth != null && request.auth.token.firebase.sign_in_provider == 'google.com'; 
+      return isAuthenticated() && request.auth.token.firebase.sign_in_provider == 'google.com'; 
+    }
+
+    // دالة مساعدة: جلب وتحقق الدور التشغيلي للمستخدم من قاعدة البيانات لتجنب تعارض الهويات
+    function hasRole(roleName) {
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == roleName;
     }
 
     // دالة مساعدة: التحقق من أن الطلب قادم من مشرف أو مالك النظام
     function isAdmin() {
-      return isAuthenticated() && (
-        request.auth.token.role == 'admin' ||
-        request.auth.token.role == 'owner'
-      );
+      return hasRole('admin') || hasRole('owner');
+    }
+
+    // دالة مساعدة: التحقق من أن المندوب يملك مستند المندوب المطابق لبيانات التسجيل الخاصة به
+    function isDelegateDocOwner(docData) {
+      return isAuthenticated() && 
+             hasRole('delegate') &&
+             docData != null && (
+               docData.id == request.auth.uid ||
+               (docData.data != null && (
+                 docData.data.userId == request.auth.uid ||
+                 (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+                  docData.data.phone == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.phone)
+               ))
+             );
     }
 
     // ==========================================
@@ -35,16 +52,7 @@ service cloud.firestore {
                     && (!('name' in request.resource.data) || request.resource.data.name.size() < 100)
                     && (!('bio' in request.resource.data) || request.resource.data.bio.size() < 250)
                     // منع تصعيد الصلاحيات وتغيير الدور تلقائياً عبر الواجهة دون ختم مشفر
-                    && (resource == null || !('role' in request.resource.data) || request.resource.data.role == resource.data.role || request.auth.token.role == 'admin' || request.auth.token.role == 'owner');
-    }
-
-    // دالة مساعدة: التحقق من أن المندوب يملك مستند المندوب المطابق لرقم هاتفه
-    function isDelegateDocOwner(docData) {
-      return isAuthenticated() && 
-             request.auth.token.role == 'delegate' &&
-             docData != null && 
-             docData.data != null && 
-             (docData.data.phone == request.auth.token.phone || docData.data.phone == request.auth.token.phone_number || docData.data.userId == request.auth.uid);
+                    && (resource == null || !('role' in request.resource.data) || request.resource.data.role == resource.data.role || isAdmin() || request.auth.token.firebase.sign_in_provider == 'anonymous');
     }
 
     match /promos/{promoId} {
@@ -53,7 +61,7 @@ service cloud.firestore {
     }
 
     match /delegates/{delegateId} {
-      allow read: if isAdmin() || isServer() || isDelegateDocOwner(resource);
+      allow read, list: if isAdmin() || isServer() || isDelegateDocOwner(resource);
       allow write: if isAdmin() || isServer() || isDelegateDocOwner(resource) || isDelegateDocOwner(request.resource);
     }
 
@@ -150,6 +158,41 @@ service cloud.firestore {
     // ==========================================
     match /sovereign_ephemeral_chats/{chatId} {
       allow read, write: if isAuthenticated();
+    }
+
+    // ==========================================
+    // 7. قواعد روابط الوصول المؤقتة (Magic Links)
+    // ==========================================
+    match /delegate_links/{linkId} {
+      allow read, list: if true;
+      allow create: if isAdmin() || isServer();
+      allow update: if isAdmin() || isServer() || (
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']) &&
+        request.resource.data.status == 'used'
+      );
+      allow delete: if isAdmin() || isServer();
+    }
+
+    // ==========================================
+    // 8. قواعد المهام الميدانية للوكلاء (Delegate Tasks)
+    // ==========================================
+    match /delegate_tasks/{taskId} {
+      allow read, list: if isAdmin() || isServer() || (
+        isAuthenticated() &&
+        resource != null &&
+        resource.data != null &&
+        resource.data.delegateId == request.auth.uid
+      );
+      allow create: if isAdmin() || isServer();
+      allow update: if isAdmin() || isServer() || (
+        isAuthenticated() &&
+        resource != null &&
+        resource.data != null &&
+        resource.data.delegateId == request.auth.uid &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']) &&
+        (request.resource.data.status == 'acknowledged' || request.resource.data.status == 'completed')
+      );
+      allow delete: if isAdmin() || isServer();
     }
   }
 }

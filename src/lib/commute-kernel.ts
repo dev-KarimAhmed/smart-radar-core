@@ -1,7 +1,7 @@
 // [SCR-COMMUTE-PROTO-155] محرك الارتحال اللحظي والذوبان في صالة مزاد اللواء الجديد
 // محصن ومغلق دستورياً - يعمل بالكامل عند الحافة (Edge-Runtime) بصفر كلفة سحابية
 
-import { getDistrictFromCoords } from './geospatial';
+import { getDistrictFromCoords } from '@/core/logic/geospatial-kernel';
 
 export interface SovereignCaptainMovement {
   captainId: string;

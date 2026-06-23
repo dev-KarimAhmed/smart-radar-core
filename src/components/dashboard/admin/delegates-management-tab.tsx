@@ -35,8 +35,9 @@ import {
   TrendingDown,
   Info
 } from 'lucide-react';
-import { db, auth } from '@/lib/firebase';
+import { db, auth, handleFirestoreError, OperationType } from '@/lib/firebase';
 import { collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, getDocs, setDoc, query, where } from 'firebase/firestore';
+import { useAuth } from '@/hooks/use-auth';
 
 export interface Delegate {
   id: string;
@@ -87,6 +88,7 @@ export function DelegatesManagementTab() {
   const [isAdding, setIsAdding] = useState(false);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const { toast } = useToast();
+  const { user, loading: authLoading } = useAuth();
 
   // Form states (Delegate)
   const [name, setName] = useState('');
@@ -108,114 +110,117 @@ export function DelegatesManagementTab() {
     let unsubLinks: (() => void) | null = null;
     let unsubTasks: (() => void) | null = null;
 
-    const unsubscribeAuth = auth.onAuthStateChanged((firebaseUser) => {
-      if (firebaseUser) {
-        setLoading(true);
+    if (!authLoading && user && user.role === 'admin') {
+      setLoading(true);
 
-        // 1. Delegates listener
-        unsubDelegates = onSnapshot(collection(db, 'delegates'), (snapshot) => {
-          if (snapshot.empty) {
-            // Seed defaults
-            const defaultDelegates: Delegate[] = [
-              {
-                id: 'delegate-1',
-                name: 'علاء الحموري - دير غبار',
-                phone: '0795544332',
-                district: 'وادي السير',
-                referralCode: 'JO-AMMAN-GHUBAR-7',
-                referredCount: 38,
-                organicCount: 12,
-                churnCount: 2,
-                steadyCount: 48,
-                targetDaily: 10,
-                carriedDeficit: 3,
-                linkExpiryHours: 24,
-                status: 'active',
-                createdAt: new Date().toISOString()
-              },
-              {
-                id: 'delegate-2',
-                name: 'أبو طارق العراقي - الكرادة',
-                phone: '0770112233',
-                district: 'الكرادة',
-                referralCode: 'IQ-BAGHDAD-KARRADA-9',
-                referredCount: 64,
-                organicCount: 28,
-                churnCount: 1,
-                steadyCount: 91,
-                targetDaily: 15,
-                carriedDeficit: 0,
-                linkExpiryHours: 48,
-                status: 'active',
-                createdAt: new Date().toISOString()
-              },
-              {
-                id: 'delegate-3',
-                name: 'يزن القحطاني - صويلح',
-                phone: '0780445566',
-                district: 'الجامعة',
-                referralCode: 'JO-SWAILEH-08',
-                referredCount: 14,
-                organicCount: 4,
-                churnCount: 3,
-                steadyCount: 15,
-                targetDaily: 8,
-                carriedDeficit: 5,
-                linkExpiryHours: 72,
-                status: 'active',
-                createdAt: new Date().toISOString()
-              }
-            ];
-            setDelegates(defaultDelegates);
-            // Write them to database to ensure persistence for security policies
-            defaultDelegates.forEach(async (d) => {
-              try {
-                await setDoc(doc(db, 'delegates', d.id), d);
-              } catch (e) {
-                console.error("Self-healing background delegation seeding error:", e);
-              }
-            });
-          } else {
-            const list = snapshot.docs.map(docSnap => ({
-              id: docSnap.id,
-              ...docSnap.data()
-            } as Delegate));
-            setDelegates(list);
-          }
-          setLoading(false);
-        }, (err) => {
-          console.error("Firestore error loading delegates:", err);
-          setLoading(false);
-        });
-
-        // 2. Magic links listener
-        unsubLinks = onSnapshot(collection(db, 'delegate_links'), (snapshot) => {
+      // 1. Delegates listener
+      unsubDelegates = onSnapshot(collection(db, 'delegates'), (snapshot) => {
+        if (snapshot.empty) {
+          // Seed defaults
+          const defaultDelegates: Delegate[] = [
+            {
+              id: 'delegate-1',
+              name: 'علاء الحموري - دير غبار',
+              phone: '0795544332',
+              district: 'وادي السير',
+              referralCode: 'JO-AMMAN-GHUBAR-7',
+              referredCount: 38,
+              organicCount: 12,
+              churnCount: 2,
+              steadyCount: 48,
+              targetDaily: 10,
+              carriedDeficit: 3,
+              linkExpiryHours: 24,
+              status: 'active',
+              createdAt: new Date().toISOString()
+            },
+            {
+              id: 'delegate-2',
+              name: 'أبو طارق العراقي - الكرادة',
+              phone: '0770112233',
+              district: 'الكرادة',
+              referralCode: 'IQ-BAGHDAD-KARRADA-9',
+              referredCount: 64,
+              organicCount: 28,
+              churnCount: 1,
+              steadyCount: 91,
+              targetDaily: 15,
+              carriedDeficit: 0,
+              linkExpiryHours: 48,
+              status: 'active',
+              createdAt: new Date().toISOString()
+            },
+            {
+              id: 'delegate-3',
+              name: 'يزن القحطاني - صويلح',
+              phone: '0780445566',
+              district: 'الجامعة',
+              referralCode: 'JO-SWAILEH-08',
+              referredCount: 14,
+              organicCount: 4,
+              churnCount: 3,
+              steadyCount: 15,
+              targetDaily: 8,
+              carriedDeficit: 5,
+              linkExpiryHours: 72,
+              status: 'active',
+              createdAt: new Date().toISOString()
+            }
+          ];
+          setDelegates(defaultDelegates);
+          // Write them to database to ensure persistence for security policies
+          defaultDelegates.forEach(async (d) => {
+            try {
+              await setDoc(doc(db, 'delegates', d.id), d);
+            } catch (e) {
+              console.error("Self-healing background delegation seeding error:", e);
+            }
+          });
+        } else {
           const list = snapshot.docs.map(docSnap => ({
             id: docSnap.id,
             ...docSnap.data()
-          } as MagicLink));
-          setMagicLinks(list);
-        });
+          } as Delegate));
+          setDelegates(list);
+        }
+        setLoading(false);
+      }, (err) => {
+        console.error("Firestore error loading delegates:", err);
+        setLoading(false);
+        handleFirestoreError(err, OperationType.LIST, 'delegates');
+      });
 
-        // 3. Tasks listener
-        unsubTasks = onSnapshot(collection(db, 'delegate_tasks'), (snapshot) => {
-          const list = snapshot.docs.map(docSnap => ({
-            id: docSnap.id,
-            ...docSnap.data()
-          } as DelegateTask));
-          setTasks(list);
-        });
+      // 2. Magic links listener
+      unsubLinks = onSnapshot(collection(db, 'delegate_links'), (snapshot) => {
+        const list = snapshot.docs.map(docSnap => ({
+          id: docSnap.id,
+          ...docSnap.data()
+        } as MagicLink));
+        setMagicLinks(list);
+      }, (err) => {
+        console.error("Firestore error loading delegate_links:", err);
+        handleFirestoreError(err, OperationType.LIST, 'delegate_links');
+      });
 
-      }
-    });
+      // 3. Tasks listener
+      unsubTasks = onSnapshot(collection(db, 'delegate_tasks'), (snapshot) => {
+        const list = snapshot.docs.map(docSnap => ({
+          id: docSnap.id,
+          ...docSnap.data()
+        } as DelegateTask));
+        setTasks(list);
+      }, (err) => {
+        console.error("Firestore error loading delegate_tasks:", err);
+        handleFirestoreError(err, OperationType.LIST, 'delegate_tasks');
+      });
+    }
 
     return () => {
-      unsubscribeAuth();
       if (unsubDelegates) unsubDelegates();
       if (unsubLinks) unsubLinks();
       if (unsubTasks) unsubTasks();
     };
-  }, []);
+  }, [user, authLoading]);
 
   const handleCopy = (code: string) => {
     navigator.clipboard.writeText(code);

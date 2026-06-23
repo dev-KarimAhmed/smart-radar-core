@@ -23,7 +23,6 @@ import {
   Megaphone
 } from 'lucide-react';
 import { useAdminAds } from '@/hooks/use-admin-ads';
-import { useAdLifecycle } from '@/hooks/use-ad-lifecycle';
 import { useMarketPulse } from '@/hooks/use-market-pulse';
 import { useToast } from '@/hooks/use-toast';
 import { SOVEREIGN_PRICING_PACKAGES, SovereignPricingPackage } from '@/lib/constants';
@@ -87,7 +86,9 @@ export function LiveStreamRegistry({ ads }: { ads: any[] }) {
 
 export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
   const { createAd, ads, toggleAdStatus, deleteAd, extendAd } = useAdminAds();
-  const { pendingAds } = useAdLifecycle();
+  const pendingAds = useMemo(() => {
+    return (ads || []).filter(ad => (ad.status || '').toLowerCase() === 'pending' || (ad.status || '') === 'PENDING');
+  }, [ads]);
   const { pulseData } = useMarketPulse(true);
   const { toast } = useToast();
 

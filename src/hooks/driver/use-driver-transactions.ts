@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { doc, getDoc, updateDoc, setDoc, arrayUnion, serverTimestamp, query, collection, where, limit, onSnapshot } from 'firebase/firestore';
-import { getDistrictFromCoords } from '@/lib/geospatial';
+import { getDistrictFromCoords } from '@/core/logic/geospatial-kernel';
 import { db } from '@/lib/firebase';
 import { trackSovereignError } from '@/lib/error-tracker';
 import { getSovereignErrorMessage } from '@/core/constants/error-dictionary';
