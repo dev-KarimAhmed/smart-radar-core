@@ -27,6 +27,7 @@ export function useDriverLifecycle(user: User | null) {
   const lastProcessedTickRef = useRef<number | null>(null);
   const localPaidHoursRef = useRef<number | null>(null);
   const localBonusHoursRef = useRef<number | null>(null);
+  const localTimeDeltaRef = useRef<number>(0);
 
   const lastSavedOnServerRef = useRef<{ paid: number; bonus: number } | null>(null);
   const previousLocalStateRef = useRef<{ paid: number; bonus: number } | null>(null);
@@ -36,6 +37,7 @@ export function useDriverLifecycle(user: User | null) {
     lastProcessedTickRef.current = null;
     localPaidHoursRef.current = null;
     localBonusHoursRef.current = null;
+    localTimeDeltaRef.current = 0;
     sessionStartRef.current = null;
     lastSavedOnServerRef.current = null;
     previousLocalStateRef.current = null;
@@ -119,6 +121,9 @@ export function useDriverLifecycle(user: User | null) {
           dateNow: Date.now(),
           perfNow: performance.now()
         };
+        const startLastTick = currentUser.lastTickTimestamp || Date.now();
+        // [النبض الشبكي التفاضلي V2.6-Secured]: احتساب الفارق الرياضي بين توقيت السيرفر الموثق وساعة الهاتف
+        localTimeDeltaRef.current = startLastTick - Date.now();
       }
 
       // Calculate real monotonic elapsed time to neutralize any clock modifications (forward or backward)
@@ -186,11 +191,27 @@ export function useDriverLifecycle(user: User | null) {
       const integrity = RadarAntiCheatKernel.validateTimeIntegrity({
         paidMinutesRemaining: paidHours,
         lastServerSyncedTimestamp: lastTick,
-        localTimeDeltaMs: 0
+        localTimeDeltaMs: localTimeDeltaRef.current
       }, clientNow);
 
       if (integrity.isTimeTampered) {
         clientNow = integrity.correctedNow;
+      }
+
+      // 📡 [بروتوكول المصافحة التصفوية الصامتة V2.6-Secured - اقتران ضعيف]
+      const handshakeResult = RadarAntiCheatKernel.evaluateSilentHandshake({
+        isRadarActive,
+        serverStatus: currentUser.status || 'idle',
+        isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
+        clientNow,
+        deviceNow: Date.now()
+      });
+
+      if (!handshakeResult.isHandshakePassed) {
+        console.warn(`📡 [المصافحة الصامتة]: تم تعليق خصم الساعات لحفظ الرصيد من التلاشي أثناء عطل التغطية أو عدم مطابقة البث أو التلاعب بالوقت. السبب: ${handshakeResult.reason}`);
+        // نجمد العداد محلياً بمزامنة توقيت العداد مع توقيت النبضة الحالي دون ترحيل الخصم
+        lastProcessedTickRef.current = clientNow;
+        return;
       }
 
       const wallet = {

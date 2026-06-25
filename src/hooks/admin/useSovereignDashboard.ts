@@ -230,6 +230,18 @@ export const useSovereignDashboard = () => {
     if (isProcessingRef.current) return;
     isProcessingRef.current = true;
     setIsProcessing(true);
+
+    // Save current state for potential rollback
+    let rollbackDelegates: DelegateData[] = [];
+    setDelegates(prev => {
+      rollbackDelegates = [...prev];
+      return prev.map(del => 
+        del.id === delegateId 
+          ? { ...del, pendingDues: 0 } 
+          : del
+      );
+    });
+
     try {
       const response = await fetch('/api/clear-delegate-dues', {
         method: 'POST',
@@ -241,10 +253,13 @@ export const useSovereignDashboard = () => {
       if (response.ok && data.success) {
         toast({
           title: '✅ تصفية مالية ناجحة',
-          description: `تم تسوية وتصفير مستحقات المندوب [${delegateName}] بالكامل وإصدار وصل الصرف.`
+          description: `تم تسوية وتصفير مستحقات المندوب [${delegateName}] بالكامل وإصدار وصل الصرف بمبلغ صافي قدره ${data.netSettled?.toFixed(2) || '0.00'} د.أ.`
         });
         await fetchDelegates();
       } else {
+        if (rollbackDelegates.length > 0) {
+          setDelegates(rollbackDelegates);
+        }
         toast({
           variant: 'destructive',
           title: 'فشل تسوية المستحقات',
@@ -252,6 +267,9 @@ export const useSovereignDashboard = () => {
         });
       }
     } catch (err: any) {
+      if (rollbackDelegates.length > 0) {
+        setDelegates(rollbackDelegates);
+      }
       toast({
         variant: 'destructive',
         title: 'فشل تسوية المستحقات',

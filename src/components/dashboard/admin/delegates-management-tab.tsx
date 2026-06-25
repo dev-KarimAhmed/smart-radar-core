@@ -54,6 +54,7 @@ export interface Delegate {
   linkExpiryHours: number;
   status: 'active' | 'suspended';
   createdAt: string;
+  integritySignature?: string;
 }
 
 export interface MagicLink {
@@ -80,8 +81,10 @@ export interface DelegateTask {
 
 export function DelegatesManagementTab() {
   const [delegates, setDelegates] = useState<Delegate[]>([]);
+  const [verifiedSignatures, setVerifiedSignatures] = useState<Record<string, boolean>>({});
   const [magicLinks, setMagicLinks] = useState<MagicLink[]>([]);
   const [tasks, setTasks] = useState<DelegateTask[]>([]);
+  const [drivers, setDrivers] = useState<any[]>([]);
   
   const [loading, setLoading] = useState(true);
   const [activeSubTab, setActiveSubTab] = useState<'delegates' | 'magic-links' | 'tasks' | 'performance'>('delegates');
@@ -89,6 +92,36 @@ export function DelegatesManagementTab() {
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
+
+  // Signature validation via backend-proxy (Sovereign V2.6-Secured protocol)
+  useEffect(() => {
+    if (delegates.length === 0) return;
+    const verifyAll = async () => {
+      try {
+        const response = await fetch('/api/verify-signatures', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            delegates: delegates.map(d => ({
+              id: d.id,
+              referredCount: d.referredCount || 0,
+              referralCode: d.referralCode || '',
+              integritySignature: d.integritySignature || '',
+              homeDistrict: (d as any).homeDistrict || (d as any).district || 'وادي السير',
+              currentH3Cell: (d as any).currentH3Cell || '0x892f35ffffffff'
+            }))
+          })
+        });
+        const data = await response.json();
+        if (response.ok && data.success) {
+          setVerifiedSignatures(data.results);
+        }
+      } catch (err) {
+        console.error("Failed to verify signatures via backend proxy:", err);
+      }
+    };
+    verifyAll();
+  }, [delegates]);
 
   // Form states (Delegate)
   const [name, setName] = useState('');
@@ -109,9 +142,21 @@ export function DelegatesManagementTab() {
     let unsubDelegates: (() => void) | null = null;
     let unsubLinks: (() => void) | null = null;
     let unsubTasks: (() => void) | null = null;
+    let unsubDrivers: (() => void) | null = null;
 
     if (!authLoading && user && user.role === 'admin') {
       setLoading(true);
+
+      // 0. Drivers listener for cross-validation
+      unsubDrivers = onSnapshot(query(collection(db, 'users'), where('role', '==', 'driver')), (snapshot) => {
+        const list = snapshot.docs.map(docSnap => ({
+          uid: docSnap.id,
+          ...docSnap.data()
+        }));
+        setDrivers(list);
+      }, (err) => {
+        console.error("Firestore error loading drivers for cross-validation:", err);
+      });
 
       // 1. Delegates listener
       unsubDelegates = onSnapshot(collection(db, 'delegates'), (snapshot) => {
@@ -219,6 +264,7 @@ export function DelegatesManagementTab() {
       if (unsubDelegates) unsubDelegates();
       if (unsubLinks) unsubLinks();
       if (unsubTasks) unsubTasks();
+      if (unsubDrivers) unsubDrivers();
     };
   }, [user, authLoading]);
 
@@ -279,25 +325,29 @@ export function DelegatesManagementTab() {
 
   // Generate real Magic Link
   const handleGenerateMagicLink = async (delegate: Delegate) => {
-    const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-    const hours = delegate.linkExpiryHours || 24;
-    const expiresAt = new Date(Date.now() + hours * 60 * 60 * 1000).toISOString();
-    
-    // Path constructed dynamically for our sovereign routing environment
-    const magicLinkUrl = `${window.location.origin}/#magic-login?token=${token}`;
-
-    const newLink: Omit<MagicLink, 'id'> = {
-      delegateId: delegate.id,
-      delegateName: delegate.name,
-      token,
-      expiresAt,
-      expiryHours: hours,
-      status: 'active',
-      url: magicLinkUrl
-    };
-
     try {
-      await addDoc(collection(db, 'delegate_links'), newLink);
+      const hours = delegate.linkExpiryHours || 24;
+      const response = await fetch('/api/generate-magic-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          delegateId: delegate.id,
+          delegateName: delegate.name,
+          expiryHours: hours,
+          actorRole: 'admin'
+        })
+      });
+
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        toast({
+          variant: 'destructive',
+          title: 'فشل إنشاء الرابط السحابي',
+          description: data.error || 'حدث خطأ في الخادم أثناء توليد الرابط.'
+        });
+        return;
+      }
+
       toast({
         title: 'تم توليد الرابط السحري',
         description: `تم ربط المندوب "${delegate.name}" برابط دخول مؤقت ومحمي لـ ${hours} ساعة.`
@@ -307,7 +357,7 @@ export function DelegatesManagementTab() {
       toast({
         variant: 'destructive',
         title: 'فشل إنشاء الرابط السحابي',
-        description: 'تأكد من تراخيص الاتصال بـ Firestore.'
+        description: 'حدث خطأ غير متوقع أثناء معالجة الطلب السحري.'
       });
     }
   };
@@ -367,10 +417,31 @@ export function DelegatesManagementTab() {
   // Close Task
   const handleCloseTask = async (taskId: string) => {
     try {
-      await updateDoc(doc(db, 'delegate_tasks', taskId), { status: 'closed' });
+      const response = await fetch('/api/delegate-task-transition', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          taskId,
+          targetStatus: 'closed',
+          delegateId: selectedDelegateId,
+          actorUid: user?.uid,
+          actorRole: 'admin'
+        })
+      });
+
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        toast({
+          variant: 'destructive',
+          title: 'فشل إغلاق المهمة',
+          description: data.error || 'فشل جدار الحماية السحابي في معالجة الإجراء.'
+        });
+        return;
+      }
+
       toast({
         title: 'تم إغلاق المهمة وأرشفتها',
-        description: 'تم تحويل حالة المهمة الميدانية إلى مغلقة بنجاح.'
+        description: 'تم تحويل حالة المهمة الميدانية إلى مغلقة بنجاح ومصادقتها سحابياً.'
       });
     } catch (e) {
       console.error("Error closing task:", e);
@@ -424,6 +495,47 @@ export function DelegatesManagementTab() {
       console.error(e);
       // Fallback update
       setDelegates(prev => prev.map(d => d.id === id ? { ...d, pendingDues: 0 } : d));
+    }
+  };
+
+  const handleReconcileAndSign = async (id: string) => {
+    try {
+      const targetDelegate = delegates.find(d => d.id === id);
+      if (!targetDelegate) return;
+
+      const adminIdentity = auth.currentUser ? (auth.currentUser.email || auth.currentUser.uid) : 'SYSTEM_SOVEREIGN_ADMIN';
+
+      const response = await fetch('/api/reconcile-and-sign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          delegateId: id,
+          actorRole: 'admin',
+          actorUid: adminIdentity
+        })
+      });
+
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        toast({
+          variant: 'destructive',
+          title: 'فشل بروتوكول التوقيع',
+          description: data.error || 'حدث خطأ في الخادر أثناء معالجة المصادقة والتحقق.'
+        });
+        return;
+      }
+
+      toast({
+        title: 'تمت المصادقة الثنائية بنجاح ✓',
+        description: `تمت مزامنة وإغلاق عدادات المندوب (${targetDelegate.name}) بالبكسل التاريخي وتوقيعه بالختم الرقمي السيادي من خلال الخادم الأمني.`
+      });
+    } catch (err) {
+      console.error("Failed to reconcile and sign delegate:", err);
+      toast({
+        variant: 'destructive',
+        title: 'فشل بروتوكول التوقيع',
+        description: 'حدث خطأ غير متوقع أثناء معالجة المصادقة الرقمية.'
+      });
     }
   };
 
@@ -681,7 +793,54 @@ export function DelegatesManagementTab() {
                           </TableCell>
 
                           <TableCell className="align-middle font-bold text-xs font-mono text-zinc-300">
-                            {del.referredCount || 0} كابتن
+                            <div>
+                              <div>{del.referredCount || 0} كابتن</div>
+                              {(() => {
+                                const actualCount = drivers.filter(dr => 
+                                  dr.referralCode === del.referralCode || 
+                                  dr.referredByCode === del.referralCode || 
+                                  dr.usedReferralCode === del.referralCode
+                                ).length;
+                                
+                                const isSigValid = !!verifiedSignatures[del.id];
+                                const hasDiscrepancy = actualCount > 0 && actualCount !== del.referredCount;
+
+                                return (
+                                  <div className="space-y-1 mt-1.5 text-[9px] font-sans">
+                                    {isSigValid ? (
+                                      <Badge variant="outline" className="text-[8px] bg-emerald-950/25 text-emerald-400 border-emerald-500/30 py-0.5 px-1 font-bold block w-fit">
+                                        ✓ توقيع رقمي معتمد
+                                      </Badge>
+                                    ) : (
+                                      <Badge variant="outline" className="text-[8px] bg-red-950/25 text-red-400 border-red-500/30 py-0.5 px-1 font-bold block w-fit">
+                                        ⚠️ تالف أو غير موقّع
+                                      </Badge>
+                                    )}
+
+                                    {hasDiscrepancy ? (
+                                      <div className="text-red-400 font-bold flex items-center gap-1">
+                                        <span>⚠️ تضارب: الفعلي ({actualCount})</span>
+                                      </div>
+                                    ) : actualCount > 0 ? (
+                                      <div className="text-emerald-400 font-bold flex items-center gap-1 text-[8px]">
+                                        <span>✓ تطابق مبرهن ({actualCount})</span>
+                                      </div>
+                                    ) : null}
+
+                                    {(!isSigValid || hasDiscrepancy) && (
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => handleReconcileAndSign(del.id)}
+                                        className="h-5 px-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-[8px] font-bold text-amber-400 rounded border border-amber-500/20 block"
+                                      >
+                                        مصادقة وتوقيع تشفيري ⚡
+                                      </Button>
+                                    )}
+                                  </div>
+                                );
+                              })()}
+                            </div>
                           </TableCell>
 
                           <TableCell className="align-middle font-semibold text-xs font-mono text-emerald-400">
@@ -1070,11 +1229,19 @@ export function DelegatesManagementTab() {
               <div className="space-y-4 font-sans text-xs">
                 {delegates.map(d => {
                   const percentage = totalReferred > 0 ? Math.round(((d.referredCount || 0) / totalReferred) * 100) : 0;
+                  const isSigValid = !!verifiedSignatures[d.id];
                   return (
                     <div key={d.id} className="space-y-1.5 bg-black/40 p-3 rounded-lg border border-[#1e293b]">
                       <div className="flex justify-between items-center text-xs">
-                        <span className="text-zinc-400">الإقليم: <span className="font-bold text-white">{d.district}</span></span>
-                        <span className="font-bold text-emerald-400">{d.referredCount} كابتن ({percentage}%)</span>
+                        <span className="text-zinc-400">الإقليم: <span className="font-bold text-white">{d.district} ({d.name})</span></span>
+                        <div className="flex items-center gap-1.5">
+                          {isSigValid ? (
+                            <span className="text-[9px] text-emerald-400 font-bold bg-emerald-950/20 px-1 border border-emerald-500/20 rounded">✓ موثق تشفيرياً</span>
+                          ) : (
+                            <span className="text-[9px] text-red-400 font-bold bg-red-950/20 px-1 border border-red-500/20 rounded">⚠️ غير موثق</span>
+                          )}
+                          <span className="font-bold text-emerald-400">{d.referredCount} كابتن ({percentage}%)</span>
+                        </div>
                       </div>
                       <div className="w-full bg-neutral-900 h-2 rounded-full overflow-hidden">
                         <div 

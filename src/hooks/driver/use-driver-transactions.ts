@@ -56,14 +56,55 @@ export function useDriverTransactions(
 
     const q = query(
       collection(db, 'trips'),
-      where('driverId', '==', user.uid),
-      where('status', 'in', ['busy', 'rating', 'completed', 'checkpoint_required']),
-      limit(1)
+      where('driverId', '==', user.uid)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       if (!snapshot.empty) {
-        const tripData = { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as Trip;
+        // [بروتوكول الربط الشرياني V2.6-Secured - فرز العهد الميداني للفرسان]
+        const trips = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Trip));
+        
+        // فرز تنازلي زمني للحصول على الرحلة الأكثر حداثة بصفر تداخل شبكي وصفر متطلبات كشافات
+        trips.sort((a, b) => {
+          const getMs = (val: any) => {
+            if (!val) return 0;
+            if (typeof val.toMillis === 'function') return val.toMillis();
+            if (val.seconds) return val.seconds * 1000;
+            return new Date(val).getTime();
+          };
+          return getMs(b.createdAt) - getMs(a.createdAt);
+        });
+
+        const tripData = trips[0];
+        
+        // التحقق من صلاحية الرحلة وحداثتها لتجنب التموضع العالق في الحسابات السابقة
+        const getTripTimeMs = (val: any) => {
+          if (!val) return Date.now();
+          if (typeof val.toMillis === 'function') return val.toMillis();
+          if (val.seconds) return val.seconds * 1000;
+          return new Date(val).getTime();
+        };
+
+        const isRecent = Date.now() - getTripTimeMs(tripData.createdAt) < 15 * 60 * 1000; // نافذة 15 دقيقة
+
+        // التحقق من الحالات النهائية والمؤرشفة والقديمة لتسريح شاشة الكابتن فوراً للعودة للخدمة
+        if (tripData.status === 'archived' || (!isRecent && ['completed', 'checkpoint_required'].includes(tripData.status))) {
+          cleanUpAndReset();
+          return;
+        }
+
+        // إذا كانت الرحلة ملغاة، نقوم بالتصفير الفوري والعودة للحالة النشطة
+        if (tripData.status === 'cancelled') {
+          cleanUpAndReset();
+          return;
+        }
+
+        // التحقق من الحالات الصالحة للملاحة والتقييم للفرسان
+        if (!['busy', 'rating', 'completed', 'checkpoint_required'].includes(tripData.status)) {
+          cleanUpAndReset();
+          return;
+        }
+
         setActiveReq(tripData);
 
         if (tripData.riderId && (!acceptedRider || acceptedRider.uid !== tripData.riderId)) {

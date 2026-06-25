@@ -48,14 +48,16 @@ export function RadarOwnerSovereignDashboard() {
   };
 
   // Aggregated mathematical statistics across all delegates
-  const auditedStats = delegates.reduce((acc, del) => {
-    const audit = auditRepresentativeCommissions(del);
-    return {
-      totalDues: acc.totalDues + audit.rawDues,
-      totalPenalties: acc.totalPenalties + audit.penaltyAmount,
-      totalNet: acc.totalNet + audit.withdrawableBalance
-    };
-  }, { totalDues: 0, totalPenalties: 0, totalNet: 0 });
+  const auditedStats = React.useMemo(() => {
+    return delegates.reduce((acc, del) => {
+      const audit = auditRepresentativeCommissions(del);
+      return {
+        totalDues: acc.totalDues + audit.rawDues,
+        totalPenalties: acc.totalPenalties + audit.penaltyAmount,
+        totalNet: acc.totalNet + audit.withdrawableBalance
+      };
+    }, { totalDues: 0, totalPenalties: 0, totalNet: 0 });
+  }, [delegates]);
 
   return (
     <div className="space-y-8 bg-[#020202] text-right p-6 rounded-3xl border border-red-500/10 min-h-screen text-white font-sans" dir="rtl">

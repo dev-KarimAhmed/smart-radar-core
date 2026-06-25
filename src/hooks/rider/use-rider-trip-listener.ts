@@ -58,31 +58,67 @@ export function useRiderTripListener(user: DriverUser | null) {
 
     const q = query(
       collection(db, 'trips'),
-      where('riderId', '==', user.uid),
-      where('status', 'in', ['searching', 'busy', 'rating', 'completed', 'checkpoint_required', 'cancelled']),
-      limit(1)
+      where('riderId', '==', user.uid)
     );
 
     const unsubscribe = onSnapshot(q, async (snapshot) => {
       if (!snapshot.empty) {
-        const tripDoc = snapshot.docs[0];
-        const updatedTrip = { id: tripDoc.id, ...tripDoc.data() } as Trip;
+        // [بروتوكول الربط الشرياني V2.6-Secured - فرز العهد الملاحي على الحافة]
+        const trips = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Trip));
+        
+        // فرز تصاعدي زمني للحصول على الرحلة الأكثر حداثة بصفر تداخل شبكي وصفر متطلبات كشافات
+        trips.sort((a, b) => {
+          const getMs = (val: any) => {
+            if (!val) return 0;
+            if (typeof val.toMillis === 'function') return val.toMillis();
+            if (val.seconds) return val.seconds * 1000;
+            return new Date(val).getTime();
+          };
+          return getMs(b.createdAt) - getMs(a.createdAt);
+        });
+
+        const updatedTrip = trips[0];
+        
+        // التحقق من الحداثة الزمنية للرحلة لمنع السقوط في فخ الرحلات منتهية الصلاحية
+        const getTripTimeMs = (val: any) => {
+          if (!val) return Date.now();
+          if (typeof val.toMillis === 'function') return val.toMillis();
+          if (val.seconds) return val.seconds * 1000;
+          return new Date(val).getTime();
+        };
+
+        const isRecent = Date.now() - getTripTimeMs(updatedTrip.createdAt) < 15 * 60 * 1000; // نافذة 15 دقيقة
         const prevTrip = prevTripRef.current;
         
         if (JSON.stringify(prevTrip) === JSON.stringify(updatedTrip)) {
           return;
         }
 
-        // Keep local ref synchronized immediately to act as SSOT before state schedules take effect
+        // الحفاظ على حالة التزامن الفوري كمرجع موحد ومستقر قبل السقوط
         prevTripRef.current = updatedTrip;
 
-        // Determine next status and set it cleanly outside of functional state updater
+        // التحقق من الحالات النهائية والمؤرشفة والقديمة لتسريح شاشة الراكب فوراً
+        if (updatedTrip.status === 'archived') {
+          resetState();
+          return;
+        }
+
+        // تحديد الحالة التالية للواجهة مع منع تمزق قنوات الراكب
         let nextStatus: TripStatus = updatedTrip.status;
-        if (updatedTrip.status === 'completed' && prevTrip?.status !== 'completed') {
-          nextStatus = 'rating';
+        if (updatedTrip.status === 'completed') {
+          if (isRecent) {
+            nextStatus = 'rating';
+          } else {
+            resetState();
+            return;
+          }
         } else if (updatedTrip.status === 'checkpoint_required') {
           nextStatus = 'checkpoint_required';
         } else if (updatedTrip.status === 'cancelled') {
+          resetState();
+          return;
+        } else if (!['searching', 'busy'].includes(updatedTrip.status)) {
+          // أي حالة غريبة أو منتهية نقوم بتسريحها لحماية تدفق الواجهات
           resetState();
           return;
         }

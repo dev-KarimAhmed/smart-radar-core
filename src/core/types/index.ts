@@ -76,6 +76,7 @@ export interface Trip {
   status: TripStatus;
   offerPrice?: number;
   handshakeAt?: any;
+  createdAt?: any;
   pickupCoords: { lat: number; lng: number; };
   exactPickupCoords?: { lat: number; lng: number; };
   obfuscatedPickupCoords?: { lat: number; lng: number; };

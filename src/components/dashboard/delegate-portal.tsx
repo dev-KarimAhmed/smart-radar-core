@@ -188,38 +188,33 @@ export function DelegatePortal() {
   // Magic Link Login Trigger
   const triggerMagicLogin = async (token: string) => {
     try {
-      // Find matching link in firestore
-      const lQuery = query(
-        collection(db, 'delegate_links'),
-        where('token', '==', token),
-        where('status', '==', 'active')
-      );
-      
-      const qSnap = await getDocs(lQuery);
-      if (!qSnap.empty) {
-        const linkDoc = qSnap.docs[0];
-        const linkData = linkDoc.data();
-        const expiry = new Date(linkData.expiresAt);
-        
-        if (expiry > new Date()) {
-          setMagicSessionActive(true);
-          setMagicSessionExpiry(expiry.toLocaleTimeString('ar-JO'));
-          
-          // Mark as used
-          await updateDoc(doc(db, 'delegate_links', linkDoc.id), { status: 'used' });
-          
-          alert('تم التحقق السحري من هويتك كوكيل سيادي بنجاح مبرهن! تم تأسيس جسد جلسة أمان مؤقتة.');
-        } else {
-          alert('تنبيه أمان: الرابط السحري منتهي الصلاحية زمنيّاً.');
-        }
-      } else {
-        // Mock success for simulation purposes if link db not seeded yet
+      const response = await fetch('/api/verify-magic-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token })
+      });
+
+      const data = await response.json();
+      if (response.ok && data.success) {
         setMagicSessionActive(true);
-        const simExpiry = new Date(Date.now() + 2 * 60 * 60 * 1000);
-        setMagicSessionExpiry(simExpiry.toLocaleTimeString('ar-JO'));
+        const expiry = new Date(data.expiresAt);
+        setMagicSessionExpiry(expiry.toLocaleTimeString('ar-JO'));
+        
+        alert('تم التحقق السحري من هويتك كوكيل سيادي بنجاح مبرهن! تم تأسيس جسد جلسة أمان مؤقتة.');
+      } else {
+        // Prevent simulation bypass in production environments
+        if (process.env.NODE_ENV !== 'production') {
+          setMagicSessionActive(true);
+          const simExpiry = new Date(Date.now() + 2 * 60 * 60 * 1000);
+          setMagicSessionExpiry(simExpiry.toLocaleTimeString('ar-JO'));
+          alert('جلسة محاكاة نشطة محلياً للتطوير (التشغيل السحابي متعذر).');
+        } else {
+          alert(`خطأ أمني: ${data.error || 'الرمز السحري المدخل غير صالح أو تم استخدامه مسبقاً.'}`);
+        }
       }
     } catch (e) {
       console.error(e);
+      alert('فشل إجراء الدخول السحري عبر بوابة التحقق السحابي.');
     }
   };
 
@@ -230,7 +225,9 @@ export function DelegatePortal() {
   };
 
   const handleCopyMagicLinkUrl = () => {
-    const fakeToken = Math.random().toString(36).substring(7);
+    const secureTokenArray = new Uint8Array(8);
+    window.crypto.getRandomValues(secureTokenArray);
+    const fakeToken = Array.from(secureTokenArray, byte => byte.toString(16).padStart(2, '0')).join('');
     const mockUrl = `${window.location.origin}/#magic-login?token=${fakeToken}`;
     navigator.clipboard.writeText(mockUrl);
     setCopiedLink(true);
@@ -242,30 +239,127 @@ export function DelegatePortal() {
     return (projectedDrivers * avgTripsPerDriver * baseReward).toFixed(2);
   };
 
-  // Task actions triggered from UI
+  const getVerifiedNetworkTime = async (): Promise<Date> => {
+    try {
+      const timeResponse = await fetch('/api/health');
+      if (timeResponse.ok) {
+        const timeData = await timeResponse.json();
+        if (timeData.serverTime) {
+          return new Date(timeData.serverTime);
+        }
+      }
+    } catch (err) {
+      console.warn("Failed to synchronize with sovereign network time, falling back to secure local time check.", err);
+    }
+    return new Date();
+  };
+
+  // Task actions triggered from UI with Double-Handshake Gate & State-Machine Enforcer
   const handleAcknowledgeTask = async (taskId: string) => {
     try {
+      const verifiedNow = await getVerifiedNetworkTime();
+      
       if (taskId.startsWith('tsk-sim')) {
+        const simTask = tasks.find(t => t.id === taskId);
+        if (!simTask) return;
+        
+        const delegateId = user?.uid || 'dev-delegate-001';
+        if (simTask.delegateId !== delegateId) {
+          alert('خطأ أمني: هذه المهمة لا تنتمي لمعرّفك الميداني المسجل.');
+          return;
+        }
+
+        if (simTask.deadline && new Date(simTask.deadline) < verifiedNow) {
+          alert('فشل الإجراء: انتهى الأجل الزمني المحدد لهذه المهمة (Deadline Exceeded).');
+          return;
+        }
+
+        if (simTask.status !== 'pending') {
+          alert(`خطأ في آلة الحالات: لا يمكن تفعيل مهمة بحالة ${simTask.status}.`);
+          return;
+        }
+
         setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'acknowledged' } : t));
+        alert('تم إخطار المشرف باطلاعك الميداني والبدء الفوري بالتنفيذ.');
       } else {
-        await updateDoc(doc(db, 'delegate_tasks', taskId), { status: 'acknowledged' });
+        const delegateId = user?.uid || 'dev-delegate-001';
+        const response = await fetch('/api/delegate-task-transition', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            taskId,
+            targetStatus: 'acknowledged',
+            delegateId,
+            actorUid: user?.uid,
+            actorRole: user?.role || 'delegate'
+          })
+        });
+
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+          alert(`فشل الإجراء: ${data.error || 'حدث خطأ في جدار التحقق السحابي.'}`);
+          return;
+        }
+
+        alert('تم إخطار المشرف باطلاعك الميداني والبدء الفوري بالتنفيذ (مصادق سحابياً).');
       }
-      alert('تم إخطار المشرف باطلاعك الميداني والبدء الفوري بالتنفيذ.');
     } catch (e) {
       console.error(e);
+      alert('فشل إجراء الاطلاع الأمني المزدوج.');
     }
   };
 
   const handleExecuteTask = async (taskId: string) => {
     try {
+      const verifiedNow = await getVerifiedNetworkTime();
+
       if (taskId.startsWith('tsk-sim')) {
+        const simTask = tasks.find(t => t.id === taskId);
+        if (!simTask) return;
+
+        const delegateId = user?.uid || 'dev-delegate-001';
+        if (simTask.delegateId !== delegateId) {
+          alert('خطأ أمني: هذه المهمة لا تنتمي لمعرّفك الميداني المسجل.');
+          return;
+        }
+
+        if (simTask.deadline && new Date(simTask.deadline) < verifiedNow) {
+          alert('فشل الإجراء: انتهى الأجل الزمني المحدد لهذه المهمة (Deadline Exceeded).');
+          return;
+        }
+
+        if (simTask.status !== 'acknowledged') {
+          alert(`خطأ في آلة الحالات: لا يمكن إكمال مهمة بحالة ${simTask.status}.`);
+          return;
+        }
+
         setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'completed' } : t));
+        alert('تم تأكيد إكمال المهمة وتصنيفها كـ منجزة بانتظار إغلاق المشرف السلوكي.');
       } else {
-        await updateDoc(doc(db, 'delegate_tasks', taskId), { status: 'completed' });
+        const delegateId = user?.uid || 'dev-delegate-001';
+        const response = await fetch('/api/delegate-task-transition', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            taskId,
+            targetStatus: 'completed',
+            delegateId,
+            actorUid: user?.uid,
+            actorRole: user?.role || 'delegate'
+          })
+        });
+
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+          alert(`فشل الإجراء: ${data.error || 'حدث خطأ في جدار التحقق السحابي.'}`);
+          return;
+        }
+
+        alert('تم تأكيد إكمال المهمة وتصنيفها كـ منجزة بانتظار إغلاق المشرف السلوكي (مصادق سحابياً).');
       }
-      alert('تم تأكيد إكمال المهمة وتصنيفها كـ منجزة بانتظار إغلاق المشرف السلوكي.');
     } catch (e) {
       console.error(e);
+      alert('فشل إجراء التحقق المزدوج لإغلاق المهمة.');
     }
   };
 
@@ -1022,60 +1116,76 @@ export function DelegatePortal() {
               
               {tasks.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {tasks.map((task) => (
-                    <div 
-                      key={task.id} 
-                      className={`p-4 rounded-xl border transition-all ${
-                        task.status === 'pending' ? 'bg-yellow-950/10 border-yellow-500/25' :
-                        task.status === 'acknowledged' ? 'bg-blue-950/10 border-blue-500/25' :
-                        task.status === 'completed' ? 'bg-emerald-950/10 border-emerald-500/25' :
-                        'bg-zinc-950/40 border-zinc-80 *'
-                      }`}
-                    >
-                      <div className="flex justify-between items-start gap-2">
-                        <div>
-                          <h4 className="text-xs font-black text-white">{task.title}</h4>
-                          <span className="text-[9px] text-zinc-500 font-mono mt-0.5 block">الموعد النهائي: {task.deadline}</span>
+                  {tasks.map((task) => {
+                    const isTaskExpired = task.deadline && new Date(task.deadline) < new Date() && task.status !== 'completed' && task.status !== 'closed';
+                    
+                    return (
+                      <div 
+                        key={task.id} 
+                        className={`p-4 rounded-xl border transition-all ${
+                          isTaskExpired ? 'bg-red-950/15 border-red-500/35 shadow-[0_0_15px_rgba(239,68,68,0.05)]' :
+                          task.status === 'pending' ? 'bg-yellow-950/10 border-yellow-500/25' :
+                          task.status === 'acknowledged' ? 'bg-blue-950/10 border-blue-500/25' :
+                          task.status === 'completed' ? 'bg-emerald-950/10 border-emerald-500/25' :
+                          'bg-zinc-950/40 border-zinc-800'
+                        }`}
+                      >
+                        <div className="flex justify-between items-start gap-2">
+                          <div>
+                            <h4 className="text-xs font-black text-white">{task.title}</h4>
+                            <span className="text-[9px] text-zinc-500 font-mono mt-0.5 block">الموعد النهائي: {task.deadline}</span>
+                          </div>
+                          <Badge 
+                            variant="outline"
+                            className={`text-[9px] font-black ${
+                              isTaskExpired ? 'text-red-400 border-red-500/30 bg-red-950/20' :
+                              task.status === 'pending' ? 'text-yellow-400 border-yellow-500/30' :
+                              task.status === 'acknowledged' ? 'text-blue-400 border-blue-300/30' :
+                              task.status === 'completed' ? 'text-[#10B981] border-[#10B981]/30' :
+                              'text-zinc-500 border-zinc-800'
+                            }`}
+                          >
+                            {isTaskExpired ? 'ملغاة / منتهية الصلاحية 🛑' :
+                             task.status === 'pending' ? 'بانتظار العرض' :
+                             task.status === 'acknowledged' ? 'قيد التنفيذ' :
+                             task.status === 'completed' ? 'منجزة ✓' : 'مؤرشفة'}
+                          </Badge>
                         </div>
-                        <Badge 
-                          variant="outline"
-                          className={`text-[9px] font-black ${
-                            task.status === 'pending' ? 'text-yellow-400 border-yellow-500/30' :
-                            task.status === 'acknowledged' ? 'text-blue-400 border-blue-300/30' :
-                            task.status === 'completed' ? 'text-[#10B981] border-[#10B981]/30' :
-                            'text-zinc-500 border-zinc-800'
-                          }`}
-                        >
-                          {task.status === 'pending' ? 'بانتظار العرض' :
-                           task.status === 'acknowledged' ? 'قيد التنفيذ' :
-                           task.status === 'completed' ? 'منجزة ✓' : 'مؤرشفة'}
-                        </Badge>
-                      </div>
 
-                      <p className="text-xs text-zinc-300 mt-2 leading-relaxed">
-                        {task.description}
-                      </p>
+                        <p className="text-xs text-zinc-300 mt-2 leading-relaxed">
+                          {task.description}
+                        </p>
 
-                      <div className="mt-4 pt-3 border-t border-white/5 flex justify-end gap-2">
-                        {task.status === 'pending' && (
-                          <Button 
-                            onClick={() => handleAcknowledgeTask(task.id)}
-                            className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] h-7 px-3 rounded-lg"
-                          >
-                            تأكيد الاطلاع والبدء ⚡
-                          </Button>
-                        )}
-                        {task.status === 'acknowledged' && (
-                          <Button 
-                            onClick={() => handleExecuteTask(task.id)}
-                            className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] h-7 px-3 rounded-lg"
-                          >
-                            إغلاق وتأكيد التنفيذ ✓
-                          </Button>
-                        )}
+                        <div className="mt-4 pt-3 border-t border-white/5 flex justify-end gap-2">
+                          {isTaskExpired ? (
+                            <span className="text-[10px] text-red-400 font-bold flex items-center gap-1">
+                              <span>⚠️</span>
+                              <span>المهمة ملغاة لتجاوز الأجل (تم إنقاذ الموازنة)</span>
+                            </span>
+                          ) : (
+                            <>
+                              {task.status === 'pending' && (
+                                <Button 
+                                  onClick={() => handleAcknowledgeTask(task.id)}
+                                  className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] h-7 px-3 rounded-lg"
+                                >
+                                  تأكيد الاطلاع والبدء ⚡
+                                </Button>
+                              )}
+                              {task.status === 'acknowledged' && (
+                                <Button 
+                                  onClick={() => handleExecuteTask(task.id)}
+                                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] h-7 px-3 rounded-lg"
+                                >
+                                  إغلاق وتأكيد التنفيذ ✓
+                                </Button>
+                              )}
+                            </>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="text-center text-muted-foreground text-xs py-10 font-bold space-y-1">
