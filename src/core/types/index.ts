@@ -65,6 +65,8 @@ export interface User {
   referralCode?: string;
   referredCount?: number;
   pendingDues?: number;
+  subRole?: 'independent' | 'captain';
+  isFleetActive?: boolean;
 }
 
 export type TripStatus = 'searching' | 'busy' | 'completed' | 'cancelled' | 'rating' | 'checkpoint_required' | 'archived' | 'in_progress' | 'idle';

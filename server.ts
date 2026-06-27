@@ -6,6 +6,42 @@ import { extractCoordsLocally } from './src/lib/sovereign-digger';
 import dns from 'dns';
 import { db } from './src/lib/firebase';
 import { doc, getDoc, updateDoc, arrayUnion, addDoc, collection, query, where, getDocs, limit, setDoc } from 'firebase/firestore';
+import fs from 'fs';
+
+// Helper to load firebase config securely on the server
+const getFirebaseApiKey = (): string => {
+  try {
+    const configPath = path.join(process.cwd(), 'firebase-applet-config.json');
+    const rawData = fs.readFileSync(configPath, 'utf8');
+    const config = JSON.parse(rawData);
+    return config.apiKey || '';
+  } catch (err) {
+    console.error("Failed to read firebase-applet-config.json:", err);
+    return '';
+  }
+};
+
+// Secure Server-Authoritative Identity Verification via Google Identity Toolkit
+async function verifyFirebaseIdToken(idToken: string): Promise<string | null> {
+  if (!idToken) return null;
+  try {
+    const apiKey = getFirebaseApiKey();
+    if (!apiKey) return null;
+    const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ idToken })
+    });
+    if (!response.ok) return null;
+    const data = (await response.json()) as any;
+    if (data && data.users && data.users.length > 0) {
+      return data.users[0].localId; // Verified UID
+    }
+  } catch (err) {
+    console.error("[Token Verification Error]:", err);
+  }
+  return null;
+}
 
 async function startServer() {
   const app = express();
@@ -268,6 +304,11 @@ async function startServer() {
 
       const data = delSnap.data();
       const rawDues = data?.pendingDues || 0;
+      
+      if (rawDues <= 0) {
+        return res.status(400).json({ success: false, error: '🚨 عطل مالي: لا توجد مستحقات مالية معلقة لتصفيتها أو صرفها لهذا المندوب حالياً!' });
+      }
+
       const delRate = data?.deletionRate || 0;
       const penaltyAmount = rawDues * (delRate / 100) * 0.40;
       const withdrawableBalance = Math.max(0, rawDues - penaltyAmount);
@@ -517,6 +558,7 @@ async function startServer() {
         delegateId: linkData.delegateId,
         delegateName: linkData.delegateName,
         expiresAt: linkData.expiresAt,
+        serverTime: serverNow.toISOString(),
         delegateProfile,
         message: 'تم التحقق السحري من هويتك كوكيل سيادي بنجاح مبرهن!'
       });
@@ -529,7 +571,41 @@ async function startServer() {
 
   // 4. SECURE DELEGATE TASK STATE TRANSITION ENFORCER (Server-Side State Machine)
   app.post('/api/delegate-task-transition', rateLimiterMiddleware, async (req, res) => {
-    const { taskId, targetStatus, delegateId, actorUid, actorRole } = req.body;
+    let { taskId, targetStatus, delegateId, actorUid, actorRole } = req.body;
+    
+    // Check for Authorization header first to extract verified credentials
+    const authHeader = req.headers.authorization;
+    let verifiedUid: string | null = null;
+    let verifiedRole = 'delegate';
+
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const idToken = authHeader.split('Bearer ')[1];
+      verifiedUid = await verifyFirebaseIdToken(idToken);
+      if (!verifiedUid) {
+        return res.status(401).json({ success: false, error: '🚨 اختراق أمني: رمز التحقق الرقمي منتهي الصلاحية أو تم التلاعب به!' });
+      }
+      
+      // Look up verified user profile
+      const userRef = doc(db, 'users', verifiedUid);
+      const userSnap = await getDoc(userRef);
+      if (!userSnap.exists()) {
+        return res.status(404).json({ success: false, error: '🚨 اختراق أمني: الملف الشخصي للمستخدم غير موجود!' });
+      }
+      const userData = userSnap.data();
+      verifiedRole = userData.role || 'delegate';
+
+      // Override request parameters with 100% secure verified values
+      delegateId = verifiedUid;
+      actorUid = verifiedUid;
+      actorRole = verifiedRole;
+    } else {
+      // If no token, we only allow it if it's a simulated task (begins with tsk-sim)
+      // Otherwise, we strictly enforce Authorization headers for production and development integrity.
+      if (!taskId.startsWith('tsk-sim')) {
+        return res.status(401).json({ success: false, error: '🚨 اختراق أمني: ترويسة التحقق الأمنية الرقمية (Authorization Token) مطلوبة للمهام الفعلية!' });
+      }
+    }
+
     if (!taskId || !targetStatus || !delegateId) {
       return res.status(400).json({ success: false, error: 'المعطيات غير مكتملة لتحديث حالة المهمة.' });
     }

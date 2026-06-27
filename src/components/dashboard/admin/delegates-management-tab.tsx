@@ -55,6 +55,8 @@ export interface Delegate {
   status: 'active' | 'suspended';
   createdAt: string;
   integritySignature?: string;
+  subRole?: 'independent' | 'captain';
+  isFleetActive?: boolean;
 }
 
 export interface MagicLink {
@@ -130,6 +132,8 @@ export function DelegatesManagementTab() {
   const [targetDaily, setTargetDaily] = useState('10');
   const [linkExpiryHours, setLinkExpiryHours] = useState('24');
   const [referralCountInit, setReferralCountInit] = useState('0');
+  const [subRole, setSubRole] = useState<'independent' | 'captain'>('independent');
+  const [isFleetActive, setIsFleetActive] = useState(false);
 
   // Form states (Task)
   const [selectedDelegateId, setSelectedDelegateId] = useState('');
@@ -282,27 +286,41 @@ export function DelegatesManagementTab() {
     e.preventDefault();
     if (!name || !phone) return;
 
-    const districtCode = district === 'وادي السير' ? 'GHUBAR' : district === 'الجامعة' ? 'UNIV' : district === 'الكرادة' ? 'KARR' : 'AMMAN';
-    const randomSuffix = Math.floor(Math.random() * 90) + 10;
-    const generatedCode = `JO-${districtCode}-${name.split(' ')[0].toUpperCase()}-${randomSuffix}`;
-
-    const newDelegate: Omit<Delegate, 'id'> = {
-      name,
-      phone,
-      district,
-      referralCode: generatedCode,
-      referredCount: parseInt(referralCountInit) || 0,
-      organicCount: 0,
-      churnCount: 0,
-      steadyCount: 0,
-      targetDaily: parseInt(targetDaily) || 10,
-      carriedDeficit: 0,
-      linkExpiryHours: parseInt(linkExpiryHours) || 24,
-      status: 'active',
-      createdAt: new Date().toISOString()
-    };
-
     try {
+      // [Security Check] Check phone uniqueness to prevent duplicate registrations (Race Condition Check)
+      const qPhone = query(collection(db, 'delegates'), where('phone', '==', phone));
+      const qSnap = await getDocs(qPhone);
+      if (!qSnap.empty) {
+        toast({
+          variant: 'destructive',
+          title: 'تنبيه أمني: تكرار الهاتف الميداني',
+          description: `المندوب المسجل بالفعل يحمل نفس رقم الهاتف (${phone}). يرجى استخدام رقم هاتف فريد.`
+        });
+        return;
+      }
+
+      const districtCode = district === 'وادي السير' ? 'GHUBAR' : district === 'الجامعة' ? 'UNIV' : district === 'الكرادة' ? 'KARR' : 'AMMAN';
+      const randomSuffix = Math.floor(Math.random() * 90) + 10;
+      const generatedCode = `JO-${districtCode}-${name.split(' ')[0].toUpperCase()}-${randomSuffix}`;
+
+      const newDelegate: Omit<Delegate, 'id'> = {
+        name,
+        phone,
+        district,
+        referralCode: generatedCode,
+        referredCount: parseInt(referralCountInit) || 0,
+        organicCount: 0,
+        churnCount: 0,
+        steadyCount: 0,
+        targetDaily: parseInt(targetDaily) || 10,
+        carriedDeficit: 0,
+        linkExpiryHours: parseInt(linkExpiryHours) || 24,
+        status: 'active',
+        createdAt: new Date().toISOString(),
+        subRole,
+        isFleetActive: subRole === 'captain' ? isFleetActive : false
+      };
+
       await addDoc(collection(db, 'delegates'), newDelegate);
       toast({
         title: 'تم غرس المندوب الميداني',
@@ -719,6 +737,35 @@ export function DelegatesManagementTab() {
                   className="bg-black/80 border-emerald-950/50 text-white text-xs h-9"
                 />
               </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="del-subrole" className="text-xs text-zinc-300 font-bold">نوع الصلاحيات الميدانية</Label>
+                <select 
+                  id="del-subrole" 
+                  value={subRole} 
+                  onChange={e => setSubRole(e.target.value as 'independent' | 'captain')} 
+                  className="w-full h-9 mt-1 rounded bg-black border border-emerald-900 text-white px-2 focus:outline-none focus:border-emerald-500 text-xs"
+                >
+                  <option value="independent">مندوب مستقل (صامت وموفر للموارد)</option>
+                  <option value="captain">مندوب كابتن (نشط بالنبض الميداني والـ GPS)</option>
+                </select>
+              </div>
+
+              {subRole === 'captain' && (
+                <div className="space-y-1 flex flex-col justify-end">
+                  <Label htmlFor="del-fleet-active" className="text-xs text-zinc-300 pb-2">حالة النبض الميداني الفوري</Label>
+                  <div className="flex items-center gap-2">
+                    <input 
+                      type="checkbox" 
+                      id="del-fleet-active" 
+                      checked={isFleetActive} 
+                      onChange={e => setIsFleetActive(e.target.checked)} 
+                      className="w-4 h-4 accent-emerald-500"
+                    />
+                    <span className="text-[11px] text-emerald-400 font-bold">تفعيل الـ GPS ومستشعر الحركة</span>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
@@ -768,6 +815,21 @@ export function DelegatesManagementTab() {
                               <div>
                                 <p className="text-xs font-black text-white leading-tight">{del.name}</p>
                                 <span className="text-[10px] text-emerald-500 font-mono font-bold">{del.district} ● {del.phone}</span>
+                                <div className="flex gap-1.5 mt-1">
+                                  <Badge className="text-[8px] px-1 py-0 bg-zinc-900 border-zinc-700 text-gray-300 font-sans">
+                                    {del.subRole === 'captain' ? '🎖️ مندوب كابتن' : '💼 مندوب مستقل'}
+                                  </Badge>
+                                  {del.subRole === 'captain' && (
+                                    <Badge className={cn(
+                                      "text-[8px] px-1 py-0 font-sans",
+                                      del.isFleetActive 
+                                        ? "bg-emerald-950 text-emerald-400 border-emerald-500/20" 
+                                        : "bg-amber-950 text-amber-400 border-amber-500/20"
+                                    )}>
+                                      {del.isFleetActive ? '● نشط ميدانياً' : '○ خامل'}
+                                    </Badge>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           </TableCell>

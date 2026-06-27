@@ -9,7 +9,8 @@ import {
   updateDoc, 
   setDoc,
   query, 
-  where 
+  where,
+  onSnapshot
 } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
@@ -57,9 +58,22 @@ export const useSovereignDashboard = () => {
   const isProcessingRef = useRef(false);
 
   const fetchDelegates = useCallback(async () => {
-    try {
-      const q = query(collection(db, 'delegates'), where('status', '==', 'active'));
-      const snapshot = await getDocs(q);
+    console.log("[SSOT-Audit] Delegates are automatically synchronized in real-time via onSnapshot.");
+  }, []);
+
+  const fetchDrivers = useCallback(async () => {
+    console.log("[SSOT-Audit] Drivers are automatically synchronized in real-time via onSnapshot.");
+  }, []);
+
+  useEffect(() => {
+    if (authLoading || !user || user.role !== 'admin') return;
+
+    setLoadingDelegates(true);
+    setLoadingDrivers(true);
+
+    // [SSOT-Law Real-time Synchronization]
+    const qDelegates = query(collection(db, 'delegates'), where('status', '==', 'active'));
+    const unsubDelegates = onSnapshot(qDelegates, (snapshot: any) => {
       if (snapshot.empty) {
         const defaults: DelegateData[] = [
           {
@@ -99,29 +113,30 @@ export const useSovereignDashboard = () => {
             createdAt: new Date().toISOString()
           }
         ];
-        for (const d of defaults) {
-          await setDoc(doc(db, 'delegates', d.id), d);
-        }
+        defaults.forEach(async (d) => {
+          try {
+            await setDoc(doc(db, 'delegates', d.id), d);
+          } catch (e: any) {
+            console.error("Self-healing background delegation seeding error:", e);
+          }
+        });
         setDelegates(defaults);
       } else {
-        const list = snapshot.docs.map(docSnap => ({
+        const list = snapshot.docs.map((docSnap: any) => ({
           id: docSnap.id,
           ...docSnap.data()
         } as DelegateData));
         setDelegates(list);
       }
-    } catch (err) {
-      console.error('Error loading delegates inside sovereign dashboard:', err);
-    } finally {
       setLoadingDelegates(false);
-    }
-  }, []);
+    }, (err: any) => {
+      console.error('Error loading delegates inside sovereign dashboard:', err);
+      setLoadingDelegates(false);
+    });
 
-  const fetchDrivers = useCallback(async () => {
-    try {
-      const q = query(collection(db, 'users'), where('role', '==', 'driver'));
-      const snapshot = await getDocs(q);
-      const list = snapshot.docs.map(docSnap => {
+    const qDrivers = query(collection(db, 'users'), where('role', '==', 'driver'));
+    const unsubDrivers = onSnapshot(qDrivers, (snapshot: any) => {
+      const list = snapshot.docs.map((docSnap: any) => {
         const data = docSnap.data();
         return {
           uid: docSnap.id,
@@ -137,19 +152,17 @@ export const useSovereignDashboard = () => {
         } as DriverData;
       });
       setDrivers(list);
-    } catch (err) {
-      console.error('Error loading drivers in sovereign dashboard:', err);
-    } finally {
       setLoadingDrivers(false);
-    }
-  }, []);
+    }, (err: any) => {
+      console.error('Error loading drivers in sovereign dashboard:', err);
+      setLoadingDrivers(false);
+    });
 
-  useEffect(() => {
-    if (!authLoading && user && user.role === 'admin') {
-      fetchDelegates();
-      fetchDrivers();
-    }
-  }, [user, authLoading, fetchDelegates, fetchDrivers]);
+    return () => {
+      unsubDelegates();
+      unsubDrivers();
+    };
+  }, [user, authLoading]);
 
   const handleSovereignKillSwitch = useCallback(async (driverUid: string, driverName: string) => {
     if (isProcessingRef.current) return;

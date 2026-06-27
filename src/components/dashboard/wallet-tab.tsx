@@ -488,15 +488,25 @@ export function WalletTab() {
             transactions.map((tx) => (
               <div key={tx.id} className="p-3 bg-black/40 rounded-xl border border-white/5 flex items-center justify-between text-xs">
                 <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg ${
-                    tx.type === 'charge' 
-                      ? 'bg-emerald-950/50 text-emerald-400' 
-                      : tx.type === 'purchase'
-                      ? 'bg-blue-950/40 text-blue-400'
-                      : 'bg-red-950/30 text-red-400'
-                  }`}>
+                  <button
+                    type="button"
+                    title={tx.type === 'charge' ? "إعادة الشحن الفوري عبر CliQ" : undefined}
+                    onClick={() => {
+                      if (tx.type === 'charge') {
+                        setIsChargingFunds(true);
+                      }
+                    }}
+                    disabled={tx.type !== 'charge'}
+                    className={`p-2 rounded-lg transition-all ${
+                      tx.type === 'charge' 
+                        ? 'bg-emerald-950/50 text-emerald-400 hover:bg-emerald-400 hover:text-black hover:scale-105 active:scale-95 cursor-pointer border border-emerald-500/15 shadow-[0_0_8px_rgba(16,185,129,0.1)]' 
+                        : tx.type === 'purchase'
+                        ? 'bg-blue-950/40 text-blue-400'
+                        : 'bg-red-950/30 text-red-400'
+                    }`}
+                  >
                     {tx.type === 'charge' ? <ArrowDownLeft className="w-4 h-4" /> : <ArrowUpRight className="w-4 h-4" />}
-                  </div>
+                  </button>
                   <div className="text-right">
                     <p className="font-bold text-white text-[11px]">{tx.description}</p>
                     <p className="text-[9px] text-gray-500 mt-0.5">{tx.createdAt}</p>

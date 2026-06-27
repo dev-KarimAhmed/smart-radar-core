@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
 import { onAuthStateChanged, signOut, signInAnonymously, type User as FirebaseUser } from 'firebase/auth';
-import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { trackSovereignError } from '@/lib/error-tracker';
 import type { User as SovereignUser } from '@/core/types';
@@ -113,19 +113,40 @@ function AuthContent({ children }: { children: ReactNode }) {
             } else if (firebaseUser) {
                 setLoading(true);
                 const userRef = doc(db, "users", firebaseUser.uid);
-                unsubscribeUserDoc = onSnapshot(userRef,
-                    (docSnap) => {
-                        if (docSnap.exists()) {
-                            setUser({ uid: docSnap.id, ...docSnap.data() } as SovereignUser);
+                
+                getDoc(userRef).then((docSnap) => {
+                    if (docSnap.exists()) {
+                        const userData = docSnap.data();
+                        const isIndependent = userData?.subRole === 'independent';
+                        setUser({ uid: docSnap.id, ...userData } as SovereignUser);
+                        
+                        if (isIndependent) {
+                            // Protocol 88: One-time read only. Do NOT subscribe.
+                            setLoading(false);
+                        } else {
+                            // Captain or standard user: subscribe to real-time updates
+                            unsubscribeUserDoc = onSnapshot(userRef,
+                                (snapshot) => {
+                                    if (snapshot.exists()) {
+                                        setUser({ uid: snapshot.id, ...snapshot.data() } as SovereignUser);
+                                    }
+                                    setLoading(false);
+                                },
+                                (error) => {
+                                    trackSovereignError(error, { context: "User_Doc_Listener" });
+                                    setLoading(false);
+                                }
+                            );
                         }
-                        setLoading(false);
-                    },
-                    (error) => {
-                        trackSovereignError(error, { context: "User_Doc_Listener" });
+                    } else {
                         setUser(null);
                         setLoading(false);
                     }
-                );
+                }).catch((error) => {
+                    trackSovereignError(error, { context: "User_Doc_Fetch" });
+                    setUser(null);
+                    setLoading(false);
+                });
             } else {
                 setUser(null);
                 setLoading(false);
