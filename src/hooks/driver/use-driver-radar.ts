@@ -10,11 +10,12 @@ import { calculateSovereignDistance } from '@/core/logic/geospatial-kernel';
 import { useGeospatialAnchor } from '../use-geospatial-anchor';
 import type { Trip, User } from '@/core/types';
 import { RadarSovereignCommuteKernel, geoEngine, SovereignCaptainMovement } from '@/lib/commute-kernel';
+import { sovereignEventBroker } from '@/lib/event-broker';
 
 /**
  * [SCR-2026-047] رادار تحديد فرسان الأفق القريب
  */
-export function useDriverRadar(user: User | null, driverStatus: string, updateDriverDoc: Function) {
+export function useDriverRadar(user: User | null, driverStatus: string, updateDriverDoc?: Function) {
   const { location: driverLocation } = useGeospatialAnchor(driverStatus === 'active');
   const [rawTrips, setRawTrips] = useState<Trip[]>([]);
   const [tick, setTick] = useState(0);
@@ -101,10 +102,15 @@ export function useDriverRadar(user: User | null, driverStatus: string, updateDr
       }
       
       const primaryGridId = calculateSovereignGridId(latVal, lngVal);
-      updateDriverDoc({
+      const updateData = {
         gridId: primaryGridId,
         location: { lat: latVal, lng: lngVal, speed: driverLocationSpeed, source: driverLocationSource || 'fallback' }
-      });
+      };
+
+      if (updateDriverDoc) {
+        updateDriverDoc(updateData);
+      }
+      sovereignEventBroker.emit('DRIVER_DOC_UPDATE', updateData);
 
       lastSentLocation.current = { lat: latVal, lng: lngVal };
       lastSentTime.current = now;
@@ -127,14 +133,6 @@ export function useDriverRadar(user: User | null, driverStatus: string, updateDr
     const localPaid = storedPaidVal !== null ? Number(storedPaidVal) : (user.paidHoursRemaining ?? 0);
     const localBonus = storedBonusVal !== null ? Number(storedBonusVal) : (user.bonusHoursRemaining ?? 0);
 
-    // Auto-bootstrap hash if not present and they are currently online to prevent accidental lockout
-    if (!storedHash || storedPaidVal === null || storedBonusVal === null) {
-      const bootstrapHash = RadarSovereignCommuteKernel.generateStateHash(user.uid, localPaid, localBonus);
-      localStorage.setItem(`sovereign_shake_${user.uid}`, bootstrapHash);
-      localStorage.setItem(`sovereign_paid_${user.uid}`, String(localPaid));
-      localStorage.setItem(`sovereign_bonus_${user.uid}`, String(localBonus));
-    }
-
     const captainConfig: SovereignCaptainMovement = {
       captainId: user.uid,
       homeDistrict: user.district || 'وادي السير',
@@ -154,18 +152,6 @@ export function useDriverRadar(user: User | null, driverStatus: string, updateDr
     );
 
     setIsDisconnectionLockActive(commuteResult.isDisconnectionLockActive);
-
-    // [قفل المصافحة الجداري]: إذا كان نشاط الإغلاق الجمركي للعداد تالفاً أو تم تهميشه أو مسح الكاش
-    // نقوم بتصحيح هادئ وبصمت بمجرد المزامنة لإتمام المصافحة الصامتة للنبضات المتراكمة وإعادة الهاش.
-    // We update the hash AND key balances together back into localStorage to prevent transient drift.
-    if (commuteResult.isDisconnectionLockActive) {
-      const freshHash = RadarSovereignCommuteKernel.generateStateHash(user.uid, localPaid, localBonus);
-      localStorage.setItem(`sovereign_shake_${user.uid}`, freshHash);
-      localStorage.setItem(`sovereign_paid_${user.uid}`, String(localPaid));
-      localStorage.setItem(`sovereign_bonus_${user.uid}`, String(localBonus));
-      setIsDisconnectionLockActive(false);
-      console.log(`💎 [SCR-COMMUTE-PROTO-155] تم إتمام المصافحة التصفوية الصامتة وحماية الماستر الموحد للعداد.`);
-    }
 
     if (commuteResult.allowedToSeeLocalTrips) {
       if (commuteResult.activeDistrictPool !== currentDistrict) {

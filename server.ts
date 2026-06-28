@@ -284,9 +284,31 @@ async function startServer() {
 
   // SECURE EXECUTIVE DELEGATE DUES SETTLEMENT [RAD-CMD-088]
   app.post('/api/clear-delegate-dues', rateLimiterMiddleware, async (req, res) => {
-    const { delegateId } = req.body;
+    const { delegateId, idToken } = req.body;
     if (!delegateId) {
       return res.status(400).json({ success: false, error: 'المندوب غير محدد لتسوية المستحقات' });
+    }
+
+    // [SECURITY-PATCH] مصادقة صارمة مشفرة لمنع هجمات الإغراق والتلاعب بالحقائب المالية
+    if (!idToken) {
+      return res.status(401).json({ success: false, error: 'المصادقة الأمنية مطلوبة لتسوية المستحقات المالية.' });
+    }
+    const requesterUid = await verifyFirebaseIdToken(idToken);
+    if (!requesterUid) {
+      return res.status(401).json({ success: false, error: 'رمز الجلسة غير صالح أو منتهي الصلاحية.' });
+    }
+
+    const requesterRef = doc(db, 'users', requesterUid);
+    const requesterSnap = await getDoc(requesterRef);
+    const reqData = requesterSnap.exists() ? requesterSnap.data() : null;
+    const reqRole = reqData?.role;
+
+    const isAuthorized = requesterUid === delegateId || 
+                         reqRole === 'admin' || 
+                         reqRole === 'owner';
+
+    if (!isAuthorized) {
+      return res.status(403).json({ success: false, error: 'غير مصرح لك بتنفيذ هذه التسوية المالية.' });
     }
 
     const lockKey = `clear-dues-${delegateId}`;
@@ -327,6 +349,18 @@ async function startServer() {
         lastSettlementDate: new Date().toISOString(),
         settledBalances: arrayUnion(settlementRecord)
       });
+
+      // Clear the corresponding user document in 'users' collection to prevent desync
+      if (data?.userId) {
+        const userRef = doc(db, 'users', data.userId);
+        await updateDoc(userRef, { pendingDues: 0 });
+      } else if (data?.phone) {
+        const userQuery = query(collection(db, 'users'), where('phone', '==', data.phone), limit(1));
+        const userSnap = await getDocs(userQuery);
+        if (!userSnap.empty) {
+          await updateDoc(doc(db, 'users', userSnap.docs[0].id), { pendingDues: 0 });
+        }
+      }
 
       console.log(`[Sovereign Core] Cleared dues for delegate ${delegateId}. Net settled: ${withdrawableBalance}`);
       return res.json({ 
@@ -381,9 +415,27 @@ async function startServer() {
 
   // 1. RECONCILE AND SIGN DELEGATE (Server-Authoritative Cryptographic Integrity)
   app.post('/api/reconcile-and-sign', rateLimiterMiddleware, async (req, res) => {
-    const { delegateId, actorRole, actorUid } = req.body;
+    const { delegateId, actorRole, actorUid, idToken } = req.body;
     if (!delegateId) {
       return res.status(400).json({ success: false, error: 'المندوب غير محدد لتأكيد العداد والتحقق' });
+    }
+
+    // [SECURITY-PATCH] مصادقة صارمة مشفرة لمنع التلاعب بالمقاييس والعدادات
+    if (!idToken) {
+      return res.status(401).json({ success: false, error: 'المصادقة الأمنية مطلوبة لإغلاق العدادات.' });
+    }
+    const requesterUid = await verifyFirebaseIdToken(idToken);
+    if (!requesterUid) {
+      return res.status(401).json({ success: false, error: 'رمز الجلسة غير صالح أو منتهي الصلاحية.' });
+    }
+
+    const requesterRef = doc(db, 'users', requesterUid);
+    const requesterSnap = await getDoc(requesterRef);
+    const reqData = requesterSnap.exists() ? requesterSnap.data() : null;
+    const reqRole = reqData?.role;
+
+    if (reqRole !== 'admin' && reqRole !== 'owner') {
+      return res.status(403).json({ success: false, error: 'غير مصرح لك بتوقيع وإغلاق عدادات المناديب.' });
     }
 
     const lockKey = `reconcile-sign-${delegateId}`;

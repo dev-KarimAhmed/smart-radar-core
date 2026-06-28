@@ -163,21 +163,48 @@ export function RadarOwnerSovereignDashboard() {
                       <Badge className="bg-[#003322]/50 border border-[#00ffcc]/30 text-[#00ffcc] text-[9px] font-mono px-2 py-0.5">{sector.id}</Badge>
                     </div>
                     <p className="text-[11px] text-gray-400 leading-relaxed">{sector.descriptionAr}</p>
-                    <div className="grid grid-cols-2 gap-2 pt-1 border-t border-white/5">
-                      <div>
-                        <span className="text-[9px] text-gray-500 block font-bold">⚡ الخطافات:</span>
-                        <div className="flex flex-wrap gap-1 mt-0.5">
-                          {sector.hooks.length > 0 ? sector.hooks.map(h => (
-                            <code key={h} className="text-[8px] text-gray-400 font-mono bg-zinc-900 px-0.5 rounded">{h.split('/').pop()}</code>
-                          )) : <span className="text-[8px] text-zinc-500 italic">لا يوجد</span>}
+                    <div className="space-y-2 pt-2 border-t border-white/5">
+                      <div className="grid grid-cols-2 gap-3 text-[10px]">
+                        {/* Front-End Sub-Sector */}
+                        <div className="bg-zinc-900/40 p-2 rounded-lg border border-white/5 space-y-1">
+                          <span className="text-[9px] text-[#00ffcc] font-black block">💻 الواجهة الأمامية (Front-End):</span>
+                          <div>
+                            <span className="text-[8px] text-gray-500 block font-bold">🧩 المكونات ({sector.frontend.components.length}):</span>
+                            <div className="flex flex-wrap gap-1 mt-0.5">
+                              {sector.frontend.components.length > 0 ? sector.frontend.components.map(c => (
+                                <code key={c} className="text-[8px] text-gray-400 font-mono bg-zinc-950 px-1 rounded border border-white/5">{c.split('/').pop()}</code>
+                              )) : <span className="text-[8px] text-zinc-600 italic">لا يوجد</span>}
+                            </div>
+                          </div>
+                          <div className="pt-1">
+                            <span className="text-[8px] text-gray-500 block font-bold">⚡ الخطافات ({sector.frontend.hooks.length}):</span>
+                            <div className="flex flex-wrap gap-1 mt-0.5">
+                              {sector.frontend.hooks.length > 0 ? sector.frontend.hooks.map(h => (
+                                <code key={h} className="text-[8px] text-sky-400 font-mono bg-zinc-950 px-1 rounded border border-white/5">{h.split('/').pop()}</code>
+                              )) : <span className="text-[8px] text-zinc-600 italic">لا يوجد</span>}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                      <div>
-                        <span className="text-[9px] text-gray-500 block font-bold">💾 المجموعات:</span>
-                        <div className="flex flex-wrap gap-1 mt-0.5">
-                          {sector.databaseCollections.map(c => (
-                            <code key={c} className="text-[8px] text-amber-500 font-mono bg-zinc-900 px-0.5 rounded">{c}</code>
-                          ))}
+
+                        {/* Back-End Sub-Sector */}
+                        <div className="bg-zinc-900/40 p-2 rounded-lg border border-white/5 space-y-1">
+                          <span className="text-[9px] text-amber-400 font-black block">⚙️ الخدمات الخلفية (Back-End):</span>
+                          <div>
+                            <span className="text-[8px] text-gray-500 block font-bold">🧠 النواة ({sector.backend.cores.length}):</span>
+                            <div className="flex flex-wrap gap-1 mt-0.5">
+                              {sector.backend.cores.length > 0 ? sector.backend.cores.map(c => (
+                                <code key={c} className="text-[8px] text-purple-400 font-mono bg-zinc-950 px-1 rounded border border-white/5">{c.split('/').pop()}</code>
+                              )) : <span className="text-[8px] text-zinc-600 italic">لا يوجد</span>}
+                            </div>
+                          </div>
+                          <div className="pt-1">
+                            <span className="text-[8px] text-gray-500 block font-bold">💾 المجموعات ({sector.backend.databaseCollections.length}):</span>
+                            <div className="flex flex-wrap gap-1 mt-0.5">
+                              {sector.backend.databaseCollections.length > 0 ? sector.backend.databaseCollections.map(c => (
+                                <code key={c} className="text-[8px] text-amber-500 font-mono bg-zinc-950 px-1 rounded border border-white/5">{c}</code>
+                              )) : <span className="text-[8px] text-zinc-600 italic">لا يوجد</span>}
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>

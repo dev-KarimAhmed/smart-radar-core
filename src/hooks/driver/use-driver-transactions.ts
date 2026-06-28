@@ -10,11 +10,12 @@ import { useToast } from '../use-toast';
 import { callSovereignCloud } from '@/core/contracts/cloud-bridge';
 import type { Trip, User, Offer } from '@/core/types';
 import { SovereignMarketKernel } from '@/core/logic/sovereign-market-kernel';
+import { sovereignEventBroker } from '@/lib/event-broker';
 
 export function useDriverTransactions(
   user: User | null, 
-  setDriverStatus: Function, 
-  updateDriverDoc: Function
+  setDriverStatus?: Function, 
+  updateDriverDoc?: Function
 ) {
   const { toast } = useToast();
   const [activeRequest, setActiveReq] = useState<Trip | null>(null);
@@ -44,10 +45,19 @@ export function useDriverTransactions(
   }, []);
 
   const cleanUpAndReset = useCallback(() => {
-      updateDriverDoc({ status: 'active' });
+      const activeUpdate = { status: 'active' as const };
+      if (updateDriverDoc) {
+        updateDriverDoc(activeUpdate);
+      }
+      sovereignEventBroker.emit('DRIVER_DOC_UPDATE', activeUpdate);
+
       setActiveReq(null);
       setAcceptedRider(null);
-      setDriverStatus('active');
+
+      if (setDriverStatus) {
+        setDriverStatus('active');
+      }
+      sovereignEventBroker.emit('DRIVER_STATUS_CHANGE', 'active');
   }, [updateDriverDoc, setDriverStatus]);
 
   // Monitor active trip assigned to driver
@@ -112,9 +122,15 @@ export function useDriverTransactions(
         }
         
         if (tripData.status === 'completed' || tripData.status === 'checkpoint_required') {
-            setDriverStatus('rating');
+            if (setDriverStatus) {
+              setDriverStatus('rating');
+            }
+            sovereignEventBroker.emit('DRIVER_STATUS_CHANGE', 'rating');
         } else {
-            setDriverStatus(tripData.status);
+            if (setDriverStatus) {
+              setDriverStatus(tripData.status);
+            }
+            sovereignEventBroker.emit('DRIVER_STATUS_CHANGE', tripData.status as any);
         }
       } else {
         cleanUpAndReset();

@@ -73,27 +73,6 @@ export function DriverViewTab() {
   
   const { user } = useAuth();
   
-  const captainProfileData = useMemo(() => {
-    const defaultComments = [
-      'المركبة نظيفة جداً والكابتن متعاون للغاية.',
-      'قيادة متزنة وملتزم تماماً بكوابح الأسعار القانونية باللواء.',
-      'سرعة ممتازة وتواصل حكيم ومحترم ومهذب.'
-    ];
-
-    const ratingVal = user?.rating !== undefined 
-      ? user.rating 
-      : (user?.ratingSum && user?.ratingCount ? user.ratingSum / user.ratingCount : 5.0);
-
-    return {
-      id: user?.uid || 'temp-id',
-      rank: (user?.rank ? user.rank.toUpperCase() : 'GOLD') as 'PLATINUM' | 'GOLD' | 'BRONZE' | 'SILVER',
-      walletHours: user?.paidHoursRemaining !== undefined ? user.paidHoursRemaining : 180, // 3 hours equivalent
-      bonusHours: user?.bonusHoursRemaining !== undefined ? user.bonusHoursRemaining : 120, // 2 hours equivalent
-      rating: ratingVal,
-      weeklyComments: defaultComments
-    };
-  }, [user]);
-  
   const { matrix } = usePricingMatrix();
   const { toast } = useToast();
   const [riderRating, setRiderRating] = useState(0);
@@ -507,7 +486,7 @@ export function DriverViewTab() {
               </button>
             </div>
             
-            <RadarCaptainDashboard captainProfile={captainProfileData} />
+            <RadarCaptainDashboard />
             
             <button 
               onClick={() => setIsDashboardOpen(false)}

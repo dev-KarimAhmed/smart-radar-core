@@ -115,20 +115,49 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
             verificationDoc: personal.verificationDoc || null, // وثائق التحقق مشفرة ومضغوطة محلياً للحافة
         };
 
-        if (role === 'driver') {
-            const deviceId = getSovereignDeviceId();
-            // Anti-Sybil Check
-            const driverQuery = query(
-                collection(db, 'users'),
-                where('role', '==', 'driver'),
-                where('deviceId', '==', deviceId),
-                limit(1)
-            );
-            const snapshot = await getDocs(driverQuery);
-            if (!snapshot.empty) {
+        const deviceId = getSovereignDeviceId();
+
+        // [SECURITY-PATCH] منع تداخل الهوية وتعارض الأدوار (Rider-Driver Desync)
+        // التحقق من تداخل رقم الهاتف مع أي حساب مسجل مسبقاً (سائق أو راكب)
+        const phoneOverlapQuery = query(
+            collection(db, 'users'),
+            where('phone', '==', personal.phone),
+            limit(1)
+        );
+        const phoneOverlapSnapshot = await getDocs(phoneOverlapQuery);
+        if (!phoneOverlapSnapshot.empty) {
+            throw new Error('PHONE_OVERLAP_DETECTED');
+        }
+
+        // التحقق من البصمة الرقمية للجهاز لمنع استخدام نفس الجهاز لأدوار متعارضة للتجسس
+        const deviceOverlapQuery = query(
+            collection(db, 'users'),
+            where('deviceId', '==', deviceId),
+            limit(1)
+        );
+        const deviceOverlapSnapshot = await getDocs(deviceOverlapQuery);
+        if (!deviceOverlapSnapshot.empty) {
+            const existingUser = deviceOverlapSnapshot.docs[0].data();
+            if (existingUser.role !== role) {
                 throw new Error('SYBIL_ATTACK_DETECTED');
             }
-            newUserProfileData.deviceId = deviceId;
+        }
+
+        newUserProfileData.deviceId = deviceId;
+
+        if (role === 'driver') {
+            // [SECURITY-PATCH] منع تداخل الاسم مع كابتن آخر في نفس لواء الموطن لمنع الحسابات الوهمية
+            const nameOverlapQuery = query(
+                collection(db, 'users'),
+                where('role', '==', 'driver'),
+                where('district', '==', personal.district),
+                where('name', '==', personal.name),
+                limit(1)
+            );
+            const nameOverlapSnapshot = await getDocs(nameOverlapQuery);
+            if (!nameOverlapSnapshot.empty) {
+                throw new Error('NAME_DISTRICT_OVERLAP_DETECTED');
+            }
 
             const vehiclePayload = affiliation === 'office-taxi'
               ? { year: parseInt(vehicle.year) || 2020, plate: vehicle.plate, sideId: vehicle.sideId, make: 'Kia', color: 'Yellow' }
@@ -145,13 +174,10 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
                 rank: 'Bronze'
             });
         } else if (role === 'advertiser') {
-            newUserProfileData.deviceId = getSovereignDeviceId();
             newUserProfileData.companyName = advertiserProfile.companyName || '';
             newUserProfileData.commercialRegister = advertiserProfile.commercialRegister || '';
             newUserProfileData.adLicense = advertiserProfile.adLicense || '';
             newUserProfileData.businessType = advertiserProfile.businessType || 'commercial';
-        } else {
-            newUserProfileData.deviceId = getSovereignDeviceId();
         }
 
         const userDocRef = doc(db, 'users', uid);

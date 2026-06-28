@@ -47,7 +47,14 @@ service cloud.firestore {
     // قواعد المستخدمين والكيانات القياسية (Standard Collections)
     // ==========================================
     match /users/{userId} {
-      allow read: if isAuthenticated();
+      allow read: if isAuthenticated() && (
+        request.auth.uid == userId ||
+        isAdmin() ||
+        isServer() ||
+        // [SECURITY-PATCH] منع تداخل الأدوار والتجسس الجغرافي: الراكب الحقيقي يقرأ ملفات السائقين فقط، والسائق يقرأ ملفات الركاب فقط
+        (hasRole('rider') && resource.data.role == 'driver') ||
+        (hasRole('driver') && resource.data.role == 'rider')
+      );
       allow write: if isAuthenticated() && request.auth.uid == userId 
                     && (!('name' in request.resource.data) || request.resource.data.name.size() < 100)
                     && (!('bio' in request.resource.data) || request.resource.data.bio.size() < 250)
@@ -118,8 +125,12 @@ service cloud.firestore {
     }
 
     match /driver_radars/{driverId} {
-      // السائق يقرأ راداره الخاص، والراكب القريب يرى الإزاحة الجغرافية فقط
-      allow read: if isAuthenticated();
+      // السائق يقرأ راداره الخاص، ويُمنع المناديب والجهات غير المخولة من تتبع الكباتن.
+      allow read: if isAuthenticated() && (
+        request.auth.uid == driverId ||
+        isAdmin() ||
+        isServer()
+      );
       // التحديث الجغرافي: العميل يحدّث إحداثياته فقط، ويُمنع من تزوير الهوية أو السعر
       allow write: if isAuthenticated() && request.auth.uid == driverId && 
                     !request.resource.data.diff(resource.data).affectedKeys().hasAny(['pricingIdentity', 'rating']);

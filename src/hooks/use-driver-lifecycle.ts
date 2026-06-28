@@ -15,6 +15,13 @@ type DriverStatus = 'active' | 'idle' | 'busy' | 'rating';
 
 export function useDriverLifecycle(user: User | null) {
   const [driverStatus, setDriverStatus] = useState<DriverStatus>('idle');
+  const expectedServerStatusRef = useRef<DriverStatus | null>(null);
+
+  const changeDriverStatus = useCallback((nextStatus: DriverStatus) => {
+    setDriverStatus(nextStatus);
+    expectedServerStatusRef.current = nextStatus;
+  }, []);
+
   const [isDormancyWarningVisible, setWarning] = useState(false);
   const timers = useRef<{ dormancy: ReturnType<typeof setTimeout> | null; warning: ReturnType<typeof setTimeout> | null }>({ dormancy: null, warning: null });
   const { toast } = useToast();
@@ -41,6 +48,7 @@ export function useDriverLifecycle(user: User | null) {
     sessionStartRef.current = null;
     lastSavedOnServerRef.current = null;
     previousLocalStateRef.current = null;
+    expectedServerStatusRef.current = null;
   }
 
   useEffect(() => {
@@ -53,9 +61,22 @@ export function useDriverLifecycle(user: User | null) {
 
   useEffect(() => {
     if (user?.role === 'driver') {
-      setDriverStatus((user.status || 'idle') as DriverStatus);
+      const serverStatus = (user.status || 'idle') as DriverStatus;
+      
+      if (expectedServerStatusRef.current !== null) {
+        if (serverStatus === expectedServerStatusRef.current) {
+          expectedServerStatusRef.current = null;
+        } else {
+          console.log(`⏳ [SSOT status check]: Ignoring stale server status "${serverStatus}" because we expected "${expectedServerStatusRef.current}"`);
+          return;
+        }
+      }
+      
+      if (serverStatus !== driverStatus) {
+        setDriverStatus(serverStatus);
+      }
     }
-  }, [user]);
+  }, [user, driverStatus]);
 
   const updateDriverDoc = useCallback(async (data: Partial<User> & { status?: DriverStatus }) => {
     if (!user?.uid) return;
@@ -81,7 +102,7 @@ export function useDriverLifecycle(user: User | null) {
     
     // Auto idle driver if dormant for too long
     timers.current.dormancy = setTimeout(() => {
-      setDriverStatus('idle');
+      changeDriverStatus('idle');
       updateDriverDoc({ status: 'idle' });
     }, SOVEREIGN_CONSTANTS.DORMANCY_TIMEOUT_MS);
   }, [driverStatus, clearTimers, updateDriverDoc]);
@@ -104,6 +125,43 @@ export function useDriverLifecycle(user: User | null) {
       clearTimers();
     };
   }, [user?.role, driverStatus, resetDormancyTimer, clearTimers]);
+
+  // ⚡️ [مزامنة الصندوق السيادي الفورية لمنع تزييف الحقيقة]: مزامنة سريعة ولحظية عند حدوث عمليات شحن رصيد أو تعديل خارجي
+  useEffect(() => {
+    if (!user?.uid || user.role !== 'driver') {
+      return;
+    }
+
+    const initialPaidHours = user.paidHoursRemaining !== undefined ? user.paidHoursRemaining : (user.subscriptionHours !== undefined ? Math.round(user.subscriptionHours * 60) : 870);
+    const initialBonusHours = user.bonusHoursRemaining !== undefined ? user.bonusHoursRemaining : 0;
+
+    if (localPaidHoursRef.current === null || localBonusHoursRef.current === null) {
+      localPaidHoursRef.current = initialPaidHours;
+      localBonusHoursRef.current = initialBonusHours;
+      const syncHash = RadarSovereignCommuteKernel.generateStateHash(user.uid, initialPaidHours, initialBonusHours);
+      localStorage.setItem(`sovereign_shake_${user.uid}`, syncHash);
+      localStorage.setItem(`sovereign_paid_${user.uid}`, String(initialPaidHours));
+      localStorage.setItem(`sovereign_bonus_${user.uid}`, String(initialBonusHours));
+    } else {
+      const isRefill = initialPaidHours > localPaidHoursRef.current || initialBonusHours > localBonusHoursRef.current;
+      const isTransientEcho = 
+        (lastSavedOnServerRef.current && initialPaidHours === lastSavedOnServerRef.current.paid && initialBonusHours === lastSavedOnServerRef.current.bonus) ||
+        (previousLocalStateRef.current && initialPaidHours === previousLocalStateRef.current.paid && initialBonusHours === previousLocalStateRef.current.bonus);
+
+      const isDivergent = initialPaidHours !== localPaidHoursRef.current || initialBonusHours !== localBonusHoursRef.current;
+
+      if (isRefill || (isDivergent && !isTransientEcho)) {
+        console.log(`📡 [مزامنة الصندوق السيادي الفورية]: تم دمج حالة الساعات الخارجية فوراً منعاً للتزييف: ${initialPaidHours} مدفوعة، ${initialBonusHours} بونص.`);
+        localPaidHoursRef.current = initialPaidHours;
+        localBonusHoursRef.current = initialBonusHours;
+        
+        const syncHash = RadarSovereignCommuteKernel.generateStateHash(user.uid, initialPaidHours, initialBonusHours);
+        localStorage.setItem(`sovereign_shake_${user.uid}`, syncHash);
+        localStorage.setItem(`sovereign_paid_${user.uid}`, String(initialPaidHours));
+        localStorage.setItem(`sovereign_bonus_${user.uid}`, String(initialBonusHours));
+      }
+    }
+  }, [user?.uid, user?.paidHoursRemaining, user?.bonusHoursRemaining, user?.role]);
 
   // ⏳ [حزمة شحن الساعات] - Real-time active hour deduction based on RadarTimeSubscriptionKernel
   useEffect(() => {
@@ -244,7 +302,7 @@ export function useDriverLifecycle(user: User | null) {
         localStorage.setItem(`sovereign_bonus_${currentUser.uid}`, String(updated.bonusHoursRemaining));
 
         if (!updated.isRadarActive && isRadarActive) {
-          setDriverStatus('idle');
+          changeDriverStatus('idle');
           await setDoc(doc(db, 'users', currentUser.uid), {
             status: 'idle',
             paidHoursRemaining: 0,
@@ -292,7 +350,7 @@ export function useDriverLifecycle(user: User | null) {
       return;
     }
 
-    setDriverStatus(desiredStatus);
+    changeDriverStatus(desiredStatus);
     await updateDriverDoc({ 
       status: desiredStatus,
       lastTickTimestamp: desiredStatus === 'active' ? Date.now() : (user?.lastTickTimestamp || Date.now())
@@ -301,7 +359,7 @@ export function useDriverLifecycle(user: User | null) {
 
   return {
     driverStatus,
-    setDriverStatus,
+    setDriverStatus: changeDriverStatus,
     isDormancyWarningVisible,
     resetDormancyTimer,
     toggleDriverStatus,

@@ -9,6 +9,7 @@ import { useMarketPulse } from './use-market-pulse';
 import { useDriverLifecycle } from './use-driver-lifecycle';
 import { useDriverRadar } from './driver/use-driver-radar';
 import { useDriverTransactions } from './driver/use-driver-transactions';
+import { sovereignEventBroker } from '@/lib/event-broker';
 
 type DriverStatus = 'active' | 'idle' | 'busy' | 'rating';
 
@@ -55,17 +56,31 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
     resetDormancyTimer, toggleDriverStatus, updateDriverDoc 
   } = useDriverLifecycle(user);
 
-  // 2. Local surrounding demand search scanning
+  // 🔔 [الربط النسيجي عبر وسيط الأحداث السيادي]: الربط والاقتران الضعيف لمنع التداخل والسباغيتي
+  useEffect(() => {
+    const unsubStatus = sovereignEventBroker.on('DRIVER_STATUS_CHANGE', (status) => {
+      setDriverStatus(status);
+    });
+    const unsubDoc = sovereignEventBroker.on('DRIVER_DOC_UPDATE', (data) => {
+      updateDriverDoc(data);
+    });
+    return () => {
+      unsubStatus();
+      unsubDoc();
+    };
+  }, [setDriverStatus, updateDriverDoc]);
+
+  // 2. Local surrounding demand search scanning (Loosely Coupled - Communicates via SovereignEventBroker)
   const { 
     driverLocation, requests, rejectRequest, rejectedTripIds, driverSpeed,
     currentDistrict, currentH3Cell, isDisconnectionLockActive
-  } = useDriverRadar(user, driverStatus, updateDriverDoc);
+  } = useDriverRadar(user, driverStatus);
 
-  // 3. Transactions & bidding states
+  // 3. Transactions & bidding states (Loosely Coupled - Communicates via SovereignEventBroker)
   const { 
     activeRequest, acceptedRider, submitOffer: rawSubmitOffer, isSubmittingOffer, 
     endTrip, isEndingTrip, rateAndFinishTrip, isRatingRider, requestWeeklyReport, isRequestingReport 
-  } = useDriverTransactions(user, setDriverStatus, updateDriverDoc);
+  } = useDriverTransactions(user);
   
   // 4. District surge status
   const { pulseData, loadingPulse } = useMarketPulse(user?.role === 'driver');

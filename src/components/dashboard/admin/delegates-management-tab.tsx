@@ -522,6 +522,7 @@ export function DelegatesManagementTab() {
       if (!targetDelegate) return;
 
       const adminIdentity = auth.currentUser ? (auth.currentUser.email || auth.currentUser.uid) : 'SYSTEM_SOVEREIGN_ADMIN';
+      const idToken = await auth.currentUser?.getIdToken();
 
       const response = await fetch('/api/reconcile-and-sign', {
         method: 'POST',
@@ -529,7 +530,8 @@ export function DelegatesManagementTab() {
         body: JSON.stringify({
           delegateId: id,
           actorRole: 'admin',
-          actorUid: adminIdentity
+          actorUid: adminIdentity,
+          idToken
         })
       });
 

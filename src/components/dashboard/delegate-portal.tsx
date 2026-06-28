@@ -1532,19 +1532,27 @@ export function DelegatePortal() {
             referralCode: referralCode,
             district: user.district || 'وادي السير'
           },
-          securityClearance: 'DELEGATE_SELF_AUTH'
+          securityClearance: 'DELEGATE_COURT_AUTH'
         });
 
-        // 2. Clear balance
-        const userRef = doc(db, 'users', user.uid);
-        await updateDoc(userRef, { pendingDues: 0 });
-
-        // Update corresponding delegates record
+        // Resolve corresponding delegates record
         const queries = query(collection(db, 'delegates'), where('phone', '==', user.phone || ''));
         const qs = await getDocs(queries); 
         const match = qs.docs.find((d: any) => d.data().referralCode === referralCode);
-        if (match) {
-          await updateDoc(doc(db, 'delegates', match.id), { pendingDues: 0 });
+        const delegateId = match ? match.id : user.uid;
+
+        // [SECURITY-PATCH] استبدال الكتابة المباشرة المفتوحة من العميل باستدعاء آمن ومصادق من المحكمة (Server-Side)
+        const idToken = await auth.currentUser?.getIdToken();
+        const response = await fetch('/api/clear-delegate-dues', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ delegateId, idToken }),
+        });
+        const resData = await response.json();
+        if (!response.ok || !resData.success) {
+          throw new Error(resData.error || 'فشل مصادقة المحكمة السيادية للتسوية المالية.');
         }
       }
 
@@ -2497,8 +2505,8 @@ export function DelegatePortal() {
                 </div>
 
                 {walletMode === 'withdraw' ? (
-                  /* WITHDRAWAL FORM */
-                  <div className="space-y-3">
+                      /* WITHDRAWAL FORM */
+                      <div className="space-y-3">
                     {/* Local Payment Channel Selector */}
                     <div className="space-y-1">
                       <label className="text-[10px] font-black text-zinc-300 block">قناة الدفع الرقمية المفضلة (الأردن):</label>
@@ -2694,7 +2702,7 @@ export function DelegatePortal() {
                     </div>
                   </div>
                 )}
-              </div>
+          </div>
 
               {/* Action Button */}
               <div className="mt-4">
@@ -2711,7 +2719,7 @@ export function DelegatePortal() {
                         setPendingDues(newDues);
                         const newTx = {
                           id: `pay-${Date.now()}`,
-                          date: new Date().toISOString(),
+                          date: getSecureNow().toISOString(),
                           amount: amt,
                           channel: payoutChannel,
                           status: 'COMPLETED',
@@ -2777,17 +2785,8 @@ export function DelegatePortal() {
                     }}
                     className="w-full py-2.5 bg-[#00ffcc] hover:bg-[#00e0b3] disabled:bg-zinc-800 disabled:text-zinc-500 text-black text-[11px] font-black rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer"
                   >
-                    {payoutProcessing ? (
-                      <>
-                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                        <span>جاري معالجة المعاملة...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Check className="w-3.5 h-3.5 text-black" />
-                        <span>تأكيد تسييل العمولات بنبضة واحدة</span>
-                      </>
-                    )}
+                    <Check className="w-3.5 h-3.5 text-black" />
+                    <span>تأكيد تسييل العمولات (سحب فوري)</span>
                   </button>
                 ) : (
                   <button
@@ -2802,7 +2801,7 @@ export function DelegatePortal() {
                         setPendingDues(newDues);
                         const newTx = {
                           id: `dep-${Date.now()}`,
-                          date: new Date().toISOString(),
+                          date: getSecureNow().toISOString(),
                           amount: amt,
                           channel: 'CliQ',
                           status: 'COMPLETED',
@@ -2871,21 +2870,12 @@ export function DelegatePortal() {
                     }}
                     className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-400 disabled:bg-zinc-800 disabled:text-zinc-500 text-black text-[11px] font-black rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer"
                   >
-                    {rechargeProcessing ? (
-                      <>
-                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                        <span>جاري إنشاء المصافحة مع كليك (CliQ)...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Zap className="w-3.5 h-3.5 text-black fill-black" />
-                        <span>تأكيد شحن رصيد نقدي فوري عبر CliQ</span>
-                      </>
-                    )}
+                    <Zap className="w-3.5 h-3.5 text-black fill-black" />
+                    <span>تأكيد شحن رصيد (كليك فوري)</span>
                   </button>
                 )}
               </div>
-            </Card>
+          </Card>
 
             {/* 💎 PANEL 3: TRAVELLER LOYALTY - DIAMOND PULSE (باقة ولاء المسافر والنبض الماسي) */
             <Card className="lg:col-span-6 bg-[#0a0614] border border-amber-500/25 rounded-3xl p-5 relative overflow-hidden shadow-xl flex flex-col justify-between">

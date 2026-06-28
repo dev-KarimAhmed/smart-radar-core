@@ -256,10 +256,11 @@ export const useSovereignDashboard = () => {
     });
 
     try {
+      const idToken = await auth.currentUser?.getIdToken();
       const response = await fetch('/api/clear-delegate-dues', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ delegateId })
+        body: JSON.stringify({ delegateId, idToken })
       });
       const data = await response.json();
 

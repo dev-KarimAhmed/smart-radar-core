@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useDriverOperations } from '@/hooks/use-driver-operations';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
 import { doc, updateDoc, increment } from 'firebase/firestore';
 import { 
@@ -21,11 +22,14 @@ import {
   TrendingUp,
   UserCheck,
   CheckCircle,
-  MapPin
+  MapPin,
+  Search,
+  BookOpen
 } from 'lucide-react';
+import { SOVEREIGN_ERR_DICTIONARY } from '@/core/config/sovereign-errors';
 
 interface CaptainDashboardProps {
-  captainProfile: {
+  captainProfile?: {
     id: string;
     rank: 'PLATINUM' | 'GOLD' | 'BRONZE' | 'SILVER';
     walletHours: number;
@@ -35,9 +39,33 @@ interface CaptainDashboardProps {
   };
 }
 
-export const RadarCaptainDashboard: React.FC<CaptainDashboardProps> = ({ captainProfile }) => {
+export const RadarCaptainDashboard: React.FC<CaptainDashboardProps> = ({ captainProfile: propProfile }) => {
+  const { user } = useAuth();
   const { toast } = useToast();
   const { currentDistrict, currentH3Cell, driverStatus, isDisconnectionLockActive, toggleDriverStatus } = useDriverOperations() || {};
+
+  const captainProfile = React.useMemo(() => {
+    if (propProfile) return propProfile;
+
+    const defaultComments = [
+      'المركبة نظيفة جداً والكابتن متعاون للغاية.',
+      'قيادة متزنة وملتزم تماماً بكوابح الأسعار القانونية باللواء.',
+      'سرعة ممتازة وتواصل حكيم ومحترم ومهذب.'
+    ];
+
+    const ratingVal = user?.rating !== undefined 
+      ? user.rating 
+      : (user?.ratingSum && user?.ratingCount ? user.ratingSum / user.ratingCount : 5.0);
+
+    return {
+      id: user?.uid || 'temp-id',
+      rank: (user?.rank ? user.rank.toUpperCase() : 'GOLD') as 'PLATINUM' | 'GOLD' | 'BRONZE' | 'SILVER',
+      walletHours: user?.paidHoursRemaining !== undefined ? user.paidHoursRemaining : 180, 
+      bonusHours: user?.bonusHoursRemaining !== undefined ? user.bonusHoursRemaining : 120, 
+      rating: ratingVal,
+      weeklyComments: defaultComments
+    };
+  }, [propProfile, user]);
 
   const isRadarActive = driverStatus === 'active' || driverStatus === 'busy';
   const localHours = captainProfile.walletHours;
@@ -47,6 +75,30 @@ export const RadarCaptainDashboard: React.FC<CaptainDashboardProps> = ({ captain
   // Recharging system state
   const [showRechargeDialog, setShowRechargeDialog] = useState<boolean>(false);
   const [selectedPlanHours, setSelectedPlanHours] = useState<number>(24);
+
+  // 🛡️ [حالة كشاف قاموس الأخطاء السيادي]
+  const [errSearchQuery, setErrSearchQuery] = useState('');
+  const [selectedErrCategory, setSelectedErrCategory] = useState<'ALL' | 'SOV' | 'FIN' | 'MAP' | 'ADV' | 'KNL'>('ALL');
+  const [expandedErrorCode, setExpandedErrorCode] = useState<string | null>(null);
+
+  const filteredErrors = React.useMemo(() => {
+    return Object.values(SOVEREIGN_ERR_DICTIONARY).filter(err => {
+      const matchCategory = 
+        selectedErrCategory === 'ALL' ||
+        (selectedErrCategory === 'SOV' && err.code.startsWith('ERR-SOV-')) ||
+        (selectedErrCategory === 'FIN' && err.code.startsWith('ERR-FIN-')) ||
+        (selectedErrCategory === 'MAP' && err.code.startsWith('ERR-MAP-')) ||
+        (selectedErrCategory === 'ADV' && err.code.startsWith('ERR-ADV-')) ||
+        (selectedErrCategory === 'KNL' && err.code.startsWith('ERR-KNL-'));
+
+      const matchSearch = 
+        err.code.toLowerCase().includes(errSearchQuery.toLowerCase()) ||
+        err.name.toLowerCase().includes(errSearchQuery.toLowerCase()) ||
+        err.description.toLowerCase().includes(errSearchQuery.toLowerCase());
+
+      return matchCategory && matchSearch;
+    });
+  }, [errSearchQuery, selectedErrCategory]);
 
   // Geographic bulletin log feed
   const [bulletins, setBulletins] = useState<Array<{ id: string; category: string; content: string; geo: string; timestamp: string; level: 'critical' | 'warning' | 'info' }>>([
@@ -320,6 +372,119 @@ export const RadarCaptainDashboard: React.FC<CaptainDashboardProps> = ({ captain
               </div>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* 🛡️ القاموس السيادي للأخطاء (SSOT Error Explorer) */}
+      <div className="bg-[#0b0c10] border border-emerald-950/20 rounded-xl p-4 mb-5 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-white/5 pb-2.5 gap-2">
+          <h4 className="text-[11px] text-[#00ffcc] font-black flex items-center gap-2">
+            <BookOpen className="w-3.5 h-3.5 text-[#00ffcc]" /> المرجع الأمني الحافة: القاموس السيادي للأخطاء (SSOT Explorer)
+          </h4>
+          <span className="text-[8px] text-gray-400 bg-white/5 px-2 py-0.5 rounded-full border border-white/5 font-mono">
+            الإصدار V5.5 - قطعي ومحلي
+          </span>
+        </div>
+
+        <p className="text-[9.5px] leading-relaxed text-gray-400 font-sans">
+          دليل التتبع التشخيصي التلقائي المشغل بالكامل على الحافة لمنع استنزاف الخوادم وسرعة تصفية الأخطاء الجنائية والمالية والملاحية بالمنصة.
+        </p>
+
+        {/* أدوات البحث والفلترة */}
+        <div className="space-y-2">
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="ابحث بكود الخطأ، العنوان أو الوصف..."
+              value={errSearchQuery}
+              onChange={(e) => setErrSearchQuery(e.target.value)}
+              className="w-full bg-[#050505] border border-white/10 rounded-lg py-2.5 pr-8 pl-3 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#00ffcc]/50 transition-colors font-sans text-right"
+              dir="rtl"
+            />
+            <Search className="w-3.5 h-3.5 text-gray-500 absolute right-2.5 top-3.5" />
+          </div>
+
+          <div className="flex flex-wrap gap-1">
+            {[
+              { id: 'ALL', label: 'الكل' },
+              { id: 'SOV', label: '🛡️ السيادة' },
+              { id: 'FIN', label: '💸 المالية' },
+              { id: 'MAP', label: '🗺️ الخرائط' },
+              { id: 'ADV', label: '📢 الإعلانات' },
+              { id: 'KNL', label: '🎛️ النواة' }
+            ].map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => {
+                  setSelectedErrCategory(cat.id as any);
+                  setExpandedErrorCode(null);
+                }}
+                className={`px-2 py-1 text-[9px] font-bold rounded transition-all cursor-pointer ${
+                  selectedErrCategory === cat.id 
+                    ? 'bg-[#00ffcc]/15 text-[#00ffcc] border border-[#00ffcc]/30' 
+                    : 'bg-[#050505] text-gray-400 border border-white/5 hover:border-white/10'
+                }`}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* قائمة الأخطاء المفلترة */}
+        <div className="space-y-2 max-h-[220px] overflow-y-auto pl-1 pr-0.5">
+          {filteredErrors.length > 0 ? (
+            filteredErrors.map((err) => {
+              const isExpanded = expandedErrorCode === err.code;
+              const isCrit = err.code.startsWith('ERR-KNL-') || err.code.startsWith('ERR-SOV-');
+              return (
+                <div 
+                  key={err.code}
+                  className={`border rounded-lg transition-all ${
+                    isExpanded 
+                      ? 'bg-[#050505] border-[#00ffcc]/25 shadow-[0_4px_20px_rgba(0,255,200,0.02)]' 
+                      : 'bg-[#050505]/40 border-white/5 hover:border-white/10'
+                  }`}
+                >
+                  <button
+                    onClick={() => setExpandedErrorCode(isExpanded ? null : err.code)}
+                    className="w-full p-2.5 text-right flex items-center justify-between text-[10px] font-mono cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className={`px-1.5 py-0.5 rounded text-[8.5px] font-bold tracking-wider ${
+                        isCrit ? 'bg-red-950/50 text-red-400 border border-red-500/10' : 'bg-emerald-950/50 text-[#00ffcc] border border-emerald-500/10'
+                      }`}>
+                        {err.code}
+                      </span>
+                      <span className="font-sans font-bold text-gray-200 text-xs truncate max-w-[180px] sm:max-w-none">
+                        {err.name}
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-gray-500 font-bold">
+                      {isExpanded ? '▲' : '▼'}
+                    </span>
+                  </button>
+
+                  {isExpanded && (
+                    <div className="px-3 pb-3 pt-1 border-t border-white/5 space-y-2.5 text-[9.5px] font-sans text-right">
+                      <div>
+                        <span className="text-[8px] text-gray-500 block">وصف الخلل:</span>
+                        <p className="text-gray-300 leading-relaxed font-sans">{err.description}</p>
+                      </div>
+                      <div className="p-2 bg-[#0a1512] border border-emerald-500/10 rounded-lg">
+                        <span className="text-[8.5px] text-[#00ffcc] font-bold block">🛡️ الإجراء الوقائي الحركي الحافة:</span>
+                        <p className="text-emerald-300/90 leading-relaxed font-sans mt-0.5">{err.action}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          ) : (
+            <p className="text-[9.5px] text-gray-500 italic text-center py-4 bg-white/5 rounded-xl font-sans">
+              لا توجد رموز مطابقة لمعايير البحث الحالية.
+            </p>
+          )}
         </div>
       </div>
 

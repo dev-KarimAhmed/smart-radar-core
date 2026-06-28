@@ -2,7 +2,15 @@
 // المرجع القطعي تماشياً مع ميثاق العهد الماسي V11.0 بروتوكول المقصلة الرقمية والتعقيم الماسي
 
 export type SovereignRegionId = 'REGION_1_GATEWAY' | 'REGION_2_SSOT_CORES' | 'REGION_3_ORCHESTRATION_UI';
-export type SovereignSectorId = 'SECTOR_RIDER' | 'SECTOR_DRIVER' | 'SECTOR_ADMIN' | 'SECTOR_DELEGATE' | 'SECTOR_ADVERTISER' | 'SECTOR_COMMON';
+export type SovereignSectorId = 
+  | 'SECTOR_RIDER' 
+  | 'SECTOR_DRIVER' 
+  | 'SECTOR_ADMIN' 
+  | 'SECTOR_ADVERTISER' 
+  | 'SECTOR_CORES' 
+  | 'SECTOR_UTILITIES'
+  | 'SECTOR_DELEGATE'
+  | 'SECTOR_COMMON';
 
 export interface ISovereignRegion {
   id: SovereignRegionId;
@@ -21,14 +29,22 @@ export interface ISovereignSector {
   nameEn: string;
   descriptionAr: string;
   descriptionEn: string;
-  components: string[];
-  hooks: string[];
-  cores: string[];
-  databaseCollections: string[];
+  // تقسيم المكونات البرمجية إلى واجهة العميل (Front-End) والخدمات الخلفية وقواعد البيانات (Back-End)
+  frontend: {
+    components: string[];
+    hooks: string[];
+    assetsAndStyles?: string[];
+  };
+  backend: {
+    cores: string[];
+    cloudFunctions?: string[];
+    databaseCollections: string[];
+    apiEndpoints?: string[];
+  };
 }
 
 export const SovereignDemarcationCatalog = {
-  version: 'V11.0_PRO',
+  version: 'V11.0_PRO_Sectors_Split',
   timestamp: 1781913600000, // 2026-06-19
 
   // 1. كتالوج تقسيم المناطق والحدود البرمجية وتثبيت المسؤولية الأحادية
@@ -94,126 +110,234 @@ export const SovereignDemarcationCatalog = {
     }
   }),
 
-  // 2. كتالوج فصل القطاعات العزل الإقليمي (Sovereign Sector Separation)
+  // 2. كتالوج فصل القطاعات العزل الإقليمي بفرعيه (Front-End & Back-End Split)
   sectors: Object.freeze<Record<SovereignSectorId, ISovereignSector>>({
     SECTOR_RIDER: {
       id: 'SECTOR_RIDER',
-      nameAr: 'قطاع الفرسان والركاب',
+      nameAr: 'قطاع الراكب',
       nameEn: 'Rider Sector',
-      descriptionAr: 'القطاع المعني بطلب الرحلات، ومتابعة مزادات الكباتن، وحفظ الكباتن المفضلة محلياً في الخزنة المضمونة.',
+      descriptionAr: 'القطاع المعني بطلب الرحلات ومتابعة مزادات الكباتن والنبض البصري التركوازي صامت الخيارات.',
       descriptionEn: 'Responsible for ride requests, monitoring live captain auctions, and managing locally saved favorite captains.',
-      components: [
-        '/src/components/dashboard/rider-view-tab.tsx',
-        '/src/components/dashboard/rider/rider-dashboard.tsx',
-        '/src/components/dashboard/rider/offer-gallery.tsx',
-        '/src/components/dashboard/rider/request-ride-modal.tsx'
-      ],
-      hooks: [
-        '/src/hooks/use-rider-operations.tsx',
-        '/src/hooks/rider/use-rider-trip-listener.ts',
-        '/src/hooks/use-rider-transactions.tsx'
-      ],
-      cores: [
-        '/src/lib/sovereign-digger.ts'
-      ],
-      databaseCollections: [
-        'trips',
-        'users' // Read-Only matching SSOT
-      ]
+      frontend: {
+        components: [
+          '/src/components/dashboard/rider-view-tab.tsx',
+          '/src/components/dashboard/rider-portal.tsx',
+          '/src/components/dashboard/rider/rider-dashboard.tsx',
+          '/src/components/dashboard/rider/offer-gallery.tsx',
+          '/src/components/dashboard/rider/request-ride-modal.tsx',
+          '/src/components/dashboard/rider/driver-sovereign-card.tsx'
+        ],
+        hooks: [
+          '/src/hooks/use-rider-operations.tsx',
+          '/src/hooks/rider/use-rider-trip-listener.ts',
+          '/src/hooks/use-rider-transactions.tsx',
+          '/src/hooks/use-rider-sidebar-radar.ts'
+        ]
+      },
+      backend: {
+        cores: [
+          '/src/lib/sovereign-digger.ts'
+        ],
+        cloudFunctions: [
+          '/functions/src/handlers/trips.ts'
+        ],
+        databaseCollections: [
+          'trips',
+          'users' // Read-Only validation for driver metadata
+        ],
+        apiEndpoints: [
+          '/api/rider/request',
+          '/api/rider/cancel'
+        ]
+      }
     },
     SECTOR_DRIVER: {
       id: 'SECTOR_DRIVER',
-      nameAr: 'قطاع الناقلين والكباتن',
-      nameEn: 'Driver Sector',
-      descriptionAr: 'إدارة شاشات الكباتن، ضبط مصفوفة الأسعار، استهلاك تذاكر الوقت، تفعيل النبض الميداني وعزله عند الاستراحة.',
+      nameAr: 'قطاع الناقل',
+      nameEn: 'Driver / Captain Sector',
+      descriptionAr: 'إدارة شاشات الكباتن، ضبط مصفوفة الأسعار، استهلاك تذاكر الوقت، تفعيل النبض الميداني وعزله عند الاستراحة، وتجنب التوأمة الشبحية والثرثرة الشبكية.',
       descriptionEn: 'Controls captain cockpit, pricing matrix configuration, time ticks deduction, and active pulse toggling.',
-      components: [
-        '/src/components/dashboard/driver-view-tab.tsx',
-        '/src/components/dashboard/driver/captain-dashboard.tsx',
-        '/src/components/dashboard/driver-pricing-card.tsx',
-        '/src/components/dashboard/driver/driver-actions.tsx'
-      ],
-      hooks: [
-        '/src/hooks/use-driver-operations.tsx',
-        '/src/hooks/use-driver-lifecycle.ts',
-        '/src/hooks/driver/use-driver-transactions.ts'
-      ],
-      cores: [
-        '/src/core/logic/sovereign-market-kernel.ts',
-        '/src/core/logic/time-kernel.ts'
-      ],
-      databaseCollections: [
-        'trips',
-        'users' // Write transactions, hours updates
-      ]
+      frontend: {
+        components: [
+          '/src/components/dashboard/driver-view-tab.tsx',
+          '/src/components/dashboard/driver/captain-dashboard.tsx',
+          '/src/components/dashboard/driver-pricing-card.tsx',
+          '/src/components/dashboard/driver/driver-actions.tsx',
+          '/src/components/dashboard/driver/driver-stats-card.tsx'
+        ],
+        hooks: [
+          '/src/hooks/use-driver-operations.tsx',
+          '/src/hooks/use-driver-lifecycle.ts',
+          '/src/hooks/driver/use-driver-transactions.ts',
+          '/src/hooks/driver/use-driver-radar.ts'
+        ]
+      },
+      backend: {
+        cores: [
+          '/src/core/logic/sovereign-market-kernel.ts',
+          '/src/core/logic/time-kernel.ts'
+        ],
+        cloudFunctions: [
+          '/functions/src/handlers/drivers.ts'
+        ],
+        databaseCollections: [
+          'trips',
+          'users' // Write transactions, hours updates
+        ],
+        apiEndpoints: [
+          '/api/driver/tick',
+          '/api/driver/status-sync'
+        ]
+      }
     },
     SECTOR_ADMIN: {
       id: 'SECTOR_ADMIN',
-      nameAr: 'قطاع الحاكم واللوحة الرئاسية',
-      nameEn: 'Commanding Admin Sector',
+      nameAr: 'قطاع المالك',
+      nameEn: 'Owner / Commanding Admin Sector',
       descriptionAr: 'غرفة السيطرة العليا لمراقبة كوابح السوق، تتبع المحافظات والنبض العام، وتفعيل قواطع الأمان الكلية عند التهديدات.',
       descriptionEn: 'The supreme admin console to monitor market deviation ratios and trigger immediate regional lock-downs.',
-      components: [
-        '/src/components/dashboard/admin-view-tab.tsx',
-        '/src/components/dashboard/admin/owner-sovereign-dashboard.tsx',
-        '/src/components/dashboard/admin/kill-switch-panel.tsx',
-        '/src/components/dashboard/admin/fuel-index-panel.tsx'
-      ],
-      hooks: [
-        '/src/hooks/use-sovereign-controls.ts',
-        '/src/hooks/use-sovereign-fleet.ts'
-      ],
-      cores: [
-        '/src/core/logic/anti-cheat-kernel.ts'
-      ],
-      databaseCollections: [
-        'system_state',
-        'districts',
-        'users'
-      ]
+      frontend: {
+        components: [
+          '/src/components/dashboard/admin-view-tab.tsx',
+          '/src/components/dashboard/admin/owner-sovereign-dashboard.tsx',
+          '/src/components/dashboard/admin/kill-switch-panel.tsx',
+          '/src/components/dashboard/admin/fuel-index-panel.tsx',
+          '/src/components/dashboard/admin/drivers-management-tab.tsx'
+        ],
+        hooks: [
+          '/src/hooks/use-sovereign-controls.ts',
+          '/src/hooks/use-sovereign-fleet.ts',
+          '/src/hooks/admin/useSovereignDashboard.ts'
+        ]
+      },
+      backend: {
+        cores: [
+          '/src/core/logic/anti-cheat-kernel.ts'
+        ],
+        cloudFunctions: [
+          '/functions/src/handlers/admin.ts'
+        ],
+        databaseCollections: [
+          'system_state',
+          'districts',
+          'users'
+        ],
+        apiEndpoints: [
+          '/api/admin/killswitch',
+          '/api/admin/fuel-price-override'
+        ]
+      }
+    },
+    SECTOR_ADVERTISER: {
+      id: 'SECTOR_ADVERTISER',
+      nameAr: 'قطاع المعلن',
+      nameEn: 'Advertiser Sector',
+      descriptionAr: 'قمرة المعلنين لرفع ومتابعة عروض الزيوت وصيانة المحرك وحقن تعويضات السعر المحروق للراكب لتوليد عائد ROI.',
+      descriptionEn: 'The corporate advertising center to serve maintenance offers and compensate riders in burnt-fare scenarios.',
+      frontend: {
+        components: [
+          '/src/components/dashboard/advertiser-portal.tsx',
+          '/src/components/dashboard/ad-stage.tsx',
+          '/src/components/dashboard/admin/ads-management-tab.tsx'
+        ],
+        hooks: [
+          '/src/hooks/use-ad-lifecycle.ts',
+          '/src/hooks/use-admin-ads.ts',
+          '/src/hooks/use-promo-stream.ts'
+        ]
+      },
+      backend: {
+        cores: [
+          '/src/lib/ad-cache-sentry.ts'
+        ],
+        cloudFunctions: [
+          '/functions/src/handlers/ads.ts'
+        ],
+        databaseCollections: [
+          'promos',
+          'ads',
+          'advertisers'
+        ],
+        apiEndpoints: [
+          '/api/ads/serve',
+          '/api/ads/click-track'
+        ]
+      }
+    },
+    SECTOR_CORES: {
+      id: 'SECTOR_CORES',
+      nameAr: 'قطاع الملفات التقنية',
+      nameEn: 'Technical Core Files Sector',
+      descriptionAr: 'ملفات النواة الصلبة والمنطق الجنائي مثل خوارزميات محاكاة الملاحة، الكواشف الجغرافية، التحقق المونوتوني، وجدران الحماية.',
+      descriptionEn: 'Solid mathematical core files, geospatial detection, cryptographic assertions, and anti-cheat guards.',
+      frontend: {
+        components: [],
+        hooks: []
+      },
+      backend: {
+        cores: [
+          '/src/core/logic/anti-cheat-kernel.ts',
+          '/src/core/logic/geospatial-kernel.ts',
+          '/src/core/logic/time-kernel.ts',
+          '/src/core/logic/sovereign-market-kernel.ts',
+          '/src/core/RadarAntiCheatKernel.ts'
+        ],
+        cloudFunctions: [],
+        databaseCollections: []
+      }
+    },
+    SECTOR_UTILITIES: {
+      id: 'SECTOR_UTILITIES',
+      nameAr: 'قطاع الادوات التقنية المساعدة',
+      nameEn: 'Technical Utility & Helper Tools Sector',
+      descriptionAr: 'الأدوات التقنية المساندة للتخزين المحلي المستقر والملاحة التصفوية والخرائط الحرة وحسابات هيرسين وجداول اللغات والترجمة.',
+      descriptionEn: 'Auxiliary helper utilities for local caching, free maps integration, custom distance calculators, and dictionary files.',
+      frontend: {
+        components: [],
+        hooks: [
+          '/src/hooks/use-link-catcher.ts',
+          '/src/hooks/use-geospatial-anchor.ts',
+          '/src/hooks/use-market-pulse.ts',
+          '/src/hooks/use-promo-stream.ts'
+        ]
+      },
+      backend: {
+        cores: [
+          '/src/lib/sovereign-dictionary.ts',
+          '/src/core/utils.ts'
+        ],
+        cloudFunctions: [],
+        databaseCollections: []
+      }
     },
     SECTOR_DELEGATE: {
       id: 'SECTOR_DELEGATE',
       nameAr: 'قطاع المندوبين والروابط السحرية',
       nameEn: 'Delegates & Magic Links Sector',
-      descriptionAr: 'تسهيل انتساب الكباتن بالميدان لتوليد روابط الانضمام المشفرة وتتبع الأداء والعمولة الصفرية.',
+      descriptionAr: 'تسهيل انتساب الكباتن بالميدان لتوليد روابط الانضمام المشفرة وتتبع الأداء والعمولة الصفرية واستحقاقات الصندوق الأسود.',
       descriptionEn: 'Drives delegate magic onboarding invites creation, performance boards, and zero-commission tracking.',
-      components: [
-        '/src/components/dashboard/delegate-portal.tsx',
-        '/src/components/dashboard/admin/delegates-management-tab.tsx'
-      ],
-      hooks: [],
-      cores: [],
-      databaseCollections: [
-        'delegates',
-        'delegate_links',
-        'delegate_tasks'
-      ]
-    },
-    SECTOR_ADVERTISER: {
-      id: 'SECTOR_ADVERTISER',
-      nameAr: 'قطاع المعلنين والكوبونات الترويجية',
-      nameEn: 'Advertisers & Promo Engine Sector',
-      descriptionAr: 'قمرة المعلنين لرفع ومتابعة عروض الزيوت وصيانة المحرك وحقن تعويضات السعر المحروق للراكب لتوليد عائد ROI.',
-      descriptionEn: 'The corporate advertising center to serve maintenance offers and compensate riders in burnt-fare scenarios.',
-      components: [
-        '/src/components/dashboard/advertiser-portal.tsx',
-        '/src/components/dashboard/ad-stage.tsx',
-        '/src/components/dashboard/admin/ads-management-tab.tsx'
-      ],
-      hooks: [
-        '/src/hooks/use-ad-lifecycle.ts',
-        '/src/hooks/use-admin-ads.ts',
-        '/src/hooks/use-promo-stream.ts'
-      ],
-      cores: [
-        '/src/lib/ad-cache-sentry.ts'
-      ],
-      databaseCollections: [
-        'promos',
-        'ads',
-        'advertisers'
-      ]
+      frontend: {
+        components: [
+          '/src/components/dashboard/delegate-portal.tsx',
+          '/src/components/dashboard/admin/delegates-management-tab.tsx'
+        ],
+        hooks: []
+      },
+      backend: {
+        cores: [],
+        cloudFunctions: [
+          '/functions/src/handlers/delegates.ts'
+        ],
+        databaseCollections: [
+          'delegates',
+          'delegate_links',
+          'delegate_tasks'
+        ],
+        apiEndpoints: [
+          '/api/delegate/magic-link',
+          '/api/delegate/performance'
+        ]
+      }
     },
     SECTOR_COMMON: {
       id: 'SECTOR_COMMON',
@@ -221,27 +345,41 @@ export const SovereignDemarcationCatalog = {
       nameEn: 'Common Services & Identity Sector',
       descriptionAr: 'خدمات مصادقة الـ OTP والتسجيل المعقم الجغرافي وخيارات الـ Wallet والدفع ومزامنة الإشعارات لجميع الفرسان.',
       descriptionEn: 'Shared OTP flow, county coordinates binding, transactions ledger, and push messaging channels.',
-      components: [
-        '/src/components/auth/login-page.tsx',
-        '/src/components/dashboard/wallet-tab.tsx',
-        '/src/components/dashboard/profile-tab.tsx',
-        '/src/components/shared/geo-payment-gateway.tsx'
-      ],
-      hooks: [
-        '/src/hooks/use-auth.tsx',
-        '/src/hooks/use-registration.tsx',
-        '/src/hooks/use-sovereign-wallet.ts',
-        '/src/hooks/use-sovereign-fcm.ts'
-      ],
-      cores: [
-        '/src/lib/push-notifications.ts',
-        '/src/lib/ephemeral-messages.ts'
-      ],
-      databaseCollections: [
-        'users',
-        'push_tokens',
-        'ephemeral_messages'
-      ]
+      frontend: {
+        components: [
+          '/src/components/auth/login-page.tsx',
+          '/src/components/dashboard/wallet-tab.tsx',
+          '/src/components/dashboard/profile-tab.tsx',
+          '/src/components/dashboard/history-tab.tsx',
+          '/src/components/dashboard/vault-tab.tsx',
+          '/src/components/shared/geo-payment-gateway.tsx'
+        ],
+        hooks: [
+          '/src/hooks/use-auth.tsx',
+          '/src/hooks/use-registration.tsx',
+          '/src/hooks/use-sovereign-wallet.ts',
+          '/src/hooks/use-sovereign-fcm.ts'
+        ]
+      },
+      backend: {
+        cores: [
+          '/src/lib/push-notifications.ts',
+          '/src/lib/ephemeral-messages.ts'
+        ],
+        cloudFunctions: [
+          '/functions/src/handlers/auth.ts'
+        ],
+        databaseCollections: [
+          'users',
+          'push_tokens',
+          'ephemeral_messages'
+        ],
+        apiEndpoints: [
+          '/api/auth/otp-send',
+          '/api/auth/otp-verify',
+          '/api/payment/wallet-load'
+        ]
+      }
     }
   }),
 
