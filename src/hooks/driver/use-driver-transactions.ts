@@ -7,6 +7,7 @@ import { db } from '@/lib/firebase';
 import { trackSovereignError } from '@/lib/error-tracker';
 import { getSovereignErrorMessage } from '@/core/constants/error-dictionary';
 import { useToast } from '../use-toast';
+import { useAuth } from '../use-auth';
 import { callSovereignCloud } from '@/core/contracts/cloud-bridge';
 import type { Trip, User, Offer } from '@/core/types';
 import { SovereignMarketKernel } from '@/core/logic/sovereign-market-kernel';
@@ -18,6 +19,7 @@ export function useDriverTransactions(
   updateDriverDoc?: Function
 ) {
   const { toast } = useToast();
+  const { suspendUserDocListener, resumeUserDocListener } = useAuth();
   const [activeRequest, setActiveReq] = useState<Trip | null>(null);
   const [acceptedRider, setAcceptedRider] = useState<User | null>(null);
   
@@ -70,6 +72,14 @@ export function useDriverTransactions(
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
+      // 🛡️ [حارس قفل الكتابة التفاعلي المانع لتراجع الحالة V2.6-Secured]
+      // نتحقق من وجود قفل نشط لمنع أي لقطة تداخلية متأخرة من تخريب شاشة الملاحة أو شاشة التقييم النشطة
+      const isLockActive = typeof window !== 'undefined' && sessionStorage.getItem('sovereign_write_lock') === 'true';
+      if (isLockActive) {
+        console.log("🛡️ [Snapshot Write Lock Guard]: Stopped trip snapshot consumption during active write lock.");
+        return;
+      }
+
       if (!snapshot.empty) {
         // [بروتوكول الربط الشرياني V2.6-Secured - فرز العهد الميداني للفرسان]
         const trips = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Trip));
@@ -87,18 +97,32 @@ export function useDriverTransactions(
 
         const tripData = trips[0];
         
+        // 🛡️ [النبض الشبكي التفاضلي V2.6-Secured - مرشح التوقيت المالي المالي]
+        const getNetworkAdjustedTime = () => {
+          if (typeof window !== 'undefined') {
+            const deltaStr = sessionStorage.getItem('sovereign_time_delta');
+            const delta = deltaStr ? parseInt(deltaStr, 10) : 0;
+            return Date.now() + delta;
+          }
+          return Date.now();
+        };
+
         // التحقق من صلاحية الرحلة وحداثتها لتجنب التموضع العالق في الحسابات السابقة
         const getTripTimeMs = (val: any) => {
-          if (!val) return Date.now();
+          if (!val) return getNetworkAdjustedTime();
           if (typeof val.toMillis === 'function') return val.toMillis();
           if (val.seconds) return val.seconds * 1000;
           return new Date(val).getTime();
         };
 
-        const isRecent = Date.now() - getTripTimeMs(tripData.createdAt) < 15 * 60 * 1000; // نافذة 15 دقيقة
+        const isRecent = getNetworkAdjustedTime() - getTripTimeMs(tripData.createdAt) < 15 * 60 * 1000; // نافذة 15 دقيقة
 
         // التحقق من الحالات النهائية والمؤرشفة والقديمة لتسريح شاشة الكابتن فوراً للعودة للخدمة
-        if (tripData.status === 'archived' || (!isRecent && ['completed', 'checkpoint_required'].includes(tripData.status))) {
+        if (
+          tripData.status === 'archived' || 
+          tripData.ratingSubmittedByDriver !== undefined || 
+          (!isRecent && ['completed', 'checkpoint_required'].includes(tripData.status))
+        ) {
           cleanUpAndReset();
           return;
         }
@@ -275,6 +299,11 @@ export function useDriverTransactions(
     if (isRatingRiderRef.current) return;
     isRatingRiderRef.current = true;
     setIsRatingRider(true);
+
+    // 🛡️ [حارس قفل الكتابة التفاعلي المانع لتراجع الحالة V2.6-Secured]
+    // نفعل قفل حظر مؤقت لمنع لقطات التحديث الشبكّي من التداخل وتخريب حالة الواجهة أثناء إتمام الرحلة
+    suspendUserDocListener();
+
     try {
       await callSovereignCloud('submitRiderRating', {
         tripId: activeRequest.id,
@@ -291,8 +320,13 @@ export function useDriverTransactions(
     } finally {
       setIsRatingRider(false);
       isRatingRiderRef.current = false;
+
+      // فك قفل تجميد اللقطات بعد مهلة انتشار كافية لمنع الارتداد الشبكي
+      setTimeout(() => {
+        resumeUserDocListener();
+      }, 3000);
     }
-  }, [activeRequest, toast, cleanUpAndReset]);
+  }, [activeRequest, toast, cleanUpAndReset, suspendUserDocListener, resumeUserDocListener]);
 
   const requestWeeklyReport = useCallback(async () => {
     if (isRequestingReportRef.current) return;

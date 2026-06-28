@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo, useRef } from 'react';
 import { onAuthStateChanged, signOut, signInAnonymously, type User as FirebaseUser } from 'firebase/auth';
 import { doc, onSnapshot, setDoc, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
@@ -18,6 +18,8 @@ interface AuthContextType {
   isCaptain: boolean;
   isPassenger: boolean;
   isDelegate: boolean;
+  suspendUserDocListener: () => void;
+  resumeUserDocListener: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -56,13 +58,58 @@ function AuthContent({ children }: { children: ReactNode }) {
         return () => unsubscribe();
     }, [user?.uid]);
     
-    useEffect(() => {
-        let unsubscribeUserDoc: (() => void) | null = null;
+    const userRefRef = useRef<any>(null);
+    const unsubscribeUserDocRef = useRef<(() => void) | null>(null);
 
+    const suspendUserDocListener = useCallback(() => {
+        if (unsubscribeUserDocRef.current) {
+            console.log("🛡️ [Protocol 88]: Unsubscribing from user doc real-time listener to prevent chatty updates during transaction.");
+            unsubscribeUserDocRef.current();
+            unsubscribeUserDocRef.current = null;
+        }
+        if (typeof window !== 'undefined') {
+            sessionStorage.setItem('sovereign_write_lock', 'true');
+        }
+    }, []);
+
+    const resumeUserDocListener = useCallback(() => {
+        if (typeof window !== 'undefined') {
+            sessionStorage.removeItem('sovereign_write_lock');
+        }
+        if (userRefRef.current && !unsubscribeUserDocRef.current) {
+            console.log("🛡️ [Protocol 88]: Resuming user doc real-time listener after transaction completed.");
+            
+            getDoc(userRefRef.current).then((docSnap) => {
+                if (docSnap.exists()) {
+                    const userData = docSnap.data();
+                    setUser({ uid: docSnap.id, ...(userData as any) } as SovereignUser);
+                }
+                
+                const userData = docSnap.data() as any;
+                const isIndependent = userData?.subRole === 'independent';
+                if (!isIndependent) {
+                    unsubscribeUserDocRef.current = onSnapshot(userRefRef.current,
+                        (snapshot: any) => {
+                            if (snapshot.exists()) {
+                                setUser({ uid: snapshot.id, ...snapshot.data() } as SovereignUser);
+                            }
+                        },
+                        (error: any) => {
+                            trackSovereignError(error, { context: "User_Doc_Listener_Resume" });
+                        }
+                    );
+                }
+            }).catch((error: any) => {
+                trackSovereignError(error, { context: "User_Doc_Fetch_Resume" });
+            });
+        }
+    }, []);
+
+    useEffect(() => {
         const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
-            if (unsubscribeUserDoc) {
-                unsubscribeUserDoc();
-                unsubscribeUserDoc = null;
+            if (unsubscribeUserDocRef.current) {
+                unsubscribeUserDocRef.current();
+                unsubscribeUserDocRef.current = null;
             }
 
             // Check if there is a dynamic bypass user first (only in DEV)
@@ -89,6 +136,7 @@ function AuthContent({ children }: { children: ReactNode }) {
                     // Sync the bypass user properties to Firestore to align security tokens
                     try {
                         const userRef = doc(db, 'users', firebaseUser.uid);
+                        userRefRef.current = userRef;
                         const syncedUser = {
                             uid: firebaseUser.uid,
                             name: bypassUser.name,
@@ -113,6 +161,7 @@ function AuthContent({ children }: { children: ReactNode }) {
             } else if (firebaseUser) {
                 setLoading(true);
                 const userRef = doc(db, "users", firebaseUser.uid);
+                userRefRef.current = userRef;
                 
                 getDoc(userRef).then((docSnap) => {
                     if (docSnap.exists()) {
@@ -125,9 +174,17 @@ function AuthContent({ children }: { children: ReactNode }) {
                             setLoading(false);
                         } else {
                             // Captain or standard user: subscribe to real-time updates
-                            unsubscribeUserDoc = onSnapshot(userRef,
+                            unsubscribeUserDocRef.current = onSnapshot(userRef,
                                 (snapshot) => {
                                     if (snapshot.exists()) {
+                                        // 🛡️ [حارس قفل الكتابة التفاعلي المانع لتراجع الحالة V2.6-Secured]
+                                        // عند وجود قفل نشط (مثل أثناء شحن المحفظة أو تقييم السائق)، يتم تجميد وتأخير استهلاك اللقطة (Snapshot)
+                                        // لمنع ارتداد الحالة المحلية للواجهة قبل اكتمال النشر السحابي بالكامل.
+                                        const isLockActive = typeof window !== 'undefined' && sessionStorage.getItem('sovereign_write_lock') === 'true';
+                                        if (isLockActive) {
+                                            console.log("🛡️ [Snapshot Write Lock Guard]: Delayed snapshot consumption during active write lock.");
+                                            return;
+                                        }
                                         setUser({ uid: snapshot.id, ...snapshot.data() } as SovereignUser);
                                     }
                                     setLoading(false);
@@ -155,8 +212,8 @@ function AuthContent({ children }: { children: ReactNode }) {
 
         return () => {
             unsubscribeAuth();
-            if (unsubscribeUserDoc) {
-                unsubscribeUserDoc();
+            if (unsubscribeUserDocRef.current) {
+                unsubscribeUserDocRef.current();
             }
         };
     }, []);
@@ -208,8 +265,10 @@ function AuthContent({ children }: { children: ReactNode }) {
         isSovereign, 
         isCaptain, 
         isPassenger,
-        isDelegate
-    }), [user, loading, promoData, logout, loginAsMockUser, isSovereign, isCaptain, isPassenger, isDelegate]);
+        isDelegate,
+        suspendUserDocListener,
+        resumeUserDocListener
+    }), [user, loading, promoData, logout, loginAsMockUser, isSovereign, isCaptain, isPassenger, isDelegate, suspendUserDocListener, resumeUserDocListener]);
 
     if (loading && !user) { return null; }
 

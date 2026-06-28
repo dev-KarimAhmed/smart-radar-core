@@ -85,6 +85,7 @@ export interface Trip {
   h3Index?: string;
   gridId: string;
   isRatedByRider?: boolean;
+  ratingSubmittedByDriver?: number;
   offers?: Offer[];
   district?: string;
   requiresOfficialRate?: boolean;

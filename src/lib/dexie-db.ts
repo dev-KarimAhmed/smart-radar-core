@@ -12,18 +12,59 @@ export interface FavoriteCaptain {
   heartedAt: number;
 }
 
+export interface CaptainSovereignLog {
+  id?: number;
+  captainId: string;
+  type: 'status_change' | 'system_action' | 'district_exit';
+  event: string;
+  details: string;
+  timestamp: number;
+  timeString: string;
+}
+
 class SovereignFavoritesDatabase extends Dexie {
   favoriteCaptains!: Table<FavoriteCaptain>;
+  captainSovereignLogs!: Table<CaptainSovereignLog>;
 
   constructor() {
     super('SovereignFavoritesDatabase');
     this.version(1).stores({
       favoriteCaptains: '++id, tripId, captainPhone, captainName'
     });
+    this.version(2).stores({
+      favoriteCaptains: '++id, tripId, captainPhone, captainName',
+      captainSovereignLogs: '++id, captainId, type, timestamp, event'
+    });
   }
 }
 
 export const dexieDb = new SovereignFavoritesDatabase();
+
+export const addCaptainSovereignLog = async (
+  captainId: string,
+  type: 'status_change' | 'system_action' | 'district_exit',
+  event: string,
+  details: string
+) => {
+  try {
+    const timestamp = Date.now();
+    const timeString = new Date(timestamp).toLocaleTimeString('ar-JO', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' ' + new Date(timestamp).toLocaleDateString('ar-JO');
+    await dexieDb.captainSovereignLogs.add({
+      captainId,
+      type,
+      event,
+      details,
+      timestamp,
+      timeString
+    });
+    console.log(`🛡️ [Sovereign Log]: Recorded event [${event}] of type [${type}] successfully.`);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('sovereign-log-added', { detail: { captainId, type, event } }));
+    }
+  } catch (err) {
+    console.error("Failed to add sovereign log:", err);
+  }
+};
 
 // [SCR-FAVORITE-PROTO-142] محرك تفضيل الكباتن وحماية المفقودات عند الحافة
 // يعمل بالكامل في المتصفح (IndexedDB / LocalStorage) بصفر كلفة سحابية

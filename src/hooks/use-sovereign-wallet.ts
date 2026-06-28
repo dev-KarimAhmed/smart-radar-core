@@ -4,6 +4,7 @@ import { useState, useCallback, useRef } from 'react';
 import { doc, updateDoc, arrayUnion, increment } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useToast } from './use-toast';
+import { useAuth } from './use-auth';
 import type { User } from '@/core/types';
 
 /**
@@ -15,6 +16,18 @@ export function useSovereignWallet(user: User | null) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const loadingRef = useRef(false);
+  const { suspendUserDocListener, resumeUserDocListener } = useAuth();
+
+  // 🛡️ [النبض الشبكي التفاضلي V2.6-Secured - مرشح التوقيت المالي المالي]
+  // استرجاع توقيت السيرفر المعاير محلياً لمنع التلاعب بساعة الهاتف وتمرير المعاملات بأوقات زائفة
+  const getNetworkAdjustedTime = useCallback(() => {
+    if (typeof window !== 'undefined') {
+      const deltaStr = sessionStorage.getItem('sovereign_time_delta');
+      const delta = deltaStr ? parseInt(deltaStr, 10) : 0;
+      return Date.now() + delta;
+    }
+    return Date.now();
+  }, []);
 
   const rechargeWallet = useCallback(async (amountPaid: number, district: string, gateway: string) => {
     if (!user?.uid) {
@@ -29,15 +42,21 @@ export function useSovereignWallet(user: User | null) {
     if (loadingRef.current) return false;
     loadingRef.current = true;
     setLoading(true);
+
+    // 🛡️ [حارس قفل الكتابة التفاعلي المانع لتراجع الحالة V2.6-Secured]
+    // نغلق قناة استقبال لقطات مستند المستخدم لمنع الفرز التنازلي الارتدادي للمحفظة أثناء الشحن النشط
+    suspendUserDocListener();
+
     try {
-      const txId = 'tx-' + Date.now();
+      const networkNow = getNetworkAdjustedTime();
+      const txId = 'tx-' + networkNow;
       const transactionItem = {
         id: txId,
         type: 'charge',
         amount: amountPaid,
         currency: 'د.أ',
         description: `شحن رصيد إقليمي لواء [${district}] عبر بوابة [${gateway}]`,
-        createdAt: new Date().toLocaleTimeString('ar-JO', { hour: '2-digit', minute: '2-digit' }) + ' - اليوم',
+        createdAt: new Date(networkNow).toLocaleTimeString('ar-JO', { hour: '2-digit', minute: '2-digit' }) + ' - اليوم',
         status: 'completed'
       };
 
@@ -63,8 +82,13 @@ export function useSovereignWallet(user: User | null) {
     } finally {
       setLoading(false);
       loadingRef.current = false;
+      
+      // فك قفل تجميد اللقطات بعد مهلة كافية لانتشار الكتابة واستقرار الخادم
+      setTimeout(() => {
+        resumeUserDocListener();
+      }, 3000);
     }
-  }, [user?.uid, toast]);
+  }, [user?.uid, toast, getNetworkAdjustedTime, suspendUserDocListener, resumeUserDocListener]);
 
   return {
     loading,

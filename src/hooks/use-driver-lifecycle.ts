@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { RadarTimeSubscriptionKernel } from '@/core/logic/time-kernel';
 import { RadarSovereignCommuteKernel } from '@/lib/commute-kernel';
 import { RadarAntiCheatKernel } from '@/core/logic/anti-cheat-kernel';
+import { addCaptainSovereignLog } from '@/lib/dexie-db';
 
 type DriverStatus = 'active' | 'idle' | 'busy' | 'rating';
 
@@ -63,6 +64,14 @@ export function useDriverLifecycle(user: User | null) {
     if (user?.role === 'driver') {
       const serverStatus = (user.status || 'idle') as DriverStatus;
       
+      // 🛡️ [حارس ترقية الحالة المونوتوني المانع للارتداد الشبكي الأعمى V2.6-Secured]
+      // إذا كان الكابتن محلياً في حالة التقييم المستقر 'rating'، وجاء تحديث شبكي يحمل الحالة 'busy' أو 'active' أو 'idle' من مستند المستخدم،
+      // يتم حجب وتصفية هذا البث فوراً كونه يمثل صدى شبكياً متأخراً (Stale Echo) قادماً من عمليات غير منتهية على السحاب.
+      if (driverStatus === 'rating' && (serverStatus === 'busy' || serverStatus === 'active' || serverStatus === 'idle')) {
+        console.log(`🛡️ [Snapshot Anti-Rollback Guard]: Prevented stale rollback to "${serverStatus}" while driver status is locked in "${driverStatus}"`);
+        return;
+      }
+
       if (expectedServerStatusRef.current !== null) {
         if (serverStatus === expectedServerStatusRef.current) {
           expectedServerStatusRef.current = null;
@@ -104,6 +113,14 @@ export function useDriverLifecycle(user: User | null) {
     timers.current.dormancy = setTimeout(() => {
       changeDriverStatus('idle');
       updateDriverDoc({ status: 'idle' });
+      if (userRef.current?.uid) {
+        addCaptainSovereignLog(
+          userRef.current.uid,
+          'system_action',
+          'تعطيل تلقائي (الخمول التام)',
+          'قام النظام بتحويل حالة الكابتن إلى خامل تلقائياً لعدم رصد أي نشاط أو تفاعل ملموس لمدة 5 دقائق.'
+        );
+      }
     }, SOVEREIGN_CONSTANTS.DORMANCY_TIMEOUT_MS);
   }, [driverStatus, clearTimers, updateDriverDoc]);
 
@@ -182,6 +199,9 @@ export function useDriverLifecycle(user: User | null) {
         const startLastTick = currentUser.lastTickTimestamp || Date.now();
         // [النبض الشبكي التفاضلي V2.6-Secured]: احتساب الفارق الرياضي بين توقيت السيرفر الموثق وساعة الهاتف
         localTimeDeltaRef.current = startLastTick - Date.now();
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('sovereign_time_delta', String(localTimeDeltaRef.current));
+        }
       }
 
       // Calculate real monotonic elapsed time to neutralize any clock modifications (forward or backward)
@@ -311,6 +331,13 @@ export function useDriverLifecycle(user: User | null) {
             lastTickTimestamp: updated.lastTickTimestamp
           }, { merge: true });
 
+          addCaptainSovereignLog(
+            currentUser.uid,
+            'system_action',
+            'تعطيل تلقائي (نفاد باقة البث)',
+            'قام النظام بإطفاء البث وتحويل حالة الكابتن إلى خامل بسبب نفاد حزمة الساعات النشطة بالكامل.'
+          );
+
           toast({
             variant: 'destructive',
             title: '🚨 نفاد باقة ساعات الملاحة',
@@ -355,6 +382,24 @@ export function useDriverLifecycle(user: User | null) {
       status: desiredStatus,
       lastTickTimestamp: desiredStatus === 'active' ? Date.now() : (user?.lastTickTimestamp || Date.now())
     });
+
+    if (user?.uid) {
+      if (desiredStatus === 'active') {
+        addCaptainSovereignLog(
+          user.uid,
+          'status_change',
+          'التحول إلى حالة نشط',
+          'قام الكابتن بتفعيل استقبال البث وتحويل حالته يدوياً إلى نشط ومتاح لاستقبال طلبات الركاب.'
+        );
+      } else {
+        addCaptainSovereignLog(
+          user.uid,
+          'status_change',
+          'التحول إلى حالة خامل',
+          'قام الكابتن بتعطيل استقبال البث وتحويل حالته يدوياً إلى خامل ومغلق.'
+        );
+      }
+    }
   }, [driverStatus, updateDriverDoc, user?.paidHoursRemaining, user?.bonusHoursRemaining, user?.subscriptionHours, user?.lastTickTimestamp, toast]);
 
   return {

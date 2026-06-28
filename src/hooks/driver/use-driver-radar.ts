@@ -11,6 +11,7 @@ import { useGeospatialAnchor } from '../use-geospatial-anchor';
 import type { Trip, User } from '@/core/types';
 import { RadarSovereignCommuteKernel, geoEngine, SovereignCaptainMovement } from '@/lib/commute-kernel';
 import { sovereignEventBroker } from '@/lib/event-broker';
+import { addCaptainSovereignLog } from '@/lib/dexie-db';
 
 /**
  * [SCR-2026-047] رادار تحديد فرسان الأفق القريب
@@ -155,6 +156,12 @@ export function useDriverRadar(user: User | null, driverStatus: string, updateDr
 
     if (commuteResult.allowedToSeeLocalTrips) {
       if (commuteResult.activeDistrictPool !== currentDistrict) {
+        addCaptainSovereignLog(
+          user.uid,
+          'district_exit',
+          'خروج من محيط اللواء',
+          `تم رصد خروج الكابتن من محيط لواء [${currentDistrict}] وانتقاله إلى لواء [${commuteResult.activeDistrictPool}].`
+        );
         setCurrentDistrict(commuteResult.activeDistrictPool);
       }
       if (commuteResult.nextH3Cell !== currentH3Cell) {
