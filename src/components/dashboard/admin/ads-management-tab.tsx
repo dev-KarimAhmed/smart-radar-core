@@ -258,7 +258,12 @@ function AdCampaignCard({
     )}>
       <CardHeader className="pb-3 text-right" dir="rtl">
         <div className="flex justify-between items-start gap-2">
-            <CardTitle className="text-white text-base truncate font-black leading-tight text-right">{ad.content?.title || ad.title}</CardTitle>
+            <div className="flex flex-col text-right min-w-0 flex-1">
+              <CardTitle className="text-white text-base truncate font-black leading-tight text-right">{ad.content?.title || ad.title}</CardTitle>
+              {ad.serial_id && (
+                <span className="text-[10px] text-emerald-400 font-mono tracking-wider mt-1 text-right block">🧬 {ad.serial_id}</span>
+              )}
+            </div>
             <Badge 
               variant={isExpired ? 'destructive' : isFrozen ? 'secondary' : 'outline'} 
               className={cn(

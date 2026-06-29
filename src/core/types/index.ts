@@ -10,6 +10,7 @@ export interface LastTripBuffer {
 
 export interface User {
   uid: string;
+  serial_id?: string;
   phone: string;
   role: UserRole;
   name: string;
@@ -73,6 +74,7 @@ export type TripStatus = 'searching' | 'busy' | 'completed' | 'cancelled' | 'rat
 
 export interface Trip {
   id: string;
+  serial_id?: string;
   riderId: string;
   driverId?: string;
   status: TripStatus;
@@ -118,6 +120,7 @@ export interface Offer {
 
 export interface SovereignAd {
   id: string;
+  serial_id?: string;
   status: 'active' | 'paused' | 'archived' | 'ACTIVE' | 'PENDING' | 'REJECTED' | 'FROZEN' | string;
   title?: string;
   description?: string;

@@ -14,6 +14,7 @@ import { SOVEREIGN_ERR_DICTIONARY } from '@/core/config/sovereign-errors';
 
 interface HistoricalTrip {
   tripId: string;
+  serialId?: string;
   captainName: string;
   captainRank: 'PLATINUM' | 'GOLD' | 'BRONZE';
   captainPhone: string;
@@ -161,6 +162,7 @@ export function HistoryTab() {
     const rawTrips: HistoricalTrip[] = [
       {
         tripId: 'h-trip-1',
+        serialId: 'T-9021',
         captainName: 'ثائر بني هاني',
         captainRank: 'PLATINUM',
         captainPhone: '0799988771',
@@ -170,6 +172,7 @@ export function HistoryTab() {
       },
       {
         tripId: 'h-trip-2',
+        serialId: 'T-9022',
         captainName: 'أسامة النبر',
         captainRank: 'GOLD',
         captainPhone: '0788877662',
@@ -183,6 +186,7 @@ export function HistoryTab() {
       const acceptedOffer = trip.offers?.find((o: any) => o.driverId === trip.driverId) || trip.acceptedOffer;
       return {
         tripId: trip.id,
+        serialId: trip.serial_id || `T-${10000 + Math.floor(Math.random() * 5000)}`,
         captainName: acceptedOffer?.driverName || trip.driverName || 'كابتن معتمد',
         captainRank: acceptedOffer?.driverRank || 'GOLD',
         captainPhone: acceptedOffer?.driverVehicle?.phone || trip.driverPhone || '0790000000',
@@ -204,6 +208,7 @@ export function HistoryTab() {
     const mockTrips = [
       {
         tripId: 'c-trip-1',
+        serialId: 'T-9130',
         riderName: 'ليث مأدبا',
         pickup: 'الدوار السابع',
         dropoff: 'جامعة عمان الأهلية',
@@ -213,6 +218,7 @@ export function HistoryTab() {
       },
       {
         tripId: 'c-trip-2',
+        serialId: 'T-9131',
         riderName: 'يارا دير غبار',
         pickup: 'دير غبار',
         dropoff: 'العبدلي بوليفارد',
@@ -225,6 +231,7 @@ export function HistoryTab() {
     const combinedReal = realTrips.map(trip => {
       return {
         tripId: trip.id,
+        serialId: trip.serial_id || `T-${10000 + Math.floor(Math.random() * 5000)}`,
         riderName: trip.riderName || 'راكب سيادي',
         pickup: trip.pickup || 'موقع الالتقاء',
         dropoff: trip.dropoff || 'موقع الوصول',
@@ -238,8 +245,8 @@ export function HistoryTab() {
     const sourceTrips = combinedReal.length > 0 ? combinedReal : mockTrips;
     const all = [...sourceTrips];
     all.sort((a, b) => b.timestamp - a.timestamp);
-    return all;
-  }, [realTrips]);
+    return all.filter(trip => (now - trip.timestamp) < THREE_DAYS_MS);
+  }, [realTrips, now]);
 
   const toggleFavorite = async (trip: HistoricalTrip) => {
     try {
@@ -349,6 +356,13 @@ export function HistoryTab() {
                             </span>
                           </h4>
                           <p className="text-[11px] text-gray-400 font-sans mt-1">{trip.vehicleInfo}</p>
+                          {trip.serialId && (
+                            <div className="mt-1 flex items-center">
+                              <span className="inline-flex items-center gap-1 bg-[#011e15] text-[#00ffcc] text-[9px] font-mono px-1.5 py-0.5 rounded border border-emerald-500/20">
+                                🧬 {trip.serialId}
+                              </span>
+                            </div>
+                          )}
                         </div>
                         <div className="text-left shrink-0">
                           <span className="text-[12px] text-emerald-400 font-black font-mono block">
@@ -482,6 +496,13 @@ export function HistoryTab() {
                           <p className="text-[11px] text-gray-400 font-sans mt-1">
                             من: {trip.pickup} ➔ إلى: {trip.dropoff}
                           </p>
+                          {trip.serialId && (
+                            <div className="mt-1 flex items-center">
+                              <span className="inline-flex items-center gap-1 bg-[#011e15] text-[#00ffcc] text-[9px] font-mono px-1.5 py-0.5 rounded border border-emerald-500/20">
+                                🧬 {trip.serialId}
+                              </span>
+                            </div>
+                          )}
                         </div>
                         <div className="text-left shrink-0">
                           <span className="text-[12px] text-emerald-400 font-black block">

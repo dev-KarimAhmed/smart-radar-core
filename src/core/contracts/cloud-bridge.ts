@@ -1,5 +1,5 @@
 import { getFunctions, httpsCallable } from 'firebase/functions';
-import { doc, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, runTransaction } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
 import { trackSovereignError } from '@/lib/error-tracker';
 
@@ -152,23 +152,36 @@ async function simulateSovereignCloud<T extends keyof SovereignCloudContracts>(
         if (riderId) {
           try {
             const tripRef = doc(db, 'trips', tripId);
-            await setDoc(tripRef, {
-              id: tripId,
-              riderId,
-              status: 'searching',
-              pickup: payload.pickup || '',
-              dropoff: payload.dropoff || '',
-              pickupCoords: payload.pickupCoords || { lat: 31.9522, lng: 35.9106 },
-              exactPickupCoords: payload.exactPickupCoords || { lat: 31.9522, lng: 35.9106 },
-              gridId: payload.gridId || 'unknown',
-              seats: payload.seats || 1,
-              requiresOfficialRate: payload.requiresOfficialRate || false,
-              estimatedTime: payload.estimatedTime || 0,
-              estimatedDistance: payload.estimatedDistance || 0,
-              riderName: payload.riderName || 'فارس الأفق',
-              riderRating: payload.riderRating || 5.0,
-              createdAt: new Date(),
-              offers: []
+            await runTransaction(db, async (transaction) => {
+              const gridKey = (payload.gridId || 'global').replace(/\s+/g, '_');
+              const counterRef = doc(db, 'system_counters', `${gridKey}_trip_serial`);
+              const counterSnap = await transaction.get(counterRef);
+              let nextCount = 10001;
+              if (counterSnap.exists()) {
+                nextCount = (counterSnap.data().current_count || 10000) + 1;
+              }
+              const serial_id = `T-${nextCount}`;
+              
+              transaction.set(counterRef, { current_count: nextCount }, { merge: true });
+              transaction.set(tripRef, {
+                id: tripId,
+                serial_id,
+                riderId,
+                status: 'searching',
+                pickup: payload.pickup || '',
+                dropoff: payload.dropoff || '',
+                pickupCoords: payload.pickupCoords || { lat: 31.9522, lng: 35.9106 },
+                exactPickupCoords: payload.exactPickupCoords || { lat: 31.9522, lng: 35.9106 },
+                gridId: payload.gridId || 'unknown',
+                seats: payload.seats || 1,
+                requiresOfficialRate: payload.requiresOfficialRate || false,
+                estimatedTime: payload.estimatedTime || 0,
+                estimatedDistance: payload.estimatedDistance || 0,
+                riderName: payload.riderName || 'فارس الأفق',
+                riderRating: payload.riderRating || 5.0,
+                createdAt: new Date(),
+                offers: []
+              });
             });
             console.log(`[Sovereign Cloud Simulation] Created simulated trip in Firestore: ${tripId}`);
           } catch (err) {

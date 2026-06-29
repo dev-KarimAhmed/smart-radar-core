@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { collection, query, where, getDocs, doc, setDoc, updateDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, setDoc, updateDoc, runTransaction } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { User, Trip } from '@/core/types';
 import { useToast } from './use-toast';
@@ -179,8 +179,22 @@ export function useAtomicHandshake(user: User | null, riderCoords: { lat: number
         ]
       };
 
-      // Atomic Single Write Write Trip Entry
-      await setDoc(doc(db, 'trips', tripId), newTrip);
+      // Atomic Single Write Write Trip Entry with Trip Serial ID (T-XXXXX)
+      await runTransaction(db, async (transaction) => {
+        const districtKey = (user?.district || 'global').replace(/\s+/g, '_');
+        const counterRef = doc(db, 'system_counters', `${districtKey}_trip_serial`);
+        const counterSnap = await transaction.get(counterRef);
+        let nextCount = 10001;
+        if (counterSnap.exists()) {
+          nextCount = (counterSnap.data().current_count || 10000) + 1;
+        }
+        
+        const serial_id = `T-${nextCount}`;
+        newTrip.serial_id = serial_id;
+        
+        transaction.set(counterRef, { current_count: nextCount }, { merge: true });
+        transaction.set(doc(db, 'trips', tripId), newTrip);
+      });
 
       toast({
         title: '🤝 اكتملت المصافحة الذرية',

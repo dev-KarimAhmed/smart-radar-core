@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/use-auth';
-import { db } from '@/lib/firebase';
+import { db, handleFirestoreError, OperationType } from '@/lib/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { jordanGovernorates, getDistrictsByGovernorate } from '@/lib/data';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { dexieDb } from '@/lib/dexie-db';
-import { ShieldCheck, User, MapPin, Phone, Car, Award, RefreshCw, Cpu, Database, ShieldAlert, Key } from 'lucide-react';
+import { ShieldCheck, User, MapPin, Phone, Car, Award, RefreshCw, Cpu, Database, ShieldAlert, Key, Clock, Wallet, Heart, AlertTriangle, Star, Sparkles, Shield } from 'lucide-react';
 
 export function ProfileTab() {
   const { user, isCaptain, isPassenger, isSovereign, logout, loginAsMockUser } = useAuth();
@@ -30,6 +30,7 @@ export function ProfileTab() {
   const [color, setColor] = useState('');
   const [plate, setPlate] = useState('');
   const [year, setYear] = useState('');
+  const [sideId, setSideId] = useState('');
 
   // Local storage diagnostic info
   const [favCount, setFavCount] = useState(0);
@@ -54,7 +55,8 @@ export function ProfileTab() {
               (draft.make && draft.make !== (user.vehicle?.make || '')) ||
               (draft.color && draft.color !== (user.vehicle?.color || '')) ||
               (draft.plate && draft.plate !== (user.vehicle?.plate || '')) ||
-              (draft.year && draft.year !== (user.vehicle?.year?.toString() || ''))
+              (draft.year && draft.year !== (user.vehicle?.year?.toString() || '')) ||
+              (draft.sideId && draft.sideId !== (user.vehicle?.sideId || ''))
             ));
 
           if (isDifferent) {
@@ -67,6 +69,7 @@ export function ProfileTab() {
               setColor(draft.color ?? '');
               setPlate(draft.plate ?? '');
               setYear(draft.year ?? '');
+              setSideId(draft.sideId ?? '');
             }
             setIsDraftRestored(true);
             return;
@@ -86,6 +89,7 @@ export function ProfileTab() {
         setColor(user.vehicle.color || '');
         setPlate(user.vehicle.plate || '');
         setYear(user.vehicle.year?.toString() || '');
+        setSideId(user.vehicle.sideId || '');
       }
     }
   }, [user, isCaptain]);
@@ -108,7 +112,8 @@ export function ProfileTab() {
         make !== (user.vehicle?.make || '') ||
         color !== (user.vehicle?.color || '') ||
         plate !== (user.vehicle?.plate || '') ||
-        year !== (user.vehicle?.year?.toString() || '')
+        year !== (user.vehicle?.year?.toString() || '') ||
+        sideId !== (user.vehicle?.sideId || '')
       ));
 
     if (isDifferent) {
@@ -120,7 +125,8 @@ export function ProfileTab() {
         make,
         color,
         plate,
-        year
+        year,
+        sideId
       };
       localStorage.setItem(draftKey, JSON.stringify(draft));
     } else {
@@ -128,7 +134,7 @@ export function ProfileTab() {
       localStorage.removeItem(draftKey);
       setIsDraftRestored(false);
     }
-  }, [name, phone, gov, district, make, color, plate, year, user, isCaptain]);
+  }, [name, phone, gov, district, make, color, plate, year, sideId, user, isCaptain]);
 
   const discardDraft = useCallback(() => {
     if (!user) return;
@@ -145,11 +151,13 @@ export function ProfileTab() {
       setColor(user.vehicle.color || '');
       setPlate(user.vehicle.plate || '');
       setYear(user.vehicle.year?.toString() || '');
+      setSideId(user.vehicle.sideId || '');
     } else {
       setMake('');
       setColor('');
       setPlate('');
       setYear('');
+      setSideId('');
     }
     
     toast({
@@ -201,7 +209,8 @@ export function ProfileTab() {
           make: make.trim(),
           color: color.trim(),
           plate: plate.trim(),
-          year: year ? parseInt(year, 10) : 2023
+          year: year ? parseInt(year, 10) : 2023,
+          sideId: sideId.trim()
         };
       }
 
@@ -240,6 +249,8 @@ export function ProfileTab() {
         title: '🚨 فشل الترقيع الرقمي',
         description: err?.message || 'تعذر الاتصال بقاعدة البيانات السيادية.'
       });
+      // Pass the error to the forensic central handler
+      handleFirestoreError(err, OperationType.WRITE, `users/${user.uid}`);
     } finally {
       setIsUpdating(false);
     }
@@ -278,6 +289,26 @@ export function ProfileTab() {
                 <Badge variant="outline" className="text-[10px] mt-1 bg-[#0a1e0a] text-emerald-400 border-emerald-500/10">
                   {isSovereign ? 'قائد مشغل سيادي (مدير)' : isCaptain ? `فارس ميداني (كابتن)` : 'مسافر سيادي مستقر'}
                 </Badge>
+                <div className="mt-1.5 flex flex-wrap gap-1.5 items-center">
+                  {user?.serial_id && (
+                    <span className="inline-flex items-center gap-1 bg-[#03231c] text-[#00ffcc] text-[9px] font-mono font-black px-2 py-0.5 rounded border border-emerald-500/30">
+                      🧬 {user.serial_id}
+                    </span>
+                  )}
+                  {isCaptain && (
+                    <span className={`inline-flex items-center gap-1 text-[9px] font-bold px-2.5 py-0.5 rounded border ${
+                      user?.rank === 'Platinum' 
+                        ? 'bg-gradient-to-r from-slate-200 to-slate-400 text-slate-950 border-slate-100 shadow-sm'
+                        : user?.rank === 'Gold'
+                        ? 'bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-600 text-black border-amber-300 shadow-sm'
+                        : user?.rank === 'Silver'
+                        ? 'bg-gradient-to-r from-gray-300 to-gray-500 text-black border-gray-200 shadow-sm'
+                        : 'bg-gradient-to-r from-orange-700 to-amber-950 text-white border-orange-600 shadow-sm'
+                    }`}>
+                      🛡️ رتبة {user?.rank || 'Bronze'}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
             
@@ -297,12 +328,147 @@ export function ProfileTab() {
             </div>
 
             <div className="bg-[#000]/30 p-2.5 rounded-xl border border-white/5 space-y-0.5">
-              <span className="text-[9px] text-emerald-500 block mb-0.5">🔐 رمز القفل الرقمي (ID):</span>
-              <span className="text-[10px] text-gray-300 tracking-tight">{user?.uid?.substring(0, 12)}...</span>
+              <span className="text-[9px] text-emerald-500 block mb-0.5">🔐 الترقيم الذري السيادي:</span>
+              <span className="text-[10px] text-emerald-400 font-bold block">{user?.serial_id || 'جاري التوليد...'}</span>
             </div>
+
+            {isCaptain && (
+              <>
+                <div className="bg-[#000]/30 p-2.5 rounded-xl border border-white/5 space-y-1">
+                  <span className="text-[9px] text-amber-500 block mb-0.5">🏢 الارتباط والتبعية:</span>
+                  <strong className="text-white text-[10px] block truncate">
+                    {user?.affiliation?.name || user?.companyName || 'ناقل مستقل حُر'}
+                  </strong>
+                  <span className="text-[8px] text-gray-500 block">
+                    {user?.affiliation?.type === 'office-taxi' ? 'مكتب تاكسي رسمي' : 'تطبيق ذكي مستقل'}
+                  </span>
+                </div>
+
+                <div className="bg-[#000]/30 p-2.5 rounded-xl border border-white/5 space-y-1">
+                  <span className="text-[9px] text-red-500 block mb-0.5">⚠️ مؤشرات الإلغاء والمناعة:</span>
+                  <div className="flex justify-between items-baseline text-[9px]">
+                    <span className="text-[8px] text-gray-500">سجل الإلغاء المتتالي:</span>
+                    <strong className="text-red-400">{user?.consecutiveCancellations || 0} / 3</strong>
+                  </div>
+                  <div className="flex justify-between items-baseline text-[9px]">
+                    <span className="text-[8px] text-gray-500">درجة الثقة والمناعة:</span>
+                    <strong className="text-emerald-400">{(user?.rating || 5.0).toFixed(1)}</strong>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </CardContent>
       </Card>
+
+      {/* 1.5. ملف البيانات الفنية والمهنية للناقل السيادي - يظهر للكباتن فقط */}
+      {isCaptain && (
+        <Card className="bg-[#030704]/95 border border-emerald-950 text-white overflow-hidden shadow-2xl relative">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-500 via-emerald-600 to-emerald-400" />
+          <CardHeader className="pb-3 border-b border-white/5 bg-[#050D05]/50">
+            <CardTitle className="text-sm font-extrabold text-emerald-400 flex items-center gap-2">
+              <Shield className="h-5 w-5 text-emerald-500" />
+              الملف الفني والترخيص المهني للناقل السيادي
+            </CardTitle>
+            <CardDescription className="text-xs text-gray-400">
+              مراجعة وتدقيق بيانات الترخيص، الساعات النشطة، والامتثال السلوكي المسجل على الحافة.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-5 space-y-4 font-mono text-[11px]">
+            {/* أ. تفاصيل المركبة المسجلة */}
+            <div className="space-y-2">
+              <h3 className="text-xs font-black text-amber-500 flex items-center gap-1.5">
+                <Car className="h-4 w-4" /> رخصة ومواصفات المركبة المعتمدة
+              </h3>
+              <div className="grid grid-cols-2 gap-2.5">
+                <div className="bg-black/40 p-2.5 rounded-xl border border-white/5 space-y-0.5">
+                  <span className="text-[9px] text-gray-500 block">العلامة والموديل:</span>
+                  <strong className="text-white text-xs">{user?.vehicle?.make || 'Toyota Hybrid / معلق'}</strong>
+                </div>
+                <div className="bg-black/40 p-2.5 rounded-xl border border-white/5 space-y-0.5">
+                  <span className="text-[9px] text-gray-500 block">لون المركبة المسجل:</span>
+                  <strong className="text-white text-xs">{user?.vehicle?.color || 'فضي معدني'}</strong>
+                </div>
+                <div className="bg-black/40 p-2.5 rounded-xl border border-white/5 space-y-0.5">
+                  <span className="text-[9px] text-gray-500 block">رقم لوحة الترخيص:</span>
+                  <strong className="text-emerald-400 text-xs font-bold tracking-wider">{user?.vehicle?.plate || '77-12345'}</strong>
+                </div>
+                <div className="bg-black/40 p-2.5 rounded-xl border border-white/5 space-y-0.5">
+                  <span className="text-[9px] text-gray-500 block">سنة الصنع الموثقة:</span>
+                  <strong className="text-white text-xs">{user?.vehicle?.year || '2023'}</strong>
+                </div>
+              </div>
+            </div>
+
+            {/* ب. الجهة المشغلة وارتباط الأسطول */}
+            <div className="bg-[#050D05]/20 p-3 rounded-xl border border-emerald-950/40 space-y-1">
+              <span className="text-[9px] text-gray-500 block">الارتباط المؤسسي والجهة المظلية:</span>
+              <div className="flex items-center justify-between text-xs font-bold">
+                <span className="text-white">{user?.affiliation?.name || user?.companyName || 'ناقل مستقل حُر (غير تابع لمكتب)'}</span>
+                <Badge variant="outline" className="text-[9px] bg-emerald-950/60 text-emerald-400 border-emerald-500/20">
+                  {user?.affiliation?.type === 'office-taxi' ? 'مكتب تاكسي رسمي' : 'تطبيق ذكي مستقل'}
+                </Badge>
+              </div>
+            </div>
+
+            {/* ج. أرصدة عبور الوقت والاشتراك المالي */}
+            <div className="space-y-2 pt-2 border-t border-white/5">
+              <h3 className="text-xs font-black text-emerald-400 flex items-center gap-1.5">
+                <Wallet className="h-4 w-4" /> أرصدة عبور الوقت والمحفظة الرقمية
+              </h3>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="bg-black/40 p-2.5 rounded-xl border border-white/5 space-y-1 text-center">
+                  <span className="text-[8px] text-gray-500 block">رصيد الاشتراك الأساسي</span>
+                  <div className="text-emerald-400 font-bold text-xs truncate">
+                    {user?.paidHoursRemaining !== undefined 
+                      ? `${Math.floor(user.paidHoursRemaining / 60)}س ${user.paidHoursRemaining % 60}د`
+                      : '180س'}
+                  </div>
+                </div>
+                <div className="bg-black/40 p-2.5 rounded-xl border border-white/5 space-y-1 text-center">
+                  <span className="text-[8px] text-gray-500 block">بونص الرتبة السيادية</span>
+                  <div className="text-amber-400 font-bold text-xs truncate">
+                    {user?.bonusHoursRemaining !== undefined 
+                      ? `${Math.floor(user.bonusHoursRemaining / 60)}س ${user.bonusHoursRemaining % 60}د`
+                      : '120س'}
+                  </div>
+                </div>
+                <div className="bg-black/40 p-2.5 rounded-xl border border-white/5 space-y-1 text-center">
+                  <span className="text-[8px] text-gray-500 block">رصيد المحفظة الحر</span>
+                  <div className="text-white font-bold text-xs truncate">
+                    {(user?.walletBalanceJD || 0.00).toFixed(2)} د.أ
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* د. مؤشرات المناعة والامتثال السلوكي */}
+            <div className="space-y-2 pt-2 border-t border-white/5">
+              <h3 className="text-xs font-black text-[#00ffcc] flex items-center gap-1.5">
+                <ShieldCheck className="h-4 w-4" /> سجل الامتثال والمناعة السلوكية
+              </h3>
+              <div className="grid grid-cols-2 gap-2.5">
+                <div className="bg-black/40 p-2.5 rounded-xl border border-white/5 flex items-center justify-between gap-2">
+                  <div className="space-y-0.5">
+                    <span className="text-[8px] text-gray-500 block">رصيد الدعم الشعبي (القلوب):</span>
+                    <strong className="text-rose-400 text-xs">{user?.heartCount || 0} قلوب</strong>
+                  </div>
+                  <Heart className="h-5 w-5 text-rose-500 fill-rose-500/20" />
+                </div>
+                <div className="bg-black/40 p-2.5 rounded-xl border border-white/5 flex items-center justify-between gap-2">
+                  <div className="space-y-0.5">
+                    <span className="text-[8px] text-gray-500 block">المخالفات الميدانية النشطة:</span>
+                    <strong className={`text-xs ${user?.penaltyCount ? 'text-red-400 font-black' : 'text-emerald-400'}`}>
+                      {user?.penaltyCount || 0} جزاءات
+                    </strong>
+                  </div>
+                  <AlertTriangle className={`h-5 w-5 ${user?.penaltyCount ? 'text-red-500 animate-bounce' : 'text-gray-600'}`} />
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* 2. استمارة تحيين وتعديل البيانات */}
       <Card className="bg-[#020502]/95 border border-emerald-950 shadow-xl">
@@ -433,26 +599,36 @@ export function ProfileTab() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5 text-right">
-                    <label className="text-xs text-gray-400 font-bold block">رقم اللوحة القانوني:</label>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-1.5 text-right col-span-1">
+                    <label className="text-[10px] text-gray-400 font-bold block truncate">رقم اللوحة القانوني:</label>
                     <Input
                       placeholder="77-12345"
                       value={plate}
                       onChange={(e) => setPlate(e.target.value)}
-                      className="bg-black/50 border-emerald-900/30 text-white rounded-xl font-mono text-center"
+                      className="bg-black/50 border-emerald-900/30 text-white rounded-xl font-mono text-center h-10 text-xs px-2"
                       required
                     />
                   </div>
 
-                  <div className="space-y-1.5 text-right">
-                    <label className="text-xs text-gray-400 font-bold block">سنة صنع المركبة:</label>
+                  <div className="space-y-1.5 text-right col-span-1">
+                    <label className="text-[10px] text-gray-400 font-bold block truncate">لوحة الجانب (Side ID):</label>
+                    <Input
+                      placeholder="A-123"
+                      value={sideId}
+                      onChange={(e) => setSideId(e.target.value)}
+                      className="bg-black/50 border-emerald-900/30 text-white rounded-xl font-mono text-center h-10 text-xs px-2"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5 text-right col-span-1">
+                    <label className="text-[10px] text-gray-400 font-bold block truncate">سنة صنع المركبة:</label>
                     <Input
                       type="number"
                       placeholder="2023"
                       value={year}
                       onChange={(e) => setYear(e.target.value)}
-                      className="bg-black/50 border-emerald-900/30 text-white rounded-xl text-center font-mono"
+                      className="bg-black/50 border-emerald-900/30 text-white rounded-xl text-center font-mono h-10 text-xs px-2"
                       required
                     />
                   </div>

@@ -36,7 +36,7 @@ import {
   Info
 } from 'lucide-react';
 import { db, auth, handleFirestoreError, OperationType } from '@/lib/firebase';
-import { collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, getDocs, setDoc, query, where } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, getDocs, setDoc, query, where, runTransaction } from 'firebase/firestore';
 import { useAuth } from '@/hooks/use-auth';
 
 export interface Delegate {
@@ -321,7 +321,23 @@ export function DelegatesManagementTab() {
         isFleetActive: subRole === 'captain' ? isFleetActive : false
       };
 
-      await addDoc(collection(db, 'delegates'), newDelegate);
+      const delegateId = `del-${Date.now()}`;
+      const finalDelegate = { ...newDelegate, id: delegateId, serial_id: '' };
+
+      await runTransaction(db, async (transaction) => {
+        const districtKey = (district || 'global').replace(/\s+/g, '_');
+        const counterRef = doc(db, 'system_counters', `${districtKey}_delegate_serial`);
+        const counterSnap = await transaction.get(counterRef);
+        let nextCount = 1001;
+        if (counterSnap.exists()) {
+          nextCount = (counterSnap.data().current_count || 1000) + 1;
+        }
+        const serial_id = `M-${nextCount}`;
+        finalDelegate.serial_id = serial_id;
+
+        transaction.set(counterRef, { current_count: nextCount }, { merge: true });
+        transaction.set(doc(db, 'delegates', delegateId), finalDelegate);
+      });
       toast({
         title: 'تم غرس المندوب الميداني',
         description: `تم ربط المندوب "${name}" بكود إحالة وتارجت يومي يبلغ ${targetDaily} بنجاح.`

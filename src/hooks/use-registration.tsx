@@ -8,7 +8,7 @@ import { jordanGovernorates, getDistrictsByGovernorate } from '@/lib/data';
 import { trackSovereignError } from '@/lib/error-tracker';
 import { getSovereignErrorMessage } from '@/core/constants/error-dictionary';
 import type { AffiliationType } from '@/core/types';
-import { doc, setDoc, serverTimestamp, query, collection, where, getDocs, limit } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, query, collection, where, getDocs, limit, runTransaction } from 'firebase/firestore';
 
 interface RegistrationContextType {
   step: 'role' | 'personal' | 'affiliation' | 'vehicle' | 'admin' | 'advertiser' | 'ProfessionalStep';
@@ -181,7 +181,31 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
         }
 
         const userDocRef = doc(db, 'users', uid);
-        await setDoc(userDocRef, newUserProfileData);
+        await runTransaction(db, async (transaction) => {
+            let counterKey = 'passenger_serial';
+            let prefix = 'P';
+            if (role === 'driver') {
+                counterKey = 'driver_serial';
+                prefix = 'D';
+            } else if (role === 'advertiser') {
+                counterKey = 'advertiser_serial';
+                prefix = 'A';
+            }
+
+            const districtKey = (personal.district || 'global').replace(/\s+/g, '_');
+            const counterRef = doc(db, 'system_counters', `${districtKey}_${counterKey}`);
+            const counterSnap = await transaction.get(counterRef);
+            let nextCount = 1001;
+            if (counterSnap.exists()) {
+                nextCount = (counterSnap.data().current_count || 1000) + 1;
+            }
+
+            const serial_id = `${prefix}-${nextCount}`;
+            newUserProfileData.serial_id = serial_id;
+
+            transaction.set(counterRef, { current_count: nextCount }, { merge: true });
+            transaction.set(userDocRef, newUserProfileData);
+        });
     } catch (error: any) {
         trackSovereignError(error, { context: 'DirectRegistration' });
         toast({ variant: 'destructive', title: 'عجز في السجلات السيادية', description: getSovereignErrorMessage(error) });

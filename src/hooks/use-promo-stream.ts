@@ -9,14 +9,21 @@ export function usePromoStream(district?: string, governorate?: string) {
   const [activeAds, setActiveAds] = useState<SovereignAd[]>([]);
 
   useEffect(() => {
-    // [SCR-AD-VAULT-128] Mada (1) Zero-Cost Hourly Offline-First Cache Loading
+    // [SCR-AD-VAULT-128] Mada (1) Zero-Cost Hourly Offline-First Cache Loading with 30-Day Ultimate Purge
+    const USER_VAULT_LIFETIME_MS = 30 * 24 * 60 * 60 * 1000;
     if (typeof window !== 'undefined') {
       try {
         const cachedRaw = localStorage.getItem('sovereign_local_ad_cache');
         if (cachedRaw) {
           const cached = JSON.parse(cachedRaw);
           const age = Date.now() - cached.timestamp;
-          if (age < 3600000 && cached.ads && cached.ads.length > 0) { // 1 Hour Cache Lifetime
+          if (age >= USER_VAULT_LIFETIME_MS) {
+            console.log("🛑 [قانون سقوط الأجل USER_VAULT_LIFETIME_MS]: Purging 30-day old browser advertisements.");
+            localStorage.removeItem('sovereign_local_ad_cache');
+            localStorage.removeItem('sovereign_local_ad_cache_history');
+            localStorage.removeItem('sovereign_ad_vault_details');
+            localStorage.removeItem('sovereign_hearted_ads');
+          } else if (age < 3600000 && cached.ads && cached.ads.length > 0) { // 1 Hour Cache Lifetime
             console.log(`[بروتوكول الأرشيف الإعلاني] تم تدوير الإعلان محلياً 100% من الذاكرة الحافة (العمر: ${Math.round(age / 1000)} ثانية)`);
             setActiveAds(cached.ads);
             return; // Skip server subscription to conserve data and run locally 100%

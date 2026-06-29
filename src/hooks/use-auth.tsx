@@ -2,11 +2,58 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo, useRef } from 'react';
 import { onAuthStateChanged, signOut, signInAnonymously, type User as FirebaseUser } from 'firebase/auth';
-import { doc, onSnapshot, setDoc, getDoc } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, getDoc, runTransaction } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { trackSovereignError } from '@/lib/error-tracker';
 import type { User as SovereignUser } from '@/core/types';
 import { useSovereignFCM } from './use-sovereign-fcm';
+
+async function healSovereignUserSerial(uid: string, role: string, currentData: any): Promise<string> {
+    try {
+        if (currentData?.serial_id) return currentData.serial_id;
+        let serial = '';
+        await runTransaction(db, async (transaction) => {
+            const userRef = doc(db, 'users', uid);
+            const userSnap = await transaction.get(userRef);
+            if (userSnap.exists() && userSnap.data().serial_id) {
+                serial = userSnap.data().serial_id;
+                return;
+            }
+            let counterKey = 'passenger_serial';
+            let prefix = 'P';
+            const userRole = currentData?.role || role || 'rider';
+            if (userRole === 'driver') {
+                counterKey = 'driver_serial';
+                prefix = 'D';
+            } else if (userRole === 'advertiser') {
+                counterKey = 'advertiser_serial';
+                prefix = 'A';
+            } else if (userRole === 'delegate') {
+                counterKey = 'delegate_serial';
+                prefix = 'M';
+            } else if (userRole === 'admin') {
+                counterKey = 'admin_serial';
+                prefix = 'S';
+            }
+
+            const districtKey = (currentData?.district || 'global').replace(/\s+/g, '_');
+            const counterRef = doc(db, 'system_counters', `${districtKey}_${counterKey}`);
+            const counterSnap = await transaction.get(counterRef);
+            let nextCount = 1001;
+            if (counterSnap.exists()) {
+                nextCount = (counterSnap.data().current_count || 1000) + 1;
+            }
+
+            serial = `${prefix}-${nextCount}`;
+            transaction.set(counterRef, { current_count: nextCount }, { merge: true });
+            transaction.set(userRef, { serial_id: serial }, { merge: true });
+        });
+        return serial;
+    } catch (err) {
+        console.error("Error during healSovereignUserSerial transaction:", err);
+        return '';
+    }
+}
 
 interface AuthContextType {
   user: SovereignUser | null;
@@ -137,6 +184,12 @@ function AuthContent({ children }: { children: ReactNode }) {
                     try {
                         const userRef = doc(db, 'users', firebaseUser.uid);
                         userRefRef.current = userRef;
+                        
+                        let serialId = bypassUser.serial_id;
+                        if (!serialId) {
+                            serialId = await healSovereignUserSerial(firebaseUser.uid, bypassUser.role, bypassUser);
+                        }
+
                         const syncedUser = {
                             uid: firebaseUser.uid,
                             name: bypassUser.name,
@@ -147,7 +200,8 @@ function AuthContent({ children }: { children: ReactNode }) {
                             isBufferActive: false,
                             referralCode: bypassUser.referralCode || '',
                             referredCount: bypassUser.referredCount || 0,
-                            pendingDues: bypassUser.pendingDues || 0
+                            pendingDues: bypassUser.pendingDues || 0,
+                            ...(serialId ? { serial_id: serialId } : {})
                         };
                         await setDoc(userRef, syncedUser, { merge: true });
                         setUser(syncedUser as SovereignUser);
@@ -163,11 +217,17 @@ function AuthContent({ children }: { children: ReactNode }) {
                 const userRef = doc(db, "users", firebaseUser.uid);
                 userRefRef.current = userRef;
                 
-                getDoc(userRef).then((docSnap) => {
+                getDoc(userRef).then(async (docSnap) => {
                     if (docSnap.exists()) {
                         const userData = docSnap.data();
                         const isIndependent = userData?.subRole === 'independent';
-                        setUser({ uid: docSnap.id, ...userData } as SovereignUser);
+                        
+                        let serialId = userData?.serial_id;
+                        if (!serialId) {
+                            serialId = await healSovereignUserSerial(firebaseUser.uid, userData?.role || 'rider', userData);
+                        }
+                        
+                        setUser({ uid: docSnap.id, ...userData, ...(serialId ? { serial_id: serialId } : {}) } as SovereignUser);
                         
                         if (isIndependent) {
                             // Protocol 88: One-time read only. Do NOT subscribe.

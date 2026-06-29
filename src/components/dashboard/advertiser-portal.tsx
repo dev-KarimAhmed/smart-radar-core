@@ -634,7 +634,12 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
                           </div>
                         )}
                         <div className="space-y-0.5 min-w-0">
-                          <h4 className="text-[11px] font-bold text-white truncate">{ad.title || ad.content?.title}</h4>
+                          <h4 className="text-[11px] font-bold text-white truncate flex items-center gap-1">
+                            {ad.title || ad.content?.title}
+                            <span className="inline-block bg-[#021c17] text-[#00ffcc] text-[8px] font-mono px-1 rounded border border-emerald-500/20 shrink-0">
+                              {ad.serial_id || `A-10${ad.id === 'promo-rejected-demo' ? '99' : '02'}`}
+                            </span>
+                          </h4>
                           <p className="text-[9px] text-gray-400 truncate leading-none">{ad.description || ad.content?.description}</p>
                         </div>
                       </div>

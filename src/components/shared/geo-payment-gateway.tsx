@@ -24,16 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-
-// Standard geographic districts baseline for H3 resolution 9 demonstration
-const JORDAN_DISTRICTS = [
-  { name: "لواء الجامعة", hex: "892f1a141b2ffff", gateway: "CliQ & Zain Cash" },
-  { name: "لواء قصبة عمان", hex: "892f1a141a7ffff", gateway: "CliQ & Orange Monney" },
-  { name: "لواء وادي السير", hex: "892f1a141b4ffff", gateway: "CliQ & UWallet" },
-  { name: "لواء ناعور", hex: "892f1a141b7ffff", gateway: "Zain Cash & Visa" },
-  { name: "لواء ماركا", hex: "892f1a141a0ffff", gateway: "CliQ & eFAWATEERcom" },
-  { name: "لواء سحاب", hex: "892f1a1458bffff", gateway: "CliQ & Zain Cash" },
-];
+import { JORDAN_DISTRICTS } from "@/lib/constants";
 
 interface GeoPaymentGatewayProps {
   isOpen: boolean;
@@ -47,7 +38,7 @@ export function GeoPaymentGateway({ isOpen, onClose, onSuccess }: GeoPaymentGate
   const { rechargeWallet, loading: sovereignLoading } = useSovereignWallet(user);
 
   // States
-  const [activeDistrict, setActiveDistrict] = useState(JORDAN_DISTRICTS[0]);
+  const [activeDistrict, setActiveDistrict] = useState<typeof JORDAN_DISTRICTS[number]>(JORDAN_DISTRICTS[0]);
   const [gpsLoading, setGpsLoading] = useState(false);
   const [amount, setAmount] = useState("10");
   const [selectedChannel, setSelectedChannel] = useState<"cliq" | "zain" | "efawateer">("cliq");
@@ -196,17 +187,33 @@ export function GeoPaymentGateway({ isOpen, onClose, onSuccess }: GeoPaymentGate
                 <span className="text-xs font-bold text-gray-300 font-sans">بوابات الدفع المساندة بالإقليم:</span>
                 <div className="grid grid-cols-3 gap-3">
                   {/* CliQ */}
-                  <div
-                    onClick={() => setSelectedChannel("cliq")}
-                    className={cn(
-                      "p-3 rounded-2xl border text-center flex flex-col items-center gap-2 cursor-pointer transition-all bg-black/40",
-                      selectedChannel === "cliq"
-                        ? "border-[#14b8a6] text-[#14b8a6] bg-[#14b8a6]/5"
-                        : "border-white/5 text-gray-400 hover:bg-black/60"
-                    )}
-                  >
-                    <ArrowLeftRight className="w-5 h-5 text-inherit" />
-                    <span className="text-[10px] font-black">CliQ الأردني</span>
+                  <div className="relative group/cliq">
+                    <div
+                      onClick={() => setSelectedChannel("cliq")}
+                      className={cn(
+                        "p-3 rounded-2xl border text-center flex flex-col items-center gap-2 cursor-pointer transition-all bg-black/40 h-full justify-center",
+                        selectedChannel === "cliq"
+                          ? "border-[#14b8a6] text-[#14b8a6] bg-[#14b8a6]/5"
+                          : "border-white/5 text-gray-400 hover:bg-black/60"
+                      )}
+                    >
+                      <ArrowLeftRight className="w-5 h-5 text-inherit" />
+                      <span className="text-[10px] font-black">CliQ الأردني</span>
+                    </div>
+                    {/* Tooltip explaining atomic and zero-waste protocol 88 */}
+                    <div className="absolute bottom-full right-1/2 translate-x-1/2 mb-2.5 opacity-0 group-hover/cliq:opacity-100 scale-95 group-hover/cliq:scale-100 pointer-events-none transition-all duration-200 origin-bottom z-[200] w-64 p-3.5 bg-[#070f1a] border border-[#14b8a6]/50 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.8)] text-[10px] text-gray-300 font-sans leading-relaxed text-right" dir="rtl">
+                      <div className="flex items-center gap-1.5 text-[#14b8a6] font-bold mb-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-[#14b8a6] shrink-0 animate-pulse" />
+                        <span>ميزة شحن CliQ الذري</span>
+                      </div>
+                      <p>
+                        بوابة الشحن الفوري كليك (CliQ) التابعة للبنك المركزي الأردني مدمجة بنبضة أحادية ذرية (Single-Write). نضمن تطبيقاً كاملاً لسياسة صفر كلفة سحابية وبروتوكول (88) دون ثرثرة شبكية أو تكرار استدعاءات.
+                      </p>
+                      <div className="mt-2 pt-1.5 border-t border-[#14b8a6]/10 flex justify-between text-[8px] text-[#14b8a6]/70 font-mono">
+                        <span>PROTOCOL-88 VERIFIED</span>
+                        <span>ATOMIC INGESTION</span>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Zain Cash */}

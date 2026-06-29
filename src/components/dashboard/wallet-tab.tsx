@@ -1,22 +1,19 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { useToast } from '@/hooks/use-toast';
-import { db } from '@/lib/firebase';
-import { doc, setDoc } from 'firebase/firestore';
-import { RadarGeoRefillKernel } from '@/lib/refill-kernel';
+import { useSovereignWallet } from '@/hooks/use-sovereign-wallet';
 import { 
-  Wallet, Sparkles, RefreshCw, Zap, Clock, ShieldCheck, 
-  ArrowLeft, CreditCard, ArrowDownLeft, ArrowUpRight, CheckCircle2,
-  TrendingDown, TrendingUp, HelpCircle
+  Wallet, Sparkles, RefreshCw, Zap, Clock, 
+  CreditCard, ArrowDownLeft, ArrowUpRight, CheckCircle2,
+  HelpCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Badge } from '@/components/ui/badge';
 import { GeoPaymentGateway } from '@/components/shared/geo-payment-gateway';
+import { SovereignFinancialActivityChart } from '@/components/dashboard/financial-chart';
 
 interface Transaction {
   id: string;
@@ -26,251 +23,78 @@ interface Transaction {
   description: string;
   createdAt: string;
   status: 'completed' | 'pending';
+  timestamp?: number;
+}
+
+/**
+ * 🛡️ [التعقيم الماسي V2.6-Secured] WalletTab
+ * Pure Visual Consumer of financial transactions and subscription state.
+ * Absolutely NO local state calculation, database writes, or direct setDoc/updateDoc logic.
+ * Conforms to Single Responsibility Principle (SRP).
+ */
+interface SovereignBalanceDisplayProps {
+  balanceJD: number;
+  onChargeFunds: () => void;
+}
+
+/**
+ * 🪙 [التعقيم الماسي V2.6-Secured - مكون عرض الرصيد المستقل]
+ * Pure visual consumer for current balance state.
+ * Contains absolutely no mathematical computation, mutation, or write logic.
+ */
+export function SovereignBalanceDisplay({ balanceJD, onChargeFunds }: SovereignBalanceDisplayProps) {
+  return (
+    <Card className="bg-[#050D05]/95 border border-emerald-900/40 shadow-xl overflow-hidden relative">
+      <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-500/5 blur-xl rounded-full" />
+      <CardContent className="p-5 flex flex-col justify-between h-full">
+        <div className="flex justify-between items-start">
+          <span className="text-xs font-bold text-gray-400">الرصيد النقدي للدعم</span>
+          <span className="text-xs font-bold text-emerald-400">JD</span>
+        </div>
+        
+        <div className="my-3">
+          <span className="text-3xl font-black text-white tracking-tight">
+            {balanceJD.toFixed(2)}
+          </span>
+          <span className="text-sm font-bold text-emerald-500 mr-1.5">دينار أردني</span>
+        </div>
+
+        <Button 
+          onClick={onChargeFunds}
+          className="w-full bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 h-10 rounded-xl text-xs font-bold transition-all"
+        >
+          <CreditCard className="w-4 h-4 ml-1" />
+          تعبئة الرصيد النقدي
+        </Button>
+      </CardContent>
+    </Card>
+  );
 }
 
 export function WalletTab() {
   const { user } = useAuth();
-  const { toast } = useToast();
+  const { 
+    loading, 
+    purchaseDriverPackage,
+    balanceJD,
+    paidHoursMin,
+    bonusHoursMin,
+    subscriptionHours,
+    activePackageName,
+    isDriver,
+    transactions
+  } = useSovereignWallet(user);
   
-  // Local state mirrored with Firestore/localStorage
-  const [balanceJD, setBalanceJD] = useState(15.00); // 15 Jordanian Dinars baseline
-  const [subscriptionHours, setSubscriptionHours] = useState(14.5); // 14.5 hours baseline
-  const [paidHoursMin, setPaidHoursMin] = useState(180); // in minutes
-  const [bonusHoursMin, setBonusHoursMin] = useState(120); // in minutes
-  const [activePackageName, setActivePackageName] = useState('نسيجي مجتزأ');
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isChargingFunds, setIsChargingFunds] = useState(false);
-  const [fundAmount, setFundAmount] = useState('10');
-  const [selectedGateway, setSelectedGateway] = useState<'cliq' | 'zain' | 'visa'>('cliq');
-  
   const [purchasingPackage, setPurchasingPackage] = useState<'pulse' | 'transit' | null>(null);
-  const [loading, setLoading] = useState(false);
 
-  const isDriver = user?.role === 'driver';
-
-  // Synchronize state with Google AI Studio / useAuth real-time SSOT user object
-  useEffect(() => {
-    if (!user) return;
-    
-    if (user.walletBalanceJD !== undefined) {
-      setBalanceJD(user.walletBalanceJD);
-    } else {
-      setBalanceJD(15.00);
-    }
-    
-    if (user.subscriptionHours !== undefined) {
-      setSubscriptionHours(user.subscriptionHours);
-    } else {
-      setSubscriptionHours(14.5);
-    }
-
-    if (user.paidHoursRemaining !== undefined) {
-      setPaidHoursMin(user.paidHoursRemaining);
-    } else {
-      setPaidHoursMin(180);
-    }
-    if (user.bonusHoursRemaining !== undefined) {
-      setBonusHoursMin(user.bonusHoursRemaining);
-    } else {
-      setBonusHoursMin(120);
-    }
-    
-    if (user.activePackageName !== undefined) {
-      setActivePackageName(user.activePackageName);
-    } else {
-      setActivePackageName(isDriver ? 'نبض الوفاء المبدئي' : 'نسيجي مجتزأ');
-    }
-    
-    if (user.walletTransactions !== undefined) {
-      setTransactions(user.walletTransactions);
-    } else {
-      // Generate realistic default transactions
-      const defaultTx: Transaction[] = isDriver ? [
-        {
-          id: 'tx-1',
-          type: 'charge',
-          amount: 20.00,
-          currency: 'د.أ',
-          description: 'شحن رصيد نقدي عبر Zain Cash',
-          createdAt: new Date(Date.now() - 3600000 * 4).toLocaleTimeString('ar-JO', { hour: '2-digit', minute: '2-digit' }) + ' - اليوم',
-          status: 'completed'
-        },
-        {
-          id: 'tx-2',
-          type: 'trip_deduction',
-          amount: -0.45,
-          currency: 'ساعة',
-          description: 'استهلاك بث ملاحي لرحلة سياج عمان النشطة',
-          createdAt: new Date(Date.now() - 3600000 * 2).toLocaleTimeString('ar-JO', { hour: '2-digit', minute: '2-digit' }) + ' - اليوم',
-          status: 'completed'
-        }
-      ] : [
-        {
-          id: 'tx-1',
-          type: 'charge',
-          amount: 15.00,
-          currency: 'د.أ',
-          description: 'شحن رصيد نقدي عبر خدمة CliQ العاجلة',
-          createdAt: '03:12 م - أمس',
-          status: 'completed'
-        }
-      ];
-      setTransactions(defaultTx);
-    }
-  }, [user, isDriver]);
-
-  // Handle funding of the local JDs wallet
-  const handleFundWallet = useCallback(async () => {
-    if (!user?.uid) return;
-    const amountNum = parseFloat(fundAmount);
-    if (isNaN(amountNum) || amountNum <= 0) {
-      toast({
-        variant: 'destructive',
-        title: 'خطأ في القيمة',
-        description: 'يرجى إدخال مبلغ صحيح لشحن الرصيد.'
-      });
-      return;
-    }
-
-    setLoading(true);
-    // Simulate payment gateway loading
-    setTimeout(async () => {
-      const newBalance = balanceJD + amountNum;
-      const gatewayNames = { cliq: 'CliQ', zain: 'Zain Cash Wallet', visa: 'بطاقة فيزا الائتمانية' };
-      
-      const newTx: Transaction = {
-        id: 'tx-' + Date.now(),
-        type: 'charge',
-        amount: amountNum,
-        currency: 'د.أ',
-        description: `شحن محفظة نقدي عبر بوابة ${gatewayNames[selectedGateway]}`,
-        createdAt: new Date().toLocaleTimeString('ar-JO', { hour: '2-digit', minute: '2-digit' }) + ' - الآن',
-        status: 'completed'
-      };
-
-      const userRef = doc(db, 'users', user.uid);
-      await setDoc(userRef, {
-        walletBalanceJD: newBalance,
-        walletTransactions: [newTx, ...transactions]
-      }, { merge: true });
-
-      setLoading(false);
-      setIsChargingFunds(false);
-      toast({
-        title: '🎉 اكتمل الشحن السيادي',
-        description: `تم إيداع مقادير الدعم المالي بقيمة ${amountNum.toFixed(2)} دينار أردني بمحفظتك.`
-      });
-    }, 1200);
-
-  }, [fundAmount, balanceJD, user?.uid, selectedGateway, transactions, toast]);
-
-  // Handle purchasing driver packages: 1 JD = 24 hours, 10 JD = 100 hours
+  // Handle purchasing driver packages (delegate cleanly to hook)
   const handlePurchasePackage = useCallback(async (pkgType: 'pulse' | 'transit') => {
-    if (!user?.uid) return;
-    
-    const cost = pkgType === 'pulse' ? 1.00 : 10.00;
-    const addedHours = pkgType === 'pulse' ? 24.0 : 100.0;
-    const name = pkgType === 'pulse' ? 'باقة النبض الأساسية (24 ساعة)' : 'باقة العبور الكبرى (100 ساعة)';
-
-    if (balanceJD < cost) {
-      toast({
-        variant: 'destructive',
-        title: 'رصيد نقدي غير كافٍ',
-        description: `تكلفة الباقة ${cost} د.أ. يرجى إعادة شحن محفظتك بـ الدنانير الأردنية أولاً.`
-      });
+    const success = await purchaseDriverPackage(pkgType);
+    if (success) {
       setPurchasingPackage(null);
-      return;
     }
-
-    setLoading(true);
-    setTimeout(async () => {
-      const newBalance = balanceJD - cost;
-      
-      const r = (user?.rank || 'SILVER').toUpperCase();
-      const captainRank: 'PLATINUM' | 'GOLD' | 'BRONZE' = 
-        r === 'PLATINUM' ? 'PLATINUM' : (r === 'GOLD' ? 'GOLD' : 'BRONZE');
-      
-      const currentPaidMinutes = user?.paidHoursRemaining !== undefined 
-        ? user.paidHoursRemaining 
-        : (user?.subscriptionHours !== undefined ? Math.round(user.subscriptionHours * 60) : 870);
-      const currentBonusMinutes = user?.bonusHoursRemaining !== undefined ? user.bonusHoursRemaining : 0;
-      
-      const homeDistrict = user?.district || 'وادي السير';
-      
-      // 📐 Call constitutional Geo-Anchored Refill API
-      const geoWalletInput = {
-        captainId: user.uid,
-        homeDistrict,
-        paidMinutesRemaining: currentPaidMinutes,
-        bonusMinutesRemaining: currentBonusMinutes,
-        captainRank
-      };
-
-      const gatewayNode = {
-        districtName: homeDistrict,
-        localWalletMerchantId: `CLIQCASH-#SOV-${homeDistrict.toUpperCase()}-99`
-      };
-
-      const refillResult = RadarGeoRefillKernel.executeSovereignRefillByDistrict(
-        geoWalletInput,
-        pkgType === 'pulse' ? 1 : 10,
-        gatewayNode
-      );
-
-      if (!refillResult.success) {
-        setLoading(false);
-        setPurchasingPackage(null);
-        toast({
-          variant: 'destructive',
-          title: 'فشل بروتوكول الشحن الجغرافي',
-          description: refillResult.logMessage
-        });
-        return;
-      }
-
-      const nextPaidMinutes = refillResult.updatedWallet.paidMinutesRemaining;
-      const nextBonusMinutes = refillResult.updatedWallet.bonusMinutesRemaining;
-      const totalHoursFraction = (nextPaidMinutes + nextBonusMinutes) / 60;
-      
-      const addedPaidMinutes = nextPaidMinutes - currentPaidMinutes;
-      const addedBonusMinutes = nextBonusMinutes - currentBonusMinutes;
-
-      const bonusPercent = captainRank === 'PLATINUM' ? 0.25 : (captainRank === 'GOLD' ? 0.15 : 0);
-      const rankText = captainRank === 'PLATINUM' ? 'بلاتيني (+25% بونص سيادي)' : 
-                       captainRank === 'GOLD' ? 'ذهبي (+15% بونص سيادي)' : 'برونزي/فضي';
-      const bonusHoursText = bonusPercent > 0 ? ` + مكافأة رتبة ${rankText} بقيمة ${(addedPaidMinutes * bonusPercent) / 60} ساعات حرة` : '';
-
-      const newTx: Transaction = {
-        id: 'tx-' + Date.now(),
-        type: 'purchase',
-        amount: -cost,
-        currency: 'د.أ',
-        description: `تفعيل ذي توجيه جغرافي: ${name}${bonusHoursText}`,
-        createdAt: new Date().toLocaleTimeString('ar-JO', { hour: '2-digit', minute: '2-digit' }) + ' - الآن',
-        status: 'completed'
-      };
-
-      const userRef = doc(db, 'users', user.uid);
-      await setDoc(userRef, {
-        walletBalanceJD: Number(newBalance.toFixed(2)),
-        paidHoursRemaining: nextPaidMinutes,
-        bonusHoursRemaining: nextBonusMinutes,
-        subscriptionHours: Number(totalHoursFraction.toFixed(3)),
-        activePackageName: pkgType === 'pulse' ? 'باقة النبض الأساسية' : 'باقة العبور الكبرى',
-        walletTransactions: [newTx, ...transactions]
-      }, { merge: true });
-
-      setLoading(false);
-      setPurchasingPackage(null);
-      toast({
-        title: '⚡ تم التفعيل الفوري للملاحة الموجهة جغرافياً',
-        description: bonusPercent > 0 
-          ? `مبروك كابتن! تم إمداد البث بـ ${addedHours} ساعة من الباقة بالإضافة إلى ${(addedPaidMinutes * bonusPercent) / 60} ساعات بونص مجانية رتبة ${user?.rank} لواء [${homeDistrict}].`
-          : `مبروك كابتن! تم إمداد البث الملاحي بـ ${addedHours} ساعة عمل لواء [${homeDistrict}].`
-      });
-    }, 1500);
-
-  }, [balanceJD, subscriptionHours, user, transactions, toast]);
+  }, [purchaseDriverPackage]);
 
   return (
     <div className="w-full max-w-lg mx-auto pb-10 font-sans text-right" dir="rtl">
@@ -293,30 +117,7 @@ export function WalletTab() {
       {/* Main Stats container */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
         {/* Cash Balance JD Card */}
-        <Card className="bg-[#050D05]/95 border border-emerald-900/40 shadow-xl overflow-hidden relative">
-          <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-500/5 blur-xl rounded-full" />
-          <CardContent className="p-5 flex flex-col justify-between h-full">
-            <div className="flex justify-between items-start">
-              <span className="text-xs font-bold text-gray-400">الرصيد النقدي للدعم</span>
-              <span className="text-xs font-bold text-emerald-400">JD</span>
-            </div>
-            
-            <div className="my-3">
-              <span className="text-3xl font-black text-white tracking-tight">
-                {balanceJD.toFixed(2)}
-              </span>
-              <span className="text-sm font-bold text-emerald-500 mr-1.5">دينار أردني</span>
-            </div>
-
-            <Button 
-              onClick={() => setIsChargingFunds(true)}
-              className="w-full bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 h-10 rounded-xl text-xs font-bold transition-all"
-            >
-              <CreditCard className="w-4 h-4 ml-1" />
-              تعبئة الرصيد النقدي
-            </Button>
-          </CardContent>
-        </Card>
+        <SovereignBalanceDisplay balanceJD={balanceJD} onChargeFunds={() => setIsChargingFunds(true)} />
 
         {/* Subscription Hours Card (Only visible to Driver) */}
         {isDriver ? (
@@ -352,7 +153,7 @@ export function WalletTab() {
             </CardContent>
           </Card>
         ) : (
-          /* Rider loyalty points as equivalent placeholder for design rhythm */
+          /* Rider loyalty points equivalent for design rhythm */
           <Card className="bg-[#050D05]/95 border border-emerald-900/30 shadow-xl overflow-hidden">
             <CardContent className="p-5 flex flex-col justify-between h-full">
               <div className="flex justify-between items-start">
@@ -373,7 +174,7 @@ export function WalletTab() {
         )}
       </div>
 
-      {/* Driver Hours Packages (The user spec specification!) */}
+      {/* Driver Hours Packages */}
       {isDriver && (
         <div className="mb-6 space-y-4">
           <div className="px-1 text-right">
@@ -391,7 +192,7 @@ export function WalletTab() {
                 </div>
                 <h3 className="text-base font-black text-white mb-2">باقة النبض الأساسية</h3>
                 <p className="text-[11px] text-gray-400 leading-normal">
-                  تحتوي على <span className="text-white font-bold">24 ساعة صافية من البث الملاحي المفتوح</span>. يمكنك استهلاكها على مدار أسبوع أو شهر حسب نمط عملك الميداني (بارت تايم أو فول تايم) دون إلزام.
+                  تحتوي على <span className="text-white font-bold">24 ساعة صافية من البث الملاحي المفتوح</span>. يمكنك استهلاكها على مدار أسبوع أو شهر حسب نمط عملك الميداني دون إلزام.
                 </p>
               </div>
               <div className="p-5 pt-0">
@@ -477,6 +278,9 @@ export function WalletTab() {
         )}
       </AnimatePresence>
 
+      {/* D3.js Financial Activity Chart Component */}
+      <SovereignFinancialActivityChart transactions={transactions} balanceJD={balanceJD} />
+
       {/* Transaction History Logs */}
       <Card className="bg-[#030903]/95 border border-emerald-900/30 rounded-2xl shadow-xl">
         <CardHeader className="p-4 border-b border-emerald-900/20 pb-2">
@@ -488,25 +292,41 @@ export function WalletTab() {
             transactions.map((tx) => (
               <div key={tx.id} className="p-3 bg-black/40 rounded-xl border border-white/5 flex items-center justify-between text-xs">
                 <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    title={tx.type === 'charge' ? "إعادة الشحن الفوري عبر CliQ" : undefined}
-                    onClick={() => {
-                      if (tx.type === 'charge') {
-                        setIsChargingFunds(true);
-                      }
-                    }}
-                    disabled={tx.type !== 'charge'}
-                    className={`p-2 rounded-lg transition-all ${
-                      tx.type === 'charge' 
-                        ? 'bg-emerald-950/50 text-emerald-400 hover:bg-emerald-400 hover:text-black hover:scale-105 active:scale-95 cursor-pointer border border-emerald-500/15 shadow-[0_0_8px_rgba(16,185,129,0.1)]' 
-                        : tx.type === 'purchase'
-                        ? 'bg-blue-950/40 text-blue-400'
-                        : 'bg-red-950/30 text-red-400'
-                    }`}
-                  >
-                    {tx.type === 'charge' ? <ArrowDownLeft className="w-4 h-4" /> : <ArrowUpRight className="w-4 h-4" />}
-                  </button>
+                  <div className="relative group">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (tx.type === 'charge') {
+                          setIsChargingFunds(true);
+                        }
+                      }}
+                      disabled={tx.type !== 'charge'}
+                      className={`p-2 rounded-lg transition-all ${
+                        tx.type === 'charge' 
+                          ? 'bg-emerald-950/50 text-emerald-400 hover:bg-emerald-400 hover:text-black hover:scale-105 active:scale-95 cursor-pointer border border-emerald-500/15 shadow-[0_0_8px_rgba(16,185,129,0.1)]' 
+                          : tx.type === 'purchase'
+                          ? 'bg-blue-950/40 text-blue-400'
+                          : 'bg-red-950/30 text-red-400'
+                      }`}
+                    >
+                      {tx.type === 'charge' ? <ArrowDownLeft className="w-4 h-4" /> : <ArrowUpRight className="w-4 h-4" />}
+                    </button>
+                    {tx.type === 'charge' && (
+                      <div className="absolute bottom-full right-0 mb-2 opacity-0 group-hover:opacity-100 scale-95 group-hover:scale-100 pointer-events-none transition-all duration-200 origin-bottom-right z-50 w-64 p-3 bg-[#030d06] border border-emerald-500/40 rounded-xl shadow-2xl text-[10px] text-gray-300 font-sans leading-relaxed">
+                        <div className="flex items-center gap-1.5 text-emerald-400 font-bold mb-1">
+                          <Sparkles className="w-3.5 h-3.5 text-emerald-400 shrink-0 animate-pulse" />
+                          <span>شحن فوري ذري عبر CliQ</span>
+                        </div>
+                        <p>
+                          عملية شحن نقدي فورية أحادية النبضة (Single-Write) تلتزم ببروتوكول (88) لمنع هدر الموارد والأداء السحابي. يتم إتمام المعاملة بنقرة واحدة ذرية تمنع الثرثرة الشبكية والصدى المزدوج.
+                        </p>
+                        <div className="mt-1.5 pt-1.5 border-t border-emerald-950 flex justify-between text-[8px] text-emerald-500/70 font-mono">
+                          <span>PROTOCOL-88 APPROVED</span>
+                          <span>ATOMIC SSOT</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                   <div className="text-right">
                     <p className="font-bold text-white text-[11px]">{tx.description}</p>
                     <p className="text-[9px] text-gray-500 mt-0.5">{tx.createdAt}</p>

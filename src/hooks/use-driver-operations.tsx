@@ -10,6 +10,7 @@ import { useDriverLifecycle } from './use-driver-lifecycle';
 import { useDriverRadar } from './driver/use-driver-radar';
 import { useDriverTransactions } from './driver/use-driver-transactions';
 import { sovereignEventBroker } from '@/lib/event-broker';
+import { logAuditAction } from '@/lib/audit-logger';
 
 type DriverStatus = 'active' | 'idle' | 'busy' | 'rating';
 
@@ -53,8 +54,25 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
   // 1. Inactivity tracking
   const { 
     driverStatus, setDriverStatus, isDormancyWarningVisible, 
-    resetDormancyTimer, toggleDriverStatus, updateDriverDoc 
+    resetDormancyTimer, toggleDriverStatus: rawToggleDriverStatus, updateDriverDoc 
   } = useDriverLifecycle(user);
+
+  const toggleDriverStatus = useCallback((desiredStatus: 'active' | 'idle') => {
+    rawToggleDriverStatus(desiredStatus);
+    if (user?.uid) {
+      logAuditAction({
+        actorId: user.uid,
+        actorName: user.name || 'Unknown Driver',
+        actorRole: 'driver',
+        action: 'DRIVER_STATUS_CHANGE',
+        securityClearance: 'INFO',
+        details: {
+          previousStatus: driverStatus,
+          desiredStatus
+        }
+      });
+    }
+  }, [rawToggleDriverStatus, user, driverStatus]);
 
   // 🔔 [الربط النسيجي عبر وسيط الأحداث السيادي]: الربط والاقتران الضعيف لمنع التداخل والسباغيتي
   useEffect(() => {
@@ -72,15 +90,79 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
 
   // 2. Local surrounding demand search scanning (Loosely Coupled - Communicates via SovereignEventBroker)
   const { 
-    driverLocation, requests, rejectRequest, rejectedTripIds, driverSpeed,
+    driverLocation, requests, rejectRequest: rawRejectRequest, rejectedTripIds, driverSpeed,
     currentDistrict, currentH3Cell, isDisconnectionLockActive
   } = useDriverRadar(user, driverStatus);
+
+  const rejectRequest = useCallback((tripId: string) => {
+    rawRejectRequest(tripId);
+    if (user?.uid) {
+      logAuditAction({
+        actorId: user.uid,
+        actorName: user.name || 'Unknown Driver',
+        actorRole: 'driver',
+        action: 'DRIVER_REJECT_REQUEST',
+        securityClearance: 'INFO',
+        details: {
+          tripId
+        }
+      });
+    }
+  }, [rawRejectRequest, user]);
 
   // 3. Transactions & bidding states (Loosely Coupled - Communicates via SovereignEventBroker)
   const { 
     activeRequest, acceptedRider, submitOffer: rawSubmitOffer, isSubmittingOffer, 
-    endTrip, isEndingTrip, rateAndFinishTrip, isRatingRider, requestWeeklyReport, isRequestingReport 
+    endTrip: rawEndTrip, isEndingTrip, rateAndFinishTrip: rawRateAndFinishTrip, isRatingRider, requestWeeklyReport: rawRequestWeeklyReport, isRequestingReport 
   } = useDriverTransactions(user);
+
+  const endTrip = useCallback(async () => {
+    await rawEndTrip();
+    if (user?.uid) {
+      await logAuditAction({
+        actorId: user.uid,
+        actorName: user.name || 'Unknown Driver',
+        actorRole: 'driver',
+        action: 'DRIVER_END_TRIP',
+        securityClearance: 'INFO',
+        details: {
+          tripId: activeRequest?.id || 'unknown'
+        }
+      });
+    }
+  }, [rawEndTrip, user, activeRequest]);
+
+  const rateAndFinishTrip = useCallback(async (rating: number) => {
+    await rawRateAndFinishTrip(rating);
+    if (user?.uid) {
+      await logAuditAction({
+        actorId: user.uid,
+        actorName: user.name || 'Unknown Driver',
+        actorRole: 'driver',
+        action: 'DRIVER_RATE_RIDER',
+        securityClearance: 'INFO',
+        details: {
+          tripId: activeRequest?.id || 'unknown',
+          riderId: acceptedRider?.uid || 'unknown',
+          rating
+        }
+      });
+    }
+  }, [rawRateAndFinishTrip, user, activeRequest, acceptedRider]);
+
+  const requestWeeklyReport = useCallback(async () => {
+    await rawRequestWeeklyReport();
+    if (user?.uid) {
+      await logAuditAction({
+        actorId: user.uid,
+        actorName: user.name || 'Unknown Driver',
+        actorRole: 'driver',
+        action: 'DRIVER_REQUEST_WEEKLY_REPORT',
+        securityClearance: 'INFO',
+        details: {}
+      });
+    }
+  }, [rawRequestWeeklyReport, user]);
   
   // 4. District surge status
   const { pulseData, loadingPulse } = useMarketPulse(user?.role === 'driver');
@@ -88,7 +170,20 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
   // Submit offer wrapper matching expected properties
   const submitOffer = useCallback(async (payload: { tripId: string; offerPrice: number }) => {
     await rawSubmitOffer(payload, rejectRequest);
-  }, [rawSubmitOffer, rejectRequest]);
+    if (user?.uid) {
+      await logAuditAction({
+        actorId: user.uid,
+        actorName: user.name || 'Unknown Driver',
+        actorRole: 'driver',
+        action: 'DRIVER_SUBMIT_OFFER',
+        securityClearance: 'INFO',
+        details: {
+          tripId: payload.tripId,
+          offerPrice: payload.offerPrice
+        }
+      });
+    }
+  }, [rawSubmitOffer, rejectRequest, user]);
 
   // Keep request list tidy during active trip bounds
   useEffect(() => {

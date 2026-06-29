@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { collection, onSnapshot, query, orderBy, doc, updateDoc, addDoc } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, doc, updateDoc, addDoc, runTransaction } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useToast } from './use-toast';
 import { trackSovereignError } from '@/lib/error-tracker';
@@ -9,6 +9,7 @@ import { broadcastSilentPush } from '@/lib/push-notifications';
 
 export interface SovereignAd {
   id: string;
+  serial_id?: string;
   status: 'active' | 'paused' | 'archived' | 'frozen' | 'ACTIVE' | 'PENDING' | 'REJECTED' | 'FROZEN' | string;
   content?: {
     title: string;
@@ -214,8 +215,21 @@ export function useAdminAds() {
       };
 
       try {
-        const promosRef = collection(db, 'promos');
-        await addDoc(promosRef, adModel);
+        const promoDocRef = doc(db, 'promos', generatedId);
+        await runTransaction(db, async (transaction) => {
+          const districtKey = (adData.targetDistrict || 'global').replace(/\s+/g, '_');
+          const counterRef = doc(db, 'system_counters', `${districtKey}_advertisement_serial`);
+          const counterSnap = await transaction.get(counterRef);
+          let nextCount = 1001;
+          if (counterSnap.exists()) {
+            nextCount = (counterSnap.data().current_count || 1000) + 1;
+          }
+          const serial_id = `A-${nextCount}`;
+          const finalAdModel = { ...adModel, serial_id };
+          
+          transaction.set(counterRef, { current_count: nextCount }, { merge: true });
+          transaction.set(promoDocRef, finalAdModel);
+        });
         toast({ title: 'تم إدراج الإعلان الملاحي', description: `تم غرس الحملة "${adData.title}" في نبض الخريطة الميدانية بنجاح.` });
       } catch (fbError) {
         console.warn("Firebase write failed, falling back to sovereign local storage:", fbError);

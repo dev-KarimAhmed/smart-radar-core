@@ -361,44 +361,54 @@ export function useDriverLifecycle(user: User | null) {
     return () => clearInterval(interval);
   }, [user?.uid, user?.role, toast]);
 
+  const isTogglingRef = useRef(false);
+
   const toggleDriverStatus = useCallback(async (desiredStatus: 'active' | 'idle') => {
     if (driverStatus === 'busy' || driverStatus === 'rating') return;
+    if (isTogglingRef.current) return;
+    isTogglingRef.current = true;
     
-    const paidHours = user?.paidHoursRemaining !== undefined ? user.paidHoursRemaining : (user?.subscriptionHours !== undefined ? Math.round(user.subscriptionHours * 60) : 870);
-    const bonusHours = user?.bonusHoursRemaining !== undefined ? user.bonusHoursRemaining : 0;
-    const totalMinutes = paidHours + bonusHours;
+    try {
+      const paidHours = user?.paidHoursRemaining !== undefined ? user.paidHoursRemaining : (user?.subscriptionHours !== undefined ? Math.round(user.subscriptionHours * 60) : 870);
+      const bonusHours = user?.bonusHoursRemaining !== undefined ? user.bonusHoursRemaining : 0;
+      const totalMinutes = paidHours + bonusHours;
 
-    if (desiredStatus === 'active' && totalMinutes <= 0) {
-      toast({
-        variant: 'destructive',
-        title: '🚫 عجز ساعات البث',
-        description: 'لا يوجد لديك رصيد باقة ساعات كافٍ لتشغيل استقبال البث الملاحي. يرجى شحن حزمة جديدة كابتن.'
-      });
-      return;
-    }
-
-    changeDriverStatus(desiredStatus);
-    await updateDriverDoc({ 
-      status: desiredStatus,
-      lastTickTimestamp: desiredStatus === 'active' ? Date.now() : (user?.lastTickTimestamp || Date.now())
-    });
-
-    if (user?.uid) {
-      if (desiredStatus === 'active') {
-        addCaptainSovereignLog(
-          user.uid,
-          'status_change',
-          'التحول إلى حالة نشط',
-          'قام الكابتن بتفعيل استقبال البث وتحويل حالته يدوياً إلى نشط ومتاح لاستقبال طلبات الركاب.'
-        );
-      } else {
-        addCaptainSovereignLog(
-          user.uid,
-          'status_change',
-          'التحول إلى حالة خامل',
-          'قام الكابتن بتعطيل استقبال البث وتحويل حالته يدوياً إلى خامل ومغلق.'
-        );
+      if (desiredStatus === 'active' && totalMinutes <= 0) {
+        toast({
+          variant: 'destructive',
+          title: '🚫 عجز ساعات البث',
+          description: 'لا يوجد لديك رصيد باقة ساعات كافٍ لتشغيل استقبال البث الملاحي. يرجى شحن حزمة جديدة كابتن.'
+        });
+        return;
       }
+
+      changeDriverStatus(desiredStatus);
+      await updateDriverDoc({ 
+        status: desiredStatus,
+        lastTickTimestamp: desiredStatus === 'active' ? Date.now() : (user?.lastTickTimestamp || Date.now())
+      });
+
+      if (user?.uid) {
+        if (desiredStatus === 'active') {
+          addCaptainSovereignLog(
+            user.uid,
+            'status_change',
+            'التحول إلى حالة نشط',
+            'قام الكابتن بتفعيل استقبال البث وتحويل حالته يدوياً إلى نشط ومتاح لاستقبال طلبات الركاب.'
+          );
+        } else {
+          addCaptainSovereignLog(
+            user.uid,
+            'status_change',
+            'التحول إلى حالة خامل',
+            'قام الكابتن بتعطيل استقبال البث وتحويل حالته يدوياً إلى خامل ومغلق.'
+          );
+        }
+      }
+    } catch (e) {
+      trackSovereignError(e, { context: 'ToggleDriverStatus' });
+    } finally {
+      isTogglingRef.current = false;
     }
   }, [driverStatus, updateDriverDoc, user?.paidHoursRemaining, user?.bonusHoursRemaining, user?.subscriptionHours, user?.lastTickTimestamp, toast]);
 
