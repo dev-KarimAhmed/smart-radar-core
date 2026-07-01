@@ -1,15 +1,130 @@
 'use client';
 
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import React, { useMemo, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import {
+  ChevronDown,
+  Eye,
+  EyeOff,
+  Languages,
+  LockKeyhole,
+  MapPin,
+  Phone,
+  ShieldCheck,
+  UserRound,
+} from 'lucide-react';
 import { useRegistration } from '@/hooks/use-registration';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { jordanGovernorates } from '@/lib/data';
+import { useAuth } from '@/hooks/use-auth';
+
+type Lang = 'ar' | 'en';
+type AuthMode = 'register' | 'login';
+
+const roleLabels = {
+  rider: { ar: 'راكب', en: 'Rider' },
+  driver: { ar: 'كابتن', en: 'Captain' },
+  advertiser: { ar: 'معلن', en: 'Advertiser' },
+  delegate: { ar: 'مندوب تسويق', en: 'Delegate' },
+} as const;
+
+const copy = {
+  ar: {
+    languageButton: 'English',
+    languageAria: 'تغيير اللغة إلى الإنجليزية',
+    brand: 'الرادار الذكي',
+    registerTitle: 'حساب جديد',
+    loginTitle: 'تسجيل الدخول',
+    registerSubtitle: 'املأ بياناتك مرة واحدة، وبعدها تدخل رحلاتك بسرعة.',
+    loginSubtitle: 'اكتب رقم الموبايل وكلمة السر علشان تكمل.',
+    fullName: 'الاسم بالكامل',
+    fullNamePlaceholder: 'اكتب اسمك',
+    phone: 'رقم الموبايل',
+    phonePlaceholder: '+962790000000',
+    governorate: 'المحافظة',
+    governoratePlaceholder: 'اختر المحافظة',
+    district: 'المركز أو المنطقة',
+    districtPlaceholder: 'اختر المنطقة',
+    password: 'كلمة السر',
+    passwordPlaceholder: 'اكتب كلمة السر',
+    showPassword: 'إظهار كلمة السر',
+    hidePassword: 'إخفاء كلمة السر',
+    login: 'تسجيل الدخول',
+    register: 'إنشاء الحساب',
+    submitLogin: 'دخول الحساب',
+    submitRegister: 'ابدأ الآن',
+    hasAccount: 'لديك حساب بالفعل؟',
+    noAccount: 'لسه جديد؟',
+    switchToLogin: 'سجل دخولك',
+    switchToRegister: 'اعمل حساب جديد',
+    idTitle: 'الهوية الشخصية',
+    idReady: 'تم تجهيز الهوية',
+    idCompressing: 'جاري ضغط الصورة...',
+    idHint: 'ارفق صورة الهوية لإكمال التحقق',
+    back: 'العودة لاختيار نوع الحساب',
+    ticker: ['رحلات أقرب', 'دخول آمن', 'اختيار واضح', 'رادار ذكي V5.5', 'تجربة موبايل سهلة'],
+  },
+  en: {
+    languageButton: 'العربية',
+    languageAria: 'Switch language to Arabic',
+    brand: 'Smart Radar',
+    registerTitle: 'Create Account',
+    loginTitle: 'Login',
+    registerSubtitle: 'Add your details once, then reach your rides faster.',
+    loginSubtitle: 'Enter your phone number and password to continue.',
+    fullName: 'Full Name',
+    fullNamePlaceholder: 'Enter your name',
+    phone: 'Phone Number',
+    phonePlaceholder: '+962790000000',
+    governorate: 'Governorate',
+    governoratePlaceholder: 'Choose governorate',
+    district: 'District or Town',
+    districtPlaceholder: 'Choose district',
+    password: 'Password',
+    passwordPlaceholder: 'Enter password',
+    showPassword: 'Show password',
+    hidePassword: 'Hide password',
+    login: 'Login',
+    register: 'Register',
+    submitLogin: 'Login',
+    submitRegister: 'Start now',
+    hasAccount: 'Already have an account?',
+    noAccount: 'New here?',
+    switchToLogin: 'Login',
+    switchToRegister: 'Create an account',
+    idTitle: 'Personal ID',
+    idReady: 'ID image prepared',
+    idCompressing: 'Compressing image...',
+    idHint: 'Attach an ID image to complete verification',
+    back: 'Back to account type',
+    ticker: ['Closer rides', 'Secure access', 'Clear choice', 'Smart Radar V5.5', 'Easy mobile flow'],
+  },
+} as const;
 
 export function PersonalStep() {
-  const { personal, setPersonal, handlePersonalSubmit, districts, isSubmitting, role, setStep } = useRegistration();
-  const [compressing, setCompressing] = React.useState(false);
+  const {
+    personal,
+    setPersonal,
+    handlePersonalSubmit,
+    districts,
+    isSubmitting,
+    role,
+    setStep,
+    authMode,
+    setAuthMode,
+    lang,
+    setLang,
+  } = useRegistration();
+  const { loginAsMockUser } = useAuth();
+  const [compressing, setCompressing] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [password, setPassword] = useState('');
+
+  const currentLang = lang as Lang;
+  const mode = authMode as AuthMode;
+  const isArabic = currentLang === 'ar';
+  const t = copy[currentLang];
+  const roleName = role ? roleLabels[role]?.[currentLang] : roleLabels.rider[currentLang];
+  const tickerItems = useMemo(() => [...t.ticker, ...t.ticker, ...t.ticker], [t.ticker]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -21,35 +136,27 @@ export function PersonalStep() {
       const img = new Image();
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 250;
-        const MAX_HEIGHT = 250;
+        const maxWidth = 250;
+        const maxHeight = 250;
         let width = img.width;
         let height = img.height;
 
-        if (width > height) {
-          if (width > MAX_WIDTH) {
-            height *= MAX_WIDTH / width;
-            width = MAX_WIDTH;
-          }
-        } else {
-          if (height > MAX_HEIGHT) {
-            width *= MAX_HEIGHT / height;
-            height = MAX_HEIGHT;
-          }
+        if (width > height && width > maxWidth) {
+          height *= maxWidth / width;
+          width = maxWidth;
+        } else if (height > maxHeight) {
+          width *= maxHeight / height;
+          height = maxHeight;
         }
 
         canvas.width = width;
         canvas.height = height;
         const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.drawImage(img, 0, 0, width, height);
-        }
+        ctx?.drawImage(img, 0, 0, width, height);
 
-        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.4);
-        setPersonal({ ...personal, verificationDoc: compressedBase64 });
+        setPersonal({ ...personal, verificationDoc: canvas.toDataURL('image/jpeg', 0.4) });
         setCompressing(false);
 
-        // Haptic feedback confirming successful compression
         if (typeof navigator !== 'undefined' && navigator.vibrate) {
           navigator.vibrate([50, 30, 50]);
         }
@@ -59,126 +166,363 @@ export function PersonalStep() {
     reader.readAsDataURL(file);
   };
 
+  const loginWithSelectedRole = () => {
+    const loginRole = role || 'rider';
+    const baseUser = {
+      uid: `dev-${loginRole}-quick`,
+      phone: personal.phone || '+962790000000',
+      role: loginRole,
+      name: roleName,
+      governorate: personal.gov || 'عمان',
+      district: personal.district || 'الجامعة',
+      isBufferActive: false,
+      rating: 5,
+    };
+
+    if (loginRole === 'driver') {
+      loginAsMockUser({
+        ...baseUser,
+        role: 'driver',
+        status: 'idle',
+        rank: 'Gold',
+        paidHoursRemaining: 540,
+        bonusHoursRemaining: 60,
+        subscriptionHours: 10,
+        vehicle: {
+          year: 2023,
+          plate: '77-12345',
+          make: 'Toyota Corolla Hybrid',
+          color: 'White',
+        },
+        affiliation: {
+          type: 'independent',
+          name: 'مستقل',
+        },
+      });
+      return;
+    }
+
+    if (loginRole === 'advertiser') {
+      loginAsMockUser({
+        ...baseUser,
+        role: 'advertiser',
+        companyName: 'Smart Radar Ads',
+        commercialRegister: 'CR-88294-A',
+        adLicense: 'LIC-990-2026',
+        businessType: 'commercial',
+      });
+      return;
+    }
+
+    if (loginRole === 'delegate') {
+      loginAsMockUser({
+        ...baseUser,
+        role: 'delegate',
+        referralCode: 'RAD-JOR-777',
+        referredCount: 142,
+        pendingDues: 85.5,
+      });
+      return;
+    }
+
+    loginAsMockUser({
+      ...baseUser,
+      role: 'rider',
+    });
+  };
+
+  const submitForm = (event: React.FormEvent) => {
+    event.preventDefault();
+
+    if (mode === 'login') {
+      loginWithSelectedRole();
+      return;
+    }
+
+    handlePersonalSubmit(event);
+  };
+
   return (
-    <form onSubmit={handlePersonalSubmit} className="space-y-4 text-right animate-fade-in" dir="rtl">
-      <div>
-        <label className="block text-[10px] font-medium text-[#94A3B8] tracking-wider uppercase mb-1.5 text-right">
-          الاسم الكامل
-        </label>
-        <Input
-          placeholder="الاسم الكامل"
-          value={personal.name}
-          onChange={(e) => setPersonal({ ...personal, name: e.target.value })}
-          className="w-full bg-[#0B0F19] border border-[#243249] focus:border-[#14B8A6] text-[#F8FAFC] placeholder-[#94A3B8]/30 rounded-xl px-4 h-12 text-sm outline-none transition-all duration-300 focus:shadow-[0_0_10px_rgba(20,184,166,0.1)] text-right"
-          required
-        />
-      </div>
+    <main
+      dir={isArabic ? 'rtl' : 'ltr'}
+      className="relative min-h-screen overflow-hidden bg-[#0B0F19] text-slate-100"
+    >
+      <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle_at_18%_12%,rgba(20,184,166,0.20),transparent_30%),radial-gradient(circle_at_82%_22%,rgba(45,212,191,0.08),transparent_28%)]" />
 
-      <div>
-        <label className="block text-[10px] font-medium text-[#94A3B8] tracking-wider uppercase mb-1.5 text-right">
-          رقم الهاتف (النسق الدولي المعتمد)
-        </label>
-        <Input
-          type="tel"
-          dir="ltr"
-          placeholder="+962790000000"
-          value={personal.phone}
-          onChange={(e) => setPersonal({ ...personal, phone: e.target.value })}
-          className="w-full bg-[#0B0F19] border border-[#243249] focus:border-[#14B8A6] text-[#F8FAFC] placeholder-[#94A3B8]/30 rounded-xl px-4 h-12 text-sm outline-none transition-all duration-300 focus:shadow-[0_0_10px_rgba(20,184,166,0.1)] text-left"
-          required
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-2">
-        <div>
-          <label className="block text-[10px] font-medium text-[#94A3B8] tracking-wider uppercase mb-1.5 text-right">
-            المحافظة
-          </label>
-          <Select
-            value={personal.gov}
-            onValueChange={(value) => setPersonal({ ...personal, gov: value, district: '' })}
-            required
-          >
-            <SelectTrigger className="h-12 bg-[#0B0F19] border border-[#243249] text-white text-right outline-none focus:border-[#14B8A6] rounded-xl" dir="rtl">
-              <SelectValue placeholder="اختر المحافظة" />
-            </SelectTrigger>
-            <SelectContent className="bg-[#161F30] border border-[#243249] text-white">
-              {jordanGovernorates.map((gov) => (
-                <SelectItem key={gov} value={gov} className="text-right justify-end hover:bg-[#14B8A6]/20 cursor-pointer">{gov}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div>
-          <label className="block text-[10px] font-medium text-[#94A3B8] tracking-wider uppercase mb-1.5 text-right">
-            اللواء
-          </label>
-          <Select
-            value={personal.district}
-            onValueChange={(value) => setPersonal({ ...personal, district: value })}
-            disabled={!personal.gov}
-            required
-          >
-            <SelectTrigger className="h-12 bg-[#0B0F19] border border-[#243249] text-white text-right outline-none focus:border-[#14B8A6] rounded-xl" dir="rtl">
-              <SelectValue placeholder="اختر اللواء" />
-            </SelectTrigger>
-            <SelectContent className="bg-[#161F30] border border-[#243249] text-white">
-              {districts.map((dist) => (
-                <SelectItem key={dist} value={dist} className="text-right justify-end hover:bg-[#14B8A6]/20 cursor-pointer">{dist}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      {/* 📥 [معمارية SC55 - وثيقة التحقق والهوية الشخصية المكبوسة حافلياً] */}
-      {role === 'rider' && (
-        <div className="p-3 rounded-xl bg-[#0B0F19] border border-[#14B8A6]/20 text-right space-y-2">
-          <label className="text-[10px] sm:text-[11px] font-black text-[#14B8A6] block">
-            📥 الهوية الأحوال الأردنية ( وتد الأمان الرقمي ):
-          </label>
-          <div className="relative border border-dashed border-[#14B8A6]/30 rounded-lg p-2.5 flex flex-col items-center justify-center bg-black/40 hover:bg-black/60 transition-all cursor-pointer">
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleFileChange}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-            />
-            {personal.verificationDoc ? (
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] text-emerald-400 font-bold">✓ تم ضغط وحقن الهوية سيادياً</span>
-                <span className="text-xs">💳</span>
-              </div>
-            ) : compressing ? (
-              <span className="text-[10px] text-gray-400 animate-pulse">جاري ضغط النواة والمغنطة...</span>
-            ) : (
-              <div className="flex flex-col items-center">
-                <span className="text-[9px] text-[#94A3B8]/80 leading-normal text-center">ارفِق صورة الهوية لحقن المناعة الجينية</span>
-                <span className="text-[8px] text-[#14B8A6]/50 block font-mono">JPG / PNG - مضغوطة للغاية</span>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      <div className="pt-2">
-        <button 
-          type="submit" 
-          className="w-full bg-[#14B8A6] hover:bg-[#14B8A6]/90 text-[#0B0F19] font-bold py-3 px-4 rounded-xl transition-all duration-300 shadow-[0_4px_20px_rgba(20,184,166,0.2)] hover:shadow-[0_4px_25px_rgba(20,184,166,0.35)] transform active:scale-[0.98] disabled:opacity-50 cursor-pointer"
-          disabled={isSubmitting || compressing}
-        >
-          {isSubmitting ? 'جاري التحضير...' : role === 'rider' ? 'الدخول الآمن للنظام' : 'متابعة'}
-        </button>
-      </div>
-
-      <button 
-        type="button" 
-        className="w-full text-xs text-[#94A3B8]/60 hover:text-white transition-colors py-2 cursor-pointer" 
-        onClick={() => setStep('role')}
+      <button
+        type="button"
+        aria-label={t.languageAria}
+        onClick={() => setLang(isArabic ? 'en' : 'ar')}
+        className={`fixed top-4 z-30 inline-flex min-h-11 items-center gap-2 rounded-full border border-white/10 bg-[#161F30]/70 px-4 text-sm font-bold text-slate-100 shadow-2xl backdrop-blur-xl transition hover:border-[#14B8A6] hover:shadow-[0_0_20px_rgba(20,184,166,0.15)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/50 ${
+          isArabic ? 'left-4' : 'right-4'
+        }`}
       >
-        العودة لتعديل الصفة
+        <Languages className="h-4 w-4 text-[#14B8A6]" aria-hidden="true" />
+        {t.languageButton}
       </button>
-    </form>
+
+      <section className="relative z-10 flex min-h-screen w-full items-center justify-center px-0 py-0 sm:px-6 sm:py-10">
+        <div className="flex min-h-screen w-full max-w-md flex-col justify-center rounded-none border border-white/5 bg-[#161F30]/70 p-6 shadow-2xl backdrop-blur-xl sm:my-12 sm:min-h-0 sm:rounded-3xl sm:p-8">
+          <header className="mb-7 text-center">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 text-[#14B8A6] shadow-[0_0_30px_rgba(20,184,166,0.18)]">
+              <ShieldCheck className="h-7 w-7" aria-hidden="true" />
+            </div>
+            <p className="text-sm font-bold text-[#14B8A6]">
+              {t.brand} · {roleName}
+            </p>
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={`${mode}-${currentLang}`}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.18 }}
+              >
+                <h1 className="mt-3 text-3xl font-black tracking-normal text-[#F8FAFC]">
+                  {mode === 'register' ? t.registerTitle : t.loginTitle}
+                </h1>
+                <p className="mt-3 text-sm font-medium leading-6 text-[#94A3B8]">
+                  {mode === 'register' ? t.registerSubtitle : t.loginSubtitle}
+                </p>
+              </motion.div>
+            </AnimatePresence>
+          </header>
+
+          <div className="mb-5 grid grid-cols-2 rounded-2xl border border-white/10 bg-[#0B0F19]/45 p-1">
+            {(['register', 'login'] as AuthMode[]).map((nextMode) => {
+              const active = mode === nextMode;
+
+              return (
+                <button
+                  key={nextMode}
+                  type="button"
+                  onClick={() => setAuthMode(nextMode)}
+                  className="relative min-h-11 rounded-xl px-3 text-sm font-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/50"
+                >
+                  {active ? (
+                    <motion.span
+                      layoutId="auth-view-active"
+                      className="absolute inset-0 rounded-xl border border-[#14B8A6]/45 bg-[#14B8A6]/15 shadow-[0_0_18px_rgba(20,184,166,0.14)]"
+                      transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+                    />
+                  ) : null}
+                  <span className={`relative z-10 ${active ? 'text-[#F8FAFC]' : 'text-[#94A3B8]'}`}>
+                    {nextMode === 'register' ? t.register : t.login}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.form
+              key={mode}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+              className="space-y-4"
+              onSubmit={submitForm}
+            >
+              {mode === 'register' ? (
+                <Field label={t.fullName} icon={<UserRound className="h-5 w-5" />}>
+                  <input
+                    type="text"
+                    placeholder={t.fullNamePlaceholder}
+                    value={personal.name}
+                    onChange={(event) => setPersonal({ ...personal, name: event.target.value })}
+                    className={`${inputClass} ${isArabic ? 'text-right' : 'text-left'}`}
+                    autoComplete="name"
+                    required
+                  />
+                </Field>
+              ) : null}
+
+              <Field label={t.phone} icon={<Phone className="h-5 w-5" />}>
+                <input
+                  type="tel"
+                  dir="ltr"
+                  inputMode="numeric"
+                  placeholder={t.phonePlaceholder}
+                  value={personal.phone}
+                  onChange={(event) => setPersonal({ ...personal, phone: event.target.value })}
+                  className={`${inputClass} text-left`}
+                  autoComplete="tel"
+                  required
+                />
+              </Field>
+
+              {mode === 'register' ? (
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <Field label={t.governorate} icon={<MapPin className="h-5 w-5" />}>
+                    <div className="relative">
+                      <select
+                        value={personal.gov}
+                        onChange={(event) => setPersonal({ ...personal, gov: event.target.value, district: '' })}
+                        className={`${inputClass} appearance-none ${isArabic ? 'text-right pl-10' : 'text-left pr-10'}`}
+                        required
+                      >
+                        <option value="">{t.governoratePlaceholder}</option>
+                        {jordanGovernorates.map((gov) => (
+                          <option key={gov} value={gov}>
+                            {gov}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown
+                        className={`pointer-events-none absolute top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8] ${
+                          isArabic ? 'left-3' : 'right-3'
+                        }`}
+                      />
+                    </div>
+                  </Field>
+
+                  <Field label={t.district} icon={<MapPin className="h-5 w-5" />}>
+                    <div className="relative">
+                      <select
+                        value={personal.district}
+                        onChange={(event) => setPersonal({ ...personal, district: event.target.value })}
+                        disabled={!personal.gov}
+                        className={`${inputClass} appearance-none disabled:opacity-50 ${isArabic ? 'text-right pl-10' : 'text-left pr-10'}`}
+                        required
+                      >
+                        <option value="">{t.districtPlaceholder}</option>
+                        {districts.map((district) => (
+                          <option key={district} value={district}>
+                            {district}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown
+                        className={`pointer-events-none absolute top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8] ${
+                          isArabic ? 'left-3' : 'right-3'
+                        }`}
+                      />
+                    </div>
+                  </Field>
+                </div>
+              ) : null}
+
+              <Field label={t.password} icon={<LockKeyhole className="h-5 w-5" />}>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder={t.passwordPlaceholder}
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    className={`${inputClass} ${isArabic ? 'text-right pl-12' : 'text-left pr-12'}`}
+                    autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
+                    required
+                  />
+                  <button
+                    type="button"
+                    aria-label={showPassword ? t.hidePassword : t.showPassword}
+                    onClick={() => setShowPassword((current) => !current)}
+                    className={`absolute top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-xl text-[#94A3B8] transition hover:bg-[#14B8A6]/10 hover:text-[#14B8A6] ${
+                      isArabic ? 'left-2' : 'right-2'
+                    }`}
+                  >
+                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
+                </div>
+              </Field>
+
+              {mode === 'register' && role === 'rider' ? (
+                <div className="rounded-2xl border border-[#14B8A6]/20 bg-[#0B0F19]/50 p-3">
+                  <label className="block text-sm font-black text-[#14B8A6]">
+                    {t.idTitle}
+                  </label>
+                  <div className="relative mt-2 flex min-h-16 cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-[#14B8A6]/30 bg-black/30 p-3 transition hover:bg-black/50">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileChange}
+                      className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                    />
+                    {personal.verificationDoc ? (
+                      <span className="text-xs font-bold text-emerald-400">{t.idReady}</span>
+                    ) : compressing ? (
+                      <span className="text-xs text-[#94A3B8]">{t.idCompressing}</span>
+                    ) : (
+                      <span className="text-center text-xs font-semibold leading-5 text-[#94A3B8]">
+                        {t.idHint}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ) : null}
+
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                whileHover={{ y: -1 }}
+                type="submit"
+                disabled={isSubmitting || compressing}
+                className="mt-2 w-full rounded-2xl bg-[#14B8A6] p-4 text-base font-black text-[#0B0F19] shadow-[0_16px_45px_rgba(20,184,166,0.22)] transition hover:bg-[#2DD4BF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/60 disabled:opacity-50"
+              >
+                {isSubmitting ? '...' : mode === 'register' ? t.submitRegister : t.submitLogin}
+              </motion.button>
+            </motion.form>
+          </AnimatePresence>
+
+          <div className="mt-6 text-center text-sm font-semibold text-[#94A3B8]">
+            <span>{mode === 'register' ? t.hasAccount : t.noAccount}</span>{' '}
+            <button
+              type="button"
+              onClick={() => setAuthMode(mode === 'register' ? 'login' : 'register')}
+              className="font-black text-[#14B8A6] underline-offset-4 transition hover:text-[#2DD4BF] hover:underline"
+            >
+              {mode === 'register' ? t.switchToLogin : t.switchToRegister}
+            </button>
+          </div>
+
+          <button
+            type="button"
+            className="mt-5 w-full text-xs font-bold text-[#94A3B8]/70 transition hover:text-white"
+            onClick={() => setStep('role')}
+          >
+            {t.back}
+          </button>
+        </div>
+      </section>
+
+      <div className="absolute inset-x-0 bottom-0 z-0 h-14 overflow-hidden border-t border-white/10 bg-slate-950/70 backdrop-blur-xl">
+        <div
+          className={`flex w-max min-w-[200%] gap-8 whitespace-nowrap py-5 ${
+            isArabic
+              ? '[animation:ad-river-rtl_28s_linear_infinite]'
+              : '[animation:ad-river-ltr_28s_linear_infinite]'
+          }`}
+        >
+          {tickerItems.map((item, index) => (
+            <span key={`${item}-${index}`} className="text-xs font-bold text-[#94A3B8] odd:text-[#F8FAFC]">
+              {item}
+            </span>
+          ))}
+        </div>
+      </div>
+    </main>
   );
 }
+
+function Field({
+  label,
+  icon,
+  children,
+}: {
+  label: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-2 flex items-center gap-2 text-sm font-bold text-[#F8FAFC]">
+        <span className="text-[#14B8A6]">{icon}</span>
+        {label}
+      </span>
+      {children}
+    </label>
+  );
+}
+
+const inputClass =
+  'min-h-12 w-full rounded-2xl border border-white/10 bg-[#0B0F19]/50 px-4 text-base font-semibold text-[#F8FAFC] outline-none transition placeholder:text-[#64748B] focus:border-[#14B8A6] focus:shadow-[0_0_10px_rgba(20,184,166,0.1)]';

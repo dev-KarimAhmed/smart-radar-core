@@ -13,8 +13,12 @@ import { doc, setDoc, serverTimestamp, query, collection, where, getDocs, limit,
 interface RegistrationContextType {
   step: 'role' | 'personal' | 'affiliation' | 'vehicle' | 'admin' | 'advertiser' | 'ProfessionalStep';
   setStep: (step: 'role' | 'personal' | 'affiliation' | 'vehicle' | 'admin' | 'advertiser' | 'ProfessionalStep') => void;
-  role: 'rider' | 'driver' | 'advertiser' | null;
-  setRole: (role: 'rider' | 'driver' | 'advertiser' | null) => void;
+  role: 'rider' | 'driver' | 'advertiser' | 'delegate' | null;
+  setRole: (role: 'rider' | 'driver' | 'advertiser' | 'delegate' | null) => void;
+  authMode: 'register' | 'login';
+  setAuthMode: (mode: 'register' | 'login') => void;
+  lang: 'ar' | 'en';
+  setLang: (lang: 'ar' | 'en') => void;
   personal: { name: string; phone: string; gov: string; district: string; verificationDoc: string };
   setPersonal: (personal: any) => void;
   advertiserProfile: { companyName: string; commercialRegister: string; adLicense: string; businessType: string };
@@ -39,7 +43,9 @@ const RegistrationContext = createContext<RegistrationContextType | undefined>(u
 export function RegistrationProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
   const [step, setStep] = useState<'role' | 'personal' | 'affiliation' | 'vehicle' | 'admin' | 'advertiser' | 'ProfessionalStep'>('role');
-  const [role, setRole] = useState<'rider' | 'driver' | 'advertiser' | null>(null);
+  const [role, setRole] = useState<'rider' | 'driver' | 'advertiser' | 'delegate' | null>(null);
+  const [authMode, setAuthMode] = useState<'register' | 'login'>('register');
+  const [lang, setLang] = useState<'ar' | 'en'>('ar');
   const [personal, setPersonal] = useState({ name: '', phone: '', gov: '', district: '', verificationDoc: '' });
   const [advertiserProfile, setAdvertiserProfile] = useState({ companyName: '', commercialRegister: '', adLicense: '', businessType: 'commercial' });
   const [affiliation, setAffiliation] = useState<AffiliationType | null>(null);
@@ -190,6 +196,9 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
             } else if (role === 'advertiser') {
                 counterKey = 'advertiser_serial';
                 prefix = 'A';
+            } else if (role === 'delegate') {
+                counterKey = 'delegate_serial';
+                prefix = 'L';
             }
 
             const districtKey = (personal.district || 'global').replace(/\s+/g, '_');
@@ -221,7 +230,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
 
   const handlePersonalSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (role === 'rider') {
+    if (role === 'rider' || role === 'delegate') {
       submitRegistration();
     } else if (role === 'advertiser') {
       setStep('ProfessionalStep');
@@ -264,6 +273,8 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
   const value = {
     step, setStep,
     role, setRole,
+    authMode, setAuthMode,
+    lang, setLang,
     personal, setPersonal,
     advertiserProfile, setAdvertiserProfile,
     affiliation, setAffiliation,

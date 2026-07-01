@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ShieldQuestion, UserCheck, Car, Key, Megaphone, Users } from 'lucide-react';
 import { RegistrationProvider, useRegistration } from '@/hooks/use-registration';
 import { RoleStep } from '@/components/auth/RoleStep';
@@ -136,6 +135,10 @@ function LoginOrchestrator() {
       default: return '';
     }
   };
+
+  if (step === 'role' || step === 'personal') {
+    return renderStep();
+  }
 
   return (
     <div className="min-h-screen bg-[#0B0F19] flex flex-col justify-center items-center p-4 relative overflow-hidden font-sans">
