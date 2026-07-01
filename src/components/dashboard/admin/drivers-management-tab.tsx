@@ -21,7 +21,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Star, Heart, ShieldAlert, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { getRankTheme } from '@/lib/theme-utils';
+import { getRankTheme } from '@/core/utils';
 import { useSovereignFleet } from '@/hooks/use-sovereign-fleet'; // 🔗 حقن الخطاف السيادي
 
 const getStatusIndicator = (status?: string) => {

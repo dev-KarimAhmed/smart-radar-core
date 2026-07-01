@@ -7,7 +7,8 @@ import { cn } from '@/lib/utils';
 const OVERSPEED_THRESHOLD = 40; // km/h
 
 export function SpeedSentry() {
-  const { driverSpeed, driverStatus } = useDriverOperations();
+  const driverOps = useDriverOperations();
+  const { driverSpeed, driverStatus } = driverOps || { driverSpeed: 0, driverStatus: 'idle' };
 
   const isOverspeeding = driverStatus === 'active' && driverSpeed > OVERSPEED_THRESHOLD;
 

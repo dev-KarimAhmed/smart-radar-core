@@ -2,21 +2,24 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { doc, getDoc, updateDoc, setDoc, arrayUnion, serverTimestamp, query, collection, where, limit, onSnapshot } from 'firebase/firestore';
-import { getDistrictFromCoords } from '@/lib/geospatial';
+import { getDistrictFromCoords } from '@/core/logic/geospatial-kernel';
 import { db } from '@/lib/firebase';
 import { trackSovereignError } from '@/lib/error-tracker';
 import { getSovereignErrorMessage } from '@/core/constants/error-dictionary';
 import { useToast } from '../use-toast';
+import { useAuth } from '../use-auth';
 import { callSovereignCloud } from '@/core/contracts/cloud-bridge';
 import type { Trip, User, Offer } from '@/core/types';
 import { SovereignMarketKernel } from '@/core/logic/sovereign-market-kernel';
+import { sovereignEventBroker } from '@/lib/event-broker';
 
 export function useDriverTransactions(
   user: User | null, 
-  setDriverStatus: Function, 
-  updateDriverDoc: Function
+  setDriverStatus?: Function, 
+  updateDriverDoc?: Function
 ) {
   const { toast } = useToast();
+  const { suspendUserDocListener, resumeUserDocListener } = useAuth();
   const [activeRequest, setActiveReq] = useState<Trip | null>(null);
   const [acceptedRider, setAcceptedRider] = useState<User | null>(null);
   
@@ -44,10 +47,19 @@ export function useDriverTransactions(
   }, []);
 
   const cleanUpAndReset = useCallback(() => {
-      updateDriverDoc({ status: 'active' });
+      const activeUpdate = { status: 'active' as const };
+      if (updateDriverDoc) {
+        updateDriverDoc(activeUpdate);
+      }
+      sovereignEventBroker.emit('DRIVER_DOC_UPDATE', activeUpdate);
+
       setActiveReq(null);
       setAcceptedRider(null);
-      setDriverStatus('active');
+
+      if (setDriverStatus) {
+        setDriverStatus('active');
+      }
+      sovereignEventBroker.emit('DRIVER_STATUS_CHANGE', 'active');
   }, [updateDriverDoc, setDriverStatus]);
 
   // Monitor active trip assigned to driver
@@ -56,14 +68,77 @@ export function useDriverTransactions(
 
     const q = query(
       collection(db, 'trips'),
-      where('driverId', '==', user.uid),
-      where('status', 'in', ['busy', 'rating', 'completed', 'checkpoint_required']),
-      limit(1)
+      where('driverId', '==', user.uid)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
+      // 🛡️ [حارس قفل الكتابة التفاعلي المانع لتراجع الحالة V2.6-Secured]
+      // نتحقق من وجود قفل نشط لمنع أي لقطة تداخلية متأخرة من تخريب شاشة الملاحة أو شاشة التقييم النشطة
+      const isLockActive = typeof window !== 'undefined' && sessionStorage.getItem('sovereign_write_lock') === 'true';
+      if (isLockActive) {
+        console.log("🛡️ [Snapshot Write Lock Guard]: Stopped trip snapshot consumption during active write lock.");
+        return;
+      }
+
       if (!snapshot.empty) {
-        const tripData = { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as Trip;
+        // [بروتوكول الربط الشرياني V2.6-Secured - فرز العهد الميداني للفرسان]
+        const trips = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Trip));
+        
+        // فرز تنازلي زمني للحصول على الرحلة الأكثر حداثة بصفر تداخل شبكي وصفر متطلبات كشافات
+        trips.sort((a, b) => {
+          const getMs = (val: any) => {
+            if (!val) return 0;
+            if (typeof val.toMillis === 'function') return val.toMillis();
+            if (val.seconds) return val.seconds * 1000;
+            return new Date(val).getTime();
+          };
+          return getMs(b.createdAt) - getMs(a.createdAt);
+        });
+
+        const tripData = trips[0];
+        
+        // 🛡️ [النبض الشبكي التفاضلي V2.6-Secured - مرشح التوقيت المالي المالي]
+        const getNetworkAdjustedTime = () => {
+          if (typeof window !== 'undefined') {
+            const deltaStr = sessionStorage.getItem('sovereign_time_delta');
+            const delta = deltaStr ? parseInt(deltaStr, 10) : 0;
+            return Date.now() + delta;
+          }
+          return Date.now();
+        };
+
+        // التحقق من صلاحية الرحلة وحداثتها لتجنب التموضع العالق في الحسابات السابقة
+        const getTripTimeMs = (val: any) => {
+          if (!val) return getNetworkAdjustedTime();
+          if (typeof val.toMillis === 'function') return val.toMillis();
+          if (val.seconds) return val.seconds * 1000;
+          return new Date(val).getTime();
+        };
+
+        const isRecent = getNetworkAdjustedTime() - getTripTimeMs(tripData.createdAt) < 15 * 60 * 1000; // نافذة 15 دقيقة
+
+        // التحقق من الحالات النهائية والمؤرشفة والقديمة لتسريح شاشة الكابتن فوراً للعودة للخدمة
+        if (
+          tripData.status === 'archived' || 
+          tripData.ratingSubmittedByDriver !== undefined || 
+          (!isRecent && ['completed', 'checkpoint_required'].includes(tripData.status))
+        ) {
+          cleanUpAndReset();
+          return;
+        }
+
+        // إذا كانت الرحلة ملغاة، نقوم بالتصفير الفوري والعودة للحالة النشطة
+        if (tripData.status === 'cancelled') {
+          cleanUpAndReset();
+          return;
+        }
+
+        // التحقق من الحالات الصالحة للملاحة والتقييم للفرسان
+        if (!['busy', 'rating', 'completed', 'checkpoint_required'].includes(tripData.status)) {
+          cleanUpAndReset();
+          return;
+        }
+
         setActiveReq(tripData);
 
         if (tripData.riderId && (!acceptedRider || acceptedRider.uid !== tripData.riderId)) {
@@ -71,9 +146,15 @@ export function useDriverTransactions(
         }
         
         if (tripData.status === 'completed' || tripData.status === 'checkpoint_required') {
-            setDriverStatus('rating');
+            if (setDriverStatus) {
+              setDriverStatus('rating');
+            }
+            sovereignEventBroker.emit('DRIVER_STATUS_CHANGE', 'rating');
         } else {
-            setDriverStatus(tripData.status);
+            if (setDriverStatus) {
+              setDriverStatus(tripData.status);
+            }
+            sovereignEventBroker.emit('DRIVER_STATUS_CHANGE', tripData.status as any);
         }
       } else {
         cleanUpAndReset();
@@ -140,7 +221,10 @@ export function useDriverTransactions(
         displayTarget: evaluation.displayTarget
       };
 
-      await updateDoc(tripRef, { offers: arrayUnion(offer) });
+      await callSovereignCloud('submitOffer', {
+        tripId: payload.tripId,
+        offer
+      });
 
       // [الدستور التنفيذي V5.5 - الباب الأول] : توليد الفرصة الإعلانية وتصاعد السعة عند حرق/شذوذ الأسعار وثغرات كوابح السوق
       if (evaluation.isDumping) {
@@ -197,7 +281,9 @@ export function useDriverTransactions(
     isEndingTripRef.current = true;
     setIsEndingTrip(true);
     try {
-      await updateDoc(doc(db, 'trips', activeRequest.id), { status: 'checkpoint_required' });
+      await callSovereignCloud('endTrip', {
+        tripId: activeRequest.id
+      });
       toast({ title: 'طلب تأكيد المربع الميداني', description: 'يرجى الانتظار لحين تأكيد الراكب إتمام المسار.' });
     } catch (error) {
       trackSovereignError(error, { context: 'EndTrip' });
@@ -213,6 +299,11 @@ export function useDriverTransactions(
     if (isRatingRiderRef.current) return;
     isRatingRiderRef.current = true;
     setIsRatingRider(true);
+
+    // 🛡️ [حارس قفل الكتابة التفاعلي المانع لتراجع الحالة V2.6-Secured]
+    // نفعل قفل حظر مؤقت لمنع لقطات التحديث الشبكّي من التداخل وتخريب حالة الواجهة أثناء إتمام الرحلة
+    suspendUserDocListener();
+
     try {
       await callSovereignCloud('submitRiderRating', {
         tripId: activeRequest.id,
@@ -229,8 +320,13 @@ export function useDriverTransactions(
     } finally {
       setIsRatingRider(false);
       isRatingRiderRef.current = false;
+
+      // فك قفل تجميد اللقطات بعد مهلة انتشار كافية لمنع الارتداد الشبكي
+      setTimeout(() => {
+        resumeUserDocListener();
+      }, 3000);
     }
-  }, [activeRequest, toast, cleanUpAndReset]);
+  }, [activeRequest, toast, cleanUpAndReset, suspendUserDocListener, resumeUserDocListener]);
 
   const requestWeeklyReport = useCallback(async () => {
     if (isRequestingReportRef.current) return;

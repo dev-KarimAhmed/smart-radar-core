@@ -8,15 +8,17 @@ import { jordanGovernorates, getDistrictsByGovernorate } from '@/lib/data';
 import { trackSovereignError } from '@/lib/error-tracker';
 import { getSovereignErrorMessage } from '@/core/constants/error-dictionary';
 import type { AffiliationType } from '@/core/types';
-import { doc, setDoc, serverTimestamp, query, collection, where, getDocs, limit } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, query, collection, where, getDocs, limit, runTransaction } from 'firebase/firestore';
 
 interface RegistrationContextType {
-  step: 'role' | 'personal' | 'affiliation' | 'vehicle' | 'admin';
-  setStep: (step: 'role' | 'personal' | 'affiliation' | 'vehicle' | 'admin') => void;
-  role: 'rider' | 'driver' | null;
-  setRole: (role: 'rider' | 'driver' | null) => void;
+  step: 'role' | 'personal' | 'affiliation' | 'vehicle' | 'admin' | 'advertiser' | 'ProfessionalStep';
+  setStep: (step: 'role' | 'personal' | 'affiliation' | 'vehicle' | 'admin' | 'advertiser' | 'ProfessionalStep') => void;
+  role: 'rider' | 'driver' | 'advertiser' | null;
+  setRole: (role: 'rider' | 'driver' | 'advertiser' | null) => void;
   personal: { name: string; phone: string; gov: string; district: string; verificationDoc: string };
   setPersonal: (personal: any) => void;
+  advertiserProfile: { companyName: string; commercialRegister: string; adLicense: string; businessType: string };
+  setAdvertiserProfile: (profile: any) => void;
   affiliation: AffiliationType | null;
   setAffiliation: (affiliation: any) => void;
   vehicle: any;
@@ -25,6 +27,7 @@ interface RegistrationContextType {
   districts: string[];
   handlePersonalSubmit: (e: React.FormEvent) => void;
   handleVehicleSubmit: (e: React.FormEvent) => void;
+  handleAdvertiserSubmit: (e: React.FormEvent) => void;
   adminCreds: any;
   setAdminCreds: (creds: any) => void;
   handleAdminSubmit: (e: React.FormEvent) => void;
@@ -35,9 +38,10 @@ const RegistrationContext = createContext<RegistrationContextType | undefined>(u
 
 export function RegistrationProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
-  const [step, setStep] = useState<'role' | 'personal' | 'affiliation' | 'vehicle' | 'admin'>('role');
-  const [role, setRole] = useState<'rider' | 'driver' | null>(null);
+  const [step, setStep] = useState<'role' | 'personal' | 'affiliation' | 'vehicle' | 'admin' | 'advertiser' | 'ProfessionalStep'>('role');
+  const [role, setRole] = useState<'rider' | 'driver' | 'advertiser' | null>(null);
   const [personal, setPersonal] = useState({ name: '', phone: '', gov: '', district: '', verificationDoc: '' });
+  const [advertiserProfile, setAdvertiserProfile] = useState({ companyName: '', commercialRegister: '', adLicense: '', businessType: 'commercial' });
   const [affiliation, setAffiliation] = useState<AffiliationType | null>(null);
   const [vehicle, setVehicle] = useState({ year: '', plate: '', sideId: '', make: '', color: '', officeName: '', officePhone: '', companyName: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -66,6 +70,17 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     if (!role || !personal.name || !personal.phone || !personal.gov || !personal.district) {
       toast({ variant: 'destructive', title: 'الرجاء ملء الحقول', description: 'يرجى ملء جميع الحقول المطلوبة للمتابعة.' });
       return;
+    }
+
+    if (role === 'advertiser') {
+      if (!advertiserProfile.companyName || !advertiserProfile.commercialRegister || !advertiserProfile.adLicense) {
+        toast({
+          variant: 'destructive',
+          title: 'البيانات التجارية معلقة ⚠️',
+          description: 'يرجى ملء كافة تفاصيل السجل والترخيص التجاري لإنجاز خطوة التوثيق المهني.'
+        });
+        return;
+      }
     }
     
     const phoneRegex = /^\+9627[789]\d{7}$/;
@@ -100,20 +115,49 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
             verificationDoc: personal.verificationDoc || null, // وثائق التحقق مشفرة ومضغوطة محلياً للحافة
         };
 
-        if (role === 'driver') {
-            const deviceId = getSovereignDeviceId();
-            // Anti-Sybil Check
-            const driverQuery = query(
-                collection(db, 'users'),
-                where('role', '==', 'driver'),
-                where('deviceId', '==', deviceId),
-                limit(1)
-            );
-            const snapshot = await getDocs(driverQuery);
-            if (!snapshot.empty) {
+        const deviceId = getSovereignDeviceId();
+
+        // [SECURITY-PATCH] منع تداخل الهوية وتعارض الأدوار (Rider-Driver Desync)
+        // التحقق من تداخل رقم الهاتف مع أي حساب مسجل مسبقاً (سائق أو راكب)
+        const phoneOverlapQuery = query(
+            collection(db, 'users'),
+            where('phone', '==', personal.phone),
+            limit(1)
+        );
+        const phoneOverlapSnapshot = await getDocs(phoneOverlapQuery);
+        if (!phoneOverlapSnapshot.empty) {
+            throw new Error('PHONE_OVERLAP_DETECTED');
+        }
+
+        // التحقق من البصمة الرقمية للجهاز لمنع استخدام نفس الجهاز لأدوار متعارضة للتجسس
+        const deviceOverlapQuery = query(
+            collection(db, 'users'),
+            where('deviceId', '==', deviceId),
+            limit(1)
+        );
+        const deviceOverlapSnapshot = await getDocs(deviceOverlapQuery);
+        if (!deviceOverlapSnapshot.empty) {
+            const existingUser = deviceOverlapSnapshot.docs[0].data();
+            if (existingUser.role !== role) {
                 throw new Error('SYBIL_ATTACK_DETECTED');
             }
-            newUserProfileData.deviceId = deviceId;
+        }
+
+        newUserProfileData.deviceId = deviceId;
+
+        if (role === 'driver') {
+            // [SECURITY-PATCH] منع تداخل الاسم مع كابتن آخر في نفس لواء الموطن لمنع الحسابات الوهمية
+            const nameOverlapQuery = query(
+                collection(db, 'users'),
+                where('role', '==', 'driver'),
+                where('district', '==', personal.district),
+                where('name', '==', personal.name),
+                limit(1)
+            );
+            const nameOverlapSnapshot = await getDocs(nameOverlapQuery);
+            if (!nameOverlapSnapshot.empty) {
+                throw new Error('NAME_DISTRICT_OVERLAP_DETECTED');
+            }
 
             const vehiclePayload = affiliation === 'office-taxi'
               ? { year: parseInt(vehicle.year) || 2020, plate: vehicle.plate, sideId: vehicle.sideId, make: 'Kia', color: 'Yellow' }
@@ -129,12 +173,39 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
                 status: 'idle',
                 rank: 'Bronze'
             });
-        } else {
-            newUserProfileData.deviceId = getSovereignDeviceId();
+        } else if (role === 'advertiser') {
+            newUserProfileData.companyName = advertiserProfile.companyName || '';
+            newUserProfileData.commercialRegister = advertiserProfile.commercialRegister || '';
+            newUserProfileData.adLicense = advertiserProfile.adLicense || '';
+            newUserProfileData.businessType = advertiserProfile.businessType || 'commercial';
         }
 
         const userDocRef = doc(db, 'users', uid);
-        await setDoc(userDocRef, newUserProfileData);
+        await runTransaction(db, async (transaction) => {
+            let counterKey = 'passenger_serial';
+            let prefix = 'P';
+            if (role === 'driver') {
+                counterKey = 'driver_serial';
+                prefix = 'D';
+            } else if (role === 'advertiser') {
+                counterKey = 'advertiser_serial';
+                prefix = 'A';
+            }
+
+            const districtKey = (personal.district || 'global').replace(/\s+/g, '_');
+            const counterRef = doc(db, 'system_counters', `${districtKey}_${counterKey}`);
+            const counterSnap = await transaction.get(counterRef);
+            let nextCount = 1001;
+            if (counterSnap.exists()) {
+                nextCount = (counterSnap.data().current_count || 1000) + 1;
+            }
+
+            const serial_id = `${prefix}-${nextCount}`;
+            newUserProfileData.serial_id = serial_id;
+
+            transaction.set(counterRef, { current_count: nextCount }, { merge: true });
+            transaction.set(userDocRef, newUserProfileData);
+        });
     } catch (error: any) {
         trackSovereignError(error, { context: 'DirectRegistration' });
         toast({ variant: 'destructive', title: 'عجز في السجلات السيادية', description: getSovereignErrorMessage(error) });
@@ -146,18 +217,25 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
         setIsSubmitting(false);
         isSubmittingRef.current = false;
     }
-  }, [role, personal, affiliation, vehicle, toast]);
+  }, [role, personal, affiliation, vehicle, advertiserProfile, toast]);
 
   const handlePersonalSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (role === 'rider') {
       submitRegistration();
+    } else if (role === 'advertiser') {
+      setStep('ProfessionalStep');
     } else {
       setStep('affiliation');
     }
   };
 
   const handleVehicleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    submitRegistration();
+  };
+
+  const handleAdvertiserSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     submitRegistration();
   };
@@ -187,12 +265,14 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     step, setStep,
     role, setRole,
     personal, setPersonal,
+    advertiserProfile, setAdvertiserProfile,
     affiliation, setAffiliation,
     vehicle, setVehicle,
     isSubmitting,
     districts,
     handlePersonalSubmit,
     handleVehicleSubmit,
+    handleAdvertiserSubmit,
     adminCreds, setAdminCreds,
     handleAdminSubmit,
     handleLogoTap,

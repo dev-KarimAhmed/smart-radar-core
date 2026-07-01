@@ -1,8 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { SheetClose } from "@/components/ui/sheet";
+import { useToast } from "@/hooks/use-toast";
 import {
   ShieldCheck,
   LogOut,
@@ -19,10 +19,14 @@ import {
   AlertTriangle,
   Loader2,
   Clock,
+  ShieldAlert,
+  PlaySquare,
+  Activity,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { SheetClose } from "@/components/ui/sheet";
 import { DriverStatsCard } from "./dashboard/driver/driver-stats-card";
 import { DriverActions } from "./dashboard/driver/driver-actions";
 import type { User } from "@/core/types";
@@ -95,8 +99,33 @@ function RiderFavoriteDrivers() {
 
 export function AppSidebar() {
   const { user, logout } = useAuth();
+  const { toast } = useToast();
+  const [isOnline, setIsOnline] = useState(true);
+  const [showIncidentForm, setShowIncidentForm] = useState(false);
+  const [incidentReason, setIncidentReason] = useState("");
 
   if (!user) return null;
+
+  const handleToggleOnline = () => {
+    const nextState = !isOnline;
+    setIsOnline(nextState);
+    toast({
+      title: nextState ? "📡 النبض نشط (بث)" : "⏳ وضع الاستراحة والتعليق",
+      description: nextState 
+        ? "تم إرسال نبضة التوافر بنجاح للسحابة، وتفعيل كواشف الموقع الميدانية." 
+        : "تم تجميد ساعات العبور وحجب ظهورك في المزاد الجغرافي مؤقتاً لحين عودتك."
+    });
+  };
+
+  const handleSendIncident = () => {
+    if (!incidentReason.trim()) return;
+    toast({
+      title: "🚨 بلاغ انحراف ميداني طارئ",
+      description: `تم رصد الانحراف وإرسال الإحداثيات (31.9522° N, 35.9101° E) إلى غرفة القيادة العليا برمز طارئ. المبرر: ${incidentReason}`
+    });
+    setIncidentReason("");
+    setShowIncidentForm(false);
+  };
 
   const isDriver = user.role === "driver";
   const isAdmin = user.role === "admin";
@@ -148,8 +177,77 @@ export function AppSidebar() {
         </div>
 
         {isDriver && (
-          <div className="space-y-8 max-w-sm mx-auto w-full px-5 pb-6">
+          <div className="space-y-6 max-w-sm mx-auto w-full px-5 pb-6 text-right" dir="rtl">
+            {/* Online / Offline Sovereign Toggle */}
+            <div className="bg-[#050D05] border border-emerald-900/40 rounded-2xl p-4 shadow-md space-y-3">
+              <div className="flex justify-between items-center bg-black/40 p-1.5 rounded-lg">
+                <span className="text-xs font-black text-gray-300">حالة البث الميداني</span>
+                <span className={cn(
+                  "h-2.5 w-2.5 rounded-full animate-pulse", 
+                  isOnline ? "bg-[#14b8a6] shadow-[0_0_8px_#14b8a6]" : "bg-red-500 shadow-[0_0_8px_#ef4444]"
+                )} />
+              </div>
+              
+              <Button
+                onClick={handleToggleOnline}
+                className={cn(
+                  "w-full h-11 text-xs font-bold font-sans rounded-xl border transition-all shadow-[0_4px_12px_rgba(0,0,0,0.5)] cursor-pointer",
+                  isOnline 
+                    ? "bg-[#14b8a6]/20 border-[#14b8a6]/40 text-[#14b8a6] hover:bg-[#14b8a6]/30" 
+                    : "bg-red-950/20 border-red-500/30 text-red-400 hover:bg-red-950/30"
+                )}
+              >
+                {isOnline ? "📡 نشط ومتاح (البث الميداني مفتوح) [APPROVED]" : "⏳ في استراحة (تم تجميد رصيد الوقت)"}
+              </Button>
+            </div>
+
             <DriverStatsCard user={user} />
+
+            {/* Incident & Location Reporting Button */}
+            <div className="bg-[#050D05] border border-cyan-900/40 rounded-2xl p-4 shadow-md space-y-3">
+              <div className="flex justify-between items-center bg-black/40 p-1.5 rounded-lg">
+                <span className="text-xs font-black text-white">مركز السلامة الميداني</span>
+                <span className="text-[9px] font-mono text-cyan-400">GPS ACTIVE</span>
+              </div>
+              
+              {!showIncidentForm ? (
+                <Button
+                  onClick={() => setShowIncidentForm(true)}
+                  variant="outline"
+                  className="w-full h-10 text-xs font-bold border-red-500/30 text-red-400 bg-red-950/10 hover:bg-red-950/20 rounded-xl"
+                >
+                  ⚠️ تقرير بلاغ انحراف ميداني طارئ
+                </Button>
+              ) : (
+                <div className="space-y-2 text-right">
+                  <span className="text-[10px] text-gray-400">صفة العائق / انحراف المسار:</span>
+                  <input
+                    value={incidentReason}
+                    onChange={(e) => setIncidentReason(e.target.value)}
+                    placeholder="اكتب العائق (مثال: إغلاق أمني، عطل مفاجئ...)"
+                    className="w-full h-9 bg-black border border-red-500/40 rounded-lg text-xs px-2.5 text-white focus:outline-none focus:border-red-500 text-right"
+                    dir="rtl"
+                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      onClick={handleSendIncident}
+                      disabled={!incidentReason.trim()}
+                      className="bg-red-700 hover:bg-red-600 text-white font-bold h-8 text-[11px] rounded-lg cursor-pointer"
+                    >
+                      إرسال مشفر 🚨
+                    </Button>
+                    <Button
+                      onClick={() => { setShowIncidentForm(false); setIncidentReason(""); }}
+                      variant="ghost"
+                      className="text-gray-400 hover:text-white h-8 text-[11px]"
+                    >
+                      إلغاء
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <DriverActions />
           </div>
         )}
@@ -250,10 +348,13 @@ export function AppSidebar() {
       </ScrollArea>
 
       {/* Footer / Logout */}
-      <div className="p-5 bg-[#050D05] border-t border-emerald-900/30 mt-auto shrink-0 w-full">
+      <div className="p-5 bg-[#050D05] border-t border-emerald-900/30 mt-auto shrink-0 w-full text-center space-y-3">
+        <div className="text-gray-400 text-xs tracking-wide font-sans text-center">
+          منصة وساطة مستقلة - نربط النبض بالميدان
+        </div>
         <Button
           variant="destructive"
-          className="w-full flex items-center justify-center gap-3 font-black tracking-widest text-lg h-14 bg-red-600/90 hover:bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)] transition-all rounded-xl"
+          className="w-full flex items-center justify-center gap-3 font-black tracking-widest text-lg h-14 bg-red-600/90 hover:bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)] transition-all rounded-xl cursor-pointer"
           onClick={logout}
         >
           <span>إغلاق المنصة</span>

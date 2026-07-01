@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -26,7 +26,8 @@ import {
   TrendingDown,
   Minus,
   Loader2,
-  Megaphone
+  Megaphone,
+  Shield
 } from 'lucide-react';
 import { AppSidebar } from './app-sidebar';
 import { useAuth } from '@/hooks/use-auth';
@@ -37,13 +38,15 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useRiderOperations } from '@/hooks/use-rider-operations';
 import { DriverPricingCard } from './dashboard/driver-pricing-card';
+import { trackSovereignError } from '@/lib/error-tracker';
 
 function PulseIndicator() {
   const { user } = useAuth();
-  const { pulseData, loadingPulse } = useDriverOperations();
+  const driverOps = useDriverOperations();
+  const { pulseData, loadingPulse } = driverOps || { pulseData: [], loadingPulse: false };
   
   if (loadingPulse) return <Loader2 className="w-5 h-5 animate-spin text-white/50" />;
-  if (!user?.district) return null;
+  if (!user?.district || !pulseData) return null;
 
   const currentPulse = pulseData.find(p => p.id === user.district);
   const trend = currentPulse?.trend || 'balanced';
@@ -67,13 +70,14 @@ function PulseIndicator() {
 }
 
 function RiderCabin() {
-    const { tripStatus, openRequestModal } = useRiderOperations();
+    const riderOps = useRiderOperations();
+    const { tripStatus, openRequestModal } = riderOps || { tripStatus: 'idle' };
     const cabinStyle = 'bg-background/95 border-b border-white/10';
 
     return (
         <div className={cn("flex h-16 items-center justify-between px-2 md:px-4 transition-all duration-500", cabinStyle)}>
             <div className="w-10"></div>
-            {tripStatus === 'idle' && (
+            {tripStatus === 'idle' && openRequestModal && (
                 <Button onClick={openRequestModal} className="animate-pulse-neon bg-primary hover:bg-primary/80 text-white px-6 h-10 rounded-full font-bold tracking-wide">
                     <span className="mr-2 hidden sm:inline">إطلاق نداء</span>
                     اطلب مركبة
@@ -85,7 +89,8 @@ function RiderCabin() {
 }
 
 function DriverCabin() {
-    const { driverStatus, toggleDriverStatus, toggleRequestList } = useDriverOperations();
+    const driverOps = useDriverOperations();
+    const { driverStatus, toggleDriverStatus, toggleRequestList } = driverOps || { driverStatus: 'idle' };
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
     const getCabinStyle = () => {
@@ -103,13 +108,15 @@ function DriverCabin() {
         <>
             <div className={cn("flex h-16 items-center justify-between px-2 md:px-4 transition-all duration-500", getCabinStyle())}>
                 <div className="flex items-center gap-2 bg-black/20 p-1.5 rounded-full backdrop-blur-sm">
-                    <Switch
-                        id="driver-status-switch"
-                        checked={driverStatus === 'active'}
-                        onCheckedChange={(checked) => toggleDriverStatus(checked ? 'active' : 'idle')}
-                        disabled={isDriverBusy}
-                        className="data-[state=checked]:bg-white"
-                    />
+                    {toggleDriverStatus && (
+                        <Switch
+                            id="driver-status-switch"
+                            checked={driverStatus === 'active'}
+                            onCheckedChange={(checked) => toggleDriverStatus(checked ? 'active' : 'idle')}
+                            disabled={isDriverBusy}
+                            className="data-[state=checked]:bg-white"
+                        />
+                    )}
                     <Label htmlFor="driver-status-switch" className="font-bold text-sm px-2 cursor-pointer">
                         {driverStatus === 'active' ? 'نشط' : (isDriverBusy ? 'بمهمة' : 'خامل')}
                     </Label>
@@ -118,10 +125,21 @@ function DriverCabin() {
                 <PulseIndicator />
 
                 <div className="flex items-center gap-1 sm:gap-2">
-                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-black/20" onClick={() => toggleRequestList(true)}>
-                        <RadioTower className="h-5 w-5" />
-                        <span className="sr-only">Open Radar</span>
+                    <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-10 px-3 text-xs font-black bg-[#10b981]/10 hover:bg-[#10b981]/20 text-[#00ffcc] border border-[#10b981]/20 rounded-full flex items-center gap-1.5 cursor-pointer transition-all active:scale-95 shadow-sm"
+                        onClick={() => window.dispatchEvent(new CustomEvent('open-captain-dashboard'))}
+                    >
+                        <Shield className="h-4 w-4 text-[#00ffcc] animate-pulse" />
+                        <span className="inline">قمرة العمليات 🛡️</span>
                     </Button>
+                    {toggleRequestList && (
+                        <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-black/20" onClick={() => toggleRequestList(true)}>
+                            <RadioTower className="h-5 w-5" />
+                            <span className="sr-only">Open Radar</span>
+                        </Button>
+                    )}
                     <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-black/20" onClick={() => setIsSettingsOpen(true)}>
                         <Settings className="h-5 w-5" />
                         <span className="sr-only">Open Settings</span>
@@ -162,6 +180,7 @@ export function AppHeader() {
       case 'rider': return 'مسافر';
       case 'driver': return 'كابتن سيادي';
       case 'admin': return 'قيادة عليا';
+      case 'advertiser': return 'معلن سيادي';
       default: return '';
     }
   };
@@ -206,7 +225,32 @@ export function AppHeader() {
 }
 
 function UserMenu({ user, logout, getInitials, getRoleName }: any) {
+  const { toast } = useToast();
   const [isAdvertiserOpen, setIsAdvertiserOpen] = useState(false);
+
+  const handleOpenAdvertiser = () => {
+    if (user?.role !== 'advertiser') {
+      trackSovereignError(new Error('SECURITY_BREACH: Unauthorized attempt to open advertiser portal as non-advertiser'), { role: user?.role, userId: user?.uid });
+      return;
+    }
+    if (!user.commercialRegister || !user.companyName || !user.adLicense) {
+      toast({
+        variant: 'destructive',
+        title: 'البيانات التجارية غير مكتملة ⚠️',
+        description: 'يرجى مراجعة إدارة السيادة وإكمال التسجيل المهني لتفعيل البوابة.'
+      });
+      return;
+    }
+    setIsAdvertiserOpen(true);
+  };
+
+  useEffect(() => {
+    const handleOpen = () => {
+      handleOpenAdvertiser();
+    };
+    window.addEventListener('open-advertiser-portal', handleOpen);
+    return () => window.removeEventListener('open-advertiser-portal', handleOpen);
+  }, [user]);
 
   if (!user) return <div className="w-10 h-10" />;
   
@@ -229,15 +273,18 @@ function UserMenu({ user, logout, getInitials, getRoleName }: any) {
           </DropdownMenuLabel>
           <DropdownMenuSeparator className="bg-white/10" />
           
-          <DropdownMenuItem 
-            onClick={() => setIsAdvertiserOpen(true)}
-            className="hover:bg-emerald-950/40 focus:bg-emerald-950/40 cursor-pointer flex items-center justify-between gap-2 p-2"
-          >
-            <Megaphone className="h-4 w-4 text-emerald-400" />
-            <span className="font-bold text-xs text-emerald-400">بوابة المعلن السيادية 📣</span>
-          </DropdownMenuItem>
-          
-          <DropdownMenuSeparator className="bg-white/10" />
+          {user?.role === 'advertiser' && (
+            <>
+              <DropdownMenuItem 
+                onClick={handleOpenAdvertiser}
+                className="hover:bg-emerald-950/40 focus:bg-emerald-950/40 cursor-pointer flex items-center justify-between gap-2 p-2"
+              >
+                <Megaphone className="h-4 w-4 text-emerald-400" />
+                <span className="font-bold text-xs text-emerald-400">بوابة المعلن السيادية 📣</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="bg-white/10" />
+            </>
+          )}
           
           <DropdownMenuItem onClick={logout} className="text-destructive hover:bg-destructive/20 focus:bg-destructive/20 cursor-pointer flex items-center justify-between p-2">
             <LogOut className="h-4 w-4" /> <span>تسجيل الخروج</span>
@@ -245,14 +292,16 @@ function UserMenu({ user, logout, getInitials, getRoleName }: any) {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <Dialog open={isAdvertiserOpen} onOpenChange={setIsAdvertiserOpen}>
-        <DialogContent className="max-w-xl bg-black border border-emerald-500/30 p-0 text-white overflow-hidden rounded-3xl">
-          <VisuallyHidden>
-            <DialogTitle>بوابة المعلن</DialogTitle>
-          </VisuallyHidden>
-          <AdvertiserPortal onClose={() => setIsAdvertiserOpen(false)} />
-        </DialogContent>
-      </Dialog>
+      {user?.role === 'advertiser' && (
+        <Dialog open={isAdvertiserOpen} onOpenChange={setIsAdvertiserOpen}>
+          <DialogContent className="max-w-xl max-h-[85vh] bg-black border border-emerald-500/30 p-0 text-white overflow-y-auto rounded-3xl">
+            <VisuallyHidden>
+              <DialogTitle>بوابة المعلن</DialogTitle>
+            </VisuallyHidden>
+            <AdvertiserPortal onClose={() => setIsAdvertiserOpen(false)} />
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 }

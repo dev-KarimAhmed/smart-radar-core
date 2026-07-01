@@ -1,5 +1,4 @@
-import { calculateSovereignDistance } from '@/core/logic/geospatial-kernel';
-import { estimateTripTime } from './geospatial';
+import { calculateSovereignDistance, estimateTripTime } from '@/core/logic/geospatial-kernel';
 
 /**
  * [SCR-2026-PROTOCOL-16] المحرك السيادي لاستخلاص الإحداثيات (SSOT)

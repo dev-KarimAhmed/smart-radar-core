@@ -9,6 +9,8 @@ export const SOVEREIGN_ERRORS = {
   AUTH_WRONG_PASSWORD: 'بيانات المرور غير صحيحة. يرجى إعادة التحقق.',
   AUTH_OPERATION_NOT_ALLOWED: 'الفتح غير مسموح. يرجى تفعيل "الاتصالات المجهولة" (Anonymous Authentication) كجزء من الهيكل السحابي للرادار.',
   AUTH_GENERIC_FAILURE: 'فشل بروتوكول إثبات الهوية الفنية الرادارية.',
+  PHONE_OVERLAP_DETECTED: 'رقم الهاتف المدخل مسجل بالفعل لكابتن آخر بنظام الرادار الموحد.',
+  NAME_DISTRICT_OVERLAP_DETECTED: 'تداخل في البيانات الميدانية: الاسم المدخل مسجل بالفعل لكابتن آخر في هذا لواء الموطن لمنع الحسابات الوهمية.',
   AUTH_INTEGRITY_BREACH: 'خرق متكامل للهوية. البيانات المشبوهة تضر بسلامة النظام الميداني.',
   SEAL_TIMEOUT: 'انتهت مدة صلاحية الجلسة المفتوحة.',
   SYBIL_ATTACK_DETECTED: 'محاولة تسجيل الدخول بأجهزة متعددة محظورة حالياً.',
@@ -38,7 +40,7 @@ export function getSovereignErrorMessage(error: any): string {
   const rawCode = error?.code || error?.message || (typeof error === 'string' ? error : 'SYS_UNKNOWN');
 
   // المطابقة الفورية مع القاموس السيادي الموحد V5.5
-  const rawCodeStr = String(rawCode).trim().toUpperCase();
+  const rawCodeStr = String(rawCode).trim().toUpperCase().replace(/_/g, '-');
   if (SOVEREIGN_ERR_DICTIONARY[rawCodeStr]) {
     const def = SOVEREIGN_ERR_DICTIONARY[rawCodeStr];
     return `[${def.code}] ${def.name}: ${def.description} (الإجراء المتخذ: ${def.action})`;

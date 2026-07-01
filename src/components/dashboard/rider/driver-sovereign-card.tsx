@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Star, ShieldCheck, MapPin, VolumeX, MessageSquare, Car } from 'lucide-react';
-import { getRankTheme } from '@/lib/theme-utils';
+import { getRankTheme } from '@/core/utils';
 import { cn } from '@/lib/utils';
 import type { User } from '@/core/types';
 

@@ -8,6 +8,7 @@ import { trackSovereignError } from '@/lib/error-tracker';
 import { getSovereignErrorMessage } from '@/core/constants/error-dictionary';
 import { callSovereignCloud } from '@/core/contracts/cloud-bridge';
 import type { Trip, User, Offer } from '@/core/types';
+import { EphemeralMessageKernel } from '@/lib/ephemeral-messages';
 
 export function useRiderTransactions(
     user: User | null, 
@@ -67,12 +68,29 @@ export function useRiderTransactions(
     setIsCancelling(true);
     try {
       if (user?.uid) {
-        const key = `consecutive_cancels_${user.uid}`;
-        const currentCount = parseInt(localStorage.getItem(key) || '0') + 1;
-        localStorage.setItem(key, currentCount.toString());
-        console.log(`⚠️ دبابات التصفية النسيجية: عدد الإلغاءات المتتالية للراكب بلغ [${currentCount}]`);
+        const currentCount = (user.consecutiveCancellations || 0) + 1;
+        let newRating = user.rating ?? 5.0;
+        if (currentCount >= 3) {
+          newRating = 4.19; // طمس رصيد الثقة وتنزيله تحت عتبة 4.2 فوراً لتفعيل الحظر التلقائي
+        }
+        await callSovereignCloud('cancelTrip', {
+          tripId: trip.id,
+          userId: user.uid,
+          consecutiveCancellations: currentCount,
+          ratingAdjustment: newRating
+        });
+        console.log(`⚠️ دبابات التصفية النسيجية: عدد الإلغاءات المتتالية للراكب بلغ سحابياً [${currentCount}] والتقييم [${newRating}]`);
+      } else {
+        await callSovereignCloud('cancelTrip', {
+          tripId: trip.id,
+          userId: ''
+        });
       }
-      await updateDoc(doc(db, 'trips', trip.id), { status: 'cancelled' });
+      try {
+        await EphemeralMessageKernel.purgeTripMessages(trip.id);
+      } catch (chatErr) {
+        console.warn('Silent chat purge error on cancellation:', chatErr);
+      }
       resetState();
       toast({ title: 'تم إلغاء الرحلة ملاحياً', description: 'تم التراجع عن رادار التتبع بنجاح.' });
     } catch (error) { 
@@ -82,7 +100,7 @@ export function useRiderTransactions(
       setIsCancelling(false);
       isCancellingRef.current = false;
     }
-  }, [trip?.id, resetState, toast, user?.uid]);
+  }, [trip?.id, resetState, toast, user?.uid, user?.consecutiveCancellations, user?.rating]);
 
   const rateTrip = useCallback(async (ratings: { driverRating: number; vehicleRating: number; giveHeart: boolean; sensory: any; }) => {
     if (!trip?.id) return;
@@ -112,10 +130,16 @@ export function useRiderTransactions(
     isConfirmingCheckpointRef.current = true;
     setIsConfirmingCheckpoint(true);
     try {
-        if (user?.uid) {
-          localStorage.setItem(`consecutive_cancels_${user.uid}`, '0');
+        await callSovereignCloud('confirmCheckpoint', {
+          tripId: trip.id,
+          userId: user?.uid || '',
+          ratingAdjustment: user?.rating ?? 5.0
+        });
+        try {
+          await EphemeralMessageKernel.purgeTripMessages(trip.id);
+        } catch (chatErr) {
+          console.warn('Silent chat purge error on completion:', chatErr);
         }
-        await updateDoc(doc(db, 'trips', trip.id), { status: 'completed', checkpointConfirmed: true });
         toast({ title: "تم تأكيد المربع الملاحي للأمان", description: "الرحلة تمت بموثوقية عالية." });
         setInternalStatus('rating');
     } catch (error) { 
