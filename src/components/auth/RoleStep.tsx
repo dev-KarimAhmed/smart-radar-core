@@ -12,6 +12,8 @@ import {
   UserRound,
 } from 'lucide-react';
 import { useRegistration } from '@/hooks/use-registration';
+import { useAuth } from '@/hooks/use-auth';
+import type { User } from '@/core/types';
 
 type Lang = 'ar' | 'en';
 type AuthMode = 'login' | 'register';
@@ -97,8 +99,126 @@ const roleConfig: Array<{
 
 const authModes: AuthMode[] = ['login', 'register'];
 
+const demoUsers: Array<{
+  role: User['role'];
+  label: string;
+  description: string;
+  user: User;
+}> = [
+  {
+    role: 'rider',
+    label: 'Rider demo',
+    description: 'Requests, wallet, ride history',
+    user: {
+      uid: 'demo-rider-001',
+      serial_id: 'P-1001',
+      phone: '+962790000001',
+      role: 'rider',
+      name: 'Demo Rider',
+      governorate: 'عمان',
+      district: 'الجامعة',
+      isBufferActive: false,
+      rating: 5,
+      walletBalanceJD: 42.5,
+      ratingSum: 48,
+      ratingCount: 10,
+      favoriteDrivers: ['demo-driver-001'],
+    },
+  },
+  {
+    role: 'driver',
+    label: 'Captain demo',
+    description: 'Driver radar, pricing, hours',
+    user: {
+      uid: 'demo-driver-001',
+      serial_id: 'D-1001',
+      phone: '+962790000002',
+      role: 'driver',
+      name: 'Demo Captain',
+      governorate: 'عمان',
+      district: 'الجامعة',
+      status: 'idle',
+      isBufferActive: false,
+      rating: 4.9,
+      rank: 'Gold',
+      paidHoursRemaining: 540,
+      bonusHoursRemaining: 60,
+      subscriptionHours: 10,
+      walletBalanceJD: 128,
+      vehicle: {
+        year: 2023,
+        plate: '77-12345',
+        make: 'Toyota Corolla Hybrid',
+        color: 'White',
+      },
+      affiliation: {
+        type: 'independent',
+        name: 'مستقل',
+      },
+    },
+  },
+  {
+    role: 'advertiser',
+    label: 'Advertiser demo',
+    description: 'Campaign portal and ad tools',
+    user: {
+      uid: 'demo-advertiser-001',
+      serial_id: 'A-1001',
+      phone: '+962790000003',
+      role: 'advertiser',
+      name: 'Demo Advertiser',
+      governorate: 'عمان',
+      district: 'الجامعة',
+      isBufferActive: false,
+      rating: 5,
+      walletBalanceJD: 250,
+      companyName: 'Smart Radar Ads',
+      commercialRegister: 'CR-88294-A',
+      adLicense: 'LIC-990-2026',
+      businessType: 'commercial',
+    },
+  },
+  {
+    role: 'delegate',
+    label: 'Delegate demo',
+    description: 'Field onboarding cockpit',
+    user: {
+      uid: 'demo-delegate-001',
+      serial_id: 'M-1001',
+      phone: '+962790000004',
+      role: 'delegate',
+      name: 'Demo Delegate',
+      governorate: 'عمان',
+      district: 'وادي السير',
+      isBufferActive: false,
+      rating: 4.8,
+      referralCode: 'RAD-JOR-777',
+      referredCount: 142,
+      pendingDues: 85.5,
+      walletBalanceJD: 85.5,
+    },
+  },
+  {
+    role: 'admin',
+    label: 'Admin demo',
+    description: 'Owner control dashboard',
+    user: {
+      uid: 'demo-admin-001',
+      serial_id: 'S-1001',
+      phone: '+962790000005',
+      role: 'admin',
+      name: 'Demo Admin',
+      governorate: 'عمان',
+      district: 'الجامعة',
+      isBufferActive: false,
+      rating: 5,
+    },
+  },
+];
+
 export function RoleStep() {
   const { setRole, setStep, authMode, setAuthMode, lang, setLang } = useRegistration();
+  const { loginAsMockUser } = useAuth();
   const currentLang = lang as Lang;
   const content = copy[currentLang];
   const isArabic = currentLang === 'ar';
@@ -116,6 +236,17 @@ export function RoleStep() {
 
     setRole(role);
     setStep('personal');
+  };
+
+  const openDemoDashboard = (user: User) => {
+    if (user.role === 'advertiser') {
+      window.history.replaceState(null, '', '/advertiser/dashboard');
+    } else {
+      window.history.replaceState(null, '', '/');
+    }
+    window.location.hash = '#';
+    window.dispatchEvent(new PopStateEvent('popstate'));
+    loginAsMockUser(user);
   };
 
   return (
@@ -231,6 +362,39 @@ export function RoleStep() {
             })}
           </AnimatePresence>
         </motion.div>
+
+        {import.meta.env.DEV ? (
+          <section className="mx-auto mt-8 w-full max-w-6xl rounded-3xl border border-[#14B8A6]/20 bg-[#061414]/70 p-4 shadow-[0_20px_60px_rgba(20,184,166,0.08)] backdrop-blur-xl sm:p-5">
+            <div className={`flex flex-col gap-1 ${isArabic ? 'text-right' : 'text-left'}`}>
+              <p className="text-sm font-black tracking-normal text-[#14B8A6]">
+                Demo dashboards
+              </p>
+              <p className="text-xs font-semibold leading-5 text-[#94A3B8]">
+                Testing-only buttons that load demo data and enter each role dashboard.
+              </p>
+            </div>
+
+            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+              {demoUsers.map((demo) => (
+                <motion.button
+                  key={demo.role}
+                  type="button"
+                  whileHover={{ y: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => openDemoDashboard(demo.user)}
+                  className="min-h-24 rounded-2xl border border-white/10 bg-[#0B0F19]/70 p-4 text-left shadow-lg transition hover:border-[#14B8A6]/60 hover:bg-[#102033] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/50"
+                >
+                  <span className="block text-sm font-black text-[#F8FAFC]">
+                    {demo.label}
+                  </span>
+                  <span className="mt-2 block text-xs font-semibold leading-5 text-[#94A3B8]">
+                    {demo.description}
+                  </span>
+                </motion.button>
+              ))}
+            </div>
+          </section>
+        ) : null}
       </section>
     </main>
   );
