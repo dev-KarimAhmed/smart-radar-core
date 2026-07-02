@@ -1,26 +1,44 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
-import { signInAnonymously, signOut } from 'firebase/auth';
-import { auth, db } from '@/lib/firebase';
-import { useToast } from './use-toast';
-import { jordanGovernorates, getDistrictsByGovernorate } from '@/lib/data';
-import { trackSovereignError } from '@/lib/error-tracker';
-import { getSovereignErrorMessage } from '@/core/constants/error-dictionary';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { AffiliationType } from '@/core/types';
-import { doc, setDoc, serverTimestamp, query, collection, where, getDocs, limit, runTransaction } from 'firebase/firestore';
+import { buildRiderSignUpMetadata, mapSupabaseAuthError, signInRiderWithPhone, signUpRiderWithPhone } from '@/lib/supabase-auth';
+import { supabase } from '@/lib/supabase-client';
+import { useToast } from './use-toast';
+
+type RegistrationStep = 'role' | 'personal' | 'affiliation' | 'vehicle' | 'admin' | 'advertiser' | 'ProfessionalStep';
+type RegistrationRole = 'rider' | 'driver' | 'advertiser' | 'delegate' | null;
+type AuthMode = 'register' | 'login';
+type LocationOption = { id: string; label: string; labelEn: string; value: string };
+
+interface SupabaseGovernorateRow {
+  id: number;
+  name_ar?: string | null;
+  name_en?: string | null;
+  name?: string | null;
+}
+
+interface SupabaseDistrictRow {
+  id: number;
+  governorate_id: number;
+  name_ar?: string | null;
+  name_en?: string | null;
+  name?: string | null;
+}
 
 interface RegistrationContextType {
-  step: 'role' | 'personal' | 'affiliation' | 'vehicle' | 'admin' | 'advertiser' | 'ProfessionalStep';
-  setStep: (step: 'role' | 'personal' | 'affiliation' | 'vehicle' | 'admin' | 'advertiser' | 'ProfessionalStep') => void;
-  role: 'rider' | 'driver' | 'advertiser' | 'delegate' | null;
-  setRole: (role: 'rider' | 'driver' | 'advertiser' | 'delegate' | null) => void;
-  authMode: 'register' | 'login';
-  setAuthMode: (mode: 'register' | 'login') => void;
+  step: RegistrationStep;
+  setStep: (step: RegistrationStep) => void;
+  role: RegistrationRole;
+  setRole: (role: RegistrationRole) => void;
+  authMode: AuthMode;
+  setAuthMode: (mode: AuthMode) => void;
   lang: 'ar' | 'en';
   setLang: (lang: 'ar' | 'en') => void;
   personal: { name: string; phone: string; gov: string; district: string; verificationDoc: string };
   setPersonal: (personal: any) => void;
+  authPassword: string;
+  setAuthPassword: (password: string) => void;
   advertiserProfile: { companyName: string; commercialRegister: string; adLicense: string; businessType: string };
   setAdvertiserProfile: (profile: any) => void;
   affiliation: AffiliationType | null;
@@ -28,7 +46,10 @@ interface RegistrationContextType {
   vehicle: any;
   setVehicle: (vehicle: any) => void;
   isSubmitting: boolean;
-  districts: string[];
+  locationDataLoading: boolean;
+  governorates: LocationOption[];
+  districts: LocationOption[];
+  fillRandomRegistrationData: () => void;
   handlePersonalSubmit: (e: React.FormEvent) => void;
   handleVehicleSubmit: (e: React.FormEvent) => void;
   handleAdvertiserSubmit: (e: React.FormEvent) => void;
@@ -42,211 +63,262 @@ const RegistrationContext = createContext<RegistrationContextType | undefined>(u
 
 export function RegistrationProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
-  const [step, setStep] = useState<'role' | 'personal' | 'affiliation' | 'vehicle' | 'admin' | 'advertiser' | 'ProfessionalStep'>('role');
-  const [role, setRole] = useState<'rider' | 'driver' | 'advertiser' | 'delegate' | null>(null);
-  const [authMode, setAuthMode] = useState<'register' | 'login'>('register');
+  const [step, setStep] = useState<RegistrationStep>('role');
+  const [role, setRole] = useState<RegistrationRole>(null);
+  const [authMode, setAuthMode] = useState<AuthMode>('register');
   const [lang, setLang] = useState<'ar' | 'en'>('ar');
   const [personal, setPersonal] = useState({ name: '', phone: '', gov: '', district: '', verificationDoc: '' });
+  const [authPassword, setAuthPassword] = useState('');
   const [advertiserProfile, setAdvertiserProfile] = useState({ companyName: '', commercialRegister: '', adLicense: '', businessType: 'commercial' });
   const [affiliation, setAffiliation] = useState<AffiliationType | null>(null);
   const [vehicle, setVehicle] = useState({ year: '', plate: '', sideId: '', make: '', color: '', officeName: '', officePhone: '', companyName: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const isSubmittingRef = useRef(false);
   const [logoTapCount, setLogoTapCount] = useState(0);
   const [adminCreds, setAdminCreds] = useState({ email: '', password: '' });
-
-  const districts = getDistrictsByGovernorate(personal.gov);
+  const [governorateRows, setGovernorateRows] = useState<SupabaseGovernorateRow[]>([]);
+  const [districtRows, setDistrictRows] = useState<SupabaseDistrictRow[]>([]);
+  const [locationDataLoading, setLocationDataLoading] = useState(false);
+  const isSubmittingRef = useRef(false);
 
   useEffect(() => {
-    if (personal.gov && !districts.includes(personal.district)) {
-      setPersonal(p => ({ ...p, district: '' }));
-    }
-  }, [personal.gov, districts, personal.district]);
+    let active = true;
 
-  const getSovereignDeviceId = (): string => {
-    let deviceId = localStorage.getItem('sovereign_device_id');
-    if (!deviceId) {
-      deviceId = Math.random().toString(36).substring(2, 12) + '-' + Date.now();
-      localStorage.setItem('sovereign_device_id', deviceId);
+    async function fetchLocationRows() {
+      setLocationDataLoading(true);
+
+      try {
+        const [governoratesResult, districtsResult] = await Promise.all([
+          supabase.from('governorates').select('*').order('id', { ascending: true }),
+          supabase.from('districts').select('*').order('id', { ascending: true }),
+        ]);
+
+        if (governoratesResult.error) throw governoratesResult.error;
+        if (districtsResult.error) throw districtsResult.error;
+
+        if (!active) return;
+
+        setGovernorateRows(normalizeGovernorates(governoratesResult.data));
+        setDistrictRows(normalizeDistricts(districtsResult.data));
+      } catch (error) {
+        if (import.meta.env.DEV) {
+          console.warn('[Supabase Location Fetch]', error);
+        }
+
+        if (active) {
+          toast({
+            variant: 'destructive',
+            title: 'تعذر تحميل المناطق',
+            description: 'تعذر تحميل المحافظات والمناطق. يرجى المحاولة مرة أخرى.',
+          });
+        }
+      } finally {
+        if (active) setLocationDataLoading(false);
+      }
     }
-    return deviceId;
-  };
-  
-  const submitRegistration = useCallback(async () => {
-    if (!role || !personal.name || !personal.phone || !personal.gov || !personal.district) {
-      toast({ variant: 'destructive', title: 'الرجاء ملء الحقول', description: 'يرجى ملء جميع الحقول المطلوبة للمتابعة.' });
+
+    void fetchLocationRows();
+
+    return () => {
+      active = false;
+    };
+  }, [toast]);
+
+  const governorates = useMemo(
+    () =>
+      governorateRows.map((governorate) => ({
+        id: String(governorate.id),
+        label: getLocationLabel(governorate, 'ar'),
+        labelEn: getLocationLabel(governorate, 'en'),
+        value: String(governorate.id),
+      })),
+    [governorateRows],
+  );
+
+  const districts = useMemo(() => {
+    const selectedGovernorateId = Number(personal.gov);
+    if (!Number.isInteger(selectedGovernorateId)) return [];
+
+    return districtRows
+      .filter((district) => district.governorate_id === selectedGovernorateId)
+      .map((district) => ({
+        id: String(district.id),
+        label: getLocationLabel(district, 'ar'),
+        labelEn: getLocationLabel(district, 'en'),
+        value: String(district.id),
+      }));
+  }, [districtRows, personal.gov]);
+
+  useEffect(() => {
+    if (personal.gov && governorates.length > 0 && !governorates.some((governorate) => governorate.value === personal.gov)) {
+      setPersonal((current) => ({ ...current, gov: '', district: '' }));
       return;
     }
 
-    if (role === 'advertiser') {
-      if (!advertiserProfile.companyName || !advertiserProfile.commercialRegister || !advertiserProfile.adLicense) {
+    if (personal.gov && personal.district && districts.length > 0 && !districts.some((district) => district.value === personal.district)) {
+      setPersonal((current) => ({ ...current, district: '' }));
+    }
+  }, [districts, governorates, personal.district, personal.gov]);
+
+  const fillRandomRegistrationData = useCallback(() => {
+    const usableDistricts = districtRows.filter((district) =>
+      governorateRows.some((governorate) => governorate.id === district.governorate_id),
+    );
+
+    if (!usableDistricts.length) {
+      toast({
+        variant: 'destructive',
+        title: 'المناطق غير جاهزة',
+        description: 'انتظر تحميل المحافظات والمناطق ثم حاول مرة أخرى.',
+      });
+      return;
+    }
+
+    const randomDistrict = usableDistricts[Math.floor(Math.random() * usableDistricts.length)];
+    const serial = String(Date.now()).slice(-6);
+    const phoneSuffix = String(Math.floor(1000000 + Math.random() * 9000000));
+
+    setAuthMode('register');
+    setPersonal((current) => ({
+      ...current,
+      name: `راكب تجربة ${serial}`,
+      phone: `+96279${phoneSuffix}`,
+      gov: String(randomDistrict.governorate_id),
+      district: String(randomDistrict.id),
+    }));
+    setAuthPassword(`Test${serial}!`);
+
+    toast({
+      title: 'تمت إضافة بيانات تجربة',
+      description: 'تم اختيار محافظة ومنطقة من قاعدة البيانات مباشرة.',
+    });
+  }, [districtRows, governorateRows, toast]);
+
+  const submitRiderAuth = useCallback(async () => {
+    if (isSubmittingRef.current) return;
+
+    const governorateId = Number(personal.gov);
+    const districtId = Number(personal.district);
+    const selectedDistrict = districtRows.find(
+      (district) => district.id === districtId && district.governorate_id === governorateId,
+    );
+
+    if (!personal.phone || !authPassword) {
+      toast({
+        variant: 'destructive',
+        title: 'بيانات ناقصة',
+        description: 'يرجى كتابة رقم الهاتف وكلمة المرور.',
+      });
+      return;
+    }
+
+    if (
+      authMode === 'register' &&
+      (!personal.name.trim() ||
+        !Number.isInteger(governorateId) ||
+        !Number.isInteger(districtId) ||
+        !selectedDistrict)
+    ) {
+      toast({
+        variant: 'destructive',
+        title: 'بيانات ناقصة',
+        description: 'يرجى كتابة الاسم واختيار المحافظة والمنطقة.',
+      });
+      return;
+    }
+
+    isSubmittingRef.current = true;
+    setIsSubmitting(true);
+
+    try {
+      if (authMode === 'login') {
+        await signInRiderWithPhone({
+          phone: personal.phone,
+          password: authPassword,
+        });
+
         toast({
-          variant: 'destructive',
-          title: 'البيانات التجارية معلقة ⚠️',
-          description: 'يرجى ملء كافة تفاصيل السجل والترخيص التجاري لإنجاز خطوة التوثيق المهني.'
+          title: 'تم تسجيل الدخول',
+          description: 'أهلا بك، تم فتح لوحة الراكب.',
         });
         return;
       }
-    }
-    
-    const phoneRegex = /^\+9627[789]\d{7}$/;
-    if (!phoneRegex.test(personal.phone)) {
-        toast({ 
-          variant: 'destructive', 
-          title: 'رقم الهاتف غير معتمد', 
-          description: 'يرجى إدخال الهاتف بالصيغة الدولية المعتمدة الأردنية مثلاً: +962770000000' 
+
+      const signUpInput = {
+        phone: personal.phone,
+        password: authPassword,
+        fullName: personal.name.trim(),
+        governorateId,
+        districtId,
+      };
+
+      if (import.meta.env.DEV) {
+        console.info('[Supabase Auth Payload]', {
+          mode: 'register',
+          data: buildRiderSignUpMetadata(signUpInput),
         });
-        return;
-    }
+      }
 
-    if (isSubmittingRef.current) return;
-    isSubmittingRef.current = true;
-    setIsSubmitting(true);
-    
-    try {
-        const userCredential = await signInAnonymously(auth);
-        const uid = userCredential.user.uid;
+      await signUpRiderWithPhone(signUpInput);
 
-        const newUserProfileData: any = {
-            uid,
-            phone: personal.phone,
-            role,
-            name: personal.name,
-            governorate: personal.gov,
-            district: personal.district,
-            avatar: `https://picsum.photos/seed/${uid}/100/100`,
-            createdAt: serverTimestamp(),
-            status: 'active',
-            rating: 5.0, // [SCR-AUTH-PROTO-140] رصيد الثقة الموحد المبدئي (5.0 / 5.0) لكل من الراكب والناقل
-            verificationDoc: personal.verificationDoc || null, // وثائق التحقق مشفرة ومضغوطة محلياً للحافة
-        };
-
-        const deviceId = getSovereignDeviceId();
-
-        // [SECURITY-PATCH] منع تداخل الهوية وتعارض الأدوار (Rider-Driver Desync)
-        // التحقق من تداخل رقم الهاتف مع أي حساب مسجل مسبقاً (سائق أو راكب)
-        const phoneOverlapQuery = query(
-            collection(db, 'users'),
-            where('phone', '==', personal.phone),
-            limit(1)
-        );
-        const phoneOverlapSnapshot = await getDocs(phoneOverlapQuery);
-        if (!phoneOverlapSnapshot.empty) {
-            throw new Error('PHONE_OVERLAP_DETECTED');
-        }
-
-        // التحقق من البصمة الرقمية للجهاز لمنع استخدام نفس الجهاز لأدوار متعارضة للتجسس
-        const deviceOverlapQuery = query(
-            collection(db, 'users'),
-            where('deviceId', '==', deviceId),
-            limit(1)
-        );
-        const deviceOverlapSnapshot = await getDocs(deviceOverlapQuery);
-        if (!deviceOverlapSnapshot.empty) {
-            const existingUser = deviceOverlapSnapshot.docs[0].data();
-            if (existingUser.role !== role) {
-                throw new Error('SYBIL_ATTACK_DETECTED');
-            }
-        }
-
-        newUserProfileData.deviceId = deviceId;
-
-        if (role === 'driver') {
-            // [SECURITY-PATCH] منع تداخل الاسم مع كابتن آخر في نفس لواء الموطن لمنع الحسابات الوهمية
-            const nameOverlapQuery = query(
-                collection(db, 'users'),
-                where('role', '==', 'driver'),
-                where('district', '==', personal.district),
-                where('name', '==', personal.name),
-                limit(1)
-            );
-            const nameOverlapSnapshot = await getDocs(nameOverlapQuery);
-            if (!nameOverlapSnapshot.empty) {
-                throw new Error('NAME_DISTRICT_OVERLAP_DETECTED');
-            }
-
-            const vehiclePayload = affiliation === 'office-taxi'
-              ? { year: parseInt(vehicle.year) || 2020, plate: vehicle.plate, sideId: vehicle.sideId, make: 'Kia', color: 'Yellow' }
-              : { year: parseInt(vehicle.year) || 2020, plate: vehicle.plate, make: vehicle.make, color: vehicle.color };
-
-            const affiliationPayload = affiliation === 'office-taxi'
-              ? { type: affiliation, name: vehicle.officeName, phone: vehicle.officePhone }
-              : { type: affiliation, name: vehicle.companyName };
-            
-            Object.assign(newUserProfileData, {
-                affiliation: affiliationPayload,
-                vehicle: vehiclePayload,
-                status: 'idle',
-                rank: 'Bronze'
-            });
-        } else if (role === 'advertiser') {
-            newUserProfileData.companyName = advertiserProfile.companyName || '';
-            newUserProfileData.commercialRegister = advertiserProfile.commercialRegister || '';
-            newUserProfileData.adLicense = advertiserProfile.adLicense || '';
-            newUserProfileData.businessType = advertiserProfile.businessType || 'commercial';
-        }
-
-        const userDocRef = doc(db, 'users', uid);
-        await runTransaction(db, async (transaction) => {
-            let counterKey = 'passenger_serial';
-            let prefix = 'P';
-            if (role === 'driver') {
-                counterKey = 'driver_serial';
-                prefix = 'D';
-            } else if (role === 'advertiser') {
-                counterKey = 'advertiser_serial';
-                prefix = 'A';
-            } else if (role === 'delegate') {
-                counterKey = 'delegate_serial';
-                prefix = 'L';
-            }
-
-            const districtKey = (personal.district || 'global').replace(/\s+/g, '_');
-            const counterRef = doc(db, 'system_counters', `${districtKey}_${counterKey}`);
-            const counterSnap = await transaction.get(counterRef);
-            let nextCount = 1001;
-            if (counterSnap.exists()) {
-                nextCount = (counterSnap.data().current_count || 1000) + 1;
-            }
-
-            const serial_id = `${prefix}-${nextCount}`;
-            newUserProfileData.serial_id = serial_id;
-
-            transaction.set(counterRef, { current_count: nextCount }, { merge: true });
-            transaction.set(userDocRef, newUserProfileData);
+      toast({
+        title: 'تم إنشاء الحساب',
+        description: 'تم إرسال بياناتك بأمان. يمكنك تسجيل الدخول الآن إذا طلب النظام التأكيد.',
+      });
+      setAuthMode('login');
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        const authError = error as { name?: string; code?: string; status?: number; message?: string };
+        console.warn('[Supabase Auth]', {
+          mode: authMode,
+          name: authError?.name,
+          code: authError?.code,
+          status: authError?.status,
+          message: authError?.message,
         });
-    } catch (error: any) {
-        trackSovereignError(error, { context: 'DirectRegistration' });
-        toast({ variant: 'destructive', title: 'عجز في السجلات السيادية', description: getSovereignErrorMessage(error) });
-        const currentUser = auth.currentUser;
-        if (currentUser && currentUser.isAnonymous) {
-            await signOut(auth);
-        }
+      }
+
+      toast({
+        variant: 'destructive',
+        title: authMode === 'register' ? 'تعذر إنشاء الحساب' : 'تعذر تسجيل الدخول',
+        description: mapSupabaseAuthError(error),
+      });
     } finally {
-        setIsSubmitting(false);
-        isSubmittingRef.current = false;
+      setIsSubmitting(false);
+      isSubmittingRef.current = false;
     }
-  }, [role, personal, affiliation, vehicle, advertiserProfile, toast]);
+  }, [authMode, authPassword, districtRows, personal.district, personal.gov, personal.name, personal.phone, toast]);
 
   const handlePersonalSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (role === 'rider' || role === 'delegate') {
-      submitRegistration();
-    } else if (role === 'advertiser') {
-      setStep('ProfessionalStep');
-    } else {
-      setStep('affiliation');
+
+    if (role && role !== 'rider') {
+      toast({
+        variant: 'destructive',
+        title: 'هذه الخطوة للراكب فقط',
+        description: 'تكامل Supabase الحالي مخصص لتسجيل ودخول الراكب في هذه المرحلة.',
+      });
+      return;
     }
+
+    void submitRiderAuth();
   };
 
   const handleVehicleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    submitRegistration();
+    toast({
+      variant: 'destructive',
+      title: 'غير مفعّل الآن',
+      description: 'هذه المرحلة مخصصة لدخول الراكب فقط. سيتم ربط الكابتن لاحقا.',
+    });
   };
 
   const handleAdvertiserSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    submitRegistration();
+    toast({
+      variant: 'destructive',
+      title: 'غير مفعّل الآن',
+      description: 'هذه المرحلة مخصصة لدخول الراكب فقط. سيتم ربط المعلن لاحقا.',
+    });
   };
 
   const handleLogoTap = () => {
@@ -258,38 +330,73 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const handleAdminSubmit = async (e: React.FormEvent) => {
+  const handleAdminSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
-    try {
-      toast({ title: 'نظام التحكم الرئيسي', description: 'هذا النظام للمشرفين؛ يرجى مراجعة إدارة السيادة ملاحياً.' });
-    } catch (error: any) {
-       toast({ variant: 'destructive', title: 'فشل تفعيل لوحة التحكم', description: getSovereignErrorMessage(error) });
-    } finally {
-        setIsSubmitting(false);
-    }
+    toast({
+      variant: 'destructive',
+      title: 'غير مفعّل الآن',
+      description: 'دخول المشرف ليس ضمن خطوة Supabase الحالية.',
+    });
   };
 
   const value = {
-    step, setStep,
-    role, setRole,
-    authMode, setAuthMode,
-    lang, setLang,
-    personal, setPersonal,
-    advertiserProfile, setAdvertiserProfile,
-    affiliation, setAffiliation,
-    vehicle, setVehicle,
+    step,
+    setStep,
+    role,
+    setRole,
+    authMode,
+    setAuthMode,
+    lang,
+    setLang,
+    personal,
+    setPersonal,
+    authPassword,
+    setAuthPassword,
+    advertiserProfile,
+    setAdvertiserProfile,
+    affiliation,
+    setAffiliation,
+    vehicle,
+    setVehicle,
     isSubmitting,
+    locationDataLoading,
+    governorates,
     districts,
+    fillRandomRegistrationData,
     handlePersonalSubmit,
     handleVehicleSubmit,
     handleAdvertiserSubmit,
-    adminCreds, setAdminCreds,
+    adminCreds,
+    setAdminCreds,
     handleAdminSubmit,
     handleLogoTap,
   };
 
   return <RegistrationContext.Provider value={value}>{children}</RegistrationContext.Provider>;
+}
+
+function normalizeGovernorates(rows: unknown): SupabaseGovernorateRow[] {
+  return Array.isArray(rows)
+    ? rows
+        .map((row) => row as Partial<SupabaseGovernorateRow>)
+        .filter((row): row is SupabaseGovernorateRow => Number.isInteger(row.id))
+    : [];
+}
+
+function normalizeDistricts(rows: unknown): SupabaseDistrictRow[] {
+  return Array.isArray(rows)
+    ? rows
+        .map((row) => row as Partial<SupabaseDistrictRow>)
+        .filter(
+          (row): row is SupabaseDistrictRow =>
+            Number.isInteger(row.id) && Number.isInteger(row.governorate_id),
+        )
+    : [];
+}
+
+function getLocationLabel(row: SupabaseGovernorateRow | SupabaseDistrictRow, lang: 'ar' | 'en') {
+  const preferred = lang === 'ar' ? row.name_ar : row.name_en;
+  return preferred || row.name_ar || row.name_en || row.name || String(row.id);
 }
 
 export function useRegistration() {

@@ -7,15 +7,15 @@ import {
   Eye,
   EyeOff,
   Languages,
+  Loader2,
   LockKeyhole,
   MapPin,
   Phone,
   ShieldCheck,
+  Sparkles,
   UserRound,
 } from 'lucide-react';
 import { useRegistration } from '@/hooks/use-registration';
-import { jordanGovernorates } from '@/lib/data';
-import { useAuth } from '@/hooks/use-auth';
 
 type Lang = 'ar' | 'en';
 type AuthMode = 'register' | 'login';
@@ -34,32 +34,34 @@ const copy = {
     brand: 'الرادار الذكي',
     registerTitle: 'حساب جديد',
     loginTitle: 'تسجيل الدخول',
-    registerSubtitle: 'املأ بياناتك مرة واحدة، وبعدها تدخل رحلاتك بسرعة.',
-    loginSubtitle: 'اكتب رقم الموبايل وكلمة السر علشان تكمل.',
-    fullName: 'الاسم بالكامل',
+    registerSubtitle: 'اكتب بياناتك مرة واحدة، وبعدها تدخل رحلاتك بسرعة.',
+    loginSubtitle: 'اكتب رقم الهاتف وكلمة المرور للمتابعة.',
+    fullName: 'الاسم الكامل',
     fullNamePlaceholder: 'اكتب اسمك',
-    phone: 'رقم الموبايل',
+    phone: 'رقم الهاتف',
     phonePlaceholder: '+962790000000',
     governorate: 'المحافظة',
     governoratePlaceholder: 'اختر المحافظة',
-    district: 'المركز أو المنطقة',
+    district: 'اللواء / المنطقة',
     districtPlaceholder: 'اختر المنطقة',
-    password: 'كلمة السر',
-    passwordPlaceholder: 'اكتب كلمة السر',
-    showPassword: 'إظهار كلمة السر',
-    hidePassword: 'إخفاء كلمة السر',
+    loadingLocations: 'جاري تحميل المحافظات والمناطق...',
+    mockData: 'بيانات تجربة',
+    password: 'كلمة المرور',
+    passwordPlaceholder: 'اكتب كلمة المرور',
+    showPassword: 'إظهار كلمة المرور',
+    hidePassword: 'إخفاء كلمة المرور',
     login: 'تسجيل الدخول',
     register: 'إنشاء الحساب',
     submitLogin: 'دخول الحساب',
-    submitRegister: 'ابدأ الآن',
+    submitRegister: 'إنشاء الحساب',
     hasAccount: 'لديك حساب بالفعل؟',
-    noAccount: 'لسه جديد؟',
+    noAccount: 'ليس لديك حساب؟',
     switchToLogin: 'سجل دخولك',
     switchToRegister: 'اعمل حساب جديد',
     idTitle: 'الهوية الشخصية',
     idReady: 'تم تجهيز الهوية',
     idCompressing: 'جاري ضغط الصورة...',
-    idHint: 'ارفق صورة الهوية لإكمال التحقق',
+    idHint: 'أرفق صورة الهوية لإكمال التحقق',
     back: 'العودة لاختيار نوع الحساب',
     ticker: ['رحلات أقرب', 'دخول آمن', 'اختيار واضح', 'رادار ذكي V5.5', 'تجربة موبايل سهلة'],
   },
@@ -77,8 +79,10 @@ const copy = {
     phonePlaceholder: '+962790000000',
     governorate: 'Governorate',
     governoratePlaceholder: 'Choose governorate',
-    district: 'District or Town',
+    district: 'District or Area',
     districtPlaceholder: 'Choose district',
+    loadingLocations: 'Loading governorates and districts...',
+    mockData: 'Test data',
     password: 'Password',
     passwordPlaceholder: 'Enter password',
     showPassword: 'Show password',
@@ -86,7 +90,7 @@ const copy = {
     login: 'Login',
     register: 'Register',
     submitLogin: 'Login',
-    submitRegister: 'Start now',
+    submitRegister: 'Create account',
     hasAccount: 'Already have an account?',
     noAccount: 'New here?',
     switchToLogin: 'Login',
@@ -104,8 +108,13 @@ export function PersonalStep() {
   const {
     personal,
     setPersonal,
+    authPassword,
+    setAuthPassword,
     handlePersonalSubmit,
+    governorates,
     districts,
+    locationDataLoading,
+    fillRandomRegistrationData,
     isSubmitting,
     role,
     setStep,
@@ -114,10 +123,8 @@ export function PersonalStep() {
     lang,
     setLang,
   } = useRegistration();
-  const { loginAsMockUser } = useAuth();
   const [compressing, setCompressing] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [password, setPassword] = useState('');
 
   const currentLang = lang as Lang;
   const mode = authMode as AuthMode;
@@ -164,82 +171,6 @@ export function PersonalStep() {
       img.src = event.target?.result as string;
     };
     reader.readAsDataURL(file);
-  };
-
-  const loginWithSelectedRole = () => {
-    const loginRole = role || 'rider';
-    const baseUser = {
-      uid: `dev-${loginRole}-quick`,
-      phone: personal.phone || '+962790000000',
-      role: loginRole,
-      name: roleName,
-      governorate: personal.gov || 'عمان',
-      district: personal.district || 'الجامعة',
-      isBufferActive: false,
-      rating: 5,
-    };
-
-    if (loginRole === 'driver') {
-      loginAsMockUser({
-        ...baseUser,
-        role: 'driver',
-        status: 'idle',
-        rank: 'Gold',
-        paidHoursRemaining: 540,
-        bonusHoursRemaining: 60,
-        subscriptionHours: 10,
-        vehicle: {
-          year: 2023,
-          plate: '77-12345',
-          make: 'Toyota Corolla Hybrid',
-          color: 'White',
-        },
-        affiliation: {
-          type: 'independent',
-          name: 'مستقل',
-        },
-      });
-      return;
-    }
-
-    if (loginRole === 'advertiser') {
-      loginAsMockUser({
-        ...baseUser,
-        role: 'advertiser',
-        companyName: 'Smart Radar Ads',
-        commercialRegister: 'CR-88294-A',
-        adLicense: 'LIC-990-2026',
-        businessType: 'commercial',
-      });
-      return;
-    }
-
-    if (loginRole === 'delegate') {
-      loginAsMockUser({
-        ...baseUser,
-        role: 'delegate',
-        referralCode: 'RAD-JOR-777',
-        referredCount: 142,
-        pendingDues: 85.5,
-      });
-      return;
-    }
-
-    loginAsMockUser({
-      ...baseUser,
-      role: 'rider',
-    });
-  };
-
-  const submitForm = (event: React.FormEvent) => {
-    event.preventDefault();
-
-    if (mode === 'login') {
-      loginWithSelectedRole();
-      return;
-    }
-
-    handlePersonalSubmit(event);
   };
 
   return (
@@ -322,8 +253,36 @@ export function PersonalStep() {
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
               className="space-y-4"
-              onSubmit={submitForm}
+              onSubmit={handlePersonalSubmit}
             >
+              {mode === 'register' ? (
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-[#0B0F19]/45 p-3">
+                  <div className="flex min-h-9 items-center gap-2 text-xs font-bold text-[#94A3B8]">
+                    {locationDataLoading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin text-[#14B8A6]" aria-hidden="true" />
+                        <span>{t.loadingLocations}</span>
+                      </>
+                    ) : (
+                      <>
+                        <MapPin className="h-4 w-4 text-[#14B8A6]" aria-hidden="true" />
+                        <span>{`${governorates.length} / ${districts.length}`}</span>
+                      </>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={fillRandomRegistrationData}
+                    disabled={locationDataLoading || !governorates.length}
+                    className="inline-flex min-h-9 items-center gap-2 rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-3 text-xs font-black text-[#14B8A6] transition hover:border-[#14B8A6] hover:bg-[#14B8A6]/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <Sparkles className="h-4 w-4" aria-hidden="true" />
+                    {t.mockData}
+                  </button>
+                </div>
+              ) : null}
+
               {mode === 'register' ? (
                 <Field label={t.fullName} icon={<UserRound className="h-5 w-5" />}>
                   <input
@@ -342,7 +301,7 @@ export function PersonalStep() {
                 <input
                   type="tel"
                   dir="ltr"
-                  inputMode="numeric"
+                  inputMode="tel"
                   placeholder={t.phonePlaceholder}
                   value={personal.phone}
                   onChange={(event) => setPersonal({ ...personal, phone: event.target.value })}
@@ -359,13 +318,16 @@ export function PersonalStep() {
                       <select
                         value={personal.gov}
                         onChange={(event) => setPersonal({ ...personal, gov: event.target.value, district: '' })}
+                        disabled={locationDataLoading}
                         className={`${inputClass} appearance-none ${isArabic ? 'text-right pl-10' : 'text-left pr-10'}`}
                         required
                       >
-                        <option value="">{t.governoratePlaceholder}</option>
-                        {jordanGovernorates.map((gov) => (
-                          <option key={gov} value={gov}>
-                            {gov}
+                        <option value="">
+                          {locationDataLoading ? '...' : t.governoratePlaceholder}
+                        </option>
+                        {governorates.map((gov) => (
+                          <option key={gov.id} value={gov.id}>
+                            {isArabic ? gov.label : gov.labelEn}
                           </option>
                         ))}
                       </select>
@@ -382,14 +344,14 @@ export function PersonalStep() {
                       <select
                         value={personal.district}
                         onChange={(event) => setPersonal({ ...personal, district: event.target.value })}
-                        disabled={!personal.gov}
+                        disabled={!personal.gov || locationDataLoading}
                         className={`${inputClass} appearance-none disabled:opacity-50 ${isArabic ? 'text-right pl-10' : 'text-left pr-10'}`}
                         required
                       >
-                        <option value="">{t.districtPlaceholder}</option>
+                        <option value="">{locationDataLoading ? '...' : t.districtPlaceholder}</option>
                         {districts.map((district) => (
-                          <option key={district} value={district}>
-                            {district}
+                          <option key={district.id} value={district.value}>
+                            {isArabic ? district.label : district.labelEn}
                           </option>
                         ))}
                       </select>
@@ -408,8 +370,8 @@ export function PersonalStep() {
                   <input
                     type={showPassword ? 'text' : 'password'}
                     placeholder={t.passwordPlaceholder}
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
+                    value={authPassword}
+                    onChange={(event) => setAuthPassword(event.target.value)}
                     className={`${inputClass} ${isArabic ? 'text-right pl-12' : 'text-left pr-12'}`}
                     autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
                     required

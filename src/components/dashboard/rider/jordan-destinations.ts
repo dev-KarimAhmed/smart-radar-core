@@ -33,21 +33,22 @@ export const AMMAN_FALLBACK_LOCATION = {
 
 export const JORDAN_GOVERNORATES: Array<{
   id: JordanGovernorateId;
+  numericId: number;
   nameAr: string;
   nameEn: string;
 }> = [
-  { id: 'amman', nameAr: 'عمّان', nameEn: 'Amman' },
-  { id: 'irbid', nameAr: 'إربد', nameEn: 'Irbid' },
-  { id: 'zarqa', nameAr: 'الزرقاء', nameEn: 'Zarqa' },
-  { id: 'balqa', nameAr: 'البلقاء', nameEn: 'Balqa' },
-  { id: 'aqaba', nameAr: 'العقبة', nameEn: 'Aqaba' },
-  { id: 'madaba', nameAr: 'مادبا', nameEn: 'Madaba' },
-  { id: 'karak', nameAr: 'الكرك', nameEn: 'Karak' },
-  { id: 'maan', nameAr: 'معان', nameEn: "Ma'an" },
-  { id: 'tafilah', nameAr: 'الطفيلة', nameEn: 'Tafilah' },
-  { id: 'ajloun', nameAr: 'عجلون', nameEn: 'Ajloun' },
-  { id: 'jerash', nameAr: 'جرش', nameEn: 'Jerash' },
-  { id: 'mafraq', nameAr: 'المفرق', nameEn: 'Mafraq' },
+  { id: 'amman', numericId: 1, nameAr: 'عمّان', nameEn: 'Amman' },
+  { id: 'irbid', numericId: 2, nameAr: 'إربد', nameEn: 'Irbid' },
+  { id: 'zarqa', numericId: 3, nameAr: 'الزرقاء', nameEn: 'Zarqa' },
+  { id: 'balqa', numericId: 4, nameAr: 'البلقاء', nameEn: 'Balqa' },
+  { id: 'aqaba', numericId: 5, nameAr: 'العقبة', nameEn: 'Aqaba' },
+  { id: 'madaba', numericId: 6, nameAr: 'مادبا', nameEn: 'Madaba' },
+  { id: 'karak', numericId: 7, nameAr: 'الكرك', nameEn: 'Karak' },
+  { id: 'maan', numericId: 8, nameAr: 'معان', nameEn: "Ma'an" },
+  { id: 'tafilah', numericId: 9, nameAr: 'الطفيلة', nameEn: 'Tafilah' },
+  { id: 'ajloun', numericId: 10, nameAr: 'عجلون', nameEn: 'Ajloun' },
+  { id: 'jerash', numericId: 11, nameAr: 'جرش', nameEn: 'Jerash' },
+  { id: 'mafraq', numericId: 12, nameAr: 'المفرق', nameEn: 'Mafraq' },
 ];
 
 export const JORDAN_DISTRICT_DESTINATIONS: JordanDistrictDestination[] = [
@@ -123,6 +124,15 @@ export function getJordanDistrictsByGovernorate(governorateId: JordanGovernorate
 
 export function getJordanDestinationById(id: string) {
   return JORDAN_DISTRICT_DESTINATIONS.find((destination) => destination.id === id) || JORDAN_DISTRICT_DESTINATIONS[0];
+}
+
+export function getJordanGovernorateNumericId(governorateId: JordanGovernorateId) {
+  return JORDAN_GOVERNORATES.find((governorate) => governorate.id === governorateId)?.numericId;
+}
+
+export function getJordanDistrictNumericId(destinationId: string) {
+  const index = JORDAN_DISTRICT_DESTINATIONS.findIndex((destination) => destination.id === destinationId);
+  return index >= 0 ? index + 1 : undefined;
 }
 
 function district(
