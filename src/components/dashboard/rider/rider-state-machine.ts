@@ -1,4 +1,5 @@
 import React from 'react';
+import type { SovereignFareQuote } from '@/core/logic/geospatial-kernel';
 import type { Offer } from '@/core/types';
 
 export type RiderMachineScreen =
@@ -19,6 +20,8 @@ export interface RiderDestination {
     lat: number;
     lng: number;
   };
+  tortuosityFactor?: number;
+  fareQuote?: SovereignFareQuote;
 }
 
 export interface RiderLocalRating {
@@ -37,6 +40,10 @@ export interface RiderActiveTrip {
   vehiclePlate: string;
   finalPrice: number;
   destinationLabel: string;
+  distanceKm: number;
+  originCell?: string;
+  destinationCell?: string;
+  tortuosityFactor?: number;
   etaSeconds: number;
   startedAt: number;
 }
@@ -77,7 +84,7 @@ export function createInitialRiderMachineState(): RiderMachineState {
 
 export function buildMockCaptainOffers(destination: RiderDestination): Offer[] {
   const districtSeed = destination.district.charCodeAt(0) || 7;
-  const basePrice = 2.1 + (districtSeed % 4) * 0.25;
+  const basePrice = destination.fareQuote?.guidePriceJod ?? 2.1 + (districtSeed % 4) * 0.25;
 
   return [
     {
@@ -85,7 +92,7 @@ export function buildMockCaptainOffers(destination: RiderDestination): Offer[] {
       driverName: 'D-102',
       driverRating: 4.9,
       driverRank: 'Platinum',
-      price: Number((basePrice + 0.35).toFixed(2)),
+      price: roundOfferPrice(basePrice + 0.35),
       driverVehicle: {
         make: 'Toyota Corolla',
         color: 'White',
@@ -101,7 +108,7 @@ export function buildMockCaptainOffers(destination: RiderDestination): Offer[] {
       driverName: 'D-118',
       driverRating: 4.7,
       driverRank: 'Gold',
-      price: Number(basePrice.toFixed(2)),
+      price: roundOfferPrice(basePrice),
       driverVehicle: {
         make: 'Hyundai Ioniq',
         color: 'Silver',
@@ -117,7 +124,7 @@ export function buildMockCaptainOffers(destination: RiderDestination): Offer[] {
       driverName: 'D-131',
       driverRating: 4.5,
       driverRank: 'Silver',
-      price: Number((basePrice - 0.3).toFixed(2)),
+      price: roundOfferPrice(Math.max(1.75, basePrice - 0.3)),
       driverVehicle: {
         make: 'Kia Niro',
         color: 'Black',
@@ -146,6 +153,7 @@ export function shouldShowAdRiver(state: RiderMachineState): boolean {
 
 function buildActiveTrip(state: RiderMachineState, selectedOffer: Offer): RiderActiveTrip {
   const vehicle = selectedOffer.driverVehicle || {};
+  const distanceKm = state.destination?.fareQuote?.estimatedRoadDistanceKm ?? 0;
 
   return {
     tripId: `local-trip-${Date.now()}`,
@@ -155,9 +163,13 @@ function buildActiveTrip(state: RiderMachineState, selectedOffer: Offer): RiderA
     captainPhone: '0790000102',
     vehicleType: vehicle.type || `${vehicle.make || 'Vehicle'} ${vehicle.color || ''}`.trim(),
     vehiclePlate: vehicle.plate || '77-102',
-    finalPrice: selectedOffer.price === -1 ? 2.75 : selectedOffer.price,
+    finalPrice: selectedOffer.price === -1 ? state.destination?.fareQuote?.guidePriceJod ?? 2.75 : selectedOffer.price,
     destinationLabel: state.destination?.label || 'وجهة محلية',
-    etaSeconds: 5 * 60,
+    distanceKm,
+    originCell: state.destination?.fareQuote?.originCell,
+    destinationCell: state.destination?.fareQuote?.destinationCell,
+    tortuosityFactor: state.destination?.fareQuote?.tortuosityFactor,
+    etaSeconds: Math.max(4 * 60, Math.round((distanceKm || 4) * 85)),
     startedAt: Date.now(),
   };
 }
@@ -270,4 +282,8 @@ export function useRiderDashboardMachine() {
   }, [state.localRatings]);
 
   return { state, dispatch, showAdRiver: shouldShowAdRiver(state) };
+}
+
+function roundOfferPrice(value: number) {
+  return Number((Math.ceil(value * 20) / 20).toFixed(2));
 }

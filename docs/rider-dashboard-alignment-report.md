@@ -6,77 +6,109 @@ Scope: current frontend Rider Dashboard implementation compared with the zero-co
 
 ## Executive Summary
 
-Current alignment: **90%**
+Current alignment: **91%**
 
-The Rider Dashboard is now much closer to the delivery plan. The frontend has a clearer seven-state model, official H3 usage, local destination selection, Dexie-backed 72-hour ledger storage, and Dexie/local-storage favorite captain support.
+The Rider Dashboard is now a strong local frontend prototype. It has a real seven-state reducer, keyless MapLibre/OpenFreeMap rendering, official H3 captain-dot generation, browser current-location support, local mock ride offers, an active-trip demo flow, local rating storage, Dexie-backed rider ledger support, and the client-approved ad card style.
 
-The remaining gap is mostly production authority and dataset depth. Sprint 1 added the real MapLibre/OpenFreeMap map, local H3 captain dots, and a reducer-driven local ride lifecycle.
+The remaining gaps are no longer basic screen structure. The main work now is production depth: larger local destination data, live distance/fare calculation from the rider's current location, better active-trip map movement, final Dexie wiring for completed local trips, full Arabic cleanup in older shared surfaces, and future backend authority.
 
-Important ad note: the ad surface now uses the client’s latest large image-card style across dashboard ad sections. The existing dashboard placement is still preserved and should not be moved to a new fixed bottom layout unless the client explicitly approves that layout change.
+Important ad note: dashboard ads should keep the client-style large image cards and existing dashboard placement. Do not move them into a new fixed bottom layout unless the client explicitly approves that visual change.
 
-Backend security and Firestore rule hardening are intentionally not included in this score because the current phase explicitly asked to leave backend integration for later.
+Backend security, Firestore rules, Supabase, Cloud Functions, wallet authority, and settlement authority are intentionally outside this score because the current phase asked to focus on frontend/local offline-first behavior only.
 
 ## Alignment By Area
 
 | Area | Alignment | Status |
 | --- | ---: | --- |
-| Seven rider states | 92% | Full local reducer exists with explicit actions and bounded transitions. |
-| H3 / zero-cost geospatial | 92% | Official `h3-js` is used for cells, neighbors, map dots, and distance support. |
-| Destination selection | 86% | Local destination choices work; needs larger district dataset. |
-| Ad River behavior | 82% | Shared client-style ad cards are applied; placement is preserved and batching still needs final product rules. |
-| 72-hour ledger | 80% | Dexie storage and countdown exist; needs real trip ingestion after backend phase. |
-| Green Heart vault | 90% | Dexie/local storage favorite captains are implemented. |
-| Dark matte visual identity | 88% | Main rider surfaces match navy/teal/glass direction; some older shared screens still need cleanup. |
-| Arabic copy | 82% | New rider lifecycle copy is simpler; old wording remains in some non-core/shared areas. |
+| Seven rider states | 94% | Full reducer exists with explicit actions and bounded local transitions. |
+| Local ride lifecycle | 91% | Request, mock timer, offers, select captain, active trip, complete trip, rating, and return to map now work locally. |
+| MapLibre / OpenFreeMap | 92% | Real keyless map canvas is implemented with Arabic RTL text support and browser geolocation. |
+| H3 / zero-cost geospatial | 92% | Official `h3-js` is used for cells, neighbors, H3 captain dots, and distance support. |
+| Current location | 88% | Uses browser geolocation and falls back to Cairo when GPS is blocked or unavailable. |
+| Destination selection | 80% | Local selection works, but the dataset is still small and Jordan-focused. |
+| Active trip UI | 84% | Demo ETA, captain, vehicle, plate, price, and complete-trip helper exist; map route progress is still basic. |
+| Ad sections | 88% | Shared client-style ad cards are applied and state-based visibility is mostly correct. |
+| 72-hour ledger | 82% | Dexie storage and countdown exist; completed reducer trips still need automatic ledger insertion. |
+| Green Heart vault | 90% | Favorite captains use local/Dexie-backed storage. |
+| Dark matte visual identity | 88% | Rider surfaces mostly follow navy, teal, glass, and matte styling. |
+| Arabic copy | 82% | New rider flow is simpler; older shared/dashboard copy still needs cleanup. |
 
-## What Is Now Aligned
+## What Is Aligned Now
 
-- **State machine:** `riderDashboardReducer()` and `useRiderDashboardMachine()` now enforce the seven rider states in `src/components/dashboard/rider/rider-state-machine.ts`.
-- **MapLibre map:** `src/components/dashboard/rider/rider-map.tsx` renders a keyless OpenFreeMap/MapLibre canvas.
-- **H3 captain dots:** `src/components/dashboard/rider/rider-map-utils.ts` generates 3-5 nearby fake captains from H3 `gridDisk`.
-- **Ad River:** The client’s latest ad-card visual style is shared across dashboard ad sections while preserving existing placement.
-- **Official H3:** `src/core/logic/geospatial-kernel.ts` now uses `latLngToCell`, `gridDisk`, and `gridDistance` from `h3-js`.
-- **Offline destination selection:** Rider request modal uses local governorate/district choices and coordinate strings instead of Google Maps UI helpers.
-- **Dexie 72-hour ledger:** `riderTripLedger` is added to `src/lib/dexie-db.ts`, and the rider panel loads/purges ledger items locally.
-- **Green Heart vault:** favorite captains continue to use Dexie plus local storage.
-- **Google cleanup in Rider/Driver flow:** Rider/Driver scan is clean; remaining Google placeholders are in advertiser tooling only.
+- **State machine:** `src/components/dashboard/rider/rider-state-machine.ts` now contains `riderDashboardReducer()` and `useRiderDashboardMachine()` for the seven rider states.
+- **Explicit actions:** the reducer supports destination open/confirm, request send, offer receive, offer select, trip complete, rating submit, ledger open, favorite captains open, and return to map.
+- **Mock offer timer:** sending a ride request triggers local fake captain offers after a short timer.
+- **MapLibre visual map:** `src/components/dashboard/rider/rider-map.tsx` renders a real OpenFreeMap/MapLibre map with no paid map key.
+- **Arabic map labels:** the MapLibre RTL plugin is enabled, so Arabic labels render correctly when the tile data supports them.
+- **Current location:** the map uses `navigator.geolocation.watchPosition()` and recenters to the rider's browser location when permission is granted.
+- **Egypt fallback:** if GPS is denied or unavailable, the fallback is Cairo instead of Jordan.
+- **Official H3 dots:** `src/components/dashboard/rider/rider-map-utils.ts` uses official H3 cells and `gridDisk()` to generate nearby fake captain dots.
+- **Local active trip:** selecting an offer moves into an active-trip demo with ETA, captain ID, vehicle, plate, final price, and a testing completion button.
+- **Local rating:** submitting a rating stores it locally and returns the rider to the idle map state.
+- **Ad style:** `AdStage` and shared ad cards use the client-approved large image-card look across dashboard ad sections.
+- **Local reports:** rider incident/report data is stored locally instead of creating new Firebase writes during this frontend phase.
+- **Dexie surfaces:** rider trip ledger and favorite captain vault remain locally stored.
 
 ## Missing Or Partial Components
 
-- **Active trip tracking is still prototype-grade.** It has ETA, captain, vehicle, price, and local completion, but production-grade route progress is still future work.
-- **Destination dataset is too small.** Current dropdowns are good structurally, but production needs a full Jordan governorate/district list with stable local coordinates.
-- **72-hour ledger is seeded from demo data.** It stores and counts down locally, but real completed trips must be inserted into Dexie when backend trip completion is ready.
-- **Ad River batching still needs final product rules.** The visual style is now unified, but metrics batching should be unified into one local batching path.
-- **Some shared UI copy is still older style.** Core rider request/dashboard copy is cleaner, but shared history/profile/ad areas still need the same simple Arabic standard.
+- **Destination data is still too small.** Current options are limited and still mostly Jordan-oriented, while the map can now locate the rider in Egypt or any browser-supported location.
+- **Fare and distance are not fully live yet.** The UI still needs to calculate price from current rider location plus selected destination using local H3/Haversine/tortuosity logic.
+- **Active-trip map progress is still prototype-level.** The screen has trip details and ETA, but it does not yet animate captain movement or route progress on the map.
+- **Completed trips should write to the local ledger.** The reducer can complete a trip, but completed local demo trips should be inserted into the Dexie 72-hour ledger automatically.
+- **Ad batching needs final consolidation.** The visual style is aligned, but impressions/clicks should be unified through one local batching utility with the 50-event threshold.
+- **Some shared Arabic still needs cleanup.** The new rider flow is clearer, but older rider-adjacent cards, history, profile, and ad copy should be scanned again for heavy wording or mojibake.
+- **Global shortcuts need review.** Header or nav request actions should be checked so they always enter the new local reducer flow and do not reopen older network-backed request logic.
+- **Browser GPS needs clear UX.** Current location requires browser permission and usually HTTPS or localhost. The UI should keep explaining denied/unavailable location states in simple Arabic.
+
+## Security And Backend Notes
+
+- This report is frontend-only.
+- Business-critical authority is still not production-ready until backend work is done.
+- Pricing, wallet values, commission settlement, kill-switch behavior, registration authority, and Firestore/Supabase writes must eventually be enforced by backend rules/functions.
+- Do not treat the current local reducer, mock fare, mock captain offers, or local storage values as trusted production data.
 
 ## Production Needs
 
-1. **Complete Active Trip UI**
-   - Add pulsed H3-based captain approach status.
-   - Show ETA, captain card, vehicle, final price, emergency/report action, and trip progress.
-   - Keep the client-approved ad behavior unchanged during this state unless the client approves a new placement.
+1. **Connect destination and fare to real local coordinates**
+   - Use the rider's live browser location as the origin.
+   - Use a larger offline destination dataset for the destination.
+   - Calculate distance and price with local H3/Haversine/tortuosity logic.
 
-2. **Expand Local Destination Data**
-   - Build a local JSON/table for governorates, districts, common landmarks, and coordinate anchors.
-   - Keep it offline-first and avoid geocoding APIs.
+2. **Expand destination data**
+   - Add city, district, and common landmark anchors.
+   - Support Egypt/current-location testing instead of only Jordan examples.
+   - Keep the dataset local and avoid geocoding APIs.
 
-3. **Unify Ad Metrics Batching**
-   - Use one local batching utility for impressions/clicks.
-   - Flush only after the 50-event threshold or page close.
-   - Keep this separate from backend integration for now.
+3. **Improve active-trip map behavior**
+   - Move the selected captain dot toward the rider/destination using pulsed H3 updates.
+   - Show clearer trip progress, ETA changes, and active route state.
+   - Keep ads hidden during active trip unless the client approves another behavior.
 
-4. **Copy Cleanup Pass**
-   - Apply the simple Arabic/English style to all rider-adjacent pages.
-   - Remove remaining heavy terms from shared history/profile/ad components.
+4. **Wire completed trips into Dexie**
+   - Save each completed local trip into the 72-hour ledger.
+   - Show the purge countdown from the new completed trip data.
+   - Keep this local until backend authority is added.
 
-## Risk Notes
+5. **Finish copy and shortcut cleanup**
+   - Apply simple Arabic to all rider-adjacent dashboard surfaces.
+   - Remove remaining mojibake or heavy phrasing.
+   - Ensure top/header request actions use the same reducer flow as the main Rider Dashboard.
 
-- This report covers frontend readiness only.
-- Firestore rules, Cloud Functions authority, pricing authority, registration security, and wallet settlement are still future backend tasks.
-- The current frontend is suitable for demo/testing, but not production trust until backend authority is completed.
+## Verification Evidence
+
+The current implementation was previously verified with:
+
+- `npx tsx src/components/dashboard/rider/rider-state-machine.test.ts`
+- `npx tsx src/components/dashboard/rider/rider-map-utils.test.ts`
+- `npm run lint`
+- `npm run build`
+- Playwright smoke test for local rider flow: map, request, offers, active trip, complete, rating, return to map.
+- Playwright geolocation smoke test with mocked Egypt/Cairo coordinates.
+
+Build note: MapLibre increases the Rider Dashboard bundle size, so the build may warn about a large rider chunk. That is expected for now and should be optimized later with route-level lazy loading if needed.
 
 ## Bottom Line
 
-The Rider Dashboard is now **strongly aligned on frontend structure and zero-cost direction**, but it is not fully production-ready yet.
+The Rider Dashboard is now **mostly aligned and demo-ready as a local offline-first frontend**.
 
-The next best milestone is: **production-grade active trip progress + larger local destination data + backend authority later**.
+The next best milestone is: **live local fare/distance from current location + bigger destination dataset + animated active-trip map + Dexie completed-trip insertion**.

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {
   calculateSovereignDistance,
+  calculateSovereignFareQuote,
   getDistrictFromCoords,
   getH3CellCentroid,
   getH3Neighbors,
@@ -25,5 +26,10 @@ assert.equal(getDistrictFromCoords(amman.lat, amman.lng).district, 'Amman');
 
 const distance = calculateSovereignDistance(amman.lat, amman.lng, sweifieh.lat, sweifieh.lng);
 assert.ok(distance > 4 && distance < 7, `district tortuosity distance should be realistic, got ${distance}`);
+
+const quote = calculateSovereignFareQuote(amman, sweifieh, 1.37);
+assert.ok(quote.originCell && quote.destinationCell, 'fare quote should expose H3 cells');
+assert.ok(quote.estimatedRoadDistanceKm > quote.straightDistanceKm, 'fare quote should apply district tortuosity');
+assert.ok(quote.guidePriceJod >= 1.75, 'fare quote should respect the local fare floor');
 
 console.log('geospatial-kernel checks passed');

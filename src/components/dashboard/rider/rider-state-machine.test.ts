@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { calculateSovereignFareQuote } from '@/core/logic/geospatial-kernel';
 import {
   buildMockCaptainOffers,
   createInitialRiderMachineState,
@@ -7,11 +8,13 @@ import {
 } from './rider-state-machine';
 
 const destination = {
-  id: 'abdoun',
-  label: 'عبدون - عمان',
-  governorate: 'عمان',
-  district: 'عبدون',
-  coords: { lat: 31.9414, lng: 35.8865 },
+  id: 'amman-wadi-al-seer',
+  label: 'وادي السير - عمّان',
+  governorate: 'عمّان',
+  district: 'وادي السير',
+  coords: { lat: 31.9586, lng: 35.8684 },
+  tortuosityFactor: 1.37,
+  fareQuote: calculateSovereignFareQuote({ lat: 31.9539, lng: 35.9106 }, { lat: 31.9586, lng: 35.8684 }, 1.37),
 };
 
 let state = createInitialRiderMachineState();
@@ -34,6 +37,7 @@ assert.equal(shouldShowAdRiver(state), true);
 const offers = buildMockCaptainOffers(destination);
 assert.equal(offers.length >= 3, true);
 assert.equal(offers.every((offer) => offer.driverId && offer.driverVehicle?.plate), true);
+assert.equal(offers[1].price, destination.fareQuote.guidePriceJod);
 
 state = riderDashboardReducer(state, { type: 'RECEIVE_OFFERS', offers });
 assert.equal(state.screen, 'RECEIVING_OFFERS');
@@ -43,6 +47,7 @@ assert.equal(shouldShowAdRiver(state), false);
 state = riderDashboardReducer(state, { type: 'SELECT_OFFER', offerId: offers[0].driverId });
 assert.equal(state.screen, 'TRIP_ACTIVE');
 assert.equal(state.activeTrip?.captainId, offers[0].driverId);
+assert.equal(state.activeTrip?.distanceKm, destination.fareQuote.estimatedRoadDistanceKm);
 assert.equal(shouldShowAdRiver(state), false);
 
 state = riderDashboardReducer(state, { type: 'COMPLETE_TRIP' });

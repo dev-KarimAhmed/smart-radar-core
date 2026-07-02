@@ -1,62 +1,67 @@
 'use client';
 
 import React from 'react';
-import { Car, Clock, Heart, Loader2, MapPin, Navigation, ShieldCheck, Star } from 'lucide-react';
+import { Clock, Heart, Loader2, Navigation, ShieldCheck, Star } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { StarRating } from '@/components/ui/star-rating';
+import { calculateSovereignFareQuote } from '@/core/logic/geospatial-kernel';
 import { useAuth } from '@/hooks/use-auth';
+import { dexieDb, type RiderTripLedgerEntry } from '@/lib/dexie-db';
 import { cn } from '@/lib/utils';
 import { AdStage } from './ad-stage';
-import { RadarRiderDashboard, HistoricalTrip } from './rider/rider-dashboard';
-import { RiderMap } from './rider/rider-map';
 import {
-  RiderDestination,
-  shouldShowAdRiver,
+  AMMAN_FALLBACK_LOCATION,
+  JORDAN_GOVERNORATES,
+  getJordanDestinationById,
+  getJordanDistrictsByGovernorate,
+  type JordanDistrictDestination,
+  type JordanGovernorateId,
+} from './rider/jordan-destinations';
+import { RadarRiderDashboard, type HistoricalTrip } from './rider/rider-dashboard';
+import { RiderMap, type RiderLocation, type RiderLocationStatus, type RiderLocationUpdate } from './rider/rider-map';
+import {
+  type RiderActiveTrip,
+  type RiderDestination,
   useRiderDashboardMachine,
 } from './rider/rider-state-machine';
 
-const destinationOptions: RiderDestination[] = [
+const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
+
+const demoLedgerTrips: HistoricalTrip[] = [
   {
-    id: 'wadi-seer',
-    label: 'وادي السير - عمان',
-    governorate: 'عمان',
-    district: 'وادي السير',
-    coords: { lat: 31.9586, lng: 35.8684 },
+    tripId: 'local-ledger-1',
+    captainName: 'D-102',
+    captainRank: 'PLATINUM',
+    captainPhone: '0799988771',
+    vehicleInfo: 'Toyota Corolla White - 77-102',
+    finalPrice: 2.75,
+    timestamp: Date.now() - 3 * 3600 * 1000,
   },
   {
-    id: 'abdoun',
-    label: 'عبدون - عمان',
-    governorate: 'عمان',
-    district: 'عبدون',
-    coords: { lat: 31.9414, lng: 35.8865 },
-  },
-  {
-    id: 'downtown-amman',
-    label: 'وسط البلد - عمان',
-    governorate: 'عمان',
-    district: 'وسط البلد',
-    coords: { lat: 31.9519, lng: 35.9393 },
-  },
-  {
-    id: 'zarqa-center',
-    label: 'الزرقاء الجديدة',
-    governorate: 'الزرقاء',
-    district: 'الزرقاء الجديدة',
-    coords: { lat: 32.0728, lng: 36.087 },
+    tripId: 'local-ledger-2',
+    captainName: 'D-118',
+    captainRank: 'GOLD',
+    captainPhone: '0788877662',
+    vehicleInfo: 'Hyundai Ioniq Silver - 22-118',
+    finalPrice: 3.4,
+    timestamp: Date.now() - 17 * 3600 * 1000,
   },
 ];
 
 export function RiderViewTab() {
   const { user } = useAuth();
-  const { state, dispatch } = useRiderDashboardMachine();
-  const [draftDestinationId, setDraftDestinationId] = React.useState(destinationOptions[0].id);
+  const { state, dispatch, showAdRiver } = useRiderDashboardMachine();
+  const [selectedGovernorateId, setSelectedGovernorateId] = React.useState<JordanGovernorateId>('amman');
+  const [draftDestinationId, setDraftDestinationId] = React.useState(getJordanDistrictsByGovernorate('amman')[0].id);
   const [rating, setRating] = React.useState({ captain: 0, vehicle: 0, favorite: false });
   const [etaSeconds, setEtaSeconds] = React.useState(0);
-  const showAdRiver = shouldShowAdRiver(state);
+  const [riderLocation, setRiderLocation] = React.useState<RiderLocation>(AMMAN_FALLBACK_LOCATION);
+  const [locationStatus, setLocationStatus] = React.useState<RiderLocationStatus>('fallback');
+  const [localCompletedTrips, setLocalCompletedTrips] = React.useState<HistoricalTrip[]>([]);
 
   const riderProfile = React.useMemo(() => {
     const ratingValue =
@@ -69,42 +74,44 @@ export function RiderViewTab() {
     return {
       id: user?.uid || 'local-rider',
       rating: ratingValue,
-      governorate: user?.governorate || 'عمان',
+      governorate: user?.governorate || 'عمّان',
       district: user?.district || 'وادي السير',
     };
   }, [user]);
 
+  const availableDistricts = React.useMemo(
+    () => getJordanDistrictsByGovernorate(selectedGovernorateId),
+    [selectedGovernorateId],
+  );
+
+  const selectedDistrict = React.useMemo(() => {
+    const direct = getJordanDestinationById(draftDestinationId);
+    if (direct.governorateId === selectedGovernorateId) return direct;
+    return availableDistricts[0];
+  }, [availableDistricts, draftDestinationId, selectedGovernorateId]);
+
+  const selectedDraftDestination = React.useMemo(
+    () => buildRiderDestination(selectedDistrict, riderLocation),
+    [riderLocation, selectedDistrict],
+  );
+
   const tripsWithin72Hours = React.useMemo<HistoricalTrip[]>(
-    () => [
-      {
-        tripId: 'local-ledger-1',
-        captainName: 'D-102',
-        captainRank: 'PLATINUM',
-        captainPhone: '0799988771',
-        vehicleInfo: 'Toyota Corolla White - 77-102',
-        finalPrice: 2.75,
-        timestamp: Date.now() - 3 * 3600 * 1000,
-      },
-      {
-        tripId: 'local-ledger-2',
-        captainName: 'D-118',
-        captainRank: 'GOLD',
-        captainPhone: '0788877662',
-        vehicleInfo: 'Hyundai Ioniq Silver - 22-118',
-        finalPrice: 3.4,
-        timestamp: Date.now() - 17 * 3600 * 1000,
-      },
-    ],
-    [],
+    () => [...localCompletedTrips, ...demoLedgerTrips],
+    [localCompletedTrips],
   );
 
   const systemMessages = React.useMemo(
     () => [
-      'المنطقة تعمل محلياً بدون خرائط مدفوعة.',
-      `نطاقك الحالي: ${user?.district || 'وادي السير'}.`,
+      'الخريطة تعمل بمصدر مجاني بدون خرائط مدفوعة.',
+      `نطاقك الحالي: ${locationStatus === 'live' ? 'موقعك الحقيقي' : 'عمّان كنقطة احتياط'}.`,
     ],
-    [user?.district],
+    [locationStatus],
   );
+
+  const handleLocationChange = React.useCallback((payload: RiderLocationUpdate) => {
+    setRiderLocation(payload.location);
+    setLocationStatus(payload.status);
+  }, []);
 
   React.useEffect(() => {
     if (!state.activeTrip) {
@@ -120,60 +127,112 @@ export function RiderViewTab() {
     return () => window.clearInterval(interval);
   }, [state.activeTrip]);
 
-  const selectedDraftDestination =
-    destinationOptions.find((destination) => destination.id === draftDestinationId) || destinationOptions[0];
+  const handleGovernorateChange = (governorateId: JordanGovernorateId) => {
+    const firstDistrict = getJordanDistrictsByGovernorate(governorateId)[0];
+    setSelectedGovernorateId(governorateId);
+    setDraftDestinationId(firstDistrict.id);
+    if (state.screen === 'DESTINATION_SELECTION') {
+      dispatch({ type: 'CONFIRM_DESTINATION', destination: buildRiderDestination(firstDistrict, riderLocation) });
+    }
+  };
+
+  const handleDistrictChange = (districtId: string) => {
+    const destination = getJordanDestinationById(districtId);
+    setDraftDestinationId(destination.id);
+    if (state.screen === 'DESTINATION_SELECTION') {
+      dispatch({ type: 'CONFIRM_DESTINATION', destination: buildRiderDestination(destination, riderLocation) });
+    }
+  };
+
+  const handleSendRequest = () => {
+    dispatch({ type: 'CONFIRM_DESTINATION', destination: selectedDraftDestination });
+    dispatch({ type: 'SEND_REQUEST' });
+  };
+
+  const handleCompleteTrip = async () => {
+    if (!state.activeTrip) return;
+
+    const historicalTrip = toHistoricalTrip(state.activeTrip);
+    const ledgerEntry: RiderTripLedgerEntry = {
+      ...historicalTrip,
+      purgeAt: historicalTrip.timestamp + THREE_DAYS_MS,
+    };
+
+    try {
+      await dexieDb.riderTripLedger.put(ledgerEntry);
+      setLocalCompletedTrips((previous) => [
+        historicalTrip,
+        ...previous.filter((trip) => trip.tripId !== historicalTrip.tripId),
+      ]);
+    } catch (error) {
+      console.error('Failed to store completed local trip in Dexie:', error);
+      setLocalCompletedTrips((previous) => [historicalTrip, ...previous]);
+    }
+
+    dispatch({ type: 'COMPLETE_TRIP' });
+  };
 
   const renderStatePanel = () => {
     if (state.screen === 'DESTINATION_SELECTION') {
+      const quote = selectedDraftDestination.fareQuote!;
+
       return (
         <Card className="w-full border-[#14B8A6]/25 bg-[#0B0F19]/88 text-white shadow-2xl shadow-black/40 backdrop-blur-xl">
           <CardContent className="space-y-5 p-5 text-right" dir="rtl">
             <div className="space-y-1">
               <p className="text-[11px] font-black text-[#14F5D5]">اختيار الوجهة</p>
               <h2 className="text-2xl font-black">وين بدك تروح؟</h2>
-              <p className="text-xs text-slate-400">اختيار محلي فقط. لا يوجد Geocoding ولا Google Places.</p>
+              <p className="text-xs text-slate-400">اختيار محلي داخل الأردن فقط. بدون Google Places وبدون Geocoding.</p>
             </div>
 
-            <div className="grid gap-2">
-              {destinationOptions.map((destination) => {
-                const isSelected = destination.id === draftDestinationId;
+            <div className="grid gap-3">
+              <label className="space-y-2">
+                <span className="block text-[11px] font-black text-slate-400">المحافظة</span>
+                <select
+                  value={selectedGovernorateId}
+                  onChange={(event) => handleGovernorateChange(event.target.value as JordanGovernorateId)}
+                  className="h-12 w-full rounded-2xl border border-white/10 bg-black/40 px-4 text-right text-sm font-black text-white outline-none transition focus:border-[#14B8A6]/60"
+                >
+                  {JORDAN_GOVERNORATES.map((governorate) => (
+                    <option key={governorate.id} value={governorate.id}>
+                      {governorate.nameAr}
+                    </option>
+                  ))}
+                </select>
+              </label>
 
-                return (
-                  <button
-                    type="button"
-                    key={destination.id}
-                    onClick={() => {
-                      setDraftDestinationId(destination.id);
-                      dispatch({ type: 'CONFIRM_DESTINATION', destination });
-                    }}
-                    className={cn(
-                      'rounded-2xl border p-3 text-right transition',
-                      isSelected
-                        ? 'border-[#14B8A6]/50 bg-[#14B8A6]/12 text-white'
-                        : 'border-white/10 bg-white/[0.03] text-slate-300 hover:border-[#14B8A6]/30',
-                    )}
-                  >
-                    <span className="block text-sm font-black">{destination.label}</span>
-                    <span className="mt-1 block font-mono text-[10px] text-slate-500">
-                      {destination.coords.lat.toFixed(4)}, {destination.coords.lng.toFixed(4)}
-                    </span>
-                  </button>
-                );
-              })}
+              <label className="space-y-2">
+                <span className="block text-[11px] font-black text-slate-400">اللواء / المنطقة</span>
+                <select
+                  value={selectedDistrict.id}
+                  onChange={(event) => handleDistrictChange(event.target.value)}
+                  className="h-12 w-full rounded-2xl border border-white/10 bg-black/40 px-4 text-right text-sm font-black text-white outline-none transition focus:border-[#14B8A6]/60"
+                >
+                  {availableDistricts.map((destination) => (
+                    <option key={destination.id} value={destination.id}>
+                      {destination.districtAr}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            <div className="rounded-2xl border border-[#14B8A6]/20 bg-[#14B8A6]/8 p-3 text-xs leading-relaxed text-slate-300">
+              <strong className="block text-sm text-white">{selectedDraftDestination.label}</strong>
+              <span className="mt-1 block font-mono text-[10px] text-slate-500">
+                {selectedDraftDestination.coords.lat.toFixed(4)}, {selectedDraftDestination.coords.lng.toFixed(4)}
+              </span>
             </div>
 
             <div className="grid grid-cols-2 gap-3 rounded-2xl border border-white/10 bg-black/30 p-3">
-              <Metric label="المسافة" value="6.8 كم" />
-              <Metric label="السعر المتوقع" value="2.75 د.أ" />
-              <Metric label="الحساب" value="H3 محلي" />
-              <Metric label="الكباتن" value="3-5 قريبين" />
+              <Metric label="المسافة" value={`${quote.estimatedRoadDistanceKm.toFixed(2)} كم`} />
+              <Metric label="السعر المتوقع" value={`${quote.guidePriceJod.toFixed(2)} د.أ`} />
+              <Metric label="حساب H3" value={`${quote.h3CellDistance} خلية`} />
+              <Metric label="عامل الطريق" value={quote.tortuosityFactor.toFixed(2)} />
             </div>
 
             <Button
-              onClick={() => {
-                dispatch({ type: 'CONFIRM_DESTINATION', destination: selectedDraftDestination });
-                dispatch({ type: 'SEND_REQUEST' });
-              }}
+              onClick={handleSendRequest}
               className="h-14 w-full rounded-2xl bg-[#14B8A6] text-base font-black text-[#031315] hover:bg-[#2DD4BF]"
             >
               إرسال طلب الرحلة
@@ -193,14 +252,14 @@ export function RiderViewTab() {
               <p className="text-[11px] font-black text-[#14F5D5]">{hasOffers ? 'وصلت عروض' : 'ننتظر الكباتن'}</p>
               <h2 className="text-2xl font-black">{hasOffers ? 'اختار الكابتن المناسب' : 'طلبك ظاهر للكباتن القريبين'}</h2>
               <p className="text-xs text-slate-400">
-                {hasOffers ? 'العروض تجريبية ومحسوبة محلياً.' : 'سيتم عرض عروض تجريبية تلقائياً بعد 3 ثواني.'}
+                {hasOffers ? 'العروض تجريبية ومحسوبة من سعر الوجهة المحلي.' : 'سيتم عرض عروض تجريبية تلقائيا بعد 3 ثوان.'}
               </p>
             </div>
 
             {!hasOffers ? (
               <div className="flex min-h-36 flex-col items-center justify-center gap-3 rounded-2xl border border-[#14B8A6]/15 bg-black/30">
                 <Loader2 className="h-9 w-9 animate-spin text-[#14F5D5]" />
-                <span className="text-xs font-bold text-slate-300">يتم البحث داخل خلايا H3 المجاورة</span>
+                <span className="text-xs font-bold text-slate-300">يتم البحث داخل خلايا H3 القريبة</span>
               </div>
             ) : (
               <div className="space-y-3">
@@ -264,15 +323,17 @@ export function RiderViewTab() {
               <Metric label="المركبة" value={state.activeTrip.vehicleType} />
               <Metric label="اللوحة" value={state.activeTrip.vehiclePlate} />
               <Metric label="السعر النهائي" value={`${state.activeTrip.finalPrice.toFixed(2)} د.أ`} />
-              <Metric label="التتبع" value="نبض H3 كل فترة" />
+              <Metric label="المسافة" value={`${state.activeTrip.distanceKm.toFixed(2)} كم`} />
+              <Metric label="التتبع" value="نبض H3 محلي" />
+              <Metric label="عامل الطريق" value={(state.activeTrip.tortuosityFactor ?? 1.3).toFixed(2)} />
             </div>
 
             <div className="rounded-2xl border border-[#14B8A6]/20 bg-[#14B8A6]/8 p-4 text-xs leading-relaxed text-slate-300">
-              لا يوجد بث GPS مباشر. هذا النموذج يستخدم حالة محلية وعداد ETA تجريبي فقط.
+              الكابتن يتحرك على الخريطة كنموذج محلي. لا يوجد بث GPS مباشر ولا أي طلب خارجي مدفوع.
             </div>
 
             <Button
-              onClick={() => dispatch({ type: 'COMPLETE_TRIP' })}
+              onClick={() => void handleCompleteTrip()}
               className="h-14 w-full rounded-2xl bg-[#14B8A6] text-base font-black text-[#031315] hover:bg-[#2DD4BF]"
             >
               إنهاء الرحلة للتجربة
@@ -289,7 +350,11 @@ export function RiderViewTab() {
     <div className="relative flex min-h-[calc(100vh-160px)] w-full flex-col gap-5 bg-[#0B0F19] p-4 pb-28 text-white" dir="rtl">
       <div className="mx-auto grid w-full max-w-6xl gap-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.65fr)]">
         <div className="space-y-4">
-          <RiderMap activeTripCaptainId={state.activeTrip?.captainId || null} className="h-[420px] lg:h-[620px]" />
+          <RiderMap
+            activeTripCaptainId={state.activeTrip?.captainId || null}
+            className="h-[420px] lg:h-[620px]"
+            onLocationChange={handleLocationChange}
+          />
 
           {showAdRiver && (
             <div className="mb-24 overflow-hidden rounded-[24px] border border-[#14B8A6]/15">
@@ -326,20 +391,23 @@ export function RiderViewTab() {
               <Card className="border-[#14B8A6]/25 bg-[#0B0F19]/90 text-white shadow-2xl shadow-black/40 backdrop-blur-xl">
                 <CardContent className="space-y-5 p-5 text-right" dir="rtl">
                   <div className="space-y-1">
-                    <p className="text-[11px] font-black text-[#14F5D5]">جاهز لاستقبال طلب</p>
-                    <h2 className="text-2xl font-black">أهلاً بك</h2>
+                    <p className="text-[11px] font-black text-[#14F5D5]">جاهز لطلب رحلة</p>
+                    <h2 className="text-2xl font-black">أهلا بك</h2>
                     <p className="text-xs leading-relaxed text-slate-400">
-                      الخريطة تعمل بمصدر مجاني، والنقاط القريبة مولدة محلياً من خلايا H3.
+                      الخريطة مجانية، والوجهات من بيانات الأردن المحلية، والسعر يحسب من موقعك الحالي أو من عمّان عند عدم توفر GPS.
                     </p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3 rounded-2xl border border-white/10 bg-black/30 p-4">
-                    <Metric label="منطقتك" value={user?.district || 'وادي السير'} />
+                    <Metric label="منطقتك" value={locationStatus === 'live' ? 'موقعك الحالي' : 'عمّان'} />
                     <Metric label="ثقتك" value={`${riderProfile.rating.toFixed(1)} / 5`} />
                   </div>
 
                   <Button
-                    onClick={() => dispatch({ type: 'OPEN_DESTINATION' })}
+                    onClick={() => {
+                      dispatch({ type: 'OPEN_DESTINATION' });
+                      dispatch({ type: 'CONFIRM_DESTINATION', destination: selectedDraftDestination });
+                    }}
                     className="h-16 w-full rounded-2xl bg-[#14B8A6] text-lg font-black text-[#031315] shadow-lg shadow-[#14B8A6]/20 hover:bg-[#2DD4BF]"
                   >
                     <Navigation className="ml-2 h-5 w-5" />
@@ -367,7 +435,7 @@ export function RiderViewTab() {
           <DialogContent className="border-emerald-900/50 bg-[#050D05] text-white sm:max-w-md">
             <DialogHeader className="text-center">
               <DialogTitle className="text-xl font-black">قيّم الرحلة</DialogTitle>
-              <DialogDescription className="text-gray-400">التقييم محفوظ محلياً فقط في هذا النموذج.</DialogDescription>
+              <DialogDescription className="text-gray-400">التقييم محفوظ محليا فقط في هذا النموذج.</DialogDescription>
             </DialogHeader>
 
             <div className="space-y-8 py-6">
@@ -410,6 +478,32 @@ export function RiderViewTab() {
       )}
     </div>
   );
+}
+
+function buildRiderDestination(destination: JordanDistrictDestination, origin: RiderLocation): RiderDestination {
+  const fareQuote = calculateSovereignFareQuote(origin, destination.anchor, destination.tortuosityFactor);
+
+  return {
+    id: destination.id,
+    label: `${destination.districtAr} - ${destination.governorateAr}`,
+    governorate: destination.governorateAr,
+    district: destination.districtAr,
+    coords: destination.anchor,
+    tortuosityFactor: destination.tortuosityFactor,
+    fareQuote,
+  };
+}
+
+function toHistoricalTrip(trip: RiderActiveTrip): HistoricalTrip {
+  return {
+    tripId: trip.tripId,
+    captainName: trip.captainSerial,
+    captainRank: trip.captainSerial === 'D-102' ? 'PLATINUM' : trip.captainSerial === 'D-118' ? 'GOLD' : 'BRONZE',
+    captainPhone: trip.captainPhone,
+    vehicleInfo: `${trip.vehicleType} - ${trip.vehiclePlate}`,
+    finalPrice: trip.finalPrice,
+    timestamp: Date.now(),
+  };
 }
 
 function Metric({ label, value }: { label: string; value: React.ReactNode }) {

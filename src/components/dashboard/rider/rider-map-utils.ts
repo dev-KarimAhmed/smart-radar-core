@@ -1,4 +1,5 @@
 import { cellToLatLng, gridDisk, isValidCell, latLngToCell } from 'h3-js';
+import { AMMAN_FALLBACK_LOCATION } from './jordan-destinations';
 
 export interface MockCaptainDot {
   id: string;
@@ -13,8 +14,7 @@ export interface MockCaptainDot {
 }
 
 export const RIDER_MOCK_LOCATION = {
-  lat: 30.0444,
-  lng: 31.2357,
+  ...AMMAN_FALLBACK_LOCATION,
 };
 
 export function getRiderMockH3Cell(location = RIDER_MOCK_LOCATION, resolution = 9) {
@@ -31,7 +31,7 @@ export function generateMockCaptainDots(riderH3Cell: string): MockCaptainDot[] {
       const [lat, lng] = cellToLatLng(cell);
 
       return {
-        id: `mock-captain-dot-${index + 1}`,
+        id: `demo-captain-d-${102 + index * 7}`,
         serial: `D-${102 + index * 7}`,
         h3Cell: cell,
         coordinates: { lat, lng },

@@ -8,14 +8,21 @@ import { generateMockCaptainDots, getRiderMockH3Cell, RIDER_MOCK_LOCATION, type 
 interface RiderMapProps {
   activeTripCaptainId?: string | null;
   className?: string;
+  onLocationChange?: (payload: RiderLocationUpdate) => void;
 }
 
-type RiderLocation = {
+export type RiderLocation = {
   lat: number;
   lng: number;
 };
 
-type RiderLocationStatus = 'locating' | 'live' | 'fallback' | 'denied';
+export type RiderLocationStatus = 'locating' | 'live' | 'fallback' | 'denied';
+
+export interface RiderLocationUpdate {
+  location: RiderLocation;
+  status: RiderLocationStatus;
+  h3Cell: string;
+}
 
 const OPENFREEMAP_STYLE = 'https://tiles.openfreemap.org/styles/liberty';
 const RTL_TEXT_PLUGIN_URL = 'https://unpkg.com/@mapbox/mapbox-gl-rtl-text@0.3.0/dist/mapbox-gl-rtl-text.js';
@@ -71,25 +78,44 @@ function toCaptainFeatureCollection(captains: MockCaptainDot[]) {
 
 function getLocationStatusLabel(status: RiderLocationStatus) {
   if (status === 'live') return 'موقعك الحالي';
-  if (status === 'locating') return 'يحدد موقعك...';
+  if (status === 'locating') return 'يتم تحديد موقعك...';
   if (status === 'denied') return 'اسمح للموقع من المتصفح';
-  return 'GPS غير متاح - موقع تقريبي';
+  return 'GPS غير متاح - تم استخدام عمّان';
 }
 
-export function RiderMap({ activeTripCaptainId, className }: RiderMapProps) {
+export function RiderMap({ activeTripCaptainId, className, onLocationChange }: RiderMapProps) {
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const mapRef = React.useRef<MapLibreMap | null>(null);
   const cleanupWatchRef = React.useRef<(() => void) | null>(null);
   const [riderLocation, setRiderLocation] = React.useState<RiderLocation>(RIDER_MOCK_LOCATION);
   const [locationStatus, setLocationStatus] = React.useState<RiderLocationStatus>('locating');
+  const [activeCaptainProgress, setActiveCaptainProgress] = React.useState(0);
   const riderCell = React.useMemo(() => getRiderMockH3Cell(riderLocation), [riderLocation]);
   const captains = React.useMemo(() => generateMockCaptainDots(riderCell), [riderCell]);
+
+  const displayCaptains = React.useMemo(() => {
+    if (!activeTripCaptainId) return captains;
+
+    return captains.map((captain) => {
+      if (captain.id !== activeTripCaptainId) return captain;
+
+      const progress = Math.min(0.92, Math.max(0.08, activeCaptainProgress));
+      return {
+        ...captain,
+        coordinates: {
+          lat: interpolate(captain.coordinates.lat, riderLocation.lat, progress),
+          lng: interpolate(captain.coordinates.lng, riderLocation.lng, progress),
+        },
+      };
+    });
+  }, [activeCaptainProgress, activeTripCaptainId, captains, riderLocation]);
 
   const requestLiveLocation = React.useCallback(() => {
     cleanupWatchRef.current?.();
     cleanupWatchRef.current = null;
 
     if (!('geolocation' in navigator)) {
+      setRiderLocation(RIDER_MOCK_LOCATION);
       setLocationStatus('fallback');
       return;
     }
@@ -108,6 +134,7 @@ export function RiderMap({ activeTripCaptainId, className }: RiderMapProps) {
       },
       (error) => {
         if (didResolve) return;
+        setRiderLocation(RIDER_MOCK_LOCATION);
         setLocationStatus(error.code === error.PERMISSION_DENIED ? 'denied' : 'fallback');
       },
       {
@@ -124,6 +151,28 @@ export function RiderMap({ activeTripCaptainId, className }: RiderMapProps) {
     requestLiveLocation();
     return () => cleanupWatchRef.current?.();
   }, [requestLiveLocation]);
+
+  React.useEffect(() => {
+    onLocationChange?.({
+      location: riderLocation,
+      status: locationStatus,
+      h3Cell: riderCell,
+    });
+  }, [locationStatus, onLocationChange, riderCell, riderLocation]);
+
+  React.useEffect(() => {
+    if (!activeTripCaptainId) {
+      setActiveCaptainProgress(0);
+      return;
+    }
+
+    setActiveCaptainProgress(0.08);
+    const interval = window.setInterval(() => {
+      setActiveCaptainProgress((previous) => (previous >= 0.92 ? 0.92 : previous + 0.055));
+    }, 850);
+
+    return () => window.clearInterval(interval);
+  }, [activeTripCaptainId]);
 
   React.useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -148,7 +197,7 @@ export function RiderMap({ activeTripCaptainId, className }: RiderMapProps) {
 
       map.addSource('rider-captains', {
         type: 'geojson',
-        data: toCaptainFeatureCollection(captains),
+        data: toCaptainFeatureCollection(displayCaptains),
       });
 
       map.addLayer({
@@ -234,12 +283,18 @@ export function RiderMap({ activeTripCaptainId, className }: RiderMapProps) {
     const riderSource = map.getSource('rider-point') as GeoJSONSource;
     const captainSource = map.getSource('rider-captains') as GeoJSONSource;
     riderSource.setData(toRiderFeatureCollection(riderLocation));
-    captainSource.setData(toCaptainFeatureCollection(captains));
+    captainSource.setData(toCaptainFeatureCollection(displayCaptains));
+  }, [displayCaptains, riderLocation]);
+
+  React.useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
     map.easeTo({
       center: [riderLocation.lng, riderLocation.lat],
       duration: 650,
     });
-  }, [captains, riderLocation, activeTripCaptainId]);
+  }, [riderLocation]);
 
   return (
     <section className={`relative overflow-hidden rounded-[24px] border border-[#14B8A6]/20 bg-[#0B0F19] shadow-2xl shadow-black/40 ${className || ''}`}>
@@ -250,7 +305,9 @@ export function RiderMap({ activeTripCaptainId, className }: RiderMapProps) {
         <span className="mt-1 block font-mono">H3 R9: {riderCell.slice(0, 8).toUpperCase()}</span>
       </div>
       <div className="pointer-events-none absolute bottom-4 right-4 left-4 flex items-center justify-between rounded-2xl border border-white/10 bg-[#0B0F19]/82 px-4 py-3 text-xs text-white backdrop-blur">
-        <span className="font-black text-[#14F5D5]">كباتن قريبون: {captains.length}</span>
+        <span className="font-black text-[#14F5D5]">
+          {activeTripCaptainId ? 'الكابتن يتحرك نحوك' : `كباتن قريبون: ${captains.length}`}
+        </span>
         <span className="text-[10px] text-slate-300">MapLibre + OpenFreeMap</span>
       </div>
       {locationStatus !== 'live' && (
@@ -264,4 +321,8 @@ export function RiderMap({ activeTripCaptainId, className }: RiderMapProps) {
       )}
     </section>
   );
+}
+
+function interpolate(from: number, to: number, progress: number) {
+  return from + (to - from) * progress;
 }
