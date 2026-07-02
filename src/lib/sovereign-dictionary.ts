@@ -1,54 +1,95 @@
+import { simpleCopy } from './i18n/simple-copy';
+
 /**
- * [SCR-2026-SSOT-DICT] القاموس السيادي الموحد للغات والواجهات
- * مصدر الحقيقة الوحيد (SSOT) لجميع نصوص النظام لمنع التكرار (Anti-Chatter).
+ * Shared UI copy used by older parts of the app.
+ *
+ * Keep this file in simple, normal Arabic. New screens should prefer
+ * `src/lib/i18n/simple-copy.ts` so Arabic and English stay together.
  */
 export const SovereignDict = {
-    ERRORS: {
-        GPS_DISABLED: { title: 'عطل ملاحي', description: 'تفعيل الـ GPS إلزامي للتشغيل دقيق المسار.' },
-        EMPTY_LINK: { title: 'بريد مفقود', description: 'يرجى إدخال الرابط المختصر المناسب للموقع.' },
-        PROXY_FAILED: { title: 'النهج سقط', description: 'فشل الكود السحابي في اختراق الرادار.' },
-        CONSTITUTIONAL_BREACH: { title: 'العهد مهزوز', description: 'حدث خرق لبروتوكول المقصلة التقنية.' },
-        CORS_FALLBACK_GUIDE: { title: 'بروتوكول الارتداد الذكي اللامركزي 📡', description: 'فشل الفك السحابي لبيئة Vite/CORS! يرجى نسخ الرابط الطويل (المباشر) من خرائط Google ولصقه هنا لمسح الإحداثيات محلياً 100% بصفر تكلفة.' },
-        RATING_REQUIRED: { title: 'التقييم المطلوب', description: 'يجب تقييم الرحلة السابقة لتتمكن من إطلاق رادار جديد.' },
-        SECURITY_BLOCK: { title: 'عائق أمني', description: 'نظام الكشف التلقائي رصد سلوكاً غير طبيعي.' }
+  ERRORS: {
+    GPS_DISABLED: {
+      title: simpleCopy.errors.gpsDisabled.ar,
+      description: 'يرجى السماح للتطبيق باستخدام الموقع حتى نحدد المسار بدقة.',
     },
-    WARNINGS: {
-        BLIND_SPOT: { title: 'النوقطة العمياء', description: 'تعديت النطاق الجغرافي المعمول به، قد يتأخر التحديث.' },
-        WRITE_DESTINATION: { title: 'تنبيه ملاحي', description: 'يرجى كتابة اسم وجهتك أولاً.' }
+    EMPTY_LINK: {
+      title: 'الرابط مطلوب',
+      description: 'يرجى إدخال رابط صحيح للموقع أو الوجهة.',
     },
-    SUCCESS: {
-        LINK_CAPTURED: { title: 'تم الاختراق Successfully', description: 'تم الاتصال بالرادار للبدء بالتتبع.' },
-        CALCULATION_DONE: { title: 'الحسابات الميدانية مكتملة', description: 'تم استخراج الإحداثيات والمسافة بنجاح.' },
-        RIDE_REQUESTED: { title: 'إطلاق رادار الرحلة 🚀', description: 'تتبع السائق واقترابه جاري.' }
+    PROXY_FAILED: {
+      title: 'تعذر قراءة الرابط',
+      description: 'لم نتمكن من قراءة الرابط تلقائياً. جرّب إدخال العنوان أو الرابط الكامل.',
     },
-    SEARCH: {
-        TITLE: 'مسح النطاق السيادي 📡',
-        SUBTITLE: 'البحث في فقاعة الـ 1.5 كم • حصة الميدان',
-        EMPTY_SLOT: 'خانة سيادية شاغرة ⏳',
-        CANCEL_RADAR: 'إلغاء وإعادة تدوير العوامة 🚫'
+    CONSTITUTIONAL_BREACH: {
+      title: 'حدث خطأ في العملية',
+      description: simpleCopy.errors.generic.ar,
     },
-    BUSY: {
-        TITLE: 'الناقل في طريقه إليك ⚡',
-        SUBTITLE: 'لقد تمت المصافحة الذرية بنجاح.',
-        DRIVER: 'الناقل السيادي',
-        VEHICLE: 'المركبة والعتاد',
-        PLATE: 'رقم كود اللوحة',
-        CALL: 'اتصال مع الفارس',
-        TRACK: 'تتبع المسار الملاحي',
-        CANCEL: 'إلغاء الرحلة (حالة سيادية طارئة)'
+    CORS_FALLBACK_GUIDE: {
+      title: 'تعذر فتح الرابط المختصر',
+      description: 'انسخ الرابط الكامل من الخريطة والصقه هنا حتى نقرأ الموقع بشكل صحيح.',
     },
-    RATING: {
-        SEAL_TITLE: 'الختم السيادي للرحلة ⚖️',
-        SEAL_DESC: 'تقييمك المزدوج يضمن عدالة الميدان ونقاء الأسطول السيادي.',
-        SOUL_LABEL: 'تقييم الروح (الأداء المهني السيادي)',
-        BODY_LABEL: 'تقييم الجسد (حالة المركبة والعتاد)',
-        FAVORITE_LABEL: 'إضافة لكتيبة المفضلين؟ 🛡️',
-        SUBMIT_BTN: 'اعتماد والعودة للميدان'
+    RATING_REQUIRED: {
+      title: 'التقييم مطلوب',
+      description: 'يرجى تقييم الرحلة السابقة قبل طلب رحلة جديدة.',
     },
-    CHECKPOINT: {
-        TITLE: 'نقطة تفتيش سيادية 🛑',
-        DESCRIPTION: 'لقد تجاوز الناقل الزمن المحدد للوصول ولم يتم رصد حركة كافية بالـ GPS في فقاعة التوازن.',
-        IGNORE_BTN: 'نحن نتحرك الآن (تجاهل الإشارة)',
-        GUILLOTINE_BTN: 'هذا ناقل شبح (تنفيذ المقصلة الرقمية)'
-    }
+    SECURITY_BLOCK: {
+      title: 'تم إيقاف العملية',
+      description: 'رصد النظام عملية غير معتادة. يرجى المحاولة مرة أخرى أو التواصل مع الدعم.',
+    },
+  },
+  WARNINGS: {
+    BLIND_SPOT: {
+      title: 'خارج النطاق',
+      description: 'أنت خارج المنطقة المدعومة حالياً، لذلك قد يتأخر التحديث.',
+    },
+    WRITE_DESTINATION: {
+      title: 'اكتب الوجهة',
+      description: 'يرجى كتابة اسم الوجهة قبل المتابعة.',
+    },
+  },
+  SUCCESS: {
+    LINK_CAPTURED: {
+      title: 'تم قراءة الرابط',
+      description: 'تم تحديد الموقع بنجاح ويمكنك المتابعة.',
+    },
+    CALCULATION_DONE: {
+      title: 'تم الحساب',
+      description: 'تم حساب المسافة والموقع بنجاح.',
+    },
+    RIDE_REQUESTED: {
+      title: simpleCopy.rider.requestRide.ar,
+      description: simpleCopy.rider.searchingDrivers.ar,
+    },
+  },
+  SEARCH: {
+    TITLE: 'البحث عن كابتن',
+    SUBTITLE: 'نبحث عن كباتن قريبين ضمن نطاق 1.5 كم.',
+    EMPTY_SLOT: 'لا يوجد عرض حتى الآن',
+    CANCEL_RADAR: 'إلغاء البحث',
+  },
+  BUSY: {
+    TITLE: simpleCopy.rider.driverOnWay.ar,
+    SUBTITLE: 'تم قبول العرض وتأكيد الرحلة.',
+    DRIVER: simpleCopy.roles.driver.ar,
+    VEHICLE: 'المركبة',
+    PLATE: 'رقم اللوحة',
+    CALL: 'اتصل بالكابتن',
+    TRACK: 'تتبع الرحلة',
+    CANCEL: 'إلغاء الرحلة',
+  },
+  RATING: {
+    SEAL_TITLE: simpleCopy.rider.rateTrip.ar,
+    SEAL_DESC: 'ساعدنا في تحسين جودة الرحلات بتقييمك.',
+    SOUL_LABEL: 'تقييم تعامل الكابتن',
+    BODY_LABEL: 'تقييم المركبة',
+    FAVORITE_LABEL: 'حفظ الكابتن في المفضلة؟',
+    SUBMIT_BTN: 'إرسال التقييم',
+  },
+  CHECKPOINT: {
+    TITLE: 'تأكيد الرحلة',
+    DESCRIPTION: 'لم نرصد حركة كافية بعد وصول الكابتن. هل بدأت الرحلة؟',
+    IGNORE_BTN: 'نعم، بدأت الرحلة',
+    GUILLOTINE_BTN: 'لا، أريد الإبلاغ',
+  },
 } as const;
+

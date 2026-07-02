@@ -79,8 +79,8 @@ function RiderCabin() {
             <div className="w-10"></div>
             {tripStatus === 'idle' && openRequestModal && (
                 <Button onClick={openRequestModal} className="animate-pulse-neon bg-primary hover:bg-primary/80 text-white px-6 h-10 rounded-full font-bold tracking-wide">
-                    <span className="mr-2 hidden sm:inline">إطلاق نداء</span>
-                    اطلب مركبة
+                    <span className="mr-2 hidden sm:inline">طلب جديد</span>
+                    اطلب رحلة
                 </Button>
             )}
             <div className="w-10"></div>
@@ -177,10 +177,10 @@ export function AppHeader() {
   
   const getRoleName = (role: string | undefined) => {
     switch (role) {
-      case 'rider': return 'مسافر';
-      case 'driver': return 'كابتن سيادي';
+      case 'rider': return 'راكب';
+      case 'driver': return 'كابتن';
       case 'admin': return 'قيادة عليا';
-      case 'advertiser': return 'معلن سيادي';
+      case 'advertiser': return 'معلن';
       default: return '';
     }
   };
@@ -211,7 +211,7 @@ export function AppHeader() {
                size="icon" 
                variant="ghost" 
                className="h-10 w-10 text-white/70 hover:bg-white/10 relative"
-               onClick={() => toast({ title: 'النبضات والتنبيهات الملاحة', description: 'لا توجد نبضات أو رسائل سيادية جديدة حالياً.' })}
+               onClick={() => toast({ title: 'التنبيهات', description: 'لا توجد تنبيهات جديدة حالياً.' })}
              >
                <Bell className="h-5 w-5" />
              </Button>

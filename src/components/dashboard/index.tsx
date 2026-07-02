@@ -113,11 +113,9 @@ function DashboardLayout() {
   const isStandby = useMemo(() => {
     if (isSovereign) return false;
     if (hash !== '#' && hash !== '' && hash !== '#/') return false;
-    
+
     if (isPassenger) {
-      const isRequestModalOpen = riderOps?.isRequestModalOpen || false;
-      const currentTripStatus = riderOps?.tripStatus || 'idle';
-      if (isRequestModalOpen || currentTripStatus !== 'idle') return false;
+      return false;
     }
     
     if (isCaptain) {

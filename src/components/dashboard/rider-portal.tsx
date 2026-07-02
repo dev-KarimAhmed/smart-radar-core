@@ -1,46 +1,43 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useAuth } from "@/hooks/use-auth";
-import { useToast } from "@/hooks/use-toast";
-import { useAtomicHandshake } from "@/hooks/use-atomic-handshake";
+import React, { useEffect, useState } from "react";
 import {
+  AlertTriangle,
+  Car,
+  Compass,
+  Lock,
   MapPin,
+  RefreshCw,
   Search,
   Shield,
-  Sparkles,
-  Lock,
-  Timer,
-  Car,
-  Phone,
   Star,
-  RefreshCw,
-  AlertTriangle,
-  Compass,
-  ArrowRight,
+  Timer,
   UserCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { useAuth } from "@/hooks/use-auth";
+import { useAtomicHandshake } from "@/hooks/use-atomic-handshake";
+import { useToast } from "@/hooks/use-toast";
+import { riderDashboardCopy } from "@/lib/i18n/rider-dashboard-copy";
 import { cn } from "@/lib/utils";
+
+const copy = riderDashboardCopy.ar.portal;
 
 export function RiderPortal() {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  // Simulated GPS Coordinates for Jordan's capital (Amman) by default
-  const [coords, setCoords] = useState<{ lat: number; lng: number }>({
+  const [coords] = useState<{ lat: number; lng: number }>({
     lat: 31.953,
     lng: 35.911,
   });
+  const [pickupText, setPickupText] = useState<string>(copy.pickupDefault);
+  const [dropoffText, setDropoffText] = useState<string>(copy.dropoffDefault);
+  const [distance, setDistance] = useState<number>(3.8);
 
-  const [pickupText, setPickupText] = useState("لواء وادي السير - الدوار الثامن");
-  const [dropoffText, setDropoffText] = useState("لواء مأدبا - بوابة السياح");
-  const [distance, setDistance] = useState<number>(3.8); // 3.8 KM estimate
-
-  // Bind Atomic Handshake Core
   const {
     nearbyDrivers,
     isScanning,
@@ -53,303 +50,259 @@ export function RiderPortal() {
     executeAtomicHandshake,
   } = useAtomicHandshake(user, coords);
 
-  // Scan immediately when coordinate loads
   useEffect(() => {
     scanGeoBubble();
   }, [scanGeoBubble]);
 
-  // Handle Freezing pricing
   const handleCalculateAndFreeze = () => {
     const result = freezePricing(distance);
     if (result) {
       toast({
-        title: "❄️ تم تجميد السعر الجغرافي",
-        description: `تم تثبيت قيمة الرحلة بقيمة [${result.price} د.أ] بناءً على تذبذب خلية H3 [${result.h3Cell}].`,
+        title: copy.frozenToastTitle,
+        description: `${copy.frozenToastDescription}: ${result.price} ${copy.currency}.`,
       });
     }
   };
 
-  // Trigger atomic handshake
   const handleInitiateRide = async (driverId: string, driverName: string) => {
     if (!frozenPrice) {
       toast({
         variant: "destructive",
-        title: "خطأ في السعر",
-        description: "يرجى حساب وتجميد السعر مسبقًا لتفعيل مصافحة الخلية السداسية.",
+        title: copy.priceRequiredTitle,
+        description: copy.priceRequiredDescription,
       });
       return;
     }
 
-    const tripId = await executeAtomicHandshake(
-      driverId,
-      driverName,
-      pickupText,
-      dropoffText,
-      distance
-    );
-
+    const tripId = await executeAtomicHandshake(driverId, driverName, pickupText, dropoffText, distance);
     if (tripId) {
-      // Success triggers scan update
       scanGeoBubble();
     }
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-6 text-right pb-10" dir="rtl">
-      {/* Header section with sovereign insignia */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-gradient-to-l from-slate-900 via-[#090e1a] to-slate-950 p-6 rounded-3xl border border-[#14b8a6]/10 shadow-[0_4px_30px_rgba(0,0,0,0.4)]">
-        <div className="space-y-1.5Packed">
+    <div className="mx-auto w-full max-w-4xl space-y-6 pb-10 text-right" dir="rtl">
+      <header className="flex flex-col items-start justify-between gap-4 rounded-2xl border border-[#14b8a6]/15 bg-[#090e1a] p-5 shadow-xl sm:flex-row sm:items-center">
+        <div className="space-y-1.5">
           <div className="flex items-center gap-2">
-            <span className="p-1.5 rounded-xl bg-[#14b8a6]/10 text-[#14b8a6] animate-pulse">
-              <Compass className="w-5 h-5" />
+            <span className="rounded-xl bg-[#14b8a6]/10 p-1.5 text-[#14b8a6]">
+              <Compass className="h-5 w-5" />
             </span>
-            <h1 className="text-xl font-extrabold text-white tracking-tight">محطة الركاب السيادية</h1>
+            <h1 className="text-xl font-extrabold tracking-tight text-white">{copy.title}</h1>
           </div>
-          <p className="text-xs text-slate-400">إدارة الرادار، المصافحة الذرية، وتجميد السعر في خلية H3 السداسية.</p>
+          <p className="max-w-xl text-xs leading-relaxed text-slate-400">{copy.description}</p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <Badge variant="outline" className="border-[#14b8a6]/30 bg-[#14b8a6]/5 text-[#14b8a6] leading-none uppercase font-mono text-[9px] py-1 px-2.5">
-            بروتوكول المصافحة الذرية [075]
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="outline" className="border-[#14b8a6]/30 bg-[#14b8a6]/5 px-2.5 py-1 text-[9px] text-[#14b8a6]">
+            {copy.protocol}
           </Badge>
-          <Badge variant="outline" className="border-amber-500/20 bg-amber-500/5 text-amber-500 text-[9px] py-1 px-2.5">
-            مستوى الفرز: 1.5 كم
+          <Badge variant="outline" className="border-amber-500/20 bg-amber-500/5 px-2.5 py-1 text-[9px] text-amber-500">
+            {copy.range}
           </Badge>
         </div>
-      </div>
+      </header>
 
-      {/* Main Grid layout with Controls & Scan Display */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-        {/* Left Side: Route inputs and H3 freeze engine */}
-        <div className="md:col-span-5 space-y-6">
-          <Card className="bg-[#090e1a]/95 border border-[#14b8a6]/20 rounded-2xl shadow-xl">
-            <CardHeader className="p-5 border-b border-white/[0.04] pb-3">
-              <CardTitle className="text-sm font-black text-white flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-[#14b8a6]" />
-                محدد المسار والخلية السداسية
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
+        <section className="space-y-6 md:col-span-5">
+          <Card className="rounded-2xl border border-[#14b8a6]/20 bg-[#090e1a]/95 shadow-xl">
+            <CardHeader className="border-b border-white/10 p-5 pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm font-black text-white">
+                <MapPin className="h-4 w-4 text-[#14b8a6]" />
+                {copy.routeCard}
               </CardTitle>
-              <CardDescription className="text-[10px] text-gray-500">حساب حركية دقيقة لمنع SURGES العشوائية</CardDescription>
+              <CardDescription className="text-[10px] text-gray-500">{copy.routeDescription}</CardDescription>
             </CardHeader>
-            <CardContent className="p-5 space-y-4">
-              {/* Pickup location */}
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-400">نقطة الانطلاق (الوتد الملاحي):</label>
-                <div className="relative">
-                  <Input
-                    value={pickupText}
-                    onChange={(e) => setPickupText(e.target.value)}
-                    className="w-full bg-black/60 border-white/10 text-white rounded-xl pr-3 text-xs text-right focus:border-[#14b8a6]"
-                  />
-                </div>
-              </div>
 
-              {/* Dropoff location */}
+            <CardContent className="space-y-4 p-5">
               <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-400">وجهة العبور النهائية:</label>
+                <label className="text-xs font-bold text-gray-400">{copy.pickup}</label>
                 <Input
-                  value={dropoffText}
-                  onChange={(e) => setDropoffText(e.target.value)}
-                  className="w-full bg-black/60 border-white/10 text-white rounded-xl pr-3 text-xs text-right focus:border-[#14b8a6]"
+                  value={pickupText}
+                  onChange={(event) => setPickupText(event.target.value)}
+                  className="w-full rounded-xl border-white/10 bg-black/60 pr-3 text-right text-xs text-white focus:border-[#14b8a6]"
                 />
               </div>
 
-              {/* Distance Estimate Input for testing custom mileage */}
               <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-400">المسافة المقدرة بالمتر (KM):</label>
+                <label className="text-xs font-bold text-gray-400">{copy.dropoff}</label>
+                <Input
+                  value={dropoffText}
+                  onChange={(event) => setDropoffText(event.target.value)}
+                  className="w-full rounded-xl border-white/10 bg-black/60 pr-3 text-right text-xs text-white focus:border-[#14b8a6]"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-400">{copy.distance}</label>
                 <Input
                   type="number"
                   step="0.1"
                   value={distance}
-                  onChange={(e) => {
-                    const val = parseFloat(e.target.value);
-                    setDistance(isNaN(val) ? 0 : val);
+                  onChange={(event) => {
+                    const val = parseFloat(event.target.value);
+                    setDistance(Number.isNaN(val) ? 0 : val);
                   }}
-                  className="w-full bg-black/60 border-white/10 text-white rounded-xl pr-3 font-mono text-center text-xs focus:border-[#14b8a6]"
+                  className="w-full rounded-xl border-white/10 bg-black/60 pr-3 text-center font-mono text-xs text-white focus:border-[#14b8a6]"
                 />
               </div>
 
-              {/* Pricing Freeze Block containing the H3-level lock countdown */}
-              <div className="border border-[#14b8a6]/25 bg-[#14b8a6]/5 p-4 rounded-xl space-y-3">
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-gray-400 font-bold">تسعير الخلية الملاحية:</span>
+              <div className="space-y-3 rounded-xl border border-[#14b8a6]/25 bg-[#14b8a6]/5 p-4">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-bold text-gray-400">{copy.pricing}</span>
                   {frozenPrice ? (
-                    <Badge variant="outline" className="border-[#14b8a6] text-[#14b8a6] font-mono">
-                      {frozenH3 || "892f1a..."}
+                    <Badge variant="outline" className="border-[#14b8a6] font-mono text-[#14b8a6]">
+                      {frozenH3 || "H3"}
                     </Badge>
                   ) : (
-                    <span className="text-gray-500 text-[10px]">لم يتم التجميد</span>
+                    <span className="text-[10px] text-gray-500">{copy.notFrozen}</span>
                   )}
                 </div>
 
                 {frozenPrice ? (
                   <div className="flex items-center justify-between">
                     <div>
-                      <span className="text-2xl font-black text-white font-mono">{frozenPrice}</span>
-                      <span className="text-[10px] text-gray-400 mr-1.5">دينار أردني</span>
+                      <span className="font-mono text-2xl font-black text-white">{frozenPrice}</span>
+                      <span className="mr-1.5 text-[10px] text-gray-400">{copy.currency}</span>
                     </div>
 
-                    <div className="flex items-center gap-1.5 bg-black/50 px-2.5 py-1 rounded-lg border border-white/5 font-mono text-xs text-amber-500">
-                      <Timer className="w-3.5 h-3.5 animate-spin" style={{ animationDuration: '4s' }} />
-                      <span>{countdown} ثانية</span>
+                    <div className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-black/50 px-2.5 py-1 font-mono text-xs text-amber-500">
+                      <Timer className="h-3.5 w-3.5" />
+                      <span>
+                        {countdown} {copy.seconds}
+                      </span>
                     </div>
                   </div>
                 ) : (
-                  <p className="text-[10px] text-gray-400 leading-normal">
-                    اضغط على الزر أدناه لتجميد وحماية السعر من التقلبات العشوائية بمقدار 120 ثانية كاملة.
-                  </p>
+                  <p className="text-[10px] leading-normal text-gray-400">{copy.freezeHelp}</p>
                 )}
 
                 <Button
                   onClick={handleCalculateAndFreeze}
-                  className="w-full bg-cyan-950/60 border border-[#14b8a6]/40 hover:bg-[#14b8a6]/25 text-[#14b8a6] text-xs font-bold py-2 h-9 rounded-lg flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border border-[#14b8a6]/40 bg-cyan-950/60 py-2 text-xs font-bold text-[#14b8a6] hover:bg-[#14b8a6]/25"
                 >
-                  <Lock className="w-3.5 h-3.5" />
-                  {frozenPrice ? "تحديث وتجديد التجميد ❄️" : "حساب وتجميد قيمة العبور"}
+                  <Lock className="h-3.5 w-3.5" />
+                  {frozenPrice ? copy.refreshFreezeButton : copy.freezeButton}
                 </Button>
               </div>
             </CardContent>
           </Card>
-        </div>
+        </section>
 
-        {/* Right Side: Geodesic scan radar results */}
-        <div className="md:col-span-7 space-y-6">
-          <Card className="bg-[#090e1a]/95 border border-white/[0.04] rounded-2xl shadow-xl flex-1 flex flex-col">
-            <CardHeader className="p-5 border-b border-white/[0.04] flex flex-row items-center justify-between gap-4">
+        <section className="space-y-6 md:col-span-7">
+          <Card className="flex flex-1 flex-col rounded-2xl border border-white/10 bg-[#090e1a]/95 shadow-xl">
+            <CardHeader className="flex flex-row items-center justify-between gap-4 border-b border-white/10 p-5">
               <div>
-                <CardTitle className="text-sm font-black text-white flex items-center gap-2">
-                  <Search className="w-4 h-4 text-[#14b8a6]" />
-                  رادار الفرز الجغرافي (1.5 كم)
+                <CardTitle className="flex items-center gap-2 text-sm font-black text-white">
+                  <Search className="h-4 w-4 text-[#14b8a6]" />
+                  {copy.nearbyDrivers}
                 </CardTitle>
-                <CardDescription className="text-[10px] text-gray-500">الكباتن المتواجدين داخل الفقاعة الجيوديسية الحالية</CardDescription>
+                <CardDescription className="text-[10px] text-gray-500">{copy.nearbyDescription}</CardDescription>
               </div>
 
               <Button
                 size="sm"
                 onClick={scanGeoBubble}
                 disabled={isScanning}
-                className="bg-black/40 border border-[#14b8a6]/35 text-[#14b8a6] text-xs leading-none h-8 px-2.5 rounded-lg flex items-center gap-1 cursor-pointer"
+                className="flex h-8 items-center gap-1 rounded-lg border border-[#14b8a6]/35 bg-black/40 px-2.5 text-xs text-[#14b8a6]"
               >
-                {isScanning ? <RefreshCw className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
-                تحديث
+                <RefreshCw className={cn("h-3 w-3", isScanning && "animate-spin")} />
+                {copy.refresh}
               </Button>
             </CardHeader>
 
-            <CardContent className="p-5 space-y-4 max-h-[440px] overflow-y-auto">
+            <CardContent className="max-h-[440px] space-y-4 overflow-y-auto p-5">
               {isScanning ? (
-                <div className="text-center py-12 space-y-3">
-                  <LoaderIcon className="w-8 h-8 text-[#14b8a6] animate-spin mx-auto" />
-                  <p className="text-xs text-gray-400 font-mono">يتم فحص الميدان ومقاطعة البيانات الجيوديسية...</p>
+                <div className="space-y-3 py-12 text-center">
+                  <RefreshCw className="mx-auto h-8 w-8 animate-spin text-[#14b8a6]" />
+                  <p className="text-xs text-gray-400">{copy.scanning}</p>
                 </div>
               ) : nearbyDrivers.length > 0 ? (
                 <div className="space-y-3">
-                  {nearbyDrivers.map((drv) => (
-                    <div
-                      key={drv.uid}
-                      className="p-4 bg-black/40 hover:bg-black/60 rounded-xl border border-white/[0.05] transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs"
+                  {nearbyDrivers.map((driver) => (
+                    <article
+                      key={driver.uid}
+                      className="flex flex-col items-start justify-between gap-4 rounded-xl border border-white/10 bg-black/40 p-4 text-xs transition-all hover:bg-black/60 sm:flex-row sm:items-center"
                     >
-                      {/* Driver visual profiling */}
                       <div className="flex gap-3">
-                        <div className="w-10 h-10 rounded-full bg-cyan-950/40 border border-[#14b8a6]/20 flex items-center justify-center text-[#14b8a6] shrink-0 font-bold">
-                          {drv.name.slice(0, 1)}
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#14b8a6]/20 bg-cyan-950/40 font-bold text-[#14b8a6]">
+                          {driver.name.slice(0, 1)}
                         </div>
 
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
-                            <h4 className="font-extrabold text-white text-[12px]">{drv.name}</h4>
-                            <Badge className="bg-cyan-950 text-cyan-400 hover:bg-cyan-950 text-[8px] font-bold border border-cyan-800/30 font-sans leading-none py-0.5 px-2">
-                              {drv.rank}
+                            <h4 className="text-[12px] font-extrabold text-white">{driver.name}</h4>
+                            <Badge className="border border-cyan-800/30 bg-cyan-950 px-2 py-0.5 text-[8px] font-bold leading-none text-cyan-400 hover:bg-cyan-950">
+                              {driver.rank}
                             </Badge>
                           </div>
 
-                          <div className="flex items-center gap-3 text-[10px] text-gray-400 leading-none">
+                          <div className="flex items-center gap-3 text-[10px] leading-none text-gray-400">
                             <span className="flex items-center gap-1">
-                              <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
-                              {drv.rating.toFixed(1)}
+                              <Star className="h-3 w-3 fill-amber-500 text-amber-500" />
+                              {driver.rating.toFixed(1)}
                             </span>
                             <span className="text-gray-600">|</span>
-                            <span className="font-mono">تبعد: {drv.distanceKm} كم</span>
+                            <span className="font-mono">
+                              {copy.distanceLabel}: {driver.distanceKm} كم
+                            </span>
                           </div>
 
-                          {/* Vehicle make & Year */}
                           <div className="flex items-center gap-1 text-[10px] text-gray-500">
-                            <Car className="w-3 h-3 text-gray-400" />
+                            <Car className="h-3 w-3 text-gray-400" />
                             <span>
-                              {drv.vehicle?.make || "سيارة"} {drv.vehicle?.modelYear || "حديثة"} - لوحة [
-                              <strong className="text-gray-300 font-mono">{drv.vehicle?.plate || "سياج-Jordan"}</strong>]
+                              {driver.vehicle?.make || copy.car} {driver.vehicle?.modelYear || ""}
+                              {" - "}
+                              {copy.plate} [
+                              <strong className="font-mono text-gray-300">{driver.vehicle?.plate || "-"}</strong>]
                             </span>
                           </div>
                         </div>
                       </div>
 
-                      {/* Connect controls CTA with concurrent block safeguard */}
                       <Button
-                        onClick={() => handleInitiateRide(drv.uid, drv.name)}
+                        onClick={() => handleInitiateRide(driver.uid, driver.name)}
                         disabled={isLocked}
                         className={cn(
-                          "sm:w-auto w-full h-9 px-3 text-[11px] font-black rounded-lg flex items-center justify-center gap-1 cursor-pointer transition-all",
+                          "flex h-9 w-full items-center justify-center gap-1 rounded-lg px-3 text-[11px] font-black transition-all sm:w-auto",
                           isLocked
-                            ? "bg-slate-800 text-slate-400 cursor-not-allowed border border-white/5"
-                            : "bg-[#14b8a6] hover:bg-[#14b8a6]/90 text-black shadow-[0_0_10px_rgba(20,184,166,0.1)]"
+                            ? "cursor-not-allowed border border-white/10 bg-slate-800 text-slate-400"
+                            : "bg-[#14b8a6] text-black hover:bg-[#14b8a6]/90",
                         )}
                       >
                         {isLocked ? (
                           <>
-                            <Lock className="w-3 h-3 animate-pulse" />
-                            حظر تنفيذي...
+                            <Lock className="h-3 w-3 animate-pulse" />
+                            {copy.locked}
                           </>
                         ) : (
                           <>
-                            <UserCheck className="w-3.5 h-3.5 ml-1" />
-                            مصافحة وطلب 🤝
+                            <UserCheck className="h-3.5 w-3.5" />
+                            {copy.request}
                           </>
                         )}
                       </Button>
-                    </div>
+                    </article>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-12 space-y-3 bg-black/20 rounded-2xl border border-white/[0.02]">
-                  <AlertTriangle className="w-6 h-6 text-amber-500/60 mx-auto" />
+                <div className="space-y-3 rounded-2xl border border-white/10 bg-black/20 py-12 text-center">
+                  <AlertTriangle className="mx-auto h-6 w-6 text-amber-500/70" />
                   <div className="space-y-1">
-                    <h4 className="text-xs font-bold text-gray-300">فقاعة الفرز خالية</h4>
-                    <p className="text-[10px] text-gray-500 leading-normal max-w-xs mx-auto">
-                      لم نجد فرساناً بجوارك حالياً في محيط الـ 1.5 كم. يرجى تجربة النقر على "تحديث" للمحاولة مجدداً.
-                    </p>
+                    <h4 className="text-xs font-bold text-gray-300">{copy.emptyTitle}</h4>
+                    <p className="mx-auto max-w-xs text-[10px] leading-normal text-gray-500">{copy.emptyDescription}</p>
                   </div>
                 </div>
               )}
             </CardContent>
           </Card>
-        </div>
+        </section>
       </div>
 
-      {/* Safety and non-proliferation sovereign disclaimer */}
-      <div className="p-4 rounded-xl bg-[#090e1a] border border-[#14b8a6]/25 text-[10px] text-gray-400 leading-normal flex items-start text-right gap-2 shadow-sm">
-        <Shield className="w-4 h-4 text-[#14b8a6] shrink-0 mt-0.5 animate-pulse" />
-        <p>
-          <strong>بروتوكول مأمون الموحد:</strong> تخضع رحلات محطة الركاب لمراقبة المقصلة التقنية ونظام النبض الموجه، مع عزل كامل لمعاملات التسعير لمنع المضاربة والسرقات العشوائية للبيانات. يرجى التمسك بالتسعير المجمد للحفاظ على التوازن المالي في الميدان.
-        </p>
+      <div className="flex items-start gap-2 rounded-xl border border-[#14b8a6]/25 bg-[#090e1a] p-4 text-right text-[10px] leading-normal text-gray-400 shadow-sm">
+        <Shield className="mt-0.5 h-4 w-4 shrink-0 text-[#14b8a6]" />
+        <p>{copy.safety}</p>
       </div>
     </div>
-  );
-}
-
-// Inline Loader component helper
-function LoaderIcon(props: React.JSX.IntrinsicElements["svg"]) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-    </svg>
   );
 }

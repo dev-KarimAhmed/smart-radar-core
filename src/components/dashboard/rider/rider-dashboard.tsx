@@ -1,14 +1,13 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { AlertCircle, Briefcase, Clock, Heart, MessageCircle, Phone, Send, Trash2, X } from 'lucide-react';
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { ShieldCheck, Phone, AlertCircle, Clock, Trash2, Send, Heart, Briefcase, X, MessageCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { dexieDb, RadarCaptainFavoriteKernel } from '@/lib/dexie-db';
-import { db, auth } from '@/lib/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { auth, db } from '@/lib/firebase';
+import { riderDashboardCopy } from '@/lib/i18n/rider-dashboard-copy';
 
 export interface HistoricalTrip {
   tripId: string;
@@ -17,7 +16,13 @@ export interface HistoricalTrip {
   captainPhone: string;
   vehicleInfo: string;
   finalPrice: number;
-  timestamp: number; // وقت إنهاء الرحلة بالملي ثانية
+  timestamp: number;
+}
+
+interface FavoriteCaptain extends HistoricalTrip {
+  id?: number;
+  heartedAt: number;
+  captainType?: 'uber' | 'careem' | 'independent';
 }
 
 interface RiderDashboardProps {
@@ -31,26 +36,53 @@ interface RiderDashboardProps {
   systemMessages: string[];
 }
 
-export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({ riderProfile, tripsWithin72Hours, systemMessages }) => {
+const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
+const copy = riderDashboardCopy.ar;
+
+const sanitizeText = (str: string | null | undefined): string => {
+  if (!str) return '';
+  return str.replace(/<[^>]*>/g, '');
+};
+
+const captainTypeLabel = (type: FavoriteCaptain['captainType']) => {
+  if (type === 'uber') return copy.recent.uber;
+  if (type === 'careem') return copy.recent.careem;
+  return copy.recent.independent;
+};
+
+const buildWhatsappUrl = (phone: string, name: string) => {
+  const cleanPhone = phone.replace(/\D/g, '');
+  const waPhone = cleanPhone.startsWith('0')
+    ? `962${cleanPhone.slice(1)}`
+    : cleanPhone.startsWith('962')
+      ? cleanPhone
+      : `962${cleanPhone}`;
+
+  return `https://wa.me/${waPhone}?text=${encodeURIComponent(`مرحبا كابتن ${sanitizeText(name)}، أريد التواصل بخصوص رحلة سابقة.`)}`;
+};
+
+export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
+  riderProfile,
+  tripsWithin72Hours,
+  systemMessages,
+}) => {
   const [reportText, setReportText] = useState('');
-  const [favoriteCaptains, setFavoriteCaptains] = useState<any[]>([]);
+  const [favoriteCaptains, setFavoriteCaptains] = useState<FavoriteCaptain[]>([]);
   const [isPortfolioOpen, setIsPortfolioOpen] = useState(false);
   const { toast } = useToast();
-  
-  const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000; // 72 ساعة بالملي ثانية
-  const now = Date.now();
 
-  const sanitizeText = (str: string | null | undefined): string => {
-    if (!str) return '';
-    return str.replace(/<[^>]*>/g, '');
-  };
+  const now = Date.now();
+  const activeArchive = useMemo(
+    () => tripsWithin72Hours.filter((trip) => now - trip.timestamp < THREE_DAYS_MS),
+    [now, tripsWithin72Hours],
+  );
 
   const loadFavorites = async () => {
     try {
       const favs = await dexieDb.favoriteCaptains.toArray();
-      setFavoriteCaptains(favs);
-    } catch (e) {
-      console.error("Failed to load favorites from Dexie:", e);
+      setFavoriteCaptains(favs as FavoriteCaptain[]);
+    } catch (error) {
+      console.error('Failed to load favorites from Dexie:', error);
     }
   };
 
@@ -58,497 +90,497 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({ riderProfil
     loadFavorites();
   }, []);
 
-  // فحص وتطهير المصفوفة محلياً عند الحافة لضمان عدم عرض أي رحلة تجاوزت الـ 72 ساعة حتماً
-  const activeArchive = tripsWithin72Hours.filter(trip => (now - trip.timestamp) < THREE_DAYS_MS);
+  const removeFavorite = async (favorite: FavoriteCaptain) => {
+    const existing =
+      favorite.id !== undefined
+        ? favorite
+        : await dexieDb.favoriteCaptains.where('tripId').equals(favorite.tripId).first();
 
-  const toggleFavorite = async (e: React.MouseEvent, trip: HistoricalTrip) => {
-    e.stopPropagation();
+    if (existing?.id !== undefined) {
+      await dexieDb.favoriteCaptains.delete(existing.id);
+    }
+
+    try {
+      localStorage.removeItem(`radar_preferred_captain_${favorite.tripId}`);
+    } catch (error) {
+      console.warn('Storage delete failed:', error);
+    }
+
+    toast({
+      title: copy.toast.removedFavorite,
+      description: copy.toast.removedFavoriteDesc,
+    });
+    loadFavorites();
+  };
+
+  const toggleFavorite = async (event: React.MouseEvent, trip: HistoricalTrip) => {
+    event.stopPropagation();
+
     try {
       const existing = await dexieDb.favoriteCaptains.where('tripId').equals(trip.tripId).first();
       if (existing) {
-        if (existing.id !== undefined) {
-          await dexieDb.favoriteCaptains.delete(existing.id);
-        }
-        try {
-          localStorage.removeItem(`radar_preferred_captain_${trip.tripId}`);
-        } catch (err) {
-          console.warn("Storage write failed (removeItem):", err);
-        }
-        toast({
-          title: "💔 تم الإزالة من المفضلة",
-          description: `تمت إزالة الكابتن ${sanitizeText(trip.captainName)} من الخزنة المخصصة.`,
-        });
-      } else {
-        // تشغيل بروتوكول المصادقة والتخليد عند الحافة
-        RadarCaptainFavoriteKernel.mummifyTrustedCaptain({
+        await removeFavorite({ ...(existing as FavoriteCaptain), ...trip });
+        return;
+      }
+
+      const captainType =
+        trip.captainRank === 'PLATINUM' ? 'careem' : trip.captainRank === 'GOLD' ? 'uber' : 'independent';
+
+      RadarCaptainFavoriteKernel.mummifyTrustedCaptain(
+        {
           captainId: trip.tripId,
           captainName: sanitizeText(trip.captainName),
           captainPhone: trip.captainPhone,
           vehicleInfo: sanitizeText(trip.vehicleInfo),
-          captainType: trip.captainRank === 'PLATINUM' ? 'careem' : trip.captainRank === 'GOLD' ? 'uber' : 'independent',
-          tripId: trip.tripId
-        }, true);
-
-        await dexieDb.favoriteCaptains.add({
+          captainType,
           tripId: trip.tripId,
-          captainName: sanitizeText(trip.captainName),
-          captainRank: trip.captainRank,
-          captainPhone: trip.captainPhone,
-          vehicleInfo: sanitizeText(trip.vehicleInfo),
-          finalPrice: trip.finalPrice,
-          timestamp: trip.timestamp,
-          heartedAt: Date.now()
-        });
-        toast({
-          title: "💖 تم التخليد السيادي بنجاح",
-          description: `تم حفظ الكابتن ${sanitizeText(trip.captainName)} كـ ناقل مفضل مستقر للأبد بصفر كلفة سحابية.`,
-        });
-        if (typeof navigator !== 'undefined' && navigator.vibrate) {
-          navigator.vibrate([60, 40, 60]);
-        }
+        },
+        true,
+      );
+
+      await dexieDb.favoriteCaptains.add({
+        tripId: trip.tripId,
+        captainName: sanitizeText(trip.captainName),
+        captainRank: trip.captainRank,
+        captainPhone: trip.captainPhone,
+        vehicleInfo: sanitizeText(trip.vehicleInfo),
+        finalPrice: trip.finalPrice,
+        timestamp: trip.timestamp,
+        heartedAt: Date.now(),
+        captainType,
+      } as FavoriteCaptain);
+
+      toast({
+        title: copy.toast.savedFavorite,
+        description: copy.toast.savedFavoriteDesc,
+      });
+
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate([60, 40, 60]);
       }
+
       loadFavorites();
-    } catch (e) {
-      console.error(e);
+    } catch (error) {
+      console.error(error);
     }
   };
 
-  const updateCaptainType = async (favId: number, type: 'uber' | 'careem' | 'independent') => {
+  const updateCaptainType = async (favId: number, type: FavoriteCaptain['captainType']) => {
+    if (!type) return;
+
     try {
-      await dexieDb.favoriteCaptains.update(favId, { captainType: type } as any);
-      const favorite = favoriteCaptains.find(f => f.id === favId);
+      await dexieDb.favoriteCaptains.update(favId, { captainType: type } as FavoriteCaptain);
+      const favorite = favoriteCaptains.find((item) => item.id === favId);
+
       if (favorite) {
         try {
-          localStorage.setItem(`radar_preferred_captain_${favorite.tripId}`, JSON.stringify({
-            captainId: favorite.tripId,
-            fullName: sanitizeText(favorite.captainName),
-            phoneNumber: favorite.captainPhone,
-            captainType: type,
-            vehicleSpecs: sanitizeText(favorite.vehicleInfo),
-            savedTimestamp: favorite.heartedAt || Date.now()
-          }));
-        } catch (err) {
-          console.warn("Storage write failed (setItem):", err);
+          localStorage.setItem(
+            `radar_preferred_captain_${favorite.tripId}`,
+            JSON.stringify({
+              captainId: favorite.tripId,
+              fullName: sanitizeText(favorite.captainName),
+              phoneNumber: favorite.captainPhone,
+              captainType: type,
+              vehicleSpecs: sanitizeText(favorite.vehicleInfo),
+              savedTimestamp: favorite.heartedAt || Date.now(),
+            }),
+          );
+        } catch (error) {
+          console.warn('Storage write failed:', error);
         }
       }
+
       toast({
-        title: "⚡ تم تحديث التصنيف",
-        description: `تم تصنيف الكابتن كـ ${type === 'uber' ? 'أوبر' : type === 'careem' ? 'كريم' : 'مستقل'} بنجاح.`,
+        title: copy.toast.categoryUpdated,
+        description: `${copy.toast.categoryUpdatedDesc} ${captainTypeLabel(type)}.`,
       });
       loadFavorites();
-      if (typeof navigator !== 'undefined' && navigator.vibrate) {
-        navigator.vibrate([40]);
-      }
-    } catch (e) {
-      console.error(e);
+    } catch (error) {
+      console.error(error);
     }
   };
 
   const handleSilentReport = async (tripId: string) => {
     if (!reportText.trim()) return;
-    
-    // استدعاء مصفوفة الإحداثيات المخزنة محلياً في جهاز الراكب كدليل جنائي رفقة البلاغ عند الطلب
+
     let localBufferCords = '';
     try {
       const stored = localStorage.getItem('sovereign_gps_local_buffer');
       if (stored) {
         const parsed = JSON.parse(stored);
-        localBufferCords = parsed.map((pt: any) => `[${pt.lat.toFixed(5)},${pt.lng.toFixed(5)}@${new Date(pt.timestamp).toISOString().slice(11, 19)}]`).join(', ');
+        localBufferCords = parsed
+          .map((pt: { lat: number; lng: number; timestamp: number }) =>
+            `[${pt.lat.toFixed(5)},${pt.lng.toFixed(5)}@${new Date(pt.timestamp).toISOString().slice(11, 19)}]`,
+          )
+          .join(', ');
       }
-    } catch (e) {
-      console.warn("Failed to extract forensic local buffer", e);
+    } catch (error) {
+      console.warn('Failed to read local GPS buffer:', error);
     }
 
-    const payloadText = `${reportText.trim()} | [بصمة الجهاز الموضعية للجريمة الملاحية: ${localBufferCords || 'لا توجد إحداثيات مخزنة بالمسجل المباشر'}]`;
-    
+    const payloadText = `${reportText.trim()} | GPS buffer: ${localBufferCords || 'none'}`;
+
     try {
       await addDoc(collection(db, 'silent_reports'), {
         tripId,
         reportText: reportText.trim(),
         payloadText,
         riderId: auth.currentUser?.uid || riderProfile.id || 'anonymous',
-        timestamp: serverTimestamp()
+        timestamp: serverTimestamp(),
       });
-      console.log(`📡 نبضة بلاغ جنائي موجهة للسيرفر (1 Write) للرحلة ${tripId}: ${payloadText}`);
     } catch (error) {
-      console.error("Failed to submit silent report:", error);
+      console.error('Failed to submit report:', error);
     }
-    
+
     setReportText('');
     toast({
-      title: '✅ تم إيداع البلاغ في الصندوق الأسود',
-      description: 'تم إرفاق بصمة الإحداثيات المحلية كدليل جنائي متكامل بالصندوق الأسود بنجاح.',
-      variant: 'default',
+      title: copy.toast.reportSent,
+      description: copy.toast.reportSentDesc,
+    });
+  };
+
+  const deleteFavoriteCard = async (captain: FavoriteCaptain) => {
+    if (captain.id !== undefined) {
+      await dexieDb.favoriteCaptains.delete(captain.id);
+    }
+
+    try {
+      localStorage.removeItem(`radar_preferred_captain_${captain.tripId}`);
+    } catch (error) {
+      console.warn('Storage delete failed:', error);
+    }
+
+    loadFavorites();
+    toast({
+      title: copy.toast.cardDeleted,
+      description: copy.toast.cardDeletedDesc,
     });
   };
 
   return (
-    <div className="radar-rider-container max-w-xl mx-auto rounded-xl border border-emerald-900 bg-black text-white p-5 md:p-6 font-mono text-right shadow-2xl relative overflow-hidden" dir="rtl">
-      
-      {/* 1. رصيد الثقة وجدار حماية المناعة */}
-      <div className="trust-card border-b-2 border-[#111] pb-4 mb-4">
-        <h3 className="text-base md:text-lg font-black font-sans text-emerald-400 mb-3">📡 غرفة تحكم الراكب السيادية - V5.5</h3>
-        <div className="flex justify-between items-center bg-[#0a0f0a] border border-emerald-950/40 p-4 rounded-xl shadow-inner">
-          <span className="text-[11px] text-gray-300 font-bold">رصيد الثقة والمناعة (تقييم الكباتن لك):</span>
-          <strong 
-            className="text-lg md:text-xl font-black px-3 py-1 rounded-lg"
-            style={{ 
+    <div
+      className="radar-rider-container relative mx-auto max-w-xl overflow-hidden rounded-xl border border-emerald-900 bg-black p-5 text-right text-white shadow-2xl md:p-6"
+      dir="rtl"
+    >
+      <div className="mb-4 border-b border-white/10 pb-4">
+        <h3 className="mb-3 text-base font-black text-emerald-400 md:text-lg">{copy.recent.title}</h3>
+        <div className="flex items-center justify-between rounded-xl border border-emerald-950/50 bg-[#0a0f0a] p-4">
+          <span className="text-[11px] font-bold text-gray-300">{copy.recent.ratingLabel}</span>
+          <strong
+            className="rounded-lg px-3 py-1 text-lg font-black md:text-xl"
+            style={{
               color: riderProfile.rating < 4.3 ? '#ff3366' : '#00ffcc',
-              backgroundColor: riderProfile.rating < 4.3 ? 'rgba(255,51,102,0.1)' : 'rgba(0,255,204,0.1)'
+              backgroundColor: riderProfile.rating < 4.3 ? 'rgba(255,51,102,0.1)' : 'rgba(0,255,204,0.1)',
             }}
           >
             {riderProfile.rating.toFixed(2)} / 5.0
           </strong>
         </div>
+
         {riderProfile.rating < 4.3 && (
-          <div className="flex items-center gap-1.5 mt-2 bg-rose-500/10 border border-rose-500/20 text-[#ff3366] p-2.5 rounded-lg text-[10px]">
-            <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-            <p className="font-bold">
-              ⚠️ تحذير: تقييمك يقترب من الخط الحرج (4.2). يرجى الالتزام بالوقت والنقد لتفادي الحظر التلقائي.
-            </p>
+          <div className="mt-2 flex items-start gap-2 rounded-lg border border-rose-500/20 bg-rose-500/10 p-2.5 text-[10px] text-[#ff3366]">
+            <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+            <p className="font-bold">{copy.recent.lowRating}</p>
           </div>
         )}
       </div>
 
-      {/* 💼 Portfolio Quick Launcher Panel - حقيبة الناقل المفضل */}
-      <div className="portfolio-banner mb-5">
-        <Button 
-          onClick={() => setIsPortfolioOpen(true)}
-          className="w-full h-11 bg-gradient-to-l from-emerald-950 to-emerald-900 hover:from-emerald-900 hover:to-emerald-850 border border-emerald-500/30 text-white font-black text-xs flex items-center justify-center gap-2 rounded-xl shadow-lg transition-transform hover:scale-[1.01]"
-        >
-          <Briefcase className="w-4 h-4 text-[#00ffcc] animate-pulse" />
-          <span>💼 حقيبة الناقل المفضل ({favoriteCaptains.length} كباتن في الخزنة)</span>
-        </Button>
-      </div>
+      <Button
+        onClick={() => setIsPortfolioOpen(true)}
+        className="mb-5 flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-950 text-xs font-black text-white hover:bg-emerald-900"
+      >
+        <Briefcase className="h-4 w-4 text-[#00ffcc]" />
+        <span>
+          {copy.recent.favoritesBag} ({favoriteCaptains.length})
+        </span>
+      </Button>
 
-      {/* 2. أرشيف الـ 3 أيام المطهّر وحماية المفقودات */}
-      <div className="archive-section space-y-3 mb-6">
-        <h4 className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-2 flex items-center justify-between">
-          <span>📋 أرشيف الرحلات النشطة (صلاحية 3 أيام للتطهير التلقائي)</span>
-        </h4>
+      <section className="mb-6 space-y-3">
+        <h4 className="text-xs font-bold uppercase tracking-wide text-gray-400">{copy.recent.recentTrips}</h4>
+
         {activeArchive.length === 0 ? (
-          <div className="border border-dashed border-white/5 bg-white/2 p-5 text-center rounded-xl">
-            <Trash2 className="w-5 h-5 text-gray-600 mx-auto mb-2" />
-            <p className="text-[11px] text-gray-500 font-medium italic">
-              لا توجد رحلات نشطة في آخر 72 ساعة. تم تطهير السجلات بكفاءة تامة.
-            </p>
+          <div className="rounded-xl border border-dashed border-white/10 bg-white/[0.03] p-5 text-center">
+            <Trash2 className="mx-auto mb-2 h-5 w-5 text-gray-600" />
+            <p className="text-[11px] text-gray-500">{copy.recent.noTrips}</p>
           </div>
         ) : (
-          activeArchive.map(trip => {
+          activeArchive.map((trip) => {
             const timeLeftMs = THREE_DAYS_MS - (now - trip.timestamp);
             const hoursLeft = Math.max(0, Math.floor(timeLeftMs / (1000 * 60 * 60)));
-            const isHearted = favoriteCaptains.some(fav => fav.tripId === trip.tripId);
+            const isHearted = favoriteCaptains.some((fav) => fav.tripId === trip.tripId);
 
             return (
-              <div 
-                key={trip.tripId} 
-                className="bg-[#0b0c0b] p-4 rounded-xl border border-white/5 border-r-4 border-r-emerald-500 space-y-3 shadow-md hover:border-emerald-500/30 transition-all relative overflow-hidden"
+              <article
+                key={trip.tripId}
+                className="relative space-y-3 rounded-xl border border-white/10 border-r-4 border-r-emerald-500 bg-[#0b0c0b] p-4 shadow-md transition-all hover:border-emerald-500/30"
               >
-                {/* Heart Button directly inside the card with glowing green active states */}
                 <button
-                  onClick={(e) => toggleFavorite(e, trip)}
-                  className="absolute top-3 left-3 p-1.5 rounded-md hover:bg-neutral-900 transition-all text-rose-500"
-                  title={isHearted ? "إزالة الكابتن من المفضلة العظيمة" : "تخليد الكابتن كمفضل"}
+                  onClick={(event) => toggleFavorite(event, trip)}
+                  className="absolute left-3 top-3 rounded-md p-1.5 text-rose-500 transition-all hover:bg-neutral-900"
+                  title={isHearted ? copy.toast.removedFavorite : copy.toast.savedFavorite}
+                  type="button"
                 >
-                  <Heart className={`w-5 h-5 transition-all duration-300 ${isHearted ? 'fill-[#00ffcc] text-[#00ffcc] drop-shadow-[0_0_8px_#00ffcc] scale-110' : 'text-gray-400 hover:text-[#00ffcc]'}`} />
+                  <Heart
+                    className={`h-5 w-5 transition-all duration-300 ${
+                      isHearted ? 'fill-[#00ffcc] text-[#00ffcc]' : 'text-gray-400 hover:text-[#00ffcc]'
+                    }`}
+                  />
                 </button>
 
-                <div className="flex justify-between items-center text-[12px] md:text-[13px] pl-8">
-                  <span className="text-gray-300 font-sans">
-                    🚗 الناقل: <strong className="text-white font-black">{trip.captainName} <span className="text-amber-400 text-[10px]">[{trip.captainRank}]</span></strong>
-                  </span>
-                  <span className="text-amber-400 font-black font-mono">
-                    💰 السعر المجمد: {trip.finalPrice} دينار
-                  </span>
-                </div>
-                <p className="text-[11px] text-gray-400 font-sans">
-                  المركبة: {trip.vehicleInfo}
-                </p>
-                
-                {/* بروتوكول استرجاع الأغراض المفقودة عبر اتصال الـ Deep Link */}
-                <div className="flex gap-2 pt-1">
-                  <a 
-                    href={`tel:${trip.captainPhone}`} 
-                    className="h-9 px-4 bg-emerald-950/20 text-emerald-400 hover:bg-emerald-950/50 border border-emerald-500/30 rounded-lg text-[11px] font-black flex items-center justify-center gap-1.5 transition-all text-center select-none"
-                    style={{ textDecoration: 'none' }}
-                  >
-                    <Phone className="w-3.5 h-3.5" />
-                    <span>اتصال للكابتن (فقدان أغراض)</span>
-                  </a>
+                <div className="space-y-1 pl-8 text-[12px] md:text-[13px]">
+                  <p className="text-gray-300">
+                    {copy.recent.captain}:{' '}
+                    <strong className="font-black text-white">
+                      {trip.captainName}{' '}
+                      <span className="text-[10px] text-amber-400">[{trip.captainRank}]</span>
+                    </strong>
+                  </p>
+                  <p className="font-black text-amber-400">
+                    {copy.recent.price}: {trip.finalPrice} د.أ
+                  </p>
+                  <p className="text-[11px] text-gray-400">
+                    {copy.recent.vehicle}: {trip.vehicleInfo}
+                  </p>
                 </div>
 
-                {/* البلاغ الجاف الضروري بصفر كلفة لدعم جدار الحماية */}
-                <div className="flex items-center gap-2 pt-2 border-t border-white/5">
-                  <input 
-                    type="text" 
-                    placeholder="اكتب بلاغاً جنائياً صامتاً في حال المخالفة السعرية..." 
-                    onChange={(e) => setReportText(e.target.value)}
-                    className="flex-1 w-full bg-black border border-white/10 text-white placeholder-gray-600 text-[11px] px-3 py-2 rounded-lg focus:outline-none focus:border-red-500 transition-all font-sans text-right"
+                <a
+                  href={`tel:${trip.captainPhone}`}
+                  className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-950/30 px-4 text-[11px] font-black text-emerald-400 transition-all hover:bg-emerald-950/60"
+                  style={{ textDecoration: 'none' }}
+                >
+                  <Phone className="h-3.5 w-3.5" />
+                  <span>{copy.recent.callLostItems}</span>
+                </a>
+
+                <div className="flex items-center gap-2 border-t border-white/10 pt-2">
+                  <input
+                    type="text"
+                    value={reportText}
+                    placeholder={copy.recent.reportPlaceholder}
+                    onChange={(event) => setReportText(event.target.value)}
+                    className="min-w-0 flex-1 rounded-lg border border-white/10 bg-black px-3 py-2 text-right text-[11px] text-white placeholder:text-gray-600 focus:border-red-500 focus:outline-none"
                     dir="rtl"
                   />
-                  <Button 
-                    onClick={() => handleSilentReport(trip.tripId)} 
-                    className="h-8 px-3 bg-red-950/30 hover:bg-red-900/40 text-red-400 border border-red-500/20 font-black rounded-lg text-[10px] flex items-center gap-1 transition-all shrink-0"
+                  <Button
+                    onClick={() => handleSilentReport(trip.tripId)}
+                    className="h-8 shrink-0 rounded-lg border border-red-500/20 bg-red-950/30 px-3 text-[10px] font-black text-red-400 hover:bg-red-900/40"
                   >
-                    <Send className="w-3 h-3" />
-                    <span>بلاغ صامت</span>
+                    <Send className="ml-1 h-3 w-3" />
+                    {copy.recent.silentReport}
                   </Button>
                 </div>
 
-                <div className="flex justify-between items-center text-[10px] text-gray-500 font-sans pt-1">
-                  <span className="flex items-center gap-1 text-rose-500 font-bold">
-                    <Clock className="w-3 h-3" />
-                    تدمير تلقائي للبيانات بعد: {hoursLeft} ساعة
+                <div className="flex items-center justify-between text-[10px] text-gray-500">
+                  <span className="flex items-center gap-1 font-bold text-rose-500">
+                    <Clock className="h-3 w-3" />
+                    {copy.recent.autoDeleteIn}: {hoursLeft} {copy.recent.hours}
                   </span>
-                  <span className="text-[9px] text-gray-600 font-mono">Trip ID: {trip.tripId.slice(0, 8)}</span>
+                  <span className="font-mono text-[9px] text-gray-600">Trip ID: {trip.tripId.slice(0, 8)}</span>
                 </div>
-              </div>
+              </article>
             );
           })
         )}
-      </div>
+      </section>
 
-      {/* [SCR-AUTH-PROTO-140 / Mada (3)] 💖 خزنة الكباتن المفضلة لتخليد البيانات محلياً بصفر تكلفة */}
-      <div className="favorites-vault-section space-y-3 bg-[#050c05]/60 border border-emerald-500/20 p-4 rounded-xl">
-        <h4 className="text-xs text-[#00ffcc] font-black uppercase tracking-wider mb-2 flex items-center justify-between border-b border-white/5 pb-2">
-          <span>💖 خزنة الكباتن المفضلة (تخليد سيادي دائم - صفر كلفة $0.00)</span>
-          <span className="bg-emerald-950 text-emerald-400 text-[8px] px-1.5 py-0.5 rounded-full font-mono">
-            {favoriteCaptains.length} كباتن
+      <section className="space-y-3 rounded-xl border border-emerald-500/20 bg-[#050c05]/60 p-4">
+        <h4 className="flex items-center justify-between border-b border-white/10 pb-2 text-xs font-black uppercase tracking-wide text-[#00ffcc]">
+          <span>{copy.recent.savedCaptains}</span>
+          <span className="rounded-full bg-emerald-950 px-2 py-0.5 font-mono text-[8px] text-emerald-400">
+            {favoriteCaptains.length}
           </span>
         </h4>
+
         {favoriteCaptains.length === 0 ? (
-          <div className="p-4 text-center rounded-lg bg-black/30 border border-dashed border-emerald-500/10">
-            <span className="text-lg block mb-1">❤️</span>
-            <p className="text-[10px] text-gray-400 leading-normal">
-              انقر على أيقونة <strong className="text-rose-450 text-[#00ffcc]">القلب</strong> بالرحلات النشطة أعلاه لتخليد الكبتن وحمايته من التطهير التلقائي للوصول إليه في أي وقت دون كلفة سحابية.
-            </p>
+          <div className="rounded-lg border border-dashed border-emerald-500/10 bg-black/30 p-4 text-center">
+            <Heart className="mx-auto mb-2 h-5 w-5 text-gray-600" />
+            <p className="text-[10px] leading-normal text-gray-400">{copy.recent.noFavorites}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-2.5">
             {favoriteCaptains.map((captain) => (
-              <div 
-                key={captain.id} 
-                className="bg-black/80 border border-emerald-500/20 p-3 rounded-lg space-y-2 relative"
-              >
-                {/* Remove heart */}
+              <div key={captain.id ?? captain.tripId} className="relative space-y-2 rounded-lg border border-emerald-500/20 bg-black/80 p-3">
                 <button
-                  onClick={(e) => toggleFavorite(e, captain)}
-                  className="absolute top-2 left-2 p-1 text-rose-500 hover:scale-105 transition-all"
-                  title="استرجاع من التخليد"
+                  onClick={() => removeFavorite(captain)}
+                  className="absolute left-2 top-2 p-1 text-rose-500 transition-all hover:scale-105"
+                  title={copy.toast.removedFavorite}
+                  type="button"
                 >
-                  <Trash2 className="w-3.5 h-3.5 opacity-70 hover:opacity-100" />
+                  <Trash2 className="h-3.5 w-3.5 opacity-70 hover:opacity-100" />
                 </button>
 
-                <div className="flex justify-between items-start text-[11px] pl-6">
-                  <div>
-                    <h5 className="font-extrabold text-white text-[12px]">
-                      {captain.captainName} <span className="text-amber-400 text-[9px] font-mono">[{captain.captainRank}]</span>
-                    </h5>
-                    <p className="text-[10px] text-gray-400 leading-normal font-sans">{captain.vehicleInfo}</p>
-                  </div>
-                  <div className="text-left font-mono shrink-0">
-                    <span className="text-[9px] text-[#00ffcc] block bg-[#0a200a] px-1.5 py-0.5 rounded border border-emerald-500/10 font-bold">مفضل دائم</span>
-                  </div>
+                <div className="pl-6 text-[11px]">
+                  <h5 className="text-[12px] font-extrabold text-white">
+                    {captain.captainName}{' '}
+                    <span className="font-mono text-[9px] text-amber-400">[{captain.captainRank}]</span>
+                  </h5>
+                  <p className="text-[10px] leading-normal text-gray-400">{captain.vehicleInfo}</p>
                 </div>
 
-                <div className="flex items-center justify-between pt-1 border-t border-white/5">
-                  <span className="text-[9px] text-gray-500 font-sans">🛡️ تم الإنقاذ من الفقدان الملاحي</span>
-                  
-                  {/* Direct Dial Action */}
-                  <a 
+                <div className="flex items-center justify-between border-t border-white/10 pt-2">
+                  <span className="rounded border border-emerald-500/10 bg-[#0a200a] px-1.5 py-0.5 text-[9px] font-bold text-[#00ffcc]">
+                    {copy.recent.savedPermanent}
+                  </span>
+                  <a
                     href={`tel:${captain.captainPhone}`}
-                    className="h-7 px-2.5 bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-500/20 rounded-md text-[10px] font-black flex items-center gap-1 transition-all select-none"
+                    className="flex h-7 items-center gap-1 rounded-md border border-emerald-500/20 bg-emerald-600 px-2.5 text-[10px] font-black text-white hover:bg-emerald-500"
                     style={{ textDecoration: 'none' }}
                   >
-                    <Phone className="w-3 h-3" />
-                    <span>اتصل الآن ({captain.captainPhone})</span>
+                    <Phone className="h-3 w-3" />
+                    <span>{copy.recent.callNow}</span>
                   </a>
                 </div>
               </div>
             ))}
           </div>
         )}
-      </div>
+      </section>
 
-      {/* 3. مركز رسائل النظام والنبض الموجه للواء الجغرافي */}
-      <div className="messages-block mt-6 p-4 bg-[#0a0a0a] border border-white/5 rounded-xl space-y-3">
-        <h4 className="text-xs text-amber-400 font-black border-b border-white/5 pb-2" dir="rtl">
-          📡 تنبيهات النظام الموجهة لـ (لواء {riderProfile.district || 'وادي السير'})
+      <section className="mt-6 space-y-3 rounded-xl border border-white/10 bg-[#0a0a0a] p-4">
+        <h4 className="border-b border-white/10 pb-2 text-xs font-black text-amber-400">
+          {copy.recent.messagesTitle} - {riderProfile.district || riderProfile.governorate || copy.details.unknown}
         </h4>
-        {systemMessages && systemMessages.length > 0 ? (
-          <ul className="space-y-2 pr-1 text-[11px] text-gray-300 leading-relaxed font-sans">
-            {systemMessages.map((msg, idx) => (
-              <li key={idx} className="flex items-start gap-2 text-right">
-                <span className="text-amber-500 shrink-0 mt-0.5">•</span>
+        {systemMessages?.length > 0 ? (
+          <ul className="space-y-2 pr-1 text-[11px] leading-relaxed text-gray-300">
+            {systemMessages.map((msg, index) => (
+              <li key={`${msg}-${index}`} className="flex items-start gap-2 text-right">
+                <span className="mt-0.5 shrink-0 text-amber-500">•</span>
                 <span>{msg}</span>
               </li>
             ))}
           </ul>
         ) : (
-          <p className="text-[10px] text-gray-500 italic text-center py-1">لا توجد تنبيهات نشطة للواء حالياً.</p>
+          <p className="py-1 text-center text-[10px] italic text-gray-500">{copy.recent.noMessages}</p>
         )}
-      </div>
+      </section>
 
-      {/* 💼 Preference Portfolio Drawer Panel overlay */}
       {isPortfolioOpen && (
-        <div className="absolute inset-0 bg-[#040604]/98 z-50 flex flex-col p-5 md:p-6 overflow-y-auto" style={{ direction: 'rtl' }}>
-          <div className="flex justify-between items-center border-b border-emerald-550/20 pb-4 mb-4">
+        <div className="absolute inset-0 z-50 flex flex-col overflow-y-auto bg-[#040604]/98 p-5 md:p-6" dir="rtl">
+          <div className="mb-4 flex items-center justify-between border-b border-emerald-500/20 pb-4">
             <div className="flex items-center gap-2">
-              <Briefcase className="w-5 h-5 text-[#00ffcc]" />
-              <h3 className="text-sm md:text-base font-black text-white font-sans">
-                💼 حقيبة الناقل المفضل السيادية
-              </h3>
+              <Briefcase className="h-5 w-5 text-[#00ffcc]" />
+              <h3 className="text-sm font-black text-white md:text-base">{copy.recent.portfolioTitle}</h3>
             </div>
-            <button 
+            <button
               onClick={() => setIsPortfolioOpen(false)}
-              className="p-1.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-gray-400 hover:text-white transition-all"
+              className="rounded-lg bg-neutral-900 p-1.5 text-gray-400 transition-all hover:bg-neutral-800 hover:text-white"
+              type="button"
             >
-              <X className="w-5 h-5" />
+              <X className="h-5 w-5" />
             </button>
           </div>
 
           <div className="flex-1 space-y-4">
-            <p className="text-[10px] text-gray-400 text-right leading-relaxed mb-1 font-sans">
-              هذه الكروت يتم تشفيرها وتخليدها محلياً على جهازك مالحقاً لـ <strong>V5.5</strong>. يمكنك الاتصال بالكابتن مباشرةً أو واتساب لضمان عدم ضياع ممتلكاتك وبكلفة <strong>$0.00</strong> سحابية.
+            <p className="mb-1 text-right text-[10px] leading-relaxed text-gray-400">
+              {copy.recent.portfolioDescription}
             </p>
 
             {favoriteCaptains.length === 0 ? (
-              <div className="h-64 flex flex-col items-center justify-center text-center opacity-70 p-5 border border-dashed border-emerald-500/10 rounded-xl bg-black/40">
-                <Heart className="w-10 h-10 text-gray-600 mb-2" />
-                <h5 className="text-xs font-black text-gray-400">الحقيبة فارغة حالياً</h5>
-                <p className="text-[10px] text-gray-500 leading-normal mt-1 font-sans">
-                  احفظ أي كابتن من "أرشيف الرحلات النشطة" لتجده مخلداً هنا بشكل دائم وآمن.
-                </p>
+              <div className="flex h-64 flex-col items-center justify-center rounded-xl border border-dashed border-emerald-500/10 bg-black/40 p-5 text-center opacity-80">
+                <Heart className="mb-2 h-10 w-10 text-gray-600" />
+                <h5 className="text-xs font-black text-gray-400">{copy.recent.portfolioEmpty}</h5>
+                <p className="mt-1 text-[10px] leading-normal text-gray-500">{copy.recent.portfolioEmptyDescription}</p>
               </div>
             ) : (
               <div className="space-y-3">
                 {favoriteCaptains.map((captain) => {
                   const savedType = captain.captainType || 'independent';
-                  
-                  // WhatsApp link builder formatted for Jordan and non-digit cleanups
-                  const cleanPhone = captain.captainPhone.replace(/\D/g, '');
-                  const waPhone = cleanPhone.startsWith('0') ? '962' + cleanPhone.slice(1) : cleanPhone.startsWith('962') ? cleanPhone : '962' + cleanPhone;
-                  const whatsappUrl = `https://wa.me/${waPhone}?text=${encodeURIComponent('السلام عليكم كابتن، بخصوص الأغراض المفقودة...')}`;
+                  const whatsappUrl = buildWhatsappUrl(captain.captainPhone, captain.captainName);
 
                   return (
-                    <div 
-                      key={captain.id}
-                      className="bg-[#080d08] border border-emerald-500/20 rounded-xl p-4 space-y-3 relative overflow-hidden shadow-md text-right"
+                    <article
+                      key={captain.id ?? captain.tripId}
+                      className="relative space-y-3 overflow-hidden rounded-xl border border-emerald-500/20 bg-[#080d08] p-4 text-right shadow-md"
                     >
-                      {/* Delete icon */}
                       <button
-                        onClick={async () => {
-                          if (captain.id !== undefined) {
-                            await dexieDb.favoriteCaptains.delete(captain.id);
-                            try {
-                              localStorage.removeItem(`radar_preferred_captain_${captain.tripId}`);
-                            } catch (err) {
-                              console.warn("Storage delete failed (removeItem):", err);
-                            }
-                            loadFavorites();
-                            toast({
-                              title: "🗑️ تم مسح الكارت",
-                              description: `تم إقصاء الكابتن ${sanitizeText(captain.captainName)} من حقيبة جهازك.`,
-                            });
-                          }
-                        }}
-                        className="absolute top-3 left-3 p-1.5 rounded-lg bg-red-950/20 hover:bg-red-950/50 text-red-400 border border-red-500/10 hover:border-red-500/30 transition-all font-mono"
-                        title="إلغاء التفضيل السيادي وإزالة الكارت"
+                        onClick={() => deleteFavoriteCard(captain)}
+                        className="absolute left-3 top-3 rounded-lg border border-red-500/10 bg-red-950/20 p-1.5 text-red-400 transition-all hover:border-red-500/30 hover:bg-red-950/50"
+                        title={copy.toast.cardDeleted}
+                        type="button"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="h-3.5 w-3.5" />
                       </button>
 
-                      {/* Captain Info details */}
-                      <div className="pl-8 text-right space-y-1">
-                        <div className="flex items-center gap-1.5 justify-start">
-                          <h4 className="text-xs md:text-sm font-extrabold text-white">
-                            {captain.captainName}
-                          </h4>
-                          <span className="text-amber-400 text-[10px] font-mono select-none px-1 py-0.5 rounded bg-amber-950/20 border border-amber-500/10">
+                      <div className="space-y-1 pl-8">
+                        <div className="flex items-center gap-1.5">
+                          <h4 className="text-xs font-extrabold text-white md:text-sm">{captain.captainName}</h4>
+                          <span className="rounded border border-amber-500/10 bg-amber-950/20 px-1 py-0.5 font-mono text-[10px] text-amber-400">
                             [{captain.captainRank}]
                           </span>
                         </div>
-                        <p className="text-[10px] text-gray-400 leading-normal font-sans">
-                          {captain.vehicleInfo}
-                        </p>
-                        <p className="text-[9px] text-[#00ffcc] font-mono">
-                          آخر سعر تم دفعه: {captain.finalPrice || '3.0'} دينار
+                        <p className="text-[10px] leading-normal text-gray-400">{captain.vehicleInfo}</p>
+                        <p className="font-mono text-[9px] text-[#00ffcc]">
+                          {copy.recent.lastPrice}: {captain.finalPrice || '3.0'} د.أ
                         </p>
                       </div>
 
-                      {/* Category Chip Selector / Tracker */}
                       <div className="border-t border-dashed border-emerald-950/50 pt-2.5">
-                        <span className="text-[9px] text-gray-400 block mb-1 font-sans">التصنيف والمنظرة التشغيلية للبوابة:</span>
-                        <div className="grid grid-cols-3 gap-1.5" dir="rtl">
-                          {(['uber', 'careem', 'independent'] as const).map((t) => (
+                        <span className="mb-1 block text-[9px] text-gray-400">{copy.recent.category}</span>
+                        <div className="grid grid-cols-3 gap-1.5">
+                          {(['uber', 'careem', 'independent'] as const).map((type) => (
                             <button
-                              key={t}
-                              onClick={() => captain.id && updateCaptainType(captain.id, t)}
-                              className={`h-7 rounded-md text-[9px] font-black border transition-all ${
-                                savedType === t
-                                  ? t === 'uber'
-                                    ? 'bg-white text-black border-white shadow'
-                                    : t === 'careem'
-                                    ? 'bg-[#00ffc4]/20 text-[#00ffc4] border-[#00ffc4]/30'
-                                    : 'bg-emerald-950 text-emerald-300 border-emerald-500/30'
-                                  : 'bg-black/40 text-gray-500 border-white/5 hover:border-white/10'
+                              key={type}
+                              onClick={() => captain.id && updateCaptainType(captain.id, type)}
+                              className={`h-7 rounded-md border text-[9px] font-black transition-all ${
+                                savedType === type
+                                  ? type === 'uber'
+                                    ? 'border-white bg-white text-black'
+                                    : type === 'careem'
+                                      ? 'border-[#00ffc4]/30 bg-[#00ffc4]/20 text-[#00ffc4]'
+                                      : 'border-emerald-500/30 bg-emerald-950 text-emerald-300'
+                                  : 'border-white/10 bg-black/40 text-gray-500 hover:border-white/20'
                               }`}
+                              type="button"
                             >
-                              {t === 'uber' ? 'أوبر 🚗' : t === 'careem' ? 'كريم 🟢' : 'مستقل 🛡️'}
+                              {captainTypeLabel(type)}
                             </button>
                           ))}
                         </div>
                       </div>
 
-                      {/* Call and WhatsApp deep links triggers with Zero-click accessibility */}
-                      <div className="flex gap-2.5 pt-2 border-t border-white/5" dir="rtl">
-                        <a 
+                      <div className="flex gap-2.5 border-t border-white/10 pt-2">
+                        <a
                           href={`tel:${captain.captainPhone}`}
-                          className="flex-1 h-9 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[10px] flex items-center justify-center gap-1 rounded-lg transition-transform hover:scale-[1.01]"
+                          className="flex h-9 flex-1 items-center justify-center gap-1 rounded-lg bg-emerald-600 text-[10px] font-black text-white transition-transform hover:scale-[1.01] hover:bg-emerald-500"
                           style={{ textDecoration: 'none' }}
                         >
-                          <Phone className="w-3.5 h-3.5" />
-                          <span>اتصل مباشرة</span>
+                          <Phone className="h-3.5 w-3.5" />
+                          <span>{copy.recent.callNow}</span>
                         </a>
-
-                        <a 
+                        <a
                           href={whatsappUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex-1 h-9 bg-emerald-950/40 hover:bg-emerald-900 border border-emerald-555/35 text-[#00ffcc] font-black text-[10px] flex items-center justify-center gap-1.5 rounded-lg transition-transform hover:scale-[1.01]"
+                          className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-950/40 text-[10px] font-black text-[#00ffcc] transition-transform hover:scale-[1.01] hover:bg-emerald-900"
                           style={{ textDecoration: 'none' }}
                         >
-                          <MessageCircle className="w-3.5 h-3.5 text-emerald-400" />
-                          <span>واتساب سريع 📱</span>
+                          <MessageCircle className="h-3.5 w-3.5 text-emerald-400" />
+                          <span>{copy.recent.whatsapp}</span>
                         </a>
                       </div>
-
-                    </div>
+                    </article>
                   );
                 })}
               </div>
             )}
           </div>
 
-          {/* Footer of the overlay drawer */}
-          <div className="border-t border-white/5 pt-4 mt-6 text-center">
-            <Button 
+          <div className="mt-6 border-t border-white/10 pt-4 text-center">
+            <Button
               onClick={() => setIsPortfolioOpen(false)}
-              className="px-6 py-2 bg-neutral-900 hover:bg-neutral-800 text-white text-[11px] font-black rounded-lg transition-all"
+              className="rounded-lg bg-neutral-900 px-6 py-2 text-[11px] font-black text-white hover:bg-neutral-800"
             >
-              العودة لقمرة التحكم السيادية
+              {copy.recent.close}
             </Button>
           </div>
         </div>
       )}
-
     </div>
   );
 };
 
 try {
   Object.freeze(RadarRiderDashboard);
-} catch (e) {
-  console.warn("Failed to freeze RadarRiderDashboard component definition", e);
+} catch (error) {
+  console.warn('Failed to freeze RadarRiderDashboard component definition', error);
 }
-

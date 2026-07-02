@@ -6,6 +6,7 @@ import { db } from '@/lib/firebase';
 import type { User, Trip } from '@/core/types';
 import { useToast } from './use-toast';
 import { calculateSovereignDistance, latLngToH3Cell } from '@/core/logic/geospatial-kernel';
+import { riderDashboardCopy } from '@/lib/i18n/rider-dashboard-copy';
 
 interface NearbyDriver {
   uid: string;
@@ -17,6 +18,8 @@ interface NearbyDriver {
   location: { lat: number; lng: number };
   distanceKm: number;
 }
+
+const copy = riderDashboardCopy.ar.portal;
 
 /**
  * 🛡️ [RAD-MAP-075-RIDER-SHAKE] useAtomicHandshake Hook
@@ -65,7 +68,7 @@ export function useAtomicHandshake(user: User | null, riderCoords: { lat: number
           if (distance <= 1.5) {
             list.push({
               uid: docSnap.id,
-              name: data.name || 'قائد مجهول',
+              name: data.name || copy.defaultDriverName,
               phone: data.phone || '',
               rating: data.rating || 4.8,
               rank: data.rank || 'Silver',
@@ -135,8 +138,8 @@ export function useAtomicHandshake(user: User | null, riderCoords: { lat: number
     if (lockRef.current || isLocked) {
       toast({
         variant: 'destructive',
-        title: 'قيد مغلق 🔒',
-        description: 'هناك مصافحة ملاحية نشطة بالفعل. يرجى الانتظار حتى اكتمال المعاملة.'
+        title: copy.lockedTitle,
+        description: copy.lockedDescription
       });
       return null;
     }
@@ -147,11 +150,11 @@ export function useAtomicHandshake(user: User | null, riderCoords: { lat: number
 
     try {
       if (!user?.uid) {
-        throw new Error("يجب تسجيل الدخول كمستخدم راكب.");
+        throw new Error(copy.loginRequired);
       }
 
       if (!frozenPrice) {
-        throw new Error("انتهت صلاحية تجميد التسعير للخلية الحالية. يرجى إعادة تجميد السعر.");
+        throw new Error(copy.priceExpired);
       }
 
       const tripId = 'trip-' + Date.now();
@@ -174,7 +177,13 @@ export function useAtomicHandshake(user: User | null, riderCoords: { lat: number
             driverName: targetDriverName,
             driverRating: 4.9,
             driverRank: 'Gold',
-            driverVehicle: { make: "هيونداي", model: "أيونيك", modelYear: 2021, color: "سيلفر", plate: "33-99933" }
+            driverVehicle: {
+              make: copy.defaultVehicleMake,
+              model: copy.defaultVehicleModel,
+              modelYear: 2021,
+              color: copy.defaultVehicleColor,
+              plate: "33-99933"
+            }
           }
         ]
       };
@@ -197,16 +206,16 @@ export function useAtomicHandshake(user: User | null, riderCoords: { lat: number
       });
 
       toast({
-        title: '🤝 اكتملت المصافحة الذرية',
-        description: `تم ربط وتأمين التسعير المثبت [${frozenPrice} د.أ] مع الكابتن وبدء التوجيه.`
+        title: copy.tripCreatedTitle,
+        description: `${copy.tripCreatedDescription} ${frozenPrice} ${copy.currency}.`
       });
 
       return tripId;
     } catch (err: any) {
       toast({
         variant: 'destructive',
-        title: 'فشل المصافحة',
-        description: err.message || 'حدث خطأ في قفل المصافحة.'
+        title: copy.requestFailedTitle,
+        description: err.message || copy.requestFailedDescription
       });
       return null;
     } finally {
