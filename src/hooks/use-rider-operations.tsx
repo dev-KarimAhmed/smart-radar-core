@@ -10,7 +10,7 @@ import { logAuditAction } from '@/lib/audit-logger';
 import { calculateSovereignGridId } from '@/lib/geo-grid';
 import { trackSovereignError } from '@/lib/error-tracker';
 import { useGeospatialAnchor } from './use-geospatial-anchor';
-import { calculateSovereignDistance, latLngToH3Cell, getH3CellCentroid, generateSovereignSearchUrl, estimateTripTime } from '@/core/logic/geospatial-kernel';
+import { calculateSovereignDistance, latLngToH3Cell, getH3CellCentroid, estimateTripTime } from '@/core/logic/geospatial-kernel';
 import { sanitizeUrl, resolveSovereignUrl } from '@/lib/sovereign-digger';
 import { SovereignDict } from '@/lib/sovereign-dictionary';
 import { useLinkCatcher } from './use-link-catcher';
@@ -46,7 +46,6 @@ interface RiderOperationsContextType {
   requiresOfficialRate: boolean;
   setRequiresOfficialRate: (requires: boolean) => void;
   isResolvingUrl: boolean;
-  openMapsForDestination: () => void;
   calculateSovereignMetrics: () => Promise<void>;
   pasteFromClipboard: () => Promise<void>;
   estimatedDistance: number;
@@ -104,7 +103,7 @@ export function RiderOperationsProvider({ children }: { children: ReactNode }) {
   
   const { capturedLink, clearCapturedLink } = useLinkCatcher();
 
-  // تفعيل التقاط الروابط المشتركة ميكانيكياً من تطبيق خرائط جوجل بصفر تكلفة سحابية
+  // التقاط روابط الموقع المشتركة محليا بدون خدمات خرائط مدفوعة.
   useEffect(() => {
     if (capturedLink) {
       isProgrammaticUpdateRef.current = true;
@@ -116,8 +115,8 @@ export function RiderOperationsProvider({ children }: { children: ReactNode }) {
       setIsRequestModalOpen(true);
       clearCapturedLink();
       toast({
-        title: "تم التقاط الختم الجغرافي",
-        description: "تم استقبال الختم الملاحي لخرائط جوجل تلقائياً بصفر تكلفة سحابية.",
+        title: "تم التقاط رابط الموقع",
+        description: "تم استقبال رابط الموقع محليا بدون تكلفة.",
       });
       setTimeout(() => {
         isProgrammaticUpdateRef.current = false;
@@ -322,14 +321,6 @@ export function RiderOperationsProvider({ children }: { children: ReactNode }) {
   /**
    * [SCR-2026-DICT-FIX] استئصال الصدى المزدوج
    */
-  const openMapsForDestination = useCallback(() => {
-    if (!dropoff) {
-        toast({ variant: 'default', ...SovereignDict.WARNINGS.WRITE_DESTINATION });
-        return;
-    }
-    window.open(generateSovereignSearchUrl(dropoff), '_blank');
-  }, [dropoff, toast]);
-  
   const {
     requestRide: rawRequestRide, isRequesting, cancelTrip: rawCancelTrip, isCancelling,
     rateTrip: rawRateTrip, isRating, executeRedPathGuillotine: rawExecuteRedPathGuillotine,
@@ -432,17 +423,17 @@ export function RiderOperationsProvider({ children }: { children: ReactNode }) {
     if (!throttleResult.allowRequest) {
       toast({
         variant: 'destructive',
-        title: '🚨 جدار الحماية النسيجي للراكب',
+        title: 'لا يمكن إرسال طلب جديد الآن',
         description: throttleResult.updatedRider.trustRating <= 4.2 
-          ? `لقد تجاوزت الحد الأقصى للإلغاءات المتتالية (${cancels}/3). سقط رصيد مناعتك إلى عتبة التطهير الميداني.`
-          : 'يُحظر تماماً قذف أكثر من طلب واحد نشط في نفس الوقت لحماية صالة المزاد من الإغراق الكاذب.'
+          ? `وصلت إلى الحد الأقصى للإلغاءات المتتالية (${cancels}/3). يرجى المحاولة لاحقا.`
+          : 'لديك طلب نشط بالفعل. انتظر حتى ينتهي الطلب الحالي.'
       });
       return;
     }
 
     let activeRiderRating = throttleResult.updatedRider.trustRating;
     if (cancels >= 2) {
-      activeRiderRating = Math.min(activeRiderRating, 4.2); // يسقط رصيد مناعته تلقائياً إلى عتبة التطهير (4.2)
+      activeRiderRating = Math.min(activeRiderRating, 4.2);
     }
 
     const currentAnchor = anchorRef.current || { lat: 31.9522, lng: 35.9106 };
@@ -580,14 +571,14 @@ export function RiderOperationsProvider({ children }: { children: ReactNode }) {
     rateTrip, isRating, isRequestModalOpen, openRequestModal, closeRequestModal, executeRedPathGuillotine,
     isExecutingGuillotine, confirmCheckpoint, isConfirmingCheckpoint, selectOffer, isSelectingOffer,
     seats, setSeats, dropoff, setDropoff, pickup, setPickup: handlePickupChange, requiresOfficialRate, setRequiresOfficialRate,
-    isResolvingUrl, openMapsForDestination, calculateSovereignMetrics, pasteFromClipboard, 
+    isResolvingUrl, calculateSovereignMetrics, pasteFromClipboard, 
     estimatedDistance, estimatedTime, pulsedDrivers, isPulsing, isLocationConfirmed, resetLocationMetrics,
     isRadarActive
   }), [
     trip, tripStatus, acceptedDriver, requestRide, isRequesting, cancelTrip, isCancelling,
     rateTrip, isRating, isRequestModalOpen, openRequestModal, closeRequestModal, executeRedPathGuillotine,
     isExecutingGuillotine, confirmCheckpoint, isConfirmingCheckpoint, selectOffer, isSelectingOffer,
-    seats, dropoff, pickup, handlePickupChange, requiresOfficialRate, isResolvingUrl, openMapsForDestination, 
+    seats, dropoff, pickup, handlePickupChange, requiresOfficialRate, isResolvingUrl, 
     calculateSovereignMetrics, pasteFromClipboard, estimatedDistance, estimatedTime, pulsedDrivers, 
     isPulsing, isLocationConfirmed, resetLocationMetrics, isRadarActive
   ]);

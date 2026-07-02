@@ -13,6 +13,7 @@ import { RadarBundleIntegrityKernel, GlobalPulseDoc, RadarSovereignIntegrationKe
 import { useAuth } from '@/hooks/use-auth';
 import { usePromoStream } from '@/hooks/use-promo-stream';
 import { MessageCircle, Wrench } from 'lucide-react';
+import { AdDisplayCard } from './ad-display-card';
 
 interface PricingCardProps {
   mode: 'setup' | 'offer';
@@ -85,7 +86,16 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, re
   }, [currentRating]);
 
   const professionalAd = useMemo(() => {
-    if (!isBlocked) return null;
+    const defaultProfessionalAd = {
+      adId: 'promo-captain-professional-default',
+      title: 'مركز صيانة للكباتن',
+      description: 'عرض صيانة قريب للكباتن والناقلين مع حجز مباشر وسعر واضح.',
+      actionUrl: 'https://wa.me/962790000000',
+      buttonText: 'احجز العرض',
+      bannerUrl: 'https://images.unsplash.com/photo-1486006920555-c77dce18193b?auto=format&fit=crop&q=80&w=1200'
+    };
+
+    if (!isBlocked) return defaultProfessionalAd;
     
     // Convert to AdSovereignPass
     const passAds = activeAds.map(ad => ({
@@ -125,7 +135,7 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, re
       };
     }
     
-    return null;
+    return defaultProfessionalAd;
   }, [isBlocked, activeAds, user, dynamicDeviationRatio]);
 
   useEffect(() => {
@@ -243,6 +253,20 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, re
                   </div>
 
                   {professionalAd && (
+                    <AdDisplayCard
+                      ad={professionalAd}
+                      showHeart={false}
+                      badgeText="دعم كابتن"
+                      ctaText={professionalAd.buttonText}
+                      className="h-[300px] rounded-[28px]"
+                      onOpen={(event) => {
+                        event.stopPropagation();
+                        window.open(professionalAd.actionUrl, '_blank');
+                      }}
+                    />
+                  )}
+
+                  {professionalAd && false && (
                     <div className="relative rounded-2xl overflow-hidden border border-amber-500/30 bg-[#140b03]/80 space-y-3 p-4 shadow-xl">
                       <img 
                         src={professionalAd.bannerUrl}

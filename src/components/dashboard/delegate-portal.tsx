@@ -55,6 +55,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { AdDisplayCard } from './ad-display-card';
 
 interface ReferredUser {
   id: string;
@@ -4107,6 +4108,14 @@ export function DelegatePortal() {
                                 </Badge>
                                 <span className="text-[9px] text-zinc-500 font-mono">ID: {ad.id}</span>
                               </div>
+
+                              <AdDisplayCard
+                                ad={ad}
+                                showHeart={false}
+                                badgeText="نبض ميداني"
+                                ctaText={ad.action?.buttonText || ad.buttonText || 'عرض التفاصيل'}
+                                className="h-[240px] rounded-[28px]"
+                              />
 
                               {/* Card Body */}
                               <div className="flex gap-3 items-start">

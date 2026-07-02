@@ -1,7 +1,7 @@
 // [SCR-COMMUTE-PROTO-155] محرك الارتحال اللحظي والذوبان في صالة مزاد اللواء الجديد
 // محصن ومغلق دستورياً - يعمل بالكامل عند الحافة (Edge-Runtime) بصفر كلفة سحابية
 
-import { getDistrictFromCoords } from '@/core/logic/geospatial-kernel';
+import { getDistrictFromCoords, latLngToH3Cell } from '@/core/logic/geospatial-kernel';
 
 export interface SovereignCaptainMovement {
   captainId: string;
@@ -18,11 +18,9 @@ export interface SovereignCaptainMovement {
 // محاكاة محرك H3 المحلي عالي السرعة Resolution 9 بصفر كلفة سحابية
 export const geoEngine = {
   latLngToCell: (lat: number, lng: number, res: number): string => {
-    if (!lat || !lng) return "0x892f35ffffffff";
+    if (!lat || !lng) return latLngToH3Cell(31.9539, 35.9106, res);
     // توليد خلية سداسية سحرية مشفرة بأسرة التشفير الدستوري
-    const latHash = Math.floor(Math.abs(lat) * 100000).toString(16);
-    const lngHash = Math.floor(Math.abs(lng) * 100000).toString(16);
-    return `0x8${res}2f${latHash.substring(0, 4)}${lngHash.substring(0, 4)}ff`;
+    return latLngToH3Cell(lat, lng, res);
   },
   getDistrictFromCell: (cell: string, lat?: number, lng?: number): string => {
     if (lat !== undefined && lng !== undefined) {
@@ -72,7 +70,7 @@ export const RadarSovereignCommuteKernel = {
       return {
         allowedToSeeLocalTrips: false,
         activeDistrictPool: captain.currentDistrict,
-        nextH3Cell: captain.currentH3Cell || "0x892f35ffffffff",
+        nextH3Cell: captain.currentH3Cell || latLngToH3Cell(31.9539, 35.9106, 9),
         isDisconnectionLockActive: true
       };
     }
@@ -82,7 +80,7 @@ export const RadarSovereignCommuteKernel = {
       return { 
         allowedToSeeLocalTrips: false, 
         activeDistrictPool: captain.currentDistrict,
-        nextH3Cell: captain.currentH3Cell || "0x892f35ffffffff",
+        nextH3Cell: captain.currentH3Cell || latLngToH3Cell(31.9539, 35.9106, 9),
         isDisconnectionLockActive: false
       };
     }

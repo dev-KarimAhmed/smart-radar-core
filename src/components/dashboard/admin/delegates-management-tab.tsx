@@ -110,7 +110,7 @@ export function DelegatesManagementTab() {
               referralCode: d.referralCode || '',
               integritySignature: d.integritySignature || '',
               homeDistrict: (d as any).homeDistrict || (d as any).district || 'وادي السير',
-              currentH3Cell: (d as any).currentH3Cell || '0x892f35ffffffff'
+              currentH3Cell: (d as any).currentH3Cell || '892db3c2a4fffff'
             }))
           })
         });

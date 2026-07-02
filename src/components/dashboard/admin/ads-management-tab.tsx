@@ -25,6 +25,7 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { AdDisplayCard } from '../ad-display-card';
 
 
 const adFormSchema = z.object({
@@ -286,6 +287,16 @@ function AdCampaignCard({
           </span>
         </CardDescription>
       </CardHeader>
+
+      <div className="px-4 pb-4">
+        <AdDisplayCard
+          ad={ad}
+          showHeart={false}
+          badgeText="نبض ميداني"
+          ctaText={(ad as any).action?.buttonText || (ad as any).buttonText || 'عرض التفاصيل'}
+          className="h-[260px] cursor-default rounded-[28px]"
+        />
+      </div>
       
       <CardContent className="space-y-4 text-sm flex-grow text-right" dir="rtl">
         <div>

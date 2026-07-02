@@ -25,7 +25,7 @@ export function useDriverRadar(user: User | null, driverStatus: string, updateDr
   const lastSentTime = useRef<number>(0);
 
   const [currentDistrict, setCurrentDistrict] = useState<string>(() => user?.district || 'وادي السير');
-  const [currentH3Cell, setCurrentH3Cell] = useState<string>("0x892f35ffffffff");
+  const [currentH3Cell, setCurrentH3Cell] = useState<string>(() => calculateSovereignGridId(31.9539, 35.9106));
   const [isDisconnectionLockActive, setIsDisconnectionLockActive] = useState<boolean>(false);
 
   useEffect(() => {

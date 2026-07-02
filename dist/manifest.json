@@ -1,0 +1,31 @@
+{
+  "name": "الرادار الذكي",
+  "short_name": "رادار",
+  "description": "منصة التنقل السيادية - الناقل والمنقول في فضاء واحد",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#050D05",
+  "theme_color": "#091B09",
+  "icons": [
+    {
+      "src": "https://picsum.photos/seed/radar1/192/192",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://picsum.photos/seed/radar2/512/512",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "share_target": {
+    "action": "/",
+    "method": "GET",
+    "enctype": "application/x-www-form-urlencoded",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "shared_link"
+    }
+  }
+}

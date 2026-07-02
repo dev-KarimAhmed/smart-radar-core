@@ -10,6 +10,7 @@ export interface FavoriteCaptain {
   finalPrice: number;
   timestamp: number;
   heartedAt: number;
+  captainType?: 'uber' | 'careem' | 'independent';
 }
 
 export interface CaptainSovereignLog {
@@ -22,9 +23,22 @@ export interface CaptainSovereignLog {
   timeString: string;
 }
 
+export interface RiderTripLedgerEntry {
+  id?: number;
+  tripId: string;
+  captainName: string;
+  captainRank: 'PLATINUM' | 'GOLD' | 'BRONZE';
+  captainPhone: string;
+  vehicleInfo: string;
+  finalPrice: number;
+  timestamp: number;
+  purgeAt: number;
+}
+
 class SovereignFavoritesDatabase extends Dexie {
   favoriteCaptains!: Table<FavoriteCaptain>;
   captainSovereignLogs!: Table<CaptainSovereignLog>;
+  riderTripLedger!: Table<RiderTripLedgerEntry>;
 
   constructor() {
     super('SovereignFavoritesDatabase');
@@ -34,6 +48,11 @@ class SovereignFavoritesDatabase extends Dexie {
     this.version(2).stores({
       favoriteCaptains: '++id, tripId, captainPhone, captainName',
       captainSovereignLogs: '++id, captainId, type, timestamp, event'
+    });
+    this.version(3).stores({
+      favoriteCaptains: '++id, tripId, captainPhone, captainName',
+      captainSovereignLogs: '++id, captainId, type, timestamp, event',
+      riderTripLedger: '++id, &tripId, timestamp, purgeAt, captainPhone'
     });
   }
 }

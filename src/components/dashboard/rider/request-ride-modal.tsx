@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Zap, Search, CheckCircle2, Loader2, ExternalLink, Clipboard, Ruler, MapPinned, Clock, AlertCircle } from 'lucide-react';
+import { Zap, CheckCircle2, Loader2, Clipboard, Ruler, MapPinned, Clock, AlertCircle } from 'lucide-react';
 import { useRiderOperations } from '@/hooks/use-rider-operations';
 import { cn } from '@/lib/utils';
 
@@ -22,7 +22,7 @@ export function RequestRideModal() {
     dropoff, setDropoff,
     pickup, setPickup,
     requiresOfficialRate, setRequiresOfficialRate,
-    isResolvingUrl, openMapsForDestination,
+    isResolvingUrl,
     requestRide, isRequesting,
     estimatedDistance, estimatedTime,
     isLocationConfirmed, calculateSovereignMetrics,
@@ -31,6 +31,15 @@ export function RequestRideModal() {
     isRadarActive
   } = useRiderOperations()!;
 
+  const destinationOptions = [
+    { id: 'amman-wadi-seer', governorate: 'عمان', district: 'وادي السير', label: 'وادي السير - عمان', coords: '31.958600, 35.868400' },
+    { id: 'amman-downtown', governorate: 'عمان', district: 'وسط البلد', label: 'وسط البلد - عمان', coords: '31.951900, 35.939300' },
+    { id: 'zarqa-center', governorate: 'الزرقاء', district: 'الزرقاء الجديدة', label: 'الزرقاء الجديدة', coords: '32.072800, 36.087000' },
+    { id: 'irbid-center', governorate: 'إربد', district: 'إربد البلد', label: 'إربد البلد', coords: '32.555600, 35.850000' },
+    { id: 'madaba-center', governorate: 'مأدبا', district: 'مأدبا البلد', label: 'مأدبا البلد', coords: '31.716700, 35.793600' },
+  ];
+
+  const selectedDestination = destinationOptions.find((option) => option.label === dropoff);
   const isBlindSpot = estimatedDistance > 0 && estimatedDistance < 0.1;
 
   return (
@@ -41,61 +50,83 @@ export function RequestRideModal() {
           <DialogHeader>
             <DialogTitle className="text-2xl font-black flex items-center justify-center gap-2 tracking-tighter text-emerald-400">
               <Zap className="w-6 h-6 text-emerald-500 fill-emerald-500/20" />
-              إطلاق نداء الرادار الذكي
+              طلب رحلة
             </DialogTitle>
             <DialogDescription className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mt-1">
-               بروتوكول الهندسة الماسية والتحقق المالي V5.2
+               اختر وجهتك واحسب المسافة محليا
             </DialogDescription>
           </DialogHeader>
         </div>
 
         <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto scrollbar-thin">
           
-          {/* الخطوة 1: تحديد الوجهة نصياً */}
+          {/* الخطوة 1: تحديد الوجهة محليا */}
           <div className="space-y-3">
             <Label className="text-[10px] font-black text-emerald-500/70 uppercase tracking-[0.2em] flex items-center gap-1">
-              <span>1. وجهتك (نصياً)</span>
+              <span>1. اختر الوجهة</span>
             </Label>
-            <div className="flex gap-2">
-                <div className="relative flex-1">
-                    <Input
-                        placeholder="إلى أين تريد الذهاب؟"
-                        value={dropoff}
-                        onChange={(e) => setDropoff(e.target.value)}
-                        className="h-12 bg-black/40 border-white/10 text-white placeholder:text-gray-600 rounded-xl pr-10 focus:border-emerald-500 focus:ring-0 transition-all font-bold text-sm"
-                    />
-                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                </div>
-                <Button 
-                    onClick={openMapsForDestination}
-                    variant="outline" 
-                    className="h-12 w-12 border-white/10 bg-black/40 hover:bg-emerald-500/10 rounded-xl shrink-0"
-                    title="افتح خرائط جوجل للبحث عن الوجهة"
-                >
-                    <ExternalLink className="w-5 h-5 text-emerald-500" />
-                </Button>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <Select
+                value={selectedDestination?.governorate || ''}
+                onValueChange={(governorate) => {
+                  const option = destinationOptions.find((item) => item.governorate === governorate);
+                  if (!option) return;
+                  resetLocationMetrics();
+                  setDropoff(option.label);
+                  setPickup(option.coords);
+                }}
+              >
+                <SelectTrigger className="h-12 bg-black/40 border-white/10 rounded-xl text-xs font-extrabold focus:border-emerald-500">
+                  <SelectValue placeholder="المحافظة" />
+                </SelectTrigger>
+                <SelectContent className="bg-[#0B0F19] border-emerald-900/50 text-white font-bold text-xs">
+                  {[...new Set(destinationOptions.map((item) => item.governorate))].map((governorate) => (
+                    <SelectItem key={governorate} value={governorate}>{governorate}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select
+                value={selectedDestination?.id || ''}
+                onValueChange={(id) => {
+                  const option = destinationOptions.find((item) => item.id === id);
+                  if (!option) return;
+                  resetLocationMetrics();
+                  setDropoff(option.label);
+                  setPickup(option.coords);
+                }}
+              >
+                <SelectTrigger className="h-12 bg-black/40 border-white/10 rounded-xl text-xs font-extrabold focus:border-emerald-500">
+                  <SelectValue placeholder="المنطقة" />
+                </SelectTrigger>
+                <SelectContent className="bg-[#0B0F19] border-emerald-900/50 text-white font-bold text-xs">
+                  {destinationOptions.map((option) => (
+                    <SelectItem key={option.id} value={option.id}>{option.district}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
-          {/* الخطوة 2: الختم الملاحي وتفعيل اللصق (علاجات الخطوة 4 و 5) */}
+          {/* الخطوة 2: إحداثيات الوجهة المحلية */}
           <div className="space-y-3">
-             <Label className="text-[10px] font-black text-emerald-500/70 uppercase tracking-[0.2em]">2. الختم الملاحي (الرابط المستخرج)</Label>
+             <Label className="text-[10px] font-black text-emerald-500/70 uppercase tracking-[0.2em]">2. إحداثيات الوجهة</Label>
              <div className="space-y-3">
                 <div className="w-full">
                     <div className="relative w-full">
                         <Input
-                            placeholder="اضغط مطولاً للصق رابط الخريطة"
+                            placeholder="اختر منطقة أو اكتب الإحداثيات مثل 31.95, 35.91"
                             value={pickup}
                             onChange={(e) => setPickup(e.target.value)}
                             className="h-11 sm:h-12 bg-black/40 border-white/10 text-white placeholder:text-gray-500 rounded-xl pr-10 focus:border-emerald-500 text-xs font-mono w-full"
-                            title="الحقل (5): حقل رابط الخارطة للتأمين الجنائي"
+                            title="إحداثيات محلية بدون geocoding"
                         />
                         <Clipboard className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-500/60" />
                     </div>
 
                 </div>
 
-                {/* الخطوة 6: تشغيل العدسة الجنائية وحساب المسار */}
+                {/* حساب المسافة محليا */}
                 {!isLocationConfirmed ? (
                     <Button 
                         onClick={calculateSovereignMetrics}
@@ -111,7 +142,7 @@ export function RequestRideModal() {
                             <Ruler className="w-5 h-5 text-emerald-500" />
                         )}
                         <span className="text-xs sm:text-sm font-black text-emerald-400 uppercase tracking-widest">
-                           6. تفعيل العدسة الجنائية واحتساب المسار
+                           حساب المسافة والسعر
                         </span>
                     </Button>
                 ) : (
@@ -121,7 +152,7 @@ export function RequestRideModal() {
                                 <div className="bg-emerald-500 rounded-full p-1">
                                     <CheckCircle2 className="w-3 h-3 text-black" />
                                 </div>
-                                <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">6. تمت المصادقة والاحتساب الملاحي</span>
+                                <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">تم حساب المسافة محليا</span>
                             </div>
                             <Button 
                                 variant="ghost" 
@@ -184,7 +215,7 @@ export function RequestRideModal() {
                                         <span className="text-emerald-400">× 1.35</span>
                                     </div>
                                     <div className="flex justify-between border-t border-white/5 pt-1 mt-1 font-black">
-                                        <span className="text-white">المسافة السيادية المعتمدة:</span>
+                                        <span className="text-white">المسافة المعتمدة:</span>
                                         <span className="text-emerald-400 font-mono">{estimatedDistance.toFixed(2)} كم</span>
                                     </div>
                                     <div className="flex justify-between border-t border-white/5 pt-1 mt-1 font-mono">
@@ -207,7 +238,7 @@ export function RequestRideModal() {
              </div>
           </div>
 
-          {/* الخطوات 7 و 8: فرز المقاعد وتحديث ميزان النبض المالي محلياً */}
+          {/* المقاعد ونوع الحساب */}
           <div className="grid grid-cols-2 gap-4 pt-2">
             <div className="space-y-2">
                 <span className="text-[10px] text-emerald-500/70 font-black mr-1 uppercase block">7. عدد المقاعد المطلوبة</span>
@@ -230,9 +261,9 @@ export function RequestRideModal() {
             </div>
           </div>
 
-          {/* ميزان النبض اللوجستي وعزم الطاقة للخطوات 7 و 8 */}
+          {/* حالة الطلب */}
           <div className="p-3 bg-black/20 rounded-xl border border-emerald-900/10 space-y-2 text-center">
-            <span className="text-[9px] sm:text-[10px] text-gray-500 font-extrabold block uppercase">8. ميزان النبض اللوجستي وعزم توازن الطاقة للواء</span>
+            <span className="text-[9px] sm:text-[10px] text-gray-500 font-extrabold block uppercase">حالة توفر الكباتن</span>
             <div className="flex justify-center items-center gap-2">
               <span className={cn(
                 "px-2.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-extrabold tracking-wide",
@@ -280,10 +311,10 @@ export function RequestRideModal() {
               {isRequesting ? (
                 <div className="flex items-center gap-2">
                   <Loader2 className="w-6 h-6 animate-spin text-emerald-400" />
-                  <span>يرسل الإشارة الملاحية...</span>
+                  <span>يرسل الطلب...</span>
                 </div>
               ) : (
-                'تفعيل العوامة السيادية للرادار'
+                'إرسال طلب الرحلة'
               )}
             </Button>
           )}

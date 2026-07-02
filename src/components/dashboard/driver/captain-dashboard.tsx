@@ -331,7 +331,7 @@ export const RadarCaptainDashboard: React.FC<CaptainDashboardProps> = ({ captain
           </div>
           <div className="p-2 bg-white/5 rounded-lg border border-white/5 col-span-2 md:col-span-1 text-right">
             <span className="text-[8px] text-gray-500 block">🗺️ خلية H3 اللحظية (Res 9):</span>
-            <span className="text-[10px] font-mono font-bold text-amber-500 truncate block">{currentH3Cell || '0x892f35ffffffff'}</span>
+            <span className="text-[10px] font-mono font-bold text-amber-500 truncate block">{currentH3Cell || '892db3c2a4fffff'}</span>
           </div>
         </div>
         <p className="text-[8.5px] text-gray-400 leading-relaxed font-sans mt-1">

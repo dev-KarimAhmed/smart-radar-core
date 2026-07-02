@@ -2,11 +2,9 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { AlertCircle, Briefcase, Clock, Heart, MessageCircle, Phone, Send, Trash2, X } from 'lucide-react';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { dexieDb, RadarCaptainFavoriteKernel } from '@/lib/dexie-db';
-import { auth, db } from '@/lib/firebase';
+import { dexieDb, RadarCaptainFavoriteKernel, type RiderTripLedgerEntry } from '@/lib/dexie-db';
 import { riderDashboardCopy } from '@/lib/i18n/rider-dashboard-copy';
 
 export interface HistoricalTrip {
@@ -68,13 +66,14 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
 }) => {
   const [reportText, setReportText] = useState('');
   const [favoriteCaptains, setFavoriteCaptains] = useState<FavoriteCaptain[]>([]);
+  const [ledgerTrips, setLedgerTrips] = useState<RiderTripLedgerEntry[]>([]);
   const [isPortfolioOpen, setIsPortfolioOpen] = useState(false);
+  const [currentTime, setCurrentTime] = useState(Date.now());
   const { toast } = useToast();
 
-  const now = Date.now();
   const activeArchive = useMemo(
-    () => tripsWithin72Hours.filter((trip) => now - trip.timestamp < THREE_DAYS_MS),
-    [now, tripsWithin72Hours],
+    () => ledgerTrips.filter((trip) => currentTime < trip.purgeAt).sort((a, b) => b.timestamp - a.timestamp),
+    [currentTime, ledgerTrips],
   );
 
   const loadFavorites = async () => {
@@ -89,6 +88,58 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
   useEffect(() => {
     loadFavorites();
   }, []);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => setCurrentTime(Date.now()), 60000);
+    return () => window.clearInterval(interval);
+  }, []);
+
+  const loadLedger = async () => {
+    try {
+      await dexieDb.riderTripLedger.where('purgeAt').belowOrEqual(Date.now()).delete();
+
+      const existing = await dexieDb.riderTripLedger.toArray();
+      if (existing.length === 0 && tripsWithin72Hours.length > 0) {
+        for (const trip of tripsWithin72Hours) {
+          const entry = {
+            ...trip,
+            captainName: sanitizeText(trip.captainName),
+            vehicleInfo: sanitizeText(trip.vehicleInfo),
+            purgeAt: trip.timestamp + THREE_DAYS_MS,
+          };
+          const stored = await dexieDb.riderTripLedger.where('tripId').equals(trip.tripId).first();
+          if (stored?.id !== undefined) {
+            await dexieDb.riderTripLedger.update(stored.id, entry);
+          } else {
+            try {
+              await dexieDb.riderTripLedger.add(entry);
+            } catch (error: any) {
+              if (error?.name !== 'ConstraintError') throw error;
+              const duplicate = await dexieDb.riderTripLedger.where('tripId').equals(trip.tripId).first();
+              if (duplicate?.id !== undefined) {
+                await dexieDb.riderTripLedger.update(duplicate.id, entry);
+              }
+            }
+          }
+        }
+      }
+
+      const ledger = await dexieDb.riderTripLedger.where('purgeAt').above(Date.now()).toArray();
+      setLedgerTrips(ledger);
+    } catch (error) {
+      console.error('Failed to load rider ledger from Dexie:', error);
+      setLedgerTrips(
+        tripsWithin72Hours.map((trip) => ({
+          ...trip,
+          purgeAt: trip.timestamp + THREE_DAYS_MS,
+        })),
+      );
+    }
+  };
+
+  useEffect(() => {
+    loadLedger();
+  }, [tripsWithin72Hours]);
 
   const removeFavorite = async (favorite: FavoriteCaptain) => {
     const existing =
@@ -221,15 +272,17 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
     const payloadText = `${reportText.trim()} | GPS buffer: ${localBufferCords || 'none'}`;
 
     try {
-      await addDoc(collection(db, 'silent_reports'), {
+      const reports = JSON.parse(localStorage.getItem('radar_rider_local_reports') || '[]');
+      reports.push({
         tripId,
         reportText: reportText.trim(),
         payloadText,
-        riderId: auth.currentUser?.uid || riderProfile.id || 'anonymous',
-        timestamp: serverTimestamp(),
+        riderId: riderProfile.id || 'anonymous',
+        timestamp: Date.now(),
       });
+      localStorage.setItem('radar_rider_local_reports', JSON.stringify(reports.slice(-30)));
     } catch (error) {
-      console.error('Failed to submit report:', error);
+      console.error('Failed to store local report:', error);
     }
 
     setReportText('');
@@ -259,12 +312,12 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
 
   return (
     <div
-      className="radar-rider-container relative mx-auto max-w-xl overflow-hidden rounded-xl border border-emerald-900 bg-black p-5 text-right text-white shadow-2xl md:p-6"
+      className="radar-rider-container relative mx-auto max-w-xl overflow-hidden rounded-xl border border-[#14B8A6]/20 bg-[#0B0F19]/70 p-5 text-right text-white shadow-2xl shadow-black/40 backdrop-blur-xl md:p-6"
       dir="rtl"
     >
       <div className="mb-4 border-b border-white/10 pb-4">
-        <h3 className="mb-3 text-base font-black text-emerald-400 md:text-lg">{copy.recent.title}</h3>
-        <div className="flex items-center justify-between rounded-xl border border-emerald-950/50 bg-[#0a0f0a] p-4">
+        <h3 className="mb-3 text-base font-black text-[#14B8A6] md:text-lg">{copy.recent.title}</h3>
+        <div className="flex items-center justify-between rounded-xl border border-[#14B8A6]/20 bg-white/[0.04] p-4 backdrop-blur">
           <span className="text-[11px] font-bold text-gray-300">{copy.recent.ratingLabel}</span>
           <strong
             className="rounded-lg px-3 py-1 text-lg font-black md:text-xl"
@@ -287,7 +340,7 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
 
       <Button
         onClick={() => setIsPortfolioOpen(true)}
-        className="mb-5 flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-950 text-xs font-black text-white hover:bg-emerald-900"
+        className="mb-5 flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 text-xs font-black text-white hover:bg-[#14B8A6]/20"
       >
         <Briefcase className="h-4 w-4 text-[#00ffcc]" />
         <span>
@@ -305,14 +358,14 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
           </div>
         ) : (
           activeArchive.map((trip) => {
-            const timeLeftMs = THREE_DAYS_MS - (now - trip.timestamp);
+            const timeLeftMs = trip.purgeAt - currentTime;
             const hoursLeft = Math.max(0, Math.floor(timeLeftMs / (1000 * 60 * 60)));
             const isHearted = favoriteCaptains.some((fav) => fav.tripId === trip.tripId);
 
             return (
               <article
                 key={trip.tripId}
-                className="relative space-y-3 rounded-xl border border-white/10 border-r-4 border-r-emerald-500 bg-[#0b0c0b] p-4 shadow-md transition-all hover:border-emerald-500/30"
+                className="relative space-y-3 rounded-xl border border-white/10 border-r-4 border-r-[#14B8A6] bg-white/[0.04] p-4 shadow-md backdrop-blur transition-all hover:border-[#14B8A6]/30"
               >
                 <button
                   onClick={(event) => toggleFavorite(event, trip)}

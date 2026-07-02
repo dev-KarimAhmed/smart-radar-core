@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { AlertTriangle, Heart, Info, Loader2, Phone, Star, Wifi } from 'lucide-react';
+import React from 'react';
+import { Car, Clock, Heart, Loader2, MapPin, Navigation, ShieldCheck, Star } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -9,52 +9,66 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Label } from '@/components/ui/label';
 import { StarRating } from '@/components/ui/star-rating';
 import { useAuth } from '@/hooks/use-auth';
-import { useRiderOperations } from '@/hooks/use-rider-operations';
 import { cn } from '@/lib/utils';
-import { riderDashboardCopy } from '@/lib/i18n/rider-dashboard-copy';
-import { RequestRideModal } from './rider/request-ride-modal';
+import { AdStage } from './ad-stage';
 import { RadarRiderDashboard, HistoricalTrip } from './rider/rider-dashboard';
-import { RiderPortal } from './rider-portal';
-import { VehicleSensoryProfile } from '../shared/VehicleSensoryProfile';
+import { RiderMap } from './rider/rider-map';
+import {
+  RiderDestination,
+  shouldShowAdRiver,
+  useRiderDashboardMachine,
+} from './rider/rider-state-machine';
+
+const destinationOptions: RiderDestination[] = [
+  {
+    id: 'wadi-seer',
+    label: 'وادي السير - عمان',
+    governorate: 'عمان',
+    district: 'وادي السير',
+    coords: { lat: 31.9586, lng: 35.8684 },
+  },
+  {
+    id: 'abdoun',
+    label: 'عبدون - عمان',
+    governorate: 'عمان',
+    district: 'عبدون',
+    coords: { lat: 31.9414, lng: 35.8865 },
+  },
+  {
+    id: 'downtown-amman',
+    label: 'وسط البلد - عمان',
+    governorate: 'عمان',
+    district: 'وسط البلد',
+    coords: { lat: 31.9519, lng: 35.9393 },
+  },
+  {
+    id: 'zarqa-center',
+    label: 'الزرقاء الجديدة',
+    governorate: 'الزرقاء',
+    district: 'الزرقاء الجديدة',
+    coords: { lat: 32.0728, lng: 36.087 },
+  },
+];
 
 export function RiderViewTab() {
-  const copy = riderDashboardCopy.ar;
-  const {
-    trip,
-    tripStatus,
-    pulsedDrivers,
-    cancelTrip,
-    isCancelling,
-    acceptedDriver,
-    selectOffer,
-    isSelectingOffer,
-    rateTrip,
-    isRating,
-    confirmCheckpoint,
-    isConfirmingCheckpoint,
-    executeRedPathGuillotine,
-    isExecutingGuillotine,
-    isRequestModalOpen,
-    openRequestModal,
-    isRadarActive,
-  } = useRiderOperations()!;
-
   const { user } = useAuth();
-  const [activeSubTab, setActiveSubTab] = useState<'classic' | 'handshake'>('classic');
-  const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
-  const [riderFeedback, setRiderFeedback] = useState({
-    driverRating: 0,
-    vehicleRating: 0,
-    giveHeart: false,
-  });
+  const { state, dispatch } = useRiderDashboardMachine();
+  const [draftDestinationId, setDraftDestinationId] = React.useState(destinationOptions[0].id);
+  const [rating, setRating] = React.useState({ captain: 0, vehicle: 0, favorite: false });
+  const [etaSeconds, setEtaSeconds] = React.useState(0);
+  const showAdRiver = shouldShowAdRiver(state);
 
   const riderProfile = React.useMemo(() => {
-    const ratingVal =
-      user?.rating !== undefined ? user.rating : user?.ratingSum && user?.ratingCount ? user.ratingSum / user.ratingCount : 4.8;
+    const ratingValue =
+      user?.rating !== undefined
+        ? user.rating
+        : user?.ratingSum && user?.ratingCount
+          ? user.ratingSum / user.ratingCount
+          : 4.8;
 
     return {
-      id: user?.uid || 'temp-rider-id',
-      rating: ratingVal,
+      id: user?.uid || 'local-rider',
+      rating: ratingValue,
       governorate: user?.governorate || 'عمان',
       district: user?.district || 'وادي السير',
     };
@@ -63,432 +77,363 @@ export function RiderViewTab() {
   const tripsWithin72Hours = React.useMemo<HistoricalTrip[]>(
     () => [
       {
-        tripId: 'h-trip-1',
-        captainName: copy.demo.captainOne,
+        tripId: 'local-ledger-1',
+        captainName: 'D-102',
         captainRank: 'PLATINUM',
         captainPhone: '0799988771',
-        vehicleInfo: copy.demo.vehicleOne,
+        vehicleInfo: 'Toyota Corolla White - 77-102',
         finalPrice: 2.75,
         timestamp: Date.now() - 3 * 3600 * 1000,
       },
       {
-        tripId: 'h-trip-2',
-        captainName: copy.demo.captainTwo,
+        tripId: 'local-ledger-2',
+        captainName: 'D-118',
         captainRank: 'GOLD',
         captainPhone: '0788877662',
-        vehicleInfo: copy.demo.vehicleTwo,
+        vehicleInfo: 'Hyundai Ioniq Silver - 22-118',
         finalPrice: 3.4,
         timestamp: Date.now() - 17 * 3600 * 1000,
       },
     ],
-    [copy.demo.captainOne, copy.demo.captainTwo, copy.demo.vehicleOne, copy.demo.vehicleTwo]
+    [],
   );
 
   const systemMessages = React.useMemo(
     () => [
-      copy.demo.systemMessageOne,
-      `${copy.demo.systemMessageTwoPrefix} ${user?.district || 'وادي السير'}. ${copy.demo.systemMessageTwoSuffix}`,
+      'المنطقة تعمل محلياً بدون خرائط مدفوعة.',
+      `نطاقك الحالي: ${user?.district || 'وادي السير'}.`,
     ],
-    [copy.demo.systemMessageOne, copy.demo.systemMessageTwoPrefix, copy.demo.systemMessageTwoSuffix, user?.district]
+    [user?.district],
   );
 
-  const [localCountdown, setLocalCountdown] = useState<number | null>(null);
-
   React.useEffect(() => {
-    if (trip?.estimatedTime) {
-      setLocalCountdown(trip.estimatedTime);
-    } else if ((trip as any)?.frozenDurationMin) {
-      setLocalCountdown((trip as any).frozenDurationMin);
-    } else {
-      setLocalCountdown(null);
+    if (!state.activeTrip) {
+      setEtaSeconds(0);
+      return;
     }
-  }, [trip?.estimatedTime, (trip as any)?.frozenDurationMin]);
 
-  React.useEffect(() => {
-    if (localCountdown === null || localCountdown <= 1) return;
-    const interval = setInterval(() => {
-      setLocalCountdown((prev) => (prev && prev > 1 ? prev - 1 : prev));
-    }, 60000);
-    return () => clearInterval(interval);
-  }, [localCountdown]);
+    setEtaSeconds(state.activeTrip.etaSeconds);
+    const interval = window.setInterval(() => {
+      setEtaSeconds((prev) => Math.max(0, prev - 1));
+    }, 1000);
 
-  if (tripStatus === 'idle') {
-    return (
-      <>
-        <RequestRideModal />
+    return () => window.clearInterval(interval);
+  }, [state.activeTrip]);
 
-        {!isRequestModalOpen && (
-          <div className="h-full p-4 pb-28 select-none text-right font-sans relative z-20 pointer-events-auto space-y-6 flex flex-col items-center w-full">
-            <div />
+  const selectedDraftDestination =
+    destinationOptions.find((destination) => destination.id === draftDestinationId) || destinationOptions[0];
 
-            <div className="flex bg-black/60 p-1 rounded-2xl border border-white/5 gap-1.5 w-full max-w-sm" dir="rtl">
-              <button
-                type="button"
-                onClick={() => setActiveSubTab('classic')}
-                className={cn(
-                  'flex-1 py-1.5 text-xs font-black rounded-xl transition-all cursor-pointer',
-                  activeSubTab === 'classic'
-                    ? 'bg-[#14b8a6]/10 text-[#14b8a6] border border-[#14b8a6]/25'
-                    : 'text-gray-400 hover:text-white'
-                )}
-              >
-                {copy.tabs.classic}
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveSubTab('handshake')}
-                className={cn(
-                  'flex-1 py-1.5 text-xs font-black rounded-xl transition-all cursor-pointer',
-                  activeSubTab === 'handshake'
-                    ? 'bg-[#14b8a6]/10 text-[#14b8a6] border border-[#14b8a6]/25'
-                    : 'text-gray-400 hover:text-white'
-                )}
-              >
-                {copy.tabs.handshake}
-              </button>
-            </div>
-
-            {activeSubTab === 'classic' ? (
-              <>
-                <motion.div
-                  initial={{ scale: 0.95, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ duration: 0.4, ease: 'easeOut' }}
-                  className="w-full max-w-sm bg-[#050D05]/95 border-2 border-emerald-500/20 rounded-3xl p-6 shadow-[0_20px_50px_rgba(16,185,129,0.15)] backdrop-blur-md space-y-5 pointer-events-auto"
-                >
-                  <div className="flex items-center justify-between border-b border-emerald-500/10 pb-3" dir="rtl">
-                    <span className="flex items-center gap-1.5 text-[10px] font-black text-emerald-400 uppercase tracking-widest">
-                      <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
-                      {copy.idle.status}
-                    </span>
-                  </div>
-
-                  <div className="space-y-2 text-center">
-                    <h1 className="text-2xl font-black text-white tracking-tight">{copy.idle.title}</h1>
-                    <p className="text-xs text-gray-400 leading-relaxed px-2">{copy.idle.description}</p>
-                  </div>
-
-                  <div className="bg-black/50 border border-emerald-500/10 rounded-2xl p-4 text-center space-y-1">
-                    <span className="text-[9px] text-gray-500 font-bold block uppercase tracking-wider">{copy.idle.coverageLabel}</span>
-                    <span className="text-lg font-mono font-bold text-emerald-400 block tracking-widest">
-                      {user?.district || 'وادي السير'} - {user?.governorate || 'عمان'}
-                    </span>
-                    <span className="text-[9px] text-gray-500 block">{copy.idle.coverageRange}</span>
-                  </div>
-
-                  {isRadarActive === false ? (
-                    <div className="w-full min-h-16 bg-rose-950/20 border-2 border-rose-500/30 text-rose-400 font-extrabold text-xs rounded-2xl flex items-center justify-center p-4 text-center leading-normal">
-                      {copy.idle.servicePaused}
-                    </div>
-                  ) : (
-                    <Button
-                      onClick={openRequestModal}
-                      className="w-full h-16 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-lg sm:text-xl tracking-tight rounded-2xl shadow-lg shadow-emerald-950/40 hover:scale-[1.02] active:scale-95 transition-all duration-300 border border-emerald-500/20"
-                      dir="rtl"
-                    >
-                      {copy.idle.requestButton}
-                    </Button>
-                  )}
-                </motion.div>
-
-                <div className="w-full max-w-lg pointer-events-auto">
-                  <RadarRiderDashboard
-                    riderProfile={riderProfile}
-                    tripsWithin72Hours={tripsWithin72Hours}
-                    systemMessages={systemMessages}
-                  />
-                </div>
-
-                <p className="text-[10px] text-gray-400 font-bold text-center leading-normal max-w-xs bg-black/40 py-1.5 px-4 rounded-full border border-white/5 pointer-events-auto">
-                  {copy.idle.footer}
-                </p>
-              </>
-            ) : (
-              <RiderPortal />
-            )}
-          </div>
-        )}
-      </>
-    );
-  }
-
-  const renderTripCard = (stateType: 'searching' | 'offers' | 'confirmed') => {
-    const stateCopy =
-      stateType === 'searching'
-        ? {
-            badge: copy.states.searchingBadge,
-            title: copy.states.searchingTitle,
-            description: copy.states.searchingDescription,
-          }
-        : stateType === 'offers'
-          ? {
-              badge: copy.states.offersBadge,
-              title: copy.states.offersTitle,
-              description: `${copy.states.offersDescriptionPrefix} ${trip?.offers?.length || 0} ${copy.states.offersDescriptionSuffix}`,
-            }
-          : {
-              badge: copy.states.confirmedBadge,
-              title: copy.states.confirmedTitle,
-              description: copy.states.confirmedDescription,
-            };
-
-    const estimatedTimeVal = localCountdown ? `${localCountdown} دقيقة` : copy.details.unknown;
-    const frozenPrice =
-      trip?.offerPrice !== undefined && trip?.offerPrice !== -1 ? `${Number(trip.offerPrice).toFixed(2)} د.أ` : copy.details.meterPrice;
-
-    return (
-      <div className="flex flex-col items-center justify-center p-4 min-h-[80vh] animate-in fade-in duration-600 relative z-20 w-full">
-        <motion.div
-          initial={{ scale: 0.95, y: 20, opacity: 0 }}
-          animate={{ scale: 1, y: 0, opacity: 1 }}
-          transition={{ duration: 0.4, ease: 'easeOut' }}
-          className="w-full max-w-md bg-[#131C31]/95 border-2 border-emerald-500/20 rounded-3xl p-6 shadow-[0_20px_50px_rgba(16,185,129,0.18)] backdrop-blur-md space-y-6 text-right"
-          dir="rtl"
-        >
-          <div className="space-y-3 border-b border-white/5 pb-4">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 text-[11px] font-black rounded-full border bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
-              <span className="h-1.5 w-1.5 rounded-full bg-current animate-ping" />
-              {stateCopy.badge}
-            </span>
+  const renderStatePanel = () => {
+    if (state.screen === 'DESTINATION_SELECTION') {
+      return (
+        <Card className="w-full border-[#14B8A6]/25 bg-[#0B0F19]/88 text-white shadow-2xl shadow-black/40 backdrop-blur-xl">
+          <CardContent className="space-y-5 p-5 text-right" dir="rtl">
             <div className="space-y-1">
-              <h2 className="text-2xl font-black text-white tracking-tight">{stateCopy.title}</h2>
-              <p className="text-xs text-gray-400 leading-relaxed">{stateCopy.description}</p>
+              <p className="text-[11px] font-black text-[#14F5D5]">اختيار الوجهة</p>
+              <h2 className="text-2xl font-black">وين بدك تروح؟</h2>
+              <p className="text-xs text-slate-400">اختيار محلي فقط. لا يوجد Geocoding ولا Google Places.</p>
             </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-3 bg-black/30 p-4 rounded-2xl border border-white/5">
-            {stateType === 'searching' && (
-              <>
-                <Metric label={copy.details.h3} value={trip?.h3Index ? trip.h3Index.substring(0, 10).toUpperCase() : trip?.gridId || copy.details.unknown} />
-                <Metric label={copy.details.suggestedPrice} value={trip?.offerPrice ? `${trip.offerPrice.toFixed(2)} د.أ` : copy.details.unknown} />
-                <Metric label={copy.details.activeDrivers} value={`${pulsedDrivers.length} / 9`} />
-                <Metric label={copy.details.range} value={copy.details.nearbyRange} />
-                <Metric label={copy.details.destination} value={trip?.dropoff || copy.details.unknown} wide />
-              </>
-            )}
+            <div className="grid gap-2">
+              {destinationOptions.map((destination) => {
+                const isSelected = destination.id === draftDestinationId;
 
-            {stateType === 'offers' && (
-              <>
-                <Metric label={copy.details.offerCount} value={`${trip?.offers?.length || 0} ${copy.offers.licensedCaptains}`} />
-                <Metric
-                  label={copy.details.bestOffer}
-                  value={
-                    trip?.offers && trip.offers.length > 0
-                      ? `${Math.min(...trip.offers.map((offer) => offer.price)).toFixed(2)} د.أ`
-                      : copy.details.unknown
-                  }
-                />
-                <Metric label={copy.details.serviceFee} value={copy.details.noFee} />
-                <Metric label={copy.details.activeRanks} value="Platinum / Gold" />
-              </>
-            )}
-
-            {stateType === 'confirmed' && (
-              <>
-                <Metric label={copy.details.selectedCaptain} value={acceptedDriver?.name || copy.details.unknown} wide />
-                <Metric label={copy.details.vehicle} value={`${acceptedDriver?.vehicle?.make || copy.details.unknown} ${acceptedDriver?.vehicle?.color || ''}`} />
-                <Metric label={copy.details.plate} value={acceptedDriver?.vehicle?.plate || copy.details.unknown} />
-                <Metric label={copy.details.finalPrice} value={frozenPrice} />
-                <Metric label={copy.details.eta} value={estimatedTimeVal} />
-              </>
-            )}
-          </div>
-
-          {stateType === 'searching' && (
-            <div className="flex flex-col items-center justify-center py-4 bg-black/20 rounded-2xl border border-white/5 space-y-3">
-              <Wifi className="w-10 h-10 text-emerald-500 animate-pulse" />
-              <span className="text-[10px] text-emerald-400 font-semibold tracking-wider">{copy.offers.waiting}</span>
-            </div>
-          )}
-
-          {stateType === 'offers' && trip?.offers && (
-            <div className="space-y-3">
-              <span className="text-[10px] text-gray-500 font-bold block uppercase text-right">{copy.offers.chooseBest}</span>
-              <div className="max-h-[32vh] overflow-y-auto space-y-3 pr-1">
-                {trip.offers.map((offer) => (
-                  <div key={offer.driverId} className="p-3.5 bg-[#101726]/90 border border-emerald-500/15 rounded-2xl flex flex-col gap-3 hover:border-emerald-500/40 transition-all shadow-md relative text-right">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <div className="h-9 w-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 font-black text-sm">
-                          {offer.driverName.substring(0, 2)}
-                        </div>
-                        <div className="text-right">
-                          <span className="text-xs font-black text-white block">{offer.driverName}</span>
-                          <div className="flex items-center gap-1.5 mt-0.5">
-                            <Star className="w-3 h-3 text-yellow-400 fill-current" />
-                            <span className="text-[10px] text-white font-bold">{offer.driverRating.toFixed(1)}</span>
-                            <span className="text-[9px] text-gray-500 font-bold bg-white/5 px-1.5 rounded border border-white/5">{offer.driverRank}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="text-left select-none">
-                        <span className="text-[9px] text-gray-500 font-bold block">{copy.offers.price}</span>
-                        <span className="text-sm font-black text-emerald-400">
-                          {offer.price === -1 ? copy.offers.byMeter : `${offer.price.toFixed(2)} د.أ`}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between text-[11px] text-gray-400 bg-black/25 px-2.5 py-1.5 rounded-xl border border-white/5" dir="rtl">
-                      <span>
-                        {offer.driverVehicle?.make || copy.details.vehicle} {offer.driverVehicle?.color || ''} - {offer.driverVehicle?.year || ''}
-                      </span>
-                      <button type="button" className="text-[10px] text-emerald-400 font-bold hover:underline flex items-center gap-1" onClick={() => setSelectedVehicle(offer.driverVehicle)}>
-                        <Info className="w-3 h-3" />
-                        {copy.offers.viewVehicle}
-                      </button>
-                    </div>
-
-                    {offer.isDumping && (
-                      <div className="bg-red-500/5 border border-red-500/15 text-red-400 p-2 rounded-xl text-[10px] leading-relaxed">
-                        {copy.offers.lowPriceWarning}
-                      </div>
+                return (
+                  <button
+                    type="button"
+                    key={destination.id}
+                    onClick={() => {
+                      setDraftDestinationId(destination.id);
+                      dispatch({ type: 'CONFIRM_DESTINATION', destination });
+                    }}
+                    className={cn(
+                      'rounded-2xl border p-3 text-right transition',
+                      isSelected
+                        ? 'border-[#14B8A6]/50 bg-[#14B8A6]/12 text-white'
+                        : 'border-white/10 bg-white/[0.03] text-slate-300 hover:border-[#14B8A6]/30',
                     )}
-
-                    <Button
-                      onClick={() => selectOffer(offer)}
-                      disabled={isSelectingOffer}
-                      className="w-full h-10 bg-emerald-600 hover:bg-emerald-500 hover:scale-[1.01] text-white font-bold text-xs rounded-xl transition-all border border-emerald-500/20 shadow-md"
-                    >
-                      {isSelectingOffer ? <Loader2 className="animate-spin w-4 h-4" /> : copy.offers.selectCaptain}
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="pt-2 border-t border-white/5 flex gap-3 text-right">
-            {stateType === 'confirmed' ? (
-              <>
-                <Button asChild className="flex-1 h-12 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm rounded-xl">
-                  <a href={`tel:${acceptedDriver?.phone || ''}`}>
-                    <Phone className="w-4 h-4" />
-                    <span>{copy.actions.callCaptain}</span>
-                  </a>
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={cancelTrip}
-                  disabled={isCancelling}
-                  className="h-12 px-4 bg-red-950/30 border border-red-500/20 text-red-400 hover:bg-red-500/10 hover:text-white font-bold text-xs rounded-xl"
-                >
-                  {isCancelling ? <Loader2 className="animate-spin w-4 h-4" /> : copy.actions.cancelCaptain}
-                </Button>
-              </>
-            ) : (
-              <Button
-                variant="destructive"
-                onClick={cancelTrip}
-                disabled={isCancelling}
-                className="w-full h-12 bg-red-950/30 border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white font-black text-sm rounded-xl"
-              >
-                {isCancelling ? <Loader2 className="animate-spin w-4 h-4" /> : copy.actions.cancelSearch}
-              </Button>
-            )}
-          </div>
-        </motion.div>
-      </div>
-    );
-  };
-
-  if (tripStatus === 'searching') {
-    const hasOffers = trip?.offers && trip.offers.length > 0;
-    return (
-      <>
-        {renderTripCard(hasOffers ? 'offers' : 'searching')}
-        <VehicleSensoryProfile vehicle={selectedVehicle} isOpen={!!selectedVehicle} onClose={() => setSelectedVehicle(null)} />
-      </>
-    );
-  }
-
-  if (tripStatus === 'busy' && trip) {
-    return renderTripCard('confirmed');
-  }
-
-  if (tripStatus === 'rating') {
-    return (
-      <Dialog open>
-        <DialogContent className="sm:max-w-md bg-[#050D05] border-emerald-900/50 text-white">
-          <DialogHeader className="text-center">
-            <DialogTitle className="text-xl font-black">{copy.rating.title}</DialogTitle>
-            <DialogDescription className="text-gray-400">{copy.rating.description}</DialogDescription>
-          </DialogHeader>
-
-          <div className="py-6 space-y-8">
-            <div className="space-y-3 text-center">
-              <Label className="text-emerald-500 font-bold">{copy.rating.captain}</Label>
-              <div className="flex justify-center">
-                <StarRating rating={riderFeedback.driverRating} setRating={(rating: number) => setRiderFeedback({ ...riderFeedback, driverRating: rating })} size="lg" />
-              </div>
+                  >
+                    <span className="block text-sm font-black">{destination.label}</span>
+                    <span className="mt-1 block font-mono text-[10px] text-slate-500">
+                      {destination.coords.lat.toFixed(4)}, {destination.coords.lng.toFixed(4)}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
 
-            <div className="space-y-3 text-center">
-              <Label className="text-emerald-500 font-bold">{copy.rating.vehicle}</Label>
-              <div className="flex justify-center">
-                <StarRating rating={riderFeedback.vehicleRating} setRating={(rating: number) => setRiderFeedback({ ...riderFeedback, vehicleRating: rating })} size="lg" color="amber" />
-              </div>
+            <div className="grid grid-cols-2 gap-3 rounded-2xl border border-white/10 bg-black/30 p-3">
+              <Metric label="المسافة" value="6.8 كم" />
+              <Metric label="السعر المتوقع" value="2.75 د.أ" />
+              <Metric label="الحساب" value="H3 محلي" />
+              <Metric label="الكباتن" value="3-5 قريبين" />
             </div>
 
-            <div className="flex items-center justify-center gap-4 p-4 bg-emerald-950/20 rounded-xl border border-emerald-500/20">
-              <span className="text-sm font-bold">{copy.rating.favorite}</span>
-              <Button
-                variant="ghost"
-                size="icon"
-                className={riderFeedback.giveHeart ? 'text-red-500 scale-125' : 'text-gray-500'}
-                onClick={() => setRiderFeedback({ ...riderFeedback, giveHeart: !riderFeedback.giveHeart })}
-              >
-                <Heart className={riderFeedback.giveHeart ? 'fill-current' : ''} />
-              </Button>
-            </div>
-          </div>
-
-          <Button
-            className="w-full h-14 bg-emerald-600 hover:bg-emerald-500 font-black text-lg"
-            disabled={isRating || riderFeedback.driverRating === 0 || riderFeedback.vehicleRating === 0}
-            onClick={() => rateTrip(riderFeedback)}
-          >
-            {isRating ? <Loader2 className="animate-spin" /> : copy.rating.submit}
-          </Button>
-        </DialogContent>
-      </Dialog>
-    );
-  }
-
-  if (tripStatus === 'checkpoint_required') {
-    return (
-      <div className="flex items-center justify-center p-4 min-h-[80vh]">
-        <Card className="w-full max-w-md bg-red-950/20 border-red-500/50 shadow-2xl backdrop-blur-md">
-          <CardContent className="p-6 space-y-6 text-center">
-            <div className="bg-red-500/20 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-500/50 animate-pulse">
-              <AlertTriangle className="w-10 h-10 text-red-500" />
-            </div>
-            <h2 className="text-2xl font-black text-white">{copy.checkpoint.title}</h2>
-            <p className="text-sm text-red-200/70 leading-relaxed">{copy.checkpoint.description}</p>
-
-            <div className="space-y-3">
-              <Button className="w-full h-12 bg-emerald-600 hover:bg-emerald-500 font-bold" onClick={confirmCheckpoint} disabled={isConfirmingCheckpoint}>
-                {isConfirmingCheckpoint ? <Loader2 className="animate-spin" /> : copy.checkpoint.confirm}
-              </Button>
-              <Button variant="destructive" className="w-full h-12 font-bold" onClick={executeRedPathGuillotine} disabled={isExecutingGuillotine}>
-                {isExecutingGuillotine ? <Loader2 className="animate-spin" /> : copy.checkpoint.report}
-              </Button>
-            </div>
+            <Button
+              onClick={() => {
+                dispatch({ type: 'CONFIRM_DESTINATION', destination: selectedDraftDestination });
+                dispatch({ type: 'SEND_REQUEST' });
+              }}
+              className="h-14 w-full rounded-2xl bg-[#14B8A6] text-base font-black text-[#031315] hover:bg-[#2DD4BF]"
+            >
+              إرسال طلب الرحلة
+            </Button>
           </CardContent>
         </Card>
-      </div>
-    );
-  }
+      );
+    }
 
-  return <RequestRideModal />;
+    if (state.screen === 'RECEIVING_OFFERS') {
+      const hasOffers = state.offers.length > 0;
+
+      return (
+        <Card className="w-full border-[#14B8A6]/25 bg-[#0B0F19]/90 text-white shadow-2xl shadow-black/40 backdrop-blur-xl">
+          <CardContent className="space-y-5 p-5 text-right" dir="rtl">
+            <div className="space-y-1">
+              <p className="text-[11px] font-black text-[#14F5D5]">{hasOffers ? 'وصلت عروض' : 'ننتظر الكباتن'}</p>
+              <h2 className="text-2xl font-black">{hasOffers ? 'اختار الكابتن المناسب' : 'طلبك ظاهر للكباتن القريبين'}</h2>
+              <p className="text-xs text-slate-400">
+                {hasOffers ? 'العروض تجريبية ومحسوبة محلياً.' : 'سيتم عرض عروض تجريبية تلقائياً بعد 3 ثواني.'}
+              </p>
+            </div>
+
+            {!hasOffers ? (
+              <div className="flex min-h-36 flex-col items-center justify-center gap-3 rounded-2xl border border-[#14B8A6]/15 bg-black/30">
+                <Loader2 className="h-9 w-9 animate-spin text-[#14F5D5]" />
+                <span className="text-xs font-bold text-slate-300">يتم البحث داخل خلايا H3 المجاورة</span>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {state.offers.map((offer) => (
+                  <article key={offer.driverId} className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <h3 className="text-lg font-black text-white">{offer.driverName}</h3>
+                        <p className="mt-1 flex items-center gap-1 text-xs text-slate-400">
+                          <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
+                          {offer.driverRating.toFixed(1)} / {offer.driverRank}
+                        </p>
+                      </div>
+                      <strong className="text-xl font-black text-[#14F5D5]">
+                        {offer.price.toFixed(2)} د.أ
+                      </strong>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 rounded-xl bg-black/25 p-3 text-xs text-slate-300">
+                      <Metric label="المركبة" value={`${offer.driverVehicle.make} ${offer.driverVehicle.color}`} />
+                      <Metric label="اللوحة" value={offer.driverVehicle.plate} />
+                    </div>
+
+                    <Button
+                      onClick={() => dispatch({ type: 'SELECT_OFFER', offerId: offer.driverId })}
+                      className="h-11 w-full rounded-xl bg-[#14B8A6] font-black text-[#031315] hover:bg-[#2DD4BF]"
+                    >
+                      اختيار هذا الكابتن
+                    </Button>
+                  </article>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      );
+    }
+
+    if (state.screen === 'TRIP_ACTIVE' && state.activeTrip) {
+      const minutes = Math.floor(etaSeconds / 60);
+      const seconds = etaSeconds % 60;
+
+      return (
+        <Card className="w-full border-[#14B8A6]/25 bg-[#0B0F19]/92 text-white shadow-2xl shadow-black/40 backdrop-blur-xl">
+          <CardContent className="space-y-5 p-5 text-right" dir="rtl">
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-1">
+                <p className="text-[11px] font-black text-[#14F5D5]">رحلة نشطة</p>
+                <h2 className="text-2xl font-black">{state.activeTrip.captainSerial}</h2>
+                <p className="text-xs text-slate-400">{state.activeTrip.destinationLabel}</p>
+              </div>
+              <div className="rounded-2xl border border-[#14B8A6]/20 bg-[#14B8A6]/10 px-4 py-2 text-center">
+                <Clock className="mx-auto mb-1 h-4 w-4 text-[#14F5D5]" />
+                <strong className="font-mono text-lg text-[#14F5D5]">
+                  {minutes}:{seconds.toString().padStart(2, '0')}
+                </strong>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 rounded-2xl border border-white/10 bg-black/30 p-4">
+              <Metric label="المركبة" value={state.activeTrip.vehicleType} />
+              <Metric label="اللوحة" value={state.activeTrip.vehiclePlate} />
+              <Metric label="السعر النهائي" value={`${state.activeTrip.finalPrice.toFixed(2)} د.أ`} />
+              <Metric label="التتبع" value="نبض H3 كل فترة" />
+            </div>
+
+            <div className="rounded-2xl border border-[#14B8A6]/20 bg-[#14B8A6]/8 p-4 text-xs leading-relaxed text-slate-300">
+              لا يوجد بث GPS مباشر. هذا النموذج يستخدم حالة محلية وعداد ETA تجريبي فقط.
+            </div>
+
+            <Button
+              onClick={() => dispatch({ type: 'COMPLETE_TRIP' })}
+              className="h-14 w-full rounded-2xl bg-[#14B8A6] text-base font-black text-[#031315] hover:bg-[#2DD4BF]"
+            >
+              إنهاء الرحلة للتجربة
+            </Button>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    return null;
+  };
+
+  return (
+    <div className="relative flex min-h-[calc(100vh-160px)] w-full flex-col gap-5 bg-[#0B0F19] p-4 pb-28 text-white" dir="rtl">
+      <div className="mx-auto grid w-full max-w-6xl gap-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.65fr)]">
+        <div className="space-y-4">
+          <RiderMap activeTripCaptainId={state.activeTrip?.captainId || null} className="h-[420px] lg:h-[620px]" />
+
+          {showAdRiver && (
+            <div className="mb-24 overflow-hidden rounded-[24px] border border-[#14B8A6]/15">
+              <AdStage />
+            </div>
+          )}
+        </div>
+
+        <aside className="space-y-4">
+          <div className="rounded-[24px] border border-white/10 bg-white/[0.04] p-4 shadow-xl shadow-black/20 backdrop-blur">
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <p className="text-[11px] font-black text-[#14F5D5]">لوحة الراكب</p>
+                <h1 className="text-2xl font-black">رادار الرحلة المحلي</h1>
+              </div>
+              <ShieldCheck className="h-7 w-7 text-[#14F5D5]" />
+            </div>
+
+            <div className="grid grid-cols-3 gap-2">
+              <NavButton active={state.screen === 'IDLE_MAP'} onClick={() => dispatch({ type: 'RETURN_TO_MAP' })}>
+                الخريطة
+              </NavButton>
+              <NavButton active={state.screen === 'PURGE_LEDGER'} onClick={() => dispatch({ type: 'OPEN_PURGE_LEDGER' })}>
+                السجل
+              </NavButton>
+              <NavButton active={state.screen === 'FAVORITE_CAPTAINS'} onClick={() => dispatch({ type: 'OPEN_FAVORITE_CAPTAINS' })}>
+                المحفوظ
+              </NavButton>
+            </div>
+          </div>
+
+          {state.screen === 'IDLE_MAP' && (
+            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+              <Card className="border-[#14B8A6]/25 bg-[#0B0F19]/90 text-white shadow-2xl shadow-black/40 backdrop-blur-xl">
+                <CardContent className="space-y-5 p-5 text-right" dir="rtl">
+                  <div className="space-y-1">
+                    <p className="text-[11px] font-black text-[#14F5D5]">جاهز لاستقبال طلب</p>
+                    <h2 className="text-2xl font-black">أهلاً بك</h2>
+                    <p className="text-xs leading-relaxed text-slate-400">
+                      الخريطة تعمل بمصدر مجاني، والنقاط القريبة مولدة محلياً من خلايا H3.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 rounded-2xl border border-white/10 bg-black/30 p-4">
+                    <Metric label="منطقتك" value={user?.district || 'وادي السير'} />
+                    <Metric label="ثقتك" value={`${riderProfile.rating.toFixed(1)} / 5`} />
+                  </div>
+
+                  <Button
+                    onClick={() => dispatch({ type: 'OPEN_DESTINATION' })}
+                    className="h-16 w-full rounded-2xl bg-[#14B8A6] text-lg font-black text-[#031315] shadow-lg shadow-[#14B8A6]/20 hover:bg-[#2DD4BF]"
+                  >
+                    <Navigation className="ml-2 h-5 w-5" />
+                    طلب رحلة
+                  </Button>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
+          {renderStatePanel()}
+
+          {(state.screen === 'PURGE_LEDGER' || state.screen === 'FAVORITE_CAPTAINS') && (
+            <RadarRiderDashboard
+              riderProfile={riderProfile}
+              tripsWithin72Hours={tripsWithin72Hours}
+              systemMessages={systemMessages}
+            />
+          )}
+        </aside>
+      </div>
+
+      {state.screen === 'RATING_MODAL' && (
+        <Dialog open>
+          <DialogContent className="border-emerald-900/50 bg-[#050D05] text-white sm:max-w-md">
+            <DialogHeader className="text-center">
+              <DialogTitle className="text-xl font-black">قيّم الرحلة</DialogTitle>
+              <DialogDescription className="text-gray-400">التقييم محفوظ محلياً فقط في هذا النموذج.</DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-8 py-6">
+              <div className="space-y-3 text-center">
+                <Label className="font-bold text-emerald-500">الكابتن</Label>
+                <div className="flex justify-center">
+                  <StarRating rating={rating.captain} setRating={(value: number) => setRating((prev) => ({ ...prev, captain: value }))} size="lg" />
+                </div>
+              </div>
+
+              <div className="space-y-3 text-center">
+                <Label className="font-bold text-emerald-500">المركبة</Label>
+                <div className="flex justify-center">
+                  <StarRating rating={rating.vehicle} setRating={(value: number) => setRating((prev) => ({ ...prev, vehicle: value }))} size="lg" color="amber" />
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setRating((prev) => ({ ...prev, favorite: !prev.favorite }))}
+                className="mx-auto flex items-center gap-3 rounded-2xl border border-emerald-500/20 bg-emerald-950/20 px-4 py-3 text-sm font-bold"
+              >
+                <span>احفظ الكابتن</span>
+                <Heart className={cn('h-5 w-5', rating.favorite ? 'fill-red-500 text-red-500' : 'text-gray-500')} />
+              </button>
+            </div>
+
+            <Button
+              className="h-14 w-full bg-emerald-600 text-lg font-black hover:bg-emerald-500"
+              disabled={rating.captain === 0 || rating.vehicle === 0}
+              onClick={() => {
+                dispatch({ type: 'SUBMIT_RATING', rating });
+                setRating({ captain: 0, vehicle: 0, favorite: false });
+              }}
+            >
+              حفظ التقييم
+            </Button>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
+  );
 }
 
-function Metric({ label, value, wide = false }: { label: string; value: React.ReactNode; wide?: boolean }) {
+function Metric({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className={cn('space-y-1', wide && 'col-span-2')}>
-      <span className="text-[10px] text-gray-500 font-bold block uppercase">{label}</span>
-      <span className="text-xs font-bold text-white block truncate">{value}</span>
+    <div className="min-w-0 space-y-1">
+      <span className="block text-[10px] font-bold text-slate-500">{label}</span>
+      <span className="block truncate text-xs font-black text-white">{value}</span>
     </div>
+  );
+}
+
+function NavButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'h-10 rounded-xl border text-xs font-black transition',
+        active
+          ? 'border-[#14B8A6]/45 bg-[#14B8A6]/15 text-[#14F5D5]'
+          : 'border-white/10 bg-black/20 text-slate-400 hover:border-[#14B8A6]/25 hover:text-white',
+      )}
+    >
+      {children}
+    </button>
   );
 }

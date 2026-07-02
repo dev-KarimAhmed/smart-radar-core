@@ -26,6 +26,7 @@ import { useAdminAds } from '@/hooks/use-admin-ads';
 import { useMarketPulse } from '@/hooks/use-market-pulse';
 import { useToast } from '@/hooks/use-toast';
 import { SOVEREIGN_PRICING_PACKAGES, SovereignPricingPackage } from '@/lib/constants';
+import { AdDisplayCard } from './ad-display-card';
 
 const VIRTUAL_ADS_STREAM = [
   { id: 'v1', title: 'سيارة المستقبل الذكية 🚗', desc: 'نقل سيادي ذكي بأحدث الميزات وبأفضل جودة ملاحة وتوصيل.', gradient: 'from-emerald-950/80 to-zinc-900 border-emerald-500/20 text-[#00ffcc]' },
@@ -1282,7 +1283,21 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
                               🖥️ مسرح العرض الكامل للراكب (Theatre Preview)
                             </span>
                             
-                            <div className="w-full aspect-[9/16] max-h-[220px] bg-zinc-950 rounded-xl border border-white/10 relative overflow-hidden flex flex-col justify-end shadow-2xl mx-auto">
+                            <AdDisplayCard
+                              ad={{
+                                title: title || 'عنوان الحملة',
+                                description: description || 'وصف قصير وواضح للحملة.',
+                                posterUrl,
+                                bannerUrl: posterUrl,
+                                buttonText,
+                              }}
+                              showHeart={false}
+                              badgeText="نبض ميداني"
+                              ctaText={buttonText}
+                              className="mx-auto h-[280px] max-w-sm rounded-[28px]"
+                            />
+
+                            <div className="hidden w-full aspect-[9/16] max-h-[220px] bg-zinc-950 rounded-xl border border-white/10 relative overflow-hidden flex flex-col justify-end shadow-2xl mx-auto">
                               {posterUrl ? (
                                 <img 
                                   src={posterUrl} 

@@ -43,18 +43,18 @@ export function useRiderTransactions(
     setIsRequesting(true);
     
     try {
-        console.warn("🔗 Connecting to Sovereign Cloud to dispatch ride...");
+        console.warn("Connecting to ride dispatcher...");
         await callSovereignCloud('requestRide', payload);
         
         setInternalStatus('searching');
         
         toast({ 
-            title: 'تم إطلاق رادار الرحلة بنجاح 🚀', 
-            description: 'تبحث الخوارزمية الفعالة عن الفرسان النشيطين الأقرب لتغطية مسارك.' 
+            title: 'تم إرسال طلب الرحلة', 
+            description: 'نبحث الآن عن كباتن قريبين منك.' 
         });
 
     } catch (error: any) {
-        toast({ variant: 'destructive', title: 'فشل إرسال الإشارة الملاحية', description: error.message });
+        toast({ variant: 'destructive', title: 'تعذر إرسال الطلب', description: error.message });
     } finally {
         setIsRequesting(false);
         isRequestingRef.current = false;
@@ -114,10 +114,10 @@ export function useRiderTransactions(
             vehicleId: acceptedDriver?.vehicle?.plate || '',
             ...ratings
         });
-        toast({ title: "شكراً لتقييم الحصان السيادي", description: "مشاركتك تساهم في الارتقاء بالنبض والعهد الملاحي." });
+        toast({ title: "شكراً لتقييمك", description: "تقييمك يساعدنا على تحسين الرحلات." });
         resetState();
     } catch (error) {
-        toast({ variant: 'destructive', title: 'تعذر حفظ التقييم السيادي', description: getSovereignErrorMessage(error) });
+        toast({ variant: 'destructive', title: 'تعذر حفظ التقييم', description: getSovereignErrorMessage(error) });
     } finally {
         setIsRating(false);
         isRatingRef.current = false;
@@ -140,7 +140,7 @@ export function useRiderTransactions(
         } catch (chatErr) {
           console.warn('Silent chat purge error on completion:', chatErr);
         }
-        toast({ title: "تم تأكيد المربع الملاحي للأمان", description: "الرحلة تمت بموثوقية عالية." });
+        toast({ title: "تم تأكيد الرحلة", description: "شكراً لك، يمكنك الآن تقييم التجربة." });
         setInternalStatus('rating');
     } catch (error) { 
         trackSovereignError(error, { context: 'ConfirmCheckpoint' }); 
@@ -158,7 +158,7 @@ export function useRiderTransactions(
     setIsExecutingGuillotine(true);
     try {
       await callSovereignCloud('executeGuillotine', { tripId: trip.id });
-      toast({ title: 'تفجير المقصلة التقنية الحمراء ⚡', description: 'تم عزل الرحلة وإقصاء فرسان المسارات لخرق السيادة.' });
+      toast({ title: 'تم إرسال البلاغ', description: 'سنراجع الرحلة ونوقف أي إجراء غير آمن.' });
     } catch (error) {
       toast({ variant: 'destructive', title: 'لم تنجح الإزاحة التعسفية', description: getSovereignErrorMessage(error) });
     } finally {
