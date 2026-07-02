@@ -50,6 +50,8 @@ const copy = {
     passwordPlaceholder: 'اكتب كلمة المرور',
     showPassword: 'إظهار كلمة المرور',
     hidePassword: 'إخفاء كلمة المرور',
+    rememberMe: 'تذكرني',
+    rememberHint: 'ابق مسجلا على هذا الجهاز',
     login: 'تسجيل الدخول',
     register: 'إنشاء الحساب',
     submitLogin: 'دخول الحساب',
@@ -87,6 +89,8 @@ const copy = {
     passwordPlaceholder: 'Enter password',
     showPassword: 'Show password',
     hidePassword: 'Hide password',
+    rememberMe: 'Remember me',
+    rememberHint: 'Keep me signed in on this device',
     login: 'Login',
     register: 'Register',
     submitLogin: 'Login',
@@ -110,6 +114,8 @@ export function PersonalStep() {
     setPersonal,
     authPassword,
     setAuthPassword,
+    rememberMe,
+    setRememberMe,
     handlePersonalSubmit,
     governorates,
     districts,
@@ -388,6 +394,19 @@ export function PersonalStep() {
                   </button>
                 </div>
               </Field>
+
+              <label className="flex cursor-pointer items-center justify-between gap-3 rounded-2xl border border-white/10 bg-[#0B0F19]/45 p-3 transition hover:border-[#14B8A6]/40">
+                <span className={`${isArabic ? 'text-right' : 'text-left'}`}>
+                  <span className="block text-sm font-black text-[#F8FAFC]">{t.rememberMe}</span>
+                  <span className="mt-1 block text-xs font-semibold text-[#94A3B8]">{t.rememberHint}</span>
+                </span>
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(event) => setRememberMe(event.target.checked)}
+                  className="h-5 w-5 shrink-0 accent-[#14B8A6]"
+                />
+              </label>
 
               {mode === 'register' && role === 'rider' ? (
                 <div className="rounded-2xl border border-[#14B8A6]/20 bg-[#0B0F19]/50 p-3">

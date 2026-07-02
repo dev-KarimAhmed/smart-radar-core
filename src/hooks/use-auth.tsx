@@ -9,7 +9,7 @@ interface AuthContextType {
   user: SovereignUser | null;
   loading: boolean;
   promoData: any;
-  logout: () => void;
+  logout: () => Promise<void>;
   loginAsMockUser: (user: SovereignUser) => void;
   isSovereign: boolean;
   isCaptain: boolean;
@@ -59,12 +59,22 @@ function AuthContent({ children }: { children: ReactNode }) {
     setLoading(false);
   }, []);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    setLoading(true);
     clearSupabaseSessionCache();
     setUser(null);
-    supabase.auth.signOut().catch(() => {
+    try {
+      await supabase.auth.signOut();
+    } catch {
       setUser(null);
-    });
+    } finally {
+      clearSupabaseSessionCache();
+      setLoading(false);
+      if (typeof window !== 'undefined') {
+        window.history.replaceState(null, '', '/');
+        window.dispatchEvent(new PopStateEvent('popstate'));
+      }
+    }
   }, []);
 
   const suspendUserDocListener = useCallback(() => {

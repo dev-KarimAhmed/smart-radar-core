@@ -1,5 +1,10 @@
 import type { AuthError, Session, User } from '@supabase/supabase-js';
-import { supabase } from './supabase-client';
+import {
+  clearSupabaseAuthStorage,
+  setSupabaseRememberSession,
+  shouldRememberSupabaseSession,
+  supabase,
+} from './supabase-client';
 
 const AUTH_TOKEN_STORAGE_KEY = 'radar_supabase_access_token';
 const PHONE_REGEX = /^\+[1-9]\d{6,14}$/;
@@ -10,11 +15,13 @@ export interface RiderSupabaseSignUpInput {
   fullName: string;
   governorateId: number;
   districtId: number;
+  rememberMe?: boolean;
 }
 
 export interface RiderSupabaseSignInInput {
   phone: string;
   password: string;
+  rememberMe?: boolean;
 }
 
 export interface RiderAuthMetadata {
@@ -72,6 +79,8 @@ export async function signUpRiderWithPhone(input: RiderSupabaseSignUpInput) {
   if (!validation.ok) throw new Error(validation.message);
   const metadata = buildRiderSignUpMetadata(input);
 
+  setSupabaseRememberSession(input.rememberMe ?? shouldRememberSupabaseSession());
+
   const { data, error } = await supabase.auth.signUp({
     phone: validation.phone,
     password: input.password,
@@ -89,6 +98,8 @@ export async function signInRiderWithPhone(input: RiderSupabaseSignInInput) {
   const validation = validatePhoneAndPassword(input.phone, input.password);
   if (!validation.ok) throw new Error(validation.message);
 
+  setSupabaseRememberSession(input.rememberMe ?? shouldRememberSupabaseSession());
+
   const { data, error } = await supabase.auth.signInWithPassword({
     phone: validation.phone,
     password: input.password,
@@ -103,15 +114,21 @@ export function cacheSupabaseSession(session: Session | null) {
   if (typeof window === 'undefined') return;
 
   if (session?.access_token) {
-    localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, session.access_token);
+    const targetStorage = shouldRememberSupabaseSession() ? localStorage : sessionStorage;
+    const otherStorage = shouldRememberSupabaseSession() ? sessionStorage : localStorage;
+    targetStorage.setItem(AUTH_TOKEN_STORAGE_KEY, session.access_token);
+    otherStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
   } else {
     localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+    sessionStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
   }
 }
 
 export function clearSupabaseSessionCache() {
   if (typeof window === 'undefined') return;
   localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+  sessionStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+  clearSupabaseAuthStorage();
 }
 
 export function mapSupabaseAuthError(error: unknown) {

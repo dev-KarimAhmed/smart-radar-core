@@ -3,7 +3,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { AffiliationType } from '@/core/types';
 import { buildRiderSignUpMetadata, mapSupabaseAuthError, signInRiderWithPhone, signUpRiderWithPhone } from '@/lib/supabase-auth';
-import { supabase } from '@/lib/supabase-client';
+import { shouldRememberSupabaseSession, supabase } from '@/lib/supabase-client';
 import { useToast } from './use-toast';
 
 type RegistrationStep = 'role' | 'personal' | 'affiliation' | 'vehicle' | 'admin' | 'advertiser' | 'ProfessionalStep';
@@ -39,6 +39,8 @@ interface RegistrationContextType {
   setPersonal: (personal: any) => void;
   authPassword: string;
   setAuthPassword: (password: string) => void;
+  rememberMe: boolean;
+  setRememberMe: (remember: boolean) => void;
   advertiserProfile: { companyName: string; commercialRegister: string; adLicense: string; businessType: string };
   setAdvertiserProfile: (profile: any) => void;
   affiliation: AffiliationType | null;
@@ -69,6 +71,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
   const [lang, setLang] = useState<'ar' | 'en'>('ar');
   const [personal, setPersonal] = useState({ name: '', phone: '', gov: '', district: '', verificationDoc: '' });
   const [authPassword, setAuthPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(() => shouldRememberSupabaseSession());
   const [advertiserProfile, setAdvertiserProfile] = useState({ companyName: '', commercialRegister: '', adLicense: '', businessType: 'commercial' });
   const [affiliation, setAffiliation] = useState<AffiliationType | null>(null);
   const [vehicle, setVehicle] = useState({ year: '', plate: '', sideId: '', make: '', color: '', officeName: '', officePhone: '', companyName: '' });
@@ -234,6 +237,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
         await signInRiderWithPhone({
           phone: personal.phone,
           password: authPassword,
+          rememberMe,
         });
 
         toast({
@@ -249,6 +253,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
         fullName: personal.name.trim(),
         governorateId,
         districtId,
+        rememberMe,
       };
 
       if (import.meta.env.DEV) {
@@ -286,7 +291,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
       setIsSubmitting(false);
       isSubmittingRef.current = false;
     }
-  }, [authMode, authPassword, districtRows, personal.district, personal.gov, personal.name, personal.phone, toast]);
+  }, [authMode, authPassword, districtRows, personal.district, personal.gov, personal.name, personal.phone, rememberMe, toast]);
 
   const handlePersonalSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -352,6 +357,8 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     setPersonal,
     authPassword,
     setAuthPassword,
+    rememberMe,
+    setRememberMe,
     advertiserProfile,
     setAdvertiserProfile,
     affiliation,
