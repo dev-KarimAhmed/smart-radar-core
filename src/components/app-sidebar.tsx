@@ -348,7 +348,7 @@ export function AppSidebar() {
       </ScrollArea>
 
       {/* Footer / Logout */}
-      <div className="p-5 bg-[#050D05] border-t border-emerald-900/30 mt-auto shrink-0 w-full text-center space-y-3">
+      <div className="p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] bg-[#050D05] border-t border-emerald-900/30 mt-auto shrink-0 w-full text-center space-y-3">
         <div className="text-gray-400 text-xs tracking-wide font-sans text-center">
           منصة وساطة مستقلة - نربط النبض بالميدان
         </div>

@@ -5,20 +5,10 @@ import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { AdvertiserPortal } from './dashboard/advertiser-portal';
 import {
-  LogOut,
-  PanelRight,
   RadioTower,
   Settings,
   Bell,
@@ -26,7 +16,6 @@ import {
   TrendingDown,
   Minus,
   Loader2,
-  Megaphone,
   Shield
 } from 'lucide-react';
 import { AppSidebar } from './app-sidebar';
@@ -165,7 +154,7 @@ function SovereignCabin() {
 }
 
 export function AppHeader() {
-  const { user, logout, isCaptain, isPassenger } = useAuth();
+  const { user, isCaptain, isPassenger } = useAuth();
   const { toast } = useToast();
   const [isAdvertiserOpen, setIsAdvertiserOpen] = useState(false);
   
@@ -190,21 +179,7 @@ export function AppHeader() {
       
       <header className="flex h-16 items-center justify-between px-4 bg-black border-b border-white/10">
         
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button size="icon" variant="ghost" className="h-10 w-10 text-white hover:bg-white/10">
-              <PanelRight className="h-6 w-6" />
-              <span className="sr-only">فتح القائمة</span>
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="right" className="p-0 sm:max-w-xs border-white/10 bg-black/95 w-[288px]">
-            <VisuallyHidden>
-              <SheetTitle>القائمة</SheetTitle>
-              <SheetDescription>قائمة التحكم</SheetDescription>
-            </VisuallyHidden>
-            <AppSidebar />
-          </SheetContent>
-        </Sheet>
+        <div className="h-10 w-10" />
         
         <div className="flex items-center gap-4">
              <Button 
@@ -215,7 +190,7 @@ export function AppHeader() {
              >
                <Bell className="h-5 w-5" />
              </Button>
-           <UserMenu user={user} logout={logout} getInitials={getInitials} getRoleName={getRoleName} />
+           <UserMenu user={user} getInitials={getInitials} />
         </div>
       </header>
 
@@ -224,7 +199,7 @@ export function AppHeader() {
   );
 }
 
-function UserMenu({ user, logout, getInitials, getRoleName }: any) {
+function UserMenu({ user, getInitials }: any) {
   const { toast } = useToast();
   const [isAdvertiserOpen, setIsAdvertiserOpen] = useState(false);
 
@@ -256,41 +231,22 @@ function UserMenu({ user, logout, getInitials, getRoleName }: any) {
   
   return (
     <>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
+      <Sheet>
+        <SheetTrigger asChild>
           <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0 shadow-sm hover:scale-105 transition-transform">
             <Avatar className="h-10 w-10 border-2 border-white/20">
               <AvatarFallback className="bg-black/50 text-white font-bold">{getInitials(user?.name)}</AvatarFallback>
             </Avatar>
           </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-58 bg-black/95 text-white border-white/10 text-right" align="end" forceMount>
-          <DropdownMenuLabel className="font-normal text-right">
-            <div className="flex flex-col space-y-1">
-              <p className="text-sm font-medium leading-none capitalize">{user?.name}</p>
-              <p className="text-xs leading-none text-white/50">{getRoleName(user?.role)}</p>
-            </div>
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator className="bg-white/10" />
-          
-          {user?.role === 'advertiser' && (
-            <>
-              <DropdownMenuItem 
-                onClick={handleOpenAdvertiser}
-                className="hover:bg-emerald-950/40 focus:bg-emerald-950/40 cursor-pointer flex items-center justify-between gap-2 p-2"
-              >
-                <Megaphone className="h-4 w-4 text-emerald-400" />
-                <span className="font-bold text-xs text-emerald-400">بوابة المعلن السيادية 📣</span>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator className="bg-white/10" />
-            </>
-          )}
-          
-          <DropdownMenuItem onClick={logout} className="text-destructive hover:bg-destructive/20 focus:bg-destructive/20 cursor-pointer flex items-center justify-between p-2">
-            <LogOut className="h-4 w-4" /> <span>تسجيل الخروج</span>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+        </SheetTrigger>
+        <SheetContent side="right" className="p-0 sm:max-w-xs border-white/10 bg-black/95 w-[288px]">
+          <VisuallyHidden>
+            <SheetTitle>القائمة</SheetTitle>
+            <SheetDescription>قائمة الحساب</SheetDescription>
+          </VisuallyHidden>
+          <AppSidebar />
+        </SheetContent>
+      </Sheet>
 
       {user?.role === 'advertiser' && (
         <Dialog open={isAdvertiserOpen} onOpenChange={setIsAdvertiserOpen}>
