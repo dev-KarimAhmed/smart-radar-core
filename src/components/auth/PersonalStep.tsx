@@ -6,6 +6,7 @@ import {
   ChevronDown,
   Eye,
   EyeOff,
+  KeyRound,
   Languages,
   Loader2,
   LockKeyhole,
@@ -15,7 +16,20 @@ import {
   Sparkles,
   UserRound,
 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { useRegistration } from '@/hooks/use-registration';
+import {
+  confirmRiderPasswordReset,
+  mapSupabaseAuthError,
+  requestRiderPasswordResetCode,
+} from '@/lib/supabase-auth';
+import { useToast } from '@/hooks/use-toast';
 
 type Lang = 'ar' | 'en';
 type AuthMode = 'register' | 'login';
@@ -52,6 +66,18 @@ const copy = {
     hidePassword: 'إخفاء كلمة المرور',
     rememberMe: 'تذكرني',
     rememberHint: 'ابق مسجلا على هذا الجهاز',
+    forgotPassword: 'نسيت كلمة المرور؟',
+    resetTitle: 'استعادة كلمة المرور',
+    resetDescription: 'اكتب رقم هاتفك وسنرسل لك رمز تحقق لتعيين كلمة مرور جديدة.',
+    resetPhone: 'رقم الهاتف',
+    sendCode: 'إرسال الرمز',
+    resetCode: 'رمز التحقق',
+    resetCodePlaceholder: 'اكتب الرمز',
+    newPassword: 'كلمة مرور جديدة',
+    newPasswordPlaceholder: 'اكتب كلمة مرور جديدة',
+    confirmReset: 'تحديث كلمة المرور',
+    codeSent: 'تم إرسال رمز التحقق إلى هاتفك.',
+    passwordUpdated: 'تم تحديث كلمة المرور. يمكنك تسجيل الدخول الآن.',
     login: 'تسجيل الدخول',
     register: 'إنشاء الحساب',
     submitLogin: 'دخول الحساب',
@@ -60,10 +86,6 @@ const copy = {
     noAccount: 'ليس لديك حساب؟',
     switchToLogin: 'سجل دخولك',
     switchToRegister: 'اعمل حساب جديد',
-    idTitle: 'الهوية الشخصية',
-    idReady: 'تم تجهيز الهوية',
-    idCompressing: 'جاري ضغط الصورة...',
-    idHint: 'أرفق صورة الهوية لإكمال التحقق',
     back: 'العودة لاختيار نوع الحساب',
     ticker: ['رحلات أقرب', 'دخول آمن', 'اختيار واضح', 'رادار ذكي V5.5', 'تجربة موبايل سهلة'],
   },
@@ -91,6 +113,18 @@ const copy = {
     hidePassword: 'Hide password',
     rememberMe: 'Remember me',
     rememberHint: 'Keep me signed in on this device',
+    forgotPassword: 'Forgot password?',
+    resetTitle: 'Reset password',
+    resetDescription: 'Enter your phone number and we will send a code to set a new password.',
+    resetPhone: 'Phone number',
+    sendCode: 'Send code',
+    resetCode: 'Verification code',
+    resetCodePlaceholder: 'Enter code',
+    newPassword: 'New password',
+    newPasswordPlaceholder: 'Enter new password',
+    confirmReset: 'Update password',
+    codeSent: 'Verification code sent to your phone.',
+    passwordUpdated: 'Password updated. You can login now.',
     login: 'Login',
     register: 'Register',
     submitLogin: 'Login',
@@ -99,16 +133,13 @@ const copy = {
     noAccount: 'New here?',
     switchToLogin: 'Login',
     switchToRegister: 'Create an account',
-    idTitle: 'Personal ID',
-    idReady: 'ID image prepared',
-    idCompressing: 'Compressing image...',
-    idHint: 'Attach an ID image to complete verification',
     back: 'Back to account type',
     ticker: ['Closer rides', 'Secure access', 'Clear choice', 'Smart Radar V5.5', 'Easy mobile flow'],
   },
 } as const;
 
 export function PersonalStep() {
+  const { toast } = useToast();
   const {
     personal,
     setPersonal,
@@ -129,8 +160,13 @@ export function PersonalStep() {
     lang,
     setLang,
   } = useRegistration();
-  const [compressing, setCompressing] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetPhone, setResetPhone] = useState(personal.phone);
+  const [resetCode, setResetCode] = useState('');
+  const [resetPassword, setResetPassword] = useState('');
+  const [resetCodeSent, setResetCodeSent] = useState(false);
+  const [resetSubmitting, setResetSubmitting] = useState(false);
 
   const currentLang = lang as Lang;
   const mode = authMode as AuthMode;
@@ -139,44 +175,54 @@ export function PersonalStep() {
   const roleName = role ? roleLabels[role]?.[currentLang] : roleLabels.rider[currentLang];
   const tickerItems = useMemo(() => [...t.ticker, ...t.ticker, ...t.ticker], [t.ticker]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const openPasswordReset = () => {
+    setResetPhone(personal.phone);
+    setResetCode('');
+    setResetPassword('');
+    setResetCodeSent(false);
+    setResetOpen(true);
+  };
 
-    setCompressing(true);
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const maxWidth = 250;
-        const maxHeight = 250;
-        let width = img.width;
-        let height = img.height;
+  const handleSendResetCode = async () => {
+    setResetSubmitting(true);
+    try {
+      const normalizedPhone = await requestRiderPasswordResetCode(resetPhone);
+      setResetPhone(normalizedPhone);
+      setResetCodeSent(true);
+      toast({ title: t.resetTitle, description: t.codeSent });
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: t.resetTitle,
+        description: mapSupabaseAuthError(error),
+      });
+    } finally {
+      setResetSubmitting(false);
+    }
+  };
 
-        if (width > height && width > maxWidth) {
-          height *= maxWidth / width;
-          width = maxWidth;
-        } else if (height > maxHeight) {
-          width *= maxHeight / height;
-          height = maxHeight;
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx?.drawImage(img, 0, 0, width, height);
-
-        setPersonal({ ...personal, verificationDoc: canvas.toDataURL('image/jpeg', 0.4) });
-        setCompressing(false);
-
-        if (typeof navigator !== 'undefined' && navigator.vibrate) {
-          navigator.vibrate([50, 30, 50]);
-        }
-      };
-      img.src = event.target?.result as string;
-    };
-    reader.readAsDataURL(file);
+  const handleConfirmReset = async () => {
+    setResetSubmitting(true);
+    try {
+      await confirmRiderPasswordReset({
+        phone: resetPhone,
+        token: resetCode,
+        newPassword: resetPassword,
+      });
+      setPersonal({ ...personal, phone: resetPhone });
+      setAuthPassword('');
+      setAuthMode('login');
+      setResetOpen(false);
+      toast({ title: t.resetTitle, description: t.passwordUpdated });
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: t.resetTitle,
+        description: mapSupabaseAuthError(error),
+      });
+    } finally {
+      setResetSubmitting(false);
+    }
   };
 
   return (
@@ -395,6 +441,18 @@ export function PersonalStep() {
                 </div>
               </Field>
 
+              {mode === 'login' ? (
+                <button
+                  type="button"
+                  onClick={openPasswordReset}
+                  className={`-mt-2 block w-full text-xs font-black text-[#14B8A6] underline-offset-4 transition hover:text-[#2DD4BF] hover:underline ${
+                    isArabic ? 'text-left' : 'text-right'
+                  }`}
+                >
+                  {t.forgotPassword}
+                </button>
+              ) : null}
+
               <label className="flex cursor-pointer items-center justify-between gap-3 rounded-2xl border border-white/10 bg-[#0B0F19]/45 p-3 transition hover:border-[#14B8A6]/40">
                 <span className={`${isArabic ? 'text-right' : 'text-left'}`}>
                   <span className="block text-sm font-black text-[#F8FAFC]">{t.rememberMe}</span>
@@ -408,36 +466,11 @@ export function PersonalStep() {
                 />
               </label>
 
-              {mode === 'register' && role === 'rider' ? (
-                <div className="rounded-2xl border border-[#14B8A6]/20 bg-[#0B0F19]/50 p-3">
-                  <label className="block text-sm font-black text-[#14B8A6]">
-                    {t.idTitle}
-                  </label>
-                  <div className="relative mt-2 flex min-h-16 cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-[#14B8A6]/30 bg-black/30 p-3 transition hover:bg-black/50">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleFileChange}
-                      className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                    />
-                    {personal.verificationDoc ? (
-                      <span className="text-xs font-bold text-emerald-400">{t.idReady}</span>
-                    ) : compressing ? (
-                      <span className="text-xs text-[#94A3B8]">{t.idCompressing}</span>
-                    ) : (
-                      <span className="text-center text-xs font-semibold leading-5 text-[#94A3B8]">
-                        {t.idHint}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ) : null}
-
               <motion.button
                 whileTap={{ scale: 0.98 }}
                 whileHover={{ y: -1 }}
                 type="submit"
-                disabled={isSubmitting || compressing}
+                disabled={isSubmitting}
                 className="mt-2 w-full rounded-2xl bg-[#14B8A6] p-4 text-base font-black text-[#0B0F19] shadow-[0_16px_45px_rgba(20,184,166,0.22)] transition hover:bg-[#2DD4BF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/60 disabled:opacity-50"
               >
                 {isSubmitting ? '...' : mode === 'register' ? t.submitRegister : t.submitLogin}
@@ -465,6 +498,74 @@ export function PersonalStep() {
           </button>
         </div>
       </section>
+
+      <Dialog open={resetOpen} onOpenChange={setResetOpen}>
+        <DialogContent
+          dir={isArabic ? 'rtl' : 'ltr'}
+          className="border border-[#14B8A6]/25 bg-[#0B0F19] text-white shadow-2xl sm:max-w-md"
+        >
+          <DialogHeader className={isArabic ? 'text-right' : 'text-left'}>
+            <div className="mb-2 flex h-11 w-11 items-center justify-center rounded-2xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 text-[#14B8A6]">
+              <KeyRound className="h-5 w-5" aria-hidden="true" />
+            </div>
+            <DialogTitle className="text-2xl font-black text-white">{t.resetTitle}</DialogTitle>
+            <DialogDescription className="text-sm leading-6 text-[#94A3B8]">
+              {t.resetDescription}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <Field label={t.resetPhone} icon={<Phone className="h-5 w-5" />}>
+              <input
+                type="tel"
+                dir="ltr"
+                inputMode="tel"
+                placeholder={t.phonePlaceholder}
+                value={resetPhone}
+                onChange={(event) => setResetPhone(event.target.value)}
+                className={`${inputClass} text-left`}
+                disabled={resetSubmitting || resetCodeSent}
+              />
+            </Field>
+
+            {resetCodeSent ? (
+              <>
+                <Field label={t.resetCode} icon={<ShieldCheck className="h-5 w-5" />}>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    placeholder={t.resetCodePlaceholder}
+                    value={resetCode}
+                    onChange={(event) => setResetCode(event.target.value)}
+                    className={`${inputClass} ${isArabic ? 'text-right' : 'text-left'}`}
+                    disabled={resetSubmitting}
+                  />
+                </Field>
+
+                <Field label={t.newPassword} icon={<LockKeyhole className="h-5 w-5" />}>
+                  <input
+                    type="password"
+                    placeholder={t.newPasswordPlaceholder}
+                    value={resetPassword}
+                    onChange={(event) => setResetPassword(event.target.value)}
+                    className={`${inputClass} ${isArabic ? 'text-right' : 'text-left'}`}
+                    disabled={resetSubmitting}
+                  />
+                </Field>
+              </>
+            ) : null}
+
+            <button
+              type="button"
+              onClick={resetCodeSent ? handleConfirmReset : handleSendResetCode}
+              disabled={resetSubmitting}
+              className="w-full rounded-2xl bg-[#14B8A6] p-4 text-sm font-black text-[#0B0F19] shadow-[0_16px_45px_rgba(20,184,166,0.18)] transition hover:bg-[#2DD4BF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/60 disabled:opacity-50"
+            >
+              {resetSubmitting ? '...' : resetCodeSent ? t.confirmReset : t.sendCode}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <div className="absolute inset-x-0 bottom-0 z-0 h-14 overflow-hidden border-t border-white/10 bg-slate-950/70 backdrop-blur-xl">
         <div

@@ -24,6 +24,12 @@ export interface RiderSupabaseSignInInput {
   rememberMe?: boolean;
 }
 
+export interface RiderPhonePasswordResetInput {
+  phone: string;
+  token: string;
+  newPassword: string;
+}
+
 export interface RiderAuthMetadata {
   role: 'RIDER';
   full_name: string;
@@ -110,6 +116,56 @@ export async function signInRiderWithPhone(input: RiderSupabaseSignInInput) {
   return data;
 }
 
+export async function requestRiderPasswordResetCode(phone: string) {
+  const normalizedPhone = normalizeInternationalPhone(phone);
+
+  if (!PHONE_REGEX.test(normalizedPhone)) {
+    throw new Error('يرجى كتابة رقم الهاتف مع رمز الدولة، مثال: +962790000000 أو +201000000000.');
+  }
+
+  const { error } = await supabase.auth.signInWithOtp({
+    phone: normalizedPhone,
+    options: {
+      shouldCreateUser: false,
+    },
+  });
+
+  if (error) throw error;
+  return normalizedPhone;
+}
+
+export async function confirmRiderPasswordReset(input: RiderPhonePasswordResetInput) {
+  const normalizedPhone = normalizeInternationalPhone(input.phone);
+
+  if (!PHONE_REGEX.test(normalizedPhone)) {
+    throw new Error('يرجى كتابة رقم الهاتف مع رمز الدولة، مثال: +962790000000 أو +201000000000.');
+  }
+
+  if (!input.token.trim()) {
+    throw new Error('يرجى كتابة رمز التحقق المرسل إلى الهاتف.');
+  }
+
+  if (input.newPassword.length < 6) {
+    throw new Error('كلمة المرور ضعيفة جداً، يجب ألا تقل عن 6 خانات.');
+  }
+
+  const { error: verifyError } = await supabase.auth.verifyOtp({
+    phone: normalizedPhone,
+    token: input.token.trim(),
+    type: 'sms',
+  });
+
+  if (verifyError) throw verifyError;
+
+  const { error: updateError } = await supabase.auth.updateUser({
+    password: input.newPassword,
+  });
+
+  if (updateError) throw updateError;
+  await supabase.auth.signOut();
+  clearSupabaseSessionCache();
+}
+
 export function cacheSupabaseSession(session: Session | null) {
   if (typeof window === 'undefined') return;
 
@@ -148,11 +204,17 @@ export function mapSupabaseAuthError(error: unknown) {
 
   if (
     code.includes('invalid_credentials') ||
+    code.includes('otp_expired') ||
+    code.includes('otp_disabled') ||
     message.includes('invalid login') ||
     message.includes('invalid credentials') ||
+    message.includes('token has expired') ||
+    message.includes('invalid token') ||
     message.includes('authentication')
   ) {
-    return 'رقم الهاتف أو كلمة المرور غير صحيحة.';
+    return code.includes('otp') || message.includes('token')
+      ? 'رمز التحقق غير صحيح أو انتهت صلاحيته.'
+      : 'رقم الهاتف أو كلمة المرور غير صحيحة.';
   }
 
   if (

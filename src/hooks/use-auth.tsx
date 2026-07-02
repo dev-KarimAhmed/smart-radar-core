@@ -2,6 +2,16 @@
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { User as SovereignUser } from '@/core/types';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { buildUserFromSupabaseAuth, cacheSupabaseSession, clearSupabaseSessionCache } from '@/lib/supabase-auth';
 import { supabase } from '@/lib/supabase-client';
 
@@ -24,6 +34,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 function AuthContent({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<SovereignUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+  const [logoutInProgress, setLogoutInProgress] = useState(false);
   const [promoData] = useState<any>(null);
 
   useEffect(() => {
@@ -60,7 +72,11 @@ function AuthContent({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
-    setLoading(true);
+    setLogoutDialogOpen(true);
+  }, []);
+
+  const confirmLogout = useCallback(async () => {
+    setLogoutInProgress(true);
     clearSupabaseSessionCache();
     setUser(null);
     try {
@@ -74,6 +90,8 @@ function AuthContent({ children }: { children: ReactNode }) {
         window.history.replaceState(null, '', '/');
         window.dispatchEvent(new PopStateEvent('popstate'));
       }
+      setLogoutDialogOpen(false);
+      setLogoutInProgress(false);
     }
   }, []);
 
@@ -122,7 +140,39 @@ function AuthContent({ children }: { children: ReactNode }) {
 
   if (loading && !user) return null;
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+      <AlertDialog open={logoutDialogOpen} onOpenChange={(open) => !logoutInProgress && setLogoutDialogOpen(open)}>
+        <AlertDialogContent className="border-red-500/25 bg-[#0B0F19] text-white shadow-2xl" dir="rtl">
+          <AlertDialogHeader className="text-right">
+            <AlertDialogTitle className="text-xl font-black text-white">تأكيد تسجيل الخروج</AlertDialogTitle>
+            <AlertDialogDescription className="text-right text-sm leading-6 text-[#94A3B8]">
+              هل تريد تسجيل الخروج من الحساب الآن؟ سيتم حذف الجلسة الحالية من هذا الجهاز.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2 sm:justify-start sm:space-x-0">
+            <AlertDialogCancel
+              disabled={logoutInProgress}
+              className="border-white/10 bg-white/10 font-bold text-white hover:bg-white/15"
+            >
+              إلغاء
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={logoutInProgress}
+              onClick={(event) => {
+                event.preventDefault();
+                void confirmLogout();
+              }}
+              className="bg-red-600 font-black text-white hover:bg-red-500"
+            >
+              {logoutInProgress ? 'جاري الخروج...' : 'نعم، تسجيل الخروج'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </AuthContext.Provider>
+  );
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {

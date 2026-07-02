@@ -20,6 +20,11 @@ assert.equal(
 );
 
 assert.equal(
+  mapSupabaseAuthError({ code: 'otp_expired', message: 'Token has expired or is invalid' }),
+  'رمز التحقق غير صحيح أو انتهت صلاحيته.',
+);
+
+assert.equal(
   mapSupabaseAuthError({ code: 'unexpected_failure', status: 500, message: 'Database error saving new user' }),
   'تعذر إنشاء الحساب من قاعدة البيانات. يرجى مراجعة دالة إنشاء الملف الشخصي في Supabase ثم المحاولة مرة أخرى.',
 );
