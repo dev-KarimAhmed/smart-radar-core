@@ -252,7 +252,7 @@ export function RoleStep() {
   return (
     <main
       dir={isArabic ? 'rtl' : 'ltr'}
-      className="relative min-h-screen overflow-x-hidden bg-[#0B0F19] text-slate-100"
+      className="relative min-h-dvh overflow-x-hidden overflow-y-auto bg-[#0B0F19] text-slate-100"
     >
       <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle_at_18%_10%,rgba(20,184,166,0.22),transparent_26%),radial-gradient(circle_at_82%_18%,rgba(45,212,191,0.10),transparent_28%)]" />
 
@@ -271,7 +271,7 @@ export function RoleStep() {
         <span>{content.switchLabel}</span>
       </motion.button>
 
-      <section className="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl flex-col justify-center px-4 py-24 sm:px-6 lg:px-8">
+      <section className="relative z-10 mx-auto flex min-h-dvh w-full max-w-6xl flex-col px-4 pb-20 pt-24 sm:px-6 sm:pb-24 sm:pt-28 lg:px-8 xl:justify-center">
         <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[#14B8A6]/35 bg-[#14B8A6]/10 text-[#14B8A6] shadow-[0_0_32px_rgba(20,184,166,0.18)] sm:h-16 sm:w-16">
             <ShieldCheck aria-hidden="true" className="h-7 w-7" strokeWidth={1.8} />

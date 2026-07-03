@@ -1,141 +1,146 @@
 # Rider Dashboard Alignment Report
 
-Date: 2026-07-02
+Date: 2026-07-03
 
-Scope: current Rider Dashboard frontend compared with the Jordan-first zero-cost delivery plan, SC55 offline-first direction, and latest rider workflow code in this repo.
+Scope: current Rider Dashboard, Rider authentication entry flow, Jordan-first geospatial flow, local ads surface, and production readiness compared with the zero-cost delivery plan and SC55 offline-first direction.
 
 ## Executive Summary
 
-Frontend/local prototype alignment: **96%**
+Frontend/local prototype alignment: **94%**
 
-Full production readiness including backend authority: **84%**
+Production readiness: **72%**
 
-The Rider Dashboard is now very close to the agreed frontend target for the Jordan rollout. The seven-state reducer is in place, the map uses keyless MapLibre/OpenFreeMap, the GPS fallback is Amman, the destination flow is Jordan-only, fare quotes are calculated locally from rider location to district anchor using H3/Haversine/tortuosity, captain offers inherit the live guide price, active trip has a moving captain dot, and completed demo trips are inserted into the Dexie 72-hour ledger.
+The Rider Dashboard is now strong as a local Jordan-first prototype. It has the seven-state reducer, MapLibre/OpenFreeMap map, live browser GPS with Amman fallback, H3-based captain dots, Jordan governorate/district destination data, local fare guide calculation, local mock offers, active-trip animation, rating modal, Dexie 72-hour ledger insertion, and Dexie/local favorite captain storage.
 
-The remaining frontend gaps are mostly refinement: official validation of every district anchor coordinate, stronger active-trip route progress, ad metric batching consolidation, bundle optimization, and cleanup of older shared Arabic outside the newest rider flow.
+The production score is lower because the trusted business layer is not finished yet. Real ride requests, captain assignment, final fare authority, wallets, commission settlement, ad billing, fraud checks, and operational kill switches still need backend enforcement before launch.
 
-Backend authority is still the biggest production gap. Pricing, wallets, commission settlement, registration, kill switches, and real trip writes must eventually be enforced by backend rules/functions before the system can be trusted in production.
+Rider authentication is now much better aligned: the app uses Supabase Phone + Password for rider signup/login, fetches governorates and districts from Supabase, sends raw database IDs in auth metadata, supports remember me, forgot password, and logout confirmation. This helps production readiness, but the database trigger/RLS setup still must be verified on the live Supabase project.
 
-Important ad note: dashboard ads now use the client-approved large image-card style and should keep the current dashboard placement. Do not move them into a fixed bottom strip unless the client explicitly approves that visual change.
+Important ad note: dashboard ads should keep the client-approved large image-card style and current dashboard placement. Do not move them into a fixed bottom strip unless the client explicitly approves that visual change.
 
 ## Alignment By Area
 
 | Area | Alignment | Status |
 | --- | ---: | --- |
-| Seven rider states | 96% | Full reducer exists with bounded state transitions and tests. |
-| Local ride lifecycle | 96% | Request, mock timer, offers, active trip, completion, rating, and return to map all work locally. |
-| Jordan destination dataset | 92% | 12 governorates and 50+ district/directorate anchors are present locally; coordinates still need official GIS review. |
-| GPS fallback | 100% | Fallback is now Amman, Jordan, not Cairo. |
-| Live fare calculation | 95% | Uses rider location or Amman fallback plus selected district anchor with H3/Haversine/tortuosity. |
-| MapLibre / OpenFreeMap | 94% | Keyless map works with Arabic RTL labels and no paid map key. |
-| H3 compliance | 95% | Official `h3-js` is used for cells, grid disk captain dots, cell distance, and fare support. |
-| Active trip UI | 90% | Shows ETA, captain, vehicle, price, distance, local H3 tracking, and animated captain movement. |
-| 72-hour ledger | 93% | Completed demo trips are inserted into Dexie and shown with countdown. |
-| Green Heart vault | 90% | Favorite captains remain local/Dexie-backed. |
-| Ad sections | 88% | Client ad card style is preserved; batching still needs one final shared local utility. |
-| Dark matte identity | 90% | Rider flow follows navy/teal/glass visual direction. |
-| Arabic copy | 86% | New rider flow is clean and simple; older shared surfaces still need another cleanup pass. |
-| Backend authority | 55% | Intentionally deferred; not yet production-trustworthy. |
+| Seven rider states | 96% | `useReducer` state machine exists with bounded transitions. |
+| Local ride lifecycle | 94% | Request, waiting, offers, active trip, complete trip, rating, and return-to-map work locally. |
+| Rider auth entry | 86% | Supabase phone/password, remember me, forgot password, logout confirmation, and live location dropdowns exist. Needs live trigger/RLS verification. |
+| Jordan destination data | 90% | 12 governorates and many districts are present locally for ride flow; production needs official coordinate validation. |
+| GPS and fallback | 95% | Browser GPS is used when allowed; fallback is Amman, Jordan. |
+| MapLibre/OpenFreeMap | 92% | Keyless map renders with OpenFreeMap and no paid map key. Arabic map labels depend on external tile/style rendering. |
+| H3 geospatial logic | 94% | Official `h3-js` is used for cells, grid disks, and cell distance support. |
+| Fare guide calculation | 90% | Uses rider/current fallback location, Haversine, H3, and tortuosity. Still not server-authoritative. |
+| Active trip UI | 88% | ETA, captain, vehicle, price, distance, and animated captain movement exist. Needs route/progress polish. |
+| 72-hour ledger | 90% | Demo completed trips are inserted into Dexie with purge countdown support. |
+| Favorite captains vault | 88% | Local favorite captains are stored with Dexie/local storage. Needs server sync rules later. |
+| Ads surface | 82% | Client card style is preserved; batching and billing authority are still incomplete. |
+| Arabic/UI copy | 82% | New rider/auth surfaces are simpler, but older shared/dashboard strings still need a final cleanup pass. |
+| Backend authority | 45% | Auth started; ride, pricing, wallet, ads, and settlement authority are still deferred. |
 
 ## What Is Aligned Now
 
-- **State machine:** `src/components/dashboard/rider/rider-state-machine.ts` contains the seven rider states and explicit reducer actions.
-- **Jordan-only destination flow:** `src/components/dashboard/rider/jordan-destinations.ts` includes the 12 Jordan governorates and district/directorate anchors.
-- **Amman fallback:** `src/components/dashboard/rider/rider-map-utils.ts` now uses Amman as the offline fallback location.
-- **Live location:** `src/components/dashboard/rider/rider-map.tsx` watches browser GPS and reports rider location back to the dashboard.
-- **MapLibre:** the rider map renders with OpenFreeMap tiles and MapLibre, with no Google Maps visual dependency.
-- **Arabic map labels:** RTL text plugin support is enabled for Arabic labels.
-- **H3 captain dots:** nearby fake captains are generated from official H3 cells with `gridDisk()`.
-- **Live fare quote:** `src/core/logic/geospatial-kernel.ts` now exposes `calculateSovereignFareQuote()` with H3 cells, Haversine distance, road-distance estimate, tortuosity, and guide price.
-- **Offer pricing:** mock captain offers are based on the selected destination's live guide price.
-- **Active trip movement:** the selected captain dot moves toward the rider during `TRIP_ACTIVE`.
-- **Dexie ledger insertion:** completing a demo trip writes it into `riderTripLedger`, so the 72-hour countdown appears immediately.
-- **Ad style:** the client-approved large image ad card style remains in the dashboard.
-- **Local-only behavior:** no new Firebase/Supabase/backend dependency was added for this sprint.
+- **State machine:** `src/components/dashboard/rider/rider-state-machine.ts` defines the seven screens: `IDLE_MAP`, `DESTINATION_SELECTION`, `RECEIVING_OFFERS`, `TRIP_ACTIVE`, `RATING_MODAL`, `PURGE_LEDGER`, and `FAVORITE_CAPTAINS`.
+- **Bounded transitions:** request flow cannot jump into ledger/favorites while offers, trip, or rating states are active.
+- **Mock offer timer:** `SEND_REQUEST` moves into waiting state, then local fake captain offers appear after the timer.
+- **MapLibre map:** `src/components/dashboard/rider/rider-map.tsx` renders a real keyless map with OpenFreeMap.
+- **Live location:** the rider map watches browser geolocation and reports the rider location back to the dashboard.
+- **Amman fallback:** fallback location is Amman, Jordan, not Cairo.
+- **H3 captain dots:** nearby captain dots are generated through official H3 utilities.
+- **Jordan ride destinations:** `src/components/dashboard/rider/jordan-destinations.ts` contains local Jordan governorate/district anchors for the ride flow.
+- **Live fare guide:** selecting a district calculates a local guide fare from current/fallback origin to destination anchor.
+- **Active trip animation:** selected fake captain movement is animated toward the rider location.
+- **Dexie ledger:** completing a mock trip inserts it into `riderTripLedger` so the 72-hour ledger can show it immediately.
+- **Favorite captain vault:** favorite captain data uses Dexie/local device storage.
+- **Rider auth:** Supabase phone/password signup/login is implemented, with live governorate/district dropdowns and integer IDs sent in auth metadata.
+- **Auth UX:** remember me, forgot password, logout confirmation, random test data, and loading during location fetch are implemented.
+- **Ads:** the client-approved large image-card ads are still used.
 
-## Missing Or Partial Components
+## Missing Or Partial For Production
 
-- **District coordinates need official validation.** The current anchors are stable local rollout anchors, but should be checked against an official GIS/source-of-truth dataset before production.
-- **Active trip is still a prototype animation.** The captain dot moves toward the rider, but there is no full route polyline, turn-by-turn status, or destination-progress model yet.
-- **Fare is a guide price, not authority.** The local quote is excellent for demo/offline UX, but production pricing must be signed or recalculated server-side.
-- **Global request shortcut needs review.** The top/header request button can still be confused with the Rider Dashboard request button in tests; it should be wired to the same reducer path or hidden in this context.
-- **Ad metrics batching needs consolidation.** Visual ad style is aligned, but impression/click batching should be one local utility with the 50-event flush rule.
-- **Older Arabic remains outside the newest rider flow.** Some shared history/profile/ad/support surfaces still need a scan for heavy copy or mojibake.
-- **Bundle size needs optimization.** MapLibre makes the rider chunk large; production should lazy-load map/dashboard code where practical.
+- **Ride requests are still local/mock.** There is no production Supabase ride request, offer, acceptance, cancellation, or completion lifecycle yet.
+- **Fare is not authoritative.** The frontend quote is useful for UX, but production must calculate or sign the final fare on the backend.
+- **Captain discovery is fake.** H3 captain dots and offers are local demo data, not real captain presence or availability.
+- **Trip completion is trusted on the client.** A user can complete a mock trip locally; production needs backend trip state validation.
+- **Wallet and commission logic are not protected.** Any wallet, payout, commission, or settlement value must move behind server authority.
+- **Ad metrics are not production-safe.** The current ad surface logs locally and can flush to Firestore for non-demo ads, but production needs one audited batching and billing path.
+- **Legacy Firebase paths still exist.** Some dashboard/ad hooks still use Firebase/Firestore. These should be removed, isolated, or replaced with Supabase authority during the backend phase.
+- **RLS and database triggers need live verification.** Rider auth depends on Supabase project configuration, phone provider settings, `on_auth_user_created`, profile serial sequence, and policies.
+- **Official district coordinates are not certified.** The Jordan anchors should be checked against a client-approved or official GIS source before launch.
+- **Arabic cleanup is not fully finished.** New rider/auth copy is simpler, but older shared surfaces still need a final scan.
+- **Map bundle is heavy.** MapLibre should be lazy-loaded/code-split for mobile production performance.
 
-## Security And Backend Notes
+## Security And Backend Authority Gaps
 
-- Current implementation is a frontend offline-first prototype.
-- Do not trust local fare, local offers, local wallet values, or local trip state as production authority.
-- Backend work still needs to cover:
-  - secure registration callable/function,
-  - pricing authority,
-  - trip lifecycle authority,
-  - wallet and commission settlement,
-  - Firestore/Supabase rules,
-  - anti-tamper checks for local/offline data,
-  - kill-switch and admin decisions.
+These items must not remain trusted only on the frontend:
 
-## Production Needs
+- Final fare calculation and any price override.
+- Ride request creation, offer eligibility, captain selection, cancellation, and completion.
+- Captain location/presence and H3 availability.
+- Rider/captain wallet balances.
+- Commission settlement and payout records.
+- 72-hour ledger records that affect support, disputes, or accounting.
+- Favorite captain records if they affect future matching priority.
+- Ad impressions, clicks, billing counters, and campaign budget consumption.
+- Admin kill switch, role permissions, and moderation actions.
+- Registration profile creation and role assignment beyond Supabase auth metadata.
 
-1. **Validate Jordan district anchors**
-   - Compare all governorate/district coordinates against an official GIS or approved client dataset.
-   - Keep the dataset local, versioned, and offline-first.
+## Production Action Plan
 
-2. **Unify every request entry point**
-   - Make header/nav "طلب رحلة" enter the same reducer-driven flow.
-   - Avoid opening any older network-backed request modal during local prototype mode.
+1. **Verify Supabase auth database setup**
+   - Apply/confirm the `profile_serial_seq` repair.
+   - Test `on_auth_user_created` with real phone signup.
+   - Confirm `governorate_id` and `district_id` foreign keys accept the live IDs.
+   - Add/verify RLS policies for profiles and public location tables.
 
-3. **Upgrade active-trip visualization**
-   - Add route polyline or staged H3 path.
-   - Show captain approach, pickup, trip start, destination progress, and completion as clear local states.
+2. **Build backend ride authority**
+   - Add `ride_requests`, `ride_offers`, `trips`, and trip events.
+   - Use RPC/Edge Functions for create request, accept offer, start trip, complete trip, and cancel trip.
+   - Keep the frontend reducer, but make it consume trusted backend state.
 
-4. **Finalize ad metrics batching**
-   - Keep the client ad style and placement.
-   - Use one local batching path for impressions/clicks.
-   - Flush at the 50-event threshold or page close.
+3. **Move fare authority server-side**
+   - Keep the frontend H3/Haversine quote as a preview.
+   - Recalculate or sign fare quotes on the backend.
+   - Store quote inputs: origin cell, destination cell, distance, tortuosity, timestamp, and final fare.
 
-5. **Prepare backend authority phase**
-   - Move trusted pricing, wallet, registration, trip writes, and settlement to backend rules/functions.
-   - Keep the frontend quote as a guide/preview only.
+4. **Replace fake captain presence**
+   - Add real captain availability and pulsed H3 updates.
+   - Use low-frequency updates, not expensive live GPS streaming.
+   - Show only captains eligible for the rider district and request type.
 
-6. **Polish remaining Arabic**
-   - Scan rider-adjacent shared pages.
-   - Replace mojibake, heavy terms, and inconsistent Egyptian/Jordanian wording with simple Jordan-ready Arabic.
+5. **Harden ads**
+   - Keep the current large image-card layout.
+   - Replace scattered local/Firestore metric handling with one production batching service.
+   - Enforce the 50-event batching rule and protect billing counters server-side.
 
-7. **Optimize the rider bundle**
-   - Lazy-load MapLibre-heavy surfaces.
-   - Keep first dashboard paint fast on mobile.
+6. **Complete ledger and favorites sync**
+   - Keep Dexie for offline UX.
+   - Sync completed trips and favorites to backend when online.
+   - Add conflict handling and 72-hour purge behavior that matches support/legal rules.
 
-## Verification Evidence
+7. **Remove or isolate legacy Firebase dependencies**
+   - Audit dashboard hooks that still read/write Firestore.
+   - Either migrate them to Supabase or gate them clearly as demo-only.
+   - Avoid permission-warning noise in production.
 
-Verified after the final Jordan sprint:
+8. **Validate Jordan geospatial data**
+   - Review every governorate/district anchor with official or client-approved data.
+   - Version the dataset.
+   - Add tests for distance/fare ranges across major Jordan routes.
 
-- `npx tsx src/components/dashboard/rider/rider-state-machine.test.ts`
-- `npx tsx src/components/dashboard/rider/rider-map-utils.test.ts`
-- `npx tsx src/core/logic/geospatial-kernel.test.ts`
-- `npm run lint`
-- `npm run build`
-- Playwright desktop flow:
-  - Rider demo
-  - select `العقبة / القويرة`
-  - live local quote appears
-  - offers are generated from quote
-  - select captain
-  - active trip starts
-  - captain movement state appears
-  - complete trip
-  - rating modal
-  - completed trip appears in Dexie ledger with 72-hour countdown
-- Playwright mobile smoke:
-  - Rider demo
-  - select `إربد / الرمثا`
-  - quote renders correctly on mobile viewport
+9. **Polish UI and Arabic copy**
+   - Final scan for mojibake/heavy wording.
+   - Keep Arabic direct and simple.
+   - Verify mobile layout, bottom nav, sidebars, ads, modals, and map overlays.
 
-Build note: MapLibre still produces a large Rider Dashboard chunk. The build passes, but production should optimize this with lazy loading/code splitting.
+10. **Production QA**
+    - Run mobile and desktop browser flows.
+    - Test GPS allow/deny/unavailable.
+    - Test slow network, Supabase auth failures, OTP reset, logout, and session persistence.
+    - Add monitoring for auth errors, trigger failures, ride state failures, and ad metric flush failures.
 
-## Bottom Line
+## Current Bottom Line
 
-The Rider Dashboard is now **frontend-complete for a Jordan-first offline local demo**.
+The Rider Dashboard is **almost complete as a frontend local demo** and ready to be shown as the Jordan-first rider experience.
 
-The next milestone is no longer basic UI completion. It is: **official coordinate validation + route-progress polish + ad batching cleanup + backend authority phase**.
+It is **not production-ready yet as a trusted marketplace system**. The next milestone should be backend authority: Supabase/RLS/functions for auth profile reliability, ride lifecycle, pricing, captain presence, ledger sync, wallet/commission, and ad metrics.
+

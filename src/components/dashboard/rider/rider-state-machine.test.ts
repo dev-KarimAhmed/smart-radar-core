@@ -15,6 +15,7 @@ const destination = {
   coords: { lat: 31.9586, lng: 35.8684 },
   tortuosityFactor: 1.37,
   fareQuote: calculateSovereignFareQuote({ lat: 31.9539, lng: 35.9106 }, { lat: 31.9586, lng: 35.8684 }, 1.37),
+  serverEstimatedFare: 3.75,
 };
 
 let state = createInitialRiderMachineState();
@@ -30,14 +31,19 @@ assert.deepEqual(state.destination, destination);
 assert.equal(state.screen, 'DESTINATION_SELECTION');
 
 state = riderDashboardReducer(state, { type: 'SEND_REQUEST' });
-assert.equal(state.screen, 'RECEIVING_OFFERS');
+assert.equal(state.screen, 'DESTINATION_SELECTION');
 assert.equal(state.offers.length, 0);
+assert.equal(state.requestStartedAt !== null, true);
+assert.equal(shouldShowAdRiver(state), false);
+
+state = riderDashboardReducer(state, { type: 'SERVER_STATUS_RECEIVING_OFFERS' });
+assert.equal(state.screen, 'RECEIVING_OFFERS');
 assert.equal(shouldShowAdRiver(state), true);
 
 const offers = buildMockCaptainOffers(destination);
 assert.equal(offers.length >= 3, true);
 assert.equal(offers.every((offer) => offer.driverId && offer.driverVehicle?.plate), true);
-assert.equal(offers[1].price, destination.fareQuote.guidePriceJod);
+assert.equal(offers[1].price, destination.serverEstimatedFare);
 
 state = riderDashboardReducer(state, { type: 'RECEIVE_OFFERS', offers });
 assert.equal(state.screen, 'RECEIVING_OFFERS');

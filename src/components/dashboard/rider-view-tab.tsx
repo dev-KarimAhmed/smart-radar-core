@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { latLngToCell } from 'h3-js';
 import { Clock, Heart, Loader2, Navigation, ShieldCheck, Star } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Button } from '@/components/ui/button';
@@ -8,9 +9,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { StarRating } from '@/components/ui/star-rating';
-import { calculateSovereignFareQuote } from '@/core/logic/geospatial-kernel';
 import { useAuth } from '@/hooks/use-auth';
+import { useToast } from '@/hooks/use-toast';
 import { dexieDb, type RiderTripLedgerEntry } from '@/lib/dexie-db';
+import { supabase } from '@/lib/supabase-client';
 import { cn } from '@/lib/utils';
 import { AdStage } from './ad-stage';
 import {
@@ -28,8 +30,16 @@ import {
   type RiderDestination,
   useRiderDashboardMachine,
 } from './rider/rider-state-machine';
+import {
+  buildRideRequestInsertPayload,
+  calculateServerFare,
+  createRideRequest,
+  mapRiderMarketplaceError,
+  subscribeToRideRequestStatus,
+} from './rider/rider-server-marketplace';
 
 const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
+const H3_RIDER_REQUEST_RESOLUTION = 9;
 
 const demoLedgerTrips: HistoricalTrip[] = [
   {
@@ -54,6 +64,7 @@ const demoLedgerTrips: HistoricalTrip[] = [
 
 export function RiderViewTab() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const { state, dispatch, showAdRiver } = useRiderDashboardMachine();
   const [selectedGovernorateId, setSelectedGovernorateId] = React.useState<JordanGovernorateId>('amman');
   const [draftDestinationId, setDraftDestinationId] = React.useState(getJordanDistrictsByGovernorate('amman')[0].id);
@@ -62,6 +73,19 @@ export function RiderViewTab() {
   const [riderLocation, setRiderLocation] = React.useState<RiderLocation>(AMMAN_FALLBACK_LOCATION);
   const [locationStatus, setLocationStatus] = React.useState<RiderLocationStatus>('fallback');
   const [localCompletedTrips, setLocalCompletedTrips] = React.useState<HistoricalTrip[]>([]);
+  const [activeRideRequestId, setActiveRideRequestId] = React.useState<string | null>(null);
+  const [isSendingRideRequest, setIsSendingRideRequest] = React.useState(false);
+  const [serverFareState, setServerFareState] = React.useState<{
+    key: string;
+    fare: number | null;
+    isLoading: boolean;
+    error: string | null;
+  }>({
+    key: '',
+    fare: null,
+    isLoading: false,
+    error: null,
+  });
 
   const riderProfile = React.useMemo(() => {
     const ratingValue =
@@ -90,9 +114,18 @@ export function RiderViewTab() {
     return availableDistricts[0];
   }, [availableDistricts, draftDestinationId, selectedGovernorateId]);
 
+  const fareRequestKey = React.useMemo(
+    () => buildFareRequestKey(riderLocation, selectedDistrict.anchor),
+    [riderLocation, selectedDistrict.anchor],
+  );
+
+  const currentServerFare = serverFareState.key === fareRequestKey ? serverFareState.fare : null;
+  const isServerFareLoading = serverFareState.key !== fareRequestKey || serverFareState.isLoading;
+  const serverFareError = serverFareState.key === fareRequestKey ? serverFareState.error : null;
+
   const selectedDraftDestination = React.useMemo(
-    () => buildRiderDestination(selectedDistrict, riderLocation),
-    [riderLocation, selectedDistrict],
+    () => buildRiderDestination(selectedDistrict, riderLocation, currentServerFare),
+    [currentServerFare, riderLocation, selectedDistrict],
   );
 
   const tripsWithin72Hours = React.useMemo<HistoricalTrip[]>(
@@ -114,6 +147,72 @@ export function RiderViewTab() {
   }, []);
 
   React.useEffect(() => {
+    let active = true;
+
+    setServerFareState({
+      key: fareRequestKey,
+      fare: null,
+      isLoading: true,
+      error: null,
+    });
+
+    calculateServerFare(supabase, {
+      origin: riderLocation,
+      destination: selectedDistrict.anchor,
+    })
+      .then((fare) => {
+        if (!active) return;
+        setServerFareState({
+          key: fareRequestKey,
+          fare,
+          isLoading: false,
+          error: null,
+        });
+      })
+      .catch((error) => {
+        if (!active) return;
+        const message = mapRiderMarketplaceError(error);
+        setServerFareState({
+          key: fareRequestKey,
+          fare: null,
+          isLoading: false,
+          error: message,
+        });
+        toast({
+          variant: 'destructive',
+          title: 'تعذر حساب السعر',
+          description: message,
+        });
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [fareRequestKey, riderLocation, selectedDistrict.anchor, toast]);
+
+  React.useEffect(() => {
+    if (!activeRideRequestId) return;
+
+    return subscribeToRideRequestStatus(
+      supabase,
+      activeRideRequestId,
+      (row) => {
+        if (String(row.status) === 'RECEIVING_OFFERS') {
+          dispatch({ type: 'SERVER_STATUS_RECEIVING_OFFERS' });
+          setActiveRideRequestId(null);
+        }
+      },
+      (error) => {
+        toast({
+          variant: 'destructive',
+          title: 'تعذر متابعة الطلب',
+          description: mapRiderMarketplaceError(error),
+        });
+      },
+    );
+  }, [activeRideRequestId, dispatch, toast]);
+
+  React.useEffect(() => {
     if (!state.activeTrip) {
       setEtaSeconds(0);
       return;
@@ -131,22 +230,72 @@ export function RiderViewTab() {
     const firstDistrict = getJordanDistrictsByGovernorate(governorateId)[0];
     setSelectedGovernorateId(governorateId);
     setDraftDestinationId(firstDistrict.id);
-    if (state.screen === 'DESTINATION_SELECTION') {
-      dispatch({ type: 'CONFIRM_DESTINATION', destination: buildRiderDestination(firstDistrict, riderLocation) });
-    }
   };
 
   const handleDistrictChange = (districtId: string) => {
     const destination = getJordanDestinationById(districtId);
     setDraftDestinationId(destination.id);
-    if (state.screen === 'DESTINATION_SELECTION') {
-      dispatch({ type: 'CONFIRM_DESTINATION', destination: buildRiderDestination(destination, riderLocation) });
-    }
   };
 
-  const handleSendRequest = () => {
+  const handleSendRequest = async () => {
+    if (!user?.uid) {
+      toast({
+        variant: 'destructive',
+        title: 'يلزم تسجيل الدخول',
+        description: 'يرجى تسجيل الدخول قبل إرسال طلب الرحلة.',
+      });
+      return;
+    }
+
+    if (selectedDraftDestination.serverEstimatedFare === undefined || isServerFareLoading) {
+      toast({
+        variant: 'destructive',
+        title: 'السعر غير جاهز',
+        description: 'انتظر حساب السعر من الخادم ثم حاول مرة أخرى.',
+      });
+      return;
+    }
+
     dispatch({ type: 'CONFIRM_DESTINATION', destination: selectedDraftDestination });
     dispatch({ type: 'SEND_REQUEST' });
+    setIsSendingRideRequest(true);
+
+    try {
+      const payload = buildRideRequestInsertPayload({
+        riderId: user.uid,
+        origin: riderLocation,
+        destination: selectedDistrict.anchor,
+        originH3: selectedDraftDestination.originCell || latLngToCell(riderLocation.lat, riderLocation.lng, H3_RIDER_REQUEST_RESOLUTION),
+        destinationH3:
+          selectedDraftDestination.destinationCell ||
+          latLngToCell(selectedDistrict.anchor.lat, selectedDistrict.anchor.lng, H3_RIDER_REQUEST_RESOLUTION),
+        destinationAddressAr: selectedDraftDestination.label,
+        serverEstimatedFare: selectedDraftDestination.serverEstimatedFare,
+      });
+
+      const request = await createRideRequest(supabase, payload);
+      dispatch({ type: 'SERVER_REQUEST_CREATED', requestId: request.id });
+      setActiveRideRequestId(request.id);
+
+      toast({
+        title: 'تم إرسال الطلب',
+        description: 'تم حفظ طلب الرحلة في الخادم وننتظر تحديث الحالة.',
+      });
+
+      if (request.status === 'RECEIVING_OFFERS') {
+        dispatch({ type: 'SERVER_STATUS_RECEIVING_OFFERS' });
+        setActiveRideRequestId(null);
+      }
+    } catch (error) {
+      dispatch({ type: 'REQUEST_FAILED' });
+      toast({
+        variant: 'destructive',
+        title: 'تعذر إرسال الطلب',
+        description: mapRiderMarketplaceError(error),
+      });
+    } finally {
+      setIsSendingRideRequest(false);
+    }
   };
 
   const handleCompleteTrip = async () => {
@@ -174,7 +323,12 @@ export function RiderViewTab() {
 
   const renderStatePanel = () => {
     if (state.screen === 'DESTINATION_SELECTION') {
-      const quote = selectedDraftDestination.fareQuote!;
+      const serverFareLabel =
+        selectedDraftDestination.serverEstimatedFare !== undefined
+          ? `${selectedDraftDestination.serverEstimatedFare.toFixed(2)} د.أ`
+          : isServerFareLoading
+            ? 'يتم الحساب...'
+            : 'غير متاح';
 
       return (
         <Card className="w-full border-[#14B8A6]/25 bg-[#0B0F19]/88 text-white shadow-2xl shadow-black/40 backdrop-blur-xl">
@@ -225,17 +379,24 @@ export function RiderViewTab() {
             </div>
 
             <div className="grid grid-cols-2 gap-3 rounded-2xl border border-white/10 bg-black/30 p-3">
-              <Metric label="المسافة" value={`${quote.estimatedRoadDistanceKm.toFixed(2)} كم`} />
-              <Metric label="السعر المتوقع" value={`${quote.guidePriceJod.toFixed(2)} د.أ`} />
-              <Metric label="حساب H3" value={`${quote.h3CellDistance} خلية`} />
-              <Metric label="عامل الطريق" value={quote.tortuosityFactor.toFixed(2)} />
+              <Metric label="السعر من الخادم" value={serverFareLabel} />
+              <Metric label="حالة السعر" value={serverFareError ? 'تعذر الحساب' : isServerFareLoading ? 'جار الحساب' : 'جاهز'} />
+              <Metric label="H3 الانطلاق" value={selectedDraftDestination.originCell?.slice(0, 8).toUpperCase() || '-'} />
+              <Metric label="H3 الوجهة" value={selectedDraftDestination.destinationCell?.slice(0, 8).toUpperCase() || '-'} />
             </div>
+
+            {serverFareError && (
+              <div className="rounded-2xl border border-red-500/30 bg-red-950/30 p-3 text-xs font-bold leading-relaxed text-red-100">
+                {serverFareError}
+              </div>
+            )}
 
             <Button
               onClick={handleSendRequest}
+              disabled={isSendingRideRequest || isServerFareLoading || selectedDraftDestination.serverEstimatedFare === undefined}
               className="h-14 w-full rounded-2xl bg-[#14B8A6] text-base font-black text-[#031315] hover:bg-[#2DD4BF]"
             >
-              إرسال طلب الرحلة
+              {isSendingRideRequest ? 'جاري إرسال الطلب...' : 'إرسال طلب الرحلة'}
             </Button>
           </CardContent>
         </Card>
@@ -252,7 +413,7 @@ export function RiderViewTab() {
               <p className="text-[11px] font-black text-[#14F5D5]">{hasOffers ? 'وصلت عروض' : 'ننتظر الكباتن'}</p>
               <h2 className="text-2xl font-black">{hasOffers ? 'اختار الكابتن المناسب' : 'طلبك ظاهر للكباتن القريبين'}</h2>
               <p className="text-xs text-slate-400">
-                {hasOffers ? 'العروض تجريبية ومحسوبة من سعر الوجهة المحلي.' : 'سيتم عرض عروض تجريبية تلقائيا بعد 3 ثوان.'}
+                {hasOffers ? 'اختر العرض المناسب عند وصوله من الخادم.' : 'ننتظر تحديث حالة الطلب من الخادم وظهور العروض.'}
               </p>
             </div>
 
@@ -480,9 +641,11 @@ export function RiderViewTab() {
   );
 }
 
-function buildRiderDestination(destination: JordanDistrictDestination, origin: RiderLocation): RiderDestination {
-  const fareQuote = calculateSovereignFareQuote(origin, destination.anchor, destination.tortuosityFactor);
-
+function buildRiderDestination(
+  destination: JordanDistrictDestination,
+  origin: RiderLocation,
+  serverEstimatedFare: number | null,
+): RiderDestination {
   return {
     id: destination.id,
     label: `${destination.districtAr} - ${destination.governorateAr}`,
@@ -490,8 +653,19 @@ function buildRiderDestination(destination: JordanDistrictDestination, origin: R
     district: destination.districtAr,
     coords: destination.anchor,
     tortuosityFactor: destination.tortuosityFactor,
-    fareQuote,
+    serverEstimatedFare: serverEstimatedFare ?? undefined,
+    originCell: latLngToCell(origin.lat, origin.lng, H3_RIDER_REQUEST_RESOLUTION),
+    destinationCell: latLngToCell(destination.anchor.lat, destination.anchor.lng, H3_RIDER_REQUEST_RESOLUTION),
   };
+}
+
+function buildFareRequestKey(origin: RiderLocation, destination: RiderLocation) {
+  return [
+    origin.lat.toFixed(6),
+    origin.lng.toFixed(6),
+    destination.lat.toFixed(6),
+    destination.lng.toFixed(6),
+  ].join(':');
 }
 
 function toHistoricalTrip(trip: RiderActiveTrip): HistoricalTrip {

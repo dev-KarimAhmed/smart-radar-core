@@ -22,6 +22,9 @@ export interface RiderDestination {
   };
   tortuosityFactor?: number;
   fareQuote?: SovereignFareQuote;
+  serverEstimatedFare?: number;
+  originCell?: string;
+  destinationCell?: string;
 }
 
 export interface RiderLocalRating {
@@ -62,6 +65,9 @@ export type RiderMachineAction =
   | { type: 'OPEN_DESTINATION' }
   | { type: 'CONFIRM_DESTINATION'; destination: RiderDestination }
   | { type: 'SEND_REQUEST' }
+  | { type: 'SERVER_REQUEST_CREATED'; requestId: string }
+  | { type: 'SERVER_STATUS_RECEIVING_OFFERS' }
+  | { type: 'REQUEST_FAILED' }
   | { type: 'RECEIVE_OFFERS'; offers: Offer[] }
   | { type: 'SELECT_OFFER'; offerId: string }
   | { type: 'COMPLETE_TRIP' }
@@ -83,8 +89,11 @@ export function createInitialRiderMachineState(): RiderMachineState {
 }
 
 export function buildMockCaptainOffers(destination: RiderDestination): Offer[] {
-  const districtSeed = destination.district.charCodeAt(0) || 7;
-  const basePrice = destination.fareQuote?.guidePriceJod ?? 2.1 + (districtSeed % 4) * 0.25;
+  if (destination.serverEstimatedFare === undefined) {
+    throw new Error('server_estimated_fare_required');
+  }
+
+  const basePrice = destination.serverEstimatedFare;
 
   return [
     {
@@ -92,7 +101,7 @@ export function buildMockCaptainOffers(destination: RiderDestination): Offer[] {
       driverName: 'D-102',
       driverRating: 4.9,
       driverRank: 'Platinum',
-      price: roundOfferPrice(basePrice + 0.35),
+      price: basePrice,
       driverVehicle: {
         make: 'Toyota Corolla',
         color: 'White',
@@ -108,7 +117,7 @@ export function buildMockCaptainOffers(destination: RiderDestination): Offer[] {
       driverName: 'D-118',
       driverRating: 4.7,
       driverRank: 'Gold',
-      price: roundOfferPrice(basePrice),
+      price: basePrice,
       driverVehicle: {
         make: 'Hyundai Ioniq',
         color: 'Silver',
@@ -124,7 +133,7 @@ export function buildMockCaptainOffers(destination: RiderDestination): Offer[] {
       driverName: 'D-131',
       driverRating: 4.5,
       driverRank: 'Silver',
-      price: roundOfferPrice(Math.max(1.75, basePrice - 0.3)),
+      price: basePrice,
       driverVehicle: {
         make: 'Kia Niro',
         color: 'Black',
@@ -163,11 +172,14 @@ function buildActiveTrip(state: RiderMachineState, selectedOffer: Offer): RiderA
     captainPhone: '0790000102',
     vehicleType: vehicle.type || `${vehicle.make || 'Vehicle'} ${vehicle.color || ''}`.trim(),
     vehiclePlate: vehicle.plate || '77-102',
-    finalPrice: selectedOffer.price === -1 ? state.destination?.fareQuote?.guidePriceJod ?? 2.75 : selectedOffer.price,
+    finalPrice:
+      selectedOffer.price === -1
+        ? state.destination?.serverEstimatedFare ?? 0
+        : selectedOffer.price,
     destinationLabel: state.destination?.label || 'وجهة محلية',
     distanceKm,
-    originCell: state.destination?.fareQuote?.originCell,
-    destinationCell: state.destination?.fareQuote?.destinationCell,
+    originCell: state.destination?.originCell ?? state.destination?.fareQuote?.originCell,
+    destinationCell: state.destination?.destinationCell ?? state.destination?.fareQuote?.destinationCell,
     tortuosityFactor: state.destination?.fareQuote?.tortuosityFactor,
     etaSeconds: Math.max(4 * 60, Math.round((distanceKm || 4) * 85)),
     startedAt: Date.now(),
@@ -190,12 +202,24 @@ export function riderDashboardReducer(state: RiderMachineState, action: RiderMac
       if (state.screen !== 'DESTINATION_SELECTION' || !state.destination) return state;
       return {
         ...state,
-        screen: 'RECEIVING_OFFERS',
         offers: [],
         activeTrip: null,
         completedTrip: null,
         requestStartedAt: Date.now(),
       };
+
+    case 'SERVER_REQUEST_CREATED':
+      if (state.screen !== 'DESTINATION_SELECTION') return state;
+      return { ...state, requestStartedAt: state.requestStartedAt ?? Date.now() };
+
+    case 'SERVER_STATUS_RECEIVING_OFFERS':
+      if (state.screen !== 'DESTINATION_SELECTION' && state.screen !== 'RECEIVING_OFFERS') return state;
+      if (!state.requestStartedAt && state.screen !== 'RECEIVING_OFFERS') return state;
+      return { ...state, screen: 'RECEIVING_OFFERS' };
+
+    case 'REQUEST_FAILED':
+      if (state.screen !== 'DESTINATION_SELECTION') return state;
+      return { ...state, requestStartedAt: null };
 
     case 'RECEIVE_OFFERS':
       if (state.screen !== 'RECEIVING_OFFERS') return state;
@@ -262,16 +286,6 @@ export function useRiderDashboardMachine() {
   const [state, dispatch] = React.useReducer(riderDashboardReducer, undefined, createInitialRiderMachineState);
 
   React.useEffect(() => {
-    if (state.screen !== 'RECEIVING_OFFERS' || state.offers.length > 0 || !state.destination) return;
-
-    const timer = window.setTimeout(() => {
-      dispatch({ type: 'RECEIVE_OFFERS', offers: buildMockCaptainOffers(state.destination!) });
-    }, 3000);
-
-    return () => window.clearTimeout(timer);
-  }, [state.screen, state.offers.length, state.destination]);
-
-  React.useEffect(() => {
     if (state.localRatings.length === 0) return;
 
     try {
@@ -282,8 +296,4 @@ export function useRiderDashboardMachine() {
   }, [state.localRatings]);
 
   return { state, dispatch, showAdRiver: shouldShowAdRiver(state) };
-}
-
-function roundOfferPrice(value: number) {
-  return Number((Math.ceil(value * 20) / 20).toFixed(2));
 }
