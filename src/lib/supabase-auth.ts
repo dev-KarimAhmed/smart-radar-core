@@ -1,4 +1,4 @@
-import type { AuthError, Session, User } from '@supabase/supabase-js';
+﻿import type { AuthError, Session, User } from '@supabase/supabase-js';
 import {
   clearSupabaseAuthStorage,
   setSupabaseRememberSession,
@@ -13,6 +13,7 @@ export interface RiderSupabaseSignUpInput {
   phone: string;
   password: string;
   fullName: string;
+  countryId: number;
   governorateId: number;
   districtId: number;
   rememberMe?: boolean;
@@ -24,16 +25,12 @@ export interface RiderSupabaseSignInInput {
   rememberMe?: boolean;
 }
 
-export interface RiderPhonePasswordResetInput {
-  phone: string;
-  token: string;
-  newPassword: string;
-}
 
 export interface RiderAuthMetadata {
   role: 'RIDER';
   full_name: string;
   phone: string;
+  country_id: number;
   governorate_id: number;
   district_id: number;
 }
@@ -48,14 +45,14 @@ export function validatePhoneAndPassword(phone: string, password: string) {
   if (!PHONE_REGEX.test(normalizedPhone)) {
     return {
       ok: false as const,
-      message: 'يرجى كتابة رقم الهاتف مع رمز الدولة، مثال: +962790000000 أو +201000000000.',
+      message: 'ÙŠØ±Ø¬Ù‰ ÙƒØªØ§Ø¨Ø© Ø±Ù‚Ù… Ø§Ù„Ù‡Ø§ØªÙ Ù…Ø¹ Ø±Ù…Ø² Ø§Ù„Ø¯ÙˆÙ„Ø©ØŒ Ù…Ø«Ø§Ù„: +962790000000 Ø£Ùˆ +201000000000.',
     };
   }
 
   if (password.length < 6) {
     return {
       ok: false as const,
-      message: 'كلمة المرور ضعيفة جداً، يجب ألا تقل عن 6 خانات.',
+      message: 'ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ± Ø¶Ø¹ÙŠÙØ© Ø¬Ø¯Ø§Ù‹ØŒ ÙŠØ¬Ø¨ Ø£Ù„Ø§ ØªÙ‚Ù„ Ø¹Ù† 6 Ø®Ø§Ù†Ø§Øª.',
     };
   }
 
@@ -68,13 +65,14 @@ export function buildRiderSignUpMetadata(input: RiderSupabaseSignUpInput): Rider
 
   const fullName = input.fullName.trim();
   if (!fullName) {
-    throw new Error('يرجى كتابة الاسم الكامل.');
+    throw new Error('ÙŠØ±Ø¬Ù‰ ÙƒØªØ§Ø¨Ø© Ø§Ù„Ø§Ø³Ù… Ø§Ù„ÙƒØ§Ù…Ù„.');
   }
 
   return {
     role: 'RIDER',
     full_name: fullName,
     phone: validation.phone,
+    country_id: toStrictPositiveInteger(input.countryId, 'country_id'),
     governorate_id: toStrictPositiveInteger(input.governorateId, 'governorate_id'),
     district_id: toStrictPositiveInteger(input.districtId, 'district_id'),
   };
@@ -116,55 +114,6 @@ export async function signInRiderWithPhone(input: RiderSupabaseSignInInput) {
   return data;
 }
 
-export async function requestRiderPasswordResetCode(phone: string) {
-  const normalizedPhone = normalizeInternationalPhone(phone);
-
-  if (!PHONE_REGEX.test(normalizedPhone)) {
-    throw new Error('يرجى كتابة رقم الهاتف مع رمز الدولة، مثال: +962790000000 أو +201000000000.');
-  }
-
-  const { error } = await supabase.auth.signInWithOtp({
-    phone: normalizedPhone,
-    options: {
-      shouldCreateUser: false,
-    },
-  });
-
-  if (error) throw error;
-  return normalizedPhone;
-}
-
-export async function confirmRiderPasswordReset(input: RiderPhonePasswordResetInput) {
-  const normalizedPhone = normalizeInternationalPhone(input.phone);
-
-  if (!PHONE_REGEX.test(normalizedPhone)) {
-    throw new Error('يرجى كتابة رقم الهاتف مع رمز الدولة، مثال: +962790000000 أو +201000000000.');
-  }
-
-  if (!input.token.trim()) {
-    throw new Error('يرجى كتابة رمز التحقق المرسل إلى الهاتف.');
-  }
-
-  if (input.newPassword.length < 6) {
-    throw new Error('كلمة المرور ضعيفة جداً، يجب ألا تقل عن 6 خانات.');
-  }
-
-  const { error: verifyError } = await supabase.auth.verifyOtp({
-    phone: normalizedPhone,
-    token: input.token.trim(),
-    type: 'sms',
-  });
-
-  if (verifyError) throw verifyError;
-
-  const { error: updateError } = await supabase.auth.updateUser({
-    password: input.newPassword,
-  });
-
-  if (updateError) throw updateError;
-  await supabase.auth.signOut();
-  clearSupabaseSessionCache();
-}
 
 export function cacheSupabaseSession(session: Session | null) {
   if (typeof window === 'undefined') return;
@@ -199,7 +148,7 @@ export function mapSupabaseAuthError(error: unknown) {
     message.includes('already registered') ||
     message.includes('already exists')
   ) {
-    return 'رقم الهاتف مسجل بالفعل، يرجى تسجيل الدخول.';
+    return 'Ø±Ù‚Ù… Ø§Ù„Ù‡Ø§ØªÙ Ù…Ø³Ø¬Ù„ Ø¨Ø§Ù„ÙØ¹Ù„ØŒ ÙŠØ±Ø¬Ù‰ ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø¯Ø®ÙˆÙ„.';
   }
 
   if (
@@ -213,8 +162,8 @@ export function mapSupabaseAuthError(error: unknown) {
     message.includes('authentication')
   ) {
     return code.includes('otp') || message.includes('token')
-      ? 'رمز التحقق غير صحيح أو انتهت صلاحيته.'
-      : 'رقم الهاتف أو كلمة المرور غير صحيحة.';
+      ? 'Ø±Ù…Ø² Ø§Ù„ØªØ­Ù‚Ù‚ ØºÙŠØ± ØµØ­ÙŠØ­ Ø£Ùˆ Ø§Ù†ØªÙ‡Øª ØµÙ„Ø§Ø­ÙŠØªÙ‡.'
+      : 'Ø±Ù‚Ù… Ø§Ù„Ù‡Ø§ØªÙ Ø£Ùˆ ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ± ØºÙŠØ± ØµØ­ÙŠØ­Ø©.';
   }
 
   if (
@@ -222,11 +171,11 @@ export function mapSupabaseAuthError(error: unknown) {
     message.includes('phone provider') ||
     message.includes('phone signups are disabled')
   ) {
-    return 'تسجيل الهاتف غير مفعّل حالياً في إعدادات الخدمة. يرجى تفعيله من Supabase.';
+    return 'ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ù‡Ø§ØªÙ ØºÙŠØ± Ù…ÙØ¹Ù‘Ù„ Ø­Ø§Ù„ÙŠØ§Ù‹ ÙÙŠ Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø§Ù„Ø®Ø¯Ù…Ø©. ÙŠØ±Ø¬Ù‰ ØªÙØ¹ÙŠÙ„Ù‡ Ù…Ù† Supabase.';
   }
 
   if (code.includes('weak_password') || message.includes('weak password') || message.includes('password')) {
-    return 'كلمة المرور ضعيفة جداً، يجب ألا تقل عن 6 خانات.';
+    return 'ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ± Ø¶Ø¹ÙŠÙØ© Ø¬Ø¯Ø§Ù‹ØŒ ÙŠØ¬Ø¨ Ø£Ù„Ø§ ØªÙ‚Ù„ Ø¹Ù† 6 Ø®Ø§Ù†Ø§Øª.';
   }
 
   if (
@@ -241,7 +190,7 @@ export function mapSupabaseAuthError(error: unknown) {
     message.includes('failed to fetch') ||
     message.includes('gateway')
   ) {
-    return 'فشل الاتصال بخوادم الخدمة، يرجى التحقق من جودة الإنترنت.';
+    return 'ÙØ´Ù„ Ø§Ù„Ø§ØªØµØ§Ù„ Ø¨Ø®ÙˆØ§Ø¯Ù… Ø§Ù„Ø®Ø¯Ù…Ø©ØŒ ÙŠØ±Ø¬Ù‰ Ø§Ù„ØªØ­Ù‚Ù‚ Ù…Ù† Ø¬ÙˆØ¯Ø© Ø§Ù„Ø¥Ù†ØªØ±Ù†Øª.';
   }
 
   if (
@@ -254,23 +203,32 @@ export function mapSupabaseAuthError(error: unknown) {
     message.includes('trigger') ||
     authError?.status === 500
   ) {
-    return 'تعذر إنشاء الحساب من قاعدة البيانات. يرجى مراجعة دالة إنشاء الملف الشخصي في Supabase ثم المحاولة مرة أخرى.';
+    if (
+      message.includes('foreign key') ||
+      message.includes('governorate') ||
+      message.includes('district') ||
+      message.includes('country')
+    ) {
+      return 'تعذر إنشاء الحساب لأن الدولة أو المحافظة أو المنطقة غير موجودة في قاعدة البيانات. حدّث الاختيارات ثم حاول مرة أخرى.';
+    }
+
+    return 'ØªØ¹Ø°Ø± Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ø­Ø³Ø§Ø¨ Ù…Ù† Ù‚Ø§Ø¹Ø¯Ø© Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª. ÙŠØ±Ø¬Ù‰ Ù…Ø±Ø§Ø¬Ø¹Ø© Ø¯Ø§Ù„Ø© Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ù…Ù„Ù Ø§Ù„Ø´Ø®ØµÙŠ ÙÙŠ Supabase Ø«Ù… Ø§Ù„Ù…Ø­Ø§ÙˆÙ„Ø© Ù…Ø±Ø© Ø£Ø®Ø±Ù‰.';
   }
 
   if (code.includes('validation_failed') || message.includes('invalid phone')) {
-    return 'رقم الهاتف غير صحيح. اكتب الرقم مع رمز الدولة مثل +962 أو +20.';
+    return 'Ø±Ù‚Ù… Ø§Ù„Ù‡Ø§ØªÙ ØºÙŠØ± ØµØ­ÙŠØ­. Ø§ÙƒØªØ¨ Ø§Ù„Ø±Ù‚Ù… Ù…Ø¹ Ø±Ù…Ø² Ø§Ù„Ø¯ÙˆÙ„Ø© Ù…Ø«Ù„ +962 Ø£Ùˆ +20.';
   }
 
-  if (error instanceof Error && error.message.startsWith('يرجى')) return error.message;
-  if (error instanceof Error && error.message.startsWith('كلمة المرور')) return error.message;
-  if (error instanceof Error && error.message.startsWith('قيمة')) return error.message;
+  if (error instanceof Error && error.message.startsWith('ÙŠØ±Ø¬Ù‰')) return error.message;
+  if (error instanceof Error && error.message.startsWith('ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ±')) return error.message;
+  if (error instanceof Error && error.message.startsWith('Ù‚ÙŠÙ…Ø©')) return error.message;
 
-  return 'تعذر إكمال العملية. يرجى المحاولة مرة أخرى.';
+  return 'ØªØ¹Ø°Ø± Ø¥ÙƒÙ…Ø§Ù„ Ø§Ù„Ø¹Ù…Ù„ÙŠØ©. ÙŠØ±Ø¬Ù‰ Ø§Ù„Ù…Ø­Ø§ÙˆÙ„Ø© Ù…Ø±Ø© Ø£Ø®Ø±Ù‰.';
 }
 
 function toStrictPositiveInteger(value: number, fieldName: string) {
   if (!Number.isInteger(value) || value <= 0) {
-    throw new Error(`قيمة ${fieldName} غير صحيحة.`);
+    throw new Error(`Ù‚ÙŠÙ…Ø© ${fieldName} ØºÙŠØ± ØµØ­ÙŠØ­Ø©.`);
   }
 
   return value;
@@ -285,6 +243,9 @@ export function buildUserFromSupabaseAuth(authUser: User) {
     phone: String(metadata.phone || authUser.phone || ''),
     role: role === 'rider' ? 'rider' : role,
     name: String(metadata.full_name || metadata.name || authUser.phone || ''),
+    countryId: metadata.country_id !== undefined ? Number(metadata.country_id) : undefined,
+    currencyAr: metadata.currency_ar !== undefined ? String(metadata.currency_ar) : undefined,
+    currencyEn: metadata.currency_en !== undefined ? String(metadata.currency_en) : undefined,
     governorate: metadata.governorate_id !== undefined ? String(metadata.governorate_id) : '',
     district: metadata.district_id !== undefined ? String(metadata.district_id) : '',
     status: 'active',

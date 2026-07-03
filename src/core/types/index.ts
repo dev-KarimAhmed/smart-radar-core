@@ -14,6 +14,9 @@ export interface User {
   phone: string;
   role: UserRole;
   name: string;
+  countryId?: number;
+  currencyAr?: string;
+  currencyEn?: string;
   governorate: string; 
   district: string;    
   status?: 'active' | 'idle' | 'busy' | 'rating';

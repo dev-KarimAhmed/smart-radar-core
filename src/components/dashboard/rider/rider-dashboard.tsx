@@ -32,6 +32,7 @@ interface RiderDashboardProps {
   };
   tripsWithin72Hours: HistoricalTrip[];
   systemMessages: string[];
+  currencyLabel?: string;
 }
 
 const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
@@ -48,6 +49,9 @@ const captainTypeLabel = (type: FavoriteCaptain['captainType']) => {
   return copy.recent.independent;
 };
 
+const formatDashboardMoney = (value: number, currencyLabel: string) =>
+  currencyLabel ? `${Number(value).toFixed(2)} ${currencyLabel}` : Number(value).toFixed(2);
+
 const buildWhatsappUrl = (phone: string, name: string) => {
   const cleanPhone = phone.replace(/\D/g, '');
   const waPhone = cleanPhone.startsWith('0')
@@ -63,6 +67,7 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
   riderProfile,
   tripsWithin72Hours,
   systemMessages,
+  currencyLabel = '',
 }) => {
   const [reportText, setReportText] = useState('');
   const [favoriteCaptains, setFavoriteCaptains] = useState<FavoriteCaptain[]>([]);
@@ -389,7 +394,7 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
                     </strong>
                   </p>
                   <p className="font-black text-amber-400">
-                    {copy.recent.price}: {trip.finalPrice} د.أ
+                    {copy.recent.price}: {formatDashboardMoney(trip.finalPrice, currencyLabel)}
                   </p>
                   <p className="text-[11px] text-gray-400">
                     {copy.recent.vehicle}: {trip.vehicleInfo}
@@ -563,7 +568,7 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
                         </div>
                         <p className="text-[10px] leading-normal text-gray-400">{captain.vehicleInfo}</p>
                         <p className="font-mono text-[9px] text-[#00ffcc]">
-                          {copy.recent.lastPrice}: {captain.finalPrice || '3.0'} د.أ
+                          {copy.recent.lastPrice}: {formatDashboardMoney(captain.finalPrice || 3, currencyLabel)}
                         </p>
                       </div>
 

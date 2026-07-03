@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect } from 'react';
 import { Toaster } from "@/components/ui/toaster";
@@ -28,9 +28,12 @@ function AppOrchestrator() {
 
   if (loading) {
     return (
-      <div className="flex select-none flex-col h-screen w-screen items-center justify-center bg-black text-white/90">
-        <div className="text-xl font-headline tracking-widest animate-pulse">رادار النبض السيادي</div>
-        <div className="text-xs text-white/40 mt-2 font-mono">Loading telemetry feeds...</div>
+      <div className="flex h-dvh w-screen select-none flex-col items-center justify-center bg-[#0B0F19] text-white/90">
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 shadow-[0_0_30px_rgba(20,184,166,0.18)]">
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#14B8A6]/25 border-t-[#14B8A6]" />
+        </div>
+        <div className="mt-5 animate-pulse text-xl font-black tracking-normal">الرادار الذكي</div>
+        <div className="mt-2 text-xs font-bold text-[#94A3B8]">جاري التحقق من الجلسة...</div>
       </div>
     );
   }
@@ -39,7 +42,7 @@ function AppOrchestrator() {
     return <LoginPage />;
   }
 
-  // 🛡️ [RAD-CMD-064]: Isolated Route Island for Advertiser Dashboard
+  // ðŸ›¡ï¸ [RAD-CMD-064]: Isolated Route Island for Advertiser Dashboard
   if (currentPath === '/advertiser/dashboard' && user?.role === 'advertiser') {
     return (
       <div className="min-h-screen w-full bg-[#0B1120] text-white p-4 sm:p-8 flex items-center justify-center overflow-y-auto">
@@ -53,7 +56,7 @@ function AppOrchestrator() {
     );
   }
 
-  // 🛡️ Conditional isolation of operations context providers based on role
+  // ðŸ›¡ï¸ Conditional isolation of operations context providers based on role
   if (user.role === 'driver') {
     return (
       <DriverOperationsProvider>

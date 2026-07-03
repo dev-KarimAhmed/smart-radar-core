@@ -41,6 +41,13 @@ import {
 const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
 const H3_RIDER_REQUEST_RESOLUTION = 9;
 
+interface CountryCurrencyConfig {
+  id: number;
+  currency_ar?: string | null;
+  currency_en?: string | null;
+  currency_code?: string | null;
+}
+
 const demoLedgerTrips: HistoricalTrip[] = [
   {
     tripId: 'local-ledger-1',
@@ -75,6 +82,7 @@ export function RiderViewTab() {
   const [localCompletedTrips, setLocalCompletedTrips] = React.useState<HistoricalTrip[]>([]);
   const [activeRideRequestId, setActiveRideRequestId] = React.useState<string | null>(null);
   const [isSendingRideRequest, setIsSendingRideRequest] = React.useState(false);
+  const [countryConfig, setCountryConfig] = React.useState<CountryCurrencyConfig | null>(null);
   const [serverFareState, setServerFareState] = React.useState<{
     key: string;
     fare: number | null;
@@ -114,14 +122,17 @@ export function RiderViewTab() {
     return availableDistricts[0];
   }, [availableDistricts, draftDestinationId, selectedGovernorateId]);
 
+  const activeCountryId = user?.countryId;
+
   const fareRequestKey = React.useMemo(
-    () => buildFareRequestKey(riderLocation, selectedDistrict.anchor),
-    [riderLocation, selectedDistrict.anchor],
+    () => buildFareRequestKey(riderLocation, selectedDistrict.anchor, activeCountryId),
+    [activeCountryId, riderLocation, selectedDistrict.anchor],
   );
 
   const currentServerFare = serverFareState.key === fareRequestKey ? serverFareState.fare : null;
   const isServerFareLoading = serverFareState.key !== fareRequestKey || serverFareState.isLoading;
   const serverFareError = serverFareState.key === fareRequestKey ? serverFareState.error : null;
+  const currencyLabel = getCurrencyLabel(countryConfig, user);
 
   const selectedDraftDestination = React.useMemo(
     () => buildRiderDestination(selectedDistrict, riderLocation, currentServerFare),
@@ -147,7 +158,59 @@ export function RiderViewTab() {
   }, []);
 
   React.useEffect(() => {
+    dispatch({ type: 'RESET_TO_IDLE' });
+  }, [dispatch, user?.uid]);
+
+  React.useEffect(() => {
     let active = true;
+    const countryId = Number(activeCountryId);
+
+    setCountryConfig(null);
+
+    if (!Number.isInteger(countryId) || countryId <= 0) {
+      return;
+    }
+
+    async function fetchCountryCurrency() {
+      try {
+        const { data, error } = await supabase
+          .from('countries')
+          .select('id,currency_ar,currency_en,currency_code')
+          .eq('id', countryId)
+          .single();
+        if (error) throw error;
+        if (active) setCountryConfig(data as CountryCurrencyConfig);
+      } catch (error) {
+        if (!active) return;
+        if (import.meta.env.DEV) console.warn('[Supabase Country Currency Fetch]', error);
+        toast({
+          variant: 'destructive',
+          title: 'تعذر تحميل العملة',
+          description: 'تعذر تحميل إعدادات عملة الدولة من الخادم.',
+        });
+      }
+    }
+
+    void fetchCountryCurrency();
+
+    return () => {
+      active = false;
+    };
+  }, [activeCountryId, toast]);
+
+  React.useEffect(() => {
+    let active = true;
+    const countryId = Number(activeCountryId);
+
+    if (!Number.isInteger(countryId) || countryId <= 0) {
+      setServerFareState({
+        key: fareRequestKey,
+        fare: null,
+        isLoading: false,
+        error: 'لا يمكن حساب السعر قبل تحديد دولة الحساب.',
+      });
+      return;
+    }
 
     setServerFareState({
       key: fareRequestKey,
@@ -159,6 +222,7 @@ export function RiderViewTab() {
     calculateServerFare(supabase, {
       origin: riderLocation,
       destination: selectedDistrict.anchor,
+      countryId,
     })
       .then((fare) => {
         if (!active) return;
@@ -188,7 +252,7 @@ export function RiderViewTab() {
     return () => {
       active = false;
     };
-  }, [fareRequestKey, riderLocation, selectedDistrict.anchor, toast]);
+  }, [activeCountryId, fareRequestKey, riderLocation, selectedDistrict.anchor, toast]);
 
   React.useEffect(() => {
     if (!activeRideRequestId) return;
@@ -247,6 +311,16 @@ export function RiderViewTab() {
       return;
     }
 
+    const countryId = Number(activeCountryId);
+    if (!Number.isInteger(countryId) || countryId <= 0) {
+      toast({
+        variant: 'destructive',
+        title: 'الدولة غير محددة',
+        description: 'لا يمكن إرسال الطلب قبل تحميل دولة الحساب.',
+      });
+      return;
+    }
+
     if (selectedDraftDestination.serverEstimatedFare === undefined || isServerFareLoading) {
       toast({
         variant: 'destructive',
@@ -271,6 +345,7 @@ export function RiderViewTab() {
           latLngToCell(selectedDistrict.anchor.lat, selectedDistrict.anchor.lng, H3_RIDER_REQUEST_RESOLUTION),
         destinationAddressAr: selectedDraftDestination.label,
         serverEstimatedFare: selectedDraftDestination.serverEstimatedFare,
+        countryId,
       });
 
       const request = await createRideRequest(supabase, payload);
@@ -325,7 +400,7 @@ export function RiderViewTab() {
     if (state.screen === 'DESTINATION_SELECTION') {
       const serverFareLabel =
         selectedDraftDestination.serverEstimatedFare !== undefined
-          ? `${selectedDraftDestination.serverEstimatedFare.toFixed(2)} د.أ`
+          ? formatMoney(selectedDraftDestination.serverEstimatedFare, currencyLabel)
           : isServerFareLoading
             ? 'يتم الحساب...'
             : 'غير متاح';
@@ -435,7 +510,7 @@ export function RiderViewTab() {
                         </p>
                       </div>
                       <strong className="text-xl font-black text-[#14F5D5]">
-                        {offer.price.toFixed(2)} د.أ
+                        {formatMoney(offer.price, currencyLabel)}
                       </strong>
                     </div>
 
@@ -483,7 +558,7 @@ export function RiderViewTab() {
             <div className="grid grid-cols-2 gap-3 rounded-2xl border border-white/10 bg-black/30 p-4">
               <Metric label="المركبة" value={state.activeTrip.vehicleType} />
               <Metric label="اللوحة" value={state.activeTrip.vehiclePlate} />
-              <Metric label="السعر النهائي" value={`${state.activeTrip.finalPrice.toFixed(2)} د.أ`} />
+              <Metric label="السعر النهائي" value={formatMoney(state.activeTrip.finalPrice, currencyLabel)} />
               <Metric label="المسافة" value={`${state.activeTrip.distanceKm.toFixed(2)} كم`} />
               <Metric label="التتبع" value="نبض H3 محلي" />
               <Metric label="عامل الطريق" value={(state.activeTrip.tortuosityFactor ?? 1.3).toFixed(2)} />
@@ -586,6 +661,7 @@ export function RiderViewTab() {
               riderProfile={riderProfile}
               tripsWithin72Hours={tripsWithin72Hours}
               systemMessages={systemMessages}
+              currencyLabel={currencyLabel}
             />
           )}
         </aside>
@@ -659,8 +735,9 @@ function buildRiderDestination(
   };
 }
 
-function buildFareRequestKey(origin: RiderLocation, destination: RiderLocation) {
+function buildFareRequestKey(origin: RiderLocation, destination: RiderLocation, countryId: unknown) {
   return [
+    Number(countryId) || 'no-country',
     origin.lat.toFixed(6),
     origin.lng.toFixed(6),
     destination.lat.toFixed(6),
@@ -678,6 +755,24 @@ function toHistoricalTrip(trip: RiderActiveTrip): HistoricalTrip {
     finalPrice: trip.finalPrice,
     timestamp: Date.now(),
   };
+}
+
+function getCurrencyLabel(
+  countryConfig: CountryCurrencyConfig | null,
+  user: { currencyAr?: string; currencyEn?: string } | null | undefined,
+) {
+  return (
+    countryConfig?.currency_ar ||
+    user?.currencyAr ||
+    countryConfig?.currency_en ||
+    user?.currencyEn ||
+    countryConfig?.currency_code ||
+    ''
+  );
+}
+
+function formatMoney(value: number, currencyLabel: string) {
+  return currencyLabel ? `${value.toFixed(2)} ${currencyLabel}` : value.toFixed(2);
 }
 
 function Metric({ label, value }: { label: string; value: React.ReactNode }) {

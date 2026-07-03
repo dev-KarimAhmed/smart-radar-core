@@ -17,7 +17,7 @@ const rpcClient = {
   },
 };
 
-const fare = await calculateServerFare(rpcClient, { origin, destination });
+const fare = await calculateServerFare(rpcClient, { origin, destination, countryId: 2 });
 assert.equal(fare, 3.75);
 assert.deepEqual(rpcCall, {
   name: 'calculate_server_fare',
@@ -26,6 +26,7 @@ assert.deepEqual(rpcCall, {
     lng1: 35.9106,
     lat2: 31.9586,
     lng2: 35.8684,
+    p_country_id: 2,
   },
 });
 
@@ -37,6 +38,7 @@ const payload = buildRideRequestInsertPayload({
   destinationH3: '892db320003ffff',
   destinationAddressAr: 'وادي السير - عمّان',
   serverEstimatedFare: fare,
+  countryId: 2,
 });
 
 assert.deepEqual(payload, {
@@ -49,6 +51,7 @@ assert.deepEqual(payload, {
   destination_h3: '892db320003ffff',
   destination_address_ar: 'وادي السير - عمّان',
   server_estimated_fare: 3.75,
+  country_id: 2,
   status: 'PENDING',
 });
 

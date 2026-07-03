@@ -76,6 +76,11 @@ state = riderDashboardReducer(state, { type: 'OPEN_FAVORITE_CAPTAINS' });
 assert.equal(state.screen, 'FAVORITE_CAPTAINS');
 assert.equal(shouldShowAdRiver(state), true);
 
+state = riderDashboardReducer(state, { type: 'RESET_TO_IDLE' });
+assert.equal(state.screen, 'IDLE_MAP');
+assert.equal(state.localRatings.length, 1);
+assert.equal(shouldShowAdRiver(state), true);
+
 const blocked = riderDashboardReducer(createInitialRiderMachineState(), {
   type: 'SELECT_OFFER',
   offerId: 'missing',

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { User as SovereignUser } from '@/core/types';
@@ -54,6 +54,7 @@ function AuthContent({ children }: { children: ReactNode }) {
     });
 
     const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!mounted) return;
       cacheSupabaseSession(session);
       setUser(session?.user ? (buildUserFromSupabaseAuth(session.user) as SovereignUser) : null);
       setLoading(false);
@@ -78,6 +79,7 @@ function AuthContent({ children }: { children: ReactNode }) {
   const confirmLogout = useCallback(async () => {
     setLogoutInProgress(true);
     clearSupabaseSessionCache();
+    purgeTransientFrontendCache();
     setUser(null);
     try {
       await supabase.auth.signOut();
@@ -85,6 +87,7 @@ function AuthContent({ children }: { children: ReactNode }) {
       setUser(null);
     } finally {
       clearSupabaseSessionCache();
+      purgeTransientFrontendCache();
       setLoading(false);
       if (typeof window !== 'undefined') {
         window.history.replaceState(null, '', '/');
@@ -138,8 +141,6 @@ function AuthContent({ children }: { children: ReactNode }) {
     resumeUserDocListener,
   ]);
 
-  if (loading && !user) return null;
-
   return (
     <AuthContext.Provider value={value}>
       {children}
@@ -148,7 +149,7 @@ function AuthContent({ children }: { children: ReactNode }) {
           <AlertDialogHeader className="text-right">
             <AlertDialogTitle className="text-xl font-black text-white">تأكيد تسجيل الخروج</AlertDialogTitle>
             <AlertDialogDescription className="text-right text-sm leading-6 text-[#94A3B8]">
-              هل تريد تسجيل الخروج من الحساب الآن؟ سيتم حذف الجلسة الحالية من هذا الجهاز.
+              هل أنت متأكد من تسجيل الخروج؟ سيتم حذف الجلسة الحالية من هذا الجهاز فقط.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="gap-2 sm:justify-start sm:space-x-0">
@@ -177,6 +178,31 @@ function AuthContent({ children }: { children: ReactNode }) {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   return <AuthContent>{children}</AuthContent>;
+}
+
+function purgeTransientFrontendCache() {
+  if (typeof window === 'undefined') return;
+
+  const sessionKeys = [
+    'sovereign_write_lock',
+    'sovereign_trip_status',
+    'sovereign_driver_status',
+    'sovereign_rejected_trips_v1',
+  ];
+
+  const localKeys = [
+    'sovereign_gps_local_buffer',
+    'radar_rider_local_reports',
+    'radar_rider_local_ratings',
+  ];
+
+  for (const key of sessionKeys) {
+    window.sessionStorage.removeItem(key);
+  }
+
+  for (const key of localKeys) {
+    window.localStorage.removeItem(key);
+  }
 }
 
 export function useAuth() {

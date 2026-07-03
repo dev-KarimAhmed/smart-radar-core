@@ -11,8 +11,22 @@ type RegistrationRole = 'rider' | 'driver' | 'advertiser' | 'delegate' | null;
 type AuthMode = 'register' | 'login';
 type LocationOption = { id: string; label: string; labelEn: string; value: string };
 
+interface SupabaseCountryRow {
+  id: number;
+  name_ar?: string | null;
+  name_en?: string | null;
+  name?: string | null;
+  currency_ar?: string | null;
+  currency_en?: string | null;
+  currency_code?: string | null;
+  phone_code?: string | null;
+  dial_code?: string | null;
+  calling_code?: string | null;
+}
+
 interface SupabaseGovernorateRow {
   id: number;
+  country_id: number;
   name_ar?: string | null;
   name_en?: string | null;
   name?: string | null;
@@ -26,6 +40,15 @@ interface SupabaseDistrictRow {
   name?: string | null;
 }
 
+interface PersonalRegistrationState {
+  name: string;
+  phone: string;
+  country: string;
+  gov: string;
+  district: string;
+  verificationDoc: string;
+}
+
 interface RegistrationContextType {
   step: RegistrationStep;
   setStep: (step: RegistrationStep) => void;
@@ -35,8 +58,8 @@ interface RegistrationContextType {
   setAuthMode: (mode: AuthMode) => void;
   lang: 'ar' | 'en';
   setLang: (lang: 'ar' | 'en') => void;
-  personal: { name: string; phone: string; gov: string; district: string; verificationDoc: string };
-  setPersonal: (personal: any) => void;
+  personal: PersonalRegistrationState;
+  setPersonal: (personal: PersonalRegistrationState | ((current: PersonalRegistrationState) => PersonalRegistrationState)) => void;
   authPassword: string;
   setAuthPassword: (password: string) => void;
   rememberMe: boolean;
@@ -49,6 +72,8 @@ interface RegistrationContextType {
   setVehicle: (vehicle: any) => void;
   isSubmitting: boolean;
   locationDataLoading: boolean;
+  countries: LocationOption[];
+  selectedCountry: SupabaseCountryRow | null;
   governorates: LocationOption[];
   districts: LocationOption[];
   fillRandomRegistrationData: () => void;
@@ -69,7 +94,14 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<RegistrationRole>(null);
   const [authMode, setAuthMode] = useState<AuthMode>('register');
   const [lang, setLang] = useState<'ar' | 'en'>('ar');
-  const [personal, setPersonal] = useState({ name: '', phone: '', gov: '', district: '', verificationDoc: '' });
+  const [personal, setPersonal] = useState<PersonalRegistrationState>({
+    name: '',
+    phone: '',
+    country: '',
+    gov: '',
+    district: '',
+    verificationDoc: '',
+  });
   const [authPassword, setAuthPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(() => shouldRememberSupabaseSession());
   const [advertiserProfile, setAdvertiserProfile] = useState({ companyName: '', commercialRegister: '', adLicense: '', businessType: 'commercial' });
@@ -78,53 +110,150 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [logoTapCount, setLogoTapCount] = useState(0);
   const [adminCreds, setAdminCreds] = useState({ email: '', password: '' });
+  const [countryRows, setCountryRows] = useState<SupabaseCountryRow[]>([]);
+  const [selectedCountry, setSelectedCountry] = useState<SupabaseCountryRow | null>(null);
   const [governorateRows, setGovernorateRows] = useState<SupabaseGovernorateRow[]>([]);
   const [districtRows, setDistrictRows] = useState<SupabaseDistrictRow[]>([]);
-  const [locationDataLoading, setLocationDataLoading] = useState(false);
+  const [countriesLoading, setCountriesLoading] = useState(false);
+  const [governoratesLoading, setGovernoratesLoading] = useState(false);
+  const [districtsLoading, setDistrictsLoading] = useState(false);
   const isSubmittingRef = useRef(false);
+
+  const locationDataLoading = countriesLoading || governoratesLoading || districtsLoading;
 
   useEffect(() => {
     let active = true;
 
-    async function fetchLocationRows() {
-      setLocationDataLoading(true);
+    async function fetchCountries() {
+      setCountriesLoading(true);
 
       try {
-        const [governoratesResult, districtsResult] = await Promise.all([
-          supabase.from('governorates').select('*').order('id', { ascending: true }),
-          supabase.from('districts').select('*').order('id', { ascending: true }),
-        ]);
-
-        if (governoratesResult.error) throw governoratesResult.error;
-        if (districtsResult.error) throw districtsResult.error;
-
-        if (!active) return;
-
-        setGovernorateRows(normalizeGovernorates(governoratesResult.data));
-        setDistrictRows(normalizeDistricts(districtsResult.data));
+        const { data, error } = await supabase.from('countries').select('*').order('id', { ascending: true });
+        if (error) throw error;
+        if (active) setCountryRows(normalizeCountries(data));
       } catch (error) {
-        if (import.meta.env.DEV) {
-          console.warn('[Supabase Location Fetch]', error);
-        }
-
+        if (import.meta.env.DEV) console.warn('[Supabase Countries Fetch]', error);
         if (active) {
           toast({
             variant: 'destructive',
-            title: 'تعذر تحميل المناطق',
-            description: 'تعذر تحميل المحافظات والمناطق. يرجى المحاولة مرة أخرى.',
+            title: 'تعذر تحميل الدول',
+            description: 'تعذر تحميل قائمة الدول. يرجى المحاولة مرة أخرى.',
           });
         }
       } finally {
-        if (active) setLocationDataLoading(false);
+        if (active) setCountriesLoading(false);
       }
     }
 
-    void fetchLocationRows();
+    void fetchCountries();
 
     return () => {
       active = false;
     };
   }, [toast]);
+
+  useEffect(() => {
+    const countryId = Number(personal.country);
+    setSelectedCountry(countryRows.find((country) => country.id === countryId) || null);
+  }, [countryRows, personal.country]);
+
+  useEffect(() => {
+    let active = true;
+    const countryId = Number(personal.country);
+
+    setGovernorateRows([]);
+    setDistrictRows([]);
+    setPersonal((current) => (current.gov || current.district ? { ...current, gov: '', district: '' } : current));
+
+    if (!Number.isInteger(countryId) || countryId <= 0) {
+      return;
+    }
+
+    async function fetchGovernorates() {
+      setGovernoratesLoading(true);
+
+      try {
+        const { data, error } = await supabase
+          .from('governorates')
+          .select('*')
+          .eq('country_id', countryId)
+          .order('id', { ascending: true });
+        if (error) throw error;
+        if (active) setGovernorateRows(normalizeGovernorates(data));
+      } catch (error) {
+        if (import.meta.env.DEV) console.warn('[Supabase Governorates Fetch]', error);
+        if (active) {
+          toast({
+            variant: 'destructive',
+            title: 'تعذر تحميل المحافظات',
+            description: 'تعذر تحميل محافظات الدولة المختارة. يرجى المحاولة مرة أخرى.',
+          });
+        }
+      } finally {
+        if (active) setGovernoratesLoading(false);
+      }
+    }
+
+    void fetchGovernorates();
+
+    return () => {
+      active = false;
+    };
+  }, [personal.country, toast]);
+
+  useEffect(() => {
+    let active = true;
+    const governorateId = Number(personal.gov);
+
+    setDistrictRows([]);
+    setPersonal((current) => (current.district ? { ...current, district: '' } : current));
+
+    if (!Number.isInteger(governorateId) || governorateId <= 0) {
+      return;
+    }
+
+    async function fetchDistricts() {
+      setDistrictsLoading(true);
+
+      try {
+        const { data, error } = await supabase
+          .from('districts')
+          .select('*')
+          .eq('governorate_id', governorateId)
+          .order('id', { ascending: true });
+        if (error) throw error;
+        if (active) setDistrictRows(normalizeDistricts(data));
+      } catch (error) {
+        if (import.meta.env.DEV) console.warn('[Supabase Districts Fetch]', error);
+        if (active) {
+          toast({
+            variant: 'destructive',
+            title: 'تعذر تحميل المناطق',
+            description: 'تعذر تحميل مناطق المحافظة المختارة. يرجى المحاولة مرة أخرى.',
+          });
+        }
+      } finally {
+        if (active) setDistrictsLoading(false);
+      }
+    }
+
+    void fetchDistricts();
+
+    return () => {
+      active = false;
+    };
+  }, [personal.gov, toast]);
+
+  const countries = useMemo(
+    () =>
+      countryRows.map((country) => ({
+        id: String(country.id),
+        label: getLocationLabel(country, 'ar'),
+        labelEn: getLocationLabel(country, 'en'),
+        value: String(country.id),
+      })),
+    [countryRows],
+  );
 
   const governorates = useMemo(
     () =>
@@ -137,46 +266,38 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     [governorateRows],
   );
 
-  const districts = useMemo(() => {
-    const selectedGovernorateId = Number(personal.gov);
-    if (!Number.isInteger(selectedGovernorateId)) return [];
-
-    return districtRows
-      .filter((district) => district.governorate_id === selectedGovernorateId)
-      .map((district) => ({
+  const districts = useMemo(
+    () =>
+      districtRows.map((district) => ({
         id: String(district.id),
         label: getLocationLabel(district, 'ar'),
         labelEn: getLocationLabel(district, 'en'),
         value: String(district.id),
-      }));
-  }, [districtRows, personal.gov]);
-
-  useEffect(() => {
-    if (personal.gov && governorates.length > 0 && !governorates.some((governorate) => governorate.value === personal.gov)) {
-      setPersonal((current) => ({ ...current, gov: '', district: '' }));
-      return;
-    }
-
-    if (personal.gov && personal.district && districts.length > 0 && !districts.some((district) => district.value === personal.district)) {
-      setPersonal((current) => ({ ...current, district: '' }));
-    }
-  }, [districts, governorates, personal.district, personal.gov]);
+      })),
+    [districtRows],
+  );
 
   const fillRandomRegistrationData = useCallback(() => {
-    const usableDistricts = districtRows.filter((district) =>
-      governorateRows.some((governorate) => governorate.id === district.governorate_id),
-    );
-
-    if (!usableDistricts.length) {
+    if (!selectedCountry || !personal.gov || districtRows.length === 0) {
       toast({
         variant: 'destructive',
         title: 'المناطق غير جاهزة',
-        description: 'انتظر تحميل المحافظات والمناطق ثم حاول مرة أخرى.',
+        description: 'اختر الدولة والمحافظة وانتظر تحميل المناطق ثم حاول مرة أخرى.',
       });
       return;
     }
 
-    const randomDistrict = usableDistricts[Math.floor(Math.random() * usableDistricts.length)];
+    const dialCode = getCountryDialCode(selectedCountry);
+    if (!dialCode) {
+      toast({
+        variant: 'destructive',
+        title: 'كود الدولة غير متاح',
+        description: 'بيانات الدولة المختارة لا تحتوي على كود هاتف.',
+      });
+      return;
+    }
+
+    const randomDistrict = districtRows[Math.floor(Math.random() * districtRows.length)];
     const serial = String(Date.now()).slice(-6);
     const phoneSuffix = String(Math.floor(1000000 + Math.random() * 9000000));
 
@@ -184,23 +305,28 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     setPersonal((current) => ({
       ...current,
       name: `راكب تجربة ${serial}`,
-      phone: `+96279${phoneSuffix}`,
-      gov: String(randomDistrict.governorate_id),
+      phone: `${dialCode}${phoneSuffix}`,
+      country: String(selectedCountry.id),
+      gov: personal.gov,
       district: String(randomDistrict.id),
     }));
     setAuthPassword(`Test${serial}!`);
 
     toast({
       title: 'تمت إضافة بيانات تجربة',
-      description: 'تم اختيار محافظة ومنطقة من قاعدة البيانات مباشرة.',
+      description: 'تم اختيار منطقة من بيانات الدولة والمحافظة المختارة.',
     });
-  }, [districtRows, governorateRows, toast]);
+  }, [districtRows, personal.gov, selectedCountry, toast]);
 
   const submitRiderAuth = useCallback(async () => {
     if (isSubmittingRef.current) return;
 
+    const countryId = Number(personal.country);
     const governorateId = Number(personal.gov);
     const districtId = Number(personal.district);
+    const selectedGovernorate = governorateRows.find(
+      (governorate) => governorate.id === governorateId && governorate.country_id === countryId,
+    );
     const selectedDistrict = districtRows.find(
       (district) => district.id === districtId && district.governorate_id === governorateId,
     );
@@ -217,14 +343,17 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     if (
       authMode === 'register' &&
       (!personal.name.trim() ||
+        !Number.isInteger(countryId) ||
         !Number.isInteger(governorateId) ||
         !Number.isInteger(districtId) ||
+        !selectedCountry ||
+        !selectedGovernorate ||
         !selectedDistrict)
     ) {
       toast({
         variant: 'destructive',
         title: 'بيانات ناقصة',
-        description: 'يرجى كتابة الاسم واختيار المحافظة والمنطقة.',
+        description: 'يرجى اختيار الدولة والمحافظة والمنطقة وكتابة الاسم.',
       });
       return;
     }
@@ -251,6 +380,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
         phone: personal.phone,
         password: authPassword,
         fullName: personal.name.trim(),
+        countryId,
         governorateId,
         districtId,
         rememberMe,
@@ -291,7 +421,20 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
       setIsSubmitting(false);
       isSubmittingRef.current = false;
     }
-  }, [authMode, authPassword, districtRows, personal.district, personal.gov, personal.name, personal.phone, rememberMe, toast]);
+  }, [
+    authMode,
+    authPassword,
+    districtRows,
+    governorateRows,
+    personal.country,
+    personal.district,
+    personal.gov,
+    personal.name,
+    personal.phone,
+    rememberMe,
+    selectedCountry,
+    toast,
+  ]);
 
   const handlePersonalSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -312,7 +455,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     e.preventDefault();
     toast({
       variant: 'destructive',
-      title: 'غير مفعّل الآن',
+      title: 'غير مفعل الآن',
       description: 'هذه المرحلة مخصصة لدخول الراكب فقط. سيتم ربط الكابتن لاحقا.',
     });
   };
@@ -321,7 +464,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     e.preventDefault();
     toast({
       variant: 'destructive',
-      title: 'غير مفعّل الآن',
+      title: 'غير مفعل الآن',
       description: 'هذه المرحلة مخصصة لدخول الراكب فقط. سيتم ربط المعلن لاحقا.',
     });
   };
@@ -339,7 +482,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     e.preventDefault();
     toast({
       variant: 'destructive',
-      title: 'غير مفعّل الآن',
+      title: 'غير مفعل الآن',
       description: 'دخول المشرف ليس ضمن خطوة Supabase الحالية.',
     });
   };
@@ -367,6 +510,8 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     setVehicle,
     isSubmitting,
     locationDataLoading,
+    countries,
+    selectedCountry,
     governorates,
     districts,
     fillRandomRegistrationData,
@@ -382,11 +527,19 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
   return <RegistrationContext.Provider value={value}>{children}</RegistrationContext.Provider>;
 }
 
+function normalizeCountries(rows: unknown): SupabaseCountryRow[] {
+  return Array.isArray(rows)
+    ? rows
+        .map((row) => row as Partial<SupabaseCountryRow>)
+        .filter((row): row is SupabaseCountryRow => Number.isInteger(row.id))
+    : [];
+}
+
 function normalizeGovernorates(rows: unknown): SupabaseGovernorateRow[] {
   return Array.isArray(rows)
     ? rows
         .map((row) => row as Partial<SupabaseGovernorateRow>)
-        .filter((row): row is SupabaseGovernorateRow => Number.isInteger(row.id))
+        .filter((row): row is SupabaseGovernorateRow => Number.isInteger(row.id) && Number.isInteger(row.country_id))
     : [];
 }
 
@@ -401,9 +554,15 @@ function normalizeDistricts(rows: unknown): SupabaseDistrictRow[] {
     : [];
 }
 
-function getLocationLabel(row: SupabaseGovernorateRow | SupabaseDistrictRow, lang: 'ar' | 'en') {
+function getLocationLabel(row: SupabaseCountryRow | SupabaseGovernorateRow | SupabaseDistrictRow, lang: 'ar' | 'en') {
   const preferred = lang === 'ar' ? row.name_ar : row.name_en;
   return preferred || row.name_ar || row.name_en || row.name || String(row.id);
+}
+
+function getCountryDialCode(country: SupabaseCountryRow) {
+  const rawCode = country.phone_code || country.dial_code || country.calling_code || '';
+  if (!rawCode) return '';
+  return rawCode.startsWith('+') ? rawCode : `+${rawCode}`;
 }
 
 export function useRegistration() {

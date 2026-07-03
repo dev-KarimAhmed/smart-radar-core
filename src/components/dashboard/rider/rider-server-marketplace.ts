@@ -35,6 +35,7 @@ type SupabaseRealtimeLike = {
 export interface ServerFareInput {
   origin: RiderLocation;
   destination: RiderLocation;
+  countryId: number;
 }
 
 export interface RideRequestInsertInput {
@@ -45,6 +46,7 @@ export interface RideRequestInsertInput {
   destinationH3: string;
   destinationAddressAr: string;
   serverEstimatedFare: number;
+  countryId: number;
 }
 
 export interface RideRequestInsertPayload {
@@ -57,6 +59,7 @@ export interface RideRequestInsertPayload {
   destination_h3: string;
   destination_address_ar: string;
   server_estimated_fare: number;
+  country_id: number;
   status: 'PENDING';
 }
 
@@ -72,6 +75,7 @@ export async function calculateServerFare(client: SupabaseRpcLike, input: Server
     lng1: toFiniteNumber(input.origin.lng, 'lng1'),
     lat2: toFiniteNumber(input.destination.lat, 'lat2'),
     lng2: toFiniteNumber(input.destination.lng, 'lng2'),
+    p_country_id: toStrictPositiveInteger(input.countryId, 'p_country_id'),
   };
 
   const { data, error } = await client.rpc('calculate_server_fare', args);
@@ -91,6 +95,7 @@ export function buildRideRequestInsertPayload(input: RideRequestInsertInput): Ri
     destination_h3: input.destinationH3,
     destination_address_ar: input.destinationAddressAr,
     server_estimated_fare: toFiniteNumber(input.serverEstimatedFare, 'server_estimated_fare'),
+    country_id: toStrictPositiveInteger(input.countryId, 'country_id'),
     status: 'PENDING',
   };
 }
@@ -184,6 +189,15 @@ function parseServerEstimatedFare(data: unknown) {
 function toFiniteNumber(value: unknown, fieldName: string) {
   const numberValue = Number(value);
   if (!Number.isFinite(numberValue)) {
+    throw new Error(`invalid_${fieldName}`);
+  }
+
+  return numberValue;
+}
+
+function toStrictPositiveInteger(value: unknown, fieldName: string) {
+  const numberValue = Number(value);
+  if (!Number.isInteger(numberValue) || numberValue <= 0) {
     throw new Error(`invalid_${fieldName}`);
   }
 

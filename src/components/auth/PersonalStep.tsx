@@ -24,12 +24,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useRegistration } from '@/hooks/use-registration';
-import {
-  confirmRiderPasswordReset,
-  mapSupabaseAuthError,
-  requestRiderPasswordResetCode,
-} from '@/lib/supabase-auth';
-import { useToast } from '@/hooks/use-toast';
 
 type Lang = 'ar' | 'en';
 type AuthMode = 'register' | 'login';
@@ -54,6 +48,8 @@ const copy = {
     fullNamePlaceholder: 'اكتب اسمك',
     phone: 'رقم الهاتف',
     phonePlaceholder: '+962790000000',
+    country: 'الدولة',
+    countryPlaceholder: 'اختر الدولة',
     governorate: 'المحافظة',
     governoratePlaceholder: 'اختر المحافظة',
     district: 'اللواء / المنطقة',
@@ -101,6 +97,8 @@ const copy = {
     fullNamePlaceholder: 'Enter your name',
     phone: 'Phone Number',
     phonePlaceholder: '+962790000000',
+    country: 'Country',
+    countryPlaceholder: 'Choose country',
     governorate: 'Governorate',
     governoratePlaceholder: 'Choose governorate',
     district: 'District or Area',
@@ -139,7 +137,6 @@ const copy = {
 } as const;
 
 export function PersonalStep() {
-  const { toast } = useToast();
   const {
     personal,
     setPersonal,
@@ -148,6 +145,8 @@ export function PersonalStep() {
     rememberMe,
     setRememberMe,
     handlePersonalSubmit,
+    countries,
+    selectedCountry,
     governorates,
     districts,
     locationDataLoading,
@@ -163,10 +162,6 @@ export function PersonalStep() {
   const [showPassword, setShowPassword] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
   const [resetPhone, setResetPhone] = useState(personal.phone);
-  const [resetCode, setResetCode] = useState('');
-  const [resetPassword, setResetPassword] = useState('');
-  const [resetCodeSent, setResetCodeSent] = useState(false);
-  const [resetSubmitting, setResetSubmitting] = useState(false);
 
   const currentLang = lang as Lang;
   const mode = authMode as AuthMode;
@@ -177,52 +172,7 @@ export function PersonalStep() {
 
   const openPasswordReset = () => {
     setResetPhone(personal.phone);
-    setResetCode('');
-    setResetPassword('');
-    setResetCodeSent(false);
     setResetOpen(true);
-  };
-
-  const handleSendResetCode = async () => {
-    setResetSubmitting(true);
-    try {
-      const normalizedPhone = await requestRiderPasswordResetCode(resetPhone);
-      setResetPhone(normalizedPhone);
-      setResetCodeSent(true);
-      toast({ title: t.resetTitle, description: t.codeSent });
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: t.resetTitle,
-        description: mapSupabaseAuthError(error),
-      });
-    } finally {
-      setResetSubmitting(false);
-    }
-  };
-
-  const handleConfirmReset = async () => {
-    setResetSubmitting(true);
-    try {
-      await confirmRiderPasswordReset({
-        phone: resetPhone,
-        token: resetCode,
-        newPassword: resetPassword,
-      });
-      setPersonal({ ...personal, phone: resetPhone });
-      setAuthPassword('');
-      setAuthMode('login');
-      setResetOpen(false);
-      toast({ title: t.resetTitle, description: t.passwordUpdated });
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: t.resetTitle,
-        description: mapSupabaseAuthError(error),
-      });
-    } finally {
-      setResetSubmitting(false);
-    }
   };
 
   return (
@@ -318,7 +268,7 @@ export function PersonalStep() {
                     ) : (
                       <>
                         <MapPin className="h-4 w-4 text-[#14B8A6]" aria-hidden="true" />
-                        <span>{`${governorates.length} / ${districts.length}`}</span>
+                        <span>{`${countries.length} / ${governorates.length} / ${districts.length}`}</span>
                       </>
                     )}
                   </div>
@@ -326,7 +276,7 @@ export function PersonalStep() {
                   <button
                     type="button"
                     onClick={fillRandomRegistrationData}
-                    disabled={locationDataLoading || !governorates.length}
+                    disabled={locationDataLoading || !selectedCountry || !personal.gov || !districts.length}
                     className="inline-flex min-h-9 items-center gap-2 rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-3 text-xs font-black text-[#14B8A6] transition hover:border-[#14B8A6] hover:bg-[#14B8A6]/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/50 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <Sparkles className="h-4 w-4" aria-hidden="true" />
@@ -365,12 +315,38 @@ export function PersonalStep() {
 
               {mode === 'register' ? (
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <Field label={t.country} icon={<MapPin className="h-5 w-5" />}>
+                    <div className="relative">
+                      <select
+                        value={personal.country}
+                        onChange={(event) => setPersonal({ ...personal, country: event.target.value, gov: '', district: '' })}
+                        disabled={locationDataLoading && !countries.length}
+                        className={`${inputClass} appearance-none ${isArabic ? 'text-right pl-10' : 'text-left pr-10'}`}
+                        required
+                      >
+                        <option value="">
+                          {locationDataLoading && !countries.length ? '...' : t.countryPlaceholder}
+                        </option>
+                        {countries.map((country) => (
+                          <option key={country.id} value={country.id}>
+                            {isArabic ? country.label : country.labelEn}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown
+                        className={`pointer-events-none absolute top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8] ${
+                          isArabic ? 'left-3' : 'right-3'
+                        }`}
+                      />
+                    </div>
+                  </Field>
+
                   <Field label={t.governorate} icon={<MapPin className="h-5 w-5" />}>
                     <div className="relative">
                       <select
                         value={personal.gov}
                         onChange={(event) => setPersonal({ ...personal, gov: event.target.value, district: '' })}
-                        disabled={locationDataLoading}
+                        disabled={!personal.country || locationDataLoading}
                         className={`${inputClass} appearance-none ${isArabic ? 'text-right pl-10' : 'text-left pr-10'}`}
                         required
                       >
@@ -510,11 +486,19 @@ export function PersonalStep() {
             </div>
             <DialogTitle className="text-2xl font-black text-white">{t.resetTitle}</DialogTitle>
             <DialogDescription className="text-sm leading-6 text-[#94A3B8]">
-              {t.resetDescription}
+              {isArabic
+                ? 'إعادة كلمة المرور تتم عبر الدعم، بدون رسائل SMS مدفوعة.'
+                : 'Password reset is handled through support, without paid SMS messages.'}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
+            <div className="rounded-2xl border border-[#14B8A6]/20 bg-[#14B8A6]/10 p-4 text-sm leading-7 text-[#D8FDF8]">
+              {isArabic
+                ? 'للحفاظ على التكلفة الصفرية، لا نرسل رمز SMS لإعادة كلمة المرور. تواصل مع الدعم الرسمي وسيتم التحقق من هويتك ومساعدتك في إعادة تعيين كلمة المرور.'
+                : 'To keep the system zero-cost, SMS password reset is disabled. Contact official support so your identity can be verified and your password can be reset safely.'}
+            </div>
+
             <Field label={t.resetPhone} icon={<Phone className="h-5 w-5" />}>
               <input
                 type="tel"
@@ -524,45 +508,25 @@ export function PersonalStep() {
                 value={resetPhone}
                 onChange={(event) => setResetPhone(event.target.value)}
                 className={`${inputClass} text-left`}
-                disabled={resetSubmitting || resetCodeSent}
               />
             </Field>
 
-            {resetCodeSent ? (
-              <>
-                <Field label={t.resetCode} icon={<ShieldCheck className="h-5 w-5" />}>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    placeholder={t.resetCodePlaceholder}
-                    value={resetCode}
-                    onChange={(event) => setResetCode(event.target.value)}
-                    className={`${inputClass} ${isArabic ? 'text-right' : 'text-left'}`}
-                    disabled={resetSubmitting}
-                  />
-                </Field>
-
-                <Field label={t.newPassword} icon={<LockKeyhole className="h-5 w-5" />}>
-                  <input
-                    type="password"
-                    placeholder={t.newPasswordPlaceholder}
-                    value={resetPassword}
-                    onChange={(event) => setResetPassword(event.target.value)}
-                    className={`${inputClass} ${isArabic ? 'text-right' : 'text-left'}`}
-                    disabled={resetSubmitting}
-                  />
-                </Field>
-              </>
-            ) : null}
-
-            <button
-              type="button"
-              onClick={resetCodeSent ? handleConfirmReset : handleSendResetCode}
-              disabled={resetSubmitting}
-              className="w-full rounded-2xl bg-[#14B8A6] p-4 text-sm font-black text-[#0B0F19] shadow-[0_16px_45px_rgba(20,184,166,0.18)] transition hover:bg-[#2DD4BF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/60 disabled:opacity-50"
-            >
-              {resetSubmitting ? '...' : resetCodeSent ? t.confirmReset : t.sendCode}
-            </button>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <a
+                href={buildSupportWhatsappUrl(resetPhone)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-[#14B8A6] px-4 text-sm font-black text-[#0B0F19] shadow-[0_16px_45px_rgba(20,184,166,0.18)] transition hover:bg-[#2DD4BF]"
+              >
+                {isArabic ? 'تواصل عبر واتساب' : 'WhatsApp support'}
+              </a>
+              <a
+                href={buildSupportTelUrl()}
+                className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-white/10 bg-white/10 px-4 text-sm font-black text-white transition hover:bg-white/15"
+              >
+                {isArabic ? 'اتصال بالدعم' : 'Call support'}
+              </a>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
@@ -608,3 +572,25 @@ function Field({
 
 const inputClass =
   'min-h-12 w-full rounded-2xl border border-white/10 bg-[#0B0F19]/50 px-4 text-base font-semibold text-[#F8FAFC] outline-none transition placeholder:text-[#64748B] focus:border-[#14B8A6] focus:shadow-[0_0_10px_rgba(20,184,166,0.1)]';
+
+function buildSupportWhatsappUrl(phone: string) {
+  const supportPhone = getSupportPhone();
+  const message = `طلب إعادة تعيين كلمة مرور الراكب. رقم الحساب: ${phone || 'غير مكتوب'}`;
+
+  if (!supportPhone) {
+    return `https://wa.me/?text=${encodeURIComponent(message)}`;
+  }
+
+  return `https://wa.me/${supportPhone}?text=${encodeURIComponent(message)}`;
+}
+
+function buildSupportTelUrl() {
+  const supportPhone = getSupportPhone();
+  return supportPhone ? `tel:+${supportPhone}` : '#';
+}
+
+function getSupportPhone() {
+  const env = (import.meta as unknown as { env?: Record<string, string | undefined> }).env;
+  const rawPhone = env?.NEXT_PUBLIC_SUPPORT_WHATSAPP || env?.NEXT_PUBLIC_SUPPORT_PHONE || '';
+  return rawPhone.replace(/\D/g, '');
+}

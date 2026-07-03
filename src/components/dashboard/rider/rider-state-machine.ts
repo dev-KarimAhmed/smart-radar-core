@@ -74,7 +74,8 @@ export type RiderMachineAction =
   | { type: 'SUBMIT_RATING'; rating: RiderLocalRating }
   | { type: 'OPEN_PURGE_LEDGER' }
   | { type: 'OPEN_FAVORITE_CAPTAINS' }
-  | { type: 'RETURN_TO_MAP' };
+  | { type: 'RETURN_TO_MAP' }
+  | { type: 'RESET_TO_IDLE' };
 
 export function createInitialRiderMachineState(): RiderMachineState {
   return {
@@ -276,6 +277,12 @@ export function riderDashboardReducer(state: RiderMachineState, action: RiderMac
     case 'RETURN_TO_MAP':
       if (state.screen === 'TRIP_ACTIVE' || state.screen === 'RATING_MODAL' || state.screen === 'RECEIVING_OFFERS') return state;
       return { ...state, screen: 'IDLE_MAP' };
+
+    case 'RESET_TO_IDLE':
+      return {
+        ...createInitialRiderMachineState(),
+        localRatings: state.localRatings,
+      };
 
     default:
       return state;
