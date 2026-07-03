@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { MapPin, MessageCircle, Phone, ShieldCheck, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, MapPin, MessageCircle, Phone, ShieldCheck, X } from 'lucide-react';
 import { doc, increment, serverTimestamp, setDoc } from 'firebase/firestore';
 import { AdDisplayCard, getAdDescription, getAdTitle } from './ad-display-card';
 import { useAuth } from '@/hooks/use-auth';
@@ -138,6 +138,9 @@ export function AdStage({ isFullScreen = false }: { isFullScreen?: boolean }) {
   const { activeAds } = usePromoStream(liveDistrict, liveGovernorate);
   const [heartedAdIds, setHeartedAdIds] = useState<string[]>([]);
   const [takeoverAd, setTakeoverAd] = useState<any | null>(null);
+  const [isAdStreamPaused, setIsAdStreamPaused] = useState(false);
+  const isAdStreamPausedRef = useRef(false);
+  const scrollTrackRef = useRef<HTMLDivElement | null>(null);
 
   const adsToUse = useMemo(() => {
     const combinedAds = activeAds && activeAds.length > 0 ? [...activeAds, ...VIRTUAL_ADS] : VIRTUAL_ADS;
@@ -162,6 +165,42 @@ export function AdStage({ isFullScreen = false }: { isFullScreen?: boolean }) {
       }
     }
   }, []);
+
+  useEffect(() => {
+    const track = scrollTrackRef.current;
+    if (!track || takeoverAd || adsToUse.length <= 1) return;
+
+    const stepSize = isFullScreen ? 3 : 2;
+    const intervalId = window.setInterval(() => {
+      if (isAdStreamPausedRef.current) return;
+
+      const loopPoint = track.scrollWidth / 2;
+      track.scrollLeft += stepSize;
+
+      if (loopPoint > 0 && track.scrollLeft >= loopPoint) {
+        track.scrollLeft -= loopPoint;
+      }
+    }, 40);
+
+    return () => window.clearInterval(intervalId);
+  }, [adsToUse.length, isFullScreen, takeoverAd]);
+
+  const setAdStreamPaused = useCallback((paused: boolean) => {
+    isAdStreamPausedRef.current = paused;
+    setIsAdStreamPaused(paused);
+  }, []);
+
+  const scrollAds = useCallback((direction: 'previous' | 'next') => {
+    const track = scrollTrackRef.current;
+    if (!track) return;
+
+    setAdStreamPaused(true);
+    const distance = Math.max(240, Math.min(track.clientWidth * 0.82, 460));
+    track.scrollBy({
+      left: direction === 'next' ? distance : -distance,
+      behavior: 'smooth',
+    });
+  }, [setAdStreamPaused]);
 
   const toggleHeart = (event: React.MouseEvent, ad: any) => {
     event.preventDefault();
@@ -200,10 +239,10 @@ export function AdStage({ isFullScreen = false }: { isFullScreen?: boolean }) {
     }
   };
 
-  const heightClass = isFullScreen ? 'flex-1 h-full min-h-[65vh] w-full' : 'h-[320px] w-full';
+  const heightClass = isFullScreen ? 'flex-1 h-full min-h-[65vh] w-full' : 'h-[280px] w-full sm:h-[320px]';
   const cardClassName = isFullScreen
     ? 'h-[360px] w-[340px] md:h-[448px] md:w-[448px]'
-    : 'h-[250px] w-[280px] md:w-[340px]';
+    : 'h-[216px] w-[270px] sm:h-[250px] sm:w-[280px] md:w-[340px]';
 
   if (!adsToUse || adsToUse.length === 0) {
     return (
@@ -220,10 +259,10 @@ export function AdStage({ isFullScreen = false }: { isFullScreen?: boolean }) {
 
   return (
     <div
-      className={`relative z-[10] flex w-full flex-col justify-center overflow-hidden border-b border-white/5 bg-[#0B0F19] py-6 ${heightClass} pointer-events-auto select-none`}
+      className={`relative z-[10] flex w-full flex-col justify-center overflow-hidden border-b border-white/5 bg-[#0B0F19] py-4 sm:py-6 ${heightClass} pointer-events-auto select-none`}
       dir="rtl"
     >
-      <div className="z-[20] mb-4 flex shrink-0 items-center justify-between px-6">
+      <div className="z-[20] mb-3 flex shrink-0 items-center justify-between px-4 sm:mb-4 sm:px-6">
         <div className="flex items-center gap-2">
           <span className="relative flex h-2.5 w-2.5">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#14B8A6] opacity-75" />
@@ -238,11 +277,39 @@ export function AdStage({ isFullScreen = false }: { isFullScreen?: boolean }) {
         </span>
       </div>
 
-      <div className="relative flex w-full flex-1 items-center overflow-hidden" dir="ltr">
-        <motion.div
-          className="flex min-w-max flex-nowrap gap-8"
-          animate={{ x: ['0%', '-50%'] }}
-          transition={{ ease: 'linear', duration: 35, repeat: Infinity }}
+      <div
+        className="group/river relative flex w-full flex-1 items-center overflow-hidden"
+        dir="ltr"
+        onMouseEnter={() => setAdStreamPaused(true)}
+        onMouseLeave={() => setAdStreamPaused(false)}
+        onFocusCapture={() => setAdStreamPaused(true)}
+        onBlurCapture={() => setAdStreamPaused(false)}
+        onTouchStart={() => setAdStreamPaused(true)}
+      >
+        <button
+          type="button"
+          aria-label="الإعلان السابق"
+          onClick={() => scrollAds('previous')}
+          className="absolute left-3 top-1/2 z-30 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-[#0B0F19]/88 text-white shadow-xl shadow-black/35 backdrop-blur-md transition hover:border-[#14B8A6]/45 hover:bg-[#14B8A6]/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/45 sm:left-4"
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </button>
+
+        <button
+          type="button"
+          aria-label="الإعلان التالي"
+          onClick={() => scrollAds('next')}
+          className="absolute right-3 top-1/2 z-30 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-[#0B0F19]/88 text-white shadow-xl shadow-black/35 backdrop-blur-md transition hover:border-[#14B8A6]/45 hover:bg-[#14B8A6]/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/45 sm:right-4"
+        >
+          <ChevronRight className="h-5 w-5" />
+        </button>
+
+        <div
+          ref={scrollTrackRef}
+          data-ad-carousel-track="true"
+          data-paused={isAdStreamPaused ? 'true' : 'false'}
+          data-ad-count={adsToUse.length}
+          className="flex min-w-0 flex-1 flex-nowrap gap-8 overflow-x-auto px-14 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {[...adsToUse, ...adsToUse].map((ad: any, index: number) => (
             <AdDisplayCard
@@ -255,7 +322,7 @@ export function AdStage({ isFullScreen = false }: { isFullScreen?: boolean }) {
               className={`flex-shrink-0 ${cardClassName}`}
             />
           ))}
-        </motion.div>
+        </div>
       </div>
 
       <AnimatePresence>

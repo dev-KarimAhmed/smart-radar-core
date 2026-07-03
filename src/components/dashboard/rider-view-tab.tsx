@@ -157,9 +157,19 @@ export function RiderViewTab() {
     setLocationStatus(payload.status);
   }, []);
 
+  const openDestination = React.useCallback(() => {
+    dispatch({ type: 'OPEN_DESTINATION' });
+    dispatch({ type: 'CONFIRM_DESTINATION', destination: selectedDraftDestination });
+  }, [dispatch, selectedDraftDestination]);
+
   React.useEffect(() => {
     dispatch({ type: 'RESET_TO_IDLE' });
   }, [dispatch, user?.uid]);
+
+  React.useEffect(() => {
+    window.addEventListener('rider-open-destination', openDestination);
+    return () => window.removeEventListener('rider-open-destination', openDestination);
+  }, [openDestination]);
 
   React.useEffect(() => {
     let active = true;
@@ -175,7 +185,7 @@ export function RiderViewTab() {
       try {
         const { data, error } = await supabase
           .from('countries')
-          .select('id,currency_ar,currency_en,currency_code')
+          .select('id,currency_ar,currency_en')
           .eq('id', countryId)
           .single();
         if (error) throw error;
@@ -410,7 +420,7 @@ export function RiderViewTab() {
           <CardContent className="space-y-5 p-5 text-right" dir="rtl">
             <div className="space-y-1">
               <p className="text-[11px] font-black text-[#14F5D5]">اختيار الوجهة</p>
-              <h2 className="text-2xl font-black">وين بدك تروح؟</h2>
+              <h2 className="text-xl font-black sm:text-2xl">وين بدك تروح؟</h2>
               <p className="text-xs text-slate-400">اختيار محلي داخل الأردن فقط. بدون Google Places وبدون Geocoding.</p>
             </div>
 
@@ -486,7 +496,7 @@ export function RiderViewTab() {
           <CardContent className="space-y-5 p-5 text-right" dir="rtl">
             <div className="space-y-1">
               <p className="text-[11px] font-black text-[#14F5D5]">{hasOffers ? 'وصلت عروض' : 'ننتظر الكباتن'}</p>
-              <h2 className="text-2xl font-black">{hasOffers ? 'اختار الكابتن المناسب' : 'طلبك ظاهر للكباتن القريبين'}</h2>
+              <h2 className="text-xl font-black sm:text-2xl">{hasOffers ? 'اختار الكابتن المناسب' : 'طلبك ظاهر للكباتن القريبين'}</h2>
               <p className="text-xs text-slate-400">
                 {hasOffers ? 'اختر العرض المناسب عند وصوله من الخادم.' : 'ننتظر تحديث حالة الطلب من الخادم وظهور العروض.'}
               </p>
@@ -544,7 +554,7 @@ export function RiderViewTab() {
             <div className="flex items-start justify-between gap-3">
               <div className="space-y-1">
                 <p className="text-[11px] font-black text-[#14F5D5]">رحلة نشطة</p>
-                <h2 className="text-2xl font-black">{state.activeTrip.captainSerial}</h2>
+                <h2 className="text-xl font-black sm:text-2xl">{state.activeTrip.captainSerial}</h2>
                 <p className="text-xs text-slate-400">{state.activeTrip.destinationLabel}</p>
               </div>
               <div className="rounded-2xl border border-[#14B8A6]/20 bg-[#14B8A6]/10 px-4 py-2 text-center">
@@ -583,33 +593,27 @@ export function RiderViewTab() {
   };
 
   return (
-    <div className="relative flex min-h-[calc(100vh-160px)] w-full flex-col gap-5 bg-[#0B0F19] p-4 pb-28 text-white" dir="rtl">
-      <div className="mx-auto grid w-full max-w-6xl gap-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.65fr)]">
-        <div className="space-y-4">
+    <div className="relative flex min-h-[calc(100svh-128px)] w-full flex-col gap-3 bg-[#0B0F19] p-3 pb-[calc(6.5rem+env(safe-area-inset-bottom))] text-white sm:gap-4 sm:p-4 lg:h-screen lg:min-h-screen lg:overflow-hidden lg:bg-transparent lg:p-0" dir="rtl">
+      <div className="mx-auto grid w-full max-w-6xl gap-3 sm:gap-4 lg:block lg:h-full lg:max-w-none">
+        <div className="space-y-3 sm:space-y-4 lg:absolute lg:inset-0 lg:space-y-0">
           <RiderMap
             activeTripCaptainId={state.activeTrip?.captainId || null}
-            className="h-[420px] lg:h-[620px]"
+            className="h-[38svh] min-h-[250px] max-h-[320px] sm:h-[42svh] sm:min-h-[300px] sm:max-h-[380px] lg:h-full lg:max-h-none lg:min-h-0 lg:rounded-none lg:border-0"
             onLocationChange={handleLocationChange}
           />
-
-          {showAdRiver && (
-            <div className="mb-24 overflow-hidden rounded-[24px] border border-[#14B8A6]/15">
-              <AdStage />
-            </div>
-          )}
         </div>
 
-        <aside className="space-y-4">
-          <div className="rounded-[24px] border border-white/10 bg-white/[0.04] p-4 shadow-xl shadow-black/20 backdrop-blur">
-            <div className="mb-4 flex items-center justify-between">
+        <aside className="space-y-3 sm:space-y-4 lg:absolute lg:bottom-6 lg:right-6 lg:top-6 lg:z-40 lg:w-[420px] lg:overflow-y-auto lg:rounded-[28px] lg:border lg:border-white/10 lg:bg-[#0B0F19]/82 lg:p-4 lg:shadow-[0_30px_100px_rgba(0,0,0,0.45)] lg:backdrop-blur-xl">
+          <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-3 shadow-xl shadow-black/20 backdrop-blur sm:rounded-[24px] sm:p-4">
+            <div className="mb-3 flex items-center justify-between sm:mb-4">
               <div>
                 <p className="text-[11px] font-black text-[#14F5D5]">لوحة الراكب</p>
-                <h1 className="text-2xl font-black">رادار الرحلة المحلي</h1>
+                <h1 className="text-xl font-black sm:text-2xl">رادار الرحلة المحلي</h1>
               </div>
               <ShieldCheck className="h-7 w-7 text-[#14F5D5]" />
             </div>
 
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-2 lg:hidden">
               <NavButton active={state.screen === 'IDLE_MAP'} onClick={() => dispatch({ type: 'RETURN_TO_MAP' })}>
                 الخريطة
               </NavButton>
@@ -628,7 +632,7 @@ export function RiderViewTab() {
                 <CardContent className="space-y-5 p-5 text-right" dir="rtl">
                   <div className="space-y-1">
                     <p className="text-[11px] font-black text-[#14F5D5]">جاهز لطلب رحلة</p>
-                    <h2 className="text-2xl font-black">أهلا بك</h2>
+                    <h2 className="text-xl font-black sm:text-2xl">أهلا بك</h2>
                     <p className="text-xs leading-relaxed text-slate-400">
                       الخريطة مجانية، والوجهات من بيانات الأردن المحلية، والسعر يحسب من موقعك الحالي أو من عمّان عند عدم توفر GPS.
                     </p>
@@ -640,10 +644,7 @@ export function RiderViewTab() {
                   </div>
 
                   <Button
-                    onClick={() => {
-                      dispatch({ type: 'OPEN_DESTINATION' });
-                      dispatch({ type: 'CONFIRM_DESTINATION', destination: selectedDraftDestination });
-                    }}
+                    onClick={openDestination}
                     className="h-16 w-full rounded-2xl bg-[#14B8A6] text-lg font-black text-[#031315] shadow-lg shadow-[#14B8A6]/20 hover:bg-[#2DD4BF]"
                   >
                     <Navigation className="ml-2 h-5 w-5" />
@@ -656,6 +657,12 @@ export function RiderViewTab() {
 
           {renderStatePanel()}
 
+          {showAdRiver && (
+            <div className="hidden overflow-hidden rounded-[24px] border border-[#14B8A6]/15 bg-[#0B0F19]/88 shadow-2xl shadow-black/35 backdrop-blur-xl lg:block">
+              <AdStage />
+            </div>
+          )}
+
           {(state.screen === 'PURGE_LEDGER' || state.screen === 'FAVORITE_CAPTAINS') && (
             <RadarRiderDashboard
               riderProfile={riderProfile}
@@ -665,6 +672,12 @@ export function RiderViewTab() {
             />
           )}
         </aside>
+
+        {showAdRiver && (
+          <div className="overflow-hidden rounded-[24px] border border-[#14B8A6]/15 lg:hidden">
+            <AdStage />
+          </div>
+        )}
       </div>
 
       {state.screen === 'RATING_MODAL' && (

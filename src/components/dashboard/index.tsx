@@ -11,7 +11,11 @@ import { useRiderOperations } from '@/hooks/use-rider-operations';
 import { useDriverOperations } from '@/hooks/use-driver-operations';
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'motion/react';
-import { Loader2 } from 'lucide-react';
+import { Archive, Bell, History, Home, Loader2, LogOut, PlusCircle, User, Wallet } from 'lucide-react';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 // [بروتوكول الاقتران الضعيف]: استدعاء قمرات التحكم والتبويبات لا مركزياً ولحظياً عند الطلب
 const DriverViewTab = React.lazy(() => import('./driver-view-tab').then(m => ({ default: m.DriverViewTab })));
@@ -81,6 +85,7 @@ function SovereignLockoutView({ user, logout }: { user: any, logout: () => void 
 
 function DashboardLayout() {
   const { isSovereign, isCaptain, isPassenger, user, logout } = useAuth();
+  const { toast } = useToast();
   const [hash, setHash] = useState(typeof window !== 'undefined' ? window.location.hash || '#' : '#');
   const riderOps = useRiderOperations() || {} as any;
   const driverOps = useDriverOperations() || {} as any;
@@ -297,18 +302,29 @@ function DashboardLayout() {
     if (isCaptain) return <DriverViewTab />;
     return null;
   };
+
+  const contentIsHidden = isStandby;
+  const isRiderHomeSurface = user?.role === 'rider' && !contentIsHidden && (hash === '#' || hash === '' || hash === '#/');
   
   return (
     // استخدام flex-col لضمان تدفق الصفحة (Doc Flow) والسماح بالتمرير الطبيعي
-    <div className="flex flex-col min-h-screen w-full bg-[#0B1120] text-white overflow-y-auto">
+    <div className="flex min-h-screen w-full flex-col bg-[#0B0F19] text-white lg:h-screen lg:overflow-hidden">
+      {user?.role === 'rider' && (
+        <DesktopRiderSidebar
+          hash={hash}
+          logout={logout}
+          onNotify={() => toast({ title: 'التنبيهات', description: 'لا توجد تنبيهات جديدة حاليا.' })}
+          user={user}
+        />
+      )}
       
       {/* الهيدر ثابت في الأعلى */}
-      <header className="sticky top-0 z-[100] w-full shrink-0">
+      <header className="sticky top-0 z-[100] w-full shrink-0 lg:hidden">
         <AppHeader />
       </header>
       
       {/* المحتوى الرئيسي يتمدد ويسمح بالتمرير (Scroll) */}
-      <main className="flex-1 w-full relative flex flex-col overflow-y-visible">
+      <main className={cn('relative flex w-full flex-1 flex-col overflow-y-visible lg:h-screen lg:min-h-0 lg:overflow-hidden', user?.role === 'rider' && !isRiderHomeSurface && 'lg:pl-[288px]')}>
         
         {/* مسرح الإعلانات يأخذ مساحته الطبيعية في التدفق */}
         {isStandby && (
@@ -318,7 +334,7 @@ function DashboardLayout() {
         )}
         
         {/* الحاوية التي تحمل التبويبات (تسمح بالتمرير للأسفل) */}
-        <div className={`flex-1 w-full p-4 md:p-8 ${isStandby ? 'hidden' : ''}`}>
+        <div className={cn('w-full flex-1 p-4 md:p-8', contentIsHidden && 'hidden', isRiderHomeSurface && 'lg:p-0')}>
            {renderArterialBridge()}
            <SovereignErrorBoundary>
              <React.Suspense fallback={
@@ -336,11 +352,112 @@ function DashboardLayout() {
       </main>
       
       {/* الفوتر ثابت في الأسفل */}
-      <footer className="sticky bottom-0 z-[100] w-full shrink-0">
+      <footer className="sticky bottom-0 z-[100] w-full shrink-0 lg:hidden">
         <BottomNav />
       </footer>
     </div>
   );
+}
+
+function DesktopRiderSidebar({
+  hash,
+  logout,
+  onNotify,
+  user,
+}: {
+  hash: string;
+  logout: () => void;
+  onNotify: () => void;
+  user: any;
+}) {
+  const initials = getInitials(user?.name || user?.phone || 'R');
+  const items = [
+    { href: '#', icon: Home, label: 'الرئيسية' },
+    { href: '#history', icon: History, label: 'السجل' },
+    { href: '#vault', icon: Archive, label: 'المحفوظات' },
+    { href: '#wallet', icon: Wallet, label: 'المحفظة' },
+    { href: '#profile', icon: User, label: 'الحساب' },
+  ];
+
+  const openRideRequest = () => {
+    window.location.hash = '#';
+    window.dispatchEvent(new CustomEvent('rider-open-destination'));
+  };
+
+  return (
+    <aside className="fixed inset-y-0 left-0 z-[140] hidden w-[288px] flex-col border-r border-white/10 bg-[#0B0F19]/98 shadow-[22px_0_70px_rgba(0,0,0,0.38)] backdrop-blur-xl lg:flex" dir="rtl">
+      <div className="flex items-center gap-3 border-b border-white/10 p-5">
+        <Avatar className="h-12 w-12 border border-[#14B8A6]/35 bg-[#101827]">
+          <AvatarFallback className="bg-[#101827] text-sm font-black text-white">{initials}</AvatarFallback>
+        </Avatar>
+        <div className="min-w-0 text-right">
+          <p className="truncate text-sm font-black text-white">{user?.name || 'راكب'}</p>
+          <p className="truncate text-xs font-bold text-[#14B8A6]">{user?.phone || 'الرادار الذكي'}</p>
+        </div>
+      </div>
+
+      <div className="space-y-3 p-4">
+        <Button
+          onClick={openRideRequest}
+          className="h-12 w-full justify-center gap-2 rounded-2xl bg-[#14B8A6] text-sm font-black text-[#031315] shadow-[0_16px_35px_rgba(20,184,166,0.18)] hover:bg-[#2DD4BF]"
+        >
+          <PlusCircle className="h-5 w-5" />
+          طلب جديد
+        </Button>
+        <Button
+          onClick={onNotify}
+          variant="ghost"
+          className="h-11 w-full justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 text-sm font-bold text-slate-200 hover:bg-white/[0.07]"
+        >
+          <Bell className="h-4 w-4 text-[#14B8A6]" />
+          التنبيهات
+        </Button>
+      </div>
+
+      <nav className="flex-1 space-y-2 px-4 pt-2">
+        {items.map((item) => {
+          const Icon = item.icon;
+          const isActive = hash === item.href || (item.href === '#' && (hash === '' || hash === '#/'));
+
+          return (
+            <a
+              key={item.href}
+              href={item.href}
+              className={cn(
+                'flex h-12 items-center justify-between rounded-2xl border px-4 text-sm font-black transition',
+                isActive
+                  ? 'border-[#14B8A6]/35 bg-[#14B8A6]/15 text-[#14F5D5]'
+                  : 'border-transparent text-slate-400 hover:border-white/10 hover:bg-white/[0.04] hover:text-white',
+              )}
+            >
+              <span>{item.label}</span>
+              <Icon className="h-5 w-5" />
+            </a>
+          );
+        })}
+      </nav>
+
+      <div className="space-y-3 border-t border-white/10 p-4">
+        <div className="rounded-2xl border border-[#14B8A6]/15 bg-[#14B8A6]/8 p-3 text-right">
+          <p className="text-[11px] font-black text-[#14F5D5]">حالة الحساب</p>
+          <p className="mt-1 text-xs font-bold text-slate-300">جاهز لطلب الرحلات</p>
+        </div>
+        <Button
+          onClick={logout}
+          className="h-12 w-full justify-center gap-2 rounded-2xl bg-red-600/90 text-sm font-black text-white hover:bg-red-500"
+        >
+          <LogOut className="h-5 w-5" />
+          تسجيل الخروج
+        </Button>
+      </div>
+    </aside>
+  );
+}
+
+function getInitials(value: string) {
+  const words = value.trim().split(/\s+/).filter(Boolean);
+  if (words.length >= 2) return `${words[0][0] || ''}${words[1][0] || ''}`.toUpperCase();
+  return value.slice(0, 2).toUpperCase();
 }
 
 export function Dashboard() {

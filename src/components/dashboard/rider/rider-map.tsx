@@ -187,7 +187,6 @@ export function RiderMap({ activeTripCaptainId, className, onLocationChange }: R
     });
 
     mapRef.current = map;
-    map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-left');
 
     map.on('load', () => {
       map.addSource('rider-point', {
@@ -298,23 +297,23 @@ export function RiderMap({ activeTripCaptainId, className, onLocationChange }: R
 
   return (
     <section className={`relative overflow-hidden rounded-[24px] border border-[#14B8A6]/20 bg-[#0B0F19] shadow-2xl shadow-black/40 ${className || ''}`}>
-      <div ref={containerRef} className="h-full min-h-[340px] w-full" />
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#0B0F19]/78 via-transparent to-[#0B0F19]/20" />
-      <div className="pointer-events-none absolute right-4 top-4 rounded-2xl border border-[#14B8A6]/25 bg-[#0B0F19]/80 px-3 py-2 text-right text-[11px] font-black text-[#14F5D5] backdrop-blur">
+      <div ref={containerRef} className="h-full min-h-0 w-full" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#0B0F19]/78 via-transparent to-[#0B0F19]/20 lg:hidden" />
+      <div className="pointer-events-none absolute right-3 top-3 rounded-2xl border border-[#14B8A6]/25 bg-[#0B0F19]/80 px-3 py-2 text-right text-[10px] font-black text-[#14F5D5] backdrop-blur sm:right-4 sm:top-4 sm:text-[11px] lg:right-[456px]">
         <span className="block">{getLocationStatusLabel(locationStatus)}</span>
         <span className="mt-1 block font-mono">H3 R9: {riderCell.slice(0, 8).toUpperCase()}</span>
       </div>
-      <div className="pointer-events-none absolute bottom-4 right-4 left-4 flex items-center justify-between rounded-2xl border border-white/10 bg-[#0B0F19]/82 px-4 py-3 text-xs text-white backdrop-blur">
+      <div className="pointer-events-none absolute bottom-3 right-3 left-3 flex items-center justify-between rounded-2xl border border-white/10 bg-[#0B0F19]/82 px-3 py-2 text-[11px] text-white backdrop-blur sm:bottom-4 sm:right-4 sm:left-4 sm:px-4 sm:py-3 sm:text-xs lg:left-[312px] lg:right-[456px]">
         <span className="font-black text-[#14F5D5]">
           {activeTripCaptainId ? 'الكابتن يتحرك نحوك' : `كباتن قريبون: ${captains.length}`}
         </span>
-        <span className="text-[10px] text-slate-300">MapLibre + OpenFreeMap</span>
+        <span className="text-[10px] text-slate-300">MapLibre + OpenFreeMap / © OSM</span>
       </div>
       {locationStatus !== 'live' && (
         <button
           type="button"
           onClick={requestLiveLocation}
-          className="absolute left-4 top-4 rounded-2xl border border-[#14B8A6]/30 bg-[#0B0F19]/90 px-4 py-2 text-xs font-black text-[#14F5D5] shadow-lg backdrop-blur transition hover:bg-[#14B8A6]/15"
+          className="absolute left-4 top-4 rounded-2xl border border-[#14B8A6]/30 bg-[#0B0F19]/90 px-4 py-2 text-xs font-black text-[#14F5D5] shadow-lg backdrop-blur transition hover:bg-[#14B8A6]/15 lg:left-[312px]"
         >
           استخدم موقعي
         </button>

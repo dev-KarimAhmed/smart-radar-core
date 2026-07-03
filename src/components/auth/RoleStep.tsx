@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -23,8 +23,8 @@ const copy = {
   ar: {
     switchLabel: 'English',
     ariaSwitch: 'تغيير اللغة إلى الإنجليزية',
-    title: 'مرحباً بك في الرادار الذكي',
-    subtitle: 'اختار نوع حسابك وكمل دخولك بسهولة',
+    title: 'مرحبا بك في الرادار الذكي',
+    subtitle: 'اختر نوع حسابك وكمل دخولك بسهولة',
     modes: {
       login: 'تسجيل الدخول',
       register: 'حساب جديد',
@@ -32,23 +32,23 @@ const copy = {
     roles: {
       rider: {
         title: 'راكب',
-        description: 'اطلب رحلتك وشوف السواقين اللي حواليك، وحافظ على أمان حسابك برصيد الثقة.',
+        description: 'اطلب رحلتك وشوف السائقين القريبين منك، وحافظ على أمان حسابك.',
       },
       driver: {
         title: 'كابتن',
-        description: 'حدد سعرك براحتك، اشحن باقة الساعات بتاعتك، واستقبل طلباتك في صمت.',
+        description: 'حدد سعرك، اشحن باقة الساعات، واستقبل الطلبات القريبة منك.',
       },
       advertiser: {
         title: 'معلن',
-        description: 'اعمل إعلانات موجهة لمنطقتك بالظبط، وتابع المشاهدات والنقرات أول بأول.',
+        description: 'اعمل إعلانات موجهة لمنطقتك، وتابع المشاهدات والنقرات بسهولة.',
       },
       delegate: {
         title: 'مندوب تسويق',
-        description: 'سجل السواقين والمحلات في الشارع، واكسب عمولتك المضمونة معانا.',
+        description: 'سجل السائقين والمحلات، وتابع عمولتك من مكان واحد.',
       },
       admin: {
         title: 'مشرف',
-        description: 'ادخل لوحة المتابعة، راجع الحسابات، وخلي حركة النظام ماشية بهدوء.',
+        description: 'ادخل لوحة المتابعة، راجع الحسابات، وتابع حركة النظام بهدوء.',
       },
     },
   },
@@ -115,7 +115,10 @@ const demoUsers: Array<{
       phone: '+962790000001',
       role: 'rider',
       name: 'Demo Rider',
-      governorate: 'عمان',
+      countryId: 1,
+      currencyAr: 'د.أ',
+      currencyEn: 'JOD',
+      governorate: 'عمّان',
       district: 'الجامعة',
       isBufferActive: false,
       rating: 5,
@@ -135,7 +138,7 @@ const demoUsers: Array<{
       phone: '+962790000002',
       role: 'driver',
       name: 'Demo Captain',
-      governorate: 'عمان',
+      governorate: 'عمّان',
       district: 'الجامعة',
       status: 'idle',
       isBufferActive: false,
@@ -167,7 +170,7 @@ const demoUsers: Array<{
       phone: '+962790000003',
       role: 'advertiser',
       name: 'Demo Advertiser',
-      governorate: 'عمان',
+      governorate: 'عمّان',
       district: 'الجامعة',
       isBufferActive: false,
       rating: 5,
@@ -188,7 +191,7 @@ const demoUsers: Array<{
       phone: '+962790000004',
       role: 'delegate',
       name: 'Demo Delegate',
-      governorate: 'عمان',
+      governorate: 'عمّان',
       district: 'وادي السير',
       isBufferActive: false,
       rating: 4.8,
@@ -208,7 +211,7 @@ const demoUsers: Array<{
       phone: '+962790000005',
       role: 'admin',
       name: 'Demo Admin',
-      governorate: 'عمان',
+      governorate: 'عمّان',
       district: 'الجامعة',
       isBufferActive: false,
       rating: 5,
