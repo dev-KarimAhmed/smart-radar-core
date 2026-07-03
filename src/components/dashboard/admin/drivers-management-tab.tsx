@@ -22,7 +22,7 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, Star, Heart, ShieldAlert, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getRankTheme } from '@/core/utils';
-import { useSovereignFleet } from '@/hooks/use-sovereign-fleet'; // 🔗 حقن الخطاف السيادي
+import { useSovereignFleet } from '@/hooks/use-sovereign-fleet'; // 🔗 إضافة الخطاف
 
 const getStatusIndicator = (status?: string) => {
   switch (status) {
@@ -43,7 +43,7 @@ export function DriversManagementTab() {
     return (
       <div className="flex items-center justify-center py-20 text-muted-foreground">
         <Loader2 className="w-10 h-10 animate-spin mr-3" />
-        <span>جاري استدعاء الأسطول السيادي...</span>
+        <span>جاري استدعاء الأسطول ...</span>
       </div>
     );
   }
@@ -56,13 +56,13 @@ export function DriversManagementTab() {
       </div>
     );
   }
-  
+
   if (drivers.length === 0) {
     return (
        <div className="text-center text-muted-foreground py-20">
           <Users className="mx-auto h-12 w-12 text-gray-400" />
-          <h3 className="mt-2 text-sm font-medium text-gray-200">لا يوجد كباتن في الأسطول</h3>
-          <p className="mt-1 text-sm text-gray-500">لم يقم أي كابتن بالتسجيل في المنصة بعد.</p>
+          <h3 className="mt-2 text-sm font-medium text-gray-200">لا يوجد سائقين في الأسطول</h3>
+          <p className="mt-1 text-sm text-gray-500">لم يقم أي سائق بالتسجيل في المنصة بعد.</p>
         </div>
     )
   }
@@ -70,9 +70,9 @@ export function DriversManagementTab() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>برج المراقبة السيادي</CardTitle>
+        <CardTitle>برج المراقبة </CardTitle>
         <CardDescription>
-          نظرة مباشرة وحية على أداء وهويات جميع الكباتن في الأسطول.
+          نظرة مباشرة وحية على أداء وهويات جميع السائقون في الأسطول.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -80,9 +80,9 @@ export function DriversManagementTab() {
           <TableHeader>
             <TableRow>
               <TableHead>الهوية</TableHead>
-              <TableHead className="text-center">الرتبة السيادية</TableHead>
+              <TableHead className="text-center">الرتبة </TableHead>
               <TableHead className="text-center">الأداء (النجوم)</TableHead>
-              <TableHead className="text-center">نبض الولاء</TableHead>
+              <TableHead className="text-center">نشاط الولاء</TableHead>
               <TableHead className="text-right">الحالة</TableHead>
             </TableRow>
           </TableHeader>

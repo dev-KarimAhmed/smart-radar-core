@@ -10,7 +10,7 @@ import { trackSovereignError } from '@/lib/error-tracker';
 
 export function useSovereignControls() {
   const { toast } = useToast();
-  
+
   const [isProcessing, setIsProcessing] = useState(false);
   const isProcessingRef = useRef(false);
   const [isRadarActive, setIsRadarActive] = useState<boolean | null>(null);
@@ -19,7 +19,7 @@ export function useSovereignControls() {
   useEffect(() => {
     let isMounted = true;
     const stateRef = doc(db, 'settings', 'system_state');
-    
+
     const unsubscribe = onSnapshot(stateRef, (docSnap) => {
         if (!isMounted) return;
         if (docSnap.exists()) {
@@ -36,7 +36,7 @@ export function useSovereignControls() {
 
     return () => { isMounted = false; unsubscribe(); };
   }, []);
-  
+
   const toggleKillSwitch = useCallback(async () => {
     if (isProcessingRef.current) return;
     isProcessingRef.current = true;
@@ -47,10 +47,10 @@ export function useSovereignControls() {
          const stateRef = doc(db, 'settings', 'system_state');
          const nextState = !isRadarActive;
          await setDoc(stateRef, { isRadarActive: nextState }, { merge: true });
-         
+
          toast({
-           title: 'تم تعديل العهد السيادي المالي نظاماً',
-           description: nextState ? 'تم تفعيل التتبع ورادارات المسارات' : 'تم تعليق رادارات الهواتف وأدوات النقل السيادي للفرسان مؤقتاً.',
+           title: 'تم تعديل النظام  المالي نظاماً',
+           description: nextState ? 'تم تفعيل التتبع ورادارات المسارات' : 'تم تعليق رادارات الهواتف وأدوات النقل  للسائقين مؤقتاً.',
          });
          return;
       }
@@ -58,8 +58,8 @@ export function useSovereignControls() {
       const toggleFn = httpsCallable(getFunctions(), 'toggleSovereignKillSwitch');
       const result: any = await toggleFn();
       toast({
-        title: 'تم تعديل حالة رادار العهد',
-        description: result.data.message || (result.data.isRadarActive ? 'تم فتح الخدمة السيادية' : 'تم تجميد الخدمة السيادية'),
+        title: 'تم تعديل حالة رادار النظام',
+        description: result.data.message || (result.data.isRadarActive ? 'تم فتح الخدمة ' : 'تم تجميد الخدمة '),
       });
     } catch (err: any) {
       trackSovereignError(err, { context: 'ToggleKillSwitch' });
@@ -81,19 +81,19 @@ export function useSovereignControls() {
     try {
       const fuelIndexFn = httpsCallable(getFunctions(), 'adminUpdateFuelIndex');
       await fuelIndexFn({ district, price: newPrice });
-      
-      toast({ title: 'تم تعديل مؤشر الوقود للمنطقة', description: `تم بنجاح تحديث تسعيرة الكيلومتر لتتلائم مع نبض السوق في ${district}.` });
+
+      toast({ title: 'تم تعديل مؤشر الوقود للمنطقة', description: `تم بنجاح تحديث تسعيرة الكيلومتر لتتلائم مع نشاط السوق في ${district}.` });
     } catch (error) {
       trackSovereignError(error, { context: 'UpdateFuelIndex' });
-      
+
       // Local fallback representation for dry-run
-      toast({ title: 'تنبيه: محاكاة محلية لعهد الأسعار', description: `تم تعديل تسعيرة الحصان السيادي في ${district} لتصبح ${newPrice} د.أ.` });
+      toast({ title: 'تنبيه: محاكاة محلية لنظام الأسعار', description: `تم تعديل تسعيرة الحصان  في ${district} لتصبح ${newPrice} د.أ.` });
     } finally {
       setIsProcessing(false);
       isProcessingRef.current = false;
     }
   }, [toast]);
-  
+
   return {
     isProcessing,
     isRadarActive,

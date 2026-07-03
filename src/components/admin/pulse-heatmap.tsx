@@ -2,17 +2,17 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { 
-  Loader2, 
-  TrendingUp, 
-  TrendingDown, 
-  ArrowRightLeft, 
-  Users, 
-  Car, 
-  MapPin, 
-  Navigation, 
-  BarChart3, 
-  Activity 
+import {
+  Loader2,
+  TrendingUp,
+  TrendingDown,
+  ArrowRightLeft,
+  Users,
+  Car,
+  MapPin,
+  Navigation,
+  BarChart3,
+  Activity
 } from 'lucide-react';
 import {
   Select,
@@ -46,7 +46,7 @@ const getTrendStyle = (trend: MarketPulse['trend']) => {
         glow: 'shadow-[0_0_15px_rgba(59,130,246,0.15)]',
         iconColor: 'text-blue-400',
         Icon: TrendingDown,
-        label: 'وفرة كباتن 📉'
+        label: 'وفرة سائقين 📉'
       };
     case 'balanced':
     default:
@@ -86,9 +86,9 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
     const observer = new ResizeObserver((entries) => {
       if (!entries || entries.length === 0) return;
       const { width, height } = entries[0].contentRect;
-      setDimensions({ 
-        width: Math.max(300, width), 
-        height: Math.max(250, height) 
+      setDimensions({
+        width: Math.max(300, width),
+        height: Math.max(250, height)
       });
     });
     observer.observe(containerRef.current);
@@ -112,22 +112,22 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
     if (pulseData.length === 0) return;
 
     setIsProcessingScores(true);
-    
+
     const workerCode = `
       self.onmessage = function(e) {
         const data = e.data;
         const results = {};
-        
+
         for (const pulse of data) {
           let densityScore = 0;
           for (let i = 0; i < 20000; i++) {
             densityScore += Math.sin(i) * Math.cos(i);
           }
-          
+
           const rawDensity = (pulse.demand * 2.5 + pulse.supply * 1.1) + Math.abs(densityScore) * 0.01;
           results[pulse.id] = Math.round((rawDensity % 100) * 10) / 10;
         }
-        
+
         self.postMessage(results);
       };
     `;
@@ -168,10 +168,10 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
     return pulseData.filter(pulse => {
       const pulseDistrict = pulse.id;
       const gov = getGovernorateOfDistrict(pulseDistrict);
-      
+
       const matchesGov = selectedGov === 'الكل' || gov === selectedGov;
       const matchesDistrict = selectedDistrict === 'الكل' || pulseDistrict === selectedDistrict;
-      
+
       return matchesGov && matchesDistrict;
     });
   }, [pulseData, selectedGov, selectedDistrict]);
@@ -221,7 +221,7 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
 
   return (
     <div className="space-y-6" dir="rtl">
-      
+
       {/* 🛡️ Filters Header Card */}
       <Card className="bg-[#050d0a]/60 border border-[#00ffcc]/15 backdrop-blur-md shadow-2xl rounded-2xl">
         <CardHeader className="pb-4">
@@ -229,13 +229,13 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
             <div>
               <CardTitle className="text-xl font-black text-white flex items-center gap-2">
                 <Activity className="w-5 h-5 text-[#00ffcc]" />
-                مراقبة نبض السوق والسيادة الجغرافية 📊
+                مراقبة نشاط السوق والإدارة الجغرافية 📊
               </CardTitle>
               <CardDescription className="text-gray-400 text-xs mt-1">
-                عرض بياني تفاعلي لعوامات الطلب وعروض السائقين حسب المحافظة واللواء لضمان توازن السوق.
+                عرض بياني تفاعلي لعوامات الطلب وعروض السائقين حسب المحافظة والمنطقة لضمان توازن السوق.
               </CardDescription>
             </div>
-            
+
             {/* 🔍 Selectors */}
             <div className="flex flex-wrap items-center gap-3">
               {/* Governorate Selector */}
@@ -259,15 +259,15 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
               {/* District Selector */}
               <div className="space-y-1">
                 <span className="text-[10px] text-gray-400 font-bold block flex items-center gap-1">
-                  <Navigation className="w-3 h-3 text-[#00ffcc]" /> اللواء
+                  <Navigation className="w-3 h-3 text-[#00ffcc]" /> المنطقة
                 </span>
-                <Select 
-                  value={selectedDistrict} 
+                <Select
+                  value={selectedDistrict}
                   onValueChange={setSelectedDistrict}
                   disabled={selectedGov === 'الكل'}
                 >
                   <SelectTrigger className="w-[160px] bg-black/40 border-emerald-900/50 text-white font-bold text-xs rounded-xl h-9">
-                    <SelectValue placeholder="اختر اللواء" />
+                    <SelectValue placeholder="اختر المنطقة" />
                   </SelectTrigger>
                   <SelectContent className="bg-zinc-950 border-emerald-900/50 text-white text-xs">
                     <SelectItem value="الكل" className="font-bold">كل الألوية</SelectItem>
@@ -298,7 +298,7 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-3 h-3 rounded bg-[#3b82f6] inline-block shadow-[0_0_8px_rgba(59,130,246,0.3)]"></span>
-              <span className="text-gray-300">العرض (الكباتن)</span>
+              <span className="text-gray-300">العرض (السائقون)</span>
             </div>
           </div>
         </div>
@@ -306,13 +306,13 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
         {chartData.length === 0 ? (
           <div className="h-[320px] flex flex-col items-center justify-center text-center space-y-2 text-zinc-500">
             <Activity className="w-8 h-8 text-zinc-600 animate-pulse" />
-            <p className="text-xs font-bold">لا توجد سجلات نبض متوفرة في التحديد الميداني الحالي.</p>
+            <p className="text-xs font-bold">لا توجد سجلات نشاط متوفرة في التحديد الميداني الحالي.</p>
           </div>
         ) : (
           <div ref={containerRef} className="w-full h-[320px] relative select-none">
-            <svg 
-              width={dimensions.width} 
-              height={dimensions.height} 
+            <svg
+              width={dimensions.width}
+              height={dimensions.height}
               className="overflow-visible"
             >
               {/* 🏁 Cartesian Grid Lines */}
@@ -321,20 +321,20 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
                 const valueLabel = Math.round(maxVal * ratio);
                 return (
                   <g key={index} className="opacity-40">
-                    <line 
-                      x1={margin.left} 
-                      y1={yPos} 
-                      x2={dimensions.width - margin.right} 
-                      y2={yPos} 
-                      stroke="#0a2f1d" 
+                    <line
+                      x1={margin.left}
+                      y1={yPos}
+                      x2={dimensions.width - margin.right}
+                      y2={yPos}
+                      stroke="#0a2f1d"
                       strokeWidth={1}
                       strokeDasharray="4 4"
                     />
-                    <text 
-                      x={margin.left - 10} 
-                      y={yPos + 4} 
-                      textAnchor="end" 
-                      fill="#a1a1aa" 
+                    <text
+                      x={margin.left - 10}
+                      y={yPos + 4}
+                      textAnchor="end"
+                      fill="#a1a1aa"
                       className="text-[10px] font-mono font-bold"
                     >
                       {valueLabel}
@@ -344,12 +344,12 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
               })}
 
               {/* 🛣️ X-Axis Base Line */}
-              <line 
-                x1={margin.left} 
-                y1={margin.top + plotHeight} 
-                x2={dimensions.width - margin.right} 
-                y2={margin.top + plotHeight} 
-                stroke="#10b981" 
+              <line
+                x1={margin.left}
+                y1={margin.top + plotHeight}
+                x2={dimensions.width - margin.right}
+                y2={margin.top + plotHeight}
+                stroke="#10b981"
                 strokeWidth={1.5}
                 opacity={0.3}
               />
@@ -358,7 +358,7 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
               {chartData.map((d, i) => {
                 const groupWidth = plotWidth / chartData.length;
                 const xGroup = margin.left + i * groupWidth;
-                
+
                 // Group configuration
                 const barWidth = Math.max(3, Math.min(18, groupWidth * 0.3));
                 const gap = 2;
@@ -377,7 +377,7 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
                   <g key={d.name}>
                     {/* Hover highlight background column */}
                     {isGroupHovered && (
-                      <rect 
+                      <rect
                         x={xGroup + 2}
                         y={margin.top}
                         width={groupWidth - 4}
@@ -400,7 +400,7 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
                     </text>
 
                     {/* Demand Bar (Green Turquoise) */}
-                    <rect 
+                    <rect
                       x={xStart}
                       y={demandY}
                       width={barWidth}
@@ -413,7 +413,7 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
                     />
 
                     {/* Supply Bar (Blue) */}
-                    <rect 
+                    <rect
                       x={xStart + barWidth + gap}
                       y={supplyY}
                       width={barWidth}
@@ -426,7 +426,7 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
                     />
 
                     {/* Invisible hot-spot rect for precise mouse tracking */}
-                    <rect 
+                    <rect
                       x={xGroup}
                       y={margin.top}
                       width={groupWidth}
@@ -456,7 +456,7 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
 
             {/* 🔮 Glassy Absolute Floating Tooltip */}
             {hoveredIndex !== null && chartData[hoveredIndex] && (
-              <div 
+              <div
                 className="absolute pointer-events-none z-50 bg-[#050D0A]/95 border border-[#00ffcc]/30 backdrop-blur-md rounded-xl p-3 shadow-2xl shadow-black/95 text-right text-xs min-w-[140px] transition-all duration-75"
                 style={{
                   left: `${mousePos.x + 15}px`,
@@ -473,7 +473,7 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
                     <span className="text-[#00ffcc] font-black">{chartData[hoveredIndex].demand}</span>
                   </p>
                   <p className="text-gray-300 font-semibold flex justify-between gap-4">
-                    <span>العرض (الكباتن):</span>
+                    <span>العرض (السائقون):</span>
                     <span className="text-blue-400 font-black">{chartData[hoveredIndex].supply}</span>
                   </p>
                   <p className="text-gray-400 font-mono text-[9px] pt-1 border-t border-dashed border-emerald-900/30 flex justify-between gap-4">
@@ -490,7 +490,7 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
       {/* 📝 Granular Details List */}
       <div>
         <h4 className="text-xs font-black text-[#00ffcc] tracking-wider uppercase mb-3 flex items-center gap-1.5">
-          <span>●</span> تفاصيل العوامات المسماة في النسيج الجغرافي ({filteredData.length})
+          <span>●</span> تفاصيل الطلبات حسب المنطقة ({filteredData.length})
         </h4>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {filteredData.sort((a,b) => b.demand - a.demand).map((pulse) => {

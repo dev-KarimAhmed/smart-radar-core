@@ -85,7 +85,7 @@ export function HistoryTab() {
     const allErrors = Object.values(SOVEREIGN_ERR_DICTIONARY);
     return allErrors.filter((err) => {
       const matchesCategory = errorCategory === 'ALL' || err.code.startsWith(errorCategory);
-      const matchesSearch = 
+      const matchesSearch =
         err.code.toLowerCase().includes(errorSearch.toLowerCase()) ||
         err.name.toLowerCase().includes(errorSearch.toLowerCase()) ||
         err.description.toLowerCase().includes(errorSearch.toLowerCase());
@@ -129,7 +129,7 @@ export function HistoryTab() {
       setSovereignLogs([]);
       toast({
         title: "🧹 تم تفريغ السجل المحلي",
-        description: "تم مسح جميع سجلات الحركة والحالات المحلية من هاتفك بنجاح كابتن."
+        description: "تم مسح جميع سجلات الحركة والحالات المحلية من هاتفك بنجاح سائق."
       });
     } catch (err) {
       console.error("Failed to clear sovereign logs:", err);
@@ -249,7 +249,7 @@ export function HistoryTab() {
         }
         toast({
           title: "💔 تم الإزالة من المفضلة",
-          description: `تمت إزالة الكابتن ${trip.captainName} من الخزنة الرقمية.`,
+          description: `تمت إزالة السائق ${trip.captainName} من المحفظة الرقمية.`,
         });
       } else {
         await dexieDb.favoriteCaptains.add({
@@ -263,8 +263,8 @@ export function HistoryTab() {
           heartedAt: Date.now()
         });
         toast({
-          title: "💖 تم التخليد السيادي بنجاح",
-          description: `تم حفظ الكابتن ${trip.captainName} كـ ناقل مفضل مستقر للأبد بصفر كلفة سحابية.`,
+          title: "💖 تم التخليد  بنجاح",
+          description: `تم حفظ السائق ${trip.captainName} كـ ناقل مفضل مستقر للأبد بصفر كلفة سحابية.`,
         });
       }
       loadFavorites();
@@ -322,7 +322,7 @@ export function HistoryTab() {
                   const timeAgo = Math.floor((now - trip.timestamp) / (1000 * 60 * 60));
 
                   return (
-                    <div 
+                    <div
                       key={trip.tripId}
                       className="bg-black/40 border border-white/5 p-4 rounded-xl space-y-3 relative overflow-hidden group hover:border-emerald-500/20 transition-all"
                     >
@@ -362,7 +362,7 @@ export function HistoryTab() {
                       </div>
 
                       <div className="flex gap-2 pt-2 border-t border-white/5">
-                        <a 
+                        <a
                           href={`tel:${trip.captainPhone}`}
                           className="px-3 py-1.5 bg-emerald-950/30 font-black text-[10px] text-emerald-400 border border-emerald-500/20 hover:bg-emerald-950/60 rounded-lg flex items-center gap-1 text-center select-none"
                           style={{ textDecoration: 'none' }}
@@ -402,7 +402,7 @@ export function HistoryTab() {
               ) : (
                 <div className="grid grid-cols-1 gap-2.5">
                   {favoriteCaptains.map((captain) => (
-                    <div 
+                    <div
                       key={captain.id}
                       className="bg-[#060a06] border border-emerald-500/10 p-3 rounded-lg flex justify-between items-center"
                     >
@@ -415,16 +415,16 @@ export function HistoryTab() {
                       </div>
 
                       <div className="flex gap-1.5">
-                        <a 
+                        <a
                           href={`tel:${captain.captainPhone}`}
                           className="p-1 px-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-[10px] font-bold flex items-center gap-1 shrink-0"
                           style={{ textDecoration: 'none' }}
                         >
                           <Phone className="h-3 w-3" /> اتصل
                         </a>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           onClick={() => toggleFavorite(captain)}
                           className="h-7 w-7 text-red-400 hover:bg-red-950/20 border border-transparent hover:border-red-500/20 rounded"
                         >
@@ -450,7 +450,7 @@ export function HistoryTab() {
                   سجل العوائد والمهام الميدانية المنجزة
                 </CardTitle>
                 <CardDescription className="text-[10px] text-gray-400 mt-1 font-sans">
-                  المهام المعتمدة الموثقة بمركز النبض
+                  المهام المعتمدة الموثقة بمركز النشاط
                 </CardDescription>
               </div>
               <Badge variant="outline" className="text-[10px] border-emerald-500/20 text-emerald-400 bg-emerald-950/20 font-mono">
@@ -464,14 +464,14 @@ export function HistoryTab() {
               ) : captainHistoricalTrips.length === 0 ? (
                 <div className="p-8 text-center bg-black/40 border border-dashed border-white/5 rounded-xl">
                   <AlertCircle className="h-8 w-8 text-gray-600 mx-auto mb-2 animate-pulse" />
-                  <p className="text-xs text-gray-400 font-medium">لا توجد مهام ميدانية منجزة مسجلة للواء حالياً.</p>
+                  <p className="text-xs text-gray-400 font-medium">لا توجد مهام ميدانية منجزة مسجلة لمنطقة حالياً.</p>
                 </div>
               ) : (
                 captainHistoricalTrips.map((trip) => {
                   const timeAgo = Math.floor((now - trip.timestamp) / (1000 * 60 * 60));
 
                   return (
-                    <div 
+                    <div
                       key={trip.tripId}
                       className="bg-black/40 border border-white/5 p-4 rounded-xl space-y-3 hover:border-emerald-500/20 transition-all font-mono"
                     >
@@ -515,7 +515,7 @@ export function HistoryTab() {
                 <div>
                   <CardTitle className="text-sm font-black text-emerald-400 flex items-center gap-2">
                     <ShieldCheck className="h-5 w-5 text-emerald-500 animate-pulse" />
-                    وثيقة براءة الذمة السيادية ونقاء النظام (Anti-Chattiness & Zero-Chat Decree)
+                    وثيقة براءة الذمة  ونقاء النظام (Anti-Chattiness & Zero-Chat Decree)
                   </CardTitle>
                   <CardDescription className="text-[10px] text-gray-400 mt-1 font-sans">
                     شهادة هندسية معتمدة تثبت خلو النظام تماماً من أي بروتوكولات دردشة مساعدة أو استهلاك عشوائي للباقة
@@ -535,7 +535,7 @@ export function HistoryTab() {
                   <div className="space-y-1">
                     <h5 className="text-xs font-bold text-white">صفر تعقيد وصفر ثرثرة شبكية (Zero-Chat Mandate)</h5>
                     <p className="text-[11px] text-gray-400 leading-relaxed">
-                      لا توجد أي قنوات محادثة خلفية أو رادارات تجسس أو بروتوكولات دردشة معقدة تستهلك باقة الإنترنت. التواصل محكوم تماماً بالروابط المباشرة الذرية وسرعة "العوامة الصامتة" (Rider Drop & Wait) لتقليل الضغط الشبكي.
+                      لا توجد قنوات محادثة خلفية أو دردشة معقدة تستهلك باقة الإنترنت. التواصل يتم عبر روابط مباشرة لتقليل الضغط على الشبكة.
                     </p>
                   </div>
                 </div>
@@ -545,9 +545,9 @@ export function HistoryTab() {
                     <Activity className="h-4 w-4" />
                   </div>
                   <div className="space-y-1">
-                    <h5 className="text-xs font-bold text-white">النبض المالي والربط السيادي المؤتمت</h5>
+                    <h5 className="text-xs font-bold text-white">النشاط المالي والربط  المؤتمت</h5>
                     <p className="text-[11px] text-gray-400 leading-relaxed">
-                      يتم جلب النبض والرحلات عند الحاجة المباشرة فقط (Event-Driven) دون ثرثرة شبكية مستمرة (No polling chat networks). تلتزم شاشة السجل بمبدأ المحكم الرقمي القطعي (SSOT) بنسبة 100%.
+                      يتم جلب النشاط والرحلات عند الحاجة المباشرة فقط (Event-Driven) دون ثرثرة شبكية مستمرة (No polling chat networks). تلتزم شاشة السجل بمبدأ المحكم الرقمي القطعي (SSOT) بنسبة 100%.
                     </p>
                   </div>
                 </div>
@@ -559,7 +559,7 @@ export function HistoryTab() {
                   <div className="space-y-1">
                     <h5 className="text-xs font-bold text-white">تصفية السجلات المؤتمت (72-Hour Auto Purge)</h5>
                     <p className="text-[11px] text-gray-400 leading-relaxed">
-                      امتثالاً للمحدد الثالث في بنود المعمارية النسيجية الحافة، يتم إعدام ومسح جميع تفاصيل الحركة ميكانيكياً بعد مرور 72 ساعة حتمية من هاتفك وخادم النظام لحماية خصوصيتك وصفرية التكلفة الحافة.
+                      امتثالاً للمحدد الثالث في بنود المعمارية المحلية الحافة، يتم إيقاف ومسح جميع تفاصيل الحركة ميكانيكياً بعد مرور 72 ساعة ثابتة من هاتفك وخادم النظام لحماية خصوصيتك وصفرية التكلفة الحافة.
                     </p>
                   </div>
                 </div>
@@ -583,10 +583,10 @@ export function HistoryTab() {
               <div>
                 <CardTitle className="text-sm font-extrabold text-[#00ffcc] flex items-center gap-1.5">
                   <Activity className="h-4 w-4 text-[#00ffcc] animate-pulse" />
-                  سجل الفعاليات والحركة اللامركزية (الأرشيف السيادي)
+                  سجل الفعاليات والحركة اللامركزية (الأرشيف )
                 </CardTitle>
                 <CardDescription className="text-[10px] text-gray-400 mt-1 font-sans">
-                  سجل قطاع الناقل الميداني الذاتي لمراقبة تبديل الحالة ومحيط اللواء
+                  سجل قطاع الناقل الميداني الذاتي لمراقبة تبديل الحالة ومحيط المنطقة
                 </CardDescription>
               </div>
               <div className="flex items-center gap-2">
@@ -613,9 +613,9 @@ export function HistoryTab() {
               ) : sovereignLogs.length === 0 ? (
                 <div className="p-8 text-center bg-black/40 border border-dashed border-white/5 rounded-xl space-y-2">
                   <ShieldCheck className="h-8 w-8 text-cyan-800 mx-auto animate-pulse" />
-                  <p className="text-xs text-gray-400 font-medium">السجل خاوٍ حالياً كابتن.</p>
+                  <p className="text-xs text-gray-400 font-medium">السجل خاوٍ حالياً سائق.</p>
                   <p className="text-[10px] text-gray-500 leading-normal">
-                    سيتم تلقائياً تخليد الحركات الميدانية مثل تبديل الحالة بين النشط والخامل، التعطيل التلقائي بسبب الخمول أو نفاد الباقة، وخروجك من محيط اللواء هنا كمرجع سيادي آمن وجنائي لك.
+                    سيتم تلقائياً تخليد الحركات الميدانية مثل تبديل الحالة بين النشط والخامل، التعطيل التلقائي بسبب الخمول أو نفاد الباقة، وخروجك من محيط المنطقة هنا كمرجع  آمن وأمني لك.
                   </p>
                 </div>
               ) : (
@@ -660,7 +660,7 @@ export function HistoryTab() {
             </CardContent>
           </Card>
 
-          {/* كشاف القاموس السيادي للأخطاء (SSOT Error Explorer) */}
+          {/* كشاف القاموس  للأخطاء (SSOT Error Explorer) */}
           <Card id="ssot-error-explorer-card" className="bg-[#020502]/95 border border-[#00ffcc]/20 shadow-xl overflow-hidden relative text-right">
             <div className="absolute top-0 left-0 w-full h-[2px] bg-[#00ffcc] animate-pulse" />
             <CardHeader className="pb-3 border-b border-white/5">
@@ -668,7 +668,7 @@ export function HistoryTab() {
                 <div>
                   <CardTitle className="text-sm font-extrabold text-[#00ffcc] flex items-center gap-1.5">
                     <ShieldAlert className="h-4 w-4 text-[#00ffcc] animate-pulse" />
-                    كشاف القاموس السيادي للأخطاء (SSOT Error Explorer)
+                    كشاف القاموس  للأخطاء (SSOT Error Explorer)
                   </CardTitle>
                   <CardDescription className="text-[10px] text-gray-400 mt-1 font-sans">
                     أداة فحص تفاعلية لرموز الأمان والمحكم الميداني الحافة
@@ -707,7 +707,7 @@ export function HistoryTab() {
                     onClick={() => setErrorCategory('ERR-SOV')}
                     className={`h-7 text-[10px] font-bold px-2 ${errorCategory === 'ERR-SOV' ? 'bg-[#00ffcc] text-black hover:bg-[#00ffcc]/80' : 'border-white/5 text-gray-400 hover:bg-white/5'}`}
                   >
-                    🛡️ السيادة
+                    🛡️ الإدارة
                   </Button>
                   <Button
                     variant={errorCategory === 'ERR-FIN' ? 'default' : 'outline'}
@@ -715,7 +715,7 @@ export function HistoryTab() {
                     onClick={() => setErrorCategory('ERR-FIN')}
                     className={`h-7 text-[10px] font-bold px-2 ${errorCategory === 'ERR-FIN' ? 'bg-[#00ffcc] text-black hover:bg-[#00ffcc]/80' : 'border-white/5 text-gray-400 hover:bg-white/5'}`}
                   >
-                    💸 النبض المالي
+                    💸 النشاط المالي
                   </Button>
                   <Button
                     variant={errorCategory === 'ERR-MAP' ? 'default' : 'outline'}
@@ -756,10 +756,10 @@ export function HistoryTab() {
                   {filteredErrors.map((err) => {
                     const isExpanded = expandedErrorCode === err.code;
                     let categoryIcon = <Lock className="h-3.5 w-3.5 text-cyan-400" />;
-                    let label = "سيادة وصلاحيات";
+                    let label = "إدارة وصلاحيات";
                     if (err.code.startsWith('ERR-FIN')) {
                       categoryIcon = <Coins className="h-3.5 w-3.5 text-emerald-400" />;
-                      label = "نبض مالي ومحفظة";
+                      label = "نشاط مالي ومحفظة";
                     } else if (err.code.startsWith('ERR-MAP')) {
                       categoryIcon = <Compass className="h-3.5 w-3.5 text-sky-400" />;
                       label = "محكم رقمي وخرائط";
@@ -776,8 +776,8 @@ export function HistoryTab() {
                         key={err.code}
                         onClick={() => setExpandedErrorCode(isExpanded ? null : err.code)}
                         className={`border rounded-lg p-3 transition-all cursor-pointer text-right select-none ${
-                          isExpanded 
-                            ? 'bg-black/80 border-[#00ffcc]/40 shadow-[0_0_12px_rgba(0,255,204,0.08)]' 
+                          isExpanded
+                            ? 'bg-black/80 border-[#00ffcc]/40 shadow-[0_0_12px_rgba(0,255,204,0.08)]'
                             : 'bg-black/40 border-white/5 hover:border-white/10'
                         }`}
                       >
@@ -802,7 +802,7 @@ export function HistoryTab() {
                         {isExpanded && (
                           <div className="mt-3 pt-3 border-t border-white/5 space-y-2.5 animate-fadeIn text-right">
                             <div className="space-y-1">
-                              <span className="text-[9px] text-gray-500 block">الوصف الجنائي للخلل:</span>
+                              <span className="text-[9px] text-gray-500 block">الوصف الأمني للخلل:</span>
                               <p className="text-[11px] text-gray-300 leading-normal">
                                 {err.description}
                               </p>

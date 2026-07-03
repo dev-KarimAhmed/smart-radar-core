@@ -63,9 +63,9 @@ export function useRiderTripListener(user: DriverUser | null) {
 
     const unsubscribe = onSnapshot(q, async (snapshot) => {
       if (!snapshot.empty) {
-        // [بروتوكول الربط الشرياني V2.6-Secured - فرز العهد الملاحي على الحافة]
+        // [بروتوكول الربط الشرياني V2.6-Secured - فرز النظام الملاحي على الحافة]
         const trips = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Trip));
-        
+
         // فرز تصاعدي زمني للحصول على الرحلة الأكثر حداثة بصفر تداخل شبكي وصفر متطلبات كشافات
         trips.sort((a, b) => {
           const getMs = (val: any) => {
@@ -78,7 +78,7 @@ export function useRiderTripListener(user: DriverUser | null) {
         });
 
         const updatedTrip = trips[0];
-        
+
         // التحقق من الحداثة الزمنية للرحلة لمنع السقوط في فخ الرحلات منتهية الصلاحية
         const getTripTimeMs = (val: any) => {
           if (!val) return Date.now();
@@ -89,7 +89,7 @@ export function useRiderTripListener(user: DriverUser | null) {
 
         const isRecent = Date.now() - getTripTimeMs(updatedTrip.createdAt) < 15 * 60 * 1000; // نافذة 15 دقيقة
         const prevTrip = prevTripRef.current;
-        
+
         if (JSON.stringify(prevTrip) === JSON.stringify(updatedTrip)) {
           return;
         }

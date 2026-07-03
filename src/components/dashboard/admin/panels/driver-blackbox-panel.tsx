@@ -1,12 +1,12 @@
 'use client';
 
 import React from 'react';
-import { 
-  Flame, 
-  Loader2, 
-  AlertTriangle, 
-  RotateCcw, 
-  Ban 
+import {
+  Flame,
+  Loader2,
+  AlertTriangle,
+  RotateCcw,
+  Ban
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -45,7 +45,7 @@ export function DriverBlackBoxPanel({
         {loadingDrivers ? (
           <div className="flex items-center justify-center p-12 text-gray-400">
             <Loader2 className="w-8 h-8 animate-spin text-[#ff3366] ml-2" />
-            <span>جاري محاذاة البيانات الكوانتية للنواقل...</span>
+            <span>جاري محاذاة البيانات الة للنواقل...</span>
           </div>
         ) : drivers.length === 0 ? (
           <div className="text-center text-gray-500 py-10">
@@ -61,7 +61,7 @@ export function DriverBlackBoxPanel({
                   <TableHead className="text-center text-gray-400 text-xs">رقم الهاتف</TableHead>
                   <TableHead className="text-center text-gray-400 text-xs">الساعات المتبقية</TableHead>
                   <TableHead className="text-center text-gray-400 text-xs">حصانة الناقل</TableHead>
-                  <TableHead className="text-center text-gray-400 text-xs">الحالة الجنائية</TableHead>
+                  <TableHead className="text-center text-gray-400 text-xs">الحالة الأمنية</TableHead>
                   <TableHead className="text-left text-gray-400 text-xs">صعق / إعادة فك</TableHead>
                 </TableRow>
               </TableHeader>
@@ -92,7 +92,7 @@ export function DriverBlackBoxPanel({
                     <TableCell className="text-center">
                       {drv.isBanned ? (
                         <Badge className="bg-red-950/40 border border-[#ff3366]/40 text-[#ff3366] text-[10px] font-black h-5">
-                          🔴 : مصعوق سيادياً
+                          🔴 : مصعوق
                         </Badge>
                       ) : (
                         <Badge className="bg-emerald-950/40 border border-emerald-500/40 text-emerald-400 text-[10px] font-black h-5">
@@ -117,7 +117,7 @@ export function DriverBlackBoxPanel({
                           className="bg-[#ff3366] hover:bg-[#ff3366]/80 text-white font-black text-[11px] h-8 px-3 rounded-lg flex items-center gap-1 cursor-pointer transition-all hover:scale-[1.02] shadow-[0_0_12px_rgba(255,51,102,0.15)]"
                         >
                           <Ban className="w-3.5 h-3.5 text-white" />
-                          صعق جنائي فوري 💥
+                          صعق أمني فوري 💥
                         </Button>
                       )}
                     </TableCell>

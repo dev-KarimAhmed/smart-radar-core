@@ -16,15 +16,15 @@ interface DriverSovereignCardProps {
 /**
  * [SCR-2026-047] بطاقة الهوية المهنية للناقل
  * معقمة بـ React.memo لمنع استنزاف موارد هاتف الراكب أثناء البحث.
- * تعرض البيانات التشغيلية والصفة القانونية بشفافية سيادية تامة.
+ * تعرض البيانات التشغيلية والصفة القانونية بشفافية  تامة.
  */
 export const DriverSovereignCard = memo(({ driver }: DriverSovereignCardProps) => {
   const rankTheme = getRankTheme(driver.rank);
   const isSilent = driver.silencePreference === 'silent';
-  
+
   // Deterministic stable market trend matching driver's id to avoid random re-renders/CPU load
   const isUp = driver.uid ? (driver.uid.charCodeAt(driver.uid.length - 1) % 2 === 0) : true;
-  
+
   // شارة الهوية القانونية (جهة التشغيل)
   const operationalLabel = driver.affiliation?.type === 'office-taxi' ? 'تكسي مكتب' : 'تطبيق ذكي';
   const entityName = driver.affiliation?.name || 'مستقل';
@@ -41,7 +41,7 @@ export const DriverSovereignCard = memo(({ driver }: DriverSovereignCardProps) =
                           <ShieldCheck className={cn("w-4 h-4", rankTheme.color)} />
                     </div>
                 </div>
-                
+
                 <div className="flex-1 space-y-1">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -61,7 +61,7 @@ export const DriverSovereignCard = memo(({ driver }: DriverSovereignCardProps) =
                             {rankTheme.label}
                         </Badge>
                     </div>
-                    
+
                     <div className="flex items-center gap-2">
                          <Badge className="bg-emerald-900/20 text-emerald-400 border-emerald-500/30 text-[9px] font-bold">
                             {operationalLabel}: {entityName}
@@ -71,7 +71,7 @@ export const DriverSovereignCard = memo(({ driver }: DriverSovereignCardProps) =
                             <span className="font-black text-sm">{(driver.rating || 5.0).toFixed(1)}</span>
                         </div>
                     </div>
-                    
+
                     <div className="flex items-center justify-between pt-1 border-t border-white/5 mt-1">
                         <div className="text-[10px] text-white/50 font-bold uppercase tracking-widest flex items-center gap-1">
                            <Car className="w-3 h-3" />
@@ -82,7 +82,7 @@ export const DriverSovereignCard = memo(({ driver }: DriverSovereignCardProps) =
                             <span>{driver.distance.toFixed(1)} كم</span>
                         </div>
                     </div>
-                    
+
                     <div className="flex items-center gap-2 mt-2">
                         {isSilent ? (
                             <div className="flex items-center gap-1 text-blue-400/70 text-[9px] font-bold">

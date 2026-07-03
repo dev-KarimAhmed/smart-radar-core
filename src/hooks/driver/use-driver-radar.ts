@@ -14,7 +14,7 @@ import { sovereignEventBroker } from '@/lib/event-broker';
 import { addCaptainSovereignLog } from '@/lib/dexie-db';
 
 /**
- * [SCR-2026-047] رادار تحديد فرسان الأفق القريب
+ * [SCR-2026-047] رادار تحديد سائقين الأفق القريب
  */
 export function useDriverRadar(user: User | null, driverStatus: string, updateDriverDoc?: Function) {
   const { location: driverLocation } = useGeospatialAnchor(driverStatus === 'active');
@@ -97,11 +97,11 @@ export function useDriverRadar(user: User | null, driverStatus: string, updateDr
 
     if (shouldUpdate) {
       if (currentGridAreaKey !== lastGridId.current) {
-        setRawTrips([]); 
+        setRawTrips([]);
         setRejectedTripIds([]);
         lastGridId.current = currentGridAreaKey;
       }
-      
+
       const primaryGridId = calculateSovereignGridId(latVal, lngVal);
       const updateData = {
         gridId: primaryGridId,
@@ -126,11 +126,11 @@ export function useDriverRadar(user: User | null, driverStatus: string, updateDr
 
     // ⚖️ [SCR-COMMUTE-PROTO-155] Run core instant commute check & Handshake Lock Verification
     const storedHash = localStorage.getItem(`sovereign_shake_${user.uid}`) || '';
-    
+
     // Read from localStorage to remain perfectly aligned with synchronous tick updates and avoid Firestore async replication lag (State Desync)
     const storedPaidVal = localStorage.getItem(`sovereign_paid_${user.uid}`);
     const storedBonusVal = localStorage.getItem(`sovereign_bonus_${user.uid}`);
-    
+
     const localPaid = storedPaidVal !== null ? Number(storedPaidVal) : (user.paidHoursRemaining ?? 0);
     const localBonus = storedBonusVal !== null ? Number(storedBonusVal) : (user.bonusHoursRemaining ?? 0);
 
@@ -159,8 +159,8 @@ export function useDriverRadar(user: User | null, driverStatus: string, updateDr
         addCaptainSovereignLog(
           user.uid,
           'district_exit',
-          'خروج من محيط اللواء',
-          `تم رصد خروج الكابتن من محيط لواء [${currentDistrict}] وانتقاله إلى لواء [${commuteResult.activeDistrictPool}].`
+          'خروج من محيط المنطقة',
+          `تم رصد خروج السائق من محيط منطقة [${currentDistrict}] وانتقاله إلى منطقة [${commuteResult.activeDistrictPool}].`
         );
         setCurrentDistrict(commuteResult.activeDistrictPool);
       }
@@ -181,7 +181,7 @@ export function useDriverRadar(user: User | null, driverStatus: string, updateDr
       collection(db, 'trips'),
       where('status', '==', 'searching'),
       where('gridId', 'in', surroundingGridIds),
-      limit(SOVEREIGN_CONSTANTS.RADAR_SCAN_LIMIT) 
+      limit(SOVEREIGN_CONSTANTS.RADAR_SCAN_LIMIT)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -193,7 +193,7 @@ export function useDriverRadar(user: User | null, driverStatus: string, updateDr
 
     return () => unsubscribe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [driverStatus, currentGridAreaKey]); 
+  }, [driverStatus, currentGridAreaKey]);
 
   const requests = useMemo(() => {
     if (!driverLocation) return [];
@@ -210,10 +210,10 @@ export function useDriverRadar(user: User | null, driverStatus: string, updateDr
       .filter(item => item.distance <= SOVEREIGN_CONSTANTS.RADAR_RADIUS_KM)
       .filter(item => {
         const req = item.req as any;
-        const riderRating = req.riderRating !== undefined 
-          ? req.riderRating 
-          : (req.riderRatingSum && req.riderRatingCount 
-              ? req.riderRatingSum / req.riderRatingCount 
+        const riderRating = req.riderRating !== undefined
+          ? req.riderRating
+          : (req.riderRatingSum && req.riderRatingCount
+              ? req.riderRatingSum / req.riderRatingCount
               : 5.0);
 
         if (riderRating <= 4.2) {
@@ -235,11 +235,11 @@ export function useDriverRadar(user: User | null, driverStatus: string, updateDr
       .map(item => item.req);
   }, [rawTrips, driverLocation, rejectedTripIds, tick]);
 
-  return { 
-    driverLocation, 
-    requests, 
-    rejectRequest, 
-    rejectedTripIds, 
+  return {
+    driverLocation,
+    requests,
+    rejectRequest,
+    rejectedTripIds,
     driverSpeed: driverLocation?.speed || 0,
     currentDistrict,
     currentH3Cell,

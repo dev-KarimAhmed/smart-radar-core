@@ -456,7 +456,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     toast({
       variant: 'destructive',
       title: 'غير مفعل الآن',
-      description: 'هذه المرحلة مخصصة لدخول الراكب فقط. سيتم ربط الكابتن لاحقا.',
+      description: 'هذه المرحلة مخصصة لدخول الراكب فقط. سيتم ربط السائق لاحقا.',
     });
   };
 

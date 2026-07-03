@@ -230,10 +230,10 @@ export function OfferGallery({
         <div className="border-b border-border p-4 text-center">
           <h2 className="flex items-center justify-center gap-2 text-xl font-bold text-white">
             <ShieldCheck className="h-6 w-6 text-primary" />
-            عروض الكباتن
+            عروض السائقون
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            {offers.length} كابتن قريب أرسل لك عرضاً.
+            {offers.length} سائق قريب أرسل لك عرضاً.
           </p>
         </div>
 

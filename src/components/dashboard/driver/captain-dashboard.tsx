@@ -6,14 +6,14 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
 import { doc, updateDoc, increment } from 'firebase/firestore';
-import { 
-  Shield, 
-  Clock, 
-  Award, 
-  Bell, 
-  MessageSquare, 
-  Zap, 
-  Activity, 
+import {
+  Shield,
+  Clock,
+  Award,
+  Bell,
+  MessageSquare,
+  Zap,
+  Activity,
   AlertTriangle,
   Gift,
   HelpCircle,
@@ -48,20 +48,20 @@ export const RadarCaptainDashboard: React.FC<CaptainDashboardProps> = ({ captain
     if (propProfile) return propProfile;
 
     const defaultComments = [
-      'المركبة نظيفة جداً والكابتن متعاون للغاية.',
-      'قيادة متزنة وملتزم تماماً بكوابح الأسعار القانونية باللواء.',
+      'المركبة نظيفة جداً والسائق متعاون للغاية.',
+      'قيادة متزنة وملتزم تماماً بكوابح الأسعار القانونية بالمنطقة.',
       'سرعة ممتازة وتواصل حكيم ومحترم ومهذب.'
     ];
 
-    const ratingVal = user?.rating !== undefined 
-      ? user.rating 
+    const ratingVal = user?.rating !== undefined
+      ? user.rating
       : (user?.ratingSum && user?.ratingCount ? user.ratingSum / user.ratingCount : 5.0);
 
     return {
       id: user?.uid || 'temp-id',
       rank: (user?.rank ? user.rank.toUpperCase() : 'GOLD') as 'PLATINUM' | 'GOLD' | 'BRONZE' | 'SILVER',
-      walletHours: user?.paidHoursRemaining !== undefined ? user.paidHoursRemaining : 180, 
-      bonusHours: user?.bonusHoursRemaining !== undefined ? user.bonusHoursRemaining : 120, 
+      walletHours: user?.paidHoursRemaining !== undefined ? user.paidHoursRemaining : 180,
+      bonusHours: user?.bonusHoursRemaining !== undefined ? user.bonusHoursRemaining : 120,
       rating: ratingVal,
       weeklyComments: defaultComments
     };
@@ -71,19 +71,19 @@ export const RadarCaptainDashboard: React.FC<CaptainDashboardProps> = ({ captain
   const localHours = captainProfile.walletHours;
   const localBonusHours = captainProfile.bonusHours;
   const [activePool, setActivePool] = useState<'wallet' | 'bonus'>('wallet');
-  
+
   // Recharging system state
   const [showRechargeDialog, setShowRechargeDialog] = useState<boolean>(false);
   const [selectedPlanHours, setSelectedPlanHours] = useState<number>(24);
 
-  // 🛡️ [حالة كشاف قاموس الأخطاء السيادي]
+  // 🛡️ [حالة كشاف قاموس الأخطاء ]
   const [errSearchQuery, setErrSearchQuery] = useState('');
   const [selectedErrCategory, setSelectedErrCategory] = useState<'ALL' | 'SOV' | 'FIN' | 'MAP' | 'ADV' | 'KNL'>('ALL');
   const [expandedErrorCode, setExpandedErrorCode] = useState<string | null>(null);
 
   const filteredErrors = React.useMemo(() => {
     return Object.values(SOVEREIGN_ERR_DICTIONARY).filter(err => {
-      const matchCategory = 
+      const matchCategory =
         selectedErrCategory === 'ALL' ||
         (selectedErrCategory === 'SOV' && err.code.startsWith('ERR-SOV-')) ||
         (selectedErrCategory === 'FIN' && err.code.startsWith('ERR-FIN-')) ||
@@ -91,7 +91,7 @@ export const RadarCaptainDashboard: React.FC<CaptainDashboardProps> = ({ captain
         (selectedErrCategory === 'ADV' && err.code.startsWith('ERR-ADV-')) ||
         (selectedErrCategory === 'KNL' && err.code.startsWith('ERR-KNL-'));
 
-      const matchSearch = 
+      const matchSearch =
         err.code.toLowerCase().includes(errSearchQuery.toLowerCase()) ||
         err.name.toLowerCase().includes(errSearchQuery.toLowerCase()) ||
         err.description.toLowerCase().includes(errSearchQuery.toLowerCase());
@@ -105,23 +105,23 @@ export const RadarCaptainDashboard: React.FC<CaptainDashboardProps> = ({ captain
     {
       id: '1',
       category: 'تنظيم وتوجيه',
-      content: 'تنبيه للكباتن النشطين: يرجى الحفاظ على استقرار الفوارق السعرية بمحيط جبل عمان لمنع فرض كوابح التجميد للمزاد.',
-      geo: 'لواء ناعور / عمان الغربية',
+      content: 'تنبيه للسائقين النشطين: يرجى الحفاظ على استقرار الفوارق السعرية بمحيط جبل عمان لمنع فرض كوابح التجميد للمزاد.',
+      geo: 'منطقة ناعور / عمان الغربية',
       timestamp: 'منذ ١٢ دقيقة',
       level: 'warning'
     },
     {
       id: '2',
       category: 'أمان السوق',
-      content: 'تم تفعيل بروتوكول الذوبان النسيجي [SCR-COMMUTE-PROTO-155] بنجاح في لواء الشونة الجنوبية لضمان انسياب الحصص.',
-      geo: 'لواء الشونة الجنوبية',
+      content: 'تم تفعيل بروتوكول الذوبان المحلي [SCR-COMMUTE-PROTO-155] بنجاح في منطقة الشونة الجنوبية لضمان انسياب الحصص.',
+      geo: 'منطقة الشونة الجنوبية',
       timestamp: 'منذ ٢ ساعة',
       level: 'info'
     },
     {
       id: '3',
       category: 'حزام الأمن السعري',
-      content: 'تحذير سيادي: تم تجميد حساب مركب لم يتجاوب مع التنبيه الأول عند خفض السعر بنسبة تجاوزت ١٥٪ عن حد السوق المرجعي.',
+      content: 'تحذير : تم تجميد حساب مركب لم يتجاوب مع التنبيه الأول عند خفض السعر بنسبة تجاوزت ١٥٪ عن حد السوق المرجعي.',
       geo: 'عمان الكبرى',
       timestamp: 'منذ ٤ ساعة',
       level: 'critical'
@@ -133,9 +133,9 @@ export const RadarCaptainDashboard: React.FC<CaptainDashboardProps> = ({ captain
     const nextState = !isRadarActive;
     toggleDriverStatus(nextState ? 'active' : 'idle');
     toast({
-      title: nextState ? '📡 تم تشغيل النبض الميداني' : '⏸️ تم تفعيل جدار التجميد والاستراحة',
-      description: nextState 
-        ? 'تم تفعيل الاتصال بكامل طاقة مستشعرات السوق وعرض الترددات الحية.' 
+      title: nextState ? '📡 تم تشغيل النشاط الميداني' : '⏸️ تم تفعيل جدار التجميد والاستراحة',
+      description: nextState
+        ? 'تم تفعيل الاتصال بكامل طاقة مستشعرات السوق وعرض الترددات الحية.'
         : 'الوقت متجمد بالكامل ومحمي بصفر تكلفة لمنع تسرب الثواني المقتطعة.'
     });
   };
@@ -166,7 +166,7 @@ export const RadarCaptainDashboard: React.FC<CaptainDashboardProps> = ({ captain
   const getRankDetails = (rank: 'PLATINUM' | 'GOLD' | 'BRONZE' | 'SILVER') => {
     switch (rank) {
       case 'PLATINUM':
-        return { name: 'بلاتيني سيادي', color: '#00ffcc', progress: 95, shieldClass: 'from-emerald-600 to-teal-500' };
+        return { name: 'بلاتيني ', color: '#00ffcc', progress: 95, shieldClass: 'from-emerald-600 to-teal-500' };
       case 'GOLD':
         return { name: 'ذهبي ممتاز', color: '#fbbf24', progress: 75, shieldClass: 'from-amber-600 to-yellow-500' };
       case 'SILVER':
@@ -181,12 +181,12 @@ export const RadarCaptainDashboard: React.FC<CaptainDashboardProps> = ({ captain
 
   return (
     <div className="radar-sovereign-container w-full rounded-2xl border border-emerald-950/40 bg-[#050505] text-white p-4 sm:p-6 font-mono text-right shadow-[0_20px_50px_rgba(16,185,129,0.06)] relative overflow-hidden" dir="rtl">
-      
+
       {/* الخلفية الهندسية المعقمة من الخرائط الخيالية */}
       <div className="absolute -top-40 -left-40 w-80 h-80 bg-emerald-500/5 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute -bottom-40 -right-40 w-80 h-80 bg-blue-500/5 rounded-full blur-[120px] pointer-events-none" />
 
-      {/* الرأس والقشرة الخارجية لقمرة العمليات */}
+      {/* الرأس والقشرة الخارجية للوحة العمليات */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#111] pb-5 mb-5 gap-3">
         <div>
           <div className="flex items-center gap-2">
@@ -195,11 +195,11 @@ export const RadarCaptainDashboard: React.FC<CaptainDashboardProps> = ({ captain
               <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${isRadarActive ? 'bg-[#00ffcc]' : 'bg-red-500'}`}></span>
             </span>
             <h2 className="text-md sm:text-lg font-black tracking-tight text-white flex items-center gap-2">
-              🛡️ قمرة العمليات السيادية لعقود الساعات
+              🛡️ لوحة العمليات  لعقود الساعات
             </h2>
           </div>
           <p className="text-[10px] text-gray-400 font-sans mt-1 leading-relaxed">
-            التحكم الذاتي الكلي في نبض البث الترددي، واستقرار رصيد الساعات الحية، والاطلاع الأمني المجهول.
+            التحكم الذاتي الكلي في نشاط العرض الترددي، واستقرار رصيد الساعات الحية، والاطلاع الأمني المجهول.
           </p>
         </div>
 
@@ -213,19 +213,19 @@ export const RadarCaptainDashboard: React.FC<CaptainDashboardProps> = ({ captain
           }}
         >
           <Activity className={`w-3.5 h-3.5 ${isRadarActive ? 'animate-pulse' : ''}`} />
-          {isRadarActive ? '📡 النبض نشط (بث ومزادات حية مجنزرة)' : '⏳ وضع الاستراحة (الوقت متجمد)'}
+          {isRadarActive ? '📡 النشاط نشط (بث ومزادات حية مجنزرة)' : '⏳ وضع الاستراحة (الوقت متجمد)'}
         </button>
       </div>
 
-      {/* المادة (1) صندوق العداد الزمني للاشتراكات والنبض (Time-Locked Token Pass) */}
+      {/* المادة (1) صندوق العداد الزمني للاشتراكات والنشاط (Time-Locked Token Pass) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
-        
+
         {/* العداد الأساسي وأسلوب التبديد والتحجم المحمي */}
         <div className="relative p-4 rounded-xl bg-gradient-to-br from-[#070b07] to-black border border-emerald-900/20 shadow-inner flex flex-col justify-between min-h-[140px] group">
           <div className="absolute top-2 left-2 text-[8px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20">
             رصيد اشتراك الوقت الصافي
           </div>
-          
+
           <div className="space-y-1">
             <span className="text-[9px] text-gray-400 flex items-center gap-1">
               <Clock className="w-3 h-3 text-emerald-500" /> رصيد الوقت الأساسي المتجمد
@@ -234,7 +234,7 @@ export const RadarCaptainDashboard: React.FC<CaptainDashboardProps> = ({ captain
               {Math.floor(localHours / 60)}<span className="text-xs text-gray-500 font-sans mx-1">ساعة</span> {localHours % 60}<span className="text-xs text-gray-500 font-sans mx-1">دقيقة</span>
             </div>
             <p className="text-[9px] text-[#557] font-sans leading-normal">
-              يتجمد العداد تلقائياً عند تعطيل النبض لحمايتك من فقدان الاشتراكات.
+              يتجمد العداد تلقائياً عند تعطيل النشاط لحمايتك من فقدان الاشتراكات.
             </p>
           </div>
 
@@ -265,7 +265,7 @@ export const RadarCaptainDashboard: React.FC<CaptainDashboardProps> = ({ captain
             <div className={`text-2xl font-extrabold tracking-tight py-1 font-mono`} style={{ color: rankInfo.color }}>
               {Math.floor(localBonusHours / 60)}<span className="text-xs text-gray-500 font-sans mx-1">ساعة</span> {localBonusHours % 60}<span className="text-xs text-gray-500 font-sans mx-1">دقيقة بونص</span>
             </div>
-            
+
             {/* شريط تقدم تطور الراتب وعقود الرتب */}
             <div className="space-y-1 pt-1">
               <div className="flex items-center justify-between text-[8px] text-gray-500">
@@ -273,8 +273,8 @@ export const RadarCaptainDashboard: React.FC<CaptainDashboardProps> = ({ captain
                 <span>{rankInfo.progress}%</span>
               </div>
               <div className="w-full bg-[#111] h-1.5 rounded-full overflow-hidden border border-white/5">
-                <div 
-                  className="h-full bg-gradient-to-r from-amber-600 to-yellow-400 transition-all duration-500" 
+                <div
+                  className="h-full bg-gradient-to-r from-amber-600 to-yellow-400 transition-all duration-500"
                   style={{ width: `${rankInfo.progress}%` }}
                 />
               </div>
@@ -293,11 +293,11 @@ export const RadarCaptainDashboard: React.FC<CaptainDashboardProps> = ({ captain
 
       </div>
 
-      {/* المادة (3) الملاحظة القانونية والدستورية الثابتة لقسم البونص */}
+      {/* المادة (3) الملاحظة القانونية والحالية الثابتة لقسم البونص */}
       <div className="bg-[#0c0905] border border-amber-950/20 p-2.5 rounded-xl flex items-start gap-2 mb-5">
         <Gift className="w-4 h-4 text-amber-500 shrink-0 mt-0.5 animate-bounce" />
         <p className="text-[9.5px] leading-relaxed text-amber-200/90 font-sans">
-          <strong>ميثاق السيادة والاستحقاق الحر:</strong> ساعات البونص هي مكافأة من الرادار لقاء التزامك بكوابح السوق ونبض السعر باللواء؛ لك كامل السيادة في استغلالها وقت عملك أو راحتك بطريقتك الخاصة دون أي اقتطاع مالي أو شروط استثنائية.
+          <strong>ميثاق الإدارة والاستحقاق الحر:</strong> ساعات البونص هي مكافأة من الرادار لقاء التزامك بكوابح السوق ونشاط السعر بالمنطقة؛ لك كامل الإدارة في استغلالها وقت عملك أو راحتك بطريقتك الخاصة دون أي اقتطاع مالي أو شروط استثنائية.
         </p>
       </div>
 
@@ -305,7 +305,7 @@ export const RadarCaptainDashboard: React.FC<CaptainDashboardProps> = ({ captain
       <div className="p-3.5 bg-black border border-white/5 rounded-xl space-y-3 mb-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-white/5 pb-2 gap-2">
           <span className="text-[10px] text-blue-400 font-bold flex items-center gap-1.5">
-            <Shield className="w-3.5 h-3.5 animate-pulse text-blue-400" /> بوابة الارتحال النسيجي اللحظي [SCR-COMMUTE-PROTO-155]
+            <Shield className="w-3.5 h-3.5 animate-pulse text-blue-400" /> بوابة الارتحال المحلي اللحظي [SCR-COMMUTE-PROTO-155]
           </span>
           <div className="flex items-center gap-1.5 flex-wrap">
             {isDisconnectionLockActive ? (
@@ -323,11 +323,11 @@ export const RadarCaptainDashboard: React.FC<CaptainDashboardProps> = ({ captain
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           <div className="p-2 bg-white/5 rounded-lg border border-white/5 text-right">
             <span className="text-[8px] text-gray-500 block">⚓ وتد التسجيل الأصلي:</span>
-            <span className="text-[11px] font-bold text-gray-300">لواء {captainProfile.id ? 'وادي السير' : 'وادي السير'}</span>
+            <span className="text-[11px] font-bold text-gray-300">منطقة {captainProfile.id ? 'وادي السير' : 'وادي السير'}</span>
           </div>
           <div className="p-2 bg-[#020509] rounded-lg border border-blue-900/10 text-right">
-            <span className="text-[8px] text-blue-400 block block">🚗 لواء المزاد اللحظي:</span>
-            <span className="text-[11px] font-black text-emerald-400">لواء {currentDistrict || 'وادي السير'}</span>
+            <span className="text-[8px] text-blue-400 block block">🚗 منطقة المزاد اللحظي:</span>
+            <span className="text-[11px] font-black text-emerald-400">منطقة {currentDistrict || 'وادي السير'}</span>
           </div>
           <div className="p-2 bg-white/5 rounded-lg border border-white/5 col-span-2 md:col-span-1 text-right">
             <span className="text-[8px] text-gray-500 block">🗺️ خلية H3 اللحظية (Res 9):</span>
@@ -335,7 +335,7 @@ export const RadarCaptainDashboard: React.FC<CaptainDashboardProps> = ({ captain
           </div>
         </div>
         <p className="text-[8.5px] text-gray-400 leading-relaxed font-sans mt-1">
-          🛡️ يذوب نظامك وهاتفك برمجياً وميدانياً في اللواء المستهدف الذي تتواجد فيه لحظياً لعرض الإرسال بكفاءة، مع حفظ حقوق وتد منشئك المسجل.
+          🛡️ يذوب نظامك وهاتفك برمجياً وميدانياً في المنطقة المستهدف الذي تتواجد فيه لحظياً لعرض الإرسال بكفاءة، مع حفظ حقوق وتد منشئك المسجل.
         </p>
       </div>
 
@@ -344,16 +344,16 @@ export const RadarCaptainDashboard: React.FC<CaptainDashboardProps> = ({ captain
         <h4 className="text-[11px] text-[#00ffcc] font-black border-b border-white/5 pb-2 flex items-center gap-2">
           <Bell className="w-3.5 h-3.5 text-[#00ffcc] animate-bounce" /> بث ومستشعرات الرادار الموجه وموازين التنبيهات الجغرافية:
         </h4>
-        
+
         <div className="space-y-2.5 max-h-[160px] overflow-y-auto pl-1 pr-0.5">
           {bulletins.map((bulletin) => (
-            <div 
-              key={bulletin.id} 
+            <div
+              key={bulletin.id}
               className={`p-2.5 rounded-lg border text-right text-[10px] font-sans leading-normal ${
-                bulletin.level === 'critical' 
-                  ? 'bg-red-950/20 border-red-500/20 text-red-200' 
-                  : bulletin.level === 'warning' 
-                  ? 'bg-amber-950/20 border-amber-500/20 text-amber-200' 
+                bulletin.level === 'critical'
+                  ? 'bg-red-950/20 border-red-500/20 text-red-200'
+                  : bulletin.level === 'warning'
+                  ? 'bg-amber-950/20 border-amber-500/20 text-amber-200'
                   : 'bg-blue-950/20 border-blue-500/20 text-blue-200'
               }`}
             >
@@ -375,11 +375,11 @@ export const RadarCaptainDashboard: React.FC<CaptainDashboardProps> = ({ captain
         </div>
       </div>
 
-      {/* 🛡️ القاموس السيادي للأخطاء (SSOT Error Explorer) */}
+      {/* 🛡️ القاموس  للأخطاء (SSOT Error Explorer) */}
       <div className="bg-[#0b0c10] border border-emerald-950/20 rounded-xl p-4 mb-5 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-white/5 pb-2.5 gap-2">
           <h4 className="text-[11px] text-[#00ffcc] font-black flex items-center gap-2">
-            <BookOpen className="w-3.5 h-3.5 text-[#00ffcc]" /> المرجع الأمني الحافة: القاموس السيادي للأخطاء (SSOT Explorer)
+            <BookOpen className="w-3.5 h-3.5 text-[#00ffcc]" /> المرجع الأمني الحافة: القاموس  للأخطاء (SSOT Explorer)
           </h4>
           <span className="text-[8px] text-gray-400 bg-white/5 px-2 py-0.5 rounded-full border border-white/5 font-mono">
             الإصدار V5.5 - قطعي ومحلي
@@ -387,7 +387,7 @@ export const RadarCaptainDashboard: React.FC<CaptainDashboardProps> = ({ captain
         </div>
 
         <p className="text-[9.5px] leading-relaxed text-gray-400 font-sans">
-          دليل التتبع التشخيصي التلقائي المشغل بالكامل على الحافة لمنع استنزاف الخوادم وسرعة تصفية الأخطاء الجنائية والمالية والملاحية بالمنصة.
+          دليل التتبع التشخيصي التلقائي المشغل بالكامل على الحافة لمنع استنزاف الخوادم وسرعة تصفية الأخطاء الأمنية والمالية والملاحية بالمنصة.
         </p>
 
         {/* أدوات البحث والفلترة */}
@@ -407,7 +407,7 @@ export const RadarCaptainDashboard: React.FC<CaptainDashboardProps> = ({ captain
           <div className="flex flex-wrap gap-1">
             {[
               { id: 'ALL', label: 'الكل' },
-              { id: 'SOV', label: '🛡️ السيادة' },
+              { id: 'SOV', label: '🛡️ الإدارة' },
               { id: 'FIN', label: '💸 المالية' },
               { id: 'MAP', label: '🗺️ الخرائط' },
               { id: 'ADV', label: '📢 الإعلانات' },
@@ -420,8 +420,8 @@ export const RadarCaptainDashboard: React.FC<CaptainDashboardProps> = ({ captain
                   setExpandedErrorCode(null);
                 }}
                 className={`px-2 py-1 text-[9px] font-bold rounded transition-all cursor-pointer ${
-                  selectedErrCategory === cat.id 
-                    ? 'bg-[#00ffcc]/15 text-[#00ffcc] border border-[#00ffcc]/30' 
+                  selectedErrCategory === cat.id
+                    ? 'bg-[#00ffcc]/15 text-[#00ffcc] border border-[#00ffcc]/30'
                     : 'bg-[#050505] text-gray-400 border border-white/5 hover:border-white/10'
                 }`}
               >
@@ -438,11 +438,11 @@ export const RadarCaptainDashboard: React.FC<CaptainDashboardProps> = ({ captain
               const isExpanded = expandedErrorCode === err.code;
               const isCrit = err.code.startsWith('ERR-KNL-') || err.code.startsWith('ERR-SOV-');
               return (
-                <div 
+                <div
                   key={err.code}
                   className={`border rounded-lg transition-all ${
-                    isExpanded 
-                      ? 'bg-[#050505] border-[#00ffcc]/25 shadow-[0_4px_20px_rgba(0,255,200,0.02)]' 
+                    isExpanded
+                      ? 'bg-[#050505] border-[#00ffcc]/25 shadow-[0_4px_20px_rgba(0,255,200,0.02)]'
                       : 'bg-[#050505]/40 border-white/5 hover:border-white/10'
                   }`}
                 >
@@ -490,7 +490,7 @@ export const RadarCaptainDashboard: React.FC<CaptainDashboardProps> = ({ captain
 
       {/* المادة (5) صندوق الاطلاع الأسبوعي وتقييمات الركاب المطهّرة (Anonymized User Feedback) */}
       <div className="feedback-block p-4 bg-[#0a0a0a] border border-white/5 rounded-xl space-y-4">
-        
+
         <div className="flex items-center justify-between border-b border-white/5 pb-2.5 gap-2">
           <div>
             <span className="text-[10px] text-gray-400 block">معدل المناعة والامتثال للمعايرة:</span>
@@ -498,12 +498,12 @@ export const RadarCaptainDashboard: React.FC<CaptainDashboardProps> = ({ captain
               ⭐️ رصيد الامتثال والاستقرار كلياً:
             </h4>
           </div>
-          
+
           <div className="text-right">
-            <span 
+            <span
               className={`text-md sm:text-lg font-black px-3.5 py-1 rounded-lg border flex items-center gap-1.5 font-mono ${
-                isCriticalRating 
-                  ? 'bg-red-950/40 border-red-500/30 text-red-400 animate-pulse' 
+                isCriticalRating
+                  ? 'bg-red-950/40 border-red-500/30 text-red-400 animate-pulse'
                   : 'bg-emerald-950/30 border-emerald-500/30 text-[#00ffcc]'
               }`}
             >
@@ -516,14 +516,14 @@ export const RadarCaptainDashboard: React.FC<CaptainDashboardProps> = ({ captain
           <div className="p-2.5 bg-red-950/20 border border-red-500/20 rounded-lg text-[9.5px] text-red-300 leading-relaxed flex items-start gap-1.5 font-sans">
             <AlertTriangle className="w-4 h-4 text-red-500 shrink-0" />
             <span>
-              <strong>تحذير الإيقاف الآلي:</strong> تقييمك العام قريب من عتبة التعليق (4.30). يرجى الالتزام بكوابح النبض، وراحة الركاب، والتسعير المجهول لتجنب تعليق النبض لـ 24 ساعة بمقتضى ميثاق الرادار الميداني.
+              <strong>تحذير الإيقاف الآلي:</strong> تقييمك العام قريب من عتبة التعليق (4.30). يرجى الالتزام بكوابح النشاط، وراحة الركاب، والتسعير المجهول لتجنب تعليق النشاط لـ 24 ساعة بمقتضى ميثاق الرادار الميداني.
             </span>
           </div>
         )}
 
         <div>
           <h5 className="text-[10px] font-black text-[#00ffcc] mb-2 flex items-center gap-1">
-            <MessageSquare className="w-3.5 h-3.5" /> النبض الأسبوعي لتعليقات الركاب (العمى المطبق ومطهّرة كلياً):
+            <MessageSquare className="w-3.5 h-3.5" /> النشاط الأسبوعي لتعليقات الركاب (العمى المطبق ومطهّرة كلياً):
           </h5>
           <p className="text-[8.5px] text-gray-400 font-sans leading-relaxed mb-3.5">
             * لقد خضعت هذه الردود للغسيل والتعقيم البرمجي الصارم؛ لتجريدها من الهوية، الزاوية الجغرافية، والزمنية لمنع الاحتكاك وتصفية النزاعات الميدانية لسلامتك وعملاً بقانون "الحصانة السلوكية للناقل".
@@ -554,7 +554,7 @@ export const RadarCaptainDashboard: React.FC<CaptainDashboardProps> = ({ captain
               <h3 className="text-xs font-black text-[#00ffcc] flex items-center gap-1.5">
                 <Clock className="w-4 h-4 text-emerald-400" /> شحن وتمديد رصيد الساعات المفتوح
               </h3>
-              <button 
+              <button
                 onClick={() => setShowRechargeDialog(false)}
                 className="text-gray-400 hover:text-white font-bold text-xs"
               >
@@ -563,7 +563,7 @@ export const RadarCaptainDashboard: React.FC<CaptainDashboardProps> = ({ captain
             </div>
 
             <p className="text-[10px] text-gray-300 leading-normal font-sans">
-              اختر باقة الساعات المفتوحة للتفعيل اللحظي. الاستهلاك ينشط عند تفعيل "النبض" ويتجمد فوراً عند الاستراحة لمنع الفقد السلبي:
+              اختر باقة الساعات المفتوحة للتفعيل اللحظي. الاستهلاك ينشط عند تفعيل "النشاط" ويتجمد فوراً عند الاستراحة لمنع الفقد السلبي:
             </p>
 
             <div className="space-y-2">
@@ -584,7 +584,7 @@ export const RadarCaptainDashboard: React.FC<CaptainDashboardProps> = ({ captain
               >
                 <div className="text-right">
                   <span className="text-xs font-black text-white block">باقة "الجهد الميداني المتكامل" 💎</span>
-                  <span className="text-[8px] text-gray-400">100 ساعة بث صافي للنبض</span>
+                  <span className="text-[8px] text-gray-400">100 ساعة بث صافي للنشاط</span>
                 </div>
                 <div className="flex flex-col items-end">
                   <span className="text-xs font-bold text-emerald-400">3.50 دينار</span>

@@ -515,7 +515,7 @@ export function RiderViewTab() {
               </label>
 
               <label className="space-y-2">
-                <span className="block text-[11px] font-black text-slate-400">اللواء / المنطقة</span>
+                <span className="block text-[11px] font-black text-slate-400">المنطقة / المنطقة</span>
                 <select
                   value={selectedDistrict.id}
                   onChange={(event) => handleDistrictChange(event.target.value)}
@@ -572,7 +572,7 @@ export function RiderViewTab() {
             <CardContent className="space-y-5 p-5 text-right" dir="rtl">
               <div className="rounded-3xl border border-amber-400/20 bg-amber-400/10 p-5">
                 <p className="text-[11px] font-black text-amber-200">لم تصل عروض</p>
-                <h2 className="mt-2 text-xl font-black sm:text-2xl">نعتذر منك، جميع الكباتن مشغولون حالياً</h2>
+                <h2 className="mt-2 text-xl font-black sm:text-2xl">نعتذر منك، جميع السائقون مشغولون حالياً</h2>
                 <p className="mt-3 text-sm leading-relaxed text-slate-300">
                   لم نجد عروضاً تناسب رحلتك في هذه اللحظة. يمكنك إعادة المحاولة أو تغيير الوجهة.
                 </p>
@@ -607,7 +607,7 @@ export function RiderViewTab() {
               <div className="flex min-h-36 flex-col items-center justify-center gap-3 rounded-2xl border border-[#14B8A6]/15 bg-black/30">
                 <Loader2 className="h-9 w-9 animate-spin text-[#14F5D5]" />
                 <span className="px-4 text-center text-xs font-bold leading-relaxed text-slate-300">
-                  جاري البحث عن أقرب كباتن متوفرين لك... ثوانٍ من فضلك
+                  جاري البحث عن أقرب سائقين متوفرين لك... ثوانٍ من فضلك
                 </span>
               </div>
             ) : (

@@ -10,7 +10,7 @@ import { trackSovereignError } from '@/lib/error-tracker';
 
 /**
  * [Sovereign Rider Sidebar Radar]
- * يراقب تواجد الفرسان المفضلين النشطين في المربعات المجاورة المحيطة بالراكب.
+ * يراقب تواجد السائقين المفضلين النشطين في المربعات المجاورة المحيطة بالراكب.
  */
 export function useRiderSidebarRadar() {
   const { user } = useAuth();
@@ -36,17 +36,17 @@ export function useRiderSidebarRadar() {
         if (!isMounted) return;
 
         const riderSurroundingGrids = getSurroundingGridIds(lat, lng);
-        
+
         // Fetch all favorite drivers active in those grid segments
         const q = query(
           collection(db, 'users'),
           where(documentId(), 'in', favoriteIds)
         );
 
-        unsubscribe = onSnapshot(q, 
+        unsubscribe = onSnapshot(q,
           (snapshot) => {
             const allFavorites = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as User));
-            const nearby = allFavorites.filter(driver => 
+            const nearby = allFavorites.filter(driver =>
               driver.gridId && riderSurroundingGrids.includes(driver.gridId)
             );
             setNearbyFavorites(nearby);

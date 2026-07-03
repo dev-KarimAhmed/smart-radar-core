@@ -42,7 +42,7 @@ export function GeoPaymentGateway({ isOpen, onClose, onSuccess }: GeoPaymentGate
   const [gpsLoading, setGpsLoading] = useState(false);
   const [amount, setAmount] = useState("10");
   const [selectedChannel, setSelectedChannel] = useState<"cliq" | "zain" | "efawateer">("cliq");
-  
+
   // Custom Flow states
   const [step, setStep] = useState<"options" | "pay_qrcode" | "success">("options");
   const [shakeAmount, setShakeAmount] = useState(0);
@@ -91,10 +91,10 @@ export function GeoPaymentGateway({ isOpen, onClose, onSuccess }: GeoPaymentGate
   const handleFinalizePayment = async () => {
     const amountVal = parseFloat(amount);
     const channelName = selectedChannel === "cliq" ? "CliQ العاجل" : selectedChannel === "zain" ? "محفظة Zain Cash" : "إي فواتيركم";
-    
+
     // Use the custom single-write hook we sculpted
     const success = await rechargeWallet(amountVal, activeDistrict.name, channelName);
-    
+
     if (success) {
       setStep("success");
       if (onSuccess) onSuccess();
@@ -152,7 +152,7 @@ export function GeoPaymentGateway({ isOpen, onClose, onSuccess }: GeoPaymentGate
 
               {/* Amount selections */}
               <div className="space-y-3">
-                <span className="text-xs font-bold text-gray-300">قيمة شحن المحفظة السيادية:</span>
+                <span className="text-xs font-bold text-gray-300">قيمة شحن المحفظة :</span>
                 <div className="grid grid-cols-4 gap-2">
                   {["1", "5", "10", "20"].map((preset) => (
                     <Button
@@ -204,10 +204,10 @@ export function GeoPaymentGateway({ isOpen, onClose, onSuccess }: GeoPaymentGate
                     <div className="absolute bottom-full right-1/2 translate-x-1/2 mb-2.5 opacity-0 group-hover/cliq:opacity-100 scale-95 group-hover/cliq:scale-100 pointer-events-none transition-all duration-200 origin-bottom z-[200] w-64 p-3.5 bg-[#070f1a] border border-[#14b8a6]/50 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.8)] text-[10px] text-gray-300 font-sans leading-relaxed text-right" dir="rtl">
                       <div className="flex items-center gap-1.5 text-[#14b8a6] font-bold mb-1.5">
                         <Sparkles className="w-3.5 h-3.5 text-[#14b8a6] shrink-0 animate-pulse" />
-                        <span>ميزة شحن CliQ الذري</span>
+                        <span>ميزة شحن CliQ المباشر</span>
                       </div>
                       <p>
-                        بوابة الشحن الفوري كليك (CliQ) التابعة للبنك المركزي الأردني مدمجة بنبضة أحادية ذرية (Single-Write). نضمن تطبيقاً كاملاً لسياسة صفر كلفة سحابية وبروتوكول (88) دون ثرثرة شبكية أو تكرار استدعاءات.
+                        بوابة الشحن الفوري كليك (CliQ) التابعة للبنك المركزي الأردني مدمجة بنشاطة أحادية مباشرة (Single-Write). نضمن تطبيقاً كاملاً لسياسة صفر كلفة سحابية وبروتوكول (88) دون ثرثرة شبكية أو تكرار استدعاءات.
                       </p>
                       <div className="mt-2 pt-1.5 border-t border-[#14b8a6]/10 flex justify-between text-[8px] text-[#14b8a6]/70 font-mono">
                         <span>PROTOCOL-88 VERIFIED</span>
@@ -296,7 +296,7 @@ export function GeoPaymentGateway({ isOpen, onClose, onSuccess }: GeoPaymentGate
                   {sovereignLoading ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
-                    "تأكيد عملية التحويل وإرسال النبضة 📡"
+                    "تأكيد عملية التحويل وإرسال النشاطة 📡"
                   )}
                 </Button>
 
@@ -318,7 +318,7 @@ export function GeoPaymentGateway({ isOpen, onClose, onSuccess }: GeoPaymentGate
               </div>
 
               <div className="space-y-2">
-                <h3 className="text-lg font-black text-white">اكتمال النبضة المالية السيادية</h3>
+                <h3 className="text-lg font-black text-white">اكتمال النشاطة المالية </h3>
                 <p className="text-xs text-gray-400 px-6">
                   تم رصد إشارة التحويل، وتوليد القيمة بنجاح، وربطها الفوري بمحفظتك الرقمية الموحدة في ثبات مطلق دون أي عمولات مركزية.
                 </p>
@@ -352,7 +352,7 @@ export function GeoPaymentGateway({ isOpen, onClose, onSuccess }: GeoPaymentGate
 
         {/* Footer legalities signature */}
         <div className="bg-black/60 p-4 border-t border-white/5 text-center text-[9px] text-gray-400 font-sans tracking-tight">
-          منصة حرة سيادية - مأمنة بنظام تشفير المعقد ومحصنة كوانتياً ضد الهجمات الرقمية.
+          منصة حرة  - مأمنة بنظام تشفير المعقد ومحصنة اً ضد الهجمات الرقمية.
         </div>
       </Card>
     </div>

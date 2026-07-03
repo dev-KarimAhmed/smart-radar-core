@@ -20,8 +20,8 @@ import { RadarCaptainDashboard } from './driver/captain-dashboard';
 
 const KineticTrendTicker = React.memo(() => {
   const anonymizedSectors = [
-    { name: 'القطاع السيادي الآمن A1', trend: '+4.8%', status: 'high_demand' },
-    { name: 'بؤرة النبض النشطة C2', trend: '+12.5%', status: 'high_demand' },
+    { name: 'منطقة طلب مرتفع A1', trend: '+4.8%', status: 'high_demand' },
+    { name: 'منطقة نشطة C2', trend: '+12.5%', status: 'high_demand' },
     { name: 'النطاق اللوجستي المتزن B9', trend: '-2.1%', status: 'balanced' },
     { name: 'المعقل الحضري الفرعي F3', trend: '+8.3%', status: 'high_demand' },
     { name: 'قطاع الاستقرار العام G5', trend: '0.0%', status: 'balanced' },
@@ -47,10 +47,10 @@ const KineticTrendTicker = React.memo(() => {
             <span className="text-emerald-800 font-bold">•</span>
             <span className="font-bold text-gray-200 font-sans">{sector.name}</span>
             <span className={
-              sector.status === 'high_demand' 
-                ? 'text-emerald-400 font-extrabold' 
-                : sector.status === 'high_supply' 
-                ? 'text-red-400 font-extrabold' 
+              sector.status === 'high_demand'
+                ? 'text-emerald-400 font-extrabold'
+                : sector.status === 'high_supply'
+                ? 'text-red-400 font-extrabold'
                 : 'text-gray-400 font-extrabold'
             }>
               [{sector.trend}]
@@ -63,16 +63,16 @@ const KineticTrendTicker = React.memo(() => {
 });
 
 export function DriverViewTab() {
-  const { 
+  const {
     driverStatus, activeRequest, acceptedRider, submitOffer, isSubmittingOffer,
     isRequestListOpen, toggleRequestList, isDormancyWarningVisible, resetDormancyTimer,
     endTrip, isEndingTrip, rateAndFinishTrip, isRatingRider, requests,
     driverLocation, rejectRequest, rejectedTripIds, pulseData,
     currentDistrict, currentH3Cell
   } = useDriverOperations()!;
-  
+
   const { user } = useAuth();
-  
+
   const { matrix } = usePricingMatrix();
   const { toast } = useToast();
   const [riderRating, setRiderRating] = useState(0);
@@ -95,7 +95,7 @@ export function DriverViewTab() {
     });
   }, [requests, rejectedTripIds, matrix.isOperatorLinked]);
 
-  // تطبيق دستور الحصص: 9 أساسي + 3 احتياط
+  // تطبيق شروط الحصص: 9 أساسي + 3 احتياط
   const primaryRequests = useMemo(() => visibleRequests.slice(0, 9), [visibleRequests]);
 
   const handleRateAndFinish = useCallback(() => {
@@ -103,12 +103,12 @@ export function DriverViewTab() {
       toast({
         variant: 'destructive',
         title: 'مطلوب تقييم',
-        description: 'تطبيقاً للدستور، يجب تقييم الراكب قبل العودة للميدان.'
+        description: 'تطبيقاً للشروط، يجب تقييم الراكب قبل العودة للميدان.'
       });
       return;
     }
     rateAndFinishTrip(riderRating);
-    setRiderRating(0); 
+    setRiderRating(0);
   }, [riderRating, rateAndFinishTrip, toast]);
 
   const { tripDistance, dynamicTripDuration } = useMemo(() => {
@@ -116,13 +116,13 @@ export function DriverViewTab() {
 
     const tripDistrict = activePricingRequest.district;
     const currentPulse = pulseData.find(p => p.id === tripDistrict);
-    
+
     let pulseStatusForEstimate: 'critical' | 'active' | 'stable' | 'dormant' = 'stable';
     if (currentPulse) {
         if (currentPulse.trend === 'high_demand') pulseStatusForEstimate = 'critical';
         else if (currentPulse.trend === 'balanced') pulseStatusForEstimate = 'active';
     }
-    
+
     const distance = activePricingRequest.estimatedDistance || 0;
     const duration = estimateTripTime(distance, pulseStatusForEstimate);
 
@@ -150,7 +150,7 @@ export function DriverViewTab() {
               <div className="flex flex-col md:flex-row md:items-center gap-2">
                 <div className="flex items-center gap-2">
                   <CardTitle className="text-lg text-white">
-                    <span className="font-headline tracking-wide">الرادار الميداني</span>
+                    <span className="font-headline tracking-wide">خريطة الطلبات</span>
                   </CardTitle>
                   <Badge variant="outline" className="text-primary border-primary bg-black/50">
                     {primaryRequests.length} متاح
@@ -158,7 +158,7 @@ export function DriverViewTab() {
                 </div>
                 {currentDistrict && (
                   <Badge className="bg-blue-600/20 text-blue-400 border border-blue-500/20 text-[10px] py-0 px-2 font-mono" variant="outline">
-                    لواء: {currentDistrict} • {currentH3Cell?.substring(0, 8)}
+                    المنطقة: {currentDistrict} • {currentH3Cell?.substring(0, 8)}
                   </Badge>
                 )}
               </div>
@@ -166,7 +166,7 @@ export function DriverViewTab() {
                 <X className="w-5 h-5"/>
               </Button>
             </CardHeader>
-            
+
             {/* مؤشر التوجه السعري الحركي المجهول */}
             <KineticTrendTicker />
 
@@ -180,10 +180,10 @@ export function DriverViewTab() {
                       : 0;
 
                     const anyReq = req as any;
-                    const averageRiderRating = anyReq.riderRating !== undefined 
-                      ? anyReq.riderRating 
-                      : (anyReq.riderRatingSum && anyReq.riderRatingCount 
-                          ? anyReq.riderRatingSum / anyReq.riderRatingCount 
+                    const averageRiderRating = anyReq.riderRating !== undefined
+                      ? anyReq.riderRating
+                      : (anyReq.riderRatingSum && anyReq.riderRatingCount
+                          ? anyReq.riderRatingSum / anyReq.riderRatingCount
                           : 5.0);
                     const isRiderFieldRisk = averageRiderRating <= 4.2;
 
@@ -211,14 +211,14 @@ export function DriverViewTab() {
                                      )}
                                  </div>
                              </div>
-                             
+
                              <div className="flex gap-2 w-full mt-2">
                                  <Button onClick={() => rejectRequest(req.id)} variant="ghost" size="icon" className="text-destructive hover:bg-destructive/20 border border-transparent hover:border-destructive/30 shrink-0">
                                      <X className="w-5 h-5" />
                                  </Button>
-                                 
-                                 <Button 
-                                   onClick={() => setActivePricingRequest(req)} 
+
+                                 <Button
+                                   onClick={() => setActivePricingRequest(req)}
                                    className="flex-1 bg-green-600 hover:bg-green-500 text-white font-bold tracking-wide shadow-md shadow-green-900/20"
                                  >
                                    <Zap className="w-4 h-4 ml-1" />
@@ -253,7 +253,7 @@ export function DriverViewTab() {
                   <RadioTower className="w-20 h-20 mb-6 text-primary/40 animate-pulse-neon" />
                   <h3 className="text-2xl font-bold text-white mb-3 tracking-wider">الرادار صامت حالياً</h3>
                   <p className="text-base px-6 leading-relaxed">
-                    لا توجد طلبات متاحة في نطاقك الميداني (1.5 كم).<br/>
+                    لا توجد طلبات متاحة في نطاقك الحالي (1.5 كم).<br/>
                     ابقَ في وضع <span className="text-primary font-bold">"التحفز"</span>، سيتم إعلامك بالفرص الجديدة فور ظهورها.
                   </p>
                 </div>
@@ -277,14 +277,14 @@ export function DriverViewTab() {
                  <p className="font-bold">{activeRequest?.dropoff}</p>
                </div>
                <div className="text-left">
-                  <a 
+                  <a
                     href={activeRequest ? generateSovereignRouteUrl(activeRequest) : '#'}
-                    target="_blank" 
+                    target="_blank"
                     rel="noopener noreferrer"
                   >
                     <Button variant="outline" size="sm" className="animate-pulse-neon">
                       <MapPin className="ml-2"/>
-                      فتح مسار المهمة السيادي
+                      فتح تفاصيل الرحلة
                     </Button>
                   </a>
                </div>
@@ -352,7 +352,7 @@ export function DriverViewTab() {
       <Dialog open={driverStatus === 'rating' && !!activeRequest}>
         <DialogContent className="max-w-sm">
           <DialogHeader className="text-center">
-            <DialogTitle>التقييم السيادي للراكب</DialogTitle>
+            <DialogTitle>تقييم الراكب</DialogTitle>
             <DialogDescription>تقييمك يضمن عدالة الميدان. كيف كانت تجربة الرحلة مع الراكب؟</DialogDescription>
           </DialogHeader>
           <CardContent className="flex justify-center py-6">
@@ -369,7 +369,7 @@ export function DriverViewTab() {
         </DialogContent>
       </Dialog>
 
-      {/* [SCR-2026-V5.7.3]: بطاقة استقبال النداء التكتيكية الساقطة من الرادار الميداني */}
+      {/* بطاقة استقبال الطلبات القريبة */}
       {driverStatus === 'active' && !isRequestListOpen && primaryRequests.length > 0 && (
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-40 w-full max-w-sm px-4 animate-in slide-in-from-bottom-5 duration-300 pointer-events-none">
           <div className="bg-[#050D05]/95 border-2 border-emerald-500/30 text-white rounded-2xl p-4 shadow-[0_10px_40px_rgba(16,185,129,0.15)] backdrop-blur-md pointer-events-auto flex flex-col gap-3 relative overflow-hidden">
@@ -377,7 +377,7 @@ export function DriverViewTab() {
             <div className="flex items-center justify-between">
               <span className="flex items-center gap-1.5 text-[10px] font-black text-emerald-400 uppercase tracking-widest">
                 <RadioTower className="w-3.5 h-3.5 text-emerald-500 animate-pulse" />
-                رادار النداء النشط (البث الميداني)
+                الطلبات القريبة النشطة
               </span>
               <Badge variant="outline" className="text-[9px] bg-emerald-950/40 border-emerald-500/20 text-emerald-300">
                 متاح {primaryRequests.length}
@@ -389,10 +389,10 @@ export function DriverViewTab() {
                 ? calculateSovereignDistance(driverLocation.lat, driverLocation.lng, latestReq.pickupCoords.lat, latestReq.pickupCoords.lng)
                 : 0;
               const anyReq = latestReq as any;
-              const averageRiderRating = anyReq.riderRating !== undefined 
-                ? anyReq.riderRating 
-                : (anyReq.riderRatingSum && anyReq.riderRatingCount 
-                    ? anyReq.riderRatingSum / anyReq.riderRatingCount 
+              const averageRiderRating = anyReq.riderRating !== undefined
+                ? anyReq.riderRating
+                : (anyReq.riderRatingSum && anyReq.riderRatingCount
+                    ? anyReq.riderRatingSum / anyReq.riderRatingCount
                     : 5.0);
               const isRiderFieldRisk = averageRiderRating <= 4.2;
 
@@ -414,17 +414,17 @@ export function DriverViewTab() {
                     </p>
                   </div>
                   <div className="flex gap-2 pt-1 font-sans">
-                    <Button 
-                      onClick={() => rejectRequest(latestReq.id)} 
-                      variant="ghost" 
+                    <Button
+                      onClick={() => rejectRequest(latestReq.id)}
+                      variant="ghost"
                       className="h-10 text-xs text-red-400 hover:text-red-300 hover:bg-red-950/20 px-3 border border-red-500/10 hover:border-red-500/20 rounded-xl font-bold"
                     >
                       تجاهل
                     </Button>
-                    <Button 
+                    <Button
                       onClick={() => {
                         setActivePricingRequest(latestReq);
-                      }} 
+                      }}
                       className="flex-1 h-10 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs tracking-wide shadow-md hover:shadow-emerald-500/20 border border-emerald-500/30 rounded-xl flex items-center justify-center gap-1.5 font-bold"
                     >
                       <Zap className="w-3.5 h-3.5 text-white active:scale-95" />
@@ -437,7 +437,7 @@ export function DriverViewTab() {
           </div>
         </div>
       )}
-      
+
       {activePricingRequest && (
         <DriverPricingCard
           mode="offer"
@@ -453,9 +453,9 @@ export function DriverViewTab() {
         />
       )}
 
-      {/* [SCR-DASH-CAPTAIN-115] قمرة العمليات القيادية لضبط الرصيد والساعات والتعليقات */}
+      {/* لوحة العمليات لضبط الرصيد والساعات والتعليقات */}
       <div className="w-full max-w-lg mx-auto pb-24 pt-4 px-2">
-        <button 
+        <button
           onClick={() => setIsDashboardOpen(true)}
           className="w-full text-right p-4 rounded-xl border border-emerald-500/20 bg-gradient-to-r from-black via-emerald-950/10 to-black hover:border-emerald-500/40 hover:shadow-[0_0_15px_rgba(0,255,150,0.1)] transition-all group flex items-center justify-between cursor-pointer active:scale-98"
         >
@@ -465,7 +465,7 @@ export function DriverViewTab() {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00ffcc] opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-[#00ffcc]"></span>
               </span>
-              فتح قمرة العمليات السيادية 🛡️
+              فتح لوحة العمليات
             </h3>
             <p className="text-[10px] text-gray-400 mt-1">اضبط باقة الساعات المتجمدة، واطلع على رصيد الثقة والتعليقات المجهرية</p>
           </div>
@@ -477,22 +477,22 @@ export function DriverViewTab() {
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-98 backdrop-blur-md p-4 md:p-6 flex flex-col justify-start animate-in fade-in duration-300" dir="rtl">
           <div className="w-full max-w-2xl mx-auto space-y-4">
             <div className="flex items-center justify-between border-b border-white/5 pb-3 mb-2">
-              <span className="text-xs font-black text-emerald-400">نظام الرادار الموحد ● قمرة الحراسة</span>
-              <button 
+              <span className="text-xs font-black text-emerald-400">نظام الرادار الموحد ● لوحة المتابعة</span>
+              <button
                 onClick={() => setIsDashboardOpen(false)}
                 className="px-3 py-1 text-xs font-black bg-red-950/40 hover:bg-red-950/60 text-red-400 border border-red-500/30 rounded-lg cursor-pointer transition-all active:scale-95"
               >
-                إغلاق القمرة ❌
+                إغلاق اللوحة
               </button>
             </div>
-            
+
             <RadarCaptainDashboard />
-            
-            <button 
+
+            <button
               onClick={() => setIsDashboardOpen(false)}
               className="w-full py-3 mt-4 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-xl border border-emerald-400/20 shadow-lg cursor-pointer transition-all active:scale-98 text-center"
             >
-              العودة لرصيف النبض الميداني 📡
+              العودة إلى الطلبات القريبة
             </button>
           </div>
         </div>

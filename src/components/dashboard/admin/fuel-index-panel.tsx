@@ -14,13 +14,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 export function FuelIndexPanel() {
   const { toast } = useToast();
   const { updateFuelIndex, isProcessing } = useSovereignControls();
-  
+
   const [error, setError] = useState<string | null>(null);
   const [selectedGovernorate, setSelectedGovernorate] = useState('');
   const [selectedDistrict, setSelectedDistrict] = useState('');
   const [price, setPrice] = useState('');
 
-  const districts = useMemo(() => 
+  const districts = useMemo(() =>
     selectedGovernorate ? getDistrictsByGovernorate(selectedGovernorate) : [],
     [selectedGovernorate]
   );
@@ -31,7 +31,7 @@ export function FuelIndexPanel() {
 
   const handleUpdate = async () => {
     if (!selectedDistrict || !price || Number(price) <= 0) {
-      setError('يرجى اختيار اللواء وإدخال سعر وقود صالح.');
+      setError('يرجى اختيار المنطقة وإدخال سعر وقود صالح.');
       return;
     }
     setError(null);
@@ -43,7 +43,7 @@ export function FuelIndexPanel() {
     <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in duration-500">
       <div className="flex items-start gap-3 p-3 bg-red-950/20 border border-red-500/20 rounded-xl">
         <ShieldCheck className="w-5 h-5 text-red-500 mt-0.5" />
-        <p className="text-xs text-gray-400 font-medium">تحذير سيادي: أي تغيير هنا يضبط "الحد الأدنى القاتل" للتسعيرة في الميدان فوراً.</p>
+        <p className="text-xs text-gray-400 font-medium">تحذير : أي تغيير هنا يضبط "الحد الأدنى القاتل" للتسعيرة في الميدان فوراً.</p>
       </div>
 
        {error && (
@@ -67,7 +67,7 @@ export function FuelIndexPanel() {
               <SelectContent>{jordanGovernorates.map(gov => <SelectItem key={gov} value={gov}>{gov}</SelectItem>)}</SelectContent>
             </Select>
             <Select value={selectedDistrict} onValueChange={setSelectedDistrict} disabled={!selectedGovernorate}>
-              <SelectTrigger className="bg-[#050D05] border-emerald-900/50"><SelectValue placeholder="اللواء" /></SelectTrigger>
+              <SelectTrigger className="bg-[#050D05] border-emerald-900/50"><SelectValue placeholder="المنطقة" /></SelectTrigger>
               <SelectContent>{districts.map(dist => <SelectItem key={dist} value={dist}>{dist}</SelectItem>)}</SelectContent>
             </Select>
           </div>

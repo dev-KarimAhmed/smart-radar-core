@@ -11,14 +11,14 @@ import type { Trip, User, Offer } from '@/core/types';
 import { EphemeralMessageKernel } from '@/lib/ephemeral-messages';
 
 export function useRiderTransactions(
-    user: User | null, 
-    trip: Trip | null, 
+    user: User | null,
+    trip: Trip | null,
     acceptedDriver: User | null,
-    resetState: () => void, 
+    resetState: () => void,
     setInternalStatus: (status: any) => void
 ) {
   const { toast } = useToast();
-  
+
   const [isRequesting, setIsRequesting] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [isRating, setIsRating] = useState(false);
@@ -35,22 +35,22 @@ export function useRiderTransactions(
   const isSelectingOfferRef = useRef(false);
 
   /**
-   * [SCR-2026-069] استدعاء النواة السيادية لإطلاق رادار رحلة جديدة
+   * [SCR-2026-069] استدعاء النواة  لإطلاق رادار رحلة جديدة
    */
   const requestRide = useCallback(async (payload: any) => {
     if (isRequestingRef.current) return;
     isRequestingRef.current = true;
     setIsRequesting(true);
-    
+
     try {
         console.warn("Connecting to ride dispatcher...");
         await callSovereignCloud('requestRide', payload);
-        
+
         setInternalStatus('searching');
-        
-        toast({ 
-            title: 'تم إرسال طلب الرحلة', 
-            description: 'نبحث الآن عن كباتن قريبين منك.' 
+
+        toast({
+            title: 'تم إرسال طلب الرحلة',
+            description: 'نبحث الآن عن سائقين قريبين منك.'
         });
 
     } catch (error: any) {
@@ -60,7 +60,7 @@ export function useRiderTransactions(
         isRequestingRef.current = false;
     }
   }, [setInternalStatus, toast]);
-  
+
   const cancelTrip = useCallback(async () => {
     if (!trip?.id) return;
     if (isCancellingRef.current) return;
@@ -79,7 +79,7 @@ export function useRiderTransactions(
           consecutiveCancellations: currentCount,
           ratingAdjustment: newRating
         });
-        console.log(`⚠️ دبابات التصفية النسيجية: عدد الإلغاءات المتتالية للراكب بلغ سحابياً [${currentCount}] والتقييم [${newRating}]`);
+        console.log(`⚠️ دبابات التصفية المحلية: عدد الإلغاءات المتتالية للراكب بلغ سحابياً [${currentCount}] والتقييم [${newRating}]`);
       } else {
         await callSovereignCloud('cancelTrip', {
           tripId: trip.id,
@@ -93,7 +93,7 @@ export function useRiderTransactions(
       }
       resetState();
       toast({ title: 'تم إلغاء الرحلة ملاحياً', description: 'تم التراجع عن رادار التتبع بنجاح.' });
-    } catch (error) { 
+    } catch (error) {
       trackSovereignError(error, { context: 'CancelTrip' });
       toast({ variant: 'destructive', title: 'فشل إلغاء الرحلة', description: getSovereignErrorMessage(error) });
     } finally {
@@ -108,7 +108,7 @@ export function useRiderTransactions(
     isRatingRef.current = true;
     setIsRating(true);
     try {
-        await callSovereignCloud('submitTripFeedback', { 
+        await callSovereignCloud('submitTripFeedback', {
             tripId: trip.id,
             driverId: acceptedDriver?.uid || '',
             vehicleId: acceptedDriver?.vehicle?.plate || '',
@@ -142,8 +142,8 @@ export function useRiderTransactions(
         }
         toast({ title: "تم تأكيد الرحلة", description: "شكراً لك، يمكنك الآن تقييم التجربة." });
         setInternalStatus('rating');
-    } catch (error) { 
-        trackSovereignError(error, { context: 'ConfirmCheckpoint' }); 
+    } catch (error) {
+        trackSovereignError(error, { context: 'ConfirmCheckpoint' });
         toast({ variant: 'destructive', title: 'تعذر تأكيد الإحداثيات الميدانية', description: getSovereignErrorMessage(error) });
     } finally {
         setIsConfirmingCheckpoint(false);
@@ -179,8 +179,8 @@ export function useRiderTransactions(
         if (!tripDoc.exists() || tripDoc.data()?.status !== 'searching') {
           throw new Error('OPS_001');
         }
-        
-        // [المادة 13 - بروتوكول المصافحة الذرية وتجميد السعر والمسافة والزمن]
+
+        // [المادة 13 - بروتوكول المصافحة المباشرة وتجميد السعر والمسافة والزمن]
         // [المادة 7 - قانون التبخر الذاتي السحابي TTL بعد 7 أيام لتكلفة صفرية]
         transaction.update(tripRef, {
           status: 'busy',
@@ -194,10 +194,10 @@ export function useRiderTransactions(
           offers: []
         });
       });
-      toast({ title: 'تمت المصافحة الذرية بنجاح 🤝', description: 'تم تجميد السعر وإحكام قيم الرحلة ومسار الملاحة.' });
+      toast({ title: 'تمت المصافحة المباشرة بنجاح 🤝', description: 'تم تجميد السعر وإحكام قيم الرحلة ومسار الملاحة.' });
     } catch (error) {
       trackSovereignError(error, { context: 'SelectOffer' });
-      toast({ variant: 'destructive', title: 'لم يكتمل تأكيد العهد بالفارس', description: getSovereignErrorMessage(error) });
+      toast({ variant: 'destructive', title: 'لم يكتمل تأكيد النظام بالفارس', description: getSovereignErrorMessage(error) });
     } finally {
       setIsSelectingOffer(false);
       isSelectingOfferRef.current = false;

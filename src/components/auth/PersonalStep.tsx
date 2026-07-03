@@ -30,7 +30,7 @@ type AuthMode = 'register' | 'login';
 
 const roleLabels = {
   rider: { ar: 'راكب', en: 'Rider' },
-  driver: { ar: 'كابتن', en: 'Captain' },
+  driver: { ar: 'سائق', en: 'Driver' },
   advertiser: { ar: 'معلن', en: 'Advertiser' },
   delegate: { ar: 'مندوب تسويق', en: 'Delegate' },
 } as const;
@@ -52,7 +52,7 @@ const copy = {
     countryPlaceholder: 'اختر الدولة',
     governorate: 'المحافظة',
     governoratePlaceholder: 'اختر المحافظة',
-    district: 'اللواء / المنطقة',
+    district: 'المنطقة',
     districtPlaceholder: 'اختر المنطقة',
     loadingLocations: 'جاري تحميل المحافظات والمناطق...',
     mockData: 'بيانات تجربة',
@@ -138,7 +138,7 @@ const copy = {
 
 const authRoleLabels = {
   rider: { ar: 'راكب', en: 'Rider' },
-  driver: { ar: 'كابتن', en: 'Captain' },
+  driver: { ar: 'سائق', en: 'Driver' },
   advertiser: { ar: 'معلن', en: 'Advertiser' },
   delegate: { ar: 'مندوب تسويق', en: 'Delegate' },
 } as const;
@@ -160,7 +160,7 @@ const authCopy = {
     countryPlaceholder: 'اختر الدولة',
     governorate: 'المحافظة',
     governoratePlaceholder: 'اختر المحافظة',
-    district: 'اللواء / المنطقة',
+    district: 'المنطقة',
     districtPlaceholder: 'اختر المنطقة',
     loadingLocations: 'جاري تحميل المحافظات والمناطق...',
     mockData: 'بيانات تجربة',

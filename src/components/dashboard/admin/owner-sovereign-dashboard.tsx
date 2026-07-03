@@ -36,7 +36,7 @@ export function RadarOwnerSovereignDashboard() {
    */
   const auditRepresentativeCommissions = (delegate: DelegateData) => {
     const rawDues = delegate.pendingDues || 0;
-    const delRate = delegate.deletionRate || 0; 
+    const delRate = delegate.deletionRate || 0;
     const penaltyAmount = rawDues * (delRate / 100) * CONSTANTS.PENALTY_FACTOR;
     const withdrawableBalance = Math.max(0, rawDues - penaltyAmount);
 
@@ -61,13 +61,13 @@ export function RadarOwnerSovereignDashboard() {
 
   return (
     <div className="space-y-8 bg-[#020202] text-right p-6 rounded-3xl border border-red-500/10 min-h-screen text-white font-sans" dir="rtl">
-      
+
       {/* 👑 VIP OWNER LOGO HEADER */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-red-500/20 pb-6">
         <div>
           <div className="flex items-center gap-2 mb-2">
             <Badge className="bg-[#ff3366] hover:bg-[#ff3366]/90 text-white font-black px-3 py-1 text-[11px] rounded-full animate-pulse shadow-[0_0_15px_rgba(255,51,102,0.4)] font-sans">
-              قمرة المالك السيادية ● V5.5 SECURITY PROTOCOL
+              لوحة المالك  ● V5.5 SECURITY PROTOCOL
             </Badge>
           </div>
           <h2 className="text-2xl sm:text-3xl font-black text-[#00ffcc] tracking-tight flex items-center gap-2 font-sans">
@@ -75,10 +75,10 @@ export function RadarOwnerSovereignDashboard() {
             غرفة التحكم العليا للمشرف (Owner Overlord Cabinet)
           </h2>
           <p className="text-gray-400 text-xs sm:text-sm mt-1 leading-relaxed max-w-3xl">
-            مستوى التحكم الاستئصالي الشامل (SSOT) الحاكم لنواقل المملكة ومندوبيها الجغرافيين. تدرج هذه الغرفة المعادلات الرياضية المشددة وعقود الصعق الجنائية لمنع المضاربات.
+            مستوى التحكم الاستئصالي الشامل (SSOT) الحاكم لنواقل المملكة ومندوبيها الجغرافيين. تدرج هذه الغرفة المعادلات الرياضية المشددة وعقود الصعق الأمنية لمنع المضاربات.
           </p>
         </div>
-        
+
         {/* Absolute Global Stats */}
         <div className="bg-zinc-950/90 border border-[#00ffcc]/20 rounded-2xl p-4 min-w-[240px] text-right">
           <span className="text-[10px] text-gray-500 block font-bold">إجمالي الاحتياطي المالي المحصن لأصحاب الحقوق</span>
@@ -88,7 +88,7 @@ export function RadarOwnerSovereignDashboard() {
       </div>
 
       {/* 🛡️ DELEGATES SECTION (Net Commission Guard) */}
-      <DelegateCommissionPanel 
+      <DelegateCommissionPanel
         delegates={delegates}
         loadingDelegates={loadingDelegates}
         isProcessing={isProcessing}
@@ -98,7 +98,7 @@ export function RadarOwnerSovereignDashboard() {
       />
 
       {/* 💥 BLACK BOX LETHAL STRIKE PANEL */}
-      <DriverBlackBoxPanel 
+      <DriverBlackBoxPanel
         drivers={drivers}
         loadingDrivers={loadingDrivers}
         isProcessing={isProcessing}
@@ -107,7 +107,7 @@ export function RadarOwnerSovereignDashboard() {
       />
 
       {/* 🔮 STRATEGIC GAPS SIMULATOR HUB */}
-      <SovereignGapSimulator 
+      <SovereignGapSimulator
         drivers={drivers}
         fetchDrivers={fetchDrivers}
         isProcessing={isProcessing}
@@ -122,15 +122,15 @@ export function RadarOwnerSovereignDashboard() {
             تفتيش كتالوج ترسيم الحدود البرمجية وفصل القطاعات (Sovereign Demarcation Inspector)
           </CardTitle>
           <CardDescription className="text-gray-400 text-xs leading-relaxed text-right" dir="rtl">
-            المرجع الدستوري لتقسيم المناطق (Regions 1, 2, 3) والقطاعات الخدمية (Sectors) لضمان المسؤولية الأحادية والتعقيم الماسي.
+            المرجع الحالي لتقسيم المناطق (Regions 1, 2, 3) والقطاعات الخدمية (Sectors) لضمان المسؤولية الأحادية والتعقيم الماسي.
           </CardDescription>
         </CardHeader>
         <CardContent className="p-6 space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 text-right" dir="rtl">
-            
+
             {/* Regions List */}
             <div className="space-y-4">
-              <h3 className="text-xs font-black text-blue-400 tracking-wide border-b border-white/5 pb-2">📂 حدود المناطق البرمجية السيادية (System Regions)</h3>
+              <h3 className="text-xs font-black text-blue-400 tracking-wide border-b border-white/5 pb-2">📂 حدود المناطق البرمجية  (System Regions)</h3>
               <div className="space-y-3 font-sans">
                 {Object.values(SovereignDemarcationCatalog.regions).map(region => (
                   <div key={region.id} className="bg-zinc-950 p-4 rounded-xl border border-white/5 space-y-2">

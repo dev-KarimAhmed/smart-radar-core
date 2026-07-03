@@ -10,16 +10,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { 
-  AlertTriangle, 
-  Loader2, 
-  Power, 
-  PowerOff, 
-  ShieldAlert, 
-  Flame, 
-  Send, 
-  Sliders, 
-  Clock, 
+import {
+  AlertTriangle,
+  Loader2,
+  Power,
+  PowerOff,
+  ShieldAlert,
+  Flame,
+  Send,
+  Sliders,
+  Clock,
   Sparkles,
   MapPin,
   Lock,
@@ -31,11 +31,11 @@ import { cn } from '@/lib/utils';
 
 export function KillSwitchPanel() {
   const { toast } = useToast();
-  const { 
-    isRadarActive, 
-    toggleKillSwitch, 
-    isTogglingKillSwitch, 
-    isLoadingControls 
+  const {
+    isRadarActive,
+    toggleKillSwitch,
+    isTogglingKillSwitch,
+    isLoadingControls
   } = useSovereignControls();
 
   const { ads, executeAdAnnihilation } = useAdminAds();
@@ -64,7 +64,7 @@ export function KillSwitchPanel() {
       toast({
         variant: 'destructive',
         title: 'بوابات الأمان مقفلة 🔒',
-        description: 'يتعين عليك تفعيل بوابتي التأكيد ومطابقة الفرز الجنائي لفك حماية الزر الأحمر.'
+        description: 'يتعين عليك تفعيل بوابتي التأكيد ومطابقة الفرز الأمني لفك حماية الزر الأحمر.'
       });
       return;
     }
@@ -89,7 +89,7 @@ export function KillSwitchPanel() {
       toast({
         variant: 'destructive',
         title: 'لم يتم تحديد هدف',
-        description: 'يرجى تحديد الحملة الإعلانية النشطة المستهدفة للإعدام الكوانتي.'
+        description: 'يرجى تحديد الحملة الإعلانية النشطة المستهدفة للإيقاف ال.'
       });
       return;
     }
@@ -97,7 +97,7 @@ export function KillSwitchPanel() {
       toast({
         variant: 'destructive',
         title: 'مطلوب إفادة رسمية',
-        description: 'إدخال مبرر التطهير الجنائي إلزامي لتبرير نبضة الإعدام.'
+        description: 'إدخال مبرر الحذف الأمني إلزامي لتبرير نشاطة الإيقاف.'
       });
       return;
     }
@@ -117,7 +117,7 @@ export function KillSwitchPanel() {
       toast({
         variant: 'destructive',
         title: 'فراغ نص الإطلاق',
-        description: 'يرجى صياغة رسالة بث واضحة لتصل لهواتف الكباتن والركاب.'
+        description: 'يرجى صياغة رسالة بث واضحة لتصل لهواتف السائقون والركاب.'
       });
       return;
     }
@@ -132,7 +132,7 @@ export function KillSwitchPanel() {
 
     if (success) {
       toast({
-        title: '📡 تم قذف نبضة البث السيادي',
+        title: '📡 تم نشر نشاطة العرض ',
         description: `تم نشر الإشعار اللحظي [${selectedDistrict}] في طبقة الهواتف المفتوحة.`
       });
       setBroadcastMessage('');
@@ -149,23 +149,23 @@ export function KillSwitchPanel() {
             بروتوكول الطوارئ الإداري: مفتاح الفصل الشامل [30-Emergency]
           </CardTitle>
           <CardDescription className="text-red-300/60 text-[10px] sm:text-[11px] leading-relaxed">
-            التحكم الكلي في بوابات الرادار في الأردن. تفعيل هذا المقبس يجبر هواتف المستخدمين كافة على تعليق الملاحة فوراً، لعزل الخوادم وتفادي حروق النبض في حالات القوة القاهرة.
+            التحكم الكلي في بوابات الرادار في الأردن. تفعيل هذا المقبس يجبر هواتف المستخدمين كافة على تعليق الملاحة فوراً، لعزل الخوادم وتفادي حروق النشاط في حالات القوة القاهرة.
           </CardDescription>
         </CardHeader>
         <CardContent className="p-6 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Safety Confirmation Checklist */}
             <div className="bg-black/40 border border-white/[0.04] p-4 rounded-xl space-y-4">
-              <span className="text-xs font-bold text-red-300/80 block border-b border-red-900/40 pb-2">🔒 بوابات الأمان المصاحبة للزر السيادي:</span>
-              
+              <span className="text-xs font-bold text-red-300/80 block border-b border-red-900/40 pb-2">🔒 بوابات الأمان المصاحبة للزر :</span>
+
               <div className="space-y-3">
                 <label className={cn(
                   "flex items-center gap-2.5 p-3 rounded-xl border text-xs font-semibold cursor-pointer transition-all",
                   gate1 ? "border-red-500/40 bg-red-950/20 text-white" : "border-white/5 bg-zinc-900/20 text-gray-400 hover:bg-zinc-900/40"
                 )}>
-                  <input 
-                    type="checkbox" 
-                    checked={gate1} 
+                  <input
+                    type="checkbox"
+                    checked={gate1}
                     onChange={(e) => {
                       setGate1(e.target.checked);
                       if (!e.target.checked) setSafetyCleared(false);
@@ -179,16 +179,16 @@ export function KillSwitchPanel() {
                   "flex items-center gap-2.5 p-3 rounded-xl border text-xs font-semibold cursor-pointer transition-all",
                   gate2 ? "border-red-500/40 bg-red-950/20 text-white" : "border-white/5 bg-zinc-900/20 text-gray-400 hover:bg-zinc-900/40"
                 )}>
-                  <input 
-                    type="checkbox" 
-                    checked={gate2} 
+                  <input
+                    type="checkbox"
+                    checked={gate2}
                     onChange={(e) => {
                       setGate2(e.target.checked);
                       if (!e.target.checked) setSafetyCleared(false);
                     }}
                     className="h-4 w-4 rounded border-red-500 text-red-600 focus:ring-red-500 cursor-pointer"
                   />
-                  <span>مطابقة البصمة الدستورية للقيادة لمنع المضاربة.</span>
+                  <span>مطابقة البصمة الحالية للقيادة لمنع المضاربة.</span>
                 </label>
               </div>
 
@@ -211,7 +211,7 @@ export function KillSwitchPanel() {
                 ) : (
                   <span className="flex items-center gap-1.5 justify-center">
                     <Lock className="w-3.5 h-3.5" />
-                    تفعيل مفتاح الفك السيادي
+                    تفعيل مفتاح الفك
                   </span>
                 )}
               </Button>
@@ -240,7 +240,7 @@ export function KillSwitchPanel() {
                 disabled={isLoadingControls || isTogglingKillSwitch || !safetyCleared}
                 className={cn(
                   "w-full h-16 text-sm font-black tracking-wider shadow-lg rounded-xl flex items-center justify-center gap-3 transition-all cursor-pointer",
-                  !safetyCleared 
+                  !safetyCleared
                     ? "bg-zinc-800 text-zinc-500 cursor-not-allowed border border-white/5"
                     : isRadarActive
                       ? "bg-red-600 hover:bg-red-500 text-white shadow-red-950/50 hover:scale-[1.01] active:scale-[0.99]"
@@ -263,7 +263,7 @@ export function KillSwitchPanel() {
               </Button>
 
               <span className="text-[9px] text-red-400/50 mt-3 block px-4 leading-normal">
-                * تحذير: هذا التدخل فوري وسيتم ترحيله سحابياً لكافة هواتف الكباتن والمسافرين في المملكة الأردنية مباشرة.
+                * تحذير: هذا التدخل فوري وسيتم ترحيله سحابياً لكافة هواتف السائقون والراكبين في المملكة الأردنية مباشرة.
               </span>
             </div>
           </div>
@@ -277,16 +277,16 @@ export function KillSwitchPanel() {
             <CardHeader className="p-5 border-b border-white/[0.04]">
               <CardTitle className="text-white text-sm sm:text-base font-black flex items-center gap-2">
                 <Flame className="w-5 h-5 text-red-500 animate-pulse" />
-                مقصلة الإبادة الرقمية للحملات (Ad Annihilation)
+                إيقاف الإيقاف الرقمية للحملات (Ad Annihilation)
               </CardTitle>
               <CardDescription className="text-gray-500 text-[10px] sm:text-[11px]">
-                بروتوكول [30-Annihilation] لتطهير الميدان آلياً. يرسل إشعارات صامتة Silent Web Pushes لإبادة ومسح الإعلانات المرفوضة من هواتف المستخدمين نهائياً في ثوانٍ.
+                بروتوكول [30-Annihilation] لحذف الميدان آلياً. يرسل إشعارات صامتة Silent Web Pushes لإيقاف ومسح الإعلانات المرفوضة من هواتف المستخدمين نهائياً في ثوانٍ.
               </CardDescription>
             </CardHeader>
             <CardContent className="p-5 space-y-4 flex-1">
               {/* Select Active Ads dropdown */}
               <div className="space-y-1.5Packed">
-                <Label className="text-xs font-bold text-gray-400">حدد الحملة المستهدفة للإحراق الكوانتي:</Label>
+                <Label className="text-xs font-bold text-gray-400">حدد الحملة المستهدفة للإحراق ال:</Label>
                 <select
                   value={selectedAdId}
                   onChange={(e) => setSelectedAdId(e.target.value)}
@@ -304,7 +304,7 @@ export function KillSwitchPanel() {
 
               {/* Annihilation Reason justification prompt */}
               <div className="space-y-1.5Packed">
-                <Label className="text-xs font-bold text-gray-300">مبرر التطهير والمذكرة الجنائية للهواتف:</Label>
+                <Label className="text-xs font-bold text-gray-300">مبرر الحذف والمذكرة الأمنية للهواتف:</Label>
                 <Input
                   value={annihilationReason}
                   onChange={(e) => setAnnihilationReason(e.target.value)}
@@ -329,7 +329,7 @@ export function KillSwitchPanel() {
                 ) : (
                   <>
                     <EyeOff className="w-4 h-4" />
-                    بث نبضة الإعدام وتطهير الهواتف الميدانية 💥
+                    بث نشاطة الإيقاف وحذف الهواتف الميدانية 💥
                   </>
                 )}
               </Button>
@@ -346,7 +346,7 @@ export function KillSwitchPanel() {
                 بث راداري صامت (Silent Broadcast Pulses)
               </CardTitle>
               <CardDescription className="text-gray-500 text-[10px] sm:text-[11px]">
-                حقن وبث نبضات توجيهية لحظية غير مكلفة لخلية سداسية معينة أو الميدان بالكامل، لتعديل سلوك الهواتف والتسجيل في سجل الطوارئ مباشرة.
+                إضافة وبث تنبيهات توجيهية لحظية غير مكلفة لخلية سداسية معينة أو الميدان بالكامل، لتعديل سلوك الهواتف والتسجيل في سجل الطوارئ مباشرة.
               </CardDescription>
             </CardHeader>
             <CardContent className="p-5 space-y-4 flex-1">
@@ -359,17 +359,17 @@ export function KillSwitchPanel() {
                     onChange={(e) => setSelectedDistrict(e.target.value)}
                     className="w-full h-10 bg-black border border-white/10 rounded-xl px-2 text-[11px] text-white focus:border-[#14b8a6] text-right"
                   >
-                    <option value="الجميع">كل لواء الأردنيين</option>
-                    <option value="لواء الجامعة">لواء الجامعة - عمان</option>
-                    <option value="لواء قصبة عمان">لواء قصبة عمان - عمان</option>
-                    <option value="لواء وادي السير">لواء وادي السير - عمان</option>
-                    <option value="لواء ماركا">لواء ماركا - عمان</option>
+                    <option value="الجميع">كل منطقة الأردنيين</option>
+                    <option value="منطقة الجامعة">منطقة الجامعة - عمان</option>
+                    <option value="منطقة قصبة عمان">منطقة قصبة عمان - عمان</option>
+                    <option value="منطقة وادي السير">منطقة وادي السير - عمان</option>
+                    <option value="منطقة ماركا">منطقة ماركا - عمان</option>
                   </select>
                 </div>
 
                 {/* Pulse Classification */}
                 <div className="space-y-1">
-                  <Label className="text-xs font-bold text-gray-400">تصنيف النبضة السيادية:</Label>
+                  <Label className="text-xs font-bold text-gray-400">تصنيف النشاطة :</Label>
                   <select
                     value={alertType}
                     onChange={(e) => setAlertType(e.target.value as any)}
@@ -403,7 +403,7 @@ export function KillSwitchPanel() {
                 ) : (
                   <>
                     <Send className="w-3.5 h-3.5 ml-1" />
-                    إطلاق النبضة الصامتة Silent Broadcast 📡
+                    إطلاق النشاطة الصامتة Silent Broadcast 📡
                   </>
                 )}
               </Button>

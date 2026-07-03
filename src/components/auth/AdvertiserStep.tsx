@@ -66,25 +66,25 @@ export function AdvertiserStep() {
             <SelectItem value="commercial" className="text-right justify-end hover:bg-[#14B8A6]/20 cursor-pointer">تجاري / بيع بالتجزئة</SelectItem>
             <SelectItem value="services" className="text-right justify-end hover:bg-[#14B8A6]/20 cursor-pointer">خدمات وصيانة</SelectItem>
             <SelectItem value="entertainment" className="text-right justify-end hover:bg-[#14B8A6]/20 cursor-pointer">مطاعم وترفيه ونشاطات</SelectItem>
-            <SelectItem value="real_estate" className="text-right justify-end hover:bg-[#14B8A6]/20 cursor-pointer">عقارات ونقل سيادي</SelectItem>
+            <SelectItem value="real_estate" className="text-right justify-end hover:bg-[#14B8A6]/20 cursor-pointer">عقارات ونقل</SelectItem>
             <SelectItem value="e_commerce" className="text-right justify-end hover:bg-[#14B8A6]/20 cursor-pointer">تجارة إلكترونية ودعم رقمي</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       <div className="pt-2">
-        <button 
-          type="submit" 
+        <button
+          type="submit"
           className="w-full bg-[#14B8A6] hover:bg-[#14B8A6]/90 text-[#0B0F19] font-bold py-3 px-4 rounded-xl transition-all duration-300 shadow-[0_4px_20px_rgba(20,184,166,0.2)] hover:shadow-[0_4px_25px_rgba(20,184,166,0.35)] transform active:scale-[0.98] disabled:opacity-50 cursor-pointer"
           disabled={isSubmitting}
         >
-          {isSubmitting ? 'جاري توثيق البيانات...' : 'تأكيد وحقن في السجل السيادي 📣'}
+          {isSubmitting ? 'جاري حفظ البيانات...' : 'تأكيد البيانات'}
         </button>
       </div>
 
-      <button 
-        type="button" 
-        className="w-full text-xs text-[#94A3B8]/60 hover:text-white transition-colors py-2 cursor-pointer" 
+      <button
+        type="button"
+        className="w-full text-xs text-[#94A3B8]/60 hover:text-white transition-colors py-2 cursor-pointer"
         onClick={() => setStep('personal')}
       >
         العودة لتعديل البيانات الشخصية

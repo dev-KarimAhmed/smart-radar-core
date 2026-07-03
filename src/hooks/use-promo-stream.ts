@@ -35,7 +35,7 @@ export function usePromoStream(district?: string, governorate?: string) {
     }
 
     const q = query(
-      collection(db, 'promos'), 
+      collection(db, 'promos'),
       where('status', '==', 'active'),
       limit(10)
     );
@@ -48,7 +48,7 @@ export function usePromoStream(district?: string, governorate?: string) {
         adType: 'RIDER_BENEFIT',
         content: {
           title: '🎁 كوبون المنفعة والتعويض للركاب الأحرار',
-          description: 'بسبب حرق الأسعار، تفضل بخصم 50% على غسيل سيارتك أو وجبة شاورما مضاعفة في لواء وادي السير فوراً!',
+          description: 'بسبب حرق الأسعار، تفضل بخصم 50% على غسيل سيارتك أو وجبة شاورما مضاعفة في منطقة وادي السير فوراً!',
           posterUrl: 'https://images.unsplash.com/photo-1563206767-5b18f218e8de?auto=format&fit=crop&q=80&w=1200',
         },
         action: {
@@ -83,7 +83,7 @@ export function usePromoStream(district?: string, governorate?: string) {
         status: 'active',
         content: {
           title: 'مركز أعمال وادي السير الحرفي المطور',
-          description: 'لأبناء لواء وادي السير: احصل على تمويل تنموي للمشاريع الحرة بصفر فوائد واستدامة نسيجية.',
+          description: 'لأبناء منطقة وادي السير: احصل على تمويل تنموي للمشاريع الحرة بصفر فوائد واستدامة محلية.',
           posterUrl: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&q=80&w=1200',
         },
         action: {
@@ -97,7 +97,7 @@ export function usePromoStream(district?: string, governorate?: string) {
         id: 'promo-university',
         status: 'active',
         content: {
-          title: 'ملتقى تكنولوجيا الجامعة السيادي',
+          title: 'ملتقى تكنولوجيا الجامعة ',
           description: 'لرواد قطاع الجامعة: حلول الذكاء الاصطناعي كحارس أمين (AI Sentry) وحلول الحوسبة السحابية الحرة بميزانية صفرية.',
           posterUrl: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&q=80&w=1200',
         },
@@ -117,7 +117,7 @@ export function usePromoStream(district?: string, governorate?: string) {
           posterUrl: 'https://images.unsplash.com/photo-1519003722824-192d992a60b1?auto=format&fit=crop&q=80&w=1200',
         },
         action: {
-          buttonText: 'عرض خريطة الشحن السيادي',
+          buttonText: 'عرض خريطة الشحن ',
           actionUrl: 'tel:911',
         },
         targetDistrict: 'قصبة عمان',
@@ -127,8 +127,8 @@ export function usePromoStream(district?: string, governorate?: string) {
         id: 'promo-karkh-baghdad',
         status: 'active',
         content: {
-          title: 'بوابة نبض بغداد الكرخ الكبرى',
-          description: 'لأهلنا في لواء الكرخ: مبادرة النقل التعاوني بصفر عمولة لخدمة الجامعات والقطاعات الطبية الطارئة.',
+          title: 'بوابة نشاط بغداد الكرخ الكبرى',
+          description: 'لأهلنا في منطقة الكرخ: مبادرة النقل التعاوني بصفر عمولة لخدمة الجامعات والقطاعات الطبية الطارئة.',
           posterUrl: 'https://images.unsplash.com/photo-1549488344-1f9b8d2bd1f3?auto=format&fit=crop&q=80&w=1200',
         },
         action: {
@@ -142,8 +142,8 @@ export function usePromoStream(district?: string, governorate?: string) {
         id: 'promo-global',
         status: 'active',
         content: {
-          title: 'الربط السيادي لمنظومة الرادار الذكي',
-          description: 'انضم للأسطول السيادي واجني أرباحاً ترقى لتطلعاتك مع تأمين شامل وحرية مطلقة بصفر عمولة للابد.',
+          title: 'الربط  لمنظومة الرادار الذكي',
+          description: 'انضم للأسطول  واجني أرباحاً ترقى لتطلعاتك مع تأمين شامل وحرية مطلقة بصفر عمولة للابد.',
           posterUrl: 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&q=80&w=1200',
         },
         action: {
@@ -179,7 +179,7 @@ export function usePromoStream(district?: string, governorate?: string) {
       }
 
       // [عمارة الصفر كلفة - التجميع الجغرافي عند الحافة]
-      // ترتيب الإعلانات لوضع الإعلانات التي تطابق قطاع اللواء الحالي للمستخدم في المقدمة (السيادة الجغرافية)
+      // ترتيب الإعلانات لوضع الإعلانات التي تطابق قطاع المنطقة الحالي للمستخدم في المقدمة (الإدارة الجغرافية)
       const sorted = [...parsedAds].sort((a, b) => {
         const aMatchesDistrict = district && a.targetDistrict === district;
         const bMatchesDistrict = district && b.targetDistrict === district;
@@ -205,17 +205,17 @@ export function usePromoStream(district?: string, governorate?: string) {
 
           const previouslyCachedRaw = localStorage.getItem('sovereign_local_ad_cache_history');
           const previousAdsList: any[] = previouslyCachedRaw ? JSON.parse(previouslyCachedRaw) : [];
-          
+
           const previousIds = previousAdsList.map(a => a.id);
           const freshIds = sorted.map(a => a.id);
-          
+
           // Expired indices: were in former cache list, but now missing from active Firestore pipeline
           const expiredIds = previousIds.filter(id => !freshIds.includes(id));
-          
+
           if (expiredIds.length > 0) {
             const heartedRaw = localStorage.getItem('sovereign_hearted_ads') || '[]';
             const heartedIds: string[] = JSON.parse(heartedRaw);
-            
+
             const vaultDetailsRaw = localStorage.getItem('sovereign_ad_vault_details') || '{}';
             const vaultDetails = JSON.parse(vaultDetailsRaw);
             let detailsChanged = false;
@@ -238,10 +238,10 @@ export function usePromoStream(district?: string, governorate?: string) {
                   heartedIdsCopy = heartedIdsCopy.filter(id => id !== expiredId);
                   heartedChanged = true;
                 }
-                console.log(`[تطهير وسقوط الأجل] تم مسح وإعدام الإعلان العابر ${expiredId} لانتهاء صلاحيته على الخادم سيادياً أو لكونه يتبع الباقة العادية.`);
+                console.log(`[حذف وسقوط الأجل] تم مسح وإيقاف الإعلان العابر ${expiredId} لانتهاء صلاحيته على الخادم  أو لكونه يتبع الباقة العادية.`);
               } else {
                 // State B: Hearted and Premium/Retention -> Mummified and preserved offline-first
-                console.log(`[السيادة التخليدية] تم تخليد الإعلان الفاخر ${expiredId} في خزنة الهاتف نظراً لإشارة القبضة الخضراء 💚`);
+                console.log(`[الإدارة التخليدية] تم تخليد الإعلان الفاخر ${expiredId} في خزنة الهاتف نظراً لإشارة القبضة الخضراء 💚`);
               }
             });
 
@@ -256,7 +256,7 @@ export function usePromoStream(district?: string, governorate?: string) {
           // Update cache history for future comparisons
           localStorage.setItem('sovereign_local_ad_cache_history', JSON.stringify(sorted));
         } catch (e) {
-          console.error('[الأرشيف والطهير] فشل في تنفيذ دورة حياة التطهير الذاتي', e);
+          console.error('[الأرشيف والطهير] فشل في تنفيذ دورة حياة الحذف الذاتي', e);
         }
       }
 

@@ -1,704 +1,626 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
-import { db, handleFirestoreError, OperationType } from '@/lib/firebase';
-import { doc, setDoc } from 'firebase/firestore';
-import { jordanGovernorates, getDistrictsByGovernorate } from '@/lib/data';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { supabase } from '@/lib/supabase-client';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { dexieDb } from '@/lib/dexie-db';
-import { ShieldCheck, User, MapPin, Phone, Car, Award, RefreshCw, Cpu, Database, ShieldAlert, Key, Clock, Wallet, Heart, AlertTriangle, Star, Sparkles, Shield } from 'lucide-react';
+import { Database, Heart, Loader2, MapPin, RefreshCw, Save, ShieldCheck, User } from 'lucide-react';
+
+type LocationRow = {
+  id: number;
+  name_ar?: string | null;
+  name_en?: string | null;
+  name?: string | null;
+};
+
+type CountryRow = LocationRow & {
+  currency_ar?: string | null;
+  currency_en?: string | null;
+  currency_code?: string | null;
+};
+
+type GovernorateRow = LocationRow & {
+  country_id: number;
+};
+
+type DistrictRow = LocationRow & {
+  governorate_id: number;
+};
+
+type ProfileRow = Record<string, unknown> & {
+  id?: string;
+  user_id?: string;
+  auth_user_id?: string;
+  serial_id?: string | null;
+  full_name?: string | null;
+  name?: string | null;
+  phone?: string | null;
+  role?: string | null;
+  country_id?: number | string | null;
+  governorate_id?: number | string | null;
+  district_id?: number | string | null;
+  rating?: number | string | null;
+  rating_sum?: number | string | null;
+  rating_count?: number | string | null;
+};
+
+type ProfileKey = {
+  field: 'id';
+  value: string;
+};
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function labelFor(row?: LocationRow | null) {
+  if (!row) return '';
+  return row.name_ar || row.name_en || row.name || String(row.id);
+}
+
+function numberOrEmpty(value: unknown) {
+  const numberValue = Number(value);
+  return Number.isInteger(numberValue) && numberValue > 0 ? String(numberValue) : '';
+}
+
+function normalizeRows<T extends LocationRow>(rows: unknown): T[] {
+  return Array.isArray(rows)
+    ? rows
+        .map((row) => row as Partial<T>)
+        .filter((row): row is T => Number.isInteger(row.id))
+    : [];
+}
+
+function getProfileName(profile: ProfileRow | null, fallbackName: string) {
+  return String(profile?.full_name || profile?.name || fallbackName || '').trim();
+}
+
+function getProfileRating(profile: ProfileRow | null, fallbackRating?: number) {
+  const direct = Number(profile?.rating);
+  if (Number.isFinite(direct) && direct > 0) return direct;
+
+  const sum = Number(profile?.rating_sum);
+  const count = Number(profile?.rating_count);
+  if (Number.isFinite(sum) && Number.isFinite(count) && count > 0) return sum / count;
+
+  return fallbackRating || 5;
+}
+
+async function fetchProfileByUserId(userId: string): Promise<{ profile: ProfileRow | null; key: ProfileKey | null }> {
+  if (!UUID_REGEX.test(userId)) {
+    return { profile: null, key: null };
+  }
+
+  const key: ProfileKey = { field: 'id', value: userId };
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq(key.field, key.value)
+    .maybeSingle();
+
+  if (error) {
+    if (import.meta.env.DEV) console.warn('[Supabase Profile Fetch:id]', error);
+    return { profile: null, key: null };
+  }
+
+  return { profile: (data as ProfileRow | null) || null, key: data ? key : null };
+}
+
+async function saveProfile(profileKey: ProfileKey | null, userId: string, payload: Record<string, unknown>) {
+  if (!UUID_REGEX.test(userId)) {
+    return;
+  }
+
+  if (profileKey) {
+    const { error } = await supabase.from('profiles').update(payload).eq(profileKey.field, profileKey.value);
+    if (!error) return;
+    if (import.meta.env.DEV) console.warn('[Supabase Profile Update]', error);
+  }
+
+  const { error } = await supabase.from('profiles').upsert({ id: userId, ...payload });
+  if (error) throw error;
+}
 
 export function ProfileTab() {
   const { user, isCaptain, isPassenger, isSovereign, logout, loginAsMockUser } = useAuth();
   const { toast } = useToast();
 
-  // local states for editing
-  const [name, setName] = useState('');
+  const [profile, setProfile] = useState<ProfileRow | null>(null);
+  const [profileKey, setProfileKey] = useState<ProfileKey | null>(null);
+  const [countries, setCountries] = useState<CountryRow[]>([]);
+  const [governorates, setGovernorates] = useState<GovernorateRow[]>([]);
+  const [districts, setDistricts] = useState<DistrictRow[]>([]);
+  const [favoriteCount, setFavoriteCount] = useState(0);
+
+  const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
-  const [gov, setGov] = useState('');
-  const [district, setDistrict] = useState('');
-  const [isUpdating, setIsUpdating] = useState(false);
+  const [countryId, setCountryId] = useState('');
+  const [governorateId, setGovernorateId] = useState('');
+  const [districtId, setDistrictId] = useState('');
 
-  // local states for vehicle (if Captain)
-  const [make, setMake] = useState('');
-  const [color, setColor] = useState('');
-  const [plate, setPlate] = useState('');
-  const [year, setYear] = useState('');
-  const [sideId, setSideId] = useState('');
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+  const [isLoadingCountries, setIsLoadingCountries] = useState(false);
+  const [isLoadingGovernorates, setIsLoadingGovernorates] = useState(false);
+  const [isLoadingDistricts, setIsLoadingDistricts] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
-  // Local storage diagnostic info
-  const [favCount, setFavCount] = useState(0);
-  const [systemUts, setSystemUts] = useState('');
-  const [isDraftRestored, setIsDraftRestored] = useState(false);
+  const selectedCountry = useMemo(
+    () => countries.find((country) => String(country.id) === countryId) || null,
+    [countries, countryId],
+  );
+  const selectedGovernorate = useMemo(
+    () => governorates.find((governorate) => String(governorate.id) === governorateId) || null,
+    [governorates, governorateId],
+  );
+  const selectedDistrict = useMemo(
+    () => districts.find((district) => String(district.id) === districtId) || null,
+    [districts, districtId],
+  );
+
+  const rating = getProfileRating(profile, user?.rating);
+  const displayName = fullName || user?.name || 'مستخدم جديد';
+  const displayPhone = phone || user?.phone || '';
+  const displayRole = isSovereign ? 'مشرف' : isCaptain ? 'سائق' : isPassenger ? 'راكب' : 'مستخدم';
+  const currency = selectedCountry?.currency_ar || selectedCountry?.currency_en || selectedCountry?.currency_code || user?.currencyAr || user?.currencyEn;
+  const isLocationLoading = isLoadingCountries || isLoadingGovernorates || isLoadingDistricts;
 
   useEffect(() => {
-    if (user) {
-      // Check if we have a draft first to avoid state loss during tab switching
-      const draftKey = `profile_draft_${user.uid}`;
-      const savedDraftRaw = localStorage.getItem(draftKey);
-      if (savedDraftRaw) {
-        try {
-          const draft = JSON.parse(savedDraftRaw);
-          // Only restore if the draft actually contains differences from DB to avoid false positives
-          const isDifferent = 
-            (draft.name && draft.name !== (user.name || '')) ||
-            (draft.phone && draft.phone !== (user.phone || '')) ||
-            (draft.gov && draft.gov !== (user.governorate || '')) ||
-            (draft.district && draft.district !== (user.district || '')) ||
-            (isCaptain && (
-              (draft.make && draft.make !== (user.vehicle?.make || '')) ||
-              (draft.color && draft.color !== (user.vehicle?.color || '')) ||
-              (draft.plate && draft.plate !== (user.vehicle?.plate || '')) ||
-              (draft.year && draft.year !== (user.vehicle?.year?.toString() || '')) ||
-              (draft.sideId && draft.sideId !== (user.vehicle?.sideId || ''))
-            ));
+    let active = true;
 
-          if (isDifferent) {
-            setName(draft.name ?? '');
-            setPhone(draft.phone ?? '');
-            setGov(draft.gov ?? '');
-            setDistrict(draft.district ?? '');
-            if (isCaptain) {
-              setMake(draft.make ?? '');
-              setColor(draft.color ?? '');
-              setPlate(draft.plate ?? '');
-              setYear(draft.year ?? '');
-              setSideId(draft.sideId ?? '');
-            }
-            setIsDraftRestored(true);
-            return;
-          }
-        } catch (e) {
-          console.error("Failed to parse draft:", e);
+    async function loadBaseData() {
+      if (!user?.uid) return;
+      setIsLoadingProfile(true);
+      setIsLoadingCountries(true);
+
+      try {
+        const [profileResult, countriesResult, favorites] = await Promise.all([
+          fetchProfileByUserId(user.uid),
+          supabase.from('countries').select('*').order('id', { ascending: true }),
+          dexieDb.favoriteCaptains.count().catch(() => 0),
+        ]);
+
+        if (!active) return;
+
+        if (countriesResult.error) throw countriesResult.error;
+
+        const nextProfile = profileResult.profile;
+        setProfile(nextProfile);
+        setProfileKey(profileResult.key);
+        setCountries(normalizeRows<CountryRow>(countriesResult.data));
+        setFavoriteCount(favorites);
+
+        setFullName(getProfileName(nextProfile, user.name));
+        setPhone(String(nextProfile?.phone || user.phone || ''));
+        setCountryId(numberOrEmpty(nextProfile?.country_id ?? user.countryId));
+        setGovernorateId(numberOrEmpty(nextProfile?.governorate_id ?? user.governorate));
+        setDistrictId(numberOrEmpty(nextProfile?.district_id ?? user.district));
+      } catch (error) {
+        if (import.meta.env.DEV) console.warn('[Profile Load]', error);
+        toast({
+          variant: 'destructive',
+          title: 'تعذر تحميل بيانات الحساب',
+          description: 'تعذر الاتصال بقاعدة البيانات. تحقق من الإنترنت ثم حاول مرة أخرى.',
+        });
+      } finally {
+        if (active) {
+          setIsLoadingProfile(false);
+          setIsLoadingCountries(false);
         }
       }
+    }
 
-      setName(user.name || '');
-      setPhone(user.phone || '');
-      setGov(user.governorate || '');
-      setDistrict(user.district || '');
+    void loadBaseData();
 
-      if (user.vehicle) {
-        setMake(user.vehicle.make || '');
-        setColor(user.vehicle.color || '');
-        setPlate(user.vehicle.plate || '');
-        setYear(user.vehicle.year?.toString() || '');
-        setSideId(user.vehicle.sideId || '');
+    return () => {
+      active = false;
+    };
+  }, [toast, user?.countryId, user?.district, user?.governorate, user?.name, user?.phone, user?.uid]);
+
+  useEffect(() => {
+    let active = true;
+    const selectedCountryId = Number(countryId);
+
+    setGovernorates([]);
+    setDistricts([]);
+
+    if (!Number.isInteger(selectedCountryId) || selectedCountryId <= 0) {
+      return;
+    }
+
+    async function loadGovernorates() {
+      setIsLoadingGovernorates(true);
+      try {
+        const { data, error } = await supabase
+          .from('governorates')
+          .select('*')
+          .eq('country_id', selectedCountryId)
+          .order('id', { ascending: true });
+        if (error) throw error;
+        if (active) setGovernorates(normalizeRows<GovernorateRow>(data));
+      } catch (error) {
+        if (import.meta.env.DEV) console.warn('[Profile Governorates]', error);
+        if (active) {
+          toast({
+            variant: 'destructive',
+            title: 'تعذر تحميل المحافظات',
+            description: 'تعذر تحميل محافظات الدولة المختارة.',
+          });
+        }
+      } finally {
+        if (active) setIsLoadingGovernorates(false);
       }
     }
-  }, [user, isCaptain]);
 
-  // Auto-Save Draft on changes to avoid State Loss
-  useEffect(() => {
-    if (!user?.uid) return;
-    const draftKey = `profile_draft_${user.uid}`;
-    
-    // Only save if we actually have values to prevent blanking out the database state on initial load
-    if (!name && !phone && !gov && !district) return;
+    void loadGovernorates();
 
-    // Check if the current state is different from the original database state
-    const isDifferent = 
-      name !== (user.name || '') ||
-      phone !== (user.phone || '') ||
-      gov !== (user.governorate || '') ||
-      district !== (user.district || '') ||
-      (isCaptain && (
-        make !== (user.vehicle?.make || '') ||
-        color !== (user.vehicle?.color || '') ||
-        plate !== (user.vehicle?.plate || '') ||
-        year !== (user.vehicle?.year?.toString() || '') ||
-        sideId !== (user.vehicle?.sideId || '')
-      ));
-
-    if (isDifferent) {
-      const draft = {
-        name,
-        phone,
-        gov,
-        district,
-        make,
-        color,
-        plate,
-        year,
-        sideId
-      };
-      localStorage.setItem(draftKey, JSON.stringify(draft));
-    } else {
-      // If user restored original values manually, we can trash the draft safely
-      localStorage.removeItem(draftKey);
-      setIsDraftRestored(false);
-    }
-  }, [name, phone, gov, district, make, color, plate, year, sideId, user, isCaptain]);
-
-  const discardDraft = useCallback(() => {
-    if (!user) return;
-    localStorage.removeItem(`profile_draft_${user.uid}`);
-    setIsDraftRestored(false);
-    
-    setName(user.name || '');
-    setPhone(user.phone || '');
-    setGov(user.governorate || '');
-    setDistrict(user.district || '');
-
-    if (user.vehicle) {
-      setMake(user.vehicle.make || '');
-      setColor(user.vehicle.color || '');
-      setPlate(user.vehicle.plate || '');
-      setYear(user.vehicle.year?.toString() || '');
-      setSideId(user.vehicle.sideId || '');
-    } else {
-      setMake('');
-      setColor('');
-      setPlate('');
-      setYear('');
-      setSideId('');
-    }
-    
-    toast({
-      title: '🗑️ تم إهمال المسودة',
-      description: 'تم إرجاع حقول التعديل إلى القيم الموثقة في قاعدة البيانات.'
-    });
-  }, [user, toast]);
-
-  // Load IndexedDB statistics to eliminate desync doubts
-  const loadDiagnostics = useCallback(async () => {
-    try {
-      const count = await dexieDb.favoriteCaptains.count();
-      setFavCount(count);
-      setSystemUts(new Date().toISOString().replace('T', ' ').substring(0, 19) + ' UTC');
-    } catch (e) {
-      console.warn("Failed to retrieve diagnostics:", e);
-    }
-  }, []);
+    return () => {
+      active = false;
+    };
+  }, [countryId, toast]);
 
   useEffect(() => {
-    loadDiagnostics();
-  }, [loadDiagnostics]);
+    let active = true;
+    const selectedGovernorateId = Number(governorateId);
 
-  const handleProfileSave = async (e: React.FormEvent) => {
-    e.preventDefault();
+    setDistricts([]);
+
+    if (!Number.isInteger(selectedGovernorateId) || selectedGovernorateId <= 0) {
+      return;
+    }
+
+    async function loadDistricts() {
+      setIsLoadingDistricts(true);
+      try {
+        const { data, error } = await supabase
+          .from('districts')
+          .select('*')
+          .eq('governorate_id', selectedGovernorateId)
+          .order('id', { ascending: true });
+        if (error) throw error;
+        if (active) setDistricts(normalizeRows<DistrictRow>(data));
+      } catch (error) {
+        if (import.meta.env.DEV) console.warn('[Profile Districts]', error);
+        if (active) {
+          toast({
+            variant: 'destructive',
+            title: 'تعذر تحميل المناطق',
+            description: 'تعذر تحميل مناطق المحافظة المختارة.',
+          });
+        }
+      } finally {
+        if (active) setIsLoadingDistricts(false);
+      }
+    }
+
+    void loadDistricts();
+
+    return () => {
+      active = false;
+    };
+  }, [governorateId, toast]);
+
+  const handleCountryChange = (value: string) => {
+    setCountryId(value);
+    setGovernorateId('');
+    setDistrictId('');
+  };
+
+  const handleGovernorateChange = (value: string) => {
+    setGovernorateId(value);
+    setDistrictId('');
+  };
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     if (!user?.uid) return;
 
-    if (!name.trim()) {
+    const nextCountryId = Number(countryId);
+    const nextGovernorateId = Number(governorateId);
+    const nextDistrictId = Number(districtId);
+
+    if (!fullName.trim()) {
       toast({
         variant: 'destructive',
-        title: '⚠️ خطأ في المدخلات',
-        description: 'الرجاء إدخال الاسم الكامل القانوني.'
+        title: 'بيانات غير مكتملة',
+        description: 'يرجى كتابة الاسم الكامل.',
       });
       return;
     }
 
-    setIsUpdating(true);
-    try {
-      const userRef = doc(db, 'users', user.uid);
-      const updatePayload: any = {
-        name: name.trim(),
-        phone: phone.trim(),
-        governorate: gov,
-        district: district,
-      };
-
-      if (isCaptain) {
-        updatePayload.vehicle = {
-          make: make.trim(),
-          color: color.trim(),
-          plate: plate.trim(),
-          year: year ? parseInt(year, 10) : 2023,
-          sideId: sideId.trim()
-        };
-      }
-
-      await setDoc(userRef, updatePayload, { merge: true });
-
-      // Clear the draft upon successful save
-      localStorage.removeItem(`profile_draft_${user.uid}`);
-      setIsDraftRestored(false);
-
-      // Update locally customized mock user properties to minimize state gaps
-      if (import.meta.env.DEV) {
-        const savedBypass = localStorage.getItem('sovereign_dev_bypass_user');
-        if (savedBypass) {
-          try {
-            const parsed = JSON.parse(savedBypass);
-            const nextBypass = { ...parsed, ...updatePayload };
-            localStorage.setItem('sovereign_dev_bypass_user', JSON.stringify(nextBypass));
-            loginAsMockUser(nextBypass);
-          } catch (err) {
-            // silent ignore
-          }
-        }
-      }
-
-      toast({
-        title: '✅ تم مزامنة الهوية الدستورية',
-        description: 'تم حقن وتحديث بياناتك في العقد الموحد بنجاح تام.'
-      });
-
-      if (typeof navigator !== 'undefined' && navigator.vibrate) {
-        navigator.vibrate([40, 20, 40]);
-      }
-    } catch (err: any) {
+    if (![nextCountryId, nextGovernorateId, nextDistrictId].every((value) => Number.isInteger(value) && value > 0)) {
       toast({
         variant: 'destructive',
-        title: '🚨 فشل الترقيع الرقمي',
-        description: err?.message || 'تعذر الاتصال بقاعدة البيانات السيادية.'
+        title: 'بيانات غير مكتملة',
+        description: 'يرجى اختيار الدولة والمحافظة والمنطقة.',
       });
-      // Pass the error to the forensic central handler
-      handleFirestoreError(err, OperationType.WRITE, `users/${user.uid}`);
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const payload = {
+        full_name: fullName.trim(),
+        name: fullName.trim(),
+        phone: phone.trim(),
+        country_id: nextCountryId,
+        governorate_id: nextGovernorateId,
+        district_id: nextDistrictId,
+        updated_at: new Date().toISOString(),
+      };
+
+      await saveProfile(profileKey, user.uid, payload);
+
+      const nextProfile = { ...(profile || {}), ...payload };
+      setProfile(nextProfile);
+
+      if (import.meta.env.DEV) {
+        loginAsMockUser({
+          ...user,
+          name: fullName.trim(),
+          phone: phone.trim(),
+          countryId: nextCountryId,
+          governorate: String(nextGovernorateId),
+          district: String(nextDistrictId),
+          currencyAr: selectedCountry?.currency_ar || user.currencyAr,
+          currencyEn: selectedCountry?.currency_en || selectedCountry?.currency_code || user.currencyEn,
+        });
+      }
+
+      const { error: metadataError } = await supabase.auth.updateUser({
+        data: {
+          full_name: fullName.trim(),
+          phone: phone.trim(),
+          country_id: nextCountryId,
+          governorate_id: nextGovernorateId,
+          district_id: nextDistrictId,
+          currency_ar: selectedCountry?.currency_ar || null,
+          currency_en: selectedCountry?.currency_en || selectedCountry?.currency_code || null,
+        },
+      });
+
+      if (metadataError && import.meta.env.DEV) {
+        console.warn('[Supabase Auth Metadata Update]', metadataError);
+      }
+
+      toast({
+        title: 'تم حفظ التعديلات',
+        description: 'تم تحديث بيانات الحساب والمنطقة من قاعدة البيانات.',
+      });
+    } catch (error) {
+      if (import.meta.env.DEV) console.warn('[Profile Save]', error);
+      toast({
+        variant: 'destructive',
+        title: 'تعذر حفظ البيانات',
+        description: 'تعذر تحديث بيانات الحساب. تأكد من صلاحيات قاعدة البيانات ثم حاول مرة أخرى.',
+      });
     } finally {
-      setIsUpdating(false);
+      setIsSaving(false);
     }
   };
 
-  const handleTimeAlignment = () => {
-    setSystemUts(new Date().toISOString().replace('T', ' ').substring(0, 19) + ' UTC');
-    toast({
-      title: '⚡️ تم معايرة خط الوقت المتزامن',
-      description: 'تم محاذاة مؤشرات الزمن مع الصندوق الأسود السيادي بنجاح.'
-    });
-    if (typeof navigator !== 'undefined' && navigator.vibrate) {
-      navigator.vibrate([30]);
-    }
-  };
-
-  const currentDistricts = gov ? getDistrictsByGovernorate(gov) : [];
-
-  const ratingValue = user?.rating !== undefined 
-    ? user.rating 
-    : (user?.ratingSum && user?.ratingCount ? user.ratingSum / user.ratingCount : 5.0);
+  if (!user) {
+    return (
+      <div className="mx-auto w-full max-w-xl pb-24 text-right font-sans" dir="rtl">
+        <Card className="border-emerald-950 bg-[#020502]/95 text-white">
+          <CardContent className="p-6 text-sm text-gray-300">يرجى تسجيل الدخول لعرض بيانات الحساب.</CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
-    <div className="w-full max-w-xl mx-auto pb-24 text-right font-sans space-y-6" dir="rtl">
-      {/* 1. بطاقة الهوية والتقييم العلوية */}
-      <Card className="bg-[#050c05] border-emerald-900/40 text-white overflow-hidden shadow-2xl relative">
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 via-green-600 to-emerald-400 animate-pulse" />
-        <CardContent className="p-6 space-y-5">
+    <div className="mx-auto w-full max-w-xl space-y-6 pb-24 text-right font-sans" dir="rtl">
+      <Card className="relative overflow-hidden border-emerald-900/40 bg-[#050c05] text-white shadow-2xl">
+        <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-emerald-500 via-green-600 to-emerald-400" />
+        <CardContent className="space-y-5 p-6">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="h-12 w-12 rounded-xl bg-emerald-950 border border-emerald-500/20 flex items-center justify-center text-emerald-400 text-xl font-bold">
-                {name ? name.substring(0, 1) : <User className="h-6 w-6" />}
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-emerald-500/20 bg-emerald-950 text-xl font-black text-emerald-300">
+                {displayName ? displayName.substring(0, 1).toUpperCase() : <User className="h-6 w-6" />}
               </div>
               <div>
-                <h2 className="text-lg font-black text-white">{name || 'مستخدم النبض السيادي'}</h2>
-                <Badge variant="outline" className="text-[10px] mt-1 bg-[#0a1e0a] text-emerald-400 border-emerald-500/10">
-                  {isSovereign ? 'قائد مشغل سيادي (مدير)' : isCaptain ? `فارس ميداني (كابتن)` : 'مسافر سيادي مستقر'}
-                </Badge>
-                <div className="mt-1.5 flex flex-wrap gap-1.5 items-center">
-                  {user?.serial_id && (
-                    <span className="inline-flex items-center gap-1 bg-[#03231c] text-[#00ffcc] text-[9px] font-mono font-black px-2 py-0.5 rounded border border-emerald-500/30">
-                      🧬 {user.serial_id}
-                    </span>
-                  )}
-                  {isCaptain && (
-                    <span className={`inline-flex items-center gap-1 text-[9px] font-bold px-2.5 py-0.5 rounded border ${
-                      user?.rank === 'Platinum' 
-                        ? 'bg-gradient-to-r from-slate-200 to-slate-400 text-slate-950 border-slate-100 shadow-sm'
-                        : user?.rank === 'Gold'
-                        ? 'bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-600 text-black border-amber-300 shadow-sm'
-                        : user?.rank === 'Silver'
-                        ? 'bg-gradient-to-r from-gray-300 to-gray-500 text-black border-gray-200 shadow-sm'
-                        : 'bg-gradient-to-r from-orange-700 to-amber-950 text-white border-orange-600 shadow-sm'
-                    }`}>
-                      🛡️ رتبة {user?.rank || 'Bronze'}
-                    </span>
-                  )}
+                <h2 className="text-xl font-black text-white">{displayName}</h2>
+                <div className="mt-1 flex flex-wrap items-center gap-2">
+                  <Badge variant="outline" className="border-emerald-500/20 bg-[#0a1e0a] text-[10px] text-emerald-300">
+                    {displayRole}
+                  </Badge>
+                  {profile?.serial_id || user.serial_id ? (
+                    <Badge variant="outline" className="border-emerald-500/20 bg-black/30 font-mono text-[10px] text-[#00ffcc]">
+                      رقم الحساب: {String(profile?.serial_id || user.serial_id)}
+                    </Badge>
+                  ) : null}
                 </div>
               </div>
             </div>
-            
-            <div className="text-left font-mono space-y-1">
-              <span className="text-[9px] text-gray-500 block uppercase font-bold">رصيد الثقة الدستوري</span>
-              <div className="flex items-center gap-1.5 justify-end bg-emerald-950/40 p-2.5 py-1 rounded-xl border border-emerald-500/10 text-emerald-400">
-                <span className="text-sm font-extrabold">{ratingValue.toFixed(2)}</span>
-                <span className="text-xs text-gray-500">/ 5.0</span>
+
+            <div className="text-left font-mono">
+              <span className="block text-[10px] font-bold text-gray-500">التقييم الحالي</span>
+              <div className="mt-1 rounded-xl border border-emerald-500/10 bg-emerald-950/40 px-3 py-1.5 text-emerald-300">
+                <span className="text-base font-black">{rating.toFixed(1)}</span>
+                <span className="text-xs text-gray-500"> / 5</span>
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 pt-2 text-right border-t border-white/5 font-mono text-[11px] text-gray-400">
-            <div className="bg-[#000]/30 p-2.5 rounded-xl border border-white/5 space-y-0.5">
-              <span className="text-[9px] text-[#00ffcc] block mb-0.5">📍 النسيج الجغرافي المسجل:</span>
-              <strong>{gov || 'غير محدد'} - {district || 'غير محدد'}</strong>
+          <div className="grid gap-3 border-t border-white/5 pt-4 sm:grid-cols-2">
+            <div className="rounded-xl border border-white/5 bg-black/30 p-3">
+              <span className="flex items-center gap-1 text-[10px] font-bold text-[#00ffcc]">
+                <MapPin className="h-3.5 w-3.5" />
+                المحافظة والمنطقة
+              </span>
+              <strong className="mt-1 block text-sm text-white">
+                {labelFor(selectedGovernorate) || 'غير محدد'} - {labelFor(selectedDistrict) || 'غير محدد'}
+              </strong>
             </div>
 
-            <div className="bg-[#000]/30 p-2.5 rounded-xl border border-white/5 space-y-0.5">
-              <span className="text-[9px] text-emerald-500 block mb-0.5">🔐 الترقيم الذري السيادي:</span>
-              <span className="text-[10px] text-emerald-400 font-bold block">{user?.serial_id || 'جاري التوليد...'}</span>
+            <div className="rounded-xl border border-white/5 bg-black/30 p-3">
+              <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-300">
+                <ShieldCheck className="h-3.5 w-3.5" />
+                بيانات الحساب
+              </span>
+              <strong className="mt-1 block text-sm text-white">{displayPhone || 'رقم الهاتف غير متاح'}</strong>
+              {currency ? <span className="mt-1 block text-[11px] text-gray-400">العملة: {currency}</span> : null}
             </div>
-
-            {isCaptain && (
-              <>
-                <div className="bg-[#000]/30 p-2.5 rounded-xl border border-white/5 space-y-1">
-                  <span className="text-[9px] text-amber-500 block mb-0.5">🏢 الارتباط والتبعية:</span>
-                  <strong className="text-white text-[10px] block truncate">
-                    {user?.affiliation?.name || user?.companyName || 'ناقل مستقل حُر'}
-                  </strong>
-                  <span className="text-[8px] text-gray-500 block">
-                    {user?.affiliation?.type === 'office-taxi' ? 'مكتب تاكسي رسمي' : 'تطبيق ذكي مستقل'}
-                  </span>
-                </div>
-
-                <div className="bg-[#000]/30 p-2.5 rounded-xl border border-white/5 space-y-1">
-                  <span className="text-[9px] text-red-500 block mb-0.5">⚠️ مؤشرات الإلغاء والمناعة:</span>
-                  <div className="flex justify-between items-baseline text-[9px]">
-                    <span className="text-[8px] text-gray-500">سجل الإلغاء المتتالي:</span>
-                    <strong className="text-red-400">{user?.consecutiveCancellations || 0} / 3</strong>
-                  </div>
-                  <div className="flex justify-between items-baseline text-[9px]">
-                    <span className="text-[8px] text-gray-500">درجة الثقة والمناعة:</span>
-                    <strong className="text-emerald-400">{(user?.rating || 5.0).toFixed(1)}</strong>
-                  </div>
-                </div>
-              </>
-            )}
           </div>
         </CardContent>
       </Card>
 
-      {/* 1.5. ملف البيانات الفنية والمهنية للناقل السيادي - يظهر للكباتن فقط */}
-      {isCaptain && (
-        <Card className="bg-[#030704]/95 border border-emerald-950 text-white overflow-hidden shadow-2xl relative">
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-500 via-emerald-600 to-emerald-400" />
-          <CardHeader className="pb-3 border-b border-white/5 bg-[#050D05]/50">
-            <CardTitle className="text-sm font-extrabold text-emerald-400 flex items-center gap-2">
-              <Shield className="h-5 w-5 text-emerald-500" />
-              الملف الفني والترخيص المهني للناقل السيادي
-            </CardTitle>
-            <CardDescription className="text-xs text-gray-400">
-              مراجعة وتدقيق بيانات الترخيص، الساعات النشطة، والامتثال السلوكي المسجل على الحافة.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-5 space-y-4 font-mono text-[11px]">
-            {/* أ. تفاصيل المركبة المسجلة */}
-            <div className="space-y-2">
-              <h3 className="text-xs font-black text-amber-500 flex items-center gap-1.5">
-                <Car className="h-4 w-4" /> رخصة ومواصفات المركبة المعتمدة
-              </h3>
-              <div className="grid grid-cols-2 gap-2.5">
-                <div className="bg-black/40 p-2.5 rounded-xl border border-white/5 space-y-0.5">
-                  <span className="text-[9px] text-gray-500 block">العلامة والموديل:</span>
-                  <strong className="text-white text-xs">{user?.vehicle?.make || 'Toyota Hybrid / معلق'}</strong>
-                </div>
-                <div className="bg-black/40 p-2.5 rounded-xl border border-white/5 space-y-0.5">
-                  <span className="text-[9px] text-gray-500 block">لون المركبة المسجل:</span>
-                  <strong className="text-white text-xs">{user?.vehicle?.color || 'فضي معدني'}</strong>
-                </div>
-                <div className="bg-black/40 p-2.5 rounded-xl border border-white/5 space-y-0.5">
-                  <span className="text-[9px] text-gray-500 block">رقم لوحة الترخيص:</span>
-                  <strong className="text-emerald-400 text-xs font-bold tracking-wider">{user?.vehicle?.plate || '77-12345'}</strong>
-                </div>
-                <div className="bg-black/40 p-2.5 rounded-xl border border-white/5 space-y-0.5">
-                  <span className="text-[9px] text-gray-500 block">سنة الصنع الموثقة:</span>
-                  <strong className="text-white text-xs">{user?.vehicle?.year || '2023'}</strong>
-                </div>
-              </div>
-            </div>
-
-            {/* ب. الجهة المشغلة وارتباط الأسطول */}
-            <div className="bg-[#050D05]/20 p-3 rounded-xl border border-emerald-950/40 space-y-1">
-              <span className="text-[9px] text-gray-500 block">الارتباط المؤسسي والجهة المظلية:</span>
-              <div className="flex items-center justify-between text-xs font-bold">
-                <span className="text-white">{user?.affiliation?.name || user?.companyName || 'ناقل مستقل حُر (غير تابع لمكتب)'}</span>
-                <Badge variant="outline" className="text-[9px] bg-emerald-950/60 text-emerald-400 border-emerald-500/20">
-                  {user?.affiliation?.type === 'office-taxi' ? 'مكتب تاكسي رسمي' : 'تطبيق ذكي مستقل'}
-                </Badge>
-              </div>
-            </div>
-
-            {/* ج. أرصدة عبور الوقت والاشتراك المالي */}
-            <div className="space-y-2 pt-2 border-t border-white/5">
-              <h3 className="text-xs font-black text-emerald-400 flex items-center gap-1.5">
-                <Wallet className="h-4 w-4" /> أرصدة عبور الوقت والمحفظة الرقمية
-              </h3>
-              <div className="grid grid-cols-3 gap-2">
-                <div className="bg-black/40 p-2.5 rounded-xl border border-white/5 space-y-1 text-center">
-                  <span className="text-[8px] text-gray-500 block">رصيد الاشتراك الأساسي</span>
-                  <div className="text-emerald-400 font-bold text-xs truncate">
-                    {user?.paidHoursRemaining !== undefined 
-                      ? `${Math.floor(user.paidHoursRemaining / 60)}س ${user.paidHoursRemaining % 60}د`
-                      : '180س'}
-                  </div>
-                </div>
-                <div className="bg-black/40 p-2.5 rounded-xl border border-white/5 space-y-1 text-center">
-                  <span className="text-[8px] text-gray-500 block">بونص الرتبة السيادية</span>
-                  <div className="text-amber-400 font-bold text-xs truncate">
-                    {user?.bonusHoursRemaining !== undefined 
-                      ? `${Math.floor(user.bonusHoursRemaining / 60)}س ${user.bonusHoursRemaining % 60}د`
-                      : '120س'}
-                  </div>
-                </div>
-                <div className="bg-black/40 p-2.5 rounded-xl border border-white/5 space-y-1 text-center">
-                  <span className="text-[8px] text-gray-500 block">رصيد المحفظة الحر</span>
-                  <div className="text-white font-bold text-xs truncate">
-                    {(user?.walletBalanceJD || 0.00).toFixed(2)} د.أ
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* د. مؤشرات المناعة والامتثال السلوكي */}
-            <div className="space-y-2 pt-2 border-t border-white/5">
-              <h3 className="text-xs font-black text-[#00ffcc] flex items-center gap-1.5">
-                <ShieldCheck className="h-4 w-4" /> سجل الامتثال والمناعة السلوكية
-              </h3>
-              <div className="grid grid-cols-2 gap-2.5">
-                <div className="bg-black/40 p-2.5 rounded-xl border border-white/5 flex items-center justify-between gap-2">
-                  <div className="space-y-0.5">
-                    <span className="text-[8px] text-gray-500 block">رصيد الدعم الشعبي (القلوب):</span>
-                    <strong className="text-rose-400 text-xs">{user?.heartCount || 0} قلوب</strong>
-                  </div>
-                  <Heart className="h-5 w-5 text-rose-500 fill-rose-500/20" />
-                </div>
-                <div className="bg-black/40 p-2.5 rounded-xl border border-white/5 flex items-center justify-between gap-2">
-                  <div className="space-y-0.5">
-                    <span className="text-[8px] text-gray-500 block">المخالفات الميدانية النشطة:</span>
-                    <strong className={`text-xs ${user?.penaltyCount ? 'text-red-400 font-black' : 'text-emerald-400'}`}>
-                      {user?.penaltyCount || 0} جزاءات
-                    </strong>
-                  </div>
-                  <AlertTriangle className={`h-5 w-5 ${user?.penaltyCount ? 'text-red-500 animate-bounce' : 'text-gray-600'}`} />
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* 2. استمارة تحيين وتعديل البيانات */}
-      <Card className="bg-[#020502]/95 border border-emerald-950 shadow-xl">
+      <Card className="border border-emerald-950 bg-[#020502]/95 shadow-xl">
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base font-extrabold text-[#00ffcc] flex items-center gap-2">
-              <Key className="h-5 w-5 text-emerald-500" />
-              تعديل الهوية واللائحة الترابية
-            </CardTitle>
-            {isDraftRestored && (
-              <Badge variant="outline" className="border-amber-500/30 bg-amber-950/20 text-amber-400 text-[10px] animate-pulse">
-                ⏳ مسودة مستعادة
-              </Badge>
-            )}
-          </div>
+          <CardTitle className="flex items-center gap-2 text-base font-extrabold text-[#00ffcc]">
+            <Database className="h-5 w-5 text-emerald-500" />
+            تعديل بيانات الحساب والمنطقة
+          </CardTitle>
           <CardDescription className="text-xs text-gray-400">
-            يرجى تحديد المحافظة واللواء الميداني الأساسي بعناية لتزجية واستهداف الطلبات بدقة.
+            يتم تحميل الدولة والمحافظة والمنطقة مباشرة من قاعدة البيانات.
           </CardDescription>
-          {isDraftRestored && (
-            <div className="mt-2 p-2 bg-amber-950/25 border border-amber-500/20 rounded-lg text-[10px] text-amber-300 flex items-center justify-between">
-              <span>⚠️ تم استعادة تعديلات قمت بإدخالها سابقاً ولم يتم حفظها مسبقاً.</span>
-              <button 
-                type="button" 
-                onClick={discardDraft}
-                className="text-amber-400 hover:text-amber-300 font-bold underline cursor-pointer"
-              >
-                إهمال المسودة
-              </button>
-            </div>
-          )}
         </CardHeader>
+
         <CardContent>
-          <form onSubmit={handleProfileSave} className="space-y-4 font-sans">
-            <div className="space-y-1.5 text-right">
-              <label className="text-xs text-gray-400 font-bold block">الاسم المعتمد القانوني:</label>
-              <Input
-                placeholder="أدخل اسمك كما بالهوية"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="bg-black/50 border-emerald-900/30 text-white rounded-xl text-right placeholder-gray-600 focus-visible:ring-emerald-500"
-                required
-              />
+          {isLoadingProfile ? (
+            <div className="flex items-center justify-center gap-2 rounded-xl border border-emerald-900/30 bg-black/30 p-5 text-sm text-gray-300">
+              <Loader2 className="h-4 w-4 animate-spin text-emerald-400" />
+              جاري تحميل بيانات الحساب...
             </div>
-
-            <div className="space-y-1.5 text-right">
-              <label className="text-xs text-gray-400 font-bold block">رقم الاتصال الموثق:</label>
-              <Input
-                type="tel"
-                placeholder="+96279..."
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="bg-black/50 border-emerald-900/30 text-white rounded-xl text-right ltr"
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3" dir="rtl">
-              <div className="space-y-1.5 text-right">
-                <label className="text-sm text-gray-400 font-bold block">المحافظة الأساسية:</label>
-                <Select
-                  value={gov}
-                  onValueChange={(val) => {
-                    setGov(val);
-                    setDistrict('');
-                  }}
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-gray-400">الاسم الكامل</label>
+                <Input
+                  value={fullName}
+                  onChange={(event) => setFullName(event.target.value)}
+                  className="rounded-xl border-emerald-900/30 bg-black/50 text-right text-white"
+                  placeholder="اكتب اسمك الكامل"
                   required
-                >
-                  <SelectTrigger className="bg-black/50 border-emerald-900/30 text-white text-right rounded-xl h-11" dir="rtl">
-                    <SelectValue placeholder="اختر المحافظة" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-neutral-950 border-emerald-900/30 text-white">
-                    {jordanGovernorates.map((g) => (
-                      <SelectItem key={g} value={g} className="text-right justify-end">{g}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                />
               </div>
 
-              <div className="space-y-1.5 text-right">
-                <label className="text-sm text-gray-400 font-bold block">اللواء الميداني:</label>
-                <Select
-                  value={district}
-                  onValueChange={(val) => setDistrict(val)}
-                  disabled={!gov}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-gray-400">رقم الهاتف</label>
+                <Input
+                  value={phone}
+                  onChange={(event) => setPhone(event.target.value)}
+                  className="rounded-xl border-emerald-900/30 bg-black/50 text-right text-white"
+                  placeholder="+962790000000"
                   required
-                >
-                  <SelectTrigger className="bg-black/50 border-emerald-900/30 text-white text-right rounded-xl h-11" dir="rtl">
-                    <SelectValue placeholder="اختر اللواء" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-neutral-950 border-emerald-900/30 text-white">
-                    {currentDistricts.map((d) => (
-                      <SelectItem key={d} value={d} className="text-right justify-end">{d}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                />
               </div>
-            </div>
 
-            {/* تفاصيل المركبة إذا كان كابتن */}
-            {isCaptain && (
-              <div className="pt-4 border-t border-white/5 space-y-4">
-                <h3 className="text-xs font-black text-amber-500 uppercase tracking-widest flex items-center gap-1">
-                  <Car className="h-4 w-4" />
-                  تحيين مواصفات ولائحة المركبة
-                </h3>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5 text-right">
-                    <label className="text-xs text-gray-400 font-bold block">نوع وموديل السيارة:</label>
-                    <Input
-                      placeholder="Toyota Corolla Hybrid..."
-                      value={make}
-                      onChange={(e) => setMake(e.target.value)}
-                      className="bg-black/50 border-emerald-900/30 text-white rounded-xl text-right"
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-1.5 text-right">
-                    <label className="text-xs text-gray-400 font-bold block">لون المركبة:</label>
-                    <Input
-                      placeholder="أبيض / كحلي..."
-                      value={color}
-                      onChange={(e) => setColor(e.target.value)}
-                      className="bg-black/50 border-emerald-900/30 text-white rounded-xl text-right"
-                      required
-                    />
-                  </div>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-gray-400">الدولة</label>
+                  <Select value={countryId} onValueChange={handleCountryChange} required>
+                    <SelectTrigger className="h-11 rounded-xl border-emerald-900/30 bg-black/50 text-white" dir="rtl">
+                      <SelectValue placeholder={isLoadingCountries ? 'جاري التحميل...' : 'اختر الدولة'} />
+                    </SelectTrigger>
+                    <SelectContent className="border-emerald-900/30 bg-neutral-950 text-white">
+                      {countries.map((country) => (
+                        <SelectItem key={country.id} value={String(country.id)} className="justify-end text-right">
+                          {labelFor(country)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="space-y-1.5 text-right col-span-1">
-                    <label className="text-[10px] text-gray-400 font-bold block truncate">رقم اللوحة القانوني:</label>
-                    <Input
-                      placeholder="77-12345"
-                      value={plate}
-                      onChange={(e) => setPlate(e.target.value)}
-                      className="bg-black/50 border-emerald-900/30 text-white rounded-xl font-mono text-center h-10 text-xs px-2"
-                      required
-                    />
-                  </div>
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-gray-400">المحافظة</label>
+                  <Select value={governorateId} onValueChange={handleGovernorateChange} disabled={!countryId || isLoadingGovernorates} required>
+                    <SelectTrigger className="h-11 rounded-xl border-emerald-900/30 bg-black/50 text-white" dir="rtl">
+                      <SelectValue placeholder={isLoadingGovernorates ? 'جاري التحميل...' : 'اختر المحافظة'} />
+                    </SelectTrigger>
+                    <SelectContent className="border-emerald-900/30 bg-neutral-950 text-white">
+                      {governorates.map((governorate) => (
+                        <SelectItem key={governorate.id} value={String(governorate.id)} className="justify-end text-right">
+                          {labelFor(governorate)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-                  <div className="space-y-1.5 text-right col-span-1">
-                    <label className="text-[10px] text-gray-400 font-bold block truncate">لوحة الجانب (Side ID):</label>
-                    <Input
-                      placeholder="A-123"
-                      value={sideId}
-                      onChange={(e) => setSideId(e.target.value)}
-                      className="bg-black/50 border-emerald-900/30 text-white rounded-xl font-mono text-center h-10 text-xs px-2"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5 text-right col-span-1">
-                    <label className="text-[10px] text-gray-400 font-bold block truncate">سنة صنع المركبة:</label>
-                    <Input
-                      type="number"
-                      placeholder="2023"
-                      value={year}
-                      onChange={(e) => setYear(e.target.value)}
-                      className="bg-black/50 border-emerald-900/30 text-white rounded-xl text-center font-mono h-10 text-xs px-2"
-                      required
-                    />
-                  </div>
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-gray-400">المنطقة</label>
+                  <Select value={districtId} onValueChange={setDistrictId} disabled={!governorateId || isLoadingDistricts} required>
+                    <SelectTrigger className="h-11 rounded-xl border-emerald-900/30 bg-black/50 text-white" dir="rtl">
+                      <SelectValue placeholder={isLoadingDistricts ? 'جاري التحميل...' : 'اختر المنطقة'} />
+                    </SelectTrigger>
+                    <SelectContent className="border-emerald-900/30 bg-neutral-950 text-white">
+                      {districts.map((district) => (
+                        <SelectItem key={district.id} value={String(district.id)} className="justify-end text-right">
+                          {labelFor(district)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
-            )}
 
-            <Button
-              type="submit"
-              disabled={isUpdating}
-              className="w-full h-12 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-sm rounded-xl tracking-tight shadow-md transition-all duration-300"
-            >
-              {isUpdating ? 'جاري الربط والمزامنة...' : 'مزامنة وحفظ التعديلات السيادية 🚀'}
-            </Button>
-          </form>
+              {isLocationLoading ? (
+                <p className="flex items-center gap-2 text-xs text-emerald-300">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  جاري تحديث القوائم من قاعدة البيانات...
+                </p>
+              ) : null}
+
+              <Button
+                type="submit"
+                disabled={isSaving || isLocationLoading}
+                className="h-12 w-full rounded-xl bg-emerald-600 text-sm font-extrabold text-white hover:bg-emerald-500"
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                    جاري حفظ البيانات...
+                  </>
+                ) : (
+                  <>
+                    <Save className="ml-2 h-4 w-4" />
+                    حفظ التعديلات
+                  </>
+                )}
+              </Button>
+            </form>
+          )}
         </CardContent>
       </Card>
 
-      {/* 3. مركز التشخيص وصفر كلفة ومزامنة الزمن السيادي */}
-      <Card className="bg-[#050510]/40 border border-blue-900/20 text-white">
+      <Card className="border border-blue-900/20 bg-[#050510]/40 text-white">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-extrabold text-blue-400 flex items-center gap-2">
-            <Cpu className="h-4.5 w-4.5 text-blue-500 animate-pulse" />
-            مركز تشخيص وحصانة الحافة (Edge Diagnostics)
+          <CardTitle className="flex items-center gap-2 text-sm font-extrabold text-blue-400">
+            <Heart className="h-4.5 w-4.5 text-blue-500" />
+            معلومات محلية
           </CardTitle>
           <CardDescription className="text-[11px] text-gray-400">
-            فحص أداء الحافة وسلامة النظام من تزييف الحقائق أو تباطؤ الإشارات الميدانية.
+            هذه معلومات محفوظة على جهازك لتحسين التجربة بدون اتصال دائم.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3.5 pb-5">
-          <div className="grid grid-cols-2 gap-2.5 text-right font-mono text-[10px] sm:text-[11px]">
-            <div className="bg-[#000]/40 p-3 rounded-lg border border-white/5 space-y-1 flex flex-col justify-between">
-              <span className="text-[9px] text-[#00ffcc]/80 block">💾 الكباتن المخلدون بجهازك:</span>
-              <div className="flex items-baseline justify-between pt-1">
-                <span className="text-xs text-gray-400 font-bold">بموجب Dexie DB</span>
-                <strong className="text-sm text-[#00ffcc]">{favCount} ناقلين</strong>
-              </div>
+          <div className="grid grid-cols-2 gap-2.5 text-right font-mono text-[11px]">
+            <div className="rounded-lg border border-white/5 bg-black/40 p-3">
+              <span className="block text-[9px] text-[#00ffcc]/80">السائقون المحفوظون</span>
+              <strong className="mt-1 block text-sm text-[#00ffcc]">{favoriteCount}</strong>
             </div>
-
-            <div className="bg-[#000]/40 p-3 rounded-lg border border-white/5 space-y-1 flex flex-col justify-between">
-              <span className="text-[9px] text-blue-400 block">📡 زمن الرادار المتزامن:</span>
-              <div className="flex items-center justify-between pt-1">
-                <button
-                  type="button"
-                  onClick={handleTimeAlignment}
-                  className="p-1 px-2.5 bg-blue-950/40 hover:bg-blue-900/30 text-blue-400 border border-blue-500/25 rounded-md text-[9px] cursor-pointer transition-all active:scale-95"
-                >
-                  <RefreshCw className="h-2.5 w-2.5 inline ml-1 animate-spin-slow" /> معايرة
-                </button>
-                <strong className="text-[10px] text-blue-400 block max-w-24 text-left truncate" title={systemUts}>
-                  {systemUts ? systemUts.split(' ')[1] || systemUts : 'نشط'}
-                </strong>
-              </div>
+            <div className="rounded-lg border border-white/5 bg-black/40 p-3">
+              <span className="block text-[9px] text-blue-400">مصدر بيانات الحساب</span>
+              <strong className="mt-1 flex items-center gap-1 text-sm text-blue-300">
+                <RefreshCw className="h-3.5 w-3.5" />
+                Supabase
+              </strong>
             </div>
-          </div>
-
-          <div className="p-3 rounded-xl bg-blue-950/10 border border-blue-900/15 text-[11px] leading-relaxed text-gray-400 text-right">
-            💡 <strong>ميثاق صفر عمولة ($0.00 Comm):</strong>
-            <p className="mt-1">
-              المنصة لا تستقطع فلسًا واحدًا من أجرة الكابتن أو من جيب الراكب. يتم تمويل الخوادم والإنترنت سياديًا من عائدات المساحات الإعلانية الموجهة التي يتم بثها في المشهد الخلفي للهاتف.
-            </p>
           </div>
 
           <Button
             type="button"
             onClick={logout}
             variant="destructive"
-            className="w-full h-11 bg-red-950/40 text-red-400 border border-red-500/15 hover:bg-red-500 hover:text-white transition-all text-xs font-bold"
+            className="h-11 w-full border border-red-500/15 bg-red-950/40 text-xs font-bold text-red-400 transition-all hover:bg-red-500 hover:text-white"
           >
-            الشطب الفوري للجلسة وتسجيل الخروج ⚠️
+            تسجيل الخروج
           </Button>
         </CardContent>
       </Card>

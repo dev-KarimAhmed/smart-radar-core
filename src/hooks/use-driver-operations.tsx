@@ -47,14 +47,14 @@ export const DriverOperationsContext = createContext<DriverOpsContextType | unde
 
 export function DriverOperationsProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-  
+
   const [isRequestListOpen, setListOpen] = useState(false);
   const toggleRequestList = useCallback((open?: boolean) => setListOpen(prev => open ?? !prev), []);
 
   // 1. Inactivity tracking
-  const { 
-    driverStatus, setDriverStatus, isDormancyWarningVisible, 
-    resetDormancyTimer, toggleDriverStatus: rawToggleDriverStatus, updateDriverDoc 
+  const {
+    driverStatus, setDriverStatus, isDormancyWarningVisible,
+    resetDormancyTimer, toggleDriverStatus: rawToggleDriverStatus, updateDriverDoc
   } = useDriverLifecycle(user);
 
   const toggleDriverStatus = useCallback((desiredStatus: 'active' | 'idle') => {
@@ -74,7 +74,7 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
     }
   }, [rawToggleDriverStatus, user, driverStatus]);
 
-  // 🔔 [الربط النسيجي عبر وسيط الأحداث السيادي]: الربط والاقتران الضعيف لمنع التداخل والسباغيتي
+  // 🔔 [الربط المحلي عبر وسيط الأحداث ]: الربط والاقتران الضعيف لمنع التداخل والسباغيتي
   useEffect(() => {
     const unsubStatus = sovereignEventBroker.on('DRIVER_STATUS_CHANGE', (status) => {
       setDriverStatus(status);
@@ -89,7 +89,7 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
   }, [setDriverStatus, updateDriverDoc]);
 
   // 2. Local surrounding demand search scanning (Loosely Coupled - Communicates via SovereignEventBroker)
-  const { 
+  const {
     driverLocation, requests, rejectRequest: rawRejectRequest, rejectedTripIds, driverSpeed,
     currentDistrict, currentH3Cell, isDisconnectionLockActive
   } = useDriverRadar(user, driverStatus);
@@ -111,9 +111,9 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
   }, [rawRejectRequest, user]);
 
   // 3. Transactions & bidding states (Loosely Coupled - Communicates via SovereignEventBroker)
-  const { 
-    activeRequest, acceptedRider, submitOffer: rawSubmitOffer, isSubmittingOffer, 
-    endTrip: rawEndTrip, isEndingTrip, rateAndFinishTrip: rawRateAndFinishTrip, isRatingRider, requestWeeklyReport: rawRequestWeeklyReport, isRequestingReport 
+  const {
+    activeRequest, acceptedRider, submitOffer: rawSubmitOffer, isSubmittingOffer,
+    endTrip: rawEndTrip, isEndingTrip, rateAndFinishTrip: rawRateAndFinishTrip, isRatingRider, requestWeeklyReport: rawRequestWeeklyReport, isRequestingReport
   } = useDriverTransactions(user);
 
   const endTrip = useCallback(async () => {
@@ -163,7 +163,7 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
       });
     }
   }, [rawRequestWeeklyReport, user]);
-  
+
   // 4. District surge status
   const { pulseData, loadingPulse } = useMarketPulse(user?.role === 'driver');
 

@@ -2,17 +2,17 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  Users, 
-  Gift, 
-  TrendingUp, 
-  DollarSign, 
-  Copy, 
-  Check, 
-  Clock, 
-  ShieldCheck, 
-  AlertCircle, 
-  Calculator, 
+import {
+  Users,
+  Gift,
+  TrendingUp,
+  DollarSign,
+  Copy,
+  Check,
+  Clock,
+  ShieldCheck,
+  AlertCircle,
+  Calculator,
   LogOut,
   QrCode,
   ArrowRightLeft,
@@ -170,7 +170,7 @@ export function DelegatePortal() {
 
       // 4. مصافحة صامتة للرادار وتأكيد النجاح
       setIsEditingLocation(false);
-      
+
       // وميض تحديث ناعم لإعادة تهيئة البيانات حافةً
       setTimeout(() => {
         if (typeof window !== 'undefined') {
@@ -184,7 +184,7 @@ export function DelegatePortal() {
     }
   };
 
-  // 📍 مركز التواقيع وحصانة الحافة للتأمين الجنائي ضد ثغرات التلاعب بالطابور (Anti-Cheat Fingerprint Generator)
+  // 📍 مركز التواقيع وحصانة الحافة للتأمين الأمني ضد ثغرات التلاعب بالطابور (Anti-Cheat Fingerprint Generator)
   const generateTransactionFingerprint = (action: any, uid: string) => {
     const secretSalt = "KANTI_CHEAT_KERNEL_SECURE_SALT_v26_X92";
     const content = JSON.stringify({
@@ -195,7 +195,7 @@ export function DelegatePortal() {
       timestamp: action.timestamp || '',
       uid: uid
     });
-    
+
     // Custom simple hashing function to generate a strong signature
     let hash = 0;
     for (let i = 0; i < content.length; i++) {
@@ -203,7 +203,7 @@ export function DelegatePortal() {
       hash = ((hash << 5) - hash) + char;
       hash = hash & hash; // Convert to 32bit integer
     }
-    
+
     // Double hashing with salt
     const saltContent = hash.toString() + secretSalt;
     let finalHash = 0;
@@ -212,7 +212,7 @@ export function DelegatePortal() {
       finalHash = ((finalHash << 5) - finalHash) + char;
       finalHash = finalHash & finalHash;
     }
-    
+
     return `SIG-${Math.abs(finalHash).toString(16).toUpperCase()}-${Math.abs(hash).toString(16).toUpperCase()}`;
   };
 
@@ -233,7 +233,7 @@ export function DelegatePortal() {
       fingerprint: ''
     };
     enrichedAction.fingerprint = generateTransactionFingerprint(enrichedAction, user?.uid || 'anonymous');
-    
+
     const updated = [...offlineQueue, enrichedAction];
     setOfflineQueue(updated);
     if (typeof window !== 'undefined') {
@@ -253,12 +253,12 @@ export function DelegatePortal() {
 
     for (const action of queue) {
       try {
-        // 1. تحقق جنائي من بصمة المعاملة ومطابقة التوقيع لمنع الحقن الوهمي والتلاعب
+        // 1. تحقق أمني من بصمة المعاملة ومطابقة التوقيع لمنع الإضافة الوهمي والتلاعب
         const expectedFingerprint = generateTransactionFingerprint(action, user?.uid || 'anonymous');
         if (action.fingerprint !== expectedFingerprint) {
           console.error("🛑 CRITICAL SECURITY BREACH: Offline Queue item tampering detected!", action);
-          
-          // توثيق الثغرة ومحاولة التلاعب الممنوع في سجل الأرشيف الجنائي للأمان
+
+          // توثيق الثغرة ومحاولة التلاعب الممنوع في سجل الأرشيف الأمني للأمان
           if (user?.uid) {
             await addDoc(collection(db, 'audit_ledger'), {
               actorId: user.uid,
@@ -273,14 +273,14 @@ export function DelegatePortal() {
               }
             });
 
-            // كبح السلوك وتطهير الرصيد السلوكي للمندوب بخصم 0.5 نقطة فوراً
+            // كبح السلوك وحذف الرصيد السلوكي للمندوب بخصم 0.5 نقطة فوراً
             const userRef = doc(db, 'users', user.uid);
             const userSnap = await getDoc(userRef);
             if (userSnap.exists()) {
               const currentScore = userSnap.data().behavioralScore || 5.0;
               const newScore = Math.max(0, currentScore - 0.5);
               await updateDoc(userRef, { behavioralScore: newScore });
-              
+
               const queries = query(collection(db, 'delegates'), where('phone', '==', user.phone || ''));
               const qs = await getDocs(queries);
               const match = qs.docs[0];
@@ -298,7 +298,7 @@ export function DelegatePortal() {
           const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : '';
           await fetch('/api/delegate-task-transition', {
             method: 'POST',
-            headers: { 
+            headers: {
               'Content-Type': 'application/json',
               'Authorization': idToken ? `Bearer ${idToken}` : ''
             },
@@ -313,7 +313,7 @@ export function DelegatePortal() {
           const userRef = doc(db, 'users', user?.uid || '');
           const userSnap = await getDoc(userRef);
           if (!userSnap.exists()) continue;
-          
+
           const actualCloudDues = userSnap.data().pendingDues || 0;
           if (action.amount > actualCloudDues) {
             console.error(`🛑 CRITICAL SECURITY BREACH: Offline requested settlement amount (${action.amount}) exceeds cloud dues (${actualCloudDues})!`);
@@ -432,26 +432,26 @@ export function DelegatePortal() {
     localStorage.setItem('delegate_offline_queue_v26', JSON.stringify(remainingQueue));
     setOfflineQueue(remainingQueue);
     if (remainingQueue.length === 0) {
-      alert('⚡ بروتوكول الصمود الشبكي: تم ترحيل كافة العمليات المعلقة وتصفيتها جنائياً بنجاح فور العودة للنبض السحابي الموثق!');
+      alert('⚡ بروتوكول الصمود الشبكي: تم ترحيل كافة العمليات المعلقة وتصفيتها أمنياً بنجاح فور العودة للنشاط السحابي الموثق!');
     }
   };
 
   // Watch network status and handle silent sync
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    
+
     const handleOnline = () => {
       setIsOnline(true);
       processOfflineQueue();
     };
-    
+
     const handleOffline = () => {
       setIsOnline(false);
     };
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-    
+
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
@@ -472,7 +472,7 @@ export function DelegatePortal() {
     try {
       const userRef = doc(db, 'users', user.uid);
       await updateDoc(userRef, { isFleetActive: newStatus });
-      
+
       const queries = query(collection(db, 'delegates'), where('phone', '==', user.phone || ''));
       const qs = await getDocs(queries);
       const match = qs.docs.find((d: any) => d.data().referralCode === referralCode);
@@ -534,7 +534,7 @@ export function DelegatePortal() {
   const [isTampered, setIsTampered] = useState<boolean>(false);
   const [kernelTamperLogs, setKernelTamperLogs] = useState<string[]>([]);
 
-  // Sovereign Cryptographic Signature Engine (المصافحة التصفوية الصامتة وحماية الذاكرة السيادية)
+  // Sovereign Cryptographic Signature Engine (المصافحة التصفوية الصامتة وحماية الذاكرة )
   const generateSovereignSignature = (balance: number, points: number, pulseActive: boolean): string => {
     const salt = "SOVEREIGN_SYSTEM_KERNEL_KEY_SECURE_2026_JORDAN";
     const payload = `${balance.toFixed(2)}|${points}|${pulseActive ? '1' : '0'}|${salt}`;
@@ -594,7 +594,7 @@ export function DelegatePortal() {
   const [radarPriority, setRadarPriority] = useState<number>(1.0); // Standard is 1.0, Diamond Pulse gives 1.5x
   const [loyaltyActivationProcessing, setLoyaltyActivationProcessing] = useState<boolean>(false);
 
-  // Kernel Signature Verification on Mount (المصادرة التصفوية الصامتة وحماية الذاكرة السيادية)
+  // Kernel Signature Verification on Mount (المصادرة التصفوية الصامتة وحماية الذاكرة )
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const savedBalanceStr = localStorage.getItem('sovereign_support_balance');
@@ -613,7 +613,7 @@ export function DelegatePortal() {
           console.error("🚨 CRITICAL KERNEL TAMPER DETECTED!");
           setIsTampered(true);
           setKernelTamperLogs([
-            `🚨 [تنبيه جنائي - ${new Date().toLocaleTimeString('ar-JO')}]: تم كشف محاولة تلاعب غير مصرح بها في قيم المحفظة عبر الذاكرة المحلية (Memory Injection/DevTools)!`,
+            `🚨 [تنبيه أمني - ${new Date().toLocaleTimeString('ar-JO')}]: تم كشف محاولة تلاعب غير مصرح بها في قيم المحفظة عبر الذاكرة المحلية (Memory Injection/DevTools)!`,
             `⚠️ [المصادرة التصفوية الصامتة]: تم تجميد الرصيد تلقائياً وتصفير رصيد الدعم المالي لمنع الاحتيال والمطالبة بعمولات زائفة.`
           ]);
           setSupportBalance(0.00);
@@ -640,7 +640,7 @@ export function DelegatePortal() {
       localStorage.setItem('sovereign_support_balance', supportBalance.toString());
       localStorage.setItem('sovereign_loyalty_points', loyaltyPoints.toString());
       localStorage.setItem('sovereign_diamond_pulse_active', diamondPulseActive ? 'true' : 'false');
-      
+
       const sig = generateSovereignSignature(supportBalance, loyaltyPoints, diamondPulseActive);
       localStorage.setItem('sovereign_kernel_signature', sig);
     }
@@ -681,11 +681,11 @@ export function DelegatePortal() {
       id: 'log-arch-101',
       timestamp: new Date(Date.now() - 3600000 * 2).toISOString(),
       action: 'MANDATORY_LEADERSHIP_OVERRIDE',
-      securityClearance: 'سيادي حرج',
+      securityClearance: ' حرج',
       source: 'SIMULATED',
       details: {
         district: 'الجامعة',
-        detailsText: 'بروتوكول 12: فك تجميد القيد السيادي بأمر من القائد العام لتصفية فروقات العدادات والعمولات العالقة.',
+        detailsText: 'بروتوكول 12: فك تجميد القيد  بأمر من القائد العام لتصفية فروقات العدادات والعمولات العالقة.',
         referralCode: 'REF-CMD-99X',
         actorRole: 'commander',
         deviceHash: 'SHA256-NODE-9008X',
@@ -700,7 +700,7 @@ export function DelegatePortal() {
       source: 'SIMULATED',
       details: {
         district: 'قصبة عمان',
-        detailsText: 'كشف ومكافحة ثغرات تزييف الوقت المحلي للهاتف. تطابق النبض الشبكي التفاضلي بنسبة 100%.',
+        detailsText: 'كشف ومكافحة ثغرات تزييف الوقت المحلي للهاتف. تطابق النشاط الشبكي التفاضلي بنسبة 100%.',
         referralCode: 'N/A',
         actorRole: 'system',
         deviceHash: 'SHA256-SEC-CHECK',
@@ -715,7 +715,7 @@ export function DelegatePortal() {
       source: 'SIMULATED',
       details: {
         district: 'ماركا',
-        detailsText: 'بروتوكول 12: تم صرف وتصفية مستحقات طارئة بقيمة 185.50 د.أ لـ محفظة المندوب بنقرة ذرية واحدة.',
+        detailsText: 'بروتوكول 12: تم صرف وتصفية مستحقات طارئة بقيمة 185.50 د.أ لـ محفظة المندوب بنقرة مباشرة واحدة.',
         referralCode: 'REF-CMD-99X',
         actorRole: 'commander',
         deviceHash: 'SHA256-FUNDS-SEC',
@@ -726,11 +726,11 @@ export function DelegatePortal() {
       id: 'log-arch-104',
       timestamp: new Date(Date.now() - 3600000 * 48).toISOString(),
       action: 'ROLE_CONFLICT_ALERT',
-      securityClearance: 'سيادي حرج',
+      securityClearance: ' حرج',
       source: 'SIMULATED',
       details: {
         district: 'الجبيهة',
-        detailsText: 'بروتوكول 12: تم رصد تعارض مهام نشط وتضارب أدوار في المعرف الميداني للواء.',
+        detailsText: 'بروتوكول 12: تم رصد تعارض مهام نشط وتضارب أدوار في المعرف الميداني لمنطقة.',
         referralCode: 'REF-CMD-99X',
         actorRole: 'commander',
         deviceHash: 'SHA256-ROLE-ALERT',
@@ -756,11 +756,11 @@ export function DelegatePortal() {
       id: 'log-arch-106',
       timestamp: new Date(Date.now() - 3600000 * 96).toISOString(),
       action: 'BEHAVIORAL_IMMUNITY_PENALTY',
-      securityClearance: 'سيادي حرج',
+      securityClearance: ' حرج',
       source: 'SIMULATED',
       details: {
         district: 'صويلح',
-        detailsText: 'بروتوكول التطهير التلقائي: رصد تلاعب تكراري بإلغاء الطلبات، خصم 0.5 من رصيد المناعة السلوكية.',
+        detailsText: 'بروتوكول الحذف التلقائي: رصد تلاعب تكراري بإلغاء الطلبات، خصم 0.5 من رصيد المناعة السلوكية.',
         referralCode: 'CHEAT-DEC-05',
         actorRole: 'system',
         deviceHash: 'SHA256-ANTI-FRAUD',
@@ -773,21 +773,21 @@ export function DelegatePortal() {
   const runProtocol12Scan = () => {
     setProtocol12ScanResult('scanning');
     setProtocol12AuditLogs([]);
-    
+
     const steps = [
       "🔍 [مرحلة 1]: فحص سجلات هويات المندوبين النشطين ومطابقة الأدوار الرقمية في قواعد البيانات...",
       "🔍 [مرحلة 2]: تدقيق تواقيع التشفير الرقمي وجلسات الروابط السحرية النشطة لمكافحة التلاعب...",
       "🔍 [مرحلة 3]: قياس فارق التوقيت الشبكي التفاضلي (Network Time Delta) لمنع التفاف ساعة الهاتف...",
-      "⚠️ [تحذير جنائي - تضارب الثلاثية]: تم رصد تداخل وظيفي حرج بين [سجل النبض] و[الخزنة السيادية] و[المحفظة الميدانية]!",
-      "⚠️ [تعارض مهام]: المندوب العادي يمارس حيازة وإدارة كروت الرعاة (الخزنة) وفي ذات الوقت يصفي عمولاته دون مطابقة مع السجل المعمد (سجل النبض).",
-      "🚨 [النتيجة الجنائية]: تم كشف تعارض مهام نشط وتضارب أدوار في المعرف الميداني للواء. يلزم تفعيل دروع بروتوكول 12 المزدوجة."
+      "⚠️ [تحذير أمني - تضارب الثلاثية]: تم رصد تداخل وظيفي حرج بين [سجل النشاط] و[المحفظة ] و[المحفظة الميدانية]!",
+      "⚠️ [تعارض مهام]: المندوب العادي يمارس حيازة وإدارة كروت الرعاة (المحفظة) وفي ذات الوقت يصفي عمولاته دون مطابقة مع السجل المعمد (سجل النشاط).",
+      "🚨 [النتيجة الأمنية]: تم كشف تعارض مهام نشط وتضارب أدوار في المعرف الميداني لمنطقة. يلزم تفعيل دروع بروتوكول 12 المزدوجة."
     ];
 
     const safeSteps = [
       "🔍 [مرحلة 1]: فحص سجلات هويات المندوبين... تطابق تام مع رتب الأمان المعمدة.",
       "🔍 [مرحلة 2]: تدقيق جلسات الروابط السحرية والتحقق المونوتوني... آمن ومحمي بالكامل.",
       "🔍 [مرحلة 3]: معايرة الوقت التفاضلي... متزامن بالكامل (فارق صفر ثانية).",
-      "✅ [النتيجة]: تم التحقق والتعقيم بالكامل بموجب بروتوكول 12 للقيادة العام. تم عزل وفصل وظائف سجل النبض، والخزنة، والمحفظة بختم سيادي حرج. نسبة المناعة السلوكية: 5.00/5.00."
+      "✅ [النتيجة]: تم التحقق والتعقيم بالكامل بموجب بروتوكول 12 للقيادة العام. تم عزل وفصل وظائف سجل النشاط، والمحفظة، والمحفظة بختم  حرج. نسبة المناعة السلوكية: 5.00/5.00."
     ];
 
     const activeSteps = protocol12RemediesApplied ? safeSteps : steps;
@@ -805,34 +805,34 @@ export function DelegatePortal() {
   const applyProtocol12Remedies = async () => {
     setProtocol12ScanResult('scanning');
     setProtocol12AuditLogs(prev => [...prev, "⚡ [بدء التعقيم]: تفعيل بروتوكول 12 لإصلاح مواطن الضعف وفصل تضارب الأدوار..."]);
-    
+
     setTimeout(() => {
-      setProtocol12AuditLogs(prev => [...prev, "⚡ [إجراء 1]: عزل ميكانيكية وتصفية العمولات ميكانيكياً لتقتصر حتمياً على القائد العام والمشرفين ومطابقة سجل النبض."]);
+      setProtocol12AuditLogs(prev => [...prev, "⚡ [إجراء 1]: عزل ميكانيكية وتصفية العمولات ميكانيكياً لتقتصر حتمياً على القائد العام والمشرفين ومطابقة سجل النشاط."]);
     }, 500);
 
     setTimeout(() => {
-      setProtocol12AuditLogs(prev => [...prev, "⚡ [إجراء 2]: فرض النبض الشبكي التفاضلي الموحد كحاكم مطلق, وإسقاط التعديل اليدوي لساعة الهاتف لمنع تزييف خلود كروت الأباطرة."]);
+      setProtocol12AuditLogs(prev => [...prev, "⚡ [إجراء 2]: فرض النشاط الشبكي التفاضلي الموحد كحاكم مطلق, وإسقاط التعديل اليدوي لساعة الهاتف لمنع تزييف خلود كروت العروض المميزة."]);
     }, 1000);
 
     setTimeout(() => {
-      setProtocol12AuditLogs(prev => [...prev, "⚡ [إجراء 3]: تجديد تشفير شهادة الجلسة الميدانية للمندوب وختم المعاملات بترميز 'سيادي حرج' فوري لمنع إغراق المحفظة."]);
+      setProtocol12AuditLogs(prev => [...prev, "⚡ [إجراء 3]: تجديد تشفير شهادة الجلسة الميدانية للمندوب وختم المعاملات بترميز ' حرج' فوري لمنع إغراق المحفظة."]);
     }, 1500);
 
     setTimeout(() => {
       setProtocol12RemediesApplied(true);
       setProtocol12ScanResult('complete_safe');
-      setProtocol12AuditLogs(prev => [...prev, "✅ [اكتمال]: تم التطهير السلوكي الشامل وفك تضارب سجل النبض والخزنة والمحفظة بنجاح! نسبة المناعة المستردة: 100%."]);
-      
+      setProtocol12AuditLogs(prev => [...prev, "✅ [اكتمال]: تم حل تعارض سجل النشاط والمحفظة بنجاح. نسبة الحماية المستردة: 100%."]);
+
       // Inject real corrective log into Firestore if online
       if (user?.uid && isOnline) {
         addDoc(collection(db, 'audit_ledger'), {
           actorId: user.uid,
           timestamp: new Date().toISOString(),
           action: 'MANDATORY_LEADERSHIP_OVERRIDE',
-          securityClearance: 'سيادي حرج',
+          securityClearance: ' حرج',
           details: {
             district: user.district || 'الجامعة',
-            detailsText: 'بروتوكول 12: فك تجميد القيد السيادي، وتطهير تضارب الأدوار، وتأمين الخزنة والمحفظة بنبضة القائد العام.',
+            detailsText: 'بروتوكول 12: فك تجميد القيد، وحل تضارب الأدوار، وتأمين المحفظة بأمر المشرف.',
             referralCode: referralCode || 'REF-CMD-99X',
             actorRole: 'commander',
             deviceHash: 'SHA256-P12-REMEDY-SECURED',
@@ -846,12 +846,12 @@ export function DelegatePortal() {
   const triggerEmergencySettlement = async () => {
     if (emergencySettlementStatus === 'processing') return;
     setEmergencySettlementStatus('processing');
-    
+
     // Simulate process
     setTimeout(async () => {
       setEmergencySettlementStatus('done');
       alert('⚡ بروتوكول 12: تم صرف وتصفية مستحقات فورية طارئة بقيمة 185.50 د.أ لـ محفظة زين كاش بصفر رسوم شبكية وبشكل مباشر!');
-      
+
       if (user?.uid && isOnline) {
         try {
           await addDoc(collection(db, 'audit_ledger'), {
@@ -888,23 +888,23 @@ export function DelegatePortal() {
     const demoAds = [
       {
         id: 'ad-cmd-101',
-        title: 'عروض أباطرة شوكولاتة باتشي لواء الجامعة',
-        description: 'خصم سيادي حتمي بقيمة 25% لحاملي بطاقات النبض العام في عمان والزرقاء.',
+        title: 'عروض عروض مميزة شوكولاتة باتشي منطقة الجامعة',
+        description: 'خصم  حتمي بقيمة 25% لحاملي بطاقات النشاط العام في عمان والزرقاء.',
         bannerUrl: 'https://images.unsplash.com/photo-1548907040-4d42b5212510?auto=format&fit=crop&w=300&q=80',
         targetDistrict: 'الجامعة',
         savedAtTimestamp: Date.now() - 15 * 24 * 60 * 60 * 1000, // 15 days ago, soon to expire (only 5 days left!)
         whatsapp: '+962791234567',
         phone: '0791234567',
         content: {
-          title: 'عروض أباطرة شوكولاتة باتشي لواء الجامعة',
-          description: 'خصم سيادي حتمي بقيمة 25% لحاملي بطاقات النبض العام في عمان والزرقاء.',
+          title: 'عروض عروض مميزة شوكولاتة باتشي منطقة الجامعة',
+          description: 'خصم  حتمي بقيمة 25% لحاملي بطاقات النشاط العام في عمان والزرقاء.',
           posterUrl: 'https://images.unsplash.com/photo-1548907040-4d42b5212510?auto=format&fit=crop&w=300&q=80'
         }
       },
       {
         id: 'ad-cmd-102',
         title: 'حسومات الرعاية الذهبية لأجهزة آبل بمناسبة المئوية',
-        description: 'خصومات حصرية 15% على هواتف آيفون 16 برو ماكس مع كود مفعم بالنبض الميداني.',
+        description: 'خصومات حصرية 15% على هواتف آيفون 16 برو ماكس مع كود مفعم بالنشاط الميداني.',
         bannerUrl: 'https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?auto=format&fit=crop&w=300&q=80',
         targetDistrict: 'قصبة عمان',
         savedAtTimestamp: Date.now() - 19 * 24 * 60 * 60 * 1000, // 19 days ago, almost expired (only 1 day left!)
@@ -912,13 +912,13 @@ export function DelegatePortal() {
         phone: '0797654321',
         content: {
           title: 'حسومات الرعاية الذهبية لأجهزة آبل بمناسبة المئوية',
-          description: 'خصومات حصرية 15% على هواتف آيفون 16 برو ماكس مع كود مفعم بالنبض الميداني.',
+          description: 'خصومات حصرية 15% على هواتف آيفون 16 برو ماكس مع كود مفعم بالنشاط الميداني.',
           posterUrl: 'https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?auto=format&fit=crop&w=300&q=80'
         }
       },
       {
         id: 'ad-cmd-103',
-        title: 'اشتراكات نادي الفتنس البلاتيني لواء الجبيهة',
+        title: 'اشتراكات نادي الفتنس البلاتيني منطقة الجبيهة',
         description: 'اشتراك 6 أشهر بقيمة 120 د.أ بدلاً من 240 د.أ شامل مسبح وبخار وسونا.',
         bannerUrl: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=300&q=80',
         targetDistrict: 'الجامعة',
@@ -926,7 +926,7 @@ export function DelegatePortal() {
         whatsapp: '+962780000111',
         phone: '0780000111',
         content: {
-          title: 'اشتراكات نادي الفتنس البلاتيني لواء الجبيهة',
+          title: 'اشتراكات نادي الفتنس البلاتيني منطقة الجبيهة',
           description: 'اشتراك 6 أشهر بقيمة 120 د.أ بدلاً من 240 د.أ شامل مسبح وبخار وسونا.',
           posterUrl: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=300&q=80'
         }
@@ -943,7 +943,7 @@ export function DelegatePortal() {
       localStorage.setItem('sovereign_hearted_ads', JSON.stringify(storedIds));
       localStorage.setItem('sovereign_ad_vault_details', JSON.stringify(storedDetails));
       setDelegateVaultAds(demoAds);
-      alert('✅ تم شحن الخزنة السيادية الموضعية بـ 3 عروض تجريبية وحسومات من أباطرة لواء الجامعة بنجاح!');
+      alert('✅ تم شحن المحفظة  الموضعية بـ 3 عروض تجريبية وحسومات من عروض مميزة منطقة الجامعة بنجاح!');
     } catch (e) {
       console.error(e);
     }
@@ -960,27 +960,27 @@ export function DelegatePortal() {
             savedAtTimestamp: Date.now() // resets life clock to full 20 days
           };
           localStorage.setItem('sovereign_ad_vault_details', JSON.stringify(dict));
-          
+
           // Re-load
           loadDelegateVaultAds();
-          
+
           if (typeof navigator !== 'undefined' && navigator.vibrate) {
             navigator.vibrate([40, 40]);
           }
-          alert(`⚡ بروتوكول 12: تم تمديد خلود عرض "${dict[adId].title || dict[adId].content?.title}" بنجاح لـ 20 يوماً حتمية إضافية!`);
-          
+          alert(`⚡ بروتوكول 12: تم تمديد خلود عرض "${dict[adId].title || dict[adId].content?.title}" بنجاح لـ 20 يوماً ثابتة إضافية!`);
+
           // Inject audit log to Firestore
           if (user?.uid && isOnline) {
             await addDoc(collection(db, 'audit_ledger'), {
               actorId: user.uid,
               timestamp: new Date().toISOString(),
               action: 'EXTEND_AD_VAULT_PRESERVATION',
-              securityClearance: 'سيادي حرج',
+              securityClearance: ' حرج',
               details: {
                 district: user.district || 'الجامعة',
                 adId: adId,
                 adTitle: dict[adId].title || dict[adId].content?.title,
-                detailsText: `بروتوكول 12: تنفيذ أمر القيادة لتمديد خلود كرت الدعاية "${dict[adId].title || dict[adId].content?.title}" في الخزنة السيادية الميدانية.`,
+                detailsText: `بروتوكول 12: تنفيذ أمر القيادة لتمديد خلود كرت الدعاية "${dict[adId].title || dict[adId].content?.title}" في المحفظة  الميدانية.`,
                 referralCode: referralCode || 'REF-CMD-99X',
                 actorRole: 'commander',
                 deviceHash: 'SHA256-VAULT-EXTENDED',
@@ -1008,24 +1008,24 @@ export function DelegatePortal() {
           };
           localStorage.setItem('sovereign_ad_vault_details', JSON.stringify(dict));
           loadDelegateVaultAds();
-          
+
           if (typeof navigator !== 'undefined' && navigator.vibrate) {
             navigator.vibrate([80, 40, 80]);
           }
           alert(`🛡️ تم إخضاع عرض "${dict[adId].title || dict[adId].content?.title}" لبروتوكول الخلود المفتوح الدائم بنجاح!`);
-          
+
           // Inject audit log
           if (user?.uid && isOnline) {
             await addDoc(collection(db, 'audit_ledger'), {
               actorId: user.uid,
               timestamp: new Date().toISOString(),
               action: 'PERMANENT_AD_VAULT_LOCK',
-              securityClearance: 'سيادي حرج',
+              securityClearance: ' حرج',
               details: {
                 district: user.district || 'الجامعة',
                 adId: adId,
                 adTitle: dict[adId].title || dict[adId].content?.title,
-                detailsText: `بروتوكول 12: تفعيل قانون تخليد عروض الأباطرة للأبد كرت رقم [${adId}] في الخزنة الميدانية.`,
+                detailsText: `بروتوكول 12: تفعيل قانون تخليد عروض العروض المميزة للأبد كرت رقم [${adId}] في المحفظة الميدانية.`,
                 referralCode: referralCode || 'REF-CMD-99X',
                 actorRole: 'commander',
                 deviceHash: 'SHA256-PERMANENT-LOCK',
@@ -1068,7 +1068,7 @@ export function DelegatePortal() {
       fetchAuditLogs();
     }
   }, [activeTab, user]);
-  
+
   // Magic link states
   const [magicTokenInput, setMagicTokenInput] = useState('');
   const [magicSessionActive, setMagicSessionActive] = useState(false);
@@ -1100,7 +1100,7 @@ export function DelegatePortal() {
       try {
         const verifiedNow = await getVerifiedNetworkTime();
         if (!active) return;
-        
+
         if (verifiedNow.getTime() >= magicSessionExpiryTime) {
           clearInterval(interval);
           setMagicSessionActive(false);
@@ -1138,7 +1138,7 @@ export function DelegatePortal() {
   const [copiedLink, setCopiedLink] = useState(false);
   const [successSettlement, setSuccessSettlement] = useState(false);
   const [isRequestingSettlement, setIsRequestingSettlement] = useState(false);
-  
+
   // Realtime or fallback states
   const [pendingDues, setPendingDues] = useState(user?.pendingDues || 85.50);
   const [referralCount, setReferralCount] = useState(user?.referredCount || 142);
@@ -1152,15 +1152,15 @@ export function DelegatePortal() {
   const [tasks, setTasks] = useState<FirestoreTask[]>([]);
 
   const [referredList, setReferredList] = useState<ReferredUser[]>([
-    { id: 'ref-1', name: 'أحمد الحجايا (كابتن)', phone: '+96279****442', role: 'driver', joinedAt: '2026-06-10', status: 'active', tripsCount: 148, commissionEarned: 44.40 },
-    { id: 'ref-2', name: 'حمزة الزعبي (كابتن)', phone: '+96278****981', role: 'driver', joinedAt: '2026-06-12', status: 'active', tripsCount: 102, commissionEarned: 30.60 },
-    { id: 'ref-3', name: 'يوسف العبداللات (مسافر)', phone: '+96277****039', role: 'rider', joinedAt: '2026-06-14', status: 'active', tripsCount: 35, commissionEarned: 10.50 },
-    { id: 'ref-4', name: 'سيف الدين النمري (كابتن)', phone: '+96279****115', role: 'driver', joinedAt: '2026-06-18', status: 'pending', tripsCount: 0, commissionEarned: 0.00 },
+    { id: 'ref-1', name: 'أحمد الحجايا (سائق)', phone: '+96279****442', role: 'driver', joinedAt: '2026-06-10', status: 'active', tripsCount: 148, commissionEarned: 44.40 },
+    { id: 'ref-2', name: 'حمزة الزعبي (سائق)', phone: '+96278****981', role: 'driver', joinedAt: '2026-06-12', status: 'active', tripsCount: 102, commissionEarned: 30.60 },
+    { id: 'ref-3', name: 'يوسف العبداللات (راكب)', phone: '+96277****039', role: 'rider', joinedAt: '2026-06-14', status: 'active', tripsCount: 35, commissionEarned: 10.50 },
+    { id: 'ref-4', name: 'سيف الدين النمري (سائق)', phone: '+96279****115', role: 'driver', joinedAt: '2026-06-18', status: 'pending', tripsCount: 0, commissionEarned: 0.00 },
   ]);
 
   // churn engine list
   const [churnedList, setChurnedList] = useState([
-    { id: 'ch-1', phone: '+96279****591', role: 'driver', date: '2026-06-15', messageId: 'MSG-RECOVER-8401', messageStatus: 'sent_verified', messageText: 'عزيزنا الكابتن، مكانتك السامية ما زالت غالية برادار بينكم. خصم سيادي 15% بانتظارك فور تفعيل الرادار مجدداً!' },
+    { id: 'ch-1', phone: '+96279****591', role: 'driver', date: '2026-06-15', messageId: 'MSG-RECOVER-8401', messageStatus: 'sent_verified', messageText: 'عزيزنا السائق، مكانتك السامية ما زالت غالية برادار بينكم. خصم  15% بانتظارك فور تفعيل الرادار مجدداً!' },
     { id: 'ch-2', phone: '+96278****029', role: 'rider', date: '2026-06-17', messageId: 'MSG-RECOVER-2951', messageStatus: 'sent_verified', messageText: 'أهلاً بك، اشتقنا لمشاويرك السريعة برأس مال أقل. رحلتك المقبلة مجانية بالكامل عند فتح التطبيق مجدداً.' }
   ]);
 
@@ -1186,7 +1186,7 @@ export function DelegatePortal() {
   useEffect(() => {
     const delegateId = user?.uid || 'dev-delegate-001';
     const isIndependent = subRole === 'independent';
-    
+
     // Filter tasks belonging exactly to this delegate
     const qTasks = query(
       collection(db, 'delegate_tasks'),
@@ -1199,7 +1199,7 @@ export function DelegatePortal() {
           id: 'tsk-sim-1',
           delegateId: 'dev-delegate-001',
           title: 'تكثيف الانتساب الرياضي في إربد',
-          description: 'نشر 20 رمز تجريبي للكباتن المستقلين في محيط جامعة اليرموك.',
+          description: 'نشر 20 رمز تجريبي للسائقين المستقلين في محيط جامعة اليرموك.',
           status: 'pending',
           createdAt: new Date().toISOString(),
           deadline: '2026-06-25'
@@ -1208,7 +1208,7 @@ export function DelegatePortal() {
           id: 'tsk-sim-2',
           delegateId: 'dev-delegate-001',
           title: 'مراقبة حذف الرد الراداري',
-          description: 'فحص عينة عشوائية مؤلفة من 5 كباتن لدراسة جودة الاحتفاظ والنبض.',
+          description: 'فحص عينة عشوائية مؤلفة من 5 سائقين لدراسة جودة الاحتفاظ والنشاط.',
           status: 'acknowledged',
           createdAt: new Date().toISOString(),
           deadline: '2026-06-22'
@@ -1296,8 +1296,8 @@ export function DelegatePortal() {
         const expiry = new Date(data.expiresAt);
         setMagicSessionExpiry(expiry.toLocaleTimeString('ar-JO'));
         setMagicSessionExpiryTime(expiry.getTime());
-        
-        alert('تم التحقق السحري من هويتك كوكيل سيادي بنجاح مبرهن! تم تأسيس جسد جلسة أمان مؤقتة.');
+
+        alert('تم التحقق السحري من هويتك كوكيل  بنجاح مبرهن! تم تأسيس جسد جلسة أمان مؤقتة.');
       } else {
         alert(`خطأ أمني: ${data.error || 'الرمز السحري المدخل غير صالح أو تم استخدامه مسبقاً.'}`);
       }
@@ -1343,11 +1343,11 @@ export function DelegatePortal() {
           const localTimeNum = Date.now();
           // [Time Kernel Security Gate]: Validate device time integrity
           RadarAntiCheatKernel.validateDeviceTime(serverTimeNum, localTimeNum);
-          
+
           // معايرة صمام التوقيت المونوتوني المقاوم لتلاعب أوقات المتصفح
           initialServerTimeRef.current = serverTimeNum;
           initialPerformanceTimeRef.current = performance.now();
-          
+
           return serverTime;
         }
       }
@@ -1376,11 +1376,11 @@ export function DelegatePortal() {
       }
 
       const verifiedNow = await getVerifiedNetworkTime();
-      
+
       if (taskId.startsWith('tsk-sim')) {
         const simTask = tasks.find(t => t.id === taskId);
         if (!simTask) return;
-        
+
         const delegateId = user?.uid || 'dev-delegate-001';
         if (simTask.delegateId !== delegateId) {
           alert('خطأ أمني: هذه المهمة لا تنتمي لمعرّفك الميداني المسجل.');
@@ -1404,7 +1404,7 @@ export function DelegatePortal() {
         const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : '';
         const response = await fetch('/api/delegate-task-transition', {
           method: 'POST',
-          headers: { 
+          headers: {
             'Content-Type': 'application/json',
             'Authorization': idToken ? `Bearer ${idToken}` : ''
           },
@@ -1467,7 +1467,7 @@ export function DelegatePortal() {
         const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : '';
         const response = await fetch('/api/delegate-task-transition', {
           method: 'POST',
-          headers: { 
+          headers: {
             'Content-Type': 'application/json',
             'Authorization': idToken ? `Bearer ${idToken}` : ''
           },
@@ -1497,7 +1497,7 @@ export function DelegatePortal() {
     if (isSettlingRef.current) return;
     isSettlingRef.current = true;
     setIsRequestingSettlement(true);
-    
+
     if (!isOnline) {
       const newLog = {
         id: `set-log-${Date.now()}`,
@@ -1538,11 +1538,11 @@ export function DelegatePortal() {
 
         // Resolve corresponding delegates record
         const queries = query(collection(db, 'delegates'), where('phone', '==', user.phone || ''));
-        const qs = await getDocs(queries); 
+        const qs = await getDocs(queries);
         const match = qs.docs.find((d: any) => d.data().referralCode === referralCode);
         const delegateId = match ? match.id : user.uid;
 
-        // [SECURITY-PATCH] استبدال الكتابة المباشرة المفتوحة من العميل باستدعاء آمن ومصادق من المحكمة (Server-Side)
+        // [SECURITY-PATCH] استبدال الكتابة المباشرة المفتوحة من العميل باستدعاء آمن ومصادق من الخادم (Server-Side)
         const idToken = await auth.currentUser?.getIdToken();
         const response = await fetch('/api/clear-delegate-dues', {
           method: 'POST',
@@ -1553,7 +1553,7 @@ export function DelegatePortal() {
         });
         const resData = await response.json();
         if (!response.ok || !resData.success) {
-          throw new Error(resData.error || 'فشل مصادقة المحكمة السيادية للتسوية المالية.');
+          throw new Error(resData.error || 'فشل مصادقة الخادم  للتسوية المالية.');
         }
       }
 
@@ -1582,7 +1582,7 @@ export function DelegatePortal() {
   const growthCommissionRate = 5.0; // Every 50 conversions = 5 JD
   const organicMilestonesAchieved = Math.floor(organicGrowthThisMonth / 50);
   const organicCommissionValue = organicMilestonesAchieved * growthCommissionRate;
-  
+
   // Calculate Target Excess Bonus
   // If target is 10, over 30 days = 300 signups. If direct growth is higher, bonus of 0.50 JD per extra sign up
   const targetMonthlyGoal = targetDaily * 30;
@@ -1595,8 +1595,8 @@ export function DelegatePortal() {
 
   return (
     <div className="w-full max-w-5xl mx-auto space-y-6 font-sans text-right" dir="rtl">
-      
-      {/* 👑 ترويسة الهوية السيادية الفخمة */}
+
+      {/* 👑 ترويسة الهوية  الفخمة */}
       <div className="relative overflow-hidden bg-gradient-to-l from-[#0D1527] via-[#0F1E36] to-[#0A101D] border border-amber-500/20 rounded-3xl p-6 md:p-8 shadow-2xl">
         <div className="absolute top-0 left-0 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 right-0 w-48 h-48 bg-[#00ffcc]/5 rounded-full blur-3xl pointer-events-none" />
@@ -1605,19 +1605,19 @@ export function DelegatePortal() {
           <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-2">
               <span className="bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[10px] md:text-xs font-black px-3 py-1 rounded-full tracking-wider animate-pulse">
-                🛡️ قمرة السفير الميداني (بروتوكول الوكلاء v5.5)
+                🛡️ لوحة السفير الميداني (بروتوكول الوكلاء v5.5)
               </span>
               {subRole === 'captain' ? (
                 <button
                   onClick={toggleFleetActive}
                   className={`border text-[10px] md:text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1.5 transition-all cursor-pointer ${
-                    isFleetActive 
-                      ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400 font-bold' 
+                    isFleetActive
+                      ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400 font-bold'
                       : 'bg-amber-500/15 border-amber-500/30 text-amber-400 font-bold'
                   }`}
                 >
                   <Activity className={`w-3.5 h-3.5 ${isFleetActive ? 'animate-pulse text-emerald-400' : 'text-amber-400'}`} />
-                  <span>{isFleetActive ? 'نبض الأسطول الميداني: نشط ●' : 'نبض الأسطول الميداني: خامل ○'}</span>
+                  <span>{isFleetActive ? 'نشاط الأسطول الميداني: نشط ●' : 'نشاط الأسطول الميداني: خامل ○'}</span>
                 </button>
               ) : (
                 <span className="bg-zinc-800/50 border border-zinc-700/50 text-gray-400 text-[10px] md:text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1.5">
@@ -1632,12 +1632,12 @@ export function DelegatePortal() {
                 </span>
               )}
             </div>
-            
+
             <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight leading-tight">
               أهلاً بك، <span className="text-amber-300 font-extrabold">{user?.name || 'سفير بينكم'}</span>
             </h1>
             <p className="text-xs md:text-sm text-[#94A3B8] leading-relaxed max-w-2xl">
-              أنت جزء لا يتجزأ من شريان التمويل والتوسّع الجغرافي لرادار بينكم. تساهم إحالاتك في بناء شبكة فرسان الميدان الأكثر التزاماً في المملكة.
+              أنت جزء لا يتجزأ من شريان التمويل والتوسّع الجغرافي لرادار بينكم. تساهم إحالاتك في بناء شبكة سائقين الميدان الأكثر التزاماً في المملكة.
             </p>
           </div>
 
@@ -1655,7 +1655,7 @@ export function DelegatePortal() {
         {/* معلومات تفصيلية عن المندوب */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-[#1E293B]/70 text-right">
           <div>
-            <p className="text-[10px] text-gray-400 uppercase font-bold">الرقم السيادي للوكيل</p>
+            <p className="text-[10px] text-gray-400 uppercase font-bold">الرقم  للوكيل</p>
             <p className="text-xs font-mono text-white mt-1">#REP-{user?.uid?.substring(0, 8).toUpperCase() || 'DEL-777'}</p>
           </div>
           <div>
@@ -1670,13 +1670,13 @@ export function DelegatePortal() {
             <p className="text-[10px] text-gray-400 uppercase font-bold">حالة رخصة الامتياز</p>
             <p className="text-xs font-bold text-emerald-400 mt-1 flex items-center justify-end gap-1">
               <ShieldCheck className="h-3.5 w-3.5" />
-              <span>مرخصة بصورة سيادية</span>
+              <span>مرخصة بصورة </span>
             </p>
           </div>
         </div>
       </div>
 
-      {/* 🧭 شريط التنقل الفرعي للمفاتيح التسعة السيادية (ظاهر فقط على الأجهزة المكتبية) */}
+      {/* 🧭 شريط التنقل الفرعي للمفاتيح التسعة  (ظاهر فقط على الأجهزة المكتبية) */}
       <div className="hidden md:flex flex-wrap gap-1.5 border-b border-[#1E293B] pb-3 overflow-x-auto">
         <button
           onClick={() => handleTabChange('dashboard')}
@@ -1726,7 +1726,7 @@ export function DelegatePortal() {
           }`}
         >
           <ClipboardList className="w-3.5 h-3.5 inline ml-1.5" />
-          التكليفات والمهام السيادية
+          التكليفات والمهام
           {tasks.filter(t => t.status === 'pending').length > 0 && (
             <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
               {tasks.filter(t => t.status === 'pending').length}
@@ -1751,7 +1751,7 @@ export function DelegatePortal() {
           }`}
         >
           <Wallet className="w-3.5 h-3.5 inline ml-1.5" />
-          المحفظة والخزنة السيادية
+          المحفظة
         </button>
 
         <button
@@ -1771,7 +1771,7 @@ export function DelegatePortal() {
           }`}
         >
           <ShieldCheck className="w-3.5 h-3.5 inline ml-1.5" />
-          الأرشيف الميداني وسجل النبض
+          الأرشيف الميداني وسجل النشاط
         </button>
       </div>
 
@@ -1844,12 +1844,12 @@ export function DelegatePortal() {
               <span className={`absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full ${isFleetActive ? 'bg-emerald-500 animate-ping' : 'bg-amber-500'}`} />
               <span className={`absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full ${isFleetActive ? 'bg-emerald-500' : 'bg-amber-500'}`} />
             </div>
-            <span className="text-[9px] font-black whitespace-nowrap">نبض الأسطول</span>
+            <span className="text-[9px] font-black whitespace-nowrap">نشاط الأسطول</span>
           </button>
         )}
       </div>
 
-      {/* 📊 بطاقات المؤشرات الأربعة الكبرى للسيادة */}
+      {/* 📊 بطاقات المؤشرات الأربعة الكبرى للإدارة */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {/* إجمالي الإحالات */}
         <div className="bg-[#0A0F1D] border border-amber-500/10 hover:border-amber-500/20 rounded-2xl p-5 text-right relative overflow-hidden transition-all shadow-md group">
@@ -1876,13 +1876,13 @@ export function DelegatePortal() {
               <DollarSign className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-[10px] text-gray-455 font-bold">الأرباح السيادية القابلة للسحب</p>
+              <p className="text-[10px] text-gray-455 font-bold">الأرباح  القابلة للسحب</p>
               <h3 className="text-2xl font-black text-white mt-1 tracking-tight font-mono">{Number(pendingDues).toFixed(2)} د.أ</h3>
             </div>
           </div>
           <div className="mt-3">
             {pendingDues > 0 ? (
-              <button 
+              <button
                 onClick={handleRequestSettlement}
                 disabled={isRequestingSettlement}
                 className="w-full flex items-center justify-center gap-1.5 py-1 px-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:bg-[#1E293B] disabled:text-gray-400 text-white font-black text-[10px] rounded-lg transition-all active:scale-95 cursor-pointer shadow-lg shadow-emerald-900/10"
@@ -1934,7 +1934,7 @@ export function DelegatePortal() {
             </div>
             <div>
               <p className="text-[10px] text-gray-400 font-bold">مجموع المنسحبين الأخيرين</p>
-              <h3 className="text-2xl font-black text-white mt-1 tracking-tight font-mono">{churnedList.length} كباتن</h3>
+              <h3 className="text-2xl font-black text-white mt-1 tracking-tight font-mono">{churnedList.length} سائقين</h3>
             </div>
           </div>
           <div className="mt-3 text-[10px] text-zinc-400 font-bold">
@@ -1955,9 +1955,9 @@ export function DelegatePortal() {
               <FileCheck className="h-5 w-5" />
             </div>
             <div className="space-y-1">
-              <p className="text-xs font-black text-emerald-400">تم إرسال وقبول وصرف مستحقاتك بنجاح سيادي مبرهن!</p>
+              <p className="text-xs font-black text-emerald-400">تم إرسال وقبول وصرف مستحقاتك بنجاح  مبرهن!</p>
               <p className="text-[11px] text-gray-305">
-                لقد تم تصفير الأرباح وتحويلها لملفك المالي فوراً، وتسجيل الحجة والقرائن الجنائية في شبكة سجلات التدقيق (Audit Ledger) إثباتاً للنزاهة المالية الميدانية.
+                لقد تم تصفير الأرباح وتحويلها لملفك المالي فوراً، وتسجيل الحجة والقرائن الأمنية في شبكة سجلات التدقيق (Audit Ledger) إثباتاً للنزاهة المالية الميدانية.
               </p>
             </div>
           </motion.div>
@@ -1986,8 +1986,8 @@ export function DelegatePortal() {
                   placeholder="رابط تسجيل الدخول للمندوب الميداني... (أو Token)"
                   className="bg-black/60 border-blue-900/50 text-white text-xs h-10 grow"
                 />
-                <Button 
-                  onClick={() => triggerMagicLogin(magicTokenInput)} 
+                <Button
+                  onClick={() => triggerMagicLogin(magicTokenInput)}
                   className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-5 h-10 rounded-xl shrink-0"
                 >
                   التحقق السحابي وتفعيل الجلسة
@@ -2004,9 +2004,9 @@ export function DelegatePortal() {
                   <Gift className="h-4.5 w-4.5 text-amber-400" />
                   <span>مظلة الإحالة والترويج الفريدة</span>
                 </h3>
-                
+
                 <p className="text-xs text-gray-400 leading-normal">
-                  شارك هذا الكود أو وجّه الفرسان لكتابته أثناء التسجيل ليتم تقييدهم تحت إشرافك المباشر وحساب العوائد بنسبة الـ 10% السيادية.
+                  شارك هذا الكود أو وجّه السائقين لكتابته أثناء التسجيل ليتم تقييدهم تحت إشرافك المباشر وحساب العوائد بنسبة الـ 10% .
                 </p>
 
                 {/* صندوق الكود */}
@@ -2039,7 +2039,7 @@ export function DelegatePortal() {
                 <div className="text-right space-y-1">
                   <p className="text-xs font-bold text-white">بطاقة الهوية السريعة (QR Code)</p>
                   <p className="text-[10px] text-gray-400 leading-normal">
-                    اجعل الكباتن يمسحون هذا الرمز في الميدان لتسجيل الانضمام الفوري مع مرجعيتك الفنية.
+                    اجعل السائقون يمسحون هذا الرمز في الميدان لتسجيل الانضمام الفوري مع مرجعيتك الفنية.
                   </p>
                 </div>
                 <div className="bg-white p-2 rounded-xl shrink-0 border border-amber-500/20">
@@ -2053,24 +2053,24 @@ export function DelegatePortal() {
               <div className="space-y-4">
                 <h3 className="text-sm font-black text-white flex items-center gap-2">
                   <Calculator className="h-4.5 w-4.5 text-cyan-400" />
-                  <span>محاكي العوائد السيادية المبتكر</span>
+                  <span>محاكي العوائد  المبتكر</span>
                 </h3>
-                
+
                 <p className="text-xs text-gray-400 leading-normal">
-                  اسحب مؤشرات الأداء الحرة لتوقّع أرباحك وعوائدك الشهرية استناداً إلى نشاط فرسان الميدان المحالين بمعرفتك المباشرة.
+                  اسحب مؤشرات الأداء الحرة لتوقّع أرباحك وعوائدك الشهرية استناداً إلى نشاط سائقين الميدان المحالين بمعرفتك المباشرة.
                 </p>
 
                 <div className="space-y-5 py-2">
-                  {/* المؤشر الأول: عدد الكباتن */}
+                  {/* المؤشر الأول: عدد السائقون */}
                   <div className="space-y-2">
                     <div className="flex justify-between items-center text-xs">
                       <span className="font-extrabold text-white font-mono">{projectedDrivers} فارس</span>
-                      <span className="text-gray-400 font-bold">عدد الكباتن النشطين المحالين:</span>
+                      <span className="text-gray-400 font-bold">عدد السائقون النشطين المحالين:</span>
                     </div>
-                    <input 
-                      type="range" 
-                      min="5" 
-                      max="100" 
+                    <input
+                      type="range"
+                      min="5"
+                      max="100"
                       value={projectedDrivers}
                       onChange={(e) => setProjectedDrivers(parseInt(e.target.value))}
                       className="w-full h-1.5 bg-[#1E293B] rounded-lg appearance-none cursor-pointer accent-cyan-400"
@@ -2081,12 +2081,12 @@ export function DelegatePortal() {
                   <div className="space-y-2">
                     <div className="flex justify-between items-center text-xs">
                       <span className="font-extrabold text-white font-mono">{avgTripsPerDriver} رحلة</span>
-                      <span className="text-gray-400 font-bold">متوسط الرحلات اليومية لكل كابتن:</span>
+                      <span className="text-gray-400 font-bold">متوسط الرحلات اليومية لكل سائق:</span>
                     </div>
-                    <input 
-                      type="range" 
-                      min="5" 
-                      max="40" 
+                    <input
+                      type="range"
+                      min="5"
+                      max="40"
                       value={avgTripsPerDriver}
                       onChange={(e) => setAvgTripsPerDriver(parseInt(e.target.value))}
                       className="w-full h-1.5 bg-[#1E293B] rounded-lg appearance-none cursor-pointer accent-cyan-400"
@@ -2111,13 +2111,13 @@ export function DelegatePortal() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-            {/* فرسان الميدان قائمة */}
+            {/* سائقين الميدان قائمة */}
             <div className="lg:col-span-3 bg-[#0A0F1D] border border-[#1E293B] rounded-2xl p-6 space-y-4">
               <div className="flex justify-between items-center">
                 <span className="text-xs text-gray-450 font-bold font-mono">({referredList.length}) سجلات نشطة</span>
                 <h3 className="text-sm font-black text-white flex items-center gap-1.5">
                   <Users className="h-4.5 w-4.5 text-emerald-400" />
-                  <span>فرسان الميدان والمسافرين المعتمدين</span>
+                  <span>سائقين الميدان والراكبين المعتمدين</span>
                 </h3>
               </div>
 
@@ -2141,8 +2141,8 @@ export function DelegatePortal() {
                         <td className="p-3 font-mono text-emerald-400 font-bold">{(ref.commissionEarned).toFixed(2)} د.أ</td>
                         <td className="p-3 text-center">
                           <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                            ref.status === 'active' 
-                              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
+                            ref.status === 'active'
+                              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
                               : ref.status === 'pending'
                               ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20'
                               : 'bg-red-500/10 text-red-500 border border-red-500/20'
@@ -2199,7 +2199,7 @@ export function DelegatePortal() {
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0 space-y-6">
-              
+
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
                 <div className="bg-black/40 border border-[#1E293B] p-4 rounded-xl">
                   <p className="text-xs text-zinc-405 font-bold">التارجت اليومي المستهدف</p>
@@ -2236,7 +2236,7 @@ export function DelegatePortal() {
                   يتم توجيه <strong>الانتسابات العضوية الزائدة</strong> لتغطية أي عجز مرحل أولاً حرصاً على حماية التقييم السلوكي الميداني للوكيل. فور تصفير العجز وتحقيق هدف المشرف، يتم على الفور تحويل أي فائض جرافي إلى عمولات نقدية فخمة تضاف لملفك مباشرة.
                 </p>
                 <div className="flex justify-end pt-1">
-                  <Button 
+                  <Button
                     onClick={() => {
                       if (carriedDeficit > 0) {
                         setCarriedDeficit(0);
@@ -2267,11 +2267,11 @@ export function DelegatePortal() {
                 <TrendingUp className="w-5 h-5 text-emerald-400" />
               </CardTitle>
               <CardDescription className="text-xs text-zinc-300">
-                مراقبة نمو المحافظة، والتحقق البصري من شرط الثبات (45 يوماً على الأقل لتفعيل الكباتن مع رادارات جغرافية نشطة).
+                مراقبة نمو المحافظة، والتحقق البصري من شرط الثبات (45 يوماً على الأقل لتفعيل السائقون مع رادارات جغرافية نشطة).
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0 space-y-6">
-              
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-black/40 border border-[#1E293B] p-4 rounded-xl flex items-center justify-between">
                   <Badge className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold">صعود ↑</Badge>
@@ -2292,7 +2292,7 @@ export function DelegatePortal() {
                 <div className="bg-black/40 border border-[#1E293B] p-4 rounded-xl flex items-center justify-between">
                   <Badge className="bg-blue-950/10 text-blue-400 border border-blue-500/20 font-bold">جودة ماسية</Badge>
                   <div className="text-right">
-                    <p className="text-xs text-gray-500 font-bold">الكباتن الملتزمين (+45 يوم)</p>
+                    <p className="text-xs text-gray-500 font-bold">السائقون الملتزمين (+45 يوم)</p>
                     <p className="text-xl font-black text-cyan-400 font-mono mt-1">{steadyUsersCount} محقق</p>
                   </div>
                 </div>
@@ -2301,11 +2301,11 @@ export function DelegatePortal() {
               {/* Steady state tracking */}
               <div className="border border-zinc-800/60 p-4 rounded-xl bg-black/40 space-y-2">
                 <h4 className="text-xs font-black text-white flex items-center gap-1.5 justify-end">
-                  مراقبة نبضات التطبيق (App Pulse Detection)
+                  مراقبة تنبيهات التطبيق (App Pulse Detection)
                   <Activity className="w-4 h-4 text-cyan-400" />
                 </h4>
                 <p className="text-xs text-zinc-300 leading-normal text-right">
-                  يستخدم النظام أجهزة الفحص الميداني والنبض لمنع "الاحتيال الإحالي". يسقط الترشيح المالي إذا تم اكتشاف قيام الكباتن بحذف التطبيق قبل بلوغ اليوم الـ 45. يضمن محرك النبض تثبيت مستحقاتك بموجب معايير الدستور البنيوي لزيادة المتانة الاقتصادية.
+                  يستخدم النظام أجهزة الفحص الميداني والنشاط لمنع "الاحتيال الإحالي". يسقط الترشيح المالي إذا تم اكتشاف قيام السائقون بحذف التطبيق قبل بلوغ اليوم الـ 45. يضمن محرك النشاط تثبيت مستحقاتك بموجب معايير الشروط البنيوي لزيادة المتانة الاقتصادية.
                 </p>
               </div>
 
@@ -2324,18 +2324,18 @@ export function DelegatePortal() {
                 <UserX className="w-5 h-5 text-red-500" />
               </CardTitle>
               <CardDescription className="text-xs text-zinc-300">
-                يكتشف محرك نبضات التطبيق حالات حذف رادار الكابتن أو الركاب، ويرسل فوراً كود استعادة مخصص.
+                يكتشف محرك تنبيهات التطبيق حالات حذف رادار السائق أو الركاب، ويرسل فوراً كود استعادة مخصص.
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0 space-y-4">
-              
+
               <div className="overflow-x-auto bg-black/40 rounded-xl border border-zinc-800/80">
                 <table className="w-full text-xs text-right text-gray-300">
                   <thead className="bg-[#111827] text-gray-400 text-[10px] font-black uppercase">
                     <tr>
                       <th className="p-3 rounded-r-lg text-right">الرقم المستهدف للاستعادة</th>
                       <th className="p-3 text-right">الصفة والموقع</th>
-                      <th className="p-3 text-right">تاريخ توقف النبض</th>
+                      <th className="p-3 text-right">تاريخ توقف النشاط</th>
                       <th className="p-3 text-right">رسالة الاستعادة ومثبت الإرسال</th>
                       <th className="p-3 rounded-l-lg text-center font-bold">الحالة الإجرائية</th>
                     </tr>
@@ -2344,7 +2344,7 @@ export function DelegatePortal() {
                     {churnedList.map((churn) => (
                       <tr key={churn.id} className="hover:bg-red-955/5 transition-colors">
                         <td className="p-3 font-mono text-zinc-300 font-bold text-right">{churn.phone}</td>
-                        <td className="p-3 font-semibold text-zinc-400 text-right">{churn.role === 'driver' ? 'كابتن رادار' : 'مسافر عابر'}</td>
+                        <td className="p-3 font-semibold text-zinc-400 text-right">{churn.role === 'driver' ? 'سائق رادار' : 'راكب عابر'}</td>
                         <td className="p-3 font-mono text-gray-500 text-right">{churn.date}</td>
                         <td className="p-3 space-y-1 text-right">
                           <p className="text-[10px] text-zinc-300 leading-tight italic bg-neutral-900/60 p-2 rounded-lg border border-zinc-800">
@@ -2383,7 +2383,7 @@ export function DelegatePortal() {
             <CardContent className="p-0 space-y-4">
               {tasks.length === 0 ? (
                 <div className="text-center py-8 text-zinc-500 text-xs">
-                  لا يوجد تكليفات ميدانية معلقة حالياً في لواء الموطن.
+                  لا يوجد تكليفات ميدانية معلقة حالياً في منطقة الموطن.
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -2446,17 +2446,17 @@ export function DelegatePortal() {
       {activeTab === 'sovereign-wallet' && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            
+
             {/* 💸 PANEL 1: SOVEREIGN WALLET & LOCAL CHANNELS */}
             <Card className="lg:col-span-4 bg-[#040815] border border-teal-500/20 rounded-3xl p-5 relative overflow-hidden shadow-xl flex flex-col justify-between">
               <div>
                 <CardHeader className="p-0 pb-4 border-b border-zinc-800/60">
                   <div className="flex items-center gap-2 justify-between">
                     <Badge className="bg-teal-500/10 text-[#00ffcc] border border-[#00ffcc]/20 text-[10px] px-2 py-0.5 rounded-md">
-                      تأكيد بنبضة واحدة (1 Write)
+                      تأكيد بنشاطة واحدة (1 Write)
                     </Badge>
                     <CardTitle className="text-xs font-black text-white flex items-center gap-2 justify-end">
-                      المحفظة الميدانية السيادية
+                      المحفظة الميدانية
                       <HandCoins className="w-4 h-4 text-[#00ffcc]" />
                     </CardTitle>
                   </div>
@@ -2523,8 +2523,8 @@ export function DelegatePortal() {
                             type="button"
                             onClick={() => setPayoutChannel(ch.id as any)}
                             className={`p-2 rounded-xl border text-right transition-all flex flex-col justify-between cursor-pointer ${
-                              payoutChannel === ch.id 
-                                ? 'bg-teal-500/10 border-[#00ffcc] text-white shadow-md' 
+                              payoutChannel === ch.id
+                                ? 'bg-teal-500/10 border-[#00ffcc] text-white shadow-md'
                                 : 'bg-zinc-900/40 border-zinc-850 text-zinc-400 hover:border-zinc-700'
                             }`}
                           >
@@ -2539,7 +2539,7 @@ export function DelegatePortal() {
                     <div className="p-2.5 bg-zinc-900/40 border border-zinc-800 rounded-xl text-[10px] leading-normal space-y-2">
                       <div className="flex justify-between items-center text-[9px]">
                         <span className="text-zinc-400">
-                          📍 <strong className="text-white">لواء الموطن للربط:</strong> تم استشعار لواءك الحالي <strong className="text-[#00ffcc]">{user?.district || 'الجامعة'}</strong>
+                          📍 <strong className="text-white">منطقة الموطن للربط:</strong> تم استشعار منطقةك الحالي <strong className="text-[#00ffcc]">{user?.district || 'الجامعة'}</strong>
                         </span>
                         {!isEditingLocation ? (
                           <button
@@ -2584,7 +2584,7 @@ export function DelegatePortal() {
                               </select>
                             </div>
                             <div>
-                              <label className="block text-zinc-500 text-[9px] mb-1 text-right">اللواء:</label>
+                              <label className="block text-zinc-500 text-[9px] mb-1 text-right">المنطقة:</label>
                               <select
                                 value={selectedDistrict}
                                 onChange={(e) => setSelectedDistrict(e.target.value)}
@@ -2617,9 +2617,9 @@ export function DelegatePortal() {
                           </div>
                         </div>
                       )}
-                      
+
                       <div className="text-[8px] text-zinc-500 leading-normal text-right">
-                        سيتم ربط قنوات الدفع {payoutChannel} مباشرة وتوجيه الحركة المالية محلياً بنبضة واحدة فقط لمنع استهلاك خوادمنا.
+                        سيتم ربط قنوات الدفع {payoutChannel} مباشرة وتوجيه الحركة المالية محلياً بنشاطة واحدة فقط لمنع استهلاك خوادمنا.
                       </div>
                     </div>
 
@@ -2651,7 +2651,7 @@ export function DelegatePortal() {
                   /* RECHARGE FORM (CliQ Cash Deposit) */
                   <div className="space-y-3 text-right">
                     <div className="p-2.5 bg-[#00ffcc]/5 border border-[#00ffcc]/15 rounded-xl text-[9.5px] text-zinc-350 leading-relaxed text-right">
-                      ⚡ <strong className="text-[#00ffcc]">بوابة كليك (CliQ) الذكية:</strong> شحن رصيدك نقداً فورياً وبصفر عمولة عبر نظام كليك التابع للبنك المركزي الأردني. سيُرسل الطلب فوراً ويتم ربطه بلواء الجامعة بنبضة واحدة (1 Write).
+                      ⚡ <strong className="text-[#00ffcc]">بوابة كليك (CliQ) الذكية:</strong> شحن رصيدك نقداً فورياً وبصفر عمولة عبر نظام كليك التابع للبنك المركزي الأردني. سيُرسل الطلب فوراً ويتم ربطه بمنطقة الجامعة بنشاطة واحدة (1 Write).
                     </div>
 
                     {/* Quick recharge presets */}
@@ -2714,7 +2714,7 @@ export function DelegatePortal() {
                     onClick={async () => {
                       setPayoutProcessing(true);
                       const amt = Number(withdrawalAmount);
-                      
+
                       if (!isOnline) {
                         const newDues = Math.max(0, pendingDues - amt);
                         setPendingDues(newDues);
@@ -2734,7 +2734,7 @@ export function DelegatePortal() {
                         alert(`⚠️ تم تسجيل عملية تسييل وسحب العمولات محلياً وبصمت في الصندوق الأسود بقيمة ${amt.toFixed(2)} د.أ. سيتم تأكيدها وسحبها سحابياً فور عودة الاتصال!`);
                         return;
                       }
-                      
+
                       setTimeout(async () => {
                         const newDues = Math.max(0, pendingDues - amt);
                         setPendingDues(newDues);
@@ -2749,7 +2749,7 @@ export function DelegatePortal() {
                         setPayoutHistory(prev => [newTx, ...prev]);
                         setWithdrawalAmount('');
                         setPayoutProcessing(false);
-                        
+
                         // Write to Firestore and sync
                         if (user?.uid) {
                           try {
@@ -2772,7 +2772,7 @@ export function DelegatePortal() {
                                 district: user.district || 'الجامعة',
                                 amount: amt,
                                 channel: payoutChannel,
-                                detailsText: `تم تسييل عمولات بقيمة ${amt.toFixed(2)} د.أ بنجاح عبر قناة ${payoutChannel} بنبضة واحدة.`,
+                                detailsText: `تم تسييل عمولات بقيمة ${amt.toFixed(2)} د.أ بنجاح عبر قناة ${payoutChannel} بنشاطة واحدة.`,
                                 ipAddress: '127.0.0.1'
                               }
                             });
@@ -2780,7 +2780,7 @@ export function DelegatePortal() {
                             console.error("Firestore sync failed for withdrawal:", e);
                           }
                         }
-                        
+
                         alert(`✅ تم التسييل الفوري! تم إرسال ${amt.toFixed(2)} د.أ إلى حسابك في ${payoutChannel} بنجاح وبصيغة دون اتصال أولاً معتمدة!`);
                       }, 1200);
                     }}
@@ -2796,7 +2796,7 @@ export function DelegatePortal() {
                     onClick={async () => {
                       setRechargeProcessing(true);
                       const amt = Number(rechargeAmount);
-                      
+
                       if (!isOnline) {
                         const newDues = pendingDues + amt;
                         setPendingDues(newDues);
@@ -2817,7 +2817,7 @@ export function DelegatePortal() {
                         alert(`⚠️ تم تسجيل عملية شحن الرصيد محلياً وبصمت في الصندوق الأسود بقيمة ${amt.toFixed(2)} د.أ عبر CliQ. سيتم إثبات الشحن سحابياً فور عودة الاتصال!`);
                         return;
                       }
-                      
+
                       setTimeout(async () => {
                         const newDues = pendingDues + amt;
                         setPendingDues(newDues);
@@ -2833,7 +2833,7 @@ export function DelegatePortal() {
                         setRechargeAmount('');
                         setRechargeAlias('');
                         setRechargeProcessing(false);
-                        
+
                         // Write to Firestore and sync
                         if (user?.uid) {
                           try {
@@ -2865,8 +2865,8 @@ export function DelegatePortal() {
                             console.error("Firestore sync failed for recharge:", e);
                           }
                         }
-                        
-                        alert(`🎉 تم شحن رصيدك نقداً بنجاح! تم إضافة ${amt.toFixed(2)} د.أ إلى محفظتك الميدانية عبر خدمة CliQ العاجلة وبنبضة معززة واحدة!`);
+
+                        alert(`🎉 تم شحن رصيدك نقداً بنجاح! تم إضافة ${amt.toFixed(2)} د.أ إلى محفظتك الميدانية عبر خدمة CliQ العاجلة وبنشاطة معززة واحدة!`);
                       }, 1200);
                     }}
                     className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-400 disabled:bg-zinc-800 disabled:text-zinc-500 text-black text-[11px] font-black rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer"
@@ -2878,10 +2878,10 @@ export function DelegatePortal() {
               </div>
           </Card>
 
-            {/* 💎 PANEL 3: TRAVELLER LOYALTY - DIAMOND PULSE (باقة ولاء المسافر والنبض الماسي) */
+            {/* 💎 PANEL 3: TRAVELLER LOYALTY - DIAMOND PULSE (باقة ولاء الراكب والنشاط الماسي) */
             <Card className="lg:col-span-6 bg-[#0a0614] border border-amber-500/25 rounded-3xl p-5 relative overflow-hidden shadow-xl flex flex-col justify-between">
               <div className="absolute top-0 left-0 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl animate-pulse" />
-              
+
               <div>
                 <CardHeader className="p-0 pb-4 border-b border-zinc-800/60">
                   <div className="flex items-center gap-2 justify-between">
@@ -2889,12 +2889,12 @@ export function DelegatePortal() {
                       الأولوية التكتيكية (الرادار)
                     </Badge>
                     <CardTitle className="text-xs font-black text-white flex items-center gap-2 justify-end">
-                      ولاء المسافر - النبض الماسي
+                      ولاء الراكب - النشاط الماسي
                       <Gem className="w-4 h-4 text-amber-400 animate-pulse" />
                     </CardTitle>
                   </div>
                   <CardDescription className="text-[11px] text-zinc-400 mt-1 text-right">
-                    تمنحك الأولوية التكتيكية وقبول أسرع للعروض في رادار اللواء ومضاعف أسبقية رادار تكتيكي خارق 1.5x في خلايا H3.
+                    تمنحك الأولوية التكتيكية وقبول أسرع للعروض في رادار المنطقة ومضاعف أسبقية رادار تكتيكي خارق 1.5x في خلايا H3.
                   </CardDescription>
                 </CardHeader>
 
@@ -2905,7 +2905,7 @@ export function DelegatePortal() {
                     <span className="text-sm font-black text-amber-400 font-mono block mt-0.5">{loyaltyPoints} نقطة</span>
                   </div>
                   <div className="text-right">
-                    <span className="text-[9px] text-zinc-450 block font-bold">حالة النبض الماسي</span>
+                    <span className="text-[9px] text-zinc-450 block font-bold">حالة النشاط الماسي</span>
                     <Badge className={`border-none text-[8px] mt-0.5 ${diamondPulseActive ? 'bg-amber-500/25 text-amber-400 animate-pulse' : 'bg-zinc-800 text-zinc-450'}`}>
                       {diamondPulseActive ? 'مفعل نشط ●' : 'غير مفعل ○'}
                     </Badge>
@@ -2917,24 +2917,24 @@ export function DelegatePortal() {
                   <div className="p-2.5 bg-black/40 border border-zinc-900 rounded-xl space-y-1.5 text-[10px]">
                     <div className="flex justify-between items-center text-[9px]">
                       <span className="font-mono text-amber-400">{diamondPulseActive ? '1.5x (أولوية قصوى)' : '1.0x (قياسي)'}</span>
-                      <span className="text-zinc-450">مضاعف أسبقية رادار اللواء:</span>
+                      <span className="text-zinc-450">مضاعف أسبقية رادار المنطقة:</span>
                     </div>
                     <div className="flex justify-between items-center text-[9px]">
                       <span className="font-mono text-emerald-400">4.9 / 5.0</span>
                       <span className="text-zinc-450">مستوى الحماية الميدانية (المناعة):</span>
                     </div>
                     <div className="flex justify-between items-center text-[9px]">
-                      <span className="font-mono text-blue-400">{pioneersCount} كابتن</span>
-                      <span className="text-zinc-450">شحنة الرادار في لواء الجامعة:</span>
+                      <span className="font-mono text-blue-400">{pioneersCount} سائق</span>
+                      <span className="text-zinc-450">شحنة الرادار في منطقة الجامعة:</span>
                     </div>
                   </div>
 
                   {/* Branches, Stems, and Fruits */}
                   <div className="p-3 bg-black/50 border border-amber-500/10 rounded-xl space-y-2 text-[9.5px]">
                     <div className="border-b border-zinc-850 pb-1 text-center font-bold text-amber-400">
-                      🌿 هيكلية باقة النبض الماسي (أغصان وفروع وثمار)
+                      🌿 هيكلية باقة النشاط الماسي (أغصان وفروع وثمار)
                     </div>
-                    
+
                     <div className="space-y-1 text-zinc-400">
                       <div>
                         <span className="text-amber-400 font-bold block">1. فروع الأسبقية التكتيكية (Branches):</span>
@@ -2967,7 +2967,7 @@ export function DelegatePortal() {
                         setLoyaltyPoints(prev => prev - 300);
                         setDiamondPulseActive(true);
                         setLoyaltyActivationProcessing(false);
-                        alert('💎 تم تفعيل باقة النبض الماسي السيادية بنجاح! مضاعف الأولوية التكتيكية 1.5x نشط الآن في لواءك.');
+                        alert('💎 تم تفعيل باقة النشاط الماسي  بنجاح! مضاعف الأولوية التكتيكية 1.5x نشط الآن في منطقةك.');
                       }, 1000);
                     }}
                     className="w-full mt-3 py-2 bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 disabled:bg-zinc-800 disabled:text-zinc-500 text-black text-[10px] font-black rounded-xl transition-all shadow-lg flex items-center justify-center gap-1.5 cursor-pointer"
@@ -2975,9 +2975,9 @@ export function DelegatePortal() {
                     {loyaltyActivationProcessing ? (
                       <RefreshCw className="w-3 h-3 animate-spin" />
                     ) : diamondPulseActive ? (
-                      'النبض الماسي فعال ومثبت 1.5x'
+                      'النشاط الماسي فعال ومثبت 1.5x'
                     ) : (
-                      'تفعيل النبض الماسي (خصم 300 نقطة ولاء)'
+                      'تفعيل النشاط الماسي (خصم 300 نقطة ولاء)'
                     )}
                   </button>
 
@@ -3019,12 +3019,12 @@ export function DelegatePortal() {
                       OSRM VPS Integration
                     </Badge>
                     <CardTitle className="text-sm font-black text-white flex items-center gap-2 justify-end">
-                      باقات البث الملاحي وإدارة الدعم
+                      باقات ساعات العمل وإدارة الدعم
                       <Layers className="w-4 h-4 text-[#00ffcc]" />
                     </CardTitle>
                   </div>
                   <CardDescription className="text-xs text-zinc-400 mt-1 text-right">
-                    تفعيل باقات الملاحة السيادية الخارقة المتصلة بخادمنا المستقل وإدارة رصيد دعم المركبات.
+                    تفعيل باقات الملاحة  الخارقة المتصلة بخادمنا المستقل وإدارة رصيد دعم المركبات.
                   </CardDescription>
                 </CardHeader>
 
@@ -3051,21 +3051,21 @@ export function DelegatePortal() {
 
                 {/* Navigation packages */}
                 <div className="space-y-3">
-                  <label className="text-[11px] font-black text-zinc-300 block">اختر باقة البث الملاحي لتفعيلها:</label>
-                  
+                  <label className="text-[11px] font-black text-zinc-300 block">اختر باقة ساعات العمل لتفعيلها:</label>
+
                   {/* Package cards */}
                   <div className="space-y-2">
                     {[
                       { id: 'silver', name: 'الباقة الفضية (Silver Link)', price: 10.00, desc: 'بث ملاحي عبر خادم OSRM الأساسي بجودة ممتازة واستدعاء فوري لخرائط الأردن.' },
-                      { id: 'gold', name: 'الباقة الذهبية السيادية (Golden Link)', price: 20.00, desc: 'اتصال ذو أولوية فائقة مع تشفير كامل وتفعيل بروتوكول الهبوط الملاحي الآمن (Haversine fallback) مجاناً.' }
+                      { id: 'gold', name: 'الباقة الذهبية  (Golden Link)', price: 20.00, desc: 'اتصال ذو أولوية فائقة مع تشفير كامل وتفعيل بروتوكول الهبوط الملاحي الآمن (Haversine fallback) مجاناً.' }
                     ].map((pkg) => {
                       const isActive = activeNavPkg === pkg.id;
                       return (
                         <div
                           key={pkg.id}
                           className={`p-3 rounded-xl border text-right transition-all flex flex-col justify-between ${
-                            isActive 
-                              ? 'bg-amber-500/10 border-amber-400 text-white shadow-md' 
+                            isActive
+                              ? 'bg-amber-500/10 border-amber-400 text-white shadow-md'
                               : 'bg-zinc-900/40 border-zinc-850 text-zinc-400'
                           }`}
                         >
@@ -3086,11 +3086,11 @@ export function DelegatePortal() {
                               onClick={() => {
                                 setSupportBalance(prev => prev - pkg.price);
                                 setActiveNavPkg(pkg.id);
-                                alert(`🎉 تم تفعيل باقة البث الملاحي ${pkg.name} بنجاح! تم الخصم من رصيد الدعم الميداني المخصص.`);
+                                alert(`🎉 تم تفعيل باقة ساعات العمل ${pkg.name} بنجاح! تم الخصم من رصيد الدعم الميداني المخصص.`);
                               }}
                               className={`px-3 py-1 text-[10px] font-bold rounded-lg transition-all cursor-pointer ${
-                                isActive 
-                                  ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed' 
+                                isActive
+                                  ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
                                   : 'bg-amber-500 hover:bg-amber-400 text-black'
                               }`}
                             >
@@ -3106,7 +3106,7 @@ export function DelegatePortal() {
                   <div className="mt-4 p-3 bg-zinc-950/80 border border-zinc-850 rounded-xl space-y-2">
                     <div className="flex items-center justify-between text-[11px] border-b border-zinc-900 pb-2">
                       <span className="text-zinc-500 font-mono">STATUS: {activeNavPkg === 'none' ? 'NO_ACTIVE_PACKAGE' : 'OSRM_ONLINE'}</span>
-                      <strong className="text-white">جودة الاتصال بالبث الملاحي</strong>
+                      <strong className="text-white">جودة الاتصال بساعات العمل</strong>
                     </div>
 
                     <div className="grid grid-cols-2 gap-3 pt-1 text-center">
@@ -3163,7 +3163,7 @@ export function DelegatePortal() {
             <CardHeader className="p-0 pb-4 flex flex-row items-center justify-between border-b border-zinc-850 mb-4">
               <Badge className="bg-zinc-800 text-zinc-300 border-none font-mono text-[9px]">{payoutHistory.length} سحوبات</Badge>
               <CardTitle className="text-sm font-black text-white flex items-center gap-2">
-                سجل سحوبات المحفظة وتسييل العمولات السيادية
+                سجل سحوبات المحفظة وتسييل العمولات
                 <FileCheck className="w-4 h-4 text-[#00ffcc]" />
               </CardTitle>
             </CardHeader>
@@ -3211,17 +3211,17 @@ export function DelegatePortal() {
                   بروتوكول مكافحة تضارب الأدوار
                 </Badge>
                 <h3 className="text-base font-black text-white flex items-center justify-end gap-2 mt-1">
-                  جدار الحماية السيادي وقفل الثغرات الثلاث (Anti-Cheat Kernel)
+                  جدار الحماية  وقفل الثغرات الثلاث (Anti-Cheat Kernel)
                   <AlertTriangle className="w-5 h-5 text-red-500 animate-bounce" />
                 </h3>
                 <p className="text-xs text-zinc-400 leading-relaxed">
-                  بموجب الباب الرابع لقانون التحصين الرقمي، تم دمج ثلاث كوابح جنائية تمنع تضارب وظائف سجل النبض والوظائف المالية:
+                  بموجب الباب الرابع لقانون التحصين الرقمي، تم دمج ثلاث كوابح أمنية تمنع تضارب وظائف سجل النشاط والوظائف المالية:
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2 text-xs">
                   <div className="p-3 bg-black/40 border border-red-500/10 rounded-xl">
                     <strong className="text-red-400 block font-black">1. ثغرة الوقت المحلي:</strong>
                     <span className="text-zinc-500 text-[10px] block mt-1 leading-relaxed">
-                      حظر الاعتماد على ساعة الهاتف، واعتماد "النبض الشبكي التفاضلي" المقروء من السحابة مباشرة.
+                      حظر الاعتماد على ساعة الهاتف، واعتماد "النشاط الشبكي التفاضلي" المقروء من السحابة مباشرة.
                     </span>
                   </div>
                   <div className="p-3 bg-black/40 border border-red-500/10 rounded-xl">
@@ -3244,20 +3244,20 @@ export function DelegatePortal() {
           {/* 🌿 PANEL 5: SOVEREIGN SUPPORT LOGIC TREE */}
           <Card className="bg-[#050B1C] border border-amber-500/20 p-6 rounded-2xl relative overflow-hidden">
             <div className="absolute top-0 right-0 w-48 h-48 bg-amber-500/5 rounded-full blur-3xl animate-pulse" />
-            
+
             <CardHeader className="p-0 pb-4 border-b border-zinc-805 flex flex-row items-center justify-between">
               <Badge className="bg-amber-500/15 text-amber-400 border border-amber-500/25 text-[10px]">
                 الشجرة المعمارية للتأصيل الميداني
               </Badge>
               <CardTitle className="text-base font-black text-white flex items-center gap-2">
-                الشجرة الهندسية النسيجية لسيادة رصيد الدعم (Sovereign Support Logic Tree)
+                الشجرة الهندسية المحلية لإدارة رصيد الدعم (Sovereign Support Logic Tree)
                 <Activity className="w-4 h-4 text-amber-400" />
               </CardTitle>
             </CardHeader>
 
             <CardContent className="p-0 pt-4 text-right space-y-4">
               <p className="text-xs text-zinc-400 leading-relaxed">
-                تُجسّد هذه الشجرة الهندسية الأبعاد الفنية العميقة والمنطق البنيوي لـ <strong className="text-amber-400">رصيد الدعم الميداني المعزز</strong> ونبضات الولاء في قطاع المندوبين، مقسمة إلى أبعاد قطعية، وأغصان متفرعة، وثمار مستدامة تغذي كفاءة النظام المالي والتقني.
+                تُجسّد هذه الشجرة الهندسية الأبعاد الفنية العميقة والمنطق البنيوي لـ <strong className="text-amber-400">رصيد الدعم الميداني المعزز</strong> وتنبيهات الولاء في قطاع المندوبين، مقسمة إلى أبعاد قطعية، وأغصان متفرعة، وثمار مستدامة تغذي كفاءة النظام المالي والتقني.
               </p>
 
               {/* Secure Tamper Indicator (الذوبان والمصادرة التصفوية الصامتة) */}
@@ -3295,13 +3295,13 @@ export function DelegatePortal() {
 
               {/* The Tree Layout */}
               <div className="space-y-3 relative before:absolute before:right-3.5 before:top-2 before:bottom-2 before:w-[1px] before:bg-zinc-850">
-                
-                {/* 1. ROOT NODE (جذر الرصيد والسيادة) */}
+
+                {/* 1. ROOT NODE (جذر الرصيد والإدارة) */}
                 <div className="relative pr-8">
                   {/* Tree link point */}
                   <span className="absolute right-[11px] top-3.5 w-2 h-2 rounded-full bg-amber-500 border border-black shadow" />
-                  
-                  <div 
+
+                  <div
                     onClick={() => setSupportTreeExpanded(prev => ({ ...prev, root: !prev.root }))}
                     className="p-3 bg-zinc-950 border border-amber-500/15 rounded-xl hover:border-amber-500/40 transition-colors cursor-pointer flex justify-between items-center"
                   >
@@ -3318,7 +3318,7 @@ export function DelegatePortal() {
                   {supportTreeExpanded.root && (
                     <div className="mt-2 pr-4 text-[10px] text-zinc-500 leading-normal space-y-1">
                       <div>• صمام الحركة والارتحال المستمر للمناديب في ألوية المملكة الهاشمية دون أعباء استعلامية متكررة.</div>
-                      <div>• وعاء تجميع رسوم باقات البث الملاحي وربطها بنظام OSRM اللامركزي.</div>
+                      <div>• وعاء تجميع رسوم باقات ساعات العمل وربطها بنظام OSRM اللامركزي.</div>
                     </div>
                   )}
                 </div>
@@ -3326,8 +3326,8 @@ export function DelegatePortal() {
                 {/* 2. DIMENSION 1 (البعد الجغرافي - فروع الأسبقية والتأمين جغرافياً) */}
                 <div className="relative pr-8">
                   <span className="absolute right-[11px] top-3.5 w-2 h-2 rounded-full bg-emerald-500 border border-black shadow" />
-                  
-                  <div 
+
+                  <div
                     onClick={() => setSupportTreeExpanded(prev => ({ ...prev, dim1: !prev.dim1 }))}
                     className="p-3 bg-zinc-950/90 border border-emerald-500/15 rounded-xl hover:border-emerald-500/40 transition-colors cursor-pointer flex justify-between items-center"
                   >
@@ -3344,27 +3344,27 @@ export function DelegatePortal() {
                   {supportTreeExpanded.dim1 && (
                     <div className="mt-2 pr-4 pl-2 space-y-2">
                       <div className="p-2.5 bg-black/40 border border-zinc-900 rounded-lg space-y-1">
-                        <span className="text-emerald-400 text-[10.5px] font-bold block">🌿 فرع رادار لواء الجامعة والنبض الجغرافي:</span>
+                        <span className="text-emerald-400 text-[10.5px] font-bold block">🌿 فرع رادار منطقة الجامعة والنشاط الجغرافي:</span>
                         <p className="text-[10px] text-zinc-400 leading-relaxed">
-                          يعمل الرصيد كحارس شبكي لتغطية تكاليف باقة البث الملاحي OSRM المستضافة ذاتياً، مما يمكن المندوب من قراءة خلايا H3 ريزولوشن 9 لتلقي نبضات الركاب الفورية في صالة المزاد على مسح 1.5 كم حتمي.
+                          يعمل الرصيد كحارس شبكي لتغطية تكاليف باقة ساعات العمل OSRM المستضافة ذاتياً، مما يمكن المندوب من قراءة خلايا H3 ريزولوشن 9 لتلقي تنبيهات الركاب الفورية في صالة المزاد على مسح 1.5 كم حتمي.
                         </p>
                       </div>
 
                       <div className="p-2.5 bg-black/40 border border-zinc-900 rounded-lg space-y-1">
                         <span className="text-emerald-400 text-[10.5px] font-bold block">⚡ فرع الأسبقية التكتيكية (قبول العروض السريع):</span>
                         <p className="text-[10px] text-zinc-400 leading-relaxed">
-                          عند توفر رصيد دعم كافٍ وتفعيل "باقة النبض الماسي"، يُمنح المندوب أسبقية تكتيكية (مضاعف 1.5x) لعرض عروضه التنافسية على شاشة الراكب قبل المنافسين، مما يسرع قبول الطلبات بنسبة هائلة.
+                          عند توفر رصيد دعم كافٍ وتفعيل "باقة النشاط الماسي"، يُمنح المندوب أسبقية تكتيكية (مضاعف 1.5x) لعرض عروضه التنافسية على شاشة الراكب قبل المنافسين، مما يسرع قبول الطلبات بنسبة هائلة.
                         </p>
                       </div>
                     </div>
                   )}
                 </div>
 
-                {/* 3. DIMENSION 2 (البعد الحركي - أغصان الارتحال والنبض العام للأسواق) */}
+                {/* 3. DIMENSION 2 (البعد الحركي - أغصان الارتحال والنشاط العام للأسواق) */}
                 <div className="relative pr-8">
                   <span className="absolute right-[11px] top-3.5 w-2 h-2 rounded-full bg-blue-500 border border-black shadow" />
-                  
-                  <div 
+
+                  <div
                     onClick={() => setSupportTreeExpanded(prev => ({ ...prev, dim2: !prev.dim2 }))}
                     className="p-3 bg-zinc-950/90 border border-blue-500/15 rounded-xl hover:border-blue-500/40 transition-colors cursor-pointer flex justify-between items-center"
                   >
@@ -3373,7 +3373,7 @@ export function DelegatePortal() {
                       <span className="text-[10px] font-mono text-blue-400 font-black">STEMS</span>
                     </div>
                     <div className="text-right flex items-center gap-2">
-                      <strong className="text-white text-xs">ثانياً: أغصان الارتحال والنبض العام للأسواق (Movement & Market Pulse)</strong>
+                      <strong className="text-white text-xs">ثانياً: أغصان الارتحال والنشاط العام للأسواق (Movement & Market Pulse)</strong>
                       <Activity className="w-4 h-4 text-blue-400" />
                     </div>
                   </div>
@@ -3381,16 +3381,16 @@ export function DelegatePortal() {
                   {supportTreeExpanded.dim2 && (
                     <div className="mt-2 pr-4 pl-2 space-y-2">
                       <div className="p-2.5 bg-black/40 border border-zinc-900 rounded-lg space-y-1">
-                        <span className="text-blue-400 text-[10.5px] font-bold block">🌾 غصن التسعير النسيجي الحافة (كوابح الـ 15%):</span>
+                        <span className="text-blue-400 text-[10.5px] font-bold block">🌾 غصن التسعير المحلي الحافة (كوابح الـ 15%):</span>
                         <p className="text-[10px] text-zinc-400 leading-relaxed">
-                          يعمل رصيد الدعم على تشغيل محرك التسعير النسيجي ومقارنة العروض المباشرة. يتم إخماد العروض المنحرفة وتفعيل كبح الإغلاق القرمزي (<strong className="text-red-500">Crimson Block</strong>) عند تجاوز حد الـ 15% لمنع التضخم والنبض الزائف في خلايا H3.
+                          يعمل رصيد الدعم على تشغيل محرك التسعير المحلي ومقارنة العروض المباشرة. يتم إخماد العروض المنحرفة وتفعيل كبح الإغلاق القرمزي (<strong className="text-red-500">Crimson Block</strong>) عند تجاوز حد الـ 15% لمنع التضخم والنشاط الزائف في خلايا H3.
                         </p>
                       </div>
 
                       <div className="p-2.5 bg-black/40 border border-zinc-900 rounded-lg space-y-1">
-                        <span className="text-blue-400 text-[10.5px] font-bold block">🔒 غصن المصافحة التصفوية والنبض الشبكي التفاضلي:</span>
+                        <span className="text-blue-400 text-[10.5px] font-bold block">🔒 غصن المصافحة التصفوية والنشاط الشبكي التفاضلي:</span>
                         <p className="text-[10px] text-zinc-400 leading-relaxed">
-                          يضمن أمان الائتمان وموثوقية المعاملات عبر إلزام كافة الأجهزة بإنهاء "المصافحة التصفوية الصامتة" ومطابقة النبض الشبكي التفاضلي (<strong className="text-blue-400">Network Time Delta</strong>) قبل دخول مزاد لواء الجامعة.
+                          يضمن أمان الائتمان وموثوقية المعاملات عبر إلزام كافة الأجهزة بإنهاء "المصافحة التصفوية الصامتة" ومطابقة النشاط الشبكي التفاضلي (<strong className="text-blue-400">Network Time Delta</strong>) قبل دخول مزاد منطقة الجامعة.
                         </p>
                       </div>
                     </div>
@@ -3400,8 +3400,8 @@ export function DelegatePortal() {
                 {/* 4. DIMENSION 3 (البعد التقني والاستدامة - ثمار الدعم المالي والترشيد التقني) */}
                 <div className="relative pr-8">
                   <span className="absolute right-[11px] top-3.5 w-2 h-2 rounded-full bg-purple-500 border border-black shadow" />
-                  
-                  <div 
+
+                  <div
                     onClick={() => setSupportTreeExpanded(prev => ({ ...prev, dim3: !prev.dim3 }))}
                     className="p-3 bg-zinc-950/90 border border-purple-500/15 rounded-xl hover:border-purple-500/40 transition-colors cursor-pointer flex justify-between items-center"
                   >
@@ -3427,7 +3427,7 @@ export function DelegatePortal() {
                       <div className="p-2.5 bg-black/40 border border-zinc-900 rounded-lg space-y-1">
                         <span className="text-purple-400 text-[10.5px] font-bold block">🛡️ ثمرة التوقيع الرقمي المشفر وتأمين الأرصدة:</span>
                         <p className="text-[10px] text-zinc-400 leading-relaxed">
-                          جدار حماية جنائي متكامل يحمي الأرصدة بتواقيع رقمية مشفرة مجزأة (<strong className="text-purple-400">Cryptographic Signatures</strong>) مخزنة محلياً، مما يجعل تزييف أرصدة الدعم ونقاط الولاء أمراً مستحيلاً ومكشوفاً ومصادراً بشكل تفاعلي.
+                          جدار حماية أمني متكامل يحمي الأرصدة بتواقيع رقمية مشفرة مجزأة (<strong className="text-purple-400">Cryptographic Signatures</strong>) مخزنة محلياً، مما يجعل تزييف أرصدة الدعم ونقاط الولاء أمراً مستحيلاً ومكشوفاً ومصادراً بشكل تفاعلي.
                         </p>
                       </div>
                     </div>
@@ -3450,11 +3450,11 @@ export function DelegatePortal() {
                 محرك الترقية السلوكية للوائح العليا (Delegate Promotion Engine)
               </CardTitle>
               <CardDescription className="text-xs">
-                متابعة تدرج رتبتك الميدانية من مرحلة التأسيس إلى مرحلة المبيعات وجلب عقود الشركات والإعلانات الرادارية السيادية.
+                متابعة تدرج رتبتك الميدانية من مرحلة التأسيس إلى مرحلة المبيعات وجلب عقود الشركات والإعلانات الرادارية .
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0 space-y-6">
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="bg-black/50 border border-zinc-800 p-5 rounded-xl space-y-3">
                   <h4 className="text-xs font-black text-amber-400 flex items-center gap-1">
@@ -3462,11 +3462,11 @@ export function DelegatePortal() {
                     المرحلة الأولى: مرحلة التأسيس (قائمة حالياً)
                   </h4>
                   <p className="text-xs text-zinc-300 leading-relaxed font-sans">
-                    تستهدف جمع السائقين والركاب في لواء السيادة المحدد لك جغرافياً وتأكيد نبض الرد وتصفير العجوزات اليومية. تحقق هذه المرحلة الراتب الأساسي مع العمولات الصارمة.
+                    تستهدف جمع السائقين والركاب في منطقة الإدارة المحدد لك جغرافياً وتأكيد نشاط الرد وتصفير العجوزات اليومية. تحقق هذه المرحلة الراتب الأساسي مع العمولات الصارمة.
                   </p>
                   <div className="space-y-1">
                     <div className="flex justify-between text-[11px] text-zinc-400">
-                      <span>الوصول بـ لواء {user?.district || 'الجامعة'} لـ 200 مشترك:</span>
+                      <span>الوصول بـ منطقة {user?.district || 'الجامعة'} لـ 200 مشترك:</span>
                       <span className="font-bold text-white font-mono">{referralCount}/200</span>
                     </div>
                     <div className="w-full bg-neutral-900 h-1.5 rounded-full overflow-hidden">
@@ -3481,7 +3481,7 @@ export function DelegatePortal() {
                     المرحلة الثانية: مرحلة المبيعات وجلب الإعلانات
                   </h4>
                   <p className="text-xs text-zinc-400 leading-relaxed font-sans">
-                    تفتح لك قنوات بيع المساحات الإعلانية الموجهة على رادار مستخدمي لواءك وجلب تعاقدات التوصيل للشركات المحلية مع عمولات إضافية تصل لـ 25% من الصفقات.
+                    تفتح لك قنوات بيع المساحات الإعلانية الموجهة على رادار مستخدمي منطقةك وجلب تعاقدات التوصيل للشركات المحلية مع عمولات إضافية تصل لـ 25% من الصفقات.
                   </p>
                   <div className="pt-2">
                     <span className="inline-block bg-[#111827] text-zinc-500 border border-zinc-850 text-[10px] px-3 py-1 rounded-lg">
@@ -3513,7 +3513,7 @@ export function DelegatePortal() {
           const districtMatch = log.details?.district?.toLowerCase().includes(q);
           const detailsTextMatch = log.details?.detailsText?.toLowerCase().includes(q);
           const referralMatch = log.details?.referralCode?.toLowerCase().includes(q);
-          
+
           const matchesSearch = !q || actionMatch || idMatch || clearanceMatch || districtMatch || detailsTextMatch || referralMatch;
 
           // Action filter
@@ -3536,7 +3536,7 @@ export function DelegatePortal() {
           }
           return acc;
         }, 0);
-        const criticalIncidentsCount = filteredLogs.filter(log => log.securityClearance === 'سيادي حرج').length;
+        const criticalIncidentsCount = filteredLogs.filter(log => log.securityClearance === ' حرج').length;
         const topSecretCount = filteredLogs.filter(log => log.securityClearance === 'سري للغاية').length;
 
         return (
@@ -3573,7 +3573,7 @@ export function DelegatePortal() {
                     <AlertTriangle className="w-5 h-5" />
                   </div>
                   <div className="text-left">
-                    <span className="text-[10px] text-zinc-400 font-bold block">مخاطر وسياديات حرجة</span>
+                    <span className="text-[10px] text-zinc-400 font-bold block">مخاطر وات حرجة</span>
                     <span className="text-xl font-black text-red-500 font-mono block">{criticalIncidentsCount}</span>
                   </div>
                 </div>
@@ -3585,7 +3585,7 @@ export function DelegatePortal() {
                     <ShieldCheck className="w-5 h-5" />
                   </div>
                   <div className="text-left">
-                    <span className="text-[10px] text-zinc-400 font-bold block">سري للغاية ونبض آمن</span>
+                    <span className="text-[10px] text-zinc-400 font-bold block">سري للغاية ونشاط آمن</span>
                     <span className="text-xl font-black text-cyan-400 font-mono block">{topSecretCount}</span>
                   </div>
                 </div>
@@ -3594,24 +3594,24 @@ export function DelegatePortal() {
 
             {/* 🛡️ Sovereign Engineering Tree & Protocol 12 Forensic Audit Hub (V2.6-Secured) */}
             <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 text-right font-sans" dir="rtl">
-              
+
               {/* 🌳 MODULE 1: THE INTERACTIVE ENGINEERING TREE (الشجرة الهندسية التفاعلية) */}
               <Card className="xl:col-span-6 bg-[#030712] border border-emerald-500/30 rounded-3xl p-6 relative overflow-hidden shadow-2xl">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl" />
                 <div className="absolute bottom-0 left-0 w-32 h-32 bg-cyan-500/5 rounded-full blur-3xl" />
-                
+
                 <CardHeader className="p-0 pb-6 border-b border-zinc-800/60">
                   <div className="flex items-center gap-3 justify-between">
                     <Badge className="bg-emerald-500/15 text-emerald-400 border border-emerald-500/35 font-mono text-[10px] px-2 py-0.5 rounded-md">
-                      الدستور المعماري V2.6
+                      الشروط المعماري V2.6
                     </Badge>
                     <div className="text-right">
                       <CardTitle className="text-base font-black text-white flex items-center gap-2 justify-end">
                         <Workflow className="w-5 h-5 text-emerald-400" />
-                        الشجرة الهندسية النسيجية للتطبيق
+                        الشجرة الهندسية المحلية للتطبيق
                       </CardTitle>
                       <CardDescription className="text-xs text-zinc-400 mt-1">
-                        استكشف فروع وأبعاد منطق "النبض" و"الأرشيف" و"شاشة الخزنة" وجنِ ثمارها التشغيلية.
+                        استكشف فروع وأبعاد منطق "النشاط" و"الأرشيف" و"شاشة المحفظة" وجنِ ثمارها التشغيلية.
                       </CardDescription>
                     </div>
                   </div>
@@ -3621,8 +3621,8 @@ export function DelegatePortal() {
                   {/* Root Node */}
                   <div className="p-4 bg-emerald-950/20 border border-emerald-500/30 rounded-2xl flex items-center justify-between transition-all hover:bg-emerald-950/30">
                     <div className="text-left">
-                      <span className="text-[9px] text-emerald-400 font-bold block">مظلة السيادة المركزية</span>
-                      <span className="text-xs font-black text-white">الدستور المعماري الموحد (V2.6)</span>
+                      <span className="text-[9px] text-emerald-400 font-bold block">مظلة الإدارة المركزية</span>
+                      <span className="text-xs font-black text-white">الشروط المعماري الموحد (V2.6)</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
@@ -3633,15 +3633,15 @@ export function DelegatePortal() {
                   {/* Trunk Connector Line */}
                   <div className="w-[2px] h-4 bg-gradient-to-b from-emerald-500/40 to-cyan-500/40 mx-auto" />
 
-                  {/* Stem 1: سجلات النبض الميداني */}
+                  {/* Stem 1: سجلات النشاط الميداني */}
                   <div className="space-y-2 border-r-2 border-emerald-500/20 pr-4">
-                    <button 
+                    <button
                       onClick={() => toggleTreeNode('stem1')}
                       className="w-full flex items-center justify-between p-3 bg-zinc-950/60 border border-emerald-500/10 hover:border-emerald-500/35 rounded-xl transition-all"
                     >
                       <div className="flex items-center gap-2">
                         {treeExpandedNodes.stem1 ? <ChevronDown className="w-4 h-4 text-emerald-400" /> : <ChevronRight className="w-4 h-4 text-emerald-400" />}
-                        <span className="text-xs font-black text-white">الجذع الأول: سجلات النبض والتعقيم السلوكي</span>
+                        <span className="text-xs font-black text-white">الجذع الأول: سجلات النشاط والتعقيم السلوكي</span>
                       </div>
                       <Badge className="bg-emerald-500/10 text-emerald-400 border-none text-[9px] font-mono">
                         3 فروع نشطة
@@ -3650,7 +3650,7 @@ export function DelegatePortal() {
 
                     <AnimatePresence>
                       {treeExpandedNodes.stem1 && (
-                        <motion.div 
+                        <motion.div
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: 'auto' }}
                           exit={{ opacity: 0, height: 0 }}
@@ -3660,7 +3660,7 @@ export function DelegatePortal() {
                           <div className="p-2.5 bg-zinc-900/40 border border-zinc-800/50 rounded-lg text-xs space-y-1">
                             <span className="font-bold text-emerald-400 block text-[11px]">🌿 غصن معايرة الوقت التفاضلي (Time Delta):</span>
                             <p className="text-[10px] text-zinc-400 leading-normal">
-                              يقارن وقت الجهاز مع خادم NTP عند كل استدعاء للنبض لتفادي ثغرة التلاعب بالوقت الداخلي لتجاوز صلاحية الجلسات الميدانية.
+                              يقارن وقت الجهاز مع خادم NTP عند كل استدعاء للنشاط لتفادي ثغرة التلاعب بالوقت الداخلي لتجاوز صلاحية الجلسات الميدانية.
                             </p>
                           </div>
                           {/* Branch 1.2 */}
@@ -3693,7 +3693,7 @@ export function DelegatePortal() {
 
                   {/* Stem 2: الأرشيف الميداني والصندوق الأسود */}
                   <div className="space-y-2 border-r-2 border-cyan-500/20 pr-4">
-                    <button 
+                    <button
                       onClick={() => toggleTreeNode('stem2')}
                       className="w-full flex items-center justify-between p-3 bg-zinc-950/60 border border-cyan-500/10 hover:border-cyan-500/35 rounded-xl transition-all"
                     >
@@ -3708,7 +3708,7 @@ export function DelegatePortal() {
 
                     <AnimatePresence>
                       {treeExpandedNodes.stem2 && (
-                        <motion.div 
+                        <motion.div
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: 'auto' }}
                           exit={{ opacity: 0, height: 0 }}
@@ -3740,7 +3740,7 @@ export function DelegatePortal() {
                               </div>
                               <div className="p-1.5 bg-black/40 rounded border border-cyan-500/10">
                                 <strong className="text-white block">عائد المستخدم:</strong>
-                                استمرار عمل التطبيق بكفاءة 100% في قيعان لواء الجامعة أو الصحراء وتثبيت عمولته فوراً.
+                                استمرار عمل التطبيق بكفاءة 100% في قيعان منطقة الجامعة أو الصحراء وتثبيت عمولته فوراً.
                               </div>
                             </div>
                           </div>
@@ -3749,15 +3749,15 @@ export function DelegatePortal() {
                     </AnimatePresence>
                   </div>
 
-                  {/* Stem 3: شاشة الخزنة السيادية الموحدة */}
+                  {/* Stem 3: شاشة المحفظة  الموحدة */}
                   <div className="space-y-2 border-r-2 border-indigo-500/20 pr-4">
-                    <button 
+                    <button
                       onClick={() => toggleTreeNode('stem3')}
                       className="w-full flex items-center justify-between p-3 bg-zinc-950/60 border border-indigo-500/10 hover:border-indigo-500/35 rounded-xl transition-all"
                     >
                       <div className="flex items-center gap-2">
                         {treeExpandedNodes.stem3 ? <ChevronDown className="w-4 h-4 text-indigo-400" /> : <ChevronRight className="w-4 h-4 text-indigo-400" />}
-                        <span className="text-xs font-black text-white">الجذع الثالث: شاشة الخزنة السيادية (Vault Screen)</span>
+                        <span className="text-xs font-black text-white">الجذع الثالث: شاشة المحفظة  (Vault Screen)</span>
                       </div>
                       <Badge className="bg-indigo-500/10 text-indigo-400 border-none text-[9px] font-mono">
                         3 فروع نشطة
@@ -3766,7 +3766,7 @@ export function DelegatePortal() {
 
                     <AnimatePresence>
                       {treeExpandedNodes.stem3 && (
-                        <motion.div 
+                        <motion.div
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: 'auto' }}
                           exit={{ opacity: 0, height: 0 }}
@@ -3776,7 +3776,7 @@ export function DelegatePortal() {
                           <div className="p-2.5 bg-zinc-900/40 border border-zinc-800/50 rounded-lg text-xs space-y-1">
                             <span className="font-bold text-indigo-400 block text-[11px]">🌿 غصن خلود العروض (Eternal Storage Clock):</span>
                             <p className="text-[10px] text-zinc-400 leading-normal">
-                              يحفظ كروت الاتصال والخصومات بذاكرة المتصفح الصلبة (IndexedDB) لمدة 20 يوماً حتمية مع خيار التمديد اليدوي للأبد.
+                              يحفظ كروت الاتصال والخصومات بذاكرة المتصفح الصلبة (IndexedDB) لمدة 20 يوماً ثابتة مع خيار التمديد اليدوي للأبد.
                             </p>
                           </div>
                           {/* Branch 3.2 */}
@@ -3798,7 +3798,7 @@ export function DelegatePortal() {
                               </div>
                               <div className="p-1.5 bg-black/40 rounded border border-indigo-500/10">
                                 <strong className="text-white block">عائد المستخدم:</strong>
-                                وصول فوري لعروض الأباطرة، وتأمين صفقات التوصيل دون شروط تعاقدية معقدة.
+                                وصول فوري لعروض العروض المميزة، وتأمين صفقات التوصيل دون شروط تعاقدية معقدة.
                               </div>
                             </div>
                           </div>
@@ -3807,15 +3807,15 @@ export function DelegatePortal() {
                     </AnimatePresence>
                   </div>
 
-                  {/* Stem 4: شاشة المحفظة السيادية وإدارة رصيد الدعم وباقات البث الملاحي */}
+                  {/* Stem 4: شاشة المحفظة  وإدارة رصيد الدعم وباقات ساعات العمل */}
                   <div className="space-y-2 border-r-2 border-[#00ffcc]/20 pr-4">
-                    <button 
+                    <button
                       onClick={() => toggleTreeNode('stem4')}
                       className="w-full flex items-center justify-between p-3 bg-zinc-950/60 border border-[#00ffcc]/10 hover:border-[#00ffcc]/35 rounded-xl transition-all"
                     >
                       <div className="flex items-center gap-2">
                         {treeExpandedNodes.stem4 ? <ChevronDown className="w-4 h-4 text-[#00ffcc]" /> : <ChevronRight className="w-4 h-4 text-[#00ffcc]" />}
-                        <span className="text-xs font-black text-white">الجذع الرابع: شاشة المحفظة السيادية وإدارة رصيد الدعم وباقات البث الملاحي</span>
+                        <span className="text-xs font-black text-white">الجذع الرابع: شاشة المحفظة  وإدارة رصيد الدعم وباقات ساعات العمل</span>
                       </div>
                       <Badge className="bg-[#00ffcc]/10 text-[#00ffcc] border-none text-[9px] font-mono">
                         بث و تسييل فوري
@@ -3824,7 +3824,7 @@ export function DelegatePortal() {
 
                     <AnimatePresence>
                       {treeExpandedNodes.stem4 && (
-                        <motion.div 
+                        <motion.div
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: 'auto' }}
                           exit={{ opacity: 0, height: 0 }}
@@ -3834,12 +3834,12 @@ export function DelegatePortal() {
                           <div className="p-2.5 bg-zinc-900/40 border border-zinc-800/50 rounded-lg text-xs space-y-1">
                             <span className="font-bold text-[#00ffcc] block text-[11px]">🌿 غصن تسويات قنوات الدفع الرقمية الأردنية (CliQ, Zain Cash, Orange Money, eFAWATEERcom):</span>
                             <p className="text-[10px] text-zinc-400 leading-normal">
-                              يربط العمولات وعائدات المندوبين محلياً بناءً على حقل لواء الموطن (homeDistrict) وتأكيد المعاملة بنبضة واحدة فقط (1 Write) للحفاظ على كفاءة الذاكرة.
+                              يربط العمولات وعائدات المندوبين محلياً بناءً على حقل منطقة الموطن (homeDistrict) وتأكيد المعاملة بنشاطة واحدة فقط (1 Write) للحفاظ على كفاءة الذاكرة.
                             </p>
                           </div>
                           {/* Branch 4.2 */}
                           <div className="p-2.5 bg-zinc-900/40 border border-zinc-800/50 rounded-lg text-xs space-y-1">
-                            <span className="font-bold text-[#00ffcc] block text-[11px]">🌿 غصن البث الملاحي المتكامل (Jordan Map OSRM & GPS Hub):</span>
+                            <span className="font-bold text-[#00ffcc] block text-[11px]">🌿 غصن ساعات العمل المتكامل (Jordan Map OSRM & GPS Hub):</span>
                             <p className="text-[10px] text-zinc-400 leading-normal">
                               محرك ملاحي متكامل يستعمل خادم OSRM مستقل محمل عليه ملف خريطة الأردن المدمج (25MB)، مع تفعيل فوري لمعامل الهرسين (Haversine 1.3) كخط أمان طوارئ عند انقطاع الشبكة.
                             </p>
@@ -3865,15 +3865,15 @@ export function DelegatePortal() {
                     </AnimatePresence>
                   </div>
 
-                  {/* Stem 5: باقة ولاء المسافر والنبض الماسي */}
+                  {/* Stem 5: باقة ولاء الراكب والنشاط الماسي */}
                   <div className="space-y-2 border-r-2 border-[#ff3b30]/20 pr-4">
-                    <button 
+                    <button
                       onClick={() => toggleTreeNode('stem5')}
                       className="w-full flex items-center justify-between p-3 bg-zinc-950/60 border border-amber-500/15 hover:border-amber-500/40 rounded-xl transition-all"
                     >
                       <div className="flex items-center gap-2">
                         {treeExpandedNodes.stem5 ? <ChevronDown className="w-4 h-4 text-amber-400" /> : <ChevronRight className="w-4 h-4 text-amber-400" />}
-                        <span className="text-xs font-black text-white">الجذع الخامس: باقة ولاء المسافر - النبض الماسي</span>
+                        <span className="text-xs font-black text-white">الجذع الخامس: باقة ولاء الراكب - النشاط الماسي</span>
                       </div>
                       <Badge className="bg-amber-500/10 text-amber-400 border-none text-[9px] font-mono">
                         أولوية تكتيكية 1.5x
@@ -3882,7 +3882,7 @@ export function DelegatePortal() {
 
                     <AnimatePresence>
                       {treeExpandedNodes.stem5 && (
-                        <motion.div 
+                        <motion.div
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: 'auto' }}
                           exit={{ opacity: 0, height: 0 }}
@@ -3892,14 +3892,14 @@ export function DelegatePortal() {
                           <div className="p-2.5 bg-zinc-900/40 border border-zinc-800/50 rounded-lg text-xs space-y-1">
                             <span className="font-bold text-amber-400 block text-[11px]">🌿 غصن الأولوية التكتيكية وقبول أسرع للعروض:</span>
                             <p className="text-[10px] text-zinc-400 leading-normal">
-                              يرفع معدل أولوية الحجز والبث الجغرافي إلى 1.5x في خلايا H3 النسيجية بدقة ريزولوشن 9، مما يضمن ظهور السائق فوراً للراكب وحسم صالة المزاد بسرعة تامة.
+                              يرفع معدل أولوية الحجز والعرض الجغرافي إلى 1.5x في خلايا H3 المحلية بدقة ريزولوشن 9، مما يضمن ظهور السائق فوراً للراكب وحسم صالة المزاد بسرعة تامة.
                             </p>
                           </div>
                           {/* Branch 5.2 */}
                           <div className="p-2.5 bg-zinc-900/40 border border-zinc-800/50 rounded-lg text-xs space-y-1">
                             <span className="font-bold text-amber-400 block text-[11px]">🌿 غصن تراكم النقاط والمناعة السلوكية:</span>
                             <p className="text-[10px] text-zinc-400 leading-normal">
-                              يمنح كلاً من السائق والراكب 15 نقطة ولاء آلية لكل رحلة مكتملة في لواء الجامعة لتسهيل شحن محفظة الدعم مجاناً وحمايتهم من تدني نقاط السلوك.
+                              يمنح كلاً من السائق والراكب 15 نقطة ولاء آلية لكل رحلة مكتملة في منطقة الجامعة لتسهيل شحن محفظة الدعم مجاناً وحمايتهم من تدني نقاط السلوك.
                             </p>
                           </div>
                           {/* Fruit */}
@@ -3914,7 +3914,7 @@ export function DelegatePortal() {
                               </div>
                               <div className="p-1.5 bg-black/40 rounded border border-amber-500/10">
                                 <strong className="text-white block">عائد المستخدم:</strong>
-                                تسريع التقاط الرحلات، وزيادة في الدخل بنسبة 25%، مع الحماية الحتمية للحساب.
+                                تسريع التقاط الرحلات، وزيادة في الدخل بنسبة 25%، مع الحماية الثابتة للحساب.
                               </div>
                             </div>
                           </div>
@@ -3925,15 +3925,15 @@ export function DelegatePortal() {
                 </CardContent>
               </Card>
 
-              {/* ⚖️ MODULE 2: PROTOCOL 12 FORENSIC AUDIT HUB (بروتوكول 12: الفحص الجنائي) */}
+              {/* ⚖️ MODULE 2: PROTOCOL 12 FORENSIC AUDIT HUB (بروتوكول 12: الفحص الأمني) */}
               <Card className="xl:col-span-6 bg-[#040815] border border-red-500/30 rounded-3xl p-6 relative overflow-hidden shadow-2xl flex flex-col justify-between">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/5 rounded-full blur-3xl animate-pulse" />
-                
+
                 <div>
                   <CardHeader className="p-0 pb-6 border-b border-zinc-800/60">
                     <div className="flex items-center gap-3 justify-between">
                       <Badge className="bg-red-500/15 text-red-400 border border-red-500/35 font-mono text-[10px] px-2.5 py-0.5 rounded-md animate-pulse">
-                        سيادي حرج - بروتوكول 12
+                         حرج - بروتوكول 12
                       </Badge>
                       <div className="text-right">
                         <CardTitle className="text-base font-black text-white flex items-center gap-2 justify-end">
@@ -3960,7 +3960,7 @@ export function DelegatePortal() {
                       <strong className="text-emerald-400 block font-black">🛡️ مواطن القوة والتحصين:</strong>
                       <p className="text-zinc-400 text-[10px]">
                         - عزل العدادات في وعاء مشفر محلي بختم تجزئة ثنائي.<br />
-                        - كبح الإلغاء المتكرر، وتفاضل النبض الشبكي التفاضلي NTP لمنع التلاعب.
+                        - كبح الإلغاء المتكرر، وتفاضل النشاط الشبكي التفاضلي NTP لمنع التلاعب.
                       </p>
                     </div>
                   </div>
@@ -3977,7 +3977,7 @@ export function DelegatePortal() {
 
                     {protocol12AuditLogs.length === 0 ? (
                       <div className="text-zinc-600 text-center py-8 font-sans">
-                        اضغط على زر "تفعيل الفحص الجنائي لبروتوكول 12" لبدء تحليل تعارض المهام...
+                        اضغط على زر "تفعيل الفحص الأمني لبروتوكول 12" لبدء تحليل تعارض المهام...
                       </div>
                     ) : (
                       <div className="space-y-1 text-right font-sans">
@@ -3986,7 +3986,7 @@ export function DelegatePortal() {
                           const isSuccess = log.includes('✅') || log.includes('اكتمال');
                           const isRemedy = log.includes('⚡');
                           const isError = log.includes('🚨') || log.includes('Result');
-                          
+
                           let colorClass = 'text-zinc-400';
                           if (isWarning) colorClass = 'text-amber-400 font-bold';
                           if (isSuccess) colorClass = 'text-emerald-400 font-extrabold';
@@ -4006,14 +4006,14 @@ export function DelegatePortal() {
 
                 {/* ACTIVE CONTROLS BOARD (جميع الأزرار مفعلة وعاملة بالكامل) */}
                 <div className="mt-6 pt-4 border-t border-zinc-800/60 grid grid-cols-2 gap-3">
-                  
+
                   <Button
                     onClick={runProtocol12Scan}
                     disabled={protocol12ScanResult === 'scanning'}
                     className="bg-zinc-900 hover:bg-zinc-800 text-white border border-zinc-800 hover:border-zinc-700 font-black text-xs h-10 rounded-xl flex items-center justify-center gap-1.5 shrink-0 cursor-pointer"
                   >
                     <Search className="w-3.5 h-3.5 text-zinc-400" />
-                    <span>بدء الفحص الجنائي للرتب والمهام</span>
+                    <span>بدء الفحص الأمني للرتب والمهام</span>
                   </Button>
 
                   <Button
@@ -4044,10 +4044,10 @@ export function DelegatePortal() {
                   <div className="text-right">
                     <CardTitle className="text-base font-black text-white flex items-center gap-2 justify-end">
                       <Layers className="w-5 h-5 text-indigo-400" />
-                      بوابة أرشيف الخزنة وتمديد الحفظ السيادي للمندوبين
+                      بوابة أرشيف المحفظة وتمديد الحفظ  للمندوبين
                     </CardTitle>
                     <CardDescription className="text-xs text-zinc-400 mt-1">
-                      التحكم التفاعلي بالخلود الإعلاني لكروت الأباطرة وحسومات لواء الجامعة المعتمدة محلياً.
+                      التحكم التفاعلي بالخلود الإعلاني لكروت العروض المميزة وحسومات منطقة الجامعة المعتمدة محلياً.
                     </CardDescription>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
@@ -4055,7 +4055,7 @@ export function DelegatePortal() {
                       onClick={seedDemoVaultAds}
                       className="bg-indigo-950/40 hover:bg-indigo-950 text-indigo-300 border border-indigo-500/20 text-[11px] font-bold h-8 px-3 rounded-lg cursor-pointer transition-all"
                     >
-                      🌱 شحن كروت الخزنة التجريبية
+                      🌱 شحن كروت المحفظة التجريبية
                     </Button>
                     <Button
                       onClick={loadDelegateVaultAds}
@@ -4074,9 +4074,9 @@ export function DelegatePortal() {
                         <Layers className="w-6 h-6" />
                       </div>
                       <div className="space-y-1">
-                        <h4 className="text-xs font-black text-white">لا توجد كروت تواصل محفوظة بالخزنة السيادية حالياً</h4>
+                        <h4 className="text-xs font-black text-white">لا توجد كروت تواصل محفوظة بالمحفظة  حالياً</h4>
                         <p className="text-[10px] text-zinc-500 max-w-sm leading-relaxed mx-auto">
-                          اضغط على زر <strong className="text-indigo-400">"🌱 شحن كروت الخزنة التجريبية"</strong> بالقولون العلوي لتوليد كروت عروض حقيقية لمرشحي لواء الجامعة وتفعيل تمديد الحفظ والخلود فوراً.
+                          اضغط على زر <strong className="text-indigo-400">"🌱 شحن كروت المحفظة التجريبية"</strong> بالقولون العلوي لتوليد كروت عروض حقيقية لمرشحي منطقة الجامعة وتفعيل تمديد الحفظ والخلود فوراً.
                         </p>
                       </div>
                     </div>
@@ -4088,7 +4088,7 @@ export function DelegatePortal() {
                         const expiryTime = savedTime + millisecondsIn20Days;
                         const timeLeftMs = expiryTime - Date.now();
                         const daysLeft = Math.ceil(timeLeftMs / (24 * 60 * 60 * 1000));
-                        
+
                         // Indicators based on days left
                         let statusColor = "text-emerald-400 border-emerald-500/20 bg-emerald-500/5";
                         if (daysLeft <= 5) statusColor = "text-amber-400 border-amber-500/20 bg-amber-500/5 animate-pulse";
@@ -4096,7 +4096,7 @@ export function DelegatePortal() {
                         if (daysLeft > 100) statusColor = "text-indigo-400 border-indigo-500/30 bg-indigo-500/5";
 
                         return (
-                          <div 
+                          <div
                             key={ad.id}
                             className="bg-[#050914] border border-zinc-800/80 hover:border-indigo-500/30 rounded-2xl p-4 flex flex-col justify-between gap-4 transition-all duration-300 relative group"
                           >
@@ -4112,15 +4112,15 @@ export function DelegatePortal() {
                               <AdDisplayCard
                                 ad={ad}
                                 showHeart={false}
-                                badgeText="نبض ميداني"
+                                badgeText="نشاط ميداني"
                                 ctaText={ad.action?.buttonText || ad.buttonText || 'عرض التفاصيل'}
                                 className="h-[240px] rounded-[28px]"
                               />
 
                               {/* Card Body */}
                               <div className="flex gap-3 items-start">
-                                <img 
-                                  src={ad.content?.posterUrl || ad.bannerUrl} 
+                                <img
+                                  src={ad.content?.posterUrl || ad.bannerUrl}
                                   alt={ad.title}
                                   className="w-12 h-12 rounded-lg object-cover border border-zinc-800 shrink-0"
                                   referrerPolicy="no-referrer"
@@ -4135,7 +4135,7 @@ export function DelegatePortal() {
                             {/* Actions and Status indicators */}
                             <div className="space-y-2 pt-2 border-t border-zinc-850 text-right">
                               <div className="flex justify-between text-[10px] text-zinc-500">
-                                <span>اللواء المستهدف:</span>
+                                <span>المنطقة المستهدف:</span>
                                 <strong className="text-white">{ad.targetDistrict || "الجامعة"}</strong>
                               </div>
                               <div className="flex justify-between text-[10px] text-zinc-500">
@@ -4170,17 +4170,17 @@ export function DelegatePortal() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 text-right" dir="rtl">
-              
+
               {/* Left Column: Security Monitor & Offline Standby Console */}
               <div className="lg:col-span-2 space-y-6">
-                
+
                 {/* 1. مؤشر السلامة والمناعة السلوكية */}
                 <Card className="bg-[#050B15] border border-emerald-500/20 p-5 rounded-2xl relative overflow-hidden text-right">
                   <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-400 animate-pulse" />
                   <CardHeader className="p-0 pb-4">
                     <CardTitle className="text-sm font-black text-white flex items-center gap-2 justify-start">
                       <ShieldCheck className="w-5 h-5 text-emerald-400" />
-                      مؤشر النبض الميداني والتعقيم السلوكي
+                      مؤشر النشاط الميداني والتعقيم السلوكي
                     </CardTitle>
                     <CardDescription className="text-xs text-zinc-400">
                       جرد مستمر لبصمة المندوب ومكافحة ثغرات تزييف العدادات أو التلاعب بالجلسات.
@@ -4222,8 +4222,8 @@ export function DelegatePortal() {
                       </div>
 
                       <div className="flex justify-between py-1 font-sans">
-                        <span className="text-zinc-400">معرف لواء الموطن الجغرافي:</span>
-                        <span className="font-bold text-cyan-400">لواء {user?.district || 'الجامعة'}</span>
+                        <span className="text-zinc-400">معرف منطقة الموطن الجغرافي:</span>
+                        <span className="font-bold text-cyan-400">منطقة {user?.district || 'الجامعة'}</span>
                       </div>
                     </div>
                   </CardContent>
@@ -4246,7 +4246,7 @@ export function DelegatePortal() {
                         {isOnline ? 'Online' : 'Offline'}
                       </Badge>
                       <div className="space-y-1 text-left">
-                        <span className="text-[10px] text-zinc-400 font-extrabold uppercase block">حالة النبض والشبكة</span>
+                        <span className="text-[10px] text-zinc-400 font-extrabold uppercase block">حالة النشاط والشبكة</span>
                         <span className={`text-xs font-bold ${isOnline ? 'text-emerald-400' : 'text-amber-400'}`}>
                           {isOnline ? '● متصل بالخادم الاستراتيجي' : '⚠️ وضع الصمود غير المتصل نشط'}
                         </span>
@@ -4263,7 +4263,7 @@ export function DelegatePortal() {
                         <div className="text-center py-6 space-y-2">
                           <ShieldCheck className="w-8 h-8 text-emerald-500/30 mx-auto" />
                           <p className="text-[11px] text-emerald-400 font-sans">
-                            النبض السحابي متزامن بالكامل، لا توجد معاملات عالقة محلياً في الصندوق الأسود.
+                            النشاط السحابي متزامن بالكامل، لا توجد معاملات عالقة محلياً في الصندوق الأسود.
                           </p>
                         </div>
                       ) : (
@@ -4277,7 +4277,7 @@ export function DelegatePortal() {
                                 <span className="text-amber-400 font-bold block">
                                   {item.type === 'task-transition' && 'تعديل حالة مهمة'}
                                   {item.type === 'request-settlement' && 'طلب تسوية مالية'}
-                                  {item.type === 'fleet-toggle' && 'تبديل نبض الأسطول'}
+                                  {item.type === 'fleet-toggle' && 'تبديل نشاط الأسطول'}
                                 </span>
                                 <div className="text-[9px] text-zinc-500 font-mono">Status: pending_sync</div>
                               </div>
@@ -4288,7 +4288,7 @@ export function DelegatePortal() {
                     </div>
 
                     {offlineQueue.length > 0 && (
-                      <Button 
+                      <Button
                         onClick={processOfflineQueue}
                         disabled={!isOnline}
                         className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs h-9 rounded-xl animate-pulse"
@@ -4304,12 +4304,12 @@ export function DelegatePortal() {
 
               {/* Right Column: Sovereign Audit Ledger with Advanced Search Controls */}
               <div className="lg:col-span-3 space-y-6">
-                
+
                 {/* Advanced Search & Filtering Controls Board */}
                 <Card className="bg-[#0A0E1A] border border-emerald-500/30 rounded-2xl p-5 space-y-4 text-right">
                   <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between border-b border-zinc-800/80 pb-4">
                     <div className="flex items-center gap-2 justify-start md:justify-end">
-                      <Button 
+                      <Button
                         onClick={() => {
                           setPulseSearchQuery('');
                           setPulseFilterAction('ALL');
@@ -4321,7 +4321,7 @@ export function DelegatePortal() {
                       >
                         إعادة تعيين الفلاتر
                       </Button>
-                      <Button 
+                      <Button
                         onClick={fetchAuditLogs}
                         variant="outline"
                         className="border-zinc-800 text-zinc-400 hover:text-white h-8 text-xs rounded-lg px-3 cursor-pointer shrink-0"
@@ -4343,16 +4343,16 @@ export function DelegatePortal() {
 
                   {/* Filter Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-right">
-                    
+
                     {/* Search Field */}
                     <div className="md:col-span-4 space-y-1.5">
-                      <label className="text-[10px] font-bold text-zinc-400 block">البحث بالنص الصافي (العملية، التوقيع، اللواء، أو المرجع)</label>
+                      <label className="text-[10px] font-bold text-zinc-400 block">البحث بالنص الصافي (العملية، التوقيع، المنطقة، أو المرجع)</label>
                       <div className="relative">
                         <Search className="absolute right-3 top-2.5 w-4 h-4 text-zinc-500" />
-                        <Input 
+                        <Input
                           value={pulseSearchQuery}
                           onChange={(e) => setPulseSearchQuery(e.target.value)}
-                          placeholder="مثال: لواء الجامعة، تسوية، SHA255..."
+                          placeholder="مثال: منطقة الجامعة، تسوية، SHA255..."
                           className="bg-black/40 border-zinc-800 focus:border-emerald-500 text-white placeholder:text-zinc-600 text-xs pr-9 h-9 text-right rounded-xl font-sans"
                         />
                       </div>
@@ -4361,7 +4361,7 @@ export function DelegatePortal() {
                     {/* Action Filter */}
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-bold text-zinc-400 block">نوع العملية</label>
-                      <select 
+                      <select
                         value={pulseFilterAction}
                         onChange={(e) => setPulseFilterAction(e.target.value)}
                         className="w-full bg-black/60 border border-zinc-800 focus:border-emerald-500 text-white rounded-xl text-xs p-2 text-right h-9 font-sans cursor-pointer"
@@ -4372,7 +4372,7 @@ export function DelegatePortal() {
                         <option value="FUNDS_TRANSFER_COMPLETED">إرسال وتحويل مستحقات</option>
                         <option value="GEOGRAPHIC_CELL_CALIBRATION">معايرة خلايا H3</option>
                         <option value="TOKEN_DECRYPTION_HANDSHAKE">مصافحة فك تشفير الجلسة</option>
-                        <option value="BEHAVIORAL_IMMUNITY_PENALTY">تطهير سلوكي وعقوبات</option>
+                        <option value="BEHAVIORAL_IMMUNITY_PENALTY">حذف سلوكي وعقوبات</option>
                         <option value="INSTANT_SETTLEMENT_REQUEST">طلب تسوية فورية</option>
                       </select>
                     </div>
@@ -4380,13 +4380,13 @@ export function DelegatePortal() {
                     {/* Security Clearance Filter */}
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-bold text-zinc-400 block">تصنيف الأمان</label>
-                      <select 
+                      <select
                         value={pulseFilterClearance}
                         onChange={(e) => setPulseFilterClearance(e.target.value)}
                         className="w-full bg-black/60 border border-zinc-800 focus:border-emerald-500 text-white rounded-xl text-xs p-2 text-right h-9 font-sans cursor-pointer"
                       >
                         <option value="ALL">الكل (كافة التصنيفات)</option>
-                        <option value="سيادي حرج">سيادي حرج (Critical)</option>
+                        <option value=" حرج"> حرج (Critical)</option>
                         <option value="سري للغاية">سري للغاية (Top Secret)</option>
                         <option value="أمان تلقائي">أمان تلقائي (Auto Secure)</option>
                         <option value="منخفض الأثر">منخفض الأثر (Low Impact)</option>
@@ -4439,7 +4439,7 @@ export function DelegatePortal() {
                   <div className="space-y-3">
                     {loadingAudit ? (
                       <div className="text-center py-12 text-xs text-zinc-500 font-sans">
-                        جاري تصفح الأرشيف واستدعاء النبض الجنائي السحابي...
+                        جاري تصفح الأرشيف واستدعاء النشاط الأمني السحابي...
                       </div>
                     ) : filteredLogs.length === 0 ? (
                       <div className="text-center py-16 space-y-3">
@@ -4460,12 +4460,12 @@ export function DelegatePortal() {
                     ) : (
                       <div className="space-y-3 max-h-[580px] overflow-y-auto pr-1">
                         {filteredLogs.map((log) => {
-                          const isCritical = log.securityClearance === 'سيادي حرج';
+                          const isCritical = log.securityClearance === ' حرج';
                           const isSecret = log.securityClearance === 'سري للغاية';
-                          
+
                           return (
-                            <div 
-                              key={log.id} 
+                            <div
+                              key={log.id}
                               className={`p-4 bg-[#050B15] border rounded-xl flex justify-between items-start gap-4 hover:bg-zinc-950 transition-all font-sans text-right relative overflow-hidden ${
                                 isCritical ? 'border-red-500/20' : isSecret ? 'border-amber-500/20' : 'border-zinc-800/80'
                               }`}
@@ -4490,12 +4490,12 @@ export function DelegatePortal() {
                                       HASH: {log.details.deviceHash.substring(0, 15)}
                                     </span>
                                   )}
-                                  
+
                                   <span className={`text-[9px] font-bold px-2 py-0.5 rounded border ${
-                                    isCritical 
-                                      ? 'bg-red-500/20 text-red-400 border-red-500/30' 
-                                      : isSecret 
-                                      ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' 
+                                    isCritical
+                                      ? 'bg-red-500/20 text-red-400 border-red-500/30'
+                                      : isSecret
+                                      ? 'bg-amber-500/20 text-amber-400 border-amber-500/30'
                                       : 'bg-zinc-900 text-zinc-400 border-zinc-800'
                                   }`}>
                                     {log.securityClearance || 'أمان تلقائي'}
@@ -4507,10 +4507,10 @@ export function DelegatePortal() {
                                 </div>
 
                                 <h4 className="text-xs font-black text-white mt-1">
-                                  {log.action === 'INSTANT_SETTLEMENT_REQUEST' 
-                                    ? `تصفية المستحقات المالية الفورية بقيمة ${log.details?.requestedAmount || 0} د.أ` 
+                                  {log.action === 'INSTANT_SETTLEMENT_REQUEST'
+                                    ? `تصفية المستحقات المالية الفورية بقيمة ${log.details?.requestedAmount || 0} د.أ`
                                     : log.action === 'MANDATORY_LEADERSHIP_OVERRIDE'
-                                    ? 'بروتوكول 12: فك تجميد القيد السيادي بأمر من القيادة العام'
+                                    ? 'بروتوكول 12: فك تجميد القيد  بأمر من القيادة العام'
                                     : log.action === 'ANTI_CHEAT_INTEGRITY_CHECK'
                                     ? 'مصافحة كشف ومكافحة ثغرات تزييف العدادات'
                                     : log.action === 'FUNDS_TRANSFER_COMPLETED'
@@ -4520,12 +4520,12 @@ export function DelegatePortal() {
                                     : log.action === 'TOKEN_DECRYPTION_HANDSHAKE'
                                     ? 'فك شفرة توكن الجلسة الميدانية للمندوب'
                                     : log.action === 'BEHAVIORAL_IMMUNITY_PENALTY'
-                                    ? 'عقوبة أمنية سلوكية وتطبيق بروتوكول التطهير'
+                                    ? 'عقوبة أمنية سلوكية وتطبيق بروتوكول الحذف'
                                     : log.action}
                                 </h4>
 
                                 <p className="text-[11px] text-zinc-400 leading-relaxed font-sans">
-                                  {log.details?.detailsText || `تم توثيق العملية وتأكيد المعاملة في لواء ${log.details?.district || 'الجامعة'} بنجاح تام.`}
+                                  {log.details?.detailsText || `تم توثيق العملية وتأكيد المعاملة في منطقة ${log.details?.district || 'الجامعة'} بنجاح تام.`}
                                 </p>
 
                                 <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-1 pt-1.5 text-[9px] text-zinc-500 border-t border-zinc-900 font-mono">

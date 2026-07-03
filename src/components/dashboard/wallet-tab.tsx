@@ -5,8 +5,8 @@ import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useSovereignWallet } from '@/hooks/use-sovereign-wallet';
-import { 
-  Wallet, Sparkles, RefreshCw, Zap, Clock, 
+import {
+  Wallet, Sparkles, RefreshCw, Zap, Clock,
   CreditCard, ArrowDownLeft, ArrowUpRight, CheckCircle2,
   HelpCircle
 } from 'lucide-react';
@@ -53,7 +53,7 @@ export function SovereignBalanceDisplay({ balanceJD, currencyLabel, walletLoaded
           <span className="text-xs font-bold text-gray-400">الرصيد</span>
           <span className="text-xs font-bold text-emerald-400">{currencyLabel || '-'}</span>
         </div>
-        
+
         <div className="my-3">
           <span className="text-3xl font-black text-white tracking-tight">
             {walletLoaded ? balanceJD.toFixed(2) : '...'}
@@ -61,7 +61,7 @@ export function SovereignBalanceDisplay({ balanceJD, currencyLabel, walletLoaded
           {currencyLabel && <span className="text-sm font-bold text-emerald-500 mr-1.5">{currencyLabel}</span>}
         </div>
 
-        <Button 
+        <Button
           onClick={onChargeFunds}
           className="w-full bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 h-10 rounded-xl text-xs font-bold transition-all"
         >
@@ -75,8 +75,8 @@ export function SovereignBalanceDisplay({ balanceJD, currencyLabel, walletLoaded
 
 export function WalletTab() {
   const { user } = useAuth();
-  const { 
-    loading, 
+  const {
+    loading,
     purchaseDriverPackage,
     balanceJD,
     paidHoursMin,
@@ -87,7 +87,7 @@ export function WalletTab() {
     transactions,
     walletLoaded
   } = useSovereignWallet(user);
-  
+
   const [isChargingFunds, setIsChargingFunds] = useState(false);
   const [purchasingPackage, setPurchasingPackage] = useState<'pulse' | 'transit' | null>(null);
   const currencyLabel = user?.currencyAr || user?.currencyEn || '';
@@ -139,10 +139,10 @@ export function WalletTab() {
             </div>
             <CardContent className="p-5 flex flex-col justify-between h-full">
               <div className="flex justify-between items-start">
-                <span className="text-xs font-bold text-gray-300">رصيد البث الملاحي</span>
+                <span className="text-xs font-bold text-gray-300">رصيد ساعات العمل</span>
                 <Clock className="w-4 h-4 text-emerald-400" />
               </div>
-              
+
               <div className="my-3">
                 <span className="text-4xl font-black text-emerald-400 tracking-tighter drop-shadow-[0_0_12px_rgba(52,211,153,0.2)]">
                   {subscriptionHours.toFixed(1)}
@@ -152,7 +152,7 @@ export function WalletTab() {
 
               <div className="flex justify-between items-center text-[10px] text-gray-400 border-t border-emerald-950/40 pt-1.5 pb-1.5 font-mono">
                 <span>باقة مدفوعة: <span className="text-emerald-300 font-extrabold">{(paidHoursMin / 60).toFixed(1)} س</span></span>
-                <span>بونص رتب الكباتن: <span className="text-amber-400 font-extrabold">{(bonusHoursMin / 60).toFixed(1)} س</span></span>
+                <span>بونص رتب السائقون: <span className="text-amber-400 font-extrabold">{(bonusHoursMin / 60).toFixed(1)} س</span></span>
               </div>
 
               <div className="flex items-center justify-between text-[10px] text-gray-400">
@@ -169,7 +169,7 @@ export function WalletTab() {
                 <span className="text-xs font-bold text-gray-400">حالة الرصيد</span>
                 <Sparkles className="w-4 h-4 text-emerald-400" />
               </div>
-              
+
               <div className="my-3">
                 <span className="text-2xl font-black text-white">
                   {walletLoaded ? 'لا توجد باقات نشطة' : 'جاري تحميل الرصيد...'}
@@ -205,13 +205,13 @@ export function WalletTab() {
                   </Badge>
                   <span className="text-xs font-bold text-emerald-500 font-mono">24 ساعة عمل</span>
                 </div>
-                <h3 className="text-base font-black text-white mb-2">باقة النبض الأساسية</h3>
+                <h3 className="text-base font-black text-white mb-2">باقة الساعات الأساسية</h3>
                 <p className="text-[11px] text-gray-400 leading-normal">
-                  تحتوي على <span className="text-white font-bold">24 ساعة صافية من البث الملاحي المفتوح</span>. يمكنك استهلاكها على مدار أسبوع أو شهر حسب نمط عملك الميداني دون إلزام.
+                  تحتوي على <span className="text-white font-bold">24 ساعة عمل متاحة</span>. يمكنك استخدامها خلال أسبوع أو شهر حسب نمط عملك دون إلزام.
                 </p>
               </div>
               <div className="p-5 pt-0">
-                <Button 
+                <Button
                   onClick={() => setPurchasingPackage('pulse')}
                   className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs h-10 rounded-xl font-sans"
                 >
@@ -232,11 +232,11 @@ export function WalletTab() {
                 </div>
                 <h3 className="text-base font-black text-white mb-2">باقة العبور الكبرى</h3>
                 <p className="text-[11px] text-gray-400 leading-normal">
-                  مصممة <span className="text-white font-bold">للكباتن المحترفين وأصحاب الهمم</span>. تمنحك عبوراً ممتداً فائق القوة، وتظهر لك كـ "رصيد نسيجي آمن" يتناقص فقط بدقائق العمل الفعلية والرحلات المستجابة.
+                  مصممة <span className="text-white font-bold">للسائقين النشطين</span>. تمنحك ساعات أكثر للعمل، ويتناقص الرصيد فقط حسب دقائق العمل الفعلية والرحلات المقبولة.
                 </p>
               </div>
               <div className="p-5 pt-0">
-                <Button 
+                <Button
                   onClick={() => setPurchasingPackage('transit')}
                   className="w-full bg-yellow-600 hover:bg-yellow-500 text-black font-extrabold text-xs h-10 rounded-xl font-sans"
                 >
@@ -258,30 +258,30 @@ export function WalletTab() {
       {/* Package confirmation overlay */}
       <AnimatePresence>
         {purchasingPackage && (
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }} 
-            animate={{ opacity: 1, scale: 1 }} 
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
             className="fixed inset-0 z-[150] flex items-center justify-center bg-black/85 backdrop-blur-sm p-4"
           >
             <div className="bg-[#091B09] border-2 border-emerald-500/30 p-6 rounded-2xl w-full max-w-sm text-white shadow-2xl relative">
               <h3 className="text-lg font-black text-center text-emerald-400 mb-3 flex items-center justify-center gap-2">
                 <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                تأكيد حجز البث الملاحي
+                تأكيد شراء ساعات العمل
               </h3>
               <p className="text-center text-xs text-gray-300 leading-relaxed mb-5">
                 سيقيد مبلغ <span className="text-emerald-400 font-bold">{purchasingPackage === 'pulse' ? '1.00' : '10.00'} {currencyLabel}</span> من رصيد محفظتك، مقابل إضافة <span className="text-emerald-400 font-extrabold">{purchasingPackage === 'pulse' ? '24' : '100'} ساعة عمل</span>.
               </p>
 
               <div className="flex gap-3 justify-center">
-                <Button 
+                <Button
                   onClick={() => handlePurchasePackage(purchasingPackage)}
                   disabled={loading}
                   className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-11 rounded-xl text-xs"
                 >
                   {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : 'موافق، شراء وتفعيل'}
                 </Button>
-                <Button 
+                <Button
                   onClick={() => setPurchasingPackage(null)}
                   disabled={loading}
                   variant="outline"
@@ -323,8 +323,8 @@ export function WalletTab() {
                       }}
                       disabled={tx.type !== 'charge'}
                       className={`p-2 rounded-lg transition-all ${
-                        tx.type === 'charge' 
-                          ? 'bg-emerald-950/50 text-emerald-400 hover:bg-emerald-400 hover:text-black hover:scale-105 active:scale-95 cursor-pointer border border-emerald-500/15 shadow-[0_0_8px_rgba(16,185,129,0.1)]' 
+                        tx.type === 'charge'
+                          ? 'bg-emerald-950/50 text-emerald-400 hover:bg-emerald-400 hover:text-black hover:scale-105 active:scale-95 cursor-pointer border border-emerald-500/15 shadow-[0_0_8px_rgba(16,185,129,0.1)]'
                           : tx.type === 'purchase'
                           ? 'bg-blue-950/40 text-blue-400'
                           : 'bg-red-950/30 text-red-400'
@@ -356,8 +356,8 @@ export function WalletTab() {
 
                 <div className="font-mono font-bold text-[11px] flex flex-col items-end">
                   <span className={
-                    tx.type === 'charge' 
-                      ? 'text-emerald-400 font-extrabold' 
+                    tx.type === 'charge'
+                      ? 'text-emerald-400 font-extrabold'
                       : 'text-red-400 font-extrabold'
                   }>
                     {tx.amount > 0 ? '+' : ''}{tx.amount.toFixed(tx.currency === 'ساعة' ? 1 : 2)} {tx.currency}
@@ -371,7 +371,7 @@ export function WalletTab() {
           )}
         </CardContent>
       </Card>
-      
+
       {/* Informative sovereign policy disclaimer */}
       <div className="mt-4 p-4 rounded-xl bg-emerald-950/10 border border-emerald-900/20 text-[10px] text-gray-400 leading-normal gap-2 flex items-start text-right">
         <HelpCircle className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />

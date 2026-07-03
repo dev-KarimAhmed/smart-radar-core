@@ -63,10 +63,10 @@ export function useDriverLifecycle(user: User | null) {
   useEffect(() => {
     if (user?.role === 'driver') {
       const serverStatus = (user.status || 'idle') as DriverStatus;
-      
+
       // 🛡️ [حارس ترقية الحالة المونوتوني المانع للارتداد الشبكي الأعمى V2.6-Secured]
-      // إذا كان الكابتن محلياً في حالة التقييم المستقر 'rating'، وجاء تحديث شبكي يحمل الحالة 'busy' أو 'active' أو 'idle' من مستند المستخدم،
-      // يتم حجب وتصفية هذا البث فوراً كونه يمثل صدى شبكياً متأخراً (Stale Echo) قادماً من عمليات غير منتهية على السحاب.
+      // إذا كان السائق محلياً في حالة التقييم المستقر 'rating'، وجاء تحديث شبكي يحمل الحالة 'busy' أو 'active' أو 'idle' من مستند المستخدم،
+      // يتم حجب وتصفية هذا العرض فوراً كونه يمثل صدى شبكياً متأخراً (Stale Echo) قادماً من عمليات غير منتهية على السحاب.
       if (driverStatus === 'rating' && (serverStatus === 'busy' || serverStatus === 'active' || serverStatus === 'idle')) {
         console.log(`🛡️ [Snapshot Anti-Rollback Guard]: Prevented stale rollback to "${serverStatus}" while driver status is locked in "${driverStatus}"`);
         return;
@@ -80,7 +80,7 @@ export function useDriverLifecycle(user: User | null) {
           return;
         }
       }
-      
+
       if (serverStatus !== driverStatus) {
         setDriverStatus(serverStatus);
       }
@@ -105,10 +105,10 @@ export function useDriverLifecycle(user: User | null) {
   const resetDormancyTimer = useCallback(() => {
     clearTimers();
     if (driverStatus !== 'active') return;
-    
+
     // Warn driver about dormancy
     timers.current.warning = setTimeout(() => setWarning(true), SOVEREIGN_CONSTANTS.DORMANCY_WARNING_MS);
-    
+
     // Auto idle driver if dormant for too long
     timers.current.dormancy = setTimeout(() => {
       changeDriverStatus('idle');
@@ -118,7 +118,7 @@ export function useDriverLifecycle(user: User | null) {
           userRef.current.uid,
           'system_action',
           'تعطيل تلقائي (الخمول التام)',
-          'قام النظام بتحويل حالة الكابتن إلى خامل تلقائياً لعدم رصد أي نشاط أو تفاعل ملموس لمدة 5 دقائق.'
+          'قام النظام بتحويل حالة السائق إلى خامل تلقائياً لعدم رصد أي نشاط أو تفاعل ملموس لمدة 5 دقائق.'
         );
       }
     }, SOVEREIGN_CONSTANTS.DORMANCY_TIMEOUT_MS);
@@ -130,20 +130,20 @@ export function useDriverLifecycle(user: User | null) {
        clearTimers();
        return;
     }
-    
+
     const wake = () => resetDormancyTimer();
-    const events = ['touchstart', 'scroll']; 
-    
+    const events = ['touchstart', 'scroll'];
+
     events.forEach(e => window.addEventListener(e, wake, { passive: true }));
     resetDormancyTimer();
-    
+
     return () => {
       events.forEach(e => window.removeEventListener(e, wake));
       clearTimers();
     };
   }, [user?.role, driverStatus, resetDormancyTimer, clearTimers]);
 
-  // ⚡️ [مزامنة الصندوق السيادي الفورية لمنع تزييف الحقيقة]: مزامنة سريعة ولحظية عند حدوث عمليات شحن رصيد أو تعديل خارجي
+  // ⚡️ [مزامنة الصندوق  الفورية لمنع تزييف الحقيقة]: مزامنة سريعة ولحظية عند حدوث عمليات شحن رصيد أو تعديل خارجي
   useEffect(() => {
     if (!user?.uid || user.role !== 'driver') {
       return;
@@ -161,17 +161,17 @@ export function useDriverLifecycle(user: User | null) {
       localStorage.setItem(`sovereign_bonus_${user.uid}`, String(initialBonusHours));
     } else {
       const isRefill = initialPaidHours > localPaidHoursRef.current || initialBonusHours > localBonusHoursRef.current;
-      const isTransientEcho = 
+      const isTransientEcho =
         (lastSavedOnServerRef.current && initialPaidHours === lastSavedOnServerRef.current.paid && initialBonusHours === lastSavedOnServerRef.current.bonus) ||
         (previousLocalStateRef.current && initialPaidHours === previousLocalStateRef.current.paid && initialBonusHours === previousLocalStateRef.current.bonus);
 
       const isDivergent = initialPaidHours !== localPaidHoursRef.current || initialBonusHours !== localBonusHoursRef.current;
 
       if (isRefill || (isDivergent && !isTransientEcho)) {
-        console.log(`📡 [مزامنة الصندوق السيادي الفورية]: تم دمج حالة الساعات الخارجية فوراً منعاً للتزييف: ${initialPaidHours} مدفوعة، ${initialBonusHours} بونص.`);
+        console.log(`📡 [مزامنة الصندوق  الفورية]: تم دمج حالة الساعات الخارجية فوراً منعاً للتزييف: ${initialPaidHours} مدفوعة، ${initialBonusHours} بونص.`);
         localPaidHoursRef.current = initialPaidHours;
         localBonusHoursRef.current = initialBonusHours;
-        
+
         const syncHash = RadarSovereignCommuteKernel.generateStateHash(user.uid, initialPaidHours, initialBonusHours);
         localStorage.setItem(`sovereign_shake_${user.uid}`, syncHash);
         localStorage.setItem(`sovereign_paid_${user.uid}`, String(initialPaidHours));
@@ -197,7 +197,7 @@ export function useDriverLifecycle(user: User | null) {
           perfNow: performance.now()
         };
         const startLastTick = currentUser.lastTickTimestamp || Date.now();
-        // [النبض الشبكي التفاضلي V2.6-Secured]: احتساب الفارق الرياضي بين توقيت السيرفر الموثق وساعة الهاتف
+        // [النشاط الشبكي التفاضلي V2.6-Secured]: احتساب الفارق الرياضي بين توقيت السيرفر الموثق وساعة الهاتف
         localTimeDeltaRef.current = startLastTick - Date.now();
         if (typeof window !== 'undefined') {
           sessionStorage.setItem('sovereign_time_delta', String(localTimeDeltaRef.current));
@@ -234,15 +234,15 @@ export function useDriverLifecycle(user: User | null) {
         // 1. Value is greater than current local state (e.g., wallet package refill).
         // 2. Value has changed but is NOT a lagging echo of our own past written states.
         const isRefill = initialPaidHours > localPaidHoursRef.current || initialBonusHours > localBonusHoursRef.current;
-        
-        const isTransientEcho = 
+
+        const isTransientEcho =
           (lastSavedOnServerRef.current && initialPaidHours === lastSavedOnServerRef.current.paid && initialBonusHours === lastSavedOnServerRef.current.bonus) ||
           (previousLocalStateRef.current && initialPaidHours === previousLocalStateRef.current.paid && initialBonusHours === previousLocalStateRef.current.bonus);
 
         const isDivergent = initialPaidHours !== localPaidHoursRef.current || initialBonusHours !== localBonusHoursRef.current;
 
         if (isRefill || (isDivergent && !isTransientEcho)) {
-          console.log(`📡 [مزامنة الصندوق السيادي]: تم دمج حالة الساعات الخارجية بنجاح منعاً للتزييف: ${initialPaidHours} مدفوعة، ${initialBonusHours} بونص.`);
+          console.log(`📡 [مزامنة الصندوق ]: تم دمج حالة الساعات الخارجية بنجاح منعاً للتزييف: ${initialPaidHours} مدفوعة، ${initialBonusHours} بونص.`);
           localPaidHoursRef.current = initialPaidHours;
           localBonusHoursRef.current = initialBonusHours;
           didImportRemote = true;
@@ -286,8 +286,8 @@ export function useDriverLifecycle(user: User | null) {
       });
 
       if (!handshakeResult.isHandshakePassed) {
-        console.warn(`📡 [المصافحة الصامتة]: تم تعليق خصم الساعات لحفظ الرصيد من التلاشي أثناء عطل التغطية أو عدم مطابقة البث أو التلاعب بالوقت. السبب: ${handshakeResult.reason}`);
-        // نجمد العداد محلياً بمزامنة توقيت العداد مع توقيت النبضة الحالي دون ترحيل الخصم
+        console.warn(`📡 [المصافحة الصامتة]: تم تعليق خصم الساعات لحفظ الرصيد من التلاشي أثناء عطل التغطية أو عدم مطابقة العرض أو التلاعب بالوقت. السبب: ${handshakeResult.reason}`);
+        // نجمد العداد محلياً بمزامنة توقيت العداد مع توقيت النشاطة الحالي دون ترحيل الخصم
         lastProcessedTickRef.current = clientNow;
         return;
       }
@@ -334,14 +334,14 @@ export function useDriverLifecycle(user: User | null) {
           addCaptainSovereignLog(
             currentUser.uid,
             'system_action',
-            'تعطيل تلقائي (نفاد باقة البث)',
-            'قام النظام بإطفاء البث وتحويل حالة الكابتن إلى خامل بسبب نفاد حزمة الساعات النشطة بالكامل.'
+            'تعطيل تلقائي (نفاد باقة العرض)',
+            'قام النظام بإطفاء العرض وتحويل حالة السائق إلى خامل بسبب نفاد حزمة الساعات النشطة بالكامل.'
           );
 
           toast({
             variant: 'destructive',
             title: '🚨 نفاد باقة ساعات الملاحة',
-            description: 'لقد نفدت حزمة ساعات البث المخصصة لك كلياً. يرجى التوجه لتبويب المحفظة لشحن رصيد ساعات جديد.'
+            description: 'لقد نفدت حزمة ساعات العرض المخصصة لك كلياً. يرجى التوجه لتبويب المحفظة لشحن رصيد ساعات جديد.'
           });
         } else {
           await setDoc(doc(db, 'users', currentUser.uid), {
@@ -367,7 +367,7 @@ export function useDriverLifecycle(user: User | null) {
     if (driverStatus === 'busy' || driverStatus === 'rating') return;
     if (isTogglingRef.current) return;
     isTogglingRef.current = true;
-    
+
     try {
       const paidHours = user?.paidHoursRemaining !== undefined ? user.paidHoursRemaining : (user?.subscriptionHours !== undefined ? Math.round(user.subscriptionHours * 60) : 870);
       const bonusHours = user?.bonusHoursRemaining !== undefined ? user.bonusHoursRemaining : 0;
@@ -376,14 +376,14 @@ export function useDriverLifecycle(user: User | null) {
       if (desiredStatus === 'active' && totalMinutes <= 0) {
         toast({
           variant: 'destructive',
-          title: '🚫 عجز ساعات البث',
-          description: 'لا يوجد لديك رصيد باقة ساعات كافٍ لتشغيل استقبال البث الملاحي. يرجى شحن حزمة جديدة كابتن.'
+          title: '🚫 عجز ساعات العرض',
+          description: 'لا يوجد لديك رصيد باقة ساعات كافٍ لتشغيل استقبال ساعات العمل. يرجى شحن حزمة جديدة سائق.'
         });
         return;
       }
 
       changeDriverStatus(desiredStatus);
-      await updateDriverDoc({ 
+      await updateDriverDoc({
         status: desiredStatus,
         lastTickTimestamp: desiredStatus === 'active' ? Date.now() : (user?.lastTickTimestamp || Date.now())
       });
@@ -394,14 +394,14 @@ export function useDriverLifecycle(user: User | null) {
             user.uid,
             'status_change',
             'التحول إلى حالة نشط',
-            'قام الكابتن بتفعيل استقبال البث وتحويل حالته يدوياً إلى نشط ومتاح لاستقبال طلبات الركاب.'
+            'قام السائق بتفعيل استقبال العرض وتحويل حالته يدوياً إلى نشط ومتاح لاستقبال طلبات الركاب.'
           );
         } else {
           addCaptainSovereignLog(
             user.uid,
             'status_change',
             'التحول إلى حالة خامل',
-            'قام الكابتن بتعطيل استقبال البث وتحويل حالته يدوياً إلى خامل ومغلق.'
+            'قام السائق بتعطيل استقبال العرض وتحويل حالته يدوياً إلى خامل ومغلق.'
           );
         }
       }

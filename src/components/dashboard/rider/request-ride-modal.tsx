@@ -45,7 +45,7 @@ export function RequestRideModal() {
   return (
     <Dialog open={isRequestModalOpen} onOpenChange={(open) => !open && closeRequestModal()}>
       <DialogContent className="sm:max-w-md bg-[#050D05] border-emerald-950/80 text-white shadow-2xl p-0 overflow-hidden">
-        
+
         <div className="bg-gradient-to-b from-emerald-950/40 to-transparent p-6 text-center border-b border-white/5">
           <DialogHeader>
             <DialogTitle className="text-2xl font-black flex items-center justify-center gap-2 tracking-tighter text-emerald-400">
@@ -59,7 +59,7 @@ export function RequestRideModal() {
         </div>
 
         <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto scrollbar-thin">
-          
+
           {/* الخطوة 1: تحديد الوجهة محليا */}
           <div className="space-y-3">
             <Label className="text-[10px] font-black text-emerald-500/70 uppercase tracking-[0.2em] flex items-center gap-1">
@@ -128,7 +128,7 @@ export function RequestRideModal() {
 
                 {/* حساب المسافة محليا */}
                 {!isLocationConfirmed ? (
-                    <Button 
+                    <Button
                         onClick={calculateSovereignMetrics}
                         disabled={isResolvingUrl || !pickup}
                         className={cn(
@@ -154,16 +154,16 @@ export function RequestRideModal() {
                                 </div>
                                 <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">تم حساب المسافة محليا</span>
                             </div>
-                            <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                onClick={() => { setPickup(''); resetLocationMetrics(); }} 
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => { setPickup(''); resetLocationMetrics(); }}
                                 className="h-6 text-[9px] font-bold text-gray-500 hover:text-white px-2"
                             >
                                 إعادة الضبط
                             </Button>
                         </div>
-                        
+
                         <div className="grid grid-cols-2 gap-2 sm:gap-4">
                             <div className="bg-black/40 rounded-xl p-2 sm:p-3 border border-white/5 flex items-center gap-2 sm:gap-3">
                                 <div className="bg-emerald-500/10 p-1.5 sm:p-2 rounded-lg shrink-0">
@@ -173,7 +173,7 @@ export function RequestRideModal() {
                                     <p className="text-[8px] text-gray-500 font-bold uppercase">المسافة الفعلية</p>
                                     <p className="text-xs sm:text-sm font-black text-white truncate">
                                         {isBlindSpot ? (
-                                            <span className="text-amber-400 flex items-center gap-1"><AlertCircle className="w-2 h-2"/> لواء لاهوت</span>
+                                            <span className="text-amber-400 flex items-center gap-1"><AlertCircle className="w-2 h-2"/> منطقة لاهوت</span>
                                         ) : (
                                             <>
                                                 {estimatedDistance.toFixed(2)}
@@ -190,7 +190,7 @@ export function RequestRideModal() {
                                 <div className="flex-1 min-w-0">
                                     <p className="text-[8px] text-gray-500 font-bold uppercase">الزمن التقديري</p>
                                     <p className="text-xs sm:text-sm font-black text-white">
-                                        {estimatedTime > 0 ? `~${estimatedTime}` : '--'} 
+                                        {estimatedTime > 0 ? `~${estimatedTime}` : '--'}
                                         <span className="text-[10px] text-blue-400 mr-1">دقيقة</span>
                                     </p>
                                 </div>
@@ -211,7 +211,7 @@ export function RequestRideModal() {
                                         <span>{(estimatedDistance / 1.35).toFixed(2)} كم</span>
                                     </div>
                                     <div className="flex justify-between">
-                                        <span>معامل التعرج النسيجي (γ):</span>
+                                        <span>معامل التعرج المحلي (γ):</span>
                                         <span className="text-emerald-400">× 1.35</span>
                                     </div>
                                     <div className="flex justify-between border-t border-white/5 pt-1 mt-1 font-black">
@@ -229,7 +229,7 @@ export function RequestRideModal() {
                         {isBlindSpot && (
                             <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-2.5 mt-2 animate-pulse">
                                 <p className="text-[10px] sm:text-xs text-amber-400 font-extrabold leading-normal">
-                                    ⚠️ تعذر استخراج الإحداثيات؛ تم تفعيل "بروتوكول النقطة العمياء" لتأمين استمرارية الرادار على مستوى اللواء.
+                                    ⚠️ تعذر استخراج الإحداثيات؛ تم تفعيل "بروتوكول النقطة العمياء" لتأمين استمرارية الرادار على مستوى المنطقة.
                                 </p>
                             </div>
                         )}
@@ -251,7 +251,7 @@ export function RequestRideModal() {
                     </SelectContent>
                 </Select>
             </div>
-            
+
             <div className="space-y-2">
                 <span className="text-[10px] text-emerald-500/70 font-black mr-1 uppercase block">8. نمط المحاسبة</span>
                 <div className="flex items-center justify-between bg-black/40 border border-white/10 rounded-xl px-3 h-11">
@@ -263,7 +263,7 @@ export function RequestRideModal() {
 
           {/* حالة الطلب */}
           <div className="p-3 bg-black/20 rounded-xl border border-emerald-900/10 space-y-2 text-center">
-            <span className="text-[9px] sm:text-[10px] text-gray-500 font-extrabold block uppercase">حالة توفر الكباتن</span>
+            <span className="text-[9px] sm:text-[10px] text-gray-500 font-extrabold block uppercase">حالة توفر السائقون</span>
             <div className="flex justify-center items-center gap-2">
               <span className={cn(
                 "px-2.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-extrabold tracking-wide",
@@ -277,7 +277,7 @@ export function RequestRideModal() {
             </div>
           </div>
 
-          {/* تنويه السيادة والعمى التقني الموحد للتصميم الصارم */}
+          {/* تنويه الإدارة والعمى التقني الموحد للتصميم الصارم */}
           <div className="bg-[#081808] border border-emerald-900/30 rounded-2xl p-4 space-y-2 animate-in fade-in duration-500">
              <div className="flex items-center gap-1.5 text-emerald-400 font-black text-xs uppercase tracking-wider">
                 <AlertCircle className="w-4 h-4 text-emerald-500 shrink-0" />
@@ -303,8 +303,8 @@ export function RequestRideModal() {
               disabled={isRequesting || !isLocationConfirmed || !dropoff}
               className={cn(
                 "w-full h-16 rounded-2xl font-black text-xl tracking-tighter transition-all",
-                isLocationConfirmed && dropoff 
-                  ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_10px_30px_rgba(16,185,129,0.3)] border border-emerald-500/20" 
+                isLocationConfirmed && dropoff
+                  ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_10px_30px_rgba(16,185,129,0.3)] border border-emerald-500/20"
                   : "bg-white/5 text-white/10 grayscale pointer-events-none"
               )}
             >

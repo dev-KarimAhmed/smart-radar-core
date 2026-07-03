@@ -33,13 +33,13 @@ function PulseIndicator() {
   const { user } = useAuth();
   const driverOps = useDriverOperations();
   const { pulseData, loadingPulse } = driverOps || { pulseData: [], loadingPulse: false };
-  
+
   if (loadingPulse) return <Loader2 className="w-5 h-5 animate-spin text-white/50" />;
   if (!user?.district || !pulseData) return null;
 
   const currentPulse = pulseData.find(p => p.id === user.district);
   const trend = currentPulse?.trend || 'balanced';
-  
+
   const pulseMap = {
       'high_demand': { icon: TrendingUp, text: 'طلب عالٍ', className: 'text-emerald-400 bg-emerald-950/50 border-emerald-500/50' },
       'high_supply': { icon: TrendingDown, text: 'منافسة شديدة', className: 'text-red-400 bg-red-950/50 border-red-500/50' },
@@ -114,14 +114,14 @@ function DriverCabin() {
                 <PulseIndicator />
 
                 <div className="flex items-center gap-1 sm:gap-2">
-                    <Button 
-                        variant="ghost" 
-                        size="sm" 
+                    <Button
+                        variant="ghost"
+                        size="sm"
                         className="h-10 px-3 text-xs font-black bg-[#10b981]/10 hover:bg-[#10b981]/20 text-[#00ffcc] border border-[#10b981]/20 rounded-full flex items-center gap-1.5 cursor-pointer transition-all active:scale-95 shadow-sm"
                         onClick={() => window.dispatchEvent(new CustomEvent('open-captain-dashboard'))}
                     >
                         <Shield className="h-4 w-4 text-[#00ffcc] animate-pulse" />
-                        <span className="inline">قمرة العمليات 🛡️</span>
+                        <span className="inline">لوحة العمليات</span>
                     </Button>
                     {toggleRequestList && (
                         <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-black/20" onClick={() => toggleRequestList(true)}>
@@ -157,17 +157,17 @@ export function AppHeader() {
   const { user, isCaptain, isPassenger } = useAuth();
   const { toast } = useToast();
   const [isAdvertiserOpen, setIsAdvertiserOpen] = useState(false);
-  
+
   const getInitials = (name: string = '') => {
     const names = name.split(' ');
     if (names.length > 1) return (names[0][0] || '') + (names[1][0] || '');
     return name.substring(0, 2);
   };
-  
+
   const getRoleName = (role: string | undefined) => {
     switch (role) {
       case 'rider': return 'راكب';
-      case 'driver': return 'كابتن';
+      case 'driver': return 'سائق';
       case 'admin': return 'قيادة عليا';
       case 'advertiser': return 'معلن';
       default: return '';
@@ -176,15 +176,15 @@ export function AppHeader() {
 
   return (
     <div className="sticky top-0 z-50 w-full flex flex-col shadow-xl">
-      
+
       <header className="flex h-16 items-center justify-between px-4 bg-black border-b border-white/10">
-        
+
         <div className="h-10 w-10" />
-        
+
         <div className="flex items-center gap-4">
-             <Button 
-               size="icon" 
-               variant="ghost" 
+             <Button
+               size="icon"
+               variant="ghost"
                className="h-10 w-10 text-white/70 hover:bg-white/10 relative"
                onClick={() => toast({ title: 'التنبيهات', description: 'لا توجد تنبيهات جديدة حالياً.' })}
              >
@@ -212,7 +212,7 @@ function UserMenu({ user, getInitials }: any) {
       toast({
         variant: 'destructive',
         title: 'البيانات التجارية غير مكتملة ⚠️',
-        description: 'يرجى مراجعة إدارة السيادة وإكمال التسجيل المهني لتفعيل البوابة.'
+        description: 'يرجى مراجعة إدارة الإدارة وإكمال التسجيل المهني لتفعيل البوابة.'
       });
       return;
     }
@@ -228,7 +228,7 @@ function UserMenu({ user, getInitials }: any) {
   }, [user]);
 
   if (!user) return <div className="w-10 h-10" />;
-  
+
   return (
     <>
       <Sheet>

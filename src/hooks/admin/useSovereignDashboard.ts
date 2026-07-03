@@ -2,13 +2,13 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { db, auth } from '@/lib/firebase';
-import { 
-  collection, 
-  getDocs, 
-  doc, 
-  updateDoc, 
+import {
+  collection,
+  getDocs,
+  doc,
+  updateDoc,
   setDoc,
-  query, 
+  query,
   where,
   onSnapshot
 } from 'firebase/firestore';
@@ -21,7 +21,7 @@ export interface DelegateData {
   phone: string;
   referralCode: string;
   referredCount: number;
-  deletionRate: number; 
+  deletionRate: number;
   revivalRate: number;
   pendingDues: number;
   status: 'active' | 'suspended';
@@ -38,8 +38,8 @@ export interface DriverData {
   paidHoursRemaining?: number;
   status?: string;
   isBanned?: boolean;
-  immunityScore?: number; 
-  currentDistrict?: string; 
+  immunityScore?: number;
+  currentDistrict?: string;
 }
 
 const CONSTANTS = Object.freeze({
@@ -148,7 +148,7 @@ export const useSovereignDashboard = () => {
           status: data.status || 'idle',
           isBanned: data.isBanned || false,
           immunityScore: data.immunityScore ?? 100.0,
-          currentDistrict: data.currentDistrict || 'لواء ناعور'
+          currentDistrict: data.currentDistrict || 'منطقة ناعور'
         } as DriverData;
       });
       setDrivers(list);
@@ -179,15 +179,15 @@ export const useSovereignDashboard = () => {
       if (response.ok && data.success) {
         toast({
           variant: 'destructive',
-          title: '💥 تم الصعق الجنائي الكلي للهدف',
-          description: `تم سحب حصانة الكابتن [${driverName}] لتبلغ 0.0، ومصادرة ساعاته المدفوعة بالكامل وحظره بنجاح.`
+          title: '💥 تم الصعق الأمني الكلي للهدف',
+          description: `تم سحب حصانة السائق [${driverName}] لتبلغ 0.0، ومصادرة ساعاته المدفوعة بالكامل وحظره بنجاح.`
         });
         await fetchDrivers();
       } else {
         toast({
           variant: 'destructive',
           title: 'خطأ في عملية الصعق',
-          description: data.error || 'حدث خطأ سيرفري أثناء معالجة الصعق الجنائي'
+          description: data.error || 'حدث خطأ سيرفري أثناء معالجة الصعق الأمني'
         });
       }
     } catch (err: any) {
@@ -217,7 +217,7 @@ export const useSovereignDashboard = () => {
       if (response.ok && data.success) {
         toast({
           title: '🟢 تم إعادة الإحياء بتصديق رقمي وموافقة سحابية',
-          description: `تم إحياء الكابتن [${driverName}] لترتفع حصانته لـ 100%، وتسييل (12 ساعة) طارئة مصدقة سيرفرياً.`
+          description: `تم إحياء السائق [${driverName}] لترتفع حصانته لـ 100%، وتسييل (12 ساعة) طارئة مصدقة سيرفرياً.`
         });
         await fetchDrivers();
       } else {
@@ -230,7 +230,7 @@ export const useSovereignDashboard = () => {
     } catch (err: any) {
       toast({
         variant: 'destructive',
-        title: 'فشل الفك السيادي',
+        title: 'فشل الفك ',
         description: err.message || 'خطأ فني'
       });
     } finally {
@@ -248,9 +248,9 @@ export const useSovereignDashboard = () => {
     let rollbackDelegates: DelegateData[] = [];
     setDelegates(prev => {
       rollbackDelegates = [...prev];
-      return prev.map(del => 
-        del.id === delegateId 
-          ? { ...del, pendingDues: 0 } 
+      return prev.map(del =>
+        del.id === delegateId
+          ? { ...del, pendingDues: 0 }
           : del
       );
     });

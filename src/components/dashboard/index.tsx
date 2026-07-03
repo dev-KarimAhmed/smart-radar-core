@@ -28,438 +28,438 @@ const DelegatePortal = React.lazy(() => import('./delegate-portal').then(m => ({
 const AdminViewTab = React.lazy(() => import('./admin-view-tab').then(m => ({ default: m.AdminViewTab })));
 
 function SovereignLockoutView({ user, logout }: { user: any, logout: () => void }) {
-  const [timeLeft, setTimeLeft] = useState<number>(1800);
+ const [timeLeft, setTimeLeft] = useState<number>(1800);
 
-  useEffect(() => {
-    if (!user?.uid) return;
-    const key = `sovereign_lockout_deadline_${user.uid}`;
-    let deadlineStr = localStorage.getItem(key);
-    let deadline = 0;
-    if (!deadlineStr) {
-      deadline = Date.now() + 30 * 60 * 1000;
-      localStorage.setItem(key, deadline.toString());
-    } else {
-      deadline = parseInt(deadlineStr, 10);
-      if (isNaN(deadline)) {
-        deadline = Date.now() + 30 * 60 * 1000;
-        localStorage.setItem(key, deadline.toString());
-      }
-    }
+ useEffect(() => {
+ if (!user?.uid) return;
+ const key = `sovereign_lockout_deadline_${user.uid}`;
+ let deadlineStr = localStorage.getItem(key);
+ let deadline = 0;
+ if (!deadlineStr) {
+ deadline = Date.now() + 30 * 60 * 1000;
+ localStorage.setItem(key, deadline.toString());
+ } else {
+ deadline = parseInt(deadlineStr, 10);
+ if (isNaN(deadline)) {
+ deadline = Date.now() + 30 * 60 * 1000;
+ localStorage.setItem(key, deadline.toString());
+ }
+ }
 
-    const updateTimer = () => {
-      const now = Date.now();
-      const diffSecs = Math.max(0, Math.floor((deadline - now) / 1000));
-      setTimeLeft(diffSecs);
-    };
+ const updateTimer = () => {
+ const now = Date.now();
+ const diffSecs = Math.max(0, Math.floor((deadline - now) / 1000));
+ setTimeLeft(diffSecs);
+ };
 
-    updateTimer();
-    const interval = setInterval(updateTimer, 1000);
-    return () => clearInterval(interval);
-  }, [user]);
+ updateTimer();
+ const interval = setInterval(updateTimer, 1000);
+ return () => clearInterval(interval);
+ }, [user]);
 
-  const minutes = Math.floor(timeLeft / 60);
-  const seconds = timeLeft % 60;
-  const timeStr = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-  const isExpired = timeLeft <= 0;
+ const minutes = Math.floor(timeLeft / 60);
+ const seconds = timeLeft % 60;
+ const timeStr = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+ const isExpired = timeLeft <= 0;
 
-  return (
-    <div className="flex items-center justify-center p-4 min-h-[60vh] font-sans pointer-events-auto">
-      <div className="w-full max-w-md bg-[#0D0505] border border-red-500/20 rounded-2xl p-6 text-center space-y-5 shadow-xl shadow-red-950/20 relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-1 bg-red-600 animate-pulse" />
-        <div className="w-16 h-16 bg-red-500/10 border border-red-500/30 rounded-full flex items-center justify-center mx-auto text-red-500 animate-pulse text-2xl">🚫</div>
-        <h2 className="text-xl font-bold text-red-400">حظر تلقائي سيادي (بروتوكول 30)</h2>
-        <div className="py-4 px-6 bg-red-950/15 border border-red-500/10 rounded-xl space-y-2">
-          <p className="text-[11px] uppercase tracking-wider text-red-500 font-bold">المؤقت التنازلي التلقائي لشطب الحساب</p>
-          <div className="text-3xl font-black text-red-400 tracking-widest font-mono">{isExpired ? "00:00" : timeStr}</div>
-          <p className="text-[10px] text-red-400/70 font-bold animate-pulse">
-            {isExpired ? "⚠️ تم انتهاء مهلة الاستدراك وشطب الحساب نهائياً!" : `⚠️ متبقي لديك ${minutes} دقيقة و ${seconds} ثانية حتى يتم إغلاق الحساب تلقائياً...`}
-          </p>
-        </div>
-        <p className="text-sm text-gray-300 leading-relaxed text-right">
-          عذراً {user?.role === 'driver' ? 'كابتن' : 'مسافر'} <span className="text-white font-bold">{user?.name}</span>، لقد هبط تقييمك العام عن الحد القانوني الدستوري (4.2)، أو تم اكتشاف ممارسات منافية لدستور كوابح السوق وحرية التسعير المتزنة.
-        </p>
-      </div>
-    </div>
-  );
+ return (
+ <div className="flex items-center justify-center p-4 min-h-[60vh] font-sans pointer-events-auto">
+ <div className="w-full max-w-md bg-[#0D0505] border border-red-500/20 rounded-2xl p-6 text-center space-y-5 shadow-xl shadow-red-950/20 relative overflow-hidden">
+ <div className="absolute top-0 left-0 w-full h-1 bg-red-600 animate-pulse" />
+ <div className="w-16 h-16 bg-red-500/10 border border-red-500/30 rounded-full flex items-center justify-center mx-auto text-red-500 animate-pulse text-2xl">🚫</div>
+ <h2 className="text-xl font-bold text-red-400">تم إيقاف الحساب مؤقتاً</h2>
+ <div className="py-4 px-6 bg-red-950/15 border border-red-500/10 rounded-xl space-y-2">
+ <p className="text-[11px] uppercase tracking-wider text-red-500 font-bold">الوقت المتبقي قبل إغلاق الجلسة</p>
+ <div className="text-3xl font-black text-red-400 tracking-widest font-mono">{isExpired ? "00:00" : timeStr}</div>
+ <p className="text-[10px] text-red-400/70 font-bold animate-pulse">
+ {isExpired ? "انتهت المهلة. يرجى التواصل مع الدعم." : `متبقي لديك ${minutes} دقيقة و ${seconds} ثانية.`}
+ </p>
+ </div>
+ <p className="text-sm text-gray-300 leading-relaxed text-right">
+ عذراً {user?.role === 'driver' ? 'سائق' : 'راكب'} <span className="text-white font-bold">{user?.name}</span>، تم إيقاف الحساب مؤقتاً بسبب انخفاض التقييم أو مخالفة شروط استخدام الخدمة.
+ </p>
+ </div>
+ </div>
+ );
 }
 
 function DashboardLayout() {
-  const { isSovereign, isCaptain, isPassenger, user, logout } = useAuth();
-  const { toast } = useToast();
-  const [hash, setHash] = useState(typeof window !== 'undefined' ? window.location.hash || '#' : '#');
-  const riderOps = useRiderOperations() || {} as any;
-  const driverOps = useDriverOperations() || {} as any;
+ const { isSovereign, isCaptain, isPassenger, user, logout } = useAuth();
+ const { toast } = useToast();
+ const [hash, setHash] = useState(typeof window !== 'undefined' ? window.location.hash || '#' : '#');
+ const riderOps = useRiderOperations() || {} as any;
+ const driverOps = useDriverOperations() || {} as any;
 
-  useEffect(() => {
-    const handleHashChange = () => {
-      setHash(window.location.hash || '#');
-    };
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
-  }, []);
+ useEffect(() => {
+ const handleHashChange = () => {
+ setHash(window.location.hash || '#');
+ };
+ window.addEventListener('hashchange', handleHashChange);
+ return () => window.removeEventListener('hashchange', handleHashChange);
+ }, []);
 
-  const tripStatus = useMemo(() => isPassenger ? (riderOps?.tripStatus || 'idle') : 'idle', [isPassenger, riderOps?.tripStatus]);
-  const driverStatus = useMemo(() => isCaptain ? (driverOps?.driverStatus || 'idle') : 'idle', [isCaptain, driverOps?.driverStatus]);
+ const tripStatus = useMemo(() => isPassenger ? (riderOps?.tripStatus || 'idle') : 'idle', [isPassenger, riderOps?.tripStatus]);
+ const driverStatus = useMemo(() => isCaptain ? (driverOps?.driverStatus || 'idle') : 'idle', [isCaptain, driverOps?.driverStatus]);
 
-  // 🩸 [بروتوكول الربط الشرياني]: قفل مسارات المستخدم الإجبارية لمنع تمزق الواجهات وفقدان الذاكرة المرحلية
-  useEffect(() => {
-    const criticalRiderStates = ['searching', 'busy', 'rating', 'checkpoint_required'];
-    const criticalDriverStates = ['busy', 'rating'];
+ // 🩸 [بروتوكول الربط الشرياني]: قفل مسارات المستخدم الإجبارية لمنع تمزق الواجهات وفقدان الذاكرة المرحلية
+ useEffect(() => {
+ const criticalRiderStates = ['searching', 'busy', 'rating', 'checkpoint_required'];
+ const criticalDriverStates = ['busy', 'rating'];
 
-    if (hash !== '#' && hash !== '' && hash !== '#/') {
-      if (isPassenger && criticalRiderStates.includes(tripStatus)) {
-        window.location.hash = '#';
-      } else if (isCaptain && criticalDriverStates.includes(driverStatus)) {
-        window.location.hash = '#';
-      }
-    }
-  }, [hash, tripStatus, driverStatus, isPassenger, isCaptain]);
+ if (hash !== '#' && hash !== '' && hash !== '#/') {
+ if (isPassenger && criticalRiderStates.includes(tripStatus)) {
+ window.location.hash = '#';
+ } else if (isCaptain && criticalDriverStates.includes(driverStatus)) {
+ window.location.hash = '#';
+ }
+ }
+ }, [hash, tripStatus, driverStatus, isPassenger, isCaptain]);
 
-  const isStandby = useMemo(() => {
-    if (isSovereign) return false;
-    if (hash !== '#' && hash !== '' && hash !== '#/') return false;
+ const isStandby = useMemo(() => {
+ if (isSovereign) return false;
+ if (hash !== '#' && hash !== '' && hash !== '#/') return false;
 
-    if (isPassenger) {
-      return false;
-    }
-    
-    if (isCaptain) {
-      const currentDriverStatus = driverOps?.driverStatus || 'idle';
-      const isRequestListOpen = driverOps?.isRequestListOpen || false;
-      if (currentDriverStatus === 'active' || currentDriverStatus === 'busy' || isRequestListOpen) return false;
-    }
-    
-    return true;
-  }, [isSovereign, hash, isPassenger, isCaptain, riderOps?.isRequestModalOpen, riderOps?.tripStatus, driverOps?.driverStatus, driverOps?.isRequestListOpen]);
-  
-  const renderArterialBridge = () => {
-    if (hash === '#' || hash === '' || hash === '#/') return null;
+ if (isPassenger) {
+ return false;
+ }
 
-    if (isPassenger && ['searching', 'busy'].includes(tripStatus)) {
-      const activeTrip = riderOps?.trip;
-      const displayPrice = activeTrip?.offerPrice !== undefined && activeTrip?.offerPrice !== -1 
-        ? `${Number(activeTrip.offerPrice).toFixed(2)} د.أ` 
-        : 'سعر مجمّد برادار النبض';
+ if (isCaptain) {
+ const currentDriverStatus = driverOps?.driverStatus || 'idle';
+ const isRequestListOpen = driverOps?.isRequestListOpen || false;
+ if (currentDriverStatus === 'active' || currentDriverStatus === 'busy' || isRequestListOpen) return false;
+ }
 
-      return (
-        <motion.div 
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-lg mx-auto bg-[#051105]/95 border border-emerald-500/30 rounded-2xl p-4 flex items-center justify-between gap-4 shadow-[0_15px_40px_rgba(16,185,129,0.15)] backdrop-blur-md mb-6 pointer-events-auto"
-          dir="rtl"
-        >
-          <div className="flex items-center gap-3">
-            <span className="relative flex h-3 w-3 shrink-0">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-            </span>
-            <div className="text-right">
-              <p className="text-xs font-black text-emerald-400 tracking-tight">بث الرحلة الشرياني نشط الآن 📡</p>
-              <p className="text-[10px] text-gray-400 font-bold mt-0.5">القيمة الملتزم بها: <span className="text-white font-mono">{displayPrice}</span></p>
-            </div>
-          </div>
-          
-          <button 
-            onClick={() => { window.location.hash = '#'; }}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black rounded-xl shadow-lg transition-all duration-300 transform active:scale-95 pointer-events-auto z-[120]"
-          >
-            العودة للملاحة الحية 🚀
-          </button>
-        </motion.div>
-      );
-    }
+ return true;
+ }, [isSovereign, hash, isPassenger, isCaptain, riderOps?.isRequestModalOpen, riderOps?.tripStatus, driverOps?.driverStatus, driverOps?.isRequestListOpen]);
 
-    if (isCaptain && driverStatus === 'busy') {
-      const activeTrip = driverOps?.activeRequest;
-      const displayPrice = activeTrip?.offerPrice !== undefined && activeTrip?.offerPrice !== -1 
-        ? `${Number(activeTrip.offerPrice).toFixed(2)} د.أ` 
-        : 'قيد الملاحة الميدانية';
+ const renderArterialBridge = () => {
+ if (hash === '#' || hash === '' || hash === '#/') return null;
 
-      return (
-        <motion.div 
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-lg mx-auto bg-[#071307]/95 border border-emerald-500/30 rounded-2xl p-4 flex items-center justify-between gap-4 shadow-[0_15px_40px_rgba(16,185,129,0.15)] backdrop-blur-md mb-6 pointer-events-auto"
-          dir="rtl"
-        >
-          <div className="flex items-center gap-3">
-            <span className="relative flex h-3 w-3 shrink-0">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-            </span>
-            <div className="text-right">
-              <p className="text-xs font-black text-emerald-400 tracking-tight">الجسر الشرياني للفرسان: الرحلة جارية</p>
-              <p className="text-[10px] text-gray-400 font-bold mt-0.5">سعر العداد المجمّد: <span className="text-white font-mono">{displayPrice}</span></p>
-            </div>
-          </div>
-          
-          <button 
-            onClick={() => { window.location.hash = '#'; }}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black rounded-xl shadow-lg transition-all duration-300 transform active:scale-95 pointer-events-auto z-[120]"
-          >
-            العودة لقمرة الميدان 🚀
-          </button>
-        </motion.div>
-      );
-    }
+ if (isPassenger && ['searching', 'busy'].includes(tripStatus)) {
+ const activeTrip = riderOps?.trip;
+ const displayPrice = activeTrip?.offerPrice !== undefined && activeTrip?.offerPrice !== -1
+ ? `${Number(activeTrip.offerPrice).toFixed(2)} د.أ`
+ : 'السعر قيد التأكيد';
 
-    return null;
-  };
+ return (
+ <motion.div
+ initial={{ opacity: 0, y: -20 }}
+ animate={{ opacity: 1, y: 0 }}
+ className="w-full max-w-lg mx-auto bg-[#051105]/95 border border-emerald-500/30 rounded-2xl p-4 flex items-center justify-between gap-4 shadow-[0_15px_40px_rgba(16,185,129,0.15)] backdrop-blur-md mb-6 pointer-events-auto"
+ dir="rtl"
+ >
+ <div className="flex items-center gap-3">
+ <span className="relative flex h-3 w-3 shrink-0">
+ <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+ <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+ </span>
+ <div className="text-right">
+ <p className="text-xs font-black text-emerald-400 tracking-tight">الرحلة نشطة الآن</p>
+ <p className="text-[10px] text-gray-400 font-bold mt-0.5">السعر: <span className="text-white font-mono">{displayPrice}</span></p>
+ </div>
+ </div>
 
-  const renderContent = () => {
-    if (isSovereign) {
-      return (
-        <React.Suspense fallback={
-          <div className="flex flex-col items-center justify-center p-8 bg-[#090d1a] border border-cyan-900/30 rounded-2xl animate-pulse text-center space-y-4">
-            <Loader2 className="w-8 h-8 animate-spin text-cyan-400 mx-auto" />
-            <p className="text-gray-400 text-xs font-sans">برج الصلاحية: يتم استدعاء قمرة التحكم السيادية لاحقاً...</p>
-          </div>
-        }>
-          <AdminViewTab />
-        </React.Suspense>
-      );
-    }
+ <button
+ onClick={() => { window.location.hash = '#'; }}
+ className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black rounded-xl shadow-lg transition-all duration-300 transform active:scale-95 pointer-events-auto z-[120]"
+ >
+ العودة للرحلة
+ </button>
+ </motion.div>
+ );
+ }
 
-    const ratingValue = user?.rating !== undefined 
-      ? user.rating 
-      : (user?.ratingSum && user?.ratingCount ? user.ratingSum / user.ratingCount : 5.0);
+ if (isCaptain && driverStatus === 'busy') {
+ const activeTrip = driverOps?.activeRequest;
+ const displayPrice = activeTrip?.offerPrice !== undefined && activeTrip?.offerPrice !== -1
+ ? `${Number(activeTrip.offerPrice).toFixed(2)} د.أ`
+ : 'السعر قيد التأكيد';
 
-    if (ratingValue < 4.2) {
-      return <SovereignLockoutView user={user} logout={logout} />;
-    }
+ return (
+ <motion.div
+ initial={{ opacity: 0, y: -20 }}
+ animate={{ opacity: 1, y: 0 }}
+ className="w-full max-w-lg mx-auto bg-[#071307]/95 border border-emerald-500/30 rounded-2xl p-4 flex items-center justify-between gap-4 shadow-[0_15px_40px_rgba(16,185,129,0.15)] backdrop-blur-md mb-6 pointer-events-auto"
+ dir="rtl"
+ >
+ <div className="flex items-center gap-3">
+ <span className="relative flex h-3 w-3 shrink-0">
+ <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+ <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+ </span>
+ <div className="text-right">
+ <p className="text-xs font-black text-emerald-400 tracking-tight">الرحلة جارية</p>
+ <p className="text-[10px] text-gray-400 font-bold mt-0.5">السعر: <span className="text-white font-mono">{displayPrice}</span></p>
+ </div>
+ </div>
 
-    // 🛡️ [RAD-CMD-061]: Rider Memory Isolation & Decoupled Routing Layout
-    if (user?.role === 'rider') {
-      const isRequestModalOpen = riderOps?.isRequestModalOpen || false;
-      const currentTripStatus = riderOps?.tripStatus || 'idle';
-      const criticalRiderStates = ['searching', 'busy', 'rating', 'checkpoint_required'];
+ <button
+ onClick={() => { window.location.hash = '#'; }}
+ className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black rounded-xl shadow-lg transition-all duration-300 transform active:scale-95 pointer-events-auto z-[120]"
+ >
+ العودة للرحلة
+ </button>
+ </motion.div>
+ );
+ }
 
-      // 🩸 [تحصين الذاكرة المرحلية للراكب]: إذا كانت الرحلة نشطة أو بحالة حرجة، نمنع إلغاء تحميل RiderViewTab تماماً مهما تغير الهش لمنع تمزق الواجهات وفقدان حالة تتبع المركبة
-      if (criticalRiderStates.includes(currentTripStatus)) {
-        return <RiderViewTab />;
-      }
+ return null;
+ };
 
-      if (hash === '#wallet') return <WalletTab />;
-      if (hash === '#vault') return <VaultTab />;
-      if (hash === '#history') return <HistoryTab />;
-      if (hash === '#profile') return <ProfileTab />;
-      
-      return <RiderViewTab />;
-    }
+ const renderContent = () => {
+ if (isSovereign) {
+ return (
+ <React.Suspense fallback={
+ <div className="flex flex-col items-center justify-center p-8 bg-[#090d1a] border border-cyan-900/30 rounded-2xl animate-pulse text-center space-y-4">
+ <Loader2 className="w-8 h-8 animate-spin text-cyan-400 mx-auto" />
+ <p className="text-gray-400 text-xs font-sans">جاري تحميل لوحة التحكم...</p>
+ </div>
+ }>
+ <AdminViewTab />
+ </React.Suspense>
+ );
+ }
 
-    if (user?.role === 'advertiser') {
-      if (hash === '#wallet') return <WalletTab />;
-      if (hash === '#vault') return <VaultTab />;
-      if (hash === '#history') return <HistoryTab />;
-      if (hash === '#profile') return <ProfileTab />;
+ const ratingValue = user?.rating !== undefined
+ ? user.rating
+ : (user?.ratingSum && user?.ratingCount ? user.ratingSum / user.ratingCount : 5.0);
 
-      return (
-        <div className="flex flex-col items-center justify-center p-6 text-center space-y-6 max-w-lg mx-auto bg-black/40 border border-emerald-500/15 rounded-2xl animate-fade-in my-8">
-          <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/30 rounded-full flex items-center justify-center mx-auto text-emerald-400 text-3xl animate-bounce">📣</div>
-          <div className="space-y-2">
-            <h2 className="text-xl font-bold text-emerald-400">قمرة التحكم للمعلن السيادي</h2>
-            <p className="text-xs text-gray-400 leading-relaxed max-w-md mx-auto">
-              مرحباً بك كمعلن مهني موثق. تم تأمين حسابك ودراسة ميزانيتك. الآن يمكنك إدارة حملات النبضات، حجز الباقات، وإطلاق الملصقات الإعلانية.
-            </p>
-          </div>
-          <div className="p-3.5 bg-emerald-950/20 border border-emerald-500/10 rounded-xl space-y-1 w-full text-right text-xs">
-            <p className="text-emerald-400 font-bold">✓ البيانات المهنية الموثقة:</p>
-            <p className="text-gray-300">🏢 اسم العلامة: <span className="font-bold text-white">{user.companyName || 'منشأة عامة'}</span></p>
-            <p className="text-gray-300">📝 رقم الترخيص: <span className="font-mono text-white">{user.adLicense || 'معلقة التحديث'}</span></p>
-          </div>
-          <button
-            onClick={() => {
-              window.dispatchEvent(new CustomEvent('open-advertiser-portal'));
-            }}
-            className="w-full py-3 bg-emerald-600 hover:bg-emerald-50 hover:text-emerald-950 text-white font-black text-xs rounded-xl shadow-lg transition-all duration-300 transform active:scale-95 cursor-pointer"
-          >
-            إطلاق معالج الحملات والباقات السيادية 🚀
-          </button>
-        </div>
-      );
-    }
+ if (ratingValue < 4.2) {
+ return <SovereignLockoutView user={user} logout={logout} />;
+ }
 
-    if (user?.role === 'delegate') {
-      if (hash === '#wallet') return <WalletTab />;
-      if (hash === '#vault') return <VaultTab />;
-      if (hash === '#history') return <HistoryTab />;
-      if (hash === '#profile') return <ProfileTab />;
+ // 🛡️ [RAD-CMD-061]: Rider Memory Isolation & Decoupled Routing Layout
+ if (user?.role === 'rider') {
+ const isRequestModalOpen = riderOps?.isRequestModalOpen || false;
+ const currentTripStatus = riderOps?.tripStatus || 'idle';
+ const criticalRiderStates = ['searching', 'busy', 'rating', 'checkpoint_required'];
 
-      return <DelegatePortal />;
-    }
+ // 🩸 [تحصين الذاكرة المرحلية للراكب]: إذا كانت الرحلة نشطة أو بحالة حرجة، نمنع إلغاء تحميل RiderViewTab تماماً مهما تغير الهش لمنع تمزق الواجهات وفقدان حالة تتبع المركبة
+ if (criticalRiderStates.includes(currentTripStatus)) {
+ return <RiderViewTab />;
+ }
 
-    // 🩸 [تحصين الذاكرة المرحلية للكابتن]: إذا كان الكابتن في رحلة جارية، نمنع إلغاء تحميل DriverViewTab تماماً لمنع تمزق الواجهات وفقدان الذاكرة المرحلية
-    const criticalDriverStates = ['busy', 'rating'];
-    if (isCaptain && criticalDriverStates.includes(driverStatus)) {
-      return <DriverViewTab />;
-    }
+ if (hash === '#wallet') return <WalletTab />;
+ if (hash === '#vault') return <VaultTab />;
+ if (hash === '#history') return <HistoryTab />;
+ if (hash === '#profile') return <ProfileTab />;
 
-    if (hash === '#wallet') return <WalletTab />;
-    if (hash === '#vault') return <VaultTab />;
-    if (hash === '#history') return <HistoryTab />;
-    if (hash === '#profile') return <ProfileTab />;
+ return <RiderViewTab />;
+ }
 
-    if (isCaptain) return <DriverViewTab />;
-    return null;
-  };
+ if (user?.role === 'advertiser') {
+ if (hash === '#wallet') return <WalletTab />;
+ if (hash === '#vault') return <VaultTab />;
+ if (hash === '#history') return <HistoryTab />;
+ if (hash === '#profile') return <ProfileTab />;
 
-  const contentIsHidden = isStandby;
-  const isRiderHomeSurface = user?.role === 'rider' && !contentIsHidden && (hash === '#' || hash === '' || hash === '#/');
-  
-  return (
-    // استخدام flex-col لضمان تدفق الصفحة (Doc Flow) والسماح بالتمرير الطبيعي
-    <div className="flex min-h-screen w-full flex-col bg-[#0B0F19] text-white lg:h-screen lg:overflow-hidden">
-      {user?.role === 'rider' && (
-        <DesktopRiderSidebar
-          hash={hash}
-          logout={logout}
-          onNotify={() => toast({ title: 'التنبيهات', description: 'لا توجد تنبيهات جديدة حاليا.' })}
-          user={user}
-        />
-      )}
-      
-      {/* الهيدر ثابت في الأعلى */}
-      <header className="sticky top-0 z-[100] w-full shrink-0 lg:hidden">
-        <AppHeader />
-      </header>
-      
-      {/* المحتوى الرئيسي يتمدد ويسمح بالتمرير (Scroll) */}
-      <main className={cn('relative flex w-full flex-1 flex-col overflow-y-visible lg:h-screen lg:min-h-0 lg:overflow-hidden', user?.role === 'rider' && !isRiderHomeSurface && 'lg:pl-[288px]')}>
-        
-        {/* مسرح الإعلانات يأخذ مساحته الطبيعية في التدفق */}
-        {isStandby && (
-          <div className="w-full flex-1 flex flex-col relative z-[80] border-b-2 border-[#00ffcc]/30 shadow-[0_10px_30px_rgba(0,255,204,0.1)]">
-            <AdStage isFullScreen={true} />
-          </div>
-        )}
-        
-        {/* الحاوية التي تحمل التبويبات (تسمح بالتمرير للأسفل) */}
-        <div className={cn('w-full flex-1 p-4 md:p-8', contentIsHidden && 'hidden', isRiderHomeSurface && 'lg:p-0')}>
-           {renderArterialBridge()}
-           <SovereignErrorBoundary>
-             <React.Suspense fallback={
-               <div className="flex flex-col items-center justify-center p-8 bg-[#090d1a]/80 border border-cyan-500/20 rounded-2xl animate-pulse text-center space-y-4">
-                 <Loader2 className="w-8 h-8 animate-spin text-cyan-400 mx-auto" />
-                 <p className="text-gray-400 text-xs font-sans">جاري التجهيز النيابي واستدعاء وحدة التحكم المستقلة...</p>
-               </div>
-             }>
-               {renderContent()}
-             </React.Suspense>
-           </SovereignErrorBoundary>
-        </div>
-        
-        {isCaptain && <SpeedSentry />}
-      </main>
-      
-      {/* الفوتر ثابت في الأسفل */}
-      <footer className="sticky bottom-0 z-[100] w-full shrink-0 lg:hidden">
-        <BottomNav />
-      </footer>
-    </div>
-  );
+ return (
+ <div className="flex flex-col items-center justify-center p-6 text-center space-y-6 max-w-lg mx-auto bg-black/40 border border-emerald-500/15 rounded-2xl animate-fade-in my-8">
+ <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/30 rounded-full flex items-center justify-center mx-auto text-emerald-400 text-3xl animate-bounce">📣</div>
+ <div className="space-y-2">
+ <h2 className="text-xl font-bold text-emerald-400">لوحة المعلن</h2>
+ <p className="text-xs text-gray-400 leading-relaxed max-w-md mx-auto">
+ مرحباً بك. يمكنك إدارة حملاتك الإعلانية، حجز الباقات، ومتابعة النتائج من هنا.
+ </p>
+ </div>
+ <div className="p-3.5 bg-emerald-950/20 border border-emerald-500/10 rounded-xl space-y-1 w-full text-right text-xs">
+ <p className="text-emerald-400 font-bold">✓ البيانات المهنية الموثقة:</p>
+ <p className="text-gray-300">🏢 اسم العلامة: <span className="font-bold text-white">{user.companyName || 'منشأة عامة'}</span></p>
+ <p className="text-gray-300">📝 رقم الترخيص: <span className="font-mono text-white">{user.adLicense || 'معلقة التحديث'}</span></p>
+ </div>
+ <button
+ onClick={() => {
+ window.dispatchEvent(new CustomEvent('open-advertiser-portal'));
+ }}
+ className="w-full py-3 bg-emerald-600 hover:bg-emerald-50 hover:text-emerald-950 text-white font-black text-xs rounded-xl shadow-lg transition-all duration-300 transform active:scale-95 cursor-pointer"
+ >
+ فتح إدارة الحملات
+ </button>
+ </div>
+ );
+ }
+
+ if (user?.role === 'delegate') {
+ if (hash === '#wallet') return <WalletTab />;
+ if (hash === '#vault') return <VaultTab />;
+ if (hash === '#history') return <HistoryTab />;
+ if (hash === '#profile') return <ProfileTab />;
+
+ return <DelegatePortal />;
+ }
+
+ // إذا كان السائق في رحلة جارية، نمنع إلغاء تحميل DriverViewTab حتى لا تفقد الواجهة حالتها.
+ const criticalDriverStates = ['busy', 'rating'];
+ if (isCaptain && criticalDriverStates.includes(driverStatus)) {
+ return <DriverViewTab />;
+ }
+
+ if (hash === '#wallet') return <WalletTab />;
+ if (hash === '#vault') return <VaultTab />;
+ if (hash === '#history') return <HistoryTab />;
+ if (hash === '#profile') return <ProfileTab />;
+
+ if (isCaptain) return <DriverViewTab />;
+ return null;
+ };
+
+ const contentIsHidden = isStandby;
+ const isRiderHomeSurface = user?.role === 'rider' && !contentIsHidden && (hash === '#' || hash === '' || hash === '#/');
+
+ return (
+ // استخدام flex-col لضمان تدفق الصفحة (Doc Flow) والسماح بالتمرير الطبيعي
+ <div className="flex min-h-screen w-full flex-col bg-[#0B0F19] text-white lg:h-screen lg:overflow-hidden">
+ {user?.role === 'rider' && (
+ <DesktopRiderSidebar
+ hash={hash}
+ logout={logout}
+ onNotify={() => toast({ title: 'التنبيهات', description: 'لا توجد تنبيهات جديدة حاليا.' })}
+ user={user}
+ />
+ )}
+
+ {/* الهيدر ثابت في الأعلى */}
+ <header className="sticky top-0 z-[100] w-full shrink-0 lg:hidden">
+ <AppHeader />
+ </header>
+
+ {/* المحتوى الرئيسي يتمدد ويسمح بالتمرير (Scroll) */}
+ <main className={cn('relative flex w-full flex-1 flex-col overflow-y-visible lg:h-screen lg:min-h-0 lg:overflow-hidden', user?.role === 'rider' && !isRiderHomeSurface && 'lg:pl-[288px]')}>
+
+ {/* مسرح الإعلانات يأخذ مساحته الطبيعية في التدفق */}
+ {isStandby && (
+ <div className="w-full flex-1 flex flex-col relative z-[80] border-b-2 border-[#00ffcc]/30 shadow-[0_10px_30px_rgba(0,255,204,0.1)]">
+ <AdStage isFullScreen={true} />
+ </div>
+ )}
+
+ {/* الحاوية التي تحمل التبويبات (تسمح بالتمرير للأسفل) */}
+ <div className={cn('w-full flex-1 p-4 md:p-8', contentIsHidden && 'hidden', isRiderHomeSurface && 'lg:p-0')}>
+ {renderArterialBridge()}
+ <SovereignErrorBoundary>
+ <React.Suspense fallback={
+ <div className="flex flex-col items-center justify-center p-8 bg-[#090d1a]/80 border border-cyan-500/20 rounded-2xl animate-pulse text-center space-y-4">
+ <Loader2 className="w-8 h-8 animate-spin text-cyan-400 mx-auto" />
+ <p className="text-gray-400 text-xs font-sans">جاري تحميل الصفحة...</p>
+ </div>
+ }>
+ {renderContent()}
+ </React.Suspense>
+ </SovereignErrorBoundary>
+ </div>
+
+ {isCaptain && <SpeedSentry />}
+ </main>
+
+ {/* الفوتر ثابت في الأسفل */}
+ <footer className="sticky bottom-0 z-[100] w-full shrink-0 lg:hidden">
+ <BottomNav />
+ </footer>
+ </div>
+ );
 }
 
 function DesktopRiderSidebar({
-  hash,
-  logout,
-  onNotify,
-  user,
+ hash,
+ logout,
+ onNotify,
+ user,
 }: {
-  hash: string;
-  logout: () => void;
-  onNotify: () => void;
-  user: any;
+ hash: string;
+ logout: () => void;
+ onNotify: () => void;
+ user: any;
 }) {
-  const initials = getInitials(user?.name || user?.phone || 'R');
-  const items = [
-    { href: '#', icon: Home, label: 'الرئيسية' },
-    { href: '#history', icon: History, label: 'رحلاتي' },
-    { href: '#vault', icon: Archive, label: 'المفضلة' },
-    { href: '#wallet', icon: Wallet, label: 'الرصيد' },
-    { href: '#profile', icon: User, label: 'حسابي' },
-  ];
+ const initials = getInitials(user?.name || user?.phone || 'R');
+ const items = [
+ { href: '#', icon: Home, label: 'الرئيسية' },
+ { href: '#history', icon: History, label: 'رحلاتي' },
+ { href: '#vault', icon: Archive, label: 'المفضلة' },
+ { href: '#wallet', icon: Wallet, label: 'الرصيد' },
+ { href: '#profile', icon: User, label: 'حسابي' },
+ ];
 
-  const openRideRequest = () => {
-    window.location.hash = '#';
-    window.dispatchEvent(new CustomEvent('rider-open-destination'));
-  };
+ const openRideRequest = () => {
+ window.location.hash = '#';
+ window.dispatchEvent(new CustomEvent('rider-open-destination'));
+ };
 
-  return (
-    <aside className="fixed inset-y-0 left-0 z-[140] hidden w-[288px] flex-col border-r border-white/10 bg-[#0B0F19]/98 shadow-[22px_0_70px_rgba(0,0,0,0.38)] backdrop-blur-xl lg:flex" dir="rtl">
-      <div className="flex items-center gap-3 border-b border-white/10 p-5">
-        <Avatar className="h-12 w-12 border border-[#14B8A6]/35 bg-[#101827]">
-          <AvatarFallback className="bg-[#101827] text-sm font-black text-white">{initials}</AvatarFallback>
-        </Avatar>
-        <div className="min-w-0 text-right">
-          <p className="truncate text-sm font-black text-white">{user?.name || 'راكب'}</p>
-          <p className="truncate text-xs font-bold text-[#14B8A6]">{user?.phone || 'تطبيق الرحلات'}</p>
-        </div>
-      </div>
+ return (
+ <aside className="fixed inset-y-0 left-0 z-[140] hidden w-[288px] flex-col border-r border-white/10 bg-[#0B0F19]/98 shadow-[22px_0_70px_rgba(0,0,0,0.38)] backdrop-blur-xl lg:flex" dir="rtl">
+ <div className="flex items-center gap-3 border-b border-white/10 p-5">
+ <Avatar className="h-12 w-12 border border-[#14B8A6]/35 bg-[#101827]">
+ <AvatarFallback className="bg-[#101827] text-sm font-black text-white">{initials}</AvatarFallback>
+ </Avatar>
+ <div className="min-w-0 text-right">
+ <p className="truncate text-sm font-black text-white">{user?.name || 'راكب'}</p>
+ <p className="truncate text-xs font-bold text-[#14B8A6]">{user?.phone || 'تطبيق الرحلات'}</p>
+ </div>
+ </div>
 
-      <div className="space-y-3 p-4">
-        <Button
-          onClick={openRideRequest}
-          className="h-12 w-full justify-center gap-2 rounded-2xl bg-[#14B8A6] text-sm font-black text-[#031315] shadow-[0_16px_35px_rgba(20,184,166,0.18)] hover:bg-[#2DD4BF]"
-        >
-          <PlusCircle className="h-5 w-5" />
-          اطلب رحلة
-        </Button>
-        <Button
-          onClick={onNotify}
-          variant="ghost"
-          className="h-11 w-full justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 text-sm font-bold text-slate-200 hover:bg-white/[0.07]"
-        >
-          <Bell className="h-4 w-4 text-[#14B8A6]" />
-          التنبيهات
-        </Button>
-      </div>
+ <div className="space-y-3 p-4">
+ <Button
+ onClick={openRideRequest}
+ className="h-12 w-full justify-center gap-2 rounded-2xl bg-[#14B8A6] text-sm font-black text-[#031315] shadow-[0_16px_35px_rgba(20,184,166,0.18)] hover:bg-[#2DD4BF]"
+ >
+ <PlusCircle className="h-5 w-5" />
+ اطلب رحلة
+ </Button>
+ <Button
+ onClick={onNotify}
+ variant="ghost"
+ className="h-11 w-full justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 text-sm font-bold text-slate-200 hover:bg-white/[0.07]"
+ >
+ <Bell className="h-4 w-4 text-[#14B8A6]" />
+ التنبيهات
+ </Button>
+ </div>
 
-      <nav className="flex-1 space-y-2 px-4 pt-2">
-        {items.map((item) => {
-          const Icon = item.icon;
-          const isActive = hash === item.href || (item.href === '#' && (hash === '' || hash === '#/'));
+ <nav className="flex-1 space-y-2 px-4 pt-2">
+ {items.map((item) => {
+ const Icon = item.icon;
+ const isActive = hash === item.href || (item.href === '#' && (hash === '' || hash === '#/'));
 
-          return (
-            <a
-              key={item.href}
-              href={item.href}
-              className={cn(
-                'flex h-12 items-center justify-between rounded-2xl border px-4 text-sm font-black transition',
-                isActive
-                  ? 'border-[#14B8A6]/35 bg-[#14B8A6]/15 text-[#14F5D5]'
-                  : 'border-transparent text-slate-400 hover:border-white/10 hover:bg-white/[0.04] hover:text-white',
-              )}
-            >
-              <span>{item.label}</span>
-              <Icon className="h-5 w-5" />
-            </a>
-          );
-        })}
-      </nav>
+ return (
+ <a
+ key={item.href}
+ href={item.href}
+ className={cn(
+ 'flex h-12 items-center justify-between rounded-2xl border px-4 text-sm font-black transition',
+ isActive
+ ? 'border-[#14B8A6]/35 bg-[#14B8A6]/15 text-[#14F5D5]'
+ : 'border-transparent text-slate-400 hover:border-white/10 hover:bg-white/[0.04] hover:text-white',
+ )}
+ >
+ <span>{item.label}</span>
+ <Icon className="h-5 w-5" />
+ </a>
+ );
+ })}
+ </nav>
 
-      <div className="space-y-3 border-t border-white/10 p-4">
-        <div className="rounded-2xl border border-[#14B8A6]/15 bg-[#14B8A6]/8 p-3 text-right">
-          <p className="text-[11px] font-black text-[#14F5D5]">حالة الحساب</p>
-          <p className="mt-1 text-xs font-bold text-slate-300">جاهز لطلب رحلة</p>
-        </div>
-        <Button
-          onClick={logout}
-          className="h-12 w-full justify-center gap-2 rounded-2xl bg-red-600/90 text-sm font-black text-white hover:bg-red-500"
-        >
-          <LogOut className="h-5 w-5" />
-          تسجيل الخروج
-        </Button>
-      </div>
-    </aside>
-  );
+ <div className="space-y-3 border-t border-white/10 p-4">
+ <div className="rounded-2xl border border-[#14B8A6]/15 bg-[#14B8A6]/8 p-3 text-right">
+ <p className="text-[11px] font-black text-[#14F5D5]">حالة الحساب</p>
+ <p className="mt-1 text-xs font-bold text-slate-300">جاهز لطلب رحلة</p>
+ </div>
+ <Button
+ onClick={logout}
+ className="h-12 w-full justify-center gap-2 rounded-2xl bg-red-600/90 text-sm font-black text-white hover:bg-red-500"
+ >
+ <LogOut className="h-5 w-5" />
+ تسجيل الخروج
+ </Button>
+ </div>
+ </aside>
+ );
 }
 
 function getInitials(value: string) {
-  const words = value.trim().split(/\s+/).filter(Boolean);
-  if (words.length >= 2) return `${words[0][0] || ''}${words[1][0] || ''}`.toUpperCase();
-  return value.slice(0, 2).toUpperCase();
+ const words = value.trim().split(/\s+/).filter(Boolean);
+ if (words.length >= 2) return `${words[0][0] || ''}${words[1][0] || ''}`.toUpperCase();
+ return value.slice(0, 2).toUpperCase();
 }
 
 export function Dashboard() {
-  return <DashboardLayout />;
+ return <DashboardLayout />;
 }

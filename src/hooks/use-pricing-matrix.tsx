@@ -27,7 +27,7 @@ export function usePricingMatrix() {
   const [isSaving, setIsSaving] = useState(false);
   const isSavingRef = useRef(false);
   const { toast } = useToast();
-  const { user } = useAuth(); 
+  const { user } = useAuth();
 
   useEffect(() => {
     if (user && user.pricing) {
@@ -52,10 +52,10 @@ export function usePricingMatrix() {
     setIsSaving(true);
     try {
       const { shortTripFare, longTripKmRate, minuteRate, isOperatorLinked } = newMatrix;
-      
+
       let lat = 31.95;
       let lng = 35.91;
-      
+
       try {
         const pos: any = await new Promise((res, rej) =>
           navigator.geolocation.getCurrentPosition(res, rej, { timeout: 3000, enableHighAccuracy: true })
@@ -67,14 +67,14 @@ export function usePricingMatrix() {
         console.warn('Using default coordinates for district lookup fallback (Amman Central)');
       }
 
-      // [النقش السيادي الطرفي] - Edge Computing calculations done locally with zero cloud compute cost
+      // [النقش  الطرفي] - Edge Computing calculations done locally with zero cloud compute cost
       let activeDistrict = 'الجامعة';
       if (lat > 31.96) {
         activeDistrict = 'الجامعة';
       } else if (lat < 31.94) {
         activeDistrict = 'وسط عمان';
       } else {
-        activeDistrict = 'المربع المالي للواء';
+        activeDistrict = 'المربع المالي لمنطقة';
       }
 
       // Safe local calculation for pricing momentum
@@ -91,18 +91,18 @@ export function usePricingMatrix() {
         isOperatorLinked: isOperatorLinked
       });
 
-      toast({ 
-        title: 'تم تحديث التسعير السيادي بنجاح', 
-        description: `تم حفظ مؤشرات التسعير ونشر عهد النسبة لقطاع ${activeDistrict}. الحركة الحالية للسوق: ${momentumType === 'UP' ? 'صاعدة 📈' : momentumType === 'DOWN' ? 'هابطة 📉' : 'مستقرة ⚖️'}` 
+      toast({
+        title: 'تم تحديث التسعير  بنجاح',
+        description: `تم حفظ مؤشرات التسعير ونشر نظام النسبة لقطاع ${activeDistrict}. الحركة الحالية للسوق: ${momentumType === 'UP' ? 'صاعدة 📈' : momentumType === 'DOWN' ? 'هابطة 📉' : 'مستقرة ⚖️'}`
       });
-      
+
       setMatrix(newMatrix);
       return { success: true, error: null, momentum: momentumType };
 
     } catch (error: any) {
       trackSovereignError(error, { context: 'SavePricingMatrix' });
       const errorMessage = getSovereignErrorMessage(error);
-      
+
       toast({ variant: 'destructive', title: 'فشل حفظ التعديلات', description: errorMessage });
       return { success: false, error: errorMessage };
     } finally {

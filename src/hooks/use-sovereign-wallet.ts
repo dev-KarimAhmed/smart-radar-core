@@ -67,7 +67,7 @@ export function useSovereignWallet(user: User | null) {
   const loadingRef = useRef(false);
   const { suspendUserDocListener, resumeUserDocListener } = useAuth();
 
-  // 🛡️ [النبض الشبكي التفاضلي V2.6-Secured - مرشح التوقيت المالي]
+  // 🛡️ [النشاط الشبكي التفاضلي V2.6-Secured - مرشح التوقيت المالي]
   // استرجاع توقيت السيرفر المعاير محلياً لمنع التلاعب بساعة الهاتف وتمرير المعاملات بأوقات زائفة
   const getNetworkAdjustedTime = useCallback(() => {
     if (typeof window !== 'undefined') {
@@ -144,7 +144,7 @@ export function useSovereignWallet(user: User | null) {
 
   /**
    * 📡 fundRiderBalance
-   * لشحن الدينار المبرهن وفق تصفية لواء الموطن (homeDistrict) مع حظر الكبس المتكرر وعزل المستمعين.
+   * لشحن الدينار المبرهن وفق تصفية منطقة الموطن (homeDistrict) مع حظر الكبس المتكرر وعزل المستمعين.
    */
   const fundRiderBalance = useCallback(async (amountPaid: number, channel: string) => {
     if (!user?.uid) {
@@ -172,7 +172,7 @@ export function useSovereignWallet(user: User | null) {
         type: 'charge',
         amount: amountPaid,
         currency: walletCurrency,
-        description: `شحن رصيد إقليمي لواء [${district}] عبر بوابة [${channel}]`,
+        description: `شحن رصيد إقليمي منطقة [${district}] عبر بوابة [${channel}]`,
         createdAt: new Date(networkNow).toLocaleTimeString('ar-JO', { hour: '2-digit', minute: '2-digit' }) + ' - اليوم',
         status: 'completed'
       };
@@ -194,14 +194,14 @@ export function useSovereignWallet(user: User | null) {
       console.error('[CRITICAL_SECURITY_ALERT] [audit_ledger] Rider fund failed:', error);
       toast({
         variant: 'destructive',
-        title: "🚫 عارض سيادي تشغيلي",
-        description: error?.message || "تعذر إرسال نبضة الشحن الجغرافي للسيرفر الموحد."
+        title: "🚫 عارض  تشغيلي",
+        description: error?.message || "تعذر إرسال نشاطة الشحن الجغرافي للسيرفر الموحد."
       });
       return false;
     } finally {
       setLoading(false);
       loadingRef.current = false;
-      
+
       setTimeout(() => {
         resumeUserDocListener();
       }, 3000);
@@ -210,7 +210,7 @@ export function useSovereignWallet(user: User | null) {
 
   /**
    * 💸 deductRiderFare
-   * للخصم الذري المباشر المقيد بالنبض الشبكي التفاضلي لمنع ثغرة السفر بالزمن.
+   * للخصم المباشر المباشر المقيد بالنشاط الشبكي التفاضلي لمنع ثغرة السفر بالزمن.
    */
   const deductRiderFare = useCallback(async (tripId: string, amountJD: number) => {
     if (!user?.uid) {
@@ -231,7 +231,7 @@ export function useSovereignWallet(user: User | null) {
     try {
       const networkNow = getNetworkAdjustedTime();
       const txId = 'tx-' + networkNow;
-      
+
       const transactionItem = {
         id: txId,
         type: 'trip_deduction',
@@ -249,7 +249,7 @@ export function useSovereignWallet(user: User | null) {
       });
 
       toast({
-        title: "💸 تم الخصم الذري بنجاح",
+        title: "💸 تم الخصم المباشر بنجاح",
         description: `تم خصم أجرة الرحلة بقيمة ${amountJD} ${walletCurrency} بنجاح.`
       });
       return true;
@@ -257,14 +257,14 @@ export function useSovereignWallet(user: User | null) {
       console.error('[CRITICAL_SECURITY_ALERT] [audit_ledger] Rider fare deduction failed:', error);
       toast({
         variant: 'destructive',
-        title: "🚫 عارض سيادي تشغيلي",
-        description: error?.message || "تعذر إرسال نبضة خصم الأجرة للسيرفر الموحد."
+        title: "🚫 عارض  تشغيلي",
+        description: error?.message || "تعذر إرسال نشاطة خصم الأجرة للسيرفر الموحد."
       });
       return false;
     } finally {
       setLoading(false);
       loadingRef.current = false;
-      
+
       setTimeout(() => {
         resumeUserDocListener();
       }, 3000);
@@ -273,7 +273,7 @@ export function useSovereignWallet(user: User | null) {
 
   /**
    * 📡 rechargeWallet (Fallback/Generic API)
-   * شحن رصيد إقليمي لواء عبر بوابة الدفع المحددة
+   * شحن رصيد إقليمي منطقة عبر بوابة الدفع المحددة
    */
   const rechargeWallet = useCallback(async (amountPaid: number, district: string, gateway: string) => {
     if (!user?.uid) {
@@ -285,7 +285,7 @@ export function useSovereignWallet(user: User | null) {
       return false;
     }
 
-    // 🛡️ [جدار الحماية الجنائي V2.6-Secured]: منع التلاعب بالقيم الصفرية والسالبة وحظر التحديث العشوائي
+    // 🛡️ [جدار الحماية الأمني V2.6-Secured]: منع التلاعب بالقيم الصفرية والسالبة وحظر التحديث العشوائي
     if (amountPaid <= 0 || isNaN(amountPaid)) {
       console.error('[CRITICAL_SECURITY_ALERT] [Exploit Attempt]: Negative or zero top-up value detected:', amountPaid);
       toast({
@@ -310,7 +310,7 @@ export function useSovereignWallet(user: User | null) {
         type: 'charge',
         amount: amountPaid,
         currency: walletCurrency,
-        description: `شحن رصيد إقليمي لواء [${district}] عبر بوابة [${gateway}]`,
+        description: `شحن رصيد إقليمي منطقة [${district}] عبر بوابة [${gateway}]`,
         createdAt: new Date(networkNow).toLocaleTimeString('ar-JO', { hour: '2-digit', minute: '2-digit' }) + ' - اليوم',
         status: 'completed'
       };
@@ -331,14 +331,14 @@ export function useSovereignWallet(user: User | null) {
       console.error('[CRITICAL_SECURITY_ALERT] [audit_ledger] rechargeWallet failed:', error);
       toast({
         variant: 'destructive',
-        title: "🚫 عارض سيادي تشغيلي",
-        description: error?.message || "تعذر إرسال نبضة الشحن الجغرافي للسيرفر الموحد."
+        title: "🚫 عارض  تشغيلي",
+        description: error?.message || "تعذر إرسال نشاطة الشحن الجغرافي للسيرفر الموحد."
       });
       return false;
     } finally {
       setLoading(false);
       loadingRef.current = false;
-      
+
       setTimeout(() => {
         resumeUserDocListener();
       }, 3000);
@@ -347,7 +347,7 @@ export function useSovereignWallet(user: User | null) {
 
   /**
    * ⚡ purchaseDriverPackage
-   * شراء باقات البث الموجه جغرافياً للكباتن
+   * شراء باقات العرض الموجه جغرافياً للسائقين
    */
   const purchaseDriverPackage = useCallback(async (pkgType: 'pulse' | 'transit') => {
     if (!user?.uid) {
@@ -369,7 +369,7 @@ export function useSovereignWallet(user: User | null) {
       const balanceJD = serverWallet?.balance ?? 0;
       const cost = pkgType === 'pulse' ? 1.00 : 10.00;
       const addedHours = pkgType === 'pulse' ? 24.0 : 100.0;
-      const name = pkgType === 'pulse' ? 'باقة النبض الأساسية (24 ساعة)' : 'باقة العبور الكبرى (100 ساعة)';
+      const name = pkgType === 'pulse' ? 'باقة النشاط الأساسية (24 ساعة)' : 'باقة العبور الكبرى (100 ساعة)';
 
       if (balanceJD < cost) {
         toast({
@@ -382,16 +382,16 @@ export function useSovereignWallet(user: User | null) {
 
       const networkNow = getNetworkAdjustedTime();
       const r = (user?.rank || 'SILVER').toUpperCase();
-      const captainRank: 'PLATINUM' | 'GOLD' | 'BRONZE' = 
+      const captainRank: 'PLATINUM' | 'GOLD' | 'BRONZE' =
         r === 'PLATINUM' ? 'PLATINUM' : (r === 'GOLD' ? 'GOLD' : 'BRONZE');
-      
+
       const currentPaidMinutes = serverWallet?.paidHoursMin ?? 0;
       const currentBonusMinutes = serverWallet?.bonusHoursMin ?? 0;
-      
+
       const homeDistrict = user?.district || 'وادي السير';
-      
+
       const { RadarGeoRefillKernel } = await import('@/lib/refill-kernel');
-      
+
       const geoWalletInput = {
         captainId: user.uid,
         homeDistrict,
@@ -423,11 +423,11 @@ export function useSovereignWallet(user: User | null) {
       const nextPaidMinutes = refillResult.updatedWallet.paidMinutesRemaining;
       const nextBonusMinutes = refillResult.updatedWallet.bonusMinutesRemaining;
       const totalHoursFraction = (nextPaidMinutes + nextBonusMinutes) / 60;
-      
+
       const addedPaidMinutes = nextPaidMinutes - currentPaidMinutes;
       const bonusPercent = captainRank === 'PLATINUM' ? 0.25 : (captainRank === 'GOLD' ? 0.15 : 0);
-      const rankText = captainRank === 'PLATINUM' ? 'بلاتيني (+25% بونص سيادي)' : 
-                       captainRank === 'GOLD' ? 'ذهبي (+15% بونص سيادي)' : 'برونزي/فضي';
+      const rankText = captainRank === 'PLATINUM' ? 'بلاتيني (+25% بونص )' :
+                       captainRank === 'GOLD' ? 'ذهبي (+15% بونص )' : 'برونزي/فضي';
       const bonusHoursText = bonusPercent > 0 ? ` + مكافأة رتبة ${rankText} بقيمة ${(addedPaidMinutes * bonusPercent) / 60} ساعات حرة` : '';
 
       const txId = 'tx-' + networkNow;
@@ -447,15 +447,15 @@ export function useSovereignWallet(user: User | null) {
         paidHoursRemaining: nextPaidMinutes,
         bonusHoursRemaining: nextBonusMinutes,
         subscriptionHours: Number(totalHoursFraction.toFixed(3)),
-        activePackageName: pkgType === 'pulse' ? 'باقة النبض الأساسية' : 'باقة العبور الكبرى',
+        activePackageName: pkgType === 'pulse' ? 'باقة النشاط الأساسية' : 'باقة العبور الكبرى',
         walletTransactions: arrayUnion(transactionItem)
       });
 
       toast({
         title: '⚡ تم التفعيل الفوري للملاحة الموجهة جغرافياً',
-        description: bonusPercent > 0 
-          ? `مبروك كابتن! تم إمداد البث بـ ${addedHours} ساعة من الباقة بالإضافة إلى ${(addedPaidMinutes * bonusPercent) / 60} ساعات بونص مجانية رتبة ${user?.rank} لواء [${homeDistrict}].`
-          : `مبروك كابتن! تم إمداد البث الملاحي بـ ${addedHours} ساعة عمل لواء [${homeDistrict}].`
+        description: bonusPercent > 0
+          ? `مبروك سائق! تم إمداد العرض بـ ${addedHours} ساعة من الباقة بالإضافة إلى ${(addedPaidMinutes * bonusPercent) / 60} ساعات بونص مجانية رتبة ${user?.rank} منطقة [${homeDistrict}].`
+          : `مبروك سائق! تم إمداد ساعات العمل بـ ${addedHours} ساعة عمل منطقة [${homeDistrict}].`
       });
 
       return true;
@@ -463,14 +463,14 @@ export function useSovereignWallet(user: User | null) {
       console.error('[CRITICAL_SECURITY_ALERT] [audit_ledger] Purchase package failed:', error);
       toast({
         variant: 'destructive',
-        title: '🚫 عارض سيادي تشغيلي',
-        description: error?.message || 'تعذر إتمام عملية شراء الباقة النسيجية.'
+        title: '🚫 عارض  تشغيلي',
+        description: error?.message || 'تعذر إتمام عملية شراء الباقة المحلية.'
       });
       return false;
     } finally {
       setLoading(false);
       loadingRef.current = false;
-      
+
       setTimeout(() => {
         resumeUserDocListener();
       }, 3000);

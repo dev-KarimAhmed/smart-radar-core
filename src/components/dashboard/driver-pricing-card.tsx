@@ -36,8 +36,8 @@ const PricingInput = React.memo(({ id, label, icon, value, onChange, hasError }:
       value={value}
       onChange={e => onChange(parseFloat(e.target.value) || 0)}
       className={`bg-black border rounded p-2 text-white text-lg focus:outline-none transition-all duration-300 w-full ${
-        hasError 
-          ? 'border-red-500/80 focus:border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.2)] bg-red-950/10' 
+        hasError
+          ? 'border-red-500/80 focus:border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.2)] bg-red-950/10'
           : 'border-green-900 focus:border-green-500'
       }`}
     />
@@ -55,7 +55,7 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, re
   const [pulseData, setPulseData] = useState<{ trend: 'up' | 'down', msg: string, change: string } | null>(null);
 
   const { user } = useAuth();
-  
+
   const { activeAds } = usePromoStream(user?.district || 'وادي السير', user?.governorate || 'عمان');
 
   const currentRating = useMemo(() => {
@@ -88,15 +88,15 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, re
   const professionalAd = useMemo(() => {
     const defaultProfessionalAd = {
       adId: 'promo-captain-professional-default',
-      title: 'مركز صيانة للكباتن',
-      description: 'عرض صيانة قريب للكباتن والناقلين مع حجز مباشر وسعر واضح.',
+      title: 'مركز صيانة للسائقين',
+      description: 'عرض صيانة قريب للسائقين والناقلين مع حجز مباشر وسعر واضح.',
       actionUrl: 'https://wa.me/962790000000',
       buttonText: 'احجز العرض',
       bannerUrl: 'https://images.unsplash.com/photo-1486006920555-c77dce18193b?auto=format&fit=crop&q=80&w=1200'
     };
 
     if (!isBlocked) return defaultProfessionalAd;
-    
+
     // Convert to AdSovereignPass
     const passAds = activeAds.map(ad => ({
       adId: ad.id,
@@ -105,7 +105,7 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, re
       adType: ad.adType as any,
       bannerUrl: ad.content?.posterUrl || ''
     })).filter(ad => ad.adType === 'CAPTAIN_PROFESSIONAL');
-    
+
     if (passAds.length === 0) {
       return {
         adId: 'promo-captain-professional-default',
@@ -116,13 +116,13 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, re
         bannerUrl: 'https://images.unsplash.com/photo-1486006920555-c77dce18193b?auto=format&fit=crop&q=80&w=1200'
       };
     }
-    
+
     const matchedPass = RadarSovereignIntegrationKernel.triggerContextualAdStream(
       dynamicDeviationRatio, // deviation ratio here is >= 0.15
       { role: 'captain', district: user?.district || 'وادي السير', governorate: user?.governorate || 'عمان' },
       passAds as any
     );
-    
+
     if (matchedPass) {
       const realAd = activeAds.find(ad => ad.id === matchedPass.adId);
       return {
@@ -134,7 +134,7 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, re
         bannerUrl: realAd?.content?.posterUrl || 'https://images.unsplash.com/photo-1486006920555-c77dce18193b?auto=format&fit=crop&q=80&w=1200'
       };
     }
-    
+
     return defaultProfessionalAd;
   }, [isBlocked, activeAds, user, dynamicDeviationRatio]);
 
@@ -148,7 +148,7 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, re
 
   const handleSetupSave = useCallback(async () => {
     const matrixToSave: PricingMatrix = { ...matrix, isOperatorLinked };
-    
+
     if (!isOperatorLinked) {
       if (matrixToSave.shortTripFare <= 0 || matrixToSave.longTripKmRate <= 0) {
         setError('يُمنع وجود قيم صفرية أو سالبة في الحقول الأساسية عند استخدام التسعير اليدوي.');
@@ -175,7 +175,7 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, re
         setError(evaluation.message);
         toast({
           variant: 'destructive',
-          title: '🚫 تم السد الجنائي والرفض',
+          title: 'تم رفض العرض',
           description: evaluation.message,
         });
         return;
@@ -184,14 +184,14 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, re
       if (evaluation.status === 'APPROVED_WITH_WARNING') {
         toast({
           variant: 'default',
-          title: '⚠️ تنبيه سيادي',
+          title: 'تنبيه',
           description: evaluation.message
         });
       }
     }
 
     setError('');
-    
+
     const result = await saveMatrix(matrixToSave);
 
     if (result.success) {
@@ -202,7 +202,7 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, re
   }, [matrix, isOperatorLinked, saveMatrix, onConfirm, toast]);
 
 
-  // 1. احتساب تسعيرة العداد الموحد السيادي للفرقاء (γ = 1.35)
+  // 1. احتساب تسعيرة العداد الموحد (γ = 1.35)
   const officialRateFare = useMemo(() => {
     if (!tripDistance) return 0;
     const GAMMA = 1.35;
@@ -220,11 +220,11 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, re
     const additionalDistance = Math.max(0, tripDistance - 1);
     const calculatedBaseFare = savedMatrix.shortTripFare + (savedMatrix.longTripKmRate * additionalDistance);
 
-    // 2. سيادة الوقت: ضرب الدقائق الناتجة عن النبض في سعر دقيقة الكابتن
+    // 2. حساب الوقت: ضرب الدقائق الناتجة في سعر دقيقة السائق
     const timeSovereigntyCharge = savedMatrix.minuteRate * tripDuration;
 
     const finalCalculatedFare = calculatedBaseFare + timeSovereigntyCharge;
-    
+
     return {
       min: Number((finalCalculatedFare * 0.85).toFixed(2)),
       avg: Number(finalCalculatedFare.toFixed(2)),
@@ -237,7 +237,7 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, re
     return (
        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in-25">
           <div className="bg-[#091B09] border border-green-800 rounded-xl w-full max-w-lg text-white shadow-2xl overflow-y-auto max-h-[90vh] relative">
-            
+
             {/* [المادة 4] تجميد شاشة السائق وعرض الإعلان المهني الموجه عند تجاوز الـ 15% */}
             {isBlocked && (
               <div className="absolute inset-0 z-50 bg-[#061206]/98 backdrop-blur-xl p-6 flex flex-col justify-between overflow-y-auto text-right" dir="rtl">
@@ -247,7 +247,7 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, re
                     <div>
                       <h4 className="text-sm font-black text-red-500">🚫 خطأ في المداخلات: القيمة غير منطقية تشغيلياً</h4>
                       <p className="text-[11px] text-gray-300 mt-1 leading-normal">
-                        الرادار الذكي لا يقبل نبضاً يهدد استدامة الميدان. تم حظر العرض الخارجي وتجميد الشاشة مؤقتاً لتصحيح أسعارك بما يلائم السوق الموحد.
+                        السعر المدخل بعيد جداً عن السعر المناسب. تم إيقاف العرض مؤقتاً حتى تعدل السعر بما يناسب السوق.
                       </p>
                     </div>
                   </div>
@@ -256,7 +256,7 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, re
                     <AdDisplayCard
                       ad={professionalAd}
                       showHeart={false}
-                      badgeText="دعم كابتن"
+                      badgeText="دعم السائق"
                       ctaText={professionalAd.buttonText}
                       className="h-[300px] rounded-[28px]"
                       onOpen={(event) => {
@@ -268,7 +268,7 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, re
 
                   {professionalAd && false && (
                     <div className="relative rounded-2xl overflow-hidden border border-amber-500/30 bg-[#140b03]/80 space-y-3 p-4 shadow-xl">
-                      <img 
+                      <img
                         src={professionalAd.bannerUrl}
                         alt={professionalAd.title}
                         className="w-full h-32 object-cover rounded-lg opacity-85 hover:scale-102 transition-all duration-500"
@@ -283,8 +283,8 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, re
                           {professionalAd.description}
                         </p>
                       </div>
-                      
-                      <Button 
+
+                      <Button
                         onClick={() => window.open(professionalAd.actionUrl, '_blank')}
                         className="w-full h-11 bg-amber-600 hover:bg-amber-500 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-md mt-1"
                       >
@@ -297,9 +297,9 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, re
 
                 <div className="space-y-3 pt-6 border-t border-green-900/40">
                   <p className="text-center text-[10px] text-gray-400 font-bold uppercase tracking-wider">
-                    عُد للحدود الآمنة لتسييل نبضك الرقمي واستقبال ركاب اللواء:
+                    عد إلى السعر المناسب لاستقبال طلبات الركاب في منطقتك:
                   </p>
-                  
+
                   <div className="flex gap-2.5">
                     <Button
                       onClick={() => {
@@ -312,9 +312,9 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, re
                       }}
                       className="flex-1 h-12 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-black text-xs flex items-center justify-center gap-1.5 transition-all shadow-md shadow-emerald-950/20"
                     >
-                      <span>استعادة القيم العادلة للنبض (بضغطة واحدة) ⚖️</span>
+                      <span>استعادة السعر المناسب بضغطة واحدة</span>
                     </Button>
-                    
+
                     <Button
                       onClick={onCancel}
                       variant="outline"
@@ -326,13 +326,13 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, re
                 </div>
               </div>
             )}
-            
+
             <div className="p-6 pb-0">
                 <div className="p-4 rounded-xl border border-green-500/30 bg-green-500/5 backdrop-blur-md animate-pulse-slow">
                     <div className="flex justify-between items-start mb-2">
                         <div className="flex items-center gap-2">
                         <Activity className="w-5 h-5 text-green-400" />
-                        <span className="text-sm font-bold text-green-400">نبض البورصة المحلية</span>
+                        <span className="text-sm font-bold text-green-400">متوسط السعر المحلي</span>
                         </div>
                         <Badge variant="outline" className="bg-green-950 text-green-400 border-green-500/50">
                         {pulseData?.trend === 'up' ? <TrendingUp className="w-3 h-3 ml-1" /> : <TrendingDown className="w-3 h-3 ml-1" />}
@@ -346,9 +346,9 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, re
             </div>
 
             <div className="p-6">
-              <h3 className="text-xl font-bold mb-2 text-center text-green-400">مصفوفة التسعير السيادية</h3>
+              <h3 className="text-xl font-bold mb-2 text-center text-green-400">إعدادات التسعير</h3>
               <p className="text-center text-gray-400 text-xs mb-6">هذه هي هويتك المالية في الميدان. اضبطها مرة واحدة.</p>
-              
+
                <div className="mt-2 mb-6 p-4 rounded-xl border border-yellow-500/20 bg-yellow-500/5 backdrop-blur-sm">
                   <div className="flex items-center justify-between mb-3">
                       <div className="space-y-1">
@@ -359,16 +359,16 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, re
                               تفعيل هذا الزر يعني أنك تزاول المهنة حالياً تحت مظلة مشغلك الرسمي، والمنصة مجرد وسيط تقني لعرض هويتك.
                           </p>
                       </div>
-                      <Switch 
-                          checked={isOperatorLinked} 
+                      <Switch
+                          checked={isOperatorLinked}
                           onCheckedChange={setIsOperatorLinked}
                           className="data-[state=checked]:bg-yellow-600"
                       />
                   </div>
-                  
+
                   <div className="bg-black/40 p-2 rounded border border-white/5">
                       <p className="text-[9px] text-gray-500 italic leading-relaxed">
-                          "بصفتي الناقل، أقر بأن تفعيل هذا الخيار هو تصريح مني للركاب بتبعية مرجعتي السعرية للمشغل المسجل في ملفي، 
+                          "بصفتي الناقل، أقر بأن تفعيل هذا الخيار هو تصريح مني للركاب بتبعية مرجعتي السعرية للمشغل المسجل في ملفي،
                           وأن الرادار الذكي لا يتدخل في هذا العقد التشغيلي."
                       </p>
                   </div>
@@ -384,7 +384,7 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, re
                       <div className="space-y-1">
                         <strong className="block text-red-400 font-bold">خطأ في المداخلات: القيمة غير منطقية تشغيلياً.</strong>
                         <p className="leading-relaxed">
-                          الرادار الذكي لا يقبل نبضاً يهدد استدامة الميدان. يرجى مراجعة قيم التسعير.
+                          السعر الحالي غير مناسب للسوق. يرجى مراجعة قيم التسعير.
                         </p>
                       </div>
                     </div>
@@ -395,9 +395,9 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, re
                     <div className="p-3 bg-[#2d1a00]/95 border-r-4 border-amber-500 rounded-xl text-[#ffe0b3] font-sans text-xs flex items-start gap-2.5 animate-pulse shadow-lg shadow-amber-950/20">
                       <span className="text-sm">⚠️</span>
                       <div className="space-y-1">
-                        <strong className="block text-amber-500 font-bold">تنبيه سيادي: سعرك الحالي يبتعد عن استقرار السوق.</strong>
+                        <strong className="block text-amber-500 font-bold">تنبيه: سعرك الحالي بعيد عن متوسط السوق.</strong>
                         <p className="leading-relaxed">
-                          هذا النبض قد يؤثر سلباً على 'تقييم الوسيط' ورتبتك في الرادار، مما يقلل من ظهورك للركاب.
+                          هذا السعر قد يؤثر على تقييمك وظهورك للركاب.
                         </p>
                       </div>
                     </div>
@@ -410,7 +410,7 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, re
                       <div className="space-y-1">
                         <strong className="block text-purple-400 font-bold">تحذير مناعي حرج: رصيد الثقة الخاص بك يقترب من عتبة الحظر التلقائي (4.2).</strong>
                         <p className="leading-relaxed">
-                          أي هبوط إضافي سيؤدي إلى تفعيل 'بروتوكول ديكتاتورية الخادم' وإغلاق الحساب فوراً لتطهير الميدان.
+                          أي انخفاض إضافي قد يؤدي إلى إيقاف الحساب مؤقتاً لحماية جودة الخدمة.
                         </p>
                       </div>
                     </div>
@@ -427,7 +427,7 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, re
                 </div>
 
                 <Separator className="bg-green-800/50"/>
-                
+
                 <div>
                    <h4 className="font-semibold text-green-500 mb-3 text-sm">🟡 المنطقة الثانية: التسعير المدمج (المسافة + الوقت)</h4>
                    <div className="space-y-3">
@@ -436,16 +436,16 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, re
                    </div>
                 </div>
               </div>
-              
+
               {error && <div className="mt-4 p-2 bg-red-900/50 border border-red-500 text-red-200 text-sm rounded flex items-center gap-2"><AlertCircle className="w-4 h-4"/> {error}</div>}
 
               <div className="mt-6 flex gap-3">
-                <Button 
-                  onClick={handleSetupSave} 
-                  disabled={isSaving || (!isOperatorLinked && isBlocked)} 
+                <Button
+                  onClick={handleSetupSave}
+                  disabled={isSaving || (!isOperatorLinked && isBlocked)}
                   className={`flex-1 font-bold py-3 rounded transition-all duration-300 ${
-                    !isOperatorLinked && isBlocked 
-                      ? 'bg-red-950/40 text-red-400 border border-red-500/20 cursor-not-allowed shadow-[inset_0_0_10px_rgba(239,68,68,0.1)]' 
+                    !isOperatorLinked && isBlocked
+                      ? 'bg-red-950/40 text-red-400 border border-red-500/20 cursor-not-allowed shadow-[inset_0_0_10px_rgba(239,68,68,0.1)]'
                       : 'bg-green-600 hover:bg-green-500 text-white'
                   }`}
                 >
@@ -477,26 +477,26 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, re
                 <div className="text-3xl font-black text-yellow-400">
                   {officialRateFare.toFixed(2)} <span className="text-sm font-bold text-white mr-1">دينار عراقي</span>
                 </div>
-                <span className="text-[9px] text-gray-500 font-bold block mt-1">مصنّعة للتعارج الميداني (γ = 1.35)</span>
+                <span className="text-[9px] text-gray-500 font-bold block mt-1">تشمل معامل الطريق التقريبي (γ = 1.35)</span>
              </div>
-             
+
              <p className="text-center text-[9px] text-yellow-600/90 leading-tight font-black uppercase">
                بموجب ميثاق صفر عمولة، السعر مستقطع بالكامل لصالحك والمنصة تعمل كحارس أمين للقيمة بصفر تكلفة سحابة ($0.00).
              </p>
 
              <div className="space-y-3 pt-2">
-                <Button 
-                  onClick={() => onConfirm(officialRateFare)} 
-                  disabled={isSubmitting} 
-                  size="lg" 
+                <Button
+                  onClick={() => onConfirm(officialRateFare)}
+                  disabled={isSubmitting}
+                  size="lg"
                   className="w-full h-14 justify-center bg-yellow-600 hover:bg-yellow-500 text-black font-black text-sm tracking-wide shadow-lg shadow-yellow-900/10 rounded-xl"
                 >
                    {isSubmitting ? <Loader2 className="animate-spin text-black" /> : 'تقديم عرض العداد وتجميد القيمة'}
                 </Button>
-                
-                <Button 
-                  onClick={onCancel} 
-                  variant="outline" 
+
+                <Button
+                  onClick={onCancel}
+                  variant="outline"
                   className="w-full h-11 border-white/5 hover:bg-white/10 text-gray-405 hover:text-white rounded-xl text-xs font-bold"
                 >
                   تجاهل وإغلاق
@@ -544,7 +544,7 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, re
               <p className="text-gray-400 text-sm">السعر المرجعي المحسوب</p>
               <p className="text-3xl font-bold text-green-400 animate-pulse">{calculatedOffers.avg.toFixed(2)} <span className="text-lg">دينار</span></p>
            </div>
-           
+
            <p className="text-center text-gray-300 font-semibold mb-4">اختر استراتيجيتك بضغطة واحدة:</p>
            <div className="space-y-3">
               <Button onClick={() => onConfirm(calculatedOffers.min)} disabled={isSubmitting} variant="outline" size="lg" className="w-full h-16 justify-between border-blue-500/50 hover:bg-blue-900/50 text-white">

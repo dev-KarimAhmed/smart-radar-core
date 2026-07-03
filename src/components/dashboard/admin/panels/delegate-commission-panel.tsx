@@ -1,11 +1,11 @@
 'use client';
 
 import React from 'react';
-import { 
-  DollarSign, 
-  Loader2, 
-  AlertTriangle, 
-  CheckCircle2 
+import {
+  DollarSign,
+  Loader2,
+  AlertTriangle,
+  CheckCircle2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -46,7 +46,7 @@ export function DelegateCommissionPanel({
           محرك الجرد المالي المتكامل للمندوبين (Representative Commission Guard)
         </CardTitle>
         <CardDescription className="text-gray-400 text-xs leading-relaxed text-right" dir="rtl">
-          يتحكم هذا المحرك في تصفية الإحالات عبر عطل زمني ذكي بمقدار 30 يوماً <code className="text-yellow-400 font-mono text-[10px]">STABILITY_THRESHOLD_MS</code> ويفرض ذعيرة تطهير قدرها <code className="text-red-400 font-mono text-[10px]">PENALTY_FACTOR = 40%</code> ضد الحسابات الوهمية أو الزومبي.
+          يتحكم هذا المحرك في تصفية الإحالات عبر عطل زمني ذكي بمقدار 30 يوماً <code className="text-yellow-400 font-mono text-[10px]">STABILITY_THRESHOLD_MS</code> ويفرض ذعيرة حذف قدرها <code className="text-red-400 font-mono text-[10px]">PENALTY_FACTOR = 40%</code> ضد الحسابات الوهمية أو الزومبي.
         </CardDescription>
       </CardHeader>
       <CardContent className="p-6">
@@ -56,7 +56,7 @@ export function DelegateCommissionPanel({
             <span className="text-xl font-black text-gray-300 font-mono block mt-1">{auditedStats.totalDues.toFixed(2)} د.أ</span>
           </div>
           <div className="bg-zinc-950/80 p-4 rounded-xl border border-[#ff3366]/20">
-            <span className="text-[10px] text-red-400 block font-bold">إجمالي غرامات التطهير الكلي</span>
+            <span className="text-[10px] text-red-400 block font-bold">إجمالي غرامات الحذف الكلي</span>
             <span className="text-xl font-black text-[#ff3366] font-mono block mt-1">-{auditedStats.totalPenalties.toFixed(2)} د.أ</span>
           </div>
           <div className="bg-[#003322]/20 p-4 rounded-xl border border-[#00ffcc]/30">
@@ -68,7 +68,7 @@ export function DelegateCommissionPanel({
         {loadingDelegates ? (
           <div className="flex items-center justify-center p-12 text-gray-400">
             <Loader2 className="w-8 h-8 animate-spin text-[#00ffcc] ml-2" />
-            <span>جاري محاذاة البيانات الكوانتية للمندوبين...</span>
+            <span>جاري محاذاة البيانات الة للمندوبين...</span>
           </div>
         ) : delegates.length === 0 ? (
           <div className="text-center text-gray-500 py-10">
@@ -81,7 +81,7 @@ export function DelegateCommissionPanel({
               <TableHeader className="bg-zinc-950">
                 <TableRow className="hover:bg-transparent border-white/5 text-right">
                   <TableHead className="text-right text-gray-400 text-xs">اسم المندوب الميداني</TableHead>
-                  <TableHead className="text-center text-gray-400 text-xs">رمز الإحالة السيادي</TableHead>
+                  <TableHead className="text-center text-gray-400 text-xs">رمز الإحالة </TableHead>
                   <TableHead className="text-center text-gray-400 text-xs">إجمالي الإحالات</TableHead>
                   <TableHead className="text-center text-gray-400 text-xs">معدل الحذف (الوهمي)</TableHead>
                   <TableHead className="text-center text-gray-400 text-xs">العمولة الخام</TableHead>

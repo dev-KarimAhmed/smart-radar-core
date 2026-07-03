@@ -10,19 +10,19 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { 
-  Users, 
-  Trash2, 
-  RefreshCw, 
-  DollarSign, 
-  PlusCircle, 
-  Copy, 
-  Check, 
-  AlertTriangle, 
-  ShieldCheck, 
-  Loader2, 
-  TrendingUp, 
-  UserPlus, 
+import {
+  Users,
+  Trash2,
+  RefreshCw,
+  DollarSign,
+  PlusCircle,
+  Copy,
+  Check,
+  AlertTriangle,
+  ShieldCheck,
+  Loader2,
+  TrendingUp,
+  UserPlus,
   Search,
   Filter,
   Link as LinkIcon,
@@ -87,7 +87,7 @@ export function DelegatesManagementTab() {
   const [magicLinks, setMagicLinks] = useState<MagicLink[]>([]);
   const [tasks, setTasks] = useState<DelegateTask[]>([]);
   const [drivers, setDrivers] = useState<any[]>([]);
-  
+
   const [loading, setLoading] = useState(true);
   const [activeSubTab, setActiveSubTab] = useState<'delegates' | 'magic-links' | 'tasks' | 'performance'>('delegates');
   const [isAdding, setIsAdding] = useState(false);
@@ -276,7 +276,7 @@ export function DelegatesManagementTab() {
     navigator.clipboard.writeText(code);
     setCopiedCode(code);
     toast({
-      title: 'تم النسخ السيادي',
+      title: 'تم النسخ ',
       description: `تم كود إحالة المندوب الأصلي (${code}) إلى الحافظة بنجاح.`
     });
     setTimeout(() => setCopiedCode(null), 2000);
@@ -339,7 +339,7 @@ export function DelegatesManagementTab() {
         transaction.set(doc(db, 'delegates', delegateId), finalDelegate);
       });
       toast({
-        title: 'تم غرس المندوب الميداني',
+        title: 'تم إضافة المندوب الميداني',
         description: `تم ربط المندوب "${name}" بكود إحالة وتارجت يومي يبلغ ${targetDaily} بنجاح.`
       });
       setName('');
@@ -416,7 +416,7 @@ export function DelegatesManagementTab() {
       toast({
         variant: 'destructive',
         title: 'بروتوكول المهام ناقص',
-        description: 'يرجى تعيين المندوب وعنوان المهام والسقف الزمني قبل الغرس.'
+        description: 'يرجى تعيين المندوب وعنوان المهام والسقف الزمني قبل الإضافة.'
       });
       return;
     }
@@ -437,7 +437,7 @@ export function DelegatesManagementTab() {
     try {
       await addDoc(collection(db, 'delegate_tasks'), newTask);
       toast({
-        title: 'تم غرس المهمة السيادية',
+        title: 'تم إضافة المهمة ',
         description: `تم إسناد مهمة "${taskTitle}" للمنتسب الميداني ${target.name}.`
       });
       setTaskTitle('');
@@ -522,7 +522,7 @@ export function DelegatesManagementTab() {
 
       // If uid is assigned we can also reset the corresponding user document dues
       toast({
-        title: 'براءة ذمة مالية سيادية',
+        title: 'براءة ذمة مالية ',
         description: `تم توثيق الفعالية وتصفير مستحقات المندوب بقيمة ${amount} د.أ بنسخة محاسبية مؤمنة بنجاح.`
       });
     } catch (e) {
@@ -563,7 +563,7 @@ export function DelegatesManagementTab() {
 
       toast({
         title: 'تمت المصادقة الثنائية بنجاح ✓',
-        description: `تمت مزامنة وإغلاق عدادات المندوب (${targetDelegate.name}) بالبكسل التاريخي وتوقيعه بالختم الرقمي السيادي من خلال الخادم الأمني.`
+        description: `تمت مزامنة وإغلاق عدادات المندوب (${targetDelegate.name}) بالبكسل التاريخي وتوقيعه بالختم الرقمي  من خلال الخادم الأمني.`
       });
     } catch (err) {
       console.error("Failed to reconcile and sign delegate:", err);
@@ -586,21 +586,21 @@ export function DelegatesManagementTab() {
 
   return (
     <div className="space-y-6 text-right" dir="rtl">
-      
+
       {/* Header Panel */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h2 className="text-2xl font-black text-white flex items-center gap-2">
             <Users className="w-6 h-6 text-emerald-400" />
-            فيلق جيش المندوبين السيادي (Delegates Army Command)
+            فيلق جيش المندوبين  (Delegates Army Command)
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5 font-sans">
             بوابة المشرف الموحدة للتحكم بالمناديب، ومراقبة تمديد الروابط السحرية، وإحالات الأقاليم الأردنية والعراقية.
           </p>
         </div>
         <div className="flex gap-2">
-          <Button 
-            onClick={() => setIsAdding(!isAdding)} 
+          <Button
+            onClick={() => setIsAdding(!isAdding)}
             className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold gap-1 text-xs h-9 rounded-xl pointer-events-auto"
           >
             {isAdding ? 'إغلاق نافذة التسجيل' : 'تجنيد مندوب ميداني +'}
@@ -681,10 +681,10 @@ export function DelegatesManagementTab() {
             <div className="grid md:grid-cols-4 gap-4">
               <div className="space-y-1">
                 <Label htmlFor="del-name" className="text-xs text-zinc-300">اسم المندوب المعتمد</Label>
-                <Input 
-                  id="del-name" 
-                  value={name} 
-                  onChange={e => setName(e.target.value)} 
+                <Input
+                  id="del-name"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
                   placeholder="مثال: يوسف مأمون بني ملحم"
                   className="bg-black/80 border-emerald-950/50 text-white text-xs h-9"
                   required
@@ -693,10 +693,10 @@ export function DelegatesManagementTab() {
 
               <div className="space-y-1">
                 <Label htmlFor="del-phone" className="text-xs text-zinc-300">رقم الهاتف النشط</Label>
-                <Input 
-                  id="del-phone" 
-                  value={phone} 
-                  onChange={e => setPhone(e.target.value)} 
+                <Input
+                  id="del-phone"
+                  value={phone}
+                  onChange={e => setPhone(e.target.value)}
                   placeholder="مثال: 0797744111"
                   className="bg-black/80 border-emerald-950/50 text-white text-xs h-9"
                   required
@@ -704,15 +704,15 @@ export function DelegatesManagementTab() {
               </div>
 
               <div className="space-y-1">
-                <Label htmlFor="del-region" className="text-xs text-zinc-300">محافظة ولواء السيادة جغرافياً</Label>
-                <select 
-                  id="del-region" 
-                  value={district} 
-                  onChange={e => setDistrict(e.target.value)} 
+                <Label htmlFor="del-region" className="text-xs text-zinc-300">محافظة ومنطقة الإدارة جغرافياً</Label>
+                <select
+                  id="del-region"
+                  value={district}
+                  onChange={e => setDistrict(e.target.value)}
                   className="w-full h-9 mt-1 rounded bg-black border border-emerald-900 text-white px-2 focus:outline-none focus:border-emerald-500 text-xs"
                 >
                   <option value="وادي السير">وادي السير (عمان)</option>
-                  <option value="الجامعة">لواء الجامعة (عمان)</option>
+                  <option value="الجامعة">منطقة الجامعة (عمان)</option>
                   <option value="قصبة عمان">قصبة عمان (عمان)</option>
                   <option value="الكرادة">الكرادة (بغداد - العراق)</option>
                 </select>
@@ -720,11 +720,11 @@ export function DelegatesManagementTab() {
 
               <div className="space-y-1">
                 <Label htmlFor="del-target" className="text-xs text-zinc-300 font-bold">التارجت اليومي الملتزم به</Label>
-                <Input 
-                  id="del-target" 
+                <Input
+                  id="del-target"
                   type="number"
-                  value={targetDaily} 
-                  onChange={e => setTargetDaily(e.target.value)} 
+                  value={targetDaily}
+                  onChange={e => setTargetDaily(e.target.value)}
                   placeholder="مثال: 10"
                   className="bg-black/80 border-emerald-950/50 text-white text-xs h-9"
                   required
@@ -733,10 +733,10 @@ export function DelegatesManagementTab() {
 
               <div className="space-y-1">
                 <Label htmlFor="del-expiry" className="text-xs text-zinc-300">مدة صلاحية الروابط السحرية</Label>
-                <select 
-                  id="del-expiry" 
-                  value={linkExpiryHours} 
-                  onChange={e => setLinkExpiryHours(e.target.value)} 
+                <select
+                  id="del-expiry"
+                  value={linkExpiryHours}
+                  onChange={e => setLinkExpiryHours(e.target.value)}
                   className="w-full h-9 mt-1 rounded bg-black border border-emerald-900 text-white px-2 focus:outline-none focus:border-emerald-500 text-xs"
                 >
                   <option value="24">24 ساعة (يوم كامل)</option>
@@ -747,37 +747,37 @@ export function DelegatesManagementTab() {
 
               <div className="space-y-1 font-mono">
                 <Label htmlFor="del-count" className="text-xs text-zinc-300">أرقام مقيدة مسبقاً</Label>
-                <Input 
-                  id="del-count" 
-                  type="number" 
-                  value={referralCountInit} 
-                  onChange={e => setReferralCountInit(e.target.value)} 
+                <Input
+                  id="del-count"
+                  type="number"
+                  value={referralCountInit}
+                  onChange={e => setReferralCountInit(e.target.value)}
                   className="bg-black/80 border-emerald-950/50 text-white text-xs h-9"
                 />
               </div>
 
               <div className="space-y-1">
                 <Label htmlFor="del-subrole" className="text-xs text-zinc-300 font-bold">نوع الصلاحيات الميدانية</Label>
-                <select 
-                  id="del-subrole" 
-                  value={subRole} 
-                  onChange={e => setSubRole(e.target.value as 'independent' | 'captain')} 
+                <select
+                  id="del-subrole"
+                  value={subRole}
+                  onChange={e => setSubRole(e.target.value as 'independent' | 'captain')}
                   className="w-full h-9 mt-1 rounded bg-black border border-emerald-900 text-white px-2 focus:outline-none focus:border-emerald-500 text-xs"
                 >
                   <option value="independent">مندوب مستقل (صامت وموفر للموارد)</option>
-                  <option value="captain">مندوب كابتن (نشط بالنبض الميداني والـ GPS)</option>
+                  <option value="captain">مندوب سائق (نشط بالنشاط الميداني والـ GPS)</option>
                 </select>
               </div>
 
               {subRole === 'captain' && (
                 <div className="space-y-1 flex flex-col justify-end">
-                  <Label htmlFor="del-fleet-active" className="text-xs text-zinc-300 pb-2">حالة النبض الميداني الفوري</Label>
+                  <Label htmlFor="del-fleet-active" className="text-xs text-zinc-300 pb-2">حالة النشاط الميداني الفوري</Label>
                   <div className="flex items-center gap-2">
-                    <input 
-                      type="checkbox" 
-                      id="del-fleet-active" 
-                      checked={isFleetActive} 
-                      onChange={e => setIsFleetActive(e.target.checked)} 
+                    <input
+                      type="checkbox"
+                      id="del-fleet-active"
+                      checked={isFleetActive}
+                      onChange={e => setIsFleetActive(e.target.checked)}
                       className="w-4 h-4 accent-emerald-500"
                     />
                     <span className="text-[11px] text-emerald-400 font-bold">تفعيل الـ GPS ومستشعر الحركة</span>
@@ -798,7 +798,7 @@ export function DelegatesManagementTab() {
       {activeSubTab === 'delegates' && (
         <Card className="bg-[#091B09]/20 border-emerald-950/30">
           <CardHeader className="pb-3 border-b border-emerald-950/20">
-            <CardTitle className="text-base font-black text-white">منتسبي جيش الميدان ولواء التنسيق الجغرافي</CardTitle>
+            <CardTitle className="text-base font-black text-white">منتسبي جيش الميدان ومنطقة التنسيق الجغرافي</CardTitle>
             <CardDescription className="text-xs text-zinc-400">
               تتبع رموز إحالة المندوبين، تعيين التارجت، حظر الأمان التلقائي، وتنسيق تسييل العوائد.
             </CardDescription>
@@ -812,7 +812,7 @@ export function DelegatesManagementTab() {
                       <TableHead className="text-right text-gray-400 text-xs py-3">المندوب والإقليم</TableHead>
                       <TableHead className="text-right text-gray-400 text-xs">كود الإحالة</TableHead>
                       <TableHead className="text-right text-gray-400 text-xs">التارجت اليومي</TableHead>
-                      <TableHead className="text-right text-gray-400 text-xs">الكباتن المسجلين</TableHead>
+                      <TableHead className="text-right text-gray-400 text-xs">السائقون المسجلين</TableHead>
                       <TableHead className="text-right text-gray-400 text-xs">انتساب عضوي</TableHead>
                       <TableHead className="text-right text-gray-400 text-xs">سقوف الروابط</TableHead>
                       <TableHead className="text-right text-gray-400 text-xs">حالة الاعتماد</TableHead>
@@ -835,13 +835,13 @@ export function DelegatesManagementTab() {
                                 <span className="text-[10px] text-emerald-500 font-mono font-bold">{del.district} ● {del.phone}</span>
                                 <div className="flex gap-1.5 mt-1">
                                   <Badge className="text-[8px] px-1 py-0 bg-zinc-900 border-zinc-700 text-gray-300 font-sans">
-                                    {del.subRole === 'captain' ? '🎖️ مندوب كابتن' : '💼 مندوب مستقل'}
+                                    {del.subRole === 'captain' ? '🎖️ مندوب سائق' : '💼 مندوب مستقل'}
                                   </Badge>
                                   {del.subRole === 'captain' && (
                                     <Badge className={cn(
                                       "text-[8px] px-1 py-0 font-sans",
-                                      del.isFleetActive 
-                                        ? "bg-emerald-950 text-emerald-400 border-emerald-500/20" 
+                                      del.isFleetActive
+                                        ? "bg-emerald-950 text-emerald-400 border-emerald-500/20"
                                         : "bg-amber-950 text-amber-400 border-amber-500/20"
                                     )}>
                                       {del.isFleetActive ? '● نشط ميدانياً' : '○ خامل'}
@@ -857,10 +857,10 @@ export function DelegatesManagementTab() {
                               <Badge variant="outline" className="font-mono text-[10px] bg-black/60 border-emerald-800 text-white p-1">
                                 {del.referralCode}
                               </Badge>
-                              <Button 
-                                size="icon" 
-                                variant="ghost" 
-                                onClick={() => handleCopy(del.referralCode)} 
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => handleCopy(del.referralCode)}
                                 className="w-6 h-6 hover:bg-neutral-800"
                               >
                                 {copiedCode === del.referralCode ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5 text-gray-400" />}
@@ -874,14 +874,14 @@ export function DelegatesManagementTab() {
 
                           <TableCell className="align-middle font-bold text-xs font-mono text-zinc-300">
                             <div>
-                              <div>{del.referredCount || 0} كابتن</div>
+                              <div>{del.referredCount || 0} سائق</div>
                               {(() => {
-                                const actualCount = drivers.filter(dr => 
-                                  dr.referralCode === del.referralCode || 
-                                  dr.referredByCode === del.referralCode || 
+                                const actualCount = drivers.filter(dr =>
+                                  dr.referralCode === del.referralCode ||
+                                  dr.referredByCode === del.referralCode ||
                                   dr.usedReferralCode === del.referralCode
                                 ).length;
-                                
+
                                 const isSigValid = !!verifiedSignatures[del.id];
                                 const hasDiscrepancy = actualCount > 0 && actualCount !== del.referredCount;
 
@@ -934,12 +934,12 @@ export function DelegatesManagementTab() {
                           </TableCell>
 
                           <TableCell className="align-middle">
-                            <Badge 
-                              variant="outline" 
+                            <Badge
+                              variant="outline"
                               className={cn(
-                                "text-[10px]", 
-                                del.status === 'active' 
-                                  ? "text-emerald-400 border-emerald-500 bg-emerald-950/20" 
+                                "text-[10px]",
+                                del.status === 'active'
+                                  ? "text-emerald-400 border-emerald-500 bg-emerald-950/20"
                                   : "text-amber-500 border-amber-500 bg-amber-950/20"
                               )}
                             >
@@ -949,9 +949,9 @@ export function DelegatesManagementTab() {
 
                           <TableCell className="align-middle text-left p-3">
                             <div className="flex items-center justify-end gap-1.5">
-                              <Button 
-                                size="sm" 
-                                variant="outline" 
+                              <Button
+                                size="sm"
+                                variant="outline"
                                 onClick={() => handleGenerateMagicLink(del)}
                                 className="h-7 border-teal-500/30 hover:bg-teal-950/40 text-[10px] font-bold text-teal-400 rounded-lg"
                               >
@@ -959,9 +959,9 @@ export function DelegatesManagementTab() {
                                 توليد رابط سحري
                               </Button>
 
-                              <Button 
-                                size="sm" 
-                                variant="outline" 
+                              <Button
+                                size="sm"
+                                variant="outline"
                                 onClick={() => toggleStatus(del.id, del.status)}
                                 className="h-7 border-[#1e293b] hover:bg-neutral-800 text-[10px] rounded-lg text-neutral-300"
                               >
@@ -1005,7 +1005,7 @@ export function DelegatesManagementTab() {
                         <TableHead className="text-right text-gray-405 text-xs">رابط الدخول المشفر</TableHead>
                         <TableHead className="text-right text-gray-405 text-xs">الانتهاء الزمني</TableHead>
                         <TableHead className="text-right text-gray-405 text-xs">الصلاحية لمرة واحدة</TableHead>
-                        <TableHead className="text-left text-gray-405 text-xs p-3">إجراء سيادي</TableHead>
+                        <TableHead className="text-left text-gray-405 text-xs p-3">إجراء </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1025,13 +1025,13 @@ export function DelegatesManagementTab() {
                                 <Badge variant="outline" className="font-mono text-[9px] bg-black text-zinc-300 p-1 select-all cursor-pointer hover:bg-neutral-900 border-zinc-800">
                                   {link.url}
                                 </Badge>
-                                <Button 
-                                  size="icon" 
-                                  variant="ghost" 
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
                                   onClick={() => {
                                     navigator.clipboard.writeText(link.url);
                                     toast({ title: 'تم نسخ الرابط السحري', description: 'يمكنك إرساله للمندوب للدخول بنقرة واحدة.' });
-                                  }} 
+                                  }}
                                   className="w-6 h-6 hover:bg-neutral-800"
                                 >
                                   <Copy className="w-3.5 h-3.5 text-gray-400" />
@@ -1044,8 +1044,8 @@ export function DelegatesManagementTab() {
                             </TableCell>
 
                             <TableCell className="align-middle">
-                              <Badge 
-                                variant="outline" 
+                              <Badge
+                                variant="outline"
                                 className={cn(
                                   "text-[10px]",
                                   isActive ? "text-emerald-400 border-emerald-500 bg-emerald-950/20" : "text-zinc-500 border-zinc-800 bg-black/40"
@@ -1057,9 +1057,9 @@ export function DelegatesManagementTab() {
 
                             <TableCell className="align-middle text-left p-3">
                               {isActive && (
-                                <Button 
-                                  size="sm" 
-                                  variant="outline" 
+                                <Button
+                                  size="sm"
+                                  variant="outline"
                                   onClick={() => handleRevokeLink(link.id)}
                                   className="h-7 border-red-500/20 hover:bg-red-950/30 text-[10px] font-bold text-red-400 rounded-lg"
                                 >
@@ -1127,8 +1127,8 @@ export function DelegatesManagementTab() {
                             </TableCell>
 
                             <TableCell className="align-middle">
-                              <Badge 
-                                variant="outline" 
+                              <Badge
+                                variant="outline"
                                 className={cn(
                                   "text-[10px]",
                                   task.status === 'pending' ? "text-yellow-400 border-yellow-500/30 bg-yellow-950/20" :
@@ -1145,9 +1145,9 @@ export function DelegatesManagementTab() {
 
                             <TableCell className="align-middle text-left p-3">
                               {task.status !== 'closed' && (
-                                <Button 
-                                  size="sm" 
-                                  variant="outline" 
+                                <Button
+                                  size="sm"
+                                  variant="outline"
                                   onClick={() => handleCloseTask(task.id)}
                                   className="h-7 border-zinc-800 hover:bg-neutral-800 text-[10px] font-bold text-zinc-300 rounded-lg"
                                 >
@@ -1185,9 +1185,9 @@ export function DelegatesManagementTab() {
               <form onSubmit={handleAddTask} className="space-y-4">
                 <div className="space-y-1">
                   <Label className="text-xs text-zinc-400">اختر المندوب المستهدف</Label>
-                  <select 
-                    value={selectedDelegateId} 
-                    onChange={e => setSelectedDelegateId(e.target.value)} 
+                  <select
+                    value={selectedDelegateId}
+                    onChange={e => setSelectedDelegateId(e.target.value)}
                     className="w-full h-10 rounded bg-black border border-[#1e293b] text-white px-2 focus:outline-none text-xs"
                     required
                   >
@@ -1200,10 +1200,10 @@ export function DelegatesManagementTab() {
 
                 <div className="space-y-1">
                   <Label className="text-xs text-zinc-400">عنوان التكليف</Label>
-                  <Input 
-                    value={taskTitle} 
-                    onChange={e => setTaskTitle(e.target.value)} 
-                    placeholder="مثال: غرز 15 سائق في لواء صويلح"
+                  <Input
+                    value={taskTitle}
+                    onChange={e => setTaskTitle(e.target.value)}
+                    placeholder="مثال: غرز 15 سائق في منطقة صويلح"
                     className="bg-black border-[#1e293b] text-xs h-10"
                     required
                   />
@@ -1211,10 +1211,10 @@ export function DelegatesManagementTab() {
 
                 <div className="space-y-1">
                   <Label className="text-xs text-zinc-400">مضمون الإجراء السلوكي والمحفزات</Label>
-                  <textarea 
-                    value={taskDescription} 
-                    onChange={e => setTaskDescription(e.target.value)} 
-                    placeholder="يرجى توزيع الملصقات وكتابة رمز الإحالة JO-SWAILEH.. ومساعدة الكباتن في تخطي عقبة الفحص الأولي للسيارات."
+                  <textarea
+                    value={taskDescription}
+                    onChange={e => setTaskDescription(e.target.value)}
+                    placeholder="يرجى توزيع الملصقات وكتابة رمز الإحالة JO-SWAILEH.. ومساعدة السائقون في تخطي عقبة الفحص الأولي للسيارات."
                     className="w-full min-h-[80px] bg-black border border-[#1e293b] rounded-md p-2 text-white focus:outline-none text-xs"
                     required
                   />
@@ -1222,10 +1222,10 @@ export function DelegatesManagementTab() {
 
                 <div className="space-y-1">
                   <Label className="text-xs text-zinc-400">مستهدف السقف الزمني</Label>
-                  <Input 
+                  <Input
                     type="date"
-                    value={taskDeadline} 
-                    onChange={e => setTaskDeadline(e.target.value)} 
+                    value={taskDeadline}
+                    onChange={e => setTaskDeadline(e.target.value)}
                     className="bg-black border-[#1e293b] text-xs h-10"
                     required
                   />
@@ -1249,7 +1249,7 @@ export function DelegatesManagementTab() {
                 <CardDescription className="text-[10px] text-zinc-400 font-bold">عواصف النمو المباشر</CardDescription>
               </CardHeader>
               <CardContent className="p-0">
-                <p className="text-2xl font-black text-amber-500 font-mono">{totalReferred} كابتن</p>
+                <p className="text-2xl font-black text-amber-500 font-mono">{totalReferred} سائق</p>
                 <div className="flex items-center gap-1 text-[9px] text-[#10B981] font-bold mt-1">
                   <TrendingUp className="w-3.5 h-3.5" />
                   <span>توسّع إيجابي وقدرة تجنيدية صارمة</span>
@@ -1277,17 +1277,17 @@ export function DelegatesManagementTab() {
                 <p className="text-2xl font-black text-red-400 font-mono">{churnRateAvg}%</p>
                 <div className="flex items-center gap-1 text-[9px] text-red-400 font-semibold mt-1">
                   <TrendingDown className="w-3.5 h-3.5" />
-                  <span>إجمالي حذف التطبيق: {totalChurn} كباتن</span>
+                  <span>إجمالي حذف التطبيق: {totalChurn} سائقين</span>
                 </div>
               </CardContent>
             </Card>
 
             <Card className="bg-[#091B09]/40 border-emerald-950/40 p-4">
               <CardHeader className="p-0 pb-1">
-                <CardDescription className="text-[10px] text-zinc-400 font-bold">الكباتن الثابتين (+45 يوم)</CardDescription>
+                <CardDescription className="text-[10px] text-zinc-400 font-bold">السائقون الثابتين (+45 يوم)</CardDescription>
               </CardHeader>
               <CardContent className="p-0">
-                <p className="text-2xl font-black text-blue-400 font-mono">{totalSteady} كابتن</p>
+                <p className="text-2xl font-black text-blue-400 font-mono">{totalSteady} سائق</p>
                 <span className="text-[9px] text-zinc-500 font-bold block mt-1">
                   معدل التزام مبرهن بصمامات قوية
                 </span>
@@ -1299,7 +1299,7 @@ export function DelegatesManagementTab() {
             <CardHeader>
               <CardTitle className="text-sm font-black text-white flex items-center gap-1.5">
                 <Layers className="w-4 h-4 text-emerald-400" />
-                مقارنة كفوءة لألوية الاقتدار والسيادة
+                مقارنة كفوءة لألوية الاقتدار والإدارة
               </CardTitle>
               <CardDescription className="text-xs">
                 مخطط الكفاءة والنمو شهرياً بموجب تتبع الحالات الميدانية وحماية الروابط.
@@ -1320,18 +1320,18 @@ export function DelegatesManagementTab() {
                           ) : (
                             <span className="text-[9px] text-red-400 font-bold bg-red-950/20 px-1 border border-red-500/20 rounded">⚠️ غير موثق</span>
                           )}
-                          <span className="font-bold text-emerald-400">{d.referredCount} كابتن ({percentage}%)</span>
+                          <span className="font-bold text-emerald-400">{d.referredCount} سائق ({percentage}%)</span>
                         </div>
                       </div>
                       <div className="w-full bg-neutral-900 h-2 rounded-full overflow-hidden">
-                        <div 
-                          className="bg-emerald-500 h-full rounded-full transition-all duration-505" 
+                        <div
+                          className="bg-emerald-500 h-full rounded-full transition-all duration-505"
                           style={{ width: `${percentage}%` }}
                         />
                       </div>
                       <div className="flex justify-between items-center text-[10px] text-zinc-500">
                         <span>النمو العضوي المتمدد: +{d.organicCount}</span>
-                        <span>نبضات الثبات (45 يوم): {d.steadyCount} كابتن ملتزم</span>
+                        <span>تنبيهات الثبات (45 يوم): {d.steadyCount} سائق ملتزم</span>
                       </div>
                     </div>
                   );
@@ -1341,7 +1341,7 @@ export function DelegatesManagementTab() {
           </Card>
         </div>
       )}
-      
+
     </div>
   );
 }

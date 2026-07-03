@@ -14,15 +14,15 @@ import { SovereignMarketKernel } from '@/core/logic/sovereign-market-kernel';
 import { sovereignEventBroker } from '@/lib/event-broker';
 
 export function useDriverTransactions(
-  user: User | null, 
-  setDriverStatus?: Function, 
+  user: User | null,
+  setDriverStatus?: Function,
   updateDriverDoc?: Function
 ) {
   const { toast } = useToast();
   const { suspendUserDocListener, resumeUserDocListener } = useAuth();
   const [activeRequest, setActiveReq] = useState<Trip | null>(null);
   const [acceptedRider, setAcceptedRider] = useState<User | null>(null);
-  
+
   const [isSubmittingOffer, setIsSubmittingOffer] = useState(false);
   const [isEndingTrip, setIsEndingTrip] = useState(false);
   const [isRatingRider, setIsRatingRider] = useState(false);
@@ -81,9 +81,9 @@ export function useDriverTransactions(
       }
 
       if (!snapshot.empty) {
-        // [بروتوكول الربط الشرياني V2.6-Secured - فرز العهد الميداني للفرسان]
+        // [بروتوكول الربط الشرياني V2.6-Secured - فرز النظام الميداني للسائقين]
         const trips = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Trip));
-        
+
         // فرز تنازلي زمني للحصول على الرحلة الأكثر حداثة بصفر تداخل شبكي وصفر متطلبات كشافات
         trips.sort((a, b) => {
           const getMs = (val: any) => {
@@ -96,8 +96,8 @@ export function useDriverTransactions(
         });
 
         const tripData = trips[0];
-        
-        // 🛡️ [النبض الشبكي التفاضلي V2.6-Secured - مرشح التوقيت المالي المالي]
+
+        // 🛡️ [النشاط الشبكي التفاضلي V2.6-Secured - مرشح التوقيت المالي المالي]
         const getNetworkAdjustedTime = () => {
           if (typeof window !== 'undefined') {
             const deltaStr = sessionStorage.getItem('sovereign_time_delta');
@@ -117,10 +117,10 @@ export function useDriverTransactions(
 
         const isRecent = getNetworkAdjustedTime() - getTripTimeMs(tripData.createdAt) < 15 * 60 * 1000; // نافذة 15 دقيقة
 
-        // التحقق من الحالات النهائية والمؤرشفة والقديمة لتسريح شاشة الكابتن فوراً للعودة للخدمة
+        // التحقق من الحالات النهائية والمؤرشفة والقديمة لتسريح شاشة السائق فوراً للعودة للخدمة
         if (
-          tripData.status === 'archived' || 
-          tripData.ratingSubmittedByDriver !== undefined || 
+          tripData.status === 'archived' ||
+          tripData.ratingSubmittedByDriver !== undefined ||
           (!isRecent && ['completed', 'checkpoint_required'].includes(tripData.status))
         ) {
           cleanUpAndReset();
@@ -133,7 +133,7 @@ export function useDriverTransactions(
           return;
         }
 
-        // التحقق من الحالات الصالحة للملاحة والتقييم للفرسان
+        // التحقق من الحالات الصالحة للملاحة والتقييم للسائقين
         if (!['busy', 'rating', 'completed', 'checkpoint_required'].includes(tripData.status)) {
           cleanUpAndReset();
           return;
@@ -144,7 +144,7 @@ export function useDriverTransactions(
         if (tripData.riderId && (!acceptedRider || acceptedRider.uid !== tripData.riderId)) {
             fetchRealRiderProfile(tripData.riderId);
         }
-        
+
         if (tripData.status === 'completed' || tripData.status === 'checkpoint_required') {
             if (setDriverStatus) {
               setDriverStatus('rating');
@@ -169,10 +169,10 @@ export function useDriverTransactions(
 
   const submitOffer = useCallback(async (payload: { tripId: string; offerPrice: number }, rejectRequest: Function) => {
     if (!user || !user.vehicle || !user.affiliation) {
-        toast({ 
-          variant: 'destructive', 
-          title: 'بيانات الفارس غير مكتملة', 
-          description: 'للقيام بتقديم عروض، يرجى استكمال بياناتك وتفعيل عهد الحصان السيادي أولاً.' 
+        toast({
+          variant: 'destructive',
+          title: 'بيانات الفارس غير مكتملة',
+          description: 'للقيام بتقديم عروض، يرجى استكمال بياناتك وتفعيل نظام الحصان  أولاً.'
         });
         return;
     }
@@ -181,8 +181,8 @@ export function useDriverTransactions(
     isSubmittingOfferRef.current = true;
     setIsSubmittingOffer(true);
     try {
-      if (!user.vehicle?.plate) { 
-        toast({ variant: 'destructive', title: 'مركبة غير مسجلة', description: 'الرجاء التأكد من ربط الحصان السيادي بمركبة صالحة.' });
+      if (!user.vehicle?.plate) {
+        toast({ variant: 'destructive', title: 'مركبة غير مسجلة', description: 'الرجاء التأكد من ربط الحصان  بمركبة صالحة.' });
         setIsSubmittingOffer(false);
         isSubmittingOfferRef.current = false;
         return;
@@ -226,7 +226,7 @@ export function useDriverTransactions(
         offer
       });
 
-      // [الدستور التنفيذي V5.5 - الباب الأول] : توليد الفرصة الإعلانية وتصاعد السعة عند حرق/شذوذ الأسعار وثغرات كوابح السوق
+      // [الشروط التنفيذي V5.5 - الباب الأول] : توليد الفرصة الإعلانية وتصاعد السعة عند حرق/شذوذ الأسعار وثغرات كوابح السوق
       if (evaluation.isDumping) {
         let activeDistrict = user?.district || 'وادي السير';
         if (tripData.pickupCoords?.lat && tripData.pickupCoords?.lng) {
@@ -235,7 +235,7 @@ export function useDriverTransactions(
             activeDistrict = resolvedGeo.district;
           }
         }
-        
+
         const pulseDocRef = doc(db, 'market_pulse', activeDistrict);
         try {
           const pulseSnap = await getDoc(pulseDocRef);
@@ -258,13 +258,13 @@ export function useDriverTransactions(
               emergencyAdCapacityActive: false
             });
           }
-          console.log(`[الباب الأول V5.5] تم تسجيل حالة شذوذ سعري للواء ${activeDistrict}. تم تحويل الأزمة إلى فرصة إعلانية.`);
+          console.log(`[الباب الأول V5.5] تم تسجيل حالة شذوذ سعري لمنطقة ${activeDistrict}. تم تحويل الأزمة إلى فرصة إعلانية.`);
         } catch (pulseErr) {
           console.warn('[V5.5 Market Integrity] Failed to update pricing anomaly pulse:', pulseErr);
         }
       }
 
-      toast({ title: 'تم إرفاق العرض للراكب', description: 'عرضك معروض في منصة المنافسة السيادية حالاً.' });
+      toast({ title: 'تم إرفاق العرض للراكب', description: 'عرضك معروض في منصة المنافسة  حالاً.' });
       rejectRequest(payload.tripId);
     } catch (e: any) {
       trackSovereignError(e, { context: 'SubmitOffer' });
@@ -310,7 +310,7 @@ export function useDriverTransactions(
         riderId: activeRequest.riderId,
         rating
       });
-      toast({ title: 'تم تسجيل مستوى الراكب السيادي', description: 'شكراً للحفاظ على جودة النسيج الاجتماعي للمنظومة.' });
+      toast({ title: 'تم تسجيل تقييم الراكب', description: 'شكراً لمساعدتنا في الحفاظ على جودة الخدمة.' });
       cleanUpAndReset();
     } catch (error) {
       trackSovereignError(error, { context: 'SubmitRiderRating' });
@@ -332,13 +332,13 @@ export function useDriverTransactions(
     if (isRequestingReportRef.current) return;
     isRequestingReportRef.current = true;
     setIsRequestingReport(true);
-    toast({ title: 'جاري تجميع التقرير السنوي/الأسبوعي المالي ملاحياً...', description: 'يجرى الآن فحص العهد والتصنيفات في قاعدة البيانات.' });
+    toast({ title: 'جاري تجميع التقرير السنوي/الأسبوعي المالي ملاحياً...', description: 'يجرى الآن فحص النظام والتصنيفات في قاعدة البيانات.' });
     try {
       const result = await callSovereignCloud('generateWeeklyReport', undefined);
       if (result.success && result.stats) {
-          toast({ 
-            title: 'تم تحديث الترتيب والتقرير الملاحي للفرسان 🎉', 
-            description: `تقرير الرحلات المنجزة: ${result.stats.completedRides || 0}. الرتبة والنبض حالياً: ${result.newRank || 'Platinum'}` 
+          toast({
+            title: 'تم تحديث الترتيب والتقرير الملاحي للسائقين 🎉',
+            description: `تقرير الرحلات المنجزة: ${result.stats.completedRides || 0}. الرتبة والنشاط حالياً: ${result.newRank || 'Platinum'}`
           });
       } else {
           toast({ title: 'التقرير السحابي غير مصنف', description: result.message || 'يرجى مراجعة المشرف لاحقاً.' });

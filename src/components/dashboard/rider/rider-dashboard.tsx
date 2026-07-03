@@ -60,7 +60,7 @@ const buildWhatsappUrl = (phone: string, name: string) => {
       ? cleanPhone
       : `962${cleanPhone}`;
 
-  return `https://wa.me/${waPhone}?text=${encodeURIComponent(`مرحبا كابتن ${sanitizeText(name)}، أريد التواصل بخصوص رحلة سابقة.`)}`;
+  return `https://wa.me/${waPhone}?text=${encodeURIComponent(`مرحبا سائق ${sanitizeText(name)}، أريد التواصل بخصوص رحلة سابقة.`)}`;
 };
 
 export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({

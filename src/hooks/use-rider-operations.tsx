@@ -41,7 +41,7 @@ interface RiderOperationsContextType {
   setSeats: (seats: string) => void;
   dropoff: string;
   setDropoff: (dropoff: string) => void;
-  pickup: string; 
+  pickup: string;
   setPickup: (link: string) => void;
   requiresOfficialRate: boolean;
   setRequiresOfficialRate: (requires: boolean) => void;
@@ -65,19 +65,19 @@ export function RiderOperationsProvider({ children }: { children: ReactNode }) {
 
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
   const [seats, setSeats] = useState('1');
-  const [dropoff, setDropoff] = useState(''); 
-  const [pickup, setPickup] = useState(''); 
+  const [dropoff, setDropoff] = useState('');
+  const [pickup, setPickup] = useState('');
   const [requiresOfficialRate, setRequiresOfficialRate] = useState(false);
   const [isResolvingUrl, setIsResolvingUrl] = useState(false);
   const [estimatedDistance, setEstimatedDistance] = useState(0);
   const [estimatedTime, setEstimatedTime] = useState(0);
   const [lastCalculatedUrl, setLastCalculatedUrl] = useState('');
   const isProgrammaticUpdateRef = useRef(false);
-  
+
   const { location: anchorLocation } = useGeospatialAnchor();
   const { isRadarActive } = useSovereignControls();
 
-  // تدوين الإحداثيات محلياً على الحافة كبصمة مستقرة للتحقيق الجنائي لاحقاً في الـ Local Buffer
+  // تدوين الإحداثيات محلياً على الحافة كبصمة مستقرة للتحقيق الأمني لاحقاً في الـ Local Buffer
   useEffect(() => {
     if (anchorLocation && anchorLocation.lat && anchorLocation.lng) {
       try {
@@ -100,7 +100,7 @@ export function RiderOperationsProvider({ children }: { children: ReactNode }) {
       }
     }
   }, [anchorLocation]);
-  
+
   const { capturedLink, clearCapturedLink } = useLinkCatcher();
 
   // التقاط روابط الموقع المشتركة محليا بدون خدمات خرائط مدفوعة.
@@ -123,7 +123,7 @@ export function RiderOperationsProvider({ children }: { children: ReactNode }) {
       }, 100);
     }
   }, [capturedLink, clearCapturedLink, toast]);
-  
+
   // [علاج الربط المتبادل] - تجميد الموقع لمنع الـ Re-renders العشوائية مع حركة الـ GPS
   const anchorRef = useRef(anchorLocation);
   useEffect(() => {
@@ -131,7 +131,7 @@ export function RiderOperationsProvider({ children }: { children: ReactNode }) {
   }, [anchorLocation]);
 
   const { trip, acceptedDriver, internalStatus, setInternalStatus, resetState: resetTripListener, pulsedDrivers, isPulsing } = useRiderTripListener(user);
-  
+
   /**
    * [SCR-2026-FIX-FLOW] تصفير متزامن وشامل
    * يضمن تطابق حالة الحقول مع حالة العدادات (منع تمزق المسار).
@@ -140,7 +140,7 @@ export function RiderOperationsProvider({ children }: { children: ReactNode }) {
     isProgrammaticUpdateRef.current = true;
     setEstimatedDistance(0);
     setEstimatedTime(0);
-    setPickup(''); 
+    setPickup('');
     setLastCalculatedUrl('');
     setTimeout(() => {
       isProgrammaticUpdateRef.current = false;
@@ -205,13 +205,13 @@ export function RiderOperationsProvider({ children }: { children: ReactNode }) {
    * [SCR-2026-SURGERY-DONE] دالة الاحتساب المعقمة والمجردة (Loose Coupling)
    */
   const calculateSovereignMetrics = useCallback(async () => {
-    const currentAnchor = anchorRef.current; 
+    const currentAnchor = anchorRef.current;
 
     if (!currentAnchor) {
         toast({ variant: 'destructive', ...SovereignDict.ERRORS.GPS_DISABLED });
         return;
     }
-    
+
     if (!pickup) {
         toast({ variant: 'destructive', ...SovereignDict.ERRORS.EMPTY_LINK });
         return;
@@ -220,7 +220,7 @@ export function RiderOperationsProvider({ children }: { children: ReactNode }) {
     try {
         setIsResolvingUrl(true);
         isProgrammaticUpdateRef.current = true;
-        
+
         const currentUrl = sanitizeUrl(pickup);
         setPickup(currentUrl);
 
@@ -231,11 +231,11 @@ export function RiderOperationsProvider({ children }: { children: ReactNode }) {
             const finalDistance = calculateSovereignDistance(currentAnchor.lat, currentAnchor.lng, destCoords.lat, destCoords.lng);
             setEstimatedDistance(finalDistance);
             setEstimatedTime(estimateTripTime(finalDistance));
-            setLastCalculatedUrl(currentUrl); 
-            
-            toast({ 
-                title: SovereignDict.SUCCESS.CALCULATION_DONE.title, 
-                description: `${SovereignDict.SUCCESS.CALCULATION_DONE.description} ${finalDistance.toFixed(1)} كم` 
+            setLastCalculatedUrl(currentUrl);
+
+            toast({
+                title: SovereignDict.SUCCESS.CALCULATION_DONE.title,
+                description: `${SovereignDict.SUCCESS.CALCULATION_DONE.description} ${finalDistance.toFixed(1)} كم`
             });
             if (user?.uid) {
               logAuditAction({
@@ -295,15 +295,15 @@ export function RiderOperationsProvider({ children }: { children: ReactNode }) {
           isProgrammaticUpdateRef.current = false;
         }, 150);
     }
-  }, [pickup, toast, user]);  
+  }, [pickup, toast, user]);
 
   // [مراقبة الالتماس التلقائي] - بمجرد إدخال أو لصق رابط جديد، يتم التحفيز التلقائي للاحتساب بصفر نقرات وبكامل النزاهة
   const autoTriggeredRef = useRef<string>('');
   useEffect(() => {
     const trimmed = pickup ? pickup.trim() : '';
     if (trimmed && trimmed !== lastCalculatedUrl && trimmed !== autoTriggeredRef.current && !isResolvingUrl) {
-      const looksLikeLinkOrCoord = trimmed.includes('maps') || 
-                                   trimmed.includes('http') || 
+      const looksLikeLinkOrCoord = trimmed.includes('maps') ||
+                                   trimmed.includes('http') ||
                                    trimmed.includes('ps://') ||
                                    trimmed.includes('naps://') ||
                                    /(-?\d{1,2}\.\d+)(?:\+2C|%2C|%2c|,)\s*(-?\d{1,3}\.\d+)/i.test(trimmed) ||
@@ -327,7 +327,7 @@ export function RiderOperationsProvider({ children }: { children: ReactNode }) {
     isExecutingGuillotine, confirmCheckpoint: rawConfirmCheckpoint, isConfirmingCheckpoint,
     selectOffer: rawSelectOffer, isSelectingOffer,
   } = useRiderTransactions(user, trip, acceptedDriver, resetTripListener, setInternalStatus);
-  
+
   const cancelTrip = useCallback(async () => {
     await rawCancelTrip();
     if (user?.uid) {
@@ -409,7 +409,7 @@ export function RiderOperationsProvider({ children }: { children: ReactNode }) {
       toast({ variant: 'destructive', ...SovereignDict.ERRORS.EMPTY_LINK });
       return;
     }
-    
+
     const cancels = user?.consecutiveCancellations || 0;
     const initialRiderRating = user?.rating !== undefined ? user.rating : (user?.ratingSum && user?.ratingCount ? user.ratingSum / user.ratingCount : 5.0);
 
@@ -424,7 +424,7 @@ export function RiderOperationsProvider({ children }: { children: ReactNode }) {
       toast({
         variant: 'destructive',
         title: 'لا يمكن إرسال طلب جديد الآن',
-        description: throttleResult.updatedRider.trustRating <= 4.2 
+        description: throttleResult.updatedRider.trustRating <= 4.2
           ? `وصلت إلى الحد الأقصى للإلغاءات المتتالية (${cancels}/3). يرجى المحاولة لاحقا.`
           : 'لديك طلب نشط بالفعل. انتظر حتى ينتهي الطلب الحالي.'
       });
@@ -440,15 +440,15 @@ export function RiderOperationsProvider({ children }: { children: ReactNode }) {
     const h3Index = latLngToH3Cell(currentAnchor.lat, currentAnchor.lng, 9);
     const obfuscatedPickupCoords = getH3CellCentroid(currentAnchor.lat, currentAnchor.lng, 9);
     const gridId = currentAnchor ? calculateSovereignGridId(currentAnchor.lat, currentAnchor.lng) : 'unknown';
-    
+
     await rawRequestRide({
-        seats: parseInt(seats) || 1, 
-        dropoff, 
-        pickup,  
+        seats: parseInt(seats) || 1,
+        dropoff,
+        pickup,
         requiresOfficialRate,
-        estimatedTime, 
-        estimatedDistance, 
-        pickupCoords: obfuscatedPickupCoords, 
+        estimatedTime,
+        estimatedDistance,
+        pickupCoords: obfuscatedPickupCoords,
         obfuscatedPickupCoords,
         h3Index,
         gridId,
@@ -479,7 +479,7 @@ export function RiderOperationsProvider({ children }: { children: ReactNode }) {
       });
     }
   }, [rawRequestRide, seats, dropoff, pickup, requiresOfficialRate, estimatedTime, estimatedDistance, user, trip, toast]);
-  
+
   const tripStatus = useMemo(() => {
     if (isRequesting) return 'searching';
     if (internalStatus !== 'idle') return internalStatus;
@@ -510,7 +510,7 @@ export function RiderOperationsProvider({ children }: { children: ReactNode }) {
         try {
           const tripObject = {
             captainId: acceptedDriver.uid || `rated-${Date.now()}`,
-            captainName: acceptedDriver.name || 'كابتن رادار',
+            captainName: acceptedDriver.name || 'سائق رادار',
             captainPhone: acceptedDriver.phone || '079000000',
             vehicleInfo: `${acceptedDriver.vehicle.make || ''} ${acceptedDriver.vehicle.color || ''}`,
             captainType: (acceptedDriver as any).rank === 'PLATINUM' ? 'careem' : (acceptedDriver as any).rank === 'GOLD' ? 'uber' : 'independent',
@@ -534,7 +534,7 @@ export function RiderOperationsProvider({ children }: { children: ReactNode }) {
         }
       }
       await rawRateTrip({ ...ratings, driverId: acceptedDriver.uid, vehicleId: acceptedDriver.vehicle.plate });
-      
+
       if (user?.uid) {
         await logAuditAction({
           actorId: user.uid,
@@ -571,15 +571,15 @@ export function RiderOperationsProvider({ children }: { children: ReactNode }) {
     rateTrip, isRating, isRequestModalOpen, openRequestModal, closeRequestModal, executeRedPathGuillotine,
     isExecutingGuillotine, confirmCheckpoint, isConfirmingCheckpoint, selectOffer, isSelectingOffer,
     seats, setSeats, dropoff, setDropoff, pickup, setPickup: handlePickupChange, requiresOfficialRate, setRequiresOfficialRate,
-    isResolvingUrl, calculateSovereignMetrics, pasteFromClipboard, 
+    isResolvingUrl, calculateSovereignMetrics, pasteFromClipboard,
     estimatedDistance, estimatedTime, pulsedDrivers, isPulsing, isLocationConfirmed, resetLocationMetrics,
     isRadarActive
   }), [
     trip, tripStatus, acceptedDriver, requestRide, isRequesting, cancelTrip, isCancelling,
     rateTrip, isRating, isRequestModalOpen, openRequestModal, closeRequestModal, executeRedPathGuillotine,
     isExecutingGuillotine, confirmCheckpoint, isConfirmingCheckpoint, selectOffer, isSelectingOffer,
-    seats, dropoff, pickup, handlePickupChange, requiresOfficialRate, isResolvingUrl, 
-    calculateSovereignMetrics, pasteFromClipboard, estimatedDistance, estimatedTime, pulsedDrivers, 
+    seats, dropoff, pickup, handlePickupChange, requiresOfficialRate, isResolvingUrl,
+    calculateSovereignMetrics, pasteFromClipboard, estimatedDistance, estimatedTime, pulsedDrivers,
     isPulsing, isLocationConfirmed, resetLocationMetrics, isRadarActive
   ]);
 
