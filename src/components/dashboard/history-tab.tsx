@@ -3,8 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { dexieDb } from '@/lib/dexie-db';
-import { db } from '@/lib/firebase';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { supabase } from '@/lib/supabase-client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -21,6 +20,31 @@ interface HistoricalTrip {
   vehicleInfo: string;
   finalPrice: number;
   timestamp: number;
+}
+
+function normalizeCaptainRank(value: unknown): HistoricalTrip['captainRank'] {
+  const normalized = `${value || ''}`.toUpperCase();
+  if (normalized.includes('PLATINUM')) return 'PLATINUM';
+  if (normalized.includes('GOLD')) return 'GOLD';
+  return 'BRONZE';
+}
+
+function formatVehicleInfo(vehicle: any) {
+  if (!vehicle || typeof vehicle !== 'object') return 'غير متاح';
+  const parts = [vehicle.make, vehicle.model, vehicle.color, vehicle.plate].filter(Boolean);
+  return parts.length > 0 ? parts.join(' - ') : 'غير متاح';
+}
+
+function parseTripTimestamp(trip: any) {
+  const raw = trip.completed_at ?? trip.completedAt ?? trip.created_at ?? trip.createdAt ?? trip.timestamp;
+  if (typeof raw === 'number') return raw;
+  if (raw?.seconds) return raw.seconds * 1000;
+  const parsed = Date.parse(String(raw || ''));
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function formatHistoryMoney(value: number, currencyLabel: string) {
+  return currencyLabel ? `${Number(value).toFixed(2)} ${currencyLabel}` : Number(value).toFixed(2);
 }
 
 function HistorySkeleton() {
@@ -51,6 +75,7 @@ export function HistoryTab() {
   const [realTrips, setRealTrips] = useState<any[]>([]);
   const [loading, setLoading] = useState(true); // مضاف خصيصاً لمنع انزياح CLS
   const { toast } = useToast();
+  const currencyLabel = user?.currencyAr || user?.currencyEn || '';
 
   const [errorSearch, setErrorSearch] = useState('');
   const [errorCategory, setErrorCategory] = useState<string>('ALL');
@@ -67,12 +92,6 @@ export function HistoryTab() {
       return matchesCategory && matchesSearch;
     });
   }, [errorSearch, errorCategory]);
-
-  useEffect(() => {
-    // محاكاة مبرهنة لزمن استقرار الذاكرة المحلية لضمان رصانة العرض البصري
-    const timer = setTimeout(() => setLoading(false), 650);
-    return () => clearTimeout(timer);
-  }, []);
 
   const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
   const now = Date.now();
@@ -135,115 +154,83 @@ export function HistoryTab() {
     };
   }, [user, isCaptain]);
 
-  // Real-time listener for actual trips from Firestore
   useEffect(() => {
-    if (!user?.uid) return;
+    if (!user?.uid) {
+      setRealTrips([]);
+      setLoading(false);
+      return;
+    }
 
-    const q = query(
-      collection(db, 'trips'),
-      where(isCaptain ? 'driverId' : 'riderId', '==', user.uid),
-      where('status', 'in', ['completed', 'rating', 'classified', 'checkpoint_required', 'archived'])
-    );
+    let active = true;
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const tripsData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setRealTrips(tripsData);
-    }, (error) => {
-      console.error("Failed to fetch real-time history trips from firestore:", error);
-    });
+    async function fetchTripHistory() {
+      setLoading(true);
+      try {
+        const userColumn = isCaptain ? 'driver_id' : 'rider_id';
+        const { data, error } = await supabase
+          .from('trips')
+          .select('*')
+          .eq(userColumn, user!.uid)
+          .in('status', ['COMPLETED', 'completed', 'RATING', 'rating', 'CLASSIFIED', 'classified', 'ARCHIVED', 'archived'])
+          .order('created_at', { ascending: false });
 
-    return () => unsubscribe();
-  }, [user?.uid, isCaptain]);
+        if (error) throw error;
+        if (active) setRealTrips(Array.isArray(data) ? data : []);
+      } catch (error) {
+        if (!active) return;
+        setRealTrips([]);
+        toast({
+          variant: 'destructive',
+          title: 'تعذر تحميل الرحلات',
+          description: 'عذراً، تعذر الاتصال بالخادم. تحقق من شبكة الإنترنت.',
+        });
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+
+    void fetchTripHistory();
+
+    return () => {
+      active = false;
+    };
+  }, [user?.uid, isCaptain, toast]);
 
   const riderHistoricalTrips = useMemo<HistoricalTrip[]>(() => {
-    const rawTrips: HistoricalTrip[] = [
-      {
-        tripId: 'h-trip-1',
-        serialId: 'T-9021',
-        captainName: 'ثائر بني هاني',
-        captainRank: 'PLATINUM',
-        captainPhone: '0799988771',
-        vehicleInfo: 'هيونداي أيونيك لون فضي - موديل 2022',
-        finalPrice: 2.75,
-        timestamp: Date.now() - 3 * 3600 * 1000, // 3 hours ago
-      },
-      {
-        tripId: 'h-trip-2',
-        serialId: 'T-9022',
-        captainName: 'أسامة النبر',
-        captainRank: 'GOLD',
-        captainPhone: '0788877662',
-        vehicleInfo: 'كيا نيرو لون كحلي - موديل 2021',
-        finalPrice: 3.40,
-        timestamp: Date.now() - 17 * 3600 * 1000, // 17 hours ago
-      }
-    ];
-
     const combinedReal = realTrips.map(trip => {
       const acceptedOffer = trip.offers?.find((o: any) => o.driverId === trip.driverId) || trip.acceptedOffer;
       return {
         tripId: trip.id,
-        serialId: trip.serial_id || `T-${10000 + Math.floor(Math.random() * 5000)}`,
-        captainName: acceptedOffer?.driverName || trip.driverName || 'كابتن معتمد',
-        captainRank: acceptedOffer?.driverRank || 'GOLD',
-        captainPhone: acceptedOffer?.driverVehicle?.phone || trip.driverPhone || '0790000000',
-        vehicleInfo: acceptedOffer?.driverVehicle ? `${acceptedOffer.driverVehicle.make} ${acceptedOffer.driverVehicle.model} - ${acceptedOffer.driverVehicle.plate}` : 'مركبة سيادية معتمدة',
-        finalPrice: trip.offerPrice || 3.0,
-        timestamp: trip.createdAt?.seconds ? trip.createdAt.seconds * 1000 : (typeof trip.createdAt === 'number' ? trip.createdAt : Date.now()),
+        serialId: trip.serial_id || trip.serialId,
+        captainName: acceptedOffer?.driverName || trip.driver_name || trip.captain_name || trip.driverName || 'سائق',
+        captainRank: normalizeCaptainRank(acceptedOffer?.driverRank || trip.driver_rank || trip.captain_rank),
+        captainPhone: acceptedOffer?.driverVehicle?.phone || trip.driver_phone || trip.captain_phone || trip.driverPhone || '',
+        vehicleInfo: formatVehicleInfo(acceptedOffer?.driverVehicle || trip.driver_vehicle || trip.vehicle),
+        finalPrice: Number(trip.final_price ?? trip.offer_price ?? trip.server_estimated_fare ?? trip.offerPrice ?? 0),
+        timestamp: parseTripTimestamp(trip),
       };
     });
 
-    // SSOT Rule: If real database entries exist, eliminate the "double echo" mock placeholder data completely
-    const sourceTrips = combinedReal.length > 0 ? combinedReal : rawTrips;
-    const all = [...sourceTrips];
+    const all = [...combinedReal];
     all.sort((a, b) => b.timestamp - a.timestamp);
     return all.filter(trip => (now - trip.timestamp) < THREE_DAYS_MS);
   }, [realTrips, now]);
 
-  // For Captain: Generate compliant mock history
   const captainHistoricalTrips = useMemo(() => {
-    const mockTrips = [
-      {
-        tripId: 'c-trip-1',
-        serialId: 'T-9130',
-        riderName: 'ليث مأدبا',
-        pickup: 'الدوار السابع',
-        dropoff: 'جامعة عمان الأهلية',
-        earnedPrice: 4.80,
-        timestamp: Date.now() - 2 * 3600 * 1000,
-        status: 'completed'
-      },
-      {
-        tripId: 'c-trip-2',
-        serialId: 'T-9131',
-        riderName: 'يارا دير غبار',
-        pickup: 'دير غبار',
-        dropoff: 'العبدلي بوليفارد',
-        earnedPrice: 3.10,
-        timestamp: Date.now() - 12 * 3600 * 1000,
-        status: 'completed'
-      }
-    ];
-
     const combinedReal = realTrips.map(trip => {
       return {
         tripId: trip.id,
-        serialId: trip.serial_id || `T-${10000 + Math.floor(Math.random() * 5000)}`,
-        riderName: trip.riderName || 'راكب سيادي',
-        pickup: trip.pickup || 'موقع الالتقاء',
-        dropoff: trip.dropoff || 'موقع الوصول',
-        earnedPrice: trip.offerPrice || 3.50,
-        timestamp: trip.createdAt?.seconds ? trip.createdAt.seconds * 1000 : (typeof trip.createdAt === 'number' ? trip.createdAt : Date.now()),
-        status: 'completed'
+        serialId: trip.serial_id || trip.serialId,
+        riderName: trip.rider_name || trip.riderName || 'راكب',
+        pickup: trip.pickup_address_ar || trip.pickup || 'غير متاح',
+        dropoff: trip.destination_address_ar || trip.dropoff || 'غير متاح',
+        earnedPrice: Number(trip.final_price ?? trip.offer_price ?? trip.server_estimated_fare ?? trip.offerPrice ?? 0),
+        timestamp: parseTripTimestamp(trip),
+        status: trip.status || 'COMPLETED'
       };
     });
 
-    // SSOT Rule: If real database entries exist, eliminate the "double echo" mock placeholder data completely
-    const sourceTrips = combinedReal.length > 0 ? combinedReal : mockTrips;
-    const all = [...sourceTrips];
+    const all = [...combinedReal];
     all.sort((a, b) => b.timestamp - a.timestamp);
     return all.filter(trip => (now - trip.timestamp) < THREE_DAYS_MS);
   }, [realTrips, now]);
@@ -294,10 +281,10 @@ export function HistoryTab() {
         <CardContent className="p-6 space-y-2">
           <h2 className="text-lg font-black text-emerald-400 flex items-center gap-2">
             <History className="h-5 w-5 text-emerald-500" />
-            سجلات النبض والأرشيف الميداني
+            رحلاتي
           </h2>
           <p className="text-xs text-gray-400 leading-relaxed font-sans">
-            مراجعة كامل نشاطك الميداني وأرشيف الرحلات الأخير. تماشياً مع معيار الأمان الدستوري، يتم تلقائياً شطب وحذف جميع السجلات التي يمر عليها أكثر من 72 ساعة لضمان خصوصيتك وعزل البيانات.
+            راجع رحلاتك الأخيرة. يتم حذف الرحلات التي مر عليها أكثر من 72 ساعة لحماية خصوصيتك.
           </p>
         </CardContent>
       </Card>
@@ -310,10 +297,10 @@ export function HistoryTab() {
               <div>
                 <CardTitle className="text-sm font-extrabold text-white flex items-center gap-1.5">
                   <FileText className="h-4 w-4 text-emerald-500" />
-                  رحلات النشأة والعبور (آخر 3 أيام)
+                  الرحلات الأخيرة (آخر 3 أيام)
                 </CardTitle>
                 <CardDescription className="text-[10px] text-gray-400 mt-1">
-                  الرحلات الموثقة بموجب بروتوكول التكلفة الصفرية
+                  الرحلات التي اكتملت من حسابك
                 </CardDescription>
               </div>
               <Badge variant="outline" className="text-[10px] border-emerald-500/20 text-emerald-400 bg-emerald-950/20 font-mono">
@@ -366,7 +353,7 @@ export function HistoryTab() {
                         </div>
                         <div className="text-left shrink-0">
                           <span className="text-[12px] text-emerald-400 font-black font-mono block">
-                            {trip.finalPrice.toFixed(2)} د.أ
+                            {formatHistoryMoney(trip.finalPrice, currencyLabel)}
                           </span>
                           <span className="text-[9px] text-gray-500 font-sans block mt-0.5">
                             قبل {timeAgo === 0 ? 'أقل من ساعة' : `${timeAgo} ساعة`}
@@ -381,7 +368,7 @@ export function HistoryTab() {
                           style={{ textDecoration: 'none' }}
                         >
                           <Phone className="h-3 w-3" />
-                          <span>اتصال للكابتن لمفقودات الرحلة</span>
+                          <span>اتصال بالسائق بخصوص الرحلة</span>
                         </a>
                       </div>
                     </div>
@@ -397,20 +384,20 @@ export function HistoryTab() {
               <div>
                 <CardTitle className="text-sm font-extrabold text-[#00ffcc] flex items-center gap-1.5">
                   <Sparkles className="h-4 w-4 text-emerald-400 animate-pulse" />
-                  خزنة المفضلة والمستودع السيادي العازل
+                  السائقون المفضلون
                 </CardTitle>
                 <CardDescription className="text-[10px] text-gray-400 mt-1">
-                  النواقل المفضين المخلدين على جهازك محلياً بشكل دائم بصفر كلفة
+                  السائقون الذين حفظتهم من رحلاتك السابقة
                 </CardDescription>
               </div>
               <Badge className="bg-emerald-950 text-emerald-400 text-[9px] border border-emerald-500/20">
-                {favoriteCaptains.length} ناقلين
+                {favoriteCaptains.length} سائق
               </Badge>
             </CardHeader>
             <CardContent className="p-4 space-y-3">
               {favoriteCaptains.length === 0 ? (
                 <div className="p-6 text-center text-gray-500 text-[11px]">
-                  إنقر على أيقونة <strong className="text-[#00ffcc]">القلب</strong> بالرحلات النشطة لتخليد الكباتن وتخزينهم في البوابة العازلة بشكل دائم.
+                  اضغط على أيقونة <strong className="text-[#00ffcc]">القلب</strong> في أي رحلة مكتملة لإضافة السائق إلى المفضلة.
                 </div>
               ) : (
                 <div className="grid grid-cols-1 gap-2.5">
@@ -506,7 +493,7 @@ export function HistoryTab() {
                         </div>
                         <div className="text-left shrink-0">
                           <span className="text-[12px] text-emerald-400 font-black block">
-                            +{trip.earnedPrice.toFixed(2)} د.أ
+                            +{formatHistoryMoney(trip.earnedPrice, currencyLabel)}
                           </span>
                           <span className="text-[9px] text-gray-500 font-sans block mt-0.5">
                             قبل {timeAgo} ساعة

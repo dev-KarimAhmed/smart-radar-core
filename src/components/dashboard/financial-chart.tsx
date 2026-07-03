@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import * as d3 from 'd3';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Activity, TrendingUp, DollarSign } from 'lucide-react';
+import { Activity, TrendingUp } from 'lucide-react';
 
 interface ChartDataPoint {
   timestamp: number;
@@ -16,9 +16,10 @@ interface ChartDataPoint {
 interface FinancialChartProps {
   transactions: any[];
   balanceJD: number;
+  currencyLabel?: string;
 }
 
-export function SovereignFinancialActivityChart({ transactions, balanceJD }: FinancialChartProps) {
+export function SovereignFinancialActivityChart({ transactions, balanceJD, currencyLabel = '' }: FinancialChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [dimensions, setDimensions] = useState({ width: 450, height: 180 });
@@ -45,14 +46,7 @@ export function SovereignFinancialActivityChart({ transactions, balanceJD }: Fin
         type: 'baseline'
       });
     } else {
-      // رصيد افتراضي في حال خلو السجلات للرندرة المرئية المستقرة
-      const now = Date.now();
-      return [
-        { timestamp: now - 72 * 3600 * 1000, amount: 0, balance: 0, description: 'تأسيس الخزينة السيادية', type: 'baseline' },
-        { timestamp: now - 48 * 3600 * 1000, amount: 10, balance: 10, description: 'شحن رصيد طوارئ', type: 'charge' },
-        { timestamp: now - 24 * 3600 * 1000, amount: -3.5, balance: 6.5, description: 'استهلاك تشغيلي', type: 'trip_deduction' },
-        { timestamp: now, amount: balanceJD - 6.5, balance: balanceJD, description: 'الرصيد الفعلي الحالي', type: 'current' }
-      ];
+      return [];
     }
 
     sorted.forEach((tx) => {
@@ -103,16 +97,17 @@ export function SovereignFinancialActivityChart({ transactions, balanceJD }: Fin
 
   // 🎨 [محرك الرندرة الأساسي لـ D3.js]
   useEffect(() => {
-    if (!svgRef.current || chartData.length === 0) return;
+    if (!svgRef.current) return;
 
     const { width, height } = dimensions;
     const margin = { top: 15, right: 15, bottom: 25, left: 35 };
     const chartWidth = width - margin.left - margin.right;
     const chartHeight = height - margin.top - margin.bottom;
 
-    // تنظيف كلي لعناصر الـ SVG لمنع الرندرة المتكررة (Prevent Double-Render Conflict)
     const svg = d3.select(svgRef.current);
     svg.selectAll('*').remove();
+
+    if (chartData.length === 0) return;
 
     // إنشاء حاوية الرسم الأساسية
     const g = svg
@@ -278,7 +273,7 @@ export function SovereignFinancialActivityChart({ transactions, balanceJD }: Fin
           .attr('font-size', '9px')
           .attr('font-weight', 'black')
           .attr('y', 1)
-          .text(`${d.balance.toFixed(2)} د.أ`);
+          .text(`${d.balance.toFixed(2)} ${currencyLabel}`.trim());
       })
       .on('mouseout', function() {
         d3.select(this)
@@ -290,33 +285,42 @@ export function SovereignFinancialActivityChart({ transactions, balanceJD }: Fin
         g.select('#chart-tooltip').remove();
       });
 
-  }, [chartData, dimensions]);
+  }, [chartData, dimensions, currencyLabel]);
 
   return (
     <Card className="bg-[#030903]/95 border border-emerald-900/30 rounded-2xl shadow-xl overflow-hidden mb-6">
       <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between border-b border-emerald-900/20">
         <div className="text-right">
           <CardTitle className="text-xs font-black text-white flex items-center gap-1.5 justify-end">
-            منحنى النشاط المالي اللامركزي
+            حركة الرصيد
             <Activity className="w-3.5 h-3.5 text-emerald-400" />
           </CardTitle>
           <CardDescription className="text-[9px] text-gray-500 mt-0.5">
-            رسم بياني زمني يعكس نبضات الاستهلاك والشحن لآخر المعاملات عبر D3.js
+            تظهر العمليات هنا بعد وصولها من الخادم.
           </CardDescription>
         </div>
         <div className="bg-emerald-950/40 border border-emerald-500/20 px-2 py-1 rounded-lg text-emerald-400 text-[10px] font-mono flex items-center gap-1">
           <TrendingUp className="w-3 h-3 text-emerald-400 animate-pulse" />
-          <span>SSOT Live</span>
+          <span>{currencyLabel || 'Wallet'}</span>
         </div>
       </CardHeader>
       <CardContent className="p-4 pt-3 flex flex-col items-center">
         <div ref={containerRef} className="w-full relative h-[160px] flex items-center justify-center">
-          <svg
-            ref={svgRef}
-            width={dimensions.width}
-            height={dimensions.height}
-            className="overflow-visible"
-          />
+          {chartData.length > 0 ? (
+            <svg
+              ref={svgRef}
+              width={dimensions.width}
+              height={dimensions.height}
+              className="overflow-visible"
+            />
+          ) : (
+            <>
+              <svg ref={svgRef} width={0} height={0} className="hidden" />
+              <div className="rounded-2xl border border-emerald-900/30 bg-black/30 px-5 py-4 text-center text-xs text-gray-400">
+                لا توجد عمليات مالية لعرضها حالياً.
+              </div>
+            </>
+          )}
         </div>
       </CardContent>
     </Card>

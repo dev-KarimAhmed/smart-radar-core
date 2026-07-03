@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { calculateSovereignFareQuote } from '@/core/logic/geospatial-kernel';
+import type { Offer } from '@/core/types';
 import {
-  buildMockCaptainOffers,
   createInitialRiderMachineState,
   riderDashboardReducer,
   shouldShowAdRiver,
@@ -40,10 +40,25 @@ state = riderDashboardReducer(state, { type: 'SERVER_STATUS_RECEIVING_OFFERS' })
 assert.equal(state.screen, 'RECEIVING_OFFERS');
 assert.equal(shouldShowAdRiver(state), true);
 
-const offers = buildMockCaptainOffers(destination);
-assert.equal(offers.length >= 3, true);
-assert.equal(offers.every((offer) => offer.driverId && offer.driverVehicle?.plate), true);
-assert.equal(offers[1].price, destination.serverEstimatedFare);
+const offers: Offer[] = [
+  {
+    driverId: 'server-offer-1',
+    driverName: 'سائق متاح',
+    driverRating: 4.8,
+    driverRank: 'Gold',
+    price: destination.serverEstimatedFare,
+    driverVehicle: {
+      make: 'سيارة',
+      color: 'أبيض',
+      plate: 'غير متاح',
+      type: 'سيارة',
+    },
+    driverAffiliation: { type: 'independent', name: 'مستقل' },
+    silencePreference: 'neutral',
+  },
+];
+assert.equal(offers.length, 1);
+assert.equal(offers[0].price, destination.serverEstimatedFare);
 
 state = riderDashboardReducer(state, { type: 'RECEIVE_OFFERS', offers });
 assert.equal(state.screen, 'RECEIVING_OFFERS');

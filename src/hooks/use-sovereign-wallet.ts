@@ -1,11 +1,57 @@
 'use client';
 
-import { useState, useCallback, useRef, useMemo } from 'react';
+import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { doc, updateDoc, arrayUnion, increment } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useToast } from './use-toast';
 import { useAuth } from './use-auth';
 import type { User } from '@/core/types';
+import { supabase } from '@/lib/supabase-client';
+
+interface ServerWalletSnapshot {
+  balance: number;
+  paidHoursMin: number;
+  bonusHoursMin: number;
+  subscriptionHours: number;
+  activePackageName: string;
+  transactions: any[];
+}
+
+function mapWalletTransactionRow(row: Record<string, any>) {
+  const timestamp = parseTimestamp(row.created_at ?? row.createdAt ?? row.timestamp);
+  return {
+    id: String(row.id),
+    type: row.type || row.transaction_type || 'charge',
+    amount: firstNumber(row.amount, 0),
+    currency: firstString(row.currency_ar, row.currency, row.currency_code, ''),
+    description: firstString(row.description_ar, row.description, row.memo, 'عملية على الرصيد'),
+    createdAt: timestamp ? new Date(timestamp).toLocaleString('ar', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }) : '',
+    status: row.status || 'completed',
+    timestamp: timestamp || Date.now(),
+  };
+}
+
+function firstNumber(...values: unknown[]) {
+  for (const value of values) {
+    const numberValue = Number(value);
+    if (Number.isFinite(numberValue)) return numberValue;
+  }
+  return 0;
+}
+
+function firstString(...values: unknown[]) {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim()) return value.trim();
+  }
+  return '';
+}
+
+function parseTimestamp(value: unknown) {
+  if (typeof value === 'number') return value;
+  if ((value as any)?.seconds) return (value as any).seconds * 1000;
+  const parsed = Date.parse(String(value || ''));
+  return Number.isFinite(parsed) ? parsed : 0;
+}
 
 /**
  * 🛡️ [RAD-MAP-074-GEO-REFILL] useSovereignWallet Hook
@@ -16,6 +62,8 @@ import type { User } from '@/core/types';
 export function useSovereignWallet(user: User | null) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [serverWallet, setServerWallet] = useState<ServerWalletSnapshot | null>(null);
+  const [walletLoaded, setWalletLoaded] = useState(false);
   const loadingRef = useRef(false);
   const { suspendUserDocListener, resumeUserDocListener } = useAuth();
 
@@ -29,6 +77,70 @@ export function useSovereignWallet(user: User | null) {
     }
     return Date.now();
   }, []);
+  const walletCurrency = user?.currencyAr || user?.currencyEn || '';
+
+  useEffect(() => {
+    if (!user?.uid) {
+      setServerWallet(null);
+      setWalletLoaded(true);
+      return;
+    }
+
+    let active = true;
+
+    async function fetchWalletFromServer() {
+      setWalletLoaded(false);
+      try {
+        const [{ data: walletData, error: walletError }, { data: txData, error: txError }] = await Promise.all([
+          supabase
+            .from('wallet_accounts')
+            .select('*')
+            .eq('user_id', user!.uid)
+            .maybeSingle(),
+          supabase
+            .from('wallet_transactions')
+            .select('*')
+            .eq('user_id', user!.uid)
+            .order('created_at', { ascending: false }),
+        ]);
+
+        if (walletError) throw walletError;
+        if (txError) throw txError;
+
+        if (!active) return;
+
+        if (!walletData) {
+          setServerWallet(null);
+          return;
+        }
+
+        setServerWallet({
+          balance: firstNumber(walletData.balance, walletData.balance_jd, walletData.wallet_balance, 0),
+          paidHoursMin: firstNumber(walletData.paid_hours_remaining, walletData.paid_minutes_remaining, 0),
+          bonusHoursMin: firstNumber(walletData.bonus_hours_remaining, walletData.bonus_minutes_remaining, 0),
+          subscriptionHours: firstNumber(walletData.subscription_hours, 0),
+          activePackageName: firstString(walletData.active_package_name, walletData.package_name, ''),
+          transactions: Array.isArray(txData) ? txData.map(mapWalletTransactionRow) : [],
+        });
+      } catch (error) {
+        if (!active) return;
+        setServerWallet(null);
+        toast({
+          variant: 'destructive',
+          title: 'تعذر تحميل الرصيد',
+          description: 'عذراً، تعذر الاتصال بالخادم. تحقق من شبكة الإنترنت.',
+        });
+      } finally {
+        if (active) setWalletLoaded(true);
+      }
+    }
+
+    void fetchWalletFromServer();
+
+    return () => {
+      active = false;
+    };
+  }, [toast, user?.uid]);
 
   /**
    * 📡 fundRiderBalance
@@ -59,7 +171,7 @@ export function useSovereignWallet(user: User | null) {
         id: txId,
         type: 'charge',
         amount: amountPaid,
-        currency: 'د.أ',
+        currency: walletCurrency,
         description: `شحن رصيد إقليمي لواء [${district}] عبر بوابة [${channel}]`,
         createdAt: new Date(networkNow).toLocaleTimeString('ar-JO', { hour: '2-digit', minute: '2-digit' }) + ' - اليوم',
         status: 'completed'
@@ -74,7 +186,7 @@ export function useSovereignWallet(user: User | null) {
 
       toast({
         title: "📡 تم الشحن اللامركزي بنجاح",
-        description: `تم إيداع ${amountPaid} د.أ بنبضة كتابة سحابية واحدة لوتد المحفظة.`
+        description: `تم إيداع ${amountPaid} ${walletCurrency} في الرصيد.`
       });
       return true;
     } catch (error: any) {
@@ -94,7 +206,7 @@ export function useSovereignWallet(user: User | null) {
         resumeUserDocListener();
       }, 3000);
     }
-  }, [user, toast, getNetworkAdjustedTime, suspendUserDocListener, resumeUserDocListener]);
+  }, [user, walletCurrency, toast, getNetworkAdjustedTime, suspendUserDocListener, resumeUserDocListener]);
 
   /**
    * 💸 deductRiderFare
@@ -124,7 +236,7 @@ export function useSovereignWallet(user: User | null) {
         id: txId,
         type: 'trip_deduction',
         amount: -amountJD,
-        currency: 'د.أ',
+        currency: walletCurrency,
         description: `خصم أجرة رحلة رقم [${tripId}]`,
         createdAt: new Date(networkNow).toLocaleTimeString('ar-JO', { hour: '2-digit', minute: '2-digit' }) + ' - اليوم',
         status: 'completed'
@@ -138,7 +250,7 @@ export function useSovereignWallet(user: User | null) {
 
       toast({
         title: "💸 تم الخصم الذري بنجاح",
-        description: `تم خصم أجرة الرحلة بقيمة ${amountJD} د.أ بنجاح.`
+        description: `تم خصم أجرة الرحلة بقيمة ${amountJD} ${walletCurrency} بنجاح.`
       });
       return true;
     } catch (error: any) {
@@ -157,7 +269,7 @@ export function useSovereignWallet(user: User | null) {
         resumeUserDocListener();
       }, 3000);
     }
-  }, [user?.uid, toast, getNetworkAdjustedTime, suspendUserDocListener, resumeUserDocListener]);
+  }, [user?.uid, walletCurrency, toast, getNetworkAdjustedTime, suspendUserDocListener, resumeUserDocListener]);
 
   /**
    * 📡 rechargeWallet (Fallback/Generic API)
@@ -197,7 +309,7 @@ export function useSovereignWallet(user: User | null) {
         id: txId,
         type: 'charge',
         amount: amountPaid,
-        currency: 'د.أ',
+        currency: walletCurrency,
         description: `شحن رصيد إقليمي لواء [${district}] عبر بوابة [${gateway}]`,
         createdAt: new Date(networkNow).toLocaleTimeString('ar-JO', { hour: '2-digit', minute: '2-digit' }) + ' - اليوم',
         status: 'completed'
@@ -212,7 +324,7 @@ export function useSovereignWallet(user: User | null) {
 
       toast({
         title: "📡 تم الشحن اللامركزي بنجاح",
-        description: `تم إيداع ${amountPaid} د.أ بنبضة كتابة سحابية واحدة لوتد المحفظة.`
+        description: `تم إيداع ${amountPaid} ${walletCurrency} في الرصيد.`
       });
       return true;
     } catch (error: any) {
@@ -231,7 +343,7 @@ export function useSovereignWallet(user: User | null) {
         resumeUserDocListener();
       }, 3000);
     }
-  }, [user?.uid, toast, getNetworkAdjustedTime, suspendUserDocListener, resumeUserDocListener]);
+  }, [user?.uid, walletCurrency, toast, getNetworkAdjustedTime, suspendUserDocListener, resumeUserDocListener]);
 
   /**
    * ⚡ purchaseDriverPackage
@@ -254,7 +366,7 @@ export function useSovereignWallet(user: User | null) {
     suspendUserDocListener();
 
     try {
-      const balanceJD = user.walletBalanceJD !== undefined ? user.walletBalanceJD : 15.00;
+      const balanceJD = serverWallet?.balance ?? 0;
       const cost = pkgType === 'pulse' ? 1.00 : 10.00;
       const addedHours = pkgType === 'pulse' ? 24.0 : 100.0;
       const name = pkgType === 'pulse' ? 'باقة النبض الأساسية (24 ساعة)' : 'باقة العبور الكبرى (100 ساعة)';
@@ -263,7 +375,7 @@ export function useSovereignWallet(user: User | null) {
         toast({
           variant: 'destructive',
           title: 'رصيد نقدي غير كافٍ',
-          description: `تكلفة الباقة ${cost} د.أ. يرجى إعادة شحن محفظتك بـ الدنانير الأردنية أولاً.`
+          description: `تكلفة الباقة ${cost} ${walletCurrency}. يرجى تعبئة الرصيد أولاً.`
         });
         return false;
       }
@@ -273,10 +385,8 @@ export function useSovereignWallet(user: User | null) {
       const captainRank: 'PLATINUM' | 'GOLD' | 'BRONZE' = 
         r === 'PLATINUM' ? 'PLATINUM' : (r === 'GOLD' ? 'GOLD' : 'BRONZE');
       
-      const currentPaidMinutes = user?.paidHoursRemaining !== undefined 
-        ? user.paidHoursRemaining 
-        : (user?.subscriptionHours !== undefined ? Math.round(user.subscriptionHours * 60) : 870);
-      const currentBonusMinutes = user?.bonusHoursRemaining !== undefined ? user.bonusHoursRemaining : 0;
+      const currentPaidMinutes = serverWallet?.paidHoursMin ?? 0;
+      const currentBonusMinutes = serverWallet?.bonusHoursMin ?? 0;
       
       const homeDistrict = user?.district || 'وادي السير';
       
@@ -325,7 +435,7 @@ export function useSovereignWallet(user: User | null) {
         id: txId,
         type: 'purchase',
         amount: -cost,
-        currency: 'د.أ',
+        currency: walletCurrency,
         description: `تفعيل ذي توجيه جغرافي: ${name}${bonusHoursText}`,
         createdAt: new Date(networkNow).toLocaleTimeString('ar-JO', { hour: '2-digit', minute: '2-digit' }) + ' - الآن',
         status: 'completed'
@@ -365,60 +475,19 @@ export function useSovereignWallet(user: User | null) {
         resumeUserDocListener();
       }, 3000);
     }
-  }, [user, toast, getNetworkAdjustedTime, suspendUserDocListener, resumeUserDocListener]);
+  }, [user, serverWallet, walletCurrency, toast, getNetworkAdjustedTime, suspendUserDocListener, resumeUserDocListener]);
 
   // 🪙 [التعقيم الماسي V2.6-Secured - مصدر الحقيقة الواحد]
   // احتساب وعزل الحالة المالية وساعات الاشتراك المتبقية لمنع الرندرة العشوائية وتضارب البيانات
   const isDriver = user?.role === 'driver';
-  const balanceJD = user?.walletBalanceJD !== undefined ? user.walletBalanceJD : 15.00;
-  const paidHoursMin = user?.paidHoursRemaining !== undefined ? user.paidHoursRemaining : (isDriver ? 870 : 0);
-  const bonusHoursMin = user?.bonusHoursRemaining !== undefined ? user.bonusHoursRemaining : 0;
-  const subscriptionHours = user?.subscriptionHours !== undefined 
-    ? user.subscriptionHours 
-    : Number(((paidHoursMin + bonusHoursMin) / 60).toFixed(3));
-  const activePackageName = user?.activePackageName !== undefined 
-    ? user.activePackageName 
-    : (isDriver ? 'نبض الوفاء المبدئي' : 'نسيجي مجتزأ');
+  const balanceJD = serverWallet?.balance ?? 0;
+  const paidHoursMin = serverWallet?.paidHoursMin ?? 0;
+  const bonusHoursMin = serverWallet?.bonusHoursMin ?? 0;
+  const subscriptionHours = serverWallet?.subscriptionHours ?? Number(((paidHoursMin + bonusHoursMin) / 60).toFixed(3));
+  const activePackageName = serverWallet?.activePackageName || '';
 
   const transactions = useMemo(() => {
-    let txs = [];
-    if (user?.walletTransactions !== undefined) {
-      txs = user.walletTransactions;
-    } else {
-      txs = isDriver ? [
-        {
-          id: 'tx-1',
-          type: 'charge',
-          amount: 20.00,
-          currency: 'د.أ',
-          description: 'شحن رصيد نقدي عبر Zain Cash',
-          createdAt: '04:12 م - اليوم',
-          status: 'completed',
-          timestamp: Date.now() - 3 * 3600 * 1000
-        },
-        {
-          id: 'tx-2',
-          type: 'trip_deduction',
-          amount: -0.45,
-          currency: 'ساعة',
-          description: 'استهلاك بث ملاحي لرحلة سياج عمان النشطة',
-          createdAt: '02:00 م - اليوم',
-          status: 'completed',
-          timestamp: Date.now() - 5 * 3600 * 1000
-        }
-      ] : [
-        {
-          id: 'tx-1',
-          type: 'charge',
-          amount: 15.00,
-          currency: 'د.أ',
-          description: 'شحن رصيد نقدي عبر خدمة CliQ العاجلة',
-          createdAt: '03:12 م - أمس',
-          status: 'completed',
-          timestamp: Date.now() - 24 * 3600 * 1000
-        }
-      ];
-    }
+    const txs = serverWallet?.transactions ?? [];
 
     return txs.map((tx: any) => {
       let ts = tx.timestamp;
@@ -436,10 +505,11 @@ export function useSovereignWallet(user: User | null) {
         timestamp: ts
       };
     });
-  }, [user?.walletTransactions, isDriver]);
+  }, [serverWallet?.transactions]);
 
   return {
     loading,
+    walletLoaded,
     rechargeWallet,
     fundRiderBalance,
     deductRiderFare,

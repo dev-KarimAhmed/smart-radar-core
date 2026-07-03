@@ -1,12 +1,14 @@
 'use client';
 
 import React from 'react';
+import { latLngToCell } from 'h3-js';
 import maplibregl, { type GeoJSONSource, type Map as MapLibreMap } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { generateMockCaptainDots, getRiderMockH3Cell, RIDER_MOCK_LOCATION, type MockCaptainDot } from './rider-map-utils';
+import { AMMAN_FALLBACK_LOCATION } from './jordan-destinations';
 
 interface RiderMapProps {
   activeTripCaptainId?: string | null;
+  captainLocations?: RiderMapCaptainPoint[];
   className?: string;
   onLocationChange?: (payload: RiderLocationUpdate) => void;
 }
@@ -22,6 +24,15 @@ export interface RiderLocationUpdate {
   location: RiderLocation;
   status: RiderLocationStatus;
   h3Cell: string;
+}
+
+export interface RiderMapCaptainPoint {
+  id: string;
+  serial: string;
+  h3Cell: string;
+  coordinates: RiderLocation;
+  etaMinutes?: number;
+  rank?: string;
 }
 
 const OPENFREEMAP_STYLE = 'https://tiles.openfreemap.org/styles/liberty';
@@ -57,7 +68,7 @@ function toRiderFeatureCollection(location: RiderLocation) {
   };
 }
 
-function toCaptainFeatureCollection(captains: MockCaptainDot[]) {
+function toCaptainFeatureCollection(captains: RiderMapCaptainPoint[]) {
   return {
     type: 'FeatureCollection' as const,
     features: captains.map((captain) => ({
@@ -80,23 +91,22 @@ function getLocationStatusLabel(status: RiderLocationStatus) {
   if (status === 'live') return 'موقعك الحالي';
   if (status === 'locating') return 'يتم تحديد موقعك...';
   if (status === 'denied') return 'اسمح للموقع من المتصفح';
-  return 'GPS غير متاح - تم استخدام عمّان';
+  return 'GPS غير متاح';
 }
 
-export function RiderMap({ activeTripCaptainId, className, onLocationChange }: RiderMapProps) {
+export function RiderMap({ activeTripCaptainId, captainLocations = [], className, onLocationChange }: RiderMapProps) {
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const mapRef = React.useRef<MapLibreMap | null>(null);
   const cleanupWatchRef = React.useRef<(() => void) | null>(null);
-  const [riderLocation, setRiderLocation] = React.useState<RiderLocation>(RIDER_MOCK_LOCATION);
+  const [riderLocation, setRiderLocation] = React.useState<RiderLocation>(AMMAN_FALLBACK_LOCATION);
   const [locationStatus, setLocationStatus] = React.useState<RiderLocationStatus>('locating');
   const [activeCaptainProgress, setActiveCaptainProgress] = React.useState(0);
-  const riderCell = React.useMemo(() => getRiderMockH3Cell(riderLocation), [riderLocation]);
-  const captains = React.useMemo(() => generateMockCaptainDots(riderCell), [riderCell]);
+  const riderCell = React.useMemo(() => latLngToCell(riderLocation.lat, riderLocation.lng, 9), [riderLocation]);
 
   const displayCaptains = React.useMemo(() => {
-    if (!activeTripCaptainId) return captains;
+    if (!activeTripCaptainId) return captainLocations;
 
-    return captains.map((captain) => {
+    return captainLocations.map((captain) => {
       if (captain.id !== activeTripCaptainId) return captain;
 
       const progress = Math.min(0.92, Math.max(0.08, activeCaptainProgress));
@@ -108,14 +118,14 @@ export function RiderMap({ activeTripCaptainId, className, onLocationChange }: R
         },
       };
     });
-  }, [activeCaptainProgress, activeTripCaptainId, captains, riderLocation]);
+  }, [activeCaptainProgress, activeTripCaptainId, captainLocations, riderLocation]);
 
   const requestLiveLocation = React.useCallback(() => {
     cleanupWatchRef.current?.();
     cleanupWatchRef.current = null;
 
     if (!('geolocation' in navigator)) {
-      setRiderLocation(RIDER_MOCK_LOCATION);
+      setRiderLocation(AMMAN_FALLBACK_LOCATION);
       setLocationStatus('fallback');
       return;
     }
@@ -134,7 +144,7 @@ export function RiderMap({ activeTripCaptainId, className, onLocationChange }: R
       },
       (error) => {
         if (didResolve) return;
-        setRiderLocation(RIDER_MOCK_LOCATION);
+        setRiderLocation(AMMAN_FALLBACK_LOCATION);
         setLocationStatus(error.code === error.PERMISSION_DENIED ? 'denied' : 'fallback');
       },
       {
@@ -305,10 +315,15 @@ export function RiderMap({ activeTripCaptainId, className, onLocationChange }: R
       </div>
       <div className="pointer-events-none absolute bottom-3 right-3 left-3 flex items-center justify-between rounded-2xl border border-white/10 bg-[#0B0F19]/82 px-3 py-2 text-[11px] text-white backdrop-blur sm:bottom-4 sm:right-4 sm:left-4 sm:px-4 sm:py-3 sm:text-xs lg:left-[312px] lg:right-[456px]">
         <span className="font-black text-[#14F5D5]">
-          {activeTripCaptainId ? 'السائق في الطريق إليك' : `سائقون قريبون: ${captains.length}`}
+          {activeTripCaptainId ? 'السائق في الطريق إليك' : 'خريطة الرحلة جاهزة'}
         </span>
         <span className="text-[10px] text-slate-300">MapLibre + OpenFreeMap / © OSM</span>
       </div>
+      {!activeTripCaptainId && captainLocations.length === 0 && (
+        <div className="pointer-events-none absolute right-3 top-20 max-w-[260px] rounded-2xl border border-amber-400/25 bg-[#0B0F19]/88 px-3 py-2 text-right text-[11px] font-bold leading-relaxed text-amber-100 shadow-xl shadow-black/30 backdrop-blur sm:right-4 sm:top-24 lg:right-[456px]">
+          المنطقة الحالية خارج أوقات الذروة - قد يستغرق قبول الرحلة وقتا أطول
+        </div>
+      )}
       {locationStatus !== 'live' && (
         <button
           type="button"

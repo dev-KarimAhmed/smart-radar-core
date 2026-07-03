@@ -33,13 +33,20 @@ import {
 import {
   buildRideRequestInsertPayload,
   calculateServerFare,
+  cancelRideRequest,
   createRideRequest,
+  fetchAvailableCaptainPresence,
+  fetchRideOffers,
   mapRiderMarketplaceError,
+  subscribeToRideOffers,
   subscribeToRideRequestStatus,
+  type CaptainPresencePoint,
 } from './rider/rider-server-marketplace';
 
 const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
 const H3_RIDER_REQUEST_RESOLUTION = 9;
+const OFFER_TIMEOUT_MS = 2 * 60 * 1000;
+const NETWORK_ERROR_AR = 'عذراً، تعذر الاتصال بالخادم. تحقق من شبكة الإنترنت.';
 
 interface CountryCurrencyConfig {
   id: number;
@@ -47,27 +54,6 @@ interface CountryCurrencyConfig {
   currency_en?: string | null;
   currency_code?: string | null;
 }
-
-const demoLedgerTrips: HistoricalTrip[] = [
-  {
-    tripId: 'local-ledger-1',
-    captainName: 'D-102',
-    captainRank: 'PLATINUM',
-    captainPhone: '0799988771',
-    vehicleInfo: 'Toyota Corolla White - 77-102',
-    finalPrice: 2.75,
-    timestamp: Date.now() - 3 * 3600 * 1000,
-  },
-  {
-    tripId: 'local-ledger-2',
-    captainName: 'D-118',
-    captainRank: 'GOLD',
-    captainPhone: '0788877662',
-    vehicleInfo: 'Hyundai Ioniq Silver - 22-118',
-    finalPrice: 3.4,
-    timestamp: Date.now() - 17 * 3600 * 1000,
-  },
-];
 
 export function RiderViewTab() {
   const { user } = useAuth();
@@ -78,9 +64,10 @@ export function RiderViewTab() {
   const [rating, setRating] = React.useState({ captain: 0, vehicle: 0, favorite: false });
   const [etaSeconds, setEtaSeconds] = React.useState(0);
   const [riderLocation, setRiderLocation] = React.useState<RiderLocation>(AMMAN_FALLBACK_LOCATION);
+  const [riderH3Cell, setRiderH3Cell] = React.useState(latLngToCell(AMMAN_FALLBACK_LOCATION.lat, AMMAN_FALLBACK_LOCATION.lng, H3_RIDER_REQUEST_RESOLUTION));
   const [locationStatus, setLocationStatus] = React.useState<RiderLocationStatus>('fallback');
   const [localCompletedTrips, setLocalCompletedTrips] = React.useState<HistoricalTrip[]>([]);
-  const [activeRideRequestId, setActiveRideRequestId] = React.useState<string | null>(null);
+  const [captainLocations, setCaptainLocations] = React.useState<CaptainPresencePoint[]>([]);
   const [isSendingRideRequest, setIsSendingRideRequest] = React.useState(false);
   const [countryConfig, setCountryConfig] = React.useState<CountryCurrencyConfig | null>(null);
   const [serverFareState, setServerFareState] = React.useState<{
@@ -140,7 +127,7 @@ export function RiderViewTab() {
   );
 
   const tripsWithin72Hours = React.useMemo<HistoricalTrip[]>(
-    () => [...localCompletedTrips, ...demoLedgerTrips],
+    () => [...localCompletedTrips],
     [localCompletedTrips],
   );
 
@@ -154,6 +141,7 @@ export function RiderViewTab() {
 
   const handleLocationChange = React.useCallback((payload: RiderLocationUpdate) => {
     setRiderLocation(payload.location);
+    setRiderH3Cell(payload.h3Cell);
     setLocationStatus(payload.status);
   }, []);
 
@@ -265,26 +253,113 @@ export function RiderViewTab() {
   }, [activeCountryId, fareRequestKey, riderLocation, selectedDistrict.anchor, toast]);
 
   React.useEffect(() => {
-    if (!activeRideRequestId) return;
+    if (!state.requestId) return;
 
     return subscribeToRideRequestStatus(
       supabase,
-      activeRideRequestId,
+      state.requestId,
       (row) => {
         if (String(row.status) === 'RECEIVING_OFFERS') {
           dispatch({ type: 'SERVER_STATUS_RECEIVING_OFFERS' });
-          setActiveRideRequestId(null);
+        }
+        if (String(row.status) === 'CANCELLED') {
+          dispatch({ type: 'REQUEST_CANCELLED' });
         }
       },
       (error) => {
         toast({
           variant: 'destructive',
           title: 'تعذر متابعة الطلب',
-          description: mapRiderMarketplaceError(error),
+          description: mapRiderMarketplaceError(error) || NETWORK_ERROR_AR,
         });
       },
     );
-  }, [activeRideRequestId, dispatch, toast]);
+  }, [dispatch, state.requestId, toast]);
+
+  React.useEffect(() => {
+    let active = true;
+
+    async function loadCaptainPresence() {
+      try {
+        const rows = await fetchAvailableCaptainPresence(supabase, riderH3Cell);
+        if (active) setCaptainLocations(rows);
+      } catch (error) {
+        if (!active) return;
+        setCaptainLocations([]);
+        toast({
+          variant: 'destructive',
+          title: 'تعذر تحميل السائقين القريبين',
+          description: NETWORK_ERROR_AR,
+        });
+      }
+    }
+
+    void loadCaptainPresence();
+
+    return () => {
+      active = false;
+    };
+  }, [riderH3Cell, toast]);
+
+  React.useEffect(() => {
+    if (!state.requestId || state.screen !== 'RECEIVING_OFFERS' || state.requestCancelledAt) return;
+
+    let active = true;
+
+    const refreshOffers = async () => {
+      try {
+        const offers = await fetchRideOffers(supabase, state.requestId!);
+        if (active) dispatch({ type: 'RECEIVE_OFFERS', offers });
+      } catch (error) {
+        if (!active) return;
+        toast({
+          variant: 'destructive',
+          title: 'تعذر تحميل العروض',
+          description: NETWORK_ERROR_AR,
+        });
+      }
+    };
+
+    void refreshOffers();
+
+    const unsubscribe = subscribeToRideOffers(
+      supabase,
+      state.requestId,
+      () => void refreshOffers(),
+      () => {
+        toast({
+          variant: 'destructive',
+          title: 'تعذر متابعة العروض',
+          description: NETWORK_ERROR_AR,
+        });
+      },
+    );
+
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, [dispatch, state.requestCancelledAt, state.requestId, state.screen, toast]);
+
+  React.useEffect(() => {
+    if (!state.requestId || state.screen !== 'RECEIVING_OFFERS' || state.offers.length > 0 || state.requestCancelledAt) return;
+
+    const timeoutId = window.setTimeout(() => {
+      cancelRideRequest(supabase, state.requestId!)
+        .catch(() => {
+          toast({
+            variant: 'destructive',
+            title: 'تعذر تحديث الطلب',
+            description: NETWORK_ERROR_AR,
+          });
+        })
+        .finally(() => {
+          dispatch({ type: 'REQUEST_CANCELLED' });
+        });
+    }, OFFER_TIMEOUT_MS);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [dispatch, state.offers.length, state.requestCancelledAt, state.requestId, state.screen, toast]);
 
   React.useEffect(() => {
     if (!state.activeTrip) {
@@ -360,16 +435,15 @@ export function RiderViewTab() {
 
       const request = await createRideRequest(supabase, payload);
       dispatch({ type: 'SERVER_REQUEST_CREATED', requestId: request.id });
-      setActiveRideRequestId(request.id);
+      dispatch({ type: 'SERVER_STATUS_RECEIVING_OFFERS' });
 
       toast({
         title: 'تم إرسال الطلب',
-        description: 'تم حفظ طلب الرحلة في الخادم وننتظر تحديث الحالة.',
+        description: 'تم حفظ طلب الرحلة. سنعرض العروض فور وصولها.',
       });
 
-      if (request.status === 'RECEIVING_OFFERS') {
-        dispatch({ type: 'SERVER_STATUS_RECEIVING_OFFERS' });
-        setActiveRideRequestId(null);
+      if (request.status === 'CANCELLED') {
+        dispatch({ type: 'REQUEST_CANCELLED' });
       }
     } catch (error) {
       dispatch({ type: 'REQUEST_FAILED' });
@@ -490,6 +564,33 @@ export function RiderViewTab() {
 
     if (state.screen === 'RECEIVING_OFFERS') {
       const hasOffers = state.offers.length > 0;
+      const isCancelled = !!state.requestCancelledAt;
+
+      if (isCancelled) {
+        return (
+          <Card className="w-full border-amber-400/25 bg-[#0B0F19]/92 text-white shadow-2xl shadow-black/40 backdrop-blur-xl">
+            <CardContent className="space-y-5 p-5 text-right" dir="rtl">
+              <div className="rounded-3xl border border-amber-400/20 bg-amber-400/10 p-5">
+                <p className="text-[11px] font-black text-amber-200">لم تصل عروض</p>
+                <h2 className="mt-2 text-xl font-black sm:text-2xl">نعتذر منك، جميع الكباتن مشغولون حالياً</h2>
+                <p className="mt-3 text-sm leading-relaxed text-slate-300">
+                  لم نجد عروضاً تناسب رحلتك في هذه اللحظة. يمكنك إعادة المحاولة أو تغيير الوجهة.
+                </p>
+              </div>
+
+              <Button
+                onClick={() => {
+                  dispatch({ type: 'RESET_TO_IDLE' });
+                  window.setTimeout(openDestination, 0);
+                }}
+                className="h-14 w-full rounded-2xl bg-[#14B8A6] text-base font-black text-[#031315] hover:bg-[#2DD4BF]"
+              >
+                إعادة المحاولة
+              </Button>
+            </CardContent>
+          </Card>
+        );
+      }
 
       return (
         <Card className="w-full border-[#14B8A6]/25 bg-[#0B0F19]/90 text-white shadow-2xl shadow-black/40 backdrop-blur-xl">
@@ -505,7 +606,9 @@ export function RiderViewTab() {
             {!hasOffers ? (
               <div className="flex min-h-36 flex-col items-center justify-center gap-3 rounded-2xl border border-[#14B8A6]/15 bg-black/30">
                 <Loader2 className="h-9 w-9 animate-spin text-[#14F5D5]" />
-                <span className="text-xs font-bold text-slate-300">نبحث عن أقرب سائقين</span>
+                <span className="px-4 text-center text-xs font-bold leading-relaxed text-slate-300">
+                  جاري البحث عن أقرب كباتن متوفرين لك... ثوانٍ من فضلك
+                </span>
               </div>
             ) : (
               <div className="space-y-3">
@@ -598,6 +701,7 @@ export function RiderViewTab() {
         <div className="space-y-3 sm:space-y-4 lg:absolute lg:inset-0 lg:space-y-0">
           <RiderMap
             activeTripCaptainId={state.activeTrip?.captainId || null}
+            captainLocations={captainLocations}
             className="h-[38svh] min-h-[250px] max-h-[320px] sm:h-[42svh] sm:min-h-[300px] sm:max-h-[380px] lg:h-full lg:max-h-none lg:min-h-0 lg:rounded-none lg:border-0"
             onLocationChange={handleLocationChange}
           />
@@ -762,7 +866,7 @@ function toHistoricalTrip(trip: RiderActiveTrip): HistoricalTrip {
   return {
     tripId: trip.tripId,
     captainName: trip.captainSerial,
-    captainRank: trip.captainSerial === 'D-102' ? 'PLATINUM' : trip.captainSerial === 'D-118' ? 'GOLD' : 'BRONZE',
+    captainRank: 'BRONZE',
     captainPhone: trip.captainPhone,
     vehicleInfo: `${trip.vehicleType} - ${trip.vehiclePlate}`,
     finalPrice: trip.finalPrice,

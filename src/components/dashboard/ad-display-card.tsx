@@ -29,7 +29,7 @@ export function getAdImage(ad: any) {
 }
 
 export function getAdTitle(ad: any) {
-  return ad?.content?.title || ad?.title || 'عرض محلي قريب منك';
+  return ad?.content?.title || ad?.title || 'إعلان قريب منك';
 }
 
 export function getAdDescription(ad: any) {

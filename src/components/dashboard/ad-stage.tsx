@@ -3,11 +3,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { ChevronLeft, ChevronRight, MapPin, MessageCircle, Phone, ShieldCheck, X } from 'lucide-react';
-import { doc, increment, serverTimestamp, setDoc } from 'firebase/firestore';
 import { AdDisplayCard, getAdDescription, getAdTitle } from './ad-display-card';
 import { useAuth } from '@/hooks/use-auth';
-import { usePromoStream } from '@/hooks/use-promo-stream';
-import { db } from '@/lib/firebase';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/lib/supabase-client';
 
 const AD_BATCH_WRITE_LIMIT = 50;
 
@@ -41,19 +40,12 @@ const RadarAdMetrics = {
       localStorage.setItem(cacheKey, JSON.stringify(currentMetrics));
 
       const localEvents = currentMetrics.views + currentMetrics.clicks;
-      const isDemoAd = adId.startsWith('virt-') || adId.startsWith('promo-');
 
-      if (localEvents >= AD_BATCH_WRITE_LIMIT && !isDemoAd) {
+      if (localEvents >= AD_BATCH_WRITE_LIMIT) {
         localStorage.removeItem(cacheKey);
-        await setDoc(
-          doc(db, 'sovereign_ad_metrics_rollup', adId),
-          {
-            adId,
-            views: increment(currentMetrics.views),
-            clicks: increment(currentMetrics.clicks),
-            lastFlush: serverTimestamp(),
-          },
-          { merge: true }
+        localStorage.setItem(
+          `radar_ad_metrics_pending_${adId}`,
+          JSON.stringify({ adId, ...currentMetrics, queuedAt: Date.now() }),
         );
       }
     } catch (error) {
@@ -62,68 +54,22 @@ const RadarAdMetrics = {
   },
 };
 
-const VIRTUAL_ADS = [
-  {
-    id: 'virt-1',
-    title: 'مركز أعمال وادي السير الحرفي المطور',
-    description: 'تمويل سريع للمشاريع الحرة الصغيرة بفوائد واضحة ومعاملة بسيطة.',
-    bannerUrl: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&q=80&w=1200',
-    posterUrl: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&q=80&w=1200',
-    phone: '0798888888',
-    whatsapp: '962798888888',
-    geoLoc: 'https://www.openstreetmap.org/?mlat=31.9522&mlon=35.8333#map=14/31.9522/35.8333',
-    buttonText: 'تقديم طلب التمويل',
-    content: {
-      title: 'مركز أعمال وادي السير الحرفي المطور',
-      description: 'تمويل سريع للمشاريع الحرة الصغيرة بفوائد واضحة ومعاملة بسيطة.',
-    },
+const BRAND_PLACEHOLDER_AD = {
+  id: 'brand-empty-state',
+  title: 'مرحباً بك في رادارك السيادي - رحلتك القادمة أأمن وأوفر معنا',
+  description: 'لا توجد إعلانات نشطة في منطقتك الآن. سنعرض لك العروض فور توفرها.',
+  bannerUrl:
+    'data:image/svg+xml;utf8,' +
+    encodeURIComponent(
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0B0F19"/><stop offset="1" stop-color="#063B3A"/></linearGradient><pattern id="p" width="80" height="80" patternUnits="userSpaceOnUse"><path d="M0 80L80 0M-20 20L20-20M60 100L100 60" stroke="#14B8A6" stroke-opacity=".16" stroke-width="2"/></pattern></defs><rect width="1200" height="800" fill="url(#g)"/><rect width="1200" height="800" fill="url(#p)"/><circle cx="980" cy="130" r="180" fill="#14B8A6" fill-opacity=".10"/><circle cx="180" cy="720" r="240" fill="#14F5D5" fill-opacity=".08"/></svg>',
+    ),
+  buttonText: 'ابدأ رحلتك',
+  content: {
+    title: 'مرحباً بك في رادارك السيادي - رحلتك القادمة أأمن وأوفر معنا',
+    description: 'لا توجد إعلانات نشطة في منطقتك الآن. سنعرض لك العروض فور توفرها.',
   },
-  {
-    id: 'virt-2',
-    title: 'مجمعات تقنية عمان للشحن اللوجستي',
-    description: 'حلول نقل وشحن آمنة للشركات الصغيرة والمتاجر المحلية.',
-    bannerUrl: 'https://images.unsplash.com/photo-1586880244406-556ebe35f282?auto=format&fit=crop&q=80&w=1200',
-    posterUrl: 'https://images.unsplash.com/photo-1586880244406-556ebe35f282?auto=format&fit=crop&q=80&w=1200',
-    phone: '0799999999',
-    whatsapp: '962799999999',
-    geoLoc: 'https://www.openstreetmap.org/?mlat=31.9631&mlon=35.9303#map=14/31.9631/35.9303',
-    buttonText: 'عرض خريطة الشحن',
-    content: {
-      title: 'مجمعات تقنية عمان للشحن اللوجستي',
-      description: 'حلول نقل وشحن آمنة للشركات الصغيرة والمتاجر المحلية.',
-    },
-  },
-  {
-    id: 'virt-3',
-    title: 'خدمة نقل للجامعات',
-    description: 'مشاوير يومية للطلاب والموظفين بأسعار واضحة.',
-    bannerUrl: 'https://images.unsplash.com/photo-1552566626-52f8b828add9?auto=format&fit=crop&q=80&w=1200',
-    posterUrl: 'https://images.unsplash.com/photo-1552566626-52f8b828add9?auto=format&fit=crop&q=80&w=1200',
-    phone: '0797777777',
-    whatsapp: '962797777777',
-    geoLoc: 'https://www.openstreetmap.org/?mlat=31.9515&mlon=35.8450#map=14/31.9515/35.8450',
-    buttonText: 'عرض التفاصيل',
-    content: {
-      title: 'خدمة نقل للجامعات',
-      description: 'مشاوير يومية للطلاب والموظفين بأسعار واضحة.',
-    },
-  },
-  {
-    id: 'virt-4',
-    title: 'تأمين ومتابعة السيارات',
-    description: 'تابع سياراتك واحصل على حماية وخدمة مباشرة.',
-    bannerUrl: 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&q=80&w=1200',
-    posterUrl: 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&q=80&w=1200',
-    phone: '0796666666',
-    whatsapp: '962796666666',
-    geoLoc: 'https://www.openstreetmap.org/?mlat=31.9566&mlon=35.9457#map=14/31.9566/35.9457',
-    buttonText: 'سجل الآن',
-    content: {
-      title: 'تأمين ومتابعة السيارات',
-      description: 'تابع سياراتك واحصل على حماية وخدمة مباشرة.',
-    },
-  },
-];
+  isPlaceholder: true,
+};
 
 const getBadgeText = (ad: any) => {
   if (ad.adType === 'RIDER_BENEFIT') return 'للركاب';
@@ -133,19 +79,54 @@ const getBadgeText = (ad: any) => {
 
 export function AdStage({ isFullScreen = false }: { isFullScreen?: boolean }) {
   const { user } = useAuth();
+  const { toast } = useToast();
   const liveDistrict = user?.district || 'عمان';
   const liveGovernorate = user?.governorate || 'العاصمة';
-  const { activeAds } = usePromoStream(liveDistrict, liveGovernorate);
+  const [serverAds, setServerAds] = useState<any[]>([]);
+  const [isLoadingAds, setIsLoadingAds] = useState(true);
   const [heartedAdIds, setHeartedAdIds] = useState<string[]>([]);
   const [takeoverAd, setTakeoverAd] = useState<any | null>(null);
   const [isAdStreamPaused, setIsAdStreamPaused] = useState(false);
   const isAdStreamPausedRef = useRef(false);
   const scrollTrackRef = useRef<HTMLDivElement | null>(null);
 
+  useEffect(() => {
+    let active = true;
+
+    async function fetchLiveAds() {
+      setIsLoadingAds(true);
+      try {
+        const { data, error } = await supabase
+          .from('ad_campaigns')
+          .select('*')
+          .in('status', ['ACTIVE', 'active']);
+
+        if (error) throw error;
+        if (active) setServerAds(Array.isArray(data) ? data.map(mapAdCampaignRow) : []);
+      } catch (error) {
+        if (!active) return;
+        setServerAds([]);
+        toast({
+          variant: 'destructive',
+          title: 'تعذر تحميل الإعلانات',
+          description: 'عذراً، تعذر الاتصال بالخادم. تحقق من شبكة الإنترنت.',
+        });
+      } finally {
+        if (active) setIsLoadingAds(false);
+      }
+    }
+
+    void fetchLiveAds();
+
+    return () => {
+      active = false;
+    };
+  }, [toast]);
+
   const adsToUse = useMemo(() => {
-    const combinedAds = activeAds && activeAds.length > 0 ? [...activeAds, ...VIRTUAL_ADS] : VIRTUAL_ADS;
-    return RadarAdMetrics.filterAdsByLocalContext(liveDistrict, liveGovernorate, combinedAds);
-  }, [activeAds, liveDistrict, liveGovernorate]);
+    const filteredAds = RadarAdMetrics.filterAdsByLocalContext(liveDistrict, liveGovernorate, serverAds);
+    return filteredAds.length > 0 ? filteredAds : [BRAND_PLACEHOLDER_AD];
+  }, [liveDistrict, liveGovernorate, serverAds]);
 
   useEffect(() => {
     adsToUse.forEach((ad: any) => {
@@ -244,14 +225,14 @@ export function AdStage({ isFullScreen = false }: { isFullScreen?: boolean }) {
     ? 'h-[360px] w-[340px] md:h-[448px] md:w-[448px]'
     : 'h-[216px] w-[270px] sm:h-[250px] sm:w-[280px] md:w-[340px]';
 
-  if (!adsToUse || adsToUse.length === 0) {
+  if (isLoadingAds) {
     return (
       <div className={`relative ${heightClass} m-4 flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#14B8A6]/50 bg-[#0B0F19]`}>
         <div className="mb-4 h-12 w-12 animate-spin rounded-full border-t-2 border-[#14B8A6]" />
         <p className="px-4 text-center text-sm font-bold tracking-widest text-[#14B8A6]">
-          إعلانات قريبة منك
+          جاري تحميل الإعلانات
           <br />
-          <span className="text-xs text-gray-400">لا توجد إعلانات في منطقتك الآن</span>
+          <span className="text-xs text-gray-400">ثوانٍ من فضلك</span>
         </p>
       </div>
     );
@@ -286,23 +267,27 @@ export function AdStage({ isFullScreen = false }: { isFullScreen?: boolean }) {
         onBlurCapture={() => setAdStreamPaused(false)}
         onTouchStart={() => setAdStreamPaused(true)}
       >
-        <button
-          type="button"
-          aria-label="الإعلان السابق"
-          onClick={() => scrollAds('previous')}
-          className="absolute left-3 top-1/2 z-30 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-[#0B0F19]/88 text-white shadow-xl shadow-black/35 backdrop-blur-md transition hover:border-[#14B8A6]/45 hover:bg-[#14B8A6]/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/45 sm:left-4"
-        >
-          <ChevronLeft className="h-5 w-5" />
-        </button>
+        {adsToUse.length > 1 && (
+          <>
+            <button
+              type="button"
+              aria-label="الإعلان السابق"
+              onClick={() => scrollAds('previous')}
+              className="absolute left-3 top-1/2 z-30 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-[#0B0F19]/88 text-white shadow-xl shadow-black/35 backdrop-blur-md transition hover:border-[#14B8A6]/45 hover:bg-[#14B8A6]/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/45 sm:left-4"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
 
-        <button
-          type="button"
-          aria-label="الإعلان التالي"
-          onClick={() => scrollAds('next')}
-          className="absolute right-3 top-1/2 z-30 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-[#0B0F19]/88 text-white shadow-xl shadow-black/35 backdrop-blur-md transition hover:border-[#14B8A6]/45 hover:bg-[#14B8A6]/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/45 sm:right-4"
-        >
-          <ChevronRight className="h-5 w-5" />
-        </button>
+            <button
+              type="button"
+              aria-label="الإعلان التالي"
+              onClick={() => scrollAds('next')}
+              className="absolute right-3 top-1/2 z-30 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-[#0B0F19]/88 text-white shadow-xl shadow-black/35 backdrop-blur-md transition hover:border-[#14B8A6]/45 hover:bg-[#14B8A6]/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/45 sm:right-4"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
+          </>
+        )}
 
         <div
           ref={scrollTrackRef}
@@ -311,14 +296,15 @@ export function AdStage({ isFullScreen = false }: { isFullScreen?: boolean }) {
           data-ad-count={adsToUse.length}
           className="flex min-w-0 flex-1 flex-nowrap gap-8 overflow-x-auto px-14 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
-          {[...adsToUse, ...adsToUse].map((ad: any, index: number) => (
+          {(adsToUse.length > 1 ? [...adsToUse, ...adsToUse] : adsToUse).map((ad: any, index: number) => (
             <AdDisplayCard
               key={`${ad.id}-${index}`}
               ad={ad}
               isHearted={heartedAdIds.includes(ad.id)}
               onHeart={toggleHeart}
-              onOpen={openTakeover}
+              onOpen={ad.isPlaceholder ? undefined : openTakeover}
               badgeText={getBadgeText(ad)}
+              showHeart={!ad.isPlaceholder}
               className={`flex-shrink-0 ${cardClassName}`}
             />
           ))}
@@ -406,4 +392,44 @@ export function AdStage({ isFullScreen = false }: { isFullScreen?: boolean }) {
       </AnimatePresence>
     </div>
   );
+}
+
+function mapAdCampaignRow(row: Record<string, any>) {
+  const title = firstString(row.title, row.title_ar, row.name_ar, row.name, row.content?.title);
+  const description = firstString(row.description, row.description_ar, row.content?.description);
+  const posterUrl = firstString(row.posterUrl, row.poster_url, row.bannerUrl, row.banner_url, row.image_url, row.imageUrl);
+  const whatsapp = firstString(row.whatsapp, row.whatsapp_number, row.contact_whatsapp);
+  const phone = firstString(row.phone, row.phone_number, row.contact_phone);
+  const geoLoc = firstString(row.geoLoc, row.geo_url, row.map_url, row.location_url);
+  const targetScale = firstString(row.targetScale, row.target_scale);
+  const targetLocationName = firstString(row.targetLocationName, row.target_location_name, row.target_district, row.target_governorate);
+
+  return {
+    ...row,
+    id: String(row.id),
+    title,
+    description,
+    posterUrl,
+    bannerUrl: posterUrl,
+    whatsapp,
+    phone,
+    geoLoc,
+    targetScale,
+    targetLocationName,
+    adType: row.adType || row.ad_type,
+    buttonText: firstString(row.buttonText, row.button_text, row.cta_text) || 'عرض التفاصيل',
+    content: {
+      ...(row.content || {}),
+      title,
+      description,
+      posterUrl,
+    },
+  };
+}
+
+function firstString(...values: unknown[]) {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim()) return value.trim();
+  }
+  return undefined;
 }

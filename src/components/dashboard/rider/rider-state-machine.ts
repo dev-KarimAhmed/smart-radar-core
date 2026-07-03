@@ -59,6 +59,8 @@ export interface RiderMachineState {
   completedTrip: RiderActiveTrip | null;
   localRatings: Array<RiderLocalRating & { tripId: string; submittedAt: number }>;
   requestStartedAt: number | null;
+  requestId: string | null;
+  requestCancelledAt: number | null;
 }
 
 export type RiderMachineAction =
@@ -68,6 +70,7 @@ export type RiderMachineAction =
   | { type: 'SERVER_REQUEST_CREATED'; requestId: string }
   | { type: 'SERVER_STATUS_RECEIVING_OFFERS' }
   | { type: 'REQUEST_FAILED' }
+  | { type: 'REQUEST_CANCELLED' }
   | { type: 'RECEIVE_OFFERS'; offers: Offer[] }
   | { type: 'SELECT_OFFER'; offerId: string }
   | { type: 'COMPLETE_TRIP' }
@@ -86,67 +89,9 @@ export function createInitialRiderMachineState(): RiderMachineState {
     completedTrip: null,
     localRatings: [],
     requestStartedAt: null,
+    requestId: null,
+    requestCancelledAt: null,
   };
-}
-
-export function buildMockCaptainOffers(destination: RiderDestination): Offer[] {
-  if (destination.serverEstimatedFare === undefined) {
-    throw new Error('server_estimated_fare_required');
-  }
-
-  const basePrice = destination.serverEstimatedFare;
-
-  return [
-    {
-      driverId: 'demo-captain-d-102',
-      driverName: 'D-102',
-      driverRating: 4.9,
-      driverRank: 'Platinum',
-      price: basePrice,
-      driverVehicle: {
-        make: 'Toyota Corolla',
-        color: 'White',
-        year: 2023,
-        plate: '77-102',
-        type: 'Hybrid sedan',
-      },
-      driverAffiliation: { type: 'independent', name: 'مستقل' },
-      silencePreference: 'silent',
-    },
-    {
-      driverId: 'demo-captain-d-118',
-      driverName: 'D-118',
-      driverRating: 4.7,
-      driverRank: 'Gold',
-      price: basePrice,
-      driverVehicle: {
-        make: 'Hyundai Ioniq',
-        color: 'Silver',
-        year: 2022,
-        plate: '22-118',
-        type: 'Eco sedan',
-      },
-      driverAffiliation: { type: 'independent', name: 'مستقل' },
-      silencePreference: 'neutral',
-    },
-    {
-      driverId: 'demo-captain-d-131',
-      driverName: 'D-131',
-      driverRating: 4.5,
-      driverRank: 'Silver',
-      price: basePrice,
-      driverVehicle: {
-        make: 'Kia Niro',
-        color: 'Black',
-        year: 2021,
-        plate: '31-131',
-        type: 'Compact hybrid',
-      },
-      driverAffiliation: { type: 'independent', name: 'مستقل' },
-      isDumping: true,
-      displayTarget: 'reserve_3',
-    },
-  ];
 }
 
 export function shouldShowAdRiver(state: RiderMachineState): boolean {
@@ -170,14 +115,14 @@ function buildActiveTrip(state: RiderMachineState, selectedOffer: Offer): RiderA
     captainId: selectedOffer.driverId,
     captainName: selectedOffer.driverName,
     captainSerial: selectedOffer.driverName || selectedOffer.driverId,
-    captainPhone: '0790000102',
-    vehicleType: vehicle.type || `${vehicle.make || 'Vehicle'} ${vehicle.color || ''}`.trim(),
-    vehiclePlate: vehicle.plate || '77-102',
+    captainPhone: selectedOffer.driverAffiliation?.phone || '',
+    vehicleType: vehicle.type || `${vehicle.make || 'سيارة'} ${vehicle.color || ''}`.trim(),
+    vehiclePlate: vehicle.plate || 'غير متاح',
     finalPrice:
       selectedOffer.price === -1
         ? state.destination?.serverEstimatedFare ?? 0
         : selectedOffer.price,
-    destinationLabel: state.destination?.label || 'وجهة محلية',
+    destinationLabel: state.destination?.label || 'وجهة',
     distanceKm,
     originCell: state.destination?.originCell ?? state.destination?.fareQuote?.originCell,
     destinationCell: state.destination?.destinationCell ?? state.destination?.fareQuote?.destinationCell,
@@ -207,11 +152,13 @@ export function riderDashboardReducer(state: RiderMachineState, action: RiderMac
         activeTrip: null,
         completedTrip: null,
         requestStartedAt: Date.now(),
+        requestId: null,
+        requestCancelledAt: null,
       };
 
     case 'SERVER_REQUEST_CREATED':
       if (state.screen !== 'DESTINATION_SELECTION') return state;
-      return { ...state, requestStartedAt: state.requestStartedAt ?? Date.now() };
+      return { ...state, requestId: action.requestId, requestStartedAt: state.requestStartedAt ?? Date.now() };
 
     case 'SERVER_STATUS_RECEIVING_OFFERS':
       if (state.screen !== 'DESTINATION_SELECTION' && state.screen !== 'RECEIVING_OFFERS') return state;
@@ -220,7 +167,16 @@ export function riderDashboardReducer(state: RiderMachineState, action: RiderMac
 
     case 'REQUEST_FAILED':
       if (state.screen !== 'DESTINATION_SELECTION') return state;
-      return { ...state, requestStartedAt: null };
+      return { ...state, requestStartedAt: null, requestId: null };
+
+    case 'REQUEST_CANCELLED':
+      if (state.screen !== 'DESTINATION_SELECTION' && state.screen !== 'RECEIVING_OFFERS') return state;
+      return {
+        ...state,
+        screen: 'RECEIVING_OFFERS',
+        offers: [],
+        requestCancelledAt: Date.now(),
+      };
 
     case 'RECEIVE_OFFERS':
       if (state.screen !== 'RECEIVING_OFFERS') return state;
@@ -256,6 +212,8 @@ export function riderDashboardReducer(state: RiderMachineState, action: RiderMac
         activeTrip: null,
         completedTrip: null,
         requestStartedAt: null,
+        requestId: null,
+        requestCancelledAt: null,
         localRatings: [
           ...state.localRatings,
           {
