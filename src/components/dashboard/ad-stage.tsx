@@ -95,40 +95,40 @@ const VIRTUAL_ADS = [
   },
   {
     id: 'virt-3',
-    title: 'بوابة نبض بغداد الكرخ الكبرى',
-    description: 'مبادرة نقل تعاوني لخدمة الجامعات والقطاعات المحلية المطلوبة.',
+    title: 'خدمة نقل للجامعات',
+    description: 'مشاوير يومية للطلاب والموظفين بأسعار واضحة.',
     bannerUrl: 'https://images.unsplash.com/photo-1552566626-52f8b828add9?auto=format&fit=crop&q=80&w=1200',
     posterUrl: 'https://images.unsplash.com/photo-1552566626-52f8b828add9?auto=format&fit=crop&q=80&w=1200',
     phone: '0797777777',
     whatsapp: '962797777777',
     geoLoc: 'https://www.openstreetmap.org/?mlat=31.9515&mlon=35.8450#map=14/31.9515/35.8450',
-    buttonText: 'تفاصيل الخدمة',
+    buttonText: 'عرض التفاصيل',
     content: {
-      title: 'بوابة نبض بغداد الكرخ الكبرى',
-      description: 'مبادرة نقل تعاوني لخدمة الجامعات والقطاعات المحلية المطلوبة.',
+      title: 'خدمة نقل للجامعات',
+      description: 'مشاوير يومية للطلاب والموظفين بأسعار واضحة.',
     },
   },
   {
     id: 'virt-4',
-    title: 'الربط الميداني لمنظومة الرادار الذكي',
-    description: 'حل تأمين ومتابعة للسيارات مع حماية شاملة وخدمة مباشرة.',
+    title: 'تأمين ومتابعة السيارات',
+    description: 'تابع سياراتك واحصل على حماية وخدمة مباشرة.',
     bannerUrl: 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&q=80&w=1200',
     posterUrl: 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&q=80&w=1200',
     phone: '0796666666',
     whatsapp: '962796666666',
     geoLoc: 'https://www.openstreetmap.org/?mlat=31.9566&mlon=35.9457#map=14/31.9566/35.9457',
-    buttonText: 'تسجيل ناقل جديد',
+    buttonText: 'سجل الآن',
     content: {
-      title: 'الربط الميداني لمنظومة الرادار الذكي',
-      description: 'حل تأمين ومتابعة للسيارات مع حماية شاملة وخدمة مباشرة.',
+      title: 'تأمين ومتابعة السيارات',
+      description: 'تابع سياراتك واحصل على حماية وخدمة مباشرة.',
     },
   },
 ];
 
 const getBadgeText = (ad: any) => {
-  if (ad.adType === 'RIDER_BENEFIT') return 'منفعة راكب';
-  if (ad.adType === 'CAPTAIN_PROFESSIONAL') return 'دعم كابتن';
-  return 'نبض ميداني';
+  if (ad.adType === 'RIDER_BENEFIT') return 'للركاب';
+  if (ad.adType === 'CAPTAIN_PROFESSIONAL') return 'للسائقين';
+  return 'إعلان قريب';
 };
 
 export function AdStage({ isFullScreen = false }: { isFullScreen?: boolean }) {
@@ -249,9 +249,9 @@ export function AdStage({ isFullScreen = false }: { isFullScreen?: boolean }) {
       <div className={`relative ${heightClass} m-4 flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#14B8A6]/50 bg-[#0B0F19]`}>
         <div className="mb-4 h-12 w-12 animate-spin rounded-full border-t-2 border-[#14B8A6]" />
         <p className="px-4 text-center text-sm font-bold tracking-widest text-[#14B8A6]">
-          نهر الإعلانات جاهز
+          إعلانات قريبة منك
           <br />
-          <span className="text-xs text-gray-400">لا توجد حملات نشطة في منطقتك حالياً</span>
+          <span className="text-xs text-gray-400">لا توجد إعلانات في منطقتك الآن</span>
         </p>
       </div>
     );
@@ -269,11 +269,11 @@ export function AdStage({ isFullScreen = false }: { isFullScreen?: boolean }) {
             <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#14B8A6]" />
           </span>
           <h2 className="text-xs font-black uppercase tracking-widest text-[#14F5D5] md:text-sm">
-            نهر الإعلانات الميداني
+            إعلانات قريبة منك
           </h2>
         </div>
         <span className="font-mono text-[9px] font-bold text-gray-500 md:text-[10px]">
-          LIVE STREAM REGISTRY • {adsToUse.length} CAMPAIGNS
+          {adsToUse.length} إعلان
         </span>
       </div>
 
@@ -372,7 +372,7 @@ export function AdStage({ isFullScreen = false }: { isFullScreen?: boolean }) {
                 <a
                   href={`https://wa.me/${
                     takeoverAd.whatsapp || takeoverAd.advertiserData?.whatsapp || '962798888888'
-                  }?text=${encodeURIComponent(`مرحباً، شاهدت إعلانكم على تطبيق الرادار: ${getAdTitle(takeoverAd)}`)}`}
+                  }?text=${encodeURIComponent(`مرحبا، شاهدت إعلانكم في التطبيق: ${getAdTitle(takeoverAd)}`)}`}
                   target="_blank"
                   onClick={(event) => event.stopPropagation()}
                   className="flex w-full items-center justify-center gap-2.5 rounded-2xl border border-[#00cc66]/50 bg-[#00cc66] p-3.5 text-xs font-black text-white shadow-[0_4px_15px_rgba(0,204,102,0.25)] transition hover:bg-[#00e271]"

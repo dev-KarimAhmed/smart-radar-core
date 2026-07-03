@@ -305,7 +305,7 @@ export function RiderMap({ activeTripCaptainId, className, onLocationChange }: R
       </div>
       <div className="pointer-events-none absolute bottom-3 right-3 left-3 flex items-center justify-between rounded-2xl border border-white/10 bg-[#0B0F19]/82 px-3 py-2 text-[11px] text-white backdrop-blur sm:bottom-4 sm:right-4 sm:left-4 sm:px-4 sm:py-3 sm:text-xs lg:left-[312px] lg:right-[456px]">
         <span className="font-black text-[#14F5D5]">
-          {activeTripCaptainId ? 'الكابتن يتحرك نحوك' : `كباتن قريبون: ${captains.length}`}
+          {activeTripCaptainId ? 'السائق في الطريق إليك' : `سائقون قريبون: ${captains.length}`}
         </span>
         <span className="text-[10px] text-slate-300">MapLibre + OpenFreeMap / © OSM</span>
       </div>
@@ -315,7 +315,7 @@ export function RiderMap({ activeTripCaptainId, className, onLocationChange }: R
           onClick={requestLiveLocation}
           className="absolute left-4 top-4 rounded-2xl border border-[#14B8A6]/30 bg-[#0B0F19]/90 px-4 py-2 text-xs font-black text-[#14F5D5] shadow-lg backdrop-blur transition hover:bg-[#14B8A6]/15 lg:left-[312px]"
         >
-          استخدم موقعي
+          استخدم موقعي الحالي
         </button>
       )}
     </section>

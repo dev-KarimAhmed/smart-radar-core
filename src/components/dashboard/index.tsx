@@ -373,10 +373,10 @@ function DesktopRiderSidebar({
   const initials = getInitials(user?.name || user?.phone || 'R');
   const items = [
     { href: '#', icon: Home, label: 'الرئيسية' },
-    { href: '#history', icon: History, label: 'السجل' },
-    { href: '#vault', icon: Archive, label: 'المحفوظات' },
-    { href: '#wallet', icon: Wallet, label: 'المحفظة' },
-    { href: '#profile', icon: User, label: 'الحساب' },
+    { href: '#history', icon: History, label: 'رحلاتي' },
+    { href: '#vault', icon: Archive, label: 'المفضلة' },
+    { href: '#wallet', icon: Wallet, label: 'الرصيد' },
+    { href: '#profile', icon: User, label: 'حسابي' },
   ];
 
   const openRideRequest = () => {
@@ -392,7 +392,7 @@ function DesktopRiderSidebar({
         </Avatar>
         <div className="min-w-0 text-right">
           <p className="truncate text-sm font-black text-white">{user?.name || 'راكب'}</p>
-          <p className="truncate text-xs font-bold text-[#14B8A6]">{user?.phone || 'الرادار الذكي'}</p>
+          <p className="truncate text-xs font-bold text-[#14B8A6]">{user?.phone || 'تطبيق الرحلات'}</p>
         </div>
       </div>
 
@@ -402,7 +402,7 @@ function DesktopRiderSidebar({
           className="h-12 w-full justify-center gap-2 rounded-2xl bg-[#14B8A6] text-sm font-black text-[#031315] shadow-[0_16px_35px_rgba(20,184,166,0.18)] hover:bg-[#2DD4BF]"
         >
           <PlusCircle className="h-5 w-5" />
-          طلب جديد
+          اطلب رحلة
         </Button>
         <Button
           onClick={onNotify}
@@ -440,7 +440,7 @@ function DesktopRiderSidebar({
       <div className="space-y-3 border-t border-white/10 p-4">
         <div className="rounded-2xl border border-[#14B8A6]/15 bg-[#14B8A6]/8 p-3 text-right">
           <p className="text-[11px] font-black text-[#14F5D5]">حالة الحساب</p>
-          <p className="mt-1 text-xs font-bold text-slate-300">جاهز لطلب الرحلات</p>
+          <p className="mt-1 text-xs font-bold text-slate-300">جاهز لطلب رحلة</p>
         </div>
         <Button
           onClick={logout}

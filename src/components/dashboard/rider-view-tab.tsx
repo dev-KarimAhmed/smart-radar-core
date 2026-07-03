@@ -420,7 +420,7 @@ export function RiderViewTab() {
           <CardContent className="space-y-5 p-5 text-right" dir="rtl">
             <div className="space-y-1">
               <p className="text-[11px] font-black text-[#14F5D5]">اختيار الوجهة</p>
-              <h2 className="text-xl font-black sm:text-2xl">وين بدك تروح؟</h2>
+              <h2 className="text-xl font-black sm:text-2xl">إلى أين تريد الذهاب؟</h2>
               <p className="text-xs text-slate-400">اختيار محلي داخل الأردن فقط. بدون Google Places وبدون Geocoding.</p>
             </div>
 
@@ -481,7 +481,7 @@ export function RiderViewTab() {
               disabled={isSendingRideRequest || isServerFareLoading || selectedDraftDestination.serverEstimatedFare === undefined}
               className="h-14 w-full rounded-2xl bg-[#14B8A6] text-base font-black text-[#031315] hover:bg-[#2DD4BF]"
             >
-              {isSendingRideRequest ? 'جاري إرسال الطلب...' : 'إرسال طلب الرحلة'}
+              {isSendingRideRequest ? 'جاري إرسال الطلب...' : 'اطلب الآن'}
             </Button>
           </CardContent>
         </Card>
@@ -495,17 +495,17 @@ export function RiderViewTab() {
         <Card className="w-full border-[#14B8A6]/25 bg-[#0B0F19]/90 text-white shadow-2xl shadow-black/40 backdrop-blur-xl">
           <CardContent className="space-y-5 p-5 text-right" dir="rtl">
             <div className="space-y-1">
-              <p className="text-[11px] font-black text-[#14F5D5]">{hasOffers ? 'وصلت عروض' : 'ننتظر الكباتن'}</p>
-              <h2 className="text-xl font-black sm:text-2xl">{hasOffers ? 'اختار الكابتن المناسب' : 'طلبك ظاهر للكباتن القريبين'}</h2>
+              <p className="text-[11px] font-black text-[#14F5D5]">{hasOffers ? 'وصلت عروض' : 'نبحث عن سائق'}</p>
+              <h2 className="text-xl font-black sm:text-2xl">{hasOffers ? 'اختر السائق' : 'طلبك ظاهر للسائقين القريبين'}</h2>
               <p className="text-xs text-slate-400">
-                {hasOffers ? 'اختر العرض المناسب عند وصوله من الخادم.' : 'ننتظر تحديث حالة الطلب من الخادم وظهور العروض.'}
+                {hasOffers ? 'اختر العرض المناسب لك.' : 'انتظر قليلا، ستظهر العروض هنا.'}
               </p>
             </div>
 
             {!hasOffers ? (
               <div className="flex min-h-36 flex-col items-center justify-center gap-3 rounded-2xl border border-[#14B8A6]/15 bg-black/30">
                 <Loader2 className="h-9 w-9 animate-spin text-[#14F5D5]" />
-                <span className="text-xs font-bold text-slate-300">يتم البحث داخل خلايا H3 القريبة</span>
+                <span className="text-xs font-bold text-slate-300">نبحث عن أقرب سائقين</span>
               </div>
             ) : (
               <div className="space-y-3">
@@ -525,7 +525,7 @@ export function RiderViewTab() {
                     </div>
 
                     <div className="grid grid-cols-2 gap-2 rounded-xl bg-black/25 p-3 text-xs text-slate-300">
-                      <Metric label="المركبة" value={`${offer.driverVehicle.make} ${offer.driverVehicle.color}`} />
+                      <Metric label="السيارة" value={`${offer.driverVehicle.make} ${offer.driverVehicle.color}`} />
                       <Metric label="اللوحة" value={offer.driverVehicle.plate} />
                     </div>
 
@@ -533,7 +533,7 @@ export function RiderViewTab() {
                       onClick={() => dispatch({ type: 'SELECT_OFFER', offerId: offer.driverId })}
                       className="h-11 w-full rounded-xl bg-[#14B8A6] font-black text-[#031315] hover:bg-[#2DD4BF]"
                     >
-                      اختيار هذا الكابتن
+                      اختيار هذا السائق
                     </Button>
                   </article>
                 ))}
@@ -553,7 +553,7 @@ export function RiderViewTab() {
           <CardContent className="space-y-5 p-5 text-right" dir="rtl">
             <div className="flex items-start justify-between gap-3">
               <div className="space-y-1">
-                <p className="text-[11px] font-black text-[#14F5D5]">رحلة نشطة</p>
+                <p className="text-[11px] font-black text-[#14F5D5]">الرحلة بدأت</p>
                 <h2 className="text-xl font-black sm:text-2xl">{state.activeTrip.captainSerial}</h2>
                 <p className="text-xs text-slate-400">{state.activeTrip.destinationLabel}</p>
               </div>
@@ -566,23 +566,23 @@ export function RiderViewTab() {
             </div>
 
             <div className="grid grid-cols-2 gap-3 rounded-2xl border border-white/10 bg-black/30 p-4">
-              <Metric label="المركبة" value={state.activeTrip.vehicleType} />
+              <Metric label="السيارة" value={state.activeTrip.vehicleType} />
               <Metric label="اللوحة" value={state.activeTrip.vehiclePlate} />
-              <Metric label="السعر النهائي" value={formatMoney(state.activeTrip.finalPrice, currencyLabel)} />
+              <Metric label="السعر" value={formatMoney(state.activeTrip.finalPrice, currencyLabel)} />
               <Metric label="المسافة" value={`${state.activeTrip.distanceKm.toFixed(2)} كم`} />
-              <Metric label="التتبع" value="نبض H3 محلي" />
+              <Metric label="التتبع" value="تحديثات محلية" />
               <Metric label="عامل الطريق" value={(state.activeTrip.tortuosityFactor ?? 1.3).toFixed(2)} />
             </div>
 
             <div className="rounded-2xl border border-[#14B8A6]/20 bg-[#14B8A6]/8 p-4 text-xs leading-relaxed text-slate-300">
-              الكابتن يتحرك على الخريطة كنموذج محلي. لا يوجد بث GPS مباشر ولا أي طلب خارجي مدفوع.
+              السائق في الطريق إليك. هذا عرض تجريبي محلي بدون تتبع مباشر مدفوع.
             </div>
 
             <Button
               onClick={() => void handleCompleteTrip()}
               className="h-14 w-full rounded-2xl bg-[#14B8A6] text-base font-black text-[#031315] hover:bg-[#2DD4BF]"
             >
-              إنهاء الرحلة للتجربة
+              إنهاء الرحلة
             </Button>
           </CardContent>
         </Card>
@@ -608,7 +608,7 @@ export function RiderViewTab() {
             <div className="mb-3 flex items-center justify-between sm:mb-4">
               <div>
                 <p className="text-[11px] font-black text-[#14F5D5]">لوحة الراكب</p>
-                <h1 className="text-xl font-black sm:text-2xl">رادار الرحلة المحلي</h1>
+                <h1 className="text-xl font-black sm:text-2xl">طلب الرحلة</h1>
               </div>
               <ShieldCheck className="h-7 w-7 text-[#14F5D5]" />
             </div>
@@ -618,10 +618,10 @@ export function RiderViewTab() {
                 الخريطة
               </NavButton>
               <NavButton active={state.screen === 'PURGE_LEDGER'} onClick={() => dispatch({ type: 'OPEN_PURGE_LEDGER' })}>
-                السجل
+                رحلاتي
               </NavButton>
               <NavButton active={state.screen === 'FAVORITE_CAPTAINS'} onClick={() => dispatch({ type: 'OPEN_FAVORITE_CAPTAINS' })}>
-                المحفوظ
+                المفضلة
               </NavButton>
             </div>
           </div>
@@ -631,16 +631,16 @@ export function RiderViewTab() {
               <Card className="border-[#14B8A6]/25 bg-[#0B0F19]/90 text-white shadow-2xl shadow-black/40 backdrop-blur-xl">
                 <CardContent className="space-y-5 p-5 text-right" dir="rtl">
                   <div className="space-y-1">
-                    <p className="text-[11px] font-black text-[#14F5D5]">جاهز لطلب رحلة</p>
-                    <h2 className="text-xl font-black sm:text-2xl">أهلا بك</h2>
+                    <p className="text-[11px] font-black text-[#14F5D5]">جاهز؟</p>
+                    <h2 className="text-xl font-black sm:text-2xl">إلى أين تريد الذهاب؟</h2>
                     <p className="text-xs leading-relaxed text-slate-400">
-                      الخريطة مجانية، والوجهات من بيانات الأردن المحلية، والسعر يحسب من موقعك الحالي أو من عمّان عند عدم توفر GPS.
+                      اختر وجهتك وسنبحث عن سائق قريب. السعر يظهر قبل إرسال الطلب.
                     </p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3 rounded-2xl border border-white/10 bg-black/30 p-4">
                     <Metric label="منطقتك" value={locationStatus === 'live' ? 'موقعك الحالي' : 'عمّان'} />
-                    <Metric label="ثقتك" value={`${riderProfile.rating.toFixed(1)} / 5`} />
+                    <Metric label="تقييمك" value={`${riderProfile.rating.toFixed(1)} / 5`} />
                   </div>
 
                   <Button
@@ -685,19 +685,19 @@ export function RiderViewTab() {
           <DialogContent className="border-emerald-900/50 bg-[#050D05] text-white sm:max-w-md">
             <DialogHeader className="text-center">
               <DialogTitle className="text-xl font-black">قيّم الرحلة</DialogTitle>
-              <DialogDescription className="text-gray-400">التقييم محفوظ محليا فقط في هذا النموذج.</DialogDescription>
+              <DialogDescription className="text-gray-400">التقييم محفوظ محليا في هذا النموذج فقط.</DialogDescription>
             </DialogHeader>
 
             <div className="space-y-8 py-6">
               <div className="space-y-3 text-center">
-                <Label className="font-bold text-emerald-500">الكابتن</Label>
+                <Label className="font-bold text-emerald-500">السائق</Label>
                 <div className="flex justify-center">
                   <StarRating rating={rating.captain} setRating={(value: number) => setRating((prev) => ({ ...prev, captain: value }))} size="lg" />
                 </div>
               </div>
 
               <div className="space-y-3 text-center">
-                <Label className="font-bold text-emerald-500">المركبة</Label>
+                <Label className="font-bold text-emerald-500">السيارة</Label>
                 <div className="flex justify-center">
                   <StarRating rating={rating.vehicle} setRating={(value: number) => setRating((prev) => ({ ...prev, vehicle: value }))} size="lg" color="amber" />
                 </div>
@@ -708,7 +708,7 @@ export function RiderViewTab() {
                 onClick={() => setRating((prev) => ({ ...prev, favorite: !prev.favorite }))}
                 className="mx-auto flex items-center gap-3 rounded-2xl border border-emerald-500/20 bg-emerald-950/20 px-4 py-3 text-sm font-bold"
               >
-                <span>احفظ الكابتن</span>
+                <span>أضف السائق للمفضلة</span>
                 <Heart className={cn('h-5 w-5', rating.favorite ? 'fill-red-500 text-red-500' : 'text-gray-500')} />
               </button>
             </div>

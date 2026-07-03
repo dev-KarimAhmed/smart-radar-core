@@ -50,7 +50,7 @@ export function AdDisplayCard({
   onHeart,
   onOpen,
   className,
-  badgeText = 'نبض ميداني',
+  badgeText = 'إعلان قريب',
   ctaText,
   showHeart = true,
 }: AdDisplayCardProps) {

@@ -33,7 +33,7 @@ Important ad note: dashboard ads should keep the client-approved large image-car
 | 72-hour ledger | 88% | Dexie stores completed local trip entries and purges expired items. Needs backend sync/rules. |
 | Favorite captains vault | 88% | Dexie/local favorite captain storage exists. Needs backend sync only if matching priority depends on it. |
 | Ads surface | 86% | Client large-card style preserved; carousel pauses on hover and supports manual navigation. Billing authority remains incomplete. |
-| Arabic/UI copy | 72% | Auth visible copy was repaired, but source scan still shows mojibake in rider/dashboard/auth error strings. |
+| Arabic/UI copy | 78% | Main Rider labels are moving toward simple Uber/inDrive-style wording; older shared screens still use heavy internal terms. |
 | Backend authority overall | 58% | Auth/fare/request started; offers, trips, wallets, commissions, ads, and admin authority still need backend enforcement. |
 
 ## What Is Aligned Now
@@ -51,7 +51,7 @@ Important ad note: dashboard ads should keep the client-approved large image-car
 - **Responsive UI:** desktop uses a left sidebar and full map surface; mobile keeps the bottom nav and scrolls correctly.
 - **Dexie ledger:** completed local trips are written to `riderTripLedger` with purge timestamps.
 - **Favorites:** favorite captains use Dexie/local device storage.
-- **Ads:** the client-approved large card layout remains; hover/touch/focus pauses movement, and next/previous controls are present.
+- **Ads:** the client-approved large card layout remains; hover/touch/focus pauses movement, next/previous controls are present, and labels now use simpler words like "إعلانات قريبة منك".
 
 ## Missing Or Partial For Production
 
@@ -63,7 +63,7 @@ Important ad note: dashboard ads should keep the client-approved large image-car
 - **Wallet/commission settlement is not protected.** Wallet balances, captain payments, delegate commissions, and platform fees still need backend authority.
 - **Ad billing is not authoritative.** The ad UI is much better, but impressions/clicks/budget consumption still need one server-protected batching path.
 - **Legacy Firebase remains.** Several hooks and dashboard surfaces still use Firestore/Firebase, creating permission warnings and split backend authority.
-- **Arabic copy is not fully clean.** Visible auth copy is fixed, but scans still show mojibake in `rider-view-tab.tsx`, `rider-map.tsx`, `supabase-auth.ts`, old `login-page.tsx`, and other shared strings.
+- **Arabic copy is not fully simple everywhere.** The Rider flow should consistently use normal ride-app wording: "السائق" instead of "الكابتن", "رحلاتي" instead of "السجل", "الرصيد" instead of "المحفظة", "المفضلة" instead of "المحفوظات", and "إعلانات قريبة منك" instead of "نهر الإعلانات".
 - **Supabase RLS/triggers need live verification.** Auth profile creation, foreign keys, `ride_requests`, Realtime, and fare RPC must be tested against live policies.
 - **Geospatial data needs certification.** Jordan local district anchors and any future country anchors should be validated against client-approved or official GIS data.
 
@@ -115,10 +115,10 @@ These items must not remain trusted only on the frontend:
    - Migrate production Rider dependencies to Supabase or hard-gate them outside production.
    - Eliminate permission-warning noise.
 
-6. **Clean Arabic and old copy**
-   - Replace all mojibake strings in Rider/auth/dashboard/error paths.
-   - Keep Arabic simple and direct.
-   - Add a small source scan check for `Ø`, `Ù`, `Ã`, `Â`, and replacement characters.
+6. **Simplify Arabic copy**
+   - Use Uber/inDrive-style Arabic: short, familiar, and action-focused.
+   - Replace heavy words such as `رادار`, `نهر`, `نبض`, `سيادي`, `محفوظات`, and `كابتن` in rider-facing surfaces.
+   - Keep the shared copy source in `docs/simple-ar-en-copy-guide.md` and scan for mojibake characters before release.
 
 7. **Productionize ads**
    - Keep the large image-card layout and hover pause/manual scroll.
