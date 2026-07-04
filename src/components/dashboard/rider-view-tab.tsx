@@ -32,6 +32,7 @@ import {
   createRideRequest,
   fetchAvailableCaptainPresence,
   fetchRideOffers,
+  isCaptainPresenceFresh,
   mapRiderMarketplaceError,
   subscribeToRideOffers,
   subscribeToRideRequestStatus,
@@ -42,6 +43,8 @@ const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
 const H3_RIDER_REQUEST_RESOLUTION = 9;
 const OFFER_TIMEOUT_MS = 2 * 60 * 1000;
 const FARE_RECALCULATION_DEBOUNCE_MS = 350;
+const CAPTAIN_PRESENCE_REFRESH_MS = 15_000;
+const CAPTAIN_PRESENCE_PRUNE_MS = 5_000;
 const NETWORK_ERROR_AR = 'عذراً، تعذر الاتصال بالخادم. تحقق من شبكة الإنترنت.';
 
 interface CountryCurrencyConfig {
@@ -449,8 +452,17 @@ export function RiderViewTab() {
     let active = true;
 
     async function loadCaptainPresence() {
+      if (!activeCountryId) {
+        setCaptainLocations([]);
+        return;
+      }
+
       try {
-        const rows = await fetchAvailableCaptainPresence(supabase, riderH3Cell);
+        const rows = await fetchAvailableCaptainPresence(supabase, {
+          centerH3Cell: riderH3Cell,
+          countryId: activeCountryId,
+          ringSize: 1,
+        });
         if (active) setCaptainLocations(rows);
       } catch (error) {
         if (!active) return;
@@ -460,11 +472,34 @@ export function RiderViewTab() {
     }
 
     void loadCaptainPresence();
+    const refreshInterval = window.setInterval(() => void loadCaptainPresence(), CAPTAIN_PRESENCE_REFRESH_MS);
+    const pruneInterval = window.setInterval(() => {
+      setCaptainLocations((previous) => previous.filter((captain) => isCaptainPresenceFresh(captain)));
+    }, CAPTAIN_PRESENCE_PRUNE_MS);
+
+    const channel = activeCountryId
+      ? supabase
+          .channel(`captain-presence-${activeCountryId}-${riderH3Cell}`)
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'captain_locations',
+              filter: `country_id=eq.${activeCountryId}`,
+            },
+            () => void loadCaptainPresence(),
+          )
+          .subscribe()
+      : null;
 
     return () => {
       active = false;
+      window.clearInterval(refreshInterval);
+      window.clearInterval(pruneInterval);
+      void channel?.unsubscribe();
     };
-  }, [riderH3Cell, toast]);
+  }, [activeCountryId, riderH3Cell]);
 
   React.useEffect(() => {
     if (!state.requestId || state.screen !== 'RECEIVING_OFFERS' || state.requestCancelledAt) return;

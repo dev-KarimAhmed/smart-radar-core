@@ -1,5 +1,6 @@
 import type { Offer } from '@/core/types';
 import type { RiderLocation } from './rider-map';
+import { cellToLatLng, gridDisk } from 'h3-js';
 
 type SupabaseRpcLike = {
   rpc: (name: string, args: Record<string, number>) => PromiseLike<{ data: unknown; error: unknown }>;
@@ -79,9 +80,20 @@ export interface CaptainPresencePoint {
   serial: string;
   h3Cell: string;
   coordinates: RiderLocation;
+  updatedAt: string | null;
   etaMinutes?: number;
   rank?: string;
 }
+
+export interface CaptainPresenceQueryInput {
+  centerH3Cell: string;
+  countryId?: number | null;
+  nowMs?: number;
+  ringSize?: number;
+  ttlMs?: number;
+}
+
+const CAPTAIN_PRESENCE_TTL_MS = 60_000;
 
 export async function calculateServerFare(client: SupabaseRpcLike, input: ServerFareInput): Promise<number> {
   const args = {
@@ -158,17 +170,59 @@ export async function cancelRideRequest(client: SupabaseFromLike, requestId: str
 
 export async function fetchAvailableCaptainPresence(
   client: SupabaseFromLike,
-  h3Cell: string,
+  input: string | CaptainPresenceQueryInput,
 ): Promise<CaptainPresencePoint[]> {
-  const { data, error } = await client
-    .from('captain_locations')
-    .select('*')
-    .eq('current_h3', h3Cell)
-    .eq('status', 'AVAILABLE')
-    .limit(25);
+  const query = typeof input === 'string'
+    ? { centerH3Cell: input, ttlMs: CAPTAIN_PRESENCE_TTL_MS, ringSize: 0 }
+    : input;
+  const nowMs = query.nowMs ?? Date.now();
+  const ttlMs = query.ttlMs ?? CAPTAIN_PRESENCE_TTL_MS;
+  const staleBeforeIso = new Date(nowMs - ttlMs).toISOString();
+  const h3Cells = gridDisk(query.centerH3Cell, query.ringSize ?? 1);
+  const h3Columns = ['h3_cell', 'current_h3', 'h3'];
+  const availabilityFilters: Array<{ column: string; value: unknown } | null> = [
+    { column: 'is_available', value: true },
+    { column: 'status', value: 'AVAILABLE' },
+    { column: 'status', value: 'available' },
+    null,
+  ];
+  const countryModes = query.countryId ? [true, false] : [false];
+  let lastMissingColumnError: unknown = null;
 
-  if (error) throw error;
-  return Array.isArray(data) ? data.map(mapCaptainPresenceRow).filter(Boolean) as CaptainPresencePoint[] : [];
+  for (const h3Column of h3Columns) {
+    for (const includeCountry of countryModes) {
+      for (const availabilityFilter of availabilityFilters) {
+        const result = await runCaptainPresenceQuery({
+          client,
+          h3Column,
+          h3Cells,
+          availabilityFilter,
+          staleBeforeIso,
+          countryId: includeCountry ? query.countryId : null,
+        });
+
+        if (!result.error) {
+          const data = result.data;
+          return Array.isArray(data)
+            ? data
+                .map(mapCaptainPresenceRow)
+                .filter((row): row is CaptainPresencePoint => !!row && isCaptainPresenceFresh(row, nowMs, ttlMs))
+            : [];
+        }
+
+        if (isMissingColumnError(result.error) || isInvalidEnumValueError(result.error)) {
+          lastMissingColumnError = result.error;
+          continue;
+        }
+
+        throw result.error;
+      }
+    }
+  }
+
+  if (lastMissingColumnError) throw lastMissingColumnError;
+
+  return [];
 }
 
 export function subscribeToRideRequestStatus(
@@ -302,20 +356,87 @@ function mapRideOfferRow(row: Record<string, unknown>): Offer | null {
 
 function mapCaptainPresenceRow(row: Record<string, unknown>): CaptainPresencePoint | null {
   const id = firstString(row.captain_id, row.driver_id, row.user_id, row.id);
-  const lat = firstNumber(row.lat, row.latitude, row.current_lat);
-  const lng = firstNumber(row.lng, row.longitude, row.current_lng);
   const h3Cell = firstString(row.current_h3, row.h3_cell, row.h3);
+  let lat = firstNumber(row.lat, row.latitude, row.current_lat);
+  let lng = firstNumber(row.lng, row.longitude, row.current_lng);
+  const updatedAt = firstString(row.updated_at, row.updatedAt, row.pulsed_at, row.last_seen_at);
 
-  if (!id || lat === null || lng === null || !h3Cell) return null;
+  if (!id || !h3Cell) return null;
+
+  if (lat === null || lng === null) {
+    try {
+      const [cellLat, cellLng] = cellToLatLng(h3Cell);
+      lat = cellLat;
+      lng = cellLng;
+    } catch {
+      return null;
+    }
+  }
 
   return {
     id,
     serial: firstString(row.serial, row.captain_serial, row.driver_serial) || id.slice(0, 8),
     h3Cell,
     coordinates: { lat, lng },
+    updatedAt,
     etaMinutes: firstNumber(row.eta_minutes, row.etaMinutes) ?? undefined,
     rank: firstString(row.rank, row.driver_rank, row.captain_rank) || undefined,
   };
+}
+
+export function isCaptainPresenceFresh(
+  captain: Pick<CaptainPresencePoint, 'updatedAt'>,
+  nowMs = Date.now(),
+  ttlMs = CAPTAIN_PRESENCE_TTL_MS,
+) {
+  if (!captain.updatedAt) return false;
+  const updatedMs = Date.parse(captain.updatedAt);
+  return Number.isFinite(updatedMs) && nowMs - updatedMs <= ttlMs;
+}
+
+async function runCaptainPresenceQuery({
+  client,
+  h3Column,
+  h3Cells,
+  availabilityFilter,
+  staleBeforeIso,
+  countryId,
+}: {
+  client: SupabaseFromLike;
+  h3Column: string;
+  h3Cells: string[];
+  availabilityFilter: { column: string; value: unknown } | null;
+  staleBeforeIso: string;
+  countryId?: number | null;
+}) {
+  let captainQuery = client
+    .from('captain_locations')
+    .select('*')
+    .in(h3Column, h3Cells)
+    .gte('updated_at', staleBeforeIso)
+    .limit(50);
+
+  if (availabilityFilter) {
+    captainQuery = captainQuery.eq(availabilityFilter.column, availabilityFilter.value);
+  }
+
+  if (countryId) {
+    captainQuery = captainQuery.eq('country_id', toStrictPositiveInteger(countryId, 'country_id'));
+  }
+
+  return captainQuery;
+}
+
+function isMissingColumnError(error: unknown) {
+  const code = String((error as { code?: unknown })?.code || '');
+  const message = String((error as { message?: unknown })?.message || '').toLowerCase();
+  return code === '42703' || message.includes('does not exist');
+}
+
+function isInvalidEnumValueError(error: unknown) {
+  const code = String((error as { code?: unknown })?.code || '');
+  const message = String((error as { message?: unknown })?.message || '').toLowerCase();
+  return code === '22P02' && message.includes('invalid input value for enum');
 }
 
 function parseDriverRank(value: string | null): Offer['driverRank'] {

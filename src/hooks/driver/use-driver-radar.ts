@@ -108,10 +108,9 @@ export function useDriverRadar(user: User | null, driverStatus: string, updateDr
         location: { lat: latVal, lng: lngVal, speed: driverLocationSpeed, source: driverLocationSource || 'fallback' }
       };
 
-      if (updateDriverDoc) {
-        updateDriverDoc(updateData);
-      }
-      sovereignEventBroker.emit('DRIVER_DOC_UPDATE', updateData);
+      // Presence is now emitted through Supabase RPC `pulse_captain_location`.
+      // Keep the local event for in-browser widgets, but do not write GPS updates to Firestore.
+      sovereignEventBroker.emit('DRIVER_LOCAL_LOCATION_UPDATE', updateData);
 
       lastSentLocation.current = { lat: latVal, lng: lngVal };
       lastSentTime.current = now;

@@ -8,6 +8,7 @@ import { useMarketPulse } from './use-market-pulse';
 // 🚩 Import native life segments
 import { useDriverLifecycle } from './use-driver-lifecycle';
 import { useDriverRadar } from './driver/use-driver-radar';
+import { useCaptainLocationPulse } from './driver/use-captain-location-pulse';
 import { useDriverTransactions } from './driver/use-driver-transactions';
 import { sovereignEventBroker } from '@/lib/event-broker';
 import { logAuditAction } from '@/lib/audit-logger';
@@ -93,6 +94,12 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
     driverLocation, requests, rejectRequest: rawRejectRequest, rejectedTripIds, driverSpeed,
     currentDistrict, currentH3Cell, isDisconnectionLockActive
   } = useDriverRadar(user, driverStatus);
+
+  useCaptainLocationPulse({
+    user,
+    driverStatus,
+    location: driverLocation,
+  });
 
   const rejectRequest = useCallback((tripId: string) => {
     rawRejectRequest(tripId);

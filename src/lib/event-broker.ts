@@ -5,6 +5,7 @@ export type DriverStatus = 'active' | 'idle' | 'busy' | 'rating';
 export interface SovereignEvents {
   'DRIVER_STATUS_CHANGE': DriverStatus;
   'DRIVER_DOC_UPDATE': Record<string, any>;
+  'DRIVER_LOCAL_LOCATION_UPDATE': Record<string, any>;
   'CLEAR_RADAR_TRIPS': void;
 }
 
