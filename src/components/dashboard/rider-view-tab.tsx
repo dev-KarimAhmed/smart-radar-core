@@ -143,6 +143,11 @@ export function RiderViewTab() {
   }, [destinationDistricts, draftDestinationId]);
 
   const activeCountryId = user?.countryId;
+  const profileDistrict = React.useMemo(() => {
+    const profileDistrictId = String(user?.district || '');
+    return destinationDistricts.find((district) => district.id === profileDistrictId) || null;
+  }, [destinationDistricts, user?.district]);
+  const profileFallbackLocation = profileDistrict?.anchor || selectedDistrict?.anchor || AMMAN_FALLBACK_LOCATION;
   const selectedDestinationCoords = destinationPinLocation || selectedDistrict?.anchor || null;
 
   const fareRequestKey = React.useMemo(
@@ -1006,6 +1011,7 @@ export function RiderViewTab() {
             captainLocations={captainLocations}
             className="h-[38svh] min-h-[250px] max-h-[320px] sm:h-[42svh] sm:min-h-[300px] sm:max-h-[380px] lg:h-full lg:max-h-none lg:min-h-0 lg:rounded-none lg:border-0"
             destinationFlyToTarget={state.screen === 'DESTINATION_SELECTION' ? selectedDistrict?.anchor || null : null}
+            fallbackLocation={profileFallbackLocation}
             showDestinationPin={state.screen === 'DESTINATION_SELECTION'}
             onDestinationChange={handleDestinationPinChange}
             onDestinationMoveStart={handleDestinationPinMoveStart}

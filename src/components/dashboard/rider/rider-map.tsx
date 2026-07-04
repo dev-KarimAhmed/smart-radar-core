@@ -13,6 +13,7 @@ interface RiderMapProps {
   captainLocations?: RiderMapCaptainPoint[];
   className?: string;
   destinationFlyToTarget?: RiderLocation | null;
+  fallbackLocation?: RiderLocation;
   showDestinationPin?: boolean;
   onDestinationChange?: (location: RiderLocation) => void;
   onDestinationMoveStart?: () => void;
@@ -106,6 +107,7 @@ export function RiderMap({
   captainLocations = [],
   className,
   destinationFlyToTarget,
+  fallbackLocation = AMMAN_FALLBACK_LOCATION,
   showDestinationPin = false,
   onDestinationChange,
   onDestinationMoveStart,
@@ -117,7 +119,7 @@ export function RiderMap({
   const mapRef = React.useRef<MapLibreMap | null>(null);
   const cleanupWatchRef = React.useRef<(() => void) | null>(null);
   const lastDestinationFlyToRef = React.useRef('');
-  const [riderLocation, setRiderLocation] = React.useState<RiderLocation>(AMMAN_FALLBACK_LOCATION);
+  const [riderLocation, setRiderLocation] = React.useState<RiderLocation>(fallbackLocation);
   const [locationStatus, setLocationStatus] = React.useState<RiderLocationStatus>('locating');
   const [activeCaptainProgress, setActiveCaptainProgress] = React.useState(0);
   const [isMapReady, setIsMapReady] = React.useState(false);
@@ -145,7 +147,7 @@ export function RiderMap({
     cleanupWatchRef.current = null;
 
     if (!('geolocation' in navigator)) {
-      setRiderLocation(AMMAN_FALLBACK_LOCATION);
+      setRiderLocation(fallbackLocation);
       setLocationStatus('fallback');
       return;
     }
@@ -164,7 +166,7 @@ export function RiderMap({
       },
       (error) => {
         if (didResolve) return;
-        setRiderLocation(AMMAN_FALLBACK_LOCATION);
+        setRiderLocation(fallbackLocation);
         setLocationStatus(error.code === error.PERMISSION_DENIED ? 'denied' : 'fallback');
       },
       {
@@ -175,7 +177,12 @@ export function RiderMap({
     );
 
     cleanupWatchRef.current = () => navigator.geolocation.clearWatch(watchId);
-  }, []);
+  }, [fallbackLocation]);
+
+  React.useEffect(() => {
+    if (locationStatus === 'live' || locationStatus === 'locating') return;
+    setRiderLocation(fallbackLocation);
+  }, [fallbackLocation, locationStatus]);
 
   React.useEffect(() => {
     requestLiveLocation();
