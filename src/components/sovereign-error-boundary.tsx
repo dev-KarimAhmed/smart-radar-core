@@ -36,14 +36,14 @@ export class SovereignErrorBoundary extends Component<Props, State> {
             <Card className="border-destructive bg-destructive/10 text-destructive-foreground w-full max-w-md">
               <CardHeader className="items-center text-center">
                 <ShieldAlert className="w-12 h-12 text-destructive" />
-                <CardTitle>تم رصد انهيار موضعي</CardTitle>
+                <CardTitle>عذراً، حدث خطأ غير متوقع</CardTitle>
                 <CardDescription className="text-destructive/80">
                   {getSovereignErrorMessage(this.state.error || { code: 'SYS_COMPONENT_CRASH' })}
                 </CardDescription>
               </CardHeader>
               <CardContent className="text-center">
                 <p className="text-sm">
-                    تم عزل الخطر بنجاح. بقية أجزاء النظام تعمل بكفاءة.
+                    نواجه مشكلة مؤقتة في تحميل هذا الجزء. يرجى إعادة المحاولة مرة أخرى، وبقية الخدمات تعمل بشكل طبيعي.
                 </p>
               </CardContent>
             </Card>
