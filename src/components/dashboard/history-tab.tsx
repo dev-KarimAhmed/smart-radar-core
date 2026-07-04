@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { History, Award, BookOpen, Clock, Heart, Trash2, Phone, Sparkles, AlertCircle, FileText, Activity, Compass, ShieldCheck, Search, ShieldAlert, Lock, Coins, Megaphone, Sliders } from 'lucide-react';
 import { SOVEREIGN_ERR_DICTIONARY } from '@/core/config/sovereign-errors';
+import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 
 interface HistoricalTrip {
   tripId: string;
@@ -70,6 +71,7 @@ function HistorySkeleton() {
 
 export function HistoryTab() {
   const { user, isCaptain, isPassenger } = useAuth();
+  const { language } = useDashboardLanguage();
   const [favoriteCaptains, setFavoriteCaptains] = useState<any[]>([]);
   const [sovereignLogs, setSovereignLogs] = useState<any[]>([]);
   const [realTrips, setRealTrips] = useState<any[]>([]);
@@ -268,6 +270,133 @@ export function HistoryTab() {
       console.error(e);
     }
   };
+
+  if (language === 'en' && isPassenger) {
+    return (
+      <div className="w-full max-w-xl mx-auto pb-24 text-left font-sans space-y-6 animate-in fade-in duration-500" dir="ltr">
+        <Card className="bg-[#050505] border-emerald-950 text-white overflow-hidden shadow-2xl relative">
+          <div className="absolute top-0 left-0 w-full h-1 bg-emerald-500 animate-pulse" />
+          <CardContent className="p-6 space-y-2">
+            <h2 className="text-lg font-black text-emerald-400 flex items-center gap-2">
+              <History className="h-5 w-5 text-emerald-500" />
+              My trips
+            </h2>
+            <p className="text-xs text-gray-400 leading-relaxed font-sans">
+              Review your recent completed trips. Trips older than 72 hours are removed to protect your privacy.
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-[#020502]/95 border border-emerald-950 shadow-xl">
+          <CardHeader className="pb-3 border-b border-white/5 flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-sm font-extrabold text-white flex items-center gap-1.5">
+                <FileText className="h-4 w-4 text-emerald-500" />
+                Recent trips (last 3 days)
+              </CardTitle>
+              <CardDescription className="text-[10px] text-gray-400 mt-1">
+                Trips completed from your account
+              </CardDescription>
+            </div>
+            <Badge variant="outline" className="text-[10px] border-emerald-500/20 text-emerald-400 bg-emerald-950/20 font-mono">
+              {riderHistoricalTrips.length} trips
+            </Badge>
+          </CardHeader>
+
+          <CardContent className="p-4 space-y-3.5">
+            {loading ? (
+              <HistorySkeleton />
+            ) : riderHistoricalTrips.length === 0 ? (
+              <div className="p-8 text-center bg-black/40 border border-dashed border-white/5 rounded-xl">
+                <AlertCircle className="h-8 w-8 text-gray-600 mx-auto mb-2 animate-pulse" />
+                <p className="text-xs text-gray-400 font-medium">No completed trips in the last 72 hours.</p>
+              </div>
+            ) : (
+              riderHistoricalTrips.map((trip) => {
+                const isHearted = favoriteCaptains.some(fav => fav.tripId === trip.tripId);
+                const timeAgo = Math.floor((now - trip.timestamp) / (1000 * 60 * 60));
+
+                return (
+                  <div
+                    key={trip.tripId}
+                    className="bg-black/40 border border-white/5 p-4 rounded-xl space-y-3 relative overflow-hidden group hover:border-emerald-500/20 transition-all"
+                  >
+                    <button
+                      onClick={() => toggleFavorite(trip)}
+                      className="absolute top-4 right-4 p-1.5 rounded-lg bg-emerald-950/20 border border-emerald-500/10 text-rose-500 transition-all hover:scale-105 active:scale-95"
+                      aria-label="Save captain"
+                    >
+                      <Heart className={`h-4.5 w-4.5 transition-all ${isHearted ? 'fill-[#00ffcc] text-[#00ffcc] drop-shadow-[0_0_8px_#00ffcc]' : 'text-gray-400 hover:text-rose-400'}`} />
+                    </button>
+
+                    <div className="flex justify-between items-start pr-8">
+                      <div>
+                        <h4 className="font-extrabold text-sm text-white flex items-center gap-1.5">
+                          {trip.captainName}
+                          <span className="text-[9px] font-mono text-amber-400 bg-amber-950/20 border border-amber-500/10 px-1.5 py-0.5 rounded select-none">
+                            [{trip.captainRank}]
+                          </span>
+                        </h4>
+                        <p className="text-[11px] text-gray-400 font-sans mt-1">{trip.vehicleInfo}</p>
+                        {trip.serialId && (
+                          <span className="mt-1 inline-flex items-center gap-1 bg-[#011e15] text-[#00ffcc] text-[9px] font-mono px-1.5 py-0.5 rounded border border-emerald-500/20">
+                            {trip.serialId}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="text-[12px] text-emerald-400 font-black font-mono block">
+                          {formatHistoryMoney(trip.finalPrice, currencyLabel)}
+                        </span>
+                        <span className="text-[9px] text-gray-500 font-sans block mt-0.5">
+                          {timeAgo === 0 ? 'Less than 1 hour ago' : `${timeAgo} hours ago`}
+                        </span>
+                      </div>
+                    </div>
+
+                    {trip.captainPhone && (
+                      <div className="flex gap-2 pt-2 border-t border-white/5">
+                        <a
+                          href={`tel:${trip.captainPhone}`}
+                          className="px-3 py-1.5 bg-emerald-950/30 font-black text-[10px] text-emerald-400 border border-emerald-500/20 hover:bg-emerald-950/60 rounded-lg flex items-center gap-1 text-center select-none"
+                          style={{ textDecoration: 'none' }}
+                        >
+                          <Phone className="h-3 w-3" />
+                          <span>Call captain about this trip</span>
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="bg-[#010301] border border-emerald-950 shadow-xl">
+          <CardHeader className="pb-3 border-b border-white/5 flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-sm font-extrabold text-[#00ffcc] flex items-center gap-1.5">
+                <Sparkles className="h-4 w-4 text-emerald-400 animate-pulse" />
+                Favorite captains
+              </CardTitle>
+              <CardDescription className="text-[10px] text-gray-400 mt-1">
+                Captains you saved from previous trips
+              </CardDescription>
+            </div>
+            <Badge className="bg-emerald-950 text-emerald-400 text-[9px] border border-emerald-500/20">
+              {favoriteCaptains.length} saved
+            </Badge>
+          </CardHeader>
+          <CardContent className="p-6 text-center text-gray-500 text-[11px]">
+            {favoriteCaptains.length === 0
+              ? 'Tap the heart on any completed trip to save the captain here.'
+              : 'Your saved captains are available from completed trip cards.'}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-xl mx-auto pb-24 text-right font-sans space-y-6 animate-in fade-in duration-500" dir="rtl">

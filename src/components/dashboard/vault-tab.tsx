@@ -2,10 +2,13 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { Heart, MessageCircle, Phone, Trash2, ShieldCheck, HelpCircle } from 'lucide-react';
+import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 
 export function VaultTab() {
+ const { isArabic, language } = useDashboardLanguage();
  const [heartedAdIds, setHeartedAdIds] = useState<string[]>([]);
  const [vaultDetails, setVaultDetails] = useState<Record<string, any>>({});
+ const copy = vaultCopy[language];
 
  useEffect(() => {
  try {
@@ -87,7 +90,7 @@ export function VaultTab() {
  if (typeof navigator !== 'undefined' && navigator.vibrate) {
  navigator.vibrate([40, 40]);
  }
- alert('تم تمديد حفظ الإعلان لمدة 20 يوماً إضافية.');
+ alert(copy.extendAlert);
  }
  };
 
@@ -96,7 +99,7 @@ export function VaultTab() {
  const cleanNum = contactNumber.replace(/[^0-9+]/g, '');
  if (actionType === 'whatsapp') {
  const text = encodeURIComponent(
- `مرحباً، شاهدت إعلانكم "${title || ''}" وأود معرفة تفاصيل العرض.`
+ copy.whatsappMessage(title || '')
  );
  url = `https://wa.me/${cleanNum}?text=${text}`;
  } else {
@@ -106,20 +109,20 @@ export function VaultTab() {
  };
 
  return (
- <div className="w-full max-w-4xl mx-auto px-4 pb-12 font-sans" dir="rtl">
+ <div className={`w-full max-w-4xl mx-auto px-4 pb-12 font-sans ${isArabic ? 'text-right' : 'text-left'}`} dir={isArabic ? 'rtl' : 'ltr'}>
  {/* Header Info Banner */}
  <div className="bg-[#051510] border border-emerald-500/20 rounded-2xl p-4 mb-6 flex flex-col md:flex-row items-center justify-between gap-4">
  <div className="flex items-center gap-3">
  <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-400">
  <ShieldCheck className="w-6 h-6" />
  </div>
- <div className="text-right">
- <h3 className="text-sm font-black text-[#00ffcc] tracking-wide">الإعلانات المحفوظة</h3>
- <p className="text-[10px] text-gray-400">تظهر هنا الإعلانات التي حفظتها لمدة 20 يوماً.</p>
+ <div className={isArabic ? 'text-right' : 'text-left'}>
+ <h3 className="text-sm font-black text-[#00ffcc] tracking-wide">{copy.title}</h3>
+ <p className="text-[10px] text-gray-400">{copy.subtitle}</p>
  </div>
  </div>
  <div className="text-xs bg-black/45 px-3 py-1.5 rounded-xl border border-white/5 font-mono text-emerald-400 font-extrabold shrink-0">
- محفوظاتك: ({heartedAdIds.length})
+ {copy.count(heartedAdIds.length)}
  </div>
  </div>
 
@@ -130,9 +133,9 @@ export function VaultTab() {
  <HelpCircle className="w-6 h-6" />
  </div>
  <div className="space-y-1">
- <p className="text-sm font-bold text-white">لا توجد إعلانات محفوظة حالياً</p>
+ <p className="text-sm font-bold text-white">{copy.emptyTitle}</p>
  <p className="text-xs text-gray-400 max-w-xs leading-relaxed mx-auto">
- اضغط على أيقونة القلب في أي إعلان لحفظه هنا والرجوع إليه لاحقاً.
+ {copy.emptyDescription}
  </p>
  </div>
  </div>
@@ -159,7 +162,7 @@ export function VaultTab() {
  referrerPolicy="no-referrer"
  />
  </div>
- <div className="flex-1 space-y-1 text-right">
+ <div className={`flex-1 space-y-1 ${isArabic ? 'text-right' : 'text-left'}`}>
  <h4 className="text-sm font-black text-white line-clamp-1">
  {ad.content?.title || ad.title}
  </h4>
@@ -168,7 +171,7 @@ export function VaultTab() {
  </p>
  <div className="flex flex-wrap gap-1.5 pt-1">
  <span className="inline-block bg-emerald-950/70 text-emerald-400 text-[9px] font-bold px-2 py-0.5 rounded-full border border-emerald-950">
- المنطقة: {ad.targetDistrict || 'عمان'}
+ {copy.area}: {ad.targetDistrict || copy.unknownArea}
  </span>
  </div>
  </div>
@@ -176,7 +179,7 @@ export function VaultTab() {
  <button
  onClick={() => handleDelete(ad.id)}
  className="p-1 text-rose-500/70 hover:text-rose-400 transition-all"
- title="حذف من المحفوظات"
+ title={copy.deleteTitle}
  >
  <Trash2 className="w-4 h-4" />
  </button>
@@ -185,15 +188,15 @@ export function VaultTab() {
  {/* Expiration warning and storage controls */}
  <div className="bg-black/50 p-2.5 rounded-xl border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[10px]">
  <span className="text-gray-400 font-sans">
- مدة الحفظ: <strong className={daysLeft > 7 ? "text-emerald-400" : "text-amber-400 animate-pulse"}>
- {daysLeft > 0 ? `متبقي ${daysLeft} يوم` : 'ينتهي اليوم'}
+ {copy.savedFor}: <strong className={daysLeft > 7 ? "text-emerald-400" : "text-amber-400 animate-pulse"}>
+ {daysLeft > 0 ? copy.daysLeft(daysLeft) : copy.expiresToday}
  </strong>
  </span>
  <button
  onClick={() => handleExtend(ad.id)}
  className="px-2.5 py-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-[#00ffcc] font-black border border-emerald-500/20 rounded-lg cursor-pointer transition-all active:scale-95 text-[9px]"
  >
- تمديد الحفظ 20 يوماً
+ {copy.extend}
  </button>
  </div>
 
@@ -210,7 +213,7 @@ export function VaultTab() {
  className="h-10 bg-emerald-600/90 hover:bg-emerald-600 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all active:scale-95 border border-emerald-500/20"
  >
  <MessageCircle className="w-4 h-4" />
- <span>واتساب مباشر</span>
+ <span>{copy.whatsapp}</span>
  </button>
 
  <button
@@ -224,7 +227,7 @@ export function VaultTab() {
  className="h-10 bg-indigo-950/50 hover:bg-indigo-900/50 text-indigo-200 border border-indigo-500/20 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all active:scale-95"
  >
  <Phone className="w-4 h-4" />
- <span>اتصال تلفوني</span>
+ <span>{copy.call}</span>
  </button>
  </div>
  </div>
@@ -235,3 +238,42 @@ export function VaultTab() {
  </div>
  );
 }
+
+const vaultCopy = {
+ ar: {
+ area: 'المنطقة',
+ call: 'اتصال هاتفي',
+ count: (count: number) => `محفوظاتك: (${count})`,
+ daysLeft: (days: number) => `متبقي ${days} يوم`,
+ deleteTitle: 'حذف من المحفوظات',
+ emptyDescription: 'اضغط على أيقونة القلب في أي إعلان لحفظه هنا والرجوع إليه لاحقاً.',
+ emptyTitle: 'لا توجد إعلانات محفوظة حالياً',
+ expiresToday: 'ينتهي اليوم',
+ extend: 'تمديد الحفظ 20 يوماً',
+ extendAlert: 'تم تمديد حفظ الإعلان لمدة 20 يوماً إضافية.',
+ savedFor: 'مدة الحفظ',
+ subtitle: 'تظهر هنا الإعلانات التي حفظتها لمدة 20 يوماً.',
+ title: 'الإعلانات المحفوظة',
+ unknownArea: 'غير محدد',
+ whatsapp: 'واتساب مباشر',
+ whatsappMessage: (title: string) => `مرحباً، شاهدت إعلانكم "${title}" وأود معرفة تفاصيل العرض.`,
+ },
+ en: {
+ area: 'Area',
+ call: 'Phone call',
+ count: (count: number) => `Saved: (${count})`,
+ daysLeft: (days: number) => `${days} days left`,
+ deleteTitle: 'Remove from saved',
+ emptyDescription: 'Tap the heart icon on any ad to save it here and return to it later.',
+ emptyTitle: 'No saved ads yet',
+ expiresToday: 'Expires today',
+ extend: 'Extend for 20 days',
+ extendAlert: 'The ad was saved for 20 more days.',
+ savedFor: 'Saved for',
+ subtitle: 'Ads you save appear here for 20 days.',
+ title: 'Saved ads',
+ unknownArea: 'Not set',
+ whatsapp: 'WhatsApp',
+ whatsappMessage: (title: string) => `Hello, I saw your ad "${title}" and would like to know more about the offer.`,
+ },
+} as const;

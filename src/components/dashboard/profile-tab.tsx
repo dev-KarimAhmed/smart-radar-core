@@ -205,7 +205,9 @@ export function ProfileTab() {
   const displayName = fullName || user?.name || 'مستخدم جديد';
   const displayPhone = phone || user?.phone || '';
   const displayRole = isSovereign ? languageCopy.roles.admin : isCaptain ? languageCopy.roles.driver : isPassenger ? languageCopy.roles.rider : languageCopy.roles.user;
-  const currency = selectedCountry?.currency_ar || selectedCountry?.currency_en || selectedCountry?.currency_code || user?.currencyAr || user?.currencyEn;
+  const currency = isArabic
+    ? selectedCountry?.currency_ar || selectedCountry?.currency_en || selectedCountry?.currency_code || user?.currencyAr || user?.currencyEn
+    : selectedCountry?.currency_en || selectedCountry?.currency_code || selectedCountry?.currency_ar || user?.currencyEn || user?.currencyAr;
   const isLocationLoading = isLoadingCountries || isLoadingGovernorates || isLoadingDistricts;
 
   useEffect(() => {
@@ -464,7 +466,7 @@ export function ProfileTab() {
             className="h-11 shrink-0 gap-2 rounded-2xl border border-[#14B8A6]/25 bg-[#14B8A6]/10 px-4 text-sm font-black text-[#14F5D5] hover:bg-[#14B8A6]/15"
           >
             <Languages className="h-4 w-4" />
-            {isArabic ? 'English' : 'العربية'}
+            {isArabic ? languageCopy.switchToEnglish : languageCopy.switchToArabic}
           </Button>
         </CardContent>
       </Card>
@@ -485,7 +487,7 @@ export function ProfileTab() {
                   </Badge>
                   {profile?.serial_id || user.serial_id ? (
                     <Badge variant="outline" className="border-emerald-500/20 bg-black/30 font-mono text-[10px] text-[#00ffcc]">
-                      رقم الحساب: {String(profile?.serial_id || user.serial_id)}
+                      {languageCopy.accountNumber}: {String(profile?.serial_id || user.serial_id)}
                     </Badge>
                   ) : null}
                 </div>
@@ -493,7 +495,7 @@ export function ProfileTab() {
             </div>
 
             <div className="text-left font-mono">
-              <span className="block text-[10px] font-bold text-gray-500">التقييم الحالي</span>
+              <span className="block text-[10px] font-bold text-gray-500">{languageCopy.currentRating}</span>
               <div className="mt-1 rounded-xl border border-emerald-500/10 bg-emerald-950/40 px-3 py-1.5 text-emerald-300">
                 <span className="text-base font-black">{rating.toFixed(1)}</span>
                 <span className="text-xs text-gray-500"> / 5</span>
@@ -505,7 +507,7 @@ export function ProfileTab() {
             <div className="rounded-xl border border-white/5 bg-black/30 p-3">
               <span className="flex items-center gap-1 text-[10px] font-bold text-[#00ffcc]">
                 <MapPin className="h-3.5 w-3.5" />
-                المحافظة والمنطقة
+                {languageCopy.location}
               </span>
               <strong className="mt-1 block text-sm text-white">
                 {labelFor(selectedGovernorate, language) || languageCopy.notSet} - {labelFor(selectedDistrict, language) || languageCopy.notSet}
@@ -515,10 +517,10 @@ export function ProfileTab() {
             <div className="rounded-xl border border-white/5 bg-black/30 p-3">
               <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-300">
                 <ShieldCheck className="h-3.5 w-3.5" />
-                بيانات الحساب
+                {languageCopy.accountData}
               </span>
-              <strong className="mt-1 block text-sm text-white">{displayPhone || 'رقم الهاتف غير متاح'}</strong>
-              {currency ? <span className="mt-1 block text-[11px] text-gray-400">العملة: {currency}</span> : null}
+              <strong className="mt-1 block text-sm text-white">{displayPhone || languageCopy.phoneUnavailable}</strong>
+              {currency ? <span className="mt-1 block text-[11px] text-gray-400">{languageCopy.currency}: {currency}</span> : null}
             </div>
           </div>
         </CardContent>
@@ -528,10 +530,10 @@ export function ProfileTab() {
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base font-extrabold text-[#00ffcc]">
             <Database className="h-5 w-5 text-emerald-500" />
-            تعديل بيانات الحساب والمنطقة
+            {languageCopy.editTitle}
           </CardTitle>
           <CardDescription className="text-xs text-gray-400">
-            يتم تحميل الدولة والمحافظة والمنطقة مباشرة من قاعدة البيانات.
+            {languageCopy.editDescription}
           </CardDescription>
         </CardHeader>
 
@@ -539,23 +541,24 @@ export function ProfileTab() {
           {isLoadingProfile ? (
             <div className="flex items-center justify-center gap-2 rounded-xl border border-emerald-900/30 bg-black/30 p-5 text-sm text-gray-300">
               <Loader2 className="h-4 w-4 animate-spin text-emerald-400" />
-              جاري تحميل بيانات الحساب...
+              {languageCopy.loadingProfile}
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-gray-400">الاسم الكامل</label>
+                <label className="block text-xs font-bold text-gray-400">{languageCopy.fullName}</label>
                 <Input
                   value={fullName}
                   onChange={(event) => setFullName(event.target.value)}
                   className="rounded-xl border-emerald-900/30 bg-black/50 text-right text-white"
-                  placeholder="اكتب اسمك الكامل"
+                  placeholder={languageCopy.fullNamePlaceholder}
                   required
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-gray-400">رقم الهاتف</label>
+                <label className="block text-xs font-bold text-gray-400">{languageCopy.phone}
+                </label>
                 <Input
                   value={phone}
                   onChange={(event) => setPhone(event.target.value)}
@@ -567,15 +570,15 @@ export function ProfileTab() {
 
               <div className="grid gap-3 sm:grid-cols-3">
                 <div className="space-y-1.5">
-                  <label className="block text-xs font-bold text-gray-400">الدولة</label>
+                  <label className="block text-xs font-bold text-gray-400">{languageCopy.country}</label>
                   <Select value={countryId} onValueChange={handleCountryChange} required>
                     <SelectTrigger className="h-11 rounded-xl border-emerald-900/30 bg-black/50 text-white" dir="rtl">
-                      <SelectValue placeholder={isLoadingCountries ? 'جاري التحميل...' : 'اختر الدولة'} />
+                      <SelectValue placeholder={isLoadingCountries ? languageCopy.loading : languageCopy.chooseCountry} />
                     </SelectTrigger>
                     <SelectContent className="border-emerald-900/30 bg-neutral-950 text-white">
                       {countries.map((country) => (
                         <SelectItem key={country.id} value={String(country.id)} className="justify-end text-right">
-                          {labelFor(country)}
+                          {labelFor(country, language)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -583,15 +586,15 @@ export function ProfileTab() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="block text-xs font-bold text-gray-400">المحافظة</label>
+                  <label className="block text-xs font-bold text-gray-400">{languageCopy.governorate}</label>
                   <Select value={governorateId} onValueChange={handleGovernorateChange} disabled={!countryId || isLoadingGovernorates} required>
                     <SelectTrigger className="h-11 rounded-xl border-emerald-900/30 bg-black/50 text-white" dir="rtl">
-                      <SelectValue placeholder={isLoadingGovernorates ? 'جاري التحميل...' : 'اختر المحافظة'} />
+                      <SelectValue placeholder={isLoadingGovernorates ? languageCopy.loading : languageCopy.chooseGovernorate} />
                     </SelectTrigger>
                     <SelectContent className="border-emerald-900/30 bg-neutral-950 text-white">
                       {governorates.map((governorate) => (
                         <SelectItem key={governorate.id} value={String(governorate.id)} className="justify-end text-right">
-                          {labelFor(governorate)}
+                          {labelFor(governorate, language)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -599,15 +602,15 @@ export function ProfileTab() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="block text-xs font-bold text-gray-400">المنطقة</label>
+                  <label className="block text-xs font-bold text-gray-400">{languageCopy.district}</label>
                   <Select value={districtId} onValueChange={setDistrictId} disabled={!governorateId || isLoadingDistricts} required>
                     <SelectTrigger className="h-11 rounded-xl border-emerald-900/30 bg-black/50 text-white" dir="rtl">
-                      <SelectValue placeholder={isLoadingDistricts ? 'جاري التحميل...' : 'اختر المنطقة'} />
+                      <SelectValue placeholder={isLoadingDistricts ? languageCopy.loading : languageCopy.chooseDistrict} />
                     </SelectTrigger>
                     <SelectContent className="border-emerald-900/30 bg-neutral-950 text-white">
                       {districts.map((district) => (
                         <SelectItem key={district.id} value={String(district.id)} className="justify-end text-right">
-                          {labelFor(district)}
+                          {labelFor(district, language)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -618,7 +621,7 @@ export function ProfileTab() {
               {isLocationLoading ? (
                 <p className="flex items-center gap-2 text-xs text-emerald-300">
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  جاري تحديث القوائم من قاعدة البيانات...
+                  {languageCopy.updatingLists}
                 </p>
               ) : null}
 
@@ -630,12 +633,12 @@ export function ProfileTab() {
                 {isSaving ? (
                   <>
                     <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                    جاري حفظ البيانات...
+                    {languageCopy.saving}
                   </>
                 ) : (
                   <>
                     <Save className="ml-2 h-4 w-4" />
-                    حفظ التعديلات
+                    {languageCopy.save}
                   </>
                 )}
               </Button>
@@ -648,20 +651,20 @@ export function ProfileTab() {
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-sm font-extrabold text-blue-400">
             <Heart className="h-4.5 w-4.5 text-blue-500" />
-            معلومات محلية
+            {languageCopy.localInfoTitle}
           </CardTitle>
           <CardDescription className="text-[11px] text-gray-400">
-            هذه معلومات محفوظة على جهازك لتحسين التجربة بدون اتصال دائم.
+            {languageCopy.localInfoDescription}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3.5 pb-5">
           <div className="grid grid-cols-2 gap-2.5 text-right font-mono text-[11px]">
             <div className="rounded-lg border border-white/5 bg-black/40 p-3">
-              <span className="block text-[9px] text-[#00ffcc]/80">السائقون المحفوظون</span>
+              <span className="block text-[9px] text-[#00ffcc]/80">{languageCopy.savedCaptains}</span>
               <strong className="mt-1 block text-sm text-[#00ffcc]">{favoriteCount}</strong>
             </div>
             <div className="rounded-lg border border-white/5 bg-black/40 p-3">
-              <span className="block text-[9px] text-blue-400">مصدر بيانات الحساب</span>
+              <span className="block text-[9px] text-blue-400">{languageCopy.accountSource}</span>
               <strong className="mt-1 flex items-center gap-1 text-sm text-blue-300">
                 <RefreshCw className="h-3.5 w-3.5" />
                 Supabase
@@ -675,7 +678,7 @@ export function ProfileTab() {
             variant="destructive"
             className="h-11 w-full border border-red-500/15 bg-red-950/40 text-xs font-bold text-red-400 transition-all hover:bg-red-500 hover:text-white"
           >
-            تسجيل الخروج
+            {languageCopy.logout}
           </Button>
         </CardContent>
       </Card>
@@ -685,9 +688,38 @@ export function ProfileTab() {
 
 const profileLanguageCopy = {
   ar: {
+    accountData: 'بيانات الحساب',
+    accountNumber: 'رقم الحساب',
+    accountSource: 'مصدر بيانات الحساب',
+    chooseCountry: 'اختر الدولة',
+    chooseDistrict: 'اختر المنطقة',
+    chooseGovernorate: 'اختر المحافظة',
+    country: 'الدولة',
+    currency: 'العملة',
+    currentRating: 'التقييم الحالي',
+    district: 'المنطقة',
+    editDescription: 'يتم تحميل الدولة والمحافظة والمنطقة مباشرة من قاعدة البيانات.',
+    editTitle: 'تعديل بيانات الحساب والمنطقة',
+    fullName: 'الاسم الكامل',
+    fullNamePlaceholder: 'اكتب اسمك الكامل',
+    governorate: 'المحافظة',
     languageTitle: 'لغة التطبيق',
     languageDescription: 'اختر اللغة التي تظهر في لوحة التحكم.',
+    loading: 'جاري التحميل...',
+    loadingProfile: 'جاري تحميل بيانات الحساب...',
+    localInfoDescription: 'هذه معلومات محفوظة على جهازك لتحسين التجربة بدون اتصال دائم.',
+    localInfoTitle: 'معلومات محلية',
+    location: 'المحافظة والمنطقة',
+    logout: 'تسجيل الخروج',
     notSet: 'غير محدد',
+    phone: 'رقم الهاتف',
+    phoneUnavailable: 'رقم الهاتف غير متاح',
+    save: 'حفظ التعديلات',
+    savedCaptains: 'السائقون المحفوظون',
+    saving: 'جاري حفظ البيانات...',
+    switchToArabic: 'العربية',
+    switchToEnglish: 'English',
+    updatingLists: 'جاري تحديث القوائم من قاعدة البيانات...',
     roles: {
       admin: 'مشرف',
       driver: 'سائق',
@@ -696,9 +728,38 @@ const profileLanguageCopy = {
     },
   },
   en: {
+    accountData: 'Account data',
+    accountNumber: 'Account number',
+    accountSource: 'Account data source',
+    chooseCountry: 'Choose country',
+    chooseDistrict: 'Choose district',
+    chooseGovernorate: 'Choose governorate',
+    country: 'Country',
+    currency: 'Currency',
+    currentRating: 'Current rating',
+    district: 'District',
+    editDescription: 'Country, governorate, and district are loaded directly from the database.',
+    editTitle: 'Edit account and area',
+    fullName: 'Full name',
+    fullNamePlaceholder: 'Enter your full name',
+    governorate: 'Governorate',
     languageTitle: 'App language',
     languageDescription: 'Choose the language used in the dashboard.',
+    loading: 'Loading...',
+    loadingProfile: 'Loading account data...',
+    localInfoDescription: 'This information is saved on your device to improve the experience without constant connection.',
+    localInfoTitle: 'Local information',
+    location: 'Governorate and district',
+    logout: 'Log out',
     notSet: 'Not set',
+    phone: 'Phone number',
+    phoneUnavailable: 'Phone number unavailable',
+    save: 'Save changes',
+    savedCaptains: 'Saved captains',
+    saving: 'Saving data...',
+    switchToArabic: 'العربية',
+    switchToEnglish: 'English',
+    updatingLists: 'Updating lists from the database...',
     roles: {
       admin: 'Admin',
       driver: 'Driver',

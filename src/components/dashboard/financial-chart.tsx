@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Activity, TrendingUp } from 'lucide-react';
+import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 
 interface ChartDataPoint {
   timestamp: number;
@@ -20,6 +21,8 @@ interface FinancialChartProps {
 }
 
 export function SovereignFinancialActivityChart({ transactions, balanceJD, currencyLabel = '' }: FinancialChartProps) {
+  const { isArabic, language } = useDashboardLanguage();
+  const copy = financialChartCopy[language];
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [dimensions, setDimensions] = useState({ width: 450, height: 180 });
@@ -36,7 +39,7 @@ export function SovereignFinancialActivityChart({ transactions, balanceJD, curre
       timestamp: sorted[0].timestamp - 12 * 3600 * 1000,
       amount: 0,
       balance: 0,
-      description: 'بداية الرصيد',
+      description: copy.baseline,
       type: 'baseline',
     }];
 
@@ -57,13 +60,13 @@ export function SovereignFinancialActivityChart({ transactions, balanceJD, curre
         timestamp: Date.now(),
         amount: 0,
         balance: balanceJD,
-        description: 'الرصيد الحالي',
+        description: copy.currentBalance,
         type: 'current',
       });
     }
 
     return points;
-  }, [transactions, balanceJD]);
+  }, [transactions, balanceJD, copy.baseline, copy.currentBalance]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -134,7 +137,7 @@ export function SovereignFinancialActivityChart({ transactions, balanceJD, curre
 
     const xAxis = d3.axisBottom(x)
       .ticks(Math.min(chartData.length, 4))
-      .tickFormat((value) => (value as Date).toLocaleTimeString('ar', { hour: '2-digit', minute: '2-digit' }));
+      .tickFormat((value) => (value as Date).toLocaleTimeString(isArabic ? 'ar' : 'en', { hour: '2-digit', minute: '2-digit' }));
 
     const xAxisGroup = group.append('g').attr('transform', `translate(0, ${chartHeight})`).call(xAxis);
     xAxisGroup.selectAll('.domain').remove();
@@ -187,18 +190,18 @@ export function SovereignFinancialActivityChart({ transactions, balanceJD, curre
         d3.select(this).transition().duration(150).attr('r', 4).attr('fill', '#10b981');
         group.select('#chart-tooltip').remove();
       });
-  }, [chartData, dimensions, currencyLabel]);
+  }, [chartData, dimensions, currencyLabel, isArabic]);
 
   return (
     <Card className="mb-6 overflow-hidden rounded-2xl border border-emerald-900/30 bg-[#030903]/95 shadow-xl">
       <CardHeader className="flex flex-row items-center justify-between border-b border-emerald-900/20 p-4 pb-2">
-        <div className="text-right">
-          <CardTitle className="flex items-center justify-end gap-1.5 text-xs font-black text-white">
-            حركة الرصيد
+        <div className={isArabic ? 'text-right' : 'text-left'}>
+          <CardTitle className={`flex items-center gap-1.5 text-xs font-black text-white ${isArabic ? 'justify-end' : 'justify-start'}`}>
+            {copy.title}
             <Activity className="h-3.5 w-3.5 text-emerald-400" />
           </CardTitle>
           <CardDescription className="mt-0.5 text-[9px] text-gray-500">
-            تظهر العمليات هنا بعد وصولها من الخادم.
+            {copy.description}
           </CardDescription>
         </div>
         <div className="flex items-center gap-1 rounded-lg border border-emerald-500/20 bg-emerald-950/40 px-2 py-1 font-mono text-[10px] text-emerald-400">
@@ -214,7 +217,7 @@ export function SovereignFinancialActivityChart({ transactions, balanceJD, curre
             <>
               <svg ref={svgRef} width={0} height={0} className="hidden" />
               <div className="rounded-2xl border border-emerald-900/30 bg-black/30 px-5 py-4 text-center text-xs text-gray-400">
-                لا توجد عمليات مالية لعرضها حالياً.
+                {copy.empty}
               </div>
             </>
           )}
@@ -223,3 +226,20 @@ export function SovereignFinancialActivityChart({ transactions, balanceJD, curre
     </Card>
   );
 }
+
+const financialChartCopy = {
+  ar: {
+    baseline: 'بداية الرصيد',
+    currentBalance: 'الرصيد الحالي',
+    description: 'تظهر العمليات هنا بعد وصولها من الخادم.',
+    empty: 'لا توجد عمليات مالية لعرضها حالياً.',
+    title: 'حركة الرصيد',
+  },
+  en: {
+    baseline: 'Starting balance',
+    currentBalance: 'Current balance',
+    description: 'Transactions appear here after they arrive from the server.',
+    empty: 'No financial transactions to show yet.',
+    title: 'Balance activity',
+  },
+} as const;
