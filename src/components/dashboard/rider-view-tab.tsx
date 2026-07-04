@@ -422,11 +422,6 @@ export function RiderViewTab() {
             isLoading: false,
             error: message,
           });
-          toast({
-            variant: 'destructive',
-            title: 'تعذر حساب السعر',
-            description: message,
-          });
         });
     }, FARE_RECALCULATION_DEBOUNCE_MS);
 
@@ -434,7 +429,7 @@ export function RiderViewTab() {
       active = false;
       window.clearTimeout(timeoutId);
     };
-  }, [activeCountryId, destinationDataError, fareRequestKey, riderLocation, selectedDestinationCoords, selectedDistrict, toast]);
+  }, [activeCountryId, destinationDataError, fareRequestKey, riderLocation, selectedDestinationCoords, selectedDistrict]);
 
   React.useEffect(() => {
     if (!state.requestId) return;

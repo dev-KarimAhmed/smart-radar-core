@@ -102,8 +102,8 @@ export function useSovereignWallet(user: User | null) {
 
       try {
         const [{ data: walletData, error: walletError }, { data: txData, error: txError }] = await Promise.all([
-          supabase.from('wallet_accounts').select('*').eq('user_id', userId).maybeSingle(),
-          supabase.from('wallet_transactions').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
+          supabase.from('wallet_accounts').select('*').eq('profile_id', userId).maybeSingle(),
+          supabase.from('wallet_transactions').select('*').eq('profile_id', userId).order('created_at', { ascending: false }),
         ]);
 
         if (walletError) throw walletError;
@@ -165,7 +165,7 @@ export function useSovereignWallet(user: User | null) {
       if (uploadError) throw uploadError;
 
       const { error: insertError } = await supabase.from('wallet_transactions').insert({
-        user_id: userId,
+        profile_id: userId,
         type: 'receipt',
         amount: input.amount,
         currency_code: user?.currencyEn || null,

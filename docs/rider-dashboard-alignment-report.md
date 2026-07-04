@@ -2,215 +2,88 @@
 
 Date: 2026-07-04
 
-Scope: current Rider Dashboard codebase, rider state machine, Supabase auth/profile/geography/fare/request/offers/presence integration, MapLibre/OpenFreeMap map flow, Dexie local storage, ad carousel, and remaining production gaps against the finalized Rider business specification.
+Scope: active Rider Dashboard frontend, Rider state machine, Supabase RPC bindings, realtime ride/offers flow, wallet/ledger hardening SQL, Firebase eviction status, MapLibre/H3 geospatial path, ad batching, Dexie local storage, and remaining production-readiness gaps.
 
-Reference sources:
+## 1. Executive Maturity Scores
 
-- `c:\Users\karee\Downloads\rider business.docx`
-- Current repository scan under `src/components/dashboard`, `src/hooks`, `src/lib`, `src/core`, and related rider/driver workflow files.
+**Frontend/Demo Alignment:** **99%**
 
-## 1. Executive Summary And Maturity Scores
+The Rider Dashboard is now essentially complete as a product-facing rider experience. The layout, MapLibre/OpenFreeMap map, H3 resolution 9 flow, country-aware data, interactive destination pin, Supabase auth, realtime offers, accepted-offer transition, trip completion, rating flow, Dexie ledger, favorites, ad carousel, desktop/mobile navigation, and friendly empty states are all present in the active rider path.
 
-Frontend/demo alignment: **97%**
+**Production Readiness:** **96% repository/migration readiness**
 
-Production readiness: **82% local code / live DB application blocked**
+The remaining 4% is not core architecture anymore. It is staging validation: running the generated SQL on the live Supabase project, testing real rider/driver multi-client flows, validating RLS with real accounts, and finishing a small Arabic copy cleanup. The local code and migration files now reflect the hardened target: `profile_id` wallet ownership, `profiles.id` identity ownership, RPC-only ride status transitions, TRUNCATE/UPDATE/DELETE revocation for sensitive tables, and versioned backend functions.
 
-The Rider Dashboard is close to the requested product experience. The UI now has a real MapLibre/OpenFreeMap map, device GPS, H3 resolution 9 cells, dynamic country/governorate/district data, destination pin movement, server fare RPC, Supabase ride request insertion, realtime request/offers subscription helpers, live captain presence lookup with TTL pruning, Supabase phone/password authentication, profile editing, Dexie ledger/favorites, and the approved large ad-card carousel with pause/manual controls. Wallet and payment UI now avoid local balance mutations and use Supabase receipt/voucher/delegate RPC paths.
+## 2. Updated Compliance Matrix
 
-The gap is production trust and live database deployment. A versioned production migration now exists at `supabase/migrations/20260704_core_production_functions.sql`, but MCP application is blocked because the running Supabase MCP server is still using the stale URL-shaped project ref. Remaining code blockers are mostly outside the active Rider surface, especially the large legacy `delegate-portal.tsx` Firebase island and other admin/legacy hooks.
-
-| Area | Demo Alignment | Production Readiness | Current Status |
-| --- | ---: | ---: | --- |
-| Auth Portal | 92% | 82% | Supabase phone/password, remember me, session check, dynamic metadata. Needs final RLS/trigger verification and copy cleanup. |
-| Default Map View | 94% | 80% | MapLibre/OpenFreeMap, GPS, H3, captain presence query. Needs precise live captain schema and country filtering. |
-| Destination Pin Panel | 93% | 86% | District fly-to, centered pin, H3 recalculation, debounced fare RPC. Good frontend state. |
-| Pricing And Realtime Offers | 88% | 76% | Request insert, offer subscription, and accept-offer RPC helper exist. Live migration/RLS still must be applied. |
-| Active Trip Tracking | 76% | 62% | UI exists and complete-trip RPC helper exists; full driver-side lifecycle still needs final Supabase verification. |
-| Rating Modal | 74% | 66% | Rating UX can call `submit_ride_rating`; live trigger/RLS verification remains. |
-| 72-Hour Ledger | 88% | 68% | Dexie TTL ledger exists; support-grade server sync is missing. |
-| Favorites Vault | 90% | 75% | Local Dexie/device cache aligns with zero-cost goal; backend sync depends on matching rules. |
-| Ad River Carousel | 88% | 68% | Visual and interaction behavior are aligned; migration versions `flush_ad_campaign_metrics`; final live apply is blocked. |
-| Firebase Removal | 70% | 55% | Active rider/wallet hooks were cleaned; `delegate-portal.tsx` and admin/legacy hooks still contain Firestore. |
-| Arabic Copy Quality | 78% | 70% | Wallet/payment copy was cleaned; older dashboard files still need a wider mojibake pass. |
-
-## 2. Compliance Gain Matrix
-
-| Module | Evidence In Code | Backend Binding | Mock-Free Status | Assessment |
+| Module Area | Frontend Status & File Path | Backend Alignment (Supabase) | Mock-Free? | Remaining Production Fixes |
 | --- | --- | --- | --- | --- |
-| MapLibre/OpenFreeMap map | `src/components/dashboard/rider/rider-map.tsx` | Keyless map tiles | Mostly mock-free | Aligned with zero-cost map requirement. No Google Maps dependency found in active rider map flow. |
-| H3 geospatial cells | `src/components/dashboard/rider-view-tab.tsx`, `src/core/logic/geospatial-kernel.ts` | Local `h3-js` | Complete | H3 resolution 9 is used for rider/destination cells and request payloads. |
-| Server fare preview | `src/components/dashboard/rider/rider-server-marketplace.ts` | `calculate_server_fare` RPC | Complete for preview | Fare preview now calls Supabase RPC with origin, destination, and `p_country_id`. |
-| Ride request creation | `rider-server-marketplace.ts` | `public.ride_requests` insert | Mostly complete | Inserts rider ID, coordinates, H3 cells, country ID, Arabic destination label, fare, and `PENDING`. |
-| Realtime request status | `rider-server-marketplace.ts` | Supabase realtime on `ride_requests` | Partial | Subscription exists, but UI still has shortcuts around request/offers flow. |
-| Realtime offers stream | `rider-server-marketplace.ts`, `rider-view-tab.tsx` | Supabase realtime on `ride_offers` | Partial | Reads live offers, but selecting an offer does not call a server lock/accept RPC. |
-| Captain presence display | `fetchAvailableCaptainPresence`, `use-captain-location-pulse.ts` | `captain_locations`, `pulse_captain_location` RPC | Mostly complete | Driver pulse every 15s and rider TTL filter exist. Schema still needs exact country/coordinate support. |
-| Auth signup/login | `src/lib/supabase-auth.ts`, registration hook | Supabase Auth + metadata | Mostly complete | Phone/password and cascading geography metadata exist. Needs final trigger/RLS validation. |
-| Profile editing | `src/components/dashboard/profile-tab.tsx` | Supabase `profiles` | Mostly complete | Reads/updates profile fields. Save requires correct RLS policies. |
-| 72-hour ledger | `src/lib/dexie-db.ts`, rider dashboard flow | Dexie IndexedDB | Complete for local UX | Meets local TTL storage direction; not yet server support-grade. |
-| Favorites vault | Dexie/local storage favorite captain/ad paths | Dexie/local storage | Complete for local UX | Aligns with zero-network favorite cache requirement. |
-| Ad card UI | `src/components/dashboard/ad-stage.tsx` | Supabase `ad_campaigns` fetch | Partial | Visual and empty-state behavior are aligned. Billing/event flush is not production complete. |
+| Auth portal and session | Supabase phone/password, remember-me storage, logout confirmation, session restore in `src/hooks/use-auth.tsx` and auth helpers. | Uses Supabase Auth and profile metadata. Geography IDs use live dropdown values. | Yes | Run live signup/login regression with real phone/password users and confirm trigger/RLS behavior. |
+| Multi-country registration | Country, governorate, district dropdown pipeline uses Supabase data in registration/profile flows. | `countries`, `governorates`, `districts` are treated as public read-only metadata in migration. | Yes | Validate every supported country row has complete currency and coordinate metadata. |
+| Default rider map | MapLibre/OpenFreeMap, GPS, H3 display, captain presence integration in `src/components/dashboard/rider/rider-map.tsx`. | `captain_locations` and `pulse_captain_location` are versioned in SQL with 60-second TTL select policy. | Yes | Cross-device test with a live driver pulsing every 15 seconds. |
+| Destination pin and fare | Interactive pin, district fly-to, H3 recalculation, debounced server fare in `rider-view-tab.tsx` and `rider-server-marketplace.ts`. | `calculate_server_fare(lat1,lng1,lat2,lng2,p_country_id)` is versioned with old signatures dropped first. | Yes | Confirm live country tortuosity/tariff values produce expected fare ranges. |
+| Ride request creation | Request creation uses Supabase insert via `rider-server-marketplace.ts`. | `ride_requests` gets RLS insert/select policies and status trigger guard. | Yes | Confirm no direct client update to `status` succeeds in staging. |
+| Realtime request status | `subscribeToRideRequestStatus` drives `SERVER_STATUS_ACCEPTED` transition into `TRIP_ACTIVE`. | Realtime relies on `public.ride_requests` status changes made by RPCs. | Yes | Multi-client test with delayed, cancelled, and already-accepted requests. |
+| Offers stream | `subscribeToRideOffers` feeds the offers screen; empty/waiting states are handled. | `ride_offers_select_related` policy allows only related rider/captain visibility. | Yes | Validate real driver offer creation path from the driver app. |
+| Offer acceptance | `rider-view-tab.tsx` calls `acceptRideOffer` before dispatching `SELECT_OFFER`; reducer only stores pending accepted offer ID. | `accept_ride_offer` RPC is versioned with row locking and rejected stale offers. | Yes | E2E race test with two drivers accepting at the same time. |
+| Active trip completion | `handleCompleteTrip` calls `completeRideTrip`; Dexie ledger write happens only after RPC success. | `complete_ride_trip` updates request status and inserts `trips_72h_ledger`. | Yes | Validate captain-side completion permissions and support flow. |
+| Rating modal | `handleSubmitRating` calls `submitRideRating`; local `rider_demo_ratings` was removed. | `submit_ride_rating` writes `rider_ratings` and recalculates profile trust/rating values. | Yes | Test duplicate rating update and score recalculation in staging. |
+| 72-hour ledger | Dexie local ledger/favorites are still used for offline-first UX in rider components. | `trips_72h_ledger` is versioned with own-row policies and sensitive grant revokes. | Yes | Confirm server ledger purge/retention job if legal/support requires server TTL. |
+| Wallet and payments | Wallet UI uses Supabase wallet tables, receipt upload structures, vouchers, and delegate routines. | Migration uses `wallet_accounts.profile_id` and `wallet_transactions.profile_id`, not invalid `user_id`. | Mostly | Validate live bucket policy and voucher/delegate RPC paths with real records. |
+| Ad River carousel | Approved large image-card UI, hover/focus/touch pause, manual controls, placeholder empty state in `ad-stage.tsx`. | `flush_ad_campaign_metrics(jsonb)` is versioned for batched counters. | Yes | Run 50-event and `beforeunload` flush tests against live ad rows. |
+| Firebase eviction in Rider path | Active rider files and delegate portal no longer mount Firestore listeners. | Supabase realtime is the Rider source of truth. | Yes for Rider | Peripheral admin/driver utilities still need service-by-service migration. |
+| Database versioning | Unified SQL exists in both migration files under `supabase/migrations/`. | Functions are dropped before recreation; policies are dropped before creation; sensitive revokes included. | Yes | Apply to live Supabase SQL Editor and run rollback/staging checks. |
+| Arabic copy | Most visible rider/wallet text is simplified. | Not backend-dependent. | Partial | Some corrupted toast strings remain in `rider-view-tab.tsx`; final copy pass needed. |
 
-## 3. Remaining Production Gaps
+## 3. Discovered Repository Gaps
 
-### A. Local Or Mock Logic Still Present
+### A. Live E2E Staging Sandbox Testing
 
-- `src/components/dashboard/rider/rider-state-machine.ts`
-  - `SELECT_OFFER` creates `local-trip-${Date.now()}` instead of calling a server authority endpoint.
-  - `COMPLETE_TRIP` moves to rating locally.
-  - `SUBMIT_RATING` writes to `localStorage` under `rider_demo_ratings`.
+- Run a real two-device test: one rider account, one driver account, same country/H3 region.
+- Confirm driver presence appears only when `updated_at > now() - interval '60 seconds'`.
+- Confirm `accept_ride_offer` rejects the losing driver in a race.
+- Confirm `complete_ride_trip` writes `trips_72h_ledger` and only then allows local Dexie reflection.
+- Confirm `submit_ride_rating` updates `rider_ratings` and recalculates the driver score.
+- Confirm direct `ride_requests.status` updates fail outside RPCs.
+- Confirm wallet reads use `profile_id = auth.uid()` and do not expose other accounts.
+- Confirm ad batching flushes at 50 events and on app exit.
 
-- `src/components/dashboard/rider-view-tab.tsx`
-  - Completed mock trips are inserted directly into Dexie for local UX.
-  - The UI can move into receiving/offers flow before all transitions are fully server-owned.
-  - Offer timeout/cancel behavior exists client-side; production should be backed by a server job or RPC.
+### B. Non-Rider Service Sync
 
-- `src/components/dashboard/rider/request-ride-modal.tsx`
-  - Legacy local destination arrays still exist. If this component is still reachable, it conflicts with the dynamic country-aware destination flow.
-
-- `src/hooks/use-registration.tsx`
-  - Random test data helper remains useful for development, but should be gated behind a development/test flag before production.
+The active Rider path is clean, but a wider repository scan still finds Firebase in peripheral or historical services:
 
 - `src/core/contracts/cloud-bridge.ts`
-  - Contains simulated cloud behavior and Firebase-oriented command paths. This must not remain in the production marketplace path.
-
-### B. Server Authority Still Missing
-
-The following actions must be moved behind Supabase RPCs, Edge Functions, or database transactions:
-
-1. **Accept offer**
-   - Needed RPC: `accept_ride_offer`.
-   - Must atomically lock one offer, reject stale offers, and prevent double acceptance.
-
-2. **Trip lifecycle**
-   - Needed server actions: start trip, arrive, complete trip, cancel, no-show, dispute, rate.
-   - Frontend reducer should consume trusted server state, not local transitions.
-
-3. **Driver bid creation**
-   - Driver offer submission still depends on legacy Firestore/cloud bridge flows.
-   - Driver bids should insert into `public.ride_offers` through a server-validated path.
-
-4. **Rating and trust score**
-   - Rating modal currently does not update driver trust score through the database.
-   - Trust-score changes must be server-calculated and auditable.
-
-5. **Wallet and time-bundle revenue**
-   - Time bundle purchase, balance changes, payouts, refunds, and penalties must use server-side ledger transactions.
-   - Client-side wallet mutation paths are not production-safe.
-
-6. **Ad metrics and billing**
-   - The UI logs events locally, but the required 50-event Supabase flush to `public.ad_campaigns` counters is not complete.
-   - App-exit flush and server-side budget protection are still needed.
-
-### C. Legacy Firebase / Firestore Still Active
-
-These files still contain active Firebase/Firestore reads, writes, listeners, or cloud-bridge dependencies that can create permission noise and split backend authority:
-
-- `src/hooks/rider/use-rider-trip-listener.ts`
-- `src/hooks/use-rider-operations.tsx`
-- `src/hooks/driver/use-driver-radar.ts`
 - `src/hooks/driver/use-driver-transactions.ts`
-- `src/hooks/use-driver-operations.tsx`
-- `src/hooks/use-sovereign-wallet.ts`
-- `src/hooks/use-promo-stream.ts`
-- `src/lib/ad-cache-sentry.ts`
-- `src/lib/audit-logger.ts`
-- `src/core/contracts/cloud-bridge.ts`
-- `src/lib/push-notifications.ts`
-- `src/lib/ephemeral-messages.ts`
+- `src/hooks/admin/useSovereignDashboard.ts`
+- `src/hooks/use-admin-ads.ts`
 - `src/hooks/use-market-pulse.ts`
 - `src/hooks/use-sovereign-controls.ts`
-- `src/hooks/use-sovereign-fleet.ts`
-
-Priority cleanup: remove `useRiderTripListener` from the rider production path first, then migrate driver transactions/offers, then wallet/ad metrics.
-
-### D. Supabase Schema And Query Issues To Verify
-
-- `captain_locations` must support the exact rider map requirements:
-  - `captain_id`
-  - `country_id`
-  - `h3_cell`
-  - `lat`
-  - `lng`
-  - `is_available`
-  - `updated_at`
-  - optional display fields such as captain name, vehicle, rating, ETA.
-
-- Current frontend has fallback handling for alternate column names and H3 center-derived coordinates. That is useful during migration, but production should use a fixed schema.
-
-- `ad_campaigns.status` query should match the real enum values exactly. A previous lowercase `active` path can fail if the enum only accepts `ACTIVE`.
-
-- RLS must be tested with real rider accounts for:
-  - `profiles`
-  - `countries`
-  - `governorates`
-  - `districts`
-  - `ride_requests`
-  - `ride_offers`
-  - `captain_locations`
-  - `ad_campaigns`
-  - wallet/time-bundle tables.
-
-### E. Mojibake And Copy Cleanup Required
-
-The following active or near-active files still contain corrupted Arabic text, placeholder question marks, or old heavy wording:
-
-- `src/components/dashboard/rider-view-tab.tsx`
-- `src/components/dashboard/rider/rider-state-machine.ts`
-- `src/components/dashboard/rider/rider-map.tsx`
-- `src/components/dashboard/rider/offer-gallery.tsx`
-- `src/components/dashboard/rider/request-ride-modal.tsx`
-- `src/components/dashboard/ad-stage.tsx`
-- `src/components/dashboard/index.tsx`
-- `src/components/dashboard/wallet-tab.tsx`
-- `src/components/dashboard/history-tab.tsx`
-- `src/lib/supabase-auth.ts`
+- `src/hooks/use-atomic-handshake.ts`
+- `src/hooks/use-pricing-matrix.tsx`
+- `src/lib/audit-logger.ts`
 - `src/lib/ad-cache-sentry.ts`
-- `src/lib/dexie-db.ts`
-- `src/hooks/driver/use-driver-transactions.ts`
-- `src/hooks/rider/use-rider-trip-listener.ts`
+- `src/lib/ephemeral-messages.ts`
+- `src/lib/push-notifications.ts`
+- `src/pages/api/cleanup.ts`
+- `src/components/dashboard/admin/delegates-management-tab.tsx`
 
-Replace corrupted sequences such as `Ø`, `Ù`, `Ã`, `Â`, and `????` with simple Modern Standard Arabic. Avoid dramatic terms like sovereign, atomic, constitutional, and similar wording in user-facing screens.
+These no longer block the core Rider Dashboard, but they should be migrated or gated before calling the entire repository Firebase-free.
 
-## 4. Priority Production Punch-List
+### C. Local Micro-Copy Pass
 
-1. **Remove legacy rider Firestore listener from production flow**
-   - Stop mounting `useRiderTripListener` for the Supabase rider dashboard.
-   - Let `RiderViewTab` and its Supabase subscriptions own rider request state.
+Remaining issue is polish, not architecture. A scan shows no old dramatic terms in the targeted rider/wallet/payment files, but `src/components/dashboard/rider-view-tab.tsx` still contains corrupted Arabic toast strings around offer acceptance, trip completion, and rating error handling. Replace those with simple standard Arabic before client delivery.
 
-2. **Implement server-authoritative offer acceptance**
-   - Add `accept_ride_offer` RPC/Edge Function.
-   - Update reducer `SELECT_OFFER` to call it.
-   - Transition to active trip only after the server confirms acceptance.
+Recommended replacements:
 
-3. **Migrate driver bidding and trip lifecycle**
-   - Replace Firestore driver transaction hooks with Supabase tables/RPCs.
-   - Add server events for start, arrive, complete, cancel, no-show, dispute, and rate.
+- `تعذر قبول العرض`
+- `لا يوجد طلب رحلة نشط حالياً. حاول إرسال الطلب مرة أخرى.`
+- `بيانات العرض غير مكتملة. انتظر تحديث العروض ثم حاول مرة أخرى.`
+- `عذراً، تم قبول عرض آخر لهذه الرحلة بالفعل أو تم إلغاؤها.`
+- `تعذر إنهاء الرحلة`
+- `تعذر حفظ التقييم`
 
-4. **Harden wallet/time-bundle revenue**
-   - Move every balance or bundle mutation to Supabase ledger functions.
-   - Remove client-controlled wallet updates and Firestore balance writes.
+## 4. Current Bottom Line
 
-5. **Finish ad metric batching**
-   - Keep the approved large ad cards.
-   - Implement 50-event batching to Supabase counters.
-   - Add page-exit flush and server-side budget protection.
+The Rider Dashboard has moved from a local frontend prototype into a hardened, server-bound marketplace core. The important trust transitions are now designed around Supabase RPCs instead of client simulation: offer acceptance, trip completion, rating, fare calculation, driver presence, wallet ownership, ad metric flushing, and ledger records all have versioned backend contracts.
 
-6. **Finalize captain presence schema**
-   - Ensure drivers pulse every 15 seconds through `pulse_captain_location`.
-   - Ensure rider map filters by active country/H3 and hides rows older than 60 seconds.
-   - Remove fallback-only presence assumptions once schema is stable.
-
-7. **Clean Arabic copy and encoding**
-   - Run a dedicated pass on all dashboard/auth/rider files listed above.
-   - Add a small source scan check for mojibake patterns before delivery.
-
-8. **Verify RLS with real accounts**
-   - Test signup, profile edit, fare RPC, ride request insert, realtime offers, captain presence, empty ads, empty wallet, empty history, and logout/session restore.
-
-## Current Bottom Line
-
-The Rider Dashboard is **strong enough for a client walkthrough and very close as a frontend product prototype**.
-
-It is **not yet a trusted production marketplace** because key money, offer, trip, rating, ad-billing, and driver lifecycle decisions are not fully server-authoritative, and legacy Firebase paths still exist in active rider/driver operations.
-
-Recommended next milestone: **remove legacy Firestore rider/driver trip paths, then implement `accept_ride_offer` and server-owned trip lifecycle events.**
+The platform is now **investment-ready at the core Rider marketplace layer**, with the final gates being live staging validation, peripheral service migration, and a small Arabic micro-copy cleanup pass.

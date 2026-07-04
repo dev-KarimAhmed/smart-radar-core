@@ -126,15 +126,15 @@ function buildActiveTrip(state: RiderMachineState, acceptedRow: Record<string, u
   return {
     tripId: firstString(acceptedRow.trip_id, acceptedRow.active_trip_id, acceptedRow.id) || state.requestId || '',
     captainId: selectedOffer?.driverId || acceptedCaptainId || '',
-    captainName: selectedOffer?.driverName || firstString(acceptedRow.driver_name, acceptedRow.captain_name) || 'السائق',
+    captainName: selectedOffer?.driverName || firstString(acceptedRow.driver_name, acceptedRow.captain_name) || '\u0627\u0644\u0633\u0627\u0626\u0642',
     captainSerial:
       selectedOffer?.driverName ||
       firstString(acceptedRow.driver_serial, acceptedRow.captain_serial, acceptedRow.driver_name, acceptedRow.captain_name) ||
       acceptedCaptainId ||
-      'السائق',
+      '\u0627\u0644\u0633\u0627\u0626\u0642',
     captainPhone: selectedOffer?.driverAffiliation?.phone || firstString(acceptedRow.driver_phone, acceptedRow.captain_phone, acceptedRow.phone) || '',
-    vehicleType: vehicle.type || `${vehicle.make || 'سيارة'} ${vehicle.color || ''}`.trim(),
-    vehiclePlate: vehicle.plate || firstString(acceptedRow.vehicle_plate, acceptedRow.plate) || 'غير متاح',
+    vehicleType: vehicle.type || `${vehicle.make || '\u0633\u064a\u0627\u0631\u0629'} ${vehicle.color || ''}`.trim(),
+    vehiclePlate: vehicle.plate || firstString(acceptedRow.vehicle_plate, acceptedRow.plate) || '\u063a\u064a\u0631 \u0645\u062a\u0627\u062d',
     finalPrice:
       firstNumber(
         acceptedRow.final_fare,
@@ -146,7 +146,7 @@ function buildActiveTrip(state: RiderMachineState, acceptedRow: Record<string, u
       (selectedOffer?.price === -1
         ? state.destination?.serverEstimatedFare ?? 0
         : selectedOffer?.price ?? state.destination?.serverEstimatedFare ?? 0),
-    destinationLabel: state.destination?.label || 'وجهة',
+    destinationLabel: state.destination?.label || '\u0648\u062c\u0647\u0629',
     distanceKm,
     originCell: state.destination?.originCell ?? state.destination?.fareQuote?.originCell,
     destinationCell: state.destination?.destinationCell ?? state.destination?.fareQuote?.destinationCell,
