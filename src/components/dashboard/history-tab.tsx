@@ -178,12 +178,8 @@ export function HistoryTab() {
         if (active) setRealTrips(Array.isArray(data) ? data : []);
       } catch (error) {
         if (!active) return;
+        if (import.meta.env.DEV) console.warn('[HistoryTab trips fetch]', error);
         setRealTrips([]);
-        toast({
-          variant: 'destructive',
-          title: 'تعذر تحميل الرحلات',
-          description: 'عذراً، تعذر الاتصال بالخادم. تحقق من شبكة الإنترنت.',
-        });
       } finally {
         if (active) setLoading(false);
       }
