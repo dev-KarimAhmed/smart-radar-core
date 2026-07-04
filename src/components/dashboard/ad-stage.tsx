@@ -99,7 +99,7 @@ export function AdStage({ isFullScreen = false }: { isFullScreen?: boolean }) {
  const { data, error } = await supabase
  .from('ad_campaigns')
  .select('*')
- .in('status', ['ACTIVE', 'active']);
+ .eq('status', 'ACTIVE');
 
  if (error) throw error;
  if (active) setServerAds(Array.isArray(data) ? data.map(mapAdCampaignRow) : []);

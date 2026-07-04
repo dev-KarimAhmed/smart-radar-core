@@ -179,50 +179,19 @@ export async function fetchAvailableCaptainPresence(
   const ttlMs = query.ttlMs ?? CAPTAIN_PRESENCE_TTL_MS;
   const staleBeforeIso = new Date(nowMs - ttlMs).toISOString();
   const h3Cells = gridDisk(query.centerH3Cell, query.ringSize ?? 1);
-  const h3Columns = ['h3_cell', 'current_h3', 'h3'];
-  const availabilityFilters: Array<{ column: string; value: unknown } | null> = [
-    { column: 'is_available', value: true },
-    { column: 'status', value: 'AVAILABLE' },
-    { column: 'status', value: 'available' },
-    null,
-  ];
-  const countryModes = query.countryId ? [true, false] : [false];
-  let lastMissingColumnError: unknown = null;
+  const { data, error } = await client
+    .from('captain_locations')
+    .select('*')
+    .gte('updated_at', staleBeforeIso)
+    .limit(100);
 
-  for (const h3Column of h3Columns) {
-    for (const includeCountry of countryModes) {
-      for (const availabilityFilter of availabilityFilters) {
-        const result = await runCaptainPresenceQuery({
-          client,
-          h3Column,
-          h3Cells,
-          availabilityFilter,
-          staleBeforeIso,
-          countryId: includeCountry ? query.countryId : null,
-        });
+  if (error) throw error;
+  if (!Array.isArray(data)) return [];
 
-        if (!result.error) {
-          const data = result.data;
-          return Array.isArray(data)
-            ? data
-                .map(mapCaptainPresenceRow)
-                .filter((row): row is CaptainPresencePoint => !!row && isCaptainPresenceFresh(row, nowMs, ttlMs))
-            : [];
-        }
-
-        if (isMissingColumnError(result.error) || isInvalidEnumValueError(result.error)) {
-          lastMissingColumnError = result.error;
-          continue;
-        }
-
-        throw result.error;
-      }
-    }
-  }
-
-  if (lastMissingColumnError) throw lastMissingColumnError;
-
-  return [];
+  return data
+    .filter((row) => captainRowMatchesPresenceQuery(row as Record<string, unknown>, h3Cells, query.countryId))
+    .map(mapCaptainPresenceRow)
+    .filter((row): row is CaptainPresencePoint => !!row && isCaptainPresenceFresh(row, nowMs, ttlMs));
 }
 
 export function subscribeToRideRequestStatus(
@@ -394,49 +363,31 @@ export function isCaptainPresenceFresh(
   return Number.isFinite(updatedMs) && nowMs - updatedMs <= ttlMs;
 }
 
-async function runCaptainPresenceQuery({
-  client,
-  h3Column,
-  h3Cells,
-  availabilityFilter,
-  staleBeforeIso,
-  countryId,
-}: {
-  client: SupabaseFromLike;
-  h3Column: string;
-  h3Cells: string[];
-  availabilityFilter: { column: string; value: unknown } | null;
-  staleBeforeIso: string;
-  countryId?: number | null;
-}) {
-  let captainQuery = client
-    .from('captain_locations')
-    .select('*')
-    .in(h3Column, h3Cells)
-    .gte('updated_at', staleBeforeIso)
-    .limit(50);
+function captainRowMatchesPresenceQuery(
+  row: Record<string, unknown>,
+  h3Cells: string[],
+  countryId?: number | null,
+) {
+  const h3Cell = firstString(row.current_h3, row.h3_cell, row.h3);
+  if (!h3Cell || !h3Cells.includes(h3Cell)) return false;
 
-  if (availabilityFilter) {
-    captainQuery = captainQuery.eq(availabilityFilter.column, availabilityFilter.value);
+  const rowCountryId = firstNumber(row.country_id, row.countryId);
+  if (countryId && rowCountryId !== null && rowCountryId !== Number(countryId)) return false;
+  if (countryId && rowCountryId === null && hasAny(row, 'country_id', 'countryId')) return false;
+
+  if (hasAny(row, 'is_available') && row.is_available !== true) return false;
+
+  const status = firstString(row.status, row.availability_status);
+  if (status) {
+    const normalized = status.toLowerCase();
+    if (!['available', 'active', 'online'].includes(normalized)) return false;
   }
 
-  if (countryId) {
-    captainQuery = captainQuery.eq('country_id', toStrictPositiveInteger(countryId, 'country_id'));
-  }
-
-  return captainQuery;
+  return true;
 }
 
-function isMissingColumnError(error: unknown) {
-  const code = String((error as { code?: unknown })?.code || '');
-  const message = String((error as { message?: unknown })?.message || '').toLowerCase();
-  return code === '42703' || message.includes('does not exist');
-}
-
-function isInvalidEnumValueError(error: unknown) {
-  const code = String((error as { code?: unknown })?.code || '');
-  const message = String((error as { message?: unknown })?.message || '').toLowerCase();
-  return code === '22P02' && message.includes('invalid input value for enum');
+function hasAny(row: Record<string, unknown>, ...keys: string[]) {
+  return keys.some((key) => Object.prototype.hasOwnProperty.call(row, key));
 }
 
 function parseDriverRank(value: string | null): Offer['driverRank'] {

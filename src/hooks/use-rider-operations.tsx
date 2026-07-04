@@ -1,26 +1,19 @@
 'use client';
 
-import React, { createContext, useContext, useState, ReactNode, useMemo, useCallback, useRef, useEffect } from 'react';
-import { useAuth } from './use-auth';
-import type { Trip, User, Offer } from '@/core/types';
-import { useToast } from './use-toast';
-import { useRiderTripListener } from './rider/use-rider-trip-listener';
-import { useRiderTransactions } from './use-rider-transactions';
-import { logAuditAction } from '@/lib/audit-logger';
-import { calculateSovereignGridId } from '@/lib/geo-grid';
-import { trackSovereignError } from '@/lib/error-tracker';
-import { useGeospatialAnchor } from './use-geospatial-anchor';
-import { calculateSovereignDistance, latLngToH3Cell, getH3CellCentroid, estimateTripTime } from '@/core/logic/geospatial-kernel';
-import { sanitizeUrl, resolveSovereignUrl } from '@/lib/sovereign-digger';
-import { SovereignDict } from '@/lib/sovereign-dictionary';
-import { useLinkCatcher } from './use-link-catcher';
-import { dexieDb, RadarCaptainFavoriteKernel } from '@/lib/dexie-db';
-import { RadarAntiCheatKernel } from '@/core/logic/anti-cheat-kernel';
-import { useSovereignControls } from './use-sovereign-controls';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
+import type { Offer, Trip, User } from '@/core/types';
 
 interface RiderOperationsContextType {
   trip: Trip | null;
-  tripStatus: any;
+  tripStatus: 'idle';
   acceptedDriver: User | null;
   isRequestModalOpen: boolean;
   openRequestModal: () => void;
@@ -29,7 +22,7 @@ interface RiderOperationsContextType {
   isRequesting: boolean;
   cancelTrip: () => Promise<void>;
   isCancelling: boolean;
-  rateTrip: (ratings: any) => Promise<void>;
+  rateTrip: (ratings: unknown) => Promise<void>;
   isRating: boolean;
   executeRedPathGuillotine: () => Promise<void>;
   isExecutingGuillotine: boolean;
@@ -50,7 +43,7 @@ interface RiderOperationsContextType {
   pasteFromClipboard: () => Promise<void>;
   estimatedDistance: number;
   estimatedTime: number;
-  pulsedDrivers: any;
+  pulsedDrivers: never[];
   isPulsing: boolean;
   isLocationConfirmed: boolean;
   resetLocationMetrics: () => void;
@@ -59,528 +52,93 @@ interface RiderOperationsContextType {
 
 export const RiderOperationsContext = createContext<RiderOperationsContextType | undefined>(undefined);
 
-export function RiderOperationsProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
-  const { toast } = useToast();
+const resolvedPromise = () => Promise.resolve();
 
+/**
+ * Compatibility facade for old dashboard chrome.
+ *
+ * The production rider workflow now lives in `RiderViewTab` and its Supabase
+ * realtime subscriptions. This provider intentionally does not mount legacy
+ * Firestore trip listeners or Firebase transaction hooks.
+ */
+export function RiderOperationsProvider({ children }: { children: ReactNode }) {
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
   const [seats, setSeats] = useState('1');
   const [dropoff, setDropoff] = useState('');
   const [pickup, setPickup] = useState('');
   const [requiresOfficialRate, setRequiresOfficialRate] = useState(false);
-  const [isResolvingUrl, setIsResolvingUrl] = useState(false);
-  const [estimatedDistance, setEstimatedDistance] = useState(0);
-  const [estimatedTime, setEstimatedTime] = useState(0);
-  const [lastCalculatedUrl, setLastCalculatedUrl] = useState('');
-  const isProgrammaticUpdateRef = useRef(false);
-
-  const { location: anchorLocation } = useGeospatialAnchor();
-  const { isRadarActive } = useSovereignControls();
-
-  // تدوين الإحداثيات محلياً على الحافة كبصمة مستقرة للتحقيق الأمني لاحقاً في الـ Local Buffer
-  useEffect(() => {
-    if (anchorLocation && anchorLocation.lat && anchorLocation.lng) {
-      try {
-        const stored = localStorage.getItem('sovereign_gps_local_buffer');
-        const buffer = stored ? JSON.parse(stored) : [];
-        const entry = {
-          lat: anchorLocation.lat,
-          lng: anchorLocation.lng,
-          timestamp: Date.now(),
-          source: anchorLocation.source
-        };
-        // الحفاظ على آخر 10 نقاط ملاحية فقط
-        buffer.push(entry);
-        if (buffer.length > 10) {
-          buffer.shift();
-        }
-        localStorage.setItem('sovereign_gps_local_buffer', JSON.stringify(buffer));
-      } catch (err) {
-        console.warn("Failed to write to local sovereign GPS buffer", err);
-      }
-    }
-  }, [anchorLocation]);
-
-  const { capturedLink, clearCapturedLink } = useLinkCatcher();
-
-  // التقاط روابط الموقع المشتركة محليا بدون خدمات خرائط مدفوعة.
-  useEffect(() => {
-    if (capturedLink) {
-      isProgrammaticUpdateRef.current = true;
-      setEstimatedDistance(0);
-      setEstimatedTime(0);
-      const cleanInput = sanitizeUrl(capturedLink);
-      setPickup(cleanInput);
-      setLastCalculatedUrl('');
-      setIsRequestModalOpen(true);
-      clearCapturedLink();
-      toast({
-        title: "تم التقاط رابط الموقع",
-        description: "تم استقبال رابط الموقع محليا بدون تكلفة.",
-      });
-      setTimeout(() => {
-        isProgrammaticUpdateRef.current = false;
-      }, 100);
-    }
-  }, [capturedLink, clearCapturedLink, toast]);
-
-  // [علاج الربط المتبادل] - تجميد الموقع لمنع الـ Re-renders العشوائية مع حركة الـ GPS
-  const anchorRef = useRef(anchorLocation);
-  useEffect(() => {
-    anchorRef.current = anchorLocation;
-  }, [anchorLocation]);
-
-  const { trip, acceptedDriver, internalStatus, setInternalStatus, resetState: resetTripListener, pulsedDrivers, isPulsing } = useRiderTripListener(user);
-
-  /**
-   * [SCR-2026-FIX-FLOW] تصفير متزامن وشامل
-   * يضمن تطابق حالة الحقول مع حالة العدادات (منع تمزق المسار).
-   */
-  const resetLocationMetrics = useCallback(() => {
-    isProgrammaticUpdateRef.current = true;
-    setEstimatedDistance(0);
-    setEstimatedTime(0);
-    setPickup('');
-    setLastCalculatedUrl('');
-    setTimeout(() => {
-      isProgrammaticUpdateRef.current = false;
-    }, 100);
-  }, []);
-
-  // [علاج تزييف الحقيقة] - مراقب يصفر العدادات إذا تم العبث بالرابط بعد الاحتساب
-  useEffect(() => {
-    if (isProgrammaticUpdateRef.current) {
-      return;
-    }
-    if (pickup !== lastCalculatedUrl && estimatedDistance > 0) {
-      setEstimatedDistance(0);
-      setEstimatedTime(0);
-    }
-  }, [pickup, lastCalculatedUrl, estimatedDistance]);
-
-  const handlePickupChange = useCallback((link: string) => {
-    setPickup(link);
-  }, []);
-
-  const pasteFromClipboard = useCallback(async () => {
-    try {
-      const text = await navigator.clipboard.readText();
-      if (text) {
-        resetLocationMetrics(); // تصفير قبل اللصق الجديد
-        handlePickupChange(text.trim());
-        toast({ ...SovereignDict.SUCCESS.LINK_CAPTURED });
-        if (user?.uid) {
-          logAuditAction({
-            actorId: user.uid,
-            actorName: user.name || 'Unknown Rider',
-            actorRole: 'rider',
-            action: 'RIDER_CLIPBOARD_PASTE',
-            securityClearance: 'INFO',
-            details: {
-              contentLength: text.trim().length,
-              preview: text.trim().substring(0, 30) + (text.trim().length > 30 ? '...' : '')
-            }
-          });
-        }
-      }
-    } catch (err) {
-      trackSovereignError(err, { context: 'ClipboardPaste_Failed' });
-      toast({ variant: 'destructive', ...SovereignDict.ERRORS.SECURITY_BLOCK });
-      if (user?.uid) {
-        logAuditAction({
-          actorId: user.uid,
-          actorName: user.name || 'Unknown Rider',
-          actorRole: 'rider',
-          action: 'RIDER_CLIPBOARD_PASTE_FAILED',
-          securityClearance: 'WARNING',
-          details: {
-            error: err instanceof Error ? err.message : String(err)
-          }
-        });
-      }
-    }
-  }, [handlePickupChange, resetLocationMetrics, toast, user]);
-
-  /**
-   * [SCR-2026-SURGERY-DONE] دالة الاحتساب المعقمة والمجردة (Loose Coupling)
-   */
-  const calculateSovereignMetrics = useCallback(async () => {
-    const currentAnchor = anchorRef.current;
-
-    if (!currentAnchor) {
-        toast({ variant: 'destructive', ...SovereignDict.ERRORS.GPS_DISABLED });
-        return;
-    }
-
-    if (!pickup) {
-        toast({ variant: 'destructive', ...SovereignDict.ERRORS.EMPTY_LINK });
-        return;
-    }
-
-    try {
-        setIsResolvingUrl(true);
-        isProgrammaticUpdateRef.current = true;
-
-        const currentUrl = sanitizeUrl(pickup);
-        setPickup(currentUrl);
-
-        // [الاقتران الضعيف] - طلب الإحداثيات من المحرك المركزي
-        const destCoords = await resolveSovereignUrl(currentUrl);
-
-        if (destCoords) {
-            const finalDistance = calculateSovereignDistance(currentAnchor.lat, currentAnchor.lng, destCoords.lat, destCoords.lng);
-            setEstimatedDistance(finalDistance);
-            setEstimatedTime(estimateTripTime(finalDistance));
-            setLastCalculatedUrl(currentUrl);
-
-            toast({
-                title: SovereignDict.SUCCESS.CALCULATION_DONE.title,
-                description: `${SovereignDict.SUCCESS.CALCULATION_DONE.description} ${finalDistance.toFixed(1)} كم`
-            });
-            if (user?.uid) {
-              logAuditAction({
-                actorId: user.uid,
-                actorName: user.name || 'Unknown Rider',
-                actorRole: 'rider',
-                action: 'RIDER_RESOLVE_METRICS',
-                securityClearance: 'INFO',
-                details: {
-                  url: currentUrl,
-                  distance: finalDistance,
-                  time: estimateTripTime(finalDistance),
-                  destination: destCoords
-                }
-              });
-            }
-        } else {
-            setEstimatedDistance(0);
-            toast({ variant: 'default', ...SovereignDict.WARNINGS.BLIND_SPOT });
-            if (user?.uid) {
-              logAuditAction({
-                actorId: user.uid,
-                actorName: user.name || 'Unknown Rider',
-                actorRole: 'rider',
-                action: 'RIDER_RESOLVE_METRICS_BLIND_SPOT',
-                securityClearance: 'WARNING',
-                details: {
-                  url: currentUrl
-                }
-              });
-            }
-        }
-
-    } catch (error: any) {
-        trackSovereignError(error, { context: 'SovereignMetrics_Surgery_P16' });
-        if (error.message === 'CORS_FALLBACK_REQUIRED') {
-            toast({ variant: 'destructive', ...SovereignDict.ERRORS.CORS_FALLBACK_GUIDE });
-        } else {
-            toast({ variant: 'destructive', ...SovereignDict.ERRORS.CONSTITUTIONAL_BREACH });
-        }
-        if (user?.uid) {
-          logAuditAction({
-            actorId: user.uid,
-            actorName: user.name || 'Unknown Rider',
-            actorRole: 'rider',
-            action: 'RIDER_RESOLVE_METRICS_ERROR',
-            securityClearance: 'WARNING',
-            details: {
-              url: pickup,
-              error: error instanceof Error ? error.message : String(error)
-            }
-          });
-        }
-    } finally {
-        setIsResolvingUrl(false);
-        setTimeout(() => {
-          isProgrammaticUpdateRef.current = false;
-        }, 150);
-    }
-  }, [pickup, toast, user]);
-
-  // [مراقبة الالتماس التلقائي] - بمجرد إدخال أو لصق رابط جديد، يتم التحفيز التلقائي للاحتساب بصفر نقرات وبكامل النزاهة
-  const autoTriggeredRef = useRef<string>('');
-  useEffect(() => {
-    const trimmed = pickup ? pickup.trim() : '';
-    if (trimmed && trimmed !== lastCalculatedUrl && trimmed !== autoTriggeredRef.current && !isResolvingUrl) {
-      const looksLikeLinkOrCoord = trimmed.includes('maps') ||
-                                   trimmed.includes('http') ||
-                                   trimmed.includes('ps://') ||
-                                   trimmed.includes('naps://') ||
-                                   /(-?\d{1,2}\.\d+)(?:\+2C|%2C|%2c|,)\s*(-?\d{1,3}\.\d+)/i.test(trimmed) ||
-                                   /@(-?\d+\.\d+),(-?\d+\.\d+)/.test(trimmed);
-      if (looksLikeLinkOrCoord) {
-        autoTriggeredRef.current = trimmed;
-        const timer = setTimeout(() => {
-          calculateSovereignMetrics();
-        }, 400); // تأخير بفر 400ms لتأمين اكتمال حركة الكيبورد أو اللصق بالهاتف
-        return () => clearTimeout(timer);
-      }
-    }
-  }, [pickup, lastCalculatedUrl, isResolvingUrl, calculateSovereignMetrics]);
-
-  /**
-   * [SCR-2026-DICT-FIX] استئصال الصدى المزدوج
-   */
-  const {
-    requestRide: rawRequestRide, isRequesting, cancelTrip: rawCancelTrip, isCancelling,
-    rateTrip: rawRateTrip, isRating, executeRedPathGuillotine: rawExecuteRedPathGuillotine,
-    isExecutingGuillotine, confirmCheckpoint: rawConfirmCheckpoint, isConfirmingCheckpoint,
-    selectOffer: rawSelectOffer, isSelectingOffer,
-  } = useRiderTransactions(user, trip, acceptedDriver, resetTripListener, setInternalStatus);
-
-  const cancelTrip = useCallback(async () => {
-    await rawCancelTrip();
-    if (user?.uid) {
-      await logAuditAction({
-        actorId: user.uid,
-        actorName: user.name || 'Unknown Rider',
-        actorRole: 'rider',
-        action: 'RIDER_CANCEL_TRIP',
-        securityClearance: 'INFO',
-        details: {
-          tripId: trip?.id || 'unknown'
-        }
-      });
-    }
-  }, [rawCancelTrip, user, trip]);
-
-  const executeRedPathGuillotine = useCallback(async () => {
-    await rawExecuteRedPathGuillotine();
-    if (user?.uid) {
-      await logAuditAction({
-        actorId: user.uid,
-        actorName: user.name || 'Unknown Rider',
-        actorRole: 'rider',
-        action: 'RIDER_GUILLOTINE',
-        securityClearance: 'CRITICAL_SECURITY_ALERT',
-        details: {
-          tripId: trip?.id || 'unknown'
-        }
-      });
-    }
-  }, [rawExecuteRedPathGuillotine, user, trip]);
-
-  const confirmCheckpoint = useCallback(async () => {
-    await rawConfirmCheckpoint();
-    if (user?.uid) {
-      await logAuditAction({
-        actorId: user.uid,
-        actorName: user.name || 'Unknown Rider',
-        actorRole: 'rider',
-        action: 'RIDER_CONFIRM_CHECKPOINT',
-        securityClearance: 'INFO',
-        details: {
-          tripId: trip?.id || 'unknown'
-        }
-      });
-    }
-  }, [rawConfirmCheckpoint, user, trip]);
-
-  const selectOffer = useCallback(async (offer: Offer) => {
-    await rawSelectOffer(offer);
-    if (user?.uid) {
-      await logAuditAction({
-        actorId: user.uid,
-        actorName: user.name || 'Unknown Rider',
-        actorRole: 'rider',
-        action: 'RIDER_SELECT_OFFER',
-        securityClearance: 'INFO',
-        details: {
-          tripId: trip?.id || 'unknown',
-          driverId: offer.driverId,
-          price: offer.price,
-          driverName: offer.driverName
-        }
-      });
-    }
-  }, [rawSelectOffer, user, trip]);
-
-  const requestRide = useCallback(async () => {
-    if (isRadarActive === false) {
-      toast({
-        variant: 'destructive',
-        title: 'الخدمة معلقة مؤقتاً',
-        description: 'الخدمة معلقة مؤقتاً بناءً على القرارات الرسمية الموحدة لنظام بينكم.',
-      });
-      return;
-    }
-
-    if (!pickup) {
-      toast({ variant: 'destructive', ...SovereignDict.ERRORS.EMPTY_LINK });
-      return;
-    }
-
-    const cancels = user?.consecutiveCancellations || 0;
-    const initialRiderRating = user?.rating !== undefined ? user.rating : (user?.ratingSum && user?.ratingCount ? user.ratingSum / user.ratingCount : 5.0);
-
-    const throttleResult = RadarAntiCheatKernel.throttleRiderFloodAttack({
-      riderId: user?.uid || 'unknown',
-      activeRequestsCount: (trip && ['searching', 'busy', 'checkpoint_required'].includes(trip.status)) ? 1 : 0,
-      consecutiveCancellations: cancels,
-      trustRating: initialRiderRating
-    });
-
-    if (!throttleResult.allowRequest) {
-      toast({
-        variant: 'destructive',
-        title: 'لا يمكن إرسال طلب جديد الآن',
-        description: throttleResult.updatedRider.trustRating <= 4.2
-          ? `وصلت إلى الحد الأقصى للإلغاءات المتتالية (${cancels}/3). يرجى المحاولة لاحقا.`
-          : 'لديك طلب نشط بالفعل. انتظر حتى ينتهي الطلب الحالي.'
-      });
-      return;
-    }
-
-    let activeRiderRating = throttleResult.updatedRider.trustRating;
-    if (cancels >= 2) {
-      activeRiderRating = Math.min(activeRiderRating, 4.2);
-    }
-
-    const currentAnchor = anchorRef.current || { lat: 31.9522, lng: 35.9106 };
-    const h3Index = latLngToH3Cell(currentAnchor.lat, currentAnchor.lng, 9);
-    const obfuscatedPickupCoords = getH3CellCentroid(currentAnchor.lat, currentAnchor.lng, 9);
-    const gridId = currentAnchor ? calculateSovereignGridId(currentAnchor.lat, currentAnchor.lng) : 'unknown';
-
-    await rawRequestRide({
-        seats: parseInt(seats) || 1,
-        dropoff,
-        pickup,
-        requiresOfficialRate,
-        estimatedTime,
-        estimatedDistance,
-        pickupCoords: obfuscatedPickupCoords,
-        obfuscatedPickupCoords,
-        h3Index,
-        gridId,
-        district: user?.district || 'unknown',
-        riderRating: activeRiderRating,
-        riderRatingSum: user?.ratingSum || 0,
-        riderRatingCount: user?.ratingCount || 0,
-        riderName: user?.name || 'فارس الأفق'
-    });
-
-    if (user?.uid) {
-      await logAuditAction({
-        actorId: user.uid,
-        actorName: user.name || 'Unknown Rider',
-        actorRole: 'rider',
-        action: 'RIDER_REQUEST_RIDE',
-        securityClearance: 'INFO',
-        details: {
-          seats: parseInt(seats) || 1,
-          dropoff,
-          pickup,
-          requiresOfficialRate,
-          estimatedTime,
-          estimatedDistance,
-          gridId,
-          h3Index
-        }
-      });
-    }
-  }, [rawRequestRide, seats, dropoff, pickup, requiresOfficialRate, estimatedTime, estimatedDistance, user, trip, toast]);
-
-  const tripStatus = useMemo(() => {
-    if (isRequesting) return 'searching';
-    if (internalStatus !== 'idle') return internalStatus;
-    return trip?.status || 'idle';
-  }, [isRequesting, trip?.status, internalStatus]);
-
-  const isLocationConfirmed = useMemo(() => estimatedDistance > 0 && !isResolvingUrl, [estimatedDistance, isResolvingUrl]);
 
   const openRequestModal = useCallback(() => {
-    if (user?.isRatingRequired) {
-      toast({ variant: "destructive", ...SovereignDict.ERRORS.RATING_REQUIRED });
-      return;
-    }
     setIsRequestModalOpen(true);
-  }, [user, toast]);
+    window.dispatchEvent(new CustomEvent('rider-open-destination'));
+  }, []);
 
-  /**
-   * [SCR-2026-STATE-SHIELD] حماية الذاكرة المرحلية
-   * لم يعد يتم تصفير البيانات عند الإغلاق لمنع فقدان مدخلات الراكب.
-   */
   const closeRequestModal = useCallback(() => {
     setIsRequestModalOpen(false);
   }, []);
 
-  const rateTrip = useCallback(async (ratings: any) => {
-    if (acceptedDriver?.uid && acceptedDriver?.vehicle?.plate) {
-      if (ratings.giveHeart) {
-        try {
-          const tripObject = {
-            captainId: acceptedDriver.uid || `rated-${Date.now()}`,
-            captainName: acceptedDriver.name || 'سائق رادار',
-            captainPhone: acceptedDriver.phone || '079000000',
-            vehicleInfo: `${acceptedDriver.vehicle.make || ''} ${acceptedDriver.vehicle.color || ''}`,
-            captainType: (acceptedDriver as any).rank === 'PLATINUM' ? 'careem' : (acceptedDriver as any).rank === 'GOLD' ? 'uber' : 'independent',
-            tripId: trip?.id || `rated-${Date.now()}`
-          };
-          RadarCaptainFavoriteKernel.mummifyTrustedCaptain(tripObject, true);
-
-          await dexieDb.favoriteCaptains.add({
-            tripId: tripObject.tripId,
-            captainName: tripObject.captainName,
-            captainRank: (acceptedDriver as any).rank || 'GOLD',
-            captainPhone: tripObject.captainPhone,
-            vehicleInfo: tripObject.vehicleInfo,
-            finalPrice: Number((trip as any)?.offerPrice || (trip as any)?.price || 3.0),
-            timestamp: Date.now(),
-            heartedAt: Date.now()
-          });
-          console.log("💾 Saved rated driver as favorite to local Dexie database");
-        } catch (e) {
-          console.error("Failed to auto-favorite on trip completion:", e);
-        }
-      }
-      await rawRateTrip({ ...ratings, driverId: acceptedDriver.uid, vehicleId: acceptedDriver.vehicle.plate });
-
-      if (user?.uid) {
-        await logAuditAction({
-          actorId: user.uid,
-          actorName: user.name || 'Unknown Rider',
-          actorRole: 'rider',
-          action: 'RIDER_RATE_TRIP',
-          securityClearance: 'INFO',
-          details: {
-            tripId: trip?.id || 'unknown',
-            driverId: acceptedDriver.uid,
-            rating: ratings.rating || ratings.driverRating,
-            giveHeart: ratings.giveHeart
-          }
-        });
-      }
-    }
-  }, [rawRateTrip, acceptedDriver, trip, user]);
+  const resetLocationMetrics = useCallback(() => {
+    setDropoff('');
+    setPickup('');
+  }, []);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        sessionStorage.setItem('sovereign_trip_status', String(tripStatus));
-        window.dispatchEvent(new CustomEvent('sovereign-status-change', {
-          detail: { role: 'rider', status: tripStatus }
-        }));
-      } catch (e) {
-        console.error("Failed to update sovereign_trip_status in sessionStorage/dispatchEvent:", e);
-      }
+    try {
+      sessionStorage.setItem('sovereign_trip_status', 'idle');
+      window.dispatchEvent(new CustomEvent('sovereign-status-change', {
+        detail: { role: 'rider', status: 'idle' },
+      }));
+    } catch {
+      // Session storage may be unavailable in private or restricted contexts.
     }
-  }, [tripStatus]);
+  }, []);
 
-  const value = useMemo(() => ({
-    trip, tripStatus, acceptedDriver, requestRide, isRequesting, cancelTrip, isCancelling,
-    rateTrip, isRating, isRequestModalOpen, openRequestModal, closeRequestModal, executeRedPathGuillotine,
-    isExecutingGuillotine, confirmCheckpoint, isConfirmingCheckpoint, selectOffer, isSelectingOffer,
-    seats, setSeats, dropoff, setDropoff, pickup, setPickup: handlePickupChange, requiresOfficialRate, setRequiresOfficialRate,
-    isResolvingUrl, calculateSovereignMetrics, pasteFromClipboard,
-    estimatedDistance, estimatedTime, pulsedDrivers, isPulsing, isLocationConfirmed, resetLocationMetrics,
-    isRadarActive
+  const value = useMemo<RiderOperationsContextType>(() => ({
+    trip: null,
+    tripStatus: 'idle',
+    acceptedDriver: null,
+    isRequestModalOpen,
+    openRequestModal,
+    closeRequestModal,
+    requestRide: resolvedPromise,
+    isRequesting: false,
+    cancelTrip: resolvedPromise,
+    isCancelling: false,
+    rateTrip: resolvedPromise,
+    isRating: false,
+    executeRedPathGuillotine: resolvedPromise,
+    isExecutingGuillotine: false,
+    confirmCheckpoint: resolvedPromise,
+    isConfirmingCheckpoint: false,
+    selectOffer: resolvedPromise,
+    isSelectingOffer: false,
+    seats,
+    setSeats,
+    dropoff,
+    setDropoff,
+    pickup,
+    setPickup,
+    requiresOfficialRate,
+    setRequiresOfficialRate,
+    isResolvingUrl: false,
+    calculateSovereignMetrics: resolvedPromise,
+    pasteFromClipboard: resolvedPromise,
+    estimatedDistance: 0,
+    estimatedTime: 0,
+    pulsedDrivers: [],
+    isPulsing: false,
+    isLocationConfirmed: false,
+    resetLocationMetrics,
+    isRadarActive: true,
   }), [
-    trip, tripStatus, acceptedDriver, requestRide, isRequesting, cancelTrip, isCancelling,
-    rateTrip, isRating, isRequestModalOpen, openRequestModal, closeRequestModal, executeRedPathGuillotine,
-    isExecutingGuillotine, confirmCheckpoint, isConfirmingCheckpoint, selectOffer, isSelectingOffer,
-    seats, dropoff, pickup, handlePickupChange, requiresOfficialRate, isResolvingUrl,
-    calculateSovereignMetrics, pasteFromClipboard, estimatedDistance, estimatedTime, pulsedDrivers,
-    isPulsing, isLocationConfirmed, resetLocationMetrics, isRadarActive
+    closeRequestModal,
+    dropoff,
+    isRequestModalOpen,
+    openRequestModal,
+    pickup,
+    requiresOfficialRate,
+    resetLocationMetrics,
+    seats,
   ]);
 
   return <RiderOperationsContext.Provider value={value}>{children}</RiderOperationsContext.Provider>;
