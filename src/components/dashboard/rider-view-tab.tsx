@@ -504,7 +504,6 @@ export function RiderViewTab() {
               event: '*',
               schema: 'public',
               table: 'captain_locations',
-              filter: `country_id=eq.${activeCountryId}`,
             },
             () => void loadCaptainPresence(),
           )

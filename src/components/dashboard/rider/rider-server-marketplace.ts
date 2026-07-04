@@ -344,8 +344,8 @@ function mapRideOfferRow(row: Record<string, unknown>): Offer | null {
 function mapCaptainPresenceRow(row: Record<string, unknown>): CaptainPresencePoint | null {
   const id = firstString(row.captain_id, row.driver_id, row.user_id, row.id);
   const h3Cell = firstString(row.current_h3, row.h3_cell, row.h3);
-  let lat = firstNumber(row.lat, row.latitude, row.current_lat);
-  let lng = firstNumber(row.lng, row.longitude, row.current_lng);
+  let lat = firstNumber(row.location_lat, row.lat, row.latitude, row.current_lat);
+  let lng = firstNumber(row.location_lng, row.lng, row.longitude, row.current_lng);
   const updatedAt = firstString(row.updated_at, row.updatedAt, row.pulsed_at, row.last_seen_at);
 
   if (!id || !h3Cell) return null;

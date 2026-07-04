@@ -1,8 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { collection, query, where, limit, onSnapshot } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { trackSovereignError } from '@/lib/error-tracker';
 import { SOVEREIGN_CONSTANTS } from '@/core/constants/sovereign-protocols';
 import { calculateSovereignGridId, getSurroundingGridIds } from '@/lib/geo-grid';
@@ -169,29 +167,9 @@ export function useDriverRadar(user: User | null, driverStatus: string, updateDr
     }
   }, [driverStatus, latVal, lngVal, user, currentDistrict, currentH3Cell]);
 
-  // Hook 3: Stable Trips Subscriber (Zero Network Chattiness)
+  // Hook 3: Legacy Firestore trip discovery is disabled for the Supabase rider pipeline.
   useEffect(() => {
-    if (driverStatus !== 'active' || surroundingGridIds.length === 0) {
-      setRawTrips([]);
-      return;
-    }
-
-    const q = query(
-      collection(db, 'trips'),
-      where('status', '==', 'searching'),
-      where('gridId', 'in', surroundingGridIds),
-      limit(SOVEREIGN_CONSTANTS.RADAR_SCAN_LIMIT)
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const rawRequests = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Trip));
-      setRawTrips(rawRequests);
-    }, (err) => {
-      trackSovereignError(err, { context: 'DriverRadarListener' });
-    });
-
-    return () => unsubscribe();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setRawTrips([]);
   }, [driverStatus, currentGridAreaKey]);
 
   const requests = useMemo(() => {
