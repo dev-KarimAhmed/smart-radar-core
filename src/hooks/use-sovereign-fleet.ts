@@ -1,63 +1,66 @@
-import { useState, useEffect } from 'react';
-import { collection, onSnapshot, query, where } from 'firebase/firestore';
-import { db, auth } from '@/lib/firebase';
+import { useEffect, useState } from 'react';
 import type { User } from '@/core/types';
-import { useAuth } from './use-auth';
+import { supabase } from '@/lib/supabase-client';
+
+function mapProfileToUser(row: Record<string, any>): User {
+  return {
+    uid: String(row.id),
+    name: row.full_name || row.name || 'سائق',
+    phone: row.phone || '',
+    role: 'driver',
+    status: row.status || 'idle',
+    rating: Number(row.rating ?? 5),
+    rank: row.rank || 'silver',
+    countryId: row.country_id ?? undefined,
+    governorate: row.governorate_id ? String(row.governorate_id) : undefined,
+    district: row.district_id ? String(row.district_id) : undefined,
+  } as User;
+}
 
 export function useSovereignFleet() {
   const [drivers, setDrivers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { user } = useAuth();
 
   useEffect(() => {
-    let unsubscribeQuery: (() => void) | null = null;
+    let active = true;
 
-    // Track the Firebase Auth state change so we only query once actual credentials exist
-    const unsubscribeAuth = auth.onAuthStateChanged((firebaseUser) => {
-      // Clear out any stale subscription
-      if (unsubscribeQuery) {
-        unsubscribeQuery();
-        unsubscribeQuery = null;
+    async function fetchDrivers() {
+      setLoading(true);
+      try {
+        const { data, error: fetchError } = await supabase
+          .from('profiles')
+          .select('*')
+          .in('role', ['DRIVER', 'CAPTAIN', 'driver', 'captain']);
+
+        if (fetchError) throw fetchError;
+        if (!active) return;
+
+        setDrivers(Array.isArray(data) ? data.map(mapProfileToUser) : []);
+        setError(null);
+      } catch (err) {
+        if (!active) return;
+        setDrivers([]);
+        setError((err as { message?: string })?.message || 'تعذر تحميل السائقين.');
+      } finally {
+        if (active) setLoading(false);
       }
+    }
 
-      if (!firebaseUser && !user) {
-        setLoading(true);
-        return;
-      }
+    void fetchDrivers();
 
-      // If bypassing with mock but Firebase Auth isn't signed in yet, hold on
-      if (!firebaseUser) {
-        return;
-      }
-
-      const q = query(collection(db, 'users'), where('role', '==', 'driver'));
-
-      unsubscribeQuery = onSnapshot(q, 
-        (snapshot) => {
-          const driversList = snapshot.docs.map(docSnap => ({
-            uid: docSnap.id,
-            ...docSnap.data()
-          } as User));
-          setDrivers(driversList);
-          setError(null);
-          setLoading(false);
-        },
-        (err) => {
-          console.error('Error listening to sovereign fleet:', err);
-          setError(err.message);
-          setLoading(false);
-        }
-      );
-    });
+    const channel = supabase
+      .channel('profiles-driver-fleet')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
+        void fetchDrivers();
+      })
+      .subscribe();
 
     return () => {
-      unsubscribeAuth();
-      if (unsubscribeQuery) {
-        unsubscribeQuery();
-      }
+      active = false;
+      void supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, []);
 
   return { drivers, loading, error };
 }

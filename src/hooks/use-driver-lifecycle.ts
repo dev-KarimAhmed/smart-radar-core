@@ -1,60 +1,19 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { doc, setDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { trackSovereignError } from '@/lib/error-tracker';
-import { SOVEREIGN_CONSTANTS } from '@/core/constants/sovereign-protocols';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { User } from '@/core/types';
 import { useToast } from '@/hooks/use-toast';
-import { RadarTimeSubscriptionKernel } from '@/core/logic/time-kernel';
-import { RadarSovereignCommuteKernel } from '@/lib/commute-kernel';
-import { RadarAntiCheatKernel } from '@/core/logic/anti-cheat-kernel';
+import { supabase } from '@/lib/supabase-client';
 import { addCaptainSovereignLog } from '@/lib/dexie-db';
 
 type DriverStatus = 'active' | 'idle' | 'busy' | 'rating';
 
 export function useDriverLifecycle(user: User | null) {
   const [driverStatus, setDriverStatus] = useState<DriverStatus>('idle');
-  const expectedServerStatusRef = useRef<DriverStatus | null>(null);
-
-  const changeDriverStatus = useCallback((nextStatus: DriverStatus) => {
-    setDriverStatus(nextStatus);
-    expectedServerStatusRef.current = nextStatus;
-  }, []);
-
   const [isDormancyWarningVisible, setWarning] = useState(false);
   const timers = useRef<{ dormancy: ReturnType<typeof setTimeout> | null; warning: ReturnType<typeof setTimeout> | null }>({ dormancy: null, warning: null });
-  const { toast } = useToast();
-
-  const userRef = useRef(user);
   const statusRef = useRef(driverStatus);
-  const sessionStartRef = useRef<{ dateNow: number; perfNow: number } | null>(null);
-
-  const lastUidRef = useRef<string | null>(null);
-  const lastProcessedTickRef = useRef<number | null>(null);
-  const localPaidHoursRef = useRef<number | null>(null);
-  const localBonusHoursRef = useRef<number | null>(null);
-  const localTimeDeltaRef = useRef<number>(0);
-
-  const lastSavedOnServerRef = useRef<{ paid: number; bonus: number } | null>(null);
-  const previousLocalStateRef = useRef<{ paid: number; bonus: number } | null>(null);
-
-  if (user?.uid !== lastUidRef.current) {
-    lastUidRef.current = user?.uid || null;
-    lastProcessedTickRef.current = null;
-    localPaidHoursRef.current = null;
-    localBonusHoursRef.current = null;
-    localTimeDeltaRef.current = 0;
-    sessionStartRef.current = null;
-    lastSavedOnServerRef.current = null;
-    previousLocalStateRef.current = null;
-    expectedServerStatusRef.current = null;
-  }
-
-  useEffect(() => {
-    userRef.current = user;
-  }, [user]);
+  const { toast } = useToast();
 
   useEffect(() => {
     statusRef.current = driverStatus;
@@ -62,304 +21,81 @@ export function useDriverLifecycle(user: User | null) {
 
   useEffect(() => {
     if (user?.role === 'driver') {
-      const serverStatus = (user.status || 'idle') as DriverStatus;
-
-      // 🛡️ [حارس ترقية الحالة المونوتوني المانع للارتداد الشبكي الأعمى V2.6-Secured]
-      // إذا كان السائق محلياً في حالة التقييم المستقر 'rating'، وجاء تحديث شبكي يحمل الحالة 'busy' أو 'active' أو 'idle' من مستند المستخدم،
-      // يتم حجب وتصفية هذا العرض فوراً كونه يمثل صدى شبكياً متأخراً (Stale Echo) قادماً من عمليات غير منتهية على السحاب.
-      if (driverStatus === 'rating' && (serverStatus === 'busy' || serverStatus === 'active' || serverStatus === 'idle')) {
-        console.log(`🛡️ [Snapshot Anti-Rollback Guard]: Prevented stale rollback to "${serverStatus}" while driver status is locked in "${driverStatus}"`);
-        return;
-      }
-
-      if (expectedServerStatusRef.current !== null) {
-        if (serverStatus === expectedServerStatusRef.current) {
-          expectedServerStatusRef.current = null;
-        } else {
-          console.log(`⏳ [SSOT status check]: Ignoring stale server status "${serverStatus}" because we expected "${expectedServerStatusRef.current}"`);
-          return;
-        }
-      }
-
-      if (serverStatus !== driverStatus) {
-        setDriverStatus(serverStatus);
-      }
+      setDriverStatus(((user.status || 'idle') as DriverStatus));
     }
-  }, [user, driverStatus]);
+  }, [user?.role, user?.status]);
 
   const updateDriverDoc = useCallback(async (data: Partial<User> & { status?: DriverStatus }) => {
     if (!user?.uid) return;
-    try {
-      await setDoc(doc(db, 'users', user.uid), data, { merge: true });
-    } catch (error) {
-      trackSovereignError(error, { context: 'UpdateDriverDoc' });
+
+    const payload: Record<string, unknown> = {};
+    if (data.status) payload.status = data.status;
+    if (typeof data.lastTickTimestamp === 'number') payload.last_tick_timestamp = data.lastTickTimestamp;
+
+    if (Object.keys(payload).length === 0) return;
+
+    const { error } = await supabase
+      .from('profiles')
+      .update(payload)
+      .eq('id', user.uid);
+
+    if (error) {
+      if (import.meta.env.DEV) console.warn('[Driver lifecycle] profile update failed:', error);
+      toast({
+        variant: 'destructive',
+        title: 'تعذر تحديث حالة السائق',
+        description: 'تحقق من الاتصال أو صلاحيات الحساب.',
+      });
     }
-  }, [user?.uid]);
+  }, [toast, user?.uid]);
+
+  const changeDriverStatus = useCallback((nextStatus: DriverStatus) => {
+    setDriverStatus(nextStatus);
+  }, []);
 
   const clearTimers = useCallback(() => {
     if (timers.current.dormancy) clearTimeout(timers.current.dormancy);
     if (timers.current.warning) clearTimeout(timers.current.warning);
+    timers.current = { dormancy: null, warning: null };
     setWarning(false);
   }, []);
 
   const resetDormancyTimer = useCallback(() => {
     clearTimers();
-    if (driverStatus !== 'active') return;
+    if (statusRef.current !== 'active') return;
 
-    // Warn driver about dormancy
-    timers.current.warning = setTimeout(() => setWarning(true), SOVEREIGN_CONSTANTS.DORMANCY_WARNING_MS);
-
-    // Auto idle driver if dormant for too long
+    timers.current.warning = setTimeout(() => setWarning(true), 4 * 60 * 1000);
     timers.current.dormancy = setTimeout(() => {
       changeDriverStatus('idle');
-      updateDriverDoc({ status: 'idle' });
-      if (userRef.current?.uid) {
-        addCaptainSovereignLog(
-          userRef.current.uid,
+      void updateDriverDoc({ status: 'idle' });
+      if (user?.uid) {
+        void addCaptainSovereignLog(
+          user.uid,
           'system_action',
-          'تعطيل تلقائي (الخمول التام)',
-          'قام النظام بتحويل حالة السائق إلى خامل تلقائياً لعدم رصد أي نشاط أو تفاعل ملموس لمدة 5 دقائق.'
+          'تعطيل تلقائي',
+          'تم تحويل حالة السائق إلى غير متاح بسبب عدم وجود نشاط لفترة طويلة.',
         );
       }
-    }, SOVEREIGN_CONSTANTS.DORMANCY_TIMEOUT_MS);
-  }, [driverStatus, clearTimers, updateDriverDoc]);
+    }, 5 * 60 * 1000);
+  }, [changeDriverStatus, clearTimers, updateDriverDoc, user?.uid]);
 
-  // Touch and scroll listener for activity tracking
   useEffect(() => {
     if (user?.role !== 'driver' || driverStatus !== 'active') {
-       clearTimers();
-       return;
+      clearTimers();
+      return;
     }
 
     const wake = () => resetDormancyTimer();
-    const events = ['touchstart', 'scroll'];
-
-    events.forEach(e => window.addEventListener(e, wake, { passive: true }));
+    window.addEventListener('touchstart', wake, { passive: true });
+    window.addEventListener('scroll', wake, { passive: true });
     resetDormancyTimer();
 
     return () => {
-      events.forEach(e => window.removeEventListener(e, wake));
+      window.removeEventListener('touchstart', wake);
+      window.removeEventListener('scroll', wake);
       clearTimers();
     };
-  }, [user?.role, driverStatus, resetDormancyTimer, clearTimers]);
-
-  // ⚡️ [مزامنة الصندوق  الفورية لمنع تزييف الحقيقة]: مزامنة سريعة ولحظية عند حدوث عمليات شحن رصيد أو تعديل خارجي
-  useEffect(() => {
-    if (!user?.uid || user.role !== 'driver') {
-      return;
-    }
-
-    const initialPaidHours = user.paidHoursRemaining !== undefined ? user.paidHoursRemaining : (user.subscriptionHours !== undefined ? Math.round(user.subscriptionHours * 60) : 870);
-    const initialBonusHours = user.bonusHoursRemaining !== undefined ? user.bonusHoursRemaining : 0;
-
-    if (localPaidHoursRef.current === null || localBonusHoursRef.current === null) {
-      localPaidHoursRef.current = initialPaidHours;
-      localBonusHoursRef.current = initialBonusHours;
-      const syncHash = RadarSovereignCommuteKernel.generateStateHash(user.uid, initialPaidHours, initialBonusHours);
-      localStorage.setItem(`sovereign_shake_${user.uid}`, syncHash);
-      localStorage.setItem(`sovereign_paid_${user.uid}`, String(initialPaidHours));
-      localStorage.setItem(`sovereign_bonus_${user.uid}`, String(initialBonusHours));
-    } else {
-      const isRefill = initialPaidHours > localPaidHoursRef.current || initialBonusHours > localBonusHoursRef.current;
-      const isTransientEcho =
-        (lastSavedOnServerRef.current && initialPaidHours === lastSavedOnServerRef.current.paid && initialBonusHours === lastSavedOnServerRef.current.bonus) ||
-        (previousLocalStateRef.current && initialPaidHours === previousLocalStateRef.current.paid && initialBonusHours === previousLocalStateRef.current.bonus);
-
-      const isDivergent = initialPaidHours !== localPaidHoursRef.current || initialBonusHours !== localBonusHoursRef.current;
-
-      if (isRefill || (isDivergent && !isTransientEcho)) {
-        console.log(`📡 [مزامنة الصندوق  الفورية]: تم دمج حالة الساعات الخارجية فوراً منعاً للتزييف: ${initialPaidHours} مدفوعة، ${initialBonusHours} بونص.`);
-        localPaidHoursRef.current = initialPaidHours;
-        localBonusHoursRef.current = initialBonusHours;
-
-        const syncHash = RadarSovereignCommuteKernel.generateStateHash(user.uid, initialPaidHours, initialBonusHours);
-        localStorage.setItem(`sovereign_shake_${user.uid}`, syncHash);
-        localStorage.setItem(`sovereign_paid_${user.uid}`, String(initialPaidHours));
-        localStorage.setItem(`sovereign_bonus_${user.uid}`, String(initialBonusHours));
-      }
-    }
-  }, [user?.uid, user?.paidHoursRemaining, user?.bonusHoursRemaining, user?.role]);
-
-  // ⏳ [حزمة شحن الساعات] - Real-time active hour deduction based on RadarTimeSubscriptionKernel
-  useEffect(() => {
-    if (!user?.uid || user.role !== 'driver') {
-      return;
-    }
-
-    const interval = setInterval(async () => {
-      const currentUser = userRef.current;
-      const currentStatus = statusRef.current;
-      if (!currentUser?.uid || currentUser.role !== 'driver') return;
-
-      if (!sessionStartRef.current) {
-        sessionStartRef.current = {
-          dateNow: Date.now(),
-          perfNow: performance.now()
-        };
-        const startLastTick = currentUser.lastTickTimestamp || Date.now();
-        // [النشاط الشبكي التفاضلي V2.6-Secured]: احتساب الفارق الرياضي بين توقيت السيرفر الموثق وساعة الهاتف
-        localTimeDeltaRef.current = startLastTick - Date.now();
-        if (typeof window !== 'undefined') {
-          sessionStorage.setItem('sovereign_time_delta', String(localTimeDeltaRef.current));
-        }
-      }
-
-      // Calculate real monotonic elapsed time to neutralize any clock modifications (forward or backward)
-      const realElapsedMs = performance.now() - sessionStartRef.current.perfNow;
-      const wallElapsedMs = Date.now() - sessionStartRef.current.dateNow;
-
-      let clientNow = Date.now();
-      // If manual clock alteration is detected (system clock drifted from performance timer by > 15s)
-      if (Math.abs(wallElapsedMs - realElapsedMs) > 15000) {
-        console.warn("🚫 [كشف التلاعب الزمني]: تم رصد تموج مفرط أو يدوي بساعة الجهاز. استرداد الزمن المونوتوني المعاير.");
-        clientNow = sessionStartRef.current.dateNow + realElapsedMs;
-      }
-
-      const isRadarActive = currentStatus === 'active' || currentStatus === 'busy';
-
-      // 🏛️ SSOT Alignment: Initialize or synchronize local refs with remote user document if a refill has happened
-      const initialPaidHours = currentUser.paidHoursRemaining !== undefined ? currentUser.paidHoursRemaining : (currentUser.subscriptionHours !== undefined ? Math.round(currentUser.subscriptionHours * 60) : 870);
-      const initialBonusHours = currentUser.bonusHoursRemaining !== undefined ? currentUser.bonusHoursRemaining : 0;
-      const initialLastTick = currentUser.lastTickTimestamp || Date.now();
-
-      let didImportRemote = false;
-
-      if (localPaidHoursRef.current === null || localBonusHoursRef.current === null) {
-        localPaidHoursRef.current = initialPaidHours;
-        localBonusHoursRef.current = initialBonusHours;
-        didImportRemote = true;
-      } else {
-        // Prevent State Desync loop (lagging reverberation of older Firestore writes overwriting newer local state).
-        // Authoritative updates must satisfy either:
-        // 1. Value is greater than current local state (e.g., wallet package refill).
-        // 2. Value has changed but is NOT a lagging echo of our own past written states.
-        const isRefill = initialPaidHours > localPaidHoursRef.current || initialBonusHours > localBonusHoursRef.current;
-
-        const isTransientEcho =
-          (lastSavedOnServerRef.current && initialPaidHours === lastSavedOnServerRef.current.paid && initialBonusHours === lastSavedOnServerRef.current.bonus) ||
-          (previousLocalStateRef.current && initialPaidHours === previousLocalStateRef.current.paid && initialBonusHours === previousLocalStateRef.current.bonus);
-
-        const isDivergent = initialPaidHours !== localPaidHoursRef.current || initialBonusHours !== localBonusHoursRef.current;
-
-        if (isRefill || (isDivergent && !isTransientEcho)) {
-          console.log(`📡 [مزامنة الصندوق ]: تم دمج حالة الساعات الخارجية بنجاح منعاً للتزييف: ${initialPaidHours} مدفوعة، ${initialBonusHours} بونص.`);
-          localPaidHoursRef.current = initialPaidHours;
-          localBonusHoursRef.current = initialBonusHours;
-          didImportRemote = true;
-        }
-      }
-
-      if (didImportRemote) {
-        // Update security hash and values in localStorage in perfect synchronicity to avoid false lockout locks
-        const syncHash = RadarSovereignCommuteKernel.generateStateHash(currentUser.uid, localPaidHoursRef.current, localBonusHoursRef.current);
-        localStorage.setItem(`sovereign_shake_${currentUser.uid}`, syncHash);
-        localStorage.setItem(`sovereign_paid_${currentUser.uid}`, String(localPaidHoursRef.current));
-        localStorage.setItem(`sovereign_bonus_${currentUser.uid}`, String(localBonusHoursRef.current));
-      }
-
-      if (lastProcessedTickRef.current === null) {
-        lastProcessedTickRef.current = initialLastTick;
-      }
-
-      const paidHours = localPaidHoursRef.current;
-      const bonusHours = localBonusHoursRef.current;
-      const lastTick = lastProcessedTickRef.current;
-
-      // [علاق ثغرة الوقت]: ميزان فحص سلامة الوقت لمنع التلاعب بساعة الهاتف
-      const integrity = RadarAntiCheatKernel.validateTimeIntegrity({
-        paidMinutesRemaining: paidHours,
-        lastServerSyncedTimestamp: lastTick,
-        localTimeDeltaMs: localTimeDeltaRef.current
-      }, clientNow);
-
-      if (integrity.isTimeTampered) {
-        clientNow = integrity.correctedNow;
-      }
-
-      // 📡 [بروتوكول المصافحة التصفوية الصامتة V2.6-Secured - اقتران ضعيف]
-      const handshakeResult = RadarAntiCheatKernel.evaluateSilentHandshake({
-        isRadarActive,
-        serverStatus: currentUser.status || 'idle',
-        isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
-        clientNow,
-        deviceNow: Date.now()
-      });
-
-      if (!handshakeResult.isHandshakePassed) {
-        console.warn(`📡 [المصافحة الصامتة]: تم تعليق خصم الساعات لحفظ الرصيد من التلاشي أثناء عطل التغطية أو عدم مطابقة العرض أو التلاعب بالوقت. السبب: ${handshakeResult.reason}`);
-        // نجمد العداد محلياً بمزامنة توقيت العداد مع توقيت النشاطة الحالي دون ترحيل الخصم
-        lastProcessedTickRef.current = clientNow;
-        return;
-      }
-
-      const wallet = {
-        captainId: currentUser.uid,
-        paidHoursRemaining: paidHours,
-        bonusHoursRemaining: bonusHours,
-        isRadarActive,
-        lastTickTimestamp: lastTick
-      };
-
-      const result = RadarTimeSubscriptionKernel.processLocalTimeTick(wallet, clientNow);
-
-      if (result.triggerSync) {
-        const updated = result.updatedWallet;
-        const totalHoursFraction = (updated.paidHoursRemaining + updated.bonusHoursRemaining) / 60;
-
-        // Feed state transition history to prevent feedback loop desync when Firestore pushes lazy snapshots
-        previousLocalStateRef.current = { paid: paidHours, bonus: bonusHours };
-        lastSavedOnServerRef.current = { paid: updated.paidHoursRemaining, bonus: updated.bonusHoursRemaining };
-
-        // Synchronously update local SSOT refs IMMEDIATELY to prevent double tick on next interval run!
-        localPaidHoursRef.current = updated.paidHoursRemaining;
-        localBonusHoursRef.current = updated.bonusHoursRemaining;
-        lastProcessedTickRef.current = updated.lastTickTimestamp;
-
-        // [قفل المصافحة الجداري]: تحديث الهاش في المتصفح محلياً فوراً لحبس العداد وحفظ نزاهته
-        const nextHash = RadarSovereignCommuteKernel.generateStateHash(currentUser.uid, updated.paidHoursRemaining, updated.bonusHoursRemaining);
-        localStorage.setItem(`sovereign_shake_${currentUser.uid}`, nextHash);
-        localStorage.setItem(`sovereign_paid_${currentUser.uid}`, String(updated.paidHoursRemaining));
-        localStorage.setItem(`sovereign_bonus_${currentUser.uid}`, String(updated.bonusHoursRemaining));
-
-        if (!updated.isRadarActive && isRadarActive) {
-          changeDriverStatus('idle');
-          await setDoc(doc(db, 'users', currentUser.uid), {
-            status: 'idle',
-            paidHoursRemaining: 0,
-            bonusHoursRemaining: 0,
-            subscriptionHours: 0,
-            lastTickTimestamp: updated.lastTickTimestamp
-          }, { merge: true });
-
-          addCaptainSovereignLog(
-            currentUser.uid,
-            'system_action',
-            'تعطيل تلقائي (نفاد باقة العرض)',
-            'قام النظام بإطفاء العرض وتحويل حالة السائق إلى خامل بسبب نفاد حزمة الساعات النشطة بالكامل.'
-          );
-
-          toast({
-            variant: 'destructive',
-            title: '🚨 نفاد باقة ساعات الملاحة',
-            description: 'لقد نفدت حزمة ساعات العرض المخصصة لك كلياً. يرجى التوجه لتبويب المحفظة لشحن رصيد ساعات جديد.'
-          });
-        } else {
-          await setDoc(doc(db, 'users', currentUser.uid), {
-            paidHoursRemaining: updated.paidHoursRemaining,
-            bonusHoursRemaining: updated.bonusHoursRemaining,
-            subscriptionHours: Number(totalHoursFraction.toFixed(3)),
-            lastTickTimestamp: updated.lastTickTimestamp
-          }, { merge: true });
-        }
-      } else if (!currentUser.lastTickTimestamp) {
-        await setDoc(doc(db, 'users', currentUser.uid), {
-          lastTickTimestamp: Date.now()
-        }, { merge: true });
-      }
-    }, 10000); // Check loop every 10 seconds to handle ticks gracefully
-
-    return () => clearInterval(interval);
-  }, [user?.uid, user?.role, toast]);
+  }, [clearTimers, driverStatus, resetDormancyTimer, user?.role]);
 
   const isTogglingRef = useRef(false);
 
@@ -369,48 +105,26 @@ export function useDriverLifecycle(user: User | null) {
     isTogglingRef.current = true;
 
     try {
-      const paidHours = user?.paidHoursRemaining !== undefined ? user.paidHoursRemaining : (user?.subscriptionHours !== undefined ? Math.round(user.subscriptionHours * 60) : 870);
-      const bonusHours = user?.bonusHoursRemaining !== undefined ? user.bonusHoursRemaining : 0;
-      const totalMinutes = paidHours + bonusHours;
-
-      if (desiredStatus === 'active' && totalMinutes <= 0) {
-        toast({
-          variant: 'destructive',
-          title: '🚫 عجز ساعات العرض',
-          description: 'لا يوجد لديك رصيد باقة ساعات كافٍ لتشغيل استقبال ساعات العمل. يرجى شحن حزمة جديدة سائق.'
-        });
-        return;
-      }
-
       changeDriverStatus(desiredStatus);
       await updateDriverDoc({
         status: desiredStatus,
-        lastTickTimestamp: desiredStatus === 'active' ? Date.now() : (user?.lastTickTimestamp || Date.now())
+        lastTickTimestamp: Date.now(),
       });
 
       if (user?.uid) {
-        if (desiredStatus === 'active') {
-          addCaptainSovereignLog(
-            user.uid,
-            'status_change',
-            'التحول إلى حالة نشط',
-            'قام السائق بتفعيل استقبال العرض وتحويل حالته يدوياً إلى نشط ومتاح لاستقبال طلبات الركاب.'
-          );
-        } else {
-          addCaptainSovereignLog(
-            user.uid,
-            'status_change',
-            'التحول إلى حالة خامل',
-            'قام السائق بتعطيل استقبال العرض وتحويل حالته يدوياً إلى خامل ومغلق.'
-          );
-        }
+        void addCaptainSovereignLog(
+          user.uid,
+          'status_change',
+          desiredStatus === 'active' ? 'متاح لاستقبال الطلبات' : 'غير متاح',
+          desiredStatus === 'active'
+            ? 'قام السائق بتفعيل استقبال الطلبات.'
+            : 'قام السائق بإيقاف استقبال الطلبات.',
+        );
       }
-    } catch (e) {
-      trackSovereignError(e, { context: 'ToggleDriverStatus' });
     } finally {
       isTogglingRef.current = false;
     }
-  }, [driverStatus, updateDriverDoc, user?.paidHoursRemaining, user?.bonusHoursRemaining, user?.subscriptionHours, user?.lastTickTimestamp, toast]);
+  }, [changeDriverStatus, driverStatus, updateDriverDoc, user?.uid]);
 
   return {
     driverStatus,
@@ -418,6 +132,6 @@ export function useDriverLifecycle(user: User | null) {
     isDormancyWarningVisible,
     resetDormancyTimer,
     toggleDriverStatus,
-    updateDriverDoc
+    updateDriverDoc,
   };
 }

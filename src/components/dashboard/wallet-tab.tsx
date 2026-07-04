@@ -1,72 +1,57 @@
 'use client';
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useSovereignWallet } from '@/hooks/use-sovereign-wallet';
 import {
-  Wallet, Sparkles, RefreshCw, Zap, Clock,
-  CreditCard, ArrowDownLeft, ArrowUpRight, CheckCircle2,
-  HelpCircle
+  ArrowDownLeft,
+  ArrowUpRight,
+  CheckCircle2,
+  Clock,
+  CreditCard,
+  HelpCircle,
+  RefreshCw,
+  Sparkles,
+  Wallet,
+  Zap,
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { AnimatePresence, motion } from 'motion/react';
 import { Badge } from '@/components/ui/badge';
 import { GeoPaymentGateway } from '@/components/shared/geo-payment-gateway';
 import { SovereignFinancialActivityChart } from '@/components/dashboard/financial-chart';
 
-interface Transaction {
-  id: string;
-  type: 'charge' | 'purchase' | 'trip_deduction';
-  amount: number;
-  currency: string;
-  description: string;
-  createdAt: string;
-  status: 'completed' | 'pending';
-  timestamp?: number;
-}
-
-/**
- * 🛡️ [التعقيم الماسي V2.6-Secured] WalletTab
- * Pure Visual Consumer of financial transactions and subscription state.
- * Absolutely NO local state calculation, database writes, or direct setDoc/updateDoc logic.
- * Conforms to Single Responsibility Principle (SRP).
- */
-interface SovereignBalanceDisplayProps {
-  balanceJD: number;
+interface BalanceDisplayProps {
+  balance: number;
   currencyLabel: string;
   walletLoaded: boolean;
   onChargeFunds: () => void;
 }
 
-/**
- * 🪙 [التعقيم الماسي V2.6-Secured - مكون عرض الرصيد المستقل]
- * Pure visual consumer for current balance state.
- * Contains absolutely no mathematical computation, mutation, or write logic.
- */
-export function SovereignBalanceDisplay({ balanceJD, currencyLabel, walletLoaded, onChargeFunds }: SovereignBalanceDisplayProps) {
+function BalanceDisplay({ balance, currencyLabel, walletLoaded, onChargeFunds }: BalanceDisplayProps) {
   return (
-    <Card className="bg-[#050D05]/95 border border-emerald-900/40 shadow-xl overflow-hidden relative">
-      <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-500/5 blur-xl rounded-full" />
-      <CardContent className="p-5 flex flex-col justify-between h-full">
-        <div className="flex justify-between items-start">
+    <Card className="relative overflow-hidden border border-emerald-900/40 bg-[#050D05]/95 shadow-xl">
+      <div className="absolute right-0 top-0 h-16 w-16 rounded-full bg-emerald-500/5 blur-xl" />
+      <CardContent className="flex h-full flex-col justify-between p-5">
+        <div className="flex items-start justify-between">
           <span className="text-xs font-bold text-gray-400">الرصيد</span>
           <span className="text-xs font-bold text-emerald-400">{currencyLabel || '-'}</span>
         </div>
 
         <div className="my-3">
-          <span className="text-3xl font-black text-white tracking-tight">
-            {walletLoaded ? balanceJD.toFixed(2) : '...'}
+          <span className="text-3xl font-black tracking-tight text-white">
+            {walletLoaded ? balance.toFixed(2) : '...'}
           </span>
-          {currencyLabel && <span className="text-sm font-bold text-emerald-500 mr-1.5">{currencyLabel}</span>}
+          {currencyLabel && <span className="mr-1.5 text-sm font-bold text-emerald-500">{currencyLabel}</span>}
         </div>
 
         <Button
           onClick={onChargeFunds}
-          className="w-full bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 h-10 rounded-xl text-xs font-bold transition-all"
+          className="h-10 w-full rounded-xl border border-emerald-500/30 bg-emerald-600/20 text-xs font-bold text-emerald-400 transition-all hover:bg-emerald-600/30"
         >
-          <CreditCard className="w-4 h-4 ml-1" />
-          تعبئة الرصيد
+          <CreditCard className="ml-1 h-4 w-4" />
+          شحن الرصيد
         </Button>
       </CardContent>
     </Card>
@@ -85,207 +70,157 @@ export function WalletTab() {
     activePackageName,
     isDriver,
     transactions,
-    walletLoaded
+    walletLoaded,
   } = useSovereignWallet(user);
 
   const [isChargingFunds, setIsChargingFunds] = useState(false);
-  const [purchasingPackage, setPurchasingPackage] = useState<'pulse' | 'transit' | null>(null);
+  const [purchasingPackage, setPurchasingPackage] = useState<'basic' | 'pro' | null>(null);
   const currencyLabel = user?.currencyAr || user?.currencyEn || '';
 
-  // Handle purchasing driver packages (delegate cleanly to hook)
-  const handlePurchasePackage = useCallback(async (pkgType: 'pulse' | 'transit') => {
+  const handlePurchasePackage = useCallback(async (pkgType: 'basic' | 'pro') => {
     const success = await purchaseDriverPackage(pkgType);
-    if (success) {
-      setPurchasingPackage(null);
-    }
+    if (success) setPurchasingPackage(null);
   }, [purchaseDriverPackage]);
 
   return (
-    <div className="w-full max-w-lg mx-auto pb-10 font-sans text-right" dir="rtl">
-      {/* Dynamic Header */}
-      <div className="flex items-center justify-between mb-6">
+    <div className="mx-auto w-full max-w-lg pb-10 text-right font-sans" dir="rtl">
+      <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="p-2.5 rounded-2xl bg-emerald-950/40 border border-emerald-800/20 text-emerald-400">
-            <Wallet className="w-6 h-6" />
+          <div className="rounded-2xl border border-emerald-800/20 bg-emerald-950/40 p-2.5 text-emerald-400">
+            <Wallet className="h-6 w-6" />
           </div>
           <div>
             <h1 className="text-xl font-black text-white">الرصيد</h1>
-            <p className="text-xs text-emerald-500/60 font-medium">إدارة الرصيد والمدفوعات</p>
+            <p className="text-xs font-medium text-emerald-500/70">إدارة الرصيد والمدفوعات</p>
           </div>
         </div>
-        <Badge variant="outline" className="border-emerald-500/20 bg-emerald-950/25 text-emerald-400 font-mono text-[10px]">
+        <Badge variant="outline" className="border-emerald-500/20 bg-emerald-950/25 font-mono text-[10px] text-emerald-400">
           {isDriver ? 'حساب السائق' : 'حساب الراكب'}
         </Badge>
       </div>
 
-      {/* Main Stats container */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-        {/* Cash Balance Card */}
-        <SovereignBalanceDisplay
-          balanceJD={balanceJD}
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <BalanceDisplay
+          balance={balanceJD}
           currencyLabel={currencyLabel}
           walletLoaded={walletLoaded}
           onChargeFunds={() => setIsChargingFunds(true)}
         />
 
-        {/* Subscription Hours Card (Only visible to Driver) */}
         {isDriver ? (
-          <Card className="bg-[#071307]/90 border border-emerald-500/30 shadow-xl overflow-hidden relative">
-            <div className="absolute top-0 right-0 w-20 h-20 bg-emerald-500/10 blur-xl rounded-full animate-pulse-slow" />
-            <div className="absolute top-1 left-2">
-              <span className="inline-flex items-center gap-1 text-[8px] font-black text-emerald-400 bg-emerald-950 px-1.5 py-0.5 rounded border border-emerald-500/20 animate-pulse">
-                بث آمن
-              </span>
-            </div>
-            <CardContent className="p-5 flex flex-col justify-between h-full">
-              <div className="flex justify-between items-start">
+          <Card className="relative overflow-hidden border border-emerald-500/30 bg-[#071307]/90 shadow-xl">
+            <div className="absolute right-0 top-0 h-20 w-20 rounded-full bg-emerald-500/10 blur-xl" />
+            <CardContent className="flex h-full flex-col justify-between p-5">
+              <div className="flex items-start justify-between">
                 <span className="text-xs font-bold text-gray-300">رصيد ساعات العمل</span>
-                <Clock className="w-4 h-4 text-emerald-400" />
+                <Clock className="h-4 w-4 text-emerald-400" />
               </div>
 
               <div className="my-3">
-                <span className="text-4xl font-black text-emerald-400 tracking-tighter drop-shadow-[0_0_12px_rgba(52,211,153,0.2)]">
+                <span className="text-4xl font-black tracking-tighter text-emerald-400">
                   {subscriptionHours.toFixed(1)}
                 </span>
-                <span className="text-xs font-bold text-gray-400 mr-2">ساعة حقيقية</span>
+                <span className="mr-2 text-xs font-bold text-gray-400">ساعة</span>
               </div>
 
-              <div className="flex justify-between items-center text-[10px] text-gray-400 border-t border-emerald-950/40 pt-1.5 pb-1.5 font-mono">
-                <span>باقة مدفوعة: <span className="text-emerald-300 font-extrabold">{(paidHoursMin / 60).toFixed(1)} س</span></span>
-                <span>بونص رتب السائقون: <span className="text-amber-400 font-extrabold">{(bonusHoursMin / 60).toFixed(1)} س</span></span>
+              <div className="flex items-center justify-between border-t border-emerald-950/40 py-1.5 text-[10px] text-gray-400">
+                <span>مدفوع: <span className="font-extrabold text-emerald-300">{(paidHoursMin / 60).toFixed(1)} س</span></span>
+                <span>إضافي: <span className="font-extrabold text-amber-400">{(bonusHoursMin / 60).toFixed(1)} س</span></span>
               </div>
 
               <div className="flex items-center justify-between text-[10px] text-gray-400">
-                <span>الباقة الحالية: <span className="text-emerald-400 font-bold">{activePackageName}</span></span>
-                <span>تناقص بالدقائق الفعلية</span>
+                <span>الباقة الحالية: <span className="font-bold text-emerald-400">{activePackageName || 'لا توجد'}</span></span>
+                <span>تظهر من الخادم</span>
               </div>
             </CardContent>
           </Card>
         ) : (
-          /* Rider wallet status */
-          <Card className="bg-[#050D05]/95 border border-emerald-900/30 shadow-xl overflow-hidden">
-            <CardContent className="p-5 flex flex-col justify-between h-full">
-              <div className="flex justify-between items-start">
+          <Card className="overflow-hidden border border-emerald-900/30 bg-[#050D05]/95 shadow-xl">
+            <CardContent className="flex h-full flex-col justify-between p-5">
+              <div className="flex items-start justify-between">
                 <span className="text-xs font-bold text-gray-400">حالة الرصيد</span>
-                <Sparkles className="w-4 h-4 text-emerald-400" />
+                <Sparkles className="h-4 w-4 text-emerald-400" />
               </div>
 
               <div className="my-3">
                 <span className="text-2xl font-black text-white">
                   {walletLoaded ? 'لا توجد باقات نشطة' : 'جاري تحميل الرصيد...'}
                 </span>
-                <p className="text-[10px] text-gray-500 mt-1">
-                  ستظهر بيانات الرصيد والعمليات هنا بعد وصولها من الخادم.
+                <p className="mt-1 text-[10px] text-gray-500">
+                  تظهر بيانات الرصيد والعمليات بعد وصولها من الخادم.
                 </p>
               </div>
 
-              <div className="h-10 flex items-center justify-start text-[11px] text-emerald-400">
-                <span>لا نعرض أي أرقام تجريبية في هذه الصفحة.</span>
+              <div className="flex h-10 items-center justify-start text-[11px] text-emerald-400">
+                <span>لا نعرض أرقاماً تجريبية في هذه الصفحة.</span>
               </div>
             </CardContent>
           </Card>
         )}
       </div>
 
-      {/* Driver Hours Packages */}
       {isDriver && (
         <div className="mb-6 space-y-4">
           <div className="px-1 text-right">
-            <h2 className="text-sm font-bold text-gray-300">حزم شحن الساعات وقيمها المعتدلة</h2>
-            <p className="text-[10px] text-gray-500 mt-0.5">شراء ساعات بث ملاحي حرة متناسبة مع أوقات فراغك وعملك</p>
+            <h2 className="text-sm font-bold text-gray-300">باقات ساعات العمل</h2>
+            <p className="mt-0.5 text-[10px] text-gray-500">اختر باقة مناسبة لوقت عملك. تتم عملية الشراء من الخادم فقط.</p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Package 1 */}
-            <Card className="bg-black/40 hover:bg-black/60 border border-emerald-900/30 hover:border-emerald-500/20 transition-all rounded-2xl relative overflow-hidden flex flex-col justify-between">
-              <div className="p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <Badge className="bg-emerald-950 text-emerald-400 hover:bg-emerald-950 text-[10px] font-bold">
-                    باقة 1 {currencyLabel}
-                  </Badge>
-                  <span className="text-xs font-bold text-emerald-500 font-mono">24 ساعة عمل</span>
-                </div>
-                <h3 className="text-base font-black text-white mb-2">باقة الساعات الأساسية</h3>
-                <p className="text-[11px] text-gray-400 leading-normal">
-                  تحتوي على <span className="text-white font-bold">24 ساعة عمل متاحة</span>. يمكنك استخدامها خلال أسبوع أو شهر حسب نمط عملك دون إلزام.
-                </p>
-              </div>
-              <div className="p-5 pt-0">
-                <Button
-                  onClick={() => setPurchasingPackage('pulse')}
-                  className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs h-10 rounded-xl font-sans"
-                >
-                  <Zap className="w-3.5 h-3.5 ml-1 animate-pulse" />
-                  شراء الباقة (1 {currencyLabel || 'عملة'})
-                </Button>
-              </div>
-            </Card>
-
-            {/* Package 2 */}
-            <Card className="bg-black/40 hover:bg-black/60 border border-emerald-900/30 hover:border-emerald-500/20 transition-all rounded-2xl relative overflow-hidden flex flex-col justify-between">
-              <div className="p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <Badge className="bg-yellow-950 text-yellow-400 hover:bg-yellow-950 text-[10px] font-bold">
-                    باقة 10 {currencyLabel}
-                  </Badge>
-                  <span className="text-xs font-bold text-yellow-500 font-mono">100 ساعة عمل</span>
-                </div>
-                <h3 className="text-base font-black text-white mb-2">باقة العبور الكبرى</h3>
-                <p className="text-[11px] text-gray-400 leading-normal">
-                  مصممة <span className="text-white font-bold">للسائقين النشطين</span>. تمنحك ساعات أكثر للعمل، ويتناقص الرصيد فقط حسب دقائق العمل الفعلية والرحلات المقبولة.
-                </p>
-              </div>
-              <div className="p-5 pt-0">
-                <Button
-                  onClick={() => setPurchasingPackage('transit')}
-                  className="w-full bg-yellow-600 hover:bg-yellow-500 text-black font-extrabold text-xs h-10 rounded-xl font-sans"
-                >
-                  <Zap className="w-3.5 h-3.5 ml-1 animate-pulse" />
-                  شراء الباقة (10 {currencyLabel || 'عملة'})
-                </Button>
-              </div>
-            </Card>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <DriverPackageCard
+              badge={`1 ${currencyLabel || 'عملة'}`}
+              hours="24 ساعة"
+              title="الباقة الأساسية"
+              description="مناسبة للتجربة أو العمل الخفيف خلال الأسبوع."
+              onPurchase={() => setPurchasingPackage('basic')}
+            />
+            <DriverPackageCard
+              badge={`10 ${currencyLabel || 'عملة'}`}
+              hours="100 ساعة"
+              title="باقة العمل المكثف"
+              description="مناسبة للسائقين النشطين وتمنح ساعات عمل أكثر."
+              onPurchase={() => setPurchasingPackage('pro')}
+              highlight
+            />
           </div>
         </div>
       )}
 
-      {/* Geo Payment Gateway Modal Integration */}
       <GeoPaymentGateway
         isOpen={isChargingFunds}
         onClose={() => setIsChargingFunds(false)}
       />
 
-      {/* Package confirmation overlay */}
       <AnimatePresence>
         {purchasingPackage && (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="fixed inset-0 z-[150] flex items-center justify-center bg-black/85 backdrop-blur-sm p-4"
+            className="fixed inset-0 z-[150] flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm"
           >
-            <div className="bg-[#091B09] border-2 border-emerald-500/30 p-6 rounded-2xl w-full max-w-sm text-white shadow-2xl relative">
-              <h3 className="text-lg font-black text-center text-emerald-400 mb-3 flex items-center justify-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                تأكيد شراء ساعات العمل
+            <div className="relative w-full max-w-sm rounded-2xl border-2 border-emerald-500/30 bg-[#091B09] p-6 text-white shadow-2xl">
+              <h3 className="mb-3 flex items-center justify-center gap-2 text-center text-lg font-black text-emerald-400">
+                <CheckCircle2 className="h-5 w-5 text-emerald-400" />
+                تأكيد شراء باقة العمل
               </h3>
-              <p className="text-center text-xs text-gray-300 leading-relaxed mb-5">
-                سيقيد مبلغ <span className="text-emerald-400 font-bold">{purchasingPackage === 'pulse' ? '1.00' : '10.00'} {currencyLabel}</span> من رصيد محفظتك، مقابل إضافة <span className="text-emerald-400 font-extrabold">{purchasingPackage === 'pulse' ? '24' : '100'} ساعة عمل</span>.
+              <p className="mb-5 text-center text-xs leading-relaxed text-gray-300">
+                سيتم تنفيذ الشراء من الخادم. إذا لم تكن الصلاحيات جاهزة فلن يتم تعديل الرصيد محلياً.
               </p>
 
-              <div className="flex gap-3 justify-center">
+              <div className="flex justify-center gap-3">
                 <Button
                   onClick={() => handlePurchasePackage(purchasingPackage)}
                   disabled={loading}
-                  className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-11 rounded-xl text-xs"
+                  className="h-11 flex-1 rounded-xl bg-emerald-600 text-xs font-bold text-white hover:bg-emerald-500"
                 >
-                  {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : 'موافق، شراء وتفعيل'}
+                  {loading ? <RefreshCw className="h-4 w-4 animate-spin" /> : 'تأكيد الشراء'}
                 </Button>
                 <Button
                   onClick={() => setPurchasingPackage(null)}
                   disabled={loading}
                   variant="outline"
-                  className="flex-1 border-white/10 hover:bg-white/10 text-gray-300 rounded-xl text-xs font-bold"
+                  className="h-11 flex-1 rounded-xl border-white/10 text-xs font-bold text-gray-300 hover:bg-white/10"
                 >
                   تراجع
                 </Button>
@@ -295,90 +230,98 @@ export function WalletTab() {
         )}
       </AnimatePresence>
 
-      {/* D3.js Financial Activity Chart Component */}
       <SovereignFinancialActivityChart
         transactions={transactions}
         balanceJD={balanceJD}
         currencyLabel={currencyLabel}
       />
 
-      {/* Transaction History Logs */}
-      <Card className="bg-[#030903]/95 border border-emerald-900/30 rounded-2xl shadow-xl">
-        <CardHeader className="p-4 border-b border-emerald-900/20 pb-2">
+      <Card className="rounded-2xl border border-emerald-900/30 bg-[#030903]/95 shadow-xl">
+        <CardHeader className="border-b border-emerald-900/20 p-4 pb-2">
           <CardTitle className="text-sm font-bold text-white">العمليات</CardTitle>
-          <CardDescription className="text-[10px] text-gray-500 text-right">آخر عمليات الرصيد من الخادم</CardDescription>
+          <CardDescription className="text-right text-[10px] text-gray-500">آخر عمليات الرصيد من الخادم</CardDescription>
         </CardHeader>
-        <CardContent className="p-4 space-y-2 max-h-[220px] overflow-y-auto">
+        <CardContent className="max-h-[220px] space-y-2 overflow-y-auto p-4">
           {transactions.length > 0 ? (
             transactions.map((tx) => (
-              <div key={tx.id} className="p-3 bg-black/40 rounded-xl border border-white/5 flex items-center justify-between text-xs">
+              <div key={tx.id} className="flex items-center justify-between rounded-xl border border-white/5 bg-black/40 p-3 text-xs">
                 <div className="flex items-center gap-3">
-                  <div className="relative group">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (tx.type === 'charge') {
-                          setIsChargingFunds(true);
-                        }
-                      }}
-                      disabled={tx.type !== 'charge'}
-                      className={`p-2 rounded-lg transition-all ${
-                        tx.type === 'charge'
-                          ? 'bg-emerald-950/50 text-emerald-400 hover:bg-emerald-400 hover:text-black hover:scale-105 active:scale-95 cursor-pointer border border-emerald-500/15 shadow-[0_0_8px_rgba(16,185,129,0.1)]'
-                          : tx.type === 'purchase'
-                          ? 'bg-blue-950/40 text-blue-400'
-                          : 'bg-red-950/30 text-red-400'
-                      }`}
-                    >
-                      {tx.type === 'charge' ? <ArrowDownLeft className="w-4 h-4" /> : <ArrowUpRight className="w-4 h-4" />}
-                    </button>
-                    {tx.type === 'charge' && (
-                      <div className="absolute bottom-full right-0 mb-2 opacity-0 group-hover:opacity-100 scale-95 group-hover:scale-100 pointer-events-none transition-all duration-200 origin-bottom-right z-50 w-64 p-3 bg-[#030d06] border border-emerald-500/40 rounded-xl shadow-2xl text-[10px] text-gray-300 font-sans leading-relaxed">
-                        <div className="flex items-center gap-1.5 text-emerald-400 font-bold mb-1">
-                          <Sparkles className="w-3.5 h-3.5 text-emerald-400 shrink-0 animate-pulse" />
-                          <span>شحن الرصيد عبر CliQ</span>
-                        </div>
-                        <p>
-                          ستنتقل إلى طريقة الشحن المتاحة لإكمال العملية.
-                        </p>
-                        <div className="mt-1.5 pt-1.5 border-t border-emerald-950 flex justify-between text-[8px] text-emerald-500/70 font-mono">
-                          <span>Wallet</span>
-                          <span>CliQ</span>
-                        </div>
-                      </div>
-                    )}
+                  <div className={`rounded-lg p-2 ${
+                    tx.amount >= 0 ? 'bg-emerald-950/50 text-emerald-400' : 'bg-red-950/30 text-red-400'
+                  }`}>
+                    {tx.amount >= 0 ? <ArrowDownLeft className="h-4 w-4" /> : <ArrowUpRight className="h-4 w-4" />}
                   </div>
                   <div className="text-right">
-                    <p className="font-bold text-white text-[11px]">{tx.description}</p>
-                    <p className="text-[9px] text-gray-500 mt-0.5">{tx.createdAt}</p>
+                    <p className="text-[11px] font-bold text-white">{tx.description}</p>
+                    <p className="mt-0.5 text-[9px] text-gray-500">{tx.createdAt}</p>
                   </div>
                 </div>
 
-                <div className="font-mono font-bold text-[11px] flex flex-col items-end">
-                  <span className={
-                    tx.type === 'charge'
-                      ? 'text-emerald-400 font-extrabold'
-                      : 'text-red-400 font-extrabold'
-                  }>
+                <div className="flex flex-col items-end text-[11px] font-bold">
+                  <span className={tx.amount >= 0 ? 'text-emerald-400' : 'text-red-400'}>
                     {tx.amount > 0 ? '+' : ''}{tx.amount.toFixed(tx.currency === 'ساعة' ? 1 : 2)} {tx.currency}
                   </span>
-                  <span className="text-[8px] text-gray-600 font-bold uppercase tracking-widest">{tx.status}</span>
+                  <span className="text-[8px] uppercase tracking-widest text-gray-600">{tx.status}</span>
                 </div>
               </div>
             ))
           ) : (
-            <div className="text-center py-6 text-gray-500 text-xs">لا توجد عمليات في الرصيد حالياً.</div>
+            <div className="py-6 text-center text-xs text-gray-500">لا توجد عمليات في الرصيد حالياً.</div>
           )}
         </CardContent>
       </Card>
 
-      {/* Informative sovereign policy disclaimer */}
-      <div className="mt-4 p-4 rounded-xl bg-emerald-950/10 border border-emerald-900/20 text-[10px] text-gray-400 leading-normal gap-2 flex items-start text-right">
-        <HelpCircle className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+      <div className="mt-4 flex items-start gap-2 rounded-xl border border-emerald-900/20 bg-emerald-950/10 p-4 text-right text-[10px] leading-normal text-gray-400">
+        <HelpCircle className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
         <p>
-          <strong>ملاحظة:</strong> تظهر بيانات الرصيد والعمليات كما تصل من الخادم. إذا لم تظهر أي بيانات، فهذا يعني أنه لا توجد عمليات مسجلة حتى الآن.
+          <strong>ملاحظة:</strong> تظهر بيانات الرصيد والعمليات كما تصل من الخادم. إذا لم تظهر بيانات، فهذا يعني أنه لا توجد عمليات مسجلة حتى الآن.
         </p>
       </div>
     </div>
+  );
+}
+
+function DriverPackageCard({
+  badge,
+  hours,
+  title,
+  description,
+  onPurchase,
+  highlight = false,
+}: {
+  badge: string;
+  hours: string;
+  title: string;
+  description: string;
+  onPurchase: () => void;
+  highlight?: boolean;
+}) {
+  return (
+    <Card className="relative flex flex-col justify-between overflow-hidden rounded-2xl border border-emerald-900/30 bg-black/40 transition-all hover:border-emerald-500/20 hover:bg-black/60">
+      <div className="p-5">
+        <div className="mb-3 flex items-center justify-between">
+          <Badge className={highlight ? 'bg-yellow-950 text-yellow-400' : 'bg-emerald-950 text-emerald-400'}>
+            {badge}
+          </Badge>
+          <span className={highlight ? 'font-mono text-xs font-bold text-yellow-500' : 'font-mono text-xs font-bold text-emerald-500'}>
+            {hours}
+          </span>
+        </div>
+        <h3 className="mb-2 text-base font-black text-white">{title}</h3>
+        <p className="text-[11px] leading-normal text-gray-400">{description}</p>
+      </div>
+      <div className="p-5 pt-0">
+        <Button
+          onClick={onPurchase}
+          className={highlight
+            ? 'h-10 w-full rounded-xl bg-yellow-600 text-xs font-extrabold text-black hover:bg-yellow-500'
+            : 'h-10 w-full rounded-xl bg-emerald-600 text-xs font-bold text-white hover:bg-emerald-500'
+          }
+        >
+          <Zap className="ml-1 h-3.5 w-3.5" />
+          شراء الباقة
+        </Button>
+      </div>
+    </Card>
   );
 }

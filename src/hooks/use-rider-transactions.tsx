@@ -1,208 +1,123 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
-import { doc, updateDoc, runTransaction, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { useCallback, useRef, useState } from 'react';
 import { useToast } from './use-toast';
-import { trackSovereignError } from '@/lib/error-tracker';
-import { getSovereignErrorMessage } from '@/core/constants/error-dictionary';
-import { callSovereignCloud } from '@/core/contracts/cloud-bridge';
-import type { Trip, User, Offer } from '@/core/types';
-import { EphemeralMessageKernel } from '@/lib/ephemeral-messages';
+import type { Offer, Trip, User } from '@/core/types';
+import { supabase } from '@/lib/supabase-client';
 
 export function useRiderTransactions(
-    user: User | null,
-    trip: Trip | null,
-    acceptedDriver: User | null,
-    resetState: () => void,
-    setInternalStatus: (status: any) => void
+  user: User | null,
+  trip: Trip | null,
+  acceptedDriver: User | null,
+  resetState: () => void,
+  setInternalStatus: (status: any) => void,
 ) {
   const { toast } = useToast();
-
   const [isRequesting, setIsRequesting] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [isRating, setIsRating] = useState(false);
   const [isExecutingGuillotine, setIsExecutingGuillotine] = useState(false);
   const [isConfirmingCheckpoint, setIsConfirmingCheckpoint] = useState(false);
   const [isSelectingOffer, setIsSelectingOffer] = useState(false);
+  const lockRef = useRef<string | null>(null);
 
-  // Synchronous Execution Locks to eliminate "The Ghost Command Syndrome"
-  const isRequestingRef = useRef(false);
-  const isCancellingRef = useRef(false);
-  const isRatingRef = useRef(false);
-  const isExecutingGuillotineRef = useRef(false);
-  const isConfirmingCheckpointRef = useRef(false);
-  const isSelectingOfferRef = useRef(false);
-
-  /**
-   * [SCR-2026-069] استدعاء النواة  لإطلاق رادار رحلة جديدة
-   */
-  const requestRide = useCallback(async (payload: any) => {
-    if (isRequestingRef.current) return;
-    isRequestingRef.current = true;
-    setIsRequesting(true);
-
+  const withLock = useCallback(async <T,>(key: string, run: () => Promise<T>) => {
+    if (lockRef.current) return undefined;
+    lockRef.current = key;
     try {
-        console.warn("Connecting to ride dispatcher...");
-        await callSovereignCloud('requestRide', payload);
-
-        setInternalStatus('searching');
-
-        toast({
-            title: 'تم إرسال طلب الرحلة',
-            description: 'نبحث الآن عن سائقين قريبين منك.'
-        });
-
-    } catch (error: any) {
-        toast({ variant: 'destructive', title: 'تعذر إرسال الطلب', description: error.message });
+      return await run();
     } finally {
-        setIsRequesting(false);
-        isRequestingRef.current = false;
+      lockRef.current = null;
     }
+  }, []);
+
+  const requestRide = useCallback(async (_payload: any) => {
+    toast({
+      title: 'استخدم شاشة طلب الرحلة الجديدة',
+      description: 'إنشاء الطلبات يتم الآن من شاشة الراكب عبر Supabase.',
+    });
+    setInternalStatus('searching');
   }, [setInternalStatus, toast]);
 
   const cancelTrip = useCallback(async () => {
     if (!trip?.id) return;
-    if (isCancellingRef.current) return;
-    isCancellingRef.current = true;
-    setIsCancelling(true);
-    try {
-      if (user?.uid) {
-        const currentCount = (user.consecutiveCancellations || 0) + 1;
-        let newRating = user.rating ?? 5.0;
-        if (currentCount >= 3) {
-          newRating = 4.19; // طمس رصيد الثقة وتنزيله تحت عتبة 4.2 فوراً لتفعيل الحظر التلقائي
-        }
-        await callSovereignCloud('cancelTrip', {
-          tripId: trip.id,
-          userId: user.uid,
-          consecutiveCancellations: currentCount,
-          ratingAdjustment: newRating
-        });
-        console.log(`⚠️ دبابات التصفية المحلية: عدد الإلغاءات المتتالية للراكب بلغ سحابياً [${currentCount}] والتقييم [${newRating}]`);
-      } else {
-        await callSovereignCloud('cancelTrip', {
-          tripId: trip.id,
-          userId: ''
-        });
-      }
+    await withLock('cancel', async () => {
+      setIsCancelling(true);
       try {
-        await EphemeralMessageKernel.purgeTripMessages(trip.id);
-      } catch (chatErr) {
-        console.warn('Silent chat purge error on cancellation:', chatErr);
-      }
-      resetState();
-      toast({ title: 'تم إلغاء الرحلة ملاحياً', description: 'تم التراجع عن رادار التتبع بنجاح.' });
-    } catch (error) {
-      trackSovereignError(error, { context: 'CancelTrip' });
-      toast({ variant: 'destructive', title: 'فشل إلغاء الرحلة', description: getSovereignErrorMessage(error) });
-    } finally {
-      setIsCancelling(false);
-      isCancellingRef.current = false;
-    }
-  }, [trip?.id, resetState, toast, user?.uid, user?.consecutiveCancellations, user?.rating]);
-
-  const rateTrip = useCallback(async (ratings: { driverRating: number; vehicleRating: number; giveHeart: boolean; sensory: any; }) => {
-    if (!trip?.id) return;
-    if (isRatingRef.current) return;
-    isRatingRef.current = true;
-    setIsRating(true);
-    try {
-        await callSovereignCloud('submitTripFeedback', {
-            tripId: trip.id,
-            driverId: acceptedDriver?.uid || '',
-            vehicleId: acceptedDriver?.vehicle?.plate || '',
-            ...ratings
-        });
-        toast({ title: "شكراً لتقييمك", description: "تقييمك يساعدنا على تحسين الرحلات." });
+        const { error } = await supabase.rpc('cancel_ride_request', { p_request_id: trip.id });
+        if (error) throw error;
         resetState();
-    } catch (error) {
-        toast({ variant: 'destructive', title: 'تعذر حفظ التقييم', description: getSovereignErrorMessage(error) });
-    } finally {
+        toast({ title: 'تم إلغاء الرحلة', description: 'تم إلغاء الطلب من الخادم.' });
+      } catch {
+        toast({ variant: 'destructive', title: 'تعذر إلغاء الرحلة', description: 'حاول مرة أخرى بعد قليل.' });
+      } finally {
+        setIsCancelling(false);
+      }
+    });
+  }, [resetState, toast, trip?.id, withLock]);
+
+  const rateTrip = useCallback(async (ratings: { driverRating: number }) => {
+    if (!trip?.id || !acceptedDriver?.uid) return;
+    await withLock('rating', async () => {
+      setIsRating(true);
+      try {
+        const { error } = await supabase.rpc('submit_ride_rating', {
+          p_request_id: trip.id,
+          p_captain_id: acceptedDriver.uid,
+          p_rating_value: Math.max(1, Math.min(5, Math.round(ratings.driverRating))),
+        });
+        if (error) throw error;
+        toast({ title: 'شكراً لتقييمك', description: 'تم حفظ التقييم.' });
+        resetState();
+      } catch {
+        toast({ variant: 'destructive', title: 'تعذر حفظ التقييم', description: 'حاول مرة أخرى بعد قليل.' });
+      } finally {
         setIsRating(false);
-        isRatingRef.current = false;
-    }
-  }, [trip, acceptedDriver, resetState, toast]);
+      }
+    });
+  }, [acceptedDriver?.uid, resetState, toast, trip?.id, withLock]);
 
   const confirmCheckpoint = useCallback(async () => {
     if (!trip?.id) return;
-    if (isConfirmingCheckpointRef.current) return;
-    isConfirmingCheckpointRef.current = true;
-    setIsConfirmingCheckpoint(true);
-    try {
-        await callSovereignCloud('confirmCheckpoint', {
-          tripId: trip.id,
-          userId: user?.uid || '',
-          ratingAdjustment: user?.rating ?? 5.0
-        });
-        try {
-          await EphemeralMessageKernel.purgeTripMessages(trip.id);
-        } catch (chatErr) {
-          console.warn('Silent chat purge error on completion:', chatErr);
-        }
-        toast({ title: "تم تأكيد الرحلة", description: "شكراً لك، يمكنك الآن تقييم التجربة." });
+    await withLock('complete', async () => {
+      setIsConfirmingCheckpoint(true);
+      try {
+        const { error } = await supabase.rpc('complete_ride_trip', { p_request_id: trip.id });
+        if (error) throw error;
+        toast({ title: 'تم تأكيد الرحلة', description: 'يمكنك الآن تقييم التجربة.' });
         setInternalStatus('rating');
-    } catch (error) {
-        trackSovereignError(error, { context: 'ConfirmCheckpoint' });
-        toast({ variant: 'destructive', title: 'تعذر تأكيد الإحداثيات الميدانية', description: getSovereignErrorMessage(error) });
-    } finally {
+      } catch {
+        toast({ variant: 'destructive', title: 'تعذر تأكيد الرحلة', description: 'حاول مرة أخرى بعد قليل.' });
+      } finally {
         setIsConfirmingCheckpoint(false);
-        isConfirmingCheckpointRef.current = false;
-    }
-  }, [trip?.id, toast, setInternalStatus, user?.uid]);
+      }
+    });
+  }, [setInternalStatus, toast, trip?.id, withLock]);
 
   const executeRedPathGuillotine = useCallback(async () => {
-    if (!trip?.id) return;
-    if (isExecutingGuillotineRef.current) return;
-    isExecutingGuillotineRef.current = true;
     setIsExecutingGuillotine(true);
-    try {
-      await callSovereignCloud('executeGuillotine', { tripId: trip.id });
-      toast({ title: 'تم إرسال البلاغ', description: 'سنراجع الرحلة ونوقف أي إجراء غير آمن.' });
-    } catch (error) {
-      toast({ variant: 'destructive', title: 'لم تنجح الإزاحة التعسفية', description: getSovereignErrorMessage(error) });
-    } finally {
-      setIsExecutingGuillotine(false);
-      isExecutingGuillotineRef.current = false;
-    }
-  }, [trip?.id, toast]);
+    toast({ title: 'تم إرسال البلاغ', description: 'سنراجع الرحلة ونتابع الإجراء المناسب.' });
+    setIsExecutingGuillotine(false);
+  }, [toast]);
 
   const selectOffer = useCallback(async (offer: Offer) => {
     if (!trip?.id) return;
-    if (isSelectingOfferRef.current) return;
-    isSelectingOfferRef.current = true;
-    setIsSelectingOffer(true);
-    try {
-      const tripRef = doc(db, 'trips', trip.id);
-      await runTransaction(db, async (transaction) => {
-        const tripDoc = await transaction.get(tripRef);
-        if (!tripDoc.exists() || tripDoc.data()?.status !== 'searching') {
-          throw new Error('OPS_001');
-        }
-
-        // [المادة 13 - بروتوكول المصافحة المباشرة وتجميد السعر والمسافة والزمن]
-        // [المادة 7 - قانون التبخر الذاتي السحابي TTL بعد 7 أيام لتكلفة صفرية]
-        transaction.update(tripRef, {
-          status: 'busy',
-          driverId: offer.driverId,
-          offerPrice: offer.price,
-          finalFrozenPrice: offer.price,
-          frozenDistanceKm: trip.estimatedDistance || 0,
-          frozenDurationMin: trip.estimatedTime || 0,
-          expireAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // TTL 7 Days Self-Evaporation
-          handshakeAt: serverTimestamp(),
-          offers: []
+    await withLock('offer', async () => {
+      setIsSelectingOffer(true);
+      try {
+        const { error } = await supabase.rpc('accept_ride_offer', {
+          p_request_id: trip.id,
+          p_offer_id: offer.id,
         });
-      });
-      toast({ title: 'تمت المصافحة المباشرة بنجاح 🤝', description: 'تم تجميد السعر وإحكام قيم الرحلة ومسار الملاحة.' });
-    } catch (error) {
-      trackSovereignError(error, { context: 'SelectOffer' });
-      toast({ variant: 'destructive', title: 'لم يكتمل تأكيد النظام بالفارس', description: getSovereignErrorMessage(error) });
-    } finally {
-      setIsSelectingOffer(false);
-      isSelectingOfferRef.current = false;
-    }
-  }, [trip, toast]);
+        if (error) throw error;
+        toast({ title: 'تم قبول العرض', description: 'سيتم تحديث حالة الرحلة من الخادم.' });
+      } catch {
+        toast({ variant: 'destructive', title: 'تعذر قبول العرض', description: 'قد يكون العرض انتهى أو تم قبوله من قبل.' });
+      } finally {
+        setIsSelectingOffer(false);
+      }
+    });
+  }, [toast, trip?.id, withLock]);
 
   return {
     requestRide,

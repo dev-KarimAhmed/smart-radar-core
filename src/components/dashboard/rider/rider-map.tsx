@@ -6,7 +6,6 @@ import maplibregl, { type GeoJSONSource, type Map as MapLibreMap } from 'maplibr
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import type { AppLanguage } from '@/lib/i18n/simple-copy';
-import { AMMAN_FALLBACK_LOCATION } from './jordan-destinations';
 
 interface RiderMapProps {
   activeTripCaptainId?: string | null;
@@ -44,6 +43,7 @@ export interface RiderMapCaptainPoint {
 
 const OPENFREEMAP_STYLE = 'https://tiles.openfreemap.org/styles/liberty';
 const RTL_TEXT_PLUGIN_URL = 'https://unpkg.com/@mapbox/mapbox-gl-rtl-text@0.3.0/dist/mapbox-gl-rtl-text.js';
+const DEFAULT_MAP_LOCATION: RiderLocation = { lat: 0, lng: 0 };
 let rtlPluginRequested = false;
 
 function ensureRtlTextPlugin() {
@@ -107,7 +107,7 @@ export function RiderMap({
   captainLocations = [],
   className,
   destinationFlyToTarget,
-  fallbackLocation = AMMAN_FALLBACK_LOCATION,
+  fallbackLocation = DEFAULT_MAP_LOCATION,
   showDestinationPin = false,
   onDestinationChange,
   onDestinationMoveStart,

@@ -17,7 +17,6 @@ import type { AppLanguage } from '@/lib/i18n/simple-copy';
 import { supabase } from '@/lib/supabase-client';
 import { cn } from '@/lib/utils';
 import { AdStage } from './ad-stage';
-import { AMMAN_FALLBACK_LOCATION } from './rider/jordan-destinations';
 import { RadarRiderDashboard, type HistoricalTrip } from './rider/rider-dashboard';
 import { RiderMap, type RiderLocation, type RiderLocationStatus, type RiderLocationUpdate } from './rider/rider-map';
 import {
@@ -48,6 +47,7 @@ const OFFER_TIMEOUT_MS = 2 * 60 * 1000;
 const FARE_RECALCULATION_DEBOUNCE_MS = 350;
 const CAPTAIN_PRESENCE_REFRESH_MS = 15_000;
 const CAPTAIN_PRESENCE_PRUNE_MS = 5_000;
+const INITIAL_RIDER_LOCATION: RiderLocation = { lat: 0, lng: 0 };
 const NETWORK_ERROR_AR = 'عذراً، تعذر الاتصال بالخادم. تحقق من شبكة الإنترنت.';
 
 interface CountryCurrencyConfig {
@@ -88,8 +88,8 @@ export function RiderViewTab() {
   const [draftDestinationId, setDraftDestinationId] = React.useState('');
   const [rating, setRating] = React.useState({ captain: 0, vehicle: 0, favorite: false });
   const [etaSeconds, setEtaSeconds] = React.useState(0);
-  const [riderLocation, setRiderLocation] = React.useState<RiderLocation>(AMMAN_FALLBACK_LOCATION);
-  const [riderH3Cell, setRiderH3Cell] = React.useState(latLngToCell(AMMAN_FALLBACK_LOCATION.lat, AMMAN_FALLBACK_LOCATION.lng, H3_RIDER_REQUEST_RESOLUTION));
+  const [riderLocation, setRiderLocation] = React.useState<RiderLocation>(INITIAL_RIDER_LOCATION);
+  const [riderH3Cell, setRiderH3Cell] = React.useState(latLngToCell(INITIAL_RIDER_LOCATION.lat, INITIAL_RIDER_LOCATION.lng, H3_RIDER_REQUEST_RESOLUTION));
   const [locationStatus, setLocationStatus] = React.useState<RiderLocationStatus>('fallback');
   const [localCompletedTrips, setLocalCompletedTrips] = React.useState<HistoricalTrip[]>([]);
   const [captainLocations, setCaptainLocations] = React.useState<CaptainPresencePoint[]>([]);
@@ -151,7 +151,7 @@ export function RiderViewTab() {
     const profileDistrictId = String(user?.district || '');
     return destinationDistricts.find((district) => district.id === profileDistrictId) || null;
   }, [destinationDistricts, user?.district]);
-  const profileFallbackLocation = profileDistrict?.anchor || selectedDistrict?.anchor || AMMAN_FALLBACK_LOCATION;
+  const profileFallbackLocation = profileDistrict?.anchor || selectedDistrict?.anchor || riderLocation;
   const selectedDestinationCoords = destinationPinLocation || selectedDistrict?.anchor || null;
 
   const fareRequestKey = React.useMemo(
@@ -1058,7 +1058,7 @@ export function RiderViewTab() {
             </div>
 
             <div className="rounded-2xl border border-[#14B8A6]/20 bg-[#14B8A6]/8 p-4 text-xs leading-relaxed text-slate-300">
-              السائق في الطريق إليك. هذا عرض تجريبي محلي بدون تتبع مباشر مدفوع.
+              السائق في الطريق إليك. يتم تحديث الحالة عبر نبضات موقع آمنة.
             </div>
 
             <Button
@@ -1446,3 +1446,4 @@ function NavButton({ active, onClick, children }: { active: boolean; onClick: ()
     </button>
   );
 }
+

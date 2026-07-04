@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useEffect, useRef, useState, useMemo } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as d3 from 'd3';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Activity, TrendingUp } from 'lucide-react';
 
 interface ChartDataPoint {
@@ -24,78 +24,60 @@ export function SovereignFinancialActivityChart({ transactions, balanceJD, curre
   const svgRef = useRef<SVGSVGElement>(null);
   const [dimensions, setDimensions] = useState({ width: 450, height: 180 });
 
-  // 🛡️ [التعقيم الماسي V2.6-Secured - مصفاة تحضير بيانات D3 المتسلسلة زمنياً]
-  // إعادة بناء التغييرات الحسابية زمنياً بطريقة تراكمية للحفاظ على وحدة الحقيقة (SSOT)
   const chartData = useMemo<ChartDataPoint[]>(() => {
     const sorted = [...transactions]
-      .filter(tx => tx.status === 'completed')
+      .filter((tx) => `${tx.status}`.toLowerCase() === 'completed')
       .sort((a, b) => a.timestamp - b.timestamp);
 
-    // حساب الرصيد التراكمي التاريخي بناءً على المعاملات
-    let accum = 0;
-    const points: ChartDataPoint[] = [];
+    if (sorted.length === 0) return [];
 
-    // إضافة نقطة بداية كمعيار أساسي قبل 24 ساعة من أول معاملة
-    if (sorted.length > 0) {
-      const firstTs = sorted[0].timestamp;
-      points.push({
-        timestamp: firstTs - 12 * 3600 * 1000, // 12 hours earlier
-        amount: 0,
-        balance: 0,
-        description: 'تأسيس الخزينة',
-        type: 'baseline'
-      });
-    } else {
-      return [];
-    }
+    let runningBalance = 0;
+    const points: ChartDataPoint[] = [{
+      timestamp: sorted[0].timestamp - 12 * 3600 * 1000,
+      amount: 0,
+      balance: 0,
+      description: 'بداية الرصيد',
+      type: 'baseline',
+    }];
 
     sorted.forEach((tx) => {
-      // نحتسب القيمة النقدية الفعلية (في حال كانت ساعات، نضرب بمعامل تقريبي لتوحيد الرسم البياني)
       const value = tx.currency === 'ساعة' ? tx.amount * 0.5 : tx.amount;
-      accum += value;
+      runningBalance += value;
       points.push({
         timestamp: tx.timestamp,
         amount: value,
-        balance: Math.max(0, accum),
+        balance: Math.max(0, runningBalance),
         description: tx.description,
-        type: tx.type
+        type: tx.type,
       });
     });
 
-    // إذا كانت النقطة الأخيرة لا تطابق الرصيد الفعلي الحالي، نقوم بمواءمتها
     if (points.length > 0 && Math.abs(points[points.length - 1].balance - balanceJD) > 0.01) {
       points.push({
         timestamp: Date.now(),
         amount: 0,
         balance: balanceJD,
-        description: 'الرصيد الفعلي الموحد',
-        type: 'current'
+        description: 'الرصيد الحالي',
+        type: 'current',
       });
     }
 
     return points;
   }, [transactions, balanceJD]);
 
-  // 📐 [مراقب الأبعاد التفاعلي - ResizeObserver]
-  // يتكيف حجم الرسم البياني بمرونة تامة مع أحجام الشاشات المختلفة دون كسر الأبعاد الهندسية
   useEffect(() => {
     if (!containerRef.current) return;
 
     const resizeObserver = new ResizeObserver((entries) => {
-      if (!entries || entries.length === 0) return;
-      const { width } = entries[0].contentRect;
-      // نحدد أقصى عرض متناسب مع حاوية الأجهزة المحمولة
-      setDimensions({
-        width: Math.max(280, width),
-        height: 160
-      });
+      const width = entries[0]?.contentRect.width;
+      if (!width) return;
+      setDimensions({ width: Math.max(280, width), height: 160 });
     });
 
     resizeObserver.observe(containerRef.current);
     return () => resizeObserver.disconnect();
   }, []);
 
-  // 🎨 [محرك الرندرة الأساسي لـ D3.js]
   useEffect(() => {
     if (!svgRef.current) return;
 
@@ -106,157 +88,84 @@ export function SovereignFinancialActivityChart({ transactions, balanceJD, curre
 
     const svg = d3.select(svgRef.current);
     svg.selectAll('*').remove();
-
     if (chartData.length === 0) return;
 
-    // إنشاء حاوية الرسم الأساسية
-    const g = svg
-      .append('g')
-      .attr('transform', `translate(${margin.left}, ${margin.top})`);
-
-    // نطاقات القياس (Scales)
-    const x = d3.scaleTime()
-      .domain(d3.extent(chartData, d => new Date(d.timestamp)) as [Date, Date])
+    const group = svg.append('g').attr('transform', `translate(${margin.left}, ${margin.top})`);
+    const x = d3
+      .scaleTime()
+      .domain(d3.extent(chartData, (point) => new Date(point.timestamp)) as [Date, Date])
       .range([0, chartWidth]);
+    const maxBalance = d3.max(chartData, (point) => point.balance) || 10;
+    const y = d3.scaleLinear().domain([0, maxBalance * 1.15]).range([chartHeight, 0]);
 
-    const yValMin = d3.min(chartData, d => d.balance) || 0;
-    const yValMax = d3.max(chartData, d => d.balance) || 10;
-    const y = d3.scaleLinear()
-      .domain([0, yValMax * 1.15]) // إضافة هامش مرئي علوي
-      .range([chartHeight, 0]);
-
-    // تعريف التدرج اللوني الماسي (Turquoise Glowing Gradient)
     const defs = svg.append('defs');
-    
-    const areaGradient = defs.append('linearGradient')
-      .attr('id', 'sovereign-area-gradient')
+    const gradient = defs.append('linearGradient')
+      .attr('id', 'wallet-area-gradient')
       .attr('x1', '0%')
       .attr('y1', '0%')
       .attr('x2', '0%')
       .attr('y2', '100%');
+    gradient.append('stop').attr('offset', '0%').attr('stop-color', '#10b981').attr('stop-opacity', 0.28);
+    gradient.append('stop').attr('offset', '100%').attr('stop-color', '#10b981').attr('stop-opacity', 0);
 
-    areaGradient.append('stop')
-      .attr('offset', '0%')
-      .attr('stop-color', '#10b981')
-      .attr('stop-opacity', 0.28);
+    const glow = defs.append('filter').attr('id', 'wallet-glow').attr('x', '-20%').attr('y', '-20%').attr('width', '140%').attr('height', '140%');
+    glow.append('feGaussianBlur').attr('stdDeviation', '3').attr('result', 'blur');
+    glow.append('feComposite').attr('in', 'SourceGraphic').attr('in2', 'blur').attr('operator', 'over');
 
-    areaGradient.append('stop')
-      .attr('offset', '100%')
-      .attr('stop-color', '#10b981')
-      .attr('stop-opacity', 0.0);
-
-    const glowFilter = defs.append('filter')
-      .attr('id', 'glow')
-      .attr('x', '-20%')
-      .attr('y', '-20%')
-      .attr('width', '140%')
-      .attr('height', '140%');
-
-    glowFilter.append('feGaussianBlur')
-      .attr('stdDeviation', '3')
-      .attr('result', 'blur');
-
-    glowFilter.append('feComposite')
-      .attr('in', 'SourceGraphic')
-      .attr('in2', 'blur')
-      .attr('operator', 'over');
-
-    // رسم مساحة التدرج الخلفي (Area Path)
-    const areaGenerator = d3.area<ChartDataPoint>()
-      .x(d => x(new Date(d.timestamp)))
-      .y0(chartHeight)
-      .y1(d => y(d.balance))
-      .curve(d3.curveMonotoneX);
-
-    g.append('path')
+    group.append('path')
       .datum(chartData)
-      .attr('class', 'area')
-      .attr('fill', 'url(#sovereign-area-gradient)')
-      .attr('d', areaGenerator);
+      .attr('fill', 'url(#wallet-area-gradient)')
+      .attr('d', d3.area<ChartDataPoint>()
+        .x((point) => x(new Date(point.timestamp)))
+        .y0(chartHeight)
+        .y1((point) => y(point.balance))
+        .curve(d3.curveMonotoneX));
 
-    // رسم الخط الأساسي (Line Path)
-    const lineGenerator = d3.line<ChartDataPoint>()
-      .x(d => x(new Date(d.timestamp)))
-      .y(d => y(d.balance))
-      .curve(d3.curveMonotoneX);
-
-    g.append('path')
+    group.append('path')
       .datum(chartData)
-      .attr('class', 'line')
       .attr('fill', 'none')
       .attr('stroke', '#10b981')
       .attr('stroke-width', 2.5)
-      .attr('filter', 'url(#glow)')
-      .attr('d', lineGenerator);
+      .attr('filter', 'url(#wallet-glow)')
+      .attr('d', d3.line<ChartDataPoint>()
+        .x((point) => x(new Date(point.timestamp)))
+        .y((point) => y(point.balance))
+        .curve(d3.curveMonotoneX));
 
-    // محور السينات (X-Axis) - محاذاة التوقيت العربي البسيط
     const xAxis = d3.axisBottom(x)
       .ticks(Math.min(chartData.length, 4))
-      .tickFormat((d) => {
-        const date = d as Date;
-        return date.toLocaleTimeString('ar-JO', { hour: '2-digit', minute: '2-digit' });
-      });
+      .tickFormat((value) => (value as Date).toLocaleTimeString('ar', { hour: '2-digit', minute: '2-digit' }));
 
-    const xAxisGroup = g.append('g')
-      .attr('transform', `translate(0, ${chartHeight})`)
-      .call(xAxis);
-
+    const xAxisGroup = group.append('g').attr('transform', `translate(0, ${chartHeight})`).call(xAxis);
     xAxisGroup.selectAll('.domain').remove();
     xAxisGroup.selectAll('line').attr('stroke', '#064e3b').attr('stroke-opacity', 0.5);
-    xAxisGroup.selectAll('text')
-      .attr('fill', '#9ca3af')
-      .attr('font-size', '9px')
-      .attr('font-weight', 'bold')
-      .attr('font-family', 'Inter, sans-serif')
-      .attr('dy', '10px');
+    xAxisGroup.selectAll('text').attr('fill', '#9ca3af').attr('font-size', '9px').attr('font-weight', 'bold').attr('dy', '10px');
 
-    // محور الصادات (Y-Axis)
-    const yAxis = d3.axisLeft(y)
-      .ticks(3)
-      .tickFormat(d => `${d} د`);
-
-    const yAxisGroup = g.append('g')
-      .call(yAxis);
-
+    const yAxis = d3.axisLeft(y).ticks(3).tickFormat((value) => `${value} ${currencyLabel}`.trim());
+    const yAxisGroup = group.append('g').call(yAxis);
     yAxisGroup.selectAll('.domain').remove();
-    yAxisGroup.selectAll('line')
-      .attr('stroke', '#064e3b')
-      .attr('stroke-dasharray', '2,2')
-      .attr('stroke-opacity', 0.5)
-      .attr('x2', chartWidth); // شبكة خلفية سريعة
+    yAxisGroup.selectAll('line').attr('stroke', '#064e3b').attr('stroke-dasharray', '2,2').attr('stroke-opacity', 0.5).attr('x2', chartWidth);
+    yAxisGroup.selectAll('text').attr('fill', '#9ca3af').attr('font-size', '9px').attr('font-weight', 'bold').attr('dx', '-4px');
 
-    yAxisGroup.selectAll('text')
-      .attr('fill', '#9ca3af')
-      .attr('font-size', '9px')
-      .attr('font-weight', 'bold')
-      .attr('dx', '-4px');
-
-    // نقاط تفاعلية دائرية للمخطط (Data Nodes)
-    g.selectAll('.dot')
-      .data(chartData.filter(d => d.type !== 'baseline'))
+    group.selectAll('.dot')
+      .data(chartData.filter((point) => point.type !== 'baseline'))
       .enter()
       .append('circle')
-      .attr('class', 'dot')
-      .attr('cx', d => x(new Date(d.timestamp)))
-      .attr('cy', d => y(d.balance))
+      .attr('cx', (point) => x(new Date(point.timestamp)))
+      .attr('cy', (point) => y(point.balance))
       .attr('r', 4)
       .attr('fill', '#10b981')
       .attr('stroke', '#022c22')
       .attr('stroke-width', 1.5)
       .style('cursor', 'pointer')
-      .on('mouseover', function(event, d) {
-        d3.select(this)
-          .transition()
-          .duration(150)
-          .attr('r', 6.5)
-          .attr('fill', '#34d399');
+      .on('mouseover', function (_event, point) {
+        d3.select(this).transition().duration(150).attr('r', 6.5).attr('fill', '#34d399');
 
-        // رسم بطاقة إرشاد متطايرة سريعة (Tooltip)
-        const tooltipG = g.append('g')
+        const tooltip = group.append('g')
           .attr('id', 'chart-tooltip')
-          .attr('transform', `translate(${x(new Date(d.timestamp))}, ${y(d.balance) - 22})`);
+          .attr('transform', `translate(${x(new Date(point.timestamp))}, ${y(point.balance) - 22})`);
 
-        tooltipG.append('rect')
+        tooltip.append('rect')
           .attr('x', -60)
           .attr('y', -14)
           .attr('width', 120)
@@ -264,55 +173,43 @@ export function SovereignFinancialActivityChart({ transactions, balanceJD, curre
           .attr('rx', 6)
           .attr('fill', '#022c22')
           .attr('stroke', '#10b981')
-          .attr('stroke-opacity', 0.6)
-          .attr('stroke-width', 1);
+          .attr('stroke-opacity', 0.6);
 
-        tooltipG.append('text')
+        tooltip.append('text')
           .attr('text-anchor', 'middle')
           .attr('fill', '#ffffff')
           .attr('font-size', '9px')
           .attr('font-weight', 'black')
           .attr('y', 1)
-          .text(`${d.balance.toFixed(2)} ${currencyLabel}`.trim());
+          .text(`${point.balance.toFixed(2)} ${currencyLabel}`.trim());
       })
-      .on('mouseout', function() {
-        d3.select(this)
-          .transition()
-          .duration(150)
-          .attr('r', 4)
-          .attr('fill', '#10b981');
-        
-        g.select('#chart-tooltip').remove();
+      .on('mouseout', function () {
+        d3.select(this).transition().duration(150).attr('r', 4).attr('fill', '#10b981');
+        group.select('#chart-tooltip').remove();
       });
-
   }, [chartData, dimensions, currencyLabel]);
 
   return (
-    <Card className="bg-[#030903]/95 border border-emerald-900/30 rounded-2xl shadow-xl overflow-hidden mb-6">
-      <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between border-b border-emerald-900/20">
+    <Card className="mb-6 overflow-hidden rounded-2xl border border-emerald-900/30 bg-[#030903]/95 shadow-xl">
+      <CardHeader className="flex flex-row items-center justify-between border-b border-emerald-900/20 p-4 pb-2">
         <div className="text-right">
-          <CardTitle className="text-xs font-black text-white flex items-center gap-1.5 justify-end">
+          <CardTitle className="flex items-center justify-end gap-1.5 text-xs font-black text-white">
             حركة الرصيد
-            <Activity className="w-3.5 h-3.5 text-emerald-400" />
+            <Activity className="h-3.5 w-3.5 text-emerald-400" />
           </CardTitle>
-          <CardDescription className="text-[9px] text-gray-500 mt-0.5">
+          <CardDescription className="mt-0.5 text-[9px] text-gray-500">
             تظهر العمليات هنا بعد وصولها من الخادم.
           </CardDescription>
         </div>
-        <div className="bg-emerald-950/40 border border-emerald-500/20 px-2 py-1 rounded-lg text-emerald-400 text-[10px] font-mono flex items-center gap-1">
-          <TrendingUp className="w-3 h-3 text-emerald-400 animate-pulse" />
+        <div className="flex items-center gap-1 rounded-lg border border-emerald-500/20 bg-emerald-950/40 px-2 py-1 font-mono text-[10px] text-emerald-400">
+          <TrendingUp className="h-3 w-3 text-emerald-400" />
           <span>{currencyLabel || 'Wallet'}</span>
         </div>
       </CardHeader>
-      <CardContent className="p-4 pt-3 flex flex-col items-center">
-        <div ref={containerRef} className="w-full relative h-[160px] flex items-center justify-center">
+      <CardContent className="flex flex-col items-center p-4 pt-3">
+        <div ref={containerRef} className="relative flex h-[160px] w-full items-center justify-center">
           {chartData.length > 0 ? (
-            <svg
-              ref={svgRef}
-              width={dimensions.width}
-              height={dimensions.height}
-              className="overflow-visible"
-            />
+            <svg ref={svgRef} width={dimensions.width} height={dimensions.height} className="overflow-visible" />
           ) : (
             <>
               <svg ref={svgRef} width={0} height={0} className="hidden" />

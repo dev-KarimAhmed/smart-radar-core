@@ -4,8 +4,6 @@ import React, { useState, useEffect } from 'react';
 import { useDriverOperations } from '@/hooks/use-driver-operations';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
-import { db } from '@/lib/firebase';
-import { doc, updateDoc, increment } from 'firebase/firestore';
 import {
   Shield,
   Clock,
@@ -140,26 +138,12 @@ export const RadarCaptainDashboard: React.FC<CaptainDashboardProps> = ({ captain
     });
   };
 
-  const handleRechargeHours = async (hours: number, price: number) => {
-    try {
-      const userRef = doc(db, 'users', captainProfile.id);
-      await updateDoc(userRef, {
-        paidHoursRemaining: increment(hours * 60),
-        subscriptionHours: increment(hours)
-      });
-      setShowRechargeDialog(false);
-      toast({
-        title: '✅ شحن ناجح ومؤمن برمجياً',
-        description: `تم إضافة باقة ساعات عبور صافية مرسلة لوتدك المالي بقيمة ${hours} ساعة بنجاح.`
-      });
-    } catch (err) {
-      console.error("Error recharging hours in captain dashboard:", err);
-      toast({
-        variant: 'destructive',
-        title: '❌ فشل في عملية الشحن',
-        description: 'حدث خطأ غير متوقع أثناء تحديث الرصيد السحابي.'
-      });
-    }
+  const handleRechargeHours = async (_hours: number, _price: number) => {
+    setShowRechargeDialog(false);
+    toast({
+      title: 'الشحن يتم من الخادم',
+      description: 'لا يمكن تعديل ساعات العمل من الواجهة مباشرة. استخدم كود شحن أو عملية معتمدة من المندوب.',
+    });
   };
 
   // معايير الرتبة وشريط التقدم التفاعلي
@@ -623,3 +607,4 @@ try {
 } catch (e) {
   console.warn("Failed to freeze RadarCaptainDashboard component definition", e);
 }
+

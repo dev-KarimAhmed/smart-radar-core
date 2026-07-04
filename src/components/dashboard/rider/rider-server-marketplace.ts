@@ -202,11 +202,10 @@ export async function submitRideRating(
   return data;
 }
 
-export async function cancelRideRequest(client: SupabaseFromLike, requestId: string) {
-  const { error } = await client
-    .from('ride_requests')
-    .update({ status: 'CANCELLED' })
-    .eq('id', requestId);
+export async function cancelRideRequest(client: SupabaseMarketplaceRpcLike, requestId: string) {
+  const { error } = await client.rpc('cancel_ride_request', {
+    p_request_id: requestId,
+  });
 
   if (error) throw error;
 }

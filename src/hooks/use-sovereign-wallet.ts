@@ -25,6 +25,18 @@ interface WalletTransaction {
   timestamp: number;
 }
 
+interface SubmitWalletReceiptInput {
+  amount: number;
+  channel: string;
+  receiptFile: File;
+}
+
+interface DelegateChargeInput {
+  captainId: string;
+  amount: number;
+  description?: string;
+}
+
 function mapWalletTransactionRow(row: Record<string, any>): WalletTransaction {
   const timestamp = parseTimestamp(row.created_at ?? row.createdAt ?? row.timestamp);
   return {
@@ -68,8 +80,12 @@ export function useSovereignWallet(user: User | null) {
   const [loading, setLoading] = useState(false);
   const [serverWallet, setServerWallet] = useState<ServerWalletSnapshot | null>(null);
   const [walletLoaded, setWalletLoaded] = useState(false);
-
+  const [refreshIndex, setRefreshIndex] = useState(0);
   const userId = user?.uid || '';
+
+  const refreshWallet = useCallback(() => {
+    setRefreshIndex((value) => value + 1);
+  }, []);
 
   useEffect(() => {
     if (!userId) {
@@ -86,16 +102,8 @@ export function useSovereignWallet(user: User | null) {
 
       try {
         const [{ data: walletData, error: walletError }, { data: txData, error: txError }] = await Promise.all([
-          supabase
-            .from('wallet_accounts')
-            .select('*')
-            .eq('profile_id', userId)
-            .maybeSingle(),
-          supabase
-            .from('wallet_transactions')
-            .select('*')
-            .eq('profile_id', userId)
-            .order('created_at', { ascending: false }),
+          supabase.from('wallet_accounts').select('*').eq('user_id', userId).maybeSingle(),
+          supabase.from('wallet_transactions').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
         ]);
 
         if (walletError) throw walletError;
@@ -132,7 +140,100 @@ export function useSovereignWallet(user: User | null) {
     return () => {
       active = false;
     };
-  }, [userId]);
+  }, [refreshIndex, userId]);
+
+  const submitWalletReceipt = useCallback(async (input: SubmitWalletReceiptInput) => {
+    if (!userId) {
+      toast({ variant: 'destructive', title: 'تعذر إرسال الإيصال', description: 'يرجى تسجيل الدخول ثم حاول مرة أخرى.' });
+      return false;
+    }
+
+    if (!Number.isFinite(input.amount) || input.amount <= 0) {
+      toast({ variant: 'destructive', title: 'قيمة غير صحيحة', description: 'اكتب مبلغاً صحيحاً أكبر من صفر.' });
+      return false;
+    }
+
+    setLoading(true);
+    try {
+      const extension = input.receiptFile.name.split('.').pop()?.replace(/[^a-z0-9]/gi, '').toLowerCase() || 'jpg';
+      const receiptPath = `${userId}/${Date.now()}-${crypto.randomUUID()}.${extension}`;
+      const { error: uploadError } = await supabase.storage.from('receipts').upload(receiptPath, input.receiptFile, {
+        cacheControl: '3600',
+        contentType: input.receiptFile.type || 'image/jpeg',
+        upsert: false,
+      });
+      if (uploadError) throw uploadError;
+
+      const { error: insertError } = await supabase.from('wallet_transactions').insert({
+        user_id: userId,
+        type: 'receipt',
+        amount: input.amount,
+        currency_code: user?.currencyEn || null,
+        currency_ar: user?.currencyAr || null,
+        status: 'PENDING',
+        description_ar: 'إيصال شحن بانتظار المراجعة.',
+        payment_channel: input.channel,
+        receipt_path: receiptPath,
+        metadata: {
+          original_file_name: input.receiptFile.name,
+          file_size: input.receiptFile.size,
+        },
+      });
+      if (insertError) throw insertError;
+
+      toast({ title: 'تم إرسال الإيصال', description: 'وصل الإيصال للمراجعة. سيظهر الرصيد بعد اعتماده.' });
+      refreshWallet();
+      return true;
+    } catch (error) {
+      if (import.meta.env.DEV) console.warn('[Wallet Receipt]', error);
+      toast({ variant: 'destructive', title: 'تعذر إرسال الإيصال', description: 'تحقق من الاتصال وحاول مرة أخرى.' });
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, [refreshWallet, toast, user?.currencyAr, user?.currencyEn, userId]);
+
+  const redeemVoucherCode = useCallback(async (code: string) => {
+    if (!code.trim()) {
+      toast({ variant: 'destructive', title: 'الكود مطلوب', description: 'اكتب كود الشحن ثم حاول مرة أخرى.' });
+      return false;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await supabase.rpc('redeem_voucher_code', { p_code: code.trim().toUpperCase() });
+      if (error) throw error;
+      toast({ title: 'تم تفعيل الكود', description: 'تمت إضافة قيمة الكود إلى حسابك.' });
+      refreshWallet();
+      return true;
+    } catch (error) {
+      if (import.meta.env.DEV) console.warn('[Wallet Voucher]', error);
+      toast({ variant: 'destructive', title: 'تعذر تفعيل الكود', description: 'تأكد من صحة الكود أو حاول مرة أخرى.' });
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, [refreshWallet, toast]);
+
+  const delegateChargeCaptain = useCallback(async (input: DelegateChargeInput) => {
+    setLoading(true);
+    try {
+      const { error } = await supabase.rpc('delegate_charge_captain', {
+        p_captain_id: input.captainId,
+        p_amount: input.amount,
+        p_description: input.description || null,
+      });
+      if (error) throw error;
+      refreshWallet();
+      return true;
+    } catch (error) {
+      if (import.meta.env.DEV) console.warn('[Wallet Delegate Charge]', error);
+      toast({ variant: 'destructive', title: 'تعذر شحن الرصيد', description: 'لم يتم تنفيذ العملية من الخادم.' });
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, [refreshWallet, toast]);
 
   const rejectClientMutation = useCallback(async (..._args: unknown[]) => {
     toast({
@@ -149,7 +250,6 @@ export function useSovereignWallet(user: User | null) {
   const bonusHoursMin = serverWallet?.bonusHoursMin ?? 0;
   const subscriptionHours = serverWallet?.subscriptionHours ?? Number(((paidHoursMin + bonusHoursMin) / 60).toFixed(3));
   const activePackageName = serverWallet?.activePackageName || '';
-
   const transactions = useMemo(() => serverWallet?.transactions ?? [], [serverWallet?.transactions]);
 
   return {
@@ -159,6 +259,9 @@ export function useSovereignWallet(user: User | null) {
     fundRiderBalance: rejectClientMutation,
     deductRiderFare: rejectClientMutation,
     purchaseDriverPackage: rejectClientMutation,
+    submitWalletReceipt,
+    redeemVoucherCode,
+    delegateChargeCaptain,
     isDriver,
     balanceJD,
     paidHoursMin,

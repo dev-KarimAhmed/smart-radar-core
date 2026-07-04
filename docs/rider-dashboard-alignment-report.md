@@ -11,27 +11,27 @@ Reference sources:
 
 ## 1. Executive Summary And Maturity Scores
 
-Frontend/demo alignment: **96%**
+Frontend/demo alignment: **97%**
 
-Production readiness: **74%**
+Production readiness: **82% local code / live DB application blocked**
 
-The Rider Dashboard is close to the requested product experience. The UI now has a real MapLibre/OpenFreeMap map, device GPS, H3 resolution 9 cells, dynamic country/governorate/district data, destination pin movement, server fare RPC, Supabase ride request insertion, realtime request/offers subscription helpers, live captain presence lookup with TTL pruning, Supabase phone/password authentication, profile editing, Dexie ledger/favorites, and the approved large ad-card carousel with pause/manual controls.
+The Rider Dashboard is close to the requested product experience. The UI now has a real MapLibre/OpenFreeMap map, device GPS, H3 resolution 9 cells, dynamic country/governorate/district data, destination pin movement, server fare RPC, Supabase ride request insertion, realtime request/offers subscription helpers, live captain presence lookup with TTL pruning, Supabase phone/password authentication, profile editing, Dexie ledger/favorites, and the approved large ad-card carousel with pause/manual controls. Wallet and payment UI now avoid local balance mutations and use Supabase receipt/voucher/delegate RPC paths.
 
-The gap is production trust. Several critical marketplace actions are still local, simulated, Firestore-backed, or only partially Supabase-backed. The largest blockers are offer acceptance, trip lifecycle, driver offer submission, rating/trust-score mutation, wallet/time-bundle accounting, ad metric billing, and legacy Firebase listeners that still run in rider/driver operations.
+The gap is production trust and live database deployment. A versioned production migration now exists at `supabase/migrations/20260704_core_production_functions.sql`, but MCP application is blocked because the running Supabase MCP server is still using the stale URL-shaped project ref. Remaining code blockers are mostly outside the active Rider surface, especially the large legacy `delegate-portal.tsx` Firebase island and other admin/legacy hooks.
 
 | Area | Demo Alignment | Production Readiness | Current Status |
 | --- | ---: | ---: | --- |
 | Auth Portal | 92% | 82% | Supabase phone/password, remember me, session check, dynamic metadata. Needs final RLS/trigger verification and copy cleanup. |
 | Default Map View | 94% | 80% | MapLibre/OpenFreeMap, GPS, H3, captain presence query. Needs precise live captain schema and country filtering. |
 | Destination Pin Panel | 93% | 86% | District fly-to, centered pin, H3 recalculation, debounced fare RPC. Good frontend state. |
-| Pricing And Realtime Offers | 86% | 62% | Request insert and offer subscription exist, but offer acceptance is not server-locked. |
-| Active Trip Tracking | 74% | 45% | UI exists, driver pulse hook exists, but trip start/complete/cancel remain mostly local or legacy. |
-| Rating Modal | 70% | 38% | Local rating UX exists; no server-side trust-score mutation path is complete. |
+| Pricing And Realtime Offers | 88% | 76% | Request insert, offer subscription, and accept-offer RPC helper exist. Live migration/RLS still must be applied. |
+| Active Trip Tracking | 76% | 62% | UI exists and complete-trip RPC helper exists; full driver-side lifecycle still needs final Supabase verification. |
+| Rating Modal | 74% | 66% | Rating UX can call `submit_ride_rating`; live trigger/RLS verification remains. |
 | 72-Hour Ledger | 88% | 68% | Dexie TTL ledger exists; support-grade server sync is missing. |
 | Favorites Vault | 90% | 75% | Local Dexie/device cache aligns with zero-cost goal; backend sync depends on matching rules. |
-| Ad River Carousel | 88% | 58% | Visual and interaction behavior are aligned; metrics still do not flush to Supabase billing counters. |
-| Firebase Removal | 55% | 35% | Rider/driver hooks still contain active Firestore listeners and Firebase mutation paths. |
-| Arabic Copy Quality | 72% | 60% | Many visible strings are simpler, but mojibake remains in active source files. |
+| Ad River Carousel | 88% | 68% | Visual and interaction behavior are aligned; migration versions `flush_ad_campaign_metrics`; final live apply is blocked. |
+| Firebase Removal | 70% | 55% | Active rider/wallet hooks were cleaned; `delegate-portal.tsx` and admin/legacy hooks still contain Firestore. |
+| Arabic Copy Quality | 78% | 70% | Wallet/payment copy was cleaned; older dashboard files still need a wider mojibake pass. |
 
 ## 2. Compliance Gain Matrix
 
