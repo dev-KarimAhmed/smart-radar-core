@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useMemo, useState } from 'react';
+import { getDeviceDashboardLanguage, persistDashboardLanguage } from '@/hooks/use-dashboard-language';
 
 type Lang = 'ar' | 'en';
 type AuthType = 'register' | 'login';
@@ -128,7 +129,10 @@ const copy = {
 function AuthRegisterRoute() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const [lang, setLang] = useState<Lang>((searchParams.get('lang') as Lang) || 'ar');
+  const [lang, setLangState] = useState<Lang>(() => {
+    const requestedLang = searchParams.get('lang');
+    return requestedLang === 'ar' || requestedLang === 'en' ? requestedLang : getDeviceDashboardLanguage();
+  });
   const [authType, setAuthType] = useState<AuthType>('register');
   const [governorate, setGovernorate] = useState<GovernorateKey>('cairo');
   const [showPassword, setShowPassword] = useState(false);
@@ -139,6 +143,11 @@ function AuthRegisterRoute() {
   const t = copy[lang];
   const roleName = roleLabels[role as keyof typeof roleLabels][lang];
   const districtOptions = governorates[governorate].districts;
+
+  const setLang = (nextLang: Lang) => {
+    setLangState(nextLang);
+    persistDashboardLanguage(nextLang);
+  };
 
   const tickerItems = useMemo(() => [...t.ticker, ...t.ticker, ...t.ticker], [t.ticker]);
 
@@ -156,7 +165,7 @@ function AuthRegisterRoute() {
       <button
         type="button"
         aria-label={t.languageAria}
-        onClick={() => setLang((current) => (current === 'ar' ? 'en' : 'ar'))}
+        onClick={() => setLang(isArabic ? 'en' : 'ar')}
         className={`fixed top-4 z-30 inline-flex min-h-11 items-center gap-2 rounded-full border border-white/10 bg-[#161F30]/70 px-4 text-sm font-bold text-slate-100 shadow-2xl backdrop-blur-xl transition hover:border-[#14B8A6] hover:shadow-[0_0_20px_rgba(20,184,166,0.15)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/50 ${
           isArabic ? 'left-4' : 'right-4'
         }`}

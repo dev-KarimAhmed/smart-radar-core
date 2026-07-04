@@ -10,8 +10,10 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Label } from '@/components/ui/label';
 import { StarRating } from '@/components/ui/star-rating';
 import { useAuth } from '@/hooks/use-auth';
+import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { useToast } from '@/hooks/use-toast';
 import { dexieDb, type RiderTripLedgerEntry } from '@/lib/dexie-db';
+import type { AppLanguage } from '@/lib/i18n/simple-copy';
 import { supabase } from '@/lib/supabase-client';
 import { cn } from '@/lib/utils';
 import { AdStage } from './ad-stage';
@@ -73,6 +75,8 @@ interface DistrictOption {
 export function RiderViewTab() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { isArabic, language } = useDashboardLanguage();
+  const copy = riderViewCopy[language];
   const { state, dispatch, showAdRiver } = useRiderDashboardMachine();
   const [selectedGovernorateId, setSelectedGovernorateId] = React.useState('');
   const [draftDestinationId, setDraftDestinationId] = React.useState('');
@@ -647,29 +651,29 @@ export function RiderViewTab() {
       const selectedDestinationHasCoords = !!selectedDestinationCoords;
       const serverFareLabel =
         isServerFareLoading || isDestinationPinMoving
-          ? 'جاري تحديث السعر...'
+          ? copy.updatingFare
           : selectedDraftDestination?.serverEstimatedFare !== undefined
           ? formatMoney(selectedDraftDestination.serverEstimatedFare, currencyLabel)
-          : 'غير متاح';
+          : copy.notAvailable;
 
       return (
         <Card className="w-full border-[#14B8A6]/25 bg-[#0B0F19]/88 text-white shadow-2xl shadow-black/40 backdrop-blur-xl">
-          <CardContent className="space-y-5 p-5 text-right" dir="rtl">
+          <CardContent className="space-y-5 p-5 text-right" dir={isArabic ? 'rtl' : 'ltr'}>
             <div className="flex items-start justify-between gap-3">
               <div className="space-y-1">
-                <p className="text-[11px] font-black text-[#14F5D5]">اختيار الوجهة</p>
-                <h2 className="text-xl font-black sm:text-2xl">إلى أين تريد الذهاب؟</h2>
+                <p className="text-[11px] font-black text-[#14F5D5]">{copy.destinationEyebrow}</p>
+                <h2 className="text-xl font-black sm:text-2xl">{copy.whereTo}</h2>
                 <p className="text-xs leading-relaxed text-slate-400">
-                  اختر من المناطق المسجلة في دولة حسابك. لا نستخدم Google Places أو Geocoding.
+                  {copy.destinationSubtitle}
                   {countryConfig?.name_ar || countryConfig?.name_en ? (
-                    <span className="mt-1 block text-[#14F5D5]">الدولة: {countryConfig.name_ar || countryConfig.name_en}</span>
+                    <span className="mt-1 block text-[#14F5D5]">{copy.country}: {isArabic ? countryConfig.name_ar || countryConfig.name_en : countryConfig.name_en || countryConfig.name_ar}</span>
                   ) : null}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => dispatch({ type: 'RETURN_TO_MAP' })}
-                aria-label="إغلاق اختيار الوجهة"
+                aria-label={copy.closeDestination}
                 className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-black/35 text-slate-300 transition hover:border-[#14B8A6]/40 hover:text-white"
               >
                 <X className="h-5 w-5" />
@@ -678,7 +682,7 @@ export function RiderViewTab() {
 
             <div className="grid gap-3">
               <label className="space-y-2">
-                <span className="block text-[11px] font-black text-slate-400">المحافظة</span>
+                <span className="block text-[11px] font-black text-slate-400">{copy.governorate}</span>
                 <select
                   value={selectedGovernorateId}
                   onChange={(event) => handleGovernorateChange(event.target.value)}
@@ -686,18 +690,18 @@ export function RiderViewTab() {
                   className="h-12 w-full rounded-2xl border border-white/10 bg-black/40 px-4 text-right text-sm font-black text-white outline-none transition focus:border-[#14B8A6]/60"
                 >
                   {destinationGovernorates.length === 0 ? (
-                    <option value="">{isLoadingGovernorates ? 'جاري التحميل...' : 'لا توجد محافظات'}</option>
+                    <option value="">{isLoadingGovernorates ? copy.loading : copy.noGovernorates}</option>
                   ) : null}
                   {destinationGovernorates.map((governorate) => (
                     <option key={governorate.id} value={governorate.id}>
-                      {governorate.nameAr || governorate.nameEn}
+                      {isArabic ? governorate.nameAr || governorate.nameEn : governorate.nameEn || governorate.nameAr}
                     </option>
                   ))}
                 </select>
               </label>
 
               <label className="space-y-2">
-                <span className="block text-[11px] font-black text-slate-400">المنطقة</span>
+                <span className="block text-[11px] font-black text-slate-400">{copy.district}</span>
                 <select
                   value={selectedDistrict?.id || ''}
                   onChange={(event) => handleDistrictChange(event.target.value)}
@@ -705,11 +709,11 @@ export function RiderViewTab() {
                   className="h-12 w-full rounded-2xl border border-white/10 bg-black/40 px-4 text-right text-sm font-black text-white outline-none transition focus:border-[#14B8A6]/60"
                 >
                   {availableDistricts.length === 0 ? (
-                    <option value="">{isLoadingDistricts ? 'جاري التحميل...' : 'لا توجد مناطق'}</option>
+                    <option value="">{isLoadingDistricts ? copy.loading : copy.noDistricts}</option>
                   ) : null}
                   {availableDistricts.map((destination) => (
                     <option key={destination.id} value={destination.id} disabled={!destination.anchor}>
-                      {destination.districtAr}
+                      {isArabic ? destination.districtAr || destination.districtEn : destination.districtEn || destination.districtAr}
                     </option>
                   ))}
                 </select>
@@ -725,7 +729,9 @@ export function RiderViewTab() {
             {selectedDistrict ? (
               <div className="rounded-2xl border border-[#14B8A6]/20 bg-[#14B8A6]/8 p-3 text-xs leading-relaxed text-slate-300">
                 <strong className="block text-sm text-white">
-                  {selectedDistrict.districtAr} - {selectedDistrict.governorateAr}
+                  {isArabic
+                    ? `${selectedDistrict.districtAr} - ${selectedDistrict.governorateAr}`
+                    : `${selectedDistrict.districtEn || selectedDistrict.districtAr} - ${selectedDistrict.governorateEn || selectedDistrict.governorateAr}`}
                 </strong>
                 {selectedDistrict.anchor ? (
                   <span className="mt-1 block font-mono text-[10px] text-slate-500">
@@ -740,10 +746,10 @@ export function RiderViewTab() {
             ) : null}
 
             <div className="grid grid-cols-2 gap-3 rounded-2xl border border-white/10 bg-black/30 p-3">
-              <Metric label="السعر من الخادم" value={serverFareLabel} />
-              <Metric label="حالة السعر" value={serverFareError ? 'تعذر الحساب' : isServerFareLoading ? 'جار الحساب' : 'جاهز'} />
-              <Metric label="H3 الانطلاق" value={selectedDraftDestination?.originCell?.slice(0, 8).toUpperCase() || '-'} />
-              <Metric label="H3 الوجهة" value={selectedDraftDestination?.destinationCell?.slice(0, 8).toUpperCase() || '-'} />
+              <Metric label={copy.serverFare} value={serverFareLabel} />
+              <Metric label={copy.fareStatus} value={serverFareError ? copy.fareFailed : isServerFareLoading ? copy.fareLoading : copy.ready} />
+              <Metric label={copy.originH3} value={selectedDraftDestination?.originCell?.slice(0, 8).toUpperCase() || '-'} />
+              <Metric label={copy.destinationH3} value={selectedDraftDestination?.destinationCell?.slice(0, 8).toUpperCase() || '-'} />
             </div>
 
             {serverFareError && (
@@ -763,7 +769,7 @@ export function RiderViewTab() {
               }
               className="h-14 w-full rounded-2xl bg-[#14B8A6] text-base font-black text-[#031315] hover:bg-[#2DD4BF]"
             >
-              {isSendingRideRequest ? 'جاري إرسال الطلب...' : 'اطلب الآن'}
+              {isSendingRideRequest ? copy.sendingRequest : copy.requestNow}
             </Button>
           </CardContent>
         </Card>
@@ -904,7 +910,7 @@ export function RiderViewTab() {
   };
 
   return (
-    <div className="relative flex min-h-[calc(100svh-128px)] w-full flex-col gap-3 bg-[#0B0F19] p-3 pb-[calc(6.5rem+env(safe-area-inset-bottom))] text-white sm:gap-4 sm:p-4 lg:h-screen lg:min-h-screen lg:overflow-hidden lg:bg-transparent lg:p-0" dir="rtl">
+    <div className="relative flex min-h-[calc(100svh-128px)] w-full flex-col gap-3 bg-[#0B0F19] p-3 pb-[calc(6.5rem+env(safe-area-inset-bottom))] text-white sm:gap-4 sm:p-4 lg:h-screen lg:min-h-screen lg:overflow-hidden lg:bg-transparent lg:p-0" dir={isArabic ? 'rtl' : 'ltr'}>
       <div className="mx-auto grid w-full max-w-6xl gap-3 sm:gap-4 lg:block lg:h-full lg:max-w-none">
         <div className="space-y-3 sm:space-y-4 lg:absolute lg:inset-0 lg:space-y-0">
           <RiderMap
@@ -923,21 +929,21 @@ export function RiderViewTab() {
           <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-3 shadow-xl shadow-black/20 backdrop-blur sm:rounded-[24px] sm:p-4">
             <div className="mb-3 flex items-center justify-between sm:mb-4">
               <div>
-                <p className="text-[11px] font-black text-[#14F5D5]">لوحة الراكب</p>
-                <h1 className="text-xl font-black sm:text-2xl">طلب الرحلة</h1>
+                <p className="text-[11px] font-black text-[#14F5D5]">{copy.panelEyebrow}</p>
+                <h1 className="text-xl font-black sm:text-2xl">{copy.panelTitle}</h1>
               </div>
               <ShieldCheck className="h-7 w-7 text-[#14F5D5]" />
             </div>
 
             <div className="grid grid-cols-3 gap-2 lg:hidden">
               <NavButton active={state.screen === 'IDLE_MAP'} onClick={() => dispatch({ type: 'RETURN_TO_MAP' })}>
-                الخريطة
+                {copy.mapTab}
               </NavButton>
               <NavButton active={state.screen === 'PURGE_LEDGER'} onClick={() => dispatch({ type: 'OPEN_PURGE_LEDGER' })}>
-                رحلاتي
+                {copy.tripsTab}
               </NavButton>
               <NavButton active={state.screen === 'FAVORITE_CAPTAINS'} onClick={() => dispatch({ type: 'OPEN_FAVORITE_CAPTAINS' })}>
-                المفضلة
+                {copy.savedTab}
               </NavButton>
             </div>
           </div>
@@ -947,16 +953,16 @@ export function RiderViewTab() {
               <Card className="border-[#14B8A6]/25 bg-[#0B0F19]/90 text-white shadow-2xl shadow-black/40 backdrop-blur-xl">
                 <CardContent className="space-y-5 p-5 text-right" dir="rtl">
                   <div className="space-y-1">
-                    <p className="text-[11px] font-black text-[#14F5D5]">جاهز؟</p>
-                    <h2 className="text-xl font-black sm:text-2xl">إلى أين تريد الذهاب؟</h2>
+                    <p className="text-[11px] font-black text-[#14F5D5]">{copy.readyQuestion}</p>
+                    <h2 className="text-xl font-black sm:text-2xl">{copy.whereTo}</h2>
                     <p className="text-xs leading-relaxed text-slate-400">
-                      اختر وجهتك وسنبحث عن سائق قريب. السعر يظهر قبل إرسال الطلب.
+                      {copy.homeSubtitle}
                     </p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3 rounded-2xl border border-white/10 bg-black/30 p-4">
-                    <Metric label="منطقتك" value={locationStatus === 'live' ? 'موقعك الحالي' : 'عمّان'} />
-                    <Metric label="تقييمك" value={`${riderProfile.rating.toFixed(1)} / 5`} />
+                    <Metric label={copy.yourArea} value={locationStatus === 'live' ? copy.currentLocation : copy.fallbackLocation} />
+                    <Metric label={copy.yourRating} value={`${riderProfile.rating.toFixed(1)} / 5`} />
                   </div>
 
                   <Button
@@ -964,7 +970,7 @@ export function RiderViewTab() {
                     className="h-16 w-full rounded-2xl bg-[#14B8A6] text-lg font-black text-[#031315] shadow-lg shadow-[#14B8A6]/20 hover:bg-[#2DD4BF]"
                   >
                     <Navigation className="ml-2 h-5 w-5" />
-                    طلب رحلة
+                    {copy.requestRide}
                   </Button>
                 </CardContent>
               </Card>
@@ -1185,6 +1191,79 @@ function Metric({ label, value }: { label: string; value: React.ReactNode }) {
     </div>
   );
 }
+
+const riderViewCopy = {
+  ar: {
+    closeDestination: 'إغلاق اختيار الوجهة',
+    country: 'الدولة',
+    currentLocation: 'موقعك الحالي',
+    destinationEyebrow: 'اختيار الوجهة',
+    destinationH3: 'H3 الوجهة',
+    destinationSubtitle: 'اختر المنطقة ثم حرّك الخريطة لتحديد الوجهة بدقة. لا نستخدم Google Places أو Geocoding.',
+    district: 'المنطقة',
+    fallbackLocation: 'موقعك',
+    fareFailed: 'تعذر الحساب',
+    fareLoading: 'جاري تحديث السعر...',
+    fareStatus: 'حالة السعر',
+    governorate: 'المحافظة',
+    homeSubtitle: 'اختر وجهتك وسنبحث عن سائق قريب. السعر يظهر قبل إرسال الطلب.',
+    loading: 'جاري التحميل...',
+    mapTab: 'الخريطة',
+    noDistricts: 'لا توجد مناطق',
+    noGovernorates: 'لا توجد محافظات',
+    notAvailable: 'غير متاح',
+    originH3: 'H3 الانطلاق',
+    panelEyebrow: 'لوحة الراكب',
+    panelTitle: 'طلب الرحلة',
+    ready: 'جاهز',
+    readyQuestion: 'جاهز؟',
+    requestNow: 'اطلب الآن',
+    requestRide: 'طلب رحلة',
+    savedTab: 'المفضلة',
+    sendingRequest: 'جاري إرسال الطلب...',
+    serverFare: 'السعر من الخادم',
+    tripsTab: 'رحلاتي',
+    updatingFare: 'جاري تحديث السعر...',
+    whereTo: 'إلى أين تريد الذهاب؟',
+    yourArea: 'منطقتك',
+    yourRating: 'تقييمك',
+  },
+  en: {
+    closeDestination: 'Close destination selection',
+    country: 'Country',
+    currentLocation: 'Your location',
+    destinationEyebrow: 'Choose destination',
+    destinationH3: 'Destination H3',
+    destinationSubtitle: 'Choose an area, then move the map to set the exact destination. No Google Places or Geocoding.',
+    district: 'District',
+    fallbackLocation: 'Your area',
+    fareFailed: 'Failed',
+    fareLoading: 'Updating fare...',
+    fareStatus: 'Fare status',
+    governorate: 'Governorate',
+    homeSubtitle: 'Choose your destination and we will look for a nearby driver. The fare appears before sending.',
+    loading: 'Loading...',
+    mapTab: 'Map',
+    noDistricts: 'No districts',
+    noGovernorates: 'No governorates',
+    notAvailable: 'Not available',
+    originH3: 'Origin H3',
+    panelEyebrow: 'Rider dashboard',
+    panelTitle: 'Request ride',
+    ready: 'Ready',
+    readyQuestion: 'Ready?',
+    requestNow: 'Request now',
+    requestRide: 'Request ride',
+    savedTab: 'Saved',
+    sendingRequest: 'Sending request...',
+    serverFare: 'Server fare',
+    tripsTab: 'Trips',
+    updatingFare: 'Updating fare...',
+    whereTo: 'Where do you want to go?',
+    yourArea: 'Your area',
+    yourRating: 'Your rating',
+  },
+} satisfies Record<AppLanguage, Record<string, string>>;
 
 function NavButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (

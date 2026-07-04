@@ -15,6 +15,8 @@ import { Archive, Bell, History, Home, Loader2, LogOut, PlusCircle, User, Wallet
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
+import type { AppLanguage } from '@/lib/i18n/simple-copy';
 import { cn } from '@/lib/utils';
 
 // [بروتوكول الاقتران الضعيف]: استدعاء قمرات التحكم والتبويبات لا مركزياً ولحظياً عند الطلب
@@ -86,6 +88,7 @@ function SovereignLockoutView({ user, logout }: { user: any, logout: () => void 
 function DashboardLayout() {
  const { isSovereign, isCaptain, isPassenger, user, logout } = useAuth();
  const { toast } = useToast();
+ const dashboardLanguage = useDashboardLanguage();
  const [hash, setHash] = useState(typeof window !== 'undefined' ? window.location.hash || '#' : '#');
  const riderOps = useRiderOperations() || {} as any;
  const driverOps = useDriverOperations() || {} as any;
@@ -312,6 +315,7 @@ function DashboardLayout() {
  {user?.role === 'rider' && (
  <DesktopRiderSidebar
  hash={hash}
+ language={dashboardLanguage.language}
  logout={logout}
  onNotify={() => toast({ title: 'التنبيهات', description: 'لا توجد تنبيهات جديدة حاليا.' })}
  user={user}
@@ -361,22 +365,25 @@ function DashboardLayout() {
 
 function DesktopRiderSidebar({
  hash,
+ language,
  logout,
  onNotify,
  user,
 }: {
  hash: string;
+ language: AppLanguage;
  logout: () => void;
  onNotify: () => void;
  user: any;
 }) {
  const initials = getInitials(user?.name || user?.phone || 'R');
+ const copy = dashboardChromeCopy[language];
  const items = [
- { href: '#', icon: Home, label: 'الرئيسية' },
- { href: '#history', icon: History, label: 'رحلاتي' },
- { href: '#vault', icon: Archive, label: 'المفضلة' },
- { href: '#wallet', icon: Wallet, label: 'الرصيد' },
- { href: '#profile', icon: User, label: 'حسابي' },
+ { href: '#', icon: Home, label: copy.nav.home },
+ { href: '#history', icon: History, label: copy.nav.history },
+ { href: '#vault', icon: Archive, label: copy.nav.vault },
+ { href: '#wallet', icon: Wallet, label: copy.nav.wallet },
+ { href: '#profile', icon: User, label: copy.nav.profile },
  ];
 
  const openRideRequest = () => {
@@ -385,14 +392,14 @@ function DesktopRiderSidebar({
  };
 
  return (
- <aside className="fixed inset-y-0 left-0 z-[140] hidden w-[288px] flex-col border-r border-white/10 bg-[#0B0F19]/98 shadow-[22px_0_70px_rgba(0,0,0,0.38)] backdrop-blur-xl lg:flex" dir="rtl">
+ <aside className="fixed inset-y-0 left-0 z-[140] hidden w-[288px] flex-col border-r border-white/10 bg-[#0B0F19]/98 shadow-[22px_0_70px_rgba(0,0,0,0.38)] backdrop-blur-xl lg:flex" dir={language === 'ar' ? 'rtl' : 'ltr'}>
  <div className="flex items-center gap-3 border-b border-white/10 p-5">
  <Avatar className="h-12 w-12 border border-[#14B8A6]/35 bg-[#101827]">
  <AvatarFallback className="bg-[#101827] text-sm font-black text-white">{initials}</AvatarFallback>
  </Avatar>
  <div className="min-w-0 text-right">
- <p className="truncate text-sm font-black text-white">{user?.name || 'راكب'}</p>
- <p className="truncate text-xs font-bold text-[#14B8A6]">{user?.phone || 'تطبيق الرحلات'}</p>
+ <p className={cn('truncate text-sm font-black text-white', language === 'ar' ? 'text-right' : 'text-left')}>{user?.name || copy.fallbackName}</p>
+ <p className={cn('truncate text-xs font-bold text-[#14B8A6]', language === 'ar' ? 'text-right' : 'text-left')}>{user?.phone || copy.fallbackPhone}</p>
  </div>
  </div>
 
@@ -402,7 +409,7 @@ function DesktopRiderSidebar({
  className="h-12 w-full justify-center gap-2 rounded-2xl bg-[#14B8A6] text-sm font-black text-[#031315] shadow-[0_16px_35px_rgba(20,184,166,0.18)] hover:bg-[#2DD4BF]"
  >
  <PlusCircle className="h-5 w-5" />
- اطلب رحلة
+ {copy.requestRide}
  </Button>
  <Button
  onClick={onNotify}
@@ -410,7 +417,7 @@ function DesktopRiderSidebar({
  className="h-11 w-full justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 text-sm font-bold text-slate-200 hover:bg-white/[0.07]"
  >
  <Bell className="h-4 w-4 text-[#14B8A6]" />
- التنبيهات
+ {copy.notifications}
  </Button>
  </div>
 
@@ -439,20 +446,64 @@ function DesktopRiderSidebar({
 
  <div className="space-y-3 border-t border-white/10 p-4">
  <div className="rounded-2xl border border-[#14B8A6]/15 bg-[#14B8A6]/8 p-3 text-right">
- <p className="text-[11px] font-black text-[#14F5D5]">حالة الحساب</p>
- <p className="mt-1 text-xs font-bold text-slate-300">جاهز لطلب رحلة</p>
+ <p className="text-[11px] font-black text-[#14F5D5]">{copy.accountStatus}</p>
+ <p className="mt-1 text-xs font-bold text-slate-300">{copy.ready}</p>
  </div>
  <Button
  onClick={logout}
  className="h-12 w-full justify-center gap-2 rounded-2xl bg-red-600/90 text-sm font-black text-white hover:bg-red-500"
  >
  <LogOut className="h-5 w-5" />
- تسجيل الخروج
+ {copy.logout}
  </Button>
  </div>
  </aside>
  );
 }
+
+const dashboardChromeCopy = {
+ ar: {
+ accountStatus: 'حالة الحساب',
+ fallbackName: 'راكب',
+ fallbackPhone: 'تطبيق الرحلات',
+ logout: 'تسجيل الخروج',
+ nav: {
+ home: 'الرئيسية',
+ history: 'رحلاتي',
+ profile: 'حسابي',
+ vault: 'المفضلة',
+ wallet: 'الرصيد',
+ },
+ notifications: 'التنبيهات',
+ ready: 'جاهز لطلب رحلة',
+ requestRide: 'اطلب رحلة',
+ },
+ en: {
+ accountStatus: 'Account status',
+ fallbackName: 'Rider',
+ fallbackPhone: 'Ride app',
+ logout: 'Log out',
+ nav: {
+ home: 'Home',
+ history: 'Trips',
+ profile: 'Profile',
+ vault: 'Saved',
+ wallet: 'Wallet',
+ },
+ notifications: 'Notifications',
+ ready: 'Ready to request a ride',
+ requestRide: 'Request ride',
+ },
+} satisfies Record<AppLanguage, {
+ accountStatus: string;
+ fallbackName: string;
+ fallbackPhone: string;
+ logout: string;
+ nav: Record<'home' | 'history' | 'profile' | 'vault' | 'wallet', string>;
+ notifications: string;
+ ready: string;
+ requestRide: string;
+}>;
 
 function getInitials(value: string) {
  const words = value.trim().split(/\s+/).filter(Boolean);

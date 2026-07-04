@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
+import { getDeviceDashboardLanguage, persistDashboardLanguage } from '@/hooks/use-dashboard-language';
 
 type Lang = 'ar' | 'en';
 type AuthMode = 'login' | 'register';
@@ -112,7 +113,7 @@ const roleConfig: Array<{
 const authModes: AuthMode[] = ['login', 'register'];
 
 export default function HomePage() {
-  const [lang, setLang] = useState<Lang>('ar');
+  const [lang, setLangState] = useState<Lang>(() => getDeviceDashboardLanguage());
   const [authMode, setAuthMode] = useState<AuthMode>('login');
   const router = useRouter();
 
@@ -124,7 +125,13 @@ export default function HomePage() {
     [authMode],
   );
 
+  const setLang = (nextLang: Lang) => {
+    setLangState(nextLang);
+    persistDashboardLanguage(nextLang);
+  };
+
   const handleRoleSelect = (role: RoleKey) => {
+    persistDashboardLanguage(lang);
     router.push(`/register?role=${role}&lang=${lang}`);
   };
 
@@ -138,7 +145,7 @@ export default function HomePage() {
       <motion.button
         type="button"
         aria-label={copy.ariaSwitch}
-        onClick={() => setLang((current) => (current === 'ar' ? 'en' : 'ar'))}
+        onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}
         whileHover={{ scale: 1.04 }}
         whileTap={{ scale: 0.96 }}
         transition={{ type: 'spring', stiffness: 360, damping: 28 }}

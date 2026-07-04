@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Archive, History, Home, User, Wallet } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
+import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { simpleCopy } from '@/lib/i18n/simple-copy';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -11,6 +12,7 @@ export function BottomNav() {
   const [hash, setHash] = useState(typeof window !== 'undefined' ? window.location.hash || '#' : '#');
   const { user, isSovereign } = useAuth();
   const { toast } = useToast();
+  const { language } = useDashboardLanguage();
 
   const isPassenger = user?.role === 'rider';
   const isCaptain = user?.role === 'driver';
@@ -76,11 +78,11 @@ export function BottomNav() {
   if (!user || isSovereign) return null;
 
   const navItems = [
-    { href: '#', icon: Home, label: simpleCopy.nav.home.ar },
-    { href: '#history', icon: History, label: simpleCopy.nav.history.ar },
-    { href: '#vault', icon: Archive, label: simpleCopy.nav.vault.ar },
-    { href: '#wallet', icon: Wallet, label: simpleCopy.nav.wallet.ar },
-    { href: '#profile', icon: User, label: simpleCopy.nav.profile.ar },
+    { href: '#', icon: Home, label: simpleCopy.nav.home[language] },
+    { href: '#history', icon: History, label: simpleCopy.nav.history[language] },
+    { href: '#vault', icon: Archive, label: simpleCopy.nav.vault[language] },
+    { href: '#wallet', icon: Wallet, label: simpleCopy.nav.wallet[language] },
+    { href: '#profile', icon: User, label: simpleCopy.nav.profile[language] },
   ];
 
   return (

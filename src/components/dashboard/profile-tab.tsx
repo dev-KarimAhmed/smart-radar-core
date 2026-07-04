@@ -10,7 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { dexieDb } from '@/lib/dexie-db';
-import { Database, Heart, Loader2, MapPin, RefreshCw, Save, ShieldCheck, User } from 'lucide-react';
+import { Database, Heart, Languages, Loader2, MapPin, RefreshCw, Save, ShieldCheck, User } from 'lucide-react';
+import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 
 type LocationRow = {
   id: number;
@@ -57,9 +58,9 @@ type ProfileKey = {
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-function labelFor(row?: LocationRow | null) {
+function labelFor(row?: LocationRow | null, language: 'ar' | 'en' = 'ar') {
   if (!row) return '';
-  return row.name_ar || row.name_en || row.name || String(row.id);
+  return (language === 'ar' ? row.name_ar || row.name_en : row.name_en || row.name_ar) || row.name || String(row.id);
 }
 
 function numberOrEmpty(value: unknown) {
@@ -165,6 +166,8 @@ function mapProfileSaveError(error: unknown) {
 export function ProfileTab() {
   const { user, isCaptain, isPassenger, isSovereign, logout, loginAsMockUser } = useAuth();
   const { toast } = useToast();
+  const { isArabic, language, toggleLanguage } = useDashboardLanguage();
+  const languageCopy = profileLanguageCopy[language];
 
   const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [profileKey, setProfileKey] = useState<ProfileKey | null>(null);
@@ -201,7 +204,7 @@ export function ProfileTab() {
   const rating = getProfileRating(profile, user?.rating);
   const displayName = fullName || user?.name || 'مستخدم جديد';
   const displayPhone = phone || user?.phone || '';
-  const displayRole = isSovereign ? 'مشرف' : isCaptain ? 'سائق' : isPassenger ? 'راكب' : 'مستخدم';
+  const displayRole = isSovereign ? languageCopy.roles.admin : isCaptain ? languageCopy.roles.driver : isPassenger ? languageCopy.roles.rider : languageCopy.roles.user;
   const currency = selectedCountry?.currency_ar || selectedCountry?.currency_en || selectedCountry?.currency_code || user?.currencyAr || user?.currencyEn;
   const isLocationLoading = isLoadingCountries || isLoadingGovernorates || isLoadingDistricts;
 
@@ -448,7 +451,24 @@ export function ProfileTab() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-xl space-y-6 pb-24 text-right font-sans" dir="rtl">
+    <div className="mx-auto w-full max-w-xl space-y-6 pb-24 text-right font-sans" dir={isArabic ? 'rtl' : 'ltr'}>
+      <Card className="border border-[#14B8A6]/20 bg-[#0B0F19]/90 text-white shadow-xl">
+        <CardContent className="flex items-center justify-between gap-4 p-4">
+          <div className={isArabic ? 'text-right' : 'text-left'}>
+            <p className="text-sm font-black text-white">{languageCopy.languageTitle}</p>
+            <p className="mt-1 text-xs text-slate-400">{languageCopy.languageDescription}</p>
+          </div>
+          <Button
+            type="button"
+            onClick={toggleLanguage}
+            className="h-11 shrink-0 gap-2 rounded-2xl border border-[#14B8A6]/25 bg-[#14B8A6]/10 px-4 text-sm font-black text-[#14F5D5] hover:bg-[#14B8A6]/15"
+          >
+            <Languages className="h-4 w-4" />
+            {isArabic ? 'English' : 'العربية'}
+          </Button>
+        </CardContent>
+      </Card>
+
       <Card className="relative overflow-hidden border-emerald-900/40 bg-[#050c05] text-white shadow-2xl">
         <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-emerald-500 via-green-600 to-emerald-400" />
         <CardContent className="space-y-5 p-6">
@@ -488,7 +508,7 @@ export function ProfileTab() {
                 المحافظة والمنطقة
               </span>
               <strong className="mt-1 block text-sm text-white">
-                {labelFor(selectedGovernorate) || 'غير محدد'} - {labelFor(selectedDistrict) || 'غير محدد'}
+                {labelFor(selectedGovernorate, language) || languageCopy.notSet} - {labelFor(selectedDistrict, language) || languageCopy.notSet}
               </strong>
             </div>
 
@@ -662,3 +682,28 @@ export function ProfileTab() {
     </div>
   );
 }
+
+const profileLanguageCopy = {
+  ar: {
+    languageTitle: 'لغة التطبيق',
+    languageDescription: 'اختر اللغة التي تظهر في لوحة التحكم.',
+    notSet: 'غير محدد',
+    roles: {
+      admin: 'مشرف',
+      driver: 'سائق',
+      rider: 'راكب',
+      user: 'مستخدم',
+    },
+  },
+  en: {
+    languageTitle: 'App language',
+    languageDescription: 'Choose the language used in the dashboard.',
+    notSet: 'Not set',
+    roles: {
+      admin: 'Admin',
+      driver: 'Driver',
+      rider: 'Rider',
+      user: 'User',
+    },
+  },
+} as const;

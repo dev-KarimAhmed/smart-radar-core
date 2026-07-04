@@ -4,6 +4,8 @@ import React from 'react';
 import { latLngToCell } from 'h3-js';
 import maplibregl, { type GeoJSONSource, type Map as MapLibreMap } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
+import type { AppLanguage } from '@/lib/i18n/simple-copy';
 import { AMMAN_FALLBACK_LOCATION } from './jordan-destinations';
 
 interface RiderMapProps {
@@ -91,11 +93,12 @@ function toCaptainFeatureCollection(captains: RiderMapCaptainPoint[]) {
   };
 }
 
-function getLocationStatusLabel(status: RiderLocationStatus) {
-  if (status === 'live') return 'موقعك الحالي';
-  if (status === 'locating') return 'يتم تحديد موقعك...';
-  if (status === 'denied') return 'اسمح للموقع من المتصفح';
-  return 'GPS غير متاح';
+function getLocationStatusLabel(status: RiderLocationStatus, language: AppLanguage) {
+  const copy = riderMapCopy[language];
+  if (status === 'live') return copy.live;
+  if (status === 'locating') return copy.locating;
+  if (status === 'denied') return copy.denied;
+  return copy.fallback;
 }
 
 export function RiderMap({
@@ -108,6 +111,8 @@ export function RiderMap({
   onDestinationMoveStart,
   onLocationChange,
 }: RiderMapProps) {
+  const { language } = useDashboardLanguage();
+  const copy = riderMapCopy[language];
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const mapRef = React.useRef<MapLibreMap | null>(null);
   const cleanupWatchRef = React.useRef<(() => void) | null>(null);
@@ -376,23 +381,23 @@ export function RiderMap({
           </div>
           <div className="-mt-1 h-2.5 w-2.5 rotate-45 border-b border-r border-[#14F5D5]/60 bg-[#0B0F19]/88" />
           <div className="mt-1.5 hidden rounded-full border border-[#14B8A6]/20 bg-[#0B0F19]/78 px-2.5 py-0.5 text-[9px] font-black text-[#14F5D5] backdrop-blur sm:block">
-            حرّك الخريطة
+            {copy.moveMap}
           </div>
         </div>
       )}
       <div className="pointer-events-none absolute right-2 top-2 max-w-[150px] rounded-xl border border-[#14B8A6]/25 bg-[#0B0F19]/82 px-2 py-1.5 text-right text-[9px] font-black text-[#14F5D5] backdrop-blur sm:right-4 sm:top-4 sm:max-w-none sm:rounded-2xl sm:px-3 sm:py-2 sm:text-[11px] lg:right-[456px]">
-        <span className="block">{getLocationStatusLabel(locationStatus)}</span>
+        <span className="block">{getLocationStatusLabel(locationStatus, language)}</span>
         <span className="mt-1 block font-mono">H3 R9: {riderCell.slice(0, 8).toUpperCase()}</span>
       </div>
       <div className="pointer-events-none absolute bottom-2 right-2 left-2 flex items-center justify-end rounded-xl border border-white/10 bg-[#0B0F19]/82 px-2.5 py-1.5 text-[10px] text-white backdrop-blur sm:bottom-4 sm:right-4 sm:left-4 sm:justify-between sm:rounded-2xl sm:px-4 sm:py-3 sm:text-xs lg:left-[312px] lg:right-[456px]">
         <span className="font-black text-[#14F5D5]">
-          {activeTripCaptainId ? 'السائق في الطريق إليك' : 'خريطة الرحلة جاهزة'}
+          {activeTripCaptainId ? copy.driverOnWay : copy.mapReady}
         </span>
         <span className="hidden text-[10px] text-slate-300 sm:block">MapLibre + OpenFreeMap / © OSM</span>
       </div>
       {!showDestinationPin && !activeTripCaptainId && captainLocations.length === 0 && (
         <div className="pointer-events-none absolute right-3 top-20 hidden max-w-[260px] rounded-2xl border border-amber-400/25 bg-[#0B0F19]/88 px-3 py-2 text-right text-[11px] font-bold leading-relaxed text-amber-100 shadow-xl shadow-black/30 backdrop-blur sm:block sm:right-4 sm:top-24 lg:right-[456px]">
-          المنطقة الحالية خارج أوقات الذروة - قد يستغرق قبول الرحلة وقتا أطول
+          {copy.offPeak}
         </div>
       )}
       {locationStatus !== 'live' && (
@@ -401,7 +406,7 @@ export function RiderMap({
           onClick={requestLiveLocation}
           className="absolute left-4 top-4 rounded-2xl border border-[#14B8A6]/30 bg-[#0B0F19]/90 px-4 py-2 text-xs font-black text-[#14F5D5] shadow-lg backdrop-blur transition hover:bg-[#14B8A6]/15 lg:left-[312px]"
         >
-          استخدم موقعي الحالي
+          {copy.useMyLocation}
         </button>
       )}
     </section>
@@ -411,3 +416,28 @@ export function RiderMap({
 function interpolate(from: number, to: number, progress: number) {
   return from + (to - from) * progress;
 }
+
+const riderMapCopy = {
+  ar: {
+    denied: 'اسمح للموقع من المتصفح',
+    driverOnWay: 'السائق في الطريق إليك',
+    fallback: 'GPS غير متاح',
+    live: 'موقعك الحالي',
+    locating: 'يتم تحديد موقعك...',
+    mapReady: 'خريطة الرحلة جاهزة',
+    moveMap: 'حرّك الخريطة',
+    offPeak: 'المنطقة الحالية خارج أوقات الذروة - قد يستغرق قبول الرحلة وقتا أطول',
+    useMyLocation: 'استخدم موقعي الحالي',
+  },
+  en: {
+    denied: 'Allow location in browser',
+    driverOnWay: 'Driver is on the way',
+    fallback: 'GPS unavailable',
+    live: 'Your location',
+    locating: 'Finding your location...',
+    mapReady: 'Map is ready',
+    moveMap: 'Move map',
+    offPeak: 'This area is quieter now - accepting the ride may take longer',
+    useMyLocation: 'Use my location',
+  },
+} satisfies Record<AppLanguage, Record<string, string>>;

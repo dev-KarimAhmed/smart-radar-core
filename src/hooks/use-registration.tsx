@@ -4,6 +4,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import type { AffiliationType } from '@/core/types';
 import { buildRiderSignUpMetadata, mapSupabaseAuthError, signInRiderWithPhone, signUpRiderWithPhone } from '@/lib/supabase-auth';
 import { shouldRememberSupabaseSession, supabase } from '@/lib/supabase-client';
+import { getDeviceDashboardLanguage, persistDashboardLanguage } from './use-dashboard-language';
 import { useToast } from './use-toast';
 
 type RegistrationStep = 'role' | 'personal' | 'affiliation' | 'vehicle' | 'admin' | 'advertiser' | 'ProfessionalStep';
@@ -93,7 +94,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
   const [step, setStep] = useState<RegistrationStep>('role');
   const [role, setRole] = useState<RegistrationRole>(null);
   const [authMode, setAuthMode] = useState<AuthMode>('register');
-  const [lang, setLang] = useState<'ar' | 'en'>('ar');
+  const [lang, setLangState] = useState<'ar' | 'en'>(() => getDeviceDashboardLanguage());
   const [personal, setPersonal] = useState<PersonalRegistrationState>({
     name: '',
     phone: '',
@@ -114,6 +115,11 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
   const [selectedCountry, setSelectedCountry] = useState<SupabaseCountryRow | null>(null);
   const [governorateRows, setGovernorateRows] = useState<SupabaseGovernorateRow[]>([]);
   const [districtRows, setDistrictRows] = useState<SupabaseDistrictRow[]>([]);
+
+  const setLang = useCallback((nextLang: 'ar' | 'en') => {
+    setLangState(nextLang);
+    persistDashboardLanguage(nextLang);
+  }, []);
   const [countriesLoading, setCountriesLoading] = useState(false);
   const [governoratesLoading, setGovernoratesLoading] = useState(false);
   const [districtsLoading, setDistrictsLoading] = useState(false);
