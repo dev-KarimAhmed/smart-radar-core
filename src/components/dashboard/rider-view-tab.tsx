@@ -48,7 +48,6 @@ const FARE_RECALCULATION_DEBOUNCE_MS = 350;
 const CAPTAIN_PRESENCE_REFRESH_MS = 15_000;
 const CAPTAIN_PRESENCE_PRUNE_MS = 5_000;
 const INITIAL_RIDER_LOCATION: RiderLocation = { lat: 0, lng: 0 };
-const NETWORK_ERROR_AR = 'عذراً، تعذر الاتصال بالخادم. تحقق من شبكة الإنترنت.';
 
 interface CountryCurrencyConfig {
   id: number;
@@ -163,7 +162,7 @@ export function RiderViewTab() {
   const isServerFareLoading =
     !!selectedDestinationCoords && (serverFareState.key !== fareRequestKey || serverFareState.isLoading || isDestinationPinMoving);
   const serverFareError = serverFareState.key === fareRequestKey ? serverFareState.error : null;
-  const currencyLabel = getCurrencyLabel(countryConfig, user);
+  const currencyLabel = getCurrencyLabel(countryConfig, user, language);
 
   const selectedDraftDestination = React.useMemo(
     () =>
@@ -297,7 +296,7 @@ export function RiderViewTab() {
       } catch (error) {
         if (!active) return;
         if (import.meta.env.DEV) console.warn('[Rider Destinations: Governorates]', error);
-        setDestinationDataError(NETWORK_ERROR_AR);
+        setDestinationDataError(copy.networkError);
       } finally {
         if (active) setIsLoadingGovernorates(false);
       }
@@ -308,7 +307,7 @@ export function RiderViewTab() {
     return () => {
       active = false;
     };
-  }, [activeCountryId, toast, user?.governorate]);
+  }, [activeCountryId, copy.networkError, toast, user?.governorate]);
 
   React.useEffect(() => {
     let active = true;
@@ -344,7 +343,7 @@ export function RiderViewTab() {
       } catch (error) {
         if (!active) return;
         if (import.meta.env.DEV) console.warn('[Rider Destinations: Districts]', error);
-        setDestinationDataError(NETWORK_ERROR_AR);
+        setDestinationDataError(copy.networkError);
       } finally {
         if (active) setIsLoadingDistricts(false);
       }
@@ -355,7 +354,7 @@ export function RiderViewTab() {
     return () => {
       active = false;
     };
-  }, [selectedGovernorate, selectedGovernorateId, toast, user?.district]);
+  }, [copy.networkError, selectedGovernorate, selectedGovernorateId, toast, user?.district]);
 
   React.useEffect(() => {
     let active = true;
@@ -463,12 +462,12 @@ export function RiderViewTab() {
       (error) => {
         toast({
           variant: 'destructive',
-          title: 'تعذر متابعة الطلب',
-          description: mapRiderMarketplaceError(error) || NETWORK_ERROR_AR,
+          title: copy.requestUpdateFailedTitle,
+          description: getLocalizedMarketplaceError(error, language),
         });
       },
     );
-  }, [dispatch, state.requestId, toast]);
+  }, [copy.requestUpdateFailedTitle, dispatch, language, state.requestId, toast]);
 
   React.useEffect(() => {
     let active = true;
@@ -563,14 +562,14 @@ export function RiderViewTab() {
         .catch(() => {
           toast({
             variant: 'destructive',
-            title: 'تعذر تحديث الطلب',
-            description: NETWORK_ERROR_AR,
+            title: copy.requestUpdateFailedTitle,
+            description: copy.networkError,
           });
         });
     }, OFFER_TIMEOUT_MS);
 
     return () => window.clearTimeout(timeoutId);
-  }, [dispatch, state.offers.length, state.requestCancelledAt, state.requestId, state.screen, toast]);
+  }, [copy.networkError, copy.requestUpdateFailedTitle, dispatch, state.offers.length, state.requestCancelledAt, state.requestId, state.screen, toast]);
 
   React.useEffect(() => {
     if (!state.activeTrip) {
@@ -599,8 +598,8 @@ export function RiderViewTab() {
     if (!user?.uid) {
       toast({
         variant: 'destructive',
-        title: 'يلزم تسجيل الدخول',
-        description: 'يرجى تسجيل الدخول قبل إرسال طلب الرحلة.',
+        title: copy.loginRequiredTitle,
+        description: copy.loginRequiredDescription,
       });
       return;
     }
@@ -609,8 +608,8 @@ export function RiderViewTab() {
     if (!Number.isInteger(countryId) || countryId <= 0) {
       toast({
         variant: 'destructive',
-        title: 'الدولة غير محددة',
-        description: 'لا يمكن إرسال الطلب قبل تحميل دولة الحساب.',
+        title: copy.countryMissingTitle,
+        description: copy.countryMissingDescription,
       });
       return;
     }
@@ -618,8 +617,8 @@ export function RiderViewTab() {
     if (!selectedDraftDestination || !selectedDestinationCoords) {
       toast({
         variant: 'destructive',
-        title: 'الوجهة غير جاهزة',
-        description: 'اختر منطقة تحتوي إحداثيات صحيحة من قاعدة البيانات.',
+        title: copy.destinationNotReadyTitle,
+        description: copy.destinationNotReadyDescription,
       });
       return;
     }
@@ -627,8 +626,8 @@ export function RiderViewTab() {
     if (selectedDraftDestination.serverEstimatedFare === undefined || isServerFareLoading) {
       toast({
         variant: 'destructive',
-        title: 'السعر غير جاهز',
-        description: 'انتظر حساب السعر من الخادم ثم حاول مرة أخرى.',
+        title: copy.fareNotReadyTitle,
+        description: copy.fareNotReadyDescription,
       });
       return;
     }
@@ -653,10 +652,11 @@ export function RiderViewTab() {
 
       const request = await createRideRequest(supabase, payload);
       dispatch({ type: 'SERVER_REQUEST_CREATED', requestId: request.id });
+      dispatch({ type: 'SERVER_STATUS_RECEIVING_OFFERS' });
 
       toast({
-        title: 'تم إرسال الطلب',
-        description: 'تم حفظ طلب الرحلة. سنعرض العروض فور وصولها.',
+        title: copy.requestSentTitle,
+        description: copy.requestSentDescription,
       });
     } catch (error) {
       if (import.meta.env.DEV) {
@@ -666,8 +666,8 @@ export function RiderViewTab() {
       dispatch({ type: 'REQUEST_FAILED' });
       toast({
         variant: 'destructive',
-        title: 'تعذر إرسال الطلب',
-        description: mapRiderMarketplaceError(error),
+        title: copy.requestFailedTitle,
+        description: getLocalizedMarketplaceError(error, language),
       });
     } finally {
       setIsSendingRideRequest(false);
@@ -942,16 +942,20 @@ export function RiderViewTab() {
     if (state.screen === 'RECEIVING_OFFERS') {
       const hasOffers = state.offers.length > 0;
       const isCancelled = !!state.requestCancelledAt;
+      const requestFareLabel = state.destination?.serverEstimatedFare !== undefined
+        ? formatMoney(state.destination.serverEstimatedFare, currencyLabel)
+        : copy.notAvailable;
+      const shortRequestId = state.requestId ? state.requestId.slice(0, 8).toUpperCase() : copy.notAvailable;
 
       if (isCancelled) {
         return (
           <Card className="w-full border-amber-400/25 bg-[#0B0F19]/92 text-white shadow-2xl shadow-black/40 backdrop-blur-xl">
-            <CardContent className="space-y-5 p-5 text-right" dir="rtl">
+            <CardContent className={`space-y-5 p-5 ${isArabic ? 'text-right' : 'text-left'}`} dir={isArabic ? 'rtl' : 'ltr'}>
               <div className="rounded-3xl border border-amber-400/20 bg-amber-400/10 p-5">
-                <p className="text-[11px] font-black text-amber-200">لم تصل عروض</p>
-                <h2 className="mt-2 text-xl font-black sm:text-2xl">نعتذر منك، جميع السائقون مشغولون حالياً</h2>
+                <p className="text-[11px] font-black text-amber-200">{copy.noOffersEyebrow}</p>
+                <h2 className="mt-2 text-xl font-black sm:text-2xl">{copy.noOffersTitle}</h2>
                 <p className="mt-3 text-sm leading-relaxed text-slate-300">
-                  لم نجد عروضاً تناسب رحلتك في هذه اللحظة. يمكنك إعادة المحاولة أو تغيير الوجهة.
+                  {copy.noOffersDescription}
                 </p>
               </div>
 
@@ -962,7 +966,7 @@ export function RiderViewTab() {
                 }}
                 className="h-14 w-full rounded-2xl bg-[#14B8A6] text-base font-black text-[#031315] hover:bg-[#2DD4BF]"
               >
-                إعادة المحاولة
+                {copy.retry}
               </Button>
             </CardContent>
           </Card>
@@ -971,20 +975,32 @@ export function RiderViewTab() {
 
       return (
         <Card className="w-full border-[#14B8A6]/25 bg-[#0B0F19]/90 text-white shadow-2xl shadow-black/40 backdrop-blur-xl">
-          <CardContent className="space-y-5 p-5 text-right" dir="rtl">
+          <CardContent className={`space-y-5 p-5 ${isArabic ? 'text-right' : 'text-left'}`} dir={isArabic ? 'rtl' : 'ltr'}>
             <div className="space-y-1">
-              <p className="text-[11px] font-black text-[#14F5D5]">{hasOffers ? 'وصلت عروض' : 'نبحث عن سائق'}</p>
-              <h2 className="text-xl font-black sm:text-2xl">{hasOffers ? 'اختر السائق' : 'طلبك ظاهر للسائقين القريبين'}</h2>
+              <p className="text-[11px] font-black text-[#14F5D5]">{hasOffers ? copy.offersArrived : copy.searchingCaptain}</p>
+              <h2 className="text-xl font-black sm:text-2xl">{hasOffers ? copy.chooseCaptain : copy.requestVisibleTitle}</h2>
               <p className="text-xs text-slate-400">
-                {hasOffers ? 'اختر العرض المناسب لك.' : 'انتظر قليلا، ستظهر العروض هنا.'}
+                {hasOffers ? copy.chooseOfferDescription : copy.waitingOffersDescription}
               </p>
             </div>
+
+            {state.requestId ? (
+              <div className="rounded-2xl border border-[#14B8A6]/20 bg-[#14B8A6]/8 p-4">
+                <p className="mb-3 text-[11px] font-black text-[#14F5D5]">{copy.savedRequestTitle}</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <Metric label={copy.requestNumber} value={shortRequestId} />
+                  <Metric label={copy.requestStatus} value={copy.savedInDatabase} />
+                  <Metric label={copy.destination} value={state.destination?.label || copy.notAvailable} />
+                  <Metric label={copy.serverFare} value={requestFareLabel} />
+                </div>
+              </div>
+            ) : null}
 
             {!hasOffers ? (
               <div className="flex min-h-36 flex-col items-center justify-center gap-3 rounded-2xl border border-[#14B8A6]/15 bg-black/30">
                 <Loader2 className="h-9 w-9 animate-spin text-[#14F5D5]" />
                 <span className="px-4 text-center text-xs font-bold leading-relaxed text-slate-300">
-                  جاري البحث عن أقرب سائقين متوفرين لك... ثوانٍ من فضلك
+                  {copy.waitingOffersLoader}
                 </span>
               </div>
             ) : (
@@ -1005,8 +1021,8 @@ export function RiderViewTab() {
                     </div>
 
                     <div className="grid grid-cols-2 gap-2 rounded-xl bg-black/25 p-3 text-xs text-slate-300">
-                      <Metric label="السيارة" value={`${offer.driverVehicle.make} ${offer.driverVehicle.color}`} />
-                      <Metric label="اللوحة" value={offer.driverVehicle.plate} />
+                      <Metric label={copy.vehicle} value={`${offer.driverVehicle.make} ${offer.driverVehicle.color}`} />
+                      <Metric label={copy.plate} value={offer.driverVehicle.plate} />
                     </div>
 
                     <Button
@@ -1014,7 +1030,7 @@ export function RiderViewTab() {
                       disabled={acceptingOfferId === (offer.id || offer.driverId)}
                       className="h-11 w-full rounded-xl bg-[#14B8A6] font-black text-[#031315] hover:bg-[#2DD4BF]"
                     >
-                      {acceptingOfferId === (offer.id || offer.driverId) ? 'جاري قبول العرض...' : 'قبول العرض'}
+                      {acceptingOfferId === (offer.id || offer.driverId) ? copy.acceptingOffer : copy.acceptOffer}
                     </Button>
                   </article>
                 ))}
@@ -1331,15 +1347,20 @@ function toHistoricalTrip(trip: RiderActiveTrip): HistoricalTrip {
 function getCurrencyLabel(
   countryConfig: CountryCurrencyConfig | null,
   user: { currencyAr?: string; currencyEn?: string } | null | undefined,
+  language: AppLanguage = 'ar',
 ) {
-  return (
-    countryConfig?.currency_ar ||
-    user?.currencyAr ||
-    countryConfig?.currency_en ||
-    user?.currencyEn ||
-    countryConfig?.currency_code ||
-    ''
-  );
+  if (language === 'en') {
+    return (
+      countryConfig?.currency_en ||
+      user?.currencyEn ||
+      countryConfig?.currency_code ||
+      countryConfig?.currency_ar ||
+      user?.currencyAr ||
+      ''
+    );
+  }
+
+  return countryConfig?.currency_ar || user?.currencyAr || countryConfig?.currency_en || user?.currencyEn || countryConfig?.currency_code || '';
 }
 
 function formatMoney(value: number, currencyLabel: string) {
@@ -1353,6 +1374,56 @@ function Metric({ label, value }: { label: string; value: React.ReactNode }) {
       <span className="block truncate text-xs font-black text-white">{value}</span>
     </div>
   );
+}
+
+function getLocalizedMarketplaceError(error: unknown, language: AppLanguage) {
+  if (language === 'ar') return mapRiderMarketplaceError(error);
+
+  const typedError = error as { message?: string; code?: string; details?: string; hint?: string };
+  const message = [
+    typedError?.code,
+    typedError?.message,
+    typedError?.details,
+    typedError?.hint,
+    error,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+  if (message.includes('42501') || message.includes('row-level security') || message.includes('permission denied')) {
+    return 'The ride request could not be created because database permissions are not ready.';
+  }
+
+  if (message.includes('jwt') || message.includes('auth') || message.includes('rider_id')) {
+    return 'You cannot create this request right now. Please sign in again.';
+  }
+
+  if (message.includes('network') || message.includes('fetch') || message.includes('timeout') || message.includes('gateway')) {
+    return 'Could not connect to the service. Check your internet connection and try again.';
+  }
+
+  if (message.includes('calculate_server_fare') || message.includes('server_estimated_fare')) {
+    return 'The server could not calculate the fare. Choose the destination again and retry.';
+  }
+
+  if (message.includes('42703') || message.includes('column') || message.includes('origin_h3') || message.includes('destination_h3')) {
+    return 'The ride requests table is missing required columns. Apply the database update, then try again.';
+  }
+
+  if (message.includes('22p02') || message.includes('invalid input value for enum') || message.includes('ride_request_status')) {
+    return 'The request status value does not match the database. Make sure PENDING is supported.';
+  }
+
+  if (message.includes('23503') || message.includes('foreign key') || message.includes('country_id')) {
+    return 'The rider or country data does not match the database. Update the account or choose the destination again.';
+  }
+
+  if (message.includes('23505') || message.includes('duplicate') || message.includes('active request')) {
+    return 'You already have an active ride request. Finish or cancel it, then try again.';
+  }
+
+  return 'Could not send the ride request. Try again in a moment.';
 }
 
 const riderViewCopy = {
@@ -1380,13 +1451,46 @@ const riderViewCopy = {
     panelTitle: 'طلب الرحلة',
     ready: 'جاهز',
     readyQuestion: 'جاهز؟',
+    acceptOffer: 'قبول العرض',
+    acceptingOffer: 'جاري قبول العرض...',
+    chooseCaptain: 'اختر السائق',
+    chooseOfferDescription: 'اختر العرض المناسب لك.',
+    countryMissingDescription: 'لا يمكن إرسال الطلب قبل تحميل دولة الحساب.',
+    countryMissingTitle: 'الدولة غير محددة',
+    destination: 'الوجهة',
+    destinationNotReadyDescription: 'اختر منطقة تحتوي إحداثيات صحيحة من قاعدة البيانات.',
+    destinationNotReadyTitle: 'الوجهة غير جاهزة',
+    fareNotReadyDescription: 'انتظر حساب السعر من الخادم ثم حاول مرة أخرى.',
+    fareNotReadyTitle: 'السعر غير جاهز',
+    loginRequiredDescription: 'يرجى تسجيل الدخول قبل إرسال طلب الرحلة.',
+    loginRequiredTitle: 'يلزم تسجيل الدخول',
+    networkError: 'عذراً، تعذر الاتصال بالخادم. تحقق من شبكة الإنترنت.',
+    noOffersDescription: 'لم نجد عروضاً تناسب رحلتك في هذه اللحظة. يمكنك إعادة المحاولة أو تغيير الوجهة.',
+    noOffersEyebrow: 'لم تصل عروض',
+    noOffersTitle: 'نعتذر منك، جميع السائقين مشغولون حالياً',
+    offersArrived: 'وصلت عروض',
+    plate: 'اللوحة',
+    requestFailedTitle: 'تعذر إرسال الطلب',
+    requestNumber: 'رقم الطلب',
     requestNow: 'اطلب الآن',
+    requestSentDescription: 'تم حفظ طلب الرحلة. سنعرض العروض فور وصولها.',
+    requestSentTitle: 'تم إرسال الطلب',
+    requestStatus: 'حالة الطلب',
+    requestUpdateFailedTitle: 'تعذر تحديث الطلب',
+    requestVisibleTitle: 'طلبك ظاهر للسائقين القريبين',
+    retry: 'إعادة المحاولة',
     requestRide: 'طلب رحلة',
     savedTab: 'المفضلة',
+    savedInDatabase: 'محفوظ في قاعدة البيانات',
+    savedRequestTitle: 'طلب الرحلة المحفوظ',
+    searchingCaptain: 'نبحث عن سائق',
     sendingRequest: 'جاري إرسال الطلب...',
     serverFare: 'السعر من الخادم',
     tripsTab: 'رحلاتي',
     updatingFare: 'جاري تحديث السعر...',
+    vehicle: 'السيارة',
+    waitingOffersDescription: 'انتظر قليلاً، ستظهر العروض هنا.',
+    waitingOffersLoader: 'جاري البحث عن أقرب سائقين متوفرين لك... ثوانٍ من فضلك',
     whereTo: 'إلى أين تريد الذهاب؟',
     yourArea: 'منطقتك',
     yourRating: 'تقييمك',
@@ -1415,13 +1519,46 @@ const riderViewCopy = {
     panelTitle: 'Request ride',
     ready: 'Ready',
     readyQuestion: 'Ready?',
+    acceptOffer: 'Accept offer',
+    acceptingOffer: 'Accepting offer...',
+    chooseCaptain: 'Choose captain',
+    chooseOfferDescription: 'Choose the offer that works best for you.',
+    countryMissingDescription: 'The request cannot be sent before your account country is loaded.',
+    countryMissingTitle: 'Country is missing',
+    destination: 'Destination',
+    destinationNotReadyDescription: 'Choose an area with valid coordinates from the database.',
+    destinationNotReadyTitle: 'Destination is not ready',
+    fareNotReadyDescription: 'Wait for the server fare calculation, then try again.',
+    fareNotReadyTitle: 'Fare is not ready',
+    loginRequiredDescription: 'Please sign in before sending a ride request.',
+    loginRequiredTitle: 'Sign in required',
+    networkError: 'Could not connect to the server. Check your internet connection.',
+    noOffersDescription: 'We did not find offers for your trip at this moment. You can retry or change the destination.',
+    noOffersEyebrow: 'No offers arrived',
+    noOffersTitle: 'Sorry, all nearby captains are busy right now',
+    offersArrived: 'Offers arrived',
+    plate: 'Plate',
+    requestFailedTitle: 'Could not send request',
+    requestNumber: 'Request number',
     requestNow: 'Request now',
+    requestSentDescription: 'Your ride request was saved. Offers will appear as soon as they arrive.',
+    requestSentTitle: 'Request sent',
+    requestStatus: 'Request status',
+    requestUpdateFailedTitle: 'Could not update request',
+    requestVisibleTitle: 'Your request is visible to nearby captains',
+    retry: 'Retry',
     requestRide: 'Request ride',
     savedTab: 'Saved',
+    savedInDatabase: 'Saved in database',
+    savedRequestTitle: 'Saved ride request',
+    searchingCaptain: 'Looking for a captain',
     sendingRequest: 'Sending request...',
     serverFare: 'Server fare',
     tripsTab: 'Trips',
     updatingFare: 'Updating fare...',
+    vehicle: 'Vehicle',
+    waitingOffersDescription: 'Wait a moment. Offers will appear here.',
+    waitingOffersLoader: 'Looking for the nearest available captains... please wait a few seconds',
     whereTo: 'Where do you want to go?',
     yourArea: 'Your area',
     yourRating: 'Your rating',
