@@ -1,5 +1,5 @@
 // [SCR-COMMUTE-PROTO-155] محرك الارتحال اللحظي والذوبان في صالة مزاد اللواء الجديد
-// محصن ومغلق دستورياً - يعمل بالكامل عند الحافة (Edge-Runtime) بصفر كلفة سحابية
+// محصن ومغلق تقنياً - يعمل بالكامل عند الحافة (Edge-Runtime) بصفر كلفة سحابية
 
 import { getDistrictFromCoords, latLngToH3Cell } from '@/core/logic/geospatial-kernel';
 
@@ -19,7 +19,7 @@ export interface SovereignCaptainMovement {
 export const geoEngine = {
   latLngToCell: (lat: number, lng: number, res: number): string => {
     if (!lat || !lng) return latLngToH3Cell(31.9539, 35.9106, res);
-    // توليد خلية سداسية سحرية مشفرة بأسرة التشفير الدستوري
+    // توليد خلية سداسية سحرية مشفرة بأسرة التشفير التقني
     return latLngToH3Cell(lat, lng, res);
   },
   getDistrictFromCell: (cell: string, lat?: number, lng?: number): string => {

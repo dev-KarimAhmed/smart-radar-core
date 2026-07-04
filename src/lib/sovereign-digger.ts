@@ -1,7 +1,7 @@
 import { calculateSovereignDistance, estimateTripTime } from '@/core/logic/geospatial-kernel';
 
 /**
- * [SCR-2026-PROTOCOL-16] المحرك السيادي لاستخلاص الإحداثيات (SSOT)
+ * [SCR-2026-PROTOCOL-16] المحرك الأساسي لاستخلاص الإحداثيات (SSOT)
  * المستخرج السريع للمؤشرات الجغرافية للتتبع دون استهلاك الخرائط المدفوعة وحماية خصوصية الإحداثيات الجغرافية للمستخدمين.
  */
 

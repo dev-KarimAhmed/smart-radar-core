@@ -5,7 +5,7 @@ import firebaseConfig from '../../firebase-applet-config.json';
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-// التهيئة السيادية لقاعدة البيانات للاتصال السحابي الحي (Live Cloud)
+// التهيئة الأساسية لقاعدة البيانات للاتصال السحابي الحي (Live Cloud)
 // تطبيق بروتوكول SC55: استخدام Long Polling لضمان العبور رغماً عن أي حجب محلي
 const db = initializeFirestore(app, {
   experimentalForceLongPolling: true,

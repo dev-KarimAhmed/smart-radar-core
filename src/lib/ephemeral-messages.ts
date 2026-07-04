@@ -87,7 +87,7 @@ export const EphemeralMessageKernel = {
       const snapshot = await getDocs(q);
       const deletePromises = snapshot.docs.map((snapshotDoc) => deleteDoc(doc(db, 'sovereign_ephemeral_chats', snapshotDoc.id)));
       await Promise.all(deletePromises);
-      console.log(`🧹 [بروتوكول التطهير الذري] تم إعدام وتطهير عدد (${snapshot.docs.length}) وثيقة رسائل مؤقتة للرحلة المعقمة: ${tripId}`);
+      console.log(`🧹 [بروتوكول تنظيف الرسائل المؤقتة] تم إعدام وتطهير عدد (${snapshot.docs.length}) وثيقة رسائل مؤقتة للرحلة المعقمة: ${tripId}`);
       return snapshot.docs.length;
     } catch (err) {
       console.warn('Failed to auto-purge ephemeral messages, fallback local sweep initialized:', err);

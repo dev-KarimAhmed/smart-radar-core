@@ -9,24 +9,24 @@ export interface SovereignPricingPackage {
 export const SOVEREIGN_PRICING_PACKAGES: SovereignPricingPackage[] = [
   {
     id: 'basic-pulse',
-    name: 'باقة نبض الاختبار الأساسي ⚙️',
+    name: 'باقة البداية',
     pricePerImpression: 0.05,
     isRetention: false,
-    description: 'تغطية محلية قياسية وممتازة للتجربة واختبار السوق بالبث العشوائي المتزن.'
+    description: 'تغطية محلية مناسبة لتجربة الإعلان وقياس الاهتمام.'
   },
   {
     id: 'immortal-heart',
-    name: 'باقة التخليد والقلب الأخضر 💚',
+    name: 'باقة الحفظ في المفضلة',
     pricePerImpression: 0.07,
     isRetention: true,
-    description: 'تمكّن المستهلكين من حبس وحفظ إعلانك في الذاكرة المحلية لأجهزتهم للأبد كمرجع دائم.'
+    description: 'تتيح للمستخدمين حفظ إعلانك والرجوع إليه لاحقاً.'
   },
   {
     id: 'broad-sweep',
-    name: 'باقة الاكتساح والانتشار السيادي 👑',
+    name: 'باقة الانتشار',
     pricePerImpression: 0.09,
     isRetention: true,
-    description: 'بث مكثف عالي الأولوية مع تفعيل احتفاظ المستهلك الدائم ورتبة المعلن الوفي المعتمد.'
+    description: 'ظهور أعلى للإعلان مع دعم الحفظ في المفضلة.'
   }
 ];
 

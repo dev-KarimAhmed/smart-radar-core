@@ -45,14 +45,14 @@ export function validatePhoneAndPassword(phone: string, password: string) {
   if (!PHONE_REGEX.test(normalizedPhone)) {
     return {
       ok: false as const,
-      message: 'ÙŠØ±Ø¬Ù‰ ÙƒØªØ§Ø¨Ø© Ø±Ù‚Ù… Ø§Ù„Ù‡Ø§ØªÙ Ù…Ø¹ Ø±Ù…Ø² Ø§Ù„Ø¯ÙˆÙ„Ø©ØŒ Ù…Ø«Ø§Ù„: +962790000000 Ø£Ùˆ +201000000000.',
+      message: 'يرجى كتابة رقم الهاتف مع رمز الدولة، مثل +962790000000 أو +201000000000.',
     };
   }
 
   if (password.length < 6) {
     return {
       ok: false as const,
-      message: 'ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ± Ø¶Ø¹ÙŠÙØ© Ø¬Ø¯Ø§Ù‹ØŒ ÙŠØ¬Ø¨ Ø£Ù„Ø§ ØªÙ‚Ù„ Ø¹Ù† 6 Ø®Ø§Ù†Ø§Øª.',
+      message: 'كلمة المرور ضعيفة، يجب ألا تقل عن 6 خانات.',
     };
   }
 
@@ -65,7 +65,7 @@ export function buildRiderSignUpMetadata(input: RiderSupabaseSignUpInput): Rider
 
   const fullName = input.fullName.trim();
   if (!fullName) {
-    throw new Error('ÙŠØ±Ø¬Ù‰ ÙƒØªØ§Ø¨Ø© Ø§Ù„Ø§Ø³Ù… Ø§Ù„ÙƒØ§Ù…Ù„.');
+    throw new Error('يرجى كتابة الاسم الكامل.');
   }
 
   return {
@@ -148,7 +148,7 @@ export function mapSupabaseAuthError(error: unknown) {
     message.includes('already registered') ||
     message.includes('already exists')
   ) {
-    return 'Ø±Ù‚Ù… Ø§Ù„Ù‡Ø§ØªÙ Ù…Ø³Ø¬Ù„ Ø¨Ø§Ù„ÙØ¹Ù„ØŒ ÙŠØ±Ø¬Ù‰ ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø¯Ø®ÙˆÙ„.';
+    return 'رقم الهاتف مسجل بالفعل، يرجى تسجيل الدخول.';
   }
 
   if (
@@ -162,8 +162,8 @@ export function mapSupabaseAuthError(error: unknown) {
     message.includes('authentication')
   ) {
     return code.includes('otp') || message.includes('token')
-      ? 'Ø±Ù…Ø² Ø§Ù„ØªØ­Ù‚Ù‚ ØºÙŠØ± ØµØ­ÙŠØ­ Ø£Ùˆ Ø§Ù†ØªÙ‡Øª ØµÙ„Ø§Ø­ÙŠØªÙ‡.'
-      : 'Ø±Ù‚Ù… Ø§Ù„Ù‡Ø§ØªÙ Ø£Ùˆ ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ± ØºÙŠØ± ØµØ­ÙŠØ­Ø©.';
+      ? 'رمز التحقق غير صحيح أو انتهت صلاحيته.'
+      : 'رقم الهاتف أو كلمة المرور غير صحيحة.';
   }
 
   if (
@@ -171,11 +171,11 @@ export function mapSupabaseAuthError(error: unknown) {
     message.includes('phone provider') ||
     message.includes('phone signups are disabled')
   ) {
-    return 'ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ù‡Ø§ØªÙ ØºÙŠØ± Ù…ÙØ¹Ù‘Ù„ Ø­Ø§Ù„ÙŠØ§Ù‹ ÙÙŠ Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø§Ù„Ø®Ø¯Ù…Ø©. ÙŠØ±Ø¬Ù‰ ØªÙØ¹ÙŠÙ„Ù‡ Ù…Ù† Supabase.';
+    return 'تسجيل الهاتف غير مفعّل حالياً في إعدادات الخدمة.';
   }
 
   if (code.includes('weak_password') || message.includes('weak password') || message.includes('password')) {
-    return 'ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ± Ø¶Ø¹ÙŠÙØ© Ø¬Ø¯Ø§Ù‹ØŒ ÙŠØ¬Ø¨ Ø£Ù„Ø§ ØªÙ‚Ù„ Ø¹Ù† 6 Ø®Ø§Ù†Ø§Øª.';
+    return 'كلمة المرور ضعيفة، يجب ألا تقل عن 6 خانات.';
   }
 
   if (
@@ -190,7 +190,7 @@ export function mapSupabaseAuthError(error: unknown) {
     message.includes('failed to fetch') ||
     message.includes('gateway')
   ) {
-    return 'ÙØ´Ù„ Ø§Ù„Ø§ØªØµØ§Ù„ Ø¨Ø®ÙˆØ§Ø¯Ù… Ø§Ù„Ø®Ø¯Ù…Ø©ØŒ ÙŠØ±Ø¬Ù‰ Ø§Ù„ØªØ­Ù‚Ù‚ Ù…Ù† Ø¬ÙˆØ¯Ø© Ø§Ù„Ø¥Ù†ØªØ±Ù†Øª.';
+    return 'تعذر الاتصال بالخدمة، يرجى التحقق من الإنترنت.';
   }
 
   if (
@@ -212,23 +212,23 @@ export function mapSupabaseAuthError(error: unknown) {
       return 'تعذر إنشاء الحساب لأن الدولة أو المحافظة أو المنطقة غير موجودة في قاعدة البيانات. حدّث الاختيارات ثم حاول مرة أخرى.';
     }
 
-    return 'ØªØ¹Ø°Ø± Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ø­Ø³Ø§Ø¨ Ù…Ù† Ù‚Ø§Ø¹Ø¯Ø© Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª. ÙŠØ±Ø¬Ù‰ Ù…Ø±Ø§Ø¬Ø¹Ø© Ø¯Ø§Ù„Ø© Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ù…Ù„Ù Ø§Ù„Ø´Ø®ØµÙŠ ÙÙŠ Supabase Ø«Ù… Ø§Ù„Ù…Ø­Ø§ÙˆÙ„Ø© Ù…Ø±Ø© Ø£Ø®Ø±Ù‰.';
+    return 'تعذر إنشاء الحساب من قاعدة البيانات. يرجى مراجعة إعدادات الحساب ثم المحاولة مرة أخرى.';
   }
 
   if (code.includes('validation_failed') || message.includes('invalid phone')) {
-    return 'Ø±Ù‚Ù… Ø§Ù„Ù‡Ø§ØªÙ ØºÙŠØ± ØµØ­ÙŠØ­. Ø§ÙƒØªØ¨ Ø§Ù„Ø±Ù‚Ù… Ù…Ø¹ Ø±Ù…Ø² Ø§Ù„Ø¯ÙˆÙ„Ø© Ù…Ø«Ù„ +962 Ø£Ùˆ +20.';
+    return 'رقم الهاتف غير صحيح. اكتب الرقم مع رمز الدولة مثل +962 أو +20.';
   }
 
-  if (error instanceof Error && error.message.startsWith('ÙŠØ±Ø¬Ù‰')) return error.message;
-  if (error instanceof Error && error.message.startsWith('ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ±')) return error.message;
-  if (error instanceof Error && error.message.startsWith('Ù‚ÙŠÙ…Ø©')) return error.message;
+  if (error instanceof Error && error.message.startsWith('يرجى')) return error.message;
+  if (error instanceof Error && error.message.startsWith('كلمة المرور')) return error.message;
+  if (error instanceof Error && error.message.startsWith('قيمة')) return error.message;
 
-  return 'ØªØ¹Ø°Ø± Ø¥ÙƒÙ…Ø§Ù„ Ø§Ù„Ø¹Ù…Ù„ÙŠØ©. ÙŠØ±Ø¬Ù‰ Ø§Ù„Ù…Ø­Ø§ÙˆÙ„Ø© Ù…Ø±Ø© Ø£Ø®Ø±Ù‰.';
+  return 'تعذر إكمال العملية. يرجى المحاولة مرة أخرى.';
 }
 
 function toStrictPositiveInteger(value: number, fieldName: string) {
   if (!Number.isInteger(value) || value <= 0) {
-    throw new Error(`Ù‚ÙŠÙ…Ø© ${fieldName} ØºÙŠØ± ØµØ­ÙŠØ­Ø©.`);
+    throw new Error(`قيمة ${fieldName} غير صحيحة.`);
   }
 
   return value;
