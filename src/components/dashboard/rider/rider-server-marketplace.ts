@@ -6,6 +6,10 @@ type SupabaseRpcLike = {
   rpc: (name: string, args: Record<string, number>) => PromiseLike<{ data: unknown; error: unknown }>;
 };
 
+type SupabaseMarketplaceRpcLike = {
+  rpc: (name: string, args: Record<string, string>) => PromiseLike<{ data: unknown; error: unknown }>;
+};
+
 type SupabaseInsertLike = {
   from: (table: string) => {
     insert: (payload: RideRequestInsertPayload) => {
@@ -159,6 +163,19 @@ export async function fetchRideOffers(client: SupabaseFromLike, requestId: strin
   return Array.isArray(data) ? data.map(mapRideOfferRow).filter(Boolean) as Offer[] : [];
 }
 
+export async function acceptRideOffer(
+  client: SupabaseMarketplaceRpcLike,
+  input: { requestId: string; offerId: string },
+) {
+  const { data, error } = await client.rpc('accept_ride_offer', {
+    p_request_id: input.requestId,
+    p_offer_id: input.offerId,
+  });
+
+  if (error) throw error;
+  return data;
+}
+
 export async function cancelRideRequest(client: SupabaseFromLike, requestId: string) {
   const { error } = await client
     .from('ride_requests')
@@ -302,6 +319,7 @@ function mapRideOfferRow(row: Record<string, unknown>): Offer | null {
   const vehicle = (isRecord(row.driver_vehicle) ? row.driver_vehicle : isRecord(row.vehicle) ? row.vehicle : {}) as Record<string, unknown>;
 
   return {
+    id: String(row.id),
     driverId,
     price,
     driverName: firstString(row.driver_name, row.captain_name, row.driver_serial, row.captain_serial) || 'سائق',

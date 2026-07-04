@@ -61,6 +61,7 @@ export interface RiderMachineState {
   requestStartedAt: number | null;
   requestId: string | null;
   requestCancelledAt: number | null;
+  pendingAcceptedOfferId: string | null;
 }
 
 export type RiderMachineAction =
@@ -69,6 +70,7 @@ export type RiderMachineAction =
   | { type: 'SEND_REQUEST' }
   | { type: 'SERVER_REQUEST_CREATED'; requestId: string }
   | { type: 'SERVER_STATUS_RECEIVING_OFFERS' }
+  | { type: 'SERVER_STATUS_ACCEPTED'; row: Record<string, unknown> }
   | { type: 'REQUEST_FAILED' }
   | { type: 'REQUEST_CANCELLED' }
   | { type: 'RECEIVE_OFFERS'; offers: Offer[] }
@@ -91,6 +93,7 @@ export function createInitialRiderMachineState(): RiderMachineState {
     requestStartedAt: null,
     requestId: null,
     requestCancelledAt: null,
+    pendingAcceptedOfferId: null,
   };
 }
 
@@ -106,22 +109,45 @@ export function shouldShowAdRiver(state: RiderMachineState): boolean {
   return true;
 }
 
-function buildActiveTrip(state: RiderMachineState, selectedOffer: Offer): RiderActiveTrip {
-  const vehicle = selectedOffer.driverVehicle || {};
+function buildActiveTrip(state: RiderMachineState, acceptedRow: Record<string, unknown>): RiderActiveTrip | null {
+  const acceptedOfferId =
+    firstString(acceptedRow.accepted_offer_id, acceptedRow.offer_id, acceptedRow.selected_offer_id) ||
+    state.pendingAcceptedOfferId;
+  const acceptedCaptainId = firstString(acceptedRow.accepted_driver_id, acceptedRow.driver_id, acceptedRow.captain_id);
+  const selectedOffer = state.offers.find((offer) => (
+    offer.id === acceptedOfferId ||
+    offer.driverId === acceptedOfferId ||
+    offer.driverId === acceptedCaptainId
+  ));
+
+  if (!selectedOffer && !acceptedCaptainId) return null;
+
+  const vehicle = selectedOffer?.driverVehicle || {};
   const distanceKm = state.destination?.fareQuote?.estimatedRoadDistanceKm ?? 0;
 
   return {
-    tripId: `local-trip-${Date.now()}`,
-    captainId: selectedOffer.driverId,
-    captainName: selectedOffer.driverName,
-    captainSerial: selectedOffer.driverName || selectedOffer.driverId,
-    captainPhone: selectedOffer.driverAffiliation?.phone || '',
+    tripId: firstString(acceptedRow.trip_id, acceptedRow.active_trip_id, acceptedRow.id) || state.requestId || '',
+    captainId: selectedOffer?.driverId || acceptedCaptainId || '',
+    captainName: selectedOffer?.driverName || firstString(acceptedRow.driver_name, acceptedRow.captain_name) || 'السائق',
+    captainSerial:
+      selectedOffer?.driverName ||
+      firstString(acceptedRow.driver_serial, acceptedRow.captain_serial, acceptedRow.driver_name, acceptedRow.captain_name) ||
+      acceptedCaptainId ||
+      'السائق',
+    captainPhone: selectedOffer?.driverAffiliation?.phone || firstString(acceptedRow.driver_phone, acceptedRow.captain_phone, acceptedRow.phone) || '',
     vehicleType: vehicle.type || `${vehicle.make || 'سيارة'} ${vehicle.color || ''}`.trim(),
-    vehiclePlate: vehicle.plate || 'غير متاح',
+    vehiclePlate: vehicle.plate || firstString(acceptedRow.vehicle_plate, acceptedRow.plate) || 'غير متاح',
     finalPrice:
-      selectedOffer.price === -1
+      firstNumber(
+        acceptedRow.final_fare,
+        acceptedRow.final_price,
+        acceptedRow.accepted_price,
+        acceptedRow.offer_price,
+        acceptedRow.server_estimated_fare,
+      ) ??
+      (selectedOffer?.price === -1
         ? state.destination?.serverEstimatedFare ?? 0
-        : selectedOffer.price,
+        : selectedOffer?.price ?? state.destination?.serverEstimatedFare ?? 0),
     destinationLabel: state.destination?.label || 'وجهة',
     distanceKm,
     originCell: state.destination?.originCell ?? state.destination?.fareQuote?.originCell,
@@ -154,6 +180,7 @@ export function riderDashboardReducer(state: RiderMachineState, action: RiderMac
         requestStartedAt: Date.now(),
         requestId: null,
         requestCancelledAt: null,
+        pendingAcceptedOfferId: null,
       };
 
     case 'SERVER_REQUEST_CREATED':
@@ -164,6 +191,18 @@ export function riderDashboardReducer(state: RiderMachineState, action: RiderMac
       if (state.screen !== 'DESTINATION_SELECTION' && state.screen !== 'RECEIVING_OFFERS') return state;
       if (!state.requestStartedAt && state.screen !== 'RECEIVING_OFFERS') return state;
       return { ...state, screen: 'RECEIVING_OFFERS' };
+
+    case 'SERVER_STATUS_ACCEPTED': {
+      if (state.screen !== 'RECEIVING_OFFERS') return state;
+      const activeTrip = buildActiveTrip(state, action.row);
+      if (!activeTrip) return state;
+      return {
+        ...state,
+        screen: 'TRIP_ACTIVE',
+        activeTrip,
+        requestCancelledAt: null,
+      };
+    }
 
     case 'REQUEST_FAILED':
       if (state.screen !== 'DESTINATION_SELECTION') return state;
@@ -176,6 +215,7 @@ export function riderDashboardReducer(state: RiderMachineState, action: RiderMac
         screen: 'RECEIVING_OFFERS',
         offers: [],
         requestCancelledAt: Date.now(),
+        pendingAcceptedOfferId: null,
       };
 
     case 'RECEIVE_OFFERS':
@@ -184,12 +224,11 @@ export function riderDashboardReducer(state: RiderMachineState, action: RiderMac
 
     case 'SELECT_OFFER': {
       if (state.screen !== 'RECEIVING_OFFERS') return state;
-      const selectedOffer = state.offers.find((offer) => offer.driverId === action.offerId);
+      const selectedOffer = state.offers.find((offer) => offer.id === action.offerId || offer.driverId === action.offerId);
       if (!selectedOffer) return state;
       return {
         ...state,
-        screen: 'TRIP_ACTIVE',
-        activeTrip: buildActiveTrip(state, selectedOffer),
+        pendingAcceptedOfferId: selectedOffer.id || selectedOffer.driverId,
       };
     }
 
@@ -214,6 +253,7 @@ export function riderDashboardReducer(state: RiderMachineState, action: RiderMac
         requestStartedAt: null,
         requestId: null,
         requestCancelledAt: null,
+        pendingAcceptedOfferId: null,
         localRatings: [
           ...state.localRatings,
           {
@@ -261,4 +301,19 @@ export function useRiderDashboardMachine() {
   }, [state.localRatings]);
 
   return { state, dispatch, showAdRiver: shouldShowAdRiver(state) };
+}
+
+function firstString(...values: unknown[]) {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim()) return value.trim();
+  }
+  return null;
+}
+
+function firstNumber(...values: unknown[]) {
+  for (const value of values) {
+    const numberValue = Number(value);
+    if (Number.isFinite(numberValue)) return numberValue;
+  }
+  return null;
 }

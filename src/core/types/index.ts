@@ -104,6 +104,7 @@ export interface Trip {
 }
 
 export interface Offer {
+    id?: string;
     driverId: string;
     price: number;
     driverName: string;

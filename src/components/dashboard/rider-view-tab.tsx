@@ -26,6 +26,7 @@ import {
   useRiderDashboardMachine,
 } from './rider/rider-state-machine';
 import {
+  acceptRideOffer,
   buildRideRequestInsertPayload,
   calculateServerFare,
   cancelRideRequest,
@@ -91,6 +92,7 @@ export function RiderViewTab() {
   const [localCompletedTrips, setLocalCompletedTrips] = React.useState<HistoricalTrip[]>([]);
   const [captainLocations, setCaptainLocations] = React.useState<CaptainPresencePoint[]>([]);
   const [isSendingRideRequest, setIsSendingRideRequest] = React.useState(false);
+  const [acceptingOfferId, setAcceptingOfferId] = React.useState<string | null>(null);
   const [countryConfig, setCountryConfig] = React.useState<CountryCurrencyConfig | null>(null);
   const [destinationGovernorates, setDestinationGovernorates] = React.useState<GovernorateOption[]>([]);
   const [destinationDistricts, setDestinationDistricts] = React.useState<DistrictOption[]>([]);
@@ -110,6 +112,7 @@ export function RiderViewTab() {
     isLoading: false,
     error: null,
   });
+  const pendingAcceptedOfferIdRef = React.useRef<string | null>(null);
 
   const riderProfile = React.useMemo(() => {
     const ratingValue =
@@ -431,10 +434,25 @@ export function RiderViewTab() {
       supabase,
       state.requestId,
       (row) => {
-        if (String(row.status) === 'RECEIVING_OFFERS') {
+        const status = String(row.status || '').toUpperCase();
+
+        if (status === 'RECEIVING_OFFERS') {
           dispatch({ type: 'SERVER_STATUS_RECEIVING_OFFERS' });
         }
-        if (String(row.status) === 'CANCELLED') {
+
+        if (status === 'ACCEPTED') {
+          dispatch({
+            type: 'SERVER_STATUS_ACCEPTED',
+            row: {
+              ...row,
+              selected_offer_id: row.selected_offer_id || row.accepted_offer_id || pendingAcceptedOfferIdRef.current,
+            },
+          });
+          pendingAcceptedOfferIdRef.current = null;
+        }
+
+        if (status === 'CANCELLED') {
+          pendingAcceptedOfferIdRef.current = null;
           dispatch({ type: 'REQUEST_CANCELLED' });
         }
       },
@@ -545,9 +563,6 @@ export function RiderViewTab() {
             title: 'تعذر تحديث الطلب',
             description: NETWORK_ERROR_AR,
           });
-        })
-        .finally(() => {
-          dispatch({ type: 'REQUEST_CANCELLED' });
         });
     }, OFFER_TIMEOUT_MS);
 
@@ -635,17 +650,13 @@ export function RiderViewTab() {
 
       const request = await createRideRequest(supabase, payload);
       dispatch({ type: 'SERVER_REQUEST_CREATED', requestId: request.id });
-      dispatch({ type: 'SERVER_STATUS_RECEIVING_OFFERS' });
 
       toast({
         title: 'تم إرسال الطلب',
         description: 'تم حفظ طلب الرحلة. سنعرض العروض فور وصولها.',
       });
-
-      if (request.status === 'CANCELLED') {
-        dispatch({ type: 'REQUEST_CANCELLED' });
-      }
     } catch (error) {
+      pendingAcceptedOfferIdRef.current = null;
       dispatch({ type: 'REQUEST_FAILED' });
       toast({
         variant: 'destructive',
@@ -654,6 +665,48 @@ export function RiderViewTab() {
       });
     } finally {
       setIsSendingRideRequest(false);
+    }
+  };
+
+  const handleAcceptOffer = async (offer: import('@/core/types').Offer) => {
+    if (!state.requestId) {
+      toast({
+        variant: 'destructive',
+        title: 'تعذر قبول العرض',
+        description: 'لا يوجد طلب رحلة نشط حالياً. حاول إرسال الطلب مرة أخرى.',
+      });
+      return;
+    }
+
+    const offerId = offer.id || offer.driverId;
+    if (!offerId) {
+      toast({
+        variant: 'destructive',
+        title: 'تعذر قبول العرض',
+        description: 'بيانات العرض غير مكتملة. انتظر تحديث العروض ثم حاول مرة أخرى.',
+      });
+      return;
+    }
+
+    setAcceptingOfferId(offerId);
+    pendingAcceptedOfferIdRef.current = offerId;
+
+    try {
+      await acceptRideOffer(supabase, {
+        requestId: state.requestId,
+        offerId,
+      });
+      dispatch({ type: 'SELECT_OFFER', offerId });
+    } catch (error) {
+      pendingAcceptedOfferIdRef.current = null;
+      if (import.meta.env.DEV) console.warn('[Rider Accept Offer]', error);
+      toast({
+        variant: 'destructive',
+        title: 'تعذر قبول العرض',
+        description: 'عذراً، تم قبول عرض آخر لهذه الرحلة بالفعل أو تم إلغاؤها.',
+      });
+    } finally {
+      setAcceptingOfferId(null);
     }
   };
 
@@ -862,7 +915,7 @@ export function RiderViewTab() {
             ) : (
               <div className="space-y-3">
                 {state.offers.map((offer) => (
-                  <article key={offer.driverId} className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                  <article key={offer.id || offer.driverId} className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
                     <div className="flex items-center justify-between gap-3">
                       <div>
                         <h3 className="text-lg font-black text-white">{offer.driverName}</h3>
@@ -882,10 +935,11 @@ export function RiderViewTab() {
                     </div>
 
                     <Button
-                      onClick={() => dispatch({ type: 'SELECT_OFFER', offerId: offer.driverId })}
+                      onClick={() => void handleAcceptOffer(offer)}
+                      disabled={acceptingOfferId === (offer.id || offer.driverId)}
                       className="h-11 w-full rounded-xl bg-[#14B8A6] font-black text-[#031315] hover:bg-[#2DD4BF]"
                     >
-                      اختيار هذا السائق
+                      {acceptingOfferId === (offer.id || offer.driverId) ? 'جاري قبول العرض...' : 'قبول العرض'}
                     </Button>
                   </article>
                 ))}
