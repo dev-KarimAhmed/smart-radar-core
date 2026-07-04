@@ -9,49 +9,106 @@ import { supabase } from '@/lib/supabase-client';
 
 const AD_BATCH_WRITE_LIMIT = 50;
 
-const RadarAdMetrics = {
- filterAdsByLocalContext(userDistrict: string, userGovernorate: string, allAds: any[]) {
+type AdEventType = 'impression' | 'swipe' | 'click';
+
+interface AdMetricEvent {
+ ad_id: string;
+ event_type: AdEventType;
+ occurred_at: string;
+ source: 'ad_stage';
+}
+
+const runtimeEnv = (import.meta as unknown as { env?: Record<string, string | undefined> }).env ?? process.env;
+const supabaseUrl = runtimeEnv.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = runtimeEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const adEventBuffer: AdMetricEvent[] = [];
+let isAdEventFlushInFlight = false;
+
+function filterAdsByLocalContext(userDistrict: string, userGovernorate: string, allAds: any[]) {
  return allAds.filter((ad) => {
  if (!ad || !ad.targetScale) return true;
  if (ad.targetScale === 'Governorate') return ad.targetLocationName === userGovernorate;
  if (ad.targetScale === 'District') return ad.targetLocationName === userDistrict;
  return true;
  });
- },
+}
 
- async logLocally(adId: string, type: 'view' | 'click') {
+function shouldTrackAd(ad: any) {
+ return !!ad?.id && !ad.isPlaceholder && uuidPattern.test(String(ad.id));
+}
+
+function enqueueAdEvent(ad: any, eventType: AdEventType) {
+ if (!shouldTrackAd(ad)) return;
+
+ adEventBuffer.push({
+ ad_id: String(ad.id),
+ event_type: eventType,
+ occurred_at: new Date().toISOString(),
+ source: 'ad_stage',
+ });
+
+ if (adEventBuffer.length >= AD_BATCH_WRITE_LIMIT) {
+ void flushAdEventBuffer();
+ }
+}
+
+async function flushAdEventBuffer() {
+ if (isAdEventFlushInFlight || adEventBuffer.length === 0) return;
+
+ isAdEventFlushInFlight = true;
+ const batch = adEventBuffer.splice(0, adEventBuffer.length);
+
  try {
- const cacheKey = `radar_ad_metrics_${adId}`;
- const cached = localStorage.getItem(cacheKey);
- let currentMetrics = { views: 0, clicks: 0 };
+ const { error } = await supabase.rpc('flush_ad_campaign_metrics', {
+ p_events: batch,
+ });
 
- if (cached) {
+ if (error) throw error;
+ } catch (error) {
+ adEventBuffer.unshift(...batch);
+ if (import.meta.env.DEV) console.warn('[AdStage] ad metrics stayed queued:', error);
+ } finally {
+ isAdEventFlushInFlight = false;
+ }
+}
+
+function flushAdEventBufferOnExit() {
+ if (adEventBuffer.length === 0) return;
+
+ const batch = adEventBuffer.splice(0, adEventBuffer.length);
+
+ if (!supabaseUrl || !supabaseAnonKey) {
+ adEventBuffer.unshift(...batch);
+ return;
+ }
+
  try {
- currentMetrics = JSON.parse(cached);
- } catch (error) {
- console.error('Failed to parse cached ad metrics:', error);
- }
- }
-
- if (type === 'view') currentMetrics.views += 1;
- if (type === 'click') currentMetrics.clicks += 1;
-
- localStorage.setItem(cacheKey, JSON.stringify(currentMetrics));
-
- const localEvents = currentMetrics.views + currentMetrics.clicks;
-
- if (localEvents >= AD_BATCH_WRITE_LIMIT) {
- localStorage.removeItem(cacheKey);
- localStorage.setItem(
- `radar_ad_metrics_pending_${adId}`,
- JSON.stringify({ adId, ...currentMetrics, queuedAt: Date.now() }),
- );
- }
- } catch (error) {
- console.warn('Ad metrics stayed local only:', error);
- }
+ void fetch(`${supabaseUrl}/rest/v1/rpc/flush_ad_campaign_metrics`, {
+ method: 'POST',
+ keepalive: true,
+ headers: {
+ apikey: supabaseAnonKey,
+ authorization: `Bearer ${supabaseAnonKey}`,
+ 'content-type': 'application/json',
  },
-};
+ body: JSON.stringify({ p_events: batch }),
+ });
+ } catch {
+ adEventBuffer.unshift(...batch);
+ }
+}
+
+function getVisibleAdForMetric(track: HTMLDivElement, ads: any[]) {
+ const trackChildren = Array.from(track.children) as HTMLElement[];
+ const firstCard = trackChildren[0];
+ if (!firstCard || ads.length === 0) return null;
+
+ const cardWidth = firstCard.offsetWidth || 1;
+ const gap = 32;
+ const index = Math.max(0, Math.round(track.scrollLeft / (cardWidth + gap))) % ads.length;
+ return ads[index] || null;
+}
 
 const BRAND_PLACEHOLDER_AD = {
  id: 'brand-empty-state',
@@ -88,6 +145,8 @@ export function AdStage({ isFullScreen = false }: { isFullScreen?: boolean }) {
  const [isAdStreamPaused, setIsAdStreamPaused] = useState(false);
  const isAdStreamPausedRef = useRef(false);
  const scrollTrackRef = useRef<HTMLDivElement | null>(null);
+ const impressedAdIdsRef = useRef<Set<string>>(new Set());
+ const lastManualSwipeMetricAtRef = useRef(0);
 
  useEffect(() => {
  let active = true;
@@ -121,7 +180,7 @@ export function AdStage({ isFullScreen = false }: { isFullScreen?: boolean }) {
  }, []);
 
  const adsToUse = useMemo(() => {
- const filteredAds = RadarAdMetrics.filterAdsByLocalContext(liveDistrict, liveGovernorate, serverAds);
+ const filteredAds = filterAdsByLocalContext(liveDistrict, liveGovernorate, serverAds);
  if (filteredAds.length > 0) return filteredAds;
 
  return [
@@ -142,11 +201,25 @@ export function AdStage({ isFullScreen = false }: { isFullScreen?: boolean }) {
 
  useEffect(() => {
  adsToUse.forEach((ad: any) => {
- if (ad?.id) {
- RadarAdMetrics.logLocally(ad.id, 'view');
+ if (shouldTrackAd(ad) && !impressedAdIdsRef.current.has(String(ad.id))) {
+ impressedAdIdsRef.current.add(String(ad.id));
+ enqueueAdEvent(ad, 'impression');
  }
  });
  }, [adsToUse]);
+
+ useEffect(() => {
+ const flushOnExit = () => flushAdEventBufferOnExit();
+
+ window.addEventListener('beforeunload', flushOnExit);
+ window.addEventListener('pagehide', flushOnExit);
+
+ return () => {
+ window.removeEventListener('beforeunload', flushOnExit);
+ window.removeEventListener('pagehide', flushOnExit);
+ void flushAdEventBuffer();
+ };
+ }, []);
 
  useEffect(() => {
  const stored = localStorage.getItem('sovereign_hearted_ads');
@@ -188,12 +261,25 @@ export function AdStage({ isFullScreen = false }: { isFullScreen?: boolean }) {
  if (!track) return;
 
  setAdStreamPaused(true);
+ lastManualSwipeMetricAtRef.current = Date.now();
+ enqueueAdEvent(getVisibleAdForMetric(track, adsToUse), 'swipe');
  const distance = Math.max(240, Math.min(track.clientWidth * 0.82, 460));
  track.scrollBy({
  left: direction === 'next' ? distance : -distance,
  behavior: 'smooth',
  });
- }, [setAdStreamPaused]);
+ }, [adsToUse, setAdStreamPaused]);
+
+ const registerManualTrackScroll = useCallback(() => {
+ const track = scrollTrackRef.current;
+ if (!track || !isAdStreamPausedRef.current) return;
+
+ const now = Date.now();
+ if (now - lastManualSwipeMetricAtRef.current < 1200) return;
+
+ lastManualSwipeMetricAtRef.current = now;
+ enqueueAdEvent(getVisibleAdForMetric(track, adsToUse), 'swipe');
+ }, [adsToUse]);
 
  const toggleHeart = (event: React.MouseEvent, ad: any) => {
  event.preventDefault();
@@ -228,7 +314,7 @@ export function AdStage({ isFullScreen = false }: { isFullScreen?: boolean }) {
  setTakeoverAd(ad);
 
  if (ad?.id) {
- RadarAdMetrics.logLocally(ad.id, 'click');
+ enqueueAdEvent(ad, 'click');
  }
  };
 
@@ -306,6 +392,7 @@ export function AdStage({ isFullScreen = false }: { isFullScreen?: boolean }) {
  data-ad-carousel-track="true"
  data-paused={isAdStreamPaused ? 'true' : 'false'}
  data-ad-count={adsToUse.length}
+ onScroll={registerManualTrackScroll}
  className="flex min-w-0 flex-1 flex-nowrap gap-8 overflow-x-auto px-14 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
  >
  {(adsToUse.length > 1 ? [...adsToUse, ...adsToUse] : adsToUse).map((ad: any, index: number) => (
@@ -409,9 +496,9 @@ export function AdStage({ isFullScreen = false }: { isFullScreen?: boolean }) {
 function mapAdCampaignRow(row: Record<string, any>) {
  const title = firstString(row.title, row.title_ar, row.name_ar, row.name, row.content?.title);
  const description = firstString(row.description, row.description_ar, row.content?.description);
- const posterUrl = firstString(row.posterUrl, row.poster_url, row.bannerUrl, row.banner_url, row.image_url, row.imageUrl);
- const whatsapp = firstString(row.whatsapp, row.whatsapp_number, row.contact_whatsapp);
- const phone = firstString(row.phone, row.phone_number, row.contact_phone);
+ const posterUrl = firstString(row.posterUrl, row.poster_url, row.bannerUrl, row.banner_url, row.media_url, row.image_url, row.imageUrl);
+ const whatsapp = firstString(row.whatsapp, row.whatsapp_link, row.whatsapp_number, row.contact_whatsapp);
+ const phone = firstString(row.phone, row.phone_link, row.phone_number, row.contact_phone);
  const geoLoc = firstString(row.geoLoc, row.geo_url, row.map_url, row.location_url);
  const targetScale = firstString(row.targetScale, row.target_scale);
  const targetLocationName = firstString(row.targetLocationName, row.target_location_name, row.target_district, row.target_governorate);

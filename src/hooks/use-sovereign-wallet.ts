@@ -95,12 +95,12 @@ export function useSovereignWallet(user: User | null) {
           supabase
             .from('wallet_accounts')
             .select('*')
-            .eq('user_id', user!.uid)
+            .eq('profile_id', user!.uid)
             .maybeSingle(),
           supabase
             .from('wallet_transactions')
             .select('*')
-            .eq('user_id', user!.uid)
+            .eq('profile_id', user!.uid)
             .order('created_at', { ascending: false }),
         ]);
 
@@ -143,6 +143,14 @@ export function useSovereignWallet(user: User | null) {
    * لشحن الدينار المبرهن وفق تصفية منطقة الموطن (homeDistrict) مع حظر الكبس المتكرر وعزل المستمعين.
    */
   const fundRiderBalance = useCallback(async (amountPaid: number, channel: string) => {
+    toast({
+      variant: 'destructive',
+      title: 'تعذر تعديل الرصيد',
+      description: 'تعديل الرصيد يتم من الخادم فقط. يرجى استخدام قناة الدفع الرسمية.',
+    });
+    return false;
+    if (!user) return false;
+
     if (!user?.uid) {
       toast({
         variant: 'destructive',
@@ -162,7 +170,7 @@ export function useSovereignWallet(user: User | null) {
     try {
       const networkNow = getNetworkAdjustedTime();
       const txId = 'tx-' + networkNow;
-      const district = user.district || 'وادي السير';
+      const district = user!.district || 'وادي السير';
       const transactionItem = {
         id: txId,
         type: 'charge',
@@ -174,7 +182,7 @@ export function useSovereignWallet(user: User | null) {
       };
 
       // Atomic Single Write Update
-      const userRef = doc(db, 'users', user.uid);
+      const userRef = doc(db, 'users', user!.uid);
       await updateDoc(userRef, {
         walletBalanceJD: increment(amountPaid),
         walletTransactions: arrayUnion(transactionItem)
@@ -209,6 +217,14 @@ export function useSovereignWallet(user: User | null) {
    * للخصم المباشر المباشر المقيد بالنشاط الشبكي التفاضلي لمنع ثغرة السفر بالزمن.
    */
   const deductRiderFare = useCallback(async (tripId: string, amountJD: number) => {
+    toast({
+      variant: 'destructive',
+      title: 'تعذر خصم الأجرة',
+      description: 'خصم الأجرة يتم من الخادم فقط بعد تأكيد الرحلة.',
+    });
+    return false;
+    if (!user) return false;
+
     if (!user?.uid) {
       toast({
         variant: 'destructive',
@@ -238,7 +254,7 @@ export function useSovereignWallet(user: User | null) {
         status: 'completed'
       };
 
-      const userRef = doc(db, 'users', user.uid);
+      const userRef = doc(db, 'users', user!.uid);
       await updateDoc(userRef, {
         walletBalanceJD: increment(-amountJD),
         walletTransactions: arrayUnion(transactionItem)
@@ -272,6 +288,14 @@ export function useSovereignWallet(user: User | null) {
    * شحن رصيد إقليمي منطقة عبر بوابة الدفع المحددة
    */
   const rechargeWallet = useCallback(async (amountPaid: number, district: string, gateway: string) => {
+    toast({
+      variant: 'destructive',
+      title: 'تعذر شحن الرصيد',
+      description: 'شحن الرصيد يتم من الخادم فقط عبر قناة دفع معتمدة.',
+    });
+    return false;
+    if (!user) return false;
+
     if (!user?.uid) {
       toast({
         variant: 'destructive',
@@ -312,7 +336,7 @@ export function useSovereignWallet(user: User | null) {
       };
 
       // Atomic Single Write Update
-      const userRef = doc(db, 'users', user.uid);
+      const userRef = doc(db, 'users', user!.uid);
       await updateDoc(userRef, {
         walletBalanceJD: increment(amountPaid),
         walletTransactions: arrayUnion(transactionItem)
@@ -346,6 +370,14 @@ export function useSovereignWallet(user: User | null) {
    * شراء باقات العرض الموجه جغرافياً للسائقين
    */
   const purchaseDriverPackage = useCallback(async (pkgType: 'pulse' | 'transit') => {
+    toast({
+      variant: 'destructive',
+      title: 'تعذر شراء الباقة',
+      description: 'شراء الباقات وتعديل ساعات العمل يتم من الخادم فقط.',
+    });
+    return false;
+    if (!user) return false;
+
     if (!user?.uid) {
       toast({
         variant: 'destructive',
@@ -389,7 +421,7 @@ export function useSovereignWallet(user: User | null) {
       const { RadarGeoRefillKernel } = await import('@/lib/refill-kernel');
 
       const geoWalletInput = {
-        captainId: user.uid,
+        captainId: user!.uid,
         homeDistrict,
         paidMinutesRemaining: currentPaidMinutes,
         bonusMinutesRemaining: currentBonusMinutes,
@@ -437,7 +469,7 @@ export function useSovereignWallet(user: User | null) {
         status: 'completed'
       };
 
-      const userRef = doc(db, 'users', user.uid);
+      const userRef = doc(db, 'users', user!.uid);
       await updateDoc(userRef, {
         walletBalanceJD: Number((balanceJD - cost).toFixed(2)),
         paidHoursRemaining: nextPaidMinutes,
