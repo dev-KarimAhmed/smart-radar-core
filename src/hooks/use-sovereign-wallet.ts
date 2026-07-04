@@ -124,12 +124,8 @@ export function useSovereignWallet(user: User | null) {
         });
       } catch (error) {
         if (!active) return;
+        if (import.meta.env.DEV) console.warn('[Wallet] showing empty state because wallet data could not load:', error);
         setServerWallet(null);
-        toast({
-          variant: 'destructive',
-          title: 'تعذر تحميل الرصيد',
-          description: 'عذراً، تعذر الاتصال بالخادم. تحقق من شبكة الإنترنت.',
-        });
       } finally {
         if (active) setWalletLoaded(true);
       }

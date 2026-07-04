@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { latLngToCell } from 'h3-js';
-import { Clock, Heart, Loader2, Navigation, ShieldCheck, Star } from 'lucide-react';
+import { Clock, Heart, Loader2, Navigation, ShieldCheck, Star, X } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -15,14 +15,7 @@ import { dexieDb, type RiderTripLedgerEntry } from '@/lib/dexie-db';
 import { supabase } from '@/lib/supabase-client';
 import { cn } from '@/lib/utils';
 import { AdStage } from './ad-stage';
-import {
-  AMMAN_FALLBACK_LOCATION,
-  JORDAN_GOVERNORATES,
-  getJordanDestinationById,
-  getJordanDistrictsByGovernorate,
-  type JordanDistrictDestination,
-  type JordanGovernorateId,
-} from './rider/jordan-destinations';
+import { AMMAN_FALLBACK_LOCATION } from './rider/jordan-destinations';
 import { RadarRiderDashboard, type HistoricalTrip } from './rider/rider-dashboard';
 import { RiderMap, type RiderLocation, type RiderLocationStatus, type RiderLocationUpdate } from './rider/rider-map';
 import {
@@ -46,21 +39,43 @@ import {
 const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
 const H3_RIDER_REQUEST_RESOLUTION = 9;
 const OFFER_TIMEOUT_MS = 2 * 60 * 1000;
+const FARE_RECALCULATION_DEBOUNCE_MS = 350;
 const NETWORK_ERROR_AR = 'عذراً، تعذر الاتصال بالخادم. تحقق من شبكة الإنترنت.';
 
 interface CountryCurrencyConfig {
   id: number;
+  name_ar?: string | null;
+  name_en?: string | null;
   currency_ar?: string | null;
   currency_en?: string | null;
   currency_code?: string | null;
+}
+
+interface GovernorateOption {
+  id: string;
+  numericId: number;
+  nameAr: string;
+  nameEn: string;
+}
+
+interface DistrictOption {
+  id: string;
+  numericId: number;
+  governorateId: string;
+  governorateAr: string;
+  governorateEn: string;
+  districtAr: string;
+  districtEn: string;
+  anchor: RiderLocation | null;
+  tortuosityFactor: number;
 }
 
 export function RiderViewTab() {
   const { user } = useAuth();
   const { toast } = useToast();
   const { state, dispatch, showAdRiver } = useRiderDashboardMachine();
-  const [selectedGovernorateId, setSelectedGovernorateId] = React.useState<JordanGovernorateId>('amman');
-  const [draftDestinationId, setDraftDestinationId] = React.useState(getJordanDistrictsByGovernorate('amman')[0].id);
+  const [selectedGovernorateId, setSelectedGovernorateId] = React.useState('');
+  const [draftDestinationId, setDraftDestinationId] = React.useState('');
   const [rating, setRating] = React.useState({ captain: 0, vehicle: 0, favorite: false });
   const [etaSeconds, setEtaSeconds] = React.useState(0);
   const [riderLocation, setRiderLocation] = React.useState<RiderLocation>(AMMAN_FALLBACK_LOCATION);
@@ -70,6 +85,13 @@ export function RiderViewTab() {
   const [captainLocations, setCaptainLocations] = React.useState<CaptainPresencePoint[]>([]);
   const [isSendingRideRequest, setIsSendingRideRequest] = React.useState(false);
   const [countryConfig, setCountryConfig] = React.useState<CountryCurrencyConfig | null>(null);
+  const [destinationGovernorates, setDestinationGovernorates] = React.useState<GovernorateOption[]>([]);
+  const [destinationDistricts, setDestinationDistricts] = React.useState<DistrictOption[]>([]);
+  const [destinationPinLocation, setDestinationPinLocation] = React.useState<RiderLocation | null>(null);
+  const [isDestinationPinMoving, setIsDestinationPinMoving] = React.useState(false);
+  const [isLoadingGovernorates, setIsLoadingGovernorates] = React.useState(false);
+  const [isLoadingDistricts, setIsLoadingDistricts] = React.useState(false);
+  const [destinationDataError, setDestinationDataError] = React.useState<string | null>(null);
   const [serverFareState, setServerFareState] = React.useState<{
     key: string;
     fare: number | null;
@@ -98,32 +120,38 @@ export function RiderViewTab() {
     };
   }, [user]);
 
-  const availableDistricts = React.useMemo(
-    () => getJordanDistrictsByGovernorate(selectedGovernorateId),
-    [selectedGovernorateId],
+  const availableDistricts = destinationDistricts;
+
+  const selectedGovernorate = React.useMemo(
+    () => destinationGovernorates.find((governorate) => governorate.id === selectedGovernorateId) || null,
+    [destinationGovernorates, selectedGovernorateId],
   );
 
   const selectedDistrict = React.useMemo(() => {
-    const direct = getJordanDestinationById(draftDestinationId);
-    if (direct.governorateId === selectedGovernorateId) return direct;
-    return availableDistricts[0];
-  }, [availableDistricts, draftDestinationId, selectedGovernorateId]);
+    const direct = destinationDistricts.find((district) => district.id === draftDestinationId);
+    return direct || destinationDistricts[0] || null;
+  }, [destinationDistricts, draftDestinationId]);
 
   const activeCountryId = user?.countryId;
+  const selectedDestinationCoords = destinationPinLocation || selectedDistrict?.anchor || null;
 
   const fareRequestKey = React.useMemo(
-    () => buildFareRequestKey(riderLocation, selectedDistrict.anchor, activeCountryId),
-    [activeCountryId, riderLocation, selectedDistrict.anchor],
+    () => (selectedDestinationCoords ? buildFareRequestKey(riderLocation, selectedDestinationCoords, activeCountryId) : 'no-destination'),
+    [activeCountryId, riderLocation, selectedDestinationCoords],
   );
 
   const currentServerFare = serverFareState.key === fareRequestKey ? serverFareState.fare : null;
-  const isServerFareLoading = serverFareState.key !== fareRequestKey || serverFareState.isLoading;
+  const isServerFareLoading =
+    !!selectedDestinationCoords && (serverFareState.key !== fareRequestKey || serverFareState.isLoading || isDestinationPinMoving);
   const serverFareError = serverFareState.key === fareRequestKey ? serverFareState.error : null;
   const currencyLabel = getCurrencyLabel(countryConfig, user);
 
   const selectedDraftDestination = React.useMemo(
-    () => buildRiderDestination(selectedDistrict, riderLocation, currentServerFare),
-    [currentServerFare, riderLocation, selectedDistrict],
+    () =>
+      selectedDistrict && selectedDestinationCoords
+        ? buildRiderDestination(selectedDistrict, riderLocation, currentServerFare, selectedDestinationCoords)
+        : null,
+    [currentServerFare, riderLocation, selectedDestinationCoords, selectedDistrict],
   );
 
   const tripsWithin72Hours = React.useMemo<HistoricalTrip[]>(
@@ -145,10 +173,32 @@ export function RiderViewTab() {
     setLocationStatus(payload.status);
   }, []);
 
+  const handleDestinationPinMoveStart = React.useCallback(() => {
+    setIsDestinationPinMoving(true);
+  }, []);
+
+  const handleDestinationPinChange = React.useCallback((location: RiderLocation) => {
+    setDestinationPinLocation(location);
+    setIsDestinationPinMoving(false);
+  }, []);
+
   const openDestination = React.useCallback(() => {
     dispatch({ type: 'OPEN_DESTINATION' });
-    dispatch({ type: 'CONFIRM_DESTINATION', destination: selectedDraftDestination });
+    if (selectedDraftDestination) {
+      dispatch({ type: 'CONFIRM_DESTINATION', destination: selectedDraftDestination });
+    }
   }, [dispatch, selectedDraftDestination]);
+
+  React.useEffect(() => {
+    if (state.screen === 'DESTINATION_SELECTION' && selectedDraftDestination) {
+      dispatch({ type: 'CONFIRM_DESTINATION', destination: selectedDraftDestination });
+    }
+  }, [dispatch, selectedDraftDestination, state.screen]);
+
+  React.useEffect(() => {
+    setDestinationPinLocation(selectedDistrict?.anchor || null);
+    setIsDestinationPinMoving(false);
+  }, [selectedDistrict?.anchor, selectedDistrict?.id]);
 
   React.useEffect(() => {
     dispatch({ type: 'RESET_TO_IDLE' });
@@ -173,7 +223,7 @@ export function RiderViewTab() {
       try {
         const { data, error } = await supabase
           .from('countries')
-          .select('id,currency_ar,currency_en')
+          .select('id,name_ar,name_en,currency_ar,currency_en')
           .eq('id', countryId)
           .single();
         if (error) throw error;
@@ -181,11 +231,6 @@ export function RiderViewTab() {
       } catch (error) {
         if (!active) return;
         if (import.meta.env.DEV) console.warn('[Supabase Country Currency Fetch]', error);
-        toast({
-          variant: 'destructive',
-          title: 'تعذر تحميل العملة',
-          description: 'تعذر تحميل إعدادات عملة الدولة من الخادم.',
-        });
       }
     }
 
@@ -199,6 +244,123 @@ export function RiderViewTab() {
   React.useEffect(() => {
     let active = true;
     const countryId = Number(activeCountryId);
+
+    setDestinationGovernorates([]);
+    setDestinationDistricts([]);
+    setSelectedGovernorateId('');
+    setDraftDestinationId('');
+    setDestinationDataError(null);
+
+    if (!Number.isInteger(countryId) || countryId <= 0) {
+      setDestinationDataError('لا توجد دولة مرتبطة بالحساب. حدّث بيانات حسابك أولاً.');
+      return;
+    }
+
+    async function fetchDestinationGovernorates() {
+      setIsLoadingGovernorates(true);
+      try {
+        const { data, error } = await supabase
+          .from('governorates')
+          .select('*')
+          .eq('country_id', countryId)
+          .order('id', { ascending: true });
+
+        if (error) throw error;
+        if (!active) return;
+
+        const options = normalizeGovernorates(data);
+        setDestinationGovernorates(options);
+
+        const profileGovernorateId = String(user?.governorate || '');
+        const preferred = options.find((governorate) => governorate.id === profileGovernorateId) || options[0] || null;
+        setSelectedGovernorateId(preferred?.id || '');
+        if (!preferred) setDestinationDataError('لا توجد محافظات متاحة لهذه الدولة حالياً.');
+      } catch (error) {
+        if (!active) return;
+        if (import.meta.env.DEV) console.warn('[Rider Destinations: Governorates]', error);
+        setDestinationDataError(NETWORK_ERROR_AR);
+      } finally {
+        if (active) setIsLoadingGovernorates(false);
+      }
+    }
+
+    void fetchDestinationGovernorates();
+
+    return () => {
+      active = false;
+    };
+  }, [activeCountryId, toast, user?.governorate]);
+
+  React.useEffect(() => {
+    let active = true;
+    const governorateId = Number(selectedGovernorateId);
+
+    setDestinationDistricts([]);
+    setDraftDestinationId('');
+    setDestinationDataError(null);
+
+    if (!Number.isInteger(governorateId) || governorateId <= 0) {
+      return;
+    }
+
+    async function fetchDestinationDistricts() {
+      setIsLoadingDistricts(true);
+      try {
+        const { data, error } = await supabase
+          .from('districts')
+          .select('*')
+          .eq('governorate_id', governorateId)
+          .order('id', { ascending: true });
+
+        if (error) throw error;
+        if (!active) return;
+
+        const options = normalizeDistricts(data, selectedGovernorate);
+        setDestinationDistricts(options);
+
+        const profileDistrictId = String(user?.district || '');
+        const preferred = options.find((district) => district.id === profileDistrictId) || options.find((district) => district.anchor) || options[0] || null;
+        setDraftDestinationId(preferred?.id || '');
+        if (!preferred) setDestinationDataError('لا توجد مناطق متاحة لهذه المحافظة حالياً.');
+      } catch (error) {
+        if (!active) return;
+        if (import.meta.env.DEV) console.warn('[Rider Destinations: Districts]', error);
+        setDestinationDataError(NETWORK_ERROR_AR);
+      } finally {
+        if (active) setIsLoadingDistricts(false);
+      }
+    }
+
+    void fetchDestinationDistricts();
+
+    return () => {
+      active = false;
+    };
+  }, [selectedGovernorate, selectedGovernorateId, toast, user?.district]);
+
+  React.useEffect(() => {
+    let active = true;
+    const countryId = Number(activeCountryId);
+
+    if (!selectedDistrict) {
+      setServerFareState({
+        key: fareRequestKey,
+        fare: null,
+        isLoading: false,
+        error: destinationDataError || 'اختر المحافظة والمنطقة أولاً.',
+      });
+      return;
+    }
+
+    if (!selectedDestinationCoords) {
+      setServerFareState({
+        key: fareRequestKey,
+        fare: null,
+        isLoading: false,
+        error: 'هذه المنطقة لا تحتوي إحداثيات في قاعدة البيانات. حدّث بيانات المنطقة ثم حاول مرة أخرى.',
+      });
+      return;
+    }
 
     if (!Number.isInteger(countryId) || countryId <= 0) {
       setServerFareState({
@@ -217,40 +379,43 @@ export function RiderViewTab() {
       error: null,
     });
 
-    calculateServerFare(supabase, {
-      origin: riderLocation,
-      destination: selectedDistrict.anchor,
-      countryId,
-    })
-      .then((fare) => {
-        if (!active) return;
-        setServerFareState({
-          key: fareRequestKey,
-          fare,
-          isLoading: false,
-          error: null,
-        });
+    const timeoutId = window.setTimeout(() => {
+      calculateServerFare(supabase, {
+        origin: riderLocation,
+        destination: selectedDestinationCoords,
+        countryId,
       })
-      .catch((error) => {
-        if (!active) return;
-        const message = mapRiderMarketplaceError(error);
-        setServerFareState({
-          key: fareRequestKey,
-          fare: null,
-          isLoading: false,
-          error: message,
+        .then((fare) => {
+          if (!active) return;
+          setServerFareState({
+            key: fareRequestKey,
+            fare,
+            isLoading: false,
+            error: null,
+          });
+        })
+        .catch((error) => {
+          if (!active) return;
+          const message = mapRiderMarketplaceError(error);
+          setServerFareState({
+            key: fareRequestKey,
+            fare: null,
+            isLoading: false,
+            error: message,
+          });
+          toast({
+            variant: 'destructive',
+            title: 'تعذر حساب السعر',
+            description: message,
+          });
         });
-        toast({
-          variant: 'destructive',
-          title: 'تعذر حساب السعر',
-          description: message,
-        });
-      });
+    }, FARE_RECALCULATION_DEBOUNCE_MS);
 
     return () => {
       active = false;
+      window.clearTimeout(timeoutId);
     };
-  }, [activeCountryId, fareRequestKey, riderLocation, selectedDistrict.anchor, toast]);
+  }, [activeCountryId, destinationDataError, fareRequestKey, riderLocation, selectedDestinationCoords, selectedDistrict, toast]);
 
   React.useEffect(() => {
     if (!state.requestId) return;
@@ -285,12 +450,8 @@ export function RiderViewTab() {
         if (active) setCaptainLocations(rows);
       } catch (error) {
         if (!active) return;
+        if (import.meta.env.DEV) console.warn('[Rider Captain Presence]', error);
         setCaptainLocations([]);
-        toast({
-          variant: 'destructive',
-          title: 'تعذر تحميل السائقين القريبين',
-          description: NETWORK_ERROR_AR,
-        });
       }
     }
 
@@ -312,11 +473,8 @@ export function RiderViewTab() {
         if (active) dispatch({ type: 'RECEIVE_OFFERS', offers });
       } catch (error) {
         if (!active) return;
-        toast({
-          variant: 'destructive',
-          title: 'تعذر تحميل العروض',
-          description: NETWORK_ERROR_AR,
-        });
+        if (import.meta.env.DEV) console.warn('[Rider Offers]', error);
+        dispatch({ type: 'RECEIVE_OFFERS', offers: [] });
       }
     };
 
@@ -327,11 +485,7 @@ export function RiderViewTab() {
       state.requestId,
       () => void refreshOffers(),
       () => {
-        toast({
-          variant: 'destructive',
-          title: 'تعذر متابعة العروض',
-          description: NETWORK_ERROR_AR,
-        });
+        if (import.meta.env.DEV) console.warn('[Rider Offers Realtime] subscription unavailable');
       },
     );
 
@@ -375,15 +529,13 @@ export function RiderViewTab() {
     return () => window.clearInterval(interval);
   }, [state.activeTrip]);
 
-  const handleGovernorateChange = (governorateId: JordanGovernorateId) => {
-    const firstDistrict = getJordanDistrictsByGovernorate(governorateId)[0];
+  const handleGovernorateChange = (governorateId: string) => {
     setSelectedGovernorateId(governorateId);
-    setDraftDestinationId(firstDistrict.id);
+    setDraftDestinationId('');
   };
 
   const handleDistrictChange = (districtId: string) => {
-    const destination = getJordanDestinationById(districtId);
-    setDraftDestinationId(destination.id);
+    setDraftDestinationId(districtId);
   };
 
   const handleSendRequest = async () => {
@@ -406,6 +558,15 @@ export function RiderViewTab() {
       return;
     }
 
+    if (!selectedDraftDestination || !selectedDestinationCoords) {
+      toast({
+        variant: 'destructive',
+        title: 'الوجهة غير جاهزة',
+        description: 'اختر منطقة تحتوي إحداثيات صحيحة من قاعدة البيانات.',
+      });
+      return;
+    }
+
     if (selectedDraftDestination.serverEstimatedFare === undefined || isServerFareLoading) {
       toast({
         variant: 'destructive',
@@ -423,11 +584,11 @@ export function RiderViewTab() {
       const payload = buildRideRequestInsertPayload({
         riderId: user.uid,
         origin: riderLocation,
-        destination: selectedDistrict.anchor,
+        destination: selectedDestinationCoords,
         originH3: selectedDraftDestination.originCell || latLngToCell(riderLocation.lat, riderLocation.lng, H3_RIDER_REQUEST_RESOLUTION),
         destinationH3:
           selectedDraftDestination.destinationCell ||
-          latLngToCell(selectedDistrict.anchor.lat, selectedDistrict.anchor.lng, H3_RIDER_REQUEST_RESOLUTION),
+          latLngToCell(selectedDestinationCoords.lat, selectedDestinationCoords.lng, H3_RIDER_REQUEST_RESOLUTION),
         destinationAddressAr: selectedDraftDestination.label,
         serverEstimatedFare: selectedDraftDestination.serverEstimatedFare,
         countryId,
@@ -482,20 +643,37 @@ export function RiderViewTab() {
 
   const renderStatePanel = () => {
     if (state.screen === 'DESTINATION_SELECTION') {
+      const hasDestinationOptions = destinationGovernorates.length > 0 && availableDistricts.length > 0;
+      const selectedDestinationHasCoords = !!selectedDestinationCoords;
       const serverFareLabel =
-        selectedDraftDestination.serverEstimatedFare !== undefined
+        isServerFareLoading || isDestinationPinMoving
+          ? 'جاري تحديث السعر...'
+          : selectedDraftDestination?.serverEstimatedFare !== undefined
           ? formatMoney(selectedDraftDestination.serverEstimatedFare, currencyLabel)
-          : isServerFareLoading
-            ? 'يتم الحساب...'
-            : 'غير متاح';
+          : 'غير متاح';
 
       return (
         <Card className="w-full border-[#14B8A6]/25 bg-[#0B0F19]/88 text-white shadow-2xl shadow-black/40 backdrop-blur-xl">
           <CardContent className="space-y-5 p-5 text-right" dir="rtl">
-            <div className="space-y-1">
-              <p className="text-[11px] font-black text-[#14F5D5]">اختيار الوجهة</p>
-              <h2 className="text-xl font-black sm:text-2xl">إلى أين تريد الذهاب؟</h2>
-              <p className="text-xs text-slate-400">اختيار محلي داخل الأردن فقط. بدون Google Places وبدون Geocoding.</p>
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-1">
+                <p className="text-[11px] font-black text-[#14F5D5]">اختيار الوجهة</p>
+                <h2 className="text-xl font-black sm:text-2xl">إلى أين تريد الذهاب؟</h2>
+                <p className="text-xs leading-relaxed text-slate-400">
+                  اختر من المناطق المسجلة في دولة حسابك. لا نستخدم Google Places أو Geocoding.
+                  {countryConfig?.name_ar || countryConfig?.name_en ? (
+                    <span className="mt-1 block text-[#14F5D5]">الدولة: {countryConfig.name_ar || countryConfig.name_en}</span>
+                  ) : null}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => dispatch({ type: 'RETURN_TO_MAP' })}
+                aria-label="إغلاق اختيار الوجهة"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-black/35 text-slate-300 transition hover:border-[#14B8A6]/40 hover:text-white"
+              >
+                <X className="h-5 w-5" />
+              </button>
             </div>
 
             <div className="grid gap-3">
@@ -503,26 +681,34 @@ export function RiderViewTab() {
                 <span className="block text-[11px] font-black text-slate-400">المحافظة</span>
                 <select
                   value={selectedGovernorateId}
-                  onChange={(event) => handleGovernorateChange(event.target.value as JordanGovernorateId)}
+                  onChange={(event) => handleGovernorateChange(event.target.value)}
+                  disabled={isLoadingGovernorates || destinationGovernorates.length === 0}
                   className="h-12 w-full rounded-2xl border border-white/10 bg-black/40 px-4 text-right text-sm font-black text-white outline-none transition focus:border-[#14B8A6]/60"
                 >
-                  {JORDAN_GOVERNORATES.map((governorate) => (
+                  {destinationGovernorates.length === 0 ? (
+                    <option value="">{isLoadingGovernorates ? 'جاري التحميل...' : 'لا توجد محافظات'}</option>
+                  ) : null}
+                  {destinationGovernorates.map((governorate) => (
                     <option key={governorate.id} value={governorate.id}>
-                      {governorate.nameAr}
+                      {governorate.nameAr || governorate.nameEn}
                     </option>
                   ))}
                 </select>
               </label>
 
               <label className="space-y-2">
-                <span className="block text-[11px] font-black text-slate-400">المنطقة / المنطقة</span>
+                <span className="block text-[11px] font-black text-slate-400">المنطقة</span>
                 <select
-                  value={selectedDistrict.id}
+                  value={selectedDistrict?.id || ''}
                   onChange={(event) => handleDistrictChange(event.target.value)}
+                  disabled={isLoadingDistricts || availableDistricts.length === 0}
                   className="h-12 w-full rounded-2xl border border-white/10 bg-black/40 px-4 text-right text-sm font-black text-white outline-none transition focus:border-[#14B8A6]/60"
                 >
+                  {availableDistricts.length === 0 ? (
+                    <option value="">{isLoadingDistricts ? 'جاري التحميل...' : 'لا توجد مناطق'}</option>
+                  ) : null}
                   {availableDistricts.map((destination) => (
-                    <option key={destination.id} value={destination.id}>
+                    <option key={destination.id} value={destination.id} disabled={!destination.anchor}>
                       {destination.districtAr}
                     </option>
                   ))}
@@ -530,18 +716,34 @@ export function RiderViewTab() {
               </label>
             </div>
 
-            <div className="rounded-2xl border border-[#14B8A6]/20 bg-[#14B8A6]/8 p-3 text-xs leading-relaxed text-slate-300">
-              <strong className="block text-sm text-white">{selectedDraftDestination.label}</strong>
-              <span className="mt-1 block font-mono text-[10px] text-slate-500">
-                {selectedDraftDestination.coords.lat.toFixed(4)}, {selectedDraftDestination.coords.lng.toFixed(4)}
-              </span>
-            </div>
+            {destinationDataError ? (
+              <div className="rounded-2xl border border-amber-400/25 bg-amber-400/10 p-3 text-xs font-bold leading-relaxed text-amber-100">
+                {destinationDataError}
+              </div>
+            ) : null}
+
+            {selectedDistrict ? (
+              <div className="rounded-2xl border border-[#14B8A6]/20 bg-[#14B8A6]/8 p-3 text-xs leading-relaxed text-slate-300">
+                <strong className="block text-sm text-white">
+                  {selectedDistrict.districtAr} - {selectedDistrict.governorateAr}
+                </strong>
+                {selectedDistrict.anchor ? (
+                  <span className="mt-1 block font-mono text-[10px] text-slate-500">
+                    {(selectedDestinationCoords || selectedDistrict.anchor).lat.toFixed(4)}, {(selectedDestinationCoords || selectedDistrict.anchor).lng.toFixed(4)}
+                  </span>
+                ) : (
+                  <span className="mt-1 block text-[11px] font-bold text-amber-200">
+                    لا توجد إحداثيات لهذه المنطقة في قاعدة البيانات.
+                  </span>
+                )}
+              </div>
+            ) : null}
 
             <div className="grid grid-cols-2 gap-3 rounded-2xl border border-white/10 bg-black/30 p-3">
               <Metric label="السعر من الخادم" value={serverFareLabel} />
               <Metric label="حالة السعر" value={serverFareError ? 'تعذر الحساب' : isServerFareLoading ? 'جار الحساب' : 'جاهز'} />
-              <Metric label="H3 الانطلاق" value={selectedDraftDestination.originCell?.slice(0, 8).toUpperCase() || '-'} />
-              <Metric label="H3 الوجهة" value={selectedDraftDestination.destinationCell?.slice(0, 8).toUpperCase() || '-'} />
+              <Metric label="H3 الانطلاق" value={selectedDraftDestination?.originCell?.slice(0, 8).toUpperCase() || '-'} />
+              <Metric label="H3 الوجهة" value={selectedDraftDestination?.destinationCell?.slice(0, 8).toUpperCase() || '-'} />
             </div>
 
             {serverFareError && (
@@ -552,7 +754,13 @@ export function RiderViewTab() {
 
             <Button
               onClick={handleSendRequest}
-              disabled={isSendingRideRequest || isServerFareLoading || selectedDraftDestination.serverEstimatedFare === undefined}
+              disabled={
+                isSendingRideRequest ||
+                isServerFareLoading ||
+                !hasDestinationOptions ||
+                !selectedDestinationHasCoords ||
+                selectedDraftDestination?.serverEstimatedFare === undefined
+              }
               className="h-14 w-full rounded-2xl bg-[#14B8A6] text-base font-black text-[#031315] hover:bg-[#2DD4BF]"
             >
               {isSendingRideRequest ? 'جاري إرسال الطلب...' : 'اطلب الآن'}
@@ -703,6 +911,10 @@ export function RiderViewTab() {
             activeTripCaptainId={state.activeTrip?.captainId || null}
             captainLocations={captainLocations}
             className="h-[38svh] min-h-[250px] max-h-[320px] sm:h-[42svh] sm:min-h-[300px] sm:max-h-[380px] lg:h-full lg:max-h-none lg:min-h-0 lg:rounded-none lg:border-0"
+            destinationFlyToTarget={state.screen === 'DESTINATION_SELECTION' ? selectedDistrict?.anchor || null : null}
+            showDestinationPin={state.screen === 'DESTINATION_SELECTION'}
+            onDestinationChange={handleDestinationPinChange}
+            onDestinationMoveStart={handleDestinationPinMoveStart}
             onLocationChange={handleLocationChange}
           />
         </div>
@@ -834,21 +1046,94 @@ export function RiderViewTab() {
   );
 }
 
+function normalizeGovernorates(rows: unknown): GovernorateOption[] {
+  if (!Array.isArray(rows)) return [];
+
+  return rows
+    .map((row) => {
+      const record = row as Record<string, unknown>;
+      const numericId = Number(record.id);
+      if (!Number.isInteger(numericId) || numericId <= 0) return null;
+
+      return {
+        id: String(numericId),
+        numericId,
+        nameAr: firstText(record.name_ar, record.nameAr, record.name, record.title_ar) || `محافظة ${numericId}`,
+        nameEn: firstText(record.name_en, record.nameEn, record.title_en) || '',
+      };
+    })
+    .filter((option): option is GovernorateOption => !!option);
+}
+
+function normalizeDistricts(rows: unknown, governorate: GovernorateOption | null): DistrictOption[] {
+  if (!Array.isArray(rows)) return [];
+
+  return rows
+    .map((row) => {
+      const record = row as Record<string, unknown>;
+      const numericId = Number(record.id);
+      if (!Number.isInteger(numericId) || numericId <= 0) return null;
+
+      const anchor = getRowAnchor(record);
+
+      return {
+        id: String(numericId),
+        numericId,
+        governorateId: String(record.governorate_id || governorate?.id || ''),
+        governorateAr: governorate?.nameAr || '',
+        governorateEn: governorate?.nameEn || '',
+        districtAr: firstText(record.name_ar, record.nameAr, record.name, record.title_ar) || `منطقة ${numericId}`,
+        districtEn: firstText(record.name_en, record.nameEn, record.title_en) || '',
+        anchor,
+        tortuosityFactor: firstNumber(record.tortuosity_factor, record.road_factor, record.factor) ?? 1.3,
+      };
+    })
+    .filter((option): option is DistrictOption => !!option);
+}
+
+function getRowAnchor(row: Record<string, unknown>): RiderLocation | null {
+  const lat = firstNumber(row.lat, row.latitude, row.anchor_lat, row.center_lat, row.centroid_lat, row.location_lat);
+  const lng = firstNumber(row.lng, row.lon, row.longitude, row.anchor_lng, row.anchor_lon, row.center_lng, row.centroid_lng, row.location_lng);
+
+  if (lat === null || lng === null) return null;
+  return { lat, lng };
+}
+
+function firstText(...values: unknown[]) {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim()) return value.trim();
+  }
+  return null;
+}
+
+function firstNumber(...values: unknown[]) {
+  for (const value of values) {
+    const numberValue = Number(value);
+    if (Number.isFinite(numberValue)) return numberValue;
+  }
+  return null;
+}
+
 function buildRiderDestination(
-  destination: JordanDistrictDestination,
+  destination: DistrictOption,
   origin: RiderLocation,
   serverEstimatedFare: number | null,
+  preciseDestination: RiderLocation,
 ): RiderDestination {
+  if (!preciseDestination) {
+    throw new Error('destination_missing_coordinates');
+  }
+
   return {
     id: destination.id,
     label: `${destination.districtAr} - ${destination.governorateAr}`,
     governorate: destination.governorateAr,
     district: destination.districtAr,
-    coords: destination.anchor,
+    coords: preciseDestination,
     tortuosityFactor: destination.tortuosityFactor,
     serverEstimatedFare: serverEstimatedFare ?? undefined,
     originCell: latLngToCell(origin.lat, origin.lng, H3_RIDER_REQUEST_RESOLUTION),
-    destinationCell: latLngToCell(destination.anchor.lat, destination.anchor.lng, H3_RIDER_REQUEST_RESOLUTION),
+    destinationCell: latLngToCell(preciseDestination.lat, preciseDestination.lng, H3_RIDER_REQUEST_RESOLUTION),
   };
 }
 

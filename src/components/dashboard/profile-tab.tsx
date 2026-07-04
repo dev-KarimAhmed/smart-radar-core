@@ -118,11 +118,48 @@ async function saveProfile(profileKey: ProfileKey | null, userId: string, payloa
   if (profileKey) {
     const { error } = await supabase.from('profiles').update(payload).eq(profileKey.field, profileKey.value);
     if (!error) return;
-    if (import.meta.env.DEV) console.warn('[Supabase Profile Update]', error);
+    throw error;
   }
 
-  const { error } = await supabase.from('profiles').upsert({ id: userId, ...payload });
+  const { error } = await supabase.from('profiles').upsert({ id: userId, ...payload }, { onConflict: 'id' });
   if (error) throw error;
+}
+
+function mapProfileSaveError(error: unknown) {
+  const supabaseError = error as { code?: string; message?: string; details?: string; hint?: string };
+  const code = String(supabaseError?.code || '').toLowerCase();
+  const message = [supabaseError?.message, supabaseError?.details, supabaseError?.hint, String(error || '')]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+  if (code === '42501' || message.includes('row-level security') || message.includes('permission denied')) {
+    return 'لا توجد صلاحية لتعديل هذا الحساب. راجع سياسات RLS لجدول profiles وتأكد أن المستخدم يعدل بيانات حسابه فقط.';
+  }
+
+  if (code === 'pgrst204' || message.includes('could not find') || message.includes('schema cache') || message.includes('column')) {
+    return 'تعذر الحفظ لأن جدول profiles لا يحتوي أحد الحقول المطلوبة. تأكد من وجود full_name و phone و country_id و governorate_id و district_id.';
+  }
+
+  if (
+    code === '23503' ||
+    message.includes('foreign key') ||
+    message.includes('country_id') ||
+    message.includes('governorate_id') ||
+    message.includes('district_id')
+  ) {
+    return 'الدولة أو المحافظة أو المنطقة غير موجودة في قاعدة البيانات. اختر قيمة من القوائم ثم حاول مرة أخرى.';
+  }
+
+  if (code === '23505' || message.includes('duplicate')) {
+    return 'يوجد ملف حساب بهذا المعرف بالفعل. أعد تحميل الصفحة ثم حاول مرة أخرى.';
+  }
+
+  if (message.includes('failed to fetch') || message.includes('network')) {
+    return 'عذراً، تعذر الاتصال بالخادم. تحقق من شبكة الإنترنت ثم حاول مرة أخرى.';
+  }
+
+  return 'تعذر تحديث بيانات الحساب. حاول مرة أخرى.';
 }
 
 export function ProfileTab() {
@@ -344,17 +381,15 @@ export function ProfileTab() {
     try {
       const payload = {
         full_name: fullName.trim(),
-        name: fullName.trim(),
         phone: phone.trim(),
         country_id: nextCountryId,
         governorate_id: nextGovernorateId,
         district_id: nextDistrictId,
-        updated_at: new Date().toISOString(),
       };
 
       await saveProfile(profileKey, user.uid, payload);
 
-      const nextProfile = { ...(profile || {}), ...payload };
+      const nextProfile = { ...(profile || {}), ...payload, name: fullName.trim() };
       setProfile(nextProfile);
 
       if (import.meta.env.DEV) {
@@ -395,7 +430,7 @@ export function ProfileTab() {
       toast({
         variant: 'destructive',
         title: 'تعذر حفظ البيانات',
-        description: 'تعذر تحديث بيانات الحساب. تأكد من صلاحيات قاعدة البيانات ثم حاول مرة أخرى.',
+        description: mapProfileSaveError(error),
       });
     } finally {
       setIsSaving(false);

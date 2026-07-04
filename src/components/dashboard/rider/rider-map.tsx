@@ -10,6 +10,10 @@ interface RiderMapProps {
   activeTripCaptainId?: string | null;
   captainLocations?: RiderMapCaptainPoint[];
   className?: string;
+  destinationFlyToTarget?: RiderLocation | null;
+  showDestinationPin?: boolean;
+  onDestinationChange?: (location: RiderLocation) => void;
+  onDestinationMoveStart?: () => void;
   onLocationChange?: (payload: RiderLocationUpdate) => void;
 }
 
@@ -94,13 +98,24 @@ function getLocationStatusLabel(status: RiderLocationStatus) {
   return 'GPS غير متاح';
 }
 
-export function RiderMap({ activeTripCaptainId, captainLocations = [], className, onLocationChange }: RiderMapProps) {
+export function RiderMap({
+  activeTripCaptainId,
+  captainLocations = [],
+  className,
+  destinationFlyToTarget,
+  showDestinationPin = false,
+  onDestinationChange,
+  onDestinationMoveStart,
+  onLocationChange,
+}: RiderMapProps) {
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const mapRef = React.useRef<MapLibreMap | null>(null);
   const cleanupWatchRef = React.useRef<(() => void) | null>(null);
+  const lastDestinationFlyToRef = React.useRef('');
   const [riderLocation, setRiderLocation] = React.useState<RiderLocation>(AMMAN_FALLBACK_LOCATION);
   const [locationStatus, setLocationStatus] = React.useState<RiderLocationStatus>('locating');
   const [activeCaptainProgress, setActiveCaptainProgress] = React.useState(0);
+  const [isMapReady, setIsMapReady] = React.useState(false);
   const riderCell = React.useMemo(() => latLngToCell(riderLocation.lat, riderLocation.lng, 9), [riderLocation]);
 
   const displayCaptains = React.useMemo(() => {
@@ -199,6 +214,8 @@ export function RiderMap({ activeTripCaptainId, captainLocations = [], className
     mapRef.current = map;
 
     map.on('load', () => {
+      setIsMapReady(true);
+
       map.addSource('rider-point', {
         type: 'geojson',
         data: toRiderFeatureCollection(riderLocation),
@@ -282,6 +299,7 @@ export function RiderMap({ activeTripCaptainId, captainLocations = [], className
       window.clearInterval(interval);
       map.remove();
       mapRef.current = null;
+      setIsMapReady(false);
     };
   }, []);
 
@@ -297,18 +315,71 @@ export function RiderMap({ activeTripCaptainId, captainLocations = [], className
 
   React.useEffect(() => {
     const map = mapRef.current;
-    if (!map) return;
+    if (!map || showDestinationPin) return;
 
     map.easeTo({
       center: [riderLocation.lng, riderLocation.lat],
       duration: 650,
     });
-  }, [riderLocation]);
+  }, [riderLocation, showDestinationPin]);
+
+  React.useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !isMapReady || !destinationFlyToTarget) return;
+
+    const targetKey = `${destinationFlyToTarget.lat.toFixed(6)}:${destinationFlyToTarget.lng.toFixed(6)}`;
+    if (lastDestinationFlyToRef.current === targetKey) return;
+    lastDestinationFlyToRef.current = targetKey;
+
+    map.flyTo({
+      center: [destinationFlyToTarget.lng, destinationFlyToTarget.lat],
+      zoom: Math.max(map.getZoom(), 14.6),
+      duration: 900,
+      essential: true,
+    });
+  }, [destinationFlyToTarget, isMapReady]);
+
+  React.useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !isMapReady || !showDestinationPin) return;
+
+    const handleMoveStart = () => {
+      onDestinationMoveStart?.();
+    };
+
+    const handleMoveEnd = () => {
+      const center = map.getCenter();
+      onDestinationChange?.({ lat: center.lat, lng: center.lng });
+    };
+
+    map.on('movestart', handleMoveStart);
+    map.on('moveend', handleMoveEnd);
+
+    return () => {
+      map.off('movestart', handleMoveStart);
+      map.off('moveend', handleMoveEnd);
+    };
+  }, [isMapReady, onDestinationChange, onDestinationMoveStart, showDestinationPin]);
 
   return (
     <section className={`relative overflow-hidden rounded-[24px] border border-[#14B8A6]/20 bg-[#0B0F19] shadow-2xl shadow-black/40 ${className || ''}`}>
       <div ref={containerRef} className="h-full min-h-0 w-full" />
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#0B0F19]/78 via-transparent to-[#0B0F19]/20 lg:hidden" />
+      {showDestinationPin && (
+        <div
+          data-destination-pin="true"
+          className="pointer-events-none absolute left-1/2 top-1/2 z-30 flex -translate-x-1/2 -translate-y-full flex-col items-center"
+          aria-hidden="true"
+        >
+          <div className="flex h-12 w-12 items-center justify-center rounded-full border border-[#14F5D5]/70 bg-[#0B0F19]/88 shadow-[0_0_32px_rgba(20,245,213,0.32)] backdrop-blur">
+            <div className="h-4 w-4 rounded-full bg-[#14F5D5] shadow-[0_0_18px_rgba(20,245,213,0.9)]" />
+          </div>
+          <div className="-mt-1 h-4 w-4 rotate-45 border-b border-r border-[#14F5D5]/70 bg-[#0B0F19]/88" />
+          <div className="mt-2 rounded-full border border-[#14B8A6]/25 bg-[#0B0F19]/85 px-3 py-1 text-[10px] font-black text-[#14F5D5] backdrop-blur">
+            حرّك الخريطة لتحديد الوجهة
+          </div>
+        </div>
+      )}
       <div className="pointer-events-none absolute right-3 top-3 rounded-2xl border border-[#14B8A6]/25 bg-[#0B0F19]/80 px-3 py-2 text-right text-[10px] font-black text-[#14F5D5] backdrop-blur sm:right-4 sm:top-4 sm:text-[11px] lg:right-[456px]">
         <span className="block">{getLocationStatusLabel(locationStatus)}</span>
         <span className="mt-1 block font-mono">H3 R9: {riderCell.slice(0, 8).toUpperCase()}</span>

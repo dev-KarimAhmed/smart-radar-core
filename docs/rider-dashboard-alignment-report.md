@@ -1,144 +1,181 @@
 # Rider Dashboard Alignment Report
 
-Date: 2026-07-03
+Date: 2026-07-04
 
-Scope: current Rider Dashboard, Rider auth entry, responsive dashboard layout, MapLibre/OpenFreeMap map, H3 geospatial flow, Supabase fare/request integration, Dexie local ledger/favorites, and the client-approved ad card surface.
+Scope: Rider Dashboard, rider authentication, profile editing, map/geospatial flow, Supabase ride request pipeline, realtime offers, ad cards, Dexie local storage, and production readiness.
 
 ## Executive Summary
 
-Frontend/demo alignment: **96%**
+Frontend/demo alignment: **97%**
 
-Production readiness: **78%**
+Production readiness: **82%**
 
-The Rider Dashboard is now very strong as a frontend experience. It has the seven-state reducer, live MapLibre/OpenFreeMap map, browser GPS with fallback, H3 captain dots, responsive desktop sidebar/mobile bottom nav, Supabase phone/password auth, multi-country registration dropdowns, server fare RPC integration, `ride_requests` insertion, Realtime request-status subscription, Dexie 72-hour ledger, local favorite captains, and a stronger ad carousel with hover pause plus forward/back controls.
+The Rider Dashboard is now strong as a working product prototype. It includes the seven-state reducer, MapLibre/OpenFreeMap map, browser GPS, H3 cells, Supabase phone/password authentication, multi-country registration, dynamic country/governorate/district dropdowns, country-aware destination selection, Supabase fare RPC, `ride_requests` insertion, realtime request and offer subscriptions, live captain-location lookup, live ad campaign fetching, local 72-hour ledger, local favorites, responsive desktop/mobile layout, and client-approved large ad cards.
 
-The production score is still lower because the trusted marketplace is only partially server-authoritative. Fare quoting and request creation have moved toward Supabase authority, but real captain offers, captain assignment, trip start/end, cancellation, wallet settlement, commission, ad billing, fraud controls, and support-grade ledger sync are not complete yet.
+The main production gap is no longer the basic UI. The remaining work is backend authority: selecting a driver, locking the offer, starting/completing/cancelling trips, wallet movements, commissions, ad billing, support-grade ledger sync, and RLS verification must be controlled by the server.
 
-Important ad note: dashboard ads should keep the client-approved large image-card style and current dashboard placement. The latest ad behavior improves interaction only: hover/focus/touch pauses movement, and users can manually scroll forward/back.
+Recent profile note: profile editing now writes only the expected `profiles` fields: `full_name`, `phone`, `country_id`, `governorate_id`, and `district_id`. Save errors now identify whether the problem is RLS permission, missing columns, foreign keys, duplicates, or network failure.
 
 ## Alignment By Area
 
 | Area | Alignment | Status |
 | --- | ---: | --- |
 | Seven rider states | 96% | `useReducer` state machine exists with bounded transitions. |
-| Rider map experience | 94% | MapLibre/OpenFreeMap renders with live/fallback location and H3 captain dots. |
-| Responsive layout | 92% | Desktop has left sidebar; mobile keeps header/bottom nav and no scroll trap. |
-| Supabase rider auth | 88% | Phone/password login/signup, remember me, session check, logout dialog, forgot-password support flow, country/governorate/district dropdowns. |
-| Multi-country registration | 86% | Countries, governorates, and districts fetch from Supabase; IDs are sent in auth metadata. |
-| Server fare authority | 84% | `calculate_server_fare` RPC is called with origin/destination and `p_country_id`; needs live DB/RLS/performance verification. |
-| Ride request creation | 78% | Inserts into `public.ride_requests` with rider ID, coords, H3 cells, destination name, fare, country, and `PENDING`. |
-| Realtime ride transition | 72% | Subscribes to request row and moves to `RECEIVING_OFFERS`; real offer stream is not complete. |
-| Offers and captain selection | 55% | UI exists, but offers are still local/mock after server status. |
-| Active trip UI | 82% | ETA, captain/vehicle card, price, H3 movement, and test complete button exist; server trip lifecycle missing. |
-| 72-hour ledger | 88% | Dexie stores completed local trip entries and purges expired items. Needs backend sync/rules. |
-| Favorite captains vault | 88% | Dexie/local favorite captain storage exists. Needs backend sync only if matching priority depends on it. |
-| Ads surface | 86% | Client large-card style preserved; carousel pauses on hover and supports manual navigation. Billing authority remains incomplete. |
-| Arabic/UI copy | 78% | Main Rider labels are moving toward simple Uber/inDrive-style wording; older shared screens still use heavy internal terms. |
-| Backend authority overall | 58% | Auth/fare/request started; offers, trips, wallets, commissions, ads, and admin authority still need backend enforcement. |
+| MapLibre/OpenFreeMap | 94% | Free map renders with GPS/fallback and H3 markers. |
+| H3 geospatial flow | 94% | Official `h3-js` is used for rider and destination cells. |
+| Supabase auth | 90% | Phone/password, remember me, session check, logout, forgot-password support path, and dynamic signup metadata exist. |
+| Profile editing | 82% | Fetches and saves through Supabase `profiles`; frontend fixed, but RLS/live schema must be verified. |
+| Multi-country registration | 88% | Countries, governorates, and districts fetch from Supabase and pass integer IDs. |
+| Country-aware destination selection | 86% | Rider request destinations now fetch governorates/districts from Supabase by the active user's country ID. |
+| Server fare authority | 86% | `calculate_server_fare` RPC is used with origin, destination, and `p_country_id`. |
+| Ride request creation | 82% | Inserts into `ride_requests` with rider ID, coords, H3 cells, destination label, country ID, fare, and `PENDING`. |
+| Realtime request status | 78% | Subscribes to request row; still dispatches offers state immediately after insert as a UX shortcut. |
+| Realtime offers | 76% | Subscribes to `ride_offers`; real offer display path exists, but offer selection is not server-authoritative yet. |
+| Captain presence | 72% | Queries `captain_locations`; empty nearby regions are handled, but real captain app update pipeline is still needed. |
+| Active trip lifecycle | 64% | UI exists, but trip start/complete/cancel/rating are still mostly local actions. |
+| Dexie ledger | 86% | Local 72-hour ledger works for UX; production sync/support authority is missing. |
+| Favorites | 84% | Local favorite drivers/favorite ads exist; backend sync depends on final product rules. |
+| Ads surface | 86% | Fetches `ad_campaigns`, keeps large client-approved card style, hover pause, manual scroll, and placeholder empty state. |
+| Arabic copy | 72% | Visible copy is simpler in many places, but source still contains mojibake and old dramatic terms in several files. |
+| Legacy backend cleanup | 55% | Some Firebase listeners/hooks still emit permission warnings and should be isolated or removed from production rider flow. |
 
 ## What Is Aligned Now
 
-- **Seven-state reducer:** `src/components/dashboard/rider/rider-state-machine.ts` defines `IDLE_MAP`, `DESTINATION_SELECTION`, `RECEIVING_OFFERS`, `TRIP_ACTIVE`, `RATING_MODAL`, `PURGE_LEDGER`, and `FAVORITE_CAPTAINS`.
-- **Bounded transitions:** the reducer blocks ledger/favorites/map transitions during active offer, trip, and rating states.
-- **MapLibre/OpenFreeMap:** `src/components/dashboard/rider/rider-map.tsx` renders a keyless free map with no Google visual dependency.
-- **Browser location:** the map requests live GPS and falls back to the configured mock/fallback location when unavailable.
-- **Official H3 usage:** H3 cells are generated through `h3-js` and attached to fare/request data.
-- **Server fare RPC:** `src/components/dashboard/rider/rider-server-marketplace.ts` calls `calculate_server_fare` with `lat1`, `lng1`, `lat2`, `lng2`, and `p_country_id`.
-- **Ride request insert:** Rider request creation inserts into `ride_requests` with coordinates, origin/destination H3 cells, Arabic destination address, server fare, country ID, and `PENDING`.
-- **Realtime subscription:** the dashboard subscribes to the created request row and transitions when the server status becomes `RECEIVING_OFFERS`.
-- **Supabase auth:** signup/login use Supabase Phone + Password and send `role`, `full_name`, `phone`, `country_id`, `governorate_id`, and `district_id`.
-- **Session flow:** app startup checks the Supabase session; logout has a confirmation dialog above sidebars/sheets.
-- **Responsive UI:** desktop uses a left sidebar and full map surface; mobile keeps the bottom nav and scrolls correctly.
-- **Dexie ledger:** completed local trips are written to `riderTripLedger` with purge timestamps.
-- **Favorites:** favorite captains use Dexie/local device storage.
-- **Ads:** the client-approved large card layout remains; hover/touch/focus pauses movement, next/previous controls are present, and labels now use simpler words like "إعلانات قريبة منك".
+- **State machine:** the Rider Dashboard has explicit screens for map, destination selection, receiving offers, active trip, rating, ledger, and favorites.
+- **Map:** the rider screen uses MapLibre/OpenFreeMap instead of paid Google Maps.
+- **Location:** browser location is requested and H3 cells are calculated at the rider flow level.
+- **Fare:** the frontend calls `calculate_server_fare` instead of trusting only local Haversine pricing.
+- **Destination selection:** the request screen fetches destination governorates and districts from Supabase using the active user's `country_id`, instead of forcing Jordan/Amman.
+- **Ride request:** confirmed ride requests insert into `public.ride_requests`.
+- **Realtime:** request status and `ride_offers` have Supabase realtime subscription helpers.
+- **Offers empty state:** while no offers exist, the UI shows a loader instead of broken content.
+- **Offer timeout:** after the wait window, the request can be cancelled and a retry card is shown.
+- **Captain presence:** nearby driver dots come from `captain_locations`, not random local generation.
+- **Ads:** ad cards fetch from `ad_campaigns`; if none are available, the dashboard shows a branded placeholder card.
+- **Profile:** profile data is fetched from Supabase and editing uses backend IDs from live dropdowns.
+- **Ad interaction:** hover/focus/touch pauses auto-scroll and users can move forward/back manually.
+- **Responsive layout:** desktop uses a left sidebar, while mobile keeps the bottom navigation behavior.
 
 ## Missing Or Partial For Production
 
-- **Real offers are not server-driven yet.** The app can move to `RECEIVING_OFFERS`, but actual captain offers are still local/mock UI data.
-- **Captain assignment is not authoritative.** Selecting a captain does not yet call a server RPC/Edge Function to lock assignment.
-- **Trip lifecycle is still local.** Start trip, active trip, complete trip, cancellation, disputes, and rating are not server-validated.
-- **Active trip tracking is simulated.** H3 captain movement is useful for demo, but real pulsed captain presence is not integrated.
-- **Ledger is not support-grade yet.** Dexie is good for offline UX, but production needs sync, conflict handling, and server-side support/legal rules.
-- **Wallet/commission settlement is not protected.** Wallet balances, captain payments, delegate commissions, and platform fees still need backend authority.
-- **Ad billing is not authoritative.** The ad UI is much better, but impressions/clicks/budget consumption still need one server-protected batching path.
-- **Legacy Firebase remains.** Several hooks and dashboard surfaces still use Firestore/Firebase, creating permission warnings and split backend authority.
-- **Arabic copy is not fully simple everywhere.** The Rider flow should consistently use normal ride-app wording: "السائق" instead of "الكابتن", "رحلاتي" instead of "السجل", "الرصيد" instead of "المحفظة", "المفضلة" instead of "المحفوظات", and "إعلانات قريبة منك" instead of "نهر الإعلانات".
-- **Supabase RLS/triggers need live verification.** Auth profile creation, foreign keys, `ride_requests`, Realtime, and fare RPC must be tested against live policies.
-- **Geospatial data needs certification.** Jordan local district anchors and any future country anchors should be validated against client-approved or official GIS data.
+- **Offer selection is not locked by the server.** Choosing an offer should call an RPC or Edge Function that atomically accepts one offer and blocks double acceptance.
+- **Trip lifecycle is not authoritative.** Start trip, arrive, complete trip, cancel, no-show, dispute, and rating should be server events.
+- **Wallet and commissions are not protected.** Balances, payouts, delegate commissions, platform fees, refunds, and penalties need backend-controlled transactions.
+- **Profile editing depends on RLS.** The frontend is now cleaner, but Supabase must allow a user to update only their own `profiles` row.
+- **Destination coordinates depend on database quality.** District rows need valid latitude/longitude columns. If a row has no coordinates, the frontend blocks the request instead of using fake data.
+- **Realtime transition has one shortcut.** After insert, the UI currently moves into receiving-offers state immediately; production should rely only on trusted server status.
+- **Captain presence needs the driver-side publisher.** `captain_locations` is queried, but the production driver app must publish pulsed H3 updates safely.
+- **Ledger is local-first only.** Dexie is good for UX, but support, disputes, and legal retention need server sync and purge rules.
+- **Ad billing is not authoritative.** Views/clicks can be batched locally, but campaign budget and billing counters must be server-protected.
+- **Firebase remnants remain.** Some dashboard listeners still produce permission warnings, which creates confusion and split backend authority.
+- **Arabic source cleanup is unfinished.** Several source strings still show encoding corruption or heavy internal terms. This should be fixed before client delivery.
+
+## Profile Save Diagnosis
+
+Current frontend behavior is now correct:
+
+- Saves only known profile columns.
+- Uses `update` when the profile row exists.
+- Uses `upsert` only when no profile row was found.
+- Shows specific Arabic error messages for:
+  - RLS/permission denial.
+  - Missing `profiles` columns.
+  - Invalid country/governorate/district foreign keys.
+  - Duplicate profile row.
+  - Network failure.
+
+If saving still fails with an RLS message, Supabase needs policies similar to:
+
+```sql
+create policy "profiles_select_own"
+on public.profiles
+for select
+to authenticated
+using (id = auth.uid());
+
+create policy "profiles_update_own"
+on public.profiles
+for update
+to authenticated
+using (id = auth.uid())
+with check (id = auth.uid());
+```
+
+If new rows can be created from the profile screen, an insert/upsert policy may also be needed. If profile rows are created only by the auth trigger, insert from the client can stay blocked.
 
 ## Security And Backend Authority Gaps
 
-These items must not remain trusted only on the frontend:
+These must not remain trusted only on the frontend:
 
-- Real ride offer creation and captain eligibility.
-- Captain assignment and prevention of double-acceptance.
-- Trip start, complete, cancel, no-show, and dispute state.
-- Final fare locking and fare adjustment rules.
-- Wallet balances, payment events, payouts, and commission settlement.
-- Rider/captain trust score penalties and anti-cheat rules.
-- Ad impression/click counters, billing, campaign budget, and fraud filtering.
-- 72-hour ledger records if used for support, disputes, or accounting.
-- Favorite captains if they affect matching priority.
-- Admin kill switch, role permissions, moderation, and audit logging.
+- Driver offer creation and eligibility.
+- Offer acceptance and prevention of double acceptance.
+- Trip state transitions.
+- Final fare locking and fare adjustment.
+- Wallet balances and payment events.
+- Payouts, commissions, refunds, and penalties.
+- Ad views, clicks, campaign budget, and billing.
+- Driver availability and H3 presence.
+- Support-grade trip ledger records.
+- Admin roles, kill switches, and moderation actions.
 
 ## Compliance Gaps
 
-- **SC55 zero-cost:** map and H3 flow are aligned, but Firestore/Firebase remnants still create cost and permission-noise risk.
-- **Offline-first:** Dexie is used for ledger/favorites, but server-created ride requests need offline queue/retry behavior.
-- **No paid Google APIs:** Rider/Driver map flow is clean; continue scanning shared/legacy tools before production.
-- **Pulsed tracking:** visual pulse exists, but real captain pulsed H3 updates are not yet wired.
-- **Ad River batching:** UI behavior is aligned; production billing/batching is not final.
+- **Zero-cost map:** aligned with MapLibre/OpenFreeMap.
+- **No paid Google dependency:** rider map flow is aligned; continue scanning shared legacy surfaces.
+- **Offline-first:** Dexie is used for ledger/favorites, but ride requests need offline queue/retry behavior if offline usage is required.
+- **Pulsed tracking:** visual and data structure exist, but real driver-side pulsed updates are not complete.
+- **Backend authority:** fare/request started; offer acceptance, trip lifecycle, wallet, and ads are still incomplete.
 
 ## Production Action Plan
 
-1. **Finish Supabase ride lifecycle authority**
-   - Add server RPC/Edge Functions for create request, receive offer, select captain, cancel request, start trip, complete trip, and rate trip.
-   - Keep the reducer, but feed it trusted server state.
+1. **Verify Supabase schema and RLS**
+   - Confirm `profiles` columns match frontend fields.
+   - Add/select/update policies for own profile rows.
+   - Test `countries`, `governorates`, `districts`, `profiles`, `ride_requests`, `ride_offers`, `captain_locations`, and `ad_campaigns` with real Jordan and Egypt rider accounts.
+   - Confirm each district has usable coordinate fields such as `lat/lng`, `latitude/longitude`, or `anchor_lat/anchor_lng`.
 
-2. **Build real offers and captain availability**
-   - Add captain presence by H3 cell with low-frequency pulsed updates.
-   - Subscribe to eligible `ride_offers` instead of local mock offers.
-   - Prevent multiple active requests per rider and multiple accepted captains per request.
+2. **Make offer acceptance server-authoritative**
+   - Add an RPC/Edge Function such as `accept_ride_offer`.
+   - Lock one offer per request.
+   - Reject stale, cancelled, or already accepted offers.
 
-3. **Harden fare and wallet authority**
-   - Keep `calculate_server_fare` as the only source for fare preview/final quote.
-   - Store signed quote inputs and final fare.
-   - Move wallet, payout, commission, and cancellation penalties fully server-side.
+3. **Complete trip lifecycle backend**
+   - Add server actions for start, arrive, complete, cancel, no-show, dispute, and rate.
+   - Feed reducer state from trusted rows/events.
 
-4. **Complete RLS and database verification**
-   - Test `countries`, `governorates`, `districts`, `profiles`, `ride_requests`, Realtime, and fare RPC with real authenticated rider accounts.
-   - Confirm policies block cross-user reads/writes.
+4. **Wire driver presence**
+   - Implement low-frequency H3 updates from the driver app.
+   - Store only active available drivers in `captain_locations`.
+   - Add expiry to prevent stale dots.
 
-5. **Remove or isolate Firebase**
-   - Decide which Firebase paths are legacy/demo only.
-   - Migrate production Rider dependencies to Supabase or hard-gate them outside production.
-   - Eliminate permission-warning noise.
+5. **Harden wallet and commission**
+   - Move all balance changes to database functions.
+   - Add immutable ledger rows for payments, refunds, penalties, and commissions.
 
-6. **Simplify Arabic copy**
-   - Use Uber/inDrive-style Arabic: short, familiar, and action-focused.
-   - Replace heavy words such as `رادار`, `نهر`, `نبض`, `سيادي`, `محفوظات`, and `كابتن` in rider-facing surfaces.
-   - Keep the shared copy source in `docs/simple-ar-en-copy-guide.md` and scan for mojibake characters before release.
+6. **Productionize ads**
+   - Keep the current large card layout.
+   - Move ad metric flush and budget decrement to a server-protected path.
+   - Keep placeholder empty state for no campaigns.
 
-7. **Productionize ads**
-   - Keep the large image-card layout and hover pause/manual scroll.
-   - Implement protected ad metrics batching and server-side billing counters.
-   - Keep local favorite/save behavior for UX, but sync when required.
+7. **Remove or isolate Firebase**
+   - Migrate production Rider dependencies to Supabase.
+   - Gate legacy Firebase code as demo/admin-only if it is still needed.
+   - Remove permission-warning noise from the Rider experience.
 
-8. **Validate geospatial data**
-   - Certify district coordinates per supported country.
-   - Add tests for fare ranges across common routes.
-   - Decide whether OSRM is required for production-grade distance, with Haversine/H3 fallback.
+8. **Clean Arabic copy and encoding**
+   - Replace mojibake in source files.
+   - Use neutral, simple Arabic: "السائق", "طلب رحلة", "رحلاتي", "الرصيد", "المفضلة", "الإعلانات".
+   - Avoid heavy words like "سيادي", "ذري", "دستوري", "نهر", and "نبض" in user-facing UI.
 
-9. **Mobile/desktop QA pass**
-   - Test GPS allow/deny/unavailable.
-   - Test slow Supabase network, failed RPC, failed insert, failed Realtime, logout, session restore, and mobile scrolling.
-   - Verify sidebars, dialogs, map overlays, ads, and bottom nav stacking.
+9. **QA before production**
+   - Test mobile and desktop.
+   - Test GPS allowed/denied/unavailable.
+   - Test auth session restore, logout, profile edit, fare RPC failure, request insert failure, realtime disconnect, no offers timeout, and no ads empty state.
 
 ## Current Bottom Line
 
-The Rider Dashboard is **very close for a frontend demo and client walkthrough**.
+The Rider Dashboard is **nearly complete as a client-facing prototype** and much closer to production than before.
 
-It is **not fully production-ready as a trusted marketplace** until real offers, trip lifecycle, wallet/commission, ad billing, and RLS-backed authority are complete.
+It is **not yet production-ready as a trusted marketplace** until the server owns offer acceptance, trip lifecycle, wallet/commission, ad billing, and RLS-backed permissions.
 
-Recommended next milestone: **server-authoritative offers and captain assignment**, followed by **trip lifecycle and wallet settlement**.
+Recommended next milestone: **Supabase RLS verification + server-authoritative offer acceptance**.

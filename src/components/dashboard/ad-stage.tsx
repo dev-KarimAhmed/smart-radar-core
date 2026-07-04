@@ -5,7 +5,6 @@ import { AnimatePresence, motion } from 'motion/react';
 import { ChevronLeft, ChevronRight, MapPin, MessageCircle, Phone, ShieldCheck, X } from 'lucide-react';
 import { AdDisplayCard, getAdDescription, getAdTitle } from './ad-display-card';
 import { useAuth } from '@/hooks/use-auth';
-import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase-client';
 
 const AD_BATCH_WRITE_LIMIT = 50;
@@ -79,11 +78,11 @@ const getBadgeText = (ad: any) => {
 
 export function AdStage({ isFullScreen = false }: { isFullScreen?: boolean }) {
  const { user } = useAuth();
- const { toast } = useToast();
  const liveDistrict = user?.district || 'عمان';
  const liveGovernorate = user?.governorate || 'العاصمة';
  const [serverAds, setServerAds] = useState<any[]>([]);
  const [isLoadingAds, setIsLoadingAds] = useState(true);
+ const [hasAdFetchIssue, setHasAdFetchIssue] = useState(false);
  const [heartedAdIds, setHeartedAdIds] = useState<string[]>([]);
  const [takeoverAd, setTakeoverAd] = useState<any | null>(null);
  const [isAdStreamPaused, setIsAdStreamPaused] = useState(false);
@@ -95,6 +94,7 @@ export function AdStage({ isFullScreen = false }: { isFullScreen?: boolean }) {
 
  async function fetchLiveAds() {
  setIsLoadingAds(true);
+ setHasAdFetchIssue(false);
  try {
  const { data, error } = await supabase
  .from('ad_campaigns')
@@ -105,12 +105,9 @@ export function AdStage({ isFullScreen = false }: { isFullScreen?: boolean }) {
  if (active) setServerAds(Array.isArray(data) ? data.map(mapAdCampaignRow) : []);
  } catch (error) {
  if (!active) return;
+ if (import.meta.env.DEV) console.warn('[AdStage] showing placeholder because ads could not load:', error);
  setServerAds([]);
- toast({
- variant: 'destructive',
- title: 'تعذر تحميل الإعلانات',
- description: 'عذراً، تعذر الاتصال بالخادم. تحقق من شبكة الإنترنت.',
- });
+ setHasAdFetchIssue(true);
  } finally {
  if (active) setIsLoadingAds(false);
  }
@@ -121,12 +118,27 @@ export function AdStage({ isFullScreen = false }: { isFullScreen?: boolean }) {
  return () => {
  active = false;
  };
- }, [toast]);
+ }, []);
 
  const adsToUse = useMemo(() => {
  const filteredAds = RadarAdMetrics.filterAdsByLocalContext(liveDistrict, liveGovernorate, serverAds);
- return filteredAds.length > 0 ? filteredAds : [BRAND_PLACEHOLDER_AD];
- }, [liveDistrict, liveGovernorate, serverAds]);
+ if (filteredAds.length > 0) return filteredAds;
+
+ return [
+ {
+ ...BRAND_PLACEHOLDER_AD,
+ description: hasAdFetchIssue
+ ? 'لا توجد إعلانات متاحة الآن. سنعرض لك العروض فور توفرها.'
+ : BRAND_PLACEHOLDER_AD.description,
+ content: {
+ ...BRAND_PLACEHOLDER_AD.content,
+ description: hasAdFetchIssue
+ ? 'لا توجد إعلانات متاحة الآن. سنعرض لك العروض فور توفرها.'
+ : BRAND_PLACEHOLDER_AD.content.description,
+ },
+ },
+ ];
+ }, [hasAdFetchIssue, liveDistrict, liveGovernorate, serverAds]);
 
  useEffect(() => {
  adsToUse.forEach((ad: any) => {
