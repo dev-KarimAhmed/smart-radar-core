@@ -7,7 +7,7 @@ type SupabaseRpcLike = {
 };
 
 type SupabaseMarketplaceRpcLike = {
-  rpc: (name: string, args: Record<string, string>) => PromiseLike<{ data: unknown; error: unknown }>;
+  rpc: (name: string, args: Record<string, string | number>) => PromiseLike<{ data: unknown; error: unknown }>;
 };
 
 type SupabaseInsertLike = {
@@ -170,6 +170,32 @@ export async function acceptRideOffer(
   const { data, error } = await client.rpc('accept_ride_offer', {
     p_request_id: input.requestId,
     p_offer_id: input.offerId,
+  });
+
+  if (error) throw error;
+  return data;
+}
+
+export async function completeRideTrip(
+  client: SupabaseMarketplaceRpcLike,
+  input: { requestId: string },
+) {
+  const { data, error } = await client.rpc('complete_ride_trip', {
+    p_request_id: input.requestId,
+  });
+
+  if (error) throw error;
+  return data;
+}
+
+export async function submitRideRating(
+  client: SupabaseMarketplaceRpcLike,
+  input: { requestId: string; captainId: string; ratingValue: number },
+) {
+  const { data, error } = await client.rpc('submit_ride_rating', {
+    p_request_id: input.requestId,
+    p_captain_id: input.captainId,
+    p_rating_value: toStrictRating(input.ratingValue),
   });
 
   if (error) throw error;
@@ -448,6 +474,15 @@ function toStrictPositiveInteger(value: unknown, fieldName: string) {
   const numberValue = Number(value);
   if (!Number.isInteger(numberValue) || numberValue <= 0) {
     throw new Error(`invalid_${fieldName}`);
+  }
+
+  return numberValue;
+}
+
+function toStrictRating(value: unknown) {
+  const numberValue = Number(value);
+  if (!Number.isInteger(numberValue) || numberValue < 1 || numberValue > 5) {
+    throw new Error('invalid_p_rating_value');
   }
 
   return numberValue;

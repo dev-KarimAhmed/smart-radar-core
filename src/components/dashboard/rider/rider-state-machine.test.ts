@@ -66,6 +66,17 @@ assert.equal(state.offers.length, offers.length);
 assert.equal(shouldShowAdRiver(state), false);
 
 state = riderDashboardReducer(state, { type: 'SELECT_OFFER', offerId: offers[0].driverId });
+assert.equal(state.screen, 'RECEIVING_OFFERS');
+assert.equal(state.pendingAcceptedOfferId, offers[0].driverId);
+
+state = riderDashboardReducer(state, {
+  type: 'SERVER_STATUS_ACCEPTED',
+  row: {
+    id: 'request-1',
+    accepted_offer_id: offers[0].driverId,
+    final_fare: destination.serverEstimatedFare,
+  },
+});
 assert.equal(state.screen, 'TRIP_ACTIVE');
 assert.equal(state.activeTrip?.captainId, offers[0].driverId);
 assert.equal(state.activeTrip?.distanceKm, destination.fareQuote.estimatedRoadDistanceKm);
@@ -75,12 +86,8 @@ state = riderDashboardReducer(state, { type: 'COMPLETE_TRIP' });
 assert.equal(state.screen, 'RATING_MODAL');
 assert.equal(state.completedTrip?.captainId, offers[0].driverId);
 
-state = riderDashboardReducer(state, {
-  type: 'SUBMIT_RATING',
-  rating: { captain: 5, vehicle: 4, favorite: true },
-});
+state = riderDashboardReducer(state, { type: 'SUBMIT_RATING' });
 assert.equal(state.screen, 'IDLE_MAP');
-assert.equal(state.localRatings.length, 1);
 assert.equal(shouldShowAdRiver(state), true);
 
 state = riderDashboardReducer(state, { type: 'OPEN_PURGE_LEDGER' });
@@ -93,7 +100,6 @@ assert.equal(shouldShowAdRiver(state), true);
 
 state = riderDashboardReducer(state, { type: 'RESET_TO_IDLE' });
 assert.equal(state.screen, 'IDLE_MAP');
-assert.equal(state.localRatings.length, 1);
 assert.equal(shouldShowAdRiver(state), true);
 
 const blocked = riderDashboardReducer(createInitialRiderMachineState(), {

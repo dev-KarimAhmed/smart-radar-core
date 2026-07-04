@@ -193,7 +193,6 @@ function purgeTransientFrontendCache() {
   const localKeys = [
     'sovereign_gps_local_buffer',
     'radar_rider_local_reports',
-    'radar_rider_local_ratings',
   ];
 
   for (const key of sessionKeys) {

@@ -57,7 +57,6 @@ export interface RiderMachineState {
   offers: Offer[];
   activeTrip: RiderActiveTrip | null;
   completedTrip: RiderActiveTrip | null;
-  localRatings: Array<RiderLocalRating & { tripId: string; submittedAt: number }>;
   requestStartedAt: number | null;
   requestId: string | null;
   requestCancelledAt: number | null;
@@ -76,7 +75,7 @@ export type RiderMachineAction =
   | { type: 'RECEIVE_OFFERS'; offers: Offer[] }
   | { type: 'SELECT_OFFER'; offerId: string }
   | { type: 'COMPLETE_TRIP' }
-  | { type: 'SUBMIT_RATING'; rating: RiderLocalRating }
+  | { type: 'SUBMIT_RATING' }
   | { type: 'OPEN_PURGE_LEDGER' }
   | { type: 'OPEN_FAVORITE_CAPTAINS' }
   | { type: 'RETURN_TO_MAP' }
@@ -89,7 +88,6 @@ export function createInitialRiderMachineState(): RiderMachineState {
     offers: [],
     activeTrip: null,
     completedTrip: null,
-    localRatings: [],
     requestStartedAt: null,
     requestId: null,
     requestCancelledAt: null,
@@ -254,14 +252,6 @@ export function riderDashboardReducer(state: RiderMachineState, action: RiderMac
         requestId: null,
         requestCancelledAt: null,
         pendingAcceptedOfferId: null,
-        localRatings: [
-          ...state.localRatings,
-          {
-            ...action.rating,
-            tripId: state.completedTrip.tripId,
-            submittedAt: Date.now(),
-          },
-        ],
       };
 
     case 'OPEN_PURGE_LEDGER':
@@ -277,10 +267,7 @@ export function riderDashboardReducer(state: RiderMachineState, action: RiderMac
       return { ...state, screen: 'IDLE_MAP' };
 
     case 'RESET_TO_IDLE':
-      return {
-        ...createInitialRiderMachineState(),
-        localRatings: state.localRatings,
-      };
+      return createInitialRiderMachineState();
 
     default:
       return state;
@@ -289,16 +276,6 @@ export function riderDashboardReducer(state: RiderMachineState, action: RiderMac
 
 export function useRiderDashboardMachine() {
   const [state, dispatch] = React.useReducer(riderDashboardReducer, undefined, createInitialRiderMachineState);
-
-  React.useEffect(() => {
-    if (state.localRatings.length === 0) return;
-
-    try {
-      localStorage.setItem('radar_rider_local_ratings', JSON.stringify(state.localRatings));
-    } catch (error) {
-      console.warn('Failed to store local rider ratings:', error);
-    }
-  }, [state.localRatings]);
 
   return { state, dispatch, showAdRiver: shouldShowAdRiver(state) };
 }

@@ -258,6 +258,7 @@ export function PersonalStep() {
     governorates,
     districts,
     locationDataLoading,
+    canUseDevMockData,
     fillRandomRegistrationData,
     isSubmitting,
     role,
@@ -381,15 +382,17 @@ export function PersonalStep() {
                     )}
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={fillRandomRegistrationData}
-                    disabled={locationDataLoading || !selectedCountry || !personal.gov || !districts.length}
-                    className="inline-flex min-h-9 items-center gap-2 rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-3 text-xs font-black text-[#14B8A6] transition hover:border-[#14B8A6] hover:bg-[#14B8A6]/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/50 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    <Sparkles className="h-4 w-4" aria-hidden="true" />
-                    {t.mockData}
-                  </button>
+                  {canUseDevMockData ? (
+                    <button
+                      type="button"
+                      onClick={fillRandomRegistrationData}
+                      disabled={locationDataLoading || !selectedCountry || !personal.gov || !districts.length}
+                      className="inline-flex min-h-9 items-center gap-2 rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-3 text-xs font-black text-[#14B8A6] transition hover:border-[#14B8A6] hover:bg-[#14B8A6]/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/50 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <Sparkles className="h-4 w-4" aria-hidden="true" />
+                      {t.mockData}
+                    </button>
+                  ) : null}
                 </div>
               ) : null}
 

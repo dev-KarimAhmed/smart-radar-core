@@ -11,11 +11,17 @@ import { AdminStep } from '@/components/auth/AdminStep';
 import { AdvertiserStep } from '@/components/auth/AdvertiserStep';
 import { useAuth } from '@/hooks/use-auth';
 
+const isStrictDevelopment =
+  (globalThis as any).process?.env?.NODE_ENV === 'development' ||
+  (import.meta.env.DEV && import.meta.env.MODE === 'development');
+
 function LoginOrchestrator() {
   const { step, handleLogoTap } = useRegistration();
   const { loginAsMockUser } = useAuth();
 
   const handleDevBypass = (roleType: 'rider' | 'driver' | 'admin' | 'advertiser' | 'delegate') => {
+    if (!isStrictDevelopment) return;
+
     if (roleType === 'rider') {
       loginAsMockUser({
         uid: 'dev-rider-001',
@@ -191,7 +197,7 @@ function LoginOrchestrator() {
           {renderStep()}
 
           {/* Development demo shortcuts */}
-          {import.meta.env.DEV && (
+          {isStrictDevelopment && (
             <div className="pt-4 border-t border-[#243249]/50 mt-6 space-y-3">
               <div className="text-center">
                 <span className="text-xs text-[#14B8A6]/80 font-semibold bg-[#14B8A6]/10 px-2.5 py-1 rounded-full border border-[#14B8A6]/20 inline-block">

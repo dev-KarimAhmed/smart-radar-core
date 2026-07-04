@@ -42,7 +42,7 @@ function AppOrchestrator() {
     return <LoginPage />;
   }
 
-  // ðŸ›¡ï¸ [RAD-CMD-064]: Isolated Route Island for Advertiser Dashboard
+  // Isolated route island for advertiser dashboard.
   if (currentPath === '/advertiser/dashboard' && user?.role === 'advertiser') {
     return (
       <div className="min-h-screen w-full bg-[#0B1120] text-white p-4 sm:p-8 flex items-center justify-center overflow-y-auto">
@@ -56,7 +56,7 @@ function AppOrchestrator() {
     );
   }
 
-  // ðŸ›¡ï¸ Conditional isolation of operations context providers based on role
+  // Route each role through its active operations provider.
   if (user.role === 'driver') {
     return (
       <DriverOperationsProvider>

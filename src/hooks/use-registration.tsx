@@ -7,6 +7,10 @@ import { shouldRememberSupabaseSession, supabase } from '@/lib/supabase-client';
 import { getDeviceDashboardLanguage, persistDashboardLanguage } from './use-dashboard-language';
 import { useToast } from './use-toast';
 
+const isStrictDevelopment =
+  (globalThis as any).process?.env?.NODE_ENV === 'development' ||
+  (import.meta.env.DEV && import.meta.env.MODE === 'development');
+
 type RegistrationStep = 'role' | 'personal' | 'affiliation' | 'vehicle' | 'admin' | 'advertiser' | 'ProfessionalStep';
 type RegistrationRole = 'rider' | 'driver' | 'advertiser' | 'delegate' | null;
 type AuthMode = 'register' | 'login';
@@ -77,6 +81,7 @@ interface RegistrationContextType {
   selectedCountry: SupabaseCountryRow | null;
   governorates: LocationOption[];
   districts: LocationOption[];
+  canUseDevMockData: boolean;
   fillRandomRegistrationData: () => void;
   handlePersonalSubmit: (e: React.FormEvent) => void;
   handleVehicleSubmit: (e: React.FormEvent) => void;
@@ -284,6 +289,8 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
   );
 
   const fillRandomRegistrationData = useCallback(() => {
+    if (!isStrictDevelopment) return;
+
     if (!selectedCountry || !personal.gov || districtRows.length === 0) {
       toast({
         variant: 'destructive',
@@ -520,6 +527,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     selectedCountry,
     governorates,
     districts,
+    canUseDevMockData: isStrictDevelopment,
     fillRandomRegistrationData,
     handlePersonalSubmit,
     handleVehicleSubmit,

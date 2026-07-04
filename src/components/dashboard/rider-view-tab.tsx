@@ -30,11 +30,13 @@ import {
   buildRideRequestInsertPayload,
   calculateServerFare,
   cancelRideRequest,
+  completeRideTrip,
   createRideRequest,
   fetchAvailableCaptainPresence,
   fetchRideOffers,
   isCaptainPresenceFresh,
   mapRiderMarketplaceError,
+  submitRideRating,
   subscribeToRideOffers,
   subscribeToRideRequestStatus,
   type CaptainPresencePoint,
@@ -93,6 +95,8 @@ export function RiderViewTab() {
   const [captainLocations, setCaptainLocations] = React.useState<CaptainPresencePoint[]>([]);
   const [isSendingRideRequest, setIsSendingRideRequest] = React.useState(false);
   const [acceptingOfferId, setAcceptingOfferId] = React.useState<string | null>(null);
+  const [isCompletingTrip, setIsCompletingTrip] = React.useState(false);
+  const [isSubmittingRating, setIsSubmittingRating] = React.useState(false);
   const [countryConfig, setCountryConfig] = React.useState<CountryCurrencyConfig | null>(null);
   const [destinationGovernorates, setDestinationGovernorates] = React.useState<GovernorateOption[]>([]);
   const [destinationDistricts, setDestinationDistricts] = React.useState<DistrictOption[]>([]);
@@ -716,6 +720,16 @@ export function RiderViewTab() {
 
   const handleCompleteTrip = async () => {
     if (!state.activeTrip) return;
+    if (!state.requestId) {
+      toast({
+        variant: 'destructive',
+        title: 'تعذر إنهاء الرحلة',
+        description: 'لا يوجد طلب رحلة نشط. انتظر تحديث الرحلة ثم حاول مرة أخرى.',
+      });
+      return;
+    }
+
+    setIsCompletingTrip(true);
 
     const historicalTrip = toHistoricalTrip(state.activeTrip);
     const ledgerEntry: RiderTripLedgerEntry = {
@@ -724,17 +738,76 @@ export function RiderViewTab() {
     };
 
     try {
-      await dexieDb.riderTripLedger.put(ledgerEntry);
-      setLocalCompletedTrips((previous) => [
-        historicalTrip,
-        ...previous.filter((trip) => trip.tripId !== historicalTrip.tripId),
-      ]);
+      await completeRideTrip(supabase, { requestId: state.requestId });
+
+      try {
+        await dexieDb.riderTripLedger.put(ledgerEntry);
+        setLocalCompletedTrips((previous) => [
+          historicalTrip,
+          ...previous.filter((trip) => trip.tripId !== historicalTrip.tripId),
+        ]);
+      } catch (cacheError) {
+        if (import.meta.env.DEV) console.warn('[Rider Complete Trip Cache]', cacheError);
+        setLocalCompletedTrips((previous) => [historicalTrip, ...previous]);
+      }
+
+      dispatch({ type: 'COMPLETE_TRIP' });
     } catch (error) {
-      console.error('Failed to store completed local trip in Dexie:', error);
-      setLocalCompletedTrips((previous) => [historicalTrip, ...previous]);
+      if (import.meta.env.DEV) console.warn('[Rider Complete Trip]', error);
+      toast({
+        variant: 'destructive',
+        title: 'تعذر إنهاء الرحلة',
+        description: mapRiderMarketplaceError(error),
+      });
+    } finally {
+      setIsCompletingTrip(false);
+    }
+  };
+
+  const handleSubmitRating = async () => {
+    if (!state.completedTrip || !state.requestId) {
+      toast({
+        variant: 'destructive',
+        title: 'تعذر حفظ التقييم',
+        description: 'بيانات الرحلة غير مكتملة. انتظر تحديث الرحلة ثم حاول مرة أخرى.',
+      });
+      return;
     }
 
-    dispatch({ type: 'COMPLETE_TRIP' });
+    const ratingValue = Math.max(1, Math.min(5, Math.round(rating.captain)));
+    setIsSubmittingRating(true);
+
+    try {
+      await submitRideRating(supabase, {
+        requestId: state.requestId,
+        captainId: state.completedTrip.captainId,
+        ratingValue,
+      });
+
+      if (rating.favorite) {
+        try {
+          const favoriteTrip = toHistoricalTrip(state.completedTrip);
+          await dexieDb.favoriteCaptains.put({
+            ...favoriteTrip,
+            heartedAt: Date.now(),
+          });
+        } catch (cacheError) {
+          if (import.meta.env.DEV) console.warn('[Rider Favorite Captain Cache]', cacheError);
+        }
+      }
+
+      dispatch({ type: 'SUBMIT_RATING' });
+      setRating({ captain: 0, vehicle: 0, favorite: false });
+    } catch (error) {
+      if (import.meta.env.DEV) console.warn('[Rider Submit Rating]', error);
+      toast({
+        variant: 'destructive',
+        title: 'تعذر حفظ التقييم',
+        description: mapRiderMarketplaceError(error),
+      });
+    } finally {
+      setIsSubmittingRating(false);
+    }
   };
 
   const renderStatePanel = () => {
@@ -990,9 +1063,10 @@ export function RiderViewTab() {
 
             <Button
               onClick={() => void handleCompleteTrip()}
+              disabled={isCompletingTrip}
               className="h-14 w-full rounded-2xl bg-[#14B8A6] text-base font-black text-[#031315] hover:bg-[#2DD4BF]"
             >
-              إنهاء الرحلة
+              {isCompletingTrip ? 'جاري إنهاء الرحلة...' : 'إنهاء الرحلة'}
             </Button>
           </CardContent>
         </Card>
@@ -1101,7 +1175,7 @@ export function RiderViewTab() {
           <DialogContent className="border-emerald-900/50 bg-[#050D05] text-white sm:max-w-md">
             <DialogHeader className="text-center">
               <DialogTitle className="text-xl font-black">قيّم الرحلة</DialogTitle>
-              <DialogDescription className="text-gray-400">التقييم محفوظ محليا في هذا النموذج فقط.</DialogDescription>
+              <DialogDescription className="text-gray-400">يساعدنا تقييمك على تحسين الخدمة.</DialogDescription>
             </DialogHeader>
 
             <div className="space-y-8 py-6">
@@ -1124,20 +1198,17 @@ export function RiderViewTab() {
                 onClick={() => setRating((prev) => ({ ...prev, favorite: !prev.favorite }))}
                 className="mx-auto flex items-center gap-3 rounded-2xl border border-emerald-500/20 bg-emerald-950/20 px-4 py-3 text-sm font-bold"
               >
-                <span>أضف السائق للمفضلة</span>
+                <span>أضف السائق إلى المفضلة</span>
                 <Heart className={cn('h-5 w-5', rating.favorite ? 'fill-red-500 text-red-500' : 'text-gray-500')} />
               </button>
             </div>
 
             <Button
               className="h-14 w-full bg-emerald-600 text-lg font-black hover:bg-emerald-500"
-              disabled={rating.captain === 0 || rating.vehicle === 0}
-              onClick={() => {
-                dispatch({ type: 'SUBMIT_RATING', rating });
-                setRating({ captain: 0, vehicle: 0, favorite: false });
-              }}
+              disabled={rating.captain === 0 || rating.vehicle === 0 || isSubmittingRating}
+              onClick={() => void handleSubmitRating()}
             >
-              حفظ التقييم
+              {isSubmittingRating ? 'جاري حفظ التقييم...' : 'حفظ التقييم'}
             </Button>
           </DialogContent>
         </Dialog>
