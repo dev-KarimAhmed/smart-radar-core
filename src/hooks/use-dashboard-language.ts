@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { AppLanguage } from '@/lib/i18n/simple-copy';
 
-const DASHBOARD_LANGUAGE_KEY = 'radar_dashboard_language';
-const DASHBOARD_LANGUAGE_EVENT = 'radar-dashboard-language-change';
+export const DASHBOARD_LANGUAGE_KEY = 'radar_dashboard_language';
+export const DASHBOARD_LANGUAGE_EVENT = 'radar-dashboard-language-change';
 
 export function getDeviceDashboardLanguage(): AppLanguage {
   if (typeof navigator === 'undefined') return 'ar';

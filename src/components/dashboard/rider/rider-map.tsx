@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { latLngToCell } from 'h3-js';
+import { LocateFixed } from 'lucide-react';
 import maplibregl, { type GeoJSONSource, type Map as MapLibreMap } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
@@ -119,6 +120,7 @@ export function RiderMap({
   const mapRef = React.useRef<MapLibreMap | null>(null);
   const cleanupWatchRef = React.useRef<(() => void) | null>(null);
   const lastDestinationFlyToRef = React.useRef('');
+  const recenterAfterLocateRef = React.useRef(false);
   const [riderLocation, setRiderLocation] = React.useState<RiderLocation>(fallbackLocation);
   const [locationStatus, setLocationStatus] = React.useState<RiderLocationStatus>('locating');
   const [activeCaptainProgress, setActiveCaptainProgress] = React.useState(0);
@@ -179,6 +181,28 @@ export function RiderMap({
     cleanupWatchRef.current = () => navigator.geolocation.clearWatch(watchId);
   }, [fallbackLocation]);
 
+  const flyToRiderLocation = React.useCallback(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    map.easeTo({
+      center: [riderLocation.lng, riderLocation.lat],
+      zoom: 15,
+      duration: 800,
+      essential: true,
+    });
+  }, [riderLocation]);
+
+  const handleRecenter = React.useCallback(() => {
+    if (locationStatus !== 'live') {
+      recenterAfterLocateRef.current = true;
+      requestLiveLocation();
+      return;
+    }
+
+    flyToRiderLocation();
+  }, [flyToRiderLocation, locationStatus, requestLiveLocation]);
+
   React.useEffect(() => {
     if (locationStatus === 'live' || locationStatus === 'locating') return;
     setRiderLocation(fallbackLocation);
@@ -188,6 +212,12 @@ export function RiderMap({
     requestLiveLocation();
     return () => cleanupWatchRef.current?.();
   }, [requestLiveLocation]);
+
+  React.useEffect(() => {
+    if (locationStatus !== 'live' || !recenterAfterLocateRef.current) return;
+    recenterAfterLocateRef.current = false;
+    flyToRiderLocation();
+  }, [flyToRiderLocation, locationStatus]);
 
   React.useEffect(() => {
     onLocationChange?.({
@@ -407,6 +437,16 @@ export function RiderMap({
           {copy.offPeak}
         </div>
       )}
+      <button
+        type="button"
+        onClick={handleRecenter}
+        disabled={locationStatus === 'locating'}
+        className="absolute bottom-14 left-3 z-30 flex h-11 w-11 items-center justify-center rounded-2xl border border-[#14B8A6]/30 bg-[#0B0F19]/90 text-[#14F5D5] shadow-xl shadow-black/30 backdrop-blur transition hover:border-[#14F5D5]/60 hover:bg-[#14B8A6]/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/60 disabled:cursor-wait disabled:opacity-60 sm:bottom-20 sm:left-4 lg:left-[312px]"
+        aria-label={copy.recenter}
+        title={copy.recenter}
+      >
+        <LocateFixed className="h-5 w-5" aria-hidden="true" />
+      </button>
       {locationStatus !== 'live' && (
         <button
           type="button"
@@ -434,6 +474,7 @@ const riderMapCopy = {
     mapReady: 'خريطة الرحلة جاهزة',
     moveMap: 'حرّك الخريطة',
     offPeak: 'المنطقة الحالية خارج أوقات الذروة - قد يستغرق قبول الرحلة وقتا أطول',
+    recenter: 'العودة إلى موقعي',
     useMyLocation: 'استخدم موقعي الحالي',
   },
   en: {
@@ -445,6 +486,7 @@ const riderMapCopy = {
     mapReady: 'Map is ready',
     moveMap: 'Move map',
     offPeak: 'This area is quieter now - accepting the ride may take longer',
+    recenter: 'Recenter to my location',
     useMyLocation: 'Use my location',
   },
 } satisfies Record<AppLanguage, Record<string, string>>;

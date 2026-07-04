@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { buildUserFromSupabaseAuth, cacheSupabaseSession, clearSupabaseSessionCache } from '@/lib/supabase-auth';
 import { supabase } from '@/lib/supabase-client';
+import { DASHBOARD_LANGUAGE_KEY } from './use-dashboard-language';
 
 interface AuthContextType {
   user: SovereignUser | null;
@@ -78,8 +79,11 @@ function AuthContent({ children }: { children: ReactNode }) {
 
   const confirmLogout = useCallback(async () => {
     setLogoutInProgress(true);
+    const preservedLanguage =
+      typeof window !== 'undefined' ? window.localStorage.getItem(DASHBOARD_LANGUAGE_KEY) : null;
     clearSupabaseSessionCache();
     purgeTransientFrontendCache();
+    restorePreservedLanguage(preservedLanguage);
     setUser(null);
     try {
       await supabase.auth.signOut();
@@ -88,6 +92,7 @@ function AuthContent({ children }: { children: ReactNode }) {
     } finally {
       clearSupabaseSessionCache();
       purgeTransientFrontendCache();
+      restorePreservedLanguage(preservedLanguage);
       setLoading(false);
       if (typeof window !== 'undefined') {
         window.history.replaceState(null, '', '/');
@@ -202,6 +207,11 @@ function purgeTransientFrontendCache() {
   for (const key of localKeys) {
     window.localStorage.removeItem(key);
   }
+}
+
+function restorePreservedLanguage(language: string | null) {
+  if (typeof window === 'undefined' || (language !== 'ar' && language !== 'en')) return;
+  window.localStorage.setItem(DASHBOARD_LANGUAGE_KEY, language);
 }
 
 export function useAuth() {

@@ -255,6 +255,8 @@ export function PersonalStep() {
     handlePersonalSubmit,
     countries,
     selectedCountry,
+    phonePlaceholder,
+    phoneValidationHint,
     governorates,
     districts,
     locationDataLoading,
@@ -415,13 +417,16 @@ export function PersonalStep() {
                   type="tel"
                   dir="ltr"
                   inputMode="tel"
-                  placeholder={t.phonePlaceholder}
+                  placeholder={phonePlaceholder || t.phonePlaceholder}
                   value={personal.phone}
                   onChange={(event) => setPersonal({ ...personal, phone: event.target.value })}
                   className={`${inputClass} text-left`}
                   autoComplete="tel"
                   required
                 />
+                <p className={`${isArabic ? 'text-right' : 'text-left'} mt-2 text-[11px] font-semibold text-[#94A3B8]`}>
+                  {phoneValidationHint}
+                </p>
               </Field>
 
               {mode === 'register' ? (
@@ -615,7 +620,7 @@ export function PersonalStep() {
                 type="tel"
                 dir="ltr"
                 inputMode="tel"
-                placeholder={t.phonePlaceholder}
+                placeholder={phonePlaceholder || t.phonePlaceholder}
                 value={resetPhone}
                 onChange={(event) => setResetPhone(event.target.value)}
                 className={`${inputClass} text-left`}

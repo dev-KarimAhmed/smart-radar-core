@@ -4,7 +4,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import type { AffiliationType } from '@/core/types';
 import { buildRiderSignUpMetadata, mapSupabaseAuthError, signInRiderWithPhone, signUpRiderWithPhone } from '@/lib/supabase-auth';
 import { shouldRememberSupabaseSession, supabase } from '@/lib/supabase-client';
-import { getDeviceDashboardLanguage, persistDashboardLanguage } from './use-dashboard-language';
+import { DASHBOARD_LANGUAGE_EVENT, getDeviceDashboardLanguage, persistDashboardLanguage } from './use-dashboard-language';
 import { useToast } from './use-toast';
 
 const isStrictDevelopment =
@@ -27,6 +27,11 @@ interface SupabaseCountryRow {
   phone_code?: string | null;
   dial_code?: string | null;
   calling_code?: string | null;
+  country_code?: string | null;
+  iso2?: string | null;
+  code?: string | null;
+  example_phone?: string | null;
+  phone_example?: string | null;
 }
 
 interface SupabaseGovernorateRow {
@@ -79,6 +84,8 @@ interface RegistrationContextType {
   locationDataLoading: boolean;
   countries: LocationOption[];
   selectedCountry: SupabaseCountryRow | null;
+  phonePlaceholder: string;
+  phoneValidationHint: string;
   governorates: LocationOption[];
   districts: LocationOption[];
   canUseDevMockData: boolean;
@@ -120,10 +127,14 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
   const [selectedCountry, setSelectedCountry] = useState<SupabaseCountryRow | null>(null);
   const [governorateRows, setGovernorateRows] = useState<SupabaseGovernorateRow[]>([]);
   const [districtRows, setDistrictRows] = useState<SupabaseDistrictRow[]>([]);
+  const [detectedCountryCode, setDetectedCountryCode] = useState<string | null>(null);
 
   const setLang = useCallback((nextLang: 'ar' | 'en') => {
     setLangState(nextLang);
     persistDashboardLanguage(nextLang);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent(DASHBOARD_LANGUAGE_EVENT, { detail: nextLang }));
+    }
   }, []);
   const [countriesLoading, setCountriesLoading] = useState(false);
   const [governoratesLoading, setGovernoratesLoading] = useState(false);
@@ -131,6 +142,38 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
   const isSubmittingRef = useRef(false);
 
   const locationDataLoading = countriesLoading || governoratesLoading || districtsLoading;
+
+  useEffect(() => {
+    const handleLanguageChange = (event: Event) => {
+      const nextLanguage = (event as CustomEvent<'ar' | 'en'>).detail === 'en' ? 'en' : 'ar';
+      setLangState(nextLanguage);
+    };
+
+    window.addEventListener(DASHBOARD_LANGUAGE_EVENT, handleLanguageChange);
+    return () => window.removeEventListener(DASHBOARD_LANGUAGE_EVENT, handleLanguageChange);
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    async function detectSignupCountry() {
+      try {
+        const response = await fetch('https://ipapi.co/json/', { cache: 'no-store' });
+        if (!response.ok) return;
+        const payload = (await response.json()) as { country_code?: string; country?: string };
+        const code = String(payload.country_code || payload.country || '').trim().toUpperCase();
+        if (active && code) setDetectedCountryCode(code);
+      } catch (error) {
+        if (import.meta.env.DEV) console.warn('[IP Country Detect]', error);
+      }
+    }
+
+    void detectSignupCountry();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -167,6 +210,17 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     const countryId = Number(personal.country);
     setSelectedCountry(countryRows.find((country) => country.id === countryId) || null);
   }, [countryRows, personal.country]);
+
+  useEffect(() => {
+    if (personal.country || !detectedCountryCode || countryRows.length === 0) return;
+
+    const detectedCountry = countryRows.find((country) => getCountryIsoCode(country) === detectedCountryCode);
+    if (!detectedCountry) return;
+
+    setPersonal((current) =>
+      current.country ? current : { ...current, country: String(detectedCountry.id), gov: '', district: '' },
+    );
+  }, [countryRows, detectedCountryCode, personal.country]);
 
   useEffect(() => {
     let active = true;
@@ -288,6 +342,13 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     [districtRows],
   );
 
+  const phoneRule = useMemo(() => getPhoneRule(selectedCountry), [selectedCountry]);
+  const phonePlaceholder = phoneRule.example;
+  const phoneValidationHint =
+    lang === 'ar'
+      ? `اكتب الرقم بصيغة دولية مثل ${phoneRule.example}.`
+      : `Use international format like ${phoneRule.example}.`;
+
   const fillRandomRegistrationData = useCallback(() => {
     if (!isStrictDevelopment) return;
 
@@ -312,13 +373,13 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
 
     const randomDistrict = districtRows[Math.floor(Math.random() * districtRows.length)];
     const serial = String(Date.now()).slice(-6);
-    const phoneSuffix = String(Math.floor(1000000 + Math.random() * 9000000));
+    const demoPhone = getDemoPhoneForCountry(selectedCountry, serial);
 
     setAuthMode('register');
     setPersonal((current) => ({
       ...current,
       name: `راكب تجربة ${serial}`,
-      phone: `${dialCode}${phoneSuffix}`,
+      phone: demoPhone,
       country: String(selectedCountry.id),
       gov: personal.gov,
       district: String(randomDistrict.id),
@@ -353,6 +414,16 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    const normalizedPhone = normalizePhoneForCountry(personal.phone, selectedCountry);
+    if (!normalizedPhone.ok) {
+      toast({
+        variant: 'destructive',
+        title: 'رقم الهاتف غير صحيح',
+        description: normalizedPhone.message,
+      });
+      return;
+    }
+
     if (
       authMode === 'register' &&
       (!personal.name.trim() ||
@@ -377,7 +448,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     try {
       if (authMode === 'login') {
         await signInRiderWithPhone({
-          phone: personal.phone,
+          phone: normalizedPhone.phone,
           password: authPassword,
           rememberMe,
         });
@@ -390,7 +461,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
       }
 
       const signUpInput = {
-        phone: personal.phone,
+        phone: normalizedPhone.phone,
         password: authPassword,
         fullName: personal.name.trim(),
         countryId,
@@ -525,6 +596,8 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     locationDataLoading,
     countries,
     selectedCountry,
+    phonePlaceholder,
+    phoneValidationHint,
     governorates,
     districts,
     canUseDevMockData: isStrictDevelopment,
@@ -577,6 +650,130 @@ function getCountryDialCode(country: SupabaseCountryRow) {
   const rawCode = country.phone_code || country.dial_code || country.calling_code || '';
   if (!rawCode) return '';
   return rawCode.startsWith('+') ? rawCode : `+${rawCode}`;
+}
+
+type PhoneRule = {
+  dialCode: string;
+  example: string;
+  localRegex?: RegExp;
+  message: string;
+};
+
+const COUNTRY_PHONE_RULES: Record<string, Omit<PhoneRule, 'dialCode'>> = {
+  EG: {
+    example: '\u200E+201234567890\u200E',
+    localRegex: /^1[0125]\d{8}$/,
+    message: 'اكتب رقم مصري صحيح مثل \u200E+201234567890\u200E.',
+  },
+  JO: {
+    example: '\u200E+962791234567\u200E',
+    localRegex: /^7[789]\d{7}$/,
+    message: 'اكتب رقم أردني صحيح مثل \u200E+962791234567\u200E.',
+  },
+};
+
+const COUNTRY_DIAL_OVERRIDES: Record<string, string> = {
+  EG: '+20',
+  JO: '+962',
+};
+
+const DEFAULT_PHONE_RULE: Omit<PhoneRule, 'dialCode'> = {
+  example: '\u200E+962791234567\u200E',
+  message: 'اكتب رقم الهاتف بصيغة دولية صحيحة.',
+};
+
+function getCountryIsoCode(country: SupabaseCountryRow | null) {
+  if (!country) return '';
+  const explicitCode = String(country.country_code || country.iso2 || country.code || '').slice(0, 2).toUpperCase();
+  if (explicitCode) return explicitCode;
+
+  const searchableText = [
+    country.name_ar,
+    country.name_en,
+    country.name,
+    country.phone_code,
+    country.dial_code,
+    country.calling_code,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+  if (searchableText.includes('egypt') || searchableText.includes('مصر')) return 'EG';
+  if (searchableText.includes('jordan') || searchableText.includes('اردن') || searchableText.includes('الأردن')) {
+    return 'JO';
+  }
+
+  const dialDigits = getCountryDialCode(country).replace(/\D/g, '');
+  if (dialDigits.startsWith('20')) return 'EG';
+  if (dialDigits.startsWith('962')) return 'JO';
+
+  return '';
+}
+
+function getPhoneRule(country: SupabaseCountryRow | null): PhoneRule {
+  const isoCode = getCountryIsoCode(country);
+  const dialCode = COUNTRY_DIAL_OVERRIDES[isoCode] || (country ? getCountryDialCode(country) : '');
+  const staticRule = COUNTRY_PHONE_RULES[isoCode] || DEFAULT_PHONE_RULE;
+  const fallbackExample = dialCode ? `${dialCode}123456789` : staticRule.example;
+  const example = country?.example_phone || country?.phone_example || (COUNTRY_PHONE_RULES[isoCode] ? staticRule.example : fallbackExample);
+
+  return {
+    ...staticRule,
+    dialCode: dialCode || inferDialCodeFromExample(example) || '+962',
+    example,
+  };
+}
+
+function normalizePhoneForCountry(rawPhone: string, country: SupabaseCountryRow | null) {
+  const rule = country ? getPhoneRule(country) : inferPhoneRuleFromRaw(rawPhone) || getPhoneRule(country);
+  const dialDigits = rule.dialCode.replace(/\D/g, '');
+  const compact = rawPhone.trim().replace(/[\s().-]/g, '');
+  const normalizedPrefix = compact.startsWith('00') ? `+${compact.slice(2)}` : compact;
+  const digits = normalizedPrefix.replace(/\D/g, '');
+
+  if (!dialDigits) {
+    return { ok: false as const, message: 'اختر الدولة أولاً حتى نتحقق من كود الهاتف.' };
+  }
+
+  let localDigits = digits.startsWith(dialDigits) ? digits.slice(dialDigits.length) : digits;
+  if (normalizedPrefix.startsWith('+') && !digits.startsWith(dialDigits)) {
+    return { ok: false as const, message: rule.message };
+  }
+
+  localDigits = localDigits.replace(/^0+/, '');
+
+  if (rule.localRegex && !rule.localRegex.test(localDigits)) {
+    return { ok: false as const, message: rule.message };
+  }
+
+  const phone = `+${dialDigits}${localDigits}`;
+  if (!/^\+[1-9]\d{7,14}$/.test(phone)) {
+    return { ok: false as const, message: rule.message };
+  }
+
+  return { ok: true as const, phone };
+}
+
+function inferPhoneRuleFromRaw(rawPhone: string): PhoneRule | null {
+  const digits = rawPhone.trim().replace(/^00/, '').replace(/\D/g, '');
+  if (digits.startsWith('20')) return { ...COUNTRY_PHONE_RULES.EG, dialCode: '+20' };
+  if (digits.startsWith('962')) return { ...COUNTRY_PHONE_RULES.JO, dialCode: '+962' };
+  return null;
+}
+
+function inferDialCodeFromExample(example: string) {
+  const match = example.match(/\+(\d{1,4})/);
+  return match ? `+${match[1]}` : '';
+}
+
+function getDemoPhoneForCountry(country: SupabaseCountryRow, serial: string) {
+  const rule = getPhoneRule(country);
+  if (getCountryIsoCode(country) === 'EG') return `+2012${serial.padStart(8, '0').slice(-8)}`;
+  if (getCountryIsoCode(country) === 'JO') return `+96279${serial.padStart(7, '0').slice(-7)}`;
+
+  const dialDigits = rule.dialCode.replace(/\D/g, '');
+  return `+${dialDigits}${String(Date.now()).slice(-8)}`;
 }
 
 export function useRegistration() {
