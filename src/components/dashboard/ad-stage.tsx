@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { ChevronLeft, ChevronRight, MapPin, MessageCircle, Phone, ShieldCheck, X } from 'lucide-react';
 import { AdDisplayCard, getAdDescription, getAdTitle } from './ad-display-card';
 import { useAuth } from '@/hooks/use-auth';
+import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { supabase } from '@/lib/supabase-client';
 
 const AD_BATCH_WRITE_LIMIT = 50;
@@ -110,33 +111,88 @@ function getVisibleAdForMetric(track: HTMLDivElement, ads: any[]) {
  return ads[index] || null;
 }
 
-const BRAND_PLACEHOLDER_AD = {
- id: 'brand-empty-state',
- title: 'مرحباً بك في الرادار الذكي - رحلتك القادمة أكثر أماناً وتوفيراً معنا',
- description: 'لا توجد إعلانات نشطة في منطقتك الآن. سنعرض لك العروض فور توفرها.',
- bannerUrl:
+const AD_STAGE_COPY = {
+ ar: {
+ loadingTitle: 'جاري تحميل الإعلانات',
+ loadingSubtitle: 'ثوانٍ من فضلك',
+ title: 'إعلانات قريبة منك',
+ count: (count: number) => `${count} إعلان`,
+ riderBadge: 'للركاب',
+ captainBadge: 'للسائقين',
+ nearbyBadge: 'إعلان قريب',
+ previous: 'الإعلان السابق',
+ next: 'الإعلان التالي',
+ trustedAd: 'إعلان موثق للتواصل المباشر',
+ whatsapp: 'واتساب مباشر',
+ call: 'اتصال مباشر',
+ openLocation: 'فتح الموقع',
+ whatsappMessage: (title: string) => `مرحباً، شاهدت إعلانكم في التطبيق: ${title}`,
+ emptyTitle: 'مرحباً بك في الرادار الذكي - رحلتك القادمة أكثر أماناً وتوفيراً معنا',
+ emptyDescription: 'لا توجد إعلانات نشطة في منطقتك الآن. سنعرض لك العروض فور توفرها.',
+ emptyFetchIssue: 'لا توجد إعلانات متاحة الآن. سنعرض لك العروض فور توفرها.',
+ emptyButton: 'ابدأ رحلتك',
+ fallbackDistrict: 'عمّان',
+ fallbackGovernorate: 'العاصمة',
+ },
+ en: {
+ loadingTitle: 'Loading ads',
+ loadingSubtitle: 'One moment please',
+ title: 'Nearby ads',
+ count: (count: number) => `${count} ad${count === 1 ? '' : 's'}`,
+ riderBadge: 'For riders',
+ captainBadge: 'For drivers',
+ nearbyBadge: 'Nearby ad',
+ previous: 'Previous ad',
+ next: 'Next ad',
+ trustedAd: 'Verified ad for direct contact',
+ whatsapp: 'WhatsApp',
+ call: 'Call',
+ openLocation: 'Open location',
+ whatsappMessage: (title: string) => `Hello, I saw your ad in the app: ${title}`,
+ emptyTitle: 'Welcome to Smart Radar - your next ride is safer and easier with us',
+ emptyDescription: 'No active ads are available in your area right now. We will show offers as soon as they are available.',
+ emptyFetchIssue: 'No ads are available right now. We will show offers as soon as they are available.',
+ emptyButton: 'Start your ride',
+ fallbackDistrict: 'Amman',
+ fallbackGovernorate: 'Capital',
+ },
+} as const;
+
+const PLACEHOLDER_BANNER_URL =
  'data:image/svg+xml;utf8,' +
  encodeURIComponent(
  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0B0F19"/><stop offset="1" stop-color="#063B3A"/></linearGradient><pattern id="p" width="80" height="80" patternUnits="userSpaceOnUse"><path d="M0 80L80 0M-20 20L20-20M60 100L100 60" stroke="#14B8A6" stroke-opacity=".16" stroke-width="2"/></pattern></defs><rect width="1200" height="800" fill="url(#g)"/><rect width="1200" height="800" fill="url(#p)"/><circle cx="980" cy="130" r="180" fill="#14B8A6" fill-opacity=".10"/><circle cx="180" cy="720" r="240" fill="#14F5D5" fill-opacity=".08"/></svg>',
- ),
- buttonText: 'ابدأ رحلتك',
+ );
+
+type AdStageCopy = (typeof AD_STAGE_COPY)['ar' | 'en'];
+
+function buildBrandPlaceholderAd(copy: AdStageCopy, description: string = copy.emptyDescription) {
+ return {
+ id: 'brand-empty-state',
+ title: copy.emptyTitle,
+ description,
+ bannerUrl: PLACEHOLDER_BANNER_URL,
+ buttonText: copy.emptyButton,
  content: {
- title: 'مرحباً بك في الرادار الذكي - رحلتك القادمة أكثر أماناً وتوفيراً معنا',
- description: 'لا توجد إعلانات نشطة في منطقتك الآن. سنعرض لك العروض فور توفرها.',
+ title: copy.emptyTitle,
+ description,
  },
  isPlaceholder: true,
-};
+ };
+}
 
-const getBadgeText = (ad: any) => {
- if (ad.adType === 'RIDER_BENEFIT') return 'للركاب';
- if (ad.adType === 'CAPTAIN_PROFESSIONAL') return 'للسائقين';
- return 'إعلان قريب';
+const getBadgeText = (ad: any, copy: AdStageCopy) => {
+ if (ad.adType === 'RIDER_BENEFIT') return copy.riderBadge;
+ if (ad.adType === 'CAPTAIN_PROFESSIONAL') return copy.captainBadge;
+ return copy.nearbyBadge;
 };
 
 export function AdStage({ isFullScreen = false }: { isFullScreen?: boolean }) {
  const { user } = useAuth();
- const liveDistrict = user?.district || 'عمان';
- const liveGovernorate = user?.governorate || 'العاصمة';
+ const { direction, isArabic, language } = useDashboardLanguage();
+ const copy = AD_STAGE_COPY[language];
+ const liveDistrict = user?.district || copy.fallbackDistrict;
+ const liveGovernorate = user?.governorate || copy.fallbackGovernorate;
  const [serverAds, setServerAds] = useState<any[]>([]);
  const [isLoadingAds, setIsLoadingAds] = useState(true);
  const [hasAdFetchIssue, setHasAdFetchIssue] = useState(false);
@@ -182,22 +238,12 @@ export function AdStage({ isFullScreen = false }: { isFullScreen?: boolean }) {
  const adsToUse = useMemo(() => {
  const filteredAds = filterAdsByLocalContext(liveDistrict, liveGovernorate, serverAds);
  if (filteredAds.length > 0) return filteredAds;
+ const emptyDescription = hasAdFetchIssue ? copy.emptyFetchIssue : copy.emptyDescription;
 
  return [
- {
- ...BRAND_PLACEHOLDER_AD,
- description: hasAdFetchIssue
- ? 'لا توجد إعلانات متاحة الآن. سنعرض لك العروض فور توفرها.'
- : BRAND_PLACEHOLDER_AD.description,
- content: {
- ...BRAND_PLACEHOLDER_AD.content,
- description: hasAdFetchIssue
- ? 'لا توجد إعلانات متاحة الآن. سنعرض لك العروض فور توفرها.'
- : BRAND_PLACEHOLDER_AD.content.description,
- },
- },
+ buildBrandPlaceholderAd(copy, emptyDescription),
  ];
- }, [hasAdFetchIssue, liveDistrict, liveGovernorate, serverAds]);
+ }, [copy, hasAdFetchIssue, liveDistrict, liveGovernorate, serverAds]);
 
  useEffect(() => {
  adsToUse.forEach((ad: any) => {
@@ -328,9 +374,9 @@ export function AdStage({ isFullScreen = false }: { isFullScreen?: boolean }) {
  <div className={`relative ${heightClass} m-4 flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#14B8A6]/50 bg-[#0B0F19]`}>
  <div className="mb-4 h-12 w-12 animate-spin rounded-full border-t-2 border-[#14B8A6]" />
  <p className="px-4 text-center text-sm font-bold tracking-widest text-[#14B8A6]">
- جاري تحميل الإعلانات
+ {copy.loadingTitle}
  <br />
- <span className="text-xs text-gray-400">ثوانٍ من فضلك</span>
+ <span className="text-xs text-gray-400">{copy.loadingSubtitle}</span>
  </p>
  </div>
  );
@@ -339,7 +385,7 @@ export function AdStage({ isFullScreen = false }: { isFullScreen?: boolean }) {
  return (
  <div
  className={`relative z-[10] flex w-full flex-col justify-center overflow-hidden border-b border-white/5 bg-[#0B0F19] py-4 sm:py-6 ${heightClass} pointer-events-auto select-none`}
- dir="rtl"
+ dir={direction}
  >
  <div className="z-[20] mb-3 flex shrink-0 items-center justify-between px-4 sm:mb-4 sm:px-6">
  <div className="flex items-center gap-2">
@@ -348,11 +394,11 @@ export function AdStage({ isFullScreen = false }: { isFullScreen?: boolean }) {
  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#14B8A6]" />
  </span>
  <h2 className="text-xs font-black uppercase tracking-widest text-[#14F5D5] md:text-sm">
- إعلانات قريبة منك
+ {copy.title}
  </h2>
  </div>
  <span className="font-mono text-[9px] font-bold text-gray-500 md:text-[10px]">
- {adsToUse.length} إعلان
+ {copy.count(adsToUse.length)}
  </span>
  </div>
 
@@ -369,7 +415,7 @@ export function AdStage({ isFullScreen = false }: { isFullScreen?: boolean }) {
  <>
  <button
  type="button"
- aria-label="الإعلان السابق"
+ aria-label={copy.previous}
  onClick={() => scrollAds('previous')}
  className="absolute left-3 top-1/2 z-30 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-[#0B0F19]/88 text-white shadow-xl shadow-black/35 backdrop-blur-md transition hover:border-[#14B8A6]/45 hover:bg-[#14B8A6]/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/45 sm:left-4"
  >
@@ -378,7 +424,7 @@ export function AdStage({ isFullScreen = false }: { isFullScreen?: boolean }) {
 
  <button
  type="button"
- aria-label="الإعلان التالي"
+ aria-label={copy.next}
  onClick={() => scrollAds('next')}
  className="absolute right-3 top-1/2 z-30 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-[#0B0F19]/88 text-white shadow-xl shadow-black/35 backdrop-blur-md transition hover:border-[#14B8A6]/45 hover:bg-[#14B8A6]/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/45 sm:right-4"
  >
@@ -402,7 +448,7 @@ export function AdStage({ isFullScreen = false }: { isFullScreen?: boolean }) {
  isHearted={heartedAdIds.includes(ad.id)}
  onHeart={toggleHeart}
  onOpen={ad.isPlaceholder ? undefined : openTakeover}
- badgeText={getBadgeText(ad)}
+ badgeText={getBadgeText(ad, copy)}
  showHeart={!ad.isPlaceholder}
  className={`flex-shrink-0 ${cardClassName}`}
  />
@@ -422,7 +468,7 @@ export function AdStage({ isFullScreen = false }: { isFullScreen?: boolean }) {
  exit={{ y: '100%', opacity: 0 }}
  transition={{ type: 'spring', damping: 25, stiffness: 220 }}
  className="relative flex w-full max-w-lg flex-col gap-4 rounded-t-[32px] border-t-2 border-[#14B8A6]/40 bg-[#070D19] p-6 shadow-[0_-12px_45px_rgba(20,184,166,0.25)] md:rounded-[32px] md:border-x-2"
- dir="rtl"
+ dir={direction}
  onClick={(event) => event.stopPropagation()}
  >
  <div className="mx-auto mb-1 h-1 w-12 rounded-full bg-[#14B8A6]/30" />
@@ -430,7 +476,7 @@ export function AdStage({ isFullScreen = false }: { isFullScreen?: boolean }) {
  <div className="flex items-center justify-between border-b border-white/5 pb-3">
  <span className="flex items-center gap-2 text-xs font-black text-[#14F5D5]">
  <ShieldCheck className="h-4 w-4 animate-pulse text-[#14F5D5]" />
- إعلان موثق للتواصل المباشر
+ {copy.trustedAd}
  </span>
  <button
  type="button"
@@ -441,15 +487,15 @@ export function AdStage({ isFullScreen = false }: { isFullScreen?: boolean }) {
  </button>
  </div>
 
- <div className="space-y-2 text-right">
+ <div className={`space-y-2 ${isArabic ? 'text-right' : 'text-left'}`}>
  <span className="rounded-full border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-2.5 py-1 text-[10px] font-black text-[#14F5D5]">
- {getBadgeText(takeoverAd)}
+ {getBadgeText(takeoverAd, copy)}
  </span>
  <h3 className="mt-2 text-xl font-black leading-tight text-white">
- {getAdTitle(takeoverAd)}
+ {getAdTitle(takeoverAd, copy.nearbyBadge)}
  </h3>
  <p className="pt-1 text-xs leading-relaxed text-gray-300">
- {getAdDescription(takeoverAd)}
+ {getAdDescription(takeoverAd, copy.emptyDescription)}
  </p>
  </div>
 
@@ -457,13 +503,13 @@ export function AdStage({ isFullScreen = false }: { isFullScreen?: boolean }) {
  <a
  href={`https://wa.me/${
  takeoverAd.whatsapp || takeoverAd.advertiserData?.whatsapp || '962798888888'
- }?text=${encodeURIComponent(`مرحبا، شاهدت إعلانكم في التطبيق: ${getAdTitle(takeoverAd)}`)}`}
+ }?text=${encodeURIComponent(copy.whatsappMessage(getAdTitle(takeoverAd, copy.nearbyBadge)))}`}
  target="_blank"
  onClick={(event) => event.stopPropagation()}
  className="flex w-full items-center justify-center gap-2.5 rounded-2xl border border-[#00cc66]/50 bg-[#00cc66] p-3.5 text-xs font-black text-white shadow-[0_4px_15px_rgba(0,204,102,0.25)] transition hover:bg-[#00e271]"
  >
  <MessageCircle className="h-4 w-4 text-white" />
- واتساب مباشر
+ {copy.whatsapp}
  </a>
 
  <a
@@ -472,7 +518,7 @@ export function AdStage({ isFullScreen = false }: { isFullScreen?: boolean }) {
  className="flex w-full items-center justify-center gap-2.5 rounded-2xl border border-[#14B8A6]/35 bg-[#131C31] p-3.5 text-xs font-black text-[#14F5D5] shadow-[0_4px_10px_rgba(0,0,0,0.3)] transition hover:bg-[#14B8A6]/15"
  >
  <Phone className="h-4 w-4 text-[#14F5D5]" />
- اتصال مباشر
+ {copy.call}
  </a>
 
  <a
@@ -482,7 +528,7 @@ export function AdStage({ isFullScreen = false }: { isFullScreen?: boolean }) {
  className="flex w-full items-center justify-center gap-2.5 rounded-2xl border border-blue-700/50 bg-blue-700 p-3.5 text-xs font-black text-white shadow-[0_4px_15px_rgba(29,78,216,0.25)] transition hover:bg-blue-600"
  >
  <MapPin className="h-4 w-4 text-white" />
- فتح الموقع
+ {copy.openLocation}
  </a>
  </div>
  </motion.div>

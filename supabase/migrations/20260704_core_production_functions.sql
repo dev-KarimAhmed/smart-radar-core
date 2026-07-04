@@ -118,6 +118,35 @@ create table if not exists public.captain_locations (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.ride_requests (
+  id uuid primary key default gen_random_uuid(),
+  rider_id uuid not null references public.profiles(id) on delete cascade,
+  origin_lat numeric not null,
+  origin_lng numeric not null,
+  destination_lat numeric not null,
+  destination_lng numeric not null,
+  origin_h3 text not null,
+  destination_h3 text not null,
+  destination_address_ar text,
+  server_estimated_fare numeric not null default 0,
+  country_id integer,
+  status text not null default 'PENDING',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table if exists public.ride_requests add column if not exists rider_id uuid;
+alter table if exists public.ride_requests add column if not exists origin_lat numeric;
+alter table if exists public.ride_requests add column if not exists origin_lng numeric;
+alter table if exists public.ride_requests add column if not exists destination_lat numeric;
+alter table if exists public.ride_requests add column if not exists destination_lng numeric;
+alter table if exists public.ride_requests add column if not exists origin_h3 text;
+alter table if exists public.ride_requests add column if not exists destination_h3 text;
+alter table if exists public.ride_requests add column if not exists destination_address_ar text;
+alter table if exists public.ride_requests add column if not exists server_estimated_fare numeric default 0;
+alter table if exists public.ride_requests add column if not exists country_id integer;
+alter table if exists public.ride_requests add column if not exists status text default 'PENDING';
+alter table if exists public.ride_requests add column if not exists created_at timestamptz not null default now();
 alter table if exists public.ride_requests add column if not exists accepted_offer_id uuid;
 alter table if exists public.ride_requests add column if not exists accepted_captain_id uuid;
 alter table if exists public.ride_requests add column if not exists final_fare numeric;

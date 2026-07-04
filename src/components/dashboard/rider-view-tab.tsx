@@ -659,6 +659,9 @@ export function RiderViewTab() {
         description: 'تم حفظ طلب الرحلة. سنعرض العروض فور وصولها.',
       });
     } catch (error) {
+      if (import.meta.env.DEV) {
+        console.warn('[Rider Ride Request Insert]', error);
+      }
       pendingAcceptedOfferIdRef.current = null;
       dispatch({ type: 'REQUEST_FAILED' });
       toast({

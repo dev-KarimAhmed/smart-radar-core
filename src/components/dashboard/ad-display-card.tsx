@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Heart, Zap } from 'lucide-react';
+import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { cn } from '@/lib/utils';
 
 type AdDisplayCardProps = {
@@ -18,6 +19,25 @@ type AdDisplayCardProps = {
 const FALLBACK_IMAGE =
   'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&q=80&w=1200';
 
+const AD_CARD_COPY = {
+  ar: {
+    fallbackTitle: 'إعلان قريب منك',
+    fallbackDescription: 'اكتشف عرضاً مناسباً في منطقتك وتواصل مع المعلن مباشرة.',
+    fallbackCta: 'عرض التفاصيل',
+    defaultBadge: 'إعلان قريب',
+    saveAd: 'حفظ الإعلان',
+    removeAd: 'إزالة الإعلان من المفضلة',
+  },
+  en: {
+    fallbackTitle: 'Nearby ad',
+    fallbackDescription: 'Discover a useful offer in your area and contact the advertiser directly.',
+    fallbackCta: 'View details',
+    defaultBadge: 'Nearby ad',
+    saveAd: 'Save ad',
+    removeAd: 'Remove ad from saved',
+  },
+} as const;
+
 export function getAdImage(ad: any) {
   return (
     ad?.content?.posterUrl ||
@@ -28,20 +48,20 @@ export function getAdImage(ad: any) {
   );
 }
 
-export function getAdTitle(ad: any) {
-  return ad?.content?.title || ad?.title || 'إعلان قريب منك';
+export function getAdTitle(ad: any, fallback: string = AD_CARD_COPY.ar.fallbackTitle) {
+  return ad?.content?.title || ad?.title || fallback;
 }
 
-export function getAdDescription(ad: any) {
+export function getAdDescription(ad: any, fallback: string = AD_CARD_COPY.ar.fallbackDescription) {
   return (
     ad?.content?.description ||
     ad?.description ||
-    'اكتشف عرضاً مناسباً في منطقتك وتواصل مع المعلن مباشرة.'
+    fallback
   );
 }
 
-export function getAdCta(ad: any) {
-  return ad?.action?.buttonText || ad?.buttonText || 'عرض التفاصيل';
+export function getAdCta(ad: any, fallback: string = AD_CARD_COPY.ar.fallbackCta) {
+  return ad?.action?.buttonText || ad?.buttonText || fallback;
 }
 
 export function AdDisplayCard({
@@ -50,18 +70,21 @@ export function AdDisplayCard({
   onHeart,
   onOpen,
   className,
-  badgeText = 'إعلان قريب',
+  badgeText,
   ctaText,
   showHeart = true,
 }: AdDisplayCardProps) {
-  const title = getAdTitle(ad);
-  const description = getAdDescription(ad);
+  const { direction, language } = useDashboardLanguage();
+  const copy = AD_CARD_COPY[language];
+  const title = getAdTitle(ad, copy.fallbackTitle);
+  const description = getAdDescription(ad, copy.fallbackDescription);
   const image = getAdImage(ad);
-  const actionText = ctaText || getAdCta(ad);
+  const actionText = ctaText || getAdCta(ad, copy.fallbackCta);
+  const resolvedBadgeText = badgeText || copy.defaultBadge;
 
   return (
     <article
-      dir="rtl"
+      dir={direction}
       onClick={onOpen ? (event) => onOpen(event, ad) : undefined}
       className={cn(
         'group relative isolate flex h-[360px] w-full cursor-pointer select-none flex-col justify-end overflow-hidden rounded-[28px] border border-cyan-400/10 bg-[#0B0F19] p-5 text-right shadow-[0_24px_70px_rgba(0,0,0,0.5)] transition-all duration-300 hover:border-[#14B8A6]/45 hover:shadow-[0_26px_80px_rgba(20,184,166,0.18)]',
@@ -83,7 +106,7 @@ export function AdDisplayCard({
       {showHeart && (
         <button
           type="button"
-          aria-label={isHearted ? 'إزالة الإعلان من المفضلة' : 'حفظ الإعلان'}
+          aria-label={isHearted ? copy.removeAd : copy.saveAd}
           onClick={(event) => {
             event.stopPropagation();
             onHeart?.(event, ad);
@@ -103,7 +126,7 @@ export function AdDisplayCard({
 
       <div className="absolute right-5 top-6 z-10 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-[#111827]/90 px-3 py-1.5 text-[10px] font-black text-[#14F5D5] shadow-[0_10px_24px_rgba(0,0,0,0.35)] backdrop-blur-md">
         <Zap className="h-3 w-3 fill-orange-400 text-orange-400" />
-        <span>{badgeText}</span>
+        <span>{resolvedBadgeText}</span>
       </div>
 
       <div className="relative z-10 mx-auto flex w-full max-w-[90%] flex-col items-center gap-3 pb-1 text-center">
