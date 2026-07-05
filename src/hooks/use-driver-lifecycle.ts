@@ -21,7 +21,7 @@ export function useDriverLifecycle(user: User | null) {
 
   useEffect(() => {
     if (user?.role === 'driver') {
-      setDriverStatus(((user.status || 'idle') as DriverStatus));
+      setDriverStatus((user.status || 'idle') as DriverStatus);
     }
   }, [user?.role, user?.status]);
 
@@ -31,7 +31,6 @@ export function useDriverLifecycle(user: User | null) {
     const payload: Record<string, unknown> = {};
     if (data.status) payload.status = data.status;
     if (typeof data.lastTickTimestamp === 'number') payload.last_tick_timestamp = data.lastTickTimestamp;
-
     if (Object.keys(payload).length === 0) return;
 
     const { error } = await supabase
@@ -43,8 +42,8 @@ export function useDriverLifecycle(user: User | null) {
       if (import.meta.env.DEV) console.warn('[Driver lifecycle] profile update failed:', error);
       toast({
         variant: 'destructive',
-        title: 'تعذر تحديث حالة السائق',
-        description: 'تحقق من الاتصال أو صلاحيات الحساب.',
+        title: 'تعذر تحديث حالة الكابتن',
+        description: 'تحقق من الاتصال أو صلاحيات الحساب ثم حاول مرة أخرى.',
       });
     }
   }, [toast, user?.uid]);
@@ -73,7 +72,7 @@ export function useDriverLifecycle(user: User | null) {
           user.uid,
           'system_action',
           'تعطيل تلقائي',
-          'تم تحويل حالة السائق إلى غير متاح بسبب عدم وجود نشاط لفترة طويلة.',
+          'تم تحويل حالة الكابتن إلى غير متاح بسبب عدم وجود نشاط لفترة طويلة.',
         );
       }
     }, 5 * 60 * 1000);
@@ -117,8 +116,8 @@ export function useDriverLifecycle(user: User | null) {
           'status_change',
           desiredStatus === 'active' ? 'متاح لاستقبال الطلبات' : 'غير متاح',
           desiredStatus === 'active'
-            ? 'قام السائق بتفعيل استقبال الطلبات.'
-            : 'قام السائق بإيقاف استقبال الطلبات.',
+            ? 'قام الكابتن بتفعيل استقبال الطلبات.'
+            : 'قام الكابتن بإيقاف استقبال الطلبات.',
         );
       }
     } finally {

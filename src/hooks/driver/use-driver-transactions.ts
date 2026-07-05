@@ -1,356 +1,282 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { doc, getDoc, updateDoc, setDoc, arrayUnion, serverTimestamp, query, collection, where, limit, onSnapshot } from 'firebase/firestore';
-import { getDistrictFromCoords } from '@/core/logic/geospatial-kernel';
-import { db } from '@/lib/firebase';
-import { trackSovereignError } from '@/lib/error-tracker';
-import { getSovereignErrorMessage } from '@/core/constants/error-dictionary';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { supabase } from '@/lib/supabase-client';
 import { useToast } from '../use-toast';
-import { useAuth } from '../use-auth';
-import { callSovereignCloud } from '@/core/contracts/cloud-bridge';
-import type { Trip, User, Offer } from '@/core/types';
-import { SovereignMarketKernel } from '@/core/logic/sovereign-market-kernel';
-import { sovereignEventBroker } from '@/lib/event-broker';
+import type { Trip, User } from '@/core/types';
+
+type RideOfferRow = Record<string, unknown>;
+type RideRequestRow = Record<string, unknown>;
 
 export function useDriverTransactions(
   user: User | null,
-  setDriverStatus?: Function,
-  updateDriverDoc?: Function
+  setDriverStatus?: (status: 'active' | 'idle' | 'busy' | 'rating') => void,
 ) {
   const { toast } = useToast();
-  const { suspendUserDocListener, resumeUserDocListener } = useAuth();
   const [activeRequest, setActiveReq] = useState<Trip | null>(null);
   const [acceptedRider, setAcceptedRider] = useState<User | null>(null);
-
   const [isSubmittingOffer, setIsSubmittingOffer] = useState(false);
   const [isEndingTrip, setIsEndingTrip] = useState(false);
   const [isRatingRider, setIsRatingRider] = useState(false);
   const [isRequestingReport, setIsRequestingReport] = useState(false);
+  const submittingRef = useRef(false);
+  const endingRef = useRef(false);
+  const ratingRef = useRef(false);
 
-  // Synchronous execution locks for driver transactions
-  const isSubmittingOfferRef = useRef(false);
-  const isEndingTripRef = useRef(false);
-  const isRatingRiderRef = useRef(false);
-  const isRequestingReportRef = useRef(false);
+  const captainId = user?.uid || '';
 
-  const fetchRealRiderProfile = useCallback(async (riderId: string) => {
-    try {
-        const riderRef = doc(db, 'users', riderId);
-        const riderSnap = await getDoc(riderRef);
-        if (riderSnap.exists()) {
-            setAcceptedRider({ uid: riderSnap.id, ...riderSnap.data() } as User);
-        }
-    } catch (error) {
-        trackSovereignError(error, { context: 'FetchRealRiderProfile' });
+  const loadAcceptedRequest = useCallback(async (requestId: string) => {
+    const { data, error } = await supabase
+      .from('ride_requests')
+      .select('*')
+      .eq('id', requestId)
+      .single();
+
+    if (error) throw error;
+
+    const trip = mapRideRequestToTrip(data as RideRequestRow);
+    if (!trip) throw new Error('ride_request_missing_required_fields');
+
+    setActiveReq(trip);
+    setDriverStatus?.('busy');
+
+    if (trip.riderId) {
+      const { data: riderProfile } = await supabase
+        .from('profiles')
+        .select('id,full_name,phone,rating,country_id,governorate_id,district_id')
+        .eq('id', trip.riderId)
+        .maybeSingle();
+
+      if (riderProfile) {
+        setAcceptedRider({
+          uid: String((riderProfile as Record<string, unknown>).id),
+          role: 'rider',
+          name: String((riderProfile as Record<string, unknown>).full_name || 'Rider'),
+          phone: String((riderProfile as Record<string, unknown>).phone || ''),
+          governorate: '',
+          district: '',
+          rating: Number((riderProfile as Record<string, unknown>).rating || 5),
+        });
+      }
     }
-  }, []);
+  }, [setDriverStatus]);
+
+  useEffect(() => {
+    if (!captainId) return;
+
+    const channel = supabase
+      .channel(`driver-offers-${captainId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'ride_offers',
+          filter: `captain_id=eq.${captainId}`,
+        },
+        (payload) => {
+          const row = payload.new as RideOfferRow | undefined;
+          if (!row) return;
+
+          const status = String(row.status || '').toUpperCase();
+          const requestId = String(row.request_id || '');
+          if (status === 'ACCEPTED' && requestId) {
+            void loadAcceptedRequest(requestId).catch((error) => {
+              if (import.meta.env.DEV) console.warn('[Driver transactions] accepted request load failed:', error);
+            });
+          }
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void channel.unsubscribe();
+    };
+  }, [captainId, loadAcceptedRequest]);
 
   const cleanUpAndReset = useCallback(() => {
-      const activeUpdate = { status: 'active' as const };
-      if (updateDriverDoc) {
-        updateDriverDoc(activeUpdate);
-      }
-      sovereignEventBroker.emit('DRIVER_DOC_UPDATE', activeUpdate);
+    setActiveReq(null);
+    setAcceptedRider(null);
+    setDriverStatus?.('active');
+  }, [setDriverStatus]);
 
-      setActiveReq(null);
-      setAcceptedRider(null);
-
-      if (setDriverStatus) {
-        setDriverStatus('active');
-      }
-      sovereignEventBroker.emit('DRIVER_STATUS_CHANGE', 'active');
-  }, [updateDriverDoc, setDriverStatus]);
-
-  // Monitor active trip assigned to driver
-  useEffect(() => {
-    if (!user?.uid || user.role !== 'driver') return;
-
-    const q = query(
-      collection(db, 'trips'),
-      where('driverId', '==', user.uid)
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      // 🛡️ [حارس قفل الكتابة التفاعلي المانع لتراجع الحالة V2.6-Secured]
-      // نتحقق من وجود قفل نشط لمنع أي لقطة تداخلية متأخرة من تخريب شاشة الملاحة أو شاشة التقييم النشطة
-      const isLockActive = typeof window !== 'undefined' && sessionStorage.getItem('sovereign_write_lock') === 'true';
-      if (isLockActive) {
-        console.log("🛡️ [Snapshot Write Lock Guard]: Stopped trip snapshot consumption during active write lock.");
-        return;
-      }
-
-      if (!snapshot.empty) {
-        // [بروتوكول الربط الشرياني V2.6-Secured - فرز النظام الميداني للسائقين]
-        const trips = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Trip));
-
-        // فرز تنازلي زمني للحصول على الرحلة الأكثر حداثة بصفر تداخل شبكي وصفر متطلبات كشافات
-        trips.sort((a, b) => {
-          const getMs = (val: any) => {
-            if (!val) return 0;
-            if (typeof val.toMillis === 'function') return val.toMillis();
-            if (val.seconds) return val.seconds * 1000;
-            return new Date(val).getTime();
-          };
-          return getMs(b.createdAt) - getMs(a.createdAt);
-        });
-
-        const tripData = trips[0];
-
-        // 🛡️ [النشاط الشبكي التفاضلي V2.6-Secured - مرشح التوقيت المالي المالي]
-        const getNetworkAdjustedTime = () => {
-          if (typeof window !== 'undefined') {
-            const deltaStr = sessionStorage.getItem('sovereign_time_delta');
-            const delta = deltaStr ? parseInt(deltaStr, 10) : 0;
-            return Date.now() + delta;
-          }
-          return Date.now();
-        };
-
-        // التحقق من صلاحية الرحلة وحداثتها لتجنب التموضع العالق في الحسابات السابقة
-        const getTripTimeMs = (val: any) => {
-          if (!val) return getNetworkAdjustedTime();
-          if (typeof val.toMillis === 'function') return val.toMillis();
-          if (val.seconds) return val.seconds * 1000;
-          return new Date(val).getTime();
-        };
-
-        const isRecent = getNetworkAdjustedTime() - getTripTimeMs(tripData.createdAt) < 15 * 60 * 1000; // نافذة 15 دقيقة
-
-        // التحقق من الحالات النهائية والمؤرشفة والقديمة لتسريح شاشة السائق فوراً للعودة للخدمة
-        if (
-          tripData.status === 'archived' ||
-          tripData.ratingSubmittedByDriver !== undefined ||
-          (!isRecent && ['completed', 'checkpoint_required'].includes(tripData.status))
-        ) {
-          cleanUpAndReset();
-          return;
-        }
-
-        // إذا كانت الرحلة ملغاة، نقوم بالتصفير الفوري والعودة للحالة النشطة
-        if (tripData.status === 'cancelled') {
-          cleanUpAndReset();
-          return;
-        }
-
-        // التحقق من الحالات الصالحة للملاحة والتقييم للسائقين
-        if (!['busy', 'rating', 'completed', 'checkpoint_required'].includes(tripData.status)) {
-          cleanUpAndReset();
-          return;
-        }
-
-        setActiveReq(tripData);
-
-        if (tripData.riderId && (!acceptedRider || acceptedRider.uid !== tripData.riderId)) {
-            fetchRealRiderProfile(tripData.riderId);
-        }
-
-        if (tripData.status === 'completed' || tripData.status === 'checkpoint_required') {
-            if (setDriverStatus) {
-              setDriverStatus('rating');
-            }
-            sovereignEventBroker.emit('DRIVER_STATUS_CHANGE', 'rating');
-        } else {
-            if (setDriverStatus) {
-              setDriverStatus(tripData.status);
-            }
-            sovereignEventBroker.emit('DRIVER_STATUS_CHANGE', tripData.status as any);
-        }
-      } else {
-        cleanUpAndReset();
-      }
-    }, (error) => {
-        trackSovereignError(error, { context: 'Driver_TripLifecycleListener' });
-        cleanUpAndReset();
-    });
-
-    return () => unsubscribe();
-  }, [user?.uid, cleanUpAndReset, fetchRealRiderProfile, acceptedRider, setDriverStatus]);
-
-  const submitOffer = useCallback(async (payload: { tripId: string; offerPrice: number }, rejectRequest: Function) => {
-    if (!user || !user.vehicle || !user.affiliation) {
-        toast({
-          variant: 'destructive',
-          title: 'بيانات الفارس غير مكتملة',
-          description: 'للقيام بتقديم عروض، يرجى استكمال بياناتك وتفعيل نظام الحصان  أولاً.'
-        });
-        return;
+  const submitOffer = useCallback(async (payload: { tripId: string; offerPrice: number }, rejectRequest: (tripId: string) => void) => {
+    if (!captainId) {
+      toast({
+        variant: 'destructive',
+        title: 'تعذر إرسال العرض',
+        description: 'يجب تسجيل الدخول بحساب كابتن قبل إرسال العرض.',
+      });
+      return;
     }
 
-    if (isSubmittingOfferRef.current) return;
-    isSubmittingOfferRef.current = true;
+    if (!Number.isFinite(payload.offerPrice) || payload.offerPrice <= 0) {
+      toast({
+        variant: 'destructive',
+        title: 'سعر غير صحيح',
+        description: 'اكتب قيمة صحيحة للعرض ثم حاول مرة أخرى.',
+      });
+      return;
+    }
+
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setIsSubmittingOffer(true);
+
     try {
-      if (!user.vehicle?.plate) {
-        toast({ variant: 'destructive', title: 'مركبة غير مسجلة', description: 'الرجاء التأكد من ربط الحصان  بمركبة صالحة.' });
-        setIsSubmittingOffer(false);
-        isSubmittingOfferRef.current = false;
-        return;
-      }
-
-      const tripRef = doc(db, 'trips', payload.tripId);
-      const tripSnap = await getDoc(tripRef);
-      if (!tripSnap.exists()) throw new Error('TRIP_NOT_FOUND');
-
-      const tripData = tripSnap.data() as Trip;
-      const distance = tripData.estimatedDistance || 0;
-      const duration = tripData.estimatedTime || 0;
-      const currentRating = user.rating || 5.0;
-
-      // Evaluate price dumping and sovereign rank
-      const evaluation = SovereignMarketKernel.evaluateSovereignRank(
-        currentRating,
-        payload.offerPrice,
-        distance,
-        duration
-      );
-
-      const vehicleRef = doc(db, 'vehicles', user.vehicle.plate);
-      const vehicleSnap = await getDoc(vehicleRef);
-      const vehicleSensoryData = vehicleSnap.exists() ? vehicleSnap.data() : {};
-
-      const offer: Offer = {
-        driverId: user.uid,
-        price: payload.offerPrice,
-        driverName: user.name,
-        driverRating: currentRating,
-        driverRank: evaluation.assignedRank,
-        driverVehicle: { ...user.vehicle, ...vehicleSensoryData },
-        silencePreference: user.silencePreference || 'neutral',
-        isDumping: evaluation.isDumping,
-        displayTarget: evaluation.displayTarget
-      };
-
-      await callSovereignCloud('submitOffer', {
-        tripId: payload.tripId,
-        offer
+      const { error } = await supabase.from('ride_offers').insert({
+        request_id: payload.tripId,
+        captain_id: captainId,
+        offer_price: Number(payload.offerPrice),
+        status: 'PENDING',
       });
 
-      // [الشروط التنفيذي V5.5 - الباب الأول] : توليد الفرصة الإعلانية وتصاعد السعة عند حرق/شذوذ الأسعار وثغرات كوابح السوق
-      if (evaluation.isDumping) {
-        let activeDistrict = user?.district || 'وادي السير';
-        if (tripData.pickupCoords?.lat && tripData.pickupCoords?.lng) {
-          const resolvedGeo = getDistrictFromCoords(tripData.pickupCoords.lat, tripData.pickupCoords.lng);
-          if (resolvedGeo.district) {
-            activeDistrict = resolvedGeo.district;
-          }
-        }
+      if (error) throw error;
 
-        const pulseDocRef = doc(db, 'market_pulse', activeDistrict);
-        try {
-          const pulseSnap = await getDoc(pulseDocRef);
-          if (pulseSnap.exists()) {
-            const pData = pulseSnap.data();
-            const prevCount = pData.priceAnomaliesCount || 0;
-            const newCount = prevCount + 1;
-            await updateDoc(pulseDocRef, {
-              priceAnomaliesCount: newCount,
-              priceAnomalyTrend: 'up',
-              emergencyAdCapacityActive: newCount >= 3 // تفعيل السعة الطارئة والمكثفة عند رصد أكثر من حالتين
-            });
-          } else {
-            await setDoc(pulseDocRef, {
-              trend: 'balanced',
-              demand: 5,
-              supply: 5,
-              priceAnomaliesCount: 1,
-              priceAnomalyTrend: 'up',
-              emergencyAdCapacityActive: false
-            });
-          }
-          console.log(`[الباب الأول V5.5] تم تسجيل حالة شذوذ سعري لمنطقة ${activeDistrict}. تم تحويل الأزمة إلى فرصة إعلانية.`);
-        } catch (pulseErr) {
-          console.warn('[V5.5 Market Integrity] Failed to update pricing anomaly pulse:', pulseErr);
-        }
-      }
-
-      toast({ title: 'تم إرفاق العرض للراكب', description: 'عرضك معروض في منصة المنافسة  حالاً.' });
       rejectRequest(payload.tripId);
-    } catch (e: any) {
-      trackSovereignError(e, { context: 'SubmitOffer' });
-      toast({ variant: 'destructive', title: 'فشل إدراج السعر المعروض', description: getSovereignErrorMessage(e) });
+      toast({
+        title: 'تم إرسال العرض',
+        description: 'سنخبرك فور قبول الراكب للعرض.',
+      });
+    } catch (error) {
+      if (import.meta.env.DEV) console.warn('[Driver transactions] offer insert failed:', error);
+      toast({
+        variant: 'destructive',
+        title: 'تعذر إرسال العرض',
+        description: 'تحقق من الاتصال أو صلاحيات قاعدة البيانات ثم حاول مرة أخرى.',
+      });
     } finally {
+      submittingRef.current = false;
       setIsSubmittingOffer(false);
-      isSubmittingOfferRef.current = false;
     }
-  }, [user, toast]);
+  }, [captainId, toast]);
 
   const endTrip = useCallback(async () => {
-    if (!activeRequest?.id) return;
-    if (isEndingTripRef.current) return;
-    isEndingTripRef.current = true;
+    if (!activeRequest?.id || endingRef.current) return;
+    endingRef.current = true;
     setIsEndingTrip(true);
+
     try {
-      await callSovereignCloud('endTrip', {
-        tripId: activeRequest.id
+      const { error } = await supabase.rpc('complete_ride_trip', {
+        p_request_id: activeRequest.id,
       });
-      toast({ title: 'طلب تأكيد المربع الميداني', description: 'يرجى الانتظار لحين تأكيد الراكب إتمام المسار.' });
+
+      if (error) throw error;
+
+      toast({
+        title: 'تم إنهاء الرحلة',
+        description: 'تم حفظ الرحلة في السجل وسيتم تحديث بيانات الحساب من الخادم.',
+      });
+      cleanUpAndReset();
     } catch (error) {
-      trackSovereignError(error, { context: 'EndTrip' });
-      toast({ variant: 'destructive', title: 'فشل تفعيل المحطة النهائية', description: getSovereignErrorMessage(error) });
+      if (import.meta.env.DEV) console.warn('[Driver transactions] complete trip failed:', error);
+      toast({
+        variant: 'destructive',
+        title: 'تعذر إنهاء الرحلة',
+        description: 'لم يقبل الخادم إنهاء الرحلة حالياً. حاول مرة أخرى.',
+      });
     } finally {
+      endingRef.current = false;
       setIsEndingTrip(false);
-      isEndingTripRef.current = false;
     }
-  }, [activeRequest?.id, toast]);
+  }, [activeRequest?.id, cleanUpAndReset, toast]);
 
   const rateAndFinishTrip = useCallback(async (rating: number) => {
-    if (!activeRequest?.id || !activeRequest?.riderId) return;
-    if (isRatingRiderRef.current) return;
-    isRatingRiderRef.current = true;
+    if (!activeRequest?.id || !activeRequest.riderId || ratingRef.current) return;
+    ratingRef.current = true;
     setIsRatingRider(true);
 
-    // 🛡️ [حارس قفل الكتابة التفاعلي المانع لتراجع الحالة V2.6-Secured]
-    // نفعل قفل حظر مؤقت لمنع لقطات التحديث الشبكّي من التداخل وتخريب حالة الواجهة أثناء إتمام الرحلة
-    suspendUserDocListener();
-
     try {
-      await callSovereignCloud('submitRiderRating', {
-        tripId: activeRequest.id,
-        riderId: activeRequest.riderId,
-        rating
+      const { error } = await supabase.rpc('submit_ride_rating', {
+        p_request_id: activeRequest.id,
+        p_captain_id: activeRequest.riderId,
+        p_rating_value: Math.min(5, Math.max(1, Math.round(rating))),
       });
-      toast({ title: 'تم تسجيل تقييم الراكب', description: 'شكراً لمساعدتنا في الحفاظ على جودة الخدمة.' });
+
+      if (error) throw error;
+
+      toast({
+        title: 'تم حفظ التقييم',
+        description: 'شكراً لك، تم تحديث تقييم الرحلة من الخادم.',
+      });
       cleanUpAndReset();
     } catch (error) {
-      trackSovereignError(error, { context: 'SubmitRiderRating' });
-      toast({ variant: 'destructive', title: 'عذرًا، لم يكتمل تقييم الفارس', description: getSovereignErrorMessage(error) });
-      // Keep safety bypass to let developer exit state if function offline
+      if (import.meta.env.DEV) console.warn('[Driver transactions] rating failed:', error);
+      toast({
+        variant: 'destructive',
+        title: 'تعذر حفظ التقييم',
+        description: 'لم يقبل الخادم التقييم حالياً. يمكنك المحاولة لاحقاً.',
+      });
       cleanUpAndReset();
     } finally {
+      ratingRef.current = false;
       setIsRatingRider(false);
-      isRatingRiderRef.current = false;
-
-      // فك قفل تجميد اللقطات بعد مهلة انتشار كافية لمنع الارتداد الشبكي
-      setTimeout(() => {
-        resumeUserDocListener();
-      }, 3000);
     }
-  }, [activeRequest, toast, cleanUpAndReset, suspendUserDocListener, resumeUserDocListener]);
+  }, [activeRequest?.id, activeRequest?.riderId, cleanUpAndReset, toast]);
 
   const requestWeeklyReport = useCallback(async () => {
-    if (isRequestingReportRef.current) return;
-    isRequestingReportRef.current = true;
     setIsRequestingReport(true);
-    toast({ title: 'جاري تجميع التقرير السنوي/الأسبوعي المالي ملاحياً...', description: 'يجرى الآن فحص النظام والتصنيفات في قاعدة البيانات.' });
     try {
-      const result = await callSovereignCloud('generateWeeklyReport', undefined);
-      if (result.success && result.stats) {
-          toast({
-            title: 'تم تحديث الترتيب والتقرير الملاحي للسائقين 🎉',
-            description: `تقرير الرحلات المنجزة: ${result.stats.completedRides || 0}. الرتبة والنشاط حالياً: ${result.newRank || 'Platinum'}`
-          });
-      } else {
-          toast({ title: 'التقرير السحابي غير مصنف', description: result.message || 'يرجى مراجعة المشرف لاحقاً.' });
-      }
-    } catch (error) {
-      trackSovereignError(error, { context: 'WeeklyReport' });
-      toast({ variant: 'destructive', title: 'لم نتمكن من جمع الإحصاءات حالياً', description: getSovereignErrorMessage(error) });
+      toast({
+        title: 'التقرير غير متاح حالياً',
+        description: 'سيتم ربط تقارير الأداء التفصيلية بعد اكتمال لوحة الإدارة.',
+      });
     } finally {
       setIsRequestingReport(false);
-      isRequestingReportRef.current = false;
     }
   }, [toast]);
 
-  return { activeRequest, acceptedRider, submitOffer, isSubmittingOffer, endTrip, isEndingTrip, rateAndFinishTrip, isRatingRider, requestWeeklyReport, isRequestingReport };
+  return useMemo(() => ({
+    activeRequest,
+    acceptedRider,
+    submitOffer,
+    isSubmittingOffer,
+    endTrip,
+    isEndingTrip,
+    rateAndFinishTrip,
+    isRatingRider,
+    requestWeeklyReport,
+    isRequestingReport,
+  }), [
+    activeRequest,
+    acceptedRider,
+    endTrip,
+    isEndingTrip,
+    isRatingRider,
+    isRequestingReport,
+    isSubmittingOffer,
+    rateAndFinishTrip,
+    requestWeeklyReport,
+    submitOffer,
+  ]);
+}
+
+function mapRideRequestToTrip(row: RideRequestRow | null): Trip | null {
+  if (!row) return null;
+  const id = String(row.id || '');
+  const riderId = String(row.rider_id || '');
+  const originLat = toNumber(row.origin_lat);
+  const originLng = toNumber(row.origin_lng);
+  if (!id || !riderId || originLat === null || originLng === null) return null;
+
+  return {
+    id,
+    riderId,
+    driverId: String(row.accepted_captain_id || ''),
+    status: 'busy',
+    pickupCoords: { lat: originLat, lng: originLng },
+    exactPickupCoords: { lat: originLat, lng: originLng },
+    h3Index: String(row.origin_h3 || ''),
+    gridId: String(row.origin_h3 || id),
+    dropoff: String(row.destination_address_ar || row.destination_address || 'وجهة الراكب'),
+    estimatedDistance: 0,
+    estimatedTime: 0,
+    offerPrice: toNumber(row.final_fare) ?? toNumber(row.server_estimated_fare) ?? undefined,
+    createdAt: String(row.created_at || ''),
+  };
+}
+
+function toNumber(value: unknown) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
 }

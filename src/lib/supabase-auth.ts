@@ -13,6 +13,7 @@ export interface RiderSupabaseSignUpInput {
   phone: string;
   password: string;
   fullName: string;
+  role?: 'RIDER' | 'CAPTAIN' | 'ADVERTISER' | 'DELEGATE';
   countryId: number;
   governorateId: number;
   districtId: number;
@@ -27,7 +28,7 @@ export interface RiderSupabaseSignInInput {
 
 
 export interface RiderAuthMetadata {
-  role: 'RIDER';
+  role: 'RIDER' | 'CAPTAIN' | 'ADVERTISER' | 'DELEGATE';
   full_name: string;
   phone: string;
   country_id: number;
@@ -69,7 +70,7 @@ export function buildRiderSignUpMetadata(input: RiderSupabaseSignUpInput): Rider
   }
 
   return {
-    role: 'RIDER',
+    role: input.role || 'RIDER',
     full_name: fullName,
     phone: validation.phone,
     country_id: toStrictPositiveInteger(input.countryId, 'country_id'),
@@ -236,7 +237,8 @@ function toStrictPositiveInteger(value: number, fieldName: string) {
 
 export function buildUserFromSupabaseAuth(authUser: User) {
   const metadata = authUser.user_metadata || {};
-  const role = String(metadata.role || 'RIDER').toLowerCase();
+  const rawRole = String(metadata.role || 'RIDER').toLowerCase();
+  const role = rawRole === 'captain' ? 'driver' : rawRole;
 
   return {
     uid: authUser.id,

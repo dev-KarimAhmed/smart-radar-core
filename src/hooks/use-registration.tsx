@@ -392,7 +392,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     });
   }, [districtRows, personal.gov, selectedCountry, toast]);
 
-  const submitRiderAuth = useCallback(async () => {
+  const submitSupabaseAuth = useCallback(async () => {
     if (isSubmittingRef.current) return;
 
     const countryId = Number(personal.country);
@@ -437,7 +437,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
       toast({
         variant: 'destructive',
         title: 'بيانات ناقصة',
-        description: 'يرجى اختيار الدولة والمحافظة والمنطقة وكتابة الاسم.',
+        description: 'يرجى اختيار الدولة والمحافظة والمنطقة وكتابة الاسم الكامل.',
       });
       return;
     }
@@ -455,7 +455,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
 
         toast({
           title: 'تم تسجيل الدخول',
-          description: 'أهلا بك، تم فتح لوحة الراكب.',
+          description: 'أهلاً بك، تم فتح حسابك بنجاح.',
         });
         return;
       }
@@ -464,6 +464,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
         phone: normalizedPhone.phone,
         password: authPassword,
         fullName: personal.name.trim(),
+        role: toSupabaseAuthRole(role),
         countryId,
         governorateId,
         districtId,
@@ -481,7 +482,9 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
 
       toast({
         title: 'تم إنشاء الحساب',
-        description: 'تم إرسال بياناتك بأمان. يمكنك تسجيل الدخول الآن إذا طلب النظام التأكيد.',
+        description: role === 'driver'
+          ? 'تم إنشاء حساب الكابتن. يمكنك تسجيل الدخول الآن.'
+          : 'تم حفظ بياناتك بأمان. يمكنك تسجيل الدخول الآن.',
       });
       setAuthMode('login');
     } catch (error) {
@@ -489,6 +492,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
         const authError = error as { name?: string; code?: string; status?: number; message?: string };
         console.warn('[Supabase Auth]', {
           mode: authMode,
+          role,
           name: authError?.name,
           code: authError?.code,
           status: authError?.status,
@@ -516,40 +520,25 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     personal.name,
     personal.phone,
     rememberMe,
+    role,
     selectedCountry,
     toast,
   ]);
 
   const handlePersonalSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (role && role !== 'rider') {
-      toast({
-        variant: 'destructive',
-        title: 'هذه الخطوة للراكب فقط',
-        description: 'تكامل Supabase الحالي مخصص لتسجيل ودخول الراكب في هذه المرحلة.',
-      });
-      return;
-    }
-
-    void submitRiderAuth();
+    void submitSupabaseAuth();
   };
-
   const handleVehicleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      variant: 'destructive',
-      title: 'غير مفعل الآن',
-      description: 'هذه المرحلة مخصصة لدخول الراكب فقط. سيتم ربط السائق لاحقا.',
-    });
+    void submitSupabaseAuth();
   };
-
   const handleAdvertiserSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     toast({
       variant: 'destructive',
       title: 'غير مفعل الآن',
-      description: 'هذه المرحلة مخصصة لدخول الراكب فقط. سيتم ربط المعلن لاحقا.',
+      description: 'تسجيل المعلن سيكتمل في مرحلة لاحقة.',
     });
   };
 
@@ -755,6 +744,13 @@ function normalizePhoneForCountry(rawPhone: string, country: SupabaseCountryRow 
   return { ok: true as const, phone };
 }
 
+function toSupabaseAuthRole(role: RegistrationRole): 'RIDER' | 'CAPTAIN' | 'ADVERTISER' | 'DELEGATE' {
+  if (role === 'driver') return 'CAPTAIN';
+  if (role === 'advertiser') return 'ADVERTISER';
+  if (role === 'delegate') return 'DELEGATE';
+  return 'RIDER';
+}
+
 function inferPhoneRuleFromRaw(rawPhone: string): PhoneRule | null {
   const digits = rawPhone.trim().replace(/^00/, '').replace(/\D/g, '');
   if (digits.startsWith('20')) return { ...COUNTRY_PHONE_RULES.EG, dialCode: '+20' };
@@ -783,3 +779,4 @@ export function useRegistration() {
   }
   return context;
 }
+

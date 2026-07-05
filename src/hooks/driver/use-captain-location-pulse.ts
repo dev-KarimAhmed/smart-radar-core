@@ -46,10 +46,18 @@ export function useCaptainLocationPulse({ user, driverStatus, location }: UseCap
       const { error } = await supabase.rpc('pulse_captain_location', {
         p_lat: Number(location.lat),
         p_lng: Number(location.lng),
-        p_h3: h3Cell,
+        p_h3_cell: h3Cell,
       });
 
-      if (error) throw error;
+      if (error) {
+        const fallback = await supabase.rpc('pulse_captain_location', {
+          p_lat: Number(location.lat),
+          p_lng: Number(location.lng),
+          p_h3: h3Cell,
+        });
+
+        if (fallback.error) throw fallback.error;
+      }
 
       setLastPulseAt(Date.now());
       setLastPulseH3(h3Cell);
@@ -80,4 +88,3 @@ export function useCaptainLocationPulse({ user, driverStatus, location }: UseCap
     isPulseActive: shouldPulse,
   };
 }
-
