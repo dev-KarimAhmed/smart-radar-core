@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { gridDisk, latLngToCell } from 'h3-js';
+import { cellToLatLng, gridDisk, latLngToCell } from 'h3-js';
 import { supabase } from '@/lib/supabase-client';
 import { useGeospatialAnchor } from '../use-geospatial-anchor';
 import type { Trip, User } from '@/core/types';
@@ -14,6 +14,7 @@ type RideRequestRow = Record<string, unknown>;
 export function useDriverRadar(user: User | null, driverStatus: string) {
   const { location: driverLocation } = useGeospatialAnchor(driverStatus === 'active');
   const [rawRequests, setRawRequests] = useState<Trip[]>([]);
+  const [radarLockMessage, setRadarLockMessage] = useState('');
   const [rejectedTripIds, setRejectedTripIds] = useState<string[]>(() => {
     if (typeof window === 'undefined') return [];
     try {
@@ -34,14 +35,54 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
     return gridDisk(currentH3Cell, RADAR_RING_SIZE);
   }, [currentH3Cell]);
 
+  const checkTimeBundle = useCallback(async () => {
+    if (!user?.uid || driverStatus !== 'active') {
+      setRadarLockMessage('');
+      return false;
+    }
+
+    const { data, error } = await supabase
+      .from('wallet_accounts')
+      .select('profile_id,time_bundle_expires_at,paid_minutes_remaining,bonus_minutes_remaining')
+      .eq('profile_id', user.uid)
+      .maybeSingle();
+
+    if (error) {
+      if (import.meta.env.DEV) console.warn('[Driver radar] wallet pre-check failed:', error);
+      setRadarLockMessage('تعذر التحقق من باقة الوقت. حاول مرة أخرى بعد قليل.');
+      return false;
+    }
+
+    const row = data as Record<string, unknown> | null;
+    const expiresAt = stringify(row?.time_bundle_expires_at);
+    const paidMinutes = toNumber(row?.paid_minutes_remaining) || 0;
+    const bonusMinutes = toNumber(row?.bonus_minutes_remaining) || 0;
+    const hasActiveExpiry = expiresAt ? new Date(expiresAt).getTime() > Date.now() : false;
+    const hasMinutes = paidMinutes + bonusMinutes > 0;
+
+    if (!hasActiveExpiry && !hasMinutes) {
+      setRadarLockMessage('يرجى شحن باقة الوقت لتفعيل الرادار واستقبال الطلبات');
+      return false;
+    }
+
+    setRadarLockMessage('');
+    return true;
+  }, [driverStatus, user?.uid]);
+
   const fetchPendingRequests = useCallback(async () => {
     if (driverStatus !== 'active' || nearbyCells.length === 0) {
       setRawRequests([]);
       return;
     }
 
+    const canUseRadar = await checkTimeBundle();
+    if (!canUseRadar) {
+      setRawRequests([]);
+      return;
+    }
+
     let query = supabase
-      .from('ride_requests')
+      .from('captain_radar_requests')
       .select('*')
       .eq('status', 'PENDING')
       .in('origin_h3', nearbyCells)
@@ -60,14 +101,14 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
     }
 
     setRawRequests(Array.isArray(data) ? data.map(mapRideRequestToTrip).filter(Boolean) as Trip[] : []);
-  }, [driverStatus, nearbyCells, user?.countryId]);
+  }, [checkTimeBundle, driverStatus, nearbyCells, user?.countryId]);
 
   useEffect(() => {
     void fetchPendingRequests();
   }, [fetchPendingRequests]);
 
   useEffect(() => {
-    if (driverStatus !== 'active' || nearbyCells.length === 0) return;
+    if (driverStatus !== 'active' || nearbyCells.length === 0 || radarLockMessage) return;
 
     const channel = supabase
       .channel(`driver-radar-${user?.uid || 'anonymous'}-${currentH3Cell}`)
@@ -92,7 +133,7 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
     return () => {
       void channel.unsubscribe();
     };
-  }, [currentH3Cell, driverStatus, fetchPendingRequests, nearbyCells.length, user?.uid]);
+  }, [currentH3Cell, driverStatus, fetchPendingRequests, nearbyCells.length, radarLockMessage, user?.uid]);
 
   const rejectRequest = useCallback((tripId: string) => {
     setRejectedTripIds((prev) => {
@@ -116,6 +157,7 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
     driverSpeed: driverLocation?.speed || 0,
     currentDistrict: user?.district || '',
     currentH3Cell,
+    radarLockMessage,
     isDisconnectionLockActive: false,
   };
 }
@@ -125,7 +167,13 @@ function mapRideRequestToTrip(row: RideRequestRow): Trip | null {
   const riderId = stringify(row.rider_id);
   const originLat = toNumber(row.origin_lat);
   const originLng = toNumber(row.origin_lng);
-  if (!id || !riderId || originLat === null || originLng === null) return null;
+  const originH3 = stringify(row.origin_h3);
+  if (!id || !riderId || (!originH3 && (originLat === null || originLng === null))) return null;
+
+  const [h3Lat, h3Lng] = originH3 ? cellToLatLng(originH3) : [null, null];
+  const visibleLat = originLat ?? h3Lat;
+  const visibleLng = originLng ?? h3Lng;
+  if (visibleLat === null || visibleLng === null) return null;
 
   const destinationLabel =
     stringify(row.destination_address_ar) ||
@@ -134,16 +182,17 @@ function mapRideRequestToTrip(row: RideRequestRow): Trip | null {
     'وجهة الراكب';
 
   const fare = toNumber(row.server_estimated_fare);
-  const distanceKm = estimateDistanceKm(originLat, originLng, toNumber(row.destination_lat), toNumber(row.destination_lng));
+  const distanceKm = estimateDistanceKm(visibleLat, visibleLng, toNumber(row.destination_lat), toNumber(row.destination_lng));
 
   return {
     id,
     riderId,
     status: 'searching',
-    pickupCoords: { lat: originLat, lng: originLng },
-    exactPickupCoords: { lat: originLat, lng: originLng },
-    h3Index: stringify(row.origin_h3),
-    gridId: stringify(row.origin_h3) || id,
+    pickupCoords: { lat: visibleLat, lng: visibleLng },
+    exactPickupCoords: originLat !== null && originLng !== null ? { lat: originLat, lng: originLng } : undefined,
+    obfuscatedPickupCoords: originLat === null || originLng === null ? { lat: visibleLat, lng: visibleLng } : undefined,
+    h3Index: originH3,
+    gridId: originH3 || id,
     dropoff: destinationLabel,
     estimatedDistance: distanceKm,
     estimatedTime: Math.max(1, Math.round(distanceKm * 2.5)),

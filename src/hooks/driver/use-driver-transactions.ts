@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase-client';
+import { dexieDb } from '@/lib/dexie-db';
 import { useToast } from '../use-toast';
 import type { Trip, User } from '@/core/types';
 
@@ -16,10 +17,12 @@ export function useDriverTransactions(
   const [activeRequest, setActiveReq] = useState<Trip | null>(null);
   const [acceptedRider, setAcceptedRider] = useState<User | null>(null);
   const [isSubmittingOffer, setIsSubmittingOffer] = useState(false);
+  const [isUpdatingTripStep, setIsUpdatingTripStep] = useState(false);
   const [isEndingTrip, setIsEndingTrip] = useState(false);
   const [isRatingRider, setIsRatingRider] = useState(false);
   const [isRequestingReport, setIsRequestingReport] = useState(false);
   const submittingRef = useRef(false);
+  const updatingStepRef = useRef(false);
   const endingRef = useRef(false);
   const ratingRef = useRef(false);
 
@@ -48,14 +51,15 @@ export function useDriverTransactions(
         .maybeSingle();
 
       if (riderProfile) {
+        const row = riderProfile as Record<string, unknown>;
         setAcceptedRider({
-          uid: String((riderProfile as Record<string, unknown>).id),
+          uid: String(row.id),
           role: 'rider',
-          name: String((riderProfile as Record<string, unknown>).full_name || 'Rider'),
-          phone: String((riderProfile as Record<string, unknown>).phone || ''),
-          governorate: '',
-          district: '',
-          rating: Number((riderProfile as Record<string, unknown>).rating || 5),
+          name: String(row.full_name || 'راكب'),
+          phone: String(row.phone || ''),
+          governorate: String(row.governorate_id || ''),
+          district: String(row.district_id || ''),
+          rating: Number(row.rating || 5),
         });
       }
     }
@@ -107,7 +111,7 @@ export function useDriverTransactions(
         title: 'تعذر إرسال العرض',
         description: 'يجب تسجيل الدخول بحساب كابتن قبل إرسال العرض.',
       });
-      return;
+      return false;
     }
 
     if (!Number.isFinite(payload.offerPrice) || payload.offerPrice <= 0) {
@@ -116,10 +120,10 @@ export function useDriverTransactions(
         title: 'سعر غير صحيح',
         description: 'اكتب قيمة صحيحة للعرض ثم حاول مرة أخرى.',
       });
-      return;
+      return false;
     }
 
-    if (submittingRef.current) return;
+    if (submittingRef.current) return false;
     submittingRef.current = true;
     setIsSubmittingOffer(true);
 
@@ -127,6 +131,7 @@ export function useDriverTransactions(
       const { error } = await supabase.from('ride_offers').insert({
         request_id: payload.tripId,
         captain_id: captainId,
+        offered_fare: Number(payload.offerPrice),
         offer_price: Number(payload.offerPrice),
         status: 'PENDING',
       });
@@ -138,6 +143,7 @@ export function useDriverTransactions(
         title: 'تم إرسال العرض',
         description: 'سنخبرك فور قبول الراكب للعرض.',
       });
+      return true;
     } catch (error) {
       if (import.meta.env.DEV) console.warn('[Driver transactions] offer insert failed:', error);
       toast({
@@ -145,14 +151,77 @@ export function useDriverTransactions(
         title: 'تعذر إرسال العرض',
         description: 'تحقق من الاتصال أو صلاحيات قاعدة البيانات ثم حاول مرة أخرى.',
       });
+      return false;
     } finally {
       submittingRef.current = false;
       setIsSubmittingOffer(false);
     }
   }, [captainId, toast]);
 
+  const markArrivedAtPickup = useCallback(async () => {
+    if (!activeRequest?.id || updatingStepRef.current) return false;
+    updatingStepRef.current = true;
+    setIsUpdatingTripStep(true);
+
+    try {
+      const { error } = await supabase.rpc('captain_arrived_to_pickup', {
+        p_request_id: activeRequest.id,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: 'تم تحديث الرحلة',
+        description: 'تم تأكيد وصولك إلى نقطة الركوب.',
+      });
+      return true;
+    } catch (error) {
+      if (import.meta.env.DEV) console.warn('[Driver transactions] arrival milestone failed:', error);
+      toast({
+        variant: 'destructive',
+        title: 'تعذر تحديث الرحلة',
+        description: 'لم يتم تأكيد الوصول من الخادم. حاول مرة أخرى.',
+      });
+      return false;
+    } finally {
+      updatingStepRef.current = false;
+      setIsUpdatingTripStep(false);
+    }
+  }, [activeRequest?.id, toast]);
+
+  const startTrip = useCallback(async () => {
+    if (!activeRequest?.id || updatingStepRef.current) return false;
+    updatingStepRef.current = true;
+    setIsUpdatingTripStep(true);
+
+    try {
+      const { error } = await supabase.rpc('start_ride_trip', {
+        p_request_id: activeRequest.id,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: 'بدأت الرحلة',
+        description: 'تم تأكيد بدء الرحلة من الخادم.',
+      });
+      return true;
+    } catch (error) {
+      if (import.meta.env.DEV) console.warn('[Driver transactions] start trip milestone failed:', error);
+      toast({
+        variant: 'destructive',
+        title: 'تعذر بدء الرحلة',
+        description: 'لم يتم تأكيد بدء الرحلة من الخادم. حاول مرة أخرى.',
+      });
+      return false;
+    } finally {
+      updatingStepRef.current = false;
+      setIsUpdatingTripStep(false);
+    }
+  }, [activeRequest?.id, toast]);
+
   const endTrip = useCallback(async () => {
-    if (!activeRequest?.id || endingRef.current) return;
+    if (!activeRequest?.id || endingRef.current) return false;
     endingRef.current = true;
     setIsEndingTrip(true);
 
@@ -163,11 +232,22 @@ export function useDriverTransactions(
 
       if (error) throw error;
 
+      await dexieDb.captainLedger.put({
+        requestId: activeRequest.id,
+        captainId,
+        riderId: activeRequest.riderId,
+        destination: activeRequest.dropoff || 'وجهة الرحلة',
+        finalFare: Number(activeRequest.offerPrice || 0),
+        completedAt: Date.now(),
+        purgeAt: Date.now() + 72 * 60 * 60 * 1000,
+      });
+
       toast({
         title: 'تم إنهاء الرحلة',
-        description: 'تم حفظ الرحلة في السجل وسيتم تحديث بيانات الحساب من الخادم.',
+        description: 'تم حفظ الرحلة بعد تأكيد الخادم.',
       });
       cleanUpAndReset();
+      return true;
     } catch (error) {
       if (import.meta.env.DEV) console.warn('[Driver transactions] complete trip failed:', error);
       toast({
@@ -175,11 +255,12 @@ export function useDriverTransactions(
         title: 'تعذر إنهاء الرحلة',
         description: 'لم يقبل الخادم إنهاء الرحلة حالياً. حاول مرة أخرى.',
       });
+      return false;
     } finally {
       endingRef.current = false;
       setIsEndingTrip(false);
     }
-  }, [activeRequest?.id, cleanUpAndReset, toast]);
+  }, [activeRequest, captainId, cleanUpAndReset, toast]);
 
   const rateAndFinishTrip = useCallback(async (rating: number) => {
     if (!activeRequest?.id || !activeRequest.riderId || ratingRef.current) return;
@@ -231,6 +312,9 @@ export function useDriverTransactions(
     acceptedRider,
     submitOffer,
     isSubmittingOffer,
+    markArrivedAtPickup,
+    startTrip,
+    isUpdatingTripStep,
     endTrip,
     isEndingTrip,
     rateAndFinishTrip,
@@ -245,8 +329,11 @@ export function useDriverTransactions(
     isRatingRider,
     isRequestingReport,
     isSubmittingOffer,
+    isUpdatingTripStep,
+    markArrivedAtPickup,
     rateAndFinishTrip,
     requestWeeklyReport,
+    startTrip,
     submitOffer,
   ]);
 }
@@ -271,7 +358,7 @@ function mapRideRequestToTrip(row: RideRequestRow | null): Trip | null {
     dropoff: String(row.destination_address_ar || row.destination_address || 'وجهة الراكب'),
     estimatedDistance: 0,
     estimatedTime: 0,
-    offerPrice: toNumber(row.final_fare) ?? toNumber(row.server_estimated_fare) ?? undefined,
+    offerPrice: toNumber(row.final_fare) ?? toNumber(row.offered_fare) ?? toNumber(row.offer_price) ?? toNumber(row.server_estimated_fare) ?? undefined,
     createdAt: String(row.created_at || ''),
   };
 }

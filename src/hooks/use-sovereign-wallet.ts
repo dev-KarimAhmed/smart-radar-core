@@ -167,6 +167,7 @@ export function useSovereignWallet(user: User | null) {
       const { error: insertError } = await supabase.from('wallet_transactions').insert({
         profile_id: userId,
         type: 'receipt',
+        transaction_type: 'receipt',
         amount: input.amount,
         currency_code: user?.currencyEn || null,
         currency_ar: user?.currencyAr || null,

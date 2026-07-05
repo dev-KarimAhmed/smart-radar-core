@@ -17,9 +17,12 @@ interface DriverOpsContextType {
   acceptedRider: RiderUser | null;
   isDormancyWarningVisible: boolean;
   resetDormancyTimer: () => void;
-  submitOffer: (payload: { tripId: string; offerPrice: number }) => Promise<void>;
+  submitOffer: (payload: { tripId: string; offerPrice: number }) => Promise<boolean>;
   isSubmittingOffer: boolean;
-  endTrip: () => Promise<void>;
+  markArrivedAtPickup: () => Promise<boolean>;
+  startTrip: () => Promise<boolean>;
+  isUpdatingTripStep: boolean;
+  endTrip: () => Promise<boolean>;
   isEndingTrip: boolean;
   rateAndFinishTrip: (rating: number) => Promise<void>;
   isRatingRider: boolean;
@@ -38,6 +41,7 @@ interface DriverOpsContextType {
   currentDistrict?: string;
   currentH3Cell?: string;
   isDisconnectionLockActive?: boolean;
+  radarLockMessage?: string;
 }
 
 export const DriverOperationsContext = createContext<DriverOpsContextType | undefined>(undefined);
@@ -82,6 +86,7 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
     currentDistrict,
     currentH3Cell,
     isDisconnectionLockActive,
+    radarLockMessage,
   } = useDriverRadar(user, driverStatus);
 
   useCaptainLocationPulse({
@@ -99,6 +104,9 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
     acceptedRider,
     submitOffer: rawSubmitOffer,
     isSubmittingOffer,
+    markArrivedAtPickup: rawMarkArrivedAtPickup,
+    startTrip: rawStartTrip,
+    isUpdatingTripStep,
     endTrip: rawEndTrip,
     isEndingTrip,
     rateAndFinishTrip: rawRateAndFinishTrip,
@@ -108,11 +116,19 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
   } = useDriverTransactions(user, setDriverStatus);
 
   const submitOffer = useCallback(async (payload: { tripId: string; offerPrice: number }) => {
-    await rawSubmitOffer(payload, rejectRequest);
+    return rawSubmitOffer(payload, rejectRequest);
   }, [rawSubmitOffer, rejectRequest]);
 
+  const markArrivedAtPickup = useCallback(async () => {
+    return rawMarkArrivedAtPickup();
+  }, [rawMarkArrivedAtPickup]);
+
+  const startTrip = useCallback(async () => {
+    return rawStartTrip();
+  }, [rawStartTrip]);
+
   const endTrip = useCallback(async () => {
-    await rawEndTrip();
+    return rawEndTrip();
   }, [rawEndTrip]);
 
   const rateAndFinishTrip = useCallback(async (rating: number) => {
@@ -152,6 +168,9 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
     resetDormancyTimer,
     submitOffer,
     isSubmittingOffer,
+    markArrivedAtPickup,
+    startTrip,
+    isUpdatingTripStep,
     endTrip,
     isEndingTrip,
     rateAndFinishTrip,
@@ -171,6 +190,7 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
     currentDistrict,
     currentH3Cell,
     isDisconnectionLockActive,
+    radarLockMessage,
   }), [
     acceptedRider,
     activeRequest,
@@ -187,7 +207,9 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
     isRequestListOpen,
     isRequestingReport,
     isSubmittingOffer,
+    isUpdatingTripStep,
     loadingPulse,
+    markArrivedAtPickup,
     pulseData,
     rateAndFinishTrip,
     rejectRequest,
@@ -196,6 +218,7 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
     requests,
     resetDormancyTimer,
     submitOffer,
+    startTrip,
     toggleDriverStatus,
     toggleRequestList,
   ]);

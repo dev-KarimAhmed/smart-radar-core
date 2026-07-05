@@ -163,6 +163,10 @@ alter table if exists public.profiles add column if not exists trust_score numer
 alter table if exists public.profiles add column if not exists rating_sum numeric not null default 0;
 alter table if exists public.profiles add column if not exists rating_count integer not null default 0;
 alter table if exists public.profiles add column if not exists rating numeric not null default 5;
+alter table if exists public.profiles add column if not exists vehicle_plate text;
+alter table if exists public.profiles add column if not exists vehicle_make text;
+alter table if exists public.profiles add column if not exists vehicle_color text;
+alter table if exists public.profiles add column if not exists vehicle_year text;
 alter table if exists public.profiles add column if not exists updated_at timestamptz not null default now();
 
 alter table if exists public.ad_campaigns add column if not exists impressions_count bigint not null default 0;

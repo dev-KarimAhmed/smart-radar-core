@@ -237,6 +237,7 @@ function toStrictPositiveInteger(value: number, fieldName: string) {
 
 export function buildUserFromSupabaseAuth(authUser: User) {
   const metadata = authUser.user_metadata || {};
+  const vehicle = metadata.vehicle && typeof metadata.vehicle === 'object' ? metadata.vehicle as Record<string, unknown> : {};
   const rawRole = String(metadata.role || 'RIDER').toLowerCase();
   const role = rawRole === 'captain' ? 'driver' : rawRole;
 
@@ -252,6 +253,12 @@ export function buildUserFromSupabaseAuth(authUser: User) {
     district: metadata.district_id !== undefined ? String(metadata.district_id) : '',
     status: 'active',
     rating: 5,
+    vehicle: {
+      plate: String(vehicle.plate || ''),
+      make: String(vehicle.make || ''),
+      color: String(vehicle.color || ''),
+      year: Number(vehicle.year) || 0,
+    },
     isBufferActive: false,
   };
 }

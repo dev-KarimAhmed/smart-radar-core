@@ -53,11 +53,7 @@ export function getAdTitle(ad: any, fallback: string = AD_CARD_COPY.ar.fallbackT
 }
 
 export function getAdDescription(ad: any, fallback: string = AD_CARD_COPY.ar.fallbackDescription) {
-  return (
-    ad?.content?.description ||
-    ad?.description ||
-    fallback
-  );
+  return ad?.content?.description || ad?.description || fallback;
 }
 
 export function getAdCta(ad: any, fallback: string = AD_CARD_COPY.ar.fallbackCta) {
@@ -81,6 +77,7 @@ export function AdDisplayCard({
   const image = getAdImage(ad);
   const actionText = ctaText || getAdCta(ad, copy.fallbackCta);
   const resolvedBadgeText = badgeText || copy.defaultBadge;
+  const isPlaceholder = Boolean(ad?.isPlaceholder);
 
   return (
     <article
@@ -88,6 +85,7 @@ export function AdDisplayCard({
       onClick={onOpen ? (event) => onOpen(event, ad) : undefined}
       className={cn(
         'group relative isolate flex h-[360px] w-full cursor-pointer select-none flex-col justify-end overflow-hidden rounded-[28px] border border-cyan-400/10 bg-[#0B0F19] p-5 text-right shadow-[0_24px_70px_rgba(0,0,0,0.5)] transition-all duration-300 hover:border-[#14B8A6]/45 hover:shadow-[0_26px_80px_rgba(20,184,166,0.18)]',
+        isPlaceholder && 'border-[#14B8A6]/20 shadow-[0_22px_65px_rgba(20,184,166,0.10)]',
         className
       )}
     >
@@ -97,11 +95,23 @@ export function AdDisplayCard({
         onError={(event) => {
           event.currentTarget.src = FALLBACK_IMAGE;
         }}
-        className="absolute inset-0 z-0 h-full w-full object-cover opacity-85 grayscale-[12%] brightness-[0.82] saturate-[0.95] transition duration-700 group-hover:scale-[1.03] group-hover:opacity-95"
+        className={cn(
+          'absolute inset-0 z-0 h-full w-full object-cover transition duration-700 group-hover:scale-[1.03]',
+          isPlaceholder
+            ? 'opacity-100 brightness-110 saturate-110'
+            : 'opacity-85 grayscale-[12%] brightness-[0.82] saturate-[0.95] group-hover:opacity-95'
+        )}
         referrerPolicy="no-referrer"
       />
-      <div className="absolute inset-0 z-[1] bg-[#07101F]/18" />
-      <div className="absolute inset-0 z-[2] bg-gradient-to-t from-[#06101D]/95 via-[#06101D]/45 to-[#06101D]/8" />
+      <div className={cn('absolute inset-0 z-[1]', isPlaceholder ? 'bg-[#07101F]/4' : 'bg-[#07101F]/18')} />
+      <div
+        className={cn(
+          'absolute inset-0 z-[2] bg-gradient-to-t',
+          isPlaceholder
+            ? 'from-[#06101D]/78 via-[#06101D]/24 to-transparent'
+            : 'from-[#06101D]/95 via-[#06101D]/45 to-[#06101D]/8'
+        )}
+      />
 
       {showHeart && (
         <button

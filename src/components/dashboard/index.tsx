@@ -120,16 +120,11 @@ function DashboardLayout() {
 
  const isStandby = useMemo(() => {
  if (isSovereign) return false;
+ if (isCaptain) return false;
  if (hash !== '#' && hash !== '' && hash !== '#/') return false;
 
  if (isPassenger) {
  return false;
- }
-
- if (isCaptain) {
- const currentDriverStatus = driverOps?.driverStatus || 'idle';
- const isRequestListOpen = driverOps?.isRequestListOpen || false;
- if (currentDriverStatus === 'active' || currentDriverStatus === 'busy' || isRequestListOpen) return false;
  }
 
  return true;
@@ -311,7 +306,7 @@ function DashboardLayout() {
 
  return (
  // استخدام flex-col لضمان تدفق الصفحة (Doc Flow) والسماح بالتمرير الطبيعي
- <div className="flex min-h-screen w-full flex-col bg-[#0B0F19] text-white lg:h-screen lg:overflow-hidden">
+ <div className={cn('flex min-h-screen w-full flex-col bg-[#0B0F19] text-white', !isCaptain && 'lg:h-screen lg:overflow-hidden')}>
  {user?.role === 'rider' && (
  <DesktopRiderSidebar
  hash={hash}
@@ -328,7 +323,11 @@ function DashboardLayout() {
  </header>
 
  {/* المحتوى الرئيسي يتمدد ويسمح بالتمرير (Scroll) */}
- <main className={cn('relative flex w-full flex-1 flex-col overflow-y-visible lg:h-screen lg:min-h-0 lg:overflow-hidden', user?.role === 'rider' && !isRiderHomeSurface && 'lg:pl-[288px]')}>
+ <main className={cn(
+ 'relative flex w-full flex-1 flex-col overflow-y-visible',
+ isCaptain ? 'lg:min-h-screen lg:overflow-y-auto' : 'lg:h-screen lg:min-h-0 lg:overflow-hidden',
+ user?.role === 'rider' && !isRiderHomeSurface && 'lg:pl-[288px]',
+ )}>
 
  {/* مسرح الإعلانات يأخذ مساحته الطبيعية في التدفق */}
  {isStandby && (

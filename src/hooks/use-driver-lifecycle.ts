@@ -13,6 +13,7 @@ export function useDriverLifecycle(user: User | null) {
   const [isDormancyWarningVisible, setWarning] = useState(false);
   const timers = useRef<{ dormancy: ReturnType<typeof setTimeout> | null; warning: ReturnType<typeof setTimeout> | null }>({ dormancy: null, warning: null });
   const statusRef = useRef(driverStatus);
+  const isTogglingRef = useRef(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -96,8 +97,6 @@ export function useDriverLifecycle(user: User | null) {
     };
   }, [clearTimers, driverStatus, resetDormancyTimer, user?.role]);
 
-  const isTogglingRef = useRef(false);
-
   const toggleDriverStatus = useCallback(async (desiredStatus: 'active' | 'idle') => {
     if (driverStatus === 'busy' || driverStatus === 'rating') return;
     if (isTogglingRef.current) return;
@@ -116,8 +115,8 @@ export function useDriverLifecycle(user: User | null) {
           'status_change',
           desiredStatus === 'active' ? 'متاح لاستقبال الطلبات' : 'غير متاح',
           desiredStatus === 'active'
-            ? 'قام الكابتن بتفعيل استقبال الطلبات.'
-            : 'قام الكابتن بإيقاف استقبال الطلبات.',
+            ? 'تم تفعيل استقبال الطلبات.'
+            : 'تم إيقاف استقبال الطلبات.',
         );
       }
     } finally {
