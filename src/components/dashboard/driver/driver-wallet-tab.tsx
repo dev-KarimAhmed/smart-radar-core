@@ -73,9 +73,9 @@ export function DriverWalletTab({ user, language }: DriverWalletTabProps) {
         </div>
 
         <div className="mt-5 grid gap-3 md:grid-cols-3">
-          <Metric label={copy.balance} value={`${wallet.balanceJD.toFixed(2)} ${user?.currencyAr || user?.currencyEn || ''}`} />
-          <Metric label={copy.paidTime} value={formatMinutes(wallet.paidHoursMin, language)} />
-          <Metric label={copy.bonusTime} value={formatMinutes(wallet.bonusHoursMin, language)} />
+          <Metric label={copy.balance} value={wallet.walletLoaded ? `${wallet.balanceJD.toFixed(2)} ${user?.currencyAr || user?.currencyEn || ''}` : '...'} />
+          <Metric label={copy.paidTime} value={wallet.walletLoaded ? formatMinutes(wallet.paidHoursMin, language) : '...'} />
+          <Metric label={copy.bonusTime} value={wallet.walletLoaded ? formatMinutes(wallet.bonusHoursMin, language) : '...'} />
         </div>
       </div>
 
@@ -173,12 +173,10 @@ function Metric({ label, value }: { label: string; value: string }) {
 }
 
 function formatMinutes(totalMinutes: number, language: string) {
-  const hours = Math.floor(Math.max(0, totalMinutes) / 60);
-  const minutes = Math.max(0, totalMinutes) % 60;
-  if (language === 'ar') return `${hours} ساعة ${minutes} دقيقة`;
-  return `${hours}h ${minutes}m`;
-  if (language === 'ar') return `${hours} ساعة ${minutes} دقيقة`;
-  return language === 'ar' ? `${hours} ساعة ${minutes} دقيقة` : `${hours}h ${minutes}m`;
+  const safeMinutes = Math.max(0, Math.floor(Number(totalMinutes) || 0));
+  const formattedHours = Math.floor(safeMinutes / 60);
+  const formattedMinutes = safeMinutes % 60;
+  return language === 'ar' ? `${formattedHours} ساعة ${formattedMinutes} دقيقة` : `${formattedHours}h ${formattedMinutes}m`;
 }
 
 function getCountryCode(user: User | null) {

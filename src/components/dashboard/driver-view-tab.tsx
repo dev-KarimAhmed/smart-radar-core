@@ -5,6 +5,7 @@ import { Loader2, LogOut, Map, User, Wallet } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { useDriverOperations } from '@/hooks/use-driver-operations';
+import { useSovereignWallet } from '@/hooks/use-sovereign-wallet';
 import { ActiveTripTracker } from './driver/active-trip-tracker';
 import { BiddingProposalSheet } from './driver/bidding-proposal-sheet';
 import {
@@ -31,6 +32,7 @@ export function DriverViewTab() {
     logout: language === 'ar' ? 'تسجيل الخروج' : 'Log out',
   };
   const driverOps = useDriverOperations();
+  const wallet = useSovereignWallet(user);
   const [state, dispatch] = React.useReducer(captainDashboardReducer, initialCaptainDashboardState);
   const screen = state.screen === 'ACTIVE_TRIP' && !driverOps?.activeRequest ? 'RADAR_MAP' : state.screen;
 
@@ -60,8 +62,8 @@ export function DriverViewTab() {
   }
 
   const isActive = driverOps.driverStatus === 'active' || driverOps.driverStatus === 'busy';
-  const paidMinutes = user?.paidHoursRemaining || 0;
-  const bonusMinutes = user?.bonusHoursRemaining || 0;
+  const paidMinutes = wallet.walletLoaded ? wallet.paidHoursMin : user?.paidHoursRemaining || 0;
+  const bonusMinutes = wallet.walletLoaded ? wallet.bonusHoursMin : user?.bonusHoursRemaining || 0;
   const currency = user?.currencyAr || user?.currencyEn || '';
 
   const submitBid = async (price: number) => {

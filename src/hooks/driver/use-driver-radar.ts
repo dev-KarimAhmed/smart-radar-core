@@ -43,7 +43,7 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
 
     const { data, error } = await supabase
       .from('wallet_accounts')
-      .select('profile_id,time_bundle_expires_at,paid_minutes_remaining,bonus_minutes_remaining')
+      .select('profile_id,paid_minutes_remaining,bonus_minutes_remaining,active_package_name')
       .eq('profile_id', user.uid)
       .maybeSingle();
 
@@ -54,14 +54,12 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
     }
 
     const row = data as Record<string, unknown> | null;
-    const expiresAt = stringify(row?.time_bundle_expires_at);
     const paidMinutes = toNumber(row?.paid_minutes_remaining) || 0;
     const bonusMinutes = toNumber(row?.bonus_minutes_remaining) || 0;
-    const hasActiveExpiry = expiresAt ? new Date(expiresAt).getTime() > Date.now() : false;
     const hasMinutes = paidMinutes + bonusMinutes > 0;
 
-    if (!hasActiveExpiry && !hasMinutes) {
-      setRadarLockMessage('يرجى شحن باقة الوقت لتفعيل الرادار واستقبال الطلبات');
+    if (!row || !hasMinutes) {
+      setRadarLockMessage('يرجى شحن باقة الوقت لتفعيل الرادار واستقبال الطلبات.');
       return false;
     }
 
@@ -225,3 +223,4 @@ function toNumber(value: unknown) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
 }
+

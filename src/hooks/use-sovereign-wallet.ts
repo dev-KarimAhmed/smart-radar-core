@@ -53,6 +53,21 @@ function mapWalletTransactionRow(row: Record<string, any>): WalletTransaction {
   };
 }
 
+function mapWalletAccountRow(row: Record<string, any> | null, transactions: WalletTransaction[] = []): ServerWalletSnapshot | null {
+  if (!row) return null;
+  const paidMinutes = firstNumber(row.paid_minutes_remaining, 0);
+  const bonusMinutes = firstNumber(row.bonus_minutes_remaining, 0);
+
+  return {
+    balance: firstNumber(row.balance, 0),
+    paidHoursMin: paidMinutes,
+    bonusHoursMin: bonusMinutes,
+    subscriptionHours: Number(((paidMinutes + bonusMinutes) / 60).toFixed(3)),
+    activePackageName: firstString(row.active_package_name, ''),
+    transactions,
+  };
+}
+
 function firstNumber(...values: unknown[]) {
   for (const value of values) {
     const numberValue = Number(value);
@@ -75,8 +90,13 @@ function parseTimestamp(value: unknown) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function isUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
 export function useSovereignWallet(user: User | null) {
   const { toast } = useToast();
+  const realtimeInstanceId = useMemo(() => Math.random().toString(36).slice(2), []);
   const [loading, setLoading] = useState(false);
   const [serverWallet, setServerWallet] = useState<ServerWalletSnapshot | null>(null);
   const [walletLoaded, setWalletLoaded] = useState(false);
@@ -94,6 +114,18 @@ export function useSovereignWallet(user: User | null) {
       return;
     }
 
+    if (!isUuid(userId)) {
+      setServerWallet(mapWalletAccountRow({
+        balance: user?.walletBalanceJD ?? 0,
+        paid_minutes_remaining: user?.paidHoursRemaining ?? 0,
+        bonus_minutes_remaining: user?.bonusHoursRemaining ?? 0,
+        active_package_name: user?.activePackageName ?? '',
+      }, Array.isArray(user?.walletTransactions) ? user.walletTransactions.map(mapWalletTransactionRow) : []));
+      setWalletLoaded(true);
+      setLoading(false);
+      return;
+    }
+
     let active = true;
 
     async function fetchWalletFromServer() {
@@ -102,7 +134,11 @@ export function useSovereignWallet(user: User | null) {
 
       try {
         const [{ data: walletData, error: walletError }, { data: txData, error: txError }] = await Promise.all([
-          supabase.from('wallet_accounts').select('*').eq('profile_id', userId).maybeSingle(),
+          supabase
+            .from('wallet_accounts')
+            .select('profile_id,balance,paid_minutes_remaining,bonus_minutes_remaining,active_package_name')
+            .eq('profile_id', userId)
+            .maybeSingle(),
           supabase.from('wallet_transactions').select('*').eq('profile_id', userId).order('created_at', { ascending: false }),
         ]);
 
@@ -110,19 +146,8 @@ export function useSovereignWallet(user: User | null) {
         if (txError) throw txError;
         if (!active) return;
 
-        if (!walletData) {
-          setServerWallet(null);
-          return;
-        }
-
-        setServerWallet({
-          balance: firstNumber(walletData.balance, walletData.balance_jd, walletData.wallet_balance, 0),
-          paidHoursMin: firstNumber(walletData.paid_hours_remaining, walletData.paid_minutes_remaining, 0),
-          bonusHoursMin: firstNumber(walletData.bonus_hours_remaining, walletData.bonus_minutes_remaining, 0),
-          subscriptionHours: firstNumber(walletData.subscription_hours, 0),
-          activePackageName: firstString(walletData.active_package_name, walletData.package_name, ''),
-          transactions: Array.isArray(txData) ? txData.map(mapWalletTransactionRow) : [],
-        });
+        const transactions = Array.isArray(txData) ? txData.map(mapWalletTransactionRow) : [];
+        setServerWallet(mapWalletAccountRow(walletData as Record<string, any> | null, transactions));
       } catch (error) {
         if (!active) return;
         if (import.meta.env.DEV) console.warn('[Wallet] showing empty state because wallet data could not load:', error);
@@ -140,7 +165,62 @@ export function useSovereignWallet(user: User | null) {
     return () => {
       active = false;
     };
-  }, [refreshIndex, userId]);
+  }, [refreshIndex, user?.activePackageName, user?.bonusHoursRemaining, user?.paidHoursRemaining, user?.walletBalanceJD, user?.walletTransactions, userId]);
+
+  useEffect(() => {
+    if (!userId) return;
+    if (!isUuid(userId)) return;
+
+    const walletChannel = supabase
+      .channel(`wallet-account-${userId}-${realtimeInstanceId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'wallet_accounts',
+          filter: `profile_id=eq.${userId}`,
+        },
+        (payload) => {
+          const nextRow = payload.new as Record<string, any> | null;
+          if (!nextRow || payload.eventType === 'DELETE') {
+            setServerWallet(null);
+            return;
+          }
+
+          setServerWallet((current) => mapWalletAccountRow(nextRow, current?.transactions ?? []));
+          setWalletLoaded(true);
+        },
+      )
+      .subscribe((status) => {
+        if ((status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') && import.meta.env.DEV) {
+          console.warn('[Wallet] realtime channel issue:', status);
+        }
+      });
+
+    const transactionsChannel = supabase
+      .channel(`wallet-transactions-${userId}-${realtimeInstanceId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'wallet_transactions',
+          filter: `profile_id=eq.${userId}`,
+        },
+        () => refreshWallet(),
+      )
+      .subscribe((status) => {
+        if ((status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') && import.meta.env.DEV) {
+          console.warn('[Wallet transactions] realtime channel issue:', status);
+        }
+      });
+
+    return () => {
+      void walletChannel.unsubscribe();
+      void transactionsChannel.unsubscribe();
+    };
+  }, [realtimeInstanceId, refreshWallet, userId]);
 
   const submitWalletReceipt = useCallback(async (input: SubmitWalletReceiptInput) => {
     if (!userId) {

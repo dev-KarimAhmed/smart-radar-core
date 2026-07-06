@@ -292,12 +292,13 @@ function DashboardLayout() {
  return <DriverViewTab />;
  }
 
+ if (isCaptain) return <DriverViewTab />;
+
  if (hash === '#wallet') return <WalletTab />;
  if (hash === '#vault') return <VaultTab />;
  if (hash === '#history') return <HistoryTab />;
  if (hash === '#profile') return <ProfileTab />;
 
- if (isCaptain) return <DriverViewTab />;
  return null;
  };
 

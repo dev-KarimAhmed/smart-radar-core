@@ -287,9 +287,10 @@ function StateCard({
 }
 
 function formatMinutes(totalMinutes: number, language: 'ar' | 'en') {
-  const hours = Math.floor(Math.max(0, totalMinutes) / 60);
-  const minutes = Math.max(0, totalMinutes) % 60;
-  return language === 'ar' ? `${hours} س ${minutes} د` : `${hours}h ${minutes}m`;
+  const safeMinutes = Math.max(0, Math.floor(Number(totalMinutes) || 0));
+  const formattedHours = Math.floor(safeMinutes / 60);
+  const formattedMinutes = safeMinutes % 60;
+  return language === 'ar' ? `${formattedHours} ساعة ${formattedMinutes} دقيقة` : `${formattedHours}h ${formattedMinutes}m`;
 }
 
 function shortH3(value?: string) {
