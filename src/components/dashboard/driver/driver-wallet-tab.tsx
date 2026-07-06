@@ -11,31 +11,11 @@ interface DriverWalletTabProps {
 }
 
 export function DriverWalletTab({ user, language }: DriverWalletTabProps) {
-  const copy = {
-    ...walletCopy[language],
-    badge: language === 'ar' ? 'الرصيد والباقات' : 'Wallet and bundles',
-    title: language === 'ar' ? 'رصيد الكابتن' : 'Captain wallet',
-    subtitle: language === 'ar'
-      ? 'تظهر الأرصدة من قاعدة البيانات فقط. لا يمكن تعديل الرصيد من الواجهة.'
-      : 'Balances come from the database only. The UI cannot modify wallet values directly.',
-    balance: language === 'ar' ? 'الرصيد النقدي' : 'Cash balance',
-    paidTime: language === 'ar' ? 'وقت مدفوع' : 'Paid time',
-    bonusTime: language === 'ar' ? 'وقت إضافي' : 'Bonus time',
-    paymentMethods: language === 'ar' ? 'طرق الدفع المتاحة' : 'Available payment methods',
-    copy: language === 'ar' ? 'نسخ' : 'Copy',
-    uploadReceipt: language === 'ar' ? 'إرسال إيصال شحن' : 'Upload payment receipt',
-    amount: language === 'ar' ? 'المبلغ' : 'Amount',
-    chooseImage: language === 'ar' ? 'اختر صورة الإيصال' : 'Choose receipt image',
-    sendReceipt: language === 'ar' ? 'إرسال الإيصال' : 'Send receipt',
-    voucher: language === 'ar' ? 'كود الشحن' : 'Voucher code',
-    voucherPlaceholder: language === 'ar' ? 'اكتب كود الشحن' : 'Enter voucher code',
-    redeem: language === 'ar' ? 'تفعيل الكود' : 'Redeem',
-    noPaymentMethods: language === 'ar'
-      ? 'لا توجد طرق دفع مفعلة لهذا البلد حالياً. ستظهر هنا بعد إضافتها من لوحة الإدارة.'
-      : 'No payment methods are configured for this country yet. They will appear here after admin setup.',
-    paymentChannel: language === 'ar' ? 'اكتب طريقة الدفع المستخدمة' : 'Enter the payment channel used',
-  };
+  const copy = walletCopy[language];
   const wallet = useSovereignWallet(user);
+  const walletIsReady = wallet.walletLoadState === 'ready';
+  const walletIsMissing = wallet.walletLoadState === 'missing';
+  const walletHasError = wallet.walletLoadState === 'error';
   const [amount, setAmount] = React.useState('');
   const [channel, setChannel] = React.useState('');
   const [receiptFile, setReceiptFile] = React.useState<File | null>(null);
@@ -51,6 +31,7 @@ export function DriverWalletTab({ user, language }: DriverWalletTabProps) {
     });
     if (ok) {
       setAmount('');
+      setChannel('');
       setReceiptFile(null);
     }
   };
@@ -73,10 +54,31 @@ export function DriverWalletTab({ user, language }: DriverWalletTabProps) {
         </div>
 
         <div className="mt-5 grid gap-3 md:grid-cols-3">
-          <Metric label={copy.balance} value={wallet.walletLoaded ? `${wallet.balanceJD.toFixed(2)} ${user?.currencyAr || user?.currencyEn || ''}` : '...'} />
-          <Metric label={copy.paidTime} value={wallet.walletLoaded ? formatMinutes(wallet.paidHoursMin, language) : '...'} />
-          <Metric label={copy.bonusTime} value={wallet.walletLoaded ? formatMinutes(wallet.bonusHoursMin, language) : '...'} />
+          <Metric
+            label={copy.balance}
+            value={walletIsReady ? `${wallet.balanceJD.toFixed(2)} ${user?.currencyAr || user?.currencyEn || ''}` : wallet.walletLoaded ? '-' : '...'}
+          />
+          <Metric
+            label={copy.paidTime}
+            value={walletIsReady ? formatMinutes(wallet.paidMinutesRemaining, language) : wallet.walletLoaded ? '-' : '...'}
+          />
+          <Metric
+            label={copy.bonusTime}
+            value={walletIsReady ? formatMinutes(wallet.bonusMinutesRemaining, language) : wallet.walletLoaded ? '-' : '...'}
+          />
         </div>
+
+        {walletIsMissing || walletHasError ? (
+          <div className="mt-4 rounded-2xl border border-amber-500/25 bg-amber-500/10 p-4 text-sm leading-6 text-amber-100">
+            <p className="font-black">{walletIsMissing ? copy.walletMissingTitle : copy.walletErrorTitle}</p>
+            <p className="mt-1 text-amber-100/80">{walletIsMissing ? copy.walletMissingBody : copy.walletErrorBody}</p>
+            {import.meta.env.DEV ? (
+              <p className="mt-2 font-mono text-[11px] text-amber-200/80">
+                profile_id: {wallet.walletProfileId || '-'} {wallet.walletError ? ` / ${wallet.walletError}` : ''}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
       </div>
 
       <div className="grid gap-5 lg:grid-cols-2">
@@ -172,34 +174,18 @@ function Metric({ label, value }: { label: string; value: string }) {
   );
 }
 
-function formatMinutes(totalMinutes: number, language: string) {
+function formatMinutes(totalMinutes: number, language: 'ar' | 'en') {
   const safeMinutes = Math.max(0, Math.floor(Number(totalMinutes) || 0));
-  const formattedHours = Math.floor(safeMinutes / 60);
-  const formattedMinutes = safeMinutes % 60;
-  return language === 'ar' ? `${formattedHours} ساعة ${formattedMinutes} دقيقة` : `${formattedHours}h ${formattedMinutes}m`;
+  const hours = Math.floor(safeMinutes / 60);
+  const minutes = safeMinutes % 60;
+  return language === 'ar' ? `${hours} ساعة ${minutes} دقيقة` : `${hours}h ${minutes}m`;
 }
-
-function getCountryCode(user: User | null) {
-  const currency = `${user?.currencyEn || user?.currencyAr || ''}`.toUpperCase();
-  if (currency.includes('JOD') || currency.includes('أردن')) return 'JO';
-  return 'EG';
-}
-
-const jordanMethods = [
-  { name: 'CliQ', value: 'RADARJO@cliq' },
-  { name: 'Zain Cash', value: '+962790000000' },
-];
-
-const egyptMethods = [
-  { name: 'Vodafone Cash', value: '+201000000000' },
-  { name: 'InstaPay', value: 'radar@instapay' },
-];
 
 const walletCopy = {
   ar: {
     badge: 'الرصيد والباقات',
     title: 'محفظة الكابتن',
-    subtitle: 'تظهر الأرصدة من قاعدة البيانات فقط. لا يتم تعديل الرصيد من الواجهة.',
+    subtitle: 'تظهر الأرصدة من قاعدة البيانات فقط. لا يمكن تعديل الرصيد من الواجهة.',
     balance: 'الرصيد النقدي',
     paidTime: 'وقت مدفوع',
     bonusTime: 'وقت إضافي',
@@ -212,6 +198,12 @@ const walletCopy = {
     voucher: 'كود الشحن',
     voucherPlaceholder: 'اكتب كود الشحن',
     redeem: 'تفعيل الكود',
+    noPaymentMethods: 'لا توجد طرق دفع مفعلة لهذا البلد حالياً. ستظهر هنا بعد إضافتها من لوحة الإدارة.',
+    paymentChannel: 'اكتب طريقة الدفع المستخدمة',
+    walletMissingTitle: 'لا توجد محفظة مرتبطة بهذا الحساب',
+    walletMissingBody: 'أنشئ صفاً في wallet_accounts بنفس profile_id الخاص بالكابتن، ثم ستظهر الأرقام مباشرة وتحدث تلقائياً.',
+    walletErrorTitle: 'تعذر تحميل المحفظة',
+    walletErrorBody: 'تحقق من صلاحيات القراءة في Supabase أو من اتصال الإنترنت.',
   },
   en: {
     badge: 'Wallet and bundles',
@@ -229,5 +221,11 @@ const walletCopy = {
     voucher: 'Voucher code',
     voucherPlaceholder: 'Enter voucher code',
     redeem: 'Redeem',
+    noPaymentMethods: 'No payment methods are configured for this country yet. They will appear here after admin setup.',
+    paymentChannel: 'Enter the payment channel used',
+    walletMissingTitle: 'No wallet is linked to this account',
+    walletMissingBody: 'Create a wallet_accounts row with this captain profile_id, then the counters will appear and update live.',
+    walletErrorTitle: 'Could not load wallet',
+    walletErrorBody: 'Check Supabase read permissions or the internet connection.',
   },
 } as const;

@@ -288,9 +288,9 @@ function StateCard({
 
 function formatMinutes(totalMinutes: number, language: 'ar' | 'en') {
   const safeMinutes = Math.max(0, Math.floor(Number(totalMinutes) || 0));
-  const formattedHours = Math.floor(safeMinutes / 60);
-  const formattedMinutes = safeMinutes % 60;
-  return language === 'ar' ? `${formattedHours} ساعة ${formattedMinutes} دقيقة` : `${formattedHours}h ${formattedMinutes}m`;
+  const hours = Math.floor(safeMinutes / 60);
+  const minutes = safeMinutes % 60;
+  return language === 'ar' ? `${hours} ساعة ${minutes} دقيقة` : `${hours}h ${minutes}m`;
 }
 
 function shortH3(value?: string) {

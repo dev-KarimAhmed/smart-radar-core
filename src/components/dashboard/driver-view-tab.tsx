@@ -62,8 +62,8 @@ export function DriverViewTab() {
   }
 
   const isActive = driverOps.driverStatus === 'active' || driverOps.driverStatus === 'busy';
-  const paidMinutes = wallet.walletLoaded ? wallet.paidHoursMin : user?.paidHoursRemaining || 0;
-  const bonusMinutes = wallet.walletLoaded ? wallet.bonusHoursMin : user?.bonusHoursRemaining || 0;
+  const paidMinutes = wallet.walletLoaded ? wallet.paidMinutesRemaining : user?.paidHoursRemaining || 0;
+  const bonusMinutes = wallet.walletLoaded ? wallet.bonusMinutesRemaining : user?.bonusHoursRemaining || 0;
   const currency = user?.currencyAr || user?.currencyEn || '';
 
   const submitBid = async (price: number) => {

@@ -7,12 +7,14 @@ import { useToast } from './use-toast';
 
 interface ServerWalletSnapshot {
   balance: number;
-  paidHoursMin: number;
-  bonusHoursMin: number;
+  paidMinutesRemaining: number;
+  bonusMinutesRemaining: number;
   subscriptionHours: number;
   activePackageName: string;
   transactions: WalletTransaction[];
 }
+
+type WalletLoadState = 'idle' | 'loading' | 'ready' | 'missing' | 'error';
 
 interface WalletTransaction {
   id: string;
@@ -35,37 +37,6 @@ interface DelegateChargeInput {
   captainId: string;
   amount: number;
   description?: string;
-}
-
-function mapWalletTransactionRow(row: Record<string, any>): WalletTransaction {
-  const timestamp = parseTimestamp(row.created_at ?? row.createdAt ?? row.timestamp);
-  return {
-    id: String(row.id),
-    type: row.type || row.transaction_type || 'transaction',
-    amount: firstNumber(row.amount, 0),
-    currency: firstString(row.currency_ar, row.currency, row.currency_code, ''),
-    description: firstString(row.description_ar, row.description, row.memo, 'عملية على الرصيد'),
-    createdAt: timestamp
-      ? new Date(timestamp).toLocaleString('ar', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })
-      : '',
-    status: row.status || 'completed',
-    timestamp: timestamp || Date.now(),
-  };
-}
-
-function mapWalletAccountRow(row: Record<string, any> | null, transactions: WalletTransaction[] = []): ServerWalletSnapshot | null {
-  if (!row) return null;
-  const paidMinutes = firstNumber(row.paid_minutes_remaining, 0);
-  const bonusMinutes = firstNumber(row.bonus_minutes_remaining, 0);
-
-  return {
-    balance: firstNumber(row.balance, 0),
-    paidHoursMin: paidMinutes,
-    bonusHoursMin: bonusMinutes,
-    subscriptionHours: Number(((paidMinutes + bonusMinutes) / 60).toFixed(3)),
-    activePackageName: firstString(row.active_package_name, ''),
-    transactions,
-  };
 }
 
 function firstNumber(...values: unknown[]) {
@@ -94,12 +65,45 @@ function isUuid(value: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
 
+function mapWalletTransactionRow(row: Record<string, any>): WalletTransaction {
+  const timestamp = parseTimestamp(row.created_at ?? row.createdAt ?? row.timestamp);
+  return {
+    id: String(row.id),
+    type: row.type || row.transaction_type || 'transaction',
+    amount: firstNumber(row.amount, 0),
+    currency: firstString(row.currency_ar, row.currency, row.currency_code, ''),
+    description: firstString(row.description_ar, row.description, row.memo, 'عملية على الرصيد'),
+    createdAt: timestamp
+      ? new Date(timestamp).toLocaleString('ar', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })
+      : '',
+    status: row.status || 'completed',
+    timestamp: timestamp || Date.now(),
+  };
+}
+
+function mapWalletAccountRow(row: Record<string, any> | null, transactions: WalletTransaction[] = []): ServerWalletSnapshot | null {
+  if (!row) return null;
+  const paidMinutes = firstNumber(row.paid_minutes_remaining, 0);
+  const bonusMinutes = firstNumber(row.bonus_minutes_remaining, 0);
+
+  return {
+    balance: firstNumber(row.balance, 0),
+    paidMinutesRemaining: paidMinutes,
+    bonusMinutesRemaining: bonusMinutes,
+    subscriptionHours: Number(((paidMinutes + bonusMinutes) / 60).toFixed(3)),
+    activePackageName: firstString(row.active_package_name, ''),
+    transactions,
+  };
+}
+
 export function useSovereignWallet(user: User | null) {
   const { toast } = useToast();
   const realtimeInstanceId = useMemo(() => Math.random().toString(36).slice(2), []);
   const [loading, setLoading] = useState(false);
   const [serverWallet, setServerWallet] = useState<ServerWalletSnapshot | null>(null);
   const [walletLoaded, setWalletLoaded] = useState(false);
+  const [walletLoadState, setWalletLoadState] = useState<WalletLoadState>('idle');
+  const [walletError, setWalletError] = useState('');
   const [refreshIndex, setRefreshIndex] = useState(0);
   const userId = user?.uid || '';
 
@@ -111,6 +115,8 @@ export function useSovereignWallet(user: User | null) {
     if (!userId) {
       setServerWallet(null);
       setWalletLoaded(true);
+      setWalletLoadState('missing');
+      setWalletError('');
       return;
     }
 
@@ -122,6 +128,8 @@ export function useSovereignWallet(user: User | null) {
         active_package_name: user?.activePackageName ?? '',
       }, Array.isArray(user?.walletTransactions) ? user.walletTransactions.map(mapWalletTransactionRow) : []));
       setWalletLoaded(true);
+      setWalletLoadState('ready');
+      setWalletError('');
       setLoading(false);
       return;
     }
@@ -130,6 +138,8 @@ export function useSovereignWallet(user: User | null) {
 
     async function fetchWalletFromServer() {
       setWalletLoaded(false);
+      setWalletLoadState('loading');
+      setWalletError('');
       setLoading(true);
 
       try {
@@ -139,7 +149,11 @@ export function useSovereignWallet(user: User | null) {
             .select('profile_id,balance,paid_minutes_remaining,bonus_minutes_remaining,active_package_name')
             .eq('profile_id', userId)
             .maybeSingle(),
-          supabase.from('wallet_transactions').select('*').eq('profile_id', userId).order('created_at', { ascending: false }),
+          supabase
+            .from('wallet_transactions')
+            .select('*')
+            .eq('profile_id', userId)
+            .order('created_at', { ascending: false }),
         ]);
 
         if (walletError) throw walletError;
@@ -148,10 +162,16 @@ export function useSovereignWallet(user: User | null) {
 
         const transactions = Array.isArray(txData) ? txData.map(mapWalletTransactionRow) : [];
         setServerWallet(mapWalletAccountRow(walletData as Record<string, any> | null, transactions));
+        setWalletLoadState(walletData ? 'ready' : 'missing');
+        if (!walletData && import.meta.env.DEV) {
+          console.warn(`[Wallet] no wallet_accounts row found for profile_id=${userId}`);
+        }
       } catch (error) {
         if (!active) return;
         if (import.meta.env.DEV) console.warn('[Wallet] showing empty state because wallet data could not load:', error);
         setServerWallet(null);
+        setWalletLoadState('error');
+        setWalletError(error instanceof Error ? error.message : 'wallet_load_failed');
       } finally {
         if (active) {
           setLoading(false);
@@ -168,29 +188,37 @@ export function useSovereignWallet(user: User | null) {
   }, [refreshIndex, user?.activePackageName, user?.bonusHoursRemaining, user?.paidHoursRemaining, user?.walletBalanceJD, user?.walletTransactions, userId]);
 
   useEffect(() => {
-    if (!userId) return;
-    if (!isUuid(userId)) return;
+    if (!userId || !isUuid(userId)) return;
+
+    const applyWalletPayload = (row: Record<string, any> | null) => {
+      if (!row) return;
+      setServerWallet((current) => mapWalletAccountRow(row, current?.transactions ?? []));
+      setWalletLoaded(true);
+      setWalletLoadState('ready');
+      setWalletError('');
+    };
 
     const walletChannel = supabase
       .channel(`wallet-account-${userId}-${realtimeInstanceId}`)
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'UPDATE',
           schema: 'public',
           table: 'wallet_accounts',
           filter: `profile_id=eq.${userId}`,
         },
-        (payload) => {
-          const nextRow = payload.new as Record<string, any> | null;
-          if (!nextRow || payload.eventType === 'DELETE') {
-            setServerWallet(null);
-            return;
-          }
-
-          setServerWallet((current) => mapWalletAccountRow(nextRow, current?.transactions ?? []));
-          setWalletLoaded(true);
+        (payload) => applyWalletPayload(payload.new as Record<string, any> | null),
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'wallet_accounts',
+          filter: `profile_id=eq.${userId}`,
         },
+        (payload) => applyWalletPayload(payload.new as Record<string, any> | null),
       )
       .subscribe((status) => {
         if ((status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') && import.meta.env.DEV) {
@@ -327,15 +355,18 @@ export function useSovereignWallet(user: User | null) {
 
   const isDriver = user?.role === 'driver';
   const balanceJD = serverWallet?.balance ?? 0;
-  const paidHoursMin = serverWallet?.paidHoursMin ?? 0;
-  const bonusHoursMin = serverWallet?.bonusHoursMin ?? 0;
-  const subscriptionHours = serverWallet?.subscriptionHours ?? Number(((paidHoursMin + bonusHoursMin) / 60).toFixed(3));
+  const paidMinutesRemaining = serverWallet?.paidMinutesRemaining ?? 0;
+  const bonusMinutesRemaining = serverWallet?.bonusMinutesRemaining ?? 0;
+  const subscriptionHours = serverWallet?.subscriptionHours ?? Number(((paidMinutesRemaining + bonusMinutesRemaining) / 60).toFixed(3));
   const activePackageName = serverWallet?.activePackageName || '';
   const transactions = useMemo(() => serverWallet?.transactions ?? [], [serverWallet?.transactions]);
 
   return {
     loading,
     walletLoaded,
+    walletLoadState,
+    walletError,
+    walletProfileId: userId,
     rechargeWallet: rejectClientMutation,
     fundRiderBalance: rejectClientMutation,
     deductRiderFare: rejectClientMutation,
@@ -345,8 +376,8 @@ export function useSovereignWallet(user: User | null) {
     delegateChargeCaptain,
     isDriver,
     balanceJD,
-    paidHoursMin,
-    bonusHoursMin,
+    paidMinutesRemaining,
+    bonusMinutesRemaining,
     subscriptionHours,
     activePackageName,
     transactions,

@@ -71,8 +71,8 @@ export function WalletTab() {
     loading,
     purchaseDriverPackage,
     balanceJD,
-    paidHoursMin,
-    bonusHoursMin,
+    paidMinutesRemaining,
+    bonusMinutesRemaining,
     subscriptionHours,
     activePackageName,
     isDriver,
@@ -132,8 +132,8 @@ export function WalletTab() {
               </div>
 
               <div className="flex items-center justify-between border-t border-emerald-950/40 py-1.5 text-[10px] text-gray-400">
-                <span>{copy.paid}: <span className="font-extrabold text-emerald-300">{(paidHoursMin / 60).toFixed(1)} {copy.hourShort}</span></span>
-                <span>{copy.bonus}: <span className="font-extrabold text-amber-400">{(bonusHoursMin / 60).toFixed(1)} {copy.hourShort}</span></span>
+                <span>{copy.paid}: <span className="font-extrabold text-emerald-300">{formatMinutes(paidMinutesRemaining, language)}</span></span>
+                <span>{copy.bonus}: <span className="font-extrabold text-amber-400">{formatMinutes(bonusMinutesRemaining, language)}</span></span>
               </div>
 
               <div className="flex items-center justify-between text-[10px] text-gray-400">
@@ -336,6 +336,13 @@ function DriverPackageCard({
       </div>
     </Card>
   );
+}
+
+function formatMinutes(totalMinutes: number, language: 'ar' | 'en') {
+  const safeMinutes = Math.max(0, Math.floor(Number(totalMinutes) || 0));
+  const hours = Math.floor(safeMinutes / 60);
+  const minutes = safeMinutes % 60;
+  return language === 'ar' ? `${hours} س ${minutes} د` : `${hours}h ${minutes}m`;
 }
 
 const walletCopy = {

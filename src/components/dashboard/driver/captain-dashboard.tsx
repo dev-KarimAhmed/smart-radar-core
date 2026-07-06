@@ -1,8 +1,10 @@
 'use client';
 
 import React from 'react';
+import { useAuth } from '@/hooks/use-auth';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { useDriverOperations } from '@/hooks/use-driver-operations';
+import { useSovereignWallet } from '@/hooks/use-sovereign-wallet';
 import { RadarMapView } from './radar-map-view';
 
 interface CaptainDashboardProps {
@@ -13,8 +15,10 @@ interface CaptainDashboardProps {
 }
 
 export const RadarCaptainDashboard: React.FC<CaptainDashboardProps> = ({ captainProfile }) => {
+  const { user } = useAuth();
   const { language } = useDashboardLanguage();
   const driverOps = useDriverOperations();
+  const wallet = useSovereignWallet(user);
 
   if (!driverOps) {
     return (
@@ -30,8 +34,8 @@ export const RadarCaptainDashboard: React.FC<CaptainDashboardProps> = ({ captain
       isActive={driverOps.driverStatus === 'active' || driverOps.driverStatus === 'busy'}
       driverLocation={driverOps.driverLocation}
       currentH3Cell={driverOps.currentH3Cell}
-      paidMinutes={captainProfile?.walletHours ?? 0}
-      bonusMinutes={captainProfile?.bonusHours ?? 0}
+      paidMinutes={wallet.walletLoaded ? wallet.paidMinutesRemaining : captainProfile?.walletHours ?? 0}
+      bonusMinutes={wallet.walletLoaded ? wallet.bonusMinutesRemaining : captainProfile?.bonusHours ?? 0}
       requests={driverOps.requests}
       onSelectRequest={() => driverOps.toggleRequestList(true)}
       onIgnoreRequest={driverOps.rejectRequest}
