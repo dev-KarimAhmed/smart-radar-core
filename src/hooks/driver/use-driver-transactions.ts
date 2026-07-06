@@ -128,12 +128,9 @@ export function useDriverTransactions(
     setIsSubmittingOffer(true);
 
     try {
-      const { error } = await supabase.from('ride_offers').insert({
-        request_id: payload.tripId,
-        captain_id: captainId,
-        offered_fare: Number(payload.offerPrice),
-        offer_price: Number(payload.offerPrice),
-        status: 'PENDING',
+      const { error } = await supabase.rpc('submit_ride_offer', {
+        p_request_id: payload.tripId,
+        p_offer_price: Number(payload.offerPrice),
       });
 
       if (error) throw error;
@@ -145,7 +142,7 @@ export function useDriverTransactions(
       });
       return true;
     } catch (error) {
-      if (import.meta.env.DEV) console.warn('[Driver transactions] offer insert failed:', error);
+      if (import.meta.env.DEV) console.warn('[Driver transactions] offer submit failed:', error);
       toast({
         variant: 'destructive',
         title: 'تعذر إرسال العرض',
