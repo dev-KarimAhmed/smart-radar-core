@@ -1,74 +1,83 @@
 # Driver / Captain Dashboard Alignment Report
 
-Date: 2026-07-06
+Date: 2026-07-07
 
-Scope: active Driver/Captain dashboard, radar map, request list, bidding sheet, accepted trip flow, driver location pulse, wallet/time bundle gate, profile edit screen, Supabase RPC contracts, and remaining production readiness gaps.
+Scope: Captain dashboard shell, radar map, H3 presence pulse, nearby request feed, offer submission, rider acceptance handoff, active trip steps, wallet/time bundles, profile editing, logout, Supabase migrations, and current production gaps.
 
 ## Executive Summary
 
-Frontend/demo alignment: **94%**
+Frontend/demo alignment: **95%**
 
-Production readiness: **85%**
+Repository backend-contract readiness: **92%**
 
-The Driver/Captain dashboard is now a real operational workspace, not an ad-only screen. It has a dashboard shell, Radar / Wallet / Profile navigation, MapLibre/OpenFreeMap radar map, H3 location pulse, nearby request list, bid proposal sheet, active trip tracker, wallet screen, editable profile screen, logout, and Supabase-backed hooks for radar/offers/trip steps.
+Live production readiness: **84%**
 
-Recent improvement: the Captain profile now shows a loading state while fetching profile data from Supabase and only renders editable profile fields after the server responds. If loading fails, it shows a retry card instead of immediately showing stale local values.
+The Captain Dashboard is now a real working dashboard rather than an ad-only surface. It has Radar, Wallet, Profile, logout, online/offline state, MapLibre/OpenFreeMap map, car marker, H3 pulse, nearby request queue, offer sheet, bid guard, profile editing/loading, wallet counters, and server RPC hooks for offer submission and trip milestones.
 
-The remaining production gap is mainly live backend validation and UX hardening: real two-device rider/captain matching, RLS proof, time-bundle deduction, request privacy verification, complete support lifecycle events, and final map/mobile polish.
+The largest remaining issue is the live server handoff after a captain submits an offer and the rider accepts it. The captain can see rider requests and open the offer sheet. The latest live test showed `ride_offers` had stricter required columns than the first RPC expected, and rider acceptance needed a hardened `accept_ride_offer` function. Both fixes are now versioned in migrations, but must be applied and tested live.
 
 ## Alignment By Area
 
-| Area | Alignment | Current Status | Production Need |
+| Area | Alignment | Status | Remaining Need |
 | --- | ---: | --- | --- |
-| Dashboard shell/navigation | 92% | `driver-view-tab.tsx` has Radar, Wallet, Profile, online/offline, logout, and scrolling layout. | Mobile and small-height QA. |
-| Radar map | 88% | `radar-map-view.tsx` renders MapLibre/OpenFreeMap and request markers. | Improve Arabic map labels and map density. |
-| Nearby requests | 84% | `use-driver-radar.ts` reads `captain_radar_requests` and filters by H3/country. | Live test that real rider requests appear for eligible captains. |
-| H3 pulsed presence | 90% | `use-captain-location-pulse.ts` calls `pulse_captain_location` every 15s. | Verify RPC/RLS on live Supabase and availability rules. |
-| Time-bundle gate | 82% | Radar checks `wallet_accounts` before subscribing. | Add server-side time deduction/expiry enforcement. |
-| Bid guard | 92% | `bidding-proposal-sheet.tsx` warns above 10% and blocks at 15%. | Confirm live base fare is always present. |
-| Offer submission | 84% | Captain inserts into `ride_offers` through Supabase. | Verify RLS and duplicate offer behavior. |
-| Accepted trip transition | 80% | `use-driver-transactions.ts` listens for accepted offers and loads active request. | Real two-device test with rider accept. |
-| Trip milestones | 86% | Arrived/start call `captain_arrived_to_pickup` and `start_ride_trip`; completion calls `complete_ride_trip`. | Add cancel/no-show/dispute if required. |
-| Wallet | 82% | Wallet reads Supabase balances, receipt upload, voucher/delegate structures. | Validate bucket policy, vouchers, delegate charge, time bundles. |
-| Profile | 88% | Profile fetches from Supabase, shows loading, supports edit mode, and saves basic/vehicle data. | Confirm profile update RLS and production vehicle columns. |
-| Arabic/English copy | 82% | Active driver screens mostly react to language; some old strings still need cleanup. | Finish full i18n pass across driver wallet/profile/radar. |
-| Firebase eviction | 86% | Active driver radar/transaction path is Supabase-first. | Peripheral Firebase hooks still need isolation/migration. |
+| Dashboard shell/navigation | 94% | Radar, Wallet, Profile, logout, online/offline are visible. | Continue mobile/small-height QA. |
+| MapLibre radar | 92% | Map renders; captain marker is a car icon; recenter exists. | Polish Arabic map labels and clipped overlay areas. |
+| H3 pulsed presence | 90% | `use-captain-location-pulse.ts` calls `pulse_captain_location` every 15 seconds. | Verify live TTL cleanup and availability rules. |
+| Time-bundle gate | 84% | Radar reads `wallet_accounts` minutes and shows remaining time. | Server-side minute deduction/expiry still needs final enforcement. |
+| Wallet counters | 86% | Wallet hook reads `balance`, `paid_minutes_remaining`, `bonus_minutes_remaining` by `profile_id`. | If no row exists, DB bootstrap must create one for that captain profile. |
+| Nearby requests | 86% | `use-driver-radar.ts` reads `captain_radar_requests`. | Live view/RLS/H3 test with real rider request. |
+| Request privacy | 88% | Pending requests are intended to be read through masked view. | Confirm exact pickup coordinates are hidden until acceptance. |
+| Bid guard | 92% | 10% warning and 15% block are implemented. | Validate against real server fare for all countries. |
+| Offer submission | 78% live / 94% repo | Frontend calls `submit_ride_offer`; migration now inserts required `eta_minutes`. | Apply latest migration and verify a real offer row is created. |
+| Rider accept handoff | 76% live / 92% repo | Captain listens for accepted offers and loads active request. | Apply `accept_ride_offer` sync migration and test realtime transition. |
+| Active trip tracker | 88% | Arrived/start/complete RPCs exist. | Add cancel/no-show/dispute support if required. |
+| Profile | 90% | Loads from server, has edit mode, save/cancel/logout. | Confirm RLS allows only own editable fields. |
+| Wallet/payment flows | 78% | Receipt/voucher UI exists; wallet reads server values. | Test storage bucket, voucher RPC, delegate charge and package purchase. |
+| Arabic/English | 82% | Core labels improved, but language consistency is not complete. | Make all captain/rider toasts follow selected language. |
+| Firebase cleanup | 86% | Active captain radar path is Supabase-first. | Peripheral old hooks still need isolation/migration. |
 
 ## What Is Aligned Now
 
-- Captain dashboard no longer opens as a full-screen ad-only surface.
-- Radar, Wallet, and Profile screens are reachable from the driver dashboard.
-- Radar map uses MapLibre/OpenFreeMap.
-- Driver H3 cell is calculated locally.
-- Captain location pulses to Supabase every 15 seconds.
-- Nearby request loading uses H3/country filtering.
-- Bid submission has the 10% warning and 15% block rule.
-- Active trip milestone buttons call server RPCs before progressing.
-- Wallet values are read from Supabase and are not directly editable from UI.
-- Profile data waits for server loading before rendering editable fields.
-- Driver profile supports edit/cancel/save and logout.
+- Captain dashboard is visible and navigable.
+- Radar screen includes map and request queue.
+- Captain marker uses a car icon instead of rider-like dot.
+- Captain location pulses through Supabase every 15 seconds.
+- Nearby requests come from `captain_radar_requests`.
+- The bid sheet shows destination, base fare, distance and custom offer amount.
+- Bid guard warns/block based on market deviation.
+- Offer submission now targets `submit_ride_offer`, not direct client table logic.
+- Wallet counters use minute-based server columns.
+- Profile page loads server data before showing editable fields.
+- Arrived/start/complete buttons use Supabase RPCs.
 
-## Remaining Production Gaps
+## Current Live Issues
 
-1. **Real request visibility is not proven yet.** The UI can show zero requests if RLS, country, H3, time bundle, or rider request rows do not match.
-2. **Map UX still needs polish.** The map exists, but request visibility, Arabic labels, marker hierarchy, and mobile framing need QA.
-3. **Time bundle enforcement is partial.** Radar access is gated, but actual time consumption and renewals must be database-controlled.
-4. **Offer lifecycle needs E2E validation.** Captain offer insertion, rider acceptance, losing offer rejection, and accepted trip loading must be tested across two devices.
-5. **Trip support states are incomplete.** Arrived/start/complete exist; cancel, no-show, dispute, and support escalation need backend routines if required.
-6. **Profile save depends on live RLS/schema.** The frontend is ready, but Supabase must allow only the captain’s own editable fields.
-7. **Wallet workflows need live proof.** Receipt upload, voucher redemption, delegate charge, and balance updates require staging tests.
-8. **Peripheral Firebase remains.** Active driver path is mostly clean, but older admin/driver hooks still contain Firebase references.
+1. **Offer submission failed until `eta_minutes` was added.** The live table requires `eta_minutes`. The latest `20260707_submit_ride_offer_rpc.sql` now inserts `eta_minutes = 5`.
+2. **Rider acceptance failed after seeing the offer.** The repo now includes `20260707_accept_ride_offer_sync.sql`, which updates both `ride_requests` and `ride_offers` so captain realtime can move to active trip.
+3. **Captain active trip is not proven live yet.** It depends on the rider accept migration and realtime payload.
+4. **Wallet may show zero if no row exists.** Querying `wallet_accounts` by `profile_id` returns no data if the bootstrap row has not been created for the captain.
+5. **History/active trip visibility is incomplete.** Captain should have a clearer “waiting for rider acceptance” state after submitting an offer, then active trip after server acceptance.
 
 ## Production Action Plan
 
-1. Run a real rider/captain two-device test from request creation through offer, accept, active trip, complete.
-2. Apply and verify RLS for `captain_radar_requests`, `ride_requests`, `ride_offers`, `captain_locations`, `wallet_accounts`, and `profiles`.
-3. Confirm Captain profile save works for `full_name`, `phone`, `vehicle_plate`, `vehicle_make`, `vehicle_color`, and `vehicle_year`.
-4. Validate `pulse_captain_location` every 15 seconds and stale cleanup after 60 seconds.
-5. Implement server-side time bundle deduction and renewal rules.
-6. Add cancel/no-show/dispute RPCs if the client needs those production flows.
-7. Polish driver map UI on desktop/mobile and finish Arabic/English translation consistency.
+1. Apply `20260707_submit_ride_offer_rpc.sql`.
+2. Apply `20260707_accept_ride_offer_sync.sql`.
+3. Create or verify a `wallet_accounts` row for each captain `profile_id`.
+4. Run live E2E with two accounts:
+   - Rider creates request.
+   - Captain sees request.
+   - Captain submits offer.
+   - Rider sees offer.
+   - Rider accepts.
+   - Captain receives active trip.
+   - Captain marks arrived/start/complete.
+   - Rider rates.
+5. Verify `captain_radar_requests` hides exact pickup coordinates before acceptance.
+6. Add a clear captain “offer sent, waiting for rider” state.
+7. Add cancel/no-show/dispute RPCs if required by production support.
+8. Finish selected-language toasts and remaining Arabic/English consistency.
+9. Decide and implement server-side time-bundle consumption rules.
 
 ## Bottom Line
 
-The Driver/Captain dashboard is **usable and structurally aligned**, but it is not fully production-proven yet. The next real milestone is a live E2E rider/captain staging test with RLS enabled, followed by time-bundle deduction and support-state completion.
+The Captain Dashboard is **structurally strong and close to the intended production workflow**, but the live marketplace loop is still under validation. The two latest migrations are the key blockers: once offer submission and rider acceptance are applied and tested live, the captain side should move from “dashboard prototype” to “working marketplace operator screen.”
