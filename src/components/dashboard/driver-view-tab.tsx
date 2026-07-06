@@ -53,6 +53,12 @@ export function DriverViewTab() {
 
     if (!previousIds) {
       knownRequestIdsRef.current = nextIds;
+      if (nextIds.size > 0 && driverOps.driverStatus === 'active') {
+        toast({
+          title: language === 'ar' ? 'طلبات قريبة متاحة' : 'Nearby requests available',
+          description: language === 'ar' ? 'افتح قائمة الطلبات لتقديم عرضك.' : 'Open the request queue to submit your bid.',
+        });
+      }
       return;
     }
 

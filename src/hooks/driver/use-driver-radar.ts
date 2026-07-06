@@ -7,14 +7,17 @@ import { useGeospatialAnchor } from '../use-geospatial-anchor';
 import type { Trip, User } from '@/core/types';
 
 const DRIVER_H3_RESOLUTION = 9;
-const RADAR_RING_SIZE = 1;
+const RADAR_RING_SIZE = 5;
+const RADAR_FALLBACK_LIMIT = 25;
 
 type RideRequestRow = Record<string, unknown>;
+type RadarLocation = { lat: number; lng: number; speed?: number; source?: string };
 
 export function useDriverRadar(user: User | null, driverStatus: string) {
   const { location: driverLocation } = useGeospatialAnchor(driverStatus === 'active');
   const [rawRequests, setRawRequests] = useState<Trip[]>([]);
   const [radarLockMessage, setRadarLockMessage] = useState('');
+  const [profileAnchor, setProfileAnchor] = useState<RadarLocation | null>(null);
   const [rejectedTripIds, setRejectedTripIds] = useState<string[]>(() => {
     if (typeof window === 'undefined') return [];
     try {
@@ -25,10 +28,14 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
     }
   });
 
+  const radarLocation = useMemo<RadarLocation | null>(() => {
+    return driverLocation || user?.location || profileAnchor;
+  }, [driverLocation, profileAnchor, user?.location]);
+
   const currentH3Cell = useMemo(() => {
-    if (!driverLocation?.lat || !driverLocation?.lng) return '';
-    return latLngToCell(driverLocation.lat, driverLocation.lng, DRIVER_H3_RESOLUTION);
-  }, [driverLocation?.lat, driverLocation?.lng]);
+    if (!radarLocation?.lat || !radarLocation?.lng) return '';
+    return latLngToCell(radarLocation.lat, radarLocation.lng, DRIVER_H3_RESOLUTION);
+  }, [radarLocation?.lat, radarLocation?.lng]);
 
   const nearbyCells = useMemo(() => {
     if (!currentH3Cell) return [];
@@ -68,8 +75,9 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
   }, [driverStatus, user?.uid]);
 
   const fetchPendingRequests = useCallback(async () => {
-    if (driverStatus !== 'active' || nearbyCells.length === 0) {
+    if (driverStatus !== 'active') {
       setRawRequests([]);
+      setRadarLockMessage('');
       return;
     }
 
@@ -79,37 +87,83 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
       return;
     }
 
-    let query = supabase
+    const query = supabase
       .from('captain_radar_requests')
       .select('*')
       .eq('status', 'PENDING')
-      .in('origin_h3', nearbyCells)
       .order('created_at', { ascending: false })
-      .limit(25);
-
-    if (user?.countryId) {
-      query = query.eq('country_id', user.countryId);
-    }
+      .limit(100);
 
     const { data, error } = await query;
     if (error) {
       if (import.meta.env.DEV) console.warn('[Driver radar] request fetch failed:', error);
+      setRadarLockMessage('تعذر تحميل الطلبات القريبة من الخادم. تحقق من صلاحيات قاعدة البيانات ثم حاول مرة أخرى.');
       setRawRequests([]);
       return;
     }
 
-    setRawRequests(Array.isArray(data) ? data.map(mapRideRequestToTrip).filter(Boolean) as Trip[] : []);
-  }, [checkTimeBundle, driverStatus, nearbyCells, user?.countryId]);
+    const mappedRequests = Array.isArray(data)
+      ? data.map(mapRideRequestToTrip).filter(Boolean) as Trip[]
+      : [];
+
+    const rankedRequests = mappedRequests
+      .map((request) => {
+        const driverDistanceKm = radarLocation
+          ? estimateDistanceKm(radarLocation.lat, radarLocation.lng, request.pickupCoords.lat, request.pickupCoords.lng)
+          : Number.POSITIVE_INFINITY;
+        const isInH3Disk = request.h3Index ? nearbyCells.includes(request.h3Index) : false;
+        return { request, driverDistanceKm, isInH3Disk };
+      })
+      .sort((a, b) => {
+        if (a.isInH3Disk !== b.isInH3Disk) return a.isInH3Disk ? -1 : 1;
+        return a.driverDistanceKm - b.driverDistanceKm;
+      })
+      .slice(0, RADAR_FALLBACK_LIMIT)
+      .map(({ request }) => request);
+
+    setRadarLockMessage('');
+    setRawRequests(rankedRequests);
+  }, [checkTimeBundle, driverStatus, nearbyCells, radarLocation]);
+
+  useEffect(() => {
+    let active = true;
+    const districtId = Number(user?.district);
+
+    if (!Number.isInteger(districtId) || districtId <= 0) {
+      setProfileAnchor(null);
+      return;
+    }
+
+    supabase
+      .from('districts')
+      .select('*')
+      .eq('id', districtId)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (!active) return;
+        if (error) {
+          if (import.meta.env.DEV) console.warn('[Driver radar] district anchor fetch failed:', error);
+          setProfileAnchor(null);
+          return;
+        }
+
+        setProfileAnchor(getRowAnchor(data as Record<string, unknown> | null));
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [user?.district]);
 
   useEffect(() => {
     void fetchPendingRequests();
   }, [fetchPendingRequests]);
 
   useEffect(() => {
-    if (driverStatus !== 'active' || nearbyCells.length === 0 || radarLockMessage) return;
+    if (driverStatus !== 'active' || radarLockMessage) return;
 
     const channel = supabase
-      .channel(`driver-radar-${user?.uid || 'anonymous'}-${currentH3Cell}`)
+      .channel(`driver-radar-${user?.uid || 'anonymous'}-${currentH3Cell || 'country'}`)
       .on(
         'postgres_changes',
         {
@@ -131,7 +185,7 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
     return () => {
       void channel.unsubscribe();
     };
-  }, [currentH3Cell, driverStatus, fetchPendingRequests, nearbyCells.length, radarLockMessage, user?.uid]);
+  }, [currentH3Cell, driverStatus, fetchPendingRequests, radarLockMessage, user?.uid]);
 
   const rejectRequest = useCallback((tripId: string) => {
     setRejectedTripIds((prev) => {
@@ -148,11 +202,11 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
   }, [rawRequests, rejectedTripIds]);
 
   return {
-    driverLocation,
+    driverLocation: radarLocation,
     requests,
     rejectRequest,
     rejectedTripIds,
-    driverSpeed: driverLocation?.speed || 0,
+    driverSpeed: radarLocation?.speed || 0,
     currentDistrict: user?.district || '',
     currentH3Cell,
     radarLockMessage,
@@ -160,13 +214,25 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
   };
 }
 
+function getRowAnchor(row: Record<string, unknown> | null): RadarLocation | null {
+  if (!row) return null;
+
+  const lat = toNumber(row.lat) ?? toNumber(row.latitude) ?? toNumber(row.anchor_lat) ?? toNumber(row.center_lat) ?? toNumber(row.centroid_lat) ?? toNumber(row.location_lat);
+  const lng = toNumber(row.lng) ?? toNumber(row.lon) ?? toNumber(row.longitude) ?? toNumber(row.anchor_lng) ?? toNumber(row.anchor_lon) ?? toNumber(row.center_lng) ?? toNumber(row.centroid_lng) ?? toNumber(row.location_lng);
+
+  if (lat === null || lng === null) return null;
+  return { lat, lng, source: 'profile' };
+}
+
 function mapRideRequestToTrip(row: RideRequestRow): Trip | null {
   const id = stringify(row.id);
-  const riderId = stringify(row.rider_id);
+  if (!id) return null;
+
+  const riderId = stringify(row.rider_id) || `pending-rider-${id}`;
   const originLat = toNumber(row.origin_lat);
   const originLng = toNumber(row.origin_lng);
-  const originH3 = stringify(row.origin_h3);
-  if (!id || !riderId || (!originH3 && (originLat === null || originLng === null))) return null;
+  const originH3 = stringify(row.h3_cell) || stringify(row.origin_h3);
+  if (!originH3 && (originLat === null || originLng === null)) return null;
 
   const [h3Lat, h3Lng] = originH3 ? cellToLatLng(originH3) : [null, null];
   const visibleLat = originLat ?? h3Lat;
@@ -179,8 +245,10 @@ function mapRideRequestToTrip(row: RideRequestRow): Trip | null {
     stringify(row.destination_address) ||
     'وجهة الراكب';
 
-  const fare = toNumber(row.server_estimated_fare);
-  const distanceKm = estimateDistanceKm(visibleLat, visibleLng, toNumber(row.destination_lat), toNumber(row.destination_lng));
+  const fare = toNumber(row.server_fare) ?? toNumber(row.server_estimated_fare);
+  const destinationLat = toNumber(row.destination_lat);
+  const destinationLng = toNumber(row.destination_lng);
+  const distanceKm = estimateDistanceKm(visibleLat, visibleLng, destinationLat, destinationLng);
 
   return {
     id,
@@ -197,7 +265,7 @@ function mapRideRequestToTrip(row: RideRequestRow): Trip | null {
     seats: 1,
     offerPrice: fare ?? undefined,
     createdAt: stringify(row.created_at),
-    district: stringify(row.destination_address_ar) || stringify(row.origin_h3),
+    district: destinationLabel || originH3,
   };
 }
 
@@ -223,4 +291,3 @@ function toNumber(value: unknown) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
 }
-
