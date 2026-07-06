@@ -82,6 +82,23 @@ export function RiderViewTab() {
   const { toast } = useToast();
   const { isArabic, language } = useDashboardLanguage();
   const copy = riderViewCopy[language];
+  const requestFlowCopy = React.useMemo(() => (
+    language === 'ar'
+      ? {
+          cancelRequest: 'إلغاء الطلب',
+          cancellingRequest: 'جاري الإلغاء...',
+          cancelRequestFailedTitle: 'تعذر إلغاء الطلب',
+          requestCancelledTitle: 'تم إلغاء الطلب',
+          requestCancelledDescription: 'تم إلغاء طلب الرحلة.',
+        }
+      : {
+          cancelRequest: 'Cancel request',
+          cancellingRequest: 'Cancelling...',
+          cancelRequestFailedTitle: 'Could not cancel request',
+          requestCancelledTitle: 'Request cancelled',
+          requestCancelledDescription: 'Your ride request was cancelled.',
+        }
+  ), [language]);
   const { state, dispatch, showAdRiver } = useRiderDashboardMachine();
   const [selectedGovernorateId, setSelectedGovernorateId] = React.useState('');
   const [draftDestinationId, setDraftDestinationId] = React.useState('');
@@ -93,6 +110,7 @@ export function RiderViewTab() {
   const [localCompletedTrips, setLocalCompletedTrips] = React.useState<HistoricalTrip[]>([]);
   const [captainLocations, setCaptainLocations] = React.useState<CaptainPresencePoint[]>([]);
   const [isSendingRideRequest, setIsSendingRideRequest] = React.useState(false);
+  const [isCancellingRideRequest, setIsCancellingRideRequest] = React.useState(false);
   const [acceptingOfferId, setAcceptingOfferId] = React.useState<string | null>(null);
   const [isCompletingTrip, setIsCompletingTrip] = React.useState(false);
   const [isSubmittingRating, setIsSubmittingRating] = React.useState(false);
@@ -674,6 +692,34 @@ export function RiderViewTab() {
     }
   };
 
+  const handleCancelRideRequest = async () => {
+    if (!state.requestId) {
+      dispatch({ type: 'RESET_TO_IDLE' });
+      return;
+    }
+
+    setIsCancellingRideRequest(true);
+
+    try {
+      await cancelRideRequest(supabase, state.requestId);
+      pendingAcceptedOfferIdRef.current = null;
+      dispatch({ type: 'RESET_TO_IDLE' });
+      toast({
+        title: requestFlowCopy.requestCancelledTitle,
+        description: requestFlowCopy.requestCancelledDescription,
+      });
+    } catch (error) {
+      if (import.meta.env.DEV) console.warn('[Rider Cancel Request]', error);
+      toast({
+        variant: 'destructive',
+        title: requestFlowCopy.cancelRequestFailedTitle,
+        description: getLocalizedMarketplaceError(error, language),
+      });
+    } finally {
+      setIsCancellingRideRequest(false);
+    }
+  };
+
   const handleAcceptOffer = async (offer: import('@/core/types').Offer) => {
     if (!state.requestId) {
       toast({
@@ -976,12 +1022,23 @@ export function RiderViewTab() {
       return (
         <Card className="w-full border-[#14B8A6]/25 bg-[#0B0F19]/90 text-white shadow-2xl shadow-black/40 backdrop-blur-xl">
           <CardContent className={`space-y-5 p-5 ${isArabic ? 'text-right' : 'text-left'}`} dir={isArabic ? 'rtl' : 'ltr'}>
-            <div className="space-y-1">
-              <p className="text-[11px] font-black text-[#14F5D5]">{hasOffers ? copy.offersArrived : copy.searchingCaptain}</p>
-              <h2 className="text-xl font-black sm:text-2xl">{hasOffers ? copy.chooseCaptain : copy.requestVisibleTitle}</h2>
-              <p className="text-xs text-slate-400">
-                {hasOffers ? copy.chooseOfferDescription : copy.waitingOffersDescription}
-              </p>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="space-y-1">
+                <p className="text-[11px] font-black text-[#14F5D5]">{hasOffers ? copy.offersArrived : copy.searchingCaptain}</p>
+                <h2 className="text-xl font-black sm:text-2xl">{hasOffers ? copy.chooseCaptain : copy.requestVisibleTitle}</h2>
+                <p className="text-xs text-slate-400">
+                  {hasOffers ? copy.chooseOfferDescription : copy.waitingOffersDescription}
+                </p>
+              </div>
+              <Button
+                type="button"
+                onClick={() => void handleCancelRideRequest()}
+                disabled={isCancellingRideRequest}
+                className="h-11 rounded-xl border border-red-500/30 bg-red-600/15 px-4 text-sm font-black text-red-100 hover:bg-red-600/25"
+              >
+                <X className="h-4 w-4" />
+                {isCancellingRideRequest ? requestFlowCopy.cancellingRequest : requestFlowCopy.cancelRequest}
+              </Button>
             </div>
 
             {state.requestId ? (
@@ -1160,6 +1217,17 @@ export function RiderViewTab() {
           )}
 
           {renderStatePanel()}
+
+          {state.screen === 'TRIP_ACTIVE' && state.requestId ? (
+            <Button
+              type="button"
+              onClick={() => void handleCancelRideRequest()}
+              disabled={isCancellingRideRequest || isCompletingTrip}
+              className="h-12 w-full rounded-2xl border border-red-500/30 bg-red-600/15 text-sm font-black text-red-100 shadow-xl shadow-black/25 hover:bg-red-600/25"
+            >
+              {isCancellingRideRequest ? requestFlowCopy.cancellingRequest : requestFlowCopy.cancelRequest}
+            </Button>
+          ) : null}
 
           {showAdRiver && (
             <div className="hidden overflow-hidden rounded-[24px] border border-[#14B8A6]/15 bg-[#0B0F19]/88 shadow-2xl shadow-black/35 backdrop-blur-xl lg:block">
@@ -1521,6 +1589,9 @@ const riderViewCopy = {
     readyQuestion: 'Ready?',
     acceptOffer: 'Accept offer',
     acceptingOffer: 'Accepting offer...',
+    cancelRequest: 'Cancel request',
+    cancelRequestFailedTitle: 'Could not cancel request',
+    cancellingRequest: 'Cancelling...',
     chooseCaptain: 'Choose captain',
     chooseOfferDescription: 'Choose the offer that works best for you.',
     countryMissingDescription: 'The request cannot be sent before your account country is loaded.',
@@ -1543,6 +1614,8 @@ const riderViewCopy = {
     requestNow: 'Request now',
     requestSentDescription: 'Your ride request was saved. Offers will appear as soon as they arrive.',
     requestSentTitle: 'Request sent',
+    requestCancelledDescription: 'Your ride request was cancelled.',
+    requestCancelledTitle: 'Request cancelled',
     requestStatus: 'Request status',
     requestUpdateFailedTitle: 'Could not update request',
     requestVisibleTitle: 'Your request is visible to nearby captains',

@@ -104,8 +104,7 @@ export function RadarMapView({
     const lngLat: [number, number] = [visibleLocation.lng, visibleLocation.lat];
 
     if (!markerRef.current) {
-      const markerElement = document.createElement('div');
-      markerElement.className = 'h-5 w-5 rounded-full border-4 border-[#06111f] bg-[#14B8A6] shadow-[0_0_0_12px_rgba(20,184,166,0.2),0_0_34px_rgba(20,184,166,0.45)]';
+      const markerElement = createCarMarkerElement();
       markerRef.current = new maplibregl.Marker({ element: markerElement }).setLngLat(lngLat).addTo(mapRef.current);
     } else {
       markerRef.current.setLngLat(lngLat);
@@ -146,7 +145,9 @@ export function RadarMapView({
       <div className="relative min-h-[520px] overflow-hidden rounded-3xl border border-emerald-500/20 bg-[#05080f] text-white shadow-2xl shadow-black/30 lg:min-h-[calc(100vh-11rem)]">
         <div className="absolute inset-0 z-0 bg-[#0B0F19]" />
         <div className="absolute inset-0 z-[1] overflow-hidden bg-[radial-gradient(circle_at_center,rgba(20,184,166,0.18),transparent_38%),linear-gradient(135deg,rgba(20,184,166,0.08)_0_25%,transparent_25%_50%,rgba(20,184,166,0.06)_50%_75%,transparent_75%)] bg-[length:auto,38px_38px]">
-          <div className="absolute left-1/2 top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-4 border-[#06111f] bg-[#14B8A6] shadow-[0_0_0_22px_rgba(20,184,166,0.12),0_0_60px_rgba(20,184,166,0.35)]" />
+          <div className="absolute left-1/2 top-1/2 grid h-11 w-11 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-2xl border-2 border-[#06111f] bg-[#14B8A6] text-[#06111f] shadow-[0_0_0_18px_rgba(20,184,166,0.12),0_0_60px_rgba(20,184,166,0.35)]">
+            <CarMarkerIcon />
+          </div>
           {requests.slice(0, 6).map((request, index) => (
             <button
               key={request.id}
@@ -283,6 +284,33 @@ function StateCard({
       <h3 className="mt-4 text-lg font-black text-white">{title}</h3>
       <p className="mt-2 max-w-sm text-sm leading-6 opacity-85">{body}</p>
     </div>
+  );
+}
+
+function createCarMarkerElement() {
+  const element = document.createElement('div');
+  element.className = 'grid h-11 w-11 place-items-center rounded-2xl border-2 border-[#06111f] bg-[#14B8A6] text-[#06111f] shadow-[0_0_0_14px_rgba(20,184,166,0.16),0_14px_34px_rgba(0,0,0,0.4)]';
+  element.innerHTML = `
+    <svg aria-hidden="true" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M7 17h10" />
+      <path d="M5 13l1.4-4.2A3 3 0 0 1 9.2 7h5.6a3 3 0 0 1 2.8 1.8L19 13" />
+      <path d="M5 13h14v4H5z" />
+      <circle cx="8" cy="17" r="1.5" />
+      <circle cx="16" cy="17" r="1.5" />
+    </svg>
+  `;
+  return element;
+}
+
+function CarMarkerIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M7 17h10" />
+      <path d="M5 13l1.4-4.2A3 3 0 0 1 9.2 7h5.6a3 3 0 0 1 2.8 1.8L19 13" />
+      <path d="M5 13h14v4H5z" />
+      <circle cx="8" cy="17" r="1.5" />
+      <circle cx="16" cy="17" r="1.5" />
+    </svg>
   );
 }
 

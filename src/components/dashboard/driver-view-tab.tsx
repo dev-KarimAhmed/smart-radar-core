@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { useDriverOperations } from '@/hooks/use-driver-operations';
 import { useSovereignWallet } from '@/hooks/use-sovereign-wallet';
+import { useToast } from '@/hooks/use-toast';
 import { ActiveTripTracker } from './driver/active-trip-tracker';
 import { BiddingProposalSheet } from './driver/bidding-proposal-sheet';
 import {
@@ -18,6 +19,7 @@ import { RadarMapView } from './driver/radar-map-view';
 
 export function DriverViewTab() {
   const { user, logout } = useAuth();
+  const { toast } = useToast();
   const { language, direction } = useDashboardLanguage();
   const copy = {
     ...driverCopy[language],
@@ -34,6 +36,7 @@ export function DriverViewTab() {
   const driverOps = useDriverOperations();
   const wallet = useSovereignWallet(user);
   const [state, dispatch] = React.useReducer(captainDashboardReducer, initialCaptainDashboardState);
+  const knownRequestIdsRef = React.useRef<Set<string> | null>(null);
   const screen = state.screen === 'ACTIVE_TRIP' && !driverOps?.activeRequest ? 'RADAR_MAP' : state.screen;
 
   React.useEffect(() => {
@@ -41,6 +44,28 @@ export function DriverViewTab() {
       dispatch({ type: 'SERVER_ACCEPTED', request: driverOps.activeRequest });
     }
   }, [driverOps?.activeRequest]);
+
+  React.useEffect(() => {
+    if (!driverOps) return;
+
+    const nextIds = new Set(driverOps.requests.map((request) => request.id));
+    const previousIds = knownRequestIdsRef.current;
+
+    if (!previousIds) {
+      knownRequestIdsRef.current = nextIds;
+      return;
+    }
+
+    const hasNewRequest = [...nextIds].some((id) => !previousIds.has(id));
+    knownRequestIdsRef.current = nextIds;
+
+    if (!hasNewRequest || driverOps.driverStatus !== 'active') return;
+
+    toast({
+      title: language === 'ar' ? 'طلب رحلة جديد' : 'New ride request',
+      description: language === 'ar' ? 'يوجد طلب قريب بانتظار عرضك.' : 'A nearby request is waiting for your bid.',
+    });
+  }, [driverOps, driverOps?.driverStatus, driverOps?.requests, language, toast]);
 
   React.useEffect(() => {
     const handleOpen = () => dispatch({ type: 'OPEN_RADAR' });

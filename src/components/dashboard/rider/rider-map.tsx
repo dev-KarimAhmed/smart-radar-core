@@ -309,22 +309,19 @@ export function RiderMap({
       });
 
       map.addLayer({
-        id: 'captain-dots',
-        type: 'circle',
+        id: 'captain-cars',
+        type: 'symbol',
         source: 'rider-captains',
+        layout: {
+          'text-field': '🚗',
+          'text-size': 19,
+          'text-allow-overlap': true,
+          'text-ignore-placement': true,
+        },
         paint: {
-          'circle-radius': 6,
-          'circle-color': [
-            'match',
-            ['get', 'rank'],
-            'Platinum',
-            '#67E8F9',
-            'Gold',
-            '#14F5D5',
-            '#A7F3D0',
-          ],
-          'circle-stroke-color': '#020617',
-          'circle-stroke-width': 2,
+          'text-halo-color': '#020617',
+          'text-halo-width': 2,
+          'text-opacity': 0.98,
         },
       });
     });
