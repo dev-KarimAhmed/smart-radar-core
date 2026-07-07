@@ -386,7 +386,7 @@ const inputClass =
 
 export default function RegisterPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<div>Loading layout parameters...</div>}>
       <AuthRegisterRoute />
     </Suspense>
   );
