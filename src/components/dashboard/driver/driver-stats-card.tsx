@@ -7,18 +7,19 @@ import { getRankTheme } from '@/core/utils';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
+
 export function DriverStatsCard({ user }: { user: User }) {
  // تم بتر مستمعات النشاط من هنا وحذف الملف (Protocol 16)
  const rankTheme = getRankTheme(user.rank);
 
  return (
- <Card className="bg-[#050D05] border-emerald-900/40 shadow-lg">
- <CardContent className="p-5 grid grid-cols-3 gap-4 divide-x divide-emerald-900/30 divide-x-reverse text-center animate-in fade-in">
+ <Card className="bg-[#0F172A]/90 border-white/[0.06] shadow-lg">
+ <CardContent className="p-5 grid grid-cols-3 gap-4 divide-x divide-white/[0.06] divide-x-reverse text-center animate-in fade-in">
  <div className="space-y-1">
- <p className="text-xs text-emerald-500/70 font-bold uppercase tracking-widest">التقييم</p>
- <div className="flex items-center justify-center gap-1 text-emerald-400">
+ <p className="text-xs text-[#14B8A6]/70 font-bold uppercase tracking-widest">التقييم</p>
+ <div className="flex items-center justify-center gap-1 text-[#14B8A6]">
  <span className="text-xl font-black">{user.rating?.toFixed(1) || '5.0'}</span>
- <Star className="w-4 h-4 fill-emerald-500 text-emerald-500" />
+ <Star className="w-4 h-4 fill-[#14B8A6] text-[#14B8A6]" />
  </div>
  </div>
  <div className="space-y-1">
@@ -32,9 +33,9 @@ export function DriverStatsCard({ user }: { user: User }) {
  </div>
  </div>
  <div className="space-y-1">
- <p className="text-xs text-emerald-500/70 font-bold uppercase tracking-widest">رتبة السائق</p>
+ <p className="text-xs text-[#14B8A6]/70 font-bold uppercase tracking-widest">رتبة السائق</p>
  <div className="flex items-center justify-center pt-0.5">
- <Badge variant="outline" className={cn("text-xs font-black shadow-sm px-2.5 py-0.5", rankTheme.border, rankTheme.color, "bg-[#050D05]")}>
+ <Badge variant="outline" className={cn("text-xs font-black shadow-sm px-2.5 py-0.5", rankTheme.border, rankTheme.color, "bg-[#0F172A]")}>
  {rankTheme.label}
  </Badge>
  </div>

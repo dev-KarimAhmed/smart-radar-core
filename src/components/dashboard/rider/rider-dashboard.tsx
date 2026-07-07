@@ -322,7 +322,7 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
 
   return (
     <div
-      className={`radar-rider-container relative mx-auto max-w-xl overflow-hidden rounded-xl border border-[#14B8A6]/20 bg-[#0B0F19]/70 p-5 text-white shadow-2xl shadow-black/40 backdrop-blur-xl md:p-6 ${isArabic ? 'text-right' : 'text-left'}`}
+      className={`radar-rider-container relative mx-auto max-w-xl overflow-hidden rounded-xl border border-[#14B8A6]/20 bg-[#0F172A]/70 p-5 text-white shadow-2xl shadow-black/40 backdrop-blur-xl md:p-6 ${isArabic ? 'text-right' : 'text-left'}`}
       dir={isArabic ? 'rtl' : 'ltr'}
     >
       <div className="mb-4 border-b border-white/10 pb-4">
@@ -332,8 +332,8 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
           <strong
             className="rounded-lg px-3 py-1 text-lg font-black md:text-xl"
             style={{
-              color: riderProfile.rating < 4.3 ? '#ff3366' : '#00ffcc',
-              backgroundColor: riderProfile.rating < 4.3 ? 'rgba(255,51,102,0.1)' : 'rgba(0,255,204,0.1)',
+              color: riderProfile.rating < 4.3 ? '#ff3366' : '#14B8A6',
+              backgroundColor: riderProfile.rating < 4.3 ? 'rgba(255,51,102,0.1)' : 'rgba(20,184,166,0.1)',
             }}
           >
             {riderProfile.rating.toFixed(2)} / 5.0
@@ -352,7 +352,7 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
         onClick={() => setIsPortfolioOpen(true)}
         className="mb-5 flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 text-xs font-black text-white hover:bg-[#14B8A6]/20"
       >
-        <Briefcase className="h-4 w-4 text-[#00ffcc]" />
+        <Briefcase className="h-4 w-4 text-[#14B8A6]" />
         <span>
           {copy.recent.favoritesBag} ({favoriteCaptains.length})
         </span>
@@ -385,7 +385,7 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
                 >
                   <Heart
                     className={`h-5 w-5 transition-all duration-300 ${
-                      isHearted ? 'fill-[#00ffcc] text-[#00ffcc]' : 'text-gray-400 hover:text-[#00ffcc]'
+                      isHearted ? 'fill-[#14B8A6] text-[#14B8A6]' : 'text-gray-400 hover:text-[#14B8A6]'
                     }`}
                   />
                 </button>
@@ -408,7 +408,7 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
 
                 <a
                   href={`tel:${trip.captainPhone}`}
-                  className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-950/30 px-4 text-[11px] font-black text-emerald-400 transition-all hover:bg-emerald-950/60"
+                  className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-4 text-[11px] font-black text-[#14B8A6] transition-all hover:bg-[#14B8A6]/20"
                   style={{ textDecoration: 'none' }}
                 >
                   <Phone className="h-3.5 w-3.5" />
@@ -446,23 +446,23 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
         )}
       </section>
 
-      <section className="space-y-3 rounded-xl border border-emerald-500/20 bg-[#050c05]/60 p-4">
-        <h4 className="flex items-center justify-between border-b border-white/10 pb-2 text-xs font-black uppercase tracking-wide text-[#00ffcc]">
+      <section className="space-y-3 rounded-xl border border-white/[0.06] bg-[#0F172A]/40 p-4">
+        <h4 className="flex items-center justify-between border-b border-white/10 pb-2 text-xs font-black uppercase tracking-wide text-[#14B8A6]">
           <span>{copy.recent.savedCaptains}</span>
-          <span className="rounded-full bg-emerald-950 px-2 py-0.5 font-mono text-[8px] text-emerald-400">
+          <span className="rounded-full bg-[#14B8A6]/10 px-2 py-0.5 font-mono text-[8px] text-[#14B8A6]">
             {favoriteCaptains.length}
           </span>
         </h4>
 
         {favoriteCaptains.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-emerald-500/10 bg-black/30 p-4 text-center">
+          <div className="rounded-lg border border-dashed border-[#14B8A6]/10 bg-black/30 p-4 text-center">
             <Heart className="mx-auto mb-2 h-5 w-5 text-gray-600" />
             <p className="text-[10px] leading-normal text-gray-400">{copy.recent.noFavorites}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-2.5">
             {favoriteCaptains.map((captain) => (
-              <div key={captain.id ?? captain.tripId} className="relative space-y-2 rounded-lg border border-emerald-500/20 bg-black/80 p-3">
+              <div key={captain.id ?? captain.tripId} className="relative space-y-2 rounded-lg border border-[#14B8A6]/20 bg-black/80 p-3">
                 <button
                   onClick={() => removeFavorite(captain)}
                   className="absolute left-2 top-2 p-1 text-rose-500 transition-all hover:scale-105"
@@ -481,12 +481,12 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
                 </div>
 
                 <div className="flex items-center justify-between border-t border-white/10 pt-2">
-                  <span className="rounded border border-emerald-500/10 bg-[#0a200a] px-1.5 py-0.5 text-[9px] font-bold text-[#00ffcc]">
+                  <span className="rounded border border-[#14B8A6]/10 bg-[#14B8A6]/10 px-1.5 py-0.5 text-[9px] font-bold text-[#14B8A6]">
                     {copy.recent.savedPermanent}
                   </span>
                   <a
                     href={`tel:${captain.captainPhone}`}
-                    className="flex h-7 items-center gap-1 rounded-md border border-emerald-500/20 bg-emerald-600 px-2.5 text-[10px] font-black text-white hover:bg-emerald-500"
+                    className="flex h-7 items-center gap-1 rounded-md border border-[#14B8A6]/20 bg-[#14B8A6] px-2.5 text-[10px] font-black text-[#031315] hover:bg-[#2DD4BF]"
                     style={{ textDecoration: 'none' }}
                   >
                     <Phone className="h-3 w-3" />
@@ -499,7 +499,7 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
         )}
       </section>
 
-      <section className="mt-6 space-y-3 rounded-xl border border-white/10 bg-[#0a0a0a] p-4">
+      <section className="mt-6 space-y-3 rounded-xl border border-white/[0.06] bg-[#0F172A]/40 p-4">
         <h4 className="border-b border-white/10 pb-2 text-xs font-black text-amber-400">
           {copy.recent.messagesTitle} - {riderProfile.district || riderProfile.governorate || copy.details.unknown}
         </h4>
@@ -518,10 +518,10 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
       </section>
 
       {isPortfolioOpen && (
-        <div className={`absolute inset-0 z-50 flex flex-col overflow-y-auto bg-[#040604]/98 p-5 md:p-6 ${isArabic ? 'text-right' : 'text-left'}`} dir={isArabic ? 'rtl' : 'ltr'}>
-          <div className="mb-4 flex items-center justify-between border-b border-emerald-500/20 pb-4">
+        <div className={`absolute inset-0 z-50 flex flex-col overflow-y-auto bg-[#0A0F1D]/98 p-5 md:p-6 ${isArabic ? 'text-right' : 'text-left'}`} dir={isArabic ? 'rtl' : 'ltr'}>
+          <div className="mb-4 flex items-center justify-between border-b border-[#14B8A6]/20 pb-4">
             <div className="flex items-center gap-2">
-              <Briefcase className="h-5 w-5 text-[#00ffcc]" />
+              <Briefcase className="h-5 w-5 text-[#14B8A6]" />
               <h3 className="text-sm font-black text-white md:text-base">{copy.recent.portfolioTitle}</h3>
             </div>
             <button
@@ -539,7 +539,7 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
             </p>
 
             {favoriteCaptains.length === 0 ? (
-              <div className="flex h-64 flex-col items-center justify-center rounded-xl border border-dashed border-emerald-500/10 bg-black/40 p-5 text-center opacity-80">
+              <div className="flex h-64 flex-col items-center justify-center rounded-xl border border-dashed border-[#14B8A6]/10 bg-black/40 p-5 text-center opacity-80">
                 <Heart className="mb-2 h-10 w-10 text-gray-600" />
                 <h5 className="text-xs font-black text-gray-400">{copy.recent.portfolioEmpty}</h5>
                 <p className="mt-1 text-[10px] leading-normal text-gray-500">{copy.recent.portfolioEmptyDescription}</p>
@@ -553,7 +553,7 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
                   return (
                     <article
                       key={captain.id ?? captain.tripId}
-                      className={`relative space-y-3 overflow-hidden rounded-xl border border-emerald-500/20 bg-[#080d08] p-4 shadow-md ${isArabic ? 'text-right' : 'text-left'}`}
+                      className={`relative space-y-3 overflow-hidden rounded-xl border border-white/[0.06] bg-[#0F172A]/40 p-4 shadow-md ${isArabic ? 'text-right' : 'text-left'}`}
                     >
                       <button
                         onClick={() => deleteFavoriteCard(captain)}
@@ -572,12 +572,12 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
                           </span>
                         </div>
                         <p className="text-[10px] leading-normal text-gray-400">{captain.vehicleInfo}</p>
-                        <p className="font-mono text-[9px] text-[#00ffcc]">
+                        <p className="font-mono text-[9px] text-[#14B8A6]">
                           {copy.recent.lastPrice}: {formatDashboardMoney(captain.finalPrice || 3, currencyLabel)}
                         </p>
                       </div>
 
-                      <div className="border-t border-dashed border-emerald-950/50 pt-2.5">
+                      <div className="border-t border-dashed border-white/[0.06] pt-2.5">
                         <span className="mb-1 block text-[9px] text-gray-400">{copy.recent.category}</span>
                         <div className="grid grid-cols-3 gap-1.5">
                           {(['uber', 'careem', 'independent'] as const).map((type) => (
@@ -589,8 +589,8 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
                                   ? type === 'uber'
                                     ? 'border-white bg-white text-black'
                                     : type === 'careem'
-                                      ? 'border-[#00ffc4]/30 bg-[#00ffc4]/20 text-[#00ffc4]'
-                                      : 'border-emerald-500/30 bg-emerald-950 text-emerald-300'
+                                      ? 'border-[#14B8A6]/30 bg-[#14B8A6]/20 text-[#14B8A6]'
+                                      : 'border-blue-500/30 bg-blue-950/20 text-blue-300'
                                   : 'border-white/10 bg-black/40 text-gray-500 hover:border-white/20'
                               }`}
                               type="button"
@@ -604,7 +604,7 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
                       <div className="flex gap-2.5 border-t border-white/10 pt-2">
                         <a
                           href={`tel:${captain.captainPhone}`}
-                          className="flex h-9 flex-1 items-center justify-center gap-1 rounded-lg bg-emerald-600 text-[10px] font-black text-white transition-transform hover:scale-[1.01] hover:bg-emerald-500"
+                          className="flex h-9 flex-1 items-center justify-center gap-1 rounded-lg bg-[#14B8A6] text-[10px] font-black text-[#031315] transition-transform hover:scale-[1.01] hover:bg-[#2DD4BF]"
                           style={{ textDecoration: 'none' }}
                         >
                           <Phone className="h-3.5 w-3.5" />
@@ -614,10 +614,10 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
                           href={whatsappUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-950/40 text-[10px] font-black text-[#00ffcc] transition-transform hover:scale-[1.01] hover:bg-emerald-900"
+                          className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg border border-[#14B8A6]/30 bg-[#14B8A6]/10 text-[10px] font-black text-[#14B8A6] transition-transform hover:scale-[1.01] hover:bg-[#14B8A6]/20"
                           style={{ textDecoration: 'none' }}
                         >
-                          <MessageCircle className="h-3.5 w-3.5 text-emerald-400" />
+                          <MessageCircle className="h-3.5 w-3.5 text-[#14B8A6]" />
                           <span>{copy.recent.whatsapp}</span>
                         </a>
                       </div>

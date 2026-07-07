@@ -177,7 +177,7 @@ export function AppHeader() {
   return (
     <div className="sticky top-0 z-50 w-full flex flex-col shadow-xl">
 
-      <header className="flex h-16 items-center justify-between px-4 bg-black border-b border-white/10">
+      <header className="flex h-16 items-center justify-between px-4 bg-[#0A0F1D]/80 backdrop-blur-xl border-b border-white/[0.06] shadow-[0_4px_30px_rgba(0,0,0,0.3)]">
 
         <div className="h-10 w-10" />
 
@@ -239,7 +239,7 @@ function UserMenu({ user, getInitials }: any) {
             </Avatar>
           </Button>
         </SheetTrigger>
-        <SheetContent side="right" className="p-0 sm:max-w-xs border-white/10 bg-black/95 w-[288px]">
+        <SheetContent side="right" className="p-0 sm:max-w-xs border-white/[0.06] bg-[#0A0F1D]/95 backdrop-blur-xl w-[288px]">
           <VisuallyHidden>
             <SheetTitle>القائمة</SheetTitle>
             <SheetDescription>قائمة الحساب</SheetDescription>

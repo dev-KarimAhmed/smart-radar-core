@@ -146,7 +146,7 @@ function DashboardLayout() {
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-lg mx-auto bg-[#051105]/95 border border-emerald-500/30 rounded-2xl p-4 flex items-center justify-between gap-4 shadow-[0_15px_40px_rgba(16,185,129,0.15)] backdrop-blur-md mb-6 pointer-events-auto"
+        className="w-full max-w-lg mx-auto bg-[#0F172A]/90 border border-[#14B8A6]/20 rounded-2xl p-4 flex items-center justify-between gap-4 shadow-[0_15px_40px_rgba(20,184,166,0.1)] backdrop-blur-xl mb-6 pointer-events-auto"
         dir={isArabic ? 'rtl' : 'ltr'}
       >
         <div className="flex items-center gap-3">
@@ -180,7 +180,7 @@ function DashboardLayout() {
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-lg mx-auto bg-[#071307]/95 border border-emerald-500/30 rounded-2xl p-4 flex items-center justify-between gap-4 shadow-[0_15px_40px_rgba(16,185,129,0.15)] backdrop-blur-md mb-6 pointer-events-auto"
+        className="w-full max-w-lg mx-auto bg-[#0F172A]/90 border border-[#14B8A6]/20 rounded-2xl p-4 flex items-center justify-between gap-4 shadow-[0_15px_40px_rgba(20,184,166,0.1)] backdrop-blur-xl mb-6 pointer-events-auto"
         dir={isArabic ? 'rtl' : 'ltr'}
       >
         <div className="flex items-center gap-3">
@@ -211,7 +211,7 @@ function DashboardLayout() {
  if (isSovereign) {
  return (
  <React.Suspense fallback={
- <div className="flex flex-col items-center justify-center p-8 bg-[#090d1a] border border-cyan-900/30 rounded-2xl animate-pulse text-center space-y-4">
+ <div className="flex flex-col items-center justify-center p-8 bg-[#0F172A]/60 border border-white/[0.06] rounded-2xl animate-pulse text-center space-y-4 backdrop-blur-md">
  <Loader2 className="w-8 h-8 animate-spin text-cyan-400 mx-auto" />
  <p className="text-gray-400 text-xs font-sans">جاري تحميل لوحة التحكم...</p>
  </div>
@@ -310,7 +310,7 @@ function DashboardLayout() {
 
  return (
  // استخدام flex-col لضمان تدفق الصفحة (Doc Flow) والسماح بالتمرير الطبيعي
- <div className={cn('flex min-h-screen w-full flex-col bg-[#0B0F19] text-white', !isCaptain && 'lg:h-screen lg:overflow-hidden')}>
+ <div className={cn('flex min-h-screen w-full flex-col bg-[#0A0F1D] text-white', !isCaptain && 'lg:h-screen lg:overflow-hidden')}>
  {user?.role === 'rider' && (
  <DesktopRiderSidebar
  hash={hash}
@@ -335,7 +335,7 @@ function DashboardLayout() {
 
  {/* مسرح الإعلانات يأخذ مساحته الطبيعية في التدفق */}
  {isStandby && (
- <div className="w-full flex-1 flex flex-col relative z-[80] border-b-2 border-[#00ffcc]/30 shadow-[0_10px_30px_rgba(0,255,204,0.1)]">
+ <div className="w-full flex-1 flex flex-col relative z-[80] border-b-2 border-[#14B8A6]/20 shadow-[0_10px_30px_rgba(20,184,166,0.08)]">
  <AdStage isFullScreen={true} />
  </div>
  )}
@@ -345,8 +345,8 @@ function DashboardLayout() {
  {renderArterialBridge()}
  <SovereignErrorBoundary>
  <React.Suspense fallback={
- <div className="flex flex-col items-center justify-center p-8 bg-[#090d1a]/80 border border-cyan-500/20 rounded-2xl animate-pulse text-center space-y-4">
- <Loader2 className="w-8 h-8 animate-spin text-cyan-400 mx-auto" />
+ <div className="flex flex-col items-center justify-center p-8 bg-[#0F172A]/60 border border-white/[0.06] rounded-2xl animate-pulse text-center space-y-4 backdrop-blur-md">
+ <Loader2 className="w-8 h-8 animate-spin text-[#14B8A6] mx-auto" />
  <p className="text-gray-400 text-xs font-sans">جاري تحميل الصفحة...</p>
  </div>
  }>
@@ -395,7 +395,7 @@ function DesktopRiderSidebar({
  };
 
  return (
- <aside className="fixed inset-y-0 left-0 z-[140] hidden w-[288px] flex-col border-r border-white/10 bg-[#0B0F19]/98 shadow-[22px_0_70px_rgba(0,0,0,0.38)] backdrop-blur-xl lg:flex" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+ <aside className="fixed inset-y-0 left-0 z-[140] hidden w-[288px] flex-col border-r border-white/[0.06] bg-[#0A0F1D]/95 shadow-[22px_0_70px_rgba(0,0,0,0.38)] backdrop-blur-xl lg:flex" dir={language === 'ar' ? 'rtl' : 'ltr'}>
  <div className="flex items-center gap-3 border-b border-white/10 p-5">
  <Avatar className="h-12 w-12 border border-[#14B8A6]/35 bg-[#101827]">
  <AvatarFallback className="bg-[#101827] text-sm font-black text-white">{initials}</AvatarFallback>

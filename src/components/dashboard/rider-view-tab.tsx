@@ -1254,7 +1254,7 @@ export function RiderViewTab() {
 
       {state.screen === 'RATING_MODAL' && (
         <Dialog open>
-          <DialogContent className="border-emerald-900/50 bg-[#050D05] text-white sm:max-w-md">
+          <DialogContent className="border-white/[0.06] bg-[#0A0F1D]/95 backdrop-blur-xl text-white sm:max-w-md">
             <DialogHeader className="text-center">
               <DialogTitle className="text-xl font-black">قيّم الرحلة</DialogTitle>
               <DialogDescription className="text-gray-400">يساعدنا تقييمك على تحسين الخدمة.</DialogDescription>
@@ -1262,14 +1262,14 @@ export function RiderViewTab() {
 
             <div className="space-y-8 py-6">
               <div className="space-y-3 text-center">
-                <Label className="font-bold text-emerald-500">السائق</Label>
+                <Label className="font-bold text-[#14B8A6]">السائق</Label>
                 <div className="flex justify-center">
                   <StarRating rating={rating.captain} setRating={(value: number) => setRating((prev) => ({ ...prev, captain: value }))} size="lg" />
                 </div>
               </div>
 
               <div className="space-y-3 text-center">
-                <Label className="font-bold text-emerald-500">السيارة</Label>
+                <Label className="font-bold text-[#14B8A6]">السيارة</Label>
                 <div className="flex justify-center">
                   <StarRating rating={rating.vehicle} setRating={(value: number) => setRating((prev) => ({ ...prev, vehicle: value }))} size="lg" color="amber" />
                 </div>
@@ -1278,7 +1278,7 @@ export function RiderViewTab() {
               <button
                 type="button"
                 onClick={() => setRating((prev) => ({ ...prev, favorite: !prev.favorite }))}
-                className="mx-auto flex items-center gap-3 rounded-2xl border border-emerald-500/20 bg-emerald-950/20 px-4 py-3 text-sm font-bold"
+                className="mx-auto flex items-center gap-3 rounded-2xl border border-[#14B8A6]/20 bg-[#14B8A6]/10 px-4 py-3 text-sm font-bold"
               >
                 <span>أضف السائق إلى المفضلة</span>
                 <Heart className={cn('h-5 w-5', rating.favorite ? 'fill-red-500 text-red-500' : 'text-gray-500')} />
@@ -1286,7 +1286,7 @@ export function RiderViewTab() {
             </div>
 
             <Button
-              className="h-14 w-full bg-emerald-600 text-lg font-black hover:bg-emerald-500"
+              className="h-14 w-full bg-[#14B8A6] text-lg font-black text-[#031315] hover:bg-[#2DD4BF]"
               disabled={rating.captain === 0 || rating.vehicle === 0 || isSubmittingRating}
               onClick={() => void handleSubmitRating()}
             >

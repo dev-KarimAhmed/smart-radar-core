@@ -44,12 +44,12 @@ export function RequestRideModal() {
 
   return (
     <Dialog open={isRequestModalOpen} onOpenChange={(open) => !open && closeRequestModal()}>
-      <DialogContent className="sm:max-w-md bg-[#050D05] border-emerald-950/80 text-white shadow-2xl p-0 overflow-hidden">
+      <DialogContent className="sm:max-w-md bg-[#0A0F1D]/95 border-white/[0.06] backdrop-blur-xl text-white shadow-2xl p-0 overflow-hidden">
 
-        <div className="bg-gradient-to-b from-emerald-950/40 to-transparent p-6 text-center border-b border-white/5">
+        <div className="bg-gradient-to-b from-[#14B8A6]/10 to-transparent p-6 text-center border-b border-white/5">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-black flex items-center justify-center gap-2 tracking-tighter text-emerald-400">
-              <Zap className="w-6 h-6 text-emerald-500 fill-emerald-500/20" />
+            <DialogTitle className="text-2xl font-black flex items-center justify-center gap-2 tracking-tighter text-[#14B8A6]">
+              <Zap className="w-6 h-6 text-[#14B8A6] fill-[#14B8A6]/20" />
               طلب رحلة
             </DialogTitle>
             <DialogDescription className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mt-1">
@@ -62,7 +62,7 @@ export function RequestRideModal() {
 
           {/* الخطوة 1: تحديد الوجهة محليا */}
           <div className="space-y-3">
-            <Label className="text-[10px] font-black text-emerald-500/70 uppercase tracking-[0.2em] flex items-center gap-1">
+            <Label className="text-[10px] font-black text-[#14B8A6]/70 uppercase tracking-[0.2em] flex items-center gap-1">
               <span>1. اختر الوجهة</span>
             </Label>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -76,10 +76,10 @@ export function RequestRideModal() {
                   setPickup(option.coords);
                 }}
               >
-                <SelectTrigger className="h-12 bg-black/40 border-white/10 rounded-xl text-xs font-extrabold focus:border-emerald-500">
+                <SelectTrigger className="h-12 bg-black/40 border-white/10 rounded-xl text-xs font-extrabold focus:border-[#14B8A6]">
                   <SelectValue placeholder="المحافظة" />
                 </SelectTrigger>
-                <SelectContent className="bg-[#0B0F19] border-emerald-900/50 text-white font-bold text-xs">
+                <SelectContent className="bg-[#0F172A] border-white/[0.06] text-white font-bold text-xs">
                   {[...new Set(destinationOptions.map((item) => item.governorate))].map((governorate) => (
                     <SelectItem key={governorate} value={governorate}>{governorate}</SelectItem>
                   ))}
@@ -96,10 +96,10 @@ export function RequestRideModal() {
                   setPickup(option.coords);
                 }}
               >
-                <SelectTrigger className="h-12 bg-black/40 border-white/10 rounded-xl text-xs font-extrabold focus:border-emerald-500">
+                <SelectTrigger className="h-12 bg-black/40 border-white/10 rounded-xl text-xs font-extrabold focus:border-[#14B8A6]">
                   <SelectValue placeholder="المنطقة" />
                 </SelectTrigger>
-                <SelectContent className="bg-[#0B0F19] border-emerald-900/50 text-white font-bold text-xs">
+                <SelectContent className="bg-[#0F172A] border-white/[0.06] text-white font-bold text-xs">
                   {destinationOptions.map((option) => (
                     <SelectItem key={option.id} value={option.id}>{option.district}</SelectItem>
                   ))}
@@ -110,7 +110,7 @@ export function RequestRideModal() {
 
           {/* الخطوة 2: إحداثيات الوجهة المحلية */}
           <div className="space-y-3">
-             <Label className="text-[10px] font-black text-emerald-500/70 uppercase tracking-[0.2em]">2. إحداثيات الوجهة</Label>
+             <Label className="text-[10px] font-black text-[#14B8A6]/70 uppercase tracking-[0.2em]">2. إحداثيات الوجهة</Label>
              <div className="space-y-3">
                 <div className="w-full">
                     <div className="relative w-full">
@@ -118,10 +118,10 @@ export function RequestRideModal() {
                             placeholder="اختر منطقة أو اكتب الإحداثيات مثل 31.95, 35.91"
                             value={pickup}
                             onChange={(e) => setPickup(e.target.value)}
-                            className="h-11 sm:h-12 bg-black/40 border-white/10 text-white placeholder:text-gray-500 rounded-xl pr-10 focus:border-emerald-500 text-xs font-mono w-full"
+                            className="h-11 sm:h-12 bg-black/40 border-white/10 text-white placeholder:text-gray-500 rounded-xl pr-10 focus:border-[#14B8A6] text-xs font-mono w-full"
                             title="إحداثيات محلية بدون geocoding"
                         />
-                        <Clipboard className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-500/60" />
+                        <Clipboard className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#14B8A6]/60" />
                     </div>
 
                 </div>
@@ -132,27 +132,27 @@ export function RequestRideModal() {
                         onClick={calculateSovereignMetrics}
                         disabled={isResolvingUrl || !pickup}
                         className={cn(
-                            "w-full h-12 sm:h-14 rounded-xl border-2 border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 transition-all flex items-center justify-center gap-3 animate-pulse-neon",
+                            "w-full h-12 sm:h-14 rounded-xl border-2 border-[#14B8A6]/30 bg-[#14B8A6]/10 hover:bg-[#14B8A6]/20 transition-all flex items-center justify-center gap-3 animate-pulse-neon",
                             (!pickup || isResolvingUrl) && "opacity-50 grayscale pointer-events-none animate-none"
                         )}
                     >
                         {isResolvingUrl ? (
-                            <Loader2 className="w-5 h-5 text-emerald-500 animate-spin" />
+                            <Loader2 className="w-5 h-5 text-[#14B8A6] animate-spin" />
                         ) : (
-                            <Ruler className="w-5 h-5 text-emerald-500" />
+                            <Ruler className="w-5 h-5 text-[#14B8A6]" />
                         )}
-                        <span className="text-xs sm:text-sm font-black text-emerald-400 uppercase tracking-widest">
+                        <span className="text-xs sm:text-sm font-black text-[#14B8A6] uppercase tracking-widest">
                            حساب المسافة والسعر
                         </span>
                     </Button>
                 ) : (
-                    <div className="bg-emerald-500/10 border-2 border-emerald-500/30 rounded-2xl p-3 sm:p-4 animate-in zoom-in-95 duration-300 space-y-4">
+                    <div className="bg-[#14B8A6]/10 border-2 border-[#14B8A6]/30 rounded-2xl p-3 sm:p-4 animate-in zoom-in-95 duration-300 space-y-4">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                                <div className="bg-emerald-500 rounded-full p-1">
+                                <div className="bg-[#14B8A6] rounded-full p-1">
                                     <CheckCircle2 className="w-3 h-3 text-black" />
                                 </div>
-                                <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">تم حساب المسافة محليا</span>
+                                <span className="text-[10px] font-black text-[#14B8A6] uppercase tracking-widest">تم حساب المسافة محليا</span>
                             </div>
                             <Button
                                 variant="ghost"
@@ -166,8 +166,8 @@ export function RequestRideModal() {
 
                         <div className="grid grid-cols-2 gap-2 sm:gap-4">
                             <div className="bg-black/40 rounded-xl p-2 sm:p-3 border border-white/5 flex items-center gap-2 sm:gap-3">
-                                <div className="bg-emerald-500/10 p-1.5 sm:p-2 rounded-lg shrink-0">
-                                    <MapPinned className="w-4 h-4 text-emerald-500" />
+                                <div className="bg-[#14B8A6]/10 p-1.5 sm:p-2 rounded-lg shrink-0">
+                                    <MapPinned className="w-4 h-4 text-[#14B8A6]" />
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <p className="text-[8px] text-gray-500 font-bold uppercase">المسافة الفعلية</p>
@@ -177,7 +177,7 @@ export function RequestRideModal() {
                                         ) : (
                                             <>
                                                 {estimatedDistance.toFixed(2)}
-                                                <span className="text-[10px] text-emerald-500 mr-1">كم</span>
+                                                <span className="text-[10px] text-[#14B8A6] mr-1">كم</span>
                                             </>
                                         )}
                                     </p>
@@ -198,9 +198,9 @@ export function RequestRideModal() {
                         </div>
 
                         {!isBlindSpot && estimatedDistance > 0 && (
-                            <div className="bg-black/60 border border-emerald-500/20 rounded-xl p-3 mt-2 text-[10px] space-y-1.5 font-sans">
-                                <div className="flex justify-between items-center border-b border-emerald-500/10 pb-1.5">
-                                    <span className="text-emerald-400 font-extrabold flex items-center gap-1">
+                            <div className="bg-black/60 border border-[#14B8A6]/20 rounded-xl p-3 mt-2 text-[10px] space-y-1.5 font-sans">
+                                <div className="flex justify-between items-center border-b border-[#14B8A6]/10 pb-1.5">
+                                    <span className="text-[#14B8A6] font-extrabold flex items-center gap-1">
                                         📐 معادلة العدالة الميدانية V5.1
                                     </span>
                                     <span className="text-gray-500 font-mono text-[9px]">SSOT Engine</span>
@@ -212,11 +212,11 @@ export function RequestRideModal() {
                                     </div>
                                     <div className="flex justify-between">
                                         <span>معامل التعرج المحلي (γ):</span>
-                                        <span className="text-emerald-400">× 1.35</span>
+                                        <span className="text-[#14B8A6]">× 1.35</span>
                                     </div>
                                     <div className="flex justify-between border-t border-white/5 pt-1 mt-1 font-black">
                                         <span className="text-white">المسافة المعتمدة:</span>
-                                        <span className="text-emerald-400 font-mono">{estimatedDistance.toFixed(2)} كم</span>
+                                        <span className="text-[#14B8A6] font-mono">{estimatedDistance.toFixed(2)} كم</span>
                                     </div>
                                     <div className="flex justify-between border-t border-white/5 pt-1 mt-1 font-mono">
                                         <span>حساب الزمن (المسافة / السرعة 40 كم/س):</span>
@@ -241,33 +241,33 @@ export function RequestRideModal() {
           {/* المقاعد ونوع الحساب */}
           <div className="grid grid-cols-2 gap-4 pt-2">
             <div className="space-y-2">
-                <span className="text-[10px] text-emerald-500/70 font-black mr-1 uppercase block">7. عدد المقاعد المطلوبة</span>
+                <span className="text-[10px] text-[#14B8A6]/70 font-black mr-1 uppercase block">7. عدد المقاعد المطلوبة</span>
                 <Select value={seats} onValueChange={setSeats}>
-                    <SelectTrigger className="h-11 bg-black/40 border-white/10 rounded-xl text-xs font-extrabold focus:border-emerald-500">
+                    <SelectTrigger className="h-11 bg-black/40 border-white/10 rounded-xl text-xs font-extrabold focus:border-[#14B8A6]">
                         <SelectValue placeholder="حدد المقاعد" />
                     </SelectTrigger>
-                    <SelectContent className="bg-[#091B09] border-emerald-900/50 text-white font-bold text-xs">
+                    <SelectContent className="bg-[#0F172A] border-white/[0.06] text-white font-bold text-xs">
                         {[1, 2, 3, 4].map(n => <SelectItem key={n} value={n.toString()}>{n} {n === 1 ? 'راكب واحد' : 'ركاب'}</SelectItem>)}
                     </SelectContent>
                 </Select>
             </div>
 
             <div className="space-y-2">
-                <span className="text-[10px] text-emerald-500/70 font-black mr-1 uppercase block">8. نمط المحاسبة</span>
+                <span className="text-[10px] text-[#14B8A6]/70 font-black mr-1 uppercase block">8. نمط المحاسبة</span>
                 <div className="flex items-center justify-between bg-black/40 border border-white/10 rounded-xl px-3 h-11">
                     <span className="text-[10px] font-black text-gray-400">عداد تطبيقات</span>
-                    <Switch checked={requiresOfficialRate} onCheckedChange={setRequiresOfficialRate} className="data-[state=checked]:bg-emerald-600 scale-75" />
+                    <Switch checked={requiresOfficialRate} onCheckedChange={setRequiresOfficialRate} className="data-[state=checked]:bg-[#14B8A6] scale-75" />
                 </div>
             </div>
           </div>
 
           {/* حالة الطلب */}
-          <div className="p-3 bg-black/20 rounded-xl border border-emerald-900/10 space-y-2 text-center">
+          <div className="p-3 bg-black/20 rounded-xl border border-[#14B8A6]/10 space-y-2 text-center">
             <span className="text-[9px] sm:text-[10px] text-gray-500 font-extrabold block uppercase">حالة توفر السائقون</span>
             <div className="flex justify-center items-center gap-2">
               <span className={cn(
                 "px-2.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-extrabold tracking-wide",
-                parseInt(seats) <= 2 ? "bg-emerald-900/20 text-emerald-400 border border-emerald-500/20" : "bg-amber-950/25 text-amber-500 border border-amber-500/20"
+                parseInt(seats) <= 2 ? "bg-[#14B8A6]/10 text-[#14B8A6] border border-[#14B8A6]/20" : "bg-amber-950/25 text-amber-500 border border-amber-500/20"
               )}>
                 {parseInt(seats) <= 2 ? "🔴 زخم العرض: صاعد ومتوفر" : "⚠️ زخم الطاقة: كثيف ويتطلب سيارة صالون واسعة"}
               </span>
@@ -278,9 +278,9 @@ export function RequestRideModal() {
           </div>
 
           {/* تنويه الإدارة والعمى التقني الموحد للتصميم الصارم */}
-          <div className="bg-[#081808] border border-emerald-900/30 rounded-2xl p-4 space-y-2 animate-in fade-in duration-500">
-             <div className="flex items-center gap-1.5 text-emerald-400 font-black text-xs uppercase tracking-wider">
-                <AlertCircle className="w-4 h-4 text-emerald-500 shrink-0" />
+          <div className="bg-[#0A1628] border border-[#14B8A6]/20 rounded-2xl p-4 space-y-2 animate-in fade-in duration-500">
+             <div className="flex items-center gap-1.5 text-[#14B8A6] font-black text-xs uppercase tracking-wider">
+                <AlertCircle className="w-4 h-4 text-[#14B8A6] shrink-0" />
                 <span>النزاهة الميدانية لـ "الرادار الذكي"</span>
              </div>
              <p className="text-[10px] sm:text-xs text-gray-400 font-bold leading-normal">
@@ -304,13 +304,13 @@ export function RequestRideModal() {
               className={cn(
                 "w-full h-16 rounded-2xl font-black text-xl tracking-tighter transition-all",
                 isLocationConfirmed && dropoff
-                  ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_10px_30px_rgba(16,185,129,0.3)] border border-emerald-500/20"
+                  ? "bg-[#14B8A6] hover:bg-[#2DD4BF] text-[#031315] shadow-[0_10px_30px_rgba(20,184,166,0.3)] border border-[#14B8A6]/20"
                   : "bg-white/5 text-white/10 grayscale pointer-events-none"
               )}
             >
               {isRequesting ? (
                 <div className="flex items-center gap-2">
-                  <Loader2 className="w-6 h-6 animate-spin text-emerald-400" />
+                  <Loader2 className="w-6 h-6 animate-spin text-[#14B8A6]" />
                   <span>يرسل الطلب...</span>
                 </div>
               ) : (

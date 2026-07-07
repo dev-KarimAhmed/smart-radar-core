@@ -82,10 +82,10 @@ export function RiderPortal() {
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-6 pb-10 text-right" dir="rtl">
-      <header className="flex flex-col items-start justify-between gap-4 rounded-2xl border border-[#14b8a6]/15 bg-[#090e1a] p-5 shadow-xl sm:flex-row sm:items-center">
+      <header className="flex flex-col items-start justify-between gap-4 rounded-2xl border border-[#14B8A6]/20 bg-[#0F172A]/70 backdrop-blur-xl p-5 shadow-xl sm:flex-row sm:items-center">
         <div className="space-y-1.5">
           <div className="flex items-center gap-2">
-            <span className="rounded-xl bg-[#14b8a6]/10 p-1.5 text-[#14b8a6]">
+            <span className="rounded-xl bg-[#14B8A6]/10 p-1.5 text-[#14B8A6]">
               <Compass className="h-5 w-5" />
             </span>
             <h1 className="text-xl font-extrabold tracking-tight text-white">{copy.title}</h1>
@@ -94,7 +94,7 @@ export function RiderPortal() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="outline" className="border-[#14b8a6]/30 bg-[#14b8a6]/5 px-2.5 py-1 text-[9px] text-[#14b8a6]">
+          <Badge variant="outline" className="border-[#14B8A6]/30 bg-[#14B8A6]/5 px-2.5 py-1 text-[9px] text-[#14B8A6]">
             {copy.protocol}
           </Badge>
           <Badge variant="outline" className="border-amber-500/20 bg-amber-500/5 px-2.5 py-1 text-[9px] text-amber-500">
@@ -105,10 +105,10 @@ export function RiderPortal() {
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
         <section className="space-y-6 md:col-span-5">
-          <Card className="rounded-2xl border border-[#14b8a6]/20 bg-[#090e1a]/95 shadow-xl">
+          <Card className="rounded-2xl border border-[#14B8A6]/20 bg-[#0F172A]/80 backdrop-blur-xl shadow-xl">
             <CardHeader className="border-b border-white/10 p-5 pb-3">
               <CardTitle className="flex items-center gap-2 text-sm font-black text-white">
-                <MapPin className="h-4 w-4 text-[#14b8a6]" />
+                <MapPin className="h-4 w-4 text-[#14B8A6]" />
                 {copy.routeCard}
               </CardTitle>
               <CardDescription className="text-[10px] text-gray-500">{copy.routeDescription}</CardDescription>
@@ -120,7 +120,7 @@ export function RiderPortal() {
                 <Input
                   value={pickupText}
                   onChange={(event) => setPickupText(event.target.value)}
-                  className="w-full rounded-xl border-white/10 bg-black/60 pr-3 text-right text-xs text-white focus:border-[#14b8a6]"
+                  className="w-full rounded-xl border-white/10 bg-black/60 pr-3 text-right text-xs text-white focus:border-[#14B8A6]"
                 />
               </div>
 
@@ -129,7 +129,7 @@ export function RiderPortal() {
                 <Input
                   value={dropoffText}
                   onChange={(event) => setDropoffText(event.target.value)}
-                  className="w-full rounded-xl border-white/10 bg-black/60 pr-3 text-right text-xs text-white focus:border-[#14b8a6]"
+                  className="w-full rounded-xl border-white/10 bg-black/60 pr-3 text-right text-xs text-white focus:border-[#14B8A6]"
                 />
               </div>
 
@@ -143,15 +143,15 @@ export function RiderPortal() {
                     const val = parseFloat(event.target.value);
                     setDistance(Number.isNaN(val) ? 0 : val);
                   }}
-                  className="w-full rounded-xl border-white/10 bg-black/60 pr-3 text-center font-mono text-xs text-white focus:border-[#14b8a6]"
+                  className="w-full rounded-xl border-white/10 bg-black/60 pr-3 text-center font-mono text-xs text-white focus:border-[#14B8A6]"
                 />
               </div>
 
-              <div className="space-y-3 rounded-xl border border-[#14b8a6]/25 bg-[#14b8a6]/5 p-4">
+              <div className="space-y-3 rounded-xl border border-[#14B8A6]/25 bg-[#14B8A6]/5 p-4">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-bold text-gray-400">{copy.pricing}</span>
                   {frozenPrice ? (
-                    <Badge variant="outline" className="border-[#14b8a6] font-mono text-[#14b8a6]">
+                    <Badge variant="outline" className="border-[#14B8A6] font-mono text-[#14B8A6]">
                       {frozenH3 || "H3"}
                     </Badge>
                   ) : (
@@ -179,7 +179,7 @@ export function RiderPortal() {
 
                 <Button
                   onClick={handleCalculateAndFreeze}
-                  className="flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border border-[#14b8a6]/40 bg-cyan-950/60 py-2 text-xs font-bold text-[#14b8a6] hover:bg-[#14b8a6]/25"
+                  className="flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border border-[#14B8A6]/40 bg-[#14B8A6]/10 py-2 text-xs font-bold text-[#14B8A6] hover:bg-[#14B8A6]/20"
                 >
                   <Lock className="h-3.5 w-3.5" />
                   {frozenPrice ? copy.refreshFreezeButton : copy.freezeButton}
@@ -190,11 +190,11 @@ export function RiderPortal() {
         </section>
 
         <section className="space-y-6 md:col-span-7">
-          <Card className="flex flex-1 flex-col rounded-2xl border border-white/10 bg-[#090e1a]/95 shadow-xl">
+          <Card className="flex flex-1 flex-col rounded-2xl border border-[#14B8A6]/20 bg-[#0F172A]/80 backdrop-blur-xl shadow-xl">
             <CardHeader className="flex flex-row items-center justify-between gap-4 border-b border-white/10 p-5">
               <div>
                 <CardTitle className="flex items-center gap-2 text-sm font-black text-white">
-                  <Search className="h-4 w-4 text-[#14b8a6]" />
+                  <Search className="h-4 w-4 text-[#14B8A6]" />
                   {copy.nearbyDrivers}
                 </CardTitle>
                 <CardDescription className="text-[10px] text-gray-500">{copy.nearbyDescription}</CardDescription>
@@ -204,7 +204,7 @@ export function RiderPortal() {
                 size="sm"
                 onClick={scanGeoBubble}
                 disabled={isScanning}
-                className="flex h-8 items-center gap-1 rounded-lg border border-[#14b8a6]/35 bg-black/40 px-2.5 text-xs text-[#14b8a6]"
+                className="flex h-8 items-center gap-1 rounded-lg border border-[#14B8A6]/35 bg-black/40 px-2.5 text-xs text-[#14B8A6]"
               >
                 <RefreshCw className={cn("h-3 w-3", isScanning && "animate-spin")} />
                 {copy.refresh}
@@ -214,7 +214,7 @@ export function RiderPortal() {
             <CardContent className="max-h-[440px] space-y-4 overflow-y-auto p-5">
               {isScanning ? (
                 <div className="space-y-3 py-12 text-center">
-                  <RefreshCw className="mx-auto h-8 w-8 animate-spin text-[#14b8a6]" />
+                  <RefreshCw className="mx-auto h-8 w-8 animate-spin text-[#14B8A6]" />
                   <p className="text-xs text-gray-400">{copy.scanning}</p>
                 </div>
               ) : nearbyDrivers.length > 0 ? (
@@ -225,14 +225,14 @@ export function RiderPortal() {
                       className="flex flex-col items-start justify-between gap-4 rounded-xl border border-white/10 bg-black/40 p-4 text-xs transition-all hover:bg-black/60 sm:flex-row sm:items-center"
                     >
                       <div className="flex gap-3">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#14b8a6]/20 bg-cyan-950/40 font-bold text-[#14b8a6]">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#14B8A6]/20 bg-[#14B8A6]/10 font-bold text-[#14B8A6]">
                           {driver.name.slice(0, 1)}
                         </div>
 
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
                             <h4 className="text-[12px] font-extrabold text-white">{driver.name}</h4>
-                            <Badge className="border border-cyan-800/30 bg-cyan-950 px-2 py-0.5 text-[8px] font-bold leading-none text-cyan-400 hover:bg-cyan-950">
+                            <Badge className="border border-[#14B8A6]/20 bg-[#14B8A6]/10 px-2 py-0.5 text-[8px] font-bold leading-none text-[#14B8A6] hover:bg-[#14B8A6]/15">
                               {driver.rank}
                             </Badge>
                           </div>
@@ -267,7 +267,7 @@ export function RiderPortal() {
                           "flex h-9 w-full items-center justify-center gap-1 rounded-lg px-3 text-[11px] font-black transition-all sm:w-auto",
                           isLocked
                             ? "cursor-not-allowed border border-white/10 bg-slate-800 text-slate-400"
-                            : "bg-[#14b8a6] text-black hover:bg-[#14b8a6]/90",
+                            : "bg-[#14B8A6] text-black hover:bg-[#14B8A6]/90",
                         )}
                       >
                         {isLocked ? (
@@ -299,8 +299,8 @@ export function RiderPortal() {
         </section>
       </div>
 
-      <div className="flex items-start gap-2 rounded-xl border border-[#14b8a6]/25 bg-[#090e1a] p-4 text-right text-[10px] leading-normal text-gray-400 shadow-sm">
-        <Shield className="mt-0.5 h-4 w-4 shrink-0 text-[#14b8a6]" />
+      <div className="flex items-start gap-2 rounded-xl border border-[#14B8A6]/25 bg-[#0F172A]/60 p-4 text-right text-[10px] leading-normal text-gray-400 shadow-sm">
+        <Shield className="mt-0.5 h-4 w-4 shrink-0 text-[#14B8A6]" />
         <p>{copy.safety}</p>
       </div>
     </div>

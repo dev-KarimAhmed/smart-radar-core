@@ -30,12 +30,12 @@ export const DriverSovereignCard = memo(({ driver }: DriverSovereignCardProps) =
   const entityName = driver.affiliation?.name || 'مستقل';
 
   return (
-    <Card className={cn("bg-[#050D05]/60 border-emerald-900/30 transition-all duration-500 overflow-hidden mb-3 shadow-xl hover:border-emerald-500/50", rankTheme.glow)}>
+    <Card className={cn("bg-[#0F172A]/40 border-white/[0.06] transition-all duration-500 overflow-hidden mb-3 shadow-xl hover:border-[#14B8A6]/50", rankTheme.glow)}>
         <CardContent className="p-4">
             <div className="flex items-center gap-4">
                 <div className="relative">
-                    <Avatar className="w-16 h-16 border-2 border-emerald-500/30 shadow-lg">
-                        <AvatarFallback className="bg-emerald-950 text-white font-black text-xl">{driver.name?.substring(0, 2)}</AvatarFallback>
+                    <Avatar className="w-16 h-16 border-2 border-[#14B8A6]/30 shadow-lg">
+                        <AvatarFallback className="bg-[#0A0F1D] text-white font-black text-xl">{driver.name?.substring(0, 2)}</AvatarFallback>
                     </Avatar>
                     <div className={cn("absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-2 border-black flex items-center justify-center shadow-md", rankTheme.bg)}>
                           <ShieldCheck className={cn("w-4 h-4", rankTheme.color)} />
@@ -63,9 +63,9 @@ export const DriverSovereignCard = memo(({ driver }: DriverSovereignCardProps) =
                     </div>
 
                     <div className="flex items-center gap-2">
-                         <Badge className="bg-emerald-900/20 text-emerald-400 border-emerald-500/30 text-[9px] font-bold">
-                            {operationalLabel}: {entityName}
-                         </Badge>
+                          <Badge className="bg-[#14B8A6]/10 text-[#14B8A6] border-[#14B8A6]/20 text-[9px] font-bold">
+                             {operationalLabel}: {entityName}
+                          </Badge>
                          <div className="flex items-center gap-1 text-yellow-400 ml-auto">
                             <Star className="w-3.5 h-3.5 fill-current" />
                             <span className="font-black text-sm">{(driver.rating || 5.0).toFixed(1)}</span>
@@ -77,7 +77,7 @@ export const DriverSovereignCard = memo(({ driver }: DriverSovereignCardProps) =
                            <Car className="w-3 h-3" />
                            {driver.vehicle?.make} • {driver.vehicle?.color} • <span className="text-white font-mono">{driver.vehicle?.plate}</span>
                         </div>
-                        <div className="flex items-center gap-1 text-emerald-400 font-mono text-xs font-bold">
+                        <div className="flex items-center gap-1 text-[#14B8A6] font-mono text-xs font-bold">
                             <MapPin className="w-3 h-3" />
                             <span>{driver.distance.toFixed(1)} كم</span>
                         </div>

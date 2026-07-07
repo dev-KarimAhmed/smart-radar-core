@@ -132,12 +132,12 @@ export function AppSidebar() {
  const isRider = user.role === "rider";
 
  return (
- <nav className="h-full flex flex-col bg-[#091B09]">
+ <nav className="h-full flex flex-col bg-[#0A0F1D]">
  {/* Header - Radar Branding */}
- <div className="flex items-center justify-between p-5 bg-[#050D05] border-b border-emerald-900/40 shrink-0">
+ <div className="flex items-center justify-between p-5 bg-[#060B18] border-b border-white/[0.06] shrink-0">
  <Badge
  variant="outline"
- className="border-emerald-500/40 text-emerald-400 bg-emerald-950/30 font-bold px-3 py-1 shadow-sm"
+ className="border-[#14B8A6]/30 text-[#14B8A6] bg-[#14B8A6]/10 font-bold px-3 py-1 shadow-sm"
  >
  {isDriver
  ? "سائق"
@@ -149,7 +149,7 @@ export function AppSidebar() {
  <h2 className="text-2xl font-black text-white tracking-widest drop-shadow-md">
  رادار
  </h2>
- <ShieldCheck className="w-7 h-7 text-emerald-500" />
+ <ShieldCheck className="w-7 h-7 text-[#14B8A6]" />
  </div>
  <SheetClose asChild>
  <Button
@@ -165,13 +165,13 @@ export function AppSidebar() {
  <ScrollArea className="flex-1 w-full" type="scroll">
  {/* Profile Summary */}
  <div className="flex flex-col items-center mb-6 pt-6">
- <div className="w-20 h-20 rounded-full bg-[#050D05] border-2 border-emerald-500/40 flex items-center justify-center mb-3 shadow-lg shadow-emerald-900/20">
- <UserCircle className="w-12 h-12 text-emerald-500" />
+ <div className="w-20 h-20 rounded-full bg-[#060B18] border-2 border-[#14B8A6]/30 flex items-center justify-center mb-3 shadow-lg shadow-[#14B8A6]/10">
+ <UserCircle className="w-12 h-12 text-[#14B8A6]" />
  </div>
  <h3 className="text-xl font-black text-white tracking-wide">
  {user.name || "مستخدم جديد"}
  </h3>
- <p className="text-sm text-emerald-400/80 mt-1 font-mono">
+ <p className="text-sm text-[#14B8A6]/80 mt-1 font-mono">
  {isAdmin ? "مشرف النظام" : user.phone}
  </p>
  </div>
@@ -179,7 +179,7 @@ export function AppSidebar() {
  {isDriver && (
  <div className="space-y-6 max-w-sm mx-auto w-full px-5 pb-6 text-right" dir="rtl">
  {/* Online / Offline Sovereign Toggle */}
- <div className="bg-[#050D05] border border-emerald-900/40 rounded-2xl p-4 shadow-md space-y-3">
+ <div className="bg-[#060B18] border border-white/[0.06] rounded-2xl p-4 shadow-md space-y-3">
  <div className="flex justify-between items-center bg-black/40 p-1.5 rounded-lg">
  <span className="text-xs font-black text-gray-300">حالة العمل</span>
  <span className={cn(
@@ -204,7 +204,7 @@ export function AppSidebar() {
  <DriverStatsCard user={user} />
 
  {/* Incident & Location Reporting Button */}
- <div className="bg-[#050D05] border border-cyan-900/40 rounded-2xl p-4 shadow-md space-y-3">
+ <div className="bg-[#060B18] border border-white/[0.06] rounded-2xl p-4 shadow-md space-y-3">
  <div className="flex justify-between items-center bg-black/40 p-1.5 rounded-lg">
  <span className="text-xs font-black text-white">مركز السلامة</span>
  <span className="text-[9px] font-mono text-cyan-400">GPS ACTIVE</span>
@@ -268,14 +268,14 @@ export function AppSidebar() {
 
  {isRider && (
  <div className="space-y-6 max-w-sm mx-auto w-full">
- <div className="px-4 py-2 bg-emerald-950/30 border-y border-emerald-500/20">
+ <div className="px-4 py-2 bg-[#14B8A6]/10 border-y border-[#14B8A6]/15">
  <div className="flex items-center justify-between">
- <span className="text-[10px] uppercase tracking-tighter text-emerald-400 font-black">
+ <span className="text-[10px] uppercase tracking-tighter text-[#14B8A6] font-black">
  تقييم الحساب
  </span>
  <Badge
  variant="outline"
- className="text-[10px] border-emerald-500/50 text-emerald-400"
+ className="text-[10px] border-[#14B8A6]/40 text-[#14B8A6]"
  >
  {calculateRiderRank(user.ratingSum, user.ratingCount)}
  </Badge>
@@ -318,21 +318,21 @@ export function AppSidebar() {
  <a href="#history" className="block w-full">
  <Button
  variant="ghost"
- className="w-full justify-end gap-3 text-white hover:text-emerald-400 hover:bg-emerald-950/30 border border-transparent hover:border-emerald-500/20 h-14 rounded-xl transition-all shadow-sm"
+ className="w-full justify-end gap-3 text-white hover:text-[#14B8A6] hover:bg-[#14B8A6]/10 border border-transparent hover:border-[#14B8A6]/15 h-14 rounded-xl transition-all shadow-sm"
  >
  <span className="font-bold text-base">
  سجل الرحلات السابقة
  </span>
- <History className="w-5 h-5 text-emerald-500/70" />
+ <History className="w-5 h-5 text-[#14B8A6]/70" />
  </Button>
  </a>
  <a href="#messages" className="block w-full">
  <Button
  variant="ghost"
- className="w-full justify-end gap-3 text-white hover:text-emerald-400 hover:bg-emerald-950/30 border border-transparent hover:border-emerald-500/20 h-14 rounded-xl relative transition-all shadow-sm"
+ className="w-full justify-end gap-3 text-white hover:text-[#14B8A6] hover:bg-[#14B8A6]/10 border border-transparent hover:border-[#14B8A6]/15 h-14 rounded-xl relative transition-all shadow-sm"
  >
  <span className="font-bold text-base">رسائل الرادار</span>
- <MessageSquare className="w-5 h-5 text-emerald-500/70" />
+ <MessageSquare className="w-5 h-5 text-[#14B8A6]/70" />
  </Button>
  </a>
  </div>
@@ -348,8 +348,8 @@ export function AppSidebar() {
  </ScrollArea>
 
  {/* Footer / Logout */}
- <div className="p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] bg-[#050D05] border-t border-emerald-900/30 mt-auto shrink-0 w-full text-center space-y-3">
- <div className="text-gray-400 text-xs tracking-wide font-sans text-center">
+ <div className="p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] bg-[#060B18] border-t border-white/[0.06] mt-auto shrink-0 w-full text-center space-y-3">
+ <div className="text-[#94A3B8] text-xs tracking-wide font-sans text-center">
  منصة وساطة مستقلة لطلب الرحلات
  </div>
  <Button

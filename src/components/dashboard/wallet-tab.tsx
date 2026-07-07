@@ -36,24 +36,24 @@ interface BalanceDisplayProps {
 
 function BalanceDisplay({ balance, currencyLabel, walletLoaded, onChargeFunds, copy }: BalanceDisplayProps) {
   return (
-    <Card className="relative overflow-hidden border border-emerald-900/40 bg-[#050D05]/95 shadow-xl">
-      <div className="absolute right-0 top-0 h-16 w-16 rounded-full bg-emerald-500/5 blur-xl" />
+    <Card className="relative overflow-hidden border border-[#14B8A6]/20 bg-[#0F172A]/90 backdrop-blur-md shadow-xl">
+      <div className="absolute right-0 top-0 h-16 w-16 rounded-full bg-[#14B8A6]/5 blur-xl" />
       <CardContent className="flex h-full flex-col justify-between p-5">
         <div className="flex items-start justify-between">
           <span className="text-xs font-bold text-gray-400">{copy.balance}</span>
-          <span className="text-xs font-bold text-emerald-400">{currencyLabel || '-'}</span>
+          <span className="text-xs font-bold text-[#14B8A6]">{currencyLabel || '-'}</span>
         </div>
 
         <div className="my-3">
           <span className="text-3xl font-black tracking-tight text-white">
             {walletLoaded ? balance.toFixed(2) : '...'}
           </span>
-          {currencyLabel && <span className="mr-1.5 text-sm font-bold text-emerald-500">{currencyLabel}</span>}
+          {currencyLabel && <span className="mr-1.5 text-sm font-bold text-[#14B8A6]">{currencyLabel}</span>}
         </div>
 
         <Button
           onClick={onChargeFunds}
-          className="h-10 w-full rounded-xl border border-emerald-500/30 bg-emerald-600/20 text-xs font-bold text-emerald-400 transition-all hover:bg-emerald-600/30"
+          className="h-10 w-full rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 text-xs font-bold text-[#14B8A6] transition-all hover:bg-[#14B8A6]/20"
         >
           <CreditCard className="ml-1 h-4 w-4" />
           {copy.chargeBalance}
@@ -116,38 +116,38 @@ export function WalletTab() {
         />
 
         {isDriver ? (
-          <Card className="relative overflow-hidden border border-emerald-500/30 bg-[#071307]/90 shadow-xl">
-            <div className="absolute right-0 top-0 h-20 w-20 rounded-full bg-emerald-500/10 blur-xl" />
+          <Card className="relative overflow-hidden border border-[#14B8A6]/20 bg-[#0F172A]/90 backdrop-blur-md shadow-xl">
+            <div className="absolute right-0 top-0 h-20 w-20 rounded-full bg-[#14B8A6]/10 blur-xl" />
             <CardContent className="flex h-full flex-col justify-between p-5">
               <div className="flex items-start justify-between">
                 <span className="text-xs font-bold text-gray-300">{copy.workHoursBalance}</span>
-                <Clock className="h-4 w-4 text-emerald-400" />
+                <Clock className="h-4 w-4 text-[#14B8A6]" />
               </div>
 
               <div className="my-3">
-                <span className="text-4xl font-black tracking-tighter text-emerald-400">
+                <span className="text-4xl font-black tracking-tighter text-[#14B8A6]">
                   {subscriptionHours.toFixed(1)}
                 </span>
                 <span className="mr-2 text-xs font-bold text-gray-400">{copy.hours}</span>
               </div>
 
-              <div className="flex items-center justify-between border-t border-emerald-950/40 py-1.5 text-[10px] text-gray-400">
+              <div className="flex items-center justify-between border-t border-white/[0.06] py-1.5 text-[10px] text-gray-400">
                 <span>{copy.paid}: <span className="font-extrabold text-emerald-300">{formatMinutes(paidMinutesRemaining, language)}</span></span>
                 <span>{copy.bonus}: <span className="font-extrabold text-amber-400">{formatMinutes(bonusMinutesRemaining, language)}</span></span>
               </div>
 
               <div className="flex items-center justify-between text-[10px] text-gray-400">
-                <span>{copy.currentPackage}: <span className="font-bold text-emerald-400">{activePackageName || copy.none}</span></span>
+                <span>{copy.currentPackage}: <span className="font-bold text-[#14B8A6]">{activePackageName || copy.none}</span></span>
                 <span>{copy.fromServer}</span>
               </div>
             </CardContent>
           </Card>
         ) : (
-          <Card className="overflow-hidden border border-emerald-900/30 bg-[#050D05]/95 shadow-xl">
+          <Card className="overflow-hidden border border-[#14B8A6]/20 bg-[#0F172A]/90 backdrop-blur-md shadow-xl">
             <CardContent className="flex h-full flex-col justify-between p-5">
               <div className="flex items-start justify-between">
                 <span className="text-xs font-bold text-gray-400">{copy.balanceStatus}</span>
-                <Sparkles className="h-4 w-4 text-emerald-400" />
+                <Sparkles className="h-4 w-4 text-[#14B8A6]" />
               </div>
 
               <div className="my-3">
@@ -209,9 +209,9 @@ export function WalletTab() {
             exit={{ opacity: 0, scale: 0.95 }}
             className="fixed inset-0 z-[150] flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm"
           >
-            <div className="relative w-full max-w-sm rounded-2xl border-2 border-emerald-500/30 bg-[#091B09] p-6 text-white shadow-2xl">
-              <h3 className="mb-3 flex items-center justify-center gap-2 text-center text-lg font-black text-emerald-400">
-                <CheckCircle2 className="h-5 w-5 text-emerald-400" />
+            <div className="relative w-full max-w-sm rounded-2xl border-2 border-[#14B8A6]/20 bg-[#0A0F1D] p-6 text-white shadow-2xl">
+              <h3 className="mb-3 flex items-center justify-center gap-2 text-center text-lg font-black text-[#14B8A6]">
+                <CheckCircle2 className="h-5 w-5 text-[#14B8A6]" />
                 {copy.confirmPackagePurchase}
               </h3>
               <p className="mb-5 text-center text-xs leading-relaxed text-gray-300">
@@ -222,7 +222,7 @@ export function WalletTab() {
                 <Button
                   onClick={() => handlePurchasePackage(purchasingPackage)}
                   disabled={loading}
-                  className="h-11 flex-1 rounded-xl bg-emerald-600 text-xs font-bold text-white hover:bg-emerald-500"
+                  className="h-11 flex-1 rounded-xl bg-[#14B8A6] text-xs font-bold text-[#031315] hover:bg-[#2DD4BF]"
                 >
                   {loading ? <RefreshCw className="h-4 w-4 animate-spin" /> : copy.confirmPurchase}
                 </Button>
@@ -246,8 +246,8 @@ export function WalletTab() {
         currencyLabel={currencyLabel}
       />
 
-      <Card className="rounded-2xl border border-emerald-900/30 bg-[#030903]/95 shadow-xl">
-        <CardHeader className="border-b border-emerald-900/20 p-4 pb-2">
+      <Card className="rounded-2xl border border-[#14B8A6]/20 bg-[#0F172A]/90 backdrop-blur-md shadow-xl">
+        <CardHeader className="border-b border-white/[0.06] p-4 pb-2">
           <CardTitle className="text-sm font-bold text-white">{copy.transactions}</CardTitle>
           <CardDescription className={`${isArabic ? 'text-right' : 'text-left'} text-[10px] text-gray-500`}>{copy.transactionsDescription}</CardDescription>
         </CardHeader>
@@ -257,7 +257,7 @@ export function WalletTab() {
               <div key={tx.id} className="flex items-center justify-between rounded-xl border border-white/5 bg-black/40 p-3 text-xs">
                 <div className="flex items-center gap-3">
                   <div className={`rounded-lg p-2 ${
-                    tx.amount >= 0 ? 'bg-emerald-950/50 text-emerald-400' : 'bg-red-950/30 text-red-400'
+                    tx.amount >= 0 ? 'bg-[#14B8A6]/10 text-[#14B8A6]' : 'bg-red-950/30 text-red-400'
                   }`}>
                     {tx.amount >= 0 ? <ArrowDownLeft className="h-4 w-4" /> : <ArrowUpRight className="h-4 w-4" />}
                   </div>
@@ -268,7 +268,7 @@ export function WalletTab() {
                 </div>
 
                 <div className="flex flex-col items-end text-[11px] font-bold">
-                  <span className={tx.amount >= 0 ? 'text-emerald-400' : 'text-red-400'}>
+                  <span className={tx.amount >= 0 ? 'text-[#14B8A6]' : 'text-red-400'}>
                     {tx.amount > 0 ? '+' : ''}{tx.amount.toFixed(tx.currency === 'ساعة' ? 1 : 2)} {tx.currency}
                   </span>
                   <span className="text-[8px] uppercase tracking-widest text-gray-600">{tx.status}</span>
@@ -281,8 +281,8 @@ export function WalletTab() {
         </CardContent>
       </Card>
 
-      <div className={`mt-4 flex items-start gap-2 rounded-xl border border-emerald-900/20 bg-emerald-950/10 p-4 ${isArabic ? 'text-right' : 'text-left'} text-[10px] leading-normal text-gray-400`}>
-        <HelpCircle className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+      <div className={`mt-4 flex items-start gap-2 rounded-xl border border-[#14B8A6]/15 bg-[#14B8A6]/5 p-4 ${isArabic ? 'text-right' : 'text-left'} text-[10px] leading-normal text-gray-400`}>
+        <HelpCircle className="mt-0.5 h-4 w-4 shrink-0 text-[#14B8A6]" />
         <p>
           <strong>{copy.noteTitle}</strong> {copy.noteText}
         </p>
@@ -309,13 +309,13 @@ function DriverPackageCard({
   highlight?: boolean;
 }) {
   return (
-    <Card className="relative flex flex-col justify-between overflow-hidden rounded-2xl border border-emerald-900/30 bg-black/40 transition-all hover:border-emerald-500/20 hover:bg-black/60">
+    <Card className="relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/[0.06] bg-[#0F172A]/40 transition-all hover:border-[#14B8A6]/30 hover:bg-[#0F172A]/60">
       <div className="p-5">
         <div className="mb-3 flex items-center justify-between">
-          <Badge className={highlight ? 'bg-yellow-950 text-yellow-400' : 'bg-emerald-950 text-emerald-400'}>
+          <Badge className={highlight ? 'bg-yellow-950 text-yellow-400' : 'bg-[#14B8A6]/10 text-[#14B8A6]'}>
             {badge}
           </Badge>
-          <span className={highlight ? 'font-mono text-xs font-bold text-yellow-500' : 'font-mono text-xs font-bold text-emerald-500'}>
+          <span className={highlight ? 'font-mono text-xs font-bold text-yellow-500' : 'font-mono text-xs font-bold text-[#14B8A6]'}>
             {hours}
           </span>
         </div>
@@ -327,7 +327,7 @@ function DriverPackageCard({
           onClick={onPurchase}
           className={highlight
             ? 'h-10 w-full rounded-xl bg-yellow-600 text-xs font-extrabold text-black hover:bg-yellow-500'
-            : 'h-10 w-full rounded-xl bg-emerald-600 text-xs font-bold text-white hover:bg-emerald-500'
+            : 'h-10 w-full rounded-xl bg-[#14B8A6] text-xs font-bold text-[#031315] hover:bg-[#2DD4BF]'
           }
         >
           <Zap className="ml-1 h-3.5 w-3.5" />
