@@ -55,7 +55,7 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
       .maybeSingle();
 
     if (error) {
-      if (import.meta.env.DEV) console.warn('[Driver radar] wallet pre-check failed:', error);
+      if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver radar] wallet pre-check failed:', error);
       setRadarLockMessage('تعذر التحقق من باقة الوقت. حاول مرة أخرى بعد قليل.');
       return false;
     }
@@ -96,7 +96,7 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
 
     const { data, error } = await query;
     if (error) {
-      if (import.meta.env.DEV) console.warn('[Driver radar] request fetch failed:', error);
+      if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver radar] request fetch failed:', error);
       setRadarLockMessage('تعذر تحميل الطلبات القريبة من الخادم. تحقق من صلاحيات قاعدة البيانات ثم حاول مرة أخرى.');
       setRawRequests([]);
       return;
@@ -142,7 +142,7 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
       .then(({ data, error }) => {
         if (!active) return;
         if (error) {
-          if (import.meta.env.DEV) console.warn('[Driver radar] district anchor fetch failed:', error);
+          if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver radar] district anchor fetch failed:', error);
           setProfileAnchor(null);
           return;
         }
@@ -177,7 +177,7 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
         },
       )
       .subscribe((status) => {
-        if ((status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') && import.meta.env.DEV) {
+        if ((status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') && (process.env.NODE_ENV !== 'production')) {
           console.warn('[Driver radar] realtime channel issue:', status);
         }
       });

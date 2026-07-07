@@ -1,16 +1,23 @@
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 import './globals.css';
+import { Providers } from './providers';
 
 export const metadata: Metadata = {
-  title: 'Smart Radar V5.5',
-  description: 'SC55 zero-cost edge architecture migration shell.',
+  title: 'رادار - مشاركة الرحلات حياً',
+  description: 'تطبيق التوصيل ومشاركة الرحلات الذكي بنظام المزايدة الحية',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Radar',
+  },
 };
 
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: '#0B0F19',
+  themeColor: '#0A0F1D',
 };
 
 export default function RootLayout({
@@ -27,7 +34,7 @@ export default function RootLayout({
           minHeight: '100vh',
           width: '100%',
           overflowX: 'hidden',
-          background: '#0B0F19',
+          background: '#0A0F1D',
           color: '#F8FAFC',
         }}
       >
@@ -35,10 +42,12 @@ export default function RootLayout({
           style={{
             minHeight: '100vh',
             width: '100%',
-            background: '#0B0F19',
+            background: '#0A0F1D',
           }}
         >
-          {children}
+          <Providers>
+            {children}
+          </Providers>
         </div>
       </body>
     </html>

@@ -128,7 +128,7 @@ async function simulateSovereignCloud<T extends keyof SovereignCloudContracts>(
   force = false
 ): Promise<any | null> {
   // If we are in local development preview and no Firebase is configured, or on error
-  if (import.meta.env.DEV || force) {
+  if ((process.env.NODE_ENV !== 'production') || force) {
     await new Promise((res) => setTimeout(res, 600));
 
     switch (functionName) {

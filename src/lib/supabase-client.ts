@@ -3,9 +3,8 @@ import { createClient } from '@supabase/supabase-js';
 const SUPABASE_AUTH_STORAGE_KEY = 'radar_supabase_auth_session';
 const SUPABASE_REMEMBER_SESSION_KEY = 'radar_supabase_remember_session';
 
-const runtimeEnv = (import.meta as unknown as { env?: Record<string, string | undefined> }).env ?? process.env;
-const supabaseUrl = runtimeEnv.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = runtimeEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment configuration.');

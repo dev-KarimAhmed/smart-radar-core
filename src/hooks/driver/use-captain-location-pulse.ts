@@ -64,7 +64,7 @@ export function useCaptainLocationPulse({ user, driverStatus, location }: UseCap
       setLastPulseError(null);
     } catch (error) {
       setLastPulseError(error);
-      if (import.meta.env.DEV) {
+      if ((process.env.NODE_ENV !== 'production')) {
         console.warn('[Captain Location Pulse]', error);
       }
     } finally {

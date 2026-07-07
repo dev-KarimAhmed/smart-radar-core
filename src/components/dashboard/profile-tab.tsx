@@ -104,7 +104,7 @@ async function fetchProfileByUserId(userId: string): Promise<{ profile: ProfileR
     .maybeSingle();
 
   if (error) {
-    if (import.meta.env.DEV) console.warn('[Supabase Profile Fetch:id]', error);
+    if ((process.env.NODE_ENV !== 'production')) console.warn('[Supabase Profile Fetch:id]', error);
     return { profile: null, key: null };
   }
 
@@ -241,7 +241,7 @@ export function ProfileTab() {
         setGovernorateId(numberOrEmpty(nextProfile?.governorate_id ?? user.governorate));
         setDistrictId(numberOrEmpty(nextProfile?.district_id ?? user.district));
       } catch (error) {
-        if (import.meta.env.DEV) console.warn('[Profile Load]', error);
+        if ((process.env.NODE_ENV !== 'production')) console.warn('[Profile Load]', error);
         toast({
           variant: 'destructive',
           title: 'تعذر تحميل بيانات الحساب',
@@ -284,7 +284,7 @@ export function ProfileTab() {
         if (error) throw error;
         if (active) setGovernorates(normalizeRows<GovernorateRow>(data));
       } catch (error) {
-        if (import.meta.env.DEV) console.warn('[Profile Governorates]', error);
+        if ((process.env.NODE_ENV !== 'production')) console.warn('[Profile Governorates]', error);
         if (active) {
           toast({
             variant: 'destructive',
@@ -325,7 +325,7 @@ export function ProfileTab() {
         if (error) throw error;
         if (active) setDistricts(normalizeRows<DistrictRow>(data));
       } catch (error) {
-        if (import.meta.env.DEV) console.warn('[Profile Districts]', error);
+        if ((process.env.NODE_ENV !== 'production')) console.warn('[Profile Districts]', error);
         if (active) {
           toast({
             variant: 'destructive',
@@ -397,7 +397,7 @@ export function ProfileTab() {
       const nextProfile = { ...(profile || {}), ...payload, name: fullName.trim() };
       setProfile(nextProfile);
 
-      if (import.meta.env.DEV) {
+      if ((process.env.NODE_ENV !== 'production')) {
         loginAsMockUser({
           ...user,
           name: fullName.trim(),
@@ -422,7 +422,7 @@ export function ProfileTab() {
         },
       });
 
-      if (metadataError && import.meta.env.DEV) {
+      if (metadataError && (process.env.NODE_ENV !== 'production')) {
         console.warn('[Supabase Auth Metadata Update]', metadataError);
       }
 
@@ -431,7 +431,7 @@ export function ProfileTab() {
         description: 'تم تحديث بيانات الحساب والمنطقة من قاعدة البيانات.',
       });
     } catch (error) {
-      if (import.meta.env.DEV) console.warn('[Profile Save]', error);
+      if ((process.env.NODE_ENV !== 'production')) console.warn('[Profile Save]', error);
       toast({
         variant: 'destructive',
         title: 'تعذر حفظ البيانات',

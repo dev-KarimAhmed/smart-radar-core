@@ -18,7 +18,9 @@ import { supabase } from '@/lib/supabase-client';
 import { cn } from '@/lib/utils';
 import { AdStage } from './ad-stage';
 import { RadarRiderDashboard, type HistoricalTrip } from './rider/rider-dashboard';
-import { RiderMap, type RiderLocation, type RiderLocationStatus, type RiderLocationUpdate } from './rider/rider-map';
+import type { RiderLocation, RiderLocationStatus, RiderLocationUpdate } from './rider/rider-map';
+import dynamic from 'next/dynamic';
+const RiderMap = dynamic(() => import('./rider/rider-map').then(m => m.RiderMap), { ssr: false });
 import {
   type RiderActiveTrip,
   type RiderDestination,
@@ -266,7 +268,7 @@ export function RiderViewTab() {
         if (active) setCountryConfig(data as CountryCurrencyConfig);
       } catch (error) {
         if (!active) return;
-        if (import.meta.env.DEV) console.warn('[Supabase Country Currency Fetch]', error);
+        if ((process.env.NODE_ENV !== 'production')) console.warn('[Supabase Country Currency Fetch]', error);
       }
     }
 
@@ -313,7 +315,7 @@ export function RiderViewTab() {
         if (!preferred) setDestinationDataError('لا توجد محافظات متاحة لهذه الدولة حالياً.');
       } catch (error) {
         if (!active) return;
-        if (import.meta.env.DEV) console.warn('[Rider Destinations: Governorates]', error);
+        if ((process.env.NODE_ENV !== 'production')) console.warn('[Rider Destinations: Governorates]', error);
         setDestinationDataError(copy.networkError);
       } finally {
         if (active) setIsLoadingGovernorates(false);
@@ -360,7 +362,7 @@ export function RiderViewTab() {
         if (!preferred) setDestinationDataError('لا توجد مناطق متاحة لهذه المحافظة حالياً.');
       } catch (error) {
         if (!active) return;
-        if (import.meta.env.DEV) console.warn('[Rider Destinations: Districts]', error);
+        if ((process.env.NODE_ENV !== 'production')) console.warn('[Rider Destinations: Districts]', error);
         setDestinationDataError(copy.networkError);
       } finally {
         if (active) setIsLoadingDistricts(false);
@@ -505,7 +507,7 @@ export function RiderViewTab() {
         if (active) setCaptainLocations(rows);
       } catch (error) {
         if (!active) return;
-        if (import.meta.env.DEV) console.warn('[Rider Captain Presence]', error);
+        if ((process.env.NODE_ENV !== 'production')) console.warn('[Rider Captain Presence]', error);
         setCaptainLocations([]);
       }
     }
@@ -550,7 +552,7 @@ export function RiderViewTab() {
         if (active) dispatch({ type: 'RECEIVE_OFFERS', offers });
       } catch (error) {
         if (!active) return;
-        if (import.meta.env.DEV) console.warn('[Rider Offers]', error);
+        if ((process.env.NODE_ENV !== 'production')) console.warn('[Rider Offers]', error);
         dispatch({ type: 'RECEIVE_OFFERS', offers: [] });
       }
     };
@@ -562,7 +564,7 @@ export function RiderViewTab() {
       state.requestId,
       () => void refreshOffers(),
       () => {
-        if (import.meta.env.DEV) console.warn('[Rider Offers Realtime] subscription unavailable');
+        if ((process.env.NODE_ENV !== 'production')) console.warn('[Rider Offers Realtime] subscription unavailable');
       },
     );
 
@@ -677,7 +679,7 @@ export function RiderViewTab() {
         description: copy.requestSentDescription,
       });
     } catch (error) {
-      if (import.meta.env.DEV) {
+      if ((process.env.NODE_ENV !== 'production')) {
         console.warn('[Rider Ride Request Insert]', error);
       }
       pendingAcceptedOfferIdRef.current = null;
@@ -709,7 +711,7 @@ export function RiderViewTab() {
         description: requestFlowCopy.requestCancelledDescription,
       });
     } catch (error) {
-      if (import.meta.env.DEV) console.warn('[Rider Cancel Request]', error);
+      if ((process.env.NODE_ENV !== 'production')) console.warn('[Rider Cancel Request]', error);
       toast({
         variant: 'destructive',
         title: requestFlowCopy.cancelRequestFailedTitle,
@@ -751,7 +753,7 @@ export function RiderViewTab() {
       dispatch({ type: 'SELECT_OFFER', offerId });
     } catch (error) {
       pendingAcceptedOfferIdRef.current = null;
-      if (import.meta.env.DEV) console.warn('[Rider Accept Offer]', error);
+      if ((process.env.NODE_ENV !== 'production')) console.warn('[Rider Accept Offer]', error);
       toast({
         variant: 'destructive',
         title: 'تعذر قبول العرض',
@@ -791,13 +793,13 @@ export function RiderViewTab() {
           ...previous.filter((trip) => trip.tripId !== historicalTrip.tripId),
         ]);
       } catch (cacheError) {
-        if (import.meta.env.DEV) console.warn('[Rider Complete Trip Cache]', cacheError);
+        if ((process.env.NODE_ENV !== 'production')) console.warn('[Rider Complete Trip Cache]', cacheError);
         setLocalCompletedTrips((previous) => [historicalTrip, ...previous]);
       }
 
       dispatch({ type: 'COMPLETE_TRIP' });
     } catch (error) {
-      if (import.meta.env.DEV) console.warn('[Rider Complete Trip]', error);
+      if ((process.env.NODE_ENV !== 'production')) console.warn('[Rider Complete Trip]', error);
       toast({
         variant: 'destructive',
         title: 'تعذر إنهاء الرحلة',
@@ -836,14 +838,14 @@ export function RiderViewTab() {
             heartedAt: Date.now(),
           });
         } catch (cacheError) {
-          if (import.meta.env.DEV) console.warn('[Rider Favorite Captain Cache]', cacheError);
+          if ((process.env.NODE_ENV !== 'production')) console.warn('[Rider Favorite Captain Cache]', cacheError);
         }
       }
 
       dispatch({ type: 'SUBMIT_RATING' });
       setRating({ captain: 0, vehicle: 0, favorite: false });
     } catch (error) {
-      if (import.meta.env.DEV) console.warn('[Rider Submit Rating]', error);
+      if ((process.env.NODE_ENV !== 'production')) console.warn('[Rider Submit Rating]', error);
       toast({
         variant: 'destructive',
         title: 'تعذر حفظ التقييم',

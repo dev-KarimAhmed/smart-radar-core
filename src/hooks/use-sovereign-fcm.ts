@@ -15,7 +15,7 @@ export const useSovereignFCM = () => {
             return;
         }
 
-        const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
+        const vapidKey = (process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY || process.env.VITE_FIREBASE_VAPID_KEY);
         if (!vapidKey) {
             console.warn('[Sovereign FCM] VAPID key is not configured. Skipping push notification registration.');
             return;

@@ -15,7 +15,8 @@ import {
 } from './driver/captain-state-machine';
 import { DriverProfileTab } from './driver/driver-profile-tab';
 import { DriverWalletTab } from './driver/driver-wallet-tab';
-import { RadarMapView } from './driver/radar-map-view';
+import dynamic from 'next/dynamic';
+const RadarMapView = dynamic(() => import('./driver/radar-map-view').then(m => m.RadarMapView), { ssr: false });
 
 export function DriverViewTab() {
   const { user, logout } = useAuth();

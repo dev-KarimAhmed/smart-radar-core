@@ -68,7 +68,7 @@ function AuthContent({ children }: { children: ReactNode }) {
   }, []);
 
   const loginAsMockUser = useCallback((mockUser: SovereignUser) => {
-    if (!import.meta.env.DEV) return;
+    if (!(process.env.NODE_ENV !== 'production')) return;
     setUser(mockUser);
     setLoading(false);
   }, []);

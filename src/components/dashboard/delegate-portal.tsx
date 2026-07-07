@@ -45,7 +45,7 @@ export function DelegatePortal() {
         if (error) throw error;
         if (active) setTasks(Array.isArray(data) ? data as DelegateTask[] : []);
       } catch (error) {
-        if (import.meta.env.DEV) {
+        if ((process.env.NODE_ENV !== 'production')) {
           console.warn('[DelegatePortal] Supabase task sync failed', error);
         }
         if (active) {

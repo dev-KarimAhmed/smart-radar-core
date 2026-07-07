@@ -140,7 +140,7 @@ async function flushAdEventBuffer() {
     if (error) throw error;
   } catch (error) {
     adEventBuffer.unshift(...batch);
-    if (import.meta.env.DEV) console.warn('[AdStage] ad metrics stayed queued:', error);
+    if ((process.env.NODE_ENV !== 'production')) console.warn('[AdStage] ad metrics stayed queued:', error);
   } finally {
     isAdEventFlushInFlight = false;
   }
@@ -221,7 +221,7 @@ export function AdStage({ isFullScreen = false }: { isFullScreen?: boolean }) {
         if (active) setServerAds(Array.isArray(data) ? data.map(mapAdCampaignRow) : []);
       } catch (error) {
         if (!active) return;
-        if (import.meta.env.DEV) console.warn('[AdStage] showing placeholder because ads could not load:', error);
+        if ((process.env.NODE_ENV !== 'production')) console.warn('[AdStage] showing placeholder because ads could not load:', error);
         setServerAds([]);
         setHasAdFetchIssue(true);
       } finally {
@@ -272,7 +272,7 @@ export function AdStage({ isFullScreen = false }: { isFullScreen?: boolean }) {
     try {
       setHeartedAdIds(JSON.parse(stored));
     } catch (error) {
-      if (import.meta.env.DEV) console.warn('[AdStage] failed to parse saved ads:', error);
+      if ((process.env.NODE_ENV !== 'production')) console.warn('[AdStage] failed to parse saved ads:', error);
     }
   }, []);
 
@@ -349,7 +349,7 @@ export function AdStage({ isFullScreen = false }: { isFullScreen?: boolean }) {
       }
       localStorage.setItem('sovereign_ad_vault_details', JSON.stringify(vault));
     } catch (error) {
-      if (import.meta.env.DEV) console.warn('[AdStage] failed to update saved ads:', error);
+      if ((process.env.NODE_ENV !== 'production')) console.warn('[AdStage] failed to update saved ads:', error);
     }
   };
 

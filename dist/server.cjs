@@ -26,7 +26,7 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 var import_express2 = __toESM(require("express"), 1);
 var import_path = __toESM(require("path"), 1);
 var import_crypto = __toESM(require("crypto"), 1);
-var import_vite = require("vite");
+var import_next = __toESM(require("next"), 1);
 
 // src/core/constants/sovereign-protocols.ts
 var SOVEREIGN_CONSTANTS = {
@@ -171,7 +171,7 @@ var auth = (0, import_auth.getAuth)(app);
 var import_firestore3 = require("firebase/firestore");
 var import_fs = __toESM(require("fs"), 1);
 
-// src/pages/api/cleanup.ts
+// src/server/api/cleanup.ts
 var import_express = require("express");
 var import_firestore2 = require("firebase/firestore");
 var cleanupRouter = (0, import_express.Router)();
@@ -323,12 +323,16 @@ async function verifyFirebaseIdToken(idToken) {
   return null;
 }
 async function startServer() {
+  const dev = process.env.NODE_ENV !== "production";
+  const nextApp = (0, import_next.default)({ dev, hostname: "0.0.0.0", port: 3e3 });
+  const nextHandler = nextApp.getRequestHandler();
+  await nextApp.prepare();
   const app2 = (0, import_express2.default)();
   const PORT = 3e3;
   const rateLimitMap = /* @__PURE__ */ new Map();
   const LIMIT_WINDOW_MS = 60 * 1e3;
   const MAX_REQUESTS_PER_WINDOW = 30;
-  const rateLimiterMiddleware = (req, res, next) => {
+  const rateLimiterMiddleware = (req, res, next2) => {
     const ip = (req.headers["x-forwarded-for"] || req.socket.remoteAddress || "unknown-ip").split(",")[0].trim();
     const now = Date.now();
     let tracker = rateLimitMap.get(ip);
@@ -345,7 +349,7 @@ async function startServer() {
       });
     }
     tracker.timestamps.push(now);
-    next();
+    next2();
   };
   app2.use(import_express2.default.json());
   app2.use("/api", cleanupRouter);
@@ -1056,19 +1060,9 @@ async function startServer() {
       return res.status(500).json({ error: error.message });
     }
   });
-  if (process.env.NODE_ENV !== "production") {
-    const vite = await (0, import_vite.createServer)({
-      server: { middlewareMode: true },
-      appType: "spa"
-    });
-    app2.use(vite.middlewares);
-  } else {
-    const distPath = import_path.default.join(process.cwd(), "dist");
-    app2.use(import_express2.default.static(distPath));
-    app2.get("*all", (req, res) => {
-      res.sendFile(import_path.default.join(distPath, "index.html"));
-    });
-  }
+  app2.all("*all", (req, res) => {
+    return nextHandler(req, res);
+  });
   app2.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://0.0.0.0:${PORT}`);
   });

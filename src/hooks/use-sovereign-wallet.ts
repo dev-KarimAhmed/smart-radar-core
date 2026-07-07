@@ -163,12 +163,12 @@ export function useSovereignWallet(user: User | null) {
         const transactions = Array.isArray(txData) ? txData.map(mapWalletTransactionRow) : [];
         setServerWallet(mapWalletAccountRow(walletData as Record<string, any> | null, transactions));
         setWalletLoadState(walletData ? 'ready' : 'missing');
-        if (!walletData && import.meta.env.DEV) {
+        if (!walletData && (process.env.NODE_ENV !== 'production')) {
           console.warn(`[Wallet] no wallet_accounts row found for profile_id=${userId}`);
         }
       } catch (error) {
         if (!active) return;
-        if (import.meta.env.DEV) console.warn('[Wallet] showing empty state because wallet data could not load:', error);
+        if ((process.env.NODE_ENV !== 'production')) console.warn('[Wallet] showing empty state because wallet data could not load:', error);
         setServerWallet(null);
         setWalletLoadState('error');
         setWalletError(error instanceof Error ? error.message : 'wallet_load_failed');
@@ -221,7 +221,7 @@ export function useSovereignWallet(user: User | null) {
         (payload) => applyWalletPayload(payload.new as Record<string, any> | null),
       )
       .subscribe((status) => {
-        if ((status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') && import.meta.env.DEV) {
+        if ((status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') && (process.env.NODE_ENV !== 'production')) {
           console.warn('[Wallet] realtime channel issue:', status);
         }
       });
@@ -239,7 +239,7 @@ export function useSovereignWallet(user: User | null) {
         () => refreshWallet(),
       )
       .subscribe((status) => {
-        if ((status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') && import.meta.env.DEV) {
+        if ((status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') && (process.env.NODE_ENV !== 'production')) {
           console.warn('[Wallet transactions] realtime channel issue:', status);
         }
       });
@@ -294,7 +294,7 @@ export function useSovereignWallet(user: User | null) {
       refreshWallet();
       return true;
     } catch (error) {
-      if (import.meta.env.DEV) console.warn('[Wallet Receipt]', error);
+      if ((process.env.NODE_ENV !== 'production')) console.warn('[Wallet Receipt]', error);
       toast({ variant: 'destructive', title: 'تعذر إرسال الإيصال', description: 'تحقق من الاتصال وحاول مرة أخرى.' });
       return false;
     } finally {
@@ -316,7 +316,7 @@ export function useSovereignWallet(user: User | null) {
       refreshWallet();
       return true;
     } catch (error) {
-      if (import.meta.env.DEV) console.warn('[Wallet Voucher]', error);
+      if ((process.env.NODE_ENV !== 'production')) console.warn('[Wallet Voucher]', error);
       toast({ variant: 'destructive', title: 'تعذر تفعيل الكود', description: 'تأكد من صحة الكود أو حاول مرة أخرى.' });
       return false;
     } finally {
@@ -336,7 +336,7 @@ export function useSovereignWallet(user: User | null) {
       refreshWallet();
       return true;
     } catch (error) {
-      if (import.meta.env.DEV) console.warn('[Wallet Delegate Charge]', error);
+      if ((process.env.NODE_ENV !== 'production')) console.warn('[Wallet Delegate Charge]', error);
       toast({ variant: 'destructive', title: 'تعذر شحن الرصيد', description: 'لم يتم تنفيذ العملية من الخادم.' });
       return false;
     } finally {

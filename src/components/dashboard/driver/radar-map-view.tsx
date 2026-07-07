@@ -20,7 +20,7 @@ function ensureRtlTextPlugin() {
     if (status === 'loaded' || status === 'loading') return;
     maplibregl.setRTLTextPlugin(RTL_TEXT_PLUGIN_URL, true);
   } catch (error) {
-    if (import.meta.env.DEV) console.warn('MapLibre RTL text plugin was not loaded:', error);
+    if ((process.env.NODE_ENV !== 'production')) console.warn('MapLibre RTL text plugin was not loaded:', error);
   }
 }
 

@@ -9,7 +9,7 @@ import { useToast } from './use-toast';
 
 const isStrictDevelopment =
   (globalThis as any).process?.env?.NODE_ENV === 'development' ||
-  (import.meta.env.DEV && import.meta.env.MODE === 'development');
+  ((process.env.NODE_ENV !== 'production') && process.env.MODE === 'development');
 
 type RegistrationStep = 'role' | 'personal' | 'affiliation' | 'vehicle' | 'admin' | 'advertiser' | 'ProfessionalStep';
 type RegistrationRole = 'rider' | 'driver' | 'advertiser' | 'delegate' | null;
@@ -164,7 +164,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
         const code = String(payload.country_code || payload.country || '').trim().toUpperCase();
         if (active && code) setDetectedCountryCode(code);
       } catch (error) {
-        if (import.meta.env.DEV) console.warn('[IP Country Detect]', error);
+        if ((process.env.NODE_ENV !== 'production')) console.warn('[IP Country Detect]', error);
       }
     }
 
@@ -186,7 +186,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
         if (error) throw error;
         if (active) setCountryRows(normalizeCountries(data));
       } catch (error) {
-        if (import.meta.env.DEV) console.warn('[Supabase Countries Fetch]', error);
+        if ((process.env.NODE_ENV !== 'production')) console.warn('[Supabase Countries Fetch]', error);
         if (active) {
           toast({
             variant: 'destructive',
@@ -246,7 +246,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
         if (error) throw error;
         if (active) setGovernorateRows(normalizeGovernorates(data));
       } catch (error) {
-        if (import.meta.env.DEV) console.warn('[Supabase Governorates Fetch]', error);
+        if ((process.env.NODE_ENV !== 'production')) console.warn('[Supabase Governorates Fetch]', error);
         if (active) {
           toast({
             variant: 'destructive',
@@ -289,7 +289,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
         if (error) throw error;
         if (active) setDistrictRows(normalizeDistricts(data));
       } catch (error) {
-        if (import.meta.env.DEV) console.warn('[Supabase Districts Fetch]', error);
+        if ((process.env.NODE_ENV !== 'production')) console.warn('[Supabase Districts Fetch]', error);
         if (active) {
           toast({
             variant: 'destructive',
@@ -471,7 +471,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
         rememberMe,
       };
 
-      if (import.meta.env.DEV) {
+      if ((process.env.NODE_ENV !== 'production')) {
         console.info('[Supabase Auth Payload]', {
           mode: 'register',
           data: buildRiderSignUpMetadata(signUpInput),
@@ -488,7 +488,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
       });
       setAuthMode('login');
     } catch (error) {
-      if (import.meta.env.DEV) {
+      if ((process.env.NODE_ENV !== 'production')) {
         const authError = error as { name?: string; code?: string; status?: number; message?: string };
         console.warn('[Supabase Auth]', {
           mode: authMode,

@@ -40,7 +40,7 @@ export function useDriverLifecycle(user: User | null) {
       .eq('id', user.uid);
 
     if (error) {
-      if (import.meta.env.DEV) console.warn('[Driver lifecycle] profile update failed:', error);
+      if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver lifecycle] profile update failed:', error);
       toast({
         variant: 'destructive',
         title: 'تعذر تحديث حالة الكابتن',

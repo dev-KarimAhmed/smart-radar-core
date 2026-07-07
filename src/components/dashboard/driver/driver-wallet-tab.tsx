@@ -72,7 +72,7 @@ export function DriverWalletTab({ user, language }: DriverWalletTabProps) {
           <div className="mt-4 rounded-2xl border border-amber-500/25 bg-amber-500/10 p-4 text-sm leading-6 text-amber-100">
             <p className="font-black">{walletIsMissing ? copy.walletMissingTitle : copy.walletErrorTitle}</p>
             <p className="mt-1 text-amber-100/80">{walletIsMissing ? copy.walletMissingBody : copy.walletErrorBody}</p>
-            {import.meta.env.DEV ? (
+            {(process.env.NODE_ENV !== 'production') ? (
               <p className="mt-2 font-mono text-[11px] text-amber-200/80">
                 profile_id: {wallet.walletProfileId || '-'} {wallet.walletError ? ` / ${wallet.walletError}` : ''}
               </p>

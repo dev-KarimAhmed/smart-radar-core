@@ -228,7 +228,7 @@ export function HistoryTab() {
             fetchedData = data || [];
           }
         } catch (supabaseError) {
-          if (import.meta.env.DEV) console.warn('[HistoryTab Supabase Fetch Failed, falling back to local]', supabaseError);
+          if ((process.env.NODE_ENV !== 'production')) console.warn('[HistoryTab Supabase Fetch Failed, falling back to local]', supabaseError);
           fetchedData = [];
         }
 
@@ -289,13 +289,13 @@ export function HistoryTab() {
             }
           }
         } catch (dexieError) {
-          if (import.meta.env.DEV) console.warn('[HistoryTab Dexie Merge Failed]', dexieError);
+          if ((process.env.NODE_ENV !== 'production')) console.warn('[HistoryTab Dexie Merge Failed]', dexieError);
         }
 
         if (active) setRealTrips(Array.isArray(fetchedData) ? fetchedData : []);
       } catch (error) {
         if (!active) return;
-        if (import.meta.env.DEV) console.warn('[HistoryTab trips fetch]', error);
+        if ((process.env.NODE_ENV !== 'production')) console.warn('[HistoryTab trips fetch]', error);
         setRealTrips([]);
       } finally {
         if (active) setLoading(false);

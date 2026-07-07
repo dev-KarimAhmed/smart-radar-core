@@ -13,7 +13,7 @@ import { useAuth } from '@/hooks/use-auth';
 
 const isStrictDevelopment =
   (globalThis as any).process?.env?.NODE_ENV === 'development' ||
-  (import.meta.env.DEV && import.meta.env.MODE === 'development');
+  ((process.env.NODE_ENV !== 'production') && process.env.MODE === 'development');
 
 function LoginOrchestrator() {
   const { step, handleLogoTap } = useRegistration();

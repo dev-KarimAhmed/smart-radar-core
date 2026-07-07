@@ -126,7 +126,7 @@ export function useDriverTransactions(
           const requestId = String(row.request_id || '');
           if (status === 'ACCEPTED' && requestId) {
             void loadAcceptedRequest(requestId).catch((error) => {
-              if (import.meta.env.DEV) console.warn('[Driver transactions] accepted request load failed:', error);
+              if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver transactions] accepted request load failed:', error);
             });
           }
         },
@@ -176,7 +176,7 @@ export function useDriverTransactions(
       });
       return true;
     } catch (error) {
-      if (import.meta.env.DEV) console.warn('[Driver transactions] offer submit failed:', error);
+      if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver transactions] offer submit failed:', error);
       toast({
         variant: 'destructive',
         title: 'تعذر إرسال العرض',
@@ -207,7 +207,7 @@ export function useDriverTransactions(
       });
       return true;
     } catch (error) {
-      if (import.meta.env.DEV) console.warn('[Driver transactions] arrival milestone failed:', error);
+      if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver transactions] arrival milestone failed:', error);
       toast({
         variant: 'destructive',
         title: 'تعذر تحديث الرحلة',
@@ -238,7 +238,7 @@ export function useDriverTransactions(
       });
       return true;
     } catch (error) {
-      if (import.meta.env.DEV) console.warn('[Driver transactions] start trip milestone failed:', error);
+      if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver transactions] start trip milestone failed:', error);
       toast({
         variant: 'destructive',
         title: 'تعذر بدء الرحلة',
@@ -280,7 +280,7 @@ export function useDriverTransactions(
       cleanUpAndReset();
       return true;
     } catch (error) {
-      if (import.meta.env.DEV) console.warn('[Driver transactions] complete trip failed:', error);
+      if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver transactions] complete trip failed:', error);
       if (isAlreadyClosedTripError(error)) {
         cleanUpAndReset();
         return true;
@@ -317,7 +317,7 @@ export function useDriverTransactions(
       });
       cleanUpAndReset();
     } catch (error) {
-      if (import.meta.env.DEV) console.warn('[Driver transactions] rating failed:', error);
+      if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver transactions] rating failed:', error);
       toast({
         variant: 'destructive',
         title: 'تعذر حفظ التقييم',

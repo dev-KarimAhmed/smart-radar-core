@@ -366,7 +366,7 @@ export function RoleStep() {
           </AnimatePresence>
         </motion.div>
 
-        {import.meta.env.DEV ? (
+        {(process.env.NODE_ENV !== 'production') ? (
           <section className="mx-auto mt-8 w-full max-w-6xl rounded-3xl border border-[#14B8A6]/20 bg-[#061414]/70 p-4 shadow-[0_20px_60px_rgba(20,184,166,0.08)] backdrop-blur-xl sm:p-5">
             <div className={`flex flex-col gap-1 ${isArabic ? 'text-right' : 'text-left'}`}>
               <p className="text-sm font-black tracking-normal text-[#14B8A6]">

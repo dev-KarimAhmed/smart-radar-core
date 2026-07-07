@@ -1,13 +1,13 @@
 import express from 'express';
 import path from 'path';
 import crypto from 'crypto';
-import { createServer as createViteServer } from 'vite';
+import next from 'next';
 import { extractCoordsLocally } from './src/lib/sovereign-digger';
 import dns from 'dns';
 import { db } from './src/lib/firebase';
 import { doc, getDoc, updateDoc, arrayUnion, addDoc, collection, query, where, getDocs, limit, setDoc } from 'firebase/firestore';
 import fs from 'fs';
-import { cleanupRouter } from './src/pages/api/cleanup';
+import { cleanupRouter } from './src/server/api/cleanup';
 
 // Helper to load firebase config securely on the server
 const getFirebaseApiKey = (): string => {
@@ -45,6 +45,12 @@ async function verifyFirebaseIdToken(idToken: string): Promise<string | null> {
 }
 
 async function startServer() {
+  const dev = process.env.NODE_ENV !== 'production';
+  const nextApp = next({ dev, hostname: '0.0.0.0', port: 3000 });
+  const nextHandler = nextApp.getRequestHandler();
+
+  await nextApp.prepare();
+
   const app = express();
   const PORT = 3000;
 
@@ -1040,20 +1046,10 @@ async function startServer() {
     }
   });
 
-  // Serve static assets / Vite setup
-  if (process.env.NODE_ENV !== 'production') {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: 'spa',
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    app.get('*all', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
-  }
+  // Next.js page routing handler
+  app.all('*all', (req, res) => {
+    return nextHandler(req, res);
+  });
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on http://0.0.0.0:${PORT}`);

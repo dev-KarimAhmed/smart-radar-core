@@ -5,7 +5,8 @@ import { useAuth } from '@/hooks/use-auth';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { useDriverOperations } from '@/hooks/use-driver-operations';
 import { useSovereignWallet } from '@/hooks/use-sovereign-wallet';
-import { RadarMapView } from './radar-map-view';
+import dynamic from 'next/dynamic';
+const RadarMapView = dynamic(() => import('./radar-map-view').then(m => m.RadarMapView), { ssr: false });
 
 interface CaptainDashboardProps {
   captainProfile?: {

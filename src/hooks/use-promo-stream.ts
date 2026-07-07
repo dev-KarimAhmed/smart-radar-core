@@ -49,7 +49,7 @@ function readCachedAds() {
       return cached.ads as SovereignAd[];
     }
   } catch (error) {
-    if (import.meta.env.DEV) console.warn('[Ads cache] read failed:', error);
+    if ((process.env.NODE_ENV !== 'production')) console.warn('[Ads cache] read failed:', error);
   }
 
   return null;
@@ -62,7 +62,7 @@ function writeCachedAds(ads: SovereignAd[]) {
     localStorage.setItem('sovereign_local_ad_cache', JSON.stringify({ timestamp: Date.now(), ads }));
     localStorage.setItem('sovereign_local_ad_cache_history', JSON.stringify(ads));
   } catch (error) {
-    if (import.meta.env.DEV) console.warn('[Ads cache] write failed:', error);
+    if ((process.env.NODE_ENV !== 'production')) console.warn('[Ads cache] write failed:', error);
   }
 }
 

@@ -73,7 +73,7 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
 
     async function loadProfile() {
       try {
-        if (import.meta.env.DEV && !isUuid(user!.uid)) {
+        if ((process.env.NODE_ENV !== 'production') && !isUuid(user!.uid)) {
           if (!active) return;
           setProfile({
             id: user!.uid,
@@ -108,7 +108,7 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
         setVehicleYear(firstString(getVehicleYear(data as ProfileRow | null), user?.vehicle?.year));
       } catch (error) {
         if (!active) return;
-        if (import.meta.env.DEV) console.warn('[Driver profile]', error);
+        if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver profile]', error);
         setProfile(null);
         setProfileLoadFailed(true);
       } finally {
@@ -160,8 +160,8 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
       toast({ title: copy.saveSuccessTitle, description: copy.saveSuccessDescription });
       setIsEditing(false);
     } catch (error) {
-      if (import.meta.env.DEV) console.warn('[Driver profile save]', error);
-      const fallbackSaved = import.meta.env.DEV && !isUuid(user.uid)
+      if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver profile save]', error);
+      const fallbackSaved = (process.env.NODE_ENV !== 'production') && !isUuid(user.uid)
         ? true
         : await saveProfileToAuthMetadata();
       if (fallbackSaved) {
@@ -204,7 +204,7 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
       });
       return !error;
     } catch (metadataError) {
-      if (import.meta.env.DEV) console.warn('[Driver profile metadata fallback]', metadataError);
+      if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver profile metadata fallback]', metadataError);
       return false;
     }
   };
