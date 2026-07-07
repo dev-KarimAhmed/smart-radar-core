@@ -40,10 +40,23 @@ export function DriverViewTab() {
   const screen = state.screen === 'ACTIVE_TRIP' && !driverOps?.activeRequest ? 'RADAR_MAP' : state.screen;
 
   React.useEffect(() => {
-    if (driverOps?.activeRequest) {
+    if (!driverOps) return;
+
+    if (driverOps.activeRequest) {
+      if (
+        state.screen === 'ACTIVE_TRIP'
+        && state.selectedRequest?.id === driverOps.activeRequest.id
+      ) {
+        return;
+      }
       dispatch({ type: 'SERVER_ACCEPTED', request: driverOps.activeRequest });
+      return;
     }
-  }, [driverOps?.activeRequest]);
+
+    if (state.screen === 'ACTIVE_TRIP') {
+      dispatch({ type: 'TRIP_COMPLETED' });
+    }
+  }, [driverOps, driverOps?.activeRequest, state.screen, state.selectedRequest?.id]);
 
   React.useEffect(() => {
     if (!driverOps) return;

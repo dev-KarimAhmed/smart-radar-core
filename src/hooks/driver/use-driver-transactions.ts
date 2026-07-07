@@ -28,6 +28,12 @@ export function useDriverTransactions(
 
   const captainId = user?.uid || '';
 
+  const cleanUpAndReset = useCallback(() => {
+    setActiveReq(null);
+    setAcceptedRider(null);
+    setDriverStatus?.('active');
+  }, [setDriverStatus]);
+
   const loadAcceptedRequest = useCallback(async (requestId: string) => {
     const { data, error } = await supabase
       .from('ride_requests')
@@ -66,6 +72,40 @@ export function useDriverTransactions(
   }, [setDriverStatus]);
 
   useEffect(() => {
+    if (!activeRequest?.id) return;
+
+    const channel = supabase
+      .channel(`driver-request-status-${activeRequest.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'ride_requests',
+          filter: `id=eq.${activeRequest.id}`,
+        },
+        (payload) => {
+          const row = payload.new as RideRequestRow | undefined;
+          if (!row) return;
+
+          const status = String(row.status || '').toUpperCase();
+          if (status === 'COMPLETED' || status === 'CANCELLED') {
+            cleanUpAndReset();
+            return;
+          }
+
+          const nextTrip = mapRideRequestToTrip(row);
+          if (nextTrip) setActiveReq(nextTrip);
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void channel.unsubscribe();
+    };
+  }, [activeRequest?.id, cleanUpAndReset]);
+
+  useEffect(() => {
     if (!captainId) return;
 
     const channel = supabase
@@ -97,12 +137,6 @@ export function useDriverTransactions(
       void channel.unsubscribe();
     };
   }, [captainId, loadAcceptedRequest]);
-
-  const cleanUpAndReset = useCallback(() => {
-    setActiveReq(null);
-    setAcceptedRider(null);
-    setDriverStatus?.('active');
-  }, [setDriverStatus]);
 
   const submitOffer = useCallback(async (payload: { tripId: string; offerPrice: number }, rejectRequest: (tripId: string) => void) => {
     if (!captainId) {
@@ -247,6 +281,10 @@ export function useDriverTransactions(
       return true;
     } catch (error) {
       if (import.meta.env.DEV) console.warn('[Driver transactions] complete trip failed:', error);
+      if (isAlreadyClosedTripError(error)) {
+        cleanUpAndReset();
+        return true;
+      }
       toast({
         variant: 'destructive',
         title: 'تعذر إنهاء الرحلة',
@@ -363,4 +401,24 @@ function mapRideRequestToTrip(row: RideRequestRow | null): Trip | null {
 function toNumber(value: unknown) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function isAlreadyClosedTripError(error: unknown) {
+  const typedError = error as { message?: string; details?: string; code?: string } | null;
+  const message = [
+    typedError?.code,
+    typedError?.message,
+    typedError?.details,
+    error,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+  return (
+    message.includes('ride_request_not_active') ||
+    message.includes('completed') ||
+    message.includes('cancelled') ||
+    message.includes('not active')
+  );
 }
