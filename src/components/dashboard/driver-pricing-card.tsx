@@ -14,6 +14,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { usePromoStream } from '@/hooks/use-promo-stream';
 import { MessageCircle, Wrench } from 'lucide-react';
 import { AdDisplayCard } from './ad-display-card';
+import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 
 interface PricingCardProps {
   mode: 'setup' | 'offer';
@@ -46,6 +47,7 @@ const PricingInput = React.memo(({ id, label, icon, value, onChange, hasError }:
 PricingInput.displayName = 'PricingInput';
 
 export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, requiresOfficialRate = false, onConfirm, onCancel, isSubmitting = false }: PricingCardProps) {
+  const { isArabic } = useDashboardLanguage();
   const { matrix: savedMatrix, saveMatrix, isSaving } = usePricingMatrix();
   const { toast } = useToast();
   const [matrix, setMatrix] = useState<Omit<PricingMatrix, 'isOperatorLinked'>>(savedMatrix);
@@ -240,14 +242,14 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, re
 
             {/* [المادة 4] تجميد شاشة السائق وعرض الإعلان المهني الموجه عند تجاوز الـ 15% */}
             {isBlocked && (
-              <div className="absolute inset-0 z-50 bg-[#061206]/98 backdrop-blur-xl p-6 flex flex-col justify-between overflow-y-auto text-right" dir="rtl">
+              <div className={`absolute inset-0 z-50 bg-[#061206]/98 backdrop-blur-xl p-6 flex flex-col justify-between overflow-y-auto ${isArabic ? 'text-right' : 'text-left'}`} dir={isArabic ? 'rtl' : 'ltr'}>
                 <div className="space-y-4">
                   <div className="flex items-start gap-2.5 text-red-400 border border-red-500/30 bg-red-950/20 p-4 rounded-xl shadow-lg">
                     <AlertCircle className="w-5 h-5 shrink-0 animate-bounce text-red-500 mt-0.5" />
                     <div>
-                      <h4 className="text-sm font-black text-red-500">🚫 خطأ في المداخلات: القيمة غير منطقية تشغيلياً</h4>
+                      <h4 className="text-sm font-black text-red-500">{isArabic ? "🚫 خطأ في المداخلات: القيمة غير منطقية تشغيلياً" : "🚫 Input Error: Value is operationally illogical"}</h4>
                       <p className="text-[11px] text-gray-300 mt-1 leading-normal">
-                        السعر المدخل بعيد جداً عن السعر المناسب. تم إيقاف العرض مؤقتاً حتى تعدل السعر بما يناسب السوق.
+                        {isArabic ? "السعر المدخل بعيد جداً عن السعر المناسب. تم إيقاف العرض مؤقتاً حتى تعدل السعر بما يناسب السوق." : "The entered price is too far from the appropriate market price. The offer has been paused until you adjust it."}
                       </p>
                     </div>
                   </div>
@@ -256,7 +258,7 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, re
                     <AdDisplayCard
                       ad={professionalAd}
                       showHeart={false}
-                      badgeText="دعم السائق"
+                      badgeText={isArabic ? "دعم السائق" : "Driver Support"}
                       ctaText={professionalAd.buttonText}
                       className="h-[300px] rounded-[28px]"
                       onOpen={(event) => {

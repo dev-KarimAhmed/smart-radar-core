@@ -444,9 +444,9 @@ export function ProfileTab() {
 
   if (!user) {
     return (
-      <div className="mx-auto w-full max-w-xl pb-24 text-right font-sans" dir="rtl">
+      <div className={`mx-auto w-full max-w-xl pb-24 font-sans ${isArabic ? 'text-right' : 'text-left'}`} dir={isArabic ? 'rtl' : 'ltr'}>
         <Card className="border-emerald-950 bg-[#020502]/95 text-white">
-          <CardContent className="p-6 text-sm text-gray-300">يرجى تسجيل الدخول لعرض بيانات الحساب.</CardContent>
+          <CardContent className="p-6 text-sm text-gray-300">{languageCopy.pleaseLogin}</CardContent>
         </Card>
       </div>
     );
@@ -550,7 +550,7 @@ export function ProfileTab() {
                 <Input
                   value={fullName}
                   onChange={(event) => setFullName(event.target.value)}
-                  className="rounded-xl border-emerald-900/30 bg-black/50 text-right text-white"
+                  className={`rounded-xl border-emerald-900/30 bg-black/50 text-white ${isArabic ? 'text-right' : 'text-left'}`}
                   placeholder={languageCopy.fullNamePlaceholder}
                   required
                 />
@@ -562,7 +562,7 @@ export function ProfileTab() {
                 <Input
                   value={phone}
                   onChange={(event) => setPhone(event.target.value)}
-                  className="rounded-xl border-emerald-900/30 bg-black/50 text-right text-white"
+                  className={`rounded-xl border-emerald-900/30 bg-black/50 text-white ${isArabic ? 'text-right' : 'text-left'}`}
                   placeholder="+962790000000"
                   required
                 />
@@ -572,12 +572,12 @@ export function ProfileTab() {
                 <div className="space-y-1.5">
                   <label className="block text-xs font-bold text-gray-400">{languageCopy.country}</label>
                   <Select value={countryId} onValueChange={handleCountryChange} required>
-                    <SelectTrigger className="h-11 rounded-xl border-emerald-900/30 bg-black/50 text-white" dir="rtl">
+                    <SelectTrigger className="h-11 rounded-xl border-emerald-900/30 bg-black/50 text-white" dir={isArabic ? 'rtl' : 'ltr'}>
                       <SelectValue placeholder={isLoadingCountries ? languageCopy.loading : languageCopy.chooseCountry} />
                     </SelectTrigger>
                     <SelectContent className="border-emerald-900/30 bg-neutral-950 text-white">
                       {countries.map((country) => (
-                        <SelectItem key={country.id} value={String(country.id)} className="justify-end text-right">
+                        <SelectItem key={country.id} value={String(country.id)} className={`justify-end ${isArabic ? 'text-right' : 'text-left'}`}>
                           {labelFor(country, language)}
                         </SelectItem>
                       ))}
@@ -588,12 +588,12 @@ export function ProfileTab() {
                 <div className="space-y-1.5">
                   <label className="block text-xs font-bold text-gray-400">{languageCopy.governorate}</label>
                   <Select value={governorateId} onValueChange={handleGovernorateChange} disabled={!countryId || isLoadingGovernorates} required>
-                    <SelectTrigger className="h-11 rounded-xl border-emerald-900/30 bg-black/50 text-white" dir="rtl">
+                    <SelectTrigger className="h-11 rounded-xl border-emerald-900/30 bg-black/50 text-white" dir={isArabic ? 'rtl' : 'ltr'}>
                       <SelectValue placeholder={isLoadingGovernorates ? languageCopy.loading : languageCopy.chooseGovernorate} />
                     </SelectTrigger>
                     <SelectContent className="border-emerald-900/30 bg-neutral-950 text-white">
                       {governorates.map((governorate) => (
-                        <SelectItem key={governorate.id} value={String(governorate.id)} className="justify-end text-right">
+                        <SelectItem key={governorate.id} value={String(governorate.id)} className={`justify-end ${isArabic ? 'text-right' : 'text-left'}`}>
                           {labelFor(governorate, language)}
                         </SelectItem>
                       ))}
@@ -604,12 +604,12 @@ export function ProfileTab() {
                 <div className="space-y-1.5">
                   <label className="block text-xs font-bold text-gray-400">{languageCopy.district}</label>
                   <Select value={districtId} onValueChange={setDistrictId} disabled={!governorateId || isLoadingDistricts} required>
-                    <SelectTrigger className="h-11 rounded-xl border-emerald-900/30 bg-black/50 text-white" dir="rtl">
+                    <SelectTrigger className="h-11 rounded-xl border-emerald-900/30 bg-black/50 text-white" dir={isArabic ? 'rtl' : 'ltr'}>
                       <SelectValue placeholder={isLoadingDistricts ? languageCopy.loading : languageCopy.chooseDistrict} />
                     </SelectTrigger>
                     <SelectContent className="border-emerald-900/30 bg-neutral-950 text-white">
                       {districts.map((district) => (
-                        <SelectItem key={district.id} value={String(district.id)} className="justify-end text-right">
+                        <SelectItem key={district.id} value={String(district.id)} className={`justify-end ${isArabic ? 'text-right' : 'text-left'}`}>
                           {labelFor(district, language)}
                         </SelectItem>
                       ))}
@@ -698,6 +698,7 @@ const profileLanguageCopy = {
     currency: 'العملة',
     currentRating: 'التقييم الحالي',
     district: 'المنطقة',
+    pleaseLogin: 'يرجى تسجيل الدخول لعرض بيانات الحساب.',
     editDescription: 'يتم تحميل الدولة والمحافظة والمنطقة مباشرة من قاعدة البيانات.',
     editTitle: 'تعديل بيانات الحساب والمنطقة',
     fullName: 'الاسم الكامل',
@@ -738,6 +739,7 @@ const profileLanguageCopy = {
     currency: 'Currency',
     currentRating: 'Current rating',
     district: 'District',
+    pleaseLogin: 'Please sign in to view account details.',
     editDescription: 'Country, governorate, and district are loaded directly from the database.',
     editTitle: 'Edit account and area',
     fullName: 'Full name',

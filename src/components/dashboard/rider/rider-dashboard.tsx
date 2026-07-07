@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { dexieDb, RadarCaptainFavoriteKernel, type RiderTripLedgerEntry } from '@/lib/dexie-db';
 import { riderDashboardCopy } from '@/lib/i18n/rider-dashboard-copy';
+import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 
 export interface HistoricalTrip {
   tripId: string;
@@ -36,23 +37,19 @@ interface RiderDashboardProps {
 }
 
 const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
-const copy = riderDashboardCopy.ar;
+
 
 const sanitizeText = (str: string | null | undefined): string => {
   if (!str) return '';
   return str.replace(/<[^>]*>/g, '');
 };
 
-const captainTypeLabel = (type: FavoriteCaptain['captainType']) => {
-  if (type === 'uber') return copy.recent.uber;
-  if (type === 'careem') return copy.recent.careem;
-  return copy.recent.independent;
-};
+
 
 const formatDashboardMoney = (value: number, currencyLabel: string) =>
   currencyLabel ? `${Number(value).toFixed(2)} ${currencyLabel}` : Number(value).toFixed(2);
 
-const buildWhatsappUrl = (phone: string, name: string) => {
+const buildWhatsappUrl = (phone: string, name: string, isArabic: boolean) => {
   const cleanPhone = phone.replace(/\D/g, '');
   const waPhone = cleanPhone.startsWith('0')
     ? `962${cleanPhone.slice(1)}`
@@ -60,7 +57,7 @@ const buildWhatsappUrl = (phone: string, name: string) => {
       ? cleanPhone
       : `962${cleanPhone}`;
 
-  return `https://wa.me/${waPhone}?text=${encodeURIComponent(`مرحبا سائق ${sanitizeText(name)}، أريد التواصل بخصوص رحلة سابقة.`)}`;
+  return `https://wa.me/${waPhone}?text=${encodeURIComponent(`${isArabic ? 'مرحبا سائق ' : 'Hello driver '}${sanitizeText(name)}${isArabic ? '، أريد التواصل بخصوص رحلة سابقة.' : ', I want to connect regarding a previous trip.'}`)}`;
 };
 
 export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
@@ -69,6 +66,14 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
   systemMessages,
   currencyLabel = '',
 }) => {
+  const { isArabic, language } = useDashboardLanguage();
+  const copy = riderDashboardCopy[language];
+
+  const captainTypeLabel = (type: FavoriteCaptain['captainType']) => {
+    if (type === 'uber') return copy.recent.uber;
+    if (type === 'careem') return copy.recent.careem;
+    return copy.recent.independent;
+  };
   const [reportText, setReportText] = useState('');
   const [favoriteCaptains, setFavoriteCaptains] = useState<FavoriteCaptain[]>([]);
   const [ledgerTrips, setLedgerTrips] = useState<RiderTripLedgerEntry[]>([]);
@@ -317,8 +322,8 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
 
   return (
     <div
-      className="radar-rider-container relative mx-auto max-w-xl overflow-hidden rounded-xl border border-[#14B8A6]/20 bg-[#0B0F19]/70 p-5 text-right text-white shadow-2xl shadow-black/40 backdrop-blur-xl md:p-6"
-      dir="rtl"
+      className={`radar-rider-container relative mx-auto max-w-xl overflow-hidden rounded-xl border border-[#14B8A6]/20 bg-[#0B0F19]/70 p-5 text-white shadow-2xl shadow-black/40 backdrop-blur-xl md:p-6 ${isArabic ? 'text-right' : 'text-left'}`}
+      dir={isArabic ? 'rtl' : 'ltr'}
     >
       <div className="mb-4 border-b border-white/10 pb-4">
         <h3 className="mb-3 text-base font-black text-[#14B8A6] md:text-lg">{copy.recent.title}</h3>
@@ -416,8 +421,8 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
                     value={reportText}
                     placeholder={copy.recent.reportPlaceholder}
                     onChange={(event) => setReportText(event.target.value)}
-                    className="min-w-0 flex-1 rounded-lg border border-white/10 bg-black px-3 py-2 text-right text-[11px] text-white placeholder:text-gray-600 focus:border-red-500 focus:outline-none"
-                    dir="rtl"
+                    className={`min-w-0 flex-1 rounded-lg border border-white/10 bg-black px-3 py-2 text-[11px] text-white placeholder:text-gray-600 focus:border-red-500 focus:outline-none ${isArabic ? 'text-right' : 'text-left'}`}
+                    dir={isArabic ? 'rtl' : 'ltr'}
                   />
                   <Button
                     onClick={() => handleSilentReport(trip.tripId)}
@@ -513,7 +518,7 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
       </section>
 
       {isPortfolioOpen && (
-        <div className="absolute inset-0 z-50 flex flex-col overflow-y-auto bg-[#040604]/98 p-5 md:p-6" dir="rtl">
+        <div className={`absolute inset-0 z-50 flex flex-col overflow-y-auto bg-[#040604]/98 p-5 md:p-6 ${isArabic ? 'text-right' : 'text-left'}`} dir={isArabic ? 'rtl' : 'ltr'}>
           <div className="mb-4 flex items-center justify-between border-b border-emerald-500/20 pb-4">
             <div className="flex items-center gap-2">
               <Briefcase className="h-5 w-5 text-[#00ffcc]" />
@@ -543,12 +548,12 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
               <div className="space-y-3">
                 {favoriteCaptains.map((captain) => {
                   const savedType = captain.captainType || 'independent';
-                  const whatsappUrl = buildWhatsappUrl(captain.captainPhone, captain.captainName);
+                  const whatsappUrl = buildWhatsappUrl(captain.captainPhone, captain.captainName, isArabic);
 
                   return (
                     <article
                       key={captain.id ?? captain.tripId}
-                      className="relative space-y-3 overflow-hidden rounded-xl border border-emerald-500/20 bg-[#080d08] p-4 text-right shadow-md"
+                      className={`relative space-y-3 overflow-hidden rounded-xl border border-emerald-500/20 bg-[#080d08] p-4 shadow-md ${isArabic ? 'text-right' : 'text-left'}`}
                     >
                       <button
                         onClick={() => deleteFavoriteCard(captain)}

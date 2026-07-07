@@ -71,7 +71,8 @@ function HistorySkeleton() {
 
 export function HistoryTab() {
   const { user, isCaptain, isPassenger } = useAuth();
-  const { language } = useDashboardLanguage();
+  const { isArabic, language } = useDashboardLanguage();
+  const copy = historyLanguageCopy[language];
   const [favoriteCaptains, setFavoriteCaptains] = useState<any[]>([]);
   const [sovereignLogs, setSovereignLogs] = useState<any[]>([]);
   const [realTrips, setRealTrips] = useState<any[]>([]);
@@ -399,17 +400,17 @@ export function HistoryTab() {
   }
 
   return (
-    <div className="w-full max-w-xl mx-auto pb-24 text-right font-sans space-y-6 animate-in fade-in duration-500" dir="rtl">
+    <div className={`w-full max-w-xl mx-auto pb-24 font-sans space-y-6 animate-in fade-in duration-500 ${isArabic ? 'text-right' : 'text-left'}`} dir={isArabic ? 'rtl' : 'ltr'}>
       {/* 1. Header Card */}
       <Card className="bg-[#050505] border-emerald-950 text-white overflow-hidden shadow-2xl relative">
         <div className="absolute top-0 left-0 w-full h-1 bg-emerald-500 animate-pulse" />
         <CardContent className="p-6 space-y-2">
           <h2 className="text-lg font-black text-emerald-400 flex items-center gap-2">
             <History className="h-5 w-5 text-emerald-500" />
-            رحلاتي
+            {copy.title}
           </h2>
           <p className="text-xs text-gray-400 leading-relaxed font-sans">
-            راجع رحلاتك الأخيرة. يتم حذف الرحلات التي مر عليها أكثر من 72 ساعة لحماية خصوصيتك.
+            {copy.subtitle}
           </p>
         </CardContent>
       </Card>
@@ -422,14 +423,14 @@ export function HistoryTab() {
               <div>
                 <CardTitle className="text-sm font-extrabold text-white flex items-center gap-1.5">
                   <FileText className="h-4 w-4 text-emerald-500" />
-                  الرحلات الأخيرة (آخر 3 أيام)
+                  {copy.recentTripsTitle}
                 </CardTitle>
                 <CardDescription className="text-[10px] text-gray-400 mt-1">
-                  الرحلات التي اكتملت من حسابك
+                  {copy.recentTripsDesc}
                 </CardDescription>
               </div>
               <Badge variant="outline" className="text-[10px] border-emerald-500/20 text-emerald-400 bg-emerald-950/20 font-mono">
-                {riderHistoricalTrips.length} رحلة
+                {riderHistoricalTrips.length} {copy.tripCount}
               </Badge>
             </CardHeader>
 
@@ -439,7 +440,7 @@ export function HistoryTab() {
               ) : riderHistoricalTrips.length === 0 ? (
                 <div className="p-8 text-center bg-black/40 border border-dashed border-white/5 rounded-xl">
                   <AlertCircle className="h-8 w-8 text-gray-600 mx-auto mb-2 animate-pulse" />
-                  <p className="text-xs text-gray-400 font-medium">لا توجد رحلات نشطة مسجلة في آخر 72 ساعة.</p>
+                  <p className="text-xs text-gray-400 font-medium">{copy.noTrips}</p>
                 </div>
               ) : (
                 riderHistoricalTrips.map((trip) => {
@@ -481,7 +482,7 @@ export function HistoryTab() {
                             {formatHistoryMoney(trip.finalPrice, currencyLabel)}
                           </span>
                           <span className="text-[9px] text-gray-500 font-sans block mt-0.5">
-                            قبل {timeAgo === 0 ? 'أقل من ساعة' : `${timeAgo} ساعة`}
+                            {isArabic ? 'قبل' : ''} {timeAgo === 0 ? copy.lessThanHour : `${timeAgo} ${copy.hours}`} {isArabic ? '' : 'ago'}
                           </span>
                         </div>
                       </div>
@@ -493,7 +494,7 @@ export function HistoryTab() {
                           style={{ textDecoration: 'none' }}
                         >
                           <Phone className="h-3 w-3" />
-                          <span>اتصال بالسائق بخصوص الرحلة</span>
+                          <span>{copy.callCaptain}</span>
                         </a>
                       </div>
                     </div>
@@ -509,20 +510,24 @@ export function HistoryTab() {
               <div>
                 <CardTitle className="text-sm font-extrabold text-[#00ffcc] flex items-center gap-1.5">
                   <Sparkles className="h-4 w-4 text-emerald-400 animate-pulse" />
-                  السائقون المفضلون
+                  {copy.savedCaptainsTitle}
                 </CardTitle>
                 <CardDescription className="text-[10px] text-gray-400 mt-1">
-                  السائقون الذين حفظتهم من رحلاتك السابقة
+                  {copy.savedCaptainsDesc}
                 </CardDescription>
               </div>
               <Badge className="bg-emerald-950 text-emerald-400 text-[9px] border border-emerald-500/20">
-                {favoriteCaptains.length} سائق
+                {favoriteCaptains.length} {isArabic ? 'سائق' : 'drivers'}
               </Badge>
             </CardHeader>
             <CardContent className="p-4 space-y-3">
               {favoriteCaptains.length === 0 ? (
                 <div className="p-6 text-center text-gray-500 text-[11px]">
-                  اضغط على أيقونة <strong className="text-[#00ffcc]">القلب</strong> في أي رحلة مكتملة لإضافة السائق إلى المفضلة.
+                  {isArabic ? (
+                    <>اضغط على أيقونة <strong className="text-[#00ffcc]">القلب</strong> في أي رحلة مكتملة لإضافة السائق إلى المفضلة.</>
+                  ) : (
+                    <>Click the <strong className="text-[#00ffcc]">heart</strong> icon on any completed trip to add the driver to your favorites.</>
+                  )}
                 </div>
               ) : (
                 <div className="grid grid-cols-1 gap-2.5">
@@ -545,7 +550,7 @@ export function HistoryTab() {
                           className="p-1 px-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-[10px] font-bold flex items-center gap-1 shrink-0"
                           style={{ textDecoration: 'none' }}
                         >
-                          <Phone className="h-3 w-3" /> اتصل
+                          <Phone className="h-3 w-3" /> {copy.call}
                         </a>
                         <Button
                           variant="ghost"
@@ -572,14 +577,14 @@ export function HistoryTab() {
               <div>
                 <CardTitle className="text-sm font-extrabold text-white flex items-center gap-1.5">
                   <FileText className="h-4 w-4 text-emerald-500" />
-                  سجل العوائد والمهام الميدانية المنجزة
+                  {copy.captainSectionTitle}
                 </CardTitle>
                 <CardDescription className="text-[10px] text-gray-400 mt-1 font-sans">
-                  المهام المعتمدة الموثقة بمركز النشاط
+                  {copy.captainSectionDesc}
                 </CardDescription>
               </div>
               <Badge variant="outline" className="text-[10px] border-emerald-500/20 text-emerald-400 bg-emerald-950/20 font-mono">
-                {captainHistoricalTrips.length} مهمة
+                {captainHistoricalTrips.length} {isArabic ? 'مهمة' : 'tasks'}
               </Badge>
             </CardHeader>
 
@@ -589,7 +594,7 @@ export function HistoryTab() {
               ) : captainHistoricalTrips.length === 0 ? (
                 <div className="p-8 text-center bg-black/40 border border-dashed border-white/5 rounded-xl">
                   <AlertCircle className="h-8 w-8 text-gray-600 mx-auto mb-2 animate-pulse" />
-                  <p className="text-xs text-gray-400 font-medium">لا توجد مهام ميدانية منجزة مسجلة لمنطقة حالياً.</p>
+                  <p className="text-xs text-gray-400 font-medium">{isArabic ? "لا توجد مهام ميدانية منجزة مسجلة لمنطقة حالياً." : "No completed field tasks recorded for this area currently."}</p>
                 </div>
               ) : (
                 captainHistoricalTrips.map((trip) => {
@@ -603,10 +608,10 @@ export function HistoryTab() {
                       <div className="flex justify-between items-start">
                         <div>
                           <h4 className="font-extrabold text-sm text-white flex items-center gap-1">
-                            👤 الراكب: {trip.riderName}
+                            👤 {isArabic ? 'الراكب' : 'Rider'}: {trip.riderName}
                           </h4>
                           <p className="text-[11px] text-gray-400 font-sans mt-1">
-                            من: {trip.pickup} ➔ إلى: {trip.dropoff}
+                            {isArabic ? 'من' : 'From'}: {trip.pickup} ➔ {isArabic ? 'إلى' : 'To'}: {trip.dropoff}
                           </p>
                           {trip.serialId && (
                             <div className="mt-1 flex items-center">
@@ -621,7 +626,7 @@ export function HistoryTab() {
                             +{formatHistoryMoney(trip.earnedPrice, currencyLabel)}
                           </span>
                           <span className="text-[9px] text-gray-500 font-sans block mt-0.5">
-                            قبل {timeAgo} ساعة
+                            {isArabic ? 'قبل' : ''} {timeAgo} {copy.hours} {isArabic ? '' : 'ago'}
                           </span>
                         </div>
                       </div>
@@ -952,3 +957,49 @@ export function HistoryTab() {
     </div>
   );
 }
+
+
+const historyLanguageCopy = {
+  ar: {
+    title: 'رحلاتي',
+    subtitle: 'راجع رحلاتك الأخيرة. يتم حذف الرحلات التي مر عليها أكثر من 72 ساعة لحماية خصوصيتك.',
+    recentTripsTitle: 'الرحلات الأخيرة (آخر 3 أيام)',
+    recentTripsDesc: 'الرحلات التي اكتملت من حسابك',
+    tripCount: 'رحلة',
+    noTrips: 'لا توجد رحلات نشطة مسجلة في آخر 72 ساعة.',
+    before: 'قبل',
+    lessThanHour: 'أقل من ساعة',
+    hours: 'ساعة',
+    callCaptain: 'اتصال بالسائق بخصوص الرحلة',
+    savedCaptainsTitle: 'السائقون المفضلون',
+    savedCaptainsDesc: 'السائقون الذين حفظتهم من رحلاتك السابقة',
+    call: 'اتصل',
+    captainSectionTitle: 'سجل العوائد والمهام الميدانية المنجزة',
+    captainSectionDesc: 'المهام المعتمدة الموثقة بمركز النشاط',
+    commission: 'العمولة المستحقة',
+    status: 'الحالة',
+    active: 'نشط',
+    pending: 'قيد الانتظار',
+  },
+  en: {
+    title: 'My Trips',
+    subtitle: 'Review your recent trips. Trips older than 72 hours are automatically deleted to protect your privacy.',
+    recentTripsTitle: 'Recent Trips (Last 3 Days)',
+    recentTripsDesc: 'Completed trips from your account',
+    tripCount: 'trips',
+    noTrips: 'No active trips recorded in the last 72 hours.',
+    before: 'ago',
+    lessThanHour: 'less than an hour',
+    hours: 'hours',
+    callCaptain: 'Call driver regarding this trip',
+    savedCaptainsTitle: 'Favorite Drivers',
+    savedCaptainsDesc: 'Drivers you saved from your previous trips',
+    call: 'Call',
+    captainSectionTitle: 'Earnings & Completed Tasks History',
+    captainSectionDesc: 'Approved tasks documented at the activity center',
+    commission: 'Commission due',
+    status: 'Status',
+    active: 'Active',
+    pending: 'Pending',
+  }
+};

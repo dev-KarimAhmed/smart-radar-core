@@ -131,78 +131,81 @@ function DashboardLayout() {
  }, [isSovereign, hash, isPassenger, isCaptain, riderOps?.isRequestModalOpen, riderOps?.tripStatus, driverOps?.driverStatus, driverOps?.isRequestListOpen]);
 
  const renderArterialBridge = () => {
- if (hash === '#' || hash === '' || hash === '#/') return null;
+  if (hash === '#' || hash === '' || hash === '#/') return null;
 
- if (isPassenger && ['searching', 'busy'].includes(tripStatus)) {
- const activeTrip = riderOps?.trip;
- const displayPrice = activeTrip?.offerPrice !== undefined && activeTrip?.offerPrice !== -1
- ? `${Number(activeTrip.offerPrice).toFixed(2)} د.أ`
- : 'السعر قيد التأكيد';
+  const { isArabic, language } = dashboardLanguage;
+  const chromeCopy = dashboardChromeCopy[language];
 
- return (
- <motion.div
- initial={{ opacity: 0, y: -20 }}
- animate={{ opacity: 1, y: 0 }}
- className="w-full max-w-lg mx-auto bg-[#051105]/95 border border-emerald-500/30 rounded-2xl p-4 flex items-center justify-between gap-4 shadow-[0_15px_40px_rgba(16,185,129,0.15)] backdrop-blur-md mb-6 pointer-events-auto"
- dir="rtl"
- >
- <div className="flex items-center gap-3">
- <span className="relative flex h-3 w-3 shrink-0">
- <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
- <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
- </span>
- <div className="text-right">
- <p className="text-xs font-black text-emerald-400 tracking-tight">الرحلة نشطة الآن</p>
- <p className="text-[10px] text-gray-400 font-bold mt-0.5">السعر: <span className="text-white font-mono">{displayPrice}</span></p>
- </div>
- </div>
+  if (isPassenger && ['searching', 'busy'].includes(tripStatus)) {
+    const activeTrip = riderOps?.trip;
+    const displayPrice = activeTrip?.offerPrice !== undefined && activeTrip?.offerPrice !== -1
+      ? `${Number(activeTrip.offerPrice).toFixed(2)} ${chromeCopy.currency}`
+      : chromeCopy.farePending;
 
- <button
- onClick={() => { window.location.hash = '#'; }}
- className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black rounded-xl shadow-lg transition-all duration-300 transform active:scale-95 pointer-events-auto z-[120]"
- >
- العودة للرحلة
- </button>
- </motion.div>
- );
- }
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full max-w-lg mx-auto bg-[#051105]/95 border border-emerald-500/30 rounded-2xl p-4 flex items-center justify-between gap-4 shadow-[0_15px_40px_rgba(16,185,129,0.15)] backdrop-blur-md mb-6 pointer-events-auto"
+        dir={isArabic ? 'rtl' : 'ltr'}
+      >
+        <div className="flex items-center gap-3">
+          <span className="relative flex h-3 w-3 shrink-0">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+          </span>
+          <div className={isArabic ? 'text-right' : 'text-left'}>
+            <p className="text-xs font-black text-emerald-400 tracking-tight">{chromeCopy.activeTrip}</p>
+            <p className="text-[10px] text-gray-400 font-bold mt-0.5">{chromeCopy.priceLabel}: <span className="text-white font-mono">{displayPrice}</span></p>
+          </div>
+        </div>
 
- if (isCaptain && driverStatus === 'busy') {
- const activeTrip = driverOps?.activeRequest;
- const displayPrice = activeTrip?.offerPrice !== undefined && activeTrip?.offerPrice !== -1
- ? `${Number(activeTrip.offerPrice).toFixed(2)} د.أ`
- : 'السعر قيد التأكيد';
+        <button
+          onClick={() => { window.location.hash = '#'; }}
+          className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black rounded-xl shadow-lg transition-all duration-300 transform active:scale-95 pointer-events-auto z-[120]"
+        >
+          {chromeCopy.backToTrip}
+        </button>
+      </motion.div>
+    );
+  }
 
- return (
- <motion.div
- initial={{ opacity: 0, y: -20 }}
- animate={{ opacity: 1, y: 0 }}
- className="w-full max-w-lg mx-auto bg-[#071307]/95 border border-emerald-500/30 rounded-2xl p-4 flex items-center justify-between gap-4 shadow-[0_15px_40px_rgba(16,185,129,0.15)] backdrop-blur-md mb-6 pointer-events-auto"
- dir="rtl"
- >
- <div className="flex items-center gap-3">
- <span className="relative flex h-3 w-3 shrink-0">
- <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
- <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
- </span>
- <div className="text-right">
- <p className="text-xs font-black text-emerald-400 tracking-tight">الرحلة جارية</p>
- <p className="text-[10px] text-gray-400 font-bold mt-0.5">السعر: <span className="text-white font-mono">{displayPrice}</span></p>
- </div>
- </div>
+  if (isCaptain && driverStatus === 'busy') {
+    const activeTrip = driverOps?.activeRequest;
+    const displayPrice = activeTrip?.offerPrice !== undefined && activeTrip?.offerPrice !== -1
+      ? `${Number(activeTrip.offerPrice).toFixed(2)} ${chromeCopy.currency}`
+      : chromeCopy.farePending;
 
- <button
- onClick={() => { window.location.hash = '#'; }}
- className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black rounded-xl shadow-lg transition-all duration-300 transform active:scale-95 pointer-events-auto z-[120]"
- >
- العودة للرحلة
- </button>
- </motion.div>
- );
- }
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full max-w-lg mx-auto bg-[#071307]/95 border border-emerald-500/30 rounded-2xl p-4 flex items-center justify-between gap-4 shadow-[0_15px_40px_rgba(16,185,129,0.15)] backdrop-blur-md mb-6 pointer-events-auto"
+        dir={isArabic ? 'rtl' : 'ltr'}
+      >
+        <div className="flex items-center gap-3">
+          <span className="relative flex h-3 w-3 shrink-0">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+          </span>
+          <div className={isArabic ? 'text-right' : 'text-left'}>
+            <p className="text-xs font-black text-emerald-400 tracking-tight">{chromeCopy.tripInProgress}</p>
+            <p className="text-[10px] text-gray-400 font-bold mt-0.5">{chromeCopy.priceLabel}: <span className="text-white font-mono">{displayPrice}</span></p>
+          </div>
+        </div>
 
- return null;
- };
+        <button
+          onClick={() => { window.location.hash = '#'; }}
+          className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black rounded-xl shadow-lg transition-all duration-300 transform active:scale-95 pointer-events-auto z-[120]"
+        >
+          {chromeCopy.backToTrip}
+        </button>
+      </motion.div>
+    );
+  }
+
+  return null;
+};
 
  const renderContent = () => {
  if (isSovereign) {
@@ -397,7 +400,7 @@ function DesktopRiderSidebar({
  <Avatar className="h-12 w-12 border border-[#14B8A6]/35 bg-[#101827]">
  <AvatarFallback className="bg-[#101827] text-sm font-black text-white">{initials}</AvatarFallback>
  </Avatar>
- <div className="min-w-0 text-right">
+ <div className={cn('min-w-0', language === 'ar' ? 'text-right' : 'text-left')}>
  <p className={cn('truncate text-sm font-black text-white', language === 'ar' ? 'text-right' : 'text-left')}>{user?.name || copy.fallbackName}</p>
  <p className={cn('truncate text-xs font-bold text-[#14B8A6]', language === 'ar' ? 'text-right' : 'text-left')}>{user?.phone || copy.fallbackPhone}</p>
  </div>
@@ -445,7 +448,7 @@ function DesktopRiderSidebar({
  </nav>
 
  <div className="space-y-3 border-t border-white/10 p-4">
- <div className="rounded-2xl border border-[#14B8A6]/15 bg-[#14B8A6]/8 p-3 text-right">
+ <div className={cn("rounded-2xl border border-[#14B8A6]/15 bg-[#14B8A6]/8 p-3", language === 'ar' ? "text-right" : "text-left")}>
  <p className="text-[11px] font-black text-[#14F5D5]">{copy.accountStatus}</p>
  <p className="mt-1 text-xs font-bold text-slate-300">{copy.ready}</p>
  </div>
@@ -476,6 +479,12 @@ const dashboardChromeCopy = {
  },
  notifications: 'التنبيهات',
  ready: 'جاهز لطلب رحلة',
+    activeTrip: 'الرحلة نشطة الآن',
+    tripInProgress: 'الرحلة جارية',
+    priceLabel: 'السعر',
+    farePending: 'السعر قيد التأكيد',
+    currency: 'د.أ',
+    backToTrip: 'العودة للرحلة',
  requestRide: 'اطلب رحلة',
  },
  en: {
@@ -492,17 +501,29 @@ const dashboardChromeCopy = {
  },
  notifications: 'Notifications',
  ready: 'Ready to request a ride',
+    activeTrip: 'Trip is active now',
+    tripInProgress: 'Trip in progress',
+    priceLabel: 'Price',
+    farePending: 'Fare pending confirmation',
+    currency: 'JOD',
+    backToTrip: 'Back to trip',
  requestRide: 'Request ride',
  },
 } satisfies Record<AppLanguage, {
- accountStatus: string;
- fallbackName: string;
- fallbackPhone: string;
- logout: string;
- nav: Record<'home' | 'history' | 'profile' | 'vault' | 'wallet', string>;
- notifications: string;
- ready: string;
- requestRide: string;
+  accountStatus: string;
+  fallbackName: string;
+  fallbackPhone: string;
+  logout: string;
+  nav: Record<'home' | 'history' | 'profile' | 'vault' | 'wallet', string>;
+  notifications: string;
+  ready: string;
+  requestRide: string;
+  activeTrip: string;
+  tripInProgress: string;
+  priceLabel: string;
+  farePending: string;
+  currency: string;
+  backToTrip: string;
 }>;
 
 function getInitials(value: string) {

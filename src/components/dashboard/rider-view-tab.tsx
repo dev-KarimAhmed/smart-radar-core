@@ -1104,10 +1104,10 @@ export function RiderViewTab() {
 
       return (
         <Card className="w-full border-[#14B8A6]/25 bg-[#0B0F19]/92 text-white shadow-2xl shadow-black/40 backdrop-blur-xl">
-          <CardContent className="space-y-5 p-5 text-right" dir="rtl">
+          <CardContent className={cn("space-y-5 p-5", isArabic ? "text-right" : "text-left")} dir={isArabic ? "rtl" : "ltr"}>
             <div className="flex items-start justify-between gap-3">
               <div className="space-y-1">
-                <p className="text-[11px] font-black text-[#14F5D5]">الرحلة بدأت</p>
+                <p className="text-[11px] font-black text-[#14F5D5]">{copy.tripStarted}</p>
                 <h2 className="text-xl font-black sm:text-2xl">{state.activeTrip.captainSerial}</h2>
                 <p className="text-xs text-slate-400">{state.activeTrip.destinationLabel}</p>
               </div>
@@ -1120,16 +1120,16 @@ export function RiderViewTab() {
             </div>
 
             <div className="grid grid-cols-2 gap-3 rounded-2xl border border-white/10 bg-black/30 p-4">
-              <Metric label="السيارة" value={state.activeTrip.vehicleType} />
-              <Metric label="اللوحة" value={state.activeTrip.vehiclePlate} />
-              <Metric label="السعر" value={formatMoney(state.activeTrip.finalPrice, currencyLabel)} />
-              <Metric label="المسافة" value={`${state.activeTrip.distanceKm.toFixed(2)} كم`} />
-              <Metric label="التتبع" value="تحديثات محلية" />
-              <Metric label="عامل الطريق" value={(state.activeTrip.tortuosityFactor ?? 1.3).toFixed(2)} />
+              <Metric label={copy.vehicle} value={state.activeTrip.vehicleType} />
+              <Metric label={copy.plate} value={state.activeTrip.vehiclePlate} />
+              <Metric label={copy.serverFare} value={formatMoney(state.activeTrip.finalPrice, currencyLabel)} />
+              <Metric label={copy.tripDistance} value={`${state.activeTrip.distanceKm.toFixed(2)} ${copy.km}`} />
+              <Metric label={copy.tracking} value={copy.localUpdates} />
+              <Metric label={copy.roadFactor} value={(state.activeTrip.tortuosityFactor ?? 1.3).toFixed(2)} />
             </div>
 
             <div className="rounded-2xl border border-[#14B8A6]/20 bg-[#14B8A6]/8 p-4 text-xs leading-relaxed text-slate-300">
-              السائق في الطريق إليك. يتم تحديث الحالة عبر نبضات موقع آمنة.
+              {copy.driverEnRouteNote}
             </div>
 
             <Button
@@ -1137,7 +1137,7 @@ export function RiderViewTab() {
               disabled={isCompletingTrip}
               className="h-14 w-full rounded-2xl bg-[#14B8A6] text-base font-black text-[#031315] hover:bg-[#2DD4BF]"
             >
-              {isCompletingTrip ? 'جاري إنهاء الرحلة...' : 'إنهاء الرحلة'}
+              {isCompletingTrip ? copy.completingTrip : copy.completeTrip}
             </Button>
           </CardContent>
         </Card>
@@ -1190,7 +1190,7 @@ export function RiderViewTab() {
           {state.screen === 'IDLE_MAP' && (
             <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
               <Card className="border-[#14B8A6]/25 bg-[#0B0F19]/90 text-white shadow-2xl shadow-black/40 backdrop-blur-xl">
-                <CardContent className="space-y-5 p-5 text-right" dir="rtl">
+                <CardContent className={`space-y-5 p-5 ${isArabic ? 'text-right' : 'text-left'}`} dir={isArabic ? 'rtl' : 'ltr'}>
                   <div className="space-y-1">
                     <p className="text-[11px] font-black text-[#14F5D5]">{copy.readyQuestion}</p>
                     <h2 className="text-xl font-black sm:text-2xl">{copy.whereTo}</h2>
@@ -1562,6 +1562,15 @@ const riderViewCopy = {
     whereTo: 'إلى أين تريد الذهاب؟',
     yourArea: 'منطقتك',
     yourRating: 'تقييمك',
+    tripStarted: 'الرحلة بدأت',
+    tripDistance: 'المسافة',
+    km: 'كم',
+    tracking: 'التتبع',
+    localUpdates: 'تحديثات محلية',
+    roadFactor: 'عامل الطريق',
+    driverEnRouteNote: 'السائق في الطريق إليك. يتم تحديث الحالة عبر نبضات موقع آمنة.',
+    completingTrip: 'جاري إنهاء الرحلة...',
+    completeTrip: 'إنهاء الرحلة',
   },
   en: {
     closeDestination: 'Close destination selection',
@@ -1635,6 +1644,15 @@ const riderViewCopy = {
     whereTo: 'Where do you want to go?',
     yourArea: 'Your area',
     yourRating: 'Your rating',
+    tripStarted: 'Trip started',
+    tripDistance: 'Distance',
+    km: 'km',
+    tracking: 'Tracking',
+    localUpdates: 'Local updates',
+    roadFactor: 'Road factor',
+    driverEnRouteNote: 'The driver is on the way. Status is updated via secure location pulses.',
+    completingTrip: 'Completing trip...',
+    completeTrip: 'Complete trip',
   },
 } satisfies Record<AppLanguage, Record<string, string>>;
 

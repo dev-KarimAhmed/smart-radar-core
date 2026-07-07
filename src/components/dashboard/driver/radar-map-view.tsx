@@ -175,9 +175,6 @@ export function RadarMapView({
               <Clock className="h-3.5 w-3.5" />
               {copy.remaining}: {formatMinutes(totalMinutes, language)}
             </span>
-            <span className="rounded-full border border-slate-700 bg-slate-950/80 px-3 py-1 text-slate-300">
-              H3 R9: {shortH3(currentH3Cell)}
-            </span>
           </div>
         </div>
 
@@ -198,11 +195,7 @@ export function RadarMapView({
           <LocateFixed className="h-5 w-5" />
         </button>
 
-        <div className="absolute bottom-5 right-5 z-20 rounded-2xl border border-white/10 bg-[#0B0F19]/90 px-4 py-3 text-xs font-bold text-slate-200 shadow-xl backdrop-blur">
-          <span className="text-[#14F5D5]">{isMapReady && !mapIssue ? copy.mapReady : copy.mapLoading}</span>
-          <span className="mx-2 text-slate-600">/</span>
-          <span>MapLibre + OpenFreeMap</span>
-        </div>
+
       </div>
 
       <aside className="flex min-h-[520px] flex-col rounded-3xl border border-emerald-500/20 bg-[#05080f] p-4 text-white shadow-2xl shadow-black/30 lg:min-h-[calc(100vh-11rem)]">

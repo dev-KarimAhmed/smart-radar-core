@@ -95,14 +95,6 @@ function toCaptainFeatureCollection(captains: RiderMapCaptainPoint[]) {
   };
 }
 
-function getLocationStatusLabel(status: RiderLocationStatus, language: AppLanguage) {
-  const copy = riderMapCopy[language];
-  if (status === 'live') return copy.live;
-  if (status === 'locating') return copy.locating;
-  if (status === 'denied') return copy.denied;
-  return copy.fallback;
-}
-
 export function RiderMap({
   activeTripCaptainId,
   captainLocations = [],
@@ -254,6 +246,7 @@ export function RiderMap({
     });
 
     mapRef.current = map;
+    map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
 
     map.on('load', () => {
       setIsMapReady(true);
@@ -419,16 +412,7 @@ export function RiderMap({
           </div>
         </div>
       )}
-      <div className="pointer-events-none absolute right-2 top-2 max-w-[150px] rounded-xl border border-[#14B8A6]/25 bg-[#0B0F19]/82 px-2 py-1.5 text-right text-[9px] font-black text-[#14F5D5] backdrop-blur sm:right-4 sm:top-4 sm:max-w-none sm:rounded-2xl sm:px-3 sm:py-2 sm:text-[11px] lg:right-[456px]">
-        <span className="block">{getLocationStatusLabel(locationStatus, language)}</span>
-        <span className="mt-1 block font-mono">H3 R9: {riderCell.slice(0, 8).toUpperCase()}</span>
-      </div>
-      <div className="pointer-events-none absolute bottom-2 right-2 left-2 flex items-center justify-end rounded-xl border border-white/10 bg-[#0B0F19]/82 px-2.5 py-1.5 text-[10px] text-white backdrop-blur sm:bottom-4 sm:right-4 sm:left-4 sm:justify-between sm:rounded-2xl sm:px-4 sm:py-3 sm:text-xs lg:left-[312px] lg:right-[456px]">
-        <span className="font-black text-[#14F5D5]">
-          {activeTripCaptainId ? copy.driverOnWay : copy.mapReady}
-        </span>
-        <span className="hidden text-[10px] text-slate-300 sm:block">MapLibre + OpenFreeMap / © OSM</span>
-      </div>
+
       {!showDestinationPin && !activeTripCaptainId && captainLocations.length === 0 && (
         <div className="pointer-events-none absolute right-3 top-20 hidden max-w-[260px] rounded-2xl border border-amber-400/25 bg-[#0B0F19]/88 px-3 py-2 text-right text-[11px] font-bold leading-relaxed text-amber-100 shadow-xl shadow-black/30 backdrop-blur sm:block sm:right-4 sm:top-24 lg:right-[456px]">
           {copy.offPeak}
