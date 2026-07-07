@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect } from 'react';
 import { Toaster } from "@/components/ui/toaster";
@@ -10,6 +10,8 @@ import LoginPage from '@/components/auth/login-page';
 import { useSovereignRouteGuard } from '@/app/routes';
 import { AdvertiserPortal } from '@/components/dashboard/advertiser-portal';
 import { SovereignErrorBoundary } from '@/components/sovereign-error-boundary';
+import { useRegisterSW } from 'virtual:pwa-register/react';
+import { Button } from '@/components/ui/button';
 
 function AppOrchestrator() {
   const { user, loading } = useAuth();
@@ -76,6 +78,48 @@ function AppOrchestrator() {
   return <Dashboard />;
 }
 
+function PwaUpdater() {
+  const {
+    needRefresh: [needRefresh, setNeedRefresh],
+    updateServiceWorker,
+  } = useRegisterSW({
+    onRegistered(r) {
+      console.log('SW Registered:', r);
+    },
+    onRegisterError(error) {
+      console.error('SW Registration Error:', error);
+    },
+  });
+
+  if (!needRefresh) return null;
+
+  return (
+    <div className="fixed bottom-20 left-4 right-4 z-[999] max-w-sm mx-auto p-4 rounded-2xl bg-[#0F172A]/90 border border-[#14B8A6]/20 backdrop-blur-xl shadow-2xl flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-5">
+      <div className="flex flex-col gap-1 text-right" dir="rtl">
+        <h4 className="text-sm font-black text-white">تحديث جديد متاح 🚀</h4>
+        <p className="text-[11px] text-[#94A3B8] font-bold leading-normal">
+          تم إطلاق ميزات جديدة، يرجى تحديث التطبيق للحصول على أفضل أداء.
+        </p>
+      </div>
+      <div className="flex justify-end gap-2">
+        <Button
+          onClick={() => updateServiceWorker(true)}
+          className="h-8 rounded-lg bg-[#14B8A6] text-[#031315] font-extrabold text-[11px] hover:bg-[#2DD4BF] px-4 cursor-pointer"
+        >
+          تحديث الآن
+        </Button>
+        <Button
+          onClick={() => setNeedRefresh(false)}
+          variant="ghost"
+          className="h-8 rounded-lg text-gray-400 hover:text-white text-[11px] px-3"
+        >
+          لاحقاً
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   return (
     <AuthProvider>
@@ -83,6 +127,7 @@ export default function App() {
         <AppOrchestrator />
       </SovereignErrorBoundary>
       <Toaster />
+      <PwaUpdater />
     </AuthProvider>
   );
 }
