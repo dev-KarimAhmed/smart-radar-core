@@ -169,16 +169,130 @@ export function HistoryTab() {
     async function fetchTripHistory() {
       setLoading(true);
       try {
-        const userColumn = isCaptain ? 'driver_id' : 'rider_id';
-        const { data, error } = await supabase
-          .from('trips')
-          .select('*')
-          .eq(userColumn, user!.uid)
-          .in('status', ['COMPLETED', 'completed', 'RATING', 'rating', 'CLASSIFIED', 'classified', 'ARCHIVED', 'archived'])
-          .order('created_at', { ascending: false });
+        const userColumn = isCaptain ? 'accepted_captain_id' : 'rider_id';
+        let fetchedData = [];
+        
+        // 1. Fetch from Supabase remote database
+        try {
+          const { data, error } = await supabase
+            .from('ride_requests')
+            .select(`
+              *,
+              rider:profiles!rider_id(id, full_name, phone, rating),
+              captain:profiles!accepted_captain_id(id, full_name, phone, rating)
+            `)
+            .eq(userColumn, user!.uid)
+            .in('status', ['COMPLETED', 'completed', 'RATING', 'rating', 'CLASSIFIED', 'classified', 'ARCHIVED', 'archived'])
+            .order('created_at', { ascending: false });
 
-        if (error) throw error;
-        if (active) setRealTrips(Array.isArray(data) ? data : []);
+          if (error && error.code === 'PGRST200') {
+            // Fallback: Query ride_requests and profiles separately to avoid foreign key relationship errors before migration runs
+            const { data: rawRequests, error: reqError } = await supabase
+              .from('ride_requests')
+              .select(`
+                *,
+                rider:profiles!rider_id(id, full_name, phone, rating)
+              `)
+              .eq(userColumn, user!.uid)
+              .in('status', ['COMPLETED', 'completed', 'RATING', 'rating', 'CLASSIFIED', 'classified', 'ARCHIVED', 'archived'])
+              .order('created_at', { ascending: false });
+
+            if (reqError) throw reqError;
+
+            if (rawRequests && rawRequests.length > 0) {
+              const captainIds = Array.from(new Set(rawRequests.map(r => r.accepted_captain_id).filter(Boolean)));
+              if (captainIds.length > 0) {
+                const { data: captains, error: capError } = await supabase
+                  .from('profiles')
+                  .select('id, full_name, phone, rating')
+                  .in('id', captainIds);
+                
+                if (!capError && captains) {
+                  const captainMap = new Map(captains.map(c => [c.id, c]));
+                  fetchedData = rawRequests.map(r => ({
+                    ...r,
+                    captain: r.accepted_captain_id ? captainMap.get(r.accepted_captain_id) : null
+                  }));
+                } else {
+                  fetchedData = rawRequests;
+                }
+              } else {
+                fetchedData = rawRequests;
+              }
+            } else {
+              fetchedData = [];
+            }
+          } else if (error) {
+            throw error;
+          } else {
+            fetchedData = data || [];
+          }
+        } catch (supabaseError) {
+          if (import.meta.env.DEV) console.warn('[HistoryTab Supabase Fetch Failed, falling back to local]', supabaseError);
+          fetchedData = [];
+        }
+
+        // 2. Fetch and merge from Dexie local database for offline-first compliance (SC55)
+        try {
+          if (isCaptain) {
+            const localCaptainTrips = await dexieDb.captainLedger.toArray();
+            const localMapped = localCaptainTrips.map(entry => ({
+              id: entry.requestId,
+              status: 'COMPLETED',
+              completed_at: new Date(entry.completedAt).toISOString(),
+              created_at: new Date(entry.completedAt).toISOString(),
+              final_fare: entry.finalFare,
+              rider: {
+                full_name: 'راكب محلي',
+                phone: '',
+                rating: 5.0
+              },
+              destination_address_ar: entry.destination || 'غير متاح',
+              destination_address: entry.destination || 'غير متاح',
+              metadata: {
+                pickup_address_ar: 'موقعي الحالي',
+                destination_address_ar: entry.destination || 'غير متاح'
+              }
+            }));
+            
+            const seenIds = new Set(fetchedData.map(r => r.id));
+            for (const item of localMapped) {
+              if (!seenIds.has(item.id)) {
+                fetchedData.push(item);
+                seenIds.add(item.id);
+              }
+            }
+          } else {
+            const localRiderTrips = await dexieDb.riderTripLedger.toArray();
+            const localMapped = localRiderTrips.map(entry => ({
+              id: entry.tripId,
+              status: 'COMPLETED',
+              completed_at: new Date(entry.timestamp).toISOString(),
+              created_at: new Date(entry.timestamp).toISOString(),
+              final_fare: entry.finalPrice,
+              captain: {
+                full_name: entry.captainName,
+                phone: entry.captainPhone,
+                rating: entry.captainRank === 'PLATINUM' ? 5.0 : entry.captainRank === 'GOLD' ? 4.5 : 4.0
+              },
+              metadata: {
+                vehicle_info: entry.vehicleInfo
+              }
+            }));
+
+            const seenIds = new Set(fetchedData.map(r => r.id));
+            for (const item of localMapped) {
+              if (!seenIds.has(item.id)) {
+                fetchedData.push(item);
+                seenIds.add(item.id);
+              }
+            }
+          }
+        } catch (dexieError) {
+          if (import.meta.env.DEV) console.warn('[HistoryTab Dexie Merge Failed]', dexieError);
+        }
+
+        if (active) setRealTrips(Array.isArray(fetchedData) ? fetchedData : []);
       } catch (error) {
         if (!active) return;
         if (import.meta.env.DEV) console.warn('[HistoryTab trips fetch]', error);
@@ -200,12 +314,12 @@ export function HistoryTab() {
       const acceptedOffer = trip.offers?.find((o: any) => o.driverId === trip.driverId) || trip.acceptedOffer;
       return {
         tripId: trip.id,
-        serialId: trip.serial_id || trip.serialId,
-        captainName: acceptedOffer?.driverName || trip.driver_name || trip.captain_name || trip.driverName || 'سائق',
-        captainRank: normalizeCaptainRank(acceptedOffer?.driverRank || trip.driver_rank || trip.captain_rank),
-        captainPhone: acceptedOffer?.driverVehicle?.phone || trip.driver_phone || trip.captain_phone || trip.driverPhone || '',
-        vehicleInfo: formatVehicleInfo(acceptedOffer?.driverVehicle || trip.driver_vehicle || trip.vehicle),
-        finalPrice: Number(trip.final_price ?? trip.offer_price ?? trip.server_estimated_fare ?? trip.offerPrice ?? 0),
+        serialId: trip.serial_id || trip.serialId || ('T-' + trip.id.slice(0, 4).toUpperCase()),
+        captainName: trip.captain?.full_name || acceptedOffer?.driverName || trip.driver_name || trip.captain_name || trip.driverName || 'سائق',
+        captainRank: normalizeCaptainRank(trip.captain?.rating || acceptedOffer?.driverRank || trip.driver_rank || trip.captain_rank || 5.0),
+        captainPhone: trip.captain?.phone || acceptedOffer?.driverVehicle?.phone || trip.driver_phone || trip.captain_phone || trip.driverPhone || '',
+        vehicleInfo: trip.metadata?.vehicle_info || formatVehicleInfo(acceptedOffer?.driverVehicle || trip.driver_vehicle || trip.vehicle),
+        finalPrice: Number(trip.final_fare ?? trip.settled_fare ?? trip.final_price ?? trip.offer_price ?? trip.server_estimated_fare ?? trip.offerPrice ?? 0),
         timestamp: parseTripTimestamp(trip),
       };
     });
@@ -219,11 +333,11 @@ export function HistoryTab() {
     const combinedReal = realTrips.map(trip => {
       return {
         tripId: trip.id,
-        serialId: trip.serial_id || trip.serialId,
-        riderName: trip.rider_name || trip.riderName || 'راكب',
-        pickup: trip.pickup_address_ar || trip.pickup || 'غير متاح',
-        dropoff: trip.destination_address_ar || trip.dropoff || 'غير متاح',
-        earnedPrice: Number(trip.final_price ?? trip.offer_price ?? trip.server_estimated_fare ?? trip.offerPrice ?? 0),
+        serialId: trip.serial_id || trip.serialId || ('T-' + trip.id.slice(0, 4).toUpperCase()),
+        riderName: trip.rider?.full_name || trip.rider_name || trip.riderName || 'راكب',
+        pickup: trip.metadata?.pickup_address_ar || trip.pickup_address_ar || trip.pickup || 'موقعي الحالي',
+        dropoff: trip.destination_address_ar || trip.destination_address || trip.dropoff || 'غير متاح',
+        earnedPrice: Number(trip.final_fare ?? trip.settled_fare ?? trip.final_price ?? trip.offer_price ?? trip.server_estimated_fare ?? trip.offerPrice ?? 0),
         timestamp: parseTripTimestamp(trip),
         status: trip.status || 'COMPLETED'
       };
@@ -262,8 +376,8 @@ export function HistoryTab() {
           heartedAt: Date.now()
         });
         toast({
-          title: "💖 تم التخليد  بنجاح",
-          description: `تم حفظ السائق ${trip.captainName} كـ ناقل مفضل مستقر للأبد بصفر كلفة سحابية.`,
+          title: "تم الحفظ بنجاح 🌟",
+          description: "تم إضافة السائق إلى قائمتك المفضلة للوصول إليه سريعاً في الرحلات القادمة.",
         });
       }
       loadFavorites();

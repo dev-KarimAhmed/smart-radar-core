@@ -647,41 +647,14 @@ export function ProfileTab() {
         </CardContent>
       </Card>
 
-      <Card className="border border-blue-900/20 bg-[#050510]/40 text-white">
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-sm font-extrabold text-blue-400">
-            <Heart className="h-4.5 w-4.5 text-blue-500" />
-            {languageCopy.localInfoTitle}
-          </CardTitle>
-          <CardDescription className="text-[11px] text-gray-400">
-            {languageCopy.localInfoDescription}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3.5 pb-5">
-          <div className="grid grid-cols-2 gap-2.5 text-right font-mono text-[11px]">
-            <div className="rounded-lg border border-white/5 bg-black/40 p-3">
-              <span className="block text-[9px] text-[#00ffcc]/80">{languageCopy.savedCaptains}</span>
-              <strong className="mt-1 block text-sm text-[#00ffcc]">{favoriteCount}</strong>
-            </div>
-            <div className="rounded-lg border border-white/5 bg-black/40 p-3">
-              <span className="block text-[9px] text-blue-400">{languageCopy.accountSource}</span>
-              <strong className="mt-1 flex items-center gap-1 text-sm text-blue-300">
-                <RefreshCw className="h-3.5 w-3.5" />
-                Supabase
-              </strong>
-            </div>
-          </div>
-
-          <Button
+      <Button
             type="button"
             onClick={logout}
             variant="destructive"
-            className="h-11 w-full border border-red-500/15 bg-red-950/40 text-xs font-bold text-red-400 transition-all hover:bg-red-500 hover:text-white"
+            className="h-11 w-full border border-red-500/15 bg-red-950/40 text-xs font-bold text-red-400 transition-all hover:bg-red-500 hover:text-white rounded-xl"
           >
             {languageCopy.logout}
           </Button>
-        </CardContent>
-      </Card>
     </div>
   );
 }

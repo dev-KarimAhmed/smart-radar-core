@@ -120,8 +120,8 @@ export const riderDashboardCopy = {
     toast: {
       removedFavorite: 'تمت الإزالة من المفضلة',
       removedFavoriteDesc: 'تمت إزالة السائق من قائمة المفضلة.',
-      savedFavorite: 'تم حفظ السائق',
-      savedFavoriteDesc: 'تم حفظ السائق في المفضلة على جهازك.',
+      savedFavorite: 'تم الحفظ بنجاح 🌟',
+      savedFavoriteDesc: 'تم إضافة السائق إلى قائمتك المفضلة للوصول إليه سريعاً في الرحلات القادمة.',
       categoryUpdated: 'تم تحديث التصنيف',
       categoryUpdatedDesc: 'تم تحديث تصنيف السائق بنجاح.',
       reportSent: 'تم إرسال البلاغ',
