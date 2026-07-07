@@ -59,22 +59,7 @@ function PulseIndicator() {
 }
 
 function RiderCabin() {
-    const riderOps = useRiderOperations();
-    const { tripStatus, openRequestModal } = riderOps || { tripStatus: 'idle' };
-    const cabinStyle = 'bg-background/95 border-b border-white/10';
-
-    return (
-        <div className={cn("flex h-16 items-center justify-between px-2 md:px-4 transition-all duration-500", cabinStyle)}>
-            <div className="w-10"></div>
-            {tripStatus === 'idle' && openRequestModal && (
-                <Button onClick={openRequestModal} className="animate-pulse-neon bg-primary hover:bg-primary/80 text-white px-6 h-10 rounded-full font-bold tracking-wide">
-                    <span className="mr-2 hidden sm:inline">طلب جديد</span>
-                    اطلب رحلة
-                </Button>
-            )}
-            <div className="w-10"></div>
-        </div>
-    );
+  return null;
 }
 
 function DriverCabin() {

@@ -136,12 +136,15 @@ export function RiderMap({
     });
   }, [activeCaptainProgress, activeTripCaptainId, captainLocations, riderLocation]);
 
+  const fallbackLat = fallbackLocation?.lat ?? DEFAULT_MAP_LOCATION.lat;
+  const fallbackLng = fallbackLocation?.lng ?? DEFAULT_MAP_LOCATION.lng;
+
   const requestLiveLocation = React.useCallback(() => {
     cleanupWatchRef.current?.();
     cleanupWatchRef.current = null;
 
     if (!('geolocation' in navigator)) {
-      setRiderLocation(fallbackLocation);
+      setRiderLocation({ lat: fallbackLat, lng: fallbackLng });
       setLocationStatus('fallback');
       return;
     }
@@ -160,7 +163,7 @@ export function RiderMap({
       },
       (error) => {
         if (didResolve) return;
-        setRiderLocation(fallbackLocation);
+        setRiderLocation({ lat: fallbackLat, lng: fallbackLng });
         setLocationStatus(error.code === error.PERMISSION_DENIED ? 'denied' : 'fallback');
       },
       {
@@ -171,7 +174,7 @@ export function RiderMap({
     );
 
     cleanupWatchRef.current = () => navigator.geolocation.clearWatch(watchId);
-  }, [fallbackLocation]);
+  }, [fallbackLat, fallbackLng]);
 
   const flyToRiderLocation = React.useCallback(() => {
     const map = mapRef.current;
@@ -197,8 +200,11 @@ export function RiderMap({
 
   React.useEffect(() => {
     if (locationStatus === 'live' || locationStatus === 'locating') return;
-    setRiderLocation(fallbackLocation);
-  }, [fallbackLocation, locationStatus]);
+    setRiderLocation((prev) => {
+      if (prev.lat === fallbackLat && prev.lng === fallbackLng) return prev;
+      return { lat: fallbackLat, lng: fallbackLng };
+    });
+  }, [fallbackLat, fallbackLng, locationStatus]);
 
   React.useEffect(() => {
     requestLiveLocation();

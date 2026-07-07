@@ -1255,7 +1255,12 @@ export function RiderViewTab() {
       </div>
 
       {state.screen === 'RATING_MODAL' && (
-        <Dialog open>
+        <Dialog open onOpenChange={(open) => {
+          if (!open) {
+            dispatch({ type: 'SUBMIT_RATING' });
+            setRating({ captain: 0, vehicle: 0, favorite: false });
+          }
+        }}>
           <DialogContent className="border-white/[0.06] bg-[#0A0F1D]/95 backdrop-blur-xl text-white sm:max-w-md">
             <DialogHeader className="text-center">
               <DialogTitle className="text-xl font-black">قيّم الرحلة</DialogTitle>
