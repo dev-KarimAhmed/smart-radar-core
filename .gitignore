@@ -28,7 +28,6 @@ yarn-error.log*
 pnpm-debug.log*
 
 # Local env files
-.env
 .env.local
 .env.development.local
 .env.test.local
@@ -43,3 +42,7 @@ next-env.d.ts
 
 # codex 
 .codex/config.toml
+
+# Build output
+/dist
+ 
