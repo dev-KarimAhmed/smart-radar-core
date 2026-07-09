@@ -188,7 +188,13 @@ function getBadgeText(ad: any, copy: AdStageCopy) {
   return copy.nearbyBadge;
 }
 
-export function AdStage({ isFullScreen = false }: { isFullScreen?: boolean }) {
+export function AdStage({
+  isFullScreen = false,
+  onRequestRideClick,
+}: {
+  isFullScreen?: boolean;
+  onRequestRideClick?: () => void;
+}) {
   const { user } = useAuth();
   const { direction, isArabic, language } = useDashboardLanguage();
   const copy = AD_STAGE_COPY[language];
@@ -391,20 +397,48 @@ export function AdStage({ isFullScreen = false }: { isFullScreen?: boolean }) {
       )}
       dir={direction}
     >
-      <div className="z-[20] mb-3 flex shrink-0 items-center justify-between px-4 sm:mb-4 sm:px-6">
-        <div className="flex items-center gap-2">
-          <span className="relative flex h-2.5 w-2.5">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#14B8A6] opacity-75" />
-            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#14B8A6]" />
-          </span>
-          <h2 className="text-xs font-black uppercase tracking-widest text-[#14F5D5] md:text-sm">
-            {copy.title}
-          </h2>
+      {isFullScreen ? (
+        <div className="z-[20] mb-3 flex shrink-0 items-center justify-between px-4 sm:px-6 py-2.5 border-b border-white/[0.06] bg-[#0A0F1D]/40 backdrop-blur-sm" dir="rtl">
+          {/* Right text: نبض نهر الإعلانات الميداني */}
+          <div className="flex items-center gap-2">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#14B8A6] opacity-75" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#14B8A6]" />
+            </span>
+            <span className="text-[11px] font-black text-[#14F5D5] tracking-wide">نبض نهر الإعلانات الميداني</span>
+          </div>
+
+          {/* Center button: اطلب رحلة */}
+          <div className="flex items-center">
+            <button
+              onClick={onRequestRideClick}
+              className="text-xs sm:text-sm font-black text-white hover:text-[#14F5D5] transition-colors cursor-pointer active:scale-95 px-4 py-1.5 rounded-full border border-white/10 bg-white/5 hover:bg-[#14B8A6]/10 hover:border-[#14B8A6]/30 shadow-md"
+            >
+              اطلب رحلة
+            </button>
+          </div>
+
+          {/* Left text: LIVE STREAM REGISTRY • 10 CAMPAIGNS */}
+          <div className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest font-mono" dir="ltr">
+            LIVE STREAM REGISTRY • {adsToUse.length} CAMPAIGNS
+          </div>
         </div>
-        <span className="font-mono text-[9px] font-bold text-gray-500 md:text-[10px]">
-          {copy.count(adsToUse.length)}
-        </span>
-      </div>
+      ) : (
+        <div className="z-[20] mb-3 flex shrink-0 items-center justify-between px-4 sm:mb-4 sm:px-6">
+          <div className="flex items-center gap-2">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#14B8A6] opacity-75" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#14B8A6]" />
+            </span>
+            <h2 className="text-xs font-black uppercase tracking-widest text-[#14F5D5] md:text-sm">
+              {copy.title}
+            </h2>
+          </div>
+          <span className="font-mono text-[9px] font-bold text-gray-500 md:text-[10px]">
+            {copy.count(adsToUse.length)}
+          </span>
+        </div>
+      )}
 
       <div
         className="group/river relative flex min-h-0 w-full flex-1 items-center overflow-hidden"

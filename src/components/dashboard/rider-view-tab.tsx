@@ -79,7 +79,7 @@ interface DistrictOption {
   tortuosityFactor: number;
 }
 
-export function RiderViewTab() {
+export function RiderViewTab({ onExitRequestFlow }: { onExitRequestFlow?: () => void } = {}) {
   const { user } = useAuth();
   const { toast } = useToast();
   const { isArabic, language } = useDashboardLanguage();
@@ -733,6 +733,9 @@ export function RiderViewTab() {
       await cancelRideRequest(supabase, state.requestId);
       pendingAcceptedOfferIdRef.current = null;
       dispatch({ type: 'RESET_TO_IDLE' });
+      if (onExitRequestFlow) {
+        onExitRequestFlow();
+      }
       toast({
         title: requestFlowCopy.requestCancelledTitle,
         description: requestFlowCopy.requestCancelledDescription,
@@ -1222,9 +1225,22 @@ export function RiderViewTab() {
             <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
               <Card className="border-[#14B8A6]/25 bg-[#0B0F19]/90 text-white shadow-2xl shadow-black/40 backdrop-blur-xl">
                 <CardContent className={`space-y-5 p-5 ${isArabic ? 'text-right' : 'text-left'}`} dir={isArabic ? 'rtl' : 'ltr'}>
-                  <div className="space-y-1">
-                    <p className="text-[11px] font-black text-[#14F5D5]">{copy.readyQuestion}</p>
-                    <h2 className="text-xl font-black sm:text-2xl">{copy.whereTo}</h2>
+                  <div className="space-y-3">
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-1">
+                        <p className="text-[11px] font-black text-[#14F5D5]">{copy.readyQuestion}</p>
+                        <h2 className="text-xl font-black sm:text-2xl">{copy.whereTo}</h2>
+                      </div>
+                      {onExitRequestFlow && (
+                        <button
+                          type="button"
+                          onClick={onExitRequestFlow}
+                          className="h-8 w-8 flex items-center justify-center rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-colors text-white/70 hover:text-white cursor-pointer active:scale-95 shrink-0"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
                     <p className="text-xs leading-relaxed text-slate-400">
                       {copy.homeSubtitle}
                     </p>
@@ -1289,6 +1305,9 @@ export function RiderViewTab() {
             dispatch({ type: 'SUBMIT_RATING' });
             setRating({ captain: 0, vehicle: 0, favorite: false });
             setRatingComment('');
+            if (onExitRequestFlow) {
+              onExitRequestFlow();
+            }
           }
         }}>
           <DialogContent className="border-white/[0.06] bg-[#0A0F1D]/95 backdrop-blur-xl text-white sm:max-w-md">

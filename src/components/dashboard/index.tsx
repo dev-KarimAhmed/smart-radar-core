@@ -93,6 +93,8 @@ function DashboardLayout() {
  const riderOps = useRiderOperations() || {} as any;
  const driverOps = useDriverOperations() || {} as any;
 
+ const [showRequestFlow, setShowRequestFlow] = useState(false);
+
  useEffect(() => {
  const handleHashChange = () => {
  setHash(window.location.hash || '#');
@@ -118,17 +120,30 @@ function DashboardLayout() {
  }
  }, [hash, tripStatus, driverStatus, isPassenger, isCaptain]);
 
- const isStandby = useMemo(() => {
- if (isSovereign) return false;
- if (isCaptain) return false;
- if (hash !== '#' && hash !== '' && hash !== '#/') return false;
+ useEffect(() => {
+   if (isPassenger) {
+     const criticalRiderStates = ['searching', 'busy', 'rating', 'checkpoint_required'];
+     if (criticalRiderStates.includes(tripStatus) || riderOps?.requestId) {
+       setShowRequestFlow(true);
+     }
+   }
+ }, [isPassenger, tripStatus, riderOps?.requestId]);
 
- if (isPassenger) {
- return false;
- }
+  const isStandby = useMemo(() => {
+    if (isSovereign) return false;
+    if (isCaptain) return false;
+    if (hash !== '#' && hash !== '' && hash !== '#/') return false;
 
- return true;
- }, [isSovereign, hash, isPassenger, isCaptain, riderOps?.isRequestModalOpen, riderOps?.tripStatus, driverOps?.driverStatus, driverOps?.isRequestListOpen]);
+    if (isPassenger) {
+      const criticalRiderStates = ['searching', 'busy', 'rating', 'checkpoint_required'];
+      if (criticalRiderStates.includes(tripStatus) || riderOps?.requestId) {
+        return false;
+      }
+      return !showRequestFlow;
+    }
+
+    return true;
+  }, [isSovereign, hash, isPassenger, isCaptain, tripStatus, riderOps?.requestId, showRequestFlow]);
 
  const renderArterialBridge = () => {
   if (hash === '#' || hash === '' || hash === '#/') return null;
@@ -237,7 +252,7 @@ function DashboardLayout() {
 
  // 🩸 [تحصين الذاكرة المرحلية للراكب]: إذا كانت الرحلة نشطة أو بحالة حرجة، نمنع إلغاء تحميل RiderViewTab تماماً مهما تغير الهش لمنع تمزق الواجهات وفقدان حالة تتبع المركبة
  if (criticalRiderStates.includes(currentTripStatus)) {
- return <RiderViewTab />;
+ return <RiderViewTab onExitRequestFlow={() => setShowRequestFlow(false)} />;
  }
 
  if (hash === '#wallet') return <WalletTab />;
@@ -245,7 +260,7 @@ function DashboardLayout() {
  if (hash === '#history') return <HistoryTab />;
  if (hash === '#profile') return <ProfileTab />;
 
- return <RiderViewTab />;
+ return <RiderViewTab onExitRequestFlow={() => setShowRequestFlow(false)} />;
  }
 
  if (user?.role === 'advertiser') {
@@ -336,7 +351,7 @@ function DashboardLayout() {
  {/* مسرح الإعلانات يأخذ مساحته الطبيعية في التدفق */}
  {isStandby && (
  <div className="w-full flex-1 flex flex-col relative z-[80] border-b-2 border-[#14B8A6]/20 shadow-[0_10px_30px_rgba(20,184,166,0.08)]">
- <AdStage isFullScreen={true} />
+  <AdStage isFullScreen={true} onRequestRideClick={() => setShowRequestFlow(true)} />
  </div>
  )}
 
