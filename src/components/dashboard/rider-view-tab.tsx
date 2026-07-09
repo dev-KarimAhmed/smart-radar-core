@@ -79,7 +79,7 @@ interface DistrictOption {
   tortuosityFactor: number;
 }
 
-export function RiderViewTab({ onExitRequestFlow }: { onExitRequestFlow?: () => void } = {}) {
+export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: { onExitRequestFlow?: () => void; isStandbyDismissed?: boolean } = {}) {
   const { user } = useAuth();
   const { toast } = useToast();
   const { isArabic, language } = useDashboardLanguage();
@@ -1165,28 +1165,6 @@ export function RiderViewTab({ onExitRequestFlow }: { onExitRequestFlow?: () => 
 
   return (
     <div className="relative h-[calc(100vh-120px)] w-full overflow-hidden text-white lg:h-screen lg:min-h-screen lg:overflow-hidden lg:bg-transparent" dir={isArabic ? 'rtl' : 'ltr'}>
-      {/* Floating Header Close Button for Viewport Header Area */}
-      <button
-        type="button"
-        onClick={async () => {
-          if (state.requestId) {
-            await handleCancelRideRequest();
-          } else if (state.screen === 'DESTINATION_SELECTION') {
-            dispatch({ type: 'RETURN_TO_MAP' });
-          } else {
-            if (onExitRequestFlow) {
-              onExitRequestFlow();
-            } else {
-              window.dispatchEvent(new CustomEvent('exit-request-flow'));
-            }
-          }
-        }}
-        className="fixed top-[14px] right-4 z-[120] h-9 w-9 flex items-center justify-center rounded-full bg-slate-800 border border-white/20 text-white shadow-lg active:scale-95 cursor-pointer hover:bg-slate-700 transition-colors lg:hidden"
-        aria-label="إغلاق"
-      >
-        <X className="h-4 w-4 stroke-[3]" />
-      </button>
-
       <div className="relative h-full w-full lg:block lg:max-w-none">
         <div className="hidden lg:block lg:absolute lg:inset-0 lg:z-0">
           <RiderMap
@@ -1203,10 +1181,41 @@ export function RiderViewTab({ onExitRequestFlow }: { onExitRequestFlow?: () => 
         </div>
 
         <aside className="absolute bottom-0 left-0 right-0 z-10 w-full max-h-[90vh] flex flex-col rounded-t-[32px] rounded-b-none border-t border-white/10 bg-[#0A0F1D]/80 shadow-[0_-10px_25px_rgba(0,0,0,0.5)] backdrop-blur-xl lg:absolute lg:bottom-6 lg:right-6 lg:top-6 lg:z-40 lg:w-[420px] lg:rounded-[28px] lg:border lg:border-white/10 lg:bg-[#0A0F1D]/80 lg:shadow-[0_30px_100px_rgba(0,0,0,0.45)] lg:backdrop-blur-xl lg:max-h-none lg:rounded-b-[28px]">
-          {/* Top Bar with Center Drag Handle only */}
-          <div className="flex items-center justify-center p-4 border-b border-white/5 bg-slate-900/40 backdrop-blur-md rounded-t-[32px] lg:rounded-t-[28px] relative z-50">
+          {/* Top Bar with Center Drag Handle and Right-aligned Close Button */}
+          <div className="flex items-center justify-between p-4 px-6 border-b border-white/5 bg-slate-900/40 backdrop-blur-md rounded-t-[32px] lg:rounded-t-[28px] relative z-50">
+            {/* Left-aligned balance spacer */}
+            <div className="w-9" />
+
             {/* Drag Handle */}
             <div className="w-12 h-1.5 bg-slate-500/40 rounded-full" />
+
+            {/* Clear, High-Contrast Close Button */}
+            {(state.screen !== 'IDLE_MAP' || !isStandbyDismissed) ? (
+              <button
+                type="button"
+                onClick={async () => {
+                  if (state.requestId) {
+                    await handleCancelRideRequest();
+                  } else if (state.screen === 'DESTINATION_SELECTION') {
+                    dispatch({ type: 'RETURN_TO_MAP' });
+                  } else if (state.screen === 'PURGE_LEDGER' || state.screen === 'FAVORITE_CAPTAINS') {
+                    dispatch({ type: 'RETURN_TO_MAP' });
+                  } else {
+                    if (onExitRequestFlow) {
+                      onExitRequestFlow();
+                    } else {
+                      window.dispatchEvent(new CustomEvent('exit-request-flow'));
+                    }
+                  }
+                }}
+                className="h-9 w-9 flex items-center justify-center rounded-full bg-slate-800 border border-white/20 text-white shadow-md active:scale-95 cursor-pointer hover:bg-slate-700 transition-colors"
+                aria-label="إغلاق"
+              >
+                <X className="h-4 w-4 stroke-[3]" />
+              </button>
+            ) : (
+              <div className="w-9" />
+            )}
           </div>
 
           {/* Scrollable Content Wrapper */}
