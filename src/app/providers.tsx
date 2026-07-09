@@ -5,6 +5,7 @@ import { AuthProvider } from '@/hooks/use-auth';
 import { SovereignErrorBoundary } from '@/components/sovereign-error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { Button } from '@/components/ui/button';
+import { PwaInstallPrompt } from '@/components/pwa-install-prompt';
 
 function PwaUpdater() {
   const [needRefresh, setNeedRefresh] = useState(false);
@@ -74,6 +75,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       </SovereignErrorBoundary>
       <Toaster />
       <PwaUpdater />
+      <PwaInstallPrompt />
     </AuthProvider>
   );
 }
