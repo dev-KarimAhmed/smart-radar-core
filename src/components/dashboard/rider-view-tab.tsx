@@ -672,6 +672,13 @@ export function RiderViewTab() {
       return;
     }
 
+    // Unlock audio context for modern browser autoplay policies
+    if (typeof window !== 'undefined') {
+      const unlockAudio = new Audio('/sounds/notification.mp3');
+      unlockAudio.volume = 0;
+      unlockAudio.play().catch(() => {});
+    }
+
     dispatch({ type: 'CONFIRM_DESTINATION', destination: selectedDraftDestination });
     dispatch({ type: 'SEND_REQUEST' });
     setIsSendingRideRequest(true);

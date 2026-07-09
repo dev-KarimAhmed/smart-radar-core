@@ -301,7 +301,14 @@ export function subscribeToRideOffers(
         filter: `request_id=eq.${requestId}`,
       },
       (payload) => {
-        if (payload && payload.eventType === 'INSERT') {
+        const isInsert = payload && (
+          payload.eventType === 'INSERT' ||
+          payload.eventType === 'insert' ||
+          payload.event === 'INSERT' ||
+          payload.event === 'insert' ||
+          !payload.eventType
+        );
+        if (isInsert) {
           if (typeof window !== 'undefined') {
             const audio = new Audio('/sounds/notification.mp3');
             audio.volume = 0.5;
