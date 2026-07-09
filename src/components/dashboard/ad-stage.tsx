@@ -369,10 +369,10 @@ export function AdStage({
   const showNavigationShell = true;
   const canNavigate = adsToUse.length > 1;
   const heightClass = isFullScreen
-    ? 'min-h-[520px] w-full lg:min-h-[620px]'
+    ? 'h-full flex-1'
     : 'h-[280px] w-full sm:h-[320px]';
   const cardClassName = isFullScreen
-    ? 'h-[360px] w-[min(88vw,520px)] md:h-[420px] md:w-[560px]'
+    ? 'h-[calc(100vh-270px)] min-h-[360px] max-h-[480px] w-[290px] sm:w-[330px] md:max-h-[520px] md:w-[350px]'
     : 'h-[216px] w-[270px] sm:h-[250px] sm:w-[280px] md:w-[340px]';
 
   if (isLoadingAds) {
@@ -398,30 +398,14 @@ export function AdStage({
       dir={direction}
     >
       {isFullScreen ? (
-        <div className="z-[20] mb-3 flex shrink-0 items-center justify-between px-4 sm:px-6 py-2.5 border-b border-white/[0.06] bg-[#0A0F1D]/40 backdrop-blur-sm" dir="rtl">
-          {/* Right text: نبض نهر الإعلانات الميداني */}
-          <div className="flex items-center gap-2">
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#14B8A6] opacity-75" />
-              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#14B8A6]" />
-            </span>
-            <span className="text-[11px] font-black text-[#14F5D5] tracking-wide">نبض نهر الإعلانات الميداني</span>
-          </div>
-
+        <div className="z-[20] mb-3 flex shrink-0 items-center justify-center w-full px-4 sm:px-6 py-3 border-b border-white/[0.06] bg-[#0A0F1D]/40 backdrop-blur-sm">
           {/* Center button: اطلب رحلة */}
-          <div className="flex items-center">
-            <button
-              onClick={onRequestRideClick}
-              className="text-xs sm:text-sm font-black text-white hover:text-[#14F5D5] transition-colors cursor-pointer active:scale-95 px-4 py-1.5 rounded-full border border-white/10 bg-white/5 hover:bg-[#14B8A6]/10 hover:border-[#14B8A6]/30 shadow-md"
-            >
-              اطلب رحلة
-            </button>
-          </div>
-
-          {/* Left text: LIVE STREAM REGISTRY • 10 CAMPAIGNS */}
-          <div className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest font-mono" dir="ltr">
-            LIVE STREAM REGISTRY • {adsToUse.length} CAMPAIGNS
-          </div>
+          <button
+            onClick={onRequestRideClick}
+            className="text-xs sm:text-sm font-black text-white hover:text-[#14F5D5] transition-colors cursor-pointer active:scale-95 px-5 py-2 rounded-full border border-white/10 bg-white/5 hover:bg-[#14B8A6]/10 hover:border-[#14B8A6]/30 shadow-md"
+          >
+            اطلب رحلة
+          </button>
         </div>
       ) : (
         <div className="z-[20] mb-3 flex shrink-0 items-center justify-between px-4 sm:mb-4 sm:px-6">
@@ -441,7 +425,7 @@ export function AdStage({
       )}
 
       <div
-        className="group/river relative flex min-h-0 w-full flex-1 items-center overflow-hidden"
+        className={cn("group/river relative flex min-h-0 w-full flex-1 items-center overflow-hidden", isFullScreen && "pb-12")}
         dir="ltr"
         onMouseEnter={() => setAdStreamPaused(true)}
         onMouseLeave={() => setAdStreamPaused(false)}

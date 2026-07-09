@@ -346,6 +346,7 @@ function DashboardLayout() {
  'relative flex w-full flex-1 flex-col overflow-y-visible',
  isCaptain ? 'lg:min-h-screen lg:overflow-y-auto' : 'lg:h-screen lg:min-h-0 lg:overflow-hidden',
  user?.role === 'rider' && !isRiderHomeSurface && 'lg:pl-[288px]',
+ isStandby && 'h-[calc(100vh-120px)] overflow-hidden'
  )}>
 
  {/* مسرح الإعلانات يأخذ مساحته الطبيعية في التدفق */}
