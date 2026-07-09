@@ -398,7 +398,7 @@ export function AdStage({
       dir={direction}
     >
       {isFullScreen ? (
-        <div className="z-[20] mb-3 flex shrink-0 items-center justify-center w-full px-4 sm:px-6 py-3 border-b border-white/[0.06] bg-[#0A0F1D]/40 backdrop-blur-sm">
+        <div className="z-[20] mb-3 flex shrink-0 items-center justify-center w-full px-4 sm:px-6 py-3 border-b border-white/[0.06] bg-[#0A0F1D]/40 backdrop-blur-sm lg:hidden">
           {/* Center button: اطلب رحلة */}
           <button
             onClick={onRequestRideClick}

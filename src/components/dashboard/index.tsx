@@ -93,7 +93,8 @@ function DashboardLayout() {
  const riderOps = useRiderOperations() || {} as any;
  const driverOps = useDriverOperations() || {} as any;
 
- const [showRequestFlow, setShowRequestFlow] = useState(false);
+  const [showRequestFlow, setShowRequestFlow] = useState(false);
+  const [hasRequestedRideOnce, setHasRequestedRideOnce] = useState(false);
 
  useEffect(() => {
  const handleHashChange = () => {
@@ -129,29 +130,41 @@ function DashboardLayout() {
    }
  }, [isPassenger, tripStatus, riderOps?.requestId]);
 
-  useEffect(() => {
-    const handleExitRequestFlow = () => {
-      setShowRequestFlow(false);
-    };
-    window.addEventListener('exit-request-flow', handleExitRequestFlow);
-    return () => window.removeEventListener('exit-request-flow', handleExitRequestFlow);
-  }, []);
+   useEffect(() => {
+     const handleExitRequestFlow = () => {
+       setShowRequestFlow(false);
+       setHasRequestedRideOnce(false);
+     };
+     const handleOpenDestination = () => {
+       setShowRequestFlow(true);
+       setHasRequestedRideOnce(true);
+     };
+     window.addEventListener('exit-request-flow', handleExitRequestFlow);
+     window.addEventListener('rider-open-destination', handleOpenDestination);
+     return () => {
+       window.removeEventListener('exit-request-flow', handleExitRequestFlow);
+       window.removeEventListener('rider-open-destination', handleOpenDestination);
+     };
+   }, []);
 
-  const isStandby = useMemo(() => {
-    if (isSovereign) return false;
-    if (isCaptain) return false;
-    if (hash !== '#' && hash !== '' && hash !== '#/') return false;
-
-    if (isPassenger) {
-      const criticalRiderStates = ['searching', 'busy', 'rating', 'checkpoint_required'];
-      if (criticalRiderStates.includes(tripStatus) || riderOps?.requestId) {
-        return false;
-      }
-      return !showRequestFlow;
-    }
-
-    return true;
-  }, [isSovereign, hash, isPassenger, isCaptain, tripStatus, riderOps?.requestId, showRequestFlow]);
+   const isStandby = useMemo(() => {
+     if (isSovereign) return false;
+     if (isCaptain) return false;
+     if (hash !== '#' && hash !== '' && hash !== '#/') return false;
+ 
+     if (isPassenger) {
+       const criticalRiderStates = ['searching', 'busy', 'rating', 'checkpoint_required'];
+       if (criticalRiderStates.includes(tripStatus) || riderOps?.requestId) {
+         return false;
+       }
+       if (hasRequestedRideOnce) {
+         return false;
+       }
+       return !showRequestFlow;
+     }
+ 
+     return true;
+   }, [isSovereign, hash, isPassenger, isCaptain, tripStatus, riderOps?.requestId, showRequestFlow, hasRequestedRideOnce]);
 
  const renderArterialBridge = () => {
   if (hash === '#' || hash === '' || hash === '#/') return null;
@@ -260,7 +273,7 @@ function DashboardLayout() {
 
  // 🩸 [تحصين الذاكرة المرحلية للراكب]: إذا كانت الرحلة نشطة أو بحالة حرجة، نمنع إلغاء تحميل RiderViewTab تماماً مهما تغير الهش لمنع تمزق الواجهات وفقدان حالة تتبع المركبة
  if (criticalRiderStates.includes(currentTripStatus)) {
- return <RiderViewTab onExitRequestFlow={() => setShowRequestFlow(false)} />;
+ return <RiderViewTab onExitRequestFlow={() => { setShowRequestFlow(false); setHasRequestedRideOnce(false); }} isStandbyDismissed={hasRequestedRideOnce} />;
  }
 
  if (hash === '#wallet') return <WalletTab />;
@@ -268,7 +281,7 @@ function DashboardLayout() {
  if (hash === '#history') return <HistoryTab />;
  if (hash === '#profile') return <ProfileTab />;
 
- return <RiderViewTab onExitRequestFlow={() => setShowRequestFlow(false)} />;
+ return <RiderViewTab onExitRequestFlow={() => { setShowRequestFlow(false); setHasRequestedRideOnce(false); }} isStandbyDismissed={hasRequestedRideOnce} />;
  }
 
  if (user?.role === 'advertiser') {
