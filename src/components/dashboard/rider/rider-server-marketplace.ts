@@ -417,7 +417,7 @@ function mapRideOfferRow(row: Record<string, unknown>): Offer | null {
 
   const vehicle = (isRecord(row.driver_vehicle) ? row.driver_vehicle : isRecord(row.vehicle) ? row.vehicle : {}) as Record<string, unknown>;
 
-  return {
+  const offer: Offer = {
     id: String(row.id),
     driverId,
     price,
@@ -437,7 +437,12 @@ function mapRideOfferRow(row: Record<string, unknown>): Offer | null {
       phone: firstString(row.driver_phone, row.captain_phone, row.phone) ?? undefined,
     },
     silencePreference: 'neutral',
+    distance_to_rider: firstNumber(row.distance_to_rider, row.distance) ?? undefined,
+    pickup_eta_minutes: firstNumber(row.pickup_eta_minutes, row.eta, row.pickup_eta) ?? undefined,
+    estimated_duration_minutes: firstNumber(row.estimated_duration_minutes, row.duration, row.estimated_duration) ?? undefined,
   };
+
+  return offer;
 }
 
 function mapCaptainPresenceRow(row: Record<string, unknown>): CaptainPresencePoint | null {

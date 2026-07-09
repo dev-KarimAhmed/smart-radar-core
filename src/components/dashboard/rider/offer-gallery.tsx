@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Heart, Info, Loader2, ShieldCheck, Star, X } from 'lucide-react';
+import { Heart, Info, Loader2, ShieldCheck, Star, X, Clock, Navigation, MapPin } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -171,6 +171,22 @@ const OfferCard = ({
           </div>
         </div>
 
+        {/* TASK 1: Distance and Pickup ETA */}
+        <div className="grid grid-cols-2 gap-3 bg-white/5 rounded-xl p-3 border border-white/5">
+          <div className="flex items-center gap-2">
+            <MapPin className="h-4 w-4 text-slate-400" />
+            <span className="text-slate-400 text-xs">
+              البعد عنك: {offer.distance_to_rider ? offer.distance_to_rider.toFixed(1) : '---'} كم
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Clock className="h-4 w-4 text-[#14B8A6] animate-pulse" />
+            <span className="text-[#14B8A6] font-bold text-xs">
+              يصلك خلال: {offer.pickup_eta_minutes ?? Math.max(3, Math.round((offer.distance_to_rider || 1) * 3))} دقائق
+            </span>
+          </div>
+        </div>
+
         {(offer.isDumping || offer.driverRank === 'Silver' || offer.driverRank === 'Bronze') && (
           <div className="space-y-2">
             <div className="rounded-md border border-red-500/20 bg-red-500/10 p-2 text-center text-[11px] font-bold text-red-400">
@@ -202,6 +218,17 @@ const OfferCard = ({
             ملف المركبة
           </Button>
         </div>
+
+        {/* TASK 2: Estimated Trip Duration */}
+        {offer.estimated_duration_minutes && (
+          <div className="bg-teal-500/10 border border-teal-500/20 rounded-xl p-2.5 flex items-center justify-between">
+            <span className="text-slate-400 text-xs">مدة الرحلة المتوقعة</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-white font-bold text-sm">{offer.estimated_duration_minutes} دقيقة</span>
+              <Navigation className="h-3.5 w-3.5 text-white" />
+            </div>
+          </div>
+        )}
 
         <Button onClick={() => onSelect(offer)} disabled={isSelecting} className="h-12 w-full bg-primary font-bold hover:bg-primary/90">
           {isSelecting ? <Loader2 className="animate-spin" /> : 'اختر هذا العرض'}

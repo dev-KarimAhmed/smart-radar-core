@@ -121,6 +121,9 @@ export interface Offer {
     isDumping?: boolean;
     displayTarget?: 'basic_9' | 'reserve_3' | 'hidden';
     tier?: string;
+    distance_to_rider?: number;
+    pickup_eta_minutes?: number;
+    estimated_duration_minutes?: number;
 }
 
 export interface SovereignAd {

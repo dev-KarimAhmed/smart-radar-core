@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { latLngToCell } from 'h3-js';
-import { Clock, Heart, Loader2, Navigation, ShieldCheck, Star, X } from 'lucide-react';
+import { Clock, Heart, Loader2, Navigation, ShieldCheck, Star, X, MapPin } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -1081,35 +1081,119 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
             </div>
           ) : (
             <div className="space-y-3">
-              {state.offers.map((offer) => (
-                <article key={offer.id || offer.driverId} className="space-y-3 rounded-2xl border border-white/5 bg-white/5 p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <h3 className="text-lg font-bold text-white">{offer.driverName}</h3>
-                      <p className="mt-1 flex items-center gap-1 text-xs text-slate-400">
-                        <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
-                        {offer.driverRating.toFixed(1)} / {offer.driverRank}
-                      </p>
+              {state.offers.map((offer) => {
+                const captain = captainLocations.find((c) => c.id === offer.driverId || c.serial === offer.driverName);
+                let realDistance = offer.distance_to_rider;
+
+                if (realDistance == null && captain && riderLocation) {
+                  const R = 6371;
+                  const dLat = (captain.coordinates.lat - riderLocation.lat) * (Math.PI / 180);
+                  const dLon = (captain.coordinates.lng - riderLocation.lng) * (Math.PI / 180);
+                  const a =
+                    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                    Math.cos(riderLocation.lat * (Math.PI / 180)) *
+                      Math.cos(captain.coordinates.lat * (Math.PI / 180)) *
+                      Math.sin(dLon / 2) *
+                      Math.sin(dLon / 2);
+                  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                  realDistance = R * c;
+                }
+
+                // Calculate trip distance (from rider's pickup to destination coords)
+                let tripDistance: number | null = null;
+                if (riderLocation && state.destination?.coords) {
+                  const R = 6371;
+                  const dLat = (state.destination.coords.lat - riderLocation.lat) * (Math.PI / 180);
+                  const dLon = (state.destination.coords.lng - riderLocation.lng) * (Math.PI / 180);
+                  const a =
+                    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                    Math.cos(riderLocation.lat * (Math.PI / 180)) *
+                      Math.cos(state.destination.coords.lat * (Math.PI / 180)) *
+                      Math.sin(dLon / 2) *
+                      Math.sin(dLon / 2);
+                  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                  tripDistance = R * c;
+                }
+
+                // Format it nicely for the same-location testing scenarios
+                const distanceDisplay = realDistance != null ? (realDistance < 0.1 ? 0 : realDistance).toFixed(1) : '---';
+                const etaDisplay = offer.pickup_eta_minutes ?? (realDistance != null ? Math.max(1, Math.round(realDistance * 3)) : '---');
+                
+                const rawDuration = offer.estimated_duration_minutes ?? (tripDistance != null ? Math.max(5, Math.round(tripDistance * 1.2)) : null);
+                let durationDisplay = '';
+                if (rawDuration != null) {
+                  if (rawDuration >= 60) {
+                    const hours = Math.floor(rawDuration / 60);
+                    const mins = rawDuration % 60;
+                    if (hours === 1) {
+                      durationDisplay = mins > 0 ? `ساعة و ${mins} دقيقة` : `ساعة`;
+                    } else if (hours === 2) {
+                      durationDisplay = mins > 0 ? `ساعتين و ${mins} دقيقة` : `ساعتين`;
+                    } else {
+                      durationDisplay = mins > 0 ? `${hours} ساعات و ${mins} دقيقة` : `${hours} ساعات`;
+                    }
+                  } else {
+                    durationDisplay = `${rawDuration} دقيقة`;
+                  }
+                }
+
+                return (
+                  <article key={offer.id || offer.driverId} className="space-y-3 rounded-2xl border border-white/5 bg-white/5 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <h3 className="text-lg font-bold text-white">{offer.driverName}</h3>
+                        <p className="mt-1 flex items-center gap-1 text-xs text-slate-400">
+                          <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
+                          {offer.driverRating.toFixed(1)} / {offer.driverRank}
+                        </p>
+                      </div>
+                      <strong className="text-xl font-bold text-[#14F5D5]">
+                        {formatMoney(offer.price, currencyLabel)}
+                      </strong>
                     </div>
-                    <strong className="text-xl font-bold text-[#14F5D5]">
-                      {formatMoney(offer.price, currencyLabel)}
-                    </strong>
-                  </div>
 
-                  <div className="grid grid-cols-2 gap-2 rounded-xl bg-black/25 p-3 text-xs text-slate-300">
-                    <Metric label={copy.vehicle} value={`${offer.driverVehicle.make} ${offer.driverVehicle.color}`} />
-                    <Metric label={copy.plate} value={offer.driverVehicle.plate} />
-                  </div>
+                    {/* TASK 1: Distance and Pickup ETA */}
+                    <div className="grid grid-cols-2 gap-3 bg-white/5 rounded-xl p-3 border border-white/5">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-slate-400" />
+                        <span className="text-slate-400 text-xs">
+                          البعد عنك: {distanceDisplay} كم
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-[#14B8A6] animate-pulse" />
+                        <span className="text-[#14B8A6] font-bold text-xs">
+                          يصلك خلال: {etaDisplay} دقائق
+                        </span>
+                      </div>
+                    </div>
 
-                  <button
-                    onClick={() => void handleAcceptOffer(offer)}
-                    disabled={acceptingOfferId === (offer.id || offer.driverId)}
-                    className="h-11 w-full bg-[#14B8A6] text-[#0A0F1D] font-bold text-sm rounded-xl transition-transform active:scale-[0.98] hover:bg-[#2DD4BF] flex items-center justify-center cursor-pointer"
-                  >
-                    {acceptingOfferId === (offer.id || offer.driverId) ? copy.acceptingOffer : copy.acceptOffer}
-                  </button>
-                </article>
-              ))}
+                    <div className="grid grid-cols-2 gap-2 rounded-xl bg-black/25 p-3 text-xs text-slate-300">
+                      <Metric label={copy.vehicle} value={`${offer.driverVehicle.make} ${offer.driverVehicle.color}`} />
+                      <Metric label={copy.plate} value={offer.driverVehicle.plate} />
+                    </div>
+
+                    {/* TASK 2: Estimated Trip Duration */}
+                    {durationDisplay && (
+                      <div className="bg-teal-500/10 border border-teal-500/20 rounded-xl p-2.5 flex items-center justify-between">
+                        <span className="text-slate-400 text-xs">مدة الرحلة المتوقعة</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-white font-bold text-sm">{durationDisplay}</span>
+                          <Navigation className="h-3.5 w-3.5 text-white" />
+                        </div>
+                      </div>
+                    )}
+
+                    <button
+                      onClick={() => void handleAcceptOffer(offer)}
+                      disabled={acceptingOfferId === (offer.id || offer.driverId)}
+                      className="h-11 w-full bg-[#14B8A6] text-[#0A0F1D] font-bold text-sm rounded-xl transition-transform active:scale-[0.98] hover:bg-[#2DD4BF] flex items-center justify-center cursor-pointer"
+                    >
+                      {acceptingOfferId === (offer.id || offer.driverId) ? copy.acceptingOffer : copy.acceptOffer}
+                    </button>
+                  </article>
+                );
+              })}
             </div>
           )}
         </div>
