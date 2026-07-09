@@ -34,7 +34,7 @@ type SupabaseRealtimeLike = {
         table: string;
         filter: string;
       },
-      callback: (payload: { new?: Record<string, unknown> }) => void,
+      callback: (payload: any) => void,
     ) => {
       subscribe: (callback?: (status: string, error?: unknown) => void) => unknown;
     };
@@ -190,8 +190,12 @@ export async function completeRideTrip(
 
 export async function submitRideRating(
   client: SupabaseMarketplaceRpcLike,
-  input: { requestId: string; captainId: string; ratingValue: number },
+  input: { requestId: string; captainId: string; ratingValue: number; comment?: string },
 ) {
+  if (input.comment && (process.env.NODE_ENV !== 'production')) {
+    console.log('[Sovereign Feedback Comment]:', input.comment);
+  }
+
   const { data, error } = await client.rpc('submit_ride_rating', {
     p_request_id: input.requestId,
     p_captain_id: input.captainId,
@@ -253,7 +257,14 @@ export function subscribeToRideRequestStatus(
         filter: `id=eq.${requestId}`,
       },
       (payload) => {
-        if (payload.new) onStatus(payload.new);
+        if (payload.new) {
+          if (typeof window !== 'undefined') {
+            const audio = new Audio('/sounds/notification.mp3');
+            audio.volume = 0.5;
+            audio.play().catch((err) => console.log("Audio autoplay blocked until user interaction:", err));
+          }
+          onStatus(payload.new);
+        }
       },
     )
     .subscribe((status, error) => {
@@ -289,7 +300,16 @@ export function subscribeToRideOffers(
         table: 'ride_offers',
         filter: `request_id=eq.${requestId}`,
       },
-      () => onChange(),
+      (payload) => {
+        if (payload && payload.eventType === 'INSERT') {
+          if (typeof window !== 'undefined') {
+            const audio = new Audio('/sounds/notification.mp3');
+            audio.volume = 0.5;
+            audio.play().catch((err) => console.log("Audio autoplay blocked until user interaction:", err));
+          }
+        }
+        onChange();
+      },
     )
     .subscribe((status, error) => {
       if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {

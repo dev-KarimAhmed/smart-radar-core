@@ -105,6 +105,7 @@ export function RiderViewTab() {
   const [selectedGovernorateId, setSelectedGovernorateId] = React.useState('');
   const [draftDestinationId, setDraftDestinationId] = React.useState('');
   const [rating, setRating] = React.useState({ captain: 0, vehicle: 0, favorite: false });
+  const [ratingComment, setRatingComment] = React.useState('');
   const [etaSeconds, setEtaSeconds] = React.useState(0);
   const [riderLocation, setRiderLocation] = React.useState<RiderLocation>(INITIAL_RIDER_LOCATION);
   const [riderH3Cell, setRiderH3Cell] = React.useState(latLngToCell(INITIAL_RIDER_LOCATION.lat, INITIAL_RIDER_LOCATION.lng, H3_RIDER_REQUEST_RESOLUTION));
@@ -548,8 +549,27 @@ export function RiderViewTab() {
 
     const refreshOffers = async () => {
       try {
-        const offers = await fetchRideOffers(supabase, state.requestId!);
-        if (active) dispatch({ type: 'RECEIVE_OFFERS', offers });
+        const [offers, favs] = await Promise.all([
+          fetchRideOffers(supabase, state.requestId!),
+          dexieDb.favoriteCaptains.toArray().catch(() => [])
+        ]);
+
+        const favPhones = new Set(favs.map(f => f.captainPhone).filter(Boolean));
+        const favNames = new Set(favs.map(f => f.captainName).filter(Boolean));
+        const favIds = new Set(favs.map((f: any) => f.captainId || f.driverId).filter(Boolean));
+
+        const sortedOffers = [...offers].sort((a, b) => {
+          const aPhone = a.driverAffiliation?.phone;
+          const bPhone = b.driverAffiliation?.phone;
+          const aIsFav = (aPhone && favPhones.has(aPhone)) || favNames.has(a.driverName) || favIds.has(a.driverId);
+          const bIsFav = (bPhone && favPhones.has(bPhone)) || favNames.has(b.driverName) || favIds.has(b.driverId);
+          
+          if (aIsFav && !bIsFav) return -1;
+          if (!aIsFav && bIsFav) return 1;
+          return 0;
+        });
+
+        if (active) dispatch({ type: 'RECEIVE_OFFERS', offers: sortedOffers });
       } catch (error) {
         if (!active) return;
         if ((process.env.NODE_ENV !== 'production')) console.warn('[Rider Offers]', error);
@@ -828,6 +848,7 @@ export function RiderViewTab() {
         requestId: state.requestId,
         captainId: state.completedTrip.captainId,
         ratingValue,
+        comment: ratingComment || undefined,
       });
 
       if (rating.favorite) {
@@ -844,6 +865,7 @@ export function RiderViewTab() {
 
       dispatch({ type: 'SUBMIT_RATING' });
       setRating({ captain: 0, vehicle: 0, favorite: false });
+      setRatingComment('');
     } catch (error) {
       if ((process.env.NODE_ENV !== 'production')) console.warn('[Rider Submit Rating]', error);
       toast({
@@ -1259,6 +1281,7 @@ export function RiderViewTab() {
           if (!open) {
             dispatch({ type: 'SUBMIT_RATING' });
             setRating({ captain: 0, vehicle: 0, favorite: false });
+            setRatingComment('');
           }
         }}>
           <DialogContent className="border-white/[0.06] bg-[#0A0F1D]/95 backdrop-blur-xl text-white sm:max-w-md">
@@ -1280,6 +1303,18 @@ export function RiderViewTab() {
                 <div className="flex justify-center">
                   <StarRating rating={rating.vehicle} setRating={(value: number) => setRating((prev) => ({ ...prev, vehicle: value }))} size="lg" color="amber" />
                 </div>
+              </div>
+
+              {/* Feedback comment input */}
+              <div className="space-y-2">
+                <textarea
+                  value={ratingComment}
+                  onChange={(e) => setRatingComment(e.target.value)}
+                  placeholder="اكتب رأيك في الكابتن والرحلة (اختياري)..."
+                  rows={3}
+                  className="w-full bg-slate-900/40 border border-white/10 text-white placeholder-slate-500 rounded-xl p-3 text-sm focus:border-[#14B8A6] focus:outline-none resize-none backdrop-blur-sm"
+                  dir="rtl"
+                />
               </div>
 
               <button

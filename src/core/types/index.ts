@@ -120,6 +120,7 @@ export interface Offer {
     };
     isDumping?: boolean;
     displayTarget?: 'basic_9' | 'reserve_3' | 'hidden';
+    tier?: string;
 }
 
 export interface SovereignAd {

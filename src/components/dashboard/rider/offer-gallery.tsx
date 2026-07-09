@@ -104,9 +104,39 @@ const OfferCard = ({
           </Avatar>
 
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <h4 className="font-bold text-white">{offer.driverName}</h4>
               {isFavorite && <Heart className="h-4 w-4 fill-current text-red-500" />}
+              {(() => {
+                const tier = (offer.tier || 'SILVER').toUpperCase();
+                switch (tier) {
+                  case 'BRONZE':
+                    return (
+                      <span className="rounded-full border border-amber-600/30 bg-amber-900/20 px-2 py-0.5 text-[10px] font-black text-amber-600 backdrop-blur-md">
+                        برونزي
+                      </span>
+                    );
+                  case 'GOLD':
+                    return (
+                      <span className="animate-pulse rounded-full border border-yellow-400/40 bg-yellow-900/30 px-2 py-0.5 text-[10px] font-black text-yellow-400 backdrop-blur-md">
+                        ذهبي
+                      </span>
+                    );
+                  case 'PLATINUM':
+                    return (
+                      <span className="animate-bounce-slow rounded-full border border-[#14B8A6]/40 bg-teal-950/40 px-2 py-0.5 text-[10px] font-black tracking-wide text-[#14B8A6] backdrop-blur-md">
+                        بلاتينيوم
+                      </span>
+                    );
+                  case 'SILVER':
+                  default:
+                    return (
+                      <span className="rounded-full border border-slate-400/30 bg-slate-800/20 px-2 py-0.5 text-[10px] font-black text-slate-400 backdrop-blur-md">
+                        فضي
+                      </span>
+                    );
+                }
+              })()}
             </div>
 
             <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
