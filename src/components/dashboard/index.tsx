@@ -129,6 +129,14 @@ function DashboardLayout() {
    }
  }, [isPassenger, tripStatus, riderOps?.requestId]);
 
+  useEffect(() => {
+    const handleExitRequestFlow = () => {
+      setShowRequestFlow(false);
+    };
+    window.addEventListener('exit-request-flow', handleExitRequestFlow);
+    return () => window.removeEventListener('exit-request-flow', handleExitRequestFlow);
+  }, []);
+
   const isStandby = useMemo(() => {
     if (isSovereign) return false;
     if (isCaptain) return false;
@@ -357,7 +365,7 @@ function DashboardLayout() {
  )}
 
  {/* الحاوية التي تحمل التبويبات (تسمح بالتمرير للأسفل) */}
- <div className={cn('w-full flex-1 p-4 md:p-8', contentIsHidden && 'hidden', isRiderHomeSurface && 'lg:p-0')}>
+ <div className={cn('w-full flex-1 p-4 md:p-8', contentIsHidden && 'hidden', user?.role === 'rider' && 'p-0 md:p-0 lg:p-0')}>
  {renderArterialBridge()}
  <SovereignErrorBoundary>
  <React.Suspense fallback={

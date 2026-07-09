@@ -900,27 +900,16 @@ export function RiderViewTab({ onExitRequestFlow }: { onExitRequestFlow?: () => 
           : copy.notAvailable;
 
       return (
-        <Card className="w-full border-[#14B8A6]/25 bg-[#0B0F19]/88 text-white shadow-2xl shadow-black/40 backdrop-blur-xl">
-          <CardContent className="space-y-5 p-5 text-right" dir={isArabic ? 'rtl' : 'ltr'}>
-            <div className="flex items-start justify-between gap-3">
-              <div className="space-y-1">
-                <p className="text-[11px] font-black text-[#14F5D5]">{copy.destinationEyebrow}</p>
-                <h2 className="text-xl font-black sm:text-2xl">{copy.whereTo}</h2>
-                <p className="text-xs leading-relaxed text-slate-400">
-                  {copy.destinationSubtitle}
-                  {countryConfig?.name_ar || countryConfig?.name_en ? (
-                    <span className="mt-1 block text-[#14F5D5]">{copy.country}: {isArabic ? countryConfig.name_ar || countryConfig.name_en : countryConfig.name_en || countryConfig.name_ar}</span>
-                  ) : null}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => dispatch({ type: 'RETURN_TO_MAP' })}
-                aria-label={copy.closeDestination}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-black/35 text-slate-300 transition hover:border-[#14B8A6]/40 hover:text-white"
-              >
-                <X className="h-5 w-5" />
-              </button>
+        <div className="space-y-4 text-right" dir={isArabic ? 'rtl' : 'ltr'}>
+            <div className="space-y-1">
+              <p className="text-[11px] font-black text-[#14F5D5]">{copy.destinationEyebrow}</p>
+              <h2 className="text-xl font-black sm:text-2xl">{copy.whereTo}</h2>
+              <p className="text-xs leading-relaxed text-slate-400">
+                {copy.destinationSubtitle}
+                {countryConfig?.name_ar || countryConfig?.name_en ? (
+                  <span className="mt-1 block text-[#14F5D5]">{copy.country}: {isArabic ? countryConfig.name_ar || countryConfig.name_en : countryConfig.name_en || countryConfig.name_ar}</span>
+                ) : null}
+              </p>
             </div>
 
             <div className="grid gap-3">
@@ -988,7 +977,7 @@ export function RiderViewTab({ onExitRequestFlow }: { onExitRequestFlow?: () => 
               </div>
             ) : null}
 
-            <div className="grid grid-cols-2 gap-3 rounded-2xl border border-white/10 bg-black/30 p-3">
+            <div className="grid grid-cols-2 gap-3 rounded-2xl border border-white/5 bg-white/5 p-4">
               <Metric label={copy.serverFare} value={serverFareLabel} />
               <Metric label={copy.fareStatus} value={serverFareError ? copy.fareFailed : isServerFareLoading ? copy.fareLoading : copy.ready} />
               <Metric label={copy.originH3} value={selectedDraftDestination?.originCell?.slice(0, 8).toUpperCase() || '-'} />
@@ -1001,7 +990,7 @@ export function RiderViewTab({ onExitRequestFlow }: { onExitRequestFlow?: () => 
               </div>
             )}
 
-            <Button
+            <button
               onClick={handleSendRequest}
               disabled={
                 isSendingRideRequest ||
@@ -1010,13 +999,12 @@ export function RiderViewTab({ onExitRequestFlow }: { onExitRequestFlow?: () => 
                 !selectedDestinationHasCoords ||
                 selectedDraftDestination?.serverEstimatedFare === undefined
               }
-              className="h-14 w-full rounded-2xl bg-[#14B8A6] text-base font-black text-[#031315] hover:bg-[#2DD4BF]"
+              className="h-14 w-full bg-[#14B8A6] text-[#0A0F1D] font-bold text-base py-3.5 rounded-xl transition-transform active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#2DD4BF] flex items-center justify-center cursor-pointer"
             >
               {isSendingRideRequest ? copy.sendingRequest : copy.requestNow}
-            </Button>
-          </CardContent>
-        </Card>
-      );
+            </button>
+          </div>
+        );
     }
 
     if (state.screen === 'RECEIVING_OFFERS') {
@@ -1029,106 +1017,102 @@ export function RiderViewTab({ onExitRequestFlow }: { onExitRequestFlow?: () => 
 
       if (isCancelled) {
         return (
-          <Card className="w-full border-amber-400/25 bg-[#0B0F19]/92 text-white shadow-2xl shadow-black/40 backdrop-blur-xl">
-            <CardContent className={`space-y-5 p-5 ${isArabic ? 'text-right' : 'text-left'}`} dir={isArabic ? 'rtl' : 'ltr'}>
-              <div className="rounded-3xl border border-amber-400/20 bg-amber-400/10 p-5">
-                <p className="text-[11px] font-black text-amber-200">{copy.noOffersEyebrow}</p>
-                <h2 className="mt-2 text-xl font-black sm:text-2xl">{copy.noOffersTitle}</h2>
-                <p className="mt-3 text-sm leading-relaxed text-slate-300">
-                  {copy.noOffersDescription}
-                </p>
-              </div>
+          <div className={`space-y-4 ${isArabic ? 'text-right' : 'text-left'}`} dir={isArabic ? 'rtl' : 'ltr'}>
+            <div className="rounded-[24px] border border-amber-400/20 bg-amber-400/10 p-5">
+              <p className="text-[11px] font-black text-amber-200">{copy.noOffersEyebrow}</p>
+              <h2 className="mt-2 text-xl font-bold text-white">{copy.noOffersTitle}</h2>
+              <p className="mt-3 text-sm leading-relaxed text-slate-300">
+                {copy.noOffersDescription}
+              </p>
+            </div>
 
-              <Button
-                onClick={() => {
-                  dispatch({ type: 'RESET_TO_IDLE' });
-                  window.setTimeout(openDestination, 0);
-                }}
-                className="h-14 w-full rounded-2xl bg-[#14B8A6] text-base font-black text-[#031315] hover:bg-[#2DD4BF]"
-              >
-                {copy.retry}
-              </Button>
-            </CardContent>
-          </Card>
+            <button
+              onClick={() => {
+                dispatch({ type: 'RESET_TO_IDLE' });
+                window.setTimeout(openDestination, 0);
+              }}
+              className="h-14 w-full bg-[#14B8A6] text-[#0A0F1D] font-bold text-base py-3.5 rounded-xl transition-transform active:scale-[0.98] hover:bg-[#2DD4BF] flex items-center justify-center cursor-pointer"
+            >
+              {copy.retry}
+            </button>
+          </div>
         );
       }
 
       return (
-        <Card className="w-full border-[#14B8A6]/25 bg-[#0B0F19]/90 text-white shadow-2xl shadow-black/40 backdrop-blur-xl">
-          <CardContent className={`space-y-5 p-5 ${isArabic ? 'text-right' : 'text-left'}`} dir={isArabic ? 'rtl' : 'ltr'}>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div className="space-y-1">
-                <p className="text-[11px] font-black text-[#14F5D5]">{hasOffers ? copy.offersArrived : copy.searchingCaptain}</p>
-                <h2 className="text-xl font-black sm:text-2xl">{hasOffers ? copy.chooseCaptain : copy.requestVisibleTitle}</h2>
-                <p className="text-xs text-slate-400">
-                  {hasOffers ? copy.chooseOfferDescription : copy.waitingOffersDescription}
-                </p>
-              </div>
-              <Button
-                type="button"
-                onClick={() => void handleCancelRideRequest()}
-                disabled={isCancellingRideRequest}
-                className="h-11 rounded-xl border border-red-500/30 bg-red-600/15 px-4 text-sm font-black text-red-100 hover:bg-red-600/25"
-              >
-                <X className="h-4 w-4" />
-                {isCancellingRideRequest ? requestFlowCopy.cancellingRequest : requestFlowCopy.cancelRequest}
-              </Button>
+        <div className={`space-y-4 ${isArabic ? 'text-right' : 'text-left'}`} dir={isArabic ? 'rtl' : 'ltr'}>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="space-y-1">
+              <p className="text-[11px] font-black text-[#14F5D5]">{hasOffers ? copy.offersArrived : copy.searchingCaptain}</p>
+              <h2 className="text-xl font-bold text-white">{hasOffers ? copy.chooseCaptain : copy.requestVisibleTitle}</h2>
+              <p className="text-xs text-slate-400">
+                {hasOffers ? copy.chooseOfferDescription : copy.waitingOffersDescription}
+              </p>
             </div>
+            <button
+              type="button"
+              onClick={() => void handleCancelRideRequest()}
+              disabled={isCancellingRideRequest}
+              className="h-11 rounded-xl border border-red-500/30 bg-red-600/15 px-4 text-sm font-black text-red-100 hover:bg-red-600/25 flex items-center justify-center gap-1 cursor-pointer"
+            >
+              <X className="h-4 w-4" />
+              {isCancellingRideRequest ? requestFlowCopy.cancellingRequest : requestFlowCopy.cancelRequest}
+            </button>
+          </div>
 
-            {state.requestId ? (
-              <div className="rounded-2xl border border-[#14B8A6]/20 bg-[#14B8A6]/8 p-4">
-                <p className="mb-3 text-[11px] font-black text-[#14F5D5]">{copy.savedRequestTitle}</p>
-                <div className="grid grid-cols-2 gap-3">
-                  <Metric label={copy.requestNumber} value={shortRequestId} />
-                  <Metric label={copy.requestStatus} value={copy.savedInDatabase} />
-                  <Metric label={copy.destination} value={state.destination?.label || copy.notAvailable} />
-                  <Metric label={copy.serverFare} value={requestFareLabel} />
-                </div>
+          {state.requestId ? (
+            <div className="rounded-2xl border border-white/5 bg-white/5 p-4">
+              <p className="mb-3 text-[11px] font-black text-[#14F5D5]">{copy.savedRequestTitle}</p>
+              <div className="grid grid-cols-2 gap-3">
+                <Metric label={copy.requestNumber} value={shortRequestId} />
+                <Metric label={copy.requestStatus} value={copy.savedInDatabase} />
+                <Metric label={copy.destination} value={state.destination?.label || copy.notAvailable} />
+                <Metric label={copy.serverFare} value={requestFareLabel} />
               </div>
-            ) : null}
+            </div>
+          ) : null}
 
-            {!hasOffers ? (
-              <div className="flex min-h-36 flex-col items-center justify-center gap-3 rounded-2xl border border-[#14B8A6]/15 bg-black/30">
-                <Loader2 className="h-9 w-9 animate-spin text-[#14F5D5]" />
-                <span className="px-4 text-center text-xs font-bold leading-relaxed text-slate-300">
-                  {copy.waitingOffersLoader}
-                </span>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {state.offers.map((offer) => (
-                  <article key={offer.id || offer.driverId} className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <h3 className="text-lg font-black text-white">{offer.driverName}</h3>
-                        <p className="mt-1 flex items-center gap-1 text-xs text-slate-400">
-                          <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
-                          {offer.driverRating.toFixed(1)} / {offer.driverRank}
-                        </p>
-                      </div>
-                      <strong className="text-xl font-black text-[#14F5D5]">
-                        {formatMoney(offer.price, currencyLabel)}
-                      </strong>
+          {!hasOffers ? (
+            <div className="flex min-h-36 flex-col items-center justify-center gap-3 rounded-2xl border border-white/5 bg-white/5">
+              <Loader2 className="h-9 w-9 animate-spin text-[#14F5D5]" />
+              <span className="px-4 text-center text-xs font-bold leading-relaxed text-slate-300">
+                {copy.waitingOffersLoader}
+              </span>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {state.offers.map((offer) => (
+                <article key={offer.id || offer.driverId} className="space-y-3 rounded-2xl border border-white/5 bg-white/5 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <h3 className="text-lg font-bold text-white">{offer.driverName}</h3>
+                      <p className="mt-1 flex items-center gap-1 text-xs text-slate-400">
+                        <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
+                        {offer.driverRating.toFixed(1)} / {offer.driverRank}
+                      </p>
                     </div>
+                    <strong className="text-xl font-bold text-[#14F5D5]">
+                      {formatMoney(offer.price, currencyLabel)}
+                    </strong>
+                  </div>
 
-                    <div className="grid grid-cols-2 gap-2 rounded-xl bg-black/25 p-3 text-xs text-slate-300">
-                      <Metric label={copy.vehicle} value={`${offer.driverVehicle.make} ${offer.driverVehicle.color}`} />
-                      <Metric label={copy.plate} value={offer.driverVehicle.plate} />
-                    </div>
+                  <div className="grid grid-cols-2 gap-2 rounded-xl bg-black/25 p-3 text-xs text-slate-300">
+                    <Metric label={copy.vehicle} value={`${offer.driverVehicle.make} ${offer.driverVehicle.color}`} />
+                    <Metric label={copy.plate} value={offer.driverVehicle.plate} />
+                  </div>
 
-                    <Button
-                      onClick={() => void handleAcceptOffer(offer)}
-                      disabled={acceptingOfferId === (offer.id || offer.driverId)}
-                      className="h-11 w-full rounded-xl bg-[#14B8A6] font-black text-[#031315] hover:bg-[#2DD4BF]"
-                    >
-                      {acceptingOfferId === (offer.id || offer.driverId) ? copy.acceptingOffer : copy.acceptOffer}
-                    </Button>
-                  </article>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                  <button
+                    onClick={() => void handleAcceptOffer(offer)}
+                    disabled={acceptingOfferId === (offer.id || offer.driverId)}
+                    className="h-11 w-full bg-[#14B8A6] text-[#0A0F1D] font-bold text-sm rounded-xl transition-transform active:scale-[0.98] hover:bg-[#2DD4BF] flex items-center justify-center cursor-pointer"
+                  >
+                    {acceptingOfferId === (offer.id || offer.driverId) ? copy.acceptingOffer : copy.acceptOffer}
+                  </button>
+                </article>
+              ))}
+            </div>
+          )}
+        </div>
       );
     }
 
@@ -1137,44 +1121,42 @@ export function RiderViewTab({ onExitRequestFlow }: { onExitRequestFlow?: () => 
       const seconds = etaSeconds % 60;
 
       return (
-        <Card className="w-full border-[#14B8A6]/25 bg-[#0B0F19]/92 text-white shadow-2xl shadow-black/40 backdrop-blur-xl">
-          <CardContent className={cn("space-y-5 p-5", isArabic ? "text-right" : "text-left")} dir={isArabic ? "rtl" : "ltr"}>
-            <div className="flex items-start justify-between gap-3">
-              <div className="space-y-1">
-                <p className="text-[11px] font-black text-[#14F5D5]">{copy.tripStarted}</p>
-                <h2 className="text-xl font-black sm:text-2xl">{state.activeTrip.captainSerial}</h2>
-                <p className="text-xs text-slate-400">{state.activeTrip.destinationLabel}</p>
-              </div>
-              <div className="rounded-2xl border border-[#14B8A6]/20 bg-[#14B8A6]/10 px-4 py-2 text-center">
-                <Clock className="mx-auto mb-1 h-4 w-4 text-[#14F5D5]" />
-                <strong className="font-mono text-lg text-[#14F5D5]">
-                  {minutes}:{seconds.toString().padStart(2, '0')}
-                </strong>
-              </div>
+        <div className={`space-y-4 ${isArabic ? 'text-right' : 'text-left'}`} dir={isArabic ? 'rtl' : 'ltr'}>
+          <div className="flex items-start justify-between gap-3">
+            <div className="space-y-1">
+              <p className="text-[11px] font-black text-[#14F5D5]">{copy.tripStarted}</p>
+              <h2 className="text-xl font-bold text-white">{state.activeTrip.captainSerial}</h2>
+              <p className="text-xs text-slate-400">{state.activeTrip.destinationLabel}</p>
             </div>
-
-            <div className="grid grid-cols-2 gap-3 rounded-2xl border border-white/10 bg-black/30 p-4">
-              <Metric label={copy.vehicle} value={state.activeTrip.vehicleType} />
-              <Metric label={copy.plate} value={state.activeTrip.vehiclePlate} />
-              <Metric label={copy.serverFare} value={formatMoney(state.activeTrip.finalPrice, currencyLabel)} />
-              <Metric label={copy.tripDistance} value={`${state.activeTrip.distanceKm.toFixed(2)} ${copy.km}`} />
-              <Metric label={copy.tracking} value={copy.localUpdates} />
-              <Metric label={copy.roadFactor} value={(state.activeTrip.tortuosityFactor ?? 1.3).toFixed(2)} />
+            <div className="rounded-2xl border border-white/5 bg-white/5 px-4 py-2 text-center">
+              <Clock className="mx-auto mb-1 h-4 w-4 text-[#14F5D5]" />
+              <strong className="font-mono text-lg text-[#14F5D5]">
+                {minutes}:{seconds.toString().padStart(2, '0')}
+              </strong>
             </div>
+          </div>
 
-            <div className="rounded-2xl border border-[#14B8A6]/20 bg-[#14B8A6]/8 p-4 text-xs leading-relaxed text-slate-300">
-              {copy.driverEnRouteNote}
-            </div>
+          <div className="grid grid-cols-2 gap-3 rounded-2xl border border-white/5 bg-white/5 p-4">
+            <Metric label={copy.vehicle} value={state.activeTrip.vehicleType} />
+            <Metric label={copy.plate} value={state.activeTrip.vehiclePlate} />
+            <Metric label={copy.serverFare} value={formatMoney(state.activeTrip.finalPrice, currencyLabel)} />
+            <Metric label={copy.tripDistance} value={`${state.activeTrip.distanceKm.toFixed(2)} ${copy.km}`} />
+            <Metric label={copy.tracking} value={copy.localUpdates} />
+            <Metric label={copy.roadFactor} value={(state.activeTrip.tortuosityFactor ?? 1.3).toFixed(2)} />
+          </div>
 
-            <Button
-              onClick={() => void handleCompleteTrip()}
-              disabled={isCompletingTrip}
-              className="h-14 w-full rounded-2xl bg-[#14B8A6] text-base font-black text-[#031315] hover:bg-[#2DD4BF]"
-            >
-              {isCompletingTrip ? copy.completingTrip : copy.completeTrip}
-            </Button>
-          </CardContent>
-        </Card>
+          <div className="rounded-2xl border border-[#14B8A6]/20 bg-[#14B8A6]/8 p-4 text-xs leading-relaxed text-slate-300">
+            {copy.driverEnRouteNote}
+          </div>
+
+          <button
+            onClick={() => void handleCompleteTrip()}
+            disabled={isCompletingTrip}
+            className="h-14 w-full bg-[#14B8A6] text-[#0A0F1D] font-bold text-base py-3.5 rounded-xl transition-transform active:scale-[0.98] hover:bg-[#2DD4BF] flex items-center justify-center cursor-pointer"
+          >
+            {isCompletingTrip ? copy.completingTrip : copy.completeTrip}
+          </button>
+        </div>
       );
     }
 
@@ -1182,13 +1164,35 @@ export function RiderViewTab({ onExitRequestFlow }: { onExitRequestFlow?: () => 
   };
 
   return (
-    <div className="relative flex min-h-[calc(100svh-128px)] w-full flex-col gap-3 bg-[#0B0F19] p-3 pb-[calc(6.5rem+env(safe-area-inset-bottom))] text-white sm:gap-4 sm:p-4 lg:h-screen lg:min-h-screen lg:overflow-hidden lg:bg-transparent lg:p-0" dir={isArabic ? 'rtl' : 'ltr'}>
-      <div className="mx-auto grid w-full max-w-6xl gap-3 sm:gap-4 lg:block lg:h-full lg:max-w-none">
-        <div className="space-y-3 sm:space-y-4 lg:absolute lg:inset-0 lg:space-y-0">
+    <div className="relative h-[calc(100vh-120px)] w-full overflow-hidden text-white lg:h-screen lg:min-h-screen lg:overflow-hidden lg:bg-transparent" dir={isArabic ? 'rtl' : 'ltr'}>
+      {/* Floating Header Close Button for Viewport Header Area */}
+      <button
+        type="button"
+        onClick={async () => {
+          if (state.requestId) {
+            await handleCancelRideRequest();
+          } else if (state.screen === 'DESTINATION_SELECTION') {
+            dispatch({ type: 'RETURN_TO_MAP' });
+          } else {
+            if (onExitRequestFlow) {
+              onExitRequestFlow();
+            } else {
+              window.dispatchEvent(new CustomEvent('exit-request-flow'));
+            }
+          }
+        }}
+        className="fixed top-[14px] right-4 z-[120] h-9 w-9 flex items-center justify-center rounded-full bg-slate-800 border border-white/20 text-white shadow-lg active:scale-95 cursor-pointer hover:bg-slate-700 transition-colors lg:hidden"
+        aria-label="إغلاق"
+      >
+        <X className="h-4 w-4 stroke-[3]" />
+      </button>
+
+      <div className="relative h-full w-full lg:block lg:max-w-none">
+        <div className="hidden lg:block lg:absolute lg:inset-0 lg:z-0">
           <RiderMap
             activeTripCaptainId={state.activeTrip?.captainId || null}
             captainLocations={captainLocations}
-            className="h-[38svh] min-h-[250px] max-h-[320px] sm:h-[42svh] sm:min-h-[300px] sm:max-h-[380px] lg:h-full lg:max-h-none lg:min-h-0 lg:rounded-none lg:border-0"
+            className="h-full w-full lg:rounded-none lg:border-0"
             destinationFlyToTarget={state.screen === 'DESTINATION_SELECTION' ? selectedDistrict?.anchor || null : null}
             fallbackLocation={profileFallbackLocation}
             showDestinationPin={state.screen === 'DESTINATION_SELECTION'}
@@ -1198,101 +1202,111 @@ export function RiderViewTab({ onExitRequestFlow }: { onExitRequestFlow?: () => 
           />
         </div>
 
-        <aside className="space-y-3 sm:space-y-4 lg:absolute lg:bottom-6 lg:right-6 lg:top-6 lg:z-40 lg:w-[420px] lg:overflow-y-auto lg:rounded-[28px] lg:border lg:border-white/10 lg:bg-[#0B0F19]/82 lg:p-4 lg:shadow-[0_30px_100px_rgba(0,0,0,0.45)] lg:backdrop-blur-xl">
-          <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-3 shadow-xl shadow-black/20 backdrop-blur sm:rounded-[24px] sm:p-4">
-            <div className="mb-3 flex items-center justify-between sm:mb-4">
-              <div>
-                <p className="text-[11px] font-black text-[#14F5D5]">{copy.panelEyebrow}</p>
-                <h1 className="text-xl font-black sm:text-2xl">{copy.panelTitle}</h1>
-              </div>
-              <ShieldCheck className="h-7 w-7 text-[#14F5D5]" />
-            </div>
-
-            <div className="grid grid-cols-3 gap-2 lg:hidden">
-              <NavButton active={state.screen === 'IDLE_MAP'} onClick={() => dispatch({ type: 'RETURN_TO_MAP' })}>
-                {copy.mapTab}
-              </NavButton>
-              <NavButton active={state.screen === 'PURGE_LEDGER'} onClick={() => dispatch({ type: 'OPEN_PURGE_LEDGER' })}>
-                {copy.tripsTab}
-              </NavButton>
-              <NavButton active={state.screen === 'FAVORITE_CAPTAINS'} onClick={() => dispatch({ type: 'OPEN_FAVORITE_CAPTAINS' })}>
-                {copy.savedTab}
-              </NavButton>
-            </div>
+        <aside className="absolute bottom-0 left-0 right-0 z-10 w-full max-h-[90vh] flex flex-col rounded-t-[32px] rounded-b-none border-t border-white/10 bg-[#0A0F1D]/80 shadow-[0_-10px_25px_rgba(0,0,0,0.5)] backdrop-blur-xl lg:absolute lg:bottom-6 lg:right-6 lg:top-6 lg:z-40 lg:w-[420px] lg:rounded-[28px] lg:border lg:border-white/10 lg:bg-[#0A0F1D]/80 lg:shadow-[0_30px_100px_rgba(0,0,0,0.45)] lg:backdrop-blur-xl lg:max-h-none lg:rounded-b-[28px]">
+          {/* Top Bar with Center Drag Handle only */}
+          <div className="flex items-center justify-center p-4 border-b border-white/5 bg-slate-900/40 backdrop-blur-md rounded-t-[32px] lg:rounded-t-[28px] relative z-50">
+            {/* Drag Handle */}
+            <div className="w-12 h-1.5 bg-slate-500/40 rounded-full" />
           </div>
 
-          {state.screen === 'IDLE_MAP' && (
-            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-              <Card className="border-[#14B8A6]/25 bg-[#0B0F19]/90 text-white shadow-2xl shadow-black/40 backdrop-blur-xl">
-                <CardContent className={`space-y-5 p-5 ${isArabic ? 'text-right' : 'text-left'}`} dir={isArabic ? 'rtl' : 'ltr'}>
-                  <div className="space-y-3">
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-1">
-                        <p className="text-[11px] font-black text-[#14F5D5]">{copy.readyQuestion}</p>
-                        <h2 className="text-xl font-black sm:text-2xl">{copy.whereTo}</h2>
-                      </div>
-                      {onExitRequestFlow && (
-                        <button
-                          type="button"
-                          onClick={onExitRequestFlow}
-                          className="h-8 w-8 flex items-center justify-center rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-colors text-white/70 hover:text-white cursor-pointer active:scale-95 shrink-0"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
-                      )}
-                    </div>
+          {/* Scrollable Content Wrapper */}
+          <div className="flex-1 overflow-y-auto p-6 pt-4 space-y-4">
+            {/* Mobile Map Card inside Bottom Sheet */}
+            <div className="block lg:hidden w-full h-[240px] rounded-2xl overflow-hidden border border-white/10 shadow-lg relative z-10">
+              <RiderMap
+                activeTripCaptainId={state.activeTrip?.captainId || null}
+                captainLocations={captainLocations}
+                className="h-full w-full"
+                destinationFlyToTarget={state.screen === 'DESTINATION_SELECTION' ? selectedDistrict?.anchor || null : null}
+                fallbackLocation={profileFallbackLocation}
+                showDestinationPin={state.screen === 'DESTINATION_SELECTION'}
+                onDestinationChange={handleDestinationPinChange}
+                onDestinationMoveStart={handleDestinationPinMoveStart}
+                onLocationChange={handleLocationChange}
+              />
+            </div>
+
+            <div className="rounded-2xl border border-white/5 bg-white/5 p-4 shadow-xl shadow-black/20 backdrop-blur">
+              <div className="mb-3 flex items-center justify-between sm:mb-4">
+                <div>
+                  <p className="text-[11px] font-black text-[#14F5D5] tracking-wider">{copy.panelEyebrow}</p>
+                  <h1 className="text-xl font-bold text-white mt-0.5">{copy.panelTitle}</h1>
+                </div>
+                <ShieldCheck className="h-7 w-7 text-[#14F5D5]" />
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 lg:hidden">
+                <NavButton active={state.screen === 'IDLE_MAP'} onClick={() => dispatch({ type: 'RETURN_TO_MAP' })}>
+                  {copy.mapTab}
+                </NavButton>
+                <NavButton active={state.screen === 'PURGE_LEDGER'} onClick={() => dispatch({ type: 'OPEN_PURGE_LEDGER' })}>
+                  {copy.tripsTab}
+                </NavButton>
+                <NavButton active={state.screen === 'FAVORITE_CAPTAINS'} onClick={() => dispatch({ type: 'OPEN_FAVORITE_CAPTAINS' })}>
+                  {copy.savedTab}
+                </NavButton>
+              </div>
+            </div>
+
+            {state.screen === 'IDLE_MAP' && (
+              <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+                <div className={`space-y-4 ${isArabic ? 'text-right' : 'text-left'}`} dir={isArabic ? 'rtl' : 'ltr'}>
+                  <div className="space-y-1">
+                    <p className="text-[11px] font-black text-[#14F5D5]">{copy.readyQuestion}</p>
+                    <h2 className="text-xl font-bold text-white">{copy.whereTo}</h2>
                     <p className="text-xs leading-relaxed text-slate-400">
                       {copy.homeSubtitle}
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3 rounded-2xl border border-white/10 bg-black/30 p-4">
+                  <div className="grid grid-cols-2 gap-3 rounded-2xl border border-white/5 bg-white/5 p-4">
                     <Metric label={copy.yourArea} value={locationStatus === 'live' ? copy.currentLocation : copy.fallbackLocation} />
                     <Metric label={copy.yourRating} value={`${riderProfile.rating.toFixed(1)} / 5`} />
                   </div>
 
-                  <Button
+                  <button
                     onClick={openDestination}
-                    className="h-16 w-full rounded-2xl bg-[#14B8A6] text-lg font-black text-[#031315] shadow-lg shadow-[#14B8A6]/20 hover:bg-[#2DD4BF]"
+                    className="h-14 w-full bg-[#14B8A6] text-[#0A0F1D] font-bold text-base py-3.5 rounded-xl transition-transform active:scale-[0.98] shadow-lg shadow-[#14B8A6]/20 hover:bg-[#2DD4BF] flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <Navigation className="ml-2 h-5 w-5" />
                     {copy.requestRide}
-                  </Button>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
+                  </button>
+                </div>
+              </motion.div>
+            )}
 
-          {renderStatePanel()}
+            {renderStatePanel()}
 
-          {state.screen === 'TRIP_ACTIVE' && state.requestId ? (
-            <Button
-              type="button"
-              onClick={() => void handleCancelRideRequest()}
-              disabled={isCancellingRideRequest || isCompletingTrip}
-              className="h-12 w-full rounded-2xl border border-red-500/30 bg-red-600/15 text-sm font-black text-red-100 shadow-xl shadow-black/25 hover:bg-red-600/25"
-            >
-              {isCancellingRideRequest ? requestFlowCopy.cancellingRequest : requestFlowCopy.cancelRequest}
-            </Button>
-          ) : null}
+            {state.screen === 'TRIP_ACTIVE' && state.requestId ? (
+              <Button
+                type="button"
+                onClick={() => void handleCancelRideRequest()}
+                disabled={isCancellingRideRequest || isCompletingTrip}
+                className="h-12 w-full rounded-2xl border border-red-500/30 bg-red-600/15 text-sm font-black text-red-100 shadow-xl shadow-black/25 hover:bg-red-600/25"
+              >
+                {isCancellingRideRequest ? requestFlowCopy.cancellingRequest : requestFlowCopy.cancelRequest}
+              </Button>
+            ) : null}
 
-          {showAdRiver && (
-            <div className="hidden overflow-hidden rounded-[24px] border border-[#14B8A6]/15 bg-[#0B0F19]/88 shadow-2xl shadow-black/35 backdrop-blur-xl lg:block">
-              <AdStage />
-            </div>
-          )}
+            {showAdRiver && (
+              <div className="hidden overflow-hidden rounded-[24px] border border-[#14B8A6]/15 bg-[#0B0F19]/88 shadow-2xl shadow-black/35 backdrop-blur-xl lg:block">
+                <AdStage />
+              </div>
+            )}
 
-          {(state.screen === 'PURGE_LEDGER' || state.screen === 'FAVORITE_CAPTAINS') && (
-            <RadarRiderDashboard
-              riderProfile={riderProfile}
-              tripsWithin72Hours={tripsWithin72Hours}
-              systemMessages={systemMessages}
-              currencyLabel={currencyLabel}
-            />
-          )}
+            {(state.screen === 'PURGE_LEDGER' || state.screen === 'FAVORITE_CAPTAINS') && (
+              <RadarRiderDashboard
+                riderProfile={riderProfile}
+                tripsWithin72Hours={tripsWithin72Hours}
+                systemMessages={systemMessages}
+                currencyLabel={currencyLabel}
+              />
+            )}
+          </div>
         </aside>
 
-        {showAdRiver && (
+        {/* Hide secondary ads inside the active request map flow */}
+        {false && showAdRiver && (
           <div className="overflow-hidden rounded-[24px] border border-[#14B8A6]/15 lg:hidden">
             <AdStage />
           </div>
