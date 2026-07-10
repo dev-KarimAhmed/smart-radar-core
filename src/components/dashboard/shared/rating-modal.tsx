@@ -109,6 +109,8 @@ export function RatingModal({
     }
   };
 
+  const [confirmBlock, setConfirmBlock] = useState(false);
+
   const handleBlockDriver = async () => {
     setIsBlocking(true);
     try {
@@ -134,6 +136,7 @@ export function RatingModal({
       });
     } finally {
       setIsBlocking(false);
+      setConfirmBlock(false);
     }
   };
 
@@ -155,7 +158,7 @@ export function RatingModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[92vh] overflow-y-auto border-white/[0.06] bg-[#0A0F1D]/95 backdrop-blur-xl text-white sm:max-w-md w-[95%] rounded-3xl p-6" dir="rtl">
+      <DialogContent className="max-h-[92vh] overflow-y-auto border-white/[0.06] bg-[#0A0F1D]/95 backdrop-blur-xl text-white sm:max-w-md w-[95%] rounded-3xl p-6 pb-8" dir="rtl">
         <DialogHeader className="text-right flex flex-row items-center justify-between pb-2 border-b border-white/5">
           <div>
             <DialogTitle className="text-xl font-black text-white">قيّم الرحلة</DialogTitle>
@@ -242,24 +245,52 @@ export function RatingModal({
 
         <div className="space-y-3 pt-2">
           {/* Submit Rating Button */}
-          <Button
-            className="h-12 w-full bg-[#14B8A6] hover:bg-[#2DD4BF] text-[#0A0F1D] font-black text-base rounded-xl transition-all"
-            disabled={isSubmitting || isBlocking}
-            onClick={handleSubmit}
-          >
-            {isSubmitting ? 'جاري إرسال التقييم...' : 'إرسال التقييم'}
-          </Button>
+          {!confirmBlock && (
+            <Button
+              className="h-12 w-full bg-[#14B8A6] hover:bg-[#2DD4BF] text-[#0A0F1D] font-black text-base rounded-xl transition-all"
+              disabled={isSubmitting || isBlocking}
+              onClick={handleSubmit}
+            >
+              {isSubmitting ? 'جاري إرسال التقييم...' : 'إرسال التقييم'}
+            </Button>
+          )}
 
-          {/* Block Button */}
-          <button
-            type="button"
-            disabled={isSubmitting || isBlocking}
-            onClick={handleBlockDriver}
-            className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl py-3 w-full text-sm font-bold transition-colors flex items-center justify-center gap-2 cursor-pointer"
-          >
-            <AlertOctagon className="h-4 w-4" />
-            {isBlocking ? 'جاري حظر السائق...' : 'حظر هذا السائق وعدم التعامل معه مجدداً'}
-          </button>
+          {/* Block Button & Confirm Block UI */}
+          {!confirmBlock ? (
+            <button
+              type="button"
+              disabled={isSubmitting || isBlocking}
+              onClick={() => setConfirmBlock(true)}
+              className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl py-3 w-full text-sm font-bold transition-colors flex items-center justify-center gap-2 cursor-pointer mb-2"
+            >
+              <AlertOctagon className="h-4 w-4" />
+              {'حظر هذا السائق وعدم التعامل معه مجدداً'}
+            </button>
+          ) : (
+            <div className="rounded-2xl border border-red-500/20 bg-red-500/5 p-4 space-y-3 mb-2 animate-fadeIn">
+              <p className="text-xs text-red-200 leading-relaxed text-center font-bold">
+                هل أنت متأكد من حظر هذا السائق؟ لن تظهر لك رحلاته أو عروضه مجدداً في المستقبل.
+              </p>
+              <div className="flex gap-2.5">
+                <Button
+                  variant="destructive"
+                  className="flex-1 h-10 rounded-lg text-xs font-bold"
+                  disabled={isBlocking}
+                  onClick={handleBlockDriver}
+                >
+                  {isBlocking ? 'جاري الحظر...' : 'نعم، تأكيد الحظر'}
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1 h-10 rounded-lg text-xs font-bold border-white/10 bg-white/5 hover:bg-white/10 text-white"
+                  disabled={isBlocking}
+                  onClick={() => setConfirmBlock(false)}
+                >
+                  تراجع
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>

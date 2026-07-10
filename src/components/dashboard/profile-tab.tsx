@@ -176,6 +176,7 @@ export function ProfileTab() {
   const [districts, setDistricts] = useState<DistrictRow[]>([]);
   const [favoriteCount, setFavoriteCount] = useState(0);
   const [blockedCaptains, setBlockedCaptains] = useState<{ id: string; name: string; phone: string; rating: number; serialId: string }[]>([]);
+  const [confirmingUnblockId, setConfirmingUnblockId] = useState<string | null>(null);
   const [isLoadingBlocks, setIsLoadingBlocks] = useState(false);
 
   const [fullName, setFullName] = useState('');
@@ -762,14 +763,38 @@ export function ProfileTab() {
                           </span>
                         )}
                       </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleUnblockCaptain(captain.id)}
-                        className="h-8 rounded-lg border-red-500/30 bg-red-500/10 text-xs font-bold text-red-400 hover:bg-red-500 hover:text-white transition-colors"
-                      >
-                        {isArabic ? 'إلغاء الحظر' : 'Unblock'}
-                      </Button>
+                      {confirmingUnblockId === captain.id ? (
+                        <div className="flex gap-2">
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => {
+                              handleUnblockCaptain(captain.id);
+                              setConfirmingUnblockId(null);
+                            }}
+                            className="h-8 rounded-lg text-[10px] font-bold bg-red-600 hover:bg-red-500 text-white px-3"
+                          >
+                            {isArabic ? 'تأكيد' : 'Confirm'}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setConfirmingUnblockId(null)}
+                            className="h-8 rounded-lg text-[10px] font-bold border-white/15 bg-white/5 hover:bg-white/10 text-white px-3"
+                          >
+                            {isArabic ? 'تراجع' : 'Cancel'}
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setConfirmingUnblockId(captain.id)}
+                          className="h-8 rounded-lg border-red-500/30 bg-red-500/10 text-xs font-bold text-red-400 hover:bg-red-500 hover:text-white transition-colors px-3"
+                        >
+                          {isArabic ? 'إلغاء الحظر' : 'Unblock'}
+                        </Button>
+                      )}
                     </div>
 
                     <div className="grid grid-cols-2 gap-2 border-t border-white/5 pt-2 mt-1 text-[11px] text-slate-400">

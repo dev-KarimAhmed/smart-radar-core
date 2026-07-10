@@ -40,6 +40,7 @@ export interface RiderMapCaptainPoint {
   coordinates: RiderLocation;
   etaMinutes?: number;
   rank?: string;
+  isBlocked?: boolean;
 }
 
 const OPENFREEMAP_STYLE = 'https://tiles.openfreemap.org/styles/liberty';
@@ -86,6 +87,7 @@ function toCaptainFeatureCollection(captains: RiderMapCaptainPoint[]) {
         serial: captain.serial,
         etaMinutes: captain.etaMinutes,
         rank: captain.rank,
+        isBlocked: !!captain.isBlocked,
       },
       geometry: {
         type: 'Point' as const,
@@ -299,9 +301,19 @@ export function RiderMap({
         source: 'rider-captains',
         paint: {
           'circle-radius': 16,
-          'circle-color': '#14B8A6',
+          'circle-color': [
+            'case',
+            ['get', 'isBlocked'],
+            '#EF4444',
+            '#14B8A6'
+          ],
           'circle-opacity': 0.18,
-          'circle-stroke-color': '#14F5D5',
+          'circle-stroke-color': [
+            'case',
+            ['get', 'isBlocked'],
+            '#F87171',
+            '#14F5D5'
+          ],
           'circle-stroke-width': 1,
           'circle-stroke-opacity': 0.42,
         },
@@ -312,7 +324,12 @@ export function RiderMap({
         type: 'symbol',
         source: 'rider-captains',
         layout: {
-          'text-field': '🚗',
+          'text-field': [
+            'case',
+            ['get', 'isBlocked'],
+            '🚫',
+            '🚗'
+          ],
           'text-size': 19,
           'text-allow-overlap': true,
           'text-ignore-placement': true,

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { latLngToCell } from 'h3-js';
-import { Clock, Heart, Loader2, Navigation, ShieldCheck, Star, X, MapPin } from 'lucide-react';
+import { Clock, Heart, Loader2, Navigation, ShieldCheck, Star, X, MapPin, Phone } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -113,6 +113,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
   const [locationStatus, setLocationStatus] = React.useState<RiderLocationStatus>('fallback');
   const [localCompletedTrips, setLocalCompletedTrips] = React.useState<HistoricalTrip[]>([]);
   const [captainLocations, setCaptainLocations] = React.useState<CaptainPresencePoint[]>([]);
+  const [blockedCaptainIds, setBlockedCaptainIds] = React.useState<Set<string>>(new Set());
   const [isSendingRideRequest, setIsSendingRideRequest] = React.useState(false);
   const [isCancellingRideRequest, setIsCancellingRideRequest] = React.useState(false);
   const [acceptingOfferId, setAcceptingOfferId] = React.useState<string | null>(null);
@@ -451,6 +452,31 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
       window.clearTimeout(timeoutId);
     };
   }, [activeCountryId, destinationDataError, fareRequestKey, riderLocation, selectedDestinationCoords, selectedDistrict]);
+
+  const loadBlockedCaptains = React.useCallback(async () => {
+    if (!user?.uid) return;
+    try {
+      const { data, error } = await supabase
+        .from('user_blocks')
+        .select('blocked_id')
+        .eq('blocker_id', user.uid);
+      if (error) throw error;
+      setBlockedCaptainIds(new Set((data || []).map((row: any) => String(row.blocked_id))));
+    } catch (err) {
+      if ((process.env.NODE_ENV !== 'production')) console.warn('[Rider View Tab] loadBlockedCaptains error:', err);
+    }
+  }, [user?.uid]);
+
+  React.useEffect(() => {
+    void loadBlockedCaptains();
+  }, [loadBlockedCaptains]);
+
+  const mappedCaptains = React.useMemo(() => {
+    return captainLocations.map((captain) => ({
+      ...captain,
+      isBlocked: blockedCaptainIds.has(captain.id),
+    }));
+  }, [captainLocations, blockedCaptainIds]);
 
   React.useEffect(() => {
     if (!state.requestId) return;
@@ -1185,13 +1211,24 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                       </div>
                     )}
 
-                    <button
-                      onClick={() => void handleAcceptOffer(offer)}
-                      disabled={acceptingOfferId === (offer.id || offer.driverId)}
-                      className="h-11 w-full bg-[#14B8A6] text-[#0A0F1D] font-bold text-sm rounded-xl transition-transform active:scale-[0.98] hover:bg-[#2DD4BF] flex items-center justify-center cursor-pointer"
-                    >
-                      {acceptingOfferId === (offer.id || offer.driverId) ? copy.acceptingOffer : copy.acceptOffer}
-                    </button>
+                    <div className="flex gap-2">
+                      {offer.driverAffiliation?.phone && (
+                        <a
+                          href={`tel:${offer.driverAffiliation.phone}`}
+                          className="flex h-11 w-12 items-center justify-center rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 text-[#14F5D5] hover:bg-[#14B8A6]/20 transition-colors cursor-pointer"
+                          title={isArabic ? 'اتصال بالكابتن' : 'Call Captain'}
+                        >
+                          <Phone className="h-5 w-5" />
+                        </a>
+                      )}
+                      <button
+                        onClick={() => void handleAcceptOffer(offer)}
+                        disabled={acceptingOfferId === (offer.id || offer.driverId)}
+                        className="h-11 flex-1 bg-[#14B8A6] text-[#0A0F1D] font-bold text-sm rounded-xl transition-transform active:scale-[0.98] hover:bg-[#2DD4BF] flex items-center justify-center cursor-pointer"
+                      >
+                        {acceptingOfferId === (offer.id || offer.driverId) ? copy.acceptingOffer : copy.acceptOffer}
+                      </button>
+                    </div>
                   </article>
                 );
               })}
@@ -1234,13 +1271,24 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
             {copy.driverEnRouteNote}
           </div>
 
-          <button
-            onClick={() => void handleCompleteTrip()}
-            disabled={isCompletingTrip}
-            className="h-14 w-full bg-[#14B8A6] text-[#0A0F1D] font-bold text-base py-3.5 rounded-xl transition-transform active:scale-[0.98] hover:bg-[#2DD4BF] flex items-center justify-center cursor-pointer"
-          >
-            {isCompletingTrip ? copy.completingTrip : copy.completeTrip}
-          </button>
+          <div className="flex gap-2">
+            {state.activeTrip.captainPhone && (
+              <a
+                href={`tel:${state.activeTrip.captainPhone}`}
+                className="flex h-14 w-14 items-center justify-center rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 text-[#14F5D5] hover:bg-[#14B8A6]/20 transition-colors cursor-pointer"
+                title={isArabic ? 'اتصال بالكابتن' : 'Call Captain'}
+              >
+                <Phone className="h-6 w-6" />
+              </a>
+            )}
+            <button
+              onClick={() => void handleCompleteTrip()}
+              disabled={isCompletingTrip}
+              className="h-14 flex-1 bg-[#14B8A6] text-[#0A0F1D] font-bold text-base py-3.5 rounded-xl transition-transform active:scale-[0.98] hover:bg-[#2DD4BF] flex items-center justify-center cursor-pointer"
+            >
+              {isCompletingTrip ? copy.completingTrip : copy.completeTrip}
+            </button>
+          </div>
         </div>
       );
     }
@@ -1254,7 +1302,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
         <div className="hidden lg:block lg:absolute lg:inset-0 lg:z-0">
           <RiderMap
             activeTripCaptainId={state.activeTrip?.captainId || null}
-            captainLocations={captainLocations}
+            captainLocations={mappedCaptains}
             className="h-full w-full lg:rounded-none lg:border-0"
             destinationFlyToTarget={state.screen === 'DESTINATION_SELECTION' ? selectedDistrict?.anchor || null : null}
             fallbackLocation={profileFallbackLocation}
@@ -1305,7 +1353,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
             <div className="block lg:hidden w-full h-[240px] rounded-2xl overflow-hidden border border-white/10 shadow-lg relative z-10">
               <RiderMap
                 activeTripCaptainId={state.activeTrip?.captainId || null}
-                captainLocations={captainLocations}
+                captainLocations={mappedCaptains}
                 className="h-full w-full"
                 destinationFlyToTarget={state.screen === 'DESTINATION_SELECTION' ? selectedDistrict?.anchor || null : null}
                 fallbackLocation={profileFallbackLocation}
@@ -1417,6 +1465,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
           reviewerId={user.uid}
           supabase={supabase}
           onSuccess={() => {
+            void loadBlockedCaptains();
             dispatch({ type: 'SUBMIT_RATING' });
             if (onExitRequestFlow) {
               onExitRequestFlow();
