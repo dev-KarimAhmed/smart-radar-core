@@ -445,33 +445,25 @@ export function HistoryTab() {
     if (!review) return null;
 
     const stars = review.detailed_stars || {};
-    const vehicleObj = stars.vehicle || {};
     const captainObj = stars.captain || {};
 
-    const activeVehicle = Object.keys(vehicleObj).filter(k => Number(vehicleObj[k]) === 1);
     const activeCaptain = Object.keys(captainObj).filter(k => Number(captainObj[k]) === 1);
 
-    if (activeVehicle.length === 0 && activeCaptain.length === 0 && !review.comment) {
+    if (activeCaptain.length === 0 && !review.comment) {
       return null;
     }
 
-    const vLabels = isArabic ? VEHICLE_CRITERIA_LABELS : VEHICLE_CRITERIA_LABELS_EN;
     const cLabels = isArabic ? CAPTAIN_CRITERIA_LABELS : CAPTAIN_CRITERIA_LABELS_EN;
 
     return (
       <div className="mt-3 rounded-xl border border-white/5 bg-white/[0.02] p-3 text-xs space-y-2 text-right" dir={isArabic ? 'rtl' : 'ltr'}>
         <div className="flex items-center gap-1.5 text-[#14F5D5] font-bold justify-start">
           <Star className="h-3.5 w-3.5 fill-[#14F5D5] text-[#14F5D5]" />
-          <span>{isArabic ? 'تقييمك المفصّل:' : 'Your detailed feedback:'}</span>
+          <span>{isArabic ? 'تقييمك المفصّل للكابتن:' : 'Your detailed feedback for captain:'}</span>
         </div>
         
-        {(activeVehicle.length > 0 || activeCaptain.length > 0) && (
+        {activeCaptain.length > 0 && (
           <div className="flex flex-wrap gap-1 justify-start">
-            {activeVehicle.map(k => (
-              <span key={k} className="inline-flex items-center bg-amber-500/10 text-amber-300 text-[10px] px-2 py-0.5 rounded border border-amber-500/10 font-bold">
-                🚗 {vLabels[k] || k}
-              </span>
-            ))}
             {activeCaptain.map(k => (
               <span key={k} className="inline-flex items-center bg-teal-500/10 text-teal-300 text-[10px] px-2 py-0.5 rounded border border-teal-500/10 font-bold">
                 👤 {cLabels[k] || k}

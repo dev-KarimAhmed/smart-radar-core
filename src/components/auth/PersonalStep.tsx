@@ -15,6 +15,14 @@ import {
   ShieldCheck,
   Sparkles,
   UserRound,
+  UploadCloud,
+  FileText,
+  Car,
+  Calendar,
+  Hash,
+  Briefcase,
+  Link,
+  Globe,
 } from 'lucide-react';
 import {
   Dialog,
@@ -269,10 +277,32 @@ export function PersonalStep() {
     setAuthMode,
     lang,
     setLang,
+    vehicle,
+    setVehicle,
   } = useRegistration();
   const [showPassword, setShowPassword] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
   const [resetPhone, setResetPhone] = useState(personal.phone);
+  const [registerStep, setRegisterStep] = useState(1);
+
+  React.useEffect(() => {
+    setRegisterStep(1);
+  }, [authMode]);
+
+  const onFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (authMode === 'register' && role === 'driver') {
+      if (registerStep === 1) {
+        setRegisterStep(2);
+      } else if (registerStep === 2) {
+        setRegisterStep(3);
+      } else if (registerStep === 3) {
+        handlePersonalSubmit(e);
+      }
+    } else {
+      handlePersonalSubmit(e);
+    }
+  };
 
   const currentLang = lang as Lang;
   const mode = authMode as AuthMode;
@@ -372,207 +402,417 @@ export function PersonalStep() {
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
               className="space-y-4"
-              onSubmit={handlePersonalSubmit}
+              onSubmit={onFormSubmit}
             >
-              {mode === 'register' ? (
-                <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-[#0B0F19]/45 p-3">
-                  <div className="flex min-h-9 items-center gap-2 text-xs font-bold text-[#94A3B8]">
-                    {locationDataLoading ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin text-[#14B8A6]" aria-hidden="true" />
-                        <span>{t.loadingLocations}</span>
-                      </>
-                    ) : (
-                      <>
-                        <MapPin className="h-4 w-4 text-[#14B8A6]" aria-hidden="true" />
-                        <span>{`${countries.length} / ${governorates.length} / ${districts.length}`}</span>
-                      </>
-                    )}
+              {/* Conditional Multi-Step for Captains Registration */}
+              {mode === 'register' && role === 'driver' && registerStep === 2 ? (
+                <div className="space-y-4 animate-fadeIn text-right animate-in fade-in duration-200" dir="rtl">
+                  <div className="flex justify-between items-center text-xs text-slate-400 mb-4 bg-white/5 border border-white/10 rounded-2xl p-3">
+                    <span className="font-bold text-[#14B8A6]">الخطوة 2 من 3</span>
+                    <span className="font-bold text-[#94A3B8]">معلومات المركبة والعمل</span>
                   </div>
 
-                  {canUseDevMockData ? (
+                  <Field label="نوع المركبة" icon={<ChevronDown className="h-5 w-5" />}>
+                    <div className="relative">
+                      <select
+                        value={vehicle.type || ''}
+                        onChange={(e) => setVehicle({ ...vehicle, type: e.target.value })}
+                        className={`${inputClass} appearance-none text-right pl-10`}
+                        required
+                      >
+                        <option value="">اختر نوع المركبة</option>
+                        <option value="ملاكي">ملاكي (سيارة خاصة)</option>
+                        <option value="تاكسي">تاكسي</option>
+                        <option value="سكوتر">سكوتر</option>
+                      </select>
+                      <ChevronDown className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-[#94A3B8]" />
+                    </div>
+                  </Field>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="الماركة" icon={<Car className="h-5 w-5" />}>
+                      <input
+                        type="text"
+                        placeholder="مثل: تويوتا، كيا"
+                        value={vehicle.brand || ''}
+                        onChange={(e) => setVehicle({ ...vehicle, brand: e.target.value })}
+                        className={`${inputClass} text-right`}
+                        required
+                      />
+                    </Field>
+                    <Field label="الموديل" icon={<Car className="h-5 w-5" />}>
+                      <input
+                        type="text"
+                        placeholder="مثل: كورولا، سيراتو"
+                        value={vehicle.model || ''}
+                        onChange={(e) => setVehicle({ ...vehicle, model: e.target.value })}
+                        className={`${inputClass} text-right`}
+                        required
+                      />
+                    </Field>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="سنة الصنع" icon={<Calendar className="h-5 w-5" />}>
+                      <input
+                        type="number"
+                        placeholder="سنة الصنع"
+                        value={vehicle.year || ''}
+                        onChange={(e) => setVehicle({ ...vehicle, year: e.target.value })}
+                        className={`${inputClass} text-right`}
+                        required
+                        min="1990"
+                        max="2027"
+                      />
+                    </Field>
+                    <Field label="رقم اللوحة" icon={<Hash className="h-5 w-5" />}>
+                      <input
+                        type="text"
+                        placeholder="مثال: 77-12345"
+                        value={vehicle.plate || ''}
+                        onChange={(e) => setVehicle({ ...vehicle, plate: e.target.value })}
+                        className={`${inputClass} text-right`}
+                        required
+                      />
+                    </Field>
+                  </div>
+
+                  <Field label="جهة العمل الحالية (اسم الشركة أو مستقل)" icon={<Briefcase className="h-5 w-5" />}>
+                    <input
+                      type="text"
+                      placeholder="جهة العمل الحالية"
+                      value={vehicle.employment_type || ''}
+                      onChange={(e) => setVehicle({ ...vehicle, employment_type: e.target.value })}
+                      className={`${inputClass} text-right`}
+                      required
+                    />
+                    <p className="text-[11px] text-[#94A3B8] mt-1.5 leading-relaxed text-right">
+                      اكتب اسم الشركة التابع لها، أو اكتب 'مستقل' إذا كنت تعمل لحسابك الخاص
+                    </p>
+                  </Field>
+
+                  <div className="flex gap-3 pt-2">
                     <button
                       type="button"
-                      onClick={fillRandomRegistrationData}
-                      disabled={locationDataLoading || !selectedCountry || !personal.gov || !districts.length}
-                      className="inline-flex min-h-9 items-center gap-2 rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-3 text-xs font-black text-[#14B8A6] transition hover:border-[#14B8A6] hover:bg-[#14B8A6]/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/50 disabled:cursor-not-allowed disabled:opacity-50"
+                      onClick={() => setRegisterStep(1)}
+                      className="flex-1 min-h-12 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 text-white font-black text-sm transition cursor-pointer"
                     >
-                      <Sparkles className="h-4 w-4" aria-hidden="true" />
-                      {t.mockData}
+                      رجوع
+                    </button>
+                    <button
+                      type="submit"
+                      className="flex-1 min-h-12 rounded-2xl bg-[#14B8A6] hover:bg-[#2DD4BF] text-[#0B0F19] font-black text-sm transition shadow-[0_16px_45px_rgba(20,184,166,0.18)] cursor-pointer"
+                    >
+                      المتابعة للخطوة التالية
+                    </button>
+                  </div>
+                </div>
+              ) : mode === 'register' && role === 'driver' && registerStep === 3 ? (
+                <div className="space-y-4 animate-fadeIn text-right animate-in fade-in duration-200" dir="rtl">
+                  <div className="flex justify-between items-center text-xs text-slate-400 mb-4 bg-white/5 border border-white/10 rounded-2xl p-3">
+                    <span className="font-bold text-[#14B8A6]">الخطوة 3 من 3</span>
+                    <span className="font-bold text-[#94A3B8]">التوثيق والهوية</span>
+                  </div>
+
+                  <Field label="رابط الهوية الشخصية / التوثيق" icon={<Link className="h-5 w-5" />}>
+                    <input
+                      type="url"
+                      placeholder="https://example.com/identity"
+                      value={vehicle.identity_url || ''}
+                      onChange={(e) => setVehicle({ ...vehicle, identity_url: e.target.value })}
+                      className={`${inputClass} text-left`}
+                      required
+                    />
+                  </Field>
+
+                  <Field label="رابط صفحة التواصل الخاصة بك (فيسبوك / لينكد إن)" icon={<Globe className="h-5 w-5" />}>
+                    <input
+                      type="url"
+                      placeholder="https://facebook.com/username"
+                      value={vehicle.contact_page_url || ''}
+                      onChange={(e) => setVehicle({ ...vehicle, contact_page_url: e.target.value })}
+                      className={`${inputClass} text-left`}
+                      required
+                    />
+                  </Field>
+
+                  <div className="space-y-3">
+                    <label className="block text-xs font-bold text-slate-300 pr-1">تحميل الوثائق الرسمية (KYC)</label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="flex flex-col items-center justify-center p-4 rounded-2xl border border-white/10 bg-white/5 hover:border-[#14B8A6]/40 transition relative group min-h-[96px] cursor-pointer">
+                        <UploadCloud className="h-6 w-6 text-[#14B8A6] mb-1.5 animate-pulse" />
+                        <span className="text-[10px] text-white font-bold text-center">رخصة القيادة الشخصية</span>
+                        <input
+                          type="file"
+                          accept="image/*,application/pdf"
+                          className="absolute inset-0 opacity-0 cursor-pointer"
+                          required
+                        />
+                      </div>
+
+                      <div className="flex flex-col items-center justify-center p-4 rounded-2xl border border-white/10 bg-white/5 hover:border-[#14B8A6]/40 transition relative group min-h-[96px] cursor-pointer">
+                        <FileText className="h-6 w-6 text-[#14B8A6] mb-1.5" />
+                        <span className="text-[10px] text-white font-bold text-center">رخصة المركبة</span>
+                        <input
+                          type="file"
+                          accept="image/*,application/pdf"
+                          className="absolute inset-0 opacity-0 cursor-pointer"
+                          required
+                        />
+                      </div>
+
+                      <div className="flex flex-col items-center justify-center p-4 rounded-2xl border border-white/10 bg-white/5 hover:border-[#14B8A6]/40 transition relative group min-h-[96px] cursor-pointer">
+                        <UploadCloud className="h-6 w-6 text-[#14B8A6] mb-1.5" />
+                        <span className="text-[10px] text-white font-bold text-center">بطاقة الهوية الوطنية</span>
+                        <input
+                          type="file"
+                          accept="image/*,application/pdf"
+                          className="absolute inset-0 opacity-0 cursor-pointer"
+                          required
+                        />
+                      </div>
+
+                      <div className="flex flex-col items-center justify-center p-4 rounded-2xl border border-white/10 bg-white/5 hover:border-[#14B8A6]/40 transition relative group min-h-[96px] cursor-pointer">
+                        <FileText className="h-6 w-6 text-[#14B8A6] mb-1.5" />
+                        <span className="text-[10px] text-white font-bold text-center">شهادة عدم المحكومية (PDF)</span>
+                        <input
+                          type="file"
+                          accept="application/pdf,image/*"
+                          className="absolute inset-0 opacity-0 cursor-pointer"
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setRegisterStep(2)}
+                      className="flex-1 min-h-12 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 text-white font-black text-sm transition cursor-pointer"
+                    >
+                      رجوع
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="flex-1 min-h-12 rounded-2xl bg-[#14B8A6] hover:bg-[#2DD4BF] text-[#0B0F19] font-black text-sm transition shadow-[0_16px_45px_rgba(20,184,166,0.22)] focus-visible:outline-none disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      {isSubmitting ? 'جاري الإرسال...' : 'إرسال طلب الانضمام للمراجعة'}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* Step 1 or Login view */}
+                  {mode === 'register' && role === 'driver' && (
+                    <div className="flex justify-between items-center text-xs text-slate-400 mb-4 bg-white/5 border border-white/10 rounded-2xl p-3" dir="rtl">
+                      <span className="font-bold text-[#14B8A6]">الخطوة 1 من 3</span>
+                      <span className="font-bold text-[#94A3B8]">المعلومات الشخصية والمدينة</span>
+                    </div>
+                  )}
+
+                  {mode === 'register' ? (
+                    <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-[#0B0F19]/45 p-3">
+                      <div className="flex min-h-9 items-center gap-2 text-xs font-bold text-[#94A3B8]">
+                        {locationDataLoading ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin text-[#14B8A6]" aria-hidden="true" />
+                            <span>{t.loadingLocations}</span>
+                          </>
+                        ) : (
+                          <>
+                            <MapPin className="h-4 w-4 text-[#14B8A6]" aria-hidden="true" />
+                            <span>{`${countries.length} / ${governorates.length} / ${districts.length}`}</span>
+                          </>
+                        )}
+                      </div>
+
+                      {canUseDevMockData ? (
+                        <button
+                          type="button"
+                          onClick={fillRandomRegistrationData}
+                          disabled={locationDataLoading || !selectedCountry || !personal.gov || !districts.length}
+                          className="inline-flex min-h-9 items-center gap-2 rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-3 text-xs font-black text-[#14B8A6] transition hover:border-[#14B8A6] hover:bg-[#14B8A6]/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/50 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <Sparkles className="h-4 w-4" aria-hidden="true" />
+                          {t.mockData}
+                        </button>
+                      ) : null}
+                    </div>
+                  ) : null}
+
+                  {mode === 'register' ? (
+                    <Field label={t.fullName} icon={<UserRound className="h-5 w-5" />}>
+                      <input
+                        type="text"
+                        placeholder={t.fullNamePlaceholder}
+                        value={personal.name}
+                        onChange={(event) => setPersonal({ ...personal, name: event.target.value })}
+                        className={`${inputClass} ${isArabic ? 'text-right' : 'text-left'}`}
+                        autoComplete="name"
+                        required
+                      />
+                    </Field>
+                  ) : null}
+
+                  <Field label={t.phone} icon={<Phone className="h-5 w-5" />}>
+                    <input
+                      type="tel"
+                      dir="ltr"
+                      inputMode="tel"
+                      placeholder={phonePlaceholder || t.phonePlaceholder}
+                      value={personal.phone}
+                      onChange={(event) => setPersonal({ ...personal, phone: event.target.value })}
+                      className={`${inputClass} text-left`}
+                      autoComplete="tel"
+                      required
+                    />
+                    <p className={`${isArabic ? 'text-right' : 'text-left'} mt-2 text-[11px] font-semibold text-[#94A3B8]`}>
+                      {phoneValidationHint}
+                    </p>
+                  </Field>
+
+                  {mode === 'register' ? (
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <Field label={t.country} icon={<MapPin className="h-5 w-5" />}>
+                        <div className="relative">
+                          <select
+                            value={personal.country}
+                            onChange={(event) => setPersonal({ ...personal, country: event.target.value, gov: '', district: '' })}
+                            disabled={locationDataLoading && !countries.length}
+                            className={`${inputClass} appearance-none ${isArabic ? 'text-right pl-10' : 'text-left pr-10'}`}
+                            required
+                          >
+                            <option value="">
+                              {locationDataLoading && !countries.length ? '...' : t.countryPlaceholder}
+                            </option>
+                            {countries.map((country) => (
+                              <option key={country.id} value={country.id}>
+                                {isArabic ? country.label : country.labelEn}
+                              </option>
+                            ))}
+                          </select>
+                          <ChevronDown
+                            className={`pointer-events-none absolute top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8] ${
+                              isArabic ? 'left-3' : 'right-3'
+                            }`}
+                          />
+                        </div>
+                      </Field>
+
+                      <Field label={t.governorate} icon={<MapPin className="h-5 w-5" />}>
+                        <div className="relative">
+                          <select
+                            value={personal.gov}
+                            onChange={(event) => setPersonal({ ...personal, gov: event.target.value, district: '' })}
+                            disabled={!personal.country || locationDataLoading}
+                            className={`${inputClass} appearance-none ${isArabic ? 'text-right pl-10' : 'text-left pr-10'}`}
+                            required
+                          >
+                            <option value="">
+                              {locationDataLoading ? '...' : t.governoratePlaceholder}
+                            </option>
+                            {governorates.map((gov) => (
+                              <option key={gov.id} value={gov.id}>
+                                {isArabic ? gov.label : gov.labelEn}
+                              </option>
+                            ))}
+                          </select>
+                          <ChevronDown
+                            className={`pointer-events-none absolute top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8] ${
+                              isArabic ? 'left-3' : 'right-3'
+                            }`}
+                          />
+                        </div>
+                      </Field>
+
+                      <Field label={t.district} icon={<MapPin className="h-5 w-5" />}>
+                        <div className="relative">
+                          <select
+                            value={personal.district}
+                            onChange={(event) => setPersonal({ ...personal, district: event.target.value })}
+                            disabled={!personal.gov || locationDataLoading}
+                            className={`${inputClass} appearance-none disabled:opacity-50 ${isArabic ? 'text-right pl-10' : 'text-left pr-10'}`}
+                            required
+                          >
+                            <option value="">{locationDataLoading ? '...' : t.districtPlaceholder}</option>
+                            {districts.map((district) => (
+                              <option key={district.id} value={district.value}>
+                                {isArabic ? district.label : district.labelEn}
+                              </option>
+                            ))}
+                          </select>
+                          <ChevronDown
+                            className={`pointer-events-none absolute top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8] ${
+                              isArabic ? 'left-3' : 'right-3'
+                            }`}
+                          />
+                        </div>
+                      </Field>
+                    </div>
+                  ) : null}
+
+                  <Field label={t.password} icon={<LockKeyhole className="h-5 w-5" />}>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        placeholder={t.passwordPlaceholder}
+                        value={authPassword}
+                        onChange={(event) => setAuthPassword(event.target.value)}
+                        className={`${inputClass} ${isArabic ? 'text-right pl-12' : 'text-left pr-12'}`}
+                        autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
+                        required
+                      />
+                      <button
+                        type="button"
+                        aria-label={showPassword ? t.hidePassword : t.showPassword}
+                        onClick={() => setShowPassword((current) => !current)}
+                        className={`absolute top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-xl text-[#94A3B8] transition hover:bg-[#14B8A6]/10 hover:text-[#14B8A6] ${
+                          isArabic ? 'left-2' : 'right-2'
+                        }`}
+                      >
+                        {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                      </button>
+                    </div>
+                  </Field>
+
+                  {mode === 'login' ? (
+                    <button
+                      type="button"
+                      onClick={openPasswordReset}
+                      className={`-mt-2 block w-full text-xs font-black text-[#14B8A6] underline-offset-4 transition hover:text-[#2DD4BF] hover:underline ${
+                        isArabic ? 'text-left' : 'text-right'
+                      }`}
+                    >
+                      {t.forgotPassword}
                     </button>
                   ) : null}
-                </div>
-              ) : null}
 
-              {mode === 'register' ? (
-                <Field label={t.fullName} icon={<UserRound className="h-5 w-5" />}>
-                  <input
-                    type="text"
-                    placeholder={t.fullNamePlaceholder}
-                    value={personal.name}
-                    onChange={(event) => setPersonal({ ...personal, name: event.target.value })}
-                    className={`${inputClass} ${isArabic ? 'text-right' : 'text-left'}`}
-                    autoComplete="name"
-                    required
-                  />
-                </Field>
-              ) : null}
+                  <label className="flex cursor-pointer items-center justify-between gap-3 rounded-2xl border border-white/10 bg-[#0B0F19]/45 p-3 transition hover:border-[#14B8A6]/40">
+                    <span className={`${isArabic ? 'text-right' : 'text-left'}`}>
+                      <span className="block text-sm font-black text-[#F8FAFC]">{t.rememberMe}</span>
+                      <span className="mt-1 block text-xs font-semibold text-[#94A3B8]">{t.rememberHint}</span>
+                    </span>
+                    <input
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={(event) => setRememberMe(event.target.checked)}
+                      className="h-5 w-5 shrink-0 accent-[#14B8A6]"
+                    />
+                  </label>
 
-              <Field label={t.phone} icon={<Phone className="h-5 w-5" />}>
-                <input
-                  type="tel"
-                  dir="ltr"
-                  inputMode="tel"
-                  placeholder={phonePlaceholder || t.phonePlaceholder}
-                  value={personal.phone}
-                  onChange={(event) => setPersonal({ ...personal, phone: event.target.value })}
-                  className={`${inputClass} text-left`}
-                  autoComplete="tel"
-                  required
-                />
-                <p className={`${isArabic ? 'text-right' : 'text-left'} mt-2 text-[11px] font-semibold text-[#94A3B8]`}>
-                  {phoneValidationHint}
-                </p>
-              </Field>
-
-              {mode === 'register' ? (
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <Field label={t.country} icon={<MapPin className="h-5 w-5" />}>
-                    <div className="relative">
-                      <select
-                        value={personal.country}
-                        onChange={(event) => setPersonal({ ...personal, country: event.target.value, gov: '', district: '' })}
-                        disabled={locationDataLoading && !countries.length}
-                        className={`${inputClass} appearance-none ${isArabic ? 'text-right pl-10' : 'text-left pr-10'}`}
-                        required
-                      >
-                        <option value="">
-                          {locationDataLoading && !countries.length ? '...' : t.countryPlaceholder}
-                        </option>
-                        {countries.map((country) => (
-                          <option key={country.id} value={country.id}>
-                            {isArabic ? country.label : country.labelEn}
-                          </option>
-                        ))}
-                      </select>
-                      <ChevronDown
-                        className={`pointer-events-none absolute top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8] ${
-                          isArabic ? 'left-3' : 'right-3'
-                        }`}
-                      />
-                    </div>
-                  </Field>
-
-                  <Field label={t.governorate} icon={<MapPin className="h-5 w-5" />}>
-                    <div className="relative">
-                      <select
-                        value={personal.gov}
-                        onChange={(event) => setPersonal({ ...personal, gov: event.target.value, district: '' })}
-                        disabled={!personal.country || locationDataLoading}
-                        className={`${inputClass} appearance-none ${isArabic ? 'text-right pl-10' : 'text-left pr-10'}`}
-                        required
-                      >
-                        <option value="">
-                          {locationDataLoading ? '...' : t.governoratePlaceholder}
-                        </option>
-                        {governorates.map((gov) => (
-                          <option key={gov.id} value={gov.id}>
-                            {isArabic ? gov.label : gov.labelEn}
-                          </option>
-                        ))}
-                      </select>
-                      <ChevronDown
-                        className={`pointer-events-none absolute top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8] ${
-                          isArabic ? 'left-3' : 'right-3'
-                        }`}
-                      />
-                    </div>
-                  </Field>
-
-                  <Field label={t.district} icon={<MapPin className="h-5 w-5" />}>
-                    <div className="relative">
-                      <select
-                        value={personal.district}
-                        onChange={(event) => setPersonal({ ...personal, district: event.target.value })}
-                        disabled={!personal.gov || locationDataLoading}
-                        className={`${inputClass} appearance-none disabled:opacity-50 ${isArabic ? 'text-right pl-10' : 'text-left pr-10'}`}
-                        required
-                      >
-                        <option value="">{locationDataLoading ? '...' : t.districtPlaceholder}</option>
-                        {districts.map((district) => (
-                          <option key={district.id} value={district.value}>
-                            {isArabic ? district.label : district.labelEn}
-                          </option>
-                        ))}
-                      </select>
-                      <ChevronDown
-                        className={`pointer-events-none absolute top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8] ${
-                          isArabic ? 'left-3' : 'right-3'
-                        }`}
-                      />
-                    </div>
-                  </Field>
-                </div>
-              ) : null}
-
-              <Field label={t.password} icon={<LockKeyhole className="h-5 w-5" />}>
-                <div className="relative">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder={t.passwordPlaceholder}
-                    value={authPassword}
-                    onChange={(event) => setAuthPassword(event.target.value)}
-                    className={`${inputClass} ${isArabic ? 'text-right pl-12' : 'text-left pr-12'}`}
-                    autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
-                    required
-                  />
-                  <button
-                    type="button"
-                    aria-label={showPassword ? t.hidePassword : t.showPassword}
-                    onClick={() => setShowPassword((current) => !current)}
-                    className={`absolute top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-xl text-[#94A3B8] transition hover:bg-[#14B8A6]/10 hover:text-[#14B8A6] ${
-                      isArabic ? 'left-2' : 'right-2'
-                    }`}
+                  <motion.button
+                    whileTap={{ scale: 0.98 }}
+                    whileHover={{ y: -1 }}
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="mt-2 w-full rounded-2xl bg-[#14B8A6] p-4 text-base font-black text-[#0B0F19] shadow-[0_16px_45px_rgba(20,184,166,0.22)] transition hover:bg-[#2DD4BF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/60 disabled:opacity-50 cursor-pointer"
                   >
-                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                  </button>
-                </div>
-              </Field>
-
-              {mode === 'login' ? (
-                <button
-                  type="button"
-                  onClick={openPasswordReset}
-                  className={`-mt-2 block w-full text-xs font-black text-[#14B8A6] underline-offset-4 transition hover:text-[#2DD4BF] hover:underline ${
-                    isArabic ? 'text-left' : 'text-right'
-                  }`}
-                >
-                  {t.forgotPassword}
-                </button>
-              ) : null}
-
-              <label className="flex cursor-pointer items-center justify-between gap-3 rounded-2xl border border-white/10 bg-[#0B0F19]/45 p-3 transition hover:border-[#14B8A6]/40">
-                <span className={`${isArabic ? 'text-right' : 'text-left'}`}>
-                  <span className="block text-sm font-black text-[#F8FAFC]">{t.rememberMe}</span>
-                  <span className="mt-1 block text-xs font-semibold text-[#94A3B8]">{t.rememberHint}</span>
-                </span>
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(event) => setRememberMe(event.target.checked)}
-                  className="h-5 w-5 shrink-0 accent-[#14B8A6]"
-                />
-              </label>
-
-              <motion.button
-                whileTap={{ scale: 0.98 }}
-                whileHover={{ y: -1 }}
-                type="submit"
-                disabled={isSubmitting}
-                className="mt-2 w-full rounded-2xl bg-[#14B8A6] p-4 text-base font-black text-[#0B0F19] shadow-[0_16px_45px_rgba(20,184,166,0.22)] transition hover:bg-[#2DD4BF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/60 disabled:opacity-50"
-              >
-                {isSubmitting ? '...' : mode === 'register' ? t.submitRegister : t.submitLogin}
-              </motion.button>
+                    {isSubmitting ? '...' : mode === 'register' ? (role === 'driver' ? 'المتابعة للخطوة التالية' : t.submitRegister) : t.submitLogin}
+                  </motion.button>
+                </>
+              )}
             </motion.form>
           </AnimatePresence>
 

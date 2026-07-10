@@ -212,3 +212,38 @@ END;
 $$;
 
 GRANT EXECUTE ON FUNCTION public.submit_ride_offer(uuid, numeric) TO authenticated;
+
+-- Create captain_profiles table
+CREATE TABLE IF NOT EXISTS public.captain_profiles (
+  id uuid PRIMARY KEY REFERENCES public.profiles(id) ON DELETE CASCADE,
+  vehicle_type text,
+  vehicle_brand text,
+  vehicle_model text,
+  vehicle_year integer,
+  plate_number text,
+  employment_type text,
+  identity_url text,
+  contact_page_url text,
+  verification_status text DEFAULT 'PENDING',
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- Enable RLS
+ALTER TABLE public.captain_profiles ENABLE ROW LEVEL SECURITY;
+
+-- Select policy: Authenticated users can view captain profiles
+DROP POLICY IF EXISTS "Enable select for authenticated captain profiles" ON public.captain_profiles;
+CREATE POLICY "Enable select for authenticated captain profiles" ON public.captain_profiles
+  FOR SELECT TO authenticated USING (true);
+
+-- Insert policy: Authenticated users can insert their own captain profile
+DROP POLICY IF EXISTS "Enable insert for self captain profiles" ON public.captain_profiles;
+CREATE POLICY "Enable insert for self captain profiles" ON public.captain_profiles
+  FOR INSERT TO authenticated WITH CHECK (auth.uid() = id);
+
+-- Update policy: Authenticated users can update their own captain profile
+DROP POLICY IF EXISTS "Enable update for self captain profiles" ON public.captain_profiles;
+CREATE POLICY "Enable update for self captain profiles" ON public.captain_profiles
+  FOR UPDATE TO authenticated USING (auth.uid() = id);
+
+GRANT SELECT, INSERT, UPDATE ON public.captain_profiles TO authenticated;

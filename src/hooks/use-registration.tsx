@@ -119,7 +119,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
   const [rememberMe, setRememberMe] = useState(() => shouldRememberSupabaseSession());
   const [advertiserProfile, setAdvertiserProfile] = useState({ companyName: '', commercialRegister: '', adLicense: '', businessType: 'commercial' });
   const [affiliation, setAffiliation] = useState<AffiliationType | null>(null);
-  const [vehicle, setVehicle] = useState({ year: '', plate: '', sideId: '', make: '', color: '', officeName: '', officePhone: '', companyName: '' });
+  const [vehicle, setVehicle] = useState({ year: '', plate: '', sideId: '', make: '', color: '', officeName: '', officePhone: '', companyName: '', type: '', brand: '', model: '', employment_type: '', identity_url: '', contact_page_url: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [logoTapCount, setLogoTapCount] = useState(0);
   const [adminCreds, setAdminCreds] = useState({ email: '', password: '' });
@@ -478,12 +478,35 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
         });
       }
 
-      await signUpRiderWithPhone(signUpInput);
+      const signUpResult = await signUpRiderWithPhone(signUpInput);
+
+      if (role === 'driver') {
+        const userId = signUpResult.user?.id;
+        if (userId) {
+          const { error: profileError } = await supabase.from('captain_profiles').insert({
+            id: userId,
+            vehicle_type: vehicle.type,
+            vehicle_brand: vehicle.brand,
+            vehicle_model: vehicle.model,
+            vehicle_year: Number(vehicle.year) || null,
+            plate_number: vehicle.plate,
+            employment_type: vehicle.employment_type,
+            identity_url: vehicle.identity_url,
+            contact_page_url: vehicle.contact_page_url,
+            verification_status: 'PENDING'
+          });
+          
+          if (profileError) {
+            console.error('[Captain Profile Insert Error]', profileError);
+            throw new Error(profileError.message || 'تعذر حفظ بيانات الكابتن الإضافية.');
+          }
+        }
+      }
 
       toast({
         title: 'تم إنشاء الحساب',
         description: role === 'driver'
-          ? 'تم إنشاء حساب الكابتن. يمكنك تسجيل الدخول الآن.'
+          ? 'تم إنشاء حساب الكابتن وتقديم طلب الانضمام للمراجعة. يمكنك تسجيل الدخول الآن.'
           : 'تم حفظ بياناتك بأمان. يمكنك تسجيل الدخول الآن.',
       });
       setAuthMode('login');
@@ -523,6 +546,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     role,
     selectedCountry,
     toast,
+    vehicle,
   ]);
 
   const handlePersonalSubmit = (e: React.FormEvent) => {
