@@ -45,12 +45,12 @@ export function PwaInstallPrompt() {
         </VisuallyHidden>
 
         {/* Close Button */}
-        <button
+        {/* <button
           onClick={handleClose}
           className="absolute top-4 right-4 h-8 w-8 flex items-center justify-center rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-colors text-white/70 hover:text-white"
         >
           <X className="h-4 w-4" />
-        </button>
+        </button> */}
 
         <div className="flex flex-col items-center text-center mt-2 space-y-4" dir="rtl">
           {/* Circular Glowing Icon container */}
