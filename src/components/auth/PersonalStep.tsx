@@ -514,25 +514,13 @@ export function PersonalStep() {
                     <span className="font-bold text-[#94A3B8]">التوثيق والهوية</span>
                   </div>
 
-                  <Field label="رابط الهوية الشخصية / التوثيق" icon={<Link className="h-5 w-5" />}>
-                    <input
-                      type="url"
-                      placeholder="https://example.com/identity"
-                      value={vehicle.identity_url || ''}
-                      onChange={(e) => setVehicle({ ...vehicle, identity_url: e.target.value })}
-                      className={`${inputClass} text-left`}
-                      required
-                    />
-                  </Field>
-
-                  <Field label="رابط صفحة التواصل الخاصة بك (فيسبوك / لينكد إن)" icon={<Globe className="h-5 w-5" />}>
+                  <Field label="رابط صفحة التواصل الخاصة بك (فيسبوك / لينكد إن) - اختياري" icon={<Globe className="h-5 w-5" />}>
                     <input
                       type="url"
                       placeholder="https://facebook.com/username"
                       value={vehicle.contact_page_url || ''}
                       onChange={(e) => setVehicle({ ...vehicle, contact_page_url: e.target.value })}
                       className={`${inputClass} text-left`}
-                      required
                     />
                   </Field>
 
@@ -561,23 +549,12 @@ export function PersonalStep() {
                         />
                       </div>
 
-                      <div className="flex flex-col items-center justify-center p-4 rounded-2xl border border-white/10 bg-white/5 hover:border-[#14B8A6]/40 transition relative group min-h-[96px] cursor-pointer">
+                      <div className="flex flex-col items-center justify-center p-4 rounded-2xl border border-white/10 bg-white/5 hover:border-[#14B8A6]/40 transition relative group min-h-[96px] cursor-pointer col-span-2">
                         <UploadCloud className="h-6 w-6 text-[#14B8A6] mb-1.5" />
                         <span className="text-[10px] text-white font-bold text-center">بطاقة الهوية الوطنية</span>
                         <input
                           type="file"
                           accept="image/*,application/pdf"
-                          className="absolute inset-0 opacity-0 cursor-pointer"
-                          required
-                        />
-                      </div>
-
-                      <div className="flex flex-col items-center justify-center p-4 rounded-2xl border border-white/10 bg-white/5 hover:border-[#14B8A6]/40 transition relative group min-h-[96px] cursor-pointer">
-                        <FileText className="h-6 w-6 text-[#14B8A6] mb-1.5" />
-                        <span className="text-[10px] text-white font-bold text-center">شهادة عدم المحكومية (PDF)</span>
-                        <input
-                          type="file"
-                          accept="application/pdf,image/*"
                           className="absolute inset-0 opacity-0 cursor-pointer"
                           required
                         />
