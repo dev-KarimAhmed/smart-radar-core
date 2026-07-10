@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { History, Award, BookOpen, Clock, Heart, Trash2, Phone, Sparkles, AlertCircle, FileText, Activity, Compass, ShieldCheck, Search, ShieldAlert, Lock, Coins, Megaphone, Sliders } from 'lucide-react';
+import { Star, History, Award, BookOpen, Clock, Heart, Trash2, Phone, Sparkles, AlertCircle, FileText, Activity, Compass, ShieldCheck, Search, ShieldAlert, Lock, Coins, Megaphone, Sliders } from 'lucide-react';
 import { SOVEREIGN_ERR_DICTIONARY } from '@/core/config/sovereign-errors';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 
@@ -69,6 +69,38 @@ function HistorySkeleton() {
   );
 }
 
+const VEHICLE_CRITERIA_LABELS: Record<string, string> = {
+  cleanliness: 'نظافة الصالون',
+  ac: 'عمل التكييف بقوة',
+  comfort: 'راحة المقاعد',
+  quietness: 'هدوء المركبة',
+  safety: 'سلامة السيارة وأحزمة الأمان',
+};
+
+const CAPTAIN_CRITERIA_LABELS: Record<string, string> = {
+  behavior: 'الاحترام والأسلوب',
+  driving: 'القيادة الآمنة والالتزام بالسرعة',
+  punctuality: 'الالتزام بموقع الركوب والوقت',
+  routing: 'اختيار مسار ذكي بدون زحام',
+  communication: 'التجاوب والتواصل الاحترافي',
+};
+
+const VEHICLE_CRITERIA_LABELS_EN: Record<string, string> = {
+  cleanliness: 'Clean salon',
+  ac: 'Strong A/C',
+  comfort: 'Comfortable seats',
+  quietness: 'Quiet ride',
+  safety: 'Safety & seatbelts',
+};
+
+const CAPTAIN_CRITERIA_LABELS_EN: Record<string, string> = {
+  behavior: 'Respect & attitude',
+  driving: 'Safe driving',
+  punctuality: 'Punctual pickup',
+  routing: 'Smart routing',
+  communication: 'Professional communication',
+};
+
 export function HistoryTab() {
   const { user, isCaptain, isPassenger } = useAuth();
   const { isArabic, language } = useDashboardLanguage();
@@ -76,6 +108,7 @@ export function HistoryTab() {
   const [favoriteCaptains, setFavoriteCaptains] = useState<any[]>([]);
   const [sovereignLogs, setSovereignLogs] = useState<any[]>([]);
   const [realTrips, setRealTrips] = useState<any[]>([]);
+  const [tripReviews, setTripReviews] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true); // مضاف خصيصاً لمنع انزياح CLS
   const { toast } = useToast();
   const currencyLabel = user?.currencyAr || user?.currencyEn || '';
@@ -292,6 +325,27 @@ export function HistoryTab() {
           if ((process.env.NODE_ENV !== 'production')) console.warn('[HistoryTab Dexie Merge Failed]', dexieError);
         }
 
+        // 1.5 Fetch reviews for these trips to show detailed rating items
+        try {
+          const tripIds = fetchedData.map(r => r.id).filter(Boolean);
+          if (tripIds.length > 0) {
+            const { data: reviewsData, error: reviewsError } = await supabase
+              .from('reviews')
+              .select('*')
+              .in('trip_id', tripIds);
+            
+            if (!reviewsError && reviewsData && active) {
+              const reviewsMap: Record<string, any> = {};
+              reviewsData.forEach(rev => {
+                reviewsMap[rev.trip_id] = rev;
+              });
+              setTripReviews(reviewsMap);
+            }
+          }
+        } catch (revErr) {
+          if ((process.env.NODE_ENV !== 'production')) console.warn('[HistoryTab fetch reviews failed]', revErr);
+        }
+
         if (active) setRealTrips(Array.isArray(fetchedData) ? fetchedData : []);
       } catch (error) {
         if (!active) return;
@@ -386,6 +440,55 @@ export function HistoryTab() {
     }
   };
 
+  const renderDetailedReview = (tripId: string) => {
+    const review = tripReviews[tripId];
+    if (!review) return null;
+
+    const stars = review.detailed_stars || {};
+    const vehicleObj = stars.vehicle || {};
+    const captainObj = stars.captain || {};
+
+    const activeVehicle = Object.keys(vehicleObj).filter(k => Number(vehicleObj[k]) === 1);
+    const activeCaptain = Object.keys(captainObj).filter(k => Number(captainObj[k]) === 1);
+
+    if (activeVehicle.length === 0 && activeCaptain.length === 0 && !review.comment) {
+      return null;
+    }
+
+    const vLabels = isArabic ? VEHICLE_CRITERIA_LABELS : VEHICLE_CRITERIA_LABELS_EN;
+    const cLabels = isArabic ? CAPTAIN_CRITERIA_LABELS : CAPTAIN_CRITERIA_LABELS_EN;
+
+    return (
+      <div className="mt-3 rounded-xl border border-white/5 bg-white/[0.02] p-3 text-xs space-y-2 text-right" dir={isArabic ? 'rtl' : 'ltr'}>
+        <div className="flex items-center gap-1.5 text-[#14F5D5] font-bold justify-start">
+          <Star className="h-3.5 w-3.5 fill-[#14F5D5] text-[#14F5D5]" />
+          <span>{isArabic ? 'تقييمك المفصّل:' : 'Your detailed feedback:'}</span>
+        </div>
+        
+        {(activeVehicle.length > 0 || activeCaptain.length > 0) && (
+          <div className="flex flex-wrap gap-1 justify-start">
+            {activeVehicle.map(k => (
+              <span key={k} className="inline-flex items-center bg-amber-500/10 text-amber-300 text-[10px] px-2 py-0.5 rounded border border-amber-500/10 font-bold">
+                🚗 {vLabels[k] || k}
+              </span>
+            ))}
+            {activeCaptain.map(k => (
+              <span key={k} className="inline-flex items-center bg-teal-500/10 text-teal-300 text-[10px] px-2 py-0.5 rounded border border-teal-500/10 font-bold">
+                👤 {cLabels[k] || k}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {review.comment && (
+          <p className="text-[11px] text-slate-300 italic border-r-2 border-emerald-500/40 pr-2 mt-1.5 leading-normal text-right">
+            &ldquo;{review.comment}&rdquo;
+          </p>
+        )}
+      </div>
+    );
+  };
+
   if (language === 'en' && isPassenger) {
     return (
       <div className="w-full max-w-xl mx-auto pb-24 text-left font-sans space-y-6 animate-in fade-in duration-500" dir="ltr">
@@ -468,6 +571,8 @@ export function HistoryTab() {
                         </span>
                       </div>
                     </div>
+
+                    {renderDetailedReview(trip.tripId)}
 
                     {trip.captainPhone && (
                       <div className="flex gap-2 pt-2 border-t border-white/5">
@@ -601,9 +706,11 @@ export function HistoryTab() {
                         </div>
                       </div>
 
-                      <div className="flex gap-2 pt-2 border-t border-white/5">
-                        <a
-                          href={`tel:${trip.captainPhone}`}
+                    {renderDetailedReview(trip.tripId)}
+
+                    <div className="flex gap-2 pt-2 border-t border-white/5">
+                      <a
+                        href={`tel:${trip.captainPhone}`}
                           className="px-3 py-1.5 bg-emerald-950/30 font-black text-[10px] text-emerald-400 border border-emerald-500/20 hover:bg-emerald-950/60 rounded-lg flex items-center gap-1 text-center select-none"
                           style={{ textDecoration: 'none' }}
                         >
