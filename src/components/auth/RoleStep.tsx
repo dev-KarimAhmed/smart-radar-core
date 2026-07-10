@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useRegistration } from '@/hooks/use-registration';
 import { useAuth } from '@/hooks/use-auth';
+import { navigateAuth } from '@/lib/auth-routing';
 import type { User } from '@/core/types';
 
 type Lang = 'ar' | 'en';
@@ -220,7 +221,7 @@ const demoUsers: Array<{
 ];
 
 export function RoleStep() {
-  const { setRole, setStep, authMode, setAuthMode, lang, setLang } = useRegistration();
+  const { setRole, authMode, setAuthMode, lang, setLang } = useRegistration();
   const { loginAsMockUser } = useAuth();
   const currentLang = lang as Lang;
   const content = copy[currentLang];
@@ -233,12 +234,13 @@ export function RoleStep() {
 
   const handleRoleSelect = (role: RoleKey) => {
     if (role === 'admin') {
-      setStep('admin');
+      navigateAuth('admin');
       return;
     }
 
+    // Route each role to its own dedicated page based on the selected mode.
     setRole(role);
-    setStep('personal');
+    navigateAuth(authMode === 'login' ? 'login' : 'register', role);
   };
 
   const openDemoDashboard = (user: User) => {

@@ -12,6 +12,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { useRouter } from 'next/navigation';
 import { buildUserFromSupabaseAuth, cacheSupabaseSession, clearSupabaseSessionCache } from '@/lib/supabase-auth';
 import { supabase } from '@/lib/supabase-client';
 import { DASHBOARD_LANGUAGE_KEY } from './use-dashboard-language';
@@ -33,6 +34,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 function AuthContent({ children }: { children: ReactNode }) {
+  const router = useRouter();
   const [user, setUser] = useState<SovereignUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
@@ -94,14 +96,11 @@ function AuthContent({ children }: { children: ReactNode }) {
       purgeTransientFrontendCache();
       restorePreservedLanguage(preservedLanguage);
       setLoading(false);
-      if (typeof window !== 'undefined') {
-        window.history.replaceState(null, '', '/');
-        window.dispatchEvent(new PopStateEvent('popstate'));
-      }
+      router.replace('/');
       setLogoutDialogOpen(false);
       setLogoutInProgress(false);
     }
-  }, []);
+  }, [router]);
 
   const suspendUserDocListener = useCallback(() => {
     if (typeof window !== 'undefined') {

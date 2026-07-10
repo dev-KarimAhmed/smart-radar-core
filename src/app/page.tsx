@@ -10,6 +10,8 @@ export default function HomePage() {
   const { user, loading } = useAuth();
   const router = useRouter();
 
+  const isRedirecting = !!user && (user.role === 'driver' || user.role === 'rider');
+
   useEffect(() => {
     if (loading || !user) return;
 
@@ -20,7 +22,7 @@ export default function HomePage() {
     }
   }, [user, loading, router]);
 
-  if (loading) {
+  if (loading || isRedirecting) {
     return (
       <div className="flex h-dvh w-screen select-none flex-col items-center justify-center bg-[#0A0F1D] text-white/90">
         <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 shadow-[0_0_30px_rgba(20,184,166,0.18)]">
