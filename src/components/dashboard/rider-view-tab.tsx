@@ -17,6 +17,7 @@ import type { AppLanguage } from '@/lib/i18n/simple-copy';
 import { supabase } from '@/lib/supabase-client';
 import { cn } from '@/lib/utils';
 import { AdStage } from './ad-stage';
+import { RatingModal } from './shared/rating-modal';
 import { RadarRiderDashboard, type HistoricalTrip } from './rider/rider-dashboard';
 import type { RiderLocation, RiderLocationStatus, RiderLocationUpdate } from './rider/rider-map';
 import dynamic from 'next/dynamic';
@@ -1402,69 +1403,26 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
         )}
       </div>
 
-      {state.screen === 'RATING_MODAL' && (
-        <Dialog open onOpenChange={(open) => {
-          if (!open) {
+      {state.screen === 'RATING_MODAL' && state.completedTrip?.captainId && state.requestId && user?.uid && (
+        <RatingModal
+          isOpen={true}
+          onClose={() => {
             dispatch({ type: 'SUBMIT_RATING' });
-            setRating({ captain: 0, vehicle: 0, favorite: false });
-            setRatingComment('');
             if (onExitRequestFlow) {
               onExitRequestFlow();
             }
-          }
-        }}>
-          <DialogContent className="border-white/[0.06] bg-[#0A0F1D]/95 backdrop-blur-xl text-white sm:max-w-md">
-            <DialogHeader className="text-center">
-              <DialogTitle className="text-xl font-black">قيّم الرحلة</DialogTitle>
-              <DialogDescription className="text-gray-400">يساعدنا تقييمك على تحسين الخدمة.</DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-8 py-6">
-              <div className="space-y-3 text-center">
-                <Label className="font-bold text-[#14B8A6]">السائق</Label>
-                <div className="flex justify-center">
-                  <StarRating rating={rating.captain} setRating={(value: number) => setRating((prev) => ({ ...prev, captain: value }))} size="lg" />
-                </div>
-              </div>
-
-              <div className="space-y-3 text-center">
-                <Label className="font-bold text-[#14B8A6]">السيارة</Label>
-                <div className="flex justify-center">
-                  <StarRating rating={rating.vehicle} setRating={(value: number) => setRating((prev) => ({ ...prev, vehicle: value }))} size="lg" color="amber" />
-                </div>
-              </div>
-
-              {/* Feedback comment input */}
-              <div className="space-y-2">
-                <textarea
-                  value={ratingComment}
-                  onChange={(e) => setRatingComment(e.target.value)}
-                  placeholder="اكتب رأيك في الكابتن والرحلة (اختياري)..."
-                  rows={3}
-                  className="w-full bg-slate-900/40 border border-white/10 text-white placeholder-slate-500 rounded-xl p-3 text-sm focus:border-[#14B8A6] focus:outline-none resize-none backdrop-blur-sm"
-                  dir="rtl"
-                />
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setRating((prev) => ({ ...prev, favorite: !prev.favorite }))}
-                className="mx-auto flex items-center gap-3 rounded-2xl border border-[#14B8A6]/20 bg-[#14B8A6]/10 px-4 py-3 text-sm font-bold"
-              >
-                <span>أضف السائق إلى المفضلة</span>
-                <Heart className={cn('h-5 w-5', rating.favorite ? 'fill-red-500 text-red-500' : 'text-gray-500')} />
-              </button>
-            </div>
-
-            <Button
-              className="h-14 w-full bg-[#14B8A6] text-lg font-black text-[#031315] hover:bg-[#2DD4BF]"
-              disabled={rating.captain === 0 || rating.vehicle === 0 || isSubmittingRating}
-              onClick={() => void handleSubmitRating()}
-            >
-              {isSubmittingRating ? 'جاري حفظ التقييم...' : 'حفظ التقييم'}
-            </Button>
-          </DialogContent>
-        </Dialog>
+          }}
+          tripId={state.requestId}
+          captainId={state.completedTrip.captainId}
+          reviewerId={user.uid}
+          supabase={supabase}
+          onSuccess={() => {
+            dispatch({ type: 'SUBMIT_RATING' });
+            if (onExitRequestFlow) {
+              onExitRequestFlow();
+            }
+          }}
+        />
       )}
     </div>
   );
