@@ -24,6 +24,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useRegistration } from '@/hooks/use-registration';
+import { navigateAuth } from '@/lib/auth-routing';
 
 type Lang = 'ar' | 'en';
 type AuthMode = 'register' | 'login';
@@ -264,7 +265,6 @@ export function PersonalStep() {
     fillRandomRegistrationData,
     isSubmitting,
     role,
-    setStep,
     authMode,
     setAuthMode,
     lang,
@@ -284,6 +284,12 @@ export function PersonalStep() {
   const openPasswordReset = () => {
     setResetPhone(personal.phone);
     setResetOpen(true);
+  };
+
+  // Switching mode navigates to the sibling page instead of swapping in place.
+  const goToMode = (nextMode: AuthMode) => {
+    setAuthMode(nextMode);
+    navigateAuth(nextMode, role);
   };
 
   return (
@@ -340,7 +346,7 @@ export function PersonalStep() {
                 <button
                   key={nextMode}
                   type="button"
-                  onClick={() => setAuthMode(nextMode)}
+                  onClick={() => goToMode(nextMode)}
                   className="relative min-h-11 rounded-xl px-3 text-sm font-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/50"
                 >
                   {active ? (
@@ -574,7 +580,7 @@ export function PersonalStep() {
             <span>{mode === 'register' ? t.hasAccount : t.noAccount}</span>{' '}
             <button
               type="button"
-              onClick={() => setAuthMode(mode === 'register' ? 'login' : 'register')}
+              onClick={() => goToMode(mode === 'register' ? 'login' : 'register')}
               className="font-black text-[#14B8A6] underline-offset-4 transition hover:text-[#2DD4BF] hover:underline"
             >
               {mode === 'register' ? t.switchToLogin : t.switchToRegister}
@@ -584,7 +590,7 @@ export function PersonalStep() {
           <button
             type="button"
             className="mt-5 w-full text-xs font-bold text-[#94A3B8]/70 transition hover:text-white"
-            onClick={() => setStep('role')}
+            onClick={() => navigateAuth('role')}
           >
             {t.back}
           </button>

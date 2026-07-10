@@ -1,23 +1,32 @@
 ﻿'use client';
 
-import React from 'react';
-import { ShieldQuestion, UserCheck, Car, Key, Megaphone, Users } from 'lucide-react';
+import { useEffect } from 'react';
+
+import { UserCheck, Car, Key, Megaphone, Users } from 'lucide-react';
 import { RegistrationProvider, useRegistration } from '@/hooks/use-registration';
 import { RoleStep } from '@/components/auth/RoleStep';
 import { PersonalStep } from '@/components/auth/PersonalStep';
-import { AffiliationStep } from '@/components/auth/AffiliationStep';
-import { VehicleStep } from '@/components/auth/VehicleStep';
 import { AdminStep } from '@/components/auth/AdminStep';
-import { AdvertiserStep } from '@/components/auth/AdvertiserStep';
 import { useAuth } from '@/hooks/use-auth';
+import { useAuthLocation } from '@/lib/auth-routing';
 
 const isStrictDevelopment =
   (globalThis as any).process?.env?.NODE_ENV === 'development' ||
   ((process.env.NODE_ENV !== 'production') && process.env.MODE === 'development');
 
 function LoginOrchestrator() {
-  const { step, handleLogoTap } = useRegistration();
+  const { setRole, setAuthMode, handleLogoTap } = useRegistration();
   const { loginAsMockUser } = useAuth();
+  const location = useAuthLocation();
+
+  // Keep the registration context in sync with the URL so a direct visit or
+  // refresh to /login/{role} or /register/{role} restores the right form.
+  useEffect(() => {
+    if (location.view === 'login' || location.view === 'register') {
+      setRole(location.role);
+      setAuthMode(location.view === 'login' ? 'login' : 'register');
+    }
+  }, [location.view, location.role, setRole, setAuthMode]);
 
   const handleDevBypass = (roleType: 'rider' | 'driver' | 'admin' | 'advertiser' | 'delegate') => {
     if (!isStrictDevelopment) return;
@@ -105,50 +114,16 @@ function LoginOrchestrator() {
     }
   };
 
-  const renderStep = () => {
-    switch (step) {
-      case 'role':
-        return <RoleStep />;
-      case 'personal':
-        return <PersonalStep />;
-      case 'affiliation':
-        return <AffiliationStep />;
-      case 'vehicle':
-        return <VehicleStep />;
-      case 'admin':
-        return <AdminStep />;
-      case 'advertiser':
-      case 'ProfessionalStep':
-        return <AdvertiserStep />;
-      default:
-        return <RoleStep />;
-    }
-  };
-
-  const getTitle = () => {
-    switch (step) {
-      case 'admin': return 'دخول المشرف';
-      default: return 'تسجيل الدخول';
-    }
-  };
-
-  const getDescription = () => {
-    switch (step) {
-      case 'role': return 'اختر نوع الحساب';
-      case 'personal': return 'البيانات الشخصية';
-      case 'affiliation': return 'بيانات العمل';
-      case 'vehicle': return 'بيانات السيارة';
-      case 'admin': return 'أدخل بيانات اعتماد المشرف';
-      case 'advertiser':
-      case 'ProfessionalStep': return 'بيانات المعلن';
-      default: return '';
-    }
-  };
-
-  if (step === 'role' || step === 'personal') {
-    return renderStep();
+  // Full-screen pages carry their own layout.
+  if (location.view === 'role') {
+    return <RoleStep />;
   }
 
+  if (location.view === 'login' || location.view === 'register') {
+    return <PersonalStep />;
+  }
+
+  // Admin control-desk login keeps the framed card layout.
   return (
     <div className="min-h-screen bg-[#0B0F19] flex flex-col justify-center items-center p-4 relative overflow-hidden font-sans">
       {/* Background glow */}
@@ -156,7 +131,7 @@ function LoginOrchestrator() {
       <div className="absolute w-[400px] h-[400px] bg-[#3B82F6]/5 rounded-full blur-[100px] bottom-1/4 right-1/4 pointer-events-none"></div>
 
       {/* Login card */}
-      <div className={`w-full max-w-md bg-[#161F30]/95 border transition-all duration-500 rounded-2xl p-8 shadow-2xl backdrop-blur-md relative z-10 ${step === 'admin' ? 'border-destructive/50 shadow-destructive/20' : 'border-[#243249] hover:border-[#14B8A6]/50'}`}>
+      <div className="w-full max-w-md bg-[#161F30]/95 border transition-all duration-500 rounded-2xl p-8 shadow-2xl backdrop-blur-md relative z-10 border-destructive/50 shadow-destructive/20">
         
         {/* Logo */}
         <div className="text-center mb-8 select-none" onClick={handleLogoTap}>
@@ -185,16 +160,16 @@ function LoginOrchestrator() {
 
         {/* Step title */}
         <div className="text-center mb-6">
-          <h2 className={`text-xl font-bold tracking-wide ${step === 'admin' ? 'text-destructive' : 'text-white'}`}>
-            {getTitle()}
+          <h2 className="text-xl font-bold tracking-wide text-destructive">
+            دخول المشرف
           </h2>
           <p className="text-xs text-[#94A3B8]/80 mt-1.5">
-            {getDescription()}
+            أدخل بيانات اعتماد المشرف
           </p>
         </div>
 
         <div>
-          {renderStep()}
+          <AdminStep />
 
           {/* Development demo shortcuts */}
           {isStrictDevelopment && (
