@@ -175,6 +175,8 @@ export function ProfileTab() {
   const [governorates, setGovernorates] = useState<GovernorateRow[]>([]);
   const [districts, setDistricts] = useState<DistrictRow[]>([]);
   const [favoriteCount, setFavoriteCount] = useState(0);
+  const [blockedCaptains, setBlockedCaptains] = useState<{ id: string; name: string; phone: string; rating: number; serialId: string }[]>([]);
+  const [isLoadingBlocks, setIsLoadingBlocks] = useState(false);
 
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
@@ -209,6 +211,80 @@ export function ProfileTab() {
     ? selectedCountry?.currency_ar || selectedCountry?.currency_en || selectedCountry?.currency_code || user?.currencyAr || user?.currencyEn
     : selectedCountry?.currency_en || selectedCountry?.currency_code || selectedCountry?.currency_ar || user?.currencyEn || user?.currencyAr;
   const isLocationLoading = isLoadingCountries || isLoadingGovernorates || isLoadingDistricts;
+
+  const fetchBlockedCaptains = useCallback(async () => {
+    if (!user?.uid) return;
+    setIsLoadingBlocks(true);
+    try {
+      // 1. Fetch blocked IDs
+      const { data: blocks, error: blocksError } = await supabase
+        .from('user_blocks')
+        .select('blocked_id')
+        .eq('blocker_id', user.uid);
+
+      if (blocksError) throw blocksError;
+
+      const blockedIds = (blocks || []).map((b: any) => b.blocked_id);
+      if (blockedIds.length === 0) {
+        setBlockedCaptains([]);
+        return;
+      }
+
+      // 2. Fetch profiles of these blocked IDs
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, full_name, phone, rating, serial_id')
+        .in('id', blockedIds);
+
+      if (profilesError) throw profilesError;
+
+      const formatted = (profiles || []).map((prof: any) => ({
+        id: prof.id,
+        name: prof.full_name || 'كابتن محظور',
+        phone: prof.phone || '',
+        rating: Number(prof.rating || 5),
+        serialId: prof.serial_id || '',
+      }));
+      setBlockedCaptains(formatted);
+    } catch (err) {
+      console.error('[Profile] Fetch blocked captains error:', err);
+    } finally {
+      setIsLoadingBlocks(false);
+    }
+  }, [user?.uid]);
+
+  const handleUnblockCaptain = async (captainId: string) => {
+    if (!user?.uid) return;
+    try {
+      const { error } = await supabase
+        .from('user_blocks')
+        .delete()
+        .eq('blocker_id', user.uid)
+        .eq('blocked_id', captainId);
+
+      if (error) throw error;
+
+      toast({
+        title: 'تم إلغاء الحظر',
+        description: 'تم إلغاء حظر هذا الكابتن بنجاح.',
+      });
+
+      fetchBlockedCaptains();
+    } catch (err: any) {
+      console.error('[Profile] Unblock captain error:', err);
+      toast({
+        variant: 'destructive',
+        title: 'تعذر إلغاء الحظر',
+        description: err.message || 'حدث خطأ غير متوقع.',
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (user?.uid && !isCaptain) {
+      fetchBlockedCaptains();
+    }
+  }, [user?.uid, isCaptain, fetchBlockedCaptains]);
 
   useEffect(() => {
     let active = true;
@@ -646,6 +722,73 @@ export function ProfileTab() {
           )}
         </CardContent>
       </Card>
+
+      {!isCaptain && (
+        <Card className="border border-red-950/40 bg-[#0B0F19]/90 text-white shadow-xl">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base font-extrabold text-red-400">
+              <ShieldCheck className="h-5 w-5 text-red-500" />
+              {isArabic ? 'الكباتن المحظورون' : 'Blocked Captains'}
+            </CardTitle>
+            <CardDescription className="text-xs text-gray-400">
+              {isArabic
+                ? 'قائمة بالسائقين الذين قمت بحظرهم. يمكنك إلغاء الحظر لإعادة التعامل معهم.'
+                : 'List of captains you have blocked. You can unblock them to interact again.'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent dir="rtl">
+            {isLoadingBlocks ? (
+              <div className="flex items-center justify-center gap-2 py-4 text-sm text-gray-400">
+                <Loader2 className="h-4 w-4 animate-spin text-red-400" />
+                {isArabic ? 'جاري تحميل قائمة الحظر...' : 'Loading blocked list...'}
+              </div>
+            ) : blockedCaptains.length === 0 ? (
+              <p className="text-center py-4 text-sm text-gray-500">
+                {isArabic ? 'لا يوجد كباتن محظورون حالياً.' : 'No blocked captains currently.'}
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {blockedCaptains.map((captain) => (
+                  <div
+                    key={captain.id}
+                    className="flex flex-col gap-2 rounded-xl border border-white/5 bg-white/5 p-4"
+                  >
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <strong className="block text-sm text-white">{captain.name}</strong>
+                        {captain.serialId && (
+                          <span className="text-[10px] text-slate-400 mt-0.5 block">
+                            {isArabic ? `رقم الحساب: ${captain.serialId}` : `Account ID: ${captain.serialId}`}
+                          </span>
+                        )}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleUnblockCaptain(captain.id)}
+                        className="h-8 rounded-lg border-red-500/30 bg-red-500/10 text-xs font-bold text-red-400 hover:bg-red-500 hover:text-white transition-colors"
+                      >
+                        {isArabic ? 'إلغاء الحظر' : 'Unblock'}
+                      </Button>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 border-t border-white/5 pt-2 mt-1 text-[11px] text-slate-400">
+                      <div>
+                        <span>{isArabic ? 'التقييم: ' : 'Rating: '}</span>
+                        <span className="text-amber-400 font-bold">★ {captain.rating.toFixed(1)}</span>
+                      </div>
+                      <div>
+                        <span>{isArabic ? 'الهاتف: ' : 'Phone: '}</span>
+                        <span className="text-white font-mono">{captain.phone || (isArabic ? 'غير متاح' : 'N/A')}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <Button
             type="button"

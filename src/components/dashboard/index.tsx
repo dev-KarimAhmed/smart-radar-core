@@ -89,7 +89,7 @@ function DashboardLayout() {
  const { isSovereign, isCaptain, isPassenger, user, logout } = useAuth();
  const { toast } = useToast();
  const dashboardLanguage = useDashboardLanguage();
- const [hash, setHash] = useState(typeof window !== 'undefined' ? window.location.hash || '#' : '#');
+ const [hash, setHash] = useState('#');
  const riderOps = useRiderOperations() || {} as any;
  const driverOps = useDriverOperations() || {} as any;
 
@@ -97,11 +97,12 @@ function DashboardLayout() {
   const [hasRequestedRideOnce, setHasRequestedRideOnce] = useState(false);
 
  useEffect(() => {
- const handleHashChange = () => {
- setHash(window.location.hash || '#');
- };
- window.addEventListener('hashchange', handleHashChange);
- return () => window.removeEventListener('hashchange', handleHashChange);
+   setHash(window.location.hash || '#');
+   const handleHashChange = () => {
+     setHash(window.location.hash || '#');
+   };
+   window.addEventListener('hashchange', handleHashChange);
+   return () => window.removeEventListener('hashchange', handleHashChange);
  }, []);
 
  const tripStatus = useMemo(() => isPassenger ? (riderOps?.tripStatus || 'idle') : 'idle', [isPassenger, riderOps?.tripStatus]);
