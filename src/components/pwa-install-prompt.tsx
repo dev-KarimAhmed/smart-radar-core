@@ -6,12 +6,15 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { Button } from '@/components/ui/button';
 
+import { useAuth } from '@/hooks/use-auth';
+
 export function PwaInstallPrompt() {
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'android' | 'ios'>('android');
+  const { loading } = useAuth();
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || loading) return;
 
     // Check if running in standalone mode (already installed/added to PWA)
     const isStandalone = 
@@ -24,7 +27,7 @@ export function PwaInstallPrompt() {
     if (!isStandalone && !isDismissed) {
       setIsOpen(true);
     }
-  }, []);
+  }, [loading]);
 
   const handleClose = () => {
     setIsOpen(false);

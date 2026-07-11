@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { User as SovereignUser } from '@/core/types';
@@ -37,7 +37,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 function AuthContent({ children }: { children: ReactNode }) {
   const router = useRouter();
   const t = useTranslations('auth.logout');
-  const { isArabic } = useDashboardLanguage();
+  const { direction } = useDashboardLanguage();
   const [user, setUser] = useState<SovereignUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
@@ -152,10 +152,10 @@ function AuthContent({ children }: { children: ReactNode }) {
     <AuthContext.Provider value={value}>
       {children}
       <AlertDialog open={logoutDialogOpen} onOpenChange={(open) => !logoutInProgress && setLogoutDialogOpen(open)}>
-        <AlertDialogContent className="border-red-500/25 bg-[#0B0F19] text-white shadow-2xl" dir={isArabic ? 'rtl' : 'ltr'}>
-          <AlertDialogHeader className={isArabic ? 'text-right' : 'text-left'}>
+        <AlertDialogContent className="border-red-500/25 bg-[#0B0F19] text-white shadow-2xl" dir={direction}>
+          <AlertDialogHeader >
             <AlertDialogTitle className="text-xl font-black text-white">{t('title')}</AlertDialogTitle>
-            <AlertDialogDescription className={`text-sm leading-6 text-[#94A3B8] ${isArabic ? 'text-right' : 'text-left'}`}>
+            <AlertDialogDescription className="text-sm leading-6 text-[#94A3B8] text-start">
               {t('description')}
             </AlertDialogDescription>
           </AlertDialogHeader>

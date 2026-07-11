@@ -86,7 +86,7 @@ function SovereignLockoutView({ user, logout }: { user: any, logout: () => void 
 }
 
 function DashboardLayout() {
- const { isSovereign, isCaptain, isPassenger, user, logout } = useAuth();
+ const { isSovereign, isCaptain, isPassenger, user, loading, logout } = useAuth();
  const { toast } = useToast();
  const dashboardLanguage = useDashboardLanguage();
  const [hash, setHash] = useState('#');
@@ -342,10 +342,21 @@ function DashboardLayout() {
  return null;
  };
 
- const contentIsHidden = isStandby;
- const isRiderHomeSurface = user?.role === 'rider' && !contentIsHidden && (hash === '#' || hash === '' || hash === '#/');
+  const contentIsHidden = isStandby;
+  const isRiderHomeSurface = user?.role === 'rider' && !contentIsHidden && (hash === '#' || hash === '' || hash === '#/');
 
- return (
+  if (loading) {
+    return (
+      <div className="flex min-h-screen w-full flex-col items-center justify-center bg-[#0A0F1D] text-white">
+        <Loader2 className="h-10 w-10 animate-spin text-[#14B8A6] mb-4" />
+        <p className="text-sm font-bold text-gray-400">
+          {dashboardLanguage.language === 'ar' ? 'جاري تحميل المنصة...' : 'Loading platform...'}
+        </p>
+      </div>
+    );
+  }
+
+  return (
  // استخدام flex-col لضمان تدفق الصفحة (Doc Flow) والسماح بالتمرير الطبيعي
  <div className={cn('flex min-h-screen w-full flex-col bg-[#0A0F1D] text-white', !isCaptain && 'lg:h-screen lg:overflow-hidden')}>
  {user?.role === 'rider' && (
@@ -367,7 +378,7 @@ function DashboardLayout() {
  <main className={cn(
  'relative flex w-full flex-1 flex-col overflow-y-visible',
  isCaptain ? 'lg:min-h-screen lg:overflow-y-auto' : 'lg:h-screen lg:min-h-0 lg:overflow-hidden',
- user?.role === 'rider' && !isRiderHomeSurface && 'lg:pl-[288px]',
+ user?.role === 'rider' && !isRiderHomeSurface && 'lg:ps-[288px]',
  isStandby && 'h-[calc(100vh-120px)] overflow-hidden'
  )}>
 
@@ -433,7 +444,7 @@ function DesktopRiderSidebar({
  };
 
  return (
- <aside className="fixed inset-y-0 left-0 z-[140] hidden w-[288px] flex-col border-r border-white/[0.06] bg-[#0A0F1D]/95 shadow-[22px_0_70px_rgba(0,0,0,0.38)] backdrop-blur-xl lg:flex" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+ <aside className="fixed inset-y-0 start-0 z-[140] hidden w-[288px] flex-col border-e border-white/[0.06] bg-[#0A0F1D]/95 shadow-[22px_0_70px_rgba(0,0,0,0.38)] backdrop-blur-xl lg:flex" dir={language === 'ar' ? 'rtl' : 'ltr'}>
  <div className="flex items-center gap-3 border-b border-white/10 p-5">
  <Avatar className="h-12 w-12 border border-[#14B8A6]/35 bg-[#101827]">
  <AvatarFallback className="bg-[#101827] text-sm font-black text-white">{initials}</AvatarFallback>

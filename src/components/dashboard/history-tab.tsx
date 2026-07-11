@@ -456,7 +456,7 @@ export function HistoryTab() {
     const cLabels = isArabic ? CAPTAIN_CRITERIA_LABELS : CAPTAIN_CRITERIA_LABELS_EN;
 
     return (
-      <div className="mt-3 rounded-xl border border-white/5 bg-white/[0.02] p-3 text-xs space-y-2 text-right" dir={isArabic ? 'rtl' : 'ltr'}>
+      <div className="mt-3 rounded-xl border border-white/5 bg-white/[0.02] p-3 text-xs space-y-2 text-start">
         <div className="flex items-center gap-1.5 text-[#14F5D5] font-bold justify-start">
           <Star className="h-3.5 w-3.5 fill-[#14F5D5] text-[#14F5D5]" />
           <span>{isArabic ? 'تقييمك المفصّل للكابتن:' : 'Your detailed feedback for captain:'}</span>
@@ -483,7 +483,7 @@ export function HistoryTab() {
 
   if (language === 'en' && isPassenger) {
     return (
-      <div className="w-full max-w-xl mx-auto pb-24 text-left font-sans space-y-6 animate-in fade-in duration-500" dir="ltr">
+      <div className="w-full max-w-xl mx-auto pb-24 text-start font-sans space-y-6 animate-in fade-in duration-500">
         <Card className="bg-[#050505] border-emerald-950 text-white overflow-hidden shadow-2xl relative">
           <div className="absolute top-0 left-0 w-full h-1 bg-emerald-500 animate-pulse" />
           <CardContent className="p-6 space-y-2">
@@ -611,7 +611,7 @@ export function HistoryTab() {
   }
 
   return (
-    <div className={`w-full max-w-xl mx-auto pb-24 font-sans space-y-6 animate-in fade-in duration-500 ${isArabic ? 'text-right' : 'text-left'}`} dir={isArabic ? 'rtl' : 'ltr'}>
+    <div className="w-full max-w-xl mx-auto pb-24 font-sans space-y-6 animate-in fade-in duration-500 text-start">
       {/* 1. Header Card */}
       <Card className="bg-[#050505] border-emerald-950 text-white overflow-hidden shadow-2xl relative">
         <div className="absolute top-0 left-0 w-full h-1 bg-emerald-500 animate-pulse" />
