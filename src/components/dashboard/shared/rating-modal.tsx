@@ -158,8 +158,8 @@ export function RatingModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[92vh] overflow-y-auto border-white/[0.06] bg-[#0A0F1D]/95 backdrop-blur-xl text-white sm:max-w-md w-[95%] rounded-3xl p-6 pb-8" dir="rtl">
-        <DialogHeader className="text-right flex flex-row items-center justify-between pb-2 border-b border-white/5">
+      <DialogContent className="max-h-[92vh] overflow-y-auto border-white/[0.06] bg-[#0A0F1D]/95 backdrop-blur-xl text-white sm:max-w-md w-[95%] rounded-3xl pt-10 px-6 pb-8" dir="rtl">
+        <DialogHeader className="text-right flex flex-row items-center justify-between pb-2 border-b border-white/5 mt-2">
           <div>
             <DialogTitle className="text-xl font-black text-white">قيّم الرحلة</DialogTitle>
             <DialogDescription className="text-gray-400 mt-1">يساعدنا تقييمك على تحسين الخدمة.</DialogDescription>
