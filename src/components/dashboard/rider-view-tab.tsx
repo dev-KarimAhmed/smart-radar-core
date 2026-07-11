@@ -548,7 +548,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
           dispatch({ type: 'SERVER_STATUS_RECEIVING_OFFERS' });
         }
 
-        if (status === 'ACCEPTED') {
+        if (status === 'ACCEPTED' || status === 'EN_ROUTE' || status === 'ARRIVED' || status === 'STARTED') {
           dispatch({
             type: 'SERVER_STATUS_ACCEPTED',
             row: {
@@ -556,7 +556,9 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
               selected_offer_id: row.selected_offer_id || row.accepted_offer_id || pendingAcceptedOfferIdRef.current,
             },
           });
-          pendingAcceptedOfferIdRef.current = null;
+          if (status === 'ACCEPTED') {
+            pendingAcceptedOfferIdRef.current = null;
+          }
         }
 
         if (status === 'CANCELLED') {
@@ -1245,10 +1247,12 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                   <article key={offer.id || offer.driverId} className="space-y-3 rounded-2xl border border-white/5 bg-white/5 p-4">
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <h3 className="text-lg font-bold text-white">{offer.driverName}</h3>
+                        <h3 className="text-lg font-bold text-white">
+                          {offer.captain?.full_name || offer.captain?.name || offer.driverName || "كابتن حركي"}
+                        </h3>
                         <p className="mt-1 flex items-center gap-1 text-xs text-slate-400">
                           <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
-                          {offer.driverRating.toFixed(1)} / {offer.driverRank}
+                          {Math.floor(offer.captain?.trust_rating || offer.driverRating || 5)}.0 / {offer.captain?.tier || offer.driverRank || "Bronze"}
                         </p>
                       </div>
                       <strong className="text-xl font-bold text-[#14F5D5]">
@@ -1261,20 +1265,26 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                       <div className="flex items-center gap-2">
                         <MapPin className="h-4 w-4 text-slate-400" />
                         <span className="text-slate-400 text-xs">
-                          البعد عنك: {distanceDisplay} كم
+                          {language === 'ar' ? `البعد عنك: ${distanceDisplay} كم` : `Distance: ${distanceDisplay} km`}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Clock className="h-4 w-4 text-[#14B8A6] animate-pulse" />
                         <span className="text-[#14B8A6] font-bold text-xs">
-                          يصلك خلال: {etaDisplay} دقائق
+                          {language === 'ar' ? `يصلك خلال: ${etaDisplay} دقائق` : `ETA: ${etaDisplay} mins`}
                         </span>
                       </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-2 rounded-xl bg-black/25 p-3 text-xs text-slate-300">
-                      <Metric label={copy.vehicle} value={`${offer.driverVehicle.make} ${offer.driverVehicle.color}`} />
-                      <Metric label={copy.plate} value={offer.driverVehicle.plate} />
+                      <Metric
+                        label={copy.vehicle}
+                        value={`${offer.captain?.vehicle_color || offer.driverVehicle.color || ''} ${offer.captain?.vehicle_model || offer.driverVehicle.make || 'سيارة مشغلة'}`.trim()}
+                      />
+                      <Metric
+                        label={copy.plate}
+                        value={offer.captain?.plate_number || offer.captain?.license_plate || offer.driverVehicle.plate || "أ ر ج 1234"}
+                      />
                     </div>
 
                     {/* TASK 2: Estimated Trip Duration */}
@@ -1324,28 +1334,50 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
           <div className="flex items-start justify-between gap-3">
             <div className="space-y-1">
               <p className="text-[11px] font-black text-[#14F5D5]">{copy.tripStarted}</p>
-              <h2 className="text-xl font-bold text-white">{state.activeTrip.captainSerial}</h2>
+              <h2 className="text-xl font-bold text-white">
+                {state.activeTrip.captain?.full_name || state.activeTrip.captain?.name || state.activeTrip.captainName || "كابتن حركي"}
+              </h2>
               <p className="text-xs text-slate-400">{state.activeTrip.destinationLabel}</p>
             </div>
-            <div className="rounded-2xl border border-white/5 bg-white/5 px-4 py-2 text-center">
+            <div className="rounded-2xl border border-white/5 bg-white/5 px-4 py-2 text-center min-w-[100px]">
               <Clock className="mx-auto mb-1 h-4 w-4 text-[#14F5D5]" />
-              <strong className="font-mono text-lg text-[#14F5D5]">
+              <strong className="font-mono text-lg text-[#14F5D5] block">
                 {minutes}:{seconds.toString().padStart(2, '0')}
               </strong>
+              <span className="text-[9px] text-slate-400 block mt-0.5 whitespace-nowrap font-bold">
+                {state.activeTrip.status === 'STARTED'
+                  ? (language === 'ar' ? 'متبقي للوصول' : 'Time Remaining')
+                  : (language === 'ar' ? 'وصول الكابتن' : 'Driver Arrival')}
+              </span>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3 rounded-2xl border border-white/5 bg-white/5 p-4">
-            <Metric label={copy.vehicle} value={state.activeTrip.vehicleType} />
-            <Metric label={copy.plate} value={state.activeTrip.vehiclePlate} />
-            <Metric label={copy.serverFare} value={formatMoney(state.activeTrip.finalPrice, currencyLabel)} />
-            <Metric label={copy.tripDistance} value={`${state.activeTrip.distanceKm.toFixed(2)} ${copy.km}`} />
-            <Metric label={copy.tracking} value={copy.localUpdates} />
-            <Metric label={copy.roadFactor} value={(state.activeTrip.tortuosityFactor ?? 1.3).toFixed(2)} />
+            <Metric
+              label={copy.vehicle}
+              value={`${state.activeTrip.captain?.vehicle_color || ''} ${state.activeTrip.captain?.vehicle_model || state.activeTrip.vehicleType || 'سيارة مشغلة'}`.trim()}
+            />
+            <Metric
+              label={copy.plate}
+              value={state.activeTrip.captain?.plate_number || state.activeTrip.captain?.license_plate || state.activeTrip.vehiclePlate || "أ ر ج 1234"}
+            />
+          </div>
+
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-emerald-500/20 bg-emerald-950/10 p-5 text-center">
+            <div className="text-2xl font-extrabold text-teal-400 font-mono">
+              {formatMoney(state.activeTrip.finalPrice, currencyLabel)}
+            </div>
+            <p className="mt-1 text-xs font-bold text-slate-400">
+              {language === 'ar' ? 'تكلفة الرحلة النهائية' : 'Final Trip Cost'}
+            </p>
           </div>
 
           <div className="rounded-2xl border border-[#14B8A6]/20 bg-[#14B8A6]/8 p-4 text-xs leading-relaxed text-slate-300">
-            {copy.driverEnRouteNote}
+            {state.activeTrip.status === 'STARTED'
+              ? (language === 'ar'
+                  ? "رحلتك قيد التقدم الآن. نتمنى لك رحلة آمنة!"
+                  : "Your trip is in progress. Have a safe ride!")
+              : copy.driverEnRouteNote}
           </div>
 
           <div className="flex gap-2">
@@ -1358,13 +1390,32 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                 <Phone className="h-6 w-6" />
               </a>
             )}
-            <button
-              onClick={() => void handleCompleteTrip()}
-              disabled={isCompletingTrip}
-              className="h-14 flex-1 bg-[#14B8A6] text-[#0A0F1D] font-bold text-base py-3.5 rounded-xl transition-transform active:scale-[0.98] hover:bg-[#2DD4BF] flex items-center justify-center cursor-pointer"
-            >
-              {isCompletingTrip ? copy.completingTrip : copy.completeTrip}
-            </button>
+            {state.activeTrip.status === 'STARTED' ? (
+              <button
+                type="button"
+                onClick={() => {
+                  toast({
+                    title: language === 'ar' ? 'طوارئ وتتبع الرحلة' : 'SOS & Trip Sharing',
+                    description: language === 'ar' ? 'تم نسخ رابط تتبع الرحلة لمشاركته بأمان.' : 'Trip tracking link copied to clipboard.',
+                  });
+                }}
+                className="h-14 flex-1 bg-red-600/90 hover:bg-red-500 text-white font-bold text-base py-3.5 rounded-xl transition-transform active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-red-600/20"
+              >
+                <ShieldCheck className="h-5 w-5 animate-pulse" />
+                {language === 'ar' ? "طوارئ SOS / تتبع الرحلة" : "SOS / Share Trip"}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleCancelRideRequest}
+                disabled={isCancellingRideRequest}
+                className="h-14 flex-1 border border-red-500/30 bg-red-600/10 hover:bg-red-600/20 text-red-200 font-bold text-base py-3.5 rounded-xl transition-transform active:scale-[0.98] flex items-center justify-center cursor-pointer disabled:opacity-50"
+              >
+                {isCancellingRideRequest
+                  ? (language === 'ar' ? 'جاري الإلغاء...' : 'Cancelling...')
+                  : (language === 'ar' ? 'إلغاء الطلب' : 'Cancel Request')}
+              </button>
+            )}
           </div>
         </div>
       );
@@ -1499,16 +1550,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
 
             {renderStatePanel()}
 
-            {state.screen === 'TRIP_ACTIVE' && state.requestId ? (
-              <Button
-                type="button"
-                onClick={() => void handleCancelRideRequest()}
-                disabled={isCancellingRideRequest || isCompletingTrip}
-                className="h-12 w-full rounded-2xl border border-red-500/30 bg-red-600/15 text-sm font-black text-red-100 shadow-xl shadow-black/25 hover:bg-red-600/25"
-              >
-                {isCancellingRideRequest ? requestFlowCopy.cancellingRequest : requestFlowCopy.cancelRequest}
-              </Button>
-            ) : null}
+
 
             {showAdRiver && (
               <div className="hidden overflow-hidden rounded-[24px] border border-[#14B8A6]/15 bg-[#0B0F19]/88 shadow-2xl shadow-black/35 backdrop-blur-xl lg:block">

@@ -49,6 +49,8 @@ export interface RiderActiveTrip {
   tortuosityFactor?: number;
   etaSeconds: number;
   startedAt: number;
+  captain?: any;
+  status?: string;
 }
 
 export interface RiderMachineState {
@@ -153,6 +155,8 @@ function buildActiveTrip(state: RiderMachineState, acceptedRow: Record<string, u
     tortuosityFactor: state.destination?.fareQuote?.tortuosityFactor,
     etaSeconds: Math.max(4 * 60, Math.round((distanceKm || 4) * 85)),
     startedAt: Date.now(),
+    captain: selectedOffer?.captain || acceptedRow.captain || acceptedRow.captain_profile || null,
+    status: String(acceptedRow.status || 'ACCEPTED').toUpperCase(),
   };
 }
 
@@ -191,7 +195,7 @@ export function riderDashboardReducer(state: RiderMachineState, action: RiderMac
       return { ...state, screen: 'RECEIVING_OFFERS' };
 
     case 'SERVER_STATUS_ACCEPTED': {
-      if (state.screen !== 'RECEIVING_OFFERS') return state;
+      if (state.screen !== 'RECEIVING_OFFERS' && state.screen !== 'TRIP_ACTIVE') return state;
       const activeTrip = buildActiveTrip(state, action.row);
       if (!activeTrip) return state;
       return {

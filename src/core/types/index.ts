@@ -124,6 +124,7 @@ export interface Offer {
     distance_to_rider?: number;
     pickup_eta_minutes?: number;
     estimated_duration_minutes?: number;
+    captain?: any;
 }
 
 export interface SovereignAd {
