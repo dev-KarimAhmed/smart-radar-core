@@ -111,6 +111,63 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
   const [riderLocation, setRiderLocation] = React.useState<RiderLocation>(INITIAL_RIDER_LOCATION);
   const [riderH3Cell, setRiderH3Cell] = React.useState(latLngToCell(INITIAL_RIDER_LOCATION.lat, INITIAL_RIDER_LOCATION.lng, H3_RIDER_REQUEST_RESOLUTION));
   const [locationStatus, setLocationStatus] = React.useState<RiderLocationStatus>('fallback');
+  const [currentAddressName, setCurrentAddressName] = React.useState<string>('');
+  const [isGeocoding, setIsGeocoding] = React.useState<boolean>(false);
+
+  React.useEffect(() => {
+    if (!riderLocation.lat || !riderLocation.lng) return;
+
+    let active = true;
+    const fetchAddress = async () => {
+      setIsGeocoding(true);
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?lat=${riderLocation.lat}&lon=${riderLocation.lng}&format=json&accept-language=${language}`
+        );
+        if (!res.ok) throw new Error('Geocoding fail');
+        const data = await res.json();
+        if (active && data) {
+          const addr = data.address || {};
+          const localPart =
+            addr.suburb ||
+            addr.neighbourhood ||
+            addr.village ||
+            addr.town ||
+            addr.city_district ||
+            addr.road ||
+            '';
+          const cityPart =
+            addr.city ||
+            addr.state ||
+            addr.governorate ||
+            '';
+
+          const separator = language === 'ar' ? '، ' : ', ';
+          let displayAddress = '';
+          if (localPart && cityPart && localPart !== cityPart) {
+            displayAddress = `${localPart}${separator}${cityPart}`;
+          } else {
+            displayAddress = localPart || cityPart || data.display_name || '';
+          }
+          setCurrentAddressName(displayAddress);
+        }
+      } catch (err) {
+        console.warn('Reverse geocoding failed:', err);
+      } finally {
+        if (active) setIsGeocoding(false);
+      }
+    };
+
+    const timer = setTimeout(() => {
+      fetchAddress();
+    }, 800);
+
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [riderLocation.lat, riderLocation.lng, language]);
+
   const [localCompletedTrips, setLocalCompletedTrips] = React.useState<HistoricalTrip[]>([]);
   const [captainLocations, setCaptainLocations] = React.useState<CaptainPresencePoint[]>([]);
   const [blockedCaptainIds, setBlockedCaptainIds] = React.useState<Set<string>>(new Set());
@@ -926,6 +983,10 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
           ? formatMoney(selectedDraftDestination.serverEstimatedFare, currencyLabel)
           : copy.notAvailable;
 
+      const originH3 = selectedDraftDestination?.originCell || '';
+      const destinationH3 = selectedDraftDestination?.destinationCell || '';
+      const isSameLocation = !!originH3 && !!destinationH3 && originH3 === destinationH3;
+
       return (
         <div className="space-y-4 text-right" dir={isArabic ? 'rtl' : 'ltr'}>
             <div className="space-y-1">
@@ -1004,16 +1065,26 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
               </div>
             ) : null}
 
-            <div className="grid grid-cols-2 gap-3 rounded-2xl border border-white/5 bg-white/5 p-4">
-              <Metric label={copy.serverFare} value={serverFareLabel} />
-              <Metric label={copy.fareStatus} value={serverFareError ? copy.fareFailed : isServerFareLoading ? copy.fareLoading : copy.ready} />
-              <Metric label={copy.originH3} value={selectedDraftDestination?.originCell?.slice(0, 8).toUpperCase() || '-'} />
-              <Metric label={copy.destinationH3} value={selectedDraftDestination?.destinationCell?.slice(0, 8).toUpperCase() || '-'} />
+            <div className="flex flex-col items-center justify-center rounded-2xl border border-emerald-500/20 bg-emerald-950/10 p-6 text-center">
+              <div className="text-3xl font-extrabold text-teal-400 font-mono">
+                {isServerFareLoading ? (language === 'ar' ? 'جاري الحساب...' : 'Calculating...') : serverFareLabel}
+              </div>
+              <p className="mt-1.5 text-xs font-bold text-slate-400">
+                {language === 'ar' ? 'السعر التقريبي للرحلة' : 'Estimated Fare'}
+              </p>
             </div>
 
             {serverFareError && (
               <div className="rounded-2xl border border-red-500/30 bg-red-950/30 p-3 text-xs font-bold leading-relaxed text-red-100">
                 {serverFareError}
+              </div>
+            )}
+
+            {isSameLocation && (
+              <div className="text-xs font-bold text-red-500 text-center py-1 animate-pulse">
+                {language === 'ar'
+                  ? 'لا يمكن أن تكون الوجهة هي نفس موقع الانطلاق.'
+                  : 'Destination cannot be the same as origin location.'}
               </div>
             )}
 
@@ -1024,9 +1095,15 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                 isServerFareLoading ||
                 !hasDestinationOptions ||
                 !selectedDestinationHasCoords ||
-                selectedDraftDestination?.serverEstimatedFare === undefined
+                selectedDraftDestination?.serverEstimatedFare === undefined ||
+                isSameLocation
               }
-              className="h-14 w-full bg-[#14B8A6] text-[#0A0F1D] font-bold text-base py-3.5 rounded-xl transition-transform active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#2DD4BF] flex items-center justify-center cursor-pointer"
+              className={cn(
+                "h-14 w-full font-bold text-base py-3.5 rounded-xl transition-transform active:scale-[0.98] flex items-center justify-center",
+                isSameLocation
+                  ? "bg-gray-700 text-gray-400 cursor-not-allowed"
+                  : "bg-[#14B8A6] text-[#0A0F1D] hover:bg-[#2DD4BF] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              )}
             >
               {isSendingRideRequest ? copy.sendingRequest : copy.requestNow}
             </button>
@@ -1398,8 +1475,15 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                   </div>
 
                   <div className="grid grid-cols-2 gap-3 rounded-2xl border border-white/5 bg-white/5 p-4">
-                    <Metric label={copy.yourArea} value={locationStatus === 'live' ? copy.currentLocation : copy.fallbackLocation} />
-                    <Metric label={copy.yourRating} value={`${riderProfile.rating.toFixed(1)} / 5`} />
+                    <Metric
+                      label={copy.yourArea}
+                      value={
+                        isGeocoding
+                          ? (language === 'ar' ? 'جاري تحديد الموقع...' : 'Locating...')
+                          : currentAddressName || (locationStatus === 'live' ? copy.currentLocation : copy.fallbackLocation)
+                      }
+                    />
+                    <Metric label={copy.yourRating} value={`${Math.floor(riderProfile.rating || 5)} / 5`} />
                   </div>
 
                   <button

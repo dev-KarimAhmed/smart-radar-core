@@ -336,7 +336,7 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
               backgroundColor: riderProfile.rating < 4.3 ? 'rgba(255,51,102,0.1)' : 'rgba(20,184,166,0.1)',
             }}
           >
-            {riderProfile.rating.toFixed(2)} / 5.0
+            {Math.floor(riderProfile.rating || 5)} / 5
           </strong>
         </div>
 
