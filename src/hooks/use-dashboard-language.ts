@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { useLocale } from 'next-intl';
+
 import type { AppLanguage } from '@/lib/i18n/simple-copy';
 import { useLocaleContext } from '@/components/providers/locale-provider';
 
@@ -22,9 +22,8 @@ export {
  * while the actual locale state is owned by `LocaleProvider` + next-intl.
  */
 export function useDashboardLanguage() {
-  const locale = useLocale();
-  const { setLocale, toggleLocale } = useLocaleContext();
-  const language: AppLanguage = locale === 'en' ? 'en' : 'ar';
+  const { currentLocale, setLocale, toggleLocale } = useLocaleContext();
+  const language: AppLanguage = currentLocale === 'en' ? 'en' : 'ar';
 
   const setLanguage = useCallback((nextLanguage: AppLanguage) => setLocale(nextLanguage), [setLocale]);
 

@@ -17,6 +17,7 @@ const MESSAGES: Record<AppLanguage, typeof arMessages> = {
 };
 
 type LocaleContextValue = {
+  currentLocale: AppLanguage;
   setLocale: (language: AppLanguage) => void;
   toggleLocale: () => void;
 };
@@ -79,6 +80,7 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
 
   const contextValue = useMemo<LocaleContextValue>(
     () => ({
+      currentLocale: locale,
       setLocale,
       toggleLocale: () => setLocale(locale === 'ar' ? 'en' : 'ar'),
     }),

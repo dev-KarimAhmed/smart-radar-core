@@ -447,7 +447,7 @@ export function AdStage({
           data-ad-count={adsToUse.length}
           onScroll={registerManualTrackScroll}
           className={cn(
-            'flex min-w-0 flex-1 flex-nowrap gap-8 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
+            'no-scrollbar flex min-w-0 flex-1 flex-nowrap gap-8 overflow-x-auto',
             adsToUse.length === 1 ? 'justify-center px-6 sm:px-16' : 'px-14'
           )}
         >
