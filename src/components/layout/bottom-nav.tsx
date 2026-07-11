@@ -81,7 +81,7 @@ export function BottomNav() {
     { href: '#', icon: Home, label: t('home') },
     { href: '#history', icon: History, label: t('history') },
     { href: '#vault', icon: Archive, label: t('vault') },
-    { href: '#wallet', icon: Wallet, label: t('wallet') },
+    ...(!isPassenger ? [{ href: '#wallet', icon: Wallet, label: t('wallet') }] : []),
     { href: '#profile', icon: User, label: t('profile') },
   ];
 

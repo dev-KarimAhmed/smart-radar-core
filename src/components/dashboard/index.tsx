@@ -277,7 +277,6 @@ function DashboardLayout() {
  return <RiderViewTab onExitRequestFlow={() => { setShowRequestFlow(false); setHasRequestedRideOnce(false); }} isStandbyDismissed={hasRequestedRideOnce} />;
  }
 
- if (hash === '#wallet') return <WalletTab />;
  if (hash === '#vault') return <VaultTab />;
  if (hash === '#history') return <HistoryTab />;
  if (hash === '#profile') return <ProfileTab />;
@@ -430,13 +429,12 @@ function DesktopRiderSidebar({
 }) {
  const initials = getInitials(user?.name || user?.phone || 'R');
  const copy = dashboardChromeCopy[language];
- const items = [
- { href: '#', icon: Home, label: copy.nav.home },
- { href: '#history', icon: History, label: copy.nav.history },
- { href: '#vault', icon: Archive, label: copy.nav.vault },
- { href: '#wallet', icon: Wallet, label: copy.nav.wallet },
- { href: '#profile', icon: User, label: copy.nav.profile },
- ];
+  const items = [
+    { href: '#', icon: Home, label: copy.nav.home },
+    { href: '#history', icon: History, label: copy.nav.history },
+    { href: '#vault', icon: Archive, label: copy.nav.vault },
+    { href: '#profile', icon: User, label: copy.nav.profile },
+  ];
 
  const openRideRequest = () => {
  window.location.hash = '#';
