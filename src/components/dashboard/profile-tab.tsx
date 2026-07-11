@@ -737,7 +737,7 @@ export function ProfileTab() {
                 : 'List of captains you have blocked. You can unblock them to interact again.'}
             </CardDescription>
           </CardHeader>
-          <CardContent dir="rtl">
+          <CardContent dir={isArabic ? 'rtl' : 'ltr'}>
             {isLoadingBlocks ? (
               <div className="flex items-center justify-center gap-2 py-4 text-sm text-gray-400">
                 <Loader2 className="h-4 w-4 animate-spin text-red-400" />

@@ -4,8 +4,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { AlertCircle, Briefcase, Clock, Heart, MessageCircle, Phone, Send, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { useTranslations } from 'next-intl';
 import { dexieDb, RadarCaptainFavoriteKernel, type RiderTripLedgerEntry } from '@/lib/dexie-db';
-import { riderDashboardCopy } from '@/lib/i18n/rider-dashboard-copy';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 
 export interface HistoricalTrip {
@@ -66,13 +66,13 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
   systemMessages,
   currencyLabel = '',
 }) => {
-  const { isArabic, language } = useDashboardLanguage();
-  const copy = riderDashboardCopy[language];
+  const { isArabic } = useDashboardLanguage();
+  const t = useTranslations('riderDashboard');
 
   const captainTypeLabel = (type: FavoriteCaptain['captainType']) => {
-    if (type === 'uber') return copy.recent.uber;
-    if (type === 'careem') return copy.recent.careem;
-    return copy.recent.independent;
+    if (type === 'uber') return t('recent.uber');
+    if (type === 'careem') return t('recent.careem');
+    return t('recent.independent');
   };
   const [reportText, setReportText] = useState('');
   const [favoriteCaptains, setFavoriteCaptains] = useState<FavoriteCaptain[]>([]);
@@ -168,8 +168,8 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
     }
 
     toast({
-      title: copy.toast.removedFavorite,
-      description: copy.toast.removedFavoriteDesc,
+      title: t('toast.removedFavorite'),
+      description: t('toast.removedFavoriteDesc'),
     });
     loadFavorites();
   };
@@ -212,8 +212,8 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
       } as FavoriteCaptain);
 
       toast({
-        title: copy.toast.savedFavorite,
-        description: copy.toast.savedFavoriteDesc,
+        title: t('toast.savedFavorite'),
+        description: t('toast.savedFavoriteDesc'),
       });
 
       if (typeof navigator !== 'undefined' && navigator.vibrate) {
@@ -252,8 +252,8 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
       }
 
       toast({
-        title: copy.toast.categoryUpdated,
-        description: `${copy.toast.categoryUpdatedDesc} ${captainTypeLabel(type)}.`,
+        title: t('toast.categoryUpdated'),
+        description: `${t('toast.categoryUpdatedDesc')} ${captainTypeLabel(type)}.`,
       });
       loadFavorites();
     } catch (error) {
@@ -297,8 +297,8 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
 
     setReportText('');
     toast({
-      title: copy.toast.reportSent,
-      description: copy.toast.reportSentDesc,
+      title: t('toast.reportSent'),
+      description: t('toast.reportSentDesc'),
     });
   };
 
@@ -315,8 +315,8 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
 
     loadFavorites();
     toast({
-      title: copy.toast.cardDeleted,
-      description: copy.toast.cardDeletedDesc,
+      title: t('toast.cardDeleted'),
+      description: t('toast.cardDeletedDesc'),
     });
   };
 
@@ -326,9 +326,9 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
       dir={isArabic ? 'rtl' : 'ltr'}
     >
       <div className="mb-4 border-b border-white/10 pb-4">
-        <h3 className="mb-3 text-base font-black text-[#14B8A6] md:text-lg">{copy.recent.title}</h3>
+        <h3 className="mb-3 text-base font-black text-[#14B8A6] md:text-lg">{t('recent.title')}</h3>
         <div className="flex items-center justify-between rounded-xl border border-[#14B8A6]/20 bg-white/[0.04] p-4 backdrop-blur">
-          <span className="text-[11px] font-bold text-gray-300">{copy.recent.ratingLabel}</span>
+          <span className="text-[11px] font-bold text-gray-300">{t('recent.ratingLabel')}</span>
           <strong
             className="rounded-lg px-3 py-1 text-lg font-black md:text-xl"
             style={{
@@ -343,7 +343,7 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
         {riderProfile.rating < 4.3 && (
           <div className="mt-2 flex items-start gap-2 rounded-lg border border-rose-500/20 bg-rose-500/10 p-2.5 text-[10px] text-[#ff3366]">
             <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-            <p className="font-bold">{copy.recent.lowRating}</p>
+            <p className="font-bold">{t('recent.lowRating')}</p>
           </div>
         )}
       </div>
@@ -354,17 +354,17 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
       >
         <Briefcase className="h-4 w-4 text-[#14B8A6]" />
         <span>
-          {copy.recent.favoritesBag} ({favoriteCaptains.length})
+          {t('recent.favoritesBag')} ({favoriteCaptains.length})
         </span>
       </Button>
 
       <section className="mb-6 space-y-3">
-        <h4 className="text-xs font-bold uppercase tracking-wide text-gray-400">{copy.recent.recentTrips}</h4>
+        <h4 className="text-xs font-bold uppercase tracking-wide text-gray-400">{t('recent.recentTrips')}</h4>
 
         {activeArchive.length === 0 ? (
           <div className="rounded-xl border border-dashed border-white/10 bg-white/[0.03] p-5 text-center">
             <Trash2 className="mx-auto mb-2 h-5 w-5 text-gray-600" />
-            <p className="text-[11px] text-gray-500">{copy.recent.noTrips}</p>
+            <p className="text-[11px] text-gray-500">{t('recent.noTrips')}</p>
           </div>
         ) : (
           activeArchive.map((trip) => {
@@ -380,7 +380,7 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
                 <button
                   onClick={(event) => toggleFavorite(event, trip)}
                   className="absolute left-3 top-3 rounded-md p-1.5 text-rose-500 transition-all hover:bg-neutral-900"
-                  title={isHearted ? copy.toast.removedFavorite : copy.toast.savedFavorite}
+                  title={isHearted ? t('toast.removedFavorite') : t('toast.savedFavorite')}
                   type="button"
                 >
                   <Heart
@@ -392,17 +392,17 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
 
                 <div className="space-y-1 pl-8 text-[12px] md:text-[13px]">
                   <p className="text-gray-300">
-                    {copy.recent.captain}:{' '}
+                    {t('recent.captain')}:{' '}
                     <strong className="font-black text-white">
                       {trip.captainName}{' '}
                       <span className="text-[10px] text-amber-400">[{trip.captainRank}]</span>
                     </strong>
                   </p>
                   <p className="font-black text-amber-400">
-                    {copy.recent.price}: {formatDashboardMoney(trip.finalPrice, currencyLabel)}
+                    {t('recent.price')}: {formatDashboardMoney(trip.finalPrice, currencyLabel)}
                   </p>
                   <p className="text-[11px] text-gray-400">
-                    {copy.recent.vehicle}: {trip.vehicleInfo}
+                    {t('recent.vehicle')}: {trip.vehicleInfo}
                   </p>
                 </div>
 
@@ -412,14 +412,14 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
                   style={{ textDecoration: 'none' }}
                 >
                   <Phone className="h-3.5 w-3.5" />
-                  <span>{copy.recent.callLostItems}</span>
+                  <span>{t('recent.callLostItems')}</span>
                 </a>
 
                 <div className="flex items-center gap-2 border-t border-white/10 pt-2">
                   <input
                     type="text"
                     value={reportText}
-                    placeholder={copy.recent.reportPlaceholder}
+                    placeholder={t('recent.reportPlaceholder')}
                     onChange={(event) => setReportText(event.target.value)}
                     className={`min-w-0 flex-1 rounded-lg border border-white/10 bg-black px-3 py-2 text-[11px] text-white placeholder:text-gray-600 focus:border-red-500 focus:outline-none ${isArabic ? 'text-right' : 'text-left'}`}
                     dir={isArabic ? 'rtl' : 'ltr'}
@@ -429,14 +429,14 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
                     className="h-8 shrink-0 rounded-lg border border-red-500/20 bg-red-950/30 px-3 text-[10px] font-black text-red-400 hover:bg-red-900/40"
                   >
                     <Send className="ml-1 h-3 w-3" />
-                    {copy.recent.silentReport}
+                    {t('recent.silentReport')}
                   </Button>
                 </div>
 
                 <div className="flex items-center justify-between text-[10px] text-gray-500">
                   <span className="flex items-center gap-1 font-bold text-rose-500">
                     <Clock className="h-3 w-3" />
-                    {copy.recent.autoDeleteIn}: {hoursLeft} {copy.recent.hours}
+                    {t('recent.autoDeleteIn')}: {hoursLeft} {t('recent.hours')}
                   </span>
                   <span className="font-mono text-[9px] text-gray-600">Trip ID: {trip.tripId.slice(0, 8)}</span>
                 </div>
@@ -448,7 +448,7 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
 
       <section className="space-y-3 rounded-xl border border-white/[0.06] bg-[#0F172A]/40 p-4">
         <h4 className="flex items-center justify-between border-b border-white/10 pb-2 text-xs font-black uppercase tracking-wide text-[#14B8A6]">
-          <span>{copy.recent.savedCaptains}</span>
+          <span>{t('recent.savedCaptains')}</span>
           <span className="rounded-full bg-[#14B8A6]/10 px-2 py-0.5 font-mono text-[8px] text-[#14B8A6]">
             {favoriteCaptains.length}
           </span>
@@ -457,7 +457,7 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
         {favoriteCaptains.length === 0 ? (
           <div className="rounded-lg border border-dashed border-[#14B8A6]/10 bg-black/30 p-4 text-center">
             <Heart className="mx-auto mb-2 h-5 w-5 text-gray-600" />
-            <p className="text-[10px] leading-normal text-gray-400">{copy.recent.noFavorites}</p>
+            <p className="text-[10px] leading-normal text-gray-400">{t('recent.noFavorites')}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-2.5">
@@ -466,7 +466,7 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
                 <button
                   onClick={() => removeFavorite(captain)}
                   className="absolute left-2 top-2 p-1 text-rose-500 transition-all hover:scale-105"
-                  title={copy.toast.removedFavorite}
+                  title={t('toast.removedFavorite')}
                   type="button"
                 >
                   <Trash2 className="h-3.5 w-3.5 opacity-70 hover:opacity-100" />
@@ -482,7 +482,7 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
 
                 <div className="flex items-center justify-between border-t border-white/10 pt-2">
                   <span className="rounded border border-[#14B8A6]/10 bg-[#14B8A6]/10 px-1.5 py-0.5 text-[9px] font-bold text-[#14B8A6]">
-                    {copy.recent.savedPermanent}
+                    {t('recent.savedPermanent')}
                   </span>
                   <a
                     href={`tel:${captain.captainPhone}`}
@@ -490,7 +490,7 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
                     style={{ textDecoration: 'none' }}
                   >
                     <Phone className="h-3 w-3" />
-                    <span>{copy.recent.callNow}</span>
+                    <span>{t('recent.callNow')}</span>
                   </a>
                 </div>
               </div>
@@ -501,7 +501,7 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
 
       <section className="mt-6 space-y-3 rounded-xl border border-white/[0.06] bg-[#0F172A]/40 p-4">
         <h4 className="border-b border-white/10 pb-2 text-xs font-black text-amber-400">
-          {copy.recent.messagesTitle} - {riderProfile.district || riderProfile.governorate || copy.details.unknown}
+          {t('recent.messagesTitle')} - {riderProfile.district || riderProfile.governorate || t('details.unknown')}
         </h4>
         {systemMessages?.length > 0 ? (
           <ul className="space-y-2 pr-1 text-[11px] leading-relaxed text-gray-300">
@@ -513,7 +513,7 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
             ))}
           </ul>
         ) : (
-          <p className="py-1 text-center text-[10px] italic text-gray-500">{copy.recent.noMessages}</p>
+          <p className="py-1 text-center text-[10px] italic text-gray-500">{t('recent.noMessages')}</p>
         )}
       </section>
 
@@ -522,7 +522,7 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
           <div className="mb-4 flex items-center justify-between border-b border-[#14B8A6]/20 pb-4">
             <div className="flex items-center gap-2">
               <Briefcase className="h-5 w-5 text-[#14B8A6]" />
-              <h3 className="text-sm font-black text-white md:text-base">{copy.recent.portfolioTitle}</h3>
+              <h3 className="text-sm font-black text-white md:text-base">{t('recent.portfolioTitle')}</h3>
             </div>
             <button
               onClick={() => setIsPortfolioOpen(false)}
@@ -535,14 +535,14 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
 
           <div className="flex-1 space-y-4">
             <p className="mb-1 text-right text-[10px] leading-relaxed text-gray-400">
-              {copy.recent.portfolioDescription}
+              {t('recent.portfolioDescription')}
             </p>
 
             {favoriteCaptains.length === 0 ? (
               <div className="flex h-64 flex-col items-center justify-center rounded-xl border border-dashed border-[#14B8A6]/10 bg-black/40 p-5 text-center opacity-80">
                 <Heart className="mb-2 h-10 w-10 text-gray-600" />
-                <h5 className="text-xs font-black text-gray-400">{copy.recent.portfolioEmpty}</h5>
-                <p className="mt-1 text-[10px] leading-normal text-gray-500">{copy.recent.portfolioEmptyDescription}</p>
+                <h5 className="text-xs font-black text-gray-400">{t('recent.portfolioEmpty')}</h5>
+                <p className="mt-1 text-[10px] leading-normal text-gray-500">{t('recent.portfolioEmptyDescription')}</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -558,7 +558,7 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
                       <button
                         onClick={() => deleteFavoriteCard(captain)}
                         className="absolute left-3 top-3 rounded-lg border border-red-500/10 bg-red-950/20 p-1.5 text-red-400 transition-all hover:border-red-500/30 hover:bg-red-950/50"
-                        title={copy.toast.cardDeleted}
+                        title={t('toast.cardDeleted')}
                         type="button"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -573,12 +573,12 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
                         </div>
                         <p className="text-[10px] leading-normal text-gray-400">{captain.vehicleInfo}</p>
                         <p className="font-mono text-[9px] text-[#14B8A6]">
-                          {copy.recent.lastPrice}: {formatDashboardMoney(captain.finalPrice || 3, currencyLabel)}
+                          {t('recent.lastPrice')}: {formatDashboardMoney(captain.finalPrice || 3, currencyLabel)}
                         </p>
                       </div>
 
                       <div className="border-t border-dashed border-white/[0.06] pt-2.5">
-                        <span className="mb-1 block text-[9px] text-gray-400">{copy.recent.category}</span>
+                        <span className="mb-1 block text-[9px] text-gray-400">{t('recent.category')}</span>
                         <div className="grid grid-cols-3 gap-1.5">
                           {(['uber', 'careem', 'independent'] as const).map((type) => (
                             <button
@@ -608,7 +608,7 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
                           style={{ textDecoration: 'none' }}
                         >
                           <Phone className="h-3.5 w-3.5" />
-                          <span>{copy.recent.callNow}</span>
+                          <span>{t('recent.callNow')}</span>
                         </a>
                         <a
                           href={whatsappUrl}
@@ -618,7 +618,7 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
                           style={{ textDecoration: 'none' }}
                         >
                           <MessageCircle className="h-3.5 w-3.5 text-[#14B8A6]" />
-                          <span>{copy.recent.whatsapp}</span>
+                          <span>{t('recent.whatsapp')}</span>
                         </a>
                       </div>
                     </article>
@@ -633,7 +633,7 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
               onClick={() => setIsPortfolioOpen(false)}
               className="rounded-lg bg-neutral-900 px-6 py-2 text-[11px] font-black text-white hover:bg-neutral-800"
             >
-              {copy.recent.close}
+              {t('recent.close')}
             </Button>
           </div>
         </div>

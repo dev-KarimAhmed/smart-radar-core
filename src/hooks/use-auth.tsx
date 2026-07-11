@@ -13,9 +13,10 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { buildUserFromSupabaseAuth, cacheSupabaseSession, clearSupabaseSessionCache } from '@/lib/supabase-auth';
 import { supabase } from '@/lib/supabase-client';
-import { DASHBOARD_LANGUAGE_KEY } from './use-dashboard-language';
+import { DASHBOARD_LANGUAGE_KEY, useDashboardLanguage } from './use-dashboard-language';
 
 interface AuthContextType {
   user: SovereignUser | null;
@@ -35,6 +36,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 function AuthContent({ children }: { children: ReactNode }) {
   const router = useRouter();
+  const t = useTranslations('auth.logout');
+  const { isArabic } = useDashboardLanguage();
   const [user, setUser] = useState<SovereignUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
@@ -149,11 +152,11 @@ function AuthContent({ children }: { children: ReactNode }) {
     <AuthContext.Provider value={value}>
       {children}
       <AlertDialog open={logoutDialogOpen} onOpenChange={(open) => !logoutInProgress && setLogoutDialogOpen(open)}>
-        <AlertDialogContent className="border-red-500/25 bg-[#0B0F19] text-white shadow-2xl" dir="rtl">
-          <AlertDialogHeader className="text-right">
-            <AlertDialogTitle className="text-xl font-black text-white">تأكيد تسجيل الخروج</AlertDialogTitle>
-            <AlertDialogDescription className="text-right text-sm leading-6 text-[#94A3B8]">
-              هل أنت متأكد من تسجيل الخروج؟ سيتم حذف الجلسة الحالية من هذا الجهاز فقط.
+        <AlertDialogContent className="border-red-500/25 bg-[#0B0F19] text-white shadow-2xl" dir={isArabic ? 'rtl' : 'ltr'}>
+          <AlertDialogHeader className={isArabic ? 'text-right' : 'text-left'}>
+            <AlertDialogTitle className="text-xl font-black text-white">{t('title')}</AlertDialogTitle>
+            <AlertDialogDescription className={`text-sm leading-6 text-[#94A3B8] ${isArabic ? 'text-right' : 'text-left'}`}>
+              {t('description')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="gap-2 sm:justify-start sm:space-x-0">
@@ -161,7 +164,7 @@ function AuthContent({ children }: { children: ReactNode }) {
               disabled={logoutInProgress}
               className="border-white/10 bg-white/10 font-bold text-white hover:bg-white/15"
             >
-              إلغاء
+              {t('cancel')}
             </AlertDialogCancel>
             <AlertDialogAction
               disabled={logoutInProgress}
@@ -171,7 +174,7 @@ function AuthContent({ children }: { children: ReactNode }) {
               }}
               className="bg-red-600 font-black text-white hover:bg-red-500"
             >
-              {logoutInProgress ? 'جاري الخروج...' : 'نعم، تسجيل الخروج'}
+              {logoutInProgress ? t('inProgress') : t('confirm')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

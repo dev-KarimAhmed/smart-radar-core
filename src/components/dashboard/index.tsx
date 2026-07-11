@@ -379,7 +379,7 @@ function DashboardLayout() {
  )}
 
  {/* الحاوية التي تحمل التبويبات (تسمح بالتمرير للأسفل) */}
- <div className={cn('w-full flex-1 p-4 md:p-8', contentIsHidden && 'hidden', user?.role === 'rider' && 'p-0 md:p-0 lg:p-0')}>
+ <div className={cn('w-full flex-1 p-4 md:p-8', contentIsHidden && 'hidden', user?.role === 'rider' && (isRiderHomeSurface ? 'p-0 md:p-0 lg:p-0' : 'px-0 md:px-0 py-4 md:py-6 min-h-0 overflow-y-auto'))}>
  {renderArterialBridge()}
  <SovereignErrorBoundary>
  <React.Suspense fallback={
