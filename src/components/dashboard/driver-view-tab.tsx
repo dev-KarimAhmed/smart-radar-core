@@ -107,8 +107,20 @@ export function DriverViewTab() {
   }
 
   const isActive = driverOps.driverStatus === 'active' || driverOps.driverStatus === 'busy';
-  const paidMinutes = wallet.walletLoaded ? wallet.paidMinutesRemaining : user?.paidHoursRemaining || 0;
-  const bonusMinutes = wallet.walletLoaded ? wallet.bonusMinutesRemaining : user?.bonusHoursRemaining || 0;
+  const walletIsReady = wallet.walletLoadState === 'ready';
+  const currentBalance = walletIsReady ? wallet.balanceJD : 0;
+
+  // Time conversion constants
+  const TEST_PRICE_PER_HOUR = 200; 
+  const totalPaidHours = currentBalance / TEST_PRICE_PER_HOUR;
+  const paidHours = Math.floor(totalPaidHours);
+  const paidMinutesCalculated = Math.round((totalPaidHours - paidHours) * 60);
+  const paidMinutes = paidHours * 60 + paidMinutesCalculated;
+
+  const totalExtraHours = currentBalance > 0 ? paidHours * 0.4 : 0;
+  const extraHours = Math.floor(totalExtraHours);
+  const extraMinutesCalculated = Math.round((totalExtraHours - extraHours) * 60);
+  const bonusMinutes = extraHours * 60 + extraMinutesCalculated;
   const currency = user?.currencyAr || user?.currencyEn || '';
 
   const submitBid = async (price: number) => {

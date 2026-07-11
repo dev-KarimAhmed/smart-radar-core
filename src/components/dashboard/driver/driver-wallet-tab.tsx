@@ -5,6 +5,9 @@ import { Copy, Loader2, ReceiptText, Ticket, Upload, Wallet } from 'lucide-react
 import type { User } from '@/core/types';
 import { useSovereignWallet } from '@/hooks/use-sovereign-wallet';
 
+const TEST_PRICE_PER_HOUR = 200; // Change to 20 for production simulation (e.g. 1000 EGP = 5 or 50 Hours)
+const TEST_PRICE_PER_MINUTE = TEST_PRICE_PER_HOUR / 60;
+
 interface DriverWalletTabProps {
   user: User | null;
   language: 'ar' | 'en';
@@ -41,6 +44,19 @@ export function DriverWalletTab({ user, language }: DriverWalletTabProps) {
     if (ok) setVoucherCode('');
   };
 
+  // MODULE 2: TIME DERIVATION UTILITY LOGIC
+  const currentBalance = walletIsReady ? wallet.balanceJD : 0;
+
+  // Paid Time Calculation
+  const totalPaidHours = currentBalance / TEST_PRICE_PER_HOUR;
+  const paidHours = Math.floor(totalPaidHours);
+  const paidMinutes = Math.round((totalPaidHours - paidHours) * 60);
+
+  // Extra Time Simulation
+  const totalExtraHours = currentBalance > 0 ? paidHours * 0.4 : 0;
+  const extraHours = Math.floor(totalExtraHours);
+  const extraMinutes = Math.round((totalExtraHours - extraHours) * 60);
+
   return (
     <section className="mx-auto max-w-5xl space-y-5 text-white">
       <div className="rounded-3xl border border-emerald-500/20 bg-[#05080f] p-5">
@@ -60,11 +76,23 @@ export function DriverWalletTab({ user, language }: DriverWalletTabProps) {
           />
           <Metric
             label={copy.paidTime}
-            value={walletIsReady ? formatMinutes(wallet.paidMinutesRemaining, language) : wallet.walletLoaded ? '-' : '...'}
+            value={walletIsReady ? (
+              language === 'ar' ? (
+                <span className="text-xl font-bold font-mono">{paidHours} ساعة {paidMinutes} دقيقة</span>
+              ) : (
+                <span className="text-xl font-bold font-mono">{paidHours}h {paidMinutes}m</span>
+              )
+            ) : wallet.walletLoaded ? '-' : '...'}
           />
           <Metric
             label={copy.bonusTime}
-            value={walletIsReady ? formatMinutes(wallet.bonusMinutesRemaining, language) : wallet.walletLoaded ? '-' : '...'}
+            value={walletIsReady ? (
+              language === 'ar' ? (
+                <span className="text-xl font-bold font-mono">{extraHours} ساعة {extraMinutes} دقيقة</span>
+              ) : (
+                <span className="text-xl font-bold font-mono">{extraHours}h {extraMinutes}m</span>
+              )
+            ) : wallet.walletLoaded ? '-' : '...'}
           />
         </div>
 
@@ -165,11 +193,11 @@ export function DriverWalletTab({ user, language }: DriverWalletTabProps) {
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+function Metric({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="rounded-2xl border border-emerald-500/15 bg-emerald-950/10 p-4">
       <p className="text-xs text-slate-400">{label}</p>
-      <p className="mt-2 text-2xl font-black">{value}</p>
+      <div className="mt-2 text-2xl font-black">{value}</div>
     </div>
   );
 }

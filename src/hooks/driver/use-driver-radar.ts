@@ -50,7 +50,7 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
 
     const { data, error } = await supabase
       .from('wallet_accounts')
-      .select('profile_id,paid_minutes_remaining,bonus_minutes_remaining,active_package_name')
+      .select('profile_id,paid_minutes_remaining,bonus_minutes_remaining,active_package_name,balance')
       .eq('profile_id', user.uid)
       .maybeSingle();
 
@@ -61,8 +61,20 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
     }
 
     const row = data as Record<string, unknown> | null;
-    const paidMinutes = toNumber(row?.paid_minutes_remaining) || 0;
-    const bonusMinutes = toNumber(row?.bonus_minutes_remaining) || 0;
+    const balance = toNumber(row?.balance) || 0;
+
+    // Time conversion logic
+    const TEST_PRICE_PER_HOUR = 200; 
+    const totalPaidHours = balance / TEST_PRICE_PER_HOUR;
+    const paidHours = Math.floor(totalPaidHours);
+    const paidMinutesCalculated = Math.round((totalPaidHours - paidHours) * 60);
+    const paidMinutes = paidHours * 60 + paidMinutesCalculated;
+
+    const totalExtraHours = balance > 0 ? paidHours * 0.4 : 0;
+    const extraHours = Math.floor(totalExtraHours);
+    const extraMinutesCalculated = Math.round((totalExtraHours - extraHours) * 60);
+    const bonusMinutes = extraHours * 60 + extraMinutesCalculated;
+
     const hasMinutes = paidMinutes + bonusMinutes > 0;
 
     if (!row || !hasMinutes) {

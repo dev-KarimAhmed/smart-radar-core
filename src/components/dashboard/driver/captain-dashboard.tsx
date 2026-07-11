@@ -29,14 +29,29 @@ export const RadarCaptainDashboard: React.FC<CaptainDashboardProps> = ({ captain
     );
   }
 
+  const walletIsReady = wallet.walletLoadState === 'ready';
+  const currentBalance = walletIsReady ? wallet.balanceJD : 0;
+
+  // Time conversion constants
+  const TEST_PRICE_PER_HOUR = 200; 
+  const totalPaidHours = currentBalance / TEST_PRICE_PER_HOUR;
+  const paidHours = Math.floor(totalPaidHours);
+  const paidMinutesCalculated = Math.round((totalPaidHours - paidHours) * 60);
+  const paidMinutes = paidHours * 60 + paidMinutesCalculated;
+
+  const totalExtraHours = currentBalance > 0 ? paidHours * 0.4 : 0;
+  const extraHours = Math.floor(totalExtraHours);
+  const extraMinutesCalculated = Math.round((totalExtraHours - extraHours) * 60);
+  const bonusMinutes = extraHours * 60 + extraMinutesCalculated;
+
   return (
     <RadarMapView
       language={language}
       isActive={driverOps.driverStatus === 'active' || driverOps.driverStatus === 'busy'}
       driverLocation={driverOps.driverLocation}
       currentH3Cell={driverOps.currentH3Cell}
-      paidMinutes={wallet.walletLoaded ? wallet.paidMinutesRemaining : captainProfile?.walletHours ?? 0}
-      bonusMinutes={wallet.walletLoaded ? wallet.bonusMinutesRemaining : captainProfile?.bonusHours ?? 0}
+      paidMinutes={paidMinutes}
+      bonusMinutes={bonusMinutes}
       requests={driverOps.requests}
       onSelectRequest={() => driverOps.toggleRequestList(true)}
       onIgnoreRequest={driverOps.rejectRequest}
