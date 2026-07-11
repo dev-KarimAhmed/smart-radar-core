@@ -13,10 +13,9 @@ import {
   UserRound,
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useMemo, useState } from 'react';
-import { getDeviceDashboardLanguage, persistDashboardLanguage } from '@/hooks/use-dashboard-language';
+import { Suspense, useEffect, useMemo, useState } from 'react';
+import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 
-type Lang = 'ar' | 'en';
 type AuthType = 'register' | 'login';
 type GovernorateKey = 'cairo' | 'giza' | 'sohag';
 
@@ -129,25 +128,26 @@ const copy = {
 function AuthRegisterRoute() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const [lang, setLangState] = useState<Lang>(() => {
-    const requestedLang = searchParams.get('lang');
-    return requestedLang === 'ar' || requestedLang === 'en' ? requestedLang : getDeviceDashboardLanguage();
-  });
+  const { language, setLanguage } = useDashboardLanguage();
   const [authType, setAuthType] = useState<AuthType>('register');
   const [governorate, setGovernorate] = useState<GovernorateKey>('cairo');
   const [showPassword, setShowPassword] = useState(false);
 
+  // Honor a ?lang= deep link once on mount by driving the shared locale.
+  useEffect(() => {
+    const requestedLang = searchParams.get('lang');
+    if ((requestedLang === 'ar' || requestedLang === 'en') && requestedLang !== language) {
+      setLanguage(requestedLang);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const selectedRole = searchParams.get('role') || 'rider';
   const role = selectedRole in roleLabels ? selectedRole : 'rider';
-  const isArabic = lang === 'ar';
-  const t = copy[lang];
-  const roleName = roleLabels[role as keyof typeof roleLabels][lang];
+  const isArabic = language === 'ar';
+  const t = copy[language];
+  const roleName = roleLabels[role as keyof typeof roleLabels][language];
   const districtOptions = governorates[governorate].districts;
-
-  const setLang = (nextLang: Lang) => {
-    setLangState(nextLang);
-    persistDashboardLanguage(nextLang);
-  };
 
   const tickerItems = useMemo(() => [...t.ticker, ...t.ticker, ...t.ticker], [t.ticker]);
 
@@ -165,7 +165,7 @@ function AuthRegisterRoute() {
       <button
         type="button"
         aria-label={t.languageAria}
-        onClick={() => setLang(isArabic ? 'en' : 'ar')}
+        onClick={() => setLanguage(isArabic ? 'en' : 'ar')}
         className={`fixed top-4 z-30 inline-flex min-h-11 items-center gap-2 rounded-full border border-white/10 bg-[#161F30]/70 px-4 text-sm font-bold text-slate-100 shadow-2xl backdrop-blur-xl transition hover:border-[#14B8A6] hover:shadow-[0_0_20px_rgba(20,184,166,0.15)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/50 ${
           isArabic ? 'left-4' : 'right-4'
         }`}
@@ -185,7 +185,7 @@ function AuthRegisterRoute() {
             </p>
             <AnimatePresence mode="wait" initial={false}>
               <motion.div
-                key={`${authType}-${lang}`}
+                key={`${authType}-${language}`}
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
@@ -275,7 +275,7 @@ function AuthRegisterRoute() {
                       >
                         {(Object.keys(governorates) as GovernorateKey[]).map((key) => (
                           <option key={key} value={key}>
-                            {governorates[key][lang]}
+                            {governorates[key][language]}
                           </option>
                         ))}
                       </select>
@@ -288,7 +288,7 @@ function AuthRegisterRoute() {
                       <select suppressHydrationWarning className={`${inputClass} appearance-none pe-10`}>
                         {districtOptions.map((district) => (
                           <option key={district.en} value={district.en}>
-                            {district[lang]}
+                            {district[language]}
                           </option>
                         ))}
                       </select>

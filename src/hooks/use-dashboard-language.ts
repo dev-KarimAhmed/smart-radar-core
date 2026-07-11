@@ -1,66 +1,37 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback } from 'react';
+
 import type { AppLanguage } from '@/lib/i18n/simple-copy';
+import { useLocaleContext } from '@/components/providers/locale-provider';
 
-export const DASHBOARD_LANGUAGE_KEY = 'radar_dashboard_language';
-export const DASHBOARD_LANGUAGE_EVENT = 'radar-dashboard-language-change';
+// Storage helpers + the CustomEvent bus live in a React-free module so the
+// provider can reuse them without importing this hook (avoids an import cycle).
+// Re-exported here to preserve the historical `@/hooks/use-dashboard-language`
+// import path used across the app.
+export {
+  DASHBOARD_LANGUAGE_KEY,
+  DASHBOARD_LANGUAGE_EVENT,
+  getDeviceDashboardLanguage,
+  readStoredDashboardLanguage,
+  persistDashboardLanguage,
+} from '@/lib/i18n/language-storage';
 
-export function getDeviceDashboardLanguage(): AppLanguage {
-  if (typeof navigator === 'undefined') return 'ar';
-  return navigator.language?.toLowerCase().startsWith('ar') ? 'ar' : 'en';
-}
-
-export function readStoredDashboardLanguage(): AppLanguage {
-  if (typeof window === 'undefined') return 'ar';
-  const storedLanguage = window.localStorage.getItem(DASHBOARD_LANGUAGE_KEY);
-  if (storedLanguage === 'ar' || storedLanguage === 'en') return storedLanguage;
-  return getDeviceDashboardLanguage();
-}
-
-export function persistDashboardLanguage(language: AppLanguage) {
-  if (typeof window === 'undefined') return;
-  window.localStorage.setItem(DASHBOARD_LANGUAGE_KEY, language === 'en' ? 'en' : 'ar');
-}
-
-function applyDocumentLanguage(language: AppLanguage) {
-  if (typeof document === 'undefined') return;
-  document.documentElement.lang = language;
-  document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
-}
-
+/**
+ * Thin adapter over next-intl. Keeps the original public shape
+ * (`{ direction, isArabic, language, setLanguage, toggleLanguage }`) so the
+ * many consumers that only use it for RTL / conditional rendering stay unchanged,
+ * while the actual locale state is owned by `LocaleProvider` + next-intl.
+ */
 export function useDashboardLanguage() {
-  const [language, setLanguageState] = useState<AppLanguage>(() => readStoredDashboardLanguage());
+  const { currentLocale, setLocale, toggleLocale } = useLocaleContext();
+  const language: AppLanguage = currentLocale === 'en' ? 'en' : 'ar';
 
-  useEffect(() => {
-    applyDocumentLanguage(language);
-  }, [language]);
-
-  useEffect(() => {
-    const handleLanguageChange = (event: Event) => {
-      const nextLanguage = (event as CustomEvent<AppLanguage>).detail === 'en' ? 'en' : 'ar';
-      setLanguageState(nextLanguage);
-    };
-
-    window.addEventListener(DASHBOARD_LANGUAGE_EVENT, handleLanguageChange);
-    return () => window.removeEventListener(DASHBOARD_LANGUAGE_EVENT, handleLanguageChange);
-  }, []);
-
-  const setLanguage = useCallback((nextLanguage: AppLanguage) => {
-    const normalizedLanguage = nextLanguage === 'en' ? 'en' : 'ar';
-    persistDashboardLanguage(normalizedLanguage);
-    setLanguageState(normalizedLanguage);
-    applyDocumentLanguage(normalizedLanguage);
-    window.dispatchEvent(new CustomEvent(DASHBOARD_LANGUAGE_EVENT, { detail: normalizedLanguage }));
-  }, []);
-
-  const toggleLanguage = useCallback(() => {
-    setLanguage(language === 'ar' ? 'en' : 'ar');
-  }, [language, setLanguage]);
+  const setLanguage = useCallback((nextLanguage: AppLanguage) => setLocale(nextLanguage), [setLocale]);
 
   return {
     direction: language === 'ar' ? 'rtl' : 'ltr',
     isArabic: language === 'ar',
     language,
     setLanguage,
-    toggleLanguage,
+    toggleLanguage: toggleLocale,
   };
 }

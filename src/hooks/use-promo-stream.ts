@@ -1,11 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
 import type { SovereignAd } from '@/core/types';
-import { supabase } from '@/lib/supabase-client';
 import { recordLocalClick } from '@/lib/ad-cache-sentry';
 import { trackSovereignError } from '@/lib/error-tracker';
-
-const USER_VAULT_LIFETIME_MS = 30 * 24 * 60 * 60 * 1000;
-const CACHE_TTL_MS = 60 * 60 * 1000;
+import { useAdCampaigns } from '@/hooks/use-ad-campaigns';
 
 function mapCampaignRow(row: Record<string, any>): SovereignAd {
   return {
@@ -28,92 +25,31 @@ function mapCampaignRow(row: Record<string, any>): SovereignAd {
   } as SovereignAd;
 }
 
-function readCachedAds() {
-  if (typeof window === 'undefined') return null;
-
-  try {
-    const cachedRaw = localStorage.getItem('sovereign_local_ad_cache');
-    if (!cachedRaw) return null;
-
-    const cached = JSON.parse(cachedRaw);
-    const age = Date.now() - Number(cached.timestamp || 0);
-    if (age >= USER_VAULT_LIFETIME_MS) {
-      localStorage.removeItem('sovereign_local_ad_cache');
-      localStorage.removeItem('sovereign_local_ad_cache_history');
-      localStorage.removeItem('sovereign_ad_vault_details');
-      localStorage.removeItem('sovereign_hearted_ads');
-      return null;
-    }
-
-    if (age < CACHE_TTL_MS && Array.isArray(cached.ads)) {
-      return cached.ads as SovereignAd[];
-    }
-  } catch (error) {
-    if ((process.env.NODE_ENV !== 'production')) console.warn('[Ads cache] read failed:', error);
-  }
-
-  return null;
+function scoreAd(ad: SovereignAd, district?: string, governorate?: string) {
+  let score = 0;
+  if (district && ad.targetDistrict === district) score += 2;
+  if (governorate && ad.targetGovernorate === governorate) score += 1;
+  return score;
 }
 
-function writeCachedAds(ads: SovereignAd[]) {
-  if (typeof window === 'undefined') return;
-
-  try {
-    localStorage.setItem('sovereign_local_ad_cache', JSON.stringify({ timestamp: Date.now(), ads }));
-    localStorage.setItem('sovereign_local_ad_cache_history', JSON.stringify(ads));
-  } catch (error) {
-    if ((process.env.NODE_ENV !== 'production')) console.warn('[Ads cache] write failed:', error);
-  }
-}
-
+/**
+ * Local ad stream for a given district/governorate.
+ *
+ * Data comes from the shared `useAdCampaigns` React Query hook — a single
+ * cached request that refetches at most every 10 minutes and is de-duplicated
+ * across all consumers. (The previous per-mount fetch, Supabase realtime
+ * subscription, and hand-rolled localStorage cache have been removed in favour
+ * of React Query's cache + persistence.)
+ */
 export function usePromoStream(district?: string, governorate?: string) {
-  const [activeAds, setActiveAds] = useState<SovereignAd[]>([]);
+  const { data } = useAdCampaigns();
 
-  useEffect(() => {
-    let active = true;
-    const cachedAds = readCachedAds();
-    if (cachedAds) setActiveAds(cachedAds);
-
-    async function fetchAds() {
-      try {
-        const query = supabase
-          .from('ad_campaigns')
-          .select('*')
-          .eq('status', 'active')
-          .limit(20);
-
-        const { data, error } = await query;
-        if (error) throw error;
-        if (!active) return;
-
-        const ads = Array.isArray(data)
-          ? data
-            .map(mapCampaignRow)
-            .sort((a, b) => scoreAd(b, district, governorate) - scoreAd(a, district, governorate))
-          : [];
-        setActiveAds(ads);
-        writeCachedAds(ads);
-      } catch (error) {
-        if (!active) return;
-        trackSovereignError(error, { context: 'PromoStreamSupabase' });
-        setActiveAds(cachedAds || []);
-      }
-    }
-
-    void fetchAds();
-
-    const channel = supabase
-      .channel('ad-campaigns-stream')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'ad_campaigns' }, () => {
-        void fetchAds();
-      })
-      .subscribe();
-
-    return () => {
-      active = false;
-      void supabase.removeChannel(channel);
-    };
-  }, [district, governorate]);
+  const activeAds = useMemo<SovereignAd[]>(() => {
+    const rows = Array.isArray(data) ? data : [];
+    return rows
+      .map(mapCampaignRow)
+      .sort((a, b) => scoreAd(b, district, governorate) - scoreAd(a, district, governorate));
+  }, [data, district, governorate]);
 
   const registerClick = async (adId: string, _locationStr: string) => {
     try {
@@ -124,13 +60,6 @@ export function usePromoStream(district?: string, governorate?: string) {
   };
 
   return { activeAds, registerClick };
-}
-
-function scoreAd(ad: SovereignAd, district?: string, governorate?: string) {
-  let score = 0;
-  if (district && ad.targetDistrict === district) score += 2;
-  if (governorate && ad.targetGovernorate === governorate) score += 1;
-  return score;
 }
 
 export default usePromoStream;

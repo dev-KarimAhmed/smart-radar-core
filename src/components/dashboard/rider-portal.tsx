@@ -18,24 +18,23 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { useTranslations } from "next-intl";
 import { useAuth } from "@/hooks/use-auth";
 import { useAtomicHandshake } from "@/hooks/use-atomic-handshake";
 import { useToast } from "@/hooks/use-toast";
-import { riderDashboardCopy } from "@/lib/i18n/rider-dashboard-copy";
 import { cn } from "@/lib/utils";
-
-const copy = riderDashboardCopy.ar.portal;
 
 export function RiderPortal() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const t = useTranslations("riderDashboard.portal");
 
   const [coords] = useState<{ lat: number; lng: number }>({
     lat: 31.953,
     lng: 35.911,
   });
-  const [pickupText, setPickupText] = useState<string>(copy.pickupDefault);
-  const [dropoffText, setDropoffText] = useState<string>(copy.dropoffDefault);
+  const [pickupText, setPickupText] = useState<string>(t('pickupDefault'));
+  const [dropoffText, setDropoffText] = useState<string>(t('dropoffDefault'));
   const [distance, setDistance] = useState<number>(3.8);
 
   const {
@@ -58,8 +57,8 @@ export function RiderPortal() {
     const result = freezePricing(distance);
     if (result) {
       toast({
-        title: copy.frozenToastTitle,
-        description: `${copy.frozenToastDescription}: ${result.price} ${copy.currency}.`,
+        title: t('frozenToastTitle'),
+        description: `${t('frozenToastDescription')}: ${result.price} ${t('currency')}.`,
       });
     }
   };
@@ -68,8 +67,8 @@ export function RiderPortal() {
     if (!frozenPrice) {
       toast({
         variant: "destructive",
-        title: copy.priceRequiredTitle,
-        description: copy.priceRequiredDescription,
+        title: t('priceRequiredTitle'),
+        description: t('priceRequiredDescription'),
       });
       return;
     }
@@ -88,17 +87,17 @@ export function RiderPortal() {
             <span className="rounded-xl bg-[#14B8A6]/10 p-1.5 text-[#14B8A6]">
               <Compass className="h-5 w-5" />
             </span>
-            <h1 className="text-xl font-extrabold tracking-tight text-white">{copy.title}</h1>
+            <h1 className="text-xl font-extrabold tracking-tight text-white">{t('title')}</h1>
           </div>
-          <p className="max-w-xl text-xs leading-relaxed text-slate-400">{copy.description}</p>
+          <p className="max-w-xl text-xs leading-relaxed text-slate-400">{t('description')}</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="outline" className="border-[#14B8A6]/30 bg-[#14B8A6]/5 px-2.5 py-1 text-[9px] text-[#14B8A6]">
-            {copy.protocol}
+            {t('protocol')}
           </Badge>
           <Badge variant="outline" className="border-amber-500/20 bg-amber-500/5 px-2.5 py-1 text-[9px] text-amber-500">
-            {copy.range}
+            {t('range')}
           </Badge>
         </div>
       </header>
@@ -109,14 +108,14 @@ export function RiderPortal() {
             <CardHeader className="border-b border-white/10 p-5 pb-3">
               <CardTitle className="flex items-center gap-2 text-sm font-black text-white">
                 <MapPin className="h-4 w-4 text-[#14B8A6]" />
-                {copy.routeCard}
+                {t('routeCard')}
               </CardTitle>
-              <CardDescription className="text-[10px] text-gray-500">{copy.routeDescription}</CardDescription>
+              <CardDescription className="text-[10px] text-gray-500">{t('routeDescription')}</CardDescription>
             </CardHeader>
 
             <CardContent className="space-y-4 p-5">
               <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-400">{copy.pickup}</label>
+                <label className="text-xs font-bold text-gray-400">{t('pickup')}</label>
                 <Input
                   value={pickupText}
                   onChange={(event) => setPickupText(event.target.value)}
@@ -125,7 +124,7 @@ export function RiderPortal() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-400">{copy.dropoff}</label>
+                <label className="text-xs font-bold text-gray-400">{t('dropoff')}</label>
                 <Input
                   value={dropoffText}
                   onChange={(event) => setDropoffText(event.target.value)}
@@ -134,7 +133,7 @@ export function RiderPortal() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-400">{copy.distance}</label>
+                <label className="text-xs font-bold text-gray-400">{t('distance')}</label>
                 <Input
                   type="number"
                   step="0.1"
@@ -149,13 +148,13 @@ export function RiderPortal() {
 
               <div className="space-y-3 rounded-xl border border-[#14B8A6]/25 bg-[#14B8A6]/5 p-4">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="font-bold text-gray-400">{copy.pricing}</span>
+                  <span className="font-bold text-gray-400">{t('pricing')}</span>
                   {frozenPrice ? (
                     <Badge variant="outline" className="border-[#14B8A6] font-mono text-[#14B8A6]">
                       {frozenH3 || "H3"}
                     </Badge>
                   ) : (
-                    <span className="text-[10px] text-gray-500">{copy.notFrozen}</span>
+                    <span className="text-[10px] text-gray-500">{t('notFrozen')}</span>
                   )}
                 </div>
 
@@ -163,18 +162,18 @@ export function RiderPortal() {
                   <div className="flex items-center justify-between">
                     <div>
                       <span className="font-mono text-2xl font-black text-white">{frozenPrice}</span>
-                      <span className="mr-1.5 text-[10px] text-gray-400">{copy.currency}</span>
+                      <span className="mr-1.5 text-[10px] text-gray-400">{t('currency')}</span>
                     </div>
 
                     <div className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-black/50 px-2.5 py-1 font-mono text-xs text-amber-500">
                       <Timer className="h-3.5 w-3.5" />
                       <span>
-                        {countdown} {copy.seconds}
+                        {countdown} {t('seconds')}
                       </span>
                     </div>
                   </div>
                 ) : (
-                  <p className="text-[10px] leading-normal text-gray-400">{copy.freezeHelp}</p>
+                  <p className="text-[10px] leading-normal text-gray-400">{t('freezeHelp')}</p>
                 )}
 
                 <Button
@@ -182,7 +181,7 @@ export function RiderPortal() {
                   className="flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border border-[#14B8A6]/40 bg-[#14B8A6]/10 py-2 text-xs font-bold text-[#14B8A6] hover:bg-[#14B8A6]/20"
                 >
                   <Lock className="h-3.5 w-3.5" />
-                  {frozenPrice ? copy.refreshFreezeButton : copy.freezeButton}
+                  {frozenPrice ? t('refreshFreezeButton') : t('freezeButton')}
                 </Button>
               </div>
             </CardContent>
@@ -195,9 +194,9 @@ export function RiderPortal() {
               <div>
                 <CardTitle className="flex items-center gap-2 text-sm font-black text-white">
                   <Search className="h-4 w-4 text-[#14B8A6]" />
-                  {copy.nearbyDrivers}
+                  {t('nearbyDrivers')}
                 </CardTitle>
-                <CardDescription className="text-[10px] text-gray-500">{copy.nearbyDescription}</CardDescription>
+                <CardDescription className="text-[10px] text-gray-500">{t('nearbyDescription')}</CardDescription>
               </div>
 
               <Button
@@ -207,7 +206,7 @@ export function RiderPortal() {
                 className="flex h-8 items-center gap-1 rounded-lg border border-[#14B8A6]/35 bg-black/40 px-2.5 text-xs text-[#14B8A6]"
               >
                 <RefreshCw className={cn("h-3 w-3", isScanning && "animate-spin")} />
-                {copy.refresh}
+                {t('refresh')}
               </Button>
             </CardHeader>
 
@@ -215,7 +214,7 @@ export function RiderPortal() {
               {isScanning ? (
                 <div className="space-y-3 py-12 text-center">
                   <RefreshCw className="mx-auto h-8 w-8 animate-spin text-[#14B8A6]" />
-                  <p className="text-xs text-gray-400">{copy.scanning}</p>
+                  <p className="text-xs text-gray-400">{t('scanning')}</p>
                 </div>
               ) : nearbyDrivers.length > 0 ? (
                 <div className="space-y-3">
@@ -244,16 +243,16 @@ export function RiderPortal() {
                             </span>
                             <span className="text-gray-600">|</span>
                             <span className="font-mono">
-                              {copy.distanceLabel}: {driver.distanceKm} كم
+                              {t('distanceLabel')}: {driver.distanceKm} {t('km')}
                             </span>
                           </div>
 
                           <div className="flex items-center gap-1 text-[10px] text-gray-500">
                             <Car className="h-3 w-3 text-gray-400" />
                             <span>
-                              {driver.vehicle?.make || copy.car} {driver.vehicle?.modelYear || ""}
+                              {driver.vehicle?.make || t('car')} {driver.vehicle?.modelYear || ""}
                               {" - "}
-                              {copy.plate} [
+                              {t('plate')} [
                               <strong className="font-mono text-gray-300">{driver.vehicle?.plate || "-"}</strong>]
                             </span>
                           </div>
@@ -273,12 +272,12 @@ export function RiderPortal() {
                         {isLocked ? (
                           <>
                             <Lock className="h-3 w-3 animate-pulse" />
-                            {copy.locked}
+                            {t('locked')}
                           </>
                         ) : (
                           <>
                             <UserCheck className="h-3.5 w-3.5" />
-                            {copy.request}
+                            {t('request')}
                           </>
                         )}
                       </Button>
@@ -289,8 +288,8 @@ export function RiderPortal() {
                 <div className="space-y-3 rounded-2xl border border-white/10 bg-black/20 py-12 text-center">
                   <AlertTriangle className="mx-auto h-6 w-6 text-amber-500/70" />
                   <div className="space-y-1">
-                    <h4 className="text-xs font-bold text-gray-300">{copy.emptyTitle}</h4>
-                    <p className="mx-auto max-w-xs text-[10px] leading-normal text-gray-500">{copy.emptyDescription}</p>
+                    <h4 className="text-xs font-bold text-gray-300">{t('emptyTitle')}</h4>
+                    <p className="mx-auto max-w-xs text-[10px] leading-normal text-gray-500">{t('emptyDescription')}</p>
                   </div>
                 </div>
               )}
@@ -301,7 +300,7 @@ export function RiderPortal() {
 
       <div className="flex items-start gap-2 rounded-xl border border-[#14B8A6]/25 bg-[#0F172A]/60 p-4 text-right text-[10px] leading-normal text-gray-400 shadow-sm">
         <Shield className="mt-0.5 h-4 w-4 shrink-0 text-[#14B8A6]" />
-        <p>{copy.safety}</p>
+        <p>{t('safety')}</p>
       </div>
     </div>
   );

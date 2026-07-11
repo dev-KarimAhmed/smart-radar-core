@@ -4,7 +4,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import type { AffiliationType } from '@/core/types';
 import { buildRiderSignUpMetadata, mapSupabaseAuthError, signInRiderWithPhone, signUpRiderWithPhone } from '@/lib/supabase-auth';
 import { shouldRememberSupabaseSession, supabase } from '@/lib/supabase-client';
-import { DASHBOARD_LANGUAGE_EVENT, getDeviceDashboardLanguage, persistDashboardLanguage } from './use-dashboard-language';
+import { useDashboardLanguage } from './use-dashboard-language';
 import { useToast } from './use-toast';
 
 const isStrictDevelopment =
@@ -106,7 +106,9 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
   const [step, setStep] = useState<RegistrationStep>('role');
   const [role, setRole] = useState<RegistrationRole>(null);
   const [authMode, setAuthMode] = useState<AuthMode>('register');
-  const [lang, setLangState] = useState<'ar' | 'en'>(() => getDeviceDashboardLanguage());
+  // Language is owned by the shared LocaleProvider (persisted + synced app-wide),
+  // so the auth/home flow and the role dashboards always agree on the language.
+  const { language: lang, setLanguage: setLang } = useDashboardLanguage();
   const [personal, setPersonal] = useState<PersonalRegistrationState>({
     name: '',
     phone: '',
@@ -129,29 +131,12 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
   const [districtRows, setDistrictRows] = useState<SupabaseDistrictRow[]>([]);
   const [detectedCountryCode, setDetectedCountryCode] = useState<string | null>(null);
 
-  const setLang = useCallback((nextLang: 'ar' | 'en') => {
-    setLangState(nextLang);
-    persistDashboardLanguage(nextLang);
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent(DASHBOARD_LANGUAGE_EVENT, { detail: nextLang }));
-    }
-  }, []);
   const [countriesLoading, setCountriesLoading] = useState(false);
   const [governoratesLoading, setGovernoratesLoading] = useState(false);
   const [districtsLoading, setDistrictsLoading] = useState(false);
   const isSubmittingRef = useRef(false);
 
   const locationDataLoading = countriesLoading || governoratesLoading || districtsLoading;
-
-  useEffect(() => {
-    const handleLanguageChange = (event: Event) => {
-      const nextLanguage = (event as CustomEvent<'ar' | 'en'>).detail === 'en' ? 'en' : 'ar';
-      setLangState(nextLanguage);
-    };
-
-    window.addEventListener(DASHBOARD_LANGUAGE_EVENT, handleLanguageChange);
-    return () => window.removeEventListener(DASHBOARD_LANGUAGE_EVENT, handleLanguageChange);
-  }, []);
 
   useEffect(() => {
     let active = true;

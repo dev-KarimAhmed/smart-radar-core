@@ -1,10 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Archive, History, Home, User, Wallet } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
-import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
-import { simpleCopy } from '@/lib/i18n/simple-copy';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
@@ -12,7 +11,8 @@ export function BottomNav() {
   const [hash, setHash] = useState(typeof window !== 'undefined' ? window.location.hash || '#' : '#');
   const { user, isSovereign } = useAuth();
   const { toast } = useToast();
-  const { language } = useDashboardLanguage();
+  const t = useTranslations('nav');
+  const tErrors = useTranslations('errors');
 
   const isPassenger = user?.role === 'rider';
   const isCaptain = user?.role === 'driver';
@@ -68,7 +68,7 @@ export function BottomNav() {
         toast({
           variant: 'destructive',
           title: 'لا يمكن تغيير الصفحة الآن',
-          description: simpleCopy.errors.activeTripLocked.ar,
+          description: tErrors('activeTripLocked'),
         });
       }
     },
@@ -78,11 +78,11 @@ export function BottomNav() {
   if (!user || isSovereign) return null;
 
   const navItems = [
-    { href: '#', icon: Home, label: simpleCopy.nav.home[language] },
-    { href: '#history', icon: History, label: simpleCopy.nav.history[language] },
-    { href: '#vault', icon: Archive, label: simpleCopy.nav.vault[language] },
-    { href: '#wallet', icon: Wallet, label: simpleCopy.nav.wallet[language] },
-    { href: '#profile', icon: User, label: simpleCopy.nav.profile[language] },
+    { href: '#', icon: Home, label: t('home') },
+    { href: '#history', icon: History, label: t('history') },
+    { href: '#vault', icon: Archive, label: t('vault') },
+    { href: '#wallet', icon: Wallet, label: t('wallet') },
+    { href: '#profile', icon: User, label: t('profile') },
   ];
 
   return (

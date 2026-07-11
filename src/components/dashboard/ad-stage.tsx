@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, MapPin, MessageCircle, Phone, ShieldCheck, X
 import { AdDisplayCard, getAdDescription, getAdTitle } from './ad-display-card';
 import { useAuth } from '@/hooks/use-auth';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
+import { useAdCampaigns } from '@/hooks/use-ad-campaigns';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase-client';
 
@@ -200,9 +201,12 @@ export function AdStage({
   const copy = AD_STAGE_COPY[language];
   const liveDistrict = user?.district || copy.fallbackDistrict;
   const liveGovernorate = user?.governorate || copy.fallbackGovernorate;
-  const [serverAds, setServerAds] = useState<any[]>([]);
-  const [isLoadingAds, setIsLoadingAds] = useState(true);
-  const [hasAdFetchIssue, setHasAdFetchIssue] = useState(false);
+  // Ads now come from the shared 10-minute React Query cache (single API path).
+  const { data: adCampaignRows, isLoading: isLoadingAds, isError: hasAdFetchIssue } = useAdCampaigns();
+  const serverAds = useMemo(
+    () => (Array.isArray(adCampaignRows) ? adCampaignRows.map(mapAdCampaignRow) : []),
+    [adCampaignRows],
+  );
   const [heartedAdIds, setHeartedAdIds] = useState<string[]>([]);
   const [takeoverAd, setTakeoverAd] = useState<any | null>(null);
   const [isAdStreamPaused, setIsAdStreamPaused] = useState(false);
@@ -210,37 +214,6 @@ export function AdStage({
   const scrollTrackRef = useRef<HTMLDivElement | null>(null);
   const impressedAdIdsRef = useRef<Set<string>>(new Set());
   const lastManualSwipeMetricAtRef = useRef(0);
-
-  useEffect(() => {
-    let active = true;
-
-    async function fetchLiveAds() {
-      setIsLoadingAds(true);
-      setHasAdFetchIssue(false);
-      try {
-        const { data, error } = await supabase
-          .from('ad_campaigns')
-          .select('*')
-          .eq('status', 'ACTIVE');
-
-        if (error) throw error;
-        if (active) setServerAds(Array.isArray(data) ? data.map(mapAdCampaignRow) : []);
-      } catch (error) {
-        if (!active) return;
-        if ((process.env.NODE_ENV !== 'production')) console.warn('[AdStage] showing placeholder because ads could not load:', error);
-        setServerAds([]);
-        setHasAdFetchIssue(true);
-      } finally {
-        if (active) setIsLoadingAds(false);
-      }
-    }
-
-    void fetchLiveAds();
-
-    return () => {
-      active = false;
-    };
-  }, []);
 
   const adsToUse = useMemo(() => {
     const filteredAds = filterAdsByLocalContext(liveDistrict, liveGovernorate, serverAds);
@@ -474,7 +447,7 @@ export function AdStage({
           data-ad-count={adsToUse.length}
           onScroll={registerManualTrackScroll}
           className={cn(
-            'flex min-w-0 flex-1 flex-nowrap gap-8 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
+            'no-scrollbar flex min-w-0 flex-1 flex-nowrap gap-8 overflow-x-auto',
             adsToUse.length === 1 ? 'justify-center px-6 sm:px-16' : 'px-14'
           )}
         >

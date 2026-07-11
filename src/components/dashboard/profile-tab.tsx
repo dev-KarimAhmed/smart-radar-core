@@ -521,7 +521,7 @@ export function ProfileTab() {
 
   if (!user) {
     return (
-      <div className={`mx-auto w-full max-w-xl pb-24 font-sans ${isArabic ? 'text-right' : 'text-left'}`} dir={isArabic ? 'rtl' : 'ltr'}>
+      <div className="mx-auto w-full max-w-xl pb-24 font-sans text-start">
         <Card className="border-emerald-950 bg-[#020502]/95 text-white">
           <CardContent className="p-6 text-sm text-gray-300">{languageCopy.pleaseLogin}</CardContent>
         </Card>
@@ -530,10 +530,10 @@ export function ProfileTab() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-xl space-y-6 pb-24 text-right font-sans" dir={isArabic ? 'rtl' : 'ltr'}>
+    <div className="mx-auto w-full max-w-xl space-y-6 pb-24 text-start font-sans">
       <Card className="border border-[#14B8A6]/20 bg-[#0B0F19]/90 text-white shadow-xl">
         <CardContent className="flex items-center justify-between gap-4 p-4">
-          <div className={isArabic ? 'text-right' : 'text-left'}>
+          <div className="text-start">
             <p className="text-sm font-black text-white">{languageCopy.languageTitle}</p>
             <p className="mt-1 text-xs text-slate-400">{languageCopy.languageDescription}</p>
           </div>
@@ -627,7 +627,7 @@ export function ProfileTab() {
                 <Input
                   value={fullName}
                   onChange={(event) => setFullName(event.target.value)}
-                  className={`rounded-xl border-emerald-900/30 bg-black/50 text-white ${isArabic ? 'text-right' : 'text-left'}`}
+                  className="rounded-xl border-emerald-900/30 bg-black/50 text-white text-start"
                   placeholder={languageCopy.fullNamePlaceholder}
                   required
                 />
@@ -639,7 +639,7 @@ export function ProfileTab() {
                 <Input
                   value={phone}
                   onChange={(event) => setPhone(event.target.value)}
-                  className={`rounded-xl border-emerald-900/30 bg-black/50 text-white ${isArabic ? 'text-right' : 'text-left'}`}
+                  className="rounded-xl border-emerald-900/30 bg-black/50 text-white text-start"
                   placeholder="+962790000000"
                   required
                 />
@@ -649,12 +649,12 @@ export function ProfileTab() {
                 <div className="space-y-1.5">
                   <label className="block text-xs font-bold text-gray-400">{languageCopy.country}</label>
                   <Select value={countryId} onValueChange={handleCountryChange} required>
-                    <SelectTrigger className="h-11 rounded-xl border-emerald-900/30 bg-black/50 text-white" dir={isArabic ? 'rtl' : 'ltr'}>
+                    <SelectTrigger className="h-11 rounded-xl border-emerald-900/30 bg-black/50 text-white">
                       <SelectValue placeholder={isLoadingCountries ? languageCopy.loading : languageCopy.chooseCountry} />
                     </SelectTrigger>
                     <SelectContent className="border-emerald-900/30 bg-neutral-950 text-white">
                       {countries.map((country) => (
-                        <SelectItem key={country.id} value={String(country.id)} className={`justify-end ${isArabic ? 'text-right' : 'text-left'}`}>
+                        <SelectItem key={country.id} value={String(country.id)} className="justify-end text-start">
                           {labelFor(country, language)}
                         </SelectItem>
                       ))}
@@ -665,12 +665,12 @@ export function ProfileTab() {
                 <div className="space-y-1.5">
                   <label className="block text-xs font-bold text-gray-400">{languageCopy.governorate}</label>
                   <Select value={governorateId} onValueChange={handleGovernorateChange} disabled={!countryId || isLoadingGovernorates} required>
-                    <SelectTrigger className="h-11 rounded-xl border-emerald-900/30 bg-black/50 text-white" dir={isArabic ? 'rtl' : 'ltr'}>
+                    <SelectTrigger className="h-11 rounded-xl border-emerald-900/30 bg-black/50 text-white">
                       <SelectValue placeholder={isLoadingGovernorates ? languageCopy.loading : languageCopy.chooseGovernorate} />
                     </SelectTrigger>
                     <SelectContent className="border-emerald-900/30 bg-neutral-950 text-white">
                       {governorates.map((governorate) => (
-                        <SelectItem key={governorate.id} value={String(governorate.id)} className={`justify-end ${isArabic ? 'text-right' : 'text-left'}`}>
+                        <SelectItem key={governorate.id} value={String(governorate.id)} className="justify-end text-start">
                           {labelFor(governorate, language)}
                         </SelectItem>
                       ))}
@@ -681,12 +681,12 @@ export function ProfileTab() {
                 <div className="space-y-1.5">
                   <label className="block text-xs font-bold text-gray-400">{languageCopy.district}</label>
                   <Select value={districtId} onValueChange={setDistrictId} disabled={!governorateId || isLoadingDistricts} required>
-                    <SelectTrigger className="h-11 rounded-xl border-emerald-900/30 bg-black/50 text-white" dir={isArabic ? 'rtl' : 'ltr'}>
+                    <SelectTrigger className="h-11 rounded-xl border-emerald-900/30 bg-black/50 text-white">
                       <SelectValue placeholder={isLoadingDistricts ? languageCopy.loading : languageCopy.chooseDistrict} />
                     </SelectTrigger>
                     <SelectContent className="border-emerald-900/30 bg-neutral-950 text-white">
                       {districts.map((district) => (
-                        <SelectItem key={district.id} value={String(district.id)} className={`justify-end ${isArabic ? 'text-right' : 'text-left'}`}>
+                        <SelectItem key={district.id} value={String(district.id)} className="justify-end text-start">
                           {labelFor(district, language)}
                         </SelectItem>
                       ))}
@@ -737,7 +737,7 @@ export function ProfileTab() {
                 : 'List of captains you have blocked. You can unblock them to interact again.'}
             </CardDescription>
           </CardHeader>
-          <CardContent dir="rtl">
+          <CardContent>
             {isLoadingBlocks ? (
               <div className="flex items-center justify-center gap-2 py-4 text-sm text-gray-400">
                 <Loader2 className="h-4 w-4 animate-spin text-red-400" />

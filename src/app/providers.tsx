@@ -2,6 +2,8 @@
 
 import React, { useEffect, useState } from 'react';
 import { AuthProvider } from '@/hooks/use-auth';
+import { QueryProvider } from '@/components/providers/query-provider';
+import { LocaleProvider } from '@/components/providers/locale-provider';
 import { SovereignErrorBoundary } from '@/components/sovereign-error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { Button } from '@/components/ui/button';
@@ -69,13 +71,17 @@ function PwaUpdater() {
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <AuthProvider>
-      <SovereignErrorBoundary>
-        {children}
-      </SovereignErrorBoundary>
-      <Toaster />
-      <PwaUpdater />
-      <PwaInstallPrompt />
-    </AuthProvider>
+    <QueryProvider>
+      <LocaleProvider>
+        <AuthProvider>
+          <SovereignErrorBoundary>
+            {children}
+          </SovereignErrorBoundary>
+          <Toaster />
+          <PwaUpdater />
+          <PwaInstallPrompt />
+        </AuthProvider>
+      </LocaleProvider>
+    </QueryProvider>
   );
 }
