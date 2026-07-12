@@ -1243,16 +1243,27 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                   }
                 }
 
+                const captainName = getOfferCaptainName(offer, language);
+                const captainPhone = getOfferCaptainPhone(offer);
+                const captainContactUrl = getOfferContactUrl(offer);
+                const affiliationLabel = getOfferAffiliationLabel(offer, language);
+                const vehicleSummary = getOfferVehicleSummary(offer, language);
+                const plateValue = getOfferPlate(offer, language);
+                const vehicleYear = offer.captain?.vehicle_year || offer.driverVehicle?.year;
+
                 return (
                   <article key={offer.id || offer.driverId} className="space-y-3 rounded-2xl border border-white/5 bg-white/5 p-4">
                     <div className="flex items-center justify-between gap-3">
                       <div>
                         <h3 className="text-lg font-bold text-white">
-                          {offer.captain?.full_name || offer.captain?.name || offer.driverName || "كابتن حركي"}
+                          {captainName}
                         </h3>
                         <p className="mt-1 flex items-center gap-1 text-xs text-slate-400">
                           <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
                           {Math.floor(offer.captain?.trust_rating || offer.driverRating || 5)}.0 / {offer.captain?.tier || offer.driverRank || "Bronze"}
+                        </p>
+                        <p className="mt-1 text-xs font-bold text-[#14F5D5]">
+                          {affiliationLabel}
                         </p>
                       </div>
                       <strong className="text-xl font-bold text-[#14F5D5]">
@@ -1276,16 +1287,50 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 rounded-xl bg-black/25 p-3 text-xs text-slate-300">
+                    <div className="grid grid-cols-2 gap-2 rounded-xl bg-black/25 p-3 text-xs text-slate-300 sm:grid-cols-4">
                       <Metric
                         label={copy.vehicle}
-                        value={`${offer.captain?.vehicle_color || offer.driverVehicle.color || ''} ${offer.captain?.vehicle_model || offer.driverVehicle.make || 'سيارة مشغلة'}`.trim()}
+                        value={vehicleSummary}
                       />
                       <Metric
                         label={copy.plate}
-                        value={offer.captain?.plate_number || offer.captain?.license_plate || offer.driverVehicle.plate || "أ ر ج 1234"}
+                        value={plateValue}
+                      />
+                      <Metric
+                        label={language === 'ar' ? 'الفئة' : 'Category'}
+                        value={affiliationLabel}
+                      />
+                      <Metric
+                        label={language === 'ar' ? 'الموديل' : 'Year'}
+                        value={vehicleYear || copy.notAvailable}
                       />
                     </div>
+
+                    {(captainPhone || captainContactUrl) && (
+                      <div className="rounded-xl border border-white/5 bg-white/[0.03] p-3 text-xs text-slate-300">
+                        <div className="space-y-3">
+                          {captainPhone ? (
+                            <OfferContactAction
+                              label={language === 'ar' ? 'هاتف الكابتن' : 'Captain phone'}
+                              value={captainPhone}
+                              href={`tel:${captainPhone}`}
+                              icon={<Phone className="h-4 w-4" />}
+                              actionLabel={language === 'ar' ? 'اتصال' : 'Call'}
+                            />
+                          ) : null}
+                          {captainContactUrl ? (
+                            <OfferContactAction
+                              label={language === 'ar' ? 'رابط التواصل' : 'Social link'}
+                              value={captainContactUrl}
+                              href={captainContactUrl}
+                              icon={<Navigation className="h-4 w-4" />}
+                              actionLabel={language === 'ar' ? 'فتح' : 'Open'}
+                              external
+                            />
+                          ) : null}
+                        </div>
+                      </div>
+                    )}
 
                     {/* TASK 2: Estimated Trip Duration */}
                     {durationDisplay && (
@@ -1739,11 +1784,130 @@ function formatMoney(value: number, currencyLabel: string) {
   return currencyLabel ? `${value.toFixed(2)} ${currencyLabel}` : value.toFixed(2);
 }
 
+function getOfferCaptainName(offer: any, language: AppLanguage) {
+  return firstDisplayString(
+    offer?.captain?.full_name,
+    offer?.captain?.name,
+    offer?.driverName,
+    offer?.captain?.serial_id,
+    language === 'ar' ? 'سائق' : 'Captain',
+  );
+}
+
+function getOfferCaptainPhone(offer: any) {
+  return firstDisplayString(
+    offer?.driverAffiliation?.phone,
+    offer?.captain?.phone,
+    offer?.captain?.phone_number,
+    offer?.driverVehicle?.phone,
+  );
+}
+
+function getOfferContactUrl(offer: any) {
+  return firstDisplayString(
+    offer?.captain?.contact_page_url,
+    offer?.captain?.social_url,
+    offer?.captain?.facebook_url,
+    offer?.captain?.whatsapp_url,
+    offer?.driverVehicle?.contact_page_url,
+  );
+}
+
+function getOfferAffiliationLabel(offer: any, language: AppLanguage) {
+  const rawType = firstDisplayString(offer?.driverAffiliation?.type, offer?.captain?.affiliation_type, offer?.captain?.employment_type);
+  const rawName = firstDisplayString(offer?.driverAffiliation?.name, offer?.captain?.affiliation_name, offer?.captain?.company_name);
+  const normalized = `${rawName || ''} ${rawType || ''}`.toLowerCase();
+
+  if (normalized.includes('uber') || normalized.includes('أوبر')) {
+    return language === 'ar' ? 'أوبر' : 'Uber';
+  }
+  if (normalized.includes('indrive') || normalized.includes('in-drive') || normalized.includes('in drive') || normalized.includes('إن درايف') || normalized.includes('اندرايف')) {
+    return language === 'ar' ? 'إن درايف' : 'inDrive';
+  }
+  if (normalized.includes('careem') || normalized.includes('كريم')) {
+    return language === 'ar' ? 'كريم' : 'Careem';
+  }
+  if (normalized.includes('office') || normalized.includes('taxi') || normalized.includes('company') || normalized.includes('مكتب') || normalized.includes('شركة')) {
+    return language === 'ar' ? 'تابع لشركة' : 'Company driver';
+  }
+  if (normalized.includes('self') || normalized.includes('independent') || normalized.includes('freelance') || normalized.includes('مستقل')) {
+    return language === 'ar' ? 'مستقل' : 'Self-employed';
+  }
+  if (normalized.includes('smart') || normalized.includes('app')) {
+    return language === 'ar' ? 'تطبيق' : 'App driver';
+  }
+
+  return language === 'ar' ? 'مستقل' : 'Self-employed';
+}
+
+function getOfferVehicleSummary(offer: any, language: AppLanguage) {
+  const parts = [
+    firstDisplayString(offer?.captain?.vehicle_color, offer?.driverVehicle?.color),
+    firstDisplayString(offer?.captain?.vehicle_brand, offer?.driverVehicle?.brand),
+    firstDisplayString(offer?.captain?.vehicle_model, offer?.driverVehicle?.model, offer?.driverVehicle?.make),
+    firstDisplayString(offer?.captain?.vehicle_type, offer?.driverVehicle?.type),
+  ].filter(Boolean);
+
+  return parts.length ? parts.join(' ') : language === 'ar' ? 'غير متاح' : 'Not available';
+}
+
+function getOfferPlate(offer: any, language: AppLanguage) {
+  return firstDisplayString(
+    offer?.captain?.plate_number,
+    offer?.captain?.license_plate,
+    offer?.driverVehicle?.plate,
+    language === 'ar' ? 'غير متاح' : 'Not available',
+  );
+}
+
+function firstDisplayString(...values: unknown[]) {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim()) return value.trim();
+    if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+  }
+  return '';
+}
+
 function Metric({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="min-w-0 space-y-1">
       <span className="block text-[10px] font-bold text-slate-500">{label}</span>
       <span className="block truncate text-xs font-black text-white">{value}</span>
+    </div>
+  );
+}
+
+function OfferContactAction({
+  label,
+  value,
+  href,
+  icon,
+  actionLabel,
+  external = false,
+}: {
+  label: string;
+  value: string;
+  href: string;
+  icon: React.ReactNode;
+  actionLabel: string;
+  external?: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <div className="min-w-0">
+        <span className="block text-[10px] font-bold text-slate-500">{label}</span>
+        <span className="block truncate text-xs font-black text-white">{value}</span>
+      </div>
+      <a
+        href={href}
+        target={external ? '_blank' : undefined}
+        rel={external ? 'noreferrer' : undefined}
+        className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 text-[#14F5D5] transition hover:bg-[#14B8A6]/20"
+        aria-label={actionLabel}
+        title={actionLabel}
+      >
+        {icon}
+      </a>
     </div>
   );
 }
