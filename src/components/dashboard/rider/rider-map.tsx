@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { latLngToCell } from 'h3-js';
-import { LocateFixed } from 'lucide-react';
+import { CarFront, LocateFixed } from 'lucide-react';
 import maplibregl, { type GeoJSONSource, type Map as MapLibreMap } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
@@ -120,6 +120,10 @@ export function RiderMap({
   const [activeCaptainProgress, setActiveCaptainProgress] = React.useState(0);
   const [isMapReady, setIsMapReady] = React.useState(false);
   const riderCell = React.useMemo(() => latLngToCell(riderLocation.lat, riderLocation.lng, 9), [riderLocation]);
+  const activeCaptainCount = React.useMemo(
+    () => captainLocations.filter((captain) => !captain.isBlocked).length,
+    [captainLocations],
+  );
 
   const displayCaptains = React.useMemo(() => {
     if (!activeTripCaptainId) return captainLocations;
@@ -436,6 +440,18 @@ export function RiderMap({
         </div>
       )}
 
+      {!activeTripCaptainId && (
+        <div className="pointer-events-none absolute right-3 top-3 z-30 flex items-center gap-1.5 rounded-xl border border-[#14B8A6]/25 bg-[#0B0F19]/88 px-2 py-1.5 text-[#14F5D5] shadow-lg shadow-black/25 backdrop-blur sm:right-4 sm:top-4">
+          <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-[#14B8A6]/15">
+            <CarFront className="h-3.5 w-3.5" aria-hidden="true" />
+          </span>
+          <span className="flex flex-col leading-none">
+            <span className="text-[8px] font-black uppercase tracking-wide text-slate-300">{copy.activeCaptains}</span>
+            <span className="mt-0.5 text-xs font-black text-white">{activeCaptainCount}</span>
+          </span>
+        </div>
+      )}
+
       {!showDestinationPin && !activeTripCaptainId && captainLocations.length === 0 && (
         <div className="pointer-events-none absolute right-3 top-20 hidden max-w-[260px] rounded-2xl border border-amber-400/25 bg-[#0B0F19]/88 px-3 py-2 text-right text-[11px] font-bold leading-relaxed text-amber-100 shadow-xl shadow-black/30 backdrop-blur sm:block sm:right-4 sm:top-24 lg:right-[456px]">
           {copy.offPeak}
@@ -470,6 +486,7 @@ function interpolate(from: number, to: number, progress: number) {
 
 const riderMapCopy = {
   ar: {
+    activeCaptains: 'الكباتن المتاحون',
     denied: 'اسمح للموقع من المتصفح',
     driverOnWay: 'السائق في الطريق إليك',
     fallback: 'GPS غير متاح',
@@ -482,6 +499,7 @@ const riderMapCopy = {
     useMyLocation: 'استخدم موقعي الحالي',
   },
   en: {
+    activeCaptains: 'Active captains',
     denied: 'Allow location in browser',
     driverOnWay: 'Driver is on the way',
     fallback: 'GPS unavailable',
