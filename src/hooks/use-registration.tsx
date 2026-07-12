@@ -7,9 +7,11 @@ import { shouldRememberSupabaseSession, supabase } from '@/lib/supabase-client';
 import { useDashboardLanguage } from './use-dashboard-language';
 import { useToast } from './use-toast';
 
+const runtimeEnv = (import.meta as any).env || {};
 const isStrictDevelopment =
-  (globalThis as any).process?.env?.NODE_ENV === 'development' ||
-  ((process.env.NODE_ENV !== 'production') && process.env.MODE === 'development');
+  runtimeEnv.DEV === true ||
+  runtimeEnv.MODE === 'development' ||
+  (globalThis as any).process?.env?.NODE_ENV === 'development';
 
 type RegistrationStep = 'role' | 'personal' | 'affiliation' | 'vehicle' | 'admin' | 'advertiser' | 'ProfessionalStep';
 type RegistrationRole = 'rider' | 'driver' | 'advertiser' | 'delegate' | null;
@@ -90,6 +92,7 @@ interface RegistrationContextType {
   districts: LocationOption[];
   canUseDevMockData: boolean;
   fillRandomRegistrationData: () => void;
+  fillCaptainRegistrationData: () => void;
   handlePersonalSubmit: (e: React.FormEvent) => void;
   handleVehicleSubmit: (e: React.FormEvent) => void;
   handleAdvertiserSubmit: (e: React.FormEvent) => void;
@@ -377,6 +380,111 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     });
   }, [districtRows, personal.gov, selectedCountry, toast]);
 
+  const fillCaptainRegistrationData = useCallback(async () => {
+    const country =
+      selectedCountry ||
+      countryRows.find((row) => String(row.id) === personal.country) ||
+      countryRows[0] ||
+      null;
+
+    let governorateOptions = governorateRows.filter((row) => row.country_id === country?.id);
+    if (country && governorateOptions.length === 0) {
+      const { data, error } = await supabase
+        .from('governorates')
+        .select('*')
+        .eq('country_id', country.id)
+        .order('id', { ascending: true });
+      if (!error) {
+        governorateOptions = normalizeGovernorates(data);
+        setGovernorateRows(governorateOptions);
+      }
+    }
+
+    const governorateId = Number(
+      personal.gov && governorateOptions.some((row) => row.id === Number(personal.gov))
+        ? personal.gov
+        : governorateOptions[0]?.id,
+    );
+
+    let districtOptions = districtRows.filter((district) => district.governorate_id === governorateId);
+    if (Number.isInteger(governorateId) && governorateId > 0 && districtOptions.length === 0) {
+      const { data, error } = await supabase
+        .from('districts')
+        .select('*')
+        .eq('governorate_id', governorateId)
+        .order('id', { ascending: true });
+      if (!error) {
+        districtOptions = normalizeDistricts(data);
+        setDistrictRows(districtOptions);
+      }
+    }
+
+    const districtId = Number(
+      personal.district && districtOptions.some((row) => row.id === Number(personal.district))
+        ? personal.district
+        : districtOptions[0]?.id,
+    );
+
+    if (!country || !Number.isInteger(governorateId) || !Number.isInteger(districtId)) {
+      toast({
+        variant: 'destructive',
+        title: 'بيانات المنطقة غير جاهزة',
+        description: 'انتظر تحميل الدولة والمحافظة والمنطقة، ثم جرّب إضافة بيانات الكابتن.',
+      });
+      return;
+    }
+
+    const serial = String(Date.now()).slice(-6);
+    const demoPhone = getDemoPhoneForCountry(country, serial);
+    const plateSuffix = serial.slice(-4);
+
+    setAuthMode('register');
+    setRole('driver');
+    setAffiliation(affiliation || 'smart-app');
+    setPersonal((current) => ({
+      ...current,
+      name: `Captain Test ${serial}`,
+      phone: demoPhone,
+      country: String(country.id),
+      gov: String(governorateId),
+      district: String(districtId),
+      verificationDoc: current.verificationDoc || 'dev-captain-license',
+    }));
+    setAuthPassword(`Captain${serial}!`);
+    setVehicle((current: any) => ({
+      ...current,
+      type: 'sedan',
+      brand: 'Toyota',
+      model: 'Corolla',
+      make: 'Toyota Corolla',
+      color: 'black',
+      plate: `TEST-${plateSuffix}`,
+      year: '2022',
+      companyName: 'Smart Radar',
+      officeName: 'Smart Radar Test Office',
+      officePhone: demoPhone,
+      sideId: `D-${plateSuffix}`,
+      employment_type: 'smart_app',
+      identity_url: 'dev-captain-license',
+      contact_page_url: `https://wa.me/${demoPhone.replace(/\D/g, '')}`,
+    }));
+
+    toast({
+      title: 'تمت إضافة بيانات كابتن تجربة',
+      description: 'تم تعبئة بيانات الحساب والسيارة للاختبار فقط.',
+    });
+  }, [
+    affiliation,
+    countryRows,
+    districtRows,
+    governorateRows,
+    personal.country,
+    personal.district,
+    personal.gov,
+    selectedCountry,
+    toast,
+  ]);
+
   const submitSupabaseAuth = useCallback(async () => {
     if (isSubmittingRef.current) return;
 
@@ -600,6 +708,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     districts,
     canUseDevMockData: isStrictDevelopment,
     fillRandomRegistrationData,
+    fillCaptainRegistrationData,
     handlePersonalSubmit,
     handleVehicleSubmit,
     handleAdvertiserSubmit,

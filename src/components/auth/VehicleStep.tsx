@@ -6,7 +6,17 @@ import { Input } from '@/components/ui/input';
 import { useRegistration } from '@/hooks/use-registration';
 
 export function VehicleStep() {
-  const { affiliation, vehicle, setVehicle, handleVehicleSubmit, isSubmitting, setStep, personal, setPersonal } = useRegistration();
+  const {
+    affiliation,
+    vehicle,
+    setVehicle,
+    handleVehicleSubmit,
+    isSubmitting,
+    setStep,
+    personal,
+    setPersonal,
+    fillCaptainRegistrationData,
+  } = useRegistration();
   const [compressing, setCompressing] = React.useState(false);
   const isTaxi = affiliation === 'office-taxi';
 
@@ -60,6 +70,21 @@ export function VehicleStep() {
 
   return (
     <form onSubmit={handleVehicleSubmit} className="space-y-4 text-right animate-fade-in" dir="rtl">
+      {
+        <div className="rounded-xl border border-[#14B8A6]/25 bg-[#14B8A6]/10 p-3 text-right">
+          <Button
+            type="button"
+            onClick={fillCaptainRegistrationData}
+            className="w-full rounded-xl bg-[#14B8A6] py-3 text-sm font-black text-[#0B0F19] hover:bg-[#14B8A6]/90"
+          >
+            إضافة بيانات كابتن تجربة
+          </Button>
+          <p className="mt-2 text-[10px] font-medium leading-5 text-[#94A3B8]">
+            زر اختبار فقط: يملأ بيانات الحساب والسيارة لإكمال تسجيل الكابتن بسرعة.
+          </p>
+        </div>
+      }
+
       {isTaxi ? (
         <>
           <div>

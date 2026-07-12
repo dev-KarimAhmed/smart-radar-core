@@ -271,6 +271,7 @@ export function PersonalStep() {
     locationDataLoading,
     canUseDevMockData,
     fillRandomRegistrationData,
+    fillCaptainRegistrationData,
     isSubmitting,
     role,
     authMode,
@@ -534,7 +535,6 @@ export function PersonalStep() {
                           type="file"
                           accept="image/*,application/pdf"
                           className="absolute inset-0 opacity-0 cursor-pointer"
-                          required
                         />
                       </div>
 
@@ -545,7 +545,6 @@ export function PersonalStep() {
                           type="file"
                           accept="image/*,application/pdf"
                           className="absolute inset-0 opacity-0 cursor-pointer"
-                          required
                         />
                       </div>
 
@@ -556,7 +555,6 @@ export function PersonalStep() {
                           type="file"
                           accept="image/*,application/pdf"
                           className="absolute inset-0 opacity-0 cursor-pointer"
-                          required
                         />
                       </div>
                     </div>
@@ -605,15 +603,15 @@ export function PersonalStep() {
                         )}
                       </div>
 
-                      {canUseDevMockData ? (
+                      {role === 'driver' || canUseDevMockData ? (
                         <button
                           type="button"
-                          onClick={fillRandomRegistrationData}
-                          disabled={locationDataLoading || !selectedCountry || !personal.gov || !districts.length}
+                          onClick={role === 'driver' ? fillCaptainRegistrationData : fillRandomRegistrationData}
+                          disabled={locationDataLoading}
                           className="inline-flex min-h-9 items-center gap-2 rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-3 text-xs font-black text-[#14B8A6] transition hover:border-[#14B8A6] hover:bg-[#14B8A6]/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/50 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           <Sparkles className="h-4 w-4" aria-hidden="true" />
-                          {t.mockData}
+                          {role === 'driver' ? (isArabic ? 'بيانات كابتن تجربة' : 'Captain test data') : t.mockData}
                         </button>
                       ) : null}
                     </div>
