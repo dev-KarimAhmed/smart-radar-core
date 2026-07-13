@@ -332,8 +332,8 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
           <strong
             className="rounded-lg px-3 py-1 text-lg font-black md:text-xl"
             style={{
-              color: riderProfile.rating < 4.3 ? '#ff3366' : '#14B8A6',
-              backgroundColor: riderProfile.rating < 4.3 ? 'rgba(255,51,102,0.1)' : 'rgba(20,184,166,0.1)',
+              color: riderProfile.rating < 4.3 ? 'var(--color-radar-danger)' : 'var(--color-radar-teal)',
+              backgroundColor: riderProfile.rating < 4.3 ? 'rgb(var(--radar-danger-rgb) / 0.1)' : 'rgb(var(--radar-teal-rgb) / 0.1)',
             }}
           >
             {Math.floor(riderProfile.rating || 5)} / 5

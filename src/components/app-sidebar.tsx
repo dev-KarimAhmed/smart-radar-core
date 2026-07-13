@@ -184,7 +184,7 @@ export function AppSidebar() {
  <span className="text-xs font-black text-gray-300">حالة العمل</span>
  <span className={cn(
  "h-2.5 w-2.5 rounded-full animate-pulse",
- isOnline ? "bg-radar-teal shadow-[0_0_8px_#14b8a6]" : "bg-red-500 shadow-[0_0_8px_#ef4444]"
+ isOnline ? "bg-radar-teal shadow-[0_0_8px_var(--color-radar-teal)]" : "bg-red-500 shadow-[0_0_8px_var(--color-radar-red)]"
  )} />
  </div>
 

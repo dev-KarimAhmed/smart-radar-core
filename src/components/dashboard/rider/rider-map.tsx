@@ -5,6 +5,7 @@ import { latLngToCell } from 'h3-js';
 import { LocateFixed } from 'lucide-react';
 import maplibregl, { type GeoJSONSource, type Map as MapLibreMap } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import { BRAND } from '@/lib/brand-tokens';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import type { AppLanguage } from '@/lib/i18n/simple-copy';
 
@@ -275,9 +276,9 @@ export function RiderMap({
         source: 'rider-point',
         paint: {
           'circle-radius': 22,
-          'circle-color': '#14B8A6',
+          'circle-color': BRAND.teal,
           'circle-opacity': 0.16,
-          'circle-stroke-color': '#14F5D5',
+          'circle-stroke-color': BRAND.tealBright,
           'circle-stroke-width': 1,
           'circle-stroke-opacity': 0.45,
         },
@@ -289,8 +290,8 @@ export function RiderMap({
         source: 'rider-point',
         paint: {
           'circle-radius': 6,
-          'circle-color': '#14F5D5',
-          'circle-stroke-color': '#031315',
+          'circle-color': BRAND.tealBright,
+          'circle-stroke-color': BRAND.tealAbyss,
           'circle-stroke-width': 2,
         },
       });
@@ -304,15 +305,15 @@ export function RiderMap({
           'circle-color': [
             'case',
             ['get', 'isBlocked'],
-            '#EF4444',
-            '#14B8A6'
+            BRAND.red,
+            BRAND.teal
           ],
           'circle-opacity': 0.18,
           'circle-stroke-color': [
             'case',
             ['get', 'isBlocked'],
-            '#F87171',
-            '#14F5D5'
+            BRAND.redLight,
+            BRAND.tealBright
           ],
           'circle-stroke-width': 1,
           'circle-stroke-opacity': 0.42,
@@ -335,7 +336,7 @@ export function RiderMap({
           'text-ignore-placement': true,
         },
         paint: {
-          'text-halo-color': '#020617',
+          'text-halo-color': BRAND.black,
           'text-halo-width': 2,
           'text-opacity': 0.98,
         },

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 import './globals.css';
 import { Providers } from './providers';
+import { BRAND } from '@/lib/brand-tokens';
 
 export const metadata: Metadata = {
   title: 'رادار - مشاركة الرحلات حياً',
@@ -17,7 +18,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: '#0A0F1D',
+  themeColor: BRAND.bg,
 };
 
 export default function RootLayout({
@@ -34,15 +35,15 @@ export default function RootLayout({
           minHeight: '100vh',
           width: '100%',
           overflowX: 'hidden',
-          background: '#0A0F1D',
-          color: '#F8FAFC',
+          background: 'var(--color-radar-bg)',
+          color: 'var(--color-radar-text-bright)',
         }}
       >
         <div
           style={{
             minHeight: '100vh',
             width: '100%',
-            background: '#0A0F1D',
+            background: 'var(--color-radar-bg)',
           }}
         >
           <Providers>

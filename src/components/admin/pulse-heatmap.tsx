@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { BRAND } from '@/lib/brand-tokens';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
   Loader2,
@@ -326,7 +327,7 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
                       y1={yPos}
                       x2={dimensions.width - margin.right}
                       y2={yPos}
-                      stroke="#0a2f1d"
+                      stroke={BRAND.forest}
                       strokeWidth={1}
                       strokeDasharray="4 4"
                     />
@@ -334,7 +335,7 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
                       x={margin.left - 10}
                       y={yPos + 4}
                       textAnchor="end"
-                      fill="#a1a1aa"
+                      fill={BRAND.textFaint}
                       className="text-[10px] font-mono font-bold"
                     >
                       {valueLabel}
@@ -349,7 +350,7 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
                 y1={margin.top + plotHeight}
                 x2={dimensions.width - margin.right}
                 y2={margin.top + plotHeight}
-                stroke="#10b981"
+                stroke={BRAND.emerald}
                 strokeWidth={1.5}
                 opacity={0.3}
               />
@@ -382,7 +383,7 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
                         y={margin.top}
                         width={groupWidth - 4}
                         height={plotHeight}
-                        fill="rgba(16, 185, 129, 0.04)"
+                        style={{ fill: 'rgb(var(--radar-emerald-rgb) / 0.04)' }}
                         rx={4}
                       />
                     )}
@@ -392,7 +393,7 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
                       x={xGroup + groupWidth / 2}
                       y={margin.top + plotHeight + 18}
                       textAnchor="middle"
-                      fill={isGroupHovered ? "#00ffcc" : "#a1a1aa"}
+                      fill={isGroupHovered ? BRAND.neon : BRAND.textFaint}
                       className="text-[9px] font-bold transition-colors duration-150"
                       transform={`rotate(-15, ${xGroup + groupWidth / 2}, ${margin.top + plotHeight + 18})`}
                     >
@@ -405,11 +406,11 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
                       y={demandY}
                       width={barWidth}
                       height={Math.max(2, demandHeight)}
-                      fill="#00ffcc"
+                      fill={BRAND.neon}
                       rx={2}
                       className="transition-all duration-200 cursor-pointer"
                       opacity={hoveredIndex === null || isGroupHovered ? 1 : 0.65}
-                      style={{ filter: isGroupHovered ? 'drop-shadow(0 0 4px rgba(0,255,204,0.5))' : 'none' }}
+                      style={{ filter: isGroupHovered ? 'drop-shadow(0 0 4px rgb(var(--radar-neon-rgb) / 0.5))' : 'none' }}
                     />
 
                     {/* Supply Bar (Blue) */}
@@ -418,7 +419,7 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
                       y={supplyY}
                       width={barWidth}
                       height={Math.max(2, supplyHeight)}
-                      fill="#3b82f6"
+                      fill={BRAND.blue}
                       rx={2}
                       className="transition-all duration-200 cursor-pointer"
                       opacity={hoveredIndex === null || isGroupHovered ? 1 : 0.65}

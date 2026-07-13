@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as d3 from 'd3';
+import { BRAND } from '@/lib/brand-tokens';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Activity, TrendingUp } from 'lucide-react';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
@@ -108,8 +109,8 @@ export function SovereignFinancialActivityChart({ transactions, balanceJD, curre
       .attr('y1', '0%')
       .attr('x2', '0%')
       .attr('y2', '100%');
-    gradient.append('stop').attr('offset', '0%').attr('stop-color', '#10b981').attr('stop-opacity', 0.28);
-    gradient.append('stop').attr('offset', '100%').attr('stop-color', '#10b981').attr('stop-opacity', 0);
+    gradient.append('stop').attr('offset', '0%').attr('stop-color', BRAND.emerald).attr('stop-opacity', 0.28);
+    gradient.append('stop').attr('offset', '100%').attr('stop-color', BRAND.emerald).attr('stop-opacity', 0);
 
     const glow = defs.append('filter').attr('id', 'wallet-glow').attr('x', '-20%').attr('y', '-20%').attr('width', '140%').attr('height', '140%');
     glow.append('feGaussianBlur').attr('stdDeviation', '3').attr('result', 'blur');
@@ -127,7 +128,7 @@ export function SovereignFinancialActivityChart({ transactions, balanceJD, curre
     group.append('path')
       .datum(chartData)
       .attr('fill', 'none')
-      .attr('stroke', '#10b981')
+      .attr('stroke', BRAND.emerald)
       .attr('stroke-width', 2.5)
       .attr('filter', 'url(#wallet-glow)')
       .attr('d', d3.line<ChartDataPoint>()
@@ -141,14 +142,14 @@ export function SovereignFinancialActivityChart({ transactions, balanceJD, curre
 
     const xAxisGroup = group.append('g').attr('transform', `translate(0, ${chartHeight})`).call(xAxis);
     xAxisGroup.selectAll('.domain').remove();
-    xAxisGroup.selectAll('line').attr('stroke', '#064e3b').attr('stroke-opacity', 0.5);
-    xAxisGroup.selectAll('text').attr('fill', '#9ca3af').attr('font-size', '9px').attr('font-weight', 'bold').attr('dy', '10px');
+    xAxisGroup.selectAll('line').attr('stroke', BRAND.forestDeep).attr('stroke-opacity', 0.5);
+    xAxisGroup.selectAll('text').attr('fill', BRAND.textFaint).attr('font-size', '9px').attr('font-weight', 'bold').attr('dy', '10px');
 
     const yAxis = d3.axisLeft(y).ticks(3).tickFormat((value) => `${value} ${currencyLabel}`.trim());
     const yAxisGroup = group.append('g').call(yAxis);
     yAxisGroup.selectAll('.domain').remove();
-    yAxisGroup.selectAll('line').attr('stroke', '#064e3b').attr('stroke-dasharray', '2,2').attr('stroke-opacity', 0.5).attr('x2', chartWidth);
-    yAxisGroup.selectAll('text').attr('fill', '#9ca3af').attr('font-size', '9px').attr('font-weight', 'bold').attr('dx', '-4px');
+    yAxisGroup.selectAll('line').attr('stroke', BRAND.forestDeep).attr('stroke-dasharray', '2,2').attr('stroke-opacity', 0.5).attr('x2', chartWidth);
+    yAxisGroup.selectAll('text').attr('fill', BRAND.textFaint).attr('font-size', '9px').attr('font-weight', 'bold').attr('dx', '-4px');
 
     group.selectAll('.dot')
       .data(chartData.filter((point) => point.type !== 'baseline'))
@@ -157,12 +158,12 @@ export function SovereignFinancialActivityChart({ transactions, balanceJD, curre
       .attr('cx', (point) => x(new Date(point.timestamp)))
       .attr('cy', (point) => y(point.balance))
       .attr('r', 4)
-      .attr('fill', '#10b981')
-      .attr('stroke', '#022c22')
+      .attr('fill', BRAND.emerald)
+      .attr('stroke', BRAND.forestDeep)
       .attr('stroke-width', 1.5)
       .style('cursor', 'pointer')
       .on('mouseover', function (_event, point) {
-        d3.select(this).transition().duration(150).attr('r', 6.5).attr('fill', '#34d399');
+        d3.select(this).transition().duration(150).attr('r', 6.5).attr('fill', BRAND.emeraldLight);
 
         const tooltip = group.append('g')
           .attr('id', 'chart-tooltip')
@@ -174,20 +175,20 @@ export function SovereignFinancialActivityChart({ transactions, balanceJD, curre
           .attr('width', 120)
           .attr('height', 24)
           .attr('rx', 6)
-          .attr('fill', '#022c22')
-          .attr('stroke', '#10b981')
+          .attr('fill', BRAND.forestDeep)
+          .attr('stroke', BRAND.emerald)
           .attr('stroke-opacity', 0.6);
 
         tooltip.append('text')
           .attr('text-anchor', 'middle')
-          .attr('fill', '#ffffff')
+          .attr('fill', BRAND.white)
           .attr('font-size', '9px')
           .attr('font-weight', 'black')
           .attr('y', 1)
           .text(`${point.balance.toFixed(2)} ${currencyLabel}`.trim());
       })
       .on('mouseout', function () {
-        d3.select(this).transition().duration(150).attr('r', 4).attr('fill', '#10b981');
+        d3.select(this).transition().duration(150).attr('r', 4).attr('fill', BRAND.emerald);
         group.select('#chart-tooltip').remove();
       });
   }, [chartData, dimensions, currencyLabel, isArabic]);

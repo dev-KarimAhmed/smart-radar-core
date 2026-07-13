@@ -536,7 +536,7 @@ export function HistoryTab() {
                       className="absolute top-4 right-4 p-1.5 rounded-lg bg-emerald-950/20 border border-emerald-500/10 text-rose-500 transition-all hover:scale-105 active:scale-95"
                       aria-label="Save captain"
                     >
-                      <Heart className={`h-4.5 w-4.5 transition-all ${isHearted ? 'fill-radar-neon text-radar-neon drop-shadow-[0_0_8px_#00ffcc]' : 'text-gray-400 hover:text-rose-400'}`} />
+                      <Heart className={`h-4.5 w-4.5 transition-all ${isHearted ? 'fill-radar-neon text-radar-neon drop-shadow-[0_0_8px_var(--color-radar-neon)]' : 'text-gray-400 hover:text-rose-400'}`} />
                     </button>
 
                     <div className="flex justify-between items-start pr-8">
@@ -668,7 +668,7 @@ export function HistoryTab() {
                         onClick={() => toggleFavorite(trip)}
                         className="absolute top-4 left-4 p-1.5 rounded-lg bg-emerald-950/20 border border-emerald-500/10 text-rose-500 transition-all hover:scale-105 active:scale-95"
                       >
-                        <Heart className={`h-4.5 w-4.5 transition-all ${isHearted ? 'fill-radar-neon text-radar-neon drop-shadow-[0_0_8px_#00ffcc]' : 'text-gray-400 hover:text-rose-400'}`} />
+                        <Heart className={`h-4.5 w-4.5 transition-all ${isHearted ? 'fill-radar-neon text-radar-neon drop-shadow-[0_0_8px_var(--color-radar-neon)]' : 'text-gray-400 hover:text-rose-400'}`} />
                       </button>
 
                       <div className="flex justify-between items-start pl-8">

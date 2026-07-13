@@ -1,6 +1,7 @@
 'use client';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { BRAND } from '@/lib/brand-tokens';
 import { DriversManagementTab } from './admin/drivers-management-tab';
 import { AdsManagementTab } from './admin/ads-management-tab';
 import { DelegatesManagementTab } from './admin/delegates-management-tab';
@@ -856,14 +857,14 @@ export function AdminPulseOverview() {
             <svg viewBox="0 0 500 100" className="w-full h-full text-cyan-500 overflow-visible" preserveAspectRatio="none">
               <defs>
                 <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#14b8a6" stopOpacity="0.4" />
-                  <stop offset="100%" stopColor="#14b8a6" stopOpacity="0" />
+                  <stop offset="0%" stopColor={BRAND.teal} stopOpacity="0.4" />
+                  <stop offset="100%" stopColor={BRAND.teal} stopOpacity="0" />
                 </linearGradient>
               </defs>
               <path
                 d={chartPath}
                 fill="none"
-                stroke="#14b8a6"
+                stroke={BRAND.teal}
                 strokeWidth="3"
                 strokeLinecap="round"
               />
@@ -871,11 +872,11 @@ export function AdminPulseOverview() {
                 d={chartArea}
                 fill="url(#chartGradient)"
               />
-              <circle cx="200" cy="30" r="4" fill="#ef4444" className="animate-ping" />
-              <circle cx="200" cy="30" r="3" fill="#ef4444" />
+              <circle cx="200" cy="30" r="4" fill={BRAND.red} className="animate-ping" />
+              <circle cx="200" cy="30" r="3" fill={BRAND.red} />
 
-              <circle cx="400" cy="20" r="4" fill="#14b8a6" className="animate-ping" />
-              <circle cx="400" cy="20" r="3" fill="#14b8a6" />
+              <circle cx="400" cy="20" r="4" fill={BRAND.teal} className="animate-ping" />
+              <circle cx="400" cy="20" r="3" fill={BRAND.teal} />
             </svg>
             <div className="absolute top-2 left-2 text-[9px] font-mono text-cyan-400/70 bg-black/60 px-1.5 py-0.5 rounded">
               أقصى ذروة: {peakTrips} رحلة/ساعة

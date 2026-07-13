@@ -1681,21 +1681,21 @@ export const RadarAdvertiserDashboard: React.FC<AdvertiserDashboardProps> = ({ a
   const [activeTab, setActiveTab] = useState<'METRICS' | 'LAUNCH'>('METRICS');
 
   return (
-    <div className="radar-advertiser-container text-right" style={{ backgroundColor: '#020202', color: '#ffffff', padding: '20px', fontFamily: 'monospace' }} dir="rtl">
+    <div className="radar-advertiser-container text-right" style={{ backgroundColor: 'var(--color-radar-black)', color: 'white', padding: '20px', fontFamily: 'monospace' }} dir="rtl">
 
       {/* 1. الهيدر والترحيب  برتبة المعلن */}
-      <div className="dash-header" style={{ borderBottom: '2px solid #111', paddingBottom: '15px', marginBottom: '25px' }}>
+      <div className="dash-header" style={{ borderBottom: '2px solid var(--color-radar-black)', paddingBottom: '15px', marginBottom: '25px' }}>
         <h3>📡 لوحة تحكم المعلن  - الرادار V5.5</h3>
-        <div style={{ display: 'flex', justifyContent: 'space-between', backgroundColor: '#0d0d0d', padding: '10px 15px', borderRadius: '4px', border: '1px solid #1a1a1a' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', backgroundColor: 'var(--color-radar-black)', padding: '10px 15px', borderRadius: '4px', border: '1px solid var(--color-radar-black)' }}>
           <span>المعلن: <strong>{advertiserProfile.companyName}</strong></span>
-          <span>رتبة الولاء: <strong style={{ color: '#ffcc00' }}>[{advertiserProfile.loyaltyRank}]</strong></span>
+          <span>رتبة الولاء: <strong style={{ color: 'var(--color-radar-gold)' }}>[{advertiserProfile.loyaltyRank}]</strong></span>
         </div>
       </div>
 
       {/* 2. تنبيهات التشجيع والتنبيهات التلقائية للنظام من أجل التكرار */}
-      <div className="retention-alert-box" style={{ backgroundColor: '#001a0d', border: '1px solid #00cc66', padding: '15px', borderRadius: '6px', marginBottom: '25px' }}>
-        <h4 style={{ color: '#00cc66', margin: '0 0 5px 0' }}>🏆 نشاط النجاح التلقائي وصوت الرادار:</h4>
-        <p style={{ margin: 0, fontSize: '12px', lineHeight: '1.5', color: '#b3ffd9' }}>
+      <div className="retention-alert-box" style={{ backgroundColor: 'var(--color-radar-forest)', border: '1px solid var(--color-radar-neon-green)', padding: '15px', borderRadius: '6px', marginBottom: '25px' }}>
+        <h4 style={{ color: 'var(--color-radar-neon-green)', margin: '0 0 5px 0' }}>🏆 نشاط النجاح التلقائي وصوت الرادار:</h4>
+        <p style={{ margin: 0, fontSize: '12px', lineHeight: '1.5', color: 'var(--color-radar-accent-mint)' }}>
           إعلاناتك غطت خلايا جغرافية واسعة! نوصي بتكرار الحملة وتوجيه نشاط إعلاني إضافي إلى
           <strong> (منطقة {marketInsights.hottestDistrict}) </strong> حيث يشهد الميدان هناك {marketInsights.trafficGrowth} في حركة الركاب حالياً، مما يضمن تضاعف المشاهدات بصفر تشتيت.
         </p>
@@ -1708,28 +1708,28 @@ export const RadarAdvertiserDashboard: React.FC<AdvertiserDashboardProps> = ({ a
           const ctr = ad.impressions > 0 ? ((ad.clicks / ad.impressions) * 100).toFixed(1) : '0.0';
 
           return (
-            <div key={ad.id} style={{ backgroundColor: '#0d0d0d', padding: '15px', borderRadius: '6px', marginBottom: '15px', border: '1px solid #1a1a1a' }}>
+            <div key={ad.id} style={{ backgroundColor: 'var(--color-radar-black)', padding: '15px', borderRadius: '6px', marginBottom: '15px', border: '1px solid var(--color-radar-black)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span>📢 اسم الحملة: <strong>{ad.title}</strong></span>
 
                 {/* عرض حالة الحوكمة والأختام الرقمية للاعلان */}
-                {ad.status === 'ACTIVE' && <strong style={{ color: '#00cc66', fontSize: '12px' }}>🟢 نشط وينشر النشاط</strong>}
-                {ad.status === 'PENDING' && <strong style={{ color: '#ffcc00', fontSize: '12px' }}>🟡 قيد الفحص الأمني الصامت</strong>}
-                {ad.status === 'REJECTED' && <strong style={{ color: '#ff3366', fontSize: '12px' }}>🚫 مرفوض </strong>}
+                {ad.status === 'ACTIVE' && <strong style={{ color: 'var(--color-radar-neon-green)', fontSize: '12px' }}>🟢 نشط وينشر النشاط</strong>}
+                {ad.status === 'PENDING' && <strong style={{ color: 'var(--color-radar-gold)', fontSize: '12px' }}>🟡 قيد الفحص الأمني الصامت</strong>}
+                {ad.status === 'REJECTED' && <strong style={{ color: 'var(--color-radar-danger)', fontSize: '12px' }}>🚫 مرفوض </strong>}
               </div>
 
               {ad.status === 'REJECTED' && (
-                <div style={{ backgroundColor: '#260005', color: '#ffb3bf', padding: '8px', borderRadius: '4px', marginTop: '10px', fontSize: '11px' }}>
+                <div style={{ backgroundColor: 'var(--color-radar-danger-deep)', color: 'var(--color-radar-accent-rose)', padding: '8px', borderRadius: '4px', marginTop: '10px', fontSize: '11px' }}>
                   ❌ رسالة النظام: {ad.rejectionReason}
                 </div>
               )}
 
               {/* عدادات بورصة الأرقام والمشاهدات للمعلن */}
               {ad.status === 'ACTIVE' && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '15px', backgroundColor: '#050505', padding: '10px', borderRadius: '4px', fontSize: '12px' }}>
-                  <span>👁️ المشاهدات: <strong style={{ color: '#00ffcc' }}>{ad.impressions}</strong></span>
-                  <span>🖱️ التفاعل والنقر: <strong style={{ color: '#00ffcc' }}>{ad.clicks}</strong></span>
-                  <span>📈 كفاءة النشاط الجغرافي (CTR): <strong style={{ color: '#ffcc00' }}>{ctr}%</strong></span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '15px', backgroundColor: 'var(--color-radar-black)', padding: '10px', borderRadius: '4px', fontSize: '12px' }}>
+                  <span>👁️ المشاهدات: <strong style={{ color: 'var(--color-radar-neon)' }}>{ad.impressions}</strong></span>
+                  <span>🖱️ التفاعل والنقر: <strong style={{ color: 'var(--color-radar-neon)' }}>{ad.clicks}</strong></span>
+                  <span>📈 كفاءة النشاط الجغرافي (CTR): <strong style={{ color: 'var(--color-radar-gold)' }}>{ctr}%</strong></span>
                   <span>📍 النطاق: <strong>منطقة {ad.targetDistrict}</strong></span>
                 </div>
               )}
@@ -1737,7 +1737,7 @@ export const RadarAdvertiserDashboard: React.FC<AdvertiserDashboardProps> = ({ a
               {/* زر التكرار السريع والمحمي من أجل دافعية الاستمرار */}
               {ad.status === 'ACTIVE' && (
                 <div style={{ textAlign: 'left', marginTop: '10px' }}>
-                  <button style={{ backgroundColor: '#111', color: '#ffcc00', border: '1px solid #ffcc00', padding: '4px 10px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer', fontWeight: 'bold' }}>
+                  <button style={{ backgroundColor: 'var(--color-radar-black)', color: 'var(--color-radar-gold)', border: '1px solid var(--color-radar-gold)', padding: '4px 10px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer', fontWeight: 'bold' }}>
                     🔄 تكرار وتمديد الحملة فوراً بنفس الميزانية
                   </button>
                 </div>

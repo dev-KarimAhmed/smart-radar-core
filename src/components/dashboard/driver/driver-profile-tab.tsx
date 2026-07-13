@@ -285,7 +285,7 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
             <h1 className="mt-1 text-2xl font-black">{copy.title}</h1>
             <p className="mt-2 text-sm text-slate-400">{copy.subtitle}</p>
           </div>
-          <div className="relative grid h-32 w-32 place-items-center rounded-full" style={{ background: `conic-gradient(#14B8A6 ${percent}%, rgba(255,255,255,0.08) 0)` }}>
+          <div className="relative grid h-32 w-32 place-items-center rounded-full" style={{ background: `conic-gradient(var(--color-radar-teal) ${percent}%, rgba(255,255,255,0.08) 0)` }}>
             <div className="grid h-24 w-24 place-items-center rounded-full bg-radar-abyss">
               <div className="text-center">
                 <Star className="mx-auto h-5 w-5 fill-emerald-300 text-emerald-300" />
