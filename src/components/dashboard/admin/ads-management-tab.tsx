@@ -209,7 +209,7 @@ function AdForm({ onFinish, isProcessing }: { onFinish: (data: AdInput) => Promi
  description: "تم ملء الحقول بنجاح. يمكنك الضغط على 'إطلاق الحملة' الآن."
  });
  }}
- className="border-[#00ffcc]/30 text-[#00ffcc] hover:bg-[#00ffcc]/10 font-black text-xs"
+ className="border-radar-neon/30 text-radar-neon hover:bg-radar-neon/10 font-black text-xs"
  >
  🪄 تعبئة تلقائية سريعة
  </Button>
@@ -252,7 +252,7 @@ function AdCampaignCard({
 
  return (
  <Card className={cn(
- "bg-[#091B09]/50 border-emerald-950/40 overflow-hidden flex flex-col transition-all",
+ "bg-radar-forest/50 border-emerald-950/40 overflow-hidden flex flex-col transition-all",
  (isPaused || isFrozen) && 'opacity-65',
  isExpired && 'border-red-500/50',
  isFrozen && 'border-blue-500/40 relative shadow-inner'

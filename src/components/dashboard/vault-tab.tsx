@@ -111,13 +111,13 @@ export function VaultTab() {
  return (
  <div className={`w-full max-w-4xl mx-auto px-4 pb-12 font-sans ${isArabic ? 'text-right' : 'text-left'}`} dir={isArabic ? 'rtl' : 'ltr'}>
  {/* Header Info Banner */}
- <div className="bg-[#051510] border border-emerald-500/20 rounded-2xl p-4 mb-6 flex flex-col md:flex-row items-center justify-between gap-4">
+ <div className="bg-radar-forest-deep border border-emerald-500/20 rounded-2xl p-4 mb-6 flex flex-col md:flex-row items-center justify-between gap-4">
  <div className="flex items-center gap-3">
  <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-400">
  <ShieldCheck className="w-6 h-6" />
  </div>
  <div className={isArabic ? 'text-right' : 'text-left'}>
- <h3 className="text-sm font-black text-[#00ffcc] tracking-wide">{copy.title}</h3>
+ <h3 className="text-sm font-black text-radar-neon tracking-wide">{copy.title}</h3>
  <p className="text-[10px] text-gray-400">{copy.subtitle}</p>
  </div>
  </div>
@@ -194,7 +194,7 @@ export function VaultTab() {
  </span>
  <button
  onClick={() => handleExtend(ad.id)}
- className="px-2.5 py-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-[#00ffcc] font-black border border-emerald-500/20 rounded-lg cursor-pointer transition-all active:scale-95 text-[9px]"
+ className="px-2.5 py-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-radar-neon font-black border border-emerald-500/20 rounded-lg cursor-pointer transition-all active:scale-95 text-[9px]"
  >
  {copy.extend}
  </button>

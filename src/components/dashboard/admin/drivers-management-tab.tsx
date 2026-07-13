@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useTranslations } from 'next-intl';
 import type { User as DriverUser } from '@/core/types';
 import {
   Card,
@@ -38,6 +39,7 @@ const getStatusIndicator = (status?: string) => {
 export function DriversManagementTab() {
   // 🏛️ استدعاء العصب المركزي للأسطول (SSOT)
   const { drivers, loading, error } = useSovereignFleet();
+  const tRanks = useTranslations('ranks');
 
   if (loading) {
     return (
@@ -102,7 +104,7 @@ export function DriversManagementTab() {
                   </TableCell>
                   <TableCell className="text-center">
                     <Badge variant="outline" className={cn('font-bold', rankTheme.bg, rankTheme.color, rankTheme.border)}>
-                      {rankTheme.label}
+                      {tRanks(rankTheme.rankKey)}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-center">

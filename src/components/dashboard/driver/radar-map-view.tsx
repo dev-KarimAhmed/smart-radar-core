@@ -123,7 +123,7 @@ export function RadarMapView({
 
       const markerElement = document.createElement('button');
       markerElement.type = 'button';
-      markerElement.className = 'h-10 w-10 rounded-full border-2 border-[#06111f] bg-[#f59e0b] text-[11px] font-black text-[#06111f] shadow-[0_0_0_10px_rgba(245,158,11,0.18),0_12px_30px_rgba(0,0,0,0.35)]';
+      markerElement.className = 'h-10 w-10 rounded-full border-2 border-radar-bg bg-radar-warning text-[11px] font-black text-radar-bg shadow-[0_0_0_10px_rgb(var(--radar-warning-rgb)/0.18),0_12px_30px_rgba(0,0,0,0.35)]';
       markerElement.textContent = request.exactPickupCoords ? 'R' : '~';
       markerElement.onclick = () => onSelectRequest(request);
 
@@ -142,10 +142,10 @@ export function RadarMapView({
 
   return (
     <section className="grid min-h-[calc(100vh-11rem)] gap-4 lg:grid-cols-[minmax(0,1fr)_420px]">
-      <div className="relative min-h-[520px] overflow-hidden rounded-3xl border border-emerald-500/20 bg-[#05080f] text-white shadow-2xl shadow-black/30 lg:min-h-[calc(100vh-11rem)]">
-        <div className="absolute inset-0 z-0 bg-[#0B0F19]" />
+      <div className="relative min-h-[520px] overflow-hidden rounded-3xl border border-emerald-500/20 bg-radar-abyss text-white shadow-2xl shadow-black/30 lg:min-h-[calc(100vh-11rem)]">
+        <div className="absolute inset-0 z-0 bg-radar-bg-deep" />
         <div className="absolute inset-0 z-[1] overflow-hidden bg-[radial-gradient(circle_at_center,rgba(20,184,166,0.18),transparent_38%),linear-gradient(135deg,rgba(20,184,166,0.08)_0_25%,transparent_25%_50%,rgba(20,184,166,0.06)_50%_75%,transparent_75%)] bg-[length:auto,38px_38px]">
-          <div className="absolute left-1/2 top-1/2 grid h-11 w-11 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-2xl border-2 border-[#06111f] bg-[#14B8A6] text-[#06111f] shadow-[0_0_0_18px_rgba(20,184,166,0.12),0_0_60px_rgba(20,184,166,0.35)]">
+          <div className="absolute left-1/2 top-1/2 grid h-11 w-11 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-2xl border-2 border-radar-bg bg-radar-teal text-radar-bg shadow-[0_0_0_18px_rgb(var(--radar-teal-rgb)/0.12),0_0_60px_rgb(var(--radar-teal-rgb)/0.35)]">
             <CarMarkerIcon />
           </div>
           {requests.slice(0, 6).map((request, index) => (
@@ -153,7 +153,7 @@ export function RadarMapView({
               key={request.id}
               type="button"
               onClick={() => onSelectRequest(request)}
-              className="absolute h-9 w-9 rounded-full border-2 border-[#06111f] bg-[#f59e0b] text-[10px] font-black text-[#06111f] shadow-[0_0_0_10px_rgba(245,158,11,0.18),0_12px_30px_rgba(0,0,0,0.35)]"
+              className="absolute h-9 w-9 rounded-full border-2 border-radar-bg bg-radar-warning text-[10px] font-black text-radar-bg shadow-[0_0_0_10px_rgb(var(--radar-warning-rgb)/0.18),0_12px_30px_rgba(0,0,0,0.35)]"
               style={fallbackRequestPosition(index)}
             >
               R
@@ -165,9 +165,9 @@ export function RadarMapView({
         </div>
         <div className="pointer-events-none absolute inset-0 z-[3] bg-[radial-gradient(circle_at_center,transparent_44%,rgba(11,15,25,0.32)_100%)]" />
 
-        <div className="absolute left-4 right-4 top-4 z-20 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-500/20 bg-[#0B0F19]/92 px-4 py-3 shadow-xl backdrop-blur">
+        <div className="absolute left-4 right-4 top-4 z-20 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-500/20 bg-radar-bg-deep/92 px-4 py-3 shadow-xl backdrop-blur">
           <div>
-            <p className="text-xs font-black text-[#14B8A6]">{copy.title}</p>
+            <p className="text-xs font-black text-radar-teal">{copy.title}</p>
             <p className="text-sm font-bold text-slate-200">{isActive ? copy.online : copy.offline}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2 text-xs font-bold">
@@ -179,8 +179,8 @@ export function RadarMapView({
         </div>
 
         {(!isMapReady || mapIssue) && (
-          <div className="absolute left-4 right-4 top-24 z-20 rounded-2xl border border-emerald-500/20 bg-[#0B0F19]/92 p-4 text-sm font-bold text-slate-200 shadow-2xl backdrop-blur md:left-auto md:max-w-md">
-            <p className="text-[#14B8A6]">{mapIssue ? copy.mapIssue : copy.mapLoading}</p>
+          <div className="absolute left-4 right-4 top-24 z-20 rounded-2xl border border-emerald-500/20 bg-radar-bg-deep/92 p-4 text-sm font-bold text-slate-200 shadow-2xl backdrop-blur md:left-auto md:max-w-md">
+            <p className="text-radar-teal">{mapIssue ? copy.mapIssue : copy.mapLoading}</p>
             <p className="mt-1 text-xs leading-5 text-slate-400">{copy.mapHint}</p>
             <p className="mt-2 text-[11px] font-black text-emerald-200">{copy.radarFallback}</p>
           </div>
@@ -189,7 +189,7 @@ export function RadarMapView({
         <button
           type="button"
           onClick={recenter}
-          className="absolute bottom-5 left-5 z-20 rounded-2xl border border-emerald-500/25 bg-[#0B0F19]/95 p-4 text-emerald-300 shadow-2xl transition hover:border-emerald-300"
+          className="absolute bottom-5 left-5 z-20 rounded-2xl border border-emerald-500/25 bg-radar-bg-deep/95 p-4 text-emerald-300 shadow-2xl transition hover:border-emerald-300"
           aria-label={copy.recenter}
         >
           <LocateFixed className="h-5 w-5" />
@@ -198,10 +198,10 @@ export function RadarMapView({
 
       </div>
 
-      <aside className="flex min-h-[520px] flex-col rounded-3xl border border-emerald-500/20 bg-[#05080f] p-4 text-white shadow-2xl shadow-black/30 lg:min-h-[calc(100vh-11rem)]">
+      <aside className="flex min-h-[520px] flex-col rounded-3xl border border-emerald-500/20 bg-radar-abyss p-4 text-white shadow-2xl shadow-black/30 lg:min-h-[calc(100vh-11rem)]">
         <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-4">
           <div>
-            <p className="text-xs font-black text-[#14B8A6]">{copy.queueBadge}</p>
+            <p className="text-xs font-black text-radar-teal">{copy.queueBadge}</p>
             <h2 className="mt-1 text-2xl font-black">{copy.sheetTitle}</h2>
             <p className="mt-1 text-xs leading-5 text-slate-400">{copy.sheetSubtitle}</p>
           </div>
@@ -229,7 +229,7 @@ export function RadarMapView({
                     <Info label={copy.distance} value={`${request.estimatedDistance || 0} km`} />
                   </div>
                   <div className="mt-4 flex gap-2">
-                    <button type="button" onClick={() => onSelectRequest(request)} className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#14B8A6] px-3 py-2 text-sm font-black text-[#06111f]">
+                    <button type="button" onClick={() => onSelectRequest(request)} className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-radar-teal px-3 py-2 text-sm font-black text-radar-bg">
                       <Route className="h-4 w-4" />
                       {copy.openBid}
                     </button>
@@ -282,7 +282,7 @@ function StateCard({
 
 function createCarMarkerElement() {
   const element = document.createElement('div');
-  element.className = 'grid h-11 w-11 place-items-center rounded-2xl border-2 border-[#06111f] bg-[#14B8A6] text-[#06111f] shadow-[0_0_0_14px_rgba(20,184,166,0.16),0_14px_34px_rgba(0,0,0,0.4)]';
+  element.className = 'grid h-11 w-11 place-items-center rounded-2xl border-2 border-radar-bg bg-radar-teal text-radar-bg shadow-[0_0_0_14px_rgb(var(--radar-teal-rgb)/0.16),0_14px_34px_rgba(0,0,0,0.4)]';
   element.innerHTML = `
     <svg aria-hidden="true" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
       <path d="M7 17h10" />

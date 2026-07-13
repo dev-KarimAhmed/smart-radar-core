@@ -193,7 +193,7 @@ export function SovereignFinancialActivityChart({ transactions, balanceJD, curre
   }, [chartData, dimensions, currencyLabel, isArabic]);
 
   return (
-    <Card className="mb-6 overflow-hidden rounded-2xl border border-emerald-900/30 bg-[#030903]/95 shadow-xl">
+    <Card className="mb-6 overflow-hidden rounded-2xl border border-emerald-900/30 bg-radar-black/95 shadow-xl">
       <CardHeader className="flex flex-row items-center justify-between border-b border-emerald-900/20 p-4 pb-2">
         <div className={isArabic ? 'text-right' : 'text-left'}>
           <CardTitle className={`flex items-center gap-1.5 text-xs font-black text-white ${isArabic ? 'justify-end' : 'justify-start'}`}>

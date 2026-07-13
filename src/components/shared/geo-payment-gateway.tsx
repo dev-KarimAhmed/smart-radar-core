@@ -81,10 +81,10 @@ export function GeoPaymentGateway({ isOpen, onClose, onSuccess }: GeoPaymentGate
 
   return (
     <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/90 p-4 backdrop-blur-md">
-      <Card className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-3xl border border-[#14b8a6]/35 bg-[#090e1a] text-right text-white shadow-[0_0_50px_rgba(20,184,166,0.14)]" dir="rtl">
-        <CardHeader className="flex-row items-center justify-between border-b border-[#14b8a6]/10 bg-black/35 p-5">
+      <Card className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-3xl border border-radar-teal/35 bg-radar-bg text-right text-white shadow-[0_0_50px_rgb(var(--radar-teal-rgb)/0.14)]" dir="rtl">
+        <CardHeader className="flex-row items-center justify-between border-b border-radar-teal/10 bg-black/35 p-5">
           <div className="flex items-center gap-3">
-            <div className="rounded-2xl border border-[#14b8a6]/25 bg-[#14b8a6]/10 p-2 text-[#14b8a6]">
+            <div className="rounded-2xl border border-radar-teal/25 bg-radar-teal/10 p-2 text-radar-teal">
               <Wallet className="h-5 w-5" />
             </div>
             <div>
@@ -105,14 +105,14 @@ export function GeoPaymentGateway({ isOpen, onClose, onSuccess }: GeoPaymentGate
         <CardContent className="flex-1 space-y-5 overflow-y-auto p-6">
           {completedMessage ? (
             <div className="space-y-6 py-8 text-center">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border-2 border-[#14b8a6] bg-[#14b8a6]/10 text-[#14b8a6]">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border-2 border-radar-teal bg-radar-teal/10 text-radar-teal">
                 <CheckCircle2 className="h-9 w-9" />
               </div>
               <div className="space-y-2">
                 <h3 className="text-lg font-black text-white">تمت العملية</h3>
                 <p className="text-sm leading-6 text-slate-300">{completedMessage}</p>
               </div>
-              <Button onClick={resetAndClose} className="h-11 w-full rounded-xl bg-[#14b8a6] text-sm font-black text-black hover:bg-[#14b8a6]/90">
+              <Button onClick={resetAndClose} className="h-11 w-full rounded-xl bg-radar-teal text-sm font-black text-black hover:bg-radar-teal/90">
                 العودة إلى الرصيد
               </Button>
             </div>
@@ -124,7 +124,7 @@ export function GeoPaymentGateway({ isOpen, onClose, onSuccess }: GeoPaymentGate
                   onClick={() => setMode("receipt")}
                   className={cn(
                     "flex h-11 items-center justify-center gap-2 rounded-xl text-xs font-black transition",
-                    mode === "receipt" ? "bg-[#14b8a6] text-black" : "text-slate-300 hover:bg-white/5",
+                    mode === "receipt" ? "bg-radar-teal text-black" : "text-slate-300 hover:bg-white/5",
                   )}
                 >
                   <ReceiptText className="h-4 w-4" />
@@ -135,7 +135,7 @@ export function GeoPaymentGateway({ isOpen, onClose, onSuccess }: GeoPaymentGate
                   onClick={() => setMode("voucher")}
                   className={cn(
                     "flex h-11 items-center justify-center gap-2 rounded-xl text-xs font-black transition",
-                    mode === "voucher" ? "bg-[#14b8a6] text-black" : "text-slate-300 hover:bg-white/5",
+                    mode === "voucher" ? "bg-radar-teal text-black" : "text-slate-300 hover:bg-white/5",
                   )}
                 >
                   <Ticket className="h-4 w-4" />
@@ -156,7 +156,7 @@ export function GeoPaymentGateway({ isOpen, onClose, onSuccess }: GeoPaymentGate
                           className={cn(
                             "h-10 rounded-xl border text-sm font-black",
                             amount === preset
-                              ? "border-[#14b8a6] bg-[#14b8a6]/20 text-[#14b8a6]"
+                              ? "border-radar-teal bg-radar-teal/20 text-radar-teal"
                               : "border-white/10 bg-black/30 text-slate-300 hover:bg-black/50",
                           )}
                         >
@@ -172,7 +172,7 @@ export function GeoPaymentGateway({ isOpen, onClose, onSuccess }: GeoPaymentGate
                         step="0.01"
                         value={amount}
                         onChange={(event) => setAmount(event.target.value)}
-                        className="h-11 rounded-xl border-white/10 bg-black pr-3 pl-20 text-right text-white focus:border-[#14b8a6]"
+                        className="h-11 rounded-xl border-white/10 bg-black pr-3 pl-20 text-right text-white focus:border-radar-teal"
                       />
                     </div>
                   </div>
@@ -188,7 +188,7 @@ export function GeoPaymentGateway({ isOpen, onClose, onSuccess }: GeoPaymentGate
                           className={cn(
                             "rounded-2xl border p-3 text-right transition",
                             selectedChannel === channel.id
-                              ? "border-[#14b8a6] bg-[#14b8a6]/10 text-[#14b8a6]"
+                              ? "border-radar-teal bg-radar-teal/10 text-radar-teal"
                               : "border-white/10 bg-black/30 text-slate-300 hover:bg-black/50",
                           )}
                         >
@@ -202,16 +202,16 @@ export function GeoPaymentGateway({ isOpen, onClose, onSuccess }: GeoPaymentGate
 
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-300">صورة الإيصال</label>
-                    <label className="flex min-h-28 cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-[#14b8a6]/35 bg-black/30 p-4 text-center hover:bg-[#14b8a6]/5">
+                    <label className="flex min-h-28 cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-radar-teal/35 bg-black/30 p-4 text-center hover:bg-radar-teal/5">
                       {receiptFile ? (
                         <>
-                          <FileImage className="mb-2 h-6 w-6 text-[#14b8a6]" />
+                          <FileImage className="mb-2 h-6 w-6 text-radar-teal" />
                           <span className="max-w-full truncate text-xs font-bold text-white">{receiptFile.name}</span>
                           <span className="mt-1 text-[10px] text-slate-500">اضغط لتغيير الصورة</span>
                         </>
                       ) : (
                         <>
-                          <UploadCloud className="mb-2 h-7 w-7 text-[#14b8a6]" />
+                          <UploadCloud className="mb-2 h-7 w-7 text-radar-teal" />
                           <span className="text-xs font-bold text-slate-300">ارفع صورة إيصال الدفع</span>
                           <span className="mt-1 text-[10px] text-slate-500">PNG أو JPG أو PDF</span>
                         </>
@@ -228,14 +228,14 @@ export function GeoPaymentGateway({ isOpen, onClose, onSuccess }: GeoPaymentGate
                   <Button
                     onClick={submitReceipt}
                     disabled={loading || !receiptFile || !Number.isFinite(Number(amount)) || Number(amount) <= 0}
-                    className="h-12 w-full rounded-xl bg-[#14b8a6] text-sm font-black text-black hover:bg-[#14b8a6]/90"
+                    className="h-12 w-full rounded-xl bg-radar-teal text-sm font-black text-black hover:bg-radar-teal/90"
                   >
                     {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "إرسال الإيصال للمراجعة"}
                   </Button>
                 </div>
               ) : (
                 <div className="space-y-5">
-                  <div className="rounded-2xl border border-[#14b8a6]/20 bg-[#14b8a6]/5 p-4 text-sm leading-6 text-slate-300">
+                  <div className="rounded-2xl border border-radar-teal/20 bg-radar-teal/5 p-4 text-sm leading-6 text-slate-300">
                     أدخل كود الشحن كما هو مكتوب على البطاقة أو الإيصال. سيتم التحقق منه من الخادم مباشرة.
                   </div>
                   <div className="space-y-2">
@@ -244,13 +244,13 @@ export function GeoPaymentGateway({ isOpen, onClose, onSuccess }: GeoPaymentGate
                       value={voucherCode}
                       onChange={(event) => setVoucherCode(event.target.value)}
                       placeholder="مثال: RADAR-2026"
-                      className="h-12 rounded-xl border-white/10 bg-black text-center text-white focus:border-[#14b8a6]"
+                      className="h-12 rounded-xl border-white/10 bg-black text-center text-white focus:border-radar-teal"
                     />
                   </div>
                   <Button
                     onClick={submitVoucher}
                     disabled={loading || !voucherCode.trim()}
-                    className="h-12 w-full rounded-xl bg-[#14b8a6] text-sm font-black text-black hover:bg-[#14b8a6]/90"
+                    className="h-12 w-full rounded-xl bg-radar-teal text-sm font-black text-black hover:bg-radar-teal/90"
                   >
                     {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "تفعيل الكود"}
                   </Button>

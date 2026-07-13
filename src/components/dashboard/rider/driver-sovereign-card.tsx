@@ -1,6 +1,7 @@
 'use client';
 
 import React, { memo } from 'react';
+import { useTranslations } from 'next-intl';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -19,6 +20,8 @@ interface DriverSovereignCardProps {
  * تعرض البيانات التشغيلية والصفة القانونية بشفافية  تامة.
  */
 export const DriverSovereignCard = memo(({ driver }: DriverSovereignCardProps) => {
+  const t = useTranslations('driverSovereignCard');
+  const tRanks = useTranslations('ranks');
   const rankTheme = getRankTheme(driver.rank);
   const isSilent = driver.silencePreference === 'silent';
 
@@ -26,16 +29,16 @@ export const DriverSovereignCard = memo(({ driver }: DriverSovereignCardProps) =
   const isUp = driver.uid ? (driver.uid.charCodeAt(driver.uid.length - 1) % 2 === 0) : true;
 
   // شارة الهوية القانونية (جهة التشغيل)
-  const operationalLabel = driver.affiliation?.type === 'office-taxi' ? 'تكسي مكتب' : 'تطبيق ذكي';
-  const entityName = driver.affiliation?.name || 'مستقل';
+  const operationalLabel = driver.affiliation?.type === 'office-taxi' ? t('officeTaxi') : t('smartApp');
+  const entityName = driver.affiliation?.name || t('independent');
 
   return (
-    <Card className={cn("bg-[#0F172A]/40 border-white/[0.06] transition-all duration-500 overflow-hidden mb-3 shadow-xl hover:border-[#14B8A6]/50", rankTheme.glow)}>
+    <Card className={cn("bg-radar-card/40 border-white/[0.06] transition-all duration-500 overflow-hidden mb-3 shadow-xl hover:border-radar-teal/50", rankTheme.glow)}>
         <CardContent className="p-4">
             <div className="flex items-center gap-4">
                 <div className="relative">
-                    <Avatar className="w-16 h-16 border-2 border-[#14B8A6]/30 shadow-lg">
-                        <AvatarFallback className="bg-[#0A0F1D] text-white font-black text-xl">{driver.name?.substring(0, 2)}</AvatarFallback>
+                    <Avatar className="w-16 h-16 border-2 border-radar-teal/30 shadow-lg">
+                        <AvatarFallback className="bg-radar-bg text-white font-black text-xl">{driver.name?.substring(0, 2)}</AvatarFallback>
                     </Avatar>
                     <div className={cn("absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-2 border-black flex items-center justify-center shadow-md", rankTheme.bg)}>
                           <ShieldCheck className={cn("w-4 h-4", rankTheme.color)} />
@@ -53,17 +56,17 @@ export const DriverSovereignCard = memo(({ driver }: DriverSovereignCardProps) =
                                 )}></span>
                                 <span className={cn(
                                     "relative inline-flex rounded-full h-2 w-2",
-                                    isUp ? "bg-rose-600 shadow-[0_0_8px_rgba(244,63,94,0.8)]" : "bg-blue-500 opacity-60"
+                                    isUp ? "bg-rose-600 shadow-[0_0_8px_rgb(var(--radar-rose-rgb)/0.8)]" : "bg-blue-500 opacity-60"
                                 )}></span>
                             </div>
                         </div>
                         <Badge variant="outline" className={cn("text-[10px] font-bold uppercase tracking-tighter shadow-sm", rankTheme.border, rankTheme.color)}>
-                            {rankTheme.label}
+                            {tRanks(rankTheme.rankKey)}
                         </Badge>
                     </div>
 
                     <div className="flex items-center gap-2">
-                          <Badge className="bg-[#14B8A6]/10 text-[#14B8A6] border-[#14B8A6]/20 text-[9px] font-bold">
+                          <Badge className="bg-radar-teal/10 text-radar-teal border-radar-teal/20 text-[9px] font-bold">
                              {operationalLabel}: {entityName}
                           </Badge>
                          <div className="flex items-center gap-1 text-yellow-400 ml-auto">
@@ -77,20 +80,20 @@ export const DriverSovereignCard = memo(({ driver }: DriverSovereignCardProps) =
                            <Car className="w-3 h-3" />
                            {driver.vehicle?.make} • {driver.vehicle?.color} • <span className="text-white font-mono">{driver.vehicle?.plate}</span>
                         </div>
-                        <div className="flex items-center gap-1 text-[#14B8A6] font-mono text-xs font-bold">
+                        <div className="flex items-center gap-1 text-radar-teal font-mono text-xs font-bold">
                             <MapPin className="w-3 h-3" />
-                            <span>{driver.distance.toFixed(1)} كم</span>
+                            <span>{t('distance', { km: driver.distance.toFixed(1) })}</span>
                         </div>
                     </div>
 
                     <div className="flex items-center gap-2 mt-2">
                         {isSilent ? (
                             <div className="flex items-center gap-1 text-blue-400/70 text-[9px] font-bold">
-                                <VolumeX className="w-3 h-3" /> مسار هادئ (صامت)
+                                <VolumeX className="w-3 h-3" /> {t('silentRoute')}
                             </div>
                         ) : (
                             <div className="flex items-center gap-1 text-amber-400/70 text-[9px] font-bold">
-                                <MessageSquare className="w-3 h-3" /> مرحب بالحديث
+                                <MessageSquare className="w-3 h-3" /> {t('welcomesTalk')}
                             </div>
                         )}
                     </div>

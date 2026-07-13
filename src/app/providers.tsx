@@ -43,17 +43,17 @@ function PwaUpdater() {
   if (!needRefresh) return null;
 
   return (
-    <div className="fixed bottom-20 left-4 right-4 z-[999] max-w-sm mx-auto p-4 rounded-2xl bg-[#0F172A]/90 border border-[#14B8A6]/20 backdrop-blur-xl shadow-2xl flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-5">
+    <div className="fixed bottom-20 left-4 right-4 z-[999] max-w-sm mx-auto p-4 rounded-2xl bg-radar-card/90 border border-radar-teal/20 backdrop-blur-xl shadow-2xl flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-5">
       <div className="flex flex-col gap-1 text-right" dir="rtl">
         <h4 className="text-sm font-black text-white">تحديث جديد متاح 🚀</h4>
-        <p className="text-[11px] text-[#94A3B8] font-bold leading-normal">
+        <p className="text-[11px] text-radar-text-sub font-bold leading-normal">
           تم إطلاق ميزات جديدة، يرجى تحديث التطبيق للحصول على أفضل أداء.
         </p>
       </div>
       <div className="flex justify-end gap-2">
         <Button
           onClick={updateServiceWorker}
-          className="h-8 rounded-lg bg-[#14B8A6] text-[#031315] font-extrabold text-[11px] hover:bg-[#2DD4BF] px-4 cursor-pointer"
+          className="h-8 rounded-lg bg-radar-teal text-radar-teal-abyss font-extrabold text-[11px] hover:bg-radar-teal-hover px-4 cursor-pointer"
         >
           تحديث الآن
         </Button>

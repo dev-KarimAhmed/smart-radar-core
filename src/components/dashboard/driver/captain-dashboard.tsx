@@ -23,7 +23,7 @@ export const RadarCaptainDashboard: React.FC<CaptainDashboardProps> = ({ captain
 
   if (!driverOps) {
     return (
-      <section className="rounded-3xl border border-emerald-500/20 bg-[#05080f] p-6 text-center text-slate-400">
+      <section className="rounded-3xl border border-emerald-500/20 bg-radar-abyss p-6 text-center text-slate-400">
         {language === 'ar' ? 'جاري تحميل لوحة الكابتن...' : 'Loading captain dashboard...'}
       </section>
     );

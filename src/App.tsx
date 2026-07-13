@@ -30,12 +30,12 @@ function AppOrchestrator() {
 
   if (loading) {
     return (
-      <div className="flex h-dvh w-screen select-none flex-col items-center justify-center bg-[#0B0F19] text-white/90">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 shadow-[0_0_30px_rgba(20,184,166,0.18)]">
-          <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#14B8A6]/25 border-t-[#14B8A6]" />
+      <div className="flex h-dvh w-screen select-none flex-col items-center justify-center bg-radar-bg-deep text-white/90">
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-radar-teal/30 bg-radar-teal/10 shadow-[0_0_30px_rgb(var(--radar-teal-rgb)/0.18)]">
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-radar-teal/25 border-t-radar-teal" />
         </div>
         <div className="mt-5 animate-pulse text-xl font-black tracking-normal">الرادار الذكي</div>
-        <div className="mt-2 text-xs font-bold text-[#94A3B8]">جاري التحقق من الجلسة...</div>
+        <div className="mt-2 text-xs font-bold text-radar-text-sub">جاري التحقق من الجلسة...</div>
       </div>
     );
   }
@@ -47,7 +47,7 @@ function AppOrchestrator() {
   // Isolated route island for advertiser dashboard.
   if (currentPath === '/advertiser/dashboard' && user?.role === 'advertiser') {
     return (
-      <div className="min-h-screen w-full bg-[#0B1120] text-white p-4 sm:p-8 flex items-center justify-center overflow-y-auto">
+      <div className="min-h-screen w-full bg-radar-abyss text-white p-4 sm:p-8 flex items-center justify-center overflow-y-auto">
         <div className="w-full max-w-4xl">
           <AdvertiserPortal onClose={() => {
             window.history.pushState(null, '', '/');
@@ -94,17 +94,17 @@ function PwaUpdater() {
   if (!needRefresh) return null;
 
   return (
-    <div className="fixed bottom-20 left-4 right-4 z-[999] max-w-sm mx-auto p-4 rounded-2xl bg-[#0F172A]/90 border border-[#14B8A6]/20 backdrop-blur-xl shadow-2xl flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-5">
+    <div className="fixed bottom-20 left-4 right-4 z-[999] max-w-sm mx-auto p-4 rounded-2xl bg-radar-card/90 border border-radar-teal/20 backdrop-blur-xl shadow-2xl flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-5">
       <div className="flex flex-col gap-1 text-right" dir="rtl">
         <h4 className="text-sm font-black text-white">تحديث جديد متاح 🚀</h4>
-        <p className="text-[11px] text-[#94A3B8] font-bold leading-normal">
+        <p className="text-[11px] text-radar-text-sub font-bold leading-normal">
           تم إطلاق ميزات جديدة، يرجى تحديث التطبيق للحصول على أفضل أداء.
         </p>
       </div>
       <div className="flex justify-end gap-2">
         <Button
           onClick={() => updateServiceWorker(true)}
-          className="h-8 rounded-lg bg-[#14B8A6] text-[#031315] font-extrabold text-[11px] hover:bg-[#2DD4BF] px-4 cursor-pointer"
+          className="h-8 rounded-lg bg-radar-teal text-radar-teal-abyss font-extrabold text-[11px] hover:bg-radar-teal-hover px-4 cursor-pointer"
         >
           تحديث الآن
         </Button>

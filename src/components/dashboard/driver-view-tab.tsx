@@ -145,11 +145,11 @@ export function DriverViewTab() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0B0F19] p-3 pb-10 text-white md:p-5 md:pb-12" dir={direction}>
+    <div className="min-h-screen bg-radar-bg-deep p-3 pb-10 text-white md:p-5 md:pb-12" dir={direction}>
       <div className="mx-auto flex w-full max-w-[1800px] flex-col gap-4">
-        <header className="flex flex-col gap-3 rounded-3xl border border-emerald-500/20 bg-[#05080f] p-4 md:flex-row md:items-center md:justify-between">
+        <header className="flex flex-col gap-3 rounded-3xl border border-emerald-500/20 bg-radar-abyss p-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="text-xs font-black text-[#14B8A6]">{copy.badge}</p>
+            <p className="text-xs font-black text-radar-teal">{copy.badge}</p>
             <h1 className="text-2xl font-black">{copy.title}</h1>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -241,7 +241,7 @@ function NavButton({
       type="button"
       onClick={onClick}
       className={`inline-flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-black transition ${
-        active ? 'bg-[#14B8A6] text-[#06111f]' : 'border border-white/10 bg-white/[0.03] text-slate-300 hover:bg-white/10'
+        active ? 'bg-radar-teal text-radar-bg' : 'border border-white/10 bg-white/[0.03] text-slate-300 hover:bg-white/10'
       }`}
     >
       {icon}

@@ -522,7 +522,7 @@ export function ProfileTab() {
   if (!user) {
     return (
       <div className="mx-auto w-full max-w-xl pb-24 font-sans text-start">
-        <Card className="border-emerald-950 bg-[#020502]/95 text-white">
+        <Card className="border-emerald-950 bg-radar-black/95 text-white">
           <CardContent className="p-6 text-sm text-gray-300">{languageCopy.pleaseLogin}</CardContent>
         </Card>
       </div>
@@ -531,7 +531,7 @@ export function ProfileTab() {
 
   return (
     <div className="mx-auto w-full max-w-xl space-y-6 pb-24 text-start font-sans">
-      <Card className="border border-[#14B8A6]/20 bg-[#0B0F19]/90 text-white shadow-xl">
+      <Card className="border border-radar-teal/20 bg-radar-bg-deep/90 text-white shadow-xl">
         <CardContent className="flex items-center justify-between gap-4 p-4">
           <div className="text-start">
             <p className="text-sm font-black text-white">{languageCopy.languageTitle}</p>
@@ -540,7 +540,7 @@ export function ProfileTab() {
           <Button
             type="button"
             onClick={toggleLanguage}
-            className="h-11 shrink-0 gap-2 rounded-2xl border border-[#14B8A6]/25 bg-[#14B8A6]/10 px-4 text-sm font-black text-[#14F5D5] hover:bg-[#14B8A6]/15"
+            className="h-11 shrink-0 gap-2 rounded-2xl border border-radar-teal/25 bg-radar-teal/10 px-4 text-sm font-black text-radar-teal-bright hover:bg-radar-teal/15"
           >
             <Languages className="h-4 w-4" />
             {isArabic ? languageCopy.switchToEnglish : languageCopy.switchToArabic}
@@ -548,7 +548,7 @@ export function ProfileTab() {
         </CardContent>
       </Card>
 
-      <Card className="relative overflow-hidden border-emerald-900/40 bg-[#050c05] text-white shadow-2xl">
+      <Card className="relative overflow-hidden border-emerald-900/40 bg-radar-forest text-white shadow-2xl">
         <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-emerald-500 via-green-600 to-emerald-400" />
         <CardContent className="space-y-5 p-6">
           <div className="flex items-center justify-between gap-4">
@@ -559,11 +559,11 @@ export function ProfileTab() {
               <div>
                 <h2 className="text-xl font-black text-white">{displayName}</h2>
                 <div className="mt-1 flex flex-wrap items-center gap-2">
-                  <Badge variant="outline" className="border-emerald-500/20 bg-[#0a1e0a] text-[10px] text-emerald-300">
+                  <Badge variant="outline" className="border-emerald-500/20 bg-radar-forest text-[10px] text-emerald-300">
                     {displayRole}
                   </Badge>
                   {profile?.serial_id || user.serial_id ? (
-                    <Badge variant="outline" className="border-emerald-500/20 bg-black/30 font-mono text-[10px] text-[#00ffcc]">
+                    <Badge variant="outline" className="border-emerald-500/20 bg-black/30 font-mono text-[10px] text-radar-neon">
                       {languageCopy.accountNumber}: {String(profile?.serial_id || user.serial_id)}
                     </Badge>
                   ) : null}
@@ -582,7 +582,7 @@ export function ProfileTab() {
 
           <div className="grid gap-3 border-t border-white/5 pt-4 sm:grid-cols-2">
             <div className="rounded-xl border border-white/5 bg-black/30 p-3">
-              <span className="flex items-center gap-1 text-[10px] font-bold text-[#00ffcc]">
+              <span className="flex items-center gap-1 text-[10px] font-bold text-radar-neon">
                 <MapPin className="h-3.5 w-3.5" />
                 {languageCopy.location}
               </span>
@@ -603,9 +603,9 @@ export function ProfileTab() {
         </CardContent>
       </Card>
 
-      <Card className="border border-emerald-950 bg-[#020502]/95 shadow-xl">
+      <Card className="border border-emerald-950 bg-radar-black/95 shadow-xl">
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base font-extrabold text-[#00ffcc]">
+          <CardTitle className="flex items-center gap-2 text-base font-extrabold text-radar-neon">
             <Database className="h-5 w-5 text-emerald-500" />
             {languageCopy.editTitle}
           </CardTitle>
@@ -725,7 +725,7 @@ export function ProfileTab() {
       </Card>
 
       {!isCaptain && (
-        <Card className="border border-red-950/40 bg-[#0B0F19]/90 text-white shadow-xl">
+        <Card className="border border-red-950/40 bg-radar-bg-deep/90 text-white shadow-xl">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base font-extrabold text-red-400">
               <ShieldCheck className="h-5 w-5 text-red-500" />

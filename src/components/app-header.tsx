@@ -102,10 +102,10 @@ function DriverCabin() {
                     <Button
                         variant="ghost"
                         size="sm"
-                        className="h-10 px-3 text-xs font-black bg-[#10b981]/10 hover:bg-[#10b981]/20 text-[#00ffcc] border border-[#10b981]/20 rounded-full flex items-center gap-1.5 cursor-pointer transition-all active:scale-95 shadow-sm"
+                        className="h-10 px-3 text-xs font-black bg-radar-emerald/10 hover:bg-radar-emerald/20 text-radar-neon border border-radar-emerald/20 rounded-full flex items-center gap-1.5 cursor-pointer transition-all active:scale-95 shadow-sm"
                         onClick={() => window.dispatchEvent(new CustomEvent('open-captain-dashboard'))}
                     >
-                        <Shield className="h-4 w-4 text-[#00ffcc] animate-pulse" />
+                        <Shield className="h-4 w-4 text-radar-neon animate-pulse" />
                         <span className="inline">لوحة العمليات</span>
                     </Button>
                     {toggleRequestList && (
@@ -162,7 +162,7 @@ export function AppHeader() {
   return (
     <div className="sticky top-0 z-50 w-full flex flex-col shadow-xl">
 
-      <header className="flex h-16 items-center justify-between px-4 bg-[#0A0F1D]/80 backdrop-blur-xl border-b border-white/[0.06] shadow-[0_4px_30px_rgba(0,0,0,0.3)]">
+      <header className="flex h-16 items-center justify-between px-4 bg-radar-bg/80 backdrop-blur-xl border-b border-white/[0.06] shadow-[0_4px_30px_rgba(0,0,0,0.3)]">
 
         <div className="h-10 w-10" />
 
@@ -224,7 +224,7 @@ function UserMenu({ user, getInitials }: any) {
             </Avatar>
           </Button>
         </SheetTrigger>
-        <SheetContent side="right" className="p-0 sm:max-w-xs border-white/[0.06] bg-[#0A0F1D]/95 backdrop-blur-xl w-[288px]">
+        <SheetContent side="right" className="p-0 sm:max-w-xs border-white/[0.06] bg-radar-bg/95 backdrop-blur-xl w-[288px]">
           <VisuallyHidden>
             <SheetTitle>القائمة</SheetTitle>
             <SheetDescription>قائمة الحساب</SheetDescription>

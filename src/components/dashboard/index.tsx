@@ -66,7 +66,7 @@ function SovereignLockoutView({ user, logout }: { user: any, logout: () => void 
 
  return (
  <div className="flex items-center justify-center p-4 min-h-[60vh] font-sans pointer-events-auto">
- <div className="w-full max-w-md bg-[#0D0505] border border-red-500/20 rounded-2xl p-6 text-center space-y-5 shadow-xl shadow-red-950/20 relative overflow-hidden">
+ <div className="w-full max-w-md bg-radar-black border border-red-500/20 rounded-2xl p-6 text-center space-y-5 shadow-xl shadow-red-950/20 relative overflow-hidden">
  <div className="absolute top-0 left-0 w-full h-1 bg-red-600 animate-pulse" />
  <div className="w-16 h-16 bg-red-500/10 border border-red-500/30 rounded-full flex items-center justify-center mx-auto text-red-500 animate-pulse text-2xl">🚫</div>
  <h2 className="text-xl font-bold text-red-400">تم إيقاف الحساب مؤقتاً</h2>
@@ -183,7 +183,7 @@ function DashboardLayout() {
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-lg mx-auto bg-[#0F172A]/90 border border-[#14B8A6]/20 rounded-2xl p-4 flex items-center justify-between gap-4 shadow-[0_15px_40px_rgba(20,184,166,0.1)] backdrop-blur-xl mb-6 pointer-events-auto"
+        className="w-full max-w-lg mx-auto bg-radar-card/90 border border-radar-teal/20 rounded-2xl p-4 flex items-center justify-between gap-4 shadow-[0_15px_40px_rgb(var(--radar-teal-rgb)/0.1)] backdrop-blur-xl mb-6 pointer-events-auto"
         dir={isArabic ? 'rtl' : 'ltr'}
       >
         <div className="flex items-center gap-3">
@@ -217,7 +217,7 @@ function DashboardLayout() {
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-lg mx-auto bg-[#0F172A]/90 border border-[#14B8A6]/20 rounded-2xl p-4 flex items-center justify-between gap-4 shadow-[0_15px_40px_rgba(20,184,166,0.1)] backdrop-blur-xl mb-6 pointer-events-auto"
+        className="w-full max-w-lg mx-auto bg-radar-card/90 border border-radar-teal/20 rounded-2xl p-4 flex items-center justify-between gap-4 shadow-[0_15px_40px_rgb(var(--radar-teal-rgb)/0.1)] backdrop-blur-xl mb-6 pointer-events-auto"
         dir={isArabic ? 'rtl' : 'ltr'}
       >
         <div className="flex items-center gap-3">
@@ -248,7 +248,7 @@ function DashboardLayout() {
  if (isSovereign) {
  return (
  <React.Suspense fallback={
- <div className="flex flex-col items-center justify-center p-8 bg-[#0F172A]/60 border border-white/[0.06] rounded-2xl animate-pulse text-center space-y-4 backdrop-blur-md">
+ <div className="flex flex-col items-center justify-center p-8 bg-radar-card/60 border border-white/[0.06] rounded-2xl animate-pulse text-center space-y-4 backdrop-blur-md">
  <Loader2 className="w-8 h-8 animate-spin text-cyan-400 mx-auto" />
  <p className="text-gray-400 text-xs font-sans">جاري تحميل لوحة التحكم...</p>
  </div>
@@ -346,8 +346,8 @@ function DashboardLayout() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen w-full flex-col items-center justify-center bg-[#0A0F1D] text-white">
-        <Loader2 className="h-10 w-10 animate-spin text-[#14B8A6] mb-4" />
+      <div className="flex min-h-screen w-full flex-col items-center justify-center bg-radar-bg text-white">
+        <Loader2 className="h-10 w-10 animate-spin text-radar-teal mb-4" />
         <p className="text-sm font-bold text-gray-400">
           {dashboardLanguage.language === 'ar' ? 'جاري تحميل المنصة...' : 'Loading platform...'}
         </p>
@@ -357,7 +357,7 @@ function DashboardLayout() {
 
   return (
  // استخدام flex-col لضمان تدفق الصفحة (Doc Flow) والسماح بالتمرير الطبيعي
- <div className={cn('flex min-h-screen w-full flex-col bg-[#0A0F1D] text-white', !isCaptain && 'lg:h-screen lg:overflow-hidden')}>
+ <div className={cn('flex min-h-screen w-full flex-col bg-radar-bg text-white', !isCaptain && 'lg:h-screen lg:overflow-hidden')}>
  {user?.role === 'rider' && (
  <DesktopRiderSidebar
  hash={hash}
@@ -383,7 +383,7 @@ function DashboardLayout() {
 
  {/* مسرح الإعلانات يأخذ مساحته الطبيعية في التدفق */}
  {isStandby && (
- <div className="w-full flex-1 flex flex-col relative z-[80] border-b-2 border-[#14B8A6]/20 shadow-[0_10px_30px_rgba(20,184,166,0.08)]">
+ <div className="w-full flex-1 flex flex-col relative z-[80] border-b-2 border-radar-teal/20 shadow-[0_10px_30px_rgb(var(--radar-teal-rgb)/0.08)]">
   <AdStage isFullScreen={true} onRequestRideClick={() => setShowRequestFlow(true)} />
  </div>
  )}
@@ -393,8 +393,8 @@ function DashboardLayout() {
  {renderArterialBridge()}
  <SovereignErrorBoundary>
  <React.Suspense fallback={
- <div className="flex flex-col items-center justify-center p-8 bg-[#0F172A]/60 border border-white/[0.06] rounded-2xl animate-pulse text-center space-y-4 backdrop-blur-md">
- <Loader2 className="w-8 h-8 animate-spin text-[#14B8A6] mx-auto" />
+ <div className="flex flex-col items-center justify-center p-8 bg-radar-card/60 border border-white/[0.06] rounded-2xl animate-pulse text-center space-y-4 backdrop-blur-md">
+ <Loader2 className="w-8 h-8 animate-spin text-radar-teal mx-auto" />
  <p className="text-gray-400 text-xs font-sans">جاري تحميل الصفحة...</p>
  </div>
  }>
@@ -442,21 +442,21 @@ function DesktopRiderSidebar({
  };
 
  return (
- <aside className="fixed inset-y-0 start-0 z-[140] hidden w-[288px] flex-col border-e border-white/[0.06] bg-[#0A0F1D]/95 shadow-[22px_0_70px_rgba(0,0,0,0.38)] backdrop-blur-xl lg:flex" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+ <aside className="fixed inset-y-0 start-0 z-[140] hidden w-[288px] flex-col border-e border-white/[0.06] bg-radar-bg/95 shadow-[22px_0_70px_rgba(0,0,0,0.38)] backdrop-blur-xl lg:flex" dir={language === 'ar' ? 'rtl' : 'ltr'}>
  <div className="flex items-center gap-3 border-b border-white/10 p-5">
- <Avatar className="h-12 w-12 border border-[#14B8A6]/35 bg-[#101827]">
- <AvatarFallback className="bg-[#101827] text-sm font-black text-white">{initials}</AvatarFallback>
+ <Avatar className="h-12 w-12 border border-radar-teal/35 bg-radar-indigo">
+ <AvatarFallback className="bg-radar-indigo text-sm font-black text-white">{initials}</AvatarFallback>
  </Avatar>
  <div className={cn('min-w-0', language === 'ar' ? 'text-right' : 'text-left')}>
  <p className={cn('truncate text-sm font-black text-white', language === 'ar' ? 'text-right' : 'text-left')}>{user?.name || copy.fallbackName}</p>
- <p className={cn('truncate text-xs font-bold text-[#14B8A6]', language === 'ar' ? 'text-right' : 'text-left')}>{user?.phone || copy.fallbackPhone}</p>
+ <p className={cn('truncate text-xs font-bold text-radar-teal', language === 'ar' ? 'text-right' : 'text-left')}>{user?.phone || copy.fallbackPhone}</p>
  </div>
  </div>
 
  <div className="space-y-3 p-4">
  <Button
  onClick={openRideRequest}
- className="h-12 w-full justify-center gap-2 rounded-2xl bg-[#14B8A6] text-sm font-black text-[#031315] shadow-[0_16px_35px_rgba(20,184,166,0.18)] hover:bg-[#2DD4BF]"
+ className="h-12 w-full justify-center gap-2 rounded-2xl bg-radar-teal text-sm font-black text-radar-teal-abyss shadow-[0_16px_35px_rgb(var(--radar-teal-rgb)/0.18)] hover:bg-radar-teal-hover"
  >
  <PlusCircle className="h-5 w-5" />
  {copy.requestRide}
@@ -466,7 +466,7 @@ function DesktopRiderSidebar({
  variant="ghost"
  className="h-11 w-full justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 text-sm font-bold text-slate-200 hover:bg-white/[0.07]"
  >
- <Bell className="h-4 w-4 text-[#14B8A6]" />
+ <Bell className="h-4 w-4 text-radar-teal" />
  {copy.notifications}
  </Button>
  </div>
@@ -483,7 +483,7 @@ function DesktopRiderSidebar({
  className={cn(
  'flex h-12 items-center justify-between rounded-2xl border px-4 text-sm font-black transition',
  isActive
- ? 'border-[#14B8A6]/35 bg-[#14B8A6]/15 text-[#14F5D5]'
+ ? 'border-radar-teal/35 bg-radar-teal/15 text-radar-teal-bright'
  : 'border-transparent text-slate-400 hover:border-white/10 hover:bg-white/[0.04] hover:text-white',
  )}
  >
@@ -495,8 +495,8 @@ function DesktopRiderSidebar({
  </nav>
 
  <div className="space-y-3 border-t border-white/10 p-4">
- <div className={cn("rounded-2xl border border-[#14B8A6]/15 bg-[#14B8A6]/8 p-3", language === 'ar' ? "text-right" : "text-left")}>
- <p className="text-[11px] font-black text-[#14F5D5]">{copy.accountStatus}</p>
+ <div className={cn("rounded-2xl border border-radar-teal/15 bg-radar-teal/8 p-3", language === 'ar' ? "text-right" : "text-left")}>
+ <p className="text-[11px] font-black text-radar-teal-bright">{copy.accountStatus}</p>
  <p className="mt-1 text-xs font-bold text-slate-300">{copy.ready}</p>
  </div>
  <Button

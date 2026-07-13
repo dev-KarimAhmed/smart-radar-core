@@ -152,10 +152,10 @@ function AuthContent({ children }: { children: ReactNode }) {
     <AuthContext.Provider value={value}>
       {children}
       <AlertDialog open={logoutDialogOpen} onOpenChange={(open) => !logoutInProgress && setLogoutDialogOpen(open)}>
-        <AlertDialogContent className="border-red-500/25 bg-[#0B0F19] text-white shadow-2xl" dir={direction}>
+        <AlertDialogContent className="border-red-500/25 bg-radar-bg-deep text-white shadow-2xl" dir={direction}>
           <AlertDialogHeader >
             <AlertDialogTitle className="text-xl font-black text-white">{t('title')}</AlertDialogTitle>
-            <AlertDialogDescription className="text-sm leading-6 text-[#94A3B8] text-start">
+            <AlertDialogDescription className="text-sm leading-6 text-radar-text-sub text-start">
               {t('description')}
             </AlertDialogDescription>
           </AlertDialogHeader>

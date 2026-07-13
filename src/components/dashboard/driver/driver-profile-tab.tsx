@@ -222,13 +222,13 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
   if (isLoadingProfile) {
     return (
       <section className="mx-auto max-w-5xl space-y-5 text-white">
-        <div className="rounded-3xl border border-emerald-500/20 bg-[#05080f] p-6">
+        <div className="rounded-3xl border border-emerald-500/20 bg-radar-abyss p-6">
           <div className="flex items-center gap-3">
             <div className="grid h-11 w-11 place-items-center rounded-2xl border border-emerald-500/30 bg-emerald-500/10">
-              <Loader2 className="h-5 w-5 animate-spin text-[#14B8A6]" />
+              <Loader2 className="h-5 w-5 animate-spin text-radar-teal" />
             </div>
             <div>
-              <p className="text-sm font-black text-[#14B8A6]">
+              <p className="text-sm font-black text-radar-teal">
                 {language === 'ar' ? 'جاري تحميل بيانات الحساب' : 'Loading profile data'}
               </p>
               <p className="mt-1 text-sm text-slate-400">
@@ -251,7 +251,7 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
   if (profileLoadFailed) {
     return (
       <section className="mx-auto max-w-5xl space-y-5 text-white">
-        <div className="rounded-3xl border border-red-500/25 bg-[#05080f] p-6">
+        <div className="rounded-3xl border border-red-500/25 bg-radar-abyss p-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-sm font-black text-red-200">
@@ -266,7 +266,7 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
             <button
               type="button"
               onClick={() => setProfileReloadToken((value) => value + 1)}
-              className="rounded-2xl bg-[#14B8A6] px-5 py-3 font-black text-[#06111f]"
+              className="rounded-2xl bg-radar-teal px-5 py-3 font-black text-radar-bg"
             >
               {language === 'ar' ? 'إعادة المحاولة' : 'Retry'}
             </button>
@@ -278,15 +278,15 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
 
   return (
     <section className="mx-auto max-w-5xl space-y-5 text-white">
-      <div className="rounded-3xl border border-emerald-500/20 bg-[#05080f] p-5">
+      <div className="rounded-3xl border border-emerald-500/20 bg-radar-abyss p-5">
         <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="text-xs font-black text-[#14B8A6]">{copy.badge}</p>
+            <p className="text-xs font-black text-radar-teal">{copy.badge}</p>
             <h1 className="mt-1 text-2xl font-black">{copy.title}</h1>
             <p className="mt-2 text-sm text-slate-400">{copy.subtitle}</p>
           </div>
           <div className="relative grid h-32 w-32 place-items-center rounded-full" style={{ background: `conic-gradient(#14B8A6 ${percent}%, rgba(255,255,255,0.08) 0)` }}>
-            <div className="grid h-24 w-24 place-items-center rounded-full bg-[#05080f]">
+            <div className="grid h-24 w-24 place-items-center rounded-full bg-radar-abyss">
               <div className="text-center">
                 <Star className="mx-auto h-5 w-5 fill-emerald-300 text-emerald-300" />
                 <p className="mt-1 text-2xl font-black">{normalizedRating.toFixed(1)}</p>
@@ -296,7 +296,7 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
         </div>
       </div>
 
-      <div className="rounded-3xl border border-emerald-500/20 bg-[#05080f] p-5">
+      <div className="rounded-3xl border border-emerald-500/20 bg-radar-abyss p-5">
         <div className="flex items-center gap-2 text-emerald-300">
           <IdCard className="h-5 w-5" />
           <h2 className="font-black">{copy.editTitle}</h2>
@@ -363,7 +363,7 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
             <button
               type="button"
               onClick={() => setIsEditing(true)}
-              className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-[#14B8A6] px-5 py-4 font-black text-[#06111f]"
+              className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-radar-teal px-5 py-4 font-black text-radar-bg"
             >
               <Pencil className="h-5 w-5" />
               {language === 'ar' ? 'تعديل البيانات' : 'Edit profile'}
@@ -374,7 +374,7 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
                 type="button"
                 onClick={() => void saveProfile()}
                 disabled={isSaving || !fullName.trim() || !phone.trim()}
-                className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-[#14B8A6] px-5 py-4 font-black text-[#06111f] disabled:opacity-60"
+                className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-radar-teal px-5 py-4 font-black text-radar-bg disabled:opacity-60"
               >
                 <Save className="h-5 w-5" />
                 {copy.save}
@@ -419,7 +419,7 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
         </Panel>
       </div>
 
-      <div className="rounded-3xl border border-emerald-500/20 bg-[#05080f] p-5">
+      <div className="rounded-3xl border border-emerald-500/20 bg-radar-abyss p-5">
         <div className="flex items-center gap-2 text-emerald-300">
           <ShieldCheck className="h-5 w-5" />
           <h2 className="font-black">{copy.trustTitle}</h2>
@@ -432,7 +432,7 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
 
 function Panel({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-3xl border border-emerald-500/20 bg-[#05080f] p-5">
+    <div className="rounded-3xl border border-emerald-500/20 bg-radar-abyss p-5">
       <div className="flex items-center gap-2 text-emerald-300">
         {icon}
         <h2 className="font-black">{title}</h2>

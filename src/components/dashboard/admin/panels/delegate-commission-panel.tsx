@@ -39,10 +39,10 @@ export function DelegateCommissionPanel({
   auditRepresentativeCommissions
 }: DelegateCommissionPanelProps) {
   return (
-    <Card className="bg-[#050505] border border-red-500/15 shadow-[0_8px_32px_rgba(0,0,0,0.5)] rounded-2xl overflow-hidden">
+    <Card className="bg-radar-black border border-red-500/15 shadow-[0_8px_32px_rgba(0,0,0,0.5)] rounded-2xl overflow-hidden">
       <CardHeader className="bg-red-950/15 border-b border-red-500/10 p-5">
-        <CardTitle className="text-[#00ffcc] text-base font-extrabold flex items-center gap-2">
-          <DollarSign className="w-5 h-5 text-[#00ffcc]" />
+        <CardTitle className="text-radar-neon text-base font-extrabold flex items-center gap-2">
+          <DollarSign className="w-5 h-5 text-radar-neon" />
           محرك الجرد المالي المتكامل للمندوبين (Representative Commission Guard)
         </CardTitle>
         <CardDescription className="text-gray-400 text-xs leading-relaxed text-right" dir="rtl">
@@ -55,19 +55,19 @@ export function DelegateCommissionPanel({
             <span className="text-[10px] text-gray-500 block font-bold">العمولات الخام المستحقة للمندوبين</span>
             <span className="text-xl font-black text-gray-300 font-mono block mt-1">{auditedStats.totalDues.toFixed(2)} د.أ</span>
           </div>
-          <div className="bg-zinc-950/80 p-4 rounded-xl border border-[#ff3366]/20">
+          <div className="bg-zinc-950/80 p-4 rounded-xl border border-radar-danger/20">
             <span className="text-[10px] text-red-400 block font-bold">إجمالي غرامات الحذف الكلي</span>
-            <span className="text-xl font-black text-[#ff3366] font-mono block mt-1">-{auditedStats.totalPenalties.toFixed(2)} د.أ</span>
+            <span className="text-xl font-black text-radar-danger font-mono block mt-1">-{auditedStats.totalPenalties.toFixed(2)} د.أ</span>
           </div>
-          <div className="bg-[#003322]/20 p-4 rounded-xl border border-[#00ffcc]/30">
-            <span className="text-[10px] text-[#00ffcc] block font-bold">الرصيد الصافي المصدق القابل للصرف</span>
-            <span className="text-xl font-black text-[#00ffcc] font-mono block mt-1">{auditedStats.totalNet.toFixed(2)} د.أ</span>
+          <div className="bg-radar-forest-deep/20 p-4 rounded-xl border border-radar-neon/30">
+            <span className="text-[10px] text-radar-neon block font-bold">الرصيد الصافي المصدق القابل للصرف</span>
+            <span className="text-xl font-black text-radar-neon font-mono block mt-1">{auditedStats.totalNet.toFixed(2)} د.أ</span>
           </div>
         </div>
 
         {loadingDelegates ? (
           <div className="flex items-center justify-center p-12 text-gray-400">
-            <Loader2 className="w-8 h-8 animate-spin text-[#00ffcc] ml-2" />
+            <Loader2 className="w-8 h-8 animate-spin text-radar-neon ml-2" />
             <span>جاري محاذاة البيانات الة للمندوبين...</span>
           </div>
         ) : delegates.length === 0 ? (
@@ -85,8 +85,8 @@ export function DelegateCommissionPanel({
                   <TableHead className="text-center text-gray-400 text-xs">إجمالي الإحالات</TableHead>
                   <TableHead className="text-center text-gray-400 text-xs">معدل الحذف (الوهمي)</TableHead>
                   <TableHead className="text-center text-gray-400 text-xs">العمولة الخام</TableHead>
-                  <TableHead className="text-center text-[#ff3366] text-xs">عقوبة الفرز (40%)</TableHead>
-                  <TableHead className="text-center text-[#00ffcc] text-xs font-bold">العمولة المستحقة الصافية</TableHead>
+                  <TableHead className="text-center text-radar-danger text-xs">عقوبة الفرز (40%)</TableHead>
+                  <TableHead className="text-center text-radar-neon text-xs font-bold">العمولة المستحقة الصافية</TableHead>
                   <TableHead className="text-left text-gray-400 text-xs">صرف / تصفية</TableHead>
                 </TableRow>
               </TableHeader>
@@ -107,7 +107,7 @@ export function DelegateCommissionPanel({
                       <TableCell className="text-center font-mono text-xs text-red-500">
                         {audit.penaltyAmount.toFixed(2)} د.أ
                       </TableCell>
-                      <TableCell className="text-center font-mono text-xs text-[#00ffcc] font-black">
+                      <TableCell className="text-center font-mono text-xs text-radar-neon font-black">
                         {audit.withdrawableBalance.toFixed(2)} د.أ
                       </TableCell>
                       <TableCell className="text-left font-sans">
@@ -118,7 +118,7 @@ export function DelegateCommissionPanel({
                             "h-8 text-[11px] font-black rounded-lg transition-all cursor-pointer",
                             audit.withdrawableBalance <= 0
                               ? "bg-zinc-900 text-zinc-600 cursor-not-allowed border border-white/5"
-                              : "bg-[#00ffcc] hover:bg-[#00ffcc]/80 text-black shadow-[0_0_12px_rgba(0,255,204,0.15)]"
+                              : "bg-radar-neon hover:bg-radar-neon/80 text-black shadow-[0_0_12px_rgb(var(--radar-neon-rgb)/0.15)]"
                           )}
                         >
                           <CheckCircle2 className="w-3.5 h-3.5 ml-1" />

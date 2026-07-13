@@ -67,7 +67,7 @@ export function BottomNav() {
         event.preventDefault();
         toast({
           variant: 'destructive',
-          title: 'لا يمكن تغيير الصفحة الآن',
+          title: tErrors('activeTripLockedTitle'),
           description: tErrors('activeTripLocked'),
         });
       }
@@ -87,7 +87,7 @@ export function BottomNav() {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50">
-      <nav className="flex items-center justify-around bg-[#0A0F1D]/80 backdrop-blur-xl border-t border-white/[0.06] shadow-[0_-4px_30px_rgba(0,0,0,0.3)] pb-safe pt-2 px-2">
+      <nav className="flex items-center justify-around bg-radar-bg/80 backdrop-blur-xl border-t border-white/[0.06] shadow-[0_-4px_30px_rgba(0,0,0,0.3)] pb-safe pt-2 px-2">
         {navItems.map((item) => {
           const isActive = hash === item.href || (item.href === '#' && hash === '');
           const Icon = item.icon;
@@ -99,7 +99,7 @@ export function BottomNav() {
               onClick={(event) => handleNavClick(event, item.href)}
               className={cn(
                 'flex flex-col items-center justify-center w-16 h-14 rounded-xl transition-all',
-                isActive ? 'text-[#14B8A6] bg-[#14B8A6]/10' : 'text-[#94A3B8] hover:text-[#14B8A6]/70'
+                isActive ? 'text-radar-teal bg-radar-teal/10' : 'text-radar-text-sub hover:text-radar-teal/70'
               )}
             >
               <Icon className={cn('w-6 h-6 mb-1', isActive && 'animate-pulse-slow')} />

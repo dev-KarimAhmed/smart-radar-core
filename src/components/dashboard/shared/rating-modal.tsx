@@ -158,7 +158,7 @@ export function RatingModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[92vh] overflow-y-auto border-white/[0.06] bg-[#0A0F1D]/95 backdrop-blur-xl text-white sm:max-w-md w-[95%] rounded-3xl pt-10 px-6 pb-8" dir="rtl">
+      <DialogContent className="max-h-[92vh] overflow-y-auto border-white/[0.06] bg-radar-bg/95 backdrop-blur-xl text-white sm:max-w-md w-[95%] rounded-3xl pt-10 px-6 pb-8" dir="rtl">
         <DialogHeader className="text-right flex flex-row items-center justify-between pb-2 border-b border-white/5 mt-2">
           <div>
             <DialogTitle className="text-xl font-black text-white">قيّم الرحلة</DialogTitle>
@@ -186,7 +186,7 @@ export function RatingModal({
                       <Star
                         className={`h-8 w-8 transition-all duration-300 ${
                           isActive
-                            ? 'text-amber-400 fill-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.6)]'
+                            ? 'text-amber-400 fill-amber-400 drop-shadow-[0_0_8px_rgb(var(--radar-warning-rgb)/0.6)]'
                             : 'text-slate-600/40 fill-none'
                         }`}
                       />
@@ -216,7 +216,7 @@ export function RatingModal({
                       <Star
                         className={`h-8 w-8 transition-all duration-300 ${
                           isActive
-                            ? 'text-[#14B8A6] fill-[#14B8A6] drop-shadow-[0_0_8px_rgba(20,245,213,0.6)]'
+                            ? 'text-radar-teal fill-radar-teal drop-shadow-[0_0_8px_rgb(var(--radar-teal-bright-rgb)/0.6)]'
                             : 'text-slate-600/40 fill-none'
                         }`}
                       />
@@ -238,7 +238,7 @@ export function RatingModal({
               onChange={(e) => setComment(e.target.value)}
               placeholder="اكتب رأيك في الكابتن والرحلة..."
               rows={3}
-              className="w-full bg-white/5 border border-white/10 text-white placeholder-slate-500 rounded-xl p-3 text-sm focus:border-[#14B8A6] focus:ring-1 focus:ring-[#14B8A6] focus:outline-none resize-none backdrop-blur-sm transition-all"
+              className="w-full bg-white/5 border border-white/10 text-white placeholder-slate-500 rounded-xl p-3 text-sm focus:border-radar-teal focus:ring-1 focus:ring-radar-teal focus:outline-none resize-none backdrop-blur-sm transition-all"
             />
           </div>
         </div>
@@ -247,7 +247,7 @@ export function RatingModal({
           {/* Submit Rating Button */}
           {!confirmBlock && (
             <Button
-              className="h-12 w-full bg-[#14B8A6] hover:bg-[#2DD4BF] text-[#0A0F1D] font-black text-base rounded-xl transition-all"
+              className="h-12 w-full bg-radar-teal hover:bg-radar-teal-hover text-radar-bg font-black text-base rounded-xl transition-all"
               disabled={isSubmitting || isBlocking}
               onClick={handleSubmit}
             >

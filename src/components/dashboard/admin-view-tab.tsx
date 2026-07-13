@@ -56,7 +56,7 @@ function PendingAdReviewCard({ ad, onApprove, onReject }: { ad: any; onApprove: 
   const posterUrl = ad.content?.posterUrl || ad.posterUrl || '';
 
   return (
-    <Card className="bg-black/90 border border-amber-500/30 overflow-hidden relative shadow-[0_4px_20px_rgba(245,158,11,0.05)] rounded-2xl flex flex-col text-right" dir="rtl">
+    <Card className="bg-black/90 border border-amber-500/30 overflow-hidden relative shadow-[0_4px_20px_rgb(var(--radar-warning-rgb)/0.05)] rounded-2xl flex flex-col text-right" dir="rtl">
       {posterUrl && (
         <div className="relative h-40 w-full overflow-hidden bg-zinc-900">
           <img src={posterUrl} alt={title} className="w-full h-full object-cover opacity-80 hover:opacity-100 transition-opacity" referrerPolicy="no-referrer" />
@@ -297,7 +297,7 @@ export function PendingAdsAuditPanel() {
 
   if (isLoading) {
     return (
-      <div className="bg-[#0A0D14]/90 p-6 rounded-2xl border border-amber-500/20 text-center animate-pulse">
+      <div className="bg-radar-bg/90 p-6 rounded-2xl border border-amber-500/20 text-center animate-pulse">
         <Loader2 className="w-6 h-6 animate-spin text-amber-500 mx-auto" />
         <p className="text-gray-400 text-xs mt-2 font-sans">بانتظار تدفق المذكرة السحابية للحملات المعلقة...</p>
       </div>
@@ -413,7 +413,7 @@ export function PendingAdsAuditPanel() {
           </div>
 
           {/* Section: Local Injected Sovereign Threat Register (رادارات كبح الانحراف الإعلاني) */}
-          <div className="bg-[#090D16] border border-red-500/20 rounded-2xl overflow-hidden">
+          <div className="bg-radar-abyss border border-red-500/20 rounded-2xl overflow-hidden">
             <div className="p-4 border-b border-white/5 bg-red-950/10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
               <div>
                 <h4 className="text-xs sm:text-sm font-black text-rose-400 flex items-center gap-1.5">
@@ -504,7 +504,7 @@ export function PendingAdsAuditPanel() {
         <div className="lg:col-span-4 space-y-6">
 
           {/* Module 1: The Local Attack Injection Bay */}
-          <div className="bg-[#0A0D15] border border-amber-500/20 p-4 rounded-2xl space-y-4">
+          <div className="bg-radar-bg border border-amber-500/20 p-4 rounded-2xl space-y-4">
             <div className="space-y-1">
               <h4 className="text-xs sm:text-sm font-black text-white flex items-center gap-1.5">
                 <Cpu className="w-4 h-4 text-amber-500" />
@@ -555,7 +555,7 @@ export function PendingAdsAuditPanel() {
           </div>
 
           {/* Module 2: Forensic Algorithmic Deep Scanner */}
-          <div className="bg-[#050912]/90 border border-teal-500/20 p-4 rounded-2xl space-y-4">
+          <div className="bg-radar-abyss/90 border border-teal-500/20 p-4 rounded-2xl space-y-4">
             <div className="space-y-1">
               <h4 className="text-xs sm:text-sm font-black text-teal-400 flex items-center gap-1.5">
                 <Terminal className="w-4 h-4 text-teal-500" />
@@ -789,20 +789,20 @@ export function AdminPulseOverview() {
     <div className="space-y-6 text-right" dir="rtl">
       {/* 🔮 Edge computing visual stats card banner */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-right">
-        <Card className="bg-[#090e1a] border-cyan-900/40 border text-right rounded-2xl relative overflow-hidden">
+        <Card className="bg-radar-bg border-cyan-900/40 border text-right rounded-2xl relative overflow-hidden">
           <CardHeader className="pb-2 text-right">
             <CardDescription className="text-gray-400 text-xs text-right">إجمالي الأرباح اللحظية (النشاط الفعلي)</CardDescription>
-            <CardTitle className="text-2xl font-black text-[#14b8a6] font-mono mt-1 text-right">
+            <CardTitle className="text-2xl font-black text-radar-teal font-mono mt-1 text-right">
               {revenue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} د.أ
             </CardTitle>
           </CardHeader>
           <CardContent className="h-10 text-[10px] text-gray-400 flex justify-between items-center bg-black/40 border-t border-cyan-900/10 px-4">
-            <span className="flex items-center gap-1 text-[#14b8a6] font-bold"><ArrowUpRight className="w-3.5 h-3.5" /> +8.4% الأسبوع الماضي</span>
+            <span className="flex items-center gap-1 text-radar-teal font-bold"><ArrowUpRight className="w-3.5 h-3.5" /> +8.4% الأسبوع الماضي</span>
             <span>حوسبة الحافة للنشاط</span>
           </CardContent>
         </Card>
 
-        <Card className="bg-[#090e1a] border-cyan-900/40 border text-right rounded-2xl relative overflow-hidden">
+        <Card className="bg-radar-bg border-cyan-900/40 border text-right rounded-2xl relative overflow-hidden">
           <CardHeader className="pb-2 text-right">
             <CardDescription className="text-gray-400 text-xs text-right">الرحلات ذات العائد الصفري (التكافلية)</CardDescription>
             <CardTitle className="text-2xl font-black text-amber-500 font-mono mt-1 text-right">{zeroYielderCount} رحلة</CardTitle>
@@ -813,7 +813,7 @@ export function AdminPulseOverview() {
           </CardContent>
         </Card>
 
-        <Card className="bg-[#090e1a] border-cyan-900/40 border text-right rounded-2xl relative overflow-hidden">
+        <Card className="bg-radar-bg border-cyan-900/40 border text-right rounded-2xl relative overflow-hidden">
           <CardHeader className="pb-2 text-right">
             <CardDescription className="text-gray-400 text-xs text-right">حجز الخلايا السداسية H3 الجغرافية</CardDescription>
             <CardTitle className="text-2xl font-black text-cyan-400 font-mono mt-1 text-right">{activeCells} خلية نشطة</CardTitle>
@@ -826,14 +826,14 @@ export function AdminPulseOverview() {
       </div>
 
       {/* 📈 Beautiful simulated real-time chart pulse */}
-      <Card className="bg-[#090e1a] border border-cyan-900/40 rounded-2xl text-right">
+      <Card className="bg-radar-bg border border-cyan-900/40 rounded-2xl text-right">
         <CardHeader className="pb-2 text-right">
           <div className="flex justify-between items-center">
             <Button
               variant="outline"
               onClick={handleQuantumRefresh}
               disabled={isRefreshing}
-              className="border-cyan-500/40 text-cyan-400 bg-cyan-950/30 hover:bg-cyan-900/40 text-[10px] h-7 px-3 rounded-full flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all shadow-[0_0_10px_rgba(6,182,212,0.15)] disabled:opacity-50"
+              className="border-cyan-500/40 text-cyan-400 bg-cyan-950/30 hover:bg-cyan-900/40 text-[10px] h-7 px-3 rounded-full flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all shadow-[0_0_10px_rgb(var(--radar-cyan-rgb)/0.15)] disabled:opacity-50"
             >
               {isRefreshing ? (
                 <Loader2 className="w-3 h-3 animate-spin text-cyan-400" />
@@ -888,7 +888,7 @@ export function AdminPulseOverview() {
       </Card>
 
       {/* ⚠️ Audit log and protocol deviations box */}
-      <Card className="bg-[#090e1a] border border-red-500/20 rounded-2xl text-right">
+      <Card className="bg-radar-bg border border-red-500/20 rounded-2xl text-right">
         <CardHeader className="pb-3 border-b border-white/5 m-0 p-4 text-right">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
             <div className="flex items-center gap-2">
@@ -958,7 +958,7 @@ export function AdminPulseOverview() {
               {!log.resolved && (
                 <Button
                   onClick={() => handleResolve(log.id, log.message, log.actionLabel)}
-                  className="bg-red-600 hover:bg-red-500 text-white font-black text-xs h-8 px-4 rounded-xl shadow-[0_0_10px_rgba(239,68,68,0.2)] active:scale-95 transition-all self-start sm:self-center cursor-pointer"
+                  className="bg-red-600 hover:bg-red-500 text-white font-black text-xs h-8 px-4 rounded-xl shadow-[0_0_10px_rgb(var(--radar-red-rgb)/0.2)] active:scale-95 transition-all self-start sm:self-center cursor-pointer"
                 >
                   {log.actionLabel}
                 </Button>
@@ -980,21 +980,21 @@ export function AdminViewTab() {
       <Tabs defaultValue="owner" className="w-full">
 
         {/* شريط الأزرار  - تم ربط القيم بدقة لمنع الانهيار */}
-        <TabsList className="flex flex-wrap w-full justify-center gap-2 h-auto bg-[#050a0f]/80 border border-[#00ffcc]/10 p-2 rounded-2xl shadow-lg shadow-black/50">
+        <TabsList className="flex flex-wrap w-full justify-center gap-2 h-auto bg-radar-abyss/80 border border-radar-neon/10 p-2 rounded-2xl shadow-lg shadow-black/50">
 
-          <TabsTrigger value="dashboard" className="flex-col h-auto py-3 px-4 hover:bg-white/5 data-[state=active]:bg-[#14b8a6]/20 data-[state=active]:text-[#14b8a6] rounded-xl transition-all">
+          <TabsTrigger value="dashboard" className="flex-col h-auto py-3 px-4 hover:bg-white/5 data-[state=active]:bg-radar-teal/20 data-[state=active]:text-radar-teal rounded-xl transition-all">
              <Users className="w-5 h-5 mb-1" />
              <span className="text-xs font-bold">برج المراقبة</span>
           </TabsTrigger>
 
-          <TabsTrigger value="ads" className="flex-col h-auto py-3 px-4 hover:bg-white/5 data-[state=active]:bg-[#14b8a6]/20 data-[state=active]:text-[#14b8a6] rounded-xl transition-all">
+          <TabsTrigger value="ads" className="flex-col h-auto py-3 px-4 hover:bg-white/5 data-[state=active]:bg-radar-teal/20 data-[state=active]:text-radar-teal rounded-xl transition-all">
             <Megaphone className="w-5 h-5 mb-1" />
              <span className="text-xs font-bold">إدارة الإعلانات</span>
           </TabsTrigger>
 
           {/* الزر  الجديد V5.5 */}
-          <TabsTrigger value="owner" className="flex-col h-auto py-3 px-5 bg-red-950/20 hover:bg-red-900/30 data-[state=active]:bg-red-950/60 data-[state=active]:text-[#ff3366] border border-transparent data-[state=active]:border-[#ff3366]/40 rounded-xl transition-all shadow-sm">
-            <ShieldAlert className="w-6 h-6 mb-1 text-[#ff3366] animate-pulse" />
+          <TabsTrigger value="owner" className="flex-col h-auto py-3 px-5 bg-red-950/20 hover:bg-red-900/30 data-[state=active]:bg-red-950/60 data-[state=active]:text-radar-danger border border-transparent data-[state=active]:border-radar-danger/40 rounded-xl transition-all shadow-sm">
+            <ShieldAlert className="w-6 h-6 mb-1 text-radar-danger animate-pulse" />
             <span className="font-black text-xs tracking-wider">👑 V5.5 لوحة المالك</span>
           </TabsTrigger>
 
@@ -1003,12 +1003,12 @@ export function AdminViewTab() {
             <span className="text-xs font-bold">جيش المندوبين 📣</span>
           </TabsTrigger>
 
-           <TabsTrigger value="pulse" className="flex-col h-auto py-3 px-4 hover:bg-white/5 data-[state=active]:bg-[#14b8a6]/20 data-[state=active]:text-[#14b8a6] rounded-xl transition-all">
+           <TabsTrigger value="pulse" className="flex-col h-auto py-3 px-4 hover:bg-white/5 data-[state=active]:bg-radar-teal/20 data-[state=active]:text-radar-teal rounded-xl transition-all">
              <Activity className="w-5 h-5 mb-1" />
              <span className="text-xs font-bold">نشاط السوق</span>
           </TabsTrigger>
 
-          <TabsTrigger value="controls" className="flex-col h-auto py-3 px-4 hover:bg-white/5 data-[state=active]:bg-[#14b8a6]/20 data-[state=active]:text-[#14b8a6] rounded-xl transition-all">
+          <TabsTrigger value="controls" className="flex-col h-auto py-3 px-4 hover:bg-white/5 data-[state=active]:bg-radar-teal/20 data-[state=active]:text-radar-teal rounded-xl transition-all">
             <Shield className="w-5 h-5 mb-1" />
             <span className="text-xs font-bold">التحكم </span>
           </TabsTrigger>

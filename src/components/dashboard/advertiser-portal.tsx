@@ -29,7 +29,7 @@ import { SOVEREIGN_PRICING_PACKAGES, SovereignPricingPackage } from '@/lib/const
 import { AdDisplayCard } from './ad-display-card';
 
 const VIRTUAL_ADS_STREAM = [
-  { id: 'v1', title: 'سيارة المستقبل الذكية 🚗', desc: 'نقل  ذكي بأحدث الميزات وبأفضل جودة ملاحة وتوصيل.', gradient: 'from-emerald-950/80 to-zinc-900 border-emerald-500/20 text-[#00ffcc]' },
+  { id: 'v1', title: 'سيارة المستقبل الذكية 🚗', desc: 'نقل  ذكي بأحدث الميزات وبأفضل جودة ملاحة وتوصيل.', gradient: 'from-emerald-950/80 to-zinc-900 border-emerald-500/20 text-radar-neon' },
   { id: 'v2', title: 'وجبة السائق الفاخرة 🥘', desc: 'خصم 50% للركاب والناقلين النشطين على مدار الساعة في منطقة ناعور.', gradient: 'from-amber-950/80 to-zinc-900 border-amber-500/20 text-amber-400' },
   { id: 'v3', title: 'خدمات التوصيل السريع 📦', desc: 'أمن وسرعة فائقة في نقل الشاحنات والطرود فوراً وصفر تأخير.', gradient: 'from-blue-950/80 to-zinc-900 border-blue-500/20 text-cyan-400' },
 ];
@@ -57,7 +57,7 @@ export function LiveStreamRegistry({ ads }: { ads: any[] }) {
             const title = ad.title || ad.content?.title || '';
             const description = ad.description || ad.desc || ad.content?.description || '';
             const isVirtual = ad.id.startsWith('v');
-            const gradientStyle = ad.gradient || 'from-zinc-900 to-black border-[#00ffcc]/10';
+            const gradientStyle = ad.gradient || 'from-zinc-900 to-black border-radar-neon/10';
 
             return (
               <div
@@ -67,7 +67,7 @@ export function LiveStreamRegistry({ ads }: { ads: any[] }) {
               >
                 <div className="absolute top-2.5 right-2.5">
                   <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-full uppercase ${
-                    isVirtual ? 'bg-white/5 text-gray-400 border border-white/10' : 'bg-emerald-950/60 text-[#00ffcc] border border-emerald-500/30'
+                    isVirtual ? 'bg-white/5 text-gray-400 border border-white/10' : 'bg-emerald-950/60 text-radar-neon border border-emerald-500/30'
                   }`}>
                     {isVirtual ? 'افتراضي 🛡️' : 'نشاط حي ⚡'}
                   </span>
@@ -511,7 +511,7 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
           </button>
         </div>
       </div>
-      <div className="bg-[#050c05] border border-emerald-950/40 p-2 rounded-xl mb-3.5 flex items-start gap-2 relative overflow-hidden">
+      <div className="bg-radar-forest border border-emerald-950/40 p-2 rounded-xl mb-3.5 flex items-start gap-2 relative overflow-hidden">
         <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500" />
         <Zap className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5 animate-pulse" />
         <div className="space-y-0.5">
@@ -540,7 +540,7 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
               <div className="bg-neutral-900/40 p-4 rounded-2xl border border-white/5 relative overflow-hidden group hover:border-emerald-500/15 transition-all text-center">
                 <div className="absolute top-1 right-2 text-[8px] font-mono font-bold text-gray-500">Impressions</div>
                 <span className="text-[10px] text-gray-400 block mb-1">المشاهدات الحية</span>
-                <span className="text-xl sm:text-2xl font-black text-emerald-400 font-mono tracking-tight filter drop-shadow-[0_0_8px_rgba(16,185,129,0.3)]">
+                <span className="text-xl sm:text-2xl font-black text-emerald-400 font-mono tracking-tight filter drop-shadow-[0_0_8px_rgb(var(--radar-emerald-rgb)/0.3)]">
                   {ledgerStats.impressions.toLocaleString()}
                 </span>
                 <span className="text-[9px] text-gray-500 block mt-1 leading-none font-bold">كل ظهور = نشاطة</span>
@@ -549,7 +549,7 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
               <div className="bg-neutral-900/40 p-4 rounded-2xl border border-white/5 relative overflow-hidden group hover:border-emerald-500/15 transition-all text-center">
                 <div className="absolute top-1 right-2 text-[8px] font-mono font-bold text-gray-500">Clicks</div>
                 <span className="text-[10px] text-gray-400 block mb-1">المداخلات المباشرة</span>
-                <span className="text-xl sm:text-2xl font-black text-amber-400 font-mono tracking-tight filter drop-shadow-[0_0_8px_rgba(245,158,11,0.3)]">
+                <span className="text-xl sm:text-2xl font-black text-amber-400 font-mono tracking-tight filter drop-shadow-[0_0_8px_rgb(var(--radar-warning-rgb)/0.3)]">
                   {ledgerStats.clicks.toLocaleString()}
                 </span>
                 <span className="text-[9px] text-gray-500 block mt-1 leading-none font-bold">مكاملة الروابط مباشرة</span>
@@ -558,7 +558,7 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
               <div className="bg-neutral-900/40 p-4 rounded-2xl border border-white/5 relative overflow-hidden group hover:border-emerald-500/15 transition-all text-center">
                 <div className="absolute top-1 right-2 text-[8px] font-mono font-bold text-gray-500">CTR</div>
                 <span className="text-[10px] text-gray-400 block mb-1">نسبة كفاءة النشاط</span>
-                <span className="text-xl sm:text-2xl font-black text-cyan-400 font-mono tracking-tight filter drop-shadow-[0_0_8px_rgba(6,182,212,0.3)]">
+                <span className="text-xl sm:text-2xl font-black text-cyan-400 font-mono tracking-tight filter drop-shadow-[0_0_8px_rgb(var(--radar-cyan-rgb)/0.3)]">
                   {ledgerStats.ctr}%
                 </span>
                 <span className="text-[9px] text-gray-500 block mt-1 leading-none font-bold">تفاعل مستخلص</span>
@@ -568,7 +568,7 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
               <div className="bg-gradient-to-b from-emerald-950/40 to-neutral-900/40 p-4 rounded-2xl border border-emerald-500/20 relative overflow-hidden group hover:border-emerald-500/30 transition-all text-center">
                 <div className="absolute top-1 right-2 text-[8px] font-mono font-bold text-emerald-400">Retention</div>
                 <span className="text-[10px] text-emerald-300 block mb-1 font-bold">الجمهور المهتم النشط</span>
-                <span className="text-xl sm:text-2xl font-black text-[#00ffcc] font-mono tracking-tight filter drop-shadow-[0_0_8px_rgba(0,255,204,0.3)]">
+                <span className="text-xl sm:text-2xl font-black text-radar-neon font-mono tracking-tight filter drop-shadow-[0_0_8px_rgb(var(--radar-neon-rgb)/0.3)]">
                   {ledgerStats.followerPulse.toLocaleString()}
                 </span>
                 <span className="text-[9px] text-emerald-500 block mt-1 leading-none font-bold animate-pulse">نشاط المتابع النشط ✓</span>
@@ -637,7 +637,7 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
                         <div className="space-y-0.5 min-w-0">
                           <h4 className="text-[11px] font-bold text-white truncate flex items-center gap-1">
                             {ad.title || ad.content?.title}
-                            <span className="inline-block bg-[#021c17] text-[#00ffcc] text-[8px] font-mono px-1 rounded border border-emerald-500/20 shrink-0">
+                            <span className="inline-block bg-radar-forest-deep text-radar-neon text-[8px] font-mono px-1 rounded border border-emerald-500/20 shrink-0">
                               {ad.serial_id || `A-10${ad.id === 'promo-rejected-demo' ? '99' : '02'}`}
                             </span>
                           </h4>
@@ -996,7 +996,7 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
         <div className="space-y-6">
 
           {/* Unified 3-Step Map Progress */}
-          <div className="flex items-center justify-between gap-2 mb-6 bg-[#040A04]/40 border border-white/5 p-3 rounded-2xl">
+          <div className="flex items-center justify-between gap-2 mb-6 bg-radar-black/40 border border-white/5 p-3 rounded-2xl">
             {[
               { id: 1, title: 'التحديد الجغرافي والسعة', desc: 'المحافظة، المنطقة ومسح السعر' },
               { id: 2, title: 'رفع الحملة وبناء الروابط', desc: 'مسرح الشاشة الكامل والاتصال' },
@@ -1007,7 +1007,7 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
                   <div
                     className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black transition-all ${
                       step === s.id
-                        ? 'bg-emerald-500 text-black shadow-[0_0_15px_rgba(16,185,129,0.4)]'
+                        ? 'bg-emerald-500 text-black shadow-[0_0_15px_rgb(var(--radar-emerald-rgb)/0.4)]'
                         : step > s.id
                           ? 'bg-emerald-950 text-emerald-400 border border-emerald-500'
                           : 'bg-white/5 text-gray-500 border border-white/10'
@@ -1411,7 +1411,7 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
                             <div className="text-right space-y-0.5">
                               <span className="text-[10px] text-gray-400 block font-sans">الباقة الحالية:</span>
                               <span className="text-xs font-black text-white block">🟢 {currentPackage?.name || 'لم يتم الاختيار بعد'}</span>
-                              <span className="text-[9px] text-[#00ffcc] font-mono block mt-0.5">{currentPackage?.pricePerImpression.toFixed(3)} د.أ / ظهور</span>
+                              <span className="text-[9px] text-radar-neon font-mono block mt-0.5">{currentPackage?.pricePerImpression.toFixed(3)} د.أ / ظهور</span>
                             </div>
                             <Button
                               type="button"
@@ -1558,7 +1558,7 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="w-full max-w-lg bg-zinc-950 border border-emerald-500/35 rounded-3xl p-6 text-right relative shadow-[0_10px_50px_rgba(16,185,129,0.2)]"
+              className="w-full max-w-lg bg-zinc-950 border border-emerald-500/35 rounded-3xl p-6 text-right relative shadow-[0_10px_50px_rgb(var(--radar-emerald-rgb)/0.2)]"
             >
               <h3 className="text-sm font-black text-emerald-400 mb-2 flex items-center gap-1.5">
                 <Sparkles className="w-4 h-4 text-emerald-400 animate-pulse" />
@@ -1589,7 +1589,7 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
                       }`}
                     >
                       {pkg.isRetention && (
-                        <div className="absolute top-0 left-0 bg-[#00ffcc] text-black text-[7px] px-2 py-0.5 rounded-br-md font-black uppercase tracking-tighter">Premium</div>
+                        <div className="absolute top-0 left-0 bg-radar-neon text-black text-[7px] px-2 py-0.5 rounded-br-md font-black uppercase tracking-tighter">Premium</div>
                       )}
                       <div className="flex justify-between items-center w-full">
                         <span className={`text-xs font-black ${isSelected ? 'text-emerald-400' : 'text-gray-200'}`}>

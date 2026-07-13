@@ -6,6 +6,8 @@ export function calculateRiderRank(ratingSum?: number, ratingCount?: number): st
   return 'Silver';
 }
 
+// Rank label text is NOT returned here — it is localized in components via the
+// next-intl `ranks` namespace (`t(rankKey)`). This helper stays UI-theme only.
 export function getRankTheme(rank?: 'Platinum' | 'Gold' | 'Silver' | 'Bronze' | string) {
   switch (rank) {
     case 'Platinum':
@@ -15,7 +17,7 @@ export function getRankTheme(rank?: 'Platinum' | 'Gold' | 'Silver' | 'Bronze' | 
         border: 'border-teal-500/50',
         glow: 'shadow-[0_0_15px_rgba(20,184,166,0.15)]',
         icon: 'ShieldAlert',
-        label: 'بلاتيني',
+        rankKey: 'Platinum' as const,
       };
     case 'Gold':
       return {
@@ -24,7 +26,7 @@ export function getRankTheme(rank?: 'Platinum' | 'Gold' | 'Silver' | 'Bronze' | 
         border: 'border-amber-500/50',
         glow: 'shadow-[0_0_15px_rgba(245,158,11,0.15)]',
         icon: 'ShieldAlert',
-        label: 'ذهبي',
+        rankKey: 'Gold' as const,
       };
     case 'Silver':
       return {
@@ -33,7 +35,7 @@ export function getRankTheme(rank?: 'Platinum' | 'Gold' | 'Silver' | 'Bronze' | 
         border: 'border-slate-500/30',
         glow: 'shadow-none',
         icon: 'ShieldAlert',
-        label: 'فضي',
+        rankKey: 'Silver' as const,
       };
     case 'Bronze':
     default:
@@ -43,7 +45,7 @@ export function getRankTheme(rank?: 'Platinum' | 'Gold' | 'Silver' | 'Bronze' | 
         border: 'border-amber-700/30',
         glow: 'shadow-none',
         icon: 'ShieldAlert',
-        label: 'برونزي',
+        rankKey: 'Bronze' as const,
       };
   }
 }

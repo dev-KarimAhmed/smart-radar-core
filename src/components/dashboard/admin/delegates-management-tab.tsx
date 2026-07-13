@@ -667,7 +667,7 @@ export function DelegatesManagementTab() {
 
       {/* Add New Delegate Panel */}
       {isAdding && (
-        <Card className="bg-[#000d00]/90 border-emerald-500/30 p-5 mt-4 animate-in slide-in-from-top duration-300">
+        <Card className="bg-radar-black/90 border-emerald-500/30 p-5 mt-4 animate-in slide-in-from-top duration-300">
           <CardHeader className="p-0 pb-3">
             <CardTitle className="text-base font-black text-white flex items-center gap-2">
               <UserPlus className="w-5 h-5 text-emerald-400" />
@@ -796,7 +796,7 @@ export function DelegatesManagementTab() {
 
       {/* Main Container based on Sub-tabs */}
       {activeSubTab === 'delegates' && (
-        <Card className="bg-[#091B09]/20 border-emerald-950/30">
+        <Card className="bg-radar-forest/20 border-emerald-950/30">
           <CardHeader className="pb-3 border-b border-emerald-950/20">
             <CardTitle className="text-base font-black text-white">منتسبي جيش الميدان ومنطقة التنسيق الجغرافي</CardTitle>
             <CardDescription className="text-xs text-zinc-400">
@@ -963,7 +963,7 @@ export function DelegatesManagementTab() {
                                 size="sm"
                                 variant="outline"
                                 onClick={() => toggleStatus(del.id, del.status)}
-                                className="h-7 border-[#1e293b] hover:bg-neutral-800 text-[10px] rounded-lg text-neutral-300"
+                                className="h-7 border-radar-elevated hover:bg-neutral-800 text-[10px] rounded-lg text-neutral-300"
                               >
                                 {del.status === 'active' ? 'تجميد المندوب' : 'تنشيط المندوب'}
                               </Button>
@@ -985,7 +985,7 @@ export function DelegatesManagementTab() {
       {/* Magic Links Sub-tab */}
       {activeSubTab === 'magic-links' && (
         <div className="space-y-6">
-          <Card className="bg-[#091B09]/20 border-emerald-950/30">
+          <Card className="bg-radar-forest/20 border-emerald-950/30">
             <CardHeader className="pb-3 border-b border-emerald-950/20">
               <CardTitle className="text-base font-black text-white flex items-center gap-1.5">
                 <LinkIcon className="h-4.5 w-4.5 text-amber-400" />
@@ -999,7 +999,7 @@ export function DelegatesManagementTab() {
               {magicLinks.length > 0 ? (
                 <div className="overflow-x-auto">
                   <Table>
-                    <TableHeader className="bg-black/40 border-b border-[#1e293b]">
+                    <TableHeader className="bg-black/40 border-b border-radar-elevated">
                       <TableRow>
                         <TableHead className="text-right text-gray-405 text-xs py-3">المندوب المستفيد</TableHead>
                         <TableHead className="text-right text-gray-405 text-xs">رابط الدخول المشفر</TableHead>
@@ -1089,7 +1089,7 @@ export function DelegatesManagementTab() {
       {activeSubTab === 'tasks' && (
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
           {/* List of Tasks */}
-          <Card className="lg:col-span-3 bg-[#091B09]/20 border-emerald-950/30">
+          <Card className="lg:col-span-3 bg-radar-forest/20 border-emerald-950/30">
             <CardHeader className="pb-3 border-b border-emerald-950/20 flex justify-between items-center">
               <CardTitle className="text-base font-black text-white flex items-center gap-1.5">
                 <ClipboardList className="h-4.5 w-4.5 text-emerald-400" />
@@ -1100,7 +1100,7 @@ export function DelegatesManagementTab() {
               {tasks.length > 0 ? (
                 <div className="overflow-x-auto">
                   <Table>
-                    <TableHeader className="bg-black/40 border-b border-[#1e293b]">
+                    <TableHeader className="bg-black/40 border-b border-radar-elevated">
                       <TableRow>
                         <TableHead className="text-right text-gray-400 text-xs py-3">المهمة والمندوب</TableHead>
                         <TableHead className="text-right text-gray-400 text-xs">التفاصيل والتكليف</TableHead>
@@ -1171,7 +1171,7 @@ export function DelegatesManagementTab() {
           </Card>
 
           {/* Create Task Form */}
-          <Card className="lg:col-span-2 bg-[#0A0E1A] border-[#1e293b]">
+          <Card className="lg:col-span-2 bg-radar-bg border-radar-elevated">
             <CardHeader>
               <CardTitle className="text-sm font-black text-white flex items-center gap-1.5">
                 <Sparkles className="w-4.5 h-4.5 text-emerald-400" />
@@ -1188,7 +1188,7 @@ export function DelegatesManagementTab() {
                   <select
                     value={selectedDelegateId}
                     onChange={e => setSelectedDelegateId(e.target.value)}
-                    className="w-full h-10 rounded bg-black border border-[#1e293b] text-white px-2 focus:outline-none text-xs"
+                    className="w-full h-10 rounded bg-black border border-radar-elevated text-white px-2 focus:outline-none text-xs"
                     required
                   >
                     <option value="">-- اسم المندوب الرباعي --</option>
@@ -1204,7 +1204,7 @@ export function DelegatesManagementTab() {
                     value={taskTitle}
                     onChange={e => setTaskTitle(e.target.value)}
                     placeholder="مثال: غرز 15 سائق في منطقة صويلح"
-                    className="bg-black border-[#1e293b] text-xs h-10"
+                    className="bg-black border-radar-elevated text-xs h-10"
                     required
                   />
                 </div>
@@ -1215,7 +1215,7 @@ export function DelegatesManagementTab() {
                     value={taskDescription}
                     onChange={e => setTaskDescription(e.target.value)}
                     placeholder="يرجى توزيع الملصقات وكتابة رمز الإحالة JO-SWAILEH.. ومساعدة السائقون في تخطي عقبة الفحص الأولي للسيارات."
-                    className="w-full min-h-[80px] bg-black border border-[#1e293b] rounded-md p-2 text-white focus:outline-none text-xs"
+                    className="w-full min-h-[80px] bg-black border border-radar-elevated rounded-md p-2 text-white focus:outline-none text-xs"
                     required
                   />
                 </div>
@@ -1226,7 +1226,7 @@ export function DelegatesManagementTab() {
                     type="date"
                     value={taskDeadline}
                     onChange={e => setTaskDeadline(e.target.value)}
-                    className="bg-black border-[#1e293b] text-xs h-10"
+                    className="bg-black border-radar-elevated text-xs h-10"
                     required
                   />
                 </div>
@@ -1244,32 +1244,32 @@ export function DelegatesManagementTab() {
       {activeSubTab === 'performance' && (
         <div className="space-y-6">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card className="bg-[#091B09]/40 border-emerald-950/40 p-4">
+            <Card className="bg-radar-forest/40 border-emerald-950/40 p-4">
               <CardHeader className="p-0 pb-1">
                 <CardDescription className="text-[10px] text-zinc-400 font-bold">عواصف النمو المباشر</CardDescription>
               </CardHeader>
               <CardContent className="p-0">
                 <p className="text-2xl font-black text-amber-500 font-mono">{totalReferred} سائق</p>
-                <div className="flex items-center gap-1 text-[9px] text-[#10B981] font-bold mt-1">
+                <div className="flex items-center gap-1 text-[9px] text-radar-emerald font-bold mt-1">
                   <TrendingUp className="w-3.5 h-3.5" />
                   <span>توسّع إيجابي وقدرة تجنيدية صارمة</span>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-[#091B09]/40 border-emerald-950/40 p-4">
+            <Card className="bg-radar-forest/40 border-emerald-950/40 p-4">
               <CardHeader className="p-0 pb-1">
                 <CardDescription className="text-[10px] text-zinc-400 font-bold">إجمالي الانتساب العضوي (الألوية)</CardDescription>
               </CardHeader>
               <CardContent className="p-0">
                 <p className="text-2xl font-black text-emerald-400 font-mono">+{totalOrganic} منتسب</p>
-                <div className="flex items-center gap-1 text-[9px] text-[#10B981] font-bold mt-1">
+                <div className="flex items-center gap-1 text-[9px] text-radar-emerald font-bold mt-1">
                   <span>معدل نمو عضوي بنسبة {growthIndex}%</span>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-[#091B09]/40 border-emerald-950/40 p-4">
+            <Card className="bg-radar-forest/40 border-emerald-950/40 p-4">
               <CardHeader className="p-0 pb-1">
                 <CardDescription className="text-[10px] text-zinc-400 font-bold">نسبة الانسحاب والخسارة</CardDescription>
               </CardHeader>
@@ -1282,7 +1282,7 @@ export function DelegatesManagementTab() {
               </CardContent>
             </Card>
 
-            <Card className="bg-[#091B09]/40 border-emerald-950/40 p-4">
+            <Card className="bg-radar-forest/40 border-emerald-950/40 p-4">
               <CardHeader className="p-0 pb-1">
                 <CardDescription className="text-[10px] text-zinc-400 font-bold">السائقون الثابتين (+45 يوم)</CardDescription>
               </CardHeader>
@@ -1295,7 +1295,7 @@ export function DelegatesManagementTab() {
             </Card>
           </div>
 
-          <Card className="bg-[#0A0F1D] border-[#1e293b]">
+          <Card className="bg-radar-bg border-radar-elevated">
             <CardHeader>
               <CardTitle className="text-sm font-black text-white flex items-center gap-1.5">
                 <Layers className="w-4 h-4 text-emerald-400" />
@@ -1311,7 +1311,7 @@ export function DelegatesManagementTab() {
                   const percentage = totalReferred > 0 ? Math.round(((d.referredCount || 0) / totalReferred) * 100) : 0;
                   const isSigValid = !!verifiedSignatures[d.id];
                   return (
-                    <div key={d.id} className="space-y-1.5 bg-black/40 p-3 rounded-lg border border-[#1e293b]">
+                    <div key={d.id} className="space-y-1.5 bg-black/40 p-3 rounded-lg border border-radar-elevated">
                       <div className="flex justify-between items-center text-xs">
                         <span className="text-zinc-400">الإقليم: <span className="font-bold text-white">{d.district} ({d.name})</span></span>
                         <div className="flex items-center gap-1.5">

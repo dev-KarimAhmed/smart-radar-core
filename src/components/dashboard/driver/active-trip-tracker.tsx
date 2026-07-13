@@ -29,10 +29,10 @@ export function ActiveTripTracker({
   const copy = activeCopy[language];
 
   return (
-    <section className="mx-auto max-w-4xl rounded-3xl border border-emerald-500/20 bg-[#05080f] p-5 text-white shadow-2xl">
+    <section className="mx-auto max-w-4xl rounded-3xl border border-emerald-500/20 bg-radar-abyss p-5 text-white shadow-2xl">
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
-          <p className="text-xs font-black text-[#14B8A6]">{copy.badge}</p>
+          <p className="text-xs font-black text-radar-teal">{copy.badge}</p>
           <h1 className="mt-1 text-2xl font-black">{copy.title}</h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">{copy.subtitle}</p>
         </div>
@@ -113,7 +113,7 @@ function StepButton({
         done
           ? 'border-emerald-500/40 bg-emerald-500/15 text-emerald-200'
           : active
-            ? 'border-[#14B8A6] bg-[#14B8A6] text-[#06111f]'
+            ? 'border-radar-teal bg-radar-teal text-radar-bg'
             : 'border-white/10 bg-white/[0.03] text-slate-300'
       }`}
     >

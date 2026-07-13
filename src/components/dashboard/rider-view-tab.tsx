@@ -992,12 +992,12 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
       return (
         <div className="space-y-4 text-right" dir={isArabic ? 'rtl' : 'ltr'}>
             <div className="space-y-1">
-              <p className="text-[11px] font-black text-[#14F5D5]">{copy.destinationEyebrow}</p>
+              <p className="text-[11px] font-black text-radar-teal-bright">{copy.destinationEyebrow}</p>
               <h2 className="text-xl font-black sm:text-2xl">{copy.whereTo}</h2>
               <p className="text-xs leading-relaxed text-slate-400">
                 {copy.destinationSubtitle}
                 {countryConfig?.name_ar || countryConfig?.name_en ? (
-                  <span className="mt-1 block text-[#14F5D5]">{copy.country}: {isArabic ? countryConfig.name_ar || countryConfig.name_en : countryConfig.name_en || countryConfig.name_ar}</span>
+                  <span className="mt-1 block text-radar-teal-bright">{copy.country}: {isArabic ? countryConfig.name_ar || countryConfig.name_en : countryConfig.name_en || countryConfig.name_ar}</span>
                 ) : null}
               </p>
             </div>
@@ -1009,7 +1009,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                   value={selectedGovernorateId}
                   onChange={(event) => handleGovernorateChange(event.target.value)}
                   disabled={isLoadingGovernorates || destinationGovernorates.length === 0}
-                  className="h-12 w-full rounded-2xl border border-white/10 bg-black/40 px-4 text-right text-sm font-black text-white outline-none transition focus:border-[#14B8A6]/60"
+                  className="h-12 w-full rounded-2xl border border-white/10 bg-black/40 px-4 text-right text-sm font-black text-white outline-none transition focus:border-radar-teal/60"
                 >
                   {destinationGovernorates.length === 0 ? (
                     <option value="">{isLoadingGovernorates ? copy.loading : copy.noGovernorates}</option>
@@ -1028,7 +1028,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                   value={selectedDistrict?.id || ''}
                   onChange={(event) => handleDistrictChange(event.target.value)}
                   disabled={isLoadingDistricts || availableDistricts.length === 0}
-                  className="h-12 w-full rounded-2xl border border-white/10 bg-black/40 px-4 text-right text-sm font-black text-white outline-none transition focus:border-[#14B8A6]/60"
+                  className="h-12 w-full rounded-2xl border border-white/10 bg-black/40 px-4 text-right text-sm font-black text-white outline-none transition focus:border-radar-teal/60"
                 >
                   {availableDistricts.length === 0 ? (
                     <option value="">{isLoadingDistricts ? copy.loading : copy.noDistricts}</option>
@@ -1049,7 +1049,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
             ) : null}
 
             {selectedDistrict ? (
-              <div className="rounded-2xl border border-[#14B8A6]/20 bg-[#14B8A6]/8 p-3 text-xs leading-relaxed text-slate-300">
+              <div className="rounded-2xl border border-radar-teal/20 bg-radar-teal/8 p-3 text-xs leading-relaxed text-slate-300">
                 <strong className="block text-sm text-white">
                   {isArabic
                     ? `${selectedDistrict.districtAr} - ${selectedDistrict.governorateAr}`
@@ -1104,7 +1104,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                 "h-14 w-full font-bold text-base py-3.5 rounded-xl transition-transform active:scale-[0.98] flex items-center justify-center",
                 isSameLocation
                   ? "bg-gray-700 text-gray-400 cursor-not-allowed"
-                  : "bg-[#14B8A6] text-[#0A0F1D] hover:bg-[#2DD4BF] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  : "bg-radar-teal text-radar-bg hover:bg-radar-teal-hover cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               )}
             >
               {isSendingRideRequest ? copy.sendingRequest : copy.requestNow}
@@ -1137,7 +1137,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                 dispatch({ type: 'RESET_TO_IDLE' });
                 window.setTimeout(openDestination, 0);
               }}
-              className="h-14 w-full bg-[#14B8A6] text-[#0A0F1D] font-bold text-base py-3.5 rounded-xl transition-transform active:scale-[0.98] hover:bg-[#2DD4BF] flex items-center justify-center cursor-pointer"
+              className="h-14 w-full bg-radar-teal text-radar-bg font-bold text-base py-3.5 rounded-xl transition-transform active:scale-[0.98] hover:bg-radar-teal-hover flex items-center justify-center cursor-pointer"
             >
               {copy.retry}
             </button>
@@ -1149,7 +1149,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
         <div className={`space-y-4 ${isArabic ? 'text-right' : 'text-left'}`} dir={isArabic ? 'rtl' : 'ltr'}>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="space-y-1">
-              <p className="text-[11px] font-black text-[#14F5D5]">{hasOffers ? copy.offersArrived : copy.searchingCaptain}</p>
+              <p className="text-[11px] font-black text-radar-teal-bright">{hasOffers ? copy.offersArrived : copy.searchingCaptain}</p>
               <h2 className="text-xl font-bold text-white">{hasOffers ? copy.chooseCaptain : copy.requestVisibleTitle}</h2>
               <p className="text-xs text-slate-400">
                 {hasOffers ? copy.chooseOfferDescription : copy.waitingOffersDescription}
@@ -1168,7 +1168,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
 
           {state.requestId ? (
             <div className="rounded-2xl border border-white/5 bg-white/5 p-4">
-              <p className="mb-3 text-[11px] font-black text-[#14F5D5]">{copy.savedRequestTitle}</p>
+              <p className="mb-3 text-[11px] font-black text-radar-teal-bright">{copy.savedRequestTitle}</p>
               <div className="grid grid-cols-2 gap-3">
                 <Metric label={copy.requestNumber} value={shortRequestId} />
                 <Metric label={copy.requestStatus} value={copy.savedInDatabase} />
@@ -1180,7 +1180,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
 
           {!hasOffers ? (
             <div className="flex min-h-36 flex-col items-center justify-center gap-3 rounded-2xl border border-white/5 bg-white/5">
-              <Loader2 className="h-9 w-9 animate-spin text-[#14F5D5]" />
+              <Loader2 className="h-9 w-9 animate-spin text-radar-teal-bright" />
               <span className="px-4 text-center text-xs font-bold leading-relaxed text-slate-300">
                 {copy.waitingOffersLoader}
               </span>
@@ -1255,7 +1255,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                           {Math.floor(offer.captain?.trust_rating || offer.driverRating || 5)}.0 / {offer.captain?.tier || offer.driverRank || "Bronze"}
                         </p>
                       </div>
-                      <strong className="text-xl font-bold text-[#14F5D5]">
+                      <strong className="text-xl font-bold text-radar-teal-bright">
                         {formatMoney(offer.price, currencyLabel)}
                       </strong>
                     </div>
@@ -1269,8 +1269,8 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-[#14B8A6] animate-pulse" />
-                        <span className="text-[#14B8A6] font-bold text-xs">
+                        <Clock className="h-4 w-4 text-radar-teal animate-pulse" />
+                        <span className="text-radar-teal font-bold text-xs">
                           {language === 'ar' ? `يصلك خلال: ${etaDisplay} دقائق` : `ETA: ${etaDisplay} mins`}
                         </span>
                       </div>
@@ -1302,7 +1302,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                       {offer.driverAffiliation?.phone && (
                         <a
                           href={`tel:${offer.driverAffiliation.phone}`}
-                          className="flex h-11 w-12 items-center justify-center rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 text-[#14F5D5] hover:bg-[#14B8A6]/20 transition-colors cursor-pointer"
+                          className="flex h-11 w-12 items-center justify-center rounded-xl border border-radar-teal/30 bg-radar-teal/10 text-radar-teal-bright hover:bg-radar-teal/20 transition-colors cursor-pointer"
                           title={isArabic ? 'اتصال بالكابتن' : 'Call Captain'}
                         >
                           <Phone className="h-5 w-5" />
@@ -1311,7 +1311,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                       <button
                         onClick={() => void handleAcceptOffer(offer)}
                         disabled={acceptingOfferId === (offer.id || offer.driverId)}
-                        className="h-11 flex-1 bg-[#14B8A6] text-[#0A0F1D] font-bold text-sm rounded-xl transition-transform active:scale-[0.98] hover:bg-[#2DD4BF] flex items-center justify-center cursor-pointer"
+                        className="h-11 flex-1 bg-radar-teal text-radar-bg font-bold text-sm rounded-xl transition-transform active:scale-[0.98] hover:bg-radar-teal-hover flex items-center justify-center cursor-pointer"
                       >
                         {acceptingOfferId === (offer.id || offer.driverId) ? copy.acceptingOffer : copy.acceptOffer}
                       </button>
@@ -1333,15 +1333,15 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
         <div className={`space-y-4 ${isArabic ? 'text-right' : 'text-left'}`} dir={isArabic ? 'rtl' : 'ltr'}>
           <div className="flex items-start justify-between gap-3">
             <div className="space-y-1">
-              <p className="text-[11px] font-black text-[#14F5D5]">{copy.tripStarted}</p>
+              <p className="text-[11px] font-black text-radar-teal-bright">{copy.tripStarted}</p>
               <h2 className="text-xl font-bold text-white">
                 {state.activeTrip.captain?.full_name || state.activeTrip.captain?.name || state.activeTrip.captainName || "كابتن حركي"}
               </h2>
               <p className="text-xs text-slate-400">{state.activeTrip.destinationLabel}</p>
             </div>
             <div className="rounded-2xl border border-white/5 bg-white/5 px-4 py-2 text-center min-w-[100px]">
-              <Clock className="mx-auto mb-1 h-4 w-4 text-[#14F5D5]" />
-              <strong className="font-mono text-lg text-[#14F5D5] block">
+              <Clock className="mx-auto mb-1 h-4 w-4 text-radar-teal-bright" />
+              <strong className="font-mono text-lg text-radar-teal-bright block">
                 {minutes}:{seconds.toString().padStart(2, '0')}
               </strong>
               <span className="text-[9px] text-slate-400 block mt-0.5 whitespace-nowrap font-bold">
@@ -1372,7 +1372,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
             </p>
           </div>
 
-          <div className="rounded-2xl border border-[#14B8A6]/20 bg-[#14B8A6]/8 p-4 text-xs leading-relaxed text-slate-300">
+          <div className="rounded-2xl border border-radar-teal/20 bg-radar-teal/8 p-4 text-xs leading-relaxed text-slate-300">
             {state.activeTrip.status === 'STARTED'
               ? (language === 'ar'
                   ? "رحلتك قيد التقدم الآن. نتمنى لك رحلة آمنة!"
@@ -1384,7 +1384,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
             {state.activeTrip.captainPhone && (
               <a
                 href={`tel:${state.activeTrip.captainPhone}`}
-                className="flex h-14 w-14 items-center justify-center rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 text-[#14F5D5] hover:bg-[#14B8A6]/20 transition-colors cursor-pointer"
+                className="flex h-14 w-14 items-center justify-center rounded-xl border border-radar-teal/30 bg-radar-teal/10 text-radar-teal-bright hover:bg-radar-teal/20 transition-colors cursor-pointer"
                 title={isArabic ? 'اتصال بالكابتن' : 'Call Captain'}
               >
                 <Phone className="h-6 w-6" />
@@ -1441,7 +1441,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
           />
         </div>
 
-        <aside className="absolute bottom-0 start-0 end-0 z-10 w-full max-h-full overflow-hidden flex flex-col rounded-t-[32px] rounded-b-none border-t border-white/10 bg-[#0A0F1D]/80 shadow-[0_-10px_25px_rgba(0,0,0,0.5)] backdrop-blur-xl lg:absolute lg:bottom-6 lg:start-auto lg:end-6 lg:top-6 lg:z-40 lg:w-[420px] lg:rounded-[28px] lg:border lg:border-white/10 lg:bg-[#0A0F1D]/80 lg:shadow-[0_30px_100px_rgba(0,0,0,0.45)] lg:backdrop-blur-xl lg:max-h-none lg:rounded-b-[28px] lg:overflow-hidden">
+        <aside className="absolute bottom-0 start-0 end-0 z-10 w-full max-h-full overflow-hidden flex flex-col rounded-t-[32px] rounded-b-none border-t border-white/10 bg-radar-bg/80 shadow-[0_-10px_25px_rgba(0,0,0,0.5)] backdrop-blur-xl lg:absolute lg:bottom-6 lg:start-auto lg:end-6 lg:top-6 lg:z-40 lg:w-[420px] lg:rounded-[28px] lg:border lg:border-white/10 lg:bg-radar-bg/80 lg:shadow-[0_30px_100px_rgba(0,0,0,0.45)] lg:backdrop-blur-xl lg:max-h-none lg:rounded-b-[28px] lg:overflow-hidden">
           {/* Top Bar with Center Drag Handle and Right-aligned Close Button */}
           <div className="flex items-center justify-between p-4 px-6 border-b border-white/5 bg-slate-900/40 backdrop-blur-md rounded-t-[32px] lg:rounded-t-[28px] relative z-50">
             {/* Left-aligned balance spacer */}
@@ -1495,10 +1495,10 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
             <div className="rounded-2xl border border-white/5 bg-white/5 p-4 shadow-xl shadow-black/20 backdrop-blur">
               <div className="mb-3 flex items-center justify-between sm:mb-4">
                 <div>
-                  <p className="text-[11px] font-black text-[#14F5D5] tracking-wider">{copy.panelEyebrow}</p>
+                  <p className="text-[11px] font-black text-radar-teal-bright tracking-wider">{copy.panelEyebrow}</p>
                   <h1 className="text-xl font-bold text-white mt-0.5">{copy.panelTitle}</h1>
                 </div>
-                <ShieldCheck className="h-7 w-7 text-[#14F5D5]" />
+                <ShieldCheck className="h-7 w-7 text-radar-teal-bright" />
               </div>
 
               <div className="grid grid-cols-3 gap-2 lg:hidden">
@@ -1518,7 +1518,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
               <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
                 <div className={`space-y-4 ${isArabic ? 'text-right' : 'text-left'}`} dir={isArabic ? 'rtl' : 'ltr'}>
                   <div className="space-y-1">
-                    <p className="text-[11px] font-black text-[#14F5D5]">{copy.readyQuestion}</p>
+                    <p className="text-[11px] font-black text-radar-teal-bright">{copy.readyQuestion}</p>
                     <h2 className="text-xl font-bold text-white">{copy.whereTo}</h2>
                     <p className="text-xs leading-relaxed text-slate-400">
                       {copy.homeSubtitle}
@@ -1539,7 +1539,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
 
                   <button
                     onClick={openDestination}
-                    className="h-14 w-full bg-[#14B8A6] text-[#0A0F1D] font-bold text-base py-3.5 rounded-xl transition-transform active:scale-[0.98] shadow-lg shadow-[#14B8A6]/20 hover:bg-[#2DD4BF] flex items-center justify-center gap-2 cursor-pointer"
+                    className="h-14 w-full bg-radar-teal text-radar-bg font-bold text-base py-3.5 rounded-xl transition-transform active:scale-[0.98] shadow-lg shadow-radar-teal/20 hover:bg-radar-teal-hover flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <Navigation className="ml-2 h-5 w-5" />
                     {copy.requestRide}
@@ -1553,7 +1553,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
 
 
             {showAdRiver && (
-              <div className="hidden overflow-hidden rounded-[24px] border border-[#14B8A6]/15 bg-[#0B0F19]/88 shadow-2xl shadow-black/35 backdrop-blur-xl lg:block">
+              <div className="hidden overflow-hidden rounded-[24px] border border-radar-teal/15 bg-radar-bg-deep/88 shadow-2xl shadow-black/35 backdrop-blur-xl lg:block">
                 <AdStage />
               </div>
             )}
@@ -1571,7 +1571,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
 
         {/* Hide secondary ads inside the active request map flow */}
         {false && showAdRiver && (
-          <div className="overflow-hidden rounded-[24px] border border-[#14B8A6]/15 lg:hidden">
+          <div className="overflow-hidden rounded-[24px] border border-radar-teal/15 lg:hidden">
             <AdStage />
           </div>
         )}
@@ -1968,8 +1968,8 @@ function NavButton({ active, onClick, children }: { active: boolean; onClick: ()
       className={cn(
         'h-10 rounded-xl border text-xs font-black transition',
         active
-          ? 'border-[#14B8A6]/45 bg-[#14B8A6]/15 text-[#14F5D5]'
-          : 'border-white/10 bg-black/20 text-slate-400 hover:border-[#14B8A6]/25 hover:text-white',
+          ? 'border-radar-teal/45 bg-radar-teal/15 text-radar-teal-bright'
+          : 'border-white/10 bg-black/20 text-slate-400 hover:border-radar-teal/25 hover:text-white',
       )}
     >
       {children}

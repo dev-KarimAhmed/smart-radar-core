@@ -1,5 +1,100 @@
 @import "tailwindcss";
 
+/* ==========================================================================
+   BRAND DESIGN TOKENS — single source of truth for rebranding.
+   Every color used in components resolves to one of these tokens (via Tailwind
+   utilities like `bg-radar-teal`, `text-radar-text-sub`, or `var(--color-*)`).
+   To rebrand the whole app, change the values here — nothing else.
+   ========================================================================== */
+@theme {
+  /* Brand / accent */
+  --color-radar-teal: #14B8A6;          /* primary brand */
+  --color-radar-teal-bright: #14F5D5;   /* neon accent */
+  --color-radar-teal-hover: #2DD4BF;    /* hover */
+  --color-radar-teal-glow: #2FFFE5;     /* brightest glow */
+  --color-radar-neon: #00FFCC;          /* radar/map neon */
+  --color-radar-neon-green: #00CC66;    /* neon success */
+  --color-radar-emerald: #10B981;       /* success */
+  --color-radar-emerald-light: #34D399;
+
+  /* Surfaces / backgrounds (dark) */
+  --color-radar-bg: #0A0F1D;            /* app background */
+  --color-radar-bg-deep: #0B0F19;       /* deeper background */
+  --color-radar-abyss: #05080F;         /* deepest / overlays */
+  --color-radar-card: #0F172A;          /* card surface */
+  --color-radar-surface: #111827;       /* raised surface */
+  --color-radar-elevated: #1E293B;      /* elevated surface */
+  --color-radar-muted: #243249;         /* muted panel / border */
+  --color-radar-line: #161F30;          /* hairlines */
+  --color-radar-overlay: #07101F;       /* image overlay tint */
+  --color-radar-gradient: #06101D;      /* gradient scrim base */
+  --color-radar-night: #121A2D;         /* glass button surface */
+  --color-radar-ink: #041315;           /* text on bright accents */
+
+  /* Text */
+  --color-radar-text: #F1F5F9;
+  --color-radar-text-bright: #F8FAFC;
+  --color-radar-text-sub: #94A3B8;
+  --color-radar-text-muted: #64748B;
+  --color-radar-text-faint: #9CA3AF;
+
+  /* Extended surfaces & accents (decorative gradient stops / badge tints) */
+  --color-radar-black: #050505;         /* near-black base */
+  --color-radar-indigo: #102033;        /* deep indigo surface */
+  --color-radar-forest: #091B09;        /* dark green surface */
+  --color-radar-forest-deep: #011E15;   /* deep green-teal */
+  --color-radar-teal-abyss: #031315;    /* near-black teal */
+  --color-radar-danger-deep: #330005;   /* dark red surface */
+  --color-radar-accent-amber: #FFE0B3;
+  --color-radar-accent-rose: #FFB3BF;
+  --color-radar-accent-lilac: #EED4FF;
+  --color-radar-accent-mint: #B3FFD9;
+  --color-radar-accent-aqua: #D8FDF8;
+
+  /* Semantic states */
+  --color-radar-danger: #FF3366;
+  --color-radar-red: #EF4444;
+  --color-radar-warning: #F59E0B;
+  --color-radar-gold: #FFCC00;
+  --color-radar-blue: #3B82F6;
+
+  /* Glass */
+  --color-radar-glass: rgba(15, 23, 42, 0.55);
+  --color-radar-glass-border: rgba(255, 255, 255, 0.08);
+
+  --animate-bounce-slow: bounce-slow 3s infinite;
+
+  @keyframes bounce-slow {
+    0%, 100% {
+      transform: translateY(-8%);
+      animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+    }
+    50% {
+      transform: none;
+      animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+    }
+  }
+}
+
+/* RGB channel mirrors of the brand colors, for `rgb(var(--…) / <alpha>)`
+   inside arbitrary Tailwind values (glows/shadows). Keep in sync with @theme. */
+:root {
+  --radar-teal-rgb: 20 184 166;
+  --radar-teal-bright-rgb: 20 245 213;
+  --radar-teal-hover-rgb: 45 212 191;
+  --radar-neon-rgb: 0 255 204;
+  --radar-neon-green-rgb: 0 204 102;
+  --radar-danger-rgb: 255 51 102;
+  --radar-red-rgb: 239 68 68;
+  --radar-rose-rgb: 244 63 94;
+  --radar-blue-rgb: 59 130 246;
+  --radar-blue-deep-rgb: 29 78 216;
+  --radar-cyan-rgb: 6 182 212;
+  --radar-warning-rgb: 245 158 11;
+  --radar-emerald-rgb: 16 185 129;
+  --radar-bg-rgb: 10 15 29;
+}
+
 @keyframes ad-river-rtl {
   from {
     transform: translateX(0);

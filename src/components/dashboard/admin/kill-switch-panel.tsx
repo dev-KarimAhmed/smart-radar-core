@@ -142,7 +142,7 @@ export function KillSwitchPanel() {
   return (
     <div className="space-y-8 text-right" dir="rtl">
       {/* ⚠️ GATE-GUARDED MASTER EMERGENCY KILL SWITCH */}
-      <Card className="bg-red-950/15 border border-red-500/30 shadow-[0_4px_30px_rgba(239,68,68,0.05)] rounded-2xl overflow-hidden">
+      <Card className="bg-red-950/15 border border-red-500/30 shadow-[0_4px_30px_rgb(var(--radar-red-rgb)/0.05)] rounded-2xl overflow-hidden">
         <CardHeader className="bg-red-950/20 border-b border-red-500/10 p-5">
           <CardTitle className="text-red-400 text-sm sm:text-base font-extrabold flex items-center gap-2">
             <ShieldAlert className="w-5 h-5 text-red-500 animate-pulse" />
@@ -244,7 +244,7 @@ export function KillSwitchPanel() {
                     ? "bg-zinc-800 text-zinc-500 cursor-not-allowed border border-white/5"
                     : isRadarActive
                       ? "bg-red-600 hover:bg-red-500 text-white shadow-red-950/50 hover:scale-[1.01] active:scale-[0.99]"
-                      : "bg-[#14b8a6] hover:bg-[#14b8a6]/90 text-black shadow-[#14b8a6]/20 hover:scale-[1.01] active:scale-[0.99]"
+                      : "bg-radar-teal hover:bg-radar-teal/90 text-black shadow-radar-teal/20 hover:scale-[1.01] active:scale-[0.99]"
                 )}
               >
                 {isLoadingControls ? (
@@ -273,7 +273,7 @@ export function KillSwitchPanel() {
       {/* 💥 AD ANNIHILATION AND SOVEREIGN PURGE (Digital Annihilation) */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
         <div className="md:col-span-6">
-          <Card className="bg-slate-950/80 border border-[#14b8a6]/20 shadow-lg rounded-2xl flex-1 flex flex-col h-full">
+          <Card className="bg-slate-950/80 border border-radar-teal/20 shadow-lg rounded-2xl flex-1 flex flex-col h-full">
             <CardHeader className="p-5 border-b border-white/[0.04]">
               <CardTitle className="text-white text-sm sm:text-base font-black flex items-center gap-2">
                 <Flame className="w-5 h-5 text-red-500 animate-pulse" />
@@ -339,10 +339,10 @@ export function KillSwitchPanel() {
 
         {/* 📡 REGIONAL BROADCAST PULSES (Silent Web Pushes Helper) */}
         <div className="md:col-span-6">
-          <Card className="bg-slate-950/80 border border-[#14b8a6]/25 shadow-lg rounded-2xl flex-1 flex flex-col h-full">
+          <Card className="bg-slate-950/80 border border-radar-teal/25 shadow-lg rounded-2xl flex-1 flex flex-col h-full">
             <CardHeader className="p-5 border-b border-white/[0.04]">
               <CardTitle className="text-white text-sm sm:text-base font-black flex items-center gap-2">
-                <Radio className="w-5 h-5 text-[#14b8a6]" />
+                <Radio className="w-5 h-5 text-radar-teal" />
                 بث راداري صامت (Silent Broadcast Pulses)
               </CardTitle>
               <CardDescription className="text-gray-500 text-[10px] sm:text-[11px]">
@@ -357,7 +357,7 @@ export function KillSwitchPanel() {
                   <select
                     value={selectedDistrict}
                     onChange={(e) => setSelectedDistrict(e.target.value)}
-                    className="w-full h-10 bg-black border border-white/10 rounded-xl px-2 text-[11px] text-white focus:border-[#14b8a6] text-right"
+                    className="w-full h-10 bg-black border border-white/10 rounded-xl px-2 text-[11px] text-white focus:border-radar-teal text-right"
                   >
                     <option value="الجميع">كل منطقة الأردنيين</option>
                     <option value="منطقة الجامعة">منطقة الجامعة - عمان</option>
@@ -373,7 +373,7 @@ export function KillSwitchPanel() {
                   <select
                     value={alertType}
                     onChange={(e) => setAlertType(e.target.value as any)}
-                    className="w-full h-10 bg-black border border-white/10 rounded-xl px-2 text-[11px] text-white focus:border-[#14b8a6] text-right"
+                    className="w-full h-10 bg-black border border-white/10 rounded-xl px-2 text-[11px] text-white focus:border-radar-teal text-right"
                   >
                     <option value="REGIONAL_ALERT">تنبيه إقليمي توجيهي</option>
                     <option value="GLOBAL_FREEZE">تجميد اضطراري للأسعار</option>
@@ -388,7 +388,7 @@ export function KillSwitchPanel() {
                   value={broadcastMessage}
                   onChange={(e) => setBroadcastMessage(e.target.value)}
                   placeholder="اكتب مضمون الإشعار الميداني هنا..."
-                  className="w-full h-16 bg-black border border-white/10 text-white rounded-xl p-3 text-xs focus:border-[#14b8a6] text-right resize-none focus:outline-none focus:ring-1 focus:ring-[#14b8a6]"
+                  className="w-full h-16 bg-black border border-white/10 text-white rounded-xl p-3 text-xs focus:border-radar-teal text-right resize-none focus:outline-none focus:ring-1 focus:ring-radar-teal"
                 />
               </div>
 
@@ -396,7 +396,7 @@ export function KillSwitchPanel() {
               <Button
                 onClick={handleSendBroadcast}
                 disabled={isBroadcasting || !broadcastMessage.trim()}
-                className="w-full h-10 text-xs font-black bg-[#14b8a6] hover:bg-[#14b8a6]/95 text-black rounded-xl flex items-center justify-center gap-1.5 cursor-pointer leading-none"
+                className="w-full h-10 text-xs font-black bg-radar-teal hover:bg-radar-teal/95 text-black rounded-xl flex items-center justify-center gap-1.5 cursor-pointer leading-none"
               >
                 {isBroadcasting ? (
                   <Loader2 className="w-4 h-4 animate-spin" />

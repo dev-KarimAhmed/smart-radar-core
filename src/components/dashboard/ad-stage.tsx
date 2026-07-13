@@ -350,9 +350,9 @@ export function AdStage({
 
   if (isLoadingAds) {
     return (
-      <div className={`relative ${heightClass} m-4 flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#14B8A6]/50 bg-[#0B0F19]`}>
-        <div className="mb-4 h-12 w-12 animate-spin rounded-full border-t-2 border-[#14B8A6]" />
-        <p className="px-4 text-center text-sm font-bold tracking-widest text-[#14B8A6]">
+      <div className={`relative ${heightClass} m-4 flex flex-col items-center justify-center rounded-2xl border border-dashed border-radar-teal/50 bg-radar-bg-deep`}>
+        <div className="mb-4 h-12 w-12 animate-spin rounded-full border-t-2 border-radar-teal" />
+        <p className="px-4 text-center text-sm font-bold tracking-widest text-radar-teal">
           {copy.loadingTitle}
           <br />
           <span className="text-xs text-gray-400">{copy.loadingSubtitle}</span>
@@ -364,18 +364,18 @@ export function AdStage({
   return (
     <section
       className={cn(
-        'relative z-[10] flex w-full flex-col overflow-hidden border-b border-white/5 bg-[#0B0F19] py-4 pointer-events-auto select-none sm:py-6',
+        'relative z-[10] flex w-full flex-col overflow-hidden border-b border-white/5 bg-radar-bg-deep py-4 pointer-events-auto select-none sm:py-6',
         heightClass,
         isFullScreen ? 'justify-start' : 'justify-center'
       )}
       dir={direction}
     >
       {isFullScreen ? (
-        <div className="z-[20] mb-3 flex shrink-0 items-center justify-center w-full px-4 sm:px-6 py-3 border-b border-white/[0.06] bg-[#0A0F1D]/40 backdrop-blur-sm lg:hidden">
+        <div className="z-[20] mb-3 flex shrink-0 items-center justify-center w-full px-4 sm:px-6 py-3 border-b border-white/[0.06] bg-radar-bg/40 backdrop-blur-sm lg:hidden">
           {/* Center button: اطلب رحلة */}
           <button
             onClick={onRequestRideClick}
-            className="text-xs sm:text-sm font-black text-white hover:text-[#14F5D5] transition-colors cursor-pointer active:scale-95 px-5 py-2 rounded-full border border-white/10 bg-white/5 hover:bg-[#14B8A6]/10 hover:border-[#14B8A6]/30 shadow-md"
+            className="text-xs sm:text-sm font-black text-white hover:text-radar-teal-bright transition-colors cursor-pointer active:scale-95 px-5 py-2 rounded-full border border-white/10 bg-white/5 hover:bg-radar-teal/10 hover:border-radar-teal/30 shadow-md"
           >
             اطلب رحلة
           </button>
@@ -384,10 +384,10 @@ export function AdStage({
         <div className="z-[20] mb-3 flex shrink-0 items-center justify-between px-4 sm:mb-4 sm:px-6">
           <div className="flex items-center gap-2">
             <span className="relative flex h-2.5 w-2.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#14B8A6] opacity-75" />
-              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#14B8A6]" />
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-radar-teal opacity-75" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-radar-teal" />
             </span>
-            <h2 className="text-xs font-black uppercase tracking-widest text-[#14F5D5] md:text-sm">
+            <h2 className="text-xs font-black uppercase tracking-widest text-radar-teal-bright md:text-sm">
               {copy.title}
             </h2>
           </div>
@@ -414,9 +414,9 @@ export function AdStage({
               disabled={!canNavigate}
               onClick={() => scrollAds('previous')}
               className={cn(
-                'absolute left-3 top-1/2 z-30 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-[#0B0F19]/88 text-white shadow-xl shadow-black/35 backdrop-blur-md transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/45 sm:left-4',
+                'absolute left-3 top-1/2 z-30 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-radar-bg-deep/88 text-white shadow-xl shadow-black/35 backdrop-blur-md transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-radar-teal/45 sm:left-4',
                 canNavigate
-                  ? 'hover:border-[#14B8A6]/45 hover:bg-[#14B8A6]/15'
+                  ? 'hover:border-radar-teal/45 hover:bg-radar-teal/15'
                   : 'cursor-not-allowed opacity-35'
               )}
             >
@@ -429,9 +429,9 @@ export function AdStage({
               disabled={!canNavigate}
               onClick={() => scrollAds('next')}
               className={cn(
-                'absolute right-3 top-1/2 z-30 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-[#0B0F19]/88 text-white shadow-xl shadow-black/35 backdrop-blur-md transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/45 sm:right-4',
+                'absolute right-3 top-1/2 z-30 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-radar-bg-deep/88 text-white shadow-xl shadow-black/35 backdrop-blur-md transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-radar-teal/45 sm:right-4',
                 canNavigate
-                  ? 'hover:border-[#14B8A6]/45 hover:bg-[#14B8A6]/15'
+                  ? 'hover:border-radar-teal/45 hover:bg-radar-teal/15'
                   : 'cursor-not-allowed opacity-35'
               )}
             >
@@ -477,15 +477,15 @@ export function AdStage({
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: '100%', opacity: 0 }}
               transition={{ type: 'spring', damping: 25, stiffness: 220 }}
-              className="relative flex w-full max-w-lg flex-col gap-4 rounded-t-[32px] border-t-2 border-[#14B8A6]/40 bg-[#070D19] px-6 pt-6 pb-28 shadow-[0_-12px_45px_rgba(20,184,166,0.25)] md:rounded-[32px] md:border-x-2 md:p-6"
+              className="relative flex w-full max-w-lg flex-col gap-4 rounded-t-[32px] border-t-2 border-radar-teal/40 bg-radar-abyss px-6 pt-6 pb-28 shadow-[0_-12px_45px_rgb(var(--radar-teal-rgb)/0.25)] md:rounded-[32px] md:border-x-2 md:p-6"
               dir={direction}
               onClick={(event) => event.stopPropagation()}
             >
-              <div className="mx-auto mb-1 h-1 w-12 rounded-full bg-[#14B8A6]/30" />
+              <div className="mx-auto mb-1 h-1 w-12 rounded-full bg-radar-teal/30" />
 
               <div className="flex items-center justify-between border-b border-white/5 pb-3">
-                <span className="flex items-center gap-2 text-xs font-black text-[#14F5D5]">
-                  <ShieldCheck className="h-4 w-4 animate-pulse text-[#14F5D5]" />
+                <span className="flex items-center gap-2 text-xs font-black text-radar-teal-bright">
+                  <ShieldCheck className="h-4 w-4 animate-pulse text-radar-teal-bright" />
                   {copy.trustedAd}
                 </span>
                 <button
@@ -498,7 +498,7 @@ export function AdStage({
               </div>
 
               <div className={`space-y-2 ${isArabic ? 'text-right' : 'text-left'}`}>
-                <span className="rounded-full border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-2.5 py-1 text-[10px] font-black text-[#14F5D5]">
+                <span className="rounded-full border border-radar-teal/30 bg-radar-teal/10 px-2.5 py-1 text-[10px] font-black text-radar-teal-bright">
                   {getBadgeText(takeoverAd, copy)}
                 </span>
                 <h3 className="mt-2 text-xl font-black leading-tight text-white">
@@ -514,7 +514,7 @@ export function AdStage({
                   href={`https://wa.me/${takeoverAd.whatsapp || takeoverAd.advertiserData?.whatsapp || '962798888888'}?text=${encodeURIComponent(copy.whatsappMessage(getAdTitle(takeoverAd, copy.nearbyBadge)))}`}
                   target="_blank"
                   onClick={(event) => event.stopPropagation()}
-                  className="flex w-full items-center justify-center gap-2.5 rounded-2xl border border-[#00cc66]/50 bg-[#00cc66] p-3.5 text-xs font-black text-white shadow-[0_4px_15px_rgba(0,204,102,0.25)] transition hover:bg-[#00e271]"
+                  className="flex w-full items-center justify-center gap-2.5 rounded-2xl border border-radar-neon-green/50 bg-radar-neon-green p-3.5 text-xs font-black text-white shadow-[0_4px_15px_rgb(var(--radar-neon-green-rgb)/0.25)] transition hover:bg-radar-neon-green"
                 >
                   <MessageCircle className="h-4 w-4 text-white" />
                   {copy.whatsapp}
@@ -523,9 +523,9 @@ export function AdStage({
                 <a
                   href={`tel:${takeoverAd.phone || takeoverAd.advertiserData?.phone || '0798888888'}`}
                   onClick={(event) => event.stopPropagation()}
-                  className="flex w-full items-center justify-center gap-2.5 rounded-2xl border border-[#14B8A6]/35 bg-[#131C31] p-3.5 text-xs font-black text-[#14F5D5] shadow-[0_4px_10px_rgba(0,0,0,0.3)] transition hover:bg-[#14B8A6]/15"
+                  className="flex w-full items-center justify-center gap-2.5 rounded-2xl border border-radar-teal/35 bg-radar-indigo p-3.5 text-xs font-black text-radar-teal-bright shadow-[0_4px_10px_rgba(0,0,0,0.3)] transition hover:bg-radar-teal/15"
                 >
-                  <Phone className="h-4 w-4 text-[#14F5D5]" />
+                  <Phone className="h-4 w-4 text-radar-teal-bright" />
                   {copy.call}
                 </a>
 
@@ -533,7 +533,7 @@ export function AdStage({
                   href={takeoverAd.geoLoc || 'https://www.openstreetmap.org/'}
                   target="_blank"
                   onClick={(event) => event.stopPropagation()}
-                  className="flex w-full items-center justify-center gap-2.5 rounded-2xl border border-blue-700/50 bg-blue-700 p-3.5 text-xs font-black text-white shadow-[0_4px_15px_rgba(29,78,216,0.25)] transition hover:bg-blue-600"
+                  className="flex w-full items-center justify-center gap-2.5 rounded-2xl border border-blue-700/50 bg-blue-700 p-3.5 text-xs font-black text-white shadow-[0_4px_15px_rgb(var(--radar-blue-deep-rgb)/0.25)] transition hover:bg-blue-600"
                 >
                   <MapPin className="h-4 w-4 text-white" />
                   {copy.openLocation}
@@ -570,7 +570,7 @@ function mapAdCampaignRow(row: Record<string, any>) {
     targetScale,
     targetLocationName,
     adType: row.adType || row.ad_type,
-    buttonText: firstString(row.buttonText, row.button_text, row.cta_text) || 'عرض التفاصيل',
+    buttonText: firstString(row.buttonText, row.button_text, row.cta_text) || '',
     content: {
       ...(row.content || {}),
       title,

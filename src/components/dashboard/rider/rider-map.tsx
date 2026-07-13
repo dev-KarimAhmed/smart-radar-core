@@ -417,27 +417,27 @@ export function RiderMap({
   }, [isMapReady, onDestinationChange, onDestinationMoveStart, showDestinationPin]);
 
   return (
-    <section className={`relative overflow-hidden rounded-[24px] border border-[#14B8A6]/20 bg-[#0B0F19] shadow-2xl shadow-black/40 ${className || ''}`}>
+    <section className={`relative overflow-hidden rounded-[24px] border border-radar-teal/20 bg-radar-bg-deep shadow-2xl shadow-black/40 ${className || ''}`}>
       <div ref={containerRef} className="h-full min-h-0 w-full" />
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#0B0F19]/78 via-transparent to-[#0B0F19]/20 lg:hidden" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-radar-bg-deep/78 via-transparent to-radar-bg-deep/20 lg:hidden" />
       {showDestinationPin && (
         <div
           data-destination-pin="true"
           className="pointer-events-none absolute left-1/2 top-1/2 z-30 flex -translate-x-1/2 -translate-y-full flex-col items-center"
           aria-hidden="true"
         >
-          <div className="flex h-8 w-8 items-center justify-center rounded-full border border-[#14F5D5]/60 bg-[#0B0F19]/88 shadow-[0_0_18px_rgba(20,245,213,0.24)] backdrop-blur">
-            <div className="h-2.5 w-2.5 rounded-full bg-[#14F5D5] shadow-[0_0_12px_rgba(20,245,213,0.8)]" />
+          <div className="flex h-8 w-8 items-center justify-center rounded-full border border-radar-teal-bright/60 bg-radar-bg-deep/88 shadow-[0_0_18px_rgb(var(--radar-teal-bright-rgb)/0.24)] backdrop-blur">
+            <div className="h-2.5 w-2.5 rounded-full bg-radar-teal-bright shadow-[0_0_12px_rgb(var(--radar-teal-bright-rgb)/0.8)]" />
           </div>
-          <div className="-mt-1 h-2.5 w-2.5 rotate-45 border-b border-r border-[#14F5D5]/60 bg-[#0B0F19]/88" />
-          <div className="mt-1.5 hidden rounded-full border border-[#14B8A6]/20 bg-[#0B0F19]/78 px-2.5 py-0.5 text-[9px] font-black text-[#14F5D5] backdrop-blur sm:block">
+          <div className="-mt-1 h-2.5 w-2.5 rotate-45 border-b border-r border-radar-teal-bright/60 bg-radar-bg-deep/88" />
+          <div className="mt-1.5 hidden rounded-full border border-radar-teal/20 bg-radar-bg-deep/78 px-2.5 py-0.5 text-[9px] font-black text-radar-teal-bright backdrop-blur sm:block">
             {copy.moveMap}
           </div>
         </div>
       )}
 
       {!showDestinationPin && !activeTripCaptainId && captainLocations.length === 0 && (
-        <div className="pointer-events-none absolute right-3 top-20 hidden max-w-[260px] rounded-2xl border border-amber-400/25 bg-[#0B0F19]/88 px-3 py-2 text-right text-[11px] font-bold leading-relaxed text-amber-100 shadow-xl shadow-black/30 backdrop-blur sm:block sm:right-4 sm:top-24 lg:right-[456px]">
+        <div className="pointer-events-none absolute right-3 top-20 hidden max-w-[260px] rounded-2xl border border-amber-400/25 bg-radar-bg-deep/88 px-3 py-2 text-right text-[11px] font-bold leading-relaxed text-amber-100 shadow-xl shadow-black/30 backdrop-blur sm:block sm:right-4 sm:top-24 lg:right-[456px]">
           {copy.offPeak}
         </div>
       )}
@@ -445,7 +445,7 @@ export function RiderMap({
         type="button"
         onClick={handleRecenter}
         disabled={locationStatus === 'locating'}
-        className="absolute bottom-14 left-3 z-30 flex h-11 w-11 items-center justify-center rounded-2xl border border-[#14B8A6]/30 bg-[#0B0F19]/90 text-[#14F5D5] shadow-xl shadow-black/30 backdrop-blur transition hover:border-[#14F5D5]/60 hover:bg-[#14B8A6]/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/60 disabled:cursor-wait disabled:opacity-60 sm:bottom-20 sm:left-4 lg:left-[312px]"
+        className="absolute bottom-14 left-3 z-30 flex h-11 w-11 items-center justify-center rounded-2xl border border-radar-teal/30 bg-radar-bg-deep/90 text-radar-teal-bright shadow-xl shadow-black/30 backdrop-blur transition hover:border-radar-teal-bright/60 hover:bg-radar-teal/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-radar-teal/60 disabled:cursor-wait disabled:opacity-60 sm:bottom-20 sm:left-4 lg:left-[312px]"
         aria-label={copy.recenter}
         title={copy.recenter}
       >
@@ -455,7 +455,7 @@ export function RiderMap({
         <button
           type="button"
           onClick={requestLiveLocation}
-          className="absolute left-4 top-4 rounded-2xl border border-[#14B8A6]/30 bg-[#0B0F19]/90 px-4 py-2 text-xs font-black text-[#14F5D5] shadow-lg backdrop-blur transition hover:bg-[#14B8A6]/15 lg:left-[312px]"
+          className="absolute left-4 top-4 rounded-2xl border border-radar-teal/30 bg-radar-bg-deep/90 px-4 py-2 text-xs font-black text-radar-teal-bright shadow-lg backdrop-blur transition hover:bg-radar-teal/15 lg:left-[312px]"
         >
           {copy.useMyLocation}
         </button>

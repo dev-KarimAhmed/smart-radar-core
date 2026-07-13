@@ -15,7 +15,7 @@ function mapCampaignRow(row: Record<string, any>): SovereignAd {
       posterUrl: row.image_url || row.poster_url || row.content?.posterUrl || '',
     },
     action: {
-      buttonText: row.cta_ar || row.button_text || row.action?.buttonText || 'عرض التفاصيل',
+      buttonText: row.cta_ar || row.button_text || row.action?.buttonText || '',
       actionUrl: row.action_url || row.url || row.action?.actionUrl || '',
     },
     targetDistrict: row.district_id ? String(row.district_id) : row.targetDistrict,

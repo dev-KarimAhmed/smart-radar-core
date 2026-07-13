@@ -36,10 +36,10 @@ export function BiddingProposalSheet({
   const canSubmit = Number.isFinite(price) && price > 0 && !isSubmitting && !isBlockedDeviation;
 
   return (
-    <section className="mx-auto max-w-3xl rounded-3xl border border-emerald-500/20 bg-[#05080f] p-5 text-white shadow-2xl">
+    <section className="mx-auto max-w-3xl rounded-3xl border border-emerald-500/20 bg-radar-abyss p-5 text-white shadow-2xl">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-black text-[#14B8A6]">{copy.badge}</p>
+          <p className="text-xs font-black text-radar-teal">{copy.badge}</p>
           <h1 className="mt-1 text-2xl font-black">{copy.title}</h1>
           <p className="mt-2 text-sm leading-6 text-slate-400">{copy.subtitle}</p>
         </div>
@@ -102,7 +102,7 @@ export function BiddingProposalSheet({
         <button
           onClick={() => onSubmit(price)}
           disabled={!canSubmit}
-          className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-[#14B8A6] px-5 py-4 font-black text-[#06111f] disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-radar-teal px-5 py-4 font-black text-radar-bg disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
           {copy.submit}

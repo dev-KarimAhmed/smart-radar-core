@@ -15,6 +15,12 @@
     "admin": "Admin",
     "owner": "Owner"
   },
+  "ranks": {
+    "Platinum": "Platinum",
+    "Gold": "Gold",
+    "Silver": "Silver",
+    "Bronze": "Bronze"
+  },
   "nav": {
     "home": "Home",
     "history": "History",
@@ -98,6 +104,14 @@
     "offerSent": "Your offer was sent to the rider.",
     "noBalance": "Not enough balance. Please recharge your wallet."
   },
+  "adCard": {
+    "fallbackTitle": "Nearby ad",
+    "fallbackDescription": "Discover a useful offer in your area and contact the advertiser directly.",
+    "fallbackCta": "View details",
+    "defaultBadge": "Nearby ad",
+    "saveAd": "Save ad",
+    "removeAd": "Remove ad from saved"
+  },
   "ads": {
     "adRiverTitle": "Nearby ads",
     "campaignTitle": "Campaign name",
@@ -152,7 +166,47 @@
     "permissionDenied": "You do not have permission to do this.",
     "network": "Could not connect. Check your internet and try again.",
     "gpsDisabled": "Please enable location to use this feature.",
-    "activeTripLocked": "You cannot change pages during the current trip."
+    "activeTripLocked": "You cannot change pages during the current trip.",
+    "activeTripLockedTitle": "You cannot change pages now"
+  },
+  "driverStatsCard": {
+    "rating": "Rating",
+    "acceptanceRate": "Acceptance rate",
+    "driverRank": "Driver rank"
+  },
+  "driverSovereignCard": {
+    "officeTaxi": "Office taxi",
+    "smartApp": "Smart app",
+    "independent": "Independent",
+    "distance": "{km} km",
+    "silentRoute": "Quiet route (silent)",
+    "welcomesTalk": "Open to chatting"
+  },
+  "offerGallery": {
+    "title": "Captain offers",
+    "subtitle": "{count} nearby captains sent you an offer.",
+    "cancelRequest": "Cancel request",
+    "selectOffer": "Choose this offer",
+    "offeredPrice": "Offered price",
+    "byMeter": "By meter",
+    "currency": "JOD",
+    "independent": "Independent",
+    "rankPlatinum": "Platinum",
+    "rankPlatinumBadge": "Platinum",
+    "rankGold": "Gold",
+    "rankSilver": "Silver",
+    "rankBronze": "Bronze",
+    "distanceFromYou": "Distance from you: {km} km",
+    "arrivesIn": "Arrives in: {minutes} min",
+    "lowPriceWarning": "This price is below the market average. Check the service quality and vehicle condition before accepting.",
+    "benefitBadge": "Rider benefit",
+    "vehicleProfile": "Vehicle profile",
+    "estimatedDuration": "Estimated trip duration",
+    "durationMinutes": "{minutes} min",
+    "benefitDefaultTitle": "Rider benefit offer",
+    "benefitDefaultDescription": "A simple local offer to help you after choosing a low-price offer.",
+    "benefitDefaultDescriptionShort": "A quick local offer for direct contact.",
+    "benefitCta": "Get the offer"
   },
   "riderDashboard": {
     "tabs": {

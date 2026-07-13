@@ -63,19 +63,19 @@ export function VehicleStep() {
       {isTaxi ? (
         <>
           <div>
-            <label className="block text-[10px] font-medium text-[#94A3B8] tracking-wider uppercase mb-1 text-right">
+            <label className="block text-[10px] font-medium text-radar-text-sub tracking-wider uppercase mb-1 text-right">
               اسم المكتب
             </label>
             <Input
               placeholder="اسم المكتب"
               value={vehicle.officeName}
               onChange={(e) => setVehicle({ ...vehicle, officeName: e.target.value })}
-              className="w-full bg-[#0B0F19] border border-[#243249] focus:border-[#14B8A6] text-[#F8FAFC] placeholder-[#94A3B8]/30 rounded-xl px-4 h-11 text-sm outline-none transition-all duration-300 text-right"
+              className="w-full bg-radar-bg-deep border border-radar-muted focus:border-radar-teal text-radar-text-bright placeholder-radar-text-sub/30 rounded-xl px-4 h-11 text-sm outline-none transition-all duration-300 text-right"
               required
             />
           </div>
           <div>
-            <label className="block text-[10px] font-medium text-[#94A3B8] tracking-wider uppercase mb-1 text-right">
+            <label className="block text-[10px] font-medium text-radar-text-sub tracking-wider uppercase mb-1 text-right">
               رقم هاتف المكتب
             </label>
             <Input
@@ -83,38 +83,38 @@ export function VehicleStep() {
               placeholder="رقم هاتف المكتب"
               value={vehicle.officePhone}
               onChange={(e) => setVehicle({ ...vehicle, officePhone: e.target.value })}
-              className="w-full bg-[#0B0F19] border border-[#243249] focus:border-[#14B8A6] text-[#F8FAFC] placeholder-[#94A3B8]/30 rounded-xl px-4 h-11 text-sm outline-none transition-all duration-300 text-right"
+              className="w-full bg-radar-bg-deep border border-radar-muted focus:border-radar-teal text-radar-text-bright placeholder-radar-text-sub/30 rounded-xl px-4 h-11 text-sm outline-none transition-all duration-300 text-right"
               required
             />
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="block text-[10px] font-medium text-[#94A3B8] tracking-wider uppercase mb-1 text-right">
+              <label className="block text-[10px] font-medium text-radar-text-sub tracking-wider uppercase mb-1 text-right">
                 اللوحة الجانبية
               </label>
               <Input
                 placeholder="اللوحة الجانبية"
                 value={vehicle.sideId}
                 onChange={(e) => setVehicle({ ...vehicle, sideId: e.target.value })}
-                className="w-full bg-[#0B0F19] border border-[#243249] focus:border-[#14B8A6] text-[#F8FAFC] placeholder-[#94A3B8]/30 rounded-xl px-4 h-11 text-sm outline-none transition-all duration-300 text-right"
+                className="w-full bg-radar-bg-deep border border-radar-muted focus:border-radar-teal text-radar-text-bright placeholder-radar-text-sub/30 rounded-xl px-4 h-11 text-sm outline-none transition-all duration-300 text-right"
                 required
               />
             </div>
             <div>
-              <label className="block text-[10px] font-medium text-[#94A3B8] tracking-wider uppercase mb-1 text-right">
+              <label className="block text-[10px] font-medium text-radar-text-sub tracking-wider uppercase mb-1 text-right">
                 لوحة السيارة
               </label>
               <Input
                 placeholder="لوحة السيارة"
                 value={vehicle.plate}
                 onChange={(e) => setVehicle({ ...vehicle, plate: e.target.value })}
-                className="w-full bg-[#0B0F19] border border-[#243249] focus:border-[#14B8A6] text-[#F8FAFC] placeholder-[#94A3B8]/30 rounded-xl px-4 h-11 text-sm outline-none transition-all duration-300 text-right"
+                className="w-full bg-radar-bg-deep border border-radar-muted focus:border-radar-teal text-radar-text-bright placeholder-radar-text-sub/30 rounded-xl px-4 h-11 text-sm outline-none transition-all duration-300 text-right"
                 required
               />
             </div>
           </div>
           <div>
-            <label className="block text-[10px] font-medium text-[#94A3B8] tracking-wider uppercase mb-1 text-right">
+            <label className="block text-[10px] font-medium text-radar-text-sub tracking-wider uppercase mb-1 text-right">
               سنة الصنع
             </label>
             <Input
@@ -122,7 +122,7 @@ export function VehicleStep() {
               placeholder="سنة الصنع"
               value={vehicle.year}
               onChange={(e) => setVehicle({ ...vehicle, year: e.target.value })}
-              className="w-full bg-[#0B0F19] border border-[#243249] focus:border-[#14B8A6] text-[#F8FAFC] placeholder-[#94A3B8]/30 rounded-xl px-4 h-11 text-sm outline-none transition-all duration-300 text-right"
+              className="w-full bg-radar-bg-deep border border-radar-muted focus:border-radar-teal text-radar-text-bright placeholder-radar-text-sub/30 rounded-xl px-4 h-11 text-sm outline-none transition-all duration-300 text-right"
               required
               min="1990"
               max="2027"
@@ -132,58 +132,58 @@ export function VehicleStep() {
       ) : (
         <>
           <div>
-            <label className="block text-[10px] font-medium text-[#94A3B8] tracking-wider uppercase mb-1 text-right">
+            <label className="block text-[10px] font-medium text-radar-text-sub tracking-wider uppercase mb-1 text-right">
               اسم الشركة (أوبر، كريم...)
             </label>
             <Input
               placeholder="اسم الشركة (أوبر، كريم...)"
               value={vehicle.companyName}
               onChange={(e) => setVehicle({ ...vehicle, companyName: e.target.value })}
-              className="w-full bg-[#0B0F19] border border-[#243249] focus:border-[#14B8A6] text-[#F8FAFC] placeholder-[#94A3B8]/30 rounded-xl px-4 h-11 text-sm outline-none transition-all duration-300 text-right"
+              className="w-full bg-radar-bg-deep border border-radar-muted focus:border-radar-teal text-radar-text-bright placeholder-radar-text-sub/30 rounded-xl px-4 h-11 text-sm outline-none transition-all duration-300 text-right"
               required
             />
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="block text-[10px] font-medium text-[#94A3B8] tracking-wider uppercase mb-1 text-right">
+              <label className="block text-[10px] font-medium text-radar-text-sub tracking-wider uppercase mb-1 text-right">
                 نوع السيارة
               </label>
               <Input
                 placeholder="نوع السيارة (تويوتا..)"
                 value={vehicle.make}
                 onChange={(e) => setVehicle({ ...vehicle, make: e.target.value })}
-                className="w-full bg-[#0B0F19] border border-[#243249] focus:border-[#14B8A6] text-[#F8FAFC] placeholder-[#94A3B8]/30 rounded-xl px-4 h-11 text-sm outline-none transition-all duration-300 text-right"
+                className="w-full bg-radar-bg-deep border border-radar-muted focus:border-radar-teal text-radar-text-bright placeholder-radar-text-sub/30 rounded-xl px-4 h-11 text-sm outline-none transition-all duration-300 text-right"
                 required
               />
             </div>
             <div>
-              <label className="block text-[10px] font-medium text-[#94A3B8] tracking-wider uppercase mb-1 text-right">
+              <label className="block text-[10px] font-medium text-radar-text-sub tracking-wider uppercase mb-1 text-right">
                 اللون
               </label>
               <Input
                 placeholder="اللون"
                 value={vehicle.color}
                 onChange={(e) => setVehicle({ ...vehicle, color: e.target.value })}
-                className="w-full bg-[#0B0F19] border border-[#243249] focus:border-[#14B8A6] text-[#F8FAFC] placeholder-[#94A3B8]/30 rounded-xl px-4 h-11 text-sm outline-none transition-all duration-300 text-right"
+                className="w-full bg-radar-bg-deep border border-radar-muted focus:border-radar-teal text-radar-text-bright placeholder-radar-text-sub/30 rounded-xl px-4 h-11 text-sm outline-none transition-all duration-300 text-right"
                 required
               />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="block text-[10px] font-medium text-[#94A3B8] tracking-wider uppercase mb-1 text-right">
+              <label className="block text-[10px] font-medium text-radar-text-sub tracking-wider uppercase mb-1 text-right">
                 لوحة السيارة
               </label>
               <Input
                 placeholder="لوحة السيارة"
                 value={vehicle.plate}
                 onChange={(e) => setVehicle({ ...vehicle, plate: e.target.value })}
-                className="w-full bg-[#0B0F19] border border-[#243249] focus:border-[#14B8A6] text-[#F8FAFC] placeholder-[#94A3B8]/30 rounded-xl px-4 h-11 text-sm outline-none transition-all duration-300 text-right"
+                className="w-full bg-radar-bg-deep border border-radar-muted focus:border-radar-teal text-radar-text-bright placeholder-radar-text-sub/30 rounded-xl px-4 h-11 text-sm outline-none transition-all duration-300 text-right"
                 required
               />
             </div>
             <div>
-              <label className="block text-[10px] font-medium text-[#94A3B8] tracking-wider uppercase mb-1 text-right">
+              <label className="block text-[10px] font-medium text-radar-text-sub tracking-wider uppercase mb-1 text-right">
                 سنة الصنع
               </label>
               <Input
@@ -191,7 +191,7 @@ export function VehicleStep() {
                 placeholder="سنة الصنع"
                 value={vehicle.year}
                 onChange={(e) => setVehicle({ ...vehicle, year: e.target.value })}
-                className="w-full bg-[#0B0F19] border border-[#243249] focus:border-[#14B8A6] text-[#F8FAFC] placeholder-[#94A3B8]/30 rounded-xl px-4 h-11 text-sm outline-none transition-all duration-300 text-right"
+                className="w-full bg-radar-bg-deep border border-radar-muted focus:border-radar-teal text-radar-text-bright placeholder-radar-text-sub/30 rounded-xl px-4 h-11 text-sm outline-none transition-all duration-300 text-right"
                 required
                 min="1990"
                 max="2027"
@@ -202,11 +202,11 @@ export function VehicleStep() {
       )}
 
       {/* 📥 [معمارية SC55 - وثيقة التحقق المهنية للناقل] */}
-      <div className="p-3 rounded-xl bg-[#0B0F19] border border-[#14B8A6]/20 text-right space-y-2">
-        <label className="text-[10px] sm:text-[11px] font-black text-[#14B8A6] block">
+      <div className="p-3 rounded-xl bg-radar-bg-deep border border-radar-teal/20 text-right space-y-2">
+        <label className="text-[10px] sm:text-[11px] font-black text-radar-teal block">
           🔐 رخصة السوق / رخصة القيادة المهنية:
         </label>
-        <div className="relative border border-dashed border-[#14B8A6]/35 rounded-lg p-2.5 flex flex-col items-center justify-center bg-black/40 hover:bg-black/60 transition-all cursor-pointer">
+        <div className="relative border border-dashed border-radar-teal/35 rounded-lg p-2.5 flex flex-col items-center justify-center bg-black/40 hover:bg-black/60 transition-all cursor-pointer">
           <input
             type="file"
             accept="image/*"
@@ -222,8 +222,8 @@ export function VehicleStep() {
             <span className="text-[10px] text-gray-400 animate-pulse">جاري فحص وتكثيف رقعة الصورة...</span>
           ) : (
             <div className="flex flex-col items-center">
-              <span className="text-[9px] text-[#94A3B8]/80 leading-normal text-center font-medium">اسحب وأسقِط رخصتك هنا لتفعيل المناعة المهنية</span>
-              <span className="text-[8px] text-[#14B8A6]/60 block font-mono">تُضغط الصورة تلقائياً لصفر كلفة قراءة</span>
+              <span className="text-[9px] text-radar-text-sub/80 leading-normal text-center font-medium">اسحب وأسقِط رخصتك هنا لتفعيل المناعة المهنية</span>
+              <span className="text-[8px] text-radar-teal/60 block font-mono">تُضغط الصورة تلقائياً لصفر كلفة قراءة</span>
             </div>
           )}
         </div>
@@ -232,7 +232,7 @@ export function VehicleStep() {
       <div className="pt-2">
         <button
           type="submit"
-          className="w-full bg-[#14B8A6] hover:bg-[#14B8A6]/90 text-[#0B0F19] font-bold py-3 px-4 rounded-xl transition-all duration-300 shadow-[0_4px_20px_rgba(20,184,166,0.2)] hover:shadow-[0_4px_25px_rgba(20,184,166,0.35)] transform active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+          className="w-full bg-radar-teal hover:bg-radar-teal/90 text-radar-bg-deep font-bold py-3 px-4 rounded-xl transition-all duration-300 shadow-[0_4px_20px_rgb(var(--radar-teal-rgb)/0.2)] hover:shadow-[0_4px_25px_rgb(var(--radar-teal-rgb)/0.35)] transform active:scale-[0.98] disabled:opacity-50 cursor-pointer"
           disabled={isSubmitting || compressing}
         >
           {isSubmitting ? 'جاري تجهيز البيانات...' : 'الدخول للنظام'}
@@ -241,7 +241,7 @@ export function VehicleStep() {
 
       <button
         type="button"
-        className="w-full text-xs text-[#94A3B8]/60 hover:text-white transition-colors py-2 cursor-pointer"
+        className="w-full text-xs text-radar-text-sub/60 hover:text-white transition-colors py-2 cursor-pointer"
         onClick={() => setStep('affiliation')}
       >
         العودة لتعديل الانتماء

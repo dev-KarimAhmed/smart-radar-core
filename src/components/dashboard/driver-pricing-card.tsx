@@ -38,7 +38,7 @@ const PricingInput = React.memo(({ id, label, icon, value, onChange, hasError }:
       onChange={e => onChange(parseFloat(e.target.value) || 0)}
       className={`bg-black border rounded p-2 text-white text-lg focus:outline-none transition-all duration-300 w-full ${
         hasError
-          ? 'border-red-500/80 focus:border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.2)] bg-red-950/10'
+          ? 'border-red-500/80 focus:border-red-500 shadow-[0_0_10px_rgb(var(--radar-red-rgb)/0.2)] bg-red-950/10'
           : 'border-green-900 focus:border-green-500'
       }`}
     />
@@ -238,11 +238,11 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, re
   if (mode === 'setup') {
     return (
        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in-25">
-          <div className="bg-[#0F172A] border border-white/[0.06] rounded-xl w-full max-w-lg text-white shadow-2xl overflow-y-auto max-h-[90vh] relative">
+          <div className="bg-radar-card border border-white/[0.06] rounded-xl w-full max-w-lg text-white shadow-2xl overflow-y-auto max-h-[90vh] relative">
 
             {/* [المادة 4] تجميد شاشة السائق وعرض الإعلان المهني الموجه عند تجاوز الـ 15% */}
             {isBlocked && (
-              <div className={`absolute inset-0 z-50 bg-[#0A0F1D]/98 backdrop-blur-xl p-6 flex flex-col justify-between overflow-y-auto ${isArabic ? 'text-right' : 'text-left'}`} dir={isArabic ? 'rtl' : 'ltr'}>
+              <div className={`absolute inset-0 z-50 bg-radar-bg/98 backdrop-blur-xl p-6 flex flex-col justify-between overflow-y-auto ${isArabic ? 'text-right' : 'text-left'}`} dir={isArabic ? 'rtl' : 'ltr'}>
                 <div className="space-y-4">
                   <div className="flex items-start gap-2.5 text-red-400 border border-red-500/30 bg-red-950/20 p-4 rounded-xl shadow-lg">
                     <AlertCircle className="w-5 h-5 shrink-0 animate-bounce text-red-500 mt-0.5" />
@@ -269,7 +269,7 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, re
                   )}
 
                   {professionalAd && false && (
-                    <div className="relative rounded-2xl overflow-hidden border border-amber-500/30 bg-[#140b03]/80 space-y-3 p-4 shadow-xl">
+                    <div className="relative rounded-2xl overflow-hidden border border-amber-500/30 bg-radar-black/80 space-y-3 p-4 shadow-xl">
                       <img
                         src={professionalAd.bannerUrl}
                         alt={professionalAd.title}
@@ -381,7 +381,7 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, re
                 <div className="mb-4 space-y-2.5">
                   {/* Warning 1: Blocked (Deviation >= 15% or Base < 1.0) */}
                   {isBlocked && (
-                    <div className="p-3 bg-[#330005]/95 border-r-4 border-red-500 rounded-xl text-[#ffb3bf] font-sans text-xs flex items-start gap-2.5 animate-pulse shadow-lg shadow-red-950/20">
+                    <div className="p-3 bg-radar-danger-deep/95 border-r-4 border-red-500 rounded-xl text-radar-accent-rose font-sans text-xs flex items-start gap-2.5 animate-pulse shadow-lg shadow-red-950/20">
                       <span className="text-sm">🚫</span>
                       <div className="space-y-1">
                         <strong className="block text-red-400 font-bold">خطأ في المداخلات: القيمة غير منطقية تشغيلياً.</strong>
@@ -394,7 +394,7 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, re
 
                   {/* Warning 2: Amber Deviation Warning (10% to 14.9%) */}
                   {isWarned && (
-                    <div className="p-3 bg-[#2d1a00]/95 border-r-4 border-amber-500 rounded-xl text-[#ffe0b3] font-sans text-xs flex items-start gap-2.5 animate-pulse shadow-lg shadow-amber-950/20">
+                    <div className="p-3 bg-radar-black/95 border-r-4 border-amber-500 rounded-xl text-radar-accent-amber font-sans text-xs flex items-start gap-2.5 animate-pulse shadow-lg shadow-amber-950/20">
                       <span className="text-sm">⚠️</span>
                       <div className="space-y-1">
                         <strong className="block text-amber-500 font-bold">تنبيه: سعرك الحالي بعيد عن متوسط السوق.</strong>
@@ -407,7 +407,7 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, re
 
                   {/* Warning 3: Immune system risk (Rating <= 4.3) */}
                   {isImmuneRisk && (
-                    <div className="p-3 bg-[#1d0033]/95 border-r-4 border-purple-500 rounded-xl text-[#eed4ff] font-sans text-xs flex items-start gap-2.5 animate-pulse shadow-lg shadow-purple-950/20">
+                    <div className="p-3 bg-radar-black/95 border-r-4 border-purple-500 rounded-xl text-radar-accent-lilac font-sans text-xs flex items-start gap-2.5 animate-pulse shadow-lg shadow-purple-950/20">
                       <span className="text-sm">🧬</span>
                       <div className="space-y-1">
                         <strong className="block text-purple-400 font-bold">تحذير مناعي حرج: رصيد الثقة الخاص بك يقترب من عتبة الحظر التلقائي (4.2).</strong>
@@ -447,7 +447,7 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, re
                   disabled={isSaving || (!isOperatorLinked && isBlocked)}
                   className={`flex-1 font-bold py-3 rounded transition-all duration-300 ${
                     !isOperatorLinked && isBlocked
-                      ? 'bg-red-950/40 text-red-400 border border-red-500/20 cursor-not-allowed shadow-[inset_0_0_10px_rgba(239,68,68,0.1)]'
+                      ? 'bg-red-950/40 text-red-400 border border-red-500/20 cursor-not-allowed shadow-[inset_0_0_10px_rgb(var(--radar-red-rgb)/0.1)]'
                       : 'bg-green-600 hover:bg-green-500 text-white'
                   }`}
                 >
@@ -465,7 +465,7 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, re
     if (requiresOfficialRate) {
       return (
         <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in-25">
-          <div className="bg-[#0F172A] border-2 border-yellow-600/50 rounded-2xl p-6 w-full max-w-sm text-white shadow-2xl space-y-4">
+          <div className="bg-radar-card border-2 border-yellow-600/50 rounded-2xl p-6 w-full max-w-sm text-white shadow-2xl space-y-4">
              <h3 className="text-lg font-black text-center text-yellow-400 flex items-center justify-center gap-2">
                <ShieldAlert className="w-5 h-5 text-yellow-500 animate-pulse" />
                طلب مقيد بالعداد الموحد
@@ -513,7 +513,7 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, re
     if (savedMatrix.isOperatorLinked) {
       return (
         <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="bg-[#0F172A] border border-yellow-700 rounded-xl p-6 w-full max-w-md text-white shadow-2xl">
+          <div className="bg-radar-card border border-yellow-700 rounded-xl p-6 w-full max-w-md text-white shadow-2xl">
              <h3 className="text-xl font-bold mb-2 text-center text-yellow-400 flex items-center justify-center gap-2"><ShieldCheck className="w-6 h-6"/> وضع التسعير المؤسسي</h3>
              <p className="text-center text-gray-400 text-sm mb-6">
                 أنت تعمل حالياً تحت مظلة مشغلك الرسمي. السعر سيتم تحديده بناءً على عداد المشغل الرسمي عند انتهاء الرحلة.
@@ -536,7 +536,7 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, re
 
     return (
       <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-        <div className="bg-[#0F172A] border border-white/[0.06] rounded-xl p-6 w-full max-w-md text-white shadow-2xl">
+        <div className="bg-radar-card border border-white/[0.06] rounded-xl p-6 w-full max-w-md text-white shadow-2xl">
            <h3 className="text-xl font-bold mb-2 text-center text-green-400">محاكي العرض الذكي 🎯</h3>
            <p className="text-center text-gray-400 text-sm mb-6">
               بناءً على هويتك، هذه هي خياراتك للمسافة ({tripDistance.toFixed(1)} كم).

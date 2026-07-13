@@ -59,10 +59,10 @@ export function DriverWalletTab({ user, language }: DriverWalletTabProps) {
 
   return (
     <section className="mx-auto max-w-5xl space-y-5 text-white">
-      <div className="rounded-3xl border border-emerald-500/20 bg-[#05080f] p-5">
+      <div className="rounded-3xl border border-emerald-500/20 bg-radar-abyss p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-black text-[#14B8A6]">{copy.badge}</p>
+            <p className="text-xs font-black text-radar-teal">{copy.badge}</p>
             <h1 className="mt-1 text-2xl font-black">{copy.title}</h1>
             <p className="mt-2 text-sm text-slate-400">{copy.subtitle}</p>
           </div>
@@ -110,7 +110,7 @@ export function DriverWalletTab({ user, language }: DriverWalletTabProps) {
       </div>
 
       <div className="grid gap-5 lg:grid-cols-2">
-        <div className="rounded-3xl border border-emerald-500/20 bg-[#05080f] p-5">
+        <div className="rounded-3xl border border-emerald-500/20 bg-radar-abyss p-5">
           <h2 className="text-lg font-black">{copy.paymentMethods}</h2>
           <div className="mt-4 space-y-3">
             {paymentMethods.length > 0 ? paymentMethods.map((method) => (
@@ -137,7 +137,7 @@ export function DriverWalletTab({ user, language }: DriverWalletTabProps) {
           </div>
         </div>
 
-        <div className="rounded-3xl border border-emerald-500/20 bg-[#05080f] p-5">
+        <div className="rounded-3xl border border-emerald-500/20 bg-radar-abyss p-5">
           <h2 className="text-lg font-black">{copy.uploadReceipt}</h2>
           <div className="mt-4 space-y-3">
             <input
@@ -161,7 +161,7 @@ export function DriverWalletTab({ user, language }: DriverWalletTabProps) {
             <button
               onClick={submitReceipt}
               disabled={wallet.loading || !receiptFile || !channel.trim()}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#14B8A6] px-5 py-4 font-black text-[#06111f] disabled:opacity-60"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-radar-teal px-5 py-4 font-black text-radar-bg disabled:opacity-60"
             >
               {wallet.loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <ReceiptText className="h-5 w-5" />}
               {copy.sendReceipt}
@@ -170,7 +170,7 @@ export function DriverWalletTab({ user, language }: DriverWalletTabProps) {
         </div>
       </div>
 
-      <div className="rounded-3xl border border-emerald-500/20 bg-[#05080f] p-5">
+      <div className="rounded-3xl border border-emerald-500/20 bg-radar-abyss p-5">
         <h2 className="text-lg font-black">{copy.voucher}</h2>
         <div className="mt-4 flex flex-col gap-3 sm:flex-row">
           <input

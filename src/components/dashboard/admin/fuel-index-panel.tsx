@@ -53,7 +53,7 @@ export function FuelIndexPanel() {
         </div>
       )}
 
-      <Card className="bg-[#091B09]/50 border-emerald-900/30">
+      <Card className="bg-radar-forest/50 border-emerald-900/30">
         <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
                 <Fuel className="w-5 h-5 text-emerald-400"/>
@@ -63,15 +63,15 @@ export function FuelIndexPanel() {
         <CardContent className="space-y-5">
           <div className="grid grid-cols-2 gap-4">
             <Select value={selectedGovernorate} onValueChange={setSelectedGovernorate}>
-              <SelectTrigger className="bg-[#050D05] border-emerald-900/50"><SelectValue placeholder="المحافظة" /></SelectTrigger>
+              <SelectTrigger className="bg-radar-forest border-emerald-900/50"><SelectValue placeholder="المحافظة" /></SelectTrigger>
               <SelectContent>{jordanGovernorates.map(gov => <SelectItem key={gov} value={gov}>{gov}</SelectItem>)}</SelectContent>
             </Select>
             <Select value={selectedDistrict} onValueChange={setSelectedDistrict} disabled={!selectedGovernorate}>
-              <SelectTrigger className="bg-[#050D05] border-emerald-900/50"><SelectValue placeholder="المنطقة" /></SelectTrigger>
+              <SelectTrigger className="bg-radar-forest border-emerald-900/50"><SelectValue placeholder="المنطقة" /></SelectTrigger>
               <SelectContent>{districts.map(dist => <SelectItem key={dist} value={dist}>{dist}</SelectItem>)}</SelectContent>
             </Select>
           </div>
-          <Input type="number" placeholder="سعر اللتر (دينار)" value={price} onChange={e => setPrice(e.target.value)} className="bg-[#050D05] border-emerald-900/50 text-emerald-400 text-lg font-mono" />
+          <Input type="number" placeholder="سعر اللتر (دينار)" value={price} onChange={e => setPrice(e.target.value)} className="bg-radar-forest border-emerald-900/50 text-emerald-400 text-lg font-mono" />
           <Button onClick={handleUpdate} disabled={isProcessing || !selectedDistrict || !price} className="w-full h-12 bg-emerald-600 hover:bg-emerald-500 font-bold">
             {isProcessing ? <Loader2 className="animate-spin" /> : 'اعتماد المؤشر وتفعيل الدرع'}
           </Button>

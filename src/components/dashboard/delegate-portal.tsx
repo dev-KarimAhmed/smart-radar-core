@@ -82,7 +82,7 @@ export function DelegatePortal() {
   }, [user?.uid]);
 
   return (
-    <main className="min-h-screen bg-[#0B0F19] px-4 py-6 text-white sm:px-8" dir="rtl">
+    <main className="min-h-screen bg-radar-bg-deep px-4 py-6 text-white sm:px-8" dir="rtl">
       <section className="mx-auto flex w-full max-w-6xl flex-col gap-6">
         <header className="rounded-[24px] border border-teal-400/15 bg-white/[0.04] p-6 shadow-2xl shadow-black/30 backdrop-blur-xl">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">

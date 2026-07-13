@@ -31,10 +31,10 @@ export function DriverBlackBoxPanel({
   handleReviveDriver
 }: DriverBlackBoxPanelProps) {
   return (
-    <Card className="bg-[#050505] border border-red-500/15 shadow-[0_8px_32px_rgba(0,0,0,0.5)] rounded-2xl overflow-hidden mt-8">
+    <Card className="bg-radar-black border border-red-500/15 shadow-[0_8px_32px_rgba(0,0,0,0.5)] rounded-2xl overflow-hidden mt-8">
       <CardHeader className="bg-red-950/15 border-b border-red-500/10 p-5">
-        <CardTitle className="text-[#ff3366] text-base font-extrabold flex items-center gap-2">
-          <Flame className="w-5 h-5 text-[#ff3366] animate-pulse" />
+        <CardTitle className="text-radar-danger text-base font-extrabold flex items-center gap-2">
+          <Flame className="w-5 h-5 text-radar-danger animate-pulse" />
           منصة تفعيل "الصندوق الأسود" لوقف النواقل الفوري (Black-Box Lethal Strike)
         </CardTitle>
         <CardDescription className="text-gray-400 text-xs leading-relaxed text-right" dir="rtl">
@@ -44,7 +44,7 @@ export function DriverBlackBoxPanel({
       <CardContent className="p-6">
         {loadingDrivers ? (
           <div className="flex items-center justify-center p-12 text-gray-400">
-            <Loader2 className="w-8 h-8 animate-spin text-[#ff3366] ml-2" />
+            <Loader2 className="w-8 h-8 animate-spin text-radar-danger ml-2" />
             <span>جاري محاذاة البيانات الة للنواقل...</span>
           </div>
         ) : drivers.length === 0 ? (
@@ -73,7 +73,7 @@ export function DriverBlackBoxPanel({
                     <TableCell className="text-center">
                       <span className={cn(
                         "font-mono font-bold text-xs",
-                        (drv.paidHoursRemaining || 0) > 0 ? "text-[#00ffcc]" : "text-gray-500"
+                        (drv.paidHoursRemaining || 0) > 0 ? "text-radar-neon" : "text-gray-500"
                       )}>
                         {drv.paidHoursRemaining || 0} ساعة
                       </span>
@@ -82,7 +82,7 @@ export function DriverBlackBoxPanel({
                       <div className="flex justify-center items-center gap-1.5 font-sans">
                         <span className={cn(
                           "text-xs font-black",
-                          (drv.immunityScore ?? 100.0) === 0 ? "text-[#ff3366]" : "text-emerald-400"
+                          (drv.immunityScore ?? 100.0) === 0 ? "text-radar-danger" : "text-emerald-400"
                         )}>
                           {drv.immunityScore ?? 100.0}%
                         </span>
@@ -91,7 +91,7 @@ export function DriverBlackBoxPanel({
                     </TableCell>
                     <TableCell className="text-center">
                       {drv.isBanned ? (
-                        <Badge className="bg-red-950/40 border border-[#ff3366]/40 text-[#ff3366] text-[10px] font-black h-5">
+                        <Badge className="bg-red-950/40 border border-radar-danger/40 text-radar-danger text-[10px] font-black h-5">
                           🔴 : مصعوق
                         </Badge>
                       ) : (
@@ -114,7 +114,7 @@ export function DriverBlackBoxPanel({
                         <Button
                           onClick={() => handleSovereignKillSwitch(drv.uid, drv.name)}
                           disabled={isProcessing}
-                          className="bg-[#ff3366] hover:bg-[#ff3366]/80 text-white font-black text-[11px] h-8 px-3 rounded-lg flex items-center gap-1 cursor-pointer transition-all hover:scale-[1.02] shadow-[0_0_12px_rgba(255,51,102,0.15)]"
+                          className="bg-radar-danger hover:bg-radar-danger/80 text-white font-black text-[11px] h-8 px-3 rounded-lg flex items-center gap-1 cursor-pointer transition-all hover:scale-[1.02] shadow-[0_0_12px_rgb(var(--radar-danger-rgb)/0.15)]"
                         >
                           <Ban className="w-3.5 h-3.5 text-white" />
                           صعق أمني فوري 💥

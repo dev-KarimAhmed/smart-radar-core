@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useTranslations } from 'next-intl';
 import { Heart, Info, Loader2, ShieldCheck, Star, X, Clock, Navigation, MapPin } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -17,14 +18,14 @@ import { AdDisplayCard } from '../ad-display-card';
 const getRankBadge = (rank: 'Platinum' | 'Gold' | 'Silver' | 'Bronze') => {
   switch (rank) {
     case 'Platinum':
-      return { label: 'بلاتيني', className: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' };
+      return { labelKey: 'rankPlatinum', className: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' };
     case 'Gold':
-      return { label: 'ذهبي', className: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' };
+      return { labelKey: 'rankGold', className: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' };
     case 'Silver':
-      return { label: 'فضي', className: 'bg-slate-500/10 text-slate-400 border-slate-500/20' };
+      return { labelKey: 'rankSilver', className: 'bg-slate-500/10 text-slate-400 border-slate-500/20' };
     case 'Bronze':
     default:
-      return { label: 'برونزي', className: 'bg-orange-500/10 text-orange-400 border-orange-500/20' };
+      return { labelKey: 'rankBronze', className: 'bg-orange-500/10 text-orange-400 border-orange-500/20' };
   }
 };
 
@@ -44,6 +45,7 @@ const OfferCard = ({
   isSelecting: boolean;
 }) => {
   const { user } = useAuth();
+  const t = useTranslations('offerGallery');
   const { activeAds } = usePromoStream(user?.district || 'وادي السير', user?.governorate || 'عمان');
 
   const benefitAd = React.useMemo(() => {
@@ -63,10 +65,10 @@ const OfferCard = ({
     if (passAds.length === 0) {
       return {
         adId: 'promo-rider-benefit-default',
-        title: 'عرض منفعة للراكب',
-        description: 'عرض محلي بسيط يساعدك بعد اختيار عرض منخفض السعر.',
+        title: t('benefitDefaultTitle'),
+        description: t('benefitDefaultDescription'),
         actionUrl: 'https://wa.me/962790000000',
-        buttonText: 'احصل على العرض',
+        buttonText: t('benefitCta'),
         bannerUrl: getBenefitAdImage,
         posterUrl: getBenefitAdImage,
       };
@@ -86,14 +88,14 @@ const OfferCard = ({
     return {
       adId: matchedPass.adId,
       id: matchedPass.adId,
-      title: realAd?.content?.title || 'عرض منفعة للراكب',
-      description: realAd?.content?.description || 'عرض محلي سريع للتواصل المباشر.',
+      title: realAd?.content?.title || t('benefitDefaultTitle'),
+      description: realAd?.content?.description || t('benefitDefaultDescriptionShort'),
       actionUrl: realAd?.action?.actionUrl || realAd?.actionUrl || 'https://wa.me/962790000000',
-      buttonText: realAd?.action?.buttonText || realAd?.buttonText || 'احصل على العرض',
+      buttonText: realAd?.action?.buttonText || realAd?.buttonText || t('benefitCta'),
       bannerUrl: image,
       posterUrl: image,
     };
-  }, [offer.isDumping, offer.driverRank, activeAds, user]);
+  }, [offer.isDumping, offer.driverRank, activeAds, user, t]);
 
   return (
     <Card className={`bg-muted/30 border-border transition-all hover:border-primary ${offer.isDumping ? 'relative border-primary/40 animate-pulse-slow' : ''}`}>
@@ -113,26 +115,26 @@ const OfferCard = ({
                   case 'BRONZE':
                     return (
                       <span className="rounded-full border border-amber-600/30 bg-amber-900/20 px-2 py-0.5 text-[10px] font-black text-amber-600 backdrop-blur-md">
-                        برونزي
+                        {t('rankBronze')}
                       </span>
                     );
                   case 'GOLD':
                     return (
                       <span className="animate-pulse rounded-full border border-yellow-400/40 bg-yellow-900/30 px-2 py-0.5 text-[10px] font-black text-yellow-400 backdrop-blur-md">
-                        ذهبي
+                        {t('rankGold')}
                       </span>
                     );
                   case 'PLATINUM':
                     return (
-                      <span className="animate-bounce-slow rounded-full border border-[#14B8A6]/40 bg-teal-950/40 px-2 py-0.5 text-[10px] font-black tracking-wide text-[#14B8A6] backdrop-blur-md">
-                        بلاتينيوم
+                      <span className="animate-bounce-slow rounded-full border border-radar-teal/40 bg-teal-950/40 px-2 py-0.5 text-[10px] font-black tracking-wide text-radar-teal backdrop-blur-md">
+                        {t('rankPlatinumBadge')}
                       </span>
                     );
                   case 'SILVER':
                   default:
                     return (
                       <span className="rounded-full border border-slate-400/30 bg-slate-800/20 px-2 py-0.5 text-[10px] font-black text-slate-400 backdrop-blur-md">
-                        فضي
+                        {t('rankSilver')}
                       </span>
                     );
                 }
@@ -145,12 +147,12 @@ const OfferCard = ({
                 <span className="font-bold text-white">{offer.driverRating.toFixed(1)}</span>
               </div>
               <Separator orientation="vertical" className="h-3" />
-              <span>{offer.driverAffiliation?.name || 'مستقل'}</span>
+              <span>{offer.driverAffiliation?.name || t('independent')}</span>
               {offer.driverRank && (
                 <>
                   <Separator orientation="vertical" className="h-3" />
                   <Badge variant="outline" className={`px-2 py-0 text-[10px] font-black ${getRankBadge(offer.driverRank).className}`}>
-                    {getRankBadge(offer.driverRank).label}
+                    {t(getRankBadge(offer.driverRank).labelKey)}
                   </Badge>
                 </>
               )}
@@ -158,14 +160,14 @@ const OfferCard = ({
           </div>
 
           <div className="text-left">
-            <p className="text-xs text-muted-foreground">السعر المعروض</p>
+            <p className="text-xs text-muted-foreground">{t('offeredPrice')}</p>
             {offer.price === -1 ? (
               <Badge variant="secondary" className="bg-yellow-400/10 text-sm text-yellow-300">
-                حسب العداد
+                {t('byMeter')}
               </Badge>
             ) : (
               <p className="text-xl font-black text-primary">
-                {offer.price.toFixed(2)} <span className="text-xs">د.أ</span>
+                {offer.price.toFixed(2)} <span className="text-xs">{t('currency')}</span>
               </p>
             )}
           </div>
@@ -176,13 +178,13 @@ const OfferCard = ({
           <div className="flex items-center gap-2">
             <MapPin className="h-4 w-4 text-slate-400" />
             <span className="text-slate-400 text-xs">
-              البعد عنك: {offer.distance_to_rider ? offer.distance_to_rider.toFixed(1) : '---'} كم
+              {t('distanceFromYou', { km: offer.distance_to_rider ? offer.distance_to_rider.toFixed(1) : '---' })}
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <Clock className="h-4 w-4 text-[#14B8A6] animate-pulse" />
-            <span className="text-[#14B8A6] font-bold text-xs">
-              يصلك خلال: {offer.pickup_eta_minutes ?? Math.max(3, Math.round((offer.distance_to_rider || 1) * 3))} دقائق
+            <Clock className="h-4 w-4 text-radar-teal animate-pulse" />
+            <span className="text-radar-teal font-bold text-xs">
+              {t('arrivesIn', { minutes: offer.pickup_eta_minutes ?? Math.max(3, Math.round((offer.distance_to_rider || 1) * 3)) })}
             </span>
           </div>
         </div>
@@ -190,14 +192,14 @@ const OfferCard = ({
         {(offer.isDumping || offer.driverRank === 'Silver' || offer.driverRank === 'Bronze') && (
           <div className="space-y-2">
             <div className="rounded-md border border-red-500/20 bg-red-500/10 p-2 text-center text-[11px] font-bold text-red-400">
-              هذا السعر أقل من متوسط السوق. تأكد من جودة الخدمة وحالة المركبة قبل القبول.
+              {t('lowPriceWarning')}
             </div>
 
             {benefitAd && (
               <AdDisplayCard
                 ad={benefitAd}
                 showHeart={false}
-                badgeText="منفعة راكب"
+                badgeText={t('benefitBadge')}
                 ctaText={benefitAd.buttonText}
                 className="h-[230px] rounded-3xl"
                 onOpen={(event) => {
@@ -215,23 +217,23 @@ const OfferCard = ({
           </span>
           <Button variant="ghost" size="sm" className="h-auto p-1 text-xs" onClick={() => onInfo(offer.driverVehicle)}>
             <Info className="ml-1 h-3 w-3" />
-            ملف المركبة
+            {t('vehicleProfile')}
           </Button>
         </div>
 
         {/* TASK 2: Estimated Trip Duration */}
         {offer.estimated_duration_minutes && (
           <div className="bg-teal-500/10 border border-teal-500/20 rounded-xl p-2.5 flex items-center justify-between">
-            <span className="text-slate-400 text-xs">مدة الرحلة المتوقعة</span>
+            <span className="text-slate-400 text-xs">{t('estimatedDuration')}</span>
             <div className="flex items-center gap-1.5">
-              <span className="text-white font-bold text-sm">{offer.estimated_duration_minutes} دقيقة</span>
+              <span className="text-white font-bold text-sm">{t('durationMinutes', { minutes: offer.estimated_duration_minutes })}</span>
               <Navigation className="h-3.5 w-3.5 text-white" />
             </div>
           </div>
         )}
 
         <Button onClick={() => onSelect(offer)} disabled={isSelecting} className="h-12 w-full bg-primary font-bold hover:bg-primary/90">
-          {isSelecting ? <Loader2 className="animate-spin" /> : 'اختر هذا العرض'}
+          {isSelecting ? <Loader2 className="animate-spin" /> : t('selectOffer')}
         </Button>
       </CardContent>
     </Card>
@@ -255,6 +257,7 @@ export function OfferGallery({
   isSelecting: boolean;
   isCancelling: boolean;
 }) {
+  const t = useTranslations('offerGallery');
   const sortedOffers = React.useMemo(() => {
     return [...offers]
       .sort((a, b) => {
@@ -287,10 +290,10 @@ export function OfferGallery({
         <div className="border-b border-border p-4 text-center">
           <h2 className="flex items-center justify-center gap-2 text-xl font-bold text-white">
             <ShieldCheck className="h-6 w-6 text-primary" />
-            عروض السائقون
+            {t('title')}
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            {offers.length} سائق قريب أرسل لك عرضاً.
+            {t('subtitle', { count: offers.length })}
           </p>
         </div>
 
@@ -314,7 +317,7 @@ export function OfferGallery({
             {isCancelling ? <Loader2 className="animate-spin" /> : (
               <>
                 <X className="ml-2" />
-                إلغاء الطلب
+                {t('cancelRequest')}
               </>
             )}
           </Button>

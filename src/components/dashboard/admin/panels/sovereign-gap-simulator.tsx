@@ -178,10 +178,10 @@ export function SovereignGapSimulator({
   };
 
   return (
-    <Card className="bg-[#050505] border border-[#00ffcc]/15 shadow-[0_8px_32px_rgba(0,0,0,0.5)] rounded-2xl overflow-hidden mt-8">
-      <CardHeader className="bg-zinc-950 border-b border-[#00ffcc]/10 p-5">
-        <CardTitle className="text-[#00ffcc] text-base font-extrabold flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-[#00ffcc]" />
+    <Card className="bg-radar-black border border-radar-neon/15 shadow-[0_8px_32px_rgba(0,0,0,0.5)] rounded-2xl overflow-hidden mt-8">
+      <CardHeader className="bg-zinc-950 border-b border-radar-neon/10 p-5">
+        <CardTitle className="text-radar-neon text-base font-extrabold flex items-center gap-2">
+          <Sparkles className="w-5 h-5 text-radar-neon" />
           محرك سد الثغرات الاستراتيجية الحاكم (V5.5 Strategic Gaps Simulation Hub)
         </CardTitle>
         <CardDescription className="text-gray-400 text-xs leading-relaxed text-right" dir="rtl">
@@ -242,7 +242,7 @@ export function SovereignGapSimulator({
           {/* 2. Voucher Top-Up Card */}
           <div className="bg-zinc-950 p-5 rounded-xl border border-white/5 space-y-4">
             <div className="flex items-center gap-2 border-b border-white/5 pb-3">
-              <Award className="w-5 h-5 text-[#00ffcc]" />
+              <Award className="w-5 h-5 text-radar-neon" />
               <span className="font-extrabold text-sm text-white">2. شحن رصيد الساعات يدوياً (بطاقات المندوبين)</span>
             </div>
             <p className="text-xs text-gray-400 leading-relaxed">
@@ -274,7 +274,7 @@ export function SovereignGapSimulator({
                   className="bg-zinc-900 border-white/10 text-xs text-white placeholder-gray-600 h-9 text-right"
                   dir="ltr"
                 />
-                <span className="text-[9px] text-[#00ffcc] block cursor-pointer" onClick={() => setVoucherCode('RADAR-100H-JORDAN')}>
+                <span className="text-[9px] text-radar-neon block cursor-pointer" onClick={() => setVoucherCode('RADAR-100H-JORDAN')}>
                   💡 اضغط هنا لنسخ الرمز المعتمد للجلسة: <code className="underline font-bold">RADAR-100H-JORDAN</code>
                 </span>
               </div>
@@ -282,7 +282,7 @@ export function SovereignGapSimulator({
               <Button
                 onClick={executeVoucherRedeemSim}
                 disabled={isProcessing}
-                className="w-full bg-[#00ffcc] hover:bg-[#00ffcc]/80 text-black font-black text-xs h-9 mt-2 cursor-pointer"
+                className="w-full bg-radar-neon hover:bg-radar-neon/80 text-black font-black text-xs h-9 mt-2 cursor-pointer"
               >
                 تفعيل شحنة الـ 100 ساعة 🎫
               </Button>
@@ -296,15 +296,15 @@ export function SovereignGapSimulator({
           <h4 className="text-xs font-bold text-gray-300">أجهزة القياس الذاتي والتحقق التلقائي (Edge Integrity Metrics)</h4>
           <ul className="text-[11px] text-gray-400 space-y-1">
             <li className="flex items-center gap-1.5">
-              <span className="text-[#00ffcc]">✔</span>
+              <span className="text-radar-neon">✔</span>
               <span>استقرار النطاق الجغرافي: تصفية الإعلانات والحسابات تتم محلياً عند الحافة بصفر تكلفة سحابية.</span>
             </li>
             <li className="flex items-center gap-1.5">
-              <span className="text-[#00ffcc]">✔</span>
+              <span className="text-radar-neon">✔</span>
               <span>محرك الصرف المحصن: تفعيل قاعدة الـ 30 يوماً المستقرة لحسابات المندوبين.</span>
             </li>
             <li className="flex items-center gap-1.5 font-sans">
-              <span className="text-[#ff3366]">✔</span>
+              <span className="text-radar-danger">✔</span>
               <span className="text-right">الصندوق الأسود  مغلق بمجهرية النواة <code className="text-red-400">Object.freeze(RadarGapLockdownKernel)</code> لمنع الاختراقات والعبث بالباقات المدفوعة.</span>
             </li>
           </ul>

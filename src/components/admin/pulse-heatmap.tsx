@@ -35,7 +35,7 @@ const getTrendStyle = (trend: MarketPulse['trend']) => {
     case 'high_demand':
       return {
         bg: 'bg-red-950/20 border-red-500/30',
-        glow: 'shadow-[0_0_15px_rgba(239,68,68,0.15)]',
+        glow: 'shadow-[0_0_15px_rgb(var(--radar-red-rgb)/0.15)]',
         iconColor: 'text-red-400',
         Icon: TrendingUp,
         label: 'طلب مرتفع 📈'
@@ -43,7 +43,7 @@ const getTrendStyle = (trend: MarketPulse['trend']) => {
     case 'high_supply':
       return {
         bg: 'bg-blue-950/20 border-blue-500/30',
-        glow: 'shadow-[0_0_15px_rgba(59,130,246,0.15)]',
+        glow: 'shadow-[0_0_15px_rgb(var(--radar-blue-rgb)/0.15)]',
         iconColor: 'text-blue-400',
         Icon: TrendingDown,
         label: 'وفرة سائقين 📉'
@@ -52,7 +52,7 @@ const getTrendStyle = (trend: MarketPulse['trend']) => {
     default:
       return {
         bg: 'bg-emerald-950/20 border-emerald-500/30',
-        glow: 'shadow-[0_0_15px_rgba(16,185,129,0.1)]',
+        glow: 'shadow-[0_0_15px_rgb(var(--radar-emerald-rgb)/0.1)]',
         iconColor: 'text-emerald-400',
         Icon: ArrowRightLeft,
         label: 'سوق متوازن ⚖️'
@@ -206,7 +206,7 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {[...Array(4)].map((_, i) => (
-          <Card key={i} className="bg-[#091B09]/40 border-emerald-900/50 p-6 space-y-4 animate-pulse">
+          <Card key={i} className="bg-radar-forest/40 border-emerald-900/50 p-6 space-y-4 animate-pulse">
             <div className="h-6 bg-muted rounded w-3/4"></div>
             <div className="h-4 bg-muted rounded w-1/2"></div>
             <div className="flex justify-between pt-4">
@@ -223,12 +223,12 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
     <div className="space-y-6" dir="rtl">
 
       {/* 🛡️ Filters Header Card */}
-      <Card className="bg-[#050d0a]/60 border border-[#00ffcc]/15 backdrop-blur-md shadow-2xl rounded-2xl">
+      <Card className="bg-radar-forest/60 border border-radar-neon/15 backdrop-blur-md shadow-2xl rounded-2xl">
         <CardHeader className="pb-4">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <CardTitle className="text-xl font-black text-white flex items-center gap-2">
-                <Activity className="w-5 h-5 text-[#00ffcc]" />
+                <Activity className="w-5 h-5 text-radar-neon" />
                 مراقبة نشاط السوق والإدارة الجغرافية 📊
               </CardTitle>
               <CardDescription className="text-gray-400 text-xs mt-1">
@@ -241,7 +241,7 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
               {/* Governorate Selector */}
               <div className="space-y-1">
                 <span className="text-[10px] text-gray-400 font-bold block flex items-center gap-1">
-                  <MapPin className="w-3 h-3 text-[#00ffcc]" /> المحافظة
+                  <MapPin className="w-3 h-3 text-radar-neon" /> المحافظة
                 </span>
                 <Select value={selectedGov} onValueChange={handleGovChange}>
                   <SelectTrigger className="w-[150px] bg-black/40 border-emerald-900/50 text-white font-bold text-xs rounded-xl h-9">
@@ -259,7 +259,7 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
               {/* District Selector */}
               <div className="space-y-1">
                 <span className="text-[10px] text-gray-400 font-bold block flex items-center gap-1">
-                  <Navigation className="w-3 h-3 text-[#00ffcc]" /> المنطقة
+                  <Navigation className="w-3 h-3 text-radar-neon" /> المنطقة
                 </span>
                 <Select
                   value={selectedDistrict}
@@ -283,7 +283,7 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
       </Card>
 
       {/* 📊 Custom Vertical Bar Chart Section (No Recharts to ensure React 19 safety) */}
-      <Card className="bg-[#050D0A]/40 border border-emerald-900/30 backdrop-blur-md shadow-xl rounded-2xl overflow-hidden p-4 md:p-6 relative">
+      <Card className="bg-radar-forest/40 border border-emerald-900/30 backdrop-blur-md shadow-xl rounded-2xl overflow-hidden p-4 md:p-6 relative">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
           <div className="flex items-center gap-2">
             <BarChart3 className="w-5 h-5 text-emerald-400" />
@@ -293,11 +293,11 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
           {/* 🏷️ Customized Legend */}
           <div className="flex items-center gap-4 text-xs font-bold">
             <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded bg-[#00ffcc] inline-block shadow-[0_0_8px_rgba(0,255,204,0.3)]"></span>
+              <span className="w-3 h-3 rounded bg-radar-neon inline-block shadow-[0_0_8px_rgb(var(--radar-neon-rgb)/0.3)]"></span>
               <span className="text-gray-300">الطلب (الركاب)</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded bg-[#3b82f6] inline-block shadow-[0_0_8px_rgba(59,130,246,0.3)]"></span>
+              <span className="w-3 h-3 rounded bg-radar-blue inline-block shadow-[0_0_8px_rgb(var(--radar-blue-rgb)/0.3)]"></span>
               <span className="text-gray-300">العرض (السائقون)</span>
             </div>
           </div>
@@ -457,20 +457,20 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
             {/* 🔮 Glassy Absolute Floating Tooltip */}
             {hoveredIndex !== null && chartData[hoveredIndex] && (
               <div
-                className="absolute pointer-events-none z-50 bg-[#050D0A]/95 border border-[#00ffcc]/30 backdrop-blur-md rounded-xl p-3 shadow-2xl shadow-black/95 text-right text-xs min-w-[140px] transition-all duration-75"
+                className="absolute pointer-events-none z-50 bg-radar-forest/95 border border-radar-neon/30 backdrop-blur-md rounded-xl p-3 shadow-2xl shadow-black/95 text-right text-xs min-w-[140px] transition-all duration-75"
                 style={{
                   left: `${mousePos.x + 15}px`,
                   top: `${mousePos.y - 10}px`,
                   transform: 'translate(-50%, -100%)',
                 }}
               >
-                <p className="font-black text-[#00ffcc] border-b border-[#00ffcc]/15 pb-1 mb-1.5">
+                <p className="font-black text-radar-neon border-b border-radar-neon/15 pb-1 mb-1.5">
                   {chartData[hoveredIndex].name}
                 </p>
                 <div className="space-y-1">
                   <p className="text-gray-300 font-semibold flex justify-between gap-4">
                     <span>الطلب (الركاب):</span>
-                    <span className="text-[#00ffcc] font-black">{chartData[hoveredIndex].demand}</span>
+                    <span className="text-radar-neon font-black">{chartData[hoveredIndex].demand}</span>
                   </p>
                   <p className="text-gray-300 font-semibold flex justify-between gap-4">
                     <span>العرض (السائقون):</span>
@@ -478,7 +478,7 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
                   </p>
                   <p className="text-gray-400 font-mono text-[9px] pt-1 border-t border-dashed border-emerald-900/30 flex justify-between gap-4">
                     <span>كثافة التقاطع:</span>
-                    <span className="text-[#00ffcc] font-bold">{chartData[hoveredIndex].density}%</span>
+                    <span className="text-radar-neon font-bold">{chartData[hoveredIndex].density}%</span>
                   </p>
                 </div>
               </div>
@@ -489,7 +489,7 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
 
       {/* 📝 Granular Details List */}
       <div>
-        <h4 className="text-xs font-black text-[#00ffcc] tracking-wider uppercase mb-3 flex items-center gap-1.5">
+        <h4 className="text-xs font-black text-radar-neon tracking-wider uppercase mb-3 flex items-center gap-1.5">
           <span>●</span> تفاصيل الطلبات حسب المنطقة ({filteredData.length})
         </h4>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -529,7 +529,7 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
                   {/* Geospatial Density Counter */}
                   <div className="border-t border-dashed border-emerald-950/40 pt-2 flex justify-between items-center text-[9px] text-gray-500 font-mono">
                     <span>مؤشر الكثافة (Worker):</span>
-                    <span className="text-[#00ffcc] font-black">
+                    <span className="text-radar-neon font-black">
                       {isProcessingScores ? 'محاسبة...' : `${calculatedScores[pulse.id] ?? '0.0'}%`}
                     </span>
                   </div>

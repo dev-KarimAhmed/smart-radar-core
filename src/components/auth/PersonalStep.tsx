@@ -325,7 +325,7 @@ export function PersonalStep() {
   return (
     <main
       dir={isArabic ? 'rtl' : 'ltr'}
-      className="relative min-h-screen overflow-hidden bg-[#0B0F19] text-slate-100"
+      className="relative min-h-screen overflow-hidden bg-radar-bg-deep text-slate-100"
     >
       <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle_at_18%_12%,rgba(20,184,166,0.20),transparent_30%),radial-gradient(circle_at_82%_22%,rgba(45,212,191,0.08),transparent_28%)]" />
 
@@ -333,21 +333,21 @@ export function PersonalStep() {
         type="button"
         aria-label={t.languageAria}
         onClick={() => setLang(isArabic ? 'en' : 'ar')}
-        className={`fixed top-4 z-30 inline-flex min-h-11 items-center gap-2 rounded-full border border-white/10 bg-[#161F30]/70 px-4 text-sm font-bold text-slate-100 shadow-2xl backdrop-blur-xl transition hover:border-[#14B8A6] hover:shadow-[0_0_20px_rgba(20,184,166,0.15)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/50 ${
+        className={`fixed top-4 z-30 inline-flex min-h-11 items-center gap-2 rounded-full border border-white/10 bg-radar-line/70 px-4 text-sm font-bold text-slate-100 shadow-2xl backdrop-blur-xl transition hover:border-radar-teal hover:shadow-[0_0_20px_rgb(var(--radar-teal-rgb)/0.15)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-radar-teal/50 ${
           isArabic ? 'left-4' : 'right-4'
         }`}
       >
-        <Languages className="h-4 w-4 text-[#14B8A6]" aria-hidden="true" />
+        <Languages className="h-4 w-4 text-radar-teal" aria-hidden="true" />
         {t.languageButton}
       </button>
 
       <section className="relative z-10 flex min-h-screen w-full items-center justify-center px-0 py-0 sm:px-6 sm:py-10">
-        <div className="flex min-h-screen w-full max-w-md flex-col justify-center rounded-none border border-white/5 bg-[#161F30]/70 p-6 shadow-2xl backdrop-blur-xl sm:my-12 sm:min-h-0 sm:rounded-3xl sm:p-8">
+        <div className="flex min-h-screen w-full max-w-md flex-col justify-center rounded-none border border-white/5 bg-radar-line/70 p-6 shadow-2xl backdrop-blur-xl sm:my-12 sm:min-h-0 sm:rounded-3xl sm:p-8">
           <header className="mb-7 text-center">
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 text-[#14B8A6] shadow-[0_0_30px_rgba(20,184,166,0.18)]">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-radar-teal/30 bg-radar-teal/10 text-radar-teal shadow-[0_0_30px_rgb(var(--radar-teal-rgb)/0.18)]">
               <ShieldCheck className="h-7 w-7" aria-hidden="true" />
             </div>
-            <p className="text-sm font-bold text-[#14B8A6]">
+            <p className="text-sm font-bold text-radar-teal">
               {t.brand} · {roleName}
             </p>
             <AnimatePresence mode="wait" initial={false}>
@@ -358,17 +358,17 @@ export function PersonalStep() {
                 exit={{ opacity: 0, y: -8 }}
                 transition={{ duration: 0.18 }}
               >
-                <h1 className="mt-3 text-3xl font-black tracking-normal text-[#F8FAFC]">
+                <h1 className="mt-3 text-3xl font-black tracking-normal text-radar-text-bright">
                   {mode === 'register' ? t.registerTitle : t.loginTitle}
                 </h1>
-                <p className="mt-3 text-sm font-medium leading-6 text-[#94A3B8]">
+                <p className="mt-3 text-sm font-medium leading-6 text-radar-text-sub">
                   {mode === 'register' ? t.registerSubtitle : t.loginSubtitle}
                 </p>
               </motion.div>
             </AnimatePresence>
           </header>
 
-          <div className="mb-5 grid grid-cols-2 rounded-2xl border border-white/10 bg-[#0B0F19]/45 p-1">
+          <div className="mb-5 grid grid-cols-2 rounded-2xl border border-white/10 bg-radar-bg-deep/45 p-1">
             {(['register', 'login'] as AuthMode[]).map((nextMode) => {
               const active = mode === nextMode;
 
@@ -377,16 +377,16 @@ export function PersonalStep() {
                   key={nextMode}
                   type="button"
                   onClick={() => goToMode(nextMode)}
-                  className="relative min-h-11 rounded-xl px-3 text-sm font-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/50"
+                  className="relative min-h-11 rounded-xl px-3 text-sm font-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-radar-teal/50"
                 >
                   {active ? (
                     <motion.span
                       layoutId="auth-view-active"
-                      className="absolute inset-0 rounded-xl border border-[#14B8A6]/45 bg-[#14B8A6]/15 shadow-[0_0_18px_rgba(20,184,166,0.14)]"
+                      className="absolute inset-0 rounded-xl border border-radar-teal/45 bg-radar-teal/15 shadow-[0_0_18px_rgb(var(--radar-teal-rgb)/0.14)]"
                       transition={{ type: 'spring', stiffness: 420, damping: 34 }}
                     />
                   ) : null}
-                  <span className={`relative z-10 ${active ? 'text-[#F8FAFC]' : 'text-[#94A3B8]'}`}>
+                  <span className={`relative z-10 ${active ? 'text-radar-text-bright' : 'text-radar-text-sub'}`}>
                     {nextMode === 'register' ? t.register : t.login}
                   </span>
                 </button>
@@ -408,8 +408,8 @@ export function PersonalStep() {
               {mode === 'register' && role === 'driver' && registerStep === 2 ? (
                 <div className="space-y-4 animate-fadeIn text-right animate-in fade-in duration-200" dir="rtl">
                   <div className="flex justify-between items-center text-xs text-slate-400 mb-4 bg-white/5 border border-white/10 rounded-2xl p-3">
-                    <span className="font-bold text-[#14B8A6]">الخطوة 2 من 3</span>
-                    <span className="font-bold text-[#94A3B8]">معلومات المركبة والعمل</span>
+                    <span className="font-bold text-radar-teal">الخطوة 2 من 3</span>
+                    <span className="font-bold text-radar-text-sub">معلومات المركبة والعمل</span>
                   </div>
 
                   <Field label="نوع المركبة" icon={<ChevronDown className="h-5 w-5" />}>
@@ -425,7 +425,7 @@ export function PersonalStep() {
                         <option value="تاكسي">تاكسي</option>
                         <option value="سكوتر">سكوتر</option>
                       </select>
-                      <ChevronDown className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-[#94A3B8]" />
+                      <ChevronDown className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-radar-text-sub" />
                     </div>
                   </Field>
 
@@ -486,7 +486,7 @@ export function PersonalStep() {
                       className={`${inputClass} text-right`}
                       required
                     />
-                    <p className="text-[11px] text-[#94A3B8] mt-1.5 leading-relaxed text-right">
+                    <p className="text-[11px] text-radar-text-sub mt-1.5 leading-relaxed text-right">
                       اكتب اسم الشركة التابع لها، أو اكتب 'مستقل' إذا كنت تعمل لحسابك الخاص
                     </p>
                   </Field>
@@ -501,7 +501,7 @@ export function PersonalStep() {
                     </button>
                     <button
                       type="submit"
-                      className="flex-1 min-h-12 rounded-2xl bg-[#14B8A6] hover:bg-[#2DD4BF] text-[#0B0F19] font-black text-sm transition shadow-[0_16px_45px_rgba(20,184,166,0.18)] cursor-pointer"
+                      className="flex-1 min-h-12 rounded-2xl bg-radar-teal hover:bg-radar-teal-hover text-radar-bg-deep font-black text-sm transition shadow-[0_16px_45px_rgb(var(--radar-teal-rgb)/0.18)] cursor-pointer"
                     >
                       المتابعة للخطوة التالية
                     </button>
@@ -510,8 +510,8 @@ export function PersonalStep() {
               ) : mode === 'register' && role === 'driver' && registerStep === 3 ? (
                 <div className="space-y-4 animate-fadeIn text-right animate-in fade-in duration-200" dir="rtl">
                   <div className="flex justify-between items-center text-xs text-slate-400 mb-4 bg-white/5 border border-white/10 rounded-2xl p-3">
-                    <span className="font-bold text-[#14B8A6]">الخطوة 3 من 3</span>
-                    <span className="font-bold text-[#94A3B8]">التوثيق والهوية</span>
+                    <span className="font-bold text-radar-teal">الخطوة 3 من 3</span>
+                    <span className="font-bold text-radar-text-sub">التوثيق والهوية</span>
                   </div>
 
                   <Field label="رابط صفحة التواصل الخاصة بك (فيسبوك / لينكد إن) - اختياري" icon={<Globe className="h-5 w-5" />}>
@@ -527,8 +527,8 @@ export function PersonalStep() {
                   <div className="space-y-3">
                     <label className="block text-xs font-bold text-slate-300 pr-1">تحميل الوثائق الرسمية (KYC)</label>
                     <div className="grid grid-cols-2 gap-3">
-                      <div className="flex flex-col items-center justify-center p-4 rounded-2xl border border-white/10 bg-white/5 hover:border-[#14B8A6]/40 transition relative group min-h-[96px] cursor-pointer">
-                        <UploadCloud className="h-6 w-6 text-[#14B8A6] mb-1.5 animate-pulse" />
+                      <div className="flex flex-col items-center justify-center p-4 rounded-2xl border border-white/10 bg-white/5 hover:border-radar-teal/40 transition relative group min-h-[96px] cursor-pointer">
+                        <UploadCloud className="h-6 w-6 text-radar-teal mb-1.5 animate-pulse" />
                         <span className="text-[10px] text-white font-bold text-center">رخصة القيادة الشخصية</span>
                         <input
                           type="file"
@@ -538,8 +538,8 @@ export function PersonalStep() {
                         />
                       </div>
 
-                      <div className="flex flex-col items-center justify-center p-4 rounded-2xl border border-white/10 bg-white/5 hover:border-[#14B8A6]/40 transition relative group min-h-[96px] cursor-pointer">
-                        <FileText className="h-6 w-6 text-[#14B8A6] mb-1.5" />
+                      <div className="flex flex-col items-center justify-center p-4 rounded-2xl border border-white/10 bg-white/5 hover:border-radar-teal/40 transition relative group min-h-[96px] cursor-pointer">
+                        <FileText className="h-6 w-6 text-radar-teal mb-1.5" />
                         <span className="text-[10px] text-white font-bold text-center">رخصة المركبة</span>
                         <input
                           type="file"
@@ -549,8 +549,8 @@ export function PersonalStep() {
                         />
                       </div>
 
-                      <div className="flex flex-col items-center justify-center p-4 rounded-2xl border border-white/10 bg-white/5 hover:border-[#14B8A6]/40 transition relative group min-h-[96px] cursor-pointer col-span-2">
-                        <UploadCloud className="h-6 w-6 text-[#14B8A6] mb-1.5" />
+                      <div className="flex flex-col items-center justify-center p-4 rounded-2xl border border-white/10 bg-white/5 hover:border-radar-teal/40 transition relative group min-h-[96px] cursor-pointer col-span-2">
+                        <UploadCloud className="h-6 w-6 text-radar-teal mb-1.5" />
                         <span className="text-[10px] text-white font-bold text-center">بطاقة الهوية الوطنية</span>
                         <input
                           type="file"
@@ -573,7 +573,7 @@ export function PersonalStep() {
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="flex-1 min-h-12 rounded-2xl bg-[#14B8A6] hover:bg-[#2DD4BF] text-[#0B0F19] font-black text-sm transition shadow-[0_16px_45px_rgba(20,184,166,0.22)] focus-visible:outline-none disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer"
+                      className="flex-1 min-h-12 rounded-2xl bg-radar-teal hover:bg-radar-teal-hover text-radar-bg-deep font-black text-sm transition shadow-[0_16px_45px_rgb(var(--radar-teal-rgb)/0.22)] focus-visible:outline-none disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer"
                     >
                       {isSubmitting ? 'جاري الإرسال...' : 'إرسال طلب الانضمام للمراجعة'}
                     </button>
@@ -584,22 +584,22 @@ export function PersonalStep() {
                   {/* Step 1 or Login view */}
                   {mode === 'register' && role === 'driver' && (
                     <div className="flex justify-between items-center text-xs text-slate-400 mb-4 bg-white/5 border border-white/10 rounded-2xl p-3" dir="rtl">
-                      <span className="font-bold text-[#14B8A6]">الخطوة 1 من 3</span>
-                      <span className="font-bold text-[#94A3B8]">المعلومات الشخصية والمدينة</span>
+                      <span className="font-bold text-radar-teal">الخطوة 1 من 3</span>
+                      <span className="font-bold text-radar-text-sub">المعلومات الشخصية والمدينة</span>
                     </div>
                   )}
 
                   {mode === 'register' ? (
-                    <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-[#0B0F19]/45 p-3">
-                      <div className="flex min-h-9 items-center gap-2 text-xs font-bold text-[#94A3B8]">
+                    <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-radar-bg-deep/45 p-3">
+                      <div className="flex min-h-9 items-center gap-2 text-xs font-bold text-radar-text-sub">
                         {locationDataLoading ? (
                           <>
-                            <Loader2 className="h-4 w-4 animate-spin text-[#14B8A6]" aria-hidden="true" />
+                            <Loader2 className="h-4 w-4 animate-spin text-radar-teal" aria-hidden="true" />
                             <span>{t.loadingLocations}</span>
                           </>
                         ) : (
                           <>
-                            <MapPin className="h-4 w-4 text-[#14B8A6]" aria-hidden="true" />
+                            <MapPin className="h-4 w-4 text-radar-teal" aria-hidden="true" />
                             <span>{`${countries.length} / ${governorates.length} / ${districts.length}`}</span>
                           </>
                         )}
@@ -610,7 +610,7 @@ export function PersonalStep() {
                           type="button"
                           onClick={fillRandomRegistrationData}
                           disabled={locationDataLoading || !selectedCountry || !personal.gov || !districts.length}
-                          className="inline-flex min-h-9 items-center gap-2 rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-3 text-xs font-black text-[#14B8A6] transition hover:border-[#14B8A6] hover:bg-[#14B8A6]/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/50 disabled:cursor-not-allowed disabled:opacity-50"
+                          className="inline-flex min-h-9 items-center gap-2 rounded-xl border border-radar-teal/30 bg-radar-teal/10 px-3 text-xs font-black text-radar-teal transition hover:border-radar-teal hover:bg-radar-teal/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-radar-teal/50 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           <Sparkles className="h-4 w-4" aria-hidden="true" />
                           {t.mockData}
@@ -645,7 +645,7 @@ export function PersonalStep() {
                       autoComplete="tel"
                       required
                     />
-                    <p className={`${isArabic ? 'text-right' : 'text-left'} mt-2 text-[11px] font-semibold text-[#94A3B8]`}>
+                    <p className={`${isArabic ? 'text-right' : 'text-left'} mt-2 text-[11px] font-semibold text-radar-text-sub`}>
                       {phoneValidationHint}
                     </p>
                   </Field>
@@ -671,7 +671,7 @@ export function PersonalStep() {
                             ))}
                           </select>
                           <ChevronDown
-                            className={`pointer-events-none absolute top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8] ${
+                            className={`pointer-events-none absolute top-1/2 h-4 w-4 -translate-y-1/2 text-radar-text-sub ${
                               isArabic ? 'left-3' : 'right-3'
                             }`}
                           />
@@ -697,7 +697,7 @@ export function PersonalStep() {
                             ))}
                           </select>
                           <ChevronDown
-                            className={`pointer-events-none absolute top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8] ${
+                            className={`pointer-events-none absolute top-1/2 h-4 w-4 -translate-y-1/2 text-radar-text-sub ${
                               isArabic ? 'left-3' : 'right-3'
                             }`}
                           />
@@ -721,7 +721,7 @@ export function PersonalStep() {
                             ))}
                           </select>
                           <ChevronDown
-                            className={`pointer-events-none absolute top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8] ${
+                            className={`pointer-events-none absolute top-1/2 h-4 w-4 -translate-y-1/2 text-radar-text-sub ${
                               isArabic ? 'left-3' : 'right-3'
                             }`}
                           />
@@ -745,7 +745,7 @@ export function PersonalStep() {
                         type="button"
                         aria-label={showPassword ? t.hidePassword : t.showPassword}
                         onClick={() => setShowPassword((current) => !current)}
-                        className={`absolute top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-xl text-[#94A3B8] transition hover:bg-[#14B8A6]/10 hover:text-[#14B8A6] ${
+                        className={`absolute top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-xl text-radar-text-sub transition hover:bg-radar-teal/10 hover:text-radar-teal ${
                           isArabic ? 'left-2' : 'right-2'
                         }`}
                       >
@@ -758,7 +758,7 @@ export function PersonalStep() {
                     <button
                       type="button"
                       onClick={openPasswordReset}
-                      className={`-mt-2 block w-full text-xs font-black text-[#14B8A6] underline-offset-4 transition hover:text-[#2DD4BF] hover:underline ${
+                      className={`-mt-2 block w-full text-xs font-black text-radar-teal underline-offset-4 transition hover:text-radar-teal-hover hover:underline ${
                         isArabic ? 'text-left' : 'text-right'
                       }`}
                     >
@@ -766,16 +766,16 @@ export function PersonalStep() {
                     </button>
                   ) : null}
 
-                  <label className="flex cursor-pointer items-center justify-between gap-3 rounded-2xl border border-white/10 bg-[#0B0F19]/45 p-3 transition hover:border-[#14B8A6]/40">
+                  <label className="flex cursor-pointer items-center justify-between gap-3 rounded-2xl border border-white/10 bg-radar-bg-deep/45 p-3 transition hover:border-radar-teal/40">
                     <span className={`${isArabic ? 'text-right' : 'text-left'}`}>
-                      <span className="block text-sm font-black text-[#F8FAFC]">{t.rememberMe}</span>
-                      <span className="mt-1 block text-xs font-semibold text-[#94A3B8]">{t.rememberHint}</span>
+                      <span className="block text-sm font-black text-radar-text-bright">{t.rememberMe}</span>
+                      <span className="mt-1 block text-xs font-semibold text-radar-text-sub">{t.rememberHint}</span>
                     </span>
                     <input
                       type="checkbox"
                       checked={rememberMe}
                       onChange={(event) => setRememberMe(event.target.checked)}
-                      className="h-5 w-5 shrink-0 accent-[#14B8A6]"
+                      className="h-5 w-5 shrink-0 accent-radar-teal"
                     />
                   </label>
 
@@ -784,7 +784,7 @@ export function PersonalStep() {
                     whileHover={{ y: -1 }}
                     type="submit"
                     disabled={isSubmitting}
-                    className="mt-2 w-full rounded-2xl bg-[#14B8A6] p-4 text-base font-black text-[#0B0F19] shadow-[0_16px_45px_rgba(20,184,166,0.22)] transition hover:bg-[#2DD4BF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/60 disabled:opacity-50 cursor-pointer"
+                    className="mt-2 w-full rounded-2xl bg-radar-teal p-4 text-base font-black text-radar-bg-deep shadow-[0_16px_45px_rgb(var(--radar-teal-rgb)/0.22)] transition hover:bg-radar-teal-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-radar-teal/60 disabled:opacity-50 cursor-pointer"
                   >
                     {isSubmitting ? '...' : mode === 'register' ? (role === 'driver' ? 'المتابعة للخطوة التالية' : t.submitRegister) : t.submitLogin}
                   </motion.button>
@@ -793,12 +793,12 @@ export function PersonalStep() {
             </motion.form>
           </AnimatePresence>
 
-          <div className="mt-6 text-center text-sm font-semibold text-[#94A3B8]">
+          <div className="mt-6 text-center text-sm font-semibold text-radar-text-sub">
             <span>{mode === 'register' ? t.hasAccount : t.noAccount}</span>{' '}
             <button
               type="button"
               onClick={() => goToMode(mode === 'register' ? 'login' : 'register')}
-              className="font-black text-[#14B8A6] underline-offset-4 transition hover:text-[#2DD4BF] hover:underline"
+              className="font-black text-radar-teal underline-offset-4 transition hover:text-radar-teal-hover hover:underline"
             >
               {mode === 'register' ? t.switchToLogin : t.switchToRegister}
             </button>
@@ -806,7 +806,7 @@ export function PersonalStep() {
 
           <button
             type="button"
-            className="mt-5 w-full text-xs font-bold text-[#94A3B8]/70 transition hover:text-white"
+            className="mt-5 w-full text-xs font-bold text-radar-text-sub/70 transition hover:text-white"
             onClick={() => navigateAuth('role')}
           >
             {t.back}
@@ -817,14 +817,14 @@ export function PersonalStep() {
       <Dialog open={resetOpen} onOpenChange={setResetOpen}>
         <DialogContent
           dir={isArabic ? 'rtl' : 'ltr'}
-          className="border border-[#14B8A6]/25 bg-[#0B0F19] text-white shadow-2xl sm:max-w-md"
+          className="border border-radar-teal/25 bg-radar-bg-deep text-white shadow-2xl sm:max-w-md"
         >
           <DialogHeader className={isArabic ? 'text-right' : 'text-left'}>
-            <div className="mb-2 flex h-11 w-11 items-center justify-center rounded-2xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 text-[#14B8A6]">
+            <div className="mb-2 flex h-11 w-11 items-center justify-center rounded-2xl border border-radar-teal/30 bg-radar-teal/10 text-radar-teal">
               <KeyRound className="h-5 w-5" aria-hidden="true" />
             </div>
             <DialogTitle className="text-2xl font-black text-white">{t.resetTitle}</DialogTitle>
-            <DialogDescription className="text-sm leading-6 text-[#94A3B8]">
+            <DialogDescription className="text-sm leading-6 text-radar-text-sub">
               {isArabic
                 ? 'إعادة كلمة المرور تتم عبر الدعم، بدون رسائل SMS مدفوعة.'
                 : 'Password reset is handled through support, without paid SMS messages.'}
@@ -832,7 +832,7 @@ export function PersonalStep() {
           </DialogHeader>
 
           <div className="space-y-4">
-            <div className="rounded-2xl border border-[#14B8A6]/20 bg-[#14B8A6]/10 p-4 text-sm leading-7 text-[#D8FDF8]">
+            <div className="rounded-2xl border border-radar-teal/20 bg-radar-teal/10 p-4 text-sm leading-7 text-radar-accent-aqua">
               {isArabic
                 ? 'للحفاظ على التكلفة الصفرية، لا نرسل رمز SMS لإعادة كلمة المرور. تواصل مع الدعم الرسمي وسيتم التحقق من هويتك ومساعدتك في إعادة تعيين كلمة المرور.'
                 : 'To keep the system zero-cost, SMS password reset is disabled. Contact official support so your identity can be verified and your password can be reset safely.'}
@@ -855,7 +855,7 @@ export function PersonalStep() {
                 href={buildSupportWhatsappUrl(resetPhone)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-[#14B8A6] px-4 text-sm font-black text-[#0B0F19] shadow-[0_16px_45px_rgba(20,184,166,0.18)] transition hover:bg-[#2DD4BF]"
+                className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-radar-teal px-4 text-sm font-black text-radar-bg-deep shadow-[0_16px_45px_rgb(var(--radar-teal-rgb)/0.18)] transition hover:bg-radar-teal-hover"
               >
                 {isArabic ? 'تواصل عبر واتساب' : 'WhatsApp support'}
               </a>
@@ -879,7 +879,7 @@ export function PersonalStep() {
           }`}
         >
           {tickerItems.map((item, index) => (
-            <span key={`${item}-${index}`} className="text-xs font-bold text-[#94A3B8] odd:text-[#F8FAFC]">
+            <span key={`${item}-${index}`} className="text-xs font-bold text-radar-text-sub odd:text-radar-text-bright">
               {item}
             </span>
           ))}
@@ -900,8 +900,8 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="mb-2 flex items-center gap-2 text-sm font-bold text-[#F8FAFC]">
-        <span className="text-[#14B8A6]">{icon}</span>
+      <span className="mb-2 flex items-center gap-2 text-sm font-bold text-radar-text-bright">
+        <span className="text-radar-teal">{icon}</span>
         {label}
       </span>
       {children}
@@ -910,7 +910,7 @@ function Field({
 }
 
 const inputClass =
-  'min-h-12 w-full rounded-2xl border border-white/10 bg-[#0B0F19]/50 px-4 text-base font-semibold text-[#F8FAFC] outline-none transition placeholder:text-[#64748B] focus:border-[#14B8A6] focus:shadow-[0_0_10px_rgba(20,184,166,0.1)]';
+  'min-h-12 w-full rounded-2xl border border-white/10 bg-radar-bg-deep/50 px-4 text-base font-semibold text-radar-text-bright outline-none transition placeholder:text-radar-text-muted focus:border-radar-teal focus:shadow-[0_0_10px_rgb(var(--radar-teal-rgb)/0.1)]';
 
 function buildSupportWhatsappUrl(phone: string) {
   const supportPhone = getSupportPhone();

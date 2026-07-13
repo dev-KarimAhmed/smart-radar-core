@@ -15,6 +15,12 @@
     "admin": "مشرف",
     "owner": "مالك"
   },
+  "ranks": {
+    "Platinum": "بلاتيني",
+    "Gold": "ذهبي",
+    "Silver": "فضي",
+    "Bronze": "برونزي"
+  },
   "nav": {
     "home": "الرئيسية",
     "history": "السجل",
@@ -98,6 +104,14 @@
     "offerSent": "تم إرسال عرضك للراكب.",
     "noBalance": "لا يوجد رصيد كافٍ. يرجى شحن المحفظة."
   },
+  "adCard": {
+    "fallbackTitle": "إعلان قريب منك",
+    "fallbackDescription": "اكتشف عرضاً مناسباً في منطقتك وتواصل مع المعلن مباشرة.",
+    "fallbackCta": "عرض التفاصيل",
+    "defaultBadge": "إعلان قريب",
+    "saveAd": "حفظ الإعلان",
+    "removeAd": "إزالة الإعلان من المفضلة"
+  },
   "ads": {
     "adRiverTitle": "إعلانات قريبة منك",
     "campaignTitle": "اسم الحملة",
@@ -152,7 +166,47 @@
     "permissionDenied": "ليس لديك صلاحية لتنفيذ هذه العملية.",
     "network": "تعذر الاتصال. تحقق من الإنترنت وحاول مرة أخرى.",
     "gpsDisabled": "يرجى تفعيل الموقع لاستخدام هذه الميزة.",
-    "activeTripLocked": "لا يمكن تغيير الصفحة أثناء الرحلة الحالية."
+    "activeTripLocked": "لا يمكن تغيير الصفحة أثناء الرحلة الحالية.",
+    "activeTripLockedTitle": "لا يمكن تغيير الصفحة الآن"
+  },
+  "driverStatsCard": {
+    "rating": "التقييم",
+    "acceptanceRate": "معدل قبول الطلبات",
+    "driverRank": "رتبة السائق"
+  },
+  "driverSovereignCard": {
+    "officeTaxi": "تكسي مكتب",
+    "smartApp": "تطبيق ذكي",
+    "independent": "مستقل",
+    "distance": "{km} كم",
+    "silentRoute": "مسار هادئ (صامت)",
+    "welcomesTalk": "مرحب بالحديث"
+  },
+  "offerGallery": {
+    "title": "عروض السائقون",
+    "subtitle": "{count} سائق قريب أرسل لك عرضاً.",
+    "cancelRequest": "إلغاء الطلب",
+    "selectOffer": "اختر هذا العرض",
+    "offeredPrice": "السعر المعروض",
+    "byMeter": "حسب العداد",
+    "currency": "د.أ",
+    "independent": "مستقل",
+    "rankPlatinum": "بلاتيني",
+    "rankPlatinumBadge": "بلاتينيوم",
+    "rankGold": "ذهبي",
+    "rankSilver": "فضي",
+    "rankBronze": "برونزي",
+    "distanceFromYou": "البعد عنك: {km} كم",
+    "arrivesIn": "يصلك خلال: {minutes} دقائق",
+    "lowPriceWarning": "هذا السعر أقل من متوسط السوق. تأكد من جودة الخدمة وحالة المركبة قبل القبول.",
+    "benefitBadge": "منفعة راكب",
+    "vehicleProfile": "ملف المركبة",
+    "estimatedDuration": "مدة الرحلة المتوقعة",
+    "durationMinutes": "{minutes} دقيقة",
+    "benefitDefaultTitle": "عرض منفعة للراكب",
+    "benefitDefaultDescription": "عرض محلي بسيط يساعدك بعد اختيار عرض منخفض السعر.",
+    "benefitDefaultDescriptionShort": "عرض محلي سريع للتواصل المباشر.",
+    "benefitCta": "احصل على العرض"
   },
   "riderDashboard": {
     "tabs": {

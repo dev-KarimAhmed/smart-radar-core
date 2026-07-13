@@ -457,8 +457,8 @@ export function HistoryTab() {
 
     return (
       <div className="mt-3 rounded-xl border border-white/5 bg-white/[0.02] p-3 text-xs space-y-2 text-start">
-        <div className="flex items-center gap-1.5 text-[#14F5D5] font-bold justify-start">
-          <Star className="h-3.5 w-3.5 fill-[#14F5D5] text-[#14F5D5]" />
+        <div className="flex items-center gap-1.5 text-radar-teal-bright font-bold justify-start">
+          <Star className="h-3.5 w-3.5 fill-radar-teal-bright text-radar-teal-bright" />
           <span>{isArabic ? 'تقييمك المفصّل للكابتن:' : 'Your detailed feedback for captain:'}</span>
         </div>
         
@@ -484,7 +484,7 @@ export function HistoryTab() {
   if (language === 'en' && isPassenger) {
     return (
       <div className="w-full max-w-xl mx-auto pb-24 text-start font-sans space-y-6 animate-in fade-in duration-500">
-        <Card className="bg-[#050505] border-emerald-950 text-white overflow-hidden shadow-2xl relative">
+        <Card className="bg-radar-black border-emerald-950 text-white overflow-hidden shadow-2xl relative">
           <div className="absolute top-0 left-0 w-full h-1 bg-emerald-500 animate-pulse" />
           <CardContent className="p-6 space-y-2">
             <h2 className="text-lg font-black text-emerald-400 flex items-center gap-2">
@@ -497,7 +497,7 @@ export function HistoryTab() {
           </CardContent>
         </Card>
 
-        <Card className="bg-[#020502]/95 border border-emerald-950 shadow-xl">
+        <Card className="bg-radar-black/95 border border-emerald-950 shadow-xl">
           <CardHeader className="pb-3 border-b border-white/5 flex flex-row items-center justify-between">
             <div>
               <CardTitle className="text-sm font-extrabold text-white flex items-center gap-1.5">
@@ -536,7 +536,7 @@ export function HistoryTab() {
                       className="absolute top-4 right-4 p-1.5 rounded-lg bg-emerald-950/20 border border-emerald-500/10 text-rose-500 transition-all hover:scale-105 active:scale-95"
                       aria-label="Save captain"
                     >
-                      <Heart className={`h-4.5 w-4.5 transition-all ${isHearted ? 'fill-[#00ffcc] text-[#00ffcc] drop-shadow-[0_0_8px_#00ffcc]' : 'text-gray-400 hover:text-rose-400'}`} />
+                      <Heart className={`h-4.5 w-4.5 transition-all ${isHearted ? 'fill-radar-neon text-radar-neon drop-shadow-[0_0_8px_#00ffcc]' : 'text-gray-400 hover:text-rose-400'}`} />
                     </button>
 
                     <div className="flex justify-between items-start pr-8">
@@ -549,7 +549,7 @@ export function HistoryTab() {
                         </h4>
                         <p className="text-[11px] text-gray-400 font-sans mt-1">{trip.vehicleInfo}</p>
                         {trip.serialId && (
-                          <span className="mt-1 inline-flex items-center gap-1 bg-[#011e15] text-[#00ffcc] text-[9px] font-mono px-1.5 py-0.5 rounded border border-emerald-500/20">
+                          <span className="mt-1 inline-flex items-center gap-1 bg-radar-forest-deep text-radar-neon text-[9px] font-mono px-1.5 py-0.5 rounded border border-emerald-500/20">
                             {trip.serialId}
                           </span>
                         )}
@@ -585,10 +585,10 @@ export function HistoryTab() {
           </CardContent>
         </Card>
 
-        <Card className="bg-[#010301] border border-emerald-950 shadow-xl">
+        <Card className="bg-radar-black border border-emerald-950 shadow-xl">
           <CardHeader className="pb-3 border-b border-white/5 flex flex-row items-center justify-between">
             <div>
-              <CardTitle className="text-sm font-extrabold text-[#00ffcc] flex items-center gap-1.5">
+              <CardTitle className="text-sm font-extrabold text-radar-neon flex items-center gap-1.5">
                 <Sparkles className="h-4 w-4 text-emerald-400 animate-pulse" />
                 Favorite captains
               </CardTitle>
@@ -613,7 +613,7 @@ export function HistoryTab() {
   return (
     <div className="w-full max-w-xl mx-auto pb-24 font-sans space-y-6 animate-in fade-in duration-500 text-start">
       {/* 1. Header Card */}
-      <Card className="bg-[#050505] border-emerald-950 text-white overflow-hidden shadow-2xl relative">
+      <Card className="bg-radar-black border-emerald-950 text-white overflow-hidden shadow-2xl relative">
         <div className="absolute top-0 left-0 w-full h-1 bg-emerald-500 animate-pulse" />
         <CardContent className="p-6 space-y-2">
           <h2 className="text-lg font-black text-emerald-400 flex items-center gap-2">
@@ -629,7 +629,7 @@ export function HistoryTab() {
       {/* 2. Primary Listing */}
       {isPassenger && (
         <div className="space-y-4">
-          <Card className="bg-[#020502]/95 border border-emerald-950 shadow-xl">
+          <Card className="bg-radar-black/95 border border-emerald-950 shadow-xl">
             <CardHeader className="pb-3 border-b border-white/5 flex flex-row items-center justify-between">
               <div>
                 <CardTitle className="text-sm font-extrabold text-white flex items-center gap-1.5">
@@ -668,7 +668,7 @@ export function HistoryTab() {
                         onClick={() => toggleFavorite(trip)}
                         className="absolute top-4 left-4 p-1.5 rounded-lg bg-emerald-950/20 border border-emerald-500/10 text-rose-500 transition-all hover:scale-105 active:scale-95"
                       >
-                        <Heart className={`h-4.5 w-4.5 transition-all ${isHearted ? 'fill-[#00ffcc] text-[#00ffcc] drop-shadow-[0_0_8px_#00ffcc]' : 'text-gray-400 hover:text-rose-400'}`} />
+                        <Heart className={`h-4.5 w-4.5 transition-all ${isHearted ? 'fill-radar-neon text-radar-neon drop-shadow-[0_0_8px_#00ffcc]' : 'text-gray-400 hover:text-rose-400'}`} />
                       </button>
 
                       <div className="flex justify-between items-start pl-8">
@@ -682,7 +682,7 @@ export function HistoryTab() {
                           <p className="text-[11px] text-gray-400 font-sans mt-1">{trip.vehicleInfo}</p>
                           {trip.serialId && (
                             <div className="mt-1 flex items-center">
-                              <span className="inline-flex items-center gap-1 bg-[#011e15] text-[#00ffcc] text-[9px] font-mono px-1.5 py-0.5 rounded border border-emerald-500/20">
+                              <span className="inline-flex items-center gap-1 bg-radar-forest-deep text-radar-neon text-[9px] font-mono px-1.5 py-0.5 rounded border border-emerald-500/20">
                                 🧬 {trip.serialId}
                               </span>
                             </div>
@@ -718,10 +718,10 @@ export function HistoryTab() {
           </Card>
 
           {/* Favorited Captains Quick Vault Section */}
-          <Card className="bg-[#010301] border border-emerald-950 shadow-xl">
+          <Card className="bg-radar-black border border-emerald-950 shadow-xl">
             <CardHeader className="pb-3 border-b border-white/5 flex flex-row items-center justify-between">
               <div>
-                <CardTitle className="text-sm font-extrabold text-[#00ffcc] flex items-center gap-1.5">
+                <CardTitle className="text-sm font-extrabold text-radar-neon flex items-center gap-1.5">
                   <Sparkles className="h-4 w-4 text-emerald-400 animate-pulse" />
                   {copy.savedCaptainsTitle}
                 </CardTitle>
@@ -737,9 +737,9 @@ export function HistoryTab() {
               {favoriteCaptains.length === 0 ? (
                 <div className="p-6 text-center text-gray-500 text-[11px]">
                   {isArabic ? (
-                    <>اضغط على أيقونة <strong className="text-[#00ffcc]">القلب</strong> في أي رحلة مكتملة لإضافة السائق إلى المفضلة.</>
+                    <>اضغط على أيقونة <strong className="text-radar-neon">القلب</strong> في أي رحلة مكتملة لإضافة السائق إلى المفضلة.</>
                   ) : (
-                    <>Click the <strong className="text-[#00ffcc]">heart</strong> icon on any completed trip to add the driver to your favorites.</>
+                    <>Click the <strong className="text-radar-neon">heart</strong> icon on any completed trip to add the driver to your favorites.</>
                   )}
                 </div>
               ) : (
@@ -747,7 +747,7 @@ export function HistoryTab() {
                   {favoriteCaptains.map((captain) => (
                     <div
                       key={captain.id}
-                      className="bg-[#060a06] border border-emerald-500/10 p-3 rounded-lg flex justify-between items-center"
+                      className="bg-radar-black border border-emerald-500/10 p-3 rounded-lg flex justify-between items-center"
                     >
                       <div className="space-y-0.5">
                         <h5 className="font-extrabold text-white text-[12px] flex items-center gap-1">
@@ -785,7 +785,7 @@ export function HistoryTab() {
 
       {isCaptain && (
         <div className="space-y-6">
-          <Card className="bg-[#020502]/95 border border-emerald-950 shadow-xl">
+          <Card className="bg-radar-black/95 border border-emerald-950 shadow-xl">
             <CardHeader className="pb-3 border-b border-white/5 flex flex-row items-center justify-between">
               <div>
                 <CardTitle className="text-sm font-extrabold text-white flex items-center gap-1.5">
@@ -828,7 +828,7 @@ export function HistoryTab() {
                           </p>
                           {trip.serialId && (
                             <div className="mt-1 flex items-center">
-                              <span className="inline-flex items-center gap-1 bg-[#011e15] text-[#00ffcc] text-[9px] font-mono px-1.5 py-0.5 rounded border border-emerald-500/20">
+                              <span className="inline-flex items-center gap-1 bg-radar-forest-deep text-radar-neon text-[9px] font-mono px-1.5 py-0.5 rounded border border-emerald-500/20">
                                 🧬 {trip.serialId}
                               </span>
                             </div>
@@ -851,7 +851,7 @@ export function HistoryTab() {
           </Card>
 
           {/* براءة ذمة نقاء النظام الحافة من الثرثرة الشبكية وقنوات المساعدة */}
-          <Card className="bg-[#020502]/95 border border-emerald-950/60 shadow-xl overflow-hidden relative text-right">
+          <Card className="bg-radar-black/95 border border-emerald-950/60 shadow-xl overflow-hidden relative text-right">
             <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 animate-pulse" />
             <CardHeader className="pb-3 border-b border-white/5">
               <div className="flex flex-row items-center justify-between">
@@ -908,11 +908,11 @@ export function HistoryTab() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between p-3 bg-black/40 border border-[#00ffcc]/10 rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-black/40 border border-radar-neon/10 rounded-lg">
                 <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full bg-[#00ffcc] animate-ping" />
+                  <div className="h-2 w-2 rounded-full bg-radar-neon animate-ping" />
                   <span className="text-[10px] text-gray-400 font-sans">حالة نقاء خطوط النقل الحالية:</span>
-                  <span className="text-[10px] text-[#00ffcc] font-black font-mono">100% PURE & SECURE</span>
+                  <span className="text-[10px] text-radar-neon font-black font-mono">100% PURE & SECURE</span>
                 </div>
                 <span className="text-[9px] text-gray-500 font-sans">براءة ذمة معتمدة ومختومة رقمياً 🛡️</span>
               </div>
@@ -920,12 +920,12 @@ export function HistoryTab() {
           </Card>
 
           {/* Dedicated Sovereign Logs (سجل خاص به ويكون مرجعًا له) */}
-          <Card className="bg-[#020502]/95 border border-emerald-950 shadow-xl overflow-hidden relative text-right">
+          <Card className="bg-radar-black/95 border border-emerald-950 shadow-xl overflow-hidden relative text-right">
             <div className="absolute top-0 left-0 w-full h-[2px] bg-cyan-500 animate-pulse" />
             <CardHeader className="pb-3 border-b border-white/5 flex flex-row items-center justify-between">
               <div>
-                <CardTitle className="text-sm font-extrabold text-[#00ffcc] flex items-center gap-1.5">
-                  <Activity className="h-4 w-4 text-[#00ffcc] animate-pulse" />
+                <CardTitle className="text-sm font-extrabold text-radar-neon flex items-center gap-1.5">
+                  <Activity className="h-4 w-4 text-radar-neon animate-pulse" />
                   سجل الفعاليات والحركة اللامركزية (الأرشيف )
                 </CardTitle>
                 <CardDescription className="text-[10px] text-gray-400 mt-1 font-sans">
@@ -1004,20 +1004,20 @@ export function HistoryTab() {
           </Card>
 
           {/* كشاف القاموس  للأخطاء (SSOT Error Explorer) */}
-          <Card id="ssot-error-explorer-card" className="bg-[#020502]/95 border border-[#00ffcc]/20 shadow-xl overflow-hidden relative text-right">
-            <div className="absolute top-0 left-0 w-full h-[2px] bg-[#00ffcc] animate-pulse" />
+          <Card id="ssot-error-explorer-card" className="bg-radar-black/95 border border-radar-neon/20 shadow-xl overflow-hidden relative text-right">
+            <div className="absolute top-0 left-0 w-full h-[2px] bg-radar-neon animate-pulse" />
             <CardHeader className="pb-3 border-b border-white/5">
               <div className="flex flex-row items-center justify-between">
                 <div>
-                  <CardTitle className="text-sm font-extrabold text-[#00ffcc] flex items-center gap-1.5">
-                    <ShieldAlert className="h-4 w-4 text-[#00ffcc] animate-pulse" />
+                  <CardTitle className="text-sm font-extrabold text-radar-neon flex items-center gap-1.5">
+                    <ShieldAlert className="h-4 w-4 text-radar-neon animate-pulse" />
                     كشاف القاموس  للأخطاء (SSOT Error Explorer)
                   </CardTitle>
                   <CardDescription className="text-[10px] text-gray-400 mt-1 font-sans">
                     أداة فحص تفاعلية لرموز الأمان والمحكم الميداني الحافة
                   </CardDescription>
                 </div>
-                <Badge variant="outline" className="text-[10px] border-[#00ffcc]/20 text-[#00ffcc] bg-[#00ffcc]/5 font-mono">
+                <Badge variant="outline" className="text-[10px] border-radar-neon/20 text-radar-neon bg-radar-neon/5 font-mono">
                   V5.5-Secured
                 </Badge>
               </div>
@@ -1031,7 +1031,7 @@ export function HistoryTab() {
                     placeholder="ابحث بكود الخطأ، الاسم، أو الإجراء الوقائي..."
                     value={errorSearch}
                     onChange={(e) => setErrorSearch(e.target.value)}
-                    className="w-full bg-black/60 border border-white/5 rounded-lg py-2 pr-9 pl-3 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#00ffcc]/40 transition-all font-sans"
+                    className="w-full bg-black/60 border border-white/5 rounded-lg py-2 pr-9 pl-3 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-radar-neon/40 transition-all font-sans"
                   />
                 </div>
 
@@ -1040,7 +1040,7 @@ export function HistoryTab() {
                     variant={errorCategory === 'ALL' ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => setErrorCategory('ALL')}
-                    className={`h-7 text-[10px] font-bold px-2 ${errorCategory === 'ALL' ? 'bg-[#00ffcc] text-black hover:bg-[#00ffcc]/80' : 'border-white/5 text-gray-400 hover:bg-white/5'}`}
+                    className={`h-7 text-[10px] font-bold px-2 ${errorCategory === 'ALL' ? 'bg-radar-neon text-black hover:bg-radar-neon/80' : 'border-white/5 text-gray-400 hover:bg-white/5'}`}
                   >
                     الكل
                   </Button>
@@ -1048,7 +1048,7 @@ export function HistoryTab() {
                     variant={errorCategory === 'ERR-SOV' ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => setErrorCategory('ERR-SOV')}
-                    className={`h-7 text-[10px] font-bold px-2 ${errorCategory === 'ERR-SOV' ? 'bg-[#00ffcc] text-black hover:bg-[#00ffcc]/80' : 'border-white/5 text-gray-400 hover:bg-white/5'}`}
+                    className={`h-7 text-[10px] font-bold px-2 ${errorCategory === 'ERR-SOV' ? 'bg-radar-neon text-black hover:bg-radar-neon/80' : 'border-white/5 text-gray-400 hover:bg-white/5'}`}
                   >
                     🛡️ الإدارة
                   </Button>
@@ -1056,7 +1056,7 @@ export function HistoryTab() {
                     variant={errorCategory === 'ERR-FIN' ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => setErrorCategory('ERR-FIN')}
-                    className={`h-7 text-[10px] font-bold px-2 ${errorCategory === 'ERR-FIN' ? 'bg-[#00ffcc] text-black hover:bg-[#00ffcc]/80' : 'border-white/5 text-gray-400 hover:bg-white/5'}`}
+                    className={`h-7 text-[10px] font-bold px-2 ${errorCategory === 'ERR-FIN' ? 'bg-radar-neon text-black hover:bg-radar-neon/80' : 'border-white/5 text-gray-400 hover:bg-white/5'}`}
                   >
                     💸 النشاط المالي
                   </Button>
@@ -1064,7 +1064,7 @@ export function HistoryTab() {
                     variant={errorCategory === 'ERR-MAP' ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => setErrorCategory('ERR-MAP')}
-                    className={`h-7 text-[10px] font-bold px-2 ${errorCategory === 'ERR-MAP' ? 'bg-[#00ffcc] text-black hover:bg-[#00ffcc]/80' : 'border-white/5 text-gray-400 hover:bg-white/5'}`}
+                    className={`h-7 text-[10px] font-bold px-2 ${errorCategory === 'ERR-MAP' ? 'bg-radar-neon text-black hover:bg-radar-neon/80' : 'border-white/5 text-gray-400 hover:bg-white/5'}`}
                   >
                     🗺️ المحكم الرقمي
                   </Button>
@@ -1072,7 +1072,7 @@ export function HistoryTab() {
                     variant={errorCategory === 'ERR-ADV' ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => setErrorCategory('ERR-ADV')}
-                    className={`h-7 text-[10px] font-bold px-2 ${errorCategory === 'ERR-ADV' ? 'bg-[#00ffcc] text-black hover:bg-[#00ffcc]/80' : 'border-white/5 text-gray-400 hover:bg-white/5'}`}
+                    className={`h-7 text-[10px] font-bold px-2 ${errorCategory === 'ERR-ADV' ? 'bg-radar-neon text-black hover:bg-radar-neon/80' : 'border-white/5 text-gray-400 hover:bg-white/5'}`}
                   >
                     📢 الإعلانات
                   </Button>
@@ -1080,7 +1080,7 @@ export function HistoryTab() {
                     variant={errorCategory === 'ERR-KNL' ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => setErrorCategory('ERR-KNL')}
-                    className={`h-7 text-[10px] font-bold px-2 ${errorCategory === 'ERR-KNL' ? 'bg-[#00ffcc] text-black hover:bg-[#00ffcc]/80' : 'border-white/5 text-gray-400 hover:bg-white/5'}`}
+                    className={`h-7 text-[10px] font-bold px-2 ${errorCategory === 'ERR-KNL' ? 'bg-radar-neon text-black hover:bg-radar-neon/80' : 'border-white/5 text-gray-400 hover:bg-white/5'}`}
                   >
                     🎛️ الكوابح
                   </Button>
@@ -1120,7 +1120,7 @@ export function HistoryTab() {
                         onClick={() => setExpandedErrorCode(isExpanded ? null : err.code)}
                         className={`border rounded-lg p-3 transition-all cursor-pointer text-right select-none ${
                           isExpanded
-                            ? 'bg-black/80 border-[#00ffcc]/40 shadow-[0_0_12px_rgba(0,255,204,0.08)]'
+                            ? 'bg-black/80 border-radar-neon/40 shadow-[0_0_12px_rgb(var(--radar-neon-rgb)/0.08)]'
                             : 'bg-black/40 border-white/5 hover:border-white/10'
                         }`}
                       >
@@ -1150,8 +1150,8 @@ export function HistoryTab() {
                                 {err.description}
                               </p>
                             </div>
-                            <div className="bg-[#022a22]/30 border border-emerald-500/20 rounded p-2 space-y-1">
-                              <span className="text-[9px] text-[#00ffcc] font-bold block">🛡️ الإجراء الوقائي الآلي الحافة:</span>
+                            <div className="bg-radar-forest-deep/30 border border-emerald-500/20 rounded p-2 space-y-1">
+                              <span className="text-[9px] text-radar-neon font-bold block">🛡️ الإجراء الوقائي الآلي الحافة:</span>
                               <p className="text-[11px] text-emerald-300 leading-normal font-sans">
                                 {err.action}
                               </p>
