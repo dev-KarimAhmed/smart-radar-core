@@ -35,6 +35,7 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
     phone: language === 'ar' ? 'رقم الهاتف' : 'Phone number',
     accountNumber: language === 'ar' ? 'رقم الحساب' : 'Account number',
     role: language === 'ar' ? 'نوع الحساب' : 'Account type',
+    tier: language === 'ar' ? 'رتبة الكابتن' : 'Captain tier',
     captainRole: language === 'ar' ? 'كابتن' : 'Captain',
     plate: language === 'ar' ? 'رقم اللوحة' : 'Plate number',
     make: language === 'ar' ? 'نوع المركبة' : 'Vehicle make',
@@ -99,13 +100,31 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
         if (!active) return;
         if (error) throw error;
 
-        setProfile((data || null) as ProfileRow | null);
-        setFullName(firstString(data?.full_name, user?.name));
-        setPhone(firstString(data?.phone, user?.phone));
-        setVehiclePlate(firstString(getVehiclePlate(data as ProfileRow | null), user?.vehicle?.plate));
-        setVehicleMake(firstString(getVehicleMake(data as ProfileRow | null), user?.vehicle?.make));
-        setVehicleColor(firstString(getVehicleColor(data as ProfileRow | null), user?.vehicle?.color));
-        setVehicleYear(firstString(getVehicleYear(data as ProfileRow | null), user?.vehicle?.year));
+        let captainProfile: ProfileRow | null = null;
+        try {
+          const { data: captainData, error: captainError } = await supabase
+            .from('captain_profiles')
+            .select('*')
+            .eq('id', user!.uid)
+            .maybeSingle();
+          if (captainError) throw captainError;
+          captainProfile = (captainData || null) as ProfileRow | null;
+        } catch (captainProfileError) {
+          if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver captain profile]', captainProfileError);
+        }
+
+        const mergedProfile = {
+          ...(data || {}),
+          captain_profile: captainProfile,
+        } as ProfileRow;
+
+        setProfile(mergedProfile);
+        setFullName(firstString(mergedProfile.full_name, user?.name));
+        setPhone(firstString(mergedProfile.phone, user?.phone));
+        setVehiclePlate(firstString(getVehiclePlate(mergedProfile), user?.vehicle?.plate));
+        setVehicleMake(firstString(getVehicleMake(mergedProfile), user?.vehicle?.make));
+        setVehicleColor(firstString(getVehicleColor(mergedProfile), user?.vehicle?.color));
+        setVehicleYear(firstString(getVehicleYear(mergedProfile), user?.vehicle?.year));
       } catch (error) {
         if (!active) return;
         if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver profile]', error);
@@ -125,6 +144,7 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
   const rating = firstNumber(profile?.trust_score, profile?.rating, profile?.trust_rating, user?.rating, 5);
   const normalizedRating = Math.max(0, Math.min(5, rating));
   const percent = (normalizedRating / 5) * 100;
+  const tier = getCaptainTier(profile, normalizedRating, language, user?.rank);
 
   const saveProfile = async () => {
     if (!user?.uid) return;
@@ -284,6 +304,10 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
             <p className="text-xs font-black text-[#14B8A6]">{copy.badge}</p>
             <h1 className="mt-1 text-2xl font-black">{copy.title}</h1>
             <p className="mt-2 text-sm text-slate-400">{copy.subtitle}</p>
+            <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-[#14B8A6]/25 bg-[#14B8A6]/10 px-3 py-1.5 text-xs font-black text-[#14F5D5]">
+              <Star className="h-3.5 w-3.5 fill-[#14F5D5]" />
+              <span>{copy.tier}: {tier.label}</span>
+            </div>
           </div>
           <div className="relative grid h-32 w-32 place-items-center rounded-full" style={{ background: `conic-gradient(#14B8A6 ${percent}%, rgba(255,255,255,0.08) 0)` }}>
             <div className="grid h-24 w-24 place-items-center rounded-full bg-[#05080f]">
@@ -409,6 +433,7 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
           <Field label={copy.phone} value={firstString(profile?.phone, user?.phone)} />
           <Field label={copy.accountNumber} value={firstString(profile?.serial_id, user?.serial_id, '-')} />
           <Field label={copy.role} value={copy.captainRole} />
+          <Field label={copy.tier} value={tier.label} />
         </Panel>
 
         <Panel icon={<Car className="h-5 w-5" />} title={copy.vehicle}>
@@ -467,19 +492,86 @@ function firstNumber(...values: unknown[]) {
 }
 
 function getVehiclePlate(profile: ProfileRow | null) {
-  return firstString(profile?.vehicle_plate, profile?.plate_number, profile?.car_plate);
+  const captainProfile = getCaptainProfile(profile);
+  return firstString(profile?.vehicle_plate, profile?.plate_number, profile?.car_plate, captainProfile?.plate_number);
 }
 
 function getVehicleMake(profile: ProfileRow | null) {
-  return firstString(profile?.vehicle_make, profile?.vehicle_type, profile?.car_make);
+  const captainProfile = getCaptainProfile(profile);
+  const captainVehicleName = [captainProfile?.vehicle_brand, captainProfile?.vehicle_model]
+    .filter((value) => typeof value === 'string' && value.trim())
+    .join(' ');
+  return firstString(profile?.vehicle_make, profile?.vehicle_type, profile?.car_make, captainVehicleName, captainProfile?.vehicle_type);
 }
 
 function getVehicleColor(profile: ProfileRow | null) {
-  return firstString(profile?.vehicle_color, profile?.car_color);
+  const captainProfile = getCaptainProfile(profile);
+  return firstString(profile?.vehicle_color, profile?.car_color, captainProfile?.vehicle_color, captainProfile?.color);
 }
 
 function getVehicleYear(profile: ProfileRow | null) {
-  return firstString(profile?.vehicle_year, profile?.model_year);
+  const captainProfile = getCaptainProfile(profile);
+  return firstString(profile?.vehicle_year, profile?.model_year, captainProfile?.vehicle_year);
+}
+
+function getCaptainProfile(profile: ProfileRow | null) {
+  return isRecord(profile?.captain_profile) ? profile.captain_profile as ProfileRow : null;
+}
+
+function getCaptainTier(profile: ProfileRow | null, rating: number, language: 'ar' | 'en', userRank?: unknown) {
+  const captainProfile = getCaptainProfile(profile);
+  const explicitTier = firstString(
+    profile?.tier,
+    profile?.rank,
+    profile?.driver_rank,
+    profile?.captain_rank,
+    profile?.membership_tier,
+    captainProfile?.tier,
+    captainProfile?.rank,
+    captainProfile?.driver_rank,
+    captainProfile?.captain_rank,
+    captainProfile?.membership_tier,
+    userRank,
+  );
+  const normalizedTier = normalizeTier(explicitTier);
+
+  if (normalizedTier) {
+    return { key: normalizedTier, label: tierLabel(normalizedTier, language) };
+  }
+
+  if (rating >= 4.9) return { key: 'platinum', label: tierLabel('platinum', language) };
+  if (rating >= 4.7) return { key: 'gold', label: tierLabel('gold', language) };
+  if (rating >= 4.4) return { key: 'silver', label: tierLabel('silver', language) };
+  return { key: 'bronze', label: tierLabel('bronze', language) };
+}
+
+function normalizeTier(value: string) {
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) return '';
+  if (normalized.includes('platinum') || normalized.includes('بلات')) return 'platinum';
+  if (normalized.includes('gold') || normalized.includes('ذهب')) return 'gold';
+  if (normalized.includes('silver') || normalized.includes('فض')) return 'silver';
+  if (normalized.includes('bronze') || normalized.includes('برون')) return 'bronze';
+  return normalized;
+}
+
+function tierLabel(value: string, language: 'ar' | 'en') {
+  const labels = {
+    ar: {
+      platinum: 'بلاتيني',
+      gold: 'ذهبي',
+      silver: 'فضي',
+      bronze: 'برونزي',
+    },
+    en: {
+      platinum: 'Platinum',
+      gold: 'Gold',
+      silver: 'Silver',
+      bronze: 'Bronze',
+    },
+  } as const;
+  const key = normalizeTier(value) as keyof typeof labels.en;
+  return labels[language][key] || value;
 }
 
 function buildVehicleColumnPayload(
