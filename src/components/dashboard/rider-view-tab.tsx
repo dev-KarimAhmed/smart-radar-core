@@ -43,6 +43,7 @@ import {
   subscribeToRideRequestStatus,
   type CaptainPresencePoint,
 } from './rider/rider-server-marketplace';
+import { CaptainOfferCard, type CaptainOffer, type CaptainRank } from './rider/captain-offer-card';
 
 const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
 const H3_RIDER_REQUEST_RESOLUTION = 9;
@@ -1244,124 +1245,40 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                 }
 
                 const captainName = getOfferCaptainName(offer, language);
-                const captainPhone = getOfferCaptainPhone(offer);
-                const captainContactUrl = getOfferContactUrl(offer);
-                const affiliationLabel = getOfferAffiliationLabel(offer, language);
                 const vehicleSummary = getOfferVehicleSummary(offer, language);
                 const plateValue = getOfferPlate(offer, language);
-                const vehicleYear = offer.captain?.vehicle_year || offer.driverVehicle?.year;
+                const captainOffer: CaptainOffer = {
+                  id: offer.id || offer.driverId,
+                  captain: {
+                    id: offer.driverId || offer.captain?.id || '',
+                    name: captainName,
+                    avatar_url: offer.captain?.avatar_url || offer.driverAvatar,
+                    trust_rating: Number(offer.captain?.trust_rating || offer.driverRating || 5),
+                    rank: toCaptainOfferRank(offer.captain?.tier || offer.driverRank || offer.tier),
+                    vehicle_model: firstDisplayString(
+                      offer.captain?.vehicle_model,
+                      offer.driverVehicle?.model,
+                      offer.driverVehicle?.make,
+                      vehicleSummary,
+                    ),
+                    vehicle_color: firstDisplayString(offer.captain?.vehicle_color, offer.driverVehicle?.color),
+                    plate_number: plateValue,
+                  },
+                  server_fare: Number(state.destination?.serverEstimatedFare || offer.price || 0),
+                  submitted_fare: Number(offer.price || 0),
+                  eta_minutes: Number(etaDisplay) || 1,
+                  distance_km: Number(distanceDisplay) || 0,
+                };
 
                 return (
-                  <article key={offer.id || offer.driverId} className="space-y-3 rounded-2xl border border-white/5 bg-white/5 p-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <h3 className="text-lg font-bold text-white">
-                          {captainName}
-                        </h3>
-                        <p className="mt-1 flex items-center gap-1 text-xs text-slate-400">
-                          <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
-                          {Math.floor(offer.captain?.trust_rating || offer.driverRating || 5)}.0 / {offer.captain?.tier || offer.driverRank || "Bronze"}
-                        </p>
-                        <p className="mt-1 text-xs font-bold text-[#14F5D5]">
-                          {affiliationLabel}
-                        </p>
-                      </div>
-                      <strong className="text-xl font-bold text-[#14F5D5]">
-                        {formatMoney(offer.price, currencyLabel)}
-                      </strong>
-                    </div>
-
-                    {/* TASK 1: Distance and Pickup ETA */}
-                    <div className="grid grid-cols-2 gap-3 bg-white/5 rounded-xl p-3 border border-white/5">
-                      <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-slate-400" />
-                        <span className="text-slate-400 text-xs">
-                          {language === 'ar' ? `البعد عنك: ${distanceDisplay} كم` : `Distance: ${distanceDisplay} km`}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-[#14B8A6] animate-pulse" />
-                        <span className="text-[#14B8A6] font-bold text-xs">
-                          {language === 'ar' ? `يصلك خلال: ${etaDisplay} دقائق` : `ETA: ${etaDisplay} mins`}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2 rounded-xl bg-black/25 p-3 text-xs text-slate-300 sm:grid-cols-4">
-                      <Metric
-                        label={copy.vehicle}
-                        value={vehicleSummary}
-                      />
-                      <Metric
-                        label={copy.plate}
-                        value={plateValue}
-                      />
-                      <Metric
-                        label={language === 'ar' ? 'الفئة' : 'Category'}
-                        value={affiliationLabel}
-                      />
-                      <Metric
-                        label={language === 'ar' ? 'الموديل' : 'Year'}
-                        value={vehicleYear || copy.notAvailable}
-                      />
-                    </div>
-
-                    {(captainPhone || captainContactUrl) && (
-                      <div className="rounded-xl border border-white/5 bg-white/[0.03] p-3 text-xs text-slate-300">
-                        <div className="space-y-3">
-                          {captainPhone ? (
-                            <OfferContactAction
-                              label={language === 'ar' ? 'هاتف الكابتن' : 'Captain phone'}
-                              value={captainPhone}
-                              href={`tel:${captainPhone}`}
-                              icon={<Phone className="h-4 w-4" />}
-                              actionLabel={language === 'ar' ? 'اتصال' : 'Call'}
-                            />
-                          ) : null}
-                          {captainContactUrl ? (
-                            <OfferContactAction
-                              label={language === 'ar' ? 'رابط التواصل' : 'Social link'}
-                              value={captainContactUrl}
-                              href={captainContactUrl}
-                              icon={<Navigation className="h-4 w-4" />}
-                              actionLabel={language === 'ar' ? 'فتح' : 'Open'}
-                              external
-                            />
-                          ) : null}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* TASK 2: Estimated Trip Duration */}
-                    {durationDisplay && (
-                      <div className="bg-teal-500/10 border border-teal-500/20 rounded-xl p-2.5 flex items-center justify-between">
-                        <span className="text-slate-400 text-xs">مدة الرحلة المتوقعة</span>
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-white font-bold text-sm">{durationDisplay}</span>
-                          <Navigation className="h-3.5 w-3.5 text-white" />
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="flex gap-2">
-                      {offer.driverAffiliation?.phone && (
-                        <a
-                          href={`tel:${offer.driverAffiliation.phone}`}
-                          className="flex h-11 w-12 items-center justify-center rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 text-[#14F5D5] hover:bg-[#14B8A6]/20 transition-colors cursor-pointer"
-                          title={isArabic ? 'اتصال بالكابتن' : 'Call Captain'}
-                        >
-                          <Phone className="h-5 w-5" />
-                        </a>
-                      )}
-                      <button
-                        onClick={() => void handleAcceptOffer(offer)}
-                        disabled={acceptingOfferId === (offer.id || offer.driverId)}
-                        className="h-11 flex-1 bg-[#14B8A6] text-[#0A0F1D] font-bold text-sm rounded-xl transition-transform active:scale-[0.98] hover:bg-[#2DD4BF] flex items-center justify-center cursor-pointer"
-                      >
-                        {acceptingOfferId === (offer.id || offer.driverId) ? copy.acceptingOffer : copy.acceptOffer}
-                      </button>
-                    </div>
-                  </article>
+                  <CaptainOfferCard
+                    key={offer.id || offer.driverId}
+                    offer={captainOffer}
+                    currencyCode={currencyLabel || 'EGP'}
+                    language={language === 'ar' ? 'ar' : 'en'}
+                    isAccepting={acceptingOfferId === (offer.id || offer.driverId)}
+                    onAccept={() => void handleAcceptOffer(offer)}
+                  />
                 );
               })}
             </div>
@@ -1838,6 +1755,14 @@ function getOfferAffiliationLabel(offer: any, language: AppLanguage) {
   }
 
   return language === 'ar' ? 'مستقل' : 'Self-employed';
+}
+
+function toCaptainOfferRank(value: unknown): CaptainRank {
+  const normalized = String(value || '').trim().toUpperCase();
+  if (normalized.includes('PLATINUM') || normalized.includes('بلات')) return 'PLATINUM';
+  if (normalized.includes('GOLD') || normalized.includes('ذهب')) return 'GOLD';
+  if (normalized.includes('BRONZE') || normalized.includes('برون')) return 'BRONZE';
+  return 'SILVER';
 }
 
 function getOfferVehicleSummary(offer: any, language: AppLanguage) {
