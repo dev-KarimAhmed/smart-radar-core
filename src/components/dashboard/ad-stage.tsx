@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { ChevronLeft, ChevronRight, MapPin, MessageCircle, Phone, ShieldCheck, X } from 'lucide-react';
-import { AdDisplayCard, getAdDescription, getAdTitle } from './ad-display-card';
+import { AdDisplayCard, getAdDescription, getAdImage, getAdTitle } from './ad-display-card';
 import { useAuth } from '@/hooks/use-auth';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { useAdCampaigns } from '@/hooks/use-ad-campaigns';
@@ -477,25 +477,29 @@ export function AdStage({
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: '100%', opacity: 0 }}
               transition={{ type: 'spring', damping: 25, stiffness: 220 }}
-              className="relative flex w-full max-w-lg flex-col gap-4 rounded-t-[32px] border-t-2 border-[#14B8A6]/40 bg-[#070D19] px-6 pt-6 pb-28 shadow-[0_-12px_45px_rgba(20,184,166,0.25)] md:rounded-[32px] md:border-x-2 md:p-6"
+              className="relative flex max-h-[92vh] w-full max-w-lg flex-col gap-4 overflow-y-auto rounded-t-[32px] border-t-2 border-[#14B8A6]/40 bg-[#070D19] px-6 pt-6 pb-28 shadow-[0_-12px_45px_rgba(20,184,166,0.25)] md:rounded-[32px] md:border-x-2 md:p-6"
               dir={direction}
               onClick={(event) => event.stopPropagation()}
             >
+              <button
+                type="button"
+                aria-label="Close ad"
+                onClick={() => setTakeoverAd(null)}
+                className="absolute right-4 top-4 z-30 flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-[#0B0F19]/90 text-white shadow-xl shadow-black/35 backdrop-blur-md transition hover:border-red-400/40 hover:bg-red-950/70"
+              >
+                <X className="h-5 w-5" />
+              </button>
+
               <div className="mx-auto mb-1 h-1 w-12 rounded-full bg-[#14B8A6]/30" />
 
-              <div className="flex items-center justify-between border-b border-white/5 pb-3">
+              <div className="flex items-center justify-between border-b border-white/5 pb-3 pe-12">
                 <span className="flex items-center gap-2 text-xs font-black text-[#14F5D5]">
                   <ShieldCheck className="h-4 w-4 animate-pulse text-[#14F5D5]" />
                   {copy.trustedAd}
                 </span>
-                <button
-                  type="button"
-                  onClick={() => setTakeoverAd(null)}
-                  className="rounded-full border border-red-500/10 bg-red-950/45 p-1.5 text-red-500 transition hover:bg-red-500/20"
-                >
-                  <X className="h-4 w-4" />
-                </button>
               </div>
+
+              <AdTakeoverMedia ad={takeoverAd} />
 
               <div className={`space-y-2 ${isArabic ? 'text-right' : 'text-left'}`}>
                 <span className="rounded-full border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-2.5 py-1 text-[10px] font-black text-[#14F5D5]">
@@ -547,10 +551,162 @@ export function AdStage({
   );
 }
 
+function AdTakeoverMedia({ ad }: { ad: any }) {
+  const media = getAdMedia(ad);
+  const title = getAdTitle(ad, 'Ad media');
+  const fallbackImage = getAdImage(ad) || PLACEHOLDER_BANNER_URL;
+
+  return (
+    <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-[#0B0F19] shadow-[0_18px_40px_rgba(0,0,0,0.35)]">
+      {media.kind === 'video' && media.url ? (
+        <video
+          className="aspect-video w-full bg-black object-cover"
+          src={media.url}
+          poster={media.posterUrl || fallbackImage}
+          controls
+          playsInline
+          preload="metadata"
+          onClick={(event) => event.stopPropagation()}
+        />
+      ) : (
+        <img
+          src={media.url || fallbackImage}
+          alt={title}
+          className="aspect-video w-full bg-[#07101F] object-cover"
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          onError={(event) => {
+            event.currentTarget.src = PLACEHOLDER_BANNER_URL;
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
 function mapAdCampaignRow(row: Record<string, any>) {
   const title = firstString(row.title, row.title_ar, row.name_ar, row.name, row.content?.title);
   const description = firstString(row.description, row.description_ar, row.content?.description);
-  const posterUrl = firstString(row.posterUrl, row.poster_url, row.bannerUrl, row.banner_url, row.media_url, row.image_url, row.imageUrl);
+  const primaryMedia = firstMediaObject(row.media, row.asset, row.creative, row.content?.media, row.content?.asset, row.content?.creative, row.assets, row.content?.assets);
+  const mediaType = firstString(
+    row.mediaType,
+    row.media_type,
+    row.contentType,
+    row.content_type,
+    row.mimeType,
+    row.mime_type,
+    row.adFormat,
+    row.ad_format,
+    row.format,
+    row.type,
+    row.kind,
+    primaryMedia?.mediaType,
+    primaryMedia?.media_type,
+    primaryMedia?.contentType,
+    primaryMedia?.content_type,
+    primaryMedia?.mimeType,
+    primaryMedia?.mime_type,
+    primaryMedia?.format,
+    primaryMedia?.type,
+    primaryMedia?.kind,
+    row.content?.mediaType,
+    row.content?.media_type,
+    row.content?.contentType,
+    row.content?.content_type,
+    row.content?.mimeType,
+    row.content?.mime_type,
+    row.content?.adFormat,
+    row.content?.ad_format,
+    row.content?.format,
+    row.content?.type,
+  );
+  const mediaUrl = firstString(
+    row.mediaUrl,
+    row.media_url,
+    row.fileUrl,
+    row.file_url,
+    row.assetUrl,
+    row.asset_url,
+    row.creativeUrl,
+    row.creative_url,
+    primaryMedia?.url,
+    primaryMedia?.src,
+    primaryMedia?.href,
+    primaryMedia?.mediaUrl,
+    primaryMedia?.media_url,
+    primaryMedia?.fileUrl,
+    primaryMedia?.file_url,
+    primaryMedia?.assetUrl,
+    primaryMedia?.asset_url,
+    primaryMedia?.creativeUrl,
+    primaryMedia?.creative_url,
+    row.content?.mediaUrl,
+    row.content?.media_url,
+    row.content?.fileUrl,
+    row.content?.file_url,
+    row.content?.assetUrl,
+    row.content?.asset_url,
+    row.content?.creativeUrl,
+    row.content?.creative_url,
+  );
+  const videoUrl = firstString(
+    row.videoUrl,
+    row.video_url,
+    row.video,
+    row.videoSrc,
+    row.video_src,
+    primaryMedia?.videoUrl,
+    primaryMedia?.video_url,
+    primaryMedia?.video,
+    primaryMedia?.videoSrc,
+    primaryMedia?.video_src,
+    row.content?.videoUrl,
+    row.content?.video_url,
+    row.content?.video,
+    row.content?.videoSrc,
+    row.content?.video_src,
+  )
+    || (isVideoMedia(mediaUrl, mediaType) ? mediaUrl : undefined);
+  const posterUrl = firstString(
+    row.posterUrl,
+    row.poster_url,
+    row.bannerUrl,
+    row.banner_url,
+    row.image_url,
+    row.imageUrl,
+    row.image,
+    row.adImage,
+    row.ad_image,
+    row.thumbnailUrl,
+    row.thumbnail_url,
+    row.coverUrl,
+    row.cover_url,
+    primaryMedia?.posterUrl,
+    primaryMedia?.poster_url,
+    primaryMedia?.bannerUrl,
+    primaryMedia?.banner_url,
+    primaryMedia?.imageUrl,
+    primaryMedia?.image_url,
+    primaryMedia?.image,
+    primaryMedia?.thumbnailUrl,
+    primaryMedia?.thumbnail_url,
+    primaryMedia?.coverUrl,
+    primaryMedia?.cover_url,
+    row.content?.posterUrl,
+    row.content?.poster_url,
+    row.content?.bannerUrl,
+    row.content?.banner_url,
+    row.content?.imageUrl,
+    row.content?.image_url,
+    row.content?.image,
+    row.content?.adImage,
+    row.content?.ad_image,
+    row.content?.thumbnailUrl,
+    row.content?.thumbnail_url,
+    row.content?.coverUrl,
+    row.content?.cover_url,
+    isImageMedia(mediaUrl, mediaType) ? mediaUrl : undefined,
+  );
   const whatsapp = firstString(row.whatsapp, row.whatsapp_link, row.whatsapp_number, row.contact_whatsapp);
   const phone = firstString(row.phone, row.phone_link, row.phone_number, row.contact_phone);
   const geoLoc = firstString(row.geoLoc, row.geo_url, row.map_url, row.location_url);
@@ -562,6 +718,9 @@ function mapAdCampaignRow(row: Record<string, any>) {
     id: String(row.id),
     title,
     description,
+    mediaType,
+    mediaUrl,
+    videoUrl,
     posterUrl,
     bannerUrl: posterUrl,
     whatsapp,
@@ -575,14 +734,197 @@ function mapAdCampaignRow(row: Record<string, any>) {
       ...(row.content || {}),
       title,
       description,
+      mediaType,
+      mediaUrl,
+      videoUrl,
       posterUrl,
     },
   };
+}
+
+function getAdMedia(ad: any): { kind: 'image' | 'video'; url?: string; posterUrl?: string } {
+  const primaryMedia = firstMediaObject(ad?.media, ad?.asset, ad?.creative, ad?.content?.media, ad?.content?.asset, ad?.content?.creative, ad?.assets, ad?.content?.assets);
+  const mediaType = firstString(
+    ad?.mediaType,
+    ad?.media_type,
+    ad?.contentType,
+    ad?.content_type,
+    ad?.mimeType,
+    ad?.mime_type,
+    ad?.adFormat,
+    ad?.ad_format,
+    ad?.format,
+    ad?.type,
+    ad?.kind,
+    primaryMedia?.mediaType,
+    primaryMedia?.media_type,
+    primaryMedia?.contentType,
+    primaryMedia?.content_type,
+    primaryMedia?.mimeType,
+    primaryMedia?.mime_type,
+    primaryMedia?.format,
+    primaryMedia?.type,
+    primaryMedia?.kind,
+    ad?.content?.mediaType,
+    ad?.content?.media_type,
+    ad?.content?.contentType,
+    ad?.content?.content_type,
+    ad?.content?.mimeType,
+    ad?.content?.mime_type,
+    ad?.content?.adFormat,
+    ad?.content?.ad_format,
+    ad?.content?.format,
+    ad?.content?.type,
+  );
+  const videoUrl = firstString(
+    ad?.videoUrl,
+    ad?.video_url,
+    ad?.video,
+    ad?.videoSrc,
+    ad?.video_src,
+    primaryMedia?.videoUrl,
+    primaryMedia?.video_url,
+    primaryMedia?.video,
+    primaryMedia?.videoSrc,
+    primaryMedia?.video_src,
+    ad?.content?.videoUrl,
+    ad?.content?.video_url,
+    ad?.content?.video,
+    ad?.content?.videoSrc,
+    ad?.content?.video_src,
+  );
+  const mediaUrl = firstString(
+    ad?.mediaUrl,
+    ad?.media_url,
+    ad?.fileUrl,
+    ad?.file_url,
+    ad?.assetUrl,
+    ad?.asset_url,
+    ad?.creativeUrl,
+    ad?.creative_url,
+    primaryMedia?.url,
+    primaryMedia?.src,
+    primaryMedia?.href,
+    primaryMedia?.mediaUrl,
+    primaryMedia?.media_url,
+    primaryMedia?.fileUrl,
+    primaryMedia?.file_url,
+    primaryMedia?.assetUrl,
+    primaryMedia?.asset_url,
+    primaryMedia?.creativeUrl,
+    primaryMedia?.creative_url,
+    ad?.content?.mediaUrl,
+    ad?.content?.media_url,
+    ad?.content?.fileUrl,
+    ad?.content?.file_url,
+    ad?.content?.assetUrl,
+    ad?.content?.asset_url,
+    ad?.content?.creativeUrl,
+    ad?.content?.creative_url,
+  );
+  const posterUrl = firstString(
+    ad?.posterUrl,
+    ad?.poster_url,
+    ad?.bannerUrl,
+    ad?.banner_url,
+    primaryMedia?.posterUrl,
+    primaryMedia?.poster_url,
+    primaryMedia?.bannerUrl,
+    primaryMedia?.banner_url,
+    ad?.content?.posterUrl,
+    ad?.content?.poster_url,
+    ad?.content?.bannerUrl,
+    ad?.content?.banner_url,
+  );
+  const imageUrl = firstString(
+    ad?.imageUrl,
+    ad?.image_url,
+    ad?.image,
+    ad?.adImage,
+    ad?.ad_image,
+    ad?.thumbnailUrl,
+    ad?.thumbnail_url,
+    ad?.coverUrl,
+    ad?.cover_url,
+    primaryMedia?.imageUrl,
+    primaryMedia?.image_url,
+    primaryMedia?.image,
+    primaryMedia?.thumbnailUrl,
+    primaryMedia?.thumbnail_url,
+    primaryMedia?.coverUrl,
+    primaryMedia?.cover_url,
+    ad?.content?.imageUrl,
+    ad?.content?.image_url,
+    ad?.content?.image,
+    ad?.content?.adImage,
+    ad?.content?.ad_image,
+    ad?.content?.thumbnailUrl,
+    ad?.content?.thumbnail_url,
+    ad?.content?.coverUrl,
+    ad?.content?.cover_url,
+    posterUrl,
+    getAdImage(ad),
+  );
+
+  if (videoUrl) return { kind: 'video', url: videoUrl, posterUrl: imageUrl || posterUrl };
+  if (isVideoMedia(mediaUrl, mediaType)) return { kind: 'video', url: mediaUrl, posterUrl: imageUrl || posterUrl };
+  if (imageUrl) return { kind: 'image', url: imageUrl };
+  if (isImageMedia(mediaUrl, mediaType)) return { kind: 'image', url: mediaUrl };
+
+  return { kind: 'image', url: getAdImage(ad) || PLACEHOLDER_BANNER_URL };
+}
+
+function isVideoMedia(url: string | undefined, mediaType: string | undefined) {
+  return Boolean(url) && (isVideoType(mediaType) || isVideoUrl(url));
+}
+
+function isVideoType(mediaType: string | undefined) {
+  const type = String(mediaType || '').toLowerCase();
+  return type.includes('video')
+    || type.includes('mp4')
+    || type.includes('webm')
+    || type.includes('ogg')
+    || type.includes('mov')
+    || type.includes('m4v');
+}
+
+function isVideoUrl(url: string | undefined) {
+  const value = String(url || '').toLowerCase().split('?')[0];
+  return /\.(mp4|webm|ogg|mov|m4v)$/i.test(value)
+    || value.includes('/video/')
+    || value.includes('/videos/')
+    || value.includes('video_')
+    || value.includes('video-')
+    || value.includes('ad-videos');
+}
+
+function isImageMedia(url: string | undefined, mediaType: string | undefined) {
+  const type = String(mediaType || '').toLowerCase();
+  const value = String(url || '').toLowerCase().split('?')[0];
+  return type.includes('image')
+    || /\.(jpg|jpeg|png|webp|gif|avif|svg)$/i.test(value)
+    || value.startsWith('data:image/')
+    || (!isVideoMedia(url, mediaType) && Boolean(url));
 }
 
 function firstString(...values: unknown[]) {
   for (const value of values) {
     if (typeof value === 'string' && value.trim()) return value.trim();
   }
+  return undefined;
+}
+
+function firstMediaObject(...values: unknown[]): Record<string, any> | undefined {
+  for (const value of values) {
+    if (Array.isArray(value)) {
+      const found = value.find((item) => item && typeof item === 'object' && !Array.isArray(item));
+      if (found) return found as Record<string, any>;
+    }
+
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      return value as Record<string, any>;
+    }
+  }
+
   return undefined;
 }
