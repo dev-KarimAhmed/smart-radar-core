@@ -82,7 +82,7 @@ assert.equal(state.activeTrip?.captainId, offers[0].driverId);
 assert.equal(state.activeTrip?.distanceKm, destination.fareQuote.estimatedRoadDistanceKm);
 assert.equal(shouldShowAdRiver(state), false);
 
-state = riderDashboardReducer(state, { type: 'COMPLETE_TRIP' });
+state = riderDashboardReducer(state, { type: 'SERVER_STATUS_COMPLETED', row: { status: 'COMPLETED' } });
 assert.equal(state.screen, 'RATING_MODAL');
 assert.equal(state.completedTrip?.captainId, offers[0].driverId);
 

@@ -72,6 +72,7 @@ export type RiderMachineAction =
   | { type: 'SERVER_REQUEST_CREATED'; requestId: string }
   | { type: 'SERVER_STATUS_RECEIVING_OFFERS' }
   | { type: 'SERVER_STATUS_ACCEPTED'; row: Record<string, unknown> }
+  | { type: 'SERVER_STATUS_COMPLETED'; row?: Record<string, unknown> }
   | { type: 'REQUEST_FAILED' }
   | { type: 'REQUEST_CANCELLED' }
   | { type: 'RECEIVE_OFFERS'; offers: Offer[] }
@@ -205,6 +206,19 @@ export function riderDashboardReducer(state: RiderMachineState, action: RiderMac
         requestCancelledAt: null,
       };
     }
+
+    case 'SERVER_STATUS_COMPLETED':
+      if (state.screen === 'RATING_MODAL') return state;
+      if (state.screen !== 'TRIP_ACTIVE' || !state.activeTrip) return state;
+      return {
+        ...state,
+        screen: 'RATING_MODAL',
+        completedTrip: {
+          ...state.activeTrip,
+          status: String(action.row?.status || 'COMPLETED').toUpperCase(),
+        },
+        activeTrip: null,
+      };
 
     case 'REQUEST_FAILED':
       if (state.screen !== 'DESTINATION_SELECTION') return state;

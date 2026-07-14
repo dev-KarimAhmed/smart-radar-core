@@ -191,6 +191,17 @@ export async function completeRideTrip(
   return data;
 }
 
+export async function fetchRideRequestStatus(client: SupabaseFromLike, requestId: string) {
+  const { data, error } = await client
+    .from('ride_requests')
+    .select('id,status,completed_at,cancelled_at,updated_at')
+    .eq('id', requestId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data as Record<string, unknown> | null;
+}
+
 export async function submitRideRating(
   client: SupabaseMarketplaceRpcLike,
   input: { requestId: string; captainId: string; ratingValue: number; comment?: string },

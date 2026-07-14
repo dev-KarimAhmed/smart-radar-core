@@ -35,6 +35,7 @@ import {
   completeRideTrip,
   createRideRequest,
   fetchAvailableCaptainPresence,
+  fetchRideRequestStatus,
   fetchRideOffers,
   isCaptainPresenceFresh,
   mapRiderMarketplaceError,
@@ -566,6 +567,11 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
           pendingAcceptedOfferIdRef.current = null;
           dispatch({ type: 'REQUEST_CANCELLED' });
         }
+
+        if (status === 'COMPLETED') {
+          pendingAcceptedOfferIdRef.current = null;
+          dispatch({ type: 'SERVER_STATUS_COMPLETED', row });
+        }
       },
       (error) => {
         toast({
@@ -917,6 +923,16 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
       dispatch({ type: 'COMPLETE_TRIP' });
     } catch (error) {
       if ((process.env.NODE_ENV !== 'production')) console.warn('[Rider Complete Trip]', error);
+      try {
+        const row = await fetchRideRequestStatus(supabase, state.requestId);
+        const status = String(row?.status || '').toUpperCase();
+        if (status === 'COMPLETED') {
+          dispatch({ type: 'SERVER_STATUS_COMPLETED', row: row || undefined });
+          return;
+        }
+      } catch (statusError) {
+        if ((process.env.NODE_ENV !== 'production')) console.warn('[Rider Complete Trip Status Check]', statusError);
+      }
       toast({
         variant: 'destructive',
         title: 'تعذر إنهاء الرحلة',

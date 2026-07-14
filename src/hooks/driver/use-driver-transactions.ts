@@ -281,6 +281,20 @@ export function useDriverTransactions(
       return true;
     } catch (error) {
       if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver transactions] complete trip failed:', error);
+      try {
+        const { data: statusRow } = await supabase
+          .from('ride_requests')
+          .select('id,status,completed_at,cancelled_at')
+          .eq('id', activeRequest.id)
+          .maybeSingle();
+        const status = String((statusRow as Record<string, unknown> | null)?.status || '').toUpperCase();
+        if (status === 'COMPLETED' || status === 'CANCELLED') {
+          cleanUpAndReset();
+          return true;
+        }
+      } catch (statusError) {
+        if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver transactions] complete trip status check failed:', statusError);
+      }
       if (isAlreadyClosedTripError(error)) {
         cleanUpAndReset();
         return true;
