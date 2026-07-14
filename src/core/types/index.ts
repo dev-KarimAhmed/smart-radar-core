@@ -73,7 +73,18 @@ export interface User {
   isFleetActive?: boolean;
 }
 
-export type TripStatus = 'searching' | 'busy' | 'completed' | 'cancelled' | 'rating' | 'checkpoint_required' | 'archived' | 'in_progress' | 'idle';
+export type TripStatus =
+  | 'searching'
+  | 'busy'
+  | 'accepted'
+  | 'arrived'
+  | 'completed'
+  | 'cancelled'
+  | 'rating'
+  | 'checkpoint_required'
+  | 'archived'
+  | 'in_progress'
+  | 'idle';
 
 export interface Trip {
   id: string;

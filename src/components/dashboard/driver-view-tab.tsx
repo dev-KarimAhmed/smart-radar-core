@@ -12,6 +12,7 @@ import { BiddingProposalSheet } from './driver/bidding-proposal-sheet';
 import {
   captainDashboardReducer,
   initialCaptainDashboardState,
+  type CaptainTripStep,
 } from './driver/captain-state-machine';
 import { DriverProfileTab } from './driver/driver-profile-tab';
 import { DriverWalletTab } from './driver/driver-wallet-tab';
@@ -44,20 +45,24 @@ export function DriverViewTab() {
     if (!driverOps) return;
 
     if (driverOps.activeRequest) {
+      const syncedStep = getCaptainTripStepFromStatus(driverOps.activeRequest.status);
       if (
         state.screen === 'ACTIVE_TRIP'
         && state.selectedRequest?.id === driverOps.activeRequest.id
       ) {
+        if (state.tripStep !== syncedStep) {
+          dispatch({ type: 'SERVER_ACCEPTED', request: driverOps.activeRequest, step: syncedStep });
+        }
         return;
       }
-      dispatch({ type: 'SERVER_ACCEPTED', request: driverOps.activeRequest });
+      dispatch({ type: 'SERVER_ACCEPTED', request: driverOps.activeRequest, step: syncedStep });
       return;
     }
 
     if (state.screen === 'ACTIVE_TRIP') {
       dispatch({ type: 'TRIP_COMPLETED' });
     }
-  }, [driverOps, driverOps?.activeRequest, state.screen, state.selectedRequest?.id]);
+  }, [driverOps, driverOps?.activeRequest, state.screen, state.selectedRequest?.id, state.tripStep]);
 
   React.useEffect(() => {
     if (!driverOps) return;
@@ -223,6 +228,18 @@ export function DriverViewTab() {
       </div>
     </div>
   );
+}
+
+function getCaptainTripStepFromStatus(status: unknown): CaptainTripStep {
+  const normalized = String(status || '').toUpperCase();
+
+  if (normalized === 'ARRIVED') return 'ARRIVED';
+  if (normalized === 'TRIP_ACTIVE' || normalized === 'ACTIVE' || normalized === 'STARTED' || normalized === 'IN_PROGRESS') {
+    return 'STARTED';
+  }
+  if (normalized === 'COMPLETED') return 'COMPLETED';
+
+  return 'ACCEPTED';
 }
 
 function NavButton({

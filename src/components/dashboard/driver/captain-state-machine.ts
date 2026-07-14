@@ -18,7 +18,7 @@ export type CaptainDashboardAction =
   | { type: 'SELECT_REQUEST'; request: Trip }
   | { type: 'IGNORE_REQUEST'; requestId: string }
   | { type: 'OFFER_SUBMITTED'; requestId: string; offerId?: string | null }
-  | { type: 'SERVER_ACCEPTED'; request: Trip; offerId?: string | null }
+  | { type: 'SERVER_ACCEPTED'; request: Trip; offerId?: string | null; step?: CaptainTripStep }
   | { type: 'CONFIRM_ARRIVAL' }
   | { type: 'START_TRIP' }
   | { type: 'TRIP_COMPLETED' }
@@ -71,7 +71,7 @@ export function captainDashboardReducer(
       return {
         ...state,
         screen: 'ACTIVE_TRIP',
-        tripStep: 'ACCEPTED',
+        tripStep: action.step || 'ACCEPTED',
         selectedRequest: action.request,
         submittedOfferRequestId: action.request.id,
         submittedOfferId: action.offerId || state.submittedOfferId,

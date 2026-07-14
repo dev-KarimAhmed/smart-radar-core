@@ -550,7 +550,15 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
           dispatch({ type: 'SERVER_STATUS_RECEIVING_OFFERS' });
         }
 
-        if (status === 'ACCEPTED' || status === 'EN_ROUTE' || status === 'ARRIVED' || status === 'STARTED') {
+        if (
+          status === 'ACCEPTED'
+          || status === 'EN_ROUTE'
+          || status === 'ARRIVED'
+          || status === 'STARTED'
+          || status === 'TRIP_ACTIVE'
+          || status === 'ACTIVE'
+          || status === 'IN_PROGRESS'
+        ) {
           dispatch({
             type: 'SERVER_STATUS_ACCEPTED',
             row: {
@@ -1306,6 +1314,8 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
     if (state.screen === 'TRIP_ACTIVE' && state.activeTrip) {
       const minutes = Math.floor(etaSeconds / 60);
       const seconds = etaSeconds % 60;
+      const activeTripStatus = String(state.activeTrip.status || '').toUpperCase();
+      const tripHasStarted = isTripStartedStatus(activeTripStatus);
 
       return (
         <div className={`space-y-4 ${isArabic ? 'text-right' : 'text-left'}`} dir={isArabic ? 'rtl' : 'ltr'}>
@@ -1323,7 +1333,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                 {minutes}:{seconds.toString().padStart(2, '0')}
               </strong>
               <span className="text-[9px] text-slate-400 block mt-0.5 whitespace-nowrap font-bold">
-                {state.activeTrip.status === 'STARTED'
+                {tripHasStarted
                   ? (language === 'ar' ? 'متبقي للوصول' : 'Time Remaining')
                   : (language === 'ar' ? 'وصول الكابتن' : 'Driver Arrival')}
               </span>
@@ -1351,7 +1361,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
           </div>
 
           <div className="rounded-2xl border border-[#14B8A6]/20 bg-[#14B8A6]/8 p-4 text-xs leading-relaxed text-slate-300">
-            {state.activeTrip.status === 'STARTED'
+            {tripHasStarted
               ? (language === 'ar'
                   ? "رحلتك قيد التقدم الآن. نتمنى لك رحلة آمنة!"
                   : "Your trip is in progress. Have a safe ride!")
@@ -1368,7 +1378,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                 <Phone className="h-6 w-6" />
               </a>
             )}
-            {state.activeTrip.status === 'STARTED' ? (
+            {tripHasStarted ? (
               <button
                 type="button"
                 onClick={() => {
@@ -2064,6 +2074,13 @@ const riderViewCopy = {
     completeTrip: 'Complete trip',
   },
 } satisfies Record<AppLanguage, Record<string, string>>;
+
+function isTripStartedStatus(status: string) {
+  return status === 'STARTED'
+    || status === 'TRIP_ACTIVE'
+    || status === 'ACTIVE'
+    || status === 'IN_PROGRESS';
+}
 
 function NavButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (

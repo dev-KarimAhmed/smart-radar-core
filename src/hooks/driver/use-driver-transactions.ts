@@ -399,7 +399,7 @@ function mapRideRequestToTrip(row: RideRequestRow | null): Trip | null {
     id,
     riderId,
     driverId: String(row.accepted_captain_id || ''),
-    status: 'busy',
+    status: mapRideRequestStatusToTripStatus(row.status),
     pickupCoords: { lat: originLat, lng: originLng },
     exactPickupCoords: { lat: originLat, lng: originLng },
     h3Index: String(row.origin_h3 || ''),
@@ -410,6 +410,20 @@ function mapRideRequestToTrip(row: RideRequestRow | null): Trip | null {
     offerPrice: toNumber(row.final_fare) ?? toNumber(row.offered_fare) ?? toNumber(row.offer_price) ?? toNumber(row.server_estimated_fare) ?? undefined,
     createdAt: String(row.created_at || ''),
   };
+}
+
+function mapRideRequestStatusToTripStatus(value: unknown): Trip['status'] {
+  const status = String(value || '').toUpperCase();
+
+  if (status === 'COMPLETED') return 'completed';
+  if (status === 'CANCELLED') return 'cancelled';
+  if (status === 'ARRIVED') return 'arrived';
+  if (status === 'TRIP_ACTIVE' || status === 'ACTIVE' || status === 'STARTED' || status === 'IN_PROGRESS') {
+    return 'in_progress';
+  }
+  if (status === 'ACCEPTED' || status === 'EN_ROUTE') return 'accepted';
+
+  return 'busy';
 }
 
 function toNumber(value: unknown) {
