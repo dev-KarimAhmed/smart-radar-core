@@ -106,7 +106,12 @@ const OfferCard = ({
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h4 className="font-bold text-white">{offer.driverName}</h4>
-              {isFavorite && <Heart className="h-4 w-4 fill-current text-red-500" />}
+              {isFavorite && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300/40 bg-emerald-400/12 px-2 py-0.5 text-[10px] font-black text-emerald-300 shadow-[0_0_18px_rgba(52,211,153,0.18)]">
+                  <Heart className="h-3.5 w-3.5 fill-emerald-300 text-emerald-300" />
+                  Preferred Captain
+                </span>
+              )}
               {(() => {
                 const tier = (offer.tier || 'SILVER').toUpperCase();
                 switch (tier) {
@@ -263,14 +268,9 @@ export function OfferGallery({
         if (aIsFav && !bIsFav) return -1;
         if (!aIsFav && bIsFav) return 1;
 
-        const aIsReserve = a.displayTarget === 'reserve_3' || a.isDumping;
-        const bIsReserve = b.displayTarget === 'reserve_3' || b.isDumping;
-        if (!aIsReserve && bIsReserve) return -1;
-        if (aIsReserve && !bIsReserve) return 1;
-
-        const rankPriority: Record<string, number> = { Platinum: 4, Gold: 3, Silver: 2, Bronze: 1 };
-        const aPriority = rankPriority[a.driverRank || 'Gold'] || 3;
-        const bPriority = rankPriority[b.driverRank || 'Gold'] || 3;
+        const rankPriority: Record<string, number> = { PLATINUM: 4, GOLD: 3, SILVER: 2, BRONZE: 1 };
+        const aPriority = rankPriority[String(a.driverRank || a.tier || 'SILVER').toUpperCase()] || 2;
+        const bPriority = rankPriority[String(b.driverRank || b.tier || 'SILVER').toUpperCase()] || 2;
         if (aPriority !== bPriority) return bPriority - aPriority;
 
         if (a.price === -1) return 1;

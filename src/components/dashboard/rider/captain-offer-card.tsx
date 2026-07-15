@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Car, Clock, MapPin, Navigation, ShieldCheck, Star } from 'lucide-react';
+import { Car, Clock, Heart, MapPin, Navigation, ShieldCheck, Star } from 'lucide-react';
 
 export type CaptainRank = 'PLATINUM' | 'GOLD' | 'SILVER' | 'BRONZE';
 
@@ -30,6 +30,7 @@ interface CaptainOfferCardProps {
   currencyCode?: string;
   language?: 'ar' | 'en';
   isAccepting?: boolean;
+  isPreferred?: boolean;
   onAccept: (offer: CaptainOffer) => void;
 }
 
@@ -78,6 +79,7 @@ export function CaptainOfferCard({
   currencyCode = 'EGP',
   language = 'ar',
   isAccepting = false,
+  isPreferred = false,
   onAccept,
 }: CaptainOfferCardProps) {
   const isArabic = language === 'ar';
@@ -113,7 +115,15 @@ export function CaptainOfferCard({
               </div>
             )}
             <div className="min-w-0">
-              <h3 className="truncate text-xl font-extrabold text-[#F8FAFC]">{captainName}</h3>
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                <h3 className="truncate text-xl font-extrabold text-[#F8FAFC]">{captainName}</h3>
+                {isPreferred ? (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300/40 bg-emerald-400/12 px-2.5 py-1 text-[10px] font-black text-emerald-300 shadow-[0_0_18px_rgba(52,211,153,0.22)]">
+                    <Heart className="h-3.5 w-3.5 fill-emerald-300 text-emerald-300" />
+                    {isArabic ? 'ناقل مفضل' : 'Preferred Captain'}
+                  </span>
+                ) : null}
+              </div>
               <p className="mt-1 flex flex-wrap items-center gap-1.5 text-sm text-[#94A3B8]">
                 <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.7)]" />
                 <span className="font-bold text-[#F8FAFC]">{rating}.0</span>

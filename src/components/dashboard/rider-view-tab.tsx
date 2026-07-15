@@ -109,6 +109,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
   const [draftDestinationId, setDraftDestinationId] = React.useState('');
   const [rating, setRating] = React.useState({ captain: 0, vehicle: 0, favorite: false });
   const [ratingComment, setRatingComment] = React.useState('');
+  const [preferredCaptainIds, setPreferredCaptainIds] = React.useState<string[]>([]);
   const [etaSeconds, setEtaSeconds] = React.useState(0);
   const [riderLocation, setRiderLocation] = React.useState<RiderLocation>(INITIAL_RIDER_LOCATION);
   const [riderH3Cell, setRiderH3Cell] = React.useState(latLngToCell(INITIAL_RIDER_LOCATION.lat, INITIAL_RIDER_LOCATION.lng, H3_RIDER_REQUEST_RESOLUTION));
@@ -655,25 +656,17 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
           dexieDb.favoriteCaptains.toArray().catch(() => [])
         ]);
 
-        const favPhones = new Set(favs.map(f => f.captainPhone).filter(Boolean));
-        const favNames = new Set(favs.map(f => f.captainName).filter(Boolean));
-        const favIds = new Set(favs.map((f: any) => f.captainId || f.driverId).filter(Boolean));
+        const favoriteIds = collectPreferredCaptainIds(favs);
+        const sortedOffers = prioritizeRiderOffers(offers, favoriteIds);
 
-        const sortedOffers = [...offers].sort((a, b) => {
-          const aPhone = a.driverAffiliation?.phone;
-          const bPhone = b.driverAffiliation?.phone;
-          const aIsFav = (aPhone && favPhones.has(aPhone)) || favNames.has(a.driverName) || favIds.has(a.driverId);
-          const bIsFav = (bPhone && favPhones.has(bPhone)) || favNames.has(b.driverName) || favIds.has(b.driverId);
-          
-          if (aIsFav && !bIsFav) return -1;
-          if (!aIsFav && bIsFav) return 1;
-          return 0;
-        });
-
-        if (active) dispatch({ type: 'RECEIVE_OFFERS', offers: sortedOffers });
+        if (active) {
+          setPreferredCaptainIds(favoriteIds);
+          dispatch({ type: 'RECEIVE_OFFERS', offers: sortedOffers });
+        }
       } catch (error) {
         if (!active) return;
         if ((process.env.NODE_ENV !== 'production')) console.warn('[Rider Offers]', error);
+        setPreferredCaptainIds([]);
         dispatch({ type: 'RECEIVE_OFFERS', offers: [] });
       }
     };
@@ -977,8 +970,25 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
           const favoriteTrip = toHistoricalTrip(state.completedTrip);
           await dexieDb.favoriteCaptains.put({
             ...favoriteTrip,
+            captainId: state.completedTrip.captainId,
+            driverId: state.completedTrip.captainId,
             heartedAt: Date.now(),
-          });
+          } as any);
+          if (typeof window !== 'undefined' && state.completedTrip.captainId) {
+            window.localStorage.setItem(
+              `radar_preferred_captain_${state.completedTrip.captainId}`,
+              JSON.stringify({
+                captainId: state.completedTrip.captainId,
+                driverId: state.completedTrip.captainId,
+                captainName: state.completedTrip.captainName,
+                fullName: state.completedTrip.captainName,
+                captainPhone: state.completedTrip.captainPhone,
+                phoneNumber: state.completedTrip.captainPhone,
+                vehicleSpecs: `${state.completedTrip.vehicleType} - ${state.completedTrip.vehiclePlate}`,
+                savedTimestamp: Date.now(),
+              }),
+            );
+          }
         } catch (cacheError) {
           if ((process.env.NODE_ENV !== 'production')) console.warn('[Rider Favorite Captain Cache]', cacheError);
         }
@@ -1301,6 +1311,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                     currencyCode={currencyLabel || 'EGP'}
                     language={language === 'ar' ? 'ar' : 'en'}
                     isAccepting={acceptingOfferId === (offer.id || offer.driverId)}
+                    isPreferred={isPreferredOffer(offer, preferredCaptainIds)}
                     onAccept={() => void handleAcceptOffer(offer)}
                   />
                 );
@@ -1789,6 +1800,112 @@ function toCaptainOfferRank(value: unknown): CaptainRank {
   if (normalized.includes('GOLD') || normalized.includes('ذهب')) return 'GOLD';
   if (normalized.includes('BRONZE') || normalized.includes('برون')) return 'BRONZE';
   return 'SILVER';
+}
+
+function prioritizeRiderOffers<T extends Record<string, any>>(offers: T[], favoriteIds: string[]) {
+  const rankWeight: Record<CaptainRank, number> = {
+    PLATINUM: 4,
+    GOLD: 3,
+    SILVER: 2,
+    BRONZE: 1,
+  };
+
+  return [...offers].sort((a, b) => {
+    const aIsFavorite = isPreferredOffer(a, favoriteIds);
+    const bIsFavorite = isPreferredOffer(b, favoriteIds);
+
+    if (aIsFavorite && !bIsFavorite) return -1;
+    if (!aIsFavorite && bIsFavorite) return 1;
+
+    const aRankWeight = rankWeight[toCaptainOfferRank(a?.captain?.rank || a?.captain?.tier || a?.driverRank || a?.tier)] || 2;
+    const bRankWeight = rankWeight[toCaptainOfferRank(b?.captain?.rank || b?.captain?.tier || b?.driverRank || b?.tier)] || 2;
+
+    if (aRankWeight !== bRankWeight) return bRankWeight - aRankWeight;
+
+    return getComparableOfferFare(a) - getComparableOfferFare(b);
+  });
+}
+
+function collectPreferredCaptainIds(favorites: Array<Record<string, any>> = []) {
+  const ids = new Set<string>();
+
+  const addValue = (value: unknown) => {
+    if (typeof value === 'string' && value.trim()) ids.add(value.trim());
+    if (typeof value === 'number' && Number.isFinite(value)) ids.add(String(value));
+  };
+
+  favorites.forEach((favorite) => {
+    addValue(favorite?.captainId);
+    addValue(favorite?.driverId);
+    addValue(favorite?.id);
+    addValue(favorite?.tripId);
+    addValue(favorite?.captainPhone);
+    addValue(favorite?.captainName);
+  });
+
+  if (typeof window !== 'undefined') {
+    for (let index = 0; index < window.localStorage.length; index += 1) {
+      const key = window.localStorage.key(index);
+      if (!key?.startsWith('radar_preferred_captain_')) continue;
+
+      addValue(key.replace('radar_preferred_captain_', ''));
+
+      try {
+        const parsed = JSON.parse(window.localStorage.getItem(key) || '{}');
+        addValue(parsed?.captainId);
+        addValue(parsed?.driverId);
+        addValue(parsed?.id);
+        addValue(parsed?.tripId);
+        addValue(parsed?.phone);
+        addValue(parsed?.phoneNumber);
+        addValue(parsed?.captainPhone);
+        addValue(parsed?.fullName);
+        addValue(parsed?.captainName);
+      } catch {
+        // Ignore legacy/non-JSON favorite entries.
+      }
+    }
+  }
+
+  return Array.from(ids);
+}
+
+function isPreferredOffer(offer: Record<string, any>, favoriteIds: string[]) {
+  if (favoriteIds.length === 0) return false;
+  const favoriteSet = new Set(favoriteIds.map((id) => String(id).trim()).filter(Boolean));
+  return getOfferFavoriteIdentifiers(offer).some((id) => favoriteSet.has(id));
+}
+
+function getOfferFavoriteIdentifiers(offer: Record<string, any>) {
+  return [
+    offer?.captain?.id,
+    offer?.captain_id,
+    offer?.captainId,
+    offer?.driverId,
+    offer?.driver_id,
+    offer?.id,
+    offer?.driverAffiliation?.phone,
+    offer?.captain?.phone,
+    offer?.captain?.phone_number,
+    offer?.driverName,
+    offer?.captain?.name,
+    offer?.captain?.full_name,
+  ]
+    .map((value) => firstDisplayString(value))
+    .filter(Boolean);
+}
+
+function getComparableOfferFare(offer: Record<string, any>) {
+  const value = Number(
+    offer?.finalFare ??
+      offer?.final_fare ??
+      offer?.submitted_fare ??
+      offer?.offer_price ??
+      offer?.price ??
+      Number.MAX_SAFE_INTEGER,
+  );
+
+  return Number.isFinite(value) && value >= 0 ? value : Number.MAX_SAFE_INTEGER;
 }
 
 function getOfferVehicleSummary(offer: any, language: AppLanguage) {
