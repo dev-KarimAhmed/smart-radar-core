@@ -3,8 +3,9 @@ import Dexie, { type Table } from 'dexie';
 export interface FavoriteCaptain {
   id?: number;
   tripId: string;
+  captainId?: string;
   captainName: string;
-  captainRank: 'PLATINUM' | 'GOLD' | 'BRONZE';
+  captainRank: 'PLATINUM' | 'GOLD' | 'SILVER' | 'BRONZE';
   captainPhone: string;
   vehicleInfo: string;
   finalPrice: number;
@@ -26,8 +27,9 @@ export interface CaptainSovereignLog {
 export interface RiderTripLedgerEntry {
   id?: number;
   tripId: string;
+  captainId?: string;
   captainName: string;
-  captainRank: 'PLATINUM' | 'GOLD' | 'BRONZE';
+  captainRank: 'PLATINUM' | 'GOLD' | 'SILVER' | 'BRONZE';
   captainPhone: string;
   vehicleInfo: string;
   finalPrice: number;

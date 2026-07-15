@@ -98,8 +98,31 @@ export function CaptainOfferCard({
   return (
     <article
       dir={isArabic ? 'rtl' : 'ltr'}
-      className="group rounded-2xl border border-[#243249] bg-[#161F30]/80 p-5 text-[#F8FAFC] shadow-2xl shadow-black/20 backdrop-blur-md transition-all duration-300 hover:border-[#14B8A6]"
+      className={`group rounded-2xl border bg-[#161F30]/80 p-5 text-[#F8FAFC] shadow-2xl shadow-black/20 backdrop-blur-md transition-all duration-300 hover:border-[#14B8A6] ${
+        isPreferred ? 'border-emerald-300/60 shadow-[0_0_34px_rgba(20,184,166,0.18)]' : 'border-[#243249]'
+      }`}
     >
+      {isPreferred ? (
+        <div className="mb-4 flex items-center justify-between gap-3 rounded-2xl border border-emerald-300/45 bg-emerald-400/15 px-4 py-3 text-emerald-200 shadow-[0_0_24px_rgba(52,211,153,0.22)]">
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-emerald-300/20 shadow-[0_0_18px_rgba(52,211,153,0.28)]">
+              <Heart className="h-5 w-5 fill-emerald-200 text-emerald-200" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-sm font-black text-emerald-100">
+                {isArabic ? '⭐ ناقل مفضل' : '⭐ Preferred Captain'}
+              </p>
+              <p className="text-[11px] font-semibold text-emerald-100/75">
+                {isArabic ? 'تم حفظ هذا الكابتن في قائمتك المفضلة' : 'Saved in your preferred captains list'}
+              </p>
+            </div>
+          </div>
+          <span className="shrink-0 rounded-full bg-[#0B0F19]/80 px-3 py-1 text-[10px] font-black text-[#00ffcc]">
+            {isArabic ? 'أولوية' : 'Priority'}
+          </span>
+        </div>
+      ) : null}
+
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="flex items-center gap-3">
@@ -115,15 +138,7 @@ export function CaptainOfferCard({
               </div>
             )}
             <div className="min-w-0">
-              <div className="flex min-w-0 flex-wrap items-center gap-2">
-                <h3 className="truncate text-xl font-extrabold text-[#F8FAFC]">{captainName}</h3>
-                {isPreferred ? (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300/40 bg-emerald-400/12 px-2.5 py-1 text-[10px] font-black text-emerald-300 shadow-[0_0_18px_rgba(52,211,153,0.22)]">
-                    <Heart className="h-3.5 w-3.5 fill-emerald-300 text-emerald-300" />
-                    {isArabic ? 'ناقل مفضل' : 'Preferred Captain'}
-                  </span>
-                ) : null}
-              </div>
+              <h3 className="truncate text-xl font-extrabold text-[#F8FAFC]">{captainName}</h3>
               <p className="mt-1 flex flex-wrap items-center gap-1.5 text-sm text-[#94A3B8]">
                 <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.7)]" />
                 <span className="font-bold text-[#F8FAFC]">{rating}.0</span>
@@ -137,7 +152,7 @@ export function CaptainOfferCard({
         </div>
 
         <div className="shrink-0 text-left ltr:text-right">
-          <p className="text-xs font-bold text-[#94A3B8]">{isArabic ? 'السعر النهائي' : 'Final fare'}</p>
+          <p className="text-xs font-bold text-[#94A3B8]">{isArabic ? 'السعر الإجمالي' : 'Total price'}</p>
           <strong className="mt-1 block text-2xl font-black text-[#00ffcc]">
             {finalFare.toFixed(2)} {currencyCode}
           </strong>
@@ -152,7 +167,7 @@ export function CaptainOfferCard({
         />
         <InfoRow
           icon={<Clock className="h-4 w-4" />}
-          label={isArabic ? 'يصلك خلال' : 'ETA'}
+          label={isArabic ? 'يوصلك خلال' : 'ETA'}
           value={`${offer.eta_minutes} ${isArabic ? 'دقائق' : 'mins'}`}
           highlight
         />
@@ -160,10 +175,7 @@ export function CaptainOfferCard({
 
       <div className="mt-3 grid gap-3 rounded-xl bg-[#0B0F19]/70 p-4 sm:grid-cols-2">
         <InfoRow icon={<Car className="h-4 w-4" />} label={isArabic ? 'السيارة' : 'Vehicle'} value={vehicleSummary} />
-        <InfoRow
-          label={isArabic ? 'اللوحة' : 'Plate'}
-          value={captain.plate_number?.trim() || (isArabic ? 'غير متاح' : 'Not available')}
-        />
+        <InfoRow label={isArabic ? 'اللوحة' : 'Plate'} value={captain.plate_number?.trim() || (isArabic ? 'غير متاح' : 'Not available')} />
       </div>
 
       {hasPremium ? (
@@ -175,6 +187,12 @@ export function CaptainOfferCard({
               value={`+${rankPremiumValue.toFixed(2)} ${currencyCode}`}
               accent
             />
+            <div className="mt-3 rounded-2xl border border-[#14B8A6]/40 bg-[#0B0F19]/80 px-4 py-3 shadow-[0_0_18px_rgba(20,184,166,0.12)]">
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-sm font-black text-[#F8FAFC]">{isArabic ? 'السعر الإجمالي' : 'Total price'}</span>
+                <strong className="text-xl font-black text-[#00ffcc]">{finalFare.toFixed(2)} {currencyCode}</strong>
+              </div>
+            </div>
           </div>
           <p className="mt-3 text-xs leading-5 text-[#94A3B8]">
             {isArabic
@@ -182,7 +200,14 @@ export function CaptainOfferCard({
               : `Includes a ${premiumPercent}% quality premium selected by the captain within the allowed ${rankLabel} range: 1-${maxPremiumPercent}%.`}
           </p>
         </div>
-      ) : null}
+      ) : (
+        <div className="mt-4 rounded-2xl border border-[#14B8A6]/35 bg-[#14B8A6]/10 p-4">
+          <div className="flex items-center justify-between gap-4">
+            <span className="text-sm font-black text-[#F8FAFC]">{isArabic ? 'السعر الإجمالي' : 'Total price'}</span>
+            <strong className="text-xl font-black text-[#00ffcc]">{finalFare.toFixed(2)} {currencyCode}</strong>
+          </div>
+        </div>
+      )}
 
       <button
         type="button"
@@ -219,11 +244,21 @@ function InfoRow({
   );
 }
 
-function BreakdownRow({ label, value, accent = false }: { label: string; value: string; accent?: boolean }) {
+function BreakdownRow({
+  label,
+  value,
+  accent = false,
+  strong = false,
+}: {
+  label: string;
+  value: string;
+  accent?: boolean;
+  strong?: boolean;
+}) {
   return (
     <div className="flex items-center justify-between gap-4">
-      <span className="text-[#94A3B8]">{label}</span>
-      <strong className={accent ? 'text-[#14B8A6]' : 'text-[#F8FAFC]'}>{value}</strong>
+      <span className={strong ? 'font-black text-[#F8FAFC]' : 'text-[#94A3B8]'}>{label}</span>
+      <strong className={`${accent ? 'text-[#14B8A6]' : 'text-[#F8FAFC]'} ${strong ? 'text-lg' : ''}`}>{value}</strong>
     </div>
   );
 }

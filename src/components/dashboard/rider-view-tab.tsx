@@ -1281,6 +1281,9 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                 const captainName = getOfferCaptainName(offer, language);
                 const vehicleSummary = getOfferVehicleSummary(offer, language);
                 const plateValue = getOfferPlate(offer, language);
+                const rawOfferIsPreferred =
+                  Boolean((offer as unknown as Record<string, unknown>).__isPreferredCaptain) ||
+                  isPreferredOffer(offer, preferredCaptainIds);
                 const captainOffer: CaptainOffer = {
                   id: offer.id || offer.driverId,
                   captain: {
@@ -1303,6 +1306,9 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                   eta_minutes: Number(etaDisplay) || 1,
                   distance_km: Number(distanceDisplay) || 0,
                 };
+                const cardOfferIsPreferred =
+                  rawOfferIsPreferred ||
+                  isPreferredOffer(captainOffer as unknown as Record<string, any>, preferredCaptainIds);
 
                 return (
                   <CaptainOfferCard
@@ -1311,7 +1317,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                     currencyCode={currencyLabel || 'EGP'}
                     language={language === 'ar' ? 'ar' : 'en'}
                     isAccepting={acceptingOfferId === (offer.id || offer.driverId)}
-                    isPreferred={isPreferredOffer(offer, preferredCaptainIds)}
+                    isPreferred={cardOfferIsPreferred}
                     onAccept={() => void handleAcceptOffer(offer)}
                   />
                 );
@@ -1810,7 +1816,10 @@ function prioritizeRiderOffers<T extends Record<string, any>>(offers: T[], favor
     BRONZE: 1,
   };
 
-  return [...offers].sort((a, b) => {
+  return offers.map((offer) => ({
+    ...offer,
+    __isPreferredCaptain: isPreferredOffer(offer, favoriteIds),
+  })).sort((a, b) => {
     const aIsFavorite = isPreferredOffer(a, favoriteIds);
     const bIsFavorite = isPreferredOffer(b, favoriteIds);
 
@@ -1823,7 +1832,7 @@ function prioritizeRiderOffers<T extends Record<string, any>>(offers: T[], favor
     if (aRankWeight !== bRankWeight) return bRankWeight - aRankWeight;
 
     return getComparableOfferFare(a) - getComparableOfferFare(b);
-  });
+  }) as T[];
 }
 
 function collectPreferredCaptainIds(favorites: Array<Record<string, any>> = []) {
@@ -1837,10 +1846,7 @@ function collectPreferredCaptainIds(favorites: Array<Record<string, any>> = []) 
   favorites.forEach((favorite) => {
     addValue(favorite?.captainId);
     addValue(favorite?.driverId);
-    addValue(favorite?.id);
-    addValue(favorite?.tripId);
     addValue(favorite?.captainPhone);
-    addValue(favorite?.captainName);
   });
 
   if (typeof window !== 'undefined') {
@@ -1855,12 +1861,9 @@ function collectPreferredCaptainIds(favorites: Array<Record<string, any>> = []) 
         addValue(parsed?.captainId);
         addValue(parsed?.driverId);
         addValue(parsed?.id);
-        addValue(parsed?.tripId);
         addValue(parsed?.phone);
         addValue(parsed?.phoneNumber);
         addValue(parsed?.captainPhone);
-        addValue(parsed?.fullName);
-        addValue(parsed?.captainName);
       } catch {
         // Ignore legacy/non-JSON favorite entries.
       }
@@ -1872,8 +1875,11 @@ function collectPreferredCaptainIds(favorites: Array<Record<string, any>> = []) 
 
 function isPreferredOffer(offer: Record<string, any>, favoriteIds: string[]) {
   if (favoriteIds.length === 0) return false;
-  const favoriteSet = new Set(favoriteIds.map((id) => String(id).trim()).filter(Boolean));
-  return getOfferFavoriteIdentifiers(offer).some((id) => favoriteSet.has(id));
+  const favoriteTokens = favoriteIds.map(normalizeFavoriteToken).filter(Boolean);
+  const favoriteSet = new Set(favoriteTokens);
+  const offerTokens = getOfferFavoriteIdentifiers(offer).map(normalizeFavoriteToken).filter(Boolean);
+
+  return offerTokens.some((offerToken) => favoriteSet.has(offerToken));
 }
 
 function getOfferFavoriteIdentifiers(offer: Record<string, any>) {
@@ -1887,12 +1893,22 @@ function getOfferFavoriteIdentifiers(offer: Record<string, any>) {
     offer?.driverAffiliation?.phone,
     offer?.captain?.phone,
     offer?.captain?.phone_number,
-    offer?.driverName,
-    offer?.captain?.name,
-    offer?.captain?.full_name,
   ]
     .map((value) => firstDisplayString(value))
     .filter(Boolean);
+}
+
+function normalizeFavoriteToken(value: unknown) {
+  const raw = firstDisplayString(value).trim().toLowerCase();
+  if (!raw) return '';
+
+  const digits = raw.replace(/\D/g, '');
+  if (digits.length >= 7) return digits.replace(/^00/, '');
+
+  return raw
+    .replace(/[\u064B-\u065F]/g, '')
+    .replace(/[\s\-_.()+]/g, '')
+    .trim();
 }
 
 function getComparableOfferFare(offer: Record<string, any>) {

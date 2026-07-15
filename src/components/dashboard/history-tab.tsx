@@ -14,9 +14,10 @@ import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 
 interface HistoricalTrip {
   tripId: string;
+  captainId?: string;
   serialId?: string;
   captainName: string;
-  captainRank: 'PLATINUM' | 'GOLD' | 'BRONZE';
+  captainRank: 'PLATINUM' | 'GOLD' | 'SILVER' | 'BRONZE';
   captainPhone: string;
   vehicleInfo: string;
   finalPrice: number;
@@ -32,13 +33,235 @@ function normalizeCaptainRank(value: unknown): HistoricalTrip['captainRank'] {
   const normalized = `${value || ''}`.toUpperCase();
   if (normalized.includes('PLATINUM')) return 'PLATINUM';
   if (normalized.includes('GOLD')) return 'GOLD';
+  if (normalized.includes('SILVER')) return 'SILVER';
   return 'BRONZE';
 }
 
 function formatVehicleInfo(vehicle: any) {
   if (!vehicle || typeof vehicle !== 'object') return 'غير متاح';
-  const parts = [vehicle.make, vehicle.model, vehicle.color, vehicle.plate].filter(Boolean);
+  const parts = [
+    vehicle.make,
+    vehicle.vehicle_make,
+    vehicle.brand,
+    vehicle.vehicle_brand,
+    vehicle.model,
+    vehicle.vehicle_model,
+    vehicle.color,
+    vehicle.vehicle_color,
+    vehicle.plate,
+    vehicle.plate_number,
+    vehicle.vehicle_plate,
+  ].filter(Boolean);
   return parts.length > 0 ? parts.join(' - ') : 'غير متاح';
+}
+
+function isPlainRecord(value: unknown): value is Record<string, any> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function firstHistoryString(...values: unknown[]) {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim()) return value.trim();
+    if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+  }
+  return '';
+}
+
+function firstHistoryNumber(...values: unknown[]) {
+  for (const value of values) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return undefined;
+}
+
+function getCaptainIdFromTrip(trip: any) {
+  return firstHistoryString(
+    trip?.captain_id,
+    trip?.accepted_captain_id,
+    trip?.driver_id,
+    trip?.captain?.id,
+    trip?.captain_profile?.id,
+    trip?.metadata?.captain_id,
+    trip?.metadata?.captainId,
+    trip?.acceptedOffer?.captain_id,
+    trip?.acceptedOffer?.captain?.id,
+    trip?.acceptedOffer?.driverId
+  );
+}
+
+function getHistoryCaptainName(trip: any, acceptedOffer?: any) {
+  return firstHistoryString(
+    trip?.captain?.full_name,
+    trip?.captain?.name,
+    trip?.captain_profile?.full_name,
+    trip?.metadata?.captain_name,
+    trip?.metadata?.captainName,
+    acceptedOffer?.driverName,
+    acceptedOffer?.captain?.full_name,
+    trip?.driver_name,
+    trip?.captain_name,
+    trip?.driverName
+  ) || 'Captain';
+}
+
+function getHistoryCaptainPhone(trip: any, acceptedOffer?: any) {
+  return firstHistoryString(
+    trip?.captain?.phone,
+    trip?.captain?.phone_number,
+    trip?.captain_profile?.phone,
+    trip?.metadata?.captain_phone,
+    trip?.metadata?.captainPhone,
+    acceptedOffer?.driverVehicle?.phone,
+    acceptedOffer?.captain?.phone,
+    trip?.driver_phone,
+    trip?.captain_phone,
+    trip?.driverPhone
+  );
+}
+
+function getHistoryCaptainRank(trip: any, acceptedOffer?: any) {
+  return normalizeCaptainRank(
+    firstHistoryString(
+      trip?.captain_rank,
+      trip?.captainRank,
+      trip?.captain?.rank,
+      trip?.captain?.tier,
+      trip?.captain_profile?.rank,
+      trip?.captain_profile?.tier,
+      trip?.captain_profile?.membership_tier,
+      trip?.metadata?.captain_rank,
+      trip?.metadata?.captainRank,
+      acceptedOffer?.driverRank,
+      acceptedOffer?.tier,
+      trip?.driver_rank,
+      trip?.driverRank
+    ) || firstHistoryNumber(trip?.captain?.rating, trip?.captain?.trust_score, acceptedOffer?.driverRating, 5)
+  );
+}
+
+function getHistoryVehicleInfo(trip: any, acceptedOffer?: any) {
+  const metadata = isPlainRecord(trip?.metadata) ? trip.metadata : {};
+  const vehicle = acceptedOffer?.driverVehicle || trip?.driver_vehicle || trip?.vehicle || {};
+  const captainProfile = trip?.captain_profile || {};
+  const captain = trip?.captain || {};
+  const parts = [
+    firstHistoryString(
+      metadata.vehicle_make,
+      metadata.vehicle_brand,
+      captainProfile.vehicle_make,
+      captainProfile.vehicle_brand,
+      captain.vehicle_make,
+      captain.vehicle_brand,
+      vehicle.make,
+      vehicle.vehicle_make,
+      vehicle.brand,
+      vehicle.vehicle_brand
+    ),
+    firstHistoryString(
+      metadata.vehicle_model,
+      captainProfile.vehicle_model,
+      captain.vehicle_model,
+      vehicle.model,
+      vehicle.vehicle_model
+    ),
+    firstHistoryString(
+      metadata.vehicle_color,
+      captainProfile.vehicle_color,
+      captain.vehicle_color,
+      vehicle.color,
+      vehicle.vehicle_color
+    ),
+    firstHistoryString(
+      metadata.vehicle_year,
+      captainProfile.vehicle_year,
+      captain.vehicle_year,
+      vehicle.year,
+      vehicle.vehicle_year
+    ),
+    firstHistoryString(
+      metadata.vehicle_plate,
+      metadata.plate_number,
+      captainProfile.vehicle_plate,
+      captainProfile.plate_number,
+      captain.vehicle_plate,
+      captain.plate_number,
+      vehicle.plate,
+      vehicle.plate_number,
+      vehicle.vehicle_plate
+    ),
+  ].filter(Boolean);
+
+  return parts.length > 0
+    ? parts.join(' - ')
+    : firstHistoryString(metadata.vehicle_info, metadata.vehicleInfo, trip?.vehicleInfo, formatVehicleInfo(vehicle));
+}
+
+async function fetchRowsByIds(tableName: string, ids: string[]) {
+  const uniqueIds = Array.from(new Set(ids.filter(Boolean)));
+  if (uniqueIds.length === 0) return new Map<string, any>();
+
+  try {
+    const { data, error } = await supabase
+      .from(tableName)
+      .select('*')
+      .in('id', uniqueIds);
+
+    if (error || !data) {
+      if (process.env.NODE_ENV !== 'production') console.warn(`[HistoryTab ${tableName} enrichment skipped]`, error);
+      return new Map<string, any>();
+    }
+
+    return new Map(data.map((row: any) => [row.id, row]));
+  } catch (error) {
+    if (process.env.NODE_ENV !== 'production') console.warn(`[HistoryTab ${tableName} enrichment failed]`, error);
+    return new Map<string, any>();
+  }
+}
+
+async function enrichCaptainDetails(rows: any[]) {
+  const captainIds = Array.from(new Set(rows.map(getCaptainIdFromTrip).filter(Boolean)));
+  if (captainIds.length === 0) return rows;
+
+  const [profileMap, captainProfileMap] = await Promise.all([
+    fetchRowsByIds('profiles', captainIds),
+    fetchRowsByIds('captain_profiles', captainIds),
+  ]);
+
+  return rows.map((row) => {
+    const captainId = getCaptainIdFromTrip(row);
+    const profile = captainId ? profileMap.get(captainId) : null;
+    const captainProfile = captainId ? captainProfileMap.get(captainId) : null;
+    const existingCaptain = isPlainRecord(row?.captain) ? row.captain : {};
+
+    if (!profile && !captainProfile) return row;
+
+    return {
+      ...row,
+      captain_id: row.captain_id || row.accepted_captain_id || captainId,
+      captain: {
+        ...existingCaptain,
+        ...profile,
+        ...(captainProfile ? {
+          vehicle_type: captainProfile.vehicle_type,
+          vehicle_brand: captainProfile.vehicle_brand,
+          vehicle_model: captainProfile.vehicle_model,
+          vehicle_year: captainProfile.vehicle_year,
+          plate_number: captainProfile.plate_number,
+          employment_type: captainProfile.employment_type,
+          contact_page_url: captainProfile.contact_page_url,
+          verification_status: captainProfile.verification_status,
+        } : {}),
+        id: captainId,
+        full_name: firstHistoryString(profile?.full_name, existingCaptain.full_name, captainProfile?.full_name),
+        phone: firstHistoryString(profile?.phone, existingCaptain.phone, captainProfile?.phone),
+      },
+      captain_profile: {
+        ...(isPlainRecord(row?.captain_profile) ? row.captain_profile : {}),
+        ...(captainProfile || {}),
+      },
+    };
+  });
 }
 
 function parseTripTimestamp(trip: any) {
@@ -67,13 +290,19 @@ function appendUniqueTrips(existing: any[], incoming: any[]) {
   return merged;
 }
 
-function mapLedgerRowToTripShape(row: any, captain?: any) {
+function mapLedgerRowToTripShape(row: any, captain?: any, captainProfile?: any) {
   const metadata = row?.metadata && typeof row.metadata === 'object' ? row.metadata : {};
   const vehicleInfo =
     metadata.vehicle_info ||
     metadata.vehicleInfo ||
     metadata.vehicle ||
-    [metadata.vehicle_make, metadata.vehicle_model, metadata.vehicle_color, metadata.vehicle_plate]
+    [
+      metadata.vehicle_make || captainProfile?.vehicle_brand || captain?.vehicle_make || captain?.vehicle_brand,
+      metadata.vehicle_model || captainProfile?.vehicle_model || captain?.vehicle_model,
+      metadata.vehicle_color || captainProfile?.vehicle_color || captain?.vehicle_color,
+      metadata.vehicle_year || captainProfile?.vehicle_year || captain?.vehicle_year,
+      metadata.vehicle_plate || metadata.plate_number || captainProfile?.plate_number || captain?.vehicle_plate || captain?.plate_number,
+    ]
       .filter(Boolean)
       .join(' - ');
 
@@ -91,7 +320,8 @@ function mapLedgerRowToTripShape(row: any, captain?: any) {
       phone: metadata.captain_phone || metadata.captainPhone || '',
       rating: metadata.captain_rating || metadata.captainRating || 5,
     },
-    captain_rank: metadata.captain_rank || metadata.captainRank,
+    captain_profile: captainProfile || null,
+    captain_rank: metadata.captain_rank || metadata.captainRank || captainProfile?.tier || captainProfile?.rank || captain?.tier || captain?.rank,
     destination_address_ar: metadata.destination_address_ar || metadata.destinationAddressAr || metadata.destination || '',
     destination_address: metadata.destination_address || metadata.destinationAddress || metadata.destination || '',
     metadata: {
@@ -107,13 +337,14 @@ function tripShapeToRiderLedgerEntry(trip: any): RiderTripLedgerEntry | null {
   if (!tripId || !timestamp) return null;
 
   const acceptedOffer = trip.offers?.find((o: any) => o.driverId === trip.driverId) || trip.acceptedOffer;
-  const vehicleInfo = trip.metadata?.vehicle_info || formatVehicleInfo(acceptedOffer?.driverVehicle || trip.driver_vehicle || trip.vehicle);
+  const vehicleInfo = getHistoryVehicleInfo(trip, acceptedOffer);
 
   return {
     tripId,
-    captainName: trip.captain?.full_name || acceptedOffer?.driverName || trip.driver_name || trip.captain_name || trip.driverName || 'Captain',
-    captainRank: normalizeCaptainRank(trip.captain_rank || trip.captain?.rank || trip.captain?.rating || acceptedOffer?.driverRank || trip.driver_rank || trip.driverRank || 5),
-    captainPhone: trip.captain?.phone || acceptedOffer?.driverVehicle?.phone || trip.driver_phone || trip.captain_phone || trip.driverPhone || '',
+    captainId: getCaptainIdFromTrip(trip),
+    captainName: getHistoryCaptainName(trip, acceptedOffer),
+    captainRank: getHistoryCaptainRank(trip, acceptedOffer),
+    captainPhone: getHistoryCaptainPhone(trip, acceptedOffer),
     vehicleInfo,
     finalPrice: Number(trip.final_fare ?? trip.settled_fare ?? trip.final_price ?? trip.offer_price ?? trip.server_estimated_fare ?? trip.offerPrice ?? 0),
     timestamp,
@@ -297,20 +528,16 @@ export function HistoryTab() {
               if ((process.env.NODE_ENV !== 'production')) console.warn('[HistoryTab ledger fetch skipped]', ledgerError);
             } else if (ledgerRows && ledgerRows.length > 0) {
               const captainIds = Array.from(new Set(ledgerRows.map((row: any) => row.captain_id).filter(Boolean)));
-              let captainMap = new Map<string, any>();
+              const [captainMap, captainProfileMap] = await Promise.all([
+                fetchRowsByIds('profiles', captainIds),
+                fetchRowsByIds('captain_profiles', captainIds),
+              ]);
 
-              if (captainIds.length > 0) {
-                const { data: captains, error: captainError } = await supabase
-                  .from('profiles')
-                  .select('id, full_name, phone, rating, rank')
-                  .in('id', captainIds);
-
-                if (!captainError && captains) {
-                  captainMap = new Map(captains.map((captain: any) => [captain.id, captain]));
-                }
-              }
-
-              const ledgerTrips = ledgerRows.map((row: any) => mapLedgerRowToTripShape(row, row.captain_id ? captainMap.get(row.captain_id) : null));
+              const ledgerTrips = ledgerRows.map((row: any) => mapLedgerRowToTripShape(
+                row,
+                row.captain_id ? captainMap.get(row.captain_id) : null,
+                row.captain_id ? captainProfileMap.get(row.captain_id) : null
+              ));
               fetchedData = appendUniqueTrips(fetchedData, ledgerTrips);
 
               try {
@@ -384,6 +611,10 @@ export function HistoryTab() {
           if ((process.env.NODE_ENV !== 'production')) console.warn('[HistoryTab Supabase Fetch Failed, falling back to local]', supabaseError);
         }
 
+        if (fetchedData.length > 0) {
+          fetchedData = await enrichCaptainDetails(fetchedData);
+        }
+
         // 2. Fetch and merge from Dexie local database for offline-first compliance (SC55)
         try {
           if (isCaptain) {
@@ -418,11 +649,13 @@ export function HistoryTab() {
             const localRiderTrips = await dexieDb.riderTripLedger.toArray();
             const localMapped = localRiderTrips.map(entry => ({
               id: entry.tripId,
+              captain_id: entry.captainId,
               status: 'COMPLETED',
               completed_at: new Date(entry.timestamp).toISOString(),
               created_at: new Date(entry.timestamp).toISOString(),
               final_fare: entry.finalPrice,
               captain: {
+                id: entry.captainId,
                 full_name: entry.captainName,
                 phone: entry.captainPhone,
                 rating: entry.captainRank === 'PLATINUM' ? 5.0 : entry.captainRank === 'GOLD' ? 4.5 : 4.0
@@ -487,11 +720,12 @@ export function HistoryTab() {
       const acceptedOffer = trip.offers?.find((o: any) => o.driverId === trip.driverId) || trip.acceptedOffer;
       return {
         tripId: trip.id,
+        captainId: getCaptainIdFromTrip(trip),
         serialId: trip.serial_id || trip.serialId || ('T-' + trip.id.slice(0, 4).toUpperCase()),
-        captainName: trip.captain?.full_name || acceptedOffer?.driverName || trip.driver_name || trip.captain_name || trip.driverName || 'سائق',
-        captainRank: normalizeCaptainRank(trip.captain?.rating || acceptedOffer?.driverRank || trip.driver_rank || trip.captain_rank || 5.0),
-        captainPhone: trip.captain?.phone || acceptedOffer?.driverVehicle?.phone || trip.driver_phone || trip.captain_phone || trip.driverPhone || '',
-        vehicleInfo: trip.metadata?.vehicle_info || formatVehicleInfo(acceptedOffer?.driverVehicle || trip.driver_vehicle || trip.vehicle),
+        captainName: getHistoryCaptainName(trip, acceptedOffer),
+        captainRank: getHistoryCaptainRank(trip, acceptedOffer),
+        captainPhone: getHistoryCaptainPhone(trip, acceptedOffer),
+        vehicleInfo: getHistoryVehicleInfo(trip, acceptedOffer),
         finalPrice: Number(trip.final_fare ?? trip.settled_fare ?? trip.final_price ?? trip.offer_price ?? trip.server_estimated_fare ?? trip.offerPrice ?? 0),
         timestamp: parseTripTimestamp(trip),
       };
@@ -530,6 +764,9 @@ export function HistoryTab() {
         }
         try {
           localStorage.removeItem(`radar_preferred_captain_${trip.tripId}`);
+          if (trip.captainId) {
+            localStorage.removeItem(`radar_preferred_captain_${trip.captainId}`);
+          }
         } catch (err) {
           console.warn("Storage deletion failed (removeItem):", err);
         }
@@ -540,6 +777,7 @@ export function HistoryTab() {
       } else {
         await dexieDb.favoriteCaptains.add({
           tripId: trip.tripId,
+          captainId: trip.captainId,
           captainName: trip.captainName,
           captainRank: trip.captainRank,
           captainPhone: trip.captainPhone,
@@ -548,6 +786,20 @@ export function HistoryTab() {
           timestamp: trip.timestamp,
           heartedAt: Date.now()
         });
+        if (trip.captainId) {
+          try {
+            localStorage.setItem(`radar_preferred_captain_${trip.captainId}`, JSON.stringify({
+              captainId: trip.captainId,
+              fullName: trip.captainName,
+              phoneNumber: trip.captainPhone,
+              captainType: 'independent',
+              vehicleSpecs: trip.vehicleInfo,
+              savedTimestamp: Date.now(),
+            }));
+          } catch (err) {
+            console.warn("Storage write failed (setItem):", err);
+          }
+        }
         toast({
           title: "تم الحفظ بنجاح 🌟",
           description: "تم إضافة السائق إلى قائمتك المفضلة للوصول إليه سريعاً في الرحلات القادمة.",
