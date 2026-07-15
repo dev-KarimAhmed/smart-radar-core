@@ -45,7 +45,31 @@ const sanitizeText = (str: string | null | undefined): string => {
   return str.replace(/<[^>]*>/g, '');
 };
 
+const normalizeFavoriteValue = (value: string | null | undefined) => sanitizeText(value).trim().toLowerCase();
 
+const getCaptainStableId = (trip: Pick<HistoricalTrip, 'captainId' | 'captainPhone' | 'captainName'>) =>
+  normalizeFavoriteValue(trip.captainId) ||
+  normalizeFavoriteValue(trip.captainPhone) ||
+  normalizeFavoriteValue(trip.captainName);
+
+const getFavoriteStableId = (favorite: Pick<FavoriteCaptain, 'captainId' | 'captainPhone' | 'captainName' | 'tripId'>) =>
+  normalizeFavoriteValue(favorite.captainId) ||
+  normalizeFavoriteValue(favorite.captainPhone) ||
+  normalizeFavoriteValue(favorite.captainName) ||
+  normalizeFavoriteValue(favorite.tripId);
+
+const favoriteMatchesTrip = (favorite: FavoriteCaptain, trip: HistoricalTrip) => {
+  const tripCaptainId = normalizeFavoriteValue(trip.captainId);
+  const favoriteCaptainId = normalizeFavoriteValue(favorite.captainId);
+
+  if (tripCaptainId && favoriteCaptainId && tripCaptainId === favoriteCaptainId) return true;
+  if (normalizeFavoriteValue(favorite.captainPhone) && normalizeFavoriteValue(favorite.captainPhone) === normalizeFavoriteValue(trip.captainPhone)) return true;
+
+  return (
+    normalizeFavoriteValue(favorite.captainName) === normalizeFavoriteValue(trip.captainName) &&
+    normalizeFavoriteValue(favorite.vehicleInfo) === normalizeFavoriteValue(trip.vehicleInfo)
+  );
+};
 
 const formatDashboardMoney = (value: number, currencyLabel: string) =>
   currencyLabel ? `${Number(value).toFixed(2)} ${currencyLabel}` : Number(value).toFixed(2);
@@ -86,6 +110,20 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
     () => ledgerTrips.filter((trip) => currentTime < trip.purgeAt).sort((a, b) => b.timestamp - a.timestamp),
     [currentTime, ledgerTrips],
   );
+
+  const uniqueFavoriteCaptains = useMemo(() => {
+    const byCaptain = new Map<string, FavoriteCaptain>();
+
+    for (const favorite of favoriteCaptains) {
+      const stableId = getFavoriteStableId(favorite);
+      const existing = byCaptain.get(stableId);
+      if (!existing || (favorite.heartedAt || 0) > (existing.heartedAt || 0)) {
+        byCaptain.set(stableId, favorite);
+      }
+    }
+
+    return Array.from(byCaptain.values()).sort((a, b) => (b.heartedAt || 0) - (a.heartedAt || 0));
+  }, [favoriteCaptains]);
 
   const loadFavorites = async () => {
     try {
@@ -153,16 +191,23 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
   }, [tripsWithin72Hours]);
 
   const removeFavorite = async (favorite: FavoriteCaptain) => {
-    const existing =
-      favorite.id !== undefined
-        ? favorite
-        : await dexieDb.favoriteCaptains.where('tripId').equals(favorite.tripId).first();
+    const allFavorites = (await dexieDb.favoriteCaptains.toArray()) as FavoriteCaptain[];
+    const stableId = getFavoriteStableId(favorite);
+    const matchingFavorites = allFavorites.filter((item) => {
+      if (favorite.id !== undefined && item.id === favorite.id) return true;
+      return getFavoriteStableId(item) === stableId;
+    });
 
-    if (existing?.id !== undefined) {
-      await dexieDb.favoriteCaptains.delete(existing.id);
+    for (const item of matchingFavorites) {
+      if (item.id !== undefined) {
+        await dexieDb.favoriteCaptains.delete(item.id);
+      }
     }
 
     try {
+      if (favorite.captainId) {
+        localStorage.removeItem(`radar_preferred_captain_${favorite.captainId}`);
+      }
       localStorage.removeItem(`radar_preferred_captain_${favorite.tripId}`);
     } catch (error) {
       console.warn('Storage delete failed:', error);
@@ -179,7 +224,7 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
     event.stopPropagation();
 
     try {
-      const existing = await dexieDb.favoriteCaptains.where('tripId').equals(trip.tripId).first();
+      const existing = favoriteCaptains.find((favorite) => favoriteMatchesTrip(favorite, trip));
       if (existing) {
         await removeFavorite({ ...(existing as FavoriteCaptain), ...trip });
         return;
@@ -190,7 +235,7 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
 
       RadarCaptainFavoriteKernel.mummifyTrustedCaptain(
         {
-          captainId: trip.tripId,
+          captainId: trip.captainId || trip.captainPhone || trip.tripId,
           captainName: sanitizeText(trip.captainName),
           captainPhone: trip.captainPhone,
           vehicleInfo: sanitizeText(trip.vehicleInfo),
@@ -202,6 +247,7 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
 
       await dexieDb.favoriteCaptains.add({
         tripId: trip.tripId,
+        captainId: trip.captainId || trip.captainPhone || trip.tripId,
         captainName: sanitizeText(trip.captainName),
         captainRank: trip.captainRank,
         captainPhone: trip.captainPhone,
@@ -237,9 +283,9 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
       if (favorite) {
         try {
           localStorage.setItem(
-            `radar_preferred_captain_${favorite.tripId}`,
+            `radar_preferred_captain_${favorite.captainId || favorite.tripId}`,
             JSON.stringify({
-              captainId: favorite.tripId,
+              captainId: favorite.captainId || favorite.tripId,
               fullName: sanitizeText(favorite.captainName),
               phoneNumber: favorite.captainPhone,
               captainType: type,
@@ -304,21 +350,7 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
   };
 
   const deleteFavoriteCard = async (captain: FavoriteCaptain) => {
-    if (captain.id !== undefined) {
-      await dexieDb.favoriteCaptains.delete(captain.id);
-    }
-
-    try {
-      localStorage.removeItem(`radar_preferred_captain_${captain.tripId}`);
-    } catch (error) {
-      console.warn('Storage delete failed:', error);
-    }
-
-    loadFavorites();
-    toast({
-      title: t('toast.cardDeleted'),
-      description: t('toast.cardDeletedDesc'),
-    });
+    await removeFavorite(captain);
   };
 
   return (
@@ -355,7 +387,7 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
       >
         <Briefcase className="h-4 w-4 text-[#14B8A6]" />
         <span>
-          {t('recent.favoritesBag')} ({favoriteCaptains.length})
+          {t('recent.favoritesBag')} ({uniqueFavoriteCaptains.length})
         </span>
       </Button>
 
@@ -371,7 +403,7 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
           activeArchive.map((trip) => {
             const timeLeftMs = trip.purgeAt - currentTime;
             const hoursLeft = Math.max(0, Math.floor(timeLeftMs / (1000 * 60 * 60)));
-            const isHearted = favoriteCaptains.some((fav) => fav.tripId === trip.tripId);
+            const isHearted = favoriteCaptains.some((fav) => favoriteMatchesTrip(fav, trip));
 
             return (
               <article
@@ -451,18 +483,18 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
         <h4 className="flex items-center justify-between border-b border-white/10 pb-2 text-xs font-black uppercase tracking-wide text-[#14B8A6]">
           <span>{t('recent.savedCaptains')}</span>
           <span className="rounded-full bg-[#14B8A6]/10 px-2 py-0.5 font-mono text-[8px] text-[#14B8A6]">
-            {favoriteCaptains.length}
+            {uniqueFavoriteCaptains.length}
           </span>
         </h4>
 
-        {favoriteCaptains.length === 0 ? (
+        {uniqueFavoriteCaptains.length === 0 ? (
           <div className="rounded-lg border border-dashed border-[#14B8A6]/10 bg-black/30 p-4 text-center">
             <Heart className="mx-auto mb-2 h-5 w-5 text-gray-600" />
             <p className="text-[10px] leading-normal text-gray-400">{t('recent.noFavorites')}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-2.5">
-            {favoriteCaptains.map((captain) => (
+            {uniqueFavoriteCaptains.map((captain) => (
               <div key={captain.id ?? captain.tripId} className="relative space-y-2 rounded-lg border border-[#14B8A6]/20 bg-black/80 p-3">
                 <button
                   onClick={() => removeFavorite(captain)}
@@ -539,7 +571,7 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
               {t('recent.portfolioDescription')}
             </p>
 
-            {favoriteCaptains.length === 0 ? (
+            {uniqueFavoriteCaptains.length === 0 ? (
               <div className="flex h-64 flex-col items-center justify-center rounded-xl border border-dashed border-[#14B8A6]/10 bg-black/40 p-5 text-center opacity-80">
                 <Heart className="mb-2 h-10 w-10 text-gray-600" />
                 <h5 className="text-xs font-black text-gray-400">{t('recent.portfolioEmpty')}</h5>
@@ -547,7 +579,7 @@ export const RadarRiderDashboard: React.FC<RiderDashboardProps> = ({
               </div>
             ) : (
               <div className="space-y-3">
-                {favoriteCaptains.map((captain) => {
+                {uniqueFavoriteCaptains.map((captain) => {
                   const savedType = captain.captainType || 'independent';
                   const whatsappUrl = buildWhatsappUrl(captain.captainPhone, captain.captainName, isArabic);
 
