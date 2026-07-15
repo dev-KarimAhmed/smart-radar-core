@@ -1595,6 +1595,15 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
           captainId={state.completedTrip.captainId}
           reviewerId={user.uid}
           supabase={supabase}
+          captainName={state.completedTrip.captainName}
+          captainPhone={state.completedTrip.captainPhone}
+          captainRank={toCaptainOfferRank(
+            state.completedTrip.captain?.tier ||
+              state.completedTrip.captain?.rank ||
+              state.completedTrip.captain?.captain_rank,
+          )}
+          vehicleInfo={[state.completedTrip.vehicleType, state.completedTrip.vehiclePlate].filter(Boolean).join(' - ')}
+          finalPrice={state.completedTrip.finalPrice}
           onSuccess={() => {
             void loadBlockedCaptains();
             dispatch({ type: 'SUBMIT_RATING' });
@@ -1712,8 +1721,9 @@ function buildFareRequestKey(origin: RiderLocation, destination: RiderLocation, 
 function toHistoricalTrip(trip: RiderActiveTrip): HistoricalTrip {
   return {
     tripId: trip.tripId,
-    captainName: trip.captainSerial,
-    captainRank: 'BRONZE',
+    captainId: trip.captainId,
+    captainName: trip.captainName || trip.captainSerial,
+    captainRank: toCaptainOfferRank(trip.captain?.tier || trip.captain?.rank || trip.captain?.captain_rank),
     captainPhone: trip.captainPhone,
     vehicleInfo: `${trip.vehicleType} - ${trip.vehiclePlate}`,
     finalPrice: trip.finalPrice,
