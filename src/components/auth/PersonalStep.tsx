@@ -587,7 +587,7 @@ export function PersonalStep() {
                     </div>
                   )}
 
-                  {mode === 'register' ? (
+                  {mode === 'register' && (role === 'driver' || (role !== 'rider' && canUseDevMockData)) ? (
                     <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-[#0B0F19]/45 p-3">
                       <div className="flex min-h-9 items-center gap-2 text-xs font-bold text-[#94A3B8]">
                         {locationDataLoading ? (
