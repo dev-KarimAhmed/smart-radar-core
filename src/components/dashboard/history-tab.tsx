@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/hooks/use-auth';
-import { dexieDb } from '@/lib/dexie-db';
+import { dexieDb, type RiderTripLedgerEntry } from '@/lib/dexie-db';
 import { supabase } from '@/lib/supabase-client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -23,6 +23,11 @@ interface HistoricalTrip {
   timestamp: number;
 }
 
+const HISTORY_TTL_MS = 3 * 24 * 60 * 60 * 1000;
+const UNAVAILABLE_AR = 'غير متاح';
+const LOCAL_RIDER_AR = 'راكب';
+const LOCAL_LOCATION_AR = 'موقعي الحالي';
+
 function normalizeCaptainRank(value: unknown): HistoricalTrip['captainRank'] {
   const normalized = `${value || ''}`.toUpperCase();
   if (normalized.includes('PLATINUM')) return 'PLATINUM';
@@ -42,6 +47,78 @@ function parseTripTimestamp(trip: any) {
   if (raw?.seconds) return raw.seconds * 1000;
   const parsed = Date.parse(String(raw || ''));
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function getTripHistoryId(row: any) {
+  return String(row?.id || row?.request_id || row?.tripId || '');
+}
+
+function appendUniqueTrips(existing: any[], incoming: any[]) {
+  const seen = new Set(existing.map(getTripHistoryId).filter(Boolean));
+  const merged = [...existing];
+
+  for (const row of incoming) {
+    const id = getTripHistoryId(row);
+    if (!id || seen.has(id)) continue;
+    merged.push(row);
+    seen.add(id);
+  }
+
+  return merged;
+}
+
+function mapLedgerRowToTripShape(row: any, captain?: any) {
+  const metadata = row?.metadata && typeof row.metadata === 'object' ? row.metadata : {};
+  const vehicleInfo =
+    metadata.vehicle_info ||
+    metadata.vehicleInfo ||
+    metadata.vehicle ||
+    [metadata.vehicle_make, metadata.vehicle_model, metadata.vehicle_color, metadata.vehicle_plate]
+      .filter(Boolean)
+      .join(' - ');
+
+  return {
+    id: row.request_id || row.id,
+    request_id: row.request_id,
+    status: row.status || 'COMPLETED',
+    completed_at: row.completed_at,
+    created_at: row.completed_at || row.created_at,
+    final_fare: row.final_fare,
+    captain_id: row.captain_id,
+    captain: captain || {
+      id: row.captain_id,
+      full_name: metadata.captain_name || metadata.captainName || 'Captain',
+      phone: metadata.captain_phone || metadata.captainPhone || '',
+      rating: metadata.captain_rating || metadata.captainRating || 5,
+    },
+    captain_rank: metadata.captain_rank || metadata.captainRank,
+    destination_address_ar: metadata.destination_address_ar || metadata.destinationAddressAr || metadata.destination || '',
+    destination_address: metadata.destination_address || metadata.destinationAddress || metadata.destination || '',
+    metadata: {
+      ...metadata,
+      vehicle_info: vehicleInfo || UNAVAILABLE_AR,
+    },
+  };
+}
+
+function tripShapeToRiderLedgerEntry(trip: any): RiderTripLedgerEntry | null {
+  const tripId = getTripHistoryId(trip);
+  const timestamp = parseTripTimestamp(trip);
+  if (!tripId || !timestamp) return null;
+
+  const acceptedOffer = trip.offers?.find((o: any) => o.driverId === trip.driverId) || trip.acceptedOffer;
+  const vehicleInfo = trip.metadata?.vehicle_info || formatVehicleInfo(acceptedOffer?.driverVehicle || trip.driver_vehicle || trip.vehicle);
+
+  return {
+    tripId,
+    captainName: trip.captain?.full_name || acceptedOffer?.driverName || trip.driver_name || trip.captain_name || trip.driverName || 'Captain',
+    captainRank: normalizeCaptainRank(trip.captain_rank || trip.captain?.rank || trip.captain?.rating || acceptedOffer?.driverRank || trip.driver_rank || trip.driverRank || 5),
+    captainPhone: trip.captain?.phone || acceptedOffer?.driverVehicle?.phone || trip.driver_phone || trip.captain_phone || trip.driverPhone || '',
+    vehicleInfo,
+    finalPrice: Number(trip.final_fare ?? trip.settled_fare ?? trip.final_price ?? trip.offer_price ?? trip.server_estimated_fare ?? trip.offerPrice ?? 0),
+    timestamp,
+    purgeAt: timestamp + HISTORY_TTL_MS,
+  };
 }
 
 function formatHistoryMoney(value: number, currencyLabel: string) {
@@ -129,7 +206,7 @@ export function HistoryTab() {
     });
   }, [errorSearch, errorCategory]);
 
-  const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
+  const THREE_DAYS_MS = HISTORY_TTL_MS;
   const now = Date.now();
 
   const loadFavorites = async () => {
@@ -203,7 +280,52 @@ export function HistoryTab() {
       setLoading(true);
       try {
         const userColumn = isCaptain ? 'accepted_captain_id' : 'rider_id';
-        let fetchedData = [];
+        let fetchedData: any[] = [];
+
+        // 0. Primary rider history source: server ledger written by complete_ride_trip.
+        // This keeps the screen correct even when ride_requests joins are unavailable.
+        if (!isCaptain) {
+          try {
+            const { data: ledgerRows, error: ledgerError } = await supabase
+              .from('trips_72h_ledger')
+              .select('*')
+              .eq('rider_id', user!.uid)
+              .gt('purge_at', new Date().toISOString())
+              .order('completed_at', { ascending: false });
+
+            if (ledgerError) {
+              if ((process.env.NODE_ENV !== 'production')) console.warn('[HistoryTab ledger fetch skipped]', ledgerError);
+            } else if (ledgerRows && ledgerRows.length > 0) {
+              const captainIds = Array.from(new Set(ledgerRows.map((row: any) => row.captain_id).filter(Boolean)));
+              let captainMap = new Map<string, any>();
+
+              if (captainIds.length > 0) {
+                const { data: captains, error: captainError } = await supabase
+                  .from('profiles')
+                  .select('id, full_name, phone, rating, rank')
+                  .in('id', captainIds);
+
+                if (!captainError && captains) {
+                  captainMap = new Map(captains.map((captain: any) => [captain.id, captain]));
+                }
+              }
+
+              const ledgerTrips = ledgerRows.map((row: any) => mapLedgerRowToTripShape(row, row.captain_id ? captainMap.get(row.captain_id) : null));
+              fetchedData = appendUniqueTrips(fetchedData, ledgerTrips);
+
+              try {
+                const cacheEntries = ledgerTrips
+                  .map(tripShapeToRiderLedgerEntry)
+                  .filter((entry): entry is RiderTripLedgerEntry => Boolean(entry));
+                await Promise.all(cacheEntries.map((entry) => dexieDb.riderTripLedger.put(entry)));
+              } catch (cacheError) {
+                if ((process.env.NODE_ENV !== 'production')) console.warn('[HistoryTab ledger cache skipped]', cacheError);
+              }
+            }
+          } catch (ledgerFetchError) {
+            if ((process.env.NODE_ENV !== 'production')) console.warn('[HistoryTab ledger fetch failed]', ledgerFetchError);
+          }
+        }
         
         // 1. Fetch from Supabase remote database
         try {
@@ -242,27 +364,24 @@ export function HistoryTab() {
                 
                 if (!capError && captains) {
                   const captainMap = new Map(captains.map(c => [c.id, c]));
-                  fetchedData = rawRequests.map(r => ({
+                  fetchedData = appendUniqueTrips(fetchedData, rawRequests.map(r => ({
                     ...r,
                     captain: r.accepted_captain_id ? captainMap.get(r.accepted_captain_id) : null
-                  }));
+                  })));
                 } else {
-                  fetchedData = rawRequests;
+                  fetchedData = appendUniqueTrips(fetchedData, rawRequests);
                 }
               } else {
-                fetchedData = rawRequests;
+                fetchedData = appendUniqueTrips(fetchedData, rawRequests);
               }
-            } else {
-              fetchedData = [];
             }
           } else if (error) {
             throw error;
           } else {
-            fetchedData = data || [];
+            fetchedData = appendUniqueTrips(fetchedData, data || []);
           }
         } catch (supabaseError) {
           if ((process.env.NODE_ENV !== 'production')) console.warn('[HistoryTab Supabase Fetch Failed, falling back to local]', supabaseError);
-          fetchedData = [];
         }
 
         // 2. Fetch and merge from Dexie local database for offline-first compliance (SC55)
