@@ -10,6 +10,7 @@ import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 
 export interface HistoricalTrip {
   tripId: string;
+  captainId?: string;
   captainName: string;
   captainRank: 'PLATINUM' | 'GOLD' | 'SILVER' | 'BRONZE';
   captainPhone: string;

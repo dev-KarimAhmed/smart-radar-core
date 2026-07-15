@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Star, AlertOctagon, Heart, Navigation, X } from 'lucide-react';
+import { dexieDb } from '@/lib/dexie-db';
 import {
   Dialog,
   DialogContent,
@@ -21,6 +22,11 @@ interface RatingModalProps {
   reviewerId: string;
   supabase: any;
   onSuccess: () => void;
+  captainName?: string;
+  captainPhone?: string;
+  captainRank?: 'PLATINUM' | 'GOLD' | 'SILVER' | 'BRONZE';
+  vehicleInfo?: string;
+  finalPrice?: number;
 }
 
 export function RatingModal({
@@ -31,11 +37,21 @@ export function RatingModal({
   reviewerId,
   supabase,
   onSuccess,
+  captainName,
+  captainPhone,
+  captainRank = 'BRONZE',
+  vehicleInfo,
+  finalPrice = 0,
 }: RatingModalProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isBlocking, setIsBlocking] = useState(false);
   const [comment, setComment] = useState('');
+  const [saveFavorite, setSaveFavorite] = useState(false);
+
+  React.useEffect(() => {
+    if (isOpen) setSaveFavorite(false);
+  }, [isOpen, tripId]);
 
   const [vehicle, setVehicle] = useState({
     cleanliness: false,
@@ -91,9 +107,49 @@ export function RatingModal({
 
       if (error) throw error;
 
+      if (saveFavorite) {
+        const favoritePayload = {
+          tripId,
+          captainId,
+          driverId: captainId,
+          captainName: captainName?.trim() || 'Captain',
+          captainRank,
+          captainPhone: captainPhone || '',
+          vehicleInfo: vehicleInfo || 'غير متاح',
+          finalPrice: Number(finalPrice) || 0,
+          timestamp: Date.now(),
+          heartedAt: Date.now(),
+        };
+
+        const existing = await dexieDb.favoriteCaptains.where('tripId').equals(tripId).first();
+        if (existing?.id !== undefined) {
+          await dexieDb.favoriteCaptains.update(existing.id, favoritePayload as any);
+        } else {
+          await dexieDb.favoriteCaptains.add(favoritePayload as any);
+        }
+
+        if (typeof window !== 'undefined') {
+          window.localStorage.setItem(
+            `radar_preferred_captain_${captainId}`,
+            JSON.stringify({
+              captainId,
+              driverId: captainId,
+              captainName: favoritePayload.captainName,
+              fullName: favoritePayload.captainName,
+              captainPhone: favoritePayload.captainPhone,
+              phoneNumber: favoritePayload.captainPhone,
+              vehicleSpecs: favoritePayload.vehicleInfo,
+              savedTimestamp: Date.now(),
+            }),
+          );
+        }
+      }
+
       toast({
-        title: 'تم إرسال التقييم بنجاح',
-        description: 'شكراً لك على تقييم رحلتك معنا ومساعدتنا في تحسين الخدمة.',
+        title: saveFavorite ? 'تم إرسال التقييم وحفظ الكابتن' : 'تم إرسال التقييم بنجاح',
+        description: saveFavorite
+          ? 'تم حفظ الكابتن في قائمتك المفضلة للرحلات القادمة.'
+          : 'شكراً لك. يساعدنا تقييمك على تحسين الخدمة.',
       });
 
       onSuccess();
@@ -229,6 +285,35 @@ export function RatingModal({
               })}
             </div>
           </div>
+
+          <button
+            type="button"
+            onClick={() => setSaveFavorite((value) => !value)}
+            className={`flex w-full items-center justify-between gap-3 rounded-2xl border p-4 text-right transition-all ${
+              saveFavorite
+                ? 'border-[#14B8A6]/70 bg-[#14B8A6]/15 shadow-[0_0_18px_rgba(20,184,166,0.22)]'
+                : 'border-white/10 bg-white/[0.04] hover:border-[#14B8A6]/40 hover:bg-[#14B8A6]/10'
+            }`}
+            aria-pressed={saveFavorite}
+          >
+            <div className="flex min-w-0 flex-col">
+              <span className="text-sm font-black text-white">
+                {saveFavorite ? 'سيتم حفظ الكابتن في المفضلة' : 'حفظ الكابتن في المفضلة'}
+              </span>
+              <span className="mt-1 text-xs leading-relaxed text-slate-400">
+                {captainName ? `احفظ ${captainName} لتفضيله في الرحلات القادمة.` : 'احفظ هذا الكابتن لتفضيله في الرحلات القادمة.'}
+              </span>
+            </div>
+            <span
+              className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border transition-all ${
+                saveFavorite
+                  ? 'border-[#14B8A6] bg-[#14B8A6] text-[#0A0F1D]'
+                  : 'border-white/10 bg-black/20 text-slate-400'
+              }`}
+            >
+              <Heart className={`h-5 w-5 ${saveFavorite ? 'fill-current' : ''}`} />
+            </span>
+          </button>
 
           {/* Comment Textbox */}
           <div className="space-y-2">
