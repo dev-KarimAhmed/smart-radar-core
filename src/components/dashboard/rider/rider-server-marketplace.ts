@@ -170,6 +170,10 @@ export async function acceptRideOffer(
   client: SupabaseMarketplaceRpcLike,
   input: { requestId: string; offerId: string },
 ) {
+  if (!input.requestId || !input.offerId) {
+    throw new Error('ride_offer_id_required');
+  }
+
   const { data, error } = await client.rpc('accept_ride_offer', {
     p_request_id: input.requestId,
     p_offer_id: input.offerId,
@@ -362,6 +366,26 @@ export function mapRiderMarketplaceError(error: unknown) {
     .join(' ')
     .toLowerCase();
 
+  if (message.includes('ride_offer_id_required') || message.includes('offer_id_required')) {
+    return 'بيانات العرض غير مكتملة. انتظر تحديث العروض ثم حاول مرة أخرى.';
+  }
+
+  if (message.includes('ride_offer_not_found')) {
+    return 'هذا العرض لم يعد متاحاً. انتظر وصول عرض جديد ثم حاول مرة أخرى.';
+  }
+
+  if (message.includes('ride_offer_not_pending')) {
+    return 'هذا العرض تم التعامل معه بالفعل. اختر عرضاً آخر إذا كان متاحاً.';
+  }
+
+  if (message.includes('ride_request_not_accepting_offers')) {
+    return 'لا يمكن قبول العرض الآن لأن حالة الرحلة تغيرت. حدّث العروض ثم حاول مرة أخرى.';
+  }
+
+  if (message.includes('not_request_owner')) {
+    return 'لا يمكنك تنفيذ هذه العملية لهذا الطلب. سجّل الدخول بالحساب الصحيح ثم حاول مرة أخرى.';
+  }
+
   if (
     message.includes('42501') ||
     message.includes('row-level security') ||
@@ -424,10 +448,11 @@ function parseServerEstimatedFare(data: unknown) {
 }
 
 function mapRideOfferRow(row: Record<string, unknown>): Offer | null {
+  const offerId = firstString(row.id, row.offer_id, row.offerId);
   const driverId = firstString(row.driver_id, row.captain_id, row.driverId, row.captainId, row.id);
   const price = firstNumber(row.offer_price, row.price, row.fare, row.server_estimated_fare);
 
-  if (!driverId || price === null) return null;
+  if (!offerId || !driverId || price === null) return null;
 
   const profile = (isRecord(row.captain) ? row.captain : {}) as Record<string, unknown>;
   const captainProfile = (isRecord(row.captain_profile) ? row.captain_profile : {}) as Record<string, unknown>;
@@ -458,7 +483,7 @@ function mapRideOfferRow(row: Record<string, unknown>): Offer | null {
   const captainPhone = firstString(row.driver_phone, row.captain_phone, row.phone, profile.phone, profile.phone_number);
 
   const offer: Offer = {
-    id: String(row.id),
+    id: offerId,
     driverId,
     price,
     driverName: firstString(row.driver_name, row.captain_name, profile.full_name, profile.name, row.driver_serial, row.captain_serial, profile.serial_id) || 'سائق',

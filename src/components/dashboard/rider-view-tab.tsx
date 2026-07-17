@@ -932,8 +932,8 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
       return;
     }
 
-    const offerId = offer.id || offer.driverId;
-    if (!offerId) {
+    const offerId = offer.id;
+    if (!offerId || offerId === offer.driverId) {
       toast({
         variant: 'destructive',
         title: 'تعذر قبول العرض',
@@ -956,8 +956,8 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
       if ((process.env.NODE_ENV !== 'production')) console.warn('[Rider Accept Offer]', error);
       toast({
         variant: 'destructive',
-        title: 'تعذر قبول العرض',
-        description: 'عذراً، تم قبول عرض آخر لهذه الرحلة بالفعل أو تم إلغاؤها.',
+        title: language === 'ar' ? 'تعذر قبول العرض' : 'Could not accept offer',
+        description: getLocalizedMarketplaceError(error, language),
       });
     } finally {
       setAcceptingOfferId(null);
