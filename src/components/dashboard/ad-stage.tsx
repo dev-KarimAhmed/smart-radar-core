@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { ChevronLeft, ChevronRight, MapPin, MessageCircle, Phone, ShieldCheck, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Heart, MapPin, MessageCircle, Phone, ShieldCheck, X } from 'lucide-react';
 import { AdDisplayCard, getAdDescription, getAdImage, getAdTitle } from './ad-display-card';
 import { useAuth } from '@/hooks/use-auth';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
@@ -64,6 +64,8 @@ const AD_STAGE_COPY = {
     next: 'Next ad',
     noMoreAds: 'No other ads right now',
     trustedAd: 'Verified ad for direct contact',
+    favorite: 'Favorite',
+    removeFavorite: 'Remove favorite',
     whatsapp: 'WhatsApp',
     call: 'Call',
     openLocation: 'Open location',
@@ -305,6 +307,31 @@ export function AdStage({
     enqueueAdEvent(getVisibleAdForMetric(track, adsToUse), 'swipe');
   }, [adsToUse]);
 
+  const syncFavoriteAd = useCallback(async (ad: any, shouldFavorite: boolean) => {
+    if (!user?.uid || !shouldTrackAd(ad)) return;
+
+    try {
+      if (shouldFavorite) {
+        await supabase.from('ad_favorites').upsert(
+          {
+            profile_id: user.uid,
+            ad_id: String(ad.id),
+            saved_at: new Date().toISOString(),
+          },
+          { onConflict: 'profile_id,ad_id' },
+        );
+      } else {
+        await supabase
+          .from('ad_favorites')
+          .delete()
+          .eq('profile_id', user.uid)
+          .eq('ad_id', String(ad.id));
+      }
+    } catch (error) {
+      if ((process.env.NODE_ENV !== 'production')) console.warn('[AdStage] favorite sync skipped:', error);
+    }
+  }, [user?.uid]);
+
   const toggleHeart = (event: React.MouseEvent, ad: any) => {
     event.preventDefault();
     event.stopPropagation();
@@ -330,6 +357,8 @@ export function AdStage({
     } catch (error) {
       if ((process.env.NODE_ENV !== 'production')) console.warn('[AdStage] failed to update saved ads:', error);
     }
+
+    void syncFavoriteAd(ad, !alreadyHearted);
   };
 
   const openTakeover = (event: React.MouseEvent, ad: any) => {
@@ -497,6 +526,29 @@ export function AdStage({
                   <ShieldCheck className="h-4 w-4 animate-pulse text-[#14F5D5]" />
                   {copy.trustedAd}
                 </span>
+                {!takeoverAd.isPlaceholder ? (
+                  <button
+                    type="button"
+                    onClick={(event) => toggleHeart(event, takeoverAd)}
+                    className={cn(
+                      'inline-flex items-center gap-2 rounded-full border px-3 py-2 text-[11px] font-black transition-all duration-300',
+                      heartedAdIds.includes(takeoverAd.id)
+                        ? 'border-rose-400/40 bg-rose-500/15 text-rose-200 shadow-[0_0_18px_rgba(244,63,94,0.22)]'
+                        : 'border-[#14B8A6]/25 bg-[#14B8A6]/10 text-[#14F5D5] hover:bg-[#14B8A6]/15',
+                    )}
+                    aria-pressed={heartedAdIds.includes(takeoverAd.id)}
+                  >
+                    <Heart
+                      className={cn(
+                        'h-4 w-4 transition-transform duration-300',
+                        heartedAdIds.includes(takeoverAd.id) && 'scale-110 fill-rose-300 text-rose-300',
+                      )}
+                    />
+                    {heartedAdIds.includes(takeoverAd.id)
+                      ? ((copy as unknown as Record<string, string>).removeFavorite || (isArabic ? 'إزالة من الخزنة' : 'Remove favorite'))
+                      : ((copy as unknown as Record<string, string>).favorite || (isArabic ? 'إضافة للخزنة' : 'Favorite'))}
+                  </button>
+                ) : null}
               </div>
 
               <AdTakeoverMedia ad={takeoverAd} />

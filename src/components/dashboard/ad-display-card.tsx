@@ -34,7 +34,7 @@ const AD_CARD_COPY = {
     fallbackCta: 'View details',
     defaultBadge: 'Nearby ad',
     saveAd: 'Save ad',
-    removeAd: 'Remove ad from saved',
+    removeAd: 'Remove ad from vault',
   },
 } as const;
 

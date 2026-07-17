@@ -964,17 +964,17 @@ export function HistoryTab() {
                 Favorite captains
               </CardTitle>
               <CardDescription className="text-[10px] text-gray-400 mt-1">
-                Captains you saved from previous trips
+                Captains you marked as favorites from previous trips
               </CardDescription>
             </div>
             <Badge className="bg-emerald-950 text-emerald-400 text-[9px] border border-emerald-500/20">
-              {favoriteCaptains.length} saved
+              {favoriteCaptains.length} favorite
             </Badge>
           </CardHeader>
           <CardContent className="p-6 text-center text-gray-500 text-[11px]">
             {favoriteCaptains.length === 0
-              ? 'Tap the heart on any completed trip to save the captain here.'
-              : 'Your saved captains are available from completed trip cards.'}
+              ? 'Tap the heart on any completed trip to add the captain here.'
+              : 'Your favorite captains are available from completed trip cards.'}
           </CardContent>
         </Card>
       </div>
@@ -1577,7 +1577,7 @@ const historyLanguageCopy = {
     hours: 'hours',
     callCaptain: 'Call driver regarding this trip',
     savedCaptainsTitle: 'Favorite Drivers',
-    savedCaptainsDesc: 'Drivers you saved from your previous trips',
+    savedCaptainsDesc: 'Drivers you marked as favorites from your previous trips',
     call: 'Call',
     captainSectionTitle: 'Earnings & Completed Tasks History',
     captainSectionDesc: 'Approved tasks documented at the activity center',

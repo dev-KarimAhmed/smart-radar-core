@@ -167,11 +167,19 @@ alter table if exists public.profiles add column if not exists vehicle_plate tex
 alter table if exists public.profiles add column if not exists vehicle_make text;
 alter table if exists public.profiles add column if not exists vehicle_color text;
 alter table if exists public.profiles add column if not exists vehicle_year text;
+alter table if exists public.profiles add column if not exists emergency_whatsapp_contact text;
 alter table if exists public.profiles add column if not exists updated_at timestamptz not null default now();
 
 alter table if exists public.ad_campaigns add column if not exists impressions_count bigint not null default 0;
 alter table if exists public.ad_campaigns add column if not exists clicks_count bigint not null default 0;
 alter table if exists public.ad_campaigns add column if not exists swipes_count bigint not null default 0;
+
+create table if not exists public.ad_favorites (
+  profile_id uuid not null references public.profiles(id) on delete cascade,
+  ad_id text not null,
+  saved_at timestamptz not null default now(),
+  primary key (profile_id, ad_id)
+);
 
 insert into storage.buckets (id, name, public)
 values ('receipts', 'receipts', false)
@@ -621,6 +629,7 @@ grant select, insert on public.trips_72h_ledger to authenticated;
 grant select on public.captain_locations to authenticated;
 grant select, insert on public.ride_requests to authenticated;
 grant select on public.ride_offers to authenticated;
+grant select, insert, delete on public.ad_favorites to authenticated;
 
 do $$
 declare
@@ -673,6 +682,25 @@ drop policy if exists trips_72h_ledger_insert_own on public.trips_72h_ledger;
 create policy trips_72h_ledger_insert_own on public.trips_72h_ledger
 for insert to authenticated
 with check (rider_id = (select auth.uid()));
+
+-- Favorite ad policies
+
+alter table public.ad_favorites enable row level security;
+
+drop policy if exists ad_favorites_select_own on public.ad_favorites;
+create policy ad_favorites_select_own on public.ad_favorites
+for select to authenticated
+using (profile_id = (select auth.uid()));
+
+drop policy if exists ad_favorites_insert_own on public.ad_favorites;
+create policy ad_favorites_insert_own on public.ad_favorites
+for insert to authenticated
+with check (profile_id = (select auth.uid()));
+
+drop policy if exists ad_favorites_delete_own on public.ad_favorites;
+create policy ad_favorites_delete_own on public.ad_favorites
+for delete to authenticated
+using (profile_id = (select auth.uid()));
 
 -- Ratings policies
 

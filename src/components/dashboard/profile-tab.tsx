@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { dexieDb } from '@/lib/dexie-db';
-import { Database, Heart, Languages, Loader2, MapPin, RefreshCw, Save, ShieldCheck, User } from 'lucide-react';
+import { Database, Heart, Languages, Loader2, MapPin, MessageCircle, RefreshCw, Save, ShieldCheck, Trash2, User } from 'lucide-react';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 
 type LocationRow = {
@@ -42,6 +42,7 @@ type ProfileRow = Record<string, unknown> & {
   full_name?: string | null;
   name?: string | null;
   phone?: string | null;
+  emergency_whatsapp_contact?: string | null;
   role?: string | null;
   country_id?: number | string | null;
   governorate_id?: number | string | null;
@@ -167,7 +168,7 @@ export function ProfileTab() {
   const { user, isCaptain, isPassenger, isSovereign, logout, loginAsMockUser } = useAuth();
   const { toast } = useToast();
   const { isArabic, language, toggleLanguage } = useDashboardLanguage();
-  const languageCopy = profileLanguageCopy[language];
+  const languageCopy = profileLanguageCopy[language] as Record<string, any>;
 
   const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [profileKey, setProfileKey] = useState<ProfileKey | null>(null);
@@ -181,6 +182,7 @@ export function ProfileTab() {
 
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
+  const [emergencyWhatsappContact, setEmergencyWhatsappContact] = useState('');
   const [countryId, setCountryId] = useState('');
   const [governorateId, setGovernorateId] = useState('');
   const [districtId, setDistrictId] = useState('');
@@ -314,6 +316,11 @@ export function ProfileTab() {
 
         setFullName(getProfileName(nextProfile, user.name));
         setPhone(String(nextProfile?.phone || user.phone || ''));
+        setEmergencyWhatsappContact(String(
+          nextProfile?.emergency_whatsapp_contact ||
+            localStorage.getItem(`radar_emergency_whatsapp_${user.uid}`) ||
+            '',
+        ));
         setCountryId(numberOrEmpty(nextProfile?.country_id ?? user.countryId));
         setGovernorateId(numberOrEmpty(nextProfile?.governorate_id ?? user.governorate));
         setDistrictId(numberOrEmpty(nextProfile?.district_id ?? user.district));
@@ -459,11 +466,22 @@ export function ProfileTab() {
       return;
     }
 
+    const normalizedEmergencyWhatsapp = normalizeInternationalPhone(emergencyWhatsappContact);
+    if (emergencyWhatsappContact.trim() && !normalizedEmergencyWhatsapp) {
+      toast({
+        variant: 'destructive',
+        title: languageCopy.invalidEmergencyWhatsappTitle || (isArabic ? 'رقم الطوارئ غير صحيح' : 'Invalid emergency contact'),
+        description: languageCopy.invalidEmergencyWhatsappDescription || (isArabic ? 'اكتب رقم واتساب بصيغة دولية مثل +201234567890.' : 'Enter an international WhatsApp number like +201234567890.'),
+      });
+      return;
+    }
+
     setIsSaving(true);
     try {
       const payload = {
         full_name: fullName.trim(),
         phone: phone.trim(),
+        emergency_whatsapp_contact: normalizedEmergencyWhatsapp || null,
         country_id: nextCountryId,
         governorate_id: nextGovernorateId,
         district_id: nextDistrictId,
@@ -491,6 +509,7 @@ export function ProfileTab() {
         data: {
           full_name: fullName.trim(),
           phone: phone.trim(),
+          emergency_whatsapp_contact: normalizedEmergencyWhatsapp || null,
           country_id: nextCountryId,
           governorate_id: nextGovernorateId,
           district_id: nextDistrictId,
@@ -501,6 +520,12 @@ export function ProfileTab() {
 
       if (metadataError && (process.env.NODE_ENV !== 'production')) {
         console.warn('[Supabase Auth Metadata Update]', metadataError);
+      }
+
+      if (normalizedEmergencyWhatsapp) {
+        localStorage.setItem(`radar_emergency_whatsapp_${user.uid}`, normalizedEmergencyWhatsapp);
+      } else {
+        localStorage.removeItem(`radar_emergency_whatsapp_${user.uid}`);
       }
 
       toast({
@@ -643,6 +668,32 @@ export function ProfileTab() {
                   placeholder="+962790000000"
                   required
                 />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="flex items-center gap-2 text-xs font-bold text-gray-400">
+                  <MessageCircle className="h-4 w-4 text-[#14F5D5]" />
+                  {languageCopy.emergencyWhatsappContact || (isArabic ? 'رقم واتساب للطوارئ' : 'Emergency WhatsApp Contact')}
+                </label>
+                <div className="flex gap-2">
+                  <Input
+                    value={emergencyWhatsappContact}
+                    onChange={(event) => setEmergencyWhatsappContact(event.target.value)}
+                    className="rounded-xl border-emerald-900/30 bg-black/50 text-white text-start"
+                    placeholder={languageCopy.emergencyWhatsappPlaceholder || '+201234567890'}
+                  />
+                  {emergencyWhatsappContact ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setEmergencyWhatsappContact('')}
+                      className="h-11 shrink-0 rounded-xl border-red-500/20 bg-red-950/20 px-3 text-red-300 hover:bg-red-500 hover:text-white"
+                      aria-label={languageCopy.deleteEmergencyContact || (isArabic ? 'حذف رقم الطوارئ' : 'Delete emergency contact')}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  ) : null}
+                </div>
               </div>
 
               <div className="grid gap-3 sm:grid-cols-3">
@@ -827,6 +878,17 @@ export function ProfileTab() {
   );
 }
 
+function normalizeInternationalPhone(value: string) {
+  const compact = value.trim().replace(/\s+/g, '').replace(/[^\d+]/g, '');
+  if (!compact) return '';
+
+  const international = compact.startsWith('+')
+    ? compact
+    : `+${compact.replace(/^00/, '').replace(/^0+/, '')}`;
+
+  return /^\+[1-9]\d{7,14}$/.test(international) ? international : '';
+}
+
 const profileLanguageCopy = {
   ar: {
     accountData: 'بيانات الحساب',
@@ -897,8 +959,13 @@ const profileLanguageCopy = {
     notSet: 'Not set',
     phone: 'Phone number',
     phoneUnavailable: 'Phone number unavailable',
+    emergencyWhatsappContact: 'Emergency WhatsApp Contact',
+    emergencyWhatsappPlaceholder: '+201234567890',
+    deleteEmergencyContact: 'Delete emergency contact',
+    invalidEmergencyWhatsappTitle: 'Invalid emergency contact',
+    invalidEmergencyWhatsappDescription: 'Enter an international WhatsApp number like +201234567890.',
     save: 'Save changes',
-    savedCaptains: 'Saved captains',
+    savedCaptains: 'Favorite captains',
     saving: 'Saving data...',
     switchToArabic: 'العربية',
     switchToEnglish: 'English',

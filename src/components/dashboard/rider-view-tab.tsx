@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { latLngToCell } from 'h3-js';
-import { Clock, Heart, Loader2, Navigation, ShieldCheck, Star, X, MapPin, Phone } from 'lucide-react';
+import { Clock, Heart, Loader2, MessageCircle, Navigation, ShieldCheck, Star, X, MapPin, Phone } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -86,7 +86,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
   const { user } = useAuth();
   const { toast } = useToast();
   const { isArabic, language } = useDashboardLanguage();
-  const copy = riderViewCopy[language];
+  const copy = riderViewCopy[language] as Record<string, string>;
   const requestFlowCopy = React.useMemo(() => (
     language === 'ar'
       ? {
@@ -110,6 +110,10 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
   const [rating, setRating] = React.useState({ captain: 0, vehicle: 0, favorite: false });
   const [ratingComment, setRatingComment] = React.useState('');
   const [preferredCaptainIds, setPreferredCaptainIds] = React.useState<string[]>([]);
+  const [expandedOfferId, setExpandedOfferId] = React.useState<string | null>(null);
+  const [captainSearchRadiusKm, setCaptainSearchRadiusKm] = React.useState(1.5);
+  const [isExpandingCaptainSearch, setIsExpandingCaptainSearch] = React.useState(false);
+  const [emergencyWhatsappContact, setEmergencyWhatsappContact] = React.useState('');
   const [etaSeconds, setEtaSeconds] = React.useState(0);
   const [riderLocation, setRiderLocation] = React.useState<RiderLocation>(INITIAL_RIDER_LOCATION);
   const [riderH3Cell, setRiderH3Cell] = React.useState(latLngToCell(INITIAL_RIDER_LOCATION.lat, INITIAL_RIDER_LOCATION.lng, H3_RIDER_REQUEST_RESOLUTION));
@@ -304,6 +308,45 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
   React.useEffect(() => {
     dispatch({ type: 'RESET_TO_IDLE' });
   }, [dispatch, user?.uid]);
+
+  React.useEffect(() => {
+    let active = true;
+
+    async function loadEmergencyContact() {
+      if (!user?.uid) {
+        setEmergencyWhatsappContact('');
+        return;
+      }
+
+      const storageKey = `radar_emergency_whatsapp_${user.uid}`;
+      const localValue = typeof window !== 'undefined' ? window.localStorage.getItem(storageKey) || '' : '';
+      setEmergencyWhatsappContact(localValue);
+
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('emergency_whatsapp_contact')
+          .eq('id', user.uid)
+          .maybeSingle();
+
+        if (error) throw error;
+
+        const value = firstDisplayString((data as Record<string, unknown> | null)?.emergency_whatsapp_contact);
+        if (active && value) {
+          setEmergencyWhatsappContact(value);
+          window.localStorage.setItem(storageKey, value);
+        }
+      } catch (error) {
+        if ((process.env.NODE_ENV !== 'production')) console.warn('[Rider Emergency Contact]', error);
+      }
+    }
+
+    void loadEmergencyContact();
+
+    return () => {
+      active = false;
+    };
+  }, [user?.uid]);
 
   React.useEffect(() => {
     window.addEventListener('rider-open-destination', openDestination);
@@ -706,6 +749,39 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
   }, [copy.networkError, copy.requestUpdateFailedTitle, dispatch, state.offers.length, state.requestCancelledAt, state.requestId, state.screen, toast]);
 
   React.useEffect(() => {
+    if (state.screen !== 'RECEIVING_OFFERS' || state.offers.length > 0 || state.requestCancelledAt) {
+      setCaptainSearchRadiusKm(1.5);
+      setIsExpandingCaptainSearch(false);
+      return;
+    }
+
+    if (captainSearchRadiusKm >= 2.5) return;
+
+    const timeoutId = window.setTimeout(() => {
+      setIsExpandingCaptainSearch(true);
+      window.setTimeout(() => {
+        setCaptainSearchRadiusKm(2.5);
+        setIsExpandingCaptainSearch(false);
+      }, 900);
+    }, 4500);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [captainSearchRadiusKm, state.offers.length, state.requestCancelledAt, state.screen]);
+
+  React.useEffect(() => {
+    if (state.screen !== 'RECEIVING_OFFERS' || state.offers.length === 0) {
+      setExpandedOfferId(null);
+      return;
+    }
+
+    setExpandedOfferId((current) => {
+      if (current && state.offers.some((offer) => (offer.id || offer.driverId) === current)) return current;
+      const first = state.offers[0];
+      return first ? first.id || first.driverId : null;
+    });
+  }, [state.offers, state.screen]);
+
+  React.useEffect(() => {
     if (!state.activeTrip) {
       setEtaSeconds(0);
       return;
@@ -1023,6 +1099,8 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
       const originH3 = selectedDraftDestination?.originCell || '';
       const destinationH3 = selectedDraftDestination?.destinationCell || '';
       const isSameLocation = !!originH3 && !!destinationH3 && originH3 === destinationH3;
+      const estimatedDistanceKm = selectedDestinationCoords ? calculateDistanceKm(riderLocation, selectedDestinationCoords) : null;
+      const estimatedDurationMinutes = estimatedDistanceKm !== null ? Math.max(3, Math.round(estimatedDistanceKm * 2.2)) : null;
 
       return (
         <div className="space-y-4 text-right" dir={isArabic ? 'rtl' : 'ltr'}>
@@ -1111,6 +1189,28 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
               </p>
             </div>
 
+            {estimatedDurationMinutes !== null && estimatedDistanceKm !== null ? (
+              <div className="grid gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4 sm:grid-cols-[1.2fr_0.8fr]">
+                <div className="rounded-2xl border border-[#14B8A6]/20 bg-[#14B8A6]/10 p-4">
+                  <p className="text-[11px] font-black uppercase tracking-wide text-slate-400">
+                    {copy.estimatedDuration || (language === 'ar' ? 'مدة الرحلة المتوقعة' : 'Estimated duration')}
+                  </p>
+                  <strong className="mt-1 block text-3xl font-black text-white">{formatDurationLabel(estimatedDurationMinutes, language)}</strong>
+                  <span className="mt-1 block text-xs font-semibold text-slate-400">
+                    {copy.withoutTrafficDelays || (language === 'ar' ? 'بدون تأخير بسبب الزحام' : 'Without traffic delays')}
+                  </span>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
+                  <p className="text-[11px] font-black uppercase tracking-wide text-slate-400">
+                    {copy.estimatedDistance || (language === 'ar' ? 'المسافة المتوقعة' : 'Estimated distance')}
+                  </p>
+                  <strong className="mt-2 block text-2xl font-black text-[#14F5D5]">
+                    {estimatedDistanceKm.toFixed(1)} {copy.km}
+                  </strong>
+                </div>
+              </div>
+            ) : null}
+
             {serverFareError && (
               <div className="rounded-2xl border border-red-500/30 bg-red-950/30 p-3 text-xs font-bold leading-relaxed text-red-100">
                 {serverFareError}
@@ -1136,12 +1236,13 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                 isSameLocation
               }
               className={cn(
-                "h-14 w-full font-bold text-base py-3.5 rounded-xl transition-transform active:scale-[0.98] flex items-center justify-center",
+                "h-16 w-full rounded-2xl py-4 text-lg font-black shadow-[0_18px_40px_rgba(20,184,166,0.22)] transition-all duration-300 active:scale-[0.98] flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14F5D5]/80 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0F1D]",
                 isSameLocation
                   ? "bg-gray-700 text-gray-400 cursor-not-allowed"
-                  : "bg-[#14B8A6] text-[#0A0F1D] hover:bg-[#2DD4BF] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  : "bg-[#14B8A6] text-[#0A0F1D] hover:bg-[#2DD4BF] hover:shadow-[0_22px_48px_rgba(20,184,166,0.32)] cursor-pointer disabled:opacity-55 disabled:cursor-not-allowed disabled:shadow-none"
               )}
             >
+              {isSendingRideRequest ? <Loader2 className="h-5 w-5 animate-spin" /> : <Navigation className="h-5 w-5" />}
               {isSendingRideRequest ? copy.sendingRequest : copy.requestNow}
             </button>
           </div>
@@ -1217,7 +1318,11 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
             <div className="flex min-h-36 flex-col items-center justify-center gap-3 rounded-2xl border border-white/5 bg-white/5">
               <Loader2 className="h-9 w-9 animate-spin text-[#14F5D5]" />
               <span className="px-4 text-center text-xs font-bold leading-relaxed text-slate-300">
-                {copy.waitingOffersLoader}
+                {isExpandingCaptainSearch
+                  ? (copy.expandingSearchRadius || (language === 'ar' ? 'لم تصل عروض بعد. يتم توسيع نطاق البحث تلقائياً إلى 2.5 كم...' : 'No offers yet. Expanding the search radius to 2.5 km...'))
+                  : captainSearchRadiusKm > 1.5
+                    ? (copy.searchRadiusExpanded || (language === 'ar' ? 'تم توسيع نطاق البحث تلقائياً إلى 2.5 كم. ننتظر وصول العروض.' : 'Search radius expanded automatically to 2.5 km. Waiting for offers.'))
+                    : copy.waitingOffersLoader}
               </span>
             </div>
           ) : (
@@ -1281,8 +1386,9 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                 const captainName = getOfferCaptainName(offer, language);
                 const vehicleSummary = getOfferVehicleSummary(offer, language);
                 const plateValue = getOfferPlate(offer, language);
+                const offerRecord = offer as unknown as Record<string, any>;
                 const rawOfferIsPreferred =
-                  Boolean((offer as unknown as Record<string, unknown>).__isPreferredCaptain) ||
+                  Boolean(offerRecord.__isPreferredCaptain) ||
                   isPreferredOffer(offer, preferredCaptainIds);
                 const captainOffer: CaptainOffer = {
                   id: offer.id || offer.driverId,
@@ -1294,17 +1400,45 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                     rank: toCaptainOfferRank(offer.captain?.tier || offer.driverRank || offer.tier),
                     vehicle_model: firstDisplayString(
                       offer.captain?.vehicle_model,
+                      offer.captain?.vehicle_name,
                       offer.driverVehicle?.model,
                       offer.driverVehicle?.make,
                       vehicleSummary,
                     ),
                     vehicle_color: firstDisplayString(offer.captain?.vehicle_color, offer.driverVehicle?.color),
                     plate_number: plateValue,
+                    completed_trips: firstNumber(
+                      offer.captain?.completed_trips,
+                      offer.captain?.completedTrips,
+                      offerRecord.completed_trips,
+                      offerRecord.completedTrips,
+                      offerRecord.driverCompletedTrips,
+                    ) || 0,
+                    company_name: firstDisplayString(
+                      offer.captain?.company_name,
+                      offer.captain?.company,
+                      offerRecord.driverAffiliation?.company_name,
+                      offer.driverAffiliation?.name,
+                    ),
+                    affiliation_label: getOfferAffiliationLabel(offer, language),
+                    is_verified: Boolean(
+                      offer.captain?.is_verified ||
+                      offer.captain?.verified ||
+                      offerRecord.driverVerified ||
+                      offerRecord.is_verified,
+                    ),
+                    phone: getOfferCaptainPhone(offer),
+                    contact_url: getOfferContactUrl(offer),
+                    vehicle_year: firstDisplayString(offer.captain?.vehicle_year, offer.driverVehicle?.year),
+                    vehicle_category: firstDisplayString(offer.captain?.vehicle_category, offer.driverVehicle?.category),
                   },
                   server_fare: Number(state.destination?.serverEstimatedFare || offer.price || 0),
                   submitted_fare: Number(offer.price || 0),
                   eta_minutes: Number(etaDisplay) || 1,
                   distance_km: Number(distanceDisplay) || 0,
+                  estimated_duration_minutes: rawDuration || undefined,
+                  trip_distance_km: tripDistance || undefined,
+                  additional_info: firstDisplayString(offer.captain?.bio, offer.captain?.notes, offerRecord.additional_info),
                 };
                 const cardOfferIsPreferred =
                   rawOfferIsPreferred ||
@@ -1318,6 +1452,8 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                     language={language === 'ar' ? 'ar' : 'en'}
                     isAccepting={acceptingOfferId === (offer.id || offer.driverId)}
                     isPreferred={cardOfferIsPreferred}
+                    isExpanded={expandedOfferId === captainOffer.id}
+                    onToggleExpand={() => setExpandedOfferId((current) => (current === captainOffer.id ? null : captainOffer.id))}
                     onAccept={() => void handleAcceptOffer(offer)}
                   />
                 );
@@ -1395,6 +1531,35 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                 <Phone className="h-6 w-6" />
               </a>
             )}
+            <button
+              type="button"
+              onClick={() => {
+                const whatsapp = normalizeWhatsappContact(emergencyWhatsappContact);
+                if (!whatsapp) {
+                  toast({
+                    variant: 'destructive',
+                    title: copy.emergencyWhatsappMissingTitle || (language === 'ar' ? 'جهة الطوارئ غير مضافة' : 'Emergency contact is missing'),
+                    description: copy.emergencyWhatsappMissingDescription || (language === 'ar' ? 'أضف رقم واتساب للطوارئ من صفحة حسابك أولاً.' : 'Add an Emergency WhatsApp Contact from your profile first.'),
+                  });
+                  return;
+                }
+
+                const message = encodeURIComponent(copy.emergencyWhatsappMessage || (language === 'ar' ? 'أنا الآن في رحلة وقد أحتاج إلى المساعدة. يرجى الاطمئنان علي.' : 'I am currently on a ride and may need help. Please check on me.'));
+                const url = `https://wa.me/${whatsapp}?text=${message}`;
+                const opened = window.open(url, '_blank', 'noopener,noreferrer');
+                if (!opened) {
+                  toast({
+                    variant: 'destructive',
+                    title: copy.whatsappUnavailableTitle || (language === 'ar' ? 'تعذر فتح واتساب' : 'Could not open WhatsApp'),
+                    description: copy.whatsappUnavailableDescription || (language === 'ar' ? 'لم نتمكن من فتح واتساب. حاول الاتصال بجهة الطوارئ مباشرة.' : 'WhatsApp could not be opened. Try calling your emergency contact directly.'),
+                  });
+                }
+              }}
+              className="flex h-14 w-14 items-center justify-center rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 text-[#14F5D5] transition-colors hover:bg-[#14B8A6]/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14F5D5]/60"
+              title={copy.emergencyWhatsapp || (language === 'ar' ? 'واتساب الطوارئ' : 'Emergency WhatsApp')}
+            >
+              <MessageCircle className="h-6 w-6" />
+            </button>
             {tripHasStarted ? (
               <button
                 type="button"
@@ -2192,9 +2357,9 @@ const riderViewCopy = {
     requestVisibleTitle: 'Your request is visible to nearby captains',
     retry: 'Retry',
     requestRide: 'Request ride',
-    savedTab: 'Saved',
-    savedInDatabase: 'Saved in database',
-    savedRequestTitle: 'Saved ride request',
+    savedTab: 'Vault',
+    savedInDatabase: 'Stored in database',
+    savedRequestTitle: 'Stored ride request',
     searchingCaptain: 'Looking for a captain',
     sendingRequest: 'Sending request...',
     serverFare: 'Server fare',
@@ -2203,6 +2368,17 @@ const riderViewCopy = {
     vehicle: 'Vehicle',
     waitingOffersDescription: 'Wait a moment. Offers will appear here.',
     waitingOffersLoader: 'Looking for the nearest available captains... please wait a few seconds',
+    estimatedDuration: 'Estimated duration',
+    estimatedDistance: 'Estimated distance',
+    withoutTrafficDelays: 'Without traffic delays',
+    expandingSearchRadius: 'No offers yet. Expanding the search radius to 2.5 km...',
+    searchRadiusExpanded: 'Search radius expanded automatically to 2.5 km. Waiting for offers.',
+    emergencyWhatsapp: 'Emergency WhatsApp',
+    emergencyWhatsappMissingTitle: 'Emergency contact is missing',
+    emergencyWhatsappMissingDescription: 'Add an Emergency WhatsApp Contact from your profile first.',
+    emergencyWhatsappUnavailableTitle: 'Could not open WhatsApp',
+    emergencyWhatsappUnavailableDescription: 'Open WhatsApp manually and contact your emergency number.',
+    emergencyWhatsappMessage: 'I am currently on a ride and may need help. Please check on me.',
     whereTo: 'Where do you want to go?',
     yourArea: 'Your area',
     yourRating: 'Your rating',
@@ -2217,6 +2393,48 @@ const riderViewCopy = {
     completeTrip: 'Complete trip',
   },
 } satisfies Record<AppLanguage, Record<string, string>>;
+
+function calculateDistanceKm(origin: RiderLocation, destination: RiderLocation) {
+  const toRadians = (value: number) => (value * Math.PI) / 180;
+  const earthRadiusKm = 6371;
+  const dLat = toRadians(destination.lat - origin.lat);
+  const dLng = toRadians(destination.lng - origin.lng);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRadians(origin.lat)) *
+      Math.cos(toRadians(destination.lat)) *
+      Math.sin(dLng / 2) ** 2;
+
+  return 2 * earthRadiusKm * Math.atan2(Math.sqrt(a), Math.sqrt(Math.max(0, 1 - a)));
+}
+
+function formatDurationLabel(minutes: number, language: AppLanguage) {
+  const safeMinutes = Math.max(1, Math.round(minutes));
+  if (safeMinutes < 60) {
+    return language === 'ar' ? `${safeMinutes} دقيقة` : `${safeMinutes} min`;
+  }
+
+  const hours = Math.floor(safeMinutes / 60);
+  const remainingMinutes = safeMinutes % 60;
+  if (language === 'ar') {
+    return remainingMinutes ? `${hours} س ${remainingMinutes} د` : `${hours} ساعة`;
+  }
+
+  return remainingMinutes ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
+}
+
+function normalizeWhatsappContact(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+
+  const compact = trimmed.replace(/\s+/g, '').replace(/[^\d+]/g, '');
+  const international = compact.startsWith('+')
+    ? compact
+    : `+${compact.replace(/^00/, '').replace(/^0+/, '')}`;
+
+  if (!/^\+[1-9]\d{7,14}$/.test(international)) return '';
+  return international.replace(/[^\d]/g, '');
+}
 
 function isTripStartedStatus(status: string) {
   return status === 'STARTED'
