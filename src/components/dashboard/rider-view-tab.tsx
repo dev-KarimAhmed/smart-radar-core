@@ -114,6 +114,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
   const [captainSearchRadiusKm, setCaptainSearchRadiusKm] = React.useState(1.5);
   const [isExpandingCaptainSearch, setIsExpandingCaptainSearch] = React.useState(false);
   const [emergencyWhatsappContact, setEmergencyWhatsappContact] = React.useState('');
+  const [showEmergencyContactDialog, setShowEmergencyContactDialog] = React.useState(false);
   const [etaSeconds, setEtaSeconds] = React.useState(0);
   const [riderLocation, setRiderLocation] = React.useState<RiderLocation>(INITIAL_RIDER_LOCATION);
   const [riderH3Cell, setRiderH3Cell] = React.useState(latLngToCell(INITIAL_RIDER_LOCATION.lat, INITIAL_RIDER_LOCATION.lng, H3_RIDER_REQUEST_RESOLUTION));
@@ -347,6 +348,46 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
       active = false;
     };
   }, [user?.uid]);
+
+  const handleAddEmergencyContact = React.useCallback(() => {
+    setShowEmergencyContactDialog(false);
+    window.location.hash = '#profile';
+  }, []);
+
+  const handleEmergencyWhatsapp = React.useCallback(() => {
+    const whatsapp = normalizeWhatsappContact(emergencyWhatsappContact);
+    if (!whatsapp) {
+      setShowEmergencyContactDialog(true);
+      return;
+    }
+
+    const captainName = firstDisplayString(state.activeTrip?.captainName);
+    const destination = firstDisplayString(state.activeTrip?.destinationLabel);
+    const shortRequestId = state.requestId ? state.requestId.slice(0, 8).toUpperCase() : '';
+    const defaultMessage = language === 'ar'
+      ? [
+          'أنا في رحلة الآن وأحتاج إلى المساعدة.',
+          captainName ? `السائق: ${captainName}.` : '',
+          destination ? `الوجهة: ${destination}.` : '',
+          shortRequestId ? `رقم الطلب: ${shortRequestId}.` : '',
+        ].filter(Boolean).join(' ')
+      : [
+          'I am currently on a ride and need help.',
+          captainName ? `Captain: ${captainName}.` : '',
+          destination ? `Destination: ${destination}.` : '',
+          shortRequestId ? `Request: ${shortRequestId}.` : '',
+        ].filter(Boolean).join(' ');
+
+    const message = encodeURIComponent(copy.emergencyWhatsappMessage || defaultMessage);
+    const opened = window.open(`https://wa.me/${whatsapp}?text=${message}`, '_blank', 'noopener,noreferrer');
+    if (!opened) {
+      toast({
+        variant: 'destructive',
+        title: copy.emergencyWhatsappUnavailableTitle || (language === 'ar' ? 'تعذر فتح واتساب' : 'Could not open WhatsApp'),
+        description: copy.emergencyWhatsappUnavailableDescription || (language === 'ar' ? 'افتح واتساب يدوياً وتواصل مع رقم الطوارئ.' : 'Open WhatsApp manually and contact your emergency number.'),
+      });
+    }
+  }, [copy, emergencyWhatsappContact, language, state.activeTrip?.captainName, state.activeTrip?.destinationLabel, state.requestId, toast]);
 
   React.useEffect(() => {
     window.addEventListener('rider-open-destination', openDestination);
@@ -1533,6 +1574,12 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
             )}
             <button
               type="button"
+              onClickCapture={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                event.nativeEvent.stopImmediatePropagation();
+                handleEmergencyWhatsapp();
+              }}
               onClick={() => {
                 const whatsapp = normalizeWhatsappContact(emergencyWhatsappContact);
                 if (!whatsapp) {
@@ -1563,6 +1610,12 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
             {tripHasStarted ? (
               <button
                 type="button"
+                onClickCapture={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  event.nativeEvent.stopImmediatePropagation();
+                  handleEmergencyWhatsapp();
+                }}
                 onClick={() => {
                   toast({
                     title: language === 'ar' ? 'طوارئ وتتبع الرحلة' : 'SOS & Trip Sharing',
@@ -1778,6 +1831,38 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
           }}
         />
       )}
+
+      <Dialog open={showEmergencyContactDialog} onOpenChange={setShowEmergencyContactDialog}>
+        <DialogContent className="max-w-[420px] border border-[#14B8A6]/25 bg-[#0B0F19] text-white shadow-2xl" dir={isArabic ? 'rtl' : 'ltr'}>
+          <DialogHeader className={cn(isArabic ? 'text-right' : 'text-left')}>
+            <DialogTitle className="text-xl font-black text-white">
+              {copy.emergencyWhatsappMissingTitle || (language === 'ar' ? 'لا يوجد رقم طوارئ' : 'No emergency contact')}
+            </DialogTitle>
+            <DialogDescription className="text-sm leading-6 text-slate-300">
+              {copy.emergencyWhatsappMissingDescription || (language === 'ar'
+                ? 'لم تقم بإضافة رقم واتساب للطوارئ بعد. أضف رقماً من بيانات الحساب لاستخدام زر SOS أثناء الرحلة.'
+                : 'You have not added an Emergency WhatsApp Contact yet. Add one from your profile to use SOS during a trip.')}
+            </DialogDescription>
+          </DialogHeader>
+          <div className={cn('mt-2 flex gap-3', isArabic ? 'flex-row-reverse' : 'flex-row')}>
+            <Button
+              type="button"
+              onClick={handleAddEmergencyContact}
+              className="flex-1 rounded-xl bg-[#14B8A6] py-3 font-black text-[#07111F] hover:bg-[#2DD4BF]"
+            >
+              {copy.addEmergencyWhatsapp || (language === 'ar' ? 'إضافة رقم' : 'Add number')}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowEmergencyContactDialog(false)}
+              className="rounded-xl border-white/15 bg-white/5 px-5 text-white hover:bg-white/10"
+            >
+              {copy.cancel || (language === 'ar' ? 'إلغاء' : 'Cancel')}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
