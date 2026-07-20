@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AnimatePresence, motion } from 'motion/react';
-import { ChevronLeft, ChevronRight, Heart, MapPin, MessageCircle, Phone, ShieldCheck, X } from 'lucide-react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { ChevronLeft, ChevronRight, Heart, MapPin, MessageCircle, Phone, Plus, ShieldCheck, X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { AdDisplayCard, getAdDescription, getAdImage, getAdTitle } from './ad-display-card';
 import { useAuth } from '@/hooks/use-auth';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
@@ -200,6 +201,8 @@ export function AdStage({
 }) {
   const { user } = useAuth();
   const { direction, isArabic, language } = useDashboardLanguage();
+  const t = useTranslations('adStage');
+  const prefersReducedMotion = useReducedMotion();
   const copy = AD_STAGE_COPY[language];
   const liveDistrict = user?.district || copy.fallbackDistrict;
   const liveGovernorate = user?.governorate || copy.fallbackGovernorate;
@@ -401,13 +404,27 @@ export function AdStage({
     >
       {isFullScreen ? (
         <div className="z-[20] mb-3 flex shrink-0 items-center justify-center w-full px-4 sm:px-6 py-3 border-b border-white/[0.06] bg-[#0A0F1D]/40 backdrop-blur-sm lg:hidden">
-          {/* Center button: اطلب رحلة */}
-          <button
+          <motion.button
+            type="button"
             onClick={onRequestRideClick}
-            className="text-xs sm:text-sm font-black text-white hover:text-[#14F5D5] transition-colors cursor-pointer active:scale-95 px-5 py-2 rounded-full border border-white/10 bg-white/5 hover:bg-[#14B8A6]/10 hover:border-[#14B8A6]/30 shadow-md"
+            animate={prefersReducedMotion ? undefined : {
+              scale: [1, 1.035, 1],
+              boxShadow: [
+                '0 10px 28px rgba(20,184,166,0.18)',
+                '0 14px 38px rgba(20,245,213,0.34)',
+                '0 10px 28px rgba(20,184,166,0.18)',
+              ],
+            }}
+            transition={prefersReducedMotion ? undefined : {
+              duration: 2.4,
+              ease: 'easeInOut',
+              repeat: Infinity,
+            }}
+            whileTap={{ scale: 0.96 }}
+            className="group flex  cursor-pointer items-center justify-center gap-3 rounded-2xl border border-[#14F5D5]/45 bg-gradient-to-r from-[#0F766E] to-[#14B8A6] p-3 text-base font-black text-white shadow-[0_10px_28px_rgba(20,184,166,0.18)] transition-colors hover:from-[#0D9488] hover:to-[#2DD4BF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14F5D5] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0F1D] sm:min-w-[240px] sm:text-lg"
           >
-            اطلب رحلة
-          </button>
+            <span>{t('requestRide')}</span>
+          </motion.button>
         </div>
       ) : (
         <div className="z-[20] mb-3 flex shrink-0 items-center justify-between px-4 sm:mb-4 sm:px-6">
@@ -781,7 +798,7 @@ function mapAdCampaignRow(row: Record<string, any>) {
     targetScale,
     targetLocationName,
     adType: row.adType || row.ad_type,
-    buttonText: firstString(row.buttonText, row.button_text, row.cta_text) || 'عرض التفاصيل',
+    buttonText: firstString(row.buttonText, row.button_text, row.cta_text) ,
     content: {
       ...(row.content || {}),
       title,
