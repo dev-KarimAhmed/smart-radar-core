@@ -16,7 +16,8 @@ import {
   TrendingDown,
   Minus,
   Loader2,
-  Shield
+  Shield,
+  Languages
 } from 'lucide-react';
 import { AppSidebar } from './app-sidebar';
 import { useAuth } from '@/hooks/use-auth';
@@ -28,6 +29,7 @@ import { Label } from '@/components/ui/label';
 import { useRiderOperations } from '@/hooks/use-rider-operations';
 import { DriverPricingCard } from './dashboard/driver-pricing-card';
 import { trackSovereignError } from '@/lib/error-tracker';
+import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 
 function PulseIndicator() {
   const { user } = useAuth();
@@ -159,6 +161,8 @@ export function AppHeader() {
     }
   };
 
+   const { isArabic, toggleLanguage } = useDashboardLanguage();
+  
   return (
     <div className="sticky top-0 z-50 w-full flex flex-col shadow-xl">
 
@@ -175,7 +179,19 @@ export function AppHeader() {
              >
                <Bell className="h-5 w-5" />
              </Button>
-           <UserMenu user={user} getInitials={getInitials} />
+              <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={toggleLanguage}
+              aria-label={isArabic ? 'Switch to English' : 'التبديل إلى العربية'}
+              title={isArabic ? 'English' : 'العربية'}
+              className="ms-auto h-8 shrink-0 gap-1 rounded-lg border border-[#14B8A6]/25 bg-[#14B8A6]/10 px-2 text-[10px] font-black text-[#14F5D5] hover:bg-[#14B8A6]/20 hover:text-[#14F5D5]"
+              >
+              <Languages className="h-3.5 w-3.5" />
+              <span>{isArabic ? 'EN' : 'ع'}</span>
+              </Button>
+           {/* <UserMenu user={user} getInitials={getInitials} /> */}
         </div>
       </header>
 

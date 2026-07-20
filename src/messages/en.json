@@ -113,6 +113,19 @@
     "emptyVault": "No vault ads yet.",
     "contactAdvertiser": "Contact advertiser"
   },
+  "adStage": {
+    "requestRide": "Request a ride"
+  },
+  "riderDestinationSearch": {
+    "label": "Search for your destination",
+    "placeholder": "Enter a city, street, or landmark",
+    "search": "Search",
+    "searching": "Searching...",
+    "noResults": "We could not find that location. Try a more specific name.",
+    "error": "Location search is unavailable right now. Please try again.",
+    "results": "Choose a location from the results",
+    "selected": "Location selected on the map. You can drag the map to fine-tune it."
+  },
   "advertiser": {
     "dashboardTitle": "Advertiser dashboard",
     "createCampaign": "Create new campaign",

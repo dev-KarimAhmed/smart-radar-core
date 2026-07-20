@@ -2,8 +2,9 @@
 
 import React from 'react';
 import { latLngToCell } from 'h3-js';
-import { Clock, Heart, Loader2, MessageCircle, Navigation, ShieldCheck, Star, X, MapPin, Phone } from 'lucide-react';
+import { Clock, Heart, Loader2, MessageCircle, Navigation, Search, ShieldCheck, Star, X, MapPin, Phone } from 'lucide-react';
 import { motion } from 'motion/react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -82,10 +83,17 @@ interface DistrictOption {
   tortuosityFactor: number;
 }
 
+interface DestinationSearchResult {
+  placeId: number;
+  label: string;
+  location: RiderLocation;
+}
+
 export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: { onExitRequestFlow?: () => void; isStandbyDismissed?: boolean } = {}) {
   const { user } = useAuth();
   const { toast } = useToast();
   const { isArabic, language } = useDashboardLanguage();
+  const destinationSearchCopy = useTranslations('riderDestinationSearch');
   const copy = riderViewCopy[language] as Record<string, string>;
   const requestFlowCopy = React.useMemo(() => (
     language === 'ar'
@@ -188,6 +196,10 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
   const [destinationGovernorates, setDestinationGovernorates] = React.useState<GovernorateOption[]>([]);
   const [destinationDistricts, setDestinationDistricts] = React.useState<DistrictOption[]>([]);
   const [destinationPinLocation, setDestinationPinLocation] = React.useState<RiderLocation | null>(null);
+  const [destinationFlyToTarget, setDestinationFlyToTarget] = React.useState<RiderLocation | null>(null);
+  const [destinationSearchQuery, setDestinationSearchQuery] = React.useState('');
+  const [destinationSearchResults, setDestinationSearchResults] = React.useState<DestinationSearchResult[]>([]);
+  const [destinationSearchStatus, setDestinationSearchStatus] = React.useState<'idle' | 'searching' | 'empty' | 'error' | 'selected'>('idle');
   const [isDestinationPinMoving, setIsDestinationPinMoving] = React.useState(false);
   const [isLoadingGovernorates, setIsLoadingGovernorates] = React.useState(false);
   const [isLoadingDistricts, setIsLoadingDistricts] = React.useState(false);
@@ -204,6 +216,10 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
     error: null,
   });
   const pendingAcceptedOfferIdRef = React.useRef<string | null>(null);
+  const destinationSearchAbortRef = React.useRef<AbortController | null>(null);
+  const destinationSearchCacheRef = React.useRef(new Map<string, DestinationSearchResult[]>());
+  const destinationReverseAbortRef = React.useRef<AbortController | null>(null);
+  const destinationReverseTimerRef = React.useRef<number | null>(null);
 
   const riderProfile = React.useMemo(() => {
     const ratingValue =
@@ -252,13 +268,13 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
   const serverFareError = serverFareState.key === fareRequestKey ? serverFareState.error : null;
   const currencyLabel = getCurrencyLabel(countryConfig, user, language);
 
-  const selectedDraftDestination = React.useMemo(
-    () =>
-      selectedDistrict && selectedDestinationCoords
-        ? buildRiderDestination(selectedDistrict, riderLocation, currentServerFare, selectedDestinationCoords)
-        : null,
-    [currentServerFare, riderLocation, selectedDestinationCoords, selectedDistrict],
-  );
+  const selectedDraftDestination = React.useMemo(() => {
+    if (!selectedDistrict || !selectedDestinationCoords) return null;
+    const destination = buildRiderDestination(selectedDistrict, riderLocation, currentServerFare, selectedDestinationCoords);
+    return destinationSearchStatus === 'selected' && destinationSearchQuery.trim()
+      ? { ...destination, label: destinationSearchQuery.trim() }
+      : destination;
+  }, [currentServerFare, destinationSearchQuery, destinationSearchStatus, riderLocation, selectedDestinationCoords, selectedDistrict]);
 
   const tripsWithin72Hours = React.useMemo<HistoricalTrip[]>(
     () => [...localCompletedTrips],
@@ -286,6 +302,117 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
   const handleDestinationPinChange = React.useCallback((location: RiderLocation) => {
     setDestinationPinLocation(location);
     setIsDestinationPinMoving(false);
+    setDestinationSearchQuery(`${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}`);
+    setDestinationSearchResults([]);
+    setDestinationSearchStatus('selected');
+
+    if (destinationReverseTimerRef.current !== null) {
+      window.clearTimeout(destinationReverseTimerRef.current);
+    }
+    destinationReverseAbortRef.current?.abort();
+
+    destinationReverseTimerRef.current = window.setTimeout(async () => {
+      const controller = new AbortController();
+      destinationReverseAbortRef.current = controller;
+
+      try {
+        const params = new URLSearchParams({
+          lat: String(location.lat),
+          lon: String(location.lng),
+          format: 'jsonv2',
+          addressdetails: '1',
+          zoom: '18',
+          'accept-language': language,
+        });
+        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?${params.toString()}`, {
+          signal: controller.signal,
+          headers: { Accept: 'application/json' },
+        });
+        if (!response.ok) throw new Error(`Destination reverse search failed: ${response.status}`);
+
+        const payload = await response.json();
+        const label = String(payload?.display_name || '').trim();
+        if (label) setDestinationSearchQuery(label);
+      } catch (error) {
+        if ((error as Error)?.name !== 'AbortError' && process.env.NODE_ENV !== 'production') {
+          console.warn('[Rider Destination Reverse Geocoding]', error);
+        }
+      }
+    }, 1000);
+  }, [language]);
+
+  const handleDestinationSearch = React.useCallback(async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const query = destinationSearchQuery.trim();
+    if (query.length < 2) {
+      setDestinationSearchResults([]);
+      setDestinationSearchStatus('empty');
+      return;
+    }
+
+    const cacheKey = `${language}:${query.toLocaleLowerCase()}`;
+    const cachedResults = destinationSearchCacheRef.current.get(cacheKey);
+    if (cachedResults) {
+      setDestinationSearchResults(cachedResults);
+      setDestinationSearchStatus(cachedResults.length ? 'idle' : 'empty');
+      return;
+    }
+
+    destinationSearchAbortRef.current?.abort();
+    const controller = new AbortController();
+    destinationSearchAbortRef.current = controller;
+    setDestinationSearchStatus('searching');
+    setDestinationSearchResults([]);
+
+    try {
+      const params = new URLSearchParams({
+        q: query,
+        format: 'jsonv2',
+        addressdetails: '1',
+        limit: '5',
+        'accept-language': language,
+      });
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, {
+        signal: controller.signal,
+        headers: { Accept: 'application/json' },
+      });
+      if (!response.ok) throw new Error(`Destination search failed: ${response.status}`);
+
+      const payload = await response.json();
+      const results = (Array.isArray(payload) ? payload : []).flatMap((item: any) => {
+        const lat = Number(item?.lat);
+        const lng = Number(item?.lon);
+        const label = String(item?.display_name || '').trim();
+        const placeId = Number(item?.place_id);
+        return Number.isFinite(lat) && Number.isFinite(lng) && label && Number.isFinite(placeId)
+          ? [{ placeId, label, location: { lat, lng } }]
+          : [];
+      }) as DestinationSearchResult[];
+
+      destinationSearchCacheRef.current.set(cacheKey, results);
+      setDestinationSearchResults(results);
+      setDestinationSearchStatus(results.length ? 'idle' : 'empty');
+    } catch (error) {
+      if ((error as Error)?.name === 'AbortError') return;
+      setDestinationSearchStatus('error');
+    }
+  }, [destinationSearchQuery, language]);
+
+  const handleDestinationSearchResult = React.useCallback((result: DestinationSearchResult) => {
+    setDestinationSearchQuery(result.label);
+    setDestinationSearchResults([]);
+    setDestinationPinLocation(result.location);
+    setDestinationFlyToTarget(result.location);
+    setIsDestinationPinMoving(false);
+    setDestinationSearchStatus('selected');
+  }, []);
+
+  React.useEffect(() => () => {
+    destinationSearchAbortRef.current?.abort();
+    destinationReverseAbortRef.current?.abort();
+    if (destinationReverseTimerRef.current !== null) {
+      window.clearTimeout(destinationReverseTimerRef.current);
+    }
   }, []);
 
   const openDestination = React.useCallback(() => {
@@ -839,10 +966,21 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
   const handleGovernorateChange = (governorateId: string) => {
     setSelectedGovernorateId(governorateId);
     setDraftDestinationId('');
+    setDestinationPinLocation(null);
+    setDestinationFlyToTarget(null);
+    setDestinationSearchQuery('');
+    setDestinationSearchResults([]);
+    setDestinationSearchStatus('idle');
   };
 
   const handleDistrictChange = (districtId: string) => {
     setDraftDestinationId(districtId);
+    const district = destinationDistricts.find((item) => item.id === districtId);
+    setDestinationPinLocation(null);
+    setDestinationFlyToTarget(district?.anchor || null);
+    setDestinationSearchQuery('');
+    setDestinationSearchResults([]);
+    setDestinationSearchStatus('idle');
   };
 
   const handleSendRequest = async () => {
@@ -1144,7 +1282,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
       const estimatedDurationMinutes = estimatedDistanceKm !== null ? Math.max(3, Math.round(estimatedDistanceKm * 2.2)) : null;
 
       return (
-        <div className="space-y-4 text-right" dir={isArabic ? 'rtl' : 'ltr'}>
+        <div className="space-y-4 " dir={isArabic ? 'rtl' : 'ltr'}>
             <div className="space-y-1">
               <p className="text-[11px] font-black text-[#14F5D5]">{copy.destinationEyebrow}</p>
               <h2 className="text-xl font-black sm:text-2xl">{copy.whereTo}</h2>
@@ -1157,13 +1295,76 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
             </div>
 
             <div className="grid gap-3">
+              <div className="space-y-2">
+                <span className="block text-[11px] font-black text-slate-400">{destinationSearchCopy('label')}</span>
+                <form onSubmit={handleDestinationSearch} className="flex gap-2">
+                  <div className="relative min-w-0 flex-1">
+                    <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#14B8A6]" />
+                    <input
+                      type="search"
+                      value={destinationSearchQuery}
+                      onChange={(event) => {
+                        setDestinationSearchQuery(event.target.value);
+                        setDestinationSearchResults([]);
+                        setDestinationSearchStatus('idle');
+                      }}
+                      placeholder={destinationSearchCopy('placeholder')}
+                      className="h-12 w-full rounded-2xl border border-white/10 bg-black/40 pe-4 ps-10 text-sm font-bold text-white outline-none transition placeholder:text-slate-500 focus:border-[#14B8A6]/60"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={destinationSearchStatus === 'searching' || destinationSearchQuery.trim().length < 2}
+                    className="flex h-12 shrink-0 items-center justify-center gap-2 rounded-2xl bg-[#14B8A6] px-4 text-sm font-black text-[#031315] transition hover:bg-[#2DD4BF] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {destinationSearchStatus === 'searching' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                    <span className="hidden sm:inline">
+                      {destinationSearchStatus === 'searching' ? destinationSearchCopy('searching') : destinationSearchCopy('search')}
+                    </span>
+                  </button>
+                </form>
+
+                {destinationSearchResults.length > 0 ? (
+                  <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#0F172A] shadow-xl">
+                    <p className="border-b border-white/10 px-3 py-2 text-[10px] font-black text-[#14F5D5]">
+                      {destinationSearchCopy('results')}
+                    </p>
+                    <div className="max-h-56 overflow-y-auto">
+                      {destinationSearchResults.map((result) => (
+                        <button
+                          key={result.placeId}
+                          type="button"
+                          onClick={() => handleDestinationSearchResult(result)}
+                          className="flex w-full items-start gap-2 border-b border-white/[0.06] px-3 py-3 text-start text-xs font-bold leading-relaxed text-slate-200 transition last:border-b-0 hover:bg-[#14B8A6]/10 hover:text-white"
+                        >
+                          <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#14B8A6]" />
+                          <span>{result.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+
+                {destinationSearchStatus === 'empty' || destinationSearchStatus === 'error' ? (
+                  <p className="rounded-xl border border-amber-400/25 bg-amber-400/10 p-3 text-xs font-bold text-amber-100" role="status">
+                    {destinationSearchStatus === 'empty' ? destinationSearchCopy('noResults') : destinationSearchCopy('error')}
+                  </p>
+                ) : null}
+
+                {destinationSearchStatus === 'selected' ? (
+                  <p className="rounded-xl border border-[#14B8A6]/25 bg-[#14B8A6]/10 p-3 text-xs font-bold text-[#BFFCF2]" role="status">
+                    {destinationSearchCopy('selected')}
+                  </p>
+                ) : null}
+              </div>
+
               <label className="space-y-2">
                 <span className="block text-[11px] font-black text-slate-400">{copy.governorate}</span>
                 <select
                   value={selectedGovernorateId}
                   onChange={(event) => handleGovernorateChange(event.target.value)}
                   disabled={isLoadingGovernorates || destinationGovernorates.length === 0}
-                  className="h-12 w-full rounded-2xl border border-white/10 bg-black/40 px-4 text-right text-sm font-black text-white outline-none transition focus:border-[#14B8A6]/60"
+                  className="h-12 w-full rounded-2xl border border-white/10 bg-black/40 px-4  text-sm font-black text-white outline-none transition focus:border-[#14B8A6]/60"
                 >
                   {destinationGovernorates.length === 0 ? (
                     <option value="">{isLoadingGovernorates ? copy.loading : copy.noGovernorates}</option>
@@ -1182,7 +1383,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                   value={selectedDistrict?.id || ''}
                   onChange={(event) => handleDistrictChange(event.target.value)}
                   disabled={isLoadingDistricts || availableDistricts.length === 0}
-                  className="h-12 w-full rounded-2xl border border-white/10 bg-black/40 px-4 text-right text-sm font-black text-white outline-none transition focus:border-[#14B8A6]/60"
+                  className="h-12 w-full rounded-2xl border border-white/10 bg-black/40 px-4  text-sm font-black text-white outline-none transition focus:border-[#14B8A6]/60"
                 >
                   {availableDistricts.length === 0 ? (
                     <option value="">{isLoadingDistricts ? copy.loading : copy.noDistricts}</option>
@@ -1655,7 +1856,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
             activeTripCaptainId={state.activeTrip?.captainId || null}
             captainLocations={mappedCaptains}
             className="h-full w-full lg:rounded-none lg:border-0"
-            destinationFlyToTarget={state.screen === 'DESTINATION_SELECTION' ? selectedDistrict?.anchor || null : null}
+            destinationFlyToTarget={state.screen === 'DESTINATION_SELECTION' ? destinationFlyToTarget || selectedDistrict?.anchor || null : null}
             fallbackLocation={profileFallbackLocation}
             showDestinationPin={state.screen === 'DESTINATION_SELECTION'}
             onDestinationChange={handleDestinationPinChange}
@@ -1706,7 +1907,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                 activeTripCaptainId={state.activeTrip?.captainId || null}
                 captainLocations={mappedCaptains}
                 className="h-full w-full"
-                destinationFlyToTarget={state.screen === 'DESTINATION_SELECTION' ? selectedDistrict?.anchor || null : null}
+                destinationFlyToTarget={state.screen === 'DESTINATION_SELECTION' ? destinationFlyToTarget || selectedDistrict?.anchor || null : null}
                 fallbackLocation={profileFallbackLocation}
                 showDestinationPin={state.screen === 'DESTINATION_SELECTION'}
                 onDestinationChange={handleDestinationPinChange}

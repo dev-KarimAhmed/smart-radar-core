@@ -11,7 +11,7 @@ import { useRiderOperations } from '@/hooks/use-rider-operations';
 import { useDriverOperations } from '@/hooks/use-driver-operations';
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'motion/react';
-import { Archive, Bell, History, Home, Loader2, LogOut, PlusCircle, User, Wallet } from 'lucide-react';
+import { Archive, Bell, History, Home, Languages, Loader2, LogOut, PlusCircle, User, Wallet } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -436,6 +436,8 @@ function DesktopRiderSidebar({
     { href: '#profile', icon: User, label: copy.nav.profile },
   ];
 
+ const { isArabic, toggleLanguage } = useDashboardLanguage();
+
  const openRideRequest = () => {
  window.location.hash = '#';
  window.dispatchEvent(new CustomEvent('rider-open-destination'));
@@ -447,10 +449,23 @@ function DesktopRiderSidebar({
  <Avatar className="h-12 w-12 border border-[#14B8A6]/35 bg-[#101827]">
  <AvatarFallback className="bg-[#101827] text-sm font-black text-white">{initials}</AvatarFallback>
  </Avatar>
+
  <div className={cn('min-w-0', language === 'ar' ? 'text-right' : 'text-left')}>
  <p className={cn('truncate text-sm font-black text-white', language === 'ar' ? 'text-right' : 'text-left')}>{user?.name || copy.fallbackName}</p>
  <p className={cn('truncate text-xs font-bold text-[#14B8A6]', language === 'ar' ? 'text-right' : 'text-left')}>{user?.phone || copy.fallbackPhone}</p>
  </div>
+ <Button
+ type="button"
+ variant="ghost"
+ size="sm"
+ onClick={toggleLanguage}
+ aria-label={isArabic ? 'Switch to English' : 'التبديل إلى العربية'}
+ title={isArabic ? 'English' : 'العربية'}
+ className="ms-auto h-8 shrink-0 gap-1 rounded-lg border border-[#14B8A6]/25 bg-[#14B8A6]/10 px-2 text-[10px] font-black text-[#14F5D5] hover:bg-[#14B8A6]/20 hover:text-[#14F5D5]"
+ >
+ <Languages className="h-3.5 w-3.5" />
+ <span>{isArabic ? 'EN' : 'ع'}</span>
+ </Button>
  </div>
 
  <div className="space-y-3 p-4">
