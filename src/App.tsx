@@ -13,6 +13,8 @@ import { SovereignErrorBoundary } from '@/components/sovereign-error-boundary';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import { Button } from '@/components/ui/button';
 
+
+
 function AppOrchestrator() {
   const { user, loading } = useAuth();
   const [currentPath, setCurrentPath] = useState(typeof window !== 'undefined' ? window.location.pathname : '/');
