@@ -258,7 +258,6 @@ export function RiderMap({
     });
 
     mapRef.current = map;
-    map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
 
     map.on('load', () => {
       setIsMapReady(true);
@@ -421,7 +420,13 @@ export function RiderMap({
   }, [isMapReady, onDestinationChange, onDestinationMoveStart, showDestinationPin]);
 
   return (
-    <section className={`relative overflow-hidden rounded-[24px] border border-[#14B8A6]/20 bg-[#0B0F19] shadow-2xl shadow-black/40 ${className || ''}`}>
+    <section className={`rider-map-surface relative overflow-hidden rounded-[24px] border border-[#14B8A6]/20 bg-[#0B0F19] shadow-2xl shadow-black/40 ${className || ''}`}>
+      <style>{`
+        .rider-map-surface .maplibregl-ctrl-attrib,
+        .rider-map-surface .maplibregl-ctrl-logo {
+          display: none !important;
+        }
+      `}</style>
       <div ref={containerRef} className="h-full min-h-0 w-full" />
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#0B0F19]/78 via-transparent to-[#0B0F19]/20 lg:hidden" />
       {showDestinationPin && (
