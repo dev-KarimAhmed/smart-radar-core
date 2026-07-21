@@ -5,6 +5,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { ChevronLeft, ChevronRight, Heart, MapPin, MessageCircle, Phone, Plus, ShieldCheck, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { AdDisplayCard, getAdDescription, getAdImage, getAdTitle } from './ad-display-card';
+import { getAdManualScrollDelta, getAdScrollDelta, wrapAdScrollPosition } from './ad-stage-scroll';
 import { useAuth } from '@/hooks/use-auth';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { useAdCampaigns } from '@/hooks/use-ad-campaigns';
@@ -182,7 +183,7 @@ function getVisibleAdForMetric(track: HTMLDivElement, ads: any[]) {
 
   const cardWidth = firstCard.offsetWidth || 1;
   const gap = 32;
-  const index = Math.max(0, Math.round(track.scrollLeft / (cardWidth + gap))) % ads.length;
+  const index = Math.round(Math.abs(track.scrollLeft) / (cardWidth + gap)) % ads.length;
   return ads[index] || null;
 }
 
@@ -201,6 +202,7 @@ export function AdStage({
 }) {
   const { user } = useAuth();
   const { direction, isArabic, language } = useDashboardLanguage();
+  const adStageDirection = isArabic ? 'rtl' : 'ltr';
   const t = useTranslations('adStage');
   const prefersReducedMotion = useReducedMotion();
   const copy = AD_STAGE_COPY[language];
@@ -269,15 +271,12 @@ export function AdStage({
       if (isAdStreamPausedRef.current) return;
 
       const loopPoint = track.scrollWidth / 2;
-      track.scrollLeft += stepSize;
-
-      if (loopPoint > 0 && track.scrollLeft >= loopPoint) {
-        track.scrollLeft -= loopPoint;
-      }
+      const nextPosition = track.scrollLeft + getAdScrollDelta(adStageDirection, stepSize);
+      track.scrollLeft = wrapAdScrollPosition(adStageDirection, nextPosition, loopPoint);
     }, 40);
 
     return () => window.clearInterval(intervalId);
-  }, [adsToUse.length, isFullScreen, takeoverAd]);
+  }, [adStageDirection, adsToUse.length, isFullScreen, takeoverAd]);
 
   const setAdStreamPaused = useCallback((paused: boolean) => {
     isAdStreamPausedRef.current = paused;
@@ -294,10 +293,10 @@ export function AdStage({
 
     const distance = Math.max(240, Math.min(track.clientWidth * 0.82, 520));
     track.scrollBy({
-      left: scrollDirection === 'next' ? distance : -distance,
+      left: getAdManualScrollDelta(adStageDirection, scrollDirection, distance),
       behavior: 'smooth',
     });
-  }, [adsToUse, setAdStreamPaused]);
+  }, [adStageDirection, adsToUse, setAdStreamPaused]);
 
   const registerManualTrackScroll = useCallback(() => {
     const track = scrollTrackRef.current;
@@ -445,12 +444,7 @@ export function AdStage({
 
       <div
         className={cn("group/river relative flex min-h-0 w-full flex-1 items-center overflow-hidden", isFullScreen && "pb-12")}
-        dir="ltr"
-        onMouseEnter={() => setAdStreamPaused(true)}
-        onMouseLeave={() => setAdStreamPaused(false)}
-        onFocusCapture={() => setAdStreamPaused(true)}
-        onBlurCapture={() => setAdStreamPaused(false)}
-        onTouchStart={() => setAdStreamPaused(true)}
+        dir={adStageDirection}
       >
         {showNavigationShell && (
           <>
@@ -498,16 +492,22 @@ export function AdStage({
           )}
         >
           {(adsToUse.length > 1 ? [...adsToUse, ...adsToUse] : adsToUse).map((ad: any, index: number) => (
-            <AdDisplayCard
+            <div
               key={`${ad.id}-${index}`}
-              ad={ad}
-              isHearted={heartedAdIds.includes(ad.id)}
-              onHeart={toggleHeart}
-              onOpen={ad.isPlaceholder ? undefined : openTakeover}
-              badgeText={getBadgeText(ad, copy)}
-              showHeart={!ad.isPlaceholder}
-              className={`flex-shrink-0 ${cardClassName}`}
-            />
+              className="flex-shrink-0"
+              onMouseEnter={() => setAdStreamPaused(true)}
+              onMouseLeave={() => setAdStreamPaused(false)}
+            >
+              <AdDisplayCard
+                ad={ad}
+                isHearted={heartedAdIds.includes(ad.id)}
+                onHeart={toggleHeart}
+                onOpen={ad.isPlaceholder ? undefined : openTakeover}
+                badgeText={getBadgeText(ad, copy)}
+                showHeart={!ad.isPlaceholder}
+                className={cardClassName}
+              />
+            </div>
           ))}
         </div>
       </div>

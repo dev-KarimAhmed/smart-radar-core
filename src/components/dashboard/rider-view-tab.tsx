@@ -218,8 +218,6 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
   const pendingAcceptedOfferIdRef = React.useRef<string | null>(null);
   const destinationSearchAbortRef = React.useRef<AbortController | null>(null);
   const destinationSearchCacheRef = React.useRef(new Map<string, DestinationSearchResult[]>());
-  const destinationReverseAbortRef = React.useRef<AbortController | null>(null);
-  const destinationReverseTimerRef = React.useRef<number | null>(null);
 
   const riderProfile = React.useMemo(() => {
     const ratingValue =
@@ -302,44 +300,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
   const handleDestinationPinChange = React.useCallback((location: RiderLocation) => {
     setDestinationPinLocation(location);
     setIsDestinationPinMoving(false);
-    setDestinationSearchQuery(`${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}`);
-    setDestinationSearchResults([]);
-    setDestinationSearchStatus('selected');
-
-    if (destinationReverseTimerRef.current !== null) {
-      window.clearTimeout(destinationReverseTimerRef.current);
-    }
-    destinationReverseAbortRef.current?.abort();
-
-    destinationReverseTimerRef.current = window.setTimeout(async () => {
-      const controller = new AbortController();
-      destinationReverseAbortRef.current = controller;
-
-      try {
-        const params = new URLSearchParams({
-          lat: String(location.lat),
-          lon: String(location.lng),
-          format: 'jsonv2',
-          addressdetails: '1',
-          zoom: '18',
-          'accept-language': language,
-        });
-        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?${params.toString()}`, {
-          signal: controller.signal,
-          headers: { Accept: 'application/json' },
-        });
-        if (!response.ok) throw new Error(`Destination reverse search failed: ${response.status}`);
-
-        const payload = await response.json();
-        const label = String(payload?.display_name || '').trim();
-        if (label) setDestinationSearchQuery(label);
-      } catch (error) {
-        if ((error as Error)?.name !== 'AbortError' && process.env.NODE_ENV !== 'production') {
-          console.warn('[Rider Destination Reverse Geocoding]', error);
-        }
-      }
-    }, 1000);
-  }, [language]);
+  }, []);
 
   const handleDestinationSearch = React.useCallback(async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -350,7 +311,21 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
       return;
     }
 
-    const cacheKey = `${language}:${query.toLocaleLowerCase()}`;
+    const districtName = isArabic
+      ? selectedDistrict?.districtAr || selectedDistrict?.districtEn
+      : selectedDistrict?.districtEn || selectedDistrict?.districtAr;
+    const governorateName = isArabic
+      ? selectedGovernorate?.nameAr || selectedGovernorate?.nameEn
+      : selectedGovernorate?.nameEn || selectedGovernorate?.nameAr;
+    const countryName = isArabic
+      ? countryConfig?.name_ar || countryConfig?.name_en
+      : countryConfig?.name_en || countryConfig?.name_ar;
+    const scopedQuery = [query, districtName, governorateName, countryName]
+      .map((part) => String(part || '').trim())
+      .filter(Boolean)
+      .filter((part, index, parts) => parts.indexOf(part) === index)
+      .join(', ');
+    const cacheKey = `${language}:${selectedGovernorateId}:${selectedDistrict?.id || ''}:${query.toLocaleLowerCase()}`;
     const cachedResults = destinationSearchCacheRef.current.get(cacheKey);
     if (cachedResults) {
       setDestinationSearchResults(cachedResults);
@@ -366,7 +341,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
 
     try {
       const params = new URLSearchParams({
-        q: query,
+        q: scopedQuery,
         format: 'jsonv2',
         addressdetails: '1',
         limit: '5',
@@ -396,7 +371,16 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
       if ((error as Error)?.name === 'AbortError') return;
       setDestinationSearchStatus('error');
     }
-  }, [destinationSearchQuery, language]);
+  }, [
+    countryConfig?.name_ar,
+    countryConfig?.name_en,
+    destinationSearchQuery,
+    isArabic,
+    language,
+    selectedDistrict,
+    selectedGovernorate,
+    selectedGovernorateId,
+  ]);
 
   const handleDestinationSearchResult = React.useCallback((result: DestinationSearchResult) => {
     setDestinationSearchQuery(result.label);
@@ -409,10 +393,6 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
 
   React.useEffect(() => () => {
     destinationSearchAbortRef.current?.abort();
-    destinationReverseAbortRef.current?.abort();
-    if (destinationReverseTimerRef.current !== null) {
-      window.clearTimeout(destinationReverseTimerRef.current);
-    }
   }, []);
 
   const openDestination = React.useCallback(() => {
@@ -1467,6 +1447,20 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
               </div>
             )}
 
+            <div className="relative z-10 h-[240px] w-full overflow-hidden rounded-2xl border border-white/10 shadow-lg lg:hidden">
+              <RiderMap
+                activeTripCaptainId={state.activeTrip?.captainId || null}
+                captainLocations={mappedCaptains}
+                className="h-full w-full"
+                destinationFlyToTarget={destinationFlyToTarget || selectedDistrict?.anchor || null}
+                fallbackLocation={profileFallbackLocation}
+                showDestinationPin
+                onDestinationChange={handleDestinationPinChange}
+                onDestinationMoveStart={handleDestinationPinMoveStart}
+                onLocationChange={handleLocationChange}
+              />
+            </div>
+
             <button
               onClick={handleSendRequest}
               disabled={
@@ -1901,21 +1895,6 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
 
           {/* Scrollable Content Wrapper */}
           <div className="flex-1 overflow-y-auto p-6 pt-4 space-y-4">
-            {/* Mobile Map Card inside Bottom Sheet */}
-            <div className="block lg:hidden w-full h-[240px] rounded-2xl overflow-hidden border border-white/10 shadow-lg relative z-10">
-              <RiderMap
-                activeTripCaptainId={state.activeTrip?.captainId || null}
-                captainLocations={mappedCaptains}
-                className="h-full w-full"
-                destinationFlyToTarget={state.screen === 'DESTINATION_SELECTION' ? destinationFlyToTarget || selectedDistrict?.anchor || null : null}
-                fallbackLocation={profileFallbackLocation}
-                showDestinationPin={state.screen === 'DESTINATION_SELECTION'}
-                onDestinationChange={handleDestinationPinChange}
-                onDestinationMoveStart={handleDestinationPinMoveStart}
-                onLocationChange={handleLocationChange}
-              />
-            </div>
-
             <div className="rounded-2xl border border-white/5 bg-white/5 p-4 shadow-xl shadow-black/20 backdrop-blur">
               <div className="mb-3 flex items-center justify-between sm:mb-4">
                 <div>
