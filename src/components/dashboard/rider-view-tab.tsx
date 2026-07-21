@@ -115,6 +115,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
   const { state, dispatch, showAdRiver } = useRiderDashboardMachine();
   const [selectedGovernorateId, setSelectedGovernorateId] = React.useState('');
   const [draftDestinationId, setDraftDestinationId] = React.useState('');
+  const [riderCount, setRiderCount] = React.useState(1);
   const [rating, setRating] = React.useState({ captain: 0, vehicle: 0, favorite: false });
   const [ratingComment, setRatingComment] = React.useState('');
   const [preferredCaptainIds, setPreferredCaptainIds] = React.useState<string[]>([]);
@@ -1376,6 +1377,28 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                 </select>
               </label>
             </div>
+
+            <label className="block space-y-2">
+              <span className="block text-[11px] font-black text-slate-400">
+                {language === 'ar' ? 'عدد الركاب' : 'Number of riders'}
+              </span>
+              <input
+                type="number"
+                min={1}
+                step={1}
+                inputMode="numeric"
+                value={riderCount}
+                onChange={(event) => {
+                  const nextCount = Number.parseInt(event.target.value, 10);
+                  setRiderCount(Number.isFinite(nextCount) ? Math.max(1, nextCount) : 1);
+                }}
+                onKeyDown={(event) => {
+                  if (['-', '+', 'e', 'E', '.'].includes(event.key)) event.preventDefault();
+                }}
+                className="h-12 w-full rounded-2xl border border-white/10 bg-black/40 px-4 text-sm font-black text-white outline-none transition focus:border-[#14B8A6]/60"
+                aria-label={language === 'ar' ? 'عدد الركاب' : 'Number of riders'}
+              />
+            </label>
 
             {destinationDataError ? (
               <div className="rounded-2xl border border-amber-400/25 bg-amber-400/10 p-3 text-xs font-bold leading-relaxed text-amber-100">
