@@ -1277,6 +1277,106 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
             </div>
 
             <div className="grid gap-3">
+              {/* <div className="space-y-2">
+                <span className="block text-[11px] font-black text-slate-400">{destinationSearchCopy('label')}</span>
+                <form onSubmit={handleDestinationSearch} className="flex gap-2">
+                  <div className="relative min-w-0 flex-1">
+                    <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#14B8A6]" />
+                    <input
+                      type="search"
+                      value={destinationSearchQuery}
+                      onChange={(event) => {
+                        setDestinationSearchQuery(event.target.value);
+                        setDestinationSearchResults([]);
+                        setDestinationSearchStatus('idle');
+                      }}
+                      placeholder={destinationSearchCopy('placeholder')}
+                      className="h-12 w-full rounded-2xl border border-white/10 bg-black/40 pe-4 ps-10 text-sm font-bold text-white outline-none transition placeholder:text-slate-500 focus:border-[#14B8A6]/60"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={destinationSearchStatus === 'searching' || destinationSearchQuery.trim().length < 2}
+                    className="flex h-12 shrink-0 items-center justify-center gap-2 rounded-2xl bg-[#14B8A6] px-4 text-sm font-black text-[#031315] transition hover:bg-[#2DD4BF] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {destinationSearchStatus === 'searching' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                    <span className="hidden sm:inline">
+                      {destinationSearchStatus === 'searching' ? destinationSearchCopy('searching') : destinationSearchCopy('search')}
+                    </span>
+                  </button>
+                </form>
+
+                {destinationSearchResults.length > 0 ? (
+                  <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#0F172A] shadow-xl">
+                    <p className="border-b border-white/10 px-3 py-2 text-[10px] font-black text-[#14F5D5]">
+                      {destinationSearchCopy('results')}
+                    </p>
+                    <div className="max-h-56 overflow-y-auto">
+                      {destinationSearchResults.map((result) => (
+                        <button
+                          key={result.placeId}
+                          type="button"
+                          onClick={() => handleDestinationSearchResult(result)}
+                          className="flex w-full items-start gap-2 border-b border-white/[0.06] px-3 py-3 text-start text-xs font-bold leading-relaxed text-slate-200 transition last:border-b-0 hover:bg-[#14B8A6]/10 hover:text-white"
+                        >
+                          <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#14B8A6]" />
+                          <span>{result.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+
+                {destinationSearchStatus === 'empty' || destinationSearchStatus === 'error' ? (
+                  <p className="rounded-xl border border-amber-400/25 bg-amber-400/10 p-3 text-xs font-bold text-amber-100" role="status">
+                    {destinationSearchStatus === 'empty' ? destinationSearchCopy('noResults') : destinationSearchCopy('error')}
+                  </p>
+                ) : null}
+
+                {destinationSearchStatus === 'selected' ? (
+                  <p className="rounded-xl border border-[#14B8A6]/25 bg-[#14B8A6]/10 p-3 text-xs font-bold text-[#BFFCF2]" role="status">
+                    {destinationSearchCopy('selected')}
+                  </p>
+                ) : null}
+              </div> */}
+
+              <label className="space-y-2">
+                <span className="block text-[11px] font-black text-slate-400">{copy.governorate}</span>
+                <select
+                  value={selectedGovernorateId}
+                  onChange={(event) => handleGovernorateChange(event.target.value)}
+                  disabled={isLoadingGovernorates || destinationGovernorates.length === 0}
+                  className="h-12 w-full rounded-2xl border border-white/10 bg-black/40 px-4  text-sm font-black text-white outline-none transition focus:border-[#14B8A6]/60"
+                >
+                  {destinationGovernorates.length === 0 ? (
+                    <option value="">{isLoadingGovernorates ? copy.loading : copy.noGovernorates}</option>
+                  ) : null}
+                  {destinationGovernorates.map((governorate) => (
+                    <option key={governorate.id} value={governorate.id}>
+                      {isArabic ? governorate.nameAr || governorate.nameEn : governorate.nameEn || governorate.nameAr}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="space-y-2">
+                <span className="block text-[11px] font-black text-slate-400">{copy.district}</span>
+                <select
+                  value={selectedDistrict?.id || ''}
+                  onChange={(event) => handleDistrictChange(event.target.value)}
+                  disabled={isLoadingDistricts || availableDistricts.length === 0}
+                  className="h-12 w-full rounded-2xl border border-white/10 bg-black/40 px-4  text-sm font-black text-white outline-none transition focus:border-[#14B8A6]/60"
+                >
+                  {availableDistricts.length === 0 ? (
+                    <option value="">{isLoadingDistricts ? copy.loading : copy.noDistricts}</option>
+                  ) : null}
+                  {availableDistricts.map((destination) => (
+                    <option key={destination.id} value={destination.id} disabled={!destination.anchor}>
+                      {isArabic ? destination.districtAr || destination.districtEn : destination.districtEn || destination.districtAr}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <div className="space-y-2">
                 <span className="block text-[11px] font-black text-slate-400">{destinationSearchCopy('label')}</span>
                 <form onSubmit={handleDestinationSearch} className="flex gap-2">
@@ -1339,44 +1439,6 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                   </p>
                 ) : null}
               </div>
-
-              <label className="space-y-2">
-                <span className="block text-[11px] font-black text-slate-400">{copy.governorate}</span>
-                <select
-                  value={selectedGovernorateId}
-                  onChange={(event) => handleGovernorateChange(event.target.value)}
-                  disabled={isLoadingGovernorates || destinationGovernorates.length === 0}
-                  className="h-12 w-full rounded-2xl border border-white/10 bg-black/40 px-4  text-sm font-black text-white outline-none transition focus:border-[#14B8A6]/60"
-                >
-                  {destinationGovernorates.length === 0 ? (
-                    <option value="">{isLoadingGovernorates ? copy.loading : copy.noGovernorates}</option>
-                  ) : null}
-                  {destinationGovernorates.map((governorate) => (
-                    <option key={governorate.id} value={governorate.id}>
-                      {isArabic ? governorate.nameAr || governorate.nameEn : governorate.nameEn || governorate.nameAr}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="space-y-2">
-                <span className="block text-[11px] font-black text-slate-400">{copy.district}</span>
-                <select
-                  value={selectedDistrict?.id || ''}
-                  onChange={(event) => handleDistrictChange(event.target.value)}
-                  disabled={isLoadingDistricts || availableDistricts.length === 0}
-                  className="h-12 w-full rounded-2xl border border-white/10 bg-black/40 px-4  text-sm font-black text-white outline-none transition focus:border-[#14B8A6]/60"
-                >
-                  {availableDistricts.length === 0 ? (
-                    <option value="">{isLoadingDistricts ? copy.loading : copy.noDistricts}</option>
-                  ) : null}
-                  {availableDistricts.map((destination) => (
-                    <option key={destination.id} value={destination.id} disabled={!destination.anchor}>
-                      {isArabic ? destination.districtAr || destination.districtEn : destination.districtEn || destination.districtAr}
-                    </option>
-                  ))}
-                </select>
-              </label>
             </div>
 
             <label className="block space-y-2">
