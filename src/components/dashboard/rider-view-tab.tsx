@@ -1933,20 +1933,6 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
               </div>
             )}
 
-            <div className="relative z-10 h-[185px] w-full overflow-hidden rounded-2xl border border-white/10 shadow-lg lg:hidden">
-              <RiderMap
-                activeTripCaptainId={state.activeTrip?.captainId || null}
-                captainLocations={mappedCaptains}
-                className="h-full w-full"
-                destinationFlyToTarget={destinationFlyToTarget || selectedDistrict?.anchor || null}
-                fallbackLocation={profileFallbackLocation}
-                showDestinationPin
-                onDestinationChange={handleDestinationPinChange}
-                onDestinationMoveStart={handleDestinationPinMoveStart}
-                onLocationChange={handleLocationChange}
-              />
-            </div>
-
             <div className="absolute bottom-[72px] start-0 end-0 z-50 border-t border-white/10 bg-[#0A0F1D]/95 p-3 shadow-[0_-18px_35px_rgba(3,8,15,0.82)] backdrop-blur-xl lg:bottom-0">
               <button
                 onClick={handleSendRequest}
