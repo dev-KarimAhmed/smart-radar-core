@@ -57,7 +57,6 @@ export interface RideRequestInsertInput {
   destinationAddressAr: string;
   serverEstimatedFare: number;
   countryId: number;
-  numberOfRiders: number;
 }
 
 export interface RideRequestInsertPayload {
@@ -71,7 +70,6 @@ export interface RideRequestInsertPayload {
   destination_address_ar: string;
   server_estimated_fare: number;
   country_id: number;
-  number_of_riders: number;
   status: 'PENDING';
 }
 
@@ -128,7 +126,6 @@ export function buildRideRequestInsertPayload(input: RideRequestInsertInput): Ri
     destination_address_ar: input.destinationAddressAr,
     server_estimated_fare: toFiniteNumber(input.serverEstimatedFare, 'server_estimated_fare'),
     country_id: toStrictPositiveInteger(input.countryId, 'country_id'),
-    number_of_riders: toStrictPositiveInteger(input.numberOfRiders, 'number_of_riders'),
     status: 'PENDING',
   };
 }

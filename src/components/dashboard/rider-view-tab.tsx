@@ -1206,7 +1206,6 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
         destinationAddressAr: selectedDraftDestination.label,
         serverEstimatedFare: selectedDraftDestination.serverEstimatedFare,
         countryId,
-        numberOfRiders: riderCount,
       });
 
       const request = await createRideRequest(supabase, payload);
