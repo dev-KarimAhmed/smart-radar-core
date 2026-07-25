@@ -23,7 +23,7 @@ export async function resolveClipboardMapLocation(
   rawValue: string,
   fetcher: FetchLike = fetch,
 ): Promise<ResolvedClipboardMapLocation> {
-  const clipboardValue = rawValue.trim();
+  const clipboardValue = extractGoogleMapsUrl(rawValue);
   if (!clipboardValue || !looksLikeGoogleMapsLocation(clipboardValue)) {
     throw new ClipboardMapLocationError('INVALID_MAPS_LINK');
   }
@@ -31,10 +31,6 @@ export async function resolveClipboardMapLocation(
   const directLocation = parseGoogleMapsLocation(clipboardValue);
   if (directLocation) {
     return { location: directLocation, resolvedUrl: clipboardValue };
-  }
-
-  if (!isShortGoogleMapsLink(clipboardValue)) {
-    throw new ClipboardMapLocationError('COORDINATES_NOT_FOUND');
   }
 
   let response: Response;
@@ -92,19 +88,16 @@ export function parseGoogleMapsLocation(value: string): ParsedMapLocation | null
 
 export function isShortGoogleMapsLink(value: string) {
   try {
-    const hostname = new URL(value.trim()).hostname.toLowerCase();
+    const hostname = new URL(normalizeGoogleMapsUrl(value)).hostname.toLowerCase();
     return hostname === 'maps.app.goo.gl' || hostname === 'goo.gl';
   } catch {
     return false;
   }
 }
 
-function looksLikeGoogleMapsLocation(value: string) {
-  const normalized = value.trim().toLowerCase();
-  if (!normalized) return false;
-
+export function isGoogleMapsLink(value: string) {
   try {
-    const hostname = new URL(normalized).hostname;
+    const hostname = new URL(normalizeGoogleMapsUrl(value)).hostname.toLowerCase();
     return (
       hostname === 'maps.app.goo.gl'
       || hostname === 'goo.gl'
@@ -112,8 +105,35 @@ function looksLikeGoogleMapsLocation(value: string) {
       || hostname.endsWith('.google.com')
     );
   } catch {
-    return parseGoogleMapsLocation(normalized) !== null;
+    return false;
   }
+}
+
+function looksLikeGoogleMapsLocation(value: string) {
+  const normalized = normalizeGoogleMapsUrl(value).toLowerCase();
+  if (!normalized) return false;
+
+  return isGoogleMapsLink(normalized) || parseGoogleMapsLocation(normalized) !== null;
+}
+
+function extractGoogleMapsUrl(rawValue: string) {
+  const value = rawValue.trim();
+  if (!value) return '';
+
+  const urlMatch = value.match(
+    /(?:https?:\/\/)?(?:www\.)?(?:maps\.app\.goo\.gl|goo\.gl|maps\.google\.com|google\.com)\/[^\s<>"']+/i,
+  );
+  return normalizeGoogleMapsUrl((urlMatch?.[0] || value).replace(/[),.;]+$/, ''));
+}
+
+function normalizeGoogleMapsUrl(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  if (/^(?:www\.)?(?:maps\.app\.goo\.gl|goo\.gl|maps\.google\.com|google\.com)\//i.test(trimmed)) {
+    return `https://${trimmed}`;
+  }
+  return trimmed;
 }
 
 function isValidLocation(lat: number, lng: number) {

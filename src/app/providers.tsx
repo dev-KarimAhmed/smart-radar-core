@@ -16,8 +16,22 @@ function PwaUpdater() {
   useEffect(() => {
     if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
 
+    let removeVisibilityListener: (() => void) | undefined;
+
     navigator.serviceWorker.register('/sw.js').then((reg) => {
       setRegistration(reg);
+      void reg.update().catch(() => undefined);
+
+      const refreshServiceWorkerCheck = () => {
+        if (document.visibilityState === 'visible') {
+          void reg.update().catch(() => undefined);
+        }
+      };
+
+      document.addEventListener('visibilitychange', refreshServiceWorkerCheck);
+      removeVisibilityListener = () => {
+        document.removeEventListener('visibilitychange', refreshServiceWorkerCheck);
+      };
       reg.addEventListener('updatefound', () => {
         const newWorker = reg.installing;
         if (newWorker) {
@@ -31,6 +45,8 @@ function PwaUpdater() {
     }).catch(err => {
       console.error('SW registration failed:', err);
     });
+
+    return () => removeVisibilityListener?.();
   }, []);
 
   const updateServiceWorker = () => {

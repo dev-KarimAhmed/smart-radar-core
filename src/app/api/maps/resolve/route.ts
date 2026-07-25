@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { isShortGoogleMapsLink, parseGoogleMapsLocation } from '@/lib/google-maps-location';
+import { isGoogleMapsLink, parseGoogleMapsLocation } from '@/lib/google-maps-location';
 
 const MAX_REDIRECTS = 6;
 const REQUEST_TIMEOUT_MS = 5_000;
 
 export async function GET(request: NextRequest) {
   const shortUrl = request.nextUrl.searchParams.get('url')?.trim() || '';
-  if (!isShortGoogleMapsLink(shortUrl)) {
+  if (!isGoogleMapsLink(shortUrl)) {
     return NextResponse.json({ error: 'invalid_maps_url' }, { status: 400 });
   }
 

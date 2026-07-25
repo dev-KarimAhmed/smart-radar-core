@@ -81,6 +81,32 @@ const CAPTAIN_PRESENCE_REFRESH_MS = 15_000;
 const CAPTAIN_PRESENCE_PRUNE_MS = 5_000;
 const INITIAL_RIDER_LOCATION: RiderLocation = { lat: 0, lng: 0 };
 
+async function readClipboardLocationText() {
+  const plainText = await navigator.clipboard.readText();
+  if (!navigator.clipboard.read) return plainText;
+
+  try {
+    const items = await navigator.clipboard.read();
+    const richText = await Promise.all(
+      items.flatMap((item) =>
+        item.types
+          .filter((type) => type === 'text/plain' || type === 'text/html')
+          .map(async (type) => {
+            try {
+              return await (await item.getType(type)).text();
+            } catch {
+              return '';
+            }
+          }),
+      ),
+    );
+
+    return [plainText, ...richText].filter(Boolean).join('\n');
+  } catch {
+    return plainText;
+  }
+}
+
 interface CountryCurrencyConfig {
   id: number;
   name_ar?: string | null;
@@ -493,7 +519,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
     setIsReadingClipboardLocation(true);
     setIsCaptainScanPreviewActive(false);
     try {
-      const clipboardText = await navigator.clipboard.readText();
+      const clipboardText = await readClipboardLocationText();
       const result = await resolveClipboardMapLocation(clipboardText);
       applyClipboardLocation(result.resolvedUrl, result.location);
     } catch (error) {

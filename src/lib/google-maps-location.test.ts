@@ -39,6 +39,21 @@ test('resolves a shortened Google Maps URL through the same-origin resolver', as
   assert.match(result.resolvedUrl, /google\.com\/maps/);
 });
 
+test('normalizes an Android clipboard value with a label and no scheme', async () => {
+  const result = await resolveClipboardMapLocation(
+    'موقع الوجهة: maps.app.goo.gl/ZzvfrfAXKRAJY1PT6',
+    async () => new Response(JSON.stringify({
+      resolvedUrl: 'https://www.google.com/maps/place/Test/@26.5651,31.7511,17z',
+      location: { lat: 26.5651, lng: 31.7511 },
+    }), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    }),
+  );
+
+  assert.deepEqual(result.location, { lat: 26.5651, lng: 31.7511 });
+});
+
 test('parses Google Maps data coordinates', () => {
   assert.deepEqual(
     parseGoogleMapsLocation('https://www.google.com/maps/place/Test/data=!3d30.0444!4d31.2357'),
