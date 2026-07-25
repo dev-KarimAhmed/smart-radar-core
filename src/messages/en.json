@@ -146,6 +146,7 @@
     "status_reading_clipboard": "Reading the copied location...",
     "result_title": "Destination confirmed",
     "lbl_estimated_duration": "Estimated time",
+    "status_calculating_route": "Calculating the road route...",
     "helper_without_traffic": "Without traffic delays",
     "captains_found": "{count, plural, =0 {No active captains nearby} one {# active captain near you} other {# active captains near you}}",
     "captain_search_origin_helper": "Captain availability is checked around your current pickup location.",

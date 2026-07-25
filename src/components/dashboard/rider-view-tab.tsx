@@ -41,6 +41,8 @@ import {
 import type { AppLanguage } from '@/lib/i18n/simple-copy';
 import { supabase } from '@/lib/supabase-client';
 import { cn } from '@/lib/utils';
+import { fetchRoadRoute, type RoadRouteEstimate } from '@/lib/road-route';
+import { calculateSovereignFareQuote } from '@/core/logic/geospatial-kernel';
 import { AdStage } from './ad-stage';
 import { RatingModal } from './shared/rating-modal';
 import { RadarRiderDashboard, type HistoricalTrip } from './rider/rider-dashboard';
@@ -227,8 +229,6 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
   const [destinationSearchResults, setDestinationSearchResults] = React.useState<DestinationSearchResult[]>([]);
   const [destinationSearchStatus, setDestinationSearchStatus] = React.useState<'idle' | 'searching' | 'empty' | 'error' | 'selected'>('idle');
   const [externalLocationUrl, setExternalLocationUrl] = React.useState('');
-  const [externalCalculatedDistanceKm, setExternalCalculatedDistanceKm] = React.useState<number | null>(null);
-  const [externalEstimatedDurationMinutes, setExternalEstimatedDurationMinutes] = React.useState<number | null>(null);
   const [isReadingClipboardLocation, setIsReadingClipboardLocation] = React.useState(false);
   const [isCaptainScanPreviewActive, setIsCaptainScanPreviewActive] = React.useState(false);
   const [isDestinationPinMoving, setIsDestinationPinMoving] = React.useState(false);
@@ -245,6 +245,15 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
     fare: null,
     isLoading: false,
     error: null,
+  });
+  const [routeEstimateState, setRouteEstimateState] = React.useState<{
+    key: string;
+    estimate: RoadRouteEstimate | null;
+    isLoading: boolean;
+  }>({
+    key: '',
+    estimate: null,
+    isLoading: false,
   });
   const pendingAcceptedOfferIdRef = React.useRef<string | null>(null);
   const destinationSearchAbortRef = React.useRef<AbortController | null>(null);
@@ -292,6 +301,14 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
   );
 
   const currentServerFare = serverFareState.key === fareRequestKey ? serverFareState.fare : null;
+  const currentRouteEstimate = routeEstimateState.key === fareRequestKey ? routeEstimateState.estimate : null;
+  const hasUsableRiderLocation =
+    Number.isFinite(riderLocation.lat) &&
+    Number.isFinite(riderLocation.lng) &&
+    (riderLocation.lat !== 0 || riderLocation.lng !== 0);
+  const isRouteEstimateLoading =
+    !!selectedDestinationCoords &&
+    (!hasUsableRiderLocation || routeEstimateState.key !== fareRequestKey || routeEstimateState.isLoading || isDestinationPinMoving);
   const isServerFareLoading =
     !!selectedDestinationCoords && (serverFareState.key !== fareRequestKey || serverFareState.isLoading || isDestinationPinMoving);
   const serverFareError = serverFareState.key === fareRequestKey ? serverFareState.error : null;
@@ -299,11 +316,17 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
 
   const selectedDraftDestination = React.useMemo(() => {
     if (!selectedDistrict || !selectedDestinationCoords) return null;
-    const destination = buildRiderDestination(selectedDistrict, riderLocation, currentServerFare, selectedDestinationCoords);
+    const destination = buildRiderDestination(
+      selectedDistrict,
+      riderLocation,
+      currentServerFare,
+      selectedDestinationCoords,
+      currentRouteEstimate?.distanceKm ?? null,
+    );
     return destinationSearchStatus === 'selected' && destinationSearchQuery.trim()
       ? { ...destination, label: destinationSearchQuery.trim() }
       : destination;
-  }, [currentServerFare, destinationSearchQuery, destinationSearchStatus, riderLocation, selectedDestinationCoords, selectedDistrict]);
+  }, [currentRouteEstimate?.distanceKm, currentServerFare, destinationSearchQuery, destinationSearchStatus, riderLocation, selectedDestinationCoords, selectedDistrict]);
 
   const tripsWithin72Hours = React.useMemo<HistoricalTrip[]>(
     () => [...localCompletedTrips],
@@ -447,20 +470,16 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
   ]);
 
   const applyClipboardLocation = React.useCallback((clipboardValue: string, parsedLocation: RiderLocation) => {
-    const tortuosityFactor = selectedDistrict?.tortuosityFactor || 1.3;
-    const adjustedDistanceKm = calculateDistanceKm(riderLocation, parsedLocation) * tortuosityFactor;
-    const estimatedDurationMinutes = Math.max(3, Math.round(adjustedDistanceKm * 2.2));
-
     setExternalLocationUrl(clipboardValue);
-    setExternalCalculatedDistanceKm(adjustedDistanceKm);
-    setExternalEstimatedDurationMinutes(estimatedDurationMinutes);
+    // Route distance/time are calculated by the shared road-route effect after
+    // the exact clipboard coordinates become the selected destination.
     setDestinationSearchResults([]);
     setDestinationPinLocation(parsedLocation);
     setDestinationFlyToTarget(parsedLocation);
     setIsDestinationPinMoving(false);
     setDestinationSearchStatus('selected');
     setIsCaptainScanPreviewActive(true);
-  }, [riderLocation, selectedDistrict?.tortuosityFactor]);
+  }, []);
 
   const handleConfirmClipboardLocation = React.useCallback(async () => {
     if (!navigator.clipboard?.readText) {
@@ -806,6 +825,32 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
     };
   }, [activeCountryId, destinationDataError, fareRequestKey, riderLocation, selectedDestinationCoords, selectedDistrict]);
 
+  React.useEffect(() => {
+    if (!selectedDestinationCoords || !hasUsableRiderLocation) {
+      setRouteEstimateState({ key: fareRequestKey, estimate: null, isLoading: false });
+      return;
+    }
+
+    let active = true;
+    const timeoutId = window.setTimeout(() => {
+      setRouteEstimateState({ key: fareRequestKey, estimate: null, isLoading: true });
+
+      void fetchRoadRoute(
+        riderLocation,
+        selectedDestinationCoords,
+        selectedDistrict?.tortuosityFactor || 1.3,
+      ).then((estimate) => {
+        if (!active) return;
+        setRouteEstimateState({ key: fareRequestKey, estimate, isLoading: false });
+      });
+    }, FARE_RECALCULATION_DEBOUNCE_MS);
+
+    return () => {
+      active = false;
+      window.clearTimeout(timeoutId);
+    };
+  }, [fareRequestKey, hasUsableRiderLocation, riderLocation, selectedDestinationCoords, selectedDistrict?.tortuosityFactor]);
+
   const loadBlockedCaptains = React.useCallback(async () => {
     if (!user?.uid) return;
     try {
@@ -1054,8 +1099,6 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
     setDestinationSearchResults([]);
     setDestinationSearchStatus('idle');
     setExternalLocationUrl('');
-    setExternalCalculatedDistanceKm(null);
-    setExternalEstimatedDurationMinutes(null);
     setIsCaptainScanPreviewActive(false);
   };
 
@@ -1068,8 +1111,6 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
     setDestinationSearchResults([]);
     setDestinationSearchStatus('idle');
     setExternalLocationUrl('');
-    setExternalCalculatedDistanceKm(null);
-    setExternalEstimatedDurationMinutes(null);
     setIsCaptainScanPreviewActive(false);
   };
 
@@ -1102,7 +1143,12 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
       return;
     }
 
-    if (selectedDraftDestination.serverEstimatedFare === undefined || isServerFareLoading) {
+    if (
+      selectedDraftDestination.serverEstimatedFare === undefined ||
+      isServerFareLoading ||
+      isRouteEstimateLoading ||
+      !currentRouteEstimate
+    ) {
       toast({
         variant: 'destructive',
         title: copy.fareNotReadyTitle,
@@ -1369,13 +1415,15 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
       const originH3 = selectedDraftDestination?.originCell || '';
       const destinationH3 = selectedDraftDestination?.destinationCell || '';
       const isSameLocation = !!originH3 && !!destinationH3 && originH3 === destinationH3;
-      const estimatedDistanceKm = selectedDestinationCoords ? calculateDistanceKm(riderLocation, selectedDestinationCoords) : null;
-      const estimatedDurationMinutes = estimatedDistanceKm !== null ? Math.max(3, Math.round(estimatedDistanceKm * 2.2)) : null;
+      const estimatedDistanceKm = currentRouteEstimate?.distanceKm ?? null;
+      const estimatedDurationMinutes = currentRouteEstimate?.durationMinutes ?? null;
       const hasImportedLocation = externalLocationUrl.length > 0;
       const destinationReady =
         selectedDestinationHasCoords &&
         selectedDraftDestination?.serverEstimatedFare !== undefined &&
+        currentRouteEstimate !== null &&
         !isServerFareLoading &&
+        !isRouteEstimateLoading &&
         !isDestinationPinMoving &&
         !isSameLocation;
       const destinationLabel = selectedDistrict
@@ -1504,11 +1552,15 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                         className="h-11 w-full rounded-xl border border-white/10 bg-[#1E293B] px-3 text-xs font-bold text-slate-300 outline-none"
                       />
                     </label>
-                    {externalCalculatedDistanceKm !== null ? (
+                    {isRouteEstimateLoading ? (
+                      <div className="rounded-xl border border-[#14B8A6]/20 bg-[#14B8A6]/10 px-3 py-2 text-xs font-bold text-[#BFFCF2]" role="status">
+                        {locationCopy('status_calculating_route')}
+                      </div>
+                    ) : currentRouteEstimate ? (
                       <div className="flex items-center justify-between gap-3 rounded-xl border border-[#14B8A6]/25 bg-[#14B8A6]/10 px-3 py-2">
                         <span className="text-[11px] font-black text-slate-300">{locationCopy('lbl_calculated_distance')}</span>
                         <strong className="font-mono text-sm font-black text-[#14F5D5]">
-                          {externalCalculatedDistanceKm.toFixed(1)} {locationCopy('unit_km')}
+                          {currentRouteEstimate.distanceKm.toFixed(1)} {locationCopy('unit_km')}
                         </strong>
                       </div>
                     ) : null}
@@ -1646,8 +1698,6 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                           setDestinationSearchResults([]);
                           setDestinationSearchStatus('idle');
                           setExternalLocationUrl('');
-                          setExternalCalculatedDistanceKm(null);
-                          setExternalEstimatedDurationMinutes(null);
                           setIsCaptainScanPreviewActive(false);
                         }}
                         placeholder={locationCopy('placeholder_landmark')}
@@ -1706,18 +1756,22 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                       </div>
                     </div>
 
-                    {externalCalculatedDistanceKm !== null && externalEstimatedDurationMinutes !== null ? (
+                    {isRouteEstimateLoading ? (
+                      <div className="rounded-xl border border-[#14B8A6]/20 bg-[#14B8A6]/10 px-3 py-3 text-xs font-bold text-[#BFFCF2]" role="status">
+                        {locationCopy('status_calculating_route')}
+                      </div>
+                    ) : currentRouteEstimate ? (
                       <div className="grid grid-cols-2 gap-2">
                         <div className="rounded-xl border border-white/8 bg-black/20 p-2.5">
                           <span className="text-[10px] font-black text-slate-400">{locationCopy('lbl_calculated_distance')}</span>
                           <strong className="mt-1 block font-mono text-base font-black text-white">
-                            {externalCalculatedDistanceKm.toFixed(1)} {locationCopy('unit_km')}
+                            {currentRouteEstimate.distanceKm.toFixed(1)} {locationCopy('unit_km')}
                           </strong>
                         </div>
                         <div className="rounded-xl border border-[#14B8A6]/20 bg-black/15 p-2.5">
                           <span className="text-[10px] font-black text-slate-300">{locationCopy('lbl_estimated_duration')}</span>
                           <strong className="mt-1 block font-mono text-base font-black text-[#14F5D5]">
-                            {formatDurationLabel(externalEstimatedDurationMinutes, language)}
+                            {formatDurationLabel(currentRouteEstimate.durationMinutes, language)}
                           </strong>
                           <span className="mt-1 block text-[9px] text-slate-400">{locationCopy('helper_without_traffic')}</span>
                         </div>
@@ -1893,7 +1947,11 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                       {copy.estimatedDuration || locationCopy('lbl_estimated_duration')}
                     </span>
                     <strong className="mt-1 block text-xs font-black text-white">
-                      {estimatedDurationMinutes !== null ? formatDurationLabel(estimatedDurationMinutes, language) : copy.notAvailable}
+                      {isRouteEstimateLoading
+                        ? locationCopy('status_calculating_route')
+                        : estimatedDurationMinutes !== null
+                          ? formatDurationLabel(estimatedDurationMinutes, language)
+                          : copy.notAvailable}
                     </strong>
                     <span className="mt-0.5 block text-[8px] leading-tight text-slate-500">
                       {copy.withoutTrafficDelays || locationCopy('helper_without_traffic')}
@@ -1905,7 +1963,11 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                       {copy.estimatedDistance || locationCopy('lbl_calculated_distance')}
                     </span>
                     <strong className="mt-1 block text-xs font-black text-white">
-                      {estimatedDistanceKm !== null ? `${estimatedDistanceKm.toFixed(1)} ${copy.km}` : copy.notAvailable}
+                      {isRouteEstimateLoading
+                        ? locationCopy('status_calculating_route')
+                        : estimatedDistanceKm !== null
+                          ? `${estimatedDistanceKm.toFixed(1)} ${copy.km}`
+                          : copy.notAvailable}
                     </strong>
                   </div>
                   <div className="rounded-xl border border-white/8 bg-black/20 p-2.5">
@@ -2599,10 +2661,16 @@ function buildRiderDestination(
   origin: RiderLocation,
   serverEstimatedFare: number | null,
   preciseDestination: RiderLocation,
+  roadDistanceKm: number | null = null,
 ): RiderDestination {
   if (!preciseDestination) {
     throw new Error('destination_missing_coordinates');
   }
+
+  const localFareQuote = calculateSovereignFareQuote(origin, preciseDestination, destination.tortuosityFactor);
+  const fareQuote = roadDistanceKm === null
+    ? localFareQuote
+    : { ...localFareQuote, estimatedRoadDistanceKm: roadDistanceKm };
 
   return {
     id: destination.id,
@@ -2611,6 +2679,7 @@ function buildRiderDestination(
     district: destination.districtAr,
     coords: preciseDestination,
     tortuosityFactor: destination.tortuosityFactor,
+    fareQuote,
     serverEstimatedFare: serverEstimatedFare ?? undefined,
     originCell: latLngToCell(origin.lat, origin.lng, H3_RIDER_REQUEST_RESOLUTION),
     destinationCell: latLngToCell(preciseDestination.lat, preciseDestination.lng, H3_RIDER_REQUEST_RESOLUTION),
@@ -3137,20 +3206,6 @@ const riderViewCopy = {
     completeTrip: 'Complete trip',
   },
 } satisfies Record<AppLanguage, Record<string, string>>;
-
-function calculateDistanceKm(origin: RiderLocation, destination: RiderLocation) {
-  const toRadians = (value: number) => (value * Math.PI) / 180;
-  const earthRadiusKm = 6371;
-  const dLat = toRadians(destination.lat - origin.lat);
-  const dLng = toRadians(destination.lng - origin.lng);
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRadians(origin.lat)) *
-      Math.cos(toRadians(destination.lat)) *
-      Math.sin(dLng / 2) ** 2;
-
-  return 2 * earthRadiusKm * Math.atan2(Math.sqrt(a), Math.sqrt(Math.max(0, 1 - a)));
-}
 
 function formatDurationLabel(minutes: number, language: AppLanguage) {
   const safeMinutes = Math.max(1, Math.round(minutes));
