@@ -67,7 +67,22 @@ export async function resolveClipboardMapLocation(
 }
 
 export function parseGoogleMapsLocation(value: string): ParsedMapLocation | null {
-  const text = safeDecodeURIComponent(value.trim());
+  // Google embeds the place preview URL inside HTML with `%21`-encoded
+  // exclamation markers. Decode those markers even when the full HTML cannot
+  // be URI-decoded because it contains unrelated percent-encoded content.
+  const text = safeDecodeURIComponent(value.trim()).replace(/%21/gi, '!');
+
+  // Google place pages and short-link redirects often embed the map center as
+  // longitude first (`!2d{lng}!3d{lat}`) inside the page bootstrap payload.
+  const placePayloadMatch = text.match(
+    /!2d(-?\d+(?:\.\d+)?)!3d(-?\d+(?:\.\d+)?)/,
+  );
+  if (placePayloadMatch) {
+    const lng = Number(placePayloadMatch[1]);
+    const lat = Number(placePayloadMatch[2]);
+    if (isValidLocation(lat, lng)) return { lat, lng };
+  }
+
   const patterns = [
     /@(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/,
     /!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/,

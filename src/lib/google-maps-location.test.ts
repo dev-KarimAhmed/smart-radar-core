@@ -60,3 +60,17 @@ test('parses Google Maps data coordinates', () => {
     { lat: 30.0444, lng: 31.2357 },
   );
 });
+
+test('parses coordinates from Google place bootstrap payloads', () => {
+  assert.deepEqual(
+    parseGoogleMapsLocation('https://www.google.com/maps/preview/place?pb=!2d31.5031552!3d26.6698752'),
+    { lat: 26.6698752, lng: 31.5031552 },
+  );
+});
+
+test('parses percent-encoded place coordinates from a Google Maps page', () => {
+  assert.deepEqual(
+    parseGoogleMapsLocation('...%212d31.503155200000002%213d26.6698752...'),
+    { lat: 26.6698752, lng: 31.503155200000002 },
+  );
+});

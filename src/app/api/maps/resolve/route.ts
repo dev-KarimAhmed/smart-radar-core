@@ -13,7 +13,14 @@ export async function GET(request: NextRequest) {
 
   try {
     const resolvedUrl = await followGoogleMapsRedirects(shortUrl);
-    const location = parseGoogleMapsLocation(resolvedUrl);
+    let location = parseGoogleMapsLocation(resolvedUrl);
+
+    // A Google short link may resolve to a place URL without coordinates in
+    // the address. Fetch the final page and inspect its map bootstrap payload.
+    if (!location) {
+      location = await readGoogleMapsPageLocation(resolvedUrl);
+    }
+
     if (!location) {
       return NextResponse.json(
         { error: 'coordinates_not_found', resolvedUrl },
@@ -52,6 +59,22 @@ async function followGoogleMapsRedirects(initialUrl: string) {
   }
 
   throw new Error('too_many_redirects');
+}
+
+async function readGoogleMapsPageLocation(url: string) {
+  const response = await fetch(url, {
+    method: 'GET',
+    redirect: 'follow',
+    cache: 'no-store',
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    headers: {
+      Accept: 'text/html,application/xhtml+xml',
+      'User-Agent': 'Mozilla/5.0 (compatible; RadarLocationResolver/1.0)',
+    },
+  });
+
+  if (!response.ok) return null;
+  return parseGoogleMapsLocation(await response.text());
 }
 
 function isAllowedRedirectHost(hostname: string) {
