@@ -2,7 +2,27 @@
 
 import React from 'react';
 import { latLngToCell } from 'h3-js';
-import { Clock, Heart, Loader2, MessageCircle, Navigation, Search, ShieldCheck, Star, X, MapPin, Phone } from 'lucide-react';
+import {
+  Check,
+  CheckCircle2,
+  ChevronDown,
+  Clock,
+  ExternalLink,
+  Heart,
+  Loader2,
+  MapPin,
+  MessageCircle,
+  Minus,
+  Navigation,
+  Phone,
+  Plus,
+  Route,
+  Search,
+  ShieldCheck,
+  Star,
+  Users,
+  X,
+} from 'lucide-react';
 import { motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
@@ -1351,18 +1371,62 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
       const isSameLocation = !!originH3 && !!destinationH3 && originH3 === destinationH3;
       const estimatedDistanceKm = selectedDestinationCoords ? calculateDistanceKm(riderLocation, selectedDestinationCoords) : null;
       const estimatedDurationMinutes = estimatedDistanceKm !== null ? Math.max(3, Math.round(estimatedDistanceKm * 2.2)) : null;
+      const hasImportedLocation = externalLocationUrl.length > 0;
+      const destinationReady =
+        selectedDestinationHasCoords &&
+        selectedDraftDestination?.serverEstimatedFare !== undefined &&
+        !isServerFareLoading &&
+        !isDestinationPinMoving &&
+        !isSameLocation;
+      const destinationLabel = selectedDistrict
+        ? isArabic
+          ? `${selectedDistrict.districtAr} - ${selectedDistrict.governorateAr}`
+          : `${selectedDistrict.districtEn || selectedDistrict.districtAr} - ${selectedDistrict.governorateEn || selectedDistrict.governorateAr}`
+        : copy.notAvailable;
 
       return (
-        <div className="space-y-4 " dir={isArabic ? 'rtl' : 'ltr'}>
-            <div className="space-y-1">
-              <p className="text-[11px] font-black text-[#14F5D5]">{copy.destinationEyebrow}</p>
-              <h2 className="text-xl font-black sm:text-2xl">{copy.whereTo}</h2>
-              <p className="text-xs leading-relaxed text-slate-400">
-                {copy.destinationSubtitle}
+        <div className="space-y-3 pb-24 lg:pb-4" dir={isArabic ? 'rtl' : 'ltr'}>
+            <div className="space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-black text-[#14F5D5]">{copy.destinationEyebrow}</p>
+                  <h2 className="mt-1 text-2xl font-black leading-tight text-white">{copy.whereTo}</h2>
+                  <p className="mt-1 text-xs leading-relaxed text-slate-400">{locationCopy('flow_helper')}</p>
+                </div>
                 {countryConfig?.name_ar || countryConfig?.name_en ? (
-                  <span className="mt-1 block text-[#14F5D5]">{copy.country}: {isArabic ? countryConfig.name_ar || countryConfig.name_en : countryConfig.name_en || countryConfig.name_ar}</span>
+                  <span className="shrink-0 rounded-full border border-[#14B8A6]/25 bg-[#14B8A6]/10 px-3 py-1.5 text-[10px] font-black text-[#14F5D5]">
+                    {isArabic ? countryConfig.name_ar || countryConfig.name_en : countryConfig.name_en || countryConfig.name_ar}
+                  </span>
                 ) : null}
-              </p>
+              </div>
+
+              <div className="grid grid-cols-3 gap-1.5" aria-label={locationCopy('progress_label')}>
+                {[
+                  { label: locationCopy('progress_area'), complete: !!selectedDistrict },
+                  { label: locationCopy('progress_location'), complete: hasImportedLocation || selectedDestinationHasCoords },
+                  { label: locationCopy('progress_review'), complete: destinationReady },
+                ].map((step, index) => (
+                  <div
+                    key={step.label}
+                    className={cn(
+                      'flex min-w-0 items-center gap-1.5 rounded-lg border px-2 py-2 text-[9px] font-black transition-colors',
+                      step.complete
+                        ? 'border-[#14B8A6]/30 bg-[#14B8A6]/12 text-[#BFFCF2]'
+                        : 'border-white/8 bg-white/[0.03] text-slate-500',
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[8px]',
+                        step.complete ? 'bg-[#14B8A6] text-[#061316]' : 'bg-slate-800 text-slate-400',
+                      )}
+                    >
+                      {step.complete ? <Check className="h-2.5 w-2.5 stroke-[3]" /> : index + 1}
+                    </span>
+                    <span className="truncate">{step.label}</span>
+                  </div>
+                ))}
+              </div>
             </div>
 
             <div className="grid gap-3">
@@ -1505,53 +1569,66 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                 ) : null}
               </div> */}
 
-              <label className="space-y-2">
-                <span className="block text-[11px] font-black text-slate-400">{copy.governorate}</span>
-                <select
-                  value={selectedGovernorateId}
-                  onChange={(event) => handleGovernorateChange(event.target.value)}
-                  disabled={isLoadingGovernorates || destinationGovernorates.length === 0}
-                  className="h-12 w-full rounded-2xl border border-white/10 bg-black/40 px-4  text-sm font-black text-white outline-none transition focus:border-[#14B8A6]/60"
-                >
-                  {destinationGovernorates.length === 0 ? (
-                    <option value="">{isLoadingGovernorates ? copy.loading : copy.noGovernorates}</option>
-                  ) : null}
-                  {destinationGovernorates.map((governorate) => (
-                    <option key={governorate.id} value={governorate.id}>
-                      {isArabic ? governorate.nameAr || governorate.nameEn : governorate.nameEn || governorate.nameAr}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <section className="rounded-2xl border border-white/10 bg-[#111827]/80 p-3 shadow-lg shadow-black/15">
+                <div className="mb-3 flex items-start gap-2.5">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#14B8A6]/12 text-[#14F5D5]">
+                    <MapPin className="h-4 w-4" />
+                  </span>
+                  <div className="min-w-0">
+                    <h3 className="text-xs font-black text-white">{locationCopy('area_title')}</h3>
+                    <p className="mt-0.5 text-[10px] leading-relaxed text-slate-400">{locationCopy('area_helper')}</p>
+                  </div>
+                </div>
 
-              <label className="space-y-2">
-                <span className="block text-[11px] font-black text-slate-400">{copy.district}</span>
-                <select
-                  value={selectedDistrict?.id || ''}
-                  onChange={(event) => handleDistrictChange(event.target.value)}
-                  disabled={isLoadingDistricts || availableDistricts.length === 0}
-                  className="h-12 w-full rounded-2xl border border-white/10 bg-black/40 px-4  text-sm font-black text-white outline-none transition focus:border-[#14B8A6]/60"
-                >
-                  {availableDistricts.length === 0 ? (
-                    <option value="">{isLoadingDistricts ? copy.loading : copy.noDistricts}</option>
-                  ) : null}
-                  {availableDistricts.map((destination) => (
-                    <option key={destination.id} value={destination.id} disabled={!destination.anchor}>
-                      {isArabic ? destination.districtAr || destination.districtEn : destination.districtEn || destination.districtAr}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <div className="space-y-2">
-                <div className="rounded-2xl border border-white/10 bg-[#161F30]/70 p-3">
-                  <div className="mb-3 flex items-start gap-3">
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#14B8A6]/15 text-xs font-black text-[#14F5D5]">1</span>
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="min-w-0 space-y-1.5">
+                    <span className="block text-[10px] font-black text-slate-400">{copy.governorate}</span>
+                    <select
+                      value={selectedGovernorateId}
+                      onChange={(event) => handleGovernorateChange(event.target.value)}
+                      disabled={isLoadingGovernorates || destinationGovernorates.length === 0}
+                      className="h-11 w-full min-w-0 rounded-xl border border-white/10 bg-black/35 px-3 text-xs font-black text-white outline-none transition focus:border-[#14B8A6]/60"
+                    >
+                      {destinationGovernorates.length === 0 ? (
+                        <option value="">{isLoadingGovernorates ? copy.loading : copy.noGovernorates}</option>
+                      ) : null}
+                      {destinationGovernorates.map((governorate) => (
+                        <option key={governorate.id} value={governorate.id}>
+                          {isArabic ? governorate.nameAr || governorate.nameEn : governorate.nameEn || governorate.nameAr}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="min-w-0 space-y-1.5">
+                    <span className="block text-[10px] font-black text-slate-400">{copy.district}</span>
+                    <select
+                      value={selectedDistrict?.id || ''}
+                      onChange={(event) => handleDistrictChange(event.target.value)}
+                      disabled={isLoadingDistricts || availableDistricts.length === 0}
+                      className="h-11 w-full min-w-0 rounded-xl border border-white/10 bg-black/35 px-3 text-xs font-black text-white outline-none transition focus:border-[#14B8A6]/60"
+                    >
+                      {availableDistricts.length === 0 ? (
+                        <option value="">{isLoadingDistricts ? copy.loading : copy.noDistricts}</option>
+                      ) : null}
+                      {availableDistricts.map((destination) => (
+                        <option key={destination.id} value={destination.id} disabled={!destination.anchor}>
+                          {isArabic ? destination.districtAr || destination.districtEn : destination.districtEn || destination.districtAr}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+              </section>
+              <section className="space-y-3 rounded-2xl border border-white/10 bg-[#111827]/80 p-3 shadow-lg shadow-black/15">
+                <div>
+                  <div className="mb-2.5 flex items-start gap-2.5">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#14B8A6]/15 text-xs font-black text-[#14F5D5]">1</span>
                     <div>
                       <p className="text-xs font-black text-white">{locationCopy('step_search_title')}</p>
                       <p className="mt-1 text-[11px] leading-relaxed text-slate-400">{locationCopy('step_search_helper')}</p>
                     </div>
                   </div>
-                  <span className="mb-2 block text-[11px] font-black text-slate-400">{destinationSearchCopy('label')}</span>
                   <form
                     onSubmit={(event) => {
                       event.preventDefault();
@@ -1574,7 +1651,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                           setIsCaptainScanPreviewActive(false);
                         }}
                         placeholder={locationCopy('placeholder_landmark')}
-                        className="h-12 w-full rounded-2xl border border-white/10 bg-black/40 pe-4 ps-10 text-sm font-bold text-white outline-none transition placeholder:text-slate-500 focus:border-[#14B8A6]/60"
+                        className="h-11 w-full rounded-xl border border-white/10 bg-black/40 pe-3 ps-10 text-sm font-bold text-white outline-none transition placeholder:text-slate-500 focus:border-[#14B8A6]/60"
                       />
                     </div>
                     <button
@@ -1582,7 +1659,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                       disabled={destinationSearchQuery.trim().length < 2}
                       aria-label={locationCopy('btn_open_google_maps')}
                       title={locationCopy('btn_open_google_maps')}
-                      className="flex h-12 shrink-0 items-center justify-center gap-2 rounded-2xl bg-[#14B8A6] px-4 text-sm font-black text-[#031315] transition hover:bg-[#2DD4BF] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#14F5D5] disabled:cursor-not-allowed disabled:opacity-50"
+                      className="flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#14B8A6] px-3 text-sm font-black text-[#031315] transition hover:bg-[#2DD4BF] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#14F5D5] disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <Search className="h-4 w-4" />
                       <span className="hidden sm:inline">
@@ -1592,9 +1669,9 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                   </form>
                 </div>
 
-                <div className="rounded-2xl border border-white/10 bg-[#161F30]/70 p-3">
-                  <div className="mb-3 flex items-start gap-3">
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#14B8A6]/15 text-xs font-black text-[#14F5D5]">2</span>
+                <div className="border-t border-white/8 pt-3">
+                  <div className="mb-2.5 flex items-start gap-2.5">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#14B8A6]/15 text-xs font-black text-[#14F5D5]">2</span>
                     <div>
                       <p className="text-xs font-black text-white">{locationCopy('step_confirm_title')}</p>
                       <p className="mt-1 text-[11px] leading-relaxed text-slate-400">{locationCopy('step_confirm_helper')}</p>
@@ -1604,7 +1681,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                     type="button"
                     onClick={handleConfirmClipboardLocation}
                     disabled={isReadingClipboardLocation}
-                    className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#14B8A6] px-4 text-sm font-black text-[#061316] shadow-lg shadow-[#14B8A6]/20 transition-all duration-300 hover:bg-[#2DD4BF] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#14F5D5] disabled:cursor-not-allowed disabled:opacity-60"
+                    className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-[#14B8A6]/35 bg-[#14B8A6]/12 px-4 text-xs font-black text-[#BFFCF2] transition-all duration-300 hover:bg-[#14B8A6]/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#14F5D5] disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {isReadingClipboardLocation ? <Loader2 className="h-5 w-5 animate-spin" /> : <MapPin className="h-5 w-5" />}
                     <span>
@@ -1616,63 +1693,79 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                 </div>
 
                 {externalLocationUrl ? (
-                  <div className="space-y-3 rounded-2xl border border-[#14B8A6]/35 bg-[#161F30]/90 p-4 shadow-xl shadow-[#14B8A6]/10 backdrop-blur-md">
-                    <div className="flex items-center gap-2 text-[#14F5D5]">
-                      <ShieldCheck className="h-5 w-5" />
-                      <strong className="text-sm font-black">{locationCopy('result_title')}</strong>
-                    </div>
-                    <label className="block space-y-2">
-                      <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">
-                        {locationCopy('lbl_google_maps_url')}
+                  <div className="space-y-3 rounded-xl border border-[#14B8A6]/35 bg-[#14B8A6]/8 p-3 shadow-lg shadow-[#14B8A6]/5">
+                    <div className="flex items-start gap-2.5 text-[#14F5D5]">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#14B8A6]/15">
+                        <CheckCircle2 className="h-4 w-4" />
                       </span>
-                      <input
-                        value={externalLocationUrl}
-                        readOnly
-                        disabled
-                        aria-label={locationCopy('lbl_google_maps_url')}
-                        className="h-11 w-full rounded-xl border border-white/10 bg-[#1E293B] px-3 text-xs font-bold text-slate-300 outline-none"
-                      />
-                    </label>
+                      <div className="min-w-0">
+                        <strong className="block text-xs font-black">{locationCopy('result_title')}</strong>
+                        <p className="mt-0.5 text-[10px] leading-relaxed text-slate-400">
+                          {locationCopy('confirmed_location_helper')}
+                        </p>
+                      </div>
+                    </div>
+
                     {externalCalculatedDistanceKm !== null && externalEstimatedDurationMinutes !== null ? (
                       <div className="grid grid-cols-2 gap-2">
-                        <div className="rounded-xl border border-white/10 bg-black/25 p-3">
+                        <div className="rounded-xl border border-white/8 bg-black/20 p-2.5">
                           <span className="text-[10px] font-black text-slate-400">{locationCopy('lbl_calculated_distance')}</span>
-                          <strong className="mt-1 block font-mono text-lg font-black text-white">
+                          <strong className="mt-1 block font-mono text-base font-black text-white">
                             {externalCalculatedDistanceKm.toFixed(1)} {locationCopy('unit_km')}
                           </strong>
                         </div>
-                        <div className="rounded-xl border border-[#14B8A6]/25 bg-[#14B8A6]/10 p-3">
+                        <div className="rounded-xl border border-[#14B8A6]/20 bg-black/15 p-2.5">
                           <span className="text-[10px] font-black text-slate-300">{locationCopy('lbl_estimated_duration')}</span>
-                          <strong className="mt-1 block font-mono text-lg font-black text-[#14F5D5]">
+                          <strong className="mt-1 block font-mono text-base font-black text-[#14F5D5]">
                             {formatDurationLabel(externalEstimatedDurationMinutes, language)}
                           </strong>
                           <span className="mt-1 block text-[9px] text-slate-400">{locationCopy('helper_without_traffic')}</span>
                         </div>
                       </div>
                     ) : null}
+
+                    <details className="group rounded-lg border border-white/8 bg-black/15">
+                      <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2 text-[10px] font-bold text-slate-400 transition hover:text-slate-200">
+                        <span className="flex min-w-0 items-center gap-2">
+                          <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                          <span className="truncate">{locationCopy('show_copied_link')}</span>
+                        </span>
+                        <ChevronDown className="h-3.5 w-3.5 shrink-0 transition-transform group-open:rotate-180" />
+                      </summary>
+                      <div className="border-t border-white/8 p-2">
+                        <input
+                          value={externalLocationUrl}
+                          readOnly
+                          aria-label={locationCopy('lbl_google_maps_url')}
+                          className="h-9 w-full rounded-lg border border-white/8 bg-[#1E293B] px-2 text-[10px] font-bold text-slate-300 outline-none"
+                        />
+                      </div>
+                    </details>
                   </div>
                 ) : null}
 
                 {isCaptainScanPreviewActive ? (
-                  <div className="relative overflow-hidden rounded-2xl border border-[#14B8A6]/30 bg-[#161F30]/80 p-5 text-center shadow-2xl shadow-[#14B8A6]/10 backdrop-blur-md" role="status">
-                    <div className="relative mx-auto flex h-20 w-20 items-center justify-center">
+                  <div className="flex items-center gap-3 rounded-xl border border-[#14B8A6]/25 bg-[#0B1220] p-3" role="status">
+                    <div className="relative flex h-10 w-10 shrink-0 items-center justify-center">
                       {mappedCaptains.length === 0 ? (
                         <>
-                          <span className="absolute h-16 w-16 animate-ping rounded-full border border-[#14B8A6]/50" />
-                          <span className="absolute h-11 w-11 animate-ping rounded-full border border-[#14F5D5]/40 [animation-delay:180ms]" />
+                          <span className="absolute h-9 w-9 animate-ping rounded-full border border-[#14B8A6]/50" />
+                          <span className="absolute h-6 w-6 animate-ping rounded-full border border-[#14F5D5]/40 [animation-delay:180ms]" />
                         </>
                       ) : null}
-                      <span className="absolute h-8 w-8 animate-pulse rounded-full bg-[#14B8A6]/25" />
-                      <Search className="relative z-10 h-6 w-6 text-[#14F5D5]" />
+                      <span className="absolute h-6 w-6 animate-pulse rounded-full bg-[#14B8A6]/20" />
+                      <Search className="relative z-10 h-4 w-4 text-[#14F5D5]" />
                     </div>
-                    <p className="mt-2 text-sm font-black text-white">
-                      {mappedCaptains.length > 0
-                        ? locationCopy('captains_found', { count: mappedCaptains.length })
-                        : locationCopy('status_scanning_captains')}
-                    </p>
-                    <p className="mt-1 text-[10px] leading-relaxed text-slate-400">
-                      {locationCopy('captain_search_origin_helper')}
-                    </p>
+                    <div className="min-w-0 text-start">
+                      <p className="text-xs font-black text-white">
+                        {mappedCaptains.length > 0
+                          ? locationCopy('captains_found', { count: mappedCaptains.length })
+                          : locationCopy('status_scanning_captains')}
+                      </p>
+                      <p className="mt-0.5 text-[9px] leading-relaxed text-slate-400">
+                        {locationCopy('captain_search_origin_helper')}
+                      </p>
+                    </div>
                   </div>
                 ) : null}
 
@@ -1708,30 +1801,39 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                     {destinationSearchCopy('selected')}
                   </p>
                 ) : null}
-              </div>
+              </section>
             </div>
 
-            <label className="block space-y-2">
-              <span className="block text-[11px] font-black text-slate-400">
-                {language === 'ar' ? 'عدد الركاب' : 'Number of riders'}
-              </span>
-              <input
-                type="number"
-                min={1}
-                step={1}
-                inputMode="numeric"
-                value={riderCount}
-                onChange={(event) => {
-                  const nextCount = Number.parseInt(event.target.value, 10);
-                  setRiderCount(Number.isFinite(nextCount) ? Math.max(1, nextCount) : 1);
-                }}
-                onKeyDown={(event) => {
-                  if (['-', '+', 'e', 'E', '.'].includes(event.key)) event.preventDefault();
-                }}
-                className="h-12 w-full rounded-2xl border border-white/10 bg-black/40 px-4 text-sm font-black text-white outline-none transition focus:border-[#14B8A6]/60"
-                aria-label={language === 'ar' ? 'عدد الركاب' : 'Number of riders'}
-              />
-            </label>
+            <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-[#111827]/80 p-3">
+              <div className="flex min-w-0 items-center gap-2.5">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#14B8A6]/12 text-[#14F5D5]">
+                  <Users className="h-4 w-4" />
+                </span>
+                <span className="text-xs font-black text-slate-200">{locationCopy('passengers_label')}</span>
+              </div>
+              <div className="flex h-10 items-center rounded-xl border border-white/10 bg-black/30 p-1">
+                <button
+                  type="button"
+                  onClick={() => setRiderCount((current) => Math.max(1, current - 1))}
+                  disabled={riderCount <= 1}
+                  className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-300 transition hover:bg-white/8 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+                  aria-label="-"
+                >
+                  <Minus className="h-4 w-4" />
+                </button>
+                <output className="w-10 text-center font-mono text-sm font-black text-white" aria-live="polite">
+                  {riderCount}
+                </output>
+                <button
+                  type="button"
+                  onClick={() => setRiderCount((current) => current + 1)}
+                  className="flex h-8 w-8 items-center justify-center rounded-lg text-[#14F5D5] transition hover:bg-[#14B8A6]/12"
+                  aria-label="+"
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
 
             {destinationDataError ? (
               <div className="rounded-2xl border border-amber-400/25 bg-amber-400/10 p-3 text-xs font-bold leading-relaxed text-amber-100">
@@ -1739,55 +1841,83 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
               </div>
             ) : null}
 
-            {selectedDistrict ? (
-              <div className="rounded-2xl border border-[#14B8A6]/20 bg-[#14B8A6]/8 p-3 text-xs leading-relaxed text-slate-300">
-                <strong className="block text-sm text-white">
-                  {isArabic
-                    ? `${selectedDistrict.districtAr} - ${selectedDistrict.governorateAr}`
-                    : `${selectedDistrict.districtEn || selectedDistrict.districtAr} - ${selectedDistrict.governorateEn || selectedDistrict.governorateAr}`}
-                </strong>
-                {selectedDistrict.anchor ? (
-                  <span className="mt-1 block font-mono text-[10px] text-slate-500">
-                    {(selectedDestinationCoords || selectedDistrict.anchor).lat.toFixed(4)}, {(selectedDestinationCoords || selectedDistrict.anchor).lng.toFixed(4)}
+            <section
+              className={cn(
+                'overflow-hidden rounded-2xl border bg-[#111827]/90 shadow-xl shadow-black/20 transition-colors',
+                destinationReady ? 'border-[#14B8A6]/40' : 'border-white/10',
+              )}
+            >
+              <div className="flex items-center justify-between gap-3 border-b border-white/8 px-3 py-2.5">
+                <div className="flex items-center gap-2">
+                  <span
+                    className={cn(
+                      'flex h-8 w-8 items-center justify-center rounded-xl',
+                      destinationReady ? 'bg-[#14B8A6]/15 text-[#14F5D5]' : 'bg-white/5 text-slate-500',
+                    )}
+                  >
+                    {destinationReady ? <CheckCircle2 className="h-4 w-4" /> : <Route className="h-4 w-4" />}
                   </span>
-                ) : (
-                  <span className="mt-1 block text-[11px] font-bold text-amber-200">
-                    لا توجد إحداثيات لهذه المنطقة في قاعدة البيانات.
-                  </span>
-                )}
-              </div>
-            ) : null}
-
-            <div className="flex flex-col items-center justify-center rounded-2xl border border-emerald-500/20 bg-emerald-950/10 p-6 text-center">
-              <div className="text-3xl font-extrabold text-teal-400 font-mono">
-                {isServerFareLoading ? (language === 'ar' ? 'جاري الحساب...' : 'Calculating...') : serverFareLabel}
-              </div>
-              <p className="mt-1.5 text-xs font-bold text-slate-400">
-                {language === 'ar' ? 'السعر التقريبي للرحلة' : 'Estimated Fare'}
-              </p>
-            </div>
-
-            {estimatedDurationMinutes !== null && estimatedDistanceKm !== null ? (
-              <div className="grid gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4 sm:grid-cols-[1.2fr_0.8fr]">
-                <div className="rounded-2xl border border-[#14B8A6]/20 bg-[#14B8A6]/10 p-4">
-                  <p className="text-[11px] font-black uppercase tracking-wide text-slate-400">
-                    {copy.estimatedDuration || (language === 'ar' ? 'مدة الرحلة المتوقعة' : 'Estimated duration')}
-                  </p>
-                  <strong className="mt-1 block text-3xl font-black text-white">{formatDurationLabel(estimatedDurationMinutes, language)}</strong>
-                  <span className="mt-1 block text-xs font-semibold text-slate-400">
-                    {copy.withoutTrafficDelays || (language === 'ar' ? 'بدون تأخير بسبب الزحام' : 'Without traffic delays')}
-                  </span>
+                  <div>
+                    <h3 className="text-xs font-black text-white">{locationCopy('trip_summary_title')}</h3>
+                    <p className="mt-0.5 text-[9px] text-slate-400">
+                      {destinationReady ? locationCopy('ready_to_request') : locationCopy('map_adjust_helper')}
+                    </p>
+                  </div>
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
-                  <p className="text-[11px] font-black uppercase tracking-wide text-slate-400">
-                    {copy.estimatedDistance || (language === 'ar' ? 'المسافة المتوقعة' : 'Estimated distance')}
-                  </p>
-                  <strong className="mt-2 block text-2xl font-black text-[#14F5D5]">
-                    {estimatedDistanceKm.toFixed(1)} {copy.km}
-                  </strong>
+                {isServerFareLoading || isDestinationPinMoving ? <Loader2 className="h-4 w-4 animate-spin text-[#14F5D5]" /> : null}
+              </div>
+
+              <div className="space-y-3 p-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <span className="block text-[9px] font-black uppercase text-slate-500">{copy.destination}</span>
+                    <strong className="mt-1 block truncate text-sm font-black text-white">{destinationLabel}</strong>
+                    {selectedDistrict?.anchor && selectedDestinationCoords ? (
+                      <span className="mt-1 block font-mono text-[9px] text-slate-600">
+                        {selectedDestinationCoords.lat.toFixed(4)}, {selectedDestinationCoords.lng.toFixed(4)}
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="shrink-0 text-end">
+                    <span className="block text-[9px] font-black uppercase text-slate-500">
+                      {locationCopy('lbl_estimated_fare')}
+                    </span>
+                    <strong className="mt-1 block font-mono text-xl font-black text-[#14F5D5]">{serverFareLabel}</strong>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="rounded-xl border border-[#14B8A6]/18 bg-[#14B8A6]/8 p-2.5">
+                    <Clock className="mb-1.5 h-3.5 w-3.5 text-[#14F5D5]" />
+                    <span className="block text-[9px] font-black text-slate-500">
+                      {copy.estimatedDuration || locationCopy('lbl_estimated_duration')}
+                    </span>
+                    <strong className="mt-1 block text-xs font-black text-white">
+                      {estimatedDurationMinutes !== null ? formatDurationLabel(estimatedDurationMinutes, language) : copy.notAvailable}
+                    </strong>
+                    <span className="mt-0.5 block text-[8px] leading-tight text-slate-500">
+                      {copy.withoutTrafficDelays || locationCopy('helper_without_traffic')}
+                    </span>
+                  </div>
+                  <div className="rounded-xl border border-white/8 bg-black/20 p-2.5">
+                    <Route className="mb-1.5 h-3.5 w-3.5 text-slate-400" />
+                    <span className="block text-[9px] font-black text-slate-500">
+                      {copy.estimatedDistance || locationCopy('lbl_calculated_distance')}
+                    </span>
+                    <strong className="mt-1 block text-xs font-black text-white">
+                      {estimatedDistanceKm !== null ? `${estimatedDistanceKm.toFixed(1)} ${copy.km}` : copy.notAvailable}
+                    </strong>
+                  </div>
+                  <div className="rounded-xl border border-white/8 bg-black/20 p-2.5">
+                    <Users className="mb-1.5 h-3.5 w-3.5 text-slate-400" />
+                    <span className="block text-[9px] font-black leading-tight text-slate-500">
+                      {locationCopy('nearby_captains_label')}
+                    </span>
+                    <strong className="mt-1 block text-xs font-black text-white">{mappedCaptains.length}</strong>
+                  </div>
                 </div>
               </div>
-            ) : null}
+            </section>
 
             {serverFareError && (
               <div className="rounded-2xl border border-red-500/30 bg-red-950/30 p-3 text-xs font-bold leading-relaxed text-red-100">
@@ -1803,7 +1933,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
               </div>
             )}
 
-            <div className="relative z-10 h-[240px] w-full overflow-hidden rounded-2xl border border-white/10 shadow-lg lg:hidden">
+            <div className="relative z-10 h-[185px] w-full overflow-hidden rounded-2xl border border-white/10 shadow-lg lg:hidden">
               <RiderMap
                 activeTripCaptainId={state.activeTrip?.captainId || null}
                 captainLocations={mappedCaptains}
@@ -1817,26 +1947,28 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
               />
             </div>
 
-            <button
-              onClick={handleSendRequest}
-              disabled={
-                isSendingRideRequest ||
-                isServerFareLoading ||
-                !hasDestinationOptions ||
-                !selectedDestinationHasCoords ||
-                selectedDraftDestination?.serverEstimatedFare === undefined ||
-                isSameLocation
-              }
-              className={cn(
-                "h-16 w-full rounded-2xl py-4 text-lg font-black shadow-[0_18px_40px_rgba(20,184,166,0.22)] transition-all duration-300 active:scale-[0.98] flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14F5D5]/80 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0F1D]",
-                isSameLocation
-                  ? "bg-gray-700 text-gray-400 cursor-not-allowed"
-                  : "bg-[#14B8A6] text-[#0A0F1D] hover:bg-[#2DD4BF] hover:shadow-[0_22px_48px_rgba(20,184,166,0.32)] cursor-pointer disabled:opacity-55 disabled:cursor-not-allowed disabled:shadow-none"
-              )}
-            >
-              {isSendingRideRequest ? <Loader2 className="h-5 w-5 animate-spin" /> : <Navigation className="h-5 w-5" />}
-              {isSendingRideRequest ? copy.sendingRequest : copy.requestNow}
-            </button>
+            <div className="absolute bottom-[72px] start-0 end-0 z-50 border-t border-white/10 bg-[#0A0F1D]/95 p-3 shadow-[0_-18px_35px_rgba(3,8,15,0.82)] backdrop-blur-xl lg:bottom-0">
+              <button
+                onClick={handleSendRequest}
+                disabled={
+                  isSendingRideRequest ||
+                  isServerFareLoading ||
+                  !hasDestinationOptions ||
+                  !selectedDestinationHasCoords ||
+                  selectedDraftDestination?.serverEstimatedFare === undefined ||
+                  isSameLocation
+                }
+                className={cn(
+                  "flex h-[60px] w-full items-center justify-center gap-2 rounded-2xl py-4 text-base font-black shadow-[0_18px_40px_rgba(20,184,166,0.22)] transition-all duration-300 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14F5D5]/80 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0F1D]",
+                  isSameLocation
+                    ? "cursor-not-allowed bg-gray-700 text-gray-400"
+                    : "cursor-pointer bg-[#14B8A6] text-[#0A0F1D] hover:bg-[#2DD4BF] hover:shadow-[0_22px_48px_rgba(20,184,166,0.32)] disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none"
+                )}
+              >
+                {isSendingRideRequest ? <Loader2 className="h-5 w-5 animate-spin" /> : <Navigation className="h-5 w-5" />}
+                {isSendingRideRequest ? copy.sendingRequest : copy.requestNow}
+              </button>
+            </div>
           </div>
         );
     }
@@ -2217,7 +2349,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
 
         <aside className="absolute bottom-0 start-0 end-0 z-10 w-full max-h-full overflow-hidden flex flex-col rounded-t-[32px] rounded-b-none border-t border-white/10 bg-[#0A0F1D]/80 shadow-[0_-10px_25px_rgba(0,0,0,0.5)] backdrop-blur-xl lg:absolute lg:bottom-6 lg:start-auto lg:end-6 lg:top-6 lg:z-40 lg:w-[420px] lg:rounded-[28px] lg:border lg:border-white/10 lg:bg-[#0A0F1D]/80 lg:shadow-[0_30px_100px_rgba(0,0,0,0.45)] lg:backdrop-blur-xl lg:max-h-none lg:rounded-b-[28px] lg:overflow-hidden">
           {/* Top Bar with Center Drag Handle and Right-aligned Close Button */}
-          <div className="flex items-center justify-between p-4 px-6 border-b border-white/5 bg-slate-900/40 backdrop-blur-md rounded-t-[32px] lg:rounded-t-[28px] relative z-50">
+          <div className="relative z-50 flex items-center justify-between rounded-t-[32px] border-b border-white/5 bg-slate-900/40 px-4 py-3 backdrop-blur-md lg:rounded-t-[28px] lg:px-5">
             {/* Left-aligned balance spacer */}
             <div className="w-9" />
 
@@ -2243,15 +2375,20 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                 }
               }}
               className="h-9 w-9 flex items-center justify-center rounded-full bg-slate-800 border border-white/20 text-white shadow-md active:scale-95 cursor-pointer hover:bg-slate-700 transition-colors"
-              aria-label="إغلاق"
+              aria-label={copy.closeDestination}
             >
               <X className="h-4 w-4 stroke-[3]" />
             </button>
           </div>
 
           {/* Scrollable Content Wrapper */}
-          <div className="flex-1 overflow-y-auto p-6 pt-4 space-y-4">
-            <div className="rounded-2xl border border-white/5 bg-white/5 p-4 shadow-xl shadow-black/20 backdrop-blur">
+          <div className="flex-1 space-y-4 overflow-y-auto px-4 pb-4 pt-3 lg:p-5">
+            <div
+              className={cn(
+                'rounded-2xl border border-white/5 bg-white/5 p-4 shadow-xl shadow-black/20 backdrop-blur',
+                state.screen === 'DESTINATION_SELECTION' && 'hidden',
+              )}
+            >
               <div className="mb-3 flex items-center justify-between sm:mb-4">
                 <div>
                   <p className="text-[11px] font-black text-[#14F5D5] tracking-wider">{copy.panelEyebrow}</p>
