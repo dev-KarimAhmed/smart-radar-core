@@ -157,6 +157,8 @@
     "progress_review": "المراجعة",
     "area_title": "اختر المنطقة",
     "area_helper": "يساعد ذلك على عرض نتائج وسعر مناسبين لمنطقتك.",
+    "external_place_name": "مكان محدد من خرائط Google",
+    "external_governorate": "موقع من خرائط Google",
     "show_copied_link": "عرض رابط خرائط Google المنسوخ",
     "confirmed_location_helper": "تستخدم الخريطة وتقديرات الرحلة الآن هذه النقطة الدقيقة.",
     "trip_summary_title": "ملخص الرحلة",

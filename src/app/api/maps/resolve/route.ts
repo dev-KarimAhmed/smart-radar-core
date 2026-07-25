@@ -28,7 +28,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ resolvedUrl, location });
+    const geography = await reverseResolveGeography(location);
+    return NextResponse.json({ resolvedUrl, location, geography });
   } catch {
     return NextResponse.json({ error: 'maps_link_resolution_failed' }, { status: 502 });
   }
@@ -75,6 +76,46 @@ async function readGoogleMapsPageLocation(url: string) {
 
   if (!response.ok) return null;
   return parseGoogleMapsLocation(await response.text());
+}
+
+async function reverseResolveGeography(location: { lat: number; lng: number }) {
+  try {
+    const params = new URLSearchParams({
+      format: 'jsonv2',
+      lat: String(location.lat),
+      lon: String(location.lng),
+      zoom: '18',
+      addressdetails: '1',
+      'accept-language': 'ar,en',
+    });
+    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?${params.toString()}`, {
+      cache: 'no-store',
+      signal: AbortSignal.timeout(3_000),
+      headers: {
+        Accept: 'application/json',
+        'User-Agent': 'RadarLocationResolver/1.0',
+      },
+    });
+    if (!response.ok) return undefined;
+
+    const payload = await response.json() as { address?: Record<string, unknown> };
+    const address = payload.address || {};
+    return {
+      governorate: firstAddressValue(address, 'state', 'region', 'state_district'),
+      district: firstAddressValue(address, 'county', 'municipality', 'city_district', 'suburb'),
+      city: firstAddressValue(address, 'city', 'town', 'village', 'municipality'),
+    };
+  } catch {
+    return undefined;
+  }
+}
+
+function firstAddressValue(address: Record<string, unknown>, ...keys: string[]) {
+  for (const key of keys) {
+    const value = address[key];
+    if (typeof value === 'string' && value.trim()) return value.trim();
+  }
+  return null;
 }
 
 function isAllowedRedirectHost(hostname: string) {

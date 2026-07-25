@@ -38,6 +38,7 @@ import {
   ClipboardMapLocationError,
   extractGoogleMapsPlaceName,
   resolveClipboardMapLocation,
+  type ResolvedLocationGeography,
 } from '@/lib/google-maps-location';
 import type { AppLanguage } from '@/lib/i18n/simple-copy';
 import { supabase } from '@/lib/supabase-client';
@@ -140,6 +141,12 @@ interface DestinationSearchResult {
   placeId: number;
   label: string;
   location: RiderLocation;
+}
+
+interface ExternalLocationContext {
+  governorate: string;
+  district: string;
+  placeName: string;
 }
 
 export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: { onExitRequestFlow?: () => void; isStandbyDismissed?: boolean } = {}) {
@@ -256,6 +263,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
   const [destinationSearchResults, setDestinationSearchResults] = React.useState<DestinationSearchResult[]>([]);
   const [destinationSearchStatus, setDestinationSearchStatus] = React.useState<'idle' | 'searching' | 'empty' | 'error' | 'selected'>('idle');
   const [externalLocationUrl, setExternalLocationUrl] = React.useState('');
+  const [externalLocationContext, setExternalLocationContext] = React.useState<ExternalLocationContext | null>(null);
   const [isReadingClipboardLocation, setIsReadingClipboardLocation] = React.useState(false);
   const [isCaptainScanPreviewActive, setIsCaptainScanPreviewActive] = React.useState(false);
   const [isDestinationPinMoving, setIsDestinationPinMoving] = React.useState(false);
@@ -354,6 +362,12 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
       ? { ...destination, label: destinationSearchQuery.trim() }
       : destination;
   }, [currentRouteEstimate?.distanceKm, currentServerFare, destinationSearchQuery, destinationSearchStatus, riderLocation, selectedDestinationCoords, selectedDistrict]);
+
+  const clearExternalLocationContext = React.useCallback(() => {
+    setExternalLocationContext(null);
+    setDestinationGovernorates((current) => current.filter((item) => !item.id.startsWith('google:')));
+    setDestinationDistricts((current) => current.filter((item) => !item.id.startsWith('google:')));
+  }, []);
 
   const tripsWithin72Hours = React.useMemo<HistoricalTrip[]>(
     () => [...localCompletedTrips],
@@ -496,10 +510,45 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
     selectedGovernorate?.nameEn,
   ]);
 
-  const applyClipboardLocation = React.useCallback((clipboardValue: string, parsedLocation: RiderLocation) => {
+  const applyClipboardLocation = React.useCallback((
+    clipboardValue: string,
+    parsedLocation: RiderLocation,
+    geography?: ResolvedLocationGeography,
+  ) => {
     const placeName = extractGoogleMapsPlaceName(clipboardValue);
+    const resolvedPlaceName = placeName || locationCopy('external_place_name');
+    const governorate = geography?.governorate || locationCopy('external_governorate');
+    const district = geography?.city || geography?.district || resolvedPlaceName;
+    const externalGovernorateId = `google:${slugifyLocationPart(governorate)}`;
+    const externalDistrictId = `google:${slugifyLocationPart(`${district}-${parsedLocation.lat}-${parsedLocation.lng}`)}`;
+    const externalGovernorate: GovernorateOption = {
+      id: externalGovernorateId,
+      numericId: 0,
+      nameAr: governorate,
+      nameEn: governorate,
+    };
+    const externalDistrict: DistrictOption = {
+      id: externalDistrictId,
+      numericId: 0,
+      governorateId: externalGovernorateId,
+      governorateAr: governorate,
+      governorateEn: governorate,
+      districtAr: district,
+      districtEn: district,
+      anchor: parsedLocation,
+      tortuosityFactor: 1.3,
+    };
+
     setExternalLocationUrl(clipboardValue);
-    if (placeName) setDestinationSearchQuery(placeName);
+    setExternalLocationContext({ governorate, district, placeName: resolvedPlaceName });
+    setDestinationGovernorates((current) => [
+      externalGovernorate,
+      ...current.filter((item) => !item.id.startsWith('google:')),
+    ]);
+    setSelectedGovernorateId(externalGovernorateId);
+    setDestinationDistricts([externalDistrict]);
+    setDraftDestinationId(externalDistrictId);
+    setDestinationSearchQuery(resolvedPlaceName);
     // Route distance/time are calculated by the shared road-route effect after
     // the exact clipboard coordinates become the selected destination.
     setDestinationSearchResults([]);
@@ -508,7 +557,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
     setIsDestinationPinMoving(false);
     setDestinationSearchStatus('selected');
     setIsCaptainScanPreviewActive(true);
-  }, []);
+  }, [locationCopy]);
 
   const handleConfirmClipboardLocation = React.useCallback(async () => {
     if (!navigator.clipboard?.readText) {
@@ -524,7 +573,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
     try {
       const clipboardText = await readClipboardLocationText();
       const result = await resolveClipboardMapLocation(clipboardText);
-      applyClipboardLocation(result.resolvedUrl, result.location);
+      applyClipboardLocation(result.resolvedUrl, result.location, result.geography);
     } catch (error) {
       const errorKey =
         error instanceof ClipboardMapLocationError && error.code === 'COORDINATES_NOT_FOUND'
@@ -741,6 +790,30 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
     setDraftDestinationId('');
     setDestinationDataError(null);
 
+    if (selectedGovernorateId.startsWith('google:')) {
+      const governorate = externalLocationContext?.governorate || selectedGovernorate?.nameAr || '';
+      const district = externalLocationContext?.district || externalLocationContext?.placeName || '';
+      if (governorate && district && destinationPinLocation) {
+        const externalDistrict: DistrictOption = {
+          id: `google:${slugifyLocationPart(`${district}-${destinationPinLocation.lat}-${destinationPinLocation.lng}`)}`,
+          numericId: 0,
+          governorateId: selectedGovernorateId,
+          governorateAr: governorate,
+          governorateEn: governorate,
+          districtAr: district,
+          districtEn: district,
+          anchor: destinationPinLocation,
+          tortuosityFactor: 1.3,
+        };
+        setDestinationDistricts([externalDistrict]);
+        setDraftDestinationId(externalDistrict.id);
+      }
+      setIsLoadingDistricts(false);
+      return () => {
+        active = false;
+      };
+    }
+
     if (!Number.isInteger(governorateId) || governorateId <= 0) {
       return;
     }
@@ -778,7 +851,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
     return () => {
       active = false;
     };
-  }, [copy.networkError, selectedGovernorate, selectedGovernorateId, toast, user?.district]);
+  }, [copy.networkError, destinationPinLocation, externalLocationContext, selectedGovernorate, selectedGovernorateId, toast, user?.district]);
 
   React.useEffect(() => {
     let active = true;
@@ -1120,6 +1193,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
   }, [state.activeTrip]);
 
   const handleGovernorateChange = (governorateId: string) => {
+    clearExternalLocationContext();
     setSelectedGovernorateId(governorateId);
     setDraftDestinationId('');
     setDestinationPinLocation(null);
@@ -1132,6 +1206,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
   };
 
   const handleDistrictChange = (districtId: string) => {
+    clearExternalLocationContext();
     setDraftDestinationId(districtId);
     const district = destinationDistricts.find((item) => item.id === districtId);
     setDestinationPinLocation(null);
@@ -1454,11 +1529,13 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
         !isRouteEstimateLoading &&
         !isDestinationPinMoving &&
         !isSameLocation;
-      const destinationLabel = selectedDistrict
-        ? isArabic
-          ? `${selectedDistrict.districtAr} - ${selectedDistrict.governorateAr}`
-          : `${selectedDistrict.districtEn || selectedDistrict.districtAr} - ${selectedDistrict.governorateEn || selectedDistrict.governorateAr}`
-        : copy.notAvailable;
+      const destinationLabel = externalLocationContext
+        ? `${externalLocationContext.district} - ${externalLocationContext.governorate}`
+        : selectedDistrict
+          ? isArabic
+            ? `${selectedDistrict.districtAr} - ${selectedDistrict.governorateAr}`
+            : `${selectedDistrict.districtEn || selectedDistrict.districtAr} - ${selectedDistrict.governorateEn || selectedDistrict.governorateAr}`
+          : copy.notAvailable;
 
       return (
         <div className="space-y-3 pb-20 lg:pb-4" dir={isArabic ? 'rtl' : 'ltr'}>
@@ -1521,6 +1598,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                       type="search"
                       value={destinationSearchQuery}
                       onChange={(event) => {
+                        clearExternalLocationContext();
                         setDestinationSearchQuery(event.target.value);
                         setDestinationSearchResults([]);
                         setDestinationSearchStatus('idle');
@@ -1722,6 +1800,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                         type="search"
                         value={destinationSearchQuery}
                         onChange={(event) => {
+                          clearExternalLocationContext();
                           setDestinationSearchQuery(event.target.value);
                           setDestinationSearchResults([]);
                           setDestinationSearchStatus('idle');
@@ -2682,6 +2761,16 @@ function firstNumber(...values: unknown[]) {
     if (Number.isFinite(numberValue)) return numberValue;
   }
   return null;
+}
+
+function slugifyLocationPart(value: string) {
+  return value
+    .normalize('NFKC')
+    .trim()
+    .toLocaleLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80) || 'external-location';
 }
 
 function buildRiderDestination(

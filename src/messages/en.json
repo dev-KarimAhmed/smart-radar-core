@@ -157,6 +157,8 @@
     "progress_review": "Review",
     "area_title": "Choose the area",
     "area_helper": "This keeps results and pricing relevant to your region.",
+    "external_place_name": "Selected Google Maps place",
+    "external_governorate": "Google Maps location",
     "show_copied_link": "Show copied Google Maps link",
     "confirmed_location_helper": "The map and trip estimate now use this exact point.",
     "trip_summary_title": "Trip summary",

@@ -3,9 +3,16 @@ export interface ParsedMapLocation {
   lng: number;
 }
 
+export interface ResolvedLocationGeography {
+  governorate?: string | null;
+  district?: string | null;
+  city?: string | null;
+}
+
 export interface ResolvedClipboardMapLocation {
   location: ParsedMapLocation;
   resolvedUrl: string;
+  geography?: ResolvedLocationGeography;
 }
 
 type FetchLike = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
@@ -51,6 +58,7 @@ export async function resolveClipboardMapLocation(
   const payload = await response.json() as {
     resolvedUrl?: unknown;
     location?: { lat?: unknown; lng?: unknown };
+    geography?: ResolvedLocationGeography;
   };
   const resolvedUrl = typeof payload.resolvedUrl === 'string' ? payload.resolvedUrl : clipboardValue;
   const lat = Number(payload.location?.lat);
@@ -63,7 +71,7 @@ export async function resolveClipboardMapLocation(
     throw new ClipboardMapLocationError('COORDINATES_NOT_FOUND');
   }
 
-  return { location, resolvedUrl };
+  return { location, resolvedUrl, geography: payload.geography };
 }
 
 export function parseGoogleMapsLocation(value: string): ParsedMapLocation | null {
