@@ -14,6 +14,10 @@ import { useAuth } from '@/hooks/use-auth';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { useToast } from '@/hooks/use-toast';
 import { dexieDb, type RiderTripLedgerEntry } from '@/lib/dexie-db';
+import {
+  ClipboardMapLocationError,
+  resolveClipboardMapLocation,
+} from '@/lib/google-maps-location';
 import type { AppLanguage } from '@/lib/i18n/simple-copy';
 import { supabase } from '@/lib/supabase-client';
 import { cn } from '@/lib/utils';
@@ -94,6 +98,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
   const { toast } = useToast();
   const { isArabic, language } = useDashboardLanguage();
   const destinationSearchCopy = useTranslations('riderDestinationSearch');
+  const locationCopy = useTranslations('location');
   const copy = riderViewCopy[language] as Record<string, string>;
   const requestFlowCopy = React.useMemo(() => (
     language === 'ar'
@@ -201,6 +206,11 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
   const [destinationSearchQuery, setDestinationSearchQuery] = React.useState('');
   const [destinationSearchResults, setDestinationSearchResults] = React.useState<DestinationSearchResult[]>([]);
   const [destinationSearchStatus, setDestinationSearchStatus] = React.useState<'idle' | 'searching' | 'empty' | 'error' | 'selected'>('idle');
+  const [externalLocationUrl, setExternalLocationUrl] = React.useState('');
+  const [externalCalculatedDistanceKm, setExternalCalculatedDistanceKm] = React.useState<number | null>(null);
+  const [externalEstimatedDurationMinutes, setExternalEstimatedDurationMinutes] = React.useState<number | null>(null);
+  const [isReadingClipboardLocation, setIsReadingClipboardLocation] = React.useState(false);
+  const [isCaptainScanPreviewActive, setIsCaptainScanPreviewActive] = React.useState(false);
   const [isDestinationPinMoving, setIsDestinationPinMoving] = React.useState(false);
   const [isLoadingGovernorates, setIsLoadingGovernorates] = React.useState(false);
   const [isLoadingDistricts, setIsLoadingDistricts] = React.useState(false);
@@ -390,7 +400,78 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
     setDestinationFlyToTarget(result.location);
     setIsDestinationPinMoving(false);
     setDestinationSearchStatus('selected');
+    setIsCaptainScanPreviewActive(false);
   }, []);
+
+  const handleOpenGoogleMapsSearch = React.useCallback(() => {
+    setDestinationSearchResults([]);
+    setDestinationSearchStatus('idle');
+    const queryParts = [
+      destinationSearchQuery.trim(),
+      isArabic ? selectedDistrict?.districtAr || selectedDistrict?.districtEn : selectedDistrict?.districtEn || selectedDistrict?.districtAr,
+      isArabic ? selectedGovernorate?.nameAr || selectedGovernorate?.nameEn : selectedGovernorate?.nameEn || selectedGovernorate?.nameAr,
+      isArabic ? countryConfig?.name_ar || countryConfig?.name_en : countryConfig?.name_en || countryConfig?.name_ar,
+    ].filter(Boolean);
+    const query = queryParts.join(', ');
+    const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query || destinationSearchQuery.trim())}`;
+    window.open(mapsUrl, '_blank', 'noopener,noreferrer');
+  }, [
+    countryConfig?.name_ar,
+    countryConfig?.name_en,
+    destinationSearchQuery,
+    isArabic,
+    selectedDistrict?.districtAr,
+    selectedDistrict?.districtEn,
+    selectedGovernorate?.nameAr,
+    selectedGovernorate?.nameEn,
+  ]);
+
+  const applyClipboardLocation = React.useCallback((clipboardValue: string, parsedLocation: RiderLocation) => {
+    const tortuosityFactor = selectedDistrict?.tortuosityFactor || 1.3;
+    const adjustedDistanceKm = calculateDistanceKm(riderLocation, parsedLocation) * tortuosityFactor;
+    const estimatedDurationMinutes = Math.max(3, Math.round(adjustedDistanceKm * 2.2));
+
+    setExternalLocationUrl(clipboardValue);
+    setExternalCalculatedDistanceKm(adjustedDistanceKm);
+    setExternalEstimatedDurationMinutes(estimatedDurationMinutes);
+    setDestinationSearchResults([]);
+    setDestinationPinLocation(parsedLocation);
+    setDestinationFlyToTarget(parsedLocation);
+    setIsDestinationPinMoving(false);
+    setDestinationSearchStatus('selected');
+    setIsCaptainScanPreviewActive(true);
+  }, [riderLocation, selectedDistrict?.tortuosityFactor]);
+
+  const handleConfirmClipboardLocation = React.useCallback(async () => {
+    if (!navigator.clipboard?.readText) {
+      toast({
+        variant: 'destructive',
+        title: locationCopy('err_invalid_clipboard_maps_link'),
+      });
+      return;
+    }
+
+    setIsReadingClipboardLocation(true);
+    setIsCaptainScanPreviewActive(false);
+    try {
+      const clipboardText = await navigator.clipboard.readText();
+      const result = await resolveClipboardMapLocation(clipboardText);
+      applyClipboardLocation(result.resolvedUrl, result.location);
+    } catch (error) {
+      const errorKey =
+        error instanceof ClipboardMapLocationError && error.code === 'COORDINATES_NOT_FOUND'
+          ? 'err_no_coords_found'
+          : error instanceof ClipboardMapLocationError && error.code === 'RESOLUTION_FAILED'
+            ? 'err_short_maps_link_needs_expanded_url'
+            : 'err_invalid_clipboard_maps_link';
+      toast({
+        variant: 'destructive',
+        title: locationCopy(errorKey),
+      });
+    } finally {
+      setIsReadingClipboardLocation(false);
+    }
+  }, [applyClipboardLocation, locationCopy, toast]);
 
   React.useEffect(() => () => {
     destinationSearchAbortRef.current?.abort();
@@ -952,6 +1033,10 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
     setDestinationSearchQuery('');
     setDestinationSearchResults([]);
     setDestinationSearchStatus('idle');
+    setExternalLocationUrl('');
+    setExternalCalculatedDistanceKm(null);
+    setExternalEstimatedDurationMinutes(null);
+    setIsCaptainScanPreviewActive(false);
   };
 
   const handleDistrictChange = (districtId: string) => {
@@ -962,6 +1047,10 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
     setDestinationSearchQuery('');
     setDestinationSearchResults([]);
     setDestinationSearchStatus('idle');
+    setExternalLocationUrl('');
+    setExternalCalculatedDistanceKm(null);
+    setExternalEstimatedDurationMinutes(null);
+    setIsCaptainScanPreviewActive(false);
   };
 
   const handleSendRequest = async () => {
@@ -1279,7 +1368,13 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
             <div className="grid gap-3">
               {/* <div className="space-y-2">
                 <span className="block text-[11px] font-black text-slate-400">{destinationSearchCopy('label')}</span>
-                <form onSubmit={handleDestinationSearch} className="flex gap-2">
+                <form
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    handleOpenGoogleMapsSearch();
+                  }}
+                  className="flex gap-2"
+                >
                   <div className="relative min-w-0 flex-1">
                     <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#14B8A6]" />
                     <input
@@ -1289,8 +1384,12 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                         setDestinationSearchQuery(event.target.value);
                         setDestinationSearchResults([]);
                         setDestinationSearchStatus('idle');
+                        setExternalLocationUrl('');
+                        setExternalCalculatedDistanceKm(null);
+                        setExternalEstimatedDurationMinutes(null);
+                        setIsCaptainScanPreviewActive(false);
                       }}
-                      placeholder={destinationSearchCopy('placeholder')}
+                      placeholder={locationCopy('placeholder_landmark')}
                       className="h-12 w-full rounded-2xl border border-white/10 bg-black/40 pe-4 ps-10 text-sm font-bold text-white outline-none transition placeholder:text-slate-500 focus:border-[#14B8A6]/60"
                     />
                   </div>
@@ -1305,6 +1404,72 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                     </span>
                   </button>
                 </form>
+
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={handleOpenGoogleMapsSearch}
+                    disabled={destinationSearchQuery.trim().length < 2}
+                    className="flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-[#14B8A6]/30 bg-[#161F30]/80 px-4 text-xs font-black text-[#14F5D5] shadow-lg shadow-black/20 transition-all duration-300 hover:border-[#14B8A6] hover:bg-[#14B8A6]/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#14B8A6] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <Navigation className="h-4 w-4" />
+                    <span>{locationCopy('btn_open_google_maps')}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleConfirmClipboardLocation}
+                    disabled={isReadingClipboardLocation}
+                    className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-[#14B8A6] px-4 text-xs font-black text-[#061316] shadow-lg shadow-[#14B8A6]/20 transition-all duration-300 hover:bg-[#2DD4BF] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#14F5D5] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isReadingClipboardLocation ? <Loader2 className="h-4 w-4 animate-spin" /> : <MapPin className="h-4 w-4" />}
+                    <span>{locationCopy('btn_confirm_and_calculate')}</span>
+                  </button>
+                </div>
+
+                {externalLocationUrl ? (
+                  <div className="space-y-3 rounded-2xl border border-[#14B8A6]/25 bg-[#161F30]/80 p-3 shadow-xl shadow-black/20 backdrop-blur-md">
+                    <label className="block space-y-2">
+                      <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+                        {locationCopy('lbl_google_maps_url')}
+                      </span>
+                      <input
+                        value={externalLocationUrl}
+                        readOnly
+                        disabled
+                        aria-label={locationCopy('lbl_google_maps_url')}
+                        className="h-11 w-full rounded-xl border border-white/10 bg-[#1E293B] px-3 text-xs font-bold text-slate-300 outline-none"
+                      />
+                    </label>
+                    {externalCalculatedDistanceKm !== null ? (
+                      <div className="flex items-center justify-between gap-3 rounded-xl border border-[#14B8A6]/25 bg-[#14B8A6]/10 px-3 py-2">
+                        <span className="text-[11px] font-black text-slate-300">{locationCopy('lbl_calculated_distance')}</span>
+                        <strong className="font-mono text-sm font-black text-[#14F5D5]">
+                          {externalCalculatedDistanceKm.toFixed(1)} {locationCopy('unit_km')}
+                        </strong>
+                      </div>
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={() => setIsCaptainScanPreviewActive(true)}
+                      className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#14B8A6] px-4 text-sm font-black text-[#061316] shadow-lg shadow-[#14B8A6]/20 transition-all duration-300 hover:bg-[#2DD4BF] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#14F5D5]"
+                    >
+                      <Search className="h-4 w-4" />
+                      <span>{locationCopy('btn_search_captains')}</span>
+                    </button>
+                  </div>
+                ) : null}
+
+                {isCaptainScanPreviewActive ? (
+                  <div className="relative overflow-hidden rounded-2xl border border-[#14B8A6]/30 bg-[#161F30]/80 p-5 text-center shadow-2xl shadow-[#14B8A6]/10 backdrop-blur-md" role="status">
+                    <div className="relative mx-auto flex h-24 w-24 items-center justify-center">
+                      <span className="absolute h-20 w-20 animate-ping rounded-full border border-[#14B8A6]/50" />
+                      <span className="absolute h-14 w-14 animate-ping rounded-full border border-[#14F5D5]/40 [animation-delay:180ms]" />
+                      <span className="absolute h-8 w-8 animate-pulse rounded-full bg-[#14B8A6]/25" />
+                      <Search className="relative z-10 h-6 w-6 text-[#14F5D5]" />
+                    </div>
+                    <p className="mt-3 text-sm font-black text-white">{locationCopy('status_scanning_captains')}</p>
+                  </div>
+                ) : null}
 
                 {destinationSearchResults.length > 0 ? (
                   <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#0F172A] shadow-xl">
@@ -1378,33 +1543,138 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                 </select>
               </label>
               <div className="space-y-2">
-                <span className="block text-[11px] font-black text-slate-400">{destinationSearchCopy('label')}</span>
-                <form onSubmit={handleDestinationSearch} className="flex gap-2">
-                  <div className="relative min-w-0 flex-1">
-                    <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#14B8A6]" />
-                    <input
-                      type="search"
-                      value={destinationSearchQuery}
-                      onChange={(event) => {
-                        setDestinationSearchQuery(event.target.value);
-                        setDestinationSearchResults([]);
-                        setDestinationSearchStatus('idle');
-                      }}
-                      placeholder={destinationSearchCopy('placeholder')}
-                      className="h-12 w-full rounded-2xl border border-white/10 bg-black/40 pe-4 ps-10 text-sm font-bold text-white outline-none transition placeholder:text-slate-500 focus:border-[#14B8A6]/60"
-                    />
+                <div className="rounded-2xl border border-white/10 bg-[#161F30]/70 p-3">
+                  <div className="mb-3 flex items-start gap-3">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#14B8A6]/15 text-xs font-black text-[#14F5D5]">1</span>
+                    <div>
+                      <p className="text-xs font-black text-white">{locationCopy('step_search_title')}</p>
+                      <p className="mt-1 text-[11px] leading-relaxed text-slate-400">{locationCopy('step_search_helper')}</p>
+                    </div>
+                  </div>
+                  <span className="mb-2 block text-[11px] font-black text-slate-400">{destinationSearchCopy('label')}</span>
+                  <form
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      handleOpenGoogleMapsSearch();
+                    }}
+                    className="flex gap-2"
+                  >
+                    <div className="relative min-w-0 flex-1">
+                      <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#14B8A6]" />
+                      <input
+                        type="search"
+                        value={destinationSearchQuery}
+                        onChange={(event) => {
+                          setDestinationSearchQuery(event.target.value);
+                          setDestinationSearchResults([]);
+                          setDestinationSearchStatus('idle');
+                          setExternalLocationUrl('');
+                          setExternalCalculatedDistanceKm(null);
+                          setExternalEstimatedDurationMinutes(null);
+                          setIsCaptainScanPreviewActive(false);
+                        }}
+                        placeholder={locationCopy('placeholder_landmark')}
+                        className="h-12 w-full rounded-2xl border border-white/10 bg-black/40 pe-4 ps-10 text-sm font-bold text-white outline-none transition placeholder:text-slate-500 focus:border-[#14B8A6]/60"
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={destinationSearchQuery.trim().length < 2}
+                      aria-label={locationCopy('btn_open_google_maps')}
+                      title={locationCopy('btn_open_google_maps')}
+                      className="flex h-12 shrink-0 items-center justify-center gap-2 rounded-2xl bg-[#14B8A6] px-4 text-sm font-black text-[#031315] transition hover:bg-[#2DD4BF] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#14F5D5] disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <Search className="h-4 w-4" />
+                      <span className="hidden sm:inline">
+                        {locationCopy('btn_open_google_maps')}
+                      </span>
+                    </button>
+                  </form>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-[#161F30]/70 p-3">
+                  <div className="mb-3 flex items-start gap-3">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#14B8A6]/15 text-xs font-black text-[#14F5D5]">2</span>
+                    <div>
+                      <p className="text-xs font-black text-white">{locationCopy('step_confirm_title')}</p>
+                      <p className="mt-1 text-[11px] leading-relaxed text-slate-400">{locationCopy('step_confirm_helper')}</p>
+                    </div>
                   </div>
                   <button
-                    type="submit"
-                    disabled={destinationSearchStatus === 'searching' || destinationSearchQuery.trim().length < 2}
-                    className="flex h-12 shrink-0 items-center justify-center gap-2 rounded-2xl bg-[#14B8A6] px-4 text-sm font-black text-[#031315] transition hover:bg-[#2DD4BF] disabled:cursor-not-allowed disabled:opacity-50"
+                    type="button"
+                    onClick={handleConfirmClipboardLocation}
+                    disabled={isReadingClipboardLocation}
+                    className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#14B8A6] px-4 text-sm font-black text-[#061316] shadow-lg shadow-[#14B8A6]/20 transition-all duration-300 hover:bg-[#2DD4BF] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#14F5D5] disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    {destinationSearchStatus === 'searching' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                    <span className="hidden sm:inline">
-                      {destinationSearchStatus === 'searching' ? destinationSearchCopy('searching') : destinationSearchCopy('search')}
+                    {isReadingClipboardLocation ? <Loader2 className="h-5 w-5 animate-spin" /> : <MapPin className="h-5 w-5" />}
+                    <span>
+                      {isReadingClipboardLocation
+                        ? locationCopy('status_reading_clipboard')
+                        : locationCopy('btn_confirm_and_calculate')}
                     </span>
                   </button>
-                </form>
+                </div>
+
+                {externalLocationUrl ? (
+                  <div className="space-y-3 rounded-2xl border border-[#14B8A6]/35 bg-[#161F30]/90 p-4 shadow-xl shadow-[#14B8A6]/10 backdrop-blur-md">
+                    <div className="flex items-center gap-2 text-[#14F5D5]">
+                      <ShieldCheck className="h-5 w-5" />
+                      <strong className="text-sm font-black">{locationCopy('result_title')}</strong>
+                    </div>
+                    <label className="block space-y-2">
+                      <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+                        {locationCopy('lbl_google_maps_url')}
+                      </span>
+                      <input
+                        value={externalLocationUrl}
+                        readOnly
+                        disabled
+                        aria-label={locationCopy('lbl_google_maps_url')}
+                        className="h-11 w-full rounded-xl border border-white/10 bg-[#1E293B] px-3 text-xs font-bold text-slate-300 outline-none"
+                      />
+                    </label>
+                    {externalCalculatedDistanceKm !== null && externalEstimatedDurationMinutes !== null ? (
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="rounded-xl border border-white/10 bg-black/25 p-3">
+                          <span className="text-[10px] font-black text-slate-400">{locationCopy('lbl_calculated_distance')}</span>
+                          <strong className="mt-1 block font-mono text-lg font-black text-white">
+                            {externalCalculatedDistanceKm.toFixed(1)} {locationCopy('unit_km')}
+                          </strong>
+                        </div>
+                        <div className="rounded-xl border border-[#14B8A6]/25 bg-[#14B8A6]/10 p-3">
+                          <span className="text-[10px] font-black text-slate-300">{locationCopy('lbl_estimated_duration')}</span>
+                          <strong className="mt-1 block font-mono text-lg font-black text-[#14F5D5]">
+                            {formatDurationLabel(externalEstimatedDurationMinutes, language)}
+                          </strong>
+                          <span className="mt-1 block text-[9px] text-slate-400">{locationCopy('helper_without_traffic')}</span>
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                {isCaptainScanPreviewActive ? (
+                  <div className="relative overflow-hidden rounded-2xl border border-[#14B8A6]/30 bg-[#161F30]/80 p-5 text-center shadow-2xl shadow-[#14B8A6]/10 backdrop-blur-md" role="status">
+                    <div className="relative mx-auto flex h-20 w-20 items-center justify-center">
+                      {mappedCaptains.length === 0 ? (
+                        <>
+                          <span className="absolute h-16 w-16 animate-ping rounded-full border border-[#14B8A6]/50" />
+                          <span className="absolute h-11 w-11 animate-ping rounded-full border border-[#14F5D5]/40 [animation-delay:180ms]" />
+                        </>
+                      ) : null}
+                      <span className="absolute h-8 w-8 animate-pulse rounded-full bg-[#14B8A6]/25" />
+                      <Search className="relative z-10 h-6 w-6 text-[#14F5D5]" />
+                    </div>
+                    <p className="mt-2 text-sm font-black text-white">
+                      {mappedCaptains.length > 0
+                        ? locationCopy('captains_found', { count: mappedCaptains.length })
+                        : locationCopy('status_scanning_captains')}
+                    </p>
+                    <p className="mt-1 text-[10px] leading-relaxed text-slate-400">
+                      {locationCopy('captain_search_origin_helper')}
+                    </p>
+                  </div>
+                ) : null}
 
                 {destinationSearchResults.length > 0 ? (
                   <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#0F172A] shadow-xl">

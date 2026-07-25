@@ -39,6 +39,7 @@ const payload = buildRideRequestInsertPayload({
   destinationAddressAr: 'وادي السير - عمّان',
   serverEstimatedFare: fare,
   countryId: 2,
+  numberOfRiders: 1,
 });
 
 assert.deepEqual(payload, {
@@ -52,6 +53,7 @@ assert.deepEqual(payload, {
   destination_address_ar: 'وادي السير - عمّان',
   server_estimated_fare: 3.75,
   country_id: 2,
+  number_of_riders: 1,
   status: 'PENDING',
 });
 
