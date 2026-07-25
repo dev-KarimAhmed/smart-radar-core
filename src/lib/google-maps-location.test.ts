@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  extractGoogleMapsPlaceName,
   parseGoogleMapsLocation,
   resolveClipboardMapLocation,
 } from './google-maps-location';
@@ -72,5 +73,14 @@ test('parses percent-encoded place coordinates from a Google Maps page', () => {
   assert.deepEqual(
     parseGoogleMapsLocation('...%212d31.503155200000002%213d26.6698752...'),
     { lat: 26.6698752, lng: 31.503155200000002 },
+  );
+});
+
+test('extracts the place name from the resolved Google Maps URL', () => {
+  assert.equal(
+    extractGoogleMapsPlaceName(
+      'https://www.google.com/maps/place/%D9%85%D8%B1%D9%83%D8%B2+%D9%85%D9%8A%D8%B1%D9%8A%D8%AA/data=!4m2',
+    ),
+    'مركز ميريت',
   );
 });

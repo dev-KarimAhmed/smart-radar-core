@@ -101,6 +101,22 @@ export function parseGoogleMapsLocation(value: string): ParsedMapLocation | null
   return null;
 }
 
+export function extractGoogleMapsPlaceName(value: string): string | null {
+  try {
+    const url = new URL(value.trim());
+    const match = url.pathname.match(/\/maps\/(?:place|search)\/([^/?#]+)/i);
+    if (!match?.[1]) return null;
+
+    const placeName = safeDecodeURIComponent(match[1].replace(/\+/g, ' '))
+      .replace(/[\u200B-\u200F\u202A-\u202E\u2060]/g, '')
+      .trim();
+
+    return placeName || null;
+  } catch {
+    return null;
+  }
+}
+
 export function isShortGoogleMapsLink(value: string) {
   try {
     const hostname = new URL(normalizeGoogleMapsUrl(value)).hostname.toLowerCase();

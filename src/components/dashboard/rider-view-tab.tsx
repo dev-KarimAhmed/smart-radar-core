@@ -36,6 +36,7 @@ import { useToast } from '@/hooks/use-toast';
 import { dexieDb, type RiderTripLedgerEntry } from '@/lib/dexie-db';
 import {
   ClipboardMapLocationError,
+  extractGoogleMapsPlaceName,
   resolveClipboardMapLocation,
 } from '@/lib/google-maps-location';
 import type { AppLanguage } from '@/lib/i18n/simple-copy';
@@ -496,7 +497,9 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
   ]);
 
   const applyClipboardLocation = React.useCallback((clipboardValue: string, parsedLocation: RiderLocation) => {
+    const placeName = extractGoogleMapsPlaceName(clipboardValue);
     setExternalLocationUrl(clipboardValue);
+    if (placeName) setDestinationSearchQuery(placeName);
     // Route distance/time are calculated by the shared road-route effect after
     // the exact clipboard coordinates become the selected destination.
     setDestinationSearchResults([]);
