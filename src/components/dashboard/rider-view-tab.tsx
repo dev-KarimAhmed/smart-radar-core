@@ -1385,7 +1385,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
         : copy.notAvailable;
 
       return (
-        <div className="space-y-3 pb-24 lg:pb-4" dir={isArabic ? 'rtl' : 'ltr'}>
+        <div className="space-y-3 pb-20 lg:pb-4" dir={isArabic ? 'rtl' : 'ltr'}>
             <div className="space-y-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -1933,7 +1933,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
               </div>
             )}
 
-            <div className="absolute bottom-[72px] start-0 end-0 z-50 border-t border-white/10 bg-[#0A0F1D]/95 p-3 shadow-[0_-18px_35px_rgba(3,8,15,0.82)] backdrop-blur-xl lg:bottom-0">
+            <div className="pt-1">
               <button
                 onClick={handleSendRequest}
                 disabled={
@@ -1945,7 +1945,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                   isSameLocation
                 }
                 className={cn(
-                  "flex h-[60px] w-full items-center justify-center gap-2 rounded-2xl py-4 text-base font-black shadow-[0_18px_40px_rgba(20,184,166,0.22)] transition-all duration-300 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14F5D5]/80 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0F1D]",
+                  "flex h-14 w-full items-center justify-center gap-2 rounded-2xl px-5 text-base font-black shadow-[0_14px_32px_rgba(20,184,166,0.2)] transition-all duration-300 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14F5D5]/80 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0F1D]",
                   isSameLocation
                     ? "cursor-not-allowed bg-gray-700 text-gray-400"
                     : "cursor-pointer bg-[#14B8A6] text-[#0A0F1D] hover:bg-[#2DD4BF] hover:shadow-[0_22px_48px_rgba(20,184,166,0.32)] disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none"
