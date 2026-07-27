@@ -48,6 +48,7 @@ import { calculateSovereignFareQuote } from '@/core/logic/geospatial-kernel';
 import { AdStage } from './ad-stage';
 import { RatingModal } from './shared/rating-modal';
 import { RadarRiderDashboard, type HistoricalTrip } from './rider/rider-dashboard';
+import { buildDistrictLoadKey } from './rider/rider-district-query';
 import type { RiderLocation, RiderLocationStatus, RiderLocationUpdate } from './rider/rider-map';
 import dynamic from 'next/dynamic';
 const RiderMap = dynamic(() => import('./rider/rider-map').then(m => m.RiderMap), { ssr: false });
@@ -316,6 +317,12 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
     () => destinationGovernorates.find((governorate) => governorate.id === selectedGovernorateId) || null,
     [destinationGovernorates, selectedGovernorateId],
   );
+  const districtLoadKey = buildDistrictLoadKey({
+    selectedGovernorateId,
+    destinationPinLocation,
+    externalLocationContext,
+    selectedGovernorateName: selectedGovernorate?.nameAr || selectedGovernorate?.nameEn || '',
+  });
 
   const selectedDistrict = React.useMemo(() => {
     const direct = destinationDistricts.find((district) => district.id === draftDestinationId);
@@ -851,7 +858,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
     return () => {
       active = false;
     };
-  }, [copy.networkError, destinationPinLocation, externalLocationContext, selectedGovernorate, selectedGovernorateId, toast, user?.district]);
+  }, [copy.networkError, districtLoadKey, toast, user?.district]);
 
   React.useEffect(() => {
     let active = true;
