@@ -1,22 +1,26 @@
 'use client';
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import dynamic from 'next/dynamic';
 import type { User as SovereignUser } from '@/core/types';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { buildUserFromSupabaseAuth, cacheSupabaseSession, clearSupabaseSessionCache } from '@/lib/supabase-auth';
-import { supabase } from '@/lib/supabase-client';
+import {
+  AUTH_SESSION_CREATED_EVENT,
+  buildUserFromSupabaseAuth,
+  cacheSupabaseSession,
+  clearSupabaseSessionCache,
+} from '@/lib/supabase-auth';
+import { hasStoredSupabaseAuthSession } from '@/features/auth/services/supabase-auth-storage';
 import { DASHBOARD_LANGUAGE_KEY, useDashboardLanguage } from './use-dashboard-language';
+
+const LogoutDialog = dynamic(
+  () => import('@/features/auth/components/logout-dialog').then((module) => module.LogoutDialog),
+  { ssr: false },
+);
+
+const styles = { root: 'contents' } as const;
+
 
 interface AuthContextType {
   user: SovereignUser | null;
@@ -39,36 +43,52 @@ function AuthContent({ children }: { children: ReactNode }) {
   const t = useTranslations('auth.logout');
   const { direction } = useDashboardLanguage();
   const [user, setUser] = useState<SovereignUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const [logoutInProgress, setLogoutInProgress] = useState(false);
   const [promoData] = useState<any>(null);
 
   useEffect(() => {
     let mounted = true;
+    let unsubscribe = () => {};
 
-    supabase.auth.getSession().then(({ data }) => {
-      if (!mounted) return;
-      cacheSupabaseSession(data.session);
-      setUser(data.session?.user ? (buildUserFromSupabaseAuth(data.session.user) as SovereignUser) : null);
+    if (!hasStoredSupabaseAuthSession()) {
       setLoading(false);
-    }).catch(() => {
-      if (!mounted) return;
-      clearSupabaseSessionCache();
-      setUser(null);
-      setLoading(false);
-    });
+      const reloadForSession = () => window.location.reload();
+      window.addEventListener(AUTH_SESSION_CREATED_EVENT, reloadForSession, { once: true });
+      return () => {
+        mounted = false;
+        window.removeEventListener(AUTH_SESSION_CREATED_EVENT, reloadForSession);
+      };
+    }
 
-    const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
+    setLoading(true);
+    void import('@/lib/supabase-client').then(({ supabase }) => {
       if (!mounted) return;
-      cacheSupabaseSession(session);
-      setUser(session?.user ? (buildUserFromSupabaseAuth(session.user) as SovereignUser) : null);
-      setLoading(false);
+      void supabase.auth.getSession().then(({ data }) => {
+        if (!mounted) return;
+        cacheSupabaseSession(data.session);
+        setUser(data.session?.user ? (buildUserFromSupabaseAuth(data.session.user) as SovereignUser) : null);
+        setLoading(false);
+      }).catch(() => {
+        if (!mounted) return;
+        clearSupabaseSessionCache();
+        setUser(null);
+        setLoading(false);
+      });
+
+      const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (!mounted) return;
+        cacheSupabaseSession(session);
+        setUser(session?.user ? (buildUserFromSupabaseAuth(session.user) as SovereignUser) : null);
+        setLoading(false);
+      });
+      unsubscribe = () => subscription.subscription.unsubscribe();
     });
 
     return () => {
       mounted = false;
-      subscription.subscription.unsubscribe();
+      unsubscribe();
     };
   }, []);
 
@@ -91,6 +111,7 @@ function AuthContent({ children }: { children: ReactNode }) {
     restorePreservedLanguage(preservedLanguage);
     setUser(null);
     try {
+      const { supabase } = await import('@/lib/supabase-client');
       await supabase.auth.signOut();
     } catch {
       setUser(null);
@@ -151,34 +172,20 @@ function AuthContent({ children }: { children: ReactNode }) {
   return (
     <AuthContext.Provider value={value}>
       {children}
-      <AlertDialog open={logoutDialogOpen} onOpenChange={(open) => !logoutInProgress && setLogoutDialogOpen(open)}>
-        <AlertDialogContent className="border-red-500/25 bg-[#0B0F19] text-white shadow-2xl" dir={direction}>
-          <AlertDialogHeader >
-            <AlertDialogTitle className="text-xl font-black text-white">{t('title')}</AlertDialogTitle>
-            <AlertDialogDescription className="text-sm leading-6 text-[#94A3B8] text-start">
-              {t('description')}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="gap-2 sm:justify-start sm:space-x-0">
-            <AlertDialogCancel
-              disabled={logoutInProgress}
-              className="border-white/10 bg-white/10 font-bold text-white hover:bg-white/15"
-            >
-              {t('cancel')}
-            </AlertDialogCancel>
-            <AlertDialogAction
-              disabled={logoutInProgress}
-              onClick={(event) => {
-                event.preventDefault();
-                void confirmLogout();
-              }}
-              className="bg-red-600 font-black text-white hover:bg-red-500"
-            >
-              {logoutInProgress ? t('inProgress') : t('confirm')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {logoutDialogOpen ? (
+        <LogoutDialog
+          cancelLabel={t('cancel')}
+          confirmLabel={t('confirm')}
+          description={t('description')}
+          direction={direction}
+          inProgressLabel={t('inProgress')}
+          isInProgress={logoutInProgress}
+          onConfirm={() => void confirmLogout()}
+          onOpenChange={(open) => !logoutInProgress && setLogoutDialogOpen(open)}
+          open={logoutDialogOpen}
+          title={t('title')}
+        />
+      ) : null}
     </AuthContext.Provider>
   );
 }

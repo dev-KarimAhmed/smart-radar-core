@@ -23,6 +23,21 @@
       }
     ],
     "paths": {
+      "@/components/ui/*": [
+        "./src/shared/components/ui/*"
+      ],
+      "@/components/providers/*": [
+        "./src/shared/components/providers/*"
+      ],
+      "@/components/shared/*": [
+        "./src/shared/components/*"
+      ],
+      "@/hooks/use-dashboard-language": [
+        "./src/shared/hooks/use-dashboard-language"
+      ],
+      "@/hooks/use-toast": [
+        "./src/shared/hooks/use-toast"
+      ],
       "@/*": [
         "./src/*"
       ]

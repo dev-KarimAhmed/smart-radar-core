@@ -1,51 +1,58 @@
 'use client';
 
-import React, { useEffect } from 'react';
-import { useAuth } from '@/hooks/use-auth';
+import dynamic from 'next/dynamic';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import LoginPage from '@/components/auth/login-page';
-import { Loader2 } from 'lucide-react';
+import { useAuth } from '@/features/auth/contract';
+import { RouteLoading } from '@/shared/components/layout/route-loading';
+
+const LoginPage = dynamic(
+  () => import('@/features/auth/components/login-page'),
+  { loading: () => <RouteLoading label="جاري تحميل تسجيل الدخول..." /> },
+);
+
+const styles = {
+  root: 'flex min-h-dvh items-center justify-center bg-[#0A0F1D] p-6 text-center text-white',
+  card: 'w-full max-w-lg space-y-6 rounded-3xl border border-[#14B8A6]/20 bg-[#0B1120] p-8 shadow-2xl',
+  badge: 'text-sm font-black text-[#14B8A6]',
+  title: 'text-4xl font-black text-white',
+  body: 'text-sm leading-7 text-slate-400',
+  actions: 'flex flex-col justify-center gap-3 sm:flex-row',
+  primary: 'rounded-2xl bg-[#14B8A6] px-6 py-3 text-sm font-black text-[#06111f]',
+  secondary: 'rounded-2xl border border-white/10 bg-white/5 px-6 py-3 text-sm font-black text-white',
+} as const;
 
 export default function HomePage() {
-  const { user, loading } = useAuth();
+  const { user } = useAuth();
   const router = useRouter();
-
-  const isRedirecting = !!user && (user.role === 'driver' || user.role === 'rider');
+  const [showLogin, setShowLogin] = useState(false);
 
   useEffect(() => {
-    if (loading || !user) return;
+    if (!user) return;
+    const roleRoutes: Partial<Record<typeof user.role, string>> = {
+      rider: '/rider',
+      driver: '/captain',
+      advertiser: '/advertiser/dashboard',
+      delegate: '/delegate',
+      admin: '/admin',
+    };
+    router.replace(roleRoutes[user.role] || '/register');
+  }, [router, user]);
 
-    if (user.role === 'driver') {
-      router.replace('/captain');
-    } else if (user.role === 'rider') {
-      router.replace('/rider');
-    }
-  }, [user, loading, router]);
+  if (showLogin) return <LoginPage />;
 
-  if (loading || isRedirecting) {
-    return (
-      <div className="flex h-dvh w-screen select-none flex-col items-center justify-center bg-[#0A0F1D] text-white/90">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 shadow-[0_0_30px_rgba(20,184,166,0.18)]">
-          <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#14B8A6]/25 border-t-[#14B8A6]" />
-        </div>
-        <div className="mt-5 animate-pulse text-xl font-black tracking-normal">الرادار الذكي</div>
-        <div className="mt-2 text-xs font-bold text-[#94A3B8]">جاري التحقق من الجلسة...</div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <LoginPage />;
-  }
-
-  // If user role is loaded but not rider/driver, we can show a simple fallback or prompt them:
   return (
-    <div className="flex h-dvh w-screen flex-col items-center justify-center bg-[#0A0F1D] text-white p-6 text-center">
-      <div className="max-w-md space-y-4">
-        <h1 className="text-xl font-bold">مرحباً بك {user.name}</h1>
-        <p className="text-xs text-gray-400">دور المستخدم الحالي: {user.role}</p>
-        <p className="text-xs text-red-400">دور المستخدم هذا غير مسجل في مسارات الرادار الحية.</p>
-      </div>
-    </div>
+    <main className={styles.root}>
+      <section className={styles.card}>
+        <p className={styles.badge}>الرادار الذكي</p>
+        <h1 className={styles.title}>رحلتك تبدأ من هنا</h1>
+        <p className={styles.body}>منصة موحدة للراكب والكابتن والمعلن والمندوب، مصممة للعمل السريع والآمن.</p>
+        <div className={styles.actions}>
+          <button className={styles.primary} type="button" onClick={() => setShowLogin(true)}>تسجيل الدخول</button>
+          <Link className={styles.secondary} href="/register?role=rider">إنشاء حساب</Link>
+        </div>
+      </section>
+    </main>
   );
 }

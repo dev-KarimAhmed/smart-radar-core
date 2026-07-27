@@ -16,6 +16,53 @@ import { useToast } from '@/hooks/use-toast';
 import { dexieDb } from '@/lib/dexie-db';
 import type { AppLanguage } from '@/lib/i18n/simple-copy';
 
+import { cn } from '@/lib/utils';
+const styles = {
+  style215_1: "max-h-[92vh] w-[95%] overflow-y-auto rounded-3xl border-white/[0.06] bg-[#0A0F1D]/95 px-6 pb-8 pt-10 text-white backdrop-blur-xl sm:max-w-md",
+  style218_2: "mt-2 flex flex-row items-center justify-between border-b border-white/5 pb-2",
+  style218_3: "text-right",
+  style218_4: "text-left",
+  style220_5: "text-xl font-black text-white",
+  style221_6: "mt-1 text-gray-400",
+  style223_7: "rounded-full p-1 text-slate-400 transition-colors hover:bg-white/5 hover:text-white",
+  style224_8: "h-5 w-5",
+  style228_9: "space-y-6 py-4",
+  style247_10: "flex w-full items-center justify-between gap-3 rounded-2xl border p-4 text-start transition-all",
+  style249_11: "border-[#14B8A6]/70 bg-[#14B8A6]/15 shadow-[0_0_18px_rgba(20,184,166,0.22)]",
+  style250_12: "border-white/10 bg-white/[0.04] hover:border-[#14B8A6]/40 hover:bg-[#14B8A6]/10",
+  style254_13: "flex min-w-0 flex-col",
+  style255_14: "text-sm font-black text-white",
+  style258_15: "mt-1 text-xs leading-relaxed text-slate-400",
+  style263_16: "flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border transition-all",
+  style265_17: "border-[#14B8A6] bg-[#14B8A6] text-[#0A0F1D]",
+  style266_18: "border-white/10 bg-black/20 text-slate-400",
+  style269_19: "h-5 w-5",
+  style269_20: "fill-current",
+  style273_21: "space-y-2",
+  style274_22: "text-sm font-bold text-white",
+  style280_23: "w-full resize-none rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white placeholder-slate-500 backdrop-blur-sm transition-all focus:border-[#14B8A6] focus:outline-none focus:ring-1 focus:ring-[#14B8A6]",
+  style285_24: "space-y-3 pt-2",
+  style288_25: "h-12 w-full rounded-xl bg-[#14B8A6] text-base font-black text-[#0A0F1D] transition-all hover:bg-[#2DD4BF]",
+  style301_26: "mb-2 flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 py-3 text-sm font-bold text-red-400 transition-colors hover:bg-red-500/20",
+  style303_27: "h-4 w-4",
+  style307_28: "mb-2 space-y-3 rounded-2xl border border-red-500/20 bg-red-500/5 p-4",
+  style308_29: "text-center text-xs font-bold leading-relaxed text-red-200",
+  style309_30: "flex gap-2.5",
+  style312_31: "h-10 flex-1 rounded-lg text-xs font-bold",
+  style320_32: "h-10 flex-1 rounded-lg border-white/10 bg-white/5 text-xs font-bold text-white hover:bg-white/10",
+  style349_33: "space-y-3",
+  style350_34: "text-sm font-bold text-white",
+  style351_35: "grid grid-cols-5 gap-2 rounded-2xl border border-white/10 bg-white/5 p-3.5",
+  style359_36: "flex flex-col items-center justify-start text-center",
+  style363_37: "cursor-pointer p-1 transition-transform duration-200 active:scale-90",
+  style366_38: "h-8 w-8 transition-all duration-300",
+  style366_39: "fill-none text-slate-600/40",
+  style368_40: "mt-2 line-clamp-3 max-w-[64px] text-[10px] font-medium leading-tight text-slate-400",
+  activeAmber: "fill-amber-400 text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.6)]",
+  activeTeal: "fill-[#14B8A6] text-[#14B8A6] drop-shadow-[0_0_8px_rgba(20,245,213,0.6)]",
+} as const;
+
+
 interface RatingModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -212,20 +259,20 @@ export function RatingModal({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
-        className="max-h-[92vh] w-[95%] overflow-y-auto rounded-3xl border-white/[0.06] bg-[#0A0F1D]/95 px-6 pb-8 pt-10 text-white backdrop-blur-xl sm:max-w-md"
+        className={styles.style215_1}
         dir={isArabic ? 'rtl' : 'ltr'}
       >
-        <DialogHeader className={`mt-2 flex flex-row items-center justify-between border-b border-white/5 pb-2 ${isArabic ? 'text-right' : 'text-left'}`}>
+        <DialogHeader className={cn(styles.style218_2, isArabic ? styles.style218_3 : styles.style218_4)}>
           <div>
-            <DialogTitle className="text-xl font-black text-white">{copy.title}</DialogTitle>
-            <DialogDescription className="mt-1 text-gray-400">{copy.description}</DialogDescription>
+            <DialogTitle className={styles.style220_5}>{copy.title}</DialogTitle>
+            <DialogDescription className={styles.style221_6}>{copy.description}</DialogDescription>
           </div>
-          <button onClick={onClose} className="rounded-full p-1 text-slate-400 transition-colors hover:bg-white/5 hover:text-white">
-            <X className="h-5 w-5" />
+          <button onClick={onClose} className={styles.style223_7}>
+            <X className={styles.style224_8} />
           </button>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
+        <div className={styles.style228_9}>
           <RatingCriteriaSection
             title={copy.vehicleSection}
             items={vehicleCriteria}
@@ -244,48 +291,44 @@ export function RatingModal({
           <button
             type="button"
             onClick={() => setSaveFavorite((value) => !value)}
-            className={`flex w-full items-center justify-between gap-3 rounded-2xl border p-4 text-start transition-all ${
-              saveFavorite
-                ? 'border-[#14B8A6]/70 bg-[#14B8A6]/15 shadow-[0_0_18px_rgba(20,184,166,0.22)]'
-                : 'border-white/10 bg-white/[0.04] hover:border-[#14B8A6]/40 hover:bg-[#14B8A6]/10'
-            }`}
+            className={cn(styles.style247_10, saveFavorite
+                ? styles.style249_11
+                : styles.style250_12)}
             aria-pressed={saveFavorite}
           >
-            <div className="flex min-w-0 flex-col">
-              <span className="text-sm font-black text-white">
+            <div className={styles.style254_13}>
+              <span className={styles.style255_14}>
                 {saveFavorite ? copy.favoriteWillSave : copy.favoriteSave}
               </span>
-              <span className="mt-1 text-xs leading-relaxed text-slate-400">
+              <span className={styles.style258_15}>
                 {captainName ? copy.favoriteDescription(captainName) : copy.favoriteFallbackDescription}
               </span>
             </div>
             <span
-              className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border transition-all ${
-                saveFavorite
-                  ? 'border-[#14B8A6] bg-[#14B8A6] text-[#0A0F1D]'
-                  : 'border-white/10 bg-black/20 text-slate-400'
-              }`}
+              className={cn(styles.style263_16, saveFavorite
+                  ? styles.style265_17
+                  : styles.style266_18)}
             >
-              <Heart className={`h-5 w-5 ${saveFavorite ? 'fill-current' : ''}`} />
+              <Heart className={cn(styles.style269_19, saveFavorite ? styles.style269_20 : '')} />
             </span>
           </button>
 
-          <div className="space-y-2">
-            <Label className="text-sm font-bold text-white">{copy.commentLabel}</Label>
+          <div className={styles.style273_21}>
+            <Label className={styles.style274_22}>{copy.commentLabel}</Label>
             <textarea
               value={comment}
               onChange={(event) => setComment(event.target.value)}
               placeholder={copy.commentPlaceholder}
               rows={3}
-              className="w-full resize-none rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white placeholder-slate-500 backdrop-blur-sm transition-all focus:border-[#14B8A6] focus:outline-none focus:ring-1 focus:ring-[#14B8A6]"
+              className={styles.style280_23}
             />
           </div>
         </div>
 
-        <div className="space-y-3 pt-2">
+        <div className={styles.style285_24}>
           {!confirmBlock ? (
             <Button
-              className="h-12 w-full rounded-xl bg-[#14B8A6] text-base font-black text-[#0A0F1D] transition-all hover:bg-[#2DD4BF]"
+              className={styles.style288_25}
               disabled={isSubmitting || isBlocking}
               onClick={handleSubmit}
             >
@@ -298,18 +341,18 @@ export function RatingModal({
               type="button"
               disabled={isSubmitting || isBlocking}
               onClick={() => setConfirmBlock(true)}
-              className="mb-2 flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 py-3 text-sm font-bold text-red-400 transition-colors hover:bg-red-500/20"
+              className={styles.style301_26}
             >
-              <AlertOctagon className="h-4 w-4" />
+              <AlertOctagon className={styles.style303_27} />
               {copy.blockDriver}
             </button>
           ) : (
-            <div className="mb-2 space-y-3 rounded-2xl border border-red-500/20 bg-red-500/5 p-4">
-              <p className="text-center text-xs font-bold leading-relaxed text-red-200">{copy.blockConfirm}</p>
-              <div className="flex gap-2.5">
+            <div className={styles.style307_28}>
+              <p className={styles.style308_29}>{copy.blockConfirm}</p>
+              <div className={styles.style309_30}>
                 <Button
                   variant="destructive"
-                  className="h-10 flex-1 rounded-lg text-xs font-bold"
+                  className={styles.style312_31}
                   disabled={isBlocking}
                   onClick={handleBlockDriver}
                 >
@@ -317,7 +360,7 @@ export function RatingModal({
                 </Button>
                 <Button
                   variant="outline"
-                  className="h-10 flex-1 rounded-lg border-white/10 bg-white/5 text-xs font-bold text-white hover:bg-white/10"
+                  className={styles.style320_32}
                   disabled={isBlocking}
                   onClick={() => setConfirmBlock(false)}
                 >
@@ -346,26 +389,24 @@ function RatingCriteriaSection<T extends string>({
   onToggle: (key: T) => void;
 }) {
   return (
-    <div className="space-y-3">
-      <Label className="text-sm font-bold text-white">{title}</Label>
-      <div className="grid grid-cols-5 gap-2 rounded-2xl border border-white/10 bg-white/5 p-3.5">
+    <div className={styles.style349_33}>
+      <Label className={styles.style350_34}>{title}</Label>
+      <div className={styles.style351_35}>
         {items.map((item) => {
           const isActive = values[item.key];
-          const activeClass = accent === 'amber'
-            ? 'fill-amber-400 text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.6)]'
-            : 'fill-[#14B8A6] text-[#14B8A6] drop-shadow-[0_0_8px_rgba(20,245,213,0.6)]';
+          const activeClass = accent === 'amber' ? styles.activeAmber : styles.activeTeal;
 
           return (
-            <div key={item.key} className="flex flex-col items-center justify-start text-center">
+            <div key={item.key} className={styles.style359_36}>
               <button
                 type="button"
                 onClick={() => onToggle(item.key)}
-                className="cursor-pointer p-1 transition-transform duration-200 active:scale-90"
+                className={styles.style363_37}
                 aria-pressed={isActive}
               >
-                <Star className={`h-8 w-8 transition-all duration-300 ${isActive ? activeClass : 'fill-none text-slate-600/40'}`} />
+                <Star className={cn(styles.style366_38, isActive ? activeClass : styles.style366_39)} />
               </button>
-              <span className="mt-2 line-clamp-3 max-w-[64px] text-[10px] font-medium leading-tight text-slate-400">
+              <span className={styles.style368_40}>
                 {item.label}
               </span>
             </div>
