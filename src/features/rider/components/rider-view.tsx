@@ -39,7 +39,7 @@ import {
   extractGoogleMapsPlaceName,
   resolveClipboardMapLocation,
   type ResolvedLocationGeography,
-} from '@/lib/google-maps-location';
+} from '@/shared/services/google-maps-location';
 import type { AppLanguage } from '@/lib/i18n/simple-copy';
 import { supabase } from '@/lib/supabase-client';
 import { cn } from '@/lib/utils';

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { ShieldAlert } from 'lucide-react';
 import { trackSovereignError } from '@/lib/error-tracker';
 import { getSovereignErrorMessage } from '@/core/constants/error-dictionary';

@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Badge } from '@/components/ui/badge';
-import { GeoPaymentGateway } from '@/components/shared/geo-payment-gateway';
+import { GeoPaymentGateway } from '@/shared/components/geo-payment-gateway';
 import { SovereignFinancialActivityChart } from './financial-chart';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 

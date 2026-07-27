@@ -5,7 +5,7 @@ import { AppHeader } from '../app-header';
 import { SovereignErrorBoundary } from '../sovereign-error-boundary';
 import { BottomNav } from '../layout/bottom-nav';
 import { AdStage } from './ad-stage';
-import { SpeedSentry } from '../shared/speed-sentry';
+import { SpeedSentry } from '@/shared/components/speed-sentry';
 
 import { useRiderOperations } from '@/hooks/use-rider-operations';
 import { useDriverOperations } from '@/hooks/use-driver-operations';
