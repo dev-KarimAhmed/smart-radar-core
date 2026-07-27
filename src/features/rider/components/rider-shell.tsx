@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import { useEffect, useMemo, useState } from 'react';
-import { AdStage } from '@/components/dashboard/ad-stage';
+import { AdStage } from '@/features/ads/contract';
 import { AppHeader } from '@/shared/components/layout/app-header';
 import { BottomNav } from '@/shared/components/layout/bottom-nav';
 import { RouteErrorBoundary } from '@/shared/components/layout/route-error-boundary';
@@ -16,15 +16,15 @@ const RiderView = dynamic(
   { loading: () => <RouteLoading label="جاري تحميل رحلة الراكب..." /> },
 );
 const HistoryScreen = dynamic(
-  () => import('@/components/dashboard/history-tab').then((module) => module.HistoryTab),
+  () => import('@/features/account/contract').then((module) => module.HistoryTab),
   { loading: () => <RouteLoading label="جاري تحميل الرحلات..." /> },
 );
 const ProfileScreen = dynamic(
-  () => import('@/components/dashboard/profile-tab').then((module) => module.ProfileTab),
+  () => import('@/features/account/contract').then((module) => module.ProfileTab),
   { loading: () => <RouteLoading label="جاري تحميل الحساب..." /> },
 );
 const VaultScreen = dynamic(
-  () => import('@/components/dashboard/vault-tab').then((module) => module.VaultTab),
+  () => import('@/features/account/contract').then((module) => module.VaultTab),
   { loading: () => <RouteLoading label="جاري تحميل الخزنة..." /> },
 );
 

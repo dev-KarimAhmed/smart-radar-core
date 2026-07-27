@@ -13,6 +13,110 @@ import { dexieDb } from '@/lib/dexie-db';
 import { Database, Heart, Languages, Loader2, MapPin, MessageCircle, RefreshCw, Save, ShieldCheck, Trash2, User } from 'lucide-react';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 
+const styles = {
+  style549_1: "mx-auto w-full max-w-xl pb-24 font-sans text-start",
+  style550_2: "border-emerald-950 bg-[#020502]/95 text-white",
+  style551_3: "p-6 text-sm text-gray-300",
+  style558_4: "mx-auto w-full max-w-xl space-y-6 pb-24 text-start font-sans",
+  style559_5: "border border-[#14B8A6]/20 bg-[#0B0F19]/90 text-white shadow-xl",
+  style560_6: "flex items-center justify-between gap-4 p-4",
+  style561_7: "text-start",
+  style562_8: "text-sm font-black text-white",
+  style563_9: "mt-1 text-xs text-slate-400",
+  style568_10: "h-11 shrink-0 gap-2 rounded-2xl border border-[#14B8A6]/25 bg-[#14B8A6]/10 px-4 text-sm font-black text-[#14F5D5] hover:bg-[#14B8A6]/15",
+  style570_11: "h-4 w-4",
+  style576_12: "relative overflow-hidden border-emerald-900/40 bg-[#050c05] text-white shadow-2xl",
+  style577_13: "absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-emerald-500 via-green-600 to-emerald-400",
+  style578_14: "space-y-5 p-6",
+  style579_15: "flex items-center justify-between gap-4",
+  style580_16: "flex items-center gap-3",
+  style581_17: "flex h-14 w-14 items-center justify-center rounded-2xl border border-emerald-500/20 bg-emerald-950 text-xl font-black text-emerald-300",
+  style582_18: "h-6 w-6",
+  style585_19: "text-xl font-black text-white",
+  style586_20: "mt-1 flex flex-wrap items-center gap-2",
+  style587_21: "border-emerald-500/20 bg-[#0a1e0a] text-[10px] text-emerald-300",
+  style591_22: "border-emerald-500/20 bg-black/30 font-mono text-[10px] text-[#00ffcc]",
+  style599_23: "text-left font-mono",
+  style600_24: "block text-[10px] font-bold text-gray-500",
+  style601_25: "mt-1 rounded-xl border border-emerald-500/10 bg-emerald-950/40 px-3 py-1.5 text-emerald-300",
+  style602_26: "text-base font-black",
+  style603_27: "text-xs text-gray-500",
+  style608_28: "grid gap-3 border-t border-white/5 pt-4 sm:grid-cols-2",
+  style609_29: "rounded-xl border border-white/5 bg-black/30 p-3",
+  style610_30: "flex items-center gap-1 text-[10px] font-bold text-[#00ffcc]",
+  style611_31: "h-3.5 w-3.5",
+  style614_32: "mt-1 block text-sm text-white",
+  style619_33: "rounded-xl border border-white/5 bg-black/30 p-3",
+  style620_34: "flex items-center gap-1 text-[10px] font-bold text-emerald-300",
+  style621_35: "h-3.5 w-3.5",
+  style624_36: "mt-1 block text-sm text-white",
+  style625_37: "mt-1 block text-[11px] text-gray-400",
+  style631_38: "border border-emerald-950 bg-[#020502]/95 shadow-xl",
+  style632_39: "pb-3",
+  style633_40: "flex items-center gap-2 text-base font-extrabold text-[#00ffcc]",
+  style634_41: "h-5 w-5 text-emerald-500",
+  style637_42: "text-xs text-gray-400",
+  style644_43: "flex items-center justify-center gap-2 rounded-xl border border-emerald-900/30 bg-black/30 p-5 text-sm text-gray-300",
+  style645_44: "h-4 w-4 animate-spin text-emerald-400",
+  style649_45: "space-y-4",
+  style650_46: "space-y-1.5",
+  style651_47: "block text-xs font-bold text-gray-400",
+  style655_48: "rounded-xl border-emerald-900/30 bg-black/50 text-white text-start",
+  style661_49: "space-y-1.5",
+  style662_50: "block text-xs font-bold text-gray-400",
+  style667_51: "rounded-xl border-emerald-900/30 bg-black/50 text-white text-start",
+  style673_52: "space-y-1.5",
+  style674_53: "flex items-center gap-2 text-xs font-bold text-gray-400",
+  style675_54: "h-4 w-4 text-[#14F5D5]",
+  style678_55: "flex gap-2",
+  style682_56: "rounded-xl border-emerald-900/30 bg-black/50 text-white text-start",
+  style690_57: "h-11 shrink-0 rounded-xl border-red-500/20 bg-red-950/20 px-3 text-red-300 hover:bg-red-500 hover:text-white",
+  style693_58: "h-4 w-4",
+  style699_59: "grid gap-3 sm:grid-cols-3",
+  style700_60: "space-y-1.5",
+  style701_61: "block text-xs font-bold text-gray-400",
+  style703_62: "h-11 rounded-xl border-emerald-900/30 bg-black/50 text-white",
+  style706_63: "border-emerald-900/30 bg-neutral-950 text-white",
+  style708_64: "justify-end text-start",
+  style716_65: "space-y-1.5",
+  style717_66: "block text-xs font-bold text-gray-400",
+  style719_67: "h-11 rounded-xl border-emerald-900/30 bg-black/50 text-white",
+  style722_68: "border-emerald-900/30 bg-neutral-950 text-white",
+  style724_69: "justify-end text-start",
+  style732_70: "space-y-1.5",
+  style733_71: "block text-xs font-bold text-gray-400",
+  style735_72: "h-11 rounded-xl border-emerald-900/30 bg-black/50 text-white",
+  style738_73: "border-emerald-900/30 bg-neutral-950 text-white",
+  style740_74: "justify-end text-start",
+  style750_75: "flex items-center gap-2 text-xs text-emerald-300",
+  style751_76: "h-3.5 w-3.5 animate-spin",
+  style759_77: "h-12 w-full rounded-xl bg-emerald-600 text-sm font-extrabold text-white hover:bg-emerald-500",
+  style763_78: "ml-2 h-4 w-4 animate-spin",
+  style768_79: "ml-2 h-4 w-4",
+  style779_80: "border border-red-950/40 bg-[#0B0F19]/90 text-white shadow-xl",
+  style780_81: "pb-3",
+  style781_82: "flex items-center gap-2 text-base font-extrabold text-red-400",
+  style782_83: "h-5 w-5 text-red-500",
+  style785_84: "text-xs text-gray-400",
+  style793_85: "flex items-center justify-center gap-2 py-4 text-sm text-gray-400",
+  style794_86: "h-4 w-4 animate-spin text-red-400",
+  style798_87: "text-center py-4 text-sm text-gray-500",
+  style802_88: "space-y-3",
+  style806_89: "flex flex-col gap-2 rounded-xl border border-white/5 bg-white/5 p-4",
+  style808_90: "flex items-center justify-between gap-4",
+  style810_91: "block text-sm text-white",
+  style812_92: "text-[10px] text-slate-400 mt-0.5 block",
+  style818_93: "flex gap-2",
+  style826_94: "h-8 rounded-lg text-[10px] font-bold bg-red-600 hover:bg-red-500 text-white px-3",
+  style834_95: "h-8 rounded-lg text-[10px] font-bold border-white/15 bg-white/5 hover:bg-white/10 text-white px-3",
+  style844_96: "h-8 rounded-lg border-red-500/30 bg-red-500/10 text-xs font-bold text-red-400 hover:bg-red-500 hover:text-white transition-colors px-3",
+  style851_97: "grid grid-cols-2 gap-2 border-t border-white/5 pt-2 mt-1 text-[11px] text-slate-400",
+  style854_98: "text-amber-400 font-bold",
+  style858_99: "text-white font-mono",
+  style873_100: "h-11 w-full border border-red-500/15 bg-red-950/40 text-xs font-bold text-red-400 transition-all hover:bg-red-500 hover:text-white rounded-xl",
+} as const;
+
+
 type LocationRow = {
   id: number;
   name_ar?: string | null;
@@ -546,49 +650,49 @@ export function ProfileTab() {
 
   if (!user) {
     return (
-      <div className="mx-auto w-full max-w-xl pb-24 font-sans text-start">
-        <Card className="border-emerald-950 bg-[#020502]/95 text-white">
-          <CardContent className="p-6 text-sm text-gray-300">{languageCopy.pleaseLogin}</CardContent>
+      <div className={styles.style549_1}>
+        <Card className={styles.style550_2}>
+          <CardContent className={styles.style551_3}>{languageCopy.pleaseLogin}</CardContent>
         </Card>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto w-full max-w-xl space-y-6 pb-24 text-start font-sans">
-      <Card className="border border-[#14B8A6]/20 bg-[#0B0F19]/90 text-white shadow-xl">
-        <CardContent className="flex items-center justify-between gap-4 p-4">
-          <div className="text-start">
-            <p className="text-sm font-black text-white">{languageCopy.languageTitle}</p>
-            <p className="mt-1 text-xs text-slate-400">{languageCopy.languageDescription}</p>
+    <div className={styles.style558_4}>
+      <Card className={styles.style559_5}>
+        <CardContent className={styles.style560_6}>
+          <div className={styles.style561_7}>
+            <p className={styles.style562_8}>{languageCopy.languageTitle}</p>
+            <p className={styles.style563_9}>{languageCopy.languageDescription}</p>
           </div>
           <Button
             type="button"
             onClick={toggleLanguage}
-            className="h-11 shrink-0 gap-2 rounded-2xl border border-[#14B8A6]/25 bg-[#14B8A6]/10 px-4 text-sm font-black text-[#14F5D5] hover:bg-[#14B8A6]/15"
+            className={styles.style568_10}
           >
-            <Languages className="h-4 w-4" />
+            <Languages className={styles.style570_11} />
             {isArabic ? languageCopy.switchToEnglish : languageCopy.switchToArabic}
           </Button>
         </CardContent>
       </Card>
 
-      <Card className="relative overflow-hidden border-emerald-900/40 bg-[#050c05] text-white shadow-2xl">
-        <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-emerald-500 via-green-600 to-emerald-400" />
-        <CardContent className="space-y-5 p-6">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-emerald-500/20 bg-emerald-950 text-xl font-black text-emerald-300">
-                {displayName ? displayName.substring(0, 1).toUpperCase() : <User className="h-6 w-6" />}
+      <Card className={styles.style576_12}>
+        <div className={styles.style577_13} />
+        <CardContent className={styles.style578_14}>
+          <div className={styles.style579_15}>
+            <div className={styles.style580_16}>
+              <div className={styles.style581_17}>
+                {displayName ? displayName.substring(0, 1).toUpperCase() : <User className={styles.style582_18} />}
               </div>
               <div>
-                <h2 className="text-xl font-black text-white">{displayName}</h2>
-                <div className="mt-1 flex flex-wrap items-center gap-2">
-                  <Badge variant="outline" className="border-emerald-500/20 bg-[#0a1e0a] text-[10px] text-emerald-300">
+                <h2 className={styles.style585_19}>{displayName}</h2>
+                <div className={styles.style586_20}>
+                  <Badge variant="outline" className={styles.style587_21}>
                     {displayRole}
                   </Badge>
                   {profile?.serial_id || user.serial_id ? (
-                    <Badge variant="outline" className="border-emerald-500/20 bg-black/30 font-mono text-[10px] text-[#00ffcc]">
+                    <Badge variant="outline" className={styles.style591_22}>
                       {languageCopy.accountNumber}: {String(profile?.serial_id || user.serial_id)}
                     </Badge>
                   ) : null}
@@ -596,90 +700,90 @@ export function ProfileTab() {
               </div>
             </div>
 
-            <div className="text-left font-mono">
-              <span className="block text-[10px] font-bold text-gray-500">{languageCopy.currentRating}</span>
-              <div className="mt-1 rounded-xl border border-emerald-500/10 bg-emerald-950/40 px-3 py-1.5 text-emerald-300">
-                <span className="text-base font-black">{rating.toFixed(1)}</span>
-                <span className="text-xs text-gray-500"> / 5</span>
+            <div className={styles.style599_23}>
+              <span className={styles.style600_24}>{languageCopy.currentRating}</span>
+              <div className={styles.style601_25}>
+                <span className={styles.style602_26}>{rating.toFixed(1)}</span>
+                <span className={styles.style603_27}> / 5</span>
               </div>
             </div>
           </div>
 
-          <div className="grid gap-3 border-t border-white/5 pt-4 sm:grid-cols-2">
-            <div className="rounded-xl border border-white/5 bg-black/30 p-3">
-              <span className="flex items-center gap-1 text-[10px] font-bold text-[#00ffcc]">
-                <MapPin className="h-3.5 w-3.5" />
+          <div className={styles.style608_28}>
+            <div className={styles.style609_29}>
+              <span className={styles.style610_30}>
+                <MapPin className={styles.style611_31} />
                 {languageCopy.location}
               </span>
-              <strong className="mt-1 block text-sm text-white">
+              <strong className={styles.style614_32}>
                 {labelFor(selectedGovernorate, language) || languageCopy.notSet} - {labelFor(selectedDistrict, language) || languageCopy.notSet}
               </strong>
             </div>
 
-            <div className="rounded-xl border border-white/5 bg-black/30 p-3">
-              <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-300">
-                <ShieldCheck className="h-3.5 w-3.5" />
+            <div className={styles.style619_33}>
+              <span className={styles.style620_34}>
+                <ShieldCheck className={styles.style621_35} />
                 {languageCopy.accountData}
               </span>
-              <strong className="mt-1 block text-sm text-white">{displayPhone || languageCopy.phoneUnavailable}</strong>
-              {currency ? <span className="mt-1 block text-[11px] text-gray-400">{languageCopy.currency}: {currency}</span> : null}
+              <strong className={styles.style624_36}>{displayPhone || languageCopy.phoneUnavailable}</strong>
+              {currency ? <span className={styles.style625_37}>{languageCopy.currency}: {currency}</span> : null}
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <Card className="border border-emerald-950 bg-[#020502]/95 shadow-xl">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base font-extrabold text-[#00ffcc]">
-            <Database className="h-5 w-5 text-emerald-500" />
+      <Card className={styles.style631_38}>
+        <CardHeader className={styles.style632_39}>
+          <CardTitle className={styles.style633_40}>
+            <Database className={styles.style634_41} />
             {languageCopy.editTitle}
           </CardTitle>
-          <CardDescription className="text-xs text-gray-400">
+          <CardDescription className={styles.style637_42}>
             {languageCopy.editDescription}
           </CardDescription>
         </CardHeader>
 
         <CardContent>
           {isLoadingProfile ? (
-            <div className="flex items-center justify-center gap-2 rounded-xl border border-emerald-900/30 bg-black/30 p-5 text-sm text-gray-300">
-              <Loader2 className="h-4 w-4 animate-spin text-emerald-400" />
+            <div className={styles.style644_43}>
+              <Loader2 className={styles.style645_44} />
               {languageCopy.loadingProfile}
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-gray-400">{languageCopy.fullName}</label>
+            <form onSubmit={handleSubmit} className={styles.style649_45}>
+              <div className={styles.style650_46}>
+                <label className={styles.style651_47}>{languageCopy.fullName}</label>
                 <Input
                   value={fullName}
                   onChange={(event) => setFullName(event.target.value)}
-                  className="rounded-xl border-emerald-900/30 bg-black/50 text-white text-start"
+                  className={styles.style655_48}
                   placeholder={languageCopy.fullNamePlaceholder}
                   required
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-gray-400">{languageCopy.phone}
+              <div className={styles.style661_49}>
+                <label className={styles.style662_50}>{languageCopy.phone}
                 </label>
                 <Input
                   value={phone}
                   onChange={(event) => setPhone(event.target.value)}
-                  className="rounded-xl border-emerald-900/30 bg-black/50 text-white text-start"
+                  className={styles.style667_51}
                   placeholder="+962790000000"
                   required
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="flex items-center gap-2 text-xs font-bold text-gray-400">
-                  <MessageCircle className="h-4 w-4 text-[#14F5D5]" />
+              <div className={styles.style673_52}>
+                <label className={styles.style674_53}>
+                  <MessageCircle className={styles.style675_54} />
                   {languageCopy.emergencyWhatsappContact || (isArabic ? 'رقم واتساب للطوارئ' : 'Emergency WhatsApp Contact')}
                 </label>
-                <div className="flex gap-2">
+                <div className={styles.style678_55}>
                   <Input
                     value={emergencyWhatsappContact}
                     onChange={(event) => setEmergencyWhatsappContact(event.target.value)}
-                    className="rounded-xl border-emerald-900/30 bg-black/50 text-white text-start"
+                    className={styles.style682_56}
                     placeholder={languageCopy.emergencyWhatsappPlaceholder || '+201234567890'}
                   />
                   {emergencyWhatsappContact ? (
@@ -687,25 +791,25 @@ export function ProfileTab() {
                       type="button"
                       variant="outline"
                       onClick={() => setEmergencyWhatsappContact('')}
-                      className="h-11 shrink-0 rounded-xl border-red-500/20 bg-red-950/20 px-3 text-red-300 hover:bg-red-500 hover:text-white"
+                      className={styles.style690_57}
                       aria-label={languageCopy.deleteEmergencyContact || (isArabic ? 'حذف رقم الطوارئ' : 'Delete emergency contact')}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className={styles.style693_58} />
                     </Button>
                   ) : null}
                 </div>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-3">
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-bold text-gray-400">{languageCopy.country}</label>
+              <div className={styles.style699_59}>
+                <div className={styles.style700_60}>
+                  <label className={styles.style701_61}>{languageCopy.country}</label>
                   <Select value={countryId} onValueChange={handleCountryChange} required>
-                    <SelectTrigger className="h-11 rounded-xl border-emerald-900/30 bg-black/50 text-white">
+                    <SelectTrigger className={styles.style703_62}>
                       <SelectValue placeholder={isLoadingCountries ? languageCopy.loading : languageCopy.chooseCountry} />
                     </SelectTrigger>
-                    <SelectContent className="border-emerald-900/30 bg-neutral-950 text-white">
+                    <SelectContent className={styles.style706_63}>
                       {countries.map((country) => (
-                        <SelectItem key={country.id} value={String(country.id)} className="justify-end text-start">
+                        <SelectItem key={country.id} value={String(country.id)} className={styles.style708_64}>
                           {labelFor(country, language)}
                         </SelectItem>
                       ))}
@@ -713,15 +817,15 @@ export function ProfileTab() {
                   </Select>
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-bold text-gray-400">{languageCopy.governorate}</label>
+                <div className={styles.style716_65}>
+                  <label className={styles.style717_66}>{languageCopy.governorate}</label>
                   <Select value={governorateId} onValueChange={handleGovernorateChange} disabled={!countryId || isLoadingGovernorates} required>
-                    <SelectTrigger className="h-11 rounded-xl border-emerald-900/30 bg-black/50 text-white">
+                    <SelectTrigger className={styles.style719_67}>
                       <SelectValue placeholder={isLoadingGovernorates ? languageCopy.loading : languageCopy.chooseGovernorate} />
                     </SelectTrigger>
-                    <SelectContent className="border-emerald-900/30 bg-neutral-950 text-white">
+                    <SelectContent className={styles.style722_68}>
                       {governorates.map((governorate) => (
-                        <SelectItem key={governorate.id} value={String(governorate.id)} className="justify-end text-start">
+                        <SelectItem key={governorate.id} value={String(governorate.id)} className={styles.style724_69}>
                           {labelFor(governorate, language)}
                         </SelectItem>
                       ))}
@@ -729,15 +833,15 @@ export function ProfileTab() {
                   </Select>
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-bold text-gray-400">{languageCopy.district}</label>
+                <div className={styles.style732_70}>
+                  <label className={styles.style733_71}>{languageCopy.district}</label>
                   <Select value={districtId} onValueChange={setDistrictId} disabled={!governorateId || isLoadingDistricts} required>
-                    <SelectTrigger className="h-11 rounded-xl border-emerald-900/30 bg-black/50 text-white">
+                    <SelectTrigger className={styles.style735_72}>
                       <SelectValue placeholder={isLoadingDistricts ? languageCopy.loading : languageCopy.chooseDistrict} />
                     </SelectTrigger>
-                    <SelectContent className="border-emerald-900/30 bg-neutral-950 text-white">
+                    <SelectContent className={styles.style738_73}>
                       {districts.map((district) => (
-                        <SelectItem key={district.id} value={String(district.id)} className="justify-end text-start">
+                        <SelectItem key={district.id} value={String(district.id)} className={styles.style740_74}>
                           {labelFor(district, language)}
                         </SelectItem>
                       ))}
@@ -747,8 +851,8 @@ export function ProfileTab() {
               </div>
 
               {isLocationLoading ? (
-                <p className="flex items-center gap-2 text-xs text-emerald-300">
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <p className={styles.style750_75}>
+                  <Loader2 className={styles.style751_76} />
                   {languageCopy.updatingLists}
                 </p>
               ) : null}
@@ -756,16 +860,16 @@ export function ProfileTab() {
               <Button
                 type="submit"
                 disabled={isSaving || isLocationLoading}
-                className="h-12 w-full rounded-xl bg-emerald-600 text-sm font-extrabold text-white hover:bg-emerald-500"
+                className={styles.style759_77}
               >
                 {isSaving ? (
                   <>
-                    <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                    <Loader2 className={styles.style763_78} />
                     {languageCopy.saving}
                   </>
                 ) : (
                   <>
-                    <Save className="ml-2 h-4 w-4" />
+                    <Save className={styles.style768_79} />
                     {languageCopy.save}
                   </>
                 )}
@@ -776,13 +880,13 @@ export function ProfileTab() {
       </Card>
 
       {!isCaptain && (
-        <Card className="border border-red-950/40 bg-[#0B0F19]/90 text-white shadow-xl">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base font-extrabold text-red-400">
-              <ShieldCheck className="h-5 w-5 text-red-500" />
+        <Card className={styles.style779_80}>
+          <CardHeader className={styles.style780_81}>
+            <CardTitle className={styles.style781_82}>
+              <ShieldCheck className={styles.style782_83} />
               {isArabic ? 'الكباتن المحظورون' : 'Blocked Captains'}
             </CardTitle>
-            <CardDescription className="text-xs text-gray-400">
+            <CardDescription className={styles.style785_84}>
               {isArabic
                 ? 'قائمة بالسائقين الذين قمت بحظرهم. يمكنك إلغاء الحظر لإعادة التعامل معهم.'
                 : 'List of captains you have blocked. You can unblock them to interact again.'}
@@ -790,32 +894,32 @@ export function ProfileTab() {
           </CardHeader>
           <CardContent>
             {isLoadingBlocks ? (
-              <div className="flex items-center justify-center gap-2 py-4 text-sm text-gray-400">
-                <Loader2 className="h-4 w-4 animate-spin text-red-400" />
+              <div className={styles.style793_85}>
+                <Loader2 className={styles.style794_86} />
                 {isArabic ? 'جاري تحميل قائمة الحظر...' : 'Loading blocked list...'}
               </div>
             ) : blockedCaptains.length === 0 ? (
-              <p className="text-center py-4 text-sm text-gray-500">
+              <p className={styles.style798_87}>
                 {isArabic ? 'لا يوجد كباتن محظورون حالياً.' : 'No blocked captains currently.'}
               </p>
             ) : (
-              <div className="space-y-3">
+              <div className={styles.style802_88}>
                 {blockedCaptains.map((captain) => (
                   <div
                     key={captain.id}
-                    className="flex flex-col gap-2 rounded-xl border border-white/5 bg-white/5 p-4"
+                    className={styles.style806_89}
                   >
-                    <div className="flex items-center justify-between gap-4">
+                    <div className={styles.style808_90}>
                       <div>
-                        <strong className="block text-sm text-white">{captain.name}</strong>
+                        <strong className={styles.style810_91}>{captain.name}</strong>
                         {captain.serialId && (
-                          <span className="text-[10px] text-slate-400 mt-0.5 block">
+                          <span className={styles.style812_92}>
                             {isArabic ? `رقم الحساب: ${captain.serialId}` : `Account ID: ${captain.serialId}`}
                           </span>
                         )}
                       </div>
                       {confirmingUnblockId === captain.id ? (
-                        <div className="flex gap-2">
+                        <div className={styles.style818_93}>
                           <Button
                             variant="destructive"
                             size="sm"
@@ -823,7 +927,7 @@ export function ProfileTab() {
                               handleUnblockCaptain(captain.id);
                               setConfirmingUnblockId(null);
                             }}
-                            className="h-8 rounded-lg text-[10px] font-bold bg-red-600 hover:bg-red-500 text-white px-3"
+                            className={styles.style826_94}
                           >
                             {isArabic ? 'تأكيد' : 'Confirm'}
                           </Button>
@@ -831,7 +935,7 @@ export function ProfileTab() {
                             variant="outline"
                             size="sm"
                             onClick={() => setConfirmingUnblockId(null)}
-                            className="h-8 rounded-lg text-[10px] font-bold border-white/15 bg-white/5 hover:bg-white/10 text-white px-3"
+                            className={styles.style834_95}
                           >
                             {isArabic ? 'تراجع' : 'Cancel'}
                           </Button>
@@ -841,21 +945,21 @@ export function ProfileTab() {
                           variant="outline"
                           size="sm"
                           onClick={() => setConfirmingUnblockId(captain.id)}
-                          className="h-8 rounded-lg border-red-500/30 bg-red-500/10 text-xs font-bold text-red-400 hover:bg-red-500 hover:text-white transition-colors px-3"
+                          className={styles.style844_96}
                         >
                           {isArabic ? 'إلغاء الحظر' : 'Unblock'}
                         </Button>
                       )}
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 border-t border-white/5 pt-2 mt-1 text-[11px] text-slate-400">
+                    <div className={styles.style851_97}>
                       <div>
                         <span>{isArabic ? 'التقييم: ' : 'Rating: '}</span>
-                        <span className="text-amber-400 font-bold">★ {captain.rating.toFixed(1)}</span>
+                        <span className={styles.style854_98}>★ {captain.rating.toFixed(1)}</span>
                       </div>
                       <div>
                         <span>{isArabic ? 'الهاتف: ' : 'Phone: '}</span>
-                        <span className="text-white font-mono">{captain.phone || (isArabic ? 'غير متاح' : 'N/A')}</span>
+                        <span className={styles.style858_99}>{captain.phone || (isArabic ? 'غير متاح' : 'N/A')}</span>
                       </div>
                     </div>
                   </div>
@@ -870,7 +974,7 @@ export function ProfileTab() {
             type="button"
             onClick={logout}
             variant="destructive"
-            className="h-11 w-full border border-red-500/15 bg-red-950/40 text-xs font-bold text-red-400 transition-all hover:bg-red-500 hover:text-white rounded-xl"
+            className={styles.style873_100}
           >
             {languageCopy.logout}
           </Button>

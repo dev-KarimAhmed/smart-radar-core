@@ -4,6 +4,53 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Heart, MessageCircle, Phone, Trash2, ShieldCheck, HelpCircle } from 'lucide-react';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 
+import { cn } from '@/lib/utils';
+const styles = {
+  style112_1: "w-full max-w-4xl mx-auto px-4 pb-12 font-sans",
+  style112_2: "text-right",
+  style112_3: "text-left",
+  style114_4: "bg-[#051510] border border-emerald-500/20 rounded-2xl p-4 mb-6 flex flex-col md:flex-row items-center justify-between gap-4",
+  style115_5: "flex items-center gap-3",
+  style116_6: "w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-400",
+  style117_7: "w-6 h-6",
+  style119_8: "text-right",
+  style119_9: "text-left",
+  style120_10: "text-sm font-black text-[#00ffcc] tracking-wide",
+  style121_11: "text-[10px] text-gray-400",
+  style124_12: "text-xs bg-black/45 px-3 py-1.5 rounded-xl border border-white/5 font-mono text-emerald-400 font-extrabold shrink-0",
+  style131_13: "bg-neutral-900/35 border border-white/5 text-center py-16 px-6 rounded-2xl flex flex-col items-center justify-center gap-4",
+  style132_14: "w-12 h-12 rounded-full bg-neutral-950 flex items-center justify-center border border-white/5 text-gray-500",
+  style133_15: "w-6 h-6",
+  style135_16: "space-y-1",
+  style136_17: "text-sm font-bold text-white",
+  style137_18: "text-xs text-gray-400 max-w-xs leading-relaxed mx-auto",
+  style143_19: "grid grid-cols-1 md:grid-cols-2 gap-4",
+  style153_20: "bg-neutral-950/60 p-5 rounded-2xl border border-white/5 hover:border-emerald-500/10 transition-all duration-300 space-y-4 relative overflow-hidden",
+  style156_21: "flex gap-4 items-start",
+  style157_22: "w-16 h-16 rounded-xl overflow-hidden bg-black shrink-0 border border-white/10",
+  style161_23: "w-full h-full object-cover",
+  style165_24: "flex-1 space-y-1",
+  style165_25: "text-right",
+  style165_26: "text-left",
+  style166_27: "text-sm font-black text-white line-clamp-1",
+  style169_28: "text-[11px] text-gray-400 line-clamp-2 leading-relaxed",
+  style172_29: "flex flex-wrap gap-1.5 pt-1",
+  style173_30: "inline-block bg-emerald-950/70 text-emerald-400 text-[9px] font-bold px-2 py-0.5 rounded-full border border-emerald-950",
+  style181_31: "p-1 text-rose-500/70 hover:text-rose-400 transition-all",
+  style184_32: "w-4 h-4",
+  style189_33: "bg-black/50 p-2.5 rounded-xl border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[10px]",
+  style190_34: "text-gray-400 font-sans",
+  style191_35: "text-emerald-400",
+  style191_36: "text-amber-400 animate-pulse",
+  style197_37: "px-2.5 py-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-[#00ffcc] font-black border border-emerald-500/20 rounded-lg cursor-pointer transition-all active:scale-95 text-[9px]",
+  style204_38: "grid grid-cols-2 gap-2 pt-1",
+  style213_39: "h-10 bg-emerald-600/90 hover:bg-emerald-600 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all active:scale-95 border border-emerald-500/20",
+  style215_40: "w-4 h-4",
+  style227_41: "h-10 bg-indigo-950/50 hover:bg-indigo-900/50 text-indigo-200 border border-indigo-500/20 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all active:scale-95",
+  style229_42: "w-4 h-4",
+} as const;
+
+
 export function VaultTab() {
  const { isArabic, language } = useDashboardLanguage();
  const [heartedAdIds, setHeartedAdIds] = useState<string[]>([]);
@@ -109,38 +156,38 @@ export function VaultTab() {
  };
 
  return (
- <div className={`w-full max-w-4xl mx-auto px-4 pb-12 font-sans ${isArabic ? 'text-right' : 'text-left'}`} dir={isArabic ? 'rtl' : 'ltr'}>
+ <div className={cn(styles.style112_1, isArabic ? styles.style112_2 : styles.style112_3)} dir={isArabic ? 'rtl' : 'ltr'}>
  {/* Header Info Banner */}
- <div className="bg-[#051510] border border-emerald-500/20 rounded-2xl p-4 mb-6 flex flex-col md:flex-row items-center justify-between gap-4">
- <div className="flex items-center gap-3">
- <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-400">
- <ShieldCheck className="w-6 h-6" />
+ <div className={styles.style114_4}>
+ <div className={styles.style115_5}>
+ <div className={styles.style116_6}>
+ <ShieldCheck className={styles.style117_7} />
  </div>
- <div className={isArabic ? 'text-right' : 'text-left'}>
- <h3 className="text-sm font-black text-[#00ffcc] tracking-wide">{copy.title}</h3>
- <p className="text-[10px] text-gray-400">{copy.subtitle}</p>
+ <div className={isArabic ? styles.style119_8 : styles.style119_9}>
+ <h3 className={styles.style120_10}>{copy.title}</h3>
+ <p className={styles.style121_11}>{copy.subtitle}</p>
  </div>
  </div>
- <div className="text-xs bg-black/45 px-3 py-1.5 rounded-xl border border-white/5 font-mono text-emerald-400 font-extrabold shrink-0">
+ <div className={styles.style124_12}>
  {copy.count(heartedAdIds.length)}
  </div>
  </div>
 
  {/* Main List */}
  {savedAds.length === 0 ? (
- <div className="bg-neutral-900/35 border border-white/5 text-center py-16 px-6 rounded-2xl flex flex-col items-center justify-center gap-4">
- <div className="w-12 h-12 rounded-full bg-neutral-950 flex items-center justify-center border border-white/5 text-gray-500">
- <HelpCircle className="w-6 h-6" />
+ <div className={styles.style131_13}>
+ <div className={styles.style132_14}>
+ <HelpCircle className={styles.style133_15} />
  </div>
- <div className="space-y-1">
- <p className="text-sm font-bold text-white">{copy.emptyTitle}</p>
- <p className="text-xs text-gray-400 max-w-xs leading-relaxed mx-auto">
+ <div className={styles.style135_16}>
+ <p className={styles.style136_17}>{copy.emptyTitle}</p>
+ <p className={styles.style137_18}>
  {copy.emptyDescription}
  </p>
  </div>
  </div>
  ) : (
- <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+ <div className={styles.style143_19}>
  {savedAds.map((ad: any) => {
  const savedTime = ad.savedAtTimestamp || Date.now();
  const daysLeft = Math.ceil(
@@ -150,27 +197,27 @@ export function VaultTab() {
  return (
  <div
  key={ad.id}
- className="bg-neutral-950/60 p-5 rounded-2xl border border-white/5 hover:border-emerald-500/10 transition-all duration-300 space-y-4 relative overflow-hidden"
+ className={styles.style153_20}
  >
  {/* Visual Cover row */}
- <div className="flex gap-4 items-start">
- <div className="w-16 h-16 rounded-xl overflow-hidden bg-black shrink-0 border border-white/10">
+ <div className={styles.style156_21}>
+ <div className={styles.style157_22}>
  <img
  src={ad.content?.posterUrl || ad.bannerUrl || 'https://via.placeholder.com/150'}
  alt={ad.content?.title || ad.title}
- className="w-full h-full object-cover"
+ className={styles.style161_23}
  referrerPolicy="no-referrer"
  />
  </div>
- <div className={`flex-1 space-y-1 ${isArabic ? 'text-right' : 'text-left'}`}>
- <h4 className="text-sm font-black text-white line-clamp-1">
+ <div className={cn(styles.style165_24, isArabic ? styles.style165_25 : styles.style165_26)}>
+ <h4 className={styles.style166_27}>
  {ad.content?.title || ad.title}
  </h4>
- <p className="text-[11px] text-gray-400 line-clamp-2 leading-relaxed">
+ <p className={styles.style169_28}>
  {ad.content?.description || ad.description}
  </p>
- <div className="flex flex-wrap gap-1.5 pt-1">
- <span className="inline-block bg-emerald-950/70 text-emerald-400 text-[9px] font-bold px-2 py-0.5 rounded-full border border-emerald-950">
+ <div className={styles.style172_29}>
+ <span className={styles.style173_30}>
  {copy.area}: {ad.targetDistrict || copy.unknownArea}
  </span>
  </div>
@@ -178,30 +225,30 @@ export function VaultTab() {
 
  <button
  onClick={() => handleDelete(ad.id)}
- className="p-1 text-rose-500/70 hover:text-rose-400 transition-all"
+ className={styles.style181_31}
  title={copy.deleteTitle}
  >
- <Trash2 className="w-4 h-4" />
+ <Trash2 className={styles.style184_32} />
  </button>
  </div>
 
  {/* Expiration warning and storage controls */}
- <div className="bg-black/50 p-2.5 rounded-xl border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[10px]">
- <span className="text-gray-400 font-sans">
- {copy.savedFor}: <strong className={daysLeft > 7 ? "text-emerald-400" : "text-amber-400 animate-pulse"}>
+ <div className={styles.style189_33}>
+ <span className={styles.style190_34}>
+ {copy.savedFor}: <strong className={daysLeft > 7 ? styles.style191_35 : styles.style191_36}>
  {daysLeft > 0 ? copy.daysLeft(daysLeft) : copy.expiresToday}
  </strong>
  </span>
  <button
  onClick={() => handleExtend(ad.id)}
- className="px-2.5 py-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-[#00ffcc] font-black border border-emerald-500/20 rounded-lg cursor-pointer transition-all active:scale-95 text-[9px]"
+ className={styles.style197_37}
  >
  {copy.extend}
  </button>
  </div>
 
  {/* Direct Connect Buttons */}
- <div className="grid grid-cols-2 gap-2 pt-1">
+ <div className={styles.style204_38}>
  <button
  onClick={() =>
  handleZeroClickAction(
@@ -210,9 +257,9 @@ export function VaultTab() {
  ad.content?.title || ad.title
  )
  }
- className="h-10 bg-emerald-600/90 hover:bg-emerald-600 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all active:scale-95 border border-emerald-500/20"
+ className={styles.style213_39}
  >
- <MessageCircle className="w-4 h-4" />
+ <MessageCircle className={styles.style215_40} />
  <span>{copy.whatsapp}</span>
  </button>
 
@@ -224,9 +271,9 @@ export function VaultTab() {
  ad.content?.title || ad.title
  )
  }
- className="h-10 bg-indigo-950/50 hover:bg-indigo-900/50 text-indigo-200 border border-indigo-500/20 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all active:scale-95"
+ className={styles.style227_41}
  >
- <Phone className="w-4 h-4" />
+ <Phone className={styles.style229_42} />
  <span>{copy.call}</span>
  </button>
  </div>

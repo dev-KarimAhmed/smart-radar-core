@@ -5,12 +5,80 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { ChevronLeft, ChevronRight, Heart, MapPin, MessageCircle, Phone, Plus, ShieldCheck, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { AdDisplayCard, getAdDescription, getAdImage, getAdTitle } from './ad-display-card';
-import { getAdManualScrollDelta, getAdScrollDelta, wrapAdScrollPosition } from './ad-stage-scroll';
+import { getAdManualScrollDelta, getAdScrollDelta, wrapAdScrollPosition } from '../services/ad-stage-scroll';
 import { useAuth } from '@/hooks/use-auth';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { useAdCampaigns } from '@/hooks/use-ad-campaigns';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase-client';
+
+const styles = {
+  style384_1: "relative",
+  style384_2: "m-4 flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#14B8A6]/50 bg-[#0B0F19]",
+  style385_3: "mb-4 h-12 w-12 animate-spin rounded-full border-t-2 border-[#14B8A6]",
+  style386_4: "px-4 text-center text-sm font-bold tracking-widest text-[#14B8A6]",
+  style389_5: "text-xs text-gray-400",
+  style398_6: "relative z-[10] flex w-full flex-col overflow-hidden border-b border-white/5 bg-[#0B0F19] py-4 pointer-events-auto select-none sm:py-6",
+  style400_7: "justify-start",
+  style400_8: "justify-center",
+  style405_9: "z-[20] mb-3 flex shrink-0 items-center justify-center w-full px-4 sm:px-6 py-3 border-b border-white/[0.06] bg-[#0A0F1D]/40 backdrop-blur-sm lg:hidden",
+  style423_10: "group flex  cursor-pointer items-center justify-center gap-3 rounded-2xl border border-[#14F5D5]/45 bg-gradient-to-r from-[#0F766E] to-[#14B8A6] p-3 text-base font-black text-white shadow-[0_10px_28px_rgba(20,184,166,0.18)] transition-colors hover:from-[#0D9488] hover:to-[#2DD4BF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14F5D5] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0F1D] sm:min-w-[240px] sm:text-lg",
+  style429_11: "z-[20] mb-3 flex shrink-0 items-center justify-between px-4 sm:mb-4 sm:px-6",
+  style430_12: "flex items-center gap-2",
+  style431_13: "relative flex h-2.5 w-2.5",
+  style432_14: "absolute inline-flex h-full w-full animate-ping rounded-full bg-[#14B8A6] opacity-75",
+  style433_15: "relative inline-flex h-2.5 w-2.5 rounded-full bg-[#14B8A6]",
+  style435_16: "text-xs font-black uppercase tracking-widest text-[#14F5D5] md:text-sm",
+  style439_17: "font-mono text-[9px] font-bold text-gray-500 md:text-[10px]",
+  style446_18: "group/river relative flex min-h-0 w-full flex-1 items-center overflow-hidden",
+  style446_19: "pb-12",
+  style457_20: "absolute left-3 top-1/2 z-30 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-[#0B0F19]/88 text-white shadow-xl shadow-black/35 backdrop-blur-md transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/45 sm:left-4",
+  style459_21: "hover:border-[#14B8A6]/45 hover:bg-[#14B8A6]/15",
+  style460_22: "cursor-not-allowed opacity-35",
+  style463_23: "h-5 w-5",
+  style472_24: "absolute right-3 top-1/2 z-30 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-[#0B0F19]/88 text-white shadow-xl shadow-black/35 backdrop-blur-md transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/45 sm:right-4",
+  style474_25: "hover:border-[#14B8A6]/45 hover:bg-[#14B8A6]/15",
+  style475_26: "cursor-not-allowed opacity-35",
+  style478_27: "h-5 w-5",
+  style490_28: "no-scrollbar flex min-w-0 flex-1 flex-nowrap gap-8 overflow-x-auto",
+  style491_29: "justify-center px-6 sm:px-16",
+  style491_30: "px-14",
+  style497_31: "flex-shrink-0",
+  style518_32: "fixed inset-0 z-[100] flex flex-col items-center justify-end bg-black/85 p-0 backdrop-blur-sm md:p-4",
+  style526_33: "relative flex max-h-[92vh] w-full max-w-lg flex-col gap-4 overflow-y-auto rounded-t-[32px] border-t-2 border-[#14B8A6]/40 bg-[#070D19] px-6 pt-6 pb-28 shadow-[0_-12px_45px_rgba(20,184,166,0.25)] md:rounded-[32px] md:border-x-2 md:p-6",
+  style534_34: "absolute right-4 top-4 z-30 flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-[#0B0F19]/90 text-white shadow-xl shadow-black/35 backdrop-blur-md transition hover:border-red-400/40 hover:bg-red-950/70",
+  style536_35: "h-5 w-5",
+  style539_36: "mx-auto mb-1 h-1 w-12 rounded-full bg-[#14B8A6]/30",
+  style541_37: "flex items-center justify-between border-b border-white/5 pb-3 pe-12",
+  style542_38: "flex items-center gap-2 text-xs font-black text-[#14F5D5]",
+  style543_39: "h-4 w-4 animate-pulse text-[#14F5D5]",
+  style551_40: "inline-flex items-center gap-2 rounded-full border px-3 py-2 text-[11px] font-black transition-all duration-300",
+  style553_41: "border-rose-400/40 bg-rose-500/15 text-rose-200 shadow-[0_0_18px_rgba(244,63,94,0.22)]",
+  style554_42: "border-[#14B8A6]/25 bg-[#14B8A6]/10 text-[#14F5D5] hover:bg-[#14B8A6]/15",
+  style560_43: "h-4 w-4 transition-transform duration-300",
+  style561_44: "scale-110 fill-rose-300 text-rose-300",
+  style573_45: "space-y-2",
+  style573_46: "text-right",
+  style573_47: "text-left",
+  style574_48: "rounded-full border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-2.5 py-1 text-[10px] font-black text-[#14F5D5]",
+  style577_49: "mt-2 text-xl font-black leading-tight text-white",
+  style580_50: "pt-1 text-xs leading-relaxed text-gray-300",
+  style585_51: "mt-1.5 flex flex-col gap-3",
+  style590_52: "flex w-full items-center justify-center gap-2.5 rounded-2xl border border-[#00cc66]/50 bg-[#00cc66] p-3.5 text-xs font-black text-white shadow-[0_4px_15px_rgba(0,204,102,0.25)] transition hover:bg-[#00e271]",
+  style592_53: "h-4 w-4 text-white",
+  style599_54: "flex w-full items-center justify-center gap-2.5 rounded-2xl border border-[#14B8A6]/35 bg-[#131C31] p-3.5 text-xs font-black text-[#14F5D5] shadow-[0_4px_10px_rgba(0,0,0,0.3)] transition hover:bg-[#14B8A6]/15",
+  style601_55: "h-4 w-4 text-[#14F5D5]",
+  style609_56: "flex w-full items-center justify-center gap-2.5 rounded-2xl border border-blue-700/50 bg-blue-700 p-3.5 text-xs font-black text-white shadow-[0_4px_15px_rgba(29,78,216,0.25)] transition hover:bg-blue-600",
+  style611_57: "h-4 w-4 text-white",
+  style629_58: "relative overflow-hidden rounded-3xl border border-white/10 bg-[#0B0F19] shadow-[0_18px_40px_rgba(0,0,0,0.35)]",
+  style632_59: "aspect-video w-full bg-black object-cover",
+  style644_60: "aspect-video w-full bg-[#07101F] object-cover",
+  stageFull: "h-full flex-1",
+  stageCompact: "h-[280px] w-full sm:h-[320px]",
+  cardFull: "h-[calc(100vh-270px)] min-h-[360px] max-h-[480px] w-[290px] sm:w-[330px] md:max-h-[520px] md:w-[350px]",
+  cardCompact: "h-[216px] w-[270px] sm:h-[250px] sm:w-[280px] md:w-[340px]",
+} as const;
+
 
 const AD_BATCH_WRITE_LIMIT = 50;
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -372,21 +440,17 @@ export function AdStage({
 
   const showNavigationShell = true;
   const canNavigate = adsToUse.length > 1;
-  const heightClass = isFullScreen
-    ? 'h-full flex-1'
-    : 'h-[280px] w-full sm:h-[320px]';
-  const cardClassName = isFullScreen
-    ? 'h-[calc(100vh-270px)] min-h-[360px] max-h-[480px] w-[290px] sm:w-[330px] md:max-h-[520px] md:w-[350px]'
-    : 'h-[216px] w-[270px] sm:h-[250px] sm:w-[280px] md:w-[340px]';
+  const heightClass = isFullScreen ? styles.stageFull : styles.stageCompact;
+  const cardClassName = isFullScreen ? styles.cardFull : styles.cardCompact;
 
   if (isLoadingAds) {
     return (
-      <div className={`relative ${heightClass} m-4 flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#14B8A6]/50 bg-[#0B0F19]`}>
-        <div className="mb-4 h-12 w-12 animate-spin rounded-full border-t-2 border-[#14B8A6]" />
-        <p className="px-4 text-center text-sm font-bold tracking-widest text-[#14B8A6]">
+      <div className={cn(styles.style384_1, heightClass, styles.style384_2)}>
+        <div className={styles.style385_3} />
+        <p className={styles.style386_4}>
           {copy.loadingTitle}
           <br />
-          <span className="text-xs text-gray-400">{copy.loadingSubtitle}</span>
+          <span className={styles.style389_5}>{copy.loadingSubtitle}</span>
         </p>
       </div>
     );
@@ -395,14 +459,14 @@ export function AdStage({
   return (
     <section
       className={cn(
-        'relative z-[10] flex w-full flex-col overflow-hidden border-b border-white/5 bg-[#0B0F19] py-4 pointer-events-auto select-none sm:py-6',
+        styles.style398_6,
         heightClass,
-        isFullScreen ? 'justify-start' : 'justify-center'
+        isFullScreen ? styles.style400_7 : styles.style400_8
       )}
       dir={direction}
     >
       {isFullScreen ? (
-        <div className="z-[20] mb-3 flex shrink-0 items-center justify-center w-full px-4 sm:px-6 py-3 border-b border-white/[0.06] bg-[#0A0F1D]/40 backdrop-blur-sm lg:hidden">
+        <div className={styles.style405_9}>
           <motion.button
             type="button"
             onClick={onRequestRideClick}
@@ -420,30 +484,30 @@ export function AdStage({
               repeat: Infinity,
             }}
             whileTap={{ scale: 0.96 }}
-            className="group flex  cursor-pointer items-center justify-center gap-3 rounded-2xl border border-[#14F5D5]/45 bg-gradient-to-r from-[#0F766E] to-[#14B8A6] p-3 text-base font-black text-white shadow-[0_10px_28px_rgba(20,184,166,0.18)] transition-colors hover:from-[#0D9488] hover:to-[#2DD4BF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14F5D5] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0F1D] sm:min-w-[240px] sm:text-lg"
+            className={styles.style423_10}
           >
             <span>{t('requestRide')}</span>
           </motion.button>
         </div>
       ) : (
-        <div className="z-[20] mb-3 flex shrink-0 items-center justify-between px-4 sm:mb-4 sm:px-6">
-          <div className="flex items-center gap-2">
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#14B8A6] opacity-75" />
-              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#14B8A6]" />
+        <div className={styles.style429_11}>
+          <div className={styles.style430_12}>
+            <span className={styles.style431_13}>
+              <span className={styles.style432_14} />
+              <span className={styles.style433_15} />
             </span>
-            <h2 className="text-xs font-black uppercase tracking-widest text-[#14F5D5] md:text-sm">
+            <h2 className={styles.style435_16}>
               {copy.title}
             </h2>
           </div>
-          <span className="font-mono text-[9px] font-bold text-gray-500 md:text-[10px]">
+          <span className={styles.style439_17}>
             {copy.count(adsToUse.length)}
           </span>
         </div>
       )}
 
       <div
-        className={cn("group/river relative flex min-h-0 w-full flex-1 items-center overflow-hidden", isFullScreen && "pb-12")}
+        className={cn(styles.style446_18, isFullScreen && styles.style446_19)}
         dir={adStageDirection}
       >
         {showNavigationShell && (
@@ -454,13 +518,13 @@ export function AdStage({
               disabled={!canNavigate}
               onClick={() => scrollAds('previous')}
               className={cn(
-                'absolute left-3 top-1/2 z-30 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-[#0B0F19]/88 text-white shadow-xl shadow-black/35 backdrop-blur-md transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/45 sm:left-4',
+                styles.style457_20,
                 canNavigate
-                  ? 'hover:border-[#14B8A6]/45 hover:bg-[#14B8A6]/15'
-                  : 'cursor-not-allowed opacity-35'
+                  ? styles.style459_21
+                  : styles.style460_22
               )}
             >
-              <ChevronLeft className="h-5 w-5" />
+              <ChevronLeft className={styles.style463_23} />
             </button>
 
             <button
@@ -469,13 +533,13 @@ export function AdStage({
               disabled={!canNavigate}
               onClick={() => scrollAds('next')}
               className={cn(
-                'absolute right-3 top-1/2 z-30 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-[#0B0F19]/88 text-white shadow-xl shadow-black/35 backdrop-blur-md transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/45 sm:right-4',
+                styles.style472_24,
                 canNavigate
-                  ? 'hover:border-[#14B8A6]/45 hover:bg-[#14B8A6]/15'
-                  : 'cursor-not-allowed opacity-35'
+                  ? styles.style474_25
+                  : styles.style475_26
               )}
             >
-              <ChevronRight className="h-5 w-5" />
+              <ChevronRight className={styles.style478_27} />
             </button>
           </>
         )}
@@ -487,14 +551,14 @@ export function AdStage({
           data-ad-count={adsToUse.length}
           onScroll={registerManualTrackScroll}
           className={cn(
-            'no-scrollbar flex min-w-0 flex-1 flex-nowrap gap-8 overflow-x-auto',
-            adsToUse.length === 1 ? 'justify-center px-6 sm:px-16' : 'px-14'
+            styles.style490_28,
+            adsToUse.length === 1 ? styles.style491_29 : styles.style491_30
           )}
         >
           {(adsToUse.length > 1 ? [...adsToUse, ...adsToUse] : adsToUse).map((ad: any, index: number) => (
             <div
               key={`${ad.id}-${index}`}
-              className="flex-shrink-0"
+              className={styles.style497_31}
               onMouseEnter={() => setAdStreamPaused(true)}
               onMouseLeave={() => setAdStreamPaused(false)}
             >
@@ -515,7 +579,7 @@ export function AdStage({
       <AnimatePresence>
         {takeoverAd && (
           <div
-            className="fixed inset-0 z-[100] flex flex-col items-center justify-end bg-black/85 p-0 backdrop-blur-sm md:p-4"
+            className={styles.style518_32}
             onClick={() => setTakeoverAd(null)}
           >
             <motion.div
@@ -523,7 +587,7 @@ export function AdStage({
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: '100%', opacity: 0 }}
               transition={{ type: 'spring', damping: 25, stiffness: 220 }}
-              className="relative flex max-h-[92vh] w-full max-w-lg flex-col gap-4 overflow-y-auto rounded-t-[32px] border-t-2 border-[#14B8A6]/40 bg-[#070D19] px-6 pt-6 pb-28 shadow-[0_-12px_45px_rgba(20,184,166,0.25)] md:rounded-[32px] md:border-x-2 md:p-6"
+              className={styles.style526_33}
               dir={direction}
               onClick={(event) => event.stopPropagation()}
             >
@@ -531,16 +595,16 @@ export function AdStage({
                 type="button"
                 aria-label="Close ad"
                 onClick={() => setTakeoverAd(null)}
-                className="absolute right-4 top-4 z-30 flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-[#0B0F19]/90 text-white shadow-xl shadow-black/35 backdrop-blur-md transition hover:border-red-400/40 hover:bg-red-950/70"
+                className={styles.style534_34}
               >
-                <X className="h-5 w-5" />
+                <X className={styles.style536_35} />
               </button>
 
-              <div className="mx-auto mb-1 h-1 w-12 rounded-full bg-[#14B8A6]/30" />
+              <div className={styles.style539_36} />
 
-              <div className="flex items-center justify-between border-b border-white/5 pb-3 pe-12">
-                <span className="flex items-center gap-2 text-xs font-black text-[#14F5D5]">
-                  <ShieldCheck className="h-4 w-4 animate-pulse text-[#14F5D5]" />
+              <div className={styles.style541_37}>
+                <span className={styles.style542_38}>
+                  <ShieldCheck className={styles.style543_39} />
                   {copy.trustedAd}
                 </span>
                 {!takeoverAd.isPlaceholder ? (
@@ -548,17 +612,17 @@ export function AdStage({
                     type="button"
                     onClick={(event) => toggleHeart(event, takeoverAd)}
                     className={cn(
-                      'inline-flex items-center gap-2 rounded-full border px-3 py-2 text-[11px] font-black transition-all duration-300',
+                      styles.style551_40,
                       heartedAdIds.includes(takeoverAd.id)
-                        ? 'border-rose-400/40 bg-rose-500/15 text-rose-200 shadow-[0_0_18px_rgba(244,63,94,0.22)]'
-                        : 'border-[#14B8A6]/25 bg-[#14B8A6]/10 text-[#14F5D5] hover:bg-[#14B8A6]/15',
+                        ? styles.style553_41
+                        : styles.style554_42,
                     )}
                     aria-pressed={heartedAdIds.includes(takeoverAd.id)}
                   >
                     <Heart
                       className={cn(
-                        'h-4 w-4 transition-transform duration-300',
-                        heartedAdIds.includes(takeoverAd.id) && 'scale-110 fill-rose-300 text-rose-300',
+                        styles.style560_43,
+                        heartedAdIds.includes(takeoverAd.id) && styles.style561_44,
                       )}
                     />
                     {heartedAdIds.includes(takeoverAd.id)
@@ -570,35 +634,35 @@ export function AdStage({
 
               <AdTakeoverMedia ad={takeoverAd} />
 
-              <div className={`space-y-2 ${isArabic ? 'text-right' : 'text-left'}`}>
-                <span className="rounded-full border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-2.5 py-1 text-[10px] font-black text-[#14F5D5]">
+              <div className={cn(styles.style573_45, isArabic ? styles.style573_46 : styles.style573_47)}>
+                <span className={styles.style574_48}>
                   {getBadgeText(takeoverAd, copy)}
                 </span>
-                <h3 className="mt-2 text-xl font-black leading-tight text-white">
+                <h3 className={styles.style577_49}>
                   {getAdTitle(takeoverAd, copy.nearbyBadge)}
                 </h3>
-                <p className="pt-1 text-xs leading-relaxed text-gray-300">
+                <p className={styles.style580_50}>
                   {getAdDescription(takeoverAd, copy.emptyDescription)}
                 </p>
               </div>
 
-              <div className="mt-1.5 flex flex-col gap-3">
+              <div className={styles.style585_51}>
                 <a
                   href={`https://wa.me/${takeoverAd.whatsapp || takeoverAd.advertiserData?.whatsapp || '962798888888'}?text=${encodeURIComponent(copy.whatsappMessage(getAdTitle(takeoverAd, copy.nearbyBadge)))}`}
                   target="_blank"
                   onClick={(event) => event.stopPropagation()}
-                  className="flex w-full items-center justify-center gap-2.5 rounded-2xl border border-[#00cc66]/50 bg-[#00cc66] p-3.5 text-xs font-black text-white shadow-[0_4px_15px_rgba(0,204,102,0.25)] transition hover:bg-[#00e271]"
+                  className={styles.style590_52}
                 >
-                  <MessageCircle className="h-4 w-4 text-white" />
+                  <MessageCircle className={styles.style592_53} />
                   {copy.whatsapp}
                 </a>
 
                 <a
                   href={`tel:${takeoverAd.phone || takeoverAd.advertiserData?.phone || '0798888888'}`}
                   onClick={(event) => event.stopPropagation()}
-                  className="flex w-full items-center justify-center gap-2.5 rounded-2xl border border-[#14B8A6]/35 bg-[#131C31] p-3.5 text-xs font-black text-[#14F5D5] shadow-[0_4px_10px_rgba(0,0,0,0.3)] transition hover:bg-[#14B8A6]/15"
+                  className={styles.style599_54}
                 >
-                  <Phone className="h-4 w-4 text-[#14F5D5]" />
+                  <Phone className={styles.style601_55} />
                   {copy.call}
                 </a>
 
@@ -606,9 +670,9 @@ export function AdStage({
                   href={takeoverAd.geoLoc || 'https://www.openstreetmap.org/'}
                   target="_blank"
                   onClick={(event) => event.stopPropagation()}
-                  className="flex w-full items-center justify-center gap-2.5 rounded-2xl border border-blue-700/50 bg-blue-700 p-3.5 text-xs font-black text-white shadow-[0_4px_15px_rgba(29,78,216,0.25)] transition hover:bg-blue-600"
+                  className={styles.style609_56}
                 >
-                  <MapPin className="h-4 w-4 text-white" />
+                  <MapPin className={styles.style611_57} />
                   {copy.openLocation}
                 </a>
               </div>
@@ -626,10 +690,10 @@ function AdTakeoverMedia({ ad }: { ad: any }) {
   const fallbackImage = getAdImage(ad) || PLACEHOLDER_BANNER_URL;
 
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-[#0B0F19] shadow-[0_18px_40px_rgba(0,0,0,0.35)]">
+    <div className={styles.style629_58}>
       {media.kind === 'video' && media.url ? (
         <video
-          className="aspect-video w-full bg-black object-cover"
+          className={styles.style632_59}
           src={media.url}
           poster={media.posterUrl || fallbackImage}
           controls
@@ -641,7 +705,7 @@ function AdTakeoverMedia({ ad }: { ad: any }) {
         <img
           src={media.url || fallbackImage}
           alt={title}
-          className="aspect-video w-full bg-[#07101F] object-cover"
+          className={styles.style644_60}
           loading="lazy"
           referrerPolicy="no-referrer"
           onError={(event) => {

@@ -13,7 +13,7 @@ import { RadarBundleIntegrityKernel, GlobalPulseDoc, RadarSovereignIntegrationKe
 import { useAuth } from '@/hooks/use-auth';
 import { usePromoStream } from '@/hooks/use-promo-stream';
 import { MessageCircle, Wrench } from 'lucide-react';
-import { AdDisplayCard } from '@/components/dashboard/ad-display-card';
+import { AdDisplayCard } from '@/features/ads/contract';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 
 import { cn } from '@/lib/utils';
