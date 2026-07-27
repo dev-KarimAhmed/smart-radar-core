@@ -1,13 +1,7 @@
-'use client';
+import { CaptainRoute } from '@/features/captain/components/captain-route';
 
-import React from 'react';
-import { DriverOperationsProvider } from '@/hooks/use-driver-operations';
-import { Dashboard } from '@/components/dashboard';
+const styles = { root: 'contents' } as const;
 
 export default function CaptainPage() {
-  return (
-    <DriverOperationsProvider>
-      <Dashboard />
-    </DriverOperationsProvider>
-  );
+  return <div className={styles.root}><CaptainRoute /></div>;
 }

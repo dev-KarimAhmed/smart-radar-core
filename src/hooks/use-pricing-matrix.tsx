@@ -8,6 +8,11 @@ import { getSovereignErrorMessage } from '@/core/constants/error-dictionary';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
+const styles = {
+  root: "",
+} as const;
+
+
 export interface PricingMatrix {
   shortTripFare: number;
   longTripKmRate: number;
