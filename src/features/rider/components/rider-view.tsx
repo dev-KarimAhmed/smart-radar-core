@@ -45,18 +45,271 @@ import { supabase } from '@/lib/supabase-client';
 import { cn } from '@/lib/utils';
 import { fetchRoadRoute, type RoadRouteEstimate } from '@/lib/road-route';
 import { calculateSovereignFareQuote } from '@/core/logic/geospatial-kernel';
-import { AdStage } from './ad-stage';
-import { RatingModal } from './shared/rating-modal';
-import { RadarRiderDashboard, type HistoricalTrip } from './rider/rider-dashboard';
-import { buildDistrictLoadKey } from './rider/rider-district-query';
-import type { RiderLocation, RiderLocationStatus, RiderLocationUpdate } from './rider/rider-map';
+import { AdStage } from '@/components/dashboard/ad-stage';
+import { RatingModal } from '@/components/dashboard/shared/rating-modal';
+import { RadarRiderDashboard, type HistoricalTrip } from './rider-dashboard';
+import { buildDistrictLoadKey } from '../services/rider-district-query';
+import type { RiderLocation, RiderLocationStatus, RiderLocationUpdate } from './rider-map';
 import dynamic from 'next/dynamic';
-const RiderMap = dynamic(() => import('./rider/rider-map').then(m => m.RiderMap), { ssr: false });
+
+const styles = {
+  style1548_1: "space-y-3 pb-20 lg:pb-4",
+  style1549_2: "space-y-3",
+  style1550_3: "flex items-start justify-between gap-3",
+  style1551_4: "min-w-0",
+  style1552_5: "text-[11px] font-black text-[#14F5D5]",
+  style1553_6: "mt-1 text-2xl font-black leading-tight text-white",
+  style1554_7: "mt-1 text-xs leading-relaxed text-slate-400",
+  style1557_8: "shrink-0 rounded-full border border-[#14B8A6]/25 bg-[#14B8A6]/10 px-3 py-1.5 text-[10px] font-black text-[#14F5D5]",
+  style1563_9: "grid grid-cols-3 gap-1.5",
+  style1572_10: "flex min-w-0 items-center gap-1.5 rounded-lg border px-2 py-2 text-[9px] font-black transition-colors",
+  style1574_11: "border-[#14B8A6]/30 bg-[#14B8A6]/12 text-[#BFFCF2]",
+  style1575_12: "border-white/8 bg-white/[0.03] text-slate-500",
+  style1580_13: "flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[8px]",
+  style1581_14: "bg-[#14B8A6] text-[#061316]",
+  style1581_15: "bg-slate-800 text-slate-400",
+  style1584_16: "h-2.5 w-2.5 stroke-[3]",
+  style1586_17: "truncate",
+  style1592_18: "grid gap-3",
+  style1737_19: "rounded-2xl border border-white/10 bg-[#111827]/80 p-3 shadow-lg shadow-black/15",
+  style1738_20: "mb-3 flex items-start gap-2.5",
+  style1739_21: "flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#14B8A6]/12 text-[#14F5D5]",
+  style1740_22: "h-4 w-4",
+  style1742_23: "min-w-0",
+  style1743_24: "text-xs font-black text-white",
+  style1744_25: "mt-0.5 text-[10px] leading-relaxed text-slate-400",
+  style1748_26: "grid grid-cols-2 gap-2",
+  style1749_27: "min-w-0 space-y-1.5",
+  style1750_28: "block text-[10px] font-black text-slate-400",
+  style1755_29: "h-11 w-full min-w-0 rounded-xl border border-white/10 bg-black/35 px-3 text-xs font-black text-white outline-none transition focus:border-[#14B8A6]/60",
+  style1768_30: "min-w-0 space-y-1.5",
+  style1769_31: "block text-[10px] font-black text-slate-400",
+  style1774_32: "h-11 w-full min-w-0 rounded-xl border border-white/10 bg-black/35 px-3 text-xs font-black text-white outline-none transition focus:border-[#14B8A6]/60",
+  style1788_33: "space-y-3 rounded-2xl border border-white/10 bg-[#111827]/80 p-3 shadow-lg shadow-black/15",
+  style1790_34: "mb-2.5 flex items-start gap-2.5",
+  style1791_35: "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#14B8A6]/15 text-xs font-black text-[#14F5D5]",
+  style1793_36: "text-xs font-black text-white",
+  style1794_37: "mt-1 text-[11px] leading-relaxed text-slate-400",
+  style1802_38: "flex gap-2",
+  style1804_39: "relative min-w-0 flex-1",
+  style1805_40: "pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#14B8A6]",
+  style1818_41: "h-11 w-full rounded-xl border border-white/10 bg-black/40 pe-3 ps-10 text-sm font-bold text-white outline-none transition placeholder:text-slate-500 focus:border-[#14B8A6]/60",
+  style1826_42: "flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#14B8A6] px-3 text-sm font-black text-[#031315] transition hover:bg-[#2DD4BF] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#14F5D5] disabled:cursor-not-allowed disabled:opacity-50",
+  style1828_43: "h-4 w-4",
+  style1829_44: "hidden sm:inline",
+  style1836_45: "border-t border-white/8 pt-3",
+  style1837_46: "mb-2.5 flex items-start gap-2.5",
+  style1838_47: "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#14B8A6]/15 text-xs font-black text-[#14F5D5]",
+  style1840_48: "text-xs font-black text-white",
+  style1841_49: "mt-1 text-[11px] leading-relaxed text-slate-400",
+  style1848_50: "flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-[#14B8A6]/35 bg-[#14B8A6]/12 px-4 text-xs font-black text-[#BFFCF2] transition-all duration-300 hover:bg-[#14B8A6]/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#14F5D5] disabled:cursor-not-allowed disabled:opacity-60",
+  style1850_51: "h-5 w-5 animate-spin",
+  style1850_52: "h-5 w-5",
+  style1860_53: "space-y-3 rounded-xl border border-[#14B8A6]/35 bg-[#14B8A6]/8 p-3 shadow-lg shadow-[#14B8A6]/5",
+  style1861_54: "flex items-start gap-2.5 text-[#14F5D5]",
+  style1862_55: "flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#14B8A6]/15",
+  style1863_56: "h-4 w-4",
+  style1865_57: "min-w-0",
+  style1866_58: "block text-xs font-black",
+  style1867_59: "mt-0.5 text-[10px] leading-relaxed text-slate-400",
+  style1874_60: "rounded-xl border border-[#14B8A6]/20 bg-[#14B8A6]/10 px-3 py-3 text-xs font-bold text-[#BFFCF2]",
+  style1878_61: "grid grid-cols-2 gap-2",
+  style1879_62: "rounded-xl border border-white/8 bg-black/20 p-2.5",
+  style1880_63: "text-[10px] font-black text-slate-400",
+  style1881_64: "mt-1 block font-mono text-base font-black text-white",
+  style1885_65: "rounded-xl border border-[#14B8A6]/20 bg-black/15 p-2.5",
+  style1886_66: "text-[10px] font-black text-slate-300",
+  style1887_67: "mt-1 block font-mono text-base font-black text-[#14F5D5]",
+  style1890_68: "mt-1 block text-[9px] text-slate-400",
+  style1895_69: "group rounded-lg border border-white/8 bg-black/15",
+  style1896_70: "flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2 text-[10px] font-bold text-slate-400 transition hover:text-slate-200",
+  style1897_71: "flex min-w-0 items-center gap-2",
+  style1898_72: "h-3.5 w-3.5 shrink-0",
+  style1899_73: "truncate",
+  style1901_74: "h-3.5 w-3.5 shrink-0 transition-transform group-open:rotate-180",
+  style1903_75: "border-t border-white/8 p-2",
+  style1908_76: "h-9 w-full rounded-lg border border-white/8 bg-[#1E293B] px-2 text-[10px] font-bold text-slate-300 outline-none",
+  style1916_77: "flex items-center gap-3 rounded-xl border border-[#14B8A6]/25 bg-[#0B1220] p-3",
+  style1917_78: "relative flex h-10 w-10 shrink-0 items-center justify-center",
+  style1920_79: "absolute h-9 w-9 animate-ping rounded-full border border-[#14B8A6]/50",
+  style1921_80: "absolute h-6 w-6 animate-ping rounded-full border border-[#14F5D5]/40 [animation-delay:180ms]",
+  style1924_81: "absolute h-6 w-6 animate-pulse rounded-full bg-[#14B8A6]/20",
+  style1925_82: "relative z-10 h-4 w-4 text-[#14F5D5]",
+  style1927_83: "min-w-0 text-start",
+  style1928_84: "text-xs font-black text-white",
+  style1933_85: "mt-0.5 text-[9px] leading-relaxed text-slate-400",
+  style1941_86: "overflow-hidden rounded-2xl border border-white/10 bg-[#0F172A] shadow-xl",
+  style1942_87: "border-b border-white/10 px-3 py-2 text-[10px] font-black text-[#14F5D5]",
+  style1945_88: "max-h-56 overflow-y-auto",
+  style1951_89: "flex w-full items-start gap-2 border-b border-white/[0.06] px-3 py-3 text-start text-xs font-bold leading-relaxed text-slate-200 transition last:border-b-0 hover:bg-[#14B8A6]/10 hover:text-white",
+  style1953_90: "mt-0.5 h-4 w-4 shrink-0 text-[#14B8A6]",
+  style1962_91: "rounded-xl border border-amber-400/25 bg-amber-400/10 p-3 text-xs font-bold text-amber-100",
+  style1968_92: "rounded-xl border border-[#14B8A6]/25 bg-[#14B8A6]/10 p-3 text-xs font-bold text-[#BFFCF2]",
+  style1975_93: "flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-[#111827]/80 p-3",
+  style1976_94: "flex min-w-0 items-center gap-2.5",
+  style1977_95: "flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#14B8A6]/12 text-[#14F5D5]",
+  style1978_96: "h-4 w-4",
+  style1980_97: "text-xs font-black text-slate-200",
+  style1982_98: "flex h-10 items-center rounded-xl border border-white/10 bg-black/30 p-1",
+  style1987_99: "flex h-8 w-8 items-center justify-center rounded-lg text-slate-300 transition hover:bg-white/8 hover:text-white disabled:cursor-not-allowed disabled:opacity-30",
+  style1990_100: "h-4 w-4",
+  style1992_101: "w-10 text-center font-mono text-sm font-black text-white",
+  style1998_102: "flex h-8 w-8 items-center justify-center rounded-lg text-[#14F5D5] transition hover:bg-[#14B8A6]/12",
+  style2001_103: "h-4 w-4",
+  style2007_104: "rounded-2xl border border-amber-400/25 bg-amber-400/10 p-3 text-xs font-bold leading-relaxed text-amber-100",
+  style2014_105: "overflow-hidden rounded-2xl border bg-[#111827]/90 shadow-xl shadow-black/20 transition-colors",
+  style2015_106: "border-[#14B8A6]/40",
+  style2015_107: "border-white/10",
+  style2018_108: "flex items-center justify-between gap-3 border-b border-white/8 px-3 py-2.5",
+  style2019_109: "flex items-center gap-2",
+  style2022_110: "flex h-8 w-8 items-center justify-center rounded-xl",
+  style2023_111: "bg-[#14B8A6]/15 text-[#14F5D5]",
+  style2023_112: "bg-white/5 text-slate-500",
+  style2026_113: "h-4 w-4",
+  style2026_114: "h-4 w-4",
+  style2029_115: "text-xs font-black text-white",
+  style2030_116: "mt-0.5 text-[9px] text-slate-400",
+  style2035_117: "h-4 w-4 animate-spin text-[#14F5D5]",
+  style2038_118: "space-y-3 p-3",
+  style2039_119: "flex items-start justify-between gap-3",
+  style2040_120: "min-w-0",
+  style2041_121: "block text-[9px] font-black uppercase text-slate-500",
+  style2042_122: "mt-1 block truncate text-sm font-black text-white",
+  style2044_123: "mt-1 block font-mono text-[9px] text-slate-600",
+  style2049_124: "shrink-0 text-end",
+  style2050_125: "block text-[9px] font-black uppercase text-slate-500",
+  style2053_126: "mt-1 block font-mono text-xl font-black text-[#14F5D5]",
+  style2057_127: "grid grid-cols-3 gap-2",
+  style2058_128: "rounded-xl border border-[#14B8A6]/18 bg-[#14B8A6]/8 p-2.5",
+  style2059_129: "mb-1.5 h-3.5 w-3.5 text-[#14F5D5]",
+  style2060_130: "block text-[9px] font-black text-slate-500",
+  style2063_131: "mt-1 block text-xs font-black text-white",
+  style2070_132: "mt-0.5 block text-[8px] leading-tight text-slate-500",
+  style2074_133: "rounded-xl border border-white/8 bg-black/20 p-2.5",
+  style2075_134: "mb-1.5 h-3.5 w-3.5 text-slate-400",
+  style2076_135: "block text-[9px] font-black text-slate-500",
+  style2079_136: "mt-1 block text-xs font-black text-white",
+  style2087_137: "rounded-xl border border-white/8 bg-black/20 p-2.5",
+  style2088_138: "mb-1.5 h-3.5 w-3.5 text-slate-400",
+  style2089_139: "block text-[9px] font-black leading-tight text-slate-500",
+  style2092_140: "mt-1 block text-xs font-black text-white",
+  style2099_141: "rounded-2xl border border-red-500/30 bg-red-950/30 p-3 text-xs font-bold leading-relaxed text-red-100",
+  style2105_142: "text-xs font-bold text-red-500 text-center py-1 animate-pulse",
+  style2112_143: "pt-1",
+  style2124_144: "flex h-14 w-full items-center justify-center gap-2 rounded-2xl px-5 text-base font-black shadow-[0_14px_32px_rgba(20,184,166,0.2)] transition-all duration-300 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14F5D5]/80 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0F1D]",
+  style2126_145: "cursor-not-allowed bg-gray-700 text-gray-400",
+  style2127_146: "cursor-pointer bg-[#14B8A6] text-[#0A0F1D] hover:bg-[#2DD4BF] hover:shadow-[0_22px_48px_rgba(20,184,166,0.32)] disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none",
+  style2130_147: "h-5 w-5 animate-spin",
+  style2130_148: "h-5 w-5",
+  style2148_149: "space-y-4",
+  style2148_150: "text-right",
+  style2148_151: "text-left",
+  style2149_152: "rounded-[24px] border border-amber-400/20 bg-amber-400/10 p-5",
+  style2150_153: "text-[11px] font-black text-amber-200",
+  style2151_154: "mt-2 text-xl font-bold text-white",
+  style2152_155: "mt-3 text-sm leading-relaxed text-slate-300",
+  style2162_156: "h-14 w-full bg-[#14B8A6] text-[#0A0F1D] font-bold text-base py-3.5 rounded-xl transition-transform active:scale-[0.98] hover:bg-[#2DD4BF] flex items-center justify-center cursor-pointer",
+  style2171_157: "space-y-4",
+  style2171_158: "text-right",
+  style2171_159: "text-left",
+  style2172_160: "flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between",
+  style2173_161: "space-y-1",
+  style2174_162: "text-[11px] font-black text-[#14F5D5]",
+  style2175_163: "text-xl font-bold text-white",
+  style2176_164: "text-xs text-slate-400",
+  style2184_165: "h-11 rounded-xl border border-red-500/30 bg-red-600/15 px-4 text-sm font-black text-red-100 hover:bg-red-600/25 flex items-center justify-center gap-1 cursor-pointer",
+  style2186_166: "h-4 w-4",
+  style2192_167: "rounded-2xl border border-white/5 bg-white/5 p-4",
+  style2193_168: "mb-3 text-[11px] font-black text-[#14F5D5]",
+  style2194_169: "grid grid-cols-2 gap-3",
+  style2204_170: "flex min-h-36 flex-col items-center justify-center gap-3 rounded-2xl border border-white/5 bg-white/5",
+  style2205_171: "h-9 w-9 animate-spin text-[#14F5D5]",
+  style2206_172: "px-4 text-center text-xs font-bold leading-relaxed text-slate-300",
+  style2215_173: "space-y-3",
+  style2360_174: "space-y-4",
+  style2360_175: "text-right",
+  style2360_176: "text-left",
+  style2361_177: "flex items-start justify-between gap-3",
+  style2362_178: "space-y-1",
+  style2363_179: "text-[11px] font-black text-[#14F5D5]",
+  style2364_180: "text-xl font-bold text-white",
+  style2367_181: "text-xs text-slate-400",
+  style2369_182: "rounded-2xl border border-white/5 bg-white/5 px-4 py-2 text-center min-w-[100px]",
+  style2370_183: "mx-auto mb-1 h-4 w-4 text-[#14F5D5]",
+  style2371_184: "font-mono text-lg text-[#14F5D5] block",
+  style2374_185: "text-[9px] text-slate-400 block mt-0.5 whitespace-nowrap font-bold",
+  style2382_186: "grid grid-cols-2 gap-3 rounded-2xl border border-white/5 bg-white/5 p-4",
+  style2393_187: "flex flex-col items-center justify-center rounded-2xl border border-emerald-500/20 bg-emerald-950/10 p-5 text-center",
+  style2394_188: "text-2xl font-extrabold text-teal-400 font-mono",
+  style2397_189: "mt-1 text-xs font-bold text-slate-400",
+  style2402_190: "rounded-2xl border border-[#14B8A6]/20 bg-[#14B8A6]/8 p-4 text-xs leading-relaxed text-slate-300",
+  style2410_191: "flex gap-2",
+  style2414_192: "flex h-14 w-14 items-center justify-center rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 text-[#14F5D5] hover:bg-[#14B8A6]/20 transition-colors cursor-pointer",
+  style2417_193: "h-6 w-6",
+  style2450_194: "flex h-14 w-14 items-center justify-center rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 text-[#14F5D5] transition-colors hover:bg-[#14B8A6]/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14F5D5]/60",
+  style2453_195: "h-6 w-6",
+  style2470_196: "h-14 flex-1 bg-red-600/90 hover:bg-red-500 text-white font-bold text-base py-3.5 rounded-xl transition-transform active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-red-600/20",
+  style2472_197: "h-5 w-5 animate-pulse",
+  style2480_198: "h-14 flex-1 border border-red-500/30 bg-red-600/10 hover:bg-red-600/20 text-red-200 font-bold text-base py-3.5 rounded-xl transition-transform active:scale-[0.98] flex items-center justify-center cursor-pointer disabled:opacity-50",
+  style2496_199: "relative h-[calc(100vh-120px)] w-full overflow-hidden text-white lg:h-screen lg:min-h-screen lg:overflow-hidden lg:bg-transparent",
+  style2497_200: "relative h-full w-full lg:block lg:max-w-none",
+  style2498_201: "hidden lg:block lg:absolute lg:inset-0 lg:z-0",
+  style2502_202: "h-full w-full lg:rounded-none lg:border-0",
+  style2512_203: "absolute bottom-0 start-0 end-0 z-10 w-full max-h-full overflow-hidden flex flex-col rounded-t-[32px] rounded-b-none border-t border-white/10 bg-[#0A0F1D]/80 shadow-[0_-10px_25px_rgba(0,0,0,0.5)] backdrop-blur-xl lg:absolute lg:bottom-6 lg:start-auto lg:end-6 lg:top-6 lg:z-40 lg:w-[420px] lg:rounded-[28px] lg:border lg:border-white/10 lg:bg-[#0A0F1D]/80 lg:shadow-[0_30px_100px_rgba(0,0,0,0.45)] lg:backdrop-blur-xl lg:max-h-none lg:rounded-b-[28px] lg:overflow-hidden",
+  style2514_204: "relative z-50 flex items-center justify-between rounded-t-[32px] border-b border-white/5 bg-slate-900/40 px-4 py-3 backdrop-blur-md lg:rounded-t-[28px] lg:px-5",
+  style2516_205: "w-9",
+  style2519_206: "w-12 h-1.5 bg-slate-500/40 rounded-full",
+  style2539_207: "h-9 w-9 flex items-center justify-center rounded-full bg-slate-800 border border-white/20 text-white shadow-md active:scale-95 cursor-pointer hover:bg-slate-700 transition-colors",
+  style2542_208: "h-4 w-4 stroke-[3]",
+  style2547_209: "flex-1 space-y-4 overflow-y-auto px-4 pb-4 pt-3 lg:p-5",
+  style2550_210: "rounded-2xl border border-white/5 bg-white/5 p-4 shadow-xl shadow-black/20 backdrop-blur",
+  style2551_211: "hidden",
+  style2554_212: "mb-3 flex items-center justify-between sm:mb-4",
+  style2556_213: "text-[11px] font-black text-[#14F5D5] tracking-wider",
+  style2557_214: "text-xl font-bold text-white mt-0.5",
+  style2559_215: "h-7 w-7 text-[#14F5D5]",
+  style2562_216: "grid grid-cols-3 gap-2 lg:hidden",
+  style2577_217: "space-y-4",
+  style2577_218: "text-right",
+  style2577_219: "text-left",
+  style2578_220: "space-y-1",
+  style2579_221: "text-[11px] font-black text-[#14F5D5]",
+  style2580_222: "text-xl font-bold text-white",
+  style2581_223: "text-xs leading-relaxed text-slate-400",
+  style2586_224: "grid grid-cols-2 gap-3 rounded-2xl border border-white/5 bg-white/5 p-4",
+  style2600_225: "h-14 w-full bg-[#14B8A6] text-[#0A0F1D] font-bold text-base py-3.5 rounded-xl transition-transform active:scale-[0.98] shadow-lg shadow-[#14B8A6]/20 hover:bg-[#2DD4BF] flex items-center justify-center gap-2 cursor-pointer",
+  style2602_226: "ml-2 h-5 w-5",
+  style2614_227: "hidden overflow-hidden rounded-[24px] border border-[#14B8A6]/15 bg-[#0B0F19]/88 shadow-2xl shadow-black/35 backdrop-blur-xl lg:block",
+  style2632_228: "overflow-hidden rounded-[24px] border border-[#14B8A6]/15 lg:hidden",
+  style2671_229: "max-w-[420px] border border-[#14B8A6]/25 bg-[#0B0F19] text-white shadow-2xl",
+  style2672_230: "text-right",
+  style2672_231: "text-left",
+  style2673_232: "text-xl font-black text-white",
+  style2676_233: "text-sm leading-6 text-slate-300",
+  style2682_234: "mt-2 flex gap-3",
+  style2682_235: "flex-row-reverse",
+  style2682_236: "flex-row",
+  style2686_237: "flex-1 rounded-xl bg-[#14B8A6] py-3 font-black text-[#07111F] hover:bg-[#2DD4BF]",
+  style2694_238: "rounded-xl border-white/15 bg-white/5 px-5 text-white hover:bg-white/10",
+  style3069_239: "min-w-0 space-y-1",
+  style3070_240: "block text-[10px] font-bold text-slate-500",
+  style3071_241: "block truncate text-xs font-black text-white",
+  style3092_242: "flex items-center justify-between gap-3",
+  style3093_243: "min-w-0",
+  style3094_244: "block text-[10px] font-bold text-slate-500",
+  style3095_245: "block truncate text-xs font-black text-white",
+  style3101_246: "inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 text-[#14F5D5] transition hover:bg-[#14B8A6]/20",
+  style3375_247: "h-10 rounded-xl border text-xs font-black transition",
+  style3377_248: "border-[#14B8A6]/45 bg-[#14B8A6]/15 text-[#14F5D5]",
+  style3378_249: "border-white/10 bg-black/20 text-slate-400 hover:border-[#14B8A6]/25 hover:text-white",
+} as const;
+
+const RiderMap = dynamic(() => import('./rider-map').then(m => m.RiderMap), { ssr: false });
 import {
   type RiderActiveTrip,
   type RiderDestination,
   useRiderDashboardMachine,
-} from './rider/rider-state-machine';
+} from '../state/rider-state-machine';
 import {
   acceptRideOffer,
   buildRideRequestInsertPayload,
@@ -73,8 +326,8 @@ import {
   subscribeToRideOffers,
   subscribeToRideRequestStatus,
   type CaptainPresencePoint,
-} from './rider/rider-server-marketplace';
-import { CaptainOfferCard, type CaptainOffer, type CaptainRank } from './rider/captain-offer-card';
+} from '../services/rider-server-marketplace';
+import { CaptainOfferCard, type CaptainOffer, type CaptainRank } from './captain-offer-card';
 
 const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
 const H3_RIDER_REQUEST_RESOLUTION = 9;
@@ -1545,22 +1798,22 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
           : copy.notAvailable;
 
       return (
-        <div className="space-y-3 pb-20 lg:pb-4" dir={isArabic ? 'rtl' : 'ltr'}>
-            <div className="space-y-3">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-[11px] font-black text-[#14F5D5]">{copy.destinationEyebrow}</p>
-                  <h2 className="mt-1 text-2xl font-black leading-tight text-white">{copy.whereTo}</h2>
-                  <p className="mt-1 text-xs leading-relaxed text-slate-400">{locationCopy('flow_helper')}</p>
+        <div className={styles.style1548_1} dir={isArabic ? 'rtl' : 'ltr'}>
+            <div className={styles.style1549_2}>
+              <div className={styles.style1550_3}>
+                <div className={styles.style1551_4}>
+                  <p className={styles.style1552_5}>{copy.destinationEyebrow}</p>
+                  <h2 className={styles.style1553_6}>{copy.whereTo}</h2>
+                  <p className={styles.style1554_7}>{locationCopy('flow_helper')}</p>
                 </div>
                 {countryConfig?.name_ar || countryConfig?.name_en ? (
-                  <span className="shrink-0 rounded-full border border-[#14B8A6]/25 bg-[#14B8A6]/10 px-3 py-1.5 text-[10px] font-black text-[#14F5D5]">
+                  <span className={styles.style1557_8}>
                     {isArabic ? countryConfig.name_ar || countryConfig.name_en : countryConfig.name_en || countryConfig.name_ar}
                   </span>
                 ) : null}
               </div>
 
-              <div className="grid grid-cols-3 gap-1.5" aria-label={locationCopy('progress_label')}>
+              <div className={styles.style1563_9} aria-label={locationCopy('progress_label')}>
                 {[
                   { label: locationCopy('progress_area'), complete: !!selectedDistrict },
                   { label: locationCopy('progress_location'), complete: hasImportedLocation || selectedDestinationHasCoords },
@@ -1569,27 +1822,27 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                   <div
                     key={step.label}
                     className={cn(
-                      'flex min-w-0 items-center gap-1.5 rounded-lg border px-2 py-2 text-[9px] font-black transition-colors',
+                      styles.style1572_10,
                       step.complete
-                        ? 'border-[#14B8A6]/30 bg-[#14B8A6]/12 text-[#BFFCF2]'
-                        : 'border-white/8 bg-white/[0.03] text-slate-500',
+                        ? styles.style1574_11
+                        : styles.style1575_12,
                     )}
                   >
                     <span
                       className={cn(
-                        'flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[8px]',
-                        step.complete ? 'bg-[#14B8A6] text-[#061316]' : 'bg-slate-800 text-slate-400',
+                        styles.style1580_13,
+                        step.complete ? styles.style1581_14 : styles.style1581_15,
                       )}
                     >
-                      {step.complete ? <Check className="h-2.5 w-2.5 stroke-[3]" /> : index + 1}
+                      {step.complete ? <Check className={styles.style1584_16} /> : index + 1}
                     </span>
-                    <span className="truncate">{step.label}</span>
+                    <span className={styles.style1586_17}>{step.label}</span>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="grid gap-3">
+            <div className={styles.style1592_18}>
               {/* <div className="space-y-2">
                 <span className="block text-[11px] font-black text-slate-400">{destinationSearchCopy('label')}</span>
                 <form
@@ -1734,25 +1987,25 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                 ) : null}
               </div> */}
 
-              <section className="rounded-2xl border border-white/10 bg-[#111827]/80 p-3 shadow-lg shadow-black/15">
-                <div className="mb-3 flex items-start gap-2.5">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#14B8A6]/12 text-[#14F5D5]">
-                    <MapPin className="h-4 w-4" />
+              <section className={styles.style1737_19}>
+                <div className={styles.style1738_20}>
+                  <span className={styles.style1739_21}>
+                    <MapPin className={styles.style1740_22} />
                   </span>
-                  <div className="min-w-0">
-                    <h3 className="text-xs font-black text-white">{locationCopy('area_title')}</h3>
-                    <p className="mt-0.5 text-[10px] leading-relaxed text-slate-400">{locationCopy('area_helper')}</p>
+                  <div className={styles.style1742_23}>
+                    <h3 className={styles.style1743_24}>{locationCopy('area_title')}</h3>
+                    <p className={styles.style1744_25}>{locationCopy('area_helper')}</p>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
-                  <label className="min-w-0 space-y-1.5">
-                    <span className="block text-[10px] font-black text-slate-400">{copy.governorate}</span>
+                <div className={styles.style1748_26}>
+                  <label className={styles.style1749_27}>
+                    <span className={styles.style1750_28}>{copy.governorate}</span>
                     <select
                       value={selectedGovernorateId}
                       onChange={(event) => handleGovernorateChange(event.target.value)}
                       disabled={isLoadingGovernorates || destinationGovernorates.length === 0}
-                      className="h-11 w-full min-w-0 rounded-xl border border-white/10 bg-black/35 px-3 text-xs font-black text-white outline-none transition focus:border-[#14B8A6]/60"
+                      className={styles.style1755_29}
                     >
                       {destinationGovernorates.length === 0 ? (
                         <option value="">{isLoadingGovernorates ? copy.loading : copy.noGovernorates}</option>
@@ -1765,13 +2018,13 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                     </select>
                   </label>
 
-                  <label className="min-w-0 space-y-1.5">
-                    <span className="block text-[10px] font-black text-slate-400">{copy.district}</span>
+                  <label className={styles.style1768_30}>
+                    <span className={styles.style1769_31}>{copy.district}</span>
                     <select
                       value={selectedDistrict?.id || ''}
                       onChange={(event) => handleDistrictChange(event.target.value)}
                       disabled={isLoadingDistricts || availableDistricts.length === 0}
-                      className="h-11 w-full min-w-0 rounded-xl border border-white/10 bg-black/35 px-3 text-xs font-black text-white outline-none transition focus:border-[#14B8A6]/60"
+                      className={styles.style1774_32}
                     >
                       {availableDistricts.length === 0 ? (
                         <option value="">{isLoadingDistricts ? copy.loading : copy.noDistricts}</option>
@@ -1785,13 +2038,13 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                   </label>
                 </div>
               </section>
-              <section className="space-y-3 rounded-2xl border border-white/10 bg-[#111827]/80 p-3 shadow-lg shadow-black/15">
+              <section className={styles.style1788_33}>
                 <div>
-                  <div className="mb-2.5 flex items-start gap-2.5">
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#14B8A6]/15 text-xs font-black text-[#14F5D5]">1</span>
+                  <div className={styles.style1790_34}>
+                    <span className={styles.style1791_35}>1</span>
                     <div>
-                      <p className="text-xs font-black text-white">{locationCopy('step_search_title')}</p>
-                      <p className="mt-1 text-[11px] leading-relaxed text-slate-400">{locationCopy('step_search_helper')}</p>
+                      <p className={styles.style1793_36}>{locationCopy('step_search_title')}</p>
+                      <p className={styles.style1794_37}>{locationCopy('step_search_helper')}</p>
                     </div>
                   </div>
                   <form
@@ -1799,10 +2052,10 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                       event.preventDefault();
                       handleOpenGoogleMapsSearch();
                     }}
-                    className="flex gap-2"
+                    className={styles.style1802_38}
                   >
-                    <div className="relative min-w-0 flex-1">
-                      <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#14B8A6]" />
+                    <div className={styles.style1804_39}>
+                      <Search className={styles.style1805_40} />
                       <input
                         type="search"
                         value={destinationSearchQuery}
@@ -1815,7 +2068,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                           setIsCaptainScanPreviewActive(false);
                         }}
                         placeholder={locationCopy('placeholder_landmark')}
-                        className="h-11 w-full rounded-xl border border-white/10 bg-black/40 pe-3 ps-10 text-sm font-bold text-white outline-none transition placeholder:text-slate-500 focus:border-[#14B8A6]/60"
+                        className={styles.style1818_41}
                       />
                     </div>
                     <button
@@ -1823,31 +2076,31 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                       disabled={destinationSearchQuery.trim().length < 2}
                       aria-label={locationCopy('btn_open_google_maps')}
                       title={locationCopy('btn_open_google_maps')}
-                      className="flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#14B8A6] px-3 text-sm font-black text-[#031315] transition hover:bg-[#2DD4BF] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#14F5D5] disabled:cursor-not-allowed disabled:opacity-50"
+                      className={styles.style1826_42}
                     >
-                      <Search className="h-4 w-4" />
-                      <span className="hidden sm:inline">
+                      <Search className={styles.style1828_43} />
+                      <span className={styles.style1829_44}>
                         {locationCopy('btn_open_google_maps')}
                       </span>
                     </button>
                   </form>
                 </div>
 
-                <div className="border-t border-white/8 pt-3">
-                  <div className="mb-2.5 flex items-start gap-2.5">
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#14B8A6]/15 text-xs font-black text-[#14F5D5]">2</span>
+                <div className={styles.style1836_45}>
+                  <div className={styles.style1837_46}>
+                    <span className={styles.style1838_47}>2</span>
                     <div>
-                      <p className="text-xs font-black text-white">{locationCopy('step_confirm_title')}</p>
-                      <p className="mt-1 text-[11px] leading-relaxed text-slate-400">{locationCopy('step_confirm_helper')}</p>
+                      <p className={styles.style1840_48}>{locationCopy('step_confirm_title')}</p>
+                      <p className={styles.style1841_49}>{locationCopy('step_confirm_helper')}</p>
                     </div>
                   </div>
                   <button
                     type="button"
                     onClick={handleConfirmClipboardLocation}
                     disabled={isReadingClipboardLocation}
-                    className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-[#14B8A6]/35 bg-[#14B8A6]/12 px-4 text-xs font-black text-[#BFFCF2] transition-all duration-300 hover:bg-[#14B8A6]/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#14F5D5] disabled:cursor-not-allowed disabled:opacity-60"
+                    className={styles.style1848_50}
                   >
-                    {isReadingClipboardLocation ? <Loader2 className="h-5 w-5 animate-spin" /> : <MapPin className="h-5 w-5" />}
+                    {isReadingClipboardLocation ? <Loader2 className={styles.style1850_51} /> : <MapPin className={styles.style1850_52} />}
                     <span>
                       {isReadingClipboardLocation
                         ? locationCopy('status_reading_clipboard')
@@ -1857,55 +2110,55 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                 </div>
 
                 {externalLocationUrl ? (
-                  <div className="space-y-3 rounded-xl border border-[#14B8A6]/35 bg-[#14B8A6]/8 p-3 shadow-lg shadow-[#14B8A6]/5">
-                    <div className="flex items-start gap-2.5 text-[#14F5D5]">
-                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#14B8A6]/15">
-                        <CheckCircle2 className="h-4 w-4" />
+                  <div className={styles.style1860_53}>
+                    <div className={styles.style1861_54}>
+                      <span className={styles.style1862_55}>
+                        <CheckCircle2 className={styles.style1863_56} />
                       </span>
-                      <div className="min-w-0">
-                        <strong className="block text-xs font-black">{locationCopy('result_title')}</strong>
-                        <p className="mt-0.5 text-[10px] leading-relaxed text-slate-400">
+                      <div className={styles.style1865_57}>
+                        <strong className={styles.style1866_58}>{locationCopy('result_title')}</strong>
+                        <p className={styles.style1867_59}>
                           {locationCopy('confirmed_location_helper')}
                         </p>
                       </div>
                     </div>
 
                     {isRouteEstimateLoading ? (
-                      <div className="rounded-xl border border-[#14B8A6]/20 bg-[#14B8A6]/10 px-3 py-3 text-xs font-bold text-[#BFFCF2]" role="status">
+                      <div className={styles.style1874_60} role="status">
                         {locationCopy('status_calculating_route')}
                       </div>
                     ) : currentRouteEstimate ? (
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="rounded-xl border border-white/8 bg-black/20 p-2.5">
-                          <span className="text-[10px] font-black text-slate-400">{locationCopy('lbl_calculated_distance')}</span>
-                          <strong className="mt-1 block font-mono text-base font-black text-white">
+                      <div className={styles.style1878_61}>
+                        <div className={styles.style1879_62}>
+                          <span className={styles.style1880_63}>{locationCopy('lbl_calculated_distance')}</span>
+                          <strong className={styles.style1881_64}>
                             {currentRouteEstimate.distanceKm.toFixed(1)} {locationCopy('unit_km')}
                           </strong>
                         </div>
-                        <div className="rounded-xl border border-[#14B8A6]/20 bg-black/15 p-2.5">
-                          <span className="text-[10px] font-black text-slate-300">{locationCopy('lbl_estimated_duration')}</span>
-                          <strong className="mt-1 block font-mono text-base font-black text-[#14F5D5]">
+                        <div className={styles.style1885_65}>
+                          <span className={styles.style1886_66}>{locationCopy('lbl_estimated_duration')}</span>
+                          <strong className={styles.style1887_67}>
                             {formatDurationLabel(currentRouteEstimate.durationMinutes, language)}
                           </strong>
-                          <span className="mt-1 block text-[9px] text-slate-400">{locationCopy('helper_without_traffic')}</span>
+                          <span className={styles.style1890_68}>{locationCopy('helper_without_traffic')}</span>
                         </div>
                       </div>
                     ) : null}
 
-                    <details className="group rounded-lg border border-white/8 bg-black/15">
-                      <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2 text-[10px] font-bold text-slate-400 transition hover:text-slate-200">
-                        <span className="flex min-w-0 items-center gap-2">
-                          <ExternalLink className="h-3.5 w-3.5 shrink-0" />
-                          <span className="truncate">{locationCopy('show_copied_link')}</span>
+                    <details className={styles.style1895_69}>
+                      <summary className={styles.style1896_70}>
+                        <span className={styles.style1897_71}>
+                          <ExternalLink className={styles.style1898_72} />
+                          <span className={styles.style1899_73}>{locationCopy('show_copied_link')}</span>
                         </span>
-                        <ChevronDown className="h-3.5 w-3.5 shrink-0 transition-transform group-open:rotate-180" />
+                        <ChevronDown className={styles.style1901_74} />
                       </summary>
-                      <div className="border-t border-white/8 p-2">
+                      <div className={styles.style1903_75}>
                         <input
                           value={externalLocationUrl}
                           readOnly
                           aria-label={locationCopy('lbl_google_maps_url')}
-                          className="h-9 w-full rounded-lg border border-white/8 bg-[#1E293B] px-2 text-[10px] font-bold text-slate-300 outline-none"
+                          className={styles.style1908_76}
                         />
                       </div>
                     </details>
@@ -1913,24 +2166,24 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                 ) : null}
 
                 {isCaptainScanPreviewActive ? (
-                  <div className="flex items-center gap-3 rounded-xl border border-[#14B8A6]/25 bg-[#0B1220] p-3" role="status">
-                    <div className="relative flex h-10 w-10 shrink-0 items-center justify-center">
+                  <div className={styles.style1916_77} role="status">
+                    <div className={styles.style1917_78}>
                       {mappedCaptains.length === 0 ? (
                         <>
-                          <span className="absolute h-9 w-9 animate-ping rounded-full border border-[#14B8A6]/50" />
-                          <span className="absolute h-6 w-6 animate-ping rounded-full border border-[#14F5D5]/40 [animation-delay:180ms]" />
+                          <span className={styles.style1920_79} />
+                          <span className={styles.style1921_80} />
                         </>
                       ) : null}
-                      <span className="absolute h-6 w-6 animate-pulse rounded-full bg-[#14B8A6]/20" />
-                      <Search className="relative z-10 h-4 w-4 text-[#14F5D5]" />
+                      <span className={styles.style1924_81} />
+                      <Search className={styles.style1925_82} />
                     </div>
-                    <div className="min-w-0 text-start">
-                      <p className="text-xs font-black text-white">
+                    <div className={styles.style1927_83}>
+                      <p className={styles.style1928_84}>
                         {mappedCaptains.length > 0
                           ? locationCopy('captains_found', { count: mappedCaptains.length })
                           : locationCopy('status_scanning_captains')}
                       </p>
-                      <p className="mt-0.5 text-[9px] leading-relaxed text-slate-400">
+                      <p className={styles.style1933_85}>
                         {locationCopy('captain_search_origin_helper')}
                       </p>
                     </div>
@@ -1938,19 +2191,19 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                 ) : null}
 
                 {destinationSearchResults.length > 0 ? (
-                  <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#0F172A] shadow-xl">
-                    <p className="border-b border-white/10 px-3 py-2 text-[10px] font-black text-[#14F5D5]">
+                  <div className={styles.style1941_86}>
+                    <p className={styles.style1942_87}>
                       {destinationSearchCopy('results')}
                     </p>
-                    <div className="max-h-56 overflow-y-auto">
+                    <div className={styles.style1945_88}>
                       {destinationSearchResults.map((result) => (
                         <button
                           key={result.placeId}
                           type="button"
                           onClick={() => handleDestinationSearchResult(result)}
-                          className="flex w-full items-start gap-2 border-b border-white/[0.06] px-3 py-3 text-start text-xs font-bold leading-relaxed text-slate-200 transition last:border-b-0 hover:bg-[#14B8A6]/10 hover:text-white"
+                          className={styles.style1951_89}
                         >
-                          <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#14B8A6]" />
+                          <MapPin className={styles.style1953_90} />
                           <span>{result.label}</span>
                         </button>
                       ))}
@@ -1959,124 +2212,124 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                 ) : null}
 
                 {destinationSearchStatus === 'empty' || destinationSearchStatus === 'error' ? (
-                  <p className="rounded-xl border border-amber-400/25 bg-amber-400/10 p-3 text-xs font-bold text-amber-100" role="status">
+                  <p className={styles.style1962_91} role="status">
                     {destinationSearchStatus === 'empty' ? destinationSearchCopy('noResults') : destinationSearchCopy('error')}
                   </p>
                 ) : null}
 
                 {destinationSearchStatus === 'selected' ? (
-                  <p className="rounded-xl border border-[#14B8A6]/25 bg-[#14B8A6]/10 p-3 text-xs font-bold text-[#BFFCF2]" role="status">
+                  <p className={styles.style1968_92} role="status">
                     {destinationSearchCopy('selected')}
                   </p>
                 ) : null}
               </section>
             </div>
 
-            <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-[#111827]/80 p-3">
-              <div className="flex min-w-0 items-center gap-2.5">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#14B8A6]/12 text-[#14F5D5]">
-                  <Users className="h-4 w-4" />
+            <div className={styles.style1975_93}>
+              <div className={styles.style1976_94}>
+                <span className={styles.style1977_95}>
+                  <Users className={styles.style1978_96} />
                 </span>
-                <span className="text-xs font-black text-slate-200">{locationCopy('passengers_label')}</span>
+                <span className={styles.style1980_97}>{locationCopy('passengers_label')}</span>
               </div>
-              <div className="flex h-10 items-center rounded-xl border border-white/10 bg-black/30 p-1">
+              <div className={styles.style1982_98}>
                 <button
                   type="button"
                   onClick={() => setRiderCount((current) => Math.max(1, current - 1))}
                   disabled={riderCount <= 1}
-                  className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-300 transition hover:bg-white/8 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+                  className={styles.style1987_99}
                   aria-label="-"
                 >
-                  <Minus className="h-4 w-4" />
+                  <Minus className={styles.style1990_100} />
                 </button>
-                <output className="w-10 text-center font-mono text-sm font-black text-white" aria-live="polite">
+                <output className={styles.style1992_101} aria-live="polite">
                   {riderCount}
                 </output>
                 <button
                   type="button"
                   onClick={() => setRiderCount((current) => current + 1)}
-                  className="flex h-8 w-8 items-center justify-center rounded-lg text-[#14F5D5] transition hover:bg-[#14B8A6]/12"
+                  className={styles.style1998_102}
                   aria-label="+"
                 >
-                  <Plus className="h-4 w-4" />
+                  <Plus className={styles.style2001_103} />
                 </button>
               </div>
             </div>
 
             {destinationDataError ? (
-              <div className="rounded-2xl border border-amber-400/25 bg-amber-400/10 p-3 text-xs font-bold leading-relaxed text-amber-100">
+              <div className={styles.style2007_104}>
                 {destinationDataError}
               </div>
             ) : null}
 
             <section
               className={cn(
-                'overflow-hidden rounded-2xl border bg-[#111827]/90 shadow-xl shadow-black/20 transition-colors',
-                destinationReady ? 'border-[#14B8A6]/40' : 'border-white/10',
+                styles.style2014_105,
+                destinationReady ? styles.style2015_106 : styles.style2015_107,
               )}
             >
-              <div className="flex items-center justify-between gap-3 border-b border-white/8 px-3 py-2.5">
-                <div className="flex items-center gap-2">
+              <div className={styles.style2018_108}>
+                <div className={styles.style2019_109}>
                   <span
                     className={cn(
-                      'flex h-8 w-8 items-center justify-center rounded-xl',
-                      destinationReady ? 'bg-[#14B8A6]/15 text-[#14F5D5]' : 'bg-white/5 text-slate-500',
+                      styles.style2022_110,
+                      destinationReady ? styles.style2023_111 : styles.style2023_112,
                     )}
                   >
-                    {destinationReady ? <CheckCircle2 className="h-4 w-4" /> : <Route className="h-4 w-4" />}
+                    {destinationReady ? <CheckCircle2 className={styles.style2026_113} /> : <Route className={styles.style2026_114} />}
                   </span>
                   <div>
-                    <h3 className="text-xs font-black text-white">{locationCopy('trip_summary_title')}</h3>
-                    <p className="mt-0.5 text-[9px] text-slate-400">
+                    <h3 className={styles.style2029_115}>{locationCopy('trip_summary_title')}</h3>
+                    <p className={styles.style2030_116}>
                       {destinationReady ? locationCopy('ready_to_request') : locationCopy('map_adjust_helper')}
                     </p>
                   </div>
                 </div>
-                {isServerFareLoading || isDestinationPinMoving ? <Loader2 className="h-4 w-4 animate-spin text-[#14F5D5]" /> : null}
+                {isServerFareLoading || isDestinationPinMoving ? <Loader2 className={styles.style2035_117} /> : null}
               </div>
 
-              <div className="space-y-3 p-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <span className="block text-[9px] font-black uppercase text-slate-500">{copy.destination}</span>
-                    <strong className="mt-1 block truncate text-sm font-black text-white">{destinationLabel}</strong>
+              <div className={styles.style2038_118}>
+                <div className={styles.style2039_119}>
+                  <div className={styles.style2040_120}>
+                    <span className={styles.style2041_121}>{copy.destination}</span>
+                    <strong className={styles.style2042_122}>{destinationLabel}</strong>
                     {selectedDistrict?.anchor && selectedDestinationCoords ? (
-                      <span className="mt-1 block font-mono text-[9px] text-slate-600">
+                      <span className={styles.style2044_123}>
                         {selectedDestinationCoords.lat.toFixed(4)}, {selectedDestinationCoords.lng.toFixed(4)}
                       </span>
                     ) : null}
                   </div>
-                  <div className="shrink-0 text-end">
-                    <span className="block text-[9px] font-black uppercase text-slate-500">
+                  <div className={styles.style2049_124}>
+                    <span className={styles.style2050_125}>
                       {locationCopy('lbl_estimated_fare')}
                     </span>
-                    <strong className="mt-1 block font-mono text-xl font-black text-[#14F5D5]">{serverFareLabel}</strong>
+                    <strong className={styles.style2053_126}>{serverFareLabel}</strong>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="rounded-xl border border-[#14B8A6]/18 bg-[#14B8A6]/8 p-2.5">
-                    <Clock className="mb-1.5 h-3.5 w-3.5 text-[#14F5D5]" />
-                    <span className="block text-[9px] font-black text-slate-500">
+                <div className={styles.style2057_127}>
+                  <div className={styles.style2058_128}>
+                    <Clock className={styles.style2059_129} />
+                    <span className={styles.style2060_130}>
                       {copy.estimatedDuration || locationCopy('lbl_estimated_duration')}
                     </span>
-                    <strong className="mt-1 block text-xs font-black text-white">
+                    <strong className={styles.style2063_131}>
                       {isRouteEstimateLoading
                         ? locationCopy('status_calculating_route')
                         : estimatedDurationMinutes !== null
                           ? formatDurationLabel(estimatedDurationMinutes, language)
                           : copy.notAvailable}
                     </strong>
-                    <span className="mt-0.5 block text-[8px] leading-tight text-slate-500">
+                    <span className={styles.style2070_132}>
                       {copy.withoutTrafficDelays || locationCopy('helper_without_traffic')}
                     </span>
                   </div>
-                  <div className="rounded-xl border border-white/8 bg-black/20 p-2.5">
-                    <Route className="mb-1.5 h-3.5 w-3.5 text-slate-400" />
-                    <span className="block text-[9px] font-black text-slate-500">
+                  <div className={styles.style2074_133}>
+                    <Route className={styles.style2075_134} />
+                    <span className={styles.style2076_135}>
                       {copy.estimatedDistance || locationCopy('lbl_calculated_distance')}
                     </span>
-                    <strong className="mt-1 block text-xs font-black text-white">
+                    <strong className={styles.style2079_136}>
                       {isRouteEstimateLoading
                         ? locationCopy('status_calculating_route')
                         : estimatedDistanceKm !== null
@@ -2084,32 +2337,32 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                           : copy.notAvailable}
                     </strong>
                   </div>
-                  <div className="rounded-xl border border-white/8 bg-black/20 p-2.5">
-                    <Users className="mb-1.5 h-3.5 w-3.5 text-slate-400" />
-                    <span className="block text-[9px] font-black leading-tight text-slate-500">
+                  <div className={styles.style2087_137}>
+                    <Users className={styles.style2088_138} />
+                    <span className={styles.style2089_139}>
                       {locationCopy('nearby_captains_label')}
                     </span>
-                    <strong className="mt-1 block text-xs font-black text-white">{mappedCaptains.length}</strong>
+                    <strong className={styles.style2092_140}>{mappedCaptains.length}</strong>
                   </div>
                 </div>
               </div>
             </section>
 
             {serverFareError && (
-              <div className="rounded-2xl border border-red-500/30 bg-red-950/30 p-3 text-xs font-bold leading-relaxed text-red-100">
+              <div className={styles.style2099_141}>
                 {serverFareError}
               </div>
             )}
 
             {isSameLocation && (
-              <div className="text-xs font-bold text-red-500 text-center py-1 animate-pulse">
+              <div className={styles.style2105_142}>
                 {language === 'ar'
                   ? 'لا يمكن أن تكون الوجهة هي نفس موقع الانطلاق.'
                   : 'Destination cannot be the same as origin location.'}
               </div>
             )}
 
-            <div className="pt-1">
+            <div className={styles.style2112_143}>
               <button
                 onClick={handleSendRequest}
                 disabled={
@@ -2121,13 +2374,13 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                   isSameLocation
                 }
                 className={cn(
-                  "flex h-14 w-full items-center justify-center gap-2 rounded-2xl px-5 text-base font-black shadow-[0_14px_32px_rgba(20,184,166,0.2)] transition-all duration-300 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14F5D5]/80 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0F1D]",
+                  styles.style2124_144,
                   isSameLocation
-                    ? "cursor-not-allowed bg-gray-700 text-gray-400"
-                    : "cursor-pointer bg-[#14B8A6] text-[#0A0F1D] hover:bg-[#2DD4BF] hover:shadow-[0_22px_48px_rgba(20,184,166,0.32)] disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none"
+                    ? styles.style2126_145
+                    : styles.style2127_146
                 )}
               >
-                {isSendingRideRequest ? <Loader2 className="h-5 w-5 animate-spin" /> : <Navigation className="h-5 w-5" />}
+                {isSendingRideRequest ? <Loader2 className={styles.style2130_147} /> : <Navigation className={styles.style2130_148} />}
                 {isSendingRideRequest ? copy.sendingRequest : copy.requestNow}
               </button>
             </div>
@@ -2145,11 +2398,11 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
 
       if (isCancelled) {
         return (
-          <div className={`space-y-4 ${isArabic ? 'text-right' : 'text-left'}`} dir={isArabic ? 'rtl' : 'ltr'}>
-            <div className="rounded-[24px] border border-amber-400/20 bg-amber-400/10 p-5">
-              <p className="text-[11px] font-black text-amber-200">{copy.noOffersEyebrow}</p>
-              <h2 className="mt-2 text-xl font-bold text-white">{copy.noOffersTitle}</h2>
-              <p className="mt-3 text-sm leading-relaxed text-slate-300">
+          <div className={cn(styles.style2148_149, isArabic ? styles.style2148_150 : styles.style2148_151)} dir={isArabic ? 'rtl' : 'ltr'}>
+            <div className={styles.style2149_152}>
+              <p className={styles.style2150_153}>{copy.noOffersEyebrow}</p>
+              <h2 className={styles.style2151_154}>{copy.noOffersTitle}</h2>
+              <p className={styles.style2152_155}>
                 {copy.noOffersDescription}
               </p>
             </div>
@@ -2159,7 +2412,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                 dispatch({ type: 'RESET_TO_IDLE' });
                 window.setTimeout(openDestination, 0);
               }}
-              className="h-14 w-full bg-[#14B8A6] text-[#0A0F1D] font-bold text-base py-3.5 rounded-xl transition-transform active:scale-[0.98] hover:bg-[#2DD4BF] flex items-center justify-center cursor-pointer"
+              className={styles.style2162_156}
             >
               {copy.retry}
             </button>
@@ -2168,12 +2421,12 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
       }
 
       return (
-        <div className={`space-y-4 ${isArabic ? 'text-right' : 'text-left'}`} dir={isArabic ? 'rtl' : 'ltr'}>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div className="space-y-1">
-              <p className="text-[11px] font-black text-[#14F5D5]">{hasOffers ? copy.offersArrived : copy.searchingCaptain}</p>
-              <h2 className="text-xl font-bold text-white">{hasOffers ? copy.chooseCaptain : copy.requestVisibleTitle}</h2>
-              <p className="text-xs text-slate-400">
+        <div className={cn(styles.style2171_157, isArabic ? styles.style2171_158 : styles.style2171_159)} dir={isArabic ? 'rtl' : 'ltr'}>
+          <div className={styles.style2172_160}>
+            <div className={styles.style2173_161}>
+              <p className={styles.style2174_162}>{hasOffers ? copy.offersArrived : copy.searchingCaptain}</p>
+              <h2 className={styles.style2175_163}>{hasOffers ? copy.chooseCaptain : copy.requestVisibleTitle}</h2>
+              <p className={styles.style2176_164}>
                 {hasOffers ? copy.chooseOfferDescription : copy.waitingOffersDescription}
               </p>
             </div>
@@ -2181,17 +2434,17 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
               type="button"
               onClick={() => void handleCancelRideRequest()}
               disabled={isCancellingRideRequest}
-              className="h-11 rounded-xl border border-red-500/30 bg-red-600/15 px-4 text-sm font-black text-red-100 hover:bg-red-600/25 flex items-center justify-center gap-1 cursor-pointer"
+              className={styles.style2184_165}
             >
-              <X className="h-4 w-4" />
+              <X className={styles.style2186_166} />
               {isCancellingRideRequest ? requestFlowCopy.cancellingRequest : requestFlowCopy.cancelRequest}
             </button>
           </div>
 
           {state.requestId ? (
-            <div className="rounded-2xl border border-white/5 bg-white/5 p-4">
-              <p className="mb-3 text-[11px] font-black text-[#14F5D5]">{copy.savedRequestTitle}</p>
-              <div className="grid grid-cols-2 gap-3">
+            <div className={styles.style2192_167}>
+              <p className={styles.style2193_168}>{copy.savedRequestTitle}</p>
+              <div className={styles.style2194_169}>
                 <Metric label={copy.requestNumber} value={shortRequestId} />
                 <Metric label={copy.requestStatus} value={copy.savedInDatabase} />
                 <Metric label={copy.destination} value={state.destination?.label || copy.notAvailable} />
@@ -2201,9 +2454,9 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
           ) : null}
 
           {!hasOffers ? (
-            <div className="flex min-h-36 flex-col items-center justify-center gap-3 rounded-2xl border border-white/5 bg-white/5">
-              <Loader2 className="h-9 w-9 animate-spin text-[#14F5D5]" />
-              <span className="px-4 text-center text-xs font-bold leading-relaxed text-slate-300">
+            <div className={styles.style2204_170}>
+              <Loader2 className={styles.style2205_171} />
+              <span className={styles.style2206_172}>
                 {isExpandingCaptainSearch
                   ? (copy.expandingSearchRadius || (language === 'ar' ? 'لم تصل عروض بعد. يتم توسيع نطاق البحث تلقائياً إلى 2.5 كم...' : 'No offers yet. Expanding the search radius to 2.5 km...'))
                   : captainSearchRadiusKm > 1.5
@@ -2212,7 +2465,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
               </span>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className={styles.style2215_173}>
               {state.offers.map((offer) => {
                 const captain = captainLocations.find((c) => c.id === offer.driverId || c.serial === offer.driverName);
                 let realDistance = offer.distance_to_rider;
@@ -2357,21 +2610,21 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
       const tripHasStarted = isTripStartedStatus(activeTripStatus);
 
       return (
-        <div className={`space-y-4 ${isArabic ? 'text-right' : 'text-left'}`} dir={isArabic ? 'rtl' : 'ltr'}>
-          <div className="flex items-start justify-between gap-3">
-            <div className="space-y-1">
-              <p className="text-[11px] font-black text-[#14F5D5]">{copy.tripStarted}</p>
-              <h2 className="text-xl font-bold text-white">
+        <div className={cn(styles.style2360_174, isArabic ? styles.style2360_175 : styles.style2360_176)} dir={isArabic ? 'rtl' : 'ltr'}>
+          <div className={styles.style2361_177}>
+            <div className={styles.style2362_178}>
+              <p className={styles.style2363_179}>{copy.tripStarted}</p>
+              <h2 className={styles.style2364_180}>
                 {state.activeTrip.captain?.full_name || state.activeTrip.captain?.name || state.activeTrip.captainName || "كابتن حركي"}
               </h2>
-              <p className="text-xs text-slate-400">{state.activeTrip.destinationLabel}</p>
+              <p className={styles.style2367_181}>{state.activeTrip.destinationLabel}</p>
             </div>
-            <div className="rounded-2xl border border-white/5 bg-white/5 px-4 py-2 text-center min-w-[100px]">
-              <Clock className="mx-auto mb-1 h-4 w-4 text-[#14F5D5]" />
-              <strong className="font-mono text-lg text-[#14F5D5] block">
+            <div className={styles.style2369_182}>
+              <Clock className={styles.style2370_183} />
+              <strong className={styles.style2371_184}>
                 {minutes}:{seconds.toString().padStart(2, '0')}
               </strong>
-              <span className="text-[9px] text-slate-400 block mt-0.5 whitespace-nowrap font-bold">
+              <span className={styles.style2374_185}>
                 {tripHasStarted
                   ? (language === 'ar' ? 'متبقي للوصول' : 'Time Remaining')
                   : (language === 'ar' ? 'وصول الكابتن' : 'Driver Arrival')}
@@ -2379,7 +2632,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 rounded-2xl border border-white/5 bg-white/5 p-4">
+          <div className={styles.style2382_186}>
             <Metric
               label={copy.vehicle}
               value={`${state.activeTrip.captain?.vehicle_color || ''} ${state.activeTrip.captain?.vehicle_model || state.activeTrip.vehicleType || 'سيارة مشغلة'}`.trim()}
@@ -2390,16 +2643,16 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
             />
           </div>
 
-          <div className="flex flex-col items-center justify-center rounded-2xl border border-emerald-500/20 bg-emerald-950/10 p-5 text-center">
-            <div className="text-2xl font-extrabold text-teal-400 font-mono">
+          <div className={styles.style2393_187}>
+            <div className={styles.style2394_188}>
               {formatMoney(state.activeTrip.finalPrice, currencyLabel)}
             </div>
-            <p className="mt-1 text-xs font-bold text-slate-400">
+            <p className={styles.style2397_189}>
               {language === 'ar' ? 'تكلفة الرحلة النهائية' : 'Final Trip Cost'}
             </p>
           </div>
 
-          <div className="rounded-2xl border border-[#14B8A6]/20 bg-[#14B8A6]/8 p-4 text-xs leading-relaxed text-slate-300">
+          <div className={styles.style2402_190}>
             {tripHasStarted
               ? (language === 'ar'
                   ? "رحلتك قيد التقدم الآن. نتمنى لك رحلة آمنة!"
@@ -2407,14 +2660,14 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
               : copy.driverEnRouteNote}
           </div>
 
-          <div className="flex gap-2">
+          <div className={styles.style2410_191}>
             {state.activeTrip.captainPhone && (
               <a
                 href={`tel:${state.activeTrip.captainPhone}`}
-                className="flex h-14 w-14 items-center justify-center rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 text-[#14F5D5] hover:bg-[#14B8A6]/20 transition-colors cursor-pointer"
+                className={styles.style2414_192}
                 title={isArabic ? 'اتصال بالكابتن' : 'Call Captain'}
               >
-                <Phone className="h-6 w-6" />
+                <Phone className={styles.style2417_193} />
               </a>
             )}
             <button
@@ -2447,10 +2700,10 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                   });
                 }
               }}
-              className="flex h-14 w-14 items-center justify-center rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 text-[#14F5D5] transition-colors hover:bg-[#14B8A6]/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14F5D5]/60"
+              className={styles.style2450_194}
               title={copy.emergencyWhatsapp || (language === 'ar' ? 'واتساب الطوارئ' : 'Emergency WhatsApp')}
             >
-              <MessageCircle className="h-6 w-6" />
+              <MessageCircle className={styles.style2453_195} />
             </button>
             {tripHasStarted ? (
               <button
@@ -2467,9 +2720,9 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                     description: language === 'ar' ? 'تم نسخ رابط تتبع الرحلة لمشاركته بأمان.' : 'Trip tracking link copied to clipboard.',
                   });
                 }}
-                className="h-14 flex-1 bg-red-600/90 hover:bg-red-500 text-white font-bold text-base py-3.5 rounded-xl transition-transform active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-red-600/20"
+                className={styles.style2470_196}
               >
-                <ShieldCheck className="h-5 w-5 animate-pulse" />
+                <ShieldCheck className={styles.style2472_197} />
                 {language === 'ar' ? "طوارئ SOS / تتبع الرحلة" : "SOS / Share Trip"}
               </button>
             ) : (
@@ -2477,7 +2730,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                 type="button"
                 onClick={handleCancelRideRequest}
                 disabled={isCancellingRideRequest}
-                className="h-14 flex-1 border border-red-500/30 bg-red-600/10 hover:bg-red-600/20 text-red-200 font-bold text-base py-3.5 rounded-xl transition-transform active:scale-[0.98] flex items-center justify-center cursor-pointer disabled:opacity-50"
+                className={styles.style2480_198}
               >
                 {isCancellingRideRequest
                   ? (language === 'ar' ? 'جاري الإلغاء...' : 'Cancelling...')
@@ -2493,13 +2746,13 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
   };
 
   return (
-    <div className="relative h-[calc(100vh-120px)] w-full overflow-hidden text-white lg:h-screen lg:min-h-screen lg:overflow-hidden lg:bg-transparent" dir={isArabic ? 'rtl' : 'ltr'}>
-      <div className="relative h-full w-full lg:block lg:max-w-none">
-        <div className="hidden lg:block lg:absolute lg:inset-0 lg:z-0">
+    <div className={styles.style2496_199} dir={isArabic ? 'rtl' : 'ltr'}>
+      <div className={styles.style2497_200}>
+        <div className={styles.style2498_201}>
           <RiderMap
             activeTripCaptainId={state.activeTrip?.captainId || null}
             captainLocations={mappedCaptains}
-            className="h-full w-full lg:rounded-none lg:border-0"
+            className={styles.style2502_202}
             destinationFlyToTarget={state.screen === 'DESTINATION_SELECTION' ? destinationFlyToTarget || selectedDistrict?.anchor || null : null}
             fallbackLocation={profileFallbackLocation}
             showDestinationPin={state.screen === 'DESTINATION_SELECTION'}
@@ -2509,14 +2762,14 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
           />
         </div>
 
-        <aside className="absolute bottom-0 start-0 end-0 z-10 w-full max-h-full overflow-hidden flex flex-col rounded-t-[32px] rounded-b-none border-t border-white/10 bg-[#0A0F1D]/80 shadow-[0_-10px_25px_rgba(0,0,0,0.5)] backdrop-blur-xl lg:absolute lg:bottom-6 lg:start-auto lg:end-6 lg:top-6 lg:z-40 lg:w-[420px] lg:rounded-[28px] lg:border lg:border-white/10 lg:bg-[#0A0F1D]/80 lg:shadow-[0_30px_100px_rgba(0,0,0,0.45)] lg:backdrop-blur-xl lg:max-h-none lg:rounded-b-[28px] lg:overflow-hidden">
+        <aside className={styles.style2512_203}>
           {/* Top Bar with Center Drag Handle and Right-aligned Close Button */}
-          <div className="relative z-50 flex items-center justify-between rounded-t-[32px] border-b border-white/5 bg-slate-900/40 px-4 py-3 backdrop-blur-md lg:rounded-t-[28px] lg:px-5">
+          <div className={styles.style2514_204}>
             {/* Left-aligned balance spacer */}
-            <div className="w-9" />
+            <div className={styles.style2516_205} />
 
             {/* Drag Handle */}
-            <div className="w-12 h-1.5 bg-slate-500/40 rounded-full" />
+            <div className={styles.style2519_206} />
 
             {/* Clear, High-Contrast Close Button */}
             <button
@@ -2536,30 +2789,30 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                   }
                 }
               }}
-              className="h-9 w-9 flex items-center justify-center rounded-full bg-slate-800 border border-white/20 text-white shadow-md active:scale-95 cursor-pointer hover:bg-slate-700 transition-colors"
+              className={styles.style2539_207}
               aria-label={copy.closeDestination}
             >
-              <X className="h-4 w-4 stroke-[3]" />
+              <X className={styles.style2542_208} />
             </button>
           </div>
 
           {/* Scrollable Content Wrapper */}
-          <div className="flex-1 space-y-4 overflow-y-auto px-4 pb-4 pt-3 lg:p-5">
+          <div className={styles.style2547_209}>
             <div
               className={cn(
-                'rounded-2xl border border-white/5 bg-white/5 p-4 shadow-xl shadow-black/20 backdrop-blur',
-                state.screen === 'DESTINATION_SELECTION' && 'hidden',
+                styles.style2550_210,
+                state.screen === 'DESTINATION_SELECTION' && styles.style2551_211,
               )}
             >
-              <div className="mb-3 flex items-center justify-between sm:mb-4">
+              <div className={styles.style2554_212}>
                 <div>
-                  <p className="text-[11px] font-black text-[#14F5D5] tracking-wider">{copy.panelEyebrow}</p>
-                  <h1 className="text-xl font-bold text-white mt-0.5">{copy.panelTitle}</h1>
+                  <p className={styles.style2556_213}>{copy.panelEyebrow}</p>
+                  <h1 className={styles.style2557_214}>{copy.panelTitle}</h1>
                 </div>
-                <ShieldCheck className="h-7 w-7 text-[#14F5D5]" />
+                <ShieldCheck className={styles.style2559_215} />
               </div>
 
-              <div className="grid grid-cols-3 gap-2 lg:hidden">
+              <div className={styles.style2562_216}>
                 <NavButton active={state.screen === 'IDLE_MAP'} onClick={() => dispatch({ type: 'RETURN_TO_MAP' })}>
                   {copy.mapTab}
                 </NavButton>
@@ -2574,16 +2827,16 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
 
             {state.screen === 'IDLE_MAP' && (
               <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-                <div className={`space-y-4 ${isArabic ? 'text-right' : 'text-left'}`} dir={isArabic ? 'rtl' : 'ltr'}>
-                  <div className="space-y-1">
-                    <p className="text-[11px] font-black text-[#14F5D5]">{copy.readyQuestion}</p>
-                    <h2 className="text-xl font-bold text-white">{copy.whereTo}</h2>
-                    <p className="text-xs leading-relaxed text-slate-400">
+                <div className={cn(styles.style2577_217, isArabic ? styles.style2577_218 : styles.style2577_219)} dir={isArabic ? 'rtl' : 'ltr'}>
+                  <div className={styles.style2578_220}>
+                    <p className={styles.style2579_221}>{copy.readyQuestion}</p>
+                    <h2 className={styles.style2580_222}>{copy.whereTo}</h2>
+                    <p className={styles.style2581_223}>
                       {copy.homeSubtitle}
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3 rounded-2xl border border-white/5 bg-white/5 p-4">
+                  <div className={styles.style2586_224}>
                     <Metric
                       label={copy.yourArea}
                       value={
@@ -2597,9 +2850,9 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
 
                   <button
                     onClick={openDestination}
-                    className="h-14 w-full bg-[#14B8A6] text-[#0A0F1D] font-bold text-base py-3.5 rounded-xl transition-transform active:scale-[0.98] shadow-lg shadow-[#14B8A6]/20 hover:bg-[#2DD4BF] flex items-center justify-center gap-2 cursor-pointer"
+                    className={styles.style2600_225}
                   >
-                    <Navigation className="ml-2 h-5 w-5" />
+                    <Navigation className={styles.style2602_226} />
                     {copy.requestRide}
                   </button>
                 </div>
@@ -2611,7 +2864,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
 
 
             {showAdRiver && (
-              <div className="hidden overflow-hidden rounded-[24px] border border-[#14B8A6]/15 bg-[#0B0F19]/88 shadow-2xl shadow-black/35 backdrop-blur-xl lg:block">
+              <div className={styles.style2614_227}>
                 <AdStage />
               </div>
             )}
@@ -2629,7 +2882,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
 
         {/* Hide secondary ads inside the active request map flow */}
         {false && showAdRiver && (
-          <div className="overflow-hidden rounded-[24px] border border-[#14B8A6]/15 lg:hidden">
+          <div className={styles.style2632_228}>
             <AdStage />
           </div>
         )}
@@ -2668,22 +2921,22 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
       )}
 
       <Dialog open={showEmergencyContactDialog} onOpenChange={setShowEmergencyContactDialog}>
-        <DialogContent className="max-w-[420px] border border-[#14B8A6]/25 bg-[#0B0F19] text-white shadow-2xl" dir={isArabic ? 'rtl' : 'ltr'}>
-          <DialogHeader className={cn(isArabic ? 'text-right' : 'text-left')}>
-            <DialogTitle className="text-xl font-black text-white">
+        <DialogContent className={styles.style2671_229} dir={isArabic ? 'rtl' : 'ltr'}>
+          <DialogHeader className={cn(isArabic ? styles.style2672_230 : styles.style2672_231)}>
+            <DialogTitle className={styles.style2673_232}>
               {copy.emergencyWhatsappMissingTitle || (language === 'ar' ? 'لا يوجد رقم طوارئ' : 'No emergency contact')}
             </DialogTitle>
-            <DialogDescription className="text-sm leading-6 text-slate-300">
+            <DialogDescription className={styles.style2676_233}>
               {copy.emergencyWhatsappMissingDescription || (language === 'ar'
                 ? 'لم تقم بإضافة رقم واتساب للطوارئ بعد. أضف رقماً من بيانات الحساب لاستخدام زر SOS أثناء الرحلة.'
                 : 'You have not added an Emergency WhatsApp Contact yet. Add one from your profile to use SOS during a trip.')}
             </DialogDescription>
           </DialogHeader>
-          <div className={cn('mt-2 flex gap-3', isArabic ? 'flex-row-reverse' : 'flex-row')}>
+          <div className={cn(styles.style2682_234, isArabic ? styles.style2682_235 : styles.style2682_236)}>
             <Button
               type="button"
               onClick={handleAddEmergencyContact}
-              className="flex-1 rounded-xl bg-[#14B8A6] py-3 font-black text-[#07111F] hover:bg-[#2DD4BF]"
+              className={styles.style2686_237}
             >
               {copy.addEmergencyWhatsapp || (language === 'ar' ? 'إضافة رقم' : 'Add number')}
             </Button>
@@ -2691,7 +2944,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
               type="button"
               variant="outline"
               onClick={() => setShowEmergencyContactDialog(false)}
-              className="rounded-xl border-white/15 bg-white/5 px-5 text-white hover:bg-white/10"
+              className={styles.style2694_238}
             >
               {copy.cancel || (language === 'ar' ? 'إلغاء' : 'Cancel')}
             </Button>
@@ -3066,9 +3319,9 @@ function firstDisplayString(...values: unknown[]) {
 
 function Metric({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="min-w-0 space-y-1">
-      <span className="block text-[10px] font-bold text-slate-500">{label}</span>
-      <span className="block truncate text-xs font-black text-white">{value}</span>
+    <div className={styles.style3069_239}>
+      <span className={styles.style3070_240}>{label}</span>
+      <span className={styles.style3071_241}>{value}</span>
     </div>
   );
 }
@@ -3089,16 +3342,16 @@ function OfferContactAction({
   external?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3">
-      <div className="min-w-0">
-        <span className="block text-[10px] font-bold text-slate-500">{label}</span>
-        <span className="block truncate text-xs font-black text-white">{value}</span>
+    <div className={styles.style3092_242}>
+      <div className={styles.style3093_243}>
+        <span className={styles.style3094_244}>{label}</span>
+        <span className={styles.style3095_245}>{value}</span>
       </div>
       <a
         href={href}
         target={external ? '_blank' : undefined}
         rel={external ? 'noreferrer' : undefined}
-        className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 text-[#14F5D5] transition hover:bg-[#14B8A6]/20"
+        className={styles.style3101_246}
         aria-label={actionLabel}
         title={actionLabel}
       >
@@ -3372,10 +3625,10 @@ function NavButton({ active, onClick, children }: { active: boolean; onClick: ()
       type="button"
       onClick={onClick}
       className={cn(
-        'h-10 rounded-xl border text-xs font-black transition',
+        styles.style3375_247,
         active
-          ? 'border-[#14B8A6]/45 bg-[#14B8A6]/15 text-[#14F5D5]'
-          : 'border-white/10 bg-black/20 text-slate-400 hover:border-[#14B8A6]/25 hover:text-white',
+          ? styles.style3377_248
+          : styles.style3378_249,
       )}
     >
       {children}

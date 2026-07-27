@@ -1,5 +1,5 @@
 import type { Offer } from '@/core/types';
-import type { RiderLocation } from './rider-map';
+import type { RiderLocation } from '../components/rider-map';
 import { cellToLatLng, gridDisk } from 'h3-js';
 
 type SupabaseRpcLike = {

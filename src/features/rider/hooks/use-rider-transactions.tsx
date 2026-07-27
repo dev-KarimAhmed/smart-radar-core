@@ -1,9 +1,14 @@
 'use client';
 
 import { useCallback, useRef, useState } from 'react';
-import { useToast } from './use-toast';
+import { useToast } from '@/hooks/use-toast';
 import type { Offer, Trip, User } from '@/core/types';
 import { supabase } from '@/lib/supabase-client';
+
+const styles = {
+  root: "",
+} as const;
+
 
 export function useRiderTransactions(
   user: User | null,

@@ -1,13 +1,17 @@
 'use client';
 
-import React from 'react';
-import { RiderOperationsProvider } from '@/hooks/use-rider-operations';
-import { Dashboard } from '@/components/dashboard';
+import dynamic from 'next/dynamic';
+import { RouteLoading } from '@/shared/components/layout/route-loading';
+
+const RiderRoute = dynamic(
+  () => import('@/features/rider/components/rider-route').then((module) => module.RiderRoute),
+  { loading: () => <RouteLoading label="جاري تحميل منصة الراكب..." /> },
+);
+
+const styles = {
+  root: 'contents',
+} as const;
 
 export default function RiderPage() {
-  return (
-    <RiderOperationsProvider>
-      <Dashboard />
-    </RiderOperationsProvider>
-  );
+  return <div className={styles.root}><RiderRoute /></div>;
 }

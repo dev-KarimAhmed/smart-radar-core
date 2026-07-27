@@ -8,6 +8,29 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import type { AppLanguage } from '@/lib/i18n/simple-copy';
 
+import { cn } from '@/lib/utils';
+const styles = {
+  style423_1: "rider-map-surface relative overflow-hidden rounded-[24px] border border-[#14B8A6]/20 bg-[#0B0F19] shadow-2xl shadow-black/40",
+  style430_2: "h-full min-h-0 w-full",
+  style431_3: "pointer-events-none absolute inset-0 bg-gradient-to-t from-[#0B0F19]/78 via-transparent to-[#0B0F19]/20 lg:hidden",
+  style435_4: "pointer-events-none absolute left-1/2 top-1/2 z-30 flex -translate-x-1/2 -translate-y-full flex-col items-center",
+  style438_5: "flex h-8 w-8 items-center justify-center rounded-full border border-[#14F5D5]/60 bg-[#0B0F19]/88 shadow-[0_0_18px_rgba(20,245,213,0.24)] backdrop-blur",
+  style439_6: "h-2.5 w-2.5 rounded-full bg-[#14F5D5] shadow-[0_0_12px_rgba(20,245,213,0.8)]",
+  style441_7: "-mt-1 h-2.5 w-2.5 rotate-45 border-b border-r border-[#14F5D5]/60 bg-[#0B0F19]/88",
+  style442_8: "mt-1.5 hidden rounded-full border border-[#14B8A6]/20 bg-[#0B0F19]/78 px-2.5 py-0.5 text-[9px] font-black text-[#14F5D5] backdrop-blur sm:block",
+  style449_9: "pointer-events-none absolute right-3 top-3 z-30 flex items-center gap-1.5 rounded-xl border border-[#14B8A6]/25 bg-[#0B0F19]/88 px-2 py-1.5 text-[#14F5D5] shadow-lg shadow-black/25 backdrop-blur sm:right-4 sm:top-4",
+  style450_10: "flex h-6 w-6 items-center justify-center rounded-lg bg-[#14B8A6]/15",
+  style451_11: "h-3.5 w-3.5",
+  style453_12: "flex flex-col leading-none",
+  style454_13: "text-[8px] font-black uppercase tracking-wide text-slate-300",
+  style455_14: "mt-0.5 text-xs font-black text-white",
+  style461_15: "pointer-events-none absolute right-3 top-20 hidden max-w-[260px] rounded-2xl border border-amber-400/25 bg-[#0B0F19]/88 px-3 py-2 text-right text-[11px] font-bold leading-relaxed text-amber-100 shadow-xl shadow-black/30 backdrop-blur sm:block sm:right-4 sm:top-24 lg:right-[456px]",
+  style469_16: "absolute bottom-14 left-3 z-30 flex h-11 w-11 items-center justify-center rounded-2xl border border-[#14B8A6]/30 bg-[#0B0F19]/90 text-[#14F5D5] shadow-xl shadow-black/30 backdrop-blur transition hover:border-[#14F5D5]/60 hover:bg-[#14B8A6]/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/60 disabled:cursor-wait disabled:opacity-60 sm:bottom-20 sm:left-4 lg:left-[312px]",
+  style473_17: "h-5 w-5",
+  style479_18: "absolute left-4 top-4 rounded-2xl border border-[#14B8A6]/30 bg-[#0B0F19]/90 px-4 py-2 text-xs font-black text-[#14F5D5] shadow-lg backdrop-blur transition hover:bg-[#14B8A6]/15 lg:left-[312px]",
+} as const;
+
+
 interface RiderMapProps {
   activeTripCaptainId?: string | null;
   captainLocations?: RiderMapCaptainPoint[];
@@ -420,45 +443,45 @@ export function RiderMap({
   }, [isMapReady, onDestinationChange, onDestinationMoveStart, showDestinationPin]);
 
   return (
-    <section className={`rider-map-surface relative overflow-hidden rounded-[24px] border border-[#14B8A6]/20 bg-[#0B0F19] shadow-2xl shadow-black/40 ${className || ''}`}>
+    <section className={cn(styles.style423_1, className || '')}>
       <style>{`
         .rider-map-surface .maplibregl-ctrl-attrib,
         .rider-map-surface .maplibregl-ctrl-logo {
           display: none !important;
         }
       `}</style>
-      <div ref={containerRef} className="h-full min-h-0 w-full" />
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#0B0F19]/78 via-transparent to-[#0B0F19]/20 lg:hidden" />
+      <div ref={containerRef} className={styles.style430_2} />
+      <div className={styles.style431_3} />
       {showDestinationPin && (
         <div
           data-destination-pin="true"
-          className="pointer-events-none absolute left-1/2 top-1/2 z-30 flex -translate-x-1/2 -translate-y-full flex-col items-center"
+          className={styles.style435_4}
           aria-hidden="true"
         >
-          <div className="flex h-8 w-8 items-center justify-center rounded-full border border-[#14F5D5]/60 bg-[#0B0F19]/88 shadow-[0_0_18px_rgba(20,245,213,0.24)] backdrop-blur">
-            <div className="h-2.5 w-2.5 rounded-full bg-[#14F5D5] shadow-[0_0_12px_rgba(20,245,213,0.8)]" />
+          <div className={styles.style438_5}>
+            <div className={styles.style439_6} />
           </div>
-          <div className="-mt-1 h-2.5 w-2.5 rotate-45 border-b border-r border-[#14F5D5]/60 bg-[#0B0F19]/88" />
-          <div className="mt-1.5 hidden rounded-full border border-[#14B8A6]/20 bg-[#0B0F19]/78 px-2.5 py-0.5 text-[9px] font-black text-[#14F5D5] backdrop-blur sm:block">
+          <div className={styles.style441_7} />
+          <div className={styles.style442_8}>
             {copy.moveMap}
           </div>
         </div>
       )}
 
       {!activeTripCaptainId && (
-        <div className="pointer-events-none absolute right-3 top-3 z-30 flex items-center gap-1.5 rounded-xl border border-[#14B8A6]/25 bg-[#0B0F19]/88 px-2 py-1.5 text-[#14F5D5] shadow-lg shadow-black/25 backdrop-blur sm:right-4 sm:top-4">
-          <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-[#14B8A6]/15">
-            <CarFront className="h-3.5 w-3.5" aria-hidden="true" />
+        <div className={styles.style449_9}>
+          <span className={styles.style450_10}>
+            <CarFront className={styles.style451_11} aria-hidden="true" />
           </span>
-          <span className="flex flex-col leading-none">
-            <span className="text-[8px] font-black uppercase tracking-wide text-slate-300">{copy.activeCaptains}</span>
-            <span className="mt-0.5 text-xs font-black text-white">{activeCaptainCount}</span>
+          <span className={styles.style453_12}>
+            <span className={styles.style454_13}>{copy.activeCaptains}</span>
+            <span className={styles.style455_14}>{activeCaptainCount}</span>
           </span>
         </div>
       )}
 
       {!showDestinationPin && !activeTripCaptainId && captainLocations.length === 0 && (
-        <div className="pointer-events-none absolute right-3 top-20 hidden max-w-[260px] rounded-2xl border border-amber-400/25 bg-[#0B0F19]/88 px-3 py-2 text-right text-[11px] font-bold leading-relaxed text-amber-100 shadow-xl shadow-black/30 backdrop-blur sm:block sm:right-4 sm:top-24 lg:right-[456px]">
+        <div className={styles.style461_15}>
           {copy.offPeak}
         </div>
       )}
@@ -466,17 +489,17 @@ export function RiderMap({
         type="button"
         onClick={handleRecenter}
         disabled={locationStatus === 'locating'}
-        className="absolute bottom-14 left-3 z-30 flex h-11 w-11 items-center justify-center rounded-2xl border border-[#14B8A6]/30 bg-[#0B0F19]/90 text-[#14F5D5] shadow-xl shadow-black/30 backdrop-blur transition hover:border-[#14F5D5]/60 hover:bg-[#14B8A6]/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/60 disabled:cursor-wait disabled:opacity-60 sm:bottom-20 sm:left-4 lg:left-[312px]"
+        className={styles.style469_16}
         aria-label={copy.recenter}
         title={copy.recenter}
       >
-        <LocateFixed className="h-5 w-5" aria-hidden="true" />
+        <LocateFixed className={styles.style473_17} aria-hidden="true" />
       </button>
       {locationStatus !== 'live' && (
         <button
           type="button"
           onClick={requestLiveLocation}
-          className="absolute left-4 top-4 rounded-2xl border border-[#14B8A6]/30 bg-[#0B0F19]/90 px-4 py-2 text-xs font-black text-[#14F5D5] shadow-lg backdrop-blur transition hover:bg-[#14B8A6]/15 lg:left-[312px]"
+          className={styles.style479_18}
         >
           {copy.useMyLocation}
         </button>

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider, useAuth } from '@/hooks/use-auth';
-import { RiderOperationsProvider } from '@/hooks/use-rider-operations';
+import { RiderOperationsProvider } from '@/features/rider/hooks/use-rider-operations';
 import { DriverOperationsProvider } from '@/hooks/use-driver-operations';
 import { Dashboard } from '@/components/dashboard';
 import LoginPage from '@/features/auth/components/login-page';

@@ -17,6 +17,79 @@ import {
   Trophy,
 } from 'lucide-react';
 
+import { cn } from '@/lib/utils';
+const styles = {
+  style136_1: "group overflow-hidden rounded-2xl border bg-[#161F30]/80 text-[#F8FAFC] shadow-2xl shadow-black/20 backdrop-blur-md transition-all duration-300 hover:border-[#14B8A6]",
+  style137_2: "border-emerald-300/70 shadow-[0_0_34px_rgba(20,184,166,0.18)]",
+  style137_3: "border-[#243249]",
+  style143_4: "flex w-full items-center justify-between gap-4 p-5 text-start transition hover:bg-white/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/60",
+  style146_5: "flex min-w-0 items-center gap-3",
+  style148_6: "min-w-0",
+  style149_7: "flex flex-wrap items-center gap-2",
+  style150_8: "truncate text-lg font-extrabold text-[#F8FAFC] sm:text-xl",
+  style152_9: "inline-flex items-center gap-1 rounded-full border border-[#14B8A6]/35 bg-[#14B8A6]/10 px-2 py-0.5 text-[10px] font-black text-[#14F5D5]",
+  style153_10: "h-3 w-3",
+  style158_11: "inline-flex items-center gap-1 rounded-full border border-emerald-300/50 bg-emerald-400/15 px-2.5 py-1 text-[10px] font-black text-emerald-100 shadow-[0_0_18px_rgba(52,211,153,0.2)]",
+  style159_12: "h-3.5 w-3.5 fill-emerald-200 text-emerald-200",
+  style164_13: "mt-1 flex flex-wrap items-center gap-2 text-sm text-[#94A3B8]",
+  style165_14: "inline-flex items-center gap-1",
+  style166_15: "h-4 w-4 fill-yellow-400 text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.7)]",
+  style167_16: "text-[#F8FAFC]",
+  style169_17: "rounded-full border border-[#14B8A6]/25 bg-[#14B8A6]/10 px-2 py-0.5 text-xs font-black text-[#14B8A6]",
+  style172_18: "inline-flex items-center gap-1",
+  style173_19: "h-3.5 w-3.5 text-[#14B8A6]",
+  style180_20: "flex shrink-0 items-center gap-3",
+  style181_21: "text-end",
+  style182_22: "text-[11px] font-bold text-[#94A3B8]",
+  style183_23: "block text-xl font-black text-[#00ffcc] sm:text-2xl",
+  style187_24: "h-5 w-5 text-slate-400 transition-transform duration-300",
+  style187_25: "rotate-180",
+  style192_26: "grid transition-all duration-300 ease-out",
+  style193_27: "grid-rows-[1fr] opacity-100",
+  style193_28: "grid-rows-[0fr] opacity-0",
+  style196_29: "min-h-0 overflow-hidden",
+  style197_30: "space-y-4 border-t border-white/5 p-5 pt-4",
+  style198_31: "grid gap-3 sm:grid-cols-3",
+  style200_32: "h-4 w-4",
+  style205_33: "h-4 w-4",
+  style211_34: "h-4 w-4",
+  style219_35: "grid gap-3 rounded-xl bg-[#0B0F19]/70 p-4 sm:grid-cols-2",
+  style220_36: "h-4 w-4",
+  style226_37: "grid gap-3 rounded-xl border border-white/5 bg-white/[0.03] p-4 sm:grid-cols-2",
+  style227_38: "h-4 w-4",
+  style228_39: "h-4 w-4",
+  style232_40: "grid gap-2 sm:grid-cols-2",
+  style236_41: "inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 text-sm font-black text-[#14F5D5] transition hover:bg-[#14B8A6]/20",
+  style238_42: "h-4 w-4",
+  style247_43: "inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] text-sm font-black text-white transition hover:border-[#14B8A6]/35 hover:bg-[#14B8A6]/10",
+  style249_44: "h-4 w-4",
+  style257_45: "rounded-xl border border-[#14B8A6]/20 bg-[#14B8A6]/10 p-4",
+  style258_46: "space-y-2 text-sm",
+  style267_47: "mt-3 text-xs leading-5 text-[#94A3B8]",
+  style274_48: "rounded-2xl border border-[#14B8A6]/35 bg-[#14B8A6]/10 p-4",
+  style280_49: "rounded-xl border border-white/5 bg-white/[0.03] p-3 text-xs leading-relaxed text-[#94A3B8]",
+  style289_50: "flex w-full items-center justify-center gap-2 rounded-xl bg-[#14B8A6] py-3 font-extrabold text-[#0B0F19] transition-all duration-300 hover:bg-opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#161F30] disabled:cursor-wait disabled:opacity-60",
+  style291_51: "h-5 w-5",
+  style307_52: "h-14 w-14 shrink-0 rounded-2xl border border-[#14B8A6]/30 object-cover",
+  style313_53: "grid h-14 w-14 shrink-0 place-items-center rounded-2xl border border-[#14B8A6]/30 bg-[#14B8A6]/10",
+  style314_54: "h-7 w-7 text-[#14B8A6]",
+  style333_55: "min-w-0 rounded-xl border border-white/5 bg-black/20 p-3",
+  style334_56: "flex items-center gap-2 text-xs font-bold text-[#94A3B8]",
+  style335_57: "text-[#14B8A6]",
+  style335_58: "text-[#94A3B8]",
+  style338_59: "mt-1 truncate text-lg font-extrabold",
+  style338_60: "text-[#14B8A6]",
+  style338_61: "text-[#F8FAFC]",
+  style339_62: "mt-0.5 text-[11px] font-semibold text-[#94A3B8]/75",
+  style356_63: "flex items-center justify-between gap-4",
+  style357_64: "font-black text-[#F8FAFC]",
+  style357_65: "text-[#94A3B8]",
+  style358_66: "text-[#14B8A6]",
+  style358_67: "text-[#F8FAFC]",
+  style358_68: "text-lg",
+} as const;
+
+
 export type CaptainRank = 'PLATINUM' | 'GOLD' | 'SILVER' | 'BRONZE';
 
 export interface CaptainProfile {
@@ -133,82 +206,78 @@ export function CaptainOfferCard({
   return (
     <article
       dir={isArabic ? 'rtl' : 'ltr'}
-      className={`group overflow-hidden rounded-2xl border bg-[#161F30]/80 text-[#F8FAFC] shadow-2xl shadow-black/20 backdrop-blur-md transition-all duration-300 hover:border-[#14B8A6] ${
-        isPreferred ? 'border-emerald-300/70 shadow-[0_0_34px_rgba(20,184,166,0.18)]' : 'border-[#243249]'
-      }`}
+      className={cn(styles.style136_1, isPreferred ? styles.style137_2 : styles.style137_3)}
     >
       <button
         type="button"
         onClick={onToggleExpand}
-        className="flex w-full items-center justify-between gap-4 p-5 text-start transition hover:bg-white/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/60"
+        className={styles.style143_4}
         aria-expanded={isExpanded}
       >
-        <div className="flex min-w-0 items-center gap-3">
+        <div className={styles.style146_5}>
           <CaptainAvatar captain={captain} captainName={captainName} />
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <h3 className="truncate text-lg font-extrabold text-[#F8FAFC] sm:text-xl">{captainName}</h3>
+          <div className={styles.style148_6}>
+            <div className={styles.style149_7}>
+              <h3 className={styles.style150_8}>{captainName}</h3>
               {captain.is_verified ? (
-                <span className="inline-flex items-center gap-1 rounded-full border border-[#14B8A6]/35 bg-[#14B8A6]/10 px-2 py-0.5 text-[10px] font-black text-[#14F5D5]">
-                  <CheckCircle2 className="h-3 w-3" />
+                <span className={styles.style152_9}>
+                  <CheckCircle2 className={styles.style153_10} />
                   {isArabic ? 'موثق' : 'Verified'}
                 </span>
               ) : null}
               {isPreferred ? (
-                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300/50 bg-emerald-400/15 px-2.5 py-1 text-[10px] font-black text-emerald-100 shadow-[0_0_18px_rgba(52,211,153,0.2)]">
-                  <Heart className="h-3.5 w-3.5 fill-emerald-200 text-emerald-200" />
+                <span className={styles.style158_11}>
+                  <Heart className={styles.style159_12} />
                   {isArabic ? 'كابتن مفضل' : 'Preferred Captain'}
                 </span>
               ) : null}
             </div>
-            <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-[#94A3B8]">
-              <span className="inline-flex items-center gap-1">
-                <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.7)]" />
-                <strong className="text-[#F8FAFC]">{rating}.0</strong>
+            <div className={styles.style164_13}>
+              <span className={styles.style165_14}>
+                <Star className={styles.style166_15} />
+                <strong className={styles.style167_16}>{rating}.0</strong>
               </span>
-              <span className="rounded-full border border-[#14B8A6]/25 bg-[#14B8A6]/10 px-2 py-0.5 text-xs font-black text-[#14B8A6]">
+              <span className={styles.style169_17}>
                 {rankLabel}
               </span>
-              <span className="inline-flex items-center gap-1">
-                <Clock className="h-3.5 w-3.5 text-[#14B8A6]" />
+              <span className={styles.style172_18}>
+                <Clock className={styles.style173_19} />
                 {offer.eta_minutes} {isArabic ? 'د' : 'min'}
               </span>
             </div>
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center gap-3">
-          <div className="text-end">
-            <p className="text-[11px] font-bold text-[#94A3B8]">{isArabic ? 'السعر' : 'Price'}</p>
-            <strong className="block text-xl font-black text-[#00ffcc] sm:text-2xl">
+        <div className={styles.style180_20}>
+          <div className={styles.style181_21}>
+            <p className={styles.style182_22}>{isArabic ? 'السعر' : 'Price'}</p>
+            <strong className={styles.style183_23}>
               {finalFare.toFixed(2)} {currencyCode}
             </strong>
           </div>
-          <ChevronDown className={`h-5 w-5 text-slate-400 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
+          <ChevronDown className={cn(styles.style187_24, isExpanded ? styles.style187_25 : '')} />
         </div>
       </button>
 
       <div
-        className={`grid transition-all duration-300 ease-out ${
-          isExpanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
-        }`}
+        className={cn(styles.style192_26, isExpanded ? styles.style193_27 : styles.style193_28)}
       >
-        <div className="min-h-0 overflow-hidden">
-          <div className="space-y-4 border-t border-white/5 p-5 pt-4">
-            <div className="grid gap-3 sm:grid-cols-3">
+        <div className={styles.style196_29}>
+          <div className={styles.style197_30}>
+            <div className={styles.style198_31}>
               <InfoRow
-                icon={<MapPin className="h-4 w-4" />}
+                icon={<MapPin className={styles.style200_32} />}
                 label={isArabic ? 'البعد عنك' : 'Distance'}
                 value={`${offer.distance_km.toFixed(1)} ${isArabic ? 'كم' : 'km'}`}
               />
               <InfoRow
-                icon={<Clock className="h-4 w-4" />}
+                icon={<Clock className={styles.style205_33} />}
                 label={isArabic ? 'يوصلك خلال' : 'ETA'}
                 value={`${offer.eta_minutes} ${isArabic ? 'دقائق' : 'mins'}`}
                 highlight
               />
               <InfoRow
-                icon={<Navigation className="h-4 w-4" />}
+                icon={<Navigation className={styles.style211_34} />}
                 label={isArabic ? 'مدة الرحلة' : 'Trip duration'}
                 value={durationLabel}
                 helper={isArabic ? 'بدون تأخير مروري' : 'Without traffic delays'}
@@ -216,26 +285,26 @@ export function CaptainOfferCard({
               />
             </div>
 
-            <div className="grid gap-3 rounded-xl bg-[#0B0F19]/70 p-4 sm:grid-cols-2">
-              <InfoRow icon={<Car className="h-4 w-4" />} label={isArabic ? 'السيارة' : 'Vehicle'} value={vehicleSummary} />
+            <div className={styles.style219_35}>
+              <InfoRow icon={<Car className={styles.style220_36} />} label={isArabic ? 'السيارة' : 'Vehicle'} value={vehicleSummary} />
               <InfoRow label={isArabic ? 'اللوحة' : 'Plate'} value={captain.plate_number?.trim() || (isArabic ? 'غير متاح' : 'Not available')} />
               {captain.vehicle_year ? <InfoRow label={isArabic ? 'سنة الصنع' : 'Year'} value={String(captain.vehicle_year)} /> : null}
               {captain.vehicle_category ? <InfoRow label={isArabic ? 'الفئة' : 'Category'} value={captain.vehicle_category} /> : null}
             </div>
 
-            <div className="grid gap-3 rounded-xl border border-white/5 bg-white/[0.03] p-4 sm:grid-cols-2">
-              <InfoRow icon={<Building2 className="h-4 w-4" />} label={isArabic ? 'نوع الكابتن' : 'Captain type'} value={companyLabel} />
-              <InfoRow icon={<Trophy className="h-4 w-4" />} label={isArabic ? 'الرحلات المكتملة' : 'Completed trips'} value={String(completedTrips)} />
+            <div className={styles.style226_37}>
+              <InfoRow icon={<Building2 className={styles.style227_38} />} label={isArabic ? 'نوع الكابتن' : 'Captain type'} value={companyLabel} />
+              <InfoRow icon={<Trophy className={styles.style228_39} />} label={isArabic ? 'الرحلات المكتملة' : 'Completed trips'} value={String(completedTrips)} />
             </div>
 
             {captain.phone || captain.contact_url ? (
-              <div className="grid gap-2 sm:grid-cols-2">
+              <div className={styles.style232_40}>
                 {captain.phone ? (
                   <a
                     href={`tel:${captain.phone}`}
-                    className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 text-sm font-black text-[#14F5D5] transition hover:bg-[#14B8A6]/20"
+                    className={styles.style236_41}
                   >
-                    <Phone className="h-4 w-4" />
+                    <Phone className={styles.style238_42} />
                     {isArabic ? 'اتصال' : 'Call'}
                   </a>
                 ) : null}
@@ -244,9 +313,9 @@ export function CaptainOfferCard({
                     href={captain.contact_url}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] text-sm font-black text-white transition hover:border-[#14B8A6]/35 hover:bg-[#14B8A6]/10"
+                    className={styles.style247_43}
                   >
-                    <ExternalLink className="h-4 w-4" />
+                    <ExternalLink className={styles.style249_44} />
                     {isArabic ? 'رابط التواصل' : 'Contact link'}
                   </a>
                 ) : null}
@@ -254,8 +323,8 @@ export function CaptainOfferCard({
             ) : null}
 
             {hasPremium ? (
-              <div className="rounded-xl border border-[#14B8A6]/20 bg-[#14B8A6]/10 p-4">
-                <div className="space-y-2 text-sm">
+              <div className={styles.style257_45}>
+                <div className={styles.style258_46}>
                   <BreakdownRow label={isArabic ? 'سعر الرحلة الأساسي' : 'Base trip fare'} value={`${baseFare.toFixed(2)} ${currencyCode}`} />
                   <BreakdownRow
                     label={isArabic ? `علاوة الجودة (${rankLabel})` : `Quality surcharge (${rankLabel})`}
@@ -264,20 +333,20 @@ export function CaptainOfferCard({
                   />
                   <BreakdownRow label={isArabic ? 'السعر الإجمالي' : 'Total price'} value={`${finalFare.toFixed(2)} ${currencyCode}`} accent strong />
                 </div>
-                <p className="mt-3 text-xs leading-5 text-[#94A3B8]">
+                <p className={styles.style267_47}>
                   {isArabic
                     ? `يشمل ${premiumPercent}% علاوة جودة اختارها الكابتن ضمن الحد المسموح لرتبة ${rankLabel} من 1 إلى ${maxPremiumPercent}%.`
                     : `Includes a ${premiumPercent}% quality premium selected by the captain within the allowed ${rankLabel} range: 1-${maxPremiumPercent}%.`}
                 </p>
               </div>
             ) : (
-              <div className="rounded-2xl border border-[#14B8A6]/35 bg-[#14B8A6]/10 p-4">
+              <div className={styles.style274_48}>
                 <BreakdownRow label={isArabic ? 'السعر الإجمالي' : 'Total price'} value={`${finalFare.toFixed(2)} ${currencyCode}`} accent strong />
               </div>
             )}
 
             {offer.additional_info ? (
-              <p className="rounded-xl border border-white/5 bg-white/[0.03] p-3 text-xs leading-relaxed text-[#94A3B8]">
+              <p className={styles.style280_49}>
                 {offer.additional_info}
               </p>
             ) : null}
@@ -286,9 +355,9 @@ export function CaptainOfferCard({
               type="button"
               onClick={() => onAccept(offer)}
               disabled={isAccepting}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#14B8A6] py-3 font-extrabold text-[#0B0F19] transition-all duration-300 hover:bg-opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#161F30] disabled:cursor-wait disabled:opacity-60"
+              className={styles.style289_50}
             >
-              <Navigation className="h-5 w-5" />
+              <Navigation className={styles.style291_51} />
               {isAccepting ? (isArabic ? 'جاري قبول العرض...' : 'Accepting offer...') : isArabic ? 'قبول العرض' : 'Accept offer'}
             </button>
           </div>
@@ -304,14 +373,14 @@ function CaptainAvatar({ captain, captainName }: { captain: CaptainProfile; capt
       <img
         src={captain.avatar_url}
         alt={captainName}
-        className="h-14 w-14 shrink-0 rounded-2xl border border-[#14B8A6]/30 object-cover"
+        className={styles.style307_52}
       />
     );
   }
 
   return (
-    <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl border border-[#14B8A6]/30 bg-[#14B8A6]/10">
-      <ShieldCheck className="h-7 w-7 text-[#14B8A6]" />
+    <div className={styles.style313_53}>
+      <ShieldCheck className={styles.style314_54} />
     </div>
   );
 }
@@ -330,13 +399,13 @@ function InfoRow({
   highlight?: boolean;
 }) {
   return (
-    <div className="min-w-0 rounded-xl border border-white/5 bg-black/20 p-3">
-      <p className="flex items-center gap-2 text-xs font-bold text-[#94A3B8]">
-        {icon ? <span className={highlight ? 'text-[#14B8A6]' : 'text-[#94A3B8]'}>{icon}</span> : null}
+    <div className={styles.style333_55}>
+      <p className={styles.style334_56}>
+        {icon ? <span className={highlight ? styles.style335_57 : styles.style335_58}>{icon}</span> : null}
         {label}
       </p>
-      <p className={`mt-1 truncate text-lg font-extrabold ${highlight ? 'text-[#14B8A6]' : 'text-[#F8FAFC]'}`}>{value}</p>
-      {helper ? <p className="mt-0.5 text-[11px] font-semibold text-[#94A3B8]/75">{helper}</p> : null}
+      <p className={cn(styles.style338_59, highlight ? styles.style338_60 : styles.style338_61)}>{value}</p>
+      {helper ? <p className={styles.style339_62}>{helper}</p> : null}
     </div>
   );
 }
@@ -353,9 +422,9 @@ function BreakdownRow({
   strong?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between gap-4">
-      <span className={strong ? 'font-black text-[#F8FAFC]' : 'text-[#94A3B8]'}>{label}</span>
-      <strong className={`${accent ? 'text-[#14B8A6]' : 'text-[#F8FAFC]'} ${strong ? 'text-lg' : ''}`}>{value}</strong>
+    <div className={styles.style356_63}>
+      <span className={strong ? styles.style357_64 : styles.style357_65}>{label}</span>
+      <strong className={cn(accent ? styles.style358_66 : styles.style358_67, strong ? styles.style358_68 : '')}>{value}</strong>
     </div>
   );
 }

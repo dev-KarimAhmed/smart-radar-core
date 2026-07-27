@@ -11,6 +11,11 @@ import React, {
 } from 'react';
 import type { Offer, Trip, User } from '@/core/types';
 
+const styles = {
+  root: "",
+} as const;
+
+
 interface RiderOperationsContextType {
   trip: Trip | null;
   tripStatus: 'idle';
