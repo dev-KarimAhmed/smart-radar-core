@@ -15,6 +15,53 @@ import { db } from '@/lib/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 import { DriverData } from '@/hooks/admin/useSovereignDashboard';
 
+const styles = {
+  style181_1: "bg-[#050505] border border-[#00ffcc]/15 shadow-[0_8px_32px_rgba(0,0,0,0.5)] rounded-2xl overflow-hidden mt-8",
+  style182_2: "bg-zinc-950 border-b border-[#00ffcc]/10 p-5",
+  style183_3: "text-[#00ffcc] text-base font-extrabold flex items-center gap-2",
+  style184_4: "w-5 h-5 text-[#00ffcc]",
+  style187_5: "text-gray-400 text-xs leading-relaxed text-right",
+  style191_6: "p-6 space-y-8",
+  style192_7: "grid grid-cols-1 md:grid-cols-2 gap-6 text-right",
+  style195_8: "bg-zinc-950 p-5 rounded-xl border border-white/5 space-y-4",
+  style196_9: "flex items-center gap-2 border-b border-white/5 pb-3",
+  style197_10: "w-5 h-5 text-amber-400",
+  style198_11: "font-extrabold text-sm text-white",
+  style200_12: "text-xs text-gray-400 leading-relaxed",
+  style204_13: "space-y-3",
+  style205_14: "text-[11px] text-gray-400 block font-bold",
+  style207_15: "w-full bg-zinc-900 border border-white/10 rounded-lg p-2.5 text-xs text-white",
+  style219_16: "text-[11px] text-gray-400 block font-bold",
+  style221_17: "w-full bg-zinc-900 border border-white/10 rounded-lg p-2.5 text-xs text-white",
+  style235_18: "w-full bg-amber-500 hover:bg-amber-400 text-black font-black text-xs h-9 mt-2 cursor-pointer",
+  style243_19: "bg-zinc-950 p-5 rounded-xl border border-white/5 space-y-4",
+  style244_20: "flex items-center gap-2 border-b border-white/5 pb-3",
+  style245_21: "w-5 h-5 text-[#00ffcc]",
+  style246_22: "font-extrabold text-sm text-white",
+  style248_23: "text-xs text-gray-400 leading-relaxed",
+  style252_24: "space-y-3",
+  style253_25: "text-[11px] text-gray-400 block font-bold",
+  style255_26: "w-full bg-zinc-900 border border-white/10 rounded-lg p-2.5 text-xs text-white",
+  style267_27: "text-[11px] text-gray-400 block font-bold",
+  style268_28: "space-y-1",
+  style274_29: "bg-zinc-900 border-white/10 text-xs text-white placeholder-gray-600 h-9 text-right",
+  style277_30: "text-[9px] text-[#00ffcc] block cursor-pointer",
+  style278_31: "underline font-bold",
+  style285_32: "w-full bg-[#00ffcc] hover:bg-[#00ffcc]/80 text-black font-black text-xs h-9 mt-2 cursor-pointer",
+  style295_33: "bg-zinc-900/40 border border-white/5 p-4 rounded-xl space-y-2 text-right",
+  style296_34: "text-xs font-bold text-gray-300",
+  style297_35: "text-[11px] text-gray-400 space-y-1",
+  style298_36: "flex items-center gap-1.5",
+  style299_37: "text-[#00ffcc]",
+  style302_38: "flex items-center gap-1.5",
+  style303_39: "text-[#00ffcc]",
+  style306_40: "flex items-center gap-1.5 font-sans",
+  style307_41: "text-[#ff3366]",
+  style308_42: "text-right",
+  style308_43: "text-red-400",
+} as const;
+
+
 // [SCR-GAP-LOCKDOWN-150] محرك سد الثغرات الاستراتيجية (الارتحال، الشحن، والصندوق الأسود)
 // محصن ومغلق اً - يعمل بمعمارية الحافة وصفر كلفة تشغيلية
 export interface CaptainSovereignState {
@@ -178,33 +225,33 @@ export function SovereignGapSimulator({
   };
 
   return (
-    <Card className="bg-[#050505] border border-[#00ffcc]/15 shadow-[0_8px_32px_rgba(0,0,0,0.5)] rounded-2xl overflow-hidden mt-8">
-      <CardHeader className="bg-zinc-950 border-b border-[#00ffcc]/10 p-5">
-        <CardTitle className="text-[#00ffcc] text-base font-extrabold flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-[#00ffcc]" />
+    <Card className={styles.style181_1}>
+      <CardHeader className={styles.style182_2}>
+        <CardTitle className={styles.style183_3}>
+          <Sparkles className={styles.style184_4} />
           محرك سد الثغرات الاستراتيجية الحاكم (V5.5 Strategic Gaps Simulation Hub)
         </CardTitle>
-        <CardDescription className="text-gray-400 text-xs leading-relaxed text-right" dir="rtl">
+        <CardDescription className={styles.style187_5} dir="rtl">
           واجهة المحاكاة والضبط الفوري لثغرات الانتقال الجغرافي والشحن اليدوي بدون سحب تكاليف السيرفر الإضافية.
         </CardDescription>
       </CardHeader>
-      <CardContent className="p-6 space-y-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-right" dir="rtl">
+      <CardContent className={styles.style191_6}>
+        <div className={styles.style192_7} dir="rtl">
 
           {/* 1. Regional Commute Card */}
-          <div className="bg-zinc-950 p-5 rounded-xl border border-white/5 space-y-4">
-            <div className="flex items-center gap-2 border-b border-white/5 pb-3">
-              <Clock className="w-5 h-5 text-amber-400" />
-              <span className="font-extrabold text-sm text-white">1. محاكي الارتحال الجغرافي اللحظي</span>
+          <div className={styles.style195_8}>
+            <div className={styles.style196_9}>
+              <Clock className={styles.style197_10} />
+              <span className={styles.style198_11}>1. محاكي الارتحال الجغرافي اللحظي</span>
             </div>
-            <p className="text-xs text-gray-400 leading-relaxed">
+            <p className={styles.style200_12}>
               ينقل السائق من وتد تسجيله الجغرافي إلى منطقة آخر لحظياً لضبط استهداف الإعلانات وتجريم الصمت.
             </p>
 
-            <div className="space-y-3">
-              <label className="text-[11px] text-gray-400 block font-bold">اختر السائق المستهدف بالترحيل:</label>
+            <div className={styles.style204_13}>
+              <label className={styles.style205_14}>اختر السائق المستهدف بالترحيل:</label>
               <select
-                className="w-full bg-zinc-900 border border-white/10 rounded-lg p-2.5 text-xs text-white"
+                className={styles.style207_15}
                 value={commuteDriverUid}
                 onChange={(e) => setCommuteDriverUid(e.target.value)}
               >
@@ -216,9 +263,9 @@ export function SovereignGapSimulator({
                 ))}
               </select>
 
-              <label className="text-[11px] text-gray-400 block font-bold">المنطقة المستهدف الموجه للإعلان:</label>
+              <label className={styles.style219_16}>المنطقة المستهدف الموجه للإعلان:</label>
               <select
-                className="w-full bg-zinc-900 border border-white/10 rounded-lg p-2.5 text-xs text-white"
+                className={styles.style221_17}
                 value={targetDistrict}
                 onChange={(e) => setTargetDistrict(e.target.value)}
               >
@@ -232,7 +279,7 @@ export function SovereignGapSimulator({
               <Button
                 onClick={executeCommuteSim}
                 disabled={isProcessing}
-                className="w-full bg-amber-500 hover:bg-amber-400 text-black font-black text-xs h-9 mt-2 cursor-pointer"
+                className={styles.style235_18}
               >
                 ترحيل فوري محصن 📡
               </Button>
@@ -240,19 +287,19 @@ export function SovereignGapSimulator({
           </div>
 
           {/* 2. Voucher Top-Up Card */}
-          <div className="bg-zinc-950 p-5 rounded-xl border border-white/5 space-y-4">
-            <div className="flex items-center gap-2 border-b border-white/5 pb-3">
-              <Award className="w-5 h-5 text-[#00ffcc]" />
-              <span className="font-extrabold text-sm text-white">2. شحن رصيد الساعات يدوياً (بطاقات المندوبين)</span>
+          <div className={styles.style243_19}>
+            <div className={styles.style244_20}>
+              <Award className={styles.style245_21} />
+              <span className={styles.style246_22}>2. شحن رصيد الساعات يدوياً (بطاقات المندوبين)</span>
             </div>
-            <p className="text-xs text-gray-400 leading-relaxed">
+            <p className={styles.style248_23}>
               تمكين الدعم النقدي بالميدان عبر تذاكر الخدش المسبقة الدفع الصادرة بأختام  مشفرة.
             </p>
 
-            <div className="space-y-3">
-              <label className="text-[11px] text-gray-400 block font-bold">اختر السائق المستهدف بالشحن:</label>
+            <div className={styles.style252_24}>
+              <label className={styles.style253_25}>اختر السائق المستهدف بالشحن:</label>
               <select
-                className="w-full bg-zinc-900 border border-white/10 rounded-lg p-2.5 text-xs text-white"
+                className={styles.style255_26}
                 value={voucherDriverUid}
                 onChange={(e) => setVoucherDriverUid(e.target.value)}
               >
@@ -264,25 +311,25 @@ export function SovereignGapSimulator({
                 ))}
               </select>
 
-              <label className="text-[11px] text-gray-400 block font-bold">أدخل رمز التذكرة (يبدأ بـ RADAR-100H-):</label>
-              <div className="space-y-1">
+              <label className={styles.style267_27}>أدخل رمز التذكرة (يبدأ بـ RADAR-100H-):</label>
+              <div className={styles.style268_28}>
                 <Input
                   type="text"
                   placeholder="مثال: RADAR-100H-JORDAN"
                   value={voucherCode}
                   onChange={(e) => setVoucherCode(e.target.value)}
-                  className="bg-zinc-900 border-white/10 text-xs text-white placeholder-gray-600 h-9 text-right"
+                  className={styles.style274_29}
                   dir="ltr"
                 />
-                <span className="text-[9px] text-[#00ffcc] block cursor-pointer" onClick={() => setVoucherCode('RADAR-100H-JORDAN')}>
-                  💡 اضغط هنا لنسخ الرمز المعتمد للجلسة: <code className="underline font-bold">RADAR-100H-JORDAN</code>
+                <span className={styles.style277_30} onClick={() => setVoucherCode('RADAR-100H-JORDAN')}>
+                  💡 اضغط هنا لنسخ الرمز المعتمد للجلسة: <code className={styles.style278_31}>RADAR-100H-JORDAN</code>
                 </span>
               </div>
 
               <Button
                 onClick={executeVoucherRedeemSim}
                 disabled={isProcessing}
-                className="w-full bg-[#00ffcc] hover:bg-[#00ffcc]/80 text-black font-black text-xs h-9 mt-2 cursor-pointer"
+                className={styles.style285_32}
               >
                 تفعيل شحنة الـ 100 ساعة 🎫
               </Button>
@@ -292,20 +339,20 @@ export function SovereignGapSimulator({
         </div>
 
         {/* 3. Operational Integrity Audit Checklist */}
-        <div className="bg-zinc-900/40 border border-white/5 p-4 rounded-xl space-y-2 text-right" dir="rtl">
-          <h4 className="text-xs font-bold text-gray-300">أجهزة القياس الذاتي والتحقق التلقائي (Edge Integrity Metrics)</h4>
-          <ul className="text-[11px] text-gray-400 space-y-1">
-            <li className="flex items-center gap-1.5">
-              <span className="text-[#00ffcc]">✔</span>
+        <div className={styles.style295_33} dir="rtl">
+          <h4 className={styles.style296_34}>أجهزة القياس الذاتي والتحقق التلقائي (Edge Integrity Metrics)</h4>
+          <ul className={styles.style297_35}>
+            <li className={styles.style298_36}>
+              <span className={styles.style299_37}>✔</span>
               <span>استقرار النطاق الجغرافي: تصفية الإعلانات والحسابات تتم محلياً عند الحافة بصفر تكلفة سحابية.</span>
             </li>
-            <li className="flex items-center gap-1.5">
-              <span className="text-[#00ffcc]">✔</span>
+            <li className={styles.style302_38}>
+              <span className={styles.style303_39}>✔</span>
               <span>محرك الصرف المحصن: تفعيل قاعدة الـ 30 يوماً المستقرة لحسابات المندوبين.</span>
             </li>
-            <li className="flex items-center gap-1.5 font-sans">
-              <span className="text-[#ff3366]">✔</span>
-              <span className="text-right">الصندوق الأسود  مغلق بمجهرية النواة <code className="text-red-400">Object.freeze(RadarGapLockdownKernel)</code> لمنع الاختراقات والعبث بالباقات المدفوعة.</span>
+            <li className={styles.style306_40}>
+              <span className={styles.style307_41}>✔</span>
+              <span className={styles.style308_42}>الصندوق الأسود  مغلق بمجهرية النواة <code className={styles.style308_43}>Object.freeze(RadarGapLockdownKernel)</code> لمنع الاختراقات والعبث بالباقات المدفوعة.</span>
             </li>
           </ul>
         </div>

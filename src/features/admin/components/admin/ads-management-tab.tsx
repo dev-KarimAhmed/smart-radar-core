@@ -25,7 +25,103 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { AdDisplayCard } from '../ad-display-card';
+import { AdDisplayCard } from '@/components/dashboard/ad-display-card';
+
+const styles = {
+  style90_1: "ml-2",
+  style94_2: "sm:max-w-2xl max-h-[90vh] overflow-y-auto",
+  style99_3: "space-y-4",
+  style101_4: "text-red-500 text-xs",
+  style104_5: "text-red-500 text-xs",
+  style106_6: "grid grid-cols-1 sm:grid-cols-2 gap-4",
+  style110_7: "text-red-500 text-xs",
+  style113_8: "text-red-500 text-xs",
+  style115_9: "my-4 bg-white/10",
+  style117_10: "grid grid-cols-1 sm:grid-cols-2 gap-4 items-start",
+  style118_11: "space-y-2",
+  style135_12: "space-y-2",
+  style138_13: "text-red-500 text-xs",
+  style142_14: "grid grid-cols-1 sm:grid-cols-2 gap-4",
+  style143_15: "space-y-2",
+  style156_16: "space-y-2",
+  style171_17: "space-y-2",
+  style179_18: "w-full justify-start text-left font-normal",
+  style179_19: "text-muted-foreground",
+  style180_20: "ml-2 h-4 w-4",
+  style184_21: "w-auto p-0",
+  style190_22: "text-red-500 text-xs",
+  style193_23: "flex flex-col sm:flex-row gap-2 justify-between",
+  style212_24: "border-[#00ffcc]/30 text-[#00ffcc] hover:bg-[#00ffcc]/10 font-black text-xs",
+  style216_25: "flex gap-2",
+  style219_26: "animate-spin ml-2",
+  style255_27: "bg-[#091B09]/50 border-emerald-950/40 overflow-hidden flex flex-col transition-all",
+  style256_28: "opacity-65",
+  style257_29: "border-red-500/50",
+  style258_30: "border-blue-500/40 relative shadow-inner",
+  style260_31: "pb-3 text-right",
+  style261_32: "flex justify-between items-start gap-2",
+  style262_33: "flex flex-col text-right min-w-0 flex-1",
+  style263_34: "text-white text-base truncate font-black leading-tight text-right",
+  style265_35: "text-[10px] text-emerald-400 font-mono tracking-wider mt-1 text-right block",
+  style271_36: "text-emerald-400 border-emerald-500/50 bg-emerald-950/20",
+  style272_37: "text-yellow-400 border-yellow-500/50 bg-yellow-950/20",
+  style273_38: "text-blue-400 border-blue-500/50 bg-blue-950/20",
+  style279_39: "flex items-center gap-4 text-[11px] pt-1 text-right",
+  style280_40: "flex items-center gap-1",
+  style281_41: "w-3.5 h-3.5",
+  style281_42: "w-3.5 h-3.5",
+  style281_43: "w-3.5 h-3.5",
+  style284_44: "flex items-center gap-1 font-bold",
+  style285_45: "w-3.5 h-3.5 text-emerald-400",
+  style291_46: "px-4 pb-4",
+  style297_47: "h-[260px] cursor-default rounded-[28px]",
+  style301_48: "space-y-4 text-sm flex-grow text-right",
+  style303_49: "text-[10px] text-muted-foreground uppercase font-black font-sans",
+  style304_50: "flex items-center gap-2 mt-1",
+  style305_51: "h-2 flex-1 bg-black/40",
+  style306_52: "text-xs font-bold font-mono text-emerald-400",
+  style310_53: "grid grid-cols-2 gap-2 text-center",
+  style311_54: "bg-black/40 p-2 text-center rounded-xl border border-white/5",
+  style312_55: "text-[10px] text-muted-foreground flex items-center justify-center gap-1 font-black uppercase",
+  style312_56: "w-3.5 h-3.5 text-emerald-400",
+  style313_57: "font-bold text-xs text-white mt-1 font-mono",
+  style315_58: "bg-black/40 p-2 text-center rounded-xl border border-white/5",
+  style316_59: "text-[10px] text-muted-foreground flex items-center justify-center gap-1 font-black uppercase",
+  style316_60: "w-3.5 h-3.5 text-blue-400",
+  style317_61: "font-bold text-xs text-blue-400 mt-1 font-mono",
+  style322_62: "bg-black/40 p-2.5 rounded-xl border border-white/5 text-[9px] font-mono text-gray-400 space-y-1",
+  style323_63: "flex justify-between items-center",
+  style325_64: "text-white hover:underline truncate max-w-[120px] text-left",
+  style327_65: "flex justify-between items-center",
+  style329_66: "text-white text-left",
+  style333_67: "text-[11px] text-center text-muted-foreground font-mono",
+  style339_68: "bg-black/40 p-2 grid grid-cols-2 gap-2 border-t border-white/5",
+  style347_69: "h-8 font-bold text-[10px] border-white/5 hover:bg-emerald-950/20",
+  style349_70: "ml-1 w-3.5 h-3.5 text-amber-500",
+  style349_71: "ml-1 w-3.5 h-3.5 text-emerald-500",
+  style358_72: "h-8 font-bold text-[10px] border-white/5 hover:bg-emerald-950/20",
+  style358_73: "border-blue-500/40 text-blue-400 bg-blue-950/20",
+  style360_74: "ml-1 w-3.5 h-3.5 text-blue-400",
+  style369_75: "h-8 font-bold text-[10px] border-white/5 hover:border-emerald-500/30",
+  style371_76: "ml-1 w-3.5 h-3.5 text-emerald-400",
+  style378_77: "h-8 font-bold text-[10px]",
+  style379_78: "ml-1 w-3.5 h-3.5",
+  style383_79: "bg-black text-white border-white/10 text-right font-sans",
+  style385_80: "text-right font-black",
+  style386_81: "text-right text-gray-400 text-xs leading-normal",
+  style390_82: "flex gap-2",
+  style391_83: "bg-white/10 border-white/10",
+  style392_84: "bg-red-600 hover:bg-red-500 text-white font-bold",
+  style407_85: "space-y-8",
+  style408_86: "flex justify-between items-center",
+  style409_87: "text-right",
+  style410_88: "text-2xl font-black text-white",
+  style411_89: "text-muted-foreground text-xs font-sans mt-0.5",
+  style417_90: "w-8 h-8 animate-spin text-emerald-500 mx-auto",
+  style419_91: "grid md:grid-cols-2 lg:grid-cols-3 gap-6",
+  style432_92: "text-muted-foreground text-center py-10 text-sm",
+} as const;
+
 
 
 const adFormSchema = z.object({
@@ -87,35 +183,35 @@ function AdForm({ onFinish, isProcessing }: { onFinish: (data: AdInput) => Promi
  <Dialog open={open} onOpenChange={setOpen}>
  <DialogTrigger asChild>
  <Button>
- <PlusCircle className="ml-2"/>
+ <PlusCircle className={styles.style90_1}/>
  إطلاق حملة جديدة
  </Button>
  </DialogTrigger>
- <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+ <DialogContent className={styles.style94_2}>
  <DialogHeader>
  <DialogTitle>منصة الإضافة الإعلاني</DialogTitle>
  <DialogDescription>أدخل بيانات الحملة الجديدة لعرضها في قسم الإعلانات.</DialogDescription>
  </DialogHeader>
- <form onSubmit={handleSubmit(onSubmit, onError)} className="space-y-4">
+ <form onSubmit={handleSubmit(onSubmit, onError)} className={styles.style99_3}>
  <Input placeholder="عنوان الحملة الجذاب" {...register('title')} />
- {errors.title && <p className="text-red-500 text-xs">{errors.title.message}</p>}
+ {errors.title && <p className={styles.style101_4}>{errors.title.message}</p>}
 
  <Input placeholder="وصف موجز للحملة" {...register('description')} />
- {errors.description && <p className="text-red-500 text-xs">{errors.description.message}</p>}
+ {errors.description && <p className={styles.style104_5}>{errors.description.message}</p>}
 
- <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+ <div className={styles.style106_6}>
  <Input placeholder="رابط صورة البوستر (URL)" {...register('posterUrl')} dir="ltr" />
  <Input placeholder="رابط الإجراء (URL)" {...register('actionUrl')} dir="ltr" />
  </div>
- {(errors.posterUrl || errors.actionUrl) && <p className="text-red-500 text-xs">{errors.posterUrl?.message || errors.actionUrl?.message}</p>}
+ {(errors.posterUrl || errors.actionUrl) && <p className={styles.style110_7}>{errors.posterUrl?.message || errors.actionUrl?.message}</p>}
 
  <Input placeholder="النص على زر الإجراء (مثال: اطلب الآن)" {...register('buttonText')} />
- {errors.buttonText && <p className="text-red-500 text-xs">{errors.buttonText.message}</p>}
+ {errors.buttonText && <p className={styles.style113_8}>{errors.buttonText.message}</p>}
 
- <Separator className="my-4 bg-white/10" />
+ <Separator className={styles.style115_9} />
 
- <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
- <div className="space-y-2">
+ <div className={styles.style117_10}>
+ <div className={styles.style118_11}>
  <Label>القطاع المستهدف</Label>
  <Controller
  control={control}
@@ -132,15 +228,15 @@ function AdForm({ onFinish, isProcessing }: { onFinish: (data: AdInput) => Promi
  )}
  />
  </div>
- <div className="space-y-2">
+ <div className={styles.style135_12}>
  <Label>السعة (مرات الظهور)</Label>
  <Input type="number" step="1000" {...register('targetImpressions')} />
- {errors.targetImpressions && <p className="text-red-500 text-xs">{errors.targetImpressions.message}</p>}
+ {errors.targetImpressions && <p className={styles.style138_13}>{errors.targetImpressions.message}</p>}
  </div>
  </div>
 
- <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
- <div className="space-y-2">
+ <div className={styles.style142_14}>
+ <div className={styles.style143_15}>
  <Label>المحافظة (اختياري)</Label>
  <Controller
  control={control}
@@ -153,7 +249,7 @@ function AdForm({ onFinish, isProcessing }: { onFinish: (data: AdInput) => Promi
  )}
  />
  </div>
- <div className="space-y-2">
+ <div className={styles.style156_16}>
  <Label>المنطقة (اختياري)</Label>
  <Controller
  control={control}
@@ -168,7 +264,7 @@ function AdForm({ onFinish, isProcessing }: { onFinish: (data: AdInput) => Promi
  </div>
  </div>
 
- <div className="space-y-2">
+ <div className={styles.style171_17}>
  <Label>تاريخ انتهاء الحملة</Label>
  <Controller
  control={control}
@@ -176,21 +272,21 @@ function AdForm({ onFinish, isProcessing }: { onFinish: (data: AdInput) => Promi
  render={({ field }) => (
  <Popover>
  <PopoverTrigger asChild>
- <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}>
- <CalendarIcon className="ml-2 h-4 w-4" />
+ <Button variant={"outline"} className={cn(styles.style179_18, !field.value && styles.style179_19)}>
+ <CalendarIcon className={styles.style180_20} />
  {field.value ? format(field.value, "PPP") : <span>اختر تاريخاً</span>}
  </Button>
  </PopoverTrigger>
- <PopoverContent className="w-auto p-0">
+ <PopoverContent className={styles.style184_21}>
  <Calendar mode="single" selected={field.value} onSelect={field.onChange} />
  </PopoverContent>
  </Popover>
  )}
  />
- {errors.endDate && <p className="text-red-500 text-xs">{errors.endDate.message?.toString()}</p>}
+ {errors.endDate && <p className={styles.style190_22}>{errors.endDate.message?.toString()}</p>}
  </div>
 
- <DialogFooter className="flex flex-col sm:flex-row gap-2 justify-between">
+ <DialogFooter className={styles.style193_23}>
  <Button
  type="button"
  variant="outline"
@@ -209,14 +305,14 @@ function AdForm({ onFinish, isProcessing }: { onFinish: (data: AdInput) => Promi
  description: "تم ملء الحقول بنجاح. يمكنك الضغط على 'إطلاق الحملة' الآن."
  });
  }}
- className="border-[#00ffcc]/30 text-[#00ffcc] hover:bg-[#00ffcc]/10 font-black text-xs"
+ className={styles.style212_24}
  >
  🪄 تعبئة تلقائية سريعة
  </Button>
- <div className="flex gap-2">
+ <div className={styles.style216_25}>
  <DialogClose asChild><Button type="button" variant="ghost">إلغاء</Button></DialogClose>
  <Button type="submit" disabled={isProcessing}>
- {isProcessing && <Loader2 className="animate-spin ml-2" />}
+ {isProcessing && <Loader2 className={styles.style219_26} />}
  إطلاق الحملة
  </Button>
  </div>
@@ -252,91 +348,91 @@ function AdCampaignCard({
 
  return (
  <Card className={cn(
- "bg-[#091B09]/50 border-emerald-950/40 overflow-hidden flex flex-col transition-all",
- (isPaused || isFrozen) && 'opacity-65',
- isExpired && 'border-red-500/50',
- isFrozen && 'border-blue-500/40 relative shadow-inner'
+ styles.style255_27,
+ (isPaused || isFrozen) && styles.style256_28,
+ isExpired && styles.style257_29,
+ isFrozen && styles.style258_30
  )}>
- <CardHeader className="pb-3 text-right" dir="rtl">
- <div className="flex justify-between items-start gap-2">
- <div className="flex flex-col text-right min-w-0 flex-1">
- <CardTitle className="text-white text-base truncate font-black leading-tight text-right">{ad.content?.title || ad.title}</CardTitle>
+ <CardHeader className={styles.style260_31} dir="rtl">
+ <div className={styles.style261_32}>
+ <div className={styles.style262_33}>
+ <CardTitle className={styles.style263_34}>{ad.content?.title || ad.title}</CardTitle>
  {ad.serial_id && (
- <span className="text-[10px] text-emerald-400 font-mono tracking-wider mt-1 text-right block">🧬 {ad.serial_id}</span>
+ <span className={styles.style265_35}>🧬 {ad.serial_id}</span>
  )}
  </div>
  <Badge
  variant={isExpired ? 'destructive' : isFrozen ? 'secondary' : 'outline'}
  className={cn(
- isActive && !isExpired && 'text-emerald-400 border-emerald-500/50 bg-emerald-950/20',
- isPaused && 'text-yellow-400 border-yellow-500/50 bg-yellow-950/20',
- isFrozen && 'text-blue-400 border-blue-500/50 bg-blue-950/20'
+ isActive && !isExpired && styles.style271_36,
+ isPaused && styles.style272_37,
+ isFrozen && styles.style273_38
  )}
  >
  {isExpired ? 'منتهية' : isFrozen ? 'مجمّد ❄️' : (isActive ? 'نشط ●' : 'معلّق ||')}
  </Badge>
  </div>
- <CardDescription className="flex items-center gap-4 text-[11px] pt-1 text-right">
- <span className="flex items-center gap-1">
- {ad.role === 'all' ? <Users className="w-3.5 h-3.5"/> : ad.role === 'driver' ? <Car className="w-3.5 h-3.5"/> : <Users className="w-3.5 h-3.5"/>}
+ <CardDescription className={styles.style279_39}>
+ <span className={styles.style280_40}>
+ {ad.role === 'all' ? <Users className={styles.style281_41}/> : ad.role === 'driver' ? <Car className={styles.style281_42}/> : <Users className={styles.style281_43}/>}
  {ad.role === 'all' ? 'الجميع' : ad.role === 'driver' ? 'السائقون' : 'الركاب'}
  </span>
- <span className="flex items-center gap-1 font-bold">
- <MapPin className="w-3.5 h-3.5 text-emerald-400"/>
+ <span className={styles.style284_44}>
+ <MapPin className={styles.style285_45}/>
  {ad.targetDistrict ? `المنطقة: ${ad.targetDistrict}` : ad.targetGovernorate || 'عمان'}
  </span>
  </CardDescription>
  </CardHeader>
 
- <div className="px-4 pb-4">
+ <div className={styles.style291_46}>
  <AdDisplayCard
  ad={ad}
  showHeart={false}
  badgeText="إعلان قريب"
  ctaText={(ad as any).action?.buttonText || (ad as any).buttonText || 'عرض التفاصيل'}
- className="h-[260px] cursor-default rounded-[28px]"
+ className={styles.style297_47}
  />
  </div>
 
- <CardContent className="space-y-4 text-sm flex-grow text-right" dir="rtl">
+ <CardContent className={styles.style301_48} dir="rtl">
  <div>
- <Label className="text-[10px] text-muted-foreground uppercase font-black font-sans">نسبة استهلاك السعة</Label>
- <div className="flex items-center gap-2 mt-1">
- <Progress value={consumption} className="h-2 flex-1 bg-black/40" indicatorClassName={consumption > 85 ? "bg-destructive" : "bg-emerald-500"} />
- <span className="text-xs font-bold font-mono text-emerald-400">{consumption.toFixed(0)}%</span>
+ <Label className={styles.style303_49}>نسبة استهلاك السعة</Label>
+ <div className={styles.style304_50}>
+ <Progress value={consumption} className={styles.style305_51} indicatorClassName={consumption > 85 ? "bg-destructive" : "bg-emerald-500"} />
+ <span className={styles.style306_52}>{consumption.toFixed(0)}%</span>
  </div>
  </div>
 
- <div className="grid grid-cols-2 gap-2 text-center">
- <div className="bg-black/40 p-2 text-center rounded-xl border border-white/5">
- <p className="text-[10px] text-muted-foreground flex items-center justify-center gap-1 font-black uppercase"><Eye className="w-3.5 h-3.5 text-emerald-400" /> الظهور </p>
- <p className="font-bold text-xs text-white mt-1 font-mono">{(ad.currentImpressions || 0).toLocaleString()} / {(ad.targetImpressions || 0).toLocaleString()}</p>
+ <div className={styles.style310_53}>
+ <div className={styles.style311_54}>
+ <p className={styles.style312_55}><Eye className={styles.style312_56} /> الظهور </p>
+ <p className={styles.style313_57}>{(ad.currentImpressions || 0).toLocaleString()} / {(ad.targetImpressions || 0).toLocaleString()}</p>
  </div>
- <div className="bg-black/40 p-2 text-center rounded-xl border border-white/5">
- <p className="text-[10px] text-muted-foreground flex items-center justify-center gap-1 font-black uppercase"><MousePointerClick className="w-3.5 h-3.5 text-blue-400" /> النقرات</p>
- <p className="font-bold text-xs text-blue-400 mt-1 font-mono">{(ad.clicksCount || 0).toLocaleString()}</p>
+ <div className={styles.style315_58}>
+ <p className={styles.style316_59}><MousePointerClick className={styles.style316_60} /> النقرات</p>
+ <p className={styles.style317_61}>{(ad.clicksCount || 0).toLocaleString()}</p>
  </div>
  </div>
 
  {/* Visibility credentials of deep smart links */}
- <div className="bg-black/40 p-2.5 rounded-xl border border-white/5 text-[9px] font-mono text-gray-400 space-y-1">
- <div className="flex justify-between items-center">
+ <div className={styles.style322_62}>
+ <div className={styles.style323_63}>
  <span>رابط الواتساب:</span>
- <span className="text-white hover:underline truncate max-w-[120px] text-left">{ad.whatsapp || 'N/A'}</span>
+ <span className={styles.style325_64}>{ad.whatsapp || 'N/A'}</span>
  </div>
- <div className="flex justify-between items-center">
+ <div className={styles.style327_65}>
  <span>خط الهاتف السريع:</span>
- <span className="text-white text-left">{ad.phone || 'N/A'}</span>
+ <span className={styles.style329_66}>{ad.phone || 'N/A'}</span>
  </div>
  </div>
 
- <div className="text-[11px] text-center text-muted-foreground font-mono">
+ <div className={styles.style333_67}>
  ينتهي تاريخ الصلاحية في: {ad.endDate ? format(new Date(ad.endDate), "dd/MM/yyyy") : 'N/A'}
  </div>
  </CardContent>
 
  {/* 🛡️ 4 absolute sovereign buttons grid panel (المادة 7) */}
- <CardFooter className="bg-black/40 p-2 grid grid-cols-2 gap-2 border-t border-white/5" dir="rtl">
+ <CardFooter className={styles.style339_68} dir="rtl">
 
  {/* Sovereign 1: Pause / Resume Campaign */}
  <Button
@@ -344,9 +440,9 @@ function AdCampaignCard({
  size="sm"
  onClick={() => onToggle(ad.id, ad.status)}
  disabled={isFrozen}
- className="h-8 font-bold text-[10px] border-white/5 hover:bg-emerald-950/20"
+ className={styles.style347_69}
  >
- {isActive ? <PauseCircle className="ml-1 w-3.5 h-3.5 text-amber-500"/> : <PlayCircle className="ml-1 w-3.5 h-3.5 text-emerald-500"/>}
+ {isActive ? <PauseCircle className={styles.style349_70}/> : <PlayCircle className={styles.style349_71}/>}
  {isActive ? 'تعليق' : 'تفعيل'}
  </Button>
 
@@ -355,9 +451,9 @@ function AdCampaignCard({
  variant="outline"
  size="sm"
  onClick={() => onFreeze(ad.id, isFrozen)}
- className={cn("h-8 font-bold text-[10px] border-white/5 hover:bg-emerald-950/20", isFrozen && "border-blue-500/40 text-blue-400 bg-blue-950/20")}
+ className={cn(styles.style358_72, isFrozen && styles.style358_73)}
  >
- <Snowflake className="ml-1 w-3.5 h-3.5 text-blue-400" />
+ <Snowflake className={styles.style360_74} />
  {isFrozen ? 'فك التجمد' : 'تجميد العقد'}
  </Button>
 
@@ -366,30 +462,30 @@ function AdCampaignCard({
  variant="outline"
  size="sm"
  onClick={() => onExtend(ad.id, 5000, 30)}
- className="h-8 font-bold text-[10px] border-white/5 hover:border-emerald-500/30"
+ className={styles.style369_75}
  >
- <Clock className="ml-1 w-3.5 h-3.5 text-emerald-400" />
+ <Clock className={styles.style371_76} />
  تمديد المدى
  </Button>
 
  {/* Sovereign 4: Sovereign Delete with Audited Confirmation */}
  <AlertDialog>
  <AlertDialogTrigger asChild>
- <Button variant="destructive" size="sm" className="h-8 font-bold text-[10px]">
- <Trash2 className="ml-1 w-3.5 h-3.5"/>
+ <Button variant="destructive" size="sm" className={styles.style378_77}>
+ <Trash2 className={styles.style379_78}/>
  أرشفة
  </Button>
  </AlertDialogTrigger>
- <AlertDialogContent className="bg-black text-white border-white/10 text-right font-sans" dir="rtl">
+ <AlertDialogContent className={styles.style383_79} dir="rtl">
  <AlertDialogHeader>
- <AlertDialogTitle className="text-right font-black">هل أنت متأكد من أرشفة هذه الحملة؟</AlertDialogTitle>
- <AlertDialogDescription className="text-right text-gray-400 text-xs leading-normal">
+ <AlertDialogTitle className={styles.style385_80}>هل أنت متأكد من أرشفة هذه الحملة؟</AlertDialogTitle>
+ <AlertDialogDescription className={styles.style386_81}>
  سيتم شطب وحجب الحملة بصفة نهائية ولا رجعة فيها وإلغاء الرادار المخصص لوجهات الانتشار في الميدان.
  </AlertDialogDescription>
  </AlertDialogHeader>
- <AlertDialogFooter className="flex gap-2">
- <AlertDialogCancel className="bg-white/10 border-white/10">تراجع وإلغاء</AlertDialogCancel>
- <AlertDialogAction onClick={() => onDelete(ad.id)} className="bg-red-600 hover:bg-red-500 text-white font-bold">نعم، تدمير وأرشفة</AlertDialogAction>
+ <AlertDialogFooter className={styles.style390_82}>
+ <AlertDialogCancel className={styles.style391_83}>تراجع وإلغاء</AlertDialogCancel>
+ <AlertDialogAction onClick={() => onDelete(ad.id)} className={styles.style392_84}>نعم، تدمير وأرشفة</AlertDialogAction>
  </AlertDialogFooter>
  </AlertDialogContent>
  </AlertDialog>
@@ -404,19 +500,19 @@ export function AdsManagementTab() {
  const { ads, isLoading, isProcessing, createAd, toggleAdStatus, deleteAd, freezeAd, extendAd } = useAdminAds();
 
  return (
- <div className="space-y-8" dir="rtl">
- <div className="flex justify-between items-center">
- <div className="text-right">
- <h2 className="text-2xl font-black text-white">إدارة الإعلانات</h2>
- <p className="text-muted-foreground text-xs font-sans mt-0.5">مسرح متكامل ممتد على عرض شاشات الركاب خاضع لإدارة المراقبة المطلقة.</p>
+ <div className={styles.style407_85} dir="rtl">
+ <div className={styles.style408_86}>
+ <div className={styles.style409_87}>
+ <h2 className={styles.style410_88}>إدارة الإعلانات</h2>
+ <p className={styles.style411_89}>مسرح متكامل ممتد على عرض شاشات الركاب خاضع لإدارة المراقبة المطلقة.</p>
  </div>
  <AdForm onFinish={createAd} isProcessing={isProcessing} />
  </div>
 
  {isLoading ? (
- <Loader2 className="w-8 h-8 animate-spin text-emerald-500 mx-auto" />
+ <Loader2 className={styles.style417_90} />
  ) : ads.length > 0 ? (
- <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+ <div className={styles.style419_91}>
  {ads.filter(ad => (ad.status as string) !== 'archived').map((ad) => (
  <AdCampaignCard
  key={ad.id}
@@ -429,7 +525,7 @@ export function AdsManagementTab() {
  ))}
  </div>
  ) : (
- <p className="text-muted-foreground text-center py-10 text-sm">لا توجد حملات إعلانية نشطة حالياً. أنشئ إعلاناً جديداً للبدء.</p>
+ <p className={styles.style432_92}>لا توجد حملات إعلانية نشطة حالياً. أنشئ إعلاناً جديداً للبدء.</p>
  )}
 
  </div>

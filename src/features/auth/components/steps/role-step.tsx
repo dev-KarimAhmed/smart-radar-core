@@ -288,11 +288,14 @@ export function RoleStep() {
   };
 
   const openDemoDashboard = (user: User) => {
-    if (user.role === 'advertiser') {
-      window.history.replaceState(null, '', '/advertiser/dashboard');
-    } else {
-      window.history.replaceState(null, '', '/');
-    }
+    const roleRoutes: Partial<Record<User['role'], string>> = {
+      rider: '/rider',
+      driver: '/captain',
+      advertiser: '/advertiser/dashboard',
+      delegate: '/delegate',
+      admin: '/admin',
+    };
+    window.history.replaceState(null, '', roleRoutes[user.role] || '/');
     window.location.hash = '#';
     window.dispatchEvent(new PopStateEvent('popstate'));
     loginAsMockUser(user);

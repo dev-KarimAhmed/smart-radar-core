@@ -39,6 +39,250 @@ import { db, auth, handleFirestoreError, OperationType } from '@/lib/firebase';
 import { collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, getDocs, setDoc, query, where, runTransaction } from 'firebase/firestore';
 import { useAuth } from '@/hooks/use-auth';
 
+const styles = {
+  style588_1: "space-y-6 text-right",
+  style591_2: "flex flex-col md:flex-row justify-between items-start md:items-center gap-4",
+  style593_3: "text-2xl font-black text-white flex items-center gap-2",
+  style594_4: "w-6 h-6 text-emerald-400",
+  style597_5: "text-xs text-muted-foreground mt-0.5 font-sans",
+  style601_6: "flex gap-2",
+  style604_7: "bg-emerald-600 hover:bg-emerald-500 text-white font-bold gap-1 text-xs h-9 rounded-xl pointer-events-auto",
+  style612_8: "flex flex-wrap gap-2 border-b border-white/5 pb-3",
+  style617_9: "text-xs px-4 py-2 font-black rounded-lg h-9",
+  style618_10: "bg-emerald-600 hover:bg-emerald-500 text-white",
+  style618_11: "text-zinc-400",
+  style621_12: "w-4 h-4 ml-1.5 shrink-0",
+  style629_13: "text-xs px-4 py-2 font-black rounded-lg h-9",
+  style630_14: "bg-emerald-600 hover:bg-emerald-500 text-white",
+  style630_15: "text-zinc-400",
+  style633_16: "w-4 h-4 ml-1.5 shrink-0",
+  style636_17: "mr-1 bg-amber-500 text-black text-[9px] font-black",
+  style644_18: "text-xs px-4 py-2 font-black rounded-lg h-9",
+  style645_19: "bg-emerald-600 hover:bg-emerald-500 text-white",
+  style645_20: "text-zinc-400",
+  style648_21: "w-4 h-4 ml-1.5 shrink-0",
+  style651_22: "mr-1 bg-red-500 text-white text-[9px] font-black",
+  style659_23: "text-xs px-4 py-2 font-black rounded-lg h-9",
+  style660_24: "bg-emerald-600 hover:bg-emerald-500 text-white",
+  style660_25: "text-zinc-400",
+  style663_26: "w-4 h-4 ml-1.5 shrink-0",
+  style670_27: "bg-[#000d00]/90 border-emerald-500/30 p-5 mt-4 animate-in slide-in-from-top duration-300",
+  style671_28: "p-0 pb-3",
+  style672_29: "text-base font-black text-white flex items-center gap-2",
+  style673_30: "w-5 h-5 text-emerald-400",
+  style676_31: "text-xs text-zinc-400",
+  style680_32: "space-y-4",
+  style681_33: "grid md:grid-cols-4 gap-4",
+  style682_34: "space-y-1",
+  style683_35: "text-xs text-zinc-300",
+  style689_36: "bg-black/80 border-emerald-950/50 text-white text-xs h-9",
+  style694_37: "space-y-1",
+  style695_38: "text-xs text-zinc-300",
+  style701_39: "bg-black/80 border-emerald-950/50 text-white text-xs h-9",
+  style706_40: "space-y-1",
+  style707_41: "text-xs text-zinc-300",
+  style712_42: "w-full h-9 mt-1 rounded bg-black border border-emerald-900 text-white px-2 focus:outline-none focus:border-emerald-500 text-xs",
+  style721_43: "space-y-1",
+  style722_44: "text-xs text-zinc-300 font-bold",
+  style729_45: "bg-black/80 border-emerald-950/50 text-white text-xs h-9",
+  style734_46: "space-y-1",
+  style735_47: "text-xs text-zinc-300",
+  style740_48: "w-full h-9 mt-1 rounded bg-black border border-emerald-900 text-white px-2 focus:outline-none focus:border-emerald-500 text-xs",
+  style748_49: "space-y-1 font-mono",
+  style749_50: "text-xs text-zinc-300",
+  style755_51: "bg-black/80 border-emerald-950/50 text-white text-xs h-9",
+  style759_52: "space-y-1",
+  style760_53: "text-xs text-zinc-300 font-bold",
+  style765_54: "w-full h-9 mt-1 rounded bg-black border border-emerald-900 text-white px-2 focus:outline-none focus:border-emerald-500 text-xs",
+  style773_55: "space-y-1 flex flex-col justify-end",
+  style774_56: "text-xs text-zinc-300 pb-2",
+  style775_57: "flex items-center gap-2",
+  style781_58: "w-4 h-4 accent-emerald-500",
+  style783_59: "text-[11px] text-emerald-400 font-bold",
+  style789_60: "flex justify-end gap-2 pt-2",
+  style790_61: "h-9 hover:bg-white/5 text-xs text-neutral-400",
+  style791_62: "bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-9 text-xs rounded-xl",
+  style799_63: "bg-[#091B09]/20 border-emerald-950/30",
+  style800_64: "pb-3 border-b border-emerald-950/20",
+  style801_65: "text-base font-black text-white",
+  style802_66: "text-xs text-zinc-400",
+  style806_67: "p-0",
+  style808_68: "overflow-x-auto",
+  style810_69: "bg-black/40 border-b border-emerald-950/30",
+  style812_70: "text-right text-gray-400 text-xs py-3",
+  style813_71: "text-right text-gray-400 text-xs",
+  style814_72: "text-right text-gray-400 text-xs",
+  style815_73: "text-right text-gray-400 text-xs",
+  style816_74: "text-right text-gray-400 text-xs",
+  style817_75: "text-right text-gray-400 text-xs",
+  style818_76: "text-right text-gray-400 text-xs",
+  style819_77: "text-left text-gray-400 text-xs p-3",
+  style825_78: "border-b border-white/5 hover:bg-white/5 transition-colors",
+  style826_79: "align-middle py-3",
+  style827_80: "flex items-center gap-3",
+  style828_81: "w-8 h-8 rounded-full border border-emerald-500/20 bg-emerald-950/40 shrink-0",
+  style829_82: "text-emerald-400 font-bold text-xs",
+  style834_83: "text-xs font-black text-white leading-tight",
+  style835_84: "text-[10px] text-emerald-500 font-mono font-bold",
+  style836_85: "flex gap-1.5 mt-1",
+  style837_86: "text-[8px] px-1 py-0 bg-zinc-900 border-zinc-700 text-gray-300 font-sans",
+  style842_87: "text-[8px] px-1 py-0 font-sans",
+  style844_88: "bg-emerald-950 text-emerald-400 border-emerald-500/20",
+  style845_89: "bg-amber-950 text-amber-400 border-amber-500/20",
+  style855_90: "align-middle animate-fade-in",
+  style856_91: "flex items-center gap-1",
+  style857_92: "font-mono text-[10px] bg-black/60 border-emerald-800 text-white p-1",
+  style864_93: "w-6 h-6 hover:bg-neutral-800",
+  style866_94: "w-3.5 h-3.5 text-green-400",
+  style866_95: "w-3.5 h-3.5 text-gray-400",
+  style871_96: "align-middle font-black text-xs text-zinc-300 font-mono",
+  style875_97: "align-middle font-bold text-xs font-mono text-zinc-300",
+  style889_98: "space-y-1 mt-1.5 text-[9px] font-sans",
+  style891_99: "text-[8px] bg-emerald-950/25 text-emerald-400 border-emerald-500/30 py-0.5 px-1 font-bold block w-fit",
+  style895_100: "text-[8px] bg-red-950/25 text-red-400 border-red-500/30 py-0.5 px-1 font-bold block w-fit",
+  style901_101: "text-red-400 font-bold flex items-center gap-1",
+  style905_102: "text-emerald-400 font-bold flex items-center gap-1 text-[8px]",
+  style915_103: "h-5 px-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-[8px] font-bold text-amber-400 rounded border border-amber-500/20 block",
+  style926_104: "align-middle font-semibold text-xs font-mono text-emerald-400",
+  style930_105: "align-middle font-mono",
+  style931_106: "text-[10px] text-amber-400 border-amber-500/30 bg-amber-950/20",
+  style936_107: "align-middle",
+  style940_108: "text-[10px]",
+  style942_109: "text-emerald-400 border-emerald-500 bg-emerald-950/20",
+  style943_110: "text-amber-500 border-amber-500 bg-amber-950/20",
+  style950_111: "align-middle text-left p-3",
+  style951_112: "flex items-center justify-end gap-1.5",
+  style956_113: "h-7 border-teal-500/30 hover:bg-teal-950/40 text-[10px] font-bold text-teal-400 rounded-lg",
+  style958_114: "w-3 h-3 ml-1",
+  style966_115: "h-7 border-[#1e293b] hover:bg-neutral-800 text-[10px] rounded-lg text-neutral-300",
+  style979_116: "text-center text-muted-foreground text-xs py-10 font-bold",
+  style987_117: "space-y-6",
+  style988_118: "bg-[#091B09]/20 border-emerald-950/30",
+  style989_119: "pb-3 border-b border-emerald-950/20",
+  style990_120: "text-base font-black text-white flex items-center gap-1.5",
+  style991_121: "h-4.5 w-4.5 text-amber-400",
+  style994_122: "text-xs text-zinc-400",
+  style998_123: "p-0",
+  style1000_124: "overflow-x-auto",
+  style1002_125: "bg-black/40 border-b border-[#1e293b]",
+  style1004_126: "text-right text-gray-405 text-xs py-3",
+  style1005_127: "text-right text-gray-405 text-xs",
+  style1006_128: "text-right text-gray-405 text-xs",
+  style1007_129: "text-right text-gray-405 text-xs",
+  style1008_130: "text-left text-gray-405 text-xs p-3",
+  style1017_131: "border-b border-white/5 hover:bg-white/5 transition-colors",
+  style1018_132: "align-middle py-3",
+  style1019_133: "text-xs font-black text-white block",
+  style1020_134: "text-[10px] text-zinc-500 font-mono",
+  style1023_135: "align-middle",
+  style1024_136: "flex items-center gap-1",
+  style1025_137: "font-mono text-[9px] bg-black text-zinc-300 p-1 select-all cursor-pointer hover:bg-neutral-900 border-zinc-800",
+  style1035_138: "w-6 h-6 hover:bg-neutral-800",
+  style1037_139: "w-3.5 h-3.5 text-gray-400",
+  style1042_140: "align-middle font-mono text-xs",
+  style1046_141: "align-middle",
+  style1050_142: "text-[10px]",
+  style1051_143: "text-emerald-400 border-emerald-500 bg-emerald-950/20",
+  style1051_144: "text-zinc-500 border-zinc-800 bg-black/40",
+  style1058_145: "align-middle text-left p-3",
+  style1064_146: "h-7 border-red-500/20 hover:bg-red-950/30 text-[10px] font-bold text-red-400 rounded-lg",
+  style1066_147: "w-3 h-3 ml-1",
+  style1078_148: "text-center text-muted-foreground text-xs py-10 font-bold space-y-2 flex flex-col items-center",
+  style1079_149: "w-8 h-8 text-amber-500",
+  style1090_150: "grid grid-cols-1 lg:grid-cols-5 gap-6",
+  style1092_151: "lg:col-span-3 bg-[#091B09]/20 border-emerald-950/30",
+  style1093_152: "pb-3 border-b border-emerald-950/20 flex justify-between items-center",
+  style1094_153: "text-base font-black text-white flex items-center gap-1.5",
+  style1095_154: "h-4.5 w-4.5 text-emerald-400",
+  style1099_155: "p-0",
+  style1101_156: "overflow-x-auto",
+  style1103_157: "bg-black/40 border-b border-[#1e293b]",
+  style1105_158: "text-right text-gray-400 text-xs py-3",
+  style1106_159: "text-right text-gray-400 text-xs",
+  style1107_160: "text-right text-gray-400 text-xs",
+  style1108_161: "text-right text-gray-400 text-xs",
+  style1109_162: "text-left text-gray-400 text-xs p-3",
+  style1115_163: "border-b border-white/5 hover:bg-white/5 transition-colors",
+  style1116_164: "align-middle py-3",
+  style1117_165: "text-xs font-black text-white block",
+  style1118_166: "text-[10px] text-zinc-400 block font-bold text-emerald-400",
+  style1121_167: "align-middle text-xs text-zinc-300 max-w-[200px] truncate",
+  style1125_168: "align-middle font-mono text-xs",
+  style1129_169: "align-middle",
+  style1133_170: "text-[10px]",
+  style1134_171: "text-yellow-400 border-yellow-500/30 bg-yellow-950/20",
+  style1135_172: "text-blue-400 border-blue-500/30 bg-blue-950/20",
+  style1136_173: "text-emerald-400 border-emerald-500/30 bg-emerald-950/20",
+  style1137_174: "text-zinc-500 border-zinc-800 bg-black/40",
+  style1146_175: "align-middle text-left p-3",
+  style1152_176: "h-7 border-zinc-800 hover:bg-neutral-800 text-[10px] font-bold text-zinc-300 rounded-lg",
+  style1165_177: "text-center text-muted-foreground text-xs py-12 font-bold space-y-2 flex flex-col items-center",
+  style1166_178: "w-8 h-8 text-neutral-600",
+  style1174_179: "lg:col-span-2 bg-[#0A0E1A] border-[#1e293b]",
+  style1176_180: "text-sm font-black text-white flex items-center gap-1.5",
+  style1177_181: "w-4.5 h-4.5 text-emerald-400",
+  style1180_182: "text-xs",
+  style1185_183: "space-y-4",
+  style1186_184: "space-y-1",
+  style1187_185: "text-xs text-zinc-400",
+  style1191_186: "w-full h-10 rounded bg-black border border-[#1e293b] text-white px-2 focus:outline-none text-xs",
+  style1201_187: "space-y-1",
+  style1202_188: "text-xs text-zinc-400",
+  style1207_189: "bg-black border-[#1e293b] text-xs h-10",
+  style1212_190: "space-y-1",
+  style1213_191: "text-xs text-zinc-400",
+  style1218_192: "w-full min-h-[80px] bg-black border border-[#1e293b] rounded-md p-2 text-white focus:outline-none text-xs",
+  style1223_193: "space-y-1",
+  style1224_194: "text-xs text-zinc-400",
+  style1229_195: "bg-black border-[#1e293b] text-xs h-10",
+  style1234_196: "w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-10 text-xs rounded-xl",
+  style1245_197: "space-y-6",
+  style1246_198: "grid grid-cols-2 lg:grid-cols-4 gap-4",
+  style1247_199: "bg-[#091B09]/40 border-emerald-950/40 p-4",
+  style1248_200: "p-0 pb-1",
+  style1249_201: "text-[10px] text-zinc-400 font-bold",
+  style1251_202: "p-0",
+  style1252_203: "text-2xl font-black text-amber-500 font-mono",
+  style1253_204: "flex items-center gap-1 text-[9px] text-[#10B981] font-bold mt-1",
+  style1254_205: "w-3.5 h-3.5",
+  style1260_206: "bg-[#091B09]/40 border-emerald-950/40 p-4",
+  style1261_207: "p-0 pb-1",
+  style1262_208: "text-[10px] text-zinc-400 font-bold",
+  style1264_209: "p-0",
+  style1265_210: "text-2xl font-black text-emerald-400 font-mono",
+  style1266_211: "flex items-center gap-1 text-[9px] text-[#10B981] font-bold mt-1",
+  style1272_212: "bg-[#091B09]/40 border-emerald-950/40 p-4",
+  style1273_213: "p-0 pb-1",
+  style1274_214: "text-[10px] text-zinc-400 font-bold",
+  style1276_215: "p-0",
+  style1277_216: "text-2xl font-black text-red-400 font-mono",
+  style1278_217: "flex items-center gap-1 text-[9px] text-red-400 font-semibold mt-1",
+  style1279_218: "w-3.5 h-3.5",
+  style1285_219: "bg-[#091B09]/40 border-emerald-950/40 p-4",
+  style1286_220: "p-0 pb-1",
+  style1287_221: "text-[10px] text-zinc-400 font-bold",
+  style1289_222: "p-0",
+  style1290_223: "text-2xl font-black text-blue-400 font-mono",
+  style1291_224: "text-[9px] text-zinc-500 font-bold block mt-1",
+  style1298_225: "bg-[#0A0F1D] border-[#1e293b]",
+  style1300_226: "text-sm font-black text-white flex items-center gap-1.5",
+  style1301_227: "w-4 h-4 text-emerald-400",
+  style1304_228: "text-xs",
+  style1309_229: "space-y-4 font-sans text-xs",
+  style1314_230: "space-y-1.5 bg-black/40 p-3 rounded-lg border border-[#1e293b]",
+  style1315_231: "flex justify-between items-center text-xs",
+  style1316_232: "text-zinc-400",
+  style1316_233: "font-bold text-white",
+  style1317_234: "flex items-center gap-1.5",
+  style1319_235: "text-[9px] text-emerald-400 font-bold bg-emerald-950/20 px-1 border border-emerald-500/20 rounded",
+  style1321_236: "text-[9px] text-red-400 font-bold bg-red-950/20 px-1 border border-red-500/20 rounded",
+  style1323_237: "font-bold text-emerald-400",
+  style1326_238: "w-full bg-neutral-900 h-2 rounded-full overflow-hidden",
+  style1328_239: "bg-emerald-500 h-full rounded-full transition-all duration-505",
+  style1332_240: "flex justify-between items-center text-[10px] text-zinc-500",
+} as const;
+
+
 export interface Delegate {
   id: string;
   name: string;
@@ -585,23 +829,23 @@ export function DelegatesManagementTab() {
   const growthIndex = totalReferred > 0 ? Number(((totalOrganic / totalReferred) * 100).toFixed(1)) : 0;
 
   return (
-    <div className="space-y-6 text-right" dir="rtl">
+    <div className={styles.style588_1} dir="rtl">
 
       {/* Header Panel */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className={styles.style591_2}>
         <div>
-          <h2 className="text-2xl font-black text-white flex items-center gap-2">
-            <Users className="w-6 h-6 text-emerald-400" />
+          <h2 className={styles.style593_3}>
+            <Users className={styles.style594_4} />
             فيلق جيش المندوبين  (Delegates Army Command)
           </h2>
-          <p className="text-xs text-muted-foreground mt-0.5 font-sans">
+          <p className={styles.style597_5}>
             بوابة المشرف الموحدة للتحكم بالمناديب، ومراقبة تمديد الروابط السحرية، وإحالات الأقاليم الأردنية والعراقية.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className={styles.style601_6}>
           <Button
             onClick={() => setIsAdding(!isAdding)}
-            className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold gap-1 text-xs h-9 rounded-xl pointer-events-auto"
+            className={styles.style604_7}
           >
             {isAdding ? 'إغلاق نافذة التسجيل' : 'تجنيد مندوب ميداني +'}
           </Button>
@@ -609,16 +853,16 @@ export function DelegatesManagementTab() {
       </div>
 
       {/* Sub-navigation Controls */}
-      <div className="flex flex-wrap gap-2 border-b border-white/5 pb-3">
+      <div className={styles.style612_8}>
         <Button
           variant={activeSubTab === 'delegates' ? 'default' : 'ghost'}
           onClick={() => setActiveSubTab('delegates')}
           className={cn(
-            "text-xs px-4 py-2 font-black rounded-lg h-9",
-            activeSubTab === 'delegates' ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : 'text-zinc-400'
+            styles.style617_9,
+            activeSubTab === 'delegates' ? styles.style618_10 : styles.style618_11
           )}
         >
-          <Users className="w-4 h-4 ml-1.5 shrink-0" />
+          <Users className={styles.style621_12} />
           إدارة المندوبين والاعتماد
         </Button>
 
@@ -626,14 +870,14 @@ export function DelegatesManagementTab() {
           variant={activeSubTab === 'magic-links' ? 'default' : 'ghost'}
           onClick={() => setActiveSubTab('magic-links')}
           className={cn(
-            "text-xs px-4 py-2 font-black rounded-lg h-9",
-            activeSubTab === 'magic-links' ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : 'text-zinc-400'
+            styles.style629_13,
+            activeSubTab === 'magic-links' ? styles.style630_14 : styles.style630_15
           )}
         >
-          <LinkIcon className="w-4 h-4 ml-1.5 shrink-0" />
+          <LinkIcon className={styles.style633_16} />
           الروابط السحرية (Magic Links)
           {magicLinks.filter(l => l.status === 'active').length > 0 && (
-            <Badge className="mr-1 bg-amber-500 text-black text-[9px] font-black">{magicLinks.filter(l => l.status === 'active').length}</Badge>
+            <Badge className={styles.style636_17}>{magicLinks.filter(l => l.status === 'active').length}</Badge>
           )}
         </Button>
 
@@ -641,14 +885,14 @@ export function DelegatesManagementTab() {
           variant={activeSubTab === 'tasks' ? 'default' : 'ghost'}
           onClick={() => setActiveSubTab('tasks')}
           className={cn(
-            "text-xs px-4 py-2 font-black rounded-lg h-9",
-            activeSubTab === 'tasks' ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : 'text-zinc-400'
+            styles.style644_18,
+            activeSubTab === 'tasks' ? styles.style645_19 : styles.style645_20
           )}
         >
-          <ClipboardList className="w-4 h-4 ml-1.5 shrink-0" />
+          <ClipboardList className={styles.style648_21} />
           متابعة وإسناد المهام
           {tasks.filter(t => t.status === 'pending').length > 0 && (
-            <Badge className="mr-1 bg-red-500 text-white text-[9px] font-black">{tasks.filter(t => t.status === 'pending').length}</Badge>
+            <Badge className={styles.style651_22}>{tasks.filter(t => t.status === 'pending').length}</Badge>
           )}
         </Button>
 
@@ -656,60 +900,60 @@ export function DelegatesManagementTab() {
           variant={activeSubTab === 'performance' ? 'default' : 'ghost'}
           onClick={() => setActiveSubTab('performance')}
           className={cn(
-            "text-xs px-4 py-2 font-black rounded-lg h-9",
-            activeSubTab === 'performance' ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : 'text-zinc-400'
+            styles.style659_23,
+            activeSubTab === 'performance' ? styles.style660_24 : styles.style660_25
           )}
         >
-          <TrendingUp className="w-4 h-4 ml-1.5 shrink-0" />
+          <TrendingUp className={styles.style663_26} />
           محرك الأداء والإحصائيات د.ط
         </Button>
       </div>
 
       {/* Add New Delegate Panel */}
       {isAdding && (
-        <Card className="bg-[#000d00]/90 border-emerald-500/30 p-5 mt-4 animate-in slide-in-from-top duration-300">
-          <CardHeader className="p-0 pb-3">
-            <CardTitle className="text-base font-black text-white flex items-center gap-2">
-              <UserPlus className="w-5 h-5 text-emerald-400" />
+        <Card className={styles.style670_27}>
+          <CardHeader className={styles.style671_28}>
+            <CardTitle className={styles.style672_29}>
+              <UserPlus className={styles.style673_30} />
               صياغة عقد تجنيد جديد لقوات الانتشار الميداني
             </CardTitle>
-            <CardDescription className="text-xs text-zinc-400">
+            <CardDescription className={styles.style676_31}>
               سيتم تخصيص كود إحالة عسكري متين، وتارجت يومي ثابت لتتبع معادلة الكسب والعجز.
             </CardDescription>
           </CardHeader>
-          <form onSubmit={handleAddDelegate} className="space-y-4">
-            <div className="grid md:grid-cols-4 gap-4">
-              <div className="space-y-1">
-                <Label htmlFor="del-name" className="text-xs text-zinc-300">اسم المندوب المعتمد</Label>
+          <form onSubmit={handleAddDelegate} className={styles.style680_32}>
+            <div className={styles.style681_33}>
+              <div className={styles.style682_34}>
+                <Label htmlFor="del-name" className={styles.style683_35}>اسم المندوب المعتمد</Label>
                 <Input
                   id="del-name"
                   value={name}
                   onChange={e => setName(e.target.value)}
                   placeholder="مثال: يوسف مأمون بني ملحم"
-                  className="bg-black/80 border-emerald-950/50 text-white text-xs h-9"
+                  className={styles.style689_36}
                   required
                 />
               </div>
 
-              <div className="space-y-1">
-                <Label htmlFor="del-phone" className="text-xs text-zinc-300">رقم الهاتف النشط</Label>
+              <div className={styles.style694_37}>
+                <Label htmlFor="del-phone" className={styles.style695_38}>رقم الهاتف النشط</Label>
                 <Input
                   id="del-phone"
                   value={phone}
                   onChange={e => setPhone(e.target.value)}
                   placeholder="مثال: 0797744111"
-                  className="bg-black/80 border-emerald-950/50 text-white text-xs h-9"
+                  className={styles.style701_39}
                   required
                 />
               </div>
 
-              <div className="space-y-1">
-                <Label htmlFor="del-region" className="text-xs text-zinc-300">محافظة ومنطقة الإدارة جغرافياً</Label>
+              <div className={styles.style706_40}>
+                <Label htmlFor="del-region" className={styles.style707_41}>محافظة ومنطقة الإدارة جغرافياً</Label>
                 <select
                   id="del-region"
                   value={district}
                   onChange={e => setDistrict(e.target.value)}
-                  className="w-full h-9 mt-1 rounded bg-black border border-emerald-900 text-white px-2 focus:outline-none focus:border-emerald-500 text-xs"
+                  className={styles.style712_42}
                 >
                   <option value="وادي السير">وادي السير (عمان)</option>
                   <option value="الجامعة">منطقة الجامعة (عمان)</option>
@@ -718,26 +962,26 @@ export function DelegatesManagementTab() {
                 </select>
               </div>
 
-              <div className="space-y-1">
-                <Label htmlFor="del-target" className="text-xs text-zinc-300 font-bold">التارجت اليومي الملتزم به</Label>
+              <div className={styles.style721_43}>
+                <Label htmlFor="del-target" className={styles.style722_44}>التارجت اليومي الملتزم به</Label>
                 <Input
                   id="del-target"
                   type="number"
                   value={targetDaily}
                   onChange={e => setTargetDaily(e.target.value)}
                   placeholder="مثال: 10"
-                  className="bg-black/80 border-emerald-950/50 text-white text-xs h-9"
+                  className={styles.style729_45}
                   required
                 />
               </div>
 
-              <div className="space-y-1">
-                <Label htmlFor="del-expiry" className="text-xs text-zinc-300">مدة صلاحية الروابط السحرية</Label>
+              <div className={styles.style734_46}>
+                <Label htmlFor="del-expiry" className={styles.style735_47}>مدة صلاحية الروابط السحرية</Label>
                 <select
                   id="del-expiry"
                   value={linkExpiryHours}
                   onChange={e => setLinkExpiryHours(e.target.value)}
-                  className="w-full h-9 mt-1 rounded bg-black border border-emerald-900 text-white px-2 focus:outline-none focus:border-emerald-500 text-xs"
+                  className={styles.style740_48}
                 >
                   <option value="24">24 ساعة (يوم كامل)</option>
                   <option value="48">48 ساعة (يومين)</option>
@@ -745,24 +989,24 @@ export function DelegatesManagementTab() {
                 </select>
               </div>
 
-              <div className="space-y-1 font-mono">
-                <Label htmlFor="del-count" className="text-xs text-zinc-300">أرقام مقيدة مسبقاً</Label>
+              <div className={styles.style748_49}>
+                <Label htmlFor="del-count" className={styles.style749_50}>أرقام مقيدة مسبقاً</Label>
                 <Input
                   id="del-count"
                   type="number"
                   value={referralCountInit}
                   onChange={e => setReferralCountInit(e.target.value)}
-                  className="bg-black/80 border-emerald-950/50 text-white text-xs h-9"
+                  className={styles.style755_51}
                 />
               </div>
 
-              <div className="space-y-1">
-                <Label htmlFor="del-subrole" className="text-xs text-zinc-300 font-bold">نوع الصلاحيات الميدانية</Label>
+              <div className={styles.style759_52}>
+                <Label htmlFor="del-subrole" className={styles.style760_53}>نوع الصلاحيات الميدانية</Label>
                 <select
                   id="del-subrole"
                   value={subRole}
                   onChange={e => setSubRole(e.target.value as 'independent' | 'captain')}
-                  className="w-full h-9 mt-1 rounded bg-black border border-emerald-900 text-white px-2 focus:outline-none focus:border-emerald-500 text-xs"
+                  className={styles.style765_54}
                 >
                   <option value="independent">مندوب مستقل (صامت وموفر للموارد)</option>
                   <option value="captain">مندوب سائق (نشط بالنشاط الميداني والـ GPS)</option>
@@ -770,25 +1014,25 @@ export function DelegatesManagementTab() {
               </div>
 
               {subRole === 'captain' && (
-                <div className="space-y-1 flex flex-col justify-end">
-                  <Label htmlFor="del-fleet-active" className="text-xs text-zinc-300 pb-2">حالة النشاط الميداني الفوري</Label>
-                  <div className="flex items-center gap-2">
+                <div className={styles.style773_55}>
+                  <Label htmlFor="del-fleet-active" className={styles.style774_56}>حالة النشاط الميداني الفوري</Label>
+                  <div className={styles.style775_57}>
                     <input
                       type="checkbox"
                       id="del-fleet-active"
                       checked={isFleetActive}
                       onChange={e => setIsFleetActive(e.target.checked)}
-                      className="w-4 h-4 accent-emerald-500"
+                      className={styles.style781_58}
                     />
-                    <span className="text-[11px] text-emerald-400 font-bold">تفعيل الـ GPS ومستشعر الحركة</span>
+                    <span className={styles.style783_59}>تفعيل الـ GPS ومستشعر الحركة</span>
                   </div>
                 </div>
               )}
             </div>
 
-            <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="ghost" onClick={() => setIsAdding(false)} className="h-9 hover:bg-white/5 text-xs text-neutral-400">إلغاء الأمر</Button>
-              <Button type="submit" className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-9 text-xs rounded-xl">إنشاء العقد وتجهيز الكود 🔒</Button>
+            <div className={styles.style789_60}>
+              <Button type="button" variant="ghost" onClick={() => setIsAdding(false)} className={styles.style790_61}>إلغاء الأمر</Button>
+              <Button type="submit" className={styles.style791_62}>إنشاء العقد وتجهيز الكود 🔒</Button>
             </div>
           </form>
         </Card>
@@ -796,53 +1040,53 @@ export function DelegatesManagementTab() {
 
       {/* Main Container based on Sub-tabs */}
       {activeSubTab === 'delegates' && (
-        <Card className="bg-[#091B09]/20 border-emerald-950/30">
-          <CardHeader className="pb-3 border-b border-emerald-950/20">
-            <CardTitle className="text-base font-black text-white">منتسبي جيش الميدان ومنطقة التنسيق الجغرافي</CardTitle>
-            <CardDescription className="text-xs text-zinc-400">
+        <Card className={styles.style799_63}>
+          <CardHeader className={styles.style800_64}>
+            <CardTitle className={styles.style801_65}>منتسبي جيش الميدان ومنطقة التنسيق الجغرافي</CardTitle>
+            <CardDescription className={styles.style802_66}>
               تتبع رموز إحالة المندوبين، تعيين التارجت، حظر الأمان التلقائي، وتنسيق تسييل العوائد.
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-0">
+          <CardContent className={styles.style806_67}>
             {delegates.length > 0 ? (
-              <div className="overflow-x-auto">
+              <div className={styles.style808_68}>
                 <Table>
-                  <TableHeader className="bg-black/40 border-b border-emerald-950/30">
+                  <TableHeader className={styles.style810_69}>
                     <TableRow>
-                      <TableHead className="text-right text-gray-400 text-xs py-3">المندوب والإقليم</TableHead>
-                      <TableHead className="text-right text-gray-400 text-xs">كود الإحالة</TableHead>
-                      <TableHead className="text-right text-gray-400 text-xs">التارجت اليومي</TableHead>
-                      <TableHead className="text-right text-gray-400 text-xs">السائقون المسجلين</TableHead>
-                      <TableHead className="text-right text-gray-400 text-xs">انتساب عضوي</TableHead>
-                      <TableHead className="text-right text-gray-400 text-xs">سقوف الروابط</TableHead>
-                      <TableHead className="text-right text-gray-400 text-xs">حالة الاعتماد</TableHead>
-                      <TableHead className="text-left text-gray-400 text-xs p-3">التحكم السحابي</TableHead>
+                      <TableHead className={styles.style812_70}>المندوب والإقليم</TableHead>
+                      <TableHead className={styles.style813_71}>كود الإحالة</TableHead>
+                      <TableHead className={styles.style814_72}>التارجت اليومي</TableHead>
+                      <TableHead className={styles.style815_73}>السائقون المسجلين</TableHead>
+                      <TableHead className={styles.style816_74}>انتساب عضوي</TableHead>
+                      <TableHead className={styles.style817_75}>سقوف الروابط</TableHead>
+                      <TableHead className={styles.style818_76}>حالة الاعتماد</TableHead>
+                      <TableHead className={styles.style819_77}>التحكم السحابي</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {delegates.map((del) => {
                       return (
-                        <TableRow key={del.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                          <TableCell className="align-middle py-3">
-                            <div className="flex items-center gap-3">
-                              <Avatar className="w-8 h-8 rounded-full border border-emerald-500/20 bg-emerald-950/40 shrink-0">
-                                <AvatarFallback className="text-emerald-400 font-bold text-xs">
+                        <TableRow key={del.id} className={styles.style825_78}>
+                          <TableCell className={styles.style826_79}>
+                            <div className={styles.style827_80}>
+                              <Avatar className={styles.style828_81}>
+                                <AvatarFallback className={styles.style829_82}>
                                   {del.name.substring(0, 2)}
                                 </AvatarFallback>
                               </Avatar>
                               <div>
-                                <p className="text-xs font-black text-white leading-tight">{del.name}</p>
-                                <span className="text-[10px] text-emerald-500 font-mono font-bold">{del.district} ● {del.phone}</span>
-                                <div className="flex gap-1.5 mt-1">
-                                  <Badge className="text-[8px] px-1 py-0 bg-zinc-900 border-zinc-700 text-gray-300 font-sans">
+                                <p className={styles.style834_83}>{del.name}</p>
+                                <span className={styles.style835_84}>{del.district} ● {del.phone}</span>
+                                <div className={styles.style836_85}>
+                                  <Badge className={styles.style837_86}>
                                     {del.subRole === 'captain' ? '🎖️ مندوب سائق' : '💼 مندوب مستقل'}
                                   </Badge>
                                   {del.subRole === 'captain' && (
                                     <Badge className={cn(
-                                      "text-[8px] px-1 py-0 font-sans",
+                                      styles.style842_87,
                                       del.isFleetActive
-                                        ? "bg-emerald-950 text-emerald-400 border-emerald-500/20"
-                                        : "bg-amber-950 text-amber-400 border-amber-500/20"
+                                        ? styles.style844_88
+                                        : styles.style845_89
                                     )}>
                                       {del.isFleetActive ? '● نشط ميدانياً' : '○ خامل'}
                                     </Badge>
@@ -852,27 +1096,27 @@ export function DelegatesManagementTab() {
                             </div>
                           </TableCell>
 
-                          <TableCell className="align-middle animate-fade-in">
-                            <div className="flex items-center gap-1">
-                              <Badge variant="outline" className="font-mono text-[10px] bg-black/60 border-emerald-800 text-white p-1">
+                          <TableCell className={styles.style855_90}>
+                            <div className={styles.style856_91}>
+                              <Badge variant="outline" className={styles.style857_92}>
                                 {del.referralCode}
                               </Badge>
                               <Button
                                 size="icon"
                                 variant="ghost"
                                 onClick={() => handleCopy(del.referralCode)}
-                                className="w-6 h-6 hover:bg-neutral-800"
+                                className={styles.style864_93}
                               >
-                                {copiedCode === del.referralCode ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5 text-gray-400" />}
+                                {copiedCode === del.referralCode ? <Check className={styles.style866_94} /> : <Copy className={styles.style866_95} />}
                               </Button>
                             </div>
                           </TableCell>
 
-                          <TableCell className="align-middle font-black text-xs text-zinc-300 font-mono">
+                          <TableCell className={styles.style871_96}>
                             {del.targetDaily || 10} حاقن/يوم
                           </TableCell>
 
-                          <TableCell className="align-middle font-bold text-xs font-mono text-zinc-300">
+                          <TableCell className={styles.style875_97}>
                             <div>
                               <div>{del.referredCount || 0} سائق</div>
                               {(() => {
@@ -886,23 +1130,23 @@ export function DelegatesManagementTab() {
                                 const hasDiscrepancy = actualCount > 0 && actualCount !== del.referredCount;
 
                                 return (
-                                  <div className="space-y-1 mt-1.5 text-[9px] font-sans">
+                                  <div className={styles.style889_98}>
                                     {isSigValid ? (
-                                      <Badge variant="outline" className="text-[8px] bg-emerald-950/25 text-emerald-400 border-emerald-500/30 py-0.5 px-1 font-bold block w-fit">
+                                      <Badge variant="outline" className={styles.style891_99}>
                                         ✓ توقيع رقمي معتمد
                                       </Badge>
                                     ) : (
-                                      <Badge variant="outline" className="text-[8px] bg-red-950/25 text-red-400 border-red-500/30 py-0.5 px-1 font-bold block w-fit">
+                                      <Badge variant="outline" className={styles.style895_100}>
                                         ⚠️ تالف أو غير موقّع
                                       </Badge>
                                     )}
 
                                     {hasDiscrepancy ? (
-                                      <div className="text-red-400 font-bold flex items-center gap-1">
+                                      <div className={styles.style901_101}>
                                         <span>⚠️ تضارب: الفعلي ({actualCount})</span>
                                       </div>
                                     ) : actualCount > 0 ? (
-                                      <div className="text-emerald-400 font-bold flex items-center gap-1 text-[8px]">
+                                      <div className={styles.style905_102}>
                                         <span>✓ تطابق مبرهن ({actualCount})</span>
                                       </div>
                                     ) : null}
@@ -912,7 +1156,7 @@ export function DelegatesManagementTab() {
                                         size="sm"
                                         variant="outline"
                                         onClick={() => handleReconcileAndSign(del.id)}
-                                        className="h-5 px-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-[8px] font-bold text-amber-400 rounded border border-amber-500/20 block"
+                                        className={styles.style915_103}
                                       >
                                         مصادقة وتوقيع تشفيري ⚡
                                       </Button>
@@ -923,39 +1167,39 @@ export function DelegatesManagementTab() {
                             </div>
                           </TableCell>
 
-                          <TableCell className="align-middle font-semibold text-xs font-mono text-emerald-400">
+                          <TableCell className={styles.style926_104}>
                             +{del.organicCount || 0} نمو عضوي
                           </TableCell>
 
-                          <TableCell className="align-middle font-mono">
-                            <Badge variant="outline" className="text-[10px] text-amber-400 border-amber-500/30 bg-amber-950/20">
+                          <TableCell className={styles.style930_105}>
+                            <Badge variant="outline" className={styles.style931_106}>
                               ⏱️ {del.linkExpiryHours || 24} ساعة
                             </Badge>
                           </TableCell>
 
-                          <TableCell className="align-middle">
+                          <TableCell className={styles.style936_107}>
                             <Badge
                               variant="outline"
                               className={cn(
-                                "text-[10px]",
+                                styles.style940_108,
                                 del.status === 'active'
-                                  ? "text-emerald-400 border-emerald-500 bg-emerald-950/20"
-                                  : "text-amber-500 border-amber-500 bg-amber-950/20"
+                                  ? styles.style942_109
+                                  : styles.style943_110
                               )}
                             >
                               {del.status === 'active' ? 'مفعّل ونشط ●' : 'مجمّد مؤقتاً ||'}
                             </Badge>
                           </TableCell>
 
-                          <TableCell className="align-middle text-left p-3">
-                            <div className="flex items-center justify-end gap-1.5">
+                          <TableCell className={styles.style950_111}>
+                            <div className={styles.style951_112}>
                               <Button
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handleGenerateMagicLink(del)}
-                                className="h-7 border-teal-500/30 hover:bg-teal-950/40 text-[10px] font-bold text-teal-400 rounded-lg"
+                                className={styles.style956_113}
                               >
-                                <LinkIcon className="w-3 h-3 ml-1" />
+                                <LinkIcon className={styles.style958_114} />
                                 توليد رابط سحري
                               </Button>
 
@@ -963,7 +1207,7 @@ export function DelegatesManagementTab() {
                                 size="sm"
                                 variant="outline"
                                 onClick={() => toggleStatus(del.id, del.status)}
-                                className="h-7 border-[#1e293b] hover:bg-neutral-800 text-[10px] rounded-lg text-neutral-300"
+                                className={styles.style966_115}
                               >
                                 {del.status === 'active' ? 'تجميد المندوب' : 'تنشيط المندوب'}
                               </Button>
@@ -976,7 +1220,7 @@ export function DelegatesManagementTab() {
                 </Table>
               </div>
             ) : (
-              <p className="text-center text-muted-foreground text-xs py-10 font-bold">لا يوجد مندوبين معتمدين مسجلين في النظام بعد.</p>
+              <p className={styles.style979_116}>لا يوجد مندوبين معتمدين مسجلين في النظام بعد.</p>
             )}
           </CardContent>
         </Card>
@@ -984,28 +1228,28 @@ export function DelegatesManagementTab() {
 
       {/* Magic Links Sub-tab */}
       {activeSubTab === 'magic-links' && (
-        <div className="space-y-6">
-          <Card className="bg-[#091B09]/20 border-emerald-950/30">
-            <CardHeader className="pb-3 border-b border-emerald-950/20">
-              <CardTitle className="text-base font-black text-white flex items-center gap-1.5">
-                <LinkIcon className="h-4.5 w-4.5 text-amber-400" />
+        <div className={styles.style987_117}>
+          <Card className={styles.style988_118}>
+            <CardHeader className={styles.style989_119}>
+              <CardTitle className={styles.style990_120}>
+                <LinkIcon className={styles.style991_121} />
                 محرك الروابط السحرية والولوج الفوري
               </CardTitle>
-              <CardDescription className="text-xs text-zinc-400">
+              <CardDescription className={styles.style994_122}>
                 قائمة الروابط الصادرة لحسابات المندوبين مع تتبع الأمان والحدود الزمنية لإنهاء الصلاحية تلافياً لأي تسلل.
               </CardDescription>
             </CardHeader>
-            <CardContent className="p-0">
+            <CardContent className={styles.style998_123}>
               {magicLinks.length > 0 ? (
-                <div className="overflow-x-auto">
+                <div className={styles.style1000_124}>
                   <Table>
-                    <TableHeader className="bg-black/40 border-b border-[#1e293b]">
+                    <TableHeader className={styles.style1002_125}>
                       <TableRow>
-                        <TableHead className="text-right text-gray-405 text-xs py-3">المندوب المستفيد</TableHead>
-                        <TableHead className="text-right text-gray-405 text-xs">رابط الدخول المشفر</TableHead>
-                        <TableHead className="text-right text-gray-405 text-xs">الانتهاء الزمني</TableHead>
-                        <TableHead className="text-right text-gray-405 text-xs">الصلاحية لمرة واحدة</TableHead>
-                        <TableHead className="text-left text-gray-405 text-xs p-3">إجراء </TableHead>
+                        <TableHead className={styles.style1004_126}>المندوب المستفيد</TableHead>
+                        <TableHead className={styles.style1005_127}>رابط الدخول المشفر</TableHead>
+                        <TableHead className={styles.style1006_128}>الانتهاء الزمني</TableHead>
+                        <TableHead className={styles.style1007_129}>الصلاحية لمرة واحدة</TableHead>
+                        <TableHead className={styles.style1008_130}>إجراء </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1014,15 +1258,15 @@ export function DelegatesManagementTab() {
                         const isActive = link.status === 'active' && !expired;
 
                         return (
-                          <TableRow key={link.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                            <TableCell className="align-middle py-3">
-                              <span className="text-xs font-black text-white block">{link.delegateName}</span>
-                              <span className="text-[10px] text-zinc-500 font-mono">#Link-{link.id.substring(0,6)}</span>
+                          <TableRow key={link.id} className={styles.style1017_131}>
+                            <TableCell className={styles.style1018_132}>
+                              <span className={styles.style1019_133}>{link.delegateName}</span>
+                              <span className={styles.style1020_134}>#Link-{link.id.substring(0,6)}</span>
                             </TableCell>
 
-                            <TableCell className="align-middle">
-                              <div className="flex items-center gap-1">
-                                <Badge variant="outline" className="font-mono text-[9px] bg-black text-zinc-300 p-1 select-all cursor-pointer hover:bg-neutral-900 border-zinc-800">
+                            <TableCell className={styles.style1023_135}>
+                              <div className={styles.style1024_136}>
+                                <Badge variant="outline" className={styles.style1025_137}>
                                   {link.url}
                                 </Badge>
                                 <Button
@@ -1032,38 +1276,38 @@ export function DelegatesManagementTab() {
                                     navigator.clipboard.writeText(link.url);
                                     toast({ title: 'تم نسخ الرابط السحري', description: 'يمكنك إرساله للمندوب للدخول بنقرة واحدة.' });
                                   }}
-                                  className="w-6 h-6 hover:bg-neutral-800"
+                                  className={styles.style1035_138}
                                 >
-                                  <Copy className="w-3.5 h-3.5 text-gray-400" />
+                                  <Copy className={styles.style1037_139} />
                                 </Button>
                               </div>
                             </TableCell>
 
-                            <TableCell className="align-middle font-mono text-xs">
+                            <TableCell className={styles.style1042_140}>
                               {new Date(link.expiresAt).toLocaleString('ar-JO')}
                             </TableCell>
 
-                            <TableCell className="align-middle">
+                            <TableCell className={styles.style1046_141}>
                               <Badge
                                 variant="outline"
                                 className={cn(
-                                  "text-[10px]",
-                                  isActive ? "text-emerald-400 border-emerald-500 bg-emerald-950/20" : "text-zinc-500 border-zinc-800 bg-black/40"
+                                  styles.style1050_142,
+                                  isActive ? styles.style1051_143 : styles.style1051_144
                                 )}
                               >
                                 {link.status === 'used' ? 'تم الاستهلاك' : link.status === 'revoked' ? 'أبطل بالكامل' : expired ? 'منتهي الصلاحية' : 'صالح ونشط'}
                               </Badge>
                             </TableCell>
 
-                            <TableCell className="align-middle text-left p-3">
+                            <TableCell className={styles.style1058_145}>
                               {isActive && (
                                 <Button
                                   size="sm"
                                   variant="outline"
                                   onClick={() => handleRevokeLink(link.id)}
-                                  className="h-7 border-red-500/20 hover:bg-red-950/30 text-[10px] font-bold text-red-400 rounded-lg"
+                                  className={styles.style1064_146}
                                 >
-                                  <XCircle className="w-3 h-3 ml-1" />
+                                  <XCircle className={styles.style1066_147} />
                                   إبطال وحرق الرابط
                                 </Button>
                               )}
@@ -1075,8 +1319,8 @@ export function DelegatesManagementTab() {
                   </Table>
                 </div>
               ) : (
-                <div className="text-center text-muted-foreground text-xs py-10 font-bold space-y-2 flex flex-col items-center">
-                  <Info className="w-8 h-8 text-amber-500" />
+                <div className={styles.style1078_148}>
+                  <Info className={styles.style1079_149} />
                   <span>لا يوجد أي روابط سحرية نشطة حالياً. يمكنك توليد رابط بجانب اسم المندوب في الأعلى.</span>
                 </div>
               )}
@@ -1087,54 +1331,54 @@ export function DelegatesManagementTab() {
 
       {/* Tasks sub-tab */}
       {activeSubTab === 'tasks' && (
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <div className={styles.style1090_150}>
           {/* List of Tasks */}
-          <Card className="lg:col-span-3 bg-[#091B09]/20 border-emerald-950/30">
-            <CardHeader className="pb-3 border-b border-emerald-950/20 flex justify-between items-center">
-              <CardTitle className="text-base font-black text-white flex items-center gap-1.5">
-                <ClipboardList className="h-4.5 w-4.5 text-emerald-400" />
+          <Card className={styles.style1092_151}>
+            <CardHeader className={styles.style1093_152}>
+              <CardTitle className={styles.style1094_153}>
+                <ClipboardList className={styles.style1095_154} />
                 متابعة حالة المهام الميدانية المفتوحة
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-0">
+            <CardContent className={styles.style1099_155}>
               {tasks.length > 0 ? (
-                <div className="overflow-x-auto">
+                <div className={styles.style1101_156}>
                   <Table>
-                    <TableHeader className="bg-black/40 border-b border-[#1e293b]">
+                    <TableHeader className={styles.style1103_157}>
                       <TableRow>
-                        <TableHead className="text-right text-gray-400 text-xs py-3">المهمة والمندوب</TableHead>
-                        <TableHead className="text-right text-gray-400 text-xs">التفاصيل والتكليف</TableHead>
-                        <TableHead className="text-right text-gray-400 text-xs">السقف الزمني</TableHead>
-                        <TableHead className="text-right text-gray-400 text-xs">حالة المهمة</TableHead>
-                        <TableHead className="text-left text-gray-400 text-xs p-3">الإجراء السلوكي</TableHead>
+                        <TableHead className={styles.style1105_158}>المهمة والمندوب</TableHead>
+                        <TableHead className={styles.style1106_159}>التفاصيل والتكليف</TableHead>
+                        <TableHead className={styles.style1107_160}>السقف الزمني</TableHead>
+                        <TableHead className={styles.style1108_161}>حالة المهمة</TableHead>
+                        <TableHead className={styles.style1109_162}>الإجراء السلوكي</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {tasks.map((task) => {
                         return (
-                          <TableRow key={task.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                            <TableCell className="align-middle py-3">
-                              <span className="text-xs font-black text-white block">{task.title}</span>
-                              <span className="text-[10px] text-zinc-400 block font-bold text-emerald-400">للمندوب: {task.delegateName}</span>
+                          <TableRow key={task.id} className={styles.style1115_163}>
+                            <TableCell className={styles.style1116_164}>
+                              <span className={styles.style1117_165}>{task.title}</span>
+                              <span className={styles.style1118_166}>للمندوب: {task.delegateName}</span>
                             </TableCell>
 
-                            <TableCell className="align-middle text-xs text-zinc-300 max-w-[200px] truncate">
+                            <TableCell className={styles.style1121_167}>
                               {task.description}
                             </TableCell>
 
-                            <TableCell className="align-middle font-mono text-xs">
+                            <TableCell className={styles.style1125_168}>
                               {task.deadline}
                             </TableCell>
 
-                            <TableCell className="align-middle">
+                            <TableCell className={styles.style1129_169}>
                               <Badge
                                 variant="outline"
                                 className={cn(
-                                  "text-[10px]",
-                                  task.status === 'pending' ? "text-yellow-400 border-yellow-500/30 bg-yellow-950/20" :
-                                  task.status === 'acknowledged' ? "text-blue-400 border-blue-500/30 bg-blue-950/20" :
-                                  task.status === 'completed' ? "text-emerald-400 border-emerald-500/30 bg-emerald-950/20" :
-                                  "text-zinc-500 border-zinc-800 bg-black/40"
+                                  styles.style1133_170,
+                                  task.status === 'pending' ? styles.style1134_171 :
+                                  task.status === 'acknowledged' ? styles.style1135_172 :
+                                  task.status === 'completed' ? styles.style1136_173 :
+                                  styles.style1137_174
                                 )}
                               >
                                 {task.status === 'pending' ? 'بانتظار العرض' :
@@ -1143,13 +1387,13 @@ export function DelegatesManagementTab() {
                               </Badge>
                             </TableCell>
 
-                            <TableCell className="align-middle text-left p-3">
+                            <TableCell className={styles.style1146_175}>
                               {task.status !== 'closed' && (
                                 <Button
                                   size="sm"
                                   variant="outline"
                                   onClick={() => handleCloseTask(task.id)}
-                                  className="h-7 border-zinc-800 hover:bg-neutral-800 text-[10px] font-bold text-zinc-300 rounded-lg"
+                                  className={styles.style1152_176}
                                 >
                                   إغلاق وأرشفة
                                 </Button>
@@ -1162,8 +1406,8 @@ export function DelegatesManagementTab() {
                   </Table>
                 </div>
               ) : (
-                <div className="text-center text-muted-foreground text-xs py-12 font-bold space-y-2 flex flex-col items-center">
-                  <ClipboardList className="w-8 h-8 text-neutral-600" />
+                <div className={styles.style1165_177}>
+                  <ClipboardList className={styles.style1166_178} />
                   <span>لا يوجد مهام ميدانية جارية مسندة حالياً. استخدم اللوحة الجانبية لإنشاء أول مهمة للجيش الميدني.</span>
                 </div>
               )}
@@ -1171,24 +1415,24 @@ export function DelegatesManagementTab() {
           </Card>
 
           {/* Create Task Form */}
-          <Card className="lg:col-span-2 bg-[#0A0E1A] border-[#1e293b]">
+          <Card className={styles.style1174_179}>
             <CardHeader>
-              <CardTitle className="text-sm font-black text-white flex items-center gap-1.5">
-                <Sparkles className="w-4.5 h-4.5 text-emerald-400" />
+              <CardTitle className={styles.style1176_180}>
+                <Sparkles className={styles.style1177_181} />
                 صياغة أمر عسكري ميداني (مهمة)
               </CardTitle>
-              <CardDescription className="text-xs">
+              <CardDescription className={styles.style1180_182}>
                 سيصل إشعار فوري للمندوب في لوحته لإلزامه بالتنفيذ والرد بالنتائج الجغرافية.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleAddTask} className="space-y-4">
-                <div className="space-y-1">
-                  <Label className="text-xs text-zinc-400">اختر المندوب المستهدف</Label>
+              <form onSubmit={handleAddTask} className={styles.style1185_183}>
+                <div className={styles.style1186_184}>
+                  <Label className={styles.style1187_185}>اختر المندوب المستهدف</Label>
                   <select
                     value={selectedDelegateId}
                     onChange={e => setSelectedDelegateId(e.target.value)}
-                    className="w-full h-10 rounded bg-black border border-[#1e293b] text-white px-2 focus:outline-none text-xs"
+                    className={styles.style1191_186}
                     required
                   >
                     <option value="">-- اسم المندوب الرباعي --</option>
@@ -1198,40 +1442,40 @@ export function DelegatesManagementTab() {
                   </select>
                 </div>
 
-                <div className="space-y-1">
-                  <Label className="text-xs text-zinc-400">عنوان التكليف</Label>
+                <div className={styles.style1201_187}>
+                  <Label className={styles.style1202_188}>عنوان التكليف</Label>
                   <Input
                     value={taskTitle}
                     onChange={e => setTaskTitle(e.target.value)}
                     placeholder="مثال: غرز 15 سائق في منطقة صويلح"
-                    className="bg-black border-[#1e293b] text-xs h-10"
+                    className={styles.style1207_189}
                     required
                   />
                 </div>
 
-                <div className="space-y-1">
-                  <Label className="text-xs text-zinc-400">مضمون الإجراء السلوكي والمحفزات</Label>
+                <div className={styles.style1212_190}>
+                  <Label className={styles.style1213_191}>مضمون الإجراء السلوكي والمحفزات</Label>
                   <textarea
                     value={taskDescription}
                     onChange={e => setTaskDescription(e.target.value)}
                     placeholder="يرجى توزيع الملصقات وكتابة رمز الإحالة JO-SWAILEH.. ومساعدة السائقون في تخطي عقبة الفحص الأولي للسيارات."
-                    className="w-full min-h-[80px] bg-black border border-[#1e293b] rounded-md p-2 text-white focus:outline-none text-xs"
+                    className={styles.style1218_192}
                     required
                   />
                 </div>
 
-                <div className="space-y-1">
-                  <Label className="text-xs text-zinc-400">مستهدف السقف الزمني</Label>
+                <div className={styles.style1223_193}>
+                  <Label className={styles.style1224_194}>مستهدف السقف الزمني</Label>
                   <Input
                     type="date"
                     value={taskDeadline}
                     onChange={e => setTaskDeadline(e.target.value)}
-                    className="bg-black border-[#1e293b] text-xs h-10"
+                    className={styles.style1229_195}
                     required
                   />
                 </div>
 
-                <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-10 text-xs rounded-xl">
+                <Button type="submit" className={styles.style1234_196}>
                   إرسال وإسناد الأمر الميداني فورا ⚡
                 </Button>
               </form>
@@ -1242,94 +1486,94 @@ export function DelegatesManagementTab() {
 
       {/* Analytics Performance Tab */}
       {activeSubTab === 'performance' && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card className="bg-[#091B09]/40 border-emerald-950/40 p-4">
-              <CardHeader className="p-0 pb-1">
-                <CardDescription className="text-[10px] text-zinc-400 font-bold">عواصف النمو المباشر</CardDescription>
+        <div className={styles.style1245_197}>
+          <div className={styles.style1246_198}>
+            <Card className={styles.style1247_199}>
+              <CardHeader className={styles.style1248_200}>
+                <CardDescription className={styles.style1249_201}>عواصف النمو المباشر</CardDescription>
               </CardHeader>
-              <CardContent className="p-0">
-                <p className="text-2xl font-black text-amber-500 font-mono">{totalReferred} سائق</p>
-                <div className="flex items-center gap-1 text-[9px] text-[#10B981] font-bold mt-1">
-                  <TrendingUp className="w-3.5 h-3.5" />
+              <CardContent className={styles.style1251_202}>
+                <p className={styles.style1252_203}>{totalReferred} سائق</p>
+                <div className={styles.style1253_204}>
+                  <TrendingUp className={styles.style1254_205} />
                   <span>توسّع إيجابي وقدرة تجنيدية صارمة</span>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-[#091B09]/40 border-emerald-950/40 p-4">
-              <CardHeader className="p-0 pb-1">
-                <CardDescription className="text-[10px] text-zinc-400 font-bold">إجمالي الانتساب العضوي (الألوية)</CardDescription>
+            <Card className={styles.style1260_206}>
+              <CardHeader className={styles.style1261_207}>
+                <CardDescription className={styles.style1262_208}>إجمالي الانتساب العضوي (الألوية)</CardDescription>
               </CardHeader>
-              <CardContent className="p-0">
-                <p className="text-2xl font-black text-emerald-400 font-mono">+{totalOrganic} منتسب</p>
-                <div className="flex items-center gap-1 text-[9px] text-[#10B981] font-bold mt-1">
+              <CardContent className={styles.style1264_209}>
+                <p className={styles.style1265_210}>+{totalOrganic} منتسب</p>
+                <div className={styles.style1266_211}>
                   <span>معدل نمو عضوي بنسبة {growthIndex}%</span>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-[#091B09]/40 border-emerald-950/40 p-4">
-              <CardHeader className="p-0 pb-1">
-                <CardDescription className="text-[10px] text-zinc-400 font-bold">نسبة الانسحاب والخسارة</CardDescription>
+            <Card className={styles.style1272_212}>
+              <CardHeader className={styles.style1273_213}>
+                <CardDescription className={styles.style1274_214}>نسبة الانسحاب والخسارة</CardDescription>
               </CardHeader>
-              <CardContent className="p-0">
-                <p className="text-2xl font-black text-red-400 font-mono">{churnRateAvg}%</p>
-                <div className="flex items-center gap-1 text-[9px] text-red-400 font-semibold mt-1">
-                  <TrendingDown className="w-3.5 h-3.5" />
+              <CardContent className={styles.style1276_215}>
+                <p className={styles.style1277_216}>{churnRateAvg}%</p>
+                <div className={styles.style1278_217}>
+                  <TrendingDown className={styles.style1279_218} />
                   <span>إجمالي حذف التطبيق: {totalChurn} سائقين</span>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-[#091B09]/40 border-emerald-950/40 p-4">
-              <CardHeader className="p-0 pb-1">
-                <CardDescription className="text-[10px] text-zinc-400 font-bold">السائقون الثابتين (+45 يوم)</CardDescription>
+            <Card className={styles.style1285_219}>
+              <CardHeader className={styles.style1286_220}>
+                <CardDescription className={styles.style1287_221}>السائقون الثابتين (+45 يوم)</CardDescription>
               </CardHeader>
-              <CardContent className="p-0">
-                <p className="text-2xl font-black text-blue-400 font-mono">{totalSteady} سائق</p>
-                <span className="text-[9px] text-zinc-500 font-bold block mt-1">
+              <CardContent className={styles.style1289_222}>
+                <p className={styles.style1290_223}>{totalSteady} سائق</p>
+                <span className={styles.style1291_224}>
                   معدل التزام مبرهن بصمامات قوية
                 </span>
               </CardContent>
             </Card>
           </div>
 
-          <Card className="bg-[#0A0F1D] border-[#1e293b]">
+          <Card className={styles.style1298_225}>
             <CardHeader>
-              <CardTitle className="text-sm font-black text-white flex items-center gap-1.5">
-                <Layers className="w-4 h-4 text-emerald-400" />
+              <CardTitle className={styles.style1300_226}>
+                <Layers className={styles.style1301_227} />
                 مقارنة كفوءة لألوية الاقتدار والإدارة
               </CardTitle>
-              <CardDescription className="text-xs">
+              <CardDescription className={styles.style1304_228}>
                 مخطط الكفاءة والنمو شهرياً بموجب تتبع الحالات الميدانية وحماية الروابط.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4 font-sans text-xs">
+              <div className={styles.style1309_229}>
                 {delegates.map(d => {
                   const percentage = totalReferred > 0 ? Math.round(((d.referredCount || 0) / totalReferred) * 100) : 0;
                   const isSigValid = !!verifiedSignatures[d.id];
                   return (
-                    <div key={d.id} className="space-y-1.5 bg-black/40 p-3 rounded-lg border border-[#1e293b]">
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="text-zinc-400">الإقليم: <span className="font-bold text-white">{d.district} ({d.name})</span></span>
-                        <div className="flex items-center gap-1.5">
+                    <div key={d.id} className={styles.style1314_230}>
+                      <div className={styles.style1315_231}>
+                        <span className={styles.style1316_232}>الإقليم: <span className={styles.style1316_233}>{d.district} ({d.name})</span></span>
+                        <div className={styles.style1317_234}>
                           {isSigValid ? (
-                            <span className="text-[9px] text-emerald-400 font-bold bg-emerald-950/20 px-1 border border-emerald-500/20 rounded">✓ موثق تشفيرياً</span>
+                            <span className={styles.style1319_235}>✓ موثق تشفيرياً</span>
                           ) : (
-                            <span className="text-[9px] text-red-400 font-bold bg-red-950/20 px-1 border border-red-500/20 rounded">⚠️ غير موثق</span>
+                            <span className={styles.style1321_236}>⚠️ غير موثق</span>
                           )}
-                          <span className="font-bold text-emerald-400">{d.referredCount} سائق ({percentage}%)</span>
+                          <span className={styles.style1323_237}>{d.referredCount} سائق ({percentage}%)</span>
                         </div>
                       </div>
-                      <div className="w-full bg-neutral-900 h-2 rounded-full overflow-hidden">
+                      <div className={styles.style1326_238}>
                         <div
-                          className="bg-emerald-500 h-full rounded-full transition-all duration-505"
+                          className={styles.style1328_239}
                           style={{ width: `${percentage}%` }}
                         />
                       </div>
-                      <div className="flex justify-between items-center text-[10px] text-zinc-500">
+                      <div className={styles.style1332_240}>
                         <span>النمو العضوي المتمدد: +{d.organicCount}</span>
                         <span>تنبيهات الثبات (45 يوم): {d.steadyCount} سائق ملتزم</span>
                       </div>
