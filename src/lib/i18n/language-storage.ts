@@ -12,7 +12,7 @@ export function readStoredDashboardLanguage(): AppLanguage {
   if (typeof window === 'undefined') return 'ar';
   const storedLanguage = window.localStorage.getItem(DASHBOARD_LANGUAGE_KEY);
   if (storedLanguage === 'ar' || storedLanguage === 'en') return storedLanguage;
-  return getDeviceDashboardLanguage();
+  return 'ar';
 }
 
 export function persistDashboardLanguage(language: AppLanguage) {

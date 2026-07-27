@@ -25,7 +25,7 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { AdDisplayCard } from '@/features/ads/contract';
+import { AdDisplayCard } from '@/features/ads/ad-display/contract';
 
 const styles = {
   style90_1: "ml-2",

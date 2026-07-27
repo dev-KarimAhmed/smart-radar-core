@@ -2,21 +2,25 @@
 
 import dynamic from 'next/dynamic';
 import { RouteLoading } from '@/shared/components/layout/route-loading';
+import { RoleAccessGate } from '@/shared/components/layout/role-access-gate';
+import { useAuth } from '@/features/auth/contract';
 
-const AdvertiserPortal = dynamic(
-  () => import('./advertiser-portal').then((module) => module.AdvertiserPortal),
+const AdvertiserWorkspace = dynamic(
+  () => import('./advertiser-workspace').then((module) => module.AdvertiserWorkspace),
   { loading: () => <RouteLoading label="ط¬ط§ط±ظٹ طھط­ظ…ظٹظ„ ظ„ظˆط­ط© ط§ظ„ظ…ط¹ظ„ظ†..." /> },
 );
 
 const styles = {
   root: 'min-h-screen w-full bg-[#0B1120] p-4 text-white sm:p-8',
-  content: 'mx-auto w-full max-w-4xl',
 } as const;
 
 export function AdvertiserRoute() {
+  const { loading, user } = useAuth();
   return (
     <main className={styles.root} data-advertiser-route>
-      <div className={styles.content}><AdvertiserPortal /></div>
+      {loading ? <RouteLoading label="جاري التحقق من الجلسة..." /> : user?.role === 'advertiser'
+        ? <AdvertiserWorkspace />
+        : <RoleAccessGate title="لوحة المعلن" body="سجّل الدخول بحساب معلن لإدارة الحملات الإعلانية." />}
     </main>
   );
 }

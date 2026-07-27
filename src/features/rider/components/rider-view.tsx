@@ -45,7 +45,7 @@ import { supabase } from '@/lib/supabase-client';
 import { cn } from '@/lib/utils';
 import { fetchRoadRoute, type RoadRouteEstimate } from '@/lib/road-route';
 import { calculateSovereignFareQuote } from '@/core/logic/geospatial-kernel';
-import { AdStage } from '@/features/ads/contract';
+import { AdStage } from '@/features/ads/ad-stage/contract';
 import { RatingModal } from '@/components/dashboard/shared/rating-modal';
 import { RadarRiderDashboard, type HistoricalTrip } from './rider-dashboard';
 import { buildDistrictLoadKey } from '../services/rider-district-query';

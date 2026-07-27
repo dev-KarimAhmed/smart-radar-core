@@ -26,7 +26,7 @@ import { useAdminAds } from '@/hooks/use-admin-ads';
 import { useMarketPulse } from '@/hooks/use-market-pulse';
 import { useToast } from '@/hooks/use-toast';
 import { SOVEREIGN_PRICING_PACKAGES, SovereignPricingPackage } from '@/lib/constants';
-import { AdDisplayCard } from '@/features/ads/contract';
+import { AdDisplayCard } from '@/features/ads/ad-display/contract';
 
 import { cn } from '@/lib/utils';
 const styles = {

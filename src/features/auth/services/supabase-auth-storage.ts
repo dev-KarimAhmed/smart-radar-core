@@ -26,6 +26,14 @@ export function clearSupabaseAuthStorage() {
   window.sessionStorage.removeItem(SUPABASE_AUTH_STORAGE_KEY);
 }
 
+export function hasStoredSupabaseAuthSession() {
+  if (typeof window === 'undefined') return false;
+  return Boolean(
+    window.localStorage.getItem(SUPABASE_AUTH_STORAGE_KEY)
+    || window.sessionStorage.getItem(SUPABASE_AUTH_STORAGE_KEY),
+  );
+}
+
 export function createRememberAwareStorage() {
   return {
     getItem(key: string) {

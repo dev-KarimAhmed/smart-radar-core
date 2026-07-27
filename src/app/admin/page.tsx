@@ -1,12 +1,4 @@
-'use client';
-
-import dynamic from 'next/dynamic';
-import { RouteLoading } from '@/shared/components/layout/route-loading';
-
-const AdminRoute = dynamic(
-  () => import('@/features/admin/components/admin-route').then((module) => module.AdminRoute),
-  { loading: () => <RouteLoading label="ط¬ط§ط±ظٹ ط§ظ„طھط­ظ…ظٹظ„..." /> },
-);
+import { AdminRoute } from '@/features/admin/components/admin-route';
 
 const styles = { root: 'contents' } as const;
 

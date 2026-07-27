@@ -1,6 +1,5 @@
 'use client';
 
-import { AnimatePresence, motion } from 'framer-motion';
 import {
   ChevronDown,
   Eye,
@@ -12,7 +11,7 @@ import {
   ShieldCheck,
   UserRound,
 } from 'lucide-react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 
@@ -61,8 +60,8 @@ const styles = {
   style337_41: "font-black text-[#14B8A6] underline-offset-4 transition hover:text-[#2DD4BF] hover:underline",
   style345_42: "absolute inset-x-0 bottom-0 z-0 h-14 overflow-hidden border-t border-white/10 bg-slate-950/70 backdrop-blur-xl",
   style347_43: "flex w-max min-w-[200%] gap-8 whitespace-nowrap py-5",
-  style349_44: "[animation:ad-river-rtl_28s_linear_infinite]",
-  style350_45: "[animation:ad-river-ltr_28s_linear_infinite]",
+  style349_44: "justify-center",
+  style350_45: "justify-center",
   style354_46: "text-xs font-bold text-[#94A3B8] odd:text-[#F8FAFC]",
   style374_47: "block",
   style375_48: "mb-2 flex items-center gap-2 text-sm font-bold text-[#F8FAFC]",
@@ -180,8 +179,13 @@ const copy = {
   },
 } as const;
 
-export function RegisterRoute() {
-  const searchParams = useSearchParams();
+export function RegisterRoute({
+  initialLanguage,
+  initialRole = 'rider',
+}: {
+  initialLanguage?: string;
+  initialRole?: string;
+}) {
   const router = useRouter();
   const { language, setLanguage } = useDashboardLanguage();
   const [authType, setAuthType] = useState<AuthType>('register');
@@ -190,14 +194,14 @@ export function RegisterRoute() {
 
   // Honor a ?lang= deep link once on mount by driving the shared locale.
   useEffect(() => {
-    const requestedLang = searchParams.get('lang');
+    const requestedLang = initialLanguage;
     if ((requestedLang === 'ar' || requestedLang === 'en') && requestedLang !== language) {
       setLanguage(requestedLang);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const selectedRole = searchParams.get('role') || 'rider';
+  const selectedRole = initialRole;
   const role = selectedRole in roleLabels ? selectedRole : 'rider';
   const isArabic = language === 'ar';
   const t = copy[language];
@@ -236,13 +240,8 @@ export function RegisterRoute() {
             <p className={styles.style183_12}>
               {t.brand} · {roleName || t.riderContext}
             </p>
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.div
+            <div
                 key={`${authType}-${language}`}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.18 }}
               >
                 <h1 className={styles.style194_13}>
                   {authType === 'register' ? t.registerTitle : t.loginTitle}
@@ -250,8 +249,7 @@ export function RegisterRoute() {
                 <p className={styles.style197_14}>
                   {authType === 'register' ? t.registerSubtitle : t.loginSubtitle}
                 </p>
-              </motion.div>
-            </AnimatePresence>
+            </div>
           </header>
 
           <div className={styles.style204_15}>
@@ -266,10 +264,8 @@ export function RegisterRoute() {
                   className={styles.style213_16}
                 >
                   {active ? (
-                    <motion.span
-                      layoutId="auth-view-active"
+                    <span
                       className={styles.style218_17}
-                      transition={{ type: 'spring', stiffness: 420, damping: 34 }}
                     />
                   ) : null}
                   <span className={cn(styles.style222_18, active ? styles.style222_19 : styles.style222_20)}>
@@ -280,13 +276,8 @@ export function RegisterRoute() {
             })}
           </div>
 
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.form
+            <form
               key={authType}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
               className={styles.style237_21}
               onSubmit={(event) => {
                 event.preventDefault();
@@ -371,16 +362,13 @@ export function RegisterRoute() {
                 </div>
               </Field>
 
-              <motion.button
-                whileTap={{ scale: 0.98 }}
-                whileHover={{ y: -1 }}
+              <button
                 type="submit"
                 className={styles.style325_39}
               >
                 {authType === 'register' ? t.submitRegister : t.submitLogin}
-              </motion.button>
-            </motion.form>
-          </AnimatePresence>
+              </button>
+            </form>
 
           <div className={styles.style332_40}>
             <span>{authType === 'register' ? t.hasAccount : t.noAccount}</span>{' '}

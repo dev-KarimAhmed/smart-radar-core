@@ -1,14 +1,19 @@
-import { Suspense } from 'react';
 import { RegisterRoute } from '@/features/auth/components/register-route';
 
-const styles = {
-  fallback: 'flex min-h-dvh items-center justify-center bg-[#0B0F19] text-slate-100',
-} as const;
+const styles = { root: 'contents' } as const;
 
-export default function RegisterPage() {
+export default async function RegisterPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = await searchParams;
+  const role = typeof params.role === 'string' ? params.role : 'rider';
+  const language = typeof params.lang === 'string' ? params.lang : undefined;
+
   return (
-    <Suspense fallback={<div className={styles.fallback}>Loading layout parameters...</div>}>
-      <RegisterRoute />
-    </Suspense>
+    <div className={styles.root}>
+      <RegisterRoute initialLanguage={language} initialRole={role} />
+    </div>
   );
 }

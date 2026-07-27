@@ -23,6 +23,7 @@ export {
 } from './supabase-auth-logic';
 
 const AUTH_TOKEN_STORAGE_KEY = 'radar_supabase_access_token';
+const AUTH_SESSION_CREATED_EVENT = 'radar-auth-session-created';
 
 export async function signUpRiderWithPhone(input: RiderSupabaseSignUpInput) {
   const validation = validatePhoneAndPassword(input.phone, input.password);
@@ -42,6 +43,7 @@ export async function signUpRiderWithPhone(input: RiderSupabaseSignUpInput) {
 
   if (error) throw error;
   cacheSupabaseSession(data.session);
+  notifyAuthSessionCreated();
   return data;
 }
 
@@ -59,6 +61,7 @@ export async function signInRiderWithPhone(input: RiderSupabaseSignInInput) {
 
   if (error) throw error;
   cacheSupabaseSession(data.session);
+  notifyAuthSessionCreated();
   return data;
 }
 
@@ -82,3 +85,11 @@ export function clearSupabaseSessionCache() {
   sessionStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
   clearSupabaseAuthStorage();
 }
+
+function notifyAuthSessionCreated() {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event(AUTH_SESSION_CREATED_EVENT));
+  }
+}
+
+export { AUTH_SESSION_CREATED_EVENT };

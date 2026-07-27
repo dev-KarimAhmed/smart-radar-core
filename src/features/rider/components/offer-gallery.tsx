@@ -12,7 +12,7 @@ import { RadarSovereignIntegrationKernel } from '@/core/logic/sovereign-market-k
 import type { Offer } from '@/core/types';
 import { useAuth } from '@/hooks/use-auth';
 import { usePromoStream } from '@/hooks/use-promo-stream';
-import { AdDisplayCard } from '@/features/ads/contract';
+import { AdDisplayCard } from '@/features/ads/ad-display/contract';
 
 import { cn } from '@/lib/utils';
 const styles = {

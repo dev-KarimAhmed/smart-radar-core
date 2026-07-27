@@ -1,12 +1,4 @@
-'use client';
-
-import dynamic from 'next/dynamic';
-import { RouteLoading } from '@/shared/components/layout/route-loading';
-
-const AdvertiserRoute = dynamic(
-  () => import('@/features/advertiser/components/advertiser-route').then((module) => module.AdvertiserRoute),
-  { loading: () => <RouteLoading label="ط¬ط§ط±ظٹ ط§ظ„طھط­ظ…ظٹظ„..." /> },
-);
+import { AdvertiserRoute } from '@/features/advertiser/components/advertiser-route';
 
 const styles = { root: 'contents' } as const;
 
