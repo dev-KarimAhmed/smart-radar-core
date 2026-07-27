@@ -45,4 +45,7 @@ next-env.d.ts
 
 # Build output
 /dist
+
+# Isolated feature worktrees
+/.worktrees/
  
