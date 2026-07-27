@@ -19,6 +19,111 @@ import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import type { AppLanguage } from '@/lib/i18n/simple-copy';
 import { cn } from '@/lib/utils';
 
+const styles = {
+  style68_1: "flex items-center justify-center p-4 min-h-[60vh] font-sans pointer-events-auto",
+  style69_2: "w-full max-w-md bg-[#0D0505] border border-red-500/20 rounded-2xl p-6 text-center space-y-5 shadow-xl shadow-red-950/20 relative overflow-hidden",
+  style70_3: "absolute top-0 left-0 w-full h-1 bg-red-600 animate-pulse",
+  style71_4: "w-16 h-16 bg-red-500/10 border border-red-500/30 rounded-full flex items-center justify-center mx-auto text-red-500 animate-pulse text-2xl",
+  style72_5: "text-xl font-bold text-red-400",
+  style73_6: "py-4 px-6 bg-red-950/15 border border-red-500/10 rounded-xl space-y-2",
+  style74_7: "text-[11px] uppercase tracking-wider text-red-500 font-bold",
+  style75_8: "text-3xl font-black text-red-400 tracking-widest font-mono",
+  style76_9: "text-[10px] text-red-400/70 font-bold animate-pulse",
+  style80_10: "text-sm text-gray-300 leading-relaxed text-right",
+  style81_11: "text-white font-bold",
+  style186_12: "w-full max-w-lg mx-auto bg-[#0F172A]/90 border border-[#14B8A6]/20 rounded-2xl p-4 flex items-center justify-between gap-4 shadow-[0_15px_40px_rgba(20,184,166,0.1)] backdrop-blur-xl mb-6 pointer-events-auto",
+  style189_13: "flex items-center gap-3",
+  style190_14: "relative flex h-3 w-3 shrink-0",
+  style191_15: "animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75",
+  style192_16: "relative inline-flex rounded-full h-3 w-3 bg-emerald-500",
+  style194_17: "text-right",
+  style194_18: "text-left",
+  style195_19: "text-xs font-black text-emerald-400 tracking-tight",
+  style196_20: "text-[10px] text-gray-400 font-bold mt-0.5",
+  style196_21: "text-white font-mono",
+  style202_22: "px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black rounded-xl shadow-lg transition-all duration-300 transform active:scale-95 pointer-events-auto z-[120]",
+  style220_23: "w-full max-w-lg mx-auto bg-[#0F172A]/90 border border-[#14B8A6]/20 rounded-2xl p-4 flex items-center justify-between gap-4 shadow-[0_15px_40px_rgba(20,184,166,0.1)] backdrop-blur-xl mb-6 pointer-events-auto",
+  style223_24: "flex items-center gap-3",
+  style224_25: "relative flex h-3 w-3 shrink-0",
+  style225_26: "animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75",
+  style226_27: "relative inline-flex rounded-full h-3 w-3 bg-emerald-500",
+  style228_28: "text-right",
+  style228_29: "text-left",
+  style229_30: "text-xs font-black text-emerald-400 tracking-tight",
+  style230_31: "text-[10px] text-gray-400 font-bold mt-0.5",
+  style230_32: "text-white font-mono",
+  style236_33: "px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black rounded-xl shadow-lg transition-all duration-300 transform active:scale-95 pointer-events-auto z-[120]",
+  style251_34: "flex flex-col items-center justify-center p-8 bg-[#0F172A]/60 border border-white/[0.06] rounded-2xl animate-pulse text-center space-y-4 backdrop-blur-md",
+  style252_35: "w-8 h-8 animate-spin text-cyan-400 mx-auto",
+  style253_36: "text-gray-400 text-xs font-sans",
+  style294_37: "flex flex-col items-center justify-center p-6 text-center space-y-6 max-w-lg mx-auto bg-black/40 border border-emerald-500/15 rounded-2xl animate-fade-in my-8",
+  style295_38: "w-16 h-16 bg-emerald-500/10 border border-emerald-500/30 rounded-full flex items-center justify-center mx-auto text-emerald-400 text-3xl animate-bounce",
+  style296_39: "space-y-2",
+  style297_40: "text-xl font-bold text-emerald-400",
+  style298_41: "text-xs text-gray-400 leading-relaxed max-w-md mx-auto",
+  style302_42: "p-3.5 bg-emerald-950/20 border border-emerald-500/10 rounded-xl space-y-1 w-full text-right text-xs",
+  style303_43: "text-emerald-400 font-bold",
+  style304_44: "text-gray-300",
+  style304_45: "font-bold text-white",
+  style305_46: "text-gray-300",
+  style305_47: "font-mono text-white",
+  style311_48: "w-full py-3 bg-emerald-600 hover:bg-emerald-50 hover:text-emerald-950 text-white font-black text-xs rounded-xl shadow-lg transition-all duration-300 transform active:scale-95 cursor-pointer",
+  style349_49: "flex min-h-screen w-full flex-col items-center justify-center bg-[#0A0F1D] text-white",
+  style350_50: "h-10 w-10 animate-spin text-[#14B8A6] mb-4",
+  style351_51: "text-sm font-bold text-gray-400",
+  style360_52: "flex min-h-screen w-full flex-col bg-[#0A0F1D] text-white",
+  style360_53: "lg:h-screen lg:overflow-hidden",
+  style372_54: "sticky top-0 z-[100] w-full shrink-0 lg:hidden",
+  style378_55: "relative flex w-full flex-1 flex-col overflow-y-visible",
+  style379_56: "lg:min-h-screen lg:overflow-y-auto",
+  style379_57: "lg:h-screen lg:min-h-0 lg:overflow-hidden",
+  style380_58: "lg:ps-[288px]",
+  style381_59: "h-[calc(100vh-120px)] overflow-hidden",
+  style386_60: "w-full flex-1 flex flex-col relative z-[80] border-b-2 border-[#14B8A6]/20 shadow-[0_10px_30px_rgba(20,184,166,0.08)]",
+  style392_61: "w-full flex-1 p-4 md:p-8",
+  style392_62: "hidden",
+  style392_63: "p-0 md:p-0 lg:p-0",
+  style392_64: "px-0 md:px-0 py-4 md:py-6 min-h-0 overflow-y-auto",
+  style396_65: "flex flex-col items-center justify-center p-8 bg-[#0F172A]/60 border border-white/[0.06] rounded-2xl animate-pulse text-center space-y-4 backdrop-blur-md",
+  style397_66: "w-8 h-8 animate-spin text-[#14B8A6] mx-auto",
+  style398_67: "text-gray-400 text-xs font-sans",
+  style410_68: "sticky bottom-0 z-[100] w-full shrink-0 lg:hidden",
+  style447_69: "fixed inset-y-0 start-0 z-[140] hidden w-[288px] flex-col border-e border-white/[0.06] bg-[#0A0F1D]/95 shadow-[22px_0_70px_rgba(0,0,0,0.38)] backdrop-blur-xl lg:flex",
+  style448_70: "flex items-center gap-3 border-b border-white/10 p-5",
+  style449_71: "h-12 w-12 border border-[#14B8A6]/35 bg-[#101827]",
+  style450_72: "bg-[#101827] text-sm font-black text-white",
+  style453_73: "min-w-0",
+  style453_74: "text-right",
+  style453_75: "text-left",
+  style454_76: "truncate text-sm font-black text-white",
+  style454_77: "text-right",
+  style454_78: "text-left",
+  style455_79: "truncate text-xs font-bold text-[#14B8A6]",
+  style455_80: "text-right",
+  style455_81: "text-left",
+  style464_82: "ms-auto h-8 shrink-0 gap-1 rounded-lg border border-[#14B8A6]/25 bg-[#14B8A6]/10 px-2 text-[10px] font-black text-[#14F5D5] hover:bg-[#14B8A6]/20 hover:text-[#14F5D5]",
+  style466_83: "h-3.5 w-3.5",
+  style471_84: "space-y-3 p-4",
+  style474_85: "h-12 w-full justify-center gap-2 rounded-2xl bg-[#14B8A6] text-sm font-black text-[#031315] shadow-[0_16px_35px_rgba(20,184,166,0.18)] hover:bg-[#2DD4BF]",
+  style476_86: "h-5 w-5",
+  style482_87: "h-11 w-full justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 text-sm font-bold text-slate-200 hover:bg-white/[0.07]",
+  style484_88: "h-4 w-4 text-[#14B8A6]",
+  style489_89: "flex-1 space-y-2 px-4 pt-2",
+  style499_90: "flex h-12 items-center justify-between rounded-2xl border px-4 text-sm font-black transition",
+  style501_91: "border-[#14B8A6]/35 bg-[#14B8A6]/15 text-[#14F5D5]",
+  style502_92: "border-transparent text-slate-400 hover:border-white/10 hover:bg-white/[0.04] hover:text-white",
+  style506_93: "h-5 w-5",
+  style512_94: "space-y-3 border-t border-white/10 p-4",
+  style513_95: "rounded-2xl border border-[#14B8A6]/15 bg-[#14B8A6]/8 p-3",
+  style513_96: "text-right",
+  style513_97: "text-left",
+  style514_98: "text-[11px] font-black text-[#14F5D5]",
+  style515_99: "mt-1 text-xs font-bold text-slate-300",
+  style519_100: "h-12 w-full justify-center gap-2 rounded-2xl bg-red-600/90 text-sm font-black text-white hover:bg-red-500",
+  style521_101: "h-5 w-5",
+} as const;
+
+
 // [بروتوكول الاقتران الضعيف]: استدعاء قمرات التحكم والتبويبات لا مركزياً ولحظياً عند الطلب
 const DriverViewTab = React.lazy(() => import('./driver-view-tab').then(m => ({ default: m.DriverViewTab })));
 const RiderViewTab = React.lazy(() => import('./rider-view-tab').then(m => ({ default: m.RiderViewTab })));
@@ -65,20 +170,20 @@ function SovereignLockoutView({ user, logout }: { user: any, logout: () => void 
  const isExpired = timeLeft <= 0;
 
  return (
- <div className="flex items-center justify-center p-4 min-h-[60vh] font-sans pointer-events-auto">
- <div className="w-full max-w-md bg-[#0D0505] border border-red-500/20 rounded-2xl p-6 text-center space-y-5 shadow-xl shadow-red-950/20 relative overflow-hidden">
- <div className="absolute top-0 left-0 w-full h-1 bg-red-600 animate-pulse" />
- <div className="w-16 h-16 bg-red-500/10 border border-red-500/30 rounded-full flex items-center justify-center mx-auto text-red-500 animate-pulse text-2xl">🚫</div>
- <h2 className="text-xl font-bold text-red-400">تم إيقاف الحساب مؤقتاً</h2>
- <div className="py-4 px-6 bg-red-950/15 border border-red-500/10 rounded-xl space-y-2">
- <p className="text-[11px] uppercase tracking-wider text-red-500 font-bold">الوقت المتبقي قبل إغلاق الجلسة</p>
- <div className="text-3xl font-black text-red-400 tracking-widest font-mono">{isExpired ? "00:00" : timeStr}</div>
- <p className="text-[10px] text-red-400/70 font-bold animate-pulse">
+ <div className={styles.style68_1}>
+ <div className={styles.style69_2}>
+ <div className={styles.style70_3} />
+ <div className={styles.style71_4}>🚫</div>
+ <h2 className={styles.style72_5}>تم إيقاف الحساب مؤقتاً</h2>
+ <div className={styles.style73_6}>
+ <p className={styles.style74_7}>الوقت المتبقي قبل إغلاق الجلسة</p>
+ <div className={styles.style75_8}>{isExpired ? "00:00" : timeStr}</div>
+ <p className={styles.style76_9}>
  {isExpired ? "انتهت المهلة. يرجى التواصل مع الدعم." : `متبقي لديك ${minutes} دقيقة و ${seconds} ثانية.`}
  </p>
  </div>
- <p className="text-sm text-gray-300 leading-relaxed text-right">
- عذراً {user?.role === 'driver' ? 'سائق' : 'راكب'} <span className="text-white font-bold">{user?.name}</span>، تم إيقاف الحساب مؤقتاً بسبب انخفاض التقييم أو مخالفة شروط استخدام الخدمة.
+ <p className={styles.style80_10}>
+ عذراً {user?.role === 'driver' ? 'سائق' : 'راكب'} <span className={styles.style81_11}>{user?.name}</span>، تم إيقاف الحساب مؤقتاً بسبب انخفاض التقييم أو مخالفة شروط استخدام الخدمة.
  </p>
  </div>
  </div>
@@ -183,23 +288,23 @@ function DashboardLayout() {
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-lg mx-auto bg-[#0F172A]/90 border border-[#14B8A6]/20 rounded-2xl p-4 flex items-center justify-between gap-4 shadow-[0_15px_40px_rgba(20,184,166,0.1)] backdrop-blur-xl mb-6 pointer-events-auto"
+        className={styles.style186_12}
         dir={isArabic ? 'rtl' : 'ltr'}
       >
-        <div className="flex items-center gap-3">
-          <span className="relative flex h-3 w-3 shrink-0">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+        <div className={styles.style189_13}>
+          <span className={styles.style190_14}>
+            <span className={styles.style191_15}></span>
+            <span className={styles.style192_16}></span>
           </span>
-          <div className={isArabic ? 'text-right' : 'text-left'}>
-            <p className="text-xs font-black text-emerald-400 tracking-tight">{chromeCopy.activeTrip}</p>
-            <p className="text-[10px] text-gray-400 font-bold mt-0.5">{chromeCopy.priceLabel}: <span className="text-white font-mono">{displayPrice}</span></p>
+          <div className={isArabic ? styles.style194_17 : styles.style194_18}>
+            <p className={styles.style195_19}>{chromeCopy.activeTrip}</p>
+            <p className={styles.style196_20}>{chromeCopy.priceLabel}: <span className={styles.style196_21}>{displayPrice}</span></p>
           </div>
         </div>
 
         <button
           onClick={() => { window.location.hash = '#'; }}
-          className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black rounded-xl shadow-lg transition-all duration-300 transform active:scale-95 pointer-events-auto z-[120]"
+          className={styles.style202_22}
         >
           {chromeCopy.backToTrip}
         </button>
@@ -217,23 +322,23 @@ function DashboardLayout() {
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-lg mx-auto bg-[#0F172A]/90 border border-[#14B8A6]/20 rounded-2xl p-4 flex items-center justify-between gap-4 shadow-[0_15px_40px_rgba(20,184,166,0.1)] backdrop-blur-xl mb-6 pointer-events-auto"
+        className={styles.style220_23}
         dir={isArabic ? 'rtl' : 'ltr'}
       >
-        <div className="flex items-center gap-3">
-          <span className="relative flex h-3 w-3 shrink-0">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+        <div className={styles.style223_24}>
+          <span className={styles.style224_25}>
+            <span className={styles.style225_26}></span>
+            <span className={styles.style226_27}></span>
           </span>
-          <div className={isArabic ? 'text-right' : 'text-left'}>
-            <p className="text-xs font-black text-emerald-400 tracking-tight">{chromeCopy.tripInProgress}</p>
-            <p className="text-[10px] text-gray-400 font-bold mt-0.5">{chromeCopy.priceLabel}: <span className="text-white font-mono">{displayPrice}</span></p>
+          <div className={isArabic ? styles.style228_28 : styles.style228_29}>
+            <p className={styles.style229_30}>{chromeCopy.tripInProgress}</p>
+            <p className={styles.style230_31}>{chromeCopy.priceLabel}: <span className={styles.style230_32}>{displayPrice}</span></p>
           </div>
         </div>
 
         <button
           onClick={() => { window.location.hash = '#'; }}
-          className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black rounded-xl shadow-lg transition-all duration-300 transform active:scale-95 pointer-events-auto z-[120]"
+          className={styles.style236_33}
         >
           {chromeCopy.backToTrip}
         </button>
@@ -248,9 +353,9 @@ function DashboardLayout() {
  if (isSovereign) {
  return (
  <React.Suspense fallback={
- <div className="flex flex-col items-center justify-center p-8 bg-[#0F172A]/60 border border-white/[0.06] rounded-2xl animate-pulse text-center space-y-4 backdrop-blur-md">
- <Loader2 className="w-8 h-8 animate-spin text-cyan-400 mx-auto" />
- <p className="text-gray-400 text-xs font-sans">جاري تحميل لوحة التحكم...</p>
+ <div className={styles.style251_34}>
+ <Loader2 className={styles.style252_35} />
+ <p className={styles.style253_36}>جاري تحميل لوحة التحكم...</p>
  </div>
  }>
  <AdminViewTab />
@@ -291,24 +396,24 @@ function DashboardLayout() {
  if (hash === '#profile') return <ProfileTab />;
 
  return (
- <div className="flex flex-col items-center justify-center p-6 text-center space-y-6 max-w-lg mx-auto bg-black/40 border border-emerald-500/15 rounded-2xl animate-fade-in my-8">
- <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/30 rounded-full flex items-center justify-center mx-auto text-emerald-400 text-3xl animate-bounce">📣</div>
- <div className="space-y-2">
- <h2 className="text-xl font-bold text-emerald-400">لوحة المعلن</h2>
- <p className="text-xs text-gray-400 leading-relaxed max-w-md mx-auto">
+ <div className={styles.style294_37}>
+ <div className={styles.style295_38}>📣</div>
+ <div className={styles.style296_39}>
+ <h2 className={styles.style297_40}>لوحة المعلن</h2>
+ <p className={styles.style298_41}>
  مرحباً بك. يمكنك إدارة حملاتك الإعلانية، حجز الباقات، ومتابعة النتائج من هنا.
  </p>
  </div>
- <div className="p-3.5 bg-emerald-950/20 border border-emerald-500/10 rounded-xl space-y-1 w-full text-right text-xs">
- <p className="text-emerald-400 font-bold">✓ البيانات المهنية الموثقة:</p>
- <p className="text-gray-300">🏢 اسم العلامة: <span className="font-bold text-white">{user.companyName || 'منشأة عامة'}</span></p>
- <p className="text-gray-300">📝 رقم الترخيص: <span className="font-mono text-white">{user.adLicense || 'معلقة التحديث'}</span></p>
+ <div className={styles.style302_42}>
+ <p className={styles.style303_43}>✓ البيانات المهنية الموثقة:</p>
+ <p className={styles.style304_44}>🏢 اسم العلامة: <span className={styles.style304_45}>{user.companyName || 'منشأة عامة'}</span></p>
+ <p className={styles.style305_46}>📝 رقم الترخيص: <span className={styles.style305_47}>{user.adLicense || 'معلقة التحديث'}</span></p>
  </div>
  <button
  onClick={() => {
  window.dispatchEvent(new CustomEvent('open-advertiser-portal'));
  }}
- className="w-full py-3 bg-emerald-600 hover:bg-emerald-50 hover:text-emerald-950 text-white font-black text-xs rounded-xl shadow-lg transition-all duration-300 transform active:scale-95 cursor-pointer"
+ className={styles.style311_48}
  >
  فتح إدارة الحملات
  </button>
@@ -346,9 +451,9 @@ function DashboardLayout() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen w-full flex-col items-center justify-center bg-[#0A0F1D] text-white">
-        <Loader2 className="h-10 w-10 animate-spin text-[#14B8A6] mb-4" />
-        <p className="text-sm font-bold text-gray-400">
+      <div className={styles.style349_49}>
+        <Loader2 className={styles.style350_50} />
+        <p className={styles.style351_51}>
           {dashboardLanguage.language === 'ar' ? 'جاري تحميل المنصة...' : 'Loading platform...'}
         </p>
       </div>
@@ -357,7 +462,7 @@ function DashboardLayout() {
 
   return (
  // استخدام flex-col لضمان تدفق الصفحة (Doc Flow) والسماح بالتمرير الطبيعي
- <div className={cn('flex min-h-screen w-full flex-col bg-[#0A0F1D] text-white', !isCaptain && 'lg:h-screen lg:overflow-hidden')}>
+ <div className={cn(styles.style360_52, !isCaptain && styles.style360_53)}>
  {user?.role === 'rider' && (
  <DesktopRiderSidebar
  hash={hash}
@@ -369,33 +474,33 @@ function DashboardLayout() {
  )}
 
  {/* الهيدر ثابت في الأعلى */}
- <header className="sticky top-0 z-[100] w-full shrink-0 lg:hidden">
+ <header className={styles.style372_54}>
  <AppHeader />
  </header>
 
  {/* المحتوى الرئيسي يتمدد ويسمح بالتمرير (Scroll) */}
  <main className={cn(
- 'relative flex w-full flex-1 flex-col overflow-y-visible',
- isCaptain ? 'lg:min-h-screen lg:overflow-y-auto' : 'lg:h-screen lg:min-h-0 lg:overflow-hidden',
- user?.role === 'rider' && !isRiderHomeSurface && 'lg:ps-[288px]',
- isStandby && 'h-[calc(100vh-120px)] overflow-hidden'
+ styles.style378_55,
+ isCaptain ? styles.style379_56 : styles.style379_57,
+ user?.role === 'rider' && !isRiderHomeSurface && styles.style380_58,
+ isStandby && styles.style381_59
  )}>
 
  {/* مسرح الإعلانات يأخذ مساحته الطبيعية في التدفق */}
  {isStandby && (
- <div className="w-full flex-1 flex flex-col relative z-[80] border-b-2 border-[#14B8A6]/20 shadow-[0_10px_30px_rgba(20,184,166,0.08)]">
+ <div className={styles.style386_60}>
   <AdStage isFullScreen={true} onRequestRideClick={() => setShowRequestFlow(true)} />
  </div>
  )}
 
  {/* الحاوية التي تحمل التبويبات (تسمح بالتمرير للأسفل) */}
- <div className={cn('w-full flex-1 p-4 md:p-8', contentIsHidden && 'hidden', user?.role === 'rider' && (isRiderHomeSurface ? 'p-0 md:p-0 lg:p-0' : 'px-0 md:px-0 py-4 md:py-6 min-h-0 overflow-y-auto'))}>
+ <div className={cn(styles.style392_61, contentIsHidden && styles.style392_62, user?.role === 'rider' && (isRiderHomeSurface ? styles.style392_63 : styles.style392_64))}>
  {renderArterialBridge()}
  <SovereignErrorBoundary>
  <React.Suspense fallback={
- <div className="flex flex-col items-center justify-center p-8 bg-[#0F172A]/60 border border-white/[0.06] rounded-2xl animate-pulse text-center space-y-4 backdrop-blur-md">
- <Loader2 className="w-8 h-8 animate-spin text-[#14B8A6] mx-auto" />
- <p className="text-gray-400 text-xs font-sans">جاري تحميل الصفحة...</p>
+ <div className={styles.style396_65}>
+ <Loader2 className={styles.style397_66} />
+ <p className={styles.style398_67}>جاري تحميل الصفحة...</p>
  </div>
  }>
  {renderContent()}
@@ -407,7 +512,7 @@ function DashboardLayout() {
  </main>
 
  {/* الفوتر ثابت في الأسفل */}
- <footer className="sticky bottom-0 z-[100] w-full shrink-0 lg:hidden">
+ <footer className={styles.style410_68}>
  <BottomNav />
  </footer>
  </div>
@@ -444,15 +549,15 @@ function DesktopRiderSidebar({
  };
 
  return (
- <aside className="fixed inset-y-0 start-0 z-[140] hidden w-[288px] flex-col border-e border-white/[0.06] bg-[#0A0F1D]/95 shadow-[22px_0_70px_rgba(0,0,0,0.38)] backdrop-blur-xl lg:flex" dir={language === 'ar' ? 'rtl' : 'ltr'}>
- <div className="flex items-center gap-3 border-b border-white/10 p-5">
- <Avatar className="h-12 w-12 border border-[#14B8A6]/35 bg-[#101827]">
- <AvatarFallback className="bg-[#101827] text-sm font-black text-white">{initials}</AvatarFallback>
+ <aside className={styles.style447_69} dir={language === 'ar' ? 'rtl' : 'ltr'}>
+ <div className={styles.style448_70}>
+ <Avatar className={styles.style449_71}>
+ <AvatarFallback className={styles.style450_72}>{initials}</AvatarFallback>
  </Avatar>
 
- <div className={cn('min-w-0', language === 'ar' ? 'text-right' : 'text-left')}>
- <p className={cn('truncate text-sm font-black text-white', language === 'ar' ? 'text-right' : 'text-left')}>{user?.name || copy.fallbackName}</p>
- <p className={cn('truncate text-xs font-bold text-[#14B8A6]', language === 'ar' ? 'text-right' : 'text-left')}>{user?.phone || copy.fallbackPhone}</p>
+ <div className={cn(styles.style453_73, language === 'ar' ? styles.style453_74 : styles.style453_75)}>
+ <p className={cn(styles.style454_76, language === 'ar' ? styles.style454_77 : styles.style454_78)}>{user?.name || copy.fallbackName}</p>
+ <p className={cn(styles.style455_79, language === 'ar' ? styles.style455_80 : styles.style455_81)}>{user?.phone || copy.fallbackPhone}</p>
  </div>
  <Button
  type="button"
@@ -461,32 +566,32 @@ function DesktopRiderSidebar({
  onClick={toggleLanguage}
  aria-label={isArabic ? 'Switch to English' : 'التبديل إلى العربية'}
  title={isArabic ? 'English' : 'العربية'}
- className="ms-auto h-8 shrink-0 gap-1 rounded-lg border border-[#14B8A6]/25 bg-[#14B8A6]/10 px-2 text-[10px] font-black text-[#14F5D5] hover:bg-[#14B8A6]/20 hover:text-[#14F5D5]"
+ className={styles.style464_82}
  >
- <Languages className="h-3.5 w-3.5" />
+ <Languages className={styles.style466_83} />
  <span>{isArabic ? 'EN' : 'ع'}</span>
  </Button>
  </div>
 
- <div className="space-y-3 p-4">
+ <div className={styles.style471_84}>
  <Button
  onClick={openRideRequest}
- className="h-12 w-full justify-center gap-2 rounded-2xl bg-[#14B8A6] text-sm font-black text-[#031315] shadow-[0_16px_35px_rgba(20,184,166,0.18)] hover:bg-[#2DD4BF]"
+ className={styles.style474_85}
  >
- <PlusCircle className="h-5 w-5" />
+ <PlusCircle className={styles.style476_86} />
  {copy.requestRide}
  </Button>
  <Button
  onClick={onNotify}
  variant="ghost"
- className="h-11 w-full justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 text-sm font-bold text-slate-200 hover:bg-white/[0.07]"
+ className={styles.style482_87}
  >
- <Bell className="h-4 w-4 text-[#14B8A6]" />
+ <Bell className={styles.style484_88} />
  {copy.notifications}
  </Button>
  </div>
 
- <nav className="flex-1 space-y-2 px-4 pt-2">
+ <nav className={styles.style489_89}>
  {items.map((item) => {
  const Icon = item.icon;
  const isActive = hash === item.href || (item.href === '#' && (hash === '' || hash === '#/'));
@@ -496,29 +601,29 @@ function DesktopRiderSidebar({
  key={item.href}
  href={item.href}
  className={cn(
- 'flex h-12 items-center justify-between rounded-2xl border px-4 text-sm font-black transition',
+ styles.style499_90,
  isActive
- ? 'border-[#14B8A6]/35 bg-[#14B8A6]/15 text-[#14F5D5]'
- : 'border-transparent text-slate-400 hover:border-white/10 hover:bg-white/[0.04] hover:text-white',
+ ? styles.style501_91
+ : styles.style502_92,
  )}
  >
  <span>{item.label}</span>
- <Icon className="h-5 w-5" />
+ <Icon className={styles.style506_93} />
  </a>
  );
  })}
  </nav>
 
- <div className="space-y-3 border-t border-white/10 p-4">
- <div className={cn("rounded-2xl border border-[#14B8A6]/15 bg-[#14B8A6]/8 p-3", language === 'ar' ? "text-right" : "text-left")}>
- <p className="text-[11px] font-black text-[#14F5D5]">{copy.accountStatus}</p>
- <p className="mt-1 text-xs font-bold text-slate-300">{copy.ready}</p>
+ <div className={styles.style512_94}>
+ <div className={cn(styles.style513_95, language === 'ar' ? styles.style513_96 : styles.style513_97)}>
+ <p className={styles.style514_98}>{copy.accountStatus}</p>
+ <p className={styles.style515_99}>{copy.ready}</p>
  </div>
  <Button
  onClick={logout}
- className="h-12 w-full justify-center gap-2 rounded-2xl bg-red-600/90 text-sm font-black text-white hover:bg-red-500"
+ className={styles.style519_100}
  >
- <LogOut className="h-5 w-5" />
+ <LogOut className={styles.style521_101} />
  {copy.logout}
  </Button>
  </div>

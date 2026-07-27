@@ -18,6 +18,16 @@ import { buildUserFromSupabaseAuth, cacheSupabaseSession, clearSupabaseSessionCa
 import { supabase } from '@/lib/supabase-client';
 import { DASHBOARD_LANGUAGE_KEY, useDashboardLanguage } from './use-dashboard-language';
 
+const styles = {
+  style155_1: "border-red-500/25 bg-[#0B0F19] text-white shadow-2xl",
+  style157_2: "text-xl font-black text-white",
+  style158_3: "text-sm leading-6 text-[#94A3B8] text-start",
+  style162_4: "gap-2 sm:justify-start sm:space-x-0",
+  style165_5: "border-white/10 bg-white/10 font-bold text-white hover:bg-white/15",
+  style175_6: "bg-red-600 font-black text-white hover:bg-red-500",
+} as const;
+
+
 interface AuthContextType {
   user: SovereignUser | null;
   loading: boolean;
@@ -152,17 +162,17 @@ function AuthContent({ children }: { children: ReactNode }) {
     <AuthContext.Provider value={value}>
       {children}
       <AlertDialog open={logoutDialogOpen} onOpenChange={(open) => !logoutInProgress && setLogoutDialogOpen(open)}>
-        <AlertDialogContent className="border-red-500/25 bg-[#0B0F19] text-white shadow-2xl" dir={direction}>
+        <AlertDialogContent className={styles.style155_1} dir={direction}>
           <AlertDialogHeader >
-            <AlertDialogTitle className="text-xl font-black text-white">{t('title')}</AlertDialogTitle>
-            <AlertDialogDescription className="text-sm leading-6 text-[#94A3B8] text-start">
+            <AlertDialogTitle className={styles.style157_2}>{t('title')}</AlertDialogTitle>
+            <AlertDialogDescription className={styles.style158_3}>
               {t('description')}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="gap-2 sm:justify-start sm:space-x-0">
+          <AlertDialogFooter className={styles.style162_4}>
             <AlertDialogCancel
               disabled={logoutInProgress}
-              className="border-white/10 bg-white/10 font-bold text-white hover:bg-white/15"
+              className={styles.style165_5}
             >
               {t('cancel')}
             </AlertDialogCancel>
@@ -172,7 +182,7 @@ function AuthContent({ children }: { children: ReactNode }) {
                 event.preventDefault();
                 void confirmLogout();
               }}
-              className="bg-red-600 font-black text-white hover:bg-red-500"
+              className={styles.style175_6}
             >
               {logoutInProgress ? t('inProgress') : t('confirm')}
             </AlertDialogAction>

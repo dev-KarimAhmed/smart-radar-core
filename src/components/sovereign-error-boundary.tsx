@@ -6,6 +6,17 @@ import { ShieldAlert } from 'lucide-react';
 import { trackSovereignError } from '@/lib/error-tracker';
 import { getSovereignErrorMessage } from '@/core/constants/error-dictionary';
 
+const styles = {
+  style35_1: "flex items-center justify-center min-h-[60vh] p-4",
+  style36_2: "border-destructive bg-destructive/10 text-destructive-foreground w-full max-w-md",
+  style37_3: "items-center text-center",
+  style38_4: "w-12 h-12 text-destructive",
+  style40_5: "text-destructive/80",
+  style44_6: "text-center",
+  style45_7: "text-sm",
+} as const;
+
+
 interface Props {
   children: ReactNode;
 }
@@ -32,17 +43,17 @@ export class SovereignErrorBoundary extends Component<Props, State> {
   public render() {
     if (this.state.hasError) {
       return (
-        <div className="flex items-center justify-center min-h-[60vh] p-4">
-            <Card className="border-destructive bg-destructive/10 text-destructive-foreground w-full max-w-md">
-              <CardHeader className="items-center text-center">
-                <ShieldAlert className="w-12 h-12 text-destructive" />
+        <div className={styles.style35_1}>
+            <Card className={styles.style36_2}>
+              <CardHeader className={styles.style37_3}>
+                <ShieldAlert className={styles.style38_4} />
                 <CardTitle>عذراً، حدث خطأ غير متوقع</CardTitle>
-                <CardDescription className="text-destructive/80">
+                <CardDescription className={styles.style40_5}>
                   {getSovereignErrorMessage(this.state.error || { code: 'SYS_COMPONENT_CRASH' })}
                 </CardDescription>
               </CardHeader>
-              <CardContent className="text-center">
-                <p className="text-sm">
+              <CardContent className={styles.style44_6}>
+                <p className={styles.style45_7}>
                     نواجه مشكلة مؤقتة في تحميل هذا الجزء. يرجى إعادة المحاولة مرة أخرى، وبقية الخدمات تعمل بشكل طبيعي.
                 </p>
               </CardContent>
