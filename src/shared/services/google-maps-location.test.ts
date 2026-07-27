@@ -7,18 +7,41 @@ import {
   resolveClipboardMapLocation,
 } from './google-maps-location';
 
-test('parses coordinates from a full Google Maps URL without resolving it remotely', async () => {
+test('resolves geography for a full Google Maps URL after parsing its coordinates', async () => {
   let fetchCalls = 0;
   const result = await resolveClipboardMapLocation(
     'https://www.google.com/maps/place/Test/@29.9602,31.2569,16z',
-    async () => {
+    async (input) => {
       fetchCalls += 1;
-      throw new Error('fetch should not be called');
+      assert.match(String(input), /^\/api\/maps\/resolve\?url=/);
+      return new Response(JSON.stringify({
+        resolvedUrl: 'https://www.google.com/maps/place/Test/@29.9602,31.2569,16z',
+        location: { lat: 29.9602, lng: 31.2569 },
+        geography: { governorate: 'Cairo Governorate', city: 'Maadi' },
+      }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
     },
   );
 
   assert.deepEqual(result.location, { lat: 29.9602, lng: 31.2569 });
-  assert.equal(fetchCalls, 0);
+  assert.deepEqual(result.geography, { governorate: 'Cairo Governorate', city: 'Maadi' });
+  assert.equal(fetchCalls, 1);
+});
+
+test('keeps direct coordinates usable when geography resolution is unavailable', async () => {
+  const result = await resolveClipboardMapLocation(
+    'https://www.google.com/maps/place/Test/@29.9602,31.2569,16z',
+    async () => {
+      throw new Error('offline');
+    },
+  );
+
+  assert.deepEqual(result, {
+    location: { lat: 29.9602, lng: 31.2569 },
+    resolvedUrl: 'https://www.google.com/maps/place/Test/@29.9602,31.2569,16z',
+  });
 });
 
 test('resolves a shortened Google Maps URL through the same-origin resolver', async () => {

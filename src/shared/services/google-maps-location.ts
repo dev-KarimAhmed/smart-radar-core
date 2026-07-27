@@ -7,6 +7,8 @@ export interface ResolvedLocationGeography {
   governorate?: string | null;
   district?: string | null;
   city?: string | null;
+  governorateCandidates?: string[];
+  districtCandidates?: string[];
 }
 
 export interface ResolvedClipboardMapLocation {
@@ -36,20 +38,22 @@ export async function resolveClipboardMapLocation(
   }
 
   const directLocation = parseGoogleMapsLocation(clipboardValue);
-  if (directLocation) {
-    return { location: directLocation, resolvedUrl: clipboardValue };
-  }
-
   let response: Response;
   try {
     response = await fetcher(`/api/maps/resolve?url=${encodeURIComponent(clipboardValue)}`, {
       headers: { Accept: 'application/json' },
     });
   } catch {
+    if (directLocation) {
+      return { location: directLocation, resolvedUrl: clipboardValue };
+    }
     throw new ClipboardMapLocationError('RESOLUTION_FAILED');
   }
 
   if (!response.ok) {
+    if (directLocation) {
+      return { location: directLocation, resolvedUrl: clipboardValue };
+    }
     throw new ClipboardMapLocationError(
       response.status === 422 ? 'COORDINATES_NOT_FOUND' : 'RESOLUTION_FAILED',
     );

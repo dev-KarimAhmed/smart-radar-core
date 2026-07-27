@@ -49,6 +49,11 @@ import { AdStage } from '@/features/ads/ad-stage/contract';
 import { RatingModal } from '@/components/dashboard/shared/rating-modal';
 import { RadarRiderDashboard, type HistoricalTrip } from './rider-dashboard';
 import { buildDistrictLoadKey } from '../services/rider-district-query';
+import {
+  findDistrictForGeography,
+  findGovernorateForGeography,
+  findNearestDistrict,
+} from '../services/destination-geography';
 import type { RiderLocation, RiderLocationStatus, RiderLocationUpdate } from './rider-map';
 import dynamic from 'next/dynamic';
 
@@ -547,6 +552,8 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
   const pendingAcceptedOfferIdRef = React.useRef<string | null>(null);
   const destinationSearchAbortRef = React.useRef<AbortController | null>(null);
   const destinationSearchCacheRef = React.useRef(new Map<string, DestinationSearchResult[]>());
+  const pendingConfirmedGeographyRef = React.useRef<ResolvedLocationGeography | null>(null);
+  const pendingConfirmedLocationRef = React.useRef<RiderLocation | null>(null);
 
   const riderProfile = React.useMemo(() => {
     const ratingValue =
@@ -777,6 +784,11 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
   ) => {
     const placeName = extractGoogleMapsPlaceName(clipboardValue);
     const resolvedPlaceName = placeName || locationCopy('external_place_name');
+    const matchedGovernorate = findGovernorateForGeography(destinationGovernorates, geography);
+    const matchedLoadedDistrict = matchedGovernorate?.id === selectedGovernorateId
+      ? findDistrictForGeography(destinationDistricts, geography)
+        || findNearestDistrict(destinationDistricts, parsedLocation)
+      : null;
     const governorate = geography?.governorate || locationCopy('external_governorate');
     const district = geography?.city || geography?.district || resolvedPlaceName;
     const externalGovernorateId = `google:${slugifyLocationPart(governorate)}`;
@@ -800,14 +812,27 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
     };
 
     setExternalLocationUrl(clipboardValue);
-    setExternalLocationContext({ governorate, district, placeName: resolvedPlaceName });
-    setDestinationGovernorates((current) => [
-      externalGovernorate,
-      ...current.filter((item) => !item.id.startsWith('google:')),
-    ]);
-    setSelectedGovernorateId(externalGovernorateId);
-    setDestinationDistricts([externalDistrict]);
-    setDraftDestinationId(externalDistrictId);
+    if (matchedGovernorate) {
+      setExternalLocationContext(null);
+      setDestinationGovernorates((current) => current.filter((item) => !item.id.startsWith('google:')));
+      pendingConfirmedGeographyRef.current = geography || null;
+      pendingConfirmedLocationRef.current = parsedLocation;
+      setSelectedGovernorateId(matchedGovernorate.id);
+      if (matchedLoadedDistrict) {
+        setDraftDestinationId(matchedLoadedDistrict.id);
+        pendingConfirmedGeographyRef.current = null;
+        pendingConfirmedLocationRef.current = null;
+      }
+    } else {
+      setExternalLocationContext({ governorate, district, placeName: resolvedPlaceName });
+      setDestinationGovernorates((current) => [
+        externalGovernorate,
+        ...current.filter((item) => !item.id.startsWith('google:')),
+      ]);
+      setSelectedGovernorateId(externalGovernorateId);
+      setDestinationDistricts([externalDistrict]);
+      setDraftDestinationId(externalDistrictId);
+    }
     setDestinationSearchQuery(resolvedPlaceName);
     // Route distance/time are calculated by the shared road-route effect after
     // the exact clipboard coordinates become the selected destination.
@@ -817,7 +842,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
     setIsDestinationPinMoving(false);
     setDestinationSearchStatus('selected');
     setIsCaptainScanPreviewActive(true);
-  }, [locationCopy]);
+  }, [destinationDistricts, destinationGovernorates, locationCopy, selectedGovernorateId]);
 
   const handleConfirmClipboardLocation = React.useCallback(async () => {
     if (!navigator.clipboard?.readText) {
@@ -1093,8 +1118,24 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
         const options = normalizeDistricts(data, selectedGovernorate);
         setDestinationDistricts(options);
 
+        const confirmedDistrict = findDistrictForGeography(
+          options,
+          pendingConfirmedGeographyRef.current || undefined,
+        ) || (
+          pendingConfirmedLocationRef.current
+            ? findNearestDistrict(options, pendingConfirmedLocationRef.current)
+            : null
+        );
+        if (confirmedDistrict) {
+          pendingConfirmedGeographyRef.current = null;
+          pendingConfirmedLocationRef.current = null;
+        }
         const profileDistrictId = String(user?.district || '');
-        const preferred = options.find((district) => district.id === profileDistrictId) || options.find((district) => district.anchor) || options[0] || null;
+        const preferred = confirmedDistrict
+          || options.find((district) => district.id === profileDistrictId)
+          || options.find((district) => district.anchor)
+          || options[0]
+          || null;
         setDraftDestinationId(preferred?.id || '');
         if (!preferred) setDestinationDataError('لا توجد مناطق متاحة لهذه المحافظة حالياً.');
       } catch (error) {

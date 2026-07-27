@@ -12,8 +12,9 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const resolvedUrl = await followGoogleMapsRedirects(shortUrl);
-    let location = parseGoogleMapsLocation(resolvedUrl);
+    const directLocation = parseGoogleMapsLocation(shortUrl);
+    const resolvedUrl = directLocation ? shortUrl : await followGoogleMapsRedirects(shortUrl);
+    let location = directLocation || parseGoogleMapsLocation(resolvedUrl);
 
     // A Google short link may resolve to a place URL without coordinates in
     // the address. Fetch the final page and inspect its map bootstrap payload.
@@ -100,10 +101,34 @@ async function reverseResolveGeography(location: { lat: number; lng: number }) {
 
     const payload = await response.json() as { address?: Record<string, unknown> };
     const address = payload.address || {};
+    const governorateCandidates = addressValues(
+      address,
+      'state',
+      'region',
+      'province',
+      'state_district',
+    );
+    const districtCandidates = addressValues(
+      address,
+      'neighbourhood',
+      'suburb',
+      'quarter',
+      'borough',
+      'city_district',
+      'district',
+      'municipality',
+      'county',
+      'city',
+      'town',
+      'village',
+      'hamlet',
+    );
     return {
-      governorate: firstAddressValue(address, 'state', 'region', 'state_district'),
+      governorate: governorateCandidates[0] || null,
       district: firstAddressValue(address, 'county', 'municipality', 'city_district', 'suburb'),
       city: firstAddressValue(address, 'city', 'town', 'village', 'municipality'),
+      governorateCandidates,
+      districtCandidates,
     };
   } catch {
     return undefined;
@@ -116,6 +141,14 @@ function firstAddressValue(address: Record<string, unknown>, ...keys: string[]) 
     if (typeof value === 'string' && value.trim()) return value.trim();
   }
   return null;
+}
+
+function addressValues(address: Record<string, unknown>, ...keys: string[]) {
+  return keys
+    .map((key) => address[key])
+    .filter((value): value is string => typeof value === 'string' && Boolean(value.trim()))
+    .map((value) => value.trim())
+    .filter((value, index, values) => values.indexOf(value) === index);
 }
 
 function isAllowedRedirectHost(hostname: string) {
