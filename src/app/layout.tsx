@@ -3,11 +3,6 @@ import type { ReactNode } from 'react';
 import './globals.css';
 import { Providers } from './providers';
 
-const styles = {
-  root: "",
-} as const;
-
-
 export const metadata: Metadata = {
   title: 'رادار - مشاركة الرحلات حياً',
   description: 'تطبيق التوصيل ومشاركة الرحلات الذكي بنظام المزايدة الحية',

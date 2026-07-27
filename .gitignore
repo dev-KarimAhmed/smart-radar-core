@@ -9,8 +9,6 @@
 
 # Testing
 /coverage
-/test-results/
-/playwright-report/
 
 # Next.js
 /.next/
@@ -47,7 +45,4 @@ next-env.d.ts
 
 # Build output
 /dist
-
-# Isolated feature worktrees
-/.worktrees/
  

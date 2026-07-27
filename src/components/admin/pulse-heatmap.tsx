@@ -25,94 +25,6 @@ import type { MarketPulse } from '@/core/types';
 import { cn } from '@/lib/utils';
 import { jordanGovernorates, getDistrictsByGovernorate } from '@/lib/data';
 
-const styles = {
-  style207_1: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4",
-  style209_2: "bg-[#091B09]/40 border-emerald-900/50 p-6 space-y-4 animate-pulse",
-  style210_3: "h-6 bg-muted rounded w-3/4",
-  style211_4: "h-4 bg-muted rounded w-1/2",
-  style212_5: "flex justify-between pt-4",
-  style213_6: "h-8 bg-muted rounded w-1/4",
-  style214_7: "h-8 bg-muted rounded w-1/4",
-  style223_8: "space-y-6",
-  style226_9: "bg-[#050d0a]/60 border border-[#00ffcc]/15 backdrop-blur-md shadow-2xl rounded-2xl",
-  style227_10: "pb-4",
-  style228_11: "flex flex-col md:flex-row md:items-center justify-between gap-4",
-  style230_12: "text-xl font-black text-white flex items-center gap-2",
-  style231_13: "w-5 h-5 text-[#00ffcc]",
-  style234_14: "text-gray-400 text-xs mt-1",
-  style240_15: "flex flex-wrap items-center gap-3",
-  style242_16: "space-y-1",
-  style243_17: "text-[10px] text-gray-400 font-bold block flex items-center gap-1",
-  style244_18: "w-3 h-3 text-[#00ffcc]",
-  style247_19: "w-[150px] bg-black/40 border-emerald-900/50 text-white font-bold text-xs rounded-xl h-9",
-  style250_20: "bg-zinc-950 border-emerald-900/50 text-white text-xs",
-  style251_21: "font-bold",
-  style253_22: "font-semibold",
-  style260_23: "space-y-1",
-  style261_24: "text-[10px] text-gray-400 font-bold block flex items-center gap-1",
-  style262_25: "w-3 h-3 text-[#00ffcc]",
-  style269_26: "w-[160px] bg-black/40 border-emerald-900/50 text-white font-bold text-xs rounded-xl h-9",
-  style272_27: "bg-zinc-950 border-emerald-900/50 text-white text-xs",
-  style273_28: "font-bold",
-  style275_29: "font-semibold",
-  style286_30: "bg-[#050D0A]/40 border border-emerald-900/30 backdrop-blur-md shadow-xl rounded-2xl overflow-hidden p-4 md:p-6 relative",
-  style287_31: "flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4",
-  style288_32: "flex items-center gap-2",
-  style289_33: "w-5 h-5 text-emerald-400",
-  style290_34: "text-sm font-bold text-gray-200",
-  style294_35: "flex items-center gap-4 text-xs font-bold",
-  style295_36: "flex items-center gap-1.5",
-  style296_37: "w-3 h-3 rounded bg-[#00ffcc] inline-block shadow-[0_0_8px_rgba(0,255,204,0.3)]",
-  style297_38: "text-gray-300",
-  style299_39: "flex items-center gap-1.5",
-  style300_40: "w-3 h-3 rounded bg-[#3b82f6] inline-block shadow-[0_0_8px_rgba(59,130,246,0.3)]",
-  style301_41: "text-gray-300",
-  style307_42: "h-[320px] flex flex-col items-center justify-center text-center space-y-2 text-zinc-500",
-  style308_43: "w-8 h-8 text-zinc-600 animate-pulse",
-  style309_44: "text-xs font-bold",
-  style312_45: "w-full h-[320px] relative select-none",
-  style316_46: "overflow-visible",
-  style323_47: "opacity-40",
-  style338_48: "text-[10px] font-mono font-bold",
-  style396_49: "text-[9px] font-bold transition-colors duration-150",
-  style410_50: "transition-all duration-200 cursor-pointer",
-  style423_51: "transition-all duration-200 cursor-pointer",
-  style435_52: "cursor-crosshair",
-  style460_53: "absolute pointer-events-none z-50 bg-[#050D0A]/95 border border-[#00ffcc]/30 backdrop-blur-md rounded-xl p-3 shadow-2xl shadow-black/95 text-right text-xs min-w-[140px] transition-all duration-75",
-  style467_54: "font-black text-[#00ffcc] border-b border-[#00ffcc]/15 pb-1 mb-1.5",
-  style470_55: "space-y-1",
-  style471_56: "text-gray-300 font-semibold flex justify-between gap-4",
-  style473_57: "text-[#00ffcc] font-black",
-  style475_58: "text-gray-300 font-semibold flex justify-between gap-4",
-  style477_59: "text-blue-400 font-black",
-  style479_60: "text-gray-400 font-mono text-[9px] pt-1 border-t border-dashed border-emerald-900/30 flex justify-between gap-4",
-  style481_61: "text-[#00ffcc] font-bold",
-  style492_62: "text-xs font-black text-[#00ffcc] tracking-wider uppercase mb-3 flex items-center gap-1.5",
-  style495_63: "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4",
-  style500_64: "transition-all duration-300 bg-black/40 border border-emerald-900/30 shadow-md",
-  style501_65: "p-4 pb-2",
-  style502_66: "flex items-center justify-between text-sm",
-  style503_67: "font-black text-gray-100",
-  style504_68: "w-4 h-4",
-  style506_69: "flex items-center justify-between text-[10px] text-gray-400 mt-1",
-  style508_70: "font-black",
-  style511_71: "p-4 pt-2 space-y-3",
-  style512_72: "flex justify-around text-center pt-2 border-t border-zinc-900",
-  style513_73: "flex flex-col items-center",
-  style514_74: "text-[10px] text-gray-500 font-bold mb-1",
-  style515_75: "flex items-center gap-1",
-  style516_76: "w-3.5 h-3.5 text-emerald-400/80",
-  style517_77: "text-base font-black text-white",
-  style520_78: "flex flex-col items-center",
-  style521_79: "text-[10px] text-gray-500 font-bold mb-1",
-  style522_80: "flex items-center gap-1",
-  style523_81: "w-3.5 h-3.5 text-blue-400/80",
-  style524_82: "text-base font-black text-white",
-  style530_83: "border-t border-dashed border-emerald-950/40 pt-2 flex justify-between items-center text-[9px] text-gray-500 font-mono",
-  style532_84: "text-[#00ffcc] font-black",
-} as const;
-
-
 interface PulseHeatmapProps {
   pulseData: MarketPulse[];
   isLoading: boolean;
@@ -292,14 +204,14 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
 
   if (isLoading) {
     return (
-      <div className={styles.style207_1}>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {[...Array(4)].map((_, i) => (
-          <Card key={i} className={styles.style209_2}>
-            <div className={styles.style210_3}></div>
-            <div className={styles.style211_4}></div>
-            <div className={styles.style212_5}>
-              <div className={styles.style213_6}></div>
-              <div className={styles.style214_7}></div>
+          <Card key={i} className="bg-[#091B09]/40 border-emerald-900/50 p-6 space-y-4 animate-pulse">
+            <div className="h-6 bg-muted rounded w-3/4"></div>
+            <div className="h-4 bg-muted rounded w-1/2"></div>
+            <div className="flex justify-between pt-4">
+              <div className="h-8 bg-muted rounded w-1/4"></div>
+              <div className="h-8 bg-muted rounded w-1/4"></div>
             </div>
           </Card>
         ))}
@@ -308,59 +220,59 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
   }
 
   return (
-    <div className={styles.style223_8} dir="rtl">
+    <div className="space-y-6" dir="rtl">
 
       {/* 🛡️ Filters Header Card */}
-      <Card className={styles.style226_9}>
-        <CardHeader className={styles.style227_10}>
-          <div className={styles.style228_11}>
+      <Card className="bg-[#050d0a]/60 border border-[#00ffcc]/15 backdrop-blur-md shadow-2xl rounded-2xl">
+        <CardHeader className="pb-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <CardTitle className={styles.style230_12}>
-                <Activity className={styles.style231_13} />
+              <CardTitle className="text-xl font-black text-white flex items-center gap-2">
+                <Activity className="w-5 h-5 text-[#00ffcc]" />
                 مراقبة نشاط السوق والإدارة الجغرافية 📊
               </CardTitle>
-              <CardDescription className={styles.style234_14}>
+              <CardDescription className="text-gray-400 text-xs mt-1">
                 عرض بياني تفاعلي لعوامات الطلب وعروض السائقين حسب المحافظة والمنطقة لضمان توازن السوق.
               </CardDescription>
             </div>
 
             {/* 🔍 Selectors */}
-            <div className={styles.style240_15}>
+            <div className="flex flex-wrap items-center gap-3">
               {/* Governorate Selector */}
-              <div className={styles.style242_16}>
-                <span className={styles.style243_17}>
-                  <MapPin className={styles.style244_18} /> المحافظة
+              <div className="space-y-1">
+                <span className="text-[10px] text-gray-400 font-bold block flex items-center gap-1">
+                  <MapPin className="w-3 h-3 text-[#00ffcc]" /> المحافظة
                 </span>
                 <Select value={selectedGov} onValueChange={handleGovChange}>
-                  <SelectTrigger className={styles.style247_19}>
+                  <SelectTrigger className="w-[150px] bg-black/40 border-emerald-900/50 text-white font-bold text-xs rounded-xl h-9">
                     <SelectValue placeholder="اختر المحافظة" />
                   </SelectTrigger>
-                  <SelectContent className={styles.style250_20}>
-                    <SelectItem value="الكل" className={styles.style251_21}>كل المحافظات</SelectItem>
+                  <SelectContent className="bg-zinc-950 border-emerald-900/50 text-white text-xs">
+                    <SelectItem value="الكل" className="font-bold">كل المحافظات</SelectItem>
                     {jordanGovernorates.map(gov => (
-                      <SelectItem key={gov} value={gov} className={styles.style253_22}>{gov}</SelectItem>
+                      <SelectItem key={gov} value={gov} className="font-semibold">{gov}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
               {/* District Selector */}
-              <div className={styles.style260_23}>
-                <span className={styles.style261_24}>
-                  <Navigation className={styles.style262_25} /> المنطقة
+              <div className="space-y-1">
+                <span className="text-[10px] text-gray-400 font-bold block flex items-center gap-1">
+                  <Navigation className="w-3 h-3 text-[#00ffcc]" /> المنطقة
                 </span>
                 <Select
                   value={selectedDistrict}
                   onValueChange={setSelectedDistrict}
                   disabled={selectedGov === 'الكل'}
                 >
-                  <SelectTrigger className={styles.style269_26}>
+                  <SelectTrigger className="w-[160px] bg-black/40 border-emerald-900/50 text-white font-bold text-xs rounded-xl h-9">
                     <SelectValue placeholder="اختر المنطقة" />
                   </SelectTrigger>
-                  <SelectContent className={styles.style272_27}>
-                    <SelectItem value="الكل" className={styles.style273_28}>كل الألوية</SelectItem>
+                  <SelectContent className="bg-zinc-950 border-emerald-900/50 text-white text-xs">
+                    <SelectItem value="الكل" className="font-bold">كل الألوية</SelectItem>
                     {availableDistricts.map(dist => (
-                      <SelectItem key={dist} value={dist} className={styles.style275_29}>{dist}</SelectItem>
+                      <SelectItem key={dist} value={dist} className="font-semibold">{dist}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -371,44 +283,44 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
       </Card>
 
       {/* 📊 Custom Vertical Bar Chart Section (No Recharts to ensure React 19 safety) */}
-      <Card className={styles.style286_30}>
-        <div className={styles.style287_31}>
-          <div className={styles.style288_32}>
-            <BarChart3 className={styles.style289_33} />
-            <h3 className={styles.style290_34}>الرسم البياني العامودي لعوامات ونشاط الميدان</h3>
+      <Card className="bg-[#050D0A]/40 border border-emerald-900/30 backdrop-blur-md shadow-xl rounded-2xl overflow-hidden p-4 md:p-6 relative">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+          <div className="flex items-center gap-2">
+            <BarChart3 className="w-5 h-5 text-emerald-400" />
+            <h3 className="text-sm font-bold text-gray-200">الرسم البياني العامودي لعوامات ونشاط الميدان</h3>
           </div>
 
           {/* 🏷️ Customized Legend */}
-          <div className={styles.style294_35}>
-            <div className={styles.style295_36}>
-              <span className={styles.style296_37}></span>
-              <span className={styles.style297_38}>الطلب (الركاب)</span>
+          <div className="flex items-center gap-4 text-xs font-bold">
+            <div className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded bg-[#00ffcc] inline-block shadow-[0_0_8px_rgba(0,255,204,0.3)]"></span>
+              <span className="text-gray-300">الطلب (الركاب)</span>
             </div>
-            <div className={styles.style299_39}>
-              <span className={styles.style300_40}></span>
-              <span className={styles.style301_41}>العرض (السائقون)</span>
+            <div className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded bg-[#3b82f6] inline-block shadow-[0_0_8px_rgba(59,130,246,0.3)]"></span>
+              <span className="text-gray-300">العرض (السائقون)</span>
             </div>
           </div>
         </div>
 
         {chartData.length === 0 ? (
-          <div className={styles.style307_42}>
-            <Activity className={styles.style308_43} />
-            <p className={styles.style309_44}>لا توجد سجلات نشاط متوفرة في التحديد الميداني الحالي.</p>
+          <div className="h-[320px] flex flex-col items-center justify-center text-center space-y-2 text-zinc-500">
+            <Activity className="w-8 h-8 text-zinc-600 animate-pulse" />
+            <p className="text-xs font-bold">لا توجد سجلات نشاط متوفرة في التحديد الميداني الحالي.</p>
           </div>
         ) : (
-          <div ref={containerRef} className={styles.style312_45}>
+          <div ref={containerRef} className="w-full h-[320px] relative select-none">
             <svg
               width={dimensions.width}
               height={dimensions.height}
-              className={styles.style316_46}
+              className="overflow-visible"
             >
               {/* 🏁 Cartesian Grid Lines */}
               {[0, 0.25, 0.5, 0.75, 1].map((ratio, index) => {
                 const yPos = margin.top + plotHeight * (1 - ratio);
                 const valueLabel = Math.round(maxVal * ratio);
                 return (
-                  <g key={index} className={styles.style323_47}>
+                  <g key={index} className="opacity-40">
                     <line
                       x1={margin.left}
                       y1={yPos}
@@ -423,7 +335,7 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
                       y={yPos + 4}
                       textAnchor="end"
                       fill="#a1a1aa"
-                      className={styles.style338_48}
+                      className="text-[10px] font-mono font-bold"
                     >
                       {valueLabel}
                     </text>
@@ -481,7 +393,7 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
                       y={margin.top + plotHeight + 18}
                       textAnchor="middle"
                       fill={isGroupHovered ? "#00ffcc" : "#a1a1aa"}
-                      className={styles.style396_49}
+                      className="text-[9px] font-bold transition-colors duration-150"
                       transform={`rotate(-15, ${xGroup + groupWidth / 2}, ${margin.top + plotHeight + 18})`}
                     >
                       {d.name.length > 9 ? `${d.name.slice(0, 8)}...` : d.name}
@@ -495,7 +407,7 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
                       height={Math.max(2, demandHeight)}
                       fill="#00ffcc"
                       rx={2}
-                      className={styles.style410_50}
+                      className="transition-all duration-200 cursor-pointer"
                       opacity={hoveredIndex === null || isGroupHovered ? 1 : 0.65}
                       style={{ filter: isGroupHovered ? 'drop-shadow(0 0 4px rgba(0,255,204,0.5))' : 'none' }}
                     />
@@ -508,7 +420,7 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
                       height={Math.max(2, supplyHeight)}
                       fill="#3b82f6"
                       rx={2}
-                      className={styles.style423_51}
+                      className="transition-all duration-200 cursor-pointer"
                       opacity={hoveredIndex === null || isGroupHovered ? 1 : 0.65}
                       style={{ filter: isGroupHovered ? 'drop-shadow(0 0 4px rgba(59,130,246,0.5))' : 'none' }}
                     />
@@ -520,7 +432,7 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
                       width={groupWidth}
                       height={plotHeight}
                       fill="transparent"
-                      className={styles.style435_52}
+                      className="cursor-crosshair"
                       onMouseEnter={(e) => {
                         setHoveredIndex(i);
                       }}
@@ -545,28 +457,28 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
             {/* 🔮 Glassy Absolute Floating Tooltip */}
             {hoveredIndex !== null && chartData[hoveredIndex] && (
               <div
-                className={styles.style460_53}
+                className="absolute pointer-events-none z-50 bg-[#050D0A]/95 border border-[#00ffcc]/30 backdrop-blur-md rounded-xl p-3 shadow-2xl shadow-black/95 text-right text-xs min-w-[140px] transition-all duration-75"
                 style={{
                   left: `${mousePos.x + 15}px`,
                   top: `${mousePos.y - 10}px`,
                   transform: 'translate(-50%, -100%)',
                 }}
               >
-                <p className={styles.style467_54}>
+                <p className="font-black text-[#00ffcc] border-b border-[#00ffcc]/15 pb-1 mb-1.5">
                   {chartData[hoveredIndex].name}
                 </p>
-                <div className={styles.style470_55}>
-                  <p className={styles.style471_56}>
+                <div className="space-y-1">
+                  <p className="text-gray-300 font-semibold flex justify-between gap-4">
                     <span>الطلب (الركاب):</span>
-                    <span className={styles.style473_57}>{chartData[hoveredIndex].demand}</span>
+                    <span className="text-[#00ffcc] font-black">{chartData[hoveredIndex].demand}</span>
                   </p>
-                  <p className={styles.style475_58}>
+                  <p className="text-gray-300 font-semibold flex justify-between gap-4">
                     <span>العرض (السائقون):</span>
-                    <span className={styles.style477_59}>{chartData[hoveredIndex].supply}</span>
+                    <span className="text-blue-400 font-black">{chartData[hoveredIndex].supply}</span>
                   </p>
-                  <p className={styles.style479_60}>
+                  <p className="text-gray-400 font-mono text-[9px] pt-1 border-t border-dashed border-emerald-900/30 flex justify-between gap-4">
                     <span>كثافة التقاطع:</span>
-                    <span className={styles.style481_61}>{chartData[hoveredIndex].density}%</span>
+                    <span className="text-[#00ffcc] font-bold">{chartData[hoveredIndex].density}%</span>
                   </p>
                 </div>
               </div>
@@ -577,47 +489,47 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
 
       {/* 📝 Granular Details List */}
       <div>
-        <h4 className={styles.style492_62}>
+        <h4 className="text-xs font-black text-[#00ffcc] tracking-wider uppercase mb-3 flex items-center gap-1.5">
           <span>●</span> تفاصيل الطلبات حسب المنطقة ({filteredData.length})
         </h4>
-        <div className={styles.style495_63}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {filteredData.sort((a,b) => b.demand - a.demand).map((pulse) => {
             const style = getTrendStyle(pulse.trend);
             const govName = getGovernorateOfDistrict(pulse.id);
             return (
-              <Card key={pulse.id} className={cn(styles.style500_64, style.glow)}>
-                <CardHeader className={styles.style501_65}>
-                  <CardTitle className={styles.style502_66}>
-                    <span className={styles.style503_67}>{pulse.id}</span>
-                    <style.Icon className={cn(styles.style504_68, style.iconColor)} />
+              <Card key={pulse.id} className={cn('transition-all duration-300 bg-black/40 border border-emerald-900/30 shadow-md', style.glow)}>
+                <CardHeader className="p-4 pb-2">
+                  <CardTitle className="flex items-center justify-between text-sm">
+                    <span className="font-black text-gray-100">{pulse.id}</span>
+                    <style.Icon className={cn('w-4 h-4', style.iconColor)} />
                   </CardTitle>
-                  <CardDescription className={styles.style506_69}>
+                  <CardDescription className="flex items-center justify-between text-[10px] text-gray-400 mt-1">
                     <span>محافظة {govName}</span>
-                    <span className={cn(styles.style508_70, style.iconColor)}>{style.label}</span>
+                    <span className={cn('font-black', style.iconColor)}>{style.label}</span>
                   </CardDescription>
                 </CardHeader>
-                <CardContent className={styles.style511_71}>
-                  <div className={styles.style512_72}>
-                    <div className={styles.style513_73}>
-                      <span className={styles.style514_74}>الطلب</span>
-                      <div className={styles.style515_75}>
-                        <Users className={styles.style516_76} />
-                        <span className={styles.style517_77}>{pulse.demand}</span>
+                <CardContent className="p-4 pt-2 space-y-3">
+                  <div className="flex justify-around text-center pt-2 border-t border-zinc-900">
+                    <div className="flex flex-col items-center">
+                      <span className="text-[10px] text-gray-500 font-bold mb-1">الطلب</span>
+                      <div className="flex items-center gap-1">
+                        <Users className="w-3.5 h-3.5 text-emerald-400/80" />
+                        <span className="text-base font-black text-white">{pulse.demand}</span>
                       </div>
                     </div>
-                    <div className={styles.style520_78}>
-                      <span className={styles.style521_79}>العرض</span>
-                      <div className={styles.style522_80}>
-                        <Car className={styles.style523_81} />
-                        <span className={styles.style524_82}>{pulse.supply}</span>
+                    <div className="flex flex-col items-center">
+                      <span className="text-[10px] text-gray-500 font-bold mb-1">العرض</span>
+                      <div className="flex items-center gap-1">
+                        <Car className="w-3.5 h-3.5 text-blue-400/80" />
+                        <span className="text-base font-black text-white">{pulse.supply}</span>
                       </div>
                     </div>
                   </div>
 
                   {/* Geospatial Density Counter */}
-                  <div className={styles.style530_83}>
+                  <div className="border-t border-dashed border-emerald-950/40 pt-2 flex justify-between items-center text-[9px] text-gray-500 font-mono">
                     <span>مؤشر الكثافة (Worker):</span>
-                    <span className={styles.style532_84}>
+                    <span className="text-[#00ffcc] font-black">
                       {isProcessingScores ? 'محاسبة...' : `${calculatedScores[pulse.id] ?? '0.0'}%`}
                     </span>
                   </div>

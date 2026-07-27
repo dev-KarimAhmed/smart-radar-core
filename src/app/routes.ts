@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { trackSovereignError } from '@/shared/services/error-tracker';
+import { trackSovereignError } from '@/lib/error-tracker';
 
 /**
  * 🛡️ [RAD-CMD-061]: Security Route Guard / Middleware for role isolation

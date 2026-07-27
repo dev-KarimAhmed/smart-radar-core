@@ -1,7 +1,13 @@
-import { RiderRoute } from '@/features/rider/components/rider-route';
+'use client';
 
-const styles = { root: 'contents' } as const;
+import React from 'react';
+import { RiderOperationsProvider } from '@/hooks/use-rider-operations';
+import { Dashboard } from '@/components/dashboard';
 
 export default function RiderPage() {
-  return <div className={styles.root}><RiderRoute /></div>;
+  return (
+    <RiderOperationsProvider>
+      <Dashboard />
+    </RiderOperationsProvider>
+  );
 }

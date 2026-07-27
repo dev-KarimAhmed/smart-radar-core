@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { isGoogleMapsLink, parseGoogleMapsLocation } from '@/shared/services/google-maps-location';
+import { isGoogleMapsLink, parseGoogleMapsLocation } from '@/lib/google-maps-location';
 
 const MAX_REDIRECTS = 6;
 const REQUEST_TIMEOUT_MS = 5_000;
