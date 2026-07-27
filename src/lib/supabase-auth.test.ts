@@ -4,7 +4,7 @@ import {
   mapSupabaseAuthError,
   normalizeInternationalPhone,
   validatePhoneAndPassword,
-} from './supabase-auth';
+} from './supabase-auth-logic';
 
 assert.equal(normalizeInternationalPhone('+962 79 000 0000'), '+962790000000');
 assert.equal(validatePhoneAndPassword('+962790000000', '123').ok, false);
