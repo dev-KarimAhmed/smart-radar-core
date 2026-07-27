@@ -2,10 +2,15 @@
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { AffiliationType } from '@/core/types';
-import { buildRiderSignUpMetadata, mapSupabaseAuthError, signInRiderWithPhone, signUpRiderWithPhone } from '@/lib/supabase-auth';
+import { buildRiderSignUpMetadata, mapSupabaseAuthError, signInRiderWithPhone, signUpRiderWithPhone } from '../services/supabase-auth';
 import { shouldRememberSupabaseSession, supabase } from '@/lib/supabase-client';
-import { useDashboardLanguage } from './use-dashboard-language';
-import { useToast } from './use-toast';
+import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
+import { useToast } from '@/hooks/use-toast';
+
+const styles = {
+  root: "",
+} as const;
+
 
 const runtimeEnv = (import.meta as any).env || {};
 const isStrictDevelopment =
