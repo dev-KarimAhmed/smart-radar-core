@@ -11,7 +11,7 @@
     "lint": "tsc --noEmit",
     "test:unit": "tsx src/core/logic/geospatial-kernel.test.ts && tsx src/lib/google-maps-location.test.ts && tsx src/lib/supabase-auth.test.ts && tsx src/components/dashboard/rider/rider-district-query.test.ts && tsx src/components/dashboard/rider/rider-server-marketplace.test.ts && tsx src/components/dashboard/rider/rider-state-machine.test.ts",
     "test:architecture": "node tests/architecture/tsx-styles.test.mjs && node tests/architecture/feature-boundaries.test.mjs",
-    "test:routes": "playwright test tests/routes",
+    "test:routes": "node scripts/run-route-tests.mjs",
     "analyze:bundle": "node tests/performance/bundle-budget.mjs",
     "verify": "npm run lint && npm run test:unit && npm run test:architecture && npm run test:routes && npm run build && npm run analyze:bundle"
   },

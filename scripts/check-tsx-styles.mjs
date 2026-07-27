@@ -3,7 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
 
-const TAILWIND_TOKEN = /(?:^|\s)(?:[a-z-]+:)*(?:-?m[trblxy]?|-?p[trblxy]?|flex|grid|block|hidden|absolute|relative|fixed|sticky|w-|h-|min-|max-|text-|bg-|border|rounded|shadow|gap-|space-|items-|justify-|overflow-|z-|opacity-|animate-|transition|duration-|font-)/;
+const TAILWIND_TOKEN = /(?:^|\s)(?:[a-z-]+:)*(?:-?m[trblxy]?-|p[trblxy]?-|flex(?:\s|$)|grid(?:\s|$)|block(?:\s|$)|hidden(?:\s|$)|absolute(?:\s|$)|relative(?:\s|$)|fixed(?:\s|$)|sticky(?:\s|$)|w-|h-|min-|max-|text-|bg-|border|rounded|shadow|gap-|space-|items-|justify-|overflow-|z-|opacity-|animate-|transition|duration-|font-)/;
 
 export async function checkTsxStyles(rootDir) {
   const rootPath = toPath(rootDir);
