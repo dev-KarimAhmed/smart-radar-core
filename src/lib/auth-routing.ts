@@ -27,6 +27,10 @@ function isAuthRole(value: string | undefined): value is AuthRole {
 }
 
 export function parseAuthLocation(pathname: string): AuthLocation {
+  if (pathname.replace(/\/+$/g, '') === '/rider') {
+    return { view: 'login', role: 'rider' };
+  }
+
   const [first, second] = pathname.replace(/^\/+|\/+$/g, '').split('/').filter(Boolean);
 
   if (first === 'login') {
@@ -43,6 +47,7 @@ export function parseAuthLocation(pathname: string): AuthLocation {
 
 export function buildAuthPath(view: AuthView, role?: AuthRole | null): string {
   if (view === 'admin') return '/login/admin';
+  if (view === 'login' && role === 'rider') return '/rider';
   if (view === 'login' && role) return `/login/${role}`;
   if (view === 'register' && role) return `/register/${role}`;
   return '/';

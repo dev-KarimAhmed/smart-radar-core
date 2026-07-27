@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import {
   Bell,
   Languages,
@@ -13,8 +13,10 @@ import {
   TrendingDown,
   TrendingUp,
 } from 'lucide-react';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/hooks/use-auth';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
@@ -31,6 +33,10 @@ const styles = {
   root: 'sticky top-0 z-50 flex w-full flex-col shadow-xl',
   primary: 'flex h-16 items-center justify-between border-b border-white/[0.06] bg-[#0A0F1D]/80 px-4 shadow-[0_4px_30px_rgba(0,0,0,0.3)] backdrop-blur-xl',
   spacer: 'h-10 w-10',
+  menuButton: 'relative h-10 w-10 rounded-full p-0 shadow-sm transition-transform hover:scale-105',
+  menuAvatar: 'h-10 w-10 border-2 border-white/20',
+  menuFallback: 'bg-black/50 font-bold text-white',
+  menuContent: 'w-[288px] border-white/[0.06] bg-[#0A0F1D]/95 p-0 backdrop-blur-xl sm:max-w-xs',
   actions: 'flex items-center gap-4',
   notification: 'relative h-10 w-10 text-white/70 hover:bg-white/10',
   language: 'ms-auto h-8 shrink-0 gap-1 rounded-lg border border-[#14B8A6]/25 bg-[#14B8A6]/10 px-2 text-[10px] font-black text-[#14F5D5] hover:bg-[#14B8A6]/20 hover:text-[#14F5D5]',
@@ -154,7 +160,13 @@ function DriverCabin() {
   );
 }
 
-export function AppHeader() {
+function initials(name = '') {
+  const names = name.trim().split(/\s+/);
+  if (names.length > 1) return `${names[0]?.[0] || ''}${names[1]?.[0] || ''}`;
+  return name.substring(0, 2);
+}
+
+export function AppHeader({ sidebar }: { sidebar?: ReactNode }) {
   const { user, isCaptain } = useAuth();
   const { toast } = useToast();
   const { isArabic, toggleLanguage } = useDashboardLanguage();
@@ -162,7 +174,27 @@ export function AppHeader() {
   return (
     <div className={styles.root}>
       <header className={styles.primary}>
-        <div className={styles.spacer} />
+        {sidebar && user ? (
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button
+                aria-label="فتح قائمة الحساب"
+                className={styles.menuButton}
+                size="icon"
+                variant="ghost"
+              >
+                <Avatar className={styles.menuAvatar}>
+                  <AvatarFallback className={styles.menuFallback}>{initials(user.name)}</AvatarFallback>
+                </Avatar>
+              </Button>
+            </SheetTrigger>
+            <SheetContent className={styles.menuContent} side="right">
+              <SheetTitle className={styles.srOnly}>القائمة</SheetTitle>
+              <SheetDescription className={styles.srOnly}>قائمة حساب الراكب</SheetDescription>
+              {sidebar}
+            </SheetContent>
+          </Sheet>
+        ) : <div className={styles.spacer} />}
         <div className={styles.actions}>
           <Button
             size="icon"

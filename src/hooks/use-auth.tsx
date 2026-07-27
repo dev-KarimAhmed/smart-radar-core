@@ -43,7 +43,7 @@ function AuthContent({ children }: { children: ReactNode }) {
   const t = useTranslations('auth.logout');
   const { direction } = useDashboardLanguage();
   const [user, setUser] = useState<SovereignUser | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const [logoutInProgress, setLogoutInProgress] = useState(false);
   const [promoData] = useState<any>(null);

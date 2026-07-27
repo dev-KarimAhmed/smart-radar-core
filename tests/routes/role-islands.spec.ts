@@ -1,5 +1,11 @@
 import { expect, test } from '@playwright/test';
 
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('pwa_prompt_dismissed', 'true');
+  });
+});
+
 for (const route of [
   { path: '/advertiser/dashboard', marker: 'advertiser' },
   { path: '/delegate', marker: 'delegate' },

@@ -211,7 +211,7 @@ export function RegisterRoute({
   const tickerItems = useMemo(() => [...t.ticker, ...t.ticker, ...t.ticker], [t.ticker]);
 
   const submitMockAuth = () => {
-    router.push('/rider/dashboard');
+    router.push('/rider');
   };
 
   return (
