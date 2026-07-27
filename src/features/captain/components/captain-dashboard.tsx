@@ -3,9 +3,14 @@
 import React from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
-import { useDriverOperations } from '@/hooks/use-driver-operations';
+import { useDriverOperations } from '../hooks/use-driver-operations';
 import { useSovereignWallet } from '@/hooks/use-sovereign-wallet';
 import dynamic from 'next/dynamic';
+
+const styles = {
+  style26_1: "rounded-3xl border border-emerald-500/20 bg-[#05080f] p-6 text-center text-slate-400",
+} as const;
+
 const RadarMapView = dynamic(() => import('./radar-map-view').then(m => m.RadarMapView), { ssr: false });
 
 interface CaptainDashboardProps {
@@ -23,7 +28,7 @@ export const RadarCaptainDashboard: React.FC<CaptainDashboardProps> = ({ captain
 
   if (!driverOps) {
     return (
-      <section className="rounded-3xl border border-emerald-500/20 bg-[#05080f] p-6 text-center text-slate-400">
+      <section className={styles.style26_1}>
         {language === 'ar' ? 'جاري تحميل لوحة الكابتن...' : 'Loading captain dashboard...'}
       </section>
     );

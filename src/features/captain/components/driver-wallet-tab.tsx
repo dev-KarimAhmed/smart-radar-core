@@ -5,6 +5,57 @@ import { Copy, Loader2, ReceiptText, Ticket, Upload, Wallet } from 'lucide-react
 import type { User } from '@/core/types';
 import { useSovereignWallet } from '@/hooks/use-sovereign-wallet';
 
+const styles = {
+  style61_1: "mx-auto max-w-5xl space-y-5 text-white",
+  style62_2: "rounded-3xl border border-emerald-500/20 bg-[#05080f] p-5",
+  style63_3: "flex items-start justify-between gap-4",
+  style65_4: "text-xs font-black text-[#14B8A6]",
+  style66_5: "mt-1 text-2xl font-black",
+  style67_6: "mt-2 text-sm text-slate-400",
+  style69_7: "h-8 w-8 text-emerald-300",
+  style72_8: "mt-5 grid gap-3 md:grid-cols-3",
+  style81_9: "text-xl font-bold font-mono",
+  style83_10: "text-xl font-bold font-mono",
+  style91_11: "text-xl font-bold font-mono",
+  style93_12: "text-xl font-bold font-mono",
+  style100_13: "mt-4 rounded-2xl border border-amber-500/25 bg-amber-500/10 p-4 text-sm leading-6 text-amber-100",
+  style101_14: "font-black",
+  style102_15: "mt-1 text-amber-100/80",
+  style104_16: "mt-2 font-mono text-[11px] text-amber-200/80",
+  style112_17: "grid gap-5 lg:grid-cols-2",
+  style113_18: "rounded-3xl border border-emerald-500/20 bg-[#05080f] p-5",
+  style114_19: "text-lg font-black",
+  style115_20: "mt-4 space-y-3",
+  style117_21: "rounded-2xl border border-slate-800 bg-black/45 p-4",
+  style118_22: "flex items-center justify-between gap-3",
+  style120_23: "font-black",
+  style121_24: "mt-1 text-sm text-slate-400",
+  style125_25: "rounded-xl border border-white/10 p-3 text-emerald-300 hover:bg-white/10",
+  style128_26: "h-4 w-4",
+  style133_27: "rounded-2xl border border-dashed border-slate-700 bg-black/35 p-5 text-sm leading-6 text-slate-400",
+  style140_28: "rounded-3xl border border-emerald-500/20 bg-[#05080f] p-5",
+  style141_29: "text-lg font-black",
+  style142_30: "mt-4 space-y-3",
+  style148_31: "w-full rounded-2xl border border-slate-700 bg-black px-4 py-3 text-white outline-none focus:border-emerald-400",
+  style154_32: "w-full rounded-2xl border border-slate-700 bg-black px-4 py-3 text-white outline-none focus:border-emerald-400",
+  style156_33: "flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-700 bg-black/45 px-4 py-4 text-sm text-slate-300",
+  style157_34: "h-4 w-4",
+  style159_35: "hidden",
+  style164_36: "inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#14B8A6] px-5 py-4 font-black text-[#06111f] disabled:opacity-60",
+  style166_37: "h-5 w-5 animate-spin",
+  style166_38: "h-5 w-5",
+  style173_39: "rounded-3xl border border-emerald-500/20 bg-[#05080f] p-5",
+  style174_40: "text-lg font-black",
+  style175_41: "mt-4 flex flex-col gap-3 sm:flex-row",
+  style180_42: "min-w-0 flex-1 rounded-2xl border border-slate-700 bg-black px-4 py-3 text-white outline-none focus:border-emerald-400",
+  style185_43: "inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-5 py-3 font-black text-white disabled:opacity-60",
+  style187_44: "h-5 w-5",
+  style198_45: "rounded-2xl border border-emerald-500/15 bg-emerald-950/10 p-4",
+  style199_46: "text-xs text-slate-400",
+  style200_47: "mt-2 text-2xl font-black",
+} as const;
+
+
 const TEST_PRICE_PER_HOUR = 200; // Change to 20 for production simulation (e.g. 1000 EGP = 5 or 50 Hours)
 const TEST_PRICE_PER_MINUTE = TEST_PRICE_PER_HOUR / 60;
 
@@ -58,18 +109,18 @@ export function DriverWalletTab({ user, language }: DriverWalletTabProps) {
   const extraMinutes = Math.round((totalExtraHours - extraHours) * 60);
 
   return (
-    <section className="mx-auto max-w-5xl space-y-5 text-white">
-      <div className="rounded-3xl border border-emerald-500/20 bg-[#05080f] p-5">
-        <div className="flex items-start justify-between gap-4">
+    <section className={styles.style61_1}>
+      <div className={styles.style62_2}>
+        <div className={styles.style63_3}>
           <div>
-            <p className="text-xs font-black text-[#14B8A6]">{copy.badge}</p>
-            <h1 className="mt-1 text-2xl font-black">{copy.title}</h1>
-            <p className="mt-2 text-sm text-slate-400">{copy.subtitle}</p>
+            <p className={styles.style65_4}>{copy.badge}</p>
+            <h1 className={styles.style66_5}>{copy.title}</h1>
+            <p className={styles.style67_6}>{copy.subtitle}</p>
           </div>
-          <Wallet className="h-8 w-8 text-emerald-300" />
+          <Wallet className={styles.style69_7} />
         </div>
 
-        <div className="mt-5 grid gap-3 md:grid-cols-3">
+        <div className={styles.style72_8}>
           <Metric
             label={copy.balance}
             value={walletIsReady ? `${wallet.balanceJD.toFixed(2)} ${user?.currencyAr || user?.currencyEn || ''}` : wallet.walletLoaded ? '-' : '...'}
@@ -78,9 +129,9 @@ export function DriverWalletTab({ user, language }: DriverWalletTabProps) {
             label={copy.paidTime}
             value={walletIsReady ? (
               language === 'ar' ? (
-                <span className="text-xl font-bold font-mono">{paidHours} ساعة {paidMinutes} دقيقة</span>
+                <span className={styles.style81_9}>{paidHours} ساعة {paidMinutes} دقيقة</span>
               ) : (
-                <span className="text-xl font-bold font-mono">{paidHours}h {paidMinutes}m</span>
+                <span className={styles.style83_10}>{paidHours}h {paidMinutes}m</span>
               )
             ) : wallet.walletLoaded ? '-' : '...'}
           />
@@ -88,20 +139,20 @@ export function DriverWalletTab({ user, language }: DriverWalletTabProps) {
             label={copy.bonusTime}
             value={walletIsReady ? (
               language === 'ar' ? (
-                <span className="text-xl font-bold font-mono">{extraHours} ساعة {extraMinutes} دقيقة</span>
+                <span className={styles.style91_11}>{extraHours} ساعة {extraMinutes} دقيقة</span>
               ) : (
-                <span className="text-xl font-bold font-mono">{extraHours}h {extraMinutes}m</span>
+                <span className={styles.style93_12}>{extraHours}h {extraMinutes}m</span>
               )
             ) : wallet.walletLoaded ? '-' : '...'}
           />
         </div>
 
         {walletIsMissing || walletHasError ? (
-          <div className="mt-4 rounded-2xl border border-amber-500/25 bg-amber-500/10 p-4 text-sm leading-6 text-amber-100">
-            <p className="font-black">{walletIsMissing ? copy.walletMissingTitle : copy.walletErrorTitle}</p>
-            <p className="mt-1 text-amber-100/80">{walletIsMissing ? copy.walletMissingBody : copy.walletErrorBody}</p>
+          <div className={styles.style100_13}>
+            <p className={styles.style101_14}>{walletIsMissing ? copy.walletMissingTitle : copy.walletErrorTitle}</p>
+            <p className={styles.style102_15}>{walletIsMissing ? copy.walletMissingBody : copy.walletErrorBody}</p>
             {(process.env.NODE_ENV !== 'production') ? (
-              <p className="mt-2 font-mono text-[11px] text-amber-200/80">
+              <p className={styles.style104_16}>
                 profile_id: {wallet.walletProfileId || '-'} {wallet.walletError ? ` / ${wallet.walletError}` : ''}
               </p>
             ) : null}
@@ -109,82 +160,82 @@ export function DriverWalletTab({ user, language }: DriverWalletTabProps) {
         ) : null}
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-2">
-        <div className="rounded-3xl border border-emerald-500/20 bg-[#05080f] p-5">
-          <h2 className="text-lg font-black">{copy.paymentMethods}</h2>
-          <div className="mt-4 space-y-3">
+      <div className={styles.style112_17}>
+        <div className={styles.style113_18}>
+          <h2 className={styles.style114_19}>{copy.paymentMethods}</h2>
+          <div className={styles.style115_20}>
             {paymentMethods.length > 0 ? paymentMethods.map((method) => (
-              <div key={method.name} className="rounded-2xl border border-slate-800 bg-black/45 p-4">
-                <div className="flex items-center justify-between gap-3">
+              <div key={method.name} className={styles.style117_21}>
+                <div className={styles.style118_22}>
                   <div>
-                    <p className="font-black">{method.name}</p>
-                    <p className="mt-1 text-sm text-slate-400">{method.value}</p>
+                    <p className={styles.style120_23}>{method.name}</p>
+                    <p className={styles.style121_24}>{method.value}</p>
                   </div>
                   <button
                     onClick={() => navigator.clipboard?.writeText(method.value)}
-                    className="rounded-xl border border-white/10 p-3 text-emerald-300 hover:bg-white/10"
+                    className={styles.style125_25}
                     aria-label={copy.copy}
                   >
-                    <Copy className="h-4 w-4" />
+                    <Copy className={styles.style128_26} />
                   </button>
                 </div>
               </div>
             )) : (
-              <div className="rounded-2xl border border-dashed border-slate-700 bg-black/35 p-5 text-sm leading-6 text-slate-400">
+              <div className={styles.style133_27}>
                 {copy.noPaymentMethods}
               </div>
             )}
           </div>
         </div>
 
-        <div className="rounded-3xl border border-emerald-500/20 bg-[#05080f] p-5">
-          <h2 className="text-lg font-black">{copy.uploadReceipt}</h2>
-          <div className="mt-4 space-y-3">
+        <div className={styles.style140_28}>
+          <h2 className={styles.style141_29}>{copy.uploadReceipt}</h2>
+          <div className={styles.style142_30}>
             <input
               value={amount}
               onChange={(event) => setAmount(event.target.value)}
               inputMode="decimal"
               placeholder={copy.amount}
-              className="w-full rounded-2xl border border-slate-700 bg-black px-4 py-3 text-white outline-none focus:border-emerald-400"
+              className={styles.style148_31}
             />
             <input
               value={channel}
               onChange={(event) => setChannel(event.target.value)}
               placeholder={copy.paymentChannel}
-              className="w-full rounded-2xl border border-slate-700 bg-black px-4 py-3 text-white outline-none focus:border-emerald-400"
+              className={styles.style154_32}
             />
-            <label className="flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-700 bg-black/45 px-4 py-4 text-sm text-slate-300">
-              <Upload className="h-4 w-4" />
+            <label className={styles.style156_33}>
+              <Upload className={styles.style157_34} />
               {receiptFile?.name || copy.chooseImage}
-              <input type="file" accept="image/*" className="hidden" onChange={(event) => setReceiptFile(event.target.files?.[0] || null)} />
+              <input type="file" accept="image/*" className={styles.style159_35} onChange={(event) => setReceiptFile(event.target.files?.[0] || null)} />
             </label>
             <button
               onClick={submitReceipt}
               disabled={wallet.loading || !receiptFile || !channel.trim()}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#14B8A6] px-5 py-4 font-black text-[#06111f] disabled:opacity-60"
+              className={styles.style164_36}
             >
-              {wallet.loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <ReceiptText className="h-5 w-5" />}
+              {wallet.loading ? <Loader2 className={styles.style166_37} /> : <ReceiptText className={styles.style166_38} />}
               {copy.sendReceipt}
             </button>
           </div>
         </div>
       </div>
 
-      <div className="rounded-3xl border border-emerald-500/20 bg-[#05080f] p-5">
-        <h2 className="text-lg font-black">{copy.voucher}</h2>
-        <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+      <div className={styles.style173_39}>
+        <h2 className={styles.style174_40}>{copy.voucher}</h2>
+        <div className={styles.style175_41}>
           <input
             value={voucherCode}
             onChange={(event) => setVoucherCode(event.target.value)}
             placeholder={copy.voucherPlaceholder}
-            className="min-w-0 flex-1 rounded-2xl border border-slate-700 bg-black px-4 py-3 text-white outline-none focus:border-emerald-400"
+            className={styles.style180_42}
           />
           <button
             onClick={redeemVoucher}
             disabled={wallet.loading || !voucherCode.trim()}
-            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-5 py-3 font-black text-white disabled:opacity-60"
+            className={styles.style185_43}
           >
-            <Ticket className="h-5 w-5" />
+            <Ticket className={styles.style187_44} />
             {copy.redeem}
           </button>
         </div>
@@ -195,9 +246,9 @@ export function DriverWalletTab({ user, language }: DriverWalletTabProps) {
 
 function Metric({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border border-emerald-500/15 bg-emerald-950/10 p-4">
-      <p className="text-xs text-slate-400">{label}</p>
-      <div className="mt-2 text-2xl font-black">{value}</div>
+    <div className={styles.style198_45}>
+      <p className={styles.style199_46}>{label}</p>
+      <div className={styles.style200_47}>{value}</div>
     </div>
   );
 }

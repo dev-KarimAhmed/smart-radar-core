@@ -4,20 +4,44 @@ import React from 'react';
 import { Loader2, LogOut, Map, User, Wallet } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
-import { useDriverOperations } from '@/hooks/use-driver-operations';
+import { useDriverOperations } from '../hooks/use-driver-operations';
 import { useSovereignWallet } from '@/hooks/use-sovereign-wallet';
 import { useToast } from '@/hooks/use-toast';
-import { ActiveTripTracker } from './driver/active-trip-tracker';
-import { BiddingProposalSheet } from './driver/bidding-proposal-sheet';
+import { ActiveTripTracker } from './active-trip-tracker';
+import { BiddingProposalSheet } from './bidding-proposal-sheet';
 import {
   captainDashboardReducer,
   initialCaptainDashboardState,
   type CaptainTripStep,
-} from './driver/captain-state-machine';
-import { DriverProfileTab } from './driver/driver-profile-tab';
-import { DriverWalletTab } from './driver/driver-wallet-tab';
+} from '../state/captain-state-machine';
+import { DriverProfileTab } from './driver-profile-tab';
+import { DriverWalletTab } from './driver-wallet-tab';
 import dynamic from 'next/dynamic';
-const RadarMapView = dynamic(() => import('./driver/radar-map-view').then(m => m.RadarMapView), { ssr: false });
+
+import { cn } from '@/lib/utils';
+const styles = {
+  style107_1: "flex min-h-[60vh] items-center justify-center text-slate-400",
+  style108_2: "mr-2 h-5 w-5 animate-spin",
+  style153_3: "min-h-screen bg-[#0B0F19] p-3 pb-10 text-white md:p-5 md:pb-12",
+  style154_4: "mx-auto flex w-full max-w-[1800px] flex-col gap-4",
+  style155_5: "flex flex-col gap-3 rounded-3xl border border-emerald-500/20 bg-[#05080f] p-4 md:flex-row md:items-center md:justify-between",
+  style157_6: "text-xs font-black text-[#14B8A6]",
+  style158_7: "text-2xl font-black",
+  style160_8: "flex flex-wrap items-center gap-2",
+  style164_9: "rounded-2xl px-4 py-3 text-sm font-black transition",
+  style165_10: "bg-emerald-500/15 text-emerald-200 ring-1 ring-emerald-400/40",
+  style165_11: "bg-slate-800 text-slate-200",
+  style170_12: "h-4 w-4",
+  style171_13: "h-4 w-4",
+  style172_14: "h-4 w-4",
+  style176_15: "inline-flex items-center gap-2 rounded-2xl border border-red-500/30 bg-red-600/15 px-4 py-3 text-sm font-black text-red-100 transition hover:bg-red-600/25",
+  style178_16: "h-4 w-4",
+  style260_17: "inline-flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-black transition",
+  style261_18: "bg-[#14B8A6] text-[#06111f]",
+  style261_19: "border border-white/10 bg-white/[0.03] text-slate-300 hover:bg-white/10",
+} as const;
+
+const RadarMapView = dynamic(() => import('./radar-map-view').then(m => m.RadarMapView), { ssr: false });
 
 export function DriverViewTab() {
   const { user, logout } = useAuth();
@@ -104,8 +128,8 @@ export function DriverViewTab() {
 
   if (!driverOps) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center text-slate-400">
-        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+      <div className={styles.style107_1}>
+        <Loader2 className={styles.style108_2} />
         {copy.loading}
       </div>
     );
@@ -150,32 +174,30 @@ export function DriverViewTab() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0B0F19] p-3 pb-10 text-white md:p-5 md:pb-12" dir={direction}>
-      <div className="mx-auto flex w-full max-w-[1800px] flex-col gap-4">
-        <header className="flex flex-col gap-3 rounded-3xl border border-emerald-500/20 bg-[#05080f] p-4 md:flex-row md:items-center md:justify-between">
+    <div className={styles.style153_3} dir={direction}>
+      <div className={styles.style154_4}>
+        <header className={styles.style155_5}>
           <div>
-            <p className="text-xs font-black text-[#14B8A6]">{copy.badge}</p>
-            <h1 className="text-2xl font-black">{copy.title}</h1>
+            <p className={styles.style157_6}>{copy.badge}</p>
+            <h1 className={styles.style158_7}>{copy.title}</h1>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className={styles.style160_8}>
             <button
               type="button"
               onClick={() => driverOps.toggleDriverStatus(isActive ? 'idle' : 'active')}
-              className={`rounded-2xl px-4 py-3 text-sm font-black transition ${
-                isActive ? 'bg-emerald-500/15 text-emerald-200 ring-1 ring-emerald-400/40' : 'bg-slate-800 text-slate-200'
-              }`}
+              className={cn(styles.style164_9, isActive ? styles.style165_10 : styles.style165_11)}
             >
               {isActive ? copy.online : copy.offline}
             </button>
-            <NavButton active={screen === 'RADAR_MAP' || screen === 'BIDDING'} onClick={() => dispatch({ type: 'OPEN_RADAR' })} label={copy.radar} icon={<Map className="h-4 w-4" />} />
-            <NavButton active={screen === 'WALLET'} onClick={() => dispatch({ type: 'OPEN_WALLET' })} label={copy.wallet} icon={<Wallet className="h-4 w-4" />} />
-            <NavButton active={screen === 'PROFILE'} onClick={() => dispatch({ type: 'OPEN_PROFILE' })} label={copy.profile} icon={<User className="h-4 w-4" />} />
+            <NavButton active={screen === 'RADAR_MAP' || screen === 'BIDDING'} onClick={() => dispatch({ type: 'OPEN_RADAR' })} label={copy.radar} icon={<Map className={styles.style170_12} />} />
+            <NavButton active={screen === 'WALLET'} onClick={() => dispatch({ type: 'OPEN_WALLET' })} label={copy.wallet} icon={<Wallet className={styles.style171_13} />} />
+            <NavButton active={screen === 'PROFILE'} onClick={() => dispatch({ type: 'OPEN_PROFILE' })} label={copy.profile} icon={<User className={styles.style172_14} />} />
             <button
               type="button"
               onClick={() => void logout()}
-              className="inline-flex items-center gap-2 rounded-2xl border border-red-500/30 bg-red-600/15 px-4 py-3 text-sm font-black text-red-100 transition hover:bg-red-600/25"
+              className={styles.style176_15}
             >
-              <LogOut className="h-4 w-4" />
+              <LogOut className={styles.style178_16} />
               {copy.logout}
             </button>
           </div>
@@ -257,9 +279,7 @@ function NavButton({
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-black transition ${
-        active ? 'bg-[#14B8A6] text-[#06111f]' : 'border border-white/10 bg-white/[0.03] text-slate-300 hover:bg-white/10'
-      }`}
+      className={cn(styles.style260_17, active ? styles.style261_18 : styles.style261_19)}
     >
       {icon}
       {label}

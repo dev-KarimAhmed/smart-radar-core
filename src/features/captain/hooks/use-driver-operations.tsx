@@ -1,13 +1,18 @@
 'use client';
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { useAuth } from './use-auth';
+import { useAuth } from '@/hooks/use-auth';
 import type { MarketPulse, Trip, User as RiderUser } from '@/core/types';
 import { useDriverLifecycle } from './use-driver-lifecycle';
-import { useDriverRadar } from './driver/use-driver-radar';
-import { useCaptainLocationPulse } from './driver/use-captain-location-pulse';
-import { useDriverTransactions } from './driver/use-driver-transactions';
+import { useDriverRadar } from './use-driver-radar';
+import { useCaptainLocationPulse } from './use-captain-location-pulse';
+import { useDriverTransactions } from './use-driver-transactions';
 import { sovereignEventBroker } from '@/lib/event-broker';
+
+const styles = {
+  root: "",
+} as const;
+
 
 type DriverStatus = 'active' | 'idle' | 'busy' | 'rating';
 

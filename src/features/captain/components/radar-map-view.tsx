@@ -6,6 +6,63 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { Clock, LocateFixed, MapPin, RadioTower, Route } from 'lucide-react';
 import type { Trip } from '@/core/types';
 
+import { cn } from '@/lib/utils';
+const styles = {
+  style144_1: "grid min-h-[calc(100vh-11rem)] gap-4 lg:grid-cols-[minmax(0,1fr)_420px]",
+  style145_2: "relative min-h-[520px] overflow-hidden rounded-3xl border border-emerald-500/20 bg-[#05080f] text-white shadow-2xl shadow-black/30 lg:min-h-[calc(100vh-11rem)]",
+  style146_3: "absolute inset-0 z-0 bg-[#0B0F19]",
+  style147_4: "absolute inset-0 z-[1] overflow-hidden bg-[radial-gradient(circle_at_center,rgba(20,184,166,0.18),transparent_38%),linear-gradient(135deg,rgba(20,184,166,0.08)_0_25%,transparent_25%_50%,rgba(20,184,166,0.06)_50%_75%,transparent_75%)] bg-[length:auto,38px_38px]",
+  style148_5: "absolute left-1/2 top-1/2 grid h-11 w-11 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-2xl border-2 border-[#06111f] bg-[#14B8A6] text-[#06111f] shadow-[0_0_0_18px_rgba(20,184,166,0.12),0_0_60px_rgba(20,184,166,0.35)]",
+  style156_6: "absolute h-9 w-9 rounded-full border-2 border-[#06111f] bg-[#f59e0b] text-[10px] font-black text-[#06111f] shadow-[0_0_0_10px_rgba(245,158,11,0.18),0_12px_30px_rgba(0,0,0,0.35)]",
+  style163_7: "absolute inset-0 z-[2]",
+  style164_8: "h-full w-full bg-transparent",
+  style166_9: "pointer-events-none absolute inset-0 z-[3] bg-[radial-gradient(circle_at_center,transparent_44%,rgba(11,15,25,0.32)_100%)]",
+  style168_10: "absolute left-4 right-4 top-4 z-20 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-500/20 bg-[#0B0F19]/92 px-4 py-3 shadow-xl backdrop-blur",
+  style170_11: "text-xs font-black text-[#14B8A6]",
+  style171_12: "text-sm font-bold text-slate-200",
+  style173_13: "flex flex-wrap items-center gap-2 text-xs font-bold",
+  style174_14: "inline-flex items-center gap-1 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-1 text-emerald-200",
+  style175_15: "h-3.5 w-3.5",
+  style182_16: "absolute left-4 right-4 top-24 z-20 rounded-2xl border border-emerald-500/20 bg-[#0B0F19]/92 p-4 text-sm font-bold text-slate-200 shadow-2xl backdrop-blur md:left-auto md:max-w-md",
+  style183_17: "text-[#14B8A6]",
+  style184_18: "mt-1 text-xs leading-5 text-slate-400",
+  style185_19: "mt-2 text-[11px] font-black text-emerald-200",
+  style192_20: "absolute bottom-5 left-5 z-20 rounded-2xl border border-emerald-500/25 bg-[#0B0F19]/95 p-4 text-emerald-300 shadow-2xl transition hover:border-emerald-300",
+  style195_21: "h-5 w-5",
+  style201_22: "flex min-h-[520px] flex-col rounded-3xl border border-emerald-500/20 bg-[#05080f] p-4 text-white shadow-2xl shadow-black/30 lg:min-h-[calc(100vh-11rem)]",
+  style202_23: "flex items-center justify-between gap-3 border-b border-white/10 pb-4",
+  style204_24: "text-xs font-black text-[#14B8A6]",
+  style205_25: "mt-1 text-2xl font-black",
+  style206_26: "mt-1 text-xs leading-5 text-slate-400",
+  style208_27: "rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-black text-emerald-300",
+  style211_28: "mt-4 flex-1 overflow-y-auto pr-1",
+  style213_29: "h-8 w-8",
+  style215_30: "h-8 w-8",
+  style217_31: "space-y-3",
+  style219_32: "rounded-2xl border border-slate-800 bg-black/60 p-4",
+  style220_33: "flex items-start gap-3",
+  style221_34: "mt-1 h-5 w-5 shrink-0 text-emerald-300",
+  style222_35: "min-w-0",
+  style223_36: "line-clamp-2 font-black",
+  style224_37: "mt-1 font-mono text-xs text-slate-400",
+  style227_38: "mt-3 grid grid-cols-2 gap-2 text-xs",
+  style231_39: "mt-4 flex gap-2",
+  style232_40: "inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#14B8A6] px-3 py-2 text-sm font-black text-[#06111f]",
+  style233_41: "h-4 w-4",
+  style236_42: "rounded-xl border border-white/10 px-3 py-2 text-sm font-bold text-slate-300",
+  style252_43: "rounded-xl border border-white/10 bg-white/[0.03] p-2",
+  style253_44: "text-slate-500",
+  style254_45: "mt-1 font-black text-white",
+  style275_46: "flex min-h-[280px] flex-col items-center justify-center rounded-2xl p-6 text-center",
+  style276_47: "text-amber-300",
+  style276_48: "text-emerald-400/70",
+  style277_49: "mt-4 text-lg font-black text-white",
+  style278_50: "mt-2 max-w-sm text-sm leading-6 opacity-85",
+  stateAmber: "border-amber-500/30 bg-amber-500/10 text-amber-100",
+  stateEmpty: "border-dashed border-slate-700 bg-slate-950/80 text-slate-300",
+} as const;
+
+
 const OPENFREEMAP_STYLE = 'https://tiles.openfreemap.org/styles/liberty';
 const RTL_TEXT_PLUGIN_URL = 'https://unpkg.com/@mapbox/mapbox-gl-rtl-text@0.3.0/dist/mapbox-gl-rtl-text.js';
 const DEFAULT_CENTER = { lat: 30.0444, lng: 31.2357 };
@@ -141,11 +198,11 @@ export function RadarMapView({
   }, [visibleLocation.lat, visibleLocation.lng]);
 
   return (
-    <section className="grid min-h-[calc(100vh-11rem)] gap-4 lg:grid-cols-[minmax(0,1fr)_420px]">
-      <div className="relative min-h-[520px] overflow-hidden rounded-3xl border border-emerald-500/20 bg-[#05080f] text-white shadow-2xl shadow-black/30 lg:min-h-[calc(100vh-11rem)]">
-        <div className="absolute inset-0 z-0 bg-[#0B0F19]" />
-        <div className="absolute inset-0 z-[1] overflow-hidden bg-[radial-gradient(circle_at_center,rgba(20,184,166,0.18),transparent_38%),linear-gradient(135deg,rgba(20,184,166,0.08)_0_25%,transparent_25%_50%,rgba(20,184,166,0.06)_50%_75%,transparent_75%)] bg-[length:auto,38px_38px]">
-          <div className="absolute left-1/2 top-1/2 grid h-11 w-11 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-2xl border-2 border-[#06111f] bg-[#14B8A6] text-[#06111f] shadow-[0_0_0_18px_rgba(20,184,166,0.12),0_0_60px_rgba(20,184,166,0.35)]">
+    <section className={styles.style144_1}>
+      <div className={styles.style145_2}>
+        <div className={styles.style146_3} />
+        <div className={styles.style147_4}>
+          <div className={styles.style148_5}>
             <CarMarkerIcon />
           </div>
           {requests.slice(0, 6).map((request, index) => (
@@ -153,87 +210,87 @@ export function RadarMapView({
               key={request.id}
               type="button"
               onClick={() => onSelectRequest(request)}
-              className="absolute h-9 w-9 rounded-full border-2 border-[#06111f] bg-[#f59e0b] text-[10px] font-black text-[#06111f] shadow-[0_0_0_10px_rgba(245,158,11,0.18),0_12px_30px_rgba(0,0,0,0.35)]"
+              className={styles.style156_6}
               style={fallbackRequestPosition(index)}
             >
               R
             </button>
           ))}
         </div>
-        <div className="absolute inset-0 z-[2]">
-          <div ref={mapContainerRef} className="h-full w-full bg-transparent" />
+        <div className={styles.style163_7}>
+          <div ref={mapContainerRef} className={styles.style164_8} />
         </div>
-        <div className="pointer-events-none absolute inset-0 z-[3] bg-[radial-gradient(circle_at_center,transparent_44%,rgba(11,15,25,0.32)_100%)]" />
+        <div className={styles.style166_9} />
 
-        <div className="absolute left-4 right-4 top-4 z-20 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-500/20 bg-[#0B0F19]/92 px-4 py-3 shadow-xl backdrop-blur">
+        <div className={styles.style168_10}>
           <div>
-            <p className="text-xs font-black text-[#14B8A6]">{copy.title}</p>
-            <p className="text-sm font-bold text-slate-200">{isActive ? copy.online : copy.offline}</p>
+            <p className={styles.style170_11}>{copy.title}</p>
+            <p className={styles.style171_12}>{isActive ? copy.online : copy.offline}</p>
           </div>
-          <div className="flex flex-wrap items-center gap-2 text-xs font-bold">
-            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-1 text-emerald-200">
-              <Clock className="h-3.5 w-3.5" />
+          <div className={styles.style173_13}>
+            <span className={styles.style174_14}>
+              <Clock className={styles.style175_15} />
               {copy.remaining}: {formatMinutes(totalMinutes, language)}
             </span>
           </div>
         </div>
 
         {(!isMapReady || mapIssue) && (
-          <div className="absolute left-4 right-4 top-24 z-20 rounded-2xl border border-emerald-500/20 bg-[#0B0F19]/92 p-4 text-sm font-bold text-slate-200 shadow-2xl backdrop-blur md:left-auto md:max-w-md">
-            <p className="text-[#14B8A6]">{mapIssue ? copy.mapIssue : copy.mapLoading}</p>
-            <p className="mt-1 text-xs leading-5 text-slate-400">{copy.mapHint}</p>
-            <p className="mt-2 text-[11px] font-black text-emerald-200">{copy.radarFallback}</p>
+          <div className={styles.style182_16}>
+            <p className={styles.style183_17}>{mapIssue ? copy.mapIssue : copy.mapLoading}</p>
+            <p className={styles.style184_18}>{copy.mapHint}</p>
+            <p className={styles.style185_19}>{copy.radarFallback}</p>
           </div>
         )}
 
         <button
           type="button"
           onClick={recenter}
-          className="absolute bottom-5 left-5 z-20 rounded-2xl border border-emerald-500/25 bg-[#0B0F19]/95 p-4 text-emerald-300 shadow-2xl transition hover:border-emerald-300"
+          className={styles.style192_20}
           aria-label={copy.recenter}
         >
-          <LocateFixed className="h-5 w-5" />
+          <LocateFixed className={styles.style195_21} />
         </button>
 
 
       </div>
 
-      <aside className="flex min-h-[520px] flex-col rounded-3xl border border-emerald-500/20 bg-[#05080f] p-4 text-white shadow-2xl shadow-black/30 lg:min-h-[calc(100vh-11rem)]">
-        <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-4">
+      <aside className={styles.style201_22}>
+        <div className={styles.style202_23}>
           <div>
-            <p className="text-xs font-black text-[#14B8A6]">{copy.queueBadge}</p>
-            <h2 className="mt-1 text-2xl font-black">{copy.sheetTitle}</h2>
-            <p className="mt-1 text-xs leading-5 text-slate-400">{copy.sheetSubtitle}</p>
+            <p className={styles.style204_24}>{copy.queueBadge}</p>
+            <h2 className={styles.style205_25}>{copy.sheetTitle}</h2>
+            <p className={styles.style206_26}>{copy.sheetSubtitle}</p>
           </div>
-          <span className="rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-black text-emerald-300">{requests.length}</span>
+          <span className={styles.style208_27}>{requests.length}</span>
         </div>
 
-        <div className="mt-4 flex-1 overflow-y-auto pr-1">
+        <div className={styles.style211_28}>
           {radarLockMessage ? (
-            <StateCard tone="amber" icon={<RadioTower className="h-8 w-8" />} title={copy.radarLocked} body={radarLockMessage} />
+            <StateCard tone="amber" icon={<RadioTower className={styles.style213_29} />} title={copy.radarLocked} body={radarLockMessage} />
           ) : requests.length === 0 ? (
-            <StateCard tone="empty" icon={<RadioTower className="h-8 w-8" />} title={copy.noRequestsTitle} body={copy.empty} />
+            <StateCard tone="empty" icon={<RadioTower className={styles.style215_30} />} title={copy.noRequestsTitle} body={copy.empty} />
           ) : (
-            <div className="space-y-3">
+            <div className={styles.style217_31}>
               {requests.map((request) => (
-                <article key={request.id} className="rounded-2xl border border-slate-800 bg-black/60 p-4">
-                  <div className="flex items-start gap-3">
-                    <MapPin className="mt-1 h-5 w-5 shrink-0 text-emerald-300" />
-                    <div className="min-w-0">
-                      <h3 className="line-clamp-2 font-black">{request.dropoff || copy.destination}</h3>
-                      <p className="mt-1 font-mono text-xs text-slate-400">{shortH3(request.h3Index)}</p>
+                <article key={request.id} className={styles.style219_32}>
+                  <div className={styles.style220_33}>
+                    <MapPin className={styles.style221_34} />
+                    <div className={styles.style222_35}>
+                      <h3 className={styles.style223_36}>{request.dropoff || copy.destination}</h3>
+                      <p className={styles.style224_37}>{shortH3(request.h3Index)}</p>
                     </div>
                   </div>
-                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                  <div className={styles.style227_38}>
                     <Info label={copy.fare} value={request.offerPrice ? Number(request.offerPrice).toFixed(2) : '-'} />
                     <Info label={copy.distance} value={`${request.estimatedDistance || 0} km`} />
                   </div>
-                  <div className="mt-4 flex gap-2">
-                    <button type="button" onClick={() => onSelectRequest(request)} className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#14B8A6] px-3 py-2 text-sm font-black text-[#06111f]">
-                      <Route className="h-4 w-4" />
+                  <div className={styles.style231_39}>
+                    <button type="button" onClick={() => onSelectRequest(request)} className={styles.style232_40}>
+                      <Route className={styles.style233_41} />
                       {copy.openBid}
                     </button>
-                    <button type="button" onClick={() => onIgnoreRequest(request.id)} className="rounded-xl border border-white/10 px-3 py-2 text-sm font-bold text-slate-300">
+                    <button type="button" onClick={() => onIgnoreRequest(request.id)} className={styles.style236_42}>
                       {copy.ignore}
                     </button>
                   </div>
@@ -249,9 +306,9 @@ export function RadarMapView({
 
 function Info({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.03] p-2">
-      <p className="text-slate-500">{label}</p>
-      <p className="mt-1 font-black text-white">{value}</p>
+    <div className={styles.style252_43}>
+      <p className={styles.style253_44}>{label}</p>
+      <p className={styles.style254_45}>{value}</p>
     </div>
   );
 }
@@ -267,15 +324,13 @@ function StateCard({
   title: string;
   tone: 'amber' | 'empty';
 }) {
-  const classes = tone === 'amber'
-    ? 'border-amber-500/30 bg-amber-500/10 text-amber-100'
-    : 'border-dashed border-slate-700 bg-slate-950/80 text-slate-300';
+  const classes = tone === 'amber' ? styles.stateAmber : styles.stateEmpty;
 
   return (
-    <div className={`flex min-h-[280px] flex-col items-center justify-center rounded-2xl p-6 text-center ${classes}`}>
-      <div className={tone === 'amber' ? 'text-amber-300' : 'text-emerald-400/70'}>{icon}</div>
-      <h3 className="mt-4 text-lg font-black text-white">{title}</h3>
-      <p className="mt-2 max-w-sm text-sm leading-6 opacity-85">{body}</p>
+    <div className={cn(styles.style275_46, classes)}>
+      <div className={tone === 'amber' ? styles.style276_47 : styles.style276_48}>{icon}</div>
+      <h3 className={styles.style277_49}>{title}</h3>
+      <p className={styles.style278_50}>{body}</p>
     </div>
   );
 }
