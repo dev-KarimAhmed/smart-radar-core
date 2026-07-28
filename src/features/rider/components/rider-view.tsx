@@ -30,6 +30,14 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { StarRating } from '@/components/ui/star-rating';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useAuth } from '@/hooks/use-auth';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { useToast } from '@/hooks/use-toast';
@@ -86,10 +94,12 @@ const styles = {
   style1748_26: "grid grid-cols-2 gap-2",
   style1749_27: "min-w-0 space-y-1.5",
   style1750_28: "block text-[10px] font-black text-slate-400",
-  style1755_29: "h-11 w-full min-w-0 rounded-xl border border-white/10 bg-black/35 px-3 text-xs font-black text-white outline-none transition focus:border-[#14B8A6]/60",
+  style1755_29: "h-11 w-full min-w-0 rounded-xl border border-white/10 bg-black/35 px-3 text-xs font-black text-white outline-none transition focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 data-[state=open]:outline-none data-[state=open]:ring-0 data-[state=open]:ring-offset-0",
   style1768_30: "min-w-0 space-y-1.5",
   style1769_31: "block text-[10px] font-black text-slate-400",
-  style1774_32: "h-11 w-full min-w-0 rounded-xl border border-white/10 bg-black/35 px-3 text-xs font-black text-white outline-none transition focus:border-[#14B8A6]/60",
+  style1774_32: "h-11 w-full min-w-0 rounded-xl border border-white/10 bg-black/35 px-3 text-xs font-black text-white outline-none transition focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 data-[state=open]:outline-none data-[state=open]:ring-0 data-[state=open]:ring-offset-0",
+  style1775_32: "border-white/10 bg-[#0F172A] text-white shadow-2xl shadow-black/40",
+  style1776_32: "cursor-pointer rounded-lg py-2.5 text-xs font-black text-slate-200 focus:bg-[#14B8A6]/15 focus:text-[#14F5D5] data-[state=checked]:bg-[#14B8A6]/10 data-[state=checked]:text-[#14F5D5]",
   style1788_33: "space-y-3 rounded-2xl border border-white/10 bg-[#111827]/80 p-3 shadow-lg shadow-black/15",
   style1790_34: "mb-2.5 flex items-start gap-2.5",
   style1791_35: "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#14B8A6]/15 text-xs font-black text-[#14F5D5]",
@@ -2040,43 +2050,54 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                 </div>
 
                 <div className={styles.style1748_26}>
-                  <label className={styles.style1749_27}>
-                    <span className={styles.style1750_28}>{copy.governorate}</span>
-                    <select
+                  <div className={styles.style1749_27}>
+                    <span id="destination-governorate-label" className={styles.style1750_28}>{copy.governorate}</span>
+                    <Select
                       value={selectedGovernorateId}
-                      onChange={(event) => handleGovernorateChange(event.target.value)}
+                      onValueChange={handleGovernorateChange}
                       disabled={isLoadingGovernorates || destinationGovernorates.length === 0}
-                      className={styles.style1755_29}
                     >
-                      {destinationGovernorates.length === 0 ? (
-                        <option value="">{isLoadingGovernorates ? copy.loading : copy.noGovernorates}</option>
-                      ) : null}
-                      {destinationGovernorates.map((governorate) => (
-                        <option key={governorate.id} value={governorate.id}>
-                          {isArabic ? governorate.nameAr || governorate.nameEn : governorate.nameEn || governorate.nameAr}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                      <SelectTrigger aria-labelledby="destination-governorate-label" className={styles.style1755_29}>
+                        <SelectValue placeholder={isLoadingGovernorates ? copy.loading : copy.noGovernorates} />
+                      </SelectTrigger>
+                      <SelectContent className={styles.style1775_32}>
+                        <SelectGroup>
+                          {destinationGovernorates.map((governorate) => (
+                            <SelectItem key={governorate.id} value={governorate.id} className={styles.style1776_32}>
+                              {isArabic ? governorate.nameAr || governorate.nameEn : governorate.nameEn || governorate.nameAr}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                  <label className={styles.style1768_30}>
-                    <span className={styles.style1769_31}>{copy.district}</span>
-                    <select
+                  <div className={styles.style1768_30}>
+                    <span id="destination-district-label" className={styles.style1769_31}>{copy.district}</span>
+                    <Select
                       value={selectedDistrict?.id || ''}
-                      onChange={(event) => handleDistrictChange(event.target.value)}
+                      onValueChange={handleDistrictChange}
                       disabled={isLoadingDistricts || availableDistricts.length === 0}
-                      className={styles.style1774_32}
                     >
-                      {availableDistricts.length === 0 ? (
-                        <option value="">{isLoadingDistricts ? copy.loading : copy.noDistricts}</option>
-                      ) : null}
-                      {availableDistricts.map((destination) => (
-                        <option key={destination.id} value={destination.id} disabled={!destination.anchor}>
-                          {isArabic ? destination.districtAr || destination.districtEn : destination.districtEn || destination.districtAr}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                      <SelectTrigger aria-labelledby="destination-district-label" className={styles.style1774_32}>
+                        <SelectValue placeholder={isLoadingDistricts ? copy.loading : copy.noDistricts} />
+                      </SelectTrigger>
+                      <SelectContent className={styles.style1775_32}>
+                        <SelectGroup>
+                          {availableDistricts.map((destination) => (
+                            <SelectItem
+                              key={destination.id}
+                              value={destination.id}
+                              disabled={!destination.anchor}
+                              className={styles.style1776_32}
+                            >
+                              {isArabic ? destination.districtAr || destination.districtEn : destination.districtEn || destination.districtAr}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </section>
               <section className={styles.style1788_33}>
