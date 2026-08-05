@@ -22,7 +22,7 @@ const styles = {
   style400_7: "justify-start",
   style400_8: "justify-center",
   style405_9: "z-[20] mb-3 flex shrink-0 items-center justify-center w-full px-4 sm:px-6 py-3 border-b border-white/[0.06] bg-[#0A0F1D]/40 backdrop-blur-sm lg:hidden",
-  style423_10: "group flex min-h-[80px] w-full max-w-[220px] cursor-pointer items-center justify-center gap-4 rounded-2xl border border-[#14F5D5]/45 bg-gradient-to-r from-[#0F766E] to-[#14B8A6] px-8 py-8 text-2xl font-black text-white shadow-2xl shadow-[rgba(20,184,166,0.30)] transition-all duration-300 hover:from-[#0D9488] hover:to-[#2DD4BF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14F5D5] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0F1D]",
+  style423_10: "group flex min-h-[64px] w-full max-w-[280px] cursor-pointer items-center justify-center gap-3 rounded-full border border-[#14F5D5]/45 bg-[#14B8A6] px-7 py-4 text-xl font-black !text-[#07111F] shadow-[0_12px_30px_rgba(20,184,166,0.28)] transition-all duration-300 hover:bg-[#2DD4BF] hover:shadow-[0_16px_36px_rgba(20,245,213,0.32)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14F5D5] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0F1D]",
   style429_11: "z-[20] mb-3 flex shrink-0 items-center justify-between px-4 sm:mb-4 sm:px-6",
   style430_12: "flex items-center gap-2",
   style431_13: "relative flex h-2.5 w-2.5",
@@ -486,7 +486,7 @@ export function AdStage({
             whileTap={{ scale: 0.96 }}
             className={styles.style423_10}
           >
-            <span>{t('requestRide')}</span>
+            <span className="!text-[#07111F]">{t('requestRide')}</span>
           </motion.button>
         </div>
       ) : (
