@@ -211,7 +211,7 @@ const styles = {
   style2099_141: "rounded-2xl border border-red-500/30 bg-red-950/30 p-3 text-xs font-bold leading-relaxed text-red-100",
   style2105_142: "text-xs font-bold text-red-500 text-center py-1 animate-pulse",
   style2112_143: "pt-1",
-  style2124_144: "flex h-14 w-full items-center justify-center gap-2 rounded-2xl px-5 text-base font-black shadow-[0_14px_32px_rgba(20,184,166,0.2)] transition-all duration-300 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14F5D5]/80 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0F1D]",
+  style2124_144: "flex min-h-[72px] w-full items-center justify-center gap-3 rounded-2xl bg-[#14B8A6] px-6 py-6 text-xl font-black text-[#0A0F1D] shadow-2xl shadow-[#14B8A6]/30 transition-all duration-300 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14F5D5]/80 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0F1D]",
   style2126_145: "cursor-not-allowed bg-gray-700 text-gray-400",
   style2127_146: "cursor-pointer bg-[#14B8A6] text-[#0A0F1D] hover:bg-[#2DD4BF] hover:shadow-[0_22px_48px_rgba(20,184,166,0.32)] disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none",
   style2130_147: "h-5 w-5 animate-spin",
@@ -292,8 +292,8 @@ const styles = {
   style2580_222: "text-xl font-bold text-white",
   style2581_223: "text-xs leading-relaxed text-slate-400",
   style2586_224: "grid grid-cols-2 gap-3 rounded-2xl border border-white/5 bg-white/5 p-4",
-  style2600_225: "h-14 w-full bg-[#14B8A6] text-[#0A0F1D] font-bold text-base py-3.5 rounded-xl transition-transform active:scale-[0.98] shadow-lg shadow-[#14B8A6]/20 hover:bg-[#2DD4BF] flex items-center justify-center gap-2 cursor-pointer",
-  style2602_226: "ml-2 h-5 w-5",
+  style2600_225: "min-h-[112px] w-full rounded-2xl bg-[#14B8A6] px-8 py-8 text-2xl font-black text-[#0A0F1D] shadow-2xl shadow-[#14B8A6]/30 transition-all duration-300 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14F5D5]/80 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0F1D] hover:bg-[#2DD4BF] flex items-center justify-center gap-4 cursor-pointer",
+  style2602_226: "ml-2 h-7 w-7 shrink-0",
   style2614_227: "hidden overflow-hidden rounded-[24px] border border-[#14B8A6]/15 bg-[#0B0F19]/88 shadow-2xl shadow-black/35 backdrop-blur-xl lg:block",
   style2632_228: "overflow-hidden rounded-[24px] border border-[#14B8A6]/15 lg:hidden",
   style2671_229: "max-w-[420px] border border-[#14B8A6]/25 bg-[#0B0F19] text-white shadow-2xl",
@@ -639,6 +639,42 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
       ? { ...destination, label: destinationSearchQuery.trim() }
       : destination;
   }, [currentRouteEstimate?.distanceKm, currentServerFare, destinationSearchQuery, destinationSearchStatus, riderLocation, selectedDestinationCoords, selectedDistrict]);
+
+  const destinationMapQuery = React.useMemo(() => {
+    if (selectedDestinationCoords) {
+      return `${selectedDestinationCoords.lat},${selectedDestinationCoords.lng}`;
+    }
+
+    const typedLocation = destinationSearchQuery.trim() || externalLocationContext?.placeName.trim();
+    if (typedLocation) return typedLocation;
+
+    return [
+      isArabic ? selectedDistrict?.districtAr : selectedDistrict?.districtEn,
+      isArabic ? selectedGovernorate?.nameAr : selectedGovernorate?.nameEn,
+      isArabic ? countryConfig?.name_ar : countryConfig?.name_en,
+    ]
+      .map((part) => String(part || '').trim())
+      .filter(Boolean)
+      .join(', ');
+  }, [
+    countryConfig?.name_ar,
+    countryConfig?.name_en,
+    destinationSearchQuery,
+    externalLocationContext?.placeName,
+    isArabic,
+    selectedDestinationCoords,
+    selectedDistrict?.districtAr,
+    selectedDistrict?.districtEn,
+    selectedGovernorate?.nameAr,
+    selectedGovernorate?.nameEn,
+  ]);
+
+  const destinationMapEmbedUrl = React.useMemo(
+    () => destinationMapQuery
+      ? `https://maps.google.com/maps?q=${encodeURIComponent(destinationMapQuery)}&t=&z=15&ie=UTF8&iwloc=&output=embed`
+      : '',
+    [destinationMapQuery],
+  );
 
   const clearExternalLocationContext = React.useCallback(() => {
     setExternalLocationContext(null);
@@ -2409,6 +2445,20 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                 </div>
               </div>
             </section>
+
+            {destinationMapEmbedUrl ? (
+              <div className="h-[220px] w-full overflow-hidden rounded-2xl border border-[#243249] bg-[#161F30] shadow-xl shadow-black/20">
+                <iframe
+                  key={destinationMapEmbedUrl}
+                  src={destinationMapEmbedUrl}
+                  title={locationCopy('trip_summary_title')}
+                  className="h-full w-full border-0"
+                  frameBorder="0"
+                  allowFullScreen
+                  loading="lazy"
+                />
+              </div>
+            ) : null}
 
             {serverFareError && (
               <div className={styles.style2099_141}>

@@ -22,7 +22,7 @@ const styles = {
   style400_7: "justify-start",
   style400_8: "justify-center",
   style405_9: "z-[20] mb-3 flex shrink-0 items-center justify-center w-full px-4 sm:px-6 py-3 border-b border-white/[0.06] bg-[#0A0F1D]/40 backdrop-blur-sm lg:hidden",
-  style423_10: "group flex  cursor-pointer items-center justify-center gap-3 rounded-2xl border border-[#14F5D5]/45 bg-gradient-to-r from-[#0F766E] to-[#14B8A6] p-3 text-base font-black text-white shadow-[0_10px_28px_rgba(20,184,166,0.18)] transition-colors hover:from-[#0D9488] hover:to-[#2DD4BF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14F5D5] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0F1D] sm:min-w-[240px] sm:text-lg",
+  style423_10: "group flex min-h-[80px] w-full max-w-[220px] cursor-pointer items-center justify-center gap-4 rounded-2xl border border-[#14F5D5]/45 bg-gradient-to-r from-[#0F766E] to-[#14B8A6] px-8 py-8 text-2xl font-black text-white shadow-2xl shadow-[rgba(20,184,166,0.30)] transition-all duration-300 hover:from-[#0D9488] hover:to-[#2DD4BF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14F5D5] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0F1D]",
   style429_11: "z-[20] mb-3 flex shrink-0 items-center justify-between px-4 sm:mb-4 sm:px-6",
   style430_12: "flex items-center gap-2",
   style431_13: "relative flex h-2.5 w-2.5",
