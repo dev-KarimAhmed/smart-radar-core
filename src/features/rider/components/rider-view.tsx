@@ -350,7 +350,8 @@ const OFFER_TIMEOUT_MS = 2 * 60 * 1000;
 const FARE_RECALCULATION_DEBOUNCE_MS = 350;
 const CAPTAIN_PRESENCE_REFRESH_MS = 15_000;
 const CAPTAIN_PRESENCE_PRUNE_MS = 5_000;
-const INITIAL_RIDER_LOCATION: RiderLocation = { lat: 0, lng: 0 };
+const GOOGLE_MAPS_RETURN_STATE_KEY = 'radar_google_maps_return_state';
+const INITIAL_RIDER_LOCATION: RiderLocation = { lat: 30.0444, lng: 31.2357 };
 
 async function readClipboardLocationText() {
   const plainText = await navigator.clipboard.readText();
@@ -533,6 +534,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
   const [destinationSearchStatus, setDestinationSearchStatus] = React.useState<'idle' | 'searching' | 'empty' | 'error' | 'selected'>('idle');
   const [externalLocationUrl, setExternalLocationUrl] = React.useState('');
   const [externalLocationContext, setExternalLocationContext] = React.useState<ExternalLocationContext | null>(null);
+  const [isReturningFromGoogleMaps, setIsReturningFromGoogleMaps] = React.useState(false);
   const [isReadingClipboardLocation, setIsReadingClipboardLocation] = React.useState(false);
   const [isCaptainScanPreviewActive, setIsCaptainScanPreviewActive] = React.useState(false);
   const [isDestinationPinMoving, setIsDestinationPinMoving] = React.useState(false);
@@ -564,6 +566,35 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
   const destinationSearchCacheRef = React.useRef(new Map<string, DestinationSearchResult[]>());
   const pendingConfirmedGeographyRef = React.useRef<ResolvedLocationGeography | null>(null);
   const pendingConfirmedLocationRef = React.useRef<RiderLocation | null>(null);
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const restoreGoogleMapsReturnState = () => {
+      try {
+        const rawState = window.sessionStorage.getItem(GOOGLE_MAPS_RETURN_STATE_KEY);
+        if (!rawState) return;
+        const savedState = JSON.parse(rawState) as { timestamp?: number; step?: string };
+        const isRecent = Number.isFinite(savedState.timestamp)
+          && Date.now() - Number(savedState.timestamp) < 30 * 60 * 1000;
+        setIsReturningFromGoogleMaps(isRecent);
+        if (isRecent && savedState.step === 'destination-selection' && state.screen !== 'DESTINATION_SELECTION') {
+          dispatch({ type: 'OPEN_DESTINATION' });
+        }
+        if (!isRecent) window.sessionStorage.removeItem(GOOGLE_MAPS_RETURN_STATE_KEY);
+      } catch {
+        window.sessionStorage.removeItem(GOOGLE_MAPS_RETURN_STATE_KEY);
+      }
+    };
+
+    restoreGoogleMapsReturnState();
+    window.addEventListener('pageshow', restoreGoogleMapsReturnState);
+    document.addEventListener('visibilitychange', restoreGoogleMapsReturnState);
+    return () => {
+      window.removeEventListener('pageshow', restoreGoogleMapsReturnState);
+      document.removeEventListener('visibilitychange', restoreGoogleMapsReturnState);
+    };
+  }, []);
 
   const riderProfile = React.useMemo(() => {
     const ratingValue =
@@ -671,7 +702,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
 
   const destinationMapEmbedUrl = React.useMemo(
     () => destinationMapQuery
-      ? `https://maps.google.com/maps?q=${encodeURIComponent(destinationMapQuery)}&t=&z=15&ie=UTF8&iwloc=&output=embed`
+      ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(destinationMapQuery)}&t=&z=15&ie=UTF8&iwloc=&output=embed`
       : '',
     [destinationMapQuery],
   );
@@ -811,6 +842,17 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
     ].filter(Boolean);
     const query = queryParts.join(', ');
     const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query || destinationSearchQuery.trim())}`;
+    try {
+      window.sessionStorage.setItem(GOOGLE_MAPS_RETURN_STATE_KEY, JSON.stringify({
+        path: window.location.pathname,
+        step: 'destination-selection',
+        query,
+        timestamp: Date.now(),
+      }));
+      setIsReturningFromGoogleMaps(true);
+    } catch {
+      // Opening Google Maps must still work when browser storage is unavailable.
+    }
     window.open(mapsUrl, '_blank', 'noopener,noreferrer');
   }, [
     countryConfig?.name_ar,
@@ -822,6 +864,16 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
     selectedGovernorate?.nameAr,
     selectedGovernorate?.nameEn,
   ]);
+
+  const handleReturnToApp = React.useCallback(() => {
+    try {
+      window.sessionStorage.removeItem(GOOGLE_MAPS_RETURN_STATE_KEY);
+    } catch {
+      // Ignore storage restrictions; the visible state still resets.
+    }
+    setIsReturningFromGoogleMaps(false);
+    window.focus();
+  }, []);
 
   const applyClipboardLocation = React.useCallback((
     clipboardValue: string,
@@ -1291,6 +1343,12 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
       ).then((estimate) => {
         if (!active) return;
         setRouteEstimateState({ key: fareRequestKey, estimate, isLoading: false });
+      }).catch((error) => {
+        if (!active) return;
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn('[Rider Distance Audit]', error);
+        }
+        setRouteEstimateState({ key: fareRequestKey, estimate: null, isLoading: false });
       });
     }, FARE_RECALCULATION_DEBOUNCE_MS);
 
@@ -1657,9 +1715,59 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
     }
   };
 
+  const resetRideDraftState = React.useCallback(() => {
+    pendingAcceptedOfferIdRef.current = null;
+    destinationSearchAbortRef.current?.abort();
+    destinationSearchAbortRef.current = null;
+    destinationSearchCacheRef.current.clear();
+    pendingConfirmedGeographyRef.current = null;
+    pendingConfirmedLocationRef.current = null;
+
+    setSelectedGovernorateId('');
+    setDraftDestinationId('');
+    setRiderCount(1);
+    setRating({ captain: 0, vehicle: 0, favorite: false });
+    setRatingComment('');
+    setExpandedOfferId(null);
+    setCaptainSearchRadiusKm(1.5);
+    setIsExpandingCaptainSearch(false);
+    setEtaSeconds(0);
+    setCaptainLocations([]);
+    setExternalLocationUrl('');
+    setExternalLocationContext(null);
+    setDestinationSearchQuery('');
+    setDestinationSearchResults([]);
+    setDestinationSearchStatus('idle');
+    setIsReadingClipboardLocation(false);
+    setIsCaptainScanPreviewActive(false);
+    setIsDestinationPinMoving(false);
+    setDestinationPinLocation(null);
+    setDestinationFlyToTarget(null);
+    setDestinationDataError(null);
+    setServerFareState({ key: '', fare: null, isLoading: false, error: null });
+    setRouteEstimateState({ key: '', estimate: null, isLoading: false });
+    setIsReturningFromGoogleMaps(false);
+
+    try {
+      [
+        'radar_ride_request_draft',
+        'radar_destination_draft',
+        'radar_auction_draft',
+        'radar_external_location_draft',
+        'radar_request_flow',
+        GOOGLE_MAPS_RETURN_STATE_KEY,
+      ].forEach((key) => window.localStorage.removeItem(key));
+      window.sessionStorage.removeItem(GOOGLE_MAPS_RETURN_STATE_KEY);
+    } catch {
+      // Storage can be unavailable in private browsing; in-memory state is still reset.
+    }
+  }, []);
+
   const handleCancelRideRequest = async () => {
     if (!state.requestId) {
+      resetRideDraftState();
       dispatch({ type: 'RESET_TO_IDLE' });
+      onExitRequestFlow?.();
       return;
     }
 
@@ -1667,11 +1775,9 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
 
     try {
       await cancelRideRequest(supabase, state.requestId);
-      pendingAcceptedOfferIdRef.current = null;
+      resetRideDraftState();
       dispatch({ type: 'RESET_TO_IDLE' });
-      if (onExitRequestFlow) {
-        onExitRequestFlow();
-      }
+      onExitRequestFlow?.();
       toast({
         title: requestFlowCopy.requestCancelledTitle,
         description: requestFlowCopy.requestCancelledDescription,
@@ -1886,6 +1992,18 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
 
       return (
         <div className={styles.style1548_1} dir={isArabic ? 'rtl' : 'ltr'}>
+          {isReturningFromGoogleMaps ? (
+            <div className="mb-4 flex items-center justify-between gap-3 rounded-2xl border border-[#14B8A6]/40 bg-[#161F30]/90 px-4 py-3 text-sm text-[#F8FAFC] shadow-lg backdrop-blur-xl">
+              <span className="text-[#94A3B8]">{locationCopy('return_to_app_hint')}</span>
+              <button
+                type="button"
+                onClick={handleReturnToApp}
+                className="shrink-0 rounded-xl border border-[#14B8A6] bg-[#14B8A6]/15 px-3 py-2 font-black text-[#2DD4BF] transition hover:bg-[#14B8A6]/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]"
+              >
+                {locationCopy('return_to_app')}
+              </button>
+            </div>
+          ) : null}
             <div className={styles.style1549_2}>
               <div className={styles.style1550_3}>
                 <div className={styles.style1551_4}>

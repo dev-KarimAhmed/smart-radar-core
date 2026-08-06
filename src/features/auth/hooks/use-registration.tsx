@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
 import type { AffiliationType } from '@/core/types';
 import { buildRiderSignUpMetadata, mapSupabaseAuthError, signInRiderWithPhone, signUpRiderWithPhone } from '../services/supabase-auth';
 import { shouldRememberSupabaseSession, supabase } from '@/lib/supabase-client';
@@ -110,6 +111,7 @@ interface RegistrationContextType {
 const RegistrationContext = createContext<RegistrationContextType | undefined>(undefined);
 
 export function RegistrationProvider({ children }: { children: ReactNode }) {
+  const router = useRouter();
   const { toast } = useToast();
   const [step, setStep] = useState<RegistrationStep>('role');
   const [role, setRole] = useState<RegistrationRole>(null);
@@ -555,6 +557,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
           title: 'تم تسجيل الدخول',
           description: 'أهلاً بك، تم فتح حسابك بنجاح.',
         });
+        router.replace(role === 'driver' ? '/captain' : '/rider');
         return;
       }
 
@@ -607,7 +610,12 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
           ? 'تم إنشاء حساب الكابتن وتقديم طلب الانضمام للمراجعة. يمكنك تسجيل الدخول الآن.'
           : 'تم حفظ بياناتك بأمان. يمكنك تسجيل الدخول الآن.',
       });
-      setAuthMode('login');
+      if (signUpResult.session) {
+        router.replace(role === 'driver' ? '/captain' : '/rider');
+      } else {
+        setAuthMode('login');
+        router.replace('/');
+      }
     } catch (error) {
       if ((process.env.NODE_ENV !== 'production')) {
         const authError = error as { name?: string; code?: string; status?: number; message?: string };
@@ -642,6 +650,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     personal.phone,
     rememberMe,
     role,
+    router,
     selectedCountry,
     toast,
     vehicle,

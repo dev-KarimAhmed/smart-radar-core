@@ -165,7 +165,9 @@
     "nearby_captains_label": "السائقون قرب نقطة الركوب",
     "passengers_label": "عدد الركاب",
     "map_adjust_helper": "حرك الخريطة لضبط الوجهة بدقة.",
-    "ready_to_request": "كل شيء جاهز. راجع التفاصيل ثم اطلب الرحلة."
+    "ready_to_request": "كل شيء جاهز. راجع التفاصيل ثم اطلب الرحلة.",
+    "return_to_app": "العودة إلى التطبيق",
+    "return_to_app_hint": "تم فتح خرائط Google. عد إلى التطبيق بعد نسخ رابط الموقع."
   },
   "advertiser": {
     "dashboardTitle": "لوحة المعلن",

@@ -165,7 +165,9 @@
     "nearby_captains_label": "Captains near pickup",
     "passengers_label": "Passengers",
     "map_adjust_helper": "Move the map to fine-tune the destination.",
-    "ready_to_request": "Everything is ready. Review the details and request your ride."
+    "ready_to_request": "Everything is ready. Review the details and request your ride.",
+    "return_to_app": "Back to app",
+    "return_to_app_hint": "Google Maps opened. Return here after copying the location link."
   },
   "advertiser": {
     "dashboardTitle": "Advertiser dashboard",
