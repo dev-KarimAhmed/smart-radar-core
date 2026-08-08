@@ -62,6 +62,7 @@ import {
   findGovernorateForGeography,
   findNearestDistrict,
 } from '../services/destination-geography';
+import { deriveCountryIsoCode, searchDestinationPlaces } from '../services/rider-destination-search';
 import type { RiderLocation, RiderLocationStatus, RiderLocationUpdate } from './rider-map';
 import dynamic from 'next/dynamic';
 
@@ -741,20 +742,6 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
       return;
     }
 
-    const districtName = isArabic
-      ? selectedDistrict?.districtAr || selectedDistrict?.districtEn
-      : selectedDistrict?.districtEn || selectedDistrict?.districtAr;
-    const governorateName = isArabic
-      ? selectedGovernorate?.nameAr || selectedGovernorate?.nameEn
-      : selectedGovernorate?.nameEn || selectedGovernorate?.nameAr;
-    const countryName = isArabic
-      ? countryConfig?.name_ar || countryConfig?.name_en
-      : countryConfig?.name_en || countryConfig?.name_ar;
-    const scopedQuery = [query, districtName, governorateName, countryName]
-      .map((part) => String(part || '').trim())
-      .filter(Boolean)
-      .filter((part, index, parts) => parts.indexOf(part) === index)
-      .join(', ');
     const cacheKey = `${language}:${selectedGovernorateId}:${selectedDistrict?.id || ''}:${query.toLocaleLowerCase()}`;
     const cachedResults = destinationSearchCacheRef.current.get(cacheKey);
     if (cachedResults) {
@@ -770,29 +757,11 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
     setDestinationSearchResults([]);
 
     try {
-      const params = new URLSearchParams({
-        q: scopedQuery,
-        format: 'jsonv2',
-        addressdetails: '1',
-        limit: '5',
-        'accept-language': language,
-      });
-      const response = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, {
-        signal: controller.signal,
-        headers: { Accept: 'application/json' },
-      });
-      if (!response.ok) throw new Error(`Destination search failed: ${response.status}`);
-
-      const payload = await response.json();
-      const results = (Array.isArray(payload) ? payload : []).flatMap((item: any) => {
-        const lat = Number(item?.lat);
-        const lng = Number(item?.lon);
-        const label = String(item?.display_name || '').trim();
-        const placeId = Number(item?.place_id);
-        return Number.isFinite(lat) && Number.isFinite(lng) && label && Number.isFinite(placeId)
-          ? [{ placeId, label, location: { lat, lng } }]
-          : [];
-      }) as DestinationSearchResult[];
+      const results = await searchDestinationPlaces(query, {
+        language,
+        countryIsoCode: deriveCountryIsoCode(countryConfig?.name_ar, countryConfig?.name_en),
+        biasLocation: selectedDistrict?.anchor || profileFallbackLocation,
+      }, { limit: 5, signal: controller.signal }) as DestinationSearchResult[];
 
       destinationSearchCacheRef.current.set(cacheKey, results);
       setDestinationSearchResults(results);
@@ -805,10 +774,9 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
     countryConfig?.name_ar,
     countryConfig?.name_en,
     destinationSearchQuery,
-    isArabic,
     language,
+    profileFallbackLocation,
     selectedDistrict,
-    selectedGovernorate,
     selectedGovernorateId,
   ]);
 
@@ -825,46 +793,31 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
   const handleOpenGoogleMapsSearch = React.useCallback(async () => {
     setDestinationSearchResults([]);
     setDestinationSearchStatus('idle');
-    const queryParts = [
-      destinationSearchQuery.trim(),
-      isArabic ? selectedDistrict?.districtAr || selectedDistrict?.districtEn : selectedDistrict?.districtEn || selectedDistrict?.districtAr,
-      isArabic ? selectedGovernorate?.nameAr || selectedGovernorate?.nameEn : selectedGovernorate?.nameEn || selectedGovernorate?.nameAr,
-      isArabic ? countryConfig?.name_ar || countryConfig?.name_en : countryConfig?.name_en || countryConfig?.name_ar,
-    ].filter(Boolean);
-    const query = queryParts.join(', ');
-    const finalQuery = query || destinationSearchQuery.trim();
-    if (!finalQuery) return;
+    const query = destinationSearchQuery.trim();
+    if (!query) return;
 
     setIsLoadingMapPreview(true);
     try {
-      const params = new URLSearchParams({
-        q: finalQuery,
-        format: 'jsonv2',
-        limit: '1',
-      });
-      const response = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, {
-        headers: { Accept: 'application/json' },
-      });
-      if (!response.ok) throw new Error(`Map preview search failed: ${response.status}`);
+      const [match] = await searchDestinationPlaces(query, {
+        language,
+        countryIsoCode: deriveCountryIsoCode(countryConfig?.name_ar, countryConfig?.name_en),
+        biasLocation: selectedDistrict?.anchor || profileFallbackLocation,
+      }, { limit: 1 });
 
-      const payload = await response.json();
-      const result = Array.isArray(payload) ? payload[0] : null;
-      const lat = Number(result?.lat);
-      const lon = Number(result?.lon);
-      if (!result || !Number.isFinite(lat) || !Number.isFinite(lon)) {
+      if (!match) {
         toast({
           variant: 'destructive',
-          title: locationCopy('err_no_coords_found'),
+          title: locationCopy('err_search_no_results'),
         });
         return;
       }
 
-      setModalPinLocation({ lat, lng: lon });
+      setModalPinLocation(match.location);
       setIsMapPickerOpen(true);
     } catch {
       toast({
         variant: 'destructive',
-        title: locationCopy('err_invalid_clipboard_maps_link'),
+        title: destinationSearchCopy('error'),
       });
     } finally {
       setIsLoadingMapPreview(false);
@@ -872,13 +825,12 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
   }, [
     countryConfig?.name_ar,
     countryConfig?.name_en,
+    destinationSearchCopy,
     destinationSearchQuery,
-    isArabic,
+    language,
     locationCopy,
-    selectedDistrict?.districtAr,
-    selectedDistrict?.districtEn,
-    selectedGovernorate?.nameAr,
-    selectedGovernorate?.nameEn,
+    profileFallbackLocation,
+    selectedDistrict?.anchor,
     toast,
   ]);
 
@@ -898,30 +850,21 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
 
     setIsModalSearchLoading(true);
     try {
-      const params = new URLSearchParams({
-        q: query,
-        format: 'jsonv2',
-        limit: '1',
-        'accept-language': language,
-      });
-      const response = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, {
-        headers: { Accept: 'application/json' },
-      });
-      if (!response.ok) throw new Error(`Modal map search failed: ${response.status}`);
+      const [match] = await searchDestinationPlaces(query, {
+        language,
+        countryIsoCode: deriveCountryIsoCode(countryConfig?.name_ar, countryConfig?.name_en),
+        biasLocation: modalPinLocation || selectedDistrict?.anchor || profileFallbackLocation,
+      }, { limit: 1 });
 
-      const payload = await response.json();
-      const result = Array.isArray(payload) ? payload[0] : null;
-      const lat = Number(result?.lat);
-      const lng = Number(result?.lon);
-      if (!result || !Number.isFinite(lat) || !Number.isFinite(lng)) {
+      if (!match) {
         toast({
           variant: 'destructive',
-          title: locationCopy('err_no_coords_found'),
+          title: locationCopy('err_search_no_results'),
         });
         return;
       }
 
-      setModalPinLocation({ lat, lng });
+      setModalPinLocation(match.location);
     } catch {
       toast({
         variant: 'destructive',
@@ -930,7 +873,18 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
     } finally {
       setIsModalSearchLoading(false);
     }
-  }, [destinationSearchCopy, language, locationCopy, modalSearchQuery, toast]);
+  }, [
+    countryConfig?.name_ar,
+    countryConfig?.name_en,
+    destinationSearchCopy,
+    language,
+    locationCopy,
+    modalPinLocation,
+    modalSearchQuery,
+    profileFallbackLocation,
+    selectedDistrict?.anchor,
+    toast,
+  ]);
 
   const handleConfirmModalLocation = React.useCallback(() => {
     if (!modalPinLocation) return;
