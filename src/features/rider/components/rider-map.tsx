@@ -2,11 +2,14 @@
 
 import React from 'react';
 import { latLngToCell } from 'h3-js';
-import { CarFront, LocateFixed } from 'lucide-react';
-import maplibregl, { type GeoJSONSource, type Map as MapLibreMap } from 'maplibre-gl';
-import 'maplibre-gl/dist/maplibre-gl.css';
+import { CarFront } from 'lucide-react';
+import type { GeoJSONSource } from 'maplibre-gl';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import type { AppLanguage } from '@/lib/i18n/simple-copy';
+import { DEFAULT_MAP_CENTER } from '@/shared/services/maplibre-runtime';
+import { useMaplibreInstance } from '@/shared/hooks/use-maplibre-instance';
+import { useLiveGeolocation } from '@/shared/hooks/use-live-geolocation';
+import { RecenterMapButton } from '@/shared/components/map/recenter-map-button';
 
 import { cn } from '@/lib/utils';
 const styles = {
@@ -26,7 +29,6 @@ const styles = {
   style455_14: "mt-0.5 text-xs font-black text-white",
   style461_15: "pointer-events-none absolute right-3 top-20 hidden max-w-[260px] rounded-2xl border border-amber-400/25 bg-[#0B0F19]/88 px-3 py-2 text-right text-[11px] font-bold leading-relaxed text-amber-100 shadow-xl shadow-black/30 backdrop-blur sm:block sm:right-4 sm:top-24 lg:right-[456px]",
   style469_16: "absolute bottom-14 left-3 z-30 flex h-11 w-11 items-center justify-center rounded-2xl border border-[#14B8A6]/30 bg-[#0B0F19]/90 text-[#14F5D5] shadow-xl shadow-black/30 backdrop-blur transition hover:border-[#14F5D5]/60 hover:bg-[#14B8A6]/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/60 disabled:cursor-wait disabled:opacity-60 sm:bottom-20 sm:left-4 lg:left-[312px]",
-  style473_17: "h-5 w-5",
   style479_18: "absolute left-4 top-4 rounded-2xl border border-[#14B8A6]/30 bg-[#0B0F19]/90 px-4 py-2 text-xs font-black text-[#14F5D5] shadow-lg backdrop-blur transition hover:bg-[#14B8A6]/15 lg:left-[312px]",
 } as const;
 
@@ -64,26 +66,6 @@ export interface RiderMapCaptainPoint {
   etaMinutes?: number;
   rank?: string;
   isBlocked?: boolean;
-}
-
-const OPENFREEMAP_STYLE = 'https://tiles.openfreemap.org/styles/liberty';
-const RTL_TEXT_PLUGIN_URL = 'https://unpkg.com/@mapbox/mapbox-gl-rtl-text@0.3.0/dist/mapbox-gl-rtl-text.js';
-// Keep the map usable when GPS permission is denied. The active Egypt-first
-// registration flow uses Cairo as its local visual fallback until a live fix arrives.
-const DEFAULT_MAP_LOCATION: RiderLocation = { lat: 30.0444, lng: 31.2357 };
-let rtlPluginRequested = false;
-
-function ensureRtlTextPlugin() {
-  if (rtlPluginRequested || typeof window === 'undefined') return;
-  rtlPluginRequested = true;
-
-  try {
-    const status = maplibregl.getRTLTextPluginStatus?.();
-    if (status === 'loaded' || status === 'loading') return;
-    maplibregl.setRTLTextPlugin(RTL_TEXT_PLUGIN_URL, true);
-  } catch (error) {
-    console.warn('MapLibre RTL text plugin was not loaded:', error);
-  }
 }
 
 function toRiderFeatureCollection(location: RiderLocation) {
@@ -127,7 +109,7 @@ export function RiderMap({
   captainLocations = [],
   className,
   destinationFlyToTarget,
-  fallbackLocation = DEFAULT_MAP_LOCATION,
+  fallbackLocation = DEFAULT_MAP_CENTER,
   showDestinationPin = false,
   onDestinationChange,
   onDestinationMoveStart,
@@ -136,14 +118,24 @@ export function RiderMap({
   const { language } = useDashboardLanguage();
   const copy = riderMapCopy[language];
   const containerRef = React.useRef<HTMLDivElement | null>(null);
-  const mapRef = React.useRef<MapLibreMap | null>(null);
-  const cleanupWatchRef = React.useRef<(() => void) | null>(null);
   const lastDestinationFlyToRef = React.useRef('');
   const recenterAfterLocateRef = React.useRef(false);
-  const [riderLocation, setRiderLocation] = React.useState<RiderLocation>(fallbackLocation);
-  const [locationStatus, setLocationStatus] = React.useState<RiderLocationStatus>('locating');
   const [activeCaptainProgress, setActiveCaptainProgress] = React.useState(0);
-  const [isMapReady, setIsMapReady] = React.useState(false);
+  const fallbackLat = fallbackLocation?.lat ?? DEFAULT_MAP_CENTER.lat;
+  const fallbackLng = fallbackLocation?.lng ?? DEFAULT_MAP_CENTER.lng;
+
+  const {
+    location: riderLocation,
+    status: locationStatus,
+    refresh: requestLiveLocation,
+  } = useLiveGeolocation({ fallbackLocation: { lat: fallbackLat, lng: fallbackLng } });
+
+  const { mapRef, isMapReady } = useMaplibreInstance({
+    containerRef,
+    center: riderLocation,
+    zoom: 13.8,
+  });
+
   const riderCell = React.useMemo(() => latLngToCell(riderLocation.lat, riderLocation.lng, 9), [riderLocation]);
   const activeCaptainCount = React.useMemo(
     () => captainLocations.filter((captain) => !captain.isBlocked).length,
@@ -167,46 +159,6 @@ export function RiderMap({
     });
   }, [activeCaptainProgress, activeTripCaptainId, captainLocations, riderLocation]);
 
-  const fallbackLat = fallbackLocation?.lat ?? DEFAULT_MAP_LOCATION.lat;
-  const fallbackLng = fallbackLocation?.lng ?? DEFAULT_MAP_LOCATION.lng;
-
-  const requestLiveLocation = React.useCallback(() => {
-    cleanupWatchRef.current?.();
-    cleanupWatchRef.current = null;
-
-    if (!('geolocation' in navigator)) {
-      setRiderLocation({ lat: fallbackLat, lng: fallbackLng });
-      setLocationStatus('fallback');
-      return;
-    }
-
-    let didResolve = false;
-    setLocationStatus('locating');
-
-    const watchId = navigator.geolocation.watchPosition(
-      (position) => {
-        didResolve = true;
-        setLocationStatus('live');
-        setRiderLocation({
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        });
-      },
-      (error) => {
-        if (didResolve) return;
-        setRiderLocation({ lat: fallbackLat, lng: fallbackLng });
-        setLocationStatus(error.code === error.PERMISSION_DENIED ? 'denied' : 'fallback');
-      },
-      {
-        enableHighAccuracy: true,
-        maximumAge: 15000,
-        timeout: 10000,
-      },
-    );
-
-    cleanupWatchRef.current = () => navigator.geolocation.clearWatch(watchId);
-  }, [fallbackLat, fallbackLng]);
-
   const flyToRiderLocation = React.useCallback(() => {
     const map = mapRef.current;
     if (!map) return;
@@ -217,7 +169,7 @@ export function RiderMap({
       duration: 800,
       essential: true,
     });
-  }, [riderLocation]);
+  }, [mapRef, riderLocation]);
 
   const handleRecenter = React.useCallback(() => {
     if (locationStatus !== 'live') {
@@ -228,19 +180,6 @@ export function RiderMap({
 
     flyToRiderLocation();
   }, [flyToRiderLocation, locationStatus, requestLiveLocation]);
-
-  React.useEffect(() => {
-    if (locationStatus === 'live' || locationStatus === 'locating') return;
-    setRiderLocation((prev) => {
-      if (prev.lat === fallbackLat && prev.lng === fallbackLng) return prev;
-      return { lat: fallbackLat, lng: fallbackLng };
-    });
-  }, [fallbackLat, fallbackLng, locationStatus]);
-
-  React.useEffect(() => {
-    requestLiveLocation();
-    return () => cleanupWatchRef.current?.();
-  }, [requestLiveLocation]);
 
   React.useEffect(() => {
     if (locationStatus !== 'live' || !recenterAfterLocateRef.current) return;
@@ -271,103 +210,89 @@ export function RiderMap({
   }, [activeTripCaptainId]);
 
   React.useEffect(() => {
-    if (!containerRef.current || mapRef.current) return;
-    ensureRtlTextPlugin();
+    const map = mapRef.current;
+    if (!isMapReady || !map) return;
 
-    const map = new maplibregl.Map({
-      container: containerRef.current,
-      style: OPENFREEMAP_STYLE,
-      center: [riderLocation.lng, riderLocation.lat],
-      zoom: 13.8,
-      attributionControl: false,
+    map.addSource('rider-point', {
+      type: 'geojson',
+      data: toRiderFeatureCollection(riderLocation),
     });
 
-    mapRef.current = map;
+    map.addSource('rider-captains', {
+      type: 'geojson',
+      data: toCaptainFeatureCollection(displayCaptains),
+    });
 
-    map.on('load', () => {
-      setIsMapReady(true);
+    map.addLayer({
+      id: 'rider-anchor-halo',
+      type: 'circle',
+      source: 'rider-point',
+      paint: {
+        'circle-radius': 22,
+        'circle-color': '#14B8A6',
+        'circle-opacity': 0.16,
+        'circle-stroke-color': '#14F5D5',
+        'circle-stroke-width': 1,
+        'circle-stroke-opacity': 0.45,
+      },
+    });
 
-      map.addSource('rider-point', {
-        type: 'geojson',
-        data: toRiderFeatureCollection(riderLocation),
-      });
+    map.addLayer({
+      id: 'rider-anchor-dot',
+      type: 'circle',
+      source: 'rider-point',
+      paint: {
+        'circle-radius': 6,
+        'circle-color': '#14F5D5',
+        'circle-stroke-color': '#031315',
+        'circle-stroke-width': 2,
+      },
+    });
 
-      map.addSource('rider-captains', {
-        type: 'geojson',
-        data: toCaptainFeatureCollection(displayCaptains),
-      });
+    map.addLayer({
+      id: 'captain-pulse',
+      type: 'circle',
+      source: 'rider-captains',
+      paint: {
+        'circle-radius': 16,
+        'circle-color': [
+          'case',
+          ['get', 'isBlocked'],
+          '#EF4444',
+          '#14B8A6'
+        ],
+        'circle-opacity': 0.18,
+        'circle-stroke-color': [
+          'case',
+          ['get', 'isBlocked'],
+          '#F87171',
+          '#14F5D5'
+        ],
+        'circle-stroke-width': 1,
+        'circle-stroke-opacity': 0.42,
+      },
+    });
 
-      map.addLayer({
-        id: 'rider-anchor-halo',
-        type: 'circle',
-        source: 'rider-point',
-        paint: {
-          'circle-radius': 22,
-          'circle-color': '#14B8A6',
-          'circle-opacity': 0.16,
-          'circle-stroke-color': '#14F5D5',
-          'circle-stroke-width': 1,
-          'circle-stroke-opacity': 0.45,
-        },
-      });
-
-      map.addLayer({
-        id: 'rider-anchor-dot',
-        type: 'circle',
-        source: 'rider-point',
-        paint: {
-          'circle-radius': 6,
-          'circle-color': '#14F5D5',
-          'circle-stroke-color': '#031315',
-          'circle-stroke-width': 2,
-        },
-      });
-
-      map.addLayer({
-        id: 'captain-pulse',
-        type: 'circle',
-        source: 'rider-captains',
-        paint: {
-          'circle-radius': 16,
-          'circle-color': [
-            'case',
-            ['get', 'isBlocked'],
-            '#EF4444',
-            '#14B8A6'
-          ],
-          'circle-opacity': 0.18,
-          'circle-stroke-color': [
-            'case',
-            ['get', 'isBlocked'],
-            '#F87171',
-            '#14F5D5'
-          ],
-          'circle-stroke-width': 1,
-          'circle-stroke-opacity': 0.42,
-        },
-      });
-
-      map.addLayer({
-        id: 'captain-cars',
-        type: 'symbol',
-        source: 'rider-captains',
-        layout: {
-          'text-field': [
-            'case',
-            ['get', 'isBlocked'],
-            '🚫',
-            '🚗'
-          ],
-          'text-size': 19,
-          'text-allow-overlap': true,
-          'text-ignore-placement': true,
-        },
-        paint: {
-          'text-halo-color': '#020617',
-          'text-halo-width': 2,
-          'text-opacity': 0.98,
-        },
-      });
+    map.addLayer({
+      id: 'captain-cars',
+      type: 'symbol',
+      source: 'rider-captains',
+      layout: {
+        'text-field': [
+          'case',
+          ['get', 'isBlocked'],
+          '🚫',
+          '🚗'
+        ],
+        'text-size': 19,
+        'text-allow-overlap': true,
+        'text-ignore-placement': true,
+      },
+      paint: {
+        'text-halo-color': '#020617',
+        'text-halo-width': 2,
+        'text-opacity': 0.98,
+      },
     });
 
     let pulse = 0;
@@ -380,11 +305,10 @@ export function RiderMap({
 
     return () => {
       window.clearInterval(interval);
-      map.remove();
-      mapRef.current = null;
-      setIsMapReady(false);
     };
-  }, []);
+    // Runs once when the map finishes loading — riderLocation/displayCaptains
+    // at that moment seed the sources; the sync effect below keeps them fresh.
+  }, [isMapReady, mapRef]);
 
   React.useEffect(() => {
     const map = mapRef.current;
@@ -487,16 +411,13 @@ export function RiderMap({
           {copy.offPeak}
         </div>
       )}
-      <button
-        type="button"
+      <RecenterMapButton
         onClick={handleRecenter}
         disabled={locationStatus === 'locating'}
         className={styles.style469_16}
-        aria-label={copy.recenter}
+        ariaLabel={copy.recenter}
         title={copy.recenter}
-      >
-        <LocateFixed className={styles.style473_17} aria-hidden="true" />
-      </button>
+      />
       {locationStatus !== 'live' && (
         <button
           type="button"

@@ -1,10 +1,12 @@
 'use client';
 
 import React from 'react';
-import maplibregl, { type Map as MapLibreMap } from 'maplibre-gl';
-import 'maplibre-gl/dist/maplibre-gl.css';
-import { Clock, LocateFixed, MapPin, RadioTower, Route } from 'lucide-react';
+import maplibregl from 'maplibre-gl';
+import { Clock, MapPin, RadioTower, Route } from 'lucide-react';
 import type { Trip } from '@/core/types';
+import { DEFAULT_MAP_CENTER } from '@/shared/services/maplibre-runtime';
+import { useMaplibreInstance } from '@/shared/hooks/use-maplibre-instance';
+import { RecenterMapButton } from '@/shared/components/map/recenter-map-button';
 
 import { cn } from '@/lib/utils';
 const styles = {
@@ -28,7 +30,6 @@ const styles = {
   style184_18: "mt-1 text-xs leading-5 text-slate-400",
   style185_19: "mt-2 text-[11px] font-black text-emerald-200",
   style192_20: "absolute bottom-5 left-5 z-20 rounded-2xl border border-emerald-500/25 bg-[#0B0F19]/95 p-4 text-emerald-300 shadow-2xl transition hover:border-emerald-300",
-  style195_21: "h-5 w-5",
   style201_22: "flex min-h-[520px] flex-col rounded-3xl border border-emerald-500/20 bg-[#05080f] p-4 text-white shadow-2xl shadow-black/30 lg:min-h-[calc(100vh-11rem)]",
   style202_23: "flex items-center justify-between gap-3 border-b border-white/10 pb-4",
   style204_24: "text-xs font-black text-[#14B8A6]",
@@ -63,24 +64,6 @@ const styles = {
 } as const;
 
 
-const OPENFREEMAP_STYLE = 'https://tiles.openfreemap.org/styles/liberty';
-const RTL_TEXT_PLUGIN_URL = 'https://unpkg.com/@mapbox/mapbox-gl-rtl-text@0.3.0/dist/mapbox-gl-rtl-text.js';
-const DEFAULT_CENTER = { lat: 30.0444, lng: 31.2357 };
-let rtlPluginRequested = false;
-
-function ensureRtlTextPlugin() {
-  if (rtlPluginRequested || typeof window === 'undefined') return;
-  rtlPluginRequested = true;
-
-  try {
-    const status = maplibregl.getRTLTextPluginStatus?.();
-    if (status === 'loaded' || status === 'loading') return;
-    maplibregl.setRTLTextPlugin(RTL_TEXT_PLUGIN_URL, true);
-  } catch (error) {
-    if ((process.env.NODE_ENV !== 'production')) console.warn('MapLibre RTL text plugin was not loaded:', error);
-  }
-}
-
 interface RadarMapViewProps {
   language: 'ar' | 'en';
   isActive: boolean;
@@ -108,39 +91,35 @@ export function RadarMapView({
 }: RadarMapViewProps) {
   const copy = radarCopy[language];
   const mapContainerRef = React.useRef<HTMLDivElement | null>(null);
-  const mapRef = React.useRef<MapLibreMap | null>(null);
   const markerRef = React.useRef<maplibregl.Marker | null>(null);
   const requestMarkersRef = React.useRef<maplibregl.Marker[]>([]);
-  const [isMapReady, setIsMapReady] = React.useState(false);
   const [mapIssue, setMapIssue] = React.useState(false);
 
-  const visibleLocation = driverLocation || DEFAULT_CENTER;
+  const visibleLocation = driverLocation || DEFAULT_MAP_CENTER;
   const totalMinutes = paidMinutes + bonusMinutes;
 
+  const { mapRef, isMapReady } = useMaplibreInstance({
+    containerRef: mapContainerRef,
+    center: visibleLocation,
+    zoom: 13.4,
+  });
+
+  const resize = React.useCallback(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    map.resize();
+    window.requestAnimationFrame(() => map.resize());
+  }, [mapRef]);
+
+  // Runs once the map instance exists (mirrors the original code, which set
+  // these up synchronously right after `new maplibregl.Map(...)`, before
+  // `'load'` fires) — attribution control, error health-check, and the
+  // fallback resize nudge are all captain-specific, not shared with rider.
   React.useEffect(() => {
-    if (!mapContainerRef.current || mapRef.current) return;
-    ensureRtlTextPlugin();
+    const map = mapRef.current;
+    if (!map) return;
 
-    const map = new maplibregl.Map({
-      container: mapContainerRef.current,
-      style: OPENFREEMAP_STYLE,
-      center: [visibleLocation.lng, visibleLocation.lat],
-      zoom: 13.4,
-      attributionControl: false,
-    });
-
-    mapRef.current = map;
     map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
-
-    const resize = () => {
-      map.resize();
-      window.requestAnimationFrame(() => map.resize());
-    };
-
-    map.on('load', () => {
-      setIsMapReady(true);
-      resize();
-    });
     map.on('error', () => setMapIssue(true));
 
     const resizeTimer = window.setTimeout(resize, 300);
@@ -150,11 +129,14 @@ export function RadarMapView({
       markerRef.current?.remove();
       requestMarkersRef.current.forEach((marker) => marker.remove());
       requestMarkersRef.current = [];
-      map.remove();
       markerRef.current = null;
-      mapRef.current = null;
     };
-  }, []);
+  }, [mapRef, resize]);
+
+  React.useEffect(() => {
+    if (!isMapReady) return;
+    resize();
+  }, [isMapReady, resize]);
 
   React.useEffect(() => {
     if (!mapRef.current) return;
@@ -243,14 +225,11 @@ export function RadarMapView({
           </div>
         )}
 
-        <button
-          type="button"
+        <RecenterMapButton
           onClick={recenter}
           className={styles.style192_20}
-          aria-label={copy.recenter}
-        >
-          <LocateFixed className={styles.style195_21} />
-        </button>
+          ariaLabel={copy.recenter}
+        />
 
 
       </div>

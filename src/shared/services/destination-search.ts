@@ -78,12 +78,13 @@ function mapNominatimResults(payload: unknown): DestinationSearchMatch[] {
 
 /**
  * Searches OpenStreetMap/Nominatim for a destination, biased toward the
- * rider's selected area/current position instead of concatenating district
+ * caller's selected area/current position instead of concatenating district
  * and governorate names into the free-text query (which was silently
  * defeating matches whenever the query and the appended names were in
  * different scripts). Falls back to an unrestricted global search when the
  * biased/country-scoped attempt finds nothing, so a real match outside the
- * selected area still surfaces.
+ * selected area still surfaces. Role-agnostic — usable by any feature that
+ * needs a destination/place search.
  */
 export async function searchDestinationPlaces(
   rawQuery: string,
