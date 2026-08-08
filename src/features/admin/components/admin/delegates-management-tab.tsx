@@ -8,6 +8,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import {
@@ -82,6 +89,8 @@ const styles = {
   style706_40: "space-y-1",
   style707_41: "text-xs text-zinc-300",
   style712_42: "w-full h-9 mt-1 rounded bg-black border border-emerald-900 text-white px-2 focus:outline-none focus:border-emerald-500 text-xs",
+  customSelectContent: "border-emerald-900 bg-black text-white shadow-2xl shadow-black/40",
+  customSelectItem: "cursor-pointer rounded-lg py-2.5 text-xs font-semibold text-slate-200 focus:bg-emerald-500/15 focus:text-emerald-300 data-[state=checked]:bg-emerald-500/10 data-[state=checked]:text-emerald-300",
   style721_43: "space-y-1",
   style722_44: "text-xs text-zinc-300 font-bold",
   style729_45: "bg-black/80 border-emerald-950/50 text-white text-xs h-9",
@@ -949,17 +958,17 @@ export function DelegatesManagementTab() {
 
               <div className={styles.style706_40}>
                 <Label htmlFor="del-region" className={styles.style707_41}>محافظة ومنطقة الإدارة جغرافياً</Label>
-                <select
-                  id="del-region"
-                  value={district}
-                  onChange={e => setDistrict(e.target.value)}
-                  className={styles.style712_42}
-                >
-                  <option value="وادي السير">وادي السير (عمان)</option>
-                  <option value="الجامعة">منطقة الجامعة (عمان)</option>
-                  <option value="قصبة عمان">قصبة عمان (عمان)</option>
-                  <option value="الكرادة">الكرادة (بغداد - العراق)</option>
-                </select>
+                <Select value={district} onValueChange={setDistrict}>
+                  <SelectTrigger id="del-region" className={styles.style712_42}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className={styles.customSelectContent}>
+                    <SelectItem value="وادي السير" className={styles.customSelectItem}>وادي السير (عمان)</SelectItem>
+                    <SelectItem value="الجامعة" className={styles.customSelectItem}>منطقة الجامعة (عمان)</SelectItem>
+                    <SelectItem value="قصبة عمان" className={styles.customSelectItem}>قصبة عمان (عمان)</SelectItem>
+                    <SelectItem value="الكرادة" className={styles.customSelectItem}>الكرادة (بغداد - العراق)</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className={styles.style721_43}>
@@ -977,16 +986,16 @@ export function DelegatesManagementTab() {
 
               <div className={styles.style734_46}>
                 <Label htmlFor="del-expiry" className={styles.style735_47}>مدة صلاحية الروابط السحرية</Label>
-                <select
-                  id="del-expiry"
-                  value={linkExpiryHours}
-                  onChange={e => setLinkExpiryHours(e.target.value)}
-                  className={styles.style740_48}
-                >
-                  <option value="24">24 ساعة (يوم كامل)</option>
-                  <option value="48">48 ساعة (يومين)</option>
-                  <option value="72">72 ساعة (ثلاثة أيام)</option>
-                </select>
+                <Select value={linkExpiryHours} onValueChange={setLinkExpiryHours}>
+                  <SelectTrigger id="del-expiry" className={styles.style740_48}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className={styles.customSelectContent}>
+                    <SelectItem value="24" className={styles.customSelectItem}>24 ساعة (يوم كامل)</SelectItem>
+                    <SelectItem value="48" className={styles.customSelectItem}>48 ساعة (يومين)</SelectItem>
+                    <SelectItem value="72" className={styles.customSelectItem}>72 ساعة (ثلاثة أيام)</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className={styles.style748_49}>
@@ -1002,15 +1011,15 @@ export function DelegatesManagementTab() {
 
               <div className={styles.style759_52}>
                 <Label htmlFor="del-subrole" className={styles.style760_53}>نوع الصلاحيات الميدانية</Label>
-                <select
-                  id="del-subrole"
-                  value={subRole}
-                  onChange={e => setSubRole(e.target.value as 'independent' | 'captain')}
-                  className={styles.style765_54}
-                >
-                  <option value="independent">مندوب مستقل (صامت وموفر للموارد)</option>
-                  <option value="captain">مندوب سائق (نشط بالنشاط الميداني والـ GPS)</option>
-                </select>
+                <Select value={subRole} onValueChange={(value) => setSubRole(value as 'independent' | 'captain')}>
+                  <SelectTrigger id="del-subrole" className={styles.style765_54}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className={styles.customSelectContent}>
+                    <SelectItem value="independent" className={styles.customSelectItem}>مندوب مستقل (صامت وموفر للموارد)</SelectItem>
+                    <SelectItem value="captain" className={styles.customSelectItem}>مندوب سائق (نشط بالنشاط الميداني والـ GPS)</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               {subRole === 'captain' && (
@@ -1429,17 +1438,16 @@ export function DelegatesManagementTab() {
               <form onSubmit={handleAddTask} className={styles.style1185_183}>
                 <div className={styles.style1186_184}>
                   <Label className={styles.style1187_185}>اختر المندوب المستهدف</Label>
-                  <select
-                    value={selectedDelegateId}
-                    onChange={e => setSelectedDelegateId(e.target.value)}
-                    className={styles.style1191_186}
-                    required
-                  >
-                    <option value="">-- اسم المندوب الرباعي --</option>
-                    {delegates.filter(d => d.status === 'active').map(d => (
-                      <option key={d.id} value={d.id}>{d.name} ({d.district})</option>
-                    ))}
-                  </select>
+                  <Select value={selectedDelegateId} onValueChange={setSelectedDelegateId}>
+                    <SelectTrigger className={styles.style1191_186}>
+                      <SelectValue placeholder="-- اسم المندوب الرباعي --" />
+                    </SelectTrigger>
+                    <SelectContent className={styles.customSelectContent}>
+                      {delegates.filter(d => d.status === 'active').map(d => (
+                        <SelectItem key={d.id} value={d.id} className={styles.customSelectItem}>{d.name} ({d.district})</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className={styles.style1201_187}>

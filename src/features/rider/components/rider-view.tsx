@@ -101,6 +101,23 @@ const styles = {
   style1775_32: "border-white/10 bg-[#0F172A] text-white shadow-2xl shadow-black/40",
   style1776_32: "cursor-pointer rounded-lg py-2.5 text-xs font-black text-slate-200 focus:bg-[#14B8A6]/15 focus:text-[#14F5D5] data-[state=checked]:bg-[#14B8A6]/10 data-[state=checked]:text-[#14F5D5]",
   style1788_33: "space-y-3 rounded-2xl border border-white/10 bg-[#111827]/80 p-3 shadow-lg shadow-black/15",
+  searchMapEmbedWrapper: "h-[70vh] max-h-[560px] w-full overflow-hidden rounded-2xl border border-[#14B8A6]/25 bg-[#0F172A]",
+  searchMapEmbedFrame: "h-full w-full border-0",
+  searchMapDialogContent: "max-w-3xl border border-[#14B8A6]/25 bg-[#0B0F19] text-white shadow-2xl",
+  searchMapDialogTitle: "text-sm font-black text-white",
+  searchMapLoadingIcon: "h-4 w-4 animate-spin",
+  destinationMapEmbedWrapper: "h-[220px] w-full overflow-hidden rounded-2xl border border-[#243249] bg-[#161F30] shadow-xl shadow-black/20",
+  destinationMapEmbedFrame: "h-full w-full border-0",
+  mapPickerFooter: "mt-3 flex flex-col gap-2 sm:flex-row",
+  mapPickerCopyBtn: "flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-white/10 bg-black/35 text-xs font-black text-slate-200 transition hover:bg-black/50",
+  mapPickerConfirmBtn: "flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-[#14B8A6] text-xs font-black text-[#031315] transition hover:bg-[#2DD4BF]",
+  mapPickerBtnIcon: "h-4 w-4",
+  modalSearchForm: "mb-3 flex gap-2",
+  modalSearchInputWrapper: "relative min-w-0 flex-1",
+  modalSearchIcon: "pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#14B8A6]",
+  modalSearchInput: "h-11 w-full rounded-xl border border-white/10 bg-black/40 pe-4 ps-10 text-sm font-bold text-white outline-none transition placeholder:text-slate-500 focus:border-[#14B8A6]/60",
+  modalSearchButton: "flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#14B8A6] px-4 text-xs font-black text-[#031315] transition hover:bg-[#2DD4BF] disabled:cursor-not-allowed disabled:opacity-50",
+  modalSearchButtonIcon: "h-4 w-4",
   style1790_34: "mb-2.5 flex items-start gap-2.5",
   style1791_35: "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#14B8A6]/15 text-xs font-black text-[#14F5D5]",
   style1793_36: "text-xs font-black text-white",
@@ -350,7 +367,6 @@ const OFFER_TIMEOUT_MS = 2 * 60 * 1000;
 const FARE_RECALCULATION_DEBOUNCE_MS = 350;
 const CAPTAIN_PRESENCE_REFRESH_MS = 15_000;
 const CAPTAIN_PRESENCE_PRUNE_MS = 5_000;
-const GOOGLE_MAPS_RETURN_STATE_KEY = 'radar_google_maps_return_state';
 const INITIAL_RIDER_LOCATION: RiderLocation = { lat: 30.0444, lng: 31.2357 };
 
 async function readClipboardLocationText() {
@@ -534,7 +550,11 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
   const [destinationSearchStatus, setDestinationSearchStatus] = React.useState<'idle' | 'searching' | 'empty' | 'error' | 'selected'>('idle');
   const [externalLocationUrl, setExternalLocationUrl] = React.useState('');
   const [externalLocationContext, setExternalLocationContext] = React.useState<ExternalLocationContext | null>(null);
-  const [isReturningFromGoogleMaps, setIsReturningFromGoogleMaps] = React.useState(false);
+  const [isMapPickerOpen, setIsMapPickerOpen] = React.useState(false);
+  const [modalPinLocation, setModalPinLocation] = React.useState<RiderLocation | null>(null);
+  const [isLoadingMapPreview, setIsLoadingMapPreview] = React.useState(false);
+  const [modalSearchQuery, setModalSearchQuery] = React.useState('');
+  const [isModalSearchLoading, setIsModalSearchLoading] = React.useState(false);
   const [isReadingClipboardLocation, setIsReadingClipboardLocation] = React.useState(false);
   const [isCaptainScanPreviewActive, setIsCaptainScanPreviewActive] = React.useState(false);
   const [isDestinationPinMoving, setIsDestinationPinMoving] = React.useState(false);
@@ -566,35 +586,6 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
   const destinationSearchCacheRef = React.useRef(new Map<string, DestinationSearchResult[]>());
   const pendingConfirmedGeographyRef = React.useRef<ResolvedLocationGeography | null>(null);
   const pendingConfirmedLocationRef = React.useRef<RiderLocation | null>(null);
-
-  React.useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const restoreGoogleMapsReturnState = () => {
-      try {
-        const rawState = window.sessionStorage.getItem(GOOGLE_MAPS_RETURN_STATE_KEY);
-        if (!rawState) return;
-        const savedState = JSON.parse(rawState) as { timestamp?: number; step?: string };
-        const isRecent = Number.isFinite(savedState.timestamp)
-          && Date.now() - Number(savedState.timestamp) < 30 * 60 * 1000;
-        setIsReturningFromGoogleMaps(isRecent);
-        if (isRecent && savedState.step === 'destination-selection' && state.screen !== 'DESTINATION_SELECTION') {
-          dispatch({ type: 'OPEN_DESTINATION' });
-        }
-        if (!isRecent) window.sessionStorage.removeItem(GOOGLE_MAPS_RETURN_STATE_KEY);
-      } catch {
-        window.sessionStorage.removeItem(GOOGLE_MAPS_RETURN_STATE_KEY);
-      }
-    };
-
-    restoreGoogleMapsReturnState();
-    window.addEventListener('pageshow', restoreGoogleMapsReturnState);
-    document.addEventListener('visibilitychange', restoreGoogleMapsReturnState);
-    return () => {
-      window.removeEventListener('pageshow', restoreGoogleMapsReturnState);
-      document.removeEventListener('visibilitychange', restoreGoogleMapsReturnState);
-    };
-  }, []);
 
   const riderProfile = React.useMemo(() => {
     const ratingValue =
@@ -831,7 +822,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
     setIsCaptainScanPreviewActive(false);
   }, []);
 
-  const handleOpenGoogleMapsSearch = React.useCallback(() => {
+  const handleOpenGoogleMapsSearch = React.useCallback(async () => {
     setDestinationSearchResults([]);
     setDestinationSearchStatus('idle');
     const queryParts = [
@@ -841,39 +832,128 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
       isArabic ? countryConfig?.name_ar || countryConfig?.name_en : countryConfig?.name_en || countryConfig?.name_ar,
     ].filter(Boolean);
     const query = queryParts.join(', ');
-    const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query || destinationSearchQuery.trim())}`;
+    const finalQuery = query || destinationSearchQuery.trim();
+    if (!finalQuery) return;
+
+    setIsLoadingMapPreview(true);
     try {
-      window.sessionStorage.setItem(GOOGLE_MAPS_RETURN_STATE_KEY, JSON.stringify({
-        path: window.location.pathname,
-        step: 'destination-selection',
-        query,
-        timestamp: Date.now(),
-      }));
-      setIsReturningFromGoogleMaps(true);
+      const params = new URLSearchParams({
+        q: finalQuery,
+        format: 'jsonv2',
+        limit: '1',
+      });
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, {
+        headers: { Accept: 'application/json' },
+      });
+      if (!response.ok) throw new Error(`Map preview search failed: ${response.status}`);
+
+      const payload = await response.json();
+      const result = Array.isArray(payload) ? payload[0] : null;
+      const lat = Number(result?.lat);
+      const lon = Number(result?.lon);
+      if (!result || !Number.isFinite(lat) || !Number.isFinite(lon)) {
+        toast({
+          variant: 'destructive',
+          title: locationCopy('err_no_coords_found'),
+        });
+        return;
+      }
+
+      setModalPinLocation({ lat, lng: lon });
+      setIsMapPickerOpen(true);
     } catch {
-      // Opening Google Maps must still work when browser storage is unavailable.
+      toast({
+        variant: 'destructive',
+        title: locationCopy('err_invalid_clipboard_maps_link'),
+      });
+    } finally {
+      setIsLoadingMapPreview(false);
     }
-    window.open(mapsUrl, '_blank', 'noopener,noreferrer');
   }, [
     countryConfig?.name_ar,
     countryConfig?.name_en,
     destinationSearchQuery,
     isArabic,
+    locationCopy,
     selectedDistrict?.districtAr,
     selectedDistrict?.districtEn,
     selectedGovernorate?.nameAr,
     selectedGovernorate?.nameEn,
+    toast,
   ]);
 
-  const handleReturnToApp = React.useCallback(() => {
-    try {
-      window.sessionStorage.removeItem(GOOGLE_MAPS_RETURN_STATE_KEY);
-    } catch {
-      // Ignore storage restrictions; the visible state still resets.
-    }
-    setIsReturningFromGoogleMaps(false);
-    window.focus();
+  const handleCloseSearchMapEmbed = React.useCallback(() => {
+    setIsMapPickerOpen(false);
+    setModalSearchQuery('');
   }, []);
+
+  const handleModalPinChange = React.useCallback((location: RiderLocation) => {
+    setModalPinLocation(location);
+  }, []);
+
+  const handleModalMapSearch = React.useCallback(async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const query = modalSearchQuery.trim();
+    if (query.length < 2) return;
+
+    setIsModalSearchLoading(true);
+    try {
+      const params = new URLSearchParams({
+        q: query,
+        format: 'jsonv2',
+        limit: '1',
+        'accept-language': language,
+      });
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, {
+        headers: { Accept: 'application/json' },
+      });
+      if (!response.ok) throw new Error(`Modal map search failed: ${response.status}`);
+
+      const payload = await response.json();
+      const result = Array.isArray(payload) ? payload[0] : null;
+      const lat = Number(result?.lat);
+      const lng = Number(result?.lon);
+      if (!result || !Number.isFinite(lat) || !Number.isFinite(lng)) {
+        toast({
+          variant: 'destructive',
+          title: locationCopy('err_no_coords_found'),
+        });
+        return;
+      }
+
+      setModalPinLocation({ lat, lng });
+    } catch {
+      toast({
+        variant: 'destructive',
+        title: destinationSearchCopy('error'),
+      });
+    } finally {
+      setIsModalSearchLoading(false);
+    }
+  }, [destinationSearchCopy, language, locationCopy, modalSearchQuery, toast]);
+
+  const handleConfirmModalLocation = React.useCallback(() => {
+    if (!modalPinLocation) return;
+    setDestinationPinLocation(modalPinLocation);
+    setDestinationFlyToTarget(modalPinLocation);
+    setDestinationSearchStatus('selected');
+    setIsCaptainScanPreviewActive(false);
+    setIsMapPickerOpen(false);
+  }, [modalPinLocation]);
+
+  const handleCopyModalLocationLink = React.useCallback(async () => {
+    if (!modalPinLocation) return;
+    const link = `https://www.google.com/maps/place/${modalPinLocation.lat},${modalPinLocation.lng}/@${modalPinLocation.lat},${modalPinLocation.lng},17z`;
+    try {
+      await navigator.clipboard.writeText(link);
+      toast({ title: locationCopy('show_copied_link') });
+    } catch {
+      toast({
+        variant: 'destructive',
+        title: locationCopy('err_invalid_clipboard_maps_link'),
+      });
+    }
+  }, [locationCopy, modalPinLocation, toast]);
 
   const applyClipboardLocation = React.useCallback((
     clipboardValue: string,
@@ -1607,6 +1687,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
     setDestinationSearchResults([]);
     setDestinationSearchStatus('idle');
     setExternalLocationUrl('');
+    setIsMapPickerOpen(false);
     setIsCaptainScanPreviewActive(false);
   };
 
@@ -1620,6 +1701,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
     setDestinationSearchResults([]);
     setDestinationSearchStatus('idle');
     setExternalLocationUrl('');
+    setIsMapPickerOpen(false);
     setIsCaptainScanPreviewActive(false);
   };
 
@@ -1746,7 +1828,8 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
     setDestinationDataError(null);
     setServerFareState({ key: '', fare: null, isLoading: false, error: null });
     setRouteEstimateState({ key: '', estimate: null, isLoading: false });
-    setIsReturningFromGoogleMaps(false);
+    setIsMapPickerOpen(false);
+    setModalPinLocation(null);
 
     try {
       [
@@ -1755,9 +1838,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
         'radar_auction_draft',
         'radar_external_location_draft',
         'radar_request_flow',
-        GOOGLE_MAPS_RETURN_STATE_KEY,
       ].forEach((key) => window.localStorage.removeItem(key));
-      window.sessionStorage.removeItem(GOOGLE_MAPS_RETURN_STATE_KEY);
     } catch {
       // Storage can be unavailable in private browsing; in-memory state is still reset.
     }
@@ -1992,18 +2073,6 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
 
       return (
         <div className={styles.style1548_1} dir={isArabic ? 'rtl' : 'ltr'}>
-          {isReturningFromGoogleMaps ? (
-            <div className="mb-4 flex items-center justify-between gap-3 rounded-2xl border border-[#14B8A6]/40 bg-[#161F30]/90 px-4 py-3 text-sm text-[#F8FAFC] shadow-lg backdrop-blur-xl">
-              <span className="text-[#94A3B8]">{locationCopy('return_to_app_hint')}</span>
-              <button
-                type="button"
-                onClick={handleReturnToApp}
-                className="shrink-0 rounded-xl border border-[#14B8A6] bg-[#14B8A6]/15 px-3 py-2 font-black text-[#2DD4BF] transition hover:bg-[#14B8A6]/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]"
-              >
-                {locationCopy('return_to_app')}
-              </button>
-            </div>
-          ) : null}
             <div className={styles.style1549_2}>
               <div className={styles.style1550_3}>
                 <div className={styles.style1551_4}>
@@ -2281,6 +2350,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                           setDestinationSearchResults([]);
                           setDestinationSearchStatus('idle');
                           setExternalLocationUrl('');
+                          setIsMapPickerOpen(false);
                           setIsCaptainScanPreviewActive(false);
                         }}
                         placeholder={locationCopy('placeholder_landmark')}
@@ -2289,18 +2359,89 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
                     </div>
                     <button
                       type="submit"
-                      disabled={destinationSearchQuery.trim().length < 2}
+                      disabled={destinationSearchQuery.trim().length < 2 || isLoadingMapPreview}
                       aria-label={locationCopy('btn_open_google_maps')}
                       title={locationCopy('btn_open_google_maps')}
                       className={styles.style1826_42}
                     >
-                      <Search className={styles.style1828_43} />
+                      {isLoadingMapPreview ? (
+                        <Loader2 className={styles.searchMapLoadingIcon} />
+                      ) : (
+                        <Search className={styles.style1828_43} />
+                      )}
                       <span className={styles.style1829_44}>
                         {locationCopy('btn_open_google_maps')}
                       </span>
                     </button>
                   </form>
                 </div>
+
+                <Dialog
+                  open={isMapPickerOpen}
+                  onOpenChange={(open) => {
+                    if (!open) handleCloseSearchMapEmbed();
+                  }}
+                >
+                  <DialogContent className={styles.searchMapDialogContent} dir={isArabic ? 'rtl' : 'ltr'}>
+                    <DialogHeader>
+                      <DialogTitle className={styles.searchMapDialogTitle}>
+                        {locationCopy('step_search_title')}
+                      </DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={handleModalMapSearch} className={styles.modalSearchForm}>
+                      <div className={styles.modalSearchInputWrapper}>
+                        <Search className={styles.modalSearchIcon} />
+                        <input
+                          type="search"
+                          value={modalSearchQuery}
+                          onChange={(event) => setModalSearchQuery(event.target.value)}
+                          placeholder={locationCopy('modal_search_placeholder')}
+                          className={styles.modalSearchInput}
+                        />
+                      </div>
+                      <button
+                        type="submit"
+                        disabled={modalSearchQuery.trim().length < 2 || isModalSearchLoading}
+                        className={styles.modalSearchButton}
+                      >
+                        {isModalSearchLoading ? (
+                          <Loader2 className={styles.modalSearchButtonIcon} />
+                        ) : (
+                          <Search className={styles.modalSearchButtonIcon} />
+                        )}
+                        <span>{locationCopy('modal_search_button')}</span>
+                      </button>
+                    </form>
+                    <div className={styles.searchMapEmbedWrapper}>
+                      <RiderMap
+                        showDestinationPin
+                        className={styles.searchMapEmbedFrame}
+                        destinationFlyToTarget={modalPinLocation}
+                        fallbackLocation={modalPinLocation || riderLocation}
+                        onDestinationChange={handleModalPinChange}
+                        onLocationChange={handleLocationChange}
+                      />
+                    </div>
+                    <div className={styles.mapPickerFooter}>
+                      <button
+                        type="button"
+                        onClick={handleCopyModalLocationLink}
+                        className={styles.mapPickerCopyBtn}
+                      >
+                        <ExternalLink className={styles.mapPickerBtnIcon} />
+                        <span>{locationCopy('show_copied_link')}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleConfirmModalLocation}
+                        className={styles.mapPickerConfirmBtn}
+                      >
+                        <CheckCircle2 className={styles.mapPickerBtnIcon} />
+                        <span>{locationCopy('btn_confirm_and_calculate')}</span>
+                      </button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
 
                 <div className={styles.style1836_45}>
                   <div className={styles.style1837_46}>
@@ -2564,19 +2705,18 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
               </div>
             </section>
 
-            {destinationMapEmbedUrl ? (
-              <div className="h-[220px] w-full overflow-hidden rounded-2xl border border-[#243249] bg-[#161F30] shadow-xl shadow-black/20">
+           {/* {destinationMapEmbedUrl ? (
+              <div className={styles.destinationMapEmbedWrapper}>
                 <iframe
                   key={destinationMapEmbedUrl}
                   src={destinationMapEmbedUrl}
                   title={locationCopy('trip_summary_title')}
-                  className="h-full w-full border-0"
-                  frameBorder="0"
+                  className={styles.destinationMapEmbedFrame}
                   allowFullScreen
                   loading="lazy"
                 />
               </div>
-            ) : null}
+            ) : null} */}
 
             {serverFareError && (
               <div className={styles.style2099_141}>

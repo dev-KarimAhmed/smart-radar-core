@@ -1775,15 +1775,16 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
                             </div>
                             <div>
                               <Label className={styles.style1381_313}>الغاية التسويقية:</Label>
-                              <select
-                                value={aiGoal}
-                                onChange={(e: any) => setAiGoal(e.target.value)}
-                                className={styles.style1385_314}
-                              >
-                                <option value="awareness">النشاط العادي (وعي عابر)</option>
-                                <option value="retention">التخليد (حفظ مكرر بالذاكرة)</option>
-                                <option value="broad">الاكتساح (تغطية  قصوى)</option>
-                              </select>
+                              <Select value={aiGoal} onValueChange={(value) => setAiGoal(value as 'awareness' | 'retention' | 'broad')}>
+                                <SelectTrigger className={styles.style1104_221}>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent className={styles.style1107_222}>
+                                  <SelectItem value="awareness" className={styles.style1108_223}>النشاط العادي (وعي عابر)</SelectItem>
+                                  <SelectItem value="retention" className={styles.style1108_223}>التخليد (حفظ مكرر بالذاكرة)</SelectItem>
+                                  <SelectItem value="broad" className={styles.style1108_223}>الاكتساح (تغطية  قصوى)</SelectItem>
+                                </SelectContent>
+                              </Select>
                             </div>
                           </div>
                           <Button

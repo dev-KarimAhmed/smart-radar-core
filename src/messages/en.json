@@ -141,6 +141,8 @@
     "unit_km": "km",
     "step_search_title": "Find the destination in Google Maps",
     "step_search_helper": "Type a place, open it in Google Maps, then copy its share link.",
+    "modal_search_placeholder": "Search for any place on the map",
+    "modal_search_button": "Search",
     "step_confirm_title": "Use the copied location",
     "step_confirm_helper": "This button reads the copied link only. It will not open Google Maps again.",
     "status_reading_clipboard": "Reading the copied location...",

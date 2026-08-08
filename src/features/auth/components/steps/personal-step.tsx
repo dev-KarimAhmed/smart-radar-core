@@ -31,6 +31,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useRegistration } from '../../hooks/use-registration';
 import { navigateAuth } from '@/lib/auth-routing';
 
@@ -192,6 +199,9 @@ const styles = {
   style901_154: "mb-2 flex items-center gap-2 text-sm font-bold text-[#F8FAFC]",
   style902_155: "text-[#14B8A6]",
   input: 'min-h-12 w-full rounded-2xl border border-white/10 bg-[#0B0F19]/50 px-4 text-base font-semibold text-[#F8FAFC] outline-none transition placeholder:text-[#64748B] focus:border-[#14B8A6] focus:shadow-[0_0_10px_rgba(20,184,166,0.1)]',
+  customSelectTrigger: 'h-11 w-full min-w-0 rounded-xl border border-white/10 bg-black/35 px-3 text-xs font-black text-white outline-none transition focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 data-[state=open]:outline-none data-[state=open]:ring-0 data-[state=open]:ring-offset-0',
+  customSelectContent: 'border-white/10 bg-[#0F172A] text-white shadow-2xl shadow-black/40',
+  customSelectItem: 'cursor-pointer rounded-lg py-2.5 text-xs font-black text-slate-200 focus:bg-[#14B8A6]/15 focus:text-[#14F5D5] data-[state=checked]:bg-[#14B8A6]/10 data-[state=checked]:text-[#14F5D5]',
 } as const;
 
 
@@ -573,20 +583,19 @@ export function PersonalStep() {
                   </div>
 
                   <Field label="نوع المركبة" icon={<ChevronDown className={styles.style416_26} />}>
-                    <div className={styles.style417_27}>
-                      <select
-                        value={vehicle.type || ''}
-                        onChange={(e) => setVehicle({ ...vehicle, type: e.target.value })}
-                        className={cn(styles.input, styles.style421_28)}
-                        required
-                      >
-                        <option value="">اختر نوع المركبة</option>
-                        <option value="ملاكي">ملاكي (سيارة خاصة)</option>
-                        <option value="تاكسي">تاكسي</option>
-                        <option value="سكوتر">سكوتر</option>
-                      </select>
-                      <ChevronDown className={styles.style429_29} />
-                    </div>
+                    <Select
+                      value={vehicle.type || ''}
+                      onValueChange={(value) => setVehicle({ ...vehicle, type: value })}
+                    >
+                      <SelectTrigger className={styles.customSelectTrigger}>
+                        <SelectValue placeholder="اختر نوع المركبة" />
+                      </SelectTrigger>
+                      <SelectContent className={styles.customSelectContent}>
+                        <SelectItem value="ملاكي" className={styles.customSelectItem}>ملاكي (سيارة خاصة)</SelectItem>
+                        <SelectItem value="تاكسي" className={styles.customSelectItem}>تاكسي</SelectItem>
+                        <SelectItem value="سكوتر" className={styles.customSelectItem}>سكوتر</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </Field>
 
                   <div className={styles.style433_30}>
@@ -810,73 +819,60 @@ export function PersonalStep() {
                   {mode === 'register' ? (
                     <div className={styles.style652_87}>
                       <Field label={t.country} icon={<MapPin className={styles.style653_88} />}>
-                        <div className={styles.style654_89}>
-                          <select
-                            value={personal.country}
-                            onChange={(event) => setPersonal({ ...personal, country: event.target.value, gov: '', district: '' })}
-                            disabled={locationDataLoading && !countries.length}
-                            className={cn(styles.input, styles.style659_90, isArabic ? styles.style659_91 : styles.style659_92)}
-                            required
-                          >
-                            <option value="">
-                              {locationDataLoading && !countries.length ? '...' : t.countryPlaceholder}
-                            </option>
+                        <Select
+                          value={personal.country}
+                          onValueChange={(value) => setPersonal({ ...personal, country: value, gov: '', district: '' })}
+                          disabled={locationDataLoading && !countries.length}
+                        >
+                          <SelectTrigger className={styles.customSelectTrigger}>
+                            <SelectValue placeholder={locationDataLoading && !countries.length ? '...' : t.countryPlaceholder} />
+                          </SelectTrigger>
+                          <SelectContent className={styles.customSelectContent}>
                             {countries.map((country) => (
-                              <option key={country.id} value={country.id}>
+                              <SelectItem key={country.id} value={country.id} className={styles.customSelectItem}>
                                 {isArabic ? country.label : country.labelEn}
-                              </option>
+                              </SelectItem>
                             ))}
-                          </select>
-                          <ChevronDown
-                            className={cn(styles.style672_93, isArabic ? styles.style673_94 : styles.style673_95)}
-                          />
-                        </div>
+                          </SelectContent>
+                        </Select>
                       </Field>
 
                       <Field label={t.governorate} icon={<MapPin className={styles.style679_96} />}>
-                        <div className={styles.style680_97}>
-                          <select
-                            value={personal.gov}
-                            onChange={(event) => setPersonal({ ...personal, gov: event.target.value, district: '' })}
-                            disabled={!personal.country || locationDataLoading}
-                            className={cn(styles.input, styles.style685_98, isArabic ? styles.style685_99 : styles.style685_100)}
-                            required
-                          >
-                            <option value="">
-                              {locationDataLoading ? '...' : t.governoratePlaceholder}
-                            </option>
+                        <Select
+                          value={personal.gov}
+                          onValueChange={(value) => setPersonal({ ...personal, gov: value, district: '' })}
+                          disabled={!personal.country || locationDataLoading}
+                        >
+                          <SelectTrigger className={styles.customSelectTrigger}>
+                            <SelectValue placeholder={locationDataLoading ? '...' : t.governoratePlaceholder} />
+                          </SelectTrigger>
+                          <SelectContent className={styles.customSelectContent}>
                             {governorates.map((gov) => (
-                              <option key={gov.id} value={gov.id}>
+                              <SelectItem key={gov.id} value={gov.id} className={styles.customSelectItem}>
                                 {isArabic ? gov.label : gov.labelEn}
-                              </option>
+                              </SelectItem>
                             ))}
-                          </select>
-                          <ChevronDown
-                            className={cn(styles.style698_101, isArabic ? styles.style699_102 : styles.style699_103)}
-                          />
-                        </div>
+                          </SelectContent>
+                        </Select>
                       </Field>
 
                       <Field label={t.district} icon={<MapPin className={styles.style705_104} />}>
-                        <div className={styles.style706_105}>
-                          <select
-                            value={personal.district}
-                            onChange={(event) => setPersonal({ ...personal, district: event.target.value })}
-                            disabled={!personal.gov || locationDataLoading}
-                            className={cn(styles.input, styles.style711_106, isArabic ? styles.style711_107 : styles.style711_108)}
-                            required
-                          >
-                            <option value="">{locationDataLoading ? '...' : t.districtPlaceholder}</option>
+                        <Select
+                          value={personal.district}
+                          onValueChange={(value) => setPersonal({ ...personal, district: value })}
+                          disabled={!personal.gov || locationDataLoading}
+                        >
+                          <SelectTrigger className={styles.customSelectTrigger}>
+                            <SelectValue placeholder={locationDataLoading ? '...' : t.districtPlaceholder} />
+                          </SelectTrigger>
+                          <SelectContent className={styles.customSelectContent}>
                             {districts.map((district) => (
-                              <option key={district.id} value={district.value}>
+                              <SelectItem key={district.id} value={district.value} className={styles.customSelectItem}>
                                 {isArabic ? district.label : district.labelEn}
-                              </option>
+                              </SelectItem>
                             ))}
-                          </select>
-                          <ChevronDown
-                            className={cn(styles.style722_109, isArabic ? styles.style723_110 : styles.style723_111)}
-                          />
-                        </div>
+                          </SelectContent>
+                        </Select>
                       </Field>
                     </div>
                   ) : null}
