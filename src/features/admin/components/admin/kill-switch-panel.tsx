@@ -11,6 +11,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   AlertTriangle,
   Loader2,
   Power,
@@ -85,6 +92,8 @@ const styles = {
   style288_53: "space-y-1.5Packed",
   style289_54: "text-xs font-bold text-gray-400",
   style293_55: "w-full h-11 bg-black border border-white/10 rounded-xl px-3 text-xs text-white focus:border-red-500 text-right font-semibold",
+  customSelectContent: "border-white/10 bg-black text-white shadow-2xl shadow-black/40",
+  customSelectItem: "cursor-pointer rounded-lg py-2.5 text-xs font-semibold text-slate-200 text-right focus:bg-[#14B8A6]/15 focus:text-[#14F5D5] data-[state=checked]:bg-[#14B8A6]/10 data-[state=checked]:text-[#14F5D5]",
   style306_56: "space-y-1.5Packed",
   style307_57: "text-xs font-bold text-gray-300",
   style312_58: "w-full bg-black border border-white/10 text-white rounded-xl pr-3 text-xs focus:border-red-500 text-right h-10",
@@ -374,19 +383,18 @@ export function KillSwitchPanel() {
               {/* Select Active Ads dropdown */}
               <div className={styles.style288_53}>
                 <Label className={styles.style289_54}>حدد الحملة المستهدفة للإحراق ال:</Label>
-                <select
-                  value={selectedAdId}
-                  onChange={(e) => setSelectedAdId(e.target.value)}
-                  className={styles.style293_55}
-                  dir="rtl"
-                >
-                  <option value="">-- اختر حملة إعلانية بث في الميدان --</option>
-                  {activeAds.map(ad => (
-                    <option key={ad.id} value={ad.id}>
-                      {ad.content?.title || ad.title} (ID: {ad.id})
-                    </option>
-                  ))}
-                </select>
+                <Select value={selectedAdId} onValueChange={setSelectedAdId} dir="rtl">
+                  <SelectTrigger className={styles.style293_55}>
+                    <SelectValue placeholder="-- اختر حملة إعلانية بث في الميدان --" />
+                  </SelectTrigger>
+                  <SelectContent className={styles.customSelectContent}>
+                    {activeAds.map(ad => (
+                      <SelectItem key={ad.id} value={ad.id} className={styles.customSelectItem}>
+                        {ad.content?.title || ad.title} (ID: {ad.id})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Annihilation Reason justification prompt */}
@@ -441,30 +449,32 @@ export function KillSwitchPanel() {
                 {/* District targeting selector */}
                 <div className={styles.style355_72}>
                   <Label className={styles.style356_73}>الإقليم الجغرافي المستهدف:</Label>
-                  <select
-                    value={selectedDistrict}
-                    onChange={(e) => setSelectedDistrict(e.target.value)}
-                    className={styles.style360_74}
-                  >
-                    <option value="الجميع">كل منطقة الأردنيين</option>
-                    <option value="منطقة الجامعة">منطقة الجامعة - عمان</option>
-                    <option value="منطقة قصبة عمان">منطقة قصبة عمان - عمان</option>
-                    <option value="منطقة وادي السير">منطقة وادي السير - عمان</option>
-                    <option value="منطقة ماركا">منطقة ماركا - عمان</option>
-                  </select>
+                  <Select value={selectedDistrict} onValueChange={setSelectedDistrict}>
+                    <SelectTrigger className={styles.style360_74}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className={styles.customSelectContent}>
+                      <SelectItem value="الجميع" className={styles.customSelectItem}>كل منطقة الأردنيين</SelectItem>
+                      <SelectItem value="منطقة الجامعة" className={styles.customSelectItem}>منطقة الجامعة - عمان</SelectItem>
+                      <SelectItem value="منطقة قصبة عمان" className={styles.customSelectItem}>منطقة قصبة عمان - عمان</SelectItem>
+                      <SelectItem value="منطقة وادي السير" className={styles.customSelectItem}>منطقة وادي السير - عمان</SelectItem>
+                      <SelectItem value="منطقة ماركا" className={styles.customSelectItem}>منطقة ماركا - عمان</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* Pulse Classification */}
                 <div className={styles.style371_75}>
                   <Label className={styles.style372_76}>تصنيف النشاطة :</Label>
-                  <select
-                    value={alertType}
-                    onChange={(e) => setAlertType(e.target.value as any)}
-                    className={styles.style376_77}
-                  >
-                    <option value="REGIONAL_ALERT">تنبيه إقليمي توجيهي</option>
-                    <option value="GLOBAL_FREEZE">تجميد اضطراري للأسعار</option>
-                  </select>
+                  <Select value={alertType} onValueChange={(value) => setAlertType(value as any)}>
+                    <SelectTrigger className={styles.style376_77}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className={styles.customSelectContent}>
+                      <SelectItem value="REGIONAL_ALERT" className={styles.customSelectItem}>تنبيه إقليمي توجيهي</SelectItem>
+                      <SelectItem value="GLOBAL_FREEZE" className={styles.customSelectItem}>تجميد اضطراري للأسعار</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 

@@ -128,7 +128,9 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     verificationDoc: '',
   });
   const [authPassword, setAuthPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(() => shouldRememberSupabaseSession());
+  // Keep the first SSR/client render identical. Browser storage is hydrated
+  // after mount so the remember-me preference cannot cause a hydration diff.
+  const [rememberMe, setRememberMe] = useState(false);
   const [advertiserProfile, setAdvertiserProfile] = useState({ companyName: '', commercialRegister: '', adLicense: '', businessType: 'commercial' });
   const [affiliation, setAffiliation] = useState<AffiliationType | null>(null);
   const [vehicle, setVehicle] = useState({ year: '', plate: '', sideId: '', make: '', color: '', officeName: '', officePhone: '', companyName: '', type: '', brand: '', model: '', employment_type: '', identity_url: '', contact_page_url: '' });
@@ -147,6 +149,10 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
   const isSubmittingRef = useRef(false);
 
   const locationDataLoading = countriesLoading || governoratesLoading || districtsLoading;
+
+  useEffect(() => {
+    setRememberMe(shouldRememberSupabaseSession());
+  }, []);
 
   useEffect(() => {
     let active = true;

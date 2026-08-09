@@ -1,7 +1,6 @@
 'use client';
 
 import {
-  ChevronDown,
   Eye,
   EyeOff,
   Languages,
@@ -14,6 +13,13 @@ import {
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 import { cn } from '@/lib/utils';
 const styles = {
@@ -67,6 +73,9 @@ const styles = {
   style375_48: "mb-2 flex items-center gap-2 text-sm font-bold text-[#F8FAFC]",
   style376_49: "text-[#14B8A6]",
   input: 'min-h-12 w-full rounded-2xl border border-white/10 bg-[#0B0F19]/50 px-4 text-base font-semibold text-[#F8FAFC] outline-none transition placeholder:text-[#64748B] focus:border-[#14B8A6] focus:shadow-[0_0_10px_rgba(20,184,166,0.1)]',
+  customSelectTrigger: 'h-11 w-full min-w-0 rounded-xl border border-white/10 bg-black/35 px-3 text-xs font-black text-white outline-none transition focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 data-[state=open]:outline-none data-[state=open]:ring-0 data-[state=open]:ring-offset-0',
+  customSelectContent: 'border-white/10 bg-[#0F172A] text-white shadow-2xl shadow-black/40',
+  customSelectItem: 'cursor-pointer rounded-lg py-2.5 text-xs font-black text-slate-200 focus:bg-[#14B8A6]/15 focus:text-[#14F5D5] data-[state=checked]:bg-[#14B8A6]/10 data-[state=checked]:text-[#14F5D5]',
 } as const;
 
 
@@ -310,34 +319,36 @@ export function RegisterRoute({
               {authType === 'register' ? (
                 <div className={styles.style267_24}>
                   <Field label={t.governorate} icon={<MapPin className={styles.style268_25} />}>
-                    <div className={styles.style269_26}>
-                      <select
-                        suppressHydrationWarning
-                        value={governorate}
-                        onChange={(event) => setGovernorate(event.target.value as GovernorateKey)}
-                        className={cn(styles.input, styles.style274_27)}
-                      >
+                    <Select
+                      value={governorate}
+                      onValueChange={(value) => setGovernorate(value as GovernorateKey)}
+                    >
+                      <SelectTrigger className={styles.customSelectTrigger}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className={styles.customSelectContent}>
                         {(Object.keys(governorates) as GovernorateKey[]).map((key) => (
-                          <option key={key} value={key}>
+                          <SelectItem key={key} value={key} className={styles.customSelectItem}>
                             {governorates[key][language]}
-                          </option>
+                          </SelectItem>
                         ))}
-                      </select>
-                      <ChevronDown className={styles.style282_28} />
-                    </div>
+                      </SelectContent>
+                    </Select>
                   </Field>
 
                   <Field label={t.district} icon={<MapPin className={styles.style286_29} />}>
-                    <div className={styles.style287_30}>
-                      <select suppressHydrationWarning className={cn(styles.input, styles.style288_31)}>
+                    <Select>
+                      <SelectTrigger className={styles.customSelectTrigger}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className={styles.customSelectContent}>
                         {districtOptions.map((district) => (
-                          <option key={district.en} value={district.en}>
+                          <SelectItem key={district.en} value={district.en} className={styles.customSelectItem}>
                             {district[language]}
-                          </option>
+                          </SelectItem>
                         ))}
-                      </select>
-                      <ChevronDown className={styles.style295_32} />
-                    </div>
+                      </SelectContent>
+                    </Select>
                   </Field>
                 </div>
               ) : null}

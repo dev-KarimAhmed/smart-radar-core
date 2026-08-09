@@ -10,6 +10,13 @@ import {
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
@@ -31,6 +38,8 @@ const styles = {
   style204_13: "space-y-3",
   style205_14: "text-[11px] text-gray-400 block font-bold",
   style207_15: "w-full bg-zinc-900 border border-white/10 rounded-lg p-2.5 text-xs text-white",
+  customSelectContent: "border-white/10 bg-zinc-900 text-white shadow-2xl shadow-black/40",
+  customSelectItem: "cursor-pointer rounded-lg py-2.5 text-xs font-black text-slate-200 focus:bg-[#00ffcc]/15 focus:text-[#00ffcc] data-[state=checked]:bg-[#00ffcc]/10 data-[state=checked]:text-[#00ffcc]",
   style219_16: "text-[11px] text-gray-400 block font-bold",
   style221_17: "w-full bg-zinc-900 border border-white/10 rounded-lg p-2.5 text-xs text-white",
   style235_18: "w-full bg-amber-500 hover:bg-amber-400 text-black font-black text-xs h-9 mt-2 cursor-pointer",
@@ -250,31 +259,32 @@ export function SovereignGapSimulator({
 
             <div className={styles.style204_13}>
               <label className={styles.style205_14}>اختر السائق المستهدف بالترحيل:</label>
-              <select
-                className={styles.style207_15}
-                value={commuteDriverUid}
-                onChange={(e) => setCommuteDriverUid(e.target.value)}
-              >
-                <option value="">-- اختر سائق من الميدان --</option>
-                {drivers.map(d => (
-                  <option key={d.uid} value={d.uid}>
-                    {d.name} ({d.currentDistrict || 'غير محدد'})
-                  </option>
-                ))}
-              </select>
+              <Select value={commuteDriverUid} onValueChange={setCommuteDriverUid}>
+                <SelectTrigger className={styles.style207_15}>
+                  <SelectValue placeholder="-- اختر سائق من الميدان --" />
+                </SelectTrigger>
+                <SelectContent className={styles.customSelectContent}>
+                  {drivers.map(d => (
+                    <SelectItem key={d.uid} value={d.uid} className={styles.customSelectItem}>
+                      {d.name} ({d.currentDistrict || 'غير محدد'})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
               <label className={styles.style219_16}>المنطقة المستهدف الموجه للإعلان:</label>
-              <select
-                className={styles.style221_17}
-                value={targetDistrict}
-                onChange={(e) => setTargetDistrict(e.target.value)}
-              >
-                <option value="منطقة الشونة الجنوبية">منطقة الشونة الجنوبية</option>
-                <option value="منطقة ناعور">منطقة ناعور</option>
-                <option value="منطقة دير غبار">منطقة دير غبار</option>
-                <option value="منطقة صويلح">منطقة صويلح</option>
-                <option value="منطقة المقابلين">منطقة المقابلين</option>
-              </select>
+              <Select value={targetDistrict} onValueChange={setTargetDistrict}>
+                <SelectTrigger className={styles.style221_17}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className={styles.customSelectContent}>
+                  <SelectItem value="منطقة الشونة الجنوبية" className={styles.customSelectItem}>منطقة الشونة الجنوبية</SelectItem>
+                  <SelectItem value="منطقة ناعور" className={styles.customSelectItem}>منطقة ناعور</SelectItem>
+                  <SelectItem value="منطقة دير غبار" className={styles.customSelectItem}>منطقة دير غبار</SelectItem>
+                  <SelectItem value="منطقة صويلح" className={styles.customSelectItem}>منطقة صويلح</SelectItem>
+                  <SelectItem value="منطقة المقابلين" className={styles.customSelectItem}>منطقة المقابلين</SelectItem>
+                </SelectContent>
+              </Select>
 
               <Button
                 onClick={executeCommuteSim}
@@ -298,18 +308,18 @@ export function SovereignGapSimulator({
 
             <div className={styles.style252_24}>
               <label className={styles.style253_25}>اختر السائق المستهدف بالشحن:</label>
-              <select
-                className={styles.style255_26}
-                value={voucherDriverUid}
-                onChange={(e) => setVoucherDriverUid(e.target.value)}
-              >
-                <option value="">-- اختر سائق من الميدان --</option>
-                {drivers.map(d => (
-                  <option key={d.uid} value={d.uid}>
-                    {d.name} ({d.paidHoursRemaining || 0} ساعة متبقية)
-                  </option>
-                ))}
-              </select>
+              <Select value={voucherDriverUid} onValueChange={setVoucherDriverUid}>
+                <SelectTrigger className={styles.style255_26}>
+                  <SelectValue placeholder="-- اختر سائق من الميدان --" />
+                </SelectTrigger>
+                <SelectContent className={styles.customSelectContent}>
+                  {drivers.map(d => (
+                    <SelectItem key={d.uid} value={d.uid} className={styles.customSelectItem}>
+                      {d.name} ({d.paidHoursRemaining || 0} ساعة متبقية)
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
               <label className={styles.style267_27}>أدخل رمز التذكرة (يبدأ بـ RADAR-100H-):</label>
               <div className={styles.style268_28}>
