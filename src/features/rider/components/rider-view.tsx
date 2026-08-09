@@ -97,7 +97,6 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
     geography.reset();
     pin.reset();
     search.reset();
-    mapPicker.reset();
     clipboard.reset();
     fareAndRoute.reset();
     offers.reset();
@@ -118,7 +117,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
       // Storage can be unavailable in private browsing; in-memory state is still reset.
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [captainPresence, clipboard, destination, fareAndRoute, geography, mapPicker, offers, pin, search, statusSync, tripCompletion]);
+  }, [captainPresence, clipboard, destination, fareAndRoute, geography, offers, pin, search, statusSync, tripCompletion]);
 
   const sendCancel = useSendCancelRideRequest({
     userId: user?.uid,
@@ -197,7 +196,6 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
           emergencyContact={emergencyContact}
           countryConfig={countryConfig}
           riderLocation={geolocation.riderLocation}
-          onLocationChange={geolocation.handleLocationChange}
           currencyLabel={currencyLabel}
           selectedDraftDestination={selectedDraftDestination}
           selectedDestinationCoords={destination.selectedDestinationCoords}

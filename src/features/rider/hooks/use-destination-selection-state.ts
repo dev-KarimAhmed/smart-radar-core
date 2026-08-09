@@ -61,13 +61,9 @@ export function useDestinationSelectionState(params: {
     language,
     countryConfig,
     selectedDistrict: geography.selectedDistrict,
-    profileFallbackLocation,
     destinationSearchQuery: search.destinationSearchQuery,
     setDestinationSearchResults: search.setDestinationSearchResults,
     setDestinationSearchStatus: search.setDestinationSearchStatus,
-    setDestinationPinLocation: pin.setDestinationPinLocation,
-    setDestinationFlyToTarget: pin.setDestinationFlyToTarget,
-    setIsCaptainScanPreviewActive,
   });
   const clipboard = useClipboardLocationImport({
     geography,
@@ -82,7 +78,6 @@ export function useDestinationSelectionState(params: {
     geography,
     pin,
     search,
-    mapPicker,
     clipboard,
     setIsCaptainScanPreviewActive,
   });

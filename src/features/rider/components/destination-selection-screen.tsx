@@ -11,11 +11,10 @@ import type { useDestinationTextSearch } from '../hooks/use-destination-text-sea
 import type { useDestinationMapPicker } from '../hooks/use-destination-map-picker';
 import type { useClipboardLocationImport } from '../hooks/use-clipboard-location-import';
 import type { useServerFareAndRoute } from '../hooks/use-server-fare-and-route';
-import type { RiderLocation, RiderLocationUpdate } from './rider-map';
+import type { RiderLocation } from './rider-map';
 import { formatMoney } from '../services/rider-view-format';
 import { DestinationAreaPicker } from './destination-area-picker';
 import { DestinationSearchPanel } from './destination-search-panel';
-import { DestinationMapPickerDialog } from './destination-map-picker-dialog';
 import { DestinationTripSummary } from './destination-trip-summary';
 
 const styles = {
@@ -47,8 +46,6 @@ export interface DestinationSelectionScreenProps {
   clipboard: ReturnType<typeof useClipboardLocationImport>;
   fareAndRoute: ReturnType<typeof useServerFareAndRoute>;
   countryConfig: { name_ar?: string | null; name_en?: string | null } | null;
-  riderLocation: RiderLocation;
-  onLocationChange: (payload: RiderLocationUpdate) => void;
   currencyLabel: string;
   selectedDraftDestination: RiderDestination | null;
   selectedDestinationCoords: RiderLocation | null;
@@ -73,8 +70,6 @@ export function DestinationSelectionScreen({
   clipboard,
   fareAndRoute,
   countryConfig,
-  riderLocation,
-  onLocationChange,
   currencyLabel,
   selectedDraftDestination,
   selectedDestinationCoords,
@@ -182,13 +177,6 @@ export function DestinationSelectionScreen({
         currentRouteEstimate={currentRouteEstimate}
         isCaptainScanPreviewActive={isCaptainScanPreviewActive}
         nearbyCaptainCount={nearbyCaptainCount}
-      />
-
-      <DestinationMapPickerDialog
-        isArabic={isArabic}
-        mapPicker={mapPicker}
-        riderLocation={riderLocation}
-        onLocationChange={onLocationChange}
       />
 
       <DestinationTripSummary

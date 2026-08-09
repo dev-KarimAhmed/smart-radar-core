@@ -2,7 +2,6 @@ import React from 'react';
 import type { useDestinationGeographyData } from './use-destination-geography-data';
 import type { useDestinationPin } from './use-destination-pin';
 import type { useDestinationTextSearch } from './use-destination-text-search';
-import type { useDestinationMapPicker } from './use-destination-map-picker';
 import type { useClipboardLocationImport } from './use-clipboard-location-import';
 
 /**
@@ -14,11 +13,10 @@ export function useDestinationSelectionHandlers(params: {
   geography: ReturnType<typeof useDestinationGeographyData>;
   pin: ReturnType<typeof useDestinationPin>;
   search: ReturnType<typeof useDestinationTextSearch>;
-  mapPicker: ReturnType<typeof useDestinationMapPicker>;
   clipboard: ReturnType<typeof useClipboardLocationImport>;
   setIsCaptainScanPreviewActive: (active: boolean) => void;
 }) {
-  const { geography, pin, search, mapPicker, clipboard, setIsCaptainScanPreviewActive } = params;
+  const { geography, pin, search, clipboard, setIsCaptainScanPreviewActive } = params;
 
   const onGovernorateChange = React.useCallback((governorateId: string) => {
     clipboard.clearExternalLocationContext();
@@ -46,9 +44,8 @@ export function useDestinationSelectionHandlers(params: {
     search.setDestinationSearchResults([]);
     search.setDestinationSearchStatus('idle');
     clipboard.reset();
-    mapPicker.setIsMapPickerOpen(false);
     setIsCaptainScanPreviewActive(false);
-  }, [clipboard, mapPicker, search, setIsCaptainScanPreviewActive]);
+  }, [clipboard, search, setIsCaptainScanPreviewActive]);
 
   return { onGovernorateChange, onDistrictChange, onSearchQueryChange };
 }
