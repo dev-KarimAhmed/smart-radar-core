@@ -9,7 +9,7 @@ import { PersonalStep } from './steps/personal-step';
 import { AdminStep } from './steps/admin-step';
 import { useAuth } from '@/hooks/use-auth';
 import { useAuthLocation } from '@/lib/auth-routing';
-import { CaptainOnboarding } from '@/features/captain/components/onboarding/captain-onboarding';
+import { CaptainOnboarding } from '@/features/captain/contract';
 
 const styles = {
   style128_1: "min-h-screen bg-[#0B0F19] flex flex-col justify-center items-center p-4 relative overflow-hidden font-sans",

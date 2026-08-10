@@ -15,9 +15,9 @@ const styles = {
   style78_8: "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
   style87_9: "p-1",
   style89_10: "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]",
-  style106_11: "py-1.5 pl-8 pr-2 text-sm font-semibold",
-  style119_12: "relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
-  style124_13: "absolute left-2 flex h-3 w-3 items-center justify-center",
+  style106_11: "py-1.5 ps-8 pe-2 text-sm font-semibold",
+  style119_12: "relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 ps-8 pe-2 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+  style124_13: "absolute start-2 flex h-3 w-3 items-center justify-center",
   style126_14: "h-4 w-4",
   style141_15: "-mx-1 my-1 h-px bg-muted",
 } as const;
