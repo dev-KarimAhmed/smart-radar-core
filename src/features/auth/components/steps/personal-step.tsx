@@ -15,14 +15,6 @@ import {
   ShieldCheck,
   Sparkles,
   UserRound,
-  UploadCloud,
-  FileText,
-  Car,
-  Calendar,
-  Hash,
-  Briefcase,
-  Link,
-  Globe,
 } from 'lucide-react';
 import {
   Dialog,
@@ -442,38 +434,20 @@ export function PersonalStep() {
     locationDataLoading,
     canUseDevMockData,
     fillRandomRegistrationData,
-    fillCaptainRegistrationData,
     isSubmitting,
     role,
     authMode,
     setAuthMode,
     lang,
     setLang,
-    vehicle,
-    setVehicle,
   } = useRegistration();
   const [showPassword, setShowPassword] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
   const [resetPhone, setResetPhone] = useState(personal.phone);
-  const [registerStep, setRegisterStep] = useState(1);
-
-  React.useEffect(() => {
-    setRegisterStep(1);
-  }, [authMode]);
 
   const onFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (authMode === 'register' && role === 'driver') {
-      if (registerStep === 1) {
-        setRegisterStep(2);
-      } else if (registerStep === 2) {
-        setRegisterStep(3);
-      } else if (registerStep === 3) {
-        handlePersonalSubmit(e);
-      }
-    } else {
-      handlePersonalSubmit(e);
-    }
+    handlePersonalSubmit(e);
   };
 
   const currentLang = lang as Lang;
@@ -574,188 +548,7 @@ export function PersonalStep() {
               className={styles.style405_21}
               onSubmit={onFormSubmit}
             >
-              {/* Conditional Multi-Step for Captains Registration */}
-              {mode === 'register' && role === 'driver' && registerStep === 2 ? (
-                <div className={styles.style410_22} dir="rtl">
-                  <div className={styles.style411_23}>
-                    <span className={styles.style412_24}>الخطوة 2 من 3</span>
-                    <span className={styles.style413_25}>معلومات المركبة والعمل</span>
-                  </div>
-
-                  <Field label="نوع المركبة" icon={<ChevronDown className={styles.style416_26} />}>
-                    <Select
-                      value={vehicle.type || ''}
-                      onValueChange={(value) => setVehicle({ ...vehicle, type: value })}
-                    >
-                      <SelectTrigger className={styles.customSelectTrigger}>
-                        <SelectValue placeholder="اختر نوع المركبة" />
-                      </SelectTrigger>
-                      <SelectContent className={styles.customSelectContent}>
-                        <SelectItem value="ملاكي" className={styles.customSelectItem}>ملاكي (سيارة خاصة)</SelectItem>
-                        <SelectItem value="تاكسي" className={styles.customSelectItem}>تاكسي</SelectItem>
-                        <SelectItem value="سكوتر" className={styles.customSelectItem}>سكوتر</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </Field>
-
-                  <div className={styles.style433_30}>
-                    <Field label="الماركة" icon={<Car className={styles.style434_31} />}>
-                      <input
-                        type="text"
-                        placeholder="مثل: تويوتا، كيا"
-                        value={vehicle.brand || ''}
-                        onChange={(e) => setVehicle({ ...vehicle, brand: e.target.value })}
-                        className={cn(styles.input, styles.style440_32)}
-                        required
-                      />
-                    </Field>
-                    <Field label="الموديل" icon={<Car className={styles.style444_33} />}>
-                      <input
-                        type="text"
-                        placeholder="مثل: كورولا، سيراتو"
-                        value={vehicle.model || ''}
-                        onChange={(e) => setVehicle({ ...vehicle, model: e.target.value })}
-                        className={cn(styles.input, styles.style450_34)}
-                        required
-                      />
-                    </Field>
-                  </div>
-
-                  <div className={styles.style456_35}>
-                    <Field label="سنة الصنع" icon={<Calendar className={styles.style457_36} />}>
-                      <input
-                        type="number"
-                        placeholder="سنة الصنع"
-                        value={vehicle.year || ''}
-                        onChange={(e) => setVehicle({ ...vehicle, year: e.target.value })}
-                        className={cn(styles.input, styles.style463_37)}
-                        required
-                        min="1990"
-                        max="2027"
-                      />
-                    </Field>
-                    <Field label="رقم اللوحة" icon={<Hash className={styles.style469_38} />}>
-                      <input
-                        type="text"
-                        placeholder="مثال: 77-12345"
-                        value={vehicle.plate || ''}
-                        onChange={(e) => setVehicle({ ...vehicle, plate: e.target.value })}
-                        className={cn(styles.input, styles.style475_39)}
-                        required
-                      />
-                    </Field>
-                  </div>
-
-                  <Field label="جهة العمل الحالية (اسم الشركة أو مستقل)" icon={<Briefcase className={styles.style481_40} />}>
-                    <input
-                      type="text"
-                      placeholder="جهة العمل الحالية"
-                      value={vehicle.employment_type || ''}
-                      onChange={(e) => setVehicle({ ...vehicle, employment_type: e.target.value })}
-                      className={cn(styles.input, styles.style487_41)}
-                      required
-                    />
-                    <p className={styles.style490_42}>
-                      اكتب اسم الشركة التابع لها، أو اكتب 'مستقل' إذا كنت تعمل لحسابك الخاص
-                    </p>
-                  </Field>
-
-                  <div className={styles.style495_43}>
-                    <button
-                      type="button"
-                      onClick={() => setRegisterStep(1)}
-                      className={styles.style499_44}
-                    >
-                      رجوع
-                    </button>
-                    <button
-                      type="submit"
-                      className={styles.style505_45}
-                    >
-                      المتابعة للخطوة التالية
-                    </button>
-                  </div>
-                </div>
-              ) : mode === 'register' && role === 'driver' && registerStep === 3 ? (
-                <div className={styles.style512_46} dir="rtl">
-                  <div className={styles.style513_47}>
-                    <span className={styles.style514_48}>الخطوة 3 من 3</span>
-                    <span className={styles.style515_49}>التوثيق والهوية</span>
-                  </div>
-
-                  <Field label="رابط صفحة التواصل الخاصة بك (فيسبوك / لينكد إن) - اختياري" icon={<Globe className={styles.style518_50} />}>
-                    <input
-                      type="url"
-                      placeholder="https://facebook.com/username"
-                      value={vehicle.contact_page_url || ''}
-                      onChange={(e) => setVehicle({ ...vehicle, contact_page_url: e.target.value })}
-                      className={cn(styles.input, styles.style524_51)}
-                    />
-                  </Field>
-
-                  <div className={styles.style528_52}>
-                    <label className={styles.style529_53}>تحميل الوثائق الرسمية (KYC)</label>
-                    <div className={styles.style530_54}>
-                      <div className={styles.style531_55}>
-                        <UploadCloud className={styles.style532_56} />
-                        <span className={styles.style533_57}>رخصة القيادة الشخصية</span>
-                        <input
-                          type="file"
-                          accept="image/*,application/pdf"
-                          className={styles.style537_58}
-                        />
-                      </div>
-
-                      <div className={styles.style541_59}>
-                        <FileText className={styles.style542_60} />
-                        <span className={styles.style543_61}>رخصة المركبة</span>
-                        <input
-                          type="file"
-                          accept="image/*,application/pdf"
-                          className={styles.style547_62}
-                        />
-                      </div>
-
-                      <div className={styles.style551_63}>
-                        <UploadCloud className={styles.style552_64} />
-                        <span className={styles.style553_65}>بطاقة الهوية الوطنية</span>
-                        <input
-                          type="file"
-                          accept="image/*,application/pdf"
-                          className={styles.style557_66}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className={styles.style563_67}>
-                    <button
-                      type="button"
-                      onClick={() => setRegisterStep(2)}
-                      className={styles.style567_68}
-                    >
-                      رجوع
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={isSubmitting}
-                      className={styles.style574_69}
-                    >
-                      {isSubmitting ? 'جاري الإرسال...' : 'إرسال طلب الانضمام للمراجعة'}
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  {/* Step 1 or Login view */}
-                  {mode === 'register' && role === 'driver' && (
-                    <div className={styles.style584_70} dir="rtl">
-                      <span className={styles.style585_71}>الخطوة 1 من 3</span>
-                      <span className={styles.style586_72}>المعلومات الشخصية والمدينة</span>
-                    </div>
-                  )}
-
-                  {mode === 'register' && (role === 'driver' || (role !== 'rider' && canUseDevMockData)) ? (
+                  {mode === 'register' && (role !== 'rider' && canUseDevMockData) ? (
                     <div className={styles.style591_73}>
                       <div className={styles.style592_74}>
                         {locationDataLoading ? (
@@ -771,17 +564,15 @@ export function PersonalStep() {
                         )}
                       </div>
 
-                      {role === 'driver' || canUseDevMockData ? (
-                        <button
-                          type="button"
-                          onClick={role === 'driver' ? fillCaptainRegistrationData : fillRandomRegistrationData}
-                          disabled={locationDataLoading}
-                          className={styles.style611_77}
-                        >
-                          <Sparkles className={styles.style613_78} aria-hidden="true" />
-                          {role === 'driver' ? (isArabic ? 'بيانات كابتن تجربة' : 'Captain test data') : t.mockData}
-                        </button>
-                      ) : null}
+                      <button
+                        type="button"
+                        onClick={fillRandomRegistrationData}
+                        disabled={locationDataLoading}
+                        className={styles.style611_77}
+                      >
+                        <Sparkles className={styles.style613_78} aria-hidden="true" />
+                        {t.mockData}
+                      </button>
                     </div>
                   ) : null}
 
@@ -929,10 +720,8 @@ export function PersonalStep() {
                     disabled={isSubmitting}
                     className={styles.style785_130}
                   >
-                    {isSubmitting ? '...' : mode === 'register' ? (role === 'driver' ? 'المتابعة للخطوة التالية' : t.submitRegister) : t.submitLogin}
+                    {isSubmitting ? '...' : mode === 'register' ? t.submitRegister : t.submitLogin}
                   </motion.button>
-                </>
-              )}
             </motion.form>
           </AnimatePresence>
 

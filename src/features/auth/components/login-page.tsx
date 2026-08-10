@@ -9,6 +9,7 @@ import { PersonalStep } from './steps/personal-step';
 import { AdminStep } from './steps/admin-step';
 import { useAuth } from '@/hooks/use-auth';
 import { useAuthLocation } from '@/lib/auth-routing';
+import { CaptainOnboarding } from '@/features/captain/components/onboarding/captain-onboarding';
 
 const styles = {
   style128_1: "min-h-screen bg-[#0B0F19] flex flex-col justify-center items-center p-4 relative overflow-hidden font-sans",
@@ -153,6 +154,11 @@ function LoginOrchestrator() {
   // Full-screen pages carry their own layout.
   if (location.view === 'role') {
     return <RoleStep />;
+  }
+
+  // Captain sign-up is a fully self-contained, UI-only flow (no Supabase calls yet).
+  if (location.view === 'register' && location.role === 'driver') {
+    return <CaptainOnboarding />;
   }
 
   if (location.view === 'login' || location.view === 'register') {

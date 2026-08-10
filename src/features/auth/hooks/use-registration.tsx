@@ -133,7 +133,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
   const [rememberMe, setRememberMe] = useState(false);
   const [advertiserProfile, setAdvertiserProfile] = useState({ companyName: '', commercialRegister: '', adLicense: '', businessType: 'commercial' });
   const [affiliation, setAffiliation] = useState<AffiliationType | null>(null);
-  const [vehicle, setVehicle] = useState({ year: '', plate: '', sideId: '', make: '', color: '', officeName: '', officePhone: '', companyName: '', type: '', brand: '', model: '', employment_type: '', identity_url: '', contact_page_url: '' });
+  const [vehicle, setVehicle] = useState({ year: '', plate: '', sideId: '', make: '', color: '', officeName: '', officePhone: '', companyName: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [logoTapCount, setLogoTapCount] = useState(0);
   const [adminCreds, setAdminCreds] = useState({ email: '', password: '' });
@@ -466,9 +466,6 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     setAuthPassword(`Captain${serial}!`);
     setVehicle((current: any) => ({
       ...current,
-      type: 'sedan',
-      brand: 'Toyota',
-      model: 'Corolla',
       make: 'Toyota Corolla',
       color: 'black',
       plate: `TEST-${plateSuffix}`,
@@ -477,9 +474,6 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
       officeName: 'Smart Radar Test Office',
       officePhone: demoPhone,
       sideId: `D-${plateSuffix}`,
-      employment_type: 'smart_app',
-      identity_url: 'dev-captain-license',
-      contact_page_url: `https://wa.me/${demoPhone.replace(/\D/g, '')}`,
     }));
 
     toast({
@@ -590,19 +584,22 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
       if (role === 'driver') {
         const userId = signUpResult.user?.id;
         if (userId) {
+          const isTaxi = affiliation === 'office-taxi';
           const { error: profileError } = await supabase.from('captain_profiles').insert({
             id: userId,
-            vehicle_type: vehicle.type,
-            vehicle_brand: vehicle.brand,
-            vehicle_model: vehicle.model,
+            vehicle_type: isTaxi ? 'تاكسي' : 'ملاكي',
+            vehicle_brand: isTaxi ? null : vehicle.make,
+            vehicle_color: isTaxi ? null : vehicle.color,
             vehicle_year: Number(vehicle.year) || null,
             plate_number: vehicle.plate,
-            employment_type: vehicle.employment_type,
-            identity_url: vehicle.identity_url,
-            contact_page_url: vehicle.contact_page_url,
+            employment_type: isTaxi ? vehicle.officeName : vehicle.companyName,
+            affiliation_type: affiliation,
+            office_phone: isTaxi ? vehicle.officePhone : null,
+            side_id: isTaxi ? vehicle.sideId : null,
+            identity_url: personal.verificationDoc,
             verification_status: 'PENDING'
           });
-          
+
           if (profileError) {
             console.error('[Captain Profile Insert Error]', profileError);
             throw new Error(profileError.message || 'تعذر حفظ بيانات الكابتن الإضافية.');
@@ -645,6 +642,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
       isSubmittingRef.current = false;
     }
   }, [
+    affiliation,
     authMode,
     authPassword,
     districtRows,
@@ -654,6 +652,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     personal.gov,
     personal.name,
     personal.phone,
+    personal.verificationDoc,
     rememberMe,
     role,
     router,
