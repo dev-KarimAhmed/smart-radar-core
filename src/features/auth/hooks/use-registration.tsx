@@ -22,8 +22,8 @@ import {
   type SupabaseDistrictRow,
 } from './use-supabase-locations';
 import { useDetectedCountryCode } from './use-detected-country-code';
-import { parsePhoneNumberFromString, getExampleNumber, type CountryCode } from 'libphonenumber-js/min';
-import phoneNumberExamples from 'libphonenumber-js/examples.mobile.json';
+import { parsePhoneNumberFromString, getExampleNumber, type CountryCode } from 'libphonenumber-js';
+import phoneNumberExamples from 'libphonenumber-js/mobile/examples';
 
 const styles = {
   root: "",
