@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 
 /**
  * [SCR-2026-056] صياد الروابط الفطري (Native Link Catcher)
- * يمتثل للمادة (2) من ميثاق العهد الماسي: استقبال الروابط عبر Web Share Target.
+ * يمتثل للمادة (2) من ميثاق النظام الماسي: استقبال الروابط عبر Web Share Target.
  */
 export function useLinkCatcher() {
   const [capturedLink, setCapturedLink] = useState<string | null>(null);

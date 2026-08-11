@@ -43,4 +43,4 @@ export {
 } from './handlers/ratings';
 
 // cleanup.ts
-export { purgeExpiredBuffers } from './handlers/cleanup';
+export { purgeExpiredBuffers, purgeExpiredTrips72Hours } from './handlers/cleanup';

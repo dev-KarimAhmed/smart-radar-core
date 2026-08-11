@@ -1,7 +1,11 @@
 {
   "compilerOptions": {
     "target": "ES2017",
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -11,7 +15,7 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "incremental": true,
     "plugins": [
       {
@@ -19,9 +23,37 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/components/ui/*": [
+        "./src/shared/components/ui/*"
+      ],
+      "@/components/providers/*": [
+        "./src/shared/components/providers/*"
+      ],
+      "@/components/shared/*": [
+        "./src/shared/components/*"
+      ],
+      "@/hooks/use-dashboard-language": [
+        "./src/shared/hooks/use-dashboard-language"
+      ],
+      "@/hooks/use-toast": [
+        "./src/shared/hooks/use-toast"
+      ],
+      "@/*": [
+        "./src/*"
+      ]
     }
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "vite.config.ts"],
-  "exclude": ["node_modules", "functions", "src/functions", "src/app", "src/ai"]
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "vite.config.ts",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "functions",
+    "src/functions",
+    "src/ai"
+  ]
 }

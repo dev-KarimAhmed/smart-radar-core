@@ -1,0 +1,22 @@
+const { chromium } = require('@playwright/test');
+(async () => {
+  const browser = await chromium.launch({ headless: true });
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  const logs = [];
+  page.on('console', msg => logs.push({ type: msg.type(), text: msg.text(), loc: msg.location() }));
+  page.on('pageerror', err => logs.push({ type: 'pageerror', text: err.stack || err.message }));
+  await page.goto('http://127.0.0.1:3000/', { waitUntil: 'networkidle' });
+  await page.getByText('Captain demo', { exact: false }).click();
+  await page.waitForTimeout(2500);
+  console.log('after demo', (await page.locator('body').innerText()).slice(0, 1500));
+  const buttons = await page.locator('button').evaluateAll(btns => btns.map((b, i) => ({ i, text: b.textContent?.trim() })));
+  console.log('buttons after demo', JSON.stringify(buttons, null, 2));
+  const walletButton = page.getByRole('button', { name: /Wallet/ }).first();
+  console.log('wallet visible', await walletButton.isVisible().catch(e => false));
+  await walletButton.click();
+  await page.waitForTimeout(2500);
+  console.log('after wallet', (await page.locator('body').innerText()).slice(0, 2500));
+  console.log('logs', JSON.stringify(logs, null, 2).slice(0, 16000));
+  await page.screenshot({ path: '.codex-wallet-debug.png', fullPage: true });
+  await browser.close();
+})();

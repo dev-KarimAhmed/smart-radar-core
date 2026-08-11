@@ -1,5 +1,5 @@
 // [SCR-GEO-REFILL-158] محرك الشحن الرقمي اللامركزي الموجه حسب اللواء الجغرافي
-// محصن ومغلق دستورياً - يعمل بالكامل بصفر كلفة سحابية وصفر تدخل للمندوبين
+// محصن ومغلق تقنياً - يعمل بالكامل بصفر كلفة سحابية وصفر تدخل للمندوبين
 
 export interface CaptainGeoWallet {
   captainId: string;
@@ -16,7 +16,7 @@ export interface GeoPaymentGateway {
 
 export const RadarGeoRefillKernel = {
   
-  // مصفوفة مكافآت الرتب الحاكمة المقفلة دستورياً لمنع الاجتهاد
+  // مصفوفة مكافآت الرتب الحاكمة المقفلة تقنياً لمنع الاجتهاد
   RANK_BONUS_FACTORS: Object.freeze({
     PLATINUM: 1.25, // بونص +25% ساعات حرة
     GOLD: 1.15,     // بونص +15% ساعات حرة
@@ -44,7 +44,7 @@ export const RadarGeoRefillKernel = {
       };
     }
 
-    // 2. احتساب الساعات الأساسية بناءً على القيمة المعتدلة المقرة دستورياً
+    // 2. احتساب الساعات الأساسية بناءً على القيمة المعتدلة المقرة تقنياً
     let baseMinutesToAdd = 0;
     if (amountPaid === 1) baseMinutesToAdd = 24 * 60;   // باقة الـ 24 ساعة صافية
     if (amountPaid === 10) baseMinutesToAdd = 100 * 60; // باقة الـ 100 ساعة صافية

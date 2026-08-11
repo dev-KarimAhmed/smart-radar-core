@@ -9,6 +9,8 @@
 
 # Testing
 /coverage
+/test-results/
+/playwright-report/
 
 # Next.js
 /.next/
@@ -20,7 +22,7 @@
 # Misc
 .DS_Store
 *.pem
-
+ 
 # Debug
 npm-debug.log*
 yarn-debug.log*
@@ -28,7 +30,6 @@ yarn-error.log*
 pnpm-debug.log*
 
 # Local env files
-.env
 .env.local
 .env.development.local
 .env.test.local
@@ -40,3 +41,13 @@ pnpm-debug.log*
 # Typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# codex 
+.codex/config.toml
+
+# Build output
+/dist
+
+# Isolated feature worktrees
+/.worktrees/
+ 

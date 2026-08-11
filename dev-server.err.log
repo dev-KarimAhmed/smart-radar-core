@@ -1,0 +1,156 @@
+[2m1:34:39 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[Sovereign FCM] Push notifications are disabled in development environment to prevent ServiceWorker errors. This is normal.
+[2m1:34:40 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[Sovereign FCM] Push notifications are disabled in development environment to prevent ServiceWorker errors. This is normal.
+[2m1:35:05 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[Sovereign FCM] Push notifications are disabled in development environment to prevent ServiceWorker errors. This is normal.
+[2m1:35:05 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m=== SOVEREIGN ERROR REPORT ===
+[2m1:35:05 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mError Message: ليست لديك الصلاحية الفنية لتنفيذ هذه العملية.
+[2m1:35:05 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mRaw Error: FirebaseError: Missing or insufficient permissions.
+[2m1:35:05 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mContext: {"context":"MarketPulseListener"}
+[2m1:35:05 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m==============================
+[2m1:35:05 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m=== SOVEREIGN ERROR REPORT ===
+[2m1:35:05 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mError Message: ليست لديك الصلاحية الفنية لتنفيذ هذه العملية.
+[2m1:35:05 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mRaw Error: FirebaseError: Missing or insufficient permissions.
+[2m1:35:05 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mContext: {"context":"MarketPulseListener"}
+[2m1:35:05 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m==============================
+[2m1:35:05 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m=== SOVEREIGN ERROR REPORT ===
+[2m1:35:05 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mError Message: ليست لديك الصلاحية الفنية لتنفيذ هذه العملية.
+[2m1:35:05 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mRaw Error: FirebaseError: Missing or insufficient permissions.
+[2m1:35:05 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mContext: {"context":"PromoData_Listener"}
+[2m1:35:05 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m==============================
+[2m1:35:05 AM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mError listening to sovereign fleet: FirebaseError: Missing or insufficient permissions.
+[2m1:35:14 AM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mFirestore error loading delegates: FirebaseError: Missing or insufficient permissions.
+[2m1:45:33 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[Sovereign FCM] Push notifications are disabled in development environment to prevent ServiceWorker errors. This is normal.
+[2m1:45:38 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m=== SOVEREIGN ERROR REPORT ===
+[2m1:45:38 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mError Message: ليست لديك الصلاحية الفنية لتنفيذ هذه العملية.
+[2m1:45:38 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mRaw Error: FirebaseError: Missing or insufficient permissions.
+[2m1:45:38 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mContext: {"context":"PromoData_Listener"}
+[2m1:45:38 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m==============================
+[2m1:45:38 AM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mError listening to sovereign fleet: FirebaseError: Missing or insufficient permissions.
+[2m1:45:38 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m=== SOVEREIGN ERROR REPORT ===
+[2m1:45:38 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mError Message: ليست لديك الصلاحية الفنية لتنفيذ هذه العملية.
+[2m1:45:38 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mRaw Error: FirebaseError: Missing or insufficient permissions.
+[2m1:45:38 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mContext: {"context":"MarketPulseListener"}
+[2m1:45:38 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m==============================
+[2m1:45:38 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m=== SOVEREIGN ERROR REPORT ===
+[2m1:45:38 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mError Message: ليست لديك الصلاحية الفنية لتنفيذ هذه العملية.
+[2m1:45:38 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mRaw Error: FirebaseError: Missing or insufficient permissions.
+[2m1:45:38 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mContext: {"context":"MarketPulseListener"}
+[2m1:45:38 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m==============================
+[2m1:47:15 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[Sovereign FCM] Push notifications are disabled in development environment to prevent ServiceWorker errors. This is normal.
+[2m1:47:15 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m=== SOVEREIGN ERROR REPORT ===
+[2m1:47:15 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mError Message: ليست لديك الصلاحية الفنية لتنفيذ هذه العملية.
+[2m1:47:15 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mRaw Error: FirebaseError: Missing or insufficient permissions.
+[2m1:47:15 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mContext: {"context":"PromoData_Listener"}
+[2m1:47:15 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m==============================
+[2m1:47:15 AM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mError listening to sovereign fleet: FirebaseError: Missing or insufficient permissions.
+[2m1:47:15 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m=== SOVEREIGN ERROR REPORT ===
+[2m1:47:15 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mError Message: ليست لديك الصلاحية الفنية لتنفيذ هذه العملية.
+[2m1:47:15 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mRaw Error: FirebaseError: Missing or insufficient permissions.
+[2m1:47:15 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mContext: {"context":"MarketPulseListener"}
+[2m1:47:15 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m==============================
+[2m1:47:15 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m=== SOVEREIGN ERROR REPORT ===
+[2m1:47:15 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mError Message: ليست لديك الصلاحية الفنية لتنفيذ هذه العملية.
+[2m1:47:15 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mRaw Error: FirebaseError: Missing or insufficient permissions.
+[2m1:47:15 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mContext: {"context":"MarketPulseListener"}
+[2m1:47:15 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m==============================
+[2m1:49:04 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[Sovereign FCM] Push notifications are disabled in development environment to prevent ServiceWorker errors. This is normal.
+[2m1:49:05 AM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mError listening to sovereign fleet: FirebaseError: Missing or insufficient permissions.
+[2m1:49:05 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m=== SOVEREIGN ERROR REPORT ===
+[2m1:49:05 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mError Message: ليست لديك الصلاحية الفنية لتنفيذ هذه العملية.
+[2m1:49:05 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mRaw Error: FirebaseError: Missing or insufficient permissions.
+[2m1:49:05 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mContext: {"context":"PromoData_Listener"}
+[2m1:49:05 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m==============================
+[2m1:49:05 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m=== SOVEREIGN ERROR REPORT ===
+[2m1:49:05 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mError Message: ليست لديك الصلاحية الفنية لتنفيذ هذه العملية.
+[2m1:49:05 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mRaw Error: FirebaseError: Missing or insufficient permissions.
+[2m1:49:05 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mContext: {"context":"MarketPulseListener"}
+[2m1:49:05 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m==============================
+[2m1:49:05 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m=== SOVEREIGN ERROR REPORT ===
+[2m1:49:05 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mError Message: ليست لديك الصلاحية الفنية لتنفيذ هذه العملية.
+[2m1:49:05 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mRaw Error: FirebaseError: Missing or insufficient permissions.
+[2m1:49:05 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mContext: {"context":"MarketPulseListener"}
+[2m1:49:05 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m==============================
+[2m1:49:52 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[Sovereign FCM] Push notifications are disabled in development environment to prevent ServiceWorker errors. This is normal.
+[2m1:49:52 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m=== SOVEREIGN ERROR REPORT ===
+[2m1:49:52 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mError Message: ليست لديك الصلاحية الفنية لتنفيذ هذه العملية.
+[2m1:49:52 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mRaw Error: FirebaseError: Missing or insufficient permissions.
+[2m1:49:52 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mContext: {"context":"PromoData_Listener"}
+[2m1:49:52 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m==============================
+[2m1:49:52 AM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mError listening to sovereign fleet: FirebaseError: Missing or insufficient permissions.
+[2m1:49:52 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m=== SOVEREIGN ERROR REPORT ===
+[2m1:49:52 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mError Message: ليست لديك الصلاحية الفنية لتنفيذ هذه العملية.
+[2m1:49:52 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mRaw Error: FirebaseError: Missing or insufficient permissions.
+[2m1:49:52 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mContext: {"context":"MarketPulseListener"}
+[2m1:49:52 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m==============================
+[2m1:49:52 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m=== SOVEREIGN ERROR REPORT ===
+[2m1:49:52 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mError Message: ليست لديك الصلاحية الفنية لتنفيذ هذه العملية.
+[2m1:49:52 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mRaw Error: FirebaseError: Missing or insufficient permissions.
+[2m1:49:52 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mContext: {"context":"MarketPulseListener"}
+[2m1:49:52 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m==============================
+[2m1:50:15 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[Sovereign FCM] Push notifications are disabled in development environment to prevent ServiceWorker errors. This is normal.
+[2m1:50:16 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m=== SOVEREIGN ERROR REPORT ===
+[2m1:50:16 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mError Message: ليست لديك الصلاحية الفنية لتنفيذ هذه العملية.
+[2m1:50:16 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mRaw Error: FirebaseError: Missing or insufficient permissions.
+[2m1:50:16 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mContext: {"context":"PromoData_Listener"}
+[2m1:50:16 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m==============================
+[2m1:50:16 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m=== SOVEREIGN ERROR REPORT ===
+[2m1:50:16 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mError Message: ليست لديك الصلاحية الفنية لتنفيذ هذه العملية.
+[2m1:50:16 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mRaw Error: FirebaseError: Missing or insufficient permissions.
+[2m1:50:16 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mContext: {"context":"MarketPulseListener"}
+[2m1:50:16 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m==============================
+[2m1:50:16 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m=== SOVEREIGN ERROR REPORT ===
+[2m1:50:16 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mError Message: ليست لديك الصلاحية الفنية لتنفيذ هذه العملية.
+[2m1:50:16 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mRaw Error: FirebaseError: Missing or insufficient permissions.
+[2m1:50:16 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mContext: {"context":"MarketPulseListener"}
+[2m1:50:16 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m==============================
+[2m1:50:16 AM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mError listening to sovereign fleet: FirebaseError: Missing or insufficient permissions.
+[2m1:50:36 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[Sovereign FCM] Push notifications are disabled in development environment to prevent ServiceWorker errors. This is normal.
+[2m1:50:37 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m=== SOVEREIGN ERROR REPORT ===
+[2m1:50:37 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mError Message: ليست لديك الصلاحية الفنية لتنفيذ هذه العملية.
+[2m1:50:37 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mRaw Error: FirebaseError: Missing or insufficient permissions.
+[2m1:50:37 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mContext: {"context":"PromoData_Listener"}
+[2m1:50:37 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m==============================
+[2m1:50:37 AM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mError listening to sovereign fleet: FirebaseError: Missing or insufficient permissions.
+[2m1:50:37 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m=== SOVEREIGN ERROR REPORT ===
+[2m1:50:37 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mError Message: ليست لديك الصلاحية الفنية لتنفيذ هذه العملية.
+[2m1:50:37 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mRaw Error: FirebaseError: Missing or insufficient permissions.
+[2m1:50:37 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mContext: {"context":"MarketPulseListener"}
+[2m1:50:37 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m==============================
+[2m1:50:37 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m=== SOVEREIGN ERROR REPORT ===
+[2m1:50:37 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mError Message: ليست لديك الصلاحية الفنية لتنفيذ هذه العملية.
+[2m1:50:37 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mRaw Error: FirebaseError: Missing or insufficient permissions.
+[2m1:50:37 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mContext: {"context":"MarketPulseListener"}
+[2m1:50:37 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m==============================
+[2m1:50:41 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[Sovereign FCM] Push notifications are disabled in development environment to prevent ServiceWorker errors. This is normal.
+[2m1:50:42 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m=== SOVEREIGN ERROR REPORT ===
+[2m1:50:42 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mError Message: ليست لديك الصلاحية الفنية لتنفيذ هذه العملية.
+[2m1:50:42 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mRaw Error: FirebaseError: Missing or insufficient permissions.
+[2m1:50:42 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mContext: {"context":"PromoData_Listener"}
+[2m1:50:42 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m==============================
+[2m1:50:42 AM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mError listening to sovereign fleet: FirebaseError: Missing or insufficient permissions.
+[2m1:50:42 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m=== SOVEREIGN ERROR REPORT ===
+[2m1:50:42 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mError Message: ليست لديك الصلاحية الفنية لتنفيذ هذه العملية.
+[2m1:50:42 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mRaw Error: FirebaseError: Missing or insufficient permissions.
+[2m1:50:42 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mContext: {"context":"MarketPulseListener"}
+[2m1:50:42 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m==============================
+[2m1:50:42 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m=== SOVEREIGN ERROR REPORT ===
+[2m1:50:42 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mError Message: ليست لديك الصلاحية الفنية لتنفيذ هذه العملية.
+[2m1:50:42 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mRaw Error: FirebaseError: Missing or insufficient permissions.
+[2m1:50:42 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mContext: {"context":"MarketPulseListener"}
+[2m1:50:42 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m==============================
+[2m2:03:07 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[Sovereign FCM] Push notifications are disabled in development environment to prevent ServiceWorker errors. This is normal.
+[2m2:03:08 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m=== SOVEREIGN ERROR REPORT ===
+[2m2:03:08 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mError Message: ليست لديك الصلاحية الفنية لتنفيذ هذه العملية.
+[2m2:03:08 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mRaw Error: FirebaseError: Missing or insufficient permissions.
+[2m2:03:08 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mContext: {"context":"PromoData_Listener"}
+[2m2:03:08 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m==============================
+[2m2:03:08 AM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mError listening to sovereign fleet: FirebaseError: Missing or insufficient permissions.
+[2m2:03:08 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m=== SOVEREIGN ERROR REPORT ===
+[2m2:03:08 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mError Message: ليست لديك الصلاحية الفنية لتنفيذ هذه العملية.
+[2m2:03:08 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mRaw Error: FirebaseError: Missing or insufficient permissions.
+[2m2:03:08 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mContext: {"context":"MarketPulseListener"}
+[2m2:03:08 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m==============================
+[2m2:03:08 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m=== SOVEREIGN ERROR REPORT ===
+[2m2:03:08 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mError Message: ليست لديك الصلاحية الفنية لتنفيذ هذه العملية.
+[2m2:03:08 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mRaw Error: FirebaseError: Missing or insufficient permissions.
+[2m2:03:08 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mContext: {"context":"MarketPulseListener"}
+[2m2:03:08 AM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m==============================
