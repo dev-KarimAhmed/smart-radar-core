@@ -6,6 +6,9 @@ import { CheckCircle2, Languages, ShieldCheck } from 'lucide-react';
 import { navigateAuth } from '@/lib/auth-routing';
 import { cn } from '@/lib/utils';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
+import { useToast } from '@/hooks/use-toast';
+import { mapSupabaseAuthError, signUpCaptainWithPhone } from '@/features/auth/services/supabase-auth';
+import type { CaptainProfileMetadata } from '@/features/auth/services/supabase-auth';
 import type { AffiliationType } from '@/core/types';
 import { CaptainPersonalStep, type CaptainPersonalValues } from './captain-personal-step';
 import { CaptainAffiliationStep } from './captain-affiliation-step';
@@ -30,6 +33,8 @@ const emptyVehicle: CaptainVehicleValues = {
   sideId: '',
   companyName: '',
   make: '',
+  model: '',
+  contactPageUrl: '',
   color: '#14b8a6',
   plate: '',
   year: '',
@@ -41,6 +46,8 @@ function readStoredRememberMe(): boolean {
 }
 
 const styles = {
+  hydrationShell: 'flex min-h-screen w-full items-center justify-center bg-[#0B0F19]',
+  hydrationSpinner: 'h-8 w-8 animate-spin rounded-full border-2 border-[#14B8A6]/25 border-t-[#14B8A6]',
   main: 'relative min-h-screen overflow-hidden bg-[#0B0F19] text-slate-100',
   glow: 'pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle_at_18%_12%,rgba(20,184,166,0.20),transparent_30%),radial-gradient(circle_at_82%_22%,rgba(45,212,191,0.08),transparent_28%)]',
   langButton:
@@ -69,12 +76,20 @@ const styles = {
 export function CaptainOnboarding() {
   const t = useTranslations('captainOnboarding');
   const { isArabic, setLanguage } = useDashboardLanguage();
+  const [isHydrated, setIsHydrated] = React.useState(false);
   const [step, setStep] = React.useState<OnboardingStep>(1);
   const [personal, setPersonal] = React.useState<CaptainPersonalValues>(emptyPersonal);
   const [rememberMe, setRememberMe] = React.useState<boolean>(readStoredRememberMe);
   const [affiliation, setAffiliation] = React.useState<AffiliationType | null>(null);
   const [vehicle, setVehicle] = React.useState<CaptainVehicleValues>(emptyVehicle);
-  const [licenseImage, setLicenseImage] = React.useState('');
+  const [identityFile, setIdentityFile] = React.useState<File | null>(null);
+  const [drivingLicenseFile, setDrivingLicenseFile] = React.useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const { toast } = useToast();
+
+  React.useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   const handleRememberMeChange = (value: boolean) => {
     setRememberMe(value);
@@ -82,6 +97,74 @@ export function CaptainOnboarding() {
       window.localStorage.setItem(REMEMBER_ME_STORAGE_KEY, value ? 'true' : 'false');
     }
   };
+
+  const submitCaptainRegistration = async () => {
+    if (!personal.country || !personal.governorate || !personal.district || !affiliation) return;
+
+    const isTaxi = affiliation === 'office-taxi';
+    const captainProfile: CaptainProfileMetadata = {
+      vehicle_type: isTaxi ? 'TAXI' : 'PRIVATE',
+      vehicle_brand: isTaxi ? null : vehicle.make.trim() || null,
+      vehicle_model: vehicle.model.trim() || null,
+      vehicle_color: isTaxi ? null : vehicle.color.trim() || null,
+      vehicle_year: Number(vehicle.year) || null,
+      plate_number: vehicle.plate.trim() || null,
+      employment_type: isTaxi ? vehicle.officeName.trim() || null : vehicle.companyName.trim() || null,
+      affiliation_type: affiliation,
+      office_phone: isTaxi ? vehicle.officePhone.trim() || null : null,
+      side_id: isTaxi ? vehicle.sideId.trim() || null : null,
+      identity_url: null,
+      contact_page_url: vehicle.contactPageUrl.trim() || null,
+      driving_license_url: null,
+      verification_status: 'PENDING',
+    };
+
+    setIsSubmitting(true);
+    try {
+      const result = await signUpCaptainWithPhone({
+        phone: personal.phone,
+        password: personal.password,
+        fullName: personal.name,
+        countryId: Number(personal.country),
+        governorateId: Number(personal.governorate),
+        districtId: Number(personal.district),
+        rememberMe,
+        captainProfile,
+        identityFile,
+        drivingLicenseFile,
+      });
+
+      toast({
+        title: t('successTitle'),
+        description: t(result.session ? 'successDescription' : 'successNeedsLogin'),
+      });
+
+      if (result.session) {
+        window.location.replace('/captain');
+      } else {
+        navigateAuth('login', 'driver');
+      }
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: t('errorTitle'),
+        description: mapSupabaseAuthError(error),
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // The locale and remember-me preference are restored from browser storage
+  // after mount. Keep the first render identical on the server and client so
+  // Next.js never hydrates two different onboarding trees.
+  if (!isHydrated) {
+    return (
+      <main className={styles.hydrationShell} aria-busy="true">
+        <div className={styles.hydrationSpinner} aria-hidden="true" />
+      </main>
+    );
+  }
 
   return (
     <main dir={isArabic ? 'rtl' : 'ltr'} className={styles.main}>
@@ -135,10 +218,13 @@ export function CaptainOnboarding() {
               affiliation={affiliation}
               vehicle={vehicle}
               setVehicle={setVehicle}
-              licenseImage={licenseImage}
-              onLicenseChange={setLicenseImage}
+              identityFile={identityFile}
+              onIdentityFileChange={setIdentityFile}
+              drivingLicenseFile={drivingLicenseFile}
+              onDrivingLicenseFileChange={setDrivingLicenseFile}
               onBack={() => setStep(2)}
-              onSubmit={() => setStep('done')}
+              onSubmit={() => void submitCaptainRegistration()}
+              isSubmitting={isSubmitting}
               country={personal.countryIso}
             />
           ) : (

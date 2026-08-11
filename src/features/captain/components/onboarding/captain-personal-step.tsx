@@ -155,7 +155,7 @@ export function CaptainPersonalStep({
           value={values.country}
           onValueChange={handleCountryChange}
           options={countryOptions}
-          placeholder={countriesLoading && !countryOptions.length ? '...' : t('countryPlaceholder')}
+          placeholder={countriesLoading && !countryOptions.length ? t('loading') : t('countryPlaceholder')}
           disabled={countriesLoading && !countryOptions.length}
         />
         {errors.country ? <p className={styles.error}>{errors.country}</p> : null}
@@ -169,7 +169,7 @@ export function CaptainPersonalStep({
         <Input
           type="tel"
           dir="ltr"
-          placeholder="0791234567"
+          placeholder={t('phonePlaceholder')}
           value={values.phone}
           onChange={(e) => handleFieldChange('phone', e.target.value)}
           className={styles.input}
@@ -192,7 +192,7 @@ export function CaptainPersonalStep({
             !values.country
               ? t('countryPlaceholder')
               : governoratesLoading && !governorateOptions.length
-                ? '...'
+                ? t('loading')
                 : t('governoratePlaceholder')
           }
           disabled={!values.country || (governoratesLoading && !governorateOptions.length)}
@@ -213,7 +213,7 @@ export function CaptainPersonalStep({
             !values.governorate
               ? t('districtPlaceholderDisabled')
               : districtsLoading && !districtOptions.length
-                ? '...'
+                ? t('loading')
                 : t('districtPlaceholder')
           }
           disabled={!values.governorate || (districtsLoading && !districtOptions.length)}

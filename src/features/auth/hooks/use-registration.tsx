@@ -455,11 +455,10 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
         const userId = signUpResult.user?.id;
         if (userId) {
           const isTaxi = affiliation === 'office-taxi';
-          const { error: profileError } = await supabase.from('captain_profiles').insert({
+          const { error: profileError } = await supabase.from('captain_profiles').upsert({
             id: userId,
             vehicle_type: isTaxi ? 'تاكسي' : 'ملاكي',
             vehicle_brand: isTaxi ? null : vehicle.make,
-            vehicle_color: isTaxi ? null : vehicle.color,
             vehicle_year: Number(vehicle.year) || null,
             plate_number: vehicle.plate,
             employment_type: isTaxi ? vehicle.officeName : vehicle.companyName,

@@ -11,7 +11,7 @@ assert.equal(validatePhoneAndPassword('+962790000000', '123').ok, false);
 
 assert.equal(
   mapSupabaseAuthError({ code: 'phone_exists', message: 'User already registered' }),
-  'رقم الهاتف مسجل بالفعل، يرجى تسجيل الدخول.',
+  'رقم الهاتف مسجل بالفعل. يرجى تسجيل الدخول.',
 );
 
 assert.equal(
@@ -26,12 +26,12 @@ assert.equal(
 
 assert.equal(
   mapSupabaseAuthError({ code: 'unexpected_failure', status: 500, message: 'Database error saving new user' }),
-  'تعذر إنشاء الحساب من قاعدة البيانات. يرجى مراجعة إعدادات الحساب ثم المحاولة مرة أخرى.',
+  'تعذر إنشاء الحساب من قاعدة البيانات. راجع البيانات وحاول مرة أخرى.',
 );
 
 assert.equal(
   mapSupabaseAuthError({ code: 'unexpected_failure', status: 500, message: 'foreign key country_id district_id' }),
-  'تعذر إنشاء الحساب لأن الدولة أو المحافظة أو المنطقة غير موجودة في قاعدة البيانات. حدّث الاختيارات ثم حاول مرة أخرى.',
+  'تعذر إنشاء الحساب لأن الدولة أو المحافظة أو المنطقة غير موجودة. حدّث الاختيارات ثم حاول مرة أخرى.',
 );
 
 assert.equal(

@@ -156,7 +156,7 @@ function LoginOrchestrator() {
     return <RoleStep />;
   }
 
-  // Captain sign-up is a fully self-contained, UI-only flow (no Supabase calls yet).
+  // Captain sign-up uses the dedicated onboarding flow and persists both auth and profile data.
   if (location.view === 'register' && location.role === 'driver') {
     return <CaptainOnboarding />;
   }

@@ -11,6 +11,7 @@ export type CaptainValidationT = (key: string, values?: Record<string, string | 
 export const NAME_REGEX = /^[؀-ۿa-zA-Z\s]{3,50}$/;
 export const ENTITY_NAME_REGEX = /^[؀-ۿa-zA-Z0-9\s\-&.]{2,60}$/;
 export const VEHICLE_MAKE_REGEX = /^[؀-ۿa-zA-Z\s]{2,30}$/;
+export const VEHICLE_MODEL_REGEX = /^[؀-ۿa-zA-Z0-9\s\-&.]{2,40}$/;
 export const SIDE_ID_REGEX = /^[A-Za-z0-9؀-ۿ-]{2,15}$/;
 // Plate formats vary a lot by country (digits, Arabic/Latin letters, dashes,
 // spaces), so this only rejects garbage/empty input rather than enforcing one
@@ -60,6 +61,9 @@ export function getCaptainTaxiVehicleSchema(t: CaptainValidationT, country?: str
       .required(t('officePhoneRequired'))
       .test('is-valid-phone', t('phoneInvalid'), (value) => isValidInternationalPhone(value, country)),
     sideId: yup.string().trim().matches(SIDE_ID_REGEX, t('sideIdInvalid')).required(t('sideIdRequired')),
+    make: yup.string().trim().matches(VEHICLE_MAKE_REGEX, t('makeInvalid')).required(t('makeRequired')),
+    model: yup.string().trim().matches(VEHICLE_MODEL_REGEX, t('modelInvalid')).required(t('modelRequired')),
+    contactPageUrl: yup.string().trim().test('contact-url', t('contactPageInvalid'), (value) => !value || /^https?:\/\/[^\s]+$/i.test(value)),
     plate: yup.string().trim().matches(PLATE_REGEX, t('plateInvalid')).required(t('plateRequired')),
     year: yup
       .number()
@@ -74,6 +78,8 @@ export function getCaptainSmartAppVehicleSchema(t: CaptainValidationT) {
   return yup.object({
     companyName: yup.string().trim().matches(ENTITY_NAME_REGEX, t('companyNameInvalid')).required(t('companyNameRequired')),
     make: yup.string().trim().matches(VEHICLE_MAKE_REGEX, t('makeInvalid')).required(t('makeRequired')),
+    model: yup.string().trim().matches(VEHICLE_MODEL_REGEX, t('modelInvalid')).required(t('modelRequired')),
+    contactPageUrl: yup.string().trim().test('contact-url', t('contactPageInvalid'), (value) => !value || /^https?:\/\/[^\s]+$/i.test(value)),
     color: yup.string().trim().matches(COLOR_HEX_REGEX, t('colorInvalid')).required(t('colorRequired')),
     plate: yup.string().trim().matches(PLATE_REGEX, t('plateInvalid')).required(t('plateRequired')),
     year: yup

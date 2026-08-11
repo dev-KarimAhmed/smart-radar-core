@@ -1,4 +1,4 @@
-import type { User, AuthError } from '@supabase/supabase-js';
+import type { AuthError, User } from '@supabase/supabase-js';
 
 const PHONE_REGEX = /^\+[1-9]\d{6,14}$/;
 
@@ -11,6 +11,24 @@ export interface RiderSupabaseSignUpInput {
   governorateId: number;
   districtId: number;
   rememberMe?: boolean;
+  captainProfile?: CaptainProfileMetadata;
+}
+
+export interface CaptainProfileMetadata {
+  vehicle_type: string | null;
+  vehicle_brand: string | null;
+  vehicle_model: string | null;
+  vehicle_color: string | null;
+  vehicle_year: number | null;
+  plate_number: string | null;
+  employment_type: string | null;
+  affiliation_type: string | null;
+  office_phone: string | null;
+  side_id: string | null;
+  identity_url?: string | null;
+  contact_page_url?: string | null;
+  driving_license_url?: string | null;
+  verification_status: string;
 }
 
 export interface RiderSupabaseSignInInput {
@@ -26,6 +44,7 @@ export interface RiderAuthMetadata {
   country_id: number;
   governorate_id: number;
   district_id: number;
+  captain_profile?: CaptainProfileMetadata;
 }
 
 export function normalizeInternationalPhone(phone: string) {
@@ -38,14 +57,14 @@ export function validatePhoneAndPassword(phone: string, password: string) {
   if (!PHONE_REGEX.test(normalizedPhone)) {
     return {
       ok: false as const,
-      message: 'يرجى كتابة رقم الهاتف مع رمز الدولة، مثل +962790000000 أو +201000000000.',
+      message: 'يرجى كتابة رقم الهاتف بصيغة دولية، مثل +962790000000 أو +201000000000.',
     };
   }
 
   if (password.length < 6) {
     return {
       ok: false as const,
-      message: 'كلمة المرور ضعيفة، يجب ألا تقل عن 6 خانات.',
+      message: 'كلمة المرور ضعيفة. يجب ألا تقل عن 6 أحرف.',
     };
   }
 
@@ -68,6 +87,7 @@ export function buildRiderSignUpMetadata(input: RiderSupabaseSignUpInput): Rider
     country_id: toStrictPositiveInteger(input.countryId, 'country_id'),
     governorate_id: toStrictPositiveInteger(input.governorateId, 'governorate_id'),
     district_id: toStrictPositiveInteger(input.districtId, 'district_id'),
+    ...(input.captainProfile ? { captain_profile: input.captainProfile } : {}),
   };
 }
 
@@ -83,7 +103,7 @@ export function mapSupabaseAuthError(error: unknown) {
     message.includes('already registered') ||
     message.includes('already exists')
   ) {
-    return 'رقم الهاتف مسجل بالفعل، يرجى تسجيل الدخول.';
+    return 'رقم الهاتف مسجل بالفعل. يرجى تسجيل الدخول.';
   }
 
   if (
@@ -110,7 +130,7 @@ export function mapSupabaseAuthError(error: unknown) {
   }
 
   if (code.includes('weak_password') || message.includes('weak password') || message.includes('password')) {
-    return 'كلمة المرور ضعيفة، يجب ألا تقل عن 6 خانات.';
+    return 'كلمة المرور ضعيفة. يجب ألا تقل عن 6 أحرف.';
   }
 
   if (
@@ -125,7 +145,7 @@ export function mapSupabaseAuthError(error: unknown) {
     message.includes('failed to fetch') ||
     message.includes('gateway')
   ) {
-    return 'تعذر الاتصال بالخدمة، يرجى التحقق من الإنترنت.';
+    return 'تعذر الاتصال بالخدمة. تحقق من الإنترنت وحاول مرة أخرى.';
   }
 
   if (
@@ -144,19 +164,17 @@ export function mapSupabaseAuthError(error: unknown) {
       message.includes('district') ||
       message.includes('country')
     ) {
-      return 'تعذر إنشاء الحساب لأن الدولة أو المحافظة أو المنطقة غير موجودة في قاعدة البيانات. حدّث الاختيارات ثم حاول مرة أخرى.';
+      return 'تعذر إنشاء الحساب لأن الدولة أو المحافظة أو المنطقة غير موجودة. حدّث الاختيارات ثم حاول مرة أخرى.';
     }
 
-    return 'تعذر إنشاء الحساب من قاعدة البيانات. يرجى مراجعة إعدادات الحساب ثم المحاولة مرة أخرى.';
+    return 'تعذر إنشاء الحساب من قاعدة البيانات. راجع البيانات وحاول مرة أخرى.';
   }
 
   if (code.includes('validation_failed') || message.includes('invalid phone')) {
-    return 'رقم الهاتف غير صحيح. اكتب الرقم مع رمز الدولة مثل +962 أو +20.';
+    return 'رقم الهاتف غير صحيح. اكتبه مع رمز الدولة مثل +962 أو +20.';
   }
 
-  if (error instanceof Error && error.message.startsWith('يرجى')) return error.message;
-  if (error instanceof Error && error.message.startsWith('كلمة المرور')) return error.message;
-  if (error instanceof Error && error.message.startsWith('قيمة')) return error.message;
+  if (error instanceof Error && /^(يرجى|كلمة المرور|قيمة)/.test(error.message)) return error.message;
 
   return 'تعذر إكمال العملية. يرجى المحاولة مرة أخرى.';
 }
