@@ -1,12 +1,16 @@
 'use client';
 
 import React from 'react';
-import { AlertTriangle, Languages, Loader2, LogOut, Map, User, Wallet } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { AlertTriangle, Languages, Loader2, LogOut, Map, ShieldAlert, User, Wallet, WifiOff } from 'lucide-react';
+import type { Trip } from '@/core/types';
 import { useAuth } from '@/hooks/use-auth';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { useDriverOperations } from '../hooks/use-driver-operations';
 import { useSovereignWallet } from '@/hooks/use-sovereign-wallet';
 import { useToast } from '@/hooks/use-toast';
+import { useDeviceTimeGuard } from '../hooks/use-device-time-guard';
+import { useConnectionGuard } from '../hooks/use-connection-guard';
 import { ActiveTripTracker } from './active-trip-tracker';
 import { BiddingProposalSheet } from './bidding-proposal-sheet';
 import {
@@ -52,6 +56,15 @@ const styles = {
   style224_1: "text-sm font-black",
   style225_1: "mt-0.5 text-xs leading-5 text-amber-200/80",
   style226_1: "shrink-0 rounded-xl border border-amber-400/40 bg-amber-500/15 px-4 py-2 text-xs font-black text-amber-100 hover:bg-amber-500/25",
+  lockScreenRoot: "flex min-h-screen items-center justify-center bg-[#0B0F19] p-6 text-center text-white",
+  lockScreenCard: "max-w-sm space-y-3 rounded-3xl border border-red-500/30 bg-[#170808] p-6",
+  lockScreenIcon: "mx-auto h-10 w-10 text-red-400",
+  lockScreenTitle: "text-lg font-black text-red-200",
+  lockScreenBody: "text-sm leading-6 text-red-100/80",
+  connectionBanner: "flex flex-wrap items-center gap-3 rounded-3xl border border-slate-600/50 bg-slate-800/40 p-4 text-slate-200",
+  connectionBannerIcon: "h-5 w-5 shrink-0 text-slate-300",
+  connectionBannerTitle: "text-sm font-black",
+  connectionBannerBody: "mt-0.5 text-xs leading-5 text-slate-300/80",
 } as const;
 
 const RadarMapView = dynamic(() => import('./radar-map-view').then(m => m.RadarMapView), { ssr: false });
@@ -60,30 +73,19 @@ export function DriverViewTab() {
   const { user, logout } = useAuth();
   const { toast } = useToast();
   const { language, direction, toggleLanguage } = useDashboardLanguage();
-  const copy = {
-    ...driverCopy[language],
-    loading: language === 'ar' ? 'جاري تحميل لوحة الكابتن...' : 'Loading captain dashboard...',
-    badge: language === 'ar' ? 'لوحة الكابتن' : 'Captain dashboard',
-    title: language === 'ar' ? 'الطلبات والرحلات' : 'Requests and trips',
-    online: language === 'ar' ? 'متاح' : 'Online',
-    offline: language === 'ar' ? 'غير متاح' : 'Offline',
-    radar: language === 'ar' ? 'الرادار' : 'Radar',
-    wallet: language === 'ar' ? 'الرصيد' : 'Wallet',
-    profile: language === 'ar' ? 'حسابي' : 'Profile',
-    logout: language === 'ar' ? 'تسجيل الخروج' : 'Log out',
-    switchLanguageLabel: language === 'ar' ? 'English' : 'العربية',
-    switchLanguageAria: language === 'ar' ? 'Switch to English' : 'التبديل إلى العربية',
-    dormancyWarningTitle: language === 'ar' ? 'أنت على وشك الخروج من صالة المزاد' : "You're about to be pulled off the auction floor",
-    dormancyWarningBody: language === 'ar'
-      ? 'لم يُسجَّل أي تفاعل منك منذ 9 دقائق. بعد دقيقة إضافية سيتم إيقاف استقبال الطلبات تلقائياً.'
-      : 'No activity detected for 9 minutes. In one more minute you will be automatically taken offline.',
-    dormancyWarningButton: language === 'ar' ? 'ما زلت هنا' : "I'm still here",
-  };
+  const t = useTranslations('captainDashboard');
   const driverOps = useDriverOperations();
   const wallet = useSovereignWallet(user);
+  const { isTimeTamperingDetected } = useDeviceTimeGuard();
+  const { isOffline, isReconnecting } = useConnectionGuard();
   const [state, dispatch] = React.useReducer(captainDashboardReducer, initialCaptainDashboardState);
   const knownRequestIdsRef = React.useRef<Set<string> | null>(null);
   const screen = state.screen === 'ACTIVE_TRIP' && !driverOps?.activeRequest ? 'RADAR_MAP' : state.screen;
+
+  React.useEffect(() => {
+    if (!driverOps || !isOffline) return;
+    if (driverOps.driverStatus === 'active') driverOps.toggleDriverStatus('idle');
+  }, [driverOps, isOffline]);
 
   React.useEffect(() => {
     if (!driverOps) return;
@@ -118,8 +120,8 @@ export function DriverViewTab() {
       knownRequestIdsRef.current = nextIds;
       if (nextIds.size > 0 && driverOps.driverStatus === 'active') {
         toast({
-          title: language === 'ar' ? 'طلبات قريبة متاحة' : 'Nearby requests available',
-          description: language === 'ar' ? 'افتح قائمة الطلبات لتقديم عرضك.' : 'Open the request queue to submit your bid.',
+          title: t('nearbyRequestsToastTitle'),
+          description: t('nearbyRequestsToastBody'),
         });
       }
       return;
@@ -131,10 +133,10 @@ export function DriverViewTab() {
     if (!hasNewRequest || driverOps.driverStatus !== 'active') return;
 
     toast({
-      title: language === 'ar' ? 'طلب رحلة جديد' : 'New ride request',
-      description: language === 'ar' ? 'يوجد طلب قريب بانتظار عرضك.' : 'A nearby request is waiting for your bid.',
+      title: t('newRequestToastTitle'),
+      description: t('newRequestToastBody'),
     });
-  }, [driverOps, driverOps?.driverStatus, driverOps?.requests, language, toast]);
+  }, [driverOps, driverOps?.driverStatus, driverOps?.requests, t, toast]);
 
   React.useEffect(() => {
     const handleOpen = () => dispatch({ type: 'OPEN_RADAR' });
@@ -150,7 +152,19 @@ export function DriverViewTab() {
     return (
       <div className={styles.style107_1}>
         <Loader2 className={styles.style108_2} />
-        {copy.loading}
+        {t('loading')}
+      </div>
+    );
+  }
+
+  if (isTimeTamperingDetected) {
+    return (
+      <div className={styles.lockScreenRoot} dir={direction}>
+        <div className={styles.lockScreenCard}>
+          <ShieldAlert className={styles.lockScreenIcon} />
+          <h1 className={styles.lockScreenTitle}>{t('timeTamperingTitle')}</h1>
+          <p className={styles.lockScreenBody}>{t('timeTamperingBody')}</p>
+        </div>
       </div>
     );
   }
@@ -165,6 +179,20 @@ export function DriverViewTab() {
     if (!state.selectedRequest) return;
     const ok = await driverOps.submitOffer({ tripId: state.selectedRequest.id, offerPrice: price });
     if (ok) dispatch({ type: 'OFFER_SUBMITTED', requestId: state.selectedRequest.id });
+  };
+
+  // Spec 5.1.3 "one active offer" — block opening a second request's bidding
+  // sheet while an earlier offer is still awaiting the rider's response.
+  const selectRequest = (request: Trip) => {
+    if (driverOps.pendingOfferRequestId && driverOps.pendingOfferRequestId !== request.id) {
+      toast({
+        variant: 'destructive',
+        title: t('pendingOfferToastTitle'),
+        description: t('pendingOfferToastBody'),
+      });
+      return;
+    }
+    dispatch({ type: 'SELECT_REQUEST', request });
   };
 
   const markArrived = async () => {
@@ -188,29 +216,29 @@ export function DriverViewTab() {
         <header className={styles.style155_5}>
           <div className={styles.style156_1}>
             <div>
-              <p className={styles.style157_6}>{copy.badge}</p>
-              <h1 className={styles.style158_7}>{copy.title}</h1>
+              <p className={styles.style157_6}>{t('badge')}</p>
+              <h1 className={styles.style158_7}>{t('title')}</h1>
             </div>
             <div className={styles.style160_8}>
               <button
                 type="button"
                 onClick={toggleLanguage}
-                aria-label={copy.switchLanguageAria}
-                title={copy.switchLanguageLabel}
+                aria-label={t('switchLanguageAria')}
+                title={t('switchLanguageLabel')}
                 className={styles.style186_20}
               >
                 <Languages className={styles.style186_21} />
-                <span className={styles.style186_22}>{copy.switchLanguageLabel}</span>
+                <span className={styles.style186_22}>{t('switchLanguageLabel')}</span>
               </button>
               <button
                 type="button"
                 onClick={() => void logout()}
-                aria-label={copy.logout}
-                title={copy.logout}
+                aria-label={t('logout')}
+                title={t('logout')}
                 className={styles.style176_15}
               >
                 <LogOut className={styles.style178_16} />
-                <span className={styles.style186_22}>{copy.logout}</span>
+                <span className={styles.style186_22}>{t('logout')}</span>
               </button>
             </div>
           </div>
@@ -218,14 +246,15 @@ export function DriverViewTab() {
             <button
               type="button"
               onClick={() => driverOps.toggleDriverStatus(isActive ? 'idle' : 'active')}
+              disabled={isOffline || isReconnecting}
               className={cn(styles.style164_9, isActive ? styles.style165_10 : styles.style165_11)}
             >
-              {isActive ? copy.online : copy.offline}
+              {isActive ? t('online') : t('offline')}
             </button>
             <div className={styles.style167_1}>
-              <NavButton active={screen === 'RADAR_MAP' || screen === 'BIDDING'} onClick={() => dispatch({ type: 'OPEN_RADAR' })} label={copy.radar} icon={<Map className={styles.style170_12} />} />
-              <NavButton active={screen === 'WALLET'} onClick={() => dispatch({ type: 'OPEN_WALLET' })} label={copy.wallet} icon={<Wallet className={styles.style171_13} />} />
-              <NavButton active={screen === 'PROFILE'} onClick={() => dispatch({ type: 'OPEN_PROFILE' })} label={copy.profile} icon={<User className={styles.style172_14} />} />
+              <NavButton active={screen === 'RADAR_MAP' || screen === 'BIDDING'} onClick={() => dispatch({ type: 'OPEN_RADAR' })} label={t('radar')} icon={<Map className={styles.style170_12} />} />
+              <NavButton active={screen === 'WALLET'} onClick={() => dispatch({ type: 'OPEN_WALLET' })} label={t('wallet')} icon={<Wallet className={styles.style171_13} />} />
+              <NavButton active={screen === 'PROFILE'} onClick={() => dispatch({ type: 'OPEN_PROFILE' })} label={t('profile')} icon={<User className={styles.style172_14} />} />
             </div>
           </div>
         </header>
@@ -235,8 +264,8 @@ export function DriverViewTab() {
             <div className={styles.style222_1}>
               <AlertTriangle className={styles.style223_1} />
               <div>
-                <p className={styles.style224_1}>{copy.dormancyWarningTitle}</p>
-                <p className={styles.style225_1}>{copy.dormancyWarningBody}</p>
+                <p className={styles.style224_1}>{t('dormancyWarningTitle')}</p>
+                <p className={styles.style225_1}>{t('dormancyWarningBody')}</p>
               </div>
             </div>
             <button
@@ -244,8 +273,18 @@ export function DriverViewTab() {
               onClick={() => driverOps.resetDormancyTimer()}
               className={styles.style226_1}
             >
-              {copy.dormancyWarningButton}
+              {t('dormancyWarningButton')}
             </button>
+          </div>
+        ) : null}
+
+        {isOffline || isReconnecting ? (
+          <div className={styles.connectionBanner}>
+            <WifiOff className={styles.connectionBannerIcon} />
+            <div>
+              <p className={styles.connectionBannerTitle}>{isOffline ? t('offlineBannerTitle') : t('reconnectingTitle')}</p>
+              <p className={styles.connectionBannerBody}>{isOffline ? t('offlineBannerBody') : t('reconnectingBody')}</p>
+            </div>
           </div>
         ) : null}
 
@@ -259,7 +298,8 @@ export function DriverViewTab() {
             bonusMinutes={bonusMinutes}
             radarLockMessage={driverOps.radarLockMessage}
             requests={driverOps.requests}
-            onSelectRequest={(request) => dispatch({ type: 'SELECT_REQUEST', request })}
+            hasPendingOffer={Boolean(driverOps.pendingOfferRequestId)}
+            onSelectRequest={selectRequest}
             onIgnoreRequest={driverOps.rejectRequest}
           />
         ) : null}
@@ -335,26 +375,3 @@ function NavButton({
     </button>
   );
 }
-
-const driverCopy = {
-  ar: {
-    loading: 'جاري تحميل لوحة الكابتن...',
-    badge: 'لوحة الكابتن',
-    title: 'إدارة الطلبات والرحلات',
-    online: 'متاح',
-    offline: 'غير متاح',
-    radar: 'الرادار',
-    wallet: 'الرصيد',
-    profile: 'الملف',
-  },
-  en: {
-    loading: 'Loading captain dashboard...',
-    badge: 'Captain dashboard',
-    title: 'Requests and trips',
-    online: 'Online',
-    offline: 'Offline',
-    radar: 'Radar',
-    wallet: 'Wallet',
-    profile: 'Profile',
-  },
-} as const;

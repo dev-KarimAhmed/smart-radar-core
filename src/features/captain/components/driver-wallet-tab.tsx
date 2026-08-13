@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useTranslations } from 'next-intl';
 import { Check, Copy, Loader2, MessageCircle, Phone, ReceiptText, Ticket, Upload, Wallet } from 'lucide-react';
 import type { User } from '@/core/types';
 import { useSovereignWallet } from '@/hooks/use-sovereign-wallet';
@@ -91,15 +92,13 @@ interface DriverWalletTabProps {
   isFlightActive?: boolean;
 }
 
-function formatMinutes(totalMinutes: number, language: 'ar' | 'en') {
+function toHoursMinutes(totalMinutes: number) {
   const safeMinutes = Math.max(0, Math.floor(Number(totalMinutes) || 0));
-  const hours = Math.floor(safeMinutes / 60);
-  const minutes = safeMinutes % 60;
-  return language === 'ar' ? `${hours} ساعة ${minutes} دقيقة` : `${hours}h ${minutes}m`;
+  return { hours: Math.floor(safeMinutes / 60), minutes: safeMinutes % 60 };
 }
 
 export function DriverWalletTab({ user, language, isFlightActive = false }: DriverWalletTabProps) {
-  const copy = walletCopy[language];
+  const t = useTranslations('captainWallet');
   const wallet = useSovereignWallet(user);
   const walletIsReady = wallet.walletLoadState === 'ready';
   const walletIsMissing = wallet.walletLoadState === 'missing';
@@ -147,12 +146,12 @@ export function DriverWalletTab({ user, language, isFlightActive = false }: Driv
       <div className={styles.style62_2}>
         <div className={styles.style63_3}>
           <div>
-            <p className={styles.style65_4}>{copy.badge}</p>
-            <h1 className={styles.style66_5}>{copy.title}</h1>
-            <p className={styles.style67_6}>{copy.subtitle}</p>
+            <p className={styles.style65_4}>{t('badge')}</p>
+            <h1 className={styles.style66_5}>{t('title')}</h1>
+            <p className={styles.style67_6}>{t('subtitle')}</p>
             <span className={cn(styles.style70_1, isFlightActive ? styles.style70_2 : styles.style70_3)}>
               <span className={styles.style70_4} />
-              {isFlightActive ? copy.flightActiveOn : copy.flightActiveOff}
+              {isFlightActive ? t('flightActiveOn') : t('flightActiveOff')}
             </span>
           </div>
           <Wallet className={styles.style69_7} />
@@ -160,27 +159,27 @@ export function DriverWalletTab({ user, language, isFlightActive = false }: Driv
 
         <div className={styles.style72_8}>
           <Metric
-            label={copy.balance}
+            label={t('balance')}
             value={walletIsReady ? `${wallet.balanceJD.toFixed(2)} ${user?.currencyAr || user?.currencyEn || ''}` : wallet.walletLoaded ? '-' : '...'}
           />
           <Metric
-            label={copy.paidTime}
-            value={walletIsReady ? <span className={styles.style81_9}>{formatMinutes(paidMinutes, language)}</span> : wallet.walletLoaded ? '-' : '...'}
+            label={t('paidTime')}
+            value={walletIsReady ? <span className={styles.style81_9}>{t('durationFormat', toHoursMinutes(paidMinutes))}</span> : wallet.walletLoaded ? '-' : '...'}
           />
           <Metric
-            label={copy.bonusTime}
-            value={walletIsReady ? <span className={styles.style91_11}>{formatMinutes(bonusMinutes, language)}</span> : wallet.walletLoaded ? '-' : '...'}
+            label={t('bonusTime')}
+            value={walletIsReady ? <span className={styles.style91_11}>{t('durationFormat', toHoursMinutes(bonusMinutes))}</span> : wallet.walletLoaded ? '-' : '...'}
           />
         </div>
 
         {walletIsReady && wallet.activePackageName ? (
-          <div className={styles.style96_1}>{copy.activePackagePrefix} {wallet.activePackageName}</div>
+          <div className={styles.style96_1}>{t('activePackagePrefix')} {wallet.activePackageName}</div>
         ) : null}
 
         {walletIsMissing || walletHasError ? (
           <div className={styles.style100_13}>
-            <p className={styles.style101_14}>{walletIsMissing ? copy.walletMissingTitle : copy.walletErrorTitle}</p>
-            <p className={styles.style102_15}>{walletIsMissing ? copy.walletMissingBody : copy.walletErrorBody}</p>
+            <p className={styles.style101_14}>{walletIsMissing ? t('walletMissingTitle') : t('walletErrorTitle')}</p>
+            <p className={styles.style102_15}>{walletIsMissing ? t('walletMissingBody') : t('walletErrorBody')}</p>
             {(process.env.NODE_ENV !== 'production') ? (
               <p className={styles.style104_16}>
                 profile_id: {wallet.walletProfileId || '-'} {wallet.walletError ? ` / ${wallet.walletError}` : ''}
@@ -193,8 +192,8 @@ export function DriverWalletTab({ user, language, isFlightActive = false }: Driv
       <div className={styles.style112_17}>
         <div className={styles.style113_18}>
           <div>
-            <h2 className={styles.style114_19}>{copy.refillTitle}</h2>
-            <p className={styles.style114_hint}>{copy.refillHint}</p>
+            <h2 className={styles.style114_19}>{t('refillTitle')}</h2>
+            <p className={styles.style114_hint}>{t('refillHint')}</p>
           </div>
 
           <div className={styles.style115_20}>
@@ -226,7 +225,7 @@ export function DriverWalletTab({ user, language, isFlightActive = false }: Driv
                         copyChannelNumber(channelOption.id, channelNumber);
                       }}
                       className={styles.style125_25}
-                      aria-label={copy.copy}
+                      aria-label={t('copy')}
                     >
                       {copiedChannelId === channelOption.id ? <Check className={styles.style128_26} /> : <Copy className={styles.style128_26} />}
                     </button>
@@ -235,9 +234,9 @@ export function DriverWalletTab({ user, language, isFlightActive = false }: Driv
               );
             })}
           </div>
-          {!selectedChannel ? <p className={styles.style130_1}>{copy.chooseChannelHint}</p> : null}
+          {!selectedChannel ? <p className={styles.style130_1}>{t('chooseChannelHint')}</p> : null}
 
-          <h2 className={styles.style141_29}>{copy.uploadReceipt}</h2>
+          <h2 className={styles.style141_29}>{t('uploadReceipt')}</h2>
           <div className={styles.style142_30}>
             <div className={styles.style145_1}>
               {CAPTAIN_WALLET_AMOUNT_PRESETS.map((preset) => (
@@ -255,16 +254,16 @@ export function DriverWalletTab({ user, language, isFlightActive = false }: Driv
               value={amount}
               onChange={(event) => setAmount(event.target.value)}
               inputMode="decimal"
-              placeholder={copy.amount}
+              placeholder={t('amount')}
               className={styles.style148_31}
             />
             <div className={styles.style150_1}>
-              <span className={styles.style150_2}>{copy.selectedChannelLabel}</span>
-              <p className={styles.style150_3}>{selectedChannel ? (language === 'ar' ? selectedChannel.labelAr : selectedChannel.labelEn) : copy.noChannelSelected}</p>
+              <span className={styles.style150_2}>{t('selectedChannelLabel')}</span>
+              <p className={styles.style150_3}>{selectedChannel ? (language === 'ar' ? selectedChannel.labelAr : selectedChannel.labelEn) : t('noChannelSelected')}</p>
             </div>
             <label className={styles.style156_33}>
               <Upload className={styles.style157_34} />
-              {receiptFile?.name || copy.chooseImage}
+              {receiptFile?.name || t('chooseImage')}
               <input type="file" accept="image/*" className={styles.style159_35} onChange={(event) => setReceiptFile(event.target.files?.[0] || null)} />
             </label>
             <button
@@ -273,20 +272,20 @@ export function DriverWalletTab({ user, language, isFlightActive = false }: Driv
               className={styles.style164_36}
             >
               {wallet.loading ? <Loader2 className={styles.style166_37} /> : <ReceiptText className={styles.style166_38} />}
-              {copy.sendReceipt}
+              {t('sendReceipt')}
             </button>
           </div>
         </div>
 
         <div className={styles.style173_39}>
           <div>
-            <h2 className={styles.style174_40}>{copy.delegateTitle}</h2>
-            <p className={styles.style174_hint}>{copy.delegateHint}</p>
+            <h2 className={styles.style174_40}>{t('delegateTitle')}</h2>
+            <p className={styles.style174_hint}>{t('delegateHint')}</p>
           </div>
           <div className={styles.style176_1}>
             <div>
               <p className={styles.style177_1}>{districtPaymentInfo.delegateName}</p>
-              <p className={styles.style177_2}>{user?.district || copy.noDistrict}</p>
+              <p className={styles.style177_2}>{user?.district || t('noDistrict')}</p>
             </div>
             <div className={styles.style179_1}>
               <a
@@ -294,7 +293,7 @@ export function DriverWalletTab({ user, language, isFlightActive = false }: Driv
                 className={styles.style180_1}
               >
                 <Phone className={styles.style181_1} />
-                {copy.delegateCall}
+                {t('delegateCall')}
               </a>
               <a
                 href={`https://wa.me/${districtPaymentInfo.delegatePhone}`}
@@ -303,7 +302,7 @@ export function DriverWalletTab({ user, language, isFlightActive = false }: Driv
                 className={styles.style180_2}
               >
                 <MessageCircle className={styles.style181_1} />
-                {copy.delegateWhatsapp}
+                {t('delegateWhatsapp')}
               </a>
             </div>
           </div>
@@ -311,12 +310,12 @@ export function DriverWalletTab({ user, language, isFlightActive = false }: Driv
       </div>
 
       <div className={styles.style190_39}>
-        <h2 className={styles.style191_29}>{copy.voucher}</h2>
+        <h2 className={styles.style191_29}>{t('voucher')}</h2>
         <div className={styles.style192_41}>
           <input
             value={voucherCode}
             onChange={(event) => setVoucherCode(event.target.value)}
-            placeholder={copy.voucherPlaceholder}
+            placeholder={t('voucherPlaceholder')}
             className={styles.style193_42}
           />
           <button
@@ -325,7 +324,7 @@ export function DriverWalletTab({ user, language, isFlightActive = false }: Driv
             className={styles.style194_43}
           >
             <Ticket className={styles.style195_44} />
-            {copy.redeem}
+            {t('redeem')}
           </button>
         </div>
       </div>
@@ -341,72 +340,3 @@ function Metric({ label, value }: { label: string; value: React.ReactNode }) {
     </div>
   );
 }
-
-const walletCopy = {
-  ar: {
-    badge: 'الرصيد والباقات',
-    title: 'محفظة الكابتن',
-    subtitle: 'تظهر الأرصدة من قاعدة البيانات فقط. لا يمكن تعديل الرصيد من الواجهة.',
-    flightActiveOn: 'متاح الآن لاستقبال الطلبات',
-    flightActiveOff: 'غير متاح حالياً',
-    balance: 'الرصيد النقدي',
-    paidTime: 'وقت مدفوع',
-    bonusTime: 'وقت إضافي',
-    activePackagePrefix: 'الباقة الحالية:',
-    refillTitle: 'قنوات الشحن الرقمية',
-    refillHint: 'اختر القناة، حوّل المبلغ إلى الرقم الظاهر، ثم أرسل صورة الإيصال بالأسفل.',
-    chooseChannelHint: 'اختر إحدى قنوات الدفع أعلاه أولاً.',
-    copy: 'نسخ',
-    uploadReceipt: 'إرسال إيصال شحن',
-    amount: 'المبلغ',
-    selectedChannelLabel: 'القناة المختارة',
-    noChannelSelected: 'لم تختر قناة بعد',
-    chooseImage: 'اختر صورة الإيصال',
-    sendReceipt: 'إرسال الإيصال',
-    voucher: 'كود الشحن',
-    voucherPlaceholder: 'اكتب كود الشحن',
-    redeem: 'تفعيل الكود',
-    delegateTitle: 'الدفع عبر المندوب المالي',
-    delegateHint: 'بديل عن التحويل الرقمي: تواصل مع مندوبك المعتمد في منطقتك، ادفع نقداً، وسيشحن رصيدك مباشرة.',
-    delegateCall: 'اتصال',
-    delegateWhatsapp: 'واتساب',
-    noDistrict: 'منطقتك غير محددة في حسابك',
-    walletMissingTitle: 'لا توجد محفظة مرتبطة بهذا الحساب',
-    walletMissingBody: 'أنشئ صفاً في wallet_accounts بنفس profile_id الخاص بالكابتن، ثم ستظهر الأرقام مباشرة وتحدث تلقائياً.',
-    walletErrorTitle: 'تعذر تحميل المحفظة',
-    walletErrorBody: 'تحقق من صلاحيات القراءة في Supabase أو من اتصال الإنترنت.',
-  },
-  en: {
-    badge: 'Wallet and bundles',
-    title: 'Captain wallet',
-    subtitle: 'Balances come from the database only. The UI cannot modify wallet values directly.',
-    flightActiveOn: 'Online and receiving requests',
-    flightActiveOff: 'Currently offline',
-    balance: 'Cash balance',
-    paidTime: 'Paid time',
-    bonusTime: 'Bonus time',
-    activePackagePrefix: 'Active package:',
-    refillTitle: 'Digital refill channels',
-    refillHint: 'Pick a channel, transfer the amount to the number shown, then send the receipt below.',
-    chooseChannelHint: 'Choose one of the payment channels above first.',
-    copy: 'Copy',
-    uploadReceipt: 'Upload payment receipt',
-    amount: 'Amount',
-    selectedChannelLabel: 'Selected channel',
-    noChannelSelected: 'No channel selected yet',
-    chooseImage: 'Choose receipt image',
-    sendReceipt: 'Send receipt',
-    voucher: 'Voucher code',
-    voucherPlaceholder: 'Enter voucher code',
-    redeem: 'Redeem',
-    delegateTitle: 'Pay via financial delegate',
-    delegateHint: 'An alternative to digital transfer: contact your accredited local delegate, pay in cash, and they will top up your wallet directly.',
-    delegateCall: 'Call',
-    delegateWhatsapp: 'WhatsApp',
-    noDistrict: 'No district set on your account',
-    walletMissingTitle: 'No wallet is linked to this account',
-    walletMissingBody: 'Create a wallet_accounts row with this captain profile_id, then the counters will appear and update live.',
-    walletErrorTitle: 'Could not load wallet',
-    walletErrorBody: 'Check Supabase read permissions or the internet connection.',
-  },
-} as const;

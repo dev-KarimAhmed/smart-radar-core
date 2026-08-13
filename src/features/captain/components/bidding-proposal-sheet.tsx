@@ -1,10 +1,13 @@
 'use client';
 
 import React from 'react';
+import { useTranslations } from 'next-intl';
 import { AlertTriangle, CheckCircle2, Loader2, Minus, Plus, Send, Sparkles, X } from 'lucide-react';
 import type { Trip } from '@/core/types';
 import { supabase } from '@/lib/supabase-client';
 import { RadarAntiCheatKernel } from '@/core/RadarAntiCheatKernel';
+import { useCaptainProfessionalAd } from '../hooks/use-captain-professional-ad';
+import { AdDisplayCard } from '@/features/ads/ad-display/contract';
 import { cn } from '@/lib/utils';
 
 const styles = {
@@ -60,6 +63,7 @@ const styles = {
   fareTestBadgeCrimson: "bg-red-500/15 text-red-200 ring-1 ring-red-400/30",
   fareTestBadgeIcon: "h-3.5 w-3.5",
   inputLocked: "cursor-not-allowed opacity-50",
+  professionalAdCard: "mt-3 h-[280px] rounded-[28px]",
 } as const;
 
 
@@ -80,20 +84,19 @@ interface BiddingProposalSheetProps {
 }
 
 export function BiddingProposalSheet({
-  language,
   request,
   currency,
   isSubmitting,
   onSubmit,
   onIgnore,
 }: BiddingProposalSheetProps) {
-  const copy = bidCopy[language];
+  const t = useTranslations('captainBidding');
   const baseFare = Number(request.offerPrice || 0);
   const [captainTierData, setCaptainTierData] = React.useState<CaptainTierData>({ tier: 'SILVER', rating: 5 });
   const premiumFactor = getTierPremiumFactor(captainTierData.tier);
   const maxIncreaseAmount = roundMoney(baseFare * premiumFactor);
   const maxTierPrice = roundMoney(Math.max(baseFare + maxIncreaseAmount, 1));
-  const tierLabel = getTierLabel(captainTierData.tier, language);
+  const tierLabel = t(`tierLabels.${captainTierData.tier}`);
   const [increaseAmount, setIncreaseAmount] = React.useState(0);
   const normalizedIncreaseAmount = Number.isFinite(increaseAmount) ? increaseAmount : 0;
   const finalOfferPrice = roundMoney(baseFare + normalizedIncreaseAmount);
@@ -164,7 +167,9 @@ export function BiddingProposalSheet({
   const marketBrake = baseFare > 0 ? RadarAntiCheatKernel.enforceMarketBrakes(finalOfferPrice, baseFare) : { status: 'NORMAL' as const };
   const isDumpingAmber = marketBrake.status === 'AMBER_WARNING';
   const isDumpingBlocked = marketBrake.status === 'CRIMSON_BLOCK';
-  const dumpingDeviationPercent = baseFare > 0 ? Math.max(0, Math.round(((baseFare - finalOfferPrice) / baseFare) * 1000) / 10) : 0;
+  const dumpingDeviationRatio = baseFare > 0 ? Math.max(0, (baseFare - finalOfferPrice) / baseFare) : 0;
+  const dumpingDeviationPercent = Math.round(dumpingDeviationRatio * 1000) / 10;
+  const professionalAd = useCaptainProfessionalAd(dumpingDeviationRatio, isDumpingBlocked);
 
   const isAmberDeviation = isTierAmber || isDumpingAmber;
   const isBlockedDeviation = isTierBlocked || isDumpingBlocked;
@@ -174,22 +179,22 @@ export function BiddingProposalSheet({
     <section className={styles.style103_1}>
       <div className={styles.style104_2}>
         <div>
-          <p className={styles.style106_3}>{copy.badge}</p>
-          <h1 className={styles.style107_4}>{copy.title}</h1>
-          <p className={styles.style108_5}>{copy.subtitle}</p>
+          <p className={styles.style106_3}>{t('badge')}</p>
+          <h1 className={styles.style107_4}>{t('title')}</h1>
+          <p className={styles.style108_5}>{t('subtitle')}</p>
         </div>
-        <button onClick={onIgnore} className={styles.style110_6} aria-label={copy.ignore}>
+        <button onClick={onIgnore} className={styles.style110_6} aria-label={t('ignore')}>
           <X className={styles.style111_7} />
         </button>
       </div>
 
       <div className={styles.style115_8}>
-        <p className={styles.style116_9}>{copy.destination}</p>
-        <h2 className={styles.style117_10}>{request.dropoff || copy.unknownDestination}</h2>
+        <p className={styles.style116_9}>{t('destination')}</p>
+        <h2 className={styles.style117_10}>{request.dropoff || t('unknownDestination')}</h2>
         <div className={styles.style118_11}>
-          <Info label={copy.h3} value={request.h3Index ? request.h3Index.slice(-8).toUpperCase() : '-'} />
-          <Info label={copy.distance} value={`${request.estimatedDistance || 0} km`} />
-          <Info label={copy.serverFare} value={`${baseFare.toFixed(2)} ${currency}`} />
+          <Info label={t('h3')} value={request.h3Index ? request.h3Index.slice(-8).toUpperCase() : '-'} />
+          <Info label={t('distance')} value={`${request.estimatedDistance || 0} km`} />
+          <Info label={t('serverFare')} value={`${baseFare.toFixed(2)} ${currency}`} />
         </div>
       </div>
 
@@ -198,23 +203,21 @@ export function BiddingProposalSheet({
           <div>
             <p className={styles.style128_14}>
               <Sparkles className={styles.style129_15} />
-              {copy.tierPremium}
+              {t('tierPremium')}
             </p>
             <p className={styles.style132_16}>
               {premiumFactor > 0
-                ? copy.tierPremiumDescription
-                    .replace('{tier}', tierLabel)
-                    .replace('{percent}', String(Math.round(premiumFactor * 100)))
-                : copy.noTierPremium.replace('{tier}', tierLabel)}
+                ? t('tierPremiumDescription', { tier: tierLabel, percent: Math.round(premiumFactor * 100) })
+                : t('noTierPremium', { tier: tierLabel })}
             </p>
           </div>
 
           <div className={styles.style141_17}>
-            <p className={styles.style142_18}>{copy.maxIncrease}</p>
+            <p className={styles.style142_18}>{t('maxIncrease')}</p>
             <p className={styles.style143_19}>{maxIncreaseAmount.toFixed(2)} {currency}</p>
             {premiumFactor > 0 ? (
               <p className={styles.style145_20}>
-                {copy.maxFinalPrice}: {maxTierPrice.toFixed(2)} {currency}
+                {t('maxFinalPrice')}: {maxTierPrice.toFixed(2)} {currency}
               </p>
             ) : null}
           </div>
@@ -226,13 +229,13 @@ export function BiddingProposalSheet({
             onClick={() => setIncreaseAmount(maxIncreaseAmount)}
             className={styles.style156_21}
           >
-            {copy.applyMaxIncrease}
+            {t('applyMaxIncrease')}
           </button>
         ) : null}
       </div>
 
       <div className={styles.style163_22}>
-        <label className={styles.style164_23}>{copy.increaseAmount}</label>
+        <label className={styles.style164_23}>{t('increaseAmount')}</label>
         <div className={styles.style165_24}>
           <button
             type="button"
@@ -260,14 +263,15 @@ export function BiddingProposalSheet({
         </div>
         <div className={styles.style187_30}>
           <div className={styles.style188_31}>
-            <span className={styles.style189_32}>{copy.finalOffer}</span>
+            <span className={styles.style189_32}>{t('finalOffer')}</span>
             <strong className={styles.style190_33}>{finalOfferPrice.toFixed(2)} {currency}</strong>
           </div>
           <p className={styles.style192_34}>
-            {copy.finalFormula
-              .replace('{base}', baseFare.toFixed(2))
-              .replace('{adjustment}', `${normalizedIncreaseAmount >= 0 ? '+' : ''}${normalizedIncreaseAmount.toFixed(2)}`)
-              .replace('{currency}', currency)}
+            {t('finalFormula', {
+              base: baseFare.toFixed(2),
+              adjustment: `${normalizedIncreaseAmount >= 0 ? '+' : ''}${normalizedIncreaseAmount.toFixed(2)}`,
+              currency,
+            })}
           </p>
           <span className={cn(
             styles.fareTestBadge,
@@ -279,39 +283,53 @@ export function BiddingProposalSheet({
               <CheckCircle2 className={styles.fareTestBadgeIcon} />
             )}
             {isDumpingBlocked
-              ? copy.fareTestCrimsonBadge
+              ? t('fareTestCrimsonBadge')
               : isDumpingAmber
-                ? copy.fareTestAmberBadge.replace('{percent}', String(dumpingDeviationPercent))
-                : copy.fareTestNormalBadge}
+                ? t('fareTestAmberBadge', { percent: dumpingDeviationPercent })
+                : t('fareTestNormalBadge')}
           </span>
         </div>
 
         {isTierAmber ? (
           <div className={styles.style201_35}>
             <AlertTriangle className={styles.style202_36} />
-            {copy.tierAmberWarning}
+            {t('tierAmberWarning')}
           </div>
         ) : null}
 
         {isTierBlocked ? (
           <div className={styles.style208_37}>
             <AlertTriangle className={styles.style209_38} />
-            {copy.tierCrimsonBlock}
+            {t('tierCrimsonBlock')}
           </div>
         ) : null}
 
         {isDumpingAmber ? (
           <div className={styles.style201_35}>
             <AlertTriangle className={styles.style202_36} />
-            {copy.dumpingAmberWarning}
+            {t('dumpingAmberWarning')}
           </div>
         ) : null}
 
         {isDumpingBlocked ? (
           <div className={styles.style208_37}>
             <AlertTriangle className={styles.style209_38} />
-            {copy.dumpingCrimsonBlock}
+            {t('dumpingCrimsonBlock')}
           </div>
+        ) : null}
+
+        {isDumpingBlocked && professionalAd ? (
+          <AdDisplayCard
+            ad={professionalAd}
+            showHeart={false}
+            badgeText={t('professionalAdBadge')}
+            ctaText={professionalAd.buttonText}
+            className={styles.professionalAdCard}
+            onOpen={(event: React.MouseEvent) => {
+              event.stopPropagation();
+              window.open(professionalAd.actionUrl, '_blank');
+            }}
+          />
         ) : null}
       </div>
 
@@ -322,10 +340,10 @@ export function BiddingProposalSheet({
           className={styles.style219_40}
         >
           {isSubmitting ? <Loader2 className={styles.style221_41} /> : <Send className={styles.style221_42} />}
-          {copy.submit}
+          {t('submit')}
         </button>
         <button onClick={onIgnore} className={styles.style224_43}>
-          {copy.ignore}
+          {t('ignore')}
         </button>
       </div>
     </section>
@@ -340,71 +358,6 @@ function Info({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
-
-const bidCopy = {
-  ar: {
-    badge: 'عرض سعر',
-    title: 'تقديم عرض للراكب',
-    subtitle: 'راجع الوجهة والسعر الأساسي، ثم أرسل عرضك. لن تبدأ الرحلة إلا بعد قبول الراكب من الخادم.',
-    destination: 'الوجهة',
-    unknownDestination: 'وجهة غير محددة',
-    h3: 'خلية الطلب',
-    distance: 'المسافة',
-    serverFare: 'السعر الأساسي',
-    offerAmount: 'قيمة العرض',
-    increaseAmount: 'تعديل السعر (زيادة أو تخفيض)',
-    tierPremium: 'زيادة اختيارية حسب رتبتك',
-    tierPremiumDescription: 'رتبتك {tier} تسمح لك بزيادة من 1 إلى {percent}% فوق السعر الأساسي. اكتب قيمة الزيادة بنفسك.',
-    noTierPremium: 'رتبتك الحالية {tier} لا تضيف زيادة اختيارية. يمكنك تقديم السعر الأساسي فقط.',
-    suggestedPrice: 'السعر المقترح حسب الرتبة',
-    maxIncrease: 'أقصى زيادة مسموحة',
-    maxFinalPrice: 'أقصى عرض',
-    applyTierPrice: 'تطبيق سعر الرتبة',
-    applyMaxIncrease: 'استخدام أقصى زيادة',
-    finalOffer: 'العرض النهائي',
-    finalFormula: '{base} {adjustment} {currency}',
-    tierAmberWarning: 'تنبيه: زيادتك تقترب من أقصى حد مسموح لرتبتك.',
-    tierCrimsonBlock: 'لا يمكن تقديم العرض لأن الزيادة أعلى من الحد المسموح لرتبتك.',
-    dumpingAmberWarning: 'تنبيه: عرضك أقل من السعر الأساسي بنسبة تؤثر على رتبتك وظهورك للركاب (اختبار Fare_test).',
-    dumpingCrimsonBlock: 'تم قفل الإدخال: عرضك أقل من السعر الأساسي بأكثر من 15%، وهذا يُعد حرقاً للأسعار وغير مسموح (اختبار Fare_test).',
-    fareTestNormalBadge: 'اختبار السعر: طبيعي',
-    fareTestAmberBadge: 'اختبار السعر: تحذير ({percent}% أقل من الأساسي)',
-    fareTestCrimsonBadge: 'اختبار السعر: محظور',
-    submit: 'تقديم العرض',
-    ignore: 'تجاهل',
-  },
-  en: {
-    badge: 'Price offer',
-    title: 'Submit an offer',
-    subtitle: 'Review the destination and base fare, then send your offer. The trip only starts after server acceptance.',
-    destination: 'Destination',
-    unknownDestination: 'Unknown destination',
-    h3: 'Request cell',
-    distance: 'Distance',
-    serverFare: 'Base fare',
-    offerAmount: 'Offer amount',
-    increaseAmount: 'Price adjustment (increase or discount)',
-    tierPremium: 'Optional increase by your tier',
-    tierPremiumDescription: 'Your {tier} tier allows an increase from 1 to {percent}% above the base fare. Type the increase amount yourself.',
-    noTierPremium: 'Your current {tier} tier does not add an optional increase. You can submit the base fare only.',
-    suggestedPrice: 'Tier suggested price',
-    maxIncrease: 'Maximum allowed increase',
-    maxFinalPrice: 'Maximum offer',
-    applyTierPrice: 'Apply tier price',
-    applyMaxIncrease: 'Use max increase',
-    finalOffer: 'Final offer',
-    finalFormula: '{base} {adjustment} {currency}',
-    tierAmberWarning: 'Warning: your increase is approaching the maximum allowed for your tier.',
-    tierCrimsonBlock: 'This offer is blocked because the increase is higher than your tier limit.',
-    dumpingAmberWarning: 'Warning: your offer is below the base fare by enough to affect your rank and visibility to riders (Fare_test).',
-    dumpingCrimsonBlock: 'Input locked: your offer is more than 15% below the base fare, which counts as price dumping and is not allowed (Fare_test).',
-    fareTestNormalBadge: 'Fare test: normal',
-    fareTestAmberBadge: 'Fare test: warning ({percent}% below base)',
-    fareTestCrimsonBadge: 'Fare test: blocked',
-    submit: 'Submit offer',
-    ignore: 'Ignore',
-  },
-} as const;
 
 function getTierPremiumFactor(tier: CaptainTier) {
   if (tier === 'PLATINUM') return 0.2;
@@ -423,25 +376,6 @@ function normalizeCaptainTier(value: unknown, rating = 5): CaptainTier {
   if (rating >= 4.7) return 'GOLD';
   if (rating >= 4.4) return 'SILVER';
   return 'BRONZE';
-}
-
-function getTierLabel(tier: CaptainTier, language: 'ar' | 'en') {
-  const labels = {
-    ar: {
-      PLATINUM: 'بلاتيني',
-      GOLD: 'ذهبي',
-      SILVER: 'فضي',
-      BRONZE: 'برونزي',
-    },
-    en: {
-      PLATINUM: 'Platinum',
-      GOLD: 'Gold',
-      SILVER: 'Silver',
-      BRONZE: 'Bronze',
-    },
-  } as const;
-
-  return labels[language][tier];
 }
 
 function roundMoney(value: number) {

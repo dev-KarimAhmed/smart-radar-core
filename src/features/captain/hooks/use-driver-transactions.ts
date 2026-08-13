@@ -9,6 +9,12 @@ import type { Trip, User } from '@/core/types';
 type RideOfferRow = Record<string, unknown>;
 type RideRequestRow = Record<string, unknown>;
 
+// Client-side "one active offer" guard (spec 5.1.3): there is no server-side
+// rejection/expiry signal for a pending offer today, so we can't clear this
+// deterministically — auto-release after a bounded window instead of risking
+// a permanent lock if the rider picks another captain.
+const PENDING_OFFER_TIMEOUT_MS = 90 * 1000;
+
 export function useDriverTransactions(
   user: User | null,
   setDriverStatus?: (status: 'active' | 'idle' | 'busy' | 'rating') => void,
@@ -17,6 +23,8 @@ export function useDriverTransactions(
   const [activeRequest, setActiveReq] = useState<Trip | null>(null);
   const [acceptedRider, setAcceptedRider] = useState<User | null>(null);
   const [handshakeAt, setHandshakeAt] = useState<number | null>(null);
+  const [pendingOfferRequestId, setPendingOfferRequestId] = useState<string | null>(null);
+  const pendingOfferTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isSubmittingOffer, setIsSubmittingOffer] = useState(false);
   const [isUpdatingTripStep, setIsUpdatingTripStep] = useState(false);
   const [isEndingTrip, setIsEndingTrip] = useState(false);
@@ -29,12 +37,21 @@ export function useDriverTransactions(
 
   const captainId = user?.uid || '';
 
+  const clearPendingOffer = useCallback(() => {
+    if (pendingOfferTimeoutRef.current) {
+      clearTimeout(pendingOfferTimeoutRef.current);
+      pendingOfferTimeoutRef.current = null;
+    }
+    setPendingOfferRequestId(null);
+  }, []);
+
   const cleanUpAndReset = useCallback(() => {
     setActiveReq(null);
     setAcceptedRider(null);
     setHandshakeAt(null);
+    clearPendingOffer();
     setDriverStatus?.('active');
-  }, [setDriverStatus]);
+  }, [clearPendingOffer, setDriverStatus]);
 
   const loadAcceptedRequest = useCallback(async (requestId: string) => {
     const { data, error } = await supabase
@@ -50,6 +67,7 @@ export function useDriverTransactions(
 
     setActiveReq(trip);
     setHandshakeAt(Date.now());
+    clearPendingOffer();
     setDriverStatus?.('busy');
 
     if (trip.riderId) {
@@ -72,7 +90,13 @@ export function useDriverTransactions(
         });
       }
     }
-  }, [setDriverStatus]);
+  }, [clearPendingOffer, setDriverStatus]);
+
+  useEffect(() => {
+    return () => {
+      if (pendingOfferTimeoutRef.current) clearTimeout(pendingOfferTimeoutRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (!activeRequest?.id) return;
@@ -160,6 +184,15 @@ export function useDriverTransactions(
       return false;
     }
 
+    if (pendingOfferRequestId && pendingOfferRequestId !== payload.tripId) {
+      toast({
+        variant: 'destructive',
+        title: 'لديك عرض قيد الانتظار',
+        description: 'انتظر رد الراكب على عرضك الحالي قبل تقديم عرض جديد.',
+      });
+      return false;
+    }
+
     if (submittingRef.current) return false;
     submittingRef.current = true;
     setIsSubmittingOffer(true);
@@ -173,6 +206,9 @@ export function useDriverTransactions(
       if (error) throw error;
 
       rejectRequest(payload.tripId);
+      setPendingOfferRequestId(payload.tripId);
+      if (pendingOfferTimeoutRef.current) clearTimeout(pendingOfferTimeoutRef.current);
+      pendingOfferTimeoutRef.current = setTimeout(() => setPendingOfferRequestId(null), PENDING_OFFER_TIMEOUT_MS);
       toast({
         title: 'تم إرسال العرض',
         description: 'سنخبرك فور قبول الراكب للعرض.',
@@ -190,7 +226,7 @@ export function useDriverTransactions(
       submittingRef.current = false;
       setIsSubmittingOffer(false);
     }
-  }, [captainId, toast]);
+  }, [captainId, pendingOfferRequestId, toast]);
 
   const markArrivedAtPickup = useCallback(async () => {
     if (!activeRequest?.id || updatingStepRef.current) return false;
@@ -363,6 +399,7 @@ export function useDriverTransactions(
     activeRequest,
     acceptedRider,
     handshakeAt,
+    pendingOfferRequestId,
     submitOffer,
     isSubmittingOffer,
     markArrivedAtPickup,
@@ -385,6 +422,7 @@ export function useDriverTransactions(
     isSubmittingOffer,
     isUpdatingTripStep,
     markArrivedAtPickup,
+    pendingOfferRequestId,
     rateAndFinishTrip,
     requestWeeklyReport,
     startTrip,

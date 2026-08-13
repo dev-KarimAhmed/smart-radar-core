@@ -61,6 +61,8 @@ const styles = {
   style278_50: "mt-2 max-w-sm text-sm leading-6 opacity-85",
   stateAmber: "border-amber-500/30 bg-amber-500/10 text-amber-100",
   stateEmpty: "border-dashed border-slate-700 bg-slate-950/80 text-slate-300",
+  pendingOfferHint: "mt-2 text-[11px] font-bold text-amber-300",
+  pendingOfferDisabled: "cursor-not-allowed opacity-40",
 } as const;
 
 
@@ -73,6 +75,7 @@ interface RadarMapViewProps {
   bonusMinutes: number;
   radarLockMessage?: string;
   requests: Trip[];
+  hasPendingOffer?: boolean;
   onSelectRequest: (request: Trip) => void;
   onIgnoreRequest: (requestId: string) => void;
 }
@@ -86,6 +89,7 @@ export function RadarMapView({
   bonusMinutes,
   radarLockMessage,
   requests,
+  hasPendingOffer = false,
   onSelectRequest,
   onIgnoreRequest,
 }: RadarMapViewProps) {
@@ -264,8 +268,15 @@ export function RadarMapView({
                     <Info label={copy.fare} value={request.offerPrice ? Number(request.offerPrice).toFixed(2) : '-'} />
                     <Info label={copy.distance} value={`${request.estimatedDistance || 0} km`} />
                   </div>
+                  {hasPendingOffer ? <p className={styles.pendingOfferHint}>{copy.pendingOfferHint}</p> : null}
                   <div className={styles.style231_39}>
-                    <button type="button" onClick={() => onSelectRequest(request)} className={styles.style232_40}>
+                    <button
+                      type="button"
+                      onClick={() => onSelectRequest(request)}
+                      disabled={hasPendingOffer}
+                      title={hasPendingOffer ? copy.pendingOfferHint : undefined}
+                      className={cn(styles.style232_40, hasPendingOffer ? styles.pendingOfferDisabled : '')}
+                    >
                       <Route className={styles.style233_41} />
                       {copy.openBid}
                     </button>
@@ -387,6 +398,7 @@ const radarCopy = {
     fare: 'السعر الأساسي',
     distance: 'المسافة',
     openBid: 'تقديم عرض',
+    pendingOfferHint: 'لديك عرض قيد الانتظار، انتظر رد الراكب أولاً.',
     ignore: 'تجاهل',
   },
   en: {
@@ -410,6 +422,7 @@ const radarCopy = {
     fare: 'Base fare',
     distance: 'Distance',
     openBid: 'Submit bid',
+    pendingOfferHint: 'You have a pending offer — wait for the rider to respond first.',
     ignore: 'Ignore',
   },
 } as const;
