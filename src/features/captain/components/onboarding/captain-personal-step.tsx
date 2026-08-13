@@ -16,7 +16,7 @@ import {
   getGovernorateOrDistrictLabel,
 } from '@/features/auth/contract';
 import { getCaptainPersonalSchema } from '../../lib/captain-registration-schema';
-import { validateYupField, isYupSchemaValid } from '../../lib/validate-field';
+import { validateYupField, isYupSchemaValid, collectYupSchemaErrors } from '../../lib/validate-field';
 
 export interface CaptainPersonalValues {
   name: string;
@@ -33,6 +33,7 @@ export interface CaptainPersonalValues {
 const styles = {
   root: 'space-y-4  animate-fade-in',
   field: 'space-y-1.5',
+  fieldRow: 'grid grid-cols-2 gap-3',
   label: 'flex items-center gap-1.5 text-[11px] font-bold text-[#94A3B8]',
   icon: 'h-3.5 w-3.5 text-[#14B8A6]',
   input:
@@ -129,6 +130,16 @@ export function CaptainPersonalStep({
 
   const isValid = isYupSchemaValid(schema, values);
 
+  const handleContinueClick = () => {
+    if (isValid) {
+      onNext();
+      return;
+    }
+    // Surface every unfilled/invalid field at once, not just the ones the
+    // user has already interacted with, so it's obvious why "Continue" won't advance.
+    setErrors(collectYupSchemaErrors(schema, values));
+  };
+
   return (
     <div className={styles.root} dir={isArabic ? 'rtl' : 'ltr'}>
       <div className={styles.field}>
@@ -146,79 +157,83 @@ export function CaptainPersonalStep({
         {errors.name ? <p className={styles.error}>{errors.name}</p> : null}
       </div>
 
-      <div className={styles.field}>
-        <label className={styles.label}>
-          <MapPin className={styles.icon} />
-          {t('country')}
-        </label>
-        <AppSelect
-          value={values.country}
-          onValueChange={handleCountryChange}
-          options={countryOptions}
-          placeholder={countriesLoading && !countryOptions.length ? t('loading') : t('countryPlaceholder')}
-          disabled={countriesLoading && !countryOptions.length}
-        />
-        {errors.country ? <p className={styles.error}>{errors.country}</p> : null}
+      <div className={styles.fieldRow}>
+        <div className={styles.field}>
+          <label className={styles.label}>
+            <MapPin className={styles.icon} />
+            {t('country')}
+          </label>
+          <AppSelect
+            value={values.country}
+            onValueChange={handleCountryChange}
+            options={countryOptions}
+            placeholder={countriesLoading && !countryOptions.length ? t('loading') : t('countryPlaceholder')}
+            disabled={countriesLoading && !countryOptions.length}
+          />
+          {errors.country ? <p className={styles.error}>{errors.country}</p> : null}
+        </div>
+
+        <div className={styles.field}>
+          <label className={styles.label}>
+            <Phone className={styles.icon} />
+            {t('phone')}
+          </label>
+          <Input
+            type="tel"
+            dir="ltr"
+            placeholder={t('phonePlaceholder')}
+            value={values.phone}
+            onChange={(e) => handleFieldChange('phone', e.target.value)}
+            className={styles.input}
+            required
+          />
+          <p className={styles.hint}>{t('phoneHint')}</p>
+          {errors.phone ? <p className={styles.error}>{errors.phone}</p> : null}
+        </div>
       </div>
 
-      <div className={styles.field}>
-        <label className={styles.label}>
-          <Phone className={styles.icon} />
-          {t('phone')}
-        </label>
-        <Input
-          type="tel"
-          dir="ltr"
-          placeholder={t('phonePlaceholder')}
-          value={values.phone}
-          onChange={(e) => handleFieldChange('phone', e.target.value)}
-          className={styles.input}
-          required
-        />
-        <p className={styles.hint}>{t('phoneHint')}</p>
-        {errors.phone ? <p className={styles.error}>{errors.phone}</p> : null}
-      </div>
+      <div className={styles.fieldRow}>
+        <div className={styles.field}>
+          <label className={styles.label}>
+            <MapPin className={styles.icon} />
+            {t('governorate')}
+          </label>
+          <AppSelect
+            value={values.governorate}
+            onValueChange={(value) => handleFieldChange('governorate', value)}
+            options={governorateOptions}
+            placeholder={
+              !values.country
+                ? t('countryPlaceholder')
+                : governoratesLoading && !governorateOptions.length
+                  ? t('loading')
+                  : t('governoratePlaceholder')
+            }
+            disabled={!values.country || (governoratesLoading && !governorateOptions.length)}
+          />
+          {errors.governorate ? <p className={styles.error}>{errors.governorate}</p> : null}
+        </div>
 
-      <div className={styles.field}>
-        <label className={styles.label}>
-          <MapPin className={styles.icon} />
-          {t('governorate')}
-        </label>
-        <AppSelect
-          value={values.governorate}
-          onValueChange={(value) => handleFieldChange('governorate', value)}
-          options={governorateOptions}
-          placeholder={
-            !values.country
-              ? t('countryPlaceholder')
-              : governoratesLoading && !governorateOptions.length
-                ? t('loading')
-                : t('governoratePlaceholder')
-          }
-          disabled={!values.country || (governoratesLoading && !governorateOptions.length)}
-        />
-        {errors.governorate ? <p className={styles.error}>{errors.governorate}</p> : null}
-      </div>
-
-      <div className={styles.field}>
-        <label className={styles.label}>
-          <MapPin className={styles.icon} />
-          {t('district')}
-        </label>
-        <AppSelect
-          value={values.district}
-          onValueChange={(value) => handleFieldChange('district', value)}
-          options={districtOptions}
-          placeholder={
-            !values.governorate
-              ? t('districtPlaceholderDisabled')
-              : districtsLoading && !districtOptions.length
-                ? t('loading')
-                : t('districtPlaceholder')
-          }
-          disabled={!values.governorate || (districtsLoading && !districtOptions.length)}
-        />
-        {errors.district ? <p className={styles.error}>{errors.district}</p> : null}
+        <div className={styles.field}>
+          <label className={styles.label}>
+            <MapPin className={styles.icon} />
+            {t('district')}
+          </label>
+          <AppSelect
+            value={values.district}
+            onValueChange={(value) => handleFieldChange('district', value)}
+            options={districtOptions}
+            placeholder={
+              !values.governorate
+                ? t('districtPlaceholderDisabled')
+                : districtsLoading && !districtOptions.length
+                  ? t('loading')
+                  : t('districtPlaceholder')
+            }
+            disabled={!values.governorate || (districtsLoading && !districtOptions.length)}
+          />
+          {errors.district ? <p className={styles.error}>{errors.district}</p> : null}
+        </div>
       </div>
 
       <div className={styles.field}>
@@ -260,7 +275,7 @@ export function CaptainPersonalStep({
         />
       </label>
 
-      <button type="button" onClick={onNext} disabled={!isValid} className={styles.continueButton}>
+      <button type="button" onClick={handleContinueClick} className={styles.continueButton}>
         {t('continue')}
       </button>
     </div>

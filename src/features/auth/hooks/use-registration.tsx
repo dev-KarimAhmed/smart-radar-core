@@ -427,7 +427,11 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
           title: 'تم تسجيل الدخول',
           description: 'أهلاً بك، تم فتح حسابك بنجاح.',
         });
-        router.replace(role === 'driver' ? '/captain' : '/rider');
+        // Don't push a role-based route directly here: AuthContext may not have
+        // picked up the fresh session yet, which would race this navigation and
+        // land on a route that still sees `user === null`. Go to `/` and let
+        // its effect redirect once `useAuth()` actually reflects the new session.
+        router.replace('/');
         return;
       }
 
@@ -483,7 +487,9 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
           : 'تم حفظ بياناتك بأمان. يمكنك تسجيل الدخول الآن.',
       });
       if (signUpResult.session) {
-        router.replace(role === 'driver' ? '/captain' : '/rider');
+        // Same reasoning as the login branch above: let `/` redirect once
+        // AuthContext actually reflects the new session, instead of racing it.
+        router.replace('/');
       } else {
         setAuthMode('login');
         router.replace('/');

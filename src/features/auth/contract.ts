@@ -14,3 +14,8 @@ export {
   type SupabaseDistrictRow,
 } from './hooks/use-supabase-locations';
 export { useDetectedCountryCode } from './hooks/use-detected-country-code';
+export {
+  mapSupabaseAuthError,
+  signUpCaptainWithPhone,
+  type CaptainProfileMetadata,
+} from './services/supabase-auth';

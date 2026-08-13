@@ -7,8 +7,7 @@ import { navigateAuth } from '@/lib/auth-routing';
 import { cn } from '@/lib/utils';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { useToast } from '@/hooks/use-toast';
-import { mapSupabaseAuthError, signUpCaptainWithPhone } from '@/features/auth/services/supabase-auth';
-import type { CaptainProfileMetadata } from '@/features/auth/services/supabase-auth';
+import { mapSupabaseAuthError, signUpCaptainWithPhone, type CaptainProfileMetadata } from '@/features/auth/contract';
 import type { AffiliationType } from '@/core/types';
 import { CaptainPersonalStep, type CaptainPersonalValues } from './captain-personal-step';
 import { CaptainAffiliationStep } from './captain-affiliation-step';
@@ -63,6 +62,10 @@ const styles = {
   brand: 'text-sm font-bold text-[#14B8A6]',
   title: 'mt-3 text-2xl font-black tracking-normal text-[#F8FAFC]',
   subtitle: 'mt-2 text-sm font-medium leading-6 text-[#94A3B8]',
+  tabRow: 'mb-5 grid grid-cols-2 rounded-2xl border border-white/10 bg-[#0B0F19]/45 p-1',
+  tabButton: 'relative min-h-11 rounded-xl px-3 text-sm font-black transition',
+  tabButtonActive: 'border border-[#14B8A6]/45 bg-[#14B8A6]/15 text-[#F8FAFC] shadow-[0_0_18px_rgba(20,184,166,0.14)]',
+  tabButtonInactive: 'border border-transparent text-[#94A3B8] hover:text-white',
   stepRow: 'flex justify-between items-center text-xs text-slate-400 mb-4 bg-white/5 border border-white/10 rounded-2xl p-3',
   stepLabel: 'font-bold text-[#14B8A6]',
   stepName: 'font-bold text-[#94A3B8]',
@@ -189,6 +192,21 @@ export function CaptainOnboarding() {
             <h1 className={styles.title}>{t('title')}</h1>
             <p className={styles.subtitle}>{t('subtitle')}</p>
           </header>
+
+          {step !== 'done' ? (
+            <div className={styles.tabRow}>
+              <button type="button" className={cn(styles.tabButton, styles.tabButtonActive)}>
+                {t('tabRegister')}
+              </button>
+              <button
+                type="button"
+                onClick={() => navigateAuth('login', 'driver')}
+                className={cn(styles.tabButton, styles.tabButtonInactive)}
+              >
+                {t('tabLogin')}
+              </button>
+            </div>
+          ) : null}
 
           {step !== 'done' ? (
             <div className={styles.stepRow}>

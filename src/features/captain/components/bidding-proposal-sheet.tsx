@@ -1,9 +1,11 @@
 'use client';
 
 import React from 'react';
-import { AlertTriangle, Loader2, Minus, Plus, Send, Sparkles, X } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Loader2, Minus, Plus, Send, Sparkles, X } from 'lucide-react';
 import type { Trip } from '@/core/types';
 import { supabase } from '@/lib/supabase-client';
+import { RadarAntiCheatKernel } from '@/core/RadarAntiCheatKernel';
+import { cn } from '@/lib/utils';
 
 const styles = {
   style103_1: "mx-auto max-w-3xl rounded-3xl border border-emerald-500/20 bg-[#05080f] p-5 text-white shadow-2xl",
@@ -52,6 +54,12 @@ const styles = {
   style234_44: "rounded-xl border border-white/10 bg-white/[0.03] p-3",
   style235_45: "text-xs text-slate-500",
   style236_46: "mt-1 font-black text-white",
+  fareTestBadge: "mt-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-black",
+  fareTestBadgeNormal: "bg-emerald-500/15 text-emerald-200 ring-1 ring-emerald-400/30",
+  fareTestBadgeAmber: "bg-amber-500/15 text-amber-200 ring-1 ring-amber-400/30",
+  fareTestBadgeCrimson: "bg-red-500/15 text-red-200 ring-1 ring-red-400/30",
+  fareTestBadgeIcon: "h-3.5 w-3.5",
+  inputLocked: "cursor-not-allowed opacity-50",
 } as const;
 
 
@@ -88,7 +96,7 @@ export function BiddingProposalSheet({
   const tierLabel = getTierLabel(captainTierData.tier, language);
   const [increaseAmount, setIncreaseAmount] = React.useState(0);
   const normalizedIncreaseAmount = Number.isFinite(increaseAmount) ? increaseAmount : 0;
-  const finalOfferPrice = roundMoney(baseFare + Math.max(0, normalizedIncreaseAmount));
+  const finalOfferPrice = roundMoney(baseFare + normalizedIncreaseAmount);
 
   React.useEffect(() => {
     setIncreaseAmount(0);
@@ -145,8 +153,21 @@ export function BiddingProposalSheet({
   }, []);
 
   const step = Math.max(0.25, roundMoney(Math.max(maxIncreaseAmount, baseFare * 0.01, 1) / 10));
-  const isAmberDeviation = maxIncreaseAmount > 0 && normalizedIncreaseAmount > maxIncreaseAmount * 0.8 && normalizedIncreaseAmount <= maxIncreaseAmount;
-  const isBlockedDeviation = normalizedIncreaseAmount < 0 || normalizedIncreaseAmount > maxIncreaseAmount;
+  const minIncreaseAmount = baseFare > 1 ? roundMoney(-(baseFare - 1)) : 0;
+
+  // Tier-based ceiling: how much a captain of this rank may charge ABOVE the server base fare.
+  const isTierAmber = maxIncreaseAmount > 0 && normalizedIncreaseAmount > maxIncreaseAmount * 0.8 && normalizedIncreaseAmount <= maxIncreaseAmount;
+  const isTierBlocked = normalizedIncreaseAmount > maxIncreaseAmount;
+
+  // Fare_test anti-dumping brake: how far BELOW the server base fare the offer sits (5km/10min-style
+  // reference deviation matrix from RadarAntiCheatKernel.enforceMarketBrakes — 10% amber, 15% crimson).
+  const marketBrake = baseFare > 0 ? RadarAntiCheatKernel.enforceMarketBrakes(finalOfferPrice, baseFare) : { status: 'NORMAL' as const };
+  const isDumpingAmber = marketBrake.status === 'AMBER_WARNING';
+  const isDumpingBlocked = marketBrake.status === 'CRIMSON_BLOCK';
+  const dumpingDeviationPercent = baseFare > 0 ? Math.max(0, Math.round(((baseFare - finalOfferPrice) / baseFare) * 1000) / 10) : 0;
+
+  const isAmberDeviation = isTierAmber || isDumpingAmber;
+  const isBlockedDeviation = isTierBlocked || isDumpingBlocked;
   const canSubmit = Number.isFinite(finalOfferPrice) && finalOfferPrice > 0 && !isSubmitting && !isBlockedDeviation;
 
   return (
@@ -215,21 +236,24 @@ export function BiddingProposalSheet({
         <div className={styles.style165_24}>
           <button
             type="button"
-            onClick={() => setIncreaseAmount((value) => Math.max(0, roundMoney(value - step)))}
-            className={styles.style169_25}
+            onClick={() => setIncreaseAmount((value) => Math.max(minIncreaseAmount, roundMoney(value - step)))}
+            disabled={isBlockedDeviation}
+            className={cn(styles.style169_25, isBlockedDeviation ? styles.inputLocked : '')}
           >
             <Minus className={styles.style171_26} />
           </button>
           <input
             value={Number(increaseAmount).toString()}
             onChange={(event) => setIncreaseAmount(Number(event.target.value))}
+            disabled={isBlockedDeviation}
             inputMode="decimal"
-            className={styles.style177_27}
+            className={cn(styles.style177_27, isBlockedDeviation ? styles.inputLocked : '')}
           />
           <button
             type="button"
             onClick={() => setIncreaseAmount((value) => roundMoney(value + step))}
-            className={styles.style182_28}
+            disabled={isBlockedDeviation}
+            className={cn(styles.style182_28, isBlockedDeviation ? styles.inputLocked : '')}
           >
             <Plus className={styles.style184_29} />
           </button>
@@ -242,22 +266,51 @@ export function BiddingProposalSheet({
           <p className={styles.style192_34}>
             {copy.finalFormula
               .replace('{base}', baseFare.toFixed(2))
-              .replace('{increase}', Math.max(0, normalizedIncreaseAmount).toFixed(2))
+              .replace('{adjustment}', `${normalizedIncreaseAmount >= 0 ? '+' : ''}${normalizedIncreaseAmount.toFixed(2)}`)
               .replace('{currency}', currency)}
           </p>
+          <span className={cn(
+            styles.fareTestBadge,
+            isDumpingBlocked ? styles.fareTestBadgeCrimson : isDumpingAmber ? styles.fareTestBadgeAmber : styles.fareTestBadgeNormal,
+          )}>
+            {isDumpingBlocked || isDumpingAmber ? (
+              <AlertTriangle className={styles.fareTestBadgeIcon} />
+            ) : (
+              <CheckCircle2 className={styles.fareTestBadgeIcon} />
+            )}
+            {isDumpingBlocked
+              ? copy.fareTestCrimsonBadge
+              : isDumpingAmber
+                ? copy.fareTestAmberBadge.replace('{percent}', String(dumpingDeviationPercent))
+                : copy.fareTestNormalBadge}
+          </span>
         </div>
 
-        {isAmberDeviation ? (
+        {isTierAmber ? (
           <div className={styles.style201_35}>
             <AlertTriangle className={styles.style202_36} />
-            {copy.amberWarning}
+            {copy.tierAmberWarning}
           </div>
         ) : null}
 
-        {isBlockedDeviation ? (
+        {isTierBlocked ? (
           <div className={styles.style208_37}>
             <AlertTriangle className={styles.style209_38} />
-            {copy.crimsonBlock}
+            {copy.tierCrimsonBlock}
+          </div>
+        ) : null}
+
+        {isDumpingAmber ? (
+          <div className={styles.style201_35}>
+            <AlertTriangle className={styles.style202_36} />
+            {copy.dumpingAmberWarning}
+          </div>
+        ) : null}
+
+        {isDumpingBlocked ? (
+          <div className={styles.style208_37}>
+            <AlertTriangle className={styles.style209_38} />
+            {copy.dumpingCrimsonBlock}
           </div>
         ) : null}
       </div>
@@ -299,7 +352,7 @@ const bidCopy = {
     distance: 'المسافة',
     serverFare: 'السعر الأساسي',
     offerAmount: 'قيمة العرض',
-    increaseAmount: 'قيمة الزيادة',
+    increaseAmount: 'تعديل السعر (زيادة أو تخفيض)',
     tierPremium: 'زيادة اختيارية حسب رتبتك',
     tierPremiumDescription: 'رتبتك {tier} تسمح لك بزيادة من 1 إلى {percent}% فوق السعر الأساسي. اكتب قيمة الزيادة بنفسك.',
     noTierPremium: 'رتبتك الحالية {tier} لا تضيف زيادة اختيارية. يمكنك تقديم السعر الأساسي فقط.',
@@ -309,9 +362,14 @@ const bidCopy = {
     applyTierPrice: 'تطبيق سعر الرتبة',
     applyMaxIncrease: 'استخدام أقصى زيادة',
     finalOffer: 'العرض النهائي',
-    finalFormula: '{base} + {increase} {currency}',
-    amberWarning: 'تنبيه: عرضك يبتعد عن توازن السوق المستهدف.',
-    crimsonBlock: 'لا يمكن تقديم العرض لأن الزيادة أعلى من الحد المسموح لرتبتك.',
+    finalFormula: '{base} {adjustment} {currency}',
+    tierAmberWarning: 'تنبيه: زيادتك تقترب من أقصى حد مسموح لرتبتك.',
+    tierCrimsonBlock: 'لا يمكن تقديم العرض لأن الزيادة أعلى من الحد المسموح لرتبتك.',
+    dumpingAmberWarning: 'تنبيه: عرضك أقل من السعر الأساسي بنسبة تؤثر على رتبتك وظهورك للركاب (اختبار Fare_test).',
+    dumpingCrimsonBlock: 'تم قفل الإدخال: عرضك أقل من السعر الأساسي بأكثر من 15%، وهذا يُعد حرقاً للأسعار وغير مسموح (اختبار Fare_test).',
+    fareTestNormalBadge: 'اختبار السعر: طبيعي',
+    fareTestAmberBadge: 'اختبار السعر: تحذير ({percent}% أقل من الأساسي)',
+    fareTestCrimsonBadge: 'اختبار السعر: محظور',
     submit: 'تقديم العرض',
     ignore: 'تجاهل',
   },
@@ -325,7 +383,7 @@ const bidCopy = {
     distance: 'Distance',
     serverFare: 'Base fare',
     offerAmount: 'Offer amount',
-    increaseAmount: 'Increase amount',
+    increaseAmount: 'Price adjustment (increase or discount)',
     tierPremium: 'Optional increase by your tier',
     tierPremiumDescription: 'Your {tier} tier allows an increase from 1 to {percent}% above the base fare. Type the increase amount yourself.',
     noTierPremium: 'Your current {tier} tier does not add an optional increase. You can submit the base fare only.',
@@ -335,9 +393,14 @@ const bidCopy = {
     applyTierPrice: 'Apply tier price',
     applyMaxIncrease: 'Use max increase',
     finalOffer: 'Final offer',
-    finalFormula: '{base} + {increase} {currency}',
-    amberWarning: 'Warning: your offer is moving away from the target market balance.',
-    crimsonBlock: 'This offer is blocked because the increase is higher than your tier limit.',
+    finalFormula: '{base} {adjustment} {currency}',
+    tierAmberWarning: 'Warning: your increase is approaching the maximum allowed for your tier.',
+    tierCrimsonBlock: 'This offer is blocked because the increase is higher than your tier limit.',
+    dumpingAmberWarning: 'Warning: your offer is below the base fare by enough to affect your rank and visibility to riders (Fare_test).',
+    dumpingCrimsonBlock: 'Input locked: your offer is more than 15% below the base fare, which counts as price dumping and is not allowed (Fare_test).',
+    fareTestNormalBadge: 'Fare test: normal',
+    fareTestAmberBadge: 'Fare test: warning ({percent}% below base)',
+    fareTestCrimsonBadge: 'Fare test: blocked',
     submit: 'Submit offer',
     ignore: 'Ignore',
   },

@@ -5,6 +5,7 @@ import type { User } from '@/core/types';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase-client';
 import { addCaptainSovereignLog } from '@/lib/dexie-db';
+import { SOVEREIGN_CONSTANTS } from '@/core/constants/sovereign-protocols';
 
 type DriverStatus = 'active' | 'idle' | 'busy' | 'rating';
 
@@ -64,10 +65,15 @@ export function useDriverLifecycle(user: User | null) {
     clearTimers();
     if (statusRef.current !== 'active') return;
 
-    timers.current.warning = setTimeout(() => setWarning(true), 4 * 60 * 1000);
+    timers.current.warning = setTimeout(() => setWarning(true), SOVEREIGN_CONSTANTS.DORMANCY_WARNING_MS);
     timers.current.dormancy = setTimeout(() => {
       changeDriverStatus('idle');
       void updateDriverDoc({ status: 'idle' });
+      toast({
+        variant: 'destructive',
+        title: 'تم إخراجك من صالة المزاد',
+        description: 'تم إيقاف استقبال الطلبات تلقائياً بسبب عدم وجود تفاعل لعشر دقائق.',
+      });
       if (user?.uid) {
         void addCaptainSovereignLog(
           user.uid,
@@ -76,8 +82,8 @@ export function useDriverLifecycle(user: User | null) {
           'تم تحويل حالة الكابتن إلى غير متاح بسبب عدم وجود نشاط لفترة طويلة.',
         );
       }
-    }, 5 * 60 * 1000);
-  }, [changeDriverStatus, clearTimers, updateDriverDoc, user?.uid]);
+    }, SOVEREIGN_CONSTANTS.DORMANCY_TIMEOUT_MS);
+  }, [changeDriverStatus, clearTimers, toast, updateDriverDoc, user?.uid]);
 
   useEffect(() => {
     if (user?.role !== 'driver' || driverStatus !== 'active') {

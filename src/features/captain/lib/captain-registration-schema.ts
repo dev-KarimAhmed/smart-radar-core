@@ -34,6 +34,15 @@ function isValidInternationalPhone(value: string | undefined, country?: string) 
   }
 }
 
+// A local-format number (no leading "+") can look "valid" here because
+// `isValidPhoneNumber` interprets it relative to the selected country — but the
+// actual sign-up call sends the raw string, which then fails a stricter,
+// unrelated regex that does require a "+". Require it up front so this step's
+// validation can't pass on input that sign-up will reject moments later.
+function hasCountryCodePrefix(value: string | undefined) {
+  return Boolean(value && value.trim().startsWith('+'));
+}
+
 export function getCaptainPersonalSchema(t: CaptainValidationT) {
   return yup.object({
     name: yup.string().trim().matches(NAME_REGEX, t('nameInvalid')).required(t('nameRequired')),
@@ -42,6 +51,9 @@ export function getCaptainPersonalSchema(t: CaptainValidationT) {
       .trim()
       .required(t('phoneRequired'))
       .test('is-valid-phone', t('phoneInvalid'), function testPhone(value) {
+        if (!hasCountryCodePrefix(value)) {
+          return this.createError({ message: t('phoneMissingCountryCode') });
+        }
         const countryIso = (this.parent as { countryIso?: string } | undefined)?.countryIso;
         return isValidInternationalPhone(value, countryIso);
       }),
@@ -59,7 +71,12 @@ export function getCaptainTaxiVehicleSchema(t: CaptainValidationT, country?: str
       .string()
       .trim()
       .required(t('officePhoneRequired'))
-      .test('is-valid-phone', t('phoneInvalid'), (value) => isValidInternationalPhone(value, country)),
+      .test('is-valid-phone', t('phoneInvalid'), function testOfficePhone(value) {
+        if (!hasCountryCodePrefix(value)) {
+          return this.createError({ message: t('phoneMissingCountryCode') });
+        }
+        return isValidInternationalPhone(value, country);
+      }),
     sideId: yup.string().trim().matches(SIDE_ID_REGEX, t('sideIdInvalid')).required(t('sideIdRequired')),
     make: yup.string().trim().matches(VEHICLE_MAKE_REGEX, t('makeInvalid')).required(t('makeRequired')),
     model: yup.string().trim().matches(VEHICLE_MODEL_REGEX, t('modelInvalid')).required(t('modelRequired')),

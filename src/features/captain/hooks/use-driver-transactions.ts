@@ -16,6 +16,7 @@ export function useDriverTransactions(
   const { toast } = useToast();
   const [activeRequest, setActiveReq] = useState<Trip | null>(null);
   const [acceptedRider, setAcceptedRider] = useState<User | null>(null);
+  const [handshakeAt, setHandshakeAt] = useState<number | null>(null);
   const [isSubmittingOffer, setIsSubmittingOffer] = useState(false);
   const [isUpdatingTripStep, setIsUpdatingTripStep] = useState(false);
   const [isEndingTrip, setIsEndingTrip] = useState(false);
@@ -31,6 +32,7 @@ export function useDriverTransactions(
   const cleanUpAndReset = useCallback(() => {
     setActiveReq(null);
     setAcceptedRider(null);
+    setHandshakeAt(null);
     setDriverStatus?.('active');
   }, [setDriverStatus]);
 
@@ -47,6 +49,7 @@ export function useDriverTransactions(
     if (!trip) throw new Error('ride_request_missing_required_fields');
 
     setActiveReq(trip);
+    setHandshakeAt(Date.now());
     setDriverStatus?.('busy');
 
     if (trip.riderId) {
@@ -359,6 +362,7 @@ export function useDriverTransactions(
   return useMemo(() => ({
     activeRequest,
     acceptedRider,
+    handshakeAt,
     submitOffer,
     isSubmittingOffer,
     markArrivedAtPickup,
@@ -374,6 +378,7 @@ export function useDriverTransactions(
     activeRequest,
     acceptedRider,
     endTrip,
+    handshakeAt,
     isEndingTrip,
     isRatingRider,
     isRequestingReport,

@@ -12,7 +12,7 @@ import {
   VEHICLE_YEAR_MAX,
   VEHICLE_YEAR_MIN,
 } from '../../lib/captain-registration-schema';
-import { validateYupField, isYupSchemaValid } from '../../lib/validate-field';
+import { validateYupField, isYupSchemaValid, collectYupSchemaErrors } from '../../lib/validate-field';
 
 export interface CaptainTaxiVehicleValues {
   officeName: string;
@@ -56,6 +56,7 @@ const styles = {
   documentEmptyWrap: 'flex flex-col items-center',
   documentEmptyText: 'text-[9px] text-[#94A3B8]/80 leading-normal text-center font-medium',
   documentHint: 'text-[8px] text-[#14B8A6]/60 block font-mono',
+  documentDoneCheck: 'text-emerald-400',
   submitWrap: 'pt-2',
   submitButton:
     'w-full bg-[#14B8A6] hover:bg-[#14B8A6]/90 text-[#0B0F19] font-bold py-3 px-4 rounded-xl transition-all duration-300 shadow-[0_4px_20px_rgba(20,184,166,0.2)] hover:shadow-[0_4px_25px_rgba(20,184,166,0.35)] transform active:scale-[0.98] disabled:opacity-50 cursor-pointer',
@@ -130,6 +131,17 @@ export function CaptainVehicleStep({
 
   const isValid = isYupSchemaValid(schema, vehicle) && Boolean(identityFile && drivingLicenseFile);
 
+  const handleSubmitClick = () => {
+    if (isSubmitting) return;
+    if (isValid) {
+      onSubmit();
+      return;
+    }
+    // Surface every unfilled/invalid field at once, not just the ones the
+    // user has already interacted with, so it's obvious why submit won't proceed.
+    setErrors(collectYupSchemaErrors(schema, vehicle));
+  };
+
   const renderYearSelect = () => (
     <AppSelect
       value={vehicle.year}
@@ -163,7 +175,7 @@ export function CaptainVehicleStep({
         {file ? (
           <div className={styles.documentDoneRow}>
             <span className={styles.documentDoneText}>{file.name}</span>
-            <span aria-hidden="true" className="text-emerald-400">✓</span>
+            <span aria-hidden="true" className={styles.documentDoneCheck}>✓</span>
           </div>
         ) : (
           <div className={styles.documentEmptyWrap}>
@@ -330,7 +342,7 @@ export function CaptainVehicleStep({
       {!identityFile || !drivingLicenseFile ? <p className={styles.error}>{t('documentRequired')}</p> : null}
 
       <div className={styles.submitWrap}>
-        <button type="button" onClick={onSubmit} className={styles.submitButton} disabled={!isValid || isSubmitting}>
+        <button type="button" onClick={handleSubmitClick} className={styles.submitButton} disabled={isSubmitting}>
           {isSubmitting ? t('submitting') : t('submit')}
         </button>
       </div>

@@ -20,6 +20,7 @@ interface DriverOpsContextType {
   driverStatus: DriverStatus;
   activeRequest: Trip | null;
   acceptedRider: RiderUser | null;
+  handshakeAt: number | null;
   isDormancyWarningVisible: boolean;
   resetDormancyTimer: () => void;
   submitOffer: (payload: { tripId: string; offerPrice: number }) => Promise<boolean>;
@@ -107,6 +108,7 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
   const {
     activeRequest,
     acceptedRider,
+    handshakeAt,
     submitOffer: rawSubmitOffer,
     isSubmittingOffer,
     markArrivedAtPickup: rawMarkArrivedAtPickup,
@@ -169,6 +171,7 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
     driverStatus,
     activeRequest,
     acceptedRider,
+    handshakeAt,
     isDormancyWarningVisible,
     resetDormancyTimer,
     submitOffer,
@@ -205,6 +208,7 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
     driverSpeed,
     driverStatus,
     endTrip,
+    handshakeAt,
     isDisconnectionLockActive,
     isDormancyWarningVisible,
     isEndingTrip,
