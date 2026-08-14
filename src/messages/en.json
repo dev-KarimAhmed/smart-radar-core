@@ -761,7 +761,15 @@
     "statusActivated": "Requests are now enabled.",
     "statusDeactivated": "Requests are now disabled."
   },
+  "captainPickup": {
+    "pickupLocation": "Pickup location",
+    "pickupApproximate": "Approximate area before acceptance",
+    "pickupExact": "Exact pickup location",
+    "openPickupMap": "Open pickup map",
+    "distanceUnavailable": "Unavailable"
+  },
   "captainBidding": {
+    "distanceUnavailable": "Unavailable",
     "badge": "Price offer",
     "title": "Submit an offer",
     "subtitle": "Review the destination and base fare, then send your offer. The trip only starts after server acceptance.",

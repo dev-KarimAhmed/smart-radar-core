@@ -1,6 +1,7 @@
 import type { Offer } from '@/core/types';
 import type { RiderLocation } from '../components/rider-map';
 import { cellToLatLng, gridDisk } from 'h3-js';
+import { buildGoogleMapsUrl, isValidCoordinatePair, normalizeExternalMapUrl } from '../../captain/services/ride-location';
 
 type SupabaseRpcLike = {
   rpc: (name: string, args: Record<string, number>) => PromiseLike<{ data: unknown; error: unknown }>;
@@ -51,11 +52,15 @@ export interface ServerFareInput {
 export interface RideRequestInsertInput {
   riderId: string;
   origin: RiderLocation;
+  pickupAddress?: string;
+  pickupGoogleMapsUrl?: string;
   destination: RiderLocation;
   originH3: string;
   destinationH3: string;
   destinationAddressAr: string;
   serverEstimatedFare: number;
+  routeDistanceKm?: number;
+  routeDurationMinutes?: number;
   countryId: number;
 }
 
@@ -63,6 +68,10 @@ export interface RideRequestInsertPayload {
   rider_id: string;
   origin_lat: number;
   origin_lng: number;
+  origin_address: string | null;
+  origin_google_maps_url: string;
+  estimated_distance_km: number | null;
+  estimated_duration_minutes: number | null;
   destination_lat: number;
   destination_lng: number;
   origin_h3: string;
@@ -115,12 +124,27 @@ export async function calculateServerFare(client: SupabaseRpcLike, input: Server
 }
 
 export function buildRideRequestInsertPayload(input: RideRequestInsertInput): RideRequestInsertPayload {
+  const originLat = toFiniteNumber(input.origin.lat, 'origin_lat');
+  const originLng = toFiniteNumber(input.origin.lng, 'origin_lng');
+  const destinationLat = toFiniteNumber(input.destination.lat, 'destination_lat');
+  const destinationLng = toFiniteNumber(input.destination.lng, 'destination_lng');
+  if (!isValidCoordinatePair(originLat, originLng) || !isValidCoordinatePair(destinationLat, destinationLng)) {
+    throw new Error('invalid_ride_coordinates');
+  }
+
+  const pickupMapUrl = normalizeExternalMapUrl(input.pickupGoogleMapsUrl) || buildGoogleMapsUrl(originLat, originLng);
+  if (!pickupMapUrl) throw new Error('invalid_pickup_map_url');
+
   return {
     rider_id: input.riderId,
-    origin_lat: toFiniteNumber(input.origin.lat, 'origin_lat'),
-    origin_lng: toFiniteNumber(input.origin.lng, 'origin_lng'),
-    destination_lat: toFiniteNumber(input.destination.lat, 'destination_lat'),
-    destination_lng: toFiniteNumber(input.destination.lng, 'destination_lng'),
+    origin_lat: originLat,
+    origin_lng: originLng,
+    origin_address: input.pickupAddress?.trim() || null,
+    origin_google_maps_url: pickupMapUrl,
+    estimated_distance_km: toPositiveMetric(input.routeDistanceKm),
+    estimated_duration_minutes: toPositiveMetric(input.routeDurationMinutes),
+    destination_lat: destinationLat,
+    destination_lng: destinationLng,
     origin_h3: input.originH3,
     destination_h3: input.destinationH3,
     destination_address_ar: input.destinationAddressAr,
@@ -128,6 +152,10 @@ export function buildRideRequestInsertPayload(input: RideRequestInsertInput): Ri
     country_id: toStrictPositiveInteger(input.countryId, 'country_id'),
     status: 'PENDING',
   };
+}
+
+function toPositiveMetric(value: number | undefined) {
+  return Number.isFinite(value) && Number(value) > 0 ? Number(value) : null;
 }
 
 export async function createRideRequest(client: SupabaseInsertLike, payload: RideRequestInsertPayload): Promise<RideRequestRow> {

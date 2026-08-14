@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase-client';
 import { dexieDb } from '@/lib/dexie-db';
 import { useToast } from '@/hooks/use-toast';
 import type { Trip, User } from '@/core/types';
+import { buildGoogleMapsUrl, isValidCoordinatePair, normalizeExternalMapUrl } from '../services/ride-location';
 
 type RideOfferRow = Record<string, unknown>;
 type RideRequestRow = Record<string, unknown>;
@@ -436,20 +437,29 @@ function mapRideRequestToTrip(row: RideRequestRow | null): Trip | null {
   const riderId = String(row.rider_id || '');
   const originLat = toNumber(row.origin_lat);
   const originLng = toNumber(row.origin_lng);
-  if (!id || !riderId || originLat === null || originLng === null) return null;
+  if (!id || !riderId || !isValidCoordinatePair(originLat, originLng)) return null;
+
+  const safeOriginLat = originLat as number;
+  const safeOriginLng = originLng as number;
+  const pickupGoogleMapsUrl = normalizeExternalMapUrl(row.origin_google_maps_url) || buildGoogleMapsUrl(safeOriginLat, safeOriginLng) || undefined;
+  const estimatedDistance = firstPositiveNumber(row.estimated_distance_km, row.route_distance_km, row.trip_distance_km);
+  const estimatedTime = firstPositiveNumber(row.estimated_duration_minutes, row.route_duration_minutes, row.trip_duration_minutes);
 
   return {
     id,
     riderId,
     driverId: String(row.accepted_captain_id || ''),
     status: mapRideRequestStatusToTripStatus(row.status),
-    pickupCoords: { lat: originLat, lng: originLng },
-    exactPickupCoords: { lat: originLat, lng: originLng },
+    pickupCoords: { lat: safeOriginLat, lng: safeOriginLng },
+    exactPickupCoords: { lat: safeOriginLat, lng: safeOriginLng },
+    pickupLabel: String(row.origin_address || ''),
+    pickupGoogleMapsUrl,
+    pickupLocationIsApproximate: false,
     h3Index: String(row.origin_h3 || ''),
     gridId: String(row.origin_h3 || id),
     dropoff: String(row.destination_address_ar || row.destination_address || 'وجهة الراكب'),
-    estimatedDistance: 0,
-    estimatedTime: 0,
+    estimatedDistance: estimatedDistance ?? undefined,
+    estimatedTime: estimatedTime ?? undefined,
     offerPrice: toNumber(row.final_fare) ?? toNumber(row.offered_fare) ?? toNumber(row.offer_price) ?? toNumber(row.server_estimated_fare) ?? undefined,
     createdAt: String(row.created_at || ''),
   };
@@ -472,6 +482,14 @@ function mapRideRequestStatusToTripStatus(value: unknown): Trip['status'] {
 function toNumber(value: unknown) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function firstPositiveNumber(...values: unknown[]) {
+  for (const value of values) {
+    const parsed = toNumber(value);
+    if (parsed !== null && parsed > 0) return parsed;
+  }
+  return null;
 }
 
 function isAlreadyClosedTripError(error: unknown) {

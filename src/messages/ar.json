@@ -761,7 +761,15 @@
     "statusActivated": "تم تفعيل استقبال الطلبات.",
     "statusDeactivated": "تم إيقاف استقبال الطلبات."
   },
+  "captainPickup": {
+    "pickupLocation": "موقع الالتقاط",
+    "pickupApproximate": "الموقع التقريبي قبل قبول الطلب",
+    "pickupExact": "موقع الالتقاط الدقيق",
+    "openPickupMap": "فتح موقع الالتقاط",
+    "distanceUnavailable": "غير متاح"
+  },
   "captainBidding": {
+    "distanceUnavailable": "غير متاح",
     "badge": "عرض سعر",
     "title": "تقديم عرض للراكب",
     "subtitle": "راجع الوجهة والسعر الأساسي، ثم أرسل عرضك. لن تبدأ الرحلة إلا بعد قبول الراكب من الخادم.",

@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { CheckCircle2, Clock, Loader2, Lock, Navigation, Phone, ShieldAlert } from 'lucide-react';
+import { CheckCircle2, Clock, ExternalLink, Loader2, Lock, MapPin, Navigation, Phone, ShieldAlert } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import type { Trip, User } from '@/core/types';
 import type { CaptainTripStep } from '../state/captain-state-machine';
 import { SOVEREIGN_CONSTANTS } from '@/core/constants/sovereign-protocols';
@@ -100,6 +101,7 @@ export function ActiveTripTracker({
   onCompleteTrip,
 }: ActiveTripTrackerProps) {
   const copy = activeCopy[language];
+  const pickupT = useTranslations('captainPickup');
   const countdown = useHandshakeCountdown(handshakeAt);
   const pickupLocation = request.exactPickupCoords || request.obfuscatedPickupCoords || request.pickupCoords || null;
 
@@ -130,6 +132,34 @@ export function ActiveTripTracker({
             <a href={`tel:${rider.phone}`} className={styles.style55_15}>
               <Phone className={styles.style56_16} />
               {copy.callRider}
+            </a>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="mt-4 rounded-2xl border border-cyan-400/20 bg-cyan-400/[0.06] p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="flex items-center gap-1.5 text-xs font-black text-cyan-200">
+              <MapPin className="h-4 w-4" aria-hidden="true" />
+              {pickupT('pickupLocation')}
+            </p>
+            <p className="mt-1 truncate text-sm font-black text-white">
+              {request.pickupLabel || pickupT('pickupLocation')}
+            </p>
+            <p className="mt-1 text-xs text-slate-400">
+              {request.pickupLocationIsApproximate ? pickupT('pickupApproximate') : pickupT('pickupExact')}
+            </p>
+          </div>
+          {request.pickupGoogleMapsUrl ? (
+            <a
+              href={request.pickupGoogleMapsUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-cyan-400/25 px-3 py-2 text-xs font-black text-cyan-200 transition hover:border-cyan-300 hover:text-white"
+            >
+              <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+              {pickupT('openPickupMap')}
             </a>
           ) : null}
         </div>

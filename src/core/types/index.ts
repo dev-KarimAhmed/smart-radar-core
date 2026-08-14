@@ -98,6 +98,9 @@ export interface Trip {
   pickupCoords: { lat: number; lng: number; };
   exactPickupCoords?: { lat: number; lng: number; };
   obfuscatedPickupCoords?: { lat: number; lng: number; };
+  pickupLabel?: string;
+  pickupGoogleMapsUrl?: string;
+  pickupLocationIsApproximate?: boolean;
   h3Index?: string;
   gridId: string;
   isRatedByRider?: boolean;

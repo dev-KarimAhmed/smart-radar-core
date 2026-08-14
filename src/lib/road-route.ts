@@ -15,6 +15,10 @@ const FALLBACK_TORTUOSITY_FACTOR = 1.3;
 export const MIN_TORTUOSITY_FACTOR = 1.15;
 export const MAX_TORTUOSITY_FACTOR = 1.35;
 export const MAX_ROUTE_DISTANCE_KM = 1000;
+// A road route can be longer than the straight line, but a result that is
+// several times longer is usually a bad router response or a coordinate
+// mismatch. In that case the local, bounded estimate is safer for the rider.
+export const MAX_ROUTE_TO_STRAIGHT_DISTANCE_RATIO = 4;
 
 export function normalizeTortuosityFactor(value: number) {
   const factor = Number.isFinite(value) ? value : FALLBACK_TORTUOSITY_FACTOR;
@@ -57,6 +61,13 @@ export async function fetchRoadRoute(
     const route = payload.routes?.[0];
     const distanceKm = Number(route?.distance) / 1000;
     const durationMinutes = Number(route?.duration) / 60;
+    const straightDistanceKm = calculateHaversineKm(origin, destination);
+    const hasPlausibleRoadDistance =
+      straightDistanceKm > 0 &&
+      distanceKm <= Math.max(
+        straightDistanceKm * MAX_ROUTE_TO_STRAIGHT_DISTANCE_RATIO,
+        straightDistanceKm + 25,
+      );
 
     if (
       payload.code !== 'Ok' ||
@@ -64,7 +75,8 @@ export async function fetchRoadRoute(
       !Number.isFinite(durationMinutes) ||
       distanceKm <= 0 ||
       distanceKm > MAX_ROUTE_DISTANCE_KM ||
-      durationMinutes <= 0
+      durationMinutes <= 0 ||
+      !hasPlausibleRoadDistance
     ) {
       return fallback;
     }

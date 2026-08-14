@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useTranslations } from 'next-intl';
-import { AlertTriangle, CheckCircle2, Loader2, Minus, Plus, Send, Sparkles, X } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ExternalLink, Loader2, MapPin, Minus, Plus, Send, Sparkles, X } from 'lucide-react';
 import type { Trip } from '@/core/types';
 import { supabase } from '@/lib/supabase-client';
 import { RadarAntiCheatKernel } from '@/core/RadarAntiCheatKernel';
@@ -91,6 +91,7 @@ export function BiddingProposalSheet({
   onIgnore,
 }: BiddingProposalSheetProps) {
   const t = useTranslations('captainBidding');
+  const pickupT = useTranslations('captainPickup');
   const baseFare = Number(request.offerPrice || 0);
   const [captainTierData, setCaptainTierData] = React.useState<CaptainTierData>({ tier: 'SILVER', rating: 5 });
   const premiumFactor = getTierPremiumFactor(captainTierData.tier);
@@ -193,8 +194,39 @@ export function BiddingProposalSheet({
         <h2 className={styles.style117_10}>{request.dropoff || t('unknownDestination')}</h2>
         <div className={styles.style118_11}>
           <Info label={t('h3')} value={request.h3Index ? request.h3Index.slice(-8).toUpperCase() : '-'} />
-          <Info label={t('distance')} value={`${request.estimatedDistance || 0} km`} />
+          <Info
+            label={t('distance')}
+            value={request.estimatedDistance != null ? `${request.estimatedDistance} km` : pickupT('distanceUnavailable')}
+          />
           <Info label={t('serverFare')} value={`${baseFare.toFixed(2)} ${currency}`} />
+        </div>
+      </div>
+
+      <div className="mt-4 rounded-2xl border border-cyan-400/20 bg-cyan-400/[0.06] p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="flex items-center gap-1.5 text-xs font-black text-cyan-200">
+              <MapPin className="h-4 w-4" aria-hidden="true" />
+              {pickupT('pickupLocation')}
+            </p>
+            <p className="mt-1 truncate text-sm font-black text-white">
+              {request.pickupLabel || pickupT('pickupLocation')}
+            </p>
+            <p className="mt-1 text-xs text-slate-400">
+              {request.pickupLocationIsApproximate ? pickupT('pickupApproximate') : pickupT('pickupExact')}
+            </p>
+          </div>
+          {request.pickupGoogleMapsUrl ? (
+            <a
+              href={request.pickupGoogleMapsUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-cyan-400/25 px-3 py-2 text-xs font-black text-cyan-200 transition hover:border-cyan-300 hover:text-white"
+            >
+              <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+              {pickupT('openPickupMap')}
+            </a>
+          ) : null}
         </div>
       </div>
 

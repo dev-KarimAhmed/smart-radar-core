@@ -2,7 +2,8 @@
 
 import React from 'react';
 import maplibregl from 'maplibre-gl';
-import { Clock, MapPin, RadioTower, Route } from 'lucide-react';
+import { Clock, ExternalLink, MapPin, RadioTower, Route } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import type { Trip } from '@/core/types';
 import { DEFAULT_MAP_CENTER } from '@/shared/services/maplibre-runtime';
 import { useMaplibreInstance } from '@/shared/hooks/use-maplibre-instance';
@@ -94,6 +95,7 @@ export function RadarMapView({
   onIgnoreRequest,
 }: RadarMapViewProps) {
   const copy = radarCopy[language];
+  const t = useTranslations('captainPickup');
   const mapContainerRef = React.useRef<HTMLDivElement | null>(null);
   const markerRef = React.useRef<maplibregl.Marker | null>(null);
   const requestMarkersRef = React.useRef<maplibregl.Marker[]>([]);
@@ -264,9 +266,38 @@ export function RadarMapView({
                       <p className={styles.style224_37}>{shortH3(request.h3Index)}</p>
                     </div>
                   </div>
+                  <div className="mt-3 rounded-xl border border-cyan-400/15 bg-cyan-400/[0.06] p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-[11px] font-black uppercase tracking-wide text-cyan-200">
+                          {t('pickupLocation')}
+                        </p>
+                        <p className="mt-1 truncate text-sm font-bold text-white">
+                          {request.pickupLabel || t('pickupLocation')}
+                        </p>
+                        <p className="mt-1 text-[11px] text-slate-400">
+                          {request.pickupLocationIsApproximate ? t('pickupApproximate') : t('pickupExact')}
+                        </p>
+                      </div>
+                      {request.pickupGoogleMapsUrl ? (
+                        <a
+                          href={request.pickupGoogleMapsUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-cyan-400/25 px-2.5 py-2 text-xs font-black text-cyan-200 transition hover:border-cyan-300 hover:text-white"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                          {t('openPickupMap')}
+                        </a>
+                      ) : null}
+                    </div>
+                  </div>
                   <div className={styles.style227_38}>
                     <Info label={copy.fare} value={request.offerPrice ? Number(request.offerPrice).toFixed(2) : '-'} />
-                    <Info label={copy.distance} value={`${request.estimatedDistance || 0} km`} />
+                    <Info
+                      label={copy.distance}
+                      value={request.estimatedDistance != null ? `${request.estimatedDistance} km` : t('distanceUnavailable')}
+                    />
                   </div>
                   {hasPendingOffer ? <p className={styles.pendingOfferHint}>{copy.pendingOfferHint}</p> : null}
                   <div className={styles.style231_39}>
