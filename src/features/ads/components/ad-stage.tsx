@@ -486,7 +486,7 @@ export function AdStage({
             whileTap={{ scale: 0.96 }}
             className={styles.style423_10}
           >
-            <span className="!text-[#07111F]">{t('requestRide')}</span>
+            <span>{t('requestRide')}</span>
           </motion.button>
         </div>
       ) : (

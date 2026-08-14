@@ -746,7 +746,10 @@
     "nearbyRequestsToastTitle": "Nearby requests available",
     "nearbyRequestsToastBody": "Open the request queue to submit your bid.",
     "newRequestToastTitle": "New ride request",
-    "newRequestToastBody": "A nearby request is waiting for your bid."
+    "newRequestToastBody": "A nearby request is waiting for your bid.",
+    "radarWalletCheckFailed": "Could not verify your time bundle. Please try again.",
+    "radarBundleRequired": "Recharge your time bundle to activate the radar and receive requests.",
+    "radarRequestsLoadFailed": "Could not load nearby requests. Please try again."
   },
   "captainBidding": {
     "badge": "Price offer",

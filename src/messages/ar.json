@@ -746,7 +746,10 @@
     "nearbyRequestsToastTitle": "طلبات قريبة متاحة",
     "nearbyRequestsToastBody": "افتح قائمة الطلبات لتقديم عرضك.",
     "newRequestToastTitle": "طلب رحلة جديد",
-    "newRequestToastBody": "يوجد طلب قريب بانتظار عرضك."
+    "newRequestToastBody": "يوجد طلب قريب بانتظار عرضك.",
+    "radarWalletCheckFailed": "تعذر التحقق من باقة الوقت. حاول مرة أخرى.",
+    "radarBundleRequired": "يرجى شحن باقة الوقت لتفعيل الرادار واستقبال الطلبات.",
+    "radarRequestsLoadFailed": "تعذر تحميل الطلبات القريبة. حاول مرة أخرى."
   },
   "captainBidding": {
     "badge": "عرض سعر",

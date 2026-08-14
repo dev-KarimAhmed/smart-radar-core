@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { cellToLatLng, gridDisk, latLngToCell } from 'h3-js';
+import { useTranslations } from 'next-intl';
 import { supabase } from '@/lib/supabase-client';
 import { useGeospatialAnchor } from '@/hooks/use-geospatial-anchor';
 import type { Trip, User } from '@/core/types';
@@ -14,6 +15,7 @@ type RideRequestRow = Record<string, unknown>;
 type RadarLocation = { lat: number; lng: number; speed?: number; source?: string };
 
 export function useDriverRadar(user: User | null, driverStatus: string) {
+  const t = useTranslations('captainDashboard');
   const { location: driverLocation } = useGeospatialAnchor(driverStatus === 'active');
   const [rawRequests, setRawRequests] = useState<Trip[]>([]);
   const [radarLockMessage, setRadarLockMessage] = useState('');
@@ -48,37 +50,19 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
       return false;
     }
 
-    const { data, error } = await supabase
-      .from('wallet_accounts')
-      .select('profile_id,paid_minutes_remaining,bonus_minutes_remaining,active_package_name,balance')
-      .eq('profile_id', user.uid)
-      .maybeSingle();
+    const { data, error } = await supabase.rpc('get_captain_wallet_status');
 
     if (error) {
       if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver radar] wallet pre-check failed:', error);
-      setRadarLockMessage('تعذر التحقق من باقة الوقت. حاول مرة أخرى بعد قليل.');
+      setRadarLockMessage(t('radarWalletCheckFailed'));
       return false;
     }
 
-    const row = data as Record<string, unknown> | null;
-    const balance = toNumber(row?.balance) || 0;
+    const walletStatus = data as { has_active_bundle?: boolean } | null;
+    const hasActiveBundle = walletStatus?.has_active_bundle === true;
 
-    // Time conversion logic
-    const TEST_PRICE_PER_HOUR = 200; 
-    const totalPaidHours = balance / TEST_PRICE_PER_HOUR;
-    const paidHours = Math.floor(totalPaidHours);
-    const paidMinutesCalculated = Math.round((totalPaidHours - paidHours) * 60);
-    const paidMinutes = paidHours * 60 + paidMinutesCalculated;
-
-    const totalExtraHours = balance > 0 ? paidHours * 0.4 : 0;
-    const extraHours = Math.floor(totalExtraHours);
-    const extraMinutesCalculated = Math.round((totalExtraHours - extraHours) * 60);
-    const bonusMinutes = extraHours * 60 + extraMinutesCalculated;
-
-    const hasMinutes = paidMinutes + bonusMinutes > 0;
-
-    if (!row || !hasMinutes) {
-      setRadarLockMessage('يرجى شحن باقة الوقت لتفعيل الرادار واستقبال الطلبات.');
+    if (!hasActiveBundle) {
+      setRadarLockMessage(t('radarBundleRequired'));
       return false;
     }
 
@@ -109,7 +93,7 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
     const { data, error } = await query;
     if (error) {
       if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver radar] request fetch failed:', error);
-      setRadarLockMessage('تعذر تحميل الطلبات القريبة من الخادم. تحقق من صلاحيات قاعدة البيانات ثم حاول مرة أخرى.');
+      setRadarLockMessage(t('radarRequestsLoadFailed'));
       setRawRequests([]);
       return;
     }
@@ -135,7 +119,7 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
 
     setRadarLockMessage('');
     setRawRequests(rankedRequests);
-  }, [checkTimeBundle, driverStatus, nearbyCells, radarLocation]);
+  }, [checkTimeBundle, driverStatus, nearbyCells, radarLocation, t]);
 
   useEffect(() => {
     let active = true;
@@ -172,7 +156,7 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
   }, [fetchPendingRequests]);
 
   useEffect(() => {
-    if (driverStatus !== 'active' || radarLockMessage) return;
+    if (driverStatus !== 'active') return;
 
     const channel = supabase
       .channel(`driver-radar-${user?.uid || 'anonymous'}-${currentH3Cell || 'country'}`)
@@ -188,6 +172,18 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
           void fetchPendingRequests();
         },
       )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'wallet_accounts',
+          filter: `profile_id=eq.${user?.uid || ''}`,
+        },
+        () => {
+          void fetchPendingRequests();
+        },
+      )
       .subscribe((status) => {
         if ((status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') && (process.env.NODE_ENV !== 'production')) {
           console.warn('[Driver radar] realtime channel issue:', status);
@@ -197,7 +193,7 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
     return () => {
       void channel.unsubscribe();
     };
-  }, [currentH3Cell, driverStatus, fetchPendingRequests, radarLockMessage, user?.uid]);
+  }, [currentH3Cell, driverStatus, fetchPendingRequests, user?.uid]);
 
   const rejectRequest = useCallback((tripId: string) => {
     setRejectedTripIds((prev) => {
