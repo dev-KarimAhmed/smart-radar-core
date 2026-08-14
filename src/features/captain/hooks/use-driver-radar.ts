@@ -68,7 +68,7 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
 
     setRadarLockMessage('');
     return true;
-  }, [driverStatus, user?.uid]);
+  }, [driverStatus, t, user?.uid]);
 
   const fetchPendingRequests = useCallback(async () => {
     if (driverStatus !== 'active') {

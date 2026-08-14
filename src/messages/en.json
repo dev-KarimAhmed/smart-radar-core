@@ -749,7 +749,17 @@
     "newRequestToastBody": "A nearby request is waiting for your bid.",
     "radarWalletCheckFailed": "Could not verify your time bundle. Please try again.",
     "radarBundleRequired": "Recharge your time bundle to activate the radar and receive requests.",
-    "radarRequestsLoadFailed": "Could not load nearby requests. Please try again."
+    "radarRequestsLoadFailed": "Could not load nearby requests. Please try again.",
+    "statusUpdating": "Updating status...",
+    "statusUpdateFailed": "Could not update captain status",
+    "statusUpdateFailedBody": "Check your connection or account permissions, then try again.",
+    "statusBackendNotReady": "Captain status service is not ready",
+    "statusRoleRequired": "This account is not a captain account",
+    "statusAuthRequired": "Your session has expired. Please sign in again.",
+    "statusProfileMissing": "Captain profile data is incomplete",
+    "statusInvalid": "The captain status is invalid",
+    "statusActivated": "Requests are now enabled.",
+    "statusDeactivated": "Requests are now disabled."
   },
   "captainBidding": {
     "badge": "Price offer",

@@ -35,7 +35,8 @@ interface DriverOpsContextType {
   isRatingRider: boolean;
   isRequestListOpen: boolean;
   toggleRequestList: (open?: boolean) => void;
-  toggleDriverStatus: (desiredStatus: 'active' | 'idle') => void;
+  toggleDriverStatus: (desiredStatus: 'active' | 'idle') => Promise<boolean>;
+  isUpdatingStatus: boolean;
   requests: Trip[];
   driverLocation: { lat: number; lng: number } | null;
   rejectRequest: (tripId: string) => void;
@@ -62,6 +63,7 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
     driverStatus,
     setDriverStatus,
     isDormancyWarningVisible,
+    isUpdatingStatus,
     resetDormancyTimer,
     toggleDriverStatus: rawToggleDriverStatus,
     updateDriverDoc,
@@ -81,7 +83,7 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
   }, [setDriverStatus, updateDriverDoc]);
 
   const toggleDriverStatus = useCallback((desiredStatus: 'active' | 'idle') => {
-    rawToggleDriverStatus(desiredStatus);
+    return rawToggleDriverStatus(desiredStatus);
   }, [rawToggleDriverStatus]);
 
   const {
@@ -176,6 +178,7 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
     handshakeAt,
     pendingOfferRequestId,
     isDormancyWarningVisible,
+    isUpdatingStatus,
     resetDormancyTimer,
     submitOffer,
     isSubmittingOffer,
@@ -220,6 +223,7 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
     isRequestListOpen,
     isRequestingReport,
     isSubmittingOffer,
+    isUpdatingStatus,
     isUpdatingTripStep,
     loadingPulse,
     markArrivedAtPickup,

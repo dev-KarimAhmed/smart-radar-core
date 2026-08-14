@@ -211,12 +211,12 @@ export function RadarMapView({
         <div className={styles.style168_10}>
           <div>
             <p className={styles.style170_11}>{copy.title}</p>
-            <p className={styles.style171_12}>{isActive ? copy.online : copy.offline}</p>
+            <p className={styles.style171_12}>{isActive && !radarLockMessage ? copy.online : copy.offline}</p>
           </div>
           <div className={styles.style173_13}>
             <span className={styles.style174_14}>
               <Clock className={styles.style175_15} />
-              {copy.remaining}: {formatMinutes(totalMinutes, language)}
+              {radarLockMessage ? copy.locked : `${copy.remaining}: ${formatMinutes(totalMinutes, language)}`}
             </span>
           </div>
         </div>
@@ -382,6 +382,7 @@ const radarCopy = {
     online: 'متاح لاستقبال الطلبات',
     offline: 'غير متاح حالياً',
     remaining: 'المتبقي',
+    locked: 'الرادار متوقف',
     recenter: 'العودة إلى موقعي',
     mapLoading: 'جاري تحميل الخريطة',
     mapReady: 'الخريطة جاهزة',
@@ -406,6 +407,7 @@ const radarCopy = {
     online: 'Online and receiving requests',
     offline: 'Offline',
     remaining: 'Remaining',
+    locked: 'Radar paused',
     recenter: 'Back to my location',
     mapLoading: 'Loading map',
     mapReady: 'Map is ready',

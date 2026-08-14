@@ -749,7 +749,17 @@
     "newRequestToastBody": "يوجد طلب قريب بانتظار عرضك.",
     "radarWalletCheckFailed": "تعذر التحقق من باقة الوقت. حاول مرة أخرى.",
     "radarBundleRequired": "يرجى شحن باقة الوقت لتفعيل الرادار واستقبال الطلبات.",
-    "radarRequestsLoadFailed": "تعذر تحميل الطلبات القريبة. حاول مرة أخرى."
+    "radarRequestsLoadFailed": "تعذر تحميل الطلبات القريبة. حاول مرة أخرى.",
+    "statusUpdating": "جارٍ تحديث الحالة...",
+    "statusUpdateFailed": "تعذر تحديث حالة الكابتن",
+    "statusUpdateFailedBody": "تحقق من الاتصال أو صلاحيات الحساب ثم حاول مرة أخرى.",
+    "statusBackendNotReady": "خدمة تحديث الحالة غير جاهزة",
+    "statusRoleRequired": "هذا الحساب ليس حساب كابتن",
+    "statusAuthRequired": "انتهت جلسة الدخول. سجّل الدخول مرة أخرى.",
+    "statusProfileMissing": "بيانات الكابتن غير مكتملة",
+    "statusInvalid": "حالة الكابتن غير صحيحة",
+    "statusActivated": "تم تفعيل استقبال الطلبات.",
+    "statusDeactivated": "تم إيقاف استقبال الطلبات."
   },
   "captainBidding": {
     "badge": "عرض سعر",

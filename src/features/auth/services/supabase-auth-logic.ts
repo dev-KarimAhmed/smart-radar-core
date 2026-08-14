@@ -184,6 +184,10 @@ export function buildUserFromSupabaseAuth(authUser: User) {
   const vehicle = metadata.vehicle && typeof metadata.vehicle === 'object' ? metadata.vehicle as Record<string, unknown> : {};
   const rawRole = String(metadata.role || 'RIDER').toLowerCase();
   const role = rawRole === 'captain' ? 'driver' : rawRole;
+  const metadataStatus = String(metadata.status || 'idle').toLowerCase();
+  const status = ['active', 'idle', 'busy', 'rating'].includes(metadataStatus)
+    ? metadataStatus as 'active' | 'idle' | 'busy' | 'rating'
+    : 'idle';
 
   return {
     uid: authUser.id,
@@ -195,7 +199,7 @@ export function buildUserFromSupabaseAuth(authUser: User) {
     currencyEn: metadata.currency_en !== undefined ? String(metadata.currency_en) : undefined,
     governorate: metadata.governorate_id !== undefined ? String(metadata.governorate_id) : '',
     district: metadata.district_id !== undefined ? String(metadata.district_id) : '',
-    status: 'active',
+    status,
     rating: 5,
     vehicle: {
       plate: String(vehicle.plate || ''),

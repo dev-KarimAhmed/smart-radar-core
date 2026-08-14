@@ -84,7 +84,7 @@ export function DriverViewTab() {
 
   React.useEffect(() => {
     if (!driverOps || !isOffline) return;
-    if (driverOps.driverStatus === 'active') driverOps.toggleDriverStatus('idle');
+    if (driverOps.driverStatus === 'active') void driverOps.toggleDriverStatus('idle');
   }, [driverOps, isOffline]);
 
   React.useEffect(() => {
@@ -245,11 +245,11 @@ export function DriverViewTab() {
           <div className={styles.style163_1}>
             <button
               type="button"
-              onClick={() => driverOps.toggleDriverStatus(isActive ? 'idle' : 'active')}
-              disabled={isOffline || isReconnecting}
+              onClick={() => void driverOps.toggleDriverStatus(isActive ? 'idle' : 'active')}
+              disabled={isOffline || isReconnecting || driverOps.isUpdatingStatus}
               className={cn(styles.style164_9, isActive ? styles.style165_10 : styles.style165_11)}
             >
-              {isActive ? t('online') : t('offline')}
+              {driverOps.isUpdatingStatus ? t('statusUpdating') : isActive ? t('online') : t('offline')}
             </button>
             <div className={styles.style167_1}>
               <NavButton active={screen === 'RADAR_MAP' || screen === 'BIDDING'} onClick={() => dispatch({ type: 'OPEN_RADAR' })} label={t('radar')} icon={<Map className={styles.style170_12} />} />
