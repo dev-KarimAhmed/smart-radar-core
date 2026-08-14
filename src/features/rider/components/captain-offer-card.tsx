@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
+import { resolveColorDisplayName } from '@/shared/services/color-name';
 const styles = {
   style136_1: "group overflow-hidden rounded-2xl border bg-[#161F30]/80 text-[#F8FAFC] shadow-2xl shadow-black/20 backdrop-blur-md transition-all duration-300 hover:border-[#14B8A6]",
   style137_2: "border-emerald-300/70 shadow-[0_0_34px_rgba(20,184,166,0.18)]",
@@ -194,7 +195,7 @@ export function CaptainOfferCard({
   const maxPremiumPercent = Math.round(premiumFactor * 100);
   const captainName = captain.name?.trim() || (isArabic ? 'كابتن' : 'Captain');
   const vehicleSummary =
-    [captain.vehicle_model, captain.vehicle_color].filter((value) => value && String(value).trim()).join(' - ') ||
+    [captain.vehicle_model, resolveColorDisplayName(captain.vehicle_color, language)].filter((value) => value && String(value).trim()).join(' - ') ||
     (isArabic ? 'سيارة' : 'Vehicle');
   const companyLabel = captain.company_name?.trim()
     || captain.affiliation_label?.trim()

@@ -17,7 +17,7 @@ export const SIDE_ID_REGEX = /^[A-Za-z0-9؀-ۿ-]{2,15}$/;
 // spaces), so this only rejects garbage/empty input rather than enforcing one
 // specific layout like "77-12345".
 export const PLATE_REGEX = /^[A-Za-z0-9؀-ۿ\s-]{3,15}$/;
-export const COLOR_HEX_REGEX = /^#[0-9A-Fa-f]{6}$/;
+export const VEHICLE_COLOR_REGEX = /^[؀-ۿa-zA-Z\s]{2,30}$/;
 export const VEHICLE_YEAR_MIN = 1990;
 export const VEHICLE_YEAR_MAX = 2027;
 
@@ -97,7 +97,7 @@ export function getCaptainSmartAppVehicleSchema(t: CaptainValidationT) {
     make: yup.string().trim().matches(VEHICLE_MAKE_REGEX, t('makeInvalid')).required(t('makeRequired')),
     model: yup.string().trim().matches(VEHICLE_MODEL_REGEX, t('modelInvalid')).required(t('modelRequired')),
     contactPageUrl: yup.string().trim().test('contact-url', t('contactPageInvalid'), (value) => !value || /^https?:\/\/[^\s]+$/i.test(value)),
-    color: yup.string().trim().matches(COLOR_HEX_REGEX, t('colorInvalid')).required(t('colorRequired')),
+    color: yup.string().trim().matches(VEHICLE_COLOR_REGEX, t('colorInvalid')).required(t('colorRequired')),
     plate: yup.string().trim().matches(PLATE_REGEX, t('plateInvalid')).required(t('plateRequired')),
     year: yup
       .number()

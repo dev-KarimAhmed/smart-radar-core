@@ -5,6 +5,7 @@ import { motion } from 'motion/react';
 import { AdStage } from '@/features/ads/ad-stage/contract';
 import { useAuth } from '@/hooks/use-auth';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
+import { useActiveTripReloadGuard } from '@/shared/hooks/use-active-trip-reload-guard';
 import { useRiderDashboardMachine } from '../state/rider-state-machine';
 import { useRiderGeolocation } from '../hooks/use-rider-geolocation';
 import { useCaptainPresence } from '../hooks/use-captain-presence';
@@ -32,6 +33,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
   const { user } = useAuth();
   const { isArabic, language } = useDashboardLanguage();
   const { state, dispatch, showAdRiver } = useRiderDashboardMachine();
+  useActiveTripReloadGuard(Boolean(state.requestId) && (state.screen === 'RECEIVING_OFFERS' || state.screen === 'TRIP_ACTIVE'));
 
   const geolocation = useRiderGeolocation(language);
   const activeCountryId = user?.countryId;

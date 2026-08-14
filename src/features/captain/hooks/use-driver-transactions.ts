@@ -29,11 +29,13 @@ export function useDriverTransactions(
   const [isSubmittingOffer, setIsSubmittingOffer] = useState(false);
   const [isUpdatingTripStep, setIsUpdatingTripStep] = useState(false);
   const [isEndingTrip, setIsEndingTrip] = useState(false);
+  const [isCancellingTrip, setIsCancellingTrip] = useState(false);
   const [isRatingRider, setIsRatingRider] = useState(false);
   const [isRequestingReport, setIsRequestingReport] = useState(false);
   const submittingRef = useRef(false);
   const updatingStepRef = useRef(false);
   const endingRef = useRef(false);
+  const cancellingRef = useRef(false);
   const ratingRef = useRef(false);
 
   const captainId = user?.uid || '';
@@ -118,6 +120,12 @@ export function useDriverTransactions(
 
           const status = String(row.status || '').toUpperCase();
           if (status === 'COMPLETED' || status === 'CANCELLED') {
+            if (status === 'CANCELLED') {
+              toast({
+                title: 'تم إلغاء الرحلة',
+                description: 'قام الراكب بإلغاء هذه الرحلة.',
+              });
+            }
             cleanUpAndReset();
             return;
           }
@@ -163,6 +171,42 @@ export function useDriverTransactions(
 
     return () => {
       void channel.unsubscribe();
+    };
+  }, [captainId, loadAcceptedRequest]);
+
+  // Resync on mount/reload — `activeRequest` otherwise only ever populates via
+  // the realtime channel above (a live "offer accepted" event), so a reload
+  // mid-trip previously lost all trace of it even though it's still active on
+  // the server. Look up the captain's own still-open request and re-hydrate
+  // through the same `loadAcceptedRequest` path the live flow already uses.
+  useEffect(() => {
+    if (!captainId) return;
+    let isCancelled = false;
+
+    (async () => {
+      const { data, error } = await supabase
+        .from('ride_requests')
+        .select('id')
+        .eq('accepted_captain_id', captainId)
+        .not('status', 'in', '("COMPLETED","CANCELLED")')
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (isCancelled || error || !data) return;
+
+      const requestId = String((data as Record<string, unknown>).id || '');
+      if (!requestId) return;
+
+      try {
+        await loadAcceptedRequest(requestId);
+      } catch (bootstrapError) {
+        if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver transactions] active trip resync failed:', bootstrapError);
+      }
+    })();
+
+    return () => {
+      isCancelled = true;
     };
   }, [captainId, loadAcceptedRequest]);
 
@@ -351,6 +395,42 @@ export function useDriverTransactions(
     }
   }, [activeRequest, captainId, cleanUpAndReset, toast]);
 
+  const cancelActiveTrip = useCallback(async () => {
+    if (!activeRequest?.id || cancellingRef.current) return false;
+    cancellingRef.current = true;
+    setIsCancellingTrip(true);
+
+    try {
+      const { error } = await supabase.rpc('captain_cancel_active_trip', {
+        p_request_id: activeRequest.id,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: 'تم إلغاء الرحلة',
+        description: 'تم إلغاء الرحلة بنجاح.',
+      });
+      cleanUpAndReset();
+      return true;
+    } catch (error) {
+      if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver transactions] cancel trip failed:', error);
+      if (isAlreadyClosedTripError(error)) {
+        cleanUpAndReset();
+        return true;
+      }
+      toast({
+        variant: 'destructive',
+        title: 'تعذر إلغاء الرحلة',
+        description: 'لم يقبل الخادم إلغاء الرحلة حالياً. حاول مرة أخرى.',
+      });
+      return false;
+    } finally {
+      cancellingRef.current = false;
+      setIsCancellingTrip(false);
+    }
+  }, [activeRequest?.id, cleanUpAndReset, toast]);
+
   const rateAndFinishTrip = useCallback(async (rating: number) => {
     if (!activeRequest?.id || !activeRequest.riderId || ratingRef.current) return;
     ratingRef.current = true;
@@ -408,6 +488,8 @@ export function useDriverTransactions(
     isUpdatingTripStep,
     endTrip,
     isEndingTrip,
+    cancelActiveTrip,
+    isCancellingTrip,
     rateAndFinishTrip,
     isRatingRider,
     requestWeeklyReport,
@@ -415,8 +497,10 @@ export function useDriverTransactions(
   }), [
     activeRequest,
     acceptedRider,
+    cancelActiveTrip,
     endTrip,
     handshakeAt,
+    isCancellingTrip,
     isEndingTrip,
     isRatingRider,
     isRequestingReport,
@@ -444,6 +528,8 @@ function mapRideRequestToTrip(row: RideRequestRow | null): Trip | null {
   const pickupGoogleMapsUrl = normalizeExternalMapUrl(row.origin_google_maps_url) || buildGoogleMapsUrl(safeOriginLat, safeOriginLng) || undefined;
   const estimatedDistance = firstPositiveNumber(row.estimated_distance_km, row.route_distance_km, row.trip_distance_km);
   const estimatedTime = firstPositiveNumber(row.estimated_duration_minutes, row.route_duration_minutes, row.trip_duration_minutes);
+  const destinationLat = toNumber(row.destination_lat);
+  const destinationLng = toNumber(row.destination_lng);
 
   return {
     id,
@@ -458,6 +544,9 @@ function mapRideRequestToTrip(row: RideRequestRow | null): Trip | null {
     h3Index: String(row.origin_h3 || ''),
     gridId: String(row.origin_h3 || id),
     dropoff: String(row.destination_address_ar || row.destination_address || 'وجهة الراكب'),
+    dropoffCoords: isValidCoordinatePair(destinationLat, destinationLng)
+      ? { lat: destinationLat as number, lng: destinationLng as number }
+      : undefined,
     estimatedDistance: estimatedDistance ?? undefined,
     estimatedTime: estimatedTime ?? undefined,
     offerPrice: toNumber(row.final_fare) ?? toNumber(row.offered_fare) ?? toNumber(row.offer_price) ?? toNumber(row.server_estimated_fare) ?? undefined,

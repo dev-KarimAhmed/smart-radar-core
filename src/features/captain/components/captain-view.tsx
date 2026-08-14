@@ -6,6 +6,8 @@ import { AlertTriangle, Languages, Loader2, LogOut, Map, ShieldAlert, User, Wall
 import type { Trip } from '@/core/types';
 import { useAuth } from '@/hooks/use-auth';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
+import { supabase } from '@/lib/supabase-client';
+import { useActiveTripReloadGuard } from '@/shared/hooks/use-active-trip-reload-guard';
 import { useDriverOperations } from '../hooks/use-driver-operations';
 import { useSovereignWallet } from '@/hooks/use-sovereign-wallet';
 import { useToast } from '@/hooks/use-toast';
@@ -13,6 +15,7 @@ import { useDeviceTimeGuard } from '../hooks/use-device-time-guard';
 import { useConnectionGuard } from '../hooks/use-connection-guard';
 import { ActiveTripTracker } from './active-trip-tracker';
 import { BiddingProposalSheet } from './bidding-proposal-sheet';
+import { DriverRatingModal } from './driver-rating-modal';
 import {
   captainDashboardReducer,
   initialCaptainDashboardState,
@@ -81,6 +84,7 @@ export function DriverViewTab() {
   const [state, dispatch] = React.useReducer(captainDashboardReducer, initialCaptainDashboardState);
   const knownRequestIdsRef = React.useRef<Set<string> | null>(null);
   const screen = state.screen === 'ACTIVE_TRIP' && !driverOps?.activeRequest ? 'RADAR_MAP' : state.screen;
+  useActiveTripReloadGuard(screen === 'ACTIVE_TRIP');
 
   React.useEffect(() => {
     if (!driverOps || !isOffline) return;
@@ -206,8 +210,21 @@ export function DriverViewTab() {
   };
 
   const completeTrip = async () => {
+    // Captured before the RPC call — a successful endTrip() clears
+    // driverOps.activeRequest/acceptedRider, so the rider's id/name would
+    // otherwise be gone by the time we need them for the rating modal.
+    const trip = driverOps.activeRequest;
+    const riderName = driverOps.acceptedRider?.name;
     const ok = await driverOps.endTrip();
-    if (ok) dispatch({ type: 'TRIP_COMPLETED' });
+    if (!ok) return;
+    dispatch({
+      type: 'TRIP_COMPLETED',
+      completedTrip: trip ? { requestId: trip.id, riderId: trip.riderId, riderName } : undefined,
+    });
+  };
+
+  const cancelTrip = async () => {
+    await driverOps.cancelActiveTrip();
   };
 
   return (
@@ -325,18 +342,34 @@ export function DriverViewTab() {
             rider={driverOps.acceptedRider}
             step={state.tripStep}
             isCompleting={driverOps.isEndingTrip || driverOps.isUpdatingTripStep}
+            isCancelling={driverOps.isCancellingTrip}
             currency={currency}
             driverLocation={driverOps.driverLocation}
             handshakeAt={driverOps.handshakeAt}
             onArrived={markArrived}
             onStartTrip={startTrip}
             onCompleteTrip={completeTrip}
+            onCancelTrip={() => void cancelTrip()}
           />
         ) : null}
 
         {screen === 'WALLET' ? <DriverWalletTab user={user} language={language} isFlightActive={isActive} /> : null}
         {screen === 'PROFILE' ? <DriverProfileTab user={user} language={language} onLogout={logout} /> : null}
       </div>
+
+      {screen === 'RATING_MODAL' && state.completedTrip && user?.uid ? (
+        <DriverRatingModal
+          isOpen={true}
+          onClose={() => dispatch({ type: 'RATING_DISMISSED' })}
+          language={language}
+          tripId={state.completedTrip.requestId}
+          riderId={state.completedTrip.riderId}
+          captainId={user.uid}
+          supabase={supabase}
+          riderName={state.completedTrip.riderName}
+          onSuccess={() => dispatch({ type: 'RATING_DISMISSED' })}
+        />
+      ) : null}
     </div>
   );
 }

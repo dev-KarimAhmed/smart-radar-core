@@ -176,6 +176,15 @@ export function BiddingProposalSheet({
   const isBlockedDeviation = isTierBlocked || isDumpingBlocked;
   const canSubmit = Number.isFinite(finalOfferPrice) && finalOfferPrice > 0 && !isSubmitting && !isBlockedDeviation;
 
+  // The tier gives no room to increase at all (e.g. Silver/Bronze) — don't show
+  // a "+" that would only ever immediately trigger the tier-exceeded block.
+  const canIncrease = maxIncreaseAmount > 0;
+  // Each button only locks the direction that would make its own block worse,
+  // so a captain who over-shot the tier ceiling can still press "-" to recover
+  // (and vice versa for the dumping floor) instead of the whole row freezing.
+  const isPlusDisabled = isTierBlocked;
+  const isMinusDisabled = isDumpingBlocked && normalizedIncreaseAmount <= minIncreaseAmount;
+
   return (
     <section className={styles.style103_1}>
       <div className={styles.style104_2}>
@@ -267,32 +276,35 @@ export function BiddingProposalSheet({
       </div>
 
       <div className={styles.style163_22}>
-        <label className={styles.style164_23}>{t('increaseAmount')}</label>
-        <div className={styles.style165_24}>
-          <button
-            type="button"
-            onClick={() => setIncreaseAmount((value) => Math.max(minIncreaseAmount, roundMoney(value - step)))}
-            disabled={isBlockedDeviation}
-            className={cn(styles.style169_25, isBlockedDeviation ? styles.inputLocked : '')}
-          >
-            <Minus className={styles.style171_26} />
-          </button>
-          <input
-            value={Number(increaseAmount).toString()}
-            onChange={(event) => setIncreaseAmount(Number(event.target.value))}
-            disabled={isBlockedDeviation}
-            inputMode="decimal"
-            className={cn(styles.style177_27, isBlockedDeviation ? styles.inputLocked : '')}
-          />
-          <button
-            type="button"
-            onClick={() => setIncreaseAmount((value) => roundMoney(value + step))}
-            disabled={isBlockedDeviation}
-            className={cn(styles.style182_28, isBlockedDeviation ? styles.inputLocked : '')}
-          >
-            <Plus className={styles.style184_29} />
-          </button>
-        </div>
+        {canIncrease ? (
+          <>
+            <label className={styles.style164_23}>{t('increaseAmount')}</label>
+            <div className={styles.style165_24}>
+              <button
+                type="button"
+                onClick={() => setIncreaseAmount((value) => Math.max(minIncreaseAmount, roundMoney(value - step)))}
+                disabled={isMinusDisabled}
+                className={cn(styles.style169_25, isMinusDisabled ? styles.inputLocked : '')}
+              >
+                <Minus className={styles.style171_26} />
+              </button>
+              <input
+                value={Number(increaseAmount).toString()}
+                onChange={(event) => setIncreaseAmount(Number(event.target.value))}
+                inputMode="decimal"
+                className={styles.style177_27}
+              />
+              <button
+                type="button"
+                onClick={() => setIncreaseAmount((value) => roundMoney(value + step))}
+                disabled={isPlusDisabled}
+                className={cn(styles.style182_28, isPlusDisabled ? styles.inputLocked : '')}
+              >
+                <Plus className={styles.style184_29} />
+              </button>
+            </div>
+          </>
+        ) : null}
         <div className={styles.style187_30}>
           <div className={styles.style188_31}>
             <span className={styles.style189_32}>{t('finalOffer')}</span>

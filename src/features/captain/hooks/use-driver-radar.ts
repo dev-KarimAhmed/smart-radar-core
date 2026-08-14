@@ -22,7 +22,10 @@ type RadarLocation = { lat: number; lng: number; speed?: number; source?: string
 
 export function useDriverRadar(user: User | null, driverStatus: string) {
   const t = useTranslations('captainDashboard');
-  const { location: driverLocation } = useGeospatialAnchor(driverStatus === 'active');
+  // Keep the GPS watch running while 'busy' too (not just 'active') — the
+  // captain's live position still needs to update during an active trip for
+  // the pickup-navigation map to track them moving toward the rider.
+  const { location: driverLocation } = useGeospatialAnchor(driverStatus === 'active' || driverStatus === 'busy');
   const [rawRequests, setRawRequests] = useState<Trip[]>([]);
   const [radarLockMessage, setRadarLockMessage] = useState('');
   const [profileAnchor, setProfileAnchor] = useState<RadarLocation | null>(null);

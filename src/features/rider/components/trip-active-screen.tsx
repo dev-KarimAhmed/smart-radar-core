@@ -5,6 +5,7 @@ import { Clock, MessageCircle, Phone, ShieldCheck } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { formatMoney, isTripStartedStatus } from '../services/rider-view-format';
+import { resolveColorDisplayName } from '@/shared/services/color-name';
 import type { RiderActiveTrip } from '../state/rider-state-machine';
 import { Metric } from './rider-view-primitives';
 
@@ -85,7 +86,7 @@ export function TripActiveScreen({
       <div className={styles.metrics}>
         <Metric
           label={t('offers.vehicle')}
-          value={`${activeTrip.captain?.vehicle_color || ''} ${activeTrip.captain?.vehicle_model || activeTrip.vehicleType || t('trip.vehicleFallback')}`.trim()}
+          value={`${resolveColorDisplayName(activeTrip.captain?.vehicle_color, isArabic ? 'ar' : 'en')} ${activeTrip.captain?.vehicle_model || activeTrip.vehicleType || t('trip.vehicleFallback')}`.trim()}
         />
         <Metric
           label={t('offers.plate')}

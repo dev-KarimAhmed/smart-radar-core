@@ -13,6 +13,7 @@ import type { Offer } from '@/core/types';
 import { useAuth } from '@/hooks/use-auth';
 import { usePromoStream } from '@/hooks/use-promo-stream';
 import { AdDisplayCard } from '@/features/ads/ad-display/contract';
+import { resolveColorDisplayName } from '@/shared/services/color-name';
 
 import { cn } from '@/lib/utils';
 const styles = {
@@ -288,7 +289,7 @@ const OfferCard = ({
 
         <div className={styles.style217_37}>
           <span>
-            {offer.driverVehicle.make} {offer.driverVehicle.color} - {offer.driverVehicle.year}
+            {offer.driverVehicle.make} {resolveColorDisplayName(offer.driverVehicle.color, 'ar')} - {offer.driverVehicle.year}
           </span>
           <Button variant="ghost" size="sm" className={styles.style221_38} onClick={() => onInfo(offer.driverVehicle)}>
             <Info className={styles.style222_39} />

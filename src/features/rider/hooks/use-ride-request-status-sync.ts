@@ -3,7 +3,8 @@ import { useTranslations } from 'next-intl';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase-client';
 import type { AppLanguage } from '@/lib/i18n/simple-copy';
-import { subscribeToRideRequestStatus } from '../services/rider-server-marketplace';
+import type { Offer } from '@/core/types';
+import { fetchRideOffers, subscribeToRideRequestStatus } from '../services/rider-server-marketplace';
 import { getLocalizedMarketplaceError } from '../services/rider-offer-presentation';
 import type { RiderDestination, RiderMachineAction, RiderMachineState } from '../state/rider-state-machine';
 
@@ -28,6 +29,15 @@ export function useRideRequestStatusSync(params: {
 
   const [etaSeconds, setEtaSeconds] = React.useState(0);
 
+  // The status-subscription effect below only re-subscribes when requestId
+  // changes (the same id spans accepted -> arrived -> started), so its
+  // closure would otherwise see a stale `state.screen` from whenever the
+  // subscription was created. Read the live value through this ref instead.
+  const screenRef = React.useRef(state.screen);
+  React.useEffect(() => {
+    screenRef.current = state.screen;
+  }, [state.screen]);
+
   const openDestination = React.useCallback(() => {
     dispatch({ type: 'OPEN_DESTINATION' });
     if (selectedDraftDestination) {
@@ -41,8 +51,58 @@ export function useRideRequestStatusSync(params: {
     }
   }, [dispatch, selectedDraftDestination, state.screen]);
 
+  // Resync on mount/reload — without this, a reload mid-trip previously wiped
+  // the whole flow back to the idle map even though the ride_requests row was
+  // still active on the server. Look up the rider's own still-open request
+  // and rebuild the screen it was on instead of blindly resetting.
   React.useEffect(() => {
-    dispatch({ type: 'RESET_TO_IDLE' });
+    if (!userId) {
+      dispatch({ type: 'RESET_TO_IDLE' });
+      return;
+    }
+
+    let isCancelled = false;
+
+    (async () => {
+      const { data, error } = await supabase
+        .from('ride_requests')
+        .select('*')
+        .eq('rider_id', userId)
+        .not('status', 'in', '("COMPLETED","CANCELLED")')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (isCancelled) return;
+
+      dispatch({ type: 'RESET_TO_IDLE' });
+
+      if (error || !data) return;
+
+      const row = data as Record<string, unknown>;
+      const requestId = String(row.id || '');
+      if (!requestId) return;
+
+      const status = String(row.status || '').toUpperCase();
+      if (status === 'PENDING' || status === 'RECEIVING_OFFERS') {
+        dispatch({ type: 'REHYDRATE_SEARCHING', requestId });
+        return;
+      }
+
+      let offers: Offer[] = [];
+      try {
+        offers = await fetchRideOffers(supabase, requestId);
+      } catch (offersError) {
+        if ((process.env.NODE_ENV !== 'production')) console.warn('[Rider status sync] resync offers fetch failed:', offersError);
+      }
+
+      if (isCancelled) return;
+      dispatch({ type: 'REHYDRATE_ACTIVE_TRIP', requestId, row, offers });
+    })();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [dispatch, userId]);
 
   React.useEffect(() => {
@@ -86,6 +146,15 @@ export function useRideRequestStatusSync(params: {
 
         if (status === 'CANCELLED') {
           pendingAcceptedOfferIdRef.current = null;
+          // A cancellation arriving while a trip is already underway can
+          // only be the captain's doing (the rider's own cancel button
+          // already shows its own toast) — flag it explicitly here.
+          if (screenRef.current === 'TRIP_ACTIVE') {
+            toast({
+              title: t('request.cancelledByCaptainTitle'),
+              description: t('request.cancelledByCaptainDescription'),
+            });
+          }
           dispatch({ type: 'REQUEST_CANCELLED' });
         }
 
