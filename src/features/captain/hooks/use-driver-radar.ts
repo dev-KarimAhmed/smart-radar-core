@@ -1,10 +1,17 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { cellToLatLng, gridDisk, latLngToCell } from 'h3-js';
+import { cellToLatLng, gridDisk, isValidCell, latLngToCell } from 'h3-js';
+import { useTranslations } from 'next-intl';
 import { supabase } from '@/lib/supabase-client';
 import { useGeospatialAnchor } from '@/hooks/use-geospatial-anchor';
 import type { Trip, User } from '@/core/types';
+import {
+  buildGoogleMapsUrl,
+  estimateHaversineDistanceKm,
+  isValidCoordinatePair,
+  normalizeExternalMapUrl,
+} from '../services/ride-location';
 
 const DRIVER_H3_RESOLUTION = 9;
 const RADAR_RING_SIZE = 5;
@@ -14,6 +21,7 @@ type RideRequestRow = Record<string, unknown>;
 type RadarLocation = { lat: number; lng: number; speed?: number; source?: string };
 
 export function useDriverRadar(user: User | null, driverStatus: string) {
+  const t = useTranslations('captainDashboard');
   const { location: driverLocation } = useGeospatialAnchor(driverStatus === 'active');
   const [rawRequests, setRawRequests] = useState<Trip[]>([]);
   const [radarLockMessage, setRadarLockMessage] = useState('');
@@ -48,43 +56,25 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
       return false;
     }
 
-    const { data, error } = await supabase
-      .from('wallet_accounts')
-      .select('profile_id,paid_minutes_remaining,bonus_minutes_remaining,active_package_name,balance')
-      .eq('profile_id', user.uid)
-      .maybeSingle();
+    const { data, error } = await supabase.rpc('get_captain_wallet_status');
 
     if (error) {
       if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver radar] wallet pre-check failed:', error);
-      setRadarLockMessage('تعذر التحقق من باقة الوقت. حاول مرة أخرى بعد قليل.');
+      setRadarLockMessage(t('radarWalletCheckFailed'));
       return false;
     }
 
-    const row = data as Record<string, unknown> | null;
-    const balance = toNumber(row?.balance) || 0;
+    const walletStatus = data as { has_active_bundle?: boolean } | null;
+    const hasActiveBundle = walletStatus?.has_active_bundle === true;
 
-    // Time conversion logic
-    const TEST_PRICE_PER_HOUR = 200; 
-    const totalPaidHours = balance / TEST_PRICE_PER_HOUR;
-    const paidHours = Math.floor(totalPaidHours);
-    const paidMinutesCalculated = Math.round((totalPaidHours - paidHours) * 60);
-    const paidMinutes = paidHours * 60 + paidMinutesCalculated;
-
-    const totalExtraHours = balance > 0 ? paidHours * 0.4 : 0;
-    const extraHours = Math.floor(totalExtraHours);
-    const extraMinutesCalculated = Math.round((totalExtraHours - extraHours) * 60);
-    const bonusMinutes = extraHours * 60 + extraMinutesCalculated;
-
-    const hasMinutes = paidMinutes + bonusMinutes > 0;
-
-    if (!row || !hasMinutes) {
-      setRadarLockMessage('يرجى شحن باقة الوقت لتفعيل الرادار واستقبال الطلبات.');
+    if (!hasActiveBundle) {
+      setRadarLockMessage(t('radarBundleRequired'));
       return false;
     }
 
     setRadarLockMessage('');
     return true;
-  }, [driverStatus, user?.uid]);
+  }, [driverStatus, t, user?.uid]);
 
   const fetchPendingRequests = useCallback(async () => {
     if (driverStatus !== 'active') {
@@ -109,7 +99,7 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
     const { data, error } = await query;
     if (error) {
       if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver radar] request fetch failed:', error);
-      setRadarLockMessage('تعذر تحميل الطلبات القريبة من الخادم. تحقق من صلاحيات قاعدة البيانات ثم حاول مرة أخرى.');
+      setRadarLockMessage(t('radarRequestsLoadFailed'));
       setRawRequests([]);
       return;
     }
@@ -121,7 +111,7 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
     const rankedRequests = mappedRequests
       .map((request) => {
         const driverDistanceKm = radarLocation
-          ? estimateDistanceKm(radarLocation.lat, radarLocation.lng, request.pickupCoords.lat, request.pickupCoords.lng)
+          ? estimateHaversineDistanceKm(radarLocation.lat, radarLocation.lng, request.pickupCoords.lat, request.pickupCoords.lng) ?? Number.POSITIVE_INFINITY
           : Number.POSITIVE_INFINITY;
         const isInH3Disk = request.h3Index ? nearbyCells.includes(request.h3Index) : false;
         return { request, driverDistanceKm, isInH3Disk };
@@ -135,7 +125,7 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
 
     setRadarLockMessage('');
     setRawRequests(rankedRequests);
-  }, [checkTimeBundle, driverStatus, nearbyCells, radarLocation]);
+  }, [checkTimeBundle, driverStatus, nearbyCells, radarLocation, t]);
 
   useEffect(() => {
     let active = true;
@@ -172,7 +162,7 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
   }, [fetchPendingRequests]);
 
   useEffect(() => {
-    if (driverStatus !== 'active' || radarLockMessage) return;
+    if (driverStatus !== 'active') return;
 
     const channel = supabase
       .channel(`driver-radar-${user?.uid || 'anonymous'}-${currentH3Cell || 'country'}`)
@@ -188,6 +178,18 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
           void fetchPendingRequests();
         },
       )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'wallet_accounts',
+          filter: `profile_id=eq.${user?.uid || ''}`,
+        },
+        () => {
+          void fetchPendingRequests();
+        },
+      )
       .subscribe((status) => {
         if ((status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') && (process.env.NODE_ENV !== 'production')) {
           console.warn('[Driver radar] realtime channel issue:', status);
@@ -197,7 +199,7 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
     return () => {
       void channel.unsubscribe();
     };
-  }, [currentH3Cell, driverStatus, fetchPendingRequests, radarLockMessage, user?.uid]);
+  }, [currentH3Cell, driverStatus, fetchPendingRequests, user?.uid]);
 
   const rejectRequest = useCallback((tripId: string) => {
     setRejectedTripIds((prev) => {
@@ -244,12 +246,14 @@ function mapRideRequestToTrip(row: RideRequestRow): Trip | null {
   const originLat = toNumber(row.origin_lat);
   const originLng = toNumber(row.origin_lng);
   const originH3 = stringify(row.h3_cell) || stringify(row.origin_h3);
-  if (!originH3 && (originLat === null || originLng === null)) return null;
+  const hasExactOrigin = isValidCoordinatePair(originLat, originLng);
+  const hasValidOriginH3 = Boolean(originH3 && isValidCell(originH3));
+  if (!hasExactOrigin && !hasValidOriginH3) return null;
 
-  const [h3Lat, h3Lng] = originH3 ? cellToLatLng(originH3) : [null, null];
-  const visibleLat = originLat ?? h3Lat;
-  const visibleLng = originLng ?? h3Lng;
-  if (visibleLat === null || visibleLng === null) return null;
+  const [h3Lat, h3Lng] = hasValidOriginH3 ? cellToLatLng(originH3) : [null, null];
+  const visibleLat = hasExactOrigin ? originLat : h3Lat;
+  const visibleLng = hasExactOrigin ? originLng : h3Lng;
+  if (!isValidCoordinatePair(visibleLat, visibleLng)) return null;
 
   const destinationLabel =
     stringify(row.destination_address_ar) ||
@@ -260,39 +264,38 @@ function mapRideRequestToTrip(row: RideRequestRow): Trip | null {
   const fare = toNumber(row.server_fare) ?? toNumber(row.server_estimated_fare);
   const destinationLat = toNumber(row.destination_lat);
   const destinationLng = toNumber(row.destination_lng);
-  const distanceKm = estimateDistanceKm(visibleLat, visibleLng, destinationLat, destinationLng);
+  const storedDistanceKm = firstPositiveNumber(row.estimated_distance_km, row.route_distance_km, row.trip_distance_km);
+  const distanceKm = storedDistanceKm ?? (
+    hasExactOrigin ? estimateHaversineDistanceKm(originLat, originLng, destinationLat, destinationLng) : null
+  );
+  const storedDurationMinutes = firstPositiveNumber(row.estimated_duration_minutes, row.route_duration_minutes, row.trip_duration_minutes);
+  const exactPickupMapUrl = normalizeExternalMapUrl(row.origin_google_maps_url);
+  const safeVisibleLat = visibleLat as number;
+  const safeVisibleLng = visibleLng as number;
+  const safeOriginLat = originLat as number;
+  const safeOriginLng = originLng as number;
+  const pickupGoogleMapsUrl = exactPickupMapUrl || (hasExactOrigin ? buildGoogleMapsUrl(safeOriginLat, safeOriginLng) : null) || undefined;
 
   return {
     id,
     riderId,
     status: 'searching',
-    pickupCoords: { lat: visibleLat, lng: visibleLng },
-    exactPickupCoords: originLat !== null && originLng !== null ? { lat: originLat, lng: originLng } : undefined,
-    obfuscatedPickupCoords: originLat === null || originLng === null ? { lat: visibleLat, lng: visibleLng } : undefined,
+    pickupCoords: { lat: safeVisibleLat, lng: safeVisibleLng },
+    exactPickupCoords: hasExactOrigin ? { lat: safeOriginLat, lng: safeOriginLng } : undefined,
+    obfuscatedPickupCoords: hasExactOrigin ? undefined : { lat: safeVisibleLat, lng: safeVisibleLng },
+    pickupLabel: stringify(row.origin_address),
+    pickupGoogleMapsUrl,
+    pickupLocationIsApproximate: !exactPickupMapUrl || !hasExactOrigin,
     h3Index: originH3,
     gridId: originH3 || id,
     dropoff: destinationLabel,
-    estimatedDistance: distanceKm,
-    estimatedTime: Math.max(1, Math.round(distanceKm * 2.5)),
+    estimatedDistance: distanceKm ?? undefined,
+    estimatedTime: storedDurationMinutes ?? (distanceKm ? Math.max(1, Math.round(distanceKm * 2.5)) : undefined),
     seats: 1,
     offerPrice: fare ?? undefined,
     createdAt: stringify(row.created_at),
     district: destinationLabel || originH3,
   };
-}
-
-function estimateDistanceKm(originLat: number, originLng: number, destLat: number | null, destLng: number | null) {
-  if (destLat === null || destLng === null) return 0;
-  const radiusKm = 6371;
-  const dLat = degreesToRadians(destLat - originLat);
-  const dLng = degreesToRadians(destLng - originLng);
-  const a = Math.sin(dLat / 2) ** 2
-    + Math.cos(degreesToRadians(originLat)) * Math.cos(degreesToRadians(destLat)) * Math.sin(dLng / 2) ** 2;
-  return Math.round((2 * radiusKm * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))) * 10) / 10;
-}
-
-function degreesToRadians(value: number) {
-  return value * Math.PI / 180;
 }
 
 function stringify(value: unknown) {
@@ -302,4 +305,12 @@ function stringify(value: unknown) {
 function toNumber(value: unknown) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function firstPositiveNumber(...values: unknown[]) {
+  for (const value of values) {
+    const parsed = toNumber(value);
+    if (parsed !== null && parsed > 0) return parsed;
+  }
+  return null;
 }

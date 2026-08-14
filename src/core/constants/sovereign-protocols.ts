@@ -32,8 +32,8 @@ export const SOVEREIGN_CONSTANTS = {
   PRICE_DUMPING_THRESHOLD_PERCENT: 15, // Max allowed undercut percentage
 
   // 5. معايير النشاط والخماد (Operational)
-  DORMANCY_WARNING_MS: 4 * 60 * 1000,  // 4 minutes until a dormancy warning
-  DORMANCY_TIMEOUT_MS: 5 * 60 * 1000,   // 5 minutes of inactivity until status is set to 'idle'
+  DORMANCY_WARNING_MS: 9 * 60 * 1000,  // 9 minutes until a dormancy warning
+  DORMANCY_TIMEOUT_MS: 10 * 60 * 1000,   // 10 minutes of inactivity until status is set to 'idle'
   MIN_TRIP_DURATION_MIN: 3,           // الأدنى المعتمد للرحلات كأمان
 
   // 6. ثوابت الرتب والتصنيفات (Ranking)

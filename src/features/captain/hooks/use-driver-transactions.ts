@@ -5,9 +5,16 @@ import { supabase } from '@/lib/supabase-client';
 import { dexieDb } from '@/lib/dexie-db';
 import { useToast } from '@/hooks/use-toast';
 import type { Trip, User } from '@/core/types';
+import { buildGoogleMapsUrl, isValidCoordinatePair, normalizeExternalMapUrl } from '../services/ride-location';
 
 type RideOfferRow = Record<string, unknown>;
 type RideRequestRow = Record<string, unknown>;
+
+// Client-side "one active offer" guard (spec 5.1.3): there is no server-side
+// rejection/expiry signal for a pending offer today, so we can't clear this
+// deterministically — auto-release after a bounded window instead of risking
+// a permanent lock if the rider picks another captain.
+const PENDING_OFFER_TIMEOUT_MS = 90 * 1000;
 
 export function useDriverTransactions(
   user: User | null,
@@ -16,6 +23,9 @@ export function useDriverTransactions(
   const { toast } = useToast();
   const [activeRequest, setActiveReq] = useState<Trip | null>(null);
   const [acceptedRider, setAcceptedRider] = useState<User | null>(null);
+  const [handshakeAt, setHandshakeAt] = useState<number | null>(null);
+  const [pendingOfferRequestId, setPendingOfferRequestId] = useState<string | null>(null);
+  const pendingOfferTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isSubmittingOffer, setIsSubmittingOffer] = useState(false);
   const [isUpdatingTripStep, setIsUpdatingTripStep] = useState(false);
   const [isEndingTrip, setIsEndingTrip] = useState(false);
@@ -28,11 +38,21 @@ export function useDriverTransactions(
 
   const captainId = user?.uid || '';
 
+  const clearPendingOffer = useCallback(() => {
+    if (pendingOfferTimeoutRef.current) {
+      clearTimeout(pendingOfferTimeoutRef.current);
+      pendingOfferTimeoutRef.current = null;
+    }
+    setPendingOfferRequestId(null);
+  }, []);
+
   const cleanUpAndReset = useCallback(() => {
     setActiveReq(null);
     setAcceptedRider(null);
+    setHandshakeAt(null);
+    clearPendingOffer();
     setDriverStatus?.('active');
-  }, [setDriverStatus]);
+  }, [clearPendingOffer, setDriverStatus]);
 
   const loadAcceptedRequest = useCallback(async (requestId: string) => {
     const { data, error } = await supabase
@@ -47,6 +67,8 @@ export function useDriverTransactions(
     if (!trip) throw new Error('ride_request_missing_required_fields');
 
     setActiveReq(trip);
+    setHandshakeAt(Date.now());
+    clearPendingOffer();
     setDriverStatus?.('busy');
 
     if (trip.riderId) {
@@ -69,7 +91,13 @@ export function useDriverTransactions(
         });
       }
     }
-  }, [setDriverStatus]);
+  }, [clearPendingOffer, setDriverStatus]);
+
+  useEffect(() => {
+    return () => {
+      if (pendingOfferTimeoutRef.current) clearTimeout(pendingOfferTimeoutRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (!activeRequest?.id) return;
@@ -157,6 +185,15 @@ export function useDriverTransactions(
       return false;
     }
 
+    if (pendingOfferRequestId && pendingOfferRequestId !== payload.tripId) {
+      toast({
+        variant: 'destructive',
+        title: 'لديك عرض قيد الانتظار',
+        description: 'انتظر رد الراكب على عرضك الحالي قبل تقديم عرض جديد.',
+      });
+      return false;
+    }
+
     if (submittingRef.current) return false;
     submittingRef.current = true;
     setIsSubmittingOffer(true);
@@ -170,6 +207,9 @@ export function useDriverTransactions(
       if (error) throw error;
 
       rejectRequest(payload.tripId);
+      setPendingOfferRequestId(payload.tripId);
+      if (pendingOfferTimeoutRef.current) clearTimeout(pendingOfferTimeoutRef.current);
+      pendingOfferTimeoutRef.current = setTimeout(() => setPendingOfferRequestId(null), PENDING_OFFER_TIMEOUT_MS);
       toast({
         title: 'تم إرسال العرض',
         description: 'سنخبرك فور قبول الراكب للعرض.',
@@ -187,7 +227,7 @@ export function useDriverTransactions(
       submittingRef.current = false;
       setIsSubmittingOffer(false);
     }
-  }, [captainId, toast]);
+  }, [captainId, pendingOfferRequestId, toast]);
 
   const markArrivedAtPickup = useCallback(async () => {
     if (!activeRequest?.id || updatingStepRef.current) return false;
@@ -359,6 +399,8 @@ export function useDriverTransactions(
   return useMemo(() => ({
     activeRequest,
     acceptedRider,
+    handshakeAt,
+    pendingOfferRequestId,
     submitOffer,
     isSubmittingOffer,
     markArrivedAtPickup,
@@ -374,12 +416,14 @@ export function useDriverTransactions(
     activeRequest,
     acceptedRider,
     endTrip,
+    handshakeAt,
     isEndingTrip,
     isRatingRider,
     isRequestingReport,
     isSubmittingOffer,
     isUpdatingTripStep,
     markArrivedAtPickup,
+    pendingOfferRequestId,
     rateAndFinishTrip,
     requestWeeklyReport,
     startTrip,
@@ -393,20 +437,29 @@ function mapRideRequestToTrip(row: RideRequestRow | null): Trip | null {
   const riderId = String(row.rider_id || '');
   const originLat = toNumber(row.origin_lat);
   const originLng = toNumber(row.origin_lng);
-  if (!id || !riderId || originLat === null || originLng === null) return null;
+  if (!id || !riderId || !isValidCoordinatePair(originLat, originLng)) return null;
+
+  const safeOriginLat = originLat as number;
+  const safeOriginLng = originLng as number;
+  const pickupGoogleMapsUrl = normalizeExternalMapUrl(row.origin_google_maps_url) || buildGoogleMapsUrl(safeOriginLat, safeOriginLng) || undefined;
+  const estimatedDistance = firstPositiveNumber(row.estimated_distance_km, row.route_distance_km, row.trip_distance_km);
+  const estimatedTime = firstPositiveNumber(row.estimated_duration_minutes, row.route_duration_minutes, row.trip_duration_minutes);
 
   return {
     id,
     riderId,
     driverId: String(row.accepted_captain_id || ''),
     status: mapRideRequestStatusToTripStatus(row.status),
-    pickupCoords: { lat: originLat, lng: originLng },
-    exactPickupCoords: { lat: originLat, lng: originLng },
+    pickupCoords: { lat: safeOriginLat, lng: safeOriginLng },
+    exactPickupCoords: { lat: safeOriginLat, lng: safeOriginLng },
+    pickupLabel: String(row.origin_address || ''),
+    pickupGoogleMapsUrl,
+    pickupLocationIsApproximate: false,
     h3Index: String(row.origin_h3 || ''),
     gridId: String(row.origin_h3 || id),
     dropoff: String(row.destination_address_ar || row.destination_address || 'وجهة الراكب'),
-    estimatedDistance: 0,
-    estimatedTime: 0,
+    estimatedDistance: estimatedDistance ?? undefined,
+    estimatedTime: estimatedTime ?? undefined,
     offerPrice: toNumber(row.final_fare) ?? toNumber(row.offered_fare) ?? toNumber(row.offer_price) ?? toNumber(row.server_estimated_fare) ?? undefined,
     createdAt: String(row.created_at || ''),
   };
@@ -429,6 +482,14 @@ function mapRideRequestStatusToTripStatus(value: unknown): Trip['status'] {
 function toNumber(value: unknown) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function firstPositiveNumber(...values: unknown[]) {
+  for (const value of values) {
+    const parsed = toNumber(value);
+    if (parsed !== null && parsed > 0) return parsed;
+  }
+  return null;
 }
 
 function isAlreadyClosedTripError(error: unknown) {

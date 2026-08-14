@@ -1,20 +1,32 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import type { User } from '@/core/types';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase-client';
 import { addCaptainSovereignLog } from '@/lib/dexie-db';
+import { SOVEREIGN_CONSTANTS } from '@/core/constants/sovereign-protocols';
 
 type DriverStatus = 'active' | 'idle' | 'busy' | 'rating';
+
+function isDriverStatus(value: unknown): value is DriverStatus {
+  return value === 'active' || value === 'idle' || value === 'busy' || value === 'rating';
+}
 
 export function useDriverLifecycle(user: User | null) {
   const [driverStatus, setDriverStatus] = useState<DriverStatus>('idle');
   const [isDormancyWarningVisible, setWarning] = useState(false);
-  const timers = useRef<{ dormancy: ReturnType<typeof setTimeout> | null; warning: ReturnType<typeof setTimeout> | null }>({ dormancy: null, warning: null });
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const timers = useRef<{
+    dormancy: ReturnType<typeof setTimeout> | null;
+    warning: ReturnType<typeof setTimeout> | null;
+  }>({ dormancy: null, warning: null });
   const statusRef = useRef(driverStatus);
   const isTogglingRef = useRef(false);
+  const lastStatusErrorAtRef = useRef(0);
   const { toast } = useToast();
+  const t = useTranslations('captainDashboard');
 
   useEffect(() => {
     statusRef.current = driverStatus;
@@ -26,13 +38,118 @@ export function useDriverLifecycle(user: User | null) {
     }
   }, [user?.role, user?.status]);
 
+  // The auth session contains a snapshot of the profile. Hydrate the live
+  // availability state from Supabase so a stale session cannot hide requests.
+  useEffect(() => {
+    if (user?.role !== 'driver' || !user.uid) return;
+
+    let mounted = true;
+    const channel = supabase
+      .channel(`captain-status-${user.uid}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'profiles',
+          filter: `id=eq.${user.uid}`,
+        },
+        (payload) => {
+          if (!mounted) return;
+          const status = String((payload.new as { status?: unknown }).status || '').toLowerCase();
+          if (isDriverStatus(status)) {
+            setDriverStatus(status);
+          }
+        },
+      )
+      .subscribe();
+
+    void supabase
+      .from('profiles')
+      .select('status')
+      .eq('id', user.uid)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (!mounted || error) return;
+        const status = String((data as { status?: unknown } | null)?.status || '').toLowerCase();
+        if (isDriverStatus(status)) {
+          setDriverStatus(status);
+        }
+      });
+
+    return () => {
+      mounted = false;
+      void channel.unsubscribe();
+    };
+  }, [user?.role, user?.uid]);
+
   const updateDriverDoc = useCallback(async (data: Partial<User> & { status?: DriverStatus }) => {
-    if (!user?.uid) return;
+    if (!user?.uid) return false;
+
+    if (data.status) {
+      const { data: result, error } = await supabase.rpc('set_captain_status', { p_status: data.status });
+      if (error) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn('[Driver lifecycle] status update failed:', error);
+        }
+
+        const now = Date.now();
+        if (now - lastStatusErrorAtRef.current > 1000) {
+          lastStatusErrorAtRef.current = now;
+          const code = String(error.code || '').toUpperCase();
+          const message = `${error.code || ''} ${error.message || ''} ${error.details || ''} ${error.hint || ''}`.toLowerCase();
+          const isBundleError =
+            message.includes('captain_time_bundle_required') ||
+            message.includes('time_bundle') ||
+            message.includes('bundle');
+          const isRoleError = message.includes('captain_role_required');
+          const isAuthError = message.includes('authentication_required') || code === '401' || code === 'PGRST301';
+          const isProfileError = message.includes('captain_profile_not_found');
+          const isInvalidStatus = message.includes('invalid_captain_status');
+          const isMissingRpc =
+            code === '42883' ||
+            code === 'PGRST202' ||
+            /could not find (the )?function|schema cache|function .*set_captain_status/.test(message);
+          toast({
+            variant: 'destructive',
+            title: isBundleError
+              ? t('radarBundleRequired')
+              : isRoleError
+                ? t('statusRoleRequired')
+                : isAuthError
+                  ? t('statusAuthRequired')
+                  : isProfileError
+                    ? t('statusProfileMissing')
+                    : isInvalidStatus
+                      ? t('statusInvalid')
+                      : isMissingRpc
+                        ? t('statusBackendNotReady')
+                        : t('statusUpdateFailed'),
+            description: t('statusUpdateFailedBody'),
+          });
+        }
+        return false;
+      }
+
+      const returnedStatus = (result as { status?: unknown } | null)?.status;
+      if (String(returnedStatus || '').toLowerCase() !== data.status) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn('[Driver lifecycle] status RPC returned an unexpected state:', result);
+        }
+        toast({
+          variant: 'destructive',
+          title: t('statusUpdateFailed'),
+          description: t('statusUpdateFailedBody'),
+        });
+        return false;
+      }
+
+      return true;
+    }
 
     const payload: Record<string, unknown> = {};
-    if (data.status) payload.status = data.status;
     if (typeof data.lastTickTimestamp === 'number') payload.last_tick_timestamp = data.lastTickTimestamp;
-    if (Object.keys(payload).length === 0) return;
+    if (Object.keys(payload).length === 0) return false;
 
     const { error } = await supabase
       .from('profiles')
@@ -40,14 +157,19 @@ export function useDriverLifecycle(user: User | null) {
       .eq('id', user.uid);
 
     if (error) {
-      if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver lifecycle] profile update failed:', error);
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn('[Driver lifecycle] profile update failed:', error);
+      }
       toast({
         variant: 'destructive',
-        title: 'تعذر تحديث حالة الكابتن',
-        description: 'تحقق من الاتصال أو صلاحيات الحساب ثم حاول مرة أخرى.',
+        title: t('statusUpdateFailed'),
+        description: t('statusUpdateFailedBody'),
       });
+      return false;
     }
-  }, [toast, user?.uid]);
+
+    return true;
+  }, [t, toast, user?.uid]);
 
   const changeDriverStatus = useCallback((nextStatus: DriverStatus) => {
     setDriverStatus(nextStatus);
@@ -64,20 +186,26 @@ export function useDriverLifecycle(user: User | null) {
     clearTimers();
     if (statusRef.current !== 'active') return;
 
-    timers.current.warning = setTimeout(() => setWarning(true), 4 * 60 * 1000);
+    timers.current.warning = setTimeout(() => setWarning(true), SOVEREIGN_CONSTANTS.DORMANCY_WARNING_MS);
     timers.current.dormancy = setTimeout(() => {
-      changeDriverStatus('idle');
-      void updateDriverDoc({ status: 'idle' });
+      void updateDriverDoc({ status: 'idle' }).then((updated) => {
+        if (updated) changeDriverStatus('idle');
+      });
+      toast({
+        variant: 'destructive',
+        title: t('dormancyWarningTitle'),
+        description: t('dormancyWarningBody'),
+      });
       if (user?.uid) {
         void addCaptainSovereignLog(
           user.uid,
           'system_action',
-          'تعطيل تلقائي',
-          'تم تحويل حالة الكابتن إلى غير متاح بسبب عدم وجود نشاط لفترة طويلة.',
+          t('statusDeactivated'),
+          t('dormancyWarningBody'),
         );
       }
-    }, 5 * 60 * 1000);
-  }, [changeDriverStatus, clearTimers, updateDriverDoc, user?.uid]);
+    }, SOVEREIGN_CONSTANTS.DORMANCY_TIMEOUT_MS);
+  }, [changeDriverStatus, clearTimers, t, toast, updateDriverDoc, user?.uid]);
 
   useEffect(() => {
     if (user?.role !== 'driver' || driverStatus !== 'active') {
@@ -98,36 +226,39 @@ export function useDriverLifecycle(user: User | null) {
   }, [clearTimers, driverStatus, resetDormancyTimer, user?.role]);
 
   const toggleDriverStatus = useCallback(async (desiredStatus: 'active' | 'idle') => {
-    if (driverStatus === 'busy' || driverStatus === 'rating') return;
-    if (isTogglingRef.current) return;
+    if (driverStatus === 'busy' || driverStatus === 'rating') return false;
+    if (isTogglingRef.current) return false;
     isTogglingRef.current = true;
+    setIsUpdatingStatus(true);
 
     try {
-      changeDriverStatus(desiredStatus);
-      await updateDriverDoc({
+      const updated = await updateDriverDoc({
         status: desiredStatus,
         lastTickTimestamp: Date.now(),
       });
+      if (!updated) return false;
 
+      changeDriverStatus(desiredStatus);
       if (user?.uid) {
         void addCaptainSovereignLog(
           user.uid,
           'status_change',
-          desiredStatus === 'active' ? 'متاح لاستقبال الطلبات' : 'غير متاح',
-          desiredStatus === 'active'
-            ? 'تم تفعيل استقبال الطلبات.'
-            : 'تم إيقاف استقبال الطلبات.',
+          desiredStatus === 'active' ? t('statusActivated') : t('statusDeactivated'),
+          desiredStatus === 'active' ? t('statusActivated') : t('statusDeactivated'),
         );
       }
+      return true;
     } finally {
       isTogglingRef.current = false;
+      setIsUpdatingStatus(false);
     }
-  }, [changeDriverStatus, driverStatus, updateDriverDoc, user?.uid]);
+  }, [changeDriverStatus, driverStatus, t, updateDriverDoc, user?.uid]);
 
   return {
     driverStatus,
     setDriverStatus: changeDriverStatus,
     isDormancyWarningVisible,
+    isUpdatingStatus,
     resetDormancyTimer,
     toggleDriverStatus,
     updateDriverDoc,

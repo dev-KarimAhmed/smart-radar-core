@@ -1,80 +1,4 @@
 // [SCR-PROTO-087] محرك مؤشر التوازن ورتب الميدان المحصن
-export interface DriverOfferInput {
-  driverId: string;
-  basePrice: number;
-  perKmPrice: number;
-  perMinPrice: number;
-  currentRating: number;
-}
-
-export const SovereignMarketKernel = {
-  // 1. المؤشر الحيوي الصامت لأسعار السوق
-  GHOST_REFERENCE: Object.freeze({
-    B_ref: 1.00,  // متوسط فتح العداد في الأردن/العراق (دينار)
-    K_ref: 0.25,  // متوسط سعر الكيلومتر
-    T_ref: 0.05,  // متوسط سعر الدقيقة
-    SAFE_CORRIDOR_FACTOR: 0.70 // حظر الهبوط عن 70% من سعر السوق المرجعي (كبح الأسعار)
-  }),
-
-  // 2. خوارزمية فحص الشذوذ السعري وحماية الميدان من الحرق
-  evaluateSovereignRank: function(
-    currentRating: number,
-    driverActualPrice: number,
-    distance: number,
-    duration: number
-  ): {
-    isDumping: boolean;
-    assignedRank: 'Platinum' | 'Gold' | 'Silver' | 'Bronze';
-    displayTarget: 'basic_9' | 'reserve_3' | 'hidden';
-  } {
-    // حساب السعر المرجعي الصامت للرحلة
-    const marketRefPrice = 
-      this.GHOST_REFERENCE.B_ref + 
-      (this.GHOST_REFERENCE.K_ref * distance) + 
-      (this.GHOST_REFERENCE.T_ref * duration);
-
-    // منع النبض الزائف (القيم الصفرية)
-    if (driverActualPrice <= 0) {
-      return { isDumping: true, assignedRank: 'Bronze', displayTarget: 'hidden' };
-    }
-
-    // احتساب نسبة الانحراف السعري للتسعيرة الحالية للناقل بضرب الـ Haversine
-    const deviationRatio = marketRefPrice ? (marketRefPrice - driverActualPrice) / marketRefPrice : 0;
-
-    // تفعيل فحص حرق الأسعار (Dumping Trigger) عند تجاوز عتبة الـ 10% المعتمدة في الباب الثاني
-    const isDumping = deviationRatio >= 0.10 || driverActualPrice < (marketRefPrice * this.GHOST_REFERENCE.SAFE_CORRIDOR_FACTOR);
-
-    // احتساب الرتبة السيادية بناءً على دمج التقييم وحالة السعر تماشياً مع الباب الثاني (Captain Rank Matrix)
-    let assignedRank: 'Platinum' | 'Gold' | 'Silver' | 'Bronze' = 'Bronze';
-    let displayTarget: 'basic_9' | 'reserve_3' | 'hidden' = 'reserve_3';
-
-    if (currentRating < 4.2) {
-      // صمام الأمان (حظر تلقائي سيادي بموجب بروتوكول 30)
-      return { isDumping: true, assignedRank: 'Bronze', displayTarget: 'hidden' };
-    }
-
-    if (currentRating >= 4.9 && !isDumping) {
-      // 💎 رتبة البلاتيني (Platinum Matrix)
-      assignedRank = 'Platinum';
-      displayTarget = 'basic_9';
-    } else if (currentRating >= 4.7 && currentRating < 4.9 && !isDumping) {
-      // 🥇 رتبة الذهبي (Gold Matrix)
-      assignedRank = 'Gold';
-      displayTarget = 'basic_9';
-    } else if ((currentRating >= 4.4 && currentRating < 4.7) || (currentRating >= 4.4 && isDumping)) {
-      // 🥈 رتبة الفضي (Silver Matrix): تقييم من 4.4 إلى 4.69 أو ممارسة انحراف متقطع بنسبة 10%
-      assignedRank = 'Silver';
-      displayTarget = 'reserve_3';
-    } else {
-      // 🥉 رتبة البرونزي (Bronze Matrix): تقييم من 4.2 إلى 4.33 أو ممارسة حرق مستمر
-      assignedRank = 'Bronze';
-      displayTarget = 'reserve_3';
-    }
-
-    return { isDumping, assignedRank, displayTarget };
-  }
-};
-
 export interface PackagedSovereignBundle {
   basePrice: number;   // السعر الأساسي (يجب أن يكون >= 1 دينار)
   perKmPrice: number;  // سعر الكيلومتر الإضافي
@@ -223,7 +147,6 @@ export const RadarSovereignIntegrationKernel = {
 
 // قفل الكائن برمجياً لمنع التلاعب الجنائي بالقيم داخل المتصفح (Runtime Freeze)
 try {
-  Object.freeze(SovereignMarketKernel);
   Object.freeze(RadarBundleIntegrityKernel);
   Object.freeze(RadarSovereignIntegrationKernel);
 } catch (e) {

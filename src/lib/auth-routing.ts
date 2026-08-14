@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 
 /**
  * URL-based routing for the unauthenticated auth flow.
@@ -64,15 +64,11 @@ export function navigateAuth(view: AuthView, role?: AuthRole | null): void {
 }
 
 export function useAuthLocation(): AuthLocation {
-  const [location, setLocation] = useState<AuthLocation>(() =>
-    parseAuthLocation(typeof window !== 'undefined' ? window.location.pathname : '/'),
-  );
-
-  useEffect(() => {
-    const handleChange = () => setLocation(parseAuthLocation(window.location.pathname));
-    window.addEventListener('popstate', handleChange);
-    return () => window.removeEventListener('popstate', handleChange);
-  }, []);
-
-  return location;
+  // `usePathname()` is Next's router-driven pathname — unlike a manual
+  // `popstate` listener, it stays in sync with both `navigateAuth()`'s
+  // history.pushState calls (Next's router also reacts to popstate) and
+  // regular `router.replace()`/`router.push()` calls used elsewhere in the
+  // auth flow (login, logout), which never fire a native `popstate` event.
+  const pathname = usePathname();
+  return parseAuthLocation(pathname || '/');
 }

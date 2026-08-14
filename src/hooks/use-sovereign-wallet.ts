@@ -11,6 +11,7 @@ interface ServerWalletSnapshot {
   bonusMinutesRemaining: number;
   subscriptionHours: number;
   activePackageName: string;
+  timeBundleExpiresAt: string | null;
   transactions: WalletTransaction[];
 }
 
@@ -92,6 +93,7 @@ function mapWalletAccountRow(row: Record<string, any> | null, transactions: Wall
     bonusMinutesRemaining: bonusMinutes,
     subscriptionHours: Number(((paidMinutes + bonusMinutes) / 60).toFixed(3)),
     activePackageName: firstString(row.active_package_name, ''),
+    timeBundleExpiresAt: firstString(row.time_bundle_expires_at, '') || null,
     transactions,
   };
 }
@@ -146,7 +148,7 @@ export function useSovereignWallet(user: User | null) {
         const [{ data: walletData, error: walletError }, { data: txData, error: txError }] = await Promise.all([
           supabase
             .from('wallet_accounts')
-            .select('profile_id,balance,paid_minutes_remaining,bonus_minutes_remaining,active_package_name')
+            .select('profile_id,balance,paid_minutes_remaining,bonus_minutes_remaining,active_package_name,time_bundle_expires_at')
             .eq('profile_id', userId)
             .maybeSingle(),
           supabase
@@ -359,6 +361,10 @@ export function useSovereignWallet(user: User | null) {
   const bonusMinutesRemaining = serverWallet?.bonusMinutesRemaining ?? 0;
   const subscriptionHours = serverWallet?.subscriptionHours ?? Number(((paidMinutesRemaining + bonusMinutesRemaining) / 60).toFixed(3));
   const activePackageName = serverWallet?.activePackageName || '';
+  const timeBundleExpiresAt = serverWallet?.timeBundleExpiresAt || null;
+  const hasActiveTimeBundle =
+    paidMinutesRemaining + bonusMinutesRemaining > 0
+    && (!timeBundleExpiresAt || Date.parse(timeBundleExpiresAt) > Date.now());
   const transactions = useMemo(() => serverWallet?.transactions ?? [], [serverWallet?.transactions]);
 
   return {
@@ -380,6 +386,8 @@ export function useSovereignWallet(user: User | null) {
     bonusMinutesRemaining,
     subscriptionHours,
     activePackageName,
+    timeBundleExpiresAt,
+    hasActiveTimeBundle,
     transactions,
   };
 }

@@ -25,6 +25,7 @@ export function useSendCancelRideRequest(params: {
   userId: string | undefined;
   activeCountryId: number | undefined;
   riderLocation: RiderLocation;
+  pickupAddress?: string;
   selectedDraftDestination: RiderDestination | null;
   selectedDestinationCoords: RiderLocation | null;
   isServerFareLoading: boolean;
@@ -41,6 +42,7 @@ export function useSendCancelRideRequest(params: {
     userId,
     activeCountryId,
     riderLocation,
+    pickupAddress,
     selectedDraftDestination,
     selectedDestinationCoords,
     isServerFareLoading,
@@ -130,6 +132,7 @@ export function useSendCancelRideRequest(params: {
       const payload = buildRideRequestInsertPayload({
         riderId: userId,
         origin: riderLocation,
+        pickupAddress,
         destination: selectedDestinationCoords,
         originH3: selectedDraftDestination.originCell || latLngToCell(riderLocation.lat, riderLocation.lng, H3_RIDER_REQUEST_RESOLUTION),
         destinationH3:
@@ -137,6 +140,8 @@ export function useSendCancelRideRequest(params: {
           latLngToCell(selectedDestinationCoords.lat, selectedDestinationCoords.lng, H3_RIDER_REQUEST_RESOLUTION),
         destinationAddressAr: selectedDraftDestination.label,
         serverEstimatedFare: selectedDraftDestination.serverEstimatedFare,
+        routeDistanceKm: currentRouteEstimate.distanceKm,
+        routeDurationMinutes: currentRouteEstimate.durationMinutes,
         countryId,
       });
 
@@ -171,6 +176,7 @@ export function useSendCancelRideRequest(params: {
     isServerFareLoading,
     language,
     pendingAcceptedOfferIdRef,
+    pickupAddress,
     riderLocation,
     selectedDestinationCoords,
     selectedDraftDestination,

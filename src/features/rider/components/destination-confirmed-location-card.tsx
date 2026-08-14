@@ -30,7 +30,7 @@ const styles = {
   summaryText: "truncate",
   summaryChevron: "h-3.5 w-3.5 shrink-0 transition-transform group-open:rotate-180",
   detailsBody: "border-t border-white/8 p-2",
-  detailsInput: "h-9 w-full rounded-lg border border-white/8 bg-[#1E293B] px-2 text-[10px] font-bold text-slate-300 outline-none",
+  detailsLink: "flex min-h-9 w-full min-w-0 items-center rounded-lg border border-white/8 bg-[#1E293B] px-2 text-[10px] font-bold text-slate-300 outline-none transition hover:border-[#14B8A6]/60 hover:text-[#BFFCF2] focus-visible:border-[#14F5D5] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#14F5D5]",
 } as const;
 
 export interface DestinationConfirmedLocationCardProps {
@@ -98,12 +98,17 @@ export function DestinationConfirmedLocationCard({
           <ChevronDown className={styles.summaryChevron} />
         </summary>
         <div className={styles.detailsBody}>
-          <input
-            value={externalLocationUrl}
-            readOnly
-            aria-label={locationCopy('lbl_google_maps_url')}
-            className={styles.detailsInput}
-          />
+          <a
+            href={externalLocationUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            dir="ltr"
+            aria-label={locationCopy('btn_open_google_maps')}
+            title={locationCopy('btn_open_google_maps')}
+            className={styles.detailsLink}
+          >
+            <span className="truncate">{externalLocationUrl}</span>
+          </a>
         </div>
       </details>
     </div>

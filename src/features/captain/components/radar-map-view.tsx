@@ -2,7 +2,8 @@
 
 import React from 'react';
 import maplibregl from 'maplibre-gl';
-import { Clock, MapPin, RadioTower, Route } from 'lucide-react';
+import { Clock, ExternalLink, MapPin, RadioTower, Route } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import type { Trip } from '@/core/types';
 import { DEFAULT_MAP_CENTER } from '@/shared/services/maplibre-runtime';
 import { useMaplibreInstance } from '@/shared/hooks/use-maplibre-instance';
@@ -61,6 +62,8 @@ const styles = {
   style278_50: "mt-2 max-w-sm text-sm leading-6 opacity-85",
   stateAmber: "border-amber-500/30 bg-amber-500/10 text-amber-100",
   stateEmpty: "border-dashed border-slate-700 bg-slate-950/80 text-slate-300",
+  pendingOfferHint: "mt-2 text-[11px] font-bold text-amber-300",
+  pendingOfferDisabled: "cursor-not-allowed opacity-40",
 } as const;
 
 
@@ -73,6 +76,7 @@ interface RadarMapViewProps {
   bonusMinutes: number;
   radarLockMessage?: string;
   requests: Trip[];
+  hasPendingOffer?: boolean;
   onSelectRequest: (request: Trip) => void;
   onIgnoreRequest: (requestId: string) => void;
 }
@@ -86,10 +90,12 @@ export function RadarMapView({
   bonusMinutes,
   radarLockMessage,
   requests,
+  hasPendingOffer = false,
   onSelectRequest,
   onIgnoreRequest,
 }: RadarMapViewProps) {
   const copy = radarCopy[language];
+  const t = useTranslations('captainPickup');
   const mapContainerRef = React.useRef<HTMLDivElement | null>(null);
   const markerRef = React.useRef<maplibregl.Marker | null>(null);
   const requestMarkersRef = React.useRef<maplibregl.Marker[]>([]);
@@ -207,12 +213,12 @@ export function RadarMapView({
         <div className={styles.style168_10}>
           <div>
             <p className={styles.style170_11}>{copy.title}</p>
-            <p className={styles.style171_12}>{isActive ? copy.online : copy.offline}</p>
+            <p className={styles.style171_12}>{isActive && !radarLockMessage ? copy.online : copy.offline}</p>
           </div>
           <div className={styles.style173_13}>
             <span className={styles.style174_14}>
               <Clock className={styles.style175_15} />
-              {copy.remaining}: {formatMinutes(totalMinutes, language)}
+              {radarLockMessage ? copy.locked : `${copy.remaining}: ${formatMinutes(totalMinutes, language)}`}
             </span>
           </div>
         </div>
@@ -260,12 +266,48 @@ export function RadarMapView({
                       <p className={styles.style224_37}>{shortH3(request.h3Index)}</p>
                     </div>
                   </div>
+                  <div className="mt-3 rounded-xl border border-cyan-400/15 bg-cyan-400/[0.06] p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-[11px] font-black uppercase tracking-wide text-cyan-200">
+                          {t('pickupLocation')}
+                        </p>
+                        <p className="mt-1 truncate text-sm font-bold text-white">
+                          {request.pickupLabel || t('pickupLocation')}
+                        </p>
+                        <p className="mt-1 text-[11px] text-slate-400">
+                          {request.pickupLocationIsApproximate ? t('pickupApproximate') : t('pickupExact')}
+                        </p>
+                      </div>
+                      {request.pickupGoogleMapsUrl ? (
+                        <a
+                          href={request.pickupGoogleMapsUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-cyan-400/25 px-2.5 py-2 text-xs font-black text-cyan-200 transition hover:border-cyan-300 hover:text-white"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                          {t('openPickupMap')}
+                        </a>
+                      ) : null}
+                    </div>
+                  </div>
                   <div className={styles.style227_38}>
                     <Info label={copy.fare} value={request.offerPrice ? Number(request.offerPrice).toFixed(2) : '-'} />
-                    <Info label={copy.distance} value={`${request.estimatedDistance || 0} km`} />
+                    <Info
+                      label={copy.distance}
+                      value={request.estimatedDistance != null ? `${request.estimatedDistance} km` : t('distanceUnavailable')}
+                    />
                   </div>
+                  {hasPendingOffer ? <p className={styles.pendingOfferHint}>{copy.pendingOfferHint}</p> : null}
                   <div className={styles.style231_39}>
-                    <button type="button" onClick={() => onSelectRequest(request)} className={styles.style232_40}>
+                    <button
+                      type="button"
+                      onClick={() => onSelectRequest(request)}
+                      disabled={hasPendingOffer}
+                      title={hasPendingOffer ? copy.pendingOfferHint : undefined}
+                      className={cn(styles.style232_40, hasPendingOffer ? styles.pendingOfferDisabled : '')}
+                    >
                       <Route className={styles.style233_41} />
                       {copy.openBid}
                     </button>
@@ -371,6 +413,7 @@ const radarCopy = {
     online: 'متاح لاستقبال الطلبات',
     offline: 'غير متاح حالياً',
     remaining: 'المتبقي',
+    locked: 'الرادار متوقف',
     recenter: 'العودة إلى موقعي',
     mapLoading: 'جاري تحميل الخريطة',
     mapReady: 'الخريطة جاهزة',
@@ -387,6 +430,7 @@ const radarCopy = {
     fare: 'السعر الأساسي',
     distance: 'المسافة',
     openBid: 'تقديم عرض',
+    pendingOfferHint: 'لديك عرض قيد الانتظار، انتظر رد الراكب أولاً.',
     ignore: 'تجاهل',
   },
   en: {
@@ -394,6 +438,7 @@ const radarCopy = {
     online: 'Online and receiving requests',
     offline: 'Offline',
     remaining: 'Remaining',
+    locked: 'Radar paused',
     recenter: 'Back to my location',
     mapLoading: 'Loading map',
     mapReady: 'Map is ready',
@@ -410,6 +455,7 @@ const radarCopy = {
     fare: 'Base fare',
     distance: 'Distance',
     openBid: 'Submit bid',
+    pendingOfferHint: 'You have a pending offer — wait for the rider to respond first.',
     ignore: 'Ignore',
   },
 } as const;

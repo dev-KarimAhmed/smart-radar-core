@@ -123,6 +123,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
     userId: user?.uid,
     activeCountryId,
     riderLocation: geolocation.riderLocation,
+    pickupAddress: geolocation.currentAddressName,
     selectedDraftDestination,
     selectedDestinationCoords: destination.selectedDestinationCoords,
     isServerFareLoading: fareAndRoute.isServerFareLoading,

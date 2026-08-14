@@ -99,18 +99,27 @@ const OfferCard = ({
   onSelect,
   onInfo,
   isSelecting,
+  referencePrice,
 }: {
   offer: Offer;
   isFavorite: boolean;
   onSelect: (offer: Offer) => void;
   onInfo: (vehicle: any) => void;
   isSelecting: boolean;
+  referencePrice: number;
 }) => {
   const { user } = useAuth();
   const { activeAds } = usePromoStream(user?.district || 'وادي السير', user?.governorate || 'عمان');
 
+  // Real per-offer deviation against the average of all offers received for
+  // this request — replaces the old `offer.isDumping` flag, which was never
+  // actually computed anywhere and always undefined.
+  const deviationRatio = referencePrice > 0 && offer.price > 0
+    ? Math.max(0, (referencePrice - offer.price) / referencePrice)
+    : 0;
+  const isPriceBurned = deviationRatio >= 0.10;
+
   const benefitAd = React.useMemo(() => {
-    const isPriceBurned = offer.isDumping || offer.driverRank === 'Silver' || offer.driverRank === 'Bronze';
     if (!isPriceBurned) return null;
 
     const passAds = activeAds
@@ -136,7 +145,7 @@ const OfferCard = ({
     }
 
     const matchedPass = RadarSovereignIntegrationKernel.triggerContextualAdStream(
-      0.12,
+      deviationRatio,
       { role: 'rider', district: user?.district || 'وادي السير', governorate: user?.governorate || 'عمان' },
       passAds as any
     );
@@ -156,10 +165,10 @@ const OfferCard = ({
       bannerUrl: image,
       posterUrl: image,
     };
-  }, [offer.isDumping, offer.driverRank, activeAds, user]);
+  }, [isPriceBurned, deviationRatio, activeAds, user]);
 
   return (
-    <Card className={cn(styles.style99_1, offer.isDumping ? styles.style99_2 : '')}>
+    <Card className={cn(styles.style99_1, isPriceBurned ? styles.style99_2 : '')}>
       <CardContent className={styles.style100_3}>
         <div className={styles.style101_4}>
           <Avatar className={styles.style102_5}>
@@ -255,7 +264,7 @@ const OfferCard = ({
           </div>
         </div>
 
-        {(offer.isDumping || offer.driverRank === 'Silver' || offer.driverRank === 'Bronze') && (
+        {isPriceBurned && (
           <div className={styles.style196_34}>
             <div className={styles.style197_35}>
               هذا السعر أقل من متوسط السوق. تأكد من جودة الخدمة وحالة المركبة قبل القبول.
@@ -323,6 +332,15 @@ export function OfferGallery({
   isSelecting: boolean;
   isCancelling: boolean;
 }) {
+  // Reference price for this batch of offers: the average of all real (non
+  // meter-billed) prices received for this request, used to flag any single
+  // offer that undercuts the group by enough to count as dumping.
+  const referencePrice = React.useMemo(() => {
+    const realPrices = offers.map((offer) => offer.price).filter((price) => Number.isFinite(price) && price > 0);
+    if (!realPrices.length) return 0;
+    return realPrices.reduce((sum, price) => sum + price, 0) / realPrices.length;
+  }, [offers]);
+
   const sortedOffers = React.useMemo(() => {
     return [...offers]
       .sort((a, b) => {
@@ -367,6 +385,7 @@ export function OfferGallery({
                 onSelect={onSelect}
                 onInfo={onInfo}
                 isSelecting={isSelecting}
+                referencePrice={referencePrice}
               />
             ))}
           </div>

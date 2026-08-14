@@ -7,6 +7,23 @@ import { buildRiderSignUpMetadata, mapSupabaseAuthError, signInRiderWithPhone, s
 import { shouldRememberSupabaseSession, supabase } from '@/lib/supabase-client';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { useToast } from '@/hooks/use-toast';
+import {
+  useSupabaseCountries,
+  getCountryDialCode,
+  getCountryIsoCode,
+  type SupabaseCountryRow,
+} from './use-supabase-countries';
+import {
+  useSupabaseGovernorates,
+  useSupabaseDistricts,
+  normalizeGovernorates,
+  normalizeDistricts,
+  type SupabaseGovernorateRow,
+  type SupabaseDistrictRow,
+} from './use-supabase-locations';
+import { useDetectedCountryCode } from './use-detected-country-code';
+import { parsePhoneNumberFromString, getExampleNumber, type CountryCode } from 'libphonenumber-js';
+import phoneNumberExamples from 'libphonenumber-js/mobile/examples';
 
 const styles = {
   root: "",
@@ -23,40 +40,6 @@ type RegistrationStep = 'role' | 'personal' | 'affiliation' | 'vehicle' | 'admin
 type RegistrationRole = 'rider' | 'driver' | 'advertiser' | 'delegate' | null;
 type AuthMode = 'register' | 'login';
 type LocationOption = { id: string; label: string; labelEn: string; value: string };
-
-interface SupabaseCountryRow {
-  id: number;
-  name_ar?: string | null;
-  name_en?: string | null;
-  name?: string | null;
-  currency_ar?: string | null;
-  currency_en?: string | null;
-  currency_code?: string | null;
-  phone_code?: string | null;
-  dial_code?: string | null;
-  calling_code?: string | null;
-  country_code?: string | null;
-  iso2?: string | null;
-  code?: string | null;
-  example_phone?: string | null;
-  phone_example?: string | null;
-}
-
-interface SupabaseGovernorateRow {
-  id: number;
-  country_id: number;
-  name_ar?: string | null;
-  name_en?: string | null;
-  name?: string | null;
-}
-
-interface SupabaseDistrictRow {
-  id: number;
-  governorate_id: number;
-  name_ar?: string | null;
-  name_en?: string | null;
-  name?: string | null;
-}
 
 interface PersonalRegistrationState {
   name: string;
@@ -133,19 +116,39 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
   const [rememberMe, setRememberMe] = useState(false);
   const [advertiserProfile, setAdvertiserProfile] = useState({ companyName: '', commercialRegister: '', adLicense: '', businessType: 'commercial' });
   const [affiliation, setAffiliation] = useState<AffiliationType | null>(null);
-  const [vehicle, setVehicle] = useState({ year: '', plate: '', sideId: '', make: '', color: '', officeName: '', officePhone: '', companyName: '', type: '', brand: '', model: '', employment_type: '', identity_url: '', contact_page_url: '' });
+  const [vehicle, setVehicle] = useState({ year: '', plate: '', sideId: '', make: '', color: '', officeName: '', officePhone: '', companyName: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [logoTapCount, setLogoTapCount] = useState(0);
   const [adminCreds, setAdminCreds] = useState({ email: '', password: '' });
-  const [countryRows, setCountryRows] = useState<SupabaseCountryRow[]>([]);
   const [selectedCountry, setSelectedCountry] = useState<SupabaseCountryRow | null>(null);
-  const [governorateRows, setGovernorateRows] = useState<SupabaseGovernorateRow[]>([]);
-  const [districtRows, setDistrictRows] = useState<SupabaseDistrictRow[]>([]);
-  const [detectedCountryCode, setDetectedCountryCode] = useState<string | null>(null);
+  const detectedCountryCode = useDetectedCountryCode();
 
-  const [countriesLoading, setCountriesLoading] = useState(false);
-  const [governoratesLoading, setGovernoratesLoading] = useState(false);
-  const [districtsLoading, setDistrictsLoading] = useState(false);
+  const { countryRows, loading: countriesLoading } = useSupabaseCountries({
+    onError: () =>
+      toast({
+        variant: 'destructive',
+        title: 'تعذر تحميل الدول',
+        description: 'تعذر تحميل قائمة الدول. يرجى المحاولة مرة أخرى.',
+      }),
+  });
+  const countryIdNum = Number(personal.country) || null;
+  const governorateIdNum = Number(personal.gov) || null;
+  const { governorateRows, loading: governoratesLoading } = useSupabaseGovernorates(countryIdNum, {
+    onError: () =>
+      toast({
+        variant: 'destructive',
+        title: 'تعذر تحميل المحافظات',
+        description: 'تعذر تحميل محافظات الدولة المختارة. يرجى المحاولة مرة أخرى.',
+      }),
+  });
+  const { districtRows, loading: districtsLoading } = useSupabaseDistricts(governorateIdNum, {
+    onError: () =>
+      toast({
+        variant: 'destructive',
+        title: 'تعذر تحميل المناطق',
+        description: 'تعذر تحميل مناطق المحافظة المختارة. يرجى المحاولة مرة أخرى.',
+      }),
+  });
   const isSubmittingRef = useRef(false);
 
   const locationDataLoading = countriesLoading || governoratesLoading || districtsLoading;
@@ -153,59 +156,6 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     setRememberMe(shouldRememberSupabaseSession());
   }, []);
-
-  useEffect(() => {
-    let active = true;
-
-    async function detectSignupCountry() {
-      try {
-        const response = await fetch('https://ipapi.co/json/', { cache: 'no-store' });
-        if (!response.ok) return;
-        const payload = (await response.json()) as { country_code?: string; country?: string };
-        const code = String(payload.country_code || payload.country || '').trim().toUpperCase();
-        if (active && code) setDetectedCountryCode(code);
-      } catch (error) {
-        if ((process.env.NODE_ENV !== 'production')) console.warn('[IP Country Detect]', error);
-      }
-    }
-
-    void detectSignupCountry();
-
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    let active = true;
-
-    async function fetchCountries() {
-      setCountriesLoading(true);
-
-      try {
-        const { data, error } = await supabase.from('countries').select('*').order('id', { ascending: true });
-        if (error) throw error;
-        if (active) setCountryRows(normalizeCountries(data));
-      } catch (error) {
-        if ((process.env.NODE_ENV !== 'production')) console.warn('[Supabase Countries Fetch]', error);
-        if (active) {
-          toast({
-            variant: 'destructive',
-            title: 'تعذر تحميل الدول',
-            description: 'تعذر تحميل قائمة الدول. يرجى المحاولة مرة أخرى.',
-          });
-        }
-      } finally {
-        if (active) setCountriesLoading(false);
-      }
-    }
-
-    void fetchCountries();
-
-    return () => {
-      active = false;
-    };
-  }, [toast]);
 
   useEffect(() => {
     const countryId = Number(personal.country);
@@ -223,92 +173,15 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     );
   }, [countryRows, detectedCountryCode, personal.country]);
 
+  // Clears the dependent fields whenever their parent selection changes; the
+  // rows themselves are fetched by the hooks above, keyed off the same ids.
   useEffect(() => {
-    let active = true;
-    const countryId = Number(personal.country);
-
-    setGovernorateRows([]);
-    setDistrictRows([]);
     setPersonal((current) => (current.gov || current.district ? { ...current, gov: '', district: '' } : current));
-
-    if (!Number.isInteger(countryId) || countryId <= 0) {
-      return;
-    }
-
-    async function fetchGovernorates() {
-      setGovernoratesLoading(true);
-
-      try {
-        const { data, error } = await supabase
-          .from('governorates')
-          .select('*')
-          .eq('country_id', countryId)
-          .order('id', { ascending: true });
-        if (error) throw error;
-        if (active) setGovernorateRows(normalizeGovernorates(data));
-      } catch (error) {
-        if ((process.env.NODE_ENV !== 'production')) console.warn('[Supabase Governorates Fetch]', error);
-        if (active) {
-          toast({
-            variant: 'destructive',
-            title: 'تعذر تحميل المحافظات',
-            description: 'تعذر تحميل محافظات الدولة المختارة. يرجى المحاولة مرة أخرى.',
-          });
-        }
-      } finally {
-        if (active) setGovernoratesLoading(false);
-      }
-    }
-
-    void fetchGovernorates();
-
-    return () => {
-      active = false;
-    };
-  }, [personal.country, toast]);
+  }, [personal.country]);
 
   useEffect(() => {
-    let active = true;
-    const governorateId = Number(personal.gov);
-
-    setDistrictRows([]);
     setPersonal((current) => (current.district ? { ...current, district: '' } : current));
-
-    if (!Number.isInteger(governorateId) || governorateId <= 0) {
-      return;
-    }
-
-    async function fetchDistricts() {
-      setDistrictsLoading(true);
-
-      try {
-        const { data, error } = await supabase
-          .from('districts')
-          .select('*')
-          .eq('governorate_id', governorateId)
-          .order('id', { ascending: true });
-        if (error) throw error;
-        if (active) setDistrictRows(normalizeDistricts(data));
-      } catch (error) {
-        if ((process.env.NODE_ENV !== 'production')) console.warn('[Supabase Districts Fetch]', error);
-        if (active) {
-          toast({
-            variant: 'destructive',
-            title: 'تعذر تحميل المناطق',
-            description: 'تعذر تحميل مناطق المحافظة المختارة. يرجى المحاولة مرة أخرى.',
-          });
-        }
-      } finally {
-        if (active) setDistrictsLoading(false);
-      }
-    }
-
-    void fetchDistricts();
-
-    return () => {
-      active = false;
-    };
-  }, [personal.gov, toast]);
+  }, [personal.gov]);
 
   const countries = useMemo(
     () =>
@@ -343,12 +216,11 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     [districtRows],
   );
 
-  const phoneRule = useMemo(() => getPhoneRule(selectedCountry), [selectedCountry]);
-  const phonePlaceholder = phoneRule.example;
+  const phonePlaceholder = useMemo(() => getDemoPhoneForCountry(selectedCountry), [selectedCountry]);
   const phoneValidationHint =
     lang === 'ar'
-      ? `اكتب الرقم بصيغة دولية مثل ${phoneRule.example}.`
-      : `Use international format like ${phoneRule.example}.`;
+      ? 'اكتب رقمك بالصيغة المحلية لدولتك، أو بالنسق الدولي إن أحببت'
+      : "Write your number in your country's local format, or international format if you prefer";
 
   const fillRandomRegistrationData = useCallback(() => {
     if (!isStrictDevelopment) return;
@@ -374,7 +246,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
 
     const randomDistrict = districtRows[Math.floor(Math.random() * districtRows.length)];
     const serial = String(Date.now()).slice(-6);
-    const demoPhone = getDemoPhoneForCountry(selectedCountry, serial);
+    const demoPhone = getDemoPhoneForCountry(selectedCountry);
 
     setAuthMode('register');
     setPersonal((current) => ({
@@ -409,7 +281,6 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
         .order('id', { ascending: true });
       if (!error) {
         governorateOptions = normalizeGovernorates(data);
-        setGovernorateRows(governorateOptions);
       }
     }
 
@@ -428,7 +299,6 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
         .order('id', { ascending: true });
       if (!error) {
         districtOptions = normalizeDistricts(data);
-        setDistrictRows(districtOptions);
       }
     }
 
@@ -448,7 +318,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     }
 
     const serial = String(Date.now()).slice(-6);
-    const demoPhone = getDemoPhoneForCountry(country, serial);
+    const demoPhone = getDemoPhoneForCountry(country);
     const plateSuffix = serial.slice(-4);
 
     setAuthMode('register');
@@ -466,9 +336,6 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     setAuthPassword(`Captain${serial}!`);
     setVehicle((current: any) => ({
       ...current,
-      type: 'sedan',
-      brand: 'Toyota',
-      model: 'Corolla',
       make: 'Toyota Corolla',
       color: 'black',
       plate: `TEST-${plateSuffix}`,
@@ -477,9 +344,6 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
       officeName: 'Smart Radar Test Office',
       officePhone: demoPhone,
       sideId: `D-${plateSuffix}`,
-      employment_type: 'smart_app',
-      identity_url: 'dev-captain-license',
-      contact_page_url: `https://wa.me/${demoPhone.replace(/\D/g, '')}`,
     }));
 
     toast({
@@ -563,7 +427,11 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
           title: 'تم تسجيل الدخول',
           description: 'أهلاً بك، تم فتح حسابك بنجاح.',
         });
-        router.replace(role === 'driver' ? '/captain' : '/rider');
+        // Don't push a role-based route directly here: AuthContext may not have
+        // picked up the fresh session yet, which would race this navigation and
+        // land on a route that still sees `user === null`. Go to `/` and let
+        // its effect redirect once `useAuth()` actually reflects the new session.
+        router.replace('/');
         return;
       }
 
@@ -590,19 +458,21 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
       if (role === 'driver') {
         const userId = signUpResult.user?.id;
         if (userId) {
-          const { error: profileError } = await supabase.from('captain_profiles').insert({
+          const isTaxi = affiliation === 'office-taxi';
+          const { error: profileError } = await supabase.from('captain_profiles').upsert({
             id: userId,
-            vehicle_type: vehicle.type,
-            vehicle_brand: vehicle.brand,
-            vehicle_model: vehicle.model,
+            vehicle_type: isTaxi ? 'تاكسي' : 'ملاكي',
+            vehicle_brand: isTaxi ? null : vehicle.make,
             vehicle_year: Number(vehicle.year) || null,
             plate_number: vehicle.plate,
-            employment_type: vehicle.employment_type,
-            identity_url: vehicle.identity_url,
-            contact_page_url: vehicle.contact_page_url,
+            employment_type: isTaxi ? vehicle.officeName : vehicle.companyName,
+            affiliation_type: affiliation,
+            office_phone: isTaxi ? vehicle.officePhone : null,
+            side_id: isTaxi ? vehicle.sideId : null,
+            identity_url: personal.verificationDoc,
             verification_status: 'PENDING'
           });
-          
+
           if (profileError) {
             console.error('[Captain Profile Insert Error]', profileError);
             throw new Error(profileError.message || 'تعذر حفظ بيانات الكابتن الإضافية.');
@@ -617,7 +487,9 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
           : 'تم حفظ بياناتك بأمان. يمكنك تسجيل الدخول الآن.',
       });
       if (signUpResult.session) {
-        router.replace(role === 'driver' ? '/captain' : '/rider');
+        // Same reasoning as the login branch above: let `/` redirect once
+        // AuthContext actually reflects the new session, instead of racing it.
+        router.replace('/');
       } else {
         setAuthMode('login');
         router.replace('/');
@@ -645,6 +517,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
       isSubmittingRef.current = false;
     }
   }, [
+    affiliation,
     authMode,
     authPassword,
     districtRows,
@@ -654,6 +527,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     personal.gov,
     personal.name,
     personal.phone,
+    personal.verificationDoc,
     rememberMe,
     role,
     router,
@@ -741,145 +615,38 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
   return <RegistrationContext.Provider value={value}>{children}</RegistrationContext.Provider>;
 }
 
-function normalizeCountries(rows: unknown): SupabaseCountryRow[] {
-  return Array.isArray(rows)
-    ? rows
-        .map((row) => row as Partial<SupabaseCountryRow>)
-        .filter((row): row is SupabaseCountryRow => Number.isInteger(row.id))
-    : [];
-}
-
-function normalizeGovernorates(rows: unknown): SupabaseGovernorateRow[] {
-  return Array.isArray(rows)
-    ? rows
-        .map((row) => row as Partial<SupabaseGovernorateRow>)
-        .filter((row): row is SupabaseGovernorateRow => Number.isInteger(row.id) && Number.isInteger(row.country_id))
-    : [];
-}
-
-function normalizeDistricts(rows: unknown): SupabaseDistrictRow[] {
-  return Array.isArray(rows)
-    ? rows
-        .map((row) => row as Partial<SupabaseDistrictRow>)
-        .filter(
-          (row): row is SupabaseDistrictRow =>
-            Number.isInteger(row.id) && Number.isInteger(row.governorate_id),
-        )
-    : [];
-}
-
 function getLocationLabel(row: SupabaseCountryRow | SupabaseGovernorateRow | SupabaseDistrictRow, lang: 'ar' | 'en') {
   const preferred = lang === 'ar' ? row.name_ar : row.name_en;
   return preferred || row.name_ar || row.name_en || row.name || String(row.id);
 }
 
-function getCountryDialCode(country: SupabaseCountryRow) {
-  const rawCode = country.phone_code || country.dial_code || country.calling_code || '';
-  if (!rawCode) return '';
-  return rawCode.startsWith('+') ? rawCode : `+${rawCode}`;
-}
-
-type PhoneRule = {
-  dialCode: string;
-  example: string;
-  localRegex?: RegExp;
-  message: string;
-};
-
-const COUNTRY_PHONE_RULES: Record<string, Omit<PhoneRule, 'dialCode'>> = {
-  EG: {
-    example: '\u200E+201234567890\u200E',
-    localRegex: /^1[0125]\d{8}$/,
-    message: 'اكتب رقم مصري صحيح مثل \u200E+201234567890\u200E.',
-  },
-  JO: {
-    example: '\u200E+962791234567\u200E',
-    localRegex: /^7[789]\d{7}$/,
-    message: 'اكتب رقم أردني صحيح مثل \u200E+962791234567\u200E.',
-  },
-};
-
-const COUNTRY_DIAL_OVERRIDES: Record<string, string> = {
-  EG: '+20',
-  JO: '+962',
-};
-
-const DEFAULT_PHONE_RULE: Omit<PhoneRule, 'dialCode'> = {
-  example: '\u200E+962791234567\u200E',
-  message: 'اكتب رقم الهاتف بصيغة دولية صحيحة.',
-};
-
-function getCountryIsoCode(country: SupabaseCountryRow | null) {
-  if (!country) return '';
-  const explicitCode = String(country.country_code || country.iso2 || country.code || '').slice(0, 2).toUpperCase();
-  if (explicitCode) return explicitCode;
-
-  const searchableText = [
-    country.name_ar,
-    country.name_en,
-    country.name,
-    country.phone_code,
-    country.dial_code,
-    country.calling_code,
-  ]
-    .filter(Boolean)
-    .join(' ')
-    .toLowerCase();
-
-  if (searchableText.includes('egypt') || searchableText.includes('مصر')) return 'EG';
-  if (searchableText.includes('jordan') || searchableText.includes('اردن') || searchableText.includes('الأردن')) {
-    return 'JO';
-  }
-
-  const dialDigits = getCountryDialCode(country).replace(/\D/g, '');
-  if (dialDigits.startsWith('20')) return 'EG';
-  if (dialDigits.startsWith('962')) return 'JO';
-
-  return '';
-}
-
-function getPhoneRule(country: SupabaseCountryRow | null): PhoneRule {
-  const isoCode = getCountryIsoCode(country);
-  const dialCode = COUNTRY_DIAL_OVERRIDES[isoCode] || (country ? getCountryDialCode(country) : '');
-  const staticRule = COUNTRY_PHONE_RULES[isoCode] || DEFAULT_PHONE_RULE;
-  const fallbackExample = dialCode ? `${dialCode}123456789` : staticRule.example;
-  const example = country?.example_phone || country?.phone_example || (COUNTRY_PHONE_RULES[isoCode] ? staticRule.example : fallbackExample);
-
-  return {
-    ...staticRule,
-    dialCode: dialCode || inferDialCodeFromExample(example) || '+962',
-    example,
-  };
-}
-
+// Same libphonenumber-js validation the captain onboarding form uses (see
+// src/features/captain/lib/captain-registration-schema.ts), so a phone that's
+// valid in one flow is valid in the other. Local-format numbers (e.g. a
+// leading "0") are accepted as long as a country is selected.
 function normalizePhoneForCountry(rawPhone: string, country: SupabaseCountryRow | null) {
-  const rule = country ? getPhoneRule(country) : inferPhoneRuleFromRaw(rawPhone) || getPhoneRule(country);
-  const dialDigits = rule.dialCode.replace(/\D/g, '');
-  const compact = rawPhone.trim().replace(/[\s().-]/g, '');
-  const normalizedPrefix = compact.startsWith('00') ? `+${compact.slice(2)}` : compact;
-  const digits = normalizedPrefix.replace(/\D/g, '');
-
-  if (!dialDigits) {
-    return { ok: false as const, message: 'اختر الدولة أولاً حتى نتحقق من كود الهاتف.' };
+  const trimmed = rawPhone.trim();
+  if (!trimmed) {
+    return { ok: false as const, message: 'اكتب رقم الهاتف.' };
   }
 
-  let localDigits = digits.startsWith(dialDigits) ? digits.slice(dialDigits.length) : digits;
-  if (normalizedPrefix.startsWith('+') && !digits.startsWith(dialDigits)) {
-    return { ok: false as const, message: rule.message };
+  const isoCode = getCountryIsoCode(country) as CountryCode | undefined;
+
+  try {
+    const parsed = parsePhoneNumberFromString(trimmed, isoCode || undefined);
+    if (!parsed || !parsed.isValid()) {
+      return {
+        ok: false as const,
+        message: isoCode
+          ? 'رقم الهاتف غير صحيح لهذه الدولة، اكتبه بالنسق المحلي أو الدولي.'
+          : 'اختر الدولة أولاً حتى نتحقق من رقم الهاتف.',
+      };
+    }
+
+    return { ok: true as const, phone: parsed.number };
+  } catch {
+    return { ok: false as const, message: 'رقم الهاتف غير صحيح.' };
   }
-
-  localDigits = localDigits.replace(/^0+/, '');
-
-  if (rule.localRegex && !rule.localRegex.test(localDigits)) {
-    return { ok: false as const, message: rule.message };
-  }
-
-  const phone = `+${dialDigits}${localDigits}`;
-  if (!/^\+[1-9]\d{7,14}$/.test(phone)) {
-    return { ok: false as const, message: rule.message };
-  }
-
-  return { ok: true as const, phone };
 }
 
 function toSupabaseAuthRole(role: RegistrationRole): 'RIDER' | 'CAPTAIN' | 'ADVERTISER' | 'DELEGATE' {
@@ -889,25 +656,14 @@ function toSupabaseAuthRole(role: RegistrationRole): 'RIDER' | 'CAPTAIN' | 'ADVE
   return 'RIDER';
 }
 
-function inferPhoneRuleFromRaw(rawPhone: string): PhoneRule | null {
-  const digits = rawPhone.trim().replace(/^00/, '').replace(/\D/g, '');
-  if (digits.startsWith('20')) return { ...COUNTRY_PHONE_RULES.EG, dialCode: '+20' };
-  if (digits.startsWith('962')) return { ...COUNTRY_PHONE_RULES.JO, dialCode: '+962' };
-  return null;
-}
+function getDemoPhoneForCountry(country: SupabaseCountryRow | null): string {
+  const isoCode = getCountryIsoCode(country) as CountryCode | undefined;
+  if (isoCode) {
+    const example = getExampleNumber(isoCode, phoneNumberExamples);
+    if (example) return example.number;
+  }
 
-function inferDialCodeFromExample(example: string) {
-  const match = example.match(/\+(\d{1,4})/);
-  return match ? `+${match[1]}` : '';
-}
-
-function getDemoPhoneForCountry(country: SupabaseCountryRow, serial: string) {
-  const rule = getPhoneRule(country);
-  if (getCountryIsoCode(country) === 'EG') return `+2012${serial.padStart(8, '0').slice(-8)}`;
-  if (getCountryIsoCode(country) === 'JO') return `+96279${serial.padStart(7, '0').slice(-7)}`;
-
-  const dialDigits = rule.dialCode.replace(/\D/g, '');
-  return `+${dialDigits}${String(Date.now()).slice(-8)}`;
+  return '+962790000000';
 }
 
 export function useRegistration() {

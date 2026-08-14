@@ -1,9 +1,12 @@
 'use client';
 
 import React from 'react';
-import { CheckCircle2, Loader2, Navigation, Phone, ShieldAlert } from 'lucide-react';
+import { CheckCircle2, Clock, ExternalLink, Loader2, Lock, MapPin, Navigation, Phone, ShieldAlert } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import type { Trip, User } from '@/core/types';
 import type { CaptainTripStep } from '../state/captain-state-machine';
+import { SOVEREIGN_CONSTANTS } from '@/core/constants/sovereign-protocols';
+import { PickupNavigationMap } from './pickup-navigation-map';
 
 import { cn } from '@/lib/utils';
 const styles = {
@@ -34,6 +37,17 @@ const styles = {
   style114_25: "border-emerald-500/40 bg-emerald-500/15 text-emerald-200",
   style116_26: "border-[#14B8A6] bg-[#14B8A6] text-[#06111f]",
   style117_27: "border-white/10 bg-white/[0.03] text-slate-300",
+  style90_1: "mt-5",
+  style95_1: "mt-4 grid gap-4 md:grid-cols-2",
+  style96_1: "rounded-2xl border border-[#14B8A6]/25 bg-[#14B8A6]/10 p-4",
+  style97_1: "flex items-center gap-1.5 text-xs font-black text-[#14F5D5]",
+  style98_1: "h-3.5 w-3.5",
+  style99_1: "mt-1 text-xl font-black",
+  style100_1: "rounded-2xl border border-slate-800 bg-black/45 p-4",
+  style101_1: "flex items-center gap-1.5 text-xs text-slate-400",
+  style102_1: "h-3.5 w-3.5",
+  style103_1: "mt-1 text-xl font-black font-mono",
+  style103_2: "mt-1 text-xl font-black font-mono text-amber-300",
 } as const;
 
 
@@ -43,9 +57,34 @@ interface ActiveTripTrackerProps {
   rider: User | null;
   step: CaptainTripStep;
   isCompleting: boolean;
+  currency: string;
+  driverLocation: { lat: number; lng: number } | null;
+  handshakeAt: number | null;
   onArrived: () => void;
   onStartTrip: () => void;
   onCompleteTrip: () => void;
+}
+
+function useHandshakeCountdown(handshakeAt: number | null) {
+  const expiresAt = handshakeAt ? handshakeAt + SOVEREIGN_CONSTANTS.TRIP_FORGOTTEN_GRACE_MIN * 60 * 1000 : null;
+  const [remainingMs, setRemainingMs] = React.useState(() => (expiresAt ? Math.max(0, expiresAt - Date.now()) : 0));
+
+  React.useEffect(() => {
+    if (!expiresAt) {
+      setRemainingMs(0);
+      return;
+    }
+    setRemainingMs(Math.max(0, expiresAt - Date.now()));
+    const interval = window.setInterval(() => {
+      setRemainingMs(Math.max(0, expiresAt - Date.now()));
+    }, 1000);
+    return () => window.clearInterval(interval);
+  }, [expiresAt]);
+
+  const totalSeconds = Math.floor(remainingMs / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return { minutes, seconds, isRunningLow: remainingMs > 0 && remainingMs <= 5 * 60 * 1000 };
 }
 
 export function ActiveTripTracker({
@@ -54,11 +93,17 @@ export function ActiveTripTracker({
   rider,
   step,
   isCompleting,
+  currency,
+  driverLocation,
+  handshakeAt,
   onArrived,
   onStartTrip,
   onCompleteTrip,
 }: ActiveTripTrackerProps) {
   const copy = activeCopy[language];
+  const pickupT = useTranslations('captainPickup');
+  const countdown = useHandshakeCountdown(handshakeAt);
+  const pickupLocation = request.exactPickupCoords || request.obfuscatedPickupCoords || request.pickupCoords || null;
 
   return (
     <section className={styles.style32_1}>
@@ -90,6 +135,58 @@ export function ActiveTripTracker({
             </a>
           ) : null}
         </div>
+      </div>
+
+      <div className="mt-4 rounded-2xl border border-cyan-400/20 bg-cyan-400/[0.06] p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="flex items-center gap-1.5 text-xs font-black text-cyan-200">
+              <MapPin className="h-4 w-4" aria-hidden="true" />
+              {pickupT('pickupLocation')}
+            </p>
+            <p className="mt-1 truncate text-sm font-black text-white">
+              {request.pickupLabel || pickupT('pickupLocation')}
+            </p>
+            <p className="mt-1 text-xs text-slate-400">
+              {request.pickupLocationIsApproximate ? pickupT('pickupApproximate') : pickupT('pickupExact')}
+            </p>
+          </div>
+          {request.pickupGoogleMapsUrl ? (
+            <a
+              href={request.pickupGoogleMapsUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-cyan-400/25 px-3 py-2 text-xs font-black text-cyan-200 transition hover:border-cyan-300 hover:text-white"
+            >
+              <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+              {pickupT('openPickupMap')}
+            </a>
+          ) : null}
+        </div>
+      </div>
+
+      <div className={styles.style95_1}>
+        <div className={styles.style96_1}>
+          <p className={styles.style97_1}>
+            <Lock className={styles.style98_1} />
+            {copy.frozenPrice}
+          </p>
+          <p className={styles.style99_1}>{Number(request.offerPrice || 0).toFixed(2)} {currency}</p>
+        </div>
+
+        <div className={styles.style100_1}>
+          <p className={styles.style101_1}>
+            <Clock className={styles.style102_1} />
+            {copy.eta}
+          </p>
+          <p className={countdown.isRunningLow ? styles.style103_2 : styles.style103_1}>
+            {handshakeAt ? `${String(countdown.minutes).padStart(2, '0')}:${String(countdown.seconds).padStart(2, '0')}` : '--:--'}
+          </p>
+        </div>
+      </div>
+
+      <div className={styles.style90_1}>
+        <PickupNavigationMap language={language} driverLocation={driverLocation} pickupLocation={pickupLocation} />
       </div>
 
       <div className={styles.style63_17}>
@@ -163,6 +260,8 @@ const activeCopy = {
     rider: 'الراكب',
     riderFallback: 'راكب',
     callRider: 'اتصال بالراكب',
+    frozenPrice: 'السعر مؤكد ومجمّد',
+    eta: 'الوقت المتبقي قبل انتهاء الصلاحية',
     arrived: 'وصلت لنقطة الركوب',
     start: 'بدء الرحلة',
     complete: 'إنهاء الرحلة',
@@ -184,6 +283,8 @@ const activeCopy = {
     rider: 'Rider',
     riderFallback: 'Rider',
     callRider: 'Call rider',
+    frozenPrice: 'Price confirmed and frozen',
+    eta: 'Time left before expiry',
     arrived: 'Arrived at pickup',
     start: 'Start trip',
     complete: 'Complete trip',
