@@ -84,7 +84,7 @@ export function useDriverTransactions(
       isCancelled = true;
       window.clearInterval(intervalId);
     };
-  }, [pendingOfferRequestId, captainId, clearPendingOffer]);
+  }, [pendingOfferRequestId, clearPendingOffer]);
 
   const cleanUpAndReset = useCallback(() => {
     setActiveReq(null);
