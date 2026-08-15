@@ -175,7 +175,14 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
           event: '*',
           schema: 'public',
           table: 'ride_requests',
-          filter: 'status=eq.PENDING',
+          // No status filter here on purpose: Supabase Realtime evaluates a
+          // filter against the row's state after the change, so a request
+          // leaving PENDING (e.g. the rider cancels, or another captain gets
+          // accepted) would never match `status=eq.PENDING` and the event
+          // would be silently dropped — leaving the stale request on this
+          // captain's radar forever. `fetchPendingRequests()` already
+          // re-queries for status = PENDING server-side, so any change here
+          // (regardless of the resulting status) is enough to trigger it.
         },
         () => {
           void fetchPendingRequests();
@@ -203,6 +210,20 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
       void channel.unsubscribe();
     };
   }, [currentH3Cell, driverStatus, fetchPendingRequests, user?.uid]);
+
+  // Belt-and-suspenders poll: `ride_requests` realtime depends on the table
+  // being part of the `supabase_realtime` publication server-side, which is
+  // easy to silently miss (only profiles/wallet_accounts were ever wired up
+  // that way in this project's migrations). If that publication is ever
+  // missing or lags, a stale request (e.g. one the rider just cancelled)
+  // would otherwise sit on the radar indefinitely with no other correction.
+  useEffect(() => {
+    if (driverStatus !== 'active') return;
+    const intervalId = window.setInterval(() => {
+      void fetchPendingRequests();
+    }, 10_000);
+    return () => window.clearInterval(intervalId);
+  }, [driverStatus, fetchPendingRequests]);
 
   const rejectRequest = useCallback((tripId: string) => {
     setRejectedTripIds((prev) => {

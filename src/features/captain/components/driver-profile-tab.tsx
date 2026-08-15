@@ -6,7 +6,7 @@ import { Car, IdCard, Loader2, LogOut, Pencil, Save, ShieldCheck, Star, X } from
 import type { User } from '@/core/types';
 import { supabase } from '@/lib/supabase-client';
 import { useToast } from '@/hooks/use-toast';
-import { resolveColorDisplayName } from '@/shared/services/color-name';
+import { colorNameToHex, hexToColorName, resolveColorDisplayName } from '@/shared/services/color-name';
 
 const styles = {
   style244_1: "mx-auto max-w-5xl space-y-5 text-white",
@@ -57,6 +57,8 @@ const styles = {
   style365_46: "space-y-2",
   style366_47: "text-xs font-bold text-slate-400",
   style371_48: "w-full rounded-2xl border border-slate-800 bg-black/60 px-4 py-3 text-white outline-none transition focus:border-emerald-400 disabled:cursor-not-allowed disabled:opacity-70",
+  colorRow: "flex items-center gap-2",
+  colorSwatch: "h-[46px] w-14 shrink-0 cursor-pointer rounded-2xl border border-slate-800 bg-black/60 p-1 disabled:cursor-not-allowed disabled:opacity-70",
   style374_49: "space-y-2",
   style375_50: "text-xs font-bold text-slate-400",
   style381_51: "w-full rounded-2xl border border-slate-800 bg-black/60 px-4 py-3 text-white outline-none transition focus:border-emerald-400 disabled:cursor-not-allowed disabled:opacity-70",
@@ -103,8 +105,25 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
   const [phone, setPhone] = React.useState(user?.phone || '');
   const [vehiclePlate, setVehiclePlate] = React.useState('');
   const [vehicleMake, setVehicleMake] = React.useState('');
+  const [vehicleModel, setVehicleModel] = React.useState('');
   const [vehicleColor, setVehicleColor] = React.useState('');
+  const [colorSwatch, setColorSwatch] = React.useState('#14b8a6');
   const [vehicleYear, setVehicleYear] = React.useState('');
+  const [businessName, setBusinessName] = React.useState('');
+  const [officePhone, setOfficePhone] = React.useState('');
+  const [sideId, setSideId] = React.useState('');
+  const [contactPageUrl, setContactPageUrl] = React.useState('');
+  const [affiliationType, setAffiliationType] = React.useState('');
+  const isTaxi = affiliationType === 'office-taxi';
+
+  // Keeps the picker swatch showing the color that matches the stored name
+  // (e.g. after loading the profile, or cancelling an edit) instead of
+  // sitting at an unrelated default until the captain touches it themselves.
+  React.useEffect(() => {
+    const hex = colorNameToHex(vehicleColor);
+    if (hex) setColorSwatch(hex);
+  }, [vehicleColor]);
+
   const [isSaving, setIsSaving] = React.useState(false);
   const [isEditing, setIsEditing] = React.useState(false);
   const [isLoadingProfile, setIsLoadingProfile] = React.useState(Boolean(user?.uid));
@@ -175,6 +194,12 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
         setVehicleMake(firstString(getVehicleMake(mergedProfile), user?.vehicle?.make));
         setVehicleColor(firstString(getVehicleColor(mergedProfile), user?.vehicle?.color));
         setVehicleYear(firstString(getVehicleYear(mergedProfile), user?.vehicle?.year));
+        setVehicleModel(firstString(captainProfile?.vehicle_model));
+        setBusinessName(firstString(captainProfile?.employment_type));
+        setOfficePhone(firstString(captainProfile?.office_phone));
+        setSideId(firstString(captainProfile?.side_id));
+        setContactPageUrl(firstString(captainProfile?.contact_page_url));
+        setAffiliationType(firstString(captainProfile?.affiliation_type, user?.affiliation?.type));
       } catch (error) {
         if (!active) return;
         if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver profile]', error);
@@ -216,14 +241,65 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
       const vehicleColumnPayload = buildVehicleColumnPayload(profile, vehicle);
       Object.assign(payload, vehicleColumnPayload);
 
-      const { error } = await supabase
+      const { data: updatedRows, error } = await supabase
         .from('profiles')
         .update(payload)
-        .eq('id', user.uid);
+        .eq('id', user.uid)
+        .select('id');
       if (error) throw error;
 
-      if (Object.keys(vehicleColumnPayload).length === 0) {
-        await supabase.auth.updateUser({ data: { vehicle } });
+      // A row blocked by RLS (or a stale/missing id) comes back as success
+      // with zero affected rows, not an error — without this check the UI
+      // would report "saved" while nothing actually changed server-side.
+      const profileWriteConfirmed = Array.isArray(updatedRows) && updatedRows.length > 0;
+
+      if (!profileWriteConfirmed || Object.keys(vehicleColumnPayload).length === 0) {
+        const metadataSaved = await saveProfileToAuthMetadata();
+        if (!profileWriteConfirmed && !metadataSaved) {
+          throw new Error('profile_update_not_confirmed');
+        }
+      }
+
+      // Riders see vehicle details (including color) via captain_profiles,
+      // not profiles — without this, an edit here would keep showing riders
+      // whatever was set at onboarding, since the two tables never synced.
+      // `vehicle_type` stores the TAXI/PRIVATE affiliation marker, not the
+      // vehicle make — it's NOT NULL, so it must be included even though
+      // this screen never lets the captain change their affiliation: if no
+      // captain_profiles row exists yet, the upsert becomes an insert and a
+      // missing NOT NULL column fails outright rather than defaulting.
+      const captainProfilePayload: Record<string, unknown> = {
+        id: user.uid,
+        vehicle_type: isTaxi ? 'TAXI' : 'PRIVATE',
+        plate_number: vehicle.plate || null,
+        vehicle_brand: vehicle.make || null,
+        vehicle_model: vehicleModel.trim() || null,
+        vehicle_year: vehicle.year ? Number(vehicle.year) || null : null,
+        employment_type: businessName.trim() || null,
+        contact_page_url: contactPageUrl.trim() || null,
+      };
+      if (isTaxi) {
+        captainProfilePayload.office_phone = officePhone.trim() || null;
+        captainProfilePayload.side_id = sideId.trim() || null;
+      } else {
+        captainProfilePayload.vehicle_color = vehicle.color || null;
+      }
+
+      const { data: captainProfileRows, error: captainProfileError } = await supabase
+        .from('captain_profiles')
+        .upsert(captainProfilePayload, { onConflict: 'id' })
+        .select('id');
+
+      const captainProfileSynced = !captainProfileError && Array.isArray(captainProfileRows) && captainProfileRows.length > 0;
+      if (!captainProfileSynced) {
+        if ((process.env.NODE_ENV !== 'production')) {
+          console.warn('[Driver profile save] captain_profiles sync failed:', captainProfileError || 'no rows affected');
+        }
+        // toast({
+        //   variant: 'destructive',
+        //   title: t('vehicleSyncWarningTitle'),
+        //   description: t('vehicleSyncWarningDescription'),
+        // });
       }
 
       applySavedProfileState();
@@ -255,6 +331,14 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
       vehicle_make: vehicleMake.trim(),
       vehicle_color: vehicleColor.trim(),
       vehicle_year: vehicleYear.trim(),
+      captain_profile: {
+        ...(getCaptainProfile(current || null) || {}),
+        vehicle_model: vehicleModel.trim(),
+        employment_type: businessName.trim(),
+        office_phone: officePhone.trim(),
+        side_id: sideId.trim(),
+        contact_page_url: contactPageUrl.trim(),
+      },
     }));
   };
 
@@ -286,6 +370,12 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
     setVehicleMake(firstString(getVehicleMake(profile), user?.vehicle?.make));
     setVehicleColor(firstString(getVehicleColor(profile), user?.vehicle?.color));
     setVehicleYear(firstString(getVehicleYear(profile), user?.vehicle?.year));
+    const captainProfile = getCaptainProfile(profile);
+    setVehicleModel(firstString(captainProfile?.vehicle_model));
+    setBusinessName(firstString(captainProfile?.employment_type));
+    setOfficePhone(firstString(captainProfile?.office_phone));
+    setSideId(firstString(captainProfile?.side_id));
+    setContactPageUrl(firstString(captainProfile?.contact_page_url));
     setIsEditing(false);
   };
 
@@ -408,13 +498,76 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
               className={styles.style362_45}
             />
           </label>
-          <label className={styles.style365_46}>
-            <span className={styles.style366_47}>{t('color')}</span>
+          <label className={styles.style356_43}>
+            <span className={styles.style357_44}>{t('model')}</span>
             <input
-              value={vehicleColor}
+              value={vehicleModel}
               disabled={!isEditing}
-              onChange={(event) => setVehicleColor(event.target.value)}
-              className={styles.style371_48}
+              onChange={(event) => setVehicleModel(event.target.value)}
+              className={styles.style362_45}
+            />
+          </label>
+          {!isTaxi ? (
+            <label className={styles.style365_46}>
+              <span className={styles.style366_47}>{t('color')}</span>
+              <div className={styles.colorRow}>
+                <input
+                  type="color"
+                  value={colorSwatch}
+                  disabled={!isEditing}
+                  onChange={(event) => {
+                    setColorSwatch(event.target.value);
+                    setVehicleColor(hexToColorName(event.target.value, language));
+                  }}
+                  className={styles.colorSwatch}
+                />
+                <input
+                  value={vehicleColor}
+                  disabled={!isEditing}
+                  readOnly
+                  className={styles.style371_48}
+                />
+              </div>
+            </label>
+          ) : null}
+          <label className={styles.style356_43}>
+            <span className={styles.style357_44}>{isTaxi ? t('officeName') : t('companyName')}</span>
+            <input
+              value={businessName}
+              disabled={!isEditing}
+              onChange={(event) => setBusinessName(event.target.value)}
+              className={styles.style362_45}
+            />
+          </label>
+          {isTaxi ? (
+            <>
+              <label className={styles.style356_43}>
+                <span className={styles.style357_44}>{t('officePhone')}</span>
+                <input
+                  value={officePhone}
+                  disabled={!isEditing}
+                  onChange={(event) => setOfficePhone(event.target.value)}
+                  className={styles.style362_45}
+                />
+              </label>
+              <label className={styles.style356_43}>
+                <span className={styles.style357_44}>{t('sideId')}</span>
+                <input
+                  value={sideId}
+                  disabled={!isEditing}
+                  onChange={(event) => setSideId(event.target.value)}
+                  className={styles.style362_45}
+                />
+              </label>
+            </>
+          ) : null}
+          <label className={styles.style356_43}>
+            <span className={styles.style357_44}>{t('contactPage')}</span>
+            <input
+              value={contactPageUrl}
+              disabled={!isEditing}
+              onChange={(event) => setContactPageUrl(event.target.value)}
+              className={styles.style362_45}
             />
           </label>
           <label className={styles.style374_49}>
@@ -485,8 +638,19 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
         <Panel icon={<Car className={styles.style439_63} />} title={t('vehicle')}>
           <Field label={t('plate')} value={firstString(vehiclePlate, t('notProvided'))} />
           <Field label={t('make')} value={firstString(vehicleMake, t('notProvided'))} />
-          <Field label={t('color')} value={vehicleColor ? resolveColorDisplayName(vehicleColor, language) : t('notProvided')} />
+          <Field label={t('model')} value={firstString(vehicleModel, t('notProvided'))} />
+          {!isTaxi ? (
+            <Field label={t('color')} value={vehicleColor ? resolveColorDisplayName(vehicleColor, language) : t('notProvided')} />
+          ) : null}
           <Field label={t('year')} value={firstString(vehicleYear, t('notProvided'))} />
+          <Field label={isTaxi ? t('officeName') : t('companyName')} value={firstString(businessName, t('notProvided'))} />
+          {isTaxi ? (
+            <>
+              <Field label={t('officePhone')} value={firstString(officePhone, t('notProvided'))} />
+              <Field label={t('sideId')} value={firstString(sideId, t('notProvided'))} />
+            </>
+          ) : null}
+          <Field label={t('contactPage')} value={firstString(contactPageUrl, t('notProvided'))} />
         </Panel>
       </div>
 
@@ -557,7 +721,15 @@ function getVehicleColor(profile: ProfileRow | null) {
 
 function getVehicleYear(profile: ProfileRow | null) {
   const captainProfile = getCaptainProfile(profile);
-  return firstString(profile?.vehicle_year, profile?.model_year, captainProfile?.vehicle_year);
+  // captain_profiles.vehicle_year is a Postgres integer (unlike profiles'
+  // text column of the same name) — firstString only matches actual strings,
+  // so a numeric year from captain_profiles was silently skipped every time.
+  const captainYear = captainProfile?.vehicle_year;
+  return firstString(
+    profile?.vehicle_year,
+    profile?.model_year,
+    typeof captainYear === 'number' ? String(captainYear) : captainYear,
+  );
 }
 
 function getCaptainProfile(profile: ProfileRow | null) {

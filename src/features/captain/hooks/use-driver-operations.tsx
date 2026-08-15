@@ -131,8 +131,8 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
   } = useDriverTransactions(user, setDriverStatus);
 
   const submitOffer = useCallback(async (payload: { tripId: string; offerPrice: number }) => {
-    return rawSubmitOffer(payload, rejectRequest);
-  }, [rawSubmitOffer, rejectRequest]);
+    return rawSubmitOffer(payload);
+  }, [rawSubmitOffer]);
 
   const markArrivedAtPickup = useCallback(async () => {
     return rawMarkArrivedAtPickup();
