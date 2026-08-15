@@ -1,10 +1,12 @@
 'use client';
 
 import React from 'react';
+import { useTranslations } from 'next-intl';
 import { Car, IdCard, Loader2, LogOut, Pencil, Save, ShieldCheck, Star, X } from 'lucide-react';
 import type { User } from '@/core/types';
 import { supabase } from '@/lib/supabase-client';
 import { useToast } from '@/hooks/use-toast';
+import { resolveColorDisplayName } from '@/shared/services/color-name';
 
 const styles = {
   style244_1: "mx-auto max-w-5xl space-y-5 text-white",
@@ -94,38 +96,7 @@ interface DriverProfileTabProps {
 type ProfileRow = Record<string, unknown>;
 
 export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabProps) {
-  const copy = {
-    ...profileCopy[language],
-    badge: language === 'ar' ? 'حسابي' : 'Profile',
-    title: language === 'ar' ? 'بيانات الكابتن' : 'Captain profile',
-    subtitle: language === 'ar'
-      ? 'يمكنك تعديل بيانات الحساب الأساسية. التقييم يتم حسابه من الرحلات فقط.'
-      : 'You can edit basic account details. Ratings are calculated from completed trips only.',
-    editTitle: language === 'ar' ? 'تعديل بيانات الحساب' : 'Edit account data',
-    save: language === 'ar' ? 'حفظ التعديلات' : 'Save changes',
-    logout: language === 'ar' ? 'تسجيل الخروج' : 'Log out',
-    saveSuccessTitle: language === 'ar' ? 'تم حفظ البيانات' : 'Profile saved',
-    saveSuccessDescription: language === 'ar' ? 'تم تحديث بيانات حسابك بنجاح.' : 'Your account details were updated.',
-    saveErrorTitle: language === 'ar' ? 'تعذر حفظ البيانات' : 'Could not save profile',
-    saveErrorDescription: language === 'ar' ? 'تحقق من الاتصال أو صلاحيات الحساب ثم حاول مرة أخرى.' : 'Check your connection or account permissions and try again.',
-    account: language === 'ar' ? 'بيانات الحساب' : 'Account data',
-    vehicle: language === 'ar' ? 'بيانات المركبة' : 'Vehicle data',
-    name: language === 'ar' ? 'الاسم الكامل' : 'Full name',
-    phone: language === 'ar' ? 'رقم الهاتف' : 'Phone number',
-    accountNumber: language === 'ar' ? 'رقم الحساب' : 'Account number',
-    role: language === 'ar' ? 'نوع الحساب' : 'Account type',
-    tier: language === 'ar' ? 'رتبة الكابتن' : 'Captain tier',
-    captainRole: language === 'ar' ? 'كابتن' : 'Captain',
-    plate: language === 'ar' ? 'رقم اللوحة' : 'Plate number',
-    make: language === 'ar' ? 'نوع المركبة' : 'Vehicle make',
-    color: language === 'ar' ? 'اللون' : 'Color',
-    year: language === 'ar' ? 'سنة الصنع' : 'Model year',
-    notProvided: language === 'ar' ? 'غير مضاف' : 'Not added',
-    trustTitle: language === 'ar' ? 'تقييم الحساب' : 'Account rating',
-    trustBody: language === 'ar'
-      ? 'يتم احتساب التقييم من تقييمات الرحلات المحفوظة بعد إنهاء الرحلات.'
-      : 'The rating is calculated from saved trip ratings after completed trips.',
-  };
+  const t = useTranslations('captainProfile');
   const { toast } = useToast();
   const [profile, setProfile] = React.useState<ProfileRow | null>(null);
   const [fullName, setFullName] = React.useState(user?.name || '');
@@ -223,7 +194,7 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
   const rating = firstNumber(profile?.trust_score, profile?.rating, profile?.trust_rating, user?.rating, 5);
   const normalizedRating = Math.max(0, Math.min(5, rating));
   const percent = (normalizedRating / 5) * 100;
-  const tier = getCaptainTier(profile, normalizedRating, language, user?.rank);
+  const tier = getCaptainTier(profile, normalizedRating, t, user?.rank);
 
   const saveProfile = async () => {
     if (!user?.uid) return;
@@ -256,7 +227,7 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
       }
 
       applySavedProfileState();
-      toast({ title: copy.saveSuccessTitle, description: copy.saveSuccessDescription });
+      toast({ title: t('saveSuccessTitle'), description: t('saveSuccessDescription') });
       setIsEditing(false);
     } catch (error) {
       if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver profile save]', error);
@@ -265,10 +236,10 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
         : await saveProfileToAuthMetadata();
       if (fallbackSaved) {
         applySavedProfileState();
-        toast({ title: copy.saveSuccessTitle, description: copy.saveSuccessDescription });
+        toast({ title: t('saveSuccessTitle'), description: t('saveSuccessDescription') });
         setIsEditing(false);
       } else {
-        toast({ variant: 'destructive', title: copy.saveErrorTitle, description: copy.saveErrorDescription });
+        toast({ variant: 'destructive', title: t('saveErrorTitle'), description: t('saveErrorDescription') });
       }
     } finally {
       setIsSaving(false);
@@ -328,12 +299,10 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
             </div>
             <div>
               <p className={styles.style251_6}>
-                {language === 'ar' ? 'جاري تحميل بيانات الحساب' : 'Loading profile data'}
+                {t('loadingTitle')}
               </p>
               <p className={styles.style254_7}>
-                {language === 'ar'
-                  ? 'نحمّل بياناتك من الخادم، يرجى الانتظار لحظة.'
-                  : 'Fetching your latest account data from the server.'}
+                {t('loadingBody')}
               </p>
             </div>
           </div>
@@ -354,12 +323,10 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
           <div className={styles.style275_12}>
             <div>
               <p className={styles.style277_13}>
-                {language === 'ar' ? 'تعذر تحميل بيانات الحساب' : 'Could not load profile'}
+                {t('loadErrorTitle')}
               </p>
               <p className={styles.style280_14}>
-                {language === 'ar'
-                  ? 'تحقق من الاتصال أو صلاحيات الحساب ثم حاول مرة أخرى.'
-                  : 'Check your connection or account permissions, then try again.'}
+                {t('loadErrorBody')}
               </p>
             </div>
             <button
@@ -367,7 +334,7 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
               onClick={() => setProfileReloadToken((value) => value + 1)}
               className={styles.style289_15}
             >
-              {language === 'ar' ? 'إعادة المحاولة' : 'Retry'}
+              {t('retry')}
             </button>
           </div>
         </div>
@@ -380,12 +347,12 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
       <div className={styles.style301_17}>
         <div className={styles.style302_18}>
           <div>
-            <p className={styles.style304_19}>{copy.badge}</p>
-            <h1 className={styles.style305_20}>{copy.title}</h1>
-            <p className={styles.style306_21}>{copy.subtitle}</p>
+            <p className={styles.style304_19}>{t('badge')}</p>
+            <h1 className={styles.style305_20}>{t('title')}</h1>
+            <p className={styles.style306_21}>{t('subtitle')}</p>
             <div className={styles.style307_22}>
               <Star className={styles.style308_23} />
-              <span>{copy.tier}: {tier.label}</span>
+              <span>{t('tier')}: {tier.label}</span>
             </div>
           </div>
           <div className={styles.style312_24} style={{ background: `conic-gradient(#14B8A6 ${percent}%, rgba(255,255,255,0.08) 0)` }}>
@@ -402,11 +369,11 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
       <div className={styles.style323_29}>
         <div className={styles.style324_30}>
           <IdCard className={styles.style325_31} />
-          <h2 className={styles.style326_32}>{copy.editTitle}</h2>
+          <h2 className={styles.style326_32}>{t('editTitle')}</h2>
         </div>
         <div className={styles.style328_33}>
           <label className={styles.style329_34}>
-            <span className={styles.style330_35}>{copy.name}</span>
+            <span className={styles.style330_35}>{t('name')}</span>
             <input
               value={fullName}
               disabled={!isEditing}
@@ -415,7 +382,7 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
             />
           </label>
           <label className={styles.style338_37}>
-            <span className={styles.style339_38}>{copy.phone}</span>
+            <span className={styles.style339_38}>{t('phone')}</span>
             <input
               value={phone}
               disabled={!isEditing}
@@ -424,7 +391,7 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
             />
           </label>
           <label className={styles.style347_40}>
-            <span className={styles.style348_41}>{copy.plate}</span>
+            <span className={styles.style348_41}>{t('plate')}</span>
             <input
               value={vehiclePlate}
               disabled={!isEditing}
@@ -433,7 +400,7 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
             />
           </label>
           <label className={styles.style356_43}>
-            <span className={styles.style357_44}>{copy.make}</span>
+            <span className={styles.style357_44}>{t('make')}</span>
             <input
               value={vehicleMake}
               disabled={!isEditing}
@@ -442,7 +409,7 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
             />
           </label>
           <label className={styles.style365_46}>
-            <span className={styles.style366_47}>{copy.color}</span>
+            <span className={styles.style366_47}>{t('color')}</span>
             <input
               value={vehicleColor}
               disabled={!isEditing}
@@ -451,7 +418,7 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
             />
           </label>
           <label className={styles.style374_49}>
-            <span className={styles.style375_50}>{copy.year}</span>
+            <span className={styles.style375_50}>{t('year')}</span>
             <input
               value={vehicleYear}
               disabled={!isEditing}
@@ -469,7 +436,7 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
               className={styles.style390_53}
             >
               <Pencil className={styles.style392_54} />
-              {language === 'ar' ? 'تعديل البيانات' : 'Edit profile'}
+              {t('edit')}
             </button>
           ) : (
             <>
@@ -480,7 +447,7 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
                 className={styles.style401_55}
               >
                 <Save className={styles.style403_56} />
-                {copy.save}
+                {t('save')}
               </button>
               <button
                 type="button"
@@ -489,7 +456,7 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
                 className={styles.style410_57}
               >
                 <X className={styles.style412_58} />
-                {language === 'ar' ? 'إلغاء' : 'Cancel'}
+                {t('cancel')}
               </button>
             </>
           )}
@@ -500,35 +467,35 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
               className={styles.style421_59}
             >
               <LogOut className={styles.style423_60} />
-              {copy.logout}
+              {t('logout')}
             </button>
           ) : null}
         </div>
       </div>
 
       <div className={styles.style430_61}>
-        <Panel icon={<IdCard className={styles.style431_62} />} title={copy.account}>
-          <Field label={copy.name} value={firstString(profile?.full_name, user?.name)} />
-          <Field label={copy.phone} value={firstString(profile?.phone, user?.phone)} />
-          <Field label={copy.accountNumber} value={firstString(profile?.serial_id, user?.serial_id, '-')} />
-          <Field label={copy.role} value={copy.captainRole} />
-          <Field label={copy.tier} value={tier.label} />
+        <Panel icon={<IdCard className={styles.style431_62} />} title={t('account')}>
+          <Field label={t('name')} value={firstString(profile?.full_name, user?.name)} />
+          <Field label={t('phone')} value={firstString(profile?.phone, user?.phone)} />
+          <Field label={t('accountNumber')} value={firstString(profile?.serial_id, user?.serial_id, '-')} />
+          <Field label={t('role')} value={t('captainRole')} />
+          <Field label={t('tier')} value={tier.label} />
         </Panel>
 
-        <Panel icon={<Car className={styles.style439_63} />} title={copy.vehicle}>
-          <Field label={copy.plate} value={firstString(vehiclePlate, copy.notProvided)} />
-          <Field label={copy.make} value={firstString(vehicleMake, copy.notProvided)} />
-          <Field label={copy.color} value={firstString(vehicleColor, copy.notProvided)} />
-          <Field label={copy.year} value={firstString(vehicleYear, copy.notProvided)} />
+        <Panel icon={<Car className={styles.style439_63} />} title={t('vehicle')}>
+          <Field label={t('plate')} value={firstString(vehiclePlate, t('notProvided'))} />
+          <Field label={t('make')} value={firstString(vehicleMake, t('notProvided'))} />
+          <Field label={t('color')} value={vehicleColor ? resolveColorDisplayName(vehicleColor, language) : t('notProvided')} />
+          <Field label={t('year')} value={firstString(vehicleYear, t('notProvided'))} />
         </Panel>
       </div>
 
       <div className={styles.style447_64}>
         <div className={styles.style448_65}>
           <ShieldCheck className={styles.style449_66} />
-          <h2 className={styles.style450_67}>{copy.trustTitle}</h2>
+          <h2 className={styles.style450_67}>{t('trustTitle')}</h2>
         </div>
-        <p className={styles.style452_68}>{copy.trustBody}</p>
+        <p className={styles.style452_68}>{t('trustBody')}</p>
       </div>
     </section>
   );
@@ -597,7 +564,9 @@ function getCaptainProfile(profile: ProfileRow | null) {
   return isRecord(profile?.captain_profile) ? profile.captain_profile as ProfileRow : null;
 }
 
-function getCaptainTier(profile: ProfileRow | null, rating: number, language: 'ar' | 'en', userRank?: unknown) {
+type TFunction = (key: string) => string;
+
+function getCaptainTier(profile: ProfileRow | null, rating: number, t: TFunction, userRank?: unknown) {
   const captainProfile = getCaptainProfile(profile);
   const explicitTier = firstString(
     profile?.tier,
@@ -615,13 +584,13 @@ function getCaptainTier(profile: ProfileRow | null, rating: number, language: 'a
   const normalizedTier = normalizeTier(explicitTier);
 
   if (normalizedTier) {
-    return { key: normalizedTier, label: tierLabel(normalizedTier, language) };
+    return { key: normalizedTier, label: tierLabel(normalizedTier, t) };
   }
 
-  if (rating >= 4.9) return { key: 'platinum', label: tierLabel('platinum', language) };
-  if (rating >= 4.7) return { key: 'gold', label: tierLabel('gold', language) };
-  if (rating >= 4.4) return { key: 'silver', label: tierLabel('silver', language) };
-  return { key: 'bronze', label: tierLabel('bronze', language) };
+  if (rating >= 4.9) return { key: 'platinum', label: tierLabel('platinum', t) };
+  if (rating >= 4.7) return { key: 'gold', label: tierLabel('gold', t) };
+  if (rating >= 4.4) return { key: 'silver', label: tierLabel('silver', t) };
+  return { key: 'bronze', label: tierLabel('bronze', t) };
 }
 
 function normalizeTier(value: string) {
@@ -634,23 +603,12 @@ function normalizeTier(value: string) {
   return normalized;
 }
 
-function tierLabel(value: string, language: 'ar' | 'en') {
-  const labels = {
-    ar: {
-      platinum: 'بلاتيني',
-      gold: 'ذهبي',
-      silver: 'فضي',
-      bronze: 'برونزي',
-    },
-    en: {
-      platinum: 'Platinum',
-      gold: 'Gold',
-      silver: 'Silver',
-      bronze: 'Bronze',
-    },
-  } as const;
-  const key = normalizeTier(value) as keyof typeof labels.en;
-  return labels[language][key] || value;
+function tierLabel(value: string, t: TFunction) {
+  const key = normalizeTier(value);
+  if (key === 'platinum' || key === 'gold' || key === 'silver' || key === 'bronze') {
+    return t(`tierLabels.${key}`);
+  }
+  return value;
 }
 
 function buildVehicleColumnPayload(
@@ -694,44 +652,3 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function isUuid(value: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
-
-const profileCopy = {
-  ar: {
-    badge: 'الملف الشخصي',
-    title: 'بيانات الكابتن',
-    subtitle: 'بيانات الحساب والتقييم تأتي من قاعدة البيانات. التقييم لا يتم تعديله من الواجهة.',
-    account: 'بيانات الحساب',
-    vehicle: 'بيانات المركبة',
-    name: 'الاسم الكامل',
-    phone: 'رقم الهاتف',
-    accountNumber: 'رقم الحساب',
-    role: 'نوع الحساب',
-    captainRole: 'كابتن',
-    plate: 'رقم اللوحة',
-    make: 'نوع المركبة',
-    color: 'اللون',
-    year: 'سنة الصنع',
-    notProvided: 'غير مضاف',
-    trustTitle: 'تقييم الحساب',
-    trustBody: 'يتم احتساب التقييم من تقييمات الرحلات المحفوظة في قاعدة البيانات بعد إنهاء الرحلات.',
-  },
-  en: {
-    badge: 'Profile',
-    title: 'Captain profile',
-    subtitle: 'Account and rating data come from the database. The UI does not edit the trust score.',
-    account: 'Account data',
-    vehicle: 'Vehicle data',
-    name: 'Full name',
-    phone: 'Phone number',
-    accountNumber: 'Account number',
-    role: 'Account type',
-    captainRole: 'Captain',
-    plate: 'Plate number',
-    make: 'Vehicle make',
-    color: 'Color',
-    year: 'Model year',
-    notProvided: 'Not added',
-    trustTitle: 'Account rating',
-    trustBody: 'The rating is calculated from saved trip ratings in the database after completed trips.',
-  },
-} as const;

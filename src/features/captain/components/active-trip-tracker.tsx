@@ -1,14 +1,23 @@
 'use client';
 
 import React from 'react';
-import { CheckCircle2, Clock, ExternalLink, Loader2, Lock, MapPin, Navigation, Phone, ShieldAlert } from 'lucide-react';
+import dynamic from 'next/dynamic';
+import { AlertOctagon, CheckCircle2, Clock, ExternalLink, Loader2, Lock, MapPin, Navigation, Phone, ShieldAlert } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { Trip, User } from '@/core/types';
 import type { CaptainTripStep } from '../state/captain-state-machine';
 import { SOVEREIGN_CONSTANTS } from '@/core/constants/sovereign-protocols';
-import { PickupNavigationMap } from './pickup-navigation-map';
 
 import { cn } from '@/lib/utils';
+
+// MapLibre GL touches browser-only APIs at import time, so this must load
+// client-side only — same reason RadarMapView is dynamic-imported in
+// captain-view.tsx. Without this, the surrounding UI (badge, recenter button)
+// renders fine but the map itself silently never initializes.
+const PickupNavigationMap = dynamic(
+  () => import('./pickup-navigation-map').then((m) => m.PickupNavigationMap),
+  { ssr: false },
+);
 const styles = {
   style32_1: "mx-auto max-w-4xl rounded-3xl border border-emerald-500/20 bg-[#05080f] p-5 text-white shadow-2xl",
   style33_2: "flex flex-col gap-4 md:flex-row md:items-start md:justify-between",
@@ -48,6 +57,23 @@ const styles = {
   style102_1: "h-3.5 w-3.5",
   style103_1: "mt-1 text-xl font-black font-mono",
   style103_2: "mt-1 text-xl font-black font-mono text-amber-300",
+  pickupCard: "mt-4 rounded-2xl border border-cyan-400/20 bg-cyan-400/[0.06] p-4",
+  pickupCardRow: "flex items-start justify-between gap-3",
+  pickupCardInfo: "min-w-0",
+  pickupCardLabel: "flex items-center gap-1.5 text-xs font-black text-cyan-200",
+  pickupCardIcon: "h-4 w-4",
+  pickupCardValue: "mt-1 truncate text-sm font-black text-white",
+  pickupCardHint: "mt-1 text-xs text-slate-400",
+  pickupCardLink: "inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-cyan-400/25 px-3 py-2 text-xs font-black text-cyan-200 transition hover:border-cyan-300 hover:text-white",
+  pickupCardLinkIcon: "h-3.5 w-3.5",
+  cancelSection: "mt-3",
+  cancelButton: "flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 py-3 text-sm font-bold text-red-400 transition-colors hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-55",
+  cancelIcon: "h-4 w-4",
+  cancelConfirmWrap: "space-y-3 rounded-2xl border border-red-500/20 bg-red-500/5 p-4",
+  cancelConfirmText: "text-center text-xs font-bold leading-relaxed text-red-200",
+  cancelConfirmActions: "flex gap-2.5",
+  cancelConfirmButton: "h-10 flex-1 rounded-lg bg-red-600 text-xs font-bold text-white transition hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-55",
+  cancelBackButton: "h-10 flex-1 rounded-lg border-white/10 bg-white/5 text-xs font-bold text-white hover:bg-white/10",
 } as const;
 
 
@@ -57,12 +83,14 @@ interface ActiveTripTrackerProps {
   rider: User | null;
   step: CaptainTripStep;
   isCompleting: boolean;
+  isCancelling: boolean;
   currency: string;
   driverLocation: { lat: number; lng: number } | null;
   handshakeAt: number | null;
   onArrived: () => void;
   onStartTrip: () => void;
   onCompleteTrip: () => void;
+  onCancelTrip: () => void;
 }
 
 function useHandshakeCountdown(handshakeAt: number | null) {
@@ -93,61 +121,70 @@ export function ActiveTripTracker({
   rider,
   step,
   isCompleting,
+  isCancelling,
   currency,
   driverLocation,
   handshakeAt,
   onArrived,
   onStartTrip,
   onCompleteTrip,
+  onCancelTrip,
 }: ActiveTripTrackerProps) {
-  const copy = activeCopy[language];
+  const t = useTranslations('captainActiveTrip');
   const pickupT = useTranslations('captainPickup');
   const countdown = useHandshakeCountdown(handshakeAt);
+  const [isConfirmingCancel, setIsConfirmingCancel] = React.useState(false);
   const pickupLocation = request.exactPickupCoords || request.obfuscatedPickupCoords || request.pickupCoords || null;
+  // Once the trip is actually started, the captain is driving the rider to
+  // the destination — the map should track toward the dropoff, not the
+  // pickup point they already reached.
+  const isEnRouteToDropoff = step === 'STARTED';
+  const navigationTarget = isEnRouteToDropoff ? (request.dropoffCoords || null) : pickupLocation;
+  const navigationMode = isEnRouteToDropoff ? 'dropoff' : 'pickup';
 
   return (
     <section className={styles.style32_1}>
       <div className={styles.style33_2}>
         <div>
-          <p className={styles.style35_3}>{copy.badge}</p>
-          <h1 className={styles.style36_4}>{copy.title}</h1>
-          <p className={styles.style37_5}>{copy.subtitle}</p>
+          <p className={styles.style35_3}>{t('badge')}</p>
+          <h1 className={styles.style36_4}>{t('title')}</h1>
+          <p className={styles.style37_5}>{t('subtitle')}</p>
         </div>
         <span className={styles.style39_6}>
-          {copy.steps[step] || copy.steps.ACCEPTED}
+          {t(`steps.${step}`)}
         </span>
       </div>
 
       <div className={styles.style44_7}>
         <div className={styles.style45_8}>
-          <p className={styles.style46_9}>{copy.destination}</p>
-          <h2 className={styles.style47_10}>{request.dropoff || copy.unknownDestination}</h2>
+          <p className={styles.style46_9}>{t('destination')}</p>
+          <h2 className={styles.style47_10}>{request.dropoff || t('unknownDestination')}</h2>
           <p className={styles.style48_11}>H3: {request.h3Index ? request.h3Index.slice(-8).toUpperCase() : '-'}</p>
         </div>
 
         <div className={styles.style51_12}>
-          <p className={styles.style52_13}>{copy.rider}</p>
-          <h2 className={styles.style53_14}>{rider?.name || copy.riderFallback}</h2>
+          <p className={styles.style52_13}>{t('rider')}</p>
+          <h2 className={styles.style53_14}>{rider?.name || t('riderFallback')}</h2>
           {rider?.phone ? (
             <a href={`tel:${rider.phone}`} className={styles.style55_15}>
               <Phone className={styles.style56_16} />
-              {copy.callRider}
+              {t('callRider')}
             </a>
           ) : null}
         </div>
       </div>
 
-      <div className="mt-4 rounded-2xl border border-cyan-400/20 bg-cyan-400/[0.06] p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="flex items-center gap-1.5 text-xs font-black text-cyan-200">
-              <MapPin className="h-4 w-4" aria-hidden="true" />
+      <div className={styles.pickupCard}>
+        <div className={styles.pickupCardRow}>
+          <div className={styles.pickupCardInfo}>
+            <p className={styles.pickupCardLabel}>
+              <MapPin className={styles.pickupCardIcon} aria-hidden="true" />
               {pickupT('pickupLocation')}
             </p>
-            <p className="mt-1 truncate text-sm font-black text-white">
+            <p className={styles.pickupCardValue}>
               {request.pickupLabel || pickupT('pickupLocation')}
             </p>
-            <p className="mt-1 text-xs text-slate-400">
+            <p className={styles.pickupCardHint}>
               {request.pickupLocationIsApproximate ? pickupT('pickupApproximate') : pickupT('pickupExact')}
             </p>
           </div>
@@ -156,9 +193,9 @@ export function ActiveTripTracker({
               href={request.pickupGoogleMapsUrl}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-cyan-400/25 px-3 py-2 text-xs font-black text-cyan-200 transition hover:border-cyan-300 hover:text-white"
+              className={styles.pickupCardLink}
             >
-              <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+              <ExternalLink className={styles.pickupCardLinkIcon} aria-hidden="true" />
               {pickupT('openPickupMap')}
             </a>
           ) : null}
@@ -169,7 +206,7 @@ export function ActiveTripTracker({
         <div className={styles.style96_1}>
           <p className={styles.style97_1}>
             <Lock className={styles.style98_1} />
-            {copy.frozenPrice}
+            {t('frozenPrice')}
           </p>
           <p className={styles.style99_1}>{Number(request.offerPrice || 0).toFixed(2)} {currency}</p>
         </div>
@@ -177,7 +214,7 @@ export function ActiveTripTracker({
         <div className={styles.style100_1}>
           <p className={styles.style101_1}>
             <Clock className={styles.style102_1} />
-            {copy.eta}
+            {t('eta')}
           </p>
           <p className={countdown.isRunningLow ? styles.style103_2 : styles.style103_1}>
             {handshakeAt ? `${String(countdown.minutes).padStart(2, '0')}:${String(countdown.seconds).padStart(2, '0')}` : '--:--'}
@@ -185,9 +222,14 @@ export function ActiveTripTracker({
         </div>
       </div>
 
-      <div className={styles.style90_1}>
-        <PickupNavigationMap language={language} driverLocation={driverLocation} pickupLocation={pickupLocation} />
-      </div>
+      {/* <div className={styles.style90_1}>
+        <PickupNavigationMap
+          language={language}
+          driverLocation={driverLocation}
+          pickupLocation={navigationTarget}
+          mode={navigationMode}
+        />
+      </div> */}
 
       <div className={styles.style63_17}>
         <StepButton
@@ -195,7 +237,7 @@ export function ActiveTripTracker({
           done={['ARRIVED', 'STARTED'].includes(step)}
           disabled={isCompleting || step !== 'ACCEPTED'}
           icon={isCompleting && step === 'ACCEPTED' ? <Loader2 className={styles.style68_18} /> : <Navigation className={styles.style68_19} />}
-          label={copy.arrived}
+          label={t('arrived')}
           onClick={onArrived}
         />
         <StepButton
@@ -203,16 +245,52 @@ export function ActiveTripTracker({
           done={step === 'STARTED'}
           disabled={isCompleting || step !== 'ARRIVED'}
           icon={isCompleting && step === 'ARRIVED' ? <Loader2 className={styles.style76_20} /> : <CheckCircle2 className={styles.style76_21} />}
-          label={copy.start}
+          label={t('start')}
           onClick={onStartTrip}
         />
         <StepButton
           active={step === 'STARTED'}
           disabled={isCompleting || step !== 'STARTED'}
           icon={isCompleting && step === 'STARTED' ? <Loader2 className={styles.style83_22} /> : <ShieldAlert className={styles.style83_23} />}
-          label={copy.complete}
+          label={t('complete')}
           onClick={onCompleteTrip}
         />
+      </div>
+
+      <div className={styles.cancelSection}>
+        {!isConfirmingCancel ? (
+          <button
+            type="button"
+            disabled={isCompleting || isCancelling}
+            onClick={() => setIsConfirmingCancel(true)}
+            className={styles.cancelButton}
+          >
+            <AlertOctagon className={styles.cancelIcon} />
+            {t('cancelTrip')}
+          </button>
+        ) : (
+          <div className={styles.cancelConfirmWrap}>
+            <p className={styles.cancelConfirmText}>{t('cancelConfirmText')}</p>
+            <div className={styles.cancelConfirmActions}>
+              <button
+                type="button"
+                disabled={isCancelling}
+                onClick={onCancelTrip}
+                className={styles.cancelConfirmButton}
+              >
+                {isCancelling ? t('cancelling') : t('confirmCancelButton')}
+              </button>
+              <button
+                type="button"
+                disabled={isCancelling}
+                onClick={() => setIsConfirmingCancel(false)}
+                className={styles.cancelBackButton}
+              >
+                {t('cancelBackButton')}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );
@@ -250,51 +328,3 @@ function StepButton({
   );
 }
 
-const activeCopy = {
-  ar: {
-    badge: 'رحلة نشطة',
-    title: 'متابعة الرحلة',
-    subtitle: 'تم قبول عرضك من الخادم. اتبع الخطوات بالترتيب، ولن تتغير حالة الرحلة إلا بعد تأكيد قاعدة البيانات.',
-    destination: 'الوجهة',
-    unknownDestination: 'وجهة غير محددة',
-    rider: 'الراكب',
-    riderFallback: 'راكب',
-    callRider: 'اتصال بالراكب',
-    frozenPrice: 'السعر مؤكد ومجمّد',
-    eta: 'الوقت المتبقي قبل انتهاء الصلاحية',
-    arrived: 'وصلت لنقطة الركوب',
-    start: 'بدء الرحلة',
-    complete: 'إنهاء الرحلة',
-    steps: {
-      IDLE: 'جاهز',
-      OFFER_SUBMITTED: 'تم إرسال العرض',
-      ACCEPTED: 'مقبولة',
-      ARRIVED: 'وصلت',
-      STARTED: 'جارية',
-      COMPLETED: 'مكتملة',
-    },
-  },
-  en: {
-    badge: 'Active trip',
-    title: 'Trip tracker',
-    subtitle: 'Your offer was accepted by the server. Follow the steps in order; trip state changes only after database confirmation.',
-    destination: 'Destination',
-    unknownDestination: 'Unknown destination',
-    rider: 'Rider',
-    riderFallback: 'Rider',
-    callRider: 'Call rider',
-    frozenPrice: 'Price confirmed and frozen',
-    eta: 'Time left before expiry',
-    arrived: 'Arrived at pickup',
-    start: 'Start trip',
-    complete: 'Complete trip',
-    steps: {
-      IDLE: 'Ready',
-      OFFER_SUBMITTED: 'Offer submitted',
-      ACCEPTED: 'Accepted',
-      ARRIVED: 'Arrived',
-      STARTED: 'In progress',
-      COMPLETED: 'Completed',
-    },
-  },
-} as const;

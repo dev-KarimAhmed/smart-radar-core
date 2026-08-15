@@ -1,7 +1,13 @@
 import type { Trip } from '@/core/types';
 
-export type CaptainScreen = 'RADAR_MAP' | 'BIDDING' | 'ACTIVE_TRIP' | 'WALLET' | 'PROFILE';
+export type CaptainScreen = 'RADAR_MAP' | 'BIDDING' | 'ACTIVE_TRIP' | 'RATING_MODAL' | 'WALLET' | 'PROFILE';
 export type CaptainTripStep = 'IDLE' | 'OFFER_SUBMITTED' | 'ACCEPTED' | 'ARRIVED' | 'STARTED' | 'COMPLETED';
+
+export interface CaptainCompletedTrip {
+  requestId: string;
+  riderId: string;
+  riderName?: string;
+}
 
 export interface CaptainDashboardState {
   screen: CaptainScreen;
@@ -9,6 +15,7 @@ export interface CaptainDashboardState {
   selectedRequest: Trip | null;
   submittedOfferRequestId: string | null;
   submittedOfferId: string | null;
+  completedTrip: CaptainCompletedTrip | null;
 }
 
 export type CaptainDashboardAction =
@@ -21,7 +28,8 @@ export type CaptainDashboardAction =
   | { type: 'SERVER_ACCEPTED'; request: Trip; offerId?: string | null; step?: CaptainTripStep }
   | { type: 'CONFIRM_ARRIVAL' }
   | { type: 'START_TRIP' }
-  | { type: 'TRIP_COMPLETED' }
+  | { type: 'TRIP_COMPLETED'; completedTrip?: CaptainCompletedTrip }
+  | { type: 'RATING_DISMISSED' }
   | { type: 'RESET_TO_RADAR' };
 
 export const initialCaptainDashboardState: CaptainDashboardState = {
@@ -30,6 +38,7 @@ export const initialCaptainDashboardState: CaptainDashboardState = {
   selectedRequest: null,
   submittedOfferRequestId: null,
   submittedOfferId: null,
+  completedTrip: null,
 };
 
 export function captainDashboardReducer(
@@ -86,14 +95,23 @@ export function captainDashboardReducer(
       return { ...state, tripStep: 'STARTED' };
 
     case 'TRIP_COMPLETED':
+      // A trip that ends without captured rider info (e.g. the server-sync
+      // fallback below, firing after the trip already vanished) must not
+      // clobber a rating modal that a fuller TRIP_COMPLETED dispatch already opened.
+      if (!action.completedTrip && state.screen === 'RATING_MODAL') return state;
       return {
         ...state,
-        screen: 'RADAR_MAP',
+        screen: action.completedTrip ? 'RATING_MODAL' : 'RADAR_MAP',
         tripStep: 'COMPLETED',
         selectedRequest: null,
         submittedOfferRequestId: null,
         submittedOfferId: null,
+        completedTrip: action.completedTrip || null,
       };
+
+    case 'RATING_DISMISSED':
+      if (state.screen !== 'RATING_MODAL') return state;
+      return { ...state, screen: 'RADAR_MAP', completedTrip: null };
 
     case 'RESET_TO_RADAR':
       return initialCaptainDashboardState;

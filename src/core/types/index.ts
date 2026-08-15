@@ -113,6 +113,7 @@ export interface Trip {
   riderNotification?: string; 
   estimatedDistance?: number;
   dropoff?: string;
+  dropoffCoords?: { lat: number; lng: number; };
   estimatedTime?: number;
   seats?: number;
 }

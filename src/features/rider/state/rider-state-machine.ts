@@ -75,6 +75,8 @@ export type RiderMachineAction =
   | { type: 'SERVER_STATUS_COMPLETED'; row?: Record<string, unknown> }
   | { type: 'REQUEST_FAILED' }
   | { type: 'REQUEST_CANCELLED' }
+  | { type: 'REHYDRATE_SEARCHING'; requestId: string }
+  | { type: 'REHYDRATE_ACTIVE_TRIP'; requestId: string; row: Record<string, unknown>; offers: Offer[] }
   | { type: 'RECEIVE_OFFERS'; offers: Offer[] }
   | { type: 'SELECT_OFFER'; offerId: string }
   | { type: 'COMPLETE_TRIP' }
@@ -114,7 +116,12 @@ function buildActiveTrip(state: RiderMachineState, acceptedRow: Record<string, u
   const acceptedOfferId =
     firstString(acceptedRow.accepted_offer_id, acceptedRow.offer_id, acceptedRow.selected_offer_id) ||
     state.pendingAcceptedOfferId;
-  const acceptedCaptainId = firstString(acceptedRow.accepted_driver_id, acceptedRow.driver_id, acceptedRow.captain_id);
+  const acceptedCaptainId = firstString(
+    acceptedRow.accepted_driver_id,
+    acceptedRow.driver_id,
+    acceptedRow.captain_id,
+    acceptedRow.accepted_captain_id,
+  );
   const selectedOffer = state.offers.find((offer) => (
     offer.id === acceptedOfferId ||
     offer.driverId === acceptedOfferId ||
@@ -124,7 +131,9 @@ function buildActiveTrip(state: RiderMachineState, acceptedRow: Record<string, u
   if (!selectedOffer && !acceptedCaptainId) return null;
 
   const vehicle = selectedOffer?.driverVehicle || {};
-  const distanceKm = state.destination?.fareQuote?.estimatedRoadDistanceKm ?? 0;
+  const distanceKm = state.destination?.fareQuote?.estimatedRoadDistanceKm
+    ?? firstNumber(acceptedRow.estimated_distance_km, acceptedRow.route_distance_km)
+    ?? 0;
 
   return {
     tripId: firstString(acceptedRow.trip_id, acceptedRow.active_trip_id, acceptedRow.id) || state.requestId || '',
@@ -149,7 +158,9 @@ function buildActiveTrip(state: RiderMachineState, acceptedRow: Record<string, u
       (selectedOffer?.price === -1
         ? state.destination?.serverEstimatedFare ?? 0
         : selectedOffer?.price ?? state.destination?.serverEstimatedFare ?? 0),
-    destinationLabel: state.destination?.label || '\u0648\u062c\u0647\u0629',
+    destinationLabel: state.destination?.label
+      || firstString(acceptedRow.destination_address_ar, acceptedRow.destination_address, acceptedRow.destination_address_en)
+      || '\u0648\u062c\u0647\u0629',
     distanceKm,
     originCell: state.destination?.originCell ?? state.destination?.fareQuote?.originCell,
     destinationCell: state.destination?.destinationCell ?? state.destination?.fareQuote?.destinationCell,
@@ -225,6 +236,15 @@ export function riderDashboardReducer(state: RiderMachineState, action: RiderMac
       return { ...state, requestStartedAt: null, requestId: null };
 
     case 'REQUEST_CANCELLED':
+      // A trip already accepted (or further along) has nothing to retry —
+      // unlike a pre-acceptance cancellation, drop straight back to idle
+      // instead of parking on RECEIVING_OFFERS with a now-meaningless trip.
+      if (state.screen === 'TRIP_ACTIVE') {
+        return {
+          ...createInitialRiderMachineState(),
+          requestCancelledAt: Date.now(),
+        };
+      }
       if (state.screen !== 'DESTINATION_SELECTION' && state.screen !== 'RECEIVING_OFFERS') return state;
       return {
         ...state,
@@ -233,6 +253,25 @@ export function riderDashboardReducer(state: RiderMachineState, action: RiderMac
         requestCancelledAt: Date.now(),
         pendingAcceptedOfferId: null,
       };
+
+    case 'REHYDRATE_SEARCHING':
+      if (state.screen !== 'IDLE_MAP') return state;
+      return {
+        ...state,
+        screen: 'RECEIVING_OFFERS',
+        requestId: action.requestId,
+        requestStartedAt: state.requestStartedAt ?? Date.now(),
+      };
+
+    case 'REHYDRATE_ACTIVE_TRIP': {
+      if (state.screen !== 'IDLE_MAP') return state;
+      const stateWithOffers = { ...state, offers: action.offers, requestId: action.requestId };
+      const activeTrip = buildActiveTrip(stateWithOffers, action.row);
+      if (!activeTrip) {
+        return { ...stateWithOffers, screen: 'RECEIVING_OFFERS', requestStartedAt: state.requestStartedAt ?? Date.now() };
+      }
+      return { ...stateWithOffers, screen: 'TRIP_ACTIVE', activeTrip };
+    }
 
     case 'RECEIVE_OFFERS':
       if (state.screen !== 'RECEIVING_OFFERS') return state;

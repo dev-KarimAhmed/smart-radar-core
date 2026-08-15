@@ -31,7 +31,7 @@ const styles = {
   style184_18: "mt-1 text-xs leading-5 text-slate-400",
   style185_19: "mt-2 text-[11px] font-black text-emerald-200",
   style192_20: "absolute bottom-5 left-5 z-20 rounded-2xl border border-emerald-500/25 bg-[#0B0F19]/95 p-4 text-emerald-300 shadow-2xl transition hover:border-emerald-300",
-  style201_22: "flex min-h-[520px] flex-col rounded-3xl border border-emerald-500/20 bg-[#05080f] p-4 text-white shadow-2xl shadow-black/30 lg:min-h-[calc(100vh-11rem)]",
+  style201_22: "flex max-h-[560px] flex-col rounded-3xl border border-emerald-500/20 bg-[#05080f] p-4 text-white shadow-2xl shadow-black/30 lg:max-h-[calc(100vh-11rem)]",
   style202_23: "flex items-center justify-between gap-3 border-b border-white/10 pb-4",
   style204_24: "text-xs font-black text-[#14B8A6]",
   style205_25: "mt-1 text-2xl font-black",
@@ -119,13 +119,12 @@ export function RadarMapView({
 
   // Runs once the map instance exists (mirrors the original code, which set
   // these up synchronously right after `new maplibregl.Map(...)`, before
-  // `'load'` fires) — attribution control, error health-check, and the
-  // fallback resize nudge are all captain-specific, not shared with rider.
+  // `'load'` fires) — error health-check and the fallback resize nudge are
+  // captain-specific, not shared with rider.
   React.useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
 
-    map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
     map.on('error', () => setMapIssue(true));
 
     const resizeTimer = window.setTimeout(resize, 300);

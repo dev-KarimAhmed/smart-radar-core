@@ -43,8 +43,6 @@ const styles = {
   label: 'block text-[10px] font-medium text-[#94A3B8] tracking-wider uppercase mb-1 text-right',
   input:
     'w-full bg-[#0B0F19] border border-[#243249] focus:border-[#14B8A6] text-[#F8FAFC] placeholder-[#94A3B8]/30 rounded-xl px-4 h-11 text-sm outline-none transition-all duration-300 text-right',
-  colorInput:
-    'w-full bg-[#0B0F19] border border-[#243249] focus:border-[#14B8A6] rounded-xl h-11 p-1 cursor-pointer',
   error: 'text-[10px] font-bold text-rose-400 mt-1',
   documentBlock: 'p-3 rounded-xl bg-[#0B0F19] border border-[#14B8A6]/20 text-right space-y-2',
   documentLabel: 'text-[10px] sm:text-[11px] font-black text-[#14B8A6] block',
@@ -286,10 +284,11 @@ export function CaptainVehicleStep({
             <div>
               <label className={styles.label}>{t('color')}</label>
               <input
-                type="color"
-                value={vehicle.color || '#14b8a6'}
+                type="text"
+                value={vehicle.color || ''}
                 onChange={(event) => handleFieldChange('color', event.target.value)}
-                className={styles.colorInput}
+                className={styles.input}
+                placeholder={t('colorPlaceholder')}
                 required
               />
               {errors.color ? <p className={styles.error}>{errors.color}</p> : null}

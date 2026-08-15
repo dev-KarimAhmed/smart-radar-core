@@ -31,6 +31,8 @@ interface DriverOpsContextType {
   isUpdatingTripStep: boolean;
   endTrip: () => Promise<boolean>;
   isEndingTrip: boolean;
+  cancelActiveTrip: () => Promise<boolean>;
+  isCancellingTrip: boolean;
   rateAndFinishTrip: (rating: number) => Promise<void>;
   isRatingRider: boolean;
   isRequestListOpen: boolean;
@@ -120,6 +122,8 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
     isUpdatingTripStep,
     endTrip: rawEndTrip,
     isEndingTrip,
+    cancelActiveTrip: rawCancelActiveTrip,
+    isCancellingTrip,
     rateAndFinishTrip: rawRateAndFinishTrip,
     isRatingRider,
     requestWeeklyReport: rawRequestWeeklyReport,
@@ -141,6 +145,10 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
   const endTrip = useCallback(async () => {
     return rawEndTrip();
   }, [rawEndTrip]);
+
+  const cancelActiveTrip = useCallback(async () => {
+    return rawCancelActiveTrip();
+  }, [rawCancelActiveTrip]);
 
   const rateAndFinishTrip = useCallback(async (rating: number) => {
     await rawRateAndFinishTrip(rating);
@@ -187,6 +195,8 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
     isUpdatingTripStep,
     endTrip,
     isEndingTrip,
+    cancelActiveTrip,
+    isCancellingTrip,
     rateAndFinishTrip,
     isRatingRider,
     isRequestListOpen,
@@ -208,6 +218,7 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
   }), [
     acceptedRider,
     activeRequest,
+    cancelActiveTrip,
     currentDistrict,
     currentH3Cell,
     driverLocation,
@@ -216,6 +227,7 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
     endTrip,
     handshakeAt,
     pendingOfferRequestId,
+    isCancellingTrip,
     isDisconnectionLockActive,
     isDormancyWarningVisible,
     isEndingTrip,
