@@ -13,6 +13,7 @@ import {
   VEHICLE_YEAR_MIN,
 } from '../../lib/captain-registration-schema';
 import { validateYupField, isYupSchemaValid, collectYupSchemaErrors } from '../../lib/validate-field';
+import { colorNameToHex, hexToColorName } from '@/shared/services/color-name';
 
 export interface CaptainTaxiVehicleValues {
   officeName: string;
@@ -38,13 +39,15 @@ export interface CaptainSmartAppVehicleValues {
 export type CaptainVehicleValues = CaptainTaxiVehicleValues & CaptainSmartAppVehicleValues;
 
 const styles = {
-  root: 'space-y-4 text-right animate-fade-in',
+  root: 'space-y-4  animate-fade-in',
   fieldRow: 'grid grid-cols-2 gap-2',
-  label: 'block text-[10px] font-medium text-[#94A3B8] tracking-wider uppercase mb-1 text-right',
+  label: 'block text-[10px] font-medium text-[#94A3B8] tracking-wider uppercase mb-1 ',
   input:
-    'w-full bg-[#0B0F19] border border-[#243249] focus:border-[#14B8A6] text-[#F8FAFC] placeholder-[#94A3B8]/30 rounded-xl px-4 h-11 text-sm outline-none transition-all duration-300 text-right',
+    'w-full bg-[#0B0F19] border border-[#243249] focus:border-[#14B8A6] text-[#F8FAFC] placeholder-[#94A3B8]/30 rounded-xl px-4 h-11 text-sm outline-none transition-all duration-300 ',
+  colorRow: 'flex items-center gap-2',
+  colorSwatch: 'h-11 w-14 shrink-0 cursor-pointer rounded-xl border border-[#243249] bg-[#0B0F19] p-1',
   error: 'text-[10px] font-bold text-rose-400 mt-1',
-  documentBlock: 'p-3 rounded-xl bg-[#0B0F19] border border-[#14B8A6]/20 text-right space-y-2',
+  documentBlock: 'p-3 rounded-xl bg-[#0B0F19] border border-[#14B8A6]/20  space-y-2',
   documentLabel: 'text-[10px] sm:text-[11px] font-black text-[#14B8A6] block',
   documentDropzone:
     'relative border border-dashed border-[#14B8A6]/35 rounded-lg p-3 flex flex-col items-center justify-center bg-black/40 hover:bg-black/60 transition-all cursor-pointer min-h-16',
@@ -92,6 +95,15 @@ export function CaptainVehicleStep({
   const tv = useTranslations('captainOnboarding.validation');
   const { isArabic } = useDashboardLanguage();
   const [errors, setErrors] = React.useState<Record<string, string>>({});
+  const [colorSwatch, setColorSwatch] = React.useState('#14b8a6');
+
+  // Keeps the swatch showing the color that matches the stored name (e.g.
+  // navigating back to this step) instead of sitting at an unrelated default.
+  React.useEffect(() => {
+    const hex = colorNameToHex(vehicle.color);
+    if (hex) setColorSwatch(hex);
+  }, [vehicle.color]);
+
   const isTaxi = affiliation === 'office-taxi';
   const schema = React.useMemo(
     () => (isTaxi ? getCaptainTaxiVehicleSchema(tv, country) : getCaptainSmartAppVehicleSchema(tv)),
@@ -283,14 +295,25 @@ export function CaptainVehicleStep({
           <div className={styles.fieldRow}>
             <div>
               <label className={styles.label}>{t('color')}</label>
-              <input
-                type="text"
-                value={vehicle.color || ''}
-                onChange={(event) => handleFieldChange('color', event.target.value)}
-                className={styles.input}
-                placeholder={t('colorPlaceholder')}
-                required
-              />
+              <div className={styles.colorRow}>
+                <input
+                  type="color"
+                  value={colorSwatch}
+                  onChange={(event) => {
+                    setColorSwatch(event.target.value);
+                    handleFieldChange('color', hexToColorName(event.target.value, isArabic ? 'ar' : 'en'));
+                  }}
+                  className={styles.colorSwatch}
+                />
+                <input
+                  type="text"
+                  value={vehicle.color || ''}
+                  readOnly
+                  className={styles.input}
+                  placeholder={t('colorPlaceholder')}
+                  required
+                />
+              </div>
               {errors.color ? <p className={styles.error}>{errors.color}</p> : null}
             </div>
             <div>

@@ -48,6 +48,44 @@ export function useDriverTransactions(
     setPendingOfferRequestId(null);
   }, []);
 
+  // The 90s timeout above is a last-resort fallback — this checks the actual
+  // request directly so a stale lock clears immediately once the rider
+  // cancels (or picks a different captain), instead of blocking every other
+  // request as "you have a pending offer" for up to 90s after it's moot.
+  //
+  // This can't query `ride_requests` directly: its RLS policy only allows a
+  // captain to SELECT a row they're the accepted captain for (or the rider,
+  // never true here) — a request this captain merely bid on but never got
+  // accepted for returns zero rows, silently, no error. `captain_radar_requests`
+  // is the view the whole radar system already reads through instead, and it
+  // only ever returns rows that are still PENDING — so "not found" here
+  // reliably means this offer is moot (cancelled, or a different captain got
+  // accepted), whether or not it was ever accepted for this captain (that
+  // path already clears the lock separately, via loadAcceptedRequest).
+  useEffect(() => {
+    if (!pendingOfferRequestId) return;
+    let isCancelled = false;
+
+    const checkStillPending = async () => {
+      const { data, error } = await supabase
+        .from('captain_radar_requests')
+        .select('id')
+        .eq('id', pendingOfferRequestId)
+        .maybeSingle();
+
+      if (isCancelled || error) return;
+      if (!data) clearPendingOffer();
+    };
+
+    const intervalId = window.setInterval(() => void checkStillPending(), 8_000);
+    void checkStillPending();
+
+    return () => {
+      isCancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [pendingOfferRequestId, clearPendingOffer]);
+
   const cleanUpAndReset = useCallback(() => {
     setActiveReq(null);
     setAcceptedRider(null);
@@ -210,7 +248,7 @@ export function useDriverTransactions(
     };
   }, [captainId, loadAcceptedRequest]);
 
-  const submitOffer = useCallback(async (payload: { tripId: string; offerPrice: number }, rejectRequest: (tripId: string) => void) => {
+  const submitOffer = useCallback(async (payload: { tripId: string; offerPrice: number }) => {
     if (!captainId) {
       toast({
         variant: 'destructive',
@@ -250,7 +288,9 @@ export function useDriverTransactions(
 
       if (error) throw error;
 
-      rejectRequest(payload.tripId);
+      // The card for this request stays visible on the radar (in a "pending"
+      // state, per the UI layer) instead of being hidden like an ignored
+      // request — the captain should still see their own submitted bid.
       setPendingOfferRequestId(payload.tripId);
       if (pendingOfferTimeoutRef.current) clearTimeout(pendingOfferTimeoutRef.current);
       pendingOfferTimeoutRef.current = setTimeout(() => setPendingOfferRequestId(null), PENDING_OFFER_TIMEOUT_MS);

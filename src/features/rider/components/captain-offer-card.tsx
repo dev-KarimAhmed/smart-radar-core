@@ -82,6 +82,8 @@ const styles = {
   style338_60: "text-[#14B8A6]",
   style338_61: "text-[#F8FAFC]",
   style339_62: "mt-0.5 text-[11px] font-semibold text-[#94A3B8]/75",
+  valueStack: "mt-1 flex flex-col gap-0.5 text-lg font-extrabold",
+  valueStackLine: "truncate",
   style356_63: "flex items-center justify-between gap-4",
   style357_64: "font-black text-[#F8FAFC]",
   style357_65: "text-[#94A3B8]",
@@ -194,9 +196,9 @@ export function CaptainOfferCard({
   const premiumPercent = Math.round(actualPremiumFactor * 100);
   const maxPremiumPercent = Math.round(premiumFactor * 100);
   const captainName = captain.name?.trim() || (isArabic ? 'كابتن' : 'Captain');
-  const vehicleSummary =
-    [captain.vehicle_model, resolveColorDisplayName(captain.vehicle_color, language)].filter((value) => value && String(value).trim()).join(' - ') ||
-    (isArabic ? 'سيارة' : 'Vehicle');
+  const vehicleModelLabel = captain.vehicle_model?.trim() || (isArabic ? 'سيارة' : 'Vehicle');
+  const vehicleColorLabel = resolveColorDisplayName(captain.vehicle_color, language);
+  const vehicleLines = [vehicleModelLabel, vehicleColorLabel].filter((value) => value && String(value).trim());
   const companyLabel = captain.company_name?.trim()
     || captain.affiliation_label?.trim()
     || (isArabic ? 'كابتن مستقل' : 'Independent Captain');
@@ -287,7 +289,7 @@ export function CaptainOfferCard({
             </div>
 
             <div className={styles.style219_35}>
-              <InfoRow icon={<Car className={styles.style220_36} />} label={isArabic ? 'السيارة' : 'Vehicle'} value={vehicleSummary} />
+              <InfoRow icon={<Car className={styles.style220_36} />} label={isArabic ? 'السيارة' : 'Vehicle'} valueLines={vehicleLines} />
               <InfoRow label={isArabic ? 'اللوحة' : 'Plate'} value={captain.plate_number?.trim() || (isArabic ? 'غير متاح' : 'Not available')} />
               {captain.vehicle_year ? <InfoRow label={isArabic ? 'سنة الصنع' : 'Year'} value={String(captain.vehicle_year)} /> : null}
               {captain.vehicle_category ? <InfoRow label={isArabic ? 'الفئة' : 'Category'} value={captain.vehicle_category} /> : null}
@@ -390,12 +392,14 @@ function InfoRow({
   icon,
   label,
   value,
+  valueLines,
   helper,
   highlight = false,
 }: {
   icon?: React.ReactNode;
   label: string;
-  value: string;
+  value?: string;
+  valueLines?: string[];
   helper?: string;
   highlight?: boolean;
 }) {
@@ -405,7 +409,15 @@ function InfoRow({
         {icon ? <span className={highlight ? styles.style335_57 : styles.style335_58}>{icon}</span> : null}
         {label}
       </p>
-      <p className={cn(styles.style338_59, highlight ? styles.style338_60 : styles.style338_61)}>{value}</p>
+      {valueLines ? (
+        <div className={cn(styles.valueStack, highlight ? styles.style338_60 : styles.style338_61)}>
+          {valueLines.map((line, index) => (
+            <span key={index} className={styles.valueStackLine}>{line}</span>
+          ))}
+        </div>
+      ) : (
+        <p className={cn(styles.style338_59, highlight ? styles.style338_60 : styles.style338_61)}>{value}</p>
+      )}
       {helper ? <p className={styles.style339_62}>{helper}</p> : null}
     </div>
   );

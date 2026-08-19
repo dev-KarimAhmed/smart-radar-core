@@ -135,7 +135,13 @@ export function useServerFareAndRoute(params: {
       active = false;
       window.clearTimeout(timeoutId);
     };
-  }, [activeCountryId, destinationDataError, fareRequestKey, riderLocation, selectedDestinationCoords, selectedDistrict, t]);
+    // `fareRequestKey` already captures every meaningful change in
+    // riderLocation/selectedDestinationCoords (it's derived from them) —
+    // listing those objects here too would re-run this on every GPS ping,
+    // since watchPosition hands back a new object each time even when the
+    // rider hasn't materially moved, flickering the UI back to "loading".
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeCountryId, destinationDataError, fareRequestKey, Boolean(selectedDistrict), t]);
 
   React.useEffect(() => {
     if (!selectedDestinationCoords || !hasUsableRiderLocation) {
@@ -167,7 +173,11 @@ export function useServerFareAndRoute(params: {
       active = false;
       window.clearTimeout(timeoutId);
     };
-  }, [fareRequestKey, hasUsableRiderLocation, riderLocation, selectedDestinationCoords, selectedDistrict?.tortuosityFactor]);
+    // Same reasoning as the fare effect above — `fareRequestKey` already
+    // captures riderLocation/selectedDestinationCoords changes; keeping the
+    // raw objects here too re-triggers this on every GPS ping.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fareRequestKey, hasUsableRiderLocation, selectedDistrict?.tortuosityFactor]);
 
   const reset = React.useCallback(() => {
     setServerFareState({ key: '', fare: null, isLoading: false, error: null });

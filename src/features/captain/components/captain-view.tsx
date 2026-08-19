@@ -315,7 +315,7 @@ export function DriverViewTab() {
             bonusMinutes={bonusMinutes}
             radarLockMessage={driverOps.radarLockMessage}
             requests={driverOps.requests}
-            hasPendingOffer={Boolean(driverOps.pendingOfferRequestId)}
+            pendingOfferRequestId={driverOps.pendingOfferRequestId}
             onSelectRequest={selectRequest}
             onIgnoreRequest={driverOps.rejectRequest}
           />

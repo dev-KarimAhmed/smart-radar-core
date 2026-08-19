@@ -64,6 +64,8 @@ const styles = {
   stateEmpty: "border-dashed border-slate-700 bg-slate-950/80 text-slate-300",
   pendingOfferHint: "mt-2 text-[11px] font-bold text-amber-300",
   pendingOfferDisabled: "cursor-not-allowed opacity-40",
+  ownPendingBadge: "mt-3 flex items-center justify-center gap-2 rounded-xl border border-amber-400/30 bg-amber-400/10 py-3 text-sm font-black text-amber-200",
+  ownPendingIcon: "h-4 w-4 animate-pulse",
 } as const;
 
 
@@ -76,7 +78,7 @@ interface RadarMapViewProps {
   bonusMinutes: number;
   radarLockMessage?: string;
   requests: Trip[];
-  hasPendingOffer?: boolean;
+  pendingOfferRequestId?: string | null;
   onSelectRequest: (request: Trip) => void;
   onIgnoreRequest: (requestId: string) => void;
 }
@@ -90,7 +92,7 @@ export function RadarMapView({
   bonusMinutes,
   radarLockMessage,
   requests,
-  hasPendingOffer = false,
+  pendingOfferRequestId = null,
   onSelectRequest,
   onIgnoreRequest,
 }: RadarMapViewProps) {
@@ -256,7 +258,11 @@ export function RadarMapView({
             <StateCard tone="empty" icon={<RadioTower className={styles.style215_30} />} title={copy.noRequestsTitle} body={copy.empty} />
           ) : (
             <div className={styles.style217_31}>
-              {requests.map((request) => (
+              {requests.map((request) => {
+                const isOwnPendingOffer = pendingOfferRequestId === request.id;
+                const isBlockedByOtherPendingOffer = Boolean(pendingOfferRequestId) && !isOwnPendingOffer;
+
+                return (
                 <article key={request.id} className={styles.style219_32}>
                   <div className={styles.style220_33}>
                     <MapPin className={styles.style221_34} />
@@ -298,24 +304,34 @@ export function RadarMapView({
                       value={request.estimatedDistance != null ? `${request.estimatedDistance} km` : t('distanceUnavailable')}
                     />
                   </div>
-                  {hasPendingOffer ? <p className={styles.pendingOfferHint}>{copy.pendingOfferHint}</p> : null}
-                  <div className={styles.style231_39}>
-                    <button
-                      type="button"
-                      onClick={() => onSelectRequest(request)}
-                      disabled={hasPendingOffer}
-                      title={hasPendingOffer ? copy.pendingOfferHint : undefined}
-                      className={cn(styles.style232_40, hasPendingOffer ? styles.pendingOfferDisabled : '')}
-                    >
-                      <Route className={styles.style233_41} />
-                      {copy.openBid}
-                    </button>
-                    <button type="button" onClick={() => onIgnoreRequest(request.id)} className={styles.style236_42}>
-                      {copy.ignore}
-                    </button>
-                  </div>
+                  {isOwnPendingOffer ? (
+                    <div className={styles.ownPendingBadge}>
+                      <Clock className={styles.ownPendingIcon} />
+                      {copy.ownPendingOffer}
+                    </div>
+                  ) : (
+                    <>
+                      {isBlockedByOtherPendingOffer ? <p className={styles.pendingOfferHint}>{copy.pendingOfferHint}</p> : null}
+                      <div className={styles.style231_39}>
+                        <button
+                          type="button"
+                          onClick={() => onSelectRequest(request)}
+                          disabled={isBlockedByOtherPendingOffer}
+                          title={isBlockedByOtherPendingOffer ? copy.pendingOfferHint : undefined}
+                          className={cn(styles.style232_40, isBlockedByOtherPendingOffer ? styles.pendingOfferDisabled : '')}
+                        >
+                          <Route className={styles.style233_41} />
+                          {copy.openBid}
+                        </button>
+                        <button type="button" onClick={() => onIgnoreRequest(request.id)} className={styles.style236_42}>
+                          {copy.ignore}
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </article>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -430,6 +446,7 @@ const radarCopy = {
     distance: 'المسافة',
     openBid: 'تقديم عرض',
     pendingOfferHint: 'لديك عرض قيد الانتظار، انتظر رد الراكب أولاً.',
+    ownPendingOffer: 'عرضك قيد الانتظار — بانتظار رد الراكب',
     ignore: 'تجاهل',
   },
   en: {
@@ -455,6 +472,7 @@ const radarCopy = {
     distance: 'Distance',
     openBid: 'Submit bid',
     pendingOfferHint: 'You have a pending offer — wait for the rider to respond first.',
+    ownPendingOffer: 'Your offer is pending — waiting for the rider to respond',
     ignore: 'Ignore',
   },
 } as const;
