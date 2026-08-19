@@ -28,6 +28,10 @@ export interface CaptainProfileMetadata {
   identity_url?: string | null;
   contact_page_url?: string | null;
   driving_license_url?: string | null;
+  national_id_number?: string | null;
+  license_number?: string | null;
+  facebook_url?: string | null;
+  instagram_url?: string | null;
   verification_status: string;
 }
 

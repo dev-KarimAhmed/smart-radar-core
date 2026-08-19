@@ -11,7 +11,7 @@ const INITIAL_RIDER_LOCATION: RiderLocation = { lat: 30.0444, lng: 31.2357 };
  * actual GPS watch via `useLiveGeolocation`) and reverse-geocodes it into a
  * display address, debounced 800ms after each move.
  */
-export function useRiderGeolocation(language: AppLanguage) {
+export function useRiderGeolocation(language: AppLanguage, countryDefaultCenter?: RiderLocation | null) {
   const [riderLocation, setRiderLocation] = React.useState<RiderLocation>(INITIAL_RIDER_LOCATION);
   const [riderH3Cell, setRiderH3Cell] = React.useState(latLngToCell(INITIAL_RIDER_LOCATION.lat, INITIAL_RIDER_LOCATION.lng, H3_RIDER_REQUEST_RESOLUTION));
   const [locationStatus, setLocationStatus] = React.useState<RiderLocationStatus>('fallback');
@@ -23,6 +23,18 @@ export function useRiderGeolocation(language: AppLanguage) {
     setRiderH3Cell(payload.h3Cell);
     setLocationStatus(payload.status);
   }, []);
+
+  // The account's own country center resolves shortly after mount (one quick
+  // Supabase lookup) — replace the generic seed with it as soon as it's
+  // available, but only while no real GPS fix has come in yet, so a rider in
+  // the UAE sees a UAE-centered map instead of the old Egypt-only default.
+  const appliedCountryDefaultRef = React.useRef(false);
+  React.useEffect(() => {
+    if (!countryDefaultCenter || appliedCountryDefaultRef.current || locationStatus === 'live') return;
+    appliedCountryDefaultRef.current = true;
+    setRiderLocation(countryDefaultCenter);
+    setRiderH3Cell(latLngToCell(countryDefaultCenter.lat, countryDefaultCenter.lng, H3_RIDER_REQUEST_RESOLUTION));
+  }, [countryDefaultCenter, locationStatus]);
 
   React.useEffect(() => {
     if (!riderLocation.lat || !riderLocation.lng) return;

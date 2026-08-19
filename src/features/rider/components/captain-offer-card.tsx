@@ -8,7 +8,9 @@ import {
   ChevronDown,
   Clock,
   ExternalLink,
+  Facebook,
   Heart,
+  Instagram,
   MapPin,
   Navigation,
   Phone,
@@ -112,6 +114,8 @@ export interface CaptainProfile {
   contact_url?: string;
   vehicle_year?: string | number;
   vehicle_category?: string;
+  facebook_url?: string;
+  instagram_url?: string;
 }
 
 export interface CaptainOffer {
@@ -252,12 +256,14 @@ export function CaptainOfferCard({
         </div>
 
         <div className={styles.style180_20}>
+          {/* Price display disabled — kept hidden from rider by product request.
           <div className={styles.style181_21}>
             <p className={styles.style182_22}>{isArabic ? 'السعر' : 'Price'}</p>
             <strong className={styles.style183_23}>
               {finalFare.toFixed(2)} {currencyCode}
             </strong>
           </div>
+          */}
           <ChevronDown className={cn(styles.style187_24, isExpanded ? styles.style187_25 : '')} />
         </div>
       </button>
@@ -300,7 +306,7 @@ export function CaptainOfferCard({
               <InfoRow icon={<Trophy className={styles.style228_39} />} label={isArabic ? 'الرحلات المكتملة' : 'Completed trips'} value={String(completedTrips)} />
             </div>
 
-            {captain.phone || captain.contact_url ? (
+            {captain.phone || captain.contact_url || captain.facebook_url || captain.instagram_url ? (
               <div className={styles.style232_40}>
                 {captain.phone ? (
                   <a
@@ -322,9 +328,32 @@ export function CaptainOfferCard({
                     {isArabic ? 'رابط التواصل' : 'Contact link'}
                   </a>
                 ) : null}
+                {captain.facebook_url ? (
+                  <a
+                    href={captain.facebook_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className={styles.style247_43}
+                  >
+                    <Facebook className={styles.style249_44} />
+                    {isArabic ? 'فيسبوك' : 'Facebook'}
+                  </a>
+                ) : null}
+                {captain.instagram_url ? (
+                  <a
+                    href={captain.instagram_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className={styles.style247_43}
+                  >
+                    <Instagram className={styles.style249_44} />
+                    {isArabic ? 'انستجرام' : 'Instagram'}
+                  </a>
+                ) : null}
               </div>
             ) : null}
 
+            {/* Fare breakdown display disabled — kept hidden from rider by product request.
             {hasPremium ? (
               <div className={styles.style257_45}>
                 <div className={styles.style258_46}>
@@ -347,6 +376,7 @@ export function CaptainOfferCard({
                 <BreakdownRow label={isArabic ? 'السعر الإجمالي' : 'Total price'} value={`${finalFare.toFixed(2)} ${currencyCode}`} accent strong />
               </div>
             )}
+            */}
 
             {offer.additional_info ? (
               <p className={styles.style280_49}>

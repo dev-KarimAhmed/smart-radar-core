@@ -298,7 +298,9 @@ export function RadarMapView({
                     </div>
                   </div>
                   <div className={styles.style227_38}>
+                    {/* Base fare display disabled — kept hidden from captain by product request.
                     <Info label={copy.fare} value={request.offerPrice ? Number(request.offerPrice).toFixed(2) : '-'} />
+                    */}
                     <Info
                       label={copy.distance}
                       value={request.estimatedDistance != null ? `${request.estimatedDistance} km` : t('distanceUnavailable')}

@@ -1,7 +1,8 @@
-import type { AppLanguage } from '@/lib/i18n/simple-copy';
 import type { RiderActiveTrip } from '../state/rider-state-machine';
 import type { HistoricalTrip } from '../components/rider-dashboard';
 import { toCaptainOfferRank } from './rider-offer-fields';
+
+export { getCurrencyLabel } from '@/shared/services/currency-label';
 
 export function firstDisplayString(...values: unknown[]) {
   for (const value of values) {
@@ -9,31 +10,6 @@ export function firstDisplayString(...values: unknown[]) {
     if (typeof value === 'number' && Number.isFinite(value)) return String(value);
   }
   return '';
-}
-
-interface CountryCurrencyConfig {
-  currency_ar?: string | null;
-  currency_en?: string | null;
-  currency_code?: string | null;
-}
-
-export function getCurrencyLabel(
-  countryConfig: CountryCurrencyConfig | null,
-  user: { currencyAr?: string; currencyEn?: string } | null | undefined,
-  language: AppLanguage = 'ar',
-) {
-  if (language === 'en') {
-    return (
-      countryConfig?.currency_en ||
-      user?.currencyEn ||
-      countryConfig?.currency_code ||
-      countryConfig?.currency_ar ||
-      user?.currencyAr ||
-      ''
-    );
-  }
-
-  return countryConfig?.currency_ar || user?.currencyAr || countryConfig?.currency_en || user?.currencyEn || countryConfig?.currency_code || '';
 }
 
 export function formatMoney(value: number, currencyLabel: string) {

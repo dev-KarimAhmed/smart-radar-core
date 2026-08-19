@@ -18,6 +18,7 @@ export interface RiderModalsProps {
   userId: string | undefined;
   onExitRequestFlow?: () => void;
   onRatingSuccess: () => void;
+  onTripFullyEnded: () => void;
   showEmergencyContactDialog: boolean;
   setShowEmergencyContactDialog: (open: boolean) => void;
   onAddEmergencyNumber: () => void;
@@ -31,6 +32,7 @@ export function RiderModals({
   userId,
   onExitRequestFlow,
   onRatingSuccess,
+  onTripFullyEnded,
   showEmergencyContactDialog,
   setShowEmergencyContactDialog,
   onAddEmergencyNumber,
@@ -42,6 +44,7 @@ export function RiderModals({
           isOpen={true}
           onClose={() => {
             dispatch({ type: 'SUBMIT_RATING' });
+            onTripFullyEnded();
             onExitRequestFlow?.();
           }}
           tripId={state.requestId}
@@ -60,6 +63,7 @@ export function RiderModals({
           onSuccess={() => {
             onRatingSuccess();
             dispatch({ type: 'SUBMIT_RATING' });
+            onTripFullyEnded();
             onExitRequestFlow?.();
           }}
         />

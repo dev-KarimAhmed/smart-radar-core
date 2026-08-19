@@ -11,6 +11,7 @@ import { useRiderGeolocation } from '../hooks/use-rider-geolocation';
 import { useCaptainPresence } from '../hooks/use-captain-presence';
 import { useEmergencyContact } from '../hooks/use-emergency-contact';
 import { useCountryConfig } from '../hooks/use-country-config';
+import { getCountryDefaultCenter } from '@/shared/hooks/use-country-config';
 import { useDestinationSelectionState } from '../hooks/use-destination-selection-state';
 import { useServerFareAndRoute } from '../hooks/use-server-fare-and-route';
 import { useOffersLifecycle } from '../hooks/use-offers-lifecycle';
@@ -35,15 +36,15 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
   const { state, dispatch, showAdRiver } = useRiderDashboardMachine();
   useActiveTripReloadGuard(Boolean(state.requestId) && (state.screen === 'RECEIVING_OFFERS' || state.screen === 'TRIP_ACTIVE'));
 
-  const geolocation = useRiderGeolocation(language);
   const activeCountryId = user?.countryId;
+  const countryConfig = useCountryConfig(activeCountryId);
+  const geolocation = useRiderGeolocation(language, getCountryDefaultCenter(countryConfig));
   const captainPresence = useCaptainPresence(user?.uid, activeCountryId, geolocation.riderH3Cell);
   const emergencyContact = useEmergencyContact(user?.uid, {
     captainName: state.activeTrip?.captainName,
     destinationLabel: state.activeTrip?.destinationLabel,
     requestId: state.requestId,
   });
-  const countryConfig = useCountryConfig(activeCountryId);
 
   const destination = useDestinationSelectionState({
     user,
@@ -232,6 +233,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
         userId={user?.uid}
         onExitRequestFlow={onExitRequestFlow}
         onRatingSuccess={() => void captainPresence.loadBlockedCaptains()}
+        onTripFullyEnded={resetRideDraftState}
         showEmergencyContactDialog={emergencyContact.showEmergencyContactDialog}
         setShowEmergencyContactDialog={emergencyContact.setShowEmergencyContactDialog}
         onAddEmergencyNumber={emergencyContact.handleAddEmergencyContact}

@@ -543,7 +543,7 @@ function appendUniqueTrips(existing: any[], incoming: any[]) {
   return merged;
 }
 
-function mapLedgerRowToTripShape(row: any, captain?: any, captainProfile?: any) {
+function mapLedgerRowToTripShape(row: any, captain?: any, captainProfile?: any, rider?: any) {
   const metadata = row?.metadata && typeof row.metadata === 'object' ? row.metadata : {};
   const vehicleInfo =
     metadata.vehicle_info ||
@@ -567,6 +567,11 @@ function mapLedgerRowToTripShape(row: any, captain?: any, captainProfile?: any) 
     created_at: row.completed_at || row.created_at,
     final_fare: row.final_fare,
     captain_id: row.captain_id,
+    rider_id: row.rider_id,
+    rider: rider || (row.rider_id ? {
+      id: row.rider_id,
+      full_name: metadata.rider_name || metadata.riderName || '',
+    } : null),
     captain: captain || {
       id: row.captain_id,
       full_name: metadata.captain_name || metadata.captainName || 'Captain',
@@ -662,7 +667,14 @@ const CAPTAIN_CRITERIA_LABELS_EN: Record<string, string> = {
   communication: 'Professional communication',
 };
 
-export function HistoryTab() {
+export interface HistoryTabProps {
+  // These "system/compliance" cards (Anti-Chattiness decree, captain activity
+  // log, SSOT error explorer) live in this component but aren't trip records
+  // — hide them on a screen meant to be trip history specifically.
+  hideCaptainDiagnostics?: boolean;
+}
+
+export function HistoryTab({ hideCaptainDiagnostics = false }: HistoryTabProps = {}) {
   const { user, isCaptain, isPassenger } = useAuth();
   const { isArabic, language } = useDashboardLanguage();
   const copy = historyLanguageCopy[language];
@@ -766,7 +778,7 @@ export function HistoryTab() {
         const userColumn = isCaptain ? 'accepted_captain_id' : 'rider_id';
         let fetchedData: any[] = [];
 
-        // 0. Primary rider history source: server ledger written by complete_ride_trip.
+        // 0. Primary history source: server ledger written by complete_ride_trip.
         // This keeps the screen correct even when ride_requests joins are unavailable.
         if (!isCaptain) {
           try {
@@ -805,8 +817,34 @@ export function HistoryTab() {
           } catch (ledgerFetchError) {
             if ((process.env.NODE_ENV !== 'production')) console.warn('[HistoryTab ledger fetch failed]', ledgerFetchError);
           }
+        } else {
+          try {
+            const { data: ledgerRows, error: ledgerError } = await supabase
+              .from('trips_72h_ledger')
+              .select('*')
+              .eq('captain_id', user!.uid)
+              .gt('purge_at', new Date().toISOString())
+              .order('completed_at', { ascending: false });
+
+            if (ledgerError) {
+              if ((process.env.NODE_ENV !== 'production')) console.warn('[HistoryTab captain ledger fetch skipped]', ledgerError);
+            } else if (ledgerRows && ledgerRows.length > 0) {
+              const riderIds = Array.from(new Set(ledgerRows.map((row: any) => row.rider_id).filter(Boolean)));
+              const riderMap = await fetchRowsByIds('profiles', riderIds);
+
+              const ledgerTrips = ledgerRows.map((row: any) => mapLedgerRowToTripShape(
+                row,
+                undefined,
+                undefined,
+                row.rider_id ? riderMap.get(row.rider_id) : null,
+              ));
+              fetchedData = appendUniqueTrips(fetchedData, ledgerTrips);
+            }
+          } catch (ledgerFetchError) {
+            if ((process.env.NODE_ENV !== 'production')) console.warn('[HistoryTab captain ledger fetch failed]', ledgerFetchError);
+          }
         }
-        
+
         // 1. Fetch from Supabase remote database
         try {
           const { data, error } = await supabase
@@ -1474,6 +1512,8 @@ export function HistoryTab() {
             </CardContent>
           </Card>
 
+          {hideCaptainDiagnostics ? null : (
+          <>
           {/* براءة ذمة نقاء النظام الحافة من الثرثرة الشبكية وقنوات المساعدة */}
           <Card className={styles.style1225_132}>
             <div className={styles.style1226_133} />
@@ -1787,6 +1827,8 @@ export function HistoryTab() {
               )}
             </CardContent>
           </Card>
+          </>
+          )}
         </div>
       )}
     </div>

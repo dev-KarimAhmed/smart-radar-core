@@ -174,6 +174,8 @@ export function buildCaptainOfferFromOffer(
       contact_url: getOfferContactUrl(offer),
       vehicle_year: firstDisplayString(offer.captain?.vehicle_year, offerRecord.driverVehicle?.year),
       vehicle_category: firstDisplayString(offer.captain?.vehicle_category, offerRecord.driverVehicle?.category),
+      facebook_url: firstDisplayString(offer.captain?.facebook_url),
+      instagram_url: firstDisplayString(offer.captain?.instagram_url),
     },
     server_fare: Number(serverEstimatedFare || offer.price || 0),
     submitted_fare: Number(offer.price || 0),

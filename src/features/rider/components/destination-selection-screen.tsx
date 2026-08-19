@@ -17,6 +17,8 @@ import { DestinationAreaPicker } from './destination-area-picker';
 import { DestinationSearchPanel } from './destination-search-panel';
 import { DestinationTripSummary } from './destination-trip-summary';
 
+const SAME_LOCATION_THRESHOLD_KM = 0.1;
+
 const styles = {
   wrapper: "space-y-3 pb-20 lg:pb-4",
   inner: "space-y-3",
@@ -98,9 +100,13 @@ export function DestinationSelectionScreen({
         ? formatMoney(selectedDraftDestination.serverEstimatedFare, currencyLabel)
         : t('destination.notAvailable');
 
-  const originH3 = selectedDraftDestination?.originCell || '';
-  const destinationH3 = selectedDraftDestination?.destinationCell || '';
-  const isSameLocation = !!originH3 && !!destinationH3 && originH3 === destinationH3;
+  // Real straight-line distance, not H3-cell equality — resolution-9 cells are
+  // ~350m wide, so comparing cell IDs falsely flagged destinations several
+  // hundred meters from the rider (e.g. right after a trip ends nearby) as
+  // "same location". SAME_LOCATION_THRESHOLD_KM only catches genuinely
+  // unmoved selections, not district-anchor/GPS coincidences.
+  const straightDistanceKm = selectedDraftDestination?.fareQuote?.straightDistanceKm;
+  const isSameLocation = straightDistanceKm !== undefined && straightDistanceKm < SAME_LOCATION_THRESHOLD_KM;
   const estimatedDistanceKm = currentRouteEstimate?.distanceKm ?? null;
   const estimatedDurationMinutes = currentRouteEstimate?.durationMinutes ?? null;
   const hasImportedLocation = clipboard.externalLocationUrl.length > 0;

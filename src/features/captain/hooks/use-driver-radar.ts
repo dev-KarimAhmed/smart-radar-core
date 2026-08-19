@@ -5,6 +5,7 @@ import { cellToLatLng, gridDisk, isValidCell, latLngToCell } from 'h3-js';
 import { useTranslations } from 'next-intl';
 import { supabase } from '@/lib/supabase-client';
 import { useGeospatialAnchor } from '@/hooks/use-geospatial-anchor';
+import { useCountryConfig, getCountryDefaultCenter } from '@/shared/hooks/use-country-config';
 import type { Trip, User } from '@/core/types';
 import {
   buildGoogleMapsUrl,
@@ -16,6 +17,9 @@ import {
 const DRIVER_H3_RESOLUTION = 9;
 const RADAR_RING_SIZE = 5;
 const RADAR_FALLBACK_LIMIT = 25;
+// Hard visibility cutoff — a captain further than this from the pickup point
+// never sees the request at all, regardless of how few pending requests exist.
+const RADAR_MAX_DISTANCE_KM = 9;
 
 type RideRequestRow = Record<string, unknown>;
 type RadarLocation = { lat: number; lng: number; speed?: number; source?: string };
@@ -26,6 +30,7 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
   // captain's live position still needs to update during an active trip for
   // the pickup-navigation map to track them moving toward the rider.
   const { location: driverLocation } = useGeospatialAnchor(driverStatus === 'active' || driverStatus === 'busy');
+  const countryConfig = useCountryConfig(user?.countryId);
   const [rawRequests, setRawRequests] = useState<Trip[]>([]);
   const [radarLockMessage, setRadarLockMessage] = useState('');
   const [profileAnchor, setProfileAnchor] = useState<RadarLocation | null>(null);
@@ -40,8 +45,8 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
   });
 
   const radarLocation = useMemo<RadarLocation | null>(() => {
-    return driverLocation || user?.location || profileAnchor;
-  }, [driverLocation, profileAnchor, user?.location]);
+    return driverLocation || user?.location || profileAnchor || getCountryDefaultCenter(countryConfig);
+  }, [driverLocation, profileAnchor, user?.location, countryConfig]);
 
   const currentH3Cell = useMemo(() => {
     if (!radarLocation?.lat || !radarLocation?.lng) return '';
@@ -119,6 +124,10 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
         const isInH3Disk = request.h3Index ? nearbyCells.includes(request.h3Index) : false;
         return { request, driverDistanceKm, isInH3Disk };
       })
+      // Requests further than RADAR_MAX_DISTANCE_KM never reach this captain's
+      // radar. When the captain's own location isn't known yet, distance is
+      // unresolvable (Infinity) — don't hide everything in that case.
+      .filter(({ driverDistanceKm }) => !radarLocation || driverDistanceKm <= RADAR_MAX_DISTANCE_KM)
       .sort((a, b) => {
         if (a.isInH3Disk !== b.isInH3Disk) return a.isInH3Disk ? -1 : 1;
         return a.driverDistanceKm - b.driverDistanceKm;

@@ -112,7 +112,8 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
   const [businessName, setBusinessName] = React.useState('');
   const [officePhone, setOfficePhone] = React.useState('');
   const [sideId, setSideId] = React.useState('');
-  const [contactPageUrl, setContactPageUrl] = React.useState('');
+  const [facebookUrl, setFacebookUrl] = React.useState('');
+  const [instagramUrl, setInstagramUrl] = React.useState('');
   const [affiliationType, setAffiliationType] = React.useState('');
   const isTaxi = affiliationType === 'office-taxi';
 
@@ -198,7 +199,8 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
         setBusinessName(firstString(captainProfile?.employment_type));
         setOfficePhone(firstString(captainProfile?.office_phone));
         setSideId(firstString(captainProfile?.side_id));
-        setContactPageUrl(firstString(captainProfile?.contact_page_url));
+        setFacebookUrl(firstString(captainProfile?.facebook_url));
+        setInstagramUrl(firstString(captainProfile?.instagram_url));
         setAffiliationType(firstString(captainProfile?.affiliation_type, user?.affiliation?.type));
       } catch (error) {
         if (!active) return;
@@ -276,7 +278,8 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
         vehicle_model: vehicleModel.trim() || null,
         vehicle_year: vehicle.year ? Number(vehicle.year) || null : null,
         employment_type: businessName.trim() || null,
-        contact_page_url: contactPageUrl.trim() || null,
+        facebook_url: facebookUrl.trim() || null,
+        instagram_url: instagramUrl.trim() || null,
       };
       if (isTaxi) {
         captainProfilePayload.office_phone = officePhone.trim() || null;
@@ -337,7 +340,8 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
         employment_type: businessName.trim(),
         office_phone: officePhone.trim(),
         side_id: sideId.trim(),
-        contact_page_url: contactPageUrl.trim(),
+        facebook_url: facebookUrl.trim(),
+        instagram_url: instagramUrl.trim(),
       },
     }));
   };
@@ -375,7 +379,8 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
     setBusinessName(firstString(captainProfile?.employment_type));
     setOfficePhone(firstString(captainProfile?.office_phone));
     setSideId(firstString(captainProfile?.side_id));
-    setContactPageUrl(firstString(captainProfile?.contact_page_url));
+    setFacebookUrl(firstString(captainProfile?.facebook_url));
+    setInstagramUrl(firstString(captainProfile?.instagram_url));
     setIsEditing(false);
   };
 
@@ -562,12 +567,23 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
             </>
           ) : null}
           <label className={styles.style356_43}>
-            <span className={styles.style357_44}>{t('contactPage')}</span>
+            <span className={styles.style357_44}>{t('facebook')}</span>
             <input
-              value={contactPageUrl}
+              value={facebookUrl}
               disabled={!isEditing}
-              onChange={(event) => setContactPageUrl(event.target.value)}
+              onChange={(event) => setFacebookUrl(event.target.value)}
               className={styles.style362_45}
+              dir="ltr"
+            />
+          </label>
+          <label className={styles.style356_43}>
+            <span className={styles.style357_44}>{t('instagram')}</span>
+            <input
+              value={instagramUrl}
+              disabled={!isEditing}
+              onChange={(event) => setInstagramUrl(event.target.value)}
+              className={styles.style362_45}
+              dir="ltr"
             />
           </label>
           <label className={styles.style374_49}>
@@ -650,7 +666,8 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
               <Field label={t('sideId')} value={firstString(sideId, t('notProvided'))} />
             </>
           ) : null}
-          <Field label={t('contactPage')} value={firstString(contactPageUrl, t('notProvided'))} />
+          <Field label={t('facebook')} value={firstString(facebookUrl, t('notProvided'))} />
+          <Field label={t('instagram')} value={firstString(instagramUrl, t('notProvided'))} />
         </Panel>
       </div>
 

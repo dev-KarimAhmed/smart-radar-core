@@ -2,7 +2,8 @@
 
 import React from 'react';
 import { useTranslations } from 'next-intl';
-import { AlertTriangle, Languages, Loader2, LogOut, Map, ShieldAlert, User, Wallet, WifiOff } from 'lucide-react';
+import { AlertTriangle, History, Languages, Loader2, LogOut, Map, ShieldAlert, User, Wallet, WifiOff } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import type { Trip } from '@/core/types';
 import { useAuth } from '@/hooks/use-auth';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
@@ -13,9 +14,13 @@ import { useSovereignWallet } from '@/hooks/use-sovereign-wallet';
 import { useToast } from '@/hooks/use-toast';
 import { useDeviceTimeGuard } from '../hooks/use-device-time-guard';
 import { useConnectionGuard } from '../hooks/use-connection-guard';
+import { usePricePerKmSetup } from '../hooks/use-price-per-km-setup';
+import { useCountryConfig } from '@/shared/hooks/use-country-config';
+import { getCurrencyLabel } from '@/shared/services/currency-label';
 import { ActiveTripTracker } from './active-trip-tracker';
 import { BiddingProposalSheet } from './bidding-proposal-sheet';
 import { DriverRatingModal } from './driver-rating-modal';
+import { PricePerKmSetupModal } from './price-per-km-setup-modal';
 import {
   captainDashboardReducer,
   initialCaptainDashboardState,
@@ -23,7 +28,6 @@ import {
 } from '../state/captain-state-machine';
 import { DriverProfileTab } from './driver-profile-tab';
 import { DriverWalletTab } from './driver-wallet-tab';
-import dynamic from 'next/dynamic';
 
 import { cn } from '@/lib/utils';
 const styles = {
@@ -40,7 +44,7 @@ const styles = {
   style164_9: "shrink-0 rounded-2xl px-2.5 py-2.5 text-xs font-black transition sm:px-4 sm:py-3 sm:text-sm",
   style165_10: "bg-emerald-500/15 text-emerald-200 ring-1 ring-emerald-400/40",
   style165_11: "bg-slate-800 text-slate-200",
-  style167_1: "grid flex-1 grid-cols-3 gap-1.5 sm:gap-2",
+  style167_1: "grid flex-1 grid-cols-4 gap-1.5 sm:gap-2",
   style170_12: "h-4 w-4",
   style171_13: "h-4 w-4",
   style172_14: "h-4 w-4",
@@ -71,6 +75,7 @@ const styles = {
 } as const;
 
 const RadarMapView = dynamic(() => import('./radar-map-view').then(m => m.RadarMapView), { ssr: false });
+const HistoryScreen = dynamic(() => import('@/features/account/history/contract').then((m) => m.HistoryTab), { ssr: false });
 
 export function DriverViewTab() {
   const { user, logout } = useAuth();
@@ -81,6 +86,8 @@ export function DriverViewTab() {
   const wallet = useSovereignWallet(user);
   const { isTimeTamperingDetected } = useDeviceTimeGuard();
   const { isOffline, isReconnecting } = useConnectionGuard();
+  const { needsPriceSetup, savePricePerKm } = usePricePerKmSetup(user);
+  const countryConfig = useCountryConfig(user?.countryId);
   const [state, dispatch] = React.useReducer(captainDashboardReducer, initialCaptainDashboardState);
   const knownRequestIdsRef = React.useRef<Set<string> | null>(null);
   const screen = state.screen === 'ACTIVE_TRIP' && !driverOps?.activeRequest ? 'RADAR_MAP' : state.screen;
@@ -177,7 +184,7 @@ export function DriverViewTab() {
   const walletIsReady = wallet.walletLoadState === 'ready';
   const paidMinutes = walletIsReady ? wallet.paidMinutesRemaining : 0;
   const bonusMinutes = walletIsReady ? wallet.bonusMinutesRemaining : 0;
-  const currency = user?.currencyAr || user?.currencyEn || '';
+  const currency = getCurrencyLabel(countryConfig, user, language);
 
   const submitBid = async (price: number) => {
     if (!state.selectedRequest) return;
@@ -271,6 +278,7 @@ export function DriverViewTab() {
             <div className={styles.style167_1}>
               <NavButton active={screen === 'RADAR_MAP' || screen === 'BIDDING'} onClick={() => dispatch({ type: 'OPEN_RADAR' })} label={t('radar')} icon={<Map className={styles.style170_12} />} />
               <NavButton active={screen === 'WALLET'} onClick={() => dispatch({ type: 'OPEN_WALLET' })} label={t('wallet')} icon={<Wallet className={styles.style171_13} />} />
+              <NavButton active={screen === 'HISTORY'} onClick={() => dispatch({ type: 'OPEN_HISTORY' })} label={t('history')} icon={<History className={styles.style172_14} />} />
               <NavButton active={screen === 'PROFILE'} onClick={() => dispatch({ type: 'OPEN_PROFILE' })} label={t('profile')} icon={<User className={styles.style172_14} />} />
             </div>
           </div>
@@ -354,8 +362,13 @@ export function DriverViewTab() {
         ) : null}
 
         {screen === 'WALLET' ? <DriverWalletTab user={user} language={language} isFlightActive={isActive} /> : null}
+        {screen === 'HISTORY' ? <HistoryScreen hideCaptainDiagnostics /> : null}
         {screen === 'PROFILE' ? <DriverProfileTab user={user} language={language} onLogout={logout} /> : null}
       </div>
+
+      {needsPriceSetup ? (
+        <PricePerKmSetupModal direction={direction} currency={currency} onSave={savePricePerKm} />
+      ) : null}
 
       {screen === 'RATING_MODAL' && state.completedTrip && user?.uid ? (
         <DriverRatingModal

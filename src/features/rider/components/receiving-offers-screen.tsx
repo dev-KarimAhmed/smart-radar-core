@@ -142,7 +142,9 @@ export function ReceivingOffersScreen({
             <Metric label={t('request.number')} value={shortRequestId} />
             <Metric label={t('request.status')} value={t('request.savedInDatabase')} />
             <Metric label={t('destination.label')} value={state.destination?.label || t('destination.notAvailable')} />
+            {/* Estimated fare display disabled — kept hidden from rider by product request.
             <Metric label={t('fare.server')} value={requestFareLabel} />
+            */}
           </div>
         </div>
       ) : null}

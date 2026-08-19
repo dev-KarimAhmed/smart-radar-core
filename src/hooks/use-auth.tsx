@@ -106,6 +106,10 @@ function AuthContent({ children }: { children: ReactNode }) {
     setLogoutInProgress(true);
     const preservedLanguage =
       typeof window !== 'undefined' ? window.localStorage.getItem(DASHBOARD_LANGUAGE_KEY) : null;
+    // Must run before signOut/cache-clear below — it needs the still-active
+    // session (RLS relies on auth.uid()) to find and cancel the user's own
+    // in-flight request, if any, instead of leaving it orphaned.
+    await cancelActiveRequestBeforeLogout(user);
     clearSupabaseSessionCache();
     purgeTransientFrontendCache();
     restorePreservedLanguage(preservedLanguage);
@@ -124,7 +128,7 @@ function AuthContent({ children }: { children: ReactNode }) {
       setLogoutDialogOpen(false);
       setLogoutInProgress(false);
     }
-  }, [router]);
+  }, [router, user]);
 
   const suspendUserDocListener = useCallback(() => {
     if (typeof window !== 'undefined') {
@@ -192,6 +196,52 @@ function AuthContent({ children }: { children: ReactNode }) {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   return <AuthContent>{children}</AuthContent>;
+}
+
+// A request still "in flight" — anything before the trip is over — must be
+// cancelled server-side on logout instead of left orphaned for the other
+// side (rider or captain) to keep waiting on. Re-derives this from the DB by
+// id/role rather than any client-side dashboard state, since that state may
+// not be mounted at all from wherever the logout button was pressed.
+// Must exactly match the live `ride_request_status` Postgres enum members —
+// any value here that isn't a real enum label makes PostgREST fail the whole
+// `.in()` filter with a 400 (bad enum cast), silently skipping the cancel.
+const NON_TERMINAL_REQUEST_STATUSES = [
+  'PENDING', 'RECEIVING_OFFERS', 'ACCEPTED', 'EN_ROUTE', 'ARRIVED', 'TRIP_ACTIVE',
+];
+
+async function cancelActiveRequestBeforeLogout(user: SovereignUser | null) {
+  if (!user?.uid) return;
+
+  try {
+    const { supabase } = await import('@/lib/supabase-client');
+
+    if (user.role === 'rider') {
+      const { data } = await supabase
+        .from('ride_requests')
+        .select('id')
+        .eq('rider_id', user.uid)
+        .in('status', NON_TERMINAL_REQUEST_STATUSES)
+        .limit(1)
+        .maybeSingle();
+      if (data?.id) {
+        await supabase.rpc('cancel_ride_request', { p_request_id: data.id });
+      }
+    } else if (user.role === 'driver') {
+      const { data } = await supabase
+        .from('ride_requests')
+        .select('id')
+        .eq('accepted_captain_id', user.uid)
+        .in('status', NON_TERMINAL_REQUEST_STATUSES)
+        .limit(1)
+        .maybeSingle();
+      if (data?.id) {
+        await supabase.rpc('captain_cancel_active_trip', { p_request_id: data.id });
+      }
+    }
+  } catch (error) {
+    if ((process.env.NODE_ENV !== 'production')) console.warn('[Logout active-request cleanup]', error);
+  }
 }
 
 function purgeTransientFrontendCache() {

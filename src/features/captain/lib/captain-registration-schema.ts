@@ -18,6 +18,9 @@ export const SIDE_ID_REGEX = /^[A-Za-z0-9؀-ۿ-]{2,15}$/;
 // specific layout like "77-12345".
 export const PLATE_REGEX = /^[A-Za-z0-9؀-ۿ\s-]{3,15}$/;
 export const VEHICLE_COLOR_REGEX = /^[؀-ۿa-zA-Z\s]{2,30}$/;
+export const NATIONAL_ID_NUMBER_REGEX = /^[A-Za-z0-9؀-ۿ]{5,20}$/;
+export const LICENSE_NUMBER_REGEX = /^[A-Za-z0-9؀-ۿ]{3,20}$/;
+export const SOCIAL_URL_REGEX = /^https?:\/\/[^\s]+$/i;
 export const VEHICLE_YEAR_MIN = 1990;
 export const VEHICLE_YEAR_MAX = 2027;
 
@@ -80,7 +83,6 @@ export function getCaptainTaxiVehicleSchema(t: CaptainValidationT, country?: str
     sideId: yup.string().trim().matches(SIDE_ID_REGEX, t('sideIdInvalid')).required(t('sideIdRequired')),
     make: yup.string().trim().matches(VEHICLE_MAKE_REGEX, t('makeInvalid')).required(t('makeRequired')),
     model: yup.string().trim().matches(VEHICLE_MODEL_REGEX, t('modelInvalid')).required(t('modelRequired')),
-    contactPageUrl: yup.string().trim().test('contact-url', t('contactPageInvalid'), (value) => !value || /^https?:\/\/[^\s]+$/i.test(value)),
     plate: yup.string().trim().matches(PLATE_REGEX, t('plateInvalid')).required(t('plateRequired')),
     year: yup
       .number()
@@ -88,6 +90,10 @@ export function getCaptainTaxiVehicleSchema(t: CaptainValidationT, country?: str
       .min(VEHICLE_YEAR_MIN, t('yearMin', { min: VEHICLE_YEAR_MIN }))
       .max(VEHICLE_YEAR_MAX, t('yearMax', { max: VEHICLE_YEAR_MAX }))
       .required(t('yearRequired')),
+    nationalIdNumber: yup.string().trim().matches(NATIONAL_ID_NUMBER_REGEX, t('nationalIdNumberInvalid')).required(t('nationalIdNumberRequired')),
+    licenseNumber: yup.string().trim().matches(LICENSE_NUMBER_REGEX, t('licenseNumberInvalid')).required(t('licenseNumberRequired')),
+    facebookUrl: yup.string().trim().test('facebook-url', t('facebookInvalid'), (value) => !value || SOCIAL_URL_REGEX.test(value)),
+    instagramUrl: yup.string().trim().test('instagram-url', t('instagramInvalid'), (value) => !value || SOCIAL_URL_REGEX.test(value)),
   });
 }
 
@@ -96,7 +102,6 @@ export function getCaptainSmartAppVehicleSchema(t: CaptainValidationT) {
     companyName: yup.string().trim().matches(ENTITY_NAME_REGEX, t('companyNameInvalid')).required(t('companyNameRequired')),
     make: yup.string().trim().matches(VEHICLE_MAKE_REGEX, t('makeInvalid')).required(t('makeRequired')),
     model: yup.string().trim().matches(VEHICLE_MODEL_REGEX, t('modelInvalid')).required(t('modelRequired')),
-    contactPageUrl: yup.string().trim().test('contact-url', t('contactPageInvalid'), (value) => !value || /^https?:\/\/[^\s]+$/i.test(value)),
     color: yup.string().trim().matches(VEHICLE_COLOR_REGEX, t('colorInvalid')).required(t('colorRequired')),
     plate: yup.string().trim().matches(PLATE_REGEX, t('plateInvalid')).required(t('plateRequired')),
     year: yup
@@ -105,5 +110,9 @@ export function getCaptainSmartAppVehicleSchema(t: CaptainValidationT) {
       .min(VEHICLE_YEAR_MIN, t('yearMin', { min: VEHICLE_YEAR_MIN }))
       .max(VEHICLE_YEAR_MAX, t('yearMax', { max: VEHICLE_YEAR_MAX }))
       .required(t('yearRequired')),
+    nationalIdNumber: yup.string().trim().matches(NATIONAL_ID_NUMBER_REGEX, t('nationalIdNumberInvalid')).required(t('nationalIdNumberRequired')),
+    licenseNumber: yup.string().trim().matches(LICENSE_NUMBER_REGEX, t('licenseNumberInvalid')).required(t('licenseNumberRequired')),
+    facebookUrl: yup.string().trim().test('facebook-url', t('facebookInvalid'), (value) => !value || SOCIAL_URL_REGEX.test(value)),
+    instagramUrl: yup.string().trim().test('instagram-url', t('instagramInvalid'), (value) => !value || SOCIAL_URL_REGEX.test(value)),
   });
 }
