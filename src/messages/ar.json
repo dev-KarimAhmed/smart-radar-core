@@ -819,6 +819,9 @@
     "fareTestAmberBadge": "اختبار السعر: تحذير ({percent}% أقل من الأساسي)",
     "fareTestCrimsonBadge": "اختبار السعر: محظور",
     "professionalAdBadge": "دعم الكابتن",
+    "waitSecondsLabel": "مدة ظهور العرض للراكب (ثانية)",
+    "waitSecondsHint": "العرض هيظهر عند الراكب لعدد الثواني ده بس، وهيختفي أوتوماتيك لو خلص الوقت من غير رد.",
+    "waitSecondsInvalid": "لازم تحدد عدد ثواني الانتظار (على الأقل {min} ثواني) قبل تقديم العرض.",
     "submit": "تقديم العرض",
     "ignore": "تجاهل",
     "tierLabels": {

@@ -535,6 +535,8 @@ function mapRideOfferRow(row: Record<string, unknown>): Offer | null {
     distance_to_rider: firstNumber(row.distance_to_rider, row.distance) ?? undefined,
     pickup_eta_minutes: firstNumber(row.pickup_eta_minutes, row.eta, row.pickup_eta) ?? undefined,
     estimated_duration_minutes: firstNumber(row.estimated_duration_minutes, row.duration, row.estimated_duration) ?? undefined,
+    wait_seconds: firstNumber(row.wait_seconds) ?? undefined,
+    created_at: firstString(row.created_at) || undefined,
     captain: {
       ...captainProfile,
       ...profile,

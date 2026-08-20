@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import type { RiderMachineState } from '../state/rider-state-machine';
 import type { CaptainPresencePoint } from '../services/rider-server-marketplace';
 import { buildCaptainOfferFromOffer } from '../services/rider-offer-presentation';
+import { getOfferCountdown } from '../services/offer-countdown';
 import { formatMoney } from '../services/rider-view-format';
 import type { RiderLocation } from './rider-map';
 import { Metric } from './rider-view-primitives';
@@ -78,8 +79,40 @@ export function ReceivingOffersScreen({
   onRetry,
 }: ReceivingOffersScreenProps) {
   const t = useTranslations('riderView');
-  const hasOffers = state.offers.length > 0;
   const isCancelled = !!state.requestCancelledAt;
+
+  // Ticks once a second so each offer's wait-seconds countdown updates and
+  // expired offers (captain-chosen visibility window elapsed unanswered)
+  // drop out of the list — shared here rather than one timer per card.
+  const [now, setNow] = React.useState(() => Date.now());
+  React.useEffect(() => {
+    if (state.offers.length === 0) return;
+    const interval = setInterval(() => setNow(Date.now()), 250);
+    return () => clearInterval(interval);
+  }, [state.offers.length]);
+
+  // The countdown is anchored to when THIS client first saw each offer, not
+  // the server's created_at — that would be vulnerable to realtime/fetch
+  // latency and any client/server clock skew, and could read as "expired"
+  // the instant it arrives. One first-seen timestamp per offer id, forever.
+  const firstSeenAtRef = React.useRef<Map<string, number>>(new Map());
+  for (const offer of state.offers) {
+    const offerId = offer.id || offer.driverId;
+    if (offerId && !firstSeenAtRef.current.has(offerId)) {
+      firstSeenAtRef.current.set(offerId, Date.now());
+    }
+  }
+
+  const visibleOffers = React.useMemo(
+    () => state.offers.filter((offer) => {
+      const offerId = offer.id || offer.driverId;
+      return !getOfferCountdown(offer, firstSeenAtRef.current.get(offerId), now).isExpired;
+    }),
+    [state.offers, now],
+  );
+  const hasOffers = visibleOffers.length > 0;
+
+
   const requestFareLabel = state.destination?.serverEstimatedFare !== undefined
     ? formatMoney(state.destination.serverEstimatedFare, currencyLabel)
     : t('destination.notAvailable');
@@ -162,7 +195,7 @@ export function ReceivingOffersScreen({
         </div>
       ) : (
         <div className={styles.offerList}>
-          {state.offers.map((offer) => {
+          {visibleOffers.map((offer) => {
             const { offer: captainOffer, isPreferred } = buildCaptainOfferFromOffer(
               offer,
               {
@@ -185,6 +218,7 @@ export function ReceivingOffersScreen({
                 isAccepting={acceptingOfferId === (offer.id || offer.driverId)}
                 isPreferred={isPreferred}
                 isExpanded={expandedOfferId === captainOffer.id}
+                countdown={getOfferCountdown(offer, firstSeenAtRef.current.get(offer.id || offer.driverId), now)}
                 onToggleExpand={() => onToggleExpandOffer(captainOffer.id)}
                 onAccept={() => onAcceptOffer(offer)}
               />

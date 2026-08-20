@@ -24,7 +24,7 @@ interface DriverOpsContextType {
   pendingOfferRequestId: string | null;
   isDormancyWarningVisible: boolean;
   resetDormancyTimer: () => void;
-  submitOffer: (payload: { tripId: string; offerPrice: number }) => Promise<boolean>;
+  submitOffer: (payload: { tripId: string; offerPrice: number; waitSeconds: number }) => Promise<boolean>;
   isSubmittingOffer: boolean;
   markArrivedAtPickup: () => Promise<boolean>;
   startTrip: () => Promise<boolean>;
@@ -130,7 +130,7 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
     isRequestingReport,
   } = useDriverTransactions(user, setDriverStatus);
 
-  const submitOffer = useCallback(async (payload: { tripId: string; offerPrice: number }) => {
+  const submitOffer = useCallback(async (payload: { tripId: string; offerPrice: number; waitSeconds: number }) => {
     return rawSubmitOffer(payload);
   }, [rawSubmitOffer]);
 
