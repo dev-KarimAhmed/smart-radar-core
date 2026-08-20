@@ -10,6 +10,7 @@ export interface CountryCurrencyConfig {
   currency_code?: string | null;
   default_lat?: number | null;
   default_lng?: number | null;
+  iso_code?: string | null;
 }
 
 /** Fetches the account's country name/currency config from Supabase. */
@@ -30,7 +31,7 @@ export function useCountryConfig(activeCountryId: number | undefined) {
       try {
         const { data, error } = await supabase
           .from('countries')
-          .select('id,name_ar,name_en,currency_ar,currency_en,default_lat,default_lng')
+          .select('id,name_ar,name_en,currency_ar,currency_en,default_lat,default_lng,iso_code')
           .eq('id', countryId)
           .single();
         if (error) throw error;

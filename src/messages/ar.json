@@ -777,6 +777,8 @@
     "history": "سجل الرحلات",
     "pricePerKmModalTitle": "حدد سعر الكيلومتر",
     "pricePerKmModalBody": "قبل استخدام لوحة التحكم، يرجى تحديد سعر الكيلومتر الخاص بك. لا يمكن تخطي هذه الخطوة.",
+    "pricePerKmModalCountryChangeTitle": "أنت الآن في دولة مختلفة",
+    "pricePerKmModalCountryChangeBody": "رصدنا إنك في دولة غير دولة حسابك المسجلة، والعملة هتختلف. يرجى تأكيد أو تحديث سعر الكيلومتر الخاص بك بالعملة الجديدة قبل المتابعة.",
     "pricePerKmModalPlaceholder": "مثال: 5.00",
     "pricePerKmModalSave": "حفظ والمتابعة",
     "pricePerKmModalSaving": "جاري الحفظ...",

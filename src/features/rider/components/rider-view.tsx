@@ -140,7 +140,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
     resetRideDraftState,
   });
 
-  const { riderProfile, systemMessages, currencyLabel } = useRiderProfileSummary(user, language, countryConfig, geolocation.locationStatus);
+  const { riderProfile, systemMessages, currencyLabel } = useRiderProfileSummary(user, language, countryConfig, geolocation.locationStatus, geolocation.liveCurrencyCode);
 
   const handleCloseOrCancel = React.useCallback(async () => {
     if (state.requestId) {

@@ -1,6 +1,7 @@
 import React from 'react';
 import { latLngToCell } from 'h3-js';
 import type { AppLanguage } from '@/lib/i18n/simple-copy';
+import { countryCodeToCurrency } from '@/shared/services/geo-currency';
 import type { RiderLocation, RiderLocationStatus, RiderLocationUpdate } from '../components/rider-map';
 
 const H3_RIDER_REQUEST_RESOLUTION = 9;
@@ -17,6 +18,7 @@ export function useRiderGeolocation(language: AppLanguage, countryDefaultCenter?
   const [locationStatus, setLocationStatus] = React.useState<RiderLocationStatus>('fallback');
   const [currentAddressName, setCurrentAddressName] = React.useState<string>('');
   const [isGeocoding, setIsGeocoding] = React.useState<boolean>(false);
+  const [liveCurrencyCode, setLiveCurrencyCode] = React.useState<string | undefined>(undefined);
 
   const handleLocationChange = React.useCallback((payload: RiderLocationUpdate) => {
     setRiderLocation(payload.location);
@@ -72,6 +74,7 @@ export function useRiderGeolocation(language: AppLanguage, countryDefaultCenter?
             displayAddress = localPart || cityPart || data.display_name || '';
           }
           setCurrentAddressName(displayAddress);
+          setLiveCurrencyCode(countryCodeToCurrency(addr.country_code));
         }
       } catch (err) {
         console.warn('Reverse geocoding failed:', err);
@@ -96,6 +99,7 @@ export function useRiderGeolocation(language: AppLanguage, countryDefaultCenter?
     locationStatus,
     currentAddressName,
     isGeocoding,
+    liveCurrencyCode,
     handleLocationChange,
   };
 }

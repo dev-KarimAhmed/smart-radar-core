@@ -17,6 +17,7 @@ import { useConnectionGuard } from '../hooks/use-connection-guard';
 import { usePricePerKmSetup } from '../hooks/use-price-per-km-setup';
 import { useCountryConfig } from '@/shared/hooks/use-country-config';
 import { getCurrencyLabel } from '@/shared/services/currency-label';
+import { useLiveCurrencyFromLocation } from '@/shared/hooks/use-live-currency-from-location';
 import { ActiveTripTracker } from './active-trip-tracker';
 import { BiddingProposalSheet } from './bidding-proposal-sheet';
 import { DriverRatingModal } from './driver-rating-modal';
@@ -86,8 +87,19 @@ export function DriverViewTab() {
   const wallet = useSovereignWallet(user);
   const { isTimeTamperingDetected } = useDeviceTimeGuard();
   const { isOffline, isReconnecting } = useConnectionGuard();
-  const { needsPriceSetup, savePricePerKm } = usePricePerKmSetup(user);
   const countryConfig = useCountryConfig(user?.countryId);
+  const isDriverLocationLive = driverOps?.driverLocation && (driverOps.driverLocation as { source?: string }).source === 'gps';
+  const { currencyCode: liveCurrencyCode, countryCode: liveCountryCode } = useLiveCurrencyFromLocation(
+    isDriverLocationLive ? driverOps?.driverLocation : null,
+  );
+  // If the captain's live GPS country doesn't match the one on their account,
+  // the currency they priced themselves in no longer applies — force them to
+  // re-confirm/update the price rather than silently keep charging in the
+  // wrong currency's numbers.
+  const isInDifferentCountry = Boolean(
+    liveCountryCode && countryConfig?.iso_code && liveCountryCode.toUpperCase() !== countryConfig.iso_code.toUpperCase(),
+  );
+  const { needsPriceSetup, currentPricePerKm, savePricePerKm } = usePricePerKmSetup(user, isInDifferentCountry);
   const [state, dispatch] = React.useReducer(captainDashboardReducer, initialCaptainDashboardState);
   const knownRequestIdsRef = React.useRef<Set<string> | null>(null);
   const screen = state.screen === 'ACTIVE_TRIP' && !driverOps?.activeRequest ? 'RADAR_MAP' : state.screen;
@@ -184,7 +196,7 @@ export function DriverViewTab() {
   const walletIsReady = wallet.walletLoadState === 'ready';
   const paidMinutes = walletIsReady ? wallet.paidMinutesRemaining : 0;
   const bonusMinutes = walletIsReady ? wallet.bonusMinutesRemaining : 0;
-  const currency = getCurrencyLabel(countryConfig, user, language);
+  const currency = liveCurrencyCode || getCurrencyLabel(countryConfig, user, language);
 
   const submitBid = async (price: number) => {
     if (!state.selectedRequest) return;
@@ -367,7 +379,13 @@ export function DriverViewTab() {
       </div>
 
       {needsPriceSetup ? (
-        <PricePerKmSetupModal direction={direction} currency={currency} onSave={savePricePerKm} />
+        <PricePerKmSetupModal
+          direction={direction}
+          currency={currency}
+          initialValue={currentPricePerKm}
+          isCountryChange={currentPricePerKm !== null && isInDifferentCountry}
+          onSave={savePricePerKm}
+        />
       ) : null}
 
       {screen === 'RATING_MODAL' && state.completedTrip && user?.uid ? (

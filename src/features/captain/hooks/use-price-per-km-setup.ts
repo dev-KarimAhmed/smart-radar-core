@@ -6,9 +6,12 @@ import type { User } from '@/core/types';
 
 /**
  * Gates the mandatory price-per-km popup: captains must set this once before
- * using the dashboard normally. `price_per_km` is null until they do.
+ * using the dashboard normally (`price_per_km` is null until they do), and
+ * again whenever their live GPS country no longer matches their registered
+ * one — the currency changes, so the price they set no longer means the same
+ * thing and needs re-confirming.
  */
-export function usePricePerKmSetup(user: User | null) {
+export function usePricePerKmSetup(user: User | null, isInDifferentCountry = false) {
   const [pricePerKm, setPricePerKm] = React.useState<number | null>(null);
   const [isLoaded, setIsLoaded] = React.useState(false);
 
@@ -60,7 +63,8 @@ export function usePricePerKmSetup(user: User | null) {
   }, [user?.uid]);
 
   return {
-    needsPriceSetup: isLoaded && pricePerKm === null,
+    needsPriceSetup: isLoaded && (pricePerKm === null || isInDifferentCountry),
+    currentPricePerKm: pricePerKm,
     savePricePerKm,
   };
 }

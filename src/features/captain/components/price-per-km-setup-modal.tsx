@@ -27,12 +27,14 @@ const styles = {
 interface PricePerKmSetupModalProps {
   direction: string;
   currency?: string;
+  initialValue?: number | null;
+  isCountryChange?: boolean;
   onSave: (value: number) => Promise<boolean>;
 }
 
-export function PricePerKmSetupModal({ direction, currency, onSave }: PricePerKmSetupModalProps) {
+export function PricePerKmSetupModal({ direction, currency, initialValue, isCountryChange = false, onSave }: PricePerKmSetupModalProps) {
   const t = useTranslations('captainDashboard');
-  const [value, setValue] = React.useState('');
+  const [value, setValue] = React.useState(initialValue != null ? String(initialValue) : '');
   const [isSaving, setIsSaving] = React.useState(false);
   const [error, setError] = React.useState('');
 
@@ -61,8 +63,12 @@ export function PricePerKmSetupModal({ direction, currency, onSave }: PricePerKm
         onEscapeKeyDown={(event) => event.preventDefault()}
       >
         <AlertDialogHeader>
-          <AlertDialogTitle className={styles.title}>{t('pricePerKmModalTitle')}</AlertDialogTitle>
-          <AlertDialogDescription className={styles.description}>{t('pricePerKmModalBody')}</AlertDialogDescription>
+          <AlertDialogTitle className={styles.title}>
+            {isCountryChange ? t('pricePerKmModalCountryChangeTitle') : t('pricePerKmModalTitle')}
+          </AlertDialogTitle>
+          <AlertDialogDescription className={styles.description}>
+            {isCountryChange ? t('pricePerKmModalCountryChangeBody') : t('pricePerKmModalBody')}
+          </AlertDialogDescription>
         </AlertDialogHeader>
         <div className={styles.inputRow}>
           <input

@@ -777,6 +777,8 @@
     "history": "Trip history",
     "pricePerKmModalTitle": "Set your price per km",
     "pricePerKmModalBody": "Before using the dashboard, please set your price per kilometer. This step cannot be skipped.",
+    "pricePerKmModalCountryChangeTitle": "You're now in a different country",
+    "pricePerKmModalCountryChangeBody": "We detected you're in a country different from your registered one, so the currency has changed. Please confirm or update your price per km in the new currency before continuing.",
     "pricePerKmModalPlaceholder": "Example: 5.00",
     "pricePerKmModalSave": "Save and continue",
     "pricePerKmModalSaving": "Saving...",
