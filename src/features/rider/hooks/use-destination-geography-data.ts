@@ -210,15 +210,40 @@ export function useDestinationGeographyData(
     setDestinationDistricts((current) => current.filter((item) => !item.id.startsWith('google:')));
   }, []);
 
-  // Used by the ride-request draft reset (cancel/send) — clears selection too.
+  // Used by the ride-request draft reset (cancel/send, and trip completion) —
+  // returns the governorate/district back to the account's own default
+  // instead of leaving the last trip's destination selected (or blank, if no
+  // profile default is available).
   const reset = React.useCallback(() => {
     clearExternalEntries();
-    setSelectedGovernorateId('');
-    setDraftDestinationId('');
+    const profileGovernorateId = String(user?.governorate || '');
+    const preferredGovernorate =
+      destinationGovernorates.find((governorate) => governorate.id === profileGovernorateId)
+      || destinationGovernorates[0]
+      || null;
+    const nextGovernorateId = preferredGovernorate?.id || '';
+    const governorateUnchanged = nextGovernorateId === selectedGovernorateId;
+    setSelectedGovernorateId(nextGovernorateId);
+
+    // Changing selectedGovernorateId feeds districtLoadKey, so the district
+    // effect re-fetches and re-applies the profile default on its own — but
+    // only when the governorate actually changes. If it's already the
+    // preferred one, that effect won't re-run, so pick the default district
+    // from the already-loaded list here instead.
+    if (governorateUnchanged) {
+      const profileDistrictId = String(user?.district || '');
+      const preferredDistrict =
+        destinationDistricts.find((district) => district.id === profileDistrictId)
+        || destinationDistricts.find((district) => district.anchor)
+        || destinationDistricts[0]
+        || null;
+      setDraftDestinationId(preferredDistrict?.id || '');
+    }
+
     setDestinationDataError(null);
     pendingConfirmedGeographyRef.current = null;
     pendingConfirmedLocationRef.current = null;
-  }, [clearExternalEntries]);
+  }, [clearExternalEntries, destinationGovernorates, destinationDistricts, selectedGovernorateId, user?.governorate, user?.district]);
 
   return {
     activeCountryId,

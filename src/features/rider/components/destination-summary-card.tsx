@@ -104,12 +104,14 @@ export function DestinationSummaryCard({
               </span>
             ) : null}
           </div>
+          {/* Estimated fare display disabled — kept hidden from rider by product request.
           <div className={styles.fare}>
             <span className={styles.fieldLabel}>
               {locationCopy('lbl_estimated_fare')}
             </span>
             <strong className={styles.fareValue}>{serverFareLabel}</strong>
           </div>
+          */}
         </div>
 
         <div className={styles.metricsGrid}>

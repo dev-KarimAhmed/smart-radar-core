@@ -207,7 +207,9 @@ export function BiddingProposalSheet({
             label={t('distance')}
             value={request.estimatedDistance != null ? `${request.estimatedDistance} km` : pickupT('distanceUnavailable')}
           />
+          {/* Base fare display disabled — kept hidden from captain by product request.
           <Info label={t('serverFare')} value={`${baseFare.toFixed(2)} ${currency}`} />
+          */}
         </div>
       </div>
 

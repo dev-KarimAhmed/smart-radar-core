@@ -33,10 +33,13 @@ const emptyVehicle: CaptainVehicleValues = {
   companyName: '',
   make: '',
   model: '',
-  contactPageUrl: '',
   color: '#14b8a6',
   plate: '',
   year: '',
+  nationalIdNumber: '',
+  licenseNumber: '',
+  facebookUrl: '',
+  instagramUrl: '',
 };
 
 function readStoredRememberMe(): boolean {
@@ -85,8 +88,9 @@ export function CaptainOnboarding() {
   const [rememberMe, setRememberMe] = React.useState<boolean>(readStoredRememberMe);
   const [affiliation, setAffiliation] = React.useState<AffiliationType | null>(null);
   const [vehicle, setVehicle] = React.useState<CaptainVehicleValues>(emptyVehicle);
-  const [identityFile, setIdentityFile] = React.useState<File | null>(null);
-  const [drivingLicenseFile, setDrivingLicenseFile] = React.useState<File | null>(null);
+  // Document image uploads are disabled for now — see captain-vehicle-step.tsx.
+  // const [identityFile, setIdentityFile] = React.useState<File | null>(null);
+  // const [drivingLicenseFile, setDrivingLicenseFile] = React.useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const { toast } = useToast();
 
@@ -117,8 +121,12 @@ export function CaptainOnboarding() {
       office_phone: isTaxi ? vehicle.officePhone.trim() || null : null,
       side_id: isTaxi ? vehicle.sideId.trim() || null : null,
       identity_url: null,
-      contact_page_url: vehicle.contactPageUrl.trim() || null,
+      contact_page_url: null,
       driving_license_url: null,
+      national_id_number: vehicle.nationalIdNumber.trim() || null,
+      license_number: vehicle.licenseNumber.trim() || null,
+      facebook_url: vehicle.facebookUrl.trim() || null,
+      instagram_url: vehicle.instagramUrl.trim() || null,
       verification_status: 'PENDING',
     };
 
@@ -133,8 +141,8 @@ export function CaptainOnboarding() {
         districtId: Number(personal.district),
         rememberMe,
         captainProfile,
-        identityFile,
-        drivingLicenseFile,
+        // identityFile,
+        // drivingLicenseFile,
       });
 
       toast({
@@ -236,10 +244,10 @@ export function CaptainOnboarding() {
               affiliation={affiliation}
               vehicle={vehicle}
               setVehicle={setVehicle}
-              identityFile={identityFile}
-              onIdentityFileChange={setIdentityFile}
-              drivingLicenseFile={drivingLicenseFile}
-              onDrivingLicenseFileChange={setDrivingLicenseFile}
+              // identityFile={identityFile}
+              // onIdentityFileChange={setIdentityFile}
+              // drivingLicenseFile={drivingLicenseFile}
+              // onDrivingLicenseFileChange={setDrivingLicenseFile}
               onBack={() => setStep(2)}
               onSubmit={() => void submitCaptainRegistration()}
               isSubmitting={isSubmitting}

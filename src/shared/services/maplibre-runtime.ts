@@ -3,9 +3,11 @@ import maplibregl from 'maplibre-gl';
 export const OPENFREEMAP_STYLE = 'https://tiles.openfreemap.org/styles/liberty';
 export const RTL_TEXT_PLUGIN_URL = 'https://unpkg.com/@mapbox/mapbox-gl-rtl-text@0.3.0/dist/mapbox-gl-rtl-text.js';
 
-// Keep the map usable when GPS permission is denied / no location prop is
-// supplied yet. The active Egypt-first flow uses Cairo as its local visual
-// fallback until a live fix arrives.
+// Absolute last-resort map center — used only when GPS, the account's own
+// country default, and any district/profile anchor are all unavailable.
+// Callers should prefer a country-aware center (see
+// `getCountryDefaultCenter` in `@/shared/hooks/use-country-config`) before
+// falling all the way back to this.
 export const DEFAULT_MAP_CENTER = { lat: 30.0444, lng: 31.2357 };
 
 let rtlPluginRequested = false;

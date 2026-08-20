@@ -21,19 +21,25 @@ export interface CaptainTaxiVehicleValues {
   sideId: string;
   make: string;
   model: string;
-  contactPageUrl: string;
   plate: string;
   year: string;
+  nationalIdNumber: string;
+  licenseNumber: string;
+  facebookUrl: string;
+  instagramUrl: string;
 }
 
 export interface CaptainSmartAppVehicleValues {
   companyName: string;
   make: string;
   model: string;
-  contactPageUrl: string;
   color: string;
   plate: string;
   year: string;
+  nationalIdNumber: string;
+  licenseNumber: string;
+  facebookUrl: string;
+  instagramUrl: string;
 }
 
 export type CaptainVehicleValues = CaptainTaxiVehicleValues & CaptainSmartAppVehicleValues;
@@ -68,10 +74,13 @@ interface CaptainVehicleStepProps {
   affiliation: AffiliationType | null;
   vehicle: CaptainVehicleValues;
   setVehicle: (vehicle: CaptainVehicleValues) => void;
-  identityFile: File | null;
-  onIdentityFileChange: (file: File | null) => void;
-  drivingLicenseFile: File | null;
-  onDrivingLicenseFileChange: (file: File | null) => void;
+  // Document image uploads are disabled for now — replaced by the plain-text
+  // national ID / license number fields below. Re-enabling image upload later
+  // just means uncommenting these props + the picker calls further down.
+  // identityFile: File | null;
+  // onIdentityFileChange: (file: File | null) => void;
+  // drivingLicenseFile: File | null;
+  // onDrivingLicenseFileChange: (file: File | null) => void;
   onBack: () => void;
   onSubmit: () => void;
   isSubmitting?: boolean;
@@ -82,10 +91,10 @@ export function CaptainVehicleStep({
   affiliation,
   vehicle,
   setVehicle,
-  identityFile,
-  onIdentityFileChange,
-  drivingLicenseFile,
-  onDrivingLicenseFileChange,
+  // identityFile,
+  // onIdentityFileChange,
+  // drivingLicenseFile,
+  // onDrivingLicenseFileChange,
   onBack,
   onSubmit,
   isSubmitting = false,
@@ -131,15 +140,15 @@ export function CaptainVehicleStep({
     void runFieldValidation(field, nextValues);
   };
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, onChange: (file: File | null) => void) => {
-    const file = event.target.files?.[0] || null;
-    onChange(file);
-    if (file && typeof navigator !== 'undefined' && navigator.vibrate) {
-      navigator.vibrate([50, 30, 50]);
-    }
-  };
+  // const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, onChange: (file: File | null) => void) => {
+  //   const file = event.target.files?.[0] || null;
+  //   onChange(file);
+  //   if (file && typeof navigator !== 'undefined' && navigator.vibrate) {
+  //     navigator.vibrate([50, 30, 50]);
+  //   }
+  // };
 
-  const isValid = isYupSchemaValid(schema, vehicle) && Boolean(identityFile && drivingLicenseFile);
+  const isValid = isYupSchemaValid(schema, vehicle);
 
   const handleSubmitClick = () => {
     if (isSubmitting) return;
@@ -162,40 +171,41 @@ export function CaptainVehicleStep({
     />
   );
 
-  const renderDocumentPicker = ({
-    label,
-    file,
-    emptyText,
-    onChange,
-  }: {
-    label: string;
-    file: File | null;
-    emptyText: string;
-    onChange: (file: File | null) => void;
-  }) => (
-    <div className={styles.documentBlock}>
-      <label className={styles.documentLabel}>{label}</label>
-      <div className={styles.documentDropzone}>
-        <input
-          type="file"
-          accept="image/*,.pdf"
-          onChange={(event) => handleFileChange(event, onChange)}
-          className={styles.documentInput}
-        />
-        {file ? (
-          <div className={styles.documentDoneRow}>
-            <span className={styles.documentDoneText}>{file.name}</span>
-            <span aria-hidden="true" className={styles.documentDoneCheck}>✓</span>
-          </div>
-        ) : (
-          <div className={styles.documentEmptyWrap}>
-            <span className={styles.documentEmptyText}>{emptyText}</span>
-            <span className={styles.documentHint}>{t('fileSelect')}</span>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+  // Document image upload is disabled for now (see CaptainVehicleStepProps note above).
+  // const renderDocumentPicker = ({
+  //   label,
+  //   file,
+  //   emptyText,
+  //   onChange,
+  // }: {
+  //   label: string;
+  //   file: File | null;
+  //   emptyText: string;
+  //   onChange: (file: File | null) => void;
+  // }) => (
+  //   <div className={styles.documentBlock}>
+  //     <label className={styles.documentLabel}>{label}</label>
+  //     <div className={styles.documentDropzone}>
+  //       <input
+  //         type="file"
+  //         accept="image/*,.pdf"
+  //         onChange={(event) => handleFileChange(event, onChange)}
+  //         className={styles.documentInput}
+  //       />
+  //       {file ? (
+  //         <div className={styles.documentDoneRow}>
+  //           <span className={styles.documentDoneText}>{file.name}</span>
+  //           <span aria-hidden="true" className={styles.documentDoneCheck}>✓</span>
+  //         </div>
+  //       ) : (
+  //         <div className={styles.documentEmptyWrap}>
+  //           <span className={styles.documentEmptyText}>{emptyText}</span>
+  //           <span className={styles.documentHint}>{t('fileSelect')}</span>
+  //         </div>
+  //       )}
+  //     </div>
+  //   </div>
+  // );
 
   const renderVehicleIdentityFields = () => (
     <div className={styles.fieldRow}>
@@ -336,20 +346,7 @@ export function CaptainVehicleStep({
         {renderYearSelect()}
         {errors.year ? <p className={styles.error}>{errors.year}</p> : null}
       </div>
-      <div>
-        <label className={styles.label}>{t('contactPage')}</label>
-        <Input
-          type="url"
-          dir="ltr"
-          placeholder={t('contactPagePlaceholder')}
-          value={vehicle.contactPageUrl}
-          onChange={(event) => handleFieldChange('contactPageUrl', event.target.value)}
-          className={styles.input}
-        />
-        {errors.contactPageUrl ? <p className={styles.error}>{errors.contactPageUrl}</p> : null}
-      </div>
-
-      {renderDocumentPicker({
+      {/* {renderDocumentPicker({
         label: t('identityLabel'),
         file: identityFile,
         emptyText: t('identityEmpty'),
@@ -361,7 +358,59 @@ export function CaptainVehicleStep({
         emptyText: t('licenseEmpty'),
         onChange: onDrivingLicenseFileChange,
       })}
-      {!identityFile || !drivingLicenseFile ? <p className={styles.error}>{t('documentRequired')}</p> : null}
+      {!identityFile || !drivingLicenseFile ? <p className={styles.error}>{t('documentRequired')}</p> : null} */}
+
+      <div className={styles.fieldRow}>
+        <div>
+          <label className={styles.label}>{t('nationalIdNumberLabel')}</label>
+          <Input
+            dir="ltr"
+            placeholder={t('nationalIdNumberPlaceholder')}
+            value={vehicle.nationalIdNumber}
+            onChange={(event) => handleFieldChange('nationalIdNumber', event.target.value)}
+            className={styles.input}
+            required
+          />
+          {errors.nationalIdNumber ? <p className={styles.error}>{errors.nationalIdNumber}</p> : null}
+        </div>
+        <div>
+          <label className={styles.label}>{t('licenseNumberLabel')}</label>
+          <Input
+            dir="ltr"
+            placeholder={t('licenseNumberPlaceholder')}
+            value={vehicle.licenseNumber}
+            onChange={(event) => handleFieldChange('licenseNumber', event.target.value)}
+            className={styles.input}
+            required
+          />
+          {errors.licenseNumber ? <p className={styles.error}>{errors.licenseNumber}</p> : null}
+        </div>
+      </div>
+
+      <div>
+        <label className={styles.label}>{t('facebookLabel')}</label>
+        <Input
+          type="url"
+          dir="ltr"
+          placeholder={t('facebookPlaceholder')}
+          value={vehicle.facebookUrl}
+          onChange={(event) => handleFieldChange('facebookUrl', event.target.value)}
+          className={styles.input}
+        />
+        {errors.facebookUrl ? <p className={styles.error}>{errors.facebookUrl}</p> : null}
+      </div>
+      <div>
+        <label className={styles.label}>{t('instagramLabel')}</label>
+        <Input
+          type="url"
+          dir="ltr"
+          placeholder={t('instagramPlaceholder')}
+          value={vehicle.instagramUrl}
+          onChange={(event) => handleFieldChange('instagramUrl', event.target.value)}
+          className={styles.input}
+        />
+        {errors.instagramUrl ? <p className={styles.error}>{errors.instagramUrl}</p> : null}
+      </div>
 
       <div className={styles.submitWrap}>
         <button type="button" onClick={handleSubmitClick} className={styles.submitButton} disabled={isSubmitting}>

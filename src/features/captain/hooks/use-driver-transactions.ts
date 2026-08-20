@@ -301,10 +301,13 @@ export function useDriverTransactions(
       return true;
     } catch (error) {
       if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver transactions] offer submit failed:', error);
+      const isTooFar = String((error as { message?: string })?.message || '').includes('captain_too_far_from_pickup');
       toast({
         variant: 'destructive',
-        title: 'تعذر إرسال العرض',
-        description: 'تحقق من الاتصال أو صلاحيات قاعدة البيانات ثم حاول مرة أخرى.',
+        title: isTooFar ? 'الطلب بعيد عنك' : 'تعذر إرسال العرض',
+        description: isTooFar
+          ? 'أصبحت بعيداً عن نقطة الالتقاط (أكثر من 9 كم). لا يمكن تقديم عرض على هذا الطلب.'
+          : 'تحقق من الاتصال أو صلاحيات قاعدة البيانات ثم حاول مرة أخرى.',
       });
       return false;
     } finally {

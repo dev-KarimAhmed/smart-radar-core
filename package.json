@@ -46,6 +46,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "color-namer": "^1.4.0",
+    "country-to-currency": "^3.0.1",
     "d3": "^7.9.0",
     "date-fns": "^3.6.0",
     "dexie": "^4.4.3",

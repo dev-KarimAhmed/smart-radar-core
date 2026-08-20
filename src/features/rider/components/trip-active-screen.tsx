@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Clock, MessageCircle, Phone, ShieldCheck } from 'lucide-react';
+import { Clock, Facebook, Instagram, MessageCircle, Phone, ShieldCheck } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { formatMoney, isTripStartedStatus } from '../services/rider-view-format';
@@ -115,6 +115,28 @@ export function TripActiveScreen({
             title={t('trip.callCaptain')}
           >
             <Phone className={styles.callIcon} />
+          </a>
+        )}
+        {activeTrip.captain?.facebook_url && (
+          <a
+            href={activeTrip.captain.facebook_url}
+            target="_blank"
+            rel="noreferrer"
+            className={styles.callButton}
+            title="Facebook"
+          >
+            <Facebook className={styles.callIcon} />
+          </a>
+        )}
+        {activeTrip.captain?.instagram_url && (
+          <a
+            href={activeTrip.captain.instagram_url}
+            target="_blank"
+            rel="noreferrer"
+            className={styles.callButton}
+            title="Instagram"
+          >
+            <Instagram className={styles.callIcon} />
           </a>
         )}
         <button
