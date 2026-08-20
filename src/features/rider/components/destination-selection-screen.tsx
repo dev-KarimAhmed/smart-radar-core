@@ -13,7 +13,6 @@ import type { useClipboardLocationImport } from '../hooks/use-clipboard-location
 import type { useServerFareAndRoute } from '../hooks/use-server-fare-and-route';
 import type { RiderLocation } from './rider-map';
 import { formatMoney } from '../services/rider-view-format';
-import { DestinationAreaPicker } from './destination-area-picker';
 import { DestinationSearchPanel } from './destination-search-panel';
 import { DestinationTripSummary } from './destination-trip-summary';
 
@@ -160,18 +159,6 @@ export function DestinationSelectionScreen({
           ))}
         </div>
       </div>
-
-      <DestinationAreaPicker
-        isArabic={isArabic}
-        destinationGovernorates={geography.destinationGovernorates}
-        destinationDistricts={geography.destinationDistricts}
-        selectedGovernorateId={geography.selectedGovernorateId}
-        selectedDistrictId={geography.selectedDistrict?.id || ''}
-        isLoadingGovernorates={geography.isLoadingGovernorates}
-        isLoadingDistricts={geography.isLoadingDistricts}
-        onGovernorateChange={onGovernorateChange}
-        onDistrictChange={onDistrictChange}
-      />
 
       <DestinationSearchPanel
         destinationSearchQuery={search.destinationSearchQuery}
