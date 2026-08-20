@@ -128,6 +128,7 @@ export function RiderActiveScreen(props: RiderActiveScreenProps) {
         acceptingOfferId={offers.acceptingOfferId}
         expandedOfferId={offers.expandedOfferId}
         onToggleExpandOffer={(offerId) => offers.setExpandedOfferId((current) => (current === offerId ? null : offerId))}
+        firstSeenAtRef={offers.firstSeenAtRef}
         captainSearchRadiusKm={offers.captainSearchRadiusKm}
         isExpandingCaptainSearch={offers.isExpandingCaptainSearch}
         isCancellingRideRequest={sendCancel.isCancellingRideRequest}

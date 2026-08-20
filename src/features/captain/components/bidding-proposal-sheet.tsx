@@ -7,6 +7,7 @@ import type { Trip } from '@/core/types';
 import { supabase } from '@/lib/supabase-client';
 import { RadarAntiCheatKernel } from '@/core/RadarAntiCheatKernel';
 import { useCaptainProfessionalAd } from '../hooks/use-captain-professional-ad';
+import { MIN_OFFER_WAIT_SECONDS } from '../hooks/use-driver-transactions';
 import { AdDisplayCard } from '@/features/ads/ad-display/contract';
 import { cn } from '@/lib/utils';
 
@@ -63,6 +64,7 @@ const styles = {
   fareTestBadgeCrimson: "bg-red-500/15 text-red-200 ring-1 ring-red-400/30",
   fareTestBadgeIcon: "h-3.5 w-3.5",
   inputLocked: "cursor-not-allowed opacity-50",
+  submitWrap: "flex flex-1",
   professionalAdCard: "mt-3 h-[280px] rounded-[28px]",
 } as const;
 
@@ -79,7 +81,7 @@ interface BiddingProposalSheetProps {
   request: Trip;
   currency: string;
   isSubmitting: boolean;
-  onSubmit: (price: number) => void;
+  onSubmit: (price: number, waitSeconds: number) => void;
   onIgnore: () => void;
 }
 
@@ -93,6 +95,9 @@ export function BiddingProposalSheet({
   const t = useTranslations('captainBidding');
   const pickupT = useTranslations('captainPickup');
   const baseFare = Number(request.offerPrice || 0);
+  const [waitSecondsInput, setWaitSecondsInput] = React.useState(String(MIN_OFFER_WAIT_SECONDS));
+  const parsedWaitSeconds = Number(waitSecondsInput);
+  const isWaitSecondsValid = Number.isInteger(parsedWaitSeconds) && parsedWaitSeconds >= MIN_OFFER_WAIT_SECONDS;
   const [captainTierData, setCaptainTierData] = React.useState<CaptainTierData>({ tier: 'SILVER', rating: 5 });
   const premiumFactor = getTierPremiumFactor(captainTierData.tier);
   const maxIncreaseAmount = roundMoney(baseFare * premiumFactor);
@@ -104,6 +109,7 @@ export function BiddingProposalSheet({
 
   React.useEffect(() => {
     setIncreaseAmount(0);
+    setWaitSecondsInput(String(MIN_OFFER_WAIT_SECONDS));
   }, [request.id]);
 
   React.useEffect(() => {
@@ -174,7 +180,7 @@ export function BiddingProposalSheet({
 
   const isAmberDeviation = isTierAmber || isDumpingAmber;
   const isBlockedDeviation = isTierBlocked || isDumpingBlocked;
-  const canSubmit = Number.isFinite(finalOfferPrice) && finalOfferPrice > 0 && !isSubmitting && !isBlockedDeviation;
+  const canSubmit = Number.isFinite(finalOfferPrice) && finalOfferPrice > 0 && !isSubmitting && !isBlockedDeviation && isWaitSecondsValid;
 
   // The tier gives no room to increase at all (e.g. Silver/Bronze) — don't show
   // a "+" that would only ever immediately trigger the tier-exceeded block.
@@ -364,6 +370,48 @@ export function BiddingProposalSheet({
           </div>
         ) : null}
 
+        <div className={styles.style163_22}>
+          <label className={styles.style164_23}>{t('waitSecondsLabel')}</label>
+          <div className={styles.style165_24}>
+            <button
+              type="button"
+              onClick={() => setWaitSecondsInput((current) => {
+                const value = Number(current);
+                const next = (Number.isFinite(value) ? value : MIN_OFFER_WAIT_SECONDS) - 1;
+                return String(Math.max(MIN_OFFER_WAIT_SECONDS, next));
+              })}
+              disabled={parsedWaitSeconds <= MIN_OFFER_WAIT_SECONDS}
+              className={cn(styles.style169_25, parsedWaitSeconds <= MIN_OFFER_WAIT_SECONDS ? styles.inputLocked : '')}
+            >
+              <Minus className={styles.style171_26} />
+            </button>
+            <input
+              value={waitSecondsInput}
+              onChange={(event) => setWaitSecondsInput(event.target.value.replace(/[^0-9]/g, ''))}
+              inputMode="numeric"
+              className={styles.style177_27}
+            />
+            <button
+              type="button"
+              onClick={() => setWaitSecondsInput((current) => {
+                const value = Number(current);
+                const next = (Number.isFinite(value) ? value : MIN_OFFER_WAIT_SECONDS) + 1;
+                return String(Math.max(MIN_OFFER_WAIT_SECONDS, next));
+              })}
+              className={styles.style182_28}
+            >
+              <Plus className={styles.style184_29} />
+            </button>
+          </div>
+          <p className={styles.style192_34}>{t('waitSecondsHint')}</p>
+          {!isWaitSecondsValid ? (
+            <div className={styles.style208_37}>
+              <AlertTriangle className={styles.style209_38} />
+              {t('waitSecondsInvalid', { min: MIN_OFFER_WAIT_SECONDS })}
+            </div>
+          ) : null}
+        </div>
+
         {isDumpingBlocked && professionalAd ? (
           <AdDisplayCard
             ad={professionalAd}
@@ -380,14 +428,19 @@ export function BiddingProposalSheet({
       </div>
 
       <div className={styles.style215_39}>
-        <button
-          onClick={() => onSubmit(finalOfferPrice)}
-          disabled={!canSubmit}
-          className={styles.style219_40}
+        <span
+          className={styles.submitWrap}
+          title={!isWaitSecondsValid ? t('waitSecondsInvalid', { min: MIN_OFFER_WAIT_SECONDS }) : undefined}
         >
-          {isSubmitting ? <Loader2 className={styles.style221_41} /> : <Send className={styles.style221_42} />}
-          {t('submit')}
-        </button>
+          <button
+            onClick={() => onSubmit(finalOfferPrice, parsedWaitSeconds)}
+            disabled={!canSubmit}
+            className={styles.style219_40}
+          >
+            {isSubmitting ? <Loader2 className={styles.style221_41} /> : <Send className={styles.style221_42} />}
+            {t('submit')}
+          </button>
+        </span>
         <button onClick={onIgnore} className={styles.style224_43}>
           {t('ignore')}
         </button>

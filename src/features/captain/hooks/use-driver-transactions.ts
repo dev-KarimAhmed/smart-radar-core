@@ -10,11 +10,7 @@ import { buildGoogleMapsUrl, isValidCoordinatePair, normalizeExternalMapUrl } fr
 type RideOfferRow = Record<string, unknown>;
 type RideRequestRow = Record<string, unknown>;
 
-// Client-side "one active offer" guard (spec 5.1.3): there is no server-side
-// rejection/expiry signal for a pending offer today, so we can't clear this
-// deterministically — auto-release after a bounded window instead of risking
-// a permanent lock if the rider picks another captain.
-const PENDING_OFFER_TIMEOUT_MS = 90 * 1000;
+export const MIN_OFFER_WAIT_SECONDS = 5;
 
 export function useDriverTransactions(
   user: User | null,
@@ -48,10 +44,10 @@ export function useDriverTransactions(
     setPendingOfferRequestId(null);
   }, []);
 
-  // The 90s timeout above is a last-resort fallback — this checks the actual
-  // request directly so a stale lock clears immediately once the rider
+  // The waitSeconds timeout above is a last-resort fallback — this checks the
+  // actual request directly so a stale lock clears immediately once the rider
   // cancels (or picks a different captain), instead of blocking every other
-  // request as "you have a pending offer" for up to 90s after it's moot.
+  // request as "you have a pending offer" until the countdown runs out.
   //
   // This can't query `ride_requests` directly: its RLS policy only allows a
   // captain to SELECT a row they're the accepted captain for (or the rider,
@@ -248,7 +244,7 @@ export function useDriverTransactions(
     };
   }, [captainId, loadAcceptedRequest]);
 
-  const submitOffer = useCallback(async (payload: { tripId: string; offerPrice: number }) => {
+  const submitOffer = useCallback(async (payload: { tripId: string; offerPrice: number; waitSeconds: number }) => {
     if (!captainId) {
       toast({
         variant: 'destructive',
@@ -263,6 +259,15 @@ export function useDriverTransactions(
         variant: 'destructive',
         title: 'سعر غير صحيح',
         description: 'اكتب قيمة صحيحة للعرض ثم حاول مرة أخرى.',
+      });
+      return false;
+    }
+
+    if (!Number.isInteger(payload.waitSeconds) || payload.waitSeconds < MIN_OFFER_WAIT_SECONDS) {
+      toast({
+        variant: 'destructive',
+        title: 'مدة الانتظار غير صحيحة',
+        description: `حدد عدد ثواني ظهور العرض (على الأقل ${MIN_OFFER_WAIT_SECONDS} ثواني) ثم حاول مرة أخرى.`,
       });
       return false;
     }
@@ -284,6 +289,7 @@ export function useDriverTransactions(
       const { error } = await supabase.rpc('submit_ride_offer', {
         p_request_id: payload.tripId,
         p_offer_price: Number(payload.offerPrice),
+        p_wait_seconds: payload.waitSeconds,
       });
 
       if (error) throw error;
@@ -291,9 +297,13 @@ export function useDriverTransactions(
       // The card for this request stays visible on the radar (in a "pending"
       // state, per the UI layer) instead of being hidden like an ignored
       // request — the captain should still see their own submitted bid.
+      // Cleared after exactly `waitSeconds` — the same window the rider's
+      // offer countdown uses — so the captain is freed to bid again the
+      // moment the offer disappears from the rider's screen, not blocked
+      // for some unrelated fixed duration.
       setPendingOfferRequestId(payload.tripId);
       if (pendingOfferTimeoutRef.current) clearTimeout(pendingOfferTimeoutRef.current);
-      pendingOfferTimeoutRef.current = setTimeout(() => setPendingOfferRequestId(null), PENDING_OFFER_TIMEOUT_MS);
+      pendingOfferTimeoutRef.current = setTimeout(() => setPendingOfferRequestId(null), payload.waitSeconds * 1000);
       toast({
         title: 'تم إرسال العرض',
         description: 'سنخبرك فور قبول الراكب للعرض.',

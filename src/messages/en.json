@@ -819,6 +819,9 @@
     "fareTestAmberBadge": "Fare test: warning ({percent}% below base)",
     "fareTestCrimsonBadge": "Fare test: blocked",
     "professionalAdBadge": "Captain support",
+    "waitSecondsLabel": "How long the offer stays visible to the rider (seconds)",
+    "waitSecondsHint": "The offer will only appear to the rider for this many seconds, and will disappear automatically if they don't respond in time.",
+    "waitSecondsInvalid": "Set the wait time (at least {min} seconds) before submitting the offer.",
     "submit": "Submit offer",
     "ignore": "Ignore",
     "tierLabels": {

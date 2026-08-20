@@ -13,6 +13,7 @@ import {
 } from '../services/rider-server-marketplace';
 import { getLocalizedMarketplaceError } from '../services/rider-offer-presentation';
 import { collectPreferredCaptainIds, prioritizeRiderOffers } from '../services/rider-offer-ranking';
+import { getOfferCountdown } from '../services/offer-countdown';
 import type { RiderMachineState, RiderMachineAction } from '../state/rider-state-machine';
 
 const OFFER_TIMEOUT_MS = 2 * 60 * 1000;
@@ -39,6 +40,12 @@ export function useOffersLifecycle(
   const [acceptingOfferId, setAcceptingOfferId] = React.useState<string | null>(null);
   const pendingAcceptedOfferIdRef = React.useRef<string | null>(null);
 
+  // Shared with the screen's countdown UI so both sides agree on exactly
+  // when each offer's visibility window started — anchored to when THIS
+  // client first observed the offer, not the server's created_at (see
+  // services/offer-countdown.ts for why).
+  const firstSeenAtRef = React.useRef<Map<string, number>>(new Map());
+
   React.useEffect(() => {
     if (!state.requestId || state.screen !== 'RECEIVING_OFFERS' || state.requestCancelledAt) return;
 
@@ -53,6 +60,14 @@ export function useOffersLifecycle(
 
         const favoriteIds = collectPreferredCaptainIds(favs);
         const sortedOffers = prioritizeRiderOffers(offers, favoriteIds);
+
+        const nowTs = Date.now();
+        for (const offer of sortedOffers) {
+          const offerId = offer.id || offer.driverId;
+          if (offerId && !firstSeenAtRef.current.has(offerId)) {
+            firstSeenAtRef.current.set(offerId, nowTs);
+          }
+        }
 
         if (active) {
           setPreferredCaptainIds(favoriteIds);
@@ -82,6 +97,31 @@ export function useOffersLifecycle(
       unsubscribe();
     };
   }, [dispatch, state.requestCancelledAt, state.requestId, state.screen]);
+
+  // Drops an offer from state the moment its captain-chosen wait_seconds
+  // window elapses — without this, an expired offer stayed in state.offers
+  // forever (only hidden at render time), which desynced it from the
+  // auto-expand-first-offer logic below: that logic considered the expired
+  // offer still "present" and left it selected while a different card
+  // rendered as the actual first visible one, so the real first offer showed
+  // collapsed instead of auto-expanding.
+  React.useEffect(() => {
+    if (state.screen !== 'RECEIVING_OFFERS' || state.offers.length === 0) return;
+
+    const pruneExpiredOffers = () => {
+      const now = Date.now();
+      const stillActive = state.offers.filter((offer) => {
+        const offerId = offer.id || offer.driverId;
+        return !getOfferCountdown(offer, firstSeenAtRef.current.get(offerId), now).isExpired;
+      });
+      if (stillActive.length !== state.offers.length) {
+        dispatch({ type: 'RECEIVE_OFFERS', offers: stillActive });
+      }
+    };
+
+    const intervalId = window.setInterval(pruneExpiredOffers, 500);
+    return () => window.clearInterval(intervalId);
+  }, [dispatch, state.offers, state.screen]);
 
   React.useEffect(() => {
     if (!state.requestId || state.screen !== 'RECEIVING_OFFERS' || state.offers.length > 0 || state.requestCancelledAt) return;
@@ -187,6 +227,7 @@ export function useOffersLifecycle(
 
   const reset = React.useCallback(() => {
     pendingAcceptedOfferIdRef.current = null;
+    firstSeenAtRef.current.clear();
     setPreferredCaptainIds([]);
     setExpandedOfferId(null);
     setCaptainSearchRadiusKm(1.5);
@@ -202,6 +243,7 @@ export function useOffersLifecycle(
     isExpandingCaptainSearch,
     acceptingOfferId,
     pendingAcceptedOfferIdRef,
+    firstSeenAtRef,
     handleAcceptOffer,
     reset,
   };

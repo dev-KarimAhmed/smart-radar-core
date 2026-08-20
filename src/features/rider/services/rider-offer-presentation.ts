@@ -184,6 +184,8 @@ export function buildCaptainOfferFromOffer(
     estimated_duration_minutes: rawDuration || undefined,
     trip_distance_km: tripDistance || undefined,
     additional_info: firstDisplayString(offer.captain?.bio, offer.captain?.notes, offerRecord.additional_info),
+    wait_seconds: offer.wait_seconds,
+    created_at: offer.created_at,
   };
 
   const isPreferred =

@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import type { RiderMachineState } from '../state/rider-state-machine';
 import type { CaptainPresencePoint } from '../services/rider-server-marketplace';
 import { buildCaptainOfferFromOffer } from '../services/rider-offer-presentation';
+import { getOfferCountdown } from '../services/offer-countdown';
 import { formatMoney } from '../services/rider-view-format';
 import type { RiderLocation } from './rider-map';
 import { Metric } from './rider-view-primitives';
@@ -57,6 +58,7 @@ export interface ReceivingOffersScreenProps {
   onCancelRideRequest: () => void;
   onAcceptOffer: (offer: Offer) => void;
   onRetry: () => void;
+  firstSeenAtRef: React.RefObject<Map<string, number>>;
 }
 
 export function ReceivingOffersScreen({
@@ -76,10 +78,26 @@ export function ReceivingOffersScreen({
   onCancelRideRequest,
   onAcceptOffer,
   onRetry,
+  firstSeenAtRef,
 }: ReceivingOffersScreenProps) {
   const t = useTranslations('riderView');
-  const hasOffers = state.offers.length > 0;
   const isCancelled = !!state.requestCancelledAt;
+
+  // Ticks a few times a second purely so each offer's wait-seconds progress
+  // bar animates smoothly — actual expiry/removal from state.offers happens
+  // in useOffersLifecycle, so this component always renders exactly what's
+  // still live (no local filtering needed, and nothing here can desync the
+  // auto-expand-first-offer logic from what's actually visible).
+  const [now, setNow] = React.useState(() => Date.now());
+  React.useEffect(() => {
+    if (state.offers.length === 0) return;
+    const interval = setInterval(() => setNow(Date.now()), 250);
+    return () => clearInterval(interval);
+  }, [state.offers.length]);
+
+  const hasOffers = state.offers.length > 0;
+
+
   const requestFareLabel = state.destination?.serverEstimatedFare !== undefined
     ? formatMoney(state.destination.serverEstimatedFare, currencyLabel)
     : t('destination.notAvailable');
@@ -185,6 +203,7 @@ export function ReceivingOffersScreen({
                 isAccepting={acceptingOfferId === (offer.id || offer.driverId)}
                 isPreferred={isPreferred}
                 isExpanded={expandedOfferId === captainOffer.id}
+                countdown={getOfferCountdown(offer, firstSeenAtRef.current.get(offer.id || offer.driverId), now)}
                 onToggleExpand={() => onToggleExpandOffer(captainOffer.id)}
                 onAccept={() => onAcceptOffer(offer)}
               />

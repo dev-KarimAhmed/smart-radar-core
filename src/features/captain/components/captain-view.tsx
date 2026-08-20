@@ -198,9 +198,9 @@ export function DriverViewTab() {
   const bonusMinutes = walletIsReady ? wallet.bonusMinutesRemaining : 0;
   const currency = liveCurrencyCode || getCurrencyLabel(countryConfig, user, language);
 
-  const submitBid = async (price: number) => {
+  const submitBid = async (price: number, waitSeconds: number) => {
     if (!state.selectedRequest) return;
-    const ok = await driverOps.submitOffer({ tripId: state.selectedRequest.id, offerPrice: price });
+    const ok = await driverOps.submitOffer({ tripId: state.selectedRequest.id, offerPrice: price, waitSeconds });
     if (ok) dispatch({ type: 'OFFER_SUBMITTED', requestId: state.selectedRequest.id });
   };
 

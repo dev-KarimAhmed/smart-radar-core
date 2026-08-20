@@ -140,6 +140,8 @@ export interface Offer {
     pickup_eta_minutes?: number;
     estimated_duration_minutes?: number;
     captain?: any;
+    wait_seconds?: number;
+    created_at?: string;
 }
 
 export interface SovereignAd {

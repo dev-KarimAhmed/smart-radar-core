@@ -92,6 +92,11 @@ const styles = {
   style358_66: "text-[#14B8A6]",
   style358_67: "text-[#F8FAFC]",
   style358_68: "text-lg",
+  countdownWrap: "flex items-center gap-2 border-t border-white/5 px-5 py-2",
+  countdownTrack: "h-1.5 flex-1 overflow-hidden rounded-full bg-white/10",
+  countdownFill: "h-full rounded-full bg-[#14B8A6] transition-[width] duration-200 ease-linear",
+  countdownFillUrgent: "bg-rose-400",
+  countdownLabel: "shrink-0 text-[11px] font-black tabular-nums text-[#94A3B8]",
 } as const;
 
 
@@ -128,6 +133,15 @@ export interface CaptainOffer {
   estimated_duration_minutes?: number;
   trip_distance_km?: number;
   additional_info?: string;
+  wait_seconds?: number;
+  created_at?: string;
+}
+
+interface CaptainOfferCardCountdown {
+  hasCountdown: boolean;
+  remainingSeconds: number;
+  percentRemaining: number;
+  isExpired: boolean;
 }
 
 interface CaptainOfferCardProps {
@@ -137,6 +151,7 @@ interface CaptainOfferCardProps {
   isAccepting?: boolean;
   isPreferred?: boolean;
   isExpanded?: boolean;
+  countdown?: CaptainOfferCardCountdown;
   onToggleExpand?: () => void;
   onAccept: (offer: CaptainOffer) => void;
 }
@@ -188,6 +203,7 @@ export function CaptainOfferCard({
   isAccepting = false,
   isPreferred = false,
   isExpanded = true,
+  countdown,
   onToggleExpand,
   onAccept,
 }: CaptainOfferCardProps) {
@@ -267,6 +283,20 @@ export function CaptainOfferCard({
           <ChevronDown className={cn(styles.style187_24, isExpanded ? styles.style187_25 : '')} />
         </div>
       </button>
+
+      {countdown?.hasCountdown ? (
+        <div className={styles.countdownWrap}>
+          <div className={styles.countdownTrack}>
+            <div
+              className={cn(styles.countdownFill, countdown.percentRemaining <= 30 ? styles.countdownFillUrgent : '')}
+              style={{ width: `${countdown.percentRemaining}%` }}
+            />
+          </div>
+          <span className={styles.countdownLabel}>
+            {countdown.remainingSeconds} {isArabic ? 'ث' : 's'}
+          </span>
+        </div>
+      ) : null}
 
       <div
         className={cn(styles.style192_26, isExpanded ? styles.style193_27 : styles.style193_28)}
