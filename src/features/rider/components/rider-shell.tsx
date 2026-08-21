@@ -119,7 +119,7 @@ export function RiderShell() {
       <main className={cn(styles.main, !isHome && styles.mainShifted, isStandby && styles.mainStandby)}>
         {isStandby ? (
           <div className={styles.adStage}>
-            <AdStage isFullScreen onRequestRideClick={() => setShowRequestFlow(true)} />
+            <AdStage audience="rider" isFullScreen onRequestRideClick={() => setShowRequestFlow(true)} />
           </div>
         ) : null}
         <div className={cn(styles.content, isHome ? styles.contentHome : styles.contentInner, isStandby && styles.contentHidden)}>

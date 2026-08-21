@@ -3,6 +3,7 @@ import type { SovereignAd } from '@/core/types';
 import { recordLocalClick } from '@/lib/ad-cache-sentry';
 import { trackSovereignError } from '@/lib/error-tracker';
 import { useAdCampaigns } from '@/hooks/use-ad-campaigns';
+import { filterAdsByAudience, readAdAudience, type AdAudience } from '@/features/ads/contract';
 
 function mapCampaignRow(row: Record<string, any>): SovereignAd {
   return {
@@ -18,6 +19,7 @@ function mapCampaignRow(row: Record<string, any>): SovereignAd {
       buttonText: row.cta_ar || row.button_text || row.action?.buttonText || 'عرض التفاصيل',
       actionUrl: row.action_url || row.url || row.action?.actionUrl || '',
     },
+    forDriver: readAdAudience(row) === 'captain',
     targetDistrict: row.district_id ? String(row.district_id) : row.targetDistrict,
     targetGovernorate: row.governorate_id ? String(row.governorate_id) : row.targetGovernorate,
     phone: row.phone || '',
@@ -41,15 +43,14 @@ function scoreAd(ad: SovereignAd, district?: string, governorate?: string) {
  * subscription, and hand-rolled localStorage cache have been removed in favour
  * of React Query's cache + persistence.)
  */
-export function usePromoStream(district?: string, governorate?: string) {
+export function usePromoStream(district?: string, governorate?: string, audience?: AdAudience) {
   const { data } = useAdCampaigns();
 
   const activeAds = useMemo<SovereignAd[]>(() => {
     const rows = Array.isArray(data) ? data : [];
-    return rows
-      .map(mapCampaignRow)
+    return filterAdsByAudience(rows.map(mapCampaignRow), audience)
       .sort((a, b) => scoreAd(b, district, governorate) - scoreAd(a, district, governorate));
-  }, [data, district, governorate]);
+  }, [audience, data, district, governorate]);
 
   const registerClick = async (adId: string, _locationStr: string) => {
     try {

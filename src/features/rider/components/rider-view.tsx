@@ -212,7 +212,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
 
         {showAdRiver && (
           <div className={styles.adRiverWrapper}>
-            <AdStage />
+            <AdStage audience="rider" />
           </div>
         )}
 

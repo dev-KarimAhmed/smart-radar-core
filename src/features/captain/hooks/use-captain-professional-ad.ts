@@ -29,7 +29,7 @@ const DEFAULT_PROFESSIONAL_AD: CaptainProfessionalAd = {
 // per-bid bidding sheet) can show a real ad instead of duplicating this.
 export function useCaptainProfessionalAd(deviationRatio: number, isActive: boolean): CaptainProfessionalAd | null {
   const { user } = useAuth();
-  const { activeAds } = usePromoStream(user?.district || 'وادي السير', user?.governorate || 'عمان');
+  const { activeAds } = usePromoStream(user?.district || 'وادي السير', user?.governorate || 'عمان', 'captain');
 
   return useMemo(() => {
     if (!isActive) return null;

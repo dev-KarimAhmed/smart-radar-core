@@ -169,6 +169,7 @@ export interface SovereignAd {
   createdAt?: string;
   type?: 'image' | 'video' | string;
   role?: 'all' | 'rider' | 'driver' | string;
+  forDriver?: boolean; // public.ad_campaigns.for_driver — true routes the ad to captains
   geo?: {
     governorate?: string;
     district?: string;

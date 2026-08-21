@@ -48,7 +48,7 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
       client={queryClient}
       // maxAge = how long a persisted snapshot is trusted before being discarded.
       // buster = bump this string to invalidate all persisted caches on deploy.
-      persistOptions={{ persister, maxAge: ONE_DAY, buster: 'v1' }}
+      persistOptions={{ persister, maxAge: ONE_DAY, buster: 'v2' }}
     >
       {children}
     </PersistQueryClientProvider>

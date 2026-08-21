@@ -199,7 +199,7 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, re
 
   const { user } = useAuth();
 
-  const { activeAds } = usePromoStream(user?.district || 'وادي السير', user?.governorate || 'عمان');
+  const { activeAds } = usePromoStream(user?.district || 'وادي السير', user?.governorate || 'عمان', 'captain');
 
   const currentRating = useMemo(() => {
     if (!user) return 5.0;

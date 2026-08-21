@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, Heart, MapPin, MessageCircle, Phone, Plus, S
 import { useTranslations } from 'next-intl';
 import { AdDisplayCard, getAdDescription, getAdImage, getAdTitle } from './ad-display-card';
 import { getAdManualScrollDelta, getAdScrollDelta, wrapAdScrollPosition } from '../services/ad-stage-scroll';
+import { filterAdsByAudience, readAdAudience, type AdAudience } from '../services/ad-audience';
 import { useAuth } from '@/hooks/use-auth';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { useAdCampaigns } from '@/hooks/use-ad-campaigns';
@@ -262,9 +263,11 @@ function getBadgeText(ad: any, copy: AdStageCopy) {
 }
 
 export function AdStage({
+  audience,
   isFullScreen = false,
   onRequestRideClick,
 }: {
+  audience?: AdAudience;
   isFullScreen?: boolean;
   onRequestRideClick?: () => void;
 }) {
@@ -291,13 +294,14 @@ export function AdStage({
   const lastManualSwipeMetricAtRef = useRef(0);
 
   const adsToUse = useMemo(() => {
-    const filteredAds = filterAdsByLocalContext(liveDistrict, liveGovernorate, serverAds);
+    const audienceAds = filterAdsByAudience(serverAds, audience);
+    const filteredAds = filterAdsByLocalContext(liveDistrict, liveGovernorate, audienceAds);
     if (filteredAds.length > 0) return filteredAds;
 
     return [
       buildBrandPlaceholderAd(copy, hasAdFetchIssue ? copy.emptyFetchIssue : copy.emptyDescription),
     ];
-  }, [copy, hasAdFetchIssue, liveDistrict, liveGovernorate, serverAds]);
+  }, [audience, copy, hasAdFetchIssue, liveDistrict, liveGovernorate, serverAds]);
 
   useEffect(() => {
     adsToUse.forEach((ad: any) => {
@@ -862,6 +866,7 @@ function mapAdCampaignRow(row: Record<string, any>) {
     targetScale,
     targetLocationName,
     adType: row.adType || row.ad_type,
+    forDriver: readAdAudience(row) === 'captain',
     buttonText: firstString(row.buttonText, row.button_text, row.cta_text) ,
     content: {
       ...(row.content || {}),

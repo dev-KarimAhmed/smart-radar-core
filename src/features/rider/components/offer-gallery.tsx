@@ -110,7 +110,7 @@ const OfferCard = ({
   referencePrice: number;
 }) => {
   const { user } = useAuth();
-  const { activeAds } = usePromoStream(user?.district || 'وادي السير', user?.governorate || 'عمان');
+  const { activeAds } = usePromoStream(user?.district || 'وادي السير', user?.governorate || 'عمان', 'rider');
 
   // Real per-offer deviation against the average of all offers received for
   // this request — replaces the old `offer.isDumping` flag, which was never

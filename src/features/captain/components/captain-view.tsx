@@ -329,7 +329,7 @@ export function DriverViewTab() {
 
         {screen === 'RADAR_MAP' && !isActive ? (
           <div className={styles.style328_1}>
-            <AdStage isFullScreen />
+            <AdStage audience="captain" isFullScreen />
           </div>
         ) : null}
 
