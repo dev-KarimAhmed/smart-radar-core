@@ -465,7 +465,7 @@ export function AdStage({
       )}
       dir={direction}
     >
-      {isFullScreen ? (
+      {isFullScreen && onRequestRideClick ? (
         <div className={styles.style405_9}>
           <motion.button
             type="button"

@@ -73,9 +73,11 @@ const styles = {
   connectionBannerIcon: "h-5 w-5 shrink-0 text-slate-300",
   connectionBannerTitle: "text-sm font-black",
   connectionBannerBody: "mt-0.5 text-xs leading-5 text-slate-300/80",
+  style328_1: "flex min-h-[calc(100vh-11rem)] w-full flex-1 flex-col overflow-hidden rounded-3xl border border-emerald-500/20 bg-[#05080f] shadow-2xl shadow-black/30",
 } as const;
 
 const RadarMapView = dynamic(() => import('./radar-map-view').then(m => m.RadarMapView), { ssr: false });
+const AdStage = dynamic(() => import('@/features/ads/ad-stage/contract').then((m) => m.AdStage), { ssr: false });
 const HistoryScreen = dynamic(() => import('@/features/account/history/contract').then((m) => m.HistoryTab), { ssr: false });
 
 export function DriverViewTab() {
@@ -325,7 +327,13 @@ export function DriverViewTab() {
           </div>
         ) : null}
 
-        {screen === 'RADAR_MAP' ? (
+        {screen === 'RADAR_MAP' && !isActive ? (
+          <div className={styles.style328_1}>
+            <AdStage isFullScreen />
+          </div>
+        ) : null}
+
+        {screen === 'RADAR_MAP' && isActive ? (
           <RadarMapView
             language={language}
             isActive={isActive}
