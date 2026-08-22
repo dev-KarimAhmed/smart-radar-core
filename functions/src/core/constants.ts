@@ -36,12 +36,9 @@ export const SOVEREIGN_CONSTANTS = {
   DORMANCY_TIMEOUT_MS: 5 * 60 * 1000,   // 5 minutes of inactivity until status is set to 'idle'
   MIN_TRIP_DURATION_MIN: 3,           // الحد الأدنى المحتسب لأي رحلة
   
-  // 6. ثوابت الرتب (Ranking)
-  RANKING_RULES: {
-    PLATINUM: { minRating: 4.8, minHearts: 50, name: 'Platinum' },
-    GOLD: { minRating: 4.5, minHearts: 20, name: 'Gold' },
-    SILVER: { minRating: 4.0, minHearts: 0, name: 'Silver' },
-    BRONZE: { minRating: 0, minHearts: 0, name: 'Bronze' }
-  },
+  // 6. ثوابت الرتب (Ranking) — نُقلت بالكامل إلى Postgres.
+  // The single source of truth is now public.calculate_sovereign_rank(), installed by
+  // supabase/migrations/20260822090000_captain_rank_sovereign_engine.sql.
+  // Do not reintroduce the thresholds here — two copies is how they drifted last time.
 
 } as const;

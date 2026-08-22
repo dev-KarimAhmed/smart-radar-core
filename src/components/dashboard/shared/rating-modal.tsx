@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { AlertOctagon, Heart, Star, X } from 'lucide-react';
+import { AlertOctagon, Heart, ThumbsDown, ThumbsUp, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -52,15 +52,25 @@ const styles = {
   style320_32: "h-10 flex-1 rounded-lg border-white/10 bg-white/5 text-xs font-bold text-white hover:bg-white/10",
   style349_33: "space-y-3",
   style350_34: "text-sm font-bold text-white",
-  style351_35: "grid grid-cols-5 gap-2 rounded-2xl border border-white/10 bg-white/5 p-3.5",
-  style359_36: "flex flex-col items-center justify-start text-center",
-  style363_37: "cursor-pointer p-1 transition-transform duration-200 active:scale-90",
-  style366_38: "h-8 w-8 transition-all duration-300",
-  style366_39: "fill-none text-slate-600/40",
-  style368_40: "mt-2 line-clamp-3 max-w-[64px] text-[10px] font-medium leading-tight text-slate-400",
-  activeAmber: "fill-amber-400 text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.6)]",
-  activeTeal: "fill-[#14B8A6] text-[#14B8A6] drop-shadow-[0_0_8px_rgba(20,245,213,0.6)]",
+  style351_35: "divide-y divide-white/5 rounded-2xl border border-white/10 bg-white/5 px-3.5",
+  style359_36: "flex items-center justify-between gap-3 py-2.5",
+  style368_40: "min-w-0 flex-1 text-xs font-medium leading-tight text-slate-300",
+  style370_41: "flex shrink-0 items-center gap-2",
+  style372_42: "flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl border transition-all duration-200 active:scale-90",
+  style374_43: "h-4 w-4 transition-all duration-200",
+  style376_44: "border-white/10 bg-black/20 text-slate-500 hover:border-white/20 hover:text-slate-300",
+  style378_45: "border-red-500/60 bg-red-500/20 text-red-300 shadow-[0_0_12px_rgba(239,68,68,0.25)]",
+  style380_46: "text-[10px] font-medium leading-relaxed text-slate-500",
+  activeAmber: "border-amber-400/70 bg-amber-400/20 text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.3)]",
+  activeTeal: "border-[#14B8A6]/70 bg-[#14B8A6]/20 text-[#2DD4BF] shadow-[0_0_12px_rgba(20,184,166,0.3)]",
 } as const;
+
+/**
+ * A criterion the reviewer has not answered stays `null` and is left out of the payload
+ * entirely, so the server averages only what was actually judged. Sending it as 0 would
+ * make silence indistinguishable from a complaint and sink the captain's rank.
+ */
+type CriterionVerdict = 'up' | 'down' | null;
 
 
 interface RatingModalProps {
@@ -81,21 +91,30 @@ interface RatingModalProps {
 type VehicleRatingKey = 'cleanliness' | 'ac' | 'comfort' | 'quietness' | 'safety';
 type CaptainRatingKey = 'behavior' | 'driving' | 'punctuality' | 'routing' | 'communication';
 
-const initialVehicleRatings: Record<VehicleRatingKey, boolean> = {
-  cleanliness: false,
-  ac: false,
-  comfort: false,
-  quietness: false,
-  safety: false,
+const initialVehicleRatings: Record<VehicleRatingKey, CriterionVerdict> = {
+  cleanliness: null,
+  ac: null,
+  comfort: null,
+  quietness: null,
+  safety: null,
 };
 
-const initialCaptainRatings: Record<CaptainRatingKey, boolean> = {
-  behavior: false,
-  driving: false,
-  punctuality: false,
-  routing: false,
-  communication: false,
+const initialCaptainRatings: Record<CaptainRatingKey, CriterionVerdict> = {
+  behavior: null,
+  driving: null,
+  punctuality: null,
+  routing: null,
+  communication: null,
 };
+
+/** Drops unanswered criteria; 'up' scores 1, 'down' scores 0. */
+function toScoredCriteria(values: Record<string, CriterionVerdict>) {
+  return Object.fromEntries(
+    Object.entries(values)
+      .filter(([, verdict]) => verdict !== null)
+      .map(([key, verdict]) => [key, verdict === 'up' ? 1 : 0]),
+  );
+}
 
 export function RatingModal({
   isOpen,
@@ -131,20 +150,22 @@ export function RatingModal({
     setCaptain(initialCaptainRatings);
   }, [isOpen, tripId]);
 
-  const handleToggleVehicle = (key: VehicleRatingKey) => {
-    setVehicle((previous) => ({ ...previous, [key]: !previous[key] }));
+  // Tapping the chosen verdict again clears it, so a mis-tap can be taken back to
+  // "no opinion" instead of being stuck as a judgement.
+  const handleSetVehicle = (key: VehicleRatingKey, verdict: Exclude<CriterionVerdict, null>) => {
+    setVehicle((previous) => ({ ...previous, [key]: previous[key] === verdict ? null : verdict }));
   };
 
-  const handleToggleCaptain = (key: CaptainRatingKey) => {
-    setCaptain((previous) => ({ ...previous, [key]: !previous[key] }));
+  const handleSetCaptain = (key: CaptainRatingKey, verdict: Exclude<CriterionVerdict, null>) => {
+    setCaptain((previous) => ({ ...previous, [key]: previous[key] === verdict ? null : verdict }));
   };
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
       const detailedStarsPayload = {
-        vehicle: Object.fromEntries(Object.entries(vehicle).map(([key, value]) => [key, value ? 1 : 0])),
-        captain: Object.fromEntries(Object.entries(captain).map(([key, value]) => [key, value ? 1 : 0])),
+        vehicle: toScoredCriteria(vehicle),
+        captain: toScoredCriteria(captain),
       };
 
       const { error } = await supabase.from('reviews').insert({
@@ -153,6 +174,9 @@ export function RatingModal({
         reviewee_id: captainId,
         detailed_stars: detailedStarsPayload,
         comment: comment.trim() || null,
+        // The heart is a sovereign rank input (GOLD needs 20, PLATINUM 50), so it has to
+        // reach the server — the Dexie/localStorage copy below stays for offline recall.
+        gave_heart: saveFavorite,
       });
 
       if (error) throw error;
@@ -275,17 +299,19 @@ export function RatingModal({
         <div className={styles.style228_9}>
           <RatingCriteriaSection
             title={copy.vehicleSection}
+            hint={copy.criteriaHint}
             items={vehicleCriteria}
             values={vehicle}
             accent="amber"
-            onToggle={handleToggleVehicle}
+            onSelect={handleSetVehicle}
           />
           <RatingCriteriaSection
             title={copy.captainSection}
+            hint={copy.criteriaHint}
             items={captainCriteria}
             values={captain}
             accent="teal"
-            onToggle={handleToggleCaptain}
+            onSelect={handleSetCaptain}
           />
 
           <button
@@ -377,42 +403,56 @@ export function RatingModal({
 
 function RatingCriteriaSection<T extends string>({
   title,
+  hint,
   items,
   values,
   accent,
-  onToggle,
+  onSelect,
 }: {
   title: string;
+  hint: string;
   items: Array<{ key: T; label: string }>;
-  values: Record<T, boolean>;
+  values: Record<T, CriterionVerdict>;
   accent: 'amber' | 'teal';
-  onToggle: (key: T) => void;
+  onSelect: (key: T, verdict: Exclude<CriterionVerdict, null>) => void;
 }) {
+  const upActiveClass = accent === 'amber' ? styles.activeAmber : styles.activeTeal;
+
   return (
     <div className={styles.style349_33}>
       <Label className={styles.style350_34}>{title}</Label>
       <div className={styles.style351_35}>
         {items.map((item) => {
-          const isActive = values[item.key];
-          const activeClass = accent === 'amber' ? styles.activeAmber : styles.activeTeal;
+          const verdict = values[item.key];
 
           return (
             <div key={item.key} className={styles.style359_36}>
-              <button
-                type="button"
-                onClick={() => onToggle(item.key)}
-                className={styles.style363_37}
-                aria-pressed={isActive}
-              >
-                <Star className={cn(styles.style366_38, isActive ? activeClass : styles.style366_39)} />
-              </button>
-              <span className={styles.style368_40}>
-                {item.label}
-              </span>
+              <span className={styles.style368_40}>{item.label}</span>
+              <div className={styles.style370_41}>
+                <button
+                  type="button"
+                  onClick={() => onSelect(item.key, 'up')}
+                  className={cn(styles.style372_42, verdict === 'up' ? upActiveClass : styles.style376_44)}
+                  aria-pressed={verdict === 'up'}
+                  aria-label={item.label}
+                >
+                  <ThumbsUp className={styles.style374_43} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onSelect(item.key, 'down')}
+                  className={cn(styles.style372_42, verdict === 'down' ? styles.style378_45 : styles.style376_44)}
+                  aria-pressed={verdict === 'down'}
+                  aria-label={item.label}
+                >
+                  <ThumbsDown className={styles.style374_43} />
+                </button>
+              </div>
             </div>
           );
         })}
       </div>
+      <p className={styles.style380_46}>{hint}</p>
     </div>
   );
 }
@@ -423,6 +463,7 @@ const ratingModalCopy = {
     description: 'يساعدنا تقييمك على تحسين الخدمة.',
     vehicleSection: 'تقييم المركبة والسيارة',
     captainSection: 'تقييم السائق',
+    criteriaHint: 'قيّم البنود اللي تحب فقط — البند اللي تسيبه فاضي مش محسوب ضد السائق.',
     vehicleCleanliness: 'نظافة السيارة',
     vehicleAc: 'التكييف',
     vehicleComfort: 'راحة المقاعد',
@@ -464,6 +505,7 @@ const ratingModalCopy = {
     description: 'Your feedback helps us improve the service.',
     vehicleSection: 'Vehicle rating',
     captainSection: 'Captain rating',
+    criteriaHint: 'Answer only the points you want — anything left blank is not counted against the captain.',
     vehicleCleanliness: 'Cleanliness',
     vehicleAc: 'Air conditioning',
     vehicleComfort: 'Seat comfort',

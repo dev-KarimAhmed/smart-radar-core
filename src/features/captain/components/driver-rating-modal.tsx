@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { AlertOctagon, Star, X } from 'lucide-react';
+import { AlertOctagon, ThumbsDown, ThumbsUp, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -39,14 +39,23 @@ const styles = {
   blockCancelButton: "h-10 flex-1 rounded-lg border-white/10 bg-white/5 text-xs font-bold text-white hover:bg-white/10",
   criteriaSection: "space-y-3",
   criteriaLabel: "text-sm font-bold text-white",
-  criteriaGrid: "grid grid-cols-5 gap-2 rounded-2xl border border-white/10 bg-white/5 p-3.5",
-  criteriaItem: "flex flex-col items-center justify-start text-center",
-  criteriaButton: "cursor-pointer p-1 transition-transform duration-200 active:scale-90",
-  criteriaStar: "h-8 w-8 transition-all duration-300",
-  criteriaStarInactive: "fill-none text-slate-600/40",
-  criteriaStarActive: "fill-[#14B8A6] text-[#14B8A6] drop-shadow-[0_0_8px_rgba(20,245,213,0.6)]",
-  criteriaItemLabel: "mt-2 line-clamp-3 max-w-[64px] text-[10px] font-medium leading-tight text-slate-400",
+  criteriaList: "divide-y divide-white/5 rounded-2xl border border-white/10 bg-white/5 px-3.5",
+  criteriaRow: "flex items-center justify-between gap-3 py-2.5",
+  criteriaItemLabel: "min-w-0 flex-1 text-xs font-medium leading-tight text-slate-300",
+  criteriaVerdicts: "flex shrink-0 items-center gap-2",
+  criteriaButton: "flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl border transition-all duration-200 active:scale-90",
+  criteriaIcon: "h-4 w-4 transition-all duration-200",
+  criteriaIdle: "border-white/10 bg-black/20 text-slate-500 hover:border-white/20 hover:text-slate-300",
+  criteriaUpActive: "border-[#14B8A6]/70 bg-[#14B8A6]/20 text-[#2DD4BF] shadow-[0_0_12px_rgba(20,184,166,0.3)]",
+  criteriaDownActive: "border-red-500/60 bg-red-500/20 text-red-300 shadow-[0_0_12px_rgba(239,68,68,0.25)]",
+  criteriaHint: "text-[10px] font-medium leading-relaxed text-slate-500",
 } as const;
+
+/**
+ * Unanswered criteria stay `null` and never reach the payload, so the server averages only
+ * what the captain actually judged. See the matching note in the rider's rating modal.
+ */
+type CriterionVerdict = 'up' | 'down' | null;
 
 interface DriverRatingModalProps {
   isOpen: boolean;
@@ -62,12 +71,12 @@ interface DriverRatingModalProps {
 
 type RiderRatingKey = 'respect' | 'punctuality' | 'cleanliness' | 'communication' | 'cooperation';
 
-const initialRiderRatings: Record<RiderRatingKey, boolean> = {
-  respect: false,
-  punctuality: false,
-  cleanliness: false,
-  communication: false,
-  cooperation: false,
+const initialRiderRatings: Record<RiderRatingKey, CriterionVerdict> = {
+  respect: null,
+  punctuality: null,
+  cleanliness: null,
+  communication: null,
+  cooperation: null,
 };
 
 export function DriverRatingModal({
@@ -96,15 +105,20 @@ export function DriverRatingModal({
     setRider(initialRiderRatings);
   }, [isOpen, tripId]);
 
-  const handleToggle = (key: RiderRatingKey) => {
-    setRider((previous) => ({ ...previous, [key]: !previous[key] }));
+  // Re-tapping the chosen verdict clears it back to "no opinion".
+  const handleSelect = (key: RiderRatingKey, verdict: Exclude<CriterionVerdict, null>) => {
+    setRider((previous) => ({ ...previous, [key]: previous[key] === verdict ? null : verdict }));
   };
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
       const detailedStarsPayload = {
-        rider: Object.fromEntries(Object.entries(rider).map(([key, value]) => [key, value ? 1 : 0])),
+        rider: Object.fromEntries(
+          Object.entries(rider)
+            .filter(([, verdict]) => verdict !== null)
+            .map(([key, verdict]) => [key, verdict === 'up' ? 1 : 0]),
+        ),
       };
 
       const { error } = await supabase.from('reviews').insert({
@@ -191,26 +205,37 @@ export function DriverRatingModal({
         <div className={styles.body}>
           <div className={styles.criteriaSection}>
             <Label className={styles.criteriaLabel}>{copy.riderSection}</Label>
-            <div className={styles.criteriaGrid}>
+            <div className={styles.criteriaList}>
               {riderCriteria.map((item) => {
-                const isActive = rider[item.key];
+                const verdict = rider[item.key];
                 return (
-                  <div key={item.key} className={styles.criteriaItem}>
-                    <button
-                      type="button"
-                      onClick={() => handleToggle(item.key)}
-                      className={styles.criteriaButton}
-                      aria-pressed={isActive}
-                    >
-                      <Star className={cn(styles.criteriaStar, isActive ? styles.criteriaStarActive : styles.criteriaStarInactive)} />
-                    </button>
-                    <span className={styles.criteriaItemLabel}>
-                      {item.label}
-                    </span>
+                  <div key={item.key} className={styles.criteriaRow}>
+                    <span className={styles.criteriaItemLabel}>{item.label}</span>
+                    <div className={styles.criteriaVerdicts}>
+                      <button
+                        type="button"
+                        onClick={() => handleSelect(item.key, 'up')}
+                        className={cn(styles.criteriaButton, verdict === 'up' ? styles.criteriaUpActive : styles.criteriaIdle)}
+                        aria-pressed={verdict === 'up'}
+                        aria-label={item.label}
+                      >
+                        <ThumbsUp className={styles.criteriaIcon} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSelect(item.key, 'down')}
+                        className={cn(styles.criteriaButton, verdict === 'down' ? styles.criteriaDownActive : styles.criteriaIdle)}
+                        aria-pressed={verdict === 'down'}
+                        aria-label={item.label}
+                      >
+                        <ThumbsDown className={styles.criteriaIcon} />
+                      </button>
+                    </div>
                   </div>
                 );
               })}
             </div>
+            <p className={styles.criteriaHint}>{copy.criteriaHint}</p>
           </div>
 
           <div className={styles.commentWrap}>
@@ -280,6 +305,7 @@ const driverRatingModalCopy = {
     title: 'قيّم الراكب',
     description: 'يساعدنا تقييمك على تحسين تجربة الرحلات.',
     riderSection: 'تقييم الراكب',
+    criteriaHint: 'قيّم البنود اللي تحب فقط — البند اللي تسيبه فاضي مش محسوب ضد الراكب.',
     riderRespect: 'الاحترام',
     riderPunctuality: 'الالتزام بالوقت',
     riderCleanliness: 'المحافظة على نظافة المركبة',
@@ -307,6 +333,7 @@ const driverRatingModalCopy = {
     title: 'Rate the rider',
     description: 'Your feedback helps us improve the ride experience.',
     riderSection: 'Rider rating',
+    criteriaHint: 'Answer only the points you want — anything left blank is not counted against the rider.',
     riderRespect: 'Respect',
     riderPunctuality: 'Punctuality',
     riderCleanliness: 'Care for the vehicle',

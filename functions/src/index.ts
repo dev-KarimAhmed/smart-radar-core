@@ -32,15 +32,16 @@ export {
   updateSovereignPricing
 } from './handlers/users';
 
-// drivers.ts (New Sovereign Command Center)
-export { enforceEmergencyDescent } from './handlers/drivers';
-
-// ratings.ts
-export {
-  submitTripFeedback,
-  generateWeeklyReport,
-  submitRiderRating
-} from './handlers/ratings';
+// [RANK-ENGINE-2026-08-22] ratings.ts and drivers.ts were deleted, not just unexported.
+// Ranking and rating now live entirely in Postgres:
+//   supabase/migrations/20260822090000_captain_rank_sovereign_engine.sql
+// Gone with them: submitTripFeedback, submitRiderRating, generateWeeklyReport,
+// enforceEmergencyDescent — none of which the app ever called. What they did beyond
+// ranking, and which of it still has no Supabase home, is written down in
+// docs/firebase-removal-plan.md.
+//
+// Deleting the source does NOT undeploy them. Run `firebase deploy --only functions`
+// once (or delete them in the Firebase console) to remove them from the project.
 
 // cleanup.ts
 export { purgeExpiredBuffers, purgeExpiredTrips72Hours } from './handlers/cleanup';
