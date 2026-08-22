@@ -33,7 +33,7 @@ interface DriverOpsContextType {
   isEndingTrip: boolean;
   cancelActiveTrip: () => Promise<boolean>;
   isCancellingTrip: boolean;
-  rateAndFinishTrip: (rating: number) => Promise<void>;
+  rateAndFinishTrip: () => Promise<void>;
   isRatingRider: boolean;
   isRequestListOpen: boolean;
   toggleRequestList: (open?: boolean) => void;
@@ -150,8 +150,8 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
     return rawCancelActiveTrip();
   }, [rawCancelActiveTrip]);
 
-  const rateAndFinishTrip = useCallback(async (rating: number) => {
-    await rawRateAndFinishTrip(rating);
+  const rateAndFinishTrip = useCallback(async () => {
+    await rawRateAndFinishTrip();
   }, [rawRateAndFinishTrip]);
 
   const requestWeeklyReport = useCallback(async () => {

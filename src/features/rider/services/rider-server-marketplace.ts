@@ -234,24 +234,6 @@ export async function fetchRideRequestStatus(client: SupabaseFromLike, requestId
   return data as Record<string, unknown> | null;
 }
 
-export async function submitRideRating(
-  client: SupabaseMarketplaceRpcLike,
-  input: { requestId: string; captainId: string; ratingValue: number; comment?: string },
-) {
-  if (input.comment && (process.env.NODE_ENV !== 'production')) {
-    console.log('[Sovereign Feedback Comment]:', input.comment);
-  }
-
-  const { data, error } = await client.rpc('submit_ride_rating', {
-    p_request_id: input.requestId,
-    p_captain_id: input.captainId,
-    p_rating_value: toStrictRating(input.ratingValue),
-  });
-
-  if (error) throw error;
-  return data;
-}
-
 export async function cancelRideRequest(client: SupabaseMarketplaceRpcLike, requestId: string) {
   const { error } = await client.rpc('cancel_ride_request', {
     p_request_id: requestId,
@@ -717,11 +699,3 @@ function toStrictPositiveInteger(value: unknown, fieldName: string) {
   return numberValue;
 }
 
-function toStrictRating(value: unknown) {
-  const numberValue = Number(value);
-  if (!Number.isInteger(numberValue) || numberValue < 1 || numberValue > 5) {
-    throw new Error('invalid_p_rating_value');
-  }
-
-  return numberValue;
-}

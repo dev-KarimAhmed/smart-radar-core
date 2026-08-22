@@ -61,26 +61,17 @@ export function useRiderTransactions(
     });
   }, [resetState, toast, trip?.id, withLock]);
 
-  const rateTrip = useCallback(async (ratings: { driverRating: number }) => {
+  /**
+   * Rating lives in RatingModal, which writes the detailed criteria to `reviews`. This
+   * function used to call the submit_ride_rating RPC, a second writer of profiles.rating
+   * that would clobber the reviews aggregate; no component ever called it. Kept as a no-op
+   * only because RiderOperationsContextType still declares it.
+   * See docs/rating-system-audit.md.
+   */
+  const rateTrip = useCallback(async () => {
     if (!trip?.id || !acceptedDriver?.uid) return;
-    await withLock('rating', async () => {
-      setIsRating(true);
-      try {
-        const { error } = await supabase.rpc('submit_ride_rating', {
-          p_request_id: trip.id,
-          p_captain_id: acceptedDriver.uid,
-          p_rating_value: Math.max(1, Math.min(5, Math.round(ratings.driverRating))),
-        });
-        if (error) throw error;
-        toast({ title: 'شكراً لتقييمك', description: 'تم حفظ التقييم.' });
-        resetState();
-      } catch {
-        toast({ variant: 'destructive', title: 'تعذر حفظ التقييم', description: 'حاول مرة أخرى بعد قليل.' });
-      } finally {
-        setIsRating(false);
-      }
-    });
-  }, [acceptedDriver?.uid, resetState, toast, trip?.id, withLock]);
+    resetState();
+  }, [acceptedDriver?.uid, resetState, trip?.id]);
 
   const confirmCheckpoint = useCallback(async () => {
     if (!trip?.id) return;

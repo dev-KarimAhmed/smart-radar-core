@@ -1,17 +1,26 @@
 -- Follow-up to 20260822090000_captain_rank_sovereign_engine.sql.
 --
--- That migration made a set of profile columns engine-owned: sync_captain_rank() rolls
--- back any write to rating / rating_sum / rating_count / trust_score / heart_count /
--- penalty_count / tier that does not set the `radar.rank_engine` flag first.
+-- Two fixes, both consequences of settling which table owns the rating:
+--   1. public.reviews wins; the older submit_ride_rating / rider_ratings path is retired.
+--   2. A review that scores nothing must still record its heart, now that the rating
+--      modals omit unanswered criteria instead of sending them as 0.
 --
--- public.submit_ride_rating() writes four of those columns and does not set the flag, so
--- its UPDATE is silently discarded. It is not currently reachable from the UI — every one
--- of its three call sites is dead code (see docs/rating-system-audit.md) — so nothing is
--- broken in production today. But it is a landmine: the moment anyone wires that RPC to a
--- button, ratings would vanish with no error. Fixed here.
+-- Background and the reasoning for both: docs/rating-system-audit.md
+
+-- ---------------------------------------------------------------------------
+-- submit_ride_rating is retired, not just made safe.
 --
--- Nothing else changes. apply_review_to_profile() keeps owning the rating aggregate,
--- because public.reviews is the only rating source the live UI actually writes to.
+-- public.reviews is the rating system: it is what both live modals write, and its detailed
+-- named criteria are the product decision. submit_ride_rating is the older star-based
+-- duplicate, and the two cannot coexist — it *recomputes* profiles.rating from
+-- rider_ratings while apply_review_to_profile *increments* it from a review, so whichever
+-- ran last would wipe the other's contribution.
+--
+-- Its three client call sites were removed in the same change. The function is kept (the
+-- 6 rows in rider_ratings are real history) but locked so it cannot silently become a
+-- second writer again: EXECUTE is revoked, and it refuses outright with a message that
+-- says where the rating went.
+-- ---------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION public.submit_ride_rating(
   p_request_id uuid,
@@ -19,70 +28,17 @@ CREATE OR REPLACE FUNCTION public.submit_ride_rating(
   p_rating_value integer
 ) RETURNS jsonb
 LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
 AS $fn$
-DECLARE
-  req public.ride_requests%rowtype;
-  new_trust_score numeric;
-  rating_total numeric;
-  rating_rows integer;
-  v_engine_before text := coalesce(current_setting('radar.rank_engine', true), '');
 BEGIN
-  IF p_rating_value < 1 OR p_rating_value > 5 THEN
-    RAISE EXCEPTION 'invalid_rating_value';
-  END IF;
-
-  SELECT * INTO req FROM public.ride_requests WHERE id = p_request_id FOR UPDATE;
-  IF NOT found THEN RAISE EXCEPTION 'ride_request_not_found'; END IF;
-  IF req.rider_id <> auth.uid() THEN RAISE EXCEPTION 'not_request_owner'; END IF;
-  IF upper(coalesce(req.status::text, '')) <> 'COMPLETED' THEN RAISE EXCEPTION 'ride_request_not_completed'; END IF;
-  IF req.accepted_captain_id IS DISTINCT FROM p_captain_id THEN RAISE EXCEPTION 'captain_mismatch'; END IF;
-
-  INSERT INTO public.rider_ratings (request_id, rider_id, captain_id, rating_value)
-  VALUES (p_request_id, req.rider_id, p_captain_id, p_rating_value)
-  ON CONFLICT (request_id, rider_id)
-  DO UPDATE SET rating_value = excluded.rating_value;
-
-  SELECT coalesce(sum(rating_value), 0), count(*)
-  INTO rating_total, rating_rows
-  FROM public.rider_ratings
-  WHERE captain_id = p_captain_id;
-
-  new_trust_score := round((rating_total / greatest(rating_rows, 1))::numeric, 2);
-
-  -- THE ONLY CHANGE. Without this the UPDATE below is reverted by the BEFORE UPDATE
-  -- trigger installed in 20260822090000 and the rating disappears without an error.
-  PERFORM set_config('radar.rank_engine', 'on', true);
-
-  UPDATE public.profiles
-  SET trust_score = coalesce(new_trust_score, 5),
-      rating = coalesce(new_trust_score, 5),
-      rating_sum = rating_total,
-      rating_count = rating_rows,
-      updated_at = now()
-  WHERE id = p_captain_id;
-
-  -- Restore rather than clear, so this cannot close an engine block opened by a caller.
-  PERFORM set_config('radar.rank_engine', v_engine_before, true);
-
-  RETURN jsonb_build_object(
-    'request_id', p_request_id,
-    'captain_id', p_captain_id,
-    'rating_value', p_rating_value,
-    'trust_score', coalesce(new_trust_score, 5)
-  );
+  RAISE EXCEPTION 'rating_path_retired: use an insert into public.reviews (detailed_stars + gave_heart); see docs/rating-system-audit.md';
 END;
 $fn$;
 
-GRANT EXECUTE ON FUNCTION public.submit_ride_rating(uuid, uuid, integer) TO authenticated;
+REVOKE ALL ON FUNCTION public.submit_ride_rating(uuid, uuid, integer) FROM authenticated;
+REVOKE ALL ON FUNCTION public.submit_ride_rating(uuid, uuid, integer) FROM anon;
 
--- WARNING, not fixed here because it needs a product decision: submit_ride_rating() and
--- apply_review_to_profile() would fight over the same columns if BOTH were ever live.
--- The first recomputes the aggregate from rider_ratings; the second increments it from a
--- review. Whichever runs last wipes the other's contribution. Today only the reviews path
--- is reachable, so they never both run. Do not wire submit_ride_rating to the UI without
--- settling which table owns the rating. See docs/rating-system-audit.md.
+COMMENT ON FUNCTION public.submit_ride_rating(uuid, uuid, integer) IS
+  'RETIRED 2026-08-22. Replaced by the public.reviews path (apply_review_to_profile). Raises unconditionally so it cannot become a second writer of profiles.rating.';
 
 
 -- ---------------------------------------------------------------------------

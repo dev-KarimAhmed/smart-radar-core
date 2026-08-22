@@ -7,7 +7,6 @@ import {
   completeRideTrip,
   fetchRideRequestStatus,
   mapRiderMarketplaceError,
-  submitRideRating,
 } from '../services/rider-server-marketplace';
 import { toHistoricalTrip } from '../services/rider-view-format';
 import type { HistoricalTrip } from '../components/rider-dashboard';
@@ -16,9 +15,13 @@ import type { RiderMachineAction, RiderMachineState } from '../state/rider-state
 const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
 
 /**
- * Owns completing an active trip (persisting it to the local trip ledger)
- * and submitting the post-trip rating, including the local "recently
- * completed" cache the trips tab reads from.
+ * Owns completing an active trip (persisting it to the local trip ledger) and the local
+ * "recently completed" cache the trips tab reads from.
+ *
+ * Rating is NOT here: the rider submits it through RatingModal, which writes the detailed
+ * criteria to `reviews`. This hook used to carry a second, star-based submission path via
+ * the submit_ride_rating RPC that no component ever called — removed, because two writers
+ * of profiles.rating clobber each other. See docs/rating-system-audit.md.
  */
 export function useTripCompletion(state: RiderMachineState, dispatch: React.Dispatch<RiderMachineAction>) {
   const { toast } = useToast();
@@ -92,71 +95,6 @@ export function useTripCompletion(state: RiderMachineState, dispatch: React.Disp
     }
   }, [dispatch, state.activeTrip, state.requestId, t, toast]);
 
-  const handleSubmitRating = React.useCallback(async () => {
-    if (!state.completedTrip || !state.requestId) {
-      toast({
-        variant: 'destructive',
-        title: t('rating.incompleteTitle'),
-        description: t('rating.incompleteDescription'),
-      });
-      return;
-    }
-
-    const ratingValue = Math.max(1, Math.min(5, Math.round(rating.captain)));
-    setIsSubmittingRating(true);
-
-    try {
-      await submitRideRating(supabase, {
-        requestId: state.requestId,
-        captainId: state.completedTrip.captainId,
-        ratingValue,
-        comment: ratingComment || undefined,
-      });
-
-      if (rating.favorite) {
-        try {
-          const favoriteTrip = toHistoricalTrip(state.completedTrip);
-          await dexieDb.favoriteCaptains.put({
-            ...favoriteTrip,
-            captainId: state.completedTrip.captainId,
-            driverId: state.completedTrip.captainId,
-            heartedAt: Date.now(),
-          } as any);
-          if (typeof window !== 'undefined' && state.completedTrip.captainId) {
-            window.localStorage.setItem(
-              `radar_preferred_captain_${state.completedTrip.captainId}`,
-              JSON.stringify({
-                captainId: state.completedTrip.captainId,
-                driverId: state.completedTrip.captainId,
-                captainName: state.completedTrip.captainName,
-                fullName: state.completedTrip.captainName,
-                captainPhone: state.completedTrip.captainPhone,
-                phoneNumber: state.completedTrip.captainPhone,
-                vehicleSpecs: `${state.completedTrip.vehicleType} - ${state.completedTrip.vehiclePlate}`,
-                savedTimestamp: Date.now(),
-              }),
-            );
-          }
-        } catch (cacheError) {
-          if ((process.env.NODE_ENV !== 'production')) console.warn('[Rider Favorite Captain Cache]', cacheError);
-        }
-      }
-
-      dispatch({ type: 'SUBMIT_RATING' });
-      setRating({ captain: 0, vehicle: 0, favorite: false });
-      setRatingComment('');
-    } catch (error) {
-      if ((process.env.NODE_ENV !== 'production')) console.warn('[Rider Submit Rating]', error);
-      toast({
-        variant: 'destructive',
-        title: t('rating.failedTitle'),
-        description: mapRiderMarketplaceError(error),
-      });
-    } finally {
-      setIsSubmittingRating(false);
-    }
-  }, [dispatch, rating.captain, rating.favorite, ratingComment, state.completedTrip, state.requestId, t, toast]);
-
   const reset = React.useCallback(() => {
     setRiderCount(1);
     setRating({ captain: 0, vehicle: 0, favorite: false });
@@ -173,9 +111,7 @@ export function useTripCompletion(state: RiderMachineState, dispatch: React.Disp
     setRating,
     ratingComment,
     setRatingComment,
-    isSubmittingRating,
     handleCompleteTrip,
-    handleSubmitRating,
     reset,
   };
 }

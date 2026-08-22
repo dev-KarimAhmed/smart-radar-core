@@ -6,11 +6,19 @@ import { dexieDb } from '@/lib/dexie-db';
 import { useToast } from '@/hooks/use-toast';
 import type { Trip, User } from '@/core/types';
 import { buildGoogleMapsUrl, isValidCoordinatePair, normalizeExternalMapUrl } from '../services/ride-location';
+import { generateWeeklyReport, type CaptainRankName } from '../services/captain-rank';
 
 type RideOfferRow = Record<string, unknown>;
 type RideRequestRow = Record<string, unknown>;
 
 export const MIN_OFFER_WAIT_SECONDS = 5;
+
+const RANK_LABELS_AR: Record<CaptainRankName, string> = {
+  PLATINUM: 'بلاتيني',
+  GOLD: 'ذهبي',
+  SILVER: 'فضي',
+  BRONZE: 'برونزي',
+};
 
 export function useDriverTransactions(
   user: User | null,
@@ -484,45 +492,55 @@ export function useDriverTransactions(
     }
   }, [activeRequest?.id, cleanUpAndReset, toast]);
 
-  const rateAndFinishTrip = useCallback(async (rating: number) => {
-    if (!activeRequest?.id || !activeRequest.riderId || ratingRef.current) return;
+  /**
+   * The captain rates the rider through DriverRatingModal (captain-view renders it on
+   * screen === 'RATING_MODAL'), which writes the detailed criteria to `reviews`. This hook
+   * only has to close the trip out afterwards.
+   *
+   * It used to call the submit_ride_rating RPC with p_captain_id = riderId, which that
+   * function rejects unconditionally — it raises `not_request_owner` for any caller that is
+   * not the request's rider, and a captain never is. So it always failed, and had it ever
+   * succeeded it would have written the rider's id into rider_ratings.captain_id.
+   */
+  const rateAndFinishTrip = useCallback(async () => {
+    if (!activeRequest?.id || ratingRef.current) return;
     ratingRef.current = true;
     setIsRatingRider(true);
 
     try {
-      const { error } = await supabase.rpc('submit_ride_rating', {
-        p_request_id: activeRequest.id,
-        p_captain_id: activeRequest.riderId,
-        p_rating_value: Math.min(5, Math.max(1, Math.round(rating))),
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: 'تم حفظ التقييم',
-        description: 'شكراً لك، تم تحديث تقييم الرحلة من الخادم.',
-      });
-      cleanUpAndReset();
-    } catch (error) {
-      if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver transactions] rating failed:', error);
-      toast({
-        variant: 'destructive',
-        title: 'تعذر حفظ التقييم',
-        description: 'لم يقبل الخادم التقييم حالياً. يمكنك المحاولة لاحقاً.',
-      });
       cleanUpAndReset();
     } finally {
       ratingRef.current = false;
       setIsRatingRider(false);
     }
-  }, [activeRequest?.id, activeRequest?.riderId, cleanUpAndReset, toast]);
+  }, [activeRequest?.id, cleanUpAndReset]);
 
   const requestWeeklyReport = useCallback(async () => {
     setIsRequestingReport(true);
     try {
+      const report = await generateWeeklyReport();
+
+      if (!report.success) {
+        // COURT_001 = no new ratings since the last report, COURT_002 = still inside the
+        // 72h disciplinary lock. Both are legitimate answers, not failures.
+        toast({
+          title: RANK_LABELS_AR[report.rank] ?? report.rank,
+          description: report.message,
+        });
+        return;
+      }
+
+      const { averageRating, heartCount, newRank } = report.stats;
       toast({
-        title: 'التقرير غير متاح حالياً',
-        description: 'سيتم ربط تقارير الأداء التفصيلية بعد اكتمال لوحة الإدارة.',
+        title: `رتبتك: ${RANK_LABELS_AR[newRank] ?? newRank}`,
+        description: `متوسط التقييم ${Number(averageRating).toFixed(2)} · ${heartCount} قلب`,
+      });
+    } catch (error: any) {
+      if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver transactions] weekly report failed:', error);
+      toast({
+        variant: 'destructive',
+        title: 'تعذر تجهيز التقرير',
+        description: error?.message || 'حاول مرة أخرى بعد قليل.',
       });
     } finally {
       setIsRequestingReport(false);

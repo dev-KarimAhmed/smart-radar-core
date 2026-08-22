@@ -1,7 +1,7 @@
 # Rating + rank system: end-to-end audit
 
 2026-08-22. Verdict: **the rank engine is installed and correct. The rating UI that fed
-it has been fixed (Problem 1); three smaller issues remain, all in dead code.** Details below.
+it has been fixed, and all four problems found in the audit are now resolved.** Details below.
 
 ## Backend — verified working
 
@@ -71,49 +71,60 @@ Files changed: `src/components/dashboard/shared/rating-modal.tsx` (rider → cap
 vehicle and captain sections) and `src/features/captain/components/driver-rating-modal.tsx`
 (captain → rider).
 
-## Problem 2 — `submit_ride_rating` is a landmine
+## Problem 2 — RESOLVED: the duplicate star-rating path is retired
 
-`public.submit_ride_rating(request_id, captain_id, rating_value)` is a proper 1–5 star
-path: it writes `rider_ratings` and full-recomputes `profiles.rating / rating_sum /
-rating_count / trust_score`. It holds the 6 real star ratings in the table (avg **4.17** —
-healthy, unlike the derived numbers above).
+`public.submit_ride_rating(request_id, captain_id, rating_value)` was an older star-based
+path: it wrote `rider_ratings` and **recomputed** `profiles.rating / rating_sum /
+rating_count / trust_score`. `apply_review_to_profile` **increments** the same columns from
+a review. The two cannot coexist — whichever ran last wiped the other's contribution.
 
-**It is unreachable from the current UI.** All three call sites are dead:
+`public.reviews` is the rating system, because its detailed named criteria are the product
+decision and it is what both live modals write. So the duplicate was retired, not revived:
 
-| Call site | Why it is dead |
+- All three dead call sites removed — `handleSubmitRating` in `use-trip-completion.ts`, the
+  RPC call in `use-rider-transactions.tsx`, and the `submitRideRating` wrapper (plus its
+  orphaned `toStrictRating` helper) in `rider-server-marketplace.ts`.
+- The RPC now raises `rating_path_retired` unconditionally and has `EXECUTE` revoked from
+  `authenticated` and `anon`, so it cannot quietly become a second writer again. The
+  function is kept rather than dropped because the 6 rows in `rider_ratings` are real
+  history (avg 4.17).
+
+`rateTrip` in `use-rider-transactions.tsx` survives as a no-op only because
+`RiderOperationsContextType` still declares it; nothing consumes it.
+
+## Problem 3 — RESOLVED: captain→rider rating already worked
+
+It was never actually broken. `captain-view.tsx` renders `DriverRatingModal` on
+`screen === 'RATING_MODAL'`, that writes the detailed criteria to `reviews`, and
+`apply_review_to_profile` aggregates them onto the rider's profile.
+
+What was broken was `rateAndFinishTrip` in `use-driver-transactions.ts` — a second,
+redundant path calling `submit_ride_rating` with `p_captain_id = riderId`. That function
+raises `not_request_owner` for any caller who is not the request's rider, and a captain
+never is, so it always threw; had it ever succeeded it would have written the rider's id
+into `rider_ratings.captain_id`. No component called it.
+
+It is now reduced to closing the trip out after the modal, and its unused `rating`
+parameter is gone (signature updated in `use-driver-operations.tsx` to match).
+
+## Problem 4 — RESOLVED: the weekly-report button is wired
+
+`driver-actions.tsx` has a real, visible "طلب تقرير الأداء" button, and
+`requestWeeklyReport` in `use-driver-transactions.ts` was a placeholder showing only
+"التقرير غير متاح حالياً". It now calls `generateWeeklyReport()` from
+`src/features/captain/services/captain-rank.ts`:
+
+| Server response | What the captain sees |
 |---|---|
-| `use-trip-completion.ts:109` (`handleSubmitRating`) | returned from the hook, but no component ever references it |
-| `use-rider-transactions.tsx:69` (`rateTrip`) | `useRiderTransactions` has zero consumers, and `use-rider-operations.tsx:112` hard-codes `rateTrip: resolvedPromise` — a no-op stub |
-| `use-driver-transactions.ts:493` (`rateAndFinishTrip`) | plumbed through `use-driver-operations` but no component calls it |
+| success | `رتبتك: <rank>` plus average rating and heart count |
+| `COURT_001` | no new ratings since the last report |
+| `COURT_002` | promotion still locked by the 72h disciplinary window |
+| thrown error | a destructive toast carrying the message |
 
-So `rider_ratings` is a fossil from an earlier UI. Two consequences:
+## Still outstanding
 
-- It did **not** break when the rank engine froze those columns, because it never runs.
-  But it would have — silently, with no error. `20260822140000_rank_engine_rating_source_fix.sql`
-  makes it engine-aware so that stays safe.
-- If it is ever revived, it and `apply_review_to_profile` will fight: one recomputes the
-  aggregate from `rider_ratings`, the other increments it from a review. Whichever runs
-  last wipes the other. **Decide which table owns the rating before wiring it up.**
-
-Note this is also the cleanest route out of Problem 1: option 1 above is essentially
-"revive this RPC and point the modal at it".
-
-## Problem 3 — the captain can never rate the rider (pre-existing)
-
-`use-driver-transactions.ts:493` calls `submit_ride_rating` with
-`p_captain_id = activeRequest.riderId`, but the function raises `not_request_owner` unless
-`auth.uid() = req.rider_id`. When a captain calls it, that is false by definition, so it
-always throws and the UI shows the generic "تعذر حفظ التقييم". If it ever did pass, it
-would write the rider's id into `rider_ratings.captain_id` and corrupt the table.
-
-Unrelated to the rank engine (rider ratings do not feed captain rank), and currently
-harmless because the call site is dead — but it needs its own fix whenever captain→rider
-rating is wanted.
-
-## Problem 4 — `generate_weekly_report` has no caller
-
-The RPC exists and `src/features/captain/services/captain-rank.ts` wraps it, but the
-captain-facing `requestWeeklyReport` in `use-driver-transactions.ts:520` is a placeholder
-that only shows a toast: "التقرير غير متاح حالياً". Wiring it to the real RPC is a small
-change, and worth doing since the automatic trigger already keeps ranks current — the RPC
-is mainly for an on-demand refresh and admin use.
+- `docs/verify-captain-rank-engine.sql` has to be run by hand. The MCP connection is
+  read-only, so the promotion, descent and 72h-lock paths have never been exercised at
+  runtime.
+- `resync_all_captain_ranks()` is deliberately called by no migration. Running it corrects
+  the hand-seeded ranks (4 PLATINUM / 5 GOLD that do not meet the rules) downward.
