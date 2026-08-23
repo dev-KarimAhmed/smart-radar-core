@@ -788,7 +788,9 @@
     "pricePerKmModalSaving": "Saving...",
     "pricePerKmModalError": "Could not save the data. Check your connection and try again.",
     "pricePerKmModalInvalid": "Please enter a price per km greater than zero.",
-    "pricePerKmModalFlagFallInvalid": "Please enter a valid flag-fall fee (zero or more)."
+    "pricePerKmModalFlagFallInvalid": "Please enter a valid flag-fall fee (zero or more).",
+    "pricePerKmModalPriceRangeError": "Price per km must be between {min} and {max} (captains in your area average around {avg}) — this keeps the market fair, without over- or under-cutting.",
+    "pricePerKmModalFlagFallRangeError": "The flag-fall fee must be between {min} and {max} (captains in your area average around {avg}) — this keeps the market fair, without over- or under-cutting."
   },
   "captainPickup": {
     "pickupLocation": "Pickup location",
@@ -870,6 +872,12 @@
     "instagram": "Instagram link (optional)",
     "pricePerKm": "Price per km",
     "flagFallFee": "Flag-fall fee",
+    "pricingInvalidTitle": "Invalid pricing data",
+    "pricingInvalidBody": "Enter a price per km greater than zero, and a flag-fall fee of zero or more.",
+    "pricingRangeErrorTitle": "Price is outside the allowed range",
+    "pricingPriceRangeError": "Price per km must be between {min} and {max} (captains in your area average around {avg}).",
+    "pricingFlagFallRangeError": "The flag-fall fee must be between {min} and {max} (captains in your area average around {avg}).",
+    "pricingGenericError": "Could not save pricing data. Check your connection and try again.",
     "notProvided": "Not added",
     "trustTitle": "Account rating",
     "trustBody": "The rating is calculated from saved trip ratings after completed trips.",

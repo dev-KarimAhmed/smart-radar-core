@@ -788,7 +788,9 @@
     "pricePerKmModalSaving": "جاري الحفظ...",
     "pricePerKmModalError": "تعذر حفظ البيانات. تحقق من الاتصال وحاول مرة أخرى.",
     "pricePerKmModalInvalid": "يرجى كتابة سعر كيلومتر أكبر من صفر.",
-    "pricePerKmModalFlagFallInvalid": "يرجى كتابة قيمة صحيحة لفتحة العداد (صفر أو أكبر)."
+    "pricePerKmModalFlagFallInvalid": "يرجى كتابة قيمة صحيحة لفتحة العداد (صفر أو أكبر).",
+    "pricePerKmModalPriceRangeError": "سعر الكيلومتر يجب أن يكون بين {min} و {max} (متوسط الكباتن في منطقتك تقريباً {avg}) — حماية للسوق من التسعير المبالغ فيه أو المبالغ في تخفيضه.",
+    "pricePerKmModalFlagFallRangeError": "فتحة العداد يجب أن تكون بين {min} و {max} (متوسط الكباتن في منطقتك تقريباً {avg}) — حماية للسوق من التسعير المبالغ فيه أو المبالغ في تخفيضه."
   },
   "captainPickup": {
     "pickupLocation": "موقع الالتقاط",
@@ -870,6 +872,12 @@
     "instagram": "رابط انستجرام (اختياري)",
     "pricePerKm": "سعر الكيلومتر",
     "flagFallFee": "فتحة العداد",
+    "pricingInvalidTitle": "بيانات السعر غير صحيحة",
+    "pricingInvalidBody": "اكتب سعر كيلومتر أكبر من صفر، وفتحة عداد صفر أو أكبر.",
+    "pricingRangeErrorTitle": "السعر خارج النطاق المسموح",
+    "pricingPriceRangeError": "سعر الكيلومتر يجب أن يكون بين {min} و {max} (متوسط الكباتن في منطقتك تقريباً {avg}).",
+    "pricingFlagFallRangeError": "فتحة العداد يجب أن تكون بين {min} و {max} (متوسط الكباتن في منطقتك تقريباً {avg}).",
+    "pricingGenericError": "تعذر حفظ بيانات التسعير. تحقق من الاتصال وحاول مرة أخرى.",
     "notProvided": "غير مضاف",
     "trustTitle": "تقييم الحساب",
     "trustBody": "يتم احتساب التقييم من تقييمات الرحلات المحفوظة بعد إنهاء الرحلات.",

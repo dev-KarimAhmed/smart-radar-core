@@ -11,6 +11,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import type { CaptainPricingSaveResult } from '../services/captain-pricing';
 
 const styles = {
   content: 'border-emerald-500/25 bg-[#0B0F19] text-white shadow-2xl',
@@ -33,7 +34,7 @@ interface PricePerKmSetupModalProps {
   initialValue?: number | null;
   initialFlagFallValue?: number | null;
   isCountryChange?: boolean;
-  onSave: (price: number, flagFallFee: number) => Promise<boolean>;
+  onSave: (price: number, flagFallFee: number) => Promise<CaptainPricingSaveResult>;
 }
 
 export function PricePerKmSetupModal({
@@ -66,10 +67,10 @@ export function PricePerKmSetupModal({
 
     setIsSaving(true);
     setError('');
-    const saved = await onSave(numericValue, numericFlagFall);
+    const result = await onSave(numericValue, numericFlagFall);
     setIsSaving(false);
-    if (!saved) {
-      setError(t('pricePerKmModalError'));
+    if (!result.ok) {
+      setError(describeSaveError(result, t));
     }
   };
 
@@ -136,4 +137,16 @@ export function PricePerKmSetupModal({
       </AlertDialogContent>
     </AlertDialog>
   );
+}
+
+function describeSaveError(result: CaptainPricingSaveResult, t: ReturnType<typeof useTranslations>) {
+  if (result.errorCode === 'price_per_km_out_of_range' && result.range) {
+    const { min, max, avg } = result.range;
+    return t('pricePerKmModalPriceRangeError', { min, max, avg });
+  }
+  if (result.errorCode === 'flag_fall_fee_out_of_range' && result.range) {
+    const { min, max, avg } = result.range;
+    return t('pricePerKmModalFlagFallRangeError', { min, max, avg });
+  }
+  return t('pricePerKmModalError');
 }

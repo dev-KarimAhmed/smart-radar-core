@@ -7,6 +7,7 @@ import type { User } from '@/core/types';
 import { supabase } from '@/lib/supabase-client';
 import { useToast } from '@/hooks/use-toast';
 import { colorNameToHex, hexToColorName, resolveColorDisplayName } from '@/shared/services/color-name';
+import { saveCaptainPricing, type CaptainPricingSaveResult } from '../services/captain-pricing';
 
 const styles = {
   style244_1: "mx-auto max-w-5xl space-y-5 text-white",
@@ -231,6 +232,34 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
     if (!user?.uid) return;
     setIsSaving(true);
     try {
+      // Validated server-side (average-of-peers range check) — must go
+      // through the RPC, not a direct table write, or this screen would be
+      // a trivial bypass for the same anti-dumping/anti-gouging guard the
+      // mandatory pricing modal enforces. Left blank fields are skipped
+      // rather than saved as null, so this screen can't be used to clear the
+      // mandatory setup without going through the RPC's own validation.
+      const hasPriceEdits = pricePerKm.trim() !== '' || flagFallFee.trim() !== '';
+      if (hasPriceEdits) {
+        const numericPrice = Number(pricePerKm);
+        const numericFlagFall = Number(flagFallFee);
+        if (!Number.isFinite(numericPrice) || numericPrice <= 0 || !Number.isFinite(numericFlagFall) || numericFlagFall < 0) {
+          toast({ variant: 'destructive', title: t('pricingInvalidTitle'), description: t('pricingInvalidBody') });
+          setIsSaving(false);
+          return;
+        }
+
+        const pricingResult = await saveCaptainPricing(supabase, numericPrice, numericFlagFall);
+        if (!pricingResult.ok) {
+          toast({
+            variant: 'destructive',
+            title: t('pricingRangeErrorTitle'),
+            description: describePricingError(pricingResult, t),
+          });
+          setIsSaving(false);
+          return;
+        }
+      }
+
       const vehicle = {
         plate: vehiclePlate.trim(),
         make: vehicleMake.trim(),
@@ -284,8 +313,6 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
         employment_type: businessName.trim() || null,
         facebook_url: facebookUrl.trim() || null,
         instagram_url: instagramUrl.trim() || null,
-        price_per_km: pricePerKm.trim() ? Number(pricePerKm) : null,
-        flag_fall_fee: flagFallFee.trim() ? Number(flagFallFee) : null,
       };
       if (isTaxi) {
         captainProfilePayload.office_phone = officePhone.trim() || null;
@@ -348,8 +375,10 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
         side_id: sideId.trim(),
         facebook_url: facebookUrl.trim(),
         instagram_url: instagramUrl.trim(),
-        price_per_km: pricePerKm.trim() ? Number(pricePerKm) : null,
-        flag_fall_fee: flagFallFee.trim() ? Number(flagFallFee) : null,
+        // Omitted (not set to null) when left blank — pricing was skipped,
+        // not cleared, so the cached value stays whatever it already was.
+        ...(pricePerKm.trim() ? { price_per_km: Number(pricePerKm) } : {}),
+        ...(flagFallFee.trim() ? { flag_fall_fee: Number(flagFallFee) } : {}),
       },
     }));
   };
@@ -733,6 +762,18 @@ function Field({ label, value }: { label: string; value: string }) {
       <p className={styles.style474_75}>{value}</p>
     </div>
   );
+}
+
+function describePricingError(result: CaptainPricingSaveResult, t: ReturnType<typeof useTranslations>) {
+  if (result.errorCode === 'price_per_km_out_of_range' && result.range) {
+    const { min, max, avg } = result.range;
+    return t('pricingPriceRangeError', { min, max, avg });
+  }
+  if (result.errorCode === 'flag_fall_fee_out_of_range' && result.range) {
+    const { min, max, avg } = result.range;
+    return t('pricingFlagFallRangeError', { min, max, avg });
+  }
+  return t('pricingGenericError');
 }
 
 function firstString(...values: unknown[]) {

@@ -3,6 +3,7 @@
 import React from 'react';
 import { supabase } from '@/lib/supabase-client';
 import type { User } from '@/core/types';
+import { saveCaptainPricing, type CaptainPricingSaveResult } from '../services/captain-pricing';
 
 /**
  * Gates the mandatory price-per-km popup. It appears in exactly three cases:
@@ -63,20 +64,17 @@ export function usePricePerKmSetup(user: User | null, isInDifferentCountry = fal
     setPendingReconfirm(true);
   }, []);
 
-  const savePricing = React.useCallback(async (price: number, flagFall: number) => {
-    if (!user?.uid) return false;
-    const { error } = await supabase
-      .from('captain_profiles')
-      .update({ price_per_km: price, flag_fall_fee: flagFall })
-      .eq('id', user.uid);
-    if (error) {
-      if ((process.env.NODE_ENV !== 'production')) console.warn('[Captain price-per-km save]', error);
-      return false;
+  const savePricing = React.useCallback(async (price: number, flagFall: number): Promise<CaptainPricingSaveResult> => {
+    if (!user?.uid) return { ok: false };
+    const result = await saveCaptainPricing(supabase, price, flagFall);
+    if (!result.ok) {
+      if ((process.env.NODE_ENV !== 'production')) console.warn('[Captain price-per-km save]', result.errorCode);
+      return result;
     }
     setPricePerKm(price);
     setFlagFallFee(flagFall);
     setPendingReconfirm(false);
-    return true;
+    return result;
   }, [user?.uid]);
 
   return {
