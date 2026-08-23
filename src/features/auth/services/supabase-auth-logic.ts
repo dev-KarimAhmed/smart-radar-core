@@ -95,6 +95,23 @@ export function buildRiderSignUpMetadata(input: RiderSupabaseSignUpInput): Rider
   };
 }
 
+// Narrower than the "invalid credentials" branch inside mapSupabaseAuthError
+// below — this excludes the otp/token-expired cases (those aren't "wrong
+// phone or password", so they shouldn't nudge someone toward registering).
+// Used to decide when a failed login should suggest creating a new account.
+export function isInvalidPhoneOrPasswordError(error: unknown) {
+  const authError = error as Partial<AuthError> & { message?: string; code?: string };
+  const message = `${authError?.message || error || ''}`.toLowerCase();
+  const code = `${authError?.code || ''}`.toLowerCase();
+
+  const isInvalidCredentials =
+    code.includes('invalid_credentials') ||
+    message.includes('invalid login') ||
+    message.includes('invalid credentials');
+
+  return isInvalidCredentials && !code.includes('otp') && !message.includes('token');
+}
+
 export function mapSupabaseAuthError(error: unknown) {
   const authError = error as Partial<AuthError> & { message?: string; code?: string; status?: number };
   const name = `${(authError as { name?: string })?.name || ''}`.toLowerCase();

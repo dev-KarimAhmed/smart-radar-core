@@ -15,6 +15,7 @@ import {
 export {
   buildRiderSignUpMetadata,
   buildUserFromSupabaseAuth,
+  isInvalidPhoneOrPasswordError,
   mapSupabaseAuthError,
   normalizeInternationalPhone,
   validatePhoneAndPassword,
