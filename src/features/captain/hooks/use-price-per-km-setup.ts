@@ -5,15 +5,25 @@ import { supabase } from '@/lib/supabase-client';
 import type { User } from '@/core/types';
 
 /**
- * Gates the mandatory price-per-km popup: captains must set this once before
- * using the dashboard normally (`price_per_km` is null until they do), and
- * again whenever their live GPS country no longer matches their registered
- * one — the currency changes, so the price they set no longer means the same
- * thing and needs re-confirming.
+ * Gates the mandatory price-per-km popup. It appears in exactly three cases:
+ * the very first time a captain uses the dashboard (`price_per_km`/
+ * `flag_fall_fee` are null until they set them), whenever their live GPS
+ * country no longer matches their registered one (the currency changes, so
+ * the price they set no longer means the same thing), and every time they
+ * go back online (call `notifyWentOnline` right after a successful manual
+ * "go online" toggle) — NOT on every page reload, and NOT when a trip
+ * finishes and status returns to "active" from "busy". This deliberately
+ * does not infer the online transition from watching `driverStatus`: that
+ * state starts at a synchronous default ('idle') and only resolves to its
+ * real persisted value asynchronously, so a reload while already active
+ * looks identical to a genuine idle-to-active transition — tying this to
+ * the actual toggle action is the only way to tell them apart.
  */
 export function usePricePerKmSetup(user: User | null, isInDifferentCountry = false) {
   const [pricePerKm, setPricePerKm] = React.useState<number | null>(null);
+  const [flagFallFee, setFlagFallFee] = React.useState<number | null>(null);
   const [isLoaded, setIsLoaded] = React.useState(false);
+  const [pendingReconfirm, setPendingReconfirm] = React.useState(false);
 
   React.useEffect(() => {
     if (!user?.uid) {
@@ -24,16 +34,17 @@ export function usePricePerKmSetup(user: User | null, isInDifferentCountry = fal
     let active = true;
     setIsLoaded(false);
 
-    async function loadPricePerKm() {
+    async function loadPricing() {
       try {
         const { data, error } = await supabase
           .from('captain_profiles')
-          .select('price_per_km')
+          .select('price_per_km, flag_fall_fee')
           .eq('id', user!.uid)
           .maybeSingle();
         if (!active) return;
         if (error) throw error;
         setPricePerKm(typeof data?.price_per_km === 'number' ? data.price_per_km : null);
+        setFlagFallFee(typeof data?.flag_fall_fee === 'number' ? data.flag_fall_fee : null);
       } catch (error) {
         if (!active) return;
         if ((process.env.NODE_ENV !== 'production')) console.warn('[Captain price-per-km load]', error);
@@ -42,29 +53,37 @@ export function usePricePerKmSetup(user: User | null, isInDifferentCountry = fal
       }
     }
 
-    void loadPricePerKm();
+    void loadPricing();
     return () => {
       active = false;
     };
   }, [user?.uid]);
 
-  const savePricePerKm = React.useCallback(async (value: number) => {
+  const notifyWentOnline = React.useCallback(() => {
+    setPendingReconfirm(true);
+  }, []);
+
+  const savePricing = React.useCallback(async (price: number, flagFall: number) => {
     if (!user?.uid) return false;
     const { error } = await supabase
       .from('captain_profiles')
-      .update({ price_per_km: value })
+      .update({ price_per_km: price, flag_fall_fee: flagFall })
       .eq('id', user.uid);
     if (error) {
       if ((process.env.NODE_ENV !== 'production')) console.warn('[Captain price-per-km save]', error);
       return false;
     }
-    setPricePerKm(value);
+    setPricePerKm(price);
+    setFlagFallFee(flagFall);
+    setPendingReconfirm(false);
     return true;
   }, [user?.uid]);
 
   return {
-    needsPriceSetup: isLoaded && (pricePerKm === null || isInDifferentCountry),
+    needsPriceSetup: isLoaded && (pricePerKm === null || flagFallFee === null || isInDifferentCountry || pendingReconfirm),
     currentPricePerKm: pricePerKm,
-    savePricePerKm,
+    currentFlagFallFee: flagFallFee,
+    notifyWentOnline,
+    savePricing,
   };
 }

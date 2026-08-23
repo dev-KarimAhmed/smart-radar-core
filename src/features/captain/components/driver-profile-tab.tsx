@@ -114,6 +114,8 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
   const [sideId, setSideId] = React.useState('');
   const [facebookUrl, setFacebookUrl] = React.useState('');
   const [instagramUrl, setInstagramUrl] = React.useState('');
+  const [pricePerKm, setPricePerKm] = React.useState('');
+  const [flagFallFee, setFlagFallFee] = React.useState('');
   const [affiliationType, setAffiliationType] = React.useState('');
   const isTaxi = affiliationType === 'office-taxi';
 
@@ -201,6 +203,8 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
         setSideId(firstString(captainProfile?.side_id));
         setFacebookUrl(firstString(captainProfile?.facebook_url));
         setInstagramUrl(firstString(captainProfile?.instagram_url));
+        setPricePerKm(firstString(typeof captainProfile?.price_per_km === 'number' ? String(captainProfile.price_per_km) : ''));
+        setFlagFallFee(firstString(typeof captainProfile?.flag_fall_fee === 'number' ? String(captainProfile.flag_fall_fee) : ''));
         setAffiliationType(firstString(captainProfile?.affiliation_type, user?.affiliation?.type));
       } catch (error) {
         if (!active) return;
@@ -280,6 +284,8 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
         employment_type: businessName.trim() || null,
         facebook_url: facebookUrl.trim() || null,
         instagram_url: instagramUrl.trim() || null,
+        price_per_km: pricePerKm.trim() ? Number(pricePerKm) : null,
+        flag_fall_fee: flagFallFee.trim() ? Number(flagFallFee) : null,
       };
       if (isTaxi) {
         captainProfilePayload.office_phone = officePhone.trim() || null;
@@ -342,6 +348,8 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
         side_id: sideId.trim(),
         facebook_url: facebookUrl.trim(),
         instagram_url: instagramUrl.trim(),
+        price_per_km: pricePerKm.trim() ? Number(pricePerKm) : null,
+        flag_fall_fee: flagFallFee.trim() ? Number(flagFallFee) : null,
       },
     }));
   };
@@ -381,6 +389,8 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
     setSideId(firstString(captainProfile?.side_id));
     setFacebookUrl(firstString(captainProfile?.facebook_url));
     setInstagramUrl(firstString(captainProfile?.instagram_url));
+    setPricePerKm(firstString(typeof captainProfile?.price_per_km === 'number' ? String(captainProfile.price_per_km) : ''));
+    setFlagFallFee(firstString(typeof captainProfile?.flag_fall_fee === 'number' ? String(captainProfile.flag_fall_fee) : ''));
     setIsEditing(false);
   };
 
@@ -586,6 +596,26 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
               dir="ltr"
             />
           </label>
+          <label className={styles.style356_43}>
+            <span className={styles.style357_44}>{t('pricePerKm')}</span>
+            <input
+              value={pricePerKm}
+              disabled={!isEditing}
+              onChange={(event) => setPricePerKm(event.target.value.replace(/[^\d.]/g, ''))}
+              inputMode="decimal"
+              className={styles.style362_45}
+            />
+          </label>
+          <label className={styles.style356_43}>
+            <span className={styles.style357_44}>{t('flagFallFee')}</span>
+            <input
+              value={flagFallFee}
+              disabled={!isEditing}
+              onChange={(event) => setFlagFallFee(event.target.value.replace(/[^\d.]/g, ''))}
+              inputMode="decimal"
+              className={styles.style362_45}
+            />
+          </label>
           <label className={styles.style374_49}>
             <span className={styles.style375_50}>{t('year')}</span>
             <input
@@ -668,6 +698,8 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
           ) : null}
           <Field label={t('facebook')} value={firstString(facebookUrl, t('notProvided'))} />
           <Field label={t('instagram')} value={firstString(instagramUrl, t('notProvided'))} />
+          <Field label={t('pricePerKm')} value={firstString(pricePerKm, t('notProvided'))} />
+          <Field label={t('flagFallFee')} value={firstString(flagFallFee, t('notProvided'))} />
         </Panel>
       </div>
 

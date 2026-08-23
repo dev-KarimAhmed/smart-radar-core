@@ -6,7 +6,6 @@ import type { User as SovereignUser } from '@/core/types';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
-  AUTH_SESSION_CREATED_EVENT,
   buildUserFromSupabaseAuth,
   cacheSupabaseSession,
   clearSupabaseSessionCache,
@@ -52,30 +51,34 @@ function AuthContent({ children }: { children: ReactNode }) {
     let mounted = true;
     let unsubscribe = () => {};
 
-    if (!hasStoredSupabaseAuthSession()) {
-      setLoading(false);
-      const reloadForSession = () => window.location.reload();
-      window.addEventListener(AUTH_SESSION_CREATED_EVENT, reloadForSession, { once: true });
-      return () => {
-        mounted = false;
-        window.removeEventListener(AUTH_SESSION_CREATED_EVENT, reloadForSession);
-      };
-    }
+    // Always subscribe to onAuthStateChange, even with no stored session at
+    // mount (e.g. sitting on the login page logged out) — that's exactly the
+    // moment a sign-in is about to happen, and this subscription is what
+    // picks it up. A prior version skipped the subscription in that case and
+    // relied on a same-tab custom event to trigger a hard `location.reload()`
+    // instead; that reload raced the sign-in call's own (synchronous, but not
+    // guaranteed to already be flushed) session persistence, so a reload
+    // could land back on a state that looks like "no session" and bounce the
+    // user straight back to the login page right after a successful login.
+    const hadStoredSession = hasStoredSupabaseAuthSession();
+    setLoading(hadStoredSession);
 
-    setLoading(true);
     void import('@/lib/supabase-client').then(({ supabase }) => {
       if (!mounted) return;
-      void supabase.auth.getSession().then(({ data }) => {
-        if (!mounted) return;
-        cacheSupabaseSession(data.session);
-        setUser(data.session?.user ? (buildUserFromSupabaseAuth(data.session.user) as SovereignUser) : null);
-        setLoading(false);
-      }).catch(() => {
-        if (!mounted) return;
-        clearSupabaseSessionCache();
-        setUser(null);
-        setLoading(false);
-      });
+
+      if (hadStoredSession) {
+        void supabase.auth.getSession().then(({ data }) => {
+          if (!mounted) return;
+          cacheSupabaseSession(data.session);
+          setUser(data.session?.user ? (buildUserFromSupabaseAuth(data.session.user) as SovereignUser) : null);
+          setLoading(false);
+        }).catch(() => {
+          if (!mounted) return;
+          clearSupabaseSessionCache();
+          setUser(null);
+          setLoading(false);
+        });
+      }
 
       const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
         if (!mounted) return;

@@ -99,7 +99,10 @@ export function DriverViewTab() {
   const isInDifferentCountry = Boolean(
     liveCountryCode && countryConfig?.iso_code && liveCountryCode.toUpperCase() !== countryConfig.iso_code.toUpperCase(),
   );
-  const { needsPriceSetup, currentPricePerKm, savePricePerKm } = usePricePerKmSetup(user, isInDifferentCountry);
+  const { needsPriceSetup, currentPricePerKm, currentFlagFallFee, notifyWentOnline, savePricing } = usePricePerKmSetup(
+    user,
+    isInDifferentCountry,
+  );
   const [state, dispatch] = React.useReducer(captainDashboardReducer, initialCaptainDashboardState);
   const knownRequestIdsRef = React.useRef<Set<string> | null>(null);
   const screen = state.screen === 'ACTIVE_TRIP' && !driverOps?.activeRequest ? 'RADAR_MAP' : state.screen;
@@ -281,7 +284,12 @@ export function DriverViewTab() {
           <div className={styles.style163_1}>
             <button
               type="button"
-              onClick={() => void driverOps.toggleDriverStatus(isActive ? 'idle' : 'active')}
+              onClick={() => {
+                const goingOnline = !isActive;
+                void driverOps.toggleDriverStatus(isActive ? 'idle' : 'active').then((succeeded) => {
+                  if (succeeded && goingOnline) notifyWentOnline();
+                });
+              }}
               disabled={isOffline || isReconnecting || driverOps.isUpdatingStatus}
               className={cn(styles.style164_9, isActive ? styles.style165_10 : styles.style165_11)}
             >
@@ -383,8 +391,9 @@ export function DriverViewTab() {
           direction={direction}
           currency={currency}
           initialValue={currentPricePerKm}
+          initialFlagFallValue={currentFlagFallFee}
           isCountryChange={currentPricePerKm !== null && isInDifferentCountry}
-          onSave={savePricePerKm}
+          onSave={savePricing}
         />
       ) : null}
 
