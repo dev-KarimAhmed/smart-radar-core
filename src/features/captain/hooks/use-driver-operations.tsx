@@ -38,6 +38,8 @@ interface DriverOpsContextType {
   isRequestListOpen: boolean;
   toggleRequestList: (open?: boolean) => void;
   toggleDriverStatus: (desiredStatus: 'active' | 'idle') => Promise<boolean>;
+  /** Increments on each self-activation, so gates like the tariff modal can re-run. */
+  activationNonce: number;
   isUpdatingStatus: boolean;
   requests: Trip[];
   driverLocation: { lat: number; lng: number } | null;
@@ -68,6 +70,7 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
     isUpdatingStatus,
     resetDormancyTimer,
     toggleDriverStatus: rawToggleDriverStatus,
+    activationNonce,
     updateDriverDoc,
   } = useDriverLifecycle(user);
 
@@ -202,6 +205,7 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
     isRequestListOpen,
     toggleRequestList,
     toggleDriverStatus,
+    activationNonce,
     requests,
     driverLocation,
     rejectRequest,
@@ -217,6 +221,7 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
     radarLockMessage,
   }), [
     acceptedRider,
+    activationNonce,
     activeRequest,
     cancelActiveTrip,
     currentDistrict,

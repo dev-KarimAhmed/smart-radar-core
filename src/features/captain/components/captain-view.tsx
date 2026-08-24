@@ -101,7 +101,11 @@ export function DriverViewTab() {
   const isInDifferentCountry = Boolean(
     liveCountryCode && countryConfig?.iso_code && liveCountryCode.toUpperCase() !== countryConfig.iso_code.toUpperCase(),
   );
-  const { needsPriceSetup, currentPricePerKm, savePricePerKm } = usePricePerKmSetup(user, isInDifferentCountry);
+  const { needsPriceSetup, isActivationConfirm, currentTariff, saveTariff } = usePricePerKmSetup(
+    user,
+    isInDifferentCountry,
+    driverOps?.activationNonce ?? 0,
+  );
   const [state, dispatch] = React.useReducer(captainDashboardReducer, initialCaptainDashboardState);
   const knownRequestIdsRef = React.useRef<Set<string> | null>(null);
   const screen = state.screen === 'ACTIVE_TRIP' && !driverOps?.activeRequest ? 'RADAR_MAP' : state.screen;
@@ -390,9 +394,11 @@ export function DriverViewTab() {
         <PricePerKmSetupModal
           direction={direction}
           currency={currency}
-          initialValue={currentPricePerKm}
-          isCountryChange={currentPricePerKm !== null && isInDifferentCountry}
-          onSave={savePricePerKm}
+          minBaseFare={currentTariff.minBaseFare}
+          initialTariff={currentTariff}
+          isCountryChange={currentTariff.pricePerKm !== null && isInDifferentCountry}
+          isActivationConfirm={isActivationConfirm}
+          onSave={saveTariff}
         />
       ) : null}
 

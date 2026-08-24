@@ -127,7 +127,7 @@
     "selected": "تم تحديد الموقع على الخريطة. يمكنك تحريك الخريطة لضبطه بدقة."
   },
   "location": {
-    "status_calculating_route": "\u062c\u0627\u0631\u064d \u062d\u0633\u0627\u0628 \u0645\u0633\u0627\u0631 \u0627\u0644\u0637\u0631\u064a\u0642...",
+    "status_calculating_route": "جارٍ حساب مسار الطريق...",
     "placeholder_landmark": "اكتب اسم معلم أو شارع أو مكان",
     "btn_open_google_maps": "افتح في خرائط Google",
     "btn_confirm_and_calculate": "تأكيد الإحداثيات وحساب المسافة",
@@ -783,7 +783,20 @@
     "pricePerKmModalSave": "حفظ والمتابعة",
     "pricePerKmModalSaving": "جاري الحفظ...",
     "pricePerKmModalError": "تعذر حفظ السعر. تحقق من الاتصال وحاول مرة أخرى.",
-    "pricePerKmModalInvalid": "يرجى كتابة سعر أكبر من صفر."
+    "pricePerKmModalInvalid": "يرجى كتابة سعر أكبر من صفر.",
+    "tariffModalTitle": "حدد تعريفة رحلاتك",
+    "tariffModalBody": "قبل استخدام لوحة التحكم، حدد المكونات الثلاثة لتعريفتك. لا يمكن تخطي هذه الخطوة.",
+    "tariffModalBaseFareLabel": "سعر فتحة العداد الأساسية",
+    "tariffModalBaseFareHint": "الأجرة الثابتة لبداية أي رحلة. الحد الأدنى المعتمد لدولتك هو {min}.",
+    "tariffModalBaseFareTooLow": "فتحة العداد لا يمكن أن تقل عن {min}.",
+    "tariffModalPerKmLabel": "سعر الكيلومتر الإضافي",
+    "tariffModalPerKmHint": "التكلفة المحتسبة لكل كيلومتر مسافة مقطوعة.",
+    "tariffModalPerMinLabel": "سعر الدقيقة",
+    "tariffModalPerMinHint": "التكلفة المحتسبة لكل دقيقة أثناء السير والازدحامات. اكتب صفر لو مش عايز تحسب الوقت.",
+    "tariffModalPerMinInvalid": "سعر الدقيقة لا يمكن أن يكون أقل من صفر.",
+    "tariffModalConfirmTitle": "أكّد أسعارك قبل ما تشتغل",
+    "tariffModalConfirmBody": "دي أسعارك الحالية. عدّل أي رقم لو حابب، أو أكّد وابدأ استقبال الطلبات.",
+    "tariffModalConfirmAction": "تأكيد وبدء العمل"
   },
   "captainPickup": {
     "pickupLocation": "موقع الالتقاط",

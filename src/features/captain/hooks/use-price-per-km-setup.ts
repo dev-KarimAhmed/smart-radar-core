@@ -4,16 +4,61 @@ import React from 'react';
 import { supabase } from '@/lib/supabase-client';
 import type { User } from '@/core/types';
 
+export type CaptainTariff = {
+  /** فتحة العداد الأساسية — must be >= the country's regulated floor. */
+  baseFare: number;
+  /** سعر الكيلومتر الإضافي */
+  pricePerKm: number;
+  /** سعر الدقيقة — driving time, including time lost to traffic. */
+  pricePerMin: number;
+};
+
+type TariffContext = {
+  baseFare: number | null;
+  pricePerKm: number | null;
+  pricePerMin: number | null;
+  /** The country's regulated minimum meter-opening charge. */
+  minBaseFare: number;
+};
+
+const FALLBACK_MIN_BASE_FARE = 1;
+
+function toNumberOrNull(value: unknown) {
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? numberValue : null;
+}
+
 /**
- * Gates the mandatory price-per-km popup: captains must set this once before
- * using the dashboard normally (`price_per_km` is null until they do), and
- * again whenever their live GPS country no longer matches their registered
- * one — the currency changes, so the price they set no longer means the same
- * thing and needs re-confirming.
+ * Gates the mandatory tariff popup: captains must declare all three fare components once
+ * before using the dashboard normally (each is null until they do), and again whenever
+ * their live GPS country no longer matches their registered one — the currency changes, so
+ * the prices they set no longer mean the same thing and need re-confirming.
+ *
+ * The country's `base_fare` is the regulated floor, not the captain's price: it is surfaced
+ * here as `minBaseFare` so the form can reject a lower value before the round trip, and a
+ * trigger re-checks it server-side.
  */
-export function usePricePerKmSetup(user: User | null, isInDifferentCountry = false) {
-  const [pricePerKm, setPricePerKm] = React.useState<number | null>(null);
+export function usePricePerKmSetup(
+  user: User | null,
+  isInDifferentCountry = false,
+  /**
+   * Increments on every self-activation (see useDriverLifecycle). Each new value re-opens
+   * the tariff modal so the captain confirms — or changes — their prices before going
+   * online again. A nonce rather than the observed status, because hydrating an
+   * already-active session is not the captain activating themselves.
+   */
+  activationNonce = 0,
+) {
+  const [tariff, setTariff] = React.useState<TariffContext>({
+    baseFare: null,
+    pricePerKm: null,
+    pricePerMin: null,
+    minBaseFare: FALLBACK_MIN_BASE_FARE,
+  });
   const [isLoaded, setIsLoaded] = React.useState(false);
+  // The last activation the captain has confirmed their tariff for. Starts at the current
+  // nonce so simply mounting the dashboard does not count as an activation.
+  const [confirmedNonce, setConfirmedNonce] = React.useState(activationNonce);
 
   React.useEffect(() => {
     if (!user?.uid) {
@@ -24,47 +69,67 @@ export function usePricePerKmSetup(user: User | null, isInDifferentCountry = fal
     let active = true;
     setIsLoaded(false);
 
-    async function loadPricePerKm() {
+    async function loadTariff() {
       try {
-        const { data, error } = await supabase
-          .from('captain_profiles')
-          .select('price_per_km')
-          .eq('id', user!.uid)
-          .maybeSingle();
+        const { data, error } = await supabase.rpc('get_captain_tariff_context');
         if (!active) return;
         if (error) throw error;
-        setPricePerKm(typeof data?.price_per_km === 'number' ? data.price_per_km : null);
+
+        const context = (data ?? {}) as Record<string, unknown>;
+        setTariff({
+          baseFare: toNumberOrNull(context.baseFare),
+          pricePerKm: toNumberOrNull(context.pricePerKm),
+          pricePerMin: toNumberOrNull(context.pricePerMin),
+          minBaseFare: toNumberOrNull(context.minBaseFare) ?? FALLBACK_MIN_BASE_FARE,
+        });
       } catch (error) {
         if (!active) return;
-        if ((process.env.NODE_ENV !== 'production')) console.warn('[Captain price-per-km load]', error);
+        if ((process.env.NODE_ENV !== 'production')) console.warn('[Captain tariff load]', error);
       } finally {
         if (active) setIsLoaded(true);
       }
     }
 
-    void loadPricePerKm();
+    void loadTariff();
     return () => {
       active = false;
     };
   }, [user?.uid]);
 
-  const savePricePerKm = React.useCallback(async (value: number) => {
+  const saveTariff = React.useCallback(async (value: CaptainTariff) => {
     if (!user?.uid) return false;
+
     const { error } = await supabase
       .from('captain_profiles')
-      .update({ price_per_km: value })
+      .update({
+        base_fare: value.baseFare,
+        price_per_km: value.pricePerKm,
+        price_per_min: value.pricePerMin,
+      })
       .eq('id', user.uid);
+
     if (error) {
-      if ((process.env.NODE_ENV !== 'production')) console.warn('[Captain price-per-km save]', error);
+      if ((process.env.NODE_ENV !== 'production')) console.warn('[Captain tariff save]', error);
       return false;
     }
-    setPricePerKm(value);
+
+    setTariff((previous) => ({ ...previous, ...value }));
+    setConfirmedNonce(activationNonce);
     return true;
-  }, [user?.uid]);
+  }, [activationNonce, user?.uid]);
+
+  // Any missing component keeps the captain in the setup gate — a fare cannot be computed
+  // from a partial tariff.
+  const isTariffIncomplete =
+    tariff.baseFare === null || tariff.pricePerKm === null || tariff.pricePerMin === null;
+
+  const needsActivationConfirm = activationNonce > confirmedNonce;
 
   return {
-    needsPriceSetup: isLoaded && (pricePerKm === null || isInDifferentCountry),
-    currentPricePerKm: pricePerKm,
-    savePricePerKm,
+    needsPriceSetup: isLoaded && (isTariffIncomplete || isInDifferentCountry || needsActivationConfirm),
+    /** True when the tariff is already set and this is only a per-activation confirmation. */
+    isActivationConfirm: needsActivationConfirm && !isTariffIncomplete && !isInDifferentCountry,
+    currentTariff: tariff,
+    saveTariff,
   };
 }

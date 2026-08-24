@@ -18,6 +18,10 @@ export function useDriverLifecycle(user: User | null) {
   const [driverStatus, setDriverStatus] = useState<DriverStatus>('idle');
   const [isDormancyWarningVisible, setWarning] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  // Bumped on every successful self-activation. Consumers use it to re-run whatever the
+  // captain has to confirm before going online — currently the tariff modal — without
+  // mistaking the initial hydration of an already-active session for a fresh activation.
+  const [activationNonce, setActivationNonce] = useState(0);
   const timers = useRef<{
     dormancy: ReturnType<typeof setTimeout> | null;
     warning: ReturnType<typeof setTimeout> | null;
@@ -239,6 +243,7 @@ export function useDriverLifecycle(user: User | null) {
       if (!updated) return false;
 
       changeDriverStatus(desiredStatus);
+      if (desiredStatus === 'active') setActivationNonce((value) => value + 1);
       if (user?.uid) {
         void addCaptainSovereignLog(
           user.uid,
@@ -256,6 +261,7 @@ export function useDriverLifecycle(user: User | null) {
 
   return {
     driverStatus,
+    activationNonce,
     setDriverStatus: changeDriverStatus,
     isDormancyWarningVisible,
     isUpdatingStatus,

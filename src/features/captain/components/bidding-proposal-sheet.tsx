@@ -71,10 +71,22 @@ const styles = {
 
 type CaptainTier = 'PLATINUM' | 'GOLD' | 'SILVER' | 'BRONZE';
 
-type CaptainTierData = {
+/** Mirrors what public.captain_offer_quote returns. */
+type CaptainOfferQuote = {
+  /** What this captain's own tariff makes the trip cost. */
+  captainFare: number;
+  /** The market average reference the band is drawn around. */
+  marketFare: number | null;
+  floorPrice: number | null;
+  ceilingPrice: number | null;
+  /** captainFare clamped into the band — what the sheet opens with. */
+  suggestedFare: number;
+  isOutsideBand: boolean;
   tier: CaptainTier;
-  rating: number;
 };
+
+/** Anti-dumping floor, mirroring public.offer_band_for_rank's floorFactor of 0.85. */
+const MARKET_FLOOR_FACTOR = 0.15;
 
 interface BiddingProposalSheetProps {
   language: 'ar' | 'en';
@@ -94,15 +106,28 @@ export function BiddingProposalSheet({
 }: BiddingProposalSheetProps) {
   const t = useTranslations('captainBidding');
   const pickupT = useTranslations('captainPickup');
-  const baseFare = Number(request.offerPrice || 0);
   const [waitSecondsInput, setWaitSecondsInput] = React.useState(String(MIN_OFFER_WAIT_SECONDS));
   const parsedWaitSeconds = Number(waitSecondsInput);
   const isWaitSecondsValid = Number.isInteger(parsedWaitSeconds) && parsedWaitSeconds >= MIN_OFFER_WAIT_SECONDS;
-  const [captainTierData, setCaptainTierData] = React.useState<CaptainTierData>({ tier: 'SILVER', rating: 5 });
-  const premiumFactor = getTierPremiumFactor(captainTierData.tier);
-  const maxIncreaseAmount = roundMoney(baseFare * premiumFactor);
-  const maxTierPrice = roundMoney(Math.max(baseFare + maxIncreaseAmount, 1));
-  const tierLabel = t(`tierLabels.${captainTierData.tier}`);
+  const [quote, setQuote] = React.useState<CaptainOfferQuote | null>(null);
+
+  // The sheet opens on the captain's OWN meter reading — base_fare + km + minutes from the
+  // tariff they set for themselves — not on the market reference. The market average only
+  // defines the band the offer has to land in. Until the quote arrives, fall back to the
+  // request's reference fare so the sheet is never blank.
+  const marketFare = quote?.marketFare ?? Number(request.offerPrice || 0);
+  const baseFare = quote?.suggestedFare ?? marketFare;
+  const tier = quote?.tier ?? 'SILVER';
+  const premiumFactor = getTierPremiumFactor(tier);
+  const tierLabel = t(`tierLabels.${tier}`);
+
+  // Band edges come from the server so the sheet can never offer a price the RPC refuses.
+  const ceilingPrice = quote?.ceilingPrice ?? roundMoney(marketFare * (1 + premiumFactor));
+  const floorPrice = quote?.floorPrice ?? roundMoney(marketFare * (1 - MARKET_FLOOR_FACTOR));
+  const maxIncreaseAmount = roundMoney(Math.max(0, ceilingPrice - baseFare));
+  const minIncreaseAmount = roundMoney(Math.min(0, floorPrice - baseFare));
+  const maxTierPrice = roundMoney(Math.max(ceilingPrice, 1));
+
   const [increaseAmount, setIncreaseAmount] = React.useState(0);
   const normalizedIncreaseAmount = Number.isFinite(increaseAmount) ? increaseAmount : 0;
   const finalOfferPrice = roundMoney(baseFare + normalizedIncreaseAmount);
@@ -115,66 +140,53 @@ export function BiddingProposalSheet({
   React.useEffect(() => {
     let cancelled = false;
 
-    async function loadCaptainTier() {
-      const { data: authData } = await supabase.auth.getUser();
-      const captainId = authData.user?.id;
-      if (!captainId) return;
+    async function loadQuote() {
+      if (!request.id) return;
 
-      const [{ data: profile }, { data: captainProfile }] = await Promise.all([
-        supabase.from('profiles').select('*').eq('id', captainId).maybeSingle(),
-        supabase.from('captain_profiles').select('*').eq('id', captainId).maybeSingle(),
-      ]);
+      const { data, error } = await supabase.rpc('captain_offer_quote', {
+        p_request_id: request.id,
+      });
 
       if (cancelled) return;
+      if (error) {
+        // captain_tariff_required means the mandatory setup modal is still owed; the sheet
+        // stays on the reference fare rather than showing nothing.
+        if ((process.env.NODE_ENV !== 'production')) console.warn('[Captain offer quote]', error);
+        return;
+      }
 
-      const rating = Number(
-        firstValue(
-          profile?.trust_score,
-          profile?.rating,
-          profile?.rating_value,
-          captainProfile?.trust_score,
-          captainProfile?.rating,
-        ) ?? 5,
-      );
-      const tier = normalizeCaptainTier(
-        firstValue(
-          captainProfile?.tier,
-          captainProfile?.rank,
-          captainProfile?.driver_rank,
-          captainProfile?.captain_rank,
-          captainProfile?.membership_tier,
-          profile?.tier,
-          profile?.rank,
-          profile?.driver_rank,
-          profile?.captain_rank,
-          profile?.membership_tier,
-        ),
-        rating,
-      );
-
-      setCaptainTierData({ tier, rating: Number.isFinite(rating) ? rating : 5 });
+      const row = (data ?? {}) as Record<string, unknown>;
+      setQuote({
+        captainFare: Number(row.captainFare),
+        marketFare: row.marketFare == null ? null : Number(row.marketFare),
+        floorPrice: row.floorPrice == null ? null : Number(row.floorPrice),
+        ceilingPrice: row.ceilingPrice == null ? null : Number(row.ceilingPrice),
+        suggestedFare: Number(row.suggestedFare),
+        isOutsideBand: Boolean(row.isOutsideBand),
+        tier: normalizeCaptainTier(row.tier),
+      });
     }
 
-    void loadCaptainTier();
+    void loadQuote();
 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [request.id]);
 
   const step = Math.max(0.25, roundMoney(Math.max(maxIncreaseAmount, baseFare * 0.01, 1) / 10));
-  const minIncreaseAmount = baseFare > 1 ? roundMoney(-(baseFare - 1)) : 0;
 
-  // Tier-based ceiling: how much a captain of this rank may charge ABOVE the server base fare.
+  // Rank ceiling: how far above the MARKET average this rank may bid.
   const isTierAmber = maxIncreaseAmount > 0 && normalizedIncreaseAmount > maxIncreaseAmount * 0.8 && normalizedIncreaseAmount <= maxIncreaseAmount;
-  const isTierBlocked = normalizedIncreaseAmount > maxIncreaseAmount;
+  const isTierBlocked = finalOfferPrice > ceilingPrice;
 
-  // Fare_test anti-dumping brake: how far BELOW the server base fare the offer sits (5km/10min-style
-  // reference deviation matrix from RadarAntiCheatKernel.enforceMarketBrakes — 10% amber, 15% crimson).
-  const marketBrake = baseFare > 0 ? RadarAntiCheatKernel.enforceMarketBrakes(finalOfferPrice, baseFare) : { status: 'NORMAL' as const };
+  // Fare_test anti-dumping brake, measured against the market average (10% amber, 15%
+  // crimson from RadarAntiCheatKernel.enforceMarketBrakes) — the same 15% floor
+  // submit_ride_offer enforces server-side.
+  const marketBrake = marketFare > 0 ? RadarAntiCheatKernel.enforceMarketBrakes(finalOfferPrice, marketFare) : { status: 'NORMAL' as const };
   const isDumpingAmber = marketBrake.status === 'AMBER_WARNING';
-  const isDumpingBlocked = marketBrake.status === 'CRIMSON_BLOCK';
-  const dumpingDeviationRatio = baseFare > 0 ? Math.max(0, (baseFare - finalOfferPrice) / baseFare) : 0;
+  const isDumpingBlocked = marketBrake.status === 'CRIMSON_BLOCK' || finalOfferPrice < floorPrice;
+  const dumpingDeviationRatio = marketFare > 0 ? Math.max(0, (marketFare - finalOfferPrice) / marketFare) : 0;
   const dumpingDeviationPercent = Math.round(dumpingDeviationRatio * 1000) / 10;
   const professionalAd = useCaptainProfessionalAd(dumpingDeviationRatio, isDumpingBlocked);
 
@@ -182,8 +194,6 @@ export function BiddingProposalSheet({
   const isBlockedDeviation = isTierBlocked || isDumpingBlocked;
   const canSubmit = Number.isFinite(finalOfferPrice) && finalOfferPrice > 0 && !isSubmitting && !isBlockedDeviation && isWaitSecondsValid;
 
-  // The tier gives no room to increase at all (e.g. Silver/Bronze) — don't show
-  // a "+" that would only ever immediately trigger the tier-exceeded block.
   const canIncrease = maxIncreaseAmount > 0;
   // Each button only locks the direction that would make its own block worse,
   // so a captain who over-shot the tier ceiling can still press "-" to recover
@@ -214,6 +224,9 @@ export function BiddingProposalSheet({
             value={request.estimatedDistance != null ? `${request.estimatedDistance} km` : pickupT('distanceUnavailable')}
           />
           {/* Base fare display disabled — kept hidden from captain by product request.
+              This now holds the captain's own meter reading rather than the server fare,
+              but the product decision to hide it stands; the captain sees their price in
+              the offer input, and the rank ceiling is shown separately below.
           <Info label={t('serverFare')} value={`${baseFare.toFixed(2)} ${currency}`} />
           */}
         </div>
@@ -458,7 +471,21 @@ function Info({ label, value }: { label: string; value: string }) {
   );
 }
 
+/**
+ * How far above the server reference fare this rank may bid.
+ *
+ * Every captain gets the standard 15% band; a high rank whose own factor beats 15% keeps
+ * the larger headroom instead. Must stay in step with public.offer_band_for_rank — the
+ * server rejects anything outside this band, so a looser value here produces an offer the
+ * RPC refuses, and a tighter one hides room the captain is entitled to.
+ */
 function getTierPremiumFactor(tier: CaptainTier) {
+  return Math.max(STANDARD_PREMIUM_FACTOR, getRankPremiumFactor(tier));
+}
+
+const STANDARD_PREMIUM_FACTOR = 0.15;
+
+function getRankPremiumFactor(tier: CaptainTier) {
   if (tier === 'PLATINUM') return 0.2;
   if (tier === 'GOLD') return 0.1;
   if (tier === 'BRONZE') return 0.05;
@@ -479,8 +506,4 @@ function normalizeCaptainTier(value: unknown, rating = 5): CaptainTier {
 
 function roundMoney(value: number) {
   return Math.round((Number(value) || 0) * 100) / 100;
-}
-
-function firstValue(...values: unknown[]) {
-  return values.find((value) => value !== undefined && value !== null && String(value).trim() !== '');
 }

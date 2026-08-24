@@ -13,6 +13,46 @@ type RideRequestRow = Record<string, unknown>;
 
 export const MIN_OFFER_WAIT_SECONDS = 5;
 
+/**
+ * submit_ride_offer refuses out-of-band prices server-side, so these are reachable even
+ * when the bidding sheet's own guards pass — a stale server fare on the captain's screen,
+ * or a rank that changed between load and submit.
+ */
+function describeOfferSubmitError(rawMessage: string | undefined) {
+  const message = String(rawMessage || '');
+  const limit = message.match(/:\s*([\d.]+)\s*$/)?.[1];
+
+  if (message.includes('captain_too_far_from_pickup')) {
+    return {
+      title: 'الطلب بعيد عنك',
+      description: 'أصبحت بعيداً عن نقطة الالتقاط (أكثر من 9 كم). لا يمكن تقديم عرض على هذا الطلب.',
+    };
+  }
+
+  if (message.includes('offer_below_market_floor')) {
+    return {
+      title: 'السعر أقل من المسموح',
+      description: limit
+        ? `أقل سعر مقبول لهذا الطلب هو ${limit}. ارفع سعرك وحاول مرة أخرى.`
+        : 'سعرك أقل من الحد المسموح مقابل سعر السوق. ارفع سعرك وحاول مرة أخرى.',
+    };
+  }
+
+  if (message.includes('offer_above_rank_ceiling')) {
+    return {
+      title: 'السعر أعلى من سقف رتبتك',
+      description: limit
+        ? `أعلى سعر مسموح لرتبتك في هذا الطلب هو ${limit}. قلّل سعرك وحاول مرة أخرى.`
+        : 'سعرك أعلى من السقف المسموح لرتبتك. قلّل سعرك وحاول مرة أخرى.',
+    };
+  }
+
+  return {
+    title: 'تعذر إرسال العرض',
+    description: 'تحقق من الاتصال أو صلاحيات قاعدة البيانات ثم حاول مرة أخرى.',
+  };
+}
+
 const RANK_LABELS_AR: Record<CaptainRankName, string> = {
   PLATINUM: 'بلاتيني',
   GOLD: 'ذهبي',
@@ -319,13 +359,9 @@ export function useDriverTransactions(
       return true;
     } catch (error) {
       if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver transactions] offer submit failed:', error);
-      const isTooFar = String((error as { message?: string })?.message || '').includes('captain_too_far_from_pickup');
       toast({
         variant: 'destructive',
-        title: isTooFar ? 'الطلب بعيد عنك' : 'تعذر إرسال العرض',
-        description: isTooFar
-          ? 'أصبحت بعيداً عن نقطة الالتقاط (أكثر من 9 كم). لا يمكن تقديم عرض على هذا الطلب.'
-          : 'تحقق من الاتصال أو صلاحيات قاعدة البيانات ثم حاول مرة أخرى.',
+        ...describeOfferSubmitError((error as { message?: string })?.message),
       });
       return false;
     } finally {
