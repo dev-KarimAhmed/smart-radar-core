@@ -7,6 +7,7 @@ import type { User } from '@/core/types';
 import { supabase } from '@/lib/supabase-client';
 import { useToast } from '@/hooks/use-toast';
 import { colorNameToHex, hexToColorName, resolveColorDisplayName } from '@/shared/services/color-name';
+import { saveCaptainPricing, type CaptainPricingSaveResult } from '../services/captain-pricing';
 
 const styles = {
   style244_1: "mx-auto max-w-5xl space-y-5 text-white",
@@ -114,6 +115,8 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
   const [sideId, setSideId] = React.useState('');
   const [facebookUrl, setFacebookUrl] = React.useState('');
   const [instagramUrl, setInstagramUrl] = React.useState('');
+  const [pricePerKm, setPricePerKm] = React.useState('');
+  const [flagFallFee, setFlagFallFee] = React.useState('');
   const [affiliationType, setAffiliationType] = React.useState('');
   const isTaxi = affiliationType === 'office-taxi';
 
@@ -201,6 +204,8 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
         setSideId(firstString(captainProfile?.side_id));
         setFacebookUrl(firstString(captainProfile?.facebook_url));
         setInstagramUrl(firstString(captainProfile?.instagram_url));
+        setPricePerKm(firstString(typeof captainProfile?.price_per_km === 'number' ? String(captainProfile.price_per_km) : ''));
+        setFlagFallFee(firstString(typeof captainProfile?.flag_fall_fee === 'number' ? String(captainProfile.flag_fall_fee) : ''));
         setAffiliationType(firstString(captainProfile?.affiliation_type, user?.affiliation?.type));
       } catch (error) {
         if (!active) return;
@@ -227,6 +232,34 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
     if (!user?.uid) return;
     setIsSaving(true);
     try {
+      // Validated server-side (average-of-peers range check) — must go
+      // through the RPC, not a direct table write, or this screen would be
+      // a trivial bypass for the same anti-dumping/anti-gouging guard the
+      // mandatory pricing modal enforces. Left blank fields are skipped
+      // rather than saved as null, so this screen can't be used to clear the
+      // mandatory setup without going through the RPC's own validation.
+      const hasPriceEdits = pricePerKm.trim() !== '' || flagFallFee.trim() !== '';
+      if (hasPriceEdits) {
+        const numericPrice = Number(pricePerKm);
+        const numericFlagFall = Number(flagFallFee);
+        if (!Number.isFinite(numericPrice) || numericPrice <= 0 || !Number.isFinite(numericFlagFall) || numericFlagFall < 0) {
+          toast({ variant: 'destructive', title: t('pricingInvalidTitle'), description: t('pricingInvalidBody') });
+          setIsSaving(false);
+          return;
+        }
+
+        const pricingResult = await saveCaptainPricing(supabase, numericPrice, numericFlagFall);
+        if (!pricingResult.ok) {
+          toast({
+            variant: 'destructive',
+            title: t('pricingRangeErrorTitle'),
+            description: describePricingError(pricingResult, t),
+          });
+          setIsSaving(false);
+          return;
+        }
+      }
+
       const vehicle = {
         plate: vehiclePlate.trim(),
         make: vehicleMake.trim(),
@@ -342,6 +375,10 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
         side_id: sideId.trim(),
         facebook_url: facebookUrl.trim(),
         instagram_url: instagramUrl.trim(),
+        // Omitted (not set to null) when left blank — pricing was skipped,
+        // not cleared, so the cached value stays whatever it already was.
+        ...(pricePerKm.trim() ? { price_per_km: Number(pricePerKm) } : {}),
+        ...(flagFallFee.trim() ? { flag_fall_fee: Number(flagFallFee) } : {}),
       },
     }));
   };
@@ -381,6 +418,8 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
     setSideId(firstString(captainProfile?.side_id));
     setFacebookUrl(firstString(captainProfile?.facebook_url));
     setInstagramUrl(firstString(captainProfile?.instagram_url));
+    setPricePerKm(firstString(typeof captainProfile?.price_per_km === 'number' ? String(captainProfile.price_per_km) : ''));
+    setFlagFallFee(firstString(typeof captainProfile?.flag_fall_fee === 'number' ? String(captainProfile.flag_fall_fee) : ''));
     setIsEditing(false);
   };
 
@@ -586,6 +625,26 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
               dir="ltr"
             />
           </label>
+          <label className={styles.style356_43}>
+            <span className={styles.style357_44}>{t('pricePerKm')}</span>
+            <input
+              value={pricePerKm}
+              disabled={!isEditing}
+              onChange={(event) => setPricePerKm(event.target.value.replace(/[^\d.]/g, ''))}
+              inputMode="decimal"
+              className={styles.style362_45}
+            />
+          </label>
+          <label className={styles.style356_43}>
+            <span className={styles.style357_44}>{t('flagFallFee')}</span>
+            <input
+              value={flagFallFee}
+              disabled={!isEditing}
+              onChange={(event) => setFlagFallFee(event.target.value.replace(/[^\d.]/g, ''))}
+              inputMode="decimal"
+              className={styles.style362_45}
+            />
+          </label>
           <label className={styles.style374_49}>
             <span className={styles.style375_50}>{t('year')}</span>
             <input
@@ -668,6 +727,8 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
           ) : null}
           <Field label={t('facebook')} value={firstString(facebookUrl, t('notProvided'))} />
           <Field label={t('instagram')} value={firstString(instagramUrl, t('notProvided'))} />
+          <Field label={t('pricePerKm')} value={firstString(pricePerKm, t('notProvided'))} />
+          <Field label={t('flagFallFee')} value={firstString(flagFallFee, t('notProvided'))} />
         </Panel>
       </div>
 
@@ -701,6 +762,18 @@ function Field({ label, value }: { label: string; value: string }) {
       <p className={styles.style474_75}>{value}</p>
     </div>
   );
+}
+
+function describePricingError(result: CaptainPricingSaveResult, t: ReturnType<typeof useTranslations>) {
+  if (result.errorCode === 'price_per_km_out_of_range' && result.range) {
+    const { min, max, avg } = result.range;
+    return t('pricingPriceRangeError', { min, max, avg });
+  }
+  if (result.errorCode === 'flag_fall_fee_out_of_range' && result.range) {
+    const { min, max, avg } = result.range;
+    return t('pricingFlagFallRangeError', { min, max, avg });
+  }
+  return t('pricingGenericError');
 }
 
 function firstString(...values: unknown[]) {

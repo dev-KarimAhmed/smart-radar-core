@@ -65,14 +65,12 @@ const styles = {
   brand: 'text-sm font-bold text-[#14B8A6]',
   title: 'mt-3 text-2xl font-black tracking-normal text-[#F8FAFC]',
   subtitle: 'mt-2 text-sm font-medium leading-6 text-[#94A3B8]',
-  tabRow: 'mb-5 grid grid-cols-2 rounded-2xl border border-white/10 bg-[#0B0F19]/45 p-1',
-  tabButton: 'relative min-h-11 rounded-xl px-3 text-sm font-black transition',
-  tabButtonActive: 'border border-[#14B8A6]/45 bg-[#14B8A6]/15 text-[#F8FAFC] shadow-[0_0_18px_rgba(20,184,166,0.14)]',
-  tabButtonInactive: 'border border-transparent text-[#94A3B8] hover:text-white',
   stepRow: 'flex justify-between items-center text-xs text-slate-400 mb-4 bg-white/5 border border-white/10 rounded-2xl p-3',
   stepLabel: 'font-bold text-[#14B8A6]',
   stepName: 'font-bold text-[#94A3B8]',
-  backLink: 'mt-6 w-full text-xs font-bold text-[#94A3B8]/70 transition hover:text-white',
+  hasAccountRow: 'mt-6 text-center text-sm font-semibold text-[#94A3B8]',
+  hasAccountLink: 'font-black text-[#14B8A6] underline-offset-4 transition hover:text-[#2DD4BF] hover:underline',
+  backLink: 'mt-5 w-full text-xs font-bold text-[#94A3B8]/70 transition hover:text-white',
   doneWrap: 'flex flex-col items-center text-center gap-3 py-6',
   doneIcon: 'h-14 w-14 text-[#14B8A6]',
   doneTitle: 'text-lg font-black text-[#F8FAFC]',
@@ -202,21 +200,6 @@ export function CaptainOnboarding() {
           </header>
 
           {step !== 'done' ? (
-            <div className={styles.tabRow}>
-              <button type="button" className={cn(styles.tabButton, styles.tabButtonActive)}>
-                {t('tabRegister')}
-              </button>
-              <button
-                type="button"
-                onClick={() => navigateAuth('login', 'driver')}
-                className={cn(styles.tabButton, styles.tabButtonInactive)}
-              >
-                {t('tabLogin')}
-              </button>
-            </div>
-          ) : null}
-
-          {step !== 'done' ? (
             <div className={styles.stepRow}>
               <span className={styles.stepLabel}>{t('stepOf', { step })}</span>
               <span className={styles.stepName}>{t(`steps.${step}`)}</span>
@@ -260,6 +243,15 @@ export function CaptainOnboarding() {
               <p className={styles.doneText}>{t('doneText')}</p>
             </div>
           )}
+
+          {step !== 'done' ? (
+            <p className={styles.hasAccountRow}>
+              <span>{t('hasAccountPrompt')}</span>{' '}
+              <button type="button" className={styles.hasAccountLink} onClick={() => navigateAuth('login', 'driver')}>
+                {t('goToLogin')}
+              </button>
+            </p>
+          ) : null}
 
           <button type="button" className={styles.backLink} onClick={() => navigateAuth('role')}>
             {t('backToRole')}
