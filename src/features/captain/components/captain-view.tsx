@@ -101,7 +101,7 @@ export function DriverViewTab() {
   const isInDifferentCountry = Boolean(
     liveCountryCode && countryConfig?.iso_code && liveCountryCode.toUpperCase() !== countryConfig.iso_code.toUpperCase(),
   );
-  const { needsPriceSetup, currentPricePerKm, currentFlagFallFee, notifyWentOnline, savePricing } = usePricePerKmSetup(
+  const { needsPriceSetup, currentPricePerKm, currentFlagFallFee, currentPricePerMin, notifyWentOnline, savePricing } = usePricePerKmSetup(
     user,
     isInDifferentCountry,
   );
@@ -391,7 +391,9 @@ export function DriverViewTab() {
 
         {screen === 'WALLET' ? <DriverWalletTab user={user} language={language} isFlightActive={isActive} /> : null}
         {screen === 'HISTORY' ? <HistoryScreen hideCaptainDiagnostics /> : null}
-        {screen === 'PROFILE' ? <DriverProfileTab user={user} language={language} onLogout={logout} /> : null}
+        {screen === 'PROFILE' ? (
+          <DriverProfileTab user={user} language={language} onLogout={logout} onSavePricing={savePricing} />
+        ) : null}
       </div>
 
       {needsPriceSetup ? (
@@ -400,6 +402,7 @@ export function DriverViewTab() {
           currency={currency}
           initialValue={currentPricePerKm}
           initialFlagFallValue={currentFlagFallFee}
+          initialPricePerMinValue={currentPricePerMin}
           isCountryChange={currentPricePerKm !== null && isInDifferentCountry}
           onSave={savePricing}
         />

@@ -8,21 +8,23 @@ import { saveCaptainPricing, type CaptainPricingSaveResult } from '../services/c
 /**
  * Gates the mandatory price-per-km popup. It appears in exactly three cases:
  * the very first time a captain uses the dashboard (`price_per_km`/
- * `flag_fall_fee` are null until they set them), whenever their live GPS
- * country no longer matches their registered one (the currency changes, so
- * the price they set no longer means the same thing), and every time they
- * go back online (call `notifyWentOnline` right after a successful manual
- * "go online" toggle) — NOT on every page reload, and NOT when a trip
- * finishes and status returns to "active" from "busy". This deliberately
- * does not infer the online transition from watching `driverStatus`: that
- * state starts at a synchronous default ('idle') and only resolves to its
- * real persisted value asynchronously, so a reload while already active
- * looks identical to a genuine idle-to-active transition — tying this to
- * the actual toggle action is the only way to tell them apart.
+ * `flag_fall_fee`/`price_per_min` are null until they set them), whenever
+ * their live GPS country no longer matches their registered one (the
+ * currency changes, so the price they set no longer means the same thing),
+ * and every time they go back online (call `notifyWentOnline` right after a
+ * successful manual "go online" toggle) — NOT on every page reload, and NOT
+ * when a trip finishes and status returns to "active" from "busy". This
+ * deliberately does not infer the online transition from watching
+ * `driverStatus`: that state starts at a synchronous default ('idle') and
+ * only resolves to its real persisted value asynchronously, so a reload
+ * while already active looks identical to a genuine idle-to-active
+ * transition — tying this to the actual toggle action is the only way to
+ * tell them apart.
  */
 export function usePricePerKmSetup(user: User | null, isInDifferentCountry = false) {
   const [pricePerKm, setPricePerKm] = React.useState<number | null>(null);
   const [flagFallFee, setFlagFallFee] = React.useState<number | null>(null);
+  const [pricePerMin, setPricePerMin] = React.useState<number | null>(null);
   const [isLoaded, setIsLoaded] = React.useState(false);
   const [pendingReconfirm, setPendingReconfirm] = React.useState(false);
 
@@ -39,13 +41,14 @@ export function usePricePerKmSetup(user: User | null, isInDifferentCountry = fal
       try {
         const { data, error } = await supabase
           .from('captain_profiles')
-          .select('price_per_km, flag_fall_fee')
+          .select('price_per_km, flag_fall_fee, price_per_min')
           .eq('id', user!.uid)
           .maybeSingle();
         if (!active) return;
         if (error) throw error;
         setPricePerKm(typeof data?.price_per_km === 'number' ? data.price_per_km : null);
         setFlagFallFee(typeof data?.flag_fall_fee === 'number' ? data.flag_fall_fee : null);
+        setPricePerMin(typeof data?.price_per_min === 'number' ? data.price_per_min : null);
       } catch (error) {
         if (!active) return;
         if ((process.env.NODE_ENV !== 'production')) console.warn('[Captain price-per-km load]', error);
@@ -64,23 +67,25 @@ export function usePricePerKmSetup(user: User | null, isInDifferentCountry = fal
     setPendingReconfirm(true);
   }, []);
 
-  const savePricing = React.useCallback(async (price: number, flagFall: number): Promise<CaptainPricingSaveResult> => {
+  const savePricing = React.useCallback(async (price: number, flagFall: number, perMin: number): Promise<CaptainPricingSaveResult> => {
     if (!user?.uid) return { ok: false };
-    const result = await saveCaptainPricing(supabase, price, flagFall);
+    const result = await saveCaptainPricing(supabase, price, flagFall, perMin);
     if (!result.ok) {
       if ((process.env.NODE_ENV !== 'production')) console.warn('[Captain price-per-km save]', result.errorCode);
       return result;
     }
     setPricePerKm(price);
     setFlagFallFee(flagFall);
+    setPricePerMin(perMin);
     setPendingReconfirm(false);
     return result;
   }, [user?.uid]);
 
   return {
-    needsPriceSetup: isLoaded && (pricePerKm === null || flagFallFee === null || isInDifferentCountry || pendingReconfirm),
+    needsPriceSetup: isLoaded && (pricePerKm === null || flagFallFee === null || pricePerMin === null || isInDifferentCountry || pendingReconfirm),
     currentPricePerKm: pricePerKm,
     currentFlagFallFee: flagFallFee,
+    currentPricePerMin: pricePerMin,
     notifyWentOnline,
     savePricing,
   };

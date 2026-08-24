@@ -13,22 +13,25 @@ export interface CaptainPricingSaveResult {
 }
 
 /**
- * Saves price_per_km/flag_fall_fee through the `set_captain_pricing` RPC —
- * NOT a direct table update. The RPC re-validates both values server-side
- * against the average of other captains in the same governorate (or
- * country-wide, if the governorate doesn't have enough priced peers yet),
- * rejecting anything more than 10% off that average. This has to happen on
- * the server: a captain could otherwise call the table update directly and
- * set any price, undercutting or price-gouging the local market.
+ * Saves price_per_km/flag_fall_fee/price_per_min through the
+ * `set_captain_pricing` RPC — NOT a direct table update. The RPC
+ * re-validates all three values server-side against the average of other
+ * captains in the same governorate (or country-wide, if the governorate
+ * doesn't have enough priced peers yet), rejecting anything more than 10%
+ * off that average. This has to happen on the server: a captain could
+ * otherwise call the table update directly and set any price, undercutting
+ * or price-gouging the local market.
  */
 export async function saveCaptainPricing(
   supabase: SupabaseClient,
   pricePerKm: number,
   flagFallFee: number,
+  pricePerMin: number,
 ): Promise<CaptainPricingSaveResult> {
   const { error } = await supabase.rpc('set_captain_pricing', {
     p_price_per_km: pricePerKm,
     p_flag_fall_fee: flagFallFee,
+    p_price_per_min: pricePerMin,
   });
 
   if (!error) return { ok: true };

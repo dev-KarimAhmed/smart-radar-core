@@ -7,7 +7,7 @@ import type { User } from '@/core/types';
 import { supabase } from '@/lib/supabase-client';
 import { useToast } from '@/hooks/use-toast';
 import { colorNameToHex, hexToColorName, resolveColorDisplayName } from '@/shared/services/color-name';
-import { saveCaptainPricing, type CaptainPricingSaveResult } from '../services/captain-pricing';
+import type { CaptainPricingSaveResult } from '../services/captain-pricing';
 
 const styles = {
   style244_1: "mx-auto max-w-5xl space-y-5 text-white",
@@ -94,11 +94,17 @@ interface DriverProfileTabProps {
   user: User | null;
   language: 'ar' | 'en';
   onLogout?: () => void;
+  // Must be the SAME savePricing the mandatory pricing modal uses (owned by
+  // usePricePerKmSetup in captain-view.tsx), not a separate direct RPC call
+  // from here — otherwise this screen updates the database while the
+  // modal's cached price_per_km/flag_fall_fee/price_per_min state never
+  // finds out, and the modal shows stale values next time it reopens.
+  onSavePricing: (price: number, flagFallFee: number, pricePerMin: number) => Promise<CaptainPricingSaveResult>;
 }
 
 type ProfileRow = Record<string, unknown>;
 
-export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabProps) {
+export function DriverProfileTab({ user, language, onLogout, onSavePricing }: DriverProfileTabProps) {
   const t = useTranslations('captainProfile');
   const { toast } = useToast();
   const [profile, setProfile] = React.useState<ProfileRow | null>(null);
@@ -117,6 +123,7 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
   const [instagramUrl, setInstagramUrl] = React.useState('');
   const [pricePerKm, setPricePerKm] = React.useState('');
   const [flagFallFee, setFlagFallFee] = React.useState('');
+  const [pricePerMin, setPricePerMin] = React.useState('');
   const [affiliationType, setAffiliationType] = React.useState('');
   const isTaxi = affiliationType === 'office-taxi';
 
@@ -206,6 +213,7 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
         setInstagramUrl(firstString(captainProfile?.instagram_url));
         setPricePerKm(firstString(typeof captainProfile?.price_per_km === 'number' ? String(captainProfile.price_per_km) : ''));
         setFlagFallFee(firstString(typeof captainProfile?.flag_fall_fee === 'number' ? String(captainProfile.flag_fall_fee) : ''));
+        setPricePerMin(firstString(typeof captainProfile?.price_per_min === 'number' ? String(captainProfile.price_per_min) : ''));
         setAffiliationType(firstString(captainProfile?.affiliation_type, user?.affiliation?.type));
       } catch (error) {
         if (!active) return;
@@ -238,17 +246,26 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
       // mandatory pricing modal enforces. Left blank fields are skipped
       // rather than saved as null, so this screen can't be used to clear the
       // mandatory setup without going through the RPC's own validation.
-      const hasPriceEdits = pricePerKm.trim() !== '' || flagFallFee.trim() !== '';
+      // Requires all three filled (not "any") — they're always pre-filled
+      // together once set, so this never blocks a normal edit, but it stops
+      // a field left blank (e.g. before pricing was ever set up) from being
+      // silently saved as 0 just because a sibling field had a real value.
+      const hasPriceEdits = pricePerKm.trim() !== '' && flagFallFee.trim() !== '' && pricePerMin.trim() !== '';
       if (hasPriceEdits) {
         const numericPrice = Number(pricePerKm);
         const numericFlagFall = Number(flagFallFee);
-        if (!Number.isFinite(numericPrice) || numericPrice <= 0 || !Number.isFinite(numericFlagFall) || numericFlagFall < 0) {
+        const numericPricePerMin = Number(pricePerMin);
+        if (
+          !Number.isFinite(numericPrice) || numericPrice <= 0 ||
+          !Number.isFinite(numericFlagFall) || numericFlagFall < 0 ||
+          !Number.isFinite(numericPricePerMin) || numericPricePerMin < 0
+        ) {
           toast({ variant: 'destructive', title: t('pricingInvalidTitle'), description: t('pricingInvalidBody') });
           setIsSaving(false);
           return;
         }
 
-        const pricingResult = await saveCaptainPricing(supabase, numericPrice, numericFlagFall);
+        const pricingResult = await onSavePricing(numericPrice, numericFlagFall, numericPricePerMin);
         if (!pricingResult.ok) {
           toast({
             variant: 'destructive',
@@ -379,6 +396,7 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
         // not cleared, so the cached value stays whatever it already was.
         ...(pricePerKm.trim() ? { price_per_km: Number(pricePerKm) } : {}),
         ...(flagFallFee.trim() ? { flag_fall_fee: Number(flagFallFee) } : {}),
+        ...(pricePerMin.trim() ? { price_per_min: Number(pricePerMin) } : {}),
       },
     }));
   };
@@ -420,6 +438,7 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
     setInstagramUrl(firstString(captainProfile?.instagram_url));
     setPricePerKm(firstString(typeof captainProfile?.price_per_km === 'number' ? String(captainProfile.price_per_km) : ''));
     setFlagFallFee(firstString(typeof captainProfile?.flag_fall_fee === 'number' ? String(captainProfile.flag_fall_fee) : ''));
+    setPricePerMin(firstString(typeof captainProfile?.price_per_min === 'number' ? String(captainProfile.price_per_min) : ''));
     setIsEditing(false);
   };
 
@@ -645,6 +664,16 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
               className={styles.style362_45}
             />
           </label>
+          <label className={styles.style356_43}>
+            <span className={styles.style357_44}>{t('pricePerMin')}</span>
+            <input
+              value={pricePerMin}
+              disabled={!isEditing}
+              onChange={(event) => setPricePerMin(event.target.value.replace(/[^\d.]/g, ''))}
+              inputMode="decimal"
+              className={styles.style362_45}
+            />
+          </label>
           <label className={styles.style374_49}>
             <span className={styles.style375_50}>{t('year')}</span>
             <input
@@ -729,6 +758,7 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
           <Field label={t('instagram')} value={firstString(instagramUrl, t('notProvided'))} />
           <Field label={t('pricePerKm')} value={firstString(pricePerKm, t('notProvided'))} />
           <Field label={t('flagFallFee')} value={firstString(flagFallFee, t('notProvided'))} />
+          <Field label={t('pricePerMin')} value={firstString(pricePerMin, t('notProvided'))} />
         </Panel>
       </div>
 
@@ -772,6 +802,10 @@ function describePricingError(result: CaptainPricingSaveResult, t: ReturnType<ty
   if (result.errorCode === 'flag_fall_fee_out_of_range' && result.range) {
     const { min, max, avg } = result.range;
     return t('pricingFlagFallRangeError', { min, max, avg });
+  }
+  if (result.errorCode === 'price_per_min_out_of_range' && result.range) {
+    const { min, max, avg } = result.range;
+    return t('pricingPricePerMinRangeError', { min, max, avg });
   }
   return t('pricingGenericError');
 }

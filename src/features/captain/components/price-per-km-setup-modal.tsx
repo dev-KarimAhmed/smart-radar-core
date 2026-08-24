@@ -33,8 +33,9 @@ interface PricePerKmSetupModalProps {
   currency?: string;
   initialValue?: number | null;
   initialFlagFallValue?: number | null;
+  initialPricePerMinValue?: number | null;
   isCountryChange?: boolean;
-  onSave: (price: number, flagFallFee: number) => Promise<CaptainPricingSaveResult>;
+  onSave: (price: number, flagFallFee: number, pricePerMin: number) => Promise<CaptainPricingSaveResult>;
 }
 
 export function PricePerKmSetupModal({
@@ -42,12 +43,14 @@ export function PricePerKmSetupModal({
   currency,
   initialValue,
   initialFlagFallValue,
+  initialPricePerMinValue,
   isCountryChange = false,
   onSave,
 }: PricePerKmSetupModalProps) {
   const t = useTranslations('captainDashboard');
   const [value, setValue] = React.useState(initialValue != null ? String(initialValue) : '');
   const [flagFallValue, setFlagFallValue] = React.useState(initialFlagFallValue != null ? String(initialFlagFallValue) : '');
+  const [pricePerMinValue, setPricePerMinValue] = React.useState(initialPricePerMinValue != null ? String(initialPricePerMinValue) : '');
   const [isSaving, setIsSaving] = React.useState(false);
   const [error, setError] = React.useState('');
 
@@ -65,9 +68,15 @@ export function PricePerKmSetupModal({
       return;
     }
 
+    const numericPricePerMin = Number(pricePerMinValue);
+    if (!Number.isFinite(numericPricePerMin) || numericPricePerMin < 0) {
+      setError(t('pricePerKmModalPricePerMinInvalid'));
+      return;
+    }
+
     setIsSaving(true);
     setError('');
-    const result = await onSave(numericValue, numericFlagFall);
+    const result = await onSave(numericValue, numericFlagFall, numericPricePerMin);
     setIsSaving(false);
     if (!result.ok) {
       setError(describeSaveError(result, t));
@@ -128,6 +137,25 @@ export function PricePerKmSetupModal({
           </div>
         </div>
 
+        <div className={styles.fieldGroup}>
+          <label className={styles.fieldLabel}>{t('pricePerKmModalPricePerMinLabel')}</label>
+          <p className={styles.fieldHint}>{t('pricePerKmModalPricePerMinHint')}</p>
+          <div className={styles.inputRow}>
+            <input
+              type="number"
+              inputMode="decimal"
+              min="0"
+              step="0.01"
+              value={pricePerMinValue}
+              onChange={(event) => setPricePerMinValue(event.target.value)}
+              placeholder={t('pricePerKmModalPricePerMinPlaceholder')}
+              disabled={isSaving}
+              className={styles.input}
+            />
+            {currency ? <span className={styles.currencyBadge}>{currency}</span> : null}
+          </div>
+        </div>
+
         {error ? <p className={styles.error}>{error}</p> : null}
         <AlertDialogFooter className={styles.footer}>
           <AlertDialogAction disabled={isSaving} onClick={handleSave} className={styles.confirm}>
@@ -147,6 +175,10 @@ function describeSaveError(result: CaptainPricingSaveResult, t: ReturnType<typeo
   if (result.errorCode === 'flag_fall_fee_out_of_range' && result.range) {
     const { min, max, avg } = result.range;
     return t('pricePerKmModalFlagFallRangeError', { min, max, avg });
+  }
+  if (result.errorCode === 'price_per_min_out_of_range' && result.range) {
+    const { min, max, avg } = result.range;
+    return t('pricePerKmModalPricePerMinRangeError', { min, max, avg });
   }
   return t('pricePerKmModalError');
 }
