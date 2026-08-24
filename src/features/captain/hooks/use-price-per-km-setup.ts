@@ -95,7 +95,12 @@ export function usePricePerKmSetup(
     return () => {
       active = false;
     };
-  }, [user?.uid]);
+    // Re-reads on every activation, not just on mount, so the modal always opens on what is
+    // actually stored — the captain may have edited their tariff from the profile tab since
+    // this hook last fetched, and prefilling stale numbers would invite them to "confirm"
+    // values they had already replaced. The setIsLoaded(false) above keeps the modal shut
+    // for the duration of the refetch, so it never renders against the old data.
+  }, [user?.uid, activationNonce]);
 
   const saveTariff = React.useCallback(async (value: CaptainTariff) => {
     if (!user?.uid) return false;

@@ -392,6 +392,10 @@ export function DriverViewTab() {
 
       {needsPriceSetup ? (
         <PricePerKmSetupModal
+          // A fresh activation gets a fresh form: the modal seeds its inputs from
+          // initialTariff on mount only, so without this a remount-less re-open would keep
+          // whatever was typed last time instead of the stored tariff.
+          key={driverOps?.activationNonce ?? 0}
           direction={direction}
           currency={currency}
           minBaseFare={currentTariff.minBaseFare}
