@@ -11,6 +11,8 @@ export type CaptainTariff = {
   pricePerKm: number;
   /** سعر الدقيقة — driving time, including time lost to traffic. */
   pricePerMin: number;
+  /** المسافة المشمولة في فتحة العداد — km billed at zero before per-km charging starts. */
+  includedKm: number;
 };
 
 /** Which reference produced `minBaseFare` — see public.market_sample_threshold(). */
@@ -20,6 +22,7 @@ type TariffContext = {
   baseFare: number | null;
   pricePerKm: number | null;
   pricePerMin: number | null;
+  includedKm: number;
   /** Lowest meter-opening charge this captain may set. */
   minBaseFare: number;
   minBaseFareSource: MinBaseFareSource;
@@ -58,6 +61,7 @@ export function usePricePerKmSetup(
     baseFare: null,
     pricePerKm: null,
     pricePerMin: null,
+    includedKm: 0,
     minBaseFare: FALLBACK_MIN_BASE_FARE,
     minBaseFareSource: 'country_seed',
   });
@@ -86,6 +90,7 @@ export function usePricePerKmSetup(
           baseFare: toNumberOrNull(context.baseFare),
           pricePerKm: toNumberOrNull(context.pricePerKm),
           pricePerMin: toNumberOrNull(context.pricePerMin),
+          includedKm: toNumberOrNull(context.includedKm) ?? 0,
           minBaseFare: toNumberOrNull(context.minBaseFare) ?? FALLBACK_MIN_BASE_FARE,
           minBaseFareSource: context.minBaseFareSource === 'captain_average' ? 'captain_average' : 'country_seed',
         });
@@ -117,6 +122,7 @@ export function usePricePerKmSetup(
         base_fare: value.baseFare,
         price_per_km: value.pricePerKm,
         price_per_min: value.pricePerMin,
+        included_km: value.includedKm,
       })
       .eq('id', user.uid);
 

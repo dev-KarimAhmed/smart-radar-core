@@ -797,7 +797,11 @@
     "tariffModalConfirmTitle": "Confirm your prices before you go online",
     "tariffModalConfirmBody": "These are your current prices. Change any of them if you want, or confirm and start receiving requests.",
     "tariffModalConfirmAction": "Confirm and go online",
-    "tariffModalBaseFareHintMarket": "The flat charge that starts every trip. The lowest allowed value is {min}, derived from the average of captain prices in your country."
+    "tariffModalBaseFareHintMarket": "The flat charge that starts every trip. The lowest allowed value is {min}, derived from the average of captain prices in your country.",
+    "tariffModalIncludedKmLabel": "Distance included in the opening charge",
+    "tariffModalIncludedKmHint": "The distance the meter-opening charge already covers. Per-km billing starts after it. Enter zero to bill from the first metre.",
+    "tariffModalIncludedKmInvalid": "Included distance cannot be below zero.",
+    "tariffModalKmUnit": "km"
   },
   "captainPickup": {
     "pickupLocation": "Pickup location",
@@ -900,7 +904,8 @@
     "tariffIncomplete": "Set all three components, or leave all three blank.",
     "tariffBaseFareTooLow": "The meter-opening charge cannot be lower than {min}.",
     "tariffPerKmInvalid": "Price per km must be greater than zero.",
-    "tariffPerMinInvalid": "Price per minute cannot be below zero."
+    "tariffPerMinInvalid": "Price per minute cannot be below zero.",
+    "tariffIncludedKm": "Included distance (km)"
   },
   "captainActiveTrip": {
     "badge": "Active trip",

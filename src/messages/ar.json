@@ -797,7 +797,11 @@
     "tariffModalConfirmTitle": "أكّد أسعارك قبل ما تشتغل",
     "tariffModalConfirmBody": "دي أسعارك الحالية. عدّل أي رقم لو حابب، أو أكّد وابدأ استقبال الطلبات.",
     "tariffModalConfirmAction": "تأكيد وبدء العمل",
-    "tariffModalBaseFareHintMarket": "الأجرة الثابتة لبداية أي رحلة. أقل قيمة مسموحة {min}، محسوبة من متوسط أسعار الكباتن في بلدك."
+    "tariffModalBaseFareHintMarket": "الأجرة الثابتة لبداية أي رحلة. أقل قيمة مسموحة {min}، محسوبة من متوسط أسعار الكباتن في بلدك.",
+    "tariffModalIncludedKmLabel": "المسافة المشمولة في فتحة العداد",
+    "tariffModalIncludedKmHint": "المسافة اللي سعر فتحة العداد بيغطيها. بعدها يبدأ حساب سعر الكيلومتر. اكتب صفر لو الحساب يبدأ من أول متر.",
+    "tariffModalIncludedKmInvalid": "المسافة المشمولة لا يمكن أن تكون أقل من صفر.",
+    "tariffModalKmUnit": "كم"
   },
   "captainPickup": {
     "pickupLocation": "موقع الالتقاط",
@@ -900,7 +904,8 @@
     "tariffIncomplete": "لازم تحدد المكونات الثلاثة كلها أو تسيبهم فاضيين.",
     "tariffBaseFareTooLow": "فتحة العداد لا يمكن أن تقل عن {min}.",
     "tariffPerKmInvalid": "سعر الكيلومتر لازم يكون أكبر من صفر.",
-    "tariffPerMinInvalid": "سعر الدقيقة لا يمكن أن يكون أقل من صفر."
+    "tariffPerMinInvalid": "سعر الدقيقة لا يمكن أن يكون أقل من صفر.",
+    "tariffIncludedKm": "المسافة المشمولة (كم)"
   },
   "captainActiveTrip": {
     "badge": "رحلة نشطة",

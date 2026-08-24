@@ -132,7 +132,9 @@ export interface OfferFareBreakdown {
   baseFare?: number;
   perKm?: number;
   perMin?: number;
+  includedKm?: number;
   roadKm?: number;
+  billableKm?: number;
   minutes?: number;
   kmCharge?: number;
   minCharge?: number;
@@ -425,10 +427,21 @@ export function CaptainOfferCard({
                       label={isArabic ? 'فتحة العداد' : 'Meter opening'}
                       value={`${money(breakdown.baseFare)} ${currencyCode}`}
                     />
+                    {/* When the opening charge covers some distance, say so on its own line —
+                        otherwise a rider on a short trip sees a 0.00 distance charge with no
+                        explanation of why the kilometres were not billed. */}
+                    {Number(breakdown.includedKm) > 0 ? (
+                      <BreakdownRow
+                        label={isArabic
+                          ? `يشمل أول ${num(breakdown.includedKm)} كم`
+                          : `Includes the first ${num(breakdown.includedKm)} km`}
+                        value={isArabic ? 'مجاناً' : 'Included'}
+                      />
+                    ) : null}
                     <BreakdownRow
                       label={isArabic
-                        ? `المسافة · ${num(breakdown.roadKm)} كم × ${money(breakdown.perKm)}`
-                        : `Distance · ${num(breakdown.roadKm)} km × ${money(breakdown.perKm)}`}
+                        ? `المسافة · ${num(breakdown.billableKm ?? breakdown.roadKm)} كم × ${money(breakdown.perKm)}`
+                        : `Distance · ${num(breakdown.billableKm ?? breakdown.roadKm)} km × ${money(breakdown.perKm)}`}
                       value={`${money(breakdown.kmCharge)} ${currencyCode}`}
                     />
                     {Number(breakdown.perMin) > 0 ? (

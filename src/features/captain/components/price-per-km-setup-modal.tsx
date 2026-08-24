@@ -40,7 +40,7 @@ interface PricePerKmSetupModalProps {
    * read it as an official figure and asked support where it came from.
    */
   minBaseFareSource?: 'captain_average' | 'country_seed';
-  initialTariff?: { baseFare: number | null; pricePerKm: number | null; pricePerMin: number | null };
+  initialTariff?: { baseFare: number | null; pricePerKm: number | null; pricePerMin: number | null; includedKm?: number };
   isCountryChange?: boolean;
   /** The tariff is already set and this is the per-activation confirmation. */
   isActivationConfirm?: boolean;
@@ -65,6 +65,7 @@ export function PricePerKmSetupModal({
   const [baseFare, setBaseFare] = React.useState(toInputValue(initialTariff?.baseFare));
   const [pricePerKm, setPricePerKm] = React.useState(toInputValue(initialTariff?.pricePerKm));
   const [pricePerMin, setPricePerMin] = React.useState(toInputValue(initialTariff?.pricePerMin));
+  const [includedKm, setIncludedKm] = React.useState(toInputValue(initialTariff?.includedKm ?? 0));
   const [isSaving, setIsSaving] = React.useState(false);
   const [error, setError] = React.useState('');
 
@@ -91,12 +92,20 @@ export function PricePerKmSetupModal({
       return;
     }
 
+    // Zero is the normal value — it means per-km billing starts from the first metre.
+    const parsedIncludedKm = Number(includedKm);
+    if (!Number.isFinite(parsedIncludedKm) || parsedIncludedKm < 0) {
+      setError(t('tariffModalIncludedKmInvalid'));
+      return;
+    }
+
     setIsSaving(true);
     setError('');
     const saved = await onSave({
       baseFare: parsedBaseFare,
       pricePerKm: parsedPricePerKm,
       pricePerMin: parsedPricePerMin,
+      includedKm: parsedIncludedKm,
     });
     setIsSaving(false);
     if (!saved) {
@@ -150,6 +159,27 @@ export function PricePerKmSetupModal({
                 autoFocus
               />
               {currency ? <span className={styles.currencyBadge}>{currency}</span> : null}
+            </div>
+          </div>
+
+          {/* Sits directly under the opening charge because it qualifies it: this is the
+              distance that charge already covers. */}
+          <div className={styles.field}>
+            <label className={styles.fieldLabel}>{t('tariffModalIncludedKmLabel')}</label>
+            <span className={styles.fieldHint}>{t('tariffModalIncludedKmHint')}</span>
+            <div className={styles.inputRow}>
+              <input
+                type="number"
+                inputMode="decimal"
+                min="0"
+                step="0.1"
+                value={includedKm}
+                onChange={(event) => setIncludedKm(event.target.value)}
+                placeholder="0"
+                disabled={isSaving}
+                className={styles.input}
+              />
+              <span className={styles.currencyBadge}>{t('tariffModalKmUnit')}</span>
             </div>
           </div>
 
