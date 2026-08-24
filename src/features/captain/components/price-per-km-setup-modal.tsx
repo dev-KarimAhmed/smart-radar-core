@@ -32,8 +32,14 @@ const styles = {
 interface PricePerKmSetupModalProps {
   direction: string;
   currency?: string;
-  /** The country's regulated minimum meter-opening charge. */
+  /** Lowest meter-opening charge this captain may set. */
   minBaseFare: number;
+  /**
+   * Where that floor came from. Named explicitly because "your country's approved minimum"
+   * was being shown for a number actually derived from the captains' own prices — captains
+   * read it as an official figure and asked support where it came from.
+   */
+  minBaseFareSource?: 'captain_average' | 'country_seed';
   initialTariff?: { baseFare: number | null; pricePerKm: number | null; pricePerMin: number | null };
   isCountryChange?: boolean;
   /** The tariff is already set and this is the per-activation confirmation. */
@@ -49,6 +55,7 @@ export function PricePerKmSetupModal({
   direction,
   currency,
   minBaseFare,
+  minBaseFareSource = 'country_seed',
   initialTariff,
   isCountryChange = false,
   isActivationConfirm = false,
@@ -125,7 +132,9 @@ export function PricePerKmSetupModal({
           <div className={styles.field}>
             <label className={styles.fieldLabel}>{t('tariffModalBaseFareLabel')}</label>
             <span className={styles.fieldHint}>
-              {t('tariffModalBaseFareHint', { min: minBaseFare.toFixed(2) })}
+              {minBaseFareSource === 'captain_average'
+                ? t('tariffModalBaseFareHintMarket', { min: minBaseFare.toFixed(2) })
+                : t('tariffModalBaseFareHint', { min: minBaseFare.toFixed(2) })}
             </span>
             <div className={styles.inputRow}>
               <input

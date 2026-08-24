@@ -787,7 +787,7 @@
     "tariffModalTitle": "حدد تعريفة رحلاتك",
     "tariffModalBody": "قبل استخدام لوحة التحكم، حدد المكونات الثلاثة لتعريفتك. لا يمكن تخطي هذه الخطوة.",
     "tariffModalBaseFareLabel": "سعر فتحة العداد الأساسية",
-    "tariffModalBaseFareHint": "الأجرة الثابتة لبداية أي رحلة. الحد الأدنى المعتمد لدولتك هو {min}.",
+    "tariffModalBaseFareHint": "الأجرة الثابتة لبداية أي رحلة. أقل قيمة مسموحة {min}.",
     "tariffModalBaseFareTooLow": "فتحة العداد لا يمكن أن تقل عن {min}.",
     "tariffModalPerKmLabel": "سعر الكيلومتر الإضافي",
     "tariffModalPerKmHint": "التكلفة المحتسبة لكل كيلومتر مسافة مقطوعة.",
@@ -796,7 +796,8 @@
     "tariffModalPerMinInvalid": "سعر الدقيقة لا يمكن أن يكون أقل من صفر.",
     "tariffModalConfirmTitle": "أكّد أسعارك قبل ما تشتغل",
     "tariffModalConfirmBody": "دي أسعارك الحالية. عدّل أي رقم لو حابب، أو أكّد وابدأ استقبال الطلبات.",
-    "tariffModalConfirmAction": "تأكيد وبدء العمل"
+    "tariffModalConfirmAction": "تأكيد وبدء العمل",
+    "tariffModalBaseFareHintMarket": "الأجرة الثابتة لبداية أي رحلة. أقل قيمة مسموحة {min}، محسوبة من متوسط أسعار الكباتن في بلدك."
   },
   "captainPickup": {
     "pickupLocation": "موقع الالتقاط",

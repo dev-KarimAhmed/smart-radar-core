@@ -787,7 +787,7 @@
     "tariffModalTitle": "Set your trip tariff",
     "tariffModalBody": "Before using the dashboard, set the three components of your tariff. This step cannot be skipped.",
     "tariffModalBaseFareLabel": "Base meter-opening charge",
-    "tariffModalBaseFareHint": "The flat charge that starts every trip. The approved minimum for your country is {min}.",
+    "tariffModalBaseFareHint": "The flat charge that starts every trip. The lowest allowed value is {min}.",
     "tariffModalBaseFareTooLow": "The meter-opening charge cannot be lower than {min}.",
     "tariffModalPerKmLabel": "Price per additional kilometre",
     "tariffModalPerKmHint": "The cost charged for each kilometre travelled.",
@@ -796,7 +796,8 @@
     "tariffModalPerMinInvalid": "The per-minute price cannot be below zero.",
     "tariffModalConfirmTitle": "Confirm your prices before you go online",
     "tariffModalConfirmBody": "These are your current prices. Change any of them if you want, or confirm and start receiving requests.",
-    "tariffModalConfirmAction": "Confirm and go online"
+    "tariffModalConfirmAction": "Confirm and go online",
+    "tariffModalBaseFareHintMarket": "The flat charge that starts every trip. The lowest allowed value is {min}, derived from the average of captain prices in your country."
   },
   "captainPickup": {
     "pickupLocation": "Pickup location",

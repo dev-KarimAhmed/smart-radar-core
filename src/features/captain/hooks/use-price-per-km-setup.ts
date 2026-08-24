@@ -13,12 +13,16 @@ export type CaptainTariff = {
   pricePerMin: number;
 };
 
+/** Which reference produced `minBaseFare` — see public.market_sample_threshold(). */
+export type MinBaseFareSource = 'captain_average' | 'country_seed';
+
 type TariffContext = {
   baseFare: number | null;
   pricePerKm: number | null;
   pricePerMin: number | null;
-  /** The country's regulated minimum meter-opening charge. */
+  /** Lowest meter-opening charge this captain may set. */
   minBaseFare: number;
+  minBaseFareSource: MinBaseFareSource;
 };
 
 const FALLBACK_MIN_BASE_FARE = 1;
@@ -55,6 +59,7 @@ export function usePricePerKmSetup(
     pricePerKm: null,
     pricePerMin: null,
     minBaseFare: FALLBACK_MIN_BASE_FARE,
+    minBaseFareSource: 'country_seed',
   });
   const [isLoaded, setIsLoaded] = React.useState(false);
   // The last activation the captain has confirmed their tariff for. Starts at the current
@@ -82,6 +87,7 @@ export function usePricePerKmSetup(
           pricePerKm: toNumberOrNull(context.pricePerKm),
           pricePerMin: toNumberOrNull(context.pricePerMin),
           minBaseFare: toNumberOrNull(context.minBaseFare) ?? FALLBACK_MIN_BASE_FARE,
+          minBaseFareSource: context.minBaseFareSource === 'captain_average' ? 'captain_average' : 'country_seed',
         });
       } catch (error) {
         if (!active) return;

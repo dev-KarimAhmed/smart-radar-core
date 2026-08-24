@@ -399,6 +399,7 @@ export function DriverViewTab() {
           direction={direction}
           currency={currency}
           minBaseFare={currentTariff.minBaseFare}
+          minBaseFareSource={currentTariff.minBaseFareSource}
           initialTariff={currentTariff}
           isCountryChange={currentTariff.pricePerKm !== null && isInDifferentCountry}
           isActivationConfirm={isActivationConfirm}
