@@ -905,7 +905,9 @@
     "tariffBaseFareTooLow": "فتحة العداد لا يمكن أن تقل عن {min}.",
     "tariffPerKmInvalid": "سعر الكيلومتر لازم يكون أكبر من صفر.",
     "tariffPerMinInvalid": "سعر الدقيقة لا يمكن أن يكون أقل من صفر.",
-    "tariffIncludedKm": "المسافة المشمولة (كم)"
+    "tariffIncludedKm": "المسافة المشمولة (كم)",
+    "tariffTitle": "تعريفة رحلاتك",
+    "tariffSubtitle": "الأسعار دي هي اللي بتحسب أجرة رحلاتك. تقدر تعدّلها من هنا في أي وقت."
   },
   "captainActiveTrip": {
     "badge": "رحلة نشطة",

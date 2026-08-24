@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useTranslations } from 'next-intl';
-import { Car, IdCard, Loader2, LogOut, Pencil, Save, ShieldCheck, Star, X } from 'lucide-react';
+import { Car, IdCard, Loader2, LogOut, Pencil, Save, ShieldCheck, Star, Wallet, X } from 'lucide-react';
 import type { User } from '@/core/types';
 import { supabase } from '@/lib/supabase-client';
 import { useToast } from '@/hooks/use-toast';
@@ -87,6 +87,8 @@ const styles = {
   style473_74: "text-xs text-slate-500",
   style474_75: "mt-1 font-black text-white",
   tariffError: "mt-3 text-sm font-bold text-rose-400",
+  tariffSectionHeader: "mt-6 flex items-center gap-2 border-t border-white/5 pt-5 text-emerald-300",
+  tariffSectionHint: "mt-2 text-xs leading-5 text-slate-500",
 } as const;
 
 
@@ -119,6 +121,8 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
   const [baseFare, setBaseFare] = React.useState('');
   const [pricePerKm, setPricePerKm] = React.useState('');
   const [pricePerMin, setPricePerMin] = React.useState('');
+  // NOT NULL with a zero default server-side, so this is '0' rather than blank when unset.
+  const [includedKm, setIncludedKm] = React.useState('');
   // Market-derived floor from captain_base_fare_floor(); a trigger re-checks it on save.
   const [minBaseFare, setMinBaseFare] = React.useState(1);
   const [tariffError, setTariffError] = React.useState('');
@@ -217,6 +221,7 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
         setBaseFare(numberToInput(captainProfile?.base_fare));
         setPricePerKm(numberToInput(captainProfile?.price_per_km));
         setPricePerMin(numberToInput(captainProfile?.price_per_min));
+        setIncludedKm(numberToInput(captainProfile?.included_km ?? 0));
         setVehicleModel(firstString(captainProfile?.vehicle_model));
         setBusinessName(firstString(captainProfile?.employment_type));
         setOfficePhone(firstString(captainProfile?.office_phone));
@@ -334,6 +339,8 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
         base_fare: inputToNumber(baseFare),
         price_per_km: inputToNumber(pricePerKm),
         price_per_min: inputToNumber(pricePerMin),
+        // NOT NULL with a zero default, so a blank field means "no allowance", not "unset".
+        included_km: inputToNumber(includedKm) ?? 0,
       };
       if (isTaxi) {
         captainProfilePayload.office_phone = officePhone.trim() || null;
@@ -651,8 +658,17 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
             />
           </label>
 
-          {/* The same three tariff components the activation modal collects, editable here
-              so the captain does not have to wait for the modal to change a price. */}
+        </div>
+
+        {/* The tariff gets its own headed section rather than sitting at the tail of the
+            vehicle grid: these are prices, not vehicle details, and buried among plate and
+            colour fields a captain looking for their rates does not find them. */}
+        <div className={styles.tariffSectionHeader}>
+          <Wallet className={styles.style325_31} />
+          <h2 className={styles.style326_32}>{t('tariffTitle')}</h2>
+        </div>
+        <p className={styles.tariffSectionHint}>{t('tariffSubtitle')}</p>
+        <div className={styles.style328_33}>
           <label className={styles.style374_49}>
             <span className={styles.style375_50}>
               {t('tariffBaseFare')} ({t('tariffMinimum', { min: minBaseFare.toFixed(2) })})
@@ -665,6 +681,19 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
               inputMode="decimal"
               min={minBaseFare}
               step="0.01"
+              className={styles.style381_51}
+            />
+          </label>
+          <label className={styles.style374_49}>
+            <span className={styles.style375_50}>{t('tariffIncludedKm')}</span>
+            <input
+              value={includedKm}
+              disabled={!isEditing}
+              onChange={(event) => setIncludedKm(event.target.value)}
+              type="number"
+              inputMode="decimal"
+              min="0"
+              step="0.1"
               className={styles.style381_51}
             />
           </label>
@@ -767,7 +796,11 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
           ) : null}
           <Field label={t('facebook')} value={firstString(facebookUrl, t('notProvided'))} />
           <Field label={t('instagram')} value={firstString(instagramUrl, t('notProvided'))} />
+        </Panel>
+
+        <Panel icon={<Wallet className={styles.style439_63} />} title={t('tariffTitle')}>
           <Field label={t('tariffBaseFare')} value={firstString(baseFare, t('notProvided'))} />
+          <Field label={t('tariffIncludedKm')} value={firstString(includedKm, '0')} />
           <Field label={t('tariffPerKm')} value={firstString(pricePerKm, t('notProvided'))} />
           <Field label={t('tariffPerMin')} value={firstString(pricePerMin, t('notProvided'))} />
         </Panel>

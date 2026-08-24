@@ -905,7 +905,9 @@
     "tariffBaseFareTooLow": "The meter-opening charge cannot be lower than {min}.",
     "tariffPerKmInvalid": "Price per km must be greater than zero.",
     "tariffPerMinInvalid": "Price per minute cannot be below zero.",
-    "tariffIncludedKm": "Included distance (km)"
+    "tariffIncludedKm": "Included distance (km)",
+    "tariffTitle": "Your trip tariff",
+    "tariffSubtitle": "These prices are what your trip fares are calculated from. You can change them here at any time."
   },
   "captainActiveTrip": {
     "badge": "Active trip",
