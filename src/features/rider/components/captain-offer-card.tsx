@@ -123,6 +123,30 @@ export interface CaptainProfile {
   instagram_url?: string;
 }
 
+/**
+ * The itemised receipt written by submit_ride_offer when the offer was placed. A snapshot,
+ * not a live recomputation — the captain may have changed their tariff since.
+ * `tariffMissing` marks an offer from a captain who had no tariff to itemise.
+ */
+export interface OfferFareBreakdown {
+  baseFare?: number;
+  perKm?: number;
+  perMin?: number;
+  roadKm?: number;
+  minutes?: number;
+  kmCharge?: number;
+  minCharge?: number;
+  meterFare?: number;
+  marketFare?: number | null;
+  floorPrice?: number | null;
+  ceilingPrice?: number | null;
+  tier?: string;
+  adjustment?: number;
+  offeredFare?: number;
+  minTripFare?: number | null;
+  tariffMissing?: boolean;
+}
+
 export interface CaptainOffer {
   id: string;
   captain: CaptainProfile;
@@ -135,6 +159,7 @@ export interface CaptainOffer {
   additional_info?: string;
   wait_seconds?: number;
   created_at?: string;
+  fare_breakdown?: OfferFareBreakdown | null;
 }
 
 interface CaptainOfferCardCountdown {
@@ -156,11 +181,17 @@ interface CaptainOfferCardProps {
   onAccept: (offer: CaptainOffer) => void;
 }
 
+/**
+ * How far above the market average each rank may bid. Mirrors public.offer_band_for_rank:
+ * a 15% band for everyone, with a high rank keeping its larger factor instead. Only used
+ * for the fallback below, but a stale copy of these numbers is exactly how the rider's view
+ * and the server's rule drifted apart before.
+ */
 const premiumFactors: Record<CaptainRank, number> = {
   PLATINUM: 0.2,
-  GOLD: 0.1,
-  SILVER: 0,
-  BRONZE: 0.05,
+  GOLD: 0.15,
+  SILVER: 0.15,
+  BRONZE: 0.15,
 };
 
 const rankLabels: Record<'ar' | 'en', Record<CaptainRank, string>> = {
@@ -211,10 +242,10 @@ export function CaptainOfferCard({
   const captain = offer.captain;
   const rating = Math.floor(Number(captain.trust_rating) || 5);
   const rankLabel = rankLabels[language][captain.rank] || captain.rank;
-  const { baseFare, premiumFactor, actualPremiumFactor, rankPremiumValue, finalFare } = getCaptainOfferPricing(offer);
-  const hasPremium = premiumFactor > 0 && rankPremiumValue > 0;
-  const premiumPercent = Math.round(actualPremiumFactor * 100);
-  const maxPremiumPercent = Math.round(premiumFactor * 100);
+  const { finalFare } = getCaptainOfferPricing(offer);
+  const breakdown = offer.fare_breakdown ?? null;
+  const adjustment = roundMoney(Number(breakdown?.adjustment) || 0);
+  const pricingReason = buildPricingReason(breakdown, finalFare, currencyCode, isArabic, rankLabel);
   const captainName = captain.name?.trim() || (isArabic ? 'كابتن' : 'Captain');
   const vehicleModelLabel = captain.vehicle_model?.trim() || (isArabic ? 'سيارة' : 'Vehicle');
   const vehicleColorLabel = resolveColorDisplayName(captain.vehicle_color, language);
@@ -383,30 +414,51 @@ export function CaptainOfferCard({
               </div>
             ) : null}
 
-            {/* Fare breakdown display disabled — kept hidden from rider by product request.
-            {hasPremium ? (
-              <div className={styles.style257_45}>
-                <div className={styles.style258_46}>
-                  <BreakdownRow label={isArabic ? 'سعر الرحلة الأساسي' : 'Base trip fare'} value={`${baseFare.toFixed(2)} ${currencyCode}`} />
-                  <BreakdownRow
-                    label={isArabic ? `علاوة الجودة (${rankLabel})` : `Quality surcharge (${rankLabel})`}
-                    value={`+${rankPremiumValue.toFixed(2)} ${currencyCode}`}
-                    accent
-                  />
-                  <BreakdownRow label={isArabic ? 'السعر الإجمالي' : 'Total price'} value={`${finalFare.toFixed(2)} ${currencyCode}`} accent strong />
-                </div>
-                <p className={styles.style267_47}>
-                  {isArabic
-                    ? `يشمل ${premiumPercent}% علاوة جودة اختارها الكابتن ضمن الحد المسموح لرتبة ${rankLabel} من 1 إلى ${maxPremiumPercent}%.`
-                    : `Includes a ${premiumPercent}% quality premium selected by the captain within the allowed ${rankLabel} range: 1-${maxPremiumPercent}%.`}
-                </p>
+            {/* Itemised meter receipt from submit_ride_offer, plus why the total is what it
+                is. Replaces the old base-fare-plus-surcharge view, which was hidden by
+                product request; showing the real meter was requested instead. */}
+            <div className={styles.style257_45}>
+              <div className={styles.style258_46}>
+                {breakdown && !breakdown.tariffMissing ? (
+                  <>
+                    <BreakdownRow
+                      label={isArabic ? 'فتحة العداد' : 'Meter opening'}
+                      value={`${money(breakdown.baseFare)} ${currencyCode}`}
+                    />
+                    <BreakdownRow
+                      label={isArabic
+                        ? `المسافة · ${num(breakdown.roadKm)} كم × ${money(breakdown.perKm)}`
+                        : `Distance · ${num(breakdown.roadKm)} km × ${money(breakdown.perKm)}`}
+                      value={`${money(breakdown.kmCharge)} ${currencyCode}`}
+                    />
+                    {Number(breakdown.perMin) > 0 ? (
+                      <BreakdownRow
+                        label={isArabic
+                          ? `الوقت · ${num(breakdown.minutes)} دقيقة × ${money(breakdown.perMin)}`
+                          : `Time · ${num(breakdown.minutes)} min × ${money(breakdown.perMin)}`}
+                        value={`${money(breakdown.minCharge)} ${currencyCode}`}
+                      />
+                    ) : null}
+                    {adjustment !== 0 ? (
+                      <BreakdownRow
+                        label={isArabic
+                          ? (adjustment > 0 ? 'زيادة اختارها الكابتن' : 'خصم من الكابتن')
+                          : (adjustment > 0 ? 'Captain’s increase' : 'Captain’s discount')}
+                        value={`${adjustment > 0 ? '+' : '−'}${money(Math.abs(adjustment))} ${currencyCode}`}
+                        accent
+                      />
+                    ) : null}
+                  </>
+                ) : null}
+                <BreakdownRow
+                  label={isArabic ? 'السعر الإجمالي' : 'Total price'}
+                  value={`${finalFare.toFixed(2)} ${currencyCode}`}
+                  accent
+                  strong
+                />
               </div>
-            ) : (
-              <div className={styles.style274_48}>
-                <BreakdownRow label={isArabic ? 'السعر الإجمالي' : 'Total price'} value={`${finalFare.toFixed(2)} ${currencyCode}`} accent strong />
-              </div>
-            )}
-            */}
+              <p className={styles.style267_47}>{pricingReason}</p>
+            </div>
 
             {offer.additional_info ? (
               <p className={styles.style280_49}>
@@ -481,6 +533,74 @@ function InfoRow({
       {helper ? <p className={styles.style339_62}>{helper}</p> : null}
     </div>
   );
+}
+
+function roundMoney(value: number) {
+  return Math.round((Number(value) || 0) * 100) / 100;
+}
+
+function money(value: number | null | undefined) {
+  return (Number(value) || 0).toFixed(2);
+}
+
+function num(value: number | null | undefined) {
+  const parsed = Number(value) || 0;
+  return Number.isInteger(parsed) ? String(parsed) : parsed.toFixed(1);
+}
+
+/**
+ * One sentence telling the rider why this price, in the terms that actually decided it:
+ * the captain's own meter, and the market band the offer had to land in.
+ */
+function buildPricingReason(
+  breakdown: OfferFareBreakdown | null,
+  finalFare: number,
+  currencyCode: string,
+  isArabic: boolean,
+  rankLabel: string,
+) {
+  if (!breakdown || breakdown.tariffMissing) {
+    return isArabic
+      ? 'هذا السعر قدّمه الكابتن مباشرة، ولم تُسجَّل تفاصيل تعريفة له عند تقديم العرض.'
+      : 'This price was submitted directly by the captain; no tariff details were recorded with the offer.';
+  }
+
+  const meterFare = Number(breakdown.meterFare) || 0;
+  const marketFare = Number(breakdown.marketFare) || 0;
+
+  const meterSentence = isArabic
+    ? `سعر عدّاد الكابتن لهذه الرحلة ${money(meterFare)} ${currencyCode}.`
+    : `The captain's meter for this trip reads ${money(meterFare)} ${currencyCode}.`;
+
+  const adjustment = roundMoney(Number(breakdown.adjustment) || 0);
+  const adjustmentSentence = adjustment === 0
+    ? (isArabic ? ' وقدّمه كما هو دون تعديل.' : ' They offered it unchanged.')
+    : adjustment > 0
+      ? (isArabic
+          ? ` وأضاف ${money(adjustment)} ${currencyCode} فوقه.`
+          : ` They added ${money(adjustment)} ${currencyCode} on top.`)
+      : (isArabic
+          ? ` وخصم ${money(Math.abs(adjustment))} ${currencyCode} منه.`
+          : ` They took ${money(Math.abs(adjustment))} ${currencyCode} off.`);
+
+  if (marketFare <= 0) {
+    return `${meterSentence}${adjustmentSentence}`;
+  }
+
+  const deviation = Math.round(((finalFare - marketFare) / marketFare) * 100);
+  const comparison = deviation === 0
+    ? (isArabic
+        ? ` وهو مطابق لمتوسط أسعار الكباتن لهذه الرحلة (${money(marketFare)} ${currencyCode}).`
+        : ` That matches the captain average for this trip (${money(marketFare)} ${currencyCode}).`)
+    : deviation > 0
+      ? (isArabic
+          ? ` وهو أعلى بـ ${deviation}% من متوسط أسعار الكباتن (${money(marketFare)} ${currencyCode})، وهي زيادة مسموحة لرتبة ${rankLabel}.`
+          : ` That is ${deviation}% above the captain average (${money(marketFare)} ${currencyCode}), within the allowance for the ${rankLabel} rank.`)
+      : (isArabic
+          ? ` وهو أقل بـ ${Math.abs(deviation)}% من متوسط أسعار الكباتن (${money(marketFare)} ${currencyCode}).`
+          : ` That is ${Math.abs(deviation)}% below the captain average (${money(marketFare)} ${currencyCode}).`);
+
+  return `${meterSentence}${adjustmentSentence}${comparison}`;
 }
 
 function BreakdownRow({

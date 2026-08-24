@@ -186,6 +186,9 @@ export function buildCaptainOfferFromOffer(
     additional_info: firstDisplayString(offer.captain?.bio, offer.captain?.notes, offerRecord.additional_info),
     wait_seconds: offer.wait_seconds,
     created_at: offer.created_at,
+    // Written by submit_ride_offer at submit time. Passed through untouched — it is a
+    // receipt, so nothing here should be recomputed or filled in client-side.
+    fare_breakdown: (offerRecord.fare_breakdown ?? null) as CaptainOffer['fare_breakdown'],
   };
 
   const isPreferred =

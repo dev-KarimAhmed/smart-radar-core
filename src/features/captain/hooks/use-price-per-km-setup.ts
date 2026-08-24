@@ -34,9 +34,10 @@ function toNumberOrNull(value: unknown) {
  * their live GPS country no longer matches their registered one — the currency changes, so
  * the prices they set no longer mean the same thing and need re-confirming.
  *
- * The country's `base_fare` is the regulated floor, not the captain's price: it is surfaced
- * here as `minBaseFare` so the form can reject a lower value before the round trip, and a
- * trigger re-checks it server-side.
+ * `minBaseFare` is the country's regulated floor (`countries.min_base_fare`), kept separate
+ * from `countries.base_fare`, which is only the seed the market average starts from. It is
+ * surfaced here so the form can reject a lower value before the round trip; the
+ * enforce_captain_base_fare_floor trigger re-checks it server-side.
  */
 export function usePricePerKmSetup(
   user: User | null,

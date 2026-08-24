@@ -519,6 +519,8 @@ function mapRideOfferRow(row: Record<string, unknown>): Offer | null {
     estimated_duration_minutes: firstNumber(row.estimated_duration_minutes, row.duration, row.estimated_duration) ?? undefined,
     wait_seconds: firstNumber(row.wait_seconds) ?? undefined,
     created_at: firstString(row.created_at) || undefined,
+    // The itemised receipt submit_ride_offer stored with the offer, passed straight through.
+    fare_breakdown: (row.fare_breakdown ?? null) as Record<string, unknown> | null,
     captain: {
       ...captainProfile,
       ...profile,

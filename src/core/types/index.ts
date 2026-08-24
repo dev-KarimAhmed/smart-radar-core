@@ -142,6 +142,12 @@ export interface Offer {
     captain?: any;
     wait_seconds?: number;
     created_at?: string;
+    /**
+     * Itemised fare receipt stored on the offer by submit_ride_offer. Shape is defined by
+     * OfferFareBreakdown in the rider's captain-offer-card; kept loose here so this legacy
+     * core type does not have to import from a feature.
+     */
+    fare_breakdown?: Record<string, unknown> | null;
 }
 
 export interface SovereignAd {
