@@ -86,6 +86,7 @@ const styles = {
   style472_73: "rounded-2xl border border-slate-800 bg-black/45 px-4 py-3",
   style473_74: "text-xs text-slate-500",
   style474_75: "mt-1 font-black text-white",
+  tariffError: "mt-3 text-sm font-bold text-rose-400",
 } as const;
 
 
@@ -114,6 +115,13 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
   const [sideId, setSideId] = React.useState('');
   const [facebookUrl, setFacebookUrl] = React.useState('');
   const [instagramUrl, setInstagramUrl] = React.useState('');
+  // The captain's own tariff, the same three components the activation modal collects.
+  const [baseFare, setBaseFare] = React.useState('');
+  const [pricePerKm, setPricePerKm] = React.useState('');
+  const [pricePerMin, setPricePerMin] = React.useState('');
+  // Market-derived floor from captain_base_fare_floor(); a trigger re-checks it on save.
+  const [minBaseFare, setMinBaseFare] = React.useState(1);
+  const [tariffError, setTariffError] = React.useState('');
   const [affiliationType, setAffiliationType] = React.useState('');
   const isTaxi = affiliationType === 'office-taxi';
 
@@ -183,6 +191,17 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
           if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver captain profile]', captainProfileError);
         }
 
+        // The floor is computed from the market, so it has to come from the server rather
+        // than any column on the profile itself.
+        try {
+          const { data: tariffContext } = await supabase.rpc('get_captain_tariff_context');
+          const floor = Number((tariffContext as Record<string, unknown> | null)?.minBaseFare);
+          if (active && Number.isFinite(floor)) setMinBaseFare(floor);
+        } catch (tariffContextError) {
+          if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver tariff context]', tariffContextError);
+        }
+        if (!active) return;
+
         const mergedProfile = {
           ...(data || {}),
           captain_profile: captainProfile,
@@ -195,6 +214,9 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
         setVehicleMake(firstString(getVehicleMake(mergedProfile), user?.vehicle?.make));
         setVehicleColor(firstString(getVehicleColor(mergedProfile), user?.vehicle?.color));
         setVehicleYear(firstString(getVehicleYear(mergedProfile), user?.vehicle?.year));
+        setBaseFare(numberToInput(captainProfile?.base_fare));
+        setPricePerKm(numberToInput(captainProfile?.price_per_km));
+        setPricePerMin(numberToInput(captainProfile?.price_per_min));
         setVehicleModel(firstString(captainProfile?.vehicle_model));
         setBusinessName(firstString(captainProfile?.employment_type));
         setOfficePhone(firstString(captainProfile?.office_phone));
@@ -223,8 +245,35 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
   const percent = (normalizedRating / 5) * 100;
   const tier = getCaptainTier(profile, normalizedRating, t, user?.rank);
 
+  /**
+   * Mirrors the checks in the setup modal so the captain gets a plain message instead of a
+   * raw Postgres error. The enforce_captain_base_fare_floor trigger is still the authority;
+   * this only saves a round trip.
+   */
+  const validateTariff = () => {
+    const parsedBaseFare = inputToNumber(baseFare);
+    const parsedPerKm = inputToNumber(pricePerKm);
+    const parsedPerMin = inputToNumber(pricePerMin);
+
+    // All three blank is allowed — it just leaves the tariff unset, and the mandatory modal
+    // will ask for it. Filling only some of them is not.
+    const filled = [parsedBaseFare, parsedPerKm, parsedPerMin].filter((value) => value !== null).length;
+    if (filled === 0) return '';
+    if (filled < 3) return t('tariffIncomplete');
+
+    if (parsedBaseFare! < minBaseFare) return t('tariffBaseFareTooLow', { min: minBaseFare.toFixed(2) });
+    if (parsedPerKm! <= 0) return t('tariffPerKmInvalid');
+    if (parsedPerMin! < 0) return t('tariffPerMinInvalid');
+    return '';
+  };
+
   const saveProfile = async () => {
     if (!user?.uid) return;
+
+    const tariffProblem = validateTariff();
+    setTariffError(tariffProblem);
+    if (tariffProblem) return;
+
     setIsSaving(true);
     try {
       const vehicle = {
@@ -280,6 +329,11 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
         employment_type: businessName.trim() || null,
         facebook_url: facebookUrl.trim() || null,
         instagram_url: instagramUrl.trim() || null,
+        // Left as null while a field is blank, which is what keeps the mandatory setup
+        // modal gating: a partial tariff cannot price a trip.
+        base_fare: inputToNumber(baseFare),
+        price_per_km: inputToNumber(pricePerKm),
+        price_per_min: inputToNumber(pricePerMin),
       };
       if (isTaxi) {
         captainProfilePayload.office_phone = officePhone.trim() || null;
@@ -596,7 +650,52 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
               className={styles.style381_51}
             />
           </label>
+
+          {/* The same three tariff components the activation modal collects, editable here
+              so the captain does not have to wait for the modal to change a price. */}
+          <label className={styles.style374_49}>
+            <span className={styles.style375_50}>
+              {t('tariffBaseFare')} ({t('tariffMinimum', { min: minBaseFare.toFixed(2) })})
+            </span>
+            <input
+              value={baseFare}
+              disabled={!isEditing}
+              onChange={(event) => setBaseFare(event.target.value)}
+              type="number"
+              inputMode="decimal"
+              min={minBaseFare}
+              step="0.01"
+              className={styles.style381_51}
+            />
+          </label>
+          <label className={styles.style374_49}>
+            <span className={styles.style375_50}>{t('tariffPerKm')}</span>
+            <input
+              value={pricePerKm}
+              disabled={!isEditing}
+              onChange={(event) => setPricePerKm(event.target.value)}
+              type="number"
+              inputMode="decimal"
+              min="0"
+              step="0.01"
+              className={styles.style381_51}
+            />
+          </label>
+          <label className={styles.style374_49}>
+            <span className={styles.style375_50}>{t('tariffPerMin')}</span>
+            <input
+              value={pricePerMin}
+              disabled={!isEditing}
+              onChange={(event) => setPricePerMin(event.target.value)}
+              type="number"
+              inputMode="decimal"
+              min="0"
+              step="0.01"
+              className={styles.style381_51}
+            />
+          </label>
         </div>
+        {tariffError ? <p className={styles.tariffError}>{tariffError}</p> : null}
         <div className={styles.style385_52}>
           {!isEditing ? (
             <button
@@ -668,6 +767,9 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
           ) : null}
           <Field label={t('facebook')} value={firstString(facebookUrl, t('notProvided'))} />
           <Field label={t('instagram')} value={firstString(instagramUrl, t('notProvided'))} />
+          <Field label={t('tariffBaseFare')} value={firstString(baseFare, t('notProvided'))} />
+          <Field label={t('tariffPerKm')} value={firstString(pricePerKm, t('notProvided'))} />
+          <Field label={t('tariffPerMin')} value={firstString(pricePerMin, t('notProvided'))} />
         </Panel>
       </div>
 
@@ -701,6 +803,19 @@ function Field({ label, value }: { label: string; value: string }) {
       <p className={styles.style474_75}>{value}</p>
     </div>
   );
+}
+
+/** Empty string means "not set"; the column stays NULL so the setup modal keeps gating. */
+function inputToNumber(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const parsed = Number(trimmed);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function numberToInput(value: unknown) {
+  const parsed = Number(value);
+  return value === null || value === undefined || !Number.isFinite(parsed) ? '' : String(parsed);
 }
 
 function firstString(...values: unknown[]) {

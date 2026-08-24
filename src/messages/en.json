@@ -891,7 +891,15 @@
       "gold": "Gold",
       "silver": "Silver",
       "bronze": "Bronze"
-    }
+    },
+    "tariffBaseFare": "Meter-opening charge",
+    "tariffPerKm": "Price per additional km",
+    "tariffPerMin": "Price per minute",
+    "tariffMinimum": "min {min}",
+    "tariffIncomplete": "Set all three components, or leave all three blank.",
+    "tariffBaseFareTooLow": "The meter-opening charge cannot be lower than {min}.",
+    "tariffPerKmInvalid": "Price per km must be greater than zero.",
+    "tariffPerMinInvalid": "Price per minute cannot be below zero."
   },
   "captainActiveTrip": {
     "badge": "Active trip",

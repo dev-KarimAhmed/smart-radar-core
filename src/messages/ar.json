@@ -891,7 +891,15 @@
       "gold": "ذهبي",
       "silver": "فضي",
       "bronze": "برونزي"
-    }
+    },
+    "tariffBaseFare": "سعر فتحة العداد",
+    "tariffPerKm": "سعر الكيلومتر الإضافي",
+    "tariffPerMin": "سعر الدقيقة",
+    "tariffMinimum": "الحد الأدنى {min}",
+    "tariffIncomplete": "لازم تحدد المكونات الثلاثة كلها أو تسيبهم فاضيين.",
+    "tariffBaseFareTooLow": "فتحة العداد لا يمكن أن تقل عن {min}.",
+    "tariffPerKmInvalid": "سعر الكيلومتر لازم يكون أكبر من صفر.",
+    "tariffPerMinInvalid": "سعر الدقيقة لا يمكن أن يكون أقل من صفر."
   },
   "captainActiveTrip": {
     "badge": "رحلة نشطة",
