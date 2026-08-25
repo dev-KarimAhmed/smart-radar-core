@@ -8,7 +8,6 @@ import {
   Megaphone,
   ShieldCheck,
   Store,
-  UserCog,
   UserRound,
 } from 'lucide-react';
 import { useRegistration } from '../../hooks/use-registration';
@@ -31,7 +30,7 @@ const styles = {
   style285_11: "mt-6 max-w-3xl text-balance text-4xl font-black leading-tight tracking-normal text-[#F8FAFC] sm:text-5xl lg:text-7xl",
   style289_12: "mt-4 text-lg font-semibold leading-8 text-[#94A3B8] sm:text-xl",
   style328_19: "mx-auto mt-10 grid w-full max-w-6xl grid-cols-1 gap-4 md:grid-cols-2 lg:gap-6",
-  style329_20: "lg:grid-cols-5",
+  style329_20: "lg:grid-cols-4",
   style348_22: "group flex h-full min-h-52 flex-col items-start justify-between gap-4 rounded-3xl border border-white/5 bg-[#161F30]/60 p-5 text-start shadow-2xl backdrop-blur-xl transition-colors duration-300 hover:border-[#14B8A6] hover:shadow-[0_0_20px_rgba(20,184,166,0.15)] focus-visible:border-[#14B8A6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/40 active:border-[#14B8A6] active:shadow-[0_0_20px_rgba(20,184,166,0.15)] sm:min-h-56 sm:p-6",
   style349_23: "text-right",
   style349_24: "text-left",
@@ -115,6 +114,10 @@ const copy = {
   },
 } as const;
 
+// Admin is intentionally excluded from this grid — the control-desk login is
+// only reachable from the separate radar-page landing site, not from the
+// public role picker. The route/component behind it (navigateAuth('admin'))
+// still exists for that link to work.
 const roleConfig: Array<{
   key: RoleKey;
   Icon: typeof UserRound;
@@ -123,7 +126,6 @@ const roleConfig: Array<{
   { key: 'driver', Icon: CarTaxiFront },
   { key: 'advertiser', Icon: Megaphone },
   { key: 'delegate', Icon: Store },
-  { key: 'admin', Icon: UserCog },
 ];
 
 const demoUsers: Array<{
