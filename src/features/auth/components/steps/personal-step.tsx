@@ -14,6 +14,7 @@ import {
   Phone,
   ShieldCheck,
   Sparkles,
+  UserPlus,
   UserRound,
 } from 'lucide-react';
 import {
@@ -49,12 +50,6 @@ const styles = {
   style351_12: "text-sm font-bold text-[#14B8A6]",
   style362_13: "mt-3 text-3xl font-black tracking-normal text-[#F8FAFC]",
   style365_14: "mt-3 text-sm font-medium leading-6 text-[#94A3B8]",
-  style372_15: "mb-5 grid grid-cols-2 rounded-2xl border border-white/10 bg-[#0B0F19]/45 p-1",
-  style381_16: "relative min-h-11 rounded-xl px-3 text-sm font-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/50",
-  style386_17: "absolute inset-0 rounded-xl border border-[#14B8A6]/45 bg-[#14B8A6]/15 shadow-[0_0_18px_rgba(20,184,166,0.14)]",
-  style390_18: "relative z-10",
-  style390_19: "text-[#F8FAFC]",
-  style390_20: "text-[#94A3B8]",
   style405_21: "space-y-4",
   style410_22: "space-y-4 animate-fadeIn text-right animate-in fade-in duration-200",
   style411_23: "flex justify-between items-center text-xs text-slate-400 mb-4 bg-white/5 border border-white/10 rounded-2xl p-3",
@@ -166,7 +161,8 @@ const styles = {
   style776_129: "h-5 w-5 shrink-0 accent-[#14B8A6]",
   style785_130: "mt-2 w-full rounded-2xl bg-[#14B8A6] p-4 text-base font-black text-[#0B0F19] shadow-[0_16px_45px_rgba(20,184,166,0.22)] transition hover:bg-[#2DD4BF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/60 disabled:opacity-50 cursor-pointer",
   style794_131: "mt-6 text-center text-sm font-semibold text-[#94A3B8]",
-  style799_132: "font-black text-[#14B8A6] underline-offset-4 transition hover:text-[#2DD4BF] hover:underline",
+  createAccountLink: "inline-flex items-center gap-1 font-black text-[#14B8A6] underline-offset-4 transition hover:text-[#2DD4BF] hover:underline",
+  createAccountIcon: "h-4 w-4",
   style807_133: "mt-5 w-full text-xs font-bold text-[#94A3B8]/70 transition hover:text-white",
   style818_134: "border border-[#14B8A6]/25 bg-[#0B0F19] text-white shadow-2xl sm:max-w-md",
   style820_135: "text-right",
@@ -440,6 +436,7 @@ export function PersonalStep() {
     setAuthMode,
     lang,
     setLang,
+    createAccountPulseKey,
   } = useRegistration();
   const [showPassword, setShowPassword] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
@@ -511,32 +508,6 @@ export function PersonalStep() {
               </motion.div>
             </AnimatePresence>
           </header>
-
-          <div className={styles.style372_15}>
-            {(['register', 'login'] as AuthMode[]).map((nextMode) => {
-              const active = mode === nextMode;
-
-              return (
-                <button
-                  key={nextMode}
-                  type="button"
-                  onClick={() => goToMode(nextMode)}
-                  className={styles.style381_16}
-                >
-                  {active ? (
-                    <motion.span
-                      layoutId="auth-view-active"
-                      className={styles.style386_17}
-                      transition={{ type: 'spring', stiffness: 420, damping: 34 }}
-                    />
-                  ) : null}
-                  <span className={cn(styles.style390_18, active ? styles.style390_19 : styles.style390_20)}>
-                    {nextMode === 'register' ? t.register : t.login}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
 
           <AnimatePresence mode="wait" initial={false}>
             <motion.form
@@ -727,13 +698,21 @@ export function PersonalStep() {
 
           <div className={styles.style794_131}>
             <span>{mode === 'register' ? t.hasAccount : t.noAccount}</span>{' '}
-            <button
+            {/* Remounts (via `key`) on every failed login attempt caused by a
+                wrong phone/password, replaying the entrance animation to draw
+                the eye toward creating a new account instead. */}
+            <motion.button
+              key={mode === 'login' ? createAccountPulseKey : 'static'}
               type="button"
               onClick={() => goToMode(mode === 'register' ? 'login' : 'register')}
-              className={styles.style799_132}
+              className={styles.createAccountLink}
+              initial={mode === 'login' ? { scale: 1, color: '#94A3B8' } : false}
+              animate={mode === 'login' ? { scale: [1, 1.22, 0.94, 1.06, 1], color: '#14B8A6' } : undefined}
+              transition={{ duration: 0.6, ease: 'easeInOut' }}
             >
+              {mode === 'login' ? <UserPlus className={styles.createAccountIcon} aria-hidden="true" /> : null}
               {mode === 'register' ? t.switchToLogin : t.switchToRegister}
-            </button>
+            </motion.button>
           </div>
 
           <button

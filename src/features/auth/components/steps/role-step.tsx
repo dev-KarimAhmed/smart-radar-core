@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import React, { useMemo } from 'react';
+import React from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   CarTaxiFront,
@@ -30,15 +30,8 @@ const styles = {
   style282_10: "h-7 w-7",
   style285_11: "mt-6 max-w-3xl text-balance text-4xl font-black leading-tight tracking-normal text-[#F8FAFC] sm:text-5xl lg:text-7xl",
   style289_12: "mt-4 text-lg font-semibold leading-8 text-[#94A3B8] sm:text-xl",
-  style294_13: "mt-8 grid w-full max-w-md grid-cols-2 rounded-full border border-white/10 bg-[#161F30]/60 p-1.5 shadow-2xl backdrop-blur-xl",
-  style308_14: "relative min-h-11 rounded-full px-4 text-sm font-black tracking-normal text-slate-400 transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/50 sm:text-base",
-  style313_15: "absolute inset-0 rounded-full border border-[#14B8A6]/45 bg-[#14B8A6]/15 shadow-[0_0_24px_rgba(20,184,166,0.18)]",
-  style317_16: "relative z-10",
-  style317_17: "text-[#F8FAFC]",
-  style317_18: "text-[#94A3B8]",
   style328_19: "mx-auto mt-10 grid w-full max-w-6xl grid-cols-1 gap-4 md:grid-cols-2 lg:gap-6",
   style329_20: "lg:grid-cols-5",
-  style329_21: "lg:grid-cols-4",
   style348_22: "group flex h-full min-h-52 flex-col items-start justify-between gap-4 rounded-3xl border border-white/5 bg-[#161F30]/60 p-5 text-start shadow-2xl backdrop-blur-xl transition-colors duration-300 hover:border-[#14B8A6] hover:shadow-[0_0_20px_rgba(20,184,166,0.15)] focus-visible:border-[#14B8A6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/40 active:border-[#14B8A6] active:shadow-[0_0_20px_rgba(20,184,166,0.15)] sm:min-h-56 sm:p-6",
   style349_23: "text-right",
   style349_24: "text-left",
@@ -61,7 +54,6 @@ const styles = {
 
 
 type Lang = 'ar' | 'en';
-type AuthMode = 'login' | 'register';
 type RoleKey = 'rider' | 'driver' | 'advertiser' | 'delegate' | 'admin';
 
 const copy = {
@@ -70,10 +62,6 @@ const copy = {
     ariaSwitch: 'تغيير اللغة إلى الإنجليزية',
     title: 'مرحبا بك في الرادار الذكي',
     subtitle: 'اختر نوع حسابك وكمل دخولك بسهولة',
-    modes: {
-      login: 'تسجيل الدخول',
-      register: 'حساب جديد',
-    },
     roles: {
       rider: {
         title: 'راكب',
@@ -102,10 +90,6 @@ const copy = {
     ariaSwitch: 'Switch language to Arabic',
     title: 'Welcome to Smart Radar',
     subtitle: 'Choose your account type and continue securely',
-    modes: {
-      login: 'Login',
-      register: 'Register',
-    },
     roles: {
       rider: {
         title: 'Rider',
@@ -141,8 +125,6 @@ const roleConfig: Array<{
   { key: 'delegate', Icon: Store },
   { key: 'admin', Icon: UserCog },
 ];
-
-const authModes: AuthMode[] = ['login', 'register'];
 
 const demoUsers: Array<{
   role: User['role'];
@@ -265,26 +247,23 @@ const demoUsers: Array<{
 ];
 
 export function RoleStep() {
-  const { setRole, authMode, setAuthMode, lang, setLang } = useRegistration();
+  const { setRole, lang, setLang } = useRegistration();
   const { loginAsMockUser } = useAuth();
   const currentLang = lang as Lang;
   const content = copy[currentLang];
   const isArabic = currentLang === 'ar';
 
-  const visibleRoles = useMemo(
-    () => roleConfig.filter((role) => authMode === 'login' || role.key !== 'admin'),
-    [authMode],
-  );
-
+  // Every card leads straight to login for that role — there's no separate
+  // "create account" switch here; a failed login is what offers to create
+  // an account instead (see PersonalStep's create-account link).
   const handleRoleSelect = (role: RoleKey) => {
     if (role === 'admin') {
       navigateAuth('admin');
       return;
     }
 
-    // Route each role to its own dedicated page based on the selected mode.
     setRole(role);
-    navigateAuth(authMode === 'login' ? 'login' : 'register', role);
+    navigateAuth('login', role);
   };
 
   const openDemoDashboard = (user: User) => {
@@ -334,46 +313,14 @@ export function RoleStep() {
           <p className={styles.style289_12}>
             {content.subtitle}
           </p>
-
-          <div
-            className={styles.style294_13}
-            role="tablist"
-            aria-label="Authentication mode"
-          >
-            {authModes.map((mode) => {
-              const active = authMode === mode;
-
-              return (
-                <button
-                  key={mode}
-                  type="button"
-                  role="tab"
-                  aria-selected={active}
-                  onClick={() => setAuthMode(mode)}
-                  className={styles.style308_14}
-                >
-                  {active ? (
-                    <motion.span
-                      layoutId="auth-mode-active-pill"
-                      className={styles.style313_15}
-                      transition={{ type: 'spring', stiffness: 420, damping: 34 }}
-                    />
-                  ) : null}
-                  <span className={cn(styles.style317_16, active ? styles.style317_17 : styles.style317_18)}>
-                    {content.modes[mode]}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
         </div>
 
         <motion.div
           layout
-          className={cn(styles.style328_19, authMode === 'login' ? styles.style329_20 : styles.style329_21)}
+          className={cn(styles.style328_19, styles.style329_20)}
         >
           <AnimatePresence mode="popLayout" initial={false}>
-            {visibleRoles.map(({ key, Icon }, index) => {
+            {roleConfig.map(({ key, Icon }, index) => {
               const role = content.roles[key];
 
               return (

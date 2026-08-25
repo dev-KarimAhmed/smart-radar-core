@@ -3,7 +3,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import type { AffiliationType } from '@/core/types';
-import { buildRiderSignUpMetadata, mapSupabaseAuthError, signInRiderWithPhone, signUpRiderWithPhone } from '../services/supabase-auth';
+import { buildRiderSignUpMetadata, isInvalidPhoneOrPasswordError, mapSupabaseAuthError, signInRiderWithPhone, signUpRiderWithPhone } from '../services/supabase-auth';
 import { shouldRememberSupabaseSession, supabase } from '@/lib/supabase-client';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { useToast } from '@/hooks/use-toast';
@@ -89,6 +89,10 @@ interface RegistrationContextType {
   setAdminCreds: (creds: any) => void;
   handleAdminSubmit: (e: React.FormEvent) => void;
   handleLogoTap: () => void;
+  // Bumped whenever a login attempt fails with a wrong phone/password, so the
+  // "create a new account" link can replay its attention animation — see
+  // PersonalStep, where the link's `key` is tied to this value.
+  createAccountPulseKey: number;
 }
 
 const RegistrationContext = createContext<RegistrationContextType | undefined>(undefined);
@@ -118,6 +122,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
   const [affiliation, setAffiliation] = useState<AffiliationType | null>(null);
   const [vehicle, setVehicle] = useState({ year: '', plate: '', sideId: '', make: '', color: '', officeName: '', officePhone: '', companyName: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [createAccountPulseKey, setCreateAccountPulseKey] = useState(0);
   const [logoTapCount, setLogoTapCount] = useState(0);
   const [adminCreds, setAdminCreds] = useState({ email: '', password: '' });
   const [selectedCountry, setSelectedCountry] = useState<SupabaseCountryRow | null>(null);
@@ -507,10 +512,15 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
         });
       }
 
+      const wrongCredentials = authMode === 'login' && isInvalidPhoneOrPasswordError(error);
+      if (wrongCredentials) setCreateAccountPulseKey((key) => key + 1);
+
       toast({
         variant: 'destructive',
         title: authMode === 'register' ? 'تعذر إنشاء الحساب' : 'تعذر تسجيل الدخول',
-        description: mapSupabaseAuthError(error),
+        description: wrongCredentials
+          ? `${mapSupabaseAuthError(error)} يمكنك إنشاء حساب جديد إذا لم يكن لديك حساب بعد.`
+          : mapSupabaseAuthError(error),
       });
     } finally {
       setIsSubmitting(false);
@@ -610,6 +620,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     setAdminCreds,
     handleAdminSubmit,
     handleLogoTap,
+    createAccountPulseKey,
   };
 
   return <RegistrationContext.Provider value={value}>{children}</RegistrationContext.Provider>;
