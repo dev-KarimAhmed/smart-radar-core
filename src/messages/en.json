@@ -595,8 +595,8 @@
     "successNeedsLogin": "Your account was created. Sign in to continue.",
     "errorTitle": "Could not create captain account",
     "backToRole": "Back to account type selection",
-    "tabRegister": "Create account",
-    "tabLogin": "Sign in",
+    "hasAccountPrompt": "Already have an account?",
+    "goToLogin": "Sign in",
     "personal": {
       "name": "Full name",
       "namePlaceholder": "Enter your name",

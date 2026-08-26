@@ -595,8 +595,8 @@
     "successNeedsLogin": "تم إنشاء الحساب. سجّل الدخول للمتابعة.",
     "errorTitle": "تعذر إنشاء حساب الكابتن",
     "backToRole": "العودة لاختيار نوع الحساب",
-    "tabRegister": "إنشاء حساب",
-    "tabLogin": "تسجيل الدخول",
+    "hasAccountPrompt": "لديك حساب بالفعل؟",
+    "goToLogin": "سجل دخولك",
     "personal": {
       "name": "الاسم الكامل",
       "namePlaceholder": "اكتب اسمك",
