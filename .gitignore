@@ -5,7 +5,7 @@
 .pnp.js
 
 # Firebase Functions build output
-/functions/lib
+/functions/lib 
 
 # Testing
 /coverage
