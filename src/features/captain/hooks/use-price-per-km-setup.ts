@@ -18,6 +18,21 @@ export type CaptainTariff = {
 /** Which reference produced `minBaseFare` — see public.market_sample_threshold(). */
 export type MinBaseFareSource = 'captain_average' | 'country_seed';
 
+/** Which area the market average was actually computed over. */
+export type MarketAverageScope = 'governorate' | 'country' | 'country_seed';
+
+/** Full result of public.market_average_tariff() — one reference number per tariff field. */
+export type MarketAverageTariff = {
+  baseFare: number;
+  perKm: number;
+  perMin: number;
+  includedKm: number;
+  captainCount: number;
+  threshold: number;
+  scope: MarketAverageScope;
+  source: MinBaseFareSource;
+};
+
 type TariffContext = {
   baseFare: number | null;
   pricePerKm: number | null;
@@ -26,6 +41,8 @@ type TariffContext = {
   /** Lowest meter-opening charge this captain may set. */
   minBaseFare: number;
   minBaseFareSource: MinBaseFareSource;
+  /** Per-field market averages for the whole tariff, not just the base-fare floor. */
+  marketAverage: MarketAverageTariff | null;
 };
 
 const FALLBACK_MIN_BASE_FARE = 1;
@@ -33,6 +50,26 @@ const FALLBACK_MIN_BASE_FARE = 1;
 function toNumberOrNull(value: unknown) {
   const numberValue = Number(value);
   return Number.isFinite(numberValue) ? numberValue : null;
+}
+
+function toMarketAverage(value: unknown): MarketAverageTariff | null {
+  if (!value || typeof value !== 'object') return null;
+  const context = value as Record<string, unknown>;
+  const baseFare = toNumberOrNull(context.baseFare);
+  const perKm = toNumberOrNull(context.perKm);
+  const perMin = toNumberOrNull(context.perMin);
+  if (baseFare === null || perKm === null || perMin === null) return null;
+
+  return {
+    baseFare,
+    perKm,
+    perMin,
+    includedKm: toNumberOrNull(context.includedKm) ?? 0,
+    captainCount: toNumberOrNull(context.captainCount) ?? 0,
+    threshold: toNumberOrNull(context.threshold) ?? 0,
+    scope: context.scope === 'governorate' || context.scope === 'country' ? context.scope : 'country_seed',
+    source: context.source === 'captain_average' ? 'captain_average' : 'country_seed',
+  };
 }
 
 /**
@@ -45,6 +82,11 @@ function toNumberOrNull(value: unknown) {
  * from `countries.base_fare`, which is only the seed the market average starts from. It is
  * surfaced here so the form can reject a lower value before the round trip; the
  * enforce_captain_base_fare_floor trigger re-checks it server-side.
+ *
+ * The floor and `marketAverage` are both governorate-first: get_captain_tariff_context()
+ * resolves the captain's live-GPS governorate (falling back to their registered one, then to
+ * a country-wide average, then to the country's seed row) so "the market" means captains
+ * actually nearby, not the whole country.
  */
 export function usePricePerKmSetup(
   user: User | null,
@@ -64,6 +106,7 @@ export function usePricePerKmSetup(
     includedKm: 0,
     minBaseFare: FALLBACK_MIN_BASE_FARE,
     minBaseFareSource: 'country_seed',
+    marketAverage: null,
   });
   const [isLoaded, setIsLoaded] = React.useState(false);
   // The last activation the captain has confirmed their tariff for. Starts at the current
@@ -93,6 +136,7 @@ export function usePricePerKmSetup(
           includedKm: toNumberOrNull(context.includedKm) ?? 0,
           minBaseFare: toNumberOrNull(context.minBaseFare) ?? FALLBACK_MIN_BASE_FARE,
           minBaseFareSource: context.minBaseFareSource === 'captain_average' ? 'captain_average' : 'country_seed',
+          marketAverage: toMarketAverage(context.marketAverage),
         });
       } catch (error) {
         if (!active) return;

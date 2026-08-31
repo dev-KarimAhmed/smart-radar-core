@@ -15,6 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useDeviceTimeGuard } from '../hooks/use-device-time-guard';
 import { useConnectionGuard } from '../hooks/use-connection-guard';
 import { usePricePerKmSetup } from '../hooks/use-price-per-km-setup';
+import { useCaptainMarketIndicator } from '../hooks/use-captain-market-indicator';
 import { useCountryConfig } from '@/shared/hooks/use-country-config';
 import { getCurrencyLabel } from '@/shared/services/currency-label';
 import { useLiveCurrencyFromLocation } from '@/shared/hooks/use-live-currency-from-location';
@@ -22,6 +23,7 @@ import { ActiveTripTracker } from './active-trip-tracker';
 import { BiddingProposalSheet } from './bidding-proposal-sheet';
 import { DriverRatingModal } from './driver-rating-modal';
 import { PricePerKmSetupModal } from './price-per-km-setup-modal';
+import { MarketStatusIndicator } from './market-status-indicator';
 import {
   captainDashboardReducer,
   initialCaptainDashboardState,
@@ -106,6 +108,7 @@ export function DriverViewTab() {
     isInDifferentCountry,
     driverOps?.activationNonce ?? 0,
   );
+  const { marketIndicator } = useCaptainMarketIndicator(user);
   const [state, dispatch] = React.useReducer(captainDashboardReducer, initialCaptainDashboardState);
   const knownRequestIdsRef = React.useRef<Set<string> | null>(null);
   const screen = state.screen === 'ACTIVE_TRIP' && !driverOps?.activeRequest ? 'RADAR_MAP' : state.screen;
@@ -293,6 +296,7 @@ export function DriverViewTab() {
             >
               {driverOps.isUpdatingStatus ? t('statusUpdating') : isActive ? t('online') : t('offline')}
             </button>
+            <MarketStatusIndicator indicator={marketIndicator} size="compact" />
             <div className={styles.style167_1}>
               <NavButton active={screen === 'RADAR_MAP' || screen === 'BIDDING'} onClick={() => dispatch({ type: 'OPEN_RADAR' })} label={t('radar')} icon={<Map className={styles.style170_12} />} />
               <NavButton active={screen === 'WALLET'} onClick={() => dispatch({ type: 'OPEN_WALLET' })} label={t('wallet')} icon={<Wallet className={styles.style171_13} />} />
@@ -387,7 +391,7 @@ export function DriverViewTab() {
 
         {screen === 'WALLET' ? <DriverWalletTab user={user} language={language} isFlightActive={isActive} /> : null}
         {screen === 'HISTORY' ? <HistoryScreen hideCaptainDiagnostics /> : null}
-        {screen === 'PROFILE' ? <DriverProfileTab user={user} language={language} onLogout={logout} /> : null}
+        {screen === 'PROFILE' ? <DriverProfileTab user={user} language={language} /> : null}
       </div>
 
       {needsPriceSetup ? (
@@ -400,6 +404,8 @@ export function DriverViewTab() {
           currency={currency}
           minBaseFare={currentTariff.minBaseFare}
           minBaseFareSource={currentTariff.minBaseFareSource}
+          marketAverage={currentTariff.marketAverage}
+          marketIndicator={marketIndicator}
           initialTariff={currentTariff}
           isCountryChange={currentTariff.pricePerKm !== null && isInDifferentCountry}
           isActivationConfirm={isActivationConfirm}

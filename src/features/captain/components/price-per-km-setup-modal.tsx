@@ -11,16 +11,20 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import type { CaptainTariff } from '../hooks/use-price-per-km-setup';
+import type { CaptainTariff, MarketAverageTariff } from '../hooks/use-price-per-km-setup';
+import type { CaptainMarketIndicator } from '../hooks/use-captain-market-indicator';
+import { MarketStatusIndicator } from './market-status-indicator';
 
 const styles = {
-  content: 'border-emerald-500/25 bg-[#0B0F19] text-white shadow-2xl',
+  content: 'border-emerald-500/25 bg-[#0B0F19] text-white shadow-2xl max-h-[85vh] overflow-y-auto',
   title: 'text-xl font-black text-white',
   description: 'text-sm leading-6 text-[#94A3B8] text-start',
-  fields: 'mt-2 space-y-4',
+  marketIndicatorWrap: 'mt-3',
+  fields: 'mt-3 space-y-4',
   field: 'space-y-1.5',
   fieldLabel: 'block text-sm font-black text-white text-start',
   fieldHint: 'block text-xs leading-5 text-[#64748B] text-start',
+  marketAverageLine: 'block text-sm font-black text-emerald-300 text-start',
   inputRow: 'flex items-stretch gap-2',
   input: 'w-full rounded-2xl border border-slate-800 bg-black/60 px-4 py-3 text-white outline-none transition focus:border-emerald-400',
   currencyBadge: 'flex shrink-0 items-center rounded-2xl border border-emerald-500/25 bg-emerald-500/10 px-3 text-sm font-black text-emerald-300',
@@ -40,6 +44,10 @@ interface PricePerKmSetupModalProps {
    * read it as an official figure and asked support where it came from.
    */
   minBaseFareSource?: 'captain_average' | 'country_seed';
+  /** Per-field market average, shown clearly under every input, not just the base fare. */
+  marketAverage?: MarketAverageTariff | null;
+  /** How crowded the local market is right now — rendered as a banner above the fields. */
+  marketIndicator?: CaptainMarketIndicator | null;
   initialTariff?: { baseFare: number | null; pricePerKm: number | null; pricePerMin: number | null; includedKm?: number };
   isCountryChange?: boolean;
   /** The tariff is already set and this is the per-activation confirmation. */
@@ -56,6 +64,8 @@ export function PricePerKmSetupModal({
   currency,
   minBaseFare,
   minBaseFareSource = 'country_seed',
+  marketAverage = null,
+  marketIndicator = null,
   initialTariff,
   isCountryChange = false,
   isActivationConfirm = false,
@@ -137,14 +147,19 @@ export function PricePerKmSetupModal({
           </AlertDialogDescription>
         </AlertDialogHeader>
 
+        {marketIndicator ? (
+          <div className={styles.marketIndicatorWrap}>
+            <MarketStatusIndicator indicator={marketIndicator} size="full" />
+          </div>
+        ) : null}
+
         <div className={styles.fields}>
           <div className={styles.field}>
             <label className={styles.fieldLabel}>{t('tariffModalBaseFareLabel')}</label>
-            <span className={styles.fieldHint}>
-              {minBaseFareSource === 'captain_average'
-                ? t('tariffModalBaseFareHintMarket', { min: minBaseFare.toFixed(2) })
-                : t('tariffModalBaseFareHint', { min: minBaseFare.toFixed(2) })}
+            <span className={styles.marketAverageLine}>
+              {t('tariffModalMarketFloor', { min: minBaseFare.toFixed(2), currency: currency || '' })}
             </span>
+            <span className={styles.fieldHint}>{t('tariffModalBaseFareHint')}</span>
             <div className={styles.inputRow}>
               <input
                 type="number"
@@ -166,6 +181,11 @@ export function PricePerKmSetupModal({
               distance that charge already covers. */}
           <div className={styles.field}>
             <label className={styles.fieldLabel}>{t('tariffModalIncludedKmLabel')}</label>
+            {marketAverage ? (
+              <span className={styles.marketAverageLine}>
+                {t('tariffModalMarketAverageKm', { avg: marketAverage.includedKm.toFixed(1) })}
+              </span>
+            ) : null}
             <span className={styles.fieldHint}>{t('tariffModalIncludedKmHint')}</span>
             <div className={styles.inputRow}>
               <input
@@ -185,6 +205,11 @@ export function PricePerKmSetupModal({
 
           <div className={styles.field}>
             <label className={styles.fieldLabel}>{t('tariffModalPerKmLabel')}</label>
+            {marketAverage ? (
+              <span className={styles.marketAverageLine}>
+                {t('tariffModalMarketAverage', { avg: marketAverage.perKm.toFixed(2), currency: currency || '' })}
+              </span>
+            ) : null}
             <span className={styles.fieldHint}>{t('tariffModalPerKmHint')}</span>
             <div className={styles.inputRow}>
               <input
@@ -204,6 +229,11 @@ export function PricePerKmSetupModal({
 
           <div className={styles.field}>
             <label className={styles.fieldLabel}>{t('tariffModalPerMinLabel')}</label>
+            {marketAverage ? (
+              <span className={styles.marketAverageLine}>
+                {t('tariffModalMarketAverage', { avg: marketAverage.perMin.toFixed(2), currency: currency || '' })}
+              </span>
+            ) : null}
             <span className={styles.fieldHint}>{t('tariffModalPerMinHint')}</span>
             <div className={styles.inputRow}>
               <input

@@ -47,6 +47,8 @@ COMMENT ON COLUMN public.countries.min_base_fare IS
 ALTER TABLE public.countries
   DROP CONSTRAINT IF EXISTS countries_base_fare_minimum;
 ALTER TABLE public.countries
+  DROP CONSTRAINT IF EXISTS countries_base_fare_positive;
+ALTER TABLE public.countries
   ADD CONSTRAINT countries_base_fare_positive CHECK (base_fare > 0);
 
 COMMENT ON COLUMN public.countries.base_fare IS
