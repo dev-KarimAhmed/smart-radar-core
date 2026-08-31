@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useTranslations } from 'next-intl';
-import { Car, IdCard, Loader2, LogOut, Pencil, Save, ShieldCheck, Star, Wallet, X } from 'lucide-react';
+import { Car, Check, IdCard, Loader2, Pencil, Wallet, X } from 'lucide-react';
 import type { User } from '@/core/types';
 import { supabase } from '@/lib/supabase-client';
 import { useToast } from '@/hooks/use-toast';
@@ -86,6 +86,18 @@ const styles = {
   style472_73: "rounded-2xl border border-slate-800 bg-black/45 px-4 py-3",
   style473_74: "text-xs text-slate-500",
   style474_75: "mt-1 font-black text-white",
+  editableField: "flex items-center justify-between gap-3 rounded-2xl border border-slate-800 bg-black/45 px-4 py-3",
+  editableFieldBody: "min-w-0 flex-1",
+  editPencilButton: "grid h-8 w-8 shrink-0 place-items-center rounded-xl border border-emerald-500/25 bg-emerald-500/10 text-emerald-300 transition hover:bg-emerald-500/20",
+  editPencilIcon: "h-3.5 w-3.5",
+  editableFieldEditingWrap: "block",
+  editableFieldEditingRow: "mb-1.5 flex items-center justify-between gap-2",
+  editableFieldEditingLabel: "text-xs text-slate-500",
+  editActionGroup: "flex shrink-0 items-center gap-1.5",
+  editSaveButton: "grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-emerald-500/40 bg-emerald-500/20 text-emerald-300 transition hover:bg-emerald-500/30 disabled:cursor-wait disabled:opacity-60",
+  editCancelButton: "grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-rose-500/40 bg-rose-500/20 text-rose-300 transition hover:bg-rose-500/30 disabled:cursor-wait disabled:opacity-60",
+  editSaveIcon: "h-3.5 w-3.5",
+  editingInput: "w-full rounded-2xl border border-slate-800 bg-black/60 px-4 py-3 text-white outline-none transition focus:border-emerald-400",
   tariffError: "mt-3 text-sm font-bold text-rose-400",
   tariffSectionHeader: "mt-6 flex items-center gap-2 border-t border-white/5 pt-5 text-emerald-300",
   tariffSectionHint: "mt-2 text-xs leading-5 text-slate-500",
@@ -95,12 +107,11 @@ const styles = {
 interface DriverProfileTabProps {
   user: User | null;
   language: 'ar' | 'en';
-  onLogout?: () => void;
 }
 
 type ProfileRow = Record<string, unknown>;
 
-export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabProps) {
+export function DriverProfileTab({ user, language }: DriverProfileTabProps) {
   const t = useTranslations('captainProfile');
   const { toast } = useToast();
   const [profile, setProfile] = React.useState<ProfileRow | null>(null);
@@ -138,7 +149,30 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
   }, [vehicleColor]);
 
   const [isSaving, setIsSaving] = React.useState(false);
-  const [isEditing, setIsEditing] = React.useState(false);
+  // Which fields are currently showing an input instead of their plain value —
+  // per field, not a single page-wide toggle, so tapping one field's pencil
+  // doesn't drag every other field into edit mode too.
+  const [editingFields, setEditingFields] = React.useState<Set<string>>(new Set());
+  const startEditingField = React.useCallback((key: string) => {
+    setEditingFields((current) => new Set(current).add(key));
+  }, []);
+  const stopEditingField = React.useCallback((key: string) => {
+    setEditingFields((current) => {
+      if (!current.has(key)) return current;
+      const next = new Set(current);
+      next.delete(key);
+      return next;
+    });
+  }, []);
+  // The last value confirmed saved to the server for each field, read at render time to
+  // decide whether a field's pencil should show as a check (something to save) instead.
+  // A ref, not state: it only ever changes at the same moments the live field values below
+  // do (right after load, right after a successful save), so there is no missed re-render.
+  const savedSnapshotRef = React.useRef<Record<string, string>>({
+    fullName: '', phone: '', vehiclePlate: '', vehicleMake: '', vehicleModel: '',
+    vehicleColor: '', vehicleYear: '', businessName: '', officePhone: '', sideId: '',
+    facebookUrl: '', instagramUrl: '', baseFare: '', includedKm: '', pricePerKm: '', pricePerMin: '',
+  });
   const [isLoadingProfile, setIsLoadingProfile] = React.useState(Boolean(user?.uid));
   const [profileLoadFailed, setProfileLoadFailed] = React.useState(false);
   const [profileReloadToken, setProfileReloadToken] = React.useState(0);
@@ -164,12 +198,27 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
             phone: user?.phone,
             serial_id: user?.serial_id,
           });
-          setFullName(firstString(user?.name));
-          setPhone(firstString(user?.phone));
-          setVehiclePlate(firstString(user?.vehicle?.plate));
-          setVehicleMake(firstString(user?.vehicle?.make));
-          setVehicleColor(firstString(user?.vehicle?.color));
-          setVehicleYear(firstString(user?.vehicle?.year));
+          const devFullName = firstString(user?.name);
+          const devPhone = firstString(user?.phone);
+          const devVehiclePlate = firstString(user?.vehicle?.plate);
+          const devVehicleMake = firstString(user?.vehicle?.make);
+          const devVehicleColor = firstString(user?.vehicle?.color);
+          const devVehicleYear = firstString(user?.vehicle?.year);
+          setFullName(devFullName);
+          setPhone(devPhone);
+          setVehiclePlate(devVehiclePlate);
+          setVehicleMake(devVehicleMake);
+          setVehicleColor(devVehicleColor);
+          setVehicleYear(devVehicleYear);
+          savedSnapshotRef.current = {
+            ...savedSnapshotRef.current,
+            fullName: devFullName,
+            phone: devPhone,
+            vehiclePlate: devVehiclePlate,
+            vehicleMake: devVehicleMake,
+            vehicleColor: devVehicleColor,
+            vehicleYear: devVehicleYear,
+          };
           return;
         }
 
@@ -211,24 +260,60 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
           captain_profile: captainProfile,
         } as ProfileRow;
 
+        const newFullName = firstString(mergedProfile.full_name, user?.name);
+        const newPhone = firstString(mergedProfile.phone, user?.phone);
+        const newVehiclePlate = firstString(getVehiclePlate(mergedProfile), user?.vehicle?.plate);
+        const newVehicleMake = firstString(getVehicleMake(mergedProfile), user?.vehicle?.make);
+        const newVehicleColor = firstString(getVehicleColor(mergedProfile), user?.vehicle?.color);
+        const newVehicleYear = firstString(getVehicleYear(mergedProfile), user?.vehicle?.year);
+        const newBaseFare = numberToInput(captainProfile?.base_fare);
+        const newPricePerKm = numberToInput(captainProfile?.price_per_km);
+        const newPricePerMin = numberToInput(captainProfile?.price_per_min);
+        const newIncludedKm = numberToInput(captainProfile?.included_km ?? 0);
+        const newVehicleModel = firstString(captainProfile?.vehicle_model);
+        const newBusinessName = firstString(captainProfile?.employment_type);
+        const newOfficePhone = firstString(captainProfile?.office_phone);
+        const newSideId = firstString(captainProfile?.side_id);
+        const newFacebookUrl = firstString(captainProfile?.facebook_url);
+        const newInstagramUrl = firstString(captainProfile?.instagram_url);
+
         setProfile(mergedProfile);
-        setFullName(firstString(mergedProfile.full_name, user?.name));
-        setPhone(firstString(mergedProfile.phone, user?.phone));
-        setVehiclePlate(firstString(getVehiclePlate(mergedProfile), user?.vehicle?.plate));
-        setVehicleMake(firstString(getVehicleMake(mergedProfile), user?.vehicle?.make));
-        setVehicleColor(firstString(getVehicleColor(mergedProfile), user?.vehicle?.color));
-        setVehicleYear(firstString(getVehicleYear(mergedProfile), user?.vehicle?.year));
-        setBaseFare(numberToInput(captainProfile?.base_fare));
-        setPricePerKm(numberToInput(captainProfile?.price_per_km));
-        setPricePerMin(numberToInput(captainProfile?.price_per_min));
-        setIncludedKm(numberToInput(captainProfile?.included_km ?? 0));
-        setVehicleModel(firstString(captainProfile?.vehicle_model));
-        setBusinessName(firstString(captainProfile?.employment_type));
-        setOfficePhone(firstString(captainProfile?.office_phone));
-        setSideId(firstString(captainProfile?.side_id));
-        setFacebookUrl(firstString(captainProfile?.facebook_url));
-        setInstagramUrl(firstString(captainProfile?.instagram_url));
+        setFullName(newFullName);
+        setPhone(newPhone);
+        setVehiclePlate(newVehiclePlate);
+        setVehicleMake(newVehicleMake);
+        setVehicleColor(newVehicleColor);
+        setVehicleYear(newVehicleYear);
+        setBaseFare(newBaseFare);
+        setPricePerKm(newPricePerKm);
+        setPricePerMin(newPricePerMin);
+        setIncludedKm(newIncludedKm);
+        setVehicleModel(newVehicleModel);
+        setBusinessName(newBusinessName);
+        setOfficePhone(newOfficePhone);
+        setSideId(newSideId);
+        setFacebookUrl(newFacebookUrl);
+        setInstagramUrl(newInstagramUrl);
         setAffiliationType(firstString(captainProfile?.affiliation_type, user?.affiliation?.type));
+
+        savedSnapshotRef.current = {
+          fullName: newFullName,
+          phone: newPhone,
+          vehiclePlate: newVehiclePlate,
+          vehicleMake: newVehicleMake,
+          vehicleModel: newVehicleModel,
+          vehicleColor: newVehicleColor,
+          vehicleYear: newVehicleYear,
+          businessName: newBusinessName,
+          officePhone: newOfficePhone,
+          sideId: newSideId,
+          facebookUrl: newFacebookUrl,
+          instagramUrl: newInstagramUrl,
+          baseFare: newBaseFare,
+          includedKm: newIncludedKm,
+          pricePerKm: newPricePerKm,
+          pricePerMin: newPricePerMin,
+        };
       } catch (error) {
         if (!active) return;
         if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver profile]', error);
@@ -247,7 +332,6 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
 
   const rating = firstNumber(profile?.trust_score, profile?.rating, profile?.trust_rating, user?.rating, 5);
   const normalizedRating = Math.max(0, Math.min(5, rating));
-  const percent = (normalizedRating / 5) * 100;
   const tier = getCaptainTier(profile, normalizedRating, t, user?.rank);
 
   /**
@@ -274,6 +358,11 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
 
   const saveProfile = async () => {
     if (!user?.uid) return;
+
+    if (!fullName.trim() || !phone.trim()) {
+      toast({ variant: 'destructive', title: t('saveErrorTitle'), description: t('saveErrorDescription') });
+      return;
+    }
 
     const tariffProblem = validateTariff();
     setTariffError(tariffProblem);
@@ -367,8 +456,9 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
       }
 
       applySavedProfileState();
+      captureSavedSnapshot();
       toast({ title: t('saveSuccessTitle'), description: t('saveSuccessDescription') });
-      setIsEditing(false);
+      setEditingFields(new Set());
     } catch (error) {
       if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver profile save]', error);
       const fallbackSaved = (process.env.NODE_ENV !== 'production') && !isUuid(user.uid)
@@ -376,8 +466,9 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
         : await saveProfileToAuthMetadata();
       if (fallbackSaved) {
         applySavedProfileState();
+        captureSavedSnapshot();
         toast({ title: t('saveSuccessTitle'), description: t('saveSuccessDescription') });
-        setIsEditing(false);
+        setEditingFields(new Set());
       } else {
         toast({ variant: 'destructive', title: t('saveErrorTitle'), description: t('saveErrorDescription') });
       }
@@ -407,6 +498,16 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
     }));
   };
 
+  // Reads the CURRENT field values right after a confirmed successful save — safe to read
+  // directly (not stale) since nothing has changed them since the user's last edit.
+  const captureSavedSnapshot = () => {
+    savedSnapshotRef.current = {
+      fullName, phone, vehiclePlate, vehicleMake, vehicleModel, vehicleColor, vehicleYear,
+      businessName, officePhone, sideId, facebookUrl, instagramUrl,
+      baseFare, includedKm, pricePerKm, pricePerMin,
+    };
+  };
+
   const saveProfileToAuthMetadata = async () => {
     try {
       const { error } = await supabase.auth.updateUser({
@@ -426,23 +527,6 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
       if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver profile metadata fallback]', metadataError);
       return false;
     }
-  };
-
-  const cancelEditing = () => {
-    setFullName(firstString(profile?.full_name, user?.name));
-    setPhone(firstString(profile?.phone, user?.phone));
-    setVehiclePlate(firstString(getVehiclePlate(profile), user?.vehicle?.plate));
-    setVehicleMake(firstString(getVehicleMake(profile), user?.vehicle?.make));
-    setVehicleColor(firstString(getVehicleColor(profile), user?.vehicle?.color));
-    setVehicleYear(firstString(getVehicleYear(profile), user?.vehicle?.year));
-    const captainProfile = getCaptainProfile(profile);
-    setVehicleModel(firstString(captainProfile?.vehicle_model));
-    setBusinessName(firstString(captainProfile?.employment_type));
-    setOfficePhone(firstString(captainProfile?.office_phone));
-    setSideId(firstString(captainProfile?.side_id));
-    setFacebookUrl(firstString(captainProfile?.facebook_url));
-    setInstagramUrl(firstString(captainProfile?.instagram_url));
-    setIsEditing(false);
   };
 
   if (isLoadingProfile) {
@@ -498,320 +582,274 @@ export function DriverProfileTab({ user, language, onLogout }: DriverProfileTabP
     );
   }
 
+  const isFieldEditing = (key: string) => editingFields.has(key);
+  const handleFieldSave = () => void saveProfile();
+
   return (
     <section className={styles.style300_16}>
-      <div className={styles.style301_17}>
-        <div className={styles.style302_18}>
-          <div>
-            <p className={styles.style304_19}>{t('badge')}</p>
-            <h1 className={styles.style305_20}>{t('title')}</h1>
-            <p className={styles.style306_21}>{t('subtitle')}</p>
-            <div className={styles.style307_22}>
-              <Star className={styles.style308_23} />
-              <span>{t('tier')}: {tier.label}</span>
-            </div>
-          </div>
-          <div className={styles.style312_24} style={{ background: `conic-gradient(#14B8A6 ${percent}%, rgba(255,255,255,0.08) 0)` }}>
-            <div className={styles.style313_25}>
-              <div className={styles.style314_26}>
-                <Star className={styles.style315_27} />
-                <p className={styles.style316_28}>{normalizedRating.toFixed(1)}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className={styles.style323_29}>
-        <div className={styles.style324_30}>
-          <IdCard className={styles.style325_31} />
-          <h2 className={styles.style326_32}>{t('editTitle')}</h2>
-        </div>
-        <div className={styles.style328_33}>
-          <label className={styles.style329_34}>
-            <span className={styles.style330_35}>{t('name')}</span>
-            <input
-              value={fullName}
-              disabled={!isEditing}
-              onChange={(event) => setFullName(event.target.value)}
-              className={styles.style335_36}
-            />
-          </label>
-          <label className={styles.style338_37}>
-            <span className={styles.style339_38}>{t('phone')}</span>
-            <input
-              value={phone}
-              disabled={!isEditing}
-              onChange={(event) => setPhone(event.target.value)}
-              className={styles.style344_39}
-            />
-          </label>
-          <label className={styles.style347_40}>
-            <span className={styles.style348_41}>{t('plate')}</span>
-            <input
-              value={vehiclePlate}
-              disabled={!isEditing}
-              onChange={(event) => setVehiclePlate(event.target.value)}
-              className={styles.style353_42}
-            />
-          </label>
-          <label className={styles.style356_43}>
-            <span className={styles.style357_44}>{t('make')}</span>
-            <input
-              value={vehicleMake}
-              disabled={!isEditing}
-              onChange={(event) => setVehicleMake(event.target.value)}
-              className={styles.style362_45}
-            />
-          </label>
-          <label className={styles.style356_43}>
-            <span className={styles.style357_44}>{t('model')}</span>
-            <input
-              value={vehicleModel}
-              disabled={!isEditing}
-              onChange={(event) => setVehicleModel(event.target.value)}
-              className={styles.style362_45}
-            />
-          </label>
-          {!isTaxi ? (
-            <label className={styles.style365_46}>
-              <span className={styles.style366_47}>{t('color')}</span>
-              <div className={styles.colorRow}>
-                <input
-                  type="color"
-                  value={colorSwatch}
-                  disabled={!isEditing}
-                  onChange={(event) => {
-                    setColorSwatch(event.target.value);
-                    setVehicleColor(hexToColorName(event.target.value, language));
-                  }}
-                  className={styles.colorSwatch}
-                />
-                <input
-                  value={vehicleColor}
-                  disabled={!isEditing}
-                  readOnly
-                  className={styles.style371_48}
-                />
-              </div>
-            </label>
-          ) : null}
-          <label className={styles.style356_43}>
-            <span className={styles.style357_44}>{isTaxi ? t('officeName') : t('companyName')}</span>
-            <input
-              value={businessName}
-              disabled={!isEditing}
-              onChange={(event) => setBusinessName(event.target.value)}
-              className={styles.style362_45}
-            />
-          </label>
-          {isTaxi ? (
-            <>
-              <label className={styles.style356_43}>
-                <span className={styles.style357_44}>{t('officePhone')}</span>
-                <input
-                  value={officePhone}
-                  disabled={!isEditing}
-                  onChange={(event) => setOfficePhone(event.target.value)}
-                  className={styles.style362_45}
-                />
-              </label>
-              <label className={styles.style356_43}>
-                <span className={styles.style357_44}>{t('sideId')}</span>
-                <input
-                  value={sideId}
-                  disabled={!isEditing}
-                  onChange={(event) => setSideId(event.target.value)}
-                  className={styles.style362_45}
-                />
-              </label>
-            </>
-          ) : null}
-          <label className={styles.style356_43}>
-            <span className={styles.style357_44}>{t('facebook')}</span>
-            <input
-              value={facebookUrl}
-              disabled={!isEditing}
-              onChange={(event) => setFacebookUrl(event.target.value)}
-              className={styles.style362_45}
-              dir="ltr"
-            />
-          </label>
-          <label className={styles.style356_43}>
-            <span className={styles.style357_44}>{t('instagram')}</span>
-            <input
-              value={instagramUrl}
-              disabled={!isEditing}
-              onChange={(event) => setInstagramUrl(event.target.value)}
-              className={styles.style362_45}
-              dir="ltr"
-            />
-          </label>
-          <label className={styles.style374_49}>
-            <span className={styles.style375_50}>{t('year')}</span>
-            <input
-              value={vehicleYear}
-              disabled={!isEditing}
-              onChange={(event) => setVehicleYear(event.target.value.replace(/[^\d]/g, '').slice(0, 4))}
-              inputMode="numeric"
-              className={styles.style381_51}
-            />
-          </label>
-
-        </div>
-
-        {/* The tariff gets its own headed section rather than sitting at the tail of the
-            vehicle grid: these are prices, not vehicle details, and buried among plate and
-            colour fields a captain looking for their rates does not find them. */}
-        <div className={styles.tariffSectionHeader}>
-          <Wallet className={styles.style325_31} />
-          <h2 className={styles.style326_32}>{t('tariffTitle')}</h2>
-        </div>
-        <p className={styles.tariffSectionHint}>{t('tariffSubtitle')}</p>
-        <div className={styles.style328_33}>
-          <label className={styles.style374_49}>
-            <span className={styles.style375_50}>
-              {t('tariffBaseFare')} ({t('tariffMinimum', { min: minBaseFare.toFixed(2) })})
-            </span>
-            <input
-              value={baseFare}
-              disabled={!isEditing}
-              onChange={(event) => setBaseFare(event.target.value)}
-              type="number"
-              inputMode="decimal"
-              min={minBaseFare}
-              step="0.01"
-              className={styles.style381_51}
-            />
-          </label>
-          <label className={styles.style374_49}>
-            <span className={styles.style375_50}>{t('tariffIncludedKm')}</span>
-            <input
-              value={includedKm}
-              disabled={!isEditing}
-              onChange={(event) => setIncludedKm(event.target.value)}
-              type="number"
-              inputMode="decimal"
-              min="0"
-              step="0.1"
-              className={styles.style381_51}
-            />
-          </label>
-          <label className={styles.style374_49}>
-            <span className={styles.style375_50}>{t('tariffPerKm')}</span>
-            <input
-              value={pricePerKm}
-              disabled={!isEditing}
-              onChange={(event) => setPricePerKm(event.target.value)}
-              type="number"
-              inputMode="decimal"
-              min="0"
-              step="0.01"
-              className={styles.style381_51}
-            />
-          </label>
-          <label className={styles.style374_49}>
-            <span className={styles.style375_50}>{t('tariffPerMin')}</span>
-            <input
-              value={pricePerMin}
-              disabled={!isEditing}
-              onChange={(event) => setPricePerMin(event.target.value)}
-              type="number"
-              inputMode="decimal"
-              min="0"
-              step="0.01"
-              className={styles.style381_51}
-            />
-          </label>
-        </div>
-        {tariffError ? <p className={styles.tariffError}>{tariffError}</p> : null}
-        <div className={styles.style385_52}>
-          {!isEditing ? (
-            <button
-              type="button"
-              onClick={() => setIsEditing(true)}
-              className={styles.style390_53}
-            >
-              <Pencil className={styles.style392_54} />
-              {t('edit')}
-            </button>
-          ) : (
-            <>
-              <button
-                type="button"
-                onClick={() => void saveProfile()}
-                disabled={isSaving || !fullName.trim() || !phone.trim()}
-                className={styles.style401_55}
-              >
-                <Save className={styles.style403_56} />
-                {t('save')}
-              </button>
-              <button
-                type="button"
-                onClick={cancelEditing}
-                disabled={isSaving}
-                className={styles.style410_57}
-              >
-                <X className={styles.style412_58} />
-                {t('cancel')}
-              </button>
-            </>
-          )}
-          {onLogout ? (
-            <button
-              type="button"
-              onClick={() => void onLogout()}
-              className={styles.style421_59}
-            >
-              <LogOut className={styles.style423_60} />
-              {t('logout')}
-            </button>
-          ) : null}
-        </div>
-      </div>
-
       <div className={styles.style430_61}>
         <Panel icon={<IdCard className={styles.style431_62} />} title={t('account')}>
-          <Field label={t('name')} value={firstString(profile?.full_name, user?.name)} />
-          <Field label={t('phone')} value={firstString(profile?.phone, user?.phone)} />
+          <EditableField
+            label={t('name')}
+            value={fullName}
+            originalValue={savedSnapshotRef.current.fullName}
+            isEditing={isFieldEditing('fullName')}
+            isSaving={isSaving}
+            onEdit={() => startEditingField('fullName')}
+            onSave={handleFieldSave}
+            onCancel={() => { setFullName(savedSnapshotRef.current.fullName); stopEditingField('fullName'); }}
+          >
+            <input value={fullName} onChange={(event) => setFullName(event.target.value)} className={styles.editingInput} />
+          </EditableField>
+          <EditableField
+            label={t('phone')}
+            value={phone}
+            originalValue={savedSnapshotRef.current.phone}
+            isEditing={isFieldEditing('phone')}
+            isSaving={isSaving}
+            onEdit={() => startEditingField('phone')}
+            onSave={handleFieldSave}
+            onCancel={() => { setPhone(savedSnapshotRef.current.phone); stopEditingField('phone'); }}
+          >
+            <input value={phone} onChange={(event) => setPhone(event.target.value)} className={styles.editingInput} />
+          </EditableField>
           <Field label={t('accountNumber')} value={firstString(profile?.serial_id, user?.serial_id, '-')} />
           <Field label={t('role')} value={t('captainRole')} />
           <Field label={t('tier')} value={tier.label} />
         </Panel>
 
         <Panel icon={<Car className={styles.style439_63} />} title={t('vehicle')}>
-          <Field label={t('plate')} value={firstString(vehiclePlate, t('notProvided'))} />
-          <Field label={t('make')} value={firstString(vehicleMake, t('notProvided'))} />
-          <Field label={t('model')} value={firstString(vehicleModel, t('notProvided'))} />
+          <EditableField
+            label={t('plate')}
+            value={firstString(vehiclePlate, t('notProvided'))}
+            originalValue={firstString(savedSnapshotRef.current.vehiclePlate, t('notProvided'))}
+            isEditing={isFieldEditing('vehiclePlate')}
+            isSaving={isSaving}
+            onEdit={() => startEditingField('vehiclePlate')}
+            onSave={handleFieldSave}
+            onCancel={() => { setVehiclePlate(savedSnapshotRef.current.vehiclePlate); stopEditingField('vehiclePlate'); }}
+          >
+            <input value={vehiclePlate} onChange={(event) => setVehiclePlate(event.target.value)} className={styles.editingInput} />
+          </EditableField>
+          <EditableField
+            label={t('make')}
+            value={firstString(vehicleMake, t('notProvided'))}
+            originalValue={firstString(savedSnapshotRef.current.vehicleMake, t('notProvided'))}
+            isEditing={isFieldEditing('vehicleMake')}
+            isSaving={isSaving}
+            onEdit={() => startEditingField('vehicleMake')}
+            onSave={handleFieldSave}
+            onCancel={() => { setVehicleMake(savedSnapshotRef.current.vehicleMake); stopEditingField('vehicleMake'); }}
+          >
+            <input value={vehicleMake} onChange={(event) => setVehicleMake(event.target.value)} className={styles.editingInput} />
+          </EditableField>
+          <EditableField
+            label={t('model')}
+            value={firstString(vehicleModel, t('notProvided'))}
+            originalValue={firstString(savedSnapshotRef.current.vehicleModel, t('notProvided'))}
+            isEditing={isFieldEditing('vehicleModel')}
+            isSaving={isSaving}
+            onEdit={() => startEditingField('vehicleModel')}
+            onSave={handleFieldSave}
+            onCancel={() => { setVehicleModel(savedSnapshotRef.current.vehicleModel); stopEditingField('vehicleModel'); }}
+          >
+            <input value={vehicleModel} onChange={(event) => setVehicleModel(event.target.value)} className={styles.editingInput} />
+          </EditableField>
           {!isTaxi ? (
-            <Field label={t('color')} value={vehicleColor ? resolveColorDisplayName(vehicleColor, language) : t('notProvided')} />
+            <EditableField
+              label={t('color')}
+              value={vehicleColor ? resolveColorDisplayName(vehicleColor, language) : t('notProvided')}
+              originalValue={
+                savedSnapshotRef.current.vehicleColor
+                  ? resolveColorDisplayName(savedSnapshotRef.current.vehicleColor, language)
+                  : t('notProvided')
+              }
+              isEditing={isFieldEditing('vehicleColor')}
+              isSaving={isSaving}
+              onEdit={() => startEditingField('vehicleColor')}
+              onSave={handleFieldSave}
+              onCancel={() => { setVehicleColor(savedSnapshotRef.current.vehicleColor); stopEditingField('vehicleColor'); }}
+            >
+              <div className={styles.colorRow}>
+                <input
+                  type="color"
+                  value={colorSwatch}
+                  onChange={(event) => {
+                    setColorSwatch(event.target.value);
+                    setVehicleColor(hexToColorName(event.target.value, language));
+                  }}
+                  className={styles.colorSwatch}
+                />
+                <input value={vehicleColor} readOnly className={styles.editingInput} />
+              </div>
+            </EditableField>
           ) : null}
-          <Field label={t('year')} value={firstString(vehicleYear, t('notProvided'))} />
-          <Field label={isTaxi ? t('officeName') : t('companyName')} value={firstString(businessName, t('notProvided'))} />
+          <EditableField
+            label={t('year')}
+            value={firstString(vehicleYear, t('notProvided'))}
+            originalValue={firstString(savedSnapshotRef.current.vehicleYear, t('notProvided'))}
+            isEditing={isFieldEditing('vehicleYear')}
+            isSaving={isSaving}
+            onEdit={() => startEditingField('vehicleYear')}
+            onSave={handleFieldSave}
+            onCancel={() => { setVehicleYear(savedSnapshotRef.current.vehicleYear); stopEditingField('vehicleYear'); }}
+          >
+            <input
+              value={vehicleYear}
+              onChange={(event) => setVehicleYear(event.target.value.replace(/[^\d]/g, '').slice(0, 4))}
+              inputMode="numeric"
+              className={styles.editingInput}
+            />
+          </EditableField>
+          <EditableField
+            label={isTaxi ? t('officeName') : t('companyName')}
+            value={firstString(businessName, t('notProvided'))}
+            originalValue={firstString(savedSnapshotRef.current.businessName, t('notProvided'))}
+            isEditing={isFieldEditing('businessName')}
+            isSaving={isSaving}
+            onEdit={() => startEditingField('businessName')}
+            onSave={handleFieldSave}
+            onCancel={() => { setBusinessName(savedSnapshotRef.current.businessName); stopEditingField('businessName'); }}
+          >
+            <input value={businessName} onChange={(event) => setBusinessName(event.target.value)} className={styles.editingInput} />
+          </EditableField>
           {isTaxi ? (
             <>
-              <Field label={t('officePhone')} value={firstString(officePhone, t('notProvided'))} />
-              <Field label={t('sideId')} value={firstString(sideId, t('notProvided'))} />
+              <EditableField
+                label={t('officePhone')}
+                value={firstString(officePhone, t('notProvided'))}
+                originalValue={firstString(savedSnapshotRef.current.officePhone, t('notProvided'))}
+                isEditing={isFieldEditing('officePhone')}
+                isSaving={isSaving}
+                onEdit={() => startEditingField('officePhone')}
+                onSave={handleFieldSave}
+                onCancel={() => { setOfficePhone(savedSnapshotRef.current.officePhone); stopEditingField('officePhone'); }}
+              >
+                <input value={officePhone} onChange={(event) => setOfficePhone(event.target.value)} className={styles.editingInput} />
+              </EditableField>
+              <EditableField
+                label={t('sideId')}
+                value={firstString(sideId, t('notProvided'))}
+                originalValue={firstString(savedSnapshotRef.current.sideId, t('notProvided'))}
+                isEditing={isFieldEditing('sideId')}
+                isSaving={isSaving}
+                onEdit={() => startEditingField('sideId')}
+                onSave={handleFieldSave}
+                onCancel={() => { setSideId(savedSnapshotRef.current.sideId); stopEditingField('sideId'); }}
+              >
+                <input value={sideId} onChange={(event) => setSideId(event.target.value)} className={styles.editingInput} />
+              </EditableField>
             </>
           ) : null}
-          <Field label={t('facebook')} value={firstString(facebookUrl, t('notProvided'))} />
-          <Field label={t('instagram')} value={firstString(instagramUrl, t('notProvided'))} />
+          <EditableField
+            label={t('facebook')}
+            value={firstString(facebookUrl, t('notProvided'))}
+            originalValue={firstString(savedSnapshotRef.current.facebookUrl, t('notProvided'))}
+            isEditing={isFieldEditing('facebookUrl')}
+            isSaving={isSaving}
+            onEdit={() => startEditingField('facebookUrl')}
+            onSave={handleFieldSave}
+            onCancel={() => { setFacebookUrl(savedSnapshotRef.current.facebookUrl); stopEditingField('facebookUrl'); }}
+          >
+            <input value={facebookUrl} onChange={(event) => setFacebookUrl(event.target.value)} className={styles.editingInput} dir="ltr" />
+          </EditableField>
+          <EditableField
+            label={t('instagram')}
+            value={firstString(instagramUrl, t('notProvided'))}
+            originalValue={firstString(savedSnapshotRef.current.instagramUrl, t('notProvided'))}
+            isEditing={isFieldEditing('instagramUrl')}
+            isSaving={isSaving}
+            onEdit={() => startEditingField('instagramUrl')}
+            onSave={handleFieldSave}
+            onCancel={() => { setInstagramUrl(savedSnapshotRef.current.instagramUrl); stopEditingField('instagramUrl'); }}
+          >
+            <input value={instagramUrl} onChange={(event) => setInstagramUrl(event.target.value)} className={styles.editingInput} dir="ltr" />
+          </EditableField>
         </Panel>
 
         <Panel icon={<Wallet className={styles.style439_63} />} title={t('tariffTitle')}>
-          <Field label={t('tariffBaseFare')} value={firstString(baseFare, t('notProvided'))} />
-          <Field label={t('tariffIncludedKm')} value={firstString(includedKm, '0')} />
-          <Field label={t('tariffPerKm')} value={firstString(pricePerKm, t('notProvided'))} />
-          <Field label={t('tariffPerMin')} value={firstString(pricePerMin, t('notProvided'))} />
+          <EditableField
+            label={`${t('tariffBaseFare')} (${t('tariffMinimum', { min: minBaseFare.toFixed(2) })})`}
+            value={firstString(baseFare, t('notProvided'))}
+            originalValue={firstString(savedSnapshotRef.current.baseFare, t('notProvided'))}
+            isEditing={isFieldEditing('baseFare')}
+            isSaving={isSaving}
+            onEdit={() => startEditingField('baseFare')}
+            onSave={handleFieldSave}
+            onCancel={() => { setBaseFare(savedSnapshotRef.current.baseFare); stopEditingField('baseFare'); }}
+          >
+            <input
+              value={baseFare}
+              onChange={(event) => setBaseFare(event.target.value)}
+              type="number"
+              inputMode="decimal"
+              min={minBaseFare}
+              step="0.01"
+              className={styles.editingInput}
+            />
+          </EditableField>
+          <EditableField
+            label={t('tariffIncludedKm')}
+            value={firstString(includedKm, '0')}
+            originalValue={firstString(savedSnapshotRef.current.includedKm, '0')}
+            isEditing={isFieldEditing('includedKm')}
+            isSaving={isSaving}
+            onEdit={() => startEditingField('includedKm')}
+            onSave={handleFieldSave}
+            onCancel={() => { setIncludedKm(savedSnapshotRef.current.includedKm); stopEditingField('includedKm'); }}
+          >
+            <input
+              value={includedKm}
+              onChange={(event) => setIncludedKm(event.target.value)}
+              type="number"
+              inputMode="decimal"
+              min="0"
+              step="0.1"
+              className={styles.editingInput}
+            />
+          </EditableField>
+          <EditableField
+            label={t('tariffPerKm')}
+            value={firstString(pricePerKm, t('notProvided'))}
+            originalValue={firstString(savedSnapshotRef.current.pricePerKm, t('notProvided'))}
+            isEditing={isFieldEditing('pricePerKm')}
+            isSaving={isSaving}
+            onEdit={() => startEditingField('pricePerKm')}
+            onSave={handleFieldSave}
+            onCancel={() => { setPricePerKm(savedSnapshotRef.current.pricePerKm); stopEditingField('pricePerKm'); }}
+          >
+            <input
+              value={pricePerKm}
+              onChange={(event) => setPricePerKm(event.target.value)}
+              type="number"
+              inputMode="decimal"
+              min="0"
+              step="0.01"
+              className={styles.editingInput}
+            />
+          </EditableField>
+          <EditableField
+            label={t('tariffPerMin')}
+            value={firstString(pricePerMin, t('notProvided'))}
+            originalValue={firstString(savedSnapshotRef.current.pricePerMin, t('notProvided'))}
+            isEditing={isFieldEditing('pricePerMin')}
+            isSaving={isSaving}
+            onEdit={() => startEditingField('pricePerMin')}
+            onSave={handleFieldSave}
+            onCancel={() => { setPricePerMin(savedSnapshotRef.current.pricePerMin); stopEditingField('pricePerMin'); }}
+          >
+            <input
+              value={pricePerMin}
+              onChange={(event) => setPricePerMin(event.target.value)}
+              type="number"
+              inputMode="decimal"
+              min="0"
+              step="0.01"
+              className={styles.editingInput}
+            />
+          </EditableField>
+          {tariffError ? <p className={styles.tariffError}>{tariffError}</p> : null}
         </Panel>
-      </div>
-
-      <div className={styles.style447_64}>
-        <div className={styles.style448_65}>
-          <ShieldCheck className={styles.style449_66} />
-          <h2 className={styles.style450_67}>{t('trustTitle')}</h2>
-        </div>
-        <p className={styles.style452_68}>{t('trustBody')}</p>
       </div>
     </section>
   );
@@ -834,6 +872,99 @@ function Field({ label, value }: { label: string; value: string }) {
     <div className={styles.style472_73}>
       <p className={styles.style473_74}>{label}</p>
       <p className={styles.style474_75}>{value}</p>
+    </div>
+  );
+}
+
+/**
+ * A Field that turns into its own input the moment its pencil is tapped —
+ * per field, not a page-wide toggle, so tapping one field's pencil leaves
+ * every other field showing its plain value. Once the typed value actually
+ * differs from `originalValue` (what's on the server right now), the pencil
+ * slot swaps to a check + cancel (X) pair: check commits the save (the same
+ * shared saveProfile, which writes every field's current value at once, not
+ * just this one — there is no per-field partial write); X calls `onCancel`,
+ * which reverts this field's own state and closes it without saving.
+ *
+ * Clicking away with nothing changed closes the field back to its pencil on
+ * its own (via onBlur, using the standard focus-left-the-whole-group check
+ * so clicking the check/cancel buttons themselves — which briefly steal
+ * focus from the input — doesn't trigger this). Clicking away WITH a real
+ * edit pending does nothing: silently discarding a typed change just
+ * because focus moved elsewhere would be surprising, so that only happens
+ * through the explicit X.
+ */
+function EditableField({
+  label,
+  value,
+  originalValue,
+  isEditing,
+  isSaving,
+  onEdit,
+  onSave,
+  onCancel,
+  children,
+}: {
+  label: string;
+  value: string;
+  originalValue: string;
+  isEditing: boolean;
+  isSaving: boolean;
+  onEdit: () => void;
+  onSave: () => void;
+  onCancel: () => void;
+  children: React.ReactNode;
+}) {
+  if (isEditing) {
+    const isChanged = value !== originalValue;
+    return (
+      <label
+        className={styles.editableFieldEditingWrap}
+        onBlur={(event) => {
+          if (!isChanged && !event.currentTarget.contains(event.relatedTarget as Node | null)) {
+            onCancel();
+          }
+        }}
+      >
+        <div className={styles.editableFieldEditingRow}>
+          <span className={styles.editableFieldEditingLabel}>{label}</span>
+          {isChanged ? (
+            <div className={styles.editActionGroup}>
+              <button
+                type="button"
+                onClick={onSave}
+                disabled={isSaving}
+                aria-label={label}
+                className={styles.editSaveButton}
+              >
+                <Check className={styles.editSaveIcon} />
+              </button>
+              <button
+                type="button"
+                onClick={onCancel}
+                disabled={isSaving}
+                aria-label={label}
+                className={styles.editCancelButton}
+              >
+                <X className={styles.editSaveIcon} />
+              </button>
+            </div>
+          ) : null}
+        </div>
+        {children}
+      </label>
+    );
+  }
+
+  return (
+    <div className={styles.editableField}>
+      <div className={styles.editableFieldBody}>
+        <p className={styles.style473_74}>{label}</p>
+        <p className={styles.style474_75}>{value}</p>
+      </div>
+      <button type="button" onClick={onEdit} aria-label={label} className={styles.editPencilButton}>
+        <Pencil className={styles.editPencilIcon} />
+      </button>
     </div>
   );
 }

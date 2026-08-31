@@ -391,7 +391,7 @@ export function DriverViewTab() {
 
         {screen === 'WALLET' ? <DriverWalletTab user={user} language={language} isFlightActive={isActive} /> : null}
         {screen === 'HISTORY' ? <HistoryScreen hideCaptainDiagnostics /> : null}
-        {screen === 'PROFILE' ? <DriverProfileTab user={user} language={language} onLogout={logout} /> : null}
+        {screen === 'PROFILE' ? <DriverProfileTab user={user} language={language} /> : null}
       </div>
 
       {needsPriceSetup ? (
