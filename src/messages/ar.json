@@ -732,7 +732,12 @@
     "walletMissingTitle": "لا توجد محفظة مرتبطة بهذا الحساب",
     "walletMissingBody": "أنشئ صفاً في wallet_accounts بنفس profile_id الخاص بالكابتن، ثم ستظهر الأرقام مباشرة وتحدث تلقائياً.",
     "walletErrorTitle": "تعذر تحميل المحفظة",
-    "walletErrorBody": "تحقق من صلاحيات القراءة في Supabase أو من اتصال الإنترنت."
+    "walletErrorBody": "تحقق من صلاحيات القراءة في Supabase أو من اتصال الإنترنت.",
+    "testTopupTitle": "شحن اختباري (وضع التجربة)",
+    "testTopupNote": "يضيف رصيد ودقائق لحسابك مباشرة بدون موافقة الإدارة. للتجربة فقط — هيتقفل قبل التشغيل الفعلي.",
+    "testTopupAmount": "المبلغ",
+    "testTopupMinutes": "الدقائق",
+    "testTopupAction": "شحن"
   },
   "captainDashboard": {
     "loading": "جاري تحميل لوحة الكابتن...",

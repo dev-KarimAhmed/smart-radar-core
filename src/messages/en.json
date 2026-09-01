@@ -732,7 +732,12 @@
     "walletMissingTitle": "No wallet is linked to this account",
     "walletMissingBody": "Create a wallet_accounts row with this captain profile_id, then the counters will appear and update live.",
     "walletErrorTitle": "Could not load wallet",
-    "walletErrorBody": "Check Supabase read permissions or the internet connection."
+    "walletErrorBody": "Check Supabase read permissions or the internet connection.",
+    "testTopupTitle": "Test top-up (testing mode)",
+    "testTopupNote": "Adds balance and minutes to your account directly, with no admin approval. Testing only — this is disabled before launch.",
+    "testTopupAmount": "Amount",
+    "testTopupMinutes": "Minutes",
+    "testTopupAction": "Top up"
   },
   "captainDashboard": {
     "loading": "Loading captain dashboard...",

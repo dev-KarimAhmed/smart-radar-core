@@ -107,6 +107,24 @@ export function useSovereignWallet(user: User | null) {
   const [walletLoadState, setWalletLoadState] = useState<WalletLoadState>('idle');
   const [walletError, setWalletError] = useState('');
   const [refreshIndex, setRefreshIndex] = useState(0);
+  // Only decides whether the testing control is rendered. The RPC re-reads the same flag
+  // server-side, so hiding the button is cosmetic — turning the flag off is what closes it.
+  const [selfTopupEnabled, setSelfTopupEnabled] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    void supabase
+      .from('app_flags')
+      .select('enabled')
+      .eq('flag', 'captain_self_topup')
+      .maybeSingle()
+      .then(({ data }) => {
+        if (active) setSelfTopupEnabled(Boolean(data?.enabled));
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
   const userId = user?.uid || '';
 
   const refreshWallet = useCallback(() => {
@@ -346,6 +364,43 @@ export function useSovereignWallet(user: User | null) {
     }
   }, [refreshWallet, toast]);
 
+  /**
+   * TESTING ONLY. Credits the signed-in captain's own wallet with no approver.
+   *
+   * Gated server-side by app_flags.captain_self_topup and capped per call; when the flag is
+   * off the RPC raises `self_topup_disabled` and this surfaces that as a plain message
+   * rather than a generic failure. `selfTopupEnabled` below is only used to hide the
+   * control — the flag that actually matters is the one the RPC checks.
+   */
+  const selfTopup = useCallback(async (amount: number, minutes: number) => {
+    setLoading(true);
+    try {
+      const { error } = await supabase.rpc('captain_self_topup', {
+        p_amount: Number(amount) || 0,
+        p_minutes: Math.round(Number(minutes) || 0),
+      });
+      if (error) throw error;
+      toast({ title: 'تم الشحن الاختباري', description: 'تمت إضافة الرصيد والدقائق إلى حسابك.' });
+      refreshWallet();
+      return true;
+    } catch (error) {
+      const message = String((error as { message?: string })?.message || '');
+      if ((process.env.NODE_ENV !== 'production')) console.warn('[Wallet Self Topup]', error);
+      toast({
+        variant: 'destructive',
+        title: 'تعذر الشحن الاختباري',
+        description: message.includes('self_topup_disabled')
+          ? 'الشحن الذاتي متوقف من الإدارة.'
+          : message.includes('above_test_limit')
+            ? 'المبلغ أو الدقائق أعلى من حد التجربة المسموح.'
+            : 'لم يتم تنفيذ العملية من الخادم.',
+      });
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, [refreshWallet, toast]);
+
   const rejectClientMutation = useCallback(async (..._args: unknown[]) => {
     toast({
       variant: 'destructive',
@@ -380,6 +435,8 @@ export function useSovereignWallet(user: User | null) {
     submitWalletReceipt,
     redeemVoucherCode,
     delegateChargeCaptain,
+    selfTopup,
+    selfTopupEnabled,
     isDriver,
     balanceJD,
     paidMinutesRemaining,

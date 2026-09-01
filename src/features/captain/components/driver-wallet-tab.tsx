@@ -84,6 +84,10 @@ const styles = {
   style198_45: "rounded-2xl border border-emerald-500/15 bg-emerald-950/10 p-4",
   style199_46: "text-xs text-slate-400",
   style200_47: "mt-2 text-2xl font-black",
+  testTopupCard: "mt-5 rounded-3xl border border-amber-500/40 bg-amber-500/[0.07] p-5",
+  testTopupTitle: "text-sm font-black text-amber-200",
+  testTopupNote: "mb-3 mt-1 text-xs leading-5 text-amber-200/70",
+  testTopupButton: "shrink-0 rounded-2xl border border-amber-400/40 bg-amber-500/20 px-5 py-3 text-sm font-black text-amber-100 transition hover:bg-amber-500/30 disabled:cursor-not-allowed disabled:opacity-50",
 } as const;
 
 interface DriverWalletTabProps {
@@ -108,6 +112,8 @@ export function DriverWalletTab({ user, language, isFlightActive = false }: Driv
   const [copiedChannelId, setCopiedChannelId] = React.useState<string | null>(null);
   const [receiptFile, setReceiptFile] = React.useState<File | null>(null);
   const [voucherCode, setVoucherCode] = React.useState('');
+  const [testAmount, setTestAmount] = React.useState('');
+  const [testMinutes, setTestMinutes] = React.useState('');
 
   const districtPaymentInfo = getCaptainDistrictPaymentInfo(user?.district);
   const selectedChannel = CAPTAIN_PAYMENT_CHANNELS.find((channel) => channel.id === selectedChannelId) || null;
@@ -136,6 +142,14 @@ export function DriverWalletTab({ user, language, isFlightActive = false }: Driv
   const redeemVoucher = async () => {
     const ok = await wallet.redeemVoucherCode(voucherCode);
     if (ok) setVoucherCode('');
+  };
+
+  const runTestTopup = async () => {
+    const ok = await wallet.selfTopup(Number(testAmount) || 0, Number(testMinutes) || 0);
+    if (ok) {
+      setTestAmount('');
+      setTestMinutes('');
+    }
   };
 
   const paidMinutes = walletIsReady ? wallet.paidMinutesRemaining : 0;
@@ -328,6 +342,43 @@ export function DriverWalletTab({ user, language, isFlightActive = false }: Driv
           </button>
         </div>
       </div>
+
+      {/* TESTING ONLY. Rendered while app_flags.captain_self_topup is on; the RPC re-checks
+          the same flag, so hiding this is cosmetic and turning the flag off is what closes
+          it. Styled as a warning on purpose — it must not read as a normal feature. */}
+      {wallet.selfTopupEnabled ? (
+        <div className={styles.testTopupCard}>
+          <h2 className={styles.testTopupTitle}>{t('testTopupTitle')}</h2>
+          <p className={styles.testTopupNote}>{t('testTopupNote')}</p>
+          <div className={styles.style192_41}>
+            <input
+              value={testAmount}
+              onChange={(event) => setTestAmount(event.target.value)}
+              type="number"
+              inputMode="decimal"
+              min="0"
+              placeholder={t('testTopupAmount')}
+              className={styles.style193_42}
+            />
+            <input
+              value={testMinutes}
+              onChange={(event) => setTestMinutes(event.target.value)}
+              type="number"
+              inputMode="numeric"
+              min="0"
+              placeholder={t('testTopupMinutes')}
+              className={styles.style193_42}
+            />
+            <button
+              onClick={runTestTopup}
+              disabled={wallet.loading || (!Number(testAmount) && !Number(testMinutes))}
+              className={styles.testTopupButton}
+            >
+              {t('testTopupAction')}
+            </button>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }
