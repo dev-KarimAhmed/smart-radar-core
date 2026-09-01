@@ -20,8 +20,10 @@ export function prioritizeRiderOffers<T extends Record<string, any>>(offers: T[]
     if (aIsFavorite && !bIsFavorite) return -1;
     if (!aIsFavorite && bIsFavorite) return 1;
 
-    const aRankWeight = rankWeight[toCaptainOfferRank(a?.captain?.rank || a?.captain?.tier || a?.driverRank || a?.tier)] || 2;
-    const bRankWeight = rankWeight[toCaptainOfferRank(b?.captain?.rank || b?.captain?.tier || b?.driverRank || b?.tier)] || 2;
+    // Fall back to BRONZE's weight, not SILVER's: an offer whose rank cannot be read must
+    // not outrank a captain who actually holds a rank.
+    const aRankWeight = rankWeight[toCaptainOfferRank(a?.captain?.rank || a?.captain?.tier || a?.driverRank || a?.tier)] ?? rankWeight.BRONZE;
+    const bRankWeight = rankWeight[toCaptainOfferRank(b?.captain?.rank || b?.captain?.tier || b?.driverRank || b?.tier)] ?? rankWeight.BRONZE;
 
     if (aRankWeight !== bRankWeight) return bRankWeight - aRankWeight;
 
