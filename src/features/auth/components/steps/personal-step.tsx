@@ -903,7 +903,12 @@ function buildSupportTelUrl() {
 }
 
 function getSupportPhone() {
-  const env = (import.meta as unknown as { env?: Record<string, string | undefined> }).env;
-  const rawPhone = env?.NEXT_PUBLIC_SUPPORT_WHATSAPP || env?.NEXT_PUBLIC_SUPPORT_PHONE || '';
+  // `import.meta.env` is Vite's API and is always empty under Next, so this returned '' every
+  // time and both support links resolved to '#' — the WhatsApp and call buttons in the
+  // password-recovery dialog have never gone anywhere. Next inlines the literal
+  // `process.env.NEXT_PUBLIC_*` reads below at build time, on both server and client.
+  const rawPhone = process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP
+    || process.env.NEXT_PUBLIC_SUPPORT_PHONE
+    || '';
   return rawPhone.replace(/\D/g, '');
 }

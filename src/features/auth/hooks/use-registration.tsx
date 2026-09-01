@@ -30,11 +30,19 @@ const styles = {
 } as const;
 
 
-const runtimeEnv = (import.meta as any).env || {};
-const isStrictDevelopment =
-  runtimeEnv.DEV === true ||
-  runtimeEnv.MODE === 'development' ||
-  (globalThis as any).process?.env?.NODE_ENV === 'development';
+/**
+ * Must be the literal `process.env.NODE_ENV` expression. Bundlers replace exactly that text
+ * at build time; anything reached dynamically — `globalThis.process?.env?.NODE_ENV` — is left
+ * as a runtime lookup, and there is no `process` object in a browser. So the previous version
+ * was TRUE during the server render and FALSE on the client, and the dev-only mock-data block
+ * it gates rendered into the SSR HTML and then vanished during hydration:
+ *
+ *   Hydration failed because the server rendered HTML didn't match the client.
+ *
+ * `import.meta.env` is Vite's API and is empty here — leftover from the dead Vite SPA
+ * (see CLAUDE.md), so both of the first two checks were always false anyway.
+ */
+const isStrictDevelopment = process.env.NODE_ENV === 'development';
 
 type RegistrationStep = 'role' | 'personal' | 'affiliation' | 'vehicle' | 'admin' | 'advertiser' | 'ProfessionalStep';
 type RegistrationRole = 'rider' | 'driver' | 'advertiser' | 'delegate' | null;
