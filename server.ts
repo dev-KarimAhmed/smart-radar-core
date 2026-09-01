@@ -9,6 +9,8 @@ import { doc, getDoc, updateDoc, arrayUnion, addDoc, collection, query, where, g
 import fs from 'fs';
 import { cleanupRouter } from './src/server/api/cleanup';
 import { roadRouteRouter } from './src/server/api/road-route';
+import { requireRole } from './src/server/api/supabase-identity';
+import { passwordResetRouter } from './src/server/api/password-reset';
 
 // Helper to load firebase config securely on the server
 const getFirebaseApiKey = (): string => {
@@ -91,6 +93,9 @@ async function startServer() {
   // Mount the Cloud-Side Mechanical Shovel Router [SR-CMD-2026-0104]
   app.use('/api', cleanupRouter);
   app.use('/api', rateLimiterMiddleware, roadRouteRouter);
+  // Rate limited like every other state-mutating route: /password-reset/request is public
+  // and unauthenticated, so it is the one an attacker would hammer to enumerate phones.
+  app.use('/api', rateLimiterMiddleware, passwordResetRouter);
 
   // Diagnostic Endpoint for Sovereignties (Zone D)
   app.get('/api/health', (req, res) => {
@@ -531,7 +536,17 @@ async function startServer() {
 
   // 2. GENERATE MAGIC LINK (Server-Authoritative Ticket Inception)
   app.post('/api/generate-magic-link', rateLimiterMiddleware, async (req, res) => {
-    const { delegateId, delegateName, expiryHours, actorRole } = req.body;
+    // [SECURITY] This endpoint mints a link that logs its holder in AS the named delegate.
+    // It used to take `actorRole` from req.body — and then never even read it — so any
+    // caller could mint a login link for any delegate id. Full account takeover, reachable
+    // by anyone who could reach the port. The role now comes from the verified caller's own
+    // profile row, never from the request.
+    const authorized = await requireRole(req, ['ADMIN', 'OWNER']);
+    if (!authorized.ok) {
+      return res.status(authorized.status).json({ success: false, error: authorized.error });
+    }
+
+    const { delegateId, delegateName, expiryHours } = req.body;
     if (!delegateId || !delegateName) {
       return res.status(400).json({ success: false, error: 'المعطيات غير مكتملة لتوليد الرابط السحري' });
     }
@@ -556,7 +571,12 @@ async function startServer() {
         expiresAt,
         expiryHours: hours,
         status: 'active',
-        url: magicLinkUrl
+        url: magicLinkUrl,
+        // Who minted it. A link that logs someone in must be traceable to the admin who
+        // issued it, otherwise a takeover leaves no record of who performed it.
+        issuedByUserId: authorized.caller.userId,
+        issuedByRole: authorized.caller.role,
+        issuedAt: new Date().toISOString()
       };
 
       await addDoc(collection(db, 'delegate_links'), newLink);

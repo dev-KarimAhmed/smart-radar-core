@@ -935,7 +935,13 @@
     "tariffTitle": "Your trip tariff",
     "tariffSubtitle": "These prices are what your trip fares are calculated from. You can change them here at any time.",
     "saveChanges": "Save changes",
-    "cancelChanges": "Cancel"
+    "cancelChanges": "Cancel",
+    "recoveryEmail": "Recovery email (optional)",
+    "recoveryEmailHint": "With an email on file you can reset your own password without waiting for support.",
+    "recoveryEmailPlaceholder": "you@example.com",
+    "recoveryEmailPending": "A confirmation email is on its way. Open it to activate the address.",
+    "recoveryEmailFailed": "Could not save the email",
+    "saving": "Saving…"
   },
   "captainActiveTrip": {
     "badge": "Active trip",

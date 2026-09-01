@@ -935,7 +935,13 @@
     "tariffTitle": "تعريفة رحلاتك",
     "tariffSubtitle": "الأسعار دي هي اللي بتحسب أجرة رحلاتك. تقدر تعدّلها من هنا في أي وقت.",
     "saveChanges": "حفظ التعديلات",
-    "cancelChanges": "إلغاء"
+    "cancelChanges": "إلغاء",
+    "recoveryEmail": "إيميل استرجاع (اختياري)",
+    "recoveryEmailHint": "لو ضفت إيميل، تقدر تسترجع كلمة المرور بنفسك من غير ما تستنى الدعم.",
+    "recoveryEmailPlaceholder": "you@example.com",
+    "recoveryEmailPending": "بعتنالك رسالة تأكيد على الإيميل. افتحها عشان يتفعّل.",
+    "recoveryEmailFailed": "تعذّر حفظ الإيميل",
+    "saving": "جاري الحفظ…"
   },
   "captainActiveTrip": {
     "badge": "رحلة نشطة",
