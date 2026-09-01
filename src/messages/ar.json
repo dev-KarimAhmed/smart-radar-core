@@ -737,7 +737,9 @@
     "testTopupNote": "يضيف رصيد ودقائق لحسابك مباشرة بدون موافقة الإدارة. للتجربة فقط — هيتقفل قبل التشغيل الفعلي.",
     "testTopupAmount": "المبلغ",
     "testTopupMinutes": "الدقائق",
-    "testTopupAction": "شحن"
+    "testTopupAction": "شحن",
+    "testTopupRate": "سعر ساعة الرادار: {price}",
+    "testTopupWillGive": "هتاخد {minutes} دقيقة"
   },
   "captainDashboard": {
     "loading": "جاري تحميل لوحة الكابتن...",

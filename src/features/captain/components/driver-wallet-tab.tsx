@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { Check, Copy, Loader2, MessageCircle, Phone, ReceiptText, Ticket, Upload, Wallet } from 'lucide-react';
 import type { User } from '@/core/types';
 import { useSovereignWallet } from '@/hooks/use-sovereign-wallet';
+import { supabase } from '@/lib/supabase-client';
 import { cn } from '@/lib/utils';
 import {
   CAPTAIN_PAYMENT_CHANNELS,
@@ -87,6 +88,7 @@ const styles = {
   testTopupCard: "mt-5 rounded-3xl border border-amber-500/40 bg-amber-500/[0.07] p-5",
   testTopupTitle: "text-sm font-black text-amber-200",
   testTopupNote: "mb-3 mt-1 text-xs leading-5 text-amber-200/70",
+  testTopupPreview: "mb-3 text-xs font-black text-amber-100",
   testTopupButton: "shrink-0 rounded-2xl border border-amber-400/40 bg-amber-500/20 px-5 py-3 text-sm font-black text-amber-100 transition hover:bg-amber-500/30 disabled:cursor-not-allowed disabled:opacity-50",
 } as const;
 
@@ -114,6 +116,24 @@ export function DriverWalletTab({ user, language, isFlightActive = false }: Driv
   const [voucherCode, setVoucherCode] = React.useState('');
   const [testAmount, setTestAmount] = React.useState('');
   const [testMinutes, setTestMinutes] = React.useState('');
+  // Price of one radar hour in the captain's country, so the conversion can be previewed.
+  const [radarHourPrice, setRadarHourPrice] = React.useState(0);
+
+  React.useEffect(() => {
+    if (!user?.countryId) return;
+    let active = true;
+    void supabase
+      .from('countries')
+      .select('radar_hour_price')
+      .eq('id', user.countryId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (active) setRadarHourPrice(Number(data?.radar_hour_price) || 0);
+      });
+    return () => {
+      active = false;
+    };
+  }, [user?.countryId]);
 
   const districtPaymentInfo = getCaptainDistrictPaymentInfo(user?.district);
   const selectedChannel = CAPTAIN_PAYMENT_CHANNELS.find((channel) => channel.id === selectedChannelId) || null;
@@ -350,6 +370,16 @@ export function DriverWalletTab({ user, language, isFlightActive = false }: Driv
         <div className={styles.testTopupCard}>
           <h2 className={styles.testTopupTitle}>{t('testTopupTitle')}</h2>
           <p className={styles.testTopupNote}>{t('testTopupNote')}</p>
+          {/* The captain is buying time, not storing cash, so show what the amount actually
+              converts to before they commit to it. */}
+          {radarHourPrice ? (
+            <p className={styles.testTopupPreview}>
+              {t('testTopupRate', { price: radarHourPrice.toFixed(2) })}
+              {Number(testAmount) > 0
+                ? ` · ${t('testTopupWillGive', { minutes: Math.floor((Number(testAmount) * 60) / radarHourPrice) })}`
+                : ''}
+            </p>
+          ) : null}
           <div className={styles.style192_41}>
             <input
               value={testAmount}

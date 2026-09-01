@@ -380,7 +380,7 @@ export function useSovereignWallet(user: User | null) {
         p_minutes: Math.round(Number(minutes) || 0),
       });
       if (error) throw error;
-      toast({ title: 'تم الشحن الاختباري', description: 'تمت إضافة الرصيد والدقائق إلى حسابك.' });
+      toast({ title: 'تم الشحن الاختباري', description: 'تم تحويل المبلغ إلى وقت رادار في حسابك.' });
       refreshWallet();
       return true;
     } catch (error) {
@@ -393,7 +393,9 @@ export function useSovereignWallet(user: User | null) {
           ? 'الشحن الذاتي متوقف من الإدارة.'
           : message.includes('above_test_limit')
             ? 'المبلغ أو الدقائق أعلى من حد التجربة المسموح.'
-            : 'لم يتم تنفيذ العملية من الخادم.',
+            : message.includes('amount_below_one_minute')
+              ? 'المبلغ أقل من سعر دقيقة واحدة. زوّد المبلغ.'
+              : 'لم يتم تنفيذ العملية من الخادم.',
       });
       return false;
     } finally {

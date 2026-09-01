@@ -83,6 +83,13 @@ function AuthContent({ children }: { children: ReactNode }) {
       const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
         if (!mounted) return;
         cacheSupabaseSession(session);
+        // Realtime authenticates separately from the REST client. Channels subscribe as
+        // soon as a component mounts, which can happen before the session is restored from
+        // storage — the socket then carries only the anon key, every postgres_changes
+        // binding on an RLS-protected table is denied, and the channel reports
+        // CHANNEL_ERROR. Pushing the token here re-authenticates the socket and any channel
+        // already open on it. Harmless when supabase-js has already done it itself.
+        supabase.realtime.setAuth(session?.access_token ?? null);
         setUser(session?.user ? (buildUserFromSupabaseAuth(session.user) as SovereignUser) : null);
         setLoading(false);
       });

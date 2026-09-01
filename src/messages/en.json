@@ -737,7 +737,9 @@
     "testTopupNote": "Adds balance and minutes to your account directly, with no admin approval. Testing only — this is disabled before launch.",
     "testTopupAmount": "Amount",
     "testTopupMinutes": "Minutes",
-    "testTopupAction": "Top up"
+    "testTopupAction": "Top up",
+    "testTopupRate": "Radar hour price: {price}",
+    "testTopupWillGive": "gives you {minutes} minutes"
   },
   "captainDashboard": {
     "loading": "Loading captain dashboard...",
