@@ -1,9 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { isGoogleMapsLink, parseGoogleMapsLocation } from '@/shared/services/google-maps-location';
+import {
+  extractGoogleMapsPlaceName,
+  isGoogleMapsLink,
+  parseGoogleMapsLocation,
+} from '@/shared/services/google-maps-location';
+import { calculateHaversineKm } from '@/lib/road-route';
 
 const MAX_REDIRECTS = 6;
 const REQUEST_TIMEOUT_MS = 5_000;
+
+/**
+ * How far the coordinate we extracted may sit from where the place NAME in the same link
+ * geocodes to before we stop trusting the extraction.
+ *
+ * This is the guard for the failure that actually bit us: a link for "مول العرب" that
+ * resolved to a point ~15 km away, priced as a real trip because nothing ever asked whether
+ * the coordinate and the name agreed. A distance cap cannot catch that — the wrong point was
+ * a perfectly ordinary distance away. Two independent readings of the same link disagreeing
+ * is the only signal that does.
+ *
+ * 3 km is wide enough for the normal case (a mall's geocoded centroid vs. its car-park pin,
+ * a road-name match landing mid-street) and far narrower than a wrong-point error.
+ */
+const PLACE_NAME_MISMATCH_KM = 3;
 
 export async function GET(request: NextRequest) {
   const shortUrl = request.nextUrl.searchParams.get('url')?.trim() || '';
@@ -30,7 +50,8 @@ export async function GET(request: NextRequest) {
     }
 
     const geography = await reverseResolveGeography(location);
-    return NextResponse.json({ resolvedUrl, location, geography });
+    const placeNameCheck = await crossCheckPlaceName(resolvedUrl, location);
+    return NextResponse.json({ resolvedUrl, location, geography, placeNameCheck });
   } catch {
     return NextResponse.json({ error: 'maps_link_resolution_failed' }, { status: 502 });
   }
@@ -77,6 +98,54 @@ async function readGoogleMapsPageLocation(url: string) {
 
   if (!response.ok) return null;
   return parseGoogleMapsLocation(await response.text());
+}
+
+/**
+ * Second, independent reading of the same link: geocode the place NAME and see whether it
+ * lands near the coordinate we extracted.
+ *
+ * Returns null when there is nothing to compare (no name in the URL, or the geocoder had no
+ * answer). A null is "unknown", never "verified" — the caller must not treat it as a pass.
+ */
+async function crossCheckPlaceName(
+  resolvedUrl: string,
+  location: { lat: number; lng: number },
+) {
+  const placeName = extractGoogleMapsPlaceName(resolvedUrl);
+  // A bare coordinate link has no name to check against, and a name that is itself just
+  // coordinates would only be comparing the extraction with itself.
+  if (!placeName || /^-?\d+(\.\d+)?,\s*-?\d+(\.\d+)?$/.test(placeName)) return null;
+
+  try {
+    const params = new URLSearchParams({
+      format: 'jsonv2',
+      q: placeName,
+      limit: '1',
+      'accept-language': 'ar,en',
+    });
+    const response = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, {
+      cache: 'no-store',
+      signal: AbortSignal.timeout(3_000),
+      headers: { Accept: 'application/json', 'User-Agent': 'RadarLocationResolver/1.0' },
+    });
+    if (!response.ok) return null;
+
+    const [match] = await response.json() as Array<{ lat?: string; lon?: string }>;
+    const lat = Number(match?.lat);
+    const lng = Number(match?.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+
+    const distanceKm = calculateHaversineKm(location, { lat, lng });
+
+    return {
+      placeName,
+      geocodedLocation: { lat, lng },
+      distanceKm: Number(distanceKm.toFixed(2)),
+      isMismatch: distanceKm > PLACE_NAME_MISMATCH_KM,
+    };
+  } catch {
+    return null;
+  }
 }
 
 async function reverseResolveGeography(location: { lat: number; lng: number }) {

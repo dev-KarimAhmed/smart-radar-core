@@ -94,9 +94,10 @@ const styles = {
   editableFieldEditingRow: "mb-1.5 flex items-center justify-between gap-2",
   editableFieldEditingLabel: "text-xs text-slate-500",
   editActionGroup: "flex shrink-0 items-center gap-1.5",
-  editSaveButton: "grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-emerald-500/40 bg-emerald-500/20 text-emerald-300 transition hover:bg-emerald-500/30 disabled:cursor-wait disabled:opacity-60",
-  editCancelButton: "grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-rose-500/40 bg-rose-500/20 text-rose-300 transition hover:bg-rose-500/30 disabled:cursor-wait disabled:opacity-60",
+  editSaveButton: "flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/20 px-2.5 text-[11px] font-bold text-emerald-300 transition hover:bg-emerald-500/30 disabled:cursor-not-allowed disabled:opacity-40",
+  editCancelButton: "flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-rose-500/40 bg-rose-500/20 px-2.5 text-[11px] font-bold text-rose-300 transition hover:bg-rose-500/30 disabled:cursor-wait disabled:opacity-60",
   editSaveIcon: "h-3.5 w-3.5",
+  editActionText: "whitespace-nowrap",
   editingInput: "w-full rounded-2xl border border-slate-800 bg-black/60 px-4 py-3 text-white outline-none transition focus:border-emerald-400",
   tariffError: "mt-3 text-sm font-bold text-rose-400",
   tariffSectionHeader: "mt-6 flex items-center gap-2 border-t border-white/5 pt-5 text-emerald-300",
@@ -915,6 +916,8 @@ function EditableField({
   onCancel: () => void;
   children: React.ReactNode;
 }) {
+  const fieldActions = useTranslations('captainProfile');
+
   if (isEditing) {
     const isChanged = value !== originalValue;
     return (
@@ -928,28 +931,32 @@ function EditableField({
       >
         <div className={styles.editableFieldEditingRow}>
           <span className={styles.editableFieldEditingLabel}>{label}</span>
-          {isChanged ? (
-            <div className={styles.editActionGroup}>
-              <button
-                type="button"
-                onClick={onSave}
-                disabled={isSaving}
-                aria-label={label}
-                className={styles.editSaveButton}
-              >
-                <Check className={styles.editSaveIcon} />
-              </button>
-              <button
-                type="button"
-                onClick={onCancel}
-                disabled={isSaving}
-                aria-label={label}
-                className={styles.editCancelButton}
-              >
-                <X className={styles.editSaveIcon} />
-              </button>
-            </div>
-          ) : null}
+          {/* Always rendered while editing, disabled until something actually changes.
+              Previously the whole group only appeared once the value differed, so opening a
+              field showed no save control at all and there was nothing to tell the captain
+              their edit needed saving. Both buttons also carried aria-label={label}, which
+              announced them identically — "Save" and "Cancel" were indistinguishable to a
+              screen reader. */}
+          <div className={styles.editActionGroup}>
+            <button
+              type="button"
+              onClick={onSave}
+              disabled={isSaving || !isChanged}
+              className={styles.editSaveButton}
+            >
+              <Check className={styles.editSaveIcon} />
+              <span className={styles.editActionText}>{fieldActions('saveChanges')}</span>
+            </button>
+            <button
+              type="button"
+              onClick={onCancel}
+              disabled={isSaving}
+              className={styles.editCancelButton}
+            >
+              <X className={styles.editSaveIcon} />
+              <span className={styles.editActionText}>{fieldActions('cancelChanges')}</span>
+            </button>
+          </div>
         </div>
         {children}
       </label>

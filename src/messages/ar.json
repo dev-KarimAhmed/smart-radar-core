@@ -167,7 +167,9 @@
     "map_adjust_helper": "حرك الخريطة لضبط الوجهة بدقة.",
     "ready_to_request": "كل شيء جاهز. راجع التفاصيل ثم اطلب الرحلة.",
     "return_to_app": "العودة إلى التطبيق",
-    "return_to_app_hint": "تم فتح خرائط Google. عد إلى التطبيق بعد نسخ رابط الموقع."
+    "return_to_app_hint": "تم فتح خرائط Google. عد إلى التطبيق بعد نسخ رابط الموقع.",
+    "warn_place_name_mismatch_title": "تأكد من الوجهة",
+    "warn_place_name_mismatch_body": "النقطة المستخرجة من الرابط تبعد حوالي {km} كم عن «{place}». لو دي مش وجهتك، حرّك الدبوس أو ابعت الرابط تاني."
   },
   "advertiser": {
     "dashboardTitle": "لوحة المعلن",
@@ -837,16 +839,15 @@
     "h3": "خلية الطلب",
     "distance": "المسافة",
     "serverFare": "السعر الأساسي",
-    "increaseAmount": "تعديل السعر (زيادة أو تخفيض)",
+    "increaseAmount": "زيادتك أنت (مفيش حد أقصى)",
     "tierPremium": "زيادة اختيارية حسب رتبتك",
-    "tierPremiumDescription": "رتبتك {tier} تسمح لك بزيادة من 1 إلى {percent}% فوق السعر الأساسي. اكتب قيمة الزيادة بنفسك.",
-    "noTierPremium": "رتبتك الحالية {tier} لا تضيف زيادة اختيارية. يمكنك تقديم السعر الأساسي فقط.",
-    "maxIncrease": "أقصى زيادة مسموحة",
-    "maxFinalPrice": "أقصى عرض",
-    "applyMaxIncrease": "استخدام أقصى زيادة",
+    "tierPremiumDescription": "رتبتك {tier} تسمح لك بزيادة من 1 إلى {rankPercent}% فوق سعر السوق. وتقدر تزيد أكتر من كده وتبعت العرض عادي — التنبيه بيظهر بس لو عديت {warnPercent}%.",
+    "noTierPremium": "رتبتك {tier} مش مضيفة زيادة اختيارية. وبرضه تقدر تزيد وتبعت العرض — التنبيه بيظهر بس لو عديت {warnPercent}%.",
+    "maxIncrease": "زيادة بدون تنبيه",
+    "applyMaxIncrease": "زوّد لحد آخر نقطة بدون تنبيه",
     "finalOffer": "العرض النهائي",
-    "finalFormula": "{base} {adjustment} {currency}",
-    "tierAmberWarning": "تنبيه: زيادتك تقترب من أقصى حد مسموح لرتبتك.",
+    "finalFormula": "سعر عدّادك {base} {adjustment} {currency}",
+    "tierAmberWarning": "زيادتك قربت من حد الـ{limit}% اللي بعده بيظهر تنبيه. مفيش حد أقصى — تقدر تكمل زيادة.",
     "tierCrimsonBlock": "لا يمكن تقديم العرض لأن الزيادة أعلى من الحد المسموح لرتبتك.",
     "dumpingAmberWarning": "تنبيه: عرضك أقل من السعر الأساسي بنسبة تؤثر على رتبتك وظهورك للركاب (اختبار Fare_test).",
     "dumpingCrimsonBlock": "تم قفل الإدخال: عرضك أقل من السعر الأساسي بأكثر من 15%، وهذا يُعد حرقاً للأسعار وغير مسموح (اختبار Fare_test).",
@@ -864,7 +865,15 @@
       "GOLD": "ذهبي",
       "SILVER": "فضي",
       "BRONZE": "برونزي"
-    }
+    },
+    "aboveBandWarning": "سعرك أعلى من سعر السوق بـ {percent}% — فوق حد الـ{limit}% المسموح بدون تنبيه. تقدر تبعت العرض، بس فرصة قبوله أقل.",
+    "breakdownMeter": "سعر عدّادك لهذه الرحلة",
+    "breakdownMarket": "متوسط أسعار الكباتن (السوق)",
+    "breakdownWarnLine": "حد التنبيه ({percent}% فوق السوق)",
+    "breakdownFloor": "أقل سعر مسموح (الرفض تحته)",
+    "breakdownYourIncrease": "زيادتك",
+    "breakdownMarketUnknown": "غير متاح",
+    "meterOffMarket": "سعر عدّادك ({meter} {currency}) أعلى بكتير من متوسط السوق ({market} {currency}) — يعني متوسط السوق محسوب من عدد كباتن قليل ومش معبّر. العرض هيتبعت عادي، بس راجع تسعيرة عدّادك."
   },
   "captainProfile": {
     "badge": "حسابي",
@@ -924,7 +933,9 @@
     "tariffPerMinInvalid": "سعر الدقيقة لا يمكن أن يكون أقل من صفر.",
     "tariffIncludedKm": "المسافة المشمولة (كم)",
     "tariffTitle": "تعريفة رحلاتك",
-    "tariffSubtitle": "الأسعار دي هي اللي بتحسب أجرة رحلاتك. تقدر تعدّلها من هنا في أي وقت."
+    "tariffSubtitle": "الأسعار دي هي اللي بتحسب أجرة رحلاتك. تقدر تعدّلها من هنا في أي وقت.",
+    "saveChanges": "حفظ التعديلات",
+    "cancelChanges": "إلغاء"
   },
   "captainActiveTrip": {
     "badge": "رحلة نشطة",

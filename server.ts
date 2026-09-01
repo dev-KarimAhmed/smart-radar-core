@@ -8,6 +8,7 @@ import { db } from './src/lib/firebase';
 import { doc, getDoc, updateDoc, arrayUnion, addDoc, collection, query, where, getDocs, limit, setDoc } from 'firebase/firestore';
 import fs from 'fs';
 import { cleanupRouter } from './src/server/api/cleanup';
+import { roadRouteRouter } from './src/server/api/road-route';
 
 // Helper to load firebase config securely on the server
 const getFirebaseApiKey = (): string => {
@@ -52,7 +53,7 @@ async function startServer() {
   await nextApp.prepare();
 
   const app = express();
-  const PORT = 3000;
+  const PORT = 3002
 
   // Real-time IP-based Sliding Window Rate Limiter (Zone B)
   const rateLimitMap = new Map<string, { timestamps: number[] }>();
@@ -89,6 +90,7 @@ async function startServer() {
 
   // Mount the Cloud-Side Mechanical Shovel Router [SR-CMD-2026-0104]
   app.use('/api', cleanupRouter);
+  app.use('/api', rateLimiterMiddleware, roadRouteRouter);
 
   // Diagnostic Endpoint for Sovereignties (Zone D)
   app.get('/api/health', (req, res) => {
