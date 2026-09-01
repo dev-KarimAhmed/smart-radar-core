@@ -121,6 +121,14 @@ passwordResetRouter.post('/password-reset/request', async (req, res) => {
     return res.status(400).json({ success: false, error: 'رقم الهاتف غير صالح.' });
   }
 
+  // Optional, and CONFIRMATION ONLY — never a destination.
+  //
+  // Letting an anonymous caller name the address a reset link is sent to is account
+  // takeover with extra steps: type the victim's phone and your own email. So the link only
+  // ever goes to the address already stored on the account, and anything typed here is
+  // compared against that address rather than used in its place.
+  const claimedEmail = String(req.body?.email ?? '').trim().toLowerCase();
+
   // ONE response shape for every outcome below. Telling the caller whether a phone is
   // registered, or whether it has an email, turns this endpoint into a way to enumerate
   // every account in the system.
@@ -132,8 +140,23 @@ passwordResetRouter.post('/password-reset/request', async (req, res) => {
   try {
     const user = await findAuthUserByPhone(config, digits);
 
-    if (user?.email) {
-      // Route 1: self-service. Supabase mails the recovery link itself.
+    // A typed address that does not match the one on file is not a typo to be helpful
+    // about — it is what an attempted takeover looks like. Record it and fall through to
+    // the admin queue, where a human decides.
+    const emailMismatch = Boolean(
+      user?.email && claimedEmail && claimedEmail !== user.email.trim().toLowerCase(),
+    );
+    if (emailMismatch) {
+      await auditReset(config, {
+        profile_id: user?.id ?? null,
+        action: 'EMAIL_MISMATCH_REFUSED',
+        detail: { route: 'email', reason: 'claimed address does not match the account' },
+      });
+    }
+
+    if (user?.email && !emailMismatch) {
+      // Route 1: self-service. Supabase mails the recovery link itself, to the stored
+      // address — never to whatever was typed above.
       const origin = `${req.headers['x-forwarded-proto'] || 'http'}://${req.headers.host}`;
       await fetch(`${config.url}/auth/v1/recover`, {
         method: 'POST',
@@ -169,7 +192,12 @@ passwordResetRouter.post('/password-reset/request', async (req, res) => {
       request_id: row?.id ?? null,
       profile_id: user?.id ?? null,
       action: 'ADMIN_REVIEW_REQUESTED',
-      detail: { route: 'admin', matchedAccount: Boolean(user) },
+      detail: {
+        route: 'admin',
+        matchedAccount: Boolean(user),
+        accountHasEmail: Boolean(user?.email),
+        emailMismatch,
+      },
     });
 
     return res.json(genericAnswer);

@@ -5,9 +5,7 @@ import { useTranslations } from 'next-intl';
 import { Car, Check, IdCard, Loader2, Pencil, Wallet, X } from 'lucide-react';
 import type { User } from '@/core/types';
 import { supabase } from '@/lib/supabase-client';
-// Aliased: the local useState setter is also called setRecoveryEmail, and without the alias
-// the save silently called the setter instead of the service and nothing was ever persisted.
-import { setRecoveryEmail as persistRecoveryEmail } from '@/features/auth/contract';
+import { RecoveryEmailField } from '@/features/auth/contract';
 import { useToast } from '@/hooks/use-toast';
 import { colorNameToHex, hexToColorName, resolveColorDisplayName } from '@/shared/services/color-name';
 
@@ -102,10 +100,6 @@ const styles = {
   editSaveIcon: "h-3.5 w-3.5",
   editActionText: "whitespace-nowrap",
   recoveryEmailBlock: "border-t border-white/5 py-3",
-  recoveryEmailLabel: "text-xs font-black text-slate-200",
-  recoveryEmailHint: "mt-1 text-[10px] leading-relaxed text-slate-500",
-  recoveryEmailRow: "mt-2 flex flex-wrap items-center gap-2",
-  recoveryEmailSave: "shrink-0 rounded-xl border border-emerald-500/40 bg-emerald-500/20 px-3 py-2 text-[11px] font-bold text-emerald-300 transition hover:bg-emerald-500/30 disabled:cursor-not-allowed disabled:opacity-40",
   editingInput: "w-full rounded-2xl border border-slate-800 bg-black/60 px-4 py-3 text-white outline-none transition focus:border-emerald-400",
   tariffError: "mt-3 text-sm font-bold text-rose-400",
   tariffSectionHeader: "mt-6 flex items-center gap-2 border-t border-white/5 pt-5 text-emerald-300",
@@ -594,37 +588,6 @@ export function DriverProfileTab({ user, language }: DriverProfileTabProps) {
   const isFieldEditing = (key: string) => editingFields.has(key);
   const handleFieldSave = () => void saveProfile();
 
-  const [recoveryEmail, setRecoveryEmail] = React.useState('');
-  const [isSavingRecoveryEmail, setIsSavingRecoveryEmail] = React.useState(false);
-
-  // The recovery address lives on the Supabase auth user, not on the app's own User type —
-  // it is an auth credential, not profile data — so it is read from the session.
-  React.useEffect(() => {
-    let active = true;
-    void supabase.auth.getUser().then(({ data }) => {
-      if (active) setRecoveryEmail(String(data.user?.email || '').trim());
-    });
-    return () => { active = false; };
-  }, []);
-
-  const saveRecoveryEmail = async () => {
-    setIsSavingRecoveryEmail(true);
-    try {
-      await persistRecoveryEmail(recoveryEmail);
-      // Supabase does not switch the address until the new one is confirmed, so reporting a
-      // plain "saved" here would leave the captain believing recovery works when it does
-      // not yet.
-      toast({ title: t('recoveryEmailPending') });
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: t('recoveryEmailFailed'),
-        description: error instanceof Error ? error.message : undefined,
-      });
-    } finally {
-      setIsSavingRecoveryEmail(false);
-    }
-  };
 
   return (
     <section className={styles.style300_16}>
@@ -654,32 +617,12 @@ export function DriverProfileTab({ user, language }: DriverProfileTabProps) {
           >
             <input value={phone} onChange={(event) => setPhone(event.target.value)} className={styles.editingInput} />
           </EditableField>
-          {/* Optional, and the only thing that makes password recovery self-service. Without
-              it a locked-out captain has to go through an admin, who then has the power to
-              set their password. Worth asking for, not worth forcing. */}
+          {/* The only thing that makes password recovery self-service. Without it a locked
+              out captain must go through an admin, who then has the power to set their
+              password. Shared component — the same "unconfirmed is not yet active" caveat
+              has to read identically on every screen that offers this. */}
           <div className={styles.recoveryEmailBlock}>
-            <p className={styles.recoveryEmailLabel}>{t('recoveryEmail')}</p>
-            <p className={styles.recoveryEmailHint}>{t('recoveryEmailHint')}</p>
-            <div className={styles.recoveryEmailRow}>
-              <input
-                type="email"
-                dir="ltr"
-                inputMode="email"
-                autoComplete="email"
-                placeholder={t('recoveryEmailPlaceholder')}
-                value={recoveryEmail}
-                onChange={(event) => setRecoveryEmail(event.target.value)}
-                className={styles.editingInput}
-              />
-              <button
-                type="button"
-                onClick={() => void saveRecoveryEmail()}
-                disabled={isSavingRecoveryEmail || !recoveryEmail.includes('@')}
-                className={styles.recoveryEmailSave}
-              >
-                {isSavingRecoveryEmail ? t('saving') : t('saveChanges')}
-              </button>
-            </div>
+            <RecoveryEmailField />
           </div>
           <Field label={t('accountNumber')} value={firstString(profile?.serial_id, user?.serial_id, '-')} />
           <Field label={t('role')} value={t('captainRole')} />

@@ -30,3 +30,5 @@ export {
   setRecoveryEmail,
   type PasswordResetRequestRow,
 } from './services/password-recovery';
+export { RecoveryEmailField } from './components/recovery-email-field';
+export { RecoveryEmailBanner } from './components/recovery-email-banner';

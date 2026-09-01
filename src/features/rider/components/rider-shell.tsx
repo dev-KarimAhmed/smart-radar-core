@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import { useEffect, useMemo, useState } from 'react';
 import { AdStage } from '@/features/ads/ad-stage/contract';
 import { AppHeader } from '@/shared/components/layout/app-header';
+import { RecoveryEmailBanner } from '@/features/auth/contract';
 import { BottomNav } from '@/shared/components/layout/bottom-nav';
 import { RouteErrorBoundary } from '@/shared/components/layout/route-error-boundary';
 import { RouteLoading } from '@/shared/components/layout/route-loading';
@@ -40,6 +41,9 @@ const styles = {
   mainStandby: 'h-[calc(100vh-120px)] overflow-hidden',
   adStage: 'relative z-[80] flex w-full flex-1 flex-col border-b-2 border-[#14B8A6]/20 shadow-[0_10px_30px_rgba(20,184,166,0.08)]',
   content: 'w-full flex-1 p-4 md:p-8',
+  // empty:hidden so the wrapper collapses entirely when the banner renders null — the home
+  // tab sets p-0 for the map, and a stray padded div there would show as a gap.
+  recoveryPrompt: 'mb-3 px-4 empty:hidden md:px-8',
   contentHome: 'p-0 md:p-0 lg:p-0',
   contentInner: 'min-h-0 overflow-y-auto px-0 py-4 md:px-0 md:py-6',
   contentHidden: 'hidden',
@@ -123,6 +127,10 @@ export function RiderShell() {
           </div>
         ) : null}
         <div className={cn(styles.content, isHome ? styles.contentHome : styles.contentInner, isStandby && styles.contentHidden)}>
+          {/* Renders nothing at all unless this account has no recovery email, so it costs
+              nothing for everyone else. Placed inside the scrolling content rather than the
+              header so it can never sit on top of the map. */}
+          <div className={styles.recoveryPrompt}><RecoveryEmailBanner /></div>
           <RouteErrorBoundary>{content}</RouteErrorBoundary>
         </div>
       </main>

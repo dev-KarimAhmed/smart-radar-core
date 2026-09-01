@@ -10,6 +10,7 @@ import {
   Languages,
   Loader2,
   LockKeyhole,
+  Mail,
   MapPin,
   Phone,
   ShieldCheck,
@@ -179,6 +180,7 @@ const styles = {
   style851_145: "grid gap-3 sm:grid-cols-2",
   style856_146: "inline-flex min-h-12 items-center justify-center rounded-2xl bg-[#14B8A6] px-4 text-sm font-black text-[#0B0F19] shadow-[0_16px_45px_rgba(20,184,166,0.18)] transition hover:bg-[#2DD4BF]",
   resetSubmit: "mt-3 w-full rounded-2xl bg-[#14B8A6] px-4 py-3 text-sm font-black text-[#04140F] transition hover:bg-[#2DD4BF] disabled:cursor-not-allowed disabled:opacity-50",
+  resetEmailNote: "mt-2 text-[10px] leading-relaxed text-slate-500",
   resetSuccess: "mt-3 rounded-2xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-xs font-bold leading-relaxed text-emerald-200",
   resetError: "mt-3 rounded-2xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-xs font-bold leading-relaxed text-rose-200",
   style862_147: "inline-flex min-h-12 items-center justify-center rounded-2xl border border-white/10 bg-white/10 px-4 text-sm font-black text-white transition hover:bg-white/15",
@@ -445,6 +447,7 @@ export function PersonalStep() {
   const [showPassword, setShowPassword] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
   const [resetPhone, setResetPhone] = useState(personal.phone);
+  const [resetEmail, setResetEmail] = useState('');
   const [resetSubmitting, setResetSubmitting] = useState(false);
   const [resetMessage, setResetMessage] = useState('');
   const [resetError, setResetError] = useState('');
@@ -458,7 +461,7 @@ export function PersonalStep() {
     setResetError('');
     setResetMessage('');
     try {
-      setResetMessage(await requestPasswordRecovery(resetPhone));
+      setResetMessage(await requestPasswordRecovery(resetPhone, resetEmail));
     } catch (error) {
       setResetError(error instanceof Error ? error.message : 'تعذّر إرسال الطلب.');
     } finally {
@@ -480,6 +483,7 @@ export function PersonalStep() {
 
   const openPasswordReset = () => {
     setResetPhone(personal.phone);
+    setResetEmail('');
     setResetMessage('');
     setResetError('');
     setResetOpen(true);
@@ -763,8 +767,8 @@ export function PersonalStep() {
             <DialogTitle className={styles.style824_139}>{t.resetTitle}</DialogTitle>
             <DialogDescription className={styles.style825_140}>
               {isArabic
-                ? 'إعادة كلمة المرور تتم عبر الدعم، بدون رسائل SMS مدفوعة.'
-                : 'Password reset is handled through support, without paid SMS messages.'}
+                ? 'استرجاع فوري بالإيميل لو مضيف واحد، أو عبر الدعم بعد التحقق من هويتك.'
+                : 'Instant email recovery if you added an address, or through support after your identity is verified.'}
             </DialogDescription>
           </DialogHeader>
 
@@ -786,6 +790,27 @@ export function PersonalStep() {
                 className={cn(styles.input, styles.style847_144)}
               />
             </Field>
+
+            <Field
+              label={isArabic ? 'إيميل الاسترجاع (لو مضيفه)' : 'Recovery email (if you added one)'}
+              icon={<Mail className={styles.style839_143} />}
+            >
+              <input
+                type="email"
+                dir="ltr"
+                inputMode="email"
+                autoComplete="email"
+                placeholder="you@example.com"
+                value={resetEmail}
+                onChange={(event) => setResetEmail(event.target.value)}
+                className={cn(styles.input, styles.style847_144)}
+              />
+            </Field>
+            <p className={styles.resetEmailNote}>
+              {isArabic
+                ? 'الرابط بيتبعت على الإيميل المسجّل على حسابك بس. اللي بتكتبه هنا بيتقارن بيه للتأكيد — مش بنبعت لأي إيميل تاني.'
+                : 'The link is only ever sent to the address already on your account. What you type here is checked against it — we never send to a different address.'}
+            </p>
 
             {resetMessage ? (
               <p className={styles.resetSuccess}>{resetMessage}</p>

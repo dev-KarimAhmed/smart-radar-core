@@ -40,11 +40,13 @@ async function readError(response: Response, fallback: string) {
  * Asks for recovery. The answer is deliberately identical whether or not the phone is
  * registered, so callers must not branch on it — there is nothing to branch on.
  */
-export async function requestPasswordRecovery(phone: string) {
+export async function requestPasswordRecovery(phone: string, email?: string) {
   const response = await fetch('/api/password-reset/request', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ phone }),
+    // The email is a confirmation the server checks against the address already on the
+    // account. It is never where the link gets sent — see the endpoint for why.
+    body: JSON.stringify({ phone, email: email?.trim() || undefined }),
   });
 
   const payload = await response.json() as { success?: boolean; message?: string; error?: string };
