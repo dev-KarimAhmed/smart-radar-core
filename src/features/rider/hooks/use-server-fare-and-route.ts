@@ -104,11 +104,21 @@ export function useServerFareAndRoute(params: {
       error: null,
     });
 
+    // Wait for the route before quoting. The fare has to be built from the same distance
+    // and duration the rider is being shown, and this effect used to race the route fetch
+    // instead of following it — so the quote was computed from the server's own fallback
+    // estimate even when a real route arrived a moment later.
+    if (isRouteEstimateLoading) return;
+
     const timeoutId = window.setTimeout(() => {
       calculateServerFare(supabase, {
         origin: riderLocation,
         destination: selectedDestinationCoords,
         countryId,
+        // Null when the router failed; the RPC then falls back to its own estimate, which
+        // is the same formula fetchRoadRoute falls back to.
+        roadKm: currentRouteEstimate?.distanceKm ?? null,
+        durationMinutes: currentRouteEstimate?.durationMinutes ?? null,
       })
         .then((fare) => {
           if (!active) return;
@@ -141,7 +151,17 @@ export function useServerFareAndRoute(params: {
     // since watchPosition hands back a new object each time even when the
     // rider hasn't materially moved, flickering the UI back to "loading".
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeCountryId, destinationDataError, fareRequestKey, Boolean(selectedDistrict), t]);
+    // currentRouteEstimate/isRouteEstimateLoading are listed so the quote re-runs once the
+    // route lands — that sequencing is the whole point of the guard above.
+  }, [
+    activeCountryId,
+    destinationDataError,
+    fareRequestKey,
+    Boolean(selectedDistrict),
+    t,
+    isRouteEstimateLoading,
+    currentRouteEstimate,
+  ]);
 
   React.useEffect(() => {
     if (!selectedDestinationCoords || !hasUsableRiderLocation) {

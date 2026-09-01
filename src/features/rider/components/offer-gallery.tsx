@@ -1,5 +1,6 @@
 'use client';
 
+import { estimatePickupMinutes } from '@/shared/services/trip-duration';
 import React from 'react';
 import { Heart, Info, Loader2, ShieldCheck, Star, X, Clock, Navigation, MapPin } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -260,7 +261,7 @@ const OfferCard = ({
           <div className={styles.style187_31}>
             <Clock className={styles.style188_32} />
             <span className={styles.style189_33}>
-              يصلك خلال: {offer.pickup_eta_minutes ?? Math.max(3, Math.round((offer.distance_to_rider || 1) * 3))} دقائق
+              يصلك خلال: {offer.pickup_eta_minutes ?? estimatePickupMinutes(offer.distance_to_rider)} دقائق
             </span>
           </div>
         </div>

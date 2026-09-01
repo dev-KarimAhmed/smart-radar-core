@@ -4,6 +4,7 @@ import type { CaptainOffer } from '../components/captain-offer-card';
 import type { CaptainPresencePoint } from './rider-server-marketplace';
 import { mapRiderMarketplaceError } from './rider-server-marketplace';
 import { firstDisplayString } from './rider-view-format';
+import { estimatePickupMinutes, preferRoutedMinutes } from '@/shared/services/trip-duration';
 import { firstNumber } from './rider-destination-normalizers';
 import {
   getOfferAffiliationLabel,
@@ -122,8 +123,13 @@ export function buildCaptainOfferFromOffer(
   }
 
   const distanceDisplay = realDistance != null ? (realDistance < 0.1 ? 0 : realDistance).toFixed(1) : '---';
-  const etaDisplay = (offer as unknown as Record<string, any>).pickup_eta_minutes ?? (realDistance != null ? Math.max(1, Math.round(realDistance * 3)) : '---');
-  const rawDuration = (offer as unknown as Record<string, any>).estimated_duration_minutes ?? (tripDistance != null ? Math.max(5, Math.round(tripDistance * 1.2)) : null);
+  const etaDisplay = (offer as unknown as Record<string, any>).pickup_eta_minutes
+    ?? (realDistance != null ? estimatePickupMinutes(realDistance) : '---');
+  // Was `tripDistance * 1.2` — 50 km/h — while the fare and every other screen used 2.2.
+  // The same trip could be shown as 12 minutes here and 22 on the offer card.
+  const rawDuration = tripDistance != null || (offer as unknown as Record<string, any>).estimated_duration_minutes != null
+    ? preferRoutedMinutes((offer as unknown as Record<string, any>).estimated_duration_minutes, tripDistance)
+    : null;
 
   const captainName = getOfferCaptainName(offer, labels);
   const vehicleSummary = getOfferVehicleSummary(offer, labels);

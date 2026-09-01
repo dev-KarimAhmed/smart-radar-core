@@ -1,3 +1,5 @@
+import { estimateTripMinutes } from '@/shared/services/trip-duration';
+
 export interface RoadRoutePoint {
   lat: number;
   lng: number;
@@ -10,7 +12,44 @@ export interface RoadRouteEstimate {
 }
 
 const DEFAULT_OSRM_URL = 'https://router.project-osrm.org';
-const ROUTE_TIMEOUT_MS = 1500;
+/**
+ * 1.5s was too tight for the free public OSRM endpoint, which is shared and rate-limited:
+ * the request was being aborted while the router was still answering, and every abort
+ * dropped the trip onto the local estimate. 3s costs nothing and converts a good share of
+ * those into real routed answers. The rider sees a debounced spinner either way.
+ */
+const ROUTE_TIMEOUT_MS = 3000;
+
+/**
+ * Routes are cached because OSRM's default profile has no live traffic — the same two
+ * points always produce the same distance and duration. Without this, every nudge of the
+ * destination pin fired another request at a shared free server, which is exactly how you
+ * get rate-limited into the fallback.
+ *
+ * Keyed on coordinates rounded to ~11 m, so a pin jitter of a few metres reuses the answer.
+ */
+const ROUTE_CACHE_LIMIT = 200;
+const routeCache = new Map<string, RoadRouteEstimate>();
+
+function buildRouteCacheKey(origin: RoadRoutePoint, destination: RoadRoutePoint, tortuosityFactor: number) {
+  const round = (value: number) => value.toFixed(4);
+  return [
+    round(origin.lat), round(origin.lng),
+    round(destination.lat), round(destination.lng),
+    tortuosityFactor.toFixed(2),
+  ].join(',');
+}
+
+function rememberRoute(key: string, estimate: RoadRouteEstimate) {
+  // Only real routed answers are worth keeping; caching a fallback would pin a trip to the
+  // local estimate even once the router recovers.
+  if (estimate.isFallback) return;
+  if (routeCache.size >= ROUTE_CACHE_LIMIT) {
+    const oldestKey = routeCache.keys().next().value;
+    if (oldestKey !== undefined) routeCache.delete(oldestKey);
+  }
+  routeCache.set(key, estimate);
+}
 const FALLBACK_TORTUOSITY_FACTOR = 1.3;
 export const MIN_TORTUOSITY_FACTOR = 1.15;
 export const MAX_TORTUOSITY_FACTOR = 1.35;
@@ -41,6 +80,11 @@ export async function fetchRoadRoute(
   tortuosityFactor = FALLBACK_TORTUOSITY_FACTOR,
 ): Promise<RoadRouteEstimate> {
   const normalizedTortuosityFactor = normalizeTortuosityFactor(tortuosityFactor);
+
+  const cacheKey = buildRouteCacheKey(origin, destination, normalizedTortuosityFactor);
+  const cached = routeCache.get(cacheKey);
+  if (cached) return cached;
+
   const fallback = createFallbackEstimate(origin, destination, normalizedTortuosityFactor);
   const baseUrl = process.env.NEXT_PUBLIC_OSRM_URL?.trim() || DEFAULT_OSRM_URL;
   const endpoint = `${baseUrl.replace(/\/$/, '')}/route/v1/driving/${origin.lng},${origin.lat};${destination.lng},${destination.lat}?overview=false&steps=false`;
@@ -88,6 +132,7 @@ export async function fetchRoadRoute(
     };
     validateRouteDistanceKm(estimate.distanceKm);
     auditDistance('osrm', origin, destination, normalizedTortuosityFactor, estimate);
+    rememberRoute(cacheKey, estimate);
     return estimate;
   } catch {
     return fallback;
@@ -107,7 +152,9 @@ function createFallbackEstimate(
 
   const estimate = {
     distanceKm: roundMetric(distanceKm),
-    durationMinutes: Math.max(3, Math.round(distanceKm * 2.2)),
+    // Shared with the server's own fallback, so a fare estimated without the router still
+    // matches the duration the rider is shown.
+    durationMinutes: estimateTripMinutes(distanceKm),
     isFallback: true,
   };
   auditDistance('haversine-fallback', origin, destination, normalizeTortuosityFactor(tortuosityFactor), estimate);

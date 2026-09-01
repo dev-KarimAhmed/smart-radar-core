@@ -21,6 +21,7 @@ import {
 
 import { cn } from '@/lib/utils';
 import { resolveColorDisplayName } from '@/shared/services/color-name';
+import { preferRoutedMinutes } from '@/shared/services/trip-duration';
 const styles = {
   style136_1: "group overflow-hidden rounded-2xl border bg-[#161F30]/80 text-[#F8FAFC] shadow-2xl shadow-black/20 backdrop-blur-md transition-all duration-300 hover:border-[#14B8A6]",
   style137_2: "border-emerald-300/70 shadow-[0_0_34px_rgba(20,184,166,0.18)]",
@@ -256,7 +257,10 @@ export function CaptainOfferCard({
     || captain.affiliation_label?.trim()
     || (isArabic ? 'كابتن مستقل' : 'Independent Captain');
   const completedTrips = Math.max(0, Number(captain.completed_trips) || 0);
-  const durationLabel = formatMinutes(offer.estimated_duration_minutes || Math.max(5, Math.round((offer.trip_distance_km || offer.distance_km || 1) * 2.2)), language);
+  const durationLabel = formatMinutes(
+    preferRoutedMinutes(offer.estimated_duration_minutes, offer.trip_distance_km || offer.distance_km),
+    language,
+  );
   const tripDistance = offer.trip_distance_km ?? offer.distance_km;
 
   return (

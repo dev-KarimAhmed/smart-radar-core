@@ -47,6 +47,13 @@ export interface ServerFareInput {
   origin: RiderLocation;
   destination: RiderLocation;
   countryId: number;
+  /**
+   * The routed road distance and duration, when the caller already has them. The fare is
+   * quoted before the request row exists, so the server cannot look them up — passing them
+   * is what stops the rider being shown one route and charged for another.
+   */
+  roadKm?: number | null;
+  durationMinutes?: number | null;
 }
 
 export interface RideRequestInsertInput {
@@ -109,13 +116,22 @@ export interface CaptainPresenceQueryInput {
 const CAPTAIN_PRESENCE_TTL_MS = 60_000;
 
 export async function calculateServerFare(client: SupabaseRpcLike, input: ServerFareInput): Promise<number> {
-  const args = {
+  const args: Record<string, number> = {
     lat1: toFiniteNumber(input.origin.lat, 'lat1'),
     lng1: toFiniteNumber(input.origin.lng, 'lng1'),
     lat2: toFiniteNumber(input.destination.lat, 'lat2'),
     lng2: toFiniteNumber(input.destination.lng, 'lng2'),
     p_country_id: toStrictPositiveInteger(input.countryId, 'p_country_id'),
   };
+
+  // The real route when the caller has one. Omitted entirely rather than sent as null, so
+  // the RPC falls back to its own estimate — and so a caller with no route produces exactly
+  // the argument list this function has always sent.
+  const roadKm = Number(input.roadKm);
+  if (Number.isFinite(roadKm) && roadKm > 0) args.p_road_km = roadKm;
+
+  const durationMinutes = Number(input.durationMinutes);
+  if (Number.isFinite(durationMinutes) && durationMinutes > 0) args.p_minutes = durationMinutes;
 
   const { data, error } = await client.rpc('calculate_server_fare', args);
   if (error) throw error;

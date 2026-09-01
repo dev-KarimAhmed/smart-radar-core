@@ -30,6 +30,36 @@ assert.deepEqual(rpcCall, {
   },
 });
 
+// With a routed distance and duration the fare must be quoted from THEM, not from the
+// server's own haversine + 2.2 min/km fallback — otherwise the rider is shown one route and
+// charged for another.
+const routedFare = await calculateServerFare(rpcClient, {
+  origin,
+  destination,
+  countryId: 2,
+  roadKm: 8.2,
+  durationMinutes: 14,
+});
+assert.equal(routedFare, 3.75);
+assert.deepEqual(rpcCall, {
+  name: 'calculate_server_fare',
+  args: {
+    lat1: 31.9539,
+    lng1: 35.9106,
+    lat2: 31.9586,
+    lng2: 35.8684,
+    p_country_id: 2,
+    p_road_km: 8.2,
+    p_minutes: 14,
+  },
+});
+
+// A zero or missing route must be omitted rather than sent, so the RPC falls back instead
+// of pricing a trip at zero km.
+await calculateServerFare(rpcClient, { origin, destination, countryId: 2, roadKm: 0, durationMinutes: null });
+const fallbackArgs = Object.keys((rpcCall as unknown as { args: Record<string, number> }).args).sort();
+assert.deepEqual(fallbackArgs, ['lat1', 'lat2', 'lng1', 'lng2', 'p_country_id']);
+
 const payload = buildRideRequestInsertPayload({
   riderId: '98f30e5e-17db-45e9-bf89-72c0d169b320',
   origin,
