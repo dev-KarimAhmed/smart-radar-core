@@ -31,12 +31,18 @@ const ROUTE_TIMEOUT_MS = 3000;
 const ROUTE_CACHE_LIMIT = 200;
 const routeCache = new Map<string, RoadRouteEstimate>();
 
-function buildRouteCacheKey(origin: RoadRoutePoint, destination: RoadRoutePoint, tortuosityFactor: number) {
+function buildRouteCacheKey(
+  origin: RoadRoutePoint,
+  destination: RoadRoutePoint,
+  tortuosityFactor: number,
+  trafficFactor: number,
+) {
   const round = (value: number) => value.toFixed(4);
   return [
     round(origin.lat), round(origin.lng),
     round(destination.lat), round(destination.lng),
     tortuosityFactor.toFixed(2),
+    trafficFactor.toFixed(2),
   ].join(',');
 }
 
@@ -51,6 +57,15 @@ function rememberRoute(key: string, estimate: RoadRouteEstimate) {
   routeCache.set(key, estimate);
 }
 const FALLBACK_TORTUOSITY_FACTOR = 1.3;
+/** Used when the caller has no country-specific value; countries.traffic_factor overrides it. */
+export const DEFAULT_TRAFFIC_FACTOR = 1.25;
+export const MIN_TRAFFIC_FACTOR = 1;
+export const MAX_TRAFFIC_FACTOR = 3;
+
+export function normalizeTrafficFactor(value: number) {
+  const factor = Number.isFinite(value) ? value : DEFAULT_TRAFFIC_FACTOR;
+  return Math.min(MAX_TRAFFIC_FACTOR, Math.max(MIN_TRAFFIC_FACTOR, factor));
+}
 export const MIN_TORTUOSITY_FACTOR = 1.15;
 export const MAX_TORTUOSITY_FACTOR = 1.35;
 export const MAX_ROUTE_DISTANCE_KM = 1000;
@@ -78,10 +93,22 @@ export async function fetchRoadRoute(
   origin: RoadRoutePoint,
   destination: RoadRoutePoint,
   tortuosityFactor = FALLBACK_TORTUOSITY_FACTOR,
+  /**
+   * Multiplier turning OSRM's free-flow duration into a realistic one. OSRM models no
+   * congestion whatsoever — measured against Google on a real Cairo route it came out 26%
+   * optimistic. Applied here, at the single point the routed duration enters the app, so
+   * the number the rider sees, the number stored on the request, and the number the fare is
+   * built from cannot drift apart.
+   *
+   * Deliberately NOT applied to the local fallback: its 40 km/h city speed is already a
+   * congested speed, and multiplying it again would double-count.
+   */
+  trafficFactor = DEFAULT_TRAFFIC_FACTOR,
 ): Promise<RoadRouteEstimate> {
   const normalizedTortuosityFactor = normalizeTortuosityFactor(tortuosityFactor);
+  const normalizedTrafficFactor = normalizeTrafficFactor(trafficFactor);
 
-  const cacheKey = buildRouteCacheKey(origin, destination, normalizedTortuosityFactor);
+  const cacheKey = buildRouteCacheKey(origin, destination, normalizedTortuosityFactor, normalizedTrafficFactor);
   const cached = routeCache.get(cacheKey);
   if (cached) return cached;
 
@@ -127,7 +154,7 @@ export async function fetchRoadRoute(
 
     const estimate = {
       distanceKm: roundMetric(distanceKm),
-      durationMinutes: Math.max(1, Math.ceil(durationMinutes)),
+      durationMinutes: Math.max(1, Math.ceil(durationMinutes * normalizedTrafficFactor)),
       isFallback: false,
     };
     validateRouteDistanceKm(estimate.distanceKm);

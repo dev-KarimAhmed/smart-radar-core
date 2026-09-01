@@ -22,19 +22,29 @@ function stubRouter(distanceMeters: number, durationSeconds: number) {
 }
 
 try {
-  // A routed answer is used as-is, not recomputed from a speed constant.
-  stubRouter(4200, 9 * 60);
-  const first = await fetchRoadRoute(origin, destination, 1.35);
+  // A routed distance is used as-is, and the routed duration is scaled by the traffic
+  // factor — OSRM reports free-flow time and models no congestion at all.
+  stubRouter(4200, 20 * 60);
+  const first = await fetchRoadRoute(origin, destination, 1.35, 1.25);
   assert.equal(first.isFallback, false);
   assert.equal(first.distanceKm, 4.2);
-  assert.equal(first.durationMinutes, 9);
+  assert.equal(first.durationMinutes, 25, '20 free-flow minutes at 1.25 traffic = 25');
   assert.equal(fetchCalls, 1);
 
   // The same trip must come from cache. Without this every nudge of the destination pin
   // fires another request at a shared free router and gets rate-limited into the fallback.
-  const second = await fetchRoadRoute(origin, destination, 1.35);
+  const second = await fetchRoadRoute(origin, destination, 1.35, 1.25);
   assert.deepEqual(second, first);
   assert.equal(fetchCalls, 1, 'a repeated identical route must not re-hit the router');
+
+  // A different traffic factor is a different answer, so it must not reuse the cached one.
+  const lighterTraffic = await fetchRoadRoute(origin, destination, 1.35, 1.15);
+  assert.equal(lighterTraffic.durationMinutes, 23, '20 free-flow minutes at 1.15 traffic = 23');
+  assert.equal(fetchCalls, 2, 'a changed traffic factor must not hit the cache');
+
+  // The factor is clamped: a nonsensical value can never invent hours of travel time.
+  const clamped = await fetchRoadRoute(origin, destination, 1.35, 99);
+  assert.equal(clamped.durationMinutes, 60, 'clamped to the 3x ceiling');
 
   // A router failure must fall back locally — and must NOT be cached, or the trip would
   // stay pinned to the estimate even after the router recovers.

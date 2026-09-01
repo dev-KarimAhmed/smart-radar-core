@@ -20,8 +20,10 @@ export function useServerFareAndRoute(params: {
   selectedDistrict: DistrictOption | null;
   destinationDataError: string | null;
   isDestinationPinMoving: boolean;
+  /** countries.traffic_factor for the active country; see fetchRoadRoute. */
+  trafficFactor?: number | null;
 }) {
-  const { activeCountryId, riderLocation, selectedDestinationCoords, selectedDistrict, destinationDataError, isDestinationPinMoving } = params;
+  const { activeCountryId, riderLocation, selectedDestinationCoords, selectedDistrict, destinationDataError, isDestinationPinMoving, trafficFactor } = params;
   const t = useTranslations('riderView');
 
   const [serverFareState, setServerFareState] = React.useState<{
@@ -177,6 +179,9 @@ export function useServerFareAndRoute(params: {
         riderLocation,
         selectedDestinationCoords,
         selectedDistrict?.tortuosityFactor || 1.3,
+        // OSRM reports free-flow time; this converts it to a realistic one, once, so the
+        // shown / stored / charged duration are the same number everywhere downstream.
+        Number(trafficFactor) || undefined,
       ).then((estimate) => {
         if (!active) return;
         setRouteEstimateState({ key: fareRequestKey, estimate, isLoading: false });
@@ -197,7 +202,7 @@ export function useServerFareAndRoute(params: {
     // captures riderLocation/selectedDestinationCoords changes; keeping the
     // raw objects here too re-triggers this on every GPS ping.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fareRequestKey, hasUsableRiderLocation, selectedDistrict?.tortuosityFactor]);
+  }, [fareRequestKey, hasUsableRiderLocation, selectedDistrict?.tortuosityFactor, trafficFactor]);
 
   const reset = React.useCallback(() => {
     setServerFareState({ key: '', fare: null, isLoading: false, error: null });

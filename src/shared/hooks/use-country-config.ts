@@ -11,6 +11,11 @@ export interface CountryCurrencyConfig {
   default_lat?: number | null;
   default_lng?: number | null;
   iso_code?: string | null;
+  /**
+   * Multiplier turning OSRM's free-flow routed duration into a realistic one. OSRM models
+   * no congestion; see countries.traffic_factor.
+   */
+  traffic_factor?: number | null;
 }
 
 /** Fetches the account's country name/currency config from Supabase. */
@@ -31,7 +36,7 @@ export function useCountryConfig(activeCountryId: number | undefined) {
       try {
         const { data, error } = await supabase
           .from('countries')
-          .select('id,name_ar,name_en,currency_ar,currency_en,default_lat,default_lng,iso_code')
+          .select('id,name_ar,name_en,currency_ar,currency_en,default_lat,default_lng,iso_code,traffic_factor')
           .eq('id', countryId)
           .single();
         if (error) throw error;
