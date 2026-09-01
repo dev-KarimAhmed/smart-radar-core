@@ -15,10 +15,18 @@ const DEFAULT_OSRM_URL = 'https://router.project-osrm.org';
 /**
  * 1.5s was too tight for the free public OSRM endpoint, which is shared and rate-limited:
  * the request was being aborted while the router was still answering, and every abort
- * dropped the trip onto the local estimate. 3s costs nothing and converts a good share of
+ * dropped the trip onto the local estimate. 4.5s costs nothing and converts a good share of
  * those into real routed answers. The rider sees a debounced spinner either way.
  */
-const ROUTE_TIMEOUT_MS = 3000;
+const ROUTE_TIMEOUT_MS = 4500;
+/**
+ * One retry on top of the initial attempt. A dropped connection or a momentary rate-limit
+ * from the shared free router is often gone a beat later, so a single extra try converts
+ * a meaningful share of transient failures into a real routed answer instead of the local
+ * estimate. Not retried: a response the router actually answered (bad/implausible route) —
+ * that's a real result, not a hiccup, and retrying it would just waste time.
+ */
+const ROUTE_FETCH_ATTEMPTS = 2;
 
 /**
  * Routes are cached because OSRM's default profile has no live traffic — the same two
@@ -115,57 +123,64 @@ export async function fetchRoadRoute(
   const fallback = createFallbackEstimate(origin, destination, normalizedTortuosityFactor);
   const baseUrl = process.env.NEXT_PUBLIC_OSRM_URL?.trim() || DEFAULT_OSRM_URL;
   const endpoint = `${baseUrl.replace(/\/$/, '')}/route/v1/driving/${origin.lng},${origin.lat};${destination.lng},${destination.lat}?overview=false&steps=false`;
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), ROUTE_TIMEOUT_MS);
 
-  try {
-    const response = await fetch(endpoint, {
-      signal: controller.signal,
-      headers: { Accept: 'application/json' },
-    });
-    if (!response.ok) return fallback;
+  for (let attempt = 1; attempt <= ROUTE_FETCH_ATTEMPTS; attempt += 1) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), ROUTE_TIMEOUT_MS);
 
-    const payload = (await response.json()) as {
-      code?: string;
-      routes?: Array<{ distance?: number; duration?: number }>;
-    };
-    const route = payload.routes?.[0];
-    const distanceKm = Number(route?.distance) / 1000;
-    const durationMinutes = Number(route?.duration) / 60;
-    const straightDistanceKm = calculateHaversineKm(origin, destination);
-    const hasPlausibleRoadDistance =
-      straightDistanceKm > 0 &&
-      distanceKm <= Math.max(
-        straightDistanceKm * MAX_ROUTE_TO_STRAIGHT_DISTANCE_RATIO,
-        straightDistanceKm + 25,
-      );
+    try {
+      const response = await fetch(endpoint, {
+        signal: controller.signal,
+        headers: { Accept: 'application/json' },
+      });
+      if (!response.ok) continue;
 
-    if (
-      payload.code !== 'Ok' ||
-      !Number.isFinite(distanceKm) ||
-      !Number.isFinite(durationMinutes) ||
-      distanceKm <= 0 ||
-      distanceKm > MAX_ROUTE_DISTANCE_KM ||
-      durationMinutes <= 0 ||
-      !hasPlausibleRoadDistance
-    ) {
-      return fallback;
+      const payload = (await response.json()) as {
+        code?: string;
+        routes?: Array<{ distance?: number; duration?: number }>;
+      };
+      const route = payload.routes?.[0];
+      const distanceKm = Number(route?.distance) / 1000;
+      const durationMinutes = Number(route?.duration) / 60;
+      const straightDistanceKm = calculateHaversineKm(origin, destination);
+      const hasPlausibleRoadDistance =
+        straightDistanceKm > 0 &&
+        distanceKm <= Math.max(
+          straightDistanceKm * MAX_ROUTE_TO_STRAIGHT_DISTANCE_RATIO,
+          straightDistanceKm + 25,
+        );
+
+      if (
+        payload.code !== 'Ok' ||
+        !Number.isFinite(distanceKm) ||
+        !Number.isFinite(durationMinutes) ||
+        distanceKm <= 0 ||
+        distanceKm > MAX_ROUTE_DISTANCE_KM ||
+        durationMinutes <= 0 ||
+        !hasPlausibleRoadDistance
+      ) {
+        // The router actually answered — this is a real result, not a hiccup. Retrying
+        // would just waste time, so take the local estimate now.
+        return fallback;
+      }
+
+      const estimate = {
+        distanceKm: roundMetric(distanceKm),
+        durationMinutes: Math.max(1, Math.ceil(durationMinutes * normalizedTrafficFactor)),
+        isFallback: false,
+      };
+      validateRouteDistanceKm(estimate.distanceKm);
+      auditDistance('osrm', origin, destination, normalizedTortuosityFactor, estimate);
+      rememberRoute(cacheKey, estimate);
+      return estimate;
+    } catch {
+      // A dropped connection or abort — worth one retry before giving up.
+    } finally {
+      clearTimeout(timeoutId);
     }
-
-    const estimate = {
-      distanceKm: roundMetric(distanceKm),
-      durationMinutes: Math.max(1, Math.ceil(durationMinutes * normalizedTrafficFactor)),
-      isFallback: false,
-    };
-    validateRouteDistanceKm(estimate.distanceKm);
-    auditDistance('osrm', origin, destination, normalizedTortuosityFactor, estimate);
-    rememberRoute(cacheKey, estimate);
-    return estimate;
-  } catch {
-    return fallback;
-  } finally {
-    clearTimeout(timeoutId);
   }
+
+  return fallback;
 }
 
 function createFallbackEstimate(

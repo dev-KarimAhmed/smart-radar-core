@@ -47,20 +47,39 @@ try {
   assert.equal(clamped.durationMinutes, 60, 'clamped to the 3x ceiling');
 
   // A router failure must fall back locally — and must NOT be cached, or the trip would
-  // stay pinned to the estimate even after the router recovers.
+  // stay pinned to the estimate even after the router recovers. A single failed attempt is
+  // retried once before giving up, so one fetchRoadRoute call makes two fetch calls here.
   const elsewhere = { lat: 29.9773, lng: 31.1325 };
   globalThis.fetch = (async () => {
     fetchCalls += 1;
     throw new Error('router unavailable');
   }) as typeof fetch;
 
+  const callsBeforeFirstFallback = fetchCalls;
   const fallback = await fetchRoadRoute(origin, elsewhere, 1.35);
   assert.equal(fallback.isFallback, true);
   assert.ok(fallback.durationMinutes > 0);
+  assert.equal(fetchCalls, callsBeforeFirstFallback + 2, 'a failed attempt is retried once before falling back');
 
   const callsBeforeRetry = fetchCalls;
   await fetchRoadRoute(origin, elsewhere, 1.35);
-  assert.equal(fetchCalls, callsBeforeRetry + 1, 'a fallback must not be cached');
+  assert.equal(fetchCalls, callsBeforeRetry + 2, 'a fallback must not be cached');
+
+  // A transient failure that recovers on the retry must still produce a real routed answer.
+  let attemptsSoFar = 0;
+  const recovers = { lat: 30.1, lng: 31.3 };
+  globalThis.fetch = (async () => {
+    attemptsSoFar += 1;
+    if (attemptsSoFar === 1) throw new Error('rate limited');
+    return {
+      ok: true,
+      json: async () => ({ code: 'Ok', routes: [{ distance: 3000, duration: 600 }] }),
+    } as unknown as Response;
+  }) as typeof fetch;
+
+  const recovered = await fetchRoadRoute(origin, recovers, 1.35, 1.25);
+  assert.equal(recovered.isFallback, false, 'a retry that succeeds must be used, not the local estimate');
+  assert.equal(attemptsSoFar, 2);
 } finally {
   globalThis.fetch = originalFetch;
 }

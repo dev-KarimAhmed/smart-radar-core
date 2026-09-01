@@ -99,6 +99,19 @@ test('parses percent-encoded place coordinates from a Google Maps page', () => {
   );
 });
 
+test('prefers the destination waypoint over the map-framing viewport center in a directions URL', () => {
+  // Real shape of a resolved `/maps/dir/{origin}/{destination}/@{viewCenter}z/data=...` URL:
+  // the `@lat,lng` segment is the viewport center used to frame both points on screen, not
+  // the destination pin. The destination lives in the `data=` payload's `!2m2!1d{lng}!2d{lat}`
+  // marker instead, and must win even though `@lat,lng` appears earlier in the string.
+  assert.deepEqual(
+    parseGoogleMapsLocation(
+      'https://www.google.com/maps/dir/29.9577439,30.8972244/Al-Hosary+Mosque,+%D9%85%D9%8A%D8%AF%D8%A7%D9%86+%D8%A7%D9%84%D8%AD%D8%B5%D8%B1%D9%8A%D8%8C+First+6th+of+October,+Giza+Governorate+12563/@29.9673815,30.8786135,13z/data=!3m1!4b1!4m9!4m8!1m1!4e1!1m5!1m1!1s0x145856f78386e6a9:0x5024fd9866839e3d!2m2!1d30.943892!2d29.9725619',
+    ),
+    { lat: 29.9725619, lng: 30.943892 },
+  );
+});
+
 test('extracts the place name from the resolved Google Maps URL', () => {
   assert.equal(
     extractGoogleMapsPlaceName(

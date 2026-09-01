@@ -102,6 +102,23 @@ export function parseGoogleMapsLocation(value: string): ParsedMapLocation | null
     if (isValidLocation(lat, lng)) return { lat, lng };
   }
 
+  // Directions URLs (`/maps/dir/{origin}/{destination}/@{viewCenter}/data=!...
+  // !2m2!1d{lng}!2d{lat}!...`) embed the actual destination pin, longitude
+  // first, inside the `data=` payload's `!2m2` marker. This must be checked
+  // before the generic `@lat,lng` pattern below, because that pattern matches
+  // the URL's map-framing viewport center (the midpoint used to fit both
+  // origin and destination on screen) rather than the destination itself —
+  // the two can be a kilometers-wide error, silently producing a route that
+  // is neither the origin-to-viewport-center distance nor the real trip.
+  const dirWaypointMatch = text.match(
+    /!2m2!1d(-?\d+(?:\.\d+)?)!2d(-?\d+(?:\.\d+)?)/,
+  );
+  if (dirWaypointMatch) {
+    const lng = Number(dirWaypointMatch[1]);
+    const lat = Number(dirWaypointMatch[2]);
+    if (isValidLocation(lat, lng)) return { lat, lng };
+  }
+
   const patterns = [
     /@(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/,
     /!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/,
