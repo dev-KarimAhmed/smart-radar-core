@@ -158,6 +158,20 @@ export function useClipboardLocationImport(params: {
       const clipboardText = await readClipboardLocationText();
       const result = await resolveClipboardMapLocation(clipboardText);
       applyClipboardLocation(result.resolvedUrl, result.location, result.geography);
+
+      // The coordinate and the place name in the same link point to different places. The
+      // pin is still applied — the rider may well have meant this exact spot — but they are
+      // told, because the alternative is silently pricing a trip to the wrong destination.
+      if (result.placeNameCheck?.isMismatch) {
+        toast({
+          variant: 'destructive',
+          title: locationCopy('warn_place_name_mismatch_title'),
+          description: locationCopy('warn_place_name_mismatch_body', {
+            place: result.placeNameCheck.placeName,
+            km: Math.round(result.placeNameCheck.distanceKm),
+          }),
+        });
+      }
     } catch (error) {
       const errorKey =
         error instanceof ClipboardMapLocationError && error.code === 'COORDINATES_NOT_FOUND'

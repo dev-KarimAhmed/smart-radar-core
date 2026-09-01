@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/lib/supabase-client';
 import {
   Users,
   Trash2,
@@ -614,14 +615,29 @@ export function DelegatesManagementTab() {
   const handleGenerateMagicLink = async (delegate: Delegate) => {
     try {
       const hours = delegate.linkExpiryHours || 24;
+      // The server now decides whether the caller is an admin by reading their own profile
+      // row. `actorRole: 'admin'` is gone from this body on purpose — it was a claim the
+      // client made about itself, which is not authorisation.
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast({
+          variant: 'destructive',
+          title: 'فشل إنشاء الرابط السحابي',
+          description: 'انتهت جلستك. سجّل الدخول من جديد وحاول مرة أخرى.'
+        });
+        return;
+      }
+
       const response = await fetch('/api/generate-magic-link', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`
+        },
         body: JSON.stringify({
           delegateId: delegate.id,
           delegateName: delegate.name,
-          expiryHours: hours,
-          actorRole: 'admin'
+          expiryHours: hours
         })
       });
 

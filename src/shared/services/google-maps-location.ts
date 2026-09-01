@@ -11,10 +11,22 @@ export interface ResolvedLocationGeography {
   districtCandidates?: string[];
 }
 
+/**
+ * Result of comparing the extracted coordinate against where the link's place NAME geocodes
+ * to. Absent means "could not be checked" — never "checked and fine".
+ */
+export interface PlaceNameCheck {
+  placeName: string;
+  geocodedLocation: ParsedMapLocation;
+  distanceKm: number;
+  isMismatch: boolean;
+}
+
 export interface ResolvedClipboardMapLocation {
   location: ParsedMapLocation;
   resolvedUrl: string;
   geography?: ResolvedLocationGeography;
+  placeNameCheck?: PlaceNameCheck;
 }
 
 type FetchLike = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
@@ -70,6 +82,7 @@ export async function resolveClipboardMapLocation(
     resolvedUrl?: unknown;
     location?: { lat?: unknown; lng?: unknown };
     geography?: ResolvedLocationGeography;
+    placeNameCheck?: PlaceNameCheck | null;
   };
   const resolvedUrl = typeof payload.resolvedUrl === 'string' ? payload.resolvedUrl : clipboardValue;
   const lat = Number(payload.location?.lat);
@@ -82,7 +95,12 @@ export async function resolveClipboardMapLocation(
     throw new ClipboardMapLocationError('COORDINATES_NOT_FOUND');
   }
 
-  return { location, resolvedUrl, geography: payload.geography };
+  return {
+    location,
+    resolvedUrl,
+    geography: payload.geography,
+    placeNameCheck: payload.placeNameCheck ?? undefined,
+  };
 }
 
 export function parseGoogleMapsLocation(value: string): ParsedMapLocation | null {
@@ -119,10 +137,25 @@ export function parseGoogleMapsLocation(value: string): ParsedMapLocation | null
     if (isValidLocation(lat, lng)) return { lat, lng };
   }
 
+  // Ordered most-specific-first. The comment on dirWaypointMatch above spells out why
+  // `@lat,lng` must lose to any real pin marker — it is the map-framing viewport centre,
+  // not the destination — but `@` was nonetheless listed FIRST here, ahead of the standard
+  // `!3d{lat}!4d{lng}` place marker. So every /maps/place/ link whose camera was not
+  // sitting exactly on the place resolved to wherever the camera happened to be, and the
+  // rider was quoted a distance and a duration for a trip to that point. It is worse when
+  // the page HTML is scanned (readGoogleMapsPageLocation): the first `@lat,lng` anywhere in
+  // a Google Maps document is usually a thumbnail's static-map URL, unrelated to the place.
   const patterns = [
-    /@(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/,
+    // `!8m2!3d{lat}!4d{lng}` — the canonical place marker in a /maps/place data= payload.
+    /!8m2!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/,
+    // Same marker without the !8m2 wrapper.
     /!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/,
-    /(?:[?&](?:q|query|ll|center)=)(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/,
+    // Coordinates the URL states outright as the target.
+    /(?:[?&](?:q|query|destination|daddr)=)(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/,
+    /(?:[?&](?:ll|center)=)(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/,
+    // LAST RESORT — the camera. Correct only for a bare /maps/@lat,lng link, where there
+    // is no pin and the camera is all the link carries.
+    /@(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/,
     /(^|[^\d.-])(-?\d{1,2}(?:\.\d+)?),\s*(-?\d{1,3}(?:\.\d+)?)([^\d.]|$)/,
   ];
 
@@ -269,7 +302,11 @@ function isValidLocation(lat: number, lng: number) {
   return Number.isFinite(lat)
     && Number.isFinite(lng)
     && Math.abs(lat) <= 90
-    && Math.abs(lng) <= 180;
+    && Math.abs(lng) <= 180
+    // 0,0 is open water in the Gulf of Guinea. Every time it shows up here it is an unset
+    // field or a stray regex match, never a destination — and the loose decimal-pair
+    // pattern below can produce it from an unrelated pair of numbers in a URL.
+    && !(lat === 0 && lng === 0);
 }
 
 function safeDecodeURIComponent(value: string) {

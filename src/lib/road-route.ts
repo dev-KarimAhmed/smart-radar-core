@@ -11,7 +11,54 @@ export interface RoadRouteEstimate {
   isFallback: boolean;
 }
 
+/**
+ * Two free, keyless, CORS-enabled OSM routers, tried in order.
+ *
+ * They agree on DISTANCE to within a few percent — measured on three Cairo/Giza routes:
+ *
+ *   Tahrir      -> Mall of Arabia   OSRM 28.83 km | Valhalla 29.91 km
+ *   Mohandessin -> Mall of Arabia   OSRM 24.63 km | Valhalla 25.64 km
+ *   Sh. Zayed   -> Mall of Arabia   OSRM  7.71 km | Valhalla  7.51 km
+ *
+ * They do NOT agree on DURATION, and OSRM is the one that is wrong:
+ *
+ *   Tahrir      -> Mall of Arabia   OSRM 25.8 min (67 km/h!) | Valhalla 40.8 min (44 km/h)
+ *   Mohandessin -> Mall of Arabia   OSRM 24.2 min (61 km/h)  | Valhalla 37.3 min (41 km/h)
+ *   Sh. Zayed   -> Mall of Arabia   OSRM 10.0 min (46 km/h)  | Valhalla 25.8 min (17 km/h)
+ *
+ * 67 km/h across Cairo is not a traffic estimate, it is a speed-limit sum. OSRM's public
+ * profile assigns each way its maximum speed and models no junction, signal or congestion
+ * cost at all. Valhalla penalises road class, turns and stops, which lands it in the same
+ * range as the Google figures the client measured (16.4 km in 31 min = 32 km/h).
+ *
+ * Valhalla is therefore primary and OSRM is the fallback: OSRM's distance is fine, so it is
+ * still far better than the local haversine estimate when Valhalla is unreachable.
+ */
+const DEFAULT_VALHALLA_URL = 'https://valhalla1.openstreetmap.de';
 const DEFAULT_OSRM_URL = 'https://router.project-osrm.org';
+/**
+ * 'proxy' is this app's own /api/road-route, tried last and only in a browser.
+ *
+ * Direct-from-browser stays first on purpose: it spreads load across users rather than
+ * pointing every request in the system at a community fair-use server from one IP. The
+ * proxy is the rescue for the browsers that cannot reach the routers at all — ad-blockers,
+ * corporate DNS, captive portals — which previously dropped straight to a straight-line
+ * guess. On the server this entry is skipped, so the endpoint calling back into here cannot
+ * recurse.
+ */
+const ROUTE_PROVIDERS = ['valhalla', 'osrm', 'proxy'] as const;
+type RouteProvider = (typeof ROUTE_PROVIDERS)[number];
+
+interface RawRoute {
+  distanceKm: number;
+  minutes: number;
+  /**
+   * Whether the engine's duration already accounts for real-world slowdown. Valhalla's
+   * does; OSRM's does not, and only OSRM's gets multiplied by the traffic factor. Applying
+   * it to both would double-count on the engine that already models the cost.
+   */
+  modelsCongestion: boolean;
+}
 /**
  * 1.5s was too tight for the free public OSRM endpoint, which is shared and rate-limited:
  * the request was being aborted while the router was still answering, and every abort
@@ -93,23 +140,126 @@ export function validateRouteDistanceKm(distanceKm: number) {
   }
 }
 
+/** Valhalla: free FOSSGIS instance, no API key, `Access-Control-Allow-Origin: *`. */
+async function requestValhallaRoute(
+  baseUrl: string,
+  origin: RoadRoutePoint,
+  destination: RoadRoutePoint,
+  signal: AbortSignal,
+): Promise<RawRoute | null> {
+  const query = JSON.stringify({
+    locations: [
+      { lat: origin.lat, lon: origin.lng },
+      { lat: destination.lat, lon: destination.lng },
+    ],
+    costing: 'auto',
+    // Without this the summary comes back in miles and every distance is 1.6x short.
+    directions_options: { units: 'kilometers' },
+  });
+
+  const response = await fetch(`${baseUrl}/route?json=${encodeURIComponent(query)}`, {
+    signal,
+    headers: { Accept: 'application/json' },
+  });
+  if (!response.ok) return null;
+
+  const payload = (await response.json()) as {
+    trip?: { status?: number; summary?: { length?: number; time?: number } };
+  };
+  if (payload.trip?.status !== 0) return null;
+
+  const distanceKm = Number(payload.trip?.summary?.length);
+  const minutes = Number(payload.trip?.summary?.time) / 60;
+  if (!Number.isFinite(distanceKm) || !Number.isFinite(minutes)) return null;
+
+  return { distanceKm, minutes, modelsCongestion: true };
+}
+
+async function requestOsrmRoute(
+  baseUrl: string,
+  origin: RoadRoutePoint,
+  destination: RoadRoutePoint,
+  signal: AbortSignal,
+): Promise<RawRoute | null> {
+  const endpoint = `${baseUrl}/route/v1/driving/${origin.lng},${origin.lat};${destination.lng},${destination.lat}?overview=false&steps=false`;
+  const response = await fetch(endpoint, { signal, headers: { Accept: 'application/json' } });
+  if (!response.ok) return null;
+
+  const payload = (await response.json()) as {
+    code?: string;
+    routes?: Array<{ distance?: number; duration?: number }>;
+  };
+  if (payload.code !== 'Ok') return null;
+
+  const distanceKm = Number(payload.routes?.[0]?.distance) / 1000;
+  const minutes = Number(payload.routes?.[0]?.duration) / 60;
+  if (!Number.isFinite(distanceKm) || !Number.isFinite(minutes)) return null;
+
+  return { distanceKm, minutes, modelsCongestion: false };
+}
+
 /**
- * Gets a road-network estimate from OSRM and falls back to a local estimate
- * when the router is unavailable. Google Maps is intentionally not queried.
+ * This app's own server. It already applied the traffic factor, so the answer is reported as
+ * congestion-aware and is not scaled a second time.
+ */
+async function requestProxyRoute(
+  origin: RoadRoutePoint,
+  destination: RoadRoutePoint,
+  tortuosityFactor: number,
+  trafficFactor: number,
+  signal: AbortSignal,
+): Promise<RawRoute | null> {
+  const response = await fetch('/api/road-route', {
+    method: 'POST',
+    signal,
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({ origin, destination, tortuosityFactor, trafficFactor }),
+  });
+  if (!response.ok) return null;
+
+  const payload = (await response.json()) as Partial<RoadRouteEstimate>;
+  const distanceKm = Number(payload.distanceKm);
+  const minutes = Number(payload.durationMinutes);
+  if (!Number.isFinite(distanceKm) || !Number.isFinite(minutes)) return null;
+  // The server fell back to its own straight-line guess. Ours is identical and free, so
+  // there is nothing to gain by accepting it as though it were routed.
+  if (payload.isFallback) return null;
+
+  return { distanceKm, minutes, modelsCongestion: true };
+}
+
+/**
+ * A road route is always at least the straight line and rarely more than a few times it.
+ * Several times longer means a bad router answer or — far more often — coordinates that do
+ * not point where the rider thinks they do.
+ */
+function isPlausibleRoute(raw: RawRoute, straightDistanceKm: number) {
+  if (raw.distanceKm <= 0 || raw.minutes <= 0) return false;
+  if (raw.distanceKm > MAX_ROUTE_DISTANCE_KM) return false;
+  if (straightDistanceKm <= 0) return false;
+
+  return raw.distanceKm <= Math.max(
+    straightDistanceKm * MAX_ROUTE_TO_STRAIGHT_DISTANCE_RATIO,
+    straightDistanceKm + 25,
+  );
+}
+
+/**
+ * Gets a road-network estimate from Valhalla, then OSRM, and falls back to a local estimate
+ * when neither router is reachable. Google Maps is intentionally not queried.
  */
 export async function fetchRoadRoute(
   origin: RoadRoutePoint,
   destination: RoadRoutePoint,
   tortuosityFactor = FALLBACK_TORTUOSITY_FACTOR,
   /**
-   * Multiplier turning OSRM's free-flow duration into a realistic one. OSRM models no
-   * congestion whatsoever — measured against Google on a real Cairo route it came out 26%
-   * optimistic. Applied here, at the single point the routed duration enters the app, so
-   * the number the rider sees, the number stored on the request, and the number the fare is
-   * built from cannot drift apart.
+   * Multiplier turning OSRM's free-flow duration into a realistic one, applied ONLY to an
+   * OSRM answer. OSRM models no congestion whatsoever — measured across Cairo it reported
+   * 67 km/h. Valhalla already prices road class, turns and stops, so its duration is used
+   * as given; scaling it too would double-count.
    *
-   * Deliberately NOT applied to the local fallback: its 40 km/h city speed is already a
-   * congested speed, and multiplying it again would double-count.
+   * Deliberately NOT applied to the local fallback either: its 40 km/h city speed is
+   * already a congested speed.
    */
   trafficFactor = DEFAULT_TRAFFIC_FACTOR,
 ): Promise<RoadRouteEstimate> {
@@ -120,67 +270,64 @@ export async function fetchRoadRoute(
   const cached = routeCache.get(cacheKey);
   if (cached) return cached;
 
-  const fallback = createFallbackEstimate(origin, destination, normalizedTortuosityFactor);
-  const baseUrl = process.env.NEXT_PUBLIC_OSRM_URL?.trim() || DEFAULT_OSRM_URL;
-  const endpoint = `${baseUrl.replace(/\/$/, '')}/route/v1/driving/${origin.lng},${origin.lat};${destination.lng},${destination.lat}?overview=false&steps=false`;
+  const straightDistanceKm = calculateHaversineKm(origin, destination);
+  // 'proxy' has no base URL of its own — it is this app's own same-origin endpoint.
+  const baseUrls: Record<Exclude<RouteProvider, 'proxy'>, string> = {
+    valhalla: (process.env.NEXT_PUBLIC_VALHALLA_URL?.trim() || DEFAULT_VALHALLA_URL).replace(/\/$/, ''),
+    osrm: (process.env.NEXT_PUBLIC_OSRM_URL?.trim() || DEFAULT_OSRM_URL).replace(/\/$/, ''),
+  };
 
-  for (let attempt = 1; attempt <= ROUTE_FETCH_ATTEMPTS; attempt += 1) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), ROUTE_TIMEOUT_MS);
+  providerLoop:
+  for (const provider of ROUTE_PROVIDERS) {
+    // A relative URL has nothing to resolve against outside a browser, and on the server
+    // this entry is the endpoint we are already inside.
+    if (provider === 'proxy' && typeof window === 'undefined') continue;
 
-    try {
-      const response = await fetch(endpoint, {
-        signal: controller.signal,
-        headers: { Accept: 'application/json' },
-      });
-      if (!response.ok) continue;
+    for (let attempt = 1; attempt <= ROUTE_FETCH_ATTEMPTS; attempt += 1) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), ROUTE_TIMEOUT_MS);
 
-      const payload = (await response.json()) as {
-        code?: string;
-        routes?: Array<{ distance?: number; duration?: number }>;
-      };
-      const route = payload.routes?.[0];
-      const distanceKm = Number(route?.distance) / 1000;
-      const durationMinutes = Number(route?.duration) / 60;
-      const straightDistanceKm = calculateHaversineKm(origin, destination);
-      const hasPlausibleRoadDistance =
-        straightDistanceKm > 0 &&
-        distanceKm <= Math.max(
-          straightDistanceKm * MAX_ROUTE_TO_STRAIGHT_DISTANCE_RATIO,
-          straightDistanceKm + 25,
-        );
+      try {
+        const raw = provider === 'valhalla'
+          ? await requestValhallaRoute(baseUrls.valhalla, origin, destination, controller.signal)
+          : provider === 'osrm'
+            ? await requestOsrmRoute(baseUrls.osrm, origin, destination, controller.signal)
+            : await requestProxyRoute(
+                origin,
+                destination,
+                normalizedTortuosityFactor,
+                normalizedTrafficFactor,
+                controller.signal,
+              );
 
-      if (
-        payload.code !== 'Ok' ||
-        !Number.isFinite(distanceKm) ||
-        !Number.isFinite(durationMinutes) ||
-        distanceKm <= 0 ||
-        distanceKm > MAX_ROUTE_DISTANCE_KM ||
-        durationMinutes <= 0 ||
-        !hasPlausibleRoadDistance
-      ) {
-        // The router actually answered — this is a real result, not a hiccup. Retrying
-        // would just waste time, so take the local estimate now.
-        return fallback;
+        // The router answered, just not usefully. That is a real result, not a hiccup, so
+        // retrying it would only waste time — hand over to the next provider instead of
+        // dropping straight to the local estimate the way this used to.
+        if (!raw || !isPlausibleRoute(raw, straightDistanceKm)) continue providerLoop;
+
+
+        const minutes = raw.modelsCongestion ? raw.minutes : raw.minutes * normalizedTrafficFactor;
+        const estimate: RoadRouteEstimate = {
+          distanceKm: roundMetric(raw.distanceKm),
+          durationMinutes: Math.max(1, Math.ceil(minutes)),
+          isFallback: false,
+        };
+
+        auditDistance(provider, origin, destination, normalizedTortuosityFactor, estimate);
+        rememberRoute(cacheKey, estimate);
+        return estimate;
+      } catch {
+        // A dropped connection or abort — worth one retry before moving on.
+      } finally {
+        clearTimeout(timeoutId);
       }
-
-      const estimate = {
-        distanceKm: roundMetric(distanceKm),
-        durationMinutes: Math.max(1, Math.ceil(durationMinutes * normalizedTrafficFactor)),
-        isFallback: false,
-      };
-      validateRouteDistanceKm(estimate.distanceKm);
-      auditDistance('osrm', origin, destination, normalizedTortuosityFactor, estimate);
-      rememberRoute(cacheKey, estimate);
-      return estimate;
-    } catch {
-      // A dropped connection or abort — worth one retry before giving up.
-    } finally {
-      clearTimeout(timeoutId);
     }
   }
 
-  return fallback;
+  // Built only now, not up front: computing it eagerly also logged a "haversine-fallback"
+  // audit line for every trip that then routed perfectly well, which made the logs read as
+  // though the router had failed when it had not.
+  return createFallbackEstimate(origin, destination, normalizedTortuosityFactor);
 }
 
 function createFallbackEstimate(
@@ -217,7 +364,7 @@ export function calculateHaversineKm(origin: RoadRoutePoint, destination: RoadRo
 }
 
 function auditDistance(
-  source: 'osrm' | 'haversine-fallback',
+  source: RouteProvider | 'haversine-fallback',
   origin: RoadRoutePoint,
   destination: RoadRoutePoint,
   tortuosityFactor: number,

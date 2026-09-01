@@ -14,8 +14,10 @@ import {
   MapPin,
   Navigation,
   Phone,
+  Route,
   ShieldCheck,
   Star,
+  Timer,
   Trophy,
 } from 'lucide-react';
 
@@ -352,8 +354,18 @@ export function CaptainOfferCard({
                 value={`${offer.eta_minutes} ${isArabic ? 'دقائق' : 'mins'}`}
                 highlight
               />
+              {/* The trip's own distance. It was computed and then never rendered, so the
+                  only distance on the card was "البعد عنك" — how far the captain is from
+                  the rider — which reads as the trip distance and is a different number
+                  entirely. */}
               <InfoRow
-                icon={<Navigation className={styles.style211_34} />}
+                icon={<Route className={styles.style200_32} />}
+                label={isArabic ? 'مسافة الرحلة' : 'Trip distance'}
+                value={`${Number(tripDistance ?? 0).toFixed(1)} ${isArabic ? 'كم' : 'km'}`}
+                highlight
+              />
+              <InfoRow
+                icon={<Timer className={styles.style211_34} />}
                 label={isArabic ? 'مدة الرحلة' : 'Trip duration'}
                 value={durationLabel}
                 helper={isArabic ? 'بدون تأخير مروري' : 'Without traffic delays'}
@@ -458,9 +470,7 @@ export function CaptainOfferCard({
                     ) : null}
                     {adjustment !== 0 ? (
                       <BreakdownRow
-                        label={isArabic
-                          ? (adjustment > 0 ? 'زيادة اختارها الكابتن' : 'خصم من الكابتن')
-                          : (adjustment > 0 ? 'Captain’s increase' : 'Captain’s discount')}
+                        label={isArabic ? 'تعديل الكابتن' : 'Captain’s adjustment'}
                         value={`${adjustment > 0 ? '+' : '−'}${money(Math.abs(adjustment))} ${currencyCode}`}
                         accent
                       />
@@ -597,7 +607,7 @@ function buildPricingReason(
           ? ` وأضاف ${money(adjustment)} ${currencyCode} فوقه.`
           : ` They added ${money(adjustment)} ${currencyCode} on top.`)
       : (isArabic
-          ? ` وخصم ${money(Math.abs(adjustment))} ${currencyCode} منه.`
+          ? ` وأنقص ${money(Math.abs(adjustment))} ${currencyCode} منه.`
           : ` They took ${money(Math.abs(adjustment))} ${currencyCode} off.`);
 
   if (marketFare <= 0) {

@@ -167,7 +167,9 @@
     "map_adjust_helper": "Move the map to fine-tune the destination.",
     "ready_to_request": "Everything is ready. Review the details and request your ride.",
     "return_to_app": "Back to app",
-    "return_to_app_hint": "Google Maps opened. Return here after copying the location link."
+    "return_to_app_hint": "Google Maps opened. Return here after copying the location link.",
+    "warn_place_name_mismatch_title": "Check the destination",
+    "warn_place_name_mismatch_body": "The point taken from the link is about {km} km away from \"{place}\". If that is not where you meant, move the pin or paste the link again."
   },
   "advertiser": {
     "dashboardTitle": "Advertiser dashboard",
@@ -837,16 +839,15 @@
     "h3": "Request cell",
     "distance": "Distance",
     "serverFare": "Base fare",
-    "increaseAmount": "Price adjustment (increase or discount)",
-    "tierPremium": "Optional increase by your tier",
-    "tierPremiumDescription": "Your {tier} tier allows an increase from 1 to {percent}% above the base fare. Type the increase amount yourself.",
-    "noTierPremium": "Your current {tier} tier does not add an optional increase. You can submit the base fare only.",
-    "maxIncrease": "Maximum allowed increase",
-    "maxFinalPrice": "Maximum offer",
-    "applyMaxIncrease": "Use max increase",
+    "increaseAmount": "Your increase (no maximum)",
+    "tierPremium": "Optional increase by your rank",
+    "tierPremiumDescription": "Your {tier} rank allows an increase of 1 to {rankPercent}% over the market price. You can go higher and still send the offer — the warning only appears past {warnPercent}%.",
+    "noTierPremium": "Your {tier} rank adds no optional increase. You can still increase and send the offer — the warning only appears past {warnPercent}%.",
+    "maxIncrease": "Increase without a warning",
+    "applyMaxIncrease": "Raise to the last point without a warning",
     "finalOffer": "Final offer",
-    "finalFormula": "{base} {adjustment} {currency}",
-    "tierAmberWarning": "Warning: your increase is approaching the maximum allowed for your tier.",
+    "finalFormula": "Your meter {base} {adjustment} {currency}",
+    "tierAmberWarning": "Your increase is near the {limit}% line where a warning appears. There is no maximum — you can keep going.",
     "tierCrimsonBlock": "This offer is blocked because the increase is higher than your tier limit.",
     "dumpingAmberWarning": "Warning: your offer is below the base fare by enough to affect your rank and visibility to riders (Fare_test).",
     "dumpingCrimsonBlock": "Input locked: your offer is more than 15% below the base fare, which counts as price dumping and is not allowed (Fare_test).",
@@ -864,7 +865,15 @@
       "GOLD": "Gold",
       "SILVER": "Silver",
       "BRONZE": "Bronze"
-    }
+    },
+    "aboveBandWarning": "Your price is {percent}% above the market price — past the {limit}% no-warning line. You can still send it, but it is less likely to be accepted.",
+    "breakdownMeter": "Your meter for this trip",
+    "breakdownMarket": "Captains' average price (market)",
+    "breakdownWarnLine": "Warning line ({percent}% over market)",
+    "breakdownFloor": "Lowest allowed price (refused below)",
+    "breakdownYourIncrease": "Your increase",
+    "breakdownMarketUnknown": "Not available",
+    "meterOffMarket": "Your meter ({meter} {currency}) is far above the market average ({market} {currency}) — the average is built from too few captains to mean much. The offer will send fine, but check your own tariff."
   },
   "captainProfile": {
     "badge": "Profile",
@@ -924,7 +933,9 @@
     "tariffPerMinInvalid": "Price per minute cannot be below zero.",
     "tariffIncludedKm": "Included distance (km)",
     "tariffTitle": "Your trip tariff",
-    "tariffSubtitle": "These prices are what your trip fares are calculated from. You can change them here at any time."
+    "tariffSubtitle": "These prices are what your trip fares are calculated from. You can change them here at any time.",
+    "saveChanges": "Save changes",
+    "cancelChanges": "Cancel"
   },
   "captainActiveTrip": {
     "badge": "Active trip",

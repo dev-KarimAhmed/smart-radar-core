@@ -10,6 +10,12 @@ import { useCaptainProfessionalAd } from '../hooks/use-captain-professional-ad';
 import { MIN_OFFER_WAIT_SECONDS } from '../hooks/use-driver-transactions';
 import { AdDisplayCard } from '@/features/ads/ad-display/contract';
 import { cn } from '@/lib/utils';
+import {
+  MARKET_FLOOR_FACTOR,
+  rankIncreaseFactorForTier,
+  warnFactorForTier,
+  type CaptainTier,
+} from '../services/offer-band';
 
 const styles = {
   style103_1: "mx-auto max-w-3xl rounded-3xl border border-emerald-500/20 bg-[#05080f] p-5 text-white shadow-2xl",
@@ -33,6 +39,12 @@ const styles = {
   style143_19: "mt-1 text-xl font-black text-white",
   style145_20: "mt-1 text-xs font-bold text-[#14B8A6]",
   style156_21: "mt-3 rounded-2xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-4 py-3 text-sm font-black text-[#5eead4] hover:bg-[#14B8A6]/15",
+  aboveBandWarning: "mt-3 rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-xs font-bold leading-relaxed text-amber-200",
+  breakdownList: "mt-3 divide-y divide-white/5 rounded-2xl border border-white/10 bg-black/25 px-3.5",
+  breakdownRow: "flex items-center justify-between gap-3 py-2.5",
+  breakdownRowAccent: "font-black text-[#5eead4]",
+  breakdownLabel: "min-w-0 flex-1 text-[11px] font-medium leading-tight text-slate-400",
+  breakdownValue: "shrink-0 font-mono text-xs font-bold text-slate-100",
   style163_22: "mt-5 rounded-2xl border border-emerald-500/15 bg-emerald-950/10 p-4",
   style164_23: "text-sm font-black text-emerald-200",
   style165_24: "mt-3 flex items-center gap-3",
@@ -69,7 +81,6 @@ const styles = {
 } as const;
 
 
-type CaptainTier = 'PLATINUM' | 'GOLD' | 'SILVER' | 'BRONZE';
 
 /** Mirrors what public.captain_offer_quote returns. */
 type CaptainOfferQuote = {
@@ -85,8 +96,6 @@ type CaptainOfferQuote = {
   tier: CaptainTier;
 };
 
-/** Anti-dumping floor, mirroring public.offer_band_for_rank's floorFactor of 0.85. */
-const MARKET_FLOOR_FACTOR = 0.15;
 
 interface BiddingProposalSheetProps {
   language: 'ar' | 'en';
@@ -118,15 +127,23 @@ export function BiddingProposalSheet({
   const marketFare = quote?.marketFare ?? Number(request.offerPrice || 0);
   const baseFare = quote?.suggestedFare ?? marketFare;
   const tier = quote?.tier ?? 'SILVER';
-  const premiumFactor = getTierPremiumFactor(tier);
+  // What the rank grants (shown as the captain's range) vs. where the warning starts.
+  const rankIncreaseFactor = rankIncreaseFactorForTier(tier);
+  const premiumFactor = warnFactorForTier(tier);
   const tierLabel = t(`tierLabels.${tier}`);
 
   // Band edges come from the server so the sheet can never offer a price the RPC refuses.
   const ceilingPrice = quote?.ceilingPrice ?? roundMoney(marketFare * (1 + premiumFactor));
   const floorPrice = quote?.floorPrice ?? roundMoney(marketFare * (1 - MARKET_FLOOR_FACTOR));
-  const maxIncreaseAmount = roundMoney(Math.max(0, ceilingPrice - baseFare));
+  /**
+   * Room to add WITHOUT tripping the warning, measured from the captain's own meter.
+   *
+   * Legitimately 0 whenever the meter already sits at or above the market band — which is
+   * the normal case when the market sample is thin, and is why this used to read
+   * "أقصى زيادة مسموحة: 0.00". It is a statement about the warning line, NOT a limit.
+   */
+  const bandHeadroom = roundMoney(Math.max(0, ceilingPrice - baseFare));
   const minIncreaseAmount = roundMoney(Math.min(0, floorPrice - baseFare));
-  const maxTierPrice = roundMoney(Math.max(ceilingPrice, 1));
 
   const [increaseAmount, setIncreaseAmount] = React.useState(0);
   const normalizedIncreaseAmount = Number.isFinite(increaseAmount) ? increaseAmount : 0;
@@ -174,11 +191,25 @@ export function BiddingProposalSheet({
     };
   }, [request.id]);
 
-  const step = Math.max(0.25, roundMoney(Math.max(maxIncreaseAmount, baseFare * 0.01, 1) / 10));
+  const step = Math.max(0.25, roundMoney(Math.max(bandHeadroom, baseFare * 0.01, 1) / 10));
 
-  // Rank ceiling: how far above the MARKET average this rank may bid.
-  const isTierAmber = maxIncreaseAmount > 0 && normalizedIncreaseAmount > maxIncreaseAmount * 0.8 && normalizedIncreaseAmount <= maxIncreaseAmount;
-  const isTierBlocked = finalOfferPrice > ceilingPrice;
+  // The +15% band edge. It is a WARNING line, not a wall: past it the panel goes amber and
+  // says so, and the captain can still submit. Rank has no bearing on it — every rank gets
+  // the same ±15% (see 20260901090000_flat_offer_band_warn_above.sql).
+  const isAboveBand = ceilingPrice > 0 && finalOfferPrice > ceilingPrice;
+  const isTierAmber = isAboveBand
+    || (bandHeadroom > 0 && normalizedIncreaseAmount > bandHeadroom * 0.8);
+  const aboveBandPercent = marketFare > 0
+    ? Math.round(((finalOfferPrice - marketFare) / marketFare) * 1000) / 10
+    : 0;
+  /**
+   * The captain's OWN meter is already wildly outside the market band, before they add
+   * anything. That is a market-data problem (too few captains priced in this area for the
+   * average to mean anything), not a decision the captain made, so it gets its own plain
+   * message instead of a deviation percentage in the thousands — the sheet was reporting
+   * "+1780.9%" against a market average of 52.48 while the meter read 650.00.
+   */
+  const isMeterOffMarket = marketFare > 0 && baseFare > marketFare * 2;
 
   // Fare_test anti-dumping brake, measured against the market average (10% amber, 15%
   // crimson from RadarAntiCheatKernel.enforceMarketBrakes) — the same 15% floor
@@ -191,14 +222,16 @@ export function BiddingProposalSheet({
   const professionalAd = useCaptainProfessionalAd(dumpingDeviationRatio, isDumpingBlocked);
 
   const isAmberDeviation = isTierAmber || isDumpingAmber;
-  const isBlockedDeviation = isTierBlocked || isDumpingBlocked;
+  // Only the FLOOR blocks now. Going above the market band is the captain's call to make.
+  const isBlockedDeviation = isDumpingBlocked;
   const canSubmit = Number.isFinite(finalOfferPrice) && finalOfferPrice > 0 && !isSubmitting && !isBlockedDeviation && isWaitSecondsValid;
 
-  const canIncrease = maxIncreaseAmount > 0;
-  // Each button only locks the direction that would make its own block worse,
-  // so a captain who over-shot the tier ceiling can still press "-" to recover
-  // (and vice versa for the dumping floor) instead of the whole row freezing.
-  const isPlusDisabled = isTierBlocked;
+  // The captain raises their price as far as they want. There is NO cap: not the band, not
+  // the rank, not a stepper bound. Every previous version of this line locked "+" at some
+  // number and that is what made the control feel broken.
+  const isPlusDisabled = false;
+  // "-" is the only direction with a wall, and only once the offer is already at the
+  // anti-dumping floor — the one rule the server still refuses.
   const isMinusDisabled = isDumpingBlocked && normalizedIncreaseAmount <= minIncreaseAmount;
 
   return (
@@ -267,39 +300,102 @@ export function BiddingProposalSheet({
               <Sparkles className={styles.style129_15} />
               {t('tierPremium')}
             </p>
+            {/* States the rank's OWN range and the warning line separately. Quoting one
+                number for both is what let the panel promise "زيادة من 1 إلى 15%" while
+                showing "أقصى زيادة مسموحة 0.00" right beside it. */}
             <p className={styles.style132_16}>
-              {premiumFactor > 0
-                ? t('tierPremiumDescription', { tier: tierLabel, percent: Math.round(premiumFactor * 100) })
-                : t('noTierPremium', { tier: tierLabel })}
+              {rankIncreaseFactor > 0
+                ? t('tierPremiumDescription', {
+                    tier: tierLabel,
+                    rankPercent: Math.round(rankIncreaseFactor * 100),
+                    warnPercent: Math.round(premiumFactor * 100),
+                  })
+                : t('noTierPremium', {
+                    tier: tierLabel,
+                    warnPercent: Math.round(premiumFactor * 100),
+                  })}
             </p>
           </div>
 
           <div className={styles.style141_17}>
             <p className={styles.style142_18}>{t('maxIncrease')}</p>
-            <p className={styles.style143_19}>{maxIncreaseAmount.toFixed(2)} {currency}</p>
-            {premiumFactor > 0 ? (
-              <p className={styles.style145_20}>
-                {t('maxFinalPrice')}: {maxTierPrice.toFixed(2)} {currency}
-              </p>
-            ) : null}
+            <p className={styles.style143_19}>{bandHeadroom.toFixed(2)} {currency}</p>
           </div>
         </div>
 
-        {premiumFactor > 0 ? (
+        {/* Every number spelled out, and labelled with WHERE it comes from. Three figures
+            from two different scales — the captain's own meter and the market average — were
+            being shown side by side with nothing saying which was which, so
+            "أعلى سعر بدون تنبيه: 60.35" sat next to a base fare of 650.00 and read as a
+            contradiction rather than as two different measurements. */}
+        <dl className={styles.breakdownList}>
+          <div className={styles.breakdownRow}>
+            <dt className={styles.breakdownLabel}>{t('breakdownMeter')}</dt>
+            <dd className={styles.breakdownValue}>{baseFare.toFixed(2)} {currency}</dd>
+          </div>
+          <div className={styles.breakdownRow}>
+            <dt className={styles.breakdownLabel}>{t('breakdownMarket')}</dt>
+            <dd className={styles.breakdownValue}>
+              {marketFare > 0 ? `${marketFare.toFixed(2)} ${currency}` : t('breakdownMarketUnknown')}
+            </dd>
+          </div>
+          <div className={styles.breakdownRow}>
+            <dt className={styles.breakdownLabel}>
+              {t('breakdownWarnLine', { percent: Math.round(premiumFactor * 100) })}
+            </dt>
+            <dd className={styles.breakdownValue}>{ceilingPrice.toFixed(2)} {currency}</dd>
+          </div>
+          <div className={styles.breakdownRow}>
+            <dt className={styles.breakdownLabel}>{t('breakdownFloor')}</dt>
+            <dd className={styles.breakdownValue}>{floorPrice.toFixed(2)} {currency}</dd>
+          </div>
+          <div className={cn(styles.breakdownRow, styles.breakdownRowAccent)}>
+            <dt className={styles.breakdownLabel}>{t('breakdownYourIncrease')}</dt>
+            <dd className={styles.breakdownValue}>
+              {normalizedIncreaseAmount >= 0 ? '+' : '−'}{Math.abs(normalizedIncreaseAmount).toFixed(2)} {currency}
+            </dd>
+          </div>
+        </dl>
+
+        {/* The meter can sit far outside the band when the market average is built from too
+            few captains. Saying so is more use than a percentage in the thousands. */}
+        {isMeterOffMarket ? (
+          <p className={styles.aboveBandWarning}>
+            {t('meterOffMarket', {
+              meter: baseFare.toFixed(2),
+              market: marketFare.toFixed(2),
+              currency,
+            })}
+          </p>
+        ) : null}
+
+        {bandHeadroom > 0 ? (
           <button
             type="button"
-            onClick={() => setIncreaseAmount(maxIncreaseAmount)}
+            onClick={() => setIncreaseAmount(bandHeadroom)}
             className={styles.style156_21}
           >
             {t('applyMaxIncrease')}
           </button>
         ) : null}
+
+        {isAboveBand && !isMeterOffMarket ? (
+          <p className={styles.aboveBandWarning}>
+            {t('aboveBandWarning', {
+              percent: aboveBandPercent,
+              limit: Math.round(premiumFactor * 100),
+            })}
+          </p>
+        ) : null}
       </div>
 
       <div className={styles.style163_22}>
-        {canIncrease ? (
-          <>
-            <label className={styles.style164_23}>{t('increaseAmount')}</label>
+        {/* Always rendered. This was gated on `canIncrease`, which was derived from the
+            band — so on any trip where the meter already sat at or above the band the
+            entire increase control disappeared and the captain had no way to raise a price
+            they are entitled to raise without limit. */}
+        <>
+          <label className={styles.style164_23}>{t('increaseAmount')}</label>
             <div className={styles.style165_24}>
               <button
                 type="button"
@@ -324,8 +420,7 @@ export function BiddingProposalSheet({
                 <Plus className={styles.style184_29} />
               </button>
             </div>
-          </>
-        ) : null}
+        </>
         <div className={styles.style187_30}>
           <div className={styles.style188_31}>
             <span className={styles.style189_32}>{t('finalOffer')}</span>
@@ -355,19 +450,16 @@ export function BiddingProposalSheet({
           </span>
         </div>
 
-        {isTierAmber ? (
+        {isTierAmber && !isAboveBand ? (
           <div className={styles.style201_35}>
             <AlertTriangle className={styles.style202_36} />
-            {t('tierAmberWarning')}
+            {t('tierAmberWarning', { limit: Math.round(premiumFactor * 100) })}
           </div>
         ) : null}
 
-        {isTierBlocked ? (
-          <div className={styles.style208_37}>
-            <AlertTriangle className={styles.style209_38} />
-            {t('tierCrimsonBlock')}
-          </div>
-        ) : null}
+        {/* The old crimson "tier ceiling exceeded" block is gone: above the band is a
+            warning now, rendered as the amber notice in the premium panel above, and the
+            submit button stays enabled. Only the dumping floor still blocks. */}
 
         {isDumpingAmber ? (
           <div className={styles.style201_35}>
@@ -474,23 +566,9 @@ function Info({ label, value }: { label: string; value: string }) {
 /**
  * How far above the server reference fare this rank may bid.
  *
- * Every captain gets the standard 15% band; a high rank whose own factor beats 15% keeps
- * the larger headroom instead. Must stay in step with public.offer_band_for_rank — the
- * server rejects anything outside this band, so a looser value here produces an offer the
- * RPC refuses, and a tighter one hides room the captain is entitled to.
+ * Both numbers now live in ../services/offer-band.ts, next to the test that pins them
+ * against the migration. They were business rules sitting in a component file.
  */
-function getTierPremiumFactor(tier: CaptainTier) {
-  return Math.max(STANDARD_PREMIUM_FACTOR, getRankPremiumFactor(tier));
-}
-
-const STANDARD_PREMIUM_FACTOR = 0.15;
-
-function getRankPremiumFactor(tier: CaptainTier) {
-  if (tier === 'PLATINUM') return 0.2;
-  if (tier === 'GOLD') return 0.1;
-  if (tier === 'BRONZE') return 0.05;
-  return 0;
-}
 
 function normalizeCaptainTier(value: unknown, rating = 5): CaptainTier {
   const normalized = String(value || '').trim().toUpperCase();
