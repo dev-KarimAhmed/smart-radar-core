@@ -1,13 +1,13 @@
--- Did 20260826090000_fare_uses_real_route.sql and 20260826110000_road_type_fallback_speed.sql
+-- Did 20260826095900_fare_uses_real_route.sql and 20260826110000_road_type_fallback_speed.sql
 -- actually land? Paste this whole file into the Supabase SQL editor.
 --
 -- Read-only: it inspects catalogues and calls two pure functions. It writes nothing.
 -- Every row must say PASS.
 
--- 1. The shared resolver exists at all (added by 20260826090000).
+-- 1. The shared resolver exists at all (added by 20260826095900).
 SELECT
   '1. resolve_trip_metrics exists' AS check_name,
-  CASE WHEN count(*) = 1 THEN 'PASS' ELSE 'FAIL — 20260826090000 did not run' END AS result
+  CASE WHEN count(*) = 1 THEN 'PASS' ELSE 'FAIL — 20260826095900 did not run' END AS result
 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
 WHERE n.nspname = 'public' AND p.proname = 'resolve_trip_metrics';
 

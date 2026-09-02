@@ -6,7 +6,7 @@ import { Car, Check, IdCard, Loader2, Pencil, Wallet, X } from 'lucide-react';
 import type { User } from '@/core/types';
 import { supabase } from '@/lib/supabase-client';
 import { useToast } from '@/hooks/use-toast';
-import { colorNameToHex, hexToColorName, resolveColorDisplayName } from '@/shared/services/color-name';
+import { resolveColorDisplayName } from '@/shared/services/color-name';
 
 const styles = {
   style244_1: "mx-auto max-w-5xl space-y-5 text-white",
@@ -57,8 +57,6 @@ const styles = {
   style365_46: "space-y-2",
   style366_47: "text-xs font-bold text-slate-400",
   style371_48: "w-full rounded-2xl border border-slate-800 bg-black/60 px-4 py-3 text-white outline-none transition focus:border-emerald-400 disabled:cursor-not-allowed disabled:opacity-70",
-  colorRow: "flex items-center gap-2",
-  colorSwatch: "h-[46px] w-14 shrink-0 cursor-pointer rounded-2xl border border-slate-800 bg-black/60 p-1 disabled:cursor-not-allowed disabled:opacity-70",
   style374_49: "space-y-2",
   style375_50: "text-xs font-bold text-slate-400",
   style381_51: "w-full rounded-2xl border border-slate-800 bg-black/60 px-4 py-3 text-white outline-none transition focus:border-emerald-400 disabled:cursor-not-allowed disabled:opacity-70",
@@ -116,16 +114,22 @@ export function DriverProfileTab({ user, language }: DriverProfileTabProps) {
   const { toast } = useToast();
   const [profile, setProfile] = React.useState<ProfileRow | null>(null);
   const [fullName, setFullName] = React.useState(user?.name || '');
+  const [nickname, setNickname] = React.useState('');
   const [phone, setPhone] = React.useState(user?.phone || '');
+  // Identity-verification data set once at registration — read-only here, never
+  // part of the save payload.
+  const [nationalIdNumber, setNationalIdNumber] = React.useState('');
+  const [licenseNumber, setLicenseNumber] = React.useState('');
   const [vehiclePlate, setVehiclePlate] = React.useState('');
   const [vehicleMake, setVehicleMake] = React.useState('');
   const [vehicleModel, setVehicleModel] = React.useState('');
   const [vehicleColor, setVehicleColor] = React.useState('');
-  const [colorSwatch, setColorSwatch] = React.useState('#14b8a6');
   const [vehicleYear, setVehicleYear] = React.useState('');
   const [businessName, setBusinessName] = React.useState('');
   const [officePhone, setOfficePhone] = React.useState('');
   const [sideId, setSideId] = React.useState('');
+  // Smart-app/independent captains only — the aggregator's own partner code.
+  const [companyCode, setCompanyCode] = React.useState('');
   const [facebookUrl, setFacebookUrl] = React.useState('');
   const [instagramUrl, setInstagramUrl] = React.useState('');
   // The captain's own tariff, the same three components the activation modal collects.
@@ -139,14 +143,6 @@ export function DriverProfileTab({ user, language }: DriverProfileTabProps) {
   const [tariffError, setTariffError] = React.useState('');
   const [affiliationType, setAffiliationType] = React.useState('');
   const isTaxi = affiliationType === 'office-taxi';
-
-  // Keeps the picker swatch showing the color that matches the stored name
-  // (e.g. after loading the profile, or cancelling an edit) instead of
-  // sitting at an unrelated default until the captain touches it themselves.
-  React.useEffect(() => {
-    const hex = colorNameToHex(vehicleColor);
-    if (hex) setColorSwatch(hex);
-  }, [vehicleColor]);
 
   const [isSaving, setIsSaving] = React.useState(false);
   // Which fields are currently showing an input instead of their plain value —
@@ -169,8 +165,8 @@ export function DriverProfileTab({ user, language }: DriverProfileTabProps) {
   // A ref, not state: it only ever changes at the same moments the live field values below
   // do (right after load, right after a successful save), so there is no missed re-render.
   const savedSnapshotRef = React.useRef<Record<string, string>>({
-    fullName: '', phone: '', vehiclePlate: '', vehicleMake: '', vehicleModel: '',
-    vehicleColor: '', vehicleYear: '', businessName: '', officePhone: '', sideId: '',
+    fullName: '', nickname: '', phone: '', vehiclePlate: '', vehicleMake: '', vehicleModel: '',
+    vehicleColor: '', vehicleYear: '', businessName: '', officePhone: '', sideId: '', companyCode: '',
     facebookUrl: '', instagramUrl: '', baseFare: '', includedKm: '', pricePerKm: '', pricePerMin: '',
   });
   const [isLoadingProfile, setIsLoadingProfile] = React.useState(Boolean(user?.uid));
@@ -274,12 +270,19 @@ export function DriverProfileTab({ user, language }: DriverProfileTabProps) {
         const newBusinessName = firstString(captainProfile?.employment_type);
         const newOfficePhone = firstString(captainProfile?.office_phone);
         const newSideId = firstString(captainProfile?.side_id);
+        const newCompanyCode = firstString(captainProfile?.company_code);
         const newFacebookUrl = firstString(captainProfile?.facebook_url);
         const newInstagramUrl = firstString(captainProfile?.instagram_url);
+        const newNickname = firstString(captainProfile?.nickname);
+        const newNationalIdNumber = firstString(captainProfile?.national_id_number);
+        const newLicenseNumber = firstString(captainProfile?.license_number);
 
         setProfile(mergedProfile);
         setFullName(newFullName);
+        setNickname(newNickname);
         setPhone(newPhone);
+        setNationalIdNumber(newNationalIdNumber);
+        setLicenseNumber(newLicenseNumber);
         setVehiclePlate(newVehiclePlate);
         setVehicleMake(newVehicleMake);
         setVehicleColor(newVehicleColor);
@@ -292,12 +295,14 @@ export function DriverProfileTab({ user, language }: DriverProfileTabProps) {
         setBusinessName(newBusinessName);
         setOfficePhone(newOfficePhone);
         setSideId(newSideId);
+        setCompanyCode(newCompanyCode);
         setFacebookUrl(newFacebookUrl);
         setInstagramUrl(newInstagramUrl);
         setAffiliationType(firstString(captainProfile?.affiliation_type, user?.affiliation?.type));
 
         savedSnapshotRef.current = {
           fullName: newFullName,
+          nickname: newNickname,
           phone: newPhone,
           vehiclePlate: newVehiclePlate,
           vehicleMake: newVehicleMake,
@@ -307,6 +312,7 @@ export function DriverProfileTab({ user, language }: DriverProfileTabProps) {
           businessName: newBusinessName,
           officePhone: newOfficePhone,
           sideId: newSideId,
+          companyCode: newCompanyCode,
           facebookUrl: newFacebookUrl,
           instagramUrl: newInstagramUrl,
           baseFare: newBaseFare,
@@ -421,6 +427,10 @@ export function DriverProfileTab({ user, language }: DriverProfileTabProps) {
         vehicle_model: vehicleModel.trim() || null,
         vehicle_year: vehicle.year ? Number(vehicle.year) || null : null,
         employment_type: businessName.trim() || null,
+        nickname: nickname.trim() || null,
+        // A vehicle's color isn't tied to how the captain is affiliated — office-taxi
+        // captains can set it too, so this is unconditional, not just the smart-app branch.
+        vehicle_color: vehicle.color || null,
         facebook_url: facebookUrl.trim() || null,
         instagram_url: instagramUrl.trim() || null,
         // Left as null while a field is blank, which is what keeps the mandatory setup
@@ -435,7 +445,7 @@ export function DriverProfileTab({ user, language }: DriverProfileTabProps) {
         captainProfilePayload.office_phone = officePhone.trim() || null;
         captainProfilePayload.side_id = sideId.trim() || null;
       } else {
-        captainProfilePayload.vehicle_color = vehicle.color || null;
+        captainProfilePayload.company_code = companyCode.trim() || null;
       }
 
       const { data: captainProfileRows, error: captainProfileError } = await supabase
@@ -490,8 +500,10 @@ export function DriverProfileTab({ user, language }: DriverProfileTabProps) {
         ...(getCaptainProfile(current || null) || {}),
         vehicle_model: vehicleModel.trim(),
         employment_type: businessName.trim(),
+        nickname: nickname.trim(),
         office_phone: officePhone.trim(),
         side_id: sideId.trim(),
+        company_code: companyCode.trim(),
         facebook_url: facebookUrl.trim(),
         instagram_url: instagramUrl.trim(),
       },
@@ -502,8 +514,8 @@ export function DriverProfileTab({ user, language }: DriverProfileTabProps) {
   // directly (not stale) since nothing has changed them since the user's last edit.
   const captureSavedSnapshot = () => {
     savedSnapshotRef.current = {
-      fullName, phone, vehiclePlate, vehicleMake, vehicleModel, vehicleColor, vehicleYear,
-      businessName, officePhone, sideId, facebookUrl, instagramUrl,
+      fullName, nickname, phone, vehiclePlate, vehicleMake, vehicleModel, vehicleColor, vehicleYear,
+      businessName, officePhone, sideId, companyCode, facebookUrl, instagramUrl,
       baseFare, includedKm, pricePerKm, pricePerMin,
     };
   };
@@ -589,17 +601,19 @@ export function DriverProfileTab({ user, language }: DriverProfileTabProps) {
     <section className={styles.style300_16}>
       <div className={styles.style430_61}>
         <Panel icon={<IdCard className={styles.style431_62} />} title={t('account')}>
+          {/* Fixed at registration — matches the national ID card, so it never gets a pencil. */}
+          <Field label={t('name')} value={fullName} />
           <EditableField
-            label={t('name')}
-            value={fullName}
-            originalValue={savedSnapshotRef.current.fullName}
-            isEditing={isFieldEditing('fullName')}
+            label={t('nickname')}
+            value={firstString(nickname, t('notProvided'))}
+            originalValue={firstString(savedSnapshotRef.current.nickname, t('notProvided'))}
+            isEditing={isFieldEditing('nickname')}
             isSaving={isSaving}
-            onEdit={() => startEditingField('fullName')}
+            onEdit={() => startEditingField('nickname')}
             onSave={handleFieldSave}
-            onCancel={() => { setFullName(savedSnapshotRef.current.fullName); stopEditingField('fullName'); }}
+            onCancel={() => { setNickname(savedSnapshotRef.current.nickname); stopEditingField('nickname'); }}
           >
-            <input value={fullName} onChange={(event) => setFullName(event.target.value)} className={styles.editingInput} />
+            <input value={nickname} onChange={(event) => setNickname(event.target.value)} className={styles.editingInput} />
           </EditableField>
           <EditableField
             label={t('phone')}
@@ -616,6 +630,9 @@ export function DriverProfileTab({ user, language }: DriverProfileTabProps) {
           <Field label={t('accountNumber')} value={firstString(profile?.serial_id, user?.serial_id, '-')} />
           <Field label={t('role')} value={t('captainRole')} />
           <Field label={t('tier')} value={tier.label} />
+          {/* Identity-verification data set at registration — read-only here too. */}
+          <Field label={t('nationalIdNumber')} value={firstString(nationalIdNumber, t('notProvided'))} />
+          <Field label={t('licenseNumber')} value={firstString(licenseNumber, t('notProvided'))} />
         </Panel>
 
         <Panel icon={<Car className={styles.style439_63} />} title={t('vehicle')}>
@@ -655,35 +672,8 @@ export function DriverProfileTab({ user, language }: DriverProfileTabProps) {
           >
             <input value={vehicleModel} onChange={(event) => setVehicleModel(event.target.value)} className={styles.editingInput} />
           </EditableField>
-          {!isTaxi ? (
-            <EditableField
-              label={t('color')}
-              value={vehicleColor ? resolveColorDisplayName(vehicleColor, language) : t('notProvided')}
-              originalValue={
-                savedSnapshotRef.current.vehicleColor
-                  ? resolveColorDisplayName(savedSnapshotRef.current.vehicleColor, language)
-                  : t('notProvided')
-              }
-              isEditing={isFieldEditing('vehicleColor')}
-              isSaving={isSaving}
-              onEdit={() => startEditingField('vehicleColor')}
-              onSave={handleFieldSave}
-              onCancel={() => { setVehicleColor(savedSnapshotRef.current.vehicleColor); stopEditingField('vehicleColor'); }}
-            >
-              <div className={styles.colorRow}>
-                <input
-                  type="color"
-                  value={colorSwatch}
-                  onChange={(event) => {
-                    setColorSwatch(event.target.value);
-                    setVehicleColor(hexToColorName(event.target.value, language));
-                  }}
-                  className={styles.colorSwatch}
-                />
-                <input value={vehicleColor} readOnly className={styles.editingInput} />
-              </div>
-            </EditableField>
-          ) : null}
+          {/* Fixed at registration — never editable from the account. */}
+          <Field label={t('color')} value={vehicleColor ? resolveColorDisplayName(vehicleColor, language) : t('notProvided')} />
           <EditableField
             label={t('year')}
             value={firstString(vehicleYear, t('notProvided'))}
@@ -713,6 +703,20 @@ export function DriverProfileTab({ user, language }: DriverProfileTabProps) {
           >
             <input value={businessName} onChange={(event) => setBusinessName(event.target.value)} className={styles.editingInput} />
           </EditableField>
+          {!isTaxi ? (
+            <EditableField
+              label={t('companyCode')}
+              value={firstString(companyCode, t('notProvided'))}
+              originalValue={firstString(savedSnapshotRef.current.companyCode, t('notProvided'))}
+              isEditing={isFieldEditing('companyCode')}
+              isSaving={isSaving}
+              onEdit={() => startEditingField('companyCode')}
+              onSave={handleFieldSave}
+              onCancel={() => { setCompanyCode(savedSnapshotRef.current.companyCode); stopEditingField('companyCode'); }}
+            >
+              <input value={companyCode} onChange={(event) => setCompanyCode(event.target.value)} className={styles.editingInput} dir="ltr" />
+            </EditableField>
+          ) : null}
           {isTaxi ? (
             <>
               <EditableField

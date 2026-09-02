@@ -68,7 +68,7 @@ export function TripActiveScreen({
         <div className={styles.headerText}>
           <p className={styles.eyebrow}>{t('trip.started')}</p>
           <h2 className={styles.captainName}>
-            {activeTrip.captain?.full_name || activeTrip.captain?.name || activeTrip.captainName || t('trip.captainFallbackName')}
+            {activeTrip.captain?.nickname || activeTrip.captain?.full_name || activeTrip.captain?.name || activeTrip.captainName || t('trip.captainFallbackName')}
           </h2>
           <p className={styles.destination}>{activeTrip.destinationLabel}</p>
         </div>

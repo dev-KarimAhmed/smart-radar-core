@@ -31,6 +31,7 @@ export interface CaptainTaxiVehicleValues {
 
 export interface CaptainSmartAppVehicleValues {
   companyName: string;
+  companyCode: string;
   make: string;
   model: string;
   color: string;
@@ -300,6 +301,17 @@ export function CaptainVehicleStep({
               required
             />
             {errors.companyName ? <p className={styles.error}>{errors.companyName}</p> : null}
+          </div>
+          <div>
+            <label className={styles.label}>{t('companyCode')}</label>
+            <Input
+              placeholder={t('companyCode')}
+              value={vehicle.companyCode}
+              onChange={(event) => handleFieldChange('companyCode', event.target.value)}
+              className={styles.input}
+              required
+            />
+            {errors.companyCode ? <p className={styles.error}>{errors.companyCode}</p> : null}
           </div>
           {renderVehicleIdentityFields()}
           <div className={styles.fieldRow}>

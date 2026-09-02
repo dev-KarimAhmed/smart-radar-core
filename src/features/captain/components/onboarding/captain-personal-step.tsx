@@ -20,6 +20,7 @@ import { validateYupField, isYupSchemaValid, collectYupSchemaErrors } from '../.
 
 export interface CaptainPersonalValues {
   name: string;
+  nickname: string;
   phone: string;
   password: string;
   country: string;
@@ -157,6 +158,20 @@ export function CaptainPersonalStep({
           required
         />
         {errors.name ? <p className={styles.error}>{errors.name}</p> : null}
+      </div>
+
+      <div className={styles.field}>
+        <label className={styles.label}>
+          <UserRound className={styles.icon} />
+          {t('nickname')}
+        </label>
+        <Input
+          placeholder={t('nicknamePlaceholder')}
+          value={values.nickname}
+          onChange={(e) => handleFieldChange('nickname', e.target.value)}
+          className={styles.input}
+        />
+        {errors.nickname ? <p className={styles.error}>{errors.nickname}</p> : null}
       </div>
 
       <div className={styles.fieldRow}>
