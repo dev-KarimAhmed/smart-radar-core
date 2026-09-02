@@ -12,6 +12,7 @@ import {
   Heart,
   Instagram,
   MapPin,
+  Milestone,
   Navigation,
   Phone,
   Route,
@@ -19,6 +20,7 @@ import {
   Star,
   Timer,
   Trophy,
+  Wallet,
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -32,7 +34,7 @@ const styles = {
   style146_5: "flex min-w-0 items-center gap-3",
   style148_6: "min-w-0",
   style149_7: "flex flex-wrap items-center gap-2",
-  style150_8: "truncate text-lg font-extrabold text-[#F8FAFC] sm:text-xl",
+  style150_8: "min-w-0 max-w-full truncate text-lg font-extrabold text-[#F8FAFC] sm:text-xl",
   style152_9: "inline-flex items-center gap-1 rounded-full border border-[#14B8A6]/35 bg-[#14B8A6]/10 px-2 py-0.5 text-[10px] font-black text-[#14F5D5]",
   style153_10: "h-3 w-3",
   style158_11: "inline-flex items-center gap-1 rounded-full border border-emerald-300/50 bg-emerald-400/15 px-2.5 py-1 text-[10px] font-black text-emerald-100 shadow-[0_0_18px_rgba(52,211,153,0.2)]",
@@ -44,57 +46,56 @@ const styles = {
   style169_17: "rounded-full border border-[#14B8A6]/25 bg-[#14B8A6]/10 px-2 py-0.5 text-xs font-black text-[#14B8A6]",
   style172_18: "inline-flex items-center gap-1",
   style173_19: "h-3.5 w-3.5 text-[#14B8A6]",
-  style180_20: "flex shrink-0 items-center gap-3",
-  style181_21: "text-end",
-  style182_22: "text-[11px] font-bold text-[#94A3B8]",
-  style183_23: "block text-xl font-black text-[#00ffcc] sm:text-2xl",
-  style187_24: "h-5 w-5 text-slate-400 transition-transform duration-300",
+  style187_24: "h-5 w-5 shrink-0 text-slate-400 transition-transform duration-300",
   style187_25: "rotate-180",
   style192_26: "grid transition-all duration-300 ease-out",
   style193_27: "grid-rows-[1fr] opacity-100",
   style193_28: "grid-rows-[0fr] opacity-0",
   style196_29: "min-h-0 overflow-hidden",
-  style197_30: "space-y-4 border-t border-white/5 p-5 pt-4",
-  style198_31: "grid gap-3 sm:grid-cols-3",
-  style200_32: "h-4 w-4",
-  style205_33: "h-4 w-4",
-  style211_34: "h-4 w-4",
-  style219_35: "grid gap-3 rounded-xl bg-[#0B0F19]/70 p-4 sm:grid-cols-2",
-  style220_36: "h-4 w-4",
-  style226_37: "grid gap-3 rounded-xl border border-white/5 bg-white/[0.03] p-4 sm:grid-cols-2",
-  style227_38: "h-4 w-4",
-  style228_39: "h-4 w-4",
-  style232_40: "grid gap-2 sm:grid-cols-2",
-  style236_41: "inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 text-sm font-black text-[#14F5D5] transition hover:bg-[#14B8A6]/20",
-  style238_42: "h-4 w-4",
-  style247_43: "inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] text-sm font-black text-white transition hover:border-[#14B8A6]/35 hover:bg-[#14B8A6]/10",
-  style249_44: "h-4 w-4",
-  style257_45: "rounded-xl border border-[#14B8A6]/20 bg-[#14B8A6]/10 p-4",
-  style258_46: "space-y-2 text-sm",
-  style267_47: "mt-3 text-xs leading-5 text-[#94A3B8]",
-  style274_48: "rounded-2xl border border-[#14B8A6]/35 bg-[#14B8A6]/10 p-4",
-  style280_49: "rounded-xl border border-white/5 bg-white/[0.03] p-3 text-xs leading-relaxed text-[#94A3B8]",
-  style289_50: "flex w-full items-center justify-center gap-2 rounded-xl bg-[#14B8A6] py-3 font-extrabold text-[#0B0F19] transition-all duration-300 hover:bg-opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#161F30] disabled:cursor-wait disabled:opacity-60",
-  style291_51: "h-5 w-5",
-  style307_52: "h-14 w-14 shrink-0 rounded-2xl border border-[#14B8A6]/30 object-cover",
-  style313_53: "grid h-14 w-14 shrink-0 place-items-center rounded-2xl border border-[#14B8A6]/30 bg-[#14B8A6]/10",
-  style314_54: "h-7 w-7 text-[#14B8A6]",
-  style333_55: "min-w-0 rounded-xl border border-white/5 bg-black/20 p-3",
-  style334_56: "flex items-center gap-2 text-xs font-bold text-[#94A3B8]",
-  style335_57: "text-[#14B8A6]",
-  style335_58: "text-[#94A3B8]",
-  style338_59: "mt-1 truncate text-lg font-extrabold",
-  style338_60: "text-[#14B8A6]",
-  style338_61: "text-[#F8FAFC]",
-  style339_62: "mt-0.5 text-[11px] font-semibold text-[#94A3B8]/75",
-  valueStack: "mt-1 flex flex-col gap-0.5 text-lg font-extrabold",
-  valueStackLine: "truncate",
-  style356_63: "flex items-center justify-between gap-4",
-  style357_64: "font-black text-[#F8FAFC]",
-  style357_65: "text-[#94A3B8]",
-  style358_66: "text-[#14B8A6]",
-  style358_67: "text-[#F8FAFC]",
-  style358_68: "text-lg",
+  cardBody: "space-y-5 border-t border-white/5 p-5 pt-4",
+  sectionWrap: "space-y-3",
+  sectionHeader: "flex items-center gap-2 text-[11px] font-black uppercase tracking-wide text-[#14B8A6]",
+  sectionHeaderIcon: "h-3.5 w-3.5",
+  sectionHeaderLine: "h-px flex-1 bg-white/5",
+  sectionCard: "rounded-2xl border border-white/5 bg-white/[0.03] p-4",
+  tripGrid: "grid gap-3 sm:grid-cols-2",
+  tripRowIcon: "h-4 w-4",
+  vehicleGrid: "grid gap-3 sm:grid-cols-2",
+  vehicleDetailGrid: "mt-3 grid gap-3 sm:grid-cols-2",
+  vehicleRowIcon: "h-4 w-4",
+  captainMetaGrid: "mt-3 grid gap-3 sm:grid-cols-2",
+  captainMetaIcon: "h-4 w-4",
+  contactGrid: "mt-3 grid gap-2 sm:grid-cols-2",
+  contactButtonAccent: "inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 text-sm font-black text-[#14F5D5] transition hover:bg-[#14B8A6]/20",
+  contactButtonIcon: "h-4 w-4",
+  contactButtonPlain: "inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] text-sm font-black text-white transition hover:border-[#14B8A6]/35 hover:bg-[#14B8A6]/10",
+  priceCard: "rounded-2xl border border-[#14B8A6]/25 bg-gradient-to-b from-[#14B8A6]/10 to-transparent p-4",
+  shortDistanceTile: "mb-3 flex items-center justify-between gap-3 rounded-xl border border-[#14B8A6]/20 bg-[#0B0F19]/60 px-4 py-3",
+  shortDistanceValue: "text-2xl font-black text-[#14F5D5]",
+  shortDistanceCaption: "text-[11px] font-bold text-[#94A3B8]",
+  breakdownRows: "space-y-2 text-sm",
+  reasonText: "mt-3 text-xs leading-5 text-[#94A3B8]",
+  additionalInfo: "rounded-xl border border-white/5 bg-white/[0.03] p-3 text-xs leading-relaxed text-[#94A3B8]",
+  acceptButton: "flex w-full items-center justify-center gap-2 rounded-xl bg-[#14B8A6] py-3 font-extrabold text-[#0B0F19] transition-all duration-300 hover:bg-opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#161F30] disabled:cursor-wait disabled:opacity-60",
+  acceptButtonIcon: "h-5 w-5",
+  avatarImg: "h-14 w-14 shrink-0 rounded-2xl border border-[#14B8A6]/30 object-cover",
+  avatarFallback: "grid h-14 w-14 shrink-0 place-items-center rounded-2xl border border-[#14B8A6]/30 bg-[#14B8A6]/10",
+  avatarFallbackIcon: "h-7 w-7 text-[#14B8A6]",
+  infoRow: "min-w-0 rounded-xl border border-white/5 bg-black/20 p-3",
+  infoRowFullWidth: "sm:col-span-2",
+  infoRowLabel: "flex items-center gap-2 text-xs font-bold text-[#94A3B8]",
+  infoRowLabelIconHighlight: "text-[#14B8A6]",
+  infoRowLabelIconPlain: "text-[#94A3B8]",
+  infoRowValue: "mt-1 truncate text-lg font-extrabold",
+  infoRowValueHighlight: "text-[#14B8A6]",
+  infoRowValuePlain: "text-[#F8FAFC]",
+  infoRowHelper: "mt-0.5 text-[11px] font-semibold text-[#94A3B8]/75",
+  breakdownRow: "flex items-center justify-between gap-4",
+  breakdownLabelStrong: "font-black text-[#F8FAFC]",
+  breakdownLabelPlain: "text-[#94A3B8]",
+  breakdownValueAccent: "text-[#14B8A6]",
+  breakdownValuePlain: "text-[#F8FAFC]",
+  breakdownValueStrong: "text-lg",
   countdownWrap: "flex items-center gap-2 border-t border-white/5 px-5 py-2",
   countdownTrack: "h-1.5 flex-1 overflow-hidden rounded-full bg-white/10",
   countdownFill: "h-full rounded-full bg-[#14B8A6] transition-[width] duration-200 ease-linear",
@@ -238,7 +239,7 @@ export function CaptainOfferCard({
   language = 'ar',
   isAccepting = false,
   isPreferred = false,
-  isExpanded = true,
+  isExpanded = false,
   countdown,
   onToggleExpand,
   onAccept,
@@ -253,8 +254,7 @@ export function CaptainOfferCard({
   const pricingReason = buildPricingReason(breakdown, finalFare, currencyCode, isArabic, rankLabel);
   const captainName = captain.name?.trim() || (isArabic ? 'كابتن' : 'Captain');
   const vehicleModelLabel = captain.vehicle_model?.trim() || (isArabic ? 'سيارة' : 'Vehicle');
-  const vehicleColorLabel = resolveColorDisplayName(captain.vehicle_color, language);
-  const vehicleLines = [vehicleModelLabel, vehicleColorLabel].filter((value) => value && String(value).trim());
+  const vehicleColorLabel = resolveColorDisplayName(captain.vehicle_color, language) || (isArabic ? 'غير محدد' : 'Not specified');
   const companyLabel = captain.company_name?.trim()
     || captain.affiliation_label?.trim()
     || (isArabic ? 'كابتن مستقل' : 'Independent Captain');
@@ -264,6 +264,16 @@ export function CaptainOfferCard({
     language,
   );
   const tripDistance = offer.trip_distance_km ?? offer.distance_km;
+  const hasContactLinks = Boolean(captain.phone || captain.contact_url || captain.facebook_url || captain.instagram_url);
+  const includedKm = Number(breakdown?.includedKm) || 0;
+  const hasVehicleYear = Boolean(captain.vehicle_year);
+  const hasVehicleCategory = Boolean(captain.vehicle_category);
+  // Plate is always shown; year and category are each optional. When the total count in
+  // that row is odd, the last one rendered would otherwise sit alone with an empty cell
+  // beside it, so it spans the full row instead of leaving that gap.
+  const vehicleDetailFieldCount = 1 + Number(hasVehicleYear) + Number(hasVehicleCategory);
+  const lastVehicleDetailField = hasVehicleCategory ? 'category' : hasVehicleYear ? 'year' : 'plate';
+  const vehicleDetailTrailingSpansFull = vehicleDetailFieldCount % 2 !== 0;
 
   return (
     <article
@@ -280,7 +290,10 @@ export function CaptainOfferCard({
           <CaptainAvatar captain={captain} captainName={captainName} />
           <div className={styles.style148_6}>
             <div className={styles.style149_7}>
-              <h3 className={styles.style150_8}>{captainName}</h3>
+              {/* dir="auto" (not inherited rtl/ltr) so the browser picks the ellipsis side
+                  from the name's own script — otherwise a Latin name inside this RTL card
+                  truncates from the wrong end, cutting the start instead of the tail. */}
+              <h3 dir="auto" className={styles.style150_8}>{captainName}</h3>
               {captain.is_verified ? (
                 <span className={styles.style152_9}>
                   <CheckCircle2 className={styles.style153_10} />
@@ -310,17 +323,7 @@ export function CaptainOfferCard({
           </div>
         </div>
 
-        <div className={styles.style180_20}>
-          {/* Price display disabled — kept hidden from rider by product request.
-          <div className={styles.style181_21}>
-            <p className={styles.style182_22}>{isArabic ? 'السعر' : 'Price'}</p>
-            <strong className={styles.style183_23}>
-              {finalFare.toFixed(2)} {currencyCode}
-            </strong>
-          </div>
-          */}
-          <ChevronDown className={cn(styles.style187_24, isExpanded ? styles.style187_25 : '')} />
-        </div>
+        <ChevronDown className={cn(styles.style187_24, isExpanded ? styles.style187_25 : '')} />
       </button>
 
       {countdown?.hasCountdown ? (
@@ -341,154 +344,157 @@ export function CaptainOfferCard({
         className={cn(styles.style192_26, isExpanded ? styles.style193_27 : styles.style193_28)}
       >
         <div className={styles.style196_29}>
-          <div className={styles.style197_30}>
-            <div className={styles.style198_31}>
-              <InfoRow
-                icon={<MapPin className={styles.style200_32} />}
-                label={isArabic ? 'البعد عنك' : 'Distance'}
-                value={`${offer.distance_km.toFixed(1)} ${isArabic ? 'كم' : 'km'}`}
-              />
-              <InfoRow
-                icon={<Clock className={styles.style205_33} />}
-                label={isArabic ? 'يوصلك خلال' : 'ETA'}
-                value={`${offer.eta_minutes} ${isArabic ? 'دقائق' : 'mins'}`}
-                highlight
-              />
-              {/* The trip's own distance. It was computed and then never rendered, so the
-                  only distance on the card was "البعد عنك" — how far the captain is from
-                  the rider — which reads as the trip distance and is a different number
-                  entirely. */}
-              <InfoRow
-                icon={<Route className={styles.style200_32} />}
-                label={isArabic ? 'مسافة الرحلة' : 'Trip distance'}
-                value={`${Number(tripDistance ?? 0).toFixed(1)} ${isArabic ? 'كم' : 'km'}`}
-                highlight
-              />
-              <InfoRow
-                icon={<Timer className={styles.style211_34} />}
-                label={isArabic ? 'مدة الرحلة' : 'Trip duration'}
-                value={durationLabel}
-                helper={isArabic ? 'بدون تأخير مروري' : 'Without traffic delays'}
-                highlight
-              />
-            </div>
+          <div className={styles.cardBody}>
 
-            <div className={styles.style219_35}>
-              <InfoRow icon={<Car className={styles.style220_36} />} label={isArabic ? 'السيارة' : 'Vehicle'} valueLines={vehicleLines} />
-              <InfoRow label={isArabic ? 'اللوحة' : 'Plate'} value={captain.plate_number?.trim() || (isArabic ? 'غير متاح' : 'Not available')} />
-              {captain.vehicle_year ? <InfoRow label={isArabic ? 'سنة الصنع' : 'Year'} value={String(captain.vehicle_year)} /> : null}
-              {captain.vehicle_category ? <InfoRow label={isArabic ? 'الفئة' : 'Category'} value={captain.vehicle_category} /> : null}
-            </div>
-
-            <div className={styles.style226_37}>
-              <InfoRow icon={<Building2 className={styles.style227_38} />} label={isArabic ? 'نوع الكابتن' : 'Captain type'} value={companyLabel} />
-              <InfoRow icon={<Trophy className={styles.style228_39} />} label={isArabic ? 'الرحلات المكتملة' : 'Completed trips'} value={String(completedTrips)} />
-            </div>
-
-            {captain.phone || captain.contact_url || captain.facebook_url || captain.instagram_url ? (
-              <div className={styles.style232_40}>
-                {captain.phone ? (
-                  <a
-                    href={`tel:${captain.phone}`}
-                    className={styles.style236_41}
-                  >
-                    <Phone className={styles.style238_42} />
-                    {isArabic ? 'اتصال' : 'Call'}
-                  </a>
-                ) : null}
-                {captain.contact_url ? (
-                  <a
-                    href={captain.contact_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className={styles.style247_43}
-                  >
-                    <ExternalLink className={styles.style249_44} />
-                    {isArabic ? 'رابط التواصل' : 'Contact link'}
-                  </a>
-                ) : null}
-                {captain.facebook_url ? (
-                  <a
-                    href={captain.facebook_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className={styles.style247_43}
-                  >
-                    <Facebook className={styles.style249_44} />
-                    {isArabic ? 'فيسبوك' : 'Facebook'}
-                  </a>
-                ) : null}
-                {captain.instagram_url ? (
-                  <a
-                    href={captain.instagram_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className={styles.style247_43}
-                  >
-                    <Instagram className={styles.style249_44} />
-                    {isArabic ? 'انستجرام' : 'Instagram'}
-                  </a>
-                ) : null}
-              </div>
-            ) : null}
-
-            {/* Itemised meter receipt from submit_ride_offer, plus why the total is what it
-                is. Replaces the old base-fare-plus-surcharge view, which was hidden by
-                product request; showing the real meter was requested instead. */}
-            <div className={styles.style257_45}>
-              <div className={styles.style258_46}>
-                {breakdown && !breakdown.tariffMissing ? (
-                  <>
-                    <BreakdownRow
-                      label={isArabic ? 'فتحة العداد' : 'Meter opening'}
-                      value={`${money(breakdown.baseFare)} ${currencyCode}`}
-                    />
-                    {/* When the opening charge covers some distance, say so on its own line —
-                        otherwise a rider on a short trip sees a 0.00 distance charge with no
-                        explanation of why the kilometres were not billed. */}
-                    {Number(breakdown.includedKm) > 0 ? (
-                      <BreakdownRow
-                        label={isArabic
-                          ? `يشمل أول ${num(breakdown.includedKm)} كم`
-                          : `Includes the first ${num(breakdown.includedKm)} km`}
-                        value={isArabic ? 'مجاناً' : 'Included'}
-                      />
-                    ) : null}
-                    <BreakdownRow
-                      label={isArabic
-                        ? `المسافة · ${num(breakdown.billableKm ?? breakdown.roadKm)} كم × ${money(breakdown.perKm)}`
-                        : `Distance · ${num(breakdown.billableKm ?? breakdown.roadKm)} km × ${money(breakdown.perKm)}`}
-                      value={`${money(breakdown.kmCharge)} ${currencyCode}`}
-                    />
-                    {Number(breakdown.perMin) > 0 ? (
-                      <BreakdownRow
-                        label={isArabic
-                          ? `الوقت · ${num(breakdown.minutes)} دقيقة × ${money(breakdown.perMin)}`
-                          : `Time · ${num(breakdown.minutes)} min × ${money(breakdown.perMin)}`}
-                        value={`${money(breakdown.minCharge)} ${currencyCode}`}
-                      />
-                    ) : null}
-                    {adjustment !== 0 ? (
-                      <BreakdownRow
-                        label={isArabic ? 'تعديل الكابتن' : 'Captain’s adjustment'}
-                        value={`${adjustment > 0 ? '+' : '−'}${money(Math.abs(adjustment))} ${currencyCode}`}
-                        accent
-                      />
-                    ) : null}
-                  </>
-                ) : null}
-                <BreakdownRow
-                  label={isArabic ? 'السعر الإجمالي' : 'Total price'}
-                  value={`${finalFare.toFixed(2)} ${currencyCode}`}
-                  accent
-                  strong
+            {/* Trip data — kept visually separate from the captain's own data below. */}
+            <div className={styles.sectionWrap}>
+              <SectionHeader icon={<Route className={styles.sectionHeaderIcon} />} title={isArabic ? 'تفاصيل الرحلة' : 'Trip details'} />
+              <div className={styles.tripGrid}>
+                <InfoRow
+                  icon={<MapPin className={styles.tripRowIcon} />}
+                  label={isArabic ? 'البعد عنك' : 'Distance to you'}
+                  value={`${offer.distance_km.toFixed(1)} ${isArabic ? 'كم' : 'km'}`}
+                />
+                <InfoRow
+                  icon={<Clock className={styles.tripRowIcon} />}
+                  label={isArabic ? 'يوصلك خلال' : 'Arrives in'}
+                  value={`${offer.eta_minutes} ${isArabic ? 'دقائق' : 'mins'}`}
+                  highlight
+                />
+                <InfoRow
+                  icon={<Timer className={styles.tripRowIcon} />}
+                  label={isArabic ? 'مدة الرحلة' : 'Trip duration'}
+                  value={durationLabel}
+                  helper={isArabic ? 'بدون تأخير مروري' : 'Without traffic delays'}
+                  highlight
+                />
+                <InfoRow
+                  icon={<Milestone className={styles.tripRowIcon} />}
+                  label={isArabic ? 'مسافة الرحلة' : 'Trip distance'}
+                  value={`${Number(tripDistance || 0).toFixed(1)} ${isArabic ? 'كم' : 'km'}`}
+                  highlight
                 />
               </div>
-              <p className={styles.style267_47}>{pricingReason}</p>
+            </div>
+
+            {/* Captain + vehicle data — its own section, separate from the trip above. */}
+            <div className={styles.sectionWrap}>
+              <SectionHeader icon={<Car className={styles.sectionHeaderIcon} />} title={isArabic ? 'بيانات الكابتن والمركبة' : 'Captain & vehicle'} />
+              <div className={styles.sectionCard}>
+                <div className={styles.vehicleGrid}>
+                  <InfoRow icon={<Car className={styles.vehicleRowIcon} />} label={isArabic ? 'السيارة' : 'Vehicle'} value={vehicleModelLabel} />
+                  <InfoRow label={isArabic ? 'اللون' : 'Color'} value={vehicleColorLabel} />
+                </div>
+                <div className={styles.vehicleDetailGrid}>
+                  <InfoRow
+                    label={isArabic ? 'اللوحة' : 'Plate'}
+                    value={captain.plate_number?.trim() || (isArabic ? 'غير متاح' : 'Not available')}
+                    fullWidth={vehicleDetailTrailingSpansFull && lastVehicleDetailField === 'plate'}
+                  />
+                  {hasVehicleYear ? (
+                    <InfoRow
+                      label={isArabic ? 'سنة الصنع' : 'Year'}
+                      value={String(captain.vehicle_year)}
+                      fullWidth={vehicleDetailTrailingSpansFull && lastVehicleDetailField === 'year'}
+                    />
+                  ) : null}
+                  {hasVehicleCategory ? (
+                    <InfoRow
+                      label={isArabic ? 'الفئة' : 'Category'}
+                      value={captain.vehicle_category}
+                      fullWidth={vehicleDetailTrailingSpansFull && lastVehicleDetailField === 'category'}
+                    />
+                  ) : null}
+                </div>
+
+                <div className={styles.captainMetaGrid}>
+                  <InfoRow icon={<Building2 className={styles.captainMetaIcon} />} label={isArabic ? 'نوع الكابتن' : 'Captain type'} value={companyLabel} />
+                  <InfoRow icon={<Trophy className={styles.captainMetaIcon} />} label={isArabic ? 'الرحلات المكتملة' : 'Completed trips'} value={String(completedTrips)} />
+                </div>
+
+                {hasContactLinks ? (
+                  <div className={styles.contactGrid}>
+                    {captain.phone ? (
+                      <a href={`tel:${captain.phone}`} className={styles.contactButtonAccent}>
+                        <Phone className={styles.contactButtonIcon} />
+                        {isArabic ? 'اتصال' : 'Call'}
+                      </a>
+                    ) : null}
+                    {captain.contact_url ? (
+                      <a href={captain.contact_url} target="_blank" rel="noreferrer" className={styles.contactButtonPlain}>
+                        <ExternalLink className={styles.contactButtonIcon} />
+                        {isArabic ? 'رابط التواصل' : 'Contact link'}
+                      </a>
+                    ) : null}
+                    {captain.facebook_url ? (
+                      <a href={captain.facebook_url} target="_blank" rel="noreferrer" className={styles.contactButtonPlain}>
+                        <Facebook className={styles.contactButtonIcon} />
+                        {isArabic ? 'فيسبوك' : 'Facebook'}
+                      </a>
+                    ) : null}
+                    {captain.instagram_url ? (
+                      <a href={captain.instagram_url} target="_blank" rel="noreferrer" className={styles.contactButtonPlain}>
+                        <Instagram className={styles.contactButtonIcon} />
+                        {isArabic ? 'انستجرام' : 'Instagram'}
+                      </a>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+
+            {/* Price — its own section. Itemised meter receipt from submit_ride_offer, plus
+                why the total is what it is. */}
+            <div className={styles.sectionWrap}>
+              <SectionHeader icon={<Wallet className={styles.sectionHeaderIcon} />} title={isArabic ? 'السعر' : 'Price'} />
+              <div className={styles.priceCard}>
+                {includedKm > 0 ? (
+                  <div className={styles.shortDistanceTile}>
+                    <span className={styles.shortDistanceCaption}>{isArabic ? 'المسافات القصيرة' : 'Short distances'}</span>
+                    <strong className={styles.shortDistanceValue}>{num(includedKm)} {isArabic ? 'كم' : 'km'}</strong>
+                  </div>
+                ) : null}
+                <div className={styles.breakdownRows}>
+                  {breakdown && !breakdown.tariffMissing ? (
+                    <>
+                      <BreakdownRow
+                        label={isArabic
+                          ? `المسافة · ${num(breakdown.billableKm ?? breakdown.roadKm)} كم × ${money(breakdown.perKm)}`
+                          : `Distance · ${num(breakdown.billableKm ?? breakdown.roadKm)} km × ${money(breakdown.perKm)}`}
+                        value={`${money(breakdown.kmCharge)} ${currencyCode}`}
+                      />
+                      {Number(breakdown.perMin) > 0 ? (
+                        <BreakdownRow
+                          label={isArabic
+                            ? `الوقت · ${num(breakdown.minutes)} دقيقة × ${money(breakdown.perMin)}`
+                            : `Time · ${num(breakdown.minutes)} min × ${money(breakdown.perMin)}`}
+                          value={`${money(breakdown.minCharge)} ${currencyCode}`}
+                        />
+                      ) : null}
+                      {adjustment !== 0 ? (
+                        <BreakdownRow
+                          label={isArabic
+                            ? (adjustment > 0 ? 'زيادة اختارها الكابتن' : 'تخفيض من الكابتن')
+                            : (adjustment > 0 ? 'Captain’s increase' : 'Captain’s reduction')}
+                          value={`${adjustment > 0 ? '+' : '−'}${money(Math.abs(adjustment))} ${currencyCode}`}
+                          accent
+                        />
+                      ) : null}
+                    </>
+                  ) : null}
+                  <BreakdownRow
+                    label={isArabic ? 'السعر الإجمالي' : 'Total price'}
+                    value={`${finalFare.toFixed(2)} ${currencyCode}`}
+                    accent
+                    strong
+                  />
+                </div>
+                <p className={styles.reasonText}>{pricingReason}</p>
+              </div>
             </div>
 
             {offer.additional_info ? (
-              <p className={styles.style280_49}>
+              <p className={styles.additionalInfo}>
                 {offer.additional_info}
               </p>
             ) : null}
@@ -497,9 +503,9 @@ export function CaptainOfferCard({
               type="button"
               onClick={() => onAccept(offer)}
               disabled={isAccepting}
-              className={styles.style289_50}
+              className={styles.acceptButton}
             >
-              <Navigation className={styles.style291_51} />
+              <Navigation className={styles.acceptButtonIcon} />
               {isAccepting ? (isArabic ? 'جاري قبول العرض...' : 'Accepting offer...') : isArabic ? 'قبول العرض' : 'Accept offer'}
             </button>
           </div>
@@ -515,14 +521,24 @@ function CaptainAvatar({ captain, captainName }: { captain: CaptainProfile; capt
       <img
         src={captain.avatar_url}
         alt={captainName}
-        className={styles.style307_52}
+        className={styles.avatarImg}
       />
     );
   }
 
   return (
-    <div className={styles.style313_53}>
-      <ShieldCheck className={styles.style314_54} />
+    <div className={styles.avatarFallback}>
+      <ShieldCheck className={styles.avatarFallbackIcon} />
+    </div>
+  );
+}
+
+function SectionHeader({ icon, title }: { icon: React.ReactNode; title: string }) {
+  return (
+    <div className={styles.sectionHeader}>
+      {icon}
+      <span>{title}</span>
+      <span className={styles.sectionHeaderLine} />
     </div>
   );
 }
@@ -531,33 +547,25 @@ function InfoRow({
   icon,
   label,
   value,
-  valueLines,
   helper,
   highlight = false,
+  fullWidth = false,
 }: {
   icon?: React.ReactNode;
   label: string;
   value?: string;
-  valueLines?: string[];
   helper?: string;
   highlight?: boolean;
+  fullWidth?: boolean;
 }) {
   return (
-    <div className={styles.style333_55}>
-      <p className={styles.style334_56}>
-        {icon ? <span className={highlight ? styles.style335_57 : styles.style335_58}>{icon}</span> : null}
+    <div className={cn(styles.infoRow, fullWidth ? styles.infoRowFullWidth : '')}>
+      <p className={styles.infoRowLabel}>
+        {icon ? <span className={highlight ? styles.infoRowLabelIconHighlight : styles.infoRowLabelIconPlain}>{icon}</span> : null}
         {label}
       </p>
-      {valueLines ? (
-        <div className={cn(styles.valueStack, highlight ? styles.style338_60 : styles.style338_61)}>
-          {valueLines.map((line, index) => (
-            <span key={index} className={styles.valueStackLine}>{line}</span>
-          ))}
-        </div>
-      ) : (
-        <p className={cn(styles.style338_59, highlight ? styles.style338_60 : styles.style338_61)}>{value}</p>
-      )}
-      {helper ? <p className={styles.style339_62}>{helper}</p> : null}
+      <p className={cn(styles.infoRowValue, highlight ? styles.infoRowValueHighlight : styles.infoRowValuePlain)}>{value}</p>
+      {helper ? <p className={styles.infoRowHelper}>{helper}</p> : null}
     </div>
   );
 }
@@ -607,7 +615,7 @@ function buildPricingReason(
           ? ` وأضاف ${money(adjustment)} ${currencyCode} فوقه.`
           : ` They added ${money(adjustment)} ${currencyCode} on top.`)
       : (isArabic
-          ? ` وأنقص ${money(Math.abs(adjustment))} ${currencyCode} منه.`
+          ? ` وخفّض ${money(Math.abs(adjustment))} ${currencyCode} منه.`
           : ` They took ${money(Math.abs(adjustment))} ${currencyCode} off.`);
 
   if (marketFare <= 0) {
@@ -642,9 +650,9 @@ function BreakdownRow({
   strong?: boolean;
 }) {
   return (
-    <div className={styles.style356_63}>
-      <span className={strong ? styles.style357_64 : styles.style357_65}>{label}</span>
-      <strong className={cn(accent ? styles.style358_66 : styles.style358_67, strong ? styles.style358_68 : '')}>{value}</strong>
+    <div className={styles.breakdownRow}>
+      <span className={strong ? styles.breakdownLabelStrong : styles.breakdownLabelPlain}>{label}</span>
+      <strong className={cn(accent ? styles.breakdownValueAccent : styles.breakdownValuePlain, strong ? styles.breakdownValueStrong : '')}>{value}</strong>
     </div>
   );
 }

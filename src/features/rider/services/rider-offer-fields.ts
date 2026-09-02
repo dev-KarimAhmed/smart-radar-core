@@ -14,6 +14,7 @@ export interface OfferPresentationLabels {
 
 export function getOfferCaptainName(offer: any, labels: Pick<OfferPresentationLabels, 'fallbackCaptainName'>) {
   return firstDisplayString(
+    offer?.captain?.nickname,
     offer?.captain?.full_name,
     offer?.captain?.name,
     offer?.driverName,

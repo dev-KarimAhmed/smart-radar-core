@@ -111,7 +111,8 @@ export function buildCaptainOfferFromOffer(
 ): { offer: CaptainOffer; isPreferred: boolean } {
   const { captainLocations, riderLocation, destination, preferredCaptainIds, serverEstimatedFare } = context;
   const captain = captainLocations.find((c) => c.id === offer.driverId || c.serial === offer.driverName);
-  let realDistance = (offer as unknown as Record<string, any>).distance_to_rider as number | null | undefined;
+  const offerRecord = offer as unknown as Record<string, any>;
+  let realDistance = offerRecord.distance_to_rider as number | null | undefined;
 
   if (realDistance == null && captain && riderLocation) {
     realDistance = haversineKm(riderLocation, captain.coordinates);
@@ -122,19 +123,28 @@ export function buildCaptainOfferFromOffer(
     tripDistance = haversineKm(riderLocation, destination.coords);
   }
 
+  // The offer's own receipt (written by submit_ride_offer) carries the road distance the
+  // price was actually calculated on. That has to win over the straight-line haversine
+  // guess above — otherwise the rider sees two different "trip distance" numbers for the
+  // same offer: a shorter one here, and the real one in the price breakdown below.
+  const breakdownForDistance = (offerRecord.fare_breakdown ?? null) as CaptainOffer['fare_breakdown'];
+  const routedTripDistance = Number(breakdownForDistance?.roadKm ?? breakdownForDistance?.billableKm);
+  if (Number.isFinite(routedTripDistance) && routedTripDistance > 0) {
+    tripDistance = routedTripDistance;
+  }
+
   const distanceDisplay = realDistance != null ? (realDistance < 0.1 ? 0 : realDistance).toFixed(1) : '---';
-  const etaDisplay = (offer as unknown as Record<string, any>).pickup_eta_minutes
+  const etaDisplay = offerRecord.pickup_eta_minutes
     ?? (realDistance != null ? estimatePickupMinutes(realDistance) : '---');
   // Was `tripDistance * 1.2` — 50 km/h — while the fare and every other screen used 2.2.
   // The same trip could be shown as 12 minutes here and 22 on the offer card.
-  const rawDuration = tripDistance != null || (offer as unknown as Record<string, any>).estimated_duration_minutes != null
-    ? preferRoutedMinutes((offer as unknown as Record<string, any>).estimated_duration_minutes, tripDistance)
+  const rawDuration = tripDistance != null || offerRecord.estimated_duration_minutes != null
+    ? preferRoutedMinutes(offerRecord.estimated_duration_minutes, tripDistance)
     : null;
 
   const captainName = getOfferCaptainName(offer, labels);
   const vehicleSummary = getOfferVehicleSummary(offer, labels);
   const plateValue = getOfferPlate(offer, labels);
-  const offerRecord = offer as unknown as Record<string, any>;
   const rawOfferIsPreferred =
     Boolean(offerRecord.__isPreferredCaptain) ||
     isPreferredOffer(offer, preferredCaptainIds);

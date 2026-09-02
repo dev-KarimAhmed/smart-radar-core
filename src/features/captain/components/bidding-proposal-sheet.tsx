@@ -254,7 +254,7 @@ export function BiddingProposalSheet({
           <Info label={t('h3')} value={request.h3Index ? request.h3Index.slice(-8).toUpperCase() : '-'} />
           <Info
             label={t('distance')}
-            value={request.estimatedDistance != null ? `${request.estimatedDistance} km` : pickupT('distanceUnavailable')}
+            value={request.estimatedDistance != null ? `${request.estimatedDistance.toFixed(1)} km` : pickupT('distanceUnavailable')}
           />
           {/* Base fare display disabled — kept hidden from captain by product request.
               This now holds the captain's own meter reading rather than the server fare,

@@ -49,6 +49,8 @@ function hasCountryCodePrefix(value: string | undefined) {
 export function getCaptainPersonalSchema(t: CaptainValidationT) {
   return yup.object({
     name: yup.string().trim().matches(NAME_REGEX, t('nameInvalid')).required(t('nameRequired')),
+    // Optional: shown to riders instead of the legal name when set.
+    nickname: yup.string().trim(),
     phone: yup
       .string()
       .trim()
@@ -100,6 +102,7 @@ export function getCaptainTaxiVehicleSchema(t: CaptainValidationT, country?: str
 export function getCaptainSmartAppVehicleSchema(t: CaptainValidationT) {
   return yup.object({
     companyName: yup.string().trim().matches(ENTITY_NAME_REGEX, t('companyNameInvalid')).required(t('companyNameRequired')),
+    companyCode: yup.string().trim().required(t('companyCodeRequired')),
     make: yup.string().trim().matches(VEHICLE_MAKE_REGEX, t('makeInvalid')).required(t('makeRequired')),
     model: yup.string().trim().matches(VEHICLE_MODEL_REGEX, t('modelInvalid')).required(t('modelRequired')),
     color: yup.string().trim().matches(VEHICLE_COLOR_REGEX, t('colorInvalid')).required(t('colorRequired')),

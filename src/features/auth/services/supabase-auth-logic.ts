@@ -25,6 +25,8 @@ export interface CaptainProfileMetadata {
   affiliation_type: string | null;
   office_phone: string | null;
   side_id: string | null;
+  company_code?: string | null;
+  nickname?: string | null;
   identity_url?: string | null;
   contact_page_url?: string | null;
   driving_license_url?: string | null;
