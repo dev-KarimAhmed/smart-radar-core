@@ -142,6 +142,40 @@ export function DriverViewTab() {
     }
   }, [driverOps, driverOps?.activeRequest, state.screen, state.selectedRequest?.id, state.tripStep]);
 
+  // The captain can sit on the bidding sheet for a while deciding a price. If the rider
+  // cancels or the request expires in the meantime, nothing was watching it — the captain
+  // could still submit an offer against a dead request and only find out from a generic
+  // error. `ride_requests` itself can't be read here (RLS only allows the accepted captain
+  // or the rider), so this polls the same `captain_radar_requests` view the whole radar
+  // reads through, which only ever lists rows still PENDING — exactly like the
+  // already-submitted-offer watcher in use-driver-transactions.ts.
+  React.useEffect(() => {
+    if (state.screen !== 'BIDDING' || !state.selectedRequest?.id) return;
+    const requestId = state.selectedRequest.id;
+    let isCancelled = false;
+
+    const checkStillPending = async () => {
+      const { data, error } = await supabase
+        .from('captain_radar_requests')
+        .select('id')
+        .eq('id', requestId)
+        .maybeSingle();
+
+      if (isCancelled || error || data) return;
+      toast({
+        title: t('requestNoLongerAvailableTitle'),
+        description: t('requestNoLongerAvailableBody'),
+      });
+      dispatch({ type: 'IGNORE_REQUEST', requestId });
+    };
+
+    const intervalId = window.setInterval(() => void checkStillPending(), 5_000);
+    return () => {
+      isCancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [state.screen, state.selectedRequest?.id, toast, t]);
+
   React.useEffect(() => {
     if (!driverOps) return;
 
@@ -362,6 +396,7 @@ export function DriverViewTab() {
             language={language}
             request={state.selectedRequest}
             currency={currency}
+            driverLocation={driverOps.driverLocation}
             isSubmitting={driverOps.isSubmittingOffer}
             onSubmit={submitBid}
             onIgnore={() => {

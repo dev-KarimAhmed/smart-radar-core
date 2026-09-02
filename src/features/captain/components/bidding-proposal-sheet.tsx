@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useTranslations } from 'next-intl';
-import { AlertTriangle, CheckCircle2, ExternalLink, Loader2, MapPin, Minus, Plus, Send, Sparkles, X } from 'lucide-react';
+import { AlertTriangle, ExternalLink, Loader2, MapPin, Minus, Plus, Send, Sparkles, X } from 'lucide-react';
 import type { Trip } from '@/core/types';
 import { supabase } from '@/lib/supabase-client';
 import { RadarAntiCheatKernel } from '@/core/RadarAntiCheatKernel';
@@ -10,6 +10,8 @@ import { useCaptainProfessionalAd } from '../hooks/use-captain-professional-ad';
 import { MIN_OFFER_WAIT_SECONDS } from '../hooks/use-driver-transactions';
 import { AdDisplayCard } from '@/features/ads/ad-display/contract';
 import { cn } from '@/lib/utils';
+import { estimateHaversineDistanceKm } from '../services/ride-location';
+import { estimatePickupMinutes } from '@/shared/services/trip-duration';
 import {
   MARKET_FLOOR_FACTOR,
   rankIncreaseFactorForTier,
@@ -70,11 +72,6 @@ const styles = {
   style234_44: "rounded-xl border border-white/10 bg-white/[0.03] p-3",
   style235_45: "text-xs text-slate-500",
   style236_46: "mt-1 font-black text-white",
-  fareTestBadge: "mt-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-black",
-  fareTestBadgeNormal: "bg-emerald-500/15 text-emerald-200 ring-1 ring-emerald-400/30",
-  fareTestBadgeAmber: "bg-amber-500/15 text-amber-200 ring-1 ring-amber-400/30",
-  fareTestBadgeCrimson: "bg-red-500/15 text-red-200 ring-1 ring-red-400/30",
-  fareTestBadgeIcon: "h-3.5 w-3.5",
   inputLocked: "cursor-not-allowed opacity-50",
   submitWrap: "flex flex-1",
   professionalAdCard: "mt-3 h-[280px] rounded-[28px]",
@@ -101,20 +98,28 @@ interface BiddingProposalSheetProps {
   language: 'ar' | 'en';
   request: Trip;
   currency: string;
+  /** For the "time to reach the rider" estimate — the captain's own live position. */
+  driverLocation: { lat: number; lng: number } | null;
   isSubmitting: boolean;
   onSubmit: (price: number, waitSeconds: number) => void;
   onIgnore: () => void;
 }
 
 export function BiddingProposalSheet({
+  language,
   request,
   currency,
+  driverLocation,
   isSubmitting,
   onSubmit,
   onIgnore,
 }: BiddingProposalSheetProps) {
   const t = useTranslations('captainBidding');
   const pickupT = useTranslations('captainPickup');
+  const pickupDistanceKm = driverLocation && request.pickupCoords
+    ? estimateHaversineDistanceKm(driverLocation.lat, driverLocation.lng, request.pickupCoords.lat, request.pickupCoords.lng)
+    : null;
+  const pickupEtaMinutes = estimatePickupMinutes(pickupDistanceKm);
   const [waitSecondsInput, setWaitSecondsInput] = React.useState(String(MIN_OFFER_WAIT_SECONDS));
   const parsedWaitSeconds = Number(waitSecondsInput);
   const isWaitSecondsValid = Number.isInteger(parsedWaitSeconds) && parsedWaitSeconds >= MIN_OFFER_WAIT_SECONDS;
@@ -218,7 +223,6 @@ export function BiddingProposalSheet({
   const isDumpingAmber = marketBrake.status === 'AMBER_WARNING';
   const isDumpingBlocked = marketBrake.status === 'CRIMSON_BLOCK' || finalOfferPrice < floorPrice;
   const dumpingDeviationRatio = marketFare > 0 ? Math.max(0, (marketFare - finalOfferPrice) / marketFare) : 0;
-  const dumpingDeviationPercent = Math.round(dumpingDeviationRatio * 1000) / 10;
   const professionalAd = useCaptainProfessionalAd(dumpingDeviationRatio, isDumpingBlocked);
 
   const isAmberDeviation = isTierAmber || isDumpingAmber;
@@ -251,10 +255,14 @@ export function BiddingProposalSheet({
         <p className={styles.style116_9}>{t('destination')}</p>
         <h2 className={styles.style117_10}>{request.dropoff || t('unknownDestination')}</h2>
         <div className={styles.style118_11}>
-          <Info label={t('h3')} value={request.h3Index ? request.h3Index.slice(-8).toUpperCase() : '-'} />
           <Info
             label={t('distance')}
-            value={request.estimatedDistance != null ? `${request.estimatedDistance.toFixed(1)} km` : pickupT('distanceUnavailable')}
+            value={request.estimatedDistance != null ? `${request.estimatedDistance.toFixed(1)} ${language === 'ar' ? 'كيلو' : 'km'}` : pickupT('distanceUnavailable')}
+          />
+          <Info label={t('pickupTime')} value={pickupT('minutesValue', { count: pickupEtaMinutes })} />
+          <Info
+            label={t('tripTime')}
+            value={request.estimatedTime != null ? pickupT('minutesValue', { count: Math.round(request.estimatedTime) }) : pickupT('distanceUnavailable')}
           />
           {/* Base fare display disabled — kept hidden from captain by product request.
               This now holds the captain's own meter reading rather than the server fare,
@@ -433,21 +441,6 @@ export function BiddingProposalSheet({
               currency,
             })}
           </p>
-          <span className={cn(
-            styles.fareTestBadge,
-            isDumpingBlocked ? styles.fareTestBadgeCrimson : isDumpingAmber ? styles.fareTestBadgeAmber : styles.fareTestBadgeNormal,
-          )}>
-            {isDumpingBlocked || isDumpingAmber ? (
-              <AlertTriangle className={styles.fareTestBadgeIcon} />
-            ) : (
-              <CheckCircle2 className={styles.fareTestBadgeIcon} />
-            )}
-            {isDumpingBlocked
-              ? t('fareTestCrimsonBadge')
-              : isDumpingAmber
-                ? t('fareTestAmberBadge', { percent: dumpingDeviationPercent })
-                : t('fareTestNormalBadge')}
-          </span>
         </div>
 
         {isTierAmber && !isAboveBand ? (
