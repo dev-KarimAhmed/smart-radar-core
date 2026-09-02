@@ -47,9 +47,11 @@ const styles = {
 } as const;
 
 
-const isStrictDevelopment =
-  (globalThis as any).process?.env?.NODE_ENV === 'development' ||
-  ((process.env.NODE_ENV !== 'production') && process.env.MODE === 'development');
+// Same hydration hazard as in use-registration.tsx: `globalThis.process?.env?.NODE_ENV` is a
+// runtime lookup the bundler cannot replace, so it read true on the server and false in the
+// browser — and this value gates rendered output. The literal expression is inlined at build
+// time and therefore agrees on both sides.
+const isStrictDevelopment = process.env.NODE_ENV === 'development';
 
 function LoginOrchestrator() {
   const { setRole, setAuthMode, handleLogoTap } = useRegistration();

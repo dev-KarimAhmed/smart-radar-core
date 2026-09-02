@@ -10,6 +10,7 @@ import {
   Languages,
   Loader2,
   LockKeyhole,
+  Mail,
   MapPin,
   Phone,
   ShieldCheck,
@@ -32,6 +33,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useRegistration } from '../../hooks/use-registration';
+import { requestPasswordRecovery } from '../../services/password-recovery';
 import { navigateAuth } from '@/lib/auth-routing';
 
 import { cn } from '@/lib/utils';
@@ -177,6 +179,10 @@ const styles = {
   style847_144: "text-left",
   style851_145: "grid gap-3 sm:grid-cols-2",
   style856_146: "inline-flex min-h-12 items-center justify-center rounded-2xl bg-[#14B8A6] px-4 text-sm font-black text-[#0B0F19] shadow-[0_16px_45px_rgba(20,184,166,0.18)] transition hover:bg-[#2DD4BF]",
+  resetSubmit: "mt-3 w-full rounded-2xl bg-[#14B8A6] px-4 py-3 text-sm font-black text-[#04140F] transition hover:bg-[#2DD4BF] disabled:cursor-not-allowed disabled:opacity-50",
+  resetEmailNote: "mt-2 text-[10px] leading-relaxed text-slate-500",
+  resetSuccess: "mt-3 rounded-2xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-xs font-bold leading-relaxed text-emerald-200",
+  resetError: "mt-3 rounded-2xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-xs font-bold leading-relaxed text-rose-200",
   style862_147: "inline-flex min-h-12 items-center justify-center rounded-2xl border border-white/10 bg-white/10 px-4 text-sm font-black text-white transition hover:bg-white/15",
   style871_148: "absolute inset-x-0 bottom-0 z-0 h-14 overflow-hidden border-t border-white/10 bg-slate-950/70 backdrop-blur-xl",
   style873_149: "flex w-max min-w-[200%] gap-8 whitespace-nowrap py-5",
@@ -441,6 +447,27 @@ export function PersonalStep() {
   const [showPassword, setShowPassword] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
   const [resetPhone, setResetPhone] = useState(personal.phone);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetSubmitting, setResetSubmitting] = useState(false);
+  const [resetMessage, setResetMessage] = useState('');
+  const [resetError, setResetError] = useState('');
+
+  // This dialog used to be a dead end: two links to WhatsApp and a phone number, with no
+  // mechanism behind either and no way for support to actually reset anything. It now files
+  // a real request — either Supabase mails a recovery link (accounts with an email) or the
+  // request is queued for an admin to verify and approve.
+  const submitPasswordRecovery = async () => {
+    setResetSubmitting(true);
+    setResetError('');
+    setResetMessage('');
+    try {
+      setResetMessage(await requestPasswordRecovery(resetPhone, resetEmail));
+    } catch (error) {
+      setResetError(error instanceof Error ? error.message : 'تعذّر إرسال الطلب.');
+    } finally {
+      setResetSubmitting(false);
+    }
+  };
 
   const onFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -456,6 +483,9 @@ export function PersonalStep() {
 
   const openPasswordReset = () => {
     setResetPhone(personal.phone);
+    setResetEmail('');
+    setResetMessage('');
+    setResetError('');
     setResetOpen(true);
   };
 
@@ -737,16 +767,16 @@ export function PersonalStep() {
             <DialogTitle className={styles.style824_139}>{t.resetTitle}</DialogTitle>
             <DialogDescription className={styles.style825_140}>
               {isArabic
-                ? 'إعادة كلمة المرور تتم عبر الدعم، بدون رسائل SMS مدفوعة.'
-                : 'Password reset is handled through support, without paid SMS messages.'}
+                ? 'استرجاع فوري بالإيميل لو مضيف واحد، أو عبر الدعم بعد التحقق من هويتك.'
+                : 'Instant email recovery if you added an address, or through support after your identity is verified.'}
             </DialogDescription>
           </DialogHeader>
 
           <div className={styles.style832_141}>
             <div className={styles.style833_142}>
               {isArabic
-                ? 'للحفاظ على التكلفة الصفرية، لا نرسل رمز SMS لإعادة كلمة المرور. تواصل مع الدعم الرسمي وسيتم التحقق من هويتك ومساعدتك في إعادة تعيين كلمة المرور.'
-                : 'To keep the system zero-cost, SMS password reset is disabled. Contact official support so your identity can be verified and your password can be reset safely.'}
+                ? 'اكتب رقم هاتفك. لو حسابك عليه إيميل استرجاع، هيوصلك رابط عليه فوراً. لو لأ، الطلب هيروح للدعم ويتم التحقق من هويتك قبل إعادة التعيين.'
+                : 'Enter your phone number. If your account has a recovery email, a link is sent there right away. If not, the request goes to support and your identity is verified before any reset.'}
             </div>
 
             <Field label={t.resetPhone} icon={<Phone className={styles.style839_143} />}>
@@ -761,6 +791,44 @@ export function PersonalStep() {
               />
             </Field>
 
+            <Field
+              label={isArabic ? 'إيميل الاسترجاع (لو مضيفه)' : 'Recovery email (if you added one)'}
+              icon={<Mail className={styles.style839_143} />}
+            >
+              <input
+                type="email"
+                dir="ltr"
+                inputMode="email"
+                autoComplete="email"
+                placeholder="you@example.com"
+                value={resetEmail}
+                onChange={(event) => setResetEmail(event.target.value)}
+                className={cn(styles.input, styles.style847_144)}
+              />
+            </Field>
+            <p className={styles.resetEmailNote}>
+              {isArabic
+                ? 'الرابط بيتبعت على الإيميل المسجّل على حسابك بس. اللي بتكتبه هنا بيتقارن بيه للتأكيد — مش بنبعت لأي إيميل تاني.'
+                : 'The link is only ever sent to the address already on your account. What you type here is checked against it — we never send to a different address.'}
+            </p>
+
+            {resetMessage ? (
+              <p className={styles.resetSuccess}>{resetMessage}</p>
+            ) : null}
+            {resetError ? <p className={styles.resetError}>{resetError}</p> : null}
+
+            <button
+              type="button"
+              onClick={() => void submitPasswordRecovery()}
+              disabled={resetSubmitting || resetPhone.trim().length < 8}
+              className={styles.resetSubmit}
+            >
+              {resetSubmitting
+                ? (isArabic ? 'جاري الإرسال…' : 'Sending…')
+                : (isArabic ? 'إرسال طلب الاسترجاع' : 'Send recovery request')}
+            </button>
+
+            {/* Kept as a way to chase a queued request, not as the mechanism itself. */}
             <div className={styles.style851_145}>
               <a
                 href={buildSupportWhatsappUrl(resetPhone)}
@@ -768,7 +836,7 @@ export function PersonalStep() {
                 rel="noopener noreferrer"
                 className={styles.style856_146}
               >
-                {isArabic ? 'تواصل عبر واتساب' : 'WhatsApp support'}
+                {isArabic ? 'متابعة عبر واتساب' : 'Follow up on WhatsApp'}
               </a>
               <a
                 href={buildSupportTelUrl()}
@@ -835,7 +903,12 @@ function buildSupportTelUrl() {
 }
 
 function getSupportPhone() {
-  const env = (import.meta as unknown as { env?: Record<string, string | undefined> }).env;
-  const rawPhone = env?.NEXT_PUBLIC_SUPPORT_WHATSAPP || env?.NEXT_PUBLIC_SUPPORT_PHONE || '';
+  // `import.meta.env` is Vite's API and is always empty under Next, so this returned '' every
+  // time and both support links resolved to '#' — the WhatsApp and call buttons in the
+  // password-recovery dialog have never gone anywhere. Next inlines the literal
+  // `process.env.NEXT_PUBLIC_*` reads below at build time, on both server and client.
+  const rawPhone = process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP
+    || process.env.NEXT_PUBLIC_SUPPORT_PHONE
+    || '';
   return rawPhone.replace(/\D/g, '');
 }

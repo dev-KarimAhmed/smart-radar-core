@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Layers, Phone, Download, MoreVertical, Sparkles, X, Share2, PlusSquare } from 'lucide-react';
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { Button } from '@/components/ui/button';
 
@@ -110,8 +110,15 @@ export function PwaInstallPrompt() {
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleClose(); }}>
       <DialogContent className={styles.style45_1}>
+        {/* The title was already hidden-but-present for screen readers; the description was
+            missing entirely, which is what Radix warns about — a dialog announced with no
+            statement of what it is asking. Hidden visually for the same reason as the title:
+            the sighted layout below already says all of this. */}
         <VisuallyHidden>
           <DialogTitle>تثبيت التطبيق</DialogTitle>
+          <DialogDescription>
+            خطوات تثبيت تطبيق رادار على شاشة هاتفك للوصول السريع والعمل بدون إنترنت.
+          </DialogDescription>
         </VisuallyHidden>
 
         {/* Close Button */}

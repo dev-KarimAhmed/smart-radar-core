@@ -9,11 +9,13 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
+import { RecoveryEmailField } from '@/features/auth/contract';
 import { dexieDb } from '@/lib/dexie-db';
 import { Database, Heart, Languages, Loader2, MapPin, MessageCircle, RefreshCw, Save, ShieldCheck, Trash2, User } from 'lucide-react';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 
 const styles = {
+  recoveryEmailSlot: "mt-1",
   style549_1: "mx-auto w-full max-w-xl pb-24 font-sans text-start",
   style550_2: "border-emerald-950 bg-[#020502]/95 text-white",
   style551_3: "p-6 text-sm text-gray-300",
@@ -772,6 +774,13 @@ export function ProfileTab() {
                   placeholder="+962790000000"
                   required
                 />
+              </div>
+
+              {/* Riders were locked out of self-service recovery entirely: without an email
+                  on the account every forgotten password had to go through an admin, who
+                  then has the power to set it. */}
+              <div className={styles.recoveryEmailSlot}>
+                <RecoveryEmailField />
               </div>
 
               <div className={styles.style673_52}>

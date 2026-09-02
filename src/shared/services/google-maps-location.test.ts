@@ -133,3 +133,27 @@ test('extracts the place name from the resolved Google Maps URL', () => {
     'مركز ميريت',
   );
 });
+
+test('prefers the place pin over the map camera in a /maps/place URL', () => {
+  // Illustrative coordinates: the camera (@, downtown Cairo) sits far from the pin
+  // (!3d/!4d, 6th of October). Taking the camera quotes a trip to the wrong point.
+  const location = parseGoogleMapsLocation(
+    'https://www.google.com/maps/place/Mall+of+Arabia/@30.0444,31.2357,12z/data=!3m1!4b1!4m6!3m5!1s0x14584!8m2!3d29.9931!4d30.9714!16s%2Fg%2F123',
+  );
+
+  assert.deepEqual(location, { lat: 29.9931, lng: 30.9714 });
+});
+
+test('still reads the camera when a bare /maps/@ link carries no pin', () => {
+  const location = parseGoogleMapsLocation('https://www.google.com/maps/@29.9602,31.2569,16z');
+
+  assert.deepEqual(location, { lat: 29.9602, lng: 31.2569 });
+});
+
+test('prefers an explicit q= target over the camera', () => {
+  const location = parseGoogleMapsLocation(
+    'https://www.google.com/maps?q=29.9931,30.9714&ll=30.0444,31.2357',
+  );
+
+  assert.deepEqual(location, { lat: 29.9931, lng: 30.9714 });
+});

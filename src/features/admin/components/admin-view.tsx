@@ -4,12 +4,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DriversManagementTab } from './admin/drivers-management-tab';
 import { AdsManagementTab } from './admin/ads-management-tab';
 import { DelegatesManagementTab } from './admin/delegates-management-tab';
+import { PasswordResetsTab } from './admin/password-resets-tab';
 import { KillSwitchPanel } from './admin/kill-switch-panel';
 import { RadarOwnerSovereignDashboard } from './admin/owner-sovereign-dashboard';
 import { FuelIndexPanel } from './admin/fuel-index-panel';
 import { PulseHeatmap } from '@/components/admin/pulse-heatmap';
 import { useMarketPulse } from '@/hooks/use-market-pulse';
-import { Shield, Megaphone, Users, Activity, UsersRound, ShieldAlert, CheckCircle2, Loader2, ArrowUpRight, TrendingUp, AlertTriangle, Radio, ShieldCheck, Cpu, Eye, AlertCircle, RefreshCw, Sparkles, Fingerprint, Terminal, Scale, Compass, Trash2 } from 'lucide-react';
+import { Shield, Megaphone, Users, Activity, UsersRound, ShieldAlert, CheckCircle2, KeyRound, Loader2, ArrowUpRight, TrendingUp, AlertTriangle, Radio, ShieldCheck, Cpu, Eye, AlertCircle, RefreshCw, Sparkles, Fingerprint, Terminal, Scale, Compass, Trash2 } from 'lucide-react';
 import React, { useState } from 'react';
 import { useAdminAds } from '@/hooks/use-admin-ads';
 import { SovereignErrorBoundary } from '@/components/sovereign-error-boundary';
@@ -1252,6 +1253,11 @@ export function AdminViewTab() {
             <span className={styles.style1003_230}>جيش المندوبين 📣</span>
           </TabsTrigger>
 
+          <TabsTrigger value="password-resets" className={styles.style1001_228}>
+            <KeyRound className={styles.style1002_229} />
+            <span className={styles.style1003_230}>استرجاع كلمات المرور 🔑</span>
+          </TabsTrigger>
+
            <TabsTrigger value="pulse" className={styles.style1006_231}>
              <Activity className={styles.style1007_232} />
              <span className={styles.style1008_233}>نشاط السوق</span>
@@ -1293,6 +1299,12 @@ export function AdminViewTab() {
         <TabsContent value="delegates" className={styles.style1044_242}>
            <SovereignErrorBoundary>
               <DelegatesManagementTab />
+           </SovereignErrorBoundary>
+        </TabsContent>
+
+        <TabsContent value="password-resets" className={styles.style1044_242}>
+           <SovereignErrorBoundary>
+              <PasswordResetsTab />
            </SovereignErrorBoundary>
         </TabsContent>
 

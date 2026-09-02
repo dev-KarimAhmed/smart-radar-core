@@ -5,15 +5,30 @@ import { calculateSovereignDistance, estimateTripTime } from '@/core/logic/geosp
  * المستخرج السريع للمؤشرات الجغرافية للتتبع دون استهلاك الخرائط المدفوعة وحماية خصوصية الإحداثيات الجغرافية للمستخدمين.
  */
 
+/**
+ * مرتبة من الأدق إلى الأقل دقة. `@lat,lng` هو مركز كاميرا الخريطة وليس دبوس المكان،
+ * فلازم يكون آخر خيار — كان أول خيار، فأي رابط /maps/place/ كاميرته مش واقفة على المكان
+ * بالظبط كان يرجّع نقطة غلط ممكن تبعد عشرات الكيلومترات، والراكب يتسعّر عليها.
+ */
 export const coordinatePatterns = [
-    /@(-?\d+\.\d+),(-?\d+\.\d+)/,                // النمط القياسي @lat,lng
-    /!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/,            // نمط الأبعاد الأربعة !3dlat!4dlng
-    /center=(-?\d+\.\d+)(?:\+2C|%2C|%2c|,)(-?\d+\.\d+)/i,  // نمط المركز المعزز
-    /ll=(-?\d+\.\d+)(?:\+2C|%2C|%2c|,)(-?\d+\.\d+)/i,      // نمط ll المعزز
-    /q=(-?\d+\.\d+),(-?\d+\.\d+)/,               // نمط البحث المبسط q=lat,lng
+    /!8m2!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/,        // دبوس المكان القياسي داخل data=
+    /!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/,            // نفس الدبوس بدون غلاف !8m2
+    /q=(-?\d+\.\d+),(-?\d+\.\d+)/,               // إحداثيات معلنة كهدف q=lat,lng
     /query=(-?\d+\.\d+)(?:\+2C|%2C|%2c|,)(-?\d+\.\d+)/i,   // نمط البحث الأساسي query=lat,lng
+    /destination=(-?\d+\.\d+)(?:\+2C|%2C|%2c|,)(-?\d+\.\d+)/i, // وجهة رابط الاتجاهات
+    /ll=(-?\d+\.\d+)(?:\+2C|%2C|%2c|,)(-?\d+\.\d+)/i,      // نمط ll المعزز
+    /center=(-?\d+\.\d+)(?:\+2C|%2C|%2c|,)(-?\d+\.\d+)/i,  // نمط المركز المعزز
+    /@(-?\d+\.\d+),(-?\d+\.\d+)/,                // الكاميرا — آخر خيار
     /(-?\d{1,2}\.\d+)(?:\+2C|%2C|%2c|,)\s*(-?\d{1,3}\.\d+)/i // النمط العشري الصريح المرن (lat,lng) الموحد
 ];
+
+/** حدود الكرة الأرضية. أي ناتج خارجها هو مطابقة زائفة، مش إحداثي. */
+function isPlausibleCoordinate(lat: number, lng: number) {
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false;
+    if (Math.abs(lat) > 90 || Math.abs(lng) > 180) return false;
+    // 0,0 في خليج غينيا — عملياً دايماً قيمة افتراضية فاضية، مش وجهة.
+    return !(lat === 0 && lng === 0);
+}
 
 /**
  * تهيئة وتنظيف الروابط لضمان احتوائها على المعطيات الكافية.
@@ -41,12 +56,15 @@ export function extractCoordsLocally(url: string): { lat: number; lng: number } 
     // 1. استخدام الأنماط القياسية
     for (const pattern of coordinatePatterns) {
         const match = url.match(pattern);
-        if (match) {
-            return { 
-                lat: parseFloat(match[1]), 
-                lng: parseFloat(match[2]) 
-            };
-        }
+        if (!match) continue;
+
+        const lat = parseFloat(match[1]);
+        const lng = parseFloat(match[2]);
+        // النمط الأخير فضفاض وبيلقط أي رقمين عشريين مفصولين بفاصلة، فأي حاجة برّه حدود
+        // الكرة الأرضية تُرفض ويكمّل البحث بدل ما ترجع كإحداثي.
+        if (!isPlausibleCoordinate(lat, lng)) continue;
+
+        return { lat, lng };
     }
 
     // 2. فك نمط الدرجات والدقائق والثواني DMS (مثال: 33°18'45.0"N 44°21'30.0"E)

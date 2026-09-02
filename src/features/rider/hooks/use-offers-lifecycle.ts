@@ -100,11 +100,9 @@ export function useOffersLifecycle(
 
   // Drops an offer from state the moment its captain-chosen wait_seconds
   // window elapses — without this, an expired offer stayed in state.offers
-  // forever (only hidden at render time), which desynced it from the
-  // auto-expand-first-offer logic below: that logic considered the expired
-  // offer still "present" and left it selected while a different card
-  // rendered as the actual first visible one, so the real first offer showed
-  // collapsed instead of auto-expanding.
+  // forever (only hidden at render time), so the expand logic below still
+  // considered it "present" and kept it selected: the rider had a card open
+  // that no longer rendered, and no way to see it was gone.
   React.useEffect(() => {
     if (state.screen !== 'RECEIVING_OFFERS' || state.offers.length === 0) return;
 
@@ -170,6 +168,9 @@ export function useOffersLifecycle(
       return;
     }
 
+    // Every card starts closed and only the rider opens one. This used to auto-expand the
+    // first offer, which both hid the fact that the card is expandable and gave whichever
+    // offer sorted first a permanent head start in the rider's attention.
     setExpandedOfferId((current) => {
       if (current && state.offers.some((offer) => (offer.id || offer.driverId) === current)) return current;
       return null;
