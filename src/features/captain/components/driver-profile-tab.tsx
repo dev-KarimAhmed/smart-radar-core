@@ -373,9 +373,33 @@ export function DriverProfileTab({ user, language }: DriverProfileTabProps) {
       return;
     }
 
-    const tariffProblem = validateTariff();
-    setTariffError(tariffProblem);
-    if (tariffProblem) return;
+    // Only let the tariff block the save when the captain actually touched the tariff.
+    //
+    // This used to run on EVERY save, so an unrelated tariff problem stopped a captain
+    // editing their own company name — and `minBaseFare` is the market-derived floor, which
+    // moves. A captain whose stored base_fare predates a rise in that floor was permanently
+    // locked out of editing any field on this page.
+    //
+    // And the block was SILENT from where the click happened: setTariffError writes into the
+    // tariff panel ~160 lines further down, so the button simply appeared dead. Now it says
+    // so on the spot.
+    const tariffTouched = [
+      ['baseFare', baseFare],
+      ['includedKm', includedKm],
+      ['pricePerKm', pricePerKm],
+      ['pricePerMin', pricePerMin],
+    ].some(([key, value]) => String(value ?? '') !== String(savedSnapshotRef.current[key as string] ?? ''));
+
+    if (tariffTouched) {
+      const tariffProblem = validateTariff();
+      setTariffError(tariffProblem);
+      if (tariffProblem) {
+        toast({ variant: 'destructive', title: t('saveErrorTitle'), description: tariffProblem });
+        return;
+      }
+    } else {
+      setTariffError('');
+    }
 
     setIsSaving(true);
     try {
@@ -436,14 +460,23 @@ export function DriverProfileTab({ user, language }: DriverProfileTabProps) {
         vehicle_color: vehicle.color || null,
         facebook_url: facebookUrl.trim() || null,
         instagram_url: instagramUrl.trim() || null,
-        // Left as null while a field is blank, which is what keeps the mandatory setup
-        // modal gating: a partial tariff cannot price a trip.
-        base_fare: inputToNumber(baseFare),
-        price_per_km: inputToNumber(pricePerKm),
-        price_per_min: inputToNumber(pricePerMin),
-        // NOT NULL with a zero default, so a blank field means "no allowance", not "unset".
-        included_km: inputToNumber(includedKm) ?? 0,
       };
+
+      // Tariff columns are sent ONLY when the captain actually changed them.
+      //
+      // Re-sending an unchanged base_fare is what triggered
+      // `base_fare_below_market_minimum` on an edit to the company name: the floor is
+      // derived from the market average and moves, so a value that was legal when it was
+      // set becomes illegal later, and re-submitting it re-runs the check. Omitting the
+      // column leaves the stored value alone on the update path, and leaves the tariff
+      // unset on a genuine first insert — which is what the setup modal then asks for.
+      if (tariffTouched) {
+        captainProfilePayload.base_fare = inputToNumber(baseFare);
+        captainProfilePayload.price_per_km = inputToNumber(pricePerKm);
+        captainProfilePayload.price_per_min = inputToNumber(pricePerMin);
+        // NOT NULL with a zero default, so a blank field means "no allowance", not "unset".
+        captainProfilePayload.included_km = inputToNumber(includedKm) ?? 0;
+      }
       if (isTaxi) {
         captainProfilePayload.office_phone = officePhone.trim() || null;
         captainProfilePayload.side_id = sideId.trim() || null;
@@ -457,15 +490,38 @@ export function DriverProfileTab({ user, language }: DriverProfileTabProps) {
         .select('id');
 
       const captainProfileSynced = !captainProfileError && Array.isArray(captainProfileRows) && captainProfileRows.length > 0;
+
+      // captain_profiles is the ONLY home for most of this page: nickname, company name,
+      // company code, office phone, side id, social links and the whole tariff. `profiles`
+      // above only ever receives full_name, phone and the vehicle columns.
+      //
+      // So when this upsert fails, almost nothing the captain edited was written. The code
+      // used to log a dev-only warning, with its error toast commented out, and then call
+      // captureSavedSnapshot() and report SUCCESS — which greys the save button out (nothing
+      // left to save), closes the editor, and leaves the UI indistinguishable from a real
+      // save while the backend has nothing. That is the "الزر بيقول تم بس مفيش تعديل ع
+      // الباك اند" report.
+      //
+      // Twelve lines above, the profiles write guards against exactly this hazard and the
+      // comment there spells it out: "the UI would report 'saved' while nothing actually
+      // changed server-side". The same guard existed here; only its consequence was missing.
       if (!captainProfileSynced) {
         if ((process.env.NODE_ENV !== 'production')) {
           console.warn('[Driver profile save] captain_profiles sync failed:', captainProfileError || 'no rows affected');
         }
-        // toast({
-        //   variant: 'destructive',
-        //   title: t('vehicleSyncWarningTitle'),
-        //   description: t('vehicleSyncWarningDescription'),
-        // });
+
+        // Thrown, not toasted-and-continued, so the snapshot is NOT advanced and the field
+        // stays open with the captain's text still in it.
+        //
+        // Tagged, because the catch below falls back to saveProfileToAuthMetadata() and
+        // reports success when THAT works — and auth user_metadata is not captain_profiles.
+        // Riders read the company name, nickname and tariff from the table, so a metadata
+        // write is not a save of these fields, and calling it one is the same lie in a
+        // different place.
+        throw Object.assign(
+          new Error(captainProfileError?.message || 'captain_profile_update_not_confirmed'),
+          { isCaptainProfileFailure: true },
+        );
       }
 
       applySavedProfileState();
@@ -474,6 +530,20 @@ export function DriverProfileTab({ user, language }: DriverProfileTabProps) {
       setEditingFields(new Set());
     } catch (error) {
       if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver profile save]', error);
+
+      // The metadata fallback cannot stand in for captain_profiles, so this failure is
+      // reported as a failure — with the database's own message, because "تعذر الحفظ" alone
+      // does not distinguish an RLS denial from a NOT NULL violation from a missing column,
+      // and those need different fixes.
+      if ((error as { isCaptainProfileFailure?: boolean })?.isCaptainProfileFailure) {
+        toast({
+          variant: 'destructive',
+          title: t('saveErrorTitle'),
+          description: error instanceof Error ? error.message : t('saveErrorDescription'),
+        });
+        return;
+      }
+
       const fallbackSaved = (process.env.NODE_ENV !== 'production') && !isUuid(user.uid)
         ? true
         : await saveProfileToAuthMetadata();
