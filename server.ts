@@ -55,7 +55,7 @@ async function startServer() {
   await nextApp.prepare();
 
   const app = express();
-  const PORT = 3002
+  const PORT = 3000
 
   // Real-time IP-based Sliding Window Rate Limiter (Zone B)
   const rateLimitMap = new Map<string, { timestamps: number[] }>();
