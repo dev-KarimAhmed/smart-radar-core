@@ -27,12 +27,36 @@ async function adminHeaders() {
   };
 }
 
+/**
+ * Reads a JSON body without assuming there is one.
+ *
+ * These endpoints live on the Express server that wraps Next. When Express has not picked up
+ * a route — most often because server.ts changed and the dev server was not restarted, since
+ * tsx does not reload it — the request falls through to Next, which answers with an HTML 404
+ * page. Calling response.json() on that throws `Unexpected token '<', "<!DOCTYPE "...`, which
+ * tells the person staring at it nothing at all.
+ */
+async function readJson<T>(response: Response): Promise<T> {
+  const body = await response.text();
+  try {
+    return JSON.parse(body) as T;
+  } catch {
+    throw new Error(
+      response.status === 404
+        ? 'خدمة استرجاع كلمة المرور غير متاحة على الخادم حالياً. حاول تاني بعد شوية أو تواصل مع الدعم.'
+        : 'رد غير متوقع من الخادم. حاول تاني بعد شوية.',
+    );
+  }
+}
+
 async function readError(response: Response, fallback: string) {
   try {
-    const payload = await response.json() as { error?: string };
+    const payload = await readJson<{ error?: string }>(response);
     return payload.error || fallback;
-  } catch {
-    return fallback;
+  } catch (error) {
+    // A non-JSON body already carries the clearer explanation from readJson; a JSON body
+    // without an `error` key falls back to the caller's message.
+    return error instanceof Error ? error.message : fallback;
   }
 }
 
@@ -49,7 +73,7 @@ export async function requestPasswordRecovery(phone: string, email?: string) {
     body: JSON.stringify({ phone, email: email?.trim() || undefined }),
   });
 
-  const payload = await response.json() as { success?: boolean; message?: string; error?: string };
+  const payload = await readJson<{ success?: boolean; message?: string; error?: string }>(response);
   if (!response.ok || !payload.success) {
     throw new Error(payload.error || 'تعذّر إرسال طلب الاسترجاع.');
   }
@@ -100,7 +124,7 @@ export async function listPasswordResetRequests(status = 'PENDING') {
   if (!response.ok) {
     throw new Error(await readError(response, 'تعذّر تحميل طلبات الاسترجاع.'));
   }
-  const payload = await response.json() as { requests?: PasswordResetRequestRow[] };
+  const payload = await readJson<{ requests?: PasswordResetRequestRow[] }>(response);
   return payload.requests ?? [];
 }
 
@@ -114,7 +138,7 @@ export async function issuePasswordResetToken(requestId: string, verificationNot
   if (!response.ok) {
     throw new Error(await readError(response, 'تعذّر إصدار رمز الاسترجاع.'));
   }
-  return await response.json() as { token: string; expiresAt: string; expiresInMinutes: number };
+  return await readJson<{ token: string; expiresAt: string; expiresInMinutes: number }>(response);
 }
 
 export async function rejectPasswordResetRequest(requestId: string, reason: string) {
