@@ -58,6 +58,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
   const fareAndRoute = useServerFareAndRoute({
     activeCountryId,
     riderLocation: geolocation.riderLocation,
+    riderLocationStatus: geolocation.locationStatus,
     selectedDestinationCoords: destination.selectedDestinationCoords,
     selectedDistrict: geography.selectedDistrict,
     destinationDataError: geography.destinationDataError,

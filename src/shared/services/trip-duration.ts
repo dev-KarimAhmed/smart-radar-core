@@ -34,6 +34,40 @@ export const URBAN_SEGMENT_KM = 25;
  */
 export const PICKUP_MINUTES_PER_KM = 3;
 
+/**
+ * Time-of-day multiplier on a free-flow duration.
+ *
+ * A single flat traffic factor per country cannot be right twice a day: measured against
+ * Google on the same Giza route, the app was ~20% optimistic at 08:00 and roughly correct at
+ * 14:00. One number split the difference and was wrong in both directions.
+ *
+ * The shape is the ordinary two-peak commute curve — a morning peak, a shallower midday, a
+ * heavier and longer evening peak, and near free-flow overnight. Friday is the weekend in
+ * Egypt and Jordan, so its morning peak is absent.
+ *
+ * These are STARTING values, not measurements. recalibrate_traffic_factors() in
+ * supabase/migrations/20260903090000_trip_duration_calibration.sql measures the real
+ * multiplier from completed trips and corrects the per-country factor this sits on top of;
+ * this curve only has to get the SHAPE of the day roughly right.
+ */
+const HOURLY_TRAFFIC_CURVE = [
+  0.85, 0.85, 0.85, 0.85, 0.90, 1.00, // 00-05  empty roads
+  1.15, 1.35, 1.45, 1.35, 1.15, 1.10, // 06-11  morning peak, 08:00 worst
+  1.10, 1.15, 1.15, 1.25, 1.40, 1.50, // 12-17  build to the evening peak
+  1.45, 1.30, 1.15, 1.05, 0.95, 0.90, // 18-23  evening tail
+] as const;
+
+export const WEEKEND_MORNING_RELIEF = 0.85;
+
+export function timeOfDayTrafficMultiplier(when: Date = new Date()) {
+  const hour = when.getHours();
+  const base = HOURLY_TRAFFIC_CURVE[hour] ?? 1;
+
+  // Friday (5) is the weekend here; there is no commute to be stuck in before noon.
+  const isWeekendMorning = when.getDay() === 5 && hour < 12;
+  return isWeekendMorning ? Math.max(1, base * WEEKEND_MORNING_RELIEF) : base;
+}
+
 const MIN_TRIP_MINUTES = 3;
 const MIN_PICKUP_MINUTES = 1;
 

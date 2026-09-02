@@ -16,6 +16,11 @@ const FARE_RECALCULATION_DEBOUNCE_MS = 350;
 export function useServerFareAndRoute(params: {
   activeCountryId: number | undefined;
   riderLocation: RiderLocation;
+  /**
+   * 'fallback' means riderLocation is still the hardcoded placeholder, not a GPS fix. The
+   * fare must not be built on it — see hasUsableRiderLocation below.
+   */
+  riderLocationStatus?: string;
   selectedDestinationCoords: RiderLocation | null;
   selectedDistrict: DistrictOption | null;
   destinationDataError: string | null;
@@ -23,7 +28,7 @@ export function useServerFareAndRoute(params: {
   /** countries.traffic_factor for the active country; see fetchRoadRoute. */
   trafficFactor?: number | null;
 }) {
-  const { activeCountryId, riderLocation, selectedDestinationCoords, selectedDistrict, destinationDataError, isDestinationPinMoving, trafficFactor } = params;
+  const { activeCountryId, riderLocation, riderLocationStatus, selectedDestinationCoords, selectedDistrict, destinationDataError, isDestinationPinMoving, trafficFactor } = params;
   const t = useTranslations('riderView');
 
   const [serverFareState, setServerFareState] = React.useState<{
@@ -54,10 +59,20 @@ export function useServerFareAndRoute(params: {
 
   const currentServerFare = serverFareState.key === fareRequestKey ? serverFareState.fare : null;
   const currentRouteEstimate = routeEstimateState.key === fareRequestKey ? routeEstimateState.estimate : null;
+  /**
+   * A real GPS fix, not the placeholder.
+   *
+   * This used to reject only 0,0 — which let the hardcoded INITIAL_RIDER_LOCATION through as
+   * though it were the rider's position. That constant is Tahrir Square (30.0444, 31.2357),
+   * so a rider whose GPS had not resolved yet, or who denied permission, was quoted and
+   * charged for a trip starting in downtown Cairo. `locationStatus` already knew the
+   * difference; nothing was asking it.
+   */
   const hasUsableRiderLocation =
     Number.isFinite(riderLocation.lat) &&
     Number.isFinite(riderLocation.lng) &&
-    (riderLocation.lat !== 0 || riderLocation.lng !== 0);
+    (riderLocation.lat !== 0 || riderLocation.lng !== 0) &&
+    riderLocationStatus !== 'fallback';
   const isRouteEstimateLoading =
     !!selectedDestinationCoords &&
     (!hasUsableRiderLocation || routeEstimateState.key !== fareRequestKey || routeEstimateState.isLoading || isDestinationPinMoving);

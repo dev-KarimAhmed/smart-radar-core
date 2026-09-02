@@ -1,4 +1,4 @@
-import { estimateTripMinutes } from '@/shared/services/trip-duration';
+import { estimateTripMinutes, timeOfDayTrafficMultiplier } from '@/shared/services/trip-duration';
 
 export interface RoadRoutePoint {
   lat: number;
@@ -9,6 +9,16 @@ export interface RoadRouteEstimate {
   distanceKm: number;
   durationMinutes: number;
   isFallback: boolean;
+  /**
+   * Which engine produced this, and between which two points.
+   *
+   * Carried on the estimate because "the distance is wrong" has been diagnosed three times
+   * now from a screenshot of the answer alone, which cannot distinguish a bad router from
+   * good routing between the wrong two points — and those need completely different fixes.
+   */
+  source?: RouteProvider | 'haversine-fallback';
+  origin?: RoadRoutePoint;
+  destination?: RoadRoutePoint;
 }
 
 /**
@@ -76,6 +86,55 @@ const ROUTE_TIMEOUT_MS = 4500;
 const ROUTE_FETCH_ATTEMPTS = 2;
 
 /**
+ * The primary router gets a tighter deadline and no retry, because it is the least reliable
+ * link in the chain. Measured: valhalla1.openstreetmap.de answered fine in the morning and
+ * was timing out entirely a few hours later, while OSRM stayed up throughout. With the
+ * shared 4.5s budget and two attempts, EVERY trip then sat for ~9s before OSRM was even
+ * asked — the rider waiting on a spinner for a router that was never going to answer.
+ *
+ * A community instance being occasionally unavailable is not a bug to fix; it is a property
+ * to design around.
+ */
+const PRIMARY_TIMEOUT_MS = 2500;
+
+/**
+ * Circuit breaker. After this many consecutive failures the provider is skipped entirely for
+ * the cooldown, so a router that is simply down costs one slow request instead of one per
+ * route lookup. I argued against adding this earlier on the grounds that a blocked network
+ * fails fast — that was wrong: an unreachable host TIMES OUT, it does not refuse.
+ */
+const PROVIDER_FAILURE_LIMIT = 2;
+const PROVIDER_COOLDOWN_MS = 120_000;
+const providerFailures = new Map<RouteProvider, { count: number; until: number }>();
+
+function isProviderCoolingDown(provider: RouteProvider) {
+  const record = providerFailures.get(provider);
+  if (!record) return false;
+  if (record.until > Date.now()) return true;
+  providerFailures.delete(provider);
+  return false;
+}
+
+function noteProviderFailure(provider: RouteProvider) {
+  const record = providerFailures.get(provider) ?? { count: 0, until: 0 };
+  record.count += 1;
+  if (record.count >= PROVIDER_FAILURE_LIMIT) {
+    record.until = Date.now() + PROVIDER_COOLDOWN_MS;
+    record.count = 0;
+  }
+  providerFailures.set(provider, record);
+}
+
+function noteProviderSuccess(provider: RouteProvider) {
+  providerFailures.delete(provider);
+}
+
+/** Test seam: module-level breaker state would otherwise leak between test cases. */
+export function resetRouteProviderHealth() {
+  providerFailures.clear();
+}
+
+/**
  * Routes are cached because OSRM's default profile has no live traffic — the same two
  * points always produce the same distance and duration. Without this, every nudge of the
  * destination pin fired another request at a shared free server, which is exactly how you
@@ -91,6 +150,7 @@ function buildRouteCacheKey(
   destination: RoadRoutePoint,
   tortuosityFactor: number,
   trafficFactor: number,
+  timeOfDayFactor: number,
 ) {
   const round = (value: number) => value.toFixed(4);
   return [
@@ -98,6 +158,9 @@ function buildRouteCacheKey(
     round(destination.lat), round(destination.lng),
     tortuosityFactor.toFixed(2),
     trafficFactor.toFixed(2),
+    // Part of the key, or a route first quoted in the 08:00 peak would keep serving that
+    // rush-hour duration to everyone at 14:00 for as long as it stayed in the cache.
+    timeOfDayFactor.toFixed(2),
   ].join(',');
 }
 
@@ -262,11 +325,25 @@ export async function fetchRoadRoute(
    * already a congested speed.
    */
   trafficFactor = DEFAULT_TRAFFIC_FACTOR,
+  /**
+   * When the trip departs, for the time-of-day multiplier. Injectable because the moment
+   * this became time-dependent, a fixed input stopped producing a fixed output — which
+   * makes the function untestable and its behaviour impossible to reason about from a log.
+   * Also the seam for quoting a scheduled ride at its real departure hour rather than now.
+   */
+  when: Date = new Date(),
 ): Promise<RoadRouteEstimate> {
   const normalizedTortuosityFactor = normalizeTortuosityFactor(tortuosityFactor);
   const normalizedTrafficFactor = normalizeTrafficFactor(trafficFactor);
 
-  const cacheKey = buildRouteCacheKey(origin, destination, normalizedTortuosityFactor, normalizedTrafficFactor);
+  const timeOfDayFactor = timeOfDayTrafficMultiplier(when);
+  const cacheKey = buildRouteCacheKey(
+    origin,
+    destination,
+    normalizedTortuosityFactor,
+    normalizedTrafficFactor,
+    timeOfDayFactor,
+  );
   const cached = routeCache.get(cacheKey);
   if (cached) return cached;
 
@@ -282,10 +359,15 @@ export async function fetchRoadRoute(
     // A relative URL has nothing to resolve against outside a browser, and on the server
     // this entry is the endpoint we are already inside.
     if (provider === 'proxy' && typeof window === 'undefined') continue;
+    if (isProviderCoolingDown(provider)) continue;
 
-    for (let attempt = 1; attempt <= ROUTE_FETCH_ATTEMPTS; attempt += 1) {
+    const isPrimary = provider === ROUTE_PROVIDERS[0];
+    const timeoutMs = isPrimary ? PRIMARY_TIMEOUT_MS : ROUTE_TIMEOUT_MS;
+    const attempts = isPrimary ? 1 : ROUTE_FETCH_ATTEMPTS;
+
+    for (let attempt = 1; attempt <= attempts; attempt += 1) {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), ROUTE_TIMEOUT_MS);
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
       try {
         const raw = provider === 'valhalla'
@@ -303,21 +385,35 @@ export async function fetchRoadRoute(
         // The router answered, just not usefully. That is a real result, not a hiccup, so
         // retrying it would only waste time — hand over to the next provider instead of
         // dropping straight to the local estimate the way this used to.
-        if (!raw || !isPlausibleRoute(raw, straightDistanceKm)) continue providerLoop;
+        if (!raw || !isPlausibleRoute(raw, straightDistanceKm)) {
+          // The router answered, so it is up. Do not count this against its health.
+          continue providerLoop;
+        }
 
+        // A free-flow duration gets the country factor AND the time of day. A
+        // congestion-aware one gets neither: Valhalla already prices the road, and the
+        // proxy already applied both of these server-side.
+        const minutes = raw.modelsCongestion
+          ? raw.minutes
+          : raw.minutes * normalizedTrafficFactor * timeOfDayFactor;
 
-        const minutes = raw.modelsCongestion ? raw.minutes : raw.minutes * normalizedTrafficFactor;
         const estimate: RoadRouteEstimate = {
           distanceKm: roundMetric(raw.distanceKm),
           durationMinutes: Math.max(1, Math.ceil(minutes)),
           isFallback: false,
+          source: provider,
+          origin,
+          destination,
         };
 
+        noteProviderSuccess(provider);
         auditDistance(provider, origin, destination, normalizedTortuosityFactor, estimate);
         rememberRoute(cacheKey, estimate);
         return estimate;
       } catch {
-        // A dropped connection or abort — worth one retry before moving on.
+        // Timeout or dropped connection. This one counts: it is how a router that is simply
+        // down gets taken out of the chain instead of costing every rider a stall.
+        noteProviderFailure(provider);
       } finally {
         clearTimeout(timeoutId);
       }
@@ -345,6 +441,9 @@ function createFallbackEstimate(
     // matches the duration the rider is shown.
     durationMinutes: estimateTripMinutes(distanceKm),
     isFallback: true,
+    source: 'haversine-fallback' as const,
+    origin,
+    destination,
   };
   auditDistance('haversine-fallback', origin, destination, normalizeTortuosityFactor(tortuosityFactor), estimate);
   return estimate;

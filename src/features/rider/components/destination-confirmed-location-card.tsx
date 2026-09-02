@@ -31,7 +31,12 @@ const styles = {
   summaryChevron: "h-3.5 w-3.5 shrink-0 transition-transform group-open:rotate-180",
   detailsBody: "border-t border-white/8 p-2",
   detailsLink: "flex min-h-9 w-full min-w-0 items-center rounded-lg border border-white/8 bg-[#1E293B] px-2 text-[10px] font-bold text-slate-300 outline-none transition hover:border-[#14B8A6]/60 hover:text-[#BFFCF2] focus-visible:border-[#14F5D5] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#14F5D5]",
+  debugLine: "rounded-lg border border-amber-500/25 bg-amber-500/5 px-2 py-1.5 font-mono text-[9px] leading-relaxed text-amber-200/80",
 } as const;
+
+// Literal expression, so the bundler strips this from the production build. Reaching it
+// dynamically (globalThis.process?.env) is what caused the login hydration mismatch.
+const isDevBuild = process.env.NODE_ENV === 'development';
 
 export interface DestinationConfirmedLocationCardProps {
   externalLocationUrl: string;
@@ -87,6 +92,20 @@ export function DestinationConfirmedLocationCard({
             <span className={styles.routeCardDurationHelper}>{locationCopy('helper_without_traffic')}</span>
           </div>
         </div>
+      ) : null}
+
+      {/* Development only. "The distance is wrong" has now been reported three times from a
+          screenshot of the RESULT, which cannot tell a bad router from correct routing
+          between the wrong two points — and those have completely different fixes. Putting
+          the inputs on screen means the same screenshot answers the question. */}
+      {isDevBuild && currentRouteEstimate?.origin && currentRouteEstimate?.destination ? (
+        <p className={styles.debugLine} dir="ltr">
+          {currentRouteEstimate.source}
+          {' · from '}
+          {currentRouteEstimate.origin.lat.toFixed(5)},{currentRouteEstimate.origin.lng.toFixed(5)}
+          {' → '}
+          {currentRouteEstimate.destination.lat.toFixed(5)},{currentRouteEstimate.destination.lng.toFixed(5)}
+        </p>
       ) : null}
 
       <details className={styles.details}>
