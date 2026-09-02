@@ -206,6 +206,58 @@ export function useRideRequestStatusSync(params: {
     );
   }, [dispatch, language, pendingAcceptedOfferIdRef, state.requestId, t, toast]);
 
+  /**
+   * Safety net: re-read the request's status while the rider sits on the trip screen.
+   *
+   * Leaving that screen depended on exactly ONE realtime event arriving. Miss it — dropped
+   * socket, backgrounded tab, an RLS hiccup, a transaction that rolled back and republished
+   * nothing — and the rider stays inside a finished trip forever, with no way out and no
+   * indication anything is wrong. That is the "الكابتن نهى الرحلة ولسه شغالة عند الراكب"
+   * report, and it stays possible however the underlying cause is fixed, because a live
+   * subscription is not a guarantee of delivery.
+   *
+   * A poll is not a substitute for realtime — it is the floor under it. Realtime still does
+   * the work and updates instantly; this only catches what realtime dropped, which is why
+   * 20s is frequent enough.
+   */
+  React.useEffect(() => {
+    if (!state.requestId || state.screen !== 'TRIP_ACTIVE') return;
+
+    let cancelled = false;
+
+    const reconcile = async () => {
+      const { data, error } = await supabase
+        .from('ride_requests')
+        .select('id,status,completed_at,cancelled_at,accepted_offer_id,selected_offer_id')
+        .eq('id', state.requestId!)
+        .maybeSingle();
+
+      if (cancelled || error || !data) return;
+
+      const status = String((data as Record<string, unknown>).status || '').toUpperCase();
+      if (status === 'COMPLETED') {
+        pendingAcceptedOfferIdRef.current = null;
+        dispatch({ type: 'SERVER_STATUS_COMPLETED', row: data as Record<string, unknown> });
+      } else if (status === 'CANCELLED') {
+        pendingAcceptedOfferIdRef.current = null;
+        dispatch({ type: 'REQUEST_CANCELLED' });
+      }
+    };
+
+    // Once straight away: if the event was missed while the tab was hidden, the rider should
+    // not have to wait a whole interval after coming back.
+    void reconcile();
+    const interval = window.setInterval(() => void reconcile(), 20_000);
+    const onVisible = () => { if (document.visibilityState === 'visible') void reconcile(); };
+    document.addEventListener('visibilitychange', onVisible);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [dispatch, pendingAcceptedOfferIdRef, state.requestId, state.screen]);
+
   React.useEffect(() => {
     if (!state.activeTrip) {
       setEtaSeconds(0);
