@@ -799,6 +799,7 @@
     "pricePerKmModalInvalid": "Please enter a price greater than zero.",
     "tariffModalTitle": "Set your trip tariff",
     "tariffModalBody": "Before using the dashboard, set the three components of your tariff. This step cannot be skipped.",
+    "tariffModalShortDistancesToggle": "Set up short distances",
     "tariffModalBaseFareLabel": "Base meter-opening charge",
     "tariffModalBaseFareHint": "The flat charge that starts every trip.",
     "tariffModalBaseFareTooLow": "The meter-opening charge cannot be lower than {min}.",
