@@ -97,7 +97,8 @@ export function DestinationSummaryCard({
         <div className={styles.row}>
           <div className={styles.destination}>
             <span className={styles.fieldLabel}>{t('destination.label')}</span>
-            <strong className={styles.destinationValue}>{destinationLabel}</strong>
+            {/* dir="auto" so a Latin destination name truncates from its own tail instead of the RTL page's. */}
+            <strong dir="auto" className={styles.destinationValue}>{destinationLabel}</strong>
             {hasDestinationCoordsAnchor && selectedDestinationCoords ? (
               <span className={styles.coords}>
                 {selectedDestinationCoords.lat.toFixed(4)}, {selectedDestinationCoords.lng.toFixed(4)}

@@ -194,7 +194,15 @@ async function reverseResolveGeography(location: { lat: number; lng: number }) {
     );
     return {
       governorate: governorateCandidates[0] || null,
-      district: firstAddressValue(address, 'county', 'municipality', 'city_district', 'suburb'),
+      // Was a separate, narrower list (county/municipality/city_district/suburb only) that
+      // left out `neighbourhood` and `hamlet` — the two fields OSM actually tags most small
+      // and old-city areas with (e.g. El-Gamaleya in Cairo has neither a suburb nor a
+      // city_district tag, only a neighbourhood one). That gap meant `district` silently
+      // fell through to `city` for exactly the residential-area case it exists to handle,
+      // showing "Cairo - Cairo" instead of the real neighbourhood. `districtCandidates`
+      // below was already the correct, complete priority order — reuse it here instead of
+      // maintaining two different lists that can (and did) disagree.
+      district: districtCandidates[0] || null,
       city: firstAddressValue(address, 'city', 'town', 'village', 'municipality'),
       governorateCandidates,
       districtCandidates,
