@@ -515,7 +515,9 @@
       "completeNoActiveDescription": "There is no active ride request. Wait for the trip to refresh, then try again.",
       "completeFailedTitle": "Could not complete trip",
       "cancel": "Cancel Request",
-      "cancelling": "Cancelling..."
+      "cancelling": "Cancelling...",
+      "captainArrivedTitle": "Your captain has arrived 🚗",
+      "captainArrivedBody": "They are waiting at the pickup point. Check the plate and model before getting in."
     },
     "rating": {
       "incompleteTitle": "Could not save rating",
@@ -962,7 +964,7 @@
     "callRider": "Call rider",
     "frozenPrice": "Price confirmed and frozen",
     "eta": "Time left before expiry",
-    "arrived": "Arrived at pickup",
+    "arrived": "Tell the rider you have arrived",
     "start": "Start trip",
     "complete": "Complete trip",
     "cancelTrip": "Cancel trip",

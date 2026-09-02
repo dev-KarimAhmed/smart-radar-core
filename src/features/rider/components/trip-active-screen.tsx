@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Clock, Facebook, Instagram, MessageCircle, Phone, ShieldCheck } from 'lucide-react';
+import { Car, Clock, Facebook, Instagram, MapPin, MessageCircle, Navigation, Phone, ShieldCheck } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { formatMoney, isTripStartedStatus } from '../services/rider-view-format';
@@ -10,6 +10,15 @@ import type { RiderActiveTrip } from '../state/rider-state-machine';
 import { Metric } from './rider-view-primitives';
 
 const styles = {
+  phaseBanner: "flex items-start gap-3 rounded-2xl border p-4 transition-colors",
+  phaseOnTheWay: "border-white/10 bg-white/5",
+  phaseArrived: "border-[#14B8A6]/50 bg-[#14B8A6]/12 shadow-[0_0_28px_rgba(20,184,166,0.16)]",
+  phaseOnTrip: "border-emerald-500/30 bg-emerald-950/20",
+  phaseIcon: "grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-black/25 text-[#14F5D5]",
+  phaseGlyph: "h-4 w-4",
+  phaseText: "min-w-0 flex-1",
+  phaseTitle: "block text-sm font-black text-white",
+  phaseBody: "mt-1 text-[11px] leading-relaxed text-slate-400",
   wrapper: "space-y-4",
   rtl: "text-right",
   ltr: "text-left",
@@ -60,10 +69,70 @@ export function TripActiveScreen({
   const minutes = Math.floor(etaSeconds / 60);
   const seconds = etaSeconds % 60;
   const activeTripStatus = String(activeTrip.status || '').toUpperCase();
+
+  /**
+   * Which phase of the trip this is, for the rider to see.
+   *
+   * The realtime subscription already delivers every transition, and buildActiveTrip already
+   * keeps the status on the trip — but the only thing reading it was a boolean
+   * `tripHasStarted`, so ACCEPTED, EN_ROUTE and ARRIVED all rendered identically. The
+   * captain pressing "arrived" changed nothing on this screen, which is the
+   * "لا يتم تحديث حالة الرحلة عند الراكب" report: nothing was missing from the pipe, the
+   * distinction was being thrown away at the last step.
+   */
+  const phase = activeTripStatus === 'ARRIVED'
+    ? 'ARRIVED'
+    : isTripStartedStatus(activeTripStatus)
+      ? 'ON_TRIP'
+      : 'ON_THE_WAY';
+
+  const phaseCopy = {
+    ON_THE_WAY: {
+      title: isArabic ? 'الكابتن في الطريق إليك' : 'Your captain is on the way',
+      body: isArabic
+        ? 'هيوصل نقطة الركوب قريب. هتلاقي إشعار هنا أول ما يوصل.'
+        : 'They are heading to the pickup point. You will see it here the moment they arrive.',
+    },
+    ARRIVED: {
+      title: isArabic ? 'الكابتن وصل نقطة الركوب' : 'Your captain has arrived',
+      body: isArabic
+        ? 'الكابتن مستني عند نقطة الركوب. راجع اللوحة والموديل قبل ما تركب.'
+        : 'They are waiting at the pickup point. Check the plate and model before getting in.',
+    },
+    ON_TRIP: {
+      title: isArabic ? 'الرحلة جارية' : 'Trip in progress',
+      body: isArabic
+        ? 'إنت في الرحلة دلوقتي. زر الطوارئ تحت لو احتجته.'
+        : 'You are on your way. The emergency button below is there if you need it.',
+    },
+  }[phase];
   const tripHasStarted = isTripStartedStatus(activeTripStatus);
 
   return (
     <div className={cn(styles.wrapper, isArabic ? styles.rtl : styles.ltr)} dir={isArabic ? 'rtl' : 'ltr'}>
+      {/* The one thing the rider most wants to know, above everything else, and the first
+          thing on this screen that actually changes when the captain acts. */}
+      <div
+        className={cn(
+          styles.phaseBanner,
+          phase === 'ARRIVED' ? styles.phaseArrived : phase === 'ON_TRIP' ? styles.phaseOnTrip : styles.phaseOnTheWay,
+        )}
+        role="status"
+        aria-live="polite"
+      >
+        <span className={styles.phaseIcon}>
+          {phase === 'ARRIVED'
+            ? <MapPin className={styles.phaseGlyph} />
+            : phase === 'ON_TRIP'
+              ? <Navigation className={styles.phaseGlyph} />
+              : <Car className={styles.phaseGlyph} />}
+        </span>
+        <div className={styles.phaseText}>
+          <strong className={styles.phaseTitle}>{phaseCopy.title}</strong>
+          <p className={styles.phaseBody}>{phaseCopy.body}</p>
+        </div>
+      </div>
+
       <div className={styles.header}>
         <div className={styles.headerText}>
           <p className={styles.eyebrow}>{t('trip.started')}</p>

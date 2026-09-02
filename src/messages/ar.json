@@ -515,7 +515,9 @@
       "completeNoActiveDescription": "لا يوجد طلب رحلة نشط. انتظر تحديث الرحلة ثم حاول مرة أخرى.",
       "completeFailedTitle": "تعذر إنهاء الرحلة",
       "cancel": "إلغاء الطلب",
-      "cancelling": "جاري الإلغاء..."
+      "cancelling": "جاري الإلغاء...",
+      "captainArrivedTitle": "الكابتن وصل 🚗",
+      "captainArrivedBody": "الكابتن مستني عند نقطة الركوب. راجع اللوحة والموديل قبل ما تركب."
     },
     "rating": {
       "incompleteTitle": "تعذر حفظ التقييم",
@@ -962,7 +964,7 @@
     "callRider": "اتصال بالراكب",
     "frozenPrice": "السعر مؤكد ومجمّد",
     "eta": "الوقت المتبقي قبل انتهاء الصلاحية",
-    "arrived": "وصلت لنقطة الركوب",
+    "arrived": "إبلاغ الراكب بالوصول",
     "start": "بدء الرحلة",
     "complete": "إنهاء الرحلة",
     "cancelTrip": "إلغاء الرحلة",

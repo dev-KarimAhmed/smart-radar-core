@@ -26,6 +26,8 @@ export function useRideRequestStatusSync(params: {
 
   const { toast } = useToast();
   const t = useTranslations('riderView');
+  /** Which request has already had its arrival announced, so it is announced exactly once. */
+  const announcedArrivalForRef = React.useRef<string | null>(null);
 
   const [etaSeconds, setEtaSeconds] = React.useState(0);
 
@@ -141,6 +143,27 @@ export function useRideRequestStatusSync(params: {
           });
           if (status === 'ACCEPTED') {
             pendingAcceptedOfferIdRef.current = null;
+          }
+
+          // The captain pressing "إبلاغ الراكب بالوصول" is the one transition the rider is
+          // actively waiting on, so it gets an announcement rather than only a changed
+          // banner. Fired off the realtime row, so it needs no page reload.
+          //
+          // Guarded by a ref because the subscription re-delivers the row on any column
+          // change: without it, every later update while still ARRIVED re-announces.
+          if (status === 'ARRIVED' && announcedArrivalForRef.current !== state.requestId) {
+            announcedArrivalForRef.current = state.requestId;
+            toast({
+              title: t('trip.captainArrivedTitle'),
+              description: t('trip.captainArrivedBody'),
+            });
+            // Best-effort only: unsupported on iOS Safari and silently ignored when the
+            // page has never been interacted with.
+            try {
+              navigator.vibrate?.([120, 60, 120]);
+            } catch {
+              // A missing buzz is not worth breaking the status update over.
+            }
           }
         }
 
