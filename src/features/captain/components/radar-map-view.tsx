@@ -303,7 +303,7 @@ export function RadarMapView({
                     */}
                     <Info
                       label={copy.distance}
-                      value={request.estimatedDistance != null ? `${request.estimatedDistance} km` : t('distanceUnavailable')}
+                      value={request.estimatedDistance != null ? `${request.estimatedDistance.toFixed(1)} km` : t('distanceUnavailable')}
                     />
                   </div>
                   {isOwnPendingOffer ? (

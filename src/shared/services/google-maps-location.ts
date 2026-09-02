@@ -119,9 +119,23 @@ export function parseGoogleMapsLocation(value: string): ParsedMapLocation | null
     if (isValidLocation(lat, lng)) return { lat, lng };
   }
 
+  // Place-page URLs (`/maps/place/{name}/@{viewCenter}/data=!...!8m2!3d{lat}!4d{lng}!...`)
+  // embed the actual pinned place this same way, latitude first this time. Same reasoning
+  // as the directions case above: this must win over the generic `@lat,lng` pattern below,
+  // which is only the viewport center Google picked to frame the map, not the place itself —
+  // the two are frequently close but not identical, and the whole point of resolving a
+  // pasted link is the exact pin, not "somewhere near it".
+  const placeMarkerMatch = text.match(
+    /!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/,
+  );
+  if (placeMarkerMatch) {
+    const lat = Number(placeMarkerMatch[1]);
+    const lng = Number(placeMarkerMatch[2]);
+    if (isValidLocation(lat, lng)) return { lat, lng };
+  }
+
   const patterns = [
     /@(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/,
-    /!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/,
     /(?:[?&](?:q|query|ll|center)=)(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/,
     /(^|[^\d.-])(-?\d{1,2}(?:\.\d+)?),\s*(-?\d{1,3}(?:\.\d+)?)([^\d.]|$)/,
   ];

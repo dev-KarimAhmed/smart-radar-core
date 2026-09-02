@@ -85,6 +85,19 @@ test('parses Google Maps data coordinates', () => {
   );
 });
 
+test('prefers the precise place marker over the map-framing viewport center in a place-page URL', () => {
+  // Real shape of a resolved `/maps/place/{name}/@{viewCenter}z/data=...!3d{lat}!4d{lng}...`
+  // URL: the `@lat,lng` segment is the viewport center used to frame the place on screen —
+  // close to the pin but not the same point — while the actual place lives in the `data=`
+  // payload's `!3d{lat}!4d{lng}` marker and must win even though `@lat,lng` appears first.
+  assert.deepEqual(
+    parseGoogleMapsLocation(
+      'https://www.google.com/maps/place/%D8%B4%D8%A8%D8%B1%D8%A7%D8%8C+%D9%85%D8%AD%D8%A7%D9%81%D8%B8%D8%A9+%D8%A7%D9%84%D9%82%D8%A7%D9%87%D8%B1%D8%A9/@30.071381,31.2605433,15z/data=!3m1!4b1!4m6!3m5!1s0x1458406385434489:0x8f5991a6319a75cd!8m2!3d30.0725361!4d31.24976!16s%2Fm%2F03qhv1m',
+    ),
+    { lat: 30.0725361, lng: 31.24976 },
+  );
+});
+
 test('parses coordinates from Google place bootstrap payloads', () => {
   assert.deepEqual(
     parseGoogleMapsLocation('https://www.google.com/maps/preview/place?pb=!2d31.5031552!3d26.6698752'),

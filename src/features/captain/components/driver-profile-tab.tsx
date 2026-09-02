@@ -81,9 +81,9 @@ const styles = {
   style461_70: "flex items-center gap-2 text-emerald-300",
   style463_71: "font-black",
   style465_72: "mt-4 space-y-3",
-  style472_73: "rounded-2xl border border-slate-800 bg-black/45 px-4 py-3",
+  style472_73: "min-w-0 rounded-2xl border border-slate-800 bg-black/45 px-4 py-3",
   style473_74: "text-xs text-slate-500",
-  style474_75: "mt-1 font-black text-white",
+  style474_75: "mt-1 truncate font-black text-white",
   editableField: "flex items-center justify-between gap-3 rounded-2xl border border-slate-800 bg-black/45 px-4 py-3",
   editableFieldBody: "min-w-0 flex-1",
   editPencilButton: "grid h-8 w-8 shrink-0 place-items-center rounded-xl border border-emerald-500/25 bg-emerald-500/10 text-emerald-300 transition hover:bg-emerald-500/20",
@@ -875,7 +875,8 @@ function Field({ label, value }: { label: string; value: string }) {
   return (
     <div className={styles.style472_73}>
       <p className={styles.style473_74}>{label}</p>
-      <p className={styles.style474_75}>{value}</p>
+      {/* dir="auto" so a Latin value truncates from its own tail instead of the RTL page's. */}
+      <p dir="auto" className={styles.style474_75}>{value}</p>
     </div>
   );
 }
@@ -964,7 +965,8 @@ function EditableField({
     <div className={styles.editableField}>
       <div className={styles.editableFieldBody}>
         <p className={styles.style473_74}>{label}</p>
-        <p className={styles.style474_75}>{value}</p>
+        {/* dir="auto" so a Latin value truncates from its own tail instead of the RTL page's. */}
+      <p dir="auto" className={styles.style474_75}>{value}</p>
       </div>
       <button type="button" onClick={onEdit} aria-label={label} className={styles.editPencilButton}>
         <Pencil className={styles.editPencilIcon} />

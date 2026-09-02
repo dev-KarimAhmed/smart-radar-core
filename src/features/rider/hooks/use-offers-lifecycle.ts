@@ -160,6 +160,10 @@ export function useOffersLifecycle(
     return () => window.clearTimeout(timeoutId);
   }, [captainSearchRadiusKm, state.offers.length, state.requestCancelledAt, state.screen]);
 
+  // Cards start collapsed — the rider opens whichever offer they want to look at,
+  // rather than the first one arriving being force-expanded for them. This effect
+  // only clears the expanded id once its offer is no longer in the list; it never
+  // picks a new one on its own.
   React.useEffect(() => {
     if (state.screen !== 'RECEIVING_OFFERS' || state.offers.length === 0) {
       setExpandedOfferId(null);
@@ -168,8 +172,7 @@ export function useOffersLifecycle(
 
     setExpandedOfferId((current) => {
       if (current && state.offers.some((offer) => (offer.id || offer.driverId) === current)) return current;
-      const first = state.offers[0];
-      return first ? first.id || first.driverId : null;
+      return null;
     });
   }, [state.offers, state.screen]);
 
