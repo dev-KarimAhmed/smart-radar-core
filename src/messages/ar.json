@@ -799,6 +799,7 @@
     "pricePerKmModalInvalid": "يرجى كتابة سعر أكبر من صفر.",
     "tariffModalTitle": "حدد تعريفة رحلاتك",
     "tariffModalBody": "قبل استخدام لوحة التحكم، حدد المكونات الثلاثة لتعريفتك. لا يمكن تخطي هذه الخطوة.",
+    "tariffModalShortDistancesToggle": "تأسيس المسافات القصيرة",
     "tariffModalBaseFareLabel": "سعر فتحة العداد الأساسية",
     "tariffModalBaseFareHint": "الأجرة الثابتة لبداية أي رحلة.",
     "tariffModalBaseFareTooLow": "فتحة العداد لا يمكن أن تقل عن {min}.",
