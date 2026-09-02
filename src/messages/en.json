@@ -759,6 +759,8 @@
     "logout": "Log out",
     "switchLanguageLabel": "العربية",
     "switchLanguageAria": "التبديل إلى العربية",
+    "requestNoLongerAvailableTitle": "This trip is no longer available",
+    "requestNoLongerAvailableBody": "It was cancelled or accepted by another captain before you sent your offer.",
     "dormancyWarningTitle": "You're about to be pulled off the auction floor",
     "dormancyWarningBody": "No activity detected for 9 minutes. In one more minute you will be automatically taken offline.",
     "dormancyWarningButton": "I'm still here",
@@ -799,6 +801,7 @@
     "pricePerKmModalInvalid": "Please enter a price greater than zero.",
     "tariffModalTitle": "Set your trip tariff",
     "tariffModalBody": "Before using the dashboard, set the three components of your tariff. This step cannot be skipped.",
+    "tariffModalShortDistancesToggle": "Set up short distances",
     "tariffModalBaseFareLabel": "Base meter-opening charge",
     "tariffModalBaseFareHint": "The flat charge that starts every trip.",
     "tariffModalBaseFareTooLow": "The meter-opening charge cannot be lower than {min}.",
@@ -831,7 +834,8 @@
     "pickupApproximate": "Approximate area before acceptance",
     "pickupExact": "Exact pickup location",
     "openPickupMap": "Open pickup map",
-    "distanceUnavailable": "Unavailable"
+    "distanceUnavailable": "Unavailable",
+    "minutesValue": "{count, plural, one {# min} other {# min}}"
   },
   "captainBidding": {
     "distanceUnavailable": "Unavailable",
@@ -841,7 +845,9 @@
     "destination": "Destination",
     "unknownDestination": "Unknown destination",
     "h3": "Request cell",
-    "distance": "Distance",
+    "distance": "Trip distance",
+    "pickupTime": "Time to reach the rider",
+    "tripTime": "Trip time",
     "serverFare": "Base fare",
     "increaseAmount": "Your increase (no maximum)",
     "tierPremium": "Optional increase by your rank",

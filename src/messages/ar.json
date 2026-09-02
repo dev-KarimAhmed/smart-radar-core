@@ -759,6 +759,8 @@
     "logout": "تسجيل الخروج",
     "switchLanguageLabel": "English",
     "switchLanguageAria": "Switch to English",
+    "requestNoLongerAvailableTitle": "الرحلة لم تعد متاحة",
+    "requestNoLongerAvailableBody": "تم إلغاء هذه الرحلة أو قبولها من كابتن آخر قبل ما ترسل عرضك.",
     "dormancyWarningTitle": "أنت على وشك الخروج من صالة المزاد",
     "dormancyWarningBody": "لم يُسجَّل أي تفاعل منك منذ 9 دقائق. بعد دقيقة إضافية سيتم إيقاف استقبال الطلبات تلقائياً.",
     "dormancyWarningButton": "ما زلت هنا",
@@ -799,6 +801,7 @@
     "pricePerKmModalInvalid": "يرجى كتابة سعر أكبر من صفر.",
     "tariffModalTitle": "حدد تعريفة رحلاتك",
     "tariffModalBody": "قبل استخدام لوحة التحكم، حدد المكونات الثلاثة لتعريفتك. لا يمكن تخطي هذه الخطوة.",
+    "tariffModalShortDistancesToggle": "تأسيس المسافات القصيرة",
     "tariffModalBaseFareLabel": "سعر فتحة العداد الأساسية",
     "tariffModalBaseFareHint": "الأجرة الثابتة لبداية أي رحلة.",
     "tariffModalBaseFareTooLow": "فتحة العداد لا يمكن أن تقل عن {min}.",
@@ -831,7 +834,8 @@
     "pickupApproximate": "الموقع التقريبي قبل قبول الطلب",
     "pickupExact": "موقع الالتقاط الدقيق",
     "openPickupMap": "فتح موقع الالتقاط",
-    "distanceUnavailable": "غير متاح"
+    "distanceUnavailable": "غير متاح",
+    "minutesValue": "{count, plural, =0 {أقل من دقيقة} one {دقيقة واحدة} two {دقيقتان} few {# دقائق} many {# دقيقة} other {# دقيقة}}"
   },
   "captainBidding": {
     "distanceUnavailable": "غير متاح",
@@ -841,7 +845,9 @@
     "destination": "الوجهة",
     "unknownDestination": "وجهة غير محددة",
     "h3": "خلية الطلب",
-    "distance": "المسافة",
+    "distance": "مسافة الرحلة",
+    "pickupTime": "الوقت حتى تصل للراكب",
+    "tripTime": "وقت الرحلة",
     "serverFare": "السعر الأساسي",
     "increaseAmount": "زيادتك أنت (مفيش حد أقصى)",
     "tierPremium": "زيادة اختيارية حسب رتبتك",

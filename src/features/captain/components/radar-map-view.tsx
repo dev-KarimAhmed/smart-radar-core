@@ -2,17 +2,19 @@
 
 import React from 'react';
 import maplibregl from 'maplibre-gl';
-import { Clock, ExternalLink, MapPin, RadioTower, Route } from 'lucide-react';
+import { Clock, MapPin, RadioTower, Route } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { Trip } from '@/core/types';
 import { DEFAULT_MAP_CENTER } from '@/shared/services/maplibre-runtime';
 import { useMaplibreInstance } from '@/shared/hooks/use-maplibre-instance';
 import { RecenterMapButton } from '@/shared/components/map/recenter-map-button';
+import { estimateHaversineDistanceKm } from '../services/ride-location';
+import { estimatePickupMinutes } from '@/shared/services/trip-duration';
 
 import { cn } from '@/lib/utils';
 const styles = {
   style144_1: "grid min-h-[calc(100vh-11rem)] gap-4 lg:grid-cols-[minmax(0,1fr)_420px]",
-  style145_2: "relative min-h-[520px] overflow-hidden rounded-3xl border border-emerald-500/20 bg-[#05080f] text-white shadow-2xl shadow-black/30 lg:min-h-[calc(100vh-11rem)]",
+  style145_2: "order-2 relative min-h-[520px] overflow-hidden rounded-3xl border border-emerald-500/20 bg-[#05080f] text-white shadow-2xl shadow-black/30 lg:order-none lg:min-h-[calc(100vh-11rem)]",
   style146_3: "absolute inset-0 z-0 bg-[#0B0F19]",
   style147_4: "absolute inset-0 z-[1] overflow-hidden bg-[radial-gradient(circle_at_center,rgba(20,184,166,0.18),transparent_38%),linear-gradient(135deg,rgba(20,184,166,0.08)_0_25%,transparent_25%_50%,rgba(20,184,166,0.06)_50%_75%,transparent_75%)] bg-[length:auto,38px_38px]",
   style148_5: "absolute left-1/2 top-1/2 grid h-11 w-11 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-2xl border-2 border-[#06111f] bg-[#14B8A6] text-[#06111f] shadow-[0_0_0_18px_rgba(20,184,166,0.12),0_0_60px_rgba(20,184,166,0.35)]",
@@ -31,7 +33,7 @@ const styles = {
   style184_18: "mt-1 text-xs leading-5 text-slate-400",
   style185_19: "mt-2 text-[11px] font-black text-emerald-200",
   style192_20: "absolute bottom-5 left-5 z-20 rounded-2xl border border-emerald-500/25 bg-[#0B0F19]/95 p-4 text-emerald-300 shadow-2xl transition hover:border-emerald-300",
-  style201_22: "flex max-h-[560px] flex-col rounded-3xl border border-emerald-500/20 bg-[#05080f] p-4 text-white shadow-2xl shadow-black/30 lg:max-h-[calc(100vh-11rem)]",
+  style201_22: "order-1 flex max-h-[560px] flex-col rounded-3xl border border-emerald-500/20 bg-[#05080f] p-4 text-white shadow-2xl shadow-black/30 lg:order-none lg:max-h-[calc(100vh-11rem)]",
   style202_23: "flex items-center justify-between gap-3 border-b border-white/10 pb-4",
   style204_24: "text-xs font-black text-[#14B8A6]",
   style205_25: "mt-1 text-2xl font-black",
@@ -46,7 +48,6 @@ const styles = {
   style221_34: "mt-1 h-5 w-5 shrink-0 text-emerald-300",
   style222_35: "min-w-0",
   style223_36: "line-clamp-2 font-black",
-  style224_37: "mt-1 font-mono text-xs text-slate-400",
   style227_38: "mt-3 grid grid-cols-2 gap-2 text-xs",
   style231_39: "mt-4 flex gap-2",
   style232_40: "inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#14B8A6] px-3 py-2 text-sm font-black text-[#06111f]",
@@ -268,42 +269,24 @@ export function RadarMapView({
                     <MapPin className={styles.style221_34} />
                     <div className={styles.style222_35}>
                       <h3 className={styles.style223_36}>{request.dropoff || copy.destination}</h3>
-                      <p className={styles.style224_37}>{shortH3(request.h3Index)}</p>
                     </div>
                   </div>
-                  <div className="mt-3 rounded-xl border border-cyan-400/15 bg-cyan-400/[0.06] p-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="text-[11px] font-black uppercase tracking-wide text-cyan-200">
-                          {t('pickupLocation')}
-                        </p>
-                        <p className="mt-1 truncate text-sm font-bold text-white">
-                          {request.pickupLabel || t('pickupLocation')}
-                        </p>
-                        <p className="mt-1 text-[11px] text-slate-400">
-                          {request.pickupLocationIsApproximate ? t('pickupApproximate') : t('pickupExact')}
-                        </p>
-                      </div>
-                      {request.pickupGoogleMapsUrl ? (
-                        <a
-                          href={request.pickupGoogleMapsUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-cyan-400/25 px-2.5 py-2 text-xs font-black text-cyan-200 transition hover:border-cyan-300 hover:text-white"
-                        >
-                          <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
-                          {t('openPickupMap')}
-                        </a>
-                      ) : null}
-                    </div>
-                  </div>
+                  {/* Pickup location (address, exact-map link) is deliberately withheld at
+                      this stage — before the captain has even opened an offer, it's only
+                      visible once they open the bidding sheet. The trip distance and how long
+                      the approach to the rider will take are still useful for deciding
+                      whether the trip is worth it, so those stay. */}
                   <div className={styles.style227_38}>
                     {/* Base fare display disabled — kept hidden from captain by product request.
                     <Info label={copy.fare} value={request.offerPrice ? Number(request.offerPrice).toFixed(2) : '-'} />
                     */}
                     <Info
-                      label={copy.distance}
-                      value={request.estimatedDistance != null ? `${request.estimatedDistance.toFixed(1)} km` : t('distanceUnavailable')}
+                      label={copy.pickupTime}
+                      value={t('minutesValue', { count: estimatePickupMinutes(pickupDistanceKm(driverLocation, request)) })}
+                    />
+                    <Info
+                      label={copy.tripDistance}
+                      value={request.estimatedDistance != null ? `${request.estimatedDistance.toFixed(1)} ${language === 'ar' ? 'كيلو' : 'km'}` : t('distanceUnavailable')}
                     />
                   </div>
                   {isOwnPendingOffer ? (
@@ -407,8 +390,15 @@ function formatMinutes(totalMinutes: number, language: 'ar' | 'en') {
   return language === 'ar' ? `${hours} ساعة ${minutes} دقيقة` : `${hours}h ${minutes}m`;
 }
 
-function shortH3(value?: string) {
-  return value ? value.slice(-8).toUpperCase() : '-';
+/** Straight-line captain-to-pickup distance, in km — null when either point is unknown. */
+function pickupDistanceKm(driverLocation: { lat: number; lng: number } | null, request: Trip) {
+  if (!driverLocation || !request.pickupCoords) return null;
+  return estimateHaversineDistanceKm(
+    driverLocation.lat,
+    driverLocation.lng,
+    request.pickupCoords.lat,
+    request.pickupCoords.lng,
+  );
 }
 
 function fallbackRequestPosition(index: number): React.CSSProperties {
@@ -445,7 +435,8 @@ const radarCopy = {
     empty: 'ابق متاحاً. ستظهر طلبات الركاب هنا فور وصولها إلى منطقتك.',
     destination: 'وجهة الراكب',
     fare: 'السعر الأساسي',
-    distance: 'المسافة',
+    pickupTime: 'الوقت حتى تصل للراكب',
+    tripDistance: 'مسافة الرحلة',
     openBid: 'تقديم عرض',
     pendingOfferHint: 'لديك عرض قيد الانتظار، انتظر رد الراكب أولاً.',
     ownPendingOffer: 'عرضك قيد الانتظار — بانتظار رد الراكب',
@@ -471,7 +462,8 @@ const radarCopy = {
     empty: 'Stay online. Rider requests will appear here as soon as they reach your area.',
     destination: 'Rider destination',
     fare: 'Base fare',
-    distance: 'Distance',
+    pickupTime: 'Time to reach the rider',
+    tripDistance: 'Trip distance',
     openBid: 'Submit bid',
     pendingOfferHint: 'You have a pending offer — wait for the rider to respond first.',
     ownPendingOffer: 'Your offer is pending — waiting for the rider to respond',
