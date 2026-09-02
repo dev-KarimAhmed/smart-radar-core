@@ -7,11 +7,6 @@ import {
   resolveClipboardMapLocation,
   type ResolvedLocationGeography,
 } from '@/shared/services/google-maps-location';
-import {
-  findDistrictForGeography,
-  findGovernorateForGeography,
-  findNearestDistrict,
-} from '@/shared/services/destination-geography';
 import { slugifyLocationPart, type DistrictOption, type GovernorateOption } from '../services/rider-destination-normalizers';
 import type { useDestinationGeographyData } from './use-destination-geography-data';
 import type { RiderLocation } from '../components/rider-map';
@@ -44,10 +39,18 @@ async function readClipboardLocationText() {
 
 /**
  * Owns the "paste a Google Maps share link" import flow: reads the
- * clipboard, resolves it to coordinates + geography, and either selects the
- * matching database governorate/district or splices a synthetic
- * "google:"-prefixed one into the geography hook's lists (hence taking that
- * hook's return value directly rather than a handful of individual setters).
+ * clipboard, resolves it to exact coordinates, and splices a synthetic
+ * "google:"-prefixed governorate/district into the geography hook's lists
+ * (hence taking that hook's return value directly rather than a handful of
+ * individual setters).
+ *
+ * Deliberately never matched against the database governorate/district
+ * catalogue — that catalogue is coarse (a handful of districts per
+ * governorate) and pasted links are precise pins, so snapping one to
+ * "whichever known district happens to be nearest" silently substituted the
+ * wrong place when the real one wasn't in the catalogue at all. The pasted
+ * coordinates are always used exactly as given; only the label shown to the
+ * rider comes from the link (or a reverse-geocode of its coordinates).
  */
 export function useClipboardLocationImport(params: {
   geography: ReturnType<typeof useDestinationGeographyData>;
@@ -85,13 +88,16 @@ export function useClipboardLocationImport(params: {
   ) => {
     const placeName = extractGoogleMapsPlaceName(clipboardValue);
     const resolvedPlaceName = placeName || locationCopy('external_place_name');
-    const matchedGovernorate = findGovernorateForGeography(geography.destinationGovernorates, resolvedGeography);
-    const matchedLoadedDistrict = matchedGovernorate?.id === geography.selectedGovernorateId
-      ? findDistrictForGeography(geography.destinationDistricts, resolvedGeography)
-        || findNearestDistrict(geography.destinationDistricts, parsedLocation)
-      : null;
+    // Google's own name for the pin (e.g. "El-Gamaleya, El Gamaliya, Cairo Governorate") is
+    // what the place is actually called — the first, most specific segment of it wins over
+    // Nominatim's reverse-geocoded neighbourhood/city, which names the administrative area
+    // the point happens to fall inside and can legitimately be a different, less-recognised
+    // name for the same spot (a real example: Nominatim called an El-Gamaleya pin "المنصورية"
+    // — a real but different neighbourhood nearby). Right but in English beats wrong in
+    // Arabic; only a bare coordinate link with no name falls back to Nominatim's classification.
+    const primaryPlaceName = placeName?.split(',')[0]?.trim() || null;
     const governorate = resolvedGeography?.governorate || locationCopy('external_governorate');
-    const district = resolvedGeography?.city || resolvedGeography?.district || resolvedPlaceName;
+    const district = primaryPlaceName || resolvedGeography?.district || resolvedGeography?.city || resolvedPlaceName;
     const externalGovernorateId = `google:${slugifyLocationPart(governorate)}`;
     const externalDistrictId = `google:${slugifyLocationPart(`${district}-${parsedLocation.lat}-${parsedLocation.lng}`)}`;
     const externalGovernorate: GovernorateOption = {
@@ -113,26 +119,14 @@ export function useClipboardLocationImport(params: {
     };
 
     setExternalLocationUrl(clipboardValue);
-    if (matchedGovernorate) {
-      geography.clearExternalEntries();
-      geography.pendingConfirmedGeographyRef.current = resolvedGeography || null;
-      geography.pendingConfirmedLocationRef.current = parsedLocation;
-      geography.setSelectedGovernorateId(matchedGovernorate.id);
-      if (matchedLoadedDistrict) {
-        geography.setDraftDestinationId(matchedLoadedDistrict.id);
-        geography.pendingConfirmedGeographyRef.current = null;
-        geography.pendingConfirmedLocationRef.current = null;
-      }
-    } else {
-      geography.setExternalLocationContext({ governorate, district, placeName: resolvedPlaceName });
-      geography.setDestinationGovernorates((current) => [
-        externalGovernorate,
-        ...current.filter((item) => !item.id.startsWith('google:')),
-      ]);
-      geography.setSelectedGovernorateId(externalGovernorateId);
-      geography.setDestinationDistricts([externalDistrict]);
-      geography.setDraftDestinationId(externalDistrictId);
-    }
+    geography.setExternalLocationContext({ governorate, district, placeName: resolvedPlaceName });
+    geography.setDestinationGovernorates((current) => [
+      externalGovernorate,
+      ...current.filter((item) => !item.id.startsWith('google:')),
+    ]);
+    geography.setSelectedGovernorateId(externalGovernorateId);
+    geography.setDestinationDistricts([externalDistrict]);
+    geography.setDraftDestinationId(externalDistrictId);
     setDestinationSearchQuery(resolvedPlaceName);
     // Route distance/time are calculated by the shared road-route effect after
     // the exact clipboard coordinates become the selected destination.

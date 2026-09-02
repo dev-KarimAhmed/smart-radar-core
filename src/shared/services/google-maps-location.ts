@@ -235,17 +235,38 @@ function normalizeOpenStreetMapUrl(value: string) {
 export function extractGoogleMapsPlaceName(value: string): string | null {
   try {
     const url = new URL(value.trim());
-    const match = url.pathname.match(/\/maps\/(?:place|search)\/([^/?#]+)/i);
-    if (!match?.[1]) return null;
+    const placeMatch = url.pathname.match(/\/maps\/(?:place|search)\/([^/?#]+)/i);
+    if (placeMatch?.[1]) return decodeGoogleMapsPathSegment(placeMatch[1]);
 
-    const placeName = safeDecodeURIComponent(match[1].replace(/\+/g, ' '))
-      .replace(/[\u200B-\u200F\u202A-\u202E\u2060]/g, '')
-      .trim();
+    // Directions links (`/maps/dir/{origin}/{waypoint...}/{destination}/@{viewCenter}/...`)
+    // have no dedicated "place" segment \u2014 the destination's name is just the last
+    // non-coordinate segment before the `@` viewport marker. Sharing a place via "Directions"
+    // rather than "Share" produces exactly this shape, so without this the name (and every
+    // other signal derived from it, like the plausibility cross-check) silently went missing
+    // for a link that in fact names the destination right there in the URL.
+    const dirMatch = url.pathname.match(/\/maps\/dir\/(.+?)(?:\/@|$)/i);
+    if (dirMatch?.[1]) {
+      const namedSegments = dirMatch[1].split('/').filter((segment) => segment && !isCoordinatePairSegment(segment));
+      const lastNamedSegment = namedSegments[namedSegments.length - 1];
+      if (lastNamedSegment) return decodeGoogleMapsPathSegment(lastNamedSegment);
+    }
 
-    return placeName || null;
+    return null;
   } catch {
     return null;
   }
+}
+
+function isCoordinatePairSegment(segment: string) {
+  return /^-?\d+(?:\.\d+)?,-?\d+(?:\.\d+)?$/.test(segment);
+}
+
+function decodeGoogleMapsPathSegment(rawSegment: string) {
+  const placeName = safeDecodeURIComponent(rawSegment.replace(/\+/g, ' '))
+    .replace(/[\u200B-\u200F\u202A-\u202E\u2060]/g, '')
+    .trim();
+
+  return placeName || null;
 }
 
 export function isShortGoogleMapsLink(value: string) {

@@ -1,12 +1,6 @@
 import React from 'react';
 import { useTranslations } from 'next-intl';
 import { supabase } from '@/lib/supabase-client';
-import {
-  findDistrictForGeography,
-  findGovernorateForGeography,
-  findNearestDistrict,
-} from '@/shared/services/destination-geography';
-import type { ResolvedLocationGeography } from '@/shared/services/google-maps-location';
 import { buildDistrictLoadKey } from '../services/rider-district-query';
 import {
   normalizeDistricts,
@@ -40,8 +34,6 @@ export function useDestinationGeographyData(
   const [isLoadingDistricts, setIsLoadingDistricts] = React.useState(false);
   const [destinationDataError, setDestinationDataError] = React.useState<string | null>(null);
   const [externalLocationContext, setExternalLocationContext] = React.useState<ExternalLocationContext | null>(null);
-  const pendingConfirmedGeographyRef = React.useRef<ResolvedLocationGeography | null>(null);
-  const pendingConfirmedLocationRef = React.useRef<RiderLocation | null>(null);
   const t = useTranslations('riderView');
 
   const selectedGovernorate = React.useMemo(
@@ -166,21 +158,8 @@ export function useDestinationGeographyData(
         const options = normalizeDistricts(data, selectedGovernorate, (id) => t('destination.districtFallback', { id }));
         setDestinationDistricts(options);
 
-        const confirmedDistrict = findDistrictForGeography(
-          options,
-          pendingConfirmedGeographyRef.current || undefined,
-        ) || (
-          pendingConfirmedLocationRef.current
-            ? findNearestDistrict(options, pendingConfirmedLocationRef.current)
-            : null
-        );
-        if (confirmedDistrict) {
-          pendingConfirmedGeographyRef.current = null;
-          pendingConfirmedLocationRef.current = null;
-        }
         const profileDistrictId = String(user?.district || '');
-        const preferred = confirmedDistrict
-          || options.find((district) => district.id === profileDistrictId)
+        const preferred = options.find((district) => district.id === profileDistrictId)
           || options.find((district) => district.anchor)
           || options[0]
           || null;
@@ -241,8 +220,6 @@ export function useDestinationGeographyData(
     }
 
     setDestinationDataError(null);
-    pendingConfirmedGeographyRef.current = null;
-    pendingConfirmedLocationRef.current = null;
   }, [clearExternalEntries, destinationGovernorates, destinationDistricts, selectedGovernorateId, user?.governorate, user?.district]);
 
   return {
@@ -263,8 +240,6 @@ export function useDestinationGeographyData(
     selectedGovernorate,
     selectedDistrict,
     profileDistrict,
-    pendingConfirmedGeographyRef,
-    pendingConfirmedLocationRef,
     clearExternalEntries,
     reset,
   };

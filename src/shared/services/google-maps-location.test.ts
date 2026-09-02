@@ -134,6 +134,18 @@ test('extracts the place name from the resolved Google Maps URL', () => {
   );
 });
 
+test('extracts the destination name from a directions URL (no dedicated place segment)', () => {
+  // Sharing a place via "Directions" instead of "Share" produces
+  // `/maps/dir/{origin}/{destination}/@{viewCenter}/...` — the destination name sits as a
+  // plain path segment with no `place`/`search` marker of its own.
+  assert.equal(
+    extractGoogleMapsPlaceName(
+      'https://www.google.com/maps/dir/29.9577206,30.897213/El-Gamaleya,+El+Gamaliya,+Cairo+Governorate/@29.9881343,30.9089937,11z/am=t/data=!4m10!4m9!1m1!4e1!1m5!1m1!1s0x14583f657d3592dd:0x75f84ddcae9fdc64!2m2!1d31.2712203!2d30.0473948!5i1',
+    ),
+    'El-Gamaleya, El Gamaliya, Cairo Governorate',
+  );
+});
+
 test('prefers the place pin over the map camera in a /maps/place URL', () => {
   // Illustrative coordinates: the camera (@, downtown Cairo) sits far from the pin
   // (!3d/!4d, 6th of October). Taking the camera quotes a trip to the wrong point.
