@@ -93,27 +93,15 @@ interface ActiveTripTrackerProps {
   onCancelTrip: () => void;
 }
 
-function playCaptainAlertChime() {
+function playSystemNotificationSound() {
   try {
-    const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    if (!AudioCtx) return;
-    const ctx = new AudioCtx();
-    const now = ctx.currentTime;
-    [0, 0.2, 0.4].forEach((delay) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(880, now + delay);
-      osc.frequency.exponentialRampToValueAtTime(440, now + delay + 0.15);
-      gain.gain.setValueAtTime(0.3, now + delay);
-      gain.gain.exponentialRampToValueAtTime(0.01, now + delay + 0.15);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(now + delay);
-      osc.stop(now + delay + 0.15);
+    const audio = new Audio('/sounds/notification.mp3');
+    audio.volume = 1.0;
+    void audio.play().catch(() => {
+      // Browser autoplay restriction handling
     });
   } catch {
-    // web audio autoplay block catch
+    // Ignore audio constructor errors
   }
 }
 
@@ -132,7 +120,7 @@ function useHandshakeCountdown(handshakeAt: number | null, step: CaptainTripStep
       setRemainingMs(rem);
       if (rem === 0 && step !== 'STARTED' && !alertedRef.current) {
         alertedRef.current = true;
-        playCaptainAlertChime();
+        playSystemNotificationSound();
       }
     };
     update();
@@ -149,17 +137,24 @@ function useHandshakeCountdown(handshakeAt: number | null, step: CaptainTripStep
 function useTripCountdownTimer(durationMinutes: number, isActive: boolean) {
   const initialMs = Math.max(1, durationMinutes || 15) * 60 * 1000;
   const [remainingMs, setRemainingMs] = React.useState(initialMs);
+  const alertedRef = React.useRef(false);
 
   React.useEffect(() => {
     if (!isActive) {
       setRemainingMs(initialMs);
+      alertedRef.current = false;
       return;
     }
     const baseline = Date.now();
     setRemainingMs(initialMs);
 
     const update = () => {
-      setRemainingMs(Math.max(0, initialMs - (Date.now() - baseline)));
+      const rem = Math.max(0, initialMs - (Date.now() - baseline));
+      setRemainingMs(rem);
+      if (rem === 0 && !alertedRef.current) {
+        alertedRef.current = true;
+        playSystemNotificationSound();
+      }
     };
 
     update();
@@ -192,7 +187,7 @@ function usePickupEtaTimer(pickupEtaMinutes: number, step: CaptainTripStep) {
       setRemainingMs(rem);
       if (rem === 0 && !alertedRef.current) {
         alertedRef.current = true;
-        playCaptainAlertChime();
+        playSystemNotificationSound();
       }
     };
 
