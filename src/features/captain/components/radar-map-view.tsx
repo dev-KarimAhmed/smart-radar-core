@@ -2,7 +2,7 @@
 
 import React from 'react';
 import maplibregl from 'maplibre-gl';
-import { Clock, MapPin, RadioTower, Route } from 'lucide-react';
+import { Clock, Heart, MapPin, RadioTower, Route, Star } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { Trip } from '@/core/types';
 import { DEFAULT_MAP_CENTER } from '@/shared/services/maplibre-runtime';
@@ -65,6 +65,12 @@ const styles = {
   stateEmpty: "border-dashed border-slate-700 bg-slate-950/80 text-slate-300",
   pendingOfferHint: "mt-2 text-[11px] font-bold text-amber-300",
   pendingOfferDisabled: "cursor-not-allowed opacity-40",
+  riderRow: "mt-2.5 flex flex-wrap items-center gap-1.5",
+  riderChip: "inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[10px] font-bold text-slate-300",
+  riderFavoriteChipOn: "border-rose-400/50 bg-rose-400/12 font-black text-rose-200",
+  riderFavoriteChipOff: "border-white/8 bg-transparent text-slate-500",
+  heartFilled: "fill-current",
+  riderChipIcon: "h-3 w-3",
   ownPendingBadge: "mt-3 flex items-center justify-center gap-2 rounded-xl border border-amber-400/30 bg-amber-400/10 py-3 text-sm font-black text-amber-200",
   ownPendingIcon: "h-4 w-4 animate-pulse",
 } as const;
@@ -271,6 +277,43 @@ export function RadarMapView({
                       <h3 className={styles.style223_36}>{request.dropoff || copy.destination}</h3>
                     </div>
                   </div>
+
+                  {/* Who the rider is. The captain was deciding whether to bid with nothing
+                      about the person at all — no score, and no way to know this rider had
+                      already picked them out as a favourite. */}
+                  <div className={styles.riderRow}>
+                    <span className={styles.riderChip}>
+                      <Star className={styles.riderChipIcon} />
+                      {request.riderRating != null
+                        ? `${request.riderRating.toFixed(1)}${request.riderRatingCount ? ` (${request.riderRatingCount})` : ''}`
+                        : copy.riderUnrated}
+                    </span>
+                    {request.riderCompletedTrips != null ? (
+                      <span className={styles.riderChip}>
+                        <Route className={styles.riderChipIcon} />
+                        {t('tripsValue', { count: request.riderCompletedTrips })}
+                      </span>
+                    ) : null}
+                    {/* Always rendered, in both states.
+                        The ask was "توضيح ما إذا كان الكابتن ضمن قائمة المفضلين لدى الراكب" —
+                        whether or NOT. Showing the chip only when true means the absence of a
+                        badge has two meanings the captain cannot tell apart: "this rider has
+                        not favourited me" and "this is broken". */}
+                    <span
+                      className={cn(
+                        styles.riderChip,
+                        request.riderFavoritedMe ? styles.riderFavoriteChipOn : styles.riderFavoriteChipOff,
+                      )}
+                    >
+                      <Heart
+                        className={cn(
+                          styles.riderChipIcon,
+                          request.riderFavoritedMe ? styles.heartFilled : '',
+                        )}
+                      />
+                      {request.riderFavoritedMe ? copy.riderFavoritedYou : copy.riderNotFavoritedYou}
+                    </span>
+                  </div>
                   {/* Pickup location (address, exact-map link) is deliberately withheld at
                       this stage — before the captain has even opened an offer, it's only
                       visible once they open the bidding sheet. The trip distance and how long
@@ -437,6 +480,9 @@ const radarCopy = {
     fare: 'السعر الأساسي',
     pickupTime: 'الوقت حتى تصل للراكب',
     tripDistance: 'مسافة الرحلة',
+    riderUnrated: 'راكب جديد',
+    riderFavoritedYou: 'في مفضلته',
+    riderNotFavoritedYou: 'مش في مفضلته',
     openBid: 'تقديم عرض',
     pendingOfferHint: 'لديك عرض قيد الانتظار، انتظر رد الراكب أولاً.',
     ownPendingOffer: 'عرضك قيد الانتظار — بانتظار رد الراكب',
@@ -464,6 +510,9 @@ const radarCopy = {
     fare: 'Base fare',
     pickupTime: 'Time to reach the rider',
     tripDistance: 'Trip distance',
+    riderUnrated: 'New rider',
+    riderFavoritedYou: 'Has you as a favourite',
+    riderNotFavoritedYou: 'Not a favourite yet',
     openBid: 'Submit bid',
     pendingOfferHint: 'You have a pending offer — wait for the rider to respond first.',
     ownPendingOffer: 'Your offer is pending — waiting for the rider to respond',

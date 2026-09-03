@@ -837,7 +837,8 @@
     "pickupExact": "موقع الالتقاط الدقيق",
     "openPickupMap": "فتح موقع الالتقاط",
     "distanceUnavailable": "غير متاح",
-    "minutesValue": "{count, plural, =0 {أقل من دقيقة} one {دقيقة واحدة} two {دقيقتان} few {# دقائق} many {# دقيقة} other {# دقيقة}}"
+    "minutesValue": "{count, plural, =0 {أقل من دقيقة} one {دقيقة واحدة} two {دقيقتان} few {# دقائق} many {# دقيقة} other {# دقيقة}}",
+    "tripsValue": "{count, plural, =0 {أول رحلة له} one {رحلة واحدة} two {رحلتان} few {# رحلات} many {# رحلة} other {# رحلة}}"
   },
   "captainBidding": {
     "distanceUnavailable": "غير متاح",

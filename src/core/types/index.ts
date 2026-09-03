@@ -90,6 +90,18 @@ export interface Trip {
   id: string;
   serial_id?: string;
   riderId: string;
+  /**
+   * Who the rider is, for a captain deciding whether to bid. Supplied by
+   * captain_radar_requests (20260906090000).
+   *
+   * `riderRating` is undefined for a rider nobody has rated yet — render that as "no rating",
+   * never as 0, or a newcomer reads as the worst rider on the platform.
+   */
+  riderRating?: number;
+  riderRatingCount?: number;
+  riderCompletedTrips?: number;
+  /** Whether THIS rider has hearted the captain reading the row. Never about anyone else. */
+  riderFavoritedMe?: boolean;
   driverId?: string;
   status: TripStatus;
   offerPrice?: number;

@@ -837,7 +837,8 @@
     "pickupExact": "Exact pickup location",
     "openPickupMap": "Open pickup map",
     "distanceUnavailable": "Unavailable",
-    "minutesValue": "{count, plural, one {# min} other {# min}}"
+    "minutesValue": "{count, plural, one {# min} other {# min}}",
+    "tripsValue": "{count, plural, =0 {first trip} one {# trip} other {# trips}}"
   },
   "captainBidding": {
     "distanceUnavailable": "Unavailable",
