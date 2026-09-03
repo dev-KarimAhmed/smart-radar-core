@@ -890,7 +890,8 @@
     "breakdownFloor": "Lowest allowed price (refused below)",
     "breakdownYourIncrease": "Your increase",
     "breakdownMarketUnknown": "Not available",
-    "meterOffMarket": "Your meter ({meter} {currency}) is far above the market average ({market} {currency}) — the average is built from too few captains to mean much. The offer will send fine, but check your own tariff."
+    "meterOffMarket": "Your meter ({meter} {currency}) is far above the market average ({market} {currency}) — the average is built from too few captains to mean much. The offer will send fine, but check your own tariff.",
+    "waitSecondsRange": "Set the offer window between {min} and {max} seconds before submitting."
   },
   "captainProfile": {
     "badge": "Profile",

@@ -7,7 +7,7 @@ import type { Trip } from '@/core/types';
 import { supabase } from '@/lib/supabase-client';
 import { RadarAntiCheatKernel } from '@/core/RadarAntiCheatKernel';
 import { useCaptainProfessionalAd } from '../hooks/use-captain-professional-ad';
-import { MIN_OFFER_WAIT_SECONDS } from '../hooks/use-driver-transactions';
+import { MAX_OFFER_WAIT_SECONDS, MIN_OFFER_WAIT_SECONDS } from '../hooks/use-driver-transactions';
 import { AdDisplayCard } from '@/features/ads/ad-display/contract';
 import { cn } from '@/lib/utils';
 import { estimateHaversineDistanceKm } from '../services/ride-location';
@@ -73,6 +73,15 @@ const styles = {
   style235_45: "text-xs text-slate-500",
   style236_46: "mt-1 font-black text-white",
   inputLocked: "cursor-not-allowed opacity-50",
+  pickupCard: "mt-4 rounded-2xl border border-cyan-400/20 bg-cyan-400/[0.06] p-4",
+  pickupCardRow: "flex items-start justify-between gap-3",
+  pickupCardInfo: "min-w-0",
+  pickupCardLabel: "flex items-center gap-1.5 text-xs font-black text-cyan-200",
+  pickupCardIcon: "h-4 w-4",
+  pickupCardValue: "mt-1 truncate text-sm font-black text-white",
+  pickupCardHint: "mt-1 text-xs text-slate-400",
+  pickupCardLink: "inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-cyan-400/25 px-3 py-2 text-xs font-black text-cyan-200 transition hover:border-cyan-300 hover:text-white",
+  pickupCardLinkIcon: "h-3.5 w-3.5",
   submitWrap: "flex flex-1",
   professionalAdCard: "mt-3 h-[280px] rounded-[28px]",
 } as const;
@@ -122,7 +131,9 @@ export function BiddingProposalSheet({
   const pickupEtaMinutes = estimatePickupMinutes(pickupDistanceKm);
   const [waitSecondsInput, setWaitSecondsInput] = React.useState(String(MIN_OFFER_WAIT_SECONDS));
   const parsedWaitSeconds = Number(waitSecondsInput);
-  const isWaitSecondsValid = Number.isInteger(parsedWaitSeconds) && parsedWaitSeconds >= MIN_OFFER_WAIT_SECONDS;
+  const isWaitSecondsValid = Number.isInteger(parsedWaitSeconds)
+    && parsedWaitSeconds >= MIN_OFFER_WAIT_SECONDS
+    && parsedWaitSeconds <= MAX_OFFER_WAIT_SECONDS;
   const [quote, setQuote] = React.useState<CaptainOfferQuote | null>(null);
 
   // The sheet opens on the captain's OWN meter reading — base_fare + km + minutes from the
@@ -273,17 +284,17 @@ export function BiddingProposalSheet({
         </div>
       </div>
 
-      <div className="mt-4 rounded-2xl border border-cyan-400/20 bg-cyan-400/[0.06] p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="flex items-center gap-1.5 text-xs font-black text-cyan-200">
-              <MapPin className="h-4 w-4" aria-hidden="true" />
+      <div className={styles.pickupCard}>
+        <div className={styles.pickupCardRow}>
+          <div className={styles.pickupCardInfo}>
+            <p className={styles.pickupCardLabel}>
+              <MapPin className={styles.pickupCardIcon} aria-hidden="true" />
               {pickupT('pickupLocation')}
             </p>
-            <p className="mt-1 truncate text-sm font-black text-white">
+            <p className={styles.pickupCardValue}>
               {request.pickupLabel || pickupT('pickupLocation')}
             </p>
-            <p className="mt-1 text-xs text-slate-400">
+            <p className={styles.pickupCardHint}>
               {request.pickupLocationIsApproximate ? pickupT('pickupApproximate') : pickupT('pickupExact')}
             </p>
           </div>
@@ -292,9 +303,9 @@ export function BiddingProposalSheet({
               href={request.pickupGoogleMapsUrl}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-cyan-400/25 px-3 py-2 text-xs font-black text-cyan-200 transition hover:border-cyan-300 hover:text-white"
+              className={styles.pickupCardLink}
             >
-              <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+              <ExternalLink className={styles.pickupCardLinkIcon} aria-hidden="true" />
               {pickupT('openPickupMap')}
             </a>
           ) : null}
@@ -494,9 +505,13 @@ export function BiddingProposalSheet({
               onClick={() => setWaitSecondsInput((current) => {
                 const value = Number(current);
                 const next = (Number.isFinite(value) ? value : MIN_OFFER_WAIT_SECONDS) + 1;
-                return String(Math.max(MIN_OFFER_WAIT_SECONDS, next));
+                // Clamped both ways. This button had no ceiling, so holding it walked the
+                // window into the thousands of seconds and the rider was shown an offer that
+                // stayed live for over an hour.
+                return String(Math.min(MAX_OFFER_WAIT_SECONDS, Math.max(MIN_OFFER_WAIT_SECONDS, next)));
               })}
-              className={styles.style182_28}
+              disabled={parsedWaitSeconds >= MAX_OFFER_WAIT_SECONDS}
+              className={cn(styles.style182_28, parsedWaitSeconds >= MAX_OFFER_WAIT_SECONDS ? styles.inputLocked : '')}
             >
               <Plus className={styles.style184_29} />
             </button>
@@ -505,7 +520,7 @@ export function BiddingProposalSheet({
           {!isWaitSecondsValid ? (
             <div className={styles.style208_37}>
               <AlertTriangle className={styles.style209_38} />
-              {t('waitSecondsInvalid', { min: MIN_OFFER_WAIT_SECONDS })}
+              {t('waitSecondsRange', { min: MIN_OFFER_WAIT_SECONDS, max: MAX_OFFER_WAIT_SECONDS })}
             </div>
           ) : null}
         </div>
@@ -528,7 +543,7 @@ export function BiddingProposalSheet({
       <div className={styles.style215_39}>
         <span
           className={styles.submitWrap}
-          title={!isWaitSecondsValid ? t('waitSecondsInvalid', { min: MIN_OFFER_WAIT_SECONDS }) : undefined}
+          title={!isWaitSecondsValid ? t('waitSecondsRange', { min: MIN_OFFER_WAIT_SECONDS, max: MAX_OFFER_WAIT_SECONDS }) : undefined}
         >
           <button
             onClick={() => onSubmit(finalOfferPrice, parsedWaitSeconds)}

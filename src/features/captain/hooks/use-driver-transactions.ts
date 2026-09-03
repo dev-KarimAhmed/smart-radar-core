@@ -15,6 +15,21 @@ type RideRequestRow = Record<string, unknown>;
 export const MIN_OFFER_WAIT_SECONDS = 5;
 
 /**
+ * Upper bound on how long an offer stays visible to the rider.
+ *
+ * There was none. The floor of 5 was checked here and in submit_ride_offer; the sheet's `+`
+ * button had no ceiling and its text input accepted any digits. A captain holding `+` (or
+ * typing) produced offers with windows like 5548 seconds — the rider saw "5548 ث" beside a
+ * progress bar that visibly never moved, and the offer sat in the auction for an hour and a
+ * half.
+ *
+ * Two minutes is the product call: long enough for a rider to read an offer and compare it,
+ * short enough that the auction stays an auction. Change it here and in the server-side
+ * clamp in 20260908090000_bound_offer_wait_window.sql together.
+ */
+export const MAX_OFFER_WAIT_SECONDS = 120;
+
+/**
  * submit_ride_offer refuses out-of-band prices server-side, so these are reachable even
  * when the bidding sheet's own guards pass — a stale server fare on the captain's screen,
  * or a rank that changed between load and submit.
@@ -312,11 +327,15 @@ export function useDriverTransactions(
       return false;
     }
 
-    if (!Number.isInteger(payload.waitSeconds) || payload.waitSeconds < MIN_OFFER_WAIT_SECONDS) {
+    if (
+      !Number.isInteger(payload.waitSeconds)
+      || payload.waitSeconds < MIN_OFFER_WAIT_SECONDS
+      || payload.waitSeconds > MAX_OFFER_WAIT_SECONDS
+    ) {
       toast({
         variant: 'destructive',
         title: 'مدة الانتظار غير صحيحة',
-        description: `حدد عدد ثواني ظهور العرض (على الأقل ${MIN_OFFER_WAIT_SECONDS} ثواني) ثم حاول مرة أخرى.`,
+        description: `حدد مدة ظهور العرض بين ${MIN_OFFER_WAIT_SECONDS} و ${MAX_OFFER_WAIT_SECONDS} ثانية ثم حاول مرة أخرى.`,
       });
       return false;
     }

@@ -890,7 +890,8 @@
     "breakdownFloor": "أقل سعر مسموح (الرفض تحته)",
     "breakdownYourIncrease": "زيادتك",
     "breakdownMarketUnknown": "غير متاح",
-    "meterOffMarket": "سعر عدّادك ({meter} {currency}) أعلى بكتير من متوسط السوق ({market} {currency}) — يعني متوسط السوق محسوب من عدد كباتن قليل ومش معبّر. العرض هيتبعت عادي، بس راجع تسعيرة عدّادك."
+    "meterOffMarket": "سعر عدّادك ({meter} {currency}) أعلى بكتير من متوسط السوق ({market} {currency}) — يعني متوسط السوق محسوب من عدد كباتن قليل ومش معبّر. العرض هيتبعت عادي، بس راجع تسعيرة عدّادك.",
+    "waitSecondsRange": "لازم تحدد عدد ثواني الانتظار بين {min} و {max} ثانية قبل تقديم العرض."
   },
   "captainProfile": {
     "badge": "حسابي",
