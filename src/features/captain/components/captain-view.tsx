@@ -76,6 +76,13 @@ const styles = {
   connectionBannerTitle: "text-sm font-black",
   connectionBannerBody: "mt-0.5 text-xs leading-5 text-slate-300/80",
   style328_1: "flex min-h-[calc(100vh-11rem)] w-full flex-1 flex-col overflow-hidden rounded-3xl border border-emerald-500/20 bg-[#05080f] shadow-2xl shadow-black/30",
+  // Trip focus mode. Fixed rather than a normal block so nothing from the dashboard —
+  // including the recovery-email banner rendered above this component in captain-shell —
+  // can appear around or under the trip. z-40 stays below the rating dialog (z-50) and
+  // the toaster (z-[9999]), which must still be able to surface over it.
+  tripFocusRoot: "fixed inset-0 z-40 overflow-y-auto bg-[#0B0F19] p-3 text-white sm:p-5",
+  tripFocusInner: "mx-auto flex min-h-full w-full max-w-4xl flex-col gap-3",
+  tripFocusBar: "flex items-center justify-end gap-2",
 } as const;
 
 const RadarMapView = dynamic(() => import('./radar-map-view').then(m => m.RadarMapView), { ssr: false });
@@ -214,6 +221,18 @@ export function DriverViewTab() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [screen]);
 
+  // Trip focus mode is a fixed overlay, so the dashboard behind it would still scroll under
+  // the captain's finger — they'd be dragging invisible chrome while the trip's own content
+  // stays put. Locking the body makes the trip surface the only thing that moves.
+  React.useEffect(() => {
+    if (screen !== 'ACTIVE_TRIP') return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [screen]);
+
   if (!driverOps) {
     return (
       <div className={styles.style107_1}>
@@ -288,6 +307,62 @@ export function DriverViewTab() {
   const cancelTrip = async () => {
     await driverOps.cancelActiveTrip();
   };
+
+  // A trip in progress takes over the whole screen: no tabs, no radar, no availability
+  // toggle, no logout. Every one of those is either meaningless mid-trip or actively
+  // harmful — going offline or signing out with a rider in the car strands the trip in a
+  // state only the captain can move forward. The one control kept is the language switch,
+  // because it changes nothing about the trip.
+  if (screen === 'ACTIVE_TRIP' && driverOps.activeRequest) {
+    return (
+      <div className={styles.tripFocusRoot} dir={direction} data-captain-trip-focus>
+        <div className={styles.tripFocusInner}>
+          <div className={styles.tripFocusBar}>
+            <button
+              type="button"
+              onClick={toggleLanguage}
+              aria-label={t('switchLanguageAria')}
+              title={t('switchLanguageLabel')}
+              className={styles.style186_20}
+            >
+              <Languages className={styles.style186_21} />
+              <span className={styles.style186_22}>{t('switchLanguageLabel')}</span>
+            </button>
+          </div>
+
+          {/* Connectivity matters more here than anywhere else on the dashboard: every step
+              button below writes to the server, so a captain must be able to tell "the tap
+              did nothing" from "I'm offline". */}
+          {isOffline || isReconnecting ? (
+            <div className={styles.connectionBanner}>
+              <WifiOff className={styles.connectionBannerIcon} />
+              <div>
+                <p className={styles.connectionBannerTitle}>{isOffline ? t('offlineBannerTitle') : t('reconnectingTitle')}</p>
+                <p className={styles.connectionBannerBody}>{isOffline ? t('offlineBannerBody') : t('reconnectingBody')}</p>
+              </div>
+            </div>
+          ) : null}
+
+          <ActiveTripTracker
+            language={language}
+            request={driverOps.activeRequest}
+            rider={driverOps.acceptedRider}
+            step={state.tripStep}
+            isCompleting={driverOps.isEndingTrip || driverOps.isUpdatingTripStep}
+            isCancelling={driverOps.isCancellingTrip}
+            currency={currency}
+            driverLocation={driverOps.driverLocation}
+            handshakeAt={driverOps.handshakeAt}
+            isFullScreen
+            onArrived={markArrived}
+            onStartTrip={startTrip}
+            onCompleteTrip={completeTrip}
+            onCancelTrip={() => void cancelTrip()}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.style153_3} dir={direction}>
@@ -406,23 +481,7 @@ export function DriverViewTab() {
           />
         ) : null}
 
-        {screen === 'ACTIVE_TRIP' && driverOps.activeRequest ? (
-          <ActiveTripTracker
-            language={language}
-            request={driverOps.activeRequest}
-            rider={driverOps.acceptedRider}
-            step={state.tripStep}
-            isCompleting={driverOps.isEndingTrip || driverOps.isUpdatingTripStep}
-            isCancelling={driverOps.isCancellingTrip}
-            currency={currency}
-            driverLocation={driverOps.driverLocation}
-            handshakeAt={driverOps.handshakeAt}
-            onArrived={markArrived}
-            onStartTrip={startTrip}
-            onCompleteTrip={completeTrip}
-            onCancelTrip={() => void cancelTrip()}
-          />
-        ) : null}
+        {/* ACTIVE_TRIP never reaches here — it returns above as its own full-screen surface. */}
 
         {screen === 'WALLET' ? <DriverWalletTab user={user} language={language} isFlightActive={isActive} /> : null}
         {screen === 'HISTORY' ? <HistoryScreen hideCaptainDiagnostics /> : null}

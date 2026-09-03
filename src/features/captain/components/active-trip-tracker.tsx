@@ -20,6 +20,12 @@ const PickupNavigationMap = dynamic(
 );
 const styles = {
   style32_1: "mx-auto max-w-4xl rounded-3xl border border-emerald-500/20 bg-[#05080f] p-5 text-white shadow-2xl",
+  // Trip focus mode: the card is the whole screen, so it stretches to fill its flex parent
+  // instead of sitting as a block with empty space under it.
+  rootFullScreen: "flex w-full flex-1 flex-col rounded-3xl border border-emerald-500/20 bg-[#05080f] p-4 text-white shadow-2xl sm:p-5",
+  // Pushes the step buttons and cancel to the bottom of a full-height card — the captain is
+  // driving, and the action they need is under their thumb rather than mid-screen.
+  actionsPinnedToBottom: "mt-auto pt-5",
   style33_2: "flex flex-col gap-4 md:flex-row md:items-start md:justify-between",
   style35_3: "text-xs font-black text-[#14B8A6]",
   style36_4: "mt-1 text-2xl font-black",
@@ -87,6 +93,8 @@ interface ActiveTripTrackerProps {
   currency: string;
   driverLocation: { lat: number; lng: number } | null;
   handshakeAt: number | null;
+  /** Rendered as the captain's whole screen with the dashboard tabs hidden. */
+  isFullScreen?: boolean;
   onArrived: () => void;
   onStartTrip: () => void;
   onCompleteTrip: () => void;
@@ -125,6 +133,7 @@ export function ActiveTripTracker({
   currency,
   driverLocation,
   handshakeAt,
+  isFullScreen = false,
   onArrived,
   onStartTrip,
   onCompleteTrip,
@@ -143,7 +152,7 @@ export function ActiveTripTracker({
   const navigationMode = isEnRouteToDropoff ? 'dropoff' : 'pickup';
 
   return (
-    <section className={styles.style32_1}>
+    <section className={isFullScreen ? styles.rootFullScreen : styles.style32_1}>
       <div className={styles.style33_2}>
         <div>
           <p className={styles.style35_3}>{t('badge')}</p>
@@ -231,7 +240,7 @@ export function ActiveTripTracker({
         />
       </div> */}
 
-      <div className={styles.style63_17}>
+      <div className={cn(styles.style63_17, isFullScreen && styles.actionsPinnedToBottom)}>
         <StepButton
           active={step === 'ACCEPTED'}
           done={['ARRIVED', 'STARTED'].includes(step)}
