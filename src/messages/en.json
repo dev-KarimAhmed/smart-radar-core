@@ -968,7 +968,6 @@
     "riderFallback": "Rider",
     "callRider": "Call rider",
     "frozenPrice": "Price confirmed and frozen",
-    "eta": "Time left before expiry",
     "arrived": "Tell the rider you have arrived",
     "start": "Start trip",
     "complete": "Complete trip",

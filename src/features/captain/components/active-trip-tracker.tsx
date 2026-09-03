@@ -2,11 +2,10 @@
 
 import React from 'react';
 import dynamic from 'next/dynamic';
-import { AlertOctagon, CheckCircle2, Clock, ExternalLink, Loader2, Lock, MapPin, Navigation, Phone, ShieldAlert } from 'lucide-react';
+import { AlertOctagon, CheckCircle2, ExternalLink, Loader2, Lock, MapPin, Navigation, Phone, ShieldAlert } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { Trip, User } from '@/core/types';
 import type { CaptainTripStep } from '../state/captain-state-machine';
-import { SOVEREIGN_CONSTANTS } from '@/core/constants/sovereign-protocols';
 import { useTripCountdown } from '@/shared/hooks/use-trip-countdown';
 
 import { cn } from '@/lib/utils';
@@ -54,7 +53,7 @@ const styles = {
   style116_26: "border-[#14B8A6] bg-[#14B8A6] text-[#06111f]",
   style117_27: "border-white/10 bg-white/[0.03] text-slate-300",
   style90_1: "mt-5",
-  style95_1: "mt-4 grid gap-4 md:grid-cols-3",
+  style95_1: "mt-4 grid gap-4 md:grid-cols-2",
   countdownCard: "rounded-2xl border border-cyan-400/25 bg-cyan-400/[0.07] p-4",
   countdownCardOverdue: "rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4",
   countdownLabel: "flex items-center gap-1.5 text-xs font-black text-cyan-200",
@@ -67,11 +66,6 @@ const styles = {
   style97_1: "flex items-center gap-1.5 text-xs font-black text-[#14F5D5]",
   style98_1: "h-3.5 w-3.5",
   style99_1: "mt-1 text-xl font-black",
-  style100_1: "rounded-2xl border border-slate-800 bg-black/45 p-4",
-  style101_1: "flex items-center gap-1.5 text-xs text-slate-400",
-  style102_1: "h-3.5 w-3.5",
-  style103_1: "mt-1 text-xl font-black font-mono",
-  style103_2: "mt-1 text-xl font-black font-mono text-amber-300",
   pickupCard: "mt-4 rounded-2xl border border-cyan-400/20 bg-cyan-400/[0.06] p-4",
   pickupCardRow: "flex items-start justify-between gap-3",
   pickupCardInfo: "min-w-0",
@@ -101,35 +95,12 @@ interface ActiveTripTrackerProps {
   isCancelling: boolean;
   currency: string;
   driverLocation: { lat: number; lng: number } | null;
-  handshakeAt: number | null;
   /** Rendered as the captain's whole screen with the dashboard tabs hidden. */
   isFullScreen?: boolean;
   onArrived: () => void;
   onStartTrip: () => void;
   onCompleteTrip: () => void;
   onCancelTrip: () => void;
-}
-
-function useHandshakeCountdown(handshakeAt: number | null) {
-  const expiresAt = handshakeAt ? handshakeAt + SOVEREIGN_CONSTANTS.TRIP_FORGOTTEN_GRACE_MIN * 60 * 1000 : null;
-  const [remainingMs, setRemainingMs] = React.useState(() => (expiresAt ? Math.max(0, expiresAt - Date.now()) : 0));
-
-  React.useEffect(() => {
-    if (!expiresAt) {
-      setRemainingMs(0);
-      return;
-    }
-    setRemainingMs(Math.max(0, expiresAt - Date.now()));
-    const interval = window.setInterval(() => {
-      setRemainingMs(Math.max(0, expiresAt - Date.now()));
-    }, 1000);
-    return () => window.clearInterval(interval);
-  }, [expiresAt]);
-
-  const totalSeconds = Math.floor(remainingMs / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return { minutes, seconds, isRunningLow: remainingMs > 0 && remainingMs <= 5 * 60 * 1000 };
 }
 
 export function ActiveTripTracker({
@@ -141,7 +112,6 @@ export function ActiveTripTracker({
   isCancelling,
   currency,
   driverLocation,
-  handshakeAt,
   isFullScreen = false,
   onArrived,
   onStartTrip,
@@ -150,7 +120,6 @@ export function ActiveTripTracker({
 }: ActiveTripTrackerProps) {
   const t = useTranslations('captainActiveTrip');
   const pickupT = useTranslations('captainPickup');
-  const graceCountdown = useHandshakeCountdown(handshakeAt);
   const [isConfirmingCancel, setIsConfirmingCancel] = React.useState(false);
   const pickupLocation = request.exactPickupCoords || request.obfuscatedPickupCoords || request.pickupCoords || null;
   // Once the trip is actually started, the captain is driving the rider to
@@ -282,15 +251,6 @@ export function ActiveTripTracker({
           </p>
         </div>
 
-        <div className={styles.style100_1}>
-          <p className={styles.style101_1}>
-            <Clock className={styles.style102_1} />
-            {t('eta')}
-          </p>
-          <p className={graceCountdown.isRunningLow ? styles.style103_2 : styles.style103_1}>
-            {handshakeAt ? `${String(graceCountdown.minutes).padStart(2, '0')}:${String(graceCountdown.seconds).padStart(2, '0')}` : '--:--'}
-          </p>
-        </div>
       </div>
 
       {/* <div className={styles.style90_1}>
