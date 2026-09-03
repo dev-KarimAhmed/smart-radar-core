@@ -50,6 +50,7 @@ export interface RiderActiveScreenProps {
   currencyLabel: string;
   selectedDraftDestination: RiderMachineState['destination'];
   selectedDestinationCoords: RiderLocation | null;
+  pinnedPlaceLabel: string;
   isDestinationPinMoving: boolean;
   isCaptainScanPreviewActive: boolean;
   onGovernorateChange: (governorateId: string) => void;
@@ -80,6 +81,7 @@ export function RiderActiveScreen(props: RiderActiveScreenProps) {
     currencyLabel,
     selectedDraftDestination,
     selectedDestinationCoords,
+    pinnedPlaceLabel,
     isDestinationPinMoving,
     isCaptainScanPreviewActive,
     onGovernorateChange,
@@ -101,6 +103,7 @@ export function RiderActiveScreen(props: RiderActiveScreenProps) {
         currencyLabel={currencyLabel}
         selectedDraftDestination={selectedDraftDestination}
         selectedDestinationCoords={selectedDestinationCoords}
+        pinnedPlaceLabel={pinnedPlaceLabel}
         isDestinationPinMoving={isDestinationPinMoving}
         riderCount={tripCompletion.riderCount}
         setRiderCount={tripCompletion.setRiderCount}
@@ -147,7 +150,7 @@ export function RiderActiveScreen(props: RiderActiveScreenProps) {
       <TripActiveScreen
         isArabic={isArabic}
         activeTrip={state.activeTrip}
-        etaSeconds={statusSync.etaSeconds}
+        countdown={statusSync.countdown}
         currencyLabel={currencyLabel}
         isCancellingRideRequest={sendCancel.isCancellingRideRequest}
         onEmergencyWhatsapp={emergencyContact.handleEmergencyWhatsapp}

@@ -26,28 +26,47 @@ import {
 import { cn } from '@/lib/utils';
 import { resolveColorDisplayName } from '@/shared/services/color-name';
 import { preferRoutedMinutes } from '@/shared/services/trip-duration';
+import { formatCountdown } from '@/shared/services/trip-countdown';
 const styles = {
   style136_1: "group overflow-hidden rounded-2xl border bg-[#161F30]/80 text-[#F8FAFC] shadow-2xl shadow-black/20 backdrop-blur-md transition-all duration-300 hover:border-[#14B8A6]",
   style137_2: "border-emerald-300/70 shadow-[0_0_34px_rgba(20,184,166,0.18)]",
   style137_3: "border-[#243249]",
-  style143_4: "flex w-full items-center justify-between gap-4 p-5 text-start transition hover:bg-white/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/60",
-  style146_5: "flex min-w-0 items-center gap-3",
+  style146_5: "flex min-w-0 flex-1 items-center gap-3",
   style148_6: "min-w-0",
-  style149_7: "flex flex-wrap items-center gap-2",
+  style149_7: "flex flex-wrap items-center gap-x-2 gap-y-1",
   style150_8: "min-w-0 max-w-full truncate text-lg font-extrabold text-[#F8FAFC] sm:text-xl",
+  // --- Collapsed face -------------------------------------------------------
+  // The rider compares offers on price, arrival and duration. All three used to live behind
+  // the expand chevron, so the closed card showed a name, a rank and a raw seconds counter
+  // — nothing to actually choose on — and accepting required a tap to open first.
+  headerRow: "flex items-start gap-3 p-4 pb-0 sm:p-5 sm:pb-0",
+  metaRow: "mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[#94A3B8]",
+  metaDot: "text-[#334155]",
+  factsStrip: "mx-4 mt-4 grid grid-cols-3 overflow-hidden rounded-xl border border-white/[0.07] bg-black/25 sm:mx-5",
+  fact: "px-1.5 py-2.5 text-center",
+  factDivided: "border-s border-white/[0.07]",
+  factLabel: "block text-[10px] font-bold leading-tight text-[#94A3B8]",
+  factValue: "mt-1 block text-sm font-black text-[#F8FAFC]",
+  factValueAccent: "mt-1 block text-sm font-black text-[#14F5D5]",
+  priceRow: "flex items-end justify-between gap-3 px-4 pt-4 sm:px-5",
+  priceLabelWrap: "min-w-0",
+  priceLabel: "text-[11px] font-bold text-[#94A3B8]",
+  priceValueRow: "mt-0.5 flex items-baseline gap-1",
+  priceValue: "text-[26px] font-black leading-none tracking-tight text-[#14F5D5] sm:text-3xl",
+  priceCurrency: "text-xs font-bold text-[#14F5D5]/70",
+  priceAside: "shrink-0 text-end text-[10px] font-bold leading-tight text-[#94A3B8]",
+  actionRow: "flex items-stretch gap-2 p-4 pt-3 sm:p-5 sm:pt-3",
+  detailsButton: "inline-flex shrink-0 items-center gap-1 rounded-xl border border-white/10 bg-white/[0.04] px-3 text-xs font-black text-slate-200 transition hover:border-[#14B8A6]/35 hover:bg-[#14B8A6]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/60",
+  detailsIcon: "h-4 w-4 shrink-0 transition-transform duration-300",
+  detailsIconOpen: "rotate-180",
   style152_9: "inline-flex items-center gap-1 rounded-full border border-[#14B8A6]/35 bg-[#14B8A6]/10 px-2 py-0.5 text-[10px] font-black text-[#14F5D5]",
   style153_10: "h-3 w-3",
   style158_11: "inline-flex items-center gap-1 rounded-full border border-emerald-300/50 bg-emerald-400/15 px-2.5 py-1 text-[10px] font-black text-emerald-100 shadow-[0_0_18px_rgba(52,211,153,0.2)]",
   style159_12: "h-3.5 w-3.5 fill-emerald-200 text-emerald-200",
-  style164_13: "mt-1 flex flex-wrap items-center gap-2 text-sm text-[#94A3B8]",
   style165_14: "inline-flex items-center gap-1",
   style166_15: "h-4 w-4 fill-yellow-400 text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.7)]",
   style167_16: "text-[#F8FAFC]",
   style169_17: "rounded-full border border-[#14B8A6]/25 bg-[#14B8A6]/10 px-2 py-0.5 text-xs font-black text-[#14B8A6]",
-  style172_18: "inline-flex items-center gap-1",
-  style173_19: "h-3.5 w-3.5 text-[#14B8A6]",
-  style187_24: "h-5 w-5 shrink-0 text-slate-400 transition-transform duration-300",
-  style187_25: "rotate-180",
   style192_26: "grid transition-all duration-300 ease-out",
   style193_27: "grid-rows-[1fr] opacity-100",
   style193_28: "grid-rows-[0fr] opacity-0",
@@ -76,7 +95,7 @@ const styles = {
   breakdownRows: "space-y-2 text-sm",
   reasonText: "mt-3 text-xs leading-5 text-[#94A3B8]",
   additionalInfo: "rounded-xl border border-white/5 bg-white/[0.03] p-3 text-xs leading-relaxed text-[#94A3B8]",
-  acceptButton: "flex w-full items-center justify-center gap-2 rounded-xl bg-[#14B8A6] py-3 font-extrabold text-[#0B0F19] transition-all duration-300 hover:bg-opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#161F30] disabled:cursor-wait disabled:opacity-60",
+  acceptButton: "flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#14B8A6] py-3.5 text-sm font-extrabold text-[#0B0F19] transition-all duration-300 hover:bg-[#2DD4BF] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#161F30] disabled:cursor-wait disabled:opacity-60",
   acceptButtonIcon: "h-5 w-5",
   avatarImg: "h-14 w-14 shrink-0 rounded-2xl border border-[#14B8A6]/30 object-cover",
   avatarFallback: "grid h-14 w-14 shrink-0 place-items-center rounded-2xl border border-[#14B8A6]/30 bg-[#14B8A6]/10",
@@ -96,11 +115,14 @@ const styles = {
   breakdownValueAccent: "text-[#14B8A6]",
   breakdownValuePlain: "text-[#F8FAFC]",
   breakdownValueStrong: "text-lg",
-  countdownWrap: "flex items-center gap-2 border-t border-white/5 px-5 py-2",
-  countdownTrack: "h-1.5 flex-1 overflow-hidden rounded-full bg-white/10",
+  // At the top edge, not between the header and the body: this is the offer's own expiry,
+  // and a bar buried mid-card read as a loading indicator for the row above it.
+  countdownWrap: "flex items-center gap-2 px-4 pt-3 sm:px-5",
+  countdownTrack: "h-1 flex-1 overflow-hidden rounded-full bg-white/10",
   countdownFill: "h-full rounded-full bg-[#14B8A6] transition-[width] duration-200 ease-linear",
   countdownFillUrgent: "bg-rose-400",
-  countdownLabel: "shrink-0 text-[11px] font-black tabular-nums text-[#94A3B8]",
+  countdownLabel: "shrink-0 text-[10px] font-black tabular-nums text-[#94A3B8]",
+  countdownLabelUrgent: "shrink-0 text-[10px] font-black tabular-nums text-rose-300",
 } as const;
 
 
@@ -274,18 +296,37 @@ export function CaptainOfferCard({
   const vehicleDetailFieldCount = 1 + Number(hasVehicleYear) + Number(hasVehicleCategory);
   const lastVehicleDetailField = hasVehicleCategory ? 'category' : hasVehicleYear ? 'year' : 'plate';
   const vehicleDetailTrailingSpansFull = vehicleDetailFieldCount % 2 !== 0;
+  // Under a fifth of the window left, or under ten seconds whatever the window was — a long
+  // window would otherwise never turn red until only a couple of seconds remained.
+  const isCountdownUrgent = Boolean(
+    countdown?.hasCountdown
+    && (countdown.percentRemaining <= 20 || countdown.remainingSeconds <= 10),
+  );
 
   return (
     <article
       dir={isArabic ? 'rtl' : 'ltr'}
       className={cn(styles.style136_1, isPreferred ? styles.style137_2 : styles.style137_3)}
     >
-      <button
-        type="button"
-        onClick={onToggleExpand}
-        className={styles.style143_4}
-        aria-expanded={isExpanded}
-      >
+      {countdown?.hasCountdown ? (
+        <div className={styles.countdownWrap}>
+          <div className={styles.countdownTrack}>
+            <div
+              className={cn(styles.countdownFill, isCountdownUrgent ? styles.countdownFillUrgent : '')}
+              style={{ width: `${countdown.percentRemaining}%` }}
+            />
+          </div>
+          {/* m:ss, not a raw seconds count. The old label printed `remainingSeconds`
+              straight out, so an offer with a large wait window read as "5548 ث" — a number
+              no rider can convert into "how long do I have". dir=ltr keeps the colon
+              between the digits inside this RTL card. */}
+          <span className={isCountdownUrgent ? styles.countdownLabelUrgent : styles.countdownLabel} dir="ltr">
+            {formatCountdown(countdown.remainingSeconds)}
+          </span>
+        </div>
+      ) : null}
+
+      <div className={styles.headerRow}>
         <div className={styles.style146_5}>
           <CaptainAvatar captain={captain} captainName={captainName} />
           <div className={styles.style148_6}>
@@ -307,7 +348,7 @@ export function CaptainOfferCard({
                 </span>
               ) : null}
             </div>
-            <div className={styles.style164_13}>
+            <div className={styles.metaRow}>
               <span className={styles.style165_14}>
                 <Star className={styles.style166_15} />
                 <strong className={styles.style167_16}>{rating}.0</strong>
@@ -315,30 +356,69 @@ export function CaptainOfferCard({
               <span className={styles.style169_17}>
                 {rankLabel}
               </span>
-              <span className={styles.style172_18}>
-                <Clock className={styles.style173_19} />
-                {offer.eta_minutes} {isArabic ? 'د' : 'min'}
-              </span>
+              {completedTrips > 0 ? (
+                <>
+                  <span className={styles.metaDot}>·</span>
+                  <span>{completedTrips} {isArabic ? 'رحلة' : 'trips'}</span>
+                </>
+              ) : null}
             </div>
           </div>
         </div>
+      </div>
 
-        <ChevronDown className={cn(styles.style187_24, isExpanded ? styles.style187_25 : '')} />
-      </button>
+      {/* The three numbers an offer is actually chosen on, side by side so two cards can be
+          compared by eye. The bare "1 د" chip this replaces carried no label at all. */}
+      <div className={styles.factsStrip}>
+        <div className={styles.fact}>
+          <span className={styles.factLabel}>{isArabic ? 'يوصلك خلال' : 'Arrives in'}</span>
+          <span className={styles.factValueAccent}>{formatMinutes(offer.eta_minutes, language)}</span>
+        </div>
+        <div className={cn(styles.fact, styles.factDivided)}>
+          <span className={styles.factLabel}>{isArabic ? 'مدة الرحلة' : 'Trip time'}</span>
+          <span className={styles.factValue}>{durationLabel}</span>
+        </div>
+        <div className={cn(styles.fact, styles.factDivided)}>
+          <span className={styles.factLabel}>{isArabic ? 'مسافة الرحلة' : 'Trip distance'}</span>
+          <span className={styles.factValue}>{Number(tripDistance || 0).toFixed(1)} {isArabic ? 'كم' : 'km'}</span>
+        </div>
+      </div>
 
-      {countdown?.hasCountdown ? (
-        <div className={styles.countdownWrap}>
-          <div className={styles.countdownTrack}>
-            <div
-              className={cn(styles.countdownFill, countdown.percentRemaining <= 30 ? styles.countdownFillUrgent : '')}
-              style={{ width: `${countdown.percentRemaining}%` }}
-            />
-          </div>
-          <span className={styles.countdownLabel}>
-            {countdown.remainingSeconds} {isArabic ? 'ث' : 's'}
+      {/* The price, on the closed card. It was only ever inside the expanded panel — the one
+          number the rider is deciding on, behind a tap. */}
+      <div className={styles.priceRow}>
+        <div className={styles.priceLabelWrap}>
+          <span className={styles.priceLabel}>{isArabic ? 'السعر النهائي' : 'Final price'}</span>
+          <span className={styles.priceValueRow} dir="ltr">
+            <strong className={styles.priceValue}>{finalFare.toFixed(2)}</strong>
+            <span className={styles.priceCurrency}>{currencyCode}</span>
           </span>
         </div>
-      ) : null}
+        <span className={styles.priceAside}>
+          {isArabic ? 'شامل كل شيء' : 'All inclusive'}
+        </span>
+      </div>
+
+      <div className={styles.actionRow}>
+        <button
+          type="button"
+          onClick={() => onAccept(offer)}
+          disabled={isAccepting}
+          className={styles.acceptButton}
+        >
+          <Navigation className={styles.acceptButtonIcon} />
+          {isAccepting ? (isArabic ? 'جاري القبول...' : 'Accepting...') : isArabic ? 'قبول العرض' : 'Accept offer'}
+        </button>
+        <button
+          type="button"
+          onClick={onToggleExpand}
+          className={styles.detailsButton}
+          aria-expanded={isExpanded}
+        >
+          {isArabic ? 'التفاصيل' : 'Details'}
+          <ChevronDown className={cn(styles.detailsIcon, isExpanded ? styles.detailsIconOpen : '')} />
+        </button>
+      </div>
 
       <div
         className={cn(styles.style192_26, isExpanded ? styles.style193_27 : styles.style193_28)}
@@ -498,16 +578,8 @@ export function CaptainOfferCard({
                 {offer.additional_info}
               </p>
             ) : null}
-
-            <button
-              type="button"
-              onClick={() => onAccept(offer)}
-              disabled={isAccepting}
-              className={styles.acceptButton}
-            >
-              <Navigation className={styles.acceptButtonIcon} />
-              {isAccepting ? (isArabic ? 'جاري قبول العرض...' : 'Accepting offer...') : isArabic ? 'قبول العرض' : 'Accept offer'}
-            </button>
+            {/* No accept button down here any more: it sits on the closed card, so the rider
+                never has to open the details in order to be able to act. */}
           </div>
         </div>
       </div>

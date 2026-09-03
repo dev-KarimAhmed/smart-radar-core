@@ -99,9 +99,14 @@ export function DestinationSummaryCard({
             <span className={styles.fieldLabel}>{t('destination.label')}</span>
             {/* dir="auto" so a Latin destination name truncates from its own tail instead of the RTL page's. */}
             <strong dir="auto" className={styles.destinationValue}>{destinationLabel}</strong>
+            {/* dir="ltr" below is required, not cosmetic. Two bare numbers separated by a
+                comma inside an RTL block get reordered by the bidi algorithm, so latitude
+                and longitude render in the opposite order to the one the code writes them
+                in — and read as though the coordinates were swapped in the data. Labelled
+                too, so nobody has to guess which number is which. */}
             {hasDestinationCoordsAnchor && selectedDestinationCoords ? (
-              <span className={styles.coords}>
-                {selectedDestinationCoords.lat.toFixed(4)}, {selectedDestinationCoords.lng.toFixed(4)}
+              <span dir="ltr" className={styles.coords}>
+                {`lat ${selectedDestinationCoords.lat.toFixed(4)} · lng ${selectedDestinationCoords.lng.toFixed(4)}`}
               </span>
             ) : null}
           </div>

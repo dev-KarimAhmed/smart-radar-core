@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Loader2, X } from 'lucide-react';
+import { Loader2, MapPin, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { AppLanguage } from '@/lib/i18n/simple-copy';
 import type { Offer } from '@/core/types';
@@ -10,9 +10,7 @@ import type { RiderMachineState } from '../state/rider-state-machine';
 import type { CaptainPresencePoint } from '../services/rider-server-marketplace';
 import { buildCaptainOfferFromOffer } from '../services/rider-offer-presentation';
 import { getOfferCountdown } from '../services/offer-countdown';
-import { formatMoney } from '../services/rider-view-format';
 import type { RiderLocation } from './rider-map';
-import { Metric } from './rider-view-primitives';
 import { CaptainOfferCard } from './captain-offer-card';
 
 const styles = {
@@ -32,9 +30,17 @@ const styles = {
   subtitle: "text-xs text-slate-400",
   cancelButton: "h-11 rounded-xl border border-red-500/30 bg-red-600/15 px-4 text-sm font-black text-red-100 hover:bg-red-600/25 flex items-center justify-center gap-1 cursor-pointer",
   cancelIcon: "h-4 w-4",
-  savedCard: "rounded-2xl border border-white/5 bg-white/5 p-4",
-  savedTitle: "mb-3 text-[11px] font-black text-[#14F5D5]",
-  savedMetrics: "grid grid-cols-2 gap-3",
+  // One quiet line, not a four-metric card.
+  //
+  // This block used to stack "طلب الرحلة المحفوظ" above a grid carrying the request id and
+  // the literal words "محفوظ في قاعدة البيانات" — diagnostics, in the most valuable space on
+  // the screen, pushing the first actual offer below the fold. The destination is the only
+  // part of it the rider needs, and it was the one being truncated.
+  savedCard: "flex flex-wrap items-baseline gap-x-2 gap-y-1 rounded-xl border border-white/5 bg-white/[0.03] px-3.5 py-2.5",
+  savedIcon: "h-3.5 w-3.5 shrink-0 self-center text-[#14F5D5]",
+  savedLabel: "text-[11px] font-bold text-slate-400",
+  savedDestination: "min-w-0 flex-1 text-sm font-black text-white",
+  savedRequestId: "shrink-0 font-mono text-[10px] font-bold tracking-wider text-slate-500",
   loadingCard: "flex min-h-36 flex-col items-center justify-center gap-3 rounded-2xl border border-white/5 bg-white/5",
   loadingIcon: "h-9 w-9 animate-spin text-[#14F5D5]",
   loadingText: "px-4 text-center text-xs font-bold leading-relaxed text-slate-300",
@@ -98,9 +104,6 @@ export function ReceivingOffersScreen({
   const hasOffers = state.offers.length > 0;
 
 
-  const requestFareLabel = state.destination?.serverEstimatedFare !== undefined
-    ? formatMoney(state.destination.serverEstimatedFare, currencyLabel)
-    : t('destination.notAvailable');
   const shortRequestId = state.requestId ? state.requestId.slice(0, 8).toUpperCase() : t('destination.notAvailable');
 
   const labels = React.useMemo(() => ({
@@ -138,9 +141,12 @@ export function ReceivingOffersScreen({
         <div className={styles.headerText}>
           <p className={styles.eyebrow}>{hasOffers ? t('offers.arrived') : t('offers.searchingCaptain')}</p>
           <h2 className={styles.title}>{hasOffers ? t('offers.chooseCaptain') : t('request.visibleTitle')}</h2>
-          <p className={styles.subtitle}>
-            {hasOffers ? t('offers.chooseOfferDescription') : t('offers.waitingDescription')}
-          </p>
+          {/* Only while waiting. Once cards are on screen the line said "اختر العرض المناسب
+              لك" directly under a heading that already says "اختر السائق" — a third of a
+              screen of chrome restating itself above the first offer. */}
+          {!hasOffers ? (
+            <p className={styles.subtitle}>{t('offers.waitingDescription')}</p>
+          ) : null}
         </div>
         <button
           type="button"
@@ -155,15 +161,12 @@ export function ReceivingOffersScreen({
 
       {state.requestId ? (
         <div className={styles.savedCard}>
-          <p className={styles.savedTitle}>{t('request.savedTitle')}</p>
-          <div className={styles.savedMetrics}>
-            <Metric label={t('request.number')} value={shortRequestId} />
-            <Metric label={t('request.status')} value={t('request.savedInDatabase')} />
-            <Metric label={t('destination.label')} value={state.destination?.label || t('destination.notAvailable')} />
-            {/* Estimated fare display disabled — kept hidden from rider by product request.
-            <Metric label={t('fare.server')} value={requestFareLabel} />
-            */}
-          </div>
+          <MapPin className={styles.savedIcon} aria-hidden="true" />
+          <span className={styles.savedLabel}>{t('destination.label')}</span>
+          <span className={styles.savedDestination}>
+            {state.destination?.label || t('destination.notAvailable')}
+          </span>
+          <span className={styles.savedRequestId} dir="ltr">{shortRequestId}</span>
         </div>
       ) : null}
 

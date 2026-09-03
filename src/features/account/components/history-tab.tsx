@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { dexieDb, type RiderTripLedgerEntry } from '@/lib/dexie-db';
+import { fetchFavoriteCaptainIds, setFavoriteCaptain } from '../services/favorite-captains';
 import { supabase } from '@/lib/supabase-client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -678,7 +679,13 @@ export function HistoryTab({ hideCaptainDiagnostics = false }: HistoryTabProps =
   const { user, isCaptain, isPassenger } = useAuth();
   const { isArabic, language } = useDashboardLanguage();
   const copy = historyLanguageCopy[language];
-  const [favoriteCaptains, setFavoriteCaptains] = useState<any[]>([]);
+  // NOT its own store any more. The ids come from the server (favoriteCaptainIds) and the
+  // display details are read off the rider's own trips below, so there is exactly one place
+  // that knows who is favourited. Keeping a second table of captain details was how the list
+  // and the hearts drifted apart in the first place.
+  // Captain ids, from the server. Keyed by captain so one favourite covers every trip with
+  // them — the Dexie list above is keyed by trip and cannot answer that question.
+  const [favoriteCaptainIds, setFavoriteCaptainIds] = useState<Set<string>>(new Set());
   const [sovereignLogs, setSovereignLogs] = useState<any[]>([]);
   const [realTrips, setRealTrips] = useState<any[]>([]);
   const [tripReviews, setTripReviews] = useState<Record<string, any>>({});
@@ -705,12 +712,16 @@ export function HistoryTab({ hideCaptainDiagnostics = false }: HistoryTabProps =
   const THREE_DAYS_MS = HISTORY_TTL_MS;
   const now = Date.now();
 
+  /**
+   * One source: fetchFavoriteCaptainIds. It reads the server, falls back to the
+   * captain-keyed offline cache, and migrates any device-only legacy favourites on the way.
+   * This screen no longer reads the per-trip Dexie table at all.
+   */
   const loadFavorites = async () => {
     try {
-      const favs = await dexieDb.favoriteCaptains.toArray();
-      setFavoriteCaptains(favs);
+      setFavoriteCaptainIds(await fetchFavoriteCaptainIds());
     } catch (e) {
-      console.error("Failed to load favorites from Dexie:", e);
+      console.error('Failed to load favorites:', e);
     }
   };
 
@@ -1027,6 +1038,33 @@ export function HistoryTab({ hideCaptainDiagnostics = false }: HistoryTabProps =
     return all.filter(trip => (now - trip.timestamp) < THREE_DAYS_MS);
   }, [realTrips, now]);
 
+  /**
+   * The favourites list, derived rather than stored.
+   *
+   * One entry per favourited CAPTAIN, with the display details taken from the most recent
+   * trip the rider took with them. Previously this rendered its own Dexie table of captain
+   * details keyed by trip, so the same captain could appear several times in the list while
+   * the hearts on the trips above disagreed with it.
+   */
+  const favoriteCaptains = useMemo(() => {
+    const byCaptain = new Map<string, HistoricalTrip>();
+    for (const trip of riderHistoricalTrips) {
+      const captainId = String(trip.captainId || '');
+      if (!captainId || !favoriteCaptainIds.has(captainId)) continue;
+      // Trips are already newest-first, so the first one seen is the freshest snapshot of
+      // this captain's name, vehicle and phone.
+      if (!byCaptain.has(captainId)) byCaptain.set(captainId, trip);
+    }
+
+    // Spread the whole trip: the "remove" button in the list calls toggleFavorite, which
+    // takes a HistoricalTrip. `id` is added because the list keys on it.
+    return [...byCaptain.entries()].map(([captainId, trip]) => ({
+      ...trip,
+      id: captainId,
+      captainId,
+    }));
+  }, [favoriteCaptainIds, riderHistoricalTrips]);
+
   const captainHistoricalTrips = useMemo(() => {
     const combinedReal = realTrips.map(trip => {
       return {
@@ -1047,59 +1085,72 @@ export function HistoryTab({ hideCaptainDiagnostics = false }: HistoryTabProps =
   }, [realTrips, now]);
 
   const toggleFavorite = async (trip: HistoricalTrip) => {
-    try {
-      const existing = await dexieDb.favoriteCaptains.where('tripId').equals(trip.tripId).first();
-      if (existing) {
-        if (existing.id !== undefined) {
-          await dexieDb.favoriteCaptains.delete(existing.id);
-        }
-        try {
-          localStorage.removeItem(`radar_preferred_captain_${trip.tripId}`);
-          if (trip.captainId) {
-            localStorage.removeItem(`radar_preferred_captain_${trip.captainId}`);
-          }
-        } catch (err) {
-          console.warn("Storage deletion failed (removeItem):", err);
-        }
+    // Decided per CAPTAIN, not per trip. Looking the existing record up by tripId is what
+    // made the heart light up on one trip and stay empty on every other trip with the same
+    // captain.
+    const wasFavorite = trip.captainId ? favoriteCaptainIds.has(String(trip.captainId)) : false;
+
+    // The server first, because this is the copy the CAPTAIN reads. The old code wrote only
+    // Dexie and localStorage, so the captain's card never learned about it at all.
+    if (trip.captainId) {
+      try {
+        await setFavoriteCaptain(String(trip.captainId), !wasFavorite);
+        setFavoriteCaptainIds((current) => {
+          const next = new Set(current);
+          if (wasFavorite) next.delete(String(trip.captainId));
+          else next.add(String(trip.captainId));
+          return next;
+        });
+      } catch (error) {
+        console.error('[Favorites] server write failed:', error);
         toast({
-          title: "💔 تم الإزالة من المفضلة",
-          description: `تمت إزالة السائق ${trip.captainName} من المحفظة الرقمية.`,
+          variant: 'destructive',
+          title: 'تعذر تحديث المفضلة',
+          description: 'حاول تاني بعد شوية.',
         });
-      } else {
-        await dexieDb.favoriteCaptains.add({
-          tripId: trip.tripId,
-          captainId: trip.captainId,
-          captainName: trip.captainName,
-          captainRank: trip.captainRank,
-          captainPhone: trip.captainPhone,
-          vehicleInfo: trip.vehicleInfo,
-          finalPrice: trip.finalPrice,
-          timestamp: trip.timestamp,
-          heartedAt: Date.now()
-        });
-        if (trip.captainId) {
-          try {
-            localStorage.setItem(`radar_preferred_captain_${trip.captainId}`, JSON.stringify({
-              captainId: trip.captainId,
-              fullName: trip.captainName,
-              phoneNumber: trip.captainPhone,
-              captainType: 'independent',
-              vehicleSpecs: trip.vehicleInfo,
-              savedTimestamp: Date.now(),
-            }));
-          } catch (err) {
-            console.warn("Storage write failed (setItem):", err);
-          }
-        }
-        toast({
-          title: "تم الحفظ بنجاح 🌟",
-          description: "تم إضافة السائق إلى قائمتك المفضلة للوصول إليه سريعاً في الرحلات القادمة.",
-        });
+        return;
       }
-      loadFavorites();
-    } catch (e) {
-      console.error(e);
     }
+
+    // The per-trip Dexie row is gone. It was a second, differently-keyed copy of the same
+    // fact — the row keyed by tripId, the localStorage key by captainId — so the two could
+    // not agree with each other, let alone with the server. setFavoriteCaptain above owns
+    // the write and keeps the captain-keyed offline cache.
+    try {
+      // Stale: an old build wrote this one keyed by TRIP. Cleared so it cannot linger.
+      localStorage.removeItem(`radar_preferred_captain_${trip.tripId}`);
+
+      if (trip.captainId) {
+        if (wasFavorite) {
+          localStorage.removeItem(`radar_preferred_captain_${trip.captainId}`);
+        } else {
+          // Kept: prioritizeRiderOffers reads these keys to float a preferred captain's
+          // offer to the top of the auction.
+          localStorage.setItem(`radar_preferred_captain_${trip.captainId}`, JSON.stringify({
+            captainId: trip.captainId,
+            fullName: trip.captainName,
+            phoneNumber: trip.captainPhone,
+            captainType: 'independent',
+            vehicleSpecs: trip.vehicleInfo,
+            savedTimestamp: Date.now(),
+          }));
+        }
+      }
+    } catch (err) {
+      console.warn('Preferred-captain storage update failed:', err);
+    }
+
+    toast(wasFavorite
+      ? {
+          title: '💔 تم الإزالة من المفضلة',
+          description: `تمت إزالة السائق ${trip.captainName} من قائمتك.`,
+        }
+      : {
+          title: 'تم الحفظ بنجاح 🌟',
+          description: 'تم إضافة السائق لمفضلتك — على كل رحلاتك معاه، وعلى أي جهاز.',
+        });
+
+    void loadFavorites();
   };
 
   const renderDetailedReview = (tripId: string) => {
@@ -1185,7 +1236,7 @@ export function HistoryTab({ hideCaptainDiagnostics = false }: HistoryTabProps =
               </div>
             ) : (
               riderHistoricalTrips.map((trip) => {
-                const isHearted = favoriteCaptains.some(fav => fav.tripId === trip.tripId);
+                const isHearted = favoriteCaptainIds.has(String(trip.captainId));
                 const timeAgo = Math.floor((now - trip.timestamp) / (1000 * 60 * 60));
 
                 return (
@@ -1317,7 +1368,7 @@ export function HistoryTab({ hideCaptainDiagnostics = false }: HistoryTabProps =
                 </div>
               ) : (
                 riderHistoricalTrips.map((trip) => {
-                  const isHearted = favoriteCaptains.some(fav => fav.tripId === trip.tripId);
+                  const isHearted = favoriteCaptainIds.has(String(trip.captainId));
                   const timeAgo = Math.floor((now - trip.timestamp) / (1000 * 60 * 60));
 
                   return (

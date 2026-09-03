@@ -7,6 +7,7 @@ import type { Offer } from '@/core/types';
 import { fetchRideOffers, subscribeToRideRequestStatus } from '../services/rider-server-marketplace';
 import { getLocalizedMarketplaceError } from '../services/rider-offer-presentation';
 import type { RiderDestination, RiderMachineAction, RiderMachineState } from '../state/rider-state-machine';
+import { useTripCountdown } from '@/shared/hooks/use-trip-countdown';
 
 /**
  * Owns the server ride-request status subscription that drives most
@@ -26,8 +27,29 @@ export function useRideRequestStatusSync(params: {
 
   const { toast } = useToast();
   const t = useTranslations('riderView');
+  /** Which request has already had its arrival announced, so it is announced exactly once. */
+  const announcedArrivalForRef = React.useRef<string | null>(null);
 
-  const [etaSeconds, setEtaSeconds] = React.useState(0);
+  /**
+   * The trip countdown.
+   *
+   * This used to be `React.useState(0)` plus an interval that decremented it, seeded from
+   * `state.activeTrip.etaSeconds`. `buildActiveTrip` returns a fresh object for every
+   * realtime row, so every status change and every `updated_at` touch restarted the
+   * countdown at its full value — and the value itself was the trip's length regardless of
+   * whether the captain was still driving over. It is now derived from the server's own
+   * accepted_at / started_at, so it cannot be restarted by a re-render and reads the same
+   * here as it does on the captain's screen.
+   */
+  const countdown = useTripCountdown({
+    status: state.activeTrip?.status,
+    acceptedAtMs: state.activeTrip?.acceptedAtMs,
+    arrivedAtMs: state.activeTrip?.arrivedAtMs,
+    startedAtMs: state.activeTrip?.startedAtMs,
+    pickupEtaMinutes: state.activeTrip?.pickupEtaMinutes,
+    tripDurationMinutes: state.activeTrip?.tripDurationMinutes,
+    tripDistanceKm: state.activeTrip?.distanceKm,
+  });
 
   // The status-subscription effect below only re-subscribes when requestId
   // changes (the same id spans accepted -> arrived -> started), so its
@@ -142,6 +164,27 @@ export function useRideRequestStatusSync(params: {
           if (status === 'ACCEPTED') {
             pendingAcceptedOfferIdRef.current = null;
           }
+
+          // The captain pressing "إبلاغ الراكب بالوصول" is the one transition the rider is
+          // actively waiting on, so it gets an announcement rather than only a changed
+          // banner. Fired off the realtime row, so it needs no page reload.
+          //
+          // Guarded by a ref because the subscription re-delivers the row on any column
+          // change: without it, every later update while still ARRIVED re-announces.
+          if (status === 'ARRIVED' && announcedArrivalForRef.current !== state.requestId) {
+            announcedArrivalForRef.current = state.requestId;
+            toast({
+              title: t('trip.captainArrivedTitle'),
+              description: t('trip.captainArrivedBody'),
+            });
+            // Best-effort only: unsupported on iOS Safari and silently ignored when the
+            // page has never been interacted with.
+            try {
+              navigator.vibrate?.([120, 60, 120]);
+            } catch {
+              // A missing buzz is not worth breaking the status update over.
+            }
+          }
         }
 
         if (status === 'CANCELLED') {
@@ -183,27 +226,60 @@ export function useRideRequestStatusSync(params: {
     );
   }, [dispatch, language, pendingAcceptedOfferIdRef, state.requestId, t, toast]);
 
+  /**
+   * Safety net: re-read the request's status while the rider sits on the trip screen.
+   *
+   * Leaving that screen depended on exactly ONE realtime event arriving. Miss it — dropped
+   * socket, backgrounded tab, an RLS hiccup, a transaction that rolled back and republished
+   * nothing — and the rider stays inside a finished trip forever, with no way out and no
+   * indication anything is wrong. That is the "الكابتن نهى الرحلة ولسه شغالة عند الراكب"
+   * report, and it stays possible however the underlying cause is fixed, because a live
+   * subscription is not a guarantee of delivery.
+   *
+   * A poll is not a substitute for realtime — it is the floor under it. Realtime still does
+   * the work and updates instantly; this only catches what realtime dropped, which is why
+   * 20s is frequent enough.
+   */
   React.useEffect(() => {
-    if (!state.activeTrip) {
-      setEtaSeconds(0);
-      return;
-    }
+    if (!state.requestId || state.screen !== 'TRIP_ACTIVE') return;
 
-    setEtaSeconds(state.activeTrip.etaSeconds);
-    const interval = window.setInterval(() => {
-      setEtaSeconds((prev) => Math.max(0, prev - 1));
-    }, 1000);
+    let cancelled = false;
 
-    return () => window.clearInterval(interval);
-  }, [state.activeTrip]);
+    const reconcile = async () => {
+      const { data, error } = await supabase
+        .from('ride_requests')
+        .select('id,status,completed_at,cancelled_at,accepted_offer_id,selected_offer_id')
+        .eq('id', state.requestId!)
+        .maybeSingle();
 
-  const reset = React.useCallback(() => {
-    setEtaSeconds(0);
-  }, []);
+      if (cancelled || error || !data) return;
+
+      const status = String((data as Record<string, unknown>).status || '').toUpperCase();
+      if (status === 'COMPLETED') {
+        pendingAcceptedOfferIdRef.current = null;
+        dispatch({ type: 'SERVER_STATUS_COMPLETED', row: data as Record<string, unknown> });
+      } else if (status === 'CANCELLED') {
+        pendingAcceptedOfferIdRef.current = null;
+        dispatch({ type: 'REQUEST_CANCELLED' });
+      }
+    };
+
+    // Once straight away: if the event was missed while the tab was hidden, the rider should
+    // not have to wait a whole interval after coming back.
+    void reconcile();
+    const interval = window.setInterval(() => void reconcile(), 20_000);
+    const onVisible = () => { if (document.visibilityState === 'visible') void reconcile(); };
+    document.addEventListener('visibilitychange', onVisible);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [dispatch, pendingAcceptedOfferIdRef, state.requestId, state.screen]);
 
   return {
-    etaSeconds,
+    countdown,
     openDestination,
-    reset,
   };
 }

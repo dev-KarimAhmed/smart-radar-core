@@ -14,6 +14,23 @@ export interface FavoriteCaptain {
   captainType?: 'uber' | 'careem' | 'independent';
 }
 
+/**
+ * Offline cache of the rider's favourites, keyed by CAPTAIN.
+ *
+ * `favoriteCaptains` above is keyed by tripId, which made a favourite mean "I tapped a heart
+ * on this one receipt" — the same captain read as favourited on one trip and not on the next.
+ * public.rider_favorite_captains is now the source of truth and is keyed by the pair; this
+ * table is only its local mirror, so a rider offline still sees the right hearts.
+ *
+ * `favoriteCaptains` is deliberately still declared: it holds real favourites that never
+ * reached the server, and pushFavoritesFromLegacyCache() migrates them before they are
+ * ignored.
+ */
+export interface FavoriteCaptainId {
+  captainId: string;
+  heartedAt: number;
+}
+
 export interface CaptainSovereignLog {
   id?: number;
   captainId: string;
@@ -52,6 +69,7 @@ export interface CaptainLedgerEntry {
 
 class SovereignFavoritesDatabase extends Dexie {
   favoriteCaptains!: Table<FavoriteCaptain>;
+  favoriteCaptainIds!: Table<FavoriteCaptainId>;
   captainSovereignLogs!: Table<CaptainSovereignLog>;
   riderTripLedger!: Table<RiderTripLedgerEntry>;
   captainLedger!: Table<CaptainLedgerEntry>;
@@ -75,6 +93,16 @@ class SovereignFavoritesDatabase extends Dexie {
       captainSovereignLogs: '++id, captainId, type, timestamp, event',
       riderTripLedger: '++id, &tripId, timestamp, purgeAt, captainPhone',
       captainLedger: '++id, &requestId, captainId, completedAt, purgeAt'
+    });
+    // captainId is the primary key, so a captain can appear at most once — the per-trip
+    // table above allowed the same captain many times over, which is why local and server
+    // counts never matched.
+    this.version(5).stores({
+      favoriteCaptains: '++id, tripId, captainPhone, captainName',
+      captainSovereignLogs: '++id, captainId, type, timestamp, event',
+      riderTripLedger: '++id, &tripId, timestamp, purgeAt, captainPhone',
+      captainLedger: '++id, &requestId, captainId, completedAt, purgeAt',
+      favoriteCaptainIds: 'captainId, heartedAt'
     });
   }
 }

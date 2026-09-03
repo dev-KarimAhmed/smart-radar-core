@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { useToast } from '@/hooks/use-toast';
 import { dexieDb } from '@/lib/dexie-db';
+import { setFavoriteCaptain } from '@/features/account/services/favorite-captains';
 import type { AppLanguage } from '@/lib/i18n/simple-copy';
 
 import { cn } from '@/lib/utils';
@@ -181,37 +182,37 @@ export function RatingModal({
 
       if (error) throw error;
 
-      if (saveFavorite) {
-        const favoritePayload = {
-          tripId,
-          captainId,
-          driverId: captainId,
-          captainName: captainName?.trim() || copy.defaultCaptainName,
-          captainRank,
-          captainPhone: captainPhone || '',
-          vehicleInfo: vehicleInfo || copy.notAvailable,
-          finalPrice: Number(finalPrice) || 0,
-          timestamp: Date.now(),
-          heartedAt: Date.now(),
-        };
-
-        const existing = await dexieDb.favoriteCaptains.where('tripId').equals(tripId).first();
-        if (existing?.id !== undefined) {
-          await dexieDb.favoriteCaptains.update(existing.id, favoritePayload as any);
-        } else {
-          await dexieDb.favoriteCaptains.add(favoritePayload as any);
+      // Also written to the favourites table, keyed by captain.
+      //
+      // gave_heart on the review records that this rider hearted this captain WHEN RATING
+      // THAT TRIP — it is history, tied to one ride. The favourite itself is about the
+      // person, has to survive on other devices, and has to be removable from the history
+      // screen. Writing only the review is what left the two screens disagreeing.
+      if (saveFavorite && captainId) {
+        try {
+          await setFavoriteCaptain(String(captainId), true);
+        } catch (favoriteError) {
+          // The rating is already saved and is the important part; a failed favourite is
+          // recoverable with one tap from the history screen.
+          if ((process.env.NODE_ENV !== 'production')) console.warn('[Rating] favourite write failed:', favoriteError);
         }
+      }
 
+      // The per-trip Dexie write that used to be here is gone: setFavoriteCaptain above owns
+      // the record and keeps the captain-keyed offline cache. Writing a row keyed by tripId
+      // as well is what let this screen and the trip history disagree about the same
+      // captain.
+      if (saveFavorite) {
         window.localStorage.setItem(
           `radar_preferred_captain_${captainId}`,
           JSON.stringify({
             captainId,
             driverId: captainId,
-            captainName: favoritePayload.captainName,
-            fullName: favoritePayload.captainName,
-            captainPhone: favoritePayload.captainPhone,
-            phoneNumber: favoritePayload.captainPhone,
-            vehicleSpecs: favoritePayload.vehicleInfo,
+            captainName: captainName?.trim() || copy.defaultCaptainName,
+            fullName: captainName?.trim() || copy.defaultCaptainName,
+            captainPhone: captainPhone || '',
+            phoneNumber: captainPhone || '',
+            vehicleSpecs: vehicleInfo || copy.notAvailable,
             savedTimestamp: Date.now(),
           }),
         );

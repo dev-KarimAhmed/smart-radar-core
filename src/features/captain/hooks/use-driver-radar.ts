@@ -352,6 +352,12 @@ function mapRideRequestToTrip(row: RideRequestRow): Trip | null {
     h3Index: originH3,
     gridId: originH3 || id,
     dropoff: destinationLabel,
+    // Left undefined rather than 0 when the rider has never been rated: the card has to be
+    // able to tell "no rating yet" from "rated badly".
+    riderRating: toNumber(row.rider_rating) ?? undefined,
+    riderRatingCount: toNumber(row.rider_rating_count) ?? undefined,
+    riderCompletedTrips: toNumber(row.rider_completed_trips) ?? undefined,
+    riderFavoritedMe: row.rider_favorited_me === true,
     estimatedDistance: distanceKm ?? undefined,
     estimatedTime: storedDurationMinutes ?? (distanceKm ? Math.max(1, Math.round(distanceKm * 2.5)) : undefined),
     seats: 1,

@@ -50,6 +50,8 @@ export interface DestinationSelectionScreenProps {
   currencyLabel: string;
   selectedDraftDestination: RiderDestination | null;
   selectedDestinationCoords: RiderLocation | null;
+  /** Resolved name of the pinned point; overrides the district label when present. */
+  pinnedPlaceLabel: string;
   isDestinationPinMoving: boolean;
   riderCount: number;
   setRiderCount: (updater: (current: number) => number) => void;
@@ -74,6 +76,7 @@ export function DestinationSelectionScreen({
   currencyLabel,
   selectedDraftDestination,
   selectedDestinationCoords,
+  pinnedPlaceLabel,
   isDestinationPinMoving,
   riderCount,
   setRiderCount,
@@ -117,13 +120,16 @@ export function DestinationSelectionScreen({
     !isRouteEstimateLoading &&
     !isDestinationPinMoving &&
     !isSameLocation;
-  const destinationLabel = geography.externalLocationContext
+  const districtLabel = geography.externalLocationContext
     ? `${geography.externalLocationContext.district} - ${geography.externalLocationContext.governorate}`
     : geography.selectedDistrict
       ? isArabic
         ? `${geography.selectedDistrict.districtAr} - ${geography.selectedDistrict.governorateAr}`
         : `${geography.selectedDistrict.districtEn || geography.selectedDistrict.districtAr} - ${geography.selectedDistrict.governorateEn || geography.selectedDistrict.governorateAr}`
       : t('destination.notAvailable');
+
+  // The pin wins when it has one: it is what the trip is actually priced and driven to.
+  const destinationLabel = pinnedPlaceLabel || districtLabel;
 
   return (
     <div className={styles.wrapper} dir={isArabic ? 'rtl' : 'ltr'}>

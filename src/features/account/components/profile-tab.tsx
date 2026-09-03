@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { RecoveryEmailField } from '@/features/auth/contract';
+import { fetchFavoriteCaptainIds } from '../services/favorite-captains';
 import { dexieDb } from '@/lib/dexie-db';
 import { Database, Heart, Languages, Loader2, MapPin, MessageCircle, RefreshCw, Save, ShieldCheck, Trash2, User } from 'lucide-react';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
@@ -407,7 +408,10 @@ export function ProfileTab() {
         const [profileResult, countriesResult, favorites] = await Promise.all([
           fetchProfileByUserId(user.uid),
           supabase.from('countries').select('*').order('id', { ascending: true }),
-          dexieDb.favoriteCaptains.count().catch(() => 0),
+          // Counted from the server list, not the per-trip Dexie table. That table held one
+          // row per hearted TRIP, so a rider who favourited one captain on three rides was
+          // shown "3 favourites".
+          fetchFavoriteCaptainIds().then((ids) => ids.size).catch(() => 0),
         ]);
 
         if (!active) return;

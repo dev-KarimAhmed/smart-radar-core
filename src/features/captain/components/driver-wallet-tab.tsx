@@ -465,7 +465,13 @@ export function DriverWalletTab({ user, language, isFlightActive = false }: Driv
               converts to before they commit to it. */}
           {radarHourPrice ? (
             <p className={styles.testTopupPreview}>
-              {t('testTopupRate', { price: radarHourPrice.toFixed(2) })}
+              {/* Both figures, because the hour is what is priced but the MINUTE is what
+                  gets deducted per trip — showing only the hour makes the captain do the
+                  division to understand what a ride costs them. */}
+              {t('testTopupRate', {
+                price: radarHourPrice.toFixed(2),
+                minutePrice: (radarHourPrice / 60).toFixed(2),
+              })}
               {Number(testAmount) > 0
                 ? ` · ${t('testTopupWillGive', { minutes: Math.floor((Number(testAmount) * 60) / radarHourPrice) })}`
                 : ''}

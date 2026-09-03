@@ -112,6 +112,15 @@ export function buildRiderDestination(
   preciseDestination: RiderLocation,
   roadDistanceKm: number | null = null,
   h3Resolution = 9,
+  /**
+   * The name of the place the pin is actually on, when it has been resolved.
+   *
+   * Without this the stored label was always `district - governorate`, so a rider who
+   * dragged the pin to Cairo sent "سادس من أكتوبر - الجيزة" to the server — and that is the
+   * string the CAPTAIN then sees on the request card as the rider's destination. Fixing the
+   * rider's own display was not enough: this is the value that travels.
+   */
+  pinnedPlaceLabel: string | null = null,
 ): RiderDestination {
   if (!preciseDestination) {
     throw new Error('destination_missing_coordinates');
@@ -124,7 +133,8 @@ export function buildRiderDestination(
 
   return {
     id: destination.id,
-    label: `${destination.districtAr} - ${destination.governorateAr}`,
+    // The pinned place wins: it names the point the captain is actually driving to.
+    label: pinnedPlaceLabel?.trim() || `${destination.districtAr} - ${destination.governorateAr}`,
     governorate: destination.governorateAr,
     district: destination.districtAr,
     coords: preciseDestination,
