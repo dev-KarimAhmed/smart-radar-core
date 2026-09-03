@@ -47,7 +47,7 @@ const styles = {
   style116_26: "border-[#14B8A6] bg-[#14B8A6] text-[#06111f]",
   style117_27: "border-white/10 bg-white/[0.03] text-slate-300",
   style90_1: "mt-5",
-  style95_1: "mt-4 grid gap-4 md:grid-cols-2",
+  style95_1: "mt-4 grid gap-4 md:grid-cols-3",
   style96_1: "rounded-2xl border border-[#14B8A6]/25 bg-[#14B8A6]/10 p-4",
   style97_1: "flex items-center gap-1.5 text-xs font-black text-[#14F5D5]",
   style98_1: "h-3.5 w-3.5",
@@ -93,26 +93,126 @@ interface ActiveTripTrackerProps {
   onCancelTrip: () => void;
 }
 
-function useHandshakeCountdown(handshakeAt: number | null) {
+function playCaptainAlertChime() {
+  try {
+    const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const now = ctx.currentTime;
+    [0, 0.2, 0.4].forEach((delay) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, now + delay);
+      osc.frequency.exponentialRampToValueAtTime(440, now + delay + 0.15);
+      gain.gain.setValueAtTime(0.3, now + delay);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + delay + 0.15);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now + delay);
+      osc.stop(now + delay + 0.15);
+    });
+  } catch {
+    // web audio autoplay block catch
+  }
+}
+
+function useHandshakeCountdown(handshakeAt: number | null, step: CaptainTripStep) {
   const expiresAt = handshakeAt ? handshakeAt + SOVEREIGN_CONSTANTS.TRIP_FORGOTTEN_GRACE_MIN * 60 * 1000 : null;
   const [remainingMs, setRemainingMs] = React.useState(() => (expiresAt ? Math.max(0, expiresAt - Date.now()) : 0));
+  const alertedRef = React.useRef(false);
 
   React.useEffect(() => {
     if (!expiresAt) {
       setRemainingMs(0);
       return;
     }
-    setRemainingMs(Math.max(0, expiresAt - Date.now()));
-    const interval = window.setInterval(() => {
-      setRemainingMs(Math.max(0, expiresAt - Date.now()));
-    }, 1000);
+    const update = () => {
+      const rem = Math.max(0, expiresAt - Date.now());
+      setRemainingMs(rem);
+      if (rem === 0 && step !== 'STARTED' && !alertedRef.current) {
+        alertedRef.current = true;
+        playCaptainAlertChime();
+      }
+    };
+    update();
+    const interval = window.setInterval(update, 1000);
     return () => window.clearInterval(interval);
-  }, [expiresAt]);
+  }, [expiresAt, step]);
 
   const totalSeconds = Math.floor(remainingMs / 1000);
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
   return { minutes, seconds, isRunningLow: remainingMs > 0 && remainingMs <= 5 * 60 * 1000 };
+}
+
+function useTripCountdownTimer(durationMinutes: number, isActive: boolean) {
+  const initialMs = Math.max(1, durationMinutes || 15) * 60 * 1000;
+  const [remainingMs, setRemainingMs] = React.useState(initialMs);
+
+  React.useEffect(() => {
+    if (!isActive) {
+      setRemainingMs(initialMs);
+      return;
+    }
+    const baseline = Date.now();
+    setRemainingMs(initialMs);
+
+    const update = () => {
+      setRemainingMs(Math.max(0, initialMs - (Date.now() - baseline)));
+    };
+
+    update();
+    const interval = window.setInterval(update, 1000);
+    return () => window.clearInterval(interval);
+  }, [initialMs, isActive]);
+
+  if (!isActive) return '';
+  const totalSecs = Math.floor(remainingMs / 1000);
+  const minutes = Math.floor(totalSecs / 60);
+  const seconds = totalSecs % 60;
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
+function usePickupEtaTimer(pickupEtaMinutes: number, step: CaptainTripStep) {
+  const isArrivedOrStarted = step === 'ARRIVED' || step === 'STARTED';
+  const initialMs = Math.max(1, pickupEtaMinutes || 1) * 60 * 1000;
+  const [startMs] = React.useState(() => Date.now());
+  const [remainingMs, setRemainingMs] = React.useState(initialMs);
+  const alertedRef = React.useRef(false);
+
+  React.useEffect(() => {
+    if (isArrivedOrStarted) {
+      setRemainingMs(0);
+      return;
+    }
+
+    const update = () => {
+      const rem = Math.max(0, initialMs - (Date.now() - startMs));
+      setRemainingMs(rem);
+      if (rem === 0 && !alertedRef.current) {
+        alertedRef.current = true;
+        playCaptainAlertChime();
+      }
+    };
+
+    update();
+    const interval = window.setInterval(update, 1000);
+    return () => window.clearInterval(interval);
+  }, [initialMs, isArrivedOrStarted, startMs]);
+
+  if (isArrivedOrStarted) {
+    return { formatted: '00:00', isZero: true, isArrived: true };
+  }
+
+  const totalSecs = Math.floor(remainingMs / 1000);
+  const minutes = Math.floor(totalSecs / 60);
+  const seconds = totalSecs % 60;
+  return {
+    formatted: `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`,
+    isZero: remainingMs === 0,
+    isArrived: false,
+  };
 }
 
 export function ActiveTripTracker({
@@ -132,15 +232,14 @@ export function ActiveTripTracker({
 }: ActiveTripTrackerProps) {
   const t = useTranslations('captainActiveTrip');
   const pickupT = useTranslations('captainPickup');
-  const countdown = useHandshakeCountdown(handshakeAt);
+
+  const estimatedMins = request.estimatedTime || (request.estimatedDistance ? Math.max(1, Math.ceil(request.estimatedDistance * 1.5)) : 4);
+  const liveCountdownTimer = useTripCountdownTimer(estimatedMins, step === 'STARTED');
+  const pickupTimer = usePickupEtaTimer(request.pickup_eta_minutes || 1, step);
+  useHandshakeCountdown(handshakeAt, step);
   const [isConfirmingCancel, setIsConfirmingCancel] = React.useState(false);
   const pickupLocation = request.exactPickupCoords || request.obfuscatedPickupCoords || request.pickupCoords || null;
-  // Once the trip is actually started, the captain is driving the rider to
-  // the destination — the map should track toward the dropoff, not the
-  // pickup point they already reached.
   const isEnRouteToDropoff = step === 'STARTED';
-  const navigationTarget = isEnRouteToDropoff ? (request.dropoffCoords || null) : pickupLocation;
-  const navigationMode = isEnRouteToDropoff ? 'dropoff' : 'pickup';
 
   return (
     <section className={styles.style32_1}>
@@ -159,7 +258,6 @@ export function ActiveTripTracker({
         <div className={styles.style45_8}>
           <p className={styles.style46_9}>{t('destination')}</p>
           <h2 className={styles.style47_10}>{request.dropoff || t('unknownDestination')}</h2>
-          <p className={styles.style48_11}>H3: {request.h3Index ? request.h3Index.slice(-8).toUpperCase() : '-'}</p>
         </div>
 
         <div className={styles.style51_12}>
@@ -202,7 +300,7 @@ export function ActiveTripTracker({
         </div>
       </div>
 
-      <div className={styles.style95_1}>
+      <div className={cn("mt-4 grid gap-4", step === 'STARTED' ? "md:grid-cols-3" : "md:grid-cols-2")}>
         <div className={styles.style96_1}>
           <p className={styles.style97_1}>
             <Lock className={styles.style98_1} />
@@ -211,15 +309,27 @@ export function ActiveTripTracker({
           <p className={styles.style99_1}>{Number(request.offerPrice || 0).toFixed(2)} {currency}</p>
         </div>
 
-        <div className={styles.style100_1}>
-          <p className={styles.style101_1}>
+        <div className={cn(styles.style100_1, pickupTimer.isZero && !pickupTimer.isArrived && 'border-amber-500/50 bg-amber-500/10')}>
+          <p className={cn(styles.style101_1, pickupTimer.isZero && !pickupTimer.isArrived && 'text-amber-300')}>
             <Clock className={styles.style102_1} />
-            {t('eta')}
+            {t('pickupEta')}
           </p>
-          <p className={countdown.isRunningLow ? styles.style103_2 : styles.style103_1}>
-            {handshakeAt ? `${String(countdown.minutes).padStart(2, '0')}:${String(countdown.seconds).padStart(2, '0')}` : '--:--'}
+          <p className={cn(styles.style103_1, pickupTimer.isZero && !pickupTimer.isArrived && 'text-amber-300 animate-pulse')}>
+            {pickupTimer.formatted}
           </p>
         </div>
+
+        {step === 'STARTED' ? (
+          <div className={styles.style100_1}>
+            <p className={styles.style101_1}>
+              <Clock className={styles.style102_1} />
+              {t('tripElapsed')}
+            </p>
+            <p className={styles.style103_1}>
+              {liveCountdownTimer}
+            </p>
+          </div>
+        ) : null}
       </div>
 
       {/* <div className={styles.style90_1}>

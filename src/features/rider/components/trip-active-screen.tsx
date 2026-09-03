@@ -78,7 +78,11 @@ export function TripActiveScreen({
             {minutes}:{seconds.toString().padStart(2, '0')}
           </strong>
           <span className={styles.etaLabel}>
-            {tripHasStarted ? t('trip.timeRemaining') : t('trip.driverArrival')}
+            {activeTripStatus === 'ARRIVED'
+              ? t('trip.driverArrivedTitle')
+              : tripHasStarted
+              ? t('trip.timeRemaining')
+              : t('trip.driverArrival')}
           </span>
         </div>
       </div>
@@ -103,8 +107,12 @@ export function TripActiveScreen({
         </p>
       </div>
 
-      <div className={styles.note}>
-        {tripHasStarted ? t('trip.inProgressNote') : t('trip.enRouteNote')}
+      <div className={cn(styles.note, activeTripStatus === 'ARRIVED' && 'border-amber-500/40 bg-amber-500/10 text-amber-300 font-bold text-sm text-center')}>
+        {activeTripStatus === 'ARRIVED'
+          ? t('trip.driverArrivedNote')
+          : tripHasStarted
+          ? t('trip.inProgressNote')
+          : t('trip.enRouteNote')}
       </div>
 
       <div className={styles.actions}>

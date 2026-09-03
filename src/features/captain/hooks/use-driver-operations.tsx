@@ -6,6 +6,7 @@ import type { MarketPulse, Trip, User as RiderUser } from '@/core/types';
 import { useDriverLifecycle } from './use-driver-lifecycle';
 import { useDriverRadar } from './use-driver-radar';
 import { useCaptainLocationPulse } from './use-captain-location-pulse';
+import { useCaptainRadarMinuteConsumption } from './use-captain-radar-minute-consumption';
 import { useDriverTransactions } from './use-driver-transactions';
 import { sovereignEventBroker } from '@/lib/event-broker';
 
@@ -107,6 +108,12 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
     user,
     driverStatus,
     location: driverLocation,
+  });
+
+  useCaptainRadarMinuteConsumption({
+    user,
+    driverStatus,
+    onBundleExhausted: () => setDriverStatus('idle'),
   });
 
   const rejectRequest = useCallback((tripId: string) => {

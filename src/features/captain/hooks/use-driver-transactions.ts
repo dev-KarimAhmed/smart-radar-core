@@ -635,6 +635,7 @@ function mapRideRequestToTrip(row: RideRequestRow | null): Trip | null {
   const pickupGoogleMapsUrl = normalizeExternalMapUrl(row.origin_google_maps_url) || buildGoogleMapsUrl(safeOriginLat, safeOriginLng) || undefined;
   const estimatedDistance = firstPositiveNumber(row.estimated_distance_km, row.route_distance_km, row.trip_distance_km);
   const estimatedTime = firstPositiveNumber(row.estimated_duration_minutes, row.route_duration_minutes, row.trip_duration_minutes);
+  const pickupEtaMinutes = firstPositiveNumber(row.pickup_eta_minutes, row.pickup_eta, row.pickup_eta_min, row.eta);
   const destinationLat = toNumber(row.destination_lat);
   const destinationLng = toNumber(row.destination_lng);
 
@@ -656,6 +657,7 @@ function mapRideRequestToTrip(row: RideRequestRow | null): Trip | null {
       : undefined,
     estimatedDistance: estimatedDistance ?? undefined,
     estimatedTime: estimatedTime ?? undefined,
+    pickup_eta_minutes: pickupEtaMinutes ?? undefined,
     offerPrice: toNumber(row.final_fare) ?? toNumber(row.offered_fare) ?? toNumber(row.offer_price) ?? toNumber(row.server_estimated_fare) ?? undefined,
     createdAt: String(row.created_at || ''),
   };

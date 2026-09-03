@@ -115,6 +115,7 @@ export interface Trip {
   dropoff?: string;
   dropoffCoords?: { lat: number; lng: number; };
   estimatedTime?: number;
+  pickup_eta_minutes?: number;
   seats?: number;
 }
 
