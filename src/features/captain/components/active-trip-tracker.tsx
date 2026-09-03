@@ -35,7 +35,6 @@ const styles = {
   style45_8: "rounded-2xl border border-slate-800 bg-black/45 p-4",
   style46_9: "text-xs text-slate-400",
   style47_10: "mt-1 text-xl font-black",
-  style48_11: "mt-2 font-mono text-xs text-slate-500",
   style51_12: "rounded-2xl border border-slate-800 bg-black/45 p-4",
   style52_13: "text-xs text-slate-400",
   style53_14: "mt-1 text-xl font-black",
@@ -173,7 +172,6 @@ export function ActiveTripTracker({
         <div className={styles.style45_8}>
           <p className={styles.style46_9}>{t('destination')}</p>
           <h2 className={styles.style47_10}>{request.dropoff || t('unknownDestination')}</h2>
-          <p className={styles.style48_11}>H3: {request.h3Index ? request.h3Index.slice(-8).toUpperCase() : '-'}</p>
         </div>
 
         <div className={styles.style51_12}>
