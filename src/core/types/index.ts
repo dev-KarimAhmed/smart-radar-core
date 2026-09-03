@@ -127,6 +127,16 @@ export interface Trip {
   dropoff?: string;
   dropoffCoords?: { lat: number; lng: number; };
   estimatedTime?: number;
+  /**
+   * Server milestone timestamps, in epoch ms. The trip countdown runs off these rather than
+   * off the client's own clock — see src/shared/services/trip-countdown.ts for why anchoring
+   * on Date.now() made the timer restart on every realtime row.
+   */
+  acceptedAtMs?: number | null;
+  arrivedAtMs?: number | null;
+  startedAtMs?: number | null;
+  /** Minutes for the captain to reach the pickup, measured server-side at offer time. */
+  pickupEtaMinutes?: number | null;
   seats?: number;
 }
 

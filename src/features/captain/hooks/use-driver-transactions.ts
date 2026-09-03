@@ -7,6 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { Trip, User } from '@/core/types';
 import { buildGoogleMapsUrl, isValidCoordinatePair, normalizeExternalMapUrl } from '../services/ride-location';
 import { generateWeeklyReport, type CaptainRankName } from '../services/captain-rank';
+import { toEpochMs } from '@/shared/services/trip-countdown';
 
 type RideOfferRow = Record<string, unknown>;
 type RideRequestRow = Record<string, unknown>;
@@ -656,6 +657,12 @@ function mapRideRequestToTrip(row: RideRequestRow | null): Trip | null {
       : undefined,
     estimatedDistance: estimatedDistance ?? undefined,
     estimatedTime: estimatedTime ?? undefined,
+    // The trip countdown's anchors. Carried through the realtime UPDATE re-map above, so
+    // pressing "arrived"/"start" moves the captain's timer to the next phase without a fetch.
+    acceptedAtMs: toEpochMs(row.accepted_at),
+    arrivedAtMs: toEpochMs(row.arrived_at),
+    startedAtMs: toEpochMs(row.started_at),
+    pickupEtaMinutes: firstPositiveNumber(row.pickup_eta_minutes),
     offerPrice: toNumber(row.final_fare) ?? toNumber(row.offered_fare) ?? toNumber(row.offer_price) ?? toNumber(row.server_estimated_fare) ?? undefined,
     createdAt: String(row.created_at || ''),
   };

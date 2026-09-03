@@ -530,8 +530,20 @@ function mapRideOfferRow(row: Record<string, unknown>): Offer | null {
       phone: captainPhone ?? undefined,
     },
     silencePreference: 'neutral',
-    distance_to_rider: firstNumber(row.distance_to_rider, row.distance) ?? undefined,
-    pickup_eta_minutes: firstNumber(row.pickup_eta_minutes, row.eta, row.pickup_eta) ?? undefined,
+    // `pickup_distance_km` and `eta_minutes` are the columns that actually exist on
+    // ride_offers, both now server-measured from captain_locations (20260907090000). The
+    // aliases after them were the only names read before, none of which is a column — so
+    // the captain's real distance and ETA never reached this screen at all.
+    distance_to_rider: firstNumber(row.pickup_distance_km, row.distance_to_rider, row.distance) ?? undefined,
+    // eta_minutes is NOT NULL with a column default of 5, so an offer whose captain had no
+    // recorded location still carries a 5. pickup_distance_km is the proof the ETA was
+    // actually measured — without it, treat the ETA as unknown and let the caller estimate
+    // rather than passing off the default as a measurement.
+    pickup_eta_minutes: (
+      firstNumber(row.pickup_distance_km) != null
+        ? firstNumber(row.eta_minutes)
+        : firstNumber(row.pickup_eta_minutes, row.eta, row.pickup_eta)
+    ) ?? undefined,
     estimated_duration_minutes: firstNumber(row.estimated_duration_minutes, row.duration, row.estimated_duration) ?? undefined,
     wait_seconds: firstNumber(row.wait_seconds) ?? undefined,
     created_at: firstString(row.created_at) || undefined,

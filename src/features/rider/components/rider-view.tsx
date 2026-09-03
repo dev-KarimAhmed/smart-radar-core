@@ -110,7 +110,8 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
     fareAndRoute.reset();
     offers.reset();
     captainPresence.reset();
-    statusSync.reset();
+    // statusSync no longer needs resetting: the countdown it used to hold in state is now
+    // derived from the trip's own server timestamps, so clearing the trip clears the timer.
     tripCompletion.reset();
     destination.setIsCaptainScanPreviewActive(false);
 

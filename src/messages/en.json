@@ -517,7 +517,11 @@
       "cancel": "Cancel Request",
       "cancelling": "Cancelling...",
       "captainArrivedTitle": "Your captain has arrived 🚗",
-      "captainArrivedBody": "They are waiting at the pickup point. Check the plate and model before getting in."
+      "captainArrivedBody": "They are waiting at the pickup point. Check the plate and model before getting in.",
+      "etaAtPickup": "Captain is here",
+      "etaArrivalLate": "Later than estimated",
+      "etaTripOvertime": "Over the estimate",
+      "etaUnavailable": "Not available"
     },
     "rating": {
       "incompleteTitle": "Could not save rating",
@@ -980,6 +984,12 @@
       "ARRIVED": "Arrived",
       "STARTED": "In progress",
       "COMPLETED": "Completed"
-    }
+    },
+    "countdownToPickup": "Your arrival to the rider",
+    "countdownOnTrip": "Time left in the trip",
+    "countdownAtPickup": "You are at the pickup point",
+    "countdownLatePickup": "Later than estimated",
+    "countdownOvertime": "Over the estimate",
+    "countdownUnavailable": "Not available"
   }
 }

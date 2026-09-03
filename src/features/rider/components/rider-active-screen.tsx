@@ -150,7 +150,7 @@ export function RiderActiveScreen(props: RiderActiveScreenProps) {
       <TripActiveScreen
         isArabic={isArabic}
         activeTrip={state.activeTrip}
-        etaSeconds={statusSync.etaSeconds}
+        countdown={statusSync.countdown}
         currencyLabel={currencyLabel}
         isCancellingRideRequest={sendCancel.isCancellingRideRequest}
         onEmergencyWhatsapp={emergencyContact.handleEmergencyWhatsapp}

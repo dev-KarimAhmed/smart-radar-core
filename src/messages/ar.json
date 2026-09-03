@@ -517,7 +517,11 @@
       "cancel": "إلغاء الطلب",
       "cancelling": "جاري الإلغاء...",
       "captainArrivedTitle": "الكابتن وصل 🚗",
-      "captainArrivedBody": "الكابتن مستني عند نقطة الركوب. راجع اللوحة والموديل قبل ما تركب."
+      "captainArrivedBody": "الكابتن مستني عند نقطة الركوب. راجع اللوحة والموديل قبل ما تركب.",
+      "etaAtPickup": "الكابتن عندك",
+      "etaArrivalLate": "متأخر عن الوصول",
+      "etaTripOvertime": "زيادة عن المتوقع",
+      "etaUnavailable": "غير متاح"
     },
     "rating": {
       "incompleteTitle": "تعذر حفظ التقييم",
@@ -980,6 +984,12 @@
       "ARRIVED": "وصلت",
       "STARTED": "جارية",
       "COMPLETED": "مكتملة"
-    }
+    },
+    "countdownToPickup": "وقت وصولك للراكب",
+    "countdownOnTrip": "الوقت المتبقي للرحلة",
+    "countdownAtPickup": "أنت عند نقطة الركوب",
+    "countdownLatePickup": "تأخير عن وقت الوصول",
+    "countdownOvertime": "زيادة عن الوقت المتوقع",
+    "countdownUnavailable": "غير متاح"
   }
 }

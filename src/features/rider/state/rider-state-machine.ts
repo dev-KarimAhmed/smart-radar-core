@@ -1,6 +1,7 @@
 import React from 'react';
 import type { SovereignFareQuote } from '@/core/logic/geospatial-kernel';
 import type { Offer } from '@/core/types';
+import { toEpochMs } from '@/shared/services/trip-countdown';
 
 export type RiderMachineScreen =
   | 'IDLE_MAP'
@@ -47,7 +48,22 @@ export interface RiderActiveTrip {
   originCell?: string;
   destinationCell?: string;
   tortuosityFactor?: number;
-  etaSeconds: number;
+  /**
+   * Server timestamps and durations the trip countdown runs on. All optional because a row
+   * written before 20260907090000 has no accepted_at — the countdown renders a dash for
+   * those rather than inventing an anchor.
+   *
+   * These replaced a single `etaSeconds: max(240, distanceKm * 85)`, which was the same
+   * number for "captain arrives in" and "trip ends in" and was re-seeded from scratch every
+   * time this object was rebuilt.
+   */
+  acceptedAtMs?: number | null;
+  arrivedAtMs?: number | null;
+  startedAtMs?: number | null;
+  /** Minutes for the captain to reach the pickup, measured server-side at offer time. */
+  pickupEtaMinutes?: number | null;
+  /** Routed trip duration in minutes. */
+  tripDurationMinutes?: number | null;
   startedAt: number;
   captain?: any;
   status?: string;
@@ -165,7 +181,16 @@ function buildActiveTrip(state: RiderMachineState, acceptedRow: Record<string, u
     originCell: state.destination?.originCell ?? state.destination?.fareQuote?.originCell,
     destinationCell: state.destination?.destinationCell ?? state.destination?.fareQuote?.destinationCell,
     tortuosityFactor: state.destination?.fareQuote?.tortuosityFactor,
-    etaSeconds: Math.max(4 * 60, Math.round((distanceKm || 4) * 85)),
+    acceptedAtMs: toEpochMs(acceptedRow.accepted_at),
+    arrivedAtMs: toEpochMs(acceptedRow.arrived_at),
+    startedAtMs: toEpochMs(acceptedRow.started_at),
+    // Off the request row, not the offer: on a reload `state.offers` is empty, and that is
+    // exactly when the countdown still has to be right.
+    pickupEtaMinutes: firstNumber(acceptedRow.pickup_eta_minutes) ?? selectedOffer?.pickup_eta_minutes ?? null,
+    tripDurationMinutes: firstNumber(
+      acceptedRow.estimated_duration_minutes,
+      acceptedRow.route_duration_minutes,
+    ) ?? selectedOffer?.estimated_duration_minutes ?? null,
     startedAt: Date.now(),
     captain: selectedOffer?.captain || acceptedRow.captain || acceptedRow.captain_profile || null,
     status: String(acceptedRow.status || 'ACCEPTED').toUpperCase(),

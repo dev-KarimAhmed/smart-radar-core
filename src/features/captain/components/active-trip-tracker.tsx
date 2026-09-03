@@ -7,6 +7,7 @@ import { useTranslations } from 'next-intl';
 import type { Trip, User } from '@/core/types';
 import type { CaptainTripStep } from '../state/captain-state-machine';
 import { SOVEREIGN_CONSTANTS } from '@/core/constants/sovereign-protocols';
+import { useTripCountdown } from '@/shared/hooks/use-trip-countdown';
 
 import { cn } from '@/lib/utils';
 
@@ -53,7 +54,15 @@ const styles = {
   style116_26: "border-[#14B8A6] bg-[#14B8A6] text-[#06111f]",
   style117_27: "border-white/10 bg-white/[0.03] text-slate-300",
   style90_1: "mt-5",
-  style95_1: "mt-4 grid gap-4 md:grid-cols-2",
+  style95_1: "mt-4 grid gap-4 md:grid-cols-3",
+  countdownCard: "rounded-2xl border border-cyan-400/25 bg-cyan-400/[0.07] p-4",
+  countdownCardOverdue: "rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4",
+  countdownLabel: "flex items-center gap-1.5 text-xs font-black text-cyan-200",
+  countdownLabelOverdue: "flex items-center gap-1.5 text-xs font-black text-amber-200",
+  countdownIcon: "h-3.5 w-3.5",
+  countdownValue: "mt-1 font-mono text-xl font-black text-white",
+  countdownValueOverdue: "mt-1 font-mono text-xl font-black text-amber-300",
+  countdownValueIdle: "mt-1 font-mono text-xl font-black text-slate-500",
   style96_1: "rounded-2xl border border-[#14B8A6]/25 bg-[#14B8A6]/10 p-4",
   style97_1: "flex items-center gap-1.5 text-xs font-black text-[#14F5D5]",
   style98_1: "h-3.5 w-3.5",
@@ -141,7 +150,7 @@ export function ActiveTripTracker({
 }: ActiveTripTrackerProps) {
   const t = useTranslations('captainActiveTrip');
   const pickupT = useTranslations('captainPickup');
-  const countdown = useHandshakeCountdown(handshakeAt);
+  const graceCountdown = useHandshakeCountdown(handshakeAt);
   const [isConfirmingCancel, setIsConfirmingCancel] = React.useState(false);
   const pickupLocation = request.exactPickupCoords || request.obfuscatedPickupCoords || request.pickupCoords || null;
   // Once the trip is actually started, the captain is driving the rider to
@@ -150,6 +159,33 @@ export function ActiveTripTracker({
   const isEnRouteToDropoff = step === 'STARTED';
   const navigationTarget = isEnRouteToDropoff ? (request.dropoffCoords || null) : pickupLocation;
   const navigationMode = isEnRouteToDropoff ? 'dropoff' : 'pickup';
+
+  /**
+   * The same countdown the rider is looking at, from the same server anchors.
+   *
+   * The captain's only timer used to be the forgotten-trip grace window, which counts down
+   * from a fixed 30 minutes and says nothing about how long this leg should take. The step
+   * is passed as the status because it is already synced from the request's status in
+   * captain-view and is the value the buttons act on — deriving the phase from anything else
+   * could put the timer and the buttons in different phases.
+   */
+  const countdown = useTripCountdown({
+    status: step === 'STARTED' ? 'TRIP_ACTIVE' : step === 'ARRIVED' ? 'ARRIVED' : 'ACCEPTED',
+    acceptedAtMs: request.acceptedAtMs,
+    arrivedAtMs: request.arrivedAtMs,
+    startedAtMs: request.startedAtMs,
+    pickupEtaMinutes: request.pickupEtaMinutes,
+    tripDurationMinutes: request.estimatedTime,
+    tripDistanceKm: request.estimatedDistance,
+  });
+
+  const countdownLabel = countdown.phase === 'AT_PICKUP'
+    ? t('countdownAtPickup')
+    : !countdown.hasCountdown
+      ? t('countdownUnavailable')
+      : countdown.isOverdue
+        ? (countdown.phase === 'ON_TRIP' ? t('countdownOvertime') : t('countdownLatePickup'))
+        : (countdown.phase === 'ON_TRIP' ? t('countdownOnTrip') : t('countdownToPickup'));
 
   return (
     <section className={isFullScreen ? styles.rootFullScreen : styles.style32_1}>
@@ -220,13 +256,39 @@ export function ActiveTripTracker({
           <p className={styles.style99_1}>{Number(request.offerPrice || 0).toFixed(2)} {currency}</p>
         </div>
 
+        {/* The trip's own clock: time to reach the rider, then time left in the trip.
+            Separate from the card beside it, which is the grace window before the server
+            purges a forgotten trip — a completely different deadline that was previously the
+            only timer here, so the captain had no idea how long either leg should take. */}
+        <div
+          className={countdown.isOverdue ? styles.countdownCardOverdue : styles.countdownCard}
+          role="timer"
+          aria-label={countdownLabel}
+        >
+          <p className={countdown.isOverdue ? styles.countdownLabelOverdue : styles.countdownLabel}>
+            <Navigation className={styles.countdownIcon} />
+            {countdownLabel}
+          </p>
+          {/* dir=ltr so an RTL run does not move the '+' to the far side of "+3:30". */}
+          <p
+            className={countdown.isOverdue
+              ? styles.countdownValueOverdue
+              : countdown.hasCountdown || countdown.phase === 'AT_PICKUP'
+                ? styles.countdownValue
+                : styles.countdownValueIdle}
+            dir="ltr"
+          >
+            {countdown.display}
+          </p>
+        </div>
+
         <div className={styles.style100_1}>
           <p className={styles.style101_1}>
             <Clock className={styles.style102_1} />
             {t('eta')}
           </p>
-          <p className={countdown.isRunningLow ? styles.style103_2 : styles.style103_1}>
-            {handshakeAt ? `${String(countdown.minutes).padStart(2, '0')}:${String(countdown.seconds).padStart(2, '0')}` : '--:--'}
+          <p className={graceCountdown.isRunningLow ? styles.style103_2 : styles.style103_1}>
+            {handshakeAt ? `${String(graceCountdown.minutes).padStart(2, '0')}:${String(graceCountdown.seconds).padStart(2, '0')}` : '--:--'}
           </p>
         </div>
       </div>

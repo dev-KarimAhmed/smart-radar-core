@@ -7,6 +7,7 @@ import type { Offer } from '@/core/types';
 import { fetchRideOffers, subscribeToRideRequestStatus } from '../services/rider-server-marketplace';
 import { getLocalizedMarketplaceError } from '../services/rider-offer-presentation';
 import type { RiderDestination, RiderMachineAction, RiderMachineState } from '../state/rider-state-machine';
+import { useTripCountdown } from '@/shared/hooks/use-trip-countdown';
 
 /**
  * Owns the server ride-request status subscription that drives most
@@ -29,7 +30,26 @@ export function useRideRequestStatusSync(params: {
   /** Which request has already had its arrival announced, so it is announced exactly once. */
   const announcedArrivalForRef = React.useRef<string | null>(null);
 
-  const [etaSeconds, setEtaSeconds] = React.useState(0);
+  /**
+   * The trip countdown.
+   *
+   * This used to be `React.useState(0)` plus an interval that decremented it, seeded from
+   * `state.activeTrip.etaSeconds`. `buildActiveTrip` returns a fresh object for every
+   * realtime row, so every status change and every `updated_at` touch restarted the
+   * countdown at its full value — and the value itself was the trip's length regardless of
+   * whether the captain was still driving over. It is now derived from the server's own
+   * accepted_at / started_at, so it cannot be restarted by a re-render and reads the same
+   * here as it does on the captain's screen.
+   */
+  const countdown = useTripCountdown({
+    status: state.activeTrip?.status,
+    acceptedAtMs: state.activeTrip?.acceptedAtMs,
+    arrivedAtMs: state.activeTrip?.arrivedAtMs,
+    startedAtMs: state.activeTrip?.startedAtMs,
+    pickupEtaMinutes: state.activeTrip?.pickupEtaMinutes,
+    tripDurationMinutes: state.activeTrip?.tripDurationMinutes,
+    tripDistanceKm: state.activeTrip?.distanceKm,
+  });
 
   // The status-subscription effect below only re-subscribes when requestId
   // changes (the same id spans accepted -> arrived -> started), so its
@@ -258,27 +278,8 @@ export function useRideRequestStatusSync(params: {
     };
   }, [dispatch, pendingAcceptedOfferIdRef, state.requestId, state.screen]);
 
-  React.useEffect(() => {
-    if (!state.activeTrip) {
-      setEtaSeconds(0);
-      return;
-    }
-
-    setEtaSeconds(state.activeTrip.etaSeconds);
-    const interval = window.setInterval(() => {
-      setEtaSeconds((prev) => Math.max(0, prev - 1));
-    }, 1000);
-
-    return () => window.clearInterval(interval);
-  }, [state.activeTrip]);
-
-  const reset = React.useCallback(() => {
-    setEtaSeconds(0);
-  }, []);
-
   return {
-    etaSeconds,
+    countdown,
     openDestination,
-    reset,
   };
 }
