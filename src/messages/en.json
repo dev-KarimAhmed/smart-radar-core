@@ -746,7 +746,7 @@
     "testTopupAmount": "Amount",
     "testTopupMinutes": "Minutes",
     "testTopupAction": "Top up",
-    "testTopupRate": "Radar hour price: {price}",
+    "testTopupRate": "Per hour: {price} · per minute: {minutePrice}",
     "testTopupWillGive": "gives you {minutes} minutes"
   },
   "captainDashboard": {

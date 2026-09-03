@@ -746,7 +746,7 @@
     "testTopupAmount": "المبلغ",
     "testTopupMinutes": "الدقائق",
     "testTopupAction": "شحن",
-    "testTopupRate": "سعر ساعة الرادار: {price}",
+    "testTopupRate": "سعر الساعة: {price} · الدقيقة: {minutePrice}",
     "testTopupWillGive": "هتاخد {minutes} دقيقة"
   },
   "captainDashboard": {

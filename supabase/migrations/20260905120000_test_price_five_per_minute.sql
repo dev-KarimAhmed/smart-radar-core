@@ -1,0 +1,81 @@
+-- TEST VALUE. Minute = 5 EGP, so the money coming off the wallet is big enough to watch.
+--
+-- Asked for as "خلي الدقيقة 5 جنيه مؤقتا عشان اختبر الخصم من الفلوس".
+--
+-- The column is priced per HOUR, and amount_to_radar_minutes derives the minute from it:
+--
+--   minute_price = radar_hour_price / 60
+--
+-- So a 5 EGP minute is a 300 EGP hour. Setting radar_hour_price = 5 would have made the
+-- minute cost 8.3 piastres — the opposite of the intent — which is the whole reason this is
+-- written down rather than typed straight into the table.
+--
+-- This supersedes the 2 EGP/hour test value from 20260904090000.
+
+UPDATE public.countries SET radar_hour_price = 300 WHERE iso_code = 'EG';
+
+
+-- ---------------------------------------------------------------------------
+-- What this changes for the test, arithmetically
+--
+--   1 minute   = 5 EGP
+--   1 hour     = 300 EGP
+--   100 EGP    = 20 minutes
+--   50 EGP     = 10 minutes
+--
+-- Two consequences worth knowing before you top up:
+--
+--   * Anything under 5 EGP now buys ZERO minutes and captain_self_topup refuses it with
+--     `amount_below_one_minute` ("المبلغ أقل من سعر دقيقة واحدة"). The 2 EGP top-up from the
+--     previous test round will now be rejected.
+--
+--   * captain_self_topup caps a single call at 500 EGP, which is 100 minutes. Enough for
+--     testing, but it is a cap you will hit quickly at this price.
+--
+--
+-- How to watch the money move
+--
+--   -- 0. Confirm the price.
+--   SELECT iso_code, radar_hour_price, round(radar_hour_price / 60, 2) AS minute_price
+--   FROM public.countries WHERE iso_code = 'EG';
+--   -- expect: 300 and 5.00
+--
+--   -- 1. Top up 100 EGP -> 20 minutes, 0 remainder.
+--   SELECT public.captain_self_topup(100, 0);
+--
+--   -- 2. Before the trip.
+--   SELECT balance, paid_minutes_remaining,
+--          round(paid_minutes_remaining * 5, 2) AS worth_egp
+--   FROM public.wallet_accounts WHERE profile_id = '<captain-id>';
+--   -- expect: 20 minutes, worth 100.00
+--
+--   -- 3. Run a real trip. Start it, wait a few minutes, end it.
+--
+--   -- 4. What came off, in minutes and in money.
+--   SELECT (metadata->>'minutesCharged')::int                        AS minutes_charged,
+--          round((metadata->>'minutesCharged')::numeric * 5, 2)      AS egp_charged,
+--          (metadata->>'elapsedMinutes')::numeric                    AS real_elapsed,
+--          (metadata->>'shortfall')::int                             AS not_covered,
+--          created_at
+--   FROM public.wallet_transactions
+--   WHERE type = 'trip_time' AND profile_id = '<captain-id>'
+--   ORDER BY created_at DESC LIMIT 5;
+--
+--   -- A 4-minute trip must show minutes_charged = 4 and egp_charged = 20.00, and the
+--   -- balance in step 2 must have dropped by exactly 4 minutes.
+--
+--
+-- NOTE ON WHAT IS ACTUALLY DEDUCTED
+--
+-- The deduction is in MINUTES, not in `balance`. Money becomes minutes at top-up time and
+-- only the sub-minute remainder stays in `balance` — that is the "الرصيد يتحول لوقت فوراً"
+-- decision from earlier. So the money value of a trip is read as
+-- `minutes x minute_price`, which is what the queries above do.
+--
+-- If the intent is instead for `balance` itself to be debited per trip, that is a different
+-- model and needs saying — it would mean not converting at top-up at all.
+--
+--
+-- PUT THE REAL PRICE BACK when the test is done:
+--
+--   UPDATE public.countries SET radar_hour_price = <real hourly price> WHERE iso_code = 'EG';
