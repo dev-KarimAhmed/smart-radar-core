@@ -6,6 +6,7 @@ import { useDestinationTextSearch } from './use-destination-text-search';
 import { useDestinationMapPicker } from './use-destination-map-picker';
 import { useClipboardLocationImport } from './use-clipboard-location-import';
 import { useDestinationSelectionHandlers } from './use-destination-selection-handlers';
+import { usePinnedPlaceLabel } from './use-pinned-place-label';
 import type { RiderLocation } from '../components/rider-map';
 
 interface RiderProfileLike {
@@ -45,6 +46,28 @@ export function useDestinationSelectionState(params: {
   const [isCaptainScanPreviewActive, setIsCaptainScanPreviewActive] = React.useState(false);
   const profileFallbackLocation = geography.profileDistrict?.anchor || geography.selectedDistrict?.anchor || riderLocation;
   const selectedDestinationCoords = pin.destinationPinLocation || geography.selectedDistrict?.anchor || null;
+
+  /**
+   * The name of the place the pin actually sits on, resolved once here rather than in the
+   * screen that displays it.
+   *
+   * It has to live at this level because TWO consumers need the same answer: the summary the
+   * rider reads, and buildRiderDestination in rider-view, whose `label` is the string sent
+   * to the server and shown to the CAPTAIN as the destination. Resolving it in the display
+   * component fixed only what the rider saw and left the captain reading the district.
+   */
+  const districtAnchor = geography.selectedDistrict?.anchor;
+  const hasMovedPinOffDistrict = Boolean(
+    selectedDestinationCoords
+    && (!districtAnchor
+      || Math.abs(selectedDestinationCoords.lat - districtAnchor.lat) > 0.0005
+      || Math.abs(selectedDestinationCoords.lng - districtAnchor.lng) > 0.0005),
+  );
+  const { label: pinnedPlaceLabel } = usePinnedPlaceLabel(
+    selectedDestinationCoords,
+    language,
+    hasMovedPinOffDistrict && !geography.externalLocationContext,
+  );
 
   const search = useDestinationTextSearch({
     language,
@@ -93,5 +116,6 @@ export function useDestinationSelectionState(params: {
     setIsCaptainScanPreviewActive,
     profileFallbackLocation,
     selectedDestinationCoords,
+    pinnedPlaceLabel,
   };
 }

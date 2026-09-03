@@ -11,7 +11,6 @@ import type { useDestinationTextSearch } from '../hooks/use-destination-text-sea
 import type { useDestinationMapPicker } from '../hooks/use-destination-map-picker';
 import type { useClipboardLocationImport } from '../hooks/use-clipboard-location-import';
 import type { useServerFareAndRoute } from '../hooks/use-server-fare-and-route';
-import { usePinnedPlaceLabel } from '../hooks/use-pinned-place-label';
 import type { RiderLocation } from './rider-map';
 import { formatMoney } from '../services/rider-view-format';
 import { DestinationSearchPanel } from './destination-search-panel';
@@ -51,6 +50,8 @@ export interface DestinationSelectionScreenProps {
   currencyLabel: string;
   selectedDraftDestination: RiderDestination | null;
   selectedDestinationCoords: RiderLocation | null;
+  /** Resolved name of the pinned point; overrides the district label when present. */
+  pinnedPlaceLabel: string;
   isDestinationPinMoving: boolean;
   riderCount: number;
   setRiderCount: (updater: (current: number) => number) => void;
@@ -75,6 +76,7 @@ export function DestinationSelectionScreen({
   currencyLabel,
   selectedDraftDestination,
   selectedDestinationCoords,
+  pinnedPlaceLabel,
   isDestinationPinMoving,
   riderCount,
   setRiderCount,
@@ -118,28 +120,6 @@ export function DestinationSelectionScreen({
     !isRouteEstimateLoading &&
     !isDestinationPinMoving &&
     !isSameLocation;
-  /**
-   * The name of the place the pin is actually on, whenever the rider has moved it off the
-   * district's own anchor.
-   *
-   * Without this the label came only from the dropdown or a pasted link, so dragging the pin
-   * to Cairo still read "سادس من أكتوبر - الجيزة" — the coordinates, distance and fare all
-   * followed the pin while only the NAME stayed behind, which reads as the app overriding
-   * the rider's choice.
-   */
-  const districtAnchor = geography.selectedDistrict?.anchor;
-  const hasMovedPin = Boolean(
-    selectedDestinationCoords
-    && (!districtAnchor
-      || Math.abs(selectedDestinationCoords.lat - districtAnchor.lat) > 0.0005
-      || Math.abs(selectedDestinationCoords.lng - districtAnchor.lng) > 0.0005),
-  );
-  const { label: pinnedPlaceLabel } = usePinnedPlaceLabel(
-    selectedDestinationCoords,
-    language,
-    hasMovedPin && !geography.externalLocationContext,
-  );
-
   const districtLabel = geography.externalLocationContext
     ? `${geography.externalLocationContext.district} - ${geography.externalLocationContext.governorate}`
     : geography.selectedDistrict

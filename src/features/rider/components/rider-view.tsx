@@ -73,11 +73,16 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
       fareAndRoute.currentServerFare,
       destination.selectedDestinationCoords,
       fareAndRoute.currentRouteEstimate?.distanceKm ?? null,
+      undefined,
+      // Goes into the stored label, so the captain's request card names where the rider is
+      // actually going instead of the district they picked from the dropdown.
+      destination.pinnedPlaceLabel,
     );
     return search.destinationSearchStatus === 'selected' && search.destinationSearchQuery.trim()
       ? { ...builtDestination, label: search.destinationSearchQuery.trim() }
       : builtDestination;
   }, [
+    destination.pinnedPlaceLabel,
     destination.selectedDestinationCoords,
     fareAndRoute.currentRouteEstimate?.distanceKm,
     fareAndRoute.currentServerFare,
@@ -204,6 +209,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
           currencyLabel={currencyLabel}
           selectedDraftDestination={selectedDraftDestination}
           selectedDestinationCoords={destination.selectedDestinationCoords}
+          pinnedPlaceLabel={destination.pinnedPlaceLabel}
           isDestinationPinMoving={pin.isDestinationPinMoving}
           isCaptainScanPreviewActive={destination.isCaptainScanPreviewActive}
           onGovernorateChange={selectionHandlers.onGovernorateChange}
