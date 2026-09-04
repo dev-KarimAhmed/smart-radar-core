@@ -47,6 +47,11 @@ const styles = {
   breakdownRowAccent: "font-black text-[#5eead4]",
   breakdownLabel: "min-w-0 flex-1 text-[11px] font-medium leading-tight text-slate-400",
   breakdownValue: "shrink-0 font-mono text-xs font-bold text-slate-100",
+  meterDetails: "mt-3 rounded-2xl border border-cyan-400/20 bg-cyan-400/[0.05] p-3",
+  meterDetailsTitle: "text-sm font-black text-cyan-200",
+  meterDetailsHint: "mt-1 text-xs leading-5 text-slate-400",
+  meterFormula: "mt-3 rounded-xl border border-white/10 bg-black/25 p-3 text-xs font-bold leading-6 text-slate-200",
+  meterDetailsRoute: "mt-2 text-[11px] leading-5 text-slate-400",
   style163_22: "mt-5 rounded-2xl border border-emerald-500/15 bg-emerald-950/10 p-4",
   style164_23: "text-sm font-black text-emerald-200",
   style165_24: "mt-3 flex items-center gap-3",
@@ -100,6 +105,15 @@ type CaptainOfferQuote = {
   suggestedFare: number;
   isOutsideBand: boolean;
   tier: CaptainTier;
+  roadKm: number | null;
+  billableKm: number | null;
+  estimatedMinutes: number | null;
+  tariff: {
+    baseFare: number;
+    perKm: number;
+    perMin: number;
+    includedKm: number;
+  } | null;
 };
 
 
@@ -112,6 +126,11 @@ interface BiddingProposalSheetProps {
   isSubmitting: boolean;
   onSubmit: (price: number, waitSeconds: number) => void;
   onIgnore: () => void;
+}
+
+function toFiniteNumberOrNull(value: unknown) {
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? numberValue : null;
 }
 
 export function BiddingProposalSheet({
@@ -151,6 +170,18 @@ export function BiddingProposalSheet({
   // Band edges come from the server so the sheet can never offer a price the RPC refuses.
   const ceilingPrice = quote?.ceilingPrice ?? roundMoney(marketFare * (1 + premiumFactor));
   const floorPrice = quote?.floorPrice ?? roundMoney(marketFare * (1 - MARKET_FLOOR_FACTOR));
+  const captainMeterFare = quote?.captainFare ?? baseFare;
+  const meterDetails = quote?.tariff
+    && quote.roadKm != null
+    && quote.billableKm != null
+    && quote.estimatedMinutes != null
+    ? {
+        ...quote.tariff,
+        roadKm: quote.roadKm,
+        billableKm: quote.billableKm,
+        estimatedMinutes: quote.estimatedMinutes,
+      }
+    : null;
   /**
    * Room to add WITHOUT tripping the warning, measured from the captain's own meter.
    *
@@ -189,6 +220,10 @@ export function BiddingProposalSheet({
       }
 
       const row = (data ?? {}) as Record<string, unknown>;
+      const rawTariff = row.tariff;
+      const tariff = rawTariff && typeof rawTariff === 'object'
+        ? rawTariff as Record<string, unknown>
+        : null;
       setQuote({
         captainFare: Number(row.captainFare),
         marketFare: row.marketFare == null ? null : Number(row.marketFare),
@@ -197,6 +232,20 @@ export function BiddingProposalSheet({
         suggestedFare: Number(row.suggestedFare),
         isOutsideBand: Boolean(row.isOutsideBand),
         tier: normalizeCaptainTier(row.tier),
+        roadKm: toFiniteNumberOrNull(row.roadKm),
+        billableKm: toFiniteNumberOrNull(row.billableKm),
+        estimatedMinutes: toFiniteNumberOrNull(row.estimatedMinutes),
+        tariff: tariff
+          && toFiniteNumberOrNull(tariff.baseFare) != null
+          && toFiniteNumberOrNull(tariff.perKm) != null
+          && toFiniteNumberOrNull(tariff.perMin) != null
+          ? {
+              baseFare: toFiniteNumberOrNull(tariff.baseFare) as number,
+              perKm: toFiniteNumberOrNull(tariff.perKm) as number,
+              perMin: toFiniteNumberOrNull(tariff.perMin) as number,
+              includedKm: toFiniteNumberOrNull(tariff.includedKm) ?? 0,
+            }
+          : null,
       });
     }
 
@@ -350,7 +399,7 @@ export function BiddingProposalSheet({
         <dl className={styles.breakdownList}>
           <div className={styles.breakdownRow}>
             <dt className={styles.breakdownLabel}>{t('breakdownMeter')}</dt>
-            <dd className={styles.breakdownValue}>{baseFare.toFixed(2)} {currency}</dd>
+            <dd className={styles.breakdownValue}>{captainMeterFare.toFixed(2)} {currency}</dd>
           </div>
           <div className={styles.breakdownRow}>
             <dt className={styles.breakdownLabel}>{t('breakdownMarket')}</dt>
@@ -375,6 +424,32 @@ export function BiddingProposalSheet({
             </dd>
           </div>
         </dl>
+
+        {meterDetails ? (
+          <div className={styles.meterDetails}>
+            <p className={styles.meterDetailsTitle}>{t('meterCalculationTitle')}</p>
+            <p className={styles.meterDetailsHint}>{t('meterCalculationSource')}</p>
+            <p className={styles.meterFormula}>
+              {t('meterCalculationFormula', {
+                base: meterDetails.baseFare.toFixed(2),
+                billableKm: meterDetails.billableKm.toFixed(2),
+                perKm: meterDetails.perKm.toFixed(2),
+                minutes: meterDetails.estimatedMinutes.toFixed(1),
+                perMin: meterDetails.perMin.toFixed(2),
+                total: captainMeterFare.toFixed(2),
+                currency,
+              })}
+            </p>
+            <p className={styles.meterDetailsRoute}>
+              {t('meterCalculationRoute', {
+                roadKm: meterDetails.roadKm.toFixed(2),
+                includedKm: meterDetails.includedKm.toFixed(2),
+                billableKm: meterDetails.billableKm.toFixed(2),
+                minutes: meterDetails.estimatedMinutes.toFixed(1),
+              })}
+            </p>
+          </div>
+        ) : null}
 
         {/* The meter can sit far outside the band when the market average is built from too
             few captains. Saying so is more use than a percentage in the thousands. */}

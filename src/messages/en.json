@@ -856,6 +856,10 @@
     "minutesValue": "{count, plural, one {# min} other {# min}}"
   },
   "captainBidding": {
+    "meterCalculationTitle": "How your meter price was calculated",
+    "meterCalculationSource": "This is based on your saved tariff and the route metrics for this request. The market price is shown separately.",
+    "meterCalculationFormula": "{base} {currency} + ({billableKm} km x {perKm} {currency}) + ({minutes} min x {perMin} {currency}) = {total} {currency}",
+    "meterCalculationRoute": "Road route: {roadKm} km. Included in the opening charge: {includedKm} km. Billable distance: {billableKm} km. Route time: {minutes} min.",
     "waitSecondsRange": "Choose a wait time between {min} and {max} seconds.",
     "distanceUnavailable": "Unavailable",
     "badge": "Price offer",

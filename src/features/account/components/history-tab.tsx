@@ -866,7 +866,7 @@ export function HistoryTab({ hideCaptainDiagnostics = false }: HistoryTabProps =
               captain:profiles!accepted_captain_id(id, full_name, phone, rating)
             `)
             .eq(userColumn, user!.uid)
-            .in('status', ['COMPLETED', 'completed', 'RATING', 'rating', 'CLASSIFIED', 'classified', 'ARCHIVED', 'archived'])
+            .eq('status', 'COMPLETED')
             .order('created_at', { ascending: false });
 
           if (error && error.code === 'PGRST200') {
@@ -878,7 +878,7 @@ export function HistoryTab({ hideCaptainDiagnostics = false }: HistoryTabProps =
                 rider:profiles!rider_id(id, full_name, phone, rating)
               `)
               .eq(userColumn, user!.uid)
-              .in('status', ['COMPLETED', 'completed', 'RATING', 'rating', 'CLASSIFIED', 'classified', 'ARCHIVED', 'archived'])
+              .eq('status', 'COMPLETED')
               .order('created_at', { ascending: false });
 
             if (reqError) throw reqError;
