@@ -37,10 +37,13 @@ const styles = {
   cancelButton: "h-14 flex-1 border border-red-500/30 bg-red-600/10 hover:bg-red-600/20 text-red-200 font-bold text-base py-3.5 rounded-xl transition-transform active:scale-[0.98] flex items-center justify-center cursor-pointer disabled:opacity-50",
 } as const;
 
+import type { TripCountdown } from '@/shared/services/trip-countdown';
+
 export interface TripActiveScreenProps {
   isArabic: boolean;
   activeTrip: RiderActiveTrip;
-  etaSeconds: number;
+  countdown?: TripCountdown;
+  etaSeconds?: number;
   currencyLabel: string;
   isCancellingRideRequest: boolean;
   onEmergencyWhatsapp: () => void;
@@ -50,15 +53,18 @@ export interface TripActiveScreenProps {
 export function TripActiveScreen({
   isArabic,
   activeTrip,
-  etaSeconds,
+  countdown,
+  etaSeconds = 0,
   currencyLabel,
   isCancellingRideRequest,
   onEmergencyWhatsapp,
   onCancelRideRequest,
 }: TripActiveScreenProps) {
   const t = useTranslations('riderView');
-  const minutes = Math.floor(etaSeconds / 60);
-  const seconds = etaSeconds % 60;
+  const remainingSeconds = countdown ? countdown.remainingSeconds : etaSeconds;
+  const displayTimer = countdown?.hasCountdown
+    ? countdown.display
+    : `${Math.floor(remainingSeconds / 60)}:${(remainingSeconds % 60).toString().padStart(2, '0')}`;
   const activeTripStatus = String(activeTrip.status || '').toUpperCase();
   const tripHasStarted = isTripStartedStatus(activeTripStatus);
 
@@ -75,7 +81,7 @@ export function TripActiveScreen({
         <div className={styles.etaBox}>
           <Clock className={styles.etaIcon} />
           <strong className={styles.etaValue}>
-            {minutes}:{seconds.toString().padStart(2, '0')}
+            {displayTimer}
           </strong>
           <span className={styles.etaLabel}>
             {activeTripStatus === 'ARRIVED'

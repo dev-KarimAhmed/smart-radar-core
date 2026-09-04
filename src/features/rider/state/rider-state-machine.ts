@@ -1,6 +1,7 @@
 import React from 'react';
 import type { SovereignFareQuote } from '@/core/logic/geospatial-kernel';
 import type { Offer } from '@/core/types';
+import { toEpochMs } from '@/shared/services/trip-countdown';
 
 export type RiderMachineScreen =
   | 'IDLE_MAP'
@@ -49,6 +50,11 @@ export interface RiderActiveTrip {
   tortuosityFactor?: number;
   etaSeconds: number;
   startedAt: number;
+  acceptedAtMs?: number | null;
+  arrivedAtMs?: number | null;
+  startedAtMs?: number | null;
+  pickupEtaMinutes?: number | null;
+  tripDurationMinutes?: number | null;
   captain?: any;
   status?: string;
 }
@@ -221,6 +227,11 @@ function buildActiveTrip(state: RiderMachineState, acceptedRow: Record<string, u
     tortuosityFactor: state.destination?.fareQuote?.tortuosityFactor,
     etaSeconds: Math.round(estimatedTripMinutes * 60),
     startedAt: Date.now(),
+    acceptedAtMs: toEpochMs(acceptedRow.accepted_at),
+    arrivedAtMs: toEpochMs(acceptedRow.arrived_at),
+    startedAtMs: toEpochMs(acceptedRow.started_at),
+    pickupEtaMinutes: firstNumber(acceptedRow.pickup_eta_minutes, selectedOffer?.pickup_eta_minutes) ?? undefined,
+    tripDurationMinutes: estimatedTripMinutes,
     captain: selectedOffer?.captain || acceptedRow.captain || acceptedRow.captain_profile || null,
     status: String(acceptedRow.status || 'ACCEPTED').toUpperCase(),
   };

@@ -117,6 +117,10 @@ export interface Trip {
   estimatedTime?: number;
   pickup_eta_minutes?: number;
   seats?: number;
+  riderRating?: number;
+  riderRatingCount?: number;
+  riderCompletedTrips?: number;
+  riderFavoritedMe?: boolean;
 }
 
 export interface Offer {

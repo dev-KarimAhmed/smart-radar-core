@@ -86,7 +86,8 @@ interface ActiveTripTrackerProps {
   isCancelling: boolean;
   currency: string;
   driverLocation: { lat: number; lng: number } | null;
-  handshakeAt: number | null;
+  handshakeAt?: number | null;
+  isFullScreen?: boolean;
   onArrived: () => void;
   onStartTrip: () => void;
   onCompleteTrip: () => void;
@@ -219,7 +220,8 @@ export function ActiveTripTracker({
   isCancelling,
   currency,
   driverLocation,
-  handshakeAt,
+  handshakeAt = null,
+  isFullScreen = false,
   onArrived,
   onStartTrip,
   onCompleteTrip,

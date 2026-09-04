@@ -352,6 +352,7 @@ export function DriverViewTab() {
             isCancelling={driverOps.isCancellingTrip}
             currency={currency}
             driverLocation={driverOps.driverLocation}
+            handshakeAt={driverOps.handshakeAt}
             isFullScreen
             onArrived={markArrived}
             onStartTrip={startTrip}
