@@ -285,6 +285,10 @@ export function BiddingProposalSheet({
   const marketBrake = marketFare > 0 ? RadarAntiCheatKernel.enforceMarketBrakes(finalOfferPrice, marketFare) : { status: 'NORMAL' as const };
   const isDumpingAmber = marketBrake.status === 'AMBER_WARNING';
   const isDumpingBlocked = marketBrake.status === 'CRIMSON_BLOCK' || finalOfferPrice < floorPrice;
+  const marketDifference = roundMoney(Math.max(0, marketFare - finalOfferPrice));
+  const marketDifferencePercent = marketFare > 0
+    ? Math.round((marketDifference / marketFare) * 1000) / 10
+    : 0;
   const dumpingDeviationRatio = marketFare > 0 ? Math.max(0, (marketFare - finalOfferPrice) / marketFare) : 0;
   const professionalAd = useCaptainProfessionalAd(dumpingDeviationRatio, isDumpingBlocked);
 
@@ -432,16 +436,38 @@ export function BiddingProposalSheet({
               })}
             </p>
           )}
+          <p className={styles.meterFormula}>
+            {t('meterCalculationMarket', {
+              market: marketFare.toFixed(2),
+              currency,
+            })}
+          </p>
+          <p className={styles.meterDetailsRoute}>
+            {t('meterCalculationCeiling', {
+              market: marketFare.toFixed(2),
+              percent: Math.round(premiumFactor * 100),
+              ceiling: ceilingPrice.toFixed(2),
+              currency,
+            })}
+          </p>
+          <p className={styles.meterDetailsRoute}>
+            {t('meterCalculationFloor', {
+              market: marketFare.toFixed(2),
+              percent: Math.round(MARKET_FLOOR_FACTOR * 100),
+              floor: floorPrice.toFixed(2),
+              currency,
+            })}
+          </p>
         </div>
 
         <dl className={styles.breakdownList}>
           <div className={styles.breakdownRow}>
             <dt className={styles.breakdownLabel}>{t('breakdownMeter')}</dt>
-            <dd className={styles.breakdownValue}>{captainMeterFare.toFixed(2)} {currency}</dd>
+            <dd dir="ltr" className={styles.breakdownValue}>{captainMeterFare.toFixed(2)} {currency}</dd>
           </div>
           <div className={styles.breakdownRow}>
             <dt className={styles.breakdownLabel}>{t('breakdownMarket')}</dt>
-            <dd className={styles.breakdownValue}>
+            <dd dir="ltr" className={styles.breakdownValue}>
               {marketFare > 0 ? `${marketFare.toFixed(2)} ${currency}` : t('breakdownMarketUnknown')}
             </dd>
           </div>
@@ -449,15 +475,15 @@ export function BiddingProposalSheet({
             <dt className={styles.breakdownLabel}>
               {t('breakdownWarnLine', { percent: Math.round(premiumFactor * 100) })}
             </dt>
-            <dd className={styles.breakdownValue}>{ceilingPrice.toFixed(2)} {currency}</dd>
+            <dd dir="ltr" className={styles.breakdownValue}>{ceilingPrice.toFixed(2)} {currency}</dd>
           </div>
           <div className={styles.breakdownRow}>
             <dt className={styles.breakdownLabel}>{t('breakdownFloor')}</dt>
-            <dd className={styles.breakdownValue}>{floorPrice.toFixed(2)} {currency}</dd>
+            <dd dir="ltr" className={styles.breakdownValue}>{floorPrice.toFixed(2)} {currency}</dd>
           </div>
           <div className={cn(styles.breakdownRow, styles.breakdownRowAccent)}>
             <dt className={styles.breakdownLabel}>{t('breakdownYourIncrease')}</dt>
-            <dd className={styles.breakdownValue}>
+            <dd dir="ltr" className={styles.breakdownValue}>
               {normalizedIncreaseAmount >= 0 ? '+' : '−'}{Math.abs(normalizedIncreaseAmount).toFixed(2)} {currency}
             </dd>
           </div>
@@ -533,9 +559,10 @@ export function BiddingProposalSheet({
             <strong className={styles.style190_33}>{finalOfferPrice.toFixed(2)} {currency}</strong>
           </div>
           <p className={styles.style192_34}>
-            {t('finalFormula', {
-              base: baseFare.toFixed(2),
-              adjustment: `${normalizedIncreaseAmount >= 0 ? '+' : ''}${normalizedIncreaseAmount.toFixed(2)}`,
+            {t('meterCalculationFinal', {
+              meter: baseFare.toFixed(2),
+              adjustment: `${normalizedIncreaseAmount >= 0 ? '+' : '-'} ${Math.abs(normalizedIncreaseAmount).toFixed(2)} ${currency}`,
+              total: finalOfferPrice.toFixed(2),
               currency,
             })}
           </p>
@@ -555,7 +582,13 @@ export function BiddingProposalSheet({
         {isDumpingAmber ? (
           <div className={styles.style201_35}>
             <AlertTriangle className={styles.style202_36} />
-            {t('dumpingAmberWarning')}
+            {t('dumpingAmberCalculationWarning', {
+              offer: finalOfferPrice.toFixed(2),
+              market: marketFare.toFixed(2),
+              difference: marketDifference.toFixed(2),
+              percent: marketDifferencePercent,
+              currency,
+            })}
           </div>
         ) : null}
 
