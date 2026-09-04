@@ -11,10 +11,8 @@ const CaptainView = dynamic(
 );
 
 const styles = {
-  root: 'min-h-screen w-full bg-[#0B0F19] text-white',
-  // empty:hidden so the wrapper collapses when the banner renders null, which is the case
-  // for every account that already has a recovery email.
-  recoveryPrompt: 'px-4 pt-4 empty:hidden md:px-6',
+  root: 'relative min-h-screen w-full bg-[#0B0F19] text-white',
+  recoveryPrompt: 'absolute top-16 start-4 end-4 z-[200] empty:hidden md:px-6',
 } as const;
 
 export function CaptainShell() {

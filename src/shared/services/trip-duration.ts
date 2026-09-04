@@ -46,7 +46,7 @@ export const PICKUP_MINUTES_PER_KM = 3;
  * Egypt and Jordan, so its morning peak is absent.
  *
  * These are STARTING values, not measurements. recalibrate_traffic_factors() in
- * supabase/migrations/20260903090000_trip_duration_calibration.sql measures the real
+ * supabase/migrations/20260903100000_trip_duration_calibration.sql measures the real
  * multiplier from completed trips and corrects the per-country factor this sits on top of;
  * this curve only has to get the SHAPE of the day roughly right.
  */

@@ -7,7 +7,7 @@ import { useDashboardLanguage } from '@/shared/hooks/use-dashboard-language';
 import { useRecoveryEmail } from '../hooks/use-recovery-email';
 
 const styles = {
-  banner: 'relative flex flex-col gap-2.5 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-3.5',
+  banner: 'relative flex flex-col gap-2.5 rounded-2xl border border-amber-500/40 bg-[#0A0F1D]/95 backdrop-blur-xl p-3.5 shadow-2xl',
   head: 'flex items-start gap-2 pe-6',
   icon: 'mt-0.5 h-4 w-4 shrink-0 text-amber-300',
   text: 'text-xs font-bold leading-relaxed text-amber-100',

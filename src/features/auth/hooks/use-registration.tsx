@@ -52,6 +52,7 @@ type LocationOption = { id: string; label: string; labelEn: string; value: strin
 interface PersonalRegistrationState {
   name: string;
   phone: string;
+  email: string;
   country: string;
   gov: string;
   district: string;
@@ -117,6 +118,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
   const [personal, setPersonal] = useState<PersonalRegistrationState>({
     name: '',
     phone: '',
+    email: '',
     country: '',
     gov: '',
     district: '',
@@ -266,6 +268,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
       ...current,
       name: `راكب تجربة ${serial}`,
       phone: demoPhone,
+      email: `test${serial}@example.com`,
       country: String(selectedCountry.id),
       gov: personal.gov,
       district: String(randomDistrict.id),
@@ -341,6 +344,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
       ...current,
       name: `Captain Test ${serial}`,
       phone: demoPhone,
+      email: `captain${serial}@example.com`,
       country: String(country.id),
       gov: String(governorateId),
       district: String(districtId),
@@ -467,6 +471,13 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
       }
 
       const signUpResult = await signUpRiderWithPhone(signUpInput);
+
+      if (signUpResult.session && personal.email?.trim().includes('@')) {
+        const { error: emailError } = await supabase.auth.updateUser({ email: personal.email.trim() });
+        if (emailError && (process.env.NODE_ENV !== 'production')) {
+          console.warn('[Registration Email Update Error]', emailError);
+        }
+      }
 
       if (role === 'driver') {
         const userId = signUpResult.user?.id;

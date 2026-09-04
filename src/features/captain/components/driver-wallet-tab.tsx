@@ -182,24 +182,10 @@ export function DriverWalletTab({ user, language, isFlightActive = false }: Driv
 
   const handleTestAmountChange = (value: string) => {
     setTestAmount(value);
-    const num = Number(value);
-    if (num > 0 && radarHourPrice > 0) {
-      const mins = Math.round((num * 60) / radarHourPrice);
-      setTestMinutes(String(mins));
-    } else if (!value) {
-      setTestMinutes('');
-    }
   };
 
   const handleTestMinutesChange = (value: string) => {
     setTestMinutes(value);
-    const mins = Number(value);
-    if (mins > 0 && radarHourPrice > 0) {
-      const amt = Number(((mins * radarHourPrice) / 60).toFixed(2));
-      setTestAmount(String(amt));
-    } else if (!value) {
-      setTestAmount('');
-    }
   };
 
   const paidMinutes = walletIsReady ? wallet.paidMinutesRemaining : 0;

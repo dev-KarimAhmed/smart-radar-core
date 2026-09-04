@@ -27,7 +27,9 @@
 -- CREATE OR REPLACE with the new columns appended at the end, rather than DROP + CREATE, so
 -- existing grants survive and nothing depending on the view breaks.
 
-CREATE OR REPLACE VIEW public.captain_radar_requests
+DROP VIEW IF EXISTS public.captain_radar_requests CASCADE;
+
+CREATE VIEW public.captain_radar_requests
 WITH (security_barrier = true)
 AS
 SELECT
@@ -113,6 +115,8 @@ WHERE
     )
   )
   OR rr.accepted_captain_id = auth.uid();
+
+GRANT SELECT ON public.captain_radar_requests TO authenticated;
 
 
 -- ---------------------------------------------------------------------------

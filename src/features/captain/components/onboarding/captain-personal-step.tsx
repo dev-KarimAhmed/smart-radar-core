@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useTranslations } from 'next-intl';
-import { Eye, EyeOff, Lock, MapPin, Phone, UserRound } from 'lucide-react';
+import { Eye, EyeOff, Lock, Mail, MapPin, Phone, UserRound } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { AppSelect } from '@/shared/components/ui/app-select';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
@@ -22,6 +22,7 @@ export interface CaptainPersonalValues {
   name: string;
   nickname: string;
   phone: string;
+  email: string;
   password: string;
   country: string;
   // Derived from `country` (the selected Supabase row id) whenever it changes;
@@ -207,6 +208,23 @@ export function CaptainPersonalStep({
           <p className={styles.hint}>{t('phoneHint')}</p>
           {errors.phone ? <p className={styles.error}>{errors.phone}</p> : null}
         </div>
+      </div>
+
+      <div className={styles.field}>
+        <label className={styles.label}>
+          <Mail className={styles.icon} />
+          {t('email')}
+        </label>
+        <Input
+          type="email"
+          dir="ltr"
+          inputMode="email"
+          placeholder={t('emailPlaceholder')}
+          value={values.email}
+          onChange={(e) => handleFieldChange('email' as any, e.target.value)}
+          className={styles.input}
+        />
+        {errors.email ? <p className={styles.error}>{errors.email}</p> : null}
       </div>
 
       <div className={styles.fieldRow}>
