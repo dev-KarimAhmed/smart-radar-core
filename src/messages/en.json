@@ -847,6 +847,7 @@
     "marketIndicatorHighShort": "Market is crowded"
   },
   "captainPickup": {
+    "tripsValue": "{count, plural, one {# trip} other {# trips}}",
     "pickupLocation": "Pickup location",
     "pickupApproximate": "Approximate area before acceptance",
     "pickupExact": "Exact pickup location",
@@ -855,6 +856,7 @@
     "minutesValue": "{count, plural, one {# min} other {# min}}"
   },
   "captainBidding": {
+    "waitSecondsRange": "Choose a wait time between {min} and {max} seconds.",
     "distanceUnavailable": "Unavailable",
     "badge": "Price offer",
     "title": "Submit an offer",
