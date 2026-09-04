@@ -224,26 +224,29 @@ export function BiddingProposalSheet({
       const tariff = rawTariff && typeof rawTariff === 'object'
         ? rawTariff as Record<string, unknown>
         : null;
+      const roadKm = row.roadKm ?? row.road_km;
+      const billableKm = row.billableKm ?? row.billable_km;
+      const estimatedMinutes = row.estimatedMinutes ?? row.estimated_minutes;
       setQuote({
-        captainFare: Number(row.captainFare),
-        marketFare: row.marketFare == null ? null : Number(row.marketFare),
-        floorPrice: row.floorPrice == null ? null : Number(row.floorPrice),
-        ceilingPrice: row.ceilingPrice == null ? null : Number(row.ceilingPrice),
-        suggestedFare: Number(row.suggestedFare),
+        captainFare: Number(row.captainFare ?? row.captain_fare),
+        marketFare: row.marketFare == null && row.market_fare == null ? null : Number(row.marketFare ?? row.market_fare),
+        floorPrice: row.floorPrice == null && row.floor_price == null ? null : Number(row.floorPrice ?? row.floor_price),
+        ceilingPrice: row.ceilingPrice == null && row.ceiling_price == null ? null : Number(row.ceilingPrice ?? row.ceiling_price),
+        suggestedFare: Number(row.suggestedFare ?? row.suggested_fare),
         isOutsideBand: Boolean(row.isOutsideBand),
         tier: normalizeCaptainTier(row.tier),
-        roadKm: toFiniteNumberOrNull(row.roadKm),
-        billableKm: toFiniteNumberOrNull(row.billableKm),
-        estimatedMinutes: toFiniteNumberOrNull(row.estimatedMinutes),
+        roadKm: toFiniteNumberOrNull(roadKm),
+        billableKm: toFiniteNumberOrNull(billableKm),
+        estimatedMinutes: toFiniteNumberOrNull(estimatedMinutes),
         tariff: tariff
-          && toFiniteNumberOrNull(tariff.baseFare) != null
-          && toFiniteNumberOrNull(tariff.perKm) != null
-          && toFiniteNumberOrNull(tariff.perMin) != null
+          && toFiniteNumberOrNull(tariff.baseFare ?? tariff.base_fare) != null
+          && toFiniteNumberOrNull(tariff.perKm ?? tariff.per_km) != null
+          && toFiniteNumberOrNull(tariff.perMin ?? tariff.per_min) != null
           ? {
-              baseFare: toFiniteNumberOrNull(tariff.baseFare) as number,
-              perKm: toFiniteNumberOrNull(tariff.perKm) as number,
-              perMin: toFiniteNumberOrNull(tariff.perMin) as number,
-              includedKm: toFiniteNumberOrNull(tariff.includedKm) ?? 0,
+              baseFare: toFiniteNumberOrNull(tariff.baseFare ?? tariff.base_fare) as number,
+              perKm: toFiniteNumberOrNull(tariff.perKm ?? tariff.per_km) as number,
+              perMin: toFiniteNumberOrNull(tariff.perMin ?? tariff.per_min) as number,
+              includedKm: toFiniteNumberOrNull(tariff.includedKm ?? tariff.included_km) ?? 0,
             }
           : null,
       });
