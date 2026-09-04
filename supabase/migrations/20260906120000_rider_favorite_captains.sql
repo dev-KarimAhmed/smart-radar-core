@@ -99,7 +99,9 @@ ON CONFLICT (rider_id, captain_id) DO NOTHING;
 -- that makes a favourite silently vanish from the captain's card.
 -- ---------------------------------------------------------------------------
 
-CREATE OR REPLACE VIEW public.captain_radar_requests
+DROP VIEW IF EXISTS public.captain_radar_requests CASCADE;
+
+CREATE VIEW public.captain_radar_requests
 WITH (security_barrier = true)
 AS
 SELECT
@@ -185,6 +187,8 @@ WHERE
     )
   )
   OR rr.accepted_captain_id = auth.uid();
+
+GRANT SELECT ON public.captain_radar_requests TO authenticated;
 
 
 -- ---------------------------------------------------------------------------

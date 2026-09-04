@@ -122,11 +122,27 @@ export function useDriverLifecycle(user: User | null) {
             code === '42883' ||
             code === 'PGRST202' ||
             /could not find (the )?function|schema cache|function .*set_captain_status/.test(message);
-          toast({
-            variant: 'destructive',
-            title: isBundleError
-              ? t('radarBundleRequired')
-              : isRoleError
+          if (isBundleError) {
+            let bundleTitle = t('radarBundleRequired');
+            try {
+              const { data: walletData } = await supabase.rpc('get_captain_wallet_status');
+              const cashBalance = Number((walletData as { balance?: number } | null)?.balance || 0);
+              if (cashBalance > 0) {
+                bundleTitle = t('radarAllocationRequired');
+              }
+            } catch {
+              // fallback to default bundleTitle
+            }
+
+            toast({
+              variant: 'destructive',
+              title: bundleTitle,
+              description: t('statusUpdateFailedBody'),
+            });
+          } else {
+            toast({
+              variant: 'destructive',
+              title: isRoleError
                 ? t('statusRoleRequired')
                 : isAuthError
                   ? t('statusAuthRequired')
@@ -137,8 +153,9 @@ export function useDriverLifecycle(user: User | null) {
                       : isMissingRpc
                         ? t('statusBackendNotReady')
                         : t('statusUpdateFailed'),
-            description: t('statusUpdateFailedBody'),
-          });
+              description: t('statusUpdateFailedBody'),
+            });
+          }
         }
         return false;
       }

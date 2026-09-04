@@ -176,8 +176,8 @@ export function useRideRequestStatusSync(params: {
           if (status === 'ARRIVED' && announcedArrivalForRef.current !== state.requestId) {
             announcedArrivalForRef.current = state.requestId;
             toast({
-              title: t('trip.captainArrivedTitle'),
-              description: t('trip.captainArrivedBody'),
+              title: t('trip.driverArrivedTitle'),
+              description: t('trip.driverArrivedNote'),
             });
             // Best-effort only: unsupported on iOS Safari and silently ignored when the
             // page has never been interacted with.

@@ -217,7 +217,9 @@ WHERE ro.id = rr.accepted_offer_id
 -- Unchanged from 20260906120000 apart from accepted_at and pickup_eta_minutes.
 -- ---------------------------------------------------------------------------
 
-CREATE OR REPLACE VIEW public.captain_radar_requests
+DROP VIEW IF EXISTS public.captain_radar_requests CASCADE;
+
+CREATE VIEW public.captain_radar_requests
 WITH (security_barrier = true)
 AS
 SELECT
@@ -312,6 +314,8 @@ WHERE
     )
   )
   OR rr.accepted_captain_id = auth.uid();
+
+GRANT SELECT ON public.captain_radar_requests TO authenticated;
 
 NOTIFY pgrst, 'reload schema';
 

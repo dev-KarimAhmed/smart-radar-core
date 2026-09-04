@@ -51,6 +51,13 @@ export function getCaptainPersonalSchema(t: CaptainValidationT) {
     name: yup.string().trim().matches(NAME_REGEX, t('nameInvalid')).required(t('nameRequired')),
     // Optional: shown to riders instead of the legal name when set.
     nickname: yup.string().trim(),
+    email: yup
+      .string()
+      .trim()
+      .test('is-valid-email', t('emailInvalid'), (value) => {
+        if (!value) return true;
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+      }),
     phone: yup
       .string()
       .trim()

@@ -95,11 +95,16 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
       return false;
     }
 
-    const walletStatus = data as { has_active_bundle?: boolean } | null;
+    const walletStatus = data as { has_active_bundle?: boolean; balance?: number } | null;
     const hasActiveBundle = walletStatus?.has_active_bundle === true;
+    const cashBalance = Number(walletStatus?.balance || 0);
 
     if (!hasActiveBundle) {
-      setRadarLockMessage(tRef.current('radarBundleRequired'));
+      setRadarLockMessage(
+        cashBalance > 0
+          ? tRef.current('radarAllocationRequired')
+          : tRef.current('radarBundleRequired')
+      );
       return false;
     }
 

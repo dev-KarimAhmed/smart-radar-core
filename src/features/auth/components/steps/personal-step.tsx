@@ -222,6 +222,8 @@ const copy = {
     fullNamePlaceholder: 'اكتب اسمك',
     phone: 'رقم الهاتف',
     phonePlaceholder: '+962790000000',
+    email: 'البريد الإلكتروني (اختياري)',
+    emailPlaceholder: 'you@example.com',
     country: 'الدولة',
     countryPlaceholder: 'اختر الدولة',
     governorate: 'المحافظة',
@@ -271,6 +273,8 @@ const copy = {
     fullNamePlaceholder: 'Enter your name',
     phone: 'Phone Number',
     phonePlaceholder: '+962790000000',
+    email: 'Email (optional)',
+    emailPlaceholder: 'you@example.com',
     country: 'Country',
     countryPlaceholder: 'Choose country',
     governorate: 'Governorate',
@@ -330,6 +334,8 @@ const authCopy = {
     fullNamePlaceholder: 'اكتب اسمك',
     phone: 'رقم الهاتف',
     phonePlaceholder: '+962790000000',
+    email: 'البريد الإلكتروني (اختياري)',
+    emailPlaceholder: 'you@example.com',
     country: 'الدولة',
     countryPlaceholder: 'اختر الدولة',
     governorate: 'المحافظة',
@@ -379,6 +385,8 @@ const authCopy = {
     fullNamePlaceholder: 'Enter your name',
     phone: 'Phone Number',
     phonePlaceholder: '+962790000000',
+    email: 'Email (optional)',
+    emailPlaceholder: 'you@example.com',
     country: 'Country',
     countryPlaceholder: 'Choose country',
     governorate: 'Governorate',
@@ -451,6 +459,7 @@ export function PersonalStep() {
   const [resetSubmitting, setResetSubmitting] = useState(false);
   const [resetMessage, setResetMessage] = useState('');
   const [resetError, setResetError] = useState('');
+  const [emailError, setEmailError] = useState('');
 
   // This dialog used to be a dead end: two links to WhatsApp and a phone number, with no
   // mechanism behind either and no way for support to actually reset anything. It now files
@@ -471,6 +480,14 @@ export function PersonalStep() {
 
   const onFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setEmailError('');
+    if (authMode === 'register' && personal.email && personal.email.trim().length > 0) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(personal.email.trim())) {
+        setEmailError(lang === 'ar' ? 'البريد الإلكتروني غير صحيح' : 'Invalid email format');
+        return;
+      }
+    }
     handlePersonalSubmit(e);
   };
 
@@ -607,6 +624,29 @@ export function PersonalStep() {
                       {phoneValidationHint}
                     </p>
                   </Field>
+
+                  {mode === 'register' ? (
+                    <Field label={t.email} icon={<Mail className={styles.style634_82} />}>
+                      <input
+                        type="email"
+                        dir="ltr"
+                        inputMode="email"
+                        placeholder={t.emailPlaceholder}
+                        value={personal.email}
+                        onChange={(event) => {
+                          setPersonal({ ...personal, email: event.target.value });
+                          if (emailError) setEmailError('');
+                        }}
+                        className={cn(styles.input, styles.style642_83, emailError && 'border-rose-500/50')}
+                        autoComplete="email"
+                      />
+                      {emailError ? (
+                        <p className={cn(isArabic ? styles.style646_84 : styles.style646_85, 'text-rose-400 mt-1 font-bold text-[10px]')}>
+                          {emailError}
+                        </p>
+                      ) : null}
+                    </Field>
+                  ) : null}
 
                   {mode === 'register' ? (
                     <div className={styles.style652_87}>
