@@ -13,7 +13,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import type { CaptainTariff, MarketAverageTariff } from '../hooks/use-price-per-km-setup';
+import type { CaptainTariff, CaptainTariffSaveResult, MarketAverageTariff } from '../hooks/use-price-per-km-setup';
 import type { CaptainMarketIndicator } from '../hooks/use-captain-market-indicator';
 import { MarketStatusIndicator } from './market-status-indicator';
 
@@ -62,7 +62,7 @@ interface PricePerKmSetupModalProps {
   isCountryChange?: boolean;
   /** The tariff is already set and this is the per-activation confirmation. */
   isActivationConfirm?: boolean;
-  onSave: (value: CaptainTariff) => Promise<boolean>;
+  onSave: (value: CaptainTariff) => Promise<CaptainTariffSaveResult>;
 }
 
 function toInputValue(value: number | null | undefined) {
@@ -132,14 +132,17 @@ export function PricePerKmSetupModal({
     }
 
     setIsSaving(true);
-    const saved = await onSave({
+    const result = await onSave({
       baseFare: parsedBaseFare,
       pricePerKm: parsedPricePerKm,
       pricePerMin: parsedPricePerMin,
       includedKm: parsedIncludedKm,
     });
     setIsSaving(false);
-    if (!saved) {
+    if (!result.saved && result.reason === 'base_fare_below_market_minimum') {
+      setIsShortDistancesOpen(true);
+      setShortDistancesError(t('tariffModalBaseFareTooLow', { min: result.minBaseFare.toFixed(2) }));
+    } else if (!result.saved) {
       setError(t('pricePerKmModalError'));
     }
   };

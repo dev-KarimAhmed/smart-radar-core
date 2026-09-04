@@ -15,6 +15,11 @@ export type CaptainTariff = {
   includedKm: number;
 };
 
+export type CaptainTariffSaveResult =
+  | { saved: true }
+  | { saved: false; reason: 'base_fare_below_market_minimum'; minBaseFare: number }
+  | { saved: false; reason: 'unknown' };
+
 /** Which reference produced `minBaseFare` — see public.market_sample_threshold(). */
 export type MinBaseFareSource = 'captain_average' | 'country_seed';
 
@@ -50,6 +55,15 @@ const FALLBACK_MIN_BASE_FARE = 1;
 function toNumberOrNull(value: unknown) {
   const numberValue = Number(value);
   return Number.isFinite(numberValue) ? numberValue : null;
+}
+
+function getRejectedBaseFareFloor(error: unknown) {
+  const message = typeof error === 'object' && error !== null && 'message' in error
+    ? String((error as { message?: unknown }).message ?? '')
+    : String(error ?? '');
+  const match = message.match(/base_fare_below_market_minimum:\s*([0-9]+(?:\.[0-9]+)?)/i);
+  const floor = Number(match?.[1]);
+  return Number.isFinite(floor) ? floor : null;
 }
 
 function toMarketAverage(value: unknown): MarketAverageTariff | null {
@@ -157,8 +171,8 @@ export function usePricePerKmSetup(
     // for the duration of the refetch, so it never renders against the old data.
   }, [user?.uid, activationNonce]);
 
-  const saveTariff = React.useCallback(async (value: CaptainTariff) => {
-    if (!user?.uid) return false;
+  const saveTariff = React.useCallback(async (value: CaptainTariff): Promise<CaptainTariffSaveResult> => {
+    if (!user?.uid) return { saved: false, reason: 'unknown' };
 
     const { error } = await supabase
       .from('captain_profiles')
@@ -171,13 +185,18 @@ export function usePricePerKmSetup(
       .eq('id', user.uid);
 
     if (error) {
+      const minBaseFare = getRejectedBaseFareFloor(error);
+      if (minBaseFare !== null) {
+        setTariff((previous) => ({ ...previous, minBaseFare }));
+        return { saved: false, reason: 'base_fare_below_market_minimum', minBaseFare };
+      }
       if ((process.env.NODE_ENV !== 'production')) console.warn('[Captain tariff save]', error);
-      return false;
+      return { saved: false, reason: 'unknown' };
     }
 
     setTariff((previous) => ({ ...previous, ...value }));
     setConfirmedNonce(activationNonce);
-    return true;
+    return { saved: true };
   }, [activationNonce, user?.uid]);
 
   // Any missing component keeps the captain in the setup gate — a fare cannot be computed
