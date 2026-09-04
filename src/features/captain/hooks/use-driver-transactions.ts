@@ -12,6 +12,7 @@ type RideOfferRow = Record<string, unknown>;
 type RideRequestRow = Record<string, unknown>;
 
 export const MIN_OFFER_WAIT_SECONDS = 5;
+export const MAX_OFFER_WAIT_SECONDS = 120;
 
 /**
  * submit_ride_offer refuses out-of-band prices server-side, so these are reachable even
