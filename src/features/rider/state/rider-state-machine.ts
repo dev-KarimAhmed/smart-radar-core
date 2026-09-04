@@ -75,7 +75,7 @@ export type RiderMachineAction =
   | { type: 'SERVER_STATUS_COMPLETED'; row?: Record<string, unknown> }
   | { type: 'REQUEST_FAILED' }
   | { type: 'REQUEST_CANCELLED' }
-  | { type: 'REHYDRATE_SEARCHING'; requestId: string }
+  | { type: 'REHYDRATE_SEARCHING'; requestId: string; row?: Record<string, unknown> }
   | { type: 'REHYDRATE_ACTIVE_TRIP'; requestId: string; row: Record<string, unknown>; offers: Offer[] }
   | { type: 'RECEIVE_OFFERS'; offers: Offer[] }
   | { type: 'SELECT_OFFER'; offerId: string }
@@ -110,6 +110,55 @@ export function shouldShowAdRiver(state: RiderMachineState): boolean {
   }
 
   return true;
+}
+
+/**
+ * Rebuilds the rider's destination from the ride_requests row.
+ *
+ * The destination is chosen on the client and only ever lived in this state — so a reload
+ * mid-request lost it. `REHYDRATE_SEARCHING` restored the screen and the request id and
+ * nothing else, which is why the offers screen showed "الوجهة: غير متاح" for a request whose
+ * address is sitting right there in the row it was rehydrated from.
+ *
+ * It also cost more than a label: buildCaptainOfferFromOffer measures the trip distance from
+ * `destination.coords`, so after a reload every offer card lost its trip distance too.
+ *
+ * governorate/district stay empty on purpose — the row stores the composed address, not its
+ * parts, and nothing downstream of a rehydrate reads them. Inventing a split by string
+ * surgery on the label would be a guess dressed as data.
+ */
+function buildDestinationFromRow(
+  requestId: string,
+  row: Record<string, unknown> | undefined,
+): RiderDestination | null {
+  if (!row) return null;
+
+  const label = firstString(
+    row.destination_address_ar,
+    row.destination_address,
+    row.destination_address_en,
+  );
+  const lat = firstNumber(row.destination_lat);
+  const lng = firstNumber(row.destination_lng);
+
+  // A label with no coordinates is still worth restoring: the rider gets to see where they
+  // asked to go, and the offer cards fall back to the routed distance on each offer's own
+  // receipt for the number.
+  if (!label && (lat === null || lng === null)) return null;
+
+  return {
+    id: requestId,
+    label: label || '',
+    governorate: '',
+    district: '',
+    coords: {
+      lat: lat ?? 0,
+      lng: lng ?? 0,
+    },
+    serverEstimatedFare: firstNumber(row.server_estimated_fare) ?? undefined,
+    originCell: firstString(row.origin_h3) || undefined,
+    destinationCell: firstString(row.destination_h3) || undefined,
+  };
 }
 
 function buildActiveTrip(state: RiderMachineState, acceptedRow: Record<string, unknown>): RiderActiveTrip | null {
@@ -265,12 +314,20 @@ export function riderDashboardReducer(state: RiderMachineState, action: RiderMac
         ...state,
         screen: 'RECEIVING_OFFERS',
         requestId: action.requestId,
+        // Keep whatever is already in state — it is the richer object, with the fare quote
+        // and the governorate/district the picker knew. Only fall back to the row.
+        destination: state.destination ?? buildDestinationFromRow(action.requestId, action.row),
         requestStartedAt: state.requestStartedAt ?? Date.now(),
       };
 
     case 'REHYDRATE_ACTIVE_TRIP': {
       if (state.screen !== 'IDLE_MAP') return state;
-      const stateWithOffers = { ...state, offers: action.offers, requestId: action.requestId };
+      const stateWithOffers = {
+        ...state,
+        offers: action.offers,
+        requestId: action.requestId,
+        destination: state.destination ?? buildDestinationFromRow(action.requestId, action.row),
+      };
       const activeTrip = buildActiveTrip(stateWithOffers, action.row);
       if (!activeTrip) {
         return { ...stateWithOffers, screen: 'RECEIVING_OFFERS', requestStartedAt: state.requestStartedAt ?? Date.now() };

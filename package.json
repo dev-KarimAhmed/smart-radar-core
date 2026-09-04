@@ -9,7 +9,7 @@
     "start": "node dist/server.cjs",
     "preview": "next start --port 3000",
     "lint": "tsc --noEmit",
-    "test:unit": "tsx src/core/logic/geospatial-kernel.test.ts && tsx src/shared/services/google-maps-location.test.ts && tsx src/features/auth/services/supabase-auth.test.ts && tsx src/features/ads/services/ad-audience.test.ts && tsx src/features/rider/services/rider-district-query.test.ts && tsx src/lib/road-route.test.ts && tsx src/features/rider/services/rider-server-marketplace.test.ts && tsx src/features/rider/state/rider-state-machine.test.ts && tsx src/features/captain/services/offer-band.test.ts && tsx src/shared/services/trip-countdown.test.ts",
+    "test:unit": "tsx src/core/logic/geospatial-kernel.test.ts && tsx src/shared/services/google-maps-location.test.ts && tsx src/features/auth/services/supabase-auth.test.ts && tsx src/features/ads/services/ad-audience.test.ts && tsx src/features/rider/services/rider-district-query.test.ts && tsx src/lib/road-route.test.ts && tsx src/features/rider/services/rider-server-marketplace.test.ts && tsx src/features/rider/state/rider-state-machine.test.ts && tsx src/features/captain/services/offer-band.test.ts && tsx src/shared/services/trip-countdown.test.ts && tsx src/features/rider/services/offer-receipt.test.ts",
     "test:architecture": "node tests/architecture/tsx-styles.test.mjs && node tests/architecture/feature-boundaries.test.mjs",
     "test:routes": "node scripts/run-route-tests.mjs",
     "analyze:bundle": "node tests/performance/bundle-budget.mjs",

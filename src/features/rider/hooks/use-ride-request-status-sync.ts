@@ -107,7 +107,9 @@ export function useRideRequestStatusSync(params: {
 
       const status = String(row.status || '').toUpperCase();
       if (status === 'PENDING' || status === 'RECEIVING_OFFERS') {
-        dispatch({ type: 'REHYDRATE_SEARCHING', requestId });
+        // The row goes along too: the destination only ever lived in client state, so
+        // without it a reload mid-auction left the rider looking at "الوجهة: غير متاح".
+        dispatch({ type: 'REHYDRATE_SEARCHING', requestId, row });
         return;
       }
 

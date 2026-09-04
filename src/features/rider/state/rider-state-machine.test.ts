@@ -108,4 +108,40 @@ const blocked = riderDashboardReducer(createInitialRiderMachineState(), {
 });
 assert.equal(blocked.screen, 'IDLE_MAP');
 
+// A reload mid-auction must not lose the destination.
+//
+// REHYDRATE_SEARCHING restored the screen and the request id and nothing else, so
+// state.destination came back null and the offers screen rendered "الوجهة: غير متاح" for a
+// request whose address was in the very row it rehydrated from. It also cost every offer
+// card its trip distance, which is measured from destination.coords.
+const rehydrated = riderDashboardReducer(createInitialRiderMachineState(), {
+  type: 'REHYDRATE_SEARCHING',
+  requestId: 'req-1',
+  row: {
+    id: 'req-1',
+    status: 'PENDING',
+    destination_address_ar: 'الحي الرابع - السادس من أكتوبر',
+    destination_lat: 29.9585,
+    destination_lng: 30.9188,
+    destination_h3: '8a2ffff',
+    origin_h3: '8a1ffff',
+    server_estimated_fare: 241.89,
+  },
+});
+assert.equal(rehydrated.screen, 'RECEIVING_OFFERS');
+assert.equal(rehydrated.destination?.label, 'الحي الرابع - السادس من أكتوبر');
+assert.equal(rehydrated.destination?.coords.lat, 29.9585);
+assert.equal(rehydrated.destination?.coords.lng, 30.9188);
+assert.equal(rehydrated.destination?.serverEstimatedFare, 241.89);
+assert.equal(rehydrated.destination?.destinationCell, '8a2ffff');
+
+// No row (an older caller, or a row with neither address nor coordinates) must stay null
+// rather than producing an empty destination that reads as a real one.
+const rehydratedBare = riderDashboardReducer(createInitialRiderMachineState(), {
+  type: 'REHYDRATE_SEARCHING',
+  requestId: 'req-2',
+});
+assert.equal(rehydratedBare.screen, 'RECEIVING_OFFERS');
+assert.equal(rehydratedBare.destination, null);
+
 console.log('rider reducer checks passed');

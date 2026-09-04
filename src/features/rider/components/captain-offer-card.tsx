@@ -27,6 +27,7 @@ import { cn } from '@/lib/utils';
 import { resolveColorDisplayName } from '@/shared/services/color-name';
 import { preferRoutedMinutes } from '@/shared/services/trip-duration';
 import { formatCountdown } from '@/shared/services/trip-countdown';
+import { buildOfferReceipt } from '../services/offer-receipt';
 const styles = {
   style136_1: "group overflow-hidden rounded-2xl border bg-[#161F30]/80 text-[#F8FAFC] shadow-2xl shadow-black/20 backdrop-blur-md transition-all duration-300 hover:border-[#14B8A6]",
   style137_2: "border-emerald-300/70 shadow-[0_0_34px_rgba(20,184,166,0.18)]",
@@ -89,10 +90,14 @@ const styles = {
   contactButtonIcon: "h-4 w-4",
   contactButtonPlain: "inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] text-sm font-black text-white transition hover:border-[#14B8A6]/35 hover:bg-[#14B8A6]/10",
   priceCard: "rounded-2xl border border-[#14B8A6]/25 bg-gradient-to-b from-[#14B8A6]/10 to-transparent p-4",
-  shortDistanceTile: "mb-3 flex items-center justify-between gap-3 rounded-xl border border-[#14B8A6]/20 bg-[#0B0F19]/60 px-4 py-3",
-  shortDistanceValue: "text-2xl font-black text-[#14F5D5]",
-  shortDistanceCaption: "text-[11px] font-bold text-[#94A3B8]",
   breakdownRows: "space-y-2 text-sm",
+  breakdownGroupLabel: "mb-2 text-[10px] font-black uppercase tracking-wide text-[#94A3B8]",
+  breakdownDivider: "my-2.5 h-px bg-white/10",
+  breakdownDividerStrong: "my-3 h-px bg-[#14B8A6]/30",
+  marketBlock: "mt-3 rounded-xl border border-white/5 bg-black/25 px-3.5 py-3",
+  marketVerdictBelow: "mt-1.5 text-[11px] font-black leading-relaxed text-emerald-300",
+  marketVerdictAbove: "mt-1.5 text-[11px] font-black leading-relaxed text-amber-200",
+  marketVerdictEqual: "mt-1.5 text-[11px] font-black leading-relaxed text-[#94A3B8]",
   reasonText: "mt-3 text-xs leading-5 text-[#94A3B8]",
   additionalInfo: "rounded-xl border border-white/5 bg-white/[0.03] p-3 text-xs leading-relaxed text-[#94A3B8]",
   acceptButton: "flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#14B8A6] py-3.5 text-sm font-extrabold text-[#0B0F19] transition-all duration-300 hover:bg-[#2DD4BF] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#161F30] disabled:cursor-wait disabled:opacity-60",
@@ -109,9 +114,12 @@ const styles = {
   infoRowValueHighlight: "text-[#14B8A6]",
   infoRowValuePlain: "text-[#F8FAFC]",
   infoRowHelper: "mt-0.5 text-[11px] font-semibold text-[#94A3B8]/75",
-  breakdownRow: "flex items-center justify-between gap-4",
-  breakdownLabelStrong: "font-black text-[#F8FAFC]",
-  breakdownLabelPlain: "text-[#94A3B8]",
+  breakdownRow: "flex items-start justify-between gap-4",
+  breakdownLabelWrap: "block min-w-0",
+  breakdownLabelStrong: "block font-black text-[#F8FAFC]",
+  breakdownLabelPlain: "block text-[#94A3B8]",
+  breakdownHelper: "mt-0.5 block text-[11px] leading-snug text-[#94A3B8]/70",
+  breakdownValue: "shrink-0 tabular-nums",
   breakdownValueAccent: "text-[#14B8A6]",
   breakdownValuePlain: "text-[#F8FAFC]",
   breakdownValueStrong: "text-lg",
@@ -273,7 +281,7 @@ export function CaptainOfferCard({
   const { finalFare } = getCaptainOfferPricing(offer);
   const breakdown = offer.fare_breakdown ?? null;
   const adjustment = roundMoney(Number(breakdown?.adjustment) || 0);
-  const pricingReason = buildPricingReason(breakdown, finalFare, currencyCode, isArabic, rankLabel);
+  const pricingReason = buildPricingReason(isArabic);
   const captainName = captain.name?.trim() || (isArabic ? 'كابتن' : 'Captain');
   const vehicleModelLabel = captain.vehicle_model?.trim() || (isArabic ? 'سيارة' : 'Vehicle');
   const vehicleColorLabel = resolveColorDisplayName(captain.vehicle_color, language) || (isArabic ? 'غير محدد' : 'Not specified');
@@ -302,6 +310,34 @@ export function CaptainOfferCard({
     countdown?.hasCountdown
     && (countdown.percentRemaining <= 20 || countdown.remainingSeconds <= 10),
   );
+
+  /**
+   * The receipt, arranged so it ADDS UP.
+   *
+   * It did not. The rows printed were distance, time, the captain's adjustment and the
+   * total — and `baseFare` was never one of them, so an 8 km trip read:
+   *
+   *   المسافة · 0 كم × 6.00      0.00
+   *   الوقت · 12 دقيقة × 2.00   24.00
+   *   زيادة اختارها الكابتن   +176.13
+   *   السعر الإجمالي           220.13     <- 20.00 short of the rows above it
+   *
+   * The missing 20.00 was the base fare. There is no reading of those four lines that
+   * produces the fifth, which is the whole of "مش فاهم التسعير".
+   *
+   * Two other amounts could go unaccounted for as well. meter_fare is
+   * `max(country min_fare, base_fare, base + km + minutes)`, so on a very short trip the
+   * country's minimum can be what sets the price with nothing on screen saying so. And the
+   * offered fare is whatever the captain typed, which need not be meter + adjustment
+   * exactly.
+   *
+   * So rather than listing the parts that were remembered, every row is derived and any
+   * remainder is printed as its own line. The column cannot silently disagree with its own
+   * total again.
+   */
+  const receipt = buildOfferReceipt(breakdown, finalFare);
+  const roadKm = Number(breakdown?.roadKm) || 0;
+  const billableKm = Number(breakdown?.billableKm ?? breakdown?.roadKm) || 0;
 
   return (
     <article
@@ -528,48 +564,142 @@ export function CaptainOfferCard({
             <div className={styles.sectionWrap}>
               <SectionHeader icon={<Wallet className={styles.sectionHeaderIcon} />} title={isArabic ? 'السعر' : 'Price'} />
               <div className={styles.priceCard}>
-                {includedKm > 0 ? (
-                  <div className={styles.shortDistanceTile}>
-                    <span className={styles.shortDistanceCaption}>{isArabic ? 'المسافات القصيرة' : 'Short distances'}</span>
-                    <strong className={styles.shortDistanceValue}>{num(includedKm)} {isArabic ? 'كم' : 'km'}</strong>
-                  </div>
-                ) : null}
                 <div className={styles.breakdownRows}>
                   {breakdown && !breakdown.tariffMissing ? (
                     <>
+                      <p className={styles.breakdownGroupLabel}>
+                        {isArabic ? 'عدّاد الكابتن' : 'The captain’s meter'}
+                      </p>
+
+                      <BreakdownRow
+                        label={isArabic ? 'أجرة البداية' : 'Starting fare'}
+                        helper={isArabic ? 'ثابتة لأي رحلة' : 'Fixed for every trip'}
+                        value={`${money(receipt.baseFare)} ${currencyCode}`}
+                      />
+
+                      {/* The old label read "المسافة · 0 كم × 6.00" whenever the captain's
+                          included kilometres covered the trip — arithmetically true, and
+                          unreadable. The row now states the distance actually driven and
+                          says why the charge is what it is. */}
                       <BreakdownRow
                         label={isArabic
-                          ? `المسافة · ${num(breakdown.billableKm ?? breakdown.roadKm)} كم × ${money(breakdown.perKm)}`
-                          : `Distance · ${num(breakdown.billableKm ?? breakdown.roadKm)} km × ${money(breakdown.perKm)}`}
-                        value={`${money(breakdown.kmCharge)} ${currencyCode}`}
+                          ? `المسافة · ${num(roadKm)} كم`
+                          : `Distance · ${num(roadKm)} km`}
+                        helper={includedKm > 0
+                          ? (billableKm <= 0
+                            ? (isArabic
+                              ? `أول ${num(includedKm)} كم مشمولة في أجرة البداية`
+                              : `First ${num(includedKm)} km are included in the starting fare`)
+                            : (isArabic
+                              ? `${num(includedKm)} كم مشمولة، و${num(billableKm)} كم × ${money(breakdown.perKm)}`
+                              : `${num(includedKm)} km included, then ${num(billableKm)} km × ${money(breakdown.perKm)}`))
+                          : (isArabic
+                            ? `${num(billableKm)} كم × ${money(breakdown.perKm)}`
+                            : `${num(billableKm)} km × ${money(breakdown.perKm)}`)}
+                        value={`${money(receipt.kmCharge)} ${currencyCode}`}
                       />
+
                       {Number(breakdown.perMin) > 0 ? (
                         <BreakdownRow
                           label={isArabic
-                            ? `الوقت · ${num(breakdown.minutes)} دقيقة × ${money(breakdown.perMin)}`
-                            : `Time · ${num(breakdown.minutes)} min × ${money(breakdown.perMin)}`}
-                          value={`${money(breakdown.minCharge)} ${currencyCode}`}
+                            ? `الوقت · ${num(breakdown.minutes)} دقيقة`
+                            : `Time · ${num(breakdown.minutes)} min`}
+                          helper={isArabic
+                            ? `${num(breakdown.minutes)} × ${money(breakdown.perMin)}`
+                            : `${num(breakdown.minutes)} × ${money(breakdown.perMin)}`}
+                          value={`${money(receipt.minCharge)} ${currencyCode}`}
                         />
                       ) : null}
+
+                      {/* Only when the country's minimum fare is what set the meter. */}
+                      {receipt.minFareTopUp > 0 ? (
+                        <BreakdownRow
+                          label={isArabic ? 'فرق الحد الأدنى للأجرة' : 'Minimum fare top-up'}
+                          helper={isArabic
+                            ? `أقل أجرة مسموحة لأي رحلة ${money(breakdown.minTripFare ?? receipt.meterFare)} ${currencyCode}`
+                            : `The lowest fare allowed for any trip is ${money(breakdown.minTripFare ?? receipt.meterFare)} ${currencyCode}`}
+                          value={`${money(receipt.minFareTopUp)} ${currencyCode}`}
+                        />
+                      ) : null}
+
+                      <div className={styles.breakdownDivider} />
+
+                      <BreakdownRow
+                        label={isArabic ? 'إجمالي العدّاد' : 'Meter subtotal'}
+                        value={`${money(receipt.meterFare)} ${currencyCode}`}
+                      />
+
                       {adjustment !== 0 ? (
                         <BreakdownRow
                           label={isArabic
                             ? (adjustment > 0 ? 'زيادة اختارها الكابتن' : 'تخفيض من الكابتن')
                             : (adjustment > 0 ? 'Captain’s increase' : 'Captain’s reduction')}
+                          helper={isArabic
+                            ? 'فوق عدّاده، وداخل الحد المسموح لرتبته'
+                            : 'On top of their meter, inside their rank’s allowance'}
                           value={`${adjustment > 0 ? '+' : '−'}${money(Math.abs(adjustment))} ${currencyCode}`}
                           accent
                         />
                       ) : null}
+
+                      {/* Never expected to render. It exists so that if the offered price
+                          ever fails to equal meter + adjustment, the column says so instead
+                          of quietly not adding up. */}
+                      {receipt.residual !== 0 ? (
+                        <BreakdownRow
+                          label={isArabic ? 'بنود أخرى' : 'Other'}
+                          value={`${receipt.residual > 0 ? '+' : '−'}${money(Math.abs(receipt.residual))} ${currencyCode}`}
+                        />
+                      ) : null}
+
+                      <div className={styles.breakdownDividerStrong} />
                     </>
                   ) : null}
+
                   <BreakdownRow
-                    label={isArabic ? 'السعر الإجمالي' : 'Total price'}
+                    label={isArabic ? 'السعر النهائي' : 'Final price'}
+                    helper={isArabic ? 'مجمّد — لا يزيد بعد القبول' : 'Locked — it does not change after you accept'}
                     value={`${finalFare.toFixed(2)} ${currencyCode}`}
                     accent
                     strong
                   />
                 </div>
-                <p className={styles.reasonText}>{pricingReason}</p>
+
+                {/* The market comparison used to be the tail of a run-on sentence that had
+                    just said the captain added 176.13 on top. Said in that order it reads as
+                    a contradiction; as its own labelled line it reads as what it is. */}
+                {receipt.marketFare > 0 ? (
+                  <div className={styles.marketBlock}>
+                    <BreakdownRow
+                      label={isArabic ? 'متوسط أسعار الكباتن' : 'Captain average'}
+                      helper={isArabic ? 'لنفس الرحلة' : 'For this same trip'}
+                      value={`${money(receipt.marketFare)} ${currencyCode}`}
+                    />
+                    <p className={
+                      receipt.marketDeviationPercent < 0
+                        ? styles.marketVerdictBelow
+                        : receipt.marketDeviationPercent > 0
+                          ? styles.marketVerdictAbove
+                          : styles.marketVerdictEqual
+                    }>
+                      {receipt.marketDeviationPercent === 0
+                        ? (isArabic ? 'هذا العرض مطابق للمتوسط.' : 'This offer matches the average.')
+                        : receipt.marketDeviationPercent < 0
+                          ? (isArabic
+                            ? `هذا العرض أرخص من المتوسط بـ ${Math.abs(receipt.marketDeviationPercent)}%.`
+                            : `This offer is ${Math.abs(receipt.marketDeviationPercent)}% cheaper than average.`)
+                          : (isArabic
+                            ? `هذا العرض أعلى من المتوسط بـ ${receipt.marketDeviationPercent}%، وهي زيادة مسموحة لرتبة ${rankLabel}.`
+                            : `This offer is ${receipt.marketDeviationPercent}% above average, within the ${rankLabel} rank’s allowance.`)}
+                    </p>
+                  </div>
+                ) : null}
+
+                {/* Only left for the offer that carries no tariff receipt at all — there is
+                    nothing to itemise there, so the sentence is all the rider can be told. */}
+                {!breakdown || breakdown.tariffMissing ? (
+                  <p className={styles.reasonText}>{pricingReason}</p>
+                ) : null}
               </div>
             </div>
 
@@ -656,75 +786,54 @@ function num(value: number | null | undefined) {
 }
 
 /**
- * One sentence telling the rider why this price, in the terms that actually decided it:
- * the captain's own meter, and the market band the offer had to land in.
+ * The one case the itemised receipt cannot cover: an offer submitted by a captain who had no
+ * tariff recorded, so there are no parts to list.
+ *
+ * This used to build the whole explanation as a single sentence — meter, then the captain's
+ * adjustment, then the market comparison. Every one of those is now a labelled row with its
+ * own amount, which is both easier to follow and impossible to disagree with the column
+ * above it. Read as prose the last two clauses actively fought each other: "وأضاف 176.13
+ * فوقه. وهو أقل بـ 9% من المتوسط" tells the rider they were overcharged and undercharged in
+ * consecutive breaths.
  */
-function buildPricingReason(
-  breakdown: OfferFareBreakdown | null,
-  finalFare: number,
-  currencyCode: string,
-  isArabic: boolean,
-  rankLabel: string,
-) {
-  if (!breakdown || breakdown.tariffMissing) {
-    return isArabic
-      ? 'هذا السعر قدّمه الكابتن مباشرة، ولم تُسجَّل تفاصيل تعريفة له عند تقديم العرض.'
-      : 'This price was submitted directly by the captain; no tariff details were recorded with the offer.';
-  }
-
-  const meterFare = Number(breakdown.meterFare) || 0;
-  const marketFare = Number(breakdown.marketFare) || 0;
-
-  const meterSentence = isArabic
-    ? `سعر عدّاد الكابتن لهذه الرحلة ${money(meterFare)} ${currencyCode}.`
-    : `The captain's meter for this trip reads ${money(meterFare)} ${currencyCode}.`;
-
-  const adjustment = roundMoney(Number(breakdown.adjustment) || 0);
-  const adjustmentSentence = adjustment === 0
-    ? (isArabic ? ' وقدّمه كما هو دون تعديل.' : ' They offered it unchanged.')
-    : adjustment > 0
-      ? (isArabic
-          ? ` وأضاف ${money(adjustment)} ${currencyCode} فوقه.`
-          : ` They added ${money(adjustment)} ${currencyCode} on top.`)
-      : (isArabic
-          ? ` وخفّض ${money(Math.abs(adjustment))} ${currencyCode} منه.`
-          : ` They took ${money(Math.abs(adjustment))} ${currencyCode} off.`);
-
-  if (marketFare <= 0) {
-    return `${meterSentence}${adjustmentSentence}`;
-  }
-
-  const deviation = Math.round(((finalFare - marketFare) / marketFare) * 100);
-  const comparison = deviation === 0
-    ? (isArabic
-        ? ` وهو مطابق لمتوسط أسعار الكباتن لهذه الرحلة (${money(marketFare)} ${currencyCode}).`
-        : ` That matches the captain average for this trip (${money(marketFare)} ${currencyCode}).`)
-    : deviation > 0
-      ? (isArabic
-          ? ` وهو أعلى بـ ${deviation}% من متوسط أسعار الكباتن (${money(marketFare)} ${currencyCode})، وهي زيادة مسموحة لرتبة ${rankLabel}.`
-          : ` That is ${deviation}% above the captain average (${money(marketFare)} ${currencyCode}), within the allowance for the ${rankLabel} rank.`)
-      : (isArabic
-          ? ` وهو أقل بـ ${Math.abs(deviation)}% من متوسط أسعار الكباتن (${money(marketFare)} ${currencyCode}).`
-          : ` That is ${Math.abs(deviation)}% below the captain average (${money(marketFare)} ${currencyCode}).`);
-
-  return `${meterSentence}${adjustmentSentence}${comparison}`;
+function buildPricingReason(isArabic: boolean) {
+  return isArabic
+    ? 'هذا السعر قدّمه الكابتن مباشرة، ولم تُسجَّل تفاصيل تعريفة له عند تقديم العرض.'
+    : 'This price was submitted directly by the captain; no tariff details were recorded with the offer.';
 }
 
 function BreakdownRow({
   label,
+  helper,
   value,
   accent = false,
   strong = false,
 }: {
   label: string;
+  /** Small line under the label. Keeps a row's explanation out of its own title. */
+  helper?: string;
   value: string;
   accent?: boolean;
   strong?: boolean;
 }) {
   return (
     <div className={styles.breakdownRow}>
-      <span className={strong ? styles.breakdownLabelStrong : styles.breakdownLabelPlain}>{label}</span>
-      <strong className={cn(accent ? styles.breakdownValueAccent : styles.breakdownValuePlain, strong ? styles.breakdownValueStrong : '')}>{value}</strong>
+      <span className={styles.breakdownLabelWrap}>
+        <span className={strong ? styles.breakdownLabelStrong : styles.breakdownLabelPlain}>{label}</span>
+        {helper ? <span className={styles.breakdownHelper}>{helper}</span> : null}
+      </span>
+      {/* dir=ltr: the amount is digits, a sign and a currency code, and an RTL run reorders
+          them into "EGP 176.13+" with the sign stranded on the wrong side. */}
+      <strong
+        className={cn(
+          styles.breakdownValue,
+          accent ? styles.breakdownValueAccent : styles.breakdownValuePlain,
+          strong ? styles.breakdownValueStrong : '',
+        )}
+        dir="ltr"
+      >
+        {value}
+      </strong>
     </div>
   );
 }
