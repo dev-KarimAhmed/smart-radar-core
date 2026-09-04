@@ -505,6 +505,8 @@
       "complete": "Complete trip",
       "timeRemaining": "Time Remaining",
       "driverArrival": "Driver Arrival",
+      "driverArrivedTitle": "Driver Arrived",
+      "driverArrivedNote": "The captain has arrived at the pickup location! 📍 Please meet at the pickup point.",
       "finalCost": "Final Trip Cost",
       "inProgressNote": "Your trip is in progress. Have a safe ride!",
       "callCaptain": "Call Captain",
@@ -515,13 +517,7 @@
       "completeNoActiveDescription": "There is no active ride request. Wait for the trip to refresh, then try again.",
       "completeFailedTitle": "Could not complete trip",
       "cancel": "Cancel Request",
-      "cancelling": "Cancelling...",
-      "captainArrivedTitle": "Your captain has arrived 🚗",
-      "captainArrivedBody": "They are waiting at the pickup point. Check the plate and model before getting in.",
-      "etaAtPickup": "Captain is here",
-      "etaArrivalLate": "Later than estimated",
-      "etaTripOvertime": "Over the estimate",
-      "etaUnavailable": "Not available"
+      "cancelling": "Cancelling..."
     },
     "rating": {
       "incompleteTitle": "Could not save rating",
@@ -750,8 +746,21 @@
     "testTopupAmount": "Amount",
     "testTopupMinutes": "Minutes",
     "testTopupAction": "Top up",
-    "testTopupRate": "Per hour: {price} · per minute: {minutePrice}",
-    "testTopupWillGive": "gives you {minutes} minutes"
+    "testTopupRate": "Radar hour price: {price}",
+    "testTopupWillGive": "gives you {minutes} minutes",
+    "convertCashTitle": "Your cash balance ({balance}) is ready to convert",
+    "convertCashSubtitle": "Click convert to immediately turn it into radar minutes.",
+    "convertCashAction": "Convert now",
+    "cashBalanceCard": "Wallet Cash Balance",
+    "allocatedCashCard": "Allocated Radar Funds",
+    "radarTimeCard": "Available Radar Time",
+    "radarValueEquivalent": "Current minute value: {amount}",
+    "allocateSectionTitle": "Allocate Balance to Radar Time",
+    "allocateSectionHint": "Enter the amount to deduct from your cash balance and convert directly into radar minutes.",
+    "allocateAmountPlaceholder": "Amount to allocate",
+    "allocateAction": "Allocate to Minutes",
+    "allocatePreview": "Gives you: {minutes} radar minutes",
+    "allocateExceedsBalanceError": "Amount exceeds your available cash balance."
   },
   "captainDashboard": {
     "loading": "Loading captain dashboard...",
@@ -784,6 +793,8 @@
     "newRequestToastBody": "A nearby request is waiting for your bid.",
     "radarWalletCheckFailed": "Could not verify your time bundle. Please try again.",
     "radarBundleRequired": "Recharge your time bundle to activate the radar and receive requests.",
+    "radarBundleExpiredTitle": "Radar time bundle expired",
+    "radarBundleExpiredBody": "You've used up all your minutes. You've been taken offline automatically — recharge a new bundle to continue.",
     "radarRequestsLoadFailed": "Could not load nearby requests. Please try again.",
     "statusUpdating": "Updating status...",
     "statusUpdateFailed": "Could not update captain status",
@@ -841,8 +852,7 @@
     "pickupExact": "Exact pickup location",
     "openPickupMap": "Open pickup map",
     "distanceUnavailable": "Unavailable",
-    "minutesValue": "{count, plural, one {# min} other {# min}}",
-    "tripsValue": "{count, plural, =0 {first trip} one {# trip} other {# trips}}"
+    "minutesValue": "{count, plural, one {# min} other {# min}}"
   },
   "captainBidding": {
     "distanceUnavailable": "Unavailable",
@@ -890,8 +900,7 @@
     "breakdownFloor": "Lowest allowed price (refused below)",
     "breakdownYourIncrease": "Your increase",
     "breakdownMarketUnknown": "Not available",
-    "meterOffMarket": "Your meter ({meter} {currency}) is far above the market average ({market} {currency}) — the average is built from too few captains to mean much. The offer will send fine, but check your own tariff.",
-    "waitSecondsRange": "Set the offer window between {min} and {max} seconds before submitting."
+    "meterOffMarket": "Your meter ({meter} {currency}) is far above the market average ({market} {currency}) — the average is built from too few captains to mean much. The offer will send fine, but check your own tariff."
   },
   "captainProfile": {
     "badge": "Profile",
@@ -968,8 +977,11 @@
     "rider": "Rider",
     "riderFallback": "Rider",
     "callRider": "Call rider",
-    "frozenPrice": "Price confirmed and frozen",
-    "arrived": "Tell the rider you have arrived",
+    "frozenPrice": "Frozen Confirmed Price",
+    "pickupEta": "Pickup Arrival Time",
+    "eta": "Estimated Trip Duration",
+    "tripElapsed": "Remaining Trip Duration",
+    "arrived": "Arrived at Pickup",
     "start": "Start trip",
     "complete": "Complete trip",
     "cancelTrip": "Cancel trip",
@@ -984,12 +996,6 @@
       "ARRIVED": "Arrived",
       "STARTED": "In progress",
       "COMPLETED": "Completed"
-    },
-    "countdownToPickup": "Your arrival to the rider",
-    "countdownOnTrip": "Time left in the trip",
-    "countdownAtPickup": "You are at the pickup point",
-    "countdownLatePickup": "Later than estimated",
-    "countdownOvertime": "Over the estimate",
-    "countdownUnavailable": "Not available"
+    }
   }
 }

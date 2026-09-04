@@ -73,11 +73,19 @@ export function useDriverLifecycle(user: User | null) {
       .select('status')
       .eq('id', user.uid)
       .maybeSingle()
-      .then(({ data, error }) => {
+      .then(async ({ data, error }) => {
         if (!mounted || error) return;
-        const status = String((data as { status?: unknown } | null)?.status || '').toLowerCase();
+        let status = String((data as { status?: unknown } | null)?.status || '').toLowerCase();
+        if (status === 'active') {
+          const { data: walletData } = await supabase.rpc('get_captain_wallet_status');
+          const hasBundle = (walletData as { has_active_bundle?: boolean } | null)?.has_active_bundle === true;
+          if (!hasBundle) {
+            status = 'idle';
+            void supabase.from('profiles').update({ status: 'IDLE' }).eq('id', user.uid);
+          }
+        }
         if (isDriverStatus(status)) {
-          setDriverStatus(status);
+          setDriverStatus(status as DriverStatus);
         }
       });
 

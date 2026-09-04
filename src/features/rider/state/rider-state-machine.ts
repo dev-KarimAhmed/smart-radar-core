@@ -1,7 +1,6 @@
 import React from 'react';
 import type { SovereignFareQuote } from '@/core/logic/geospatial-kernel';
 import type { Offer } from '@/core/types';
-import { toEpochMs } from '@/shared/services/trip-countdown';
 
 export type RiderMachineScreen =
   | 'IDLE_MAP'
@@ -48,22 +47,7 @@ export interface RiderActiveTrip {
   originCell?: string;
   destinationCell?: string;
   tortuosityFactor?: number;
-  /**
-   * Server timestamps and durations the trip countdown runs on. All optional because a row
-   * written before 20260907090000 has no accepted_at — the countdown renders a dash for
-   * those rather than inventing an anchor.
-   *
-   * These replaced a single `etaSeconds: max(240, distanceKm * 85)`, which was the same
-   * number for "captain arrives in" and "trip ends in" and was re-seeded from scratch every
-   * time this object was rebuilt.
-   */
-  acceptedAtMs?: number | null;
-  arrivedAtMs?: number | null;
-  startedAtMs?: number | null;
-  /** Minutes for the captain to reach the pickup, measured server-side at offer time. */
-  pickupEtaMinutes?: number | null;
-  /** Routed trip duration in minutes. */
-  tripDurationMinutes?: number | null;
+  etaSeconds: number;
   startedAt: number;
   captain?: any;
   status?: string;
@@ -150,19 +134,24 @@ function buildActiveTrip(state: RiderMachineState, acceptedRow: Record<string, u
   const distanceKm = state.destination?.fareQuote?.estimatedRoadDistanceKm
     ?? firstNumber(acceptedRow.estimated_distance_km, acceptedRow.route_distance_km)
     ?? 0;
+  const estimatedTripMinutes = firstNumber(
+    acceptedRow.estimated_duration_minutes,
+    acceptedRow.route_duration_minutes,
+    acceptedRow.trip_duration_minutes
+  ) ?? Math.max(1, Math.ceil((distanceKm || 2) * 1.5));
 
   return {
     tripId: firstString(acceptedRow.trip_id, acceptedRow.active_trip_id, acceptedRow.id) || state.requestId || '',
     captainId: selectedOffer?.driverId || acceptedCaptainId || '',
-    captainName: selectedOffer?.driverName || firstString(acceptedRow.driver_name, acceptedRow.captain_name) || '\u0627\u0644\u0633\u0627\u0626\u0642',
+    captainName: selectedOffer?.driverName || firstString(acceptedRow.driver_name, acceptedRow.captain_name) || 'السائق',
     captainSerial:
       selectedOffer?.driverName ||
       firstString(acceptedRow.driver_serial, acceptedRow.captain_serial, acceptedRow.driver_name, acceptedRow.captain_name) ||
       acceptedCaptainId ||
-      '\u0627\u0644\u0633\u0627\u0626\u0642',
+      'السائق',
     captainPhone: selectedOffer?.driverAffiliation?.phone || firstString(acceptedRow.driver_phone, acceptedRow.captain_phone, acceptedRow.phone) || '',
-    vehicleType: vehicle.type || `${vehicle.make || '\u0633\u064a\u0627\u0631\u0629'} ${vehicle.color || ''}`.trim(),
-    vehiclePlate: vehicle.plate || firstString(acceptedRow.vehicle_plate, acceptedRow.plate) || '\u063a\u064a\u0631 \u0645\u062a\u0627\u062d',
+    vehicleType: vehicle.type || `${vehicle.make || 'سيارة'} ${vehicle.color || ''}`.trim(),
+    vehiclePlate: vehicle.plate || firstString(acceptedRow.vehicle_plate, acceptedRow.plate) || 'غير متاح',
     finalPrice:
       firstNumber(
         acceptedRow.final_fare,
@@ -176,21 +165,12 @@ function buildActiveTrip(state: RiderMachineState, acceptedRow: Record<string, u
         : selectedOffer?.price ?? state.destination?.serverEstimatedFare ?? 0),
     destinationLabel: state.destination?.label
       || firstString(acceptedRow.destination_address_ar, acceptedRow.destination_address, acceptedRow.destination_address_en)
-      || '\u0648\u062c\u0647\u0629',
+      || 'وجهة',
     distanceKm,
     originCell: state.destination?.originCell ?? state.destination?.fareQuote?.originCell,
     destinationCell: state.destination?.destinationCell ?? state.destination?.fareQuote?.destinationCell,
     tortuosityFactor: state.destination?.fareQuote?.tortuosityFactor,
-    acceptedAtMs: toEpochMs(acceptedRow.accepted_at),
-    arrivedAtMs: toEpochMs(acceptedRow.arrived_at),
-    startedAtMs: toEpochMs(acceptedRow.started_at),
-    // Off the request row, not the offer: on a reload `state.offers` is empty, and that is
-    // exactly when the countdown still has to be right.
-    pickupEtaMinutes: firstNumber(acceptedRow.pickup_eta_minutes) ?? selectedOffer?.pickup_eta_minutes ?? null,
-    tripDurationMinutes: firstNumber(
-      acceptedRow.estimated_duration_minutes,
-      acceptedRow.route_duration_minutes,
-    ) ?? selectedOffer?.estimated_duration_minutes ?? null,
+    etaSeconds: Math.round(estimatedTripMinutes * 60),
     startedAt: Date.now(),
     captain: selectedOffer?.captain || acceptedRow.captain || acceptedRow.captain_profile || null,
     status: String(acceptedRow.status || 'ACCEPTED').toUpperCase(),

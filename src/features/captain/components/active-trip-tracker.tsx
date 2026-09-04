@@ -2,11 +2,11 @@
 
 import React from 'react';
 import dynamic from 'next/dynamic';
-import { AlertOctagon, CheckCircle2, ExternalLink, Loader2, Lock, MapPin, Navigation, Phone, ShieldAlert } from 'lucide-react';
+import { AlertOctagon, CheckCircle2, Clock, ExternalLink, Loader2, Lock, MapPin, Navigation, Phone, ShieldAlert } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { Trip, User } from '@/core/types';
 import type { CaptainTripStep } from '../state/captain-state-machine';
-import { useTripCountdown } from '@/shared/hooks/use-trip-countdown';
+import { SOVEREIGN_CONSTANTS } from '@/core/constants/sovereign-protocols';
 
 import { cn } from '@/lib/utils';
 
@@ -20,12 +20,6 @@ const PickupNavigationMap = dynamic(
 );
 const styles = {
   style32_1: "mx-auto max-w-4xl rounded-3xl border border-emerald-500/20 bg-[#05080f] p-5 text-white shadow-2xl",
-  // Trip focus mode: the card is the whole screen, so it stretches to fill its flex parent
-  // instead of sitting as a block with empty space under it.
-  rootFullScreen: "flex w-full flex-1 flex-col rounded-3xl border border-emerald-500/20 bg-[#05080f] p-4 text-white shadow-2xl sm:p-5",
-  // Pushes the step buttons and cancel to the bottom of a full-height card — the captain is
-  // driving, and the action they need is under their thumb rather than mid-screen.
-  actionsPinnedToBottom: "mt-auto pt-5",
   style33_2: "flex flex-col gap-4 md:flex-row md:items-start md:justify-between",
   style35_3: "text-xs font-black text-[#14B8A6]",
   style36_4: "mt-1 text-2xl font-black",
@@ -35,6 +29,7 @@ const styles = {
   style45_8: "rounded-2xl border border-slate-800 bg-black/45 p-4",
   style46_9: "text-xs text-slate-400",
   style47_10: "mt-1 text-xl font-black",
+  style48_11: "mt-2 font-mono text-xs text-slate-500",
   style51_12: "rounded-2xl border border-slate-800 bg-black/45 p-4",
   style52_13: "text-xs text-slate-400",
   style53_14: "mt-1 text-xl font-black",
@@ -52,19 +47,16 @@ const styles = {
   style116_26: "border-[#14B8A6] bg-[#14B8A6] text-[#06111f]",
   style117_27: "border-white/10 bg-white/[0.03] text-slate-300",
   style90_1: "mt-5",
-  style95_1: "mt-4 grid gap-4 md:grid-cols-2",
-  countdownCard: "rounded-2xl border border-cyan-400/25 bg-cyan-400/[0.07] p-4",
-  countdownCardOverdue: "rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4",
-  countdownLabel: "flex items-center gap-1.5 text-xs font-black text-cyan-200",
-  countdownLabelOverdue: "flex items-center gap-1.5 text-xs font-black text-amber-200",
-  countdownIcon: "h-3.5 w-3.5",
-  countdownValue: "mt-1 font-mono text-xl font-black text-white",
-  countdownValueOverdue: "mt-1 font-mono text-xl font-black text-amber-300",
-  countdownValueIdle: "mt-1 font-mono text-xl font-black text-slate-500",
+  style95_1: "mt-4 grid gap-4 md:grid-cols-3",
   style96_1: "rounded-2xl border border-[#14B8A6]/25 bg-[#14B8A6]/10 p-4",
   style97_1: "flex items-center gap-1.5 text-xs font-black text-[#14F5D5]",
   style98_1: "h-3.5 w-3.5",
   style99_1: "mt-1 text-xl font-black",
+  style100_1: "rounded-2xl border border-slate-800 bg-black/45 p-4",
+  style101_1: "flex items-center gap-1.5 text-xs text-slate-400",
+  style102_1: "h-3.5 w-3.5",
+  style103_1: "mt-1 text-xl font-black font-mono",
+  style103_2: "mt-1 text-xl font-black font-mono text-amber-300",
   pickupCard: "mt-4 rounded-2xl border border-cyan-400/20 bg-cyan-400/[0.06] p-4",
   pickupCardRow: "flex items-start justify-between gap-3",
   pickupCardInfo: "min-w-0",
@@ -94,12 +86,128 @@ interface ActiveTripTrackerProps {
   isCancelling: boolean;
   currency: string;
   driverLocation: { lat: number; lng: number } | null;
-  /** Rendered as the captain's whole screen with the dashboard tabs hidden. */
-  isFullScreen?: boolean;
+  handshakeAt: number | null;
   onArrived: () => void;
   onStartTrip: () => void;
   onCompleteTrip: () => void;
   onCancelTrip: () => void;
+}
+
+function playSystemNotificationSound() {
+  try {
+    const audio = new Audio('/sounds/notification.mp3');
+    audio.volume = 1.0;
+    void audio.play().catch(() => {
+      // Browser autoplay restriction handling
+    });
+  } catch {
+    // Ignore audio constructor errors
+  }
+}
+
+function useHandshakeCountdown(handshakeAt: number | null, step: CaptainTripStep) {
+  const expiresAt = handshakeAt ? handshakeAt + SOVEREIGN_CONSTANTS.TRIP_FORGOTTEN_GRACE_MIN * 60 * 1000 : null;
+  const [remainingMs, setRemainingMs] = React.useState(() => (expiresAt ? Math.max(0, expiresAt - Date.now()) : 0));
+  const alertedRef = React.useRef(false);
+
+  React.useEffect(() => {
+    if (!expiresAt) {
+      setRemainingMs(0);
+      return;
+    }
+    const update = () => {
+      const rem = Math.max(0, expiresAt - Date.now());
+      setRemainingMs(rem);
+      if (rem === 0 && step !== 'STARTED' && !alertedRef.current) {
+        alertedRef.current = true;
+        playSystemNotificationSound();
+      }
+    };
+    update();
+    const interval = window.setInterval(update, 1000);
+    return () => window.clearInterval(interval);
+  }, [expiresAt, step]);
+
+  const totalSeconds = Math.floor(remainingMs / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return { minutes, seconds, isRunningLow: remainingMs > 0 && remainingMs <= 5 * 60 * 1000 };
+}
+
+function useTripCountdownTimer(durationMinutes: number, isActive: boolean) {
+  const initialMs = Math.max(1, durationMinutes || 15) * 60 * 1000;
+  const [remainingMs, setRemainingMs] = React.useState(initialMs);
+  const alertedRef = React.useRef(false);
+
+  React.useEffect(() => {
+    if (!isActive) {
+      setRemainingMs(initialMs);
+      alertedRef.current = false;
+      return;
+    }
+    const baseline = Date.now();
+    setRemainingMs(initialMs);
+
+    const update = () => {
+      const rem = Math.max(0, initialMs - (Date.now() - baseline));
+      setRemainingMs(rem);
+      if (rem === 0 && !alertedRef.current) {
+        alertedRef.current = true;
+        playSystemNotificationSound();
+      }
+    };
+
+    update();
+    const interval = window.setInterval(update, 1000);
+    return () => window.clearInterval(interval);
+  }, [initialMs, isActive]);
+
+  if (!isActive) return '';
+  const totalSecs = Math.floor(remainingMs / 1000);
+  const minutes = Math.floor(totalSecs / 60);
+  const seconds = totalSecs % 60;
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
+function usePickupEtaTimer(pickupEtaMinutes: number, step: CaptainTripStep) {
+  const isArrivedOrStarted = step === 'ARRIVED' || step === 'STARTED';
+  const initialMs = Math.max(1, pickupEtaMinutes || 1) * 60 * 1000;
+  const [startMs] = React.useState(() => Date.now());
+  const [remainingMs, setRemainingMs] = React.useState(initialMs);
+  const alertedRef = React.useRef(false);
+
+  React.useEffect(() => {
+    if (isArrivedOrStarted) {
+      setRemainingMs(0);
+      return;
+    }
+
+    const update = () => {
+      const rem = Math.max(0, initialMs - (Date.now() - startMs));
+      setRemainingMs(rem);
+      if (rem === 0 && !alertedRef.current) {
+        alertedRef.current = true;
+        playSystemNotificationSound();
+      }
+    };
+
+    update();
+    const interval = window.setInterval(update, 1000);
+    return () => window.clearInterval(interval);
+  }, [initialMs, isArrivedOrStarted, startMs]);
+
+  if (isArrivedOrStarted) {
+    return { formatted: '00:00', isZero: true, isArrived: true };
+  }
+
+  const totalSecs = Math.floor(remainingMs / 1000);
+  const minutes = Math.floor(totalSecs / 60);
+  const seconds = totalSecs % 60;
+  return {
+    formatted: `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`,
+    isZero: remainingMs === 0,
+    isArrived: false,
+  };
 }
 
 export function ActiveTripTracker({
@@ -111,7 +219,7 @@ export function ActiveTripTracker({
   isCancelling,
   currency,
   driverLocation,
-  isFullScreen = false,
+  handshakeAt,
   onArrived,
   onStartTrip,
   onCompleteTrip,
@@ -119,44 +227,17 @@ export function ActiveTripTracker({
 }: ActiveTripTrackerProps) {
   const t = useTranslations('captainActiveTrip');
   const pickupT = useTranslations('captainPickup');
+
+  const estimatedMins = request.estimatedTime || (request.estimatedDistance ? Math.max(1, Math.ceil(request.estimatedDistance * 1.5)) : 4);
+  const liveCountdownTimer = useTripCountdownTimer(estimatedMins, step === 'STARTED');
+  const pickupTimer = usePickupEtaTimer(request.pickup_eta_minutes || 1, step);
+  useHandshakeCountdown(handshakeAt, step);
   const [isConfirmingCancel, setIsConfirmingCancel] = React.useState(false);
   const pickupLocation = request.exactPickupCoords || request.obfuscatedPickupCoords || request.pickupCoords || null;
-  // Once the trip is actually started, the captain is driving the rider to
-  // the destination — the map should track toward the dropoff, not the
-  // pickup point they already reached.
   const isEnRouteToDropoff = step === 'STARTED';
-  const navigationTarget = isEnRouteToDropoff ? (request.dropoffCoords || null) : pickupLocation;
-  const navigationMode = isEnRouteToDropoff ? 'dropoff' : 'pickup';
-
-  /**
-   * The same countdown the rider is looking at, from the same server anchors.
-   *
-   * The captain's only timer used to be the forgotten-trip grace window, which counts down
-   * from a fixed 30 minutes and says nothing about how long this leg should take. The step
-   * is passed as the status because it is already synced from the request's status in
-   * captain-view and is the value the buttons act on — deriving the phase from anything else
-   * could put the timer and the buttons in different phases.
-   */
-  const countdown = useTripCountdown({
-    status: step === 'STARTED' ? 'TRIP_ACTIVE' : step === 'ARRIVED' ? 'ARRIVED' : 'ACCEPTED',
-    acceptedAtMs: request.acceptedAtMs,
-    arrivedAtMs: request.arrivedAtMs,
-    startedAtMs: request.startedAtMs,
-    pickupEtaMinutes: request.pickupEtaMinutes,
-    tripDurationMinutes: request.estimatedTime,
-    tripDistanceKm: request.estimatedDistance,
-  });
-
-  const countdownLabel = countdown.phase === 'AT_PICKUP'
-    ? t('countdownAtPickup')
-    : !countdown.hasCountdown
-      ? t('countdownUnavailable')
-      : countdown.isOverdue
-        ? (countdown.phase === 'ON_TRIP' ? t('countdownOvertime') : t('countdownLatePickup'))
-        : (countdown.phase === 'ON_TRIP' ? t('countdownOnTrip') : t('countdownToPickup'));
 
   return (
-    <section className={isFullScreen ? styles.rootFullScreen : styles.style32_1}>
+    <section className={styles.style32_1}>
       <div className={styles.style33_2}>
         <div>
           <p className={styles.style35_3}>{t('badge')}</p>
@@ -214,7 +295,7 @@ export function ActiveTripTracker({
         </div>
       </div>
 
-      <div className={styles.style95_1}>
+      <div className={cn("mt-4 grid gap-4", step === 'STARTED' ? "md:grid-cols-3" : "md:grid-cols-2")}>
         <div className={styles.style96_1}>
           <p className={styles.style97_1}>
             <Lock className={styles.style98_1} />
@@ -223,32 +304,27 @@ export function ActiveTripTracker({
           <p className={styles.style99_1}>{Number(request.offerPrice || 0).toFixed(2)} {currency}</p>
         </div>
 
-        {/* The trip's own clock: time to reach the rider, then time left in the trip.
-            Separate from the card beside it, which is the grace window before the server
-            purges a forgotten trip — a completely different deadline that was previously the
-            only timer here, so the captain had no idea how long either leg should take. */}
-        <div
-          className={countdown.isOverdue ? styles.countdownCardOverdue : styles.countdownCard}
-          role="timer"
-          aria-label={countdownLabel}
-        >
-          <p className={countdown.isOverdue ? styles.countdownLabelOverdue : styles.countdownLabel}>
-            <Navigation className={styles.countdownIcon} />
-            {countdownLabel}
+        <div className={cn(styles.style100_1, pickupTimer.isZero && !pickupTimer.isArrived && 'border-amber-500/50 bg-amber-500/10')}>
+          <p className={cn(styles.style101_1, pickupTimer.isZero && !pickupTimer.isArrived && 'text-amber-300')}>
+            <Clock className={styles.style102_1} />
+            {t('pickupEta')}
           </p>
-          {/* dir=ltr so an RTL run does not move the '+' to the far side of "+3:30". */}
-          <p
-            className={countdown.isOverdue
-              ? styles.countdownValueOverdue
-              : countdown.hasCountdown || countdown.phase === 'AT_PICKUP'
-                ? styles.countdownValue
-                : styles.countdownValueIdle}
-            dir="ltr"
-          >
-            {countdown.display}
+          <p className={cn(styles.style103_1, pickupTimer.isZero && !pickupTimer.isArrived && 'text-amber-300 animate-pulse')}>
+            {pickupTimer.formatted}
           </p>
         </div>
 
+        {step === 'STARTED' ? (
+          <div className={styles.style100_1}>
+            <p className={styles.style101_1}>
+              <Clock className={styles.style102_1} />
+              {t('tripElapsed')}
+            </p>
+            <p className={styles.style103_1}>
+              {liveCountdownTimer}
+            </p>
+          </div>
+        ) : null}
       </div>
 
       {/* <div className={styles.style90_1}>
@@ -260,7 +336,7 @@ export function ActiveTripTracker({
         />
       </div> */}
 
-      <div className={cn(styles.style63_17, isFullScreen && styles.actionsPinnedToBottom)}>
+      <div className={styles.style63_17}>
         <StepButton
           active={step === 'ACCEPTED'}
           done={['ARRIVED', 'STARTED'].includes(step)}

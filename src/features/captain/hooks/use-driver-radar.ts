@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { cellToLatLng, gridDisk, isValidCell, latLngToCell } from 'h3-js';
 import { useTranslations } from 'next-intl';
 import { supabase } from '@/lib/supabase-client';
@@ -58,8 +58,31 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
     return gridDisk(currentH3Cell, RADAR_RING_SIZE);
   }, [currentH3Cell]);
 
+  // --- Refs so fetch callbacks always read the latest values without being
+  // listed as deps (listing them caused a new callback ref on every GPS tick,
+  // which in turn re-fired the useEffect on line ~174 and created an infinite
+  // API call loop).
+  const radarLocationRef = useRef(radarLocation);
+  radarLocationRef.current = radarLocation;
+  const nearbyChellsRef = useRef(nearbyCells);
+  nearbyChellsRef.current = nearbyCells;
+  const driverStatusRef = useRef(driverStatus);
+  driverStatusRef.current = driverStatus;
+  const tRef = useRef(t);
+  tRef.current = t;
+  const userUidRef = useRef(user?.uid);
+  userUidRef.current = user?.uid;
+  // Stable channel ID — must not include currentH3Cell because that changes on
+  // every GPS tick, which would rename the channel and force a
+  // unsubscribe/resubscribe on every location update = infinite API loop.
+  const channelIdRef = useRef(`driver-radar-${user?.uid || 'anonymous'}-${Math.random().toString(36).slice(2)}`);
+
+  // Stable callback: reads latest values from refs — never changes identity,
+  // so it won't re-fire the mount-effects on every GPS position update.
   const checkTimeBundle = useCallback(async () => {
-    if (!user?.uid || driverStatus !== 'active') {
+    const uid = userUidRef.current;
+    const status = driverStatusRef.current;
+    if (!uid || status !== 'active') {
       setRadarLockMessage('');
       return false;
     }
@@ -68,7 +91,7 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
 
     if (error) {
       if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver radar] wallet pre-check failed:', error);
-      setRadarLockMessage(t('radarWalletCheckFailed'));
+      setRadarLockMessage(tRef.current('radarWalletCheckFailed'));
       return false;
     }
 
@@ -76,16 +99,17 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
     const hasActiveBundle = walletStatus?.has_active_bundle === true;
 
     if (!hasActiveBundle) {
-      setRadarLockMessage(t('radarBundleRequired'));
+      setRadarLockMessage(tRef.current('radarBundleRequired'));
       return false;
     }
 
     setRadarLockMessage('');
     return true;
-  }, [driverStatus, t, user?.uid]);
+  }, []); // ✅ stable — reads uid/status/t from refs
 
   const fetchPendingRequests = useCallback(async () => {
-    if (driverStatus !== 'active') {
+    const status = driverStatusRef.current;
+    if (status !== 'active') {
       setRawRequests([]);
       setRadarLockMessage('');
       return;
@@ -107,10 +131,14 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
     const { data, error } = await query;
     if (error) {
       if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver radar] request fetch failed:', error);
-      setRadarLockMessage(t('radarRequestsLoadFailed'));
+      setRadarLockMessage(tRef.current('radarRequestsLoadFailed'));
       setRawRequests([]);
       return;
     }
+
+    // Read location/cells from refs — latest values without being deps
+    const loc = radarLocationRef.current;
+    const cells = nearbyChellsRef.current;
 
     const mappedRequests = Array.isArray(data)
       ? data.map(mapRideRequestToTrip).filter(Boolean) as Trip[]
@@ -118,16 +146,16 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
 
     const rankedRequests = mappedRequests
       .map((request) => {
-        const driverDistanceKm = radarLocation
-          ? estimateHaversineDistanceKm(radarLocation.lat, radarLocation.lng, request.pickupCoords.lat, request.pickupCoords.lng) ?? Number.POSITIVE_INFINITY
+        const driverDistanceKm = loc
+          ? estimateHaversineDistanceKm(loc.lat, loc.lng, request.pickupCoords.lat, request.pickupCoords.lng) ?? Number.POSITIVE_INFINITY
           : Number.POSITIVE_INFINITY;
-        const isInH3Disk = request.h3Index ? nearbyCells.includes(request.h3Index) : false;
+        const isInH3Disk = request.h3Index ? cells.includes(request.h3Index) : false;
         return { request, driverDistanceKm, isInH3Disk };
       })
       // Requests further than RADAR_MAX_DISTANCE_KM never reach this captain's
       // radar. When the captain's own location isn't known yet, distance is
       // unresolvable (Infinity) — don't hide everything in that case.
-      .filter(({ driverDistanceKm }) => !radarLocation || driverDistanceKm <= RADAR_MAX_DISTANCE_KM)
+      .filter(({ driverDistanceKm }) => !loc || driverDistanceKm <= RADAR_MAX_DISTANCE_KM)
       .sort((a, b) => {
         if (a.isInH3Disk !== b.isInH3Disk) return a.isInH3Disk ? -1 : 1;
         return a.driverDistanceKm - b.driverDistanceKm;
@@ -137,7 +165,7 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
 
     setRadarLockMessage('');
     setRawRequests(rankedRequests);
-  }, [checkTimeBundle, driverStatus, nearbyCells, radarLocation, t]);
+  }, [checkTimeBundle]); // ✅ stable — checkTimeBundle is stable, location/cells read from refs
 
   useEffect(() => {
     let active = true;
@@ -169,46 +197,41 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
     };
   }, [user?.district]);
 
+  // Fetch once on mount and whenever driverStatus changes (active ↔ idle).
+  // fetchPendingRequests is now stable (no GPS-tick deps), so this effect
+  // fires only when the status actually changes — not on every GPS update.
   useEffect(() => {
     void fetchPendingRequests();
-  }, [fetchPendingRequests]);
+  }, [fetchPendingRequests, driverStatus]);
 
   useEffect(() => {
     if (driverStatus !== 'active') return;
 
     const channel = supabase
-      .channel(`driver-radar-${user?.uid || 'anonymous'}-${currentH3Cell || 'country'}`)
+      .channel(channelIdRef.current)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'ride_requests',
-          // No status filter here on purpose: Supabase Realtime evaluates a
-          // filter against the row's state after the change, so a request
-          // leaving PENDING (e.g. the rider cancels, or another captain gets
-          // accepted) would never match `status=eq.PENDING` and the event
-          // would be silently dropped — leaving the stale request on this
-          // captain's radar forever. `fetchPendingRequests()` already
-          // re-queries for status = PENDING server-side, so any change here
-          // (regardless of the resulting status) is enough to trigger it.
+          // No status filter on purpose: Supabase Realtime evaluates the filter
+          // against the row's state AFTER the change, so a request leaving PENDING
+          // (rider cancels, another captain accepted) would never match
+          // `status=eq.PENDING` and would be silently dropped — leaving the stale
+          // request on the radar. fetchPendingRequests already re-queries for
+          // status=PENDING server-side, so any change triggers a fresh server read.
         },
         () => {
           void fetchPendingRequests();
         },
       )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'wallet_accounts',
-          filter: `profile_id=eq.${user?.uid || ''}`,
-        },
-        () => {
-          void fetchPendingRequests();
-        },
-      )
+      // NOTE: wallet_accounts listener deliberately removed from here.
+      // consume_captain_radar_minutes UPDATE wallet_accounts every 20 s, which
+      // was causing fetchPendingRequests (and therefore get_captain_wallet_status)
+      // to fire on every consumption tick on top of the 10 s poll = infinite loop.
+      // Wallet balance is checked inside fetchPendingRequests itself via
+      // checkTimeBundle(), so no extra listener is needed.
       .subscribe((status) => {
         if ((status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') && (process.env.NODE_ENV !== 'production')) {
           console.warn('[Driver radar] realtime channel issue:', status);
@@ -218,7 +241,12 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
     return () => {
       void channel.unsubscribe();
     };
-  }, [currentH3Cell, driverStatus, fetchPendingRequests, user?.uid]);
+  // currentH3Cell intentionally NOT in deps: it changes on every GPS tick and
+  // would cause unsubscribe/resubscribe + fetchPendingRequests on every location
+  // update. The channel filters on the whole ride_requests table, so cell changes
+  // have no effect on which events arrive.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [driverStatus, fetchPendingRequests, user?.uid]);
 
   // Belt-and-suspenders poll: `ride_requests` realtime depends on the table
   // being part of the `supabase_realtime` publication server-side, which is
@@ -226,13 +254,15 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
   // that way in this project's migrations). If that publication is ever
   // missing or lags, a stale request (e.g. one the rider just cancelled)
   // would otherwise sit on the radar indefinitely with no other correction.
+  // Belt-and-suspenders poll: stable now — driverStatus triggers setup/teardown,
+  // fetchPendingRequests is stable so the interval is never recreated mid-session.
   useEffect(() => {
     if (driverStatus !== 'active') return;
     const intervalId = window.setInterval(() => {
       void fetchPendingRequests();
     }, 10_000);
     return () => window.clearInterval(intervalId);
-  }, [driverStatus, fetchPendingRequests]);
+  }, [driverStatus, fetchPendingRequests]); // ✅ fetchPendingRequests is stable
 
   const rejectRequest = useCallback((tripId: string) => {
     setRejectedTripIds((prev) => {

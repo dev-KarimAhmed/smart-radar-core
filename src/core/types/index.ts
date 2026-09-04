@@ -90,18 +90,6 @@ export interface Trip {
   id: string;
   serial_id?: string;
   riderId: string;
-  /**
-   * Who the rider is, for a captain deciding whether to bid. Supplied by
-   * captain_radar_requests (20260906090000).
-   *
-   * `riderRating` is undefined for a rider nobody has rated yet — render that as "no rating",
-   * never as 0, or a newcomer reads as the worst rider on the platform.
-   */
-  riderRating?: number;
-  riderRatingCount?: number;
-  riderCompletedTrips?: number;
-  /** Whether THIS rider has hearted the captain reading the row. Never about anyone else. */
-  riderFavoritedMe?: boolean;
   driverId?: string;
   status: TripStatus;
   offerPrice?: number;
@@ -127,16 +115,7 @@ export interface Trip {
   dropoff?: string;
   dropoffCoords?: { lat: number; lng: number; };
   estimatedTime?: number;
-  /**
-   * Server milestone timestamps, in epoch ms. The trip countdown runs off these rather than
-   * off the client's own clock — see src/shared/services/trip-countdown.ts for why anchoring
-   * on Date.now() made the timer restart on every realtime row.
-   */
-  acceptedAtMs?: number | null;
-  arrivedAtMs?: number | null;
-  startedAtMs?: number | null;
-  /** Minutes for the captain to reach the pickup, measured server-side at offer time. */
-  pickupEtaMinutes?: number | null;
+  pickup_eta_minutes?: number;
   seats?: number;
 }
 

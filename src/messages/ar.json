@@ -505,6 +505,8 @@
       "complete": "إنهاء الرحلة",
       "timeRemaining": "متبقي للوصول",
       "driverArrival": "وصول الكابتن",
+      "driverArrivedTitle": "وصل الكابتن",
+      "driverArrivedNote": "الكابتن وصل إلى موقع الالتقاء! 📍 يرجى التوجه إلى نقطة الركوب.",
       "finalCost": "تكلفة الرحلة النهائية",
       "inProgressNote": "رحلتك قيد التقدم الآن. نتمنى لك رحلة آمنة!",
       "callCaptain": "اتصال بالكابتن",
@@ -515,13 +517,7 @@
       "completeNoActiveDescription": "لا يوجد طلب رحلة نشط. انتظر تحديث الرحلة ثم حاول مرة أخرى.",
       "completeFailedTitle": "تعذر إنهاء الرحلة",
       "cancel": "إلغاء الطلب",
-      "cancelling": "جاري الإلغاء...",
-      "captainArrivedTitle": "الكابتن وصل 🚗",
-      "captainArrivedBody": "الكابتن مستني عند نقطة الركوب. راجع اللوحة والموديل قبل ما تركب.",
-      "etaAtPickup": "الكابتن عندك",
-      "etaArrivalLate": "متأخر عن الوصول",
-      "etaTripOvertime": "زيادة عن المتوقع",
-      "etaUnavailable": "غير متاح"
+      "cancelling": "جاري الإلغاء..."
     },
     "rating": {
       "incompleteTitle": "تعذر حفظ التقييم",
@@ -750,8 +746,21 @@
     "testTopupAmount": "المبلغ",
     "testTopupMinutes": "الدقائق",
     "testTopupAction": "شحن",
-    "testTopupRate": "سعر الساعة: {price} · الدقيقة: {minutePrice}",
-    "testTopupWillGive": "هتاخد {minutes} دقيقة"
+    "testTopupRate": "سعر ساعة الرادار: {price}",
+    "testTopupWillGive": "هتاخد {minutes} دقيقة",
+    "convertCashTitle": "رصيدك النقدي ({balance}) جاهز للتحويل",
+    "convertCashSubtitle": "اضغط التحويل لتحويله فوراً إلى دقائق رادار.",
+    "convertCashAction": "تحويل الآن",
+    "cashBalanceCard": "رصيد المحفظة النقدي",
+    "allocatedCashCard": "الفلوس المخصصة للدقائق",
+    "radarTimeCard": "الوقت المتاح للدقائق",
+    "radarValueEquivalent": "القيمة الحالية للدقائق: {amount}",
+    "allocateSectionTitle": "تخصيص رصيد لوقت الرادار",
+    "allocateSectionHint": "اكتب المبلغ الذي تريد اقتطاعه من رصيدك النقدي وتحويله فوراً لدقائق رادار.",
+    "allocateAmountPlaceholder": "المبلغ المراد تخصيصه",
+    "allocateAction": "تخصيص للدقائق",
+    "allocatePreview": "سيمنحك: {minutes} دقيقة رادار",
+    "allocateExceedsBalanceError": "المبلغ المدخل أكبر من الرصيد النقدي المتوفر في محفظتك."
   },
   "captainDashboard": {
     "loading": "جاري تحميل لوحة الكابتن...",
@@ -784,6 +793,8 @@
     "newRequestToastBody": "يوجد طلب قريب بانتظار عرضك.",
     "radarWalletCheckFailed": "تعذر التحقق من باقة الوقت. حاول مرة أخرى.",
     "radarBundleRequired": "يرجى شحن باقة الوقت لتفعيل الرادار واستقبال الطلبات.",
+    "radarBundleExpiredTitle": "انتهت باقة وقت الرادار",
+    "radarBundleExpiredBody": "تم استهلاك كل دقائقك. تم إيقافك تلقائياً عن استقبال الطلبات — اشحن باقة جديدة للمتابعة.",
     "radarRequestsLoadFailed": "تعذر تحميل الطلبات القريبة. حاول مرة أخرى.",
     "statusUpdating": "جارٍ تحديث الحالة...",
     "statusUpdateFailed": "تعذر تحديث حالة الكابتن",
@@ -841,8 +852,7 @@
     "pickupExact": "موقع الالتقاط الدقيق",
     "openPickupMap": "فتح موقع الالتقاط",
     "distanceUnavailable": "غير متاح",
-    "minutesValue": "{count, plural, =0 {أقل من دقيقة} one {دقيقة واحدة} two {دقيقتان} few {# دقائق} many {# دقيقة} other {# دقيقة}}",
-    "tripsValue": "{count, plural, =0 {أول رحلة له} one {رحلة واحدة} two {رحلتان} few {# رحلات} many {# رحلة} other {# رحلة}}"
+    "minutesValue": "{count, plural, =0 {أقل من دقيقة} one {دقيقة واحدة} two {دقيقتان} few {# دقائق} many {# دقيقة} other {# دقيقة}}"
   },
   "captainBidding": {
     "distanceUnavailable": "غير متاح",
@@ -890,8 +900,7 @@
     "breakdownFloor": "أقل سعر مسموح (الرفض تحته)",
     "breakdownYourIncrease": "زيادتك",
     "breakdownMarketUnknown": "غير متاح",
-    "meterOffMarket": "سعر عدّادك ({meter} {currency}) أعلى بكتير من متوسط السوق ({market} {currency}) — يعني متوسط السوق محسوب من عدد كباتن قليل ومش معبّر. العرض هيتبعت عادي، بس راجع تسعيرة عدّادك.",
-    "waitSecondsRange": "لازم تحدد عدد ثواني الانتظار بين {min} و {max} ثانية قبل تقديم العرض."
+    "meterOffMarket": "سعر عدّادك ({meter} {currency}) أعلى بكتير من متوسط السوق ({market} {currency}) — يعني متوسط السوق محسوب من عدد كباتن قليل ومش معبّر. العرض هيتبعت عادي، بس راجع تسعيرة عدّادك."
   },
   "captainProfile": {
     "badge": "حسابي",
@@ -969,7 +978,10 @@
     "riderFallback": "راكب",
     "callRider": "اتصال بالراكب",
     "frozenPrice": "السعر مؤكد ومجمّد",
-    "arrived": "إبلاغ الراكب بالوصول",
+    "pickupEta": "زمن الوصول لنقطة الركوب",
+    "eta": "الوقت المتوقع للرحلة",
+    "tripElapsed": "الوقت المتبقي للرحلة",
+    "arrived": "وصلت لنقطة الركوب",
     "start": "بدء الرحلة",
     "complete": "إنهاء الرحلة",
     "cancelTrip": "إلغاء الرحلة",
@@ -984,12 +996,6 @@
       "ARRIVED": "وصلت",
       "STARTED": "جارية",
       "COMPLETED": "مكتملة"
-    },
-    "countdownToPickup": "وقت وصولك للراكب",
-    "countdownOnTrip": "الوقت المتبقي للرحلة",
-    "countdownAtPickup": "أنت عند نقطة الركوب",
-    "countdownLatePickup": "تأخير عن وقت الوصول",
-    "countdownOvertime": "زيادة عن الوقت المتوقع",
-    "countdownUnavailable": "غير متاح"
+    }
   }
 }

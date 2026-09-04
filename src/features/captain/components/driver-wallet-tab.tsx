@@ -116,6 +116,7 @@ export function DriverWalletTab({ user, language, isFlightActive = false }: Driv
   const [voucherCode, setVoucherCode] = React.useState('');
   const [testAmount, setTestAmount] = React.useState('');
   const [testMinutes, setTestMinutes] = React.useState('');
+  const [allocateAmount, setAllocateAmount] = React.useState('');
   // Price of one radar hour in the captain's country, so the conversion can be previewed.
   const [radarHourPrice, setRadarHourPrice] = React.useState(0);
 
@@ -172,8 +173,40 @@ export function DriverWalletTab({ user, language, isFlightActive = false }: Driv
     }
   };
 
+  const runAllocate = async () => {
+    const amt = Number(allocateAmount);
+    if (!amt || amt <= 0) return;
+    const ok = await wallet.allocateBalanceToMinutes(amt);
+    if (ok) setAllocateAmount('');
+  };
+
+  const handleTestAmountChange = (value: string) => {
+    setTestAmount(value);
+    const num = Number(value);
+    if (num > 0 && radarHourPrice > 0) {
+      const mins = Math.round((num * 60) / radarHourPrice);
+      setTestMinutes(String(mins));
+    } else if (!value) {
+      setTestMinutes('');
+    }
+  };
+
+  const handleTestMinutesChange = (value: string) => {
+    setTestMinutes(value);
+    const mins = Number(value);
+    if (mins > 0 && radarHourPrice > 0) {
+      const amt = Number(((mins * radarHourPrice) / 60).toFixed(2));
+      setTestAmount(String(amt));
+    } else if (!value) {
+      setTestAmount('');
+    }
+  };
+
   const paidMinutes = walletIsReady ? wallet.paidMinutesRemaining : 0;
   const bonusMinutes = walletIsReady ? wallet.bonusMinutesRemaining : 0;
+  const totalMinutes = paidMinutes + bonusMinutes;
+  const currencySymbol = user?.currencyAr || user?.currencyEn || '';
+  const allocatedEquivalentValue = radarHourPrice > 0 ? ((totalMinutes * radarHourPrice) / 60).toFixed(2) : '0.00';
 
   return (
     <section className={styles.style61_1}>
@@ -191,18 +224,25 @@ export function DriverWalletTab({ user, language, isFlightActive = false }: Driv
           <Wallet className={styles.style69_7} />
         </div>
 
-        <div className={styles.style72_8}>
+        {/* 3 Main Cards: Cash Balance, Allocated Cash Value, and Available Radar Time */}
+        <div className="mt-5 grid gap-3 sm:grid-cols-3">
           <Metric
-            label={t('balance')}
-            value={walletIsReady ? `${wallet.balanceJD.toFixed(2)} ${user?.currencyAr || user?.currencyEn || ''}` : wallet.walletLoaded ? '-' : '...'}
+            label={t('cashBalanceCard')}
+            value={walletIsReady ? <span className="font-mono text-2xl font-black text-amber-400">{wallet.balanceJD.toFixed(2)} {currencySymbol}</span> : wallet.walletLoaded ? '-' : '...'}
           />
           <Metric
-            label={t('paidTime')}
-            value={walletIsReady ? <span className={styles.style81_9}>{t('durationFormat', toHoursMinutes(paidMinutes))}</span> : wallet.walletLoaded ? '-' : '...'}
+            label={t('allocatedCashCard')}
+            value={walletIsReady ? <span className="font-mono text-2xl font-black text-emerald-400">{allocatedEquivalentValue} {currencySymbol}</span> : wallet.walletLoaded ? '-' : '...'}
           />
           <Metric
-            label={t('bonusTime')}
-            value={walletIsReady ? <span className={styles.style91_11}>{t('durationFormat', toHoursMinutes(bonusMinutes))}</span> : wallet.walletLoaded ? '-' : '...'}
+            label={t('radarTimeCard')}
+            value={
+              walletIsReady ? (
+                <span className="font-mono text-2xl font-black text-[#14F5D5]">
+                  {t('durationFormat', toHoursMinutes(totalMinutes))}
+                </span>
+              ) : wallet.walletLoaded ? '-' : '...'
+            }
           />
         </div>
 
@@ -220,6 +260,57 @@ export function DriverWalletTab({ user, language, isFlightActive = false }: Driv
               </p>
             ) : null}
           </div>
+        ) : null}
+
+        {/* Custom Allocation Form (تخصيص رصيد لوقت الرادار) */}
+        {walletIsReady && wallet.balanceJD > 0 ? (
+          (() => {
+            const isExceedingBalance = Number(allocateAmount) > wallet.balanceJD;
+            return (
+              <div className={cn("mt-5 space-y-3 rounded-2xl border p-4 transition-colors", isExceedingBalance ? "border-red-500/40 bg-red-500/10" : "border-[#14B8A6]/30 bg-[#14B8A6]/10")}>
+                <div>
+                  <h3 className={cn("font-black", isExceedingBalance ? "text-red-400" : "text-[#14F5D5]")}>{t('allocateSectionTitle')}</h3>
+                  <p className="mt-0.5 text-xs text-slate-300">{t('allocateSectionHint')}</p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3">
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    max={wallet.balanceJD}
+                    value={allocateAmount}
+                    onChange={(e) => setAllocateAmount(e.target.value)}
+                    placeholder={t('allocateAmountPlaceholder')}
+                    className={cn(
+                      "grow rounded-xl border px-4 py-2.5 text-sm font-mono outline-none transition",
+                      isExceedingBalance
+                        ? "border-red-500/80 bg-red-950/40 text-red-200 focus:border-red-400"
+                        : "border-slate-700 bg-black/60 text-white focus:border-[#14B8A6]"
+                    )}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => void runAllocate()}
+                    disabled={wallet.loading || !Number(allocateAmount) || isExceedingBalance}
+                    className="shrink-0 rounded-xl bg-[#14B8A6] px-5 py-2.5 text-sm font-black text-[#06111f] transition hover:bg-[#14F5D5] disabled:opacity-40"
+                  >
+                    {t('allocateAction')}
+                  </button>
+                </div>
+
+                {isExceedingBalance ? (
+                  <p className="text-xs font-bold text-red-400">
+                    {t('allocateExceedsBalanceError')}
+                  </p>
+                ) : Number(allocateAmount) > 0 && radarHourPrice > 0 ? (
+                  <p className="text-xs font-bold text-[#14F5D5]">
+                    {t('allocatePreview', { minutes: Math.round((Number(allocateAmount) * 60) / radarHourPrice) })}
+                  </p>
+                ) : null}
+              </div>
+            );
+          })()
         ) : null}
       </div>
 
@@ -389,7 +480,7 @@ export function DriverWalletTab({ user, language, isFlightActive = false }: Driv
           <div className={styles.style192_41}>
             <input
               value={testAmount}
-              onChange={(event) => setTestAmount(event.target.value)}
+              onChange={(event) => handleTestAmountChange(event.target.value)}
               type="number"
               inputMode="decimal"
               min="0"
@@ -398,7 +489,7 @@ export function DriverWalletTab({ user, language, isFlightActive = false }: Driv
             />
             <input
               value={testMinutes}
-              onChange={(event) => setTestMinutes(event.target.value)}
+              onChange={(event) => handleTestMinutesChange(event.target.value)}
               type="number"
               inputMode="numeric"
               min="0"

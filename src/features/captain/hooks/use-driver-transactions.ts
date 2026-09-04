@@ -7,27 +7,11 @@ import { useToast } from '@/hooks/use-toast';
 import type { Trip, User } from '@/core/types';
 import { buildGoogleMapsUrl, isValidCoordinatePair, normalizeExternalMapUrl } from '../services/ride-location';
 import { generateWeeklyReport, type CaptainRankName } from '../services/captain-rank';
-import { toEpochMs } from '@/shared/services/trip-countdown';
 
 type RideOfferRow = Record<string, unknown>;
 type RideRequestRow = Record<string, unknown>;
 
 export const MIN_OFFER_WAIT_SECONDS = 5;
-
-/**
- * Upper bound on how long an offer stays visible to the rider.
- *
- * There was none. The floor of 5 was checked here and in submit_ride_offer; the sheet's `+`
- * button had no ceiling and its text input accepted any digits. A captain holding `+` (or
- * typing) produced offers with windows like 5548 seconds — the rider saw "5548 ث" beside a
- * progress bar that visibly never moved, and the offer sat in the auction for an hour and a
- * half.
- *
- * Two minutes is the product call: long enough for a rider to read an offer and compare it,
- * short enough that the auction stays an auction. Change it here and in the server-side
- * clamp in 20260908090000_bound_offer_wait_window.sql together.
- */
-export const MAX_OFFER_WAIT_SECONDS = 120;
 
 /**
  * submit_ride_offer refuses out-of-band prices server-side, so these are reachable even
@@ -327,15 +311,11 @@ export function useDriverTransactions(
       return false;
     }
 
-    if (
-      !Number.isInteger(payload.waitSeconds)
-      || payload.waitSeconds < MIN_OFFER_WAIT_SECONDS
-      || payload.waitSeconds > MAX_OFFER_WAIT_SECONDS
-    ) {
+    if (!Number.isInteger(payload.waitSeconds) || payload.waitSeconds < MIN_OFFER_WAIT_SECONDS) {
       toast({
         variant: 'destructive',
         title: 'مدة الانتظار غير صحيحة',
-        description: `حدد مدة ظهور العرض بين ${MIN_OFFER_WAIT_SECONDS} و ${MAX_OFFER_WAIT_SECONDS} ثانية ثم حاول مرة أخرى.`,
+        description: `حدد عدد ثواني ظهور العرض (على الأقل ${MIN_OFFER_WAIT_SECONDS} ثواني) ثم حاول مرة أخرى.`,
       });
       return false;
     }
@@ -655,6 +635,7 @@ function mapRideRequestToTrip(row: RideRequestRow | null): Trip | null {
   const pickupGoogleMapsUrl = normalizeExternalMapUrl(row.origin_google_maps_url) || buildGoogleMapsUrl(safeOriginLat, safeOriginLng) || undefined;
   const estimatedDistance = firstPositiveNumber(row.estimated_distance_km, row.route_distance_km, row.trip_distance_km);
   const estimatedTime = firstPositiveNumber(row.estimated_duration_minutes, row.route_duration_minutes, row.trip_duration_minutes);
+  const pickupEtaMinutes = firstPositiveNumber(row.pickup_eta_minutes, row.pickup_eta, row.pickup_eta_min, row.eta);
   const destinationLat = toNumber(row.destination_lat);
   const destinationLng = toNumber(row.destination_lng);
 
@@ -676,12 +657,7 @@ function mapRideRequestToTrip(row: RideRequestRow | null): Trip | null {
       : undefined,
     estimatedDistance: estimatedDistance ?? undefined,
     estimatedTime: estimatedTime ?? undefined,
-    // The trip countdown's anchors. Carried through the realtime UPDATE re-map above, so
-    // pressing "arrived"/"start" moves the captain's timer to the next phase without a fetch.
-    acceptedAtMs: toEpochMs(row.accepted_at),
-    arrivedAtMs: toEpochMs(row.arrived_at),
-    startedAtMs: toEpochMs(row.started_at),
-    pickupEtaMinutes: firstPositiveNumber(row.pickup_eta_minutes),
+    pickup_eta_minutes: pickupEtaMinutes ?? undefined,
     offerPrice: toNumber(row.final_fare) ?? toNumber(row.offered_fare) ?? toNumber(row.offer_price) ?? toNumber(row.server_estimated_fare) ?? undefined,
     createdAt: String(row.created_at || ''),
   };
