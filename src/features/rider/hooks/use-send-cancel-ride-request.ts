@@ -205,6 +205,24 @@ export function useSendCancelRideRequest(params: {
         description: t('request.cancelledDescription'),
       });
     } catch (error) {
+      const errorMessage = error && typeof error === 'object' && 'message' in error
+        ? String((error as { message?: unknown }).message ?? '').toLowerCase()
+        : String(error ?? '').toLowerCase();
+      const isStaleOrAlreadyClosed =
+        errorMessage.includes('ride_request_closed') ||
+        errorMessage.includes('ride_request_not_found');
+
+      // The request may have been cancelled by another tab, by the server timeout, or by
+      // realtime recovery before the user pressed the close button. Treat that state as an
+      // idempotent close instead of trapping the rider in a dead request screen.
+      if (isStaleOrAlreadyClosed) {
+        pendingAcceptedOfferIdRef.current = null;
+        resetRideDraftState();
+        dispatch({ type: 'RESET_TO_IDLE' });
+        onExitRequestFlow?.();
+        return;
+      }
+
       if ((process.env.NODE_ENV !== 'production')) console.warn('[Rider Cancel Request]', error);
       toast({
         variant: 'destructive',
