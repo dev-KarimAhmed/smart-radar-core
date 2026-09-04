@@ -856,6 +856,7 @@
     "minutesValue": "{count, plural, one {# min} other {# min}}"
   },
   "captainBidding": {
+    "meterCalculationFallback": "Your meter total for this trip is {total} {currency}. It comes from your saved opening charge, per-kilometre price, per-minute price, and the route estimate.",
     "meterCalculationTitle": "How your meter price was calculated",
     "meterCalculationSource": "This is based on your saved tariff and the route metrics for this request. The market price is shown separately.",
     "meterCalculationFormula": "{base} {currency} + ({billableKm} km x {perKm} {currency}) + ({minutes} min x {perMin} {currency}) = {total} {currency}",

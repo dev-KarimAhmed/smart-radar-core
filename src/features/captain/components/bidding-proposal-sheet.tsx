@@ -399,6 +399,41 @@ export function BiddingProposalSheet({
             being shown side by side with nothing saying which was which, so
             "أعلى سعر بدون تنبيه: 60.35" sat next to a base fare of 650.00 and read as a
             contradiction rather than as two different measurements. */}
+        <div className={styles.meterDetails}>
+          <p className={styles.meterDetailsTitle}>{t('meterCalculationTitle')}</p>
+          <p className={styles.meterDetailsHint}>{t('meterCalculationSource')}</p>
+          {meterDetails ? (
+            <>
+              <p className={styles.meterFormula}>
+                {t('meterCalculationFormula', {
+                  base: meterDetails.baseFare.toFixed(2),
+                  billableKm: meterDetails.billableKm.toFixed(2),
+                  perKm: meterDetails.perKm.toFixed(2),
+                  minutes: meterDetails.estimatedMinutes.toFixed(1),
+                  perMin: meterDetails.perMin.toFixed(2),
+                  total: captainMeterFare.toFixed(2),
+                  currency,
+                })}
+              </p>
+              <p className={styles.meterDetailsRoute}>
+                {t('meterCalculationRoute', {
+                  roadKm: meterDetails.roadKm.toFixed(2),
+                  includedKm: meterDetails.includedKm.toFixed(2),
+                  billableKm: meterDetails.billableKm.toFixed(2),
+                  minutes: meterDetails.estimatedMinutes.toFixed(1),
+                })}
+              </p>
+            </>
+          ) : (
+            <p className={styles.meterDetailsRoute}>
+              {t('meterCalculationFallback', {
+                total: captainMeterFare.toFixed(2),
+                currency,
+              })}
+            </p>
+          )}
+        </div>
+
         <dl className={styles.breakdownList}>
           <div className={styles.breakdownRow}>
             <dt className={styles.breakdownLabel}>{t('breakdownMeter')}</dt>
@@ -427,32 +462,6 @@ export function BiddingProposalSheet({
             </dd>
           </div>
         </dl>
-
-        {meterDetails ? (
-          <div className={styles.meterDetails}>
-            <p className={styles.meterDetailsTitle}>{t('meterCalculationTitle')}</p>
-            <p className={styles.meterDetailsHint}>{t('meterCalculationSource')}</p>
-            <p className={styles.meterFormula}>
-              {t('meterCalculationFormula', {
-                base: meterDetails.baseFare.toFixed(2),
-                billableKm: meterDetails.billableKm.toFixed(2),
-                perKm: meterDetails.perKm.toFixed(2),
-                minutes: meterDetails.estimatedMinutes.toFixed(1),
-                perMin: meterDetails.perMin.toFixed(2),
-                total: captainMeterFare.toFixed(2),
-                currency,
-              })}
-            </p>
-            <p className={styles.meterDetailsRoute}>
-              {t('meterCalculationRoute', {
-                roadKm: meterDetails.roadKm.toFixed(2),
-                includedKm: meterDetails.includedKm.toFixed(2),
-                billableKm: meterDetails.billableKm.toFixed(2),
-                minutes: meterDetails.estimatedMinutes.toFixed(1),
-              })}
-            </p>
-          </div>
-        ) : null}
 
         {/* The meter can sit far outside the band when the market average is built from too
             few captains. Saying so is more use than a percentage in the thousands. */}
