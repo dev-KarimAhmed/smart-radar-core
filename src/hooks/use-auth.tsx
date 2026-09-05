@@ -50,6 +50,12 @@ function AuthContent({ children }: { children: ReactNode }) {
   useEffect(() => {
     let mounted = true;
     let unsubscribe = () => {};
+    let bootstrapCompleted = false;
+    const finishBootstrap = () => {
+      if (bootstrapCompleted || !mounted) return;
+      bootstrapCompleted = true;
+      setLoading(false);
+    };
 
     // Always subscribe to onAuthStateChange, even with no stored session at
     // mount (e.g. sitting on the login page logged out) — that's exactly the
@@ -63,6 +69,15 @@ function AuthContent({ children }: { children: ReactNode }) {
     const hadStoredSession = hasStoredSupabaseAuthSession();
     setLoading(hadStoredSession);
 
+    // A failed dynamic chunk or an unavailable auth SDK must never strand a
+    // logged-out user behind the full-screen loading view.
+    const bootstrapTimeout = window.setTimeout(() => {
+      if (!mounted || bootstrapCompleted) return;
+      clearSupabaseSessionCache();
+      setUser(null);
+      finishBootstrap();
+    }, 10_000);
+
     void import('@/lib/supabase-client').then(({ supabase }) => {
       if (!mounted) return;
 
@@ -71,13 +86,15 @@ function AuthContent({ children }: { children: ReactNode }) {
           if (!mounted) return;
           cacheSupabaseSession(data.session);
           setUser(data.session?.user ? (buildUserFromSupabaseAuth(data.session.user) as SovereignUser) : null);
-          setLoading(false);
+          finishBootstrap();
         }).catch(() => {
           if (!mounted) return;
           clearSupabaseSessionCache();
           setUser(null);
-          setLoading(false);
+          finishBootstrap();
         });
+      } else {
+        finishBootstrap();
       }
 
       const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -91,13 +108,19 @@ function AuthContent({ children }: { children: ReactNode }) {
         // already open on it. Harmless when supabase-js has already done it itself.
         supabase.realtime.setAuth(session?.access_token ?? null);
         setUser(session?.user ? (buildUserFromSupabaseAuth(session.user) as SovereignUser) : null);
-        setLoading(false);
+        finishBootstrap();
       });
       unsubscribe = () => subscription.subscription.unsubscribe();
+    }).catch(() => {
+      if (!mounted) return;
+      clearSupabaseSessionCache();
+      setUser(null);
+      finishBootstrap();
     });
 
     return () => {
       mounted = false;
+      window.clearTimeout(bootstrapTimeout);
       unsubscribe();
     };
   }, []);
