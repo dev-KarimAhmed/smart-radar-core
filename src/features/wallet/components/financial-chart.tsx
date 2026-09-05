@@ -5,6 +5,7 @@ import * as d3 from 'd3';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Activity, TrendingUp } from 'lucide-react';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
+import { useTranslations } from 'next-intl';
 
 import { cn } from '@/lib/utils';
 const styles = {
@@ -43,7 +44,14 @@ interface FinancialChartProps {
 
 export function SovereignFinancialActivityChart({ transactions, balanceJD, currencyLabel = '' }: FinancialChartProps) {
   const { isArabic, language } = useDashboardLanguage();
-  const copy = financialChartCopy[language];
+  const t = useTranslations('financialChart');
+  const copy = {
+    baseline: t('baseline'),
+    currentBalance: t('currentBalance'),
+    description: t('description'),
+    empty: t('empty'),
+    title: t('title'),
+  };
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [dimensions, setDimensions] = useState({ width: 450, height: 180 });
@@ -248,19 +256,4 @@ export function SovereignFinancialActivityChart({ transactions, balanceJD, curre
   );
 }
 
-const financialChartCopy = {
-  ar: {
-    baseline: 'بداية الرصيد',
-    currentBalance: 'الرصيد الحالي',
-    description: 'تظهر العمليات هنا بعد وصولها من الخادم.',
-    empty: 'لا توجد عمليات مالية لعرضها حالياً.',
-    title: 'حركة الرصيد',
-  },
-  en: {
-    baseline: 'Starting balance',
-    currentBalance: 'Current balance',
-    description: 'Transactions appear here after they arrive from the server.',
-    empty: 'No financial transactions to show yet.',
-    title: 'Balance activity',
-  },
-} as const;
+
