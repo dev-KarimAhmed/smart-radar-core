@@ -9,6 +9,7 @@ import type { CaptainTripStep } from '../state/captain-state-machine';
 import { SOVEREIGN_CONSTANTS } from '@/core/constants/sovereign-protocols';
 
 import { cn } from '@/lib/utils';
+import { useTripCountdown } from '@/shared/hooks/use-trip-countdown';
 
 // MapLibre GL touches browser-only APIs at import time, so this must load
 // client-side only — same reason RadarMapView is dynamic-imported in
@@ -134,82 +135,7 @@ function useHandshakeCountdown(handshakeAt: number | null, step: CaptainTripStep
   const seconds = totalSeconds % 60;
   return { minutes, seconds, isRunningLow: remainingMs > 0 && remainingMs <= 5 * 60 * 1000 };
 }
-
-function useTripCountdownTimer(durationMinutes: number, isActive: boolean) {
-  const initialMs = Math.max(1, durationMinutes || 15) * 60 * 1000;
-  const [remainingMs, setRemainingMs] = React.useState(initialMs);
-  const alertedRef = React.useRef(false);
-
-  React.useEffect(() => {
-    if (!isActive) {
-      setRemainingMs(initialMs);
-      alertedRef.current = false;
-      return;
-    }
-    const baseline = Date.now();
-    setRemainingMs(initialMs);
-
-    const update = () => {
-      const rem = Math.max(0, initialMs - (Date.now() - baseline));
-      setRemainingMs(rem);
-      if (rem === 0 && !alertedRef.current) {
-        alertedRef.current = true;
-        playSystemNotificationSound();
-      }
-    };
-
-    update();
-    const interval = window.setInterval(update, 1000);
-    return () => window.clearInterval(interval);
-  }, [initialMs, isActive]);
-
-  if (!isActive) return '';
-  const totalSecs = Math.floor(remainingMs / 1000);
-  const minutes = Math.floor(totalSecs / 60);
-  const seconds = totalSecs % 60;
-  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-}
-
-function usePickupEtaTimer(pickupEtaMinutes: number, step: CaptainTripStep) {
-  const isArrivedOrStarted = step === 'ARRIVED' || step === 'STARTED';
-  const initialMs = Math.max(1, pickupEtaMinutes || 1) * 60 * 1000;
-  const [startMs] = React.useState(() => Date.now());
-  const [remainingMs, setRemainingMs] = React.useState(initialMs);
-  const alertedRef = React.useRef(false);
-
-  React.useEffect(() => {
-    if (isArrivedOrStarted) {
-      setRemainingMs(0);
-      return;
-    }
-
-    const update = () => {
-      const rem = Math.max(0, initialMs - (Date.now() - startMs));
-      setRemainingMs(rem);
-      if (rem === 0 && !alertedRef.current) {
-        alertedRef.current = true;
-        playSystemNotificationSound();
-      }
-    };
-
-    update();
-    const interval = window.setInterval(update, 1000);
-    return () => window.clearInterval(interval);
-  }, [initialMs, isArrivedOrStarted, startMs]);
-
-  if (isArrivedOrStarted) {
-    return { formatted: '00:00', isZero: true, isArrived: true };
-  }
-
-  const totalSecs = Math.floor(remainingMs / 1000);
-  const minutes = Math.floor(totalSecs / 60);
-  const seconds = totalSecs % 60;
-  return {
-    formatted: `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`,
-    isZero: remainingMs === 0,
-    isArrived: false,
-  };
-}
+// Hooks usePickupEtaTimer and useTripCountdownTimer have been replaced by useTripCountdown
 
 export function ActiveTripTracker({
   language,
@@ -230,9 +156,36 @@ export function ActiveTripTracker({
   const t = useTranslations('captainActiveTrip');
   const pickupT = useTranslations('captainPickup');
 
-  const estimatedMins = request.estimatedTime || (request.estimatedDistance ? Math.max(1, Math.ceil(request.estimatedDistance * 1.5)) : 4);
-  const liveCountdownTimer = useTripCountdownTimer(estimatedMins, step === 'STARTED');
-  const pickupTimer = usePickupEtaTimer(request.pickup_eta_minutes || 1, step);
+  const countdown = useTripCountdown({
+    status: step === 'STARTED' ? 'in_progress' : (step === 'ARRIVED' ? 'arrived' : 'accepted'),
+    acceptedAtMs: request.acceptedAtMs || handshakeAt || undefined,
+    arrivedAtMs: request.arrivedAtMs,
+    startedAtMs: request.startedAtMs,
+    pickupEtaMinutes: request.pickup_eta_minutes,
+    tripDurationMinutes: request.estimatedTime,
+    tripDistanceKm: request.estimatedDistance,
+  });
+
+  const [alertedPickup, setAlertedPickup] = React.useState(false);
+  const [alertedTrip, setAlertedTrip] = React.useState(false);
+
+  React.useEffect(() => {
+    if (countdown.phase === 'TO_PICKUP' && countdown.isOverdue && !alertedPickup) {
+      setAlertedPickup(true);
+      playSystemNotificationSound();
+    }
+    if (countdown.phase === 'ON_TRIP' && countdown.isOverdue && !alertedTrip) {
+      setAlertedTrip(true);
+      playSystemNotificationSound();
+    }
+  }, [countdown.phase, countdown.isOverdue, alertedPickup, alertedTrip]);
+
+  const pickupDisplay = countdown.phase === 'TO_PICKUP' ? countdown.display : '0:00';
+  const pickupIsZero = countdown.phase === 'TO_PICKUP' && countdown.isOverdue;
+  const pickupIsArrived = ['ARRIVED', 'STARTED'].includes(step);
+  
+  const tripDisplay = countdown.phase === 'ON_TRIP' ? countdown.display : '0:00';
+
   useHandshakeCountdown(handshakeAt, step);
   const [isConfirmingCancel, setIsConfirmingCancel] = React.useState(false);
   const pickupLocation = request.exactPickupCoords || request.obfuscatedPickupCoords || request.pickupCoords || null;
@@ -306,13 +259,13 @@ export function ActiveTripTracker({
           <p className={styles.style99_1}>{Number(request.offerPrice || 0).toFixed(2)} {currency}</p>
         </div>
 
-        <div className={cn(styles.style100_1, pickupTimer.isZero && !pickupTimer.isArrived && 'border-amber-500/50 bg-amber-500/10')}>
-          <p className={cn(styles.style101_1, pickupTimer.isZero && !pickupTimer.isArrived && 'text-amber-300')}>
+        <div className={cn(styles.style100_1, pickupIsZero && !pickupIsArrived && 'border-amber-500/50 bg-amber-500/10')}>
+          <p className={cn(styles.style101_1, pickupIsZero && !pickupIsArrived && 'text-amber-300')}>
             <Clock className={styles.style102_1} />
             {t('pickupEta')}
           </p>
-          <p className={cn(styles.style103_1, pickupTimer.isZero && !pickupTimer.isArrived && 'text-amber-300 animate-pulse')}>
-            {pickupTimer.formatted}
+          <p className={cn(styles.style103_1, pickupIsZero && !pickupIsArrived && 'text-amber-300 animate-pulse')}>
+            {pickupDisplay}
           </p>
         </div>
 
@@ -323,7 +276,7 @@ export function ActiveTripTracker({
               {t('tripElapsed')}
             </p>
             <p className={styles.style103_1}>
-              {liveCountdownTimer}
+              {tripDisplay}
             </p>
           </div>
         ) : null}

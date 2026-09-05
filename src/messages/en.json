@@ -1015,5 +1015,25 @@
       "STARTED": "In progress",
       "COMPLETED": "Completed"
     }
+  },
+  "transactions": {
+    "useNewScreenTitle": "Use the new ride request screen",
+    "useNewScreenDesc": "Requests are now created via Supabase.",
+    "cancelledTitle": "Trip Cancelled",
+    "cancelledByServerDesc": "Request cancelled from server.",
+    "cancelFailedTitle": "Failed to cancel trip",
+    "cancelFailedDesc": "Please try again later.",
+    "confirmTripTitle": "Trip Confirmed",
+    "confirmTripDesc": "You can now rate your experience.",
+    "confirmTripFailedTitle": "Failed to confirm trip",
+    "confirmTripFailedDesc": "Please try again later.",
+    "reportSentTitle": "Report Sent",
+    "reportSentDesc": "We will review the trip and take appropriate action.",
+    "offerAcceptedTitle": "Offer Accepted",
+    "offerAcceptedDesc": "Trip status will be updated from server.",
+    "offerAcceptFailedTitle": "Failed to accept offer",
+    "offerAcceptFailedDesc": "The offer might have expired or was already accepted.",
+    "cancelledByRiderDesc": "The rider has cancelled this trip.",
+    "cancelledSuccessfullyDesc": "Trip cancelled successfully."
   }
 }

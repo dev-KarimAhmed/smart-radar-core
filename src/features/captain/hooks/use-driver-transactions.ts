@@ -5,8 +5,10 @@ import { supabase } from '@/lib/supabase-client';
 import { dexieDb } from '@/lib/dexie-db';
 import { useToast } from '@/hooks/use-toast';
 import type { Trip, User } from '@/core/types';
+import { useTranslations } from 'next-intl';
 import { buildGoogleMapsUrl, isValidCoordinatePair, normalizeExternalMapUrl } from '../services/ride-location';
 import { generateWeeklyReport, type CaptainRankName } from '../services/captain-rank';
+import { toEpochMs } from '@/shared/services/trip-countdown';
 
 type RideOfferRow = Record<string, unknown>;
 type RideRequestRow = Record<string, unknown>;
@@ -66,6 +68,7 @@ export function useDriverTransactions(
   setDriverStatus?: (status: 'active' | 'idle' | 'busy' | 'rating') => void,
 ) {
   const { toast } = useToast();
+  const t = useTranslations('transactions');
   const [activeRequest, setActiveReq] = useState<Trip | null>(null);
   const [acceptedRider, setAcceptedRider] = useState<User | null>(null);
   const [handshakeAt, setHandshakeAt] = useState<number | null>(null);
@@ -661,6 +664,9 @@ function mapRideRequestToTrip(row: RideRequestRow | null): Trip | null {
     pickup_eta_minutes: pickupEtaMinutes ?? undefined,
     offerPrice: toNumber(row.final_fare) ?? toNumber(row.offered_fare) ?? toNumber(row.offer_price) ?? toNumber(row.server_estimated_fare) ?? undefined,
     createdAt: String(row.created_at || ''),
+    acceptedAtMs: toEpochMs(row.accepted_at) || undefined,
+    arrivedAtMs: toEpochMs(row.arrived_at) || undefined,
+    startedAtMs: toEpochMs(row.started_at) || undefined,
   };
 }
 
