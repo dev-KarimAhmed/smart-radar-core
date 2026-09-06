@@ -24,6 +24,15 @@ const RADAR_MAX_DISTANCE_KM = 9;
 type RideRequestRow = Record<string, unknown>;
 type RadarLocation = { lat: number; lng: number; speed?: number; source?: string };
 
+function playSystemNotificationSound() {
+  if (typeof window === 'undefined') return;
+  try {
+    const audio = new Audio('/sounds/notification.mp3');
+    audio.volume = 1.0;
+    void audio.play().catch(() => {});
+  } catch {}
+}
+
 export function useDriverRadar(user: User | null, driverStatus: string) {
   const t = useTranslations('captainDashboard');
   // Keep the GPS watch running while 'busy' too (not just 'active') — the
@@ -33,6 +42,7 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
   const countryConfig = useCountryConfig(user?.countryId);
   const [rawRequests, setRawRequests] = useState<Trip[]>([]);
   const [radarLockMessage, setRadarLockMessage] = useState('');
+  const previousRequestIdsRef = useRef<Set<string>>(new Set());
   const [profileAnchor, setProfileAnchor] = useState<RadarLocation | null>(null);
   const [rejectedTripIds, setRejectedTripIds] = useState<string[]>(() => {
     if (typeof window === 'undefined') return [];
@@ -167,6 +177,23 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
       })
       .slice(0, RADAR_FALLBACK_LIMIT)
       .map(({ request }) => request);
+
+    // Play sound for any NEW requests that weren't here on the last poll
+    let hasNewRequest = false;
+    const currentIds = new Set(rankedRequests.map((req) => req.id));
+    
+    for (const req of rankedRequests) {
+      if (!previousRequestIdsRef.current.has(req.id)) {
+        hasNewRequest = true;
+        break;
+      }
+    }
+    
+    if (hasNewRequest) {
+      playSystemNotificationSound();
+    }
+    
+    previousRequestIdsRef.current = currentIds;
 
     setRadarLockMessage('');
     setRawRequests(rankedRequests);

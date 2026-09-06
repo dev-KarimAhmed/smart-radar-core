@@ -5,8 +5,10 @@ import { supabase } from '@/lib/supabase-client';
 import { dexieDb } from '@/lib/dexie-db';
 import { useToast } from '@/hooks/use-toast';
 import type { Trip, User } from '@/core/types';
+import { useTranslations } from 'next-intl';
 import { buildGoogleMapsUrl, isValidCoordinatePair, normalizeExternalMapUrl } from '../services/ride-location';
 import { generateWeeklyReport, type CaptainRankName } from '../services/captain-rank';
+import { toEpochMs } from '@/shared/services/trip-countdown';
 
 type RideOfferRow = Record<string, unknown>;
 type RideRequestRow = Record<string, unknown>;
@@ -19,53 +21,47 @@ export const MAX_OFFER_WAIT_SECONDS = 120;
  * when the bidding sheet's own guards pass — a stale server fare on the captain's screen,
  * or a rank that changed between load and submit.
  */
-function describeOfferSubmitError(rawMessage: string | undefined) {
+function describeOfferSubmitError(rawMessage: string | undefined, t: any) {
   const message = String(rawMessage || '');
   const limit = message.match(/:\s*([\d.]+)\s*$/)?.[1];
 
   if (message.includes('captain_too_far_from_pickup')) {
     return {
-      title: 'الطلب بعيد عنك',
-      description: 'أصبحت بعيداً عن نقطة الالتقاط (أكثر من 9 كم). لا يمكن تقديم عرض على هذا الطلب.',
+      title: t('errorTooFarTitle'),
+      description: t('errorTooFarDesc'),
     };
   }
 
   if (message.includes('offer_below_market_floor')) {
     return {
-      title: 'السعر أقل من المسموح',
+      title: t('errorBelowFloorTitle'),
       description: limit
-        ? `أقل سعر مقبول لهذا الطلب هو ${limit}. ارفع سعرك وحاول مرة أخرى.`
-        : 'سعرك أقل من الحد المسموح مقابل سعر السوق. ارفع سعرك وحاول مرة أخرى.',
+        ? t('errorBelowFloorDescDynamic', { limit })
+        : t('errorBelowFloorDescStatic'),
     };
   }
 
   if (message.includes('offer_above_rank_ceiling')) {
     return {
-      title: 'السعر أعلى من سقف رتبتك',
+      title: t('errorAboveCeilingTitle'),
       description: limit
-        ? `أعلى سعر مسموح لرتبتك في هذا الطلب هو ${limit}. قلّل سعرك وحاول مرة أخرى.`
-        : 'سعرك أعلى من السقف المسموح لرتبتك. قلّل سعرك وحاول مرة أخرى.',
+        ? t('errorAboveCeilingDescDynamic', { limit })
+        : t('errorAboveCeilingDescStatic'),
     };
   }
 
   return {
-    title: 'تعذر إرسال العرض',
-    description: 'تحقق من الاتصال أو صلاحيات قاعدة البيانات ثم حاول مرة أخرى.',
+    title: t('errorSubmitFailedTitle'),
+    description: t('errorSubmitFailedDesc'),
   };
 }
-
-const RANK_LABELS_AR: Record<CaptainRankName, string> = {
-  PLATINUM: 'بلاتيني',
-  GOLD: 'ذهبي',
-  SILVER: 'فضي',
-  BRONZE: 'برونزي',
-};
 
 export function useDriverTransactions(
   user: User | null,
   setDriverStatus?: (status: 'active' | 'idle' | 'busy' | 'rating') => void,
 ) {
   const { toast } = useToast();
+  const t = useTranslations('transactions');
   const [activeRequest, setActiveReq] = useState<Trip | null>(null);
   const [acceptedRider, setAcceptedRider] = useState<User | null>(null);
   const [handshakeAt, setHandshakeAt] = useState<number | null>(null);
@@ -168,7 +164,7 @@ export function useDriverTransactions(
         setAcceptedRider({
           uid: String(row.id),
           role: 'rider',
-          name: String(row.full_name || 'راكب'),
+          name: String(row.full_name || 'Rider'),
           phone: String(row.phone || ''),
           governorate: String(row.governorate_id || ''),
           district: String(row.district_id || ''),
@@ -205,8 +201,8 @@ export function useDriverTransactions(
           if (status === 'COMPLETED' || status === 'CANCELLED') {
             if (status === 'CANCELLED') {
               toast({
-                title: 'تم إلغاء الرحلة',
-                description: 'قام الراكب بإلغاء هذه الرحلة.',
+                title: t('tripCancelledTitle'),
+                description: t('tripCancelledDesc'),
               });
             }
             cleanUpAndReset();
@@ -297,8 +293,8 @@ export function useDriverTransactions(
     if (!captainId) {
       toast({
         variant: 'destructive',
-        title: 'تعذر إرسال العرض',
-        description: 'يجب تسجيل الدخول بحساب كابتن قبل إرسال العرض.',
+        title: t('errorSubmitFailedTitle'),
+        description: t('errorAuthRequiredDesc'),
       });
       return false;
     }
@@ -306,8 +302,8 @@ export function useDriverTransactions(
     if (!Number.isFinite(payload.offerPrice) || payload.offerPrice <= 0) {
       toast({
         variant: 'destructive',
-        title: 'سعر غير صحيح',
-        description: 'اكتب قيمة صحيحة للعرض ثم حاول مرة أخرى.',
+        title: t('errorInvalidPriceTitle'),
+        description: t('errorInvalidPriceDesc'),
       });
       return false;
     }
@@ -315,8 +311,8 @@ export function useDriverTransactions(
     if (!Number.isInteger(payload.waitSeconds) || payload.waitSeconds < MIN_OFFER_WAIT_SECONDS) {
       toast({
         variant: 'destructive',
-        title: 'مدة الانتظار غير صحيحة',
-        description: `حدد عدد ثواني ظهور العرض (على الأقل ${MIN_OFFER_WAIT_SECONDS} ثواني) ثم حاول مرة أخرى.`,
+        title: t('errorInvalidWaitTimeTitle'),
+        description: t('errorInvalidWaitTimeDesc', { min: MIN_OFFER_WAIT_SECONDS }),
       });
       return false;
     }
@@ -324,8 +320,8 @@ export function useDriverTransactions(
     if (pendingOfferRequestId && pendingOfferRequestId !== payload.tripId) {
       toast({
         variant: 'destructive',
-        title: 'لديك عرض قيد الانتظار',
-        description: 'انتظر رد الراكب على عرضك الحالي قبل تقديم عرض جديد.',
+        title: t('errorPendingOfferTitle'),
+        description: t('errorPendingOfferDesc'),
       });
       return false;
     }
@@ -354,15 +350,15 @@ export function useDriverTransactions(
       if (pendingOfferTimeoutRef.current) clearTimeout(pendingOfferTimeoutRef.current);
       pendingOfferTimeoutRef.current = setTimeout(() => setPendingOfferRequestId(null), payload.waitSeconds * 1000);
       toast({
-        title: 'تم إرسال العرض',
-        description: 'سنخبرك فور قبول الراكب للعرض.',
+        title: t('offerSubmittedTitle'),
+      description: t('offerSubmittedDesc'),
       });
       return true;
     } catch (error) {
       if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver transactions] offer submit failed:', error);
       toast({
         variant: 'destructive',
-        ...describeOfferSubmitError((error as { message?: string })?.message),
+        ...describeOfferSubmitError((error as { message?: string })?.message, t),
       });
       return false;
     } finally {
@@ -384,16 +380,16 @@ export function useDriverTransactions(
       if (error) throw error;
 
       toast({
-        title: 'تم تحديث الرحلة',
-        description: 'تم تأكيد وصولك إلى نقطة الركوب.',
+        title: t('tripArrivedTitle'),
+      description: t('tripArrivedDesc'),
       });
       return true;
     } catch (error) {
       if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver transactions] arrival milestone failed:', error);
       toast({
         variant: 'destructive',
-        title: 'تعذر تحديث الرحلة',
-        description: 'لم يتم تأكيد الوصول من الخادم. حاول مرة أخرى.',
+        title: t('tripArrivedFailedTitle'),
+        description: t('tripArrivedFailedDesc'),
       });
       return false;
     } finally {
@@ -415,16 +411,16 @@ export function useDriverTransactions(
       if (error) throw error;
 
       toast({
-        title: 'بدأت الرحلة',
-        description: 'تم تأكيد بدء الرحلة من الخادم.',
+        title: t('tripStartedTitle'),
+      description: t('tripStartedDesc'),
       });
       return true;
     } catch (error) {
       if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver transactions] start trip milestone failed:', error);
       toast({
         variant: 'destructive',
-        title: 'تعذر بدء الرحلة',
-        description: 'لم يتم تأكيد بدء الرحلة من الخادم. حاول مرة أخرى.',
+        title: t('tripStartedFailedTitle'),
+        description: t('tripStartedFailedDesc'),
       });
       return false;
     } finally {
@@ -449,15 +445,15 @@ export function useDriverTransactions(
         requestId: activeRequest.id,
         captainId,
         riderId: activeRequest.riderId,
-        destination: activeRequest.dropoff || 'وجهة الرحلة',
+        destination: activeRequest.dropoff || 'Destination',
         finalFare: Number(activeRequest.offerPrice || 0),
         completedAt: Date.now(),
         purgeAt: Date.now() + 72 * 60 * 60 * 1000,
       });
 
       toast({
-        title: 'تم إنهاء الرحلة',
-        description: 'تم حفظ الرحلة بعد تأكيد الخادم.',
+        title: t('tripEndedTitle'),
+      description: t('tripEndedDesc'),
       });
       cleanUpAndReset();
       return true;
@@ -483,8 +479,8 @@ export function useDriverTransactions(
       }
       toast({
         variant: 'destructive',
-        title: 'تعذر إنهاء الرحلة',
-        description: 'لم يقبل الخادم إنهاء الرحلة حالياً. حاول مرة أخرى.',
+        title: t('tripEndedFailedTitle'),
+        description: t('tripEndedFailedDesc'),
       });
       return false;
     } finally {
@@ -506,8 +502,8 @@ export function useDriverTransactions(
       if (error) throw error;
 
       toast({
-        title: 'تم إلغاء الرحلة',
-        description: 'تم إلغاء الرحلة بنجاح.',
+        title: t('tripCancelledTitle'),
+      description: t('tripCancelledByCaptainDesc'),
       });
       cleanUpAndReset();
       return true;
@@ -519,8 +515,8 @@ export function useDriverTransactions(
       }
       toast({
         variant: 'destructive',
-        title: 'تعذر إلغاء الرحلة',
-        description: 'لم يقبل الخادم إلغاء الرحلة حالياً. حاول مرة أخرى.',
+        title: t('tripCancelFailedTitle'),
+        description: t('tripCancelFailedDesc'),
       });
       return false;
     } finally {
@@ -561,7 +557,7 @@ export function useDriverTransactions(
         // COURT_001 = no new ratings since the last report, COURT_002 = still inside the
         // 72h disciplinary lock. Both are legitimate answers, not failures.
         toast({
-          title: RANK_LABELS_AR[report.rank] ?? report.rank,
+          title: t(`rank${report.rank}`) ?? report.rank,
           description: report.message,
         });
         return;
@@ -569,15 +565,15 @@ export function useDriverTransactions(
 
       const { averageRating, heartCount, newRank } = report.stats;
       toast({
-        title: `رتبتك: ${RANK_LABELS_AR[newRank] ?? newRank}`,
-        description: `متوسط التقييم ${Number(averageRating).toFixed(2)} · ${heartCount} قلب`,
+        title: t('rankLabel', { rank: t(`rank${newRank}`) ?? newRank }),
+        description: t('rankStats', { rating: Number(averageRating).toFixed(2), hearts: heartCount }),
       });
     } catch (error: any) {
       if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver transactions] weekly report failed:', error);
       toast({
         variant: 'destructive',
-        title: 'تعذر تجهيز التقرير',
-        description: error?.message || 'حاول مرة أخرى بعد قليل.',
+        title: t('reportFailedTitle'),
+        description: error?.message || t('reportFailedDesc'),
       });
     } finally {
       setIsRequestingReport(false);
@@ -652,7 +648,7 @@ function mapRideRequestToTrip(row: RideRequestRow | null): Trip | null {
     pickupLocationIsApproximate: false,
     h3Index: String(row.origin_h3 || ''),
     gridId: String(row.origin_h3 || id),
-    dropoff: String(row.destination_address_ar || row.destination_address || 'وجهة الراكب'),
+    dropoff: String(row.destination_address_ar || row.destination_address || 'Destination'),
     dropoffCoords: isValidCoordinatePair(destinationLat, destinationLng)
       ? { lat: destinationLat as number, lng: destinationLng as number }
       : undefined,
@@ -661,6 +657,9 @@ function mapRideRequestToTrip(row: RideRequestRow | null): Trip | null {
     pickup_eta_minutes: pickupEtaMinutes ?? undefined,
     offerPrice: toNumber(row.final_fare) ?? toNumber(row.offered_fare) ?? toNumber(row.offer_price) ?? toNumber(row.server_estimated_fare) ?? undefined,
     createdAt: String(row.created_at || ''),
+    acceptedAtMs: toEpochMs(row.accepted_at) || undefined,
+    arrivedAtMs: toEpochMs(row.arrived_at) || undefined,
+    startedAtMs: toEpochMs(row.started_at) || undefined,
   };
 }
 

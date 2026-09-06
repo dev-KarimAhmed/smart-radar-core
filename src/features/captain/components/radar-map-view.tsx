@@ -331,6 +331,10 @@ export function RadarMapView({
                       label={copy.tripDistance}
                       value={request.estimatedDistance != null ? `${request.estimatedDistance.toFixed(1)} ${language === 'ar' ? 'كيلو' : 'km'}` : t('distanceUnavailable')}
                     />
+                    <Info
+                      label={copy.requestTime}
+                      value={formatRequestTime(request.createdAt, language)}
+                    />
                   </div>
                   {isOwnPendingOffer ? (
                     <div className={styles.ownPendingBadge}>
@@ -444,6 +448,18 @@ function pickupDistanceKm(driverLocation: { lat: number; lng: number } | null, r
   );
 }
 
+function formatRequestTime(isoString: string | undefined | null, language: 'ar' | 'en') {
+  if (!isoString) return '-';
+  try {
+    const d = new Date(isoString);
+    if (isNaN(d.getTime())) return '-';
+    const locale = language === 'ar' ? 'ar-EG' : 'en-US';
+    return new Intl.DateTimeFormat(locale, { hour: 'numeric', minute: '2-digit' }).format(d);
+  } catch {
+    return '-';
+  }
+}
+
 function fallbackRequestPosition(index: number): React.CSSProperties {
   const positions: Array<React.CSSProperties> = [
     { left: '58%', top: '42%' },
@@ -480,6 +496,7 @@ const radarCopy = {
     fare: 'السعر الأساسي',
     pickupTime: 'الوقت حتى تصل للراكب',
     tripDistance: 'مسافة الرحلة',
+    requestTime: 'وقت الطلب',
     riderUnrated: 'راكب جديد',
     riderFavoritedYou: 'في مفضلته',
     riderNotFavoritedYou: 'مش في مفضلته',
@@ -510,6 +527,7 @@ const radarCopy = {
     fare: 'Base fare',
     pickupTime: 'Time to reach the rider',
     tripDistance: 'Trip distance',
+    requestTime: 'Request time',
     riderUnrated: 'New rider',
     riderFavoritedYou: 'Has you as a favourite',
     riderNotFavoritedYou: 'Not a favourite yet',

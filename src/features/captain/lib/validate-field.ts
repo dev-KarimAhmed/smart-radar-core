@@ -10,7 +10,7 @@ export async function validateYupField(
     return '';
   } catch (error) {
     if (error instanceof yup.ValidationError) return error.message;
-    return 'قيمة غير صحيحة';
+    return 'invalid_value';
   }
 }
 
