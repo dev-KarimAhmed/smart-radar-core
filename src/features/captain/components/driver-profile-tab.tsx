@@ -712,6 +712,15 @@ export function DriverProfileTab({ user, language }: DriverProfileTabProps) {
           </div>
           <Field label={t('accountNumber')} value={firstString(profile?.serial_id, user?.serial_id, '-')} />
           <Field label={t('role')} value={t('captainRole')} />
+          <Field 
+            label={t('affiliationTypeLabel')} 
+            value={
+              affiliationType === 'smart-app' ? t('affiliationSmartApp') :
+              affiliationType === 'office-taxi' ? t('affiliationOfficeTaxi') :
+              affiliationType === 'independent' ? t('affiliationIndependent') :
+              (affiliationType || t('notProvided'))
+            } 
+          />
           <Field label={t('tier')} value={tier.label} />
           {/* Identity-verification data set at registration — read-only here too. */}
           <Field label={t('nationalIdNumber')} value={firstString(nationalIdNumber, t('notProvided'))} />
@@ -774,18 +783,8 @@ export function DriverProfileTab({ user, language }: DriverProfileTabProps) {
               className={styles.editingInput}
             />
           </EditableField>
-          <EditableField
-            label={isTaxi ? t('officeName') : t('companyName')}
-            value={firstString(businessName, t('notProvided'))}
-            originalValue={firstString(savedSnapshotRef.current.businessName, t('notProvided'))}
-            isEditing={isFieldEditing('businessName')}
-            isSaving={isSaving}
-            onEdit={() => startEditingField('businessName')}
-            onSave={handleFieldSave}
-            onCancel={() => { setBusinessName(savedSnapshotRef.current.businessName); stopEditingField('businessName'); }}
-          >
-            <input value={businessName} onChange={(event) => setBusinessName(event.target.value)} className={styles.editingInput} />
-          </EditableField>
+          {/* Fixed — company/office name cannot be edited directly by the captain. */}
+          <Field label={isTaxi ? t('officeName') : t('companyName')} value={firstString(businessName, t('notProvided'))} />
           {!isTaxi ? (
             <EditableField
               label={t('companyCode')}

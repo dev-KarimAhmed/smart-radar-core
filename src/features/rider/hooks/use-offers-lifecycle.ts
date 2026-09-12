@@ -59,14 +59,8 @@ export function useOffersLifecycle(
         ]);
 
         const favoriteIds = collectPreferredCaptainIds(favs);
-        // فلترة العروض بالمسح الجغرافي: يبدأ بـ 1.5 كم، وإذا لم يجد يتوسع إلى 2.5 كم فقط ليس أكثر
-        const validOffers = offers.filter((offer) => {
-          const dist = Number((offer as any).distance_to_rider ?? (offer as any).pickup_distance_km);
-          if (Number.isFinite(dist) && dist > 0) {
-            return dist <= captainSearchRadiusKm;
-          }
-          return true;
-        });
+        // جميع العروض المقدمة من الكباتن المتاحين للطلب يتم عرضها للراكب
+        const validOffers = offers;
 
         // حصة الراكب من السوق: 9 عروض كباتن كحد أقصى
         const sortedOffers = prioritizeRiderOffers(validOffers, favoriteIds).slice(0, 9);

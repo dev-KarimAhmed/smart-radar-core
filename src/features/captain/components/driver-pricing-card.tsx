@@ -163,7 +163,7 @@ interface PricingCardProps {
   mode: 'setup' | 'offer';
   tripDistance?: number;
   tripDuration?: number;
-  requiresOfficialRate?: boolean;
+  pricingPreference?: 'APP' | 'TAXI' | 'FREE' | null;
   onConfirm: (data: PricingMatrix | number) => void;
   onCancel: () => void;
   isSubmitting?: boolean;
@@ -187,7 +187,7 @@ const PricingInput = React.memo(({ id, label, icon, value, onChange, hasError }:
 ));
 PricingInput.displayName = 'PricingInput';
 
-export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, requiresOfficialRate = false, onConfirm, onCancel, isSubmitting = false }: PricingCardProps) {
+export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, pricingPreference = null, onConfirm, onCancel, isSubmitting = false }: PricingCardProps) {
   const { isArabic } = useDashboardLanguage();
   const { matrix: savedMatrix, saveMatrix, isSaving } = usePricingMatrix();
   const { toast } = useToast();
@@ -601,7 +601,7 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, re
   }
 
   if (mode === 'offer') {
-    if (requiresOfficialRate) {
+    if (pricingPreference === 'APP') {
       return (
         <div className={styles.style467_87}>
           <div className={styles.style468_88}>

@@ -13,6 +13,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { useAuth } from '@/hooks/use-auth';
 import type { CaptainTariff, CaptainTariffSaveResult, MarketAverageTariff } from '../hooks/use-price-per-km-setup';
 import type { CaptainMarketIndicator } from '../hooks/use-captain-market-indicator';
 import { MarketStatusIndicator } from './market-status-indicator';
@@ -58,7 +59,7 @@ interface PricePerKmSetupModalProps {
   marketAverage?: MarketAverageTariff | null;
   /** How crowded the local market is right now — rendered as a banner above the fields. */
   marketIndicator?: CaptainMarketIndicator | null;
-  initialTariff?: { baseFare: number | null; pricePerKm: number | null; pricePerMin: number | null; includedKm?: number };
+  initialTariff?: { baseFare: number | null; pricePerKm: number | null; pricePerMin: number | null; includedKm?: number; pricingMode?: 'FREE' | 'APP' | null };
   isCountryChange?: boolean;
   /** The tariff is already set and this is the per-activation confirmation. */
   isActivationConfirm?: boolean;
@@ -82,19 +83,29 @@ export function PricePerKmSetupModal({
   onSave,
 }: PricePerKmSetupModalProps) {
   const t = useTranslations('captainDashboard');
+  const { user } = useAuth();
+  const rank = user?.rank || 'Bronze';
+  const isGoldOrPlatinum = rank === 'Gold' || rank === 'Platinum';
+  const isSilver = rank === 'Silver';
+  const isArabic = direction === 'rtl';
+  const isIndependent = user?.subRole === 'independent';
+  const [setupMode, setSetupMode] = React.useState<'FREE' | 'APP' | null>(
+    initialTariff?.pricingMode ?? (isIndependent ? 'FREE' : null)
+  );
+
+  React.useEffect(() => {
+    if (initialTariff?.pricingMode) {
+      setSetupMode(initialTariff.pricingMode);
+    }
+  }, [initialTariff?.pricingMode]);
+
   const [baseFare, setBaseFare] = React.useState(toInputValue(initialTariff?.baseFare));
   const [pricePerKm, setPricePerKm] = React.useState(toInputValue(initialTariff?.pricePerKm));
   const [pricePerMin, setPricePerMin] = React.useState(toInputValue(initialTariff?.pricePerMin));
   const [includedKm, setIncludedKm] = React.useState(toInputValue(initialTariff?.includedKm ?? 0));
   const [isSaving, setIsSaving] = React.useState(false);
   const [error, setError] = React.useState('');
-  // Kept separate from `error` above so it can render inside the collapsible section, right
-  // where the field it's actually about is — not at the bottom of the whole modal, which
-  // read as unrelated to the (still collapsed) opening-charge/included-km fields.
   const [shortDistancesError, setShortDistancesError] = React.useState('');
-  // Collapsed by default — the opening charge and included distance are still required to
-  // confirm the popup (validated below exactly as before), just tucked behind this section
-  // instead of shown alongside the per-km/per-min fields every time.
   const [isShortDistancesOpen, setIsShortDistancesOpen] = React.useState(false);
 
   const handleSave = async (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -102,12 +113,31 @@ export function PricePerKmSetupModal({
     setError('');
     setShortDistancesError('');
 
+    if (!isIndependent && !setupMode) {
+      setError(isArabic ? 'يرجى اختيار طريقة التسعير أولاً' : 'Please select a pricing mode first');
+      return;
+    }
+
     const parsedBaseFare = Number(baseFare);
     const parsedPricePerKm = Number(pricePerKm);
-    // Per-minute may legitimately be zero — a captain who does not want to charge for time.
     const parsedPricePerMin = Number(pricePerMin);
-    // Zero is the normal value — it means per-km billing starts from the first metre.
     const parsedIncludedKm = Number(includedKm);
+
+    if (setupMode === 'APP') {
+      setIsSaving(true);
+      const result = await onSave({
+        baseFare: Number.isFinite(parsedBaseFare) && parsedBaseFare >= minBaseFare ? parsedBaseFare : minBaseFare,
+        pricePerKm: Number.isFinite(parsedPricePerKm) && parsedPricePerKm > 0 ? parsedPricePerKm : 0.25,
+        pricePerMin: Number.isFinite(parsedPricePerMin) && parsedPricePerMin >= 0 ? parsedPricePerMin : 0.05,
+        includedKm: Number.isFinite(parsedIncludedKm) && parsedIncludedKm >= 0 ? parsedIncludedKm : 0,
+        pricingMode: 'APP',
+      });
+      setIsSaving(false);
+      if (!result.saved) {
+        setError(t('pricePerKmModalError'));
+      }
+      return;
+    }
 
     if (!Number.isFinite(parsedBaseFare) || parsedBaseFare < minBaseFare) {
       setIsShortDistancesOpen(true);
@@ -131,12 +161,20 @@ export function PricePerKmSetupModal({
       return;
     }
 
+    if (isSilver && marketAverage) {
+      if (parsedPricePerKm > marketAverage.perKm || parsedPricePerMin > marketAverage.perMin) {
+        setError(t('tariffSilverMaxError'));
+        return;
+      }
+    }
+
     setIsSaving(true);
     const result = await onSave({
       baseFare: parsedBaseFare,
       pricePerKm: parsedPricePerKm,
       pricePerMin: parsedPricePerMin,
       includedKm: parsedIncludedKm,
+      pricingMode: 'FREE',
     });
     setIsSaving(false);
     if (!result.saved && result.reason === 'base_fare_below_market_minimum') {
@@ -177,7 +215,59 @@ export function PricePerKmSetupModal({
           </div>
         ) : null}
 
-        <div className={styles.fields}>
+        {/* Pricing Setup Mode Selector Tabs (Hidden for independent captains) */}
+        {!isIndependent && (
+          <div className="mt-3 mb-4 grid grid-cols-2 gap-2 rounded-2xl border border-slate-800 bg-black/50 p-1.5 shadow-inner">
+            <button
+              type="button"
+              onClick={() => {
+                setSetupMode('FREE');
+                setError('');
+              }}
+              className={cn(
+                'rounded-xl py-3 px-3 text-xs font-black transition sm:text-sm',
+                setupMode === 'FREE'
+                  ? 'bg-[#14B8A6] text-[#06111f] shadow-lg shadow-[#14B8A6]/20'
+                  : 'text-slate-400 hover:bg-white/5 hover:text-white'
+              )}
+            >
+              {isArabic ? 'أسعار حرة' : 'Free Pricing'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setSetupMode('APP');
+                setError('');
+              }}
+              className={cn(
+                'rounded-xl py-3 px-3 text-xs font-black transition sm:text-sm',
+                setupMode === 'APP'
+                  ? 'bg-[#14B8A6] text-[#06111f] shadow-lg shadow-[#14B8A6]/20'
+                  : 'text-slate-400 hover:bg-white/5 hover:text-white'
+              )}
+            >
+              {isArabic ? 'أسعار التطبيق' : 'App Pricing'}
+            </button>
+          </div>
+        )}
+
+        {setupMode === 'APP' && (
+          <div className="my-4 rounded-2xl border border-blue-400/30 bg-blue-500/10 p-4 text-sm font-bold text-blue-200 shadow-xl">
+            <p className="font-black text-base text-blue-300 mb-2 flex items-center gap-2">
+              <span>📱</span>
+              <span>{isArabic ? 'الالتزام بتسعيرة الشركة المشغلة' : 'Official Operator Tariff Commitment'}</span>
+            </p>
+            <p className="leading-relaxed text-xs sm:text-sm text-slate-300">
+              {isArabic
+                ? 'أنت تعمل الآن ضمن سعر الشركة المشغلة لك وترخيص المزاولة (تكسي أصفر، أوبر، كريم... إلخ). ويظهر للراكب أن هذا السائق يعمل من خلال الشركة المشغلة له.'
+                : 'You are operating under your licensed operator tariff (Yellow Taxi, Uber, Careem, etc.). Riders will see that you operate via your registered operator.'}
+            </p>
+          </div>
+        )}
+
+        {/* Bottom Tariff Fields: Hidden until "FREE" mode is selected (or automatically shown for independent captains) */}
+        {(setupMode === 'FREE' || isIndependent) && (
+          <div className={styles.fields}>
           <div className={styles.shortDistancesSection}>
             <button
               type="button"
@@ -243,55 +333,77 @@ export function PricePerKmSetupModal({
             </div>
             ) : null}
           </div>
-
-          <div className={styles.field}>
-            <label className={styles.fieldLabel}>{t('tariffModalPerKmLabel')}</label>
-            {marketAverage ? (
-              <span className={styles.marketAverageLine}>
-                {t('tariffModalMarketAverage', { avg: marketAverage.perKm.toFixed(2), currency: currency || '' })}
-              </span>
-            ) : null}
-            <span className={styles.fieldHint}>{t('tariffModalPerKmHint')}</span>
-            <div className={styles.inputRow}>
-              <input
-                type="number"
-                inputMode="decimal"
-                min="0"
-                step="0.01"
-                value={pricePerKm}
-                onChange={(event) => setPricePerKm(event.target.value)}
-                placeholder={t('pricePerKmModalPlaceholder')}
-                disabled={isSaving}
-                className={styles.input}
-              />
-              {currency ? <span className={styles.currencyBadge}>{currency}</span> : null}
-            </div>
+          <div className="mb-4 rounded-xl border border-slate-800 bg-black/40 p-3">
+             <h4 className="text-sm font-bold text-slate-400 mb-2">{t('tariffCurrentPrice')}</h4>
+             <div className="flex justify-between items-center gap-4 text-sm font-black text-white px-2">
+               <span>{t('tariffPerKmShort')} : {initialTariff?.pricePerKm?.toFixed(2) || '0.00'} {currency}</span>
+               <span>{t('tariffPerMinShort')} : {initialTariff?.pricePerMin?.toFixed(2) || '0.00'} {currency}</span>
+             </div>
           </div>
 
-          <div className={styles.field}>
-            <label className={styles.fieldLabel}>{t('tariffModalPerMinLabel')}</label>
-            {marketAverage ? (
-              <span className={styles.marketAverageLine}>
-                {t('tariffModalMarketAverage', { avg: marketAverage.perMin.toFixed(2), currency: currency || '' })}
-              </span>
-            ) : null}
-            <span className={styles.fieldHint}>{t('tariffModalPerMinHint')}</span>
-            <div className={styles.inputRow}>
-              <input
-                type="number"
-                inputMode="decimal"
-                min="0"
-                step="0.01"
-                value={pricePerMin}
-                onChange={(event) => setPricePerMin(event.target.value)}
-                placeholder="0.00"
-                disabled={isSaving}
-                className={styles.input}
-              />
-              {currency ? <span className={styles.currencyBadge}>{currency}</span> : null}
-            </div>
+          <div className="mb-4 rounded-xl border border-slate-800 bg-black/40 p-3">
+             <h4 className="text-sm font-bold text-slate-400 mb-2">{t('tariffMarketAverage')}</h4>
+             <div className="flex justify-between items-center gap-4 text-sm font-black text-white px-2">
+               <span>{t('tariffPerKmShort')} : {marketAverage?.perKm?.toFixed(2) || '0.00'} {currency}</span>
+               <span>{t('tariffPerMinShort')} : {marketAverage?.perMin?.toFixed(2) || '0.00'} {currency}</span>
+             </div>
           </div>
-        </div>
+
+          <div className="mb-4 space-y-3">
+             <h4 className="text-sm font-black text-emerald-400 mb-4">{t('tariffUpdatePrice')}</h4>
+             
+             {isGoldOrPlatinum ? (
+               <div className="mb-3 text-xs font-bold text-amber-400 bg-amber-500/10 p-2 rounded-lg border border-amber-500/20">
+                 {t('tariffGoldBonusNotice')}
+               </div>
+             ) : null}
+
+             {isSilver && marketAverage && (Number(pricePerKm) < marketAverage.perKm * 0.85 || Number(pricePerMin) < marketAverage.perMin * 0.85) ? (
+               <div className="mb-3 text-xs font-bold text-rose-400 bg-rose-500/10 p-2 rounded-lg border border-rose-500/20">
+                 {t('tariffSilverReduceWarning')}
+               </div>
+             ) : null}
+
+             <div className={styles.field}>
+               <div className={styles.inputRow}>
+                 <span className="flex w-20 shrink-0 items-center justify-center rounded-2xl border border-slate-800 bg-black/60 text-sm font-black text-slate-300">
+                   {t('tariffPerKmShort')}
+                 </span>
+                 <input
+                   type="number"
+                   inputMode="decimal"
+                   min="0"
+                   step="0.01"
+                   value={pricePerKm}
+                   onChange={(event) => setPricePerKm(event.target.value)}
+                   placeholder={t('pricePerKmModalPlaceholder')}
+                   disabled={isSaving}
+                   className={styles.input}
+                 />
+               </div>
+             </div>
+
+             <div className={styles.field}>
+               <div className={styles.inputRow}>
+                 <span className="flex w-20 shrink-0 items-center justify-center rounded-2xl border border-slate-800 bg-black/60 text-sm font-black text-slate-300">
+                   {t('tariffPerMinShort')}
+                 </span>
+                 <input
+                   type="number"
+                   inputMode="decimal"
+                   min="0"
+                   step="0.01"
+                   value={pricePerMin}
+                   onChange={(event) => setPricePerMin(event.target.value)}
+                   placeholder="0.00"
+                   disabled={isSaving}
+                   className={styles.input}
+                 />
+               </div>
+             </div>
+          </div>
+         </div>
+        )}
 
         {error ? <p className={styles.error}>{error}</p> : null}
 

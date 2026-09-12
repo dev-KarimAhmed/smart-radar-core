@@ -2,8 +2,9 @@
 
 import React from 'react';
 import { useTranslations } from 'next-intl';
-import { AlertTriangle, ExternalLink, Loader2, MapPin, Minus, Plus, Send, Sparkles, X } from 'lucide-react';
+import { AlertTriangle, ExternalLink, Loader2, Lock, MapPin, Minus, Plus, Send, Sparkles, X } from 'lucide-react';
 import type { Trip } from '@/core/types';
+import { useAuth } from '@/hooks/use-auth';
 import { supabase } from '@/lib/supabase-client';
 import { RadarAntiCheatKernel } from '@/core/RadarAntiCheatKernel';
 import { useCaptainProfessionalAd } from '../hooks/use-captain-professional-ad';
@@ -30,7 +31,7 @@ const styles = {
   style115_8: "mt-5 rounded-2xl border border-slate-800 bg-black/45 p-4",
   style116_9: "text-xs text-slate-400",
   style117_10: "mt-1 text-xl font-black",
-  style118_11: "mt-4 grid gap-3 sm:grid-cols-3",
+  style118_11: "mt-4 grid grid-cols-2 gap-2",
   style125_12: "mt-5 rounded-2xl border border-[#14B8A6]/20 bg-[#0B2A2A]/25 p-4",
   style126_13: "flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between",
   style128_14: "inline-flex items-center gap-2 text-sm font-black text-[#14B8A6]",
@@ -50,7 +51,7 @@ const styles = {
   meterDetails: "mt-3 rounded-2xl border border-cyan-400/20 bg-cyan-400/[0.05] p-3",
   meterDetailsTitle: "text-sm font-black text-cyan-200",
   meterDetailsHint: "mt-1 text-xs leading-5 text-slate-400",
-  meterFormula: "mt-3 rounded-xl border border-white/10 bg-black/25 p-3 text-xs font-bold leading-6 text-slate-200",
+  meterFormula: "mt-3 rounded-xl border border-white/10 bg-black/25 p-3 text-xs font-bold leading-6 text-slate-200 text-center font-mono tracking-wide",
   meterDetailsRoute: "mt-2 text-[11px] leading-5 text-slate-400",
   style163_22: "mt-5 rounded-2xl border border-emerald-500/15 bg-emerald-950/10 p-4",
   style164_23: "text-sm font-black text-emerald-200",
@@ -124,7 +125,7 @@ interface BiddingProposalSheetProps {
   /** For the "time to reach the rider" estimate — the captain's own live position. */
   driverLocation: { lat: number; lng: number } | null;
   isSubmitting: boolean;
-  onSubmit: (price: number, waitSeconds: number) => void;
+  onSubmit: (price: number, waitSeconds: number, pricingMode?: 'FREE' | 'APP' | 'TAXI') => void;
   onIgnore: () => void;
 }
 
@@ -154,6 +155,27 @@ export function BiddingProposalSheet({
     && parsedWaitSeconds >= MIN_OFFER_WAIT_SECONDS
     && parsedWaitSeconds <= MAX_OFFER_WAIT_SECONDS;
   const [quote, setQuote] = React.useState<CaptainOfferQuote | null>(null);
+
+  const { user } = useAuth();
+  const existingOffer = React.useMemo(() => request.offers?.find(o => o.driverId === user?.uid), [request.offers, user?.uid]);
+  const isIndependent = user?.subRole === 'independent';
+  const isSmartApp = user?.affiliation?.type === 'smart-app';
+  const isOfficeTaxi = user?.affiliation?.type === 'office-taxi';
+
+  const riderPreference = React.useMemo(() => {
+    const pref = String(request.pricingPreference || '').toUpperCase();
+    return (['APP', 'TAXI', 'FREE'].includes(pref) ? (pref as 'APP' | 'TAXI' | 'FREE') : null);
+  }, [request.pricingPreference]);
+
+  const [pricingMode, setPricingMode] = React.useState<'FREE' | 'APP' | 'TAXI' | null>(
+    riderPreference ?? (isIndependent ? 'FREE' : null)
+  );
+
+  React.useEffect(() => {
+    if (riderPreference) {
+      setPricingMode(riderPreference);
+    }
+  }, [riderPreference]);
 
   // The sheet opens on the captain's OWN meter reading — base_fare + km + minutes from the
   // tariff they set for themselves — not on the market reference. The market average only
@@ -192,14 +214,37 @@ export function BiddingProposalSheet({
   const bandHeadroom = roundMoney(Math.max(0, ceilingPrice - baseFare));
   const minIncreaseAmount = roundMoney(Math.min(0, floorPrice - baseFare));
 
-  const [increaseAmount, setIncreaseAmount] = React.useState(0);
-  const normalizedIncreaseAmount = Number.isFinite(increaseAmount) ? increaseAmount : 0;
-  const finalOfferPrice = roundMoney(baseFare + normalizedIncreaseAmount);
+  const [increaseAmount, setIncreaseAmount] = React.useState<string | number>(0);
+  const [appPrice, setAppPrice] = React.useState<string>('');
+  const parsedIncrease = parseFloat(String(increaseAmount));
+  const normalizedIncreaseAmount = Number.isFinite(parsedIncrease) ? parsedIncrease : 0;
+  
+  const parsedAppPrice = parseFloat(appPrice);
+  const normalizedAppPrice = Number.isFinite(parsedAppPrice) ? parsedAppPrice : 0;
+
+  let finalOfferPrice = roundMoney(baseFare + normalizedIncreaseAmount);
+  if (pricingMode === 'APP') {
+    finalOfferPrice = normalizedAppPrice > 0 ? roundMoney(normalizedAppPrice) : 0;
+  } else if (pricingMode === 'TAXI') {
+    finalOfferPrice = roundMoney(baseFare);
+  }
 
   React.useEffect(() => {
-    setIncreaseAmount(0);
-    setWaitSecondsInput(String(MIN_OFFER_WAIT_SECONDS));
-  }, [request.id]);
+    if (existingOffer && pricingMode === 'FREE') {
+      const diff = existingOffer.price - baseFare;
+      setIncreaseAmount(diff !== 0 ? roundMoney(diff) : 0);
+    } else {
+      setIncreaseAmount(0);
+    }
+    setAppPrice('');
+    setWaitSecondsInput(String(existingOffer?.wait_seconds || MIN_OFFER_WAIT_SECONDS));
+  }, [request.id, existingOffer?.id, baseFare, pricingMode]);
+
+  React.useEffect(() => {
+    if (pricingMode === 'TAXI' || (pricingMode === 'APP' && isOfficeTaxi)) {
+      setIncreaseAmount(0);
+    }
+  }, [pricingMode, isOfficeTaxi]);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -295,15 +340,15 @@ export function BiddingProposalSheet({
   const isAmberDeviation = isTierAmber || isDumpingAmber;
   // Only the FLOOR blocks now. Going above the market band is the captain's call to make.
   const isBlockedDeviation = isDumpingBlocked;
-  const canSubmit = Number.isFinite(finalOfferPrice) && finalOfferPrice > 0 && !isSubmitting && !isBlockedDeviation && isWaitSecondsValid;
+  const canSubmit = pricingMode !== null && Number.isFinite(finalOfferPrice) && finalOfferPrice > 0 && !isSubmitting && !isBlockedDeviation && isWaitSecondsValid;
 
   // The captain raises their price as far as they want. There is NO cap: not the band, not
   // the rank, not a stepper bound. Every previous version of this line locked "+" at some
   // number and that is what made the control feel broken.
-  const isPlusDisabled = false;
+  const isPlusDisabled = pricingMode === 'TAXI' || (pricingMode === 'APP' && isOfficeTaxi) || pricingMode === null;
   // "-" is the only direction with a wall, and only once the offer is already at the
   // anti-dumping floor — the one rule the server still refuses.
-  const isMinusDisabled = isDumpingBlocked && normalizedIncreaseAmount <= minIncreaseAmount;
+  const isMinusDisabled = pricingMode === 'TAXI' || (pricingMode === 'APP' && isOfficeTaxi) || pricingMode === null || (isDumpingBlocked && normalizedIncreaseAmount <= minIncreaseAmount);
 
   return (
     <section className={styles.style103_1}>
@@ -321,15 +366,37 @@ export function BiddingProposalSheet({
       <div className={styles.style115_8}>
         <p className={styles.style116_9}>{t('destination')}</p>
         <h2 className={styles.style117_10}>{request.dropoff || t('unknownDestination')}</h2>
+        
         <div className={styles.style118_11}>
           <Info
-            label={t('distance')}
+            label={t('passengerRatingLabel')}
+            value={`${request.riderRating != null ? request.riderRating.toFixed(1) : '5.0'} ⭐️`}
+          />
+          <Info
+            label={t('requestTimeLabel')}
+            value={request.createdAt ? new Date(request.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
+          />
+          <Info
+            label={t('tripsCountLabel')}
+            value={String(request.riderCompletedTrips || 0)}
+          />
+          <Info
+            label={request.estimatedDistance != null && request.estimatedDistance < 2 ? t('distanceMinimum', { distance: '2.0' }) : t('distanceLabel', { distance: request.estimatedDistance?.toFixed(1) || '0.0' })}
             value={request.estimatedDistance != null ? `${request.estimatedDistance.toFixed(1)} ${language === 'ar' ? 'كيلو' : 'km'}` : pickupT('distanceUnavailable')}
           />
-          <Info label={t('pickupTime')} value={pickupT('minutesValue', { count: pickupEtaMinutes })} />
+          <Info label={t('pickupTimeLabel', { minutes: pickupEtaMinutes || 0 })} value={pickupT('minutesValue', { count: pickupEtaMinutes })} />
           <Info
             label={t('tripTime')}
             value={request.estimatedTime != null ? pickupT('minutesValue', { count: Math.round(request.estimatedTime) }) : pickupT('distanceUnavailable')}
+          />
+          <Info
+            label={t('pricingPreference')}
+            value={
+              request.pricingPreference === 'APP' ? (language === 'ar' ? 'حسب تسعيرة التطبيق' : 'App Pricing') :
+              request.pricingPreference === 'TAXI' ? (language === 'ar' ? 'حسب عداد التاكسي' : 'Taxi Meter') :
+              request.pricingPreference === 'FREE' ? (language === 'ar' ? 'سعر حر' : 'Free Pricing') :
+              (language === 'ar' ? 'بدون تحديد (مفتوح)' : 'No Preference')
+            }
           />
           {/* Base fare display disabled — kept hidden from captain by product request.
               This now holds the captain's own meter reading rather than the server fare,
@@ -392,23 +459,125 @@ export function BiddingProposalSheet({
             </p>
           </div>
 
-          <div className={styles.style141_17}>
+        <div className={styles.style141_17}>
             <p className={styles.style142_18}>{t('maxIncrease')}</p>
             <p className={styles.style143_19}>{bandHeadroom.toFixed(2)} {currency}</p>
           </div>
         </div>
 
-        {/* Every number spelled out, and labelled with WHERE it comes from. Three figures
-            from two different scales — the captain's own meter and the market average — were
-            being shown side by side with nothing saying which was which, so
-            "أعلى سعر بدون تنبيه: 60.35" sat next to a base fare of 650.00 and read as a
-            contradiction rather than as two different measurements. */}
-        <div className={styles.meterDetails}>
-          <p className={styles.meterDetailsTitle}>{t('meterCalculationTitle')}</p>
+        <div className="mt-4 space-y-2">
+          {riderPreference ? (
+            <div className="flex items-center gap-2 rounded-xl border border-[#14B8A6]/40 bg-[#14B8A6]/10 px-3 py-2 text-xs font-bold text-[#5eead4]">
+              <Lock className="h-4 w-4 shrink-0 text-[#14B8A6]" />
+              <span>
+                {language === 'ar'
+                  ? `نمط المحاسبة محدد بواسطة الراكب: ${
+                      riderPreference === 'APP' ? 'تسعيرة التطبيق' :
+                      riderPreference === 'TAXI' ? 'عداد التاكسي' : 'سعر حر'
+                    }`
+                  : `Pricing mode locked by rider: ${
+                      riderPreference === 'APP' ? 'App Price' :
+                      riderPreference === 'TAXI' ? 'Taxi Meter' : 'Free Price'
+                    }`}
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-3 py-2 text-xs font-bold text-cyan-300">
+              <Sparkles className="h-4 w-4 shrink-0 text-cyan-400" />
+              <span>
+                {language === 'ar'
+                  ? 'الراكب لم يحدد نمط محاسبة — اختر النمط الأنسب لك'
+                  : 'Rider specified no preference — select your preferred mode'}
+              </span>
+            </div>
+          )}
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              type="button"
+              disabled={!!riderPreference}
+              onClick={() => setPricingMode('FREE')}
+              className={cn(
+                'rounded-xl border border-white/10 p-2.5 text-xs font-bold transition sm:p-3 sm:text-sm',
+                pricingMode === 'FREE'
+                  ? 'bg-[#14B8A6] text-[#06111f] ring-2 ring-[#14B8A6]/50'
+                  : 'bg-black/30 text-slate-300 hover:bg-white/10',
+                riderPreference && riderPreference !== 'FREE' && 'opacity-35 cursor-not-allowed grayscale border-white/5 bg-black/20 text-slate-500'
+              )}
+            >
+              {language === 'ar' ? 'سعر حر' : 'Free Price'}
+            </button>
+            <button
+              type="button"
+              disabled={!!riderPreference}
+              onClick={() => setPricingMode('APP')}
+              className={cn(
+                'rounded-xl border border-white/10 p-2.5 text-xs font-bold transition sm:p-3 sm:text-sm',
+                pricingMode === 'APP'
+                  ? 'bg-[#14B8A6] text-[#06111f] ring-2 ring-[#14B8A6]/50'
+                  : 'bg-black/30 text-slate-300 hover:bg-white/10',
+                riderPreference && riderPreference !== 'APP' && 'opacity-35 cursor-not-allowed grayscale border-white/5 bg-black/20 text-slate-500'
+              )}
+            >
+              {language === 'ar' ? 'سعر تطبيق' : 'App Price'}
+            </button>
+            <button
+              type="button"
+              disabled={!!riderPreference}
+              onClick={() => setPricingMode('TAXI')}
+              className={cn(
+                'rounded-xl border border-white/10 p-2.5 text-xs font-bold transition sm:p-3 sm:text-sm',
+                pricingMode === 'TAXI'
+                  ? 'bg-[#14B8A6] text-[#06111f] ring-2 ring-[#14B8A6]/50'
+                  : 'bg-black/30 text-slate-300 hover:bg-white/10',
+                riderPreference && riderPreference !== 'TAXI' && 'opacity-35 cursor-not-allowed grayscale border-white/5 bg-black/20 text-slate-500'
+              )}
+            >
+              {language === 'ar' ? 'سعر تكسي' : 'Taxi Price'}
+            </button>
+          </div>
+        </div>
+
+        {pricingMode === 'FREE' && (
+          <div className="mt-4 rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 p-3 text-sm font-bold text-[#5eead4]">
+            {t('companyPriceNotice')}
+          </div>
+        )}
+
+        {pricingMode === 'APP' && (
+          <div className="mt-4 rounded-xl border border-blue-400/30 bg-blue-500/10 p-4 text-sm font-bold text-blue-200">
+            <p className="mb-3">{t('appModeInputNotice')}</p>
+            <p className="mb-2 text-xs font-normal text-blue-300">{t('appModeInputHint')}</p>
+            <input
+              type="number"
+              inputMode="decimal"
+              value={appPrice}
+              onChange={(e) => setAppPrice(e.target.value)}
+              className="w-full rounded-xl border border-blue-400/30 bg-black/40 p-3 text-lg font-black text-white outline-none focus:border-blue-400"
+              placeholder="0.00"
+              autoFocus
+            />
+          </div>
+        )}
+
+        {pricingMode === 'TAXI' && (
+          <div className="mt-4 rounded-xl border border-amber-400/30 bg-amber-500/10 p-3 text-sm font-bold text-amber-200">
+            {t('taxiModeNotice')}
+          </div>
+        )}
+
+        {pricingMode === 'FREE' && (
+          <>
+            {/* Every number spelled out, and labelled with WHERE it comes from. Three figures
+                from two different scales — the captain's own meter and the market average — were
+                being shown side by side with nothing saying which was which, so
+                "أعلى سعر بدون تنبيه: 60.35" sat next to a base fare of 650.00 and read as a
+                contradiction rather than as two different measurements. */}
+            <div className={styles.meterDetails}>
+              <p className={styles.meterDetailsTitle}>{t('meterCalculationTitle')}</p>
           <p className={styles.meterDetailsHint}>{t('meterCalculationSource')}</p>
           {meterDetails ? (
             <>
-              <p className={styles.meterFormula}>
+              <p className={styles.meterFormula} dir="ltr">
                 {t('meterCalculationFormula', {
                   base: meterDetails.baseFare.toFixed(2),
                   billableKm: meterDetails.billableKm.toFixed(2),
@@ -436,7 +605,7 @@ export function BiddingProposalSheet({
               })}
             </p>
           )}
-          <p className={styles.meterFormula}>
+          <p className={styles.meterFormula} dir="ltr">
             {t('meterCalculationMarket', {
               market: marketFare.toFixed(2),
               currency,
@@ -519,40 +688,50 @@ export function BiddingProposalSheet({
             })}
           </p>
         ) : null}
+          </>
+        )}
       </div>
 
-      <div className={styles.style163_22}>
-        {/* Always rendered. This was gated on `canIncrease`, which was derived from the
-            band — so on any trip where the meter already sat at or above the band the
-            entire increase control disappeared and the captain had no way to raise a price
-            they are entitled to raise without limit. */}
-        <>
-          <label className={styles.style164_23}>{t('increaseAmount')}</label>
-            <div className={styles.style165_24}>
-              <button
-                type="button"
-                onClick={() => setIncreaseAmount((value) => Math.max(minIncreaseAmount, roundMoney(value - step)))}
-                disabled={isMinusDisabled}
-                className={cn(styles.style169_25, isMinusDisabled ? styles.inputLocked : '')}
-              >
-                <Minus className={styles.style171_26} />
-              </button>
-              <input
-                value={Number(increaseAmount).toString()}
-                onChange={(event) => setIncreaseAmount(Number(event.target.value))}
-                inputMode="decimal"
-                className={styles.style177_27}
-              />
-              <button
-                type="button"
-                onClick={() => setIncreaseAmount((value) => roundMoney(value + step))}
-                disabled={isPlusDisabled}
-                className={cn(styles.style182_28, isPlusDisabled ? styles.inputLocked : '')}
-              >
-                <Plus className={styles.style184_29} />
-              </button>
-            </div>
-        </>
+      {pricingMode !== null && (
+        <div className={styles.style163_22}>
+          {/* Always rendered. This was gated on `canIncrease`, which was derived from the
+              band — so on any trip where the meter already sat at or above the band the
+              entire increase control disappeared and the captain had no way to raise a price
+              they are entitled to raise without limit. */}
+        {pricingMode === 'FREE' && (
+          <>
+            <label className={styles.style164_23}>{t('increaseAmount')}</label>
+              <div className={styles.style165_24}>
+                <button
+                  type="button"
+                  onClick={() => setIncreaseAmount((value) => Math.max(minIncreaseAmount, roundMoney((Number(value) || 0) - step)))}
+                  disabled={isMinusDisabled}
+                  className={cn(styles.style169_25, isMinusDisabled ? styles.inputLocked : '')}
+                >
+                  <Minus className={styles.style171_26} />
+                </button>
+                <input
+                  value={increaseAmount.toString()}
+                  onChange={(event) => {
+                    const val = event.target.value;
+                    if (val === '' || val === '-' || /^-?\d*\.?\d*$/.test(val)) {
+                      setIncreaseAmount(val);
+                    }
+                  }}
+                  inputMode="decimal"
+                  className={styles.style177_27}
+                />
+                <button
+                  type="button"
+                  onClick={() => setIncreaseAmount((value) => roundMoney((Number(value) || 0) + step))}
+                  disabled={isPlusDisabled}
+                  className={cn(styles.style182_28, isPlusDisabled ? styles.inputLocked : '')}
+                >
+                  <Plus className={styles.style184_29} />
+                </button>
+              </div>
+          </>
+        )}
         <div className={styles.style187_30}>
           <div className={styles.style188_31}>
             <span className={styles.style189_32}>{t('finalOffer')}</span>
@@ -658,7 +837,8 @@ export function BiddingProposalSheet({
             }}
           />
         ) : null}
-      </div>
+        </div>
+      )}
 
       <div className={styles.style215_39}>
         <span
@@ -666,12 +846,12 @@ export function BiddingProposalSheet({
           title={!isWaitSecondsValid ? t('waitSecondsRange', { min: MIN_OFFER_WAIT_SECONDS, max: MAX_OFFER_WAIT_SECONDS }) : undefined}
         >
           <button
-            onClick={() => onSubmit(finalOfferPrice, parsedWaitSeconds)}
+            onClick={() => onSubmit(finalOfferPrice, parsedWaitSeconds, pricingMode || undefined)}
             disabled={!canSubmit}
             className={styles.style219_40}
           >
             {isSubmitting ? <Loader2 className={styles.style221_41} /> : <Send className={styles.style221_42} />}
-            {t('submit')}
+            {existingOffer ? (language === 'ar' ? 'تحديث العرض' : 'Update offer') : t('submit')}
           </button>
         </span>
         <button onClick={onIgnore} className={styles.style224_43}>

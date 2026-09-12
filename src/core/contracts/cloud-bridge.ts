@@ -17,7 +17,7 @@ export interface SovereignCloudContracts {
       pickupCoords: { lat: number; lng: number };
       gridId: string;
       district: string;
-      requiresOfficialRate: boolean;
+      pricingPreference: 'APP' | 'TAXI' | 'FREE' | null;
       estimatedTime: number;
       estimatedDistance: number;
     };
@@ -174,7 +174,7 @@ async function simulateSovereignCloud<T extends keyof SovereignCloudContracts>(
                 exactPickupCoords: payload.exactPickupCoords || { lat: 31.9522, lng: 35.9106 },
                 gridId: payload.gridId || 'unknown',
                 seats: payload.seats || 1,
-                requiresOfficialRate: payload.requiresOfficialRate || false,
+                pricingPreference: payload.pricingPreference || null,
                 estimatedTime: payload.estimatedTime || 0,
                 estimatedDistance: payload.estimatedDistance || 0,
                 riderName: payload.riderName || 'فارس الأفق',

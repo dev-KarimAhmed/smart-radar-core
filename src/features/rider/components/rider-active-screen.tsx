@@ -107,6 +107,8 @@ export function RiderActiveScreen(props: RiderActiveScreenProps) {
         isDestinationPinMoving={isDestinationPinMoving}
         riderCount={tripCompletion.riderCount}
         setRiderCount={tripCompletion.setRiderCount}
+        pricingPreference={tripCompletion.pricingPreference}
+        setPricingPreference={tripCompletion.setPricingPreference}
         isSendingRideRequest={sendCancel.isSendingRideRequest}
         isCaptainScanPreviewActive={isCaptainScanPreviewActive}
         nearbyCaptainCount={captainPresence.mappedCaptains.length}

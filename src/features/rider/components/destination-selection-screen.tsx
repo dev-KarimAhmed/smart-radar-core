@@ -55,6 +55,8 @@ export interface DestinationSelectionScreenProps {
   isDestinationPinMoving: boolean;
   riderCount: number;
   setRiderCount: (updater: (current: number) => number) => void;
+  pricingPreference: 'APP' | 'TAXI' | 'FREE' | null;
+  setPricingPreference: (pref: 'APP' | 'TAXI' | 'FREE' | null) => void;
   isSendingRideRequest: boolean;
   isCaptainScanPreviewActive: boolean;
   nearbyCaptainCount: number;
@@ -80,6 +82,8 @@ export function DestinationSelectionScreen({
   isDestinationPinMoving,
   riderCount,
   setRiderCount,
+  pricingPreference,
+  setPricingPreference,
   isSendingRideRequest,
   isCaptainScanPreviewActive,
   nearbyCaptainCount,
@@ -181,6 +185,8 @@ export function DestinationSelectionScreen({
       <DestinationTripSummary
         riderCount={riderCount}
         setRiderCount={setRiderCount}
+        pricingPreference={pricingPreference}
+        setPricingPreference={setPricingPreference}
         destinationDataError={geography.destinationDataError}
         destinationReady={destinationReady}
         isServerFareLoading={isServerFareLoading}

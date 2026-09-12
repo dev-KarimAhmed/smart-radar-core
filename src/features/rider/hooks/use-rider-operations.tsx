@@ -41,8 +41,8 @@ interface RiderOperationsContextType {
   setDropoff: (dropoff: string) => void;
   pickup: string;
   setPickup: (link: string) => void;
-  requiresOfficialRate: boolean;
-  setRequiresOfficialRate: (requires: boolean) => void;
+  pricingPreference: 'APP' | 'TAXI' | 'FREE' | null;
+  setPricingPreference: (pref: 'APP' | 'TAXI' | 'FREE' | null) => void;
   isResolvingUrl: boolean;
   calculateSovereignMetrics: () => Promise<void>;
   pasteFromClipboard: () => Promise<void>;
@@ -71,7 +71,7 @@ export function RiderOperationsProvider({ children }: { children: ReactNode }) {
   const [seats, setSeats] = useState('1');
   const [dropoff, setDropoff] = useState('');
   const [pickup, setPickup] = useState('');
-  const [requiresOfficialRate, setRequiresOfficialRate] = useState(false);
+  const [pricingPreference, setPricingPreference] = useState<'APP' | 'TAXI' | 'FREE' | null>(null);
 
   const openRequestModal = useCallback(() => {
     setIsRequestModalOpen(true);
@@ -123,8 +123,8 @@ export function RiderOperationsProvider({ children }: { children: ReactNode }) {
     setDropoff,
     pickup,
     setPickup,
-    requiresOfficialRate,
-    setRequiresOfficialRate,
+    pricingPreference,
+    setPricingPreference,
     isResolvingUrl: false,
     calculateSovereignMetrics: resolvedPromise,
     pasteFromClipboard: resolvedPromise,
@@ -141,7 +141,7 @@ export function RiderOperationsProvider({ children }: { children: ReactNode }) {
     isRequestModalOpen,
     openRequestModal,
     pickup,
-    requiresOfficialRate,
+    pricingPreference,
     resetLocationMetrics,
     seats,
   ]);

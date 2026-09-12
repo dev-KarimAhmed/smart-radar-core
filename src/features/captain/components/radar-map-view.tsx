@@ -403,7 +403,15 @@ export function RadarMapView({
                           <Info
                             label={copy.requestTime}
                             value={formatRequestTime(request.createdAt, language)}
-                            fullWidth
+                          />
+                          <Info
+                            label={copy.pricingPreference}
+                            value={
+                              request.pricingPreference === 'APP' ? (language === 'ar' ? 'حسب تسعيرة التطبيق' : 'App Pricing') :
+                              request.pricingPreference === 'TAXI' ? (language === 'ar' ? 'حسب عداد التاكسي' : 'Taxi Meter') :
+                              request.pricingPreference === 'FREE' ? (language === 'ar' ? 'سعر حر' : 'Free Pricing') :
+                              (language === 'ar' ? 'بدون تحديد (مفتوح)' : 'No Preference')
+                            }
                           />
                         </div>
                         {isBlockedByOtherPendingOffer ? <p className={styles.pendingOfferHint}>{copy.pendingOfferHint}</p> : null}
@@ -583,6 +591,7 @@ const radarCopy = {
     riderUnrated: 'راكب جديد',
     riderFavoritedYou: 'في مفضلته',
     riderNotFavoritedYou: 'مش في مفضلته',
+    pricingPreference: 'طريقة التسعير',
     openBid: 'تقديم عرض',
     pendingOfferHint: 'لديك عرض قيد الانتظار، انتظر رد الراكب أولاً.',
     ownPendingOffer: 'عرضك قيد الانتظار — بانتظار رد الراكب',
@@ -614,6 +623,7 @@ const radarCopy = {
     riderUnrated: 'New rider',
     riderFavoritedYou: 'Has you as a favourite',
     riderNotFavoritedYou: 'Not a favourite yet',
+    pricingPreference: 'Pricing Mode',
     openBid: 'Submit bid',
     pendingOfferHint: 'You have a pending offer — wait for the rider to respond first.',
     ownPendingOffer: 'Your offer is pending — waiting for the rider to respond',

@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Zap, CheckCircle2, Loader2, Clipboard, Ruler, MapPinned, Clock, AlertCircle } from 'lucide-react';
 import { useRiderOperations } from '../hooks/use-rider-operations';
+import { useLocaleContext } from '@/components/providers/locale-provider';
 import { cn } from '@/lib/utils';
 
 const styles = {
@@ -113,12 +114,15 @@ const styles = {
  * مجهزة بمرجعية الأوامر الثابتة وقانون التوازن المالي والجغرافي.
  */
 export function RequestRideModal() {
+  const { currentLocale } = useLocaleContext();
+  const isArabic = currentLocale === 'ar';
+
   const {
     isRequestModalOpen, closeRequestModal,
     seats, setSeats,
     dropoff, setDropoff,
     pickup, setPickup,
-    requiresOfficialRate, setRequiresOfficialRate,
+    pricingPreference, setPricingPreference,
     isResolvingUrl,
     requestRide, isRequesting,
     estimatedDistance, estimatedTime,
@@ -129,11 +133,11 @@ export function RequestRideModal() {
   } = useRiderOperations()!;
 
   const destinationOptions = [
-    { id: 'amman-wadi-seer', governorate: 'عمان', district: 'وادي السير', label: 'وادي السير - عمان', coords: '31.958600, 35.868400' },
-    { id: 'amman-downtown', governorate: 'عمان', district: 'وسط البلد', label: 'وسط البلد - عمان', coords: '31.951900, 35.939300' },
-    { id: 'zarqa-center', governorate: 'الزرقاء', district: 'الزرقاء الجديدة', label: 'الزرقاء الجديدة', coords: '32.072800, 36.087000' },
-    { id: 'irbid-center', governorate: 'إربد', district: 'إربد البلد', label: 'إربد البلد', coords: '32.555600, 35.850000' },
-    { id: 'madaba-center', governorate: 'مأدبا', district: 'مأدبا البلد', label: 'مأدبا البلد', coords: '31.716700, 35.793600' },
+    { id: 'amman-wadi-seer', governorate: isArabic ? 'عمان' : 'Amman', district: isArabic ? 'وادي السير' : 'Wadi Al-Seer', label: isArabic ? 'وادي السير - عمان' : 'Wadi Al-Seer - Amman', coords: '31.958600, 35.868400' },
+    { id: 'amman-downtown', governorate: isArabic ? 'عمان' : 'Amman', district: isArabic ? 'وسط البلد' : 'Downtown', label: isArabic ? 'وسط البلد - عمان' : 'Downtown - Amman', coords: '31.951900, 35.939300' },
+    { id: 'zarqa-center', governorate: isArabic ? 'الزرقاء' : 'Zarqa', district: isArabic ? 'الزرقاء الجديدة' : 'New Zarqa', label: isArabic ? 'الزرقاء الجديدة' : 'New Zarqa', coords: '32.072800, 36.087000' },
+    { id: 'irbid-center', governorate: isArabic ? 'إربد' : 'Irbid', district: isArabic ? 'إربد البلد' : 'Irbid Downtown', label: isArabic ? 'إربد البلد' : 'Irbid Downtown', coords: '32.555600, 35.850000' },
+    { id: 'madaba-center', governorate: isArabic ? 'مأدبا' : 'Madaba', district: isArabic ? 'مأدبا البلد' : 'Madaba Downtown', label: isArabic ? 'مأدبا البلد' : 'Madaba Downtown', coords: '31.716700, 35.793600' },
   ];
 
   const selectedDestination = destinationOptions.find((option) => option.label === dropoff);
@@ -147,10 +151,10 @@ export function RequestRideModal() {
           <DialogHeader>
             <DialogTitle className={styles.style51_3}>
               <Zap className={styles.style52_4} />
-              طلب رحلة
+              {isArabic ? 'طلب رحلة' : 'Request Ride'}
             </DialogTitle>
             <DialogDescription className={styles.style55_5}>
-               اختر وجهتك واحسب المسافة محليا
+               {isArabic ? 'اختر وجهتك واحسب المسافة محلياً' : 'Select your destination and calculate distance locally'}
             </DialogDescription>
           </DialogHeader>
         </div>
@@ -160,7 +164,7 @@ export function RequestRideModal() {
           {/* الخطوة 1: تحديد الوجهة محليا */}
           <div className={styles.style64_7}>
             <Label className={styles.style65_8}>
-              <span>1. اختر الوجهة</span>
+              <span>{isArabic ? '1. اختر الوجهة' : '1. Select Destination'}</span>
             </Label>
             <div className={styles.style68_9}>
               <Select
@@ -174,7 +178,7 @@ export function RequestRideModal() {
                 }}
               >
                 <SelectTrigger className={styles.style79_10}>
-                  <SelectValue placeholder="المحافظة" />
+                  <SelectValue placeholder={isArabic ? 'المحافظة' : 'Governorate'} />
                 </SelectTrigger>
                 <SelectContent className={styles.style82_11}>
                   {[...new Set(destinationOptions.map((item) => item.governorate))].map((governorate) => (
@@ -194,7 +198,7 @@ export function RequestRideModal() {
                 }}
               >
                 <SelectTrigger className={styles.style99_12}>
-                  <SelectValue placeholder="المنطقة" />
+                  <SelectValue placeholder={isArabic ? 'المنطقة' : 'District'} />
                 </SelectTrigger>
                 <SelectContent className={styles.style102_13}>
                   {destinationOptions.map((option) => (
@@ -207,16 +211,16 @@ export function RequestRideModal() {
 
           {/* الخطوة 2: إحداثيات الوجهة المحلية */}
           <div className={styles.style112_14}>
-             <Label className={styles.style113_15}>2. إحداثيات الوجهة</Label>
+             <Label className={styles.style113_15}>{isArabic ? '2. إحداثيات الوجهة' : '2. Destination Coordinates'}</Label>
              <div className={styles.style114_16}>
                 <div className={styles.style115_17}>
                     <div className={styles.style116_18}>
                         <Input
-                            placeholder="اختر منطقة أو اكتب الإحداثيات مثل 31.95, 35.91"
+                            placeholder={isArabic ? 'اختر منطقة أو اكتب الإحداثيات مثل 31.95, 35.91' : 'Select an area or enter coordinates like 31.95, 35.91'}
                             value={pickup}
                             onChange={(e) => setPickup(e.target.value)}
                             className={styles.style121_19}
-                            title="إحداثيات محلية بدون geocoding"
+                            title={isArabic ? 'إحداثيات محلية بدون geocoding' : 'Local coordinates without geocoding'}
                         />
                         <Clipboard className={styles.style124_20} />
                     </div>
@@ -239,7 +243,7 @@ export function RequestRideModal() {
                             <Ruler className={styles.style142_24} />
                         )}
                         <span className={styles.style144_25}>
-                           حساب المسافة والسعر
+                           {isArabic ? 'حساب المسافة والسعر' : 'Calculate Distance & Fare'}
                         </span>
                     </Button>
                 ) : (
@@ -249,7 +253,7 @@ export function RequestRideModal() {
                                 <div className={styles.style152_29}>
                                     <CheckCircle2 className={styles.style153_30} />
                                 </div>
-                                <span className={styles.style155_31}>تم حساب المسافة محليا</span>
+                                <span className={styles.style155_31}>{isArabic ? 'تم حساب المسافة محلياً' : 'Distance calculated locally'}</span>
                             </div>
                             <Button
                                 variant="ghost"
@@ -257,7 +261,7 @@ export function RequestRideModal() {
                                 onClick={() => { setPickup(''); resetLocationMetrics(); }}
                                 className={styles.style161_32}
                             >
-                                إعادة الضبط
+                                {isArabic ? 'إعادة الضبط' : 'Reset'}
                             </Button>
                         </div>
 
@@ -267,14 +271,14 @@ export function RequestRideModal() {
                                     <MapPinned className={styles.style170_36} />
                                 </div>
                                 <div className={styles.style172_37}>
-                                    <p className={styles.style173_38}>المسافة الفعلية</p>
+                                    <p className={styles.style173_38}>{isArabic ? 'المسافة الفعلية' : 'Actual Distance'}</p>
                                     <p className={styles.style174_39}>
                                         {isBlindSpot ? (
-                                            <span className={styles.style176_40}><AlertCircle className={styles.style176_41}/> منطقة لاهوت</span>
+                                            <span className={styles.style176_40}><AlertCircle className={styles.style176_41}/> {isArabic ? 'منطقة لاهوت' : 'Blind spot area'}</span>
                                         ) : (
                                             <>
                                                 {estimatedDistance.toFixed(2)}
-                                                <span className={styles.style180_42}>كم</span>
+                                                <span className={styles.style180_42}>{isArabic ? 'كم' : 'km'}</span>
                                             </>
                                         )}
                                     </p>
@@ -285,10 +289,10 @@ export function RequestRideModal() {
                                     <Clock className={styles.style188_45} />
                                 </div>
                                 <div className={styles.style190_46}>
-                                    <p className={styles.style191_47}>الزمن التقديري</p>
+                                    <p className={styles.style191_47}>{isArabic ? 'الزمن التقديري' : 'Estimated Time'}</p>
                                     <p className={styles.style192_48}>
                                         {estimatedTime > 0 ? `~${estimatedTime}` : '--'}
-                                        <span className={styles.style194_49}>دقيقة</span>
+                                        <span className={styles.style194_49}>{isArabic ? 'دقيقة' : 'min'}</span>
                                     </p>
                                 </div>
                             </div>
@@ -298,26 +302,26 @@ export function RequestRideModal() {
                             <div className={styles.style201_50}>
                                 <div className={styles.style202_51}>
                                     <span className={styles.style203_52}>
-                                        📐 معادلة العدالة الميدانية V5.1
+                                        {isArabic ? '📐 معادلة العدالة الميدانية V5.1' : '📐 Field Equity Formula V5.1'}
                                     </span>
                                     <span className={styles.style206_53}>SSOT Engine</span>
                                 </div>
                                 <div className={styles.style208_54}>
                                     <div className={styles.style209_55}>
-                                        <span>مسافة الدورة العظمى (Haversine):</span>
-                                        <span>{(estimatedDistance / 1.35).toFixed(2)} كم</span>
+                                        <span>{isArabic ? 'مسافة الدورة العظمى (Haversine):' : 'Great-circle distance (Haversine):'}</span>
+                                        <span>{(estimatedDistance / 1.35).toFixed(2)} {isArabic ? 'كم' : 'km'}</span>
                                     </div>
                                     <div className={styles.style213_56}>
-                                        <span>معامل التعرج المحلي (γ):</span>
+                                        <span>{isArabic ? 'معامل التعرج المحلي (γ):' : 'Local tortuosity factor (γ):'}</span>
                                         <span className={styles.style215_57}>× 1.35</span>
                                     </div>
                                     <div className={styles.style217_58}>
-                                        <span className={styles.style218_59}>المسافة المعتمدة:</span>
-                                        <span className={styles.style219_60}>{estimatedDistance.toFixed(2)} كم</span>
+                                        <span className={styles.style218_59}>{isArabic ? 'المسافة المعتمدة:' : 'Approved distance:'}</span>
+                                        <span className={styles.style219_60}>{estimatedDistance.toFixed(2)} {isArabic ? 'كم' : 'km'}</span>
                                     </div>
                                     <div className={styles.style221_61}>
-                                        <span>حساب الزمن (المسافة / السرعة 40 كم/س):</span>
-                                        <span className={styles.style223_62}>~{estimatedTime} دقيقة</span>
+                                        <span>{isArabic ? 'حساب الزمن (المسافة / السرعة 40 كم/س):' : 'Time calculation (Distance / Speed 40 km/h):'}</span>
+                                        <span className={styles.style223_62}>~{estimatedTime} {isArabic ? 'دقيقة' : 'min'}</span>
                                     </div>
                                 </div>
                             </div>
@@ -326,7 +330,9 @@ export function RequestRideModal() {
                         {isBlindSpot && (
                             <div className={styles.style230_63}>
                                 <p className={styles.style231_64}>
-                                    ⚠️ تعذر استخراج الإحداثيات؛ تم تفعيل "بروتوكول النقطة العمياء" لتأمين استمرارية الرادار على مستوى المنطقة.
+                                    {isArabic
+                                        ? '⚠️ تعذر استخراج الإحداثيات؛ تم تفعيل "بروتوكول النقطة العمياء" لتأمين استمرارية الرادار على مستوى المنطقة.'
+                                        : '⚠️ Unable to extract coordinates; "Blind Spot Protocol" activated to ensure region-level radar continuity.'}
                                 </p>
                             </div>
                         )}
@@ -338,35 +344,50 @@ export function RequestRideModal() {
           {/* المقاعد ونوع الحساب */}
           <div className={styles.style242_65}>
             <div className={styles.style243_66}>
-                <span className={styles.style244_67}>7. عدد المقاعد المطلوبة</span>
+                <span className={styles.style244_67}>{isArabic ? '7. عدد المقاعد المطلوبة' : '7. Required Seats'}</span>
                 <Select value={seats} onValueChange={setSeats}>
                     <SelectTrigger className={styles.style246_68}>
-                        <SelectValue placeholder="حدد المقاعد" />
+                        <SelectValue placeholder={isArabic ? 'حدد المقاعد' : 'Select seats'} />
                     </SelectTrigger>
                     <SelectContent className={styles.style249_69}>
-                        {[1, 2, 3, 4].map(n => <SelectItem key={n} value={n.toString()}>{n} {n === 1 ? 'راكب واحد' : 'ركاب'}</SelectItem>)}
+                        {[1, 2, 3, 4].map(n => (
+                            <SelectItem key={n} value={n.toString()}>
+                                {n} {isArabic ? (n === 1 ? 'راكب واحد' : 'ركاب') : (n === 1 ? 'Passenger' : 'Passengers')}
+                            </SelectItem>
+                        ))}
                     </SelectContent>
                 </Select>
             </div>
 
             <div className={styles.style255_70}>
-                <span className={styles.style256_71}>8. نمط المحاسبة</span>
+                <span className={styles.style256_71}>{isArabic ? '8. طريقة التسعير' : '8. Pricing Mode'}</span>
                 <div className={styles.style257_72}>
-                    <span className={styles.style258_73}>عداد تطبيقات</span>
-                    <Switch checked={requiresOfficialRate} onCheckedChange={setRequiresOfficialRate} className={styles.style259_74} />
+                    <Select value={pricingPreference || 'none'} onValueChange={(val) => setPricingPreference(val === 'none' ? null : val as any)}>
+                        <SelectTrigger className="w-full">
+                            <SelectValue placeholder={isArabic ? 'بدون تحديد' : 'No Preference'} />
+                        </SelectTrigger>
+                        <SelectContent className="border-white/10 bg-[#0F172A] text-white">
+                            <SelectItem value="none">{isArabic ? 'بدون تحديد' : 'No Preference'}</SelectItem>
+                            <SelectItem value="FREE">{isArabic ? 'سعر حر' : 'Free Price'}</SelectItem>
+                            <SelectItem value="APP">{isArabic ? 'حسب تسعيرة التطبيق' : 'App Pricing'}</SelectItem>
+                            <SelectItem value="TAXI">{isArabic ? 'حسب عداد التاكسي' : 'Taxi Meter'}</SelectItem>
+                        </SelectContent>
+                    </Select>
                 </div>
             </div>
           </div>
 
           {/* حالة الطلب */}
           <div className={styles.style265_75}>
-            <span className={styles.style266_76}>حالة توفر السائقون</span>
+            <span className={styles.style266_76}>{isArabic ? 'حالة توفر السائقون' : 'Driver Availability Status'}</span>
             <div className={styles.style267_77}>
               <span className={cn(
                 styles.style269_78,
                 parseInt(seats) <= 2 ? styles.style270_79 : styles.style270_80
               )}>
-                {parseInt(seats) <= 2 ? "🔴 زخم العرض: صاعد ومتوفر" : "⚠️ زخم الطاقة: كثيف ويتطلب سيارة صالون واسعة"}
+                {parseInt(seats) <= 2
+                  ? (isArabic ? '🔴 زخم العرض: صاعد ومتوفر' : '🔴 Supply Momentum: High & Available')
+                  : (isArabic ? '⚠️ زخم الطاقة: كثيف ويتطلب سيارة صالون واسعة' : '⚠️ High Demand: Requires Large Sedan')}
               </span>
               <span className={styles.style274_81}>
                 γ = 1.35
@@ -378,10 +399,12 @@ export function RequestRideModal() {
           <div className={styles.style281_82}>
              <div className={styles.style282_83}>
                 <AlertCircle className={styles.style283_84} />
-                <span>النزاهة الميدانية لـ "الرادار الذكي"</span>
+                <span>{isArabic ? 'النزاهة الميدانية لـ "الرادار الذكي"' : 'Smart Radar Field Integrity'}</span>
              </div>
              <p className={styles.style286_85}>
-                بموجب ميثاق صفر تشتت وصفر سحابة (SC55)، يمتنع الرادار عن عرض الخرائط للراكب نهائياً (العمى التقني) أو تجاوز فقاعة 1.5 كم. يتم السيطرة وحساب الأبعاد تجميداً بصفر عمولة.
+                {isArabic
+                    ? 'بموجب ميثاق صفر تشتت وصفر سحابة (SC55)، يمتنع الرادار عن عرض الخرائط للراكب نهائياً (العمى التقني) أو تجاوز فقاعة 1.5 كم. يتم السيطرة وحساب الأبعاد تجميداً بصفر عمولة.'
+                    : 'Under the Zero Distraction and Zero Cloud Charter (SC55), Radar refrains from displaying maps to riders (technical blindness) or exceeding 1.5 km radius. Dimensions are computed frozen at zero commission.'}
              </p>
           </div>
 
@@ -391,7 +414,7 @@ export function RequestRideModal() {
           {isRadarActive === false ? (
             <div className={styles.style295_87}>
               <span className={styles.style296_88}>
-                الخدمة معلقة مؤقتاً بناءً على القرارات الرسمية
+                {isArabic ? 'الخدمة معلقة مؤقتاً بناءً على القرارات الرسمية' : 'Service is temporarily suspended by official directive'}
               </span>
             </div>
           ) : (
@@ -408,10 +431,10 @@ export function RequestRideModal() {
               {isRequesting ? (
                 <div className={styles.style312_92}>
                   <Loader2 className={styles.style313_93} />
-                  <span>يرسل الطلب...</span>
+                  <span>{isArabic ? 'يرسل الطلب...' : 'Sending request...'}</span>
                 </div>
               ) : (
-                'إرسال طلب الرحلة'
+                isArabic ? 'إرسال طلب الرحلة' : 'Send Ride Request'
               )}
             </Button>
           )}

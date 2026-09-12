@@ -397,6 +397,9 @@ function mapRideRequestToTrip(row: RideRequestRow): Trip | null {
     offerPrice: fare ?? undefined,
     createdAt: stringify(row.created_at),
     district: destinationLabel || originH3,
+    pricingPreference: (['APP', 'TAXI', 'FREE'].includes(String(row.pricing_preference || '').toUpperCase())
+      ? String(row.pricing_preference).toUpperCase() as 'APP' | 'TAXI' | 'FREE'
+      : null),
   };
 }
 

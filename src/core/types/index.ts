@@ -107,7 +107,7 @@ export interface Trip {
   ratingSubmittedByDriver?: number;
   offers?: Offer[];
   district?: string;
-  requiresOfficialRate?: boolean;
+  pricingPreference?: 'APP' | 'TAXI' | 'FREE' | null;
   auditLog?: string[];
   rejectedDrivers?: string[];
   riderNotification?: string; 

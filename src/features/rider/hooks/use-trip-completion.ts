@@ -33,6 +33,7 @@ export function useTripCompletion(state: RiderMachineState, dispatch: React.Disp
   const [rating, setRating] = React.useState({ captain: 0, vehicle: 0, favorite: false });
   const [ratingComment, setRatingComment] = React.useState('');
   const [isSubmittingRating, setIsSubmittingRating] = React.useState(false);
+  const [pricingPreference, setPricingPreference] = React.useState<'APP' | 'TAXI' | 'FREE' | null>(null);
 
   const tripsWithin72Hours = React.useMemo<HistoricalTrip[]>(
     () => [...localCompletedTrips],
@@ -99,6 +100,7 @@ export function useTripCompletion(state: RiderMachineState, dispatch: React.Disp
     setRiderCount(1);
     setRating({ captain: 0, vehicle: 0, favorite: false });
     setRatingComment('');
+    setPricingPreference(null);
   }, []);
 
   return {
@@ -111,6 +113,8 @@ export function useTripCompletion(state: RiderMachineState, dispatch: React.Disp
     setRating,
     ratingComment,
     setRatingComment,
+    pricingPreference,
+    setPricingPreference,
     handleCompleteTrip,
     reset,
   };

@@ -34,6 +34,7 @@ export function useSendCancelRideRequest(params: {
   language: AppLanguage;
   state: RiderMachineState;
   dispatch: React.Dispatch<RiderMachineAction>;
+  pricingPreference: 'APP' | 'TAXI' | 'FREE' | null;
   pendingAcceptedOfferIdRef: React.RefObject<string | null>;
   onExitRequestFlow?: () => void;
   resetRideDraftState: () => void;
@@ -51,6 +52,7 @@ export function useSendCancelRideRequest(params: {
     language,
     state,
     dispatch,
+    pricingPreference,
     pendingAcceptedOfferIdRef,
     onExitRequestFlow,
     resetRideDraftState,
@@ -143,6 +145,7 @@ export function useSendCancelRideRequest(params: {
         routeDistanceKm: currentRouteEstimate.distanceKm,
         routeDurationMinutes: currentRouteEstimate.durationMinutes,
         countryId,
+        pricingPreference: pricingPreference || null,
       });
 
       const request = await createRideRequest(supabase, payload);
@@ -176,6 +179,7 @@ export function useSendCancelRideRequest(params: {
     isServerFareLoading,
     language,
     pendingAcceptedOfferIdRef,
+    pricingPreference,
     pickupAddress,
     riderLocation,
     selectedDestinationCoords,
