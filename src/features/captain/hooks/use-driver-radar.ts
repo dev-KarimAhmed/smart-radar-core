@@ -16,7 +16,8 @@ import {
 
 const DRIVER_H3_RESOLUTION = 9;
 const RADAR_RING_SIZE = 5;
-const RADAR_FALLBACK_LIMIT = 25;
+// حصة الكابتن من السوق: 9 ركاب كحد أقصى في قائمة ورادار الطلبات
+const RADAR_FALLBACK_LIMIT = 9;
 // Hard visibility cutoff — a captain further than this from the pickup point
 // never sees the request at all, regardless of how few pending requests exist.
 const RADAR_MAX_DISTANCE_KM = 9;

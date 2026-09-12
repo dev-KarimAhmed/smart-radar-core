@@ -281,7 +281,9 @@ export async function fetchAvailableCaptainPresence(
   return data
     .filter((row) => captainRowMatchesPresenceQuery(row as Record<string, unknown>, h3Cells, query.countryId))
     .map(mapCaptainPresenceRow)
-    .filter((row): row is CaptainPresencePoint => !!row && isCaptainPresenceFresh(row, nowMs, ttlMs));
+    .filter((row): row is CaptainPresencePoint => !!row && isCaptainPresenceFresh(row, nowMs, ttlMs))
+    .sort((a, b) => (Date.parse(b.updatedAt || '0') || 0) - (Date.parse(a.updatedAt || '0') || 0))
+    .slice(0, 9);
 }
 
 export function subscribeToRideRequestStatus(

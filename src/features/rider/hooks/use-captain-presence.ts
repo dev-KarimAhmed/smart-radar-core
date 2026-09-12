@@ -58,7 +58,7 @@ export function useCaptainPresence(userId: string | undefined, activeCountryId: 
           countryId: activeCountryId,
           ringSize: 1,
         });
-        if (active) setCaptainLocations(rows);
+        if (active) setCaptainLocations(rows.slice(0, 9));
       } catch (error) {
         if (!active) return;
         if ((process.env.NODE_ENV !== 'production')) console.warn('[Rider Captain Presence]', error);
@@ -69,7 +69,14 @@ export function useCaptainPresence(userId: string | undefined, activeCountryId: 
     void loadCaptainPresence();
     const refreshInterval = window.setInterval(() => void loadCaptainPresence(), CAPTAIN_PRESENCE_REFRESH_MS);
     const pruneInterval = window.setInterval(() => {
-      setCaptainLocations((previous) => previous.filter((captain) => isCaptainPresenceFresh(captain)));
+      setCaptainLocations((previous) => {
+        const fresh = previous.filter((captain) => isCaptainPresenceFresh(captain));
+        // إذا نقص أي كابتن عن الـ 9 وكان هناك احتمال لوجود كباتن متاحين في الحوض، يتم طلب التحديث فوراً لتعويض النقص وإكمال الـ 9
+        if (fresh.length < 9 && fresh.length < previous.length) {
+          void loadCaptainPresence();
+        }
+        return fresh.slice(0, 9);
+      });
     }, CAPTAIN_PRESENCE_PRUNE_MS);
 
     const channel = activeCountryId

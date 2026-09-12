@@ -201,7 +201,7 @@ export function RadarMapView({
           <div className={styles.style148_5}>
             <CarMarkerIcon />
           </div>
-          {requests.slice(0, 6).map((request, index) => (
+          {requests.slice(0, 9).map((request, index) => (
             <button
               key={request.id}
               type="button"
@@ -468,6 +468,9 @@ function fallbackRequestPosition(index: number): React.CSSProperties {
     { left: '35%', top: '38%' },
     { left: '52%', top: '68%' },
     { left: '72%', top: '35%' },
+    { left: '28%', top: '56%' },
+    { left: '64%', top: '26%' },
+    { left: '42%', top: '24%' },
   ];
 
   return positions[index] || positions[0];

@@ -18,8 +18,8 @@ export const SOVEREIGN_CONSTANTS = {
   SOVEREIGN_TRIP_AUTO_COMPLETE_DURATION_MIN: 120, // Sovereign fixed time to auto-complete a busy trip (in minutes)
 
   // 3. ثوابت الحصة (Quota)
-  QUOTA_MAX_DRIVERS_VISIBLE: 12,      // 9 أساسي + 3 احتياط
-  QUOTA_MAX_RIDERS_VISIBLE: 9,        // الحد الأقصى للسائقين الظاهرين للراكب
+  QUOTA_MAX_DRIVERS_VISIBLE: 9,       // 9 كباتن كحد أقصى للراكب
+  QUOTA_MAX_RIDERS_VISIBLE: 9,        // 9 ركاب كحد أقصى للكابتن
   RADAR_SCAN_LIMIT: 50,             // Max trips/drivers to query in a single go
 
   // 4. ثوابت النبض الاقتصادي (V-Pulse Speeds & Simulation)

@@ -59,7 +59,8 @@ export function useOffersLifecycle(
         ]);
 
         const favoriteIds = collectPreferredCaptainIds(favs);
-        const sortedOffers = prioritizeRiderOffers(offers, favoriteIds);
+        // حصة الراكب من السوق: 9 عروض كباتن كحد أقصى
+        const sortedOffers = prioritizeRiderOffers(offers, favoriteIds).slice(0, 9);
 
         const nowTs = Date.now();
         for (const offer of sortedOffers) {
