@@ -77,6 +77,13 @@ const styles = {
   sectionHeader: "flex items-center gap-2 text-[11px] font-black uppercase tracking-wide text-[#14B8A6]",
   sectionHeaderIcon: "h-3.5 w-3.5",
   sectionHeaderLine: "h-px flex-1 bg-white/5",
+  sectionHeaderButton: "flex w-full items-center gap-2 text-[11px] font-black uppercase tracking-wide text-[#14B8A6] cursor-pointer select-none rounded-lg p-1 -m-1 transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#14B8A6]/60",
+  sectionHeaderTitleWrap: "flex items-center gap-2 shrink-0",
+  sectionChevronWrap: "flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-white/10 bg-white/5 text-slate-400 transition-colors hover:border-[#14B8A6]/40 hover:text-[#14F5D5]",
+  sectionChevron: "h-3.5 w-3.5 transition-transform duration-200",
+  sectionChevronOpen: "rotate-180 text-[#14F5D5]",
+  sectionChevronClosed: "rotate-0 text-slate-400",
+  collapsibleSectionBody: "mt-2 pt-1 transition-all duration-200",
   sectionCard: "rounded-2xl border border-white/5 bg-white/[0.03] p-4",
   tripGrid: "grid gap-3 sm:grid-cols-2",
   tripRowIcon: "h-4 w-4",
@@ -275,6 +282,18 @@ export function CaptainOfferCard({
   onAccept,
 }: CaptainOfferCardProps) {
   const isArabic = language === 'ar';
+  const [openSections, setOpenSections] = React.useState<Record<'trip' | 'captain' | 'price', boolean>>({
+    trip: false,
+    captain: false,
+    price: false,
+  });
+
+  const toggleSection = React.useCallback((section: 'trip' | 'captain' | 'price') => {
+    setOpenSections((prev) => ({
+      ...prev,
+      [section]: !prev[section],
+    }));
+  }, []);
   const captain = offer.captain;
   const rating = Math.floor(Number(captain.trust_rating) || 5);
   const rankLabel = rankLabels[language][captain.rank] || captain.rank;
@@ -464,243 +483,270 @@ export function CaptainOfferCard({
 
             {/* Trip data — kept visually separate from the captain's own data below. */}
             <div className={styles.sectionWrap}>
-              <SectionHeader icon={<Route className={styles.sectionHeaderIcon} />} title={isArabic ? 'تفاصيل الرحلة' : 'Trip details'} />
-              <div className={styles.tripGrid}>
-                <InfoRow
-                  icon={<MapPin className={styles.tripRowIcon} />}
-                  label={isArabic ? 'البعد عنك' : 'Distance to you'}
-                  value={`${offer.distance_km.toFixed(1)} ${isArabic ? 'كم' : 'km'}`}
-                />
-                <InfoRow
-                  icon={<Clock className={styles.tripRowIcon} />}
-                  label={isArabic ? 'يوصلك خلال' : 'Arrives in'}
-                  value={`${offer.eta_minutes} ${isArabic ? 'دقائق' : 'mins'}`}
-                  highlight
-                />
-                <InfoRow
-                  icon={<Timer className={styles.tripRowIcon} />}
-                  label={isArabic ? 'مدة الرحلة' : 'Trip duration'}
-                  value={durationLabel}
-                  helper={isArabic ? 'بدون تأخير مروري' : 'Without traffic delays'}
-                  highlight
-                />
-                <InfoRow
-                  icon={<Milestone className={styles.tripRowIcon} />}
-                  label={isArabic ? 'مسافة الرحلة' : 'Trip distance'}
-                  value={`${Number(tripDistance || 0).toFixed(1)} ${isArabic ? 'كم' : 'km'}`}
-                  highlight
-                />
-              </div>
+              <SectionHeader
+                icon={<Route className={styles.sectionHeaderIcon} />}
+                title={isArabic ? 'تفاصيل الرحلة' : 'Trip details'}
+                isOpen={openSections.trip}
+                onToggle={() => toggleSection('trip')}
+              />
+              {openSections.trip ? (
+                <div className={styles.collapsibleSectionBody}>
+                  <div className={styles.tripGrid}>
+                    <InfoRow
+                      icon={<MapPin className={styles.tripRowIcon} />}
+                      label={isArabic ? 'البعد عنك' : 'Distance to you'}
+                      value={`${offer.distance_km.toFixed(1)} ${isArabic ? 'كم' : 'km'}`}
+                    />
+                    <InfoRow
+                      icon={<Clock className={styles.tripRowIcon} />}
+                      label={isArabic ? 'يوصلك خلال' : 'Arrives in'}
+                      value={`${offer.eta_minutes} ${isArabic ? 'دقائق' : 'mins'}`}
+                      highlight
+                    />
+                    <InfoRow
+                      icon={<Timer className={styles.tripRowIcon} />}
+                      label={isArabic ? 'مدة الرحلة' : 'Trip duration'}
+                      value={durationLabel}
+                      helper={isArabic ? 'بدون تأخير مروري' : 'Without traffic delays'}
+                      highlight
+                    />
+                    <InfoRow
+                      icon={<Milestone className={styles.tripRowIcon} />}
+                      label={isArabic ? 'مسافة الرحلة' : 'Trip distance'}
+                      value={`${Number(tripDistance || 0).toFixed(1)} ${isArabic ? 'كم' : 'km'}`}
+                      highlight
+                    />
+                  </div>
+                </div>
+              ) : null}
             </div>
 
             {/* Captain + vehicle data — its own section, separate from the trip above. */}
             <div className={styles.sectionWrap}>
-              <SectionHeader icon={<Car className={styles.sectionHeaderIcon} />} title={isArabic ? 'بيانات الكابتن والمركبة' : 'Captain & vehicle'} />
-              <div className={styles.sectionCard}>
-                <div className={styles.vehicleGrid}>
-                  <InfoRow icon={<Car className={styles.vehicleRowIcon} />} label={isArabic ? 'السيارة' : 'Vehicle'} value={vehicleModelLabel} />
-                  <InfoRow label={isArabic ? 'اللون' : 'Color'} value={vehicleColorLabel} />
-                </div>
-                <div className={styles.vehicleDetailGrid}>
-                  <InfoRow
-                    label={isArabic ? 'اللوحة' : 'Plate'}
-                    value={captain.plate_number?.trim() || (isArabic ? 'غير متاح' : 'Not available')}
-                    fullWidth={vehicleDetailTrailingSpansFull && lastVehicleDetailField === 'plate'}
-                  />
-                  {hasVehicleYear ? (
-                    <InfoRow
-                      label={isArabic ? 'سنة الصنع' : 'Year'}
-                      value={String(captain.vehicle_year)}
-                      fullWidth={vehicleDetailTrailingSpansFull && lastVehicleDetailField === 'year'}
-                    />
-                  ) : null}
-                  {hasVehicleCategory ? (
-                    <InfoRow
-                      label={isArabic ? 'الفئة' : 'Category'}
-                      value={captain.vehicle_category}
-                      fullWidth={vehicleDetailTrailingSpansFull && lastVehicleDetailField === 'category'}
-                    />
-                  ) : null}
-                </div>
+              <SectionHeader
+                icon={<Car className={styles.sectionHeaderIcon} />}
+                title={isArabic ? 'بيانات الكابتن والمركبة' : 'Captain & vehicle'}
+                isOpen={openSections.captain}
+                onToggle={() => toggleSection('captain')}
+              />
+              {openSections.captain ? (
+                <div className={styles.collapsibleSectionBody}>
+                  <div className={styles.sectionCard}>
+                    <div className={styles.vehicleGrid}>
+                      <InfoRow icon={<Car className={styles.vehicleRowIcon} />} label={isArabic ? 'السيارة' : 'Vehicle'} value={vehicleModelLabel} />
+                      <InfoRow label={isArabic ? 'اللون' : 'Color'} value={vehicleColorLabel} />
+                    </div>
+                    <div className={styles.vehicleDetailGrid}>
+                      <InfoRow
+                        label={isArabic ? 'اللوحة' : 'Plate'}
+                        value={captain.plate_number?.trim() || (isArabic ? 'غير متاح' : 'Not available')}
+                        fullWidth={vehicleDetailTrailingSpansFull && lastVehicleDetailField === 'plate'}
+                      />
+                      {hasVehicleYear ? (
+                        <InfoRow
+                          label={isArabic ? 'سنة الصنع' : 'Year'}
+                          value={String(captain.vehicle_year)}
+                          fullWidth={vehicleDetailTrailingSpansFull && lastVehicleDetailField === 'year'}
+                        />
+                      ) : null}
+                      {hasVehicleCategory ? (
+                        <InfoRow
+                          label={isArabic ? 'الفئة' : 'Category'}
+                          value={captain.vehicle_category}
+                          fullWidth={vehicleDetailTrailingSpansFull && lastVehicleDetailField === 'category'}
+                        />
+                      ) : null}
+                    </div>
 
-                <div className={styles.captainMetaGrid}>
-                  <InfoRow icon={<Building2 className={styles.captainMetaIcon} />} label={isArabic ? 'نوع الكابتن' : 'Captain type'} value={companyLabel} />
-                  <InfoRow icon={<Trophy className={styles.captainMetaIcon} />} label={isArabic ? 'الرحلات المكتملة' : 'Completed trips'} value={String(completedTrips)} />
-                </div>
+                    <div className={styles.captainMetaGrid}>
+                      <InfoRow icon={<Building2 className={styles.captainMetaIcon} />} label={isArabic ? 'نوع الكابتن' : 'Captain type'} value={companyLabel} />
+                      <InfoRow icon={<Trophy className={styles.captainMetaIcon} />} label={isArabic ? 'الرحلات المكتملة' : 'Completed trips'} value={String(completedTrips)} />
+                    </div>
 
-                {hasContactLinks ? (
-                  <div className={styles.contactGrid}>
-                    {captain.phone ? (
-                      <a href={`tel:${captain.phone}`} className={styles.contactButtonAccent}>
-                        <Phone className={styles.contactButtonIcon} />
-                        {isArabic ? 'اتصال' : 'Call'}
-                      </a>
-                    ) : null}
-                    {captain.contact_url ? (
-                      <a href={captain.contact_url} target="_blank" rel="noreferrer" className={styles.contactButtonPlain}>
-                        <ExternalLink className={styles.contactButtonIcon} />
-                        {isArabic ? 'رابط التواصل' : 'Contact link'}
-                      </a>
-                    ) : null}
-                    {captain.facebook_url ? (
-                      <a href={captain.facebook_url} target="_blank" rel="noreferrer" className={styles.contactButtonPlain}>
-                        <Facebook className={styles.contactButtonIcon} />
-                        {isArabic ? 'فيسبوك' : 'Facebook'}
-                      </a>
-                    ) : null}
-                    {captain.instagram_url ? (
-                      <a href={captain.instagram_url} target="_blank" rel="noreferrer" className={styles.contactButtonPlain}>
-                        <Instagram className={styles.contactButtonIcon} />
-                        {isArabic ? 'انستجرام' : 'Instagram'}
-                      </a>
+                    {hasContactLinks ? (
+                      <div className={styles.contactGrid}>
+                        {captain.phone ? (
+                          <a href={`tel:${captain.phone}`} className={styles.contactButtonAccent}>
+                            <Phone className={styles.contactButtonIcon} />
+                            {isArabic ? 'اتصال' : 'Call'}
+                          </a>
+                        ) : null}
+                        {captain.contact_url ? (
+                          <a href={captain.contact_url} target="_blank" rel="noreferrer" className={styles.contactButtonPlain}>
+                            <ExternalLink className={styles.contactButtonIcon} />
+                            {isArabic ? 'رابط التواصل' : 'Contact link'}
+                          </a>
+                        ) : null}
+                        {captain.facebook_url ? (
+                          <a href={captain.facebook_url} target="_blank" rel="noreferrer" className={styles.contactButtonPlain}>
+                            <Facebook className={styles.contactButtonIcon} />
+                            {isArabic ? 'فيسبوك' : 'Facebook'}
+                          </a>
+                        ) : null}
+                        {captain.instagram_url ? (
+                          <a href={captain.instagram_url} target="_blank" rel="noreferrer" className={styles.contactButtonPlain}>
+                            <Instagram className={styles.contactButtonIcon} />
+                            {isArabic ? 'انستجرام' : 'Instagram'}
+                          </a>
+                        ) : null}
+                      </div>
                     ) : null}
                   </div>
-                ) : null}
-              </div>
+                </div>
+              ) : null}
             </div>
 
             {/* Price — its own section. Itemised meter receipt from submit_ride_offer, plus
                 why the total is what it is. */}
             <div className={styles.sectionWrap}>
-              <SectionHeader icon={<Wallet className={styles.sectionHeaderIcon} />} title={isArabic ? 'السعر' : 'Price'} />
-              <div className={styles.priceCard}>
-                <div className={styles.breakdownRows}>
-                  {breakdown && !breakdown.tariffMissing ? (
-                    <>
-                      <p className={styles.breakdownGroupLabel}>
-                        {isArabic ? 'عدّاد الكابتن' : 'The captain’s meter'}
-                      </p>
+              <SectionHeader
+                icon={<Wallet className={styles.sectionHeaderIcon} />}
+                title={isArabic ? 'السعر' : 'Price'}
+                isOpen={openSections.price}
+                onToggle={() => toggleSection('price')}
+              />
+              {openSections.price ? (
+                <div className={styles.collapsibleSectionBody}>
+                  <div className={styles.priceCard}>
+                    <div className={styles.breakdownRows}>
+                      {breakdown && !breakdown.tariffMissing ? (
+                        <>
+                          <p className={styles.breakdownGroupLabel}>
+                            {isArabic ? 'عدّاد الكابتن' : 'The captain’s meter'}
+                          </p>
+
+                          <BreakdownRow
+                            label={isArabic ? 'أجرة البداية' : 'Starting fare'}
+                            helper={isArabic ? 'ثابتة لأي رحلة' : 'Fixed for every trip'}
+                            value={`${money(receipt.baseFare)} ${currencyCode}`}
+                          />
+
+                          {/* The old label read "المسافة · 0 كم × 6.00" whenever the captain's
+                              included kilometres covered the trip — arithmetically true, and
+                              unreadable. The row now states the distance actually driven and
+                              says why the charge is what it is. */}
+                          <BreakdownRow
+                            label={isArabic
+                              ? `المسافة · ${num(roadKm)} كم`
+                              : `Distance · ${num(roadKm)} km`}
+                            helper={includedKm > 0
+                              ? (billableKm <= 0
+                                ? (isArabic
+                                  ? `أول ${num(includedKm)} كم مشمولة في أجرة البداية`
+                                  : `First ${num(includedKm)} km are included in the starting fare`)
+                                : (isArabic
+                                  ? `${num(includedKm)} كم مشمولة، و${num(billableKm)} كم × ${money(breakdown.perKm)}`
+                                  : `${num(includedKm)} km included, then ${num(billableKm)} km × ${money(breakdown.perKm)}`))
+                              : (isArabic
+                                ? `${num(billableKm)} كم × ${money(breakdown.perKm)}`
+                                : `${num(billableKm)} km × ${money(breakdown.perKm)}`)}
+                            value={`${money(receipt.kmCharge)} ${currencyCode}`}
+                          />
+
+                          {Number(breakdown.perMin) > 0 ? (
+                            <BreakdownRow
+                              label={isArabic
+                                ? `الوقت · ${num(breakdown.minutes)} دقيقة`
+                                : `Time · ${num(breakdown.minutes)} min`}
+                              helper={isArabic
+                                ? `${num(breakdown.minutes)} × ${money(breakdown.perMin)}`
+                                : `${num(breakdown.minutes)} × ${money(breakdown.perMin)}`}
+                              value={`${money(receipt.minCharge)} ${currencyCode}`}
+                            />
+                          ) : null}
+
+                          {/* Only when the country's minimum fare is what set the meter. */}
+                          {receipt.minFareTopUp > 0 ? (
+                            <BreakdownRow
+                              label={isArabic ? 'فرق الحد الأدنى للأجرة' : 'Minimum fare top-up'}
+                              helper={isArabic
+                                ? `أقل أجرة مسموحة لأي رحلة ${money(breakdown.minTripFare ?? receipt.meterFare)} ${currencyCode}`
+                                : `The lowest fare allowed for any trip is ${money(breakdown.minTripFare ?? receipt.meterFare)} ${currencyCode}`}
+                              value={`${money(receipt.minFareTopUp)} ${currencyCode}`}
+                            />
+                          ) : null}
+
+                          <div className={styles.breakdownDivider} />
+
+                          <BreakdownRow
+                            label={isArabic ? 'إجمالي العدّاد' : 'Meter subtotal'}
+                            value={`${money(receipt.meterFare)} ${currencyCode}`}
+                          />
+
+                          {adjustment !== 0 ? (
+                            <BreakdownRow
+                              label={isArabic
+                                ? (adjustment > 0 ? 'زيادة اختارها الكابتن' : 'تخفيض من الكابتن')
+                                : (adjustment > 0 ? 'Captain’s increase' : 'Captain’s reduction')}
+                              helper={isArabic
+                                ? 'فوق عدّاده، وداخل الحد المسموح لرتبته'
+                                : 'On top of their meter, inside their rank’s allowance'}
+                              value={`${adjustment > 0 ? '+' : '−'}${money(Math.abs(adjustment))} ${currencyCode}`}
+                              accent
+                            />
+                          ) : null}
+
+                          {/* Never expected to render. It exists so that if the offered price
+                              ever fails to equal meter + adjustment, the column says so instead
+                              of quietly not adding up. */}
+                          {receipt.residual !== 0 ? (
+                            <BreakdownRow
+                              label={isArabic ? 'بنود أخرى' : 'Other'}
+                              value={`${receipt.residual > 0 ? '+' : '−'}${money(Math.abs(receipt.residual))} ${currencyCode}`}
+                            />
+                          ) : null}
+
+                          <div className={styles.breakdownDividerStrong} />
+                        </>
+                      ) : null}
 
                       <BreakdownRow
-                        label={isArabic ? 'أجرة البداية' : 'Starting fare'}
-                        helper={isArabic ? 'ثابتة لأي رحلة' : 'Fixed for every trip'}
-                        value={`${money(receipt.baseFare)} ${currencyCode}`}
+                        label={isArabic ? 'السعر النهائي' : 'Final price'}
+                        helper={isArabic ? 'مجمّد — لا يزيد بعد القبول' : 'Locked — it does not change after you accept'}
+                        value={`${finalFare.toFixed(2)} ${currencyCode}`}
+                        accent
+                        strong
                       />
+                    </div>
 
-                      {/* The old label read "المسافة · 0 كم × 6.00" whenever the captain's
-                          included kilometres covered the trip — arithmetically true, and
-                          unreadable. The row now states the distance actually driven and
-                          says why the charge is what it is. */}
-                      <BreakdownRow
-                        label={isArabic
-                          ? `المسافة · ${num(roadKm)} كم`
-                          : `Distance · ${num(roadKm)} km`}
-                        helper={includedKm > 0
-                          ? (billableKm <= 0
-                            ? (isArabic
-                              ? `أول ${num(includedKm)} كم مشمولة في أجرة البداية`
-                              : `First ${num(includedKm)} km are included in the starting fare`)
-                            : (isArabic
-                              ? `${num(includedKm)} كم مشمولة، و${num(billableKm)} كم × ${money(breakdown.perKm)}`
-                              : `${num(includedKm)} km included, then ${num(billableKm)} km × ${money(breakdown.perKm)}`))
-                          : (isArabic
-                            ? `${num(billableKm)} كم × ${money(breakdown.perKm)}`
-                            : `${num(billableKm)} km × ${money(breakdown.perKm)}`)}
-                        value={`${money(receipt.kmCharge)} ${currencyCode}`}
-                      />
-
-                      {Number(breakdown.perMin) > 0 ? (
+                    {/* The market comparison used to be the tail of a run-on sentence that had
+                        just said the captain added 176.13 on top. Said in that order it reads as
+                        a contradiction; as its own labelled line it reads as what it is. */}
+                    {receipt.marketFare > 0 ? (
+                      <div className={styles.marketBlock}>
                         <BreakdownRow
-                          label={isArabic
-                            ? `الوقت · ${num(breakdown.minutes)} دقيقة`
-                            : `Time · ${num(breakdown.minutes)} min`}
-                          helper={isArabic
-                            ? `${num(breakdown.minutes)} × ${money(breakdown.perMin)}`
-                            : `${num(breakdown.minutes)} × ${money(breakdown.perMin)}`}
-                          value={`${money(receipt.minCharge)} ${currencyCode}`}
+                          label={isArabic ? 'متوسط أسعار الكباتن' : 'Captain average'}
+                          helper={isArabic ? 'لنفس الرحلة' : 'For this same trip'}
+                          value={`${money(receipt.marketFare)} ${currencyCode}`}
                         />
-                      ) : null}
+                        <p className={
+                          receipt.marketDeviationPercent < 0
+                            ? styles.marketVerdictBelow
+                            : receipt.marketDeviationPercent > 0
+                              ? styles.marketVerdictAbove
+                              : styles.marketVerdictEqual
+                        }>
+                          {receipt.marketDeviationPercent === 0
+                            ? (isArabic ? 'هذا العرض مطابق للمتوسط.' : 'This offer matches the average.')
+                            : receipt.marketDeviationPercent < 0
+                              ? (isArabic
+                                ? `هذا العرض أرخص من المتوسط بـ ${Math.abs(receipt.marketDeviationPercent)}%.`
+                                : `This offer is ${Math.abs(receipt.marketDeviationPercent)}% cheaper than average.`)
+                              : (isArabic
+                                ? `هذا العرض أعلى من المتوسط بـ ${receipt.marketDeviationPercent}%، وهي زيادة مسموحة لرتبة ${rankLabel}.`
+                                : `This offer is ${receipt.marketDeviationPercent}% above average, within the ${rankLabel} rank’s allowance.`)}
+                        </p>
+                      </div>
+                    ) : null}
 
-                      {/* Only when the country's minimum fare is what set the meter. */}
-                      {receipt.minFareTopUp > 0 ? (
-                        <BreakdownRow
-                          label={isArabic ? 'فرق الحد الأدنى للأجرة' : 'Minimum fare top-up'}
-                          helper={isArabic
-                            ? `أقل أجرة مسموحة لأي رحلة ${money(breakdown.minTripFare ?? receipt.meterFare)} ${currencyCode}`
-                            : `The lowest fare allowed for any trip is ${money(breakdown.minTripFare ?? receipt.meterFare)} ${currencyCode}`}
-                          value={`${money(receipt.minFareTopUp)} ${currencyCode}`}
-                        />
-                      ) : null}
-
-                      <div className={styles.breakdownDivider} />
-
-                      <BreakdownRow
-                        label={isArabic ? 'إجمالي العدّاد' : 'Meter subtotal'}
-                        value={`${money(receipt.meterFare)} ${currencyCode}`}
-                      />
-
-                      {adjustment !== 0 ? (
-                        <BreakdownRow
-                          label={isArabic
-                            ? (adjustment > 0 ? 'زيادة اختارها الكابتن' : 'تخفيض من الكابتن')
-                            : (adjustment > 0 ? 'Captain’s increase' : 'Captain’s reduction')}
-                          helper={isArabic
-                            ? 'فوق عدّاده، وداخل الحد المسموح لرتبته'
-                            : 'On top of their meter, inside their rank’s allowance'}
-                          value={`${adjustment > 0 ? '+' : '−'}${money(Math.abs(adjustment))} ${currencyCode}`}
-                          accent
-                        />
-                      ) : null}
-
-                      {/* Never expected to render. It exists so that if the offered price
-                          ever fails to equal meter + adjustment, the column says so instead
-                          of quietly not adding up. */}
-                      {receipt.residual !== 0 ? (
-                        <BreakdownRow
-                          label={isArabic ? 'بنود أخرى' : 'Other'}
-                          value={`${receipt.residual > 0 ? '+' : '−'}${money(Math.abs(receipt.residual))} ${currencyCode}`}
-                        />
-                      ) : null}
-
-                      <div className={styles.breakdownDividerStrong} />
-                    </>
-                  ) : null}
-
-                  <BreakdownRow
-                    label={isArabic ? 'السعر النهائي' : 'Final price'}
-                    helper={isArabic ? 'مجمّد — لا يزيد بعد القبول' : 'Locked — it does not change after you accept'}
-                    value={`${finalFare.toFixed(2)} ${currencyCode}`}
-                    accent
-                    strong
-                  />
-                </div>
-
-                {/* The market comparison used to be the tail of a run-on sentence that had
-                    just said the captain added 176.13 on top. Said in that order it reads as
-                    a contradiction; as its own labelled line it reads as what it is. */}
-                {receipt.marketFare > 0 ? (
-                  <div className={styles.marketBlock}>
-                    <BreakdownRow
-                      label={isArabic ? 'متوسط أسعار الكباتن' : 'Captain average'}
-                      helper={isArabic ? 'لنفس الرحلة' : 'For this same trip'}
-                      value={`${money(receipt.marketFare)} ${currencyCode}`}
-                    />
-                    <p className={
-                      receipt.marketDeviationPercent < 0
-                        ? styles.marketVerdictBelow
-                        : receipt.marketDeviationPercent > 0
-                          ? styles.marketVerdictAbove
-                          : styles.marketVerdictEqual
-                    }>
-                      {receipt.marketDeviationPercent === 0
-                        ? (isArabic ? 'هذا العرض مطابق للمتوسط.' : 'This offer matches the average.')
-                        : receipt.marketDeviationPercent < 0
-                          ? (isArabic
-                            ? `هذا العرض أرخص من المتوسط بـ ${Math.abs(receipt.marketDeviationPercent)}%.`
-                            : `This offer is ${Math.abs(receipt.marketDeviationPercent)}% cheaper than average.`)
-                          : (isArabic
-                            ? `هذا العرض أعلى من المتوسط بـ ${receipt.marketDeviationPercent}%، وهي زيادة مسموحة لرتبة ${rankLabel}.`
-                            : `This offer is ${receipt.marketDeviationPercent}% above average, within the ${rankLabel} rank’s allowance.`)}
-                    </p>
+                    {/* Only left for the offer that carries no tariff receipt at all — there is
+                        nothing to itemise there, so the sentence is all the rider can be told. */}
+                    {!breakdown || breakdown.tariffMissing ? (
+                      <p className={styles.reasonText}>{pricingReason}</p>
+                    ) : null}
                   </div>
-                ) : null}
-
-                {/* Only left for the offer that carries no tariff receipt at all — there is
-                    nothing to itemise there, so the sentence is all the rider can be told. */}
-                {!breakdown || breakdown.tariffMissing ? (
-                  <p className={styles.reasonText}>{pricingReason}</p>
-                ) : null}
-              </div>
+                </div>
+              ) : null}
             </div>
 
             {offer.additional_info ? (
@@ -735,7 +781,42 @@ function CaptainAvatar({ captain, captainName }: { captain: CaptainProfile; capt
   );
 }
 
-function SectionHeader({ icon, title }: { icon: React.ReactNode; title: string }) {
+function SectionHeader({
+  icon,
+  title,
+  isOpen,
+  onToggle,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  isOpen?: boolean;
+  onToggle?: () => void;
+}) {
+  if (onToggle) {
+    return (
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={isOpen}
+        className={styles.sectionHeaderButton}
+      >
+        <span className={styles.sectionHeaderTitleWrap}>
+          {icon}
+          <span>{title}</span>
+        </span>
+        <span className={styles.sectionHeaderLine} />
+        <span className={styles.sectionChevronWrap}>
+          <ChevronDown
+            className={cn(
+              styles.sectionChevron,
+              isOpen ? styles.sectionChevronOpen : styles.sectionChevronClosed,
+            )}
+          />
+        </span>
+      </button>
+    );
+  }
+
   return (
     <div className={styles.sectionHeader}>
       {icon}

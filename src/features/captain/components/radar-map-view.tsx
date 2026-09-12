@@ -2,7 +2,7 @@
 
 import React from 'react';
 import maplibregl from 'maplibre-gl';
-import { Clock, Heart, MapPin, RadioTower, Route, Star } from 'lucide-react';
+import { ChevronDown, Clock, Heart, MapPin, RadioTower, Route, Star } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { Trip } from '@/core/types';
 import { DEFAULT_MAP_CENTER } from '@/shared/services/maplibre-runtime';
@@ -43,19 +43,19 @@ const styles = {
   style213_29: "h-8 w-8",
   style215_30: "h-8 w-8",
   style217_31: "space-y-3",
-  style219_32: "rounded-2xl border border-slate-800 bg-black/60 p-4",
+  style219_32: "relative rounded-2xl border border-emerald-500/20 bg-[#0B0F19]/90 p-4 shadow-xl shadow-black/40 backdrop-blur transition-all duration-200 hover:border-emerald-500/40",
   style220_33: "flex items-start gap-3",
-  style221_34: "mt-1 h-5 w-5 shrink-0 text-emerald-300",
-  style222_35: "min-w-0",
-  style223_36: "line-clamp-2 font-black",
-  style227_38: "mt-3 grid grid-cols-2 gap-2 text-xs",
+  style221_34: "mt-0.5 h-5 w-5 shrink-0 text-[#14F5D5] drop-shadow-[0_0_8px_rgba(20,245,213,0.5)]",
+  style222_35: "min-w-0 flex-1",
+  style223_36: "line-clamp-2 text-base font-black text-white tracking-wide leading-snug",
+  style227_38: "mt-3.5 grid grid-cols-2 gap-2 text-xs",
   style231_39: "mt-4 flex gap-2",
-  style232_40: "inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#14B8A6] px-3 py-2 text-sm font-black text-[#06111f]",
-  style233_41: "h-4 w-4",
-  style236_42: "rounded-xl border border-white/10 px-3 py-2 text-sm font-bold text-slate-300",
-  style252_43: "rounded-xl border border-white/10 bg-white/[0.03] p-2",
-  style253_44: "text-slate-500",
-  style254_45: "mt-1 font-black text-white",
+  style232_40: "inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#14F5D5] via-[#14B8A6] to-[#0d9488] px-4 py-2.5 text-sm font-black text-[#031518] shadow-[0_4px_18px_rgba(20,245,213,0.35)] hover:brightness-110 active:scale-[0.98] transition-all",
+  style233_41: "h-4 w-4 stroke-[2.5]",
+  style236_42: "rounded-xl border border-slate-700/80 bg-slate-900/70 px-4 py-2.5 text-xs font-bold text-slate-300 shadow-sm hover:border-rose-500/40 hover:bg-rose-500/15 hover:text-rose-200 active:scale-[0.98] transition-all",
+  style252_43: "rounded-xl border border-slate-700/60 bg-slate-900/70 p-2.5 shadow-inner transition hover:border-slate-600/80",
+  style253_44: "text-[11px] font-semibold text-slate-400",
+  style254_45: "mt-1 text-sm font-black text-white tracking-tight",
   style275_46: "flex min-h-[280px] flex-col items-center justify-center rounded-2xl p-6 text-center",
   style276_47: "text-amber-300",
   style276_48: "text-emerald-400/70",
@@ -65,14 +65,27 @@ const styles = {
   stateEmpty: "border-dashed border-slate-700 bg-slate-950/80 text-slate-300",
   pendingOfferHint: "mt-2 text-[11px] font-bold text-amber-300",
   pendingOfferDisabled: "cursor-not-allowed opacity-40",
-  riderRow: "mt-2.5 flex flex-wrap items-center gap-1.5",
-  riderChip: "inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[10px] font-bold text-slate-300",
-  riderFavoriteChipOn: "border-rose-400/50 bg-rose-400/12 font-black text-rose-200",
-  riderFavoriteChipOff: "border-white/8 bg-transparent text-slate-500",
-  heartFilled: "fill-current",
-  riderChipIcon: "h-3 w-3",
+  riderRow: "mt-3 flex flex-wrap items-center gap-2",
+  riderChip: "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all duration-200",
+  riderDefaultChip: "border border-white/10 bg-white/5 text-slate-300",
+  riderRatingChip: "border border-amber-400/60 bg-gradient-to-r from-amber-500/25 to-amber-400/15 text-amber-300 shadow-[0_0_12px_rgba(251,191,36,0.25)] font-black",
+  riderTripsChip: "border border-cyan-400/40 bg-gradient-to-r from-cyan-500/20 to-teal-500/15 text-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.2)] font-bold",
+  riderFavoriteChipOn: "border border-rose-400 bg-gradient-to-r from-rose-500/35 via-pink-500/30 to-rose-600/25 text-white font-black shadow-[0_0_18px_rgba(244,63,94,0.45)] ring-1 ring-rose-400/60",
+  riderFavoriteChipOff: "border border-slate-700/60 bg-slate-900/50 text-slate-400 font-medium",
+  starFilled: "fill-amber-400 text-amber-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.9)]",
+  starEmpty: "text-slate-500",
+  routeIconActive: "text-cyan-400 drop-shadow-[0_0_4px_rgba(6,182,212,0.6)]",
+  heartFilled: "fill-rose-400 text-rose-300 drop-shadow-[0_0_8px_rgba(244,63,94,1)] animate-pulse",
+  heartEmpty: "text-slate-500",
+  riderChipIcon: "h-3.5 w-3.5 shrink-0",
   ownPendingBadge: "mt-3 flex items-center justify-center gap-2 rounded-xl border border-amber-400/30 bg-amber-400/10 py-3 text-sm font-black text-amber-200",
   ownPendingIcon: "h-4 w-4 animate-pulse",
+  cardHeaderToggle: "flex w-full flex-col text-start cursor-pointer select-none rounded-xl transition-opacity hover:opacity-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400",
+  toggleChevronWrap: "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-slate-400 transition-colors hover:border-emerald-500/40 hover:text-emerald-300",
+  toggleChevron: "h-4 w-4 transition-transform duration-200",
+  toggleChevronExpanded: "rotate-180 text-emerald-400",
+  toggleChevronCollapsed: "rotate-0 text-slate-400",
+  collapsibleContent: "mt-3 pt-3 border-t border-slate-800/80 transition-all duration-200",
 } as const;
 
 
@@ -109,6 +122,14 @@ export function RadarMapView({
   const markerRef = React.useRef<maplibregl.Marker | null>(null);
   const requestMarkersRef = React.useRef<maplibregl.Marker[]>([]);
   const [mapIssue, setMapIssue] = React.useState(false);
+  const [expandedRequestIds, setExpandedRequestIds] = React.useState<Record<string, boolean>>({});
+
+  const toggleRequestExpanded = React.useCallback((requestId: string) => {
+    setExpandedRequestIds((prev) => ({
+      ...prev,
+      [requestId]: !prev[requestId],
+    }));
+  }, []);
 
   const visibleLocation = driverLocation || DEFAULT_MAP_CENTER;
   const totalMinutes = paidMinutes + bonusMinutes;
@@ -269,99 +290,137 @@ export function RadarMapView({
                 const isOwnPendingOffer = pendingOfferRequestId === request.id;
                 const isBlockedByOtherPendingOffer = Boolean(pendingOfferRequestId) && !isOwnPendingOffer;
 
-                return (
-                <article key={request.id} className={styles.style219_32}>
-                  <div className={styles.style220_33}>
-                    <MapPin className={styles.style221_34} />
-                    <div className={styles.style222_35}>
-                      <h3 className={styles.style223_36}>{request.dropoff || copy.destination}</h3>
-                    </div>
-                  </div>
+                const isExpanded = Boolean(expandedRequestIds[request.id]);
 
-                  {/* Who the rider is. The captain was deciding whether to bid with nothing
-                      about the person at all — no score, and no way to know this rider had
-                      already picked them out as a favourite. */}
-                  <div className={styles.riderRow}>
-                    <span className={styles.riderChip}>
-                      <Star className={styles.riderChipIcon} />
-                      {request.riderRating != null
-                        ? `${request.riderRating.toFixed(1)}${request.riderRatingCount ? ` (${request.riderRatingCount})` : ''}`
-                        : copy.riderUnrated}
-                    </span>
-                    {request.riderCompletedTrips != null ? (
-                      <span className={styles.riderChip}>
-                        <Route className={styles.riderChipIcon} />
-                        {t('tripsValue', { count: request.riderCompletedTrips })}
-                      </span>
-                    ) : null}
-                    {/* Always rendered, in both states.
-                        The ask was "توضيح ما إذا كان الكابتن ضمن قائمة المفضلين لدى الراكب" —
-                        whether or NOT. Showing the chip only when true means the absence of a
-                        badge has two meanings the captain cannot tell apart: "this rider has
-                        not favourited me" and "this is broken". */}
-                    <span
-                      className={cn(
-                        styles.riderChip,
-                        request.riderFavoritedMe ? styles.riderFavoriteChipOn : styles.riderFavoriteChipOff,
-                      )}
+                return (
+                  <article key={request.id} className={styles.style219_32}>
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      aria-expanded={isExpanded}
+                      onClick={() => toggleRequestExpanded(request.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          toggleRequestExpanded(request.id);
+                        }
+                      }}
+                      className={styles.cardHeaderToggle}
                     >
-                      <Heart
-                        className={cn(
-                          styles.riderChipIcon,
-                          request.riderFavoritedMe ? styles.heartFilled : '',
-                        )}
-                      />
-                      {request.riderFavoritedMe ? copy.riderFavoritedYou : copy.riderNotFavoritedYou}
-                    </span>
-                  </div>
-                  {/* Pickup location (address, exact-map link) is deliberately withheld at
-                      this stage — before the captain has even opened an offer, it's only
-                      visible once they open the bidding sheet. The trip distance and how long
-                      the approach to the rider will take are still useful for deciding
-                      whether the trip is worth it, so those stay. */}
-                  <div className={styles.style227_38}>
-                    {/* Base fare display disabled — kept hidden from captain by product request.
-                    <Info label={copy.fare} value={request.offerPrice ? Number(request.offerPrice).toFixed(2) : '-'} />
-                    */}
-                    <Info
-                      label={copy.pickupTime}
-                      value={t('minutesValue', { count: estimatePickupMinutes(pickupDistanceKm(driverLocation, request)) })}
-                    />
-                    <Info
-                      label={copy.tripDistance}
-                      value={request.estimatedDistance != null ? `${request.estimatedDistance.toFixed(1)} ${language === 'ar' ? 'كيلو' : 'km'}` : t('distanceUnavailable')}
-                    />
-                    <Info
-                      label={copy.requestTime}
-                      value={formatRequestTime(request.createdAt, language)}
-                    />
-                  </div>
-                  {isOwnPendingOffer ? (
-                    <div className={styles.ownPendingBadge}>
-                      <Clock className={styles.ownPendingIcon} />
-                      {copy.ownPendingOffer}
-                    </div>
-                  ) : (
-                    <>
-                      {isBlockedByOtherPendingOffer ? <p className={styles.pendingOfferHint}>{copy.pendingOfferHint}</p> : null}
-                      <div className={styles.style231_39}>
-                        <button
-                          type="button"
-                          onClick={() => onSelectRequest(request)}
-                          disabled={isBlockedByOtherPendingOffer}
-                          title={isBlockedByOtherPendingOffer ? copy.pendingOfferHint : undefined}
-                          className={cn(styles.style232_40, isBlockedByOtherPendingOffer ? styles.pendingOfferDisabled : '')}
-                        >
-                          <Route className={styles.style233_41} />
-                          {copy.openBid}
-                        </button>
-                        <button type="button" onClick={() => onIgnoreRequest(request.id)} className={styles.style236_42}>
-                          {copy.ignore}
-                        </button>
+                      <div className={styles.style220_33}>
+                        <MapPin className={styles.style221_34} />
+                        <div className={styles.style222_35}>
+                          <h3 className={styles.style223_36}>{request.dropoff || copy.destination}</h3>
+                        </div>
+                        <span className={styles.toggleChevronWrap}>
+                          <ChevronDown
+                            className={cn(
+                              styles.toggleChevron,
+                              isExpanded ? styles.toggleChevronExpanded : styles.toggleChevronCollapsed,
+                            )}
+                          />
+                        </span>
                       </div>
-                    </>
-                  )}
-                </article>
+
+                      {/* Who the rider is. The captain was deciding whether to bid with nothing
+                          about the person at all — no score, and no way to know this rider had
+                          already picked them out as a favourite. */}
+                      <div className={styles.riderRow}>
+                        <span
+                          className={cn(
+                            styles.riderChip,
+                            request.riderRating != null ? styles.riderRatingChip : styles.riderDefaultChip,
+                          )}
+                        >
+                          <Star
+                            className={cn(
+                              styles.riderChipIcon,
+                              request.riderRating != null ? styles.starFilled : styles.starEmpty,
+                            )}
+                          />
+                          {request.riderRating != null
+                            ? `${request.riderRating.toFixed(1)}${request.riderRatingCount ? ` (${request.riderRatingCount})` : ''}`
+                            : copy.riderUnrated}
+                        </span>
+                        {request.riderCompletedTrips != null ? (
+                          <span className={cn(styles.riderChip, styles.riderTripsChip)}>
+                            <Route className={cn(styles.riderChipIcon, styles.routeIconActive)} />
+                            {t('tripsValue', { count: request.riderCompletedTrips })}
+                          </span>
+                        ) : null}
+                        {/* Always rendered, in both states.
+                            The ask was "توضيح ما إذا كان الكابتن ضمن قائمة المفضلين لدى الراكب" —
+                            whether or NOT. Showing the chip only when true means the absence of a
+                            badge has two meanings the captain cannot tell apart: "this rider has
+                            not favourited me" and "this is broken". */}
+                        <span
+                          className={cn(
+                            styles.riderChip,
+                            request.riderFavoritedMe ? styles.riderFavoriteChipOn : styles.riderFavoriteChipOff,
+                          )}
+                        >
+                          <Heart
+                            className={cn(
+                              styles.riderChipIcon,
+                              request.riderFavoritedMe ? styles.heartFilled : styles.heartEmpty,
+                            )}
+                          />
+                          {request.riderFavoritedMe ? copy.riderFavoritedYou : copy.riderNotFavoritedYou}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Details and actions are collapsed by default.
+                        The captain opens to inspect pickup time, distance, and place a bid. */}
+                    {isExpanded ? (
+                      <div className={styles.collapsibleContent}>
+                        {/* Pickup location (address, exact-map link) is deliberately withheld at
+                            this stage — before the captain has even opened an offer, it's only
+                            visible once they open the bidding sheet. The trip distance and how long
+                            the approach to the rider will take are still useful for deciding
+                            whether the trip is worth it, so those stay. */}
+                        <div className={styles.style227_38}>
+                          <Info
+                            label={copy.pickupTime}
+                            value={t('minutesValue', { count: estimatePickupMinutes(pickupDistanceKm(driverLocation, request)) })}
+                          />
+                          <Info
+                            label={copy.tripDistance}
+                            value={request.estimatedDistance != null ? `${request.estimatedDistance.toFixed(1)} ${language === 'ar' ? 'كيلو' : 'km'}` : t('distanceUnavailable')}
+                          />
+                          <Info
+                            label={copy.requestTime}
+                            value={formatRequestTime(request.createdAt, language)}
+                          />
+                        </div>
+                        {isOwnPendingOffer ? (
+                          <div className={styles.ownPendingBadge}>
+                            <Clock className={styles.ownPendingIcon} />
+                            {copy.ownPendingOffer}
+                          </div>
+                        ) : (
+                          <>
+                            {isBlockedByOtherPendingOffer ? <p className={styles.pendingOfferHint}>{copy.pendingOfferHint}</p> : null}
+                            <div className={styles.style231_39}>
+                              <button
+                                type="button"
+                                onClick={() => onSelectRequest(request)}
+                                disabled={isBlockedByOtherPendingOffer}
+                                title={isBlockedByOtherPendingOffer ? copy.pendingOfferHint : undefined}
+                                className={cn(styles.style232_40, isBlockedByOtherPendingOffer ? styles.pendingOfferDisabled : '')}
+                              >
+                                <Route className={styles.style233_41} />
+                                {copy.openBid}
+                              </button>
+                              <button type="button" onClick={() => onIgnoreRequest(request.id)} className={styles.style236_42}>
+                                {copy.ignore}
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    ) : null}
+                  </article>
                 );
               })}
             </div>
