@@ -90,9 +90,11 @@ const styles = {
   editPencilButton: "grid h-8 w-8 shrink-0 place-items-center rounded-xl border border-emerald-500/25 bg-emerald-500/10 text-emerald-300 transition hover:bg-emerald-500/20",
   editPencilIcon: "h-3.5 w-3.5",
   editableFieldEditingWrap: "block",
-  editableFieldEditingRow: "mb-1.5 flex items-center justify-between gap-2",
+  editableFieldEditingRow: "mb-1.5 flex items-start justify-between gap-2",
   editableFieldEditingLabel: "text-xs text-slate-500",
-  editActionGroup: "flex shrink-0 items-center gap-1.5",
+  editableFieldLabelGroup: "min-w-0 flex-1",
+  editableFieldHelper: "mt-1 text-[11px] leading-relaxed text-slate-400 font-normal",
+  editActionGroup: "flex shrink-0 items-center gap-1.5 pt-0.5",
   editSaveButton: "flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/20 px-2.5 text-[11px] font-bold text-emerald-300 transition hover:bg-emerald-500/30 disabled:cursor-not-allowed disabled:opacity-40",
   editCancelButton: "flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-rose-500/40 bg-rose-500/20 px-2.5 text-[11px] font-bold text-rose-300 transition hover:bg-rose-500/30 disabled:cursor-wait disabled:opacity-60",
   editSaveIcon: "h-3.5 w-3.5",
@@ -787,6 +789,7 @@ export function DriverProfileTab({ user, language }: DriverProfileTabProps) {
           {!isTaxi ? (
             <EditableField
               label={t('companyCode')}
+              helper={t('companyCodeHelper')}
               value={firstString(companyCode, t('notProvided'))}
               originalValue={firstString(savedSnapshotRef.current.companyCode, t('notProvided'))}
               isEditing={isFieldEditing('companyCode')}
@@ -795,7 +798,13 @@ export function DriverProfileTab({ user, language }: DriverProfileTabProps) {
               onSave={handleFieldSave}
               onCancel={() => { setCompanyCode(savedSnapshotRef.current.companyCode); stopEditingField('companyCode'); }}
             >
-              <input value={companyCode} onChange={(event) => setCompanyCode(event.target.value)} className={styles.editingInput} dir="ltr" />
+              <input
+                value={companyCode}
+                onChange={(event) => setCompanyCode(event.target.value)}
+                placeholder={t('companyCodePlaceholder')}
+                className={styles.editingInput}
+                dir="ltr"
+              />
             </EditableField>
           ) : null}
           {isTaxi ? (
@@ -982,6 +991,7 @@ function Field({ label, value }: { label: string; value: string }) {
  */
 function EditableField({
   label,
+  helper,
   value,
   originalValue,
   isEditing,
@@ -992,6 +1002,7 @@ function EditableField({
   children,
 }: {
   label: string;
+  helper?: string;
   value: string;
   originalValue: string;
   isEditing: boolean;
@@ -1015,7 +1026,10 @@ function EditableField({
         }}
       >
         <div className={styles.editableFieldEditingRow}>
-          <span className={styles.editableFieldEditingLabel}>{label}</span>
+          <div className={styles.editableFieldLabelGroup}>
+            <span className={styles.editableFieldEditingLabel}>{label}</span>
+            {helper ? <p className={styles.editableFieldHelper}>{helper}</p> : null}
+          </div>
           {/* Always rendered while editing, disabled until something actually changes.
               Previously the whole group only appeared once the value differed, so opening a
               field showed no save control at all and there was nothing to tell the captain
@@ -1053,7 +1067,8 @@ function EditableField({
       <div className={styles.editableFieldBody}>
         <p className={styles.style473_74}>{label}</p>
         {/* dir="auto" so a Latin value truncates from its own tail instead of the RTL page's. */}
-      <p dir="auto" className={styles.style474_75}>{value}</p>
+        <p dir="auto" className={styles.style474_75}>{value}</p>
+        {helper ? <p className={styles.editableFieldHelper}>{helper}</p> : null}
       </div>
       <button type="button" onClick={onEdit} aria-label={label} className={styles.editPencilButton}>
         <Pencil className={styles.editPencilIcon} />

@@ -54,6 +54,7 @@ const styles = {
   colorRow: 'flex items-center gap-2',
   colorSwatch: 'h-11 w-14 shrink-0 cursor-pointer rounded-xl border border-[#243249] bg-[#0B0F19] p-1',
   error: 'text-[10px] font-bold text-rose-400 mt-1',
+  helper: 'text-[11px] text-slate-400 mt-1 leading-relaxed',
   documentBlock: 'p-3 rounded-xl bg-[#0B0F19] border border-[#14B8A6]/20  space-y-2',
   documentLabel: 'text-[10px] sm:text-[11px] font-black text-[#14B8A6] block',
   documentDropzone:
@@ -305,12 +306,13 @@ export function CaptainVehicleStep({
           <div>
             <label className={styles.label}>{t('companyCode')}</label>
             <Input
-              placeholder={t('companyCode')}
+              placeholder={t('companyCodePlaceholder')}
               value={vehicle.companyCode}
               onChange={(event) => handleFieldChange('companyCode', event.target.value)}
               className={styles.input}
               required
             />
+            <p className={styles.helper}>{t('companyCodeHelper')}</p>
             {errors.companyCode ? <p className={styles.error}>{errors.companyCode}</p> : null}
           </div>
           {renderVehicleIdentityFields()}
