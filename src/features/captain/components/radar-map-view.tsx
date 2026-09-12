@@ -78,8 +78,14 @@ const styles = {
   heartFilled: "fill-rose-400 text-rose-300 drop-shadow-[0_0_8px_rgba(244,63,94,1)] animate-pulse",
   heartEmpty: "text-slate-500",
   riderChipIcon: "h-3.5 w-3.5 shrink-0",
-  ownPendingBadge: "mt-3 flex items-center justify-center gap-2 rounded-xl border border-amber-400/30 bg-amber-400/10 py-3 text-sm font-black text-amber-200",
-  ownPendingIcon: "h-4 w-4 animate-pulse",
+  cardPendingOffer: "border-amber-400/35 shadow-[0_0_20px_rgba(251,191,36,0.12)] hover:border-amber-400/60",
+  ownPendingBadge: "mt-3 flex items-center justify-center gap-2.5 rounded-xl border border-amber-400/40 bg-gradient-to-r from-amber-500/15 via-amber-400/10 to-amber-500/15 py-2.5 px-3.5 text-xs sm:text-sm font-black text-amber-200 shadow-[0_0_16px_rgba(251,191,36,0.12)] backdrop-blur-sm transition-all duration-200",
+  ownPendingIcon: "h-4 w-4 shrink-0 text-amber-300 drop-shadow-[0_0_6px_rgba(251,191,36,0.7)] animate-pulse",
+  ownPendingPulseWrap: "relative flex h-2 w-2 shrink-0",
+  ownPendingPing: "absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75",
+  ownPendingDot: "relative inline-flex h-2 w-2 rounded-full bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.9)]",
+  ownPendingText: "tracking-wide font-black text-amber-100",
+  infoFullWidth: "col-span-2",
   cardHeaderToggle: "flex w-full flex-col text-start cursor-pointer select-none rounded-xl transition-opacity hover:opacity-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400",
   toggleChevronWrap: "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-slate-400 transition-colors hover:border-emerald-500/40 hover:text-emerald-300",
   toggleChevron: "h-4 w-4 transition-transform duration-200",
@@ -293,7 +299,13 @@ export function RadarMapView({
                 const isExpanded = Boolean(expandedRequestIds[request.id]);
 
                 return (
-                  <article key={request.id} className={styles.style219_32}>
+                  <article
+                    key={request.id}
+                    className={cn(
+                      styles.style219_32,
+                      isOwnPendingOffer ? styles.cardPendingOffer : '',
+                    )}
+                  >
                     <div
                       role="button"
                       tabIndex={0}
@@ -391,33 +403,42 @@ export function RadarMapView({
                           <Info
                             label={copy.requestTime}
                             value={formatRequestTime(request.createdAt, language)}
+                            fullWidth
                           />
                         </div>
-                        {isOwnPendingOffer ? (
-                          <div className={styles.ownPendingBadge}>
-                            <Clock className={styles.ownPendingIcon} />
-                            {copy.ownPendingOffer}
+                        {isBlockedByOtherPendingOffer ? <p className={styles.pendingOfferHint}>{copy.pendingOfferHint}</p> : null}
+                        {!isOwnPendingOffer ? (
+                          <div className={styles.style231_39}>
+                            <button
+                              type="button"
+                              onClick={() => onSelectRequest(request)}
+                              disabled={isBlockedByOtherPendingOffer}
+                              title={isBlockedByOtherPendingOffer ? copy.pendingOfferHint : undefined}
+                              className={cn(styles.style232_40, isBlockedByOtherPendingOffer ? styles.pendingOfferDisabled : '')}
+                            >
+                              <Route className={styles.style233_41} />
+                              {copy.openBid}
+                            </button>
+                            <button type="button" onClick={() => onIgnoreRequest(request.id)} className={styles.style236_42}>
+                              {copy.ignore}
+                            </button>
                           </div>
-                        ) : (
-                          <>
-                            {isBlockedByOtherPendingOffer ? <p className={styles.pendingOfferHint}>{copy.pendingOfferHint}</p> : null}
-                            <div className={styles.style231_39}>
-                              <button
-                                type="button"
-                                onClick={() => onSelectRequest(request)}
-                                disabled={isBlockedByOtherPendingOffer}
-                                title={isBlockedByOtherPendingOffer ? copy.pendingOfferHint : undefined}
-                                className={cn(styles.style232_40, isBlockedByOtherPendingOffer ? styles.pendingOfferDisabled : '')}
-                              >
-                                <Route className={styles.style233_41} />
-                                {copy.openBid}
-                              </button>
-                              <button type="button" onClick={() => onIgnoreRequest(request.id)} className={styles.style236_42}>
-                                {copy.ignore}
-                              </button>
-                            </div>
-                          </>
-                        )}
+                        ) : null}
+                      </div>
+                    ) : null}
+
+                    {/* When the captain has placed an offer, this status banner is ALWAYS
+                        visible whether the card is closed or open — so the captain can see
+                        at a glance that their offer is awaiting the rider's decision without
+                        having to expand the card first. */}
+                    {isOwnPendingOffer ? (
+                      <div className={styles.ownPendingBadge}>
+                        <span className={styles.ownPendingPulseWrap}>
+                          <span className={styles.ownPendingPing} />
+                          <span className={styles.ownPendingDot} />
+                        </span>
+                        <Clock className={styles.ownPendingIcon} />
+                        <span className={styles.ownPendingText}>{copy.ownPendingOffer}</span>
                       </div>
                     ) : null}
                   </article>
@@ -431,9 +452,9 @@ export function RadarMapView({
   );
 }
 
-function Info({ label, value }: { label: string; value: string }) {
+function Info({ label, value, fullWidth }: { label: string; value: string; fullWidth?: boolean }) {
   return (
-    <div className={styles.style252_43}>
+    <div className={cn(styles.style252_43, fullWidth ? styles.infoFullWidth : '')}>
       <p className={styles.style253_44}>{label}</p>
       <p className={styles.style254_45}>{value}</p>
     </div>
