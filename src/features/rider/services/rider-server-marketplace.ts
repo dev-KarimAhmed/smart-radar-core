@@ -268,7 +268,9 @@ export async function fetchAvailableCaptainPresence(
   const nowMs = query.nowMs ?? Date.now();
   const ttlMs = query.ttlMs ?? CAPTAIN_PRESENCE_TTL_MS;
   const staleBeforeIso = new Date(nowMs - ttlMs).toISOString();
-  const h3Cells = gridDisk(query.centerH3Cell, query.ringSize ?? 1);
+  // السقف الأقصى لحلقة H3: مقفول عند 7 (ما يعادل 2.5 كم فقط ليس أكثر) والافتراضي 4 (1.5 كم)
+  const ringSize = Math.min(Math.max(query.ringSize ?? 4, 0), 7);
+  const h3Cells = gridDisk(query.centerH3Cell, ringSize);
   const { data, error } = await client
     .from('captain_locations')
     .select('*')

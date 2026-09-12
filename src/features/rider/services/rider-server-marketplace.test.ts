@@ -194,5 +194,13 @@ const depletedCaptains = await fetchAvailableCaptainPresence(
 );
 assert.equal(depletedCaptains.length, 8);
 
+// Scenario 4: Geographical Scan Clamping (1.5km initial -> 2.5km max clamp):
+// If caller requests ringSize 10 (> 2.5km), it must be clamped to 7 (2.5km max).
+const clampedCaptains = await fetchAvailableCaptainPresence(
+  mockPresenceClient(makePool(0)) as any,
+  { centerH3Cell: testCenterH3, countryId: 2, ringSize: 10, nowMs: now }
+);
+assert.equal(clampedCaptains.length, 9);
+
 console.log('rider server marketplace checks passed');
 

@@ -53,11 +53,22 @@ export function useCaptainPresence(userId: string | undefined, activeCountryId: 
       }
 
       try {
-        const rows = await fetchAvailableCaptainPresence(supabase, {
+        // 1. يبدأ المسح الجغرافي بـ 1.5 كم (حلقة H3 بحجم 4)
+        let rows = await fetchAvailableCaptainPresence(supabase, {
           centerH3Cell: riderH3Cell,
           countryId: activeCountryId,
-          ringSize: 1,
+          ringSize: 4, // نطاق 1.5 كم
         });
+
+        // 2. إذا لم يجد في هذا الحيز الجغرافي سائقين، يتوسع إلى 2.5 كم فقط ليس أكثر (حلقة H3 بحجم 7)
+        if (rows.length === 0) {
+          rows = await fetchAvailableCaptainPresence(supabase, {
+            centerH3Cell: riderH3Cell,
+            countryId: activeCountryId,
+            ringSize: 7, // نطاق 2.5 كم كحد أقصى قطعي
+          });
+        }
+
         if (active) setCaptainLocations(rows.slice(0, 9));
       } catch (error) {
         if (!active) return;

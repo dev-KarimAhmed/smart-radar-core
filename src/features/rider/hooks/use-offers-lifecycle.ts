@@ -59,8 +59,17 @@ export function useOffersLifecycle(
         ]);
 
         const favoriteIds = collectPreferredCaptainIds(favs);
+        // فلترة العروض بالمسح الجغرافي: يبدأ بـ 1.5 كم، وإذا لم يجد يتوسع إلى 2.5 كم فقط ليس أكثر
+        const validOffers = offers.filter((offer) => {
+          const dist = Number((offer as any).distance_to_rider ?? (offer as any).pickup_distance_km);
+          if (Number.isFinite(dist) && dist > 0) {
+            return dist <= captainSearchRadiusKm;
+          }
+          return true;
+        });
+
         // حصة الراكب من السوق: 9 عروض كباتن كحد أقصى
-        const sortedOffers = prioritizeRiderOffers(offers, favoriteIds).slice(0, 9);
+        const sortedOffers = prioritizeRiderOffers(validOffers, favoriteIds).slice(0, 9);
 
         const nowTs = Date.now();
         for (const offer of sortedOffers) {
@@ -97,7 +106,7 @@ export function useOffersLifecycle(
       active = false;
       unsubscribe();
     };
-  }, [dispatch, state.requestCancelledAt, state.requestId, state.screen]);
+  }, [captainSearchRadiusKm, dispatch, state.requestCancelledAt, state.requestId, state.screen]);
 
   // Drops an offer from state the moment its captain-chosen wait_seconds
   // window elapses — without this, an expired offer stayed in state.offers
@@ -140,13 +149,16 @@ export function useOffersLifecycle(
   }, [dispatch, state.offers.length, state.requestCancelledAt, state.requestId, state.screen, t, toast]);
 
   React.useEffect(() => {
-    if (state.screen !== 'RECEIVING_OFFERS' || state.offers.length > 0 || state.requestCancelledAt) {
+    if (state.screen !== 'RECEIVING_OFFERS' || state.requestCancelledAt) {
       setCaptainSearchRadiusKm(1.5);
       setIsExpandingCaptainSearch(false);
       return;
     }
 
-    if (captainSearchRadiusKm >= 2.5) return;
+    if (state.offers.length > 0 || captainSearchRadiusKm >= 2.5) {
+      setIsExpandingCaptainSearch(false);
+      return;
+    }
 
     const timeoutId = window.setTimeout(() => {
       setIsExpandingCaptainSearch(true);

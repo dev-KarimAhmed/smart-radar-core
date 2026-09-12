@@ -4,7 +4,10 @@
  */
 export const SOVEREIGN_CONSTANTS = {
   // 1. الثوابت الجغرافية (Geo-Constraints)
-  RADAR_RADIUS_KM: 1.5,             // القطر السيادي للبحث
+  RADAR_RADIUS_KM: 1.5,             // القطر السيادي الأولي للبحث (1.5 كم)
+  RADAR_MAX_EXPANDED_RADIUS_KM: 2.5, // التوسع الأقصى في حال عدم وجود سائقين (2.5 كم فقط ليس أكثر)
+  RADAR_INITIAL_H3_RING: 4,         // حجم حلقة H3 للمسح الأولي (1.5 كم - دقة 9)
+  RADAR_EXPANDED_H3_RING: 7,        // حجم حلقة H3 الأقصى للتوسع (2.5 كم - دقة 9)
   URBAN_DETOUR_INDEX: 1.35,         // معامل التعرج لتعويض خرائط جوجل محلياً
   PULSE_SECTOR_SIZE: 1.5,           // The size of the market pulse sectors in kilometers.
 
