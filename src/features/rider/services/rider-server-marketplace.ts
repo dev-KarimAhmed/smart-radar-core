@@ -69,6 +69,7 @@ export interface RideRequestInsertInput {
   routeDistanceKm?: number;
   routeDurationMinutes?: number;
   countryId: number;
+  pricingPreference?: 'FREE' | 'APP' | 'TAXI' | null;
 }
 
 export interface RideRequestInsertPayload {
@@ -87,6 +88,7 @@ export interface RideRequestInsertPayload {
   server_estimated_fare: number;
   country_id: number;
   status: 'PENDING';
+  pricing_preference?: 'FREE' | 'APP' | 'TAXI' | null;
 }
 
 export interface RideRequestRow {
@@ -167,6 +169,7 @@ export function buildRideRequestInsertPayload(input: RideRequestInsertInput): Ri
     server_estimated_fare: toFiniteNumber(input.serverEstimatedFare, 'server_estimated_fare'),
     country_id: toStrictPositiveInteger(input.countryId, 'country_id'),
     status: 'PENDING',
+    pricing_preference: input.pricingPreference || null,
   };
 }
 
@@ -196,17 +199,15 @@ export async function createRideRequest(client: SupabaseInsertLike, payload: Rid
   };
 }
 
-export async function fetchRideOffers(client: SupabaseFromLike, requestId: string): Promise<Offer[]> {
-  const { data, error } = await client
-    .from('ride_offers')
-    .select('*')
-    .eq('request_id', requestId)
-    .order('created_at', { ascending: true });
+export async function fetchRideOffers(client: SupabaseMarketplaceRpcLike, requestId: string): Promise<Offer[]> {
+  const { data, error } = await client.rpc('get_passenger_bids', {
+    p_request_id: requestId,
+  });
 
   if (error) throw error;
   if (!Array.isArray(data)) return [];
 
-  const enrichedRows = await enrichRideOfferRows(client, data as Record<string, unknown>[]);
+  const enrichedRows = await enrichRideOfferRows(client as unknown as SupabaseFromLike, data as Record<string, unknown>[]);
   return enrichedRows.map(mapRideOfferRow).filter(Boolean) as Offer[];
 }
 

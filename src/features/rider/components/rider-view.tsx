@@ -142,6 +142,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
     language,
     state,
     dispatch,
+    pricingPreference: tripCompletion.pricingPreference,
     pendingAcceptedOfferIdRef: offers.pendingAcceptedOfferIdRef,
     onExitRequestFlow,
     resetRideDraftState,

@@ -402,6 +402,10 @@ export function CaptainOfferCard({
                   {isArabic ? 'كابتن مفضل' : 'Preferred Captain'}
                 </span>
               ) : null}
+              <span className="inline-flex items-center gap-1 rounded-full border border-blue-500/30 bg-blue-500/10 px-2 py-0.5 text-[10px] font-bold text-blue-300">
+                <Building2 className="h-3 w-3 text-blue-400" />
+                {companyLabel}
+              </span>
             </div>
             <div className={styles.metaRow}>
               <span className={styles.style165_14}>

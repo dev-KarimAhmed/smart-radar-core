@@ -59,6 +59,7 @@ function describeOfferSubmitError(rawMessage: string | undefined, t: any) {
 export function useDriverTransactions(
   user: User | null,
   setDriverStatus?: (status: 'active' | 'idle' | 'busy' | 'rating') => void,
+  driverStatus?: string,
 ) {
   const { toast } = useToast();
   const t = useTranslations('transactions');
@@ -89,43 +90,40 @@ export function useDriverTransactions(
     setPendingOfferRequestId(null);
   }, []);
 
-  // The waitSeconds timeout above is a last-resort fallback — this checks the
-  // actual request directly so a stale lock clears immediately once the rider
-  // cancels (or picks a different captain), instead of blocking every other
-  // request as "you have a pending offer" until the countdown runs out.
-  //
-  // This can't query `ride_requests` directly: its RLS policy only allows a
-  // captain to SELECT a row they're the accepted captain for (or the rider,
-  // never true here) — a request this captain merely bid on but never got
-  // accepted for returns zero rows, silently, no error. `captain_radar_requests`
-  // is the view the whole radar system already reads through instead, and it
-  // only ever returns rows that are still PENDING — so "not found" here
-  // reliably means this offer is moot (cancelled, or a different captain got
-  // accepted), whether or not it was ever accepted for this captain (that
-  // path already clears the lock separately, via loadAcceptedRequest).
   useEffect(() => {
-    if (!pendingOfferRequestId) return;
+    if (driverStatus === 'idle') {
+      clearPendingOffer();
+    }
+  }, [driverStatus, clearPendingOffer]);
+
+  // Checks whether the captain's own offer is still PENDING on the server.
+  // When the captain goes idle or the offer expires/cancels, this clears the pending state
+  // so the captain can submit a new offer without being locked.
+  useEffect(() => {
+    if (!pendingOfferRequestId || !captainId) return;
     let isCancelled = false;
 
     const checkStillPending = async () => {
       const { data, error } = await supabase
-        .from('captain_radar_requests')
+        .from('ride_offers')
         .select('id')
-        .eq('id', pendingOfferRequestId)
+        .eq('request_id', pendingOfferRequestId)
+        .eq('captain_id', captainId)
+        .or('status.eq.PENDING,status.eq.pending')
         .maybeSingle();
 
       if (isCancelled || error) return;
       if (!data) clearPendingOffer();
     };
 
-    const intervalId = window.setInterval(() => void checkStillPending(), 8_000);
+    const intervalId = window.setInterval(() => void checkStillPending(), 3_000);
     void checkStillPending();
 
     return () => {
       isCancelled = true;
       window.clearInterval(intervalId);
     };
-  }, [pendingOfferRequestId, clearPendingOffer]);
+  }, [pendingOfferRequestId, captainId, clearPendingOffer]);
 
   const cleanUpAndReset = useCallback(() => {
     setActiveReq(null);
@@ -289,7 +287,7 @@ export function useDriverTransactions(
     };
   }, [captainId, loadAcceptedRequest]);
 
-  const submitOffer = useCallback(async (payload: { tripId: string; offerPrice: number; waitSeconds: number }) => {
+  const submitOffer = useCallback(async (payload: { tripId: string; offerPrice: number; waitSeconds: number; pricingMode?: 'FREE' | 'APP' | 'TAXI' }) => {
     if (!captainId) {
       toast({
         variant: 'destructive',
@@ -335,6 +333,7 @@ export function useDriverTransactions(
         p_request_id: payload.tripId,
         p_offer_price: Number(payload.offerPrice),
         p_wait_seconds: payload.waitSeconds,
+        p_pricing_mode: payload.pricingMode || 'FREE',
       });
 
       if (error) throw error;
@@ -660,6 +659,9 @@ function mapRideRequestToTrip(row: RideRequestRow | null): Trip | null {
     acceptedAtMs: toEpochMs(row.accepted_at) || undefined,
     arrivedAtMs: toEpochMs(row.arrived_at) || undefined,
     startedAtMs: toEpochMs(row.started_at) || undefined,
+    pricingPreference: (['APP', 'TAXI', 'FREE'].includes(String(row.pricing_preference || '').toUpperCase())
+      ? String(row.pricing_preference).toUpperCase() as 'APP' | 'TAXI' | 'FREE'
+      : null),
   };
 }
 

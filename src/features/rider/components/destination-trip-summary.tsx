@@ -2,7 +2,8 @@
 
 import React from 'react';
 import { Loader2, Minus, Navigation, Plus, Users } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import type { RiderLocation } from './rider-map';
 import { DestinationSummaryCard } from './destination-summary-card';
@@ -32,6 +33,8 @@ const styles = {
 export interface DestinationTripSummaryProps {
   riderCount: number;
   setRiderCount: (updater: (current: number) => number) => void;
+  pricingPreference: 'APP' | 'TAXI' | 'FREE' | null;
+  setPricingPreference: (pref: 'APP' | 'TAXI' | 'FREE' | null) => void;
   destinationDataError: string | null;
   destinationReady: boolean;
   isServerFareLoading: boolean;
@@ -56,6 +59,8 @@ export interface DestinationTripSummaryProps {
 export function DestinationTripSummary({
   riderCount,
   setRiderCount,
+  pricingPreference,
+  setPricingPreference,
   destinationDataError,
   destinationReady,
   isServerFareLoading,
@@ -78,6 +83,8 @@ export function DestinationTripSummary({
 }: DestinationTripSummaryProps) {
   const locationCopy = useTranslations('location');
   const t = useTranslations('riderView');
+  const locale = useLocale();
+  const isArabic = locale === 'ar';
 
   return (
     <>
@@ -109,6 +116,28 @@ export function DestinationTripSummary({
           >
             <Plus className={styles.stepperIcon} />
           </button>
+        </div>
+      </div>
+
+      <div className={styles.passengerRow}>
+        <div className={styles.passengerLabelWrap}>
+          <span className={styles.passengerIcon}>
+            <Navigation className={styles.passengerIconGlyph} />
+          </span>
+          <span className={styles.passengerLabel}>{isArabic ? 'طريقة التسعير' : 'Pricing Mode'}</span>
+        </div>
+        <div className="w-[180px]">
+          <Select value={pricingPreference || 'none'} onValueChange={(val) => setPricingPreference(val === 'none' ? null : val as any)}>
+            <SelectTrigger className="w-full h-10 border-white/10 bg-black/30 text-white rounded-xl focus:ring-[#14B8A6] focus:ring-offset-0 text-sm">
+              <SelectValue placeholder={isArabic ? 'بدون تحديد' : 'No Preference'} />
+            </SelectTrigger>
+            <SelectContent className="border-white/10 bg-[#0F172A] text-white">
+              <SelectItem value="none">{isArabic ? 'بدون تحديد' : 'No Preference'}</SelectItem>
+              <SelectItem value="FREE">{isArabic ? 'سعر حر' : 'Free Price'}</SelectItem>
+              <SelectItem value="APP">{isArabic ? 'حسب تسعيرة التطبيق' : 'App Pricing'}</SelectItem>
+              <SelectItem value="TAXI">{isArabic ? 'حسب عداد التاكسي' : 'Taxi Meter'}</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 

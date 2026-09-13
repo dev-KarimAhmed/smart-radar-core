@@ -260,9 +260,9 @@ export function DriverViewTab() {
   const bonusMinutes = walletIsReady ? wallet.bonusMinutesRemaining : 0;
   const currency = liveCurrencyCode || getCurrencyLabel(countryConfig, user, language);
 
-  const submitBid = async (price: number, waitSeconds: number) => {
+  const submitBid = async (price: number, waitSeconds: number, pricingMode?: 'FREE' | 'APP' | 'TAXI') => {
     if (!state.selectedRequest) return;
-    const ok = await driverOps.submitOffer({ tripId: state.selectedRequest.id, offerPrice: price, waitSeconds });
+    const ok = await driverOps.submitOffer({ tripId: state.selectedRequest.id, offerPrice: price, waitSeconds, pricingMode });
     if (ok) dispatch({ type: 'OFFER_SUBMITTED', requestId: state.selectedRequest.id });
   };
 

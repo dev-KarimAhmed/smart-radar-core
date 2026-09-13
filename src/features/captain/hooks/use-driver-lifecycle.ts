@@ -173,6 +173,11 @@ export function useDriverLifecycle(user: User | null) {
         return false;
       }
 
+      if (data.status === 'idle') {
+        void supabase.from('ride_offers').update({ status: 'CANCELLED' }).eq('captain_id', user.uid);
+        void supabase.from('ride_offers').delete().eq('captain_id', user.uid);
+      }
+
       return true;
     }
 
@@ -270,6 +275,10 @@ export function useDriverLifecycle(user: User | null) {
       changeDriverStatus(desiredStatus);
       if (desiredStatus === 'active') setActivationNonce((value) => value + 1);
       if (user?.uid) {
+        if (desiredStatus === 'idle') {
+          void supabase.from('ride_offers').update({ status: 'CANCELLED' }).eq('captain_id', user.uid);
+          void supabase.from('ride_offers').delete().eq('captain_id', user.uid);
+        }
         void addCaptainSovereignLog(
           user.uid,
           'status_change',

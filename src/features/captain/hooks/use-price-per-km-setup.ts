@@ -13,6 +13,8 @@ export type CaptainTariff = {
   pricePerMin: number;
   /** المسافة المشمولة في فتحة العداد — km billed at zero before per-km charging starts. */
   includedKm: number;
+  /** النمط المفضل للتسعير (أسعار حرة أم أسعار التطبيق) */
+  pricingMode?: 'FREE' | 'APP' | null;
 };
 
 export type CaptainTariffSaveResult =
@@ -43,6 +45,7 @@ type TariffContext = {
   pricePerKm: number | null;
   pricePerMin: number | null;
   includedKm: number;
+  pricingMode: 'FREE' | 'APP' | null;
   /** Lowest meter-opening charge this captain may set. */
   minBaseFare: number;
   minBaseFareSource: MinBaseFareSource;
@@ -118,6 +121,7 @@ export function usePricePerKmSetup(
     pricePerKm: null,
     pricePerMin: null,
     includedKm: 0,
+    pricingMode: 'FREE',
     minBaseFare: FALLBACK_MIN_BASE_FARE,
     minBaseFareSource: 'country_seed',
     marketAverage: null,
@@ -143,11 +147,16 @@ export function usePricePerKmSetup(
         if (error) throw error;
 
         const context = (data ?? {}) as Record<string, unknown>;
+        const rawMode = context.pricingMode || context.pricing_mode;
+        const parsedMode: 'FREE' | 'APP' | null =
+          rawMode === 'APP' ? 'APP' : rawMode === 'FREE' ? 'FREE' : 'FREE';
+
         setTariff({
           baseFare: toNumberOrNull(context.baseFare),
           pricePerKm: toNumberOrNull(context.pricePerKm),
           pricePerMin: toNumberOrNull(context.pricePerMin),
           includedKm: toNumberOrNull(context.includedKm) ?? 0,
+          pricingMode: parsedMode,
           minBaseFare: toNumberOrNull(context.minBaseFare) ?? FALLBACK_MIN_BASE_FARE,
           minBaseFareSource: context.minBaseFareSource === 'captain_average' ? 'captain_average' : 'country_seed',
           marketAverage: toMarketAverage(context.marketAverage),
@@ -164,11 +173,6 @@ export function usePricePerKmSetup(
     return () => {
       active = false;
     };
-    // Re-reads on every activation, not just on mount, so the modal always opens on what is
-    // actually stored — the captain may have edited their tariff from the profile tab since
-    // this hook last fetched, and prefilling stale numbers would invite them to "confirm"
-    // values they had already replaced. The setIsLoaded(false) above keeps the modal shut
-    // for the duration of the refetch, so it never renders against the old data.
   }, [user?.uid, activationNonce]);
 
   const saveTariff = React.useCallback(async (value: CaptainTariff): Promise<CaptainTariffSaveResult> => {
@@ -181,6 +185,7 @@ export function usePricePerKmSetup(
         price_per_km: value.pricePerKm,
         price_per_min: value.pricePerMin,
         included_km: value.includedKm,
+        pricing_mode: value.pricingMode || 'FREE',
       })
       .eq('id', user.uid);
 
@@ -194,7 +199,11 @@ export function usePricePerKmSetup(
       return { saved: false, reason: 'unknown' };
     }
 
-    setTariff((previous) => ({ ...previous, ...value }));
+    setTariff((previous) => ({
+      ...previous,
+      ...value,
+      pricingMode: value.pricingMode || 'FREE',
+    }));
     setConfirmedNonce(activationNonce);
     return { saved: true };
   }, [activationNonce, user?.uid]);
