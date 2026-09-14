@@ -248,13 +248,57 @@ async function requestMapboxRoute(
   };
   if (payload.code !== 'Ok' || !payload.routes || payload.routes.length === 0) return null;
 
-  // Pick the most direct candidate route (shortest distance) to avoid multi-km U-turn detours
-  const bestRoute = [...payload.routes].sort((a, b) => Number(a.distance) - Number(b.distance))[0];
+  // Intelligently select optimal candidate route (prefer arterial highway corridors over narrow alleyways)
+  const bestRoute = pickOptimalMapboxRoute(payload.routes);
   const distanceKm = Number(bestRoute?.distance) / 1000;
   const minutes = Number(bestRoute?.duration) / 60;
   if (!Number.isFinite(distanceKm) || !Number.isFinite(minutes)) return null;
 
   return { distanceKm, minutes, modelsCongestion: true };
+}
+
+/**
+ * Among alternative routes returned by Mapbox Directions API, intelligently selects the
+ * real-world driving route:
+ * - Eliminates high-detour options (e.g. multi-km U-turns on divided highways).
+ * - Between viable routes with similar duration (within 10% or 120s of the fastest), prefers
+ *   the arterial / highway corridor (noticeably higher cruise speed) rather than narrow,
+ *   bumpy residential shortcuts with speed bumps.
+ * - When speeds are comparable, picks the shorter direct route.
+ */
+export function pickOptimalMapboxRoute(
+  routes: Array<{ distance?: number; duration?: number }>,
+): { distance?: number; duration?: number } | undefined {
+  if (routes.length <= 1) return routes[0];
+
+  const fastestDuration = Math.min(...routes.map(r => Number(r.duration) || Infinity));
+
+  // Viable candidates within 10% or 120s of the fastest duration
+  const viable = routes.filter(r => {
+    const dur = Number(r.duration) || Infinity;
+    return dur <= fastestDuration * 1.10 || dur <= fastestDuration + 120;
+  });
+
+  if (viable.length === 1) return viable[0];
+
+  return [...viable].sort((a, b) => {
+    const durA = Number(a.duration) || 1;
+    const durB = Number(b.duration) || 1;
+    const distA = Number(a.distance) || 0;
+    const distB = Number(b.distance) || 0;
+    const speedA = distA / durA;
+    const speedB = distB / durB;
+
+    // If one route has distinctly higher cruise speed (> 5% faster flow),
+    // it represents an arterial highway corridor rather than a residential backstreet
+    const minSpeed = Math.min(speedA, speedB);
+    if (minSpeed > 0 && Math.abs(speedB - speedA) / minSpeed > 0.05) {
+      return speedB - speedA; // higher speed corridor first
+    }
+
+    // Otherwise, when speeds are comparable, pick the shorter direct route
+    return distA - distB;
+  })[0];
 }
 
 /** Valhalla: free FOSSGIS instance, no API key, `Access-Control-Allow-Origin: *`. */

@@ -163,6 +163,32 @@ try {
   assert.equal(viaMapbox.durationMinutes, 29, 'Mapbox duration is live real-time traffic');
   assert.equal(fetchCalls, 1);
 
+  // Tests that between comparable duration alternatives, the arterial highway corridor
+  // (e.g. 15.96 km @ 43 km/h via Wahat Road) is preferred over residential bumpy alleys (13.94 km @ 39 km/h)
+  resetRouteProviderHealth();
+  fetchCalls = 0;
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    fetchCalls += 1;
+    if (String(input).includes('api.mapbox.com')) {
+      return jsonResponse({
+        code: 'Ok',
+        routes: [
+          { distance: 13940, duration: 21 * 60 },
+          { distance: 15960, duration: 22 * 60 },
+        ],
+      });
+    }
+    throw new Error('unexpected provider call');
+  }) as typeof fetch;
+
+  const newOctoberDestination = { lat: 29.88292, lng: 30.84338 };
+  const viaHighway = await fetchRoadRoute(origin, newOctoberDestination, 1.35, 1.25, NIGHT);
+  assert.equal(viaHighway.isFallback, false);
+  assert.equal(viaHighway.source, 'mapbox');
+  assert.equal(viaHighway.distanceKm, 15.96, 'Prefers arterial highway corridor over slow residential alley shortcut');
+  assert.equal(viaHighway.durationMinutes, 22);
+  assert.equal(fetchCalls, 1);
+
   // Mapbox failure falls through seamlessly to Valhalla
   resetRouteProviderHealth();
   fetchCalls = 0;
