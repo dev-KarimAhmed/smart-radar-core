@@ -218,18 +218,6 @@ export function RadarMapView({
       }
     }
 
-    if (isTaxi) {
-      if (onSubmitDirectBid) {
-        setSubmittingRequestId(request.id);
-        try {
-          await onSubmitDirectBid(request, request.offerPrice ?? 0, 300, 'TAXI');
-        } finally {
-          setSubmittingRequestId(null);
-        }
-        return;
-      }
-    }
-
     // In non-App modes (Taxi, Free, etc.) or if no direct price was entered,
     // take the captain to the details page so they can review and set/confirm their price:
     onSelectRequest(request, directPrices[request.id], cardPricingMode);
@@ -624,7 +612,6 @@ export function RadarMapView({
                             </button>
                             <button
                               type="button"
-                              onClick={() => onSelectRequest(request, directPrices[request.id], isOfficeTaxi ? 'TAXI' : isAppMode ? 'APP' : 'FREE')}
                               onClick={() => onSelectRequest(request, directPrices[request.id], isTaxiMode ? 'TAXI' : isAppMode ? 'APP' : 'FREE')}
                               className={styles.moreDetailsButton}
                               title={copy.moreDetails}
@@ -662,7 +649,6 @@ export function RadarMapView({
                         </div>
                         <button
                           type="button"
-                          onClick={() => onSelectRequest(request, directPrices[request.id], isOfficeTaxi ? 'TAXI' : isAppMode ? 'APP' : 'FREE')}
                           onClick={() => onSelectRequest(request, directPrices[request.id], isTaxiMode ? 'TAXI' : isAppMode ? 'APP' : 'FREE')}
                           className={styles.ownPendingDetailsBtn}
                           title={copy.moreDetails}

@@ -273,7 +273,6 @@ export function BiddingProposalSheet({
   if (pricingMode === 'APP') {
     finalOfferPrice = normalizedAppPrice > 0 ? roundMoney(normalizedAppPrice) : 0;
   } else if (pricingMode === 'TAXI') {
-    finalOfferPrice = roundMoney(baseFare);
     finalOfferPrice = normalizedAppPrice > 0 ? roundMoney(normalizedAppPrice) : roundMoney(baseFare);
   }
 
@@ -284,7 +283,6 @@ export function BiddingProposalSheet({
     } else {
       setIncreaseAmount(0);
     }
-    if (existingOffer?.price && pricingMode === 'APP') {
     if (existingOffer?.price && (pricingMode === 'APP' || pricingMode === 'TAXI')) {
       setAppPrice(String(existingOffer.price));
     } else if (initialOfferPrice && initialOfferPrice > 0) {
@@ -613,8 +611,6 @@ export function BiddingProposalSheet({
         )}
 
         {pricingMode === 'TAXI' && (
-          <div className={styles.taxiModeNotice}>
-            {t('taxiModeNotice')}
           <div className={styles.taxiModeContainer}>
             <div className={styles.taxiModeNotice}>
               🚕 {t('taxiModeNotice')}
