@@ -117,6 +117,8 @@ export function DriverViewTab() {
   );
   const { marketIndicator } = useCaptainMarketIndicator(user);
   const [state, dispatch] = React.useReducer(captainDashboardReducer, initialCaptainDashboardState);
+  const [prefilledOfferPrice, setPrefilledOfferPrice] = React.useState<number | null>(null);
+  const [prefilledPricingMode, setPrefilledPricingMode] = React.useState<'FREE' | 'APP' | 'TAXI' | null>(null);
   const knownRequestIdsRef = React.useRef<Set<string> | null>(null);
   const screen = state.screen === 'ACTIVE_TRIP' && !driverOps?.activeRequest ? 'RADAR_MAP' : state.screen;
   useActiveTripReloadGuard(screen === 'ACTIVE_TRIP');
@@ -266,9 +268,7 @@ export function DriverViewTab() {
     if (ok) dispatch({ type: 'OFFER_SUBMITTED', requestId: state.selectedRequest.id });
   };
 
-  // Spec 5.1.3 "one active offer" — block opening a second request's bidding
-  // sheet while an earlier offer is still awaiting the rider's response.
-  const selectRequest = (request: Trip) => {
+  const submitDirectBid = async (request: Trip, price: number, waitSeconds = 300, pricingMode?: 'FREE' | 'APP' | 'TAXI') => {
     if (driverOps.pendingOfferRequestId && driverOps.pendingOfferRequestId !== request.id) {
       toast({
         variant: 'destructive',
@@ -277,6 +277,24 @@ export function DriverViewTab() {
       });
       return;
     }
+    const ok = await driverOps.submitOffer({ tripId: request.id, offerPrice: price, waitSeconds, pricingMode });
+    if (ok) dispatch({ type: 'OFFER_SUBMITTED', requestId: request.id });
+  };
+
+  // Spec 5.1.3 "one active offer" — block opening a second request's bidding
+  // sheet while an earlier offer is still awaiting the rider's response.
+  const selectRequest = (request: Trip, initialPrice?: string | number, pricingMode?: 'FREE' | 'APP' | 'TAXI') => {
+    if (driverOps.pendingOfferRequestId && driverOps.pendingOfferRequestId !== request.id) {
+      toast({
+        variant: 'destructive',
+        title: t('pendingOfferToastTitle'),
+        description: t('pendingOfferToastBody'),
+      });
+      return;
+    }
+    const parsed = initialPrice ? parseFloat(String(initialPrice)) : null;
+    setPrefilledOfferPrice(parsed && !isNaN(parsed) && parsed > 0 ? parsed : null);
+    setPrefilledPricingMode(pricingMode ?? null);
     dispatch({ type: 'SELECT_REQUEST', request });
   };
 
@@ -458,11 +476,15 @@ export function DriverViewTab() {
             currentH3Cell={driverOps.currentH3Cell}
             paidMinutes={paidMinutes}
             bonusMinutes={bonusMinutes}
+            currency={currency}
             radarLockMessage={driverOps.radarLockMessage}
             requests={driverOps.requests}
             pendingOfferRequestId={driverOps.pendingOfferRequestId}
+            captainPricingMode={currentTariff?.pricingMode ?? null}
+            isOfficeTaxi={user?.affiliation?.type === 'office-taxi'}
             onSelectRequest={selectRequest}
             onIgnoreRequest={driverOps.rejectRequest}
+            onSubmitDirectBid={submitDirectBid}
           />
         ) : null}
 
@@ -473,6 +495,9 @@ export function DriverViewTab() {
             currency={currency}
             driverLocation={driverOps.driverLocation}
             isSubmitting={driverOps.isSubmittingOffer}
+            initialOfferPrice={prefilledOfferPrice}
+            initialPricingMode={prefilledPricingMode}
+            captainPricingMode={currentTariff?.pricingMode ?? null}
             onSubmit={submitBid}
             onIgnore={() => {
               if (state.selectedRequest) driverOps.rejectRequest(state.selectedRequest.id);

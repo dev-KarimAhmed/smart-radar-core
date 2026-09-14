@@ -54,7 +54,8 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
   });
   const { pin, geography, search, mapPicker, clipboard, selectionHandlers } = destination;
 
-  const offers = useOffersLifecycle(state, dispatch, language);
+  const tripCompletion = useTripCompletion(state, dispatch);
+  const offers = useOffersLifecycle(state, dispatch, language, tripCompletion.pricingPreference);
   const fareAndRoute = useServerFareAndRoute({
     activeCountryId,
     riderLocation: geolocation.riderLocation,
@@ -100,7 +101,6 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
     dispatch,
     pendingAcceptedOfferIdRef: offers.pendingAcceptedOfferIdRef,
   });
-  const tripCompletion = useTripCompletion(state, dispatch);
 
   const resetRideDraftState = React.useCallback(() => {
     geography.reset();

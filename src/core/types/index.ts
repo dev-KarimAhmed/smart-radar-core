@@ -156,6 +156,8 @@ export interface Offer {
      * core type does not have to import from a feature.
      */
     fare_breakdown?: Record<string, unknown> | null;
+    pricing_mode?: 'FREE' | 'APP' | 'TAXI' | string;
+    pricingMode?: 'FREE' | 'APP' | 'TAXI' | string;
 }
 
 export interface SovereignAd {

@@ -29,6 +29,7 @@ export function useOffersLifecycle(
   state: RiderMachineState,
   dispatch: React.Dispatch<RiderMachineAction>,
   language: AppLanguage,
+  pricingPreference?: 'APP' | 'TAXI' | 'FREE' | null,
 ) {
   const { toast } = useToast();
   const t = useTranslations('riderView');
@@ -62,8 +63,8 @@ export function useOffersLifecycle(
         // جميع العروض المقدمة من الكباتن المتاحين للطلب يتم عرضها للراكب
         const validOffers = offers;
 
-        // حصة الراكب من السوق: 9 عروض كباتن كحد أقصى
-        const sortedOffers = prioritizeRiderOffers(validOffers, favoriteIds).slice(0, 9);
+        // حصة الراكب من السوق: 9 عروض كباتن كحد أقصى تفرز حسب: الفئة، المفضلين، الرتبة، السعر
+        const sortedOffers = prioritizeRiderOffers(validOffers, favoriteIds, pricingPreference).slice(0, 9);
 
         const nowTs = Date.now();
         for (const offer of sortedOffers) {
@@ -100,7 +101,7 @@ export function useOffersLifecycle(
       active = false;
       unsubscribe();
     };
-  }, [captainSearchRadiusKm, dispatch, state.requestCancelledAt, state.requestId, state.screen]);
+  }, [captainSearchRadiusKm, dispatch, pricingPreference, state.requestCancelledAt, state.requestId, state.screen]);
 
   // Drops an offer from state the moment its captain-chosen wait_seconds
   // window elapses — without this, an expired offer stayed in state.offers

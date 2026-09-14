@@ -2,7 +2,7 @@
 
 import React from 'react';
 import maplibregl from 'maplibre-gl';
-import { ChevronDown, Clock, Heart, MapPin, RadioTower, Route, Star } from 'lucide-react';
+import { ChevronDown, ClipboardPaste, Clock, Heart, Loader2, MapPin, RadioTower, Route, Star } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { Trip } from '@/core/types';
 import { DEFAULT_MAP_CENTER } from '@/shared/services/maplibre-runtime';
@@ -49,10 +49,10 @@ const styles = {
   style222_35: "min-w-0 flex-1",
   style223_36: "line-clamp-2 text-base font-black text-white tracking-wide leading-snug",
   style227_38: "mt-3.5 grid grid-cols-2 gap-2 text-xs",
-  style231_39: "mt-4 flex gap-2",
-  style232_40: "inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#14F5D5] via-[#14B8A6] to-[#0d9488] px-4 py-2.5 text-sm font-black text-[#031518] shadow-[0_4px_18px_rgba(20,245,213,0.35)] hover:brightness-110 active:scale-[0.98] transition-all",
-  style233_41: "h-4 w-4 stroke-[2.5]",
-  style236_42: "rounded-xl border border-slate-700/80 bg-slate-900/70 px-4 py-2.5 text-xs font-bold text-slate-300 shadow-sm hover:border-rose-500/40 hover:bg-rose-500/15 hover:text-rose-200 active:scale-[0.98] transition-all",
+  style231_39: "mt-3 flex items-stretch gap-2",
+  style232_40: "inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-[#14F5D5] via-[#14B8A6] to-[#0d9488] px-3 h-11 text-xs sm:text-sm font-black text-[#031518] shadow-[0_4px_18px_rgba(20,245,213,0.35)] hover:brightness-110 active:scale-[0.98] transition-all whitespace-nowrap",
+  style233_41: "h-4 w-4 stroke-[2.5] shrink-0",
+  style236_42: "inline-flex shrink-0 items-center justify-center rounded-xl border border-slate-700/80 bg-slate-900/70 px-3.5 h-11 text-xs font-bold text-slate-300 shadow-sm hover:border-rose-500/40 hover:bg-rose-500/15 hover:text-rose-200 active:scale-[0.98] transition-all whitespace-nowrap",
   style252_43: "rounded-xl border border-slate-700/60 bg-slate-900/70 p-2.5 shadow-inner transition hover:border-slate-600/80",
   style253_44: "text-[11px] font-semibold text-slate-400",
   style254_45: "mt-1 text-sm font-black text-white tracking-tight",
@@ -64,7 +64,7 @@ const styles = {
   stateAmber: "border-amber-500/30 bg-amber-500/10 text-amber-100",
   stateEmpty: "border-dashed border-slate-700 bg-slate-950/80 text-slate-300",
   pendingOfferHint: "mt-2 text-[11px] font-bold text-amber-300",
-  pendingOfferDisabled: "cursor-not-allowed opacity-40",
+  pendingOfferDisabled: "cursor-not-allowed opacity-40 grayscale-[35%] hover:brightness-100 shadow-none",
   riderRow: "mt-3 flex flex-wrap items-center gap-2",
   riderChip: "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all duration-200",
   riderDefaultChip: "border border-white/10 bg-white/5 text-slate-300",
@@ -79,12 +79,14 @@ const styles = {
   heartEmpty: "text-slate-500",
   riderChipIcon: "h-3.5 w-3.5 shrink-0",
   cardPendingOffer: "border-amber-400/35 shadow-[0_0_20px_rgba(251,191,36,0.12)] hover:border-amber-400/60",
-  ownPendingBadge: "mt-3 flex items-center justify-center gap-2.5 rounded-xl border border-amber-400/40 bg-gradient-to-r from-amber-500/15 via-amber-400/10 to-amber-500/15 py-2.5 px-3.5 text-xs sm:text-sm font-black text-amber-200 shadow-[0_0_16px_rgba(251,191,36,0.12)] backdrop-blur-sm transition-all duration-200",
-  ownPendingIcon: "h-4 w-4 shrink-0 text-amber-300 drop-shadow-[0_0_6px_rgba(251,191,36,0.7)] animate-pulse",
+  ownPendingRow: "mt-3 flex items-center gap-2",
+  ownPendingBadge: "flex-1 min-w-0 flex items-center justify-center gap-1.5 rounded-xl border border-amber-400/40 bg-gradient-to-r from-amber-500/15 via-amber-400/10 to-amber-500/15 h-11 px-2.5 text-xs font-black text-amber-200 shadow-[0_0_16px_rgba(251,191,36,0.12)] backdrop-blur-sm transition-all duration-200 overflow-hidden",
+  ownPendingDetailsBtn: "inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-3 h-11 text-xs font-bold text-cyan-300 shadow-sm hover:border-cyan-400/60 hover:bg-cyan-500/20 active:scale-[0.98] transition-all whitespace-nowrap",
+  ownPendingIcon: "h-3.5 w-3.5 shrink-0 text-amber-300 drop-shadow-[0_0_6px_rgba(251,191,36,0.7)] animate-pulse",
   ownPendingPulseWrap: "relative flex h-2 w-2 shrink-0",
   ownPendingPing: "absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75",
   ownPendingDot: "relative inline-flex h-2 w-2 rounded-full bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.9)]",
-  ownPendingText: "tracking-wide font-black text-amber-100",
+  ownPendingText: "truncate font-black text-amber-100 text-xs tracking-tight whitespace-nowrap",
   infoFullWidth: "col-span-2",
   cardHeaderToggle: "flex w-full flex-col text-start cursor-pointer select-none rounded-xl transition-opacity hover:opacity-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400",
   toggleChevronWrap: "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-slate-400 transition-colors hover:border-emerald-500/40 hover:text-emerald-300",
@@ -92,6 +94,29 @@ const styles = {
   toggleChevronExpanded: "rotate-180 text-emerald-400",
   toggleChevronCollapsed: "rotate-0 text-slate-400",
   collapsibleContent: "mt-3 pt-3 border-t border-slate-800/80 transition-all duration-200",
+  seizeMarketBanner: "mb-3 flex items-center justify-between gap-2 rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-3.5 py-2 text-xs font-black text-[#5eead4] shadow-sm",
+  seizeMarketBadge: "flex h-5 items-center justify-center rounded-md border border-[#14B8A6]/40 bg-black/40 px-2 text-[10px] font-mono font-black text-[#14F5D5]",
+  requestIndexBadge: "inline-flex items-center justify-center rounded-lg border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-2 py-0.5 text-[10px] font-mono font-black text-[#14F5D5] shadow-sm",
+  cardTopRow: "flex items-center justify-between gap-2 mb-1.5",
+  appPriceCard: "mt-3 rounded-2xl border border-amber-500/30 bg-gradient-to-b from-amber-500/[0.08] via-black/50 to-black/70 p-3 shadow-[0_4px_20px_rgba(0,0,0,0.4)] backdrop-blur-sm space-y-2.5",
+  appPriceCardHeader: "flex items-center gap-2",
+  appPriceCardBadge: "inline-flex items-center gap-1 rounded-lg border border-amber-400/30 bg-amber-500/15 px-2 py-0.5 text-[11px] font-black text-amber-300 shadow-sm shrink-0",
+  appPriceCardNotice: "text-xs font-medium text-slate-300 min-w-0 flex-1",
+  appPriceInputRow: "flex items-center gap-2 pt-0.5",
+  appPriceInputGroup: "relative flex flex-1 items-center h-11 rounded-xl border border-amber-400/40 bg-black/70 shadow-inner focus-within:border-amber-400 focus-within:ring-2 focus-within:ring-amber-400/20 transition-all overflow-hidden",
+  appPriceInputField: "flex-1 min-w-0 h-full bg-transparent px-3 text-start font-mono text-base sm:text-lg font-black text-amber-100 placeholder:text-amber-500/30 outline-none",
+  appPriceCurrencyBadge: "px-3 h-full flex items-center justify-center text-xs font-mono font-black text-amber-400/80 bg-amber-500/5 select-none border-s border-white/10 shrink-0",
+  appPriceInputDisabled: "opacity-50 cursor-not-allowed",
+  appPricePasteBtn: "h-11 px-3.5 inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl border border-amber-400/50 bg-amber-500/15 text-xs font-black text-amber-300 shadow-sm transition-all hover:bg-amber-400/25 hover:border-amber-400/70 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap",
+  appPricePasteIcon: "h-4 w-4 shrink-0 text-amber-300",
+  appPriceInputError: "text-center text-xs font-bold text-rose-400 pt-0.5",
+  blockedPendingBanner: "mt-3 flex items-center justify-center gap-2 rounded-xl border border-amber-500/35 bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-amber-500/15 px-3.5 py-2.5 text-center text-xs font-black text-amber-200 shadow-sm backdrop-blur-sm",
+  blockedPendingIcon: "h-4 w-4 shrink-0 text-amber-300 animate-pulse",
+  taxiNoticeBanner: "mt-3 flex items-center justify-center gap-2 rounded-xl border border-amber-400/35 bg-gradient-to-r from-amber-500/15 via-amber-400/10 to-amber-500/15 px-3.5 py-2.5 text-center text-xs sm:text-sm font-black text-amber-200 shadow-[0_0_16px_rgba(245,158,11,0.08)] backdrop-blur-sm",
+  taxiNoticeIcon: "h-4 w-4 shrink-0 text-amber-300",
+  moreDetailsButton: "inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-2.5 h-11 text-[11px] sm:text-xs font-bold text-cyan-300 shadow-sm hover:border-cyan-400/60 hover:bg-cyan-500/20 active:scale-[0.98] transition-all whitespace-nowrap",
+  moreDetailsIcon: "h-3.5 w-3.5 stroke-[2.2] shrink-0 text-cyan-300",
+  submitSpinner: "h-4 w-4 animate-spin shrink-0",
 } as const;
 
 
@@ -102,11 +127,15 @@ interface RadarMapViewProps {
   currentH3Cell?: string;
   paidMinutes: number;
   bonusMinutes: number;
+  currency?: string;
   radarLockMessage?: string;
   requests: Trip[];
   pendingOfferRequestId?: string | null;
-  onSelectRequest: (request: Trip) => void;
+  captainPricingMode?: 'FREE' | 'APP' | null;
+  isOfficeTaxi?: boolean;
+  onSelectRequest: (request: Trip, initialPrice?: string, pricingMode?: 'FREE' | 'APP' | 'TAXI') => void;
   onIgnoreRequest: (requestId: string) => void;
+  onSubmitDirectBid?: (request: Trip, price: number, waitSeconds?: number, pricingMode?: 'FREE' | 'APP' | 'TAXI') => Promise<void> | void;
 }
 
 export function RadarMapView({
@@ -116,11 +145,15 @@ export function RadarMapView({
   currentH3Cell,
   paidMinutes,
   bonusMinutes,
+  currency = 'JOD',
   radarLockMessage,
   requests,
   pendingOfferRequestId = null,
+  captainPricingMode = null,
+  isOfficeTaxi = false,
   onSelectRequest,
   onIgnoreRequest,
+  onSubmitDirectBid,
 }: RadarMapViewProps) {
   const copy = radarCopy[language];
   const t = useTranslations('captainPickup');
@@ -129,6 +162,9 @@ export function RadarMapView({
   const requestMarkersRef = React.useRef<maplibregl.Marker[]>([]);
   const [mapIssue, setMapIssue] = React.useState(false);
   const [expandedRequestIds, setExpandedRequestIds] = React.useState<Record<string, boolean>>({});
+  const [directPrices, setDirectPrices] = React.useState<Record<string, string>>({});
+  const [priceErrors, setPriceErrors] = React.useState<Record<string, boolean>>({});
+  const [submittingRequestId, setSubmittingRequestId] = React.useState<string | null>(null);
 
   const toggleRequestExpanded = React.useCallback((requestId: string) => {
     setExpandedRequestIds((prev) => ({
@@ -136,6 +172,60 @@ export function RadarMapView({
       [requestId]: !prev[requestId],
     }));
   }, []);
+
+  const handlePastePrice = React.useCallback(async (requestId: string) => {
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.readText) {
+        const text = await navigator.clipboard.readText();
+        const cleaned = text.replace(/,/g, '.');
+        const match = cleaned.match(/\d+(?:\.\d+)?/);
+        if (match) {
+          setDirectPrices((prev) => ({ ...prev, [requestId]: match[0] }));
+          setPriceErrors((prev) => ({ ...prev, [requestId]: false }));
+        }
+      }
+    } catch {
+      // Clipboard access denied or unsupported - fail silently
+    }
+  }, []);
+
+  const handleOpenBid = React.useCallback(async (request: Trip) => {
+    const isApp = captainPricingMode === 'APP' || request.pricingPreference === 'APP';
+    const cardPricingMode: 'FREE' | 'APP' | 'TAXI' = isOfficeTaxi ? 'TAXI' : isApp ? 'APP' : 'FREE';
+
+    if (isApp && !isOfficeTaxi) {
+      const priceStr = directPrices[request.id]?.trim();
+      const priceNum = priceStr ? parseFloat(priceStr) : NaN;
+      if (!priceStr || isNaN(priceNum) || priceNum <= 0) {
+        onSelectRequest(request, undefined, 'APP');
+        return;
+      }
+      setPriceErrors((prev) => ({ ...prev, [request.id]: false }));
+      if (onSubmitDirectBid) {
+        setSubmittingRequestId(request.id);
+        try {
+          await onSubmitDirectBid(request, priceNum, 300, 'APP');
+        } finally {
+          setSubmittingRequestId(null);
+        }
+        return;
+      }
+    }
+
+    if (isOfficeTaxi) {
+      if (onSubmitDirectBid) {
+        setSubmittingRequestId(request.id);
+        try {
+          await onSubmitDirectBid(request, request.offerPrice ?? 0, 300, 'TAXI');
+        } finally {
+          setSubmittingRequestId(null);
+        }
+        return;
+      }
+    }
+
+    onSelectRequest(request, directPrices[request.id], cardPricingMode);
+  }, [captainPricingMode, directPrices, isOfficeTaxi, onSelectRequest, onSubmitDirectBid]);
 
   const visibleLocation = driverLocation || DEFAULT_MAP_CENTER;
   const totalMinutes = paidMinutes + bonusMinutes;
@@ -292,10 +382,15 @@ export function RadarMapView({
             <StateCard tone="empty" icon={<RadioTower className={styles.style215_30} />} title={copy.noRequestsTitle} body={copy.empty} />
           ) : (
             <div className={styles.style217_31}>
-              {requests.map((request) => {
+              <div className={styles.seizeMarketBanner}>
+                <span>{copy.seizeMarket}</span>
+                <span className={styles.seizeMarketBadge}>{requests.length}/9</span>
+              </div>
+              {requests.map((request, index) => {
                 const isOwnPendingOffer = pendingOfferRequestId === request.id;
                 const isBlockedByOtherPendingOffer = Boolean(pendingOfferRequestId) && !isOwnPendingOffer;
-
+                const isAppMode = captainPricingMode === 'APP' || request.pricingPreference === 'APP';
+                const isSubmittingThisRequest = submittingRequestId === request.id;
                 const isExpanded = Boolean(expandedRequestIds[request.id]);
 
                 return (
@@ -319,6 +414,10 @@ export function RadarMapView({
                       }}
                       className={styles.cardHeaderToggle}
                     >
+                      <div className={styles.cardTopRow} dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                        <span className={styles.requestIndexBadge}>{index + 1}/9</span>
+                      </div>
+
                       <div className={styles.style220_33}>
                         <MapPin className={styles.style221_34} />
                         <div className={styles.style222_35}>
@@ -401,33 +500,126 @@ export function RadarMapView({
                             value={request.estimatedDistance != null ? `${request.estimatedDistance.toFixed(1)} ${language === 'ar' ? 'كيلو' : 'km'}` : t('distanceUnavailable')}
                           />
                           <Info
+                            label={copy.marketFare}
+                            value={request.offerPrice != null ? `${request.offerPrice.toFixed(2)} ${currency}` : '—'}
+                          />
+                          <Info
                             label={copy.requestTime}
                             value={formatRequestTime(request.createdAt, language)}
                           />
-                          <Info
-                            label={copy.pricingPreference}
-                            value={
-                              request.pricingPreference === 'APP' ? (language === 'ar' ? 'حسب تسعيرة التطبيق' : 'App Pricing') :
-                              request.pricingPreference === 'TAXI' ? (language === 'ar' ? 'حسب عداد التاكسي' : 'Taxi Meter') :
-                              request.pricingPreference === 'FREE' ? (language === 'ar' ? 'سعر حر' : 'Free Pricing') :
-                              (language === 'ar' ? 'بدون تحديد (مفتوح)' : 'No Preference')
-                            }
-                          />
                         </div>
-                        {isBlockedByOtherPendingOffer ? <p className={styles.pendingOfferHint}>{copy.pendingOfferHint}</p> : null}
+
+                        {isAppMode && !isOfficeTaxi && !isOwnPendingOffer ? (
+                          <div className={styles.appPriceCard} onClick={(e) => e.stopPropagation()}>
+                            <div className={styles.appPriceCardHeader} dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                              <span className={styles.appPriceCardBadge}>
+                                📱 {copy.appModeBadge}
+                              </span>
+                              <span className={styles.appPriceCardNotice}>
+                                {copy.appModeInputNotice}
+                              </span>
+                            </div>
+
+                            <div className={styles.appPriceInputRow} dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                              <div className={styles.appPriceInputGroup} dir="ltr">
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  min="0.1"
+                                  placeholder="0.00"
+                                  disabled={isBlockedByOtherPendingOffer}
+                                  value={directPrices[request.id] ?? ''}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setDirectPrices((prev) => ({ ...prev, [request.id]: val }));
+                                    if (priceErrors[request.id]) {
+                                      setPriceErrors((prev) => ({ ...prev, [request.id]: false }));
+                                    }
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      e.preventDefault();
+                                      void handleOpenBid(request);
+                                    }
+                                  }}
+                                  className={cn(
+                                    styles.appPriceInputField,
+                                    isBlockedByOtherPendingOffer ? styles.appPriceInputDisabled : '',
+                                  )}
+                                  dir="ltr"
+                                />
+                                <span className={styles.appPriceCurrencyBadge}>{currency}</span>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() => void handlePastePrice(request.id)}
+                                disabled={isBlockedByOtherPendingOffer}
+                                className={styles.appPricePasteBtn}
+                                title={copy.pastePrice}
+                                dir={language === 'ar' ? 'rtl' : 'ltr'}
+                              >
+                                <ClipboardPaste className={styles.appPricePasteIcon} />
+                                <span>{copy.paste}</span>
+                              </button>
+                            </div>
+
+                            {priceErrors[request.id] ? (
+                              <p className={styles.appPriceInputError}>{copy.appModePriceRequired}</p>
+                            ) : null}
+                          </div>
+                        ) : null}
+
+                        {isOfficeTaxi && !isOwnPendingOffer ? (
+                          <div className={styles.taxiNoticeBanner} dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                            <span className={styles.taxiNoticeIcon}>🚕</span>
+                            <span>{copy.taxiModeNotice}</span>
+                          </div>
+                        ) : null}
+
+                        {isBlockedByOtherPendingOffer ? (
+                          <div className={styles.blockedPendingBanner} dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                            <Clock className={styles.blockedPendingIcon} />
+                            <span>{copy.blockedPendingOfferHint}</span>
+                          </div>
+                        ) : null}
+
                         {!isOwnPendingOffer ? (
-                          <div className={styles.style231_39}>
+                          <div className={styles.style231_39} dir={language === 'ar' ? 'rtl' : 'ltr'}>
                             <button
                               type="button"
-                              onClick={() => onSelectRequest(request)}
-                              disabled={isBlockedByOtherPendingOffer}
-                              title={isBlockedByOtherPendingOffer ? copy.pendingOfferHint : undefined}
-                              className={cn(styles.style232_40, isBlockedByOtherPendingOffer ? styles.pendingOfferDisabled : '')}
+                              onClick={() => void handleOpenBid(request)}
+                              disabled={isBlockedByOtherPendingOffer || isSubmittingThisRequest}
+                              title={isBlockedByOtherPendingOffer ? copy.blockedPendingOfferHint : undefined}
+                              className={cn(
+                                styles.style232_40,
+                                (isBlockedByOtherPendingOffer || isSubmittingThisRequest) ? styles.pendingOfferDisabled : '',
+                              )}
+                              dir={language === 'ar' ? 'rtl' : 'ltr'}
                             >
-                              <Route className={styles.style233_41} />
-                              {copy.openBid}
+                              {isSubmittingThisRequest ? (
+                                <Loader2 className={styles.submitSpinner} />
+                              ) : (
+                                <Route className={styles.style233_41} />
+                              )}
+                              <span>{copy.openBid}</span>
                             </button>
-                            <button type="button" onClick={() => onIgnoreRequest(request.id)} className={styles.style236_42}>
+                            <button
+                              type="button"
+                              onClick={() => onSelectRequest(request, directPrices[request.id], isOfficeTaxi ? 'TAXI' : isAppMode ? 'APP' : 'FREE')}
+                              className={styles.moreDetailsButton}
+                              title={copy.moreDetails}
+                              dir={language === 'ar' ? 'rtl' : 'ltr'}
+                            >
+                              <MapPin className={styles.moreDetailsIcon} />
+                              <span>{copy.moreDetails}</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => onIgnoreRequest(request.id)}
+                              className={styles.style236_42}
+                              dir={language === 'ar' ? 'rtl' : 'ltr'}
+                            >
                               {copy.ignore}
                             </button>
                           </div>
@@ -440,13 +632,25 @@ export function RadarMapView({
                         at a glance that their offer is awaiting the rider's decision without
                         having to expand the card first. */}
                     {isOwnPendingOffer ? (
-                      <div className={styles.ownPendingBadge}>
-                        <span className={styles.ownPendingPulseWrap}>
-                          <span className={styles.ownPendingPing} />
-                          <span className={styles.ownPendingDot} />
-                        </span>
-                        <Clock className={styles.ownPendingIcon} />
-                        <span className={styles.ownPendingText}>{copy.ownPendingOffer}</span>
+                      <div className={styles.ownPendingRow} dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                        <div className={styles.ownPendingBadge} title={copy.ownPendingOfferDesc}>
+                          <span className={styles.ownPendingPulseWrap}>
+                            <span className={styles.ownPendingPing} />
+                            <span className={styles.ownPendingDot} />
+                          </span>
+                          <Clock className={styles.ownPendingIcon} />
+                          <span className={styles.ownPendingText}>{copy.ownPendingOffer}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => onSelectRequest(request, directPrices[request.id], isOfficeTaxi ? 'TAXI' : isAppMode ? 'APP' : 'FREE')}
+                          className={styles.ownPendingDetailsBtn}
+                          title={copy.moreDetails}
+                          dir={language === 'ar' ? 'rtl' : 'ltr'}
+                        >
+                          <MapPin className={styles.moreDetailsIcon} />
+                          <span>{copy.moreDetails}</span>
+                        </button>
                       </div>
                     ) : null}
                   </article>
@@ -594,8 +798,19 @@ const radarCopy = {
     pricingPreference: 'طريقة التسعير',
     openBid: 'تقديم عرض',
     pendingOfferHint: 'لديك عرض قيد الانتظار، انتظر رد الراكب أولاً.',
-    ownPendingOffer: 'عرضك قيد الانتظار — بانتظار رد الراكب',
+    blockedPendingOfferHint: 'لديك عرض قيد الانتظار لطلب آخر — انتظر رد الراكب للمتابعة',
+    ownPendingOffer: 'عرضك قيد الانتظار',
+    ownPendingOfferDesc: 'عرضك قيد الانتظار — بانتظار رد الراكب',
     ignore: 'تجاهل',
+    seizeMarket: 'اقـتـنص فرصتك من السوق',
+    marketFare: 'متوسط سعر السوق',
+    moreDetails: 'تفاصيل وموقع الالتقاط',
+    appModeBadge: 'تطبيق ذكي',
+    appModeInputNotice: 'أدخل نفس تسعيرة المشوار المعتمدة في تطبيقك',
+    appModePriceRequired: 'يرجى إدخال السعر أولاً',
+    pastePrice: 'لصق السعر من الحافظة',
+    paste: 'لصق السعر',
+    taxiModeNotice: 'التزم بسعر العداد المعتمد',
   },
   en: {
     title: 'Captain radar',
@@ -626,7 +841,18 @@ const radarCopy = {
     pricingPreference: 'Pricing Mode',
     openBid: 'Submit bid',
     pendingOfferHint: 'You have a pending offer — wait for the rider to respond first.',
-    ownPendingOffer: 'Your offer is pending — waiting for the rider to respond',
+    blockedPendingOfferHint: 'You have a pending offer on another trip — wait for rider response',
+    ownPendingOffer: 'Offer pending',
+    ownPendingOfferDesc: 'Your offer is pending — waiting for the rider to respond',
     ignore: 'Ignore',
+    seizeMarket: 'Seize your market opportunity',
+    marketFare: 'Market Average Fare',
+    moreDetails: 'Details & Pickup',
+    appModeBadge: 'Smart App',
+    appModeInputNotice: 'Enter the fare approved in your app',
+    appModePriceRequired: 'Please enter a price first',
+    pastePrice: 'Paste from clipboard',
+    paste: 'Paste Fare',
+    taxiModeNotice: 'Stick to the approved meter fare',
   },
 } as const;

@@ -91,6 +91,7 @@ assert.deepEqual(payload, {
   server_estimated_fare: 3.75,
   country_id: 2,
   status: 'PENDING',
+  pricing_preference: null,
 });
 
 let insertedPayload: unknown = null;

@@ -2,7 +2,40 @@ import type { CaptainRank } from '../components/captain-offer-card';
 import { firstDisplayString } from './rider-view-format';
 import { toCaptainOfferRank } from './rider-offer-fields';
 
-export function prioritizeRiderOffers<T extends Record<string, any>>(offers: T[], favoriteIds: string[]) {
+export function matchesRequestedMode(
+  offer: Record<string, any>,
+  requestedMode?: 'APP' | 'TAXI' | 'FREE' | null,
+): boolean {
+  if (!requestedMode) return true;
+
+  const mode = String(offer?.pricing_mode || offer?.pricingMode || '').toUpperCase();
+  const affType = String(
+    offer?.driverAffiliation?.type ||
+      offer?.captain?.affiliation_type ||
+      offer?.captain?.employment_type ||
+      '',
+  ).toLowerCase();
+
+  if (requestedMode === 'APP') {
+    return mode === 'APP' || affType === 'smart-app' || affType.includes('app');
+  }
+
+  if (requestedMode === 'TAXI') {
+    return mode === 'TAXI' || affType === 'office-taxi' || affType.includes('taxi');
+  }
+
+  if (requestedMode === 'FREE') {
+    return mode === 'FREE' || affType === 'independent' || (!mode && !affType);
+  }
+
+  return true;
+}
+
+export function prioritizeRiderOffers<T extends Record<string, any>>(
+  offers: T[],
+  favoriteIds: string[],
+  requestedMode?: 'APP' | 'TAXI' | 'FREE' | null,
+) {
   const rankWeight: Record<CaptainRank, number> = {
     PLATINUM: 4,
     GOLD: 3,
@@ -10,25 +43,35 @@ export function prioritizeRiderOffers<T extends Record<string, any>>(offers: T[]
     BRONZE: 1,
   };
 
-  return offers.map((offer) => ({
-    ...offer,
-    __isPreferredCaptain: isPreferredOffer(offer, favoriteIds),
-  })).sort((a, b) => {
-    const aIsFavorite = isPreferredOffer(a, favoriteIds);
-    const bIsFavorite = isPreferredOffer(b, favoriteIds);
+  return offers
+    .map((offer) => ({
+      ...offer,
+      __isPreferredCaptain: isPreferredOffer(offer, favoriteIds),
+      __matchesRequestedMode: matchesRequestedMode(offer, requestedMode),
+    }))
+    .sort((a, b) => {
+      // 1. Requested category matching offers float first
+      const aMatches = matchesRequestedMode(a, requestedMode);
+      const bMatches = matchesRequestedMode(b, requestedMode);
+      if (aMatches && !bMatches) return -1;
+      if (!aMatches && bMatches) return 1;
 
-    if (aIsFavorite && !bIsFavorite) return -1;
-    if (!aIsFavorite && bIsFavorite) return 1;
+      // 2. Rider's favorite captains
+      const aIsFavorite = isPreferredOffer(a, favoriteIds);
+      const bIsFavorite = isPreferredOffer(b, favoriteIds);
+      if (aIsFavorite && !bIsFavorite) return -1;
+      if (!aIsFavorite && bIsFavorite) return 1;
 
-    // Fall back to BRONZE's weight, not SILVER's: an offer whose rank cannot be read must
-    // not outrank a captain who actually holds a rank.
-    const aRankWeight = rankWeight[toCaptainOfferRank(a?.captain?.rank || a?.captain?.tier || a?.driverRank || a?.tier)] ?? rankWeight.BRONZE;
-    const bRankWeight = rankWeight[toCaptainOfferRank(b?.captain?.rank || b?.captain?.tier || b?.driverRank || b?.tier)] ?? rankWeight.BRONZE;
+      // 3. Captain Rank: Platinum > Gold > Silver > Bronze
+      // Fall back to BRONZE's weight, not SILVER's: an offer whose rank cannot be read must
+      // not outrank a captain who actually holds a rank.
+      const aRankWeight = rankWeight[toCaptainOfferRank(a?.captain?.rank || a?.captain?.tier || a?.driverRank || a?.tier)] ?? rankWeight.BRONZE;
+      const bRankWeight = rankWeight[toCaptainOfferRank(b?.captain?.rank || b?.captain?.tier || b?.driverRank || b?.tier)] ?? rankWeight.BRONZE;
+      if (aRankWeight !== bRankWeight) return bRankWeight - aRankWeight;
 
-    if (aRankWeight !== bRankWeight) return bRankWeight - aRankWeight;
-
-    return getComparableOfferFare(a) - getComparableOfferFare(b);
-  }) as T[];
+      // 4. Lowest fare
+      return getComparableOfferFare(a) - getComparableOfferFare(b);
+    }) as T[];
 }
 
 export function collectPreferredCaptainIds(favorites: Array<Record<string, any>> = []) {
