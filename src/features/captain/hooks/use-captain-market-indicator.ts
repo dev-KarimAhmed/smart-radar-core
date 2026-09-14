@@ -63,7 +63,10 @@ export function useCaptainMarketIndicator(user: User | null) {
         });
       } catch (error) {
         if (!active) return;
-        if ((process.env.NODE_ENV !== 'production')) console.warn('[Captain market indicator]', error);
+        const msg = error instanceof Error ? error.message : String(error);
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn(`[Captain market indicator] offline or unauthenticated: ${msg}`);
+        }
         setIndicator(null);
       } finally {
         if (active) setIsLoaded(true);
