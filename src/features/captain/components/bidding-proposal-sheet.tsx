@@ -2,12 +2,13 @@
 
 import React from 'react';
 import { useTranslations } from 'next-intl';
-import { AlertTriangle, ExternalLink, Loader2, Lock, MapPin, Minus, Plus, Send, Sparkles, X } from 'lucide-react';
+import { AlertTriangle, ExternalLink, Loader2, Lock, MapPin, Minus, Pencil, Plus, Send, Sparkles, X } from 'lucide-react';
 import type { Trip } from '@/core/types';
 import { useAuth } from '@/hooks/use-auth';
 import { supabase } from '@/lib/supabase-client';
 import { RadarAntiCheatKernel } from '@/core/RadarAntiCheatKernel';
 import { useCaptainProfessionalAd } from '../hooks/use-captain-professional-ad';
+import { usePricePerKmSetup } from '../hooks/use-price-per-km-setup';
 import { MAX_OFFER_WAIT_SECONDS, MIN_OFFER_WAIT_SECONDS } from '../hooks/use-driver-transactions';
 import { AdDisplayCard } from '@/features/ads/ad-display/contract';
 import { cn } from '@/lib/utils';
@@ -125,6 +126,15 @@ interface BiddingProposalSheetProps {
   /** For the "time to reach the rider" estimate — the captain's own live position. */
   driverLocation: { lat: number; lng: number } | null;
   isSubmitting: boolean;
+  currentTariff?: {
+    baseFare: number | null;
+    pricePerKm: number | null;
+    pricePerMin: number | null;
+    includedKm?: number;
+    pricingMode?: 'FREE' | 'APP' | null;
+    marketAverage?: any;
+  } | null;
+  onEditTariff?: () => void;
   onSubmit: (price: number, waitSeconds: number, pricingMode?: 'FREE' | 'APP' | 'TAXI') => void;
   onIgnore: () => void;
 }
@@ -140,6 +150,8 @@ export function BiddingProposalSheet({
   currency,
   driverLocation,
   isSubmitting,
+  currentTariff: currentTariffProp,
+  onEditTariff,
   onSubmit,
   onIgnore,
 }: BiddingProposalSheetProps) {
@@ -198,11 +210,11 @@ export function BiddingProposalSheet({
     && quote.billableKm != null
     && quote.estimatedMinutes != null
     ? {
-        ...quote.tariff,
-        roadKm: quote.roadKm,
-        billableKm: quote.billableKm,
-        estimatedMinutes: quote.estimatedMinutes,
-      }
+      ...quote.tariff,
+      roadKm: quote.roadKm,
+      billableKm: quote.billableKm,
+      estimatedMinutes: quote.estimatedMinutes,
+    }
     : null;
   /**
    * Room to add WITHOUT tripping the warning, measured from the captain's own meter.
@@ -218,7 +230,7 @@ export function BiddingProposalSheet({
   const [appPrice, setAppPrice] = React.useState<string>('');
   const parsedIncrease = parseFloat(String(increaseAmount));
   const normalizedIncreaseAmount = Number.isFinite(parsedIncrease) ? parsedIncrease : 0;
-  
+
   const parsedAppPrice = parseFloat(appPrice);
   const normalizedAppPrice = Number.isFinite(parsedAppPrice) ? parsedAppPrice : 0;
 
@@ -229,16 +241,44 @@ export function BiddingProposalSheet({
     finalOfferPrice = roundMoney(baseFare);
   }
 
+  const { currentTariff: hookTariff } = usePricePerKmSetup(user);
+  const currentTariff = currentTariffProp ?? hookTariff;
+  const marketAverage = currentTariff?.marketAverage;
+
+  const isWithinBaseFare = (meterDetails?.billableKm ?? 0) <= 0;
+  const marketBaseFare = marketAverage?.baseFare ?? (meterDetails?.baseFare ?? 0);
+  const currentBaseFare = currentTariff?.baseFare ?? (meterDetails?.baseFare ?? 0);
+  const marketPerKm = marketAverage?.perKm ?? (meterDetails?.perKm ?? 0);
+  const marketPerMin = marketAverage?.perMin ?? (meterDetails?.perMin ?? 0);
+  const currentPerKm = currentTariff?.pricePerKm ?? (meterDetails?.perKm ?? 0);
+  const currentPerMin = currentTariff?.pricePerMin ?? (meterDetails?.perMin ?? 0);
+
+  const effectiveOfferPrice = finalOfferPrice > 0 ? finalOfferPrice : (existingOffer?.price ?? captainMeterFare);
+  const offerRatio = captainMeterFare > 0 ? effectiveOfferPrice / captainMeterFare : 1;
+  const offerBaseFare = currentBaseFare * offerRatio;
+  const offerPerKm = currentPerKm * offerRatio;
+  const offerPerMin = currentPerMin * offerRatio;
+
+  const isGoldOrPlatinum = (tier === 'GOLD' || tier === 'PLATINUM') && rankIncreaseFactor > 0;
+  const isSilver = tier === 'SILVER';
+
   React.useEffect(() => {
-    if (existingOffer && pricingMode === 'FREE') {
-      const diff = existingOffer.price - baseFare;
-      setIncreaseAmount(diff !== 0 ? roundMoney(diff) : 0);
+    if (existingOffer) {
+      if (pricingMode === 'FREE') {
+        const diff = existingOffer.price - baseFare;
+        setIncreaseAmount(diff !== 0 ? roundMoney(diff) : 0);
+        setAppPrice('');
+      } else if (pricingMode === 'APP') {
+        setAppPrice(String(existingOffer.price));
+        setIncreaseAmount(0);
+      }
+      setWaitSecondsInput(String(existingOffer.wait_seconds || MIN_OFFER_WAIT_SECONDS));
     } else {
       setIncreaseAmount(0);
+      setAppPrice('');
+      setWaitSecondsInput(String(MIN_OFFER_WAIT_SECONDS));
     }
-    setAppPrice('');
-    setWaitSecondsInput(String(existingOffer?.wait_seconds || MIN_OFFER_WAIT_SECONDS));
-  }, [request.id, existingOffer?.id, baseFare, pricingMode]);
+  }, [request.id, existingOffer?.id, existingOffer?.price, baseFare, pricingMode]);
 
   React.useEffect(() => {
     if (pricingMode === 'TAXI' || (pricingMode === 'APP' && isOfficeTaxi)) {
@@ -288,11 +328,11 @@ export function BiddingProposalSheet({
           && toFiniteNumberOrNull(tariff.perKm ?? tariff.per_km) != null
           && toFiniteNumberOrNull(tariff.perMin ?? tariff.per_min) != null
           ? {
-              baseFare: toFiniteNumberOrNull(tariff.baseFare ?? tariff.base_fare) as number,
-              perKm: toFiniteNumberOrNull(tariff.perKm ?? tariff.per_km) as number,
-              perMin: toFiniteNumberOrNull(tariff.perMin ?? tariff.per_min) as number,
-              includedKm: toFiniteNumberOrNull(tariff.includedKm ?? tariff.included_km) ?? 0,
-            }
+            baseFare: toFiniteNumberOrNull(tariff.baseFare ?? tariff.base_fare) as number,
+            perKm: toFiniteNumberOrNull(tariff.perKm ?? tariff.per_km) as number,
+            perMin: toFiniteNumberOrNull(tariff.perMin ?? tariff.per_min) as number,
+            includedKm: toFiniteNumberOrNull(tariff.includedKm ?? tariff.included_km) ?? 0,
+          }
           : null,
       });
     }
@@ -302,7 +342,7 @@ export function BiddingProposalSheet({
     return () => {
       cancelled = true;
     };
-  }, [request.id]);
+  }, [request.id, currentTariff?.baseFare, currentTariff?.pricePerKm, currentTariff?.pricePerMin]);
 
   const step = Math.max(0.25, roundMoney(Math.max(bandHeadroom, baseFare * 0.01, 1) / 10));
 
@@ -329,7 +369,7 @@ export function BiddingProposalSheet({
   // submit_ride_offer enforces server-side.
   const marketBrake = marketFare > 0 ? RadarAntiCheatKernel.enforceMarketBrakes(finalOfferPrice, marketFare) : { status: 'NORMAL' as const };
   const isDumpingAmber = marketBrake.status === 'AMBER_WARNING';
-  const isDumpingBlocked = marketBrake.status === 'CRIMSON_BLOCK' || finalOfferPrice < floorPrice;
+  const isDumpingBlocked = (pricingMode !== 'APP' || normalizedAppPrice > 0) && (marketBrake.status === 'CRIMSON_BLOCK' || finalOfferPrice < floorPrice);
   const marketDifference = roundMoney(Math.max(0, marketFare - finalOfferPrice));
   const marketDifferencePercent = marketFare > 0
     ? Math.round((marketDifference / marketFare) * 1000) / 10
@@ -366,7 +406,7 @@ export function BiddingProposalSheet({
       <div className={styles.style115_8}>
         <p className={styles.style116_9}>{t('destination')}</p>
         <h2 className={styles.style117_10}>{request.dropoff || t('unknownDestination')}</h2>
-        
+
         <div className={styles.style118_11}>
           <Info
             label={t('passengerRatingLabel')}
@@ -393,9 +433,9 @@ export function BiddingProposalSheet({
             label={t('pricingPreference')}
             value={
               request.pricingPreference === 'APP' ? (language === 'ar' ? 'حسب تسعيرة التطبيق' : 'App Pricing') :
-              request.pricingPreference === 'TAXI' ? (language === 'ar' ? 'حسب عداد التاكسي' : 'Taxi Meter') :
-              request.pricingPreference === 'FREE' ? (language === 'ar' ? 'سعر حر' : 'Free Pricing') :
-              (language === 'ar' ? 'بدون تحديد (مفتوح)' : 'No Preference')
+                request.pricingPreference === 'TAXI' ? (language === 'ar' ? 'حسب عداد التاكسي' : 'Taxi Meter') :
+                  request.pricingPreference === 'FREE' ? (language === 'ar' ? 'سعر حر' : 'Free Pricing') :
+                    (language === 'ar' ? 'بدون تحديد (مفتوح)' : 'No Preference')
             }
           />
           {/* Base fare display disabled — kept hidden from captain by product request.
@@ -442,28 +482,131 @@ export function BiddingProposalSheet({
               <Sparkles className={styles.style129_15} />
               {t('tierPremium')}
             </p>
-            {/* States the rank's OWN range and the warning line separately. Quoting one
-                number for both is what let the panel promise "زيادة من 1 إلى 15%" while
-                showing "أقصى زيادة مسموحة 0.00" right beside it. */}
+
             <p className={styles.style132_16}>
               {rankIncreaseFactor > 0
                 ? t('tierPremiumDescription', {
-                    tier: tierLabel,
-                    rankPercent: Math.round(rankIncreaseFactor * 100),
-                    warnPercent: Math.round(premiumFactor * 100),
-                  })
+                  tier: tierLabel,
+                  rankPercent: Math.round(rankIncreaseFactor * 100),
+                  warnPercent: Math.round(premiumFactor * 100),
+                })
                 : t('noTierPremium', {
-                    tier: tierLabel,
-                    warnPercent: Math.round(premiumFactor * 100),
-                  })}
+                  tier: tierLabel,
+                  warnPercent: Math.round(premiumFactor * 100),
+                })}
             </p>
           </div>
 
-        <div className={styles.style141_17}>
+          <div className={styles.style141_17}>
             <p className={styles.style142_18}>{t('maxIncrease')}</p>
             <p className={styles.style143_19}>{bandHeadroom.toFixed(2)} {currency}</p>
           </div>
         </div>
+
+        {/* Rule 1: Gold / Platinum Tier Highlighted Banner (Hidden for Silver/Bronze) */}
+        {isGoldOrPlatinum && (
+          <div className="mt-3 rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-3 py-2.5 text-center text-xs sm:text-sm font-black text-[#5eead4] shadow-md">
+            {language === 'ar'
+              ? `الراكب يقدر رتبك ${tierLabel} التي تؤهلك لزيادة سعرك عن معدل السوق ${Math.round(rankIncreaseFactor * 100)}%`
+              : `Riders appreciate your ${tierLabel} tier which qualifies you to increase your price ${Math.round(rankIncreaseFactor * 100)}% above market average`}
+          </div>
+        )}
+
+        {/* 3 Comparison Columns Grid (Rule 2: Hidden if trip is within base fare opening charge) */}
+        {isWithinBaseFare ? (
+          <div className="mt-3 rounded-xl border border-[#14B8A6]/20 bg-[#14B8A6]/10 p-3 text-center text-xs font-bold text-[#5eead4]">
+            {language === 'ar'
+              ? 'لا تظهر هذه البيانات عندما تكون الرحلة بحدود فتحة العداد'
+              : 'These details are hidden when the trip is within the opening charge distance'}
+          </div>
+        ) : (
+          <div className="mt-3 grid grid-cols-3 gap-2 text-center dir-rtl">
+            {/* Column 1: معدل سعر السوق */}
+            <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-2 sm:p-3">
+              <h4 className="text-[11px] sm:text-xs font-black text-slate-400 mb-2 truncate">
+                {language === 'ar' ? 'معدل سعر السوق' : 'Market Avg'}
+              </h4>
+              <div className="space-y-1.5 text-xs font-black text-slate-200">
+                <div className="flex justify-between items-center px-1 text-[11px] sm:text-xs">
+                  <span className="text-slate-400">{language === 'ar' ? 'فتحة العداد :' : 'Base:'}</span>
+                  <span className="font-mono text-teal-400">{marketBaseFare.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between items-center px-1 text-[11px] sm:text-xs">
+                  <span className="text-slate-400">{language === 'ar' ? 'الكيلو :' : 'Km:'}</span>
+                  <span className="font-mono text-teal-400">{marketPerKm.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between items-center px-1 text-[11px] sm:text-xs">
+                  <span className="text-slate-400">{language === 'ar' ? 'الدقيقة :' : 'Min:'}</span>
+                  <span className="font-mono text-teal-400">{marketPerMin.toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Column 2: سعرك الحالي */}
+            <div className="rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 p-2 sm:p-3 relative group">
+              <div className="flex items-center justify-between mb-2 gap-1">
+                <h4 className="text-[11px] sm:text-xs font-black text-[#5eead4] truncate">
+                  {language === 'ar' ? 'سعرك الحالي' : 'Your Tariff'}
+                </h4>
+                {onEditTariff ? (
+                  <button
+                    type="button"
+                    onClick={onEditTariff}
+                    className="inline-flex items-center gap-1 text-[10px] font-bold text-[#14B8A6] hover:text-[#5eead4] hover:underline transition-colors shrink-0"
+                    title={language === 'ar' ? 'تعديل تعريفتك الحالية' : 'Edit current tariff'}
+                  >
+                    <Pencil className="h-3 w-3" />
+                    <span>{language === 'ar' ? 'تعديل' : 'Edit'}</span>
+                  </button>
+                ) : null}
+              </div>
+              <div className="space-y-1.5 text-xs font-black text-white">
+                <div className="flex justify-between items-center px-1 text-[11px] sm:text-xs">
+                  <span className="text-slate-400">{language === 'ar' ? 'فتحة العداد :' : 'Base:'}</span>
+                  <span className="font-mono text-[#5eead4]">{currentBaseFare.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between items-center px-1 text-[11px] sm:text-xs">
+                  <span className="text-slate-400">{language === 'ar' ? 'الكيلو :' : 'Km:'}</span>
+                  <span className="font-mono text-[#5eead4]">{currentPerKm.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between items-center px-1 text-[11px] sm:text-xs">
+                  <span className="text-slate-400">{language === 'ar' ? 'الدقيقة :' : 'Min:'}</span>
+                  <span className="font-mono text-[#5eead4]">{currentPerMin.toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Column 3: حدث سعرك */}
+            <div className="rounded-xl border border-teal-500/20 bg-teal-950/20 p-2 sm:p-3">
+              <h4 className="text-[11px] sm:text-xs font-black text-emerald-300 mb-2 truncate">
+                {language === 'ar' ? 'حدث سعرك' : 'Offer Tariff'}
+              </h4>
+              <div className="space-y-1.5 text-xs font-black text-white">
+                <div className="flex justify-between items-center px-1 text-[11px] sm:text-xs">
+                  <span className="text-slate-400">{language === 'ar' ? 'فتحة العداد :' : 'Base:'}</span>
+                  <span className="font-mono text-emerald-300">{offerBaseFare.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between items-center px-1 text-[11px] sm:text-xs">
+                  <span className="text-slate-400">{language === 'ar' ? 'الكيلو :' : 'Km:'}</span>
+                  <span className="font-mono text-emerald-300">{offerPerKm.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between items-center px-1 text-[11px] sm:text-xs">
+                  <span className="text-slate-400">{language === 'ar' ? 'الدقيقة :' : 'Min:'}</span>
+                  <span className="font-mono text-emerald-300">{offerPerMin.toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Rule 3: Silver Tier Warning Notice when price reduced by > 15% */}
+        {isSilver && (isDumpingAmber || dumpingDeviationRatio > 0.15) && (
+          <div className="mt-3 rounded-xl border border-rose-500/25 bg-rose-950/20 p-3 text-xs font-bold leading-relaxed text-rose-200">
+            {language === 'ar'
+              ? '⚠️ تنبيه للكابتن الفضي: قد تفقد فرصك عند الركاب إذا تجاوز التخفيض 15%. تخفيض السعر بأكثر من 15% يؤثر على رتب التقييم وخصم النقاط في النظام.'
+              : '⚠️ Silver Captain Warning: You may lose rider visibility if discount exceeds 15%. Discounts over 15% affect your rating and points in the system.'}
+          </div>
+        )}
 
         <div className="mt-4 space-y-2">
           {riderPreference ? (
@@ -471,19 +614,17 @@ export function BiddingProposalSheet({
               <Lock className="h-4 w-4 shrink-0 text-[#14B8A6]" />
               <span>
                 {language === 'ar'
-                  ? `نمط المحاسبة محدد بواسطة الراكب: ${
-                      riderPreference === 'APP' ? 'تسعيرة التطبيق' :
-                      riderPreference === 'TAXI' ? 'عداد التاكسي' : 'سعر حر'
-                    }`
-                  : `Pricing mode locked by rider: ${
-                      riderPreference === 'APP' ? 'App Price' :
-                      riderPreference === 'TAXI' ? 'Taxi Meter' : 'Free Price'
-                    }`}
+                  ? `نمط المحاسبة محدد بواسطة الراكب: ${riderPreference === 'APP' ? 'تسعيرة التطبيق' :
+                    riderPreference === 'TAXI' ? 'عداد التاكسي' : 'سعر حر'
+                  }`
+                  : `Pricing mode locked by rider: ${riderPreference === 'APP' ? 'App Price' :
+                    riderPreference === 'TAXI' ? 'Taxi Meter' : 'Free Price'
+                  }`}
               </span>
             </div>
           ) : (
-            <div className="flex items-center gap-2 rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-3 py-2 text-xs font-bold text-cyan-300">
-              <Sparkles className="h-4 w-4 shrink-0 text-cyan-400" />
+            <div className="flex items-center gap-2 rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-3 py-2 text-xs font-bold text-[#5eead4]">
+              <Sparkles className="h-4 w-4 shrink-0 text-[#14B8A6]" />
               <span>
                 {language === 'ar'
                   ? 'الراكب لم يحدد نمط محاسبة — اختر النمط الأنسب لك'
@@ -544,23 +685,32 @@ export function BiddingProposalSheet({
         )}
 
         {pricingMode === 'APP' && (
-          <div className="mt-4 rounded-xl border border-blue-400/30 bg-blue-500/10 p-4 text-sm font-bold text-blue-200">
-            <p className="mb-3">{t('appModeInputNotice')}</p>
-            <p className="mb-2 text-xs font-normal text-blue-300">{t('appModeInputHint')}</p>
+          <div className="mt-4 rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 p-4 text-sm font-bold text-slate-200">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+              <div>
+                <p className="font-black text-base text-[#5eead4]">{t('appModeInputNotice')}</p>
+                <p className="text-xs font-normal text-slate-300">{t('appModeInputHint')}</p>
+              </div>
+              {marketFare > 0 && (
+                <div className="rounded-lg border border-teal-400/30 bg-teal-500/15 px-3 py-1.5 text-xs font-black text-teal-300 self-start sm:self-center">
+                  {language === 'ar' ? `متوسط سعر السوق: ${marketFare.toFixed(2)} ${currency}` : `Market average: ${marketFare.toFixed(2)} ${currency}`}
+                </div>
+              )}
+            </div>
             <input
               type="number"
               inputMode="decimal"
               value={appPrice}
               onChange={(e) => setAppPrice(e.target.value)}
-              className="w-full rounded-xl border border-blue-400/30 bg-black/40 p-3 text-lg font-black text-white outline-none focus:border-blue-400"
-              placeholder="0.00"
+              className="w-full rounded-xl border border-slate-800 bg-black/60 p-3 text-lg font-black text-white outline-none focus:border-[#14B8A6]"
+              placeholder={marketFare > 0 ? marketFare.toFixed(2) : "0.00"}
               autoFocus
             />
           </div>
         )}
 
         {pricingMode === 'TAXI' && (
-          <div className="mt-4 rounded-xl border border-amber-400/30 bg-amber-500/10 p-3 text-sm font-bold text-amber-200">
+          <div className="mt-4 rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 p-3 text-sm font-bold text-slate-200">
             {t('taxiModeNotice')}
           </div>
         )}
@@ -574,120 +724,116 @@ export function BiddingProposalSheet({
                 contradiction rather than as two different measurements. */}
             <div className={styles.meterDetails}>
               <p className={styles.meterDetailsTitle}>{t('meterCalculationTitle')}</p>
-          <p className={styles.meterDetailsHint}>{t('meterCalculationSource')}</p>
-          {meterDetails ? (
-            <>
-              <p className={styles.meterFormula} dir="ltr">
-                {t('meterCalculationFormula', {
-                  base: meterDetails.baseFare.toFixed(2),
-                  billableKm: meterDetails.billableKm.toFixed(2),
-                  perKm: meterDetails.perKm.toFixed(2),
-                  minutes: meterDetails.estimatedMinutes.toFixed(1),
-                  perMin: meterDetails.perMin.toFixed(2),
-                  total: captainMeterFare.toFixed(2),
+              <p className={styles.meterDetailsHint}>{t('meterCalculationSource')}</p>
+              {meterDetails ? (
+                <>
+                  <p className={styles.meterFormula} dir="ltr">
+                    <span className="inline-flex items-center gap-1.5 flex-wrap justify-center font-mono text-sm leading-relaxed tracking-wide" dir="ltr">
+                      <strong className="font-extrabold text-emerald-400">{captainMeterFare.toFixed(2)} {currency}</strong>
+                      <span className="text-slate-400">=</span>
+                      <span>{meterDetails.baseFare.toFixed(2)} {currency}</span>
+                      <span className="text-slate-400">+</span>
+                      <span className="whitespace-nowrap">({meterDetails.billableKm.toFixed(2)} <bdi>{language === 'ar' ? 'كم' : 'km'}</bdi> × {meterDetails.perKm.toFixed(2)} {currency})</span>
+                      <span className="text-slate-400">+</span>
+                      <span className="whitespace-nowrap">({meterDetails.estimatedMinutes.toFixed(1)} <bdi>{language === 'ar' ? 'دقيقة' : 'min'}</bdi> × {meterDetails.perMin.toFixed(2)} {currency})</span>
+                    </span>
+                  </p>
+                  <p className={styles.meterDetailsRoute}>
+                    {t('meterCalculationRoute', {
+                      roadKm: meterDetails.roadKm.toFixed(2),
+                      includedKm: meterDetails.includedKm.toFixed(2),
+                      billableKm: meterDetails.billableKm.toFixed(2),
+                      minutes: meterDetails.estimatedMinutes.toFixed(1),
+                    })}
+                  </p>
+                </>
+              ) : (
+                <p className={styles.meterDetailsRoute}>
+                  {t('meterCalculationFallback', {
+                    total: captainMeterFare.toFixed(2),
+                    currency,
+                  })}
+                </p>
+              )}
+              <p className={styles.meterFormula}>
+                <span className="text-slate-300">{language === 'ar' ? 'مرجع السوق' : 'Market reference'}</span>
+                <span dir="ltr" className="inline-block font-mono font-bold text-amber-300 mx-1.5 me-2">
+                  = {marketFare.toFixed(2)} {currency}
+                </span>
+              </p>
+              <p className={styles.meterDetailsRoute}>
+                <span>{language === 'ar' ? 'حد التنبيه' : 'Warning limit'}: </span>
+                <span dir="ltr" className="inline-block font-mono text-slate-200">
+                  {marketFare.toFixed(2)} + ({marketFare.toFixed(2)} × {Math.round(premiumFactor * 100)}%) = {ceilingPrice.toFixed(2)} {currency}
+                </span>
+              </p>
+              <p className={styles.meterDetailsRoute}>
+                <span>{language === 'ar' ? 'أقل عرض مسموح' : 'Lowest allowed offer'}: </span>
+                <span dir="ltr" className="inline-block font-mono text-slate-200">
+                  {marketFare.toFixed(2)} - ({marketFare.toFixed(2)} × {Math.round(MARKET_FLOOR_FACTOR * 100)}%) = {floorPrice.toFixed(2)} {currency}
+                </span>
+              </p>
+            </div>
+
+            <dl className={styles.breakdownList}>
+              <div className={styles.breakdownRow}>
+                <dt className={styles.breakdownLabel}>{t('breakdownMeter')}</dt>
+                <dd dir="ltr" className={styles.breakdownValue}>{captainMeterFare.toFixed(2)} {currency}</dd>
+              </div>
+              <div className={styles.breakdownRow}>
+                <dt className={styles.breakdownLabel}>{t('breakdownMarket')}</dt>
+                <dd dir="ltr" className={styles.breakdownValue}>
+                  {marketFare > 0 ? `${marketFare.toFixed(2)} ${currency}` : t('breakdownMarketUnknown')}
+                </dd>
+              </div>
+              <div className={styles.breakdownRow}>
+                <dt className={styles.breakdownLabel}>
+                  {t('breakdownWarnLine', { percent: Math.round(premiumFactor * 100) })}
+                </dt>
+                <dd dir="ltr" className={styles.breakdownValue}>{ceilingPrice.toFixed(2)} {currency}</dd>
+              </div>
+              <div className={styles.breakdownRow}>
+                <dt className={styles.breakdownLabel}>{t('breakdownFloor')}</dt>
+                <dd dir="ltr" className={styles.breakdownValue}>{floorPrice.toFixed(2)} {currency}</dd>
+              </div>
+              <div className={cn(styles.breakdownRow, styles.breakdownRowAccent)}>
+                <dt className={styles.breakdownLabel}>{t('breakdownYourIncrease')}</dt>
+                <dd dir="ltr" className={styles.breakdownValue}>
+                  {normalizedIncreaseAmount >= 0 ? '+' : '−'}{Math.abs(normalizedIncreaseAmount).toFixed(2)} {currency}
+                </dd>
+              </div>
+            </dl>
+
+            {/* The meter can sit far outside the band when the market average is built from too
+            few captains. Saying so is more use than a percentage in the thousands. */}
+            {isMeterOffMarket ? (
+              <p className={styles.aboveBandWarning}>
+                {t('meterOffMarket', {
+                  meter: baseFare.toFixed(2),
+                  market: marketFare.toFixed(2),
                   currency,
                 })}
               </p>
-              <p className={styles.meterDetailsRoute}>
-                {t('meterCalculationRoute', {
-                  roadKm: meterDetails.roadKm.toFixed(2),
-                  includedKm: meterDetails.includedKm.toFixed(2),
-                  billableKm: meterDetails.billableKm.toFixed(2),
-                  minutes: meterDetails.estimatedMinutes.toFixed(1),
+            ) : null}
+
+            {bandHeadroom > 0 ? (
+              <button
+                type="button"
+                onClick={() => setIncreaseAmount(bandHeadroom)}
+                className={styles.style156_21}
+              >
+                {t('applyMaxIncrease')}
+              </button>
+            ) : null}
+
+            {isAboveBand && !isMeterOffMarket ? (
+              <p className={styles.aboveBandWarning}>
+                {t('aboveBandWarning', {
+                  percent: aboveBandPercent,
+                  limit: Math.round(premiumFactor * 100),
                 })}
               </p>
-            </>
-          ) : (
-            <p className={styles.meterDetailsRoute}>
-              {t('meterCalculationFallback', {
-                total: captainMeterFare.toFixed(2),
-                currency,
-              })}
-            </p>
-          )}
-          <p className={styles.meterFormula} dir="ltr">
-            {t('meterCalculationMarket', {
-              market: marketFare.toFixed(2),
-              currency,
-            })}
-          </p>
-          <p className={styles.meterDetailsRoute}>
-            {t('meterCalculationCeiling', {
-              market: marketFare.toFixed(2),
-              percent: Math.round(premiumFactor * 100),
-              ceiling: ceilingPrice.toFixed(2),
-              currency,
-            })}
-          </p>
-          <p className={styles.meterDetailsRoute}>
-            {t('meterCalculationFloor', {
-              market: marketFare.toFixed(2),
-              percent: Math.round(MARKET_FLOOR_FACTOR * 100),
-              floor: floorPrice.toFixed(2),
-              currency,
-            })}
-          </p>
-        </div>
-
-        <dl className={styles.breakdownList}>
-          <div className={styles.breakdownRow}>
-            <dt className={styles.breakdownLabel}>{t('breakdownMeter')}</dt>
-            <dd dir="ltr" className={styles.breakdownValue}>{captainMeterFare.toFixed(2)} {currency}</dd>
-          </div>
-          <div className={styles.breakdownRow}>
-            <dt className={styles.breakdownLabel}>{t('breakdownMarket')}</dt>
-            <dd dir="ltr" className={styles.breakdownValue}>
-              {marketFare > 0 ? `${marketFare.toFixed(2)} ${currency}` : t('breakdownMarketUnknown')}
-            </dd>
-          </div>
-          <div className={styles.breakdownRow}>
-            <dt className={styles.breakdownLabel}>
-              {t('breakdownWarnLine', { percent: Math.round(premiumFactor * 100) })}
-            </dt>
-            <dd dir="ltr" className={styles.breakdownValue}>{ceilingPrice.toFixed(2)} {currency}</dd>
-          </div>
-          <div className={styles.breakdownRow}>
-            <dt className={styles.breakdownLabel}>{t('breakdownFloor')}</dt>
-            <dd dir="ltr" className={styles.breakdownValue}>{floorPrice.toFixed(2)} {currency}</dd>
-          </div>
-          <div className={cn(styles.breakdownRow, styles.breakdownRowAccent)}>
-            <dt className={styles.breakdownLabel}>{t('breakdownYourIncrease')}</dt>
-            <dd dir="ltr" className={styles.breakdownValue}>
-              {normalizedIncreaseAmount >= 0 ? '+' : '−'}{Math.abs(normalizedIncreaseAmount).toFixed(2)} {currency}
-            </dd>
-          </div>
-        </dl>
-
-        {/* The meter can sit far outside the band when the market average is built from too
-            few captains. Saying so is more use than a percentage in the thousands. */}
-        {isMeterOffMarket ? (
-          <p className={styles.aboveBandWarning}>
-            {t('meterOffMarket', {
-              meter: baseFare.toFixed(2),
-              market: marketFare.toFixed(2),
-              currency,
-            })}
-          </p>
-        ) : null}
-
-        {bandHeadroom > 0 ? (
-          <button
-            type="button"
-            onClick={() => setIncreaseAmount(bandHeadroom)}
-            className={styles.style156_21}
-          >
-            {t('applyMaxIncrease')}
-          </button>
-        ) : null}
-
-        {isAboveBand && !isMeterOffMarket ? (
-          <p className={styles.aboveBandWarning}>
-            {t('aboveBandWarning', {
-              percent: aboveBandPercent,
-              limit: Math.round(premiumFactor * 100),
-            })}
-          </p>
-        ) : null}
+            ) : null}
           </>
         )}
       </div>
@@ -698,9 +844,9 @@ export function BiddingProposalSheet({
               band — so on any trip where the meter already sat at or above the band the
               entire increase control disappeared and the captain had no way to raise a price
               they are entitled to raise without limit. */}
-        {pricingMode === 'FREE' && (
-          <>
-            <label className={styles.style164_23}>{t('increaseAmount')}</label>
+          {pricingMode === 'FREE' && (
+            <>
+              <label className={styles.style164_23}>{t('increaseAmount')}</label>
               <div className={styles.style165_24}>
                 <button
                   type="button"
@@ -730,113 +876,131 @@ export function BiddingProposalSheet({
                   <Plus className={styles.style184_29} />
                 </button>
               </div>
-          </>
-        )}
-        <div className={styles.style187_30}>
-          <div className={styles.style188_31}>
-            <span className={styles.style189_32}>{t('finalOffer')}</span>
-            <strong className={styles.style190_33}>{finalOfferPrice.toFixed(2)} {currency}</strong>
+            </>
+          )}
+          <div className={styles.style187_30}>
+            <div className={styles.style188_31}>
+              <span className={styles.style189_32}>{t('finalOffer')}</span>
+              <strong className={styles.style190_33}>{finalOfferPrice.toFixed(2)} {currency}</strong>
+            </div>
+            <p className={styles.style192_34}>
+              {pricingMode === 'APP' ? (
+                <span>
+                  {language === 'ar'
+                    ? normalizedAppPrice > 0
+                      ? `السعر المدخل حسب التطبيق: ${finalOfferPrice.toFixed(2)} ${currency}`
+                      : 'يرجى كتابة سعر التطبيق المطلوب في الحقل أعلاه'
+                    : normalizedAppPrice > 0
+                      ? `App entered price: ${finalOfferPrice.toFixed(2)} ${currency}`
+                      : 'Please enter the app price in the field above'}
+                </span>
+              ) : pricingMode === 'TAXI' ? (
+                <span>
+                  {language === 'ar'
+                    ? `سعر الرحلة حسب عداد التاكسي (الأساسي): ${finalOfferPrice.toFixed(2)} ${currency}`
+                    : `Taxi meter trip price: ${finalOfferPrice.toFixed(2)} ${currency}`}
+                </span>
+              ) : (
+                <>
+                  <span>{language === 'ar' ? 'تفاصيل العرض: ' : 'Offer details: '}</span>
+                  <span dir="ltr" className="inline-block font-mono text-slate-300">
+                    {baseFare.toFixed(2)} {currency} {normalizedIncreaseAmount >= 0 ? '+' : '-'} {Math.abs(normalizedIncreaseAmount).toFixed(2)} {currency} = {finalOfferPrice.toFixed(2)} {currency}
+                  </span>
+                </>
+              )}
+            </p>
           </div>
-          <p className={styles.style192_34}>
-            {t('meterCalculationFinal', {
-              meter: baseFare.toFixed(2),
-              adjustment: `${normalizedIncreaseAmount >= 0 ? '+' : '-'} ${Math.abs(normalizedIncreaseAmount).toFixed(2)} ${currency}`,
-              total: finalOfferPrice.toFixed(2),
-              currency,
-            })}
-          </p>
-        </div>
 
-        {isTierAmber && !isAboveBand ? (
-          <div className={styles.style201_35}>
-            <AlertTriangle className={styles.style202_36} />
-            {t('tierAmberWarning', { limit: Math.round(premiumFactor * 100) })}
-          </div>
-        ) : null}
+          {isTierAmber && !isAboveBand ? (
+            <div className={styles.style201_35}>
+              <AlertTriangle className={styles.style202_36} />
+              {t('tierAmberWarning', { limit: Math.round(premiumFactor * 100) })}
+            </div>
+          ) : null}
 
-        {/* The old crimson "tier ceiling exceeded" block is gone: above the band is a
+          {/* The old crimson "tier ceiling exceeded" block is gone: above the band is a
             warning now, rendered as the amber notice in the premium panel above, and the
             submit button stays enabled. Only the dumping floor still blocks. */}
 
-        {isDumpingAmber ? (
-          <div className={styles.style201_35}>
-            <AlertTriangle className={styles.style202_36} />
-            {t('dumpingAmberCalculationWarning', {
-              offer: finalOfferPrice.toFixed(2),
-              market: marketFare.toFixed(2),
-              difference: marketDifference.toFixed(2),
-              percent: marketDifferencePercent,
-              currency,
-            })}
-          </div>
-        ) : null}
-
-        {isDumpingBlocked ? (
-          <div className={styles.style208_37}>
-            <AlertTriangle className={styles.style209_38} />
-            {t('dumpingCrimsonBlock')}
-          </div>
-        ) : null}
-
-        <div className={styles.style163_22}>
-          <label className={styles.style164_23}>{t('waitSecondsLabel')}</label>
-          <div className={styles.style165_24}>
-            <button
-              type="button"
-              onClick={() => setWaitSecondsInput((current) => {
-                const value = Number(current);
-                const next = (Number.isFinite(value) ? value : MIN_OFFER_WAIT_SECONDS) - 1;
-                return String(Math.max(MIN_OFFER_WAIT_SECONDS, next));
+          {isDumpingAmber ? (
+            <div className={styles.style201_35}>
+              <AlertTriangle className={styles.style202_36} />
+              {t('dumpingAmberCalculationWarning', {
+                offer: finalOfferPrice.toFixed(2),
+                market: marketFare.toFixed(2),
+                difference: marketDifference.toFixed(2),
+                percent: marketDifferencePercent,
+                currency,
               })}
-              disabled={parsedWaitSeconds <= MIN_OFFER_WAIT_SECONDS}
-              className={cn(styles.style169_25, parsedWaitSeconds <= MIN_OFFER_WAIT_SECONDS ? styles.inputLocked : '')}
-            >
-              <Minus className={styles.style171_26} />
-            </button>
-            <input
-              value={waitSecondsInput}
-              onChange={(event) => setWaitSecondsInput(event.target.value.replace(/[^0-9]/g, ''))}
-              inputMode="numeric"
-              className={styles.style177_27}
-            />
-            <button
-              type="button"
-              onClick={() => setWaitSecondsInput((current) => {
-                const value = Number(current);
-                const next = (Number.isFinite(value) ? value : MIN_OFFER_WAIT_SECONDS) + 1;
-                // Clamped both ways. This button had no ceiling, so holding it walked the
-                // window into the thousands of seconds and the rider was shown an offer that
-                // stayed live for over an hour.
-                return String(Math.min(MAX_OFFER_WAIT_SECONDS, Math.max(MIN_OFFER_WAIT_SECONDS, next)));
-              })}
-              disabled={parsedWaitSeconds >= MAX_OFFER_WAIT_SECONDS}
-              className={cn(styles.style182_28, parsedWaitSeconds >= MAX_OFFER_WAIT_SECONDS ? styles.inputLocked : '')}
-            >
-              <Plus className={styles.style184_29} />
-            </button>
-          </div>
-          <p className={styles.style192_34}>{t('waitSecondsHint')}</p>
-          {!isWaitSecondsValid ? (
-            <div className={styles.style208_37}>
-              <AlertTriangle className={styles.style209_38} />
-              {t('waitSecondsRange', { min: MIN_OFFER_WAIT_SECONDS, max: MAX_OFFER_WAIT_SECONDS })}
             </div>
           ) : null}
-        </div>
 
-        {isDumpingBlocked && professionalAd ? (
-          <AdDisplayCard
-            ad={professionalAd}
-            showHeart={false}
-            badgeText={t('professionalAdBadge')}
-            ctaText={professionalAd.buttonText}
-            className={styles.professionalAdCard}
-            onOpen={(event: React.MouseEvent) => {
-              event.stopPropagation();
-              window.open(professionalAd.actionUrl, '_blank');
-            }}
-          />
-        ) : null}
+          {isDumpingBlocked ? (
+            <div className={styles.style208_37}>
+              <AlertTriangle className={styles.style209_38} />
+              {t('dumpingCrimsonBlock')}
+            </div>
+          ) : null}
+
+          <div className={styles.style163_22}>
+            <label className={styles.style164_23}>{t('waitSecondsLabel')}</label>
+            <div className={styles.style165_24}>
+              <button
+                type="button"
+                onClick={() => setWaitSecondsInput((current) => {
+                  const value = Number(current);
+                  const next = (Number.isFinite(value) ? value : MIN_OFFER_WAIT_SECONDS) - 1;
+                  return String(Math.max(MIN_OFFER_WAIT_SECONDS, next));
+                })}
+                disabled={parsedWaitSeconds <= MIN_OFFER_WAIT_SECONDS}
+                className={cn(styles.style169_25, parsedWaitSeconds <= MIN_OFFER_WAIT_SECONDS ? styles.inputLocked : '')}
+              >
+                <Minus className={styles.style171_26} />
+              </button>
+              <input
+                value={waitSecondsInput}
+                onChange={(event) => setWaitSecondsInput(event.target.value.replace(/[^0-9]/g, ''))}
+                inputMode="numeric"
+                className={styles.style177_27}
+              />
+              <button
+                type="button"
+                onClick={() => setWaitSecondsInput((current) => {
+                  const value = Number(current);
+                  const next = (Number.isFinite(value) ? value : MIN_OFFER_WAIT_SECONDS) + 1;
+                  // Clamped both ways. This button had no ceiling, so holding it walked the
+                  // window into the thousands of seconds and the rider was shown an offer that
+                  // stayed live for over an hour.
+                  return String(Math.min(MAX_OFFER_WAIT_SECONDS, Math.max(MIN_OFFER_WAIT_SECONDS, next)));
+                })}
+                disabled={parsedWaitSeconds >= MAX_OFFER_WAIT_SECONDS}
+                className={cn(styles.style182_28, parsedWaitSeconds >= MAX_OFFER_WAIT_SECONDS ? styles.inputLocked : '')}
+              >
+                <Plus className={styles.style184_29} />
+              </button>
+            </div>
+            <p className={styles.style192_34}>{t('waitSecondsHint')}</p>
+            {!isWaitSecondsValid ? (
+              <div className={styles.style208_37}>
+                <AlertTriangle className={styles.style209_38} />
+                {t('waitSecondsRange', { min: MIN_OFFER_WAIT_SECONDS, max: MAX_OFFER_WAIT_SECONDS })}
+              </div>
+            ) : null}
+          </div>
+
+          {isDumpingBlocked && professionalAd ? (
+            <AdDisplayCard
+              ad={professionalAd}
+              showHeart={false}
+              badgeText={t('professionalAdBadge')}
+              ctaText={professionalAd.buttonText}
+              className={styles.professionalAdCard}
+              onOpen={(event: React.MouseEvent) => {
+                event.stopPropagation();
+                window.open(professionalAd.actionUrl, '_blank');
+              }}
+            />
+          ) : null}
         </div>
       )}
 
