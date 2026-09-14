@@ -294,7 +294,6 @@ export function CaptainOfferCard({
     captain: false,
     price: false,
   });
-  const [showDetailedBreakdown, setShowDetailedBreakdown] = React.useState(false);
 
   const toggleSection = React.useCallback((section: 'trip' | 'captain' | 'price') => {
     setOpenSections((prev) => ({
@@ -668,85 +667,11 @@ export function CaptainOfferCard({
                             {money(receipt.marketFare)} {currencyCode}
                           </span>
                         </div>
-                        <div className="mt-2 flex items-center gap-1.5 text-xs font-bold">
-                          {receipt.marketDeviationPercent < 0 ? (
                         {receipt.marketDeviationPercent < 0 ? (
                           <div className="mt-2 flex items-center gap-1.5 text-xs font-bold">
                             <span className="inline-flex items-center gap-1 text-emerald-400 bg-emerald-950/40 border border-emerald-500/30 px-2 py-0.5 rounded-md">
-                              {isArabic ? '✨ سعر منافس (أقل من المتوسط)' : '✨ Competitive (Below average)'}
                               {isArabic ? '✨ سعر منافس (أقل من متوسط السوق)' : '✨ Competitive (Below average)'}
                             </span>
-                          ) : receipt.marketDeviationPercent === 0 ? (
-                            <span className="inline-flex items-center gap-1 text-teal-300 bg-teal-950/40 border border-teal-500/30 px-2 py-0.5 rounded-md">
-                              {isArabic ? '⚖️ مطابق لمتوسط السوق' : '⚖️ Matches market average'}
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 text-amber-300 bg-amber-950/40 border border-amber-500/30 px-2 py-0.5 rounded-md">
-                              {isArabic ? '⭐ عرض خاص من الكابتن' : '⭐ Captain offer'}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    ) : null}
-
-                    {/* 3. Collapsible Detailed Breakdown Button */}
-                    {breakdown && !breakdown.tariffMissing ? (
-                      <div className="mt-2.5">
-                        <button
-                          type="button"
-                          onClick={() => setShowDetailedBreakdown((prev) => !prev)}
-                          className="flex items-center justify-between w-full px-3 py-2 text-xs font-bold text-slate-400 hover:text-white transition-all rounded-xl bg-white/[0.03] hover:bg-white/[0.07] border border-white/10"
-                        >
-                          <span>
-                            {showDetailedBreakdown
-                              ? (isArabic ? 'إخفاء تفاصيل الحساب' : 'Hide calculation details')
-                              : (isArabic ? 'عرض تفاصيل الحساب' : 'Show calculation details')}
-                          </span>
-                          <ChevronDown className={cn("h-4 w-4 transition-transform duration-200 text-slate-400", showDetailedBreakdown ? "rotate-180 text-teal-400" : "rotate-0")} />
-                        </button>
-
-                        {showDetailedBreakdown ? (
-                          <div className="mt-2.5 p-3 rounded-xl bg-black/20 border border-white/5 space-y-2 text-xs">
-                            <BreakdownRow
-                              label={isArabic ? 'أجرة البداية (فتحة العداد)' : 'Starting fare'}
-                              value={`${money(receipt.baseFare)} ${currencyCode}`}
-                            />
-                            <BreakdownRow
-                              label={isArabic ? `المسافة (${num(roadKm)} كم)` : `Distance (${num(roadKm)} km)`}
-                              value={`${money(receipt.kmCharge)} ${currencyCode}`}
-                            />
-                            {Number(breakdown.perMin) > 0 ? (
-                              <BreakdownRow
-                                label={isArabic ? `الوقت (${num(breakdown.minutes)} دقيقة)` : `Duration (${num(breakdown.minutes)} min)`}
-                                value={`${money(receipt.minCharge)} ${currencyCode}`}
-                              />
-                            ) : null}
-                            {receipt.minFareTopUp > 0 ? (
-                              <BreakdownRow
-                                label={isArabic ? 'فرق الحد الأدنى للأجرة' : 'Minimum fare top-up'}
-                                value={`${money(receipt.minFareTopUp)} ${currencyCode}`}
-                              />
-                            ) : null}
-                            <div className={styles.breakdownDivider} />
-                            <BreakdownRow
-                              label={isArabic ? 'إجمالي العداد المحسوب' : 'Meter subtotal'}
-                              value={`${money(receipt.meterFare)} ${currencyCode}`}
-                            />
-                            {adjustment !== 0 ? (
-                              <BreakdownRow
-                                label={isArabic
-                                  ? (adjustment > 0 ? 'فارق العرض المقدم' : 'خصم العرض المقدم')
-                                  : (adjustment > 0 ? 'Offer adjustment' : 'Offer discount')}
-                                value={`${adjustment > 0 ? '+' : '−'}${money(Math.abs(adjustment))} ${currencyCode}`}
-                                accent
-                              />
-                            ) : null}
-                            {receipt.residual !== 0 ? (
-                              <BreakdownRow
-                                label={isArabic ? 'بنود أخرى' : 'Other'}
-                                value={`${receipt.residual > 0 ? '+' : '−'}${money(Math.abs(receipt.residual))} ${currencyCode}`}
-                              />
-                            ) : null}
                           </div>
                         ) : null}
                       </div>
