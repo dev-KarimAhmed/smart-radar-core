@@ -144,15 +144,6 @@ interface BiddingProposalSheetProps {
   /** For the "time to reach the rider" estimate — the captain's own live position. */
   driverLocation: { lat: number; lng: number } | null;
   isSubmitting: boolean;
-  currentTariff?: {
-    baseFare: number | null;
-    pricePerKm: number | null;
-    pricePerMin: number | null;
-    includedKm?: number;
-    pricingMode?: 'FREE' | 'APP' | null;
-    marketAverage?: any;
-  } | null;
-  onEditTariff?: () => void;
   initialOfferPrice?: number | null;
   initialPricingMode?: 'FREE' | 'APP' | 'TAXI' | null;
   captainPricingMode?: 'FREE' | 'APP' | null;
@@ -180,8 +171,6 @@ export function BiddingProposalSheet({
   currency,
   driverLocation,
   isSubmitting,
-  currentTariff: currentTariffProp,
-  onEditTariff,
   initialOfferPrice = null,
   initialPricingMode = null,
   captainPricingMode = null,
@@ -323,18 +312,13 @@ export function BiddingProposalSheet({
         const diff = existingOffer.price - baseFare;
         setIncreaseAmount(diff !== 0 ? roundMoney(diff) : 0);
         setAppPrice('');
-<<<<<<< HEAD
       } else if (pricingMode === 'APP' || pricingMode === 'TAXI') {
-=======
-      } else if (pricingMode === 'APP') {
->>>>>>> e337152760c85e04c9fa03e2be7aacdd12fda379
         setAppPrice(String(existingOffer.price));
         setIncreaseAmount(0);
       }
       setWaitSecondsInput(String(existingOffer.wait_seconds || MIN_OFFER_WAIT_SECONDS));
     } else {
       setIncreaseAmount(0);
-<<<<<<< HEAD
       if (initialOfferPrice && initialOfferPrice > 0) {
         setAppPrice(String(initialOfferPrice));
       } else {
@@ -343,19 +327,6 @@ export function BiddingProposalSheet({
       setWaitSecondsInput(String(MIN_OFFER_WAIT_SECONDS));
     }
   }, [request.id, existingOffer?.id, existingOffer?.price, existingOffer?.wait_seconds, baseFare, pricingMode, initialOfferPrice]);
-=======
-      setAppPrice('');
-      setWaitSecondsInput(String(MIN_OFFER_WAIT_SECONDS));
-    }
-  }, [request.id, existingOffer?.id, existingOffer?.price, baseFare, pricingMode]);
-    if (existingOffer?.price && (pricingMode === 'APP' || pricingMode === 'TAXI')) {
-      setAppPrice(String(existingOffer.price));
-    } else if (initialOfferPrice && initialOfferPrice > 0) {
-      setAppPrice(String(initialOfferPrice));
-    }
-    setWaitSecondsInput(String(existingOffer?.wait_seconds || MIN_OFFER_WAIT_SECONDS));
-  }, [request.id, existingOffer?.id, baseFare, pricingMode]);
->>>>>>> e337152760c85e04c9fa03e2be7aacdd12fda379
 
   React.useEffect(() => {
     if (pricingMode === 'TAXI' || (pricingMode === 'APP' && isOfficeTaxi)) {
@@ -578,11 +549,7 @@ export function BiddingProposalSheet({
         {isGoldOrPlatinum && (
           <div className="mt-3 rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-3 py-2.5 text-center text-xs sm:text-sm font-black text-[#5eead4] shadow-md">
             {language === 'ar'
-<<<<<<< HEAD
               ? `الراكب يقدر رتبتك ${tierLabel} التي تؤهلك لزيادة سعرك عن معدل السوق ${Math.round(rankIncreaseFactor * 100)}%`
-=======
-              ? `الراكب يقدر رتبك ${tierLabel} التي تؤهلك لزيادة سعرك عن معدل السوق ${Math.round(rankIncreaseFactor * 100)}%`
->>>>>>> e337152760c85e04c9fa03e2be7aacdd12fda379
               : `Riders appreciate your ${tierLabel} tier which qualifies you to increase your price ${Math.round(rankIncreaseFactor * 100)}% above market average`}
           </div>
         )}
@@ -683,10 +650,6 @@ export function BiddingProposalSheet({
           </div>
         )}
 
-<<<<<<< HEAD
-=======
-        <div className="mt-4 space-y-2">
->>>>>>> e337152760c85e04c9fa03e2be7aacdd12fda379
         <div className={styles.pricingModeContainer}>
           {riderPreference ? (
             <div className={styles.riderPrefBadge}>
@@ -702,8 +665,6 @@ export function BiddingProposalSheet({
               </span>
             </div>
           ) : (
-            <div className="flex items-center gap-2 rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-3 py-2 text-xs font-bold text-[#5eead4]">
-              <Sparkles className="h-4 w-4 shrink-0 text-[#14B8A6]" />
             <div className={styles.noPrefBadge}>
               <Sparkles className={styles.noPrefIcon} />
               <span>
@@ -766,18 +727,6 @@ export function BiddingProposalSheet({
         )}
 
         {pricingMode === 'APP' && (
-          <div className="mt-4 rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 p-4 text-sm font-bold text-slate-200">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
-              <div>
-                <p className="font-black text-base text-[#5eead4]">{t('appModeInputNotice')}</p>
-                <p className="text-xs font-normal text-slate-300">{t('appModeInputHint')}</p>
-              </div>
-              {marketFare > 0 && (
-                <div className="rounded-lg border border-teal-400/30 bg-teal-500/15 px-3 py-1.5 text-xs font-black text-teal-300 self-start sm:self-center">
-                  {language === 'ar' ? `متوسط سعر السوق: ${marketFare.toFixed(2)} ${currency}` : `Market average: ${marketFare.toFixed(2)} ${currency}`}
-                </div>
-              )}
-            </div>
           <div className={styles.appModeContainer}>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
               <div>
@@ -795,8 +744,6 @@ export function BiddingProposalSheet({
               inputMode="decimal"
               value={appPrice}
               onChange={(e) => setAppPrice(e.target.value)}
-              className="w-full rounded-xl border border-slate-800 bg-black/60 p-3 text-lg font-black text-white outline-none focus:border-[#14B8A6]"
-              placeholder={marketFare > 0 ? marketFare.toFixed(2) : "0.00"}
               className={styles.appModeInput}
               placeholder={marketFare > 0 ? marketFare.toFixed(2) : "0.00"}
               autoFocus
@@ -805,8 +752,6 @@ export function BiddingProposalSheet({
         )}
 
         {pricingMode === 'TAXI' && (
-          <div className="mt-4 rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 p-3 text-sm font-bold text-slate-200">
-            {t('taxiModeNotice')}
           <div className={styles.taxiModeContainer}>
             <div className={styles.taxiModeNotice}>
               🚕 {t('taxiModeNotice')}
@@ -833,86 +778,6 @@ export function BiddingProposalSheet({
         {pricingMode === 'FREE' && (
           <>
             <div className={styles.meterDetails}>
-              <p className={styles.meterDetailsTitle}>{t('meterCalculationTitle')}</p>
-              <p className={styles.meterDetailsHint}>{t('meterCalculationSource')}</p>
-              {meterDetails ? (
-                <>
-                  <p className={styles.meterFormula} dir="ltr">
-                    <span className="inline-flex items-center gap-1.5 flex-wrap justify-center font-mono text-sm leading-relaxed tracking-wide" dir="ltr">
-                      <strong className="font-extrabold text-emerald-400">{captainMeterFare.toFixed(2)} {currency}</strong>
-                      <span className="text-slate-400">=</span>
-                      <span>{meterDetails.baseFare.toFixed(2)} {currency}</span>
-                      <span className="text-slate-400">+</span>
-                      <span className="whitespace-nowrap">({meterDetails.billableKm.toFixed(2)} <bdi>{language === 'ar' ? 'كم' : 'km'}</bdi> × {meterDetails.perKm.toFixed(2)} {currency})</span>
-                      <span className="text-slate-400">+</span>
-                      <span className="whitespace-nowrap">({meterDetails.estimatedMinutes.toFixed(1)} <bdi>{language === 'ar' ? 'دقيقة' : 'min'}</bdi> × {meterDetails.perMin.toFixed(2)} {currency})</span>
-                    </span>
-                  </p>
-                  <p className={styles.meterDetailsRoute}>
-                    {t('meterCalculationRoute', {
-                      roadKm: meterDetails.roadKm.toFixed(2),
-                      includedKm: meterDetails.includedKm.toFixed(2),
-                      billableKm: meterDetails.billableKm.toFixed(2),
-                      minutes: meterDetails.estimatedMinutes.toFixed(1),
-                    })}
-                  </p>
-                </>
-              ) : (
-                <p className={styles.meterDetailsRoute}>
-                  {t('meterCalculationFallback', {
-                    total: captainMeterFare.toFixed(2),
-                    currency,
-                  })}
-                </p>
-              )}
-              <p className={styles.meterFormula}>
-                <span className="text-slate-300">{language === 'ar' ? 'مرجع السوق' : 'Market reference'}</span>
-                <span dir="ltr" className="inline-block font-mono font-bold text-amber-300 mx-1.5 me-2">
-                  = {marketFare.toFixed(2)} {currency}
-                </span>
-              </p>
-              <p className={styles.meterDetailsRoute}>
-                <span>{language === 'ar' ? 'حد التنبيه' : 'Warning limit'}: </span>
-                <span dir="ltr" className="inline-block font-mono text-slate-200">
-                  {marketFare.toFixed(2)} + ({marketFare.toFixed(2)} × {Math.round(premiumFactor * 100)}%) = {ceilingPrice.toFixed(2)} {currency}
-                </span>
-              </p>
-              <p className={styles.meterDetailsRoute}>
-                <span>{language === 'ar' ? 'أقل عرض مسموح' : 'Lowest allowed offer'}: </span>
-                <span dir="ltr" className="inline-block font-mono text-slate-200">
-                  {marketFare.toFixed(2)} - ({marketFare.toFixed(2)} × {Math.round(MARKET_FLOOR_FACTOR * 100)}%) = {floorPrice.toFixed(2)} {currency}
-                </span>
-              </p>
-            </div>
-
-            <dl className={styles.breakdownList}>
-              <div className={styles.breakdownRow}>
-                <dt className={styles.breakdownLabel}>{t('breakdownMeter')}</dt>
-                <dd dir="ltr" className={styles.breakdownValue}>{captainMeterFare.toFixed(2)} {currency}</dd>
-              </div>
-              <div className={styles.breakdownRow}>
-                <dt className={styles.breakdownLabel}>{t('breakdownMarket')}</dt>
-                <dd dir="ltr" className={styles.breakdownValue}>
-                  {marketFare > 0 ? `${marketFare.toFixed(2)} ${currency}` : t('breakdownMarketUnknown')}
-                </dd>
-              </div>
-              <div className={styles.breakdownRow}>
-                <dt className={styles.breakdownLabel}>
-                  {t('breakdownWarnLine', { percent: Math.round(premiumFactor * 100) })}
-                </dt>
-                <dd dir="ltr" className={styles.breakdownValue}>{ceilingPrice.toFixed(2)} {currency}</dd>
-              </div>
-              <div className={styles.breakdownRow}>
-                <dt className={styles.breakdownLabel}>{t('breakdownFloor')}</dt>
-                <dd dir="ltr" className={styles.breakdownValue}>{floorPrice.toFixed(2)} {currency}</dd>
-              </div>
-              <div className={cn(styles.breakdownRow, styles.breakdownRowAccent)}>
-                <dt className={styles.breakdownLabel}>{t('breakdownYourIncrease')}</dt>
-                <dd dir="ltr" className={styles.breakdownValue}>
-                  {normalizedIncreaseAmount >= 0 ? '+' : '−'}{Math.abs(normalizedIncreaseAmount).toFixed(2)} {currency}
-                </dd>
-              </div>
-            </dl>
               <div className={styles.meterDetailsHeader}>
                 <p className={styles.meterDetailsTitle}>{t('meterCalculationTitle')}</p>
                 {isCoveredInBaseFare ? (
@@ -1043,13 +908,6 @@ export function BiddingProposalSheet({
 
       {pricingMode !== null && (
         <div className={styles.style163_22}>
-<<<<<<< HEAD
-=======
-          {/* Always rendered. This was gated on `canIncrease`, which was derived from the
-              band — so on any trip where the meter already sat at or above the band the
-              entire increase control disappeared and the captain had no way to raise a price
-              they are entitled to raise without limit. */}
->>>>>>> e337152760c85e04c9fa03e2be7aacdd12fda379
           {pricingMode === 'FREE' && (
             <>
               <label className={styles.style164_23}>{t('increaseAmount')}</label>
@@ -1106,13 +964,10 @@ export function BiddingProposalSheet({
                     ? `سعر الرحلة حسب عداد التاكسي (الأساسي): ${finalOfferPrice.toFixed(2)} ${currency}`
                     : `Taxi meter trip price: ${finalOfferPrice.toFixed(2)} ${currency}`}
                 </span>
-<<<<<<< HEAD
               ) : normalizedIncreaseAmount === 0 ? (
                 <span>
                   {language === 'ar' ? 'مطابق لسعر العداد المحسوب' : 'Matches calculated meter fare'}
                 </span>
-=======
->>>>>>> e337152760c85e04c9fa03e2be7aacdd12fda379
               ) : (
                 <>
                   <span>{language === 'ar' ? 'تفاصيل العرض: ' : 'Offer details: '}</span>
@@ -1128,7 +983,6 @@ export function BiddingProposalSheet({
             <div className={styles.style201_35}>
               <AlertTriangle className={styles.style202_36} />
               {t('tierAmberWarning', { limit: Math.round(premiumFactor * 100) })}
-<<<<<<< HEAD
             </div>
           ) : null}
 
@@ -1145,28 +999,6 @@ export function BiddingProposalSheet({
             </div>
           ) : null}
 
-=======
-            </div>
-          ) : null}
-
-          {/* The old crimson "tier ceiling exceeded" block is gone: above the band is a
-            warning now, rendered as the amber notice in the premium panel above, and the
-            submit button stays enabled. Only the dumping floor still blocks. */}
-
-          {isDumpingAmber ? (
-            <div className={styles.style201_35}>
-              <AlertTriangle className={styles.style202_36} />
-              {t('dumpingAmberCalculationWarning', {
-                offer: finalOfferPrice.toFixed(2),
-                market: marketFare.toFixed(2),
-                difference: marketDifference.toFixed(2),
-                percent: marketDifferencePercent,
-                currency,
-              })}
-            </div>
-          ) : null}
-
->>>>>>> e337152760c85e04c9fa03e2be7aacdd12fda379
           {isDumpingBlocked ? (
             <div className={styles.style208_37}>
               <AlertTriangle className={styles.style209_38} />
@@ -1200,12 +1032,6 @@ export function BiddingProposalSheet({
                 onClick={() => setWaitSecondsInput((current) => {
                   const value = Number(current);
                   const next = (Number.isFinite(value) ? value : MIN_OFFER_WAIT_SECONDS) + 1;
-<<<<<<< HEAD
-=======
-                  // Clamped both ways. This button had no ceiling, so holding it walked the
-                  // window into the thousands of seconds and the rider was shown an offer that
-                  // stayed live for over an hour.
->>>>>>> e337152760c85e04c9fa03e2be7aacdd12fda379
                   return String(Math.min(MAX_OFFER_WAIT_SECONDS, Math.max(MIN_OFFER_WAIT_SECONDS, next)));
                 })}
                 disabled={parsedWaitSeconds >= MAX_OFFER_WAIT_SECONDS}
