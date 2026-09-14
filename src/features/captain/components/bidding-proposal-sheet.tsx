@@ -996,15 +996,6 @@ export function BiddingProposalSheet({
           ) : null}
 
           {isDumpingAmber ? (
-            <div className={styles.style201_35}>
-              <AlertTriangle className={styles.style202_36} />
-              {t('dumpingAmberCalculationWarning', {
-                offer: finalOfferPrice.toFixed(2),
-                market: marketFare.toFixed(2),
-                difference: marketDifference.toFixed(2),
-                percent: marketDifferencePercent,
-                currency,
-              })}
             <div className="mt-3 overflow-hidden rounded-2xl border border-amber-500/40 bg-gradient-to-br from-amber-950/30 via-amber-950/15 to-black/40 p-3.5 text-xs font-bold text-amber-200 shadow-lg">
               <div className="flex items-start gap-2.5">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
@@ -1022,9 +1013,6 @@ export function BiddingProposalSheet({
           ) : null}
 
           {isDumpingBlocked ? (
-            <div className={styles.style208_37}>
-              <AlertTriangle className={styles.style209_38} />
-              {t('dumpingCrimsonBlock')}
             <div className="mt-4 overflow-hidden rounded-2xl border border-rose-500/40 bg-gradient-to-br from-rose-950/40 via-red-950/20 to-black/60 p-4 text-rose-200 shadow-xl shadow-rose-950/30">
               <div className="flex items-start gap-3">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-rose-500/40 bg-rose-500/20 text-rose-300">
