@@ -294,6 +294,7 @@ export function CaptainOfferCard({
     captain: false,
     price: false,
   });
+  const [showDetailedBreakdown, setShowDetailedBreakdown] = React.useState(false);
 
   const toggleSection = React.useCallback((section: 'trip' | 'captain' | 'price') => {
     setOpenSections((prev) => ({
@@ -636,139 +637,118 @@ export function CaptainOfferCard({
               {openSections.price ? (
                 <div className={styles.collapsibleSectionBody}>
                   <div className={styles.priceCard}>
-                    <div className={styles.breakdownRows}>
-                      {breakdown && !breakdown.tariffMissing ? (
-                        <>
-                          <p className={styles.breakdownGroupLabel}>
-                            {isArabic ? 'عدّاد الكابتن' : 'The captain’s meter'}
-                          </p>
-
-                          <BreakdownRow
-                            label={isArabic ? 'أجرة البداية' : 'Starting fare'}
-                            helper={isArabic ? 'ثابتة لأي رحلة' : 'Fixed for every trip'}
-                            value={`${money(receipt.baseFare)} ${currencyCode}`}
-                          />
-
-                          {/* The old label read "المسافة · 0 كم × 6.00" whenever the captain's
-                              included kilometres covered the trip — arithmetically true, and
-                              unreadable. The row now states the distance actually driven and
-                              says why the charge is what it is. */}
-                          <BreakdownRow
-                            label={isArabic
-                              ? `المسافة · ${num(roadKm)} كم`
-                              : `Distance · ${num(roadKm)} km`}
-                            helper={includedKm > 0
-                              ? (billableKm <= 0
-                                ? (isArabic
-                                  ? `أول ${num(includedKm)} كم مشمولة في أجرة البداية`
-                                  : `First ${num(includedKm)} km are included in the starting fare`)
-                                : (isArabic
-                                  ? `${num(includedKm)} كم مشمولة، و${num(billableKm)} كم × ${money(breakdown.perKm)}`
-                                  : `${num(includedKm)} km included, then ${num(billableKm)} km × ${money(breakdown.perKm)}`))
-                              : (isArabic
-                                ? `${num(billableKm)} كم × ${money(breakdown.perKm)}`
-                                : `${num(billableKm)} km × ${money(breakdown.perKm)}`)}
-                            value={`${money(receipt.kmCharge)} ${currencyCode}`}
-                          />
-
-                          {Number(breakdown.perMin) > 0 ? (
-                            <BreakdownRow
-                              label={isArabic
-                                ? `الوقت · ${num(breakdown.minutes)} دقيقة`
-                                : `Time · ${num(breakdown.minutes)} min`}
-                              helper={isArabic
-                                ? `${num(breakdown.minutes)} × ${money(breakdown.perMin)}`
-                                : `${num(breakdown.minutes)} × ${money(breakdown.perMin)}`}
-                              value={`${money(receipt.minCharge)} ${currencyCode}`}
-                            />
-                          ) : null}
-
-                          {/* Only when the country's minimum fare is what set the meter. */}
-                          {receipt.minFareTopUp > 0 ? (
-                            <BreakdownRow
-                              label={isArabic ? 'فرق الحد الأدنى للأجرة' : 'Minimum fare top-up'}
-                              helper={isArabic
-                                ? `أقل أجرة مسموحة لأي رحلة ${money(breakdown.minTripFare ?? receipt.meterFare)} ${currencyCode}`
-                                : `The lowest fare allowed for any trip is ${money(breakdown.minTripFare ?? receipt.meterFare)} ${currencyCode}`}
-                              value={`${money(receipt.minFareTopUp)} ${currencyCode}`}
-                            />
-                          ) : null}
-
-                          <div className={styles.breakdownDivider} />
-
-                          <BreakdownRow
-                            label={isArabic ? 'إجمالي العدّاد' : 'Meter subtotal'}
-                            value={`${money(receipt.meterFare)} ${currencyCode}`}
-                          />
-
-                          {adjustment !== 0 ? (
-                            <BreakdownRow
-                              label={isArabic
-                                ? (adjustment > 0 ? 'زيادة اختارها الكابتن' : 'تخفيض من الكابتن')
-                                : (adjustment > 0 ? 'Captain’s increase' : 'Captain’s reduction')}
-                              helper={isArabic
-                                ? 'فوق عدّاده، وداخل الحد المسموح لرتبته'
-                                : 'On top of their meter, inside their rank’s allowance'}
-                              value={`${adjustment > 0 ? '+' : '−'}${money(Math.abs(adjustment))} ${currencyCode}`}
-                              accent
-                            />
-                          ) : null}
-
-                          {/* Never expected to render. It exists so that if the offered price
-                              ever fails to equal meter + adjustment, the column says so instead
-                              of quietly not adding up. */}
-                          {receipt.residual !== 0 ? (
-                            <BreakdownRow
-                              label={isArabic ? 'بنود أخرى' : 'Other'}
-                              value={`${receipt.residual > 0 ? '+' : '−'}${money(Math.abs(receipt.residual))} ${currencyCode}`}
-                            />
-                          ) : null}
-
-                          <div className={styles.breakdownDividerStrong} />
-                        </>
-                      ) : null}
-
-                      <BreakdownRow
-                        label={isArabic ? 'السعر النهائي' : 'Final price'}
-                        helper={isArabic ? 'مجمّد — لا يزيد بعد القبول' : 'Locked — it does not change after you accept'}
-                        value={`${finalFare.toFixed(2)} ${currencyCode}`}
-                        accent
-                        strong
-                      />
+                    {/* 1. Featured Final Locked Price */}
+                    <div className="flex items-center justify-between gap-3 p-3.5 rounded-xl bg-black/40 border border-[#14B8A6]/30 shadow-inner">
+                      <div>
+                        <span className="block text-sm font-black text-white">
+                          {isArabic ? 'السعر النهائي' : 'Final price'}
+                        </span>
+                        <span className="block text-[11px] font-semibold text-[#14F5D5]/90 mt-0.5">
+                          {isArabic ? 'مجمّد — شامل كل شيء ولا يزيد بعد القبول' : 'Locked — all-inclusive, never increases after acceptance'}
+                        </span>
+                      </div>
+                      <div className="text-end shrink-0" dir="ltr">
+                        <strong className="text-xl sm:text-2xl font-black text-[#14F5D5] font-mono">
+                          {finalFare.toFixed(2)}
+                        </strong>
+                        <span className="text-xs font-bold text-slate-300 ms-1.5">
+                          {currencyCode}
+                        </span>
+                      </div>
                     </div>
 
-                    {/* The market comparison used to be the tail of a run-on sentence that had
-                        just said the captain added 176.13 on top. Said in that order it reads as
-                        a contradiction; as its own labelled line it reads as what it is. */}
+                    {/* 2. Clean Market Comparison */}
                     {receipt.marketFare > 0 ? (
-                      <div className={styles.marketBlock}>
-                        <BreakdownRow
-                          label={isArabic ? 'متوسط أسعار الكباتن' : 'Captain average'}
-                          helper={isArabic ? 'لنفس الرحلة' : 'For this same trip'}
-                          value={`${money(receipt.marketFare)} ${currencyCode}`}
-                        />
-                        <p className={
-                          receipt.marketDeviationPercent < 0
-                            ? styles.marketVerdictBelow
-                            : receipt.marketDeviationPercent > 0
-                              ? styles.marketVerdictAbove
-                              : styles.marketVerdictEqual
-                        }>
-                          {receipt.marketDeviationPercent === 0
-                            ? (isArabic ? 'هذا العرض مطابق للمتوسط.' : 'This offer matches the average.')
-                            : receipt.marketDeviationPercent < 0
-                              ? (isArabic
-                                ? `هذا العرض أرخص من المتوسط بـ ${Math.abs(receipt.marketDeviationPercent)}%.`
-                                : `This offer is ${Math.abs(receipt.marketDeviationPercent)}% cheaper than average.`)
-                              : (isArabic
-                                ? `هذا العرض أعلى من المتوسط بـ ${receipt.marketDeviationPercent}%، وهي زيادة مسموحة لرتبة ${rankLabel}.`
-                                : `This offer is ${receipt.marketDeviationPercent}% above average, within the ${rankLabel} rank’s allowance.`)}
-                        </p>
+                      <div className="mt-2.5 p-3 rounded-xl bg-black/25 border border-white/5">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs font-bold text-slate-300">
+                            {isArabic ? 'متوسط أسعار الكباتن لنفس الرحلة' : 'Market average for this trip'}
+                          </span>
+                          <span dir="ltr" className="font-mono text-xs font-black text-slate-200">
+                            {money(receipt.marketFare)} {currencyCode}
+                          </span>
+                        </div>
+                        <div className="mt-2 flex items-center gap-1.5 text-xs font-bold">
+                          {receipt.marketDeviationPercent < 0 ? (
+                            <span className="inline-flex items-center gap-1 text-emerald-400 bg-emerald-950/40 border border-emerald-500/30 px-2 py-0.5 rounded-md">
+                              {isArabic ? '✨ سعر منافس (أقل من المتوسط)' : '✨ Competitive (Below average)'}
+                            </span>
+                          ) : receipt.marketDeviationPercent === 0 ? (
+                            <span className="inline-flex items-center gap-1 text-teal-300 bg-teal-950/40 border border-teal-500/30 px-2 py-0.5 rounded-md">
+                              {isArabic ? '⚖️ مطابق لمتوسط السوق' : '⚖️ Matches market average'}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-amber-300 bg-amber-950/40 border border-amber-500/30 px-2 py-0.5 rounded-md">
+                              {isArabic ? '⭐ عرض خاص من الكابتن' : '⭐ Captain offer'}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     ) : null}
 
-                    {/* Only left for the offer that carries no tariff receipt at all — there is
-                        nothing to itemise there, so the sentence is all the rider can be told. */}
+                    {/* 3. Collapsible Detailed Breakdown Button */}
+                    {breakdown && !breakdown.tariffMissing ? (
+                      <div className="mt-2.5">
+                        <button
+                          type="button"
+                          onClick={() => setShowDetailedBreakdown((prev) => !prev)}
+                          className="flex items-center justify-between w-full px-3 py-2 text-xs font-bold text-slate-400 hover:text-white transition-all rounded-xl bg-white/[0.03] hover:bg-white/[0.07] border border-white/10"
+                        >
+                          <span>
+                            {showDetailedBreakdown
+                              ? (isArabic ? 'إخفاء تفاصيل الحساب' : 'Hide calculation details')
+                              : (isArabic ? 'عرض تفاصيل الحساب' : 'Show calculation details')}
+                          </span>
+                          <ChevronDown className={cn("h-4 w-4 transition-transform duration-200 text-slate-400", showDetailedBreakdown ? "rotate-180 text-teal-400" : "rotate-0")} />
+                        </button>
+
+                        {showDetailedBreakdown ? (
+                          <div className="mt-2.5 p-3 rounded-xl bg-black/20 border border-white/5 space-y-2 text-xs">
+                            <BreakdownRow
+                              label={isArabic ? 'أجرة البداية (فتحة العداد)' : 'Starting fare'}
+                              value={`${money(receipt.baseFare)} ${currencyCode}`}
+                            />
+                            <BreakdownRow
+                              label={isArabic ? `المسافة (${num(roadKm)} كم)` : `Distance (${num(roadKm)} km)`}
+                              value={`${money(receipt.kmCharge)} ${currencyCode}`}
+                            />
+                            {Number(breakdown.perMin) > 0 ? (
+                              <BreakdownRow
+                                label={isArabic ? `الوقت (${num(breakdown.minutes)} دقيقة)` : `Duration (${num(breakdown.minutes)} min)`}
+                                value={`${money(receipt.minCharge)} ${currencyCode}`}
+                              />
+                            ) : null}
+                            {receipt.minFareTopUp > 0 ? (
+                              <BreakdownRow
+                                label={isArabic ? 'فرق الحد الأدنى للأجرة' : 'Minimum fare top-up'}
+                                value={`${money(receipt.minFareTopUp)} ${currencyCode}`}
+                              />
+                            ) : null}
+                            <div className={styles.breakdownDivider} />
+                            <BreakdownRow
+                              label={isArabic ? 'إجمالي العداد المحسوب' : 'Meter subtotal'}
+                              value={`${money(receipt.meterFare)} ${currencyCode}`}
+                            />
+                            {adjustment !== 0 ? (
+                              <BreakdownRow
+                                label={isArabic
+                                  ? (adjustment > 0 ? 'فارق العرض المقدم' : 'خصم العرض المقدم')
+                                  : (adjustment > 0 ? 'Offer adjustment' : 'Offer discount')}
+                                value={`${adjustment > 0 ? '+' : '−'}${money(Math.abs(adjustment))} ${currencyCode}`}
+                                accent
+                              />
+                            ) : null}
+                            {receipt.residual !== 0 ? (
+                              <BreakdownRow
+                                label={isArabic ? 'بنود أخرى' : 'Other'}
+                                value={`${receipt.residual > 0 ? '+' : '−'}${money(Math.abs(receipt.residual))} ${currencyCode}`}
+                              />
+                            ) : null}
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
+
                     {!breakdown || breakdown.tariffMissing ? (
                       <p className={styles.reasonText}>{pricingReason}</p>
                     ) : null}
