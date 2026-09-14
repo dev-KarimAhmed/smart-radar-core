@@ -670,8 +670,11 @@ export function CaptainOfferCard({
                         </div>
                         <div className="mt-2 flex items-center gap-1.5 text-xs font-bold">
                           {receipt.marketDeviationPercent < 0 ? (
+                        {receipt.marketDeviationPercent < 0 ? (
+                          <div className="mt-2 flex items-center gap-1.5 text-xs font-bold">
                             <span className="inline-flex items-center gap-1 text-emerald-400 bg-emerald-950/40 border border-emerald-500/30 px-2 py-0.5 rounded-md">
                               {isArabic ? '✨ سعر منافس (أقل من المتوسط)' : '✨ Competitive (Below average)'}
+                              {isArabic ? '✨ سعر منافس (أقل من متوسط السوق)' : '✨ Competitive (Below average)'}
                             </span>
                           ) : receipt.marketDeviationPercent === 0 ? (
                             <span className="inline-flex items-center gap-1 text-teal-300 bg-teal-950/40 border border-teal-500/30 px-2 py-0.5 rounded-md">
