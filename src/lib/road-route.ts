@@ -48,13 +48,11 @@ const DEFAULT_MAPBOX_URL = 'https://api.mapbox.com';
 const DEFAULT_VALHALLA_URL = 'https://valhalla1.openstreetmap.de';
 const DEFAULT_OSRM_URL = 'https://router.project-osrm.org';
 /**
- * OpenStreetMap geometries in Egyptian & Arab urban corridors follow shortest mathematical paths,
- * ignoring real-world Monorail/infrastructure barriers, U-turn closures, and traffic management
- * diversions that live traffic systems (like Google Maps & Mapbox) account for.
- * A 1.20 multiplier calibrates OSM raw distances to match ground-truth corridor driving distances
- * (e.g. 8.94 km -> 10.73 km ~ 10.7 km).
+ * Mapbox and OSM routers compute physical street distances along road networks.
+ * Kept neutral at 1.0 so that accurate road networks across Greater Cairo
+ * (e.g. Mall of Egypt, Mall of Arabia, Cairo Airport, Maadi) remain true to Google Maps without artificial distortion.
  */
-export const OSM_ROAD_CALIBRATION_FACTOR = 1.2;
+export const OSM_ROAD_CALIBRATION_FACTOR = 1.0;
 
 /**
  * 'proxy' is this app's own /api/road-route, tried last and only in a browser.
@@ -235,7 +233,9 @@ async function requestMapboxRoute(
   signal: AbortSignal,
 ): Promise<RawRoute | null> {
   if (!token) return null;
-  const endpoint = `${baseUrl}/directions/v5/mapbox/driving-traffic/${origin.lng},${origin.lat};${destination.lng},${destination.lat}?overview=false&access_token=${encodeURIComponent(token)}`;
+  // alternatives=true allows Mapbox to explore direct service roads and entrance ramps,
+  // avoiding false U-turn traps on divided highways (e.g. Mall of Egypt).
+  const endpoint = `${baseUrl}/directions/v5/mapbox/driving-traffic/${origin.lng},${origin.lat};${destination.lng},${destination.lat}?overview=false&alternatives=true&access_token=${encodeURIComponent(token)}`;
   const response = await fetch(endpoint, {
     signal,
     headers: { Accept: 'application/json' },
@@ -246,10 +246,12 @@ async function requestMapboxRoute(
     code?: string;
     routes?: Array<{ distance?: number; duration?: number }>;
   };
-  if (payload.code !== 'Ok') return null;
+  if (payload.code !== 'Ok' || !payload.routes || payload.routes.length === 0) return null;
 
-  const distanceKm = Number(payload.routes?.[0]?.distance) / 1000;
-  const minutes = Number(payload.routes?.[0]?.duration) / 60;
+  // Pick the most direct candidate route (shortest distance) to avoid multi-km U-turn detours
+  const bestRoute = [...payload.routes].sort((a, b) => Number(a.distance) - Number(b.distance))[0];
+  const distanceKm = Number(bestRoute?.distance) / 1000;
+  const minutes = Number(bestRoute?.duration) / 60;
   if (!Number.isFinite(distanceKm) || !Number.isFinite(minutes)) return null;
 
   return { distanceKm, minutes, modelsCongestion: true };

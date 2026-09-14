@@ -40,8 +40,6 @@ const NIGHT_FACTOR = 0.85;
 
 try {
   // When no Mapbox token is configured, Valhalla is primary.
-  // OSM distance is calibrated by OSM_ROAD_CALIBRATION_FACTOR (1.20) to match real highway corridor ground-truth.
-  // Valhalla's duration already models road class, turns and stops, so it is used unscaled.
   stubValhalla(4.2, 20 * 60);
   const first = await fetchRoadRoute(origin, destination, 1.35, 1.25, NIGHT);
   assert.equal(first.isFallback, false);
@@ -64,7 +62,7 @@ try {
 
   // Valhalla down, OSRM up: the chain falls through rather than dropping to the local
   // estimate, because OSRM's distance is still far better than haversine. Its duration IS
-  // free-flow, so it is the one that gets both factors.
+  // free-flow, so it scales with calibration and both traffic factors.
   const osrmDestination = { lat: 30.0700, lng: 31.2600 };
   stubOsrmOnly(4200, 20 * 60);
   const viaOsrm = await fetchRoadRoute(origin, osrmDestination, 1.35, 1.25, NIGHT);
@@ -73,7 +71,7 @@ try {
   assert.equal(
     viaOsrm.durationMinutes,
     Math.ceil(20 * OSM_ROAD_CALIBRATION_FACTOR * 1.25 * NIGHT_FACTOR),
-    '20 free-flow min x 1.20 calibration x 1.25 traffic x 0.85 overnight',
+    '20 free-flow min x 1.0 calibration x 1.25 traffic x 0.85 overnight',
   );
   assert.equal(fetchCalls, 2, 'primary gets ONE attempt, then OSRM answers first try');
 
@@ -139,7 +137,7 @@ try {
   assert.equal(recovered.distanceKm, Number((3 * OSM_ROAD_CALIBRATION_FACTOR).toFixed(2)));
 
   // Mapbox test when NEXT_PUBLIC_MAPBOX_TOKEN is provided:
-  // Mapbox driving-traffic provides live traffic durations, and distance is calibrated with road factor.
+  // Tests that Mapbox with alternatives=true picks the direct route (16.68 km) instead of the U-turn route (21.6 km).
   process.env.NEXT_PUBLIC_MAPBOX_TOKEN = 'pk.test_valid_token';
   resetRouteProviderHealth();
   fetchCalls = 0;
@@ -148,21 +146,24 @@ try {
     if (String(input).includes('api.mapbox.com')) {
       return jsonResponse({
         code: 'Ok',
-        routes: [{ distance: 8940, duration: 20 * 60 }],
+        routes: [
+          { distance: 21630, duration: 34 * 60 },
+          { distance: 16680, duration: 29 * 60 },
+        ],
       });
     }
     throw new Error('unexpected provider call');
   }) as typeof fetch;
 
-  const mapboxDestination = { lat: 29.97256, lng: 30.94389 };
+  const mapboxDestination = { lat: 29.97233, lng: 31.01714 };
   const viaMapbox = await fetchRoadRoute(origin, mapboxDestination, 1.35, 1.25, NIGHT);
   assert.equal(viaMapbox.isFallback, false);
   assert.equal(viaMapbox.source, 'mapbox');
-  assert.equal(viaMapbox.distanceKm, 10.73, 'Mapbox distance is calibrated with 1.20 factor to match 10.7 km');
-  assert.equal(viaMapbox.durationMinutes, 20, 'Mapbox duration is live real-time traffic');
+  assert.equal(viaMapbox.distanceKm, 16.68, 'Mapbox picks direct candidate route, avoiding highway U-turn detour');
+  assert.equal(viaMapbox.durationMinutes, 29, 'Mapbox duration is live real-time traffic');
   assert.equal(fetchCalls, 1);
 
-  // Mapbox failure falls through seamlessly to Valhalla with calibration
+  // Mapbox failure falls through seamlessly to Valhalla
   resetRouteProviderHealth();
   fetchCalls = 0;
   globalThis.fetch = (async (input: RequestInfo | URL) => {
@@ -179,7 +180,7 @@ try {
   const mapboxFallback = await fetchRoadRoute(origin, { lat: 29.97, lng: 30.94 }, 1.35, 1.25, NIGHT);
   assert.equal(mapboxFallback.isFallback, false);
   assert.equal(mapboxFallback.source, 'valhalla');
-  assert.equal(mapboxFallback.distanceKm, 10.73, 'Valhalla fallback is calibrated with 1.20 factor to match 10.7 km');
+  assert.equal(mapboxFallback.distanceKm, 8.94);
   assert.equal(mapboxFallback.durationMinutes, 27);
   assert.equal(fetchCalls, 2);
 
