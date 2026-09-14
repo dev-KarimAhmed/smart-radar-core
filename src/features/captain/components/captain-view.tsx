@@ -115,6 +115,7 @@ export function DriverViewTab() {
     isInDifferentCountry,
     driverOps?.activationNonce ?? 0,
   );
+  const [isManualPriceSetupOpen, setIsManualPriceSetupOpen] = React.useState(false);
   const { marketIndicator } = useCaptainMarketIndicator(user);
   const [state, dispatch] = React.useReducer(captainDashboardReducer, initialCaptainDashboardState);
   const [prefilledOfferPrice, setPrefilledOfferPrice] = React.useState<number | null>(null);
@@ -495,9 +496,8 @@ export function DriverViewTab() {
             currency={currency}
             driverLocation={driverOps.driverLocation}
             isSubmitting={driverOps.isSubmittingOffer}
-            initialOfferPrice={prefilledOfferPrice}
-            initialPricingMode={prefilledPricingMode}
-            captainPricingMode={currentTariff?.pricingMode ?? null}
+            currentTariff={currentTariff}
+            onEditTariff={() => setIsManualPriceSetupOpen(true)}
             onSubmit={submitBid}
             onIgnore={() => {
               if (state.selectedRequest) driverOps.rejectRequest(state.selectedRequest.id);
@@ -513,7 +513,7 @@ export function DriverViewTab() {
         {screen === 'PROFILE' ? <DriverProfileTab user={user} language={language} /> : null}
       </div>
 
-      {needsPriceSetup ? (
+      {needsPriceSetup || isManualPriceSetupOpen ? (
         <PricePerKmSetupModal
           // A fresh activation gets a fresh form: the modal seeds its inputs from
           // initialTariff on mount only, so without this a remount-less re-open would keep
@@ -527,8 +527,13 @@ export function DriverViewTab() {
           marketIndicator={marketIndicator}
           initialTariff={currentTariff}
           isCountryChange={currentTariff.pricePerKm !== null && isInDifferentCountry}
-          isActivationConfirm={isActivationConfirm}
-          onSave={saveTariff}
+          isActivationConfirm={needsPriceSetup ? isActivationConfirm : false}
+          onSave={async (val) => {
+            const res = await saveTariff(val);
+            if (res.saved) setIsManualPriceSetupOpen(false);
+            return res;
+          }}
+          onClose={() => setIsManualPriceSetupOpen(false)}
         />
       ) : null}
 
