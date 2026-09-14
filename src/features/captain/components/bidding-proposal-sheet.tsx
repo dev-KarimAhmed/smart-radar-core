@@ -430,6 +430,15 @@ export function BiddingProposalSheet({
   const isBlockedDeviation = isDumpingBlocked;
   const canSubmit = pricingMode !== null && Number.isFinite(finalOfferPrice) && finalOfferPrice > 0 && !isSubmitting && !isBlockedDeviation && isWaitSecondsValid;
 
+  const handleApplyFloorPrice = React.useCallback(() => {
+    if (floorPrice <= 0) return;
+    if (pricingMode === 'TAXI' || pricingMode === 'APP') {
+      setAppPrice(floorPrice.toFixed(2));
+    } else {
+      setIncreaseAmount(minIncreaseAmount);
+    }
+  }, [pricingMode, floorPrice, minIncreaseAmount]);
+
   // The captain raises their price as far as they want. There is NO cap: not the band, not
   // the rank, not a stepper bound. Every previous version of this line locked "+" at some
   // number and that is what made the control feel broken.
@@ -961,7 +970,7 @@ export function BiddingProposalSheet({
               ) : pricingMode === 'TAXI' ? (
                 <span>
                   {language === 'ar'
-                    ? `سعر الرحلة حسب عداد التاكسي (الأساسي): ${finalOfferPrice.toFixed(2)} ${currency}`
+                    ? `سعر الرحلة حسب عداد التاكسي: ${finalOfferPrice.toFixed(2)} ${currency}`
                     : `Taxi meter trip price: ${finalOfferPrice.toFixed(2)} ${currency}`}
                 </span>
               ) : normalizedIncreaseAmount === 0 ? (
@@ -996,6 +1005,19 @@ export function BiddingProposalSheet({
                 percent: marketDifferencePercent,
                 currency,
               })}
+            <div className="mt-3 overflow-hidden rounded-2xl border border-amber-500/40 bg-gradient-to-br from-amber-950/30 via-amber-950/15 to-black/40 p-3.5 text-xs font-bold text-amber-200 shadow-lg">
+              <div className="flex items-start gap-2.5">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+                <div className="min-w-0 flex-1 leading-relaxed">
+                  {t('dumpingAmberCalculationWarning', {
+                    offer: finalOfferPrice.toFixed(2),
+                    market: marketFare.toFixed(2),
+                    difference: marketDifference.toFixed(2),
+                    percent: marketDifferencePercent,
+                    currency,
+                  })}
+                </div>
+              </div>
             </div>
           ) : null}
 
@@ -1003,6 +1025,72 @@ export function BiddingProposalSheet({
             <div className={styles.style208_37}>
               <AlertTriangle className={styles.style209_38} />
               {t('dumpingCrimsonBlock')}
+            <div className="mt-4 overflow-hidden rounded-2xl border border-rose-500/40 bg-gradient-to-br from-rose-950/40 via-red-950/20 to-black/60 p-4 text-rose-200 shadow-xl shadow-rose-950/30">
+              <div className="flex items-start gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-rose-500/40 bg-rose-500/20 text-rose-300">
+                  <AlertTriangle className="h-5 w-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h4 className="text-sm font-black text-rose-300">
+                    {t('dumpingCrimsonBlockTitle')}
+                  </h4>
+                  <p className="mt-1 text-xs leading-relaxed text-rose-200/85">
+                    {t('dumpingCrimsonBlockDesc', {
+                      limit: Math.round(MARKET_FLOOR_FACTOR * 100),
+                    })}
+                  </p>
+                </div>
+              </div>
+
+              {marketFare > 0 ? (
+                <div className="mt-3.5 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {/* متوسط سعر السوق (المرجع) */}
+                  <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-2.5">
+                    <span className="block text-[11px] font-bold text-amber-300/90">
+                      {t('breakdownMarket')}
+                    </span>
+                    <strong className="mt-1 block font-mono text-sm font-black text-amber-300" dir="ltr">
+                      {marketFare.toFixed(2)} {currency}
+                    </strong>
+                  </div>
+
+                  {/* أقل سعر مسموح به */}
+                  <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-2.5">
+                    <span className="block text-[11px] font-bold text-rose-300/90">
+                      {t('breakdownFloor')}
+                    </span>
+                    <strong className="mt-1 block font-mono text-sm font-black text-rose-200" dir="ltr">
+                      {floorPrice.toFixed(2)} {currency}
+                    </strong>
+                  </div>
+
+                  {/* عرضك المدخل */}
+                  <div className="col-span-2 rounded-xl border border-white/10 bg-black/40 p-2.5 sm:col-span-1">
+                    <span className="block text-[11px] font-bold text-slate-400">
+                      {t('currentOfferFare')}
+                    </span>
+                    <strong className="mt-1 block font-mono text-sm font-black text-rose-400 line-through decoration-rose-500" dir="ltr">
+                      {finalOfferPrice.toFixed(2)} {currency}
+                    </strong>
+                  </div>
+                </div>
+              ) : null}
+
+              {floorPrice > 0 ? (
+                <button
+                  type="button"
+                  onClick={handleApplyFloorPrice}
+                  className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-rose-500/40 bg-rose-500/20 py-2.5 px-3 text-xs font-black text-rose-200 transition hover:bg-rose-500/30 active:scale-[0.99]"
+                >
+                  <Sparkles className="h-4 w-4 text-amber-300" />
+                  <span>
+                    {t('applyMinimumAllowedPrice', {
+                      price: floorPrice.toFixed(2),
+                      currency,
+                    })}
+                  </span>
+                </button>
+              ) : null}
             </div>
           ) : null}
 
