@@ -11,7 +11,6 @@ function jsonResponse(payload: unknown) {
   return { ok: true, json: async () => payload } as unknown as Response;
 }
 
-/** Valhalla is primary, so a Valhalla-shaped answer is what a healthy router looks like. */
 /** Valhalla is primary when Mapbox token is unset, so a Valhalla-shaped answer is what a healthy router looks like. */
 function stubValhalla(distanceKm: number, durationSeconds: number) {
   fetchCalls = 0;
