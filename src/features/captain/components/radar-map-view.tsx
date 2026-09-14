@@ -80,7 +80,7 @@ const styles = {
   riderChipIcon: "h-3.5 w-3.5 shrink-0",
   cardPendingOffer: "border-amber-400/35 shadow-[0_0_20px_rgba(251,191,36,0.12)] hover:border-amber-400/60",
   ownPendingRow: "mt-3 flex items-center gap-2",
-  ownPendingBadge: "flex-1 min-w-0 flex items-center justify-center gap-1.5 rounded-xl border border-amber-400/40 bg-gradient-to-r from-amber-500/15 via-amber-400/10 to-amber-500/15 h-11 px-2.5 text-xs font-black text-amber-200 shadow-[0_0_16px_rgba(251,191,36,0.12)] backdrop-blur-sm transition-all duration-200 overflow-hidden",
+  ownPendingBadge: "w-full flex-1 min-w-0 flex items-center justify-center gap-1.5 rounded-xl border border-amber-400/40 bg-gradient-to-r from-amber-500/15 via-amber-400/10 to-amber-500/15 h-11 px-2.5 text-xs font-black text-amber-200 shadow-[0_0_16px_rgba(251,191,36,0.12)] backdrop-blur-sm transition-all duration-200 overflow-hidden",
   ownPendingDetailsBtn: "inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-3 h-11 text-xs font-bold text-cyan-300 shadow-sm hover:border-cyan-400/60 hover:bg-cyan-500/20 active:scale-[0.98] transition-all whitespace-nowrap",
   ownPendingIcon: "h-3.5 w-3.5 shrink-0 text-amber-300 drop-shadow-[0_0_6px_rgba(251,191,36,0.7)] animate-pulse",
   ownPendingPulseWrap: "relative flex h-2 w-2 shrink-0",
@@ -647,16 +647,6 @@ export function RadarMapView({
                           <Clock className={styles.ownPendingIcon} />
                           <span className={styles.ownPendingText}>{copy.ownPendingOffer}</span>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => onSelectRequest(request, directPrices[request.id], isTaxiMode ? 'TAXI' : isAppMode ? 'APP' : 'FREE')}
-                          className={styles.ownPendingDetailsBtn}
-                          title={copy.moreDetails}
-                          dir={language === 'ar' ? 'rtl' : 'ltr'}
-                        >
-                          <MapPin className={styles.moreDetailsIcon} />
-                          <span>{copy.moreDetails}</span>
-                        </button>
                       </div>
                     ) : null}
                   </article>
