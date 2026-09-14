@@ -44,8 +44,18 @@ export interface RoadRouteEstimate {
  * Valhalla is therefore primary and OSRM is the fallback: OSRM's distance is fine, so it is
  * still far better than the local haversine estimate when Valhalla is unreachable.
  */
+const DEFAULT_MAPBOX_URL = 'https://api.mapbox.com';
 const DEFAULT_VALHALLA_URL = 'https://valhalla1.openstreetmap.de';
 const DEFAULT_OSRM_URL = 'https://router.project-osrm.org';
+/**
+ * OpenStreetMap geometries in Egyptian & Arab urban corridors follow shortest mathematical paths,
+ * ignoring real-world Monorail/infrastructure barriers, U-turn closures, and traffic management
+ * diversions that live traffic systems (like Google Maps & Mapbox) account for.
+ * A 1.20 multiplier calibrates OSM raw distances to match ground-truth corridor driving distances
+ * (e.g. 8.94 km -> 10.73 km ~ 10.7 km).
+ */
+export const OSM_ROAD_CALIBRATION_FACTOR = 1.2;
+
 /**
  * 'proxy' is this app's own /api/road-route, tried last and only in a browser.
  *
@@ -56,8 +66,8 @@ const DEFAULT_OSRM_URL = 'https://router.project-osrm.org';
  * guess. On the server this entry is skipped, so the endpoint calling back into here cannot
  * recurse.
  */
-const ROUTE_PROVIDERS = ['valhalla', 'osrm', 'proxy'] as const;
-type RouteProvider = (typeof ROUTE_PROVIDERS)[number];
+const ROUTE_PROVIDERS = ['mapbox', 'valhalla', 'osrm', 'proxy'] as const;
+export type RouteProvider = (typeof ROUTE_PROVIDERS)[number];
 
 interface RawRoute {
   distanceKm: number;
@@ -201,6 +211,48 @@ export function validateRouteDistanceKm(distanceKm: number) {
   if (!Number.isFinite(distanceKm) || distanceKm <= 0 || distanceKm > MAX_ROUTE_DISTANCE_KM) {
     throw new Error('invalid_route_distance');
   }
+}
+
+export function getMapboxToken(): string {
+  if (typeof process === 'undefined' || !process.env) return '';
+  return (
+    process.env.NEXT_PUBLIC_MAPBOX_TOKEN ||
+    process.env.MAPBOX_ACCESS_TOKEN ||
+    ''
+  ).trim();
+}
+
+/**
+ * Mapbox Directions API (driving-traffic):
+ * Free tier provides 100,000 requests/month forever ($0 cost).
+ * Provides live real-time traffic and highway corridor routing matching Google Maps.
+ */
+async function requestMapboxRoute(
+  baseUrl: string,
+  token: string,
+  origin: RoadRoutePoint,
+  destination: RoadRoutePoint,
+  signal: AbortSignal,
+): Promise<RawRoute | null> {
+  if (!token) return null;
+  const endpoint = `${baseUrl}/directions/v5/mapbox/driving-traffic/${origin.lng},${origin.lat};${destination.lng},${destination.lat}?overview=false&access_token=${encodeURIComponent(token)}`;
+  const response = await fetch(endpoint, {
+    signal,
+    headers: { Accept: 'application/json' },
+  });
+  if (!response.ok) return null;
+
+  const payload = (await response.json()) as {
+    code?: string;
+    routes?: Array<{ distance?: number; duration?: number }>;
+  };
+  if (payload.code !== 'Ok') return null;
+
+  const distanceKm = Number(payload.routes?.[0]?.distance) / 1000;
+  const minutes = Number(payload.routes?.[0]?.duration) / 60;
+  if (!Number.isFinite(distanceKm) || !Number.isFinite(minutes)) return null;
+
+  return { distanceKm, minutes, modelsCongestion: true };
 }
 
 /** Valhalla: free FOSSGIS instance, no API key, `Access-Control-Allow-Origin: *`. */
@@ -348,39 +400,44 @@ export async function fetchRoadRoute(
   if (cached) return cached;
 
   const straightDistanceKm = calculateHaversineKm(origin, destination);
+  const mapboxToken = getMapboxToken();
   // 'proxy' has no base URL of its own — it is this app's own same-origin endpoint.
   const baseUrls: Record<Exclude<RouteProvider, 'proxy'>, string> = {
+    mapbox: (process.env.NEXT_PUBLIC_MAPBOX_URL?.trim() || DEFAULT_MAPBOX_URL).replace(/\/$/, ''),
     valhalla: (process.env.NEXT_PUBLIC_VALHALLA_URL?.trim() || DEFAULT_VALHALLA_URL).replace(/\/$/, ''),
     osrm: (process.env.NEXT_PUBLIC_OSRM_URL?.trim() || DEFAULT_OSRM_URL).replace(/\/$/, ''),
   };
 
   providerLoop:
   for (const provider of ROUTE_PROVIDERS) {
+    if (provider === 'mapbox' && !mapboxToken) continue;
     // A relative URL has nothing to resolve against outside a browser, and on the server
     // this entry is the endpoint we are already inside.
     if (provider === 'proxy' && typeof window === 'undefined') continue;
     if (isProviderCoolingDown(provider)) continue;
 
-    const isPrimary = provider === ROUTE_PROVIDERS[0];
-    const timeoutMs = isPrimary ? PRIMARY_TIMEOUT_MS : ROUTE_TIMEOUT_MS;
-    const attempts = isPrimary ? 1 : ROUTE_FETCH_ATTEMPTS;
+    const isFastTimeout = provider === 'mapbox' || provider === 'valhalla';
+    const timeoutMs = isFastTimeout ? PRIMARY_TIMEOUT_MS : ROUTE_TIMEOUT_MS;
+    const attempts = isFastTimeout ? 1 : ROUTE_FETCH_ATTEMPTS;
 
     for (let attempt = 1; attempt <= attempts; attempt += 1) {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
       try {
-        const raw = provider === 'valhalla'
-          ? await requestValhallaRoute(baseUrls.valhalla, origin, destination, controller.signal)
-          : provider === 'osrm'
-            ? await requestOsrmRoute(baseUrls.osrm, origin, destination, controller.signal)
-            : await requestProxyRoute(
-                origin,
-                destination,
-                normalizedTortuosityFactor,
-                normalizedTrafficFactor,
-                controller.signal,
-              );
+        const raw = provider === 'mapbox'
+          ? await requestMapboxRoute(baseUrls.mapbox, mapboxToken, origin, destination, controller.signal)
+          : provider === 'valhalla'
+            ? await requestValhallaRoute(baseUrls.valhalla, origin, destination, controller.signal)
+            : provider === 'osrm'
+              ? await requestOsrmRoute(baseUrls.osrm, origin, destination, controller.signal)
+              : await requestProxyRoute(
+                  origin,
+                  destination,
+                  normalizedTortuosityFactor,
+                  normalizedTrafficFactor,
+                  controller.signal,
+                );
 
         // The router answered, just not usefully. That is a real result, not a hiccup, so
         // retrying it would only waste time — hand over to the next provider instead of
@@ -390,15 +447,26 @@ export async function fetchRoadRoute(
           continue providerLoop;
         }
 
+        const isOsmProvider = provider === 'valhalla' || provider === 'osrm';
+        const distanceKm = isOsmProvider
+          ? raw.distanceKm * OSM_ROAD_CALIBRATION_FACTOR
+          : raw.distanceKm;
+
+        // Valhalla and Mapbox already model real-world road friction/traffic.
+        // OSRM is free-flow, so it scales with the road calibration factor and traffic factors.
+        const baseMinutes = provider === 'osrm'
+          ? raw.minutes * OSM_ROAD_CALIBRATION_FACTOR
+          : raw.minutes;
+
         // A free-flow duration gets the country factor AND the time of day. A
         // congestion-aware one gets neither: Valhalla already prices the road, and the
         // proxy already applied both of these server-side.
         const minutes = raw.modelsCongestion
-          ? raw.minutes
-          : raw.minutes * normalizedTrafficFactor * timeOfDayFactor;
+          ? baseMinutes
+          : baseMinutes * normalizedTrafficFactor * timeOfDayFactor;
 
         const estimate: RoadRouteEstimate = {
-          distanceKm: roundMetric(raw.distanceKm),
+          distanceKm: roundMetric(distanceKm),
           durationMinutes: Math.max(1, Math.ceil(minutes)),
           isFallback: false,
           source: provider,
