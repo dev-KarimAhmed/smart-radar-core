@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import {
   AlertDialog,
   AlertDialogAction,
+  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
@@ -42,6 +43,34 @@ const styles = {
   shortDistancesToggleIconOpen: 'rotate-180',
   shortDistancesFields: 'space-y-4 border-t border-emerald-500/15 p-4',
   shortDistancesError: 'text-sm font-bold text-rose-400 text-start',
+  modeSelector: 'mt-3 mb-4 grid grid-cols-2 gap-2 rounded-2xl border border-slate-800 bg-black/50 p-1.5 shadow-inner',
+  modeButton: 'flex flex-col items-center justify-center rounded-xl py-2.5 px-3 text-center transition cursor-pointer',
+  modeButtonActive: 'bg-[#14B8A6] text-[#06111f] shadow-lg shadow-[#14B8A6]/20 font-black',
+  modeButtonInactive: 'text-slate-400 hover:bg-white/5 hover:text-white font-bold',
+  modeButtonTitle: 'text-xs font-black sm:text-sm',
+  modeButtonSubtitle: 'mt-0.5 text-[10px] leading-tight opacity-80',
+  appNoticeCard: 'my-4 rounded-2xl border border-blue-400/30 bg-blue-500/10 p-4 text-sm font-bold text-blue-200 shadow-xl',
+  appNoticeTitle: 'font-black text-base text-blue-300 mb-2 flex items-center gap-2',
+  appNoticeBody: 'leading-relaxed text-xs sm:text-sm text-slate-300',
+  goldRankNotice: 'mb-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs font-black text-amber-300 text-center leading-relaxed',
+  comparisonGrid: 'grid grid-cols-3 gap-2 sm:gap-3 mb-4',
+  comparisonCard: 'flex flex-col justify-between rounded-2xl border border-slate-800 bg-black/40 p-2 sm:p-3 text-center',
+  comparisonCardAccent: 'flex flex-col justify-between rounded-2xl border border-[#14B8A6]/40 bg-[#14B8A6]/5 p-2 sm:p-3 text-center',
+  comparisonCardHeader: 'text-[11px] sm:text-xs font-black text-slate-400 mb-2 pb-1.5 border-b border-white/5 whitespace-nowrap',
+  comparisonCardHeaderAccent: 'text-[11px] sm:text-xs font-black text-[#14F5D5] mb-2 pb-1.5 border-b border-[#14B8A6]/20 whitespace-nowrap',
+  comparisonCardRows: 'space-y-2 text-xs font-black text-white',
+  comparisonCardRow: 'flex justify-between items-center gap-1 text-xs',
+  comparisonCardLabel: 'text-[10px] sm:text-[11px] text-slate-400 whitespace-nowrap',
+  comparisonCardValue: 'font-mono text-xs sm:text-sm font-black text-white',
+  comparisonInputWrap: 'w-14 sm:w-16 shrink-0',
+  miniInput: 'w-full rounded-lg border border-slate-700 bg-black/80 px-1 py-1 text-center font-mono text-xs font-bold text-white outline-none transition focus:border-emerald-400',
+  silverWarningLine: 'mb-3 text-xs font-bold text-rose-400 bg-rose-500/10 p-2 rounded-lg border border-rose-500/20 text-start',
+  silverModalContent: 'border-rose-500/40 bg-[#0B0F19] text-white shadow-2xl max-w-md',
+  silverModalTitle: 'text-lg font-black text-rose-300 text-start',
+  silverModalDescription: 'text-xs leading-relaxed text-slate-300 text-start',
+  silverModalFooter: 'mt-4 flex flex-col sm:flex-row gap-2 sm:justify-end',
+  silverModalCancel: 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 text-xs font-bold',
+  silverModalConfirm: 'bg-rose-600 hover:bg-rose-500 text-white text-xs font-black',
 } as const;
 
 interface PricePerKmSetupModalProps {
@@ -109,6 +138,31 @@ export function PricePerKmSetupModal({
   const [error, setError] = React.useState('');
   const [shortDistancesError, setShortDistancesError] = React.useState('');
   const [isShortDistancesOpen, setIsShortDistancesOpen] = React.useState(false);
+  const [isSilverWarningModalOpen, setIsSilverWarningModalOpen] = React.useState(false);
+  const [isSilverConfirmed, setIsSilverConfirmed] = React.useState(false);
+
+  const executeFreeSave = async (
+    parsedBaseFare: number,
+    parsedPricePerKm: number,
+    parsedPricePerMin: number,
+    parsedIncludedKm: number,
+  ) => {
+    setIsSaving(true);
+    const result = await onSave({
+      baseFare: parsedBaseFare,
+      pricePerKm: parsedPricePerKm,
+      pricePerMin: parsedPricePerMin,
+      includedKm: parsedIncludedKm,
+      pricingMode: 'FREE',
+    });
+    setIsSaving(false);
+    if (!result.saved && result.reason === 'base_fare_below_market_minimum') {
+      setIsShortDistancesOpen(true);
+      setShortDistancesError(t('tariffModalBaseFareTooLow', { min: result.minBaseFare.toFixed(2) }));
+    } else if (!result.saved) {
+      setError(t('pricePerKmModalError'));
+    }
+  };
 
   const handleSave = async (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
@@ -168,6 +222,11 @@ export function PricePerKmSetupModal({
         setError(t('tariffSilverMaxError'));
         return;
       }
+
+      if (!isSilverConfirmed && (parsedPricePerKm < marketAverage.perKm * 0.85 || parsedPricePerMin < marketAverage.perMin * 0.85)) {
+        setIsSilverWarningModalOpen(true);
+        return;
+      }
     }
 
     setIsSaving(true);
@@ -185,6 +244,7 @@ export function PricePerKmSetupModal({
     } else if (!result.saved) {
       setError(t('pricePerKmModalError'));
     }
+    await executeFreeSave(parsedBaseFare, parsedPricePerKm, parsedPricePerMin, parsedIncludedKm);
   };
 
   return (
@@ -219,7 +279,7 @@ export function PricePerKmSetupModal({
 
         {/* Pricing Setup Mode Selector Tabs (Hidden for independent captains) */}
         {!isIndependent && (
-          <div className="mt-3 mb-4 grid grid-cols-2 gap-2 rounded-2xl border border-slate-800 bg-black/50 p-1.5 shadow-inner">
+          <div className={styles.modeSelector}>
             <button
               type="button"
               onClick={() => {
@@ -227,13 +287,16 @@ export function PricePerKmSetupModal({
                 setError('');
               }}
               className={cn(
-                'rounded-xl py-3 px-3 text-xs font-black transition sm:text-sm',
-                setupMode === 'FREE'
-                  ? 'bg-[#14B8A6] text-[#06111f] shadow-lg shadow-[#14B8A6]/20'
-                  : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                styles.modeButton,
+                setupMode === 'FREE' ? styles.modeButtonActive : styles.modeButtonInactive
               )}
             >
-              {isArabic ? 'أسعار حرة' : 'Free Pricing'}
+              <span className={styles.modeButtonTitle}>
+                {isArabic ? 'أسعار حرة' : 'Free Pricing'}
+              </span>
+              <span className={styles.modeButtonSubtitle}>
+                {t('tariffFreePriceSubtitle')}
+              </span>
             </button>
             <button
               type="button"
@@ -242,24 +305,27 @@ export function PricePerKmSetupModal({
                 setError('');
               }}
               className={cn(
-                'rounded-xl py-3 px-3 text-xs font-black transition sm:text-sm',
-                setupMode === 'APP'
-                  ? 'bg-[#14B8A6] text-[#06111f] shadow-lg shadow-[#14B8A6]/20'
-                  : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                styles.modeButton,
+                setupMode === 'APP' ? styles.modeButtonActive : styles.modeButtonInactive
               )}
             >
-              {isArabic ? 'أسعار التطبيق' : 'App Pricing'}
+              <span className={styles.modeButtonTitle}>
+                {isArabic ? 'أسعار التطبيق' : 'App Pricing'}
+              </span>
+              <span className={styles.modeButtonSubtitle}>
+                {t('tariffAppPriceSubtitle')}
+              </span>
             </button>
           </div>
         )}
 
         {setupMode === 'APP' && (
-          <div className="my-4 rounded-2xl border border-blue-400/30 bg-blue-500/10 p-4 text-sm font-bold text-blue-200 shadow-xl">
-            <p className="font-black text-base text-blue-300 mb-2 flex items-center gap-2">
+          <div className={styles.appNoticeCard}>
+            <p className={styles.appNoticeTitle}>
               <span>📱</span>
               <span>{isArabic ? 'الالتزام بتسعيرة الشركة المشغلة' : 'Official Operator Tariff Commitment'}</span>
             </p>
-            <p className="leading-relaxed text-xs sm:text-sm text-slate-300">
+            <p className={styles.appNoticeBody}>
               {isArabic
                 ? 'أنت تعمل الآن ضمن سعر الشركة المشغلة لك وترخيص المزاولة (تكسي أصفر، أوبر، كريم... إلخ). ويظهر للراكب أن هذا السائق يعمل من خلال الشركة المشغلة له.'
                 : 'You are operating under your licensed operator tariff (Yellow Taxi, Uber, Careem, etc.). Riders will see that you operate via your registered operator.'}
@@ -335,74 +401,95 @@ export function PricePerKmSetupModal({
             </div>
             ) : null}
           </div>
-          <div className="mb-4 rounded-xl border border-slate-800 bg-black/40 p-3">
-             <h4 className="text-sm font-bold text-slate-400 mb-2">{t('tariffCurrentPrice')}</h4>
-             <div className="flex justify-between items-center gap-4 text-sm font-black text-white px-2">
-               <span>{t('tariffPerKmShort')} : {initialTariff?.pricePerKm?.toFixed(2) || '0.00'} {currency}</span>
-               <span>{t('tariffPerMinShort')} : {initialTariff?.pricePerMin?.toFixed(2) || '0.00'} {currency}</span>
-             </div>
-          </div>
 
-          <div className="mb-4 rounded-xl border border-slate-800 bg-black/40 p-3">
-             <h4 className="text-sm font-bold text-slate-400 mb-2">{t('tariffMarketAverage')}</h4>
-             <div className="flex justify-between items-center gap-4 text-sm font-black text-white px-2">
-               <span>{t('tariffPerKmShort')} : {marketAverage?.perKm?.toFixed(2) || '0.00'} {currency}</span>
-               <span>{t('tariffPerMinShort')} : {marketAverage?.perMin?.toFixed(2) || '0.00'} {currency}</span>
-             </div>
-          </div>
+          {isGoldOrPlatinum ? (
+            <div className={styles.goldRankNotice}>
+              {t('tariffGoldBonusNotice')}
+            </div>
+          ) : null}
 
-          <div className="mb-4 space-y-3">
-             <h4 className="text-sm font-black text-emerald-400 mb-4">{t('tariffUpdatePrice')}</h4>
-             
-             {isGoldOrPlatinum ? (
-               <div className="mb-3 text-xs font-bold text-amber-400 bg-amber-500/10 p-2 rounded-lg border border-amber-500/20">
-                 {t('tariffGoldBonusNotice')}
-               </div>
-             ) : null}
+          {isSilver && marketAverage && (Number(pricePerKm) < marketAverage.perKm * 0.85 || Number(pricePerMin) < marketAverage.perMin * 0.85) ? (
+            <div className={styles.silverWarningLine}>
+              {t('tariffSilverReduceWarning')}
+            </div>
+          ) : null}
 
-             {isSilver && marketAverage && (Number(pricePerKm) < marketAverage.perKm * 0.85 || Number(pricePerMin) < marketAverage.perMin * 0.85) ? (
-               <div className="mb-3 text-xs font-bold text-rose-400 bg-rose-500/10 p-2 rounded-lg border border-rose-500/20">
-                 {t('tariffSilverReduceWarning')}
-               </div>
-             ) : null}
+          {/* 3 Horizontal Columns: Market Average, Current Price, Update Price */}
+          <div className={styles.comparisonGrid}>
+            {/* Column 1: Market Average */}
+            <div className={styles.comparisonCard}>
+              <h4 className={styles.comparisonCardHeader}>{t('tariffMarketAverage')}</h4>
+              <div className={styles.comparisonCardRows}>
+                <div className={styles.comparisonCardRow}>
+                  <span className={styles.comparisonCardLabel}>{t('tariffPerKmShort')}</span>
+                  <span className={styles.comparisonCardValue}>{marketAverage?.perKm?.toFixed(2) || '0.00'}</span>
+                </div>
+                <div className={styles.comparisonCardRow}>
+                  <span className={styles.comparisonCardLabel}>{t('tariffPerMinShort')}</span>
+                  <span className={styles.comparisonCardValue}>{marketAverage?.perMin?.toFixed(2) || '0.00'}</span>
+                </div>
+              </div>
+            </div>
 
-             <div className={styles.field}>
-               <div className={styles.inputRow}>
-                 <span className="flex w-20 shrink-0 items-center justify-center rounded-2xl border border-slate-800 bg-black/60 text-sm font-black text-slate-300">
-                   {t('tariffPerKmShort')}
-                 </span>
-                 <input
-                   type="number"
-                   inputMode="decimal"
-                   min="0"
-                   step="0.01"
-                   value={pricePerKm}
-                   onChange={(event) => setPricePerKm(event.target.value)}
-                   placeholder={t('pricePerKmModalPlaceholder')}
-                   disabled={isSaving}
-                   className={styles.input}
-                 />
-               </div>
-             </div>
+            {/* Column 2: Current Price */}
+            <div className={styles.comparisonCard}>
+              <h4 className={styles.comparisonCardHeader}>{t('tariffCurrentPrice')}</h4>
+              <div className={styles.comparisonCardRows}>
+                <div className={styles.comparisonCardRow}>
+                  <span className={styles.comparisonCardLabel}>{t('tariffPerKmShort')}</span>
+                  <span className={styles.comparisonCardValue}>{initialTariff?.pricePerKm?.toFixed(2) || '0.00'}</span>
+                </div>
+                <div className={styles.comparisonCardRow}>
+                  <span className={styles.comparisonCardLabel}>{t('tariffPerMinShort')}</span>
+                  <span className={styles.comparisonCardValue}>{initialTariff?.pricePerMin?.toFixed(2) || '0.00'}</span>
+                </div>
+              </div>
+            </div>
 
-             <div className={styles.field}>
-               <div className={styles.inputRow}>
-                 <span className="flex w-20 shrink-0 items-center justify-center rounded-2xl border border-slate-800 bg-black/60 text-sm font-black text-slate-300">
-                   {t('tariffPerMinShort')}
-                 </span>
-                 <input
-                   type="number"
-                   inputMode="decimal"
-                   min="0"
-                   step="0.01"
-                   value={pricePerMin}
-                   onChange={(event) => setPricePerMin(event.target.value)}
-                   placeholder="0.00"
-                   disabled={isSaving}
-                   className={styles.input}
-                 />
-               </div>
-             </div>
+            {/* Column 3: Update Price */}
+            <div className={styles.comparisonCardAccent}>
+              <h4 className={styles.comparisonCardHeaderAccent}>{t('tariffUpdatePrice')}</h4>
+              <div className={styles.comparisonCardRows}>
+                <div className={styles.comparisonCardRow}>
+                  <span className={styles.comparisonCardLabel}>{t('tariffPerKmShort')}</span>
+                  <div className={styles.comparisonInputWrap}>
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      min="0"
+                      step="0.01"
+                      value={pricePerKm}
+                      onChange={(event) => {
+                        setPricePerKm(event.target.value);
+                        setIsSilverConfirmed(false);
+                      }}
+                      placeholder={marketAverage?.perKm?.toFixed(2) || '0.00'}
+                      disabled={isSaving}
+                      className={styles.miniInput}
+                    />
+                  </div>
+                </div>
+                <div className={styles.comparisonCardRow}>
+                  <span className={styles.comparisonCardLabel}>{t('tariffPerMinShort')}</span>
+                  <div className={styles.comparisonInputWrap}>
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      min="0"
+                      step="0.01"
+                      value={pricePerMin}
+                      onChange={(event) => {
+                        setPricePerMin(event.target.value);
+                        setIsSilverConfirmed(false);
+                      }}
+                      placeholder="0.00"
+                      disabled={isSaving}
+                      className={styles.miniInput}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
          </div>
         )}
@@ -428,6 +515,45 @@ export function PricePerKmSetupModal({
                 : t('pricePerKmModalSave')}
           </AlertDialogAction>
         </AlertDialogFooter>
+
+        {/* Silver Rank Discount Confirmation Dialog */}
+        {isSilverWarningModalOpen && (
+          <AlertDialog open>
+            <AlertDialogContent className={styles.silverModalContent} dir={direction}>
+              <AlertDialogHeader>
+                <AlertDialogTitle className={styles.silverModalTitle}>
+                  {t('tariffSilverModalTitle')}
+                </AlertDialogTitle>
+                <AlertDialogDescription className={styles.silverModalDescription}>
+                  {t('tariffSilverModalBody')}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter className={styles.silverModalFooter}>
+                <AlertDialogCancel
+                  onClick={() => setIsSilverWarningModalOpen(false)}
+                  className={styles.silverModalCancel}
+                >
+                  {t('tariffSilverModalCancel')}
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={async () => {
+                    setIsSilverWarningModalOpen(false);
+                    setIsSilverConfirmed(true);
+                    await executeFreeSave(
+                      Number(baseFare),
+                      Number(pricePerKm),
+                      Number(pricePerMin),
+                      Number(includedKm),
+                    );
+                  }}
+                  className={styles.silverModalConfirm}
+                >
+                  {t('tariffSilverModalConfirm')}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
       </AlertDialogContent>
     </AlertDialog>
   );

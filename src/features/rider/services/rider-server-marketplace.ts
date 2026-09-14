@@ -512,11 +512,14 @@ function mapRideOfferRow(row: Record<string, unknown>): Offer | null {
     profile.company,
   ) || (affiliationType === 'independent' ? 'مستقل' : affiliationType);
   const captainPhone = firstString(row.driver_phone, row.captain_phone, row.phone, profile.phone, profile.phone_number);
+  const pricingMode = firstString(row.pricing_mode, row.pricingMode) as 'FREE' | 'APP' | 'TAXI' | undefined;
 
   const offer: Offer = {
     id: offerId,
     driverId,
     price,
+    pricing_mode: pricingMode,
+    pricingMode,
     driverName: firstString(row.driver_name, row.captain_name, profile.full_name, profile.name, row.driver_serial, row.captain_serial, profile.serial_id) || 'سائق',
     driverRating: firstNumber(row.driver_rating, row.captain_rating, row.rating, profile.trust_score, profile.rating, profile.trust_rating) ?? 5,
     driverRank: parseDriverRank(firstString(row.driver_rank, row.captain_rank, row.rank, profile.tier, profile.rank)),

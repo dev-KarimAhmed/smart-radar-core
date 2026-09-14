@@ -50,10 +50,31 @@ const styles = {
   breakdownLabel: "min-w-0 flex-1 text-[11px] font-medium leading-tight text-slate-400",
   breakdownValue: "shrink-0 font-mono text-xs font-bold text-slate-100",
   meterDetails: "mt-3 rounded-2xl border border-cyan-400/20 bg-cyan-400/[0.05] p-3",
+  meterDetailsHeader: "flex items-center justify-between gap-2",
   meterDetailsTitle: "text-sm font-black text-cyan-200",
-  meterDetailsHint: "mt-1 text-xs leading-5 text-slate-400",
+  meterBadgeCovered: "rounded-lg bg-emerald-500/20 px-2.5 py-0.5 text-xs font-bold text-emerald-300",
+  meterDetailsHint: "mt-1 text-xs leading-5 text-slate-300",
   meterFormula: "mt-3 rounded-xl border border-white/10 bg-black/25 p-3 text-xs font-bold leading-6 text-slate-200 text-center font-mono tracking-wide",
   meterDetailsRoute: "mt-2 text-[11px] leading-5 text-slate-400",
+  pricingModeContainer: "mt-4 space-y-2",
+  riderPrefBadge: "flex items-center gap-2 rounded-xl border border-[#14B8A6]/40 bg-[#14B8A6]/10 px-3 py-2 text-xs font-bold text-[#5eead4]",
+  riderPrefIcon: "h-4 w-4 shrink-0 text-[#14B8A6]",
+  noPrefBadge: "flex items-center gap-2 rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-3 py-2 text-xs font-bold text-cyan-300",
+  noPrefIcon: "h-4 w-4 shrink-0 text-cyan-400",
+  pricingButtonsGrid: "grid grid-cols-3 gap-2",
+  pricingBtnBase: "rounded-xl border border-white/10 p-2.5 text-xs font-bold transition sm:p-3 sm:text-sm",
+  pricingBtnActive: "bg-[#14B8A6] text-[#06111f] ring-2 ring-[#14B8A6]/50",
+  pricingBtnInactive: "bg-black/30 text-slate-300 hover:bg-white/10",
+  pricingBtnDisabled: "opacity-35 cursor-not-allowed grayscale border-white/5 bg-black/20 text-slate-500",
+  freeModeNotice: "mt-4 rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 p-3 text-sm font-bold text-[#5eead4]",
+  appModeContainer: "mt-4 rounded-xl border border-blue-400/30 bg-blue-500/10 p-4 text-sm font-bold text-blue-200",
+  appModeTitle: "mb-3",
+  appModeHint: "mb-2 text-xs font-normal text-blue-300",
+  appModeInput: "w-full rounded-xl border border-blue-400/30 bg-black/40 p-3 text-lg font-black text-white outline-none focus:border-blue-400",
+  taxiModeNotice: "mt-4 rounded-xl border border-amber-400/30 bg-amber-500/10 p-3 text-sm font-bold text-amber-200",
+  taxiModeContainer: "mt-4 rounded-xl border border-amber-400/30 bg-amber-500/10 p-4 text-sm font-bold text-amber-200",
+  taxiModeHint: "mt-2 mb-2 text-xs font-normal text-amber-300/80",
+  taxiModeInput: "w-full rounded-xl border border-amber-400/30 bg-black/40 p-3 text-lg font-black text-amber-100 outline-none focus:border-amber-400",
   style163_22: "mt-5 rounded-2xl border border-emerald-500/15 bg-emerald-950/10 p-4",
   style164_23: "text-sm font-black text-emerald-200",
   style165_24: "mt-3 flex items-center gap-3",
@@ -135,6 +156,9 @@ interface BiddingProposalSheetProps {
     marketAverage?: any;
   } | null;
   onEditTariff?: () => void;
+  initialOfferPrice?: number | null;
+  initialPricingMode?: 'FREE' | 'APP' | 'TAXI' | null;
+  captainPricingMode?: 'FREE' | 'APP' | null;
   onSubmit: (price: number, waitSeconds: number, pricingMode?: 'FREE' | 'APP' | 'TAXI') => void;
   onIgnore: () => void;
 }
@@ -152,6 +176,9 @@ export function BiddingProposalSheet({
   isSubmitting,
   currentTariff: currentTariffProp,
   onEditTariff,
+  initialOfferPrice = null,
+  initialPricingMode = null,
+  captainPricingMode = null,
   onSubmit,
   onIgnore,
 }: BiddingProposalSheetProps) {
@@ -179,15 +206,23 @@ export function BiddingProposalSheet({
     return (['APP', 'TAXI', 'FREE'].includes(pref) ? (pref as 'APP' | 'TAXI' | 'FREE') : null);
   }, [request.pricingPreference]);
 
+  const resolvedDefaultPricingMode = React.useMemo<'FREE' | 'APP' | 'TAXI'>(() => {
+    if (riderPreference) return riderPreference;
+    if (initialPricingMode) return initialPricingMode;
+    if (isOfficeTaxi) return 'TAXI';
+    if (captainPricingMode === 'APP' || isSmartApp) return 'APP';
+    if (captainPricingMode === 'FREE') return 'FREE';
+    if (isIndependent) return 'FREE';
+    return 'APP';
+  }, [riderPreference, initialPricingMode, isOfficeTaxi, captainPricingMode, isSmartApp, isIndependent]);
+
   const [pricingMode, setPricingMode] = React.useState<'FREE' | 'APP' | 'TAXI' | null>(
-    riderPreference ?? (isIndependent ? 'FREE' : null)
+    resolvedDefaultPricingMode
   );
 
   React.useEffect(() => {
-    if (riderPreference) {
-      setPricingMode(riderPreference);
-    }
-  }, [riderPreference]);
+    setPricingMode(resolvedDefaultPricingMode);
+  }, [resolvedDefaultPricingMode]);
 
   // The sheet opens on the captain's OWN meter reading — base_fare + km + minutes from the
   // tariff they set for themselves — not on the market reference. The market average only
@@ -216,6 +251,10 @@ export function BiddingProposalSheet({
       estimatedMinutes: quote.estimatedMinutes,
     }
     : null;
+  const isCoveredInBaseFare = Boolean(
+    meterDetails
+    && ((meterDetails.includedKm > 0 && meterDetails.billableKm <= 0) || captainMeterFare === meterDetails.baseFare)
+  );
   /**
    * Room to add WITHOUT tripping the warning, measured from the captain's own meter.
    *
@@ -227,7 +266,15 @@ export function BiddingProposalSheet({
   const minIncreaseAmount = roundMoney(Math.min(0, floorPrice - baseFare));
 
   const [increaseAmount, setIncreaseAmount] = React.useState<string | number>(0);
-  const [appPrice, setAppPrice] = React.useState<string>('');
+  const [appPrice, setAppPrice] = React.useState<string>(
+    initialOfferPrice && initialOfferPrice > 0 ? String(initialOfferPrice) : ''
+  );
+
+  React.useEffect(() => {
+    if (initialOfferPrice && initialOfferPrice > 0) {
+      setAppPrice(String(initialOfferPrice));
+    }
+  }, [initialOfferPrice]);
   const parsedIncrease = parseFloat(String(increaseAmount));
   const normalizedIncreaseAmount = Number.isFinite(parsedIncrease) ? parsedIncrease : 0;
 
@@ -238,7 +285,7 @@ export function BiddingProposalSheet({
   if (pricingMode === 'APP') {
     finalOfferPrice = normalizedAppPrice > 0 ? roundMoney(normalizedAppPrice) : 0;
   } else if (pricingMode === 'TAXI') {
-    finalOfferPrice = roundMoney(baseFare);
+    finalOfferPrice = normalizedAppPrice > 0 ? roundMoney(normalizedAppPrice) : roundMoney(baseFare);
   }
 
   const { currentTariff: hookTariff } = usePricePerKmSetup(user);
@@ -279,6 +326,13 @@ export function BiddingProposalSheet({
       setWaitSecondsInput(String(MIN_OFFER_WAIT_SECONDS));
     }
   }, [request.id, existingOffer?.id, existingOffer?.price, baseFare, pricingMode]);
+    if (existingOffer?.price && (pricingMode === 'APP' || pricingMode === 'TAXI')) {
+      setAppPrice(String(existingOffer.price));
+    } else if (initialOfferPrice && initialOfferPrice > 0) {
+      setAppPrice(String(initialOfferPrice));
+    }
+    setWaitSecondsInput(String(existingOffer?.wait_seconds || MIN_OFFER_WAIT_SECONDS));
+  }, [request.id, existingOffer?.id, baseFare, pricingMode]);
 
   React.useEffect(() => {
     if (pricingMode === 'TAXI' || (pricingMode === 'APP' && isOfficeTaxi)) {
@@ -609,9 +663,10 @@ export function BiddingProposalSheet({
         )}
 
         <div className="mt-4 space-y-2">
+        <div className={styles.pricingModeContainer}>
           {riderPreference ? (
-            <div className="flex items-center gap-2 rounded-xl border border-[#14B8A6]/40 bg-[#14B8A6]/10 px-3 py-2 text-xs font-bold text-[#5eead4]">
-              <Lock className="h-4 w-4 shrink-0 text-[#14B8A6]" />
+            <div className={styles.riderPrefBadge}>
+              <Lock className={styles.riderPrefIcon} />
               <span>
                 {language === 'ar'
                   ? `نمط المحاسبة محدد بواسطة الراكب: ${riderPreference === 'APP' ? 'تسعيرة التطبيق' :
@@ -625,6 +680,8 @@ export function BiddingProposalSheet({
           ) : (
             <div className="flex items-center gap-2 rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-3 py-2 text-xs font-bold text-[#5eead4]">
               <Sparkles className="h-4 w-4 shrink-0 text-[#14B8A6]" />
+            <div className={styles.noPrefBadge}>
+              <Sparkles className={styles.noPrefIcon} />
               <span>
                 {language === 'ar'
                   ? 'الراكب لم يحدد نمط محاسبة — اختر النمط الأنسب لك'
@@ -632,17 +689,17 @@ export function BiddingProposalSheet({
               </span>
             </div>
           )}
-          <div className="grid grid-cols-3 gap-2">
+          <div className={styles.pricingButtonsGrid}>
             <button
               type="button"
               disabled={!!riderPreference}
               onClick={() => setPricingMode('FREE')}
               className={cn(
-                'rounded-xl border border-white/10 p-2.5 text-xs font-bold transition sm:p-3 sm:text-sm',
+                styles.pricingBtnBase,
                 pricingMode === 'FREE'
-                  ? 'bg-[#14B8A6] text-[#06111f] ring-2 ring-[#14B8A6]/50'
-                  : 'bg-black/30 text-slate-300 hover:bg-white/10',
-                riderPreference && riderPreference !== 'FREE' && 'opacity-35 cursor-not-allowed grayscale border-white/5 bg-black/20 text-slate-500'
+                  ? styles.pricingBtnActive
+                  : styles.pricingBtnInactive,
+                riderPreference && riderPreference !== 'FREE' && styles.pricingBtnDisabled
               )}
             >
               {language === 'ar' ? 'سعر حر' : 'Free Price'}
@@ -652,11 +709,11 @@ export function BiddingProposalSheet({
               disabled={!!riderPreference}
               onClick={() => setPricingMode('APP')}
               className={cn(
-                'rounded-xl border border-white/10 p-2.5 text-xs font-bold transition sm:p-3 sm:text-sm',
+                styles.pricingBtnBase,
                 pricingMode === 'APP'
-                  ? 'bg-[#14B8A6] text-[#06111f] ring-2 ring-[#14B8A6]/50'
-                  : 'bg-black/30 text-slate-300 hover:bg-white/10',
-                riderPreference && riderPreference !== 'APP' && 'opacity-35 cursor-not-allowed grayscale border-white/5 bg-black/20 text-slate-500'
+                  ? styles.pricingBtnActive
+                  : styles.pricingBtnInactive,
+                riderPreference && riderPreference !== 'APP' && styles.pricingBtnDisabled
               )}
             >
               {language === 'ar' ? 'سعر تطبيق' : 'App Price'}
@@ -666,11 +723,11 @@ export function BiddingProposalSheet({
               disabled={!!riderPreference}
               onClick={() => setPricingMode('TAXI')}
               className={cn(
-                'rounded-xl border border-white/10 p-2.5 text-xs font-bold transition sm:p-3 sm:text-sm',
+                styles.pricingBtnBase,
                 pricingMode === 'TAXI'
-                  ? 'bg-[#14B8A6] text-[#06111f] ring-2 ring-[#14B8A6]/50'
-                  : 'bg-black/30 text-slate-300 hover:bg-white/10',
-                riderPreference && riderPreference !== 'TAXI' && 'opacity-35 cursor-not-allowed grayscale border-white/5 bg-black/20 text-slate-500'
+                  ? styles.pricingBtnActive
+                  : styles.pricingBtnInactive,
+                riderPreference && riderPreference !== 'TAXI' && styles.pricingBtnDisabled
               )}
             >
               {language === 'ar' ? 'سعر تكسي' : 'Taxi Price'}
@@ -679,7 +736,7 @@ export function BiddingProposalSheet({
         </div>
 
         {pricingMode === 'FREE' && (
-          <div className="mt-4 rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 p-3 text-sm font-bold text-[#5eead4]">
+          <div className={styles.freeModeNotice}>
             {t('companyPriceNotice')}
           </div>
         )}
@@ -697,6 +754,9 @@ export function BiddingProposalSheet({
                 </div>
               )}
             </div>
+          <div className={styles.appModeContainer}>
+            <p className={styles.appModeTitle}>{t('appModeInputNotice')}</p>
+            <p className={styles.appModeHint}>{t('appModeInputHint')}</p>
             <input
               type="number"
               inputMode="decimal"
@@ -704,6 +764,8 @@ export function BiddingProposalSheet({
               onChange={(e) => setAppPrice(e.target.value)}
               className="w-full rounded-xl border border-slate-800 bg-black/60 p-3 text-lg font-black text-white outline-none focus:border-[#14B8A6]"
               placeholder={marketFare > 0 ? marketFare.toFixed(2) : "0.00"}
+              className={styles.appModeInput}
+              placeholder="0.00"
               autoFocus
             />
           </div>
@@ -712,6 +774,26 @@ export function BiddingProposalSheet({
         {pricingMode === 'TAXI' && (
           <div className="mt-4 rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 p-3 text-sm font-bold text-slate-200">
             {t('taxiModeNotice')}
+          <div className={styles.taxiModeContainer}>
+            <div className={styles.taxiModeNotice}>
+              🚕 {t('taxiModeNotice')}
+            </div>
+            <p className={styles.taxiModeHint}>
+              {language === 'ar'
+                ? 'أدخل سعر العداد المعتمد للمشوار أو اعتمد السعر المحسوب:'
+                : 'Enter approved meter fare or keep calculated fare:'}
+            </p>
+            <input
+              type="number"
+              step="0.01"
+              min="0.1"
+              inputMode="decimal"
+              value={appPrice}
+              onChange={(e) => setAppPrice(e.target.value)}
+              className={styles.taxiModeInput}
+              placeholder={baseFare > 0 ? baseFare.toFixed(2) : '0.00'}
+              autoFocus
+            />
           </div>
         )}
 
@@ -803,6 +885,61 @@ export function BiddingProposalSheet({
                 </dd>
               </div>
             </dl>
+              <div className={styles.meterDetailsHeader}>
+                <p className={styles.meterDetailsTitle}>{t('meterCalculationTitle')}</p>
+                {isCoveredInBaseFare ? (
+                  <span className={styles.meterBadgeCovered}>
+                    {language === 'ar' ? 'مشمول بفتحة العداد' : 'Covered in Base Fare'}
+                  </span>
+                ) : null}
+              </div>
+              {isCoveredInBaseFare ? (
+                <p className={styles.meterDetailsHint}>
+                  {language === 'ar'
+                    ? `مسافة الرحلة مشمولة بالكامل ضمن فتحة العداد (${(meterDetails?.baseFare ?? baseFare).toFixed(2)} ${currency}) دون تكلفة مسافة إضافية.`
+                    : `Trip distance is fully covered by your base fare (${(meterDetails?.baseFare ?? baseFare).toFixed(2)} ${currency}).`}
+                </p>
+              ) : meterDetails ? (
+                <p className={styles.meterDetailsHint}>
+                  {language === 'ar'
+                    ? `محسوب حسب تعريفتك: مسافة ${meterDetails.roadKm.toFixed(1)} كم${meterDetails.includedKm > 0 ? ` (مشمول ${meterDetails.includedKm.toFixed(1)} كم)` : ''} • مدة ${Math.round(meterDetails.estimatedMinutes)} دقيقة`
+                    : `Calculated from your tariff: ${meterDetails.roadKm.toFixed(1)} km${meterDetails.includedKm > 0 ? ` (${meterDetails.includedKm.toFixed(1)} km included)` : ''} • ${Math.round(meterDetails.estimatedMinutes)} min`}
+                </p>
+              ) : (
+                <p className={styles.meterDetailsHint}>{t('meterCalculationSource')}</p>
+              )}
+            </div>
+
+        <dl className={styles.breakdownList}>
+          <div className={styles.breakdownRow}>
+            <dt className={styles.breakdownLabel}>{t('breakdownMeter')}</dt>
+            <dd dir="ltr" className={styles.breakdownValue}>{captainMeterFare.toFixed(2)} {currency}</dd>
+          </div>
+          <div className={styles.breakdownRow}>
+            <dt className={styles.breakdownLabel}>{t('breakdownMarket')}</dt>
+            <dd dir="ltr" className={styles.breakdownValue}>
+              {marketFare > 0 ? `${marketFare.toFixed(2)} ${currency}` : t('breakdownMarketUnknown')}
+            </dd>
+          </div>
+          <div className={styles.breakdownRow}>
+            <dt className={styles.breakdownLabel}>
+              {t('breakdownWarnLine', { percent: Math.round(premiumFactor * 100) })}
+            </dt>
+            <dd dir="ltr" className={styles.breakdownValue}>{ceilingPrice.toFixed(2)} {currency}</dd>
+          </div>
+          <div className={styles.breakdownRow}>
+            <dt className={styles.breakdownLabel}>{t('breakdownFloor')}</dt>
+            <dd dir="ltr" className={styles.breakdownValue}>{floorPrice.toFixed(2)} {currency}</dd>
+          </div>
+          {normalizedIncreaseAmount !== 0 && (
+            <div className={cn(styles.breakdownRow, styles.breakdownRowAccent)}>
+              <dt className={styles.breakdownLabel}>{t('breakdownYourIncrease')}</dt>
+              <dd dir="ltr" className={styles.breakdownValue}>
+                {normalizedIncreaseAmount >= 0 ? '+' : '−'}{Math.abs(normalizedIncreaseAmount).toFixed(2)} {currency}
+              </dd>
+            </div>
+          )}
+        </dl>
 
             {/* The meter can sit far outside the band when the market average is built from too
             few captains. Saying so is more use than a percentage in the thousands. */}
@@ -910,6 +1047,14 @@ export function BiddingProposalSheet({
               )}
             </p>
           </div>
+          <p className={styles.style192_34}>
+            {normalizedIncreaseAmount === 0
+              ? (language === 'ar' ? 'مطابق لسعر العداد المحسوب' : 'Matches calculated meter fare')
+              : (language === 'ar'
+                  ? `يشمل ${normalizedIncreaseAmount > 0 ? 'زيادة' : 'خصم'} ${Math.abs(normalizedIncreaseAmount).toFixed(2)} ${currency} على سعر العداد (${captainMeterFare.toFixed(2)} ${currency})`
+                  : `Includes ${normalizedIncreaseAmount > 0 ? '+' : '−'}${Math.abs(normalizedIncreaseAmount).toFixed(2)} ${currency} adjustment on meter (${captainMeterFare.toFixed(2)} ${currency})`)}
+          </p>
+        </div>
 
           {isTierAmber && !isAboveBand ? (
             <div className={styles.style201_35}>

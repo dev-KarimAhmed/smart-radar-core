@@ -180,6 +180,7 @@ export function buildCaptainOfferFromOffer(
         offerRecord.driverAffiliation?.name,
       ),
       affiliation_label: getOfferAffiliationLabel(offer, labels),
+      affiliation_type: firstDisplayString(offerRecord.driverAffiliation?.type, offer.captain?.affiliation_type, offerRecord.affiliation_type),
       is_verified: Boolean(
         offer.captain?.is_verified ||
         offer.captain?.verified ||
@@ -195,6 +196,7 @@ export function buildCaptainOfferFromOffer(
     },
     server_fare: Number(serverEstimatedFare || offer.price || 0),
     submitted_fare: Number(offer.price || 0),
+    pricing_mode: (offerRecord.pricing_mode || offerRecord.pricingMode || (offer as any).pricing_mode || (offer as any).pricingMode) as 'FREE' | 'APP' | 'TAXI' | undefined,
     eta_minutes: Number(etaDisplay) || 1,
     distance_km: Number(distanceDisplay) || 0,
     estimated_duration_minutes: rawDuration || undefined,

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { fetchRoadRoute, resetRouteProviderHealth } from './road-route';
+import { fetchRoadRoute, resetRouteProviderHealth, OSM_ROAD_CALIBRATION_FACTOR } from './road-route';
 
 const origin = { lat: 30.0444, lng: 31.2357 };
 const destination = { lat: 30.0626, lng: 31.2497 };
@@ -11,7 +11,7 @@ function jsonResponse(payload: unknown) {
   return { ok: true, json: async () => payload } as unknown as Response;
 }
 
-/** Valhalla is primary, so a Valhalla-shaped answer is what a healthy router looks like. */
+/** Valhalla is primary when Mapbox token is unset, so a Valhalla-shaped answer is what a healthy router looks like. */
 function stubValhalla(distanceKm: number, durationSeconds: number) {
   fetchCalls = 0;
   globalThis.fetch = (async () => {
@@ -39,12 +39,11 @@ const NIGHT = new Date('2026-09-08T02:00:00');
 const NIGHT_FACTOR = 0.85;
 
 try {
-  // Valhalla is primary. Its duration already models road class, turns and stops, so it is
-  // used exactly as reported — no country factor and no time-of-day factor on top.
+  // When no Mapbox token is configured, Valhalla is primary.
   stubValhalla(4.2, 20 * 60);
   const first = await fetchRoadRoute(origin, destination, 1.35, 1.25, NIGHT);
   assert.equal(first.isFallback, false);
-  assert.equal(first.distanceKm, 4.2);
+  assert.equal(first.distanceKm, Number((4.2 * OSM_ROAD_CALIBRATION_FACTOR).toFixed(2)));
   assert.equal(first.durationMinutes, 20, "Valhalla's duration is congestion-aware already");
   assert.equal(fetchCalls, 1);
 
@@ -63,16 +62,16 @@ try {
 
   // Valhalla down, OSRM up: the chain falls through rather than dropping to the local
   // estimate, because OSRM's distance is still far better than haversine. Its duration IS
-  // free-flow, so it is the one that gets both factors.
+  // free-flow, so it scales with calibration and both traffic factors.
   const osrmDestination = { lat: 30.0700, lng: 31.2600 };
   stubOsrmOnly(4200, 20 * 60);
   const viaOsrm = await fetchRoadRoute(origin, osrmDestination, 1.35, 1.25, NIGHT);
   assert.equal(viaOsrm.isFallback, false);
-  assert.equal(viaOsrm.distanceKm, 4.2);
+  assert.equal(viaOsrm.distanceKm, Number((4.2 * OSM_ROAD_CALIBRATION_FACTOR).toFixed(2)));
   assert.equal(
     viaOsrm.durationMinutes,
-    Math.ceil(20 * 1.25 * NIGHT_FACTOR),
-    '20 free-flow min x 1.25 traffic x 0.85 overnight',
+    Math.ceil(20 * OSM_ROAD_CALIBRATION_FACTOR * 1.25 * NIGHT_FACTOR),
+    '20 free-flow min x 1.0 calibration x 1.25 traffic x 0.85 overnight',
   );
   assert.equal(fetchCalls, 2, 'primary gets ONE attempt, then OSRM answers first try');
 
@@ -80,7 +79,11 @@ try {
   const clampDestination = { lat: 30.0800, lng: 31.2700 };
   stubOsrmOnly(4200, 20 * 60);
   const clamped = await fetchRoadRoute(origin, clampDestination, 1.35, 99, NIGHT);
-  assert.equal(clamped.durationMinutes, Math.ceil(20 * 3 * NIGHT_FACTOR), 'clamped to the 3x ceiling');
+  assert.equal(
+    clamped.durationMinutes,
+    Math.ceil(20 * OSM_ROAD_CALIBRATION_FACTOR * 3 * NIGHT_FACTOR),
+    'clamped to the 3x ceiling',
+  );
 
   // A route several times longer than the straight line means a bad answer or — far more
   // often — coordinates that do not point where the rider thinks. Reject it.
@@ -131,6 +134,84 @@ try {
 
   const recovered = await fetchRoadRoute(origin, recovers, 1.35, 1.25, NIGHT);
   assert.equal(recovered.isFallback, false, 'a retry that succeeds must be used, not the local estimate');
+  assert.equal(recovered.distanceKm, Number((3 * OSM_ROAD_CALIBRATION_FACTOR).toFixed(2)));
+
+  // Mapbox test when NEXT_PUBLIC_MAPBOX_TOKEN is provided:
+  // Tests that Mapbox with alternatives=true picks the direct route (16.68 km) instead of the U-turn route (21.6 km).
+  process.env.NEXT_PUBLIC_MAPBOX_TOKEN = 'pk.test_valid_token';
+  resetRouteProviderHealth();
+  fetchCalls = 0;
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    fetchCalls += 1;
+    if (String(input).includes('api.mapbox.com')) {
+      return jsonResponse({
+        code: 'Ok',
+        routes: [
+          { distance: 21630, duration: 34 * 60 },
+          { distance: 16680, duration: 29 * 60 },
+        ],
+      });
+    }
+    throw new Error('unexpected provider call');
+  }) as typeof fetch;
+
+  const mapboxDestination = { lat: 29.97233, lng: 31.01714 };
+  const viaMapbox = await fetchRoadRoute(origin, mapboxDestination, 1.35, 1.25, NIGHT);
+  assert.equal(viaMapbox.isFallback, false);
+  assert.equal(viaMapbox.source, 'mapbox');
+  assert.equal(viaMapbox.distanceKm, 16.68, 'Mapbox picks direct candidate route, avoiding highway U-turn detour');
+  assert.equal(viaMapbox.durationMinutes, 29, 'Mapbox duration is live real-time traffic');
+  assert.equal(fetchCalls, 1);
+
+  // Tests that between comparable duration alternatives, the arterial highway corridor
+  // (e.g. 15.96 km @ 43 km/h via Wahat Road) is preferred over residential bumpy alleys (13.94 km @ 39 km/h)
+  resetRouteProviderHealth();
+  fetchCalls = 0;
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    fetchCalls += 1;
+    if (String(input).includes('api.mapbox.com')) {
+      return jsonResponse({
+        code: 'Ok',
+        routes: [
+          { distance: 13940, duration: 21 * 60 },
+          { distance: 15960, duration: 22 * 60 },
+        ],
+      });
+    }
+    throw new Error('unexpected provider call');
+  }) as typeof fetch;
+
+  const newOctoberDestination = { lat: 29.88292, lng: 30.84338 };
+  const viaHighway = await fetchRoadRoute(origin, newOctoberDestination, 1.35, 1.25, NIGHT);
+  assert.equal(viaHighway.isFallback, false);
+  assert.equal(viaHighway.source, 'mapbox');
+  assert.equal(viaHighway.distanceKm, 15.96, 'Prefers arterial highway corridor over slow residential alley shortcut');
+  assert.equal(viaHighway.durationMinutes, 22);
+  assert.equal(fetchCalls, 1);
+
+  // Mapbox failure falls through seamlessly to Valhalla
+  resetRouteProviderHealth();
+  fetchCalls = 0;
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    fetchCalls += 1;
+    if (String(input).includes('api.mapbox.com')) {
+      return { ok: false, status: 401 } as unknown as Response;
+    }
+    if (String(input).includes('valhalla')) {
+      return jsonResponse({ trip: { status: 0, summary: { length: 8.94, time: 27 * 60 } } });
+    }
+    throw new Error('unexpected provider call');
+  }) as typeof fetch;
+
+  const mapboxFallback = await fetchRoadRoute(origin, { lat: 29.97, lng: 30.94 }, 1.35, 1.25, NIGHT);
+  assert.equal(mapboxFallback.isFallback, false);
+  assert.equal(mapboxFallback.source, 'valhalla');
+  assert.equal(mapboxFallback.distanceKm, 8.94);
+  assert.equal(mapboxFallback.durationMinutes, 27);
+  assert.equal(fetchCalls, 2);
+
+  delete process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+  resetRouteProviderHealth();
 } finally {
   globalThis.fetch = originalFetch;
 }

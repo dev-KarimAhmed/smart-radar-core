@@ -441,6 +441,10 @@
     "destination": {
       "closeDestination": "Close destination selection",
       "eyebrow": "Choose destination",
+      "categoryAll": "All Categories",
+      "categorySmartApp": "Smart App",
+      "categoryTaxi": "General Taxi",
+      "categorySubtitle": "Choose transit mode: Free Price * App Price * Taxi Meter",
       "subtitle": "Choose an area, then move the map to set the exact destination. No Google Places or Geocoding.",
       "governorate": "Governorate",
       "district": "District",
@@ -890,7 +894,13 @@
     "tariffPerMinShort": "/ min",
     "tariffGoldBonusNotice": "The passenger appreciates your gold rank which qualifies you to increase your price 20% above market average.",
     "tariffSilverReduceWarning": "You may lose your chances if the reduction exceeds 15%, this affects your rating ranks and will be deducted from your evaluation schedule.",
-    "tariffSilverMaxError": "Your rank (Silver) cannot exceed the market average."
+    "tariffSilverMaxError": "Your rank (Silver) cannot exceed the market average.",
+    "tariffFreePriceSubtitle": "Free without commitment to app or taxi",
+    "tariffAppPriceSubtitle": "Trip according to taxi or smart app price",
+    "tariffSilverModalTitle": "Price Reduction Warning (Silver Rank)",
+    "tariffSilverModalBody": "You may lose request opportunities if discount exceeds 15%. This discount affects evaluation ranks, and points will be deducted from your evaluation table in the system. Do you wish to proceed?",
+    "tariffSilverModalConfirm": "Yes, proceed with this price",
+    "tariffSilverModalCancel": "Go back and adjust"
   },
   "captainPickup": {
     "tripsValue": "{count, plural, one {# trip} other {# trips}}",
@@ -960,6 +970,7 @@
     "breakdownYourIncrease": "Your increase",
     "breakdownMarketUnknown": "Not available",
     "companyPriceNotice": "You are now operating under your operating company’s price...",
+    "companyPriceNotice": "You are now operating under Free Price mode based on your saved tariff",
     "appModeSmartAppNotice": "You can put your price here before sending",
     "appModeOfficeTaxiNotice": "Commit to the meter price",
     "appModeDefaultNotice": "You can adjust the price",
