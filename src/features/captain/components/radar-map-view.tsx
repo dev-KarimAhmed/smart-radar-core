@@ -97,7 +97,11 @@ const styles = {
   seizeMarketBanner: "mb-3 flex items-center justify-between gap-2 rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-3.5 py-2 text-xs font-black text-[#5eead4] shadow-sm",
   seizeMarketBadge: "flex h-5 items-center justify-center rounded-md border border-[#14B8A6]/40 bg-black/40 px-2 text-[10px] font-mono font-black text-[#14F5D5]",
   requestIndexBadge: "inline-flex items-center justify-center rounded-lg border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-2 py-0.5 text-[10px] font-mono font-black text-[#14F5D5] shadow-sm",
-  cardTopRow: "flex items-center justify-between gap-2 mb-1.5",
+  cardTopRow: "flex items-center justify-between gap-2 mb-2",
+  riderPrefBadgeApp: "inline-flex items-center gap-1 rounded-lg border border-amber-400/40 bg-gradient-to-r from-amber-500/20 to-amber-400/10 px-2 py-0.5 text-[10px] sm:text-[11px] font-black text-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.15)] shrink-0",
+  riderPrefBadgeTaxi: "inline-flex items-center gap-1 rounded-lg border border-yellow-400/40 bg-gradient-to-r from-yellow-500/20 to-amber-500/15 px-2 py-0.5 text-[10px] sm:text-[11px] font-black text-yellow-200 shadow-[0_0_10px_rgba(234,179,8,0.15)] shrink-0",
+  riderPrefBadgeFree: "inline-flex items-center gap-1 rounded-lg border border-emerald-400/40 bg-emerald-500/15 px-2 py-0.5 text-[10px] sm:text-[11px] font-black text-emerald-300 shadow-[0_0_10px_rgba(16,185,129,0.15)] shrink-0",
+  riderPrefBadgeAll: "inline-flex items-center gap-1 rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-2 py-0.5 text-[10px] sm:text-[11px] font-black text-cyan-300 shadow-sm shrink-0",
   appPriceCard: "mt-3 rounded-2xl border border-amber-500/30 bg-gradient-to-b from-amber-500/[0.08] via-black/50 to-black/70 p-3 shadow-[0_4px_20px_rgba(0,0,0,0.4)] backdrop-blur-sm space-y-2.5",
   appPriceCardHeader: "flex items-center gap-2",
   appPriceCardBadge: "inline-flex items-center gap-1 rounded-lg border border-amber-400/30 bg-amber-500/15 px-2 py-0.5 text-[11px] font-black text-amber-300 shadow-sm shrink-0",
@@ -190,10 +194,12 @@ export function RadarMapView({
   }, []);
 
   const handleOpenBid = React.useCallback(async (request: Trip) => {
-    const isApp = captainPricingMode === 'APP' || request.pricingPreference === 'APP';
-    const cardPricingMode: 'FREE' | 'APP' | 'TAXI' = isOfficeTaxi ? 'TAXI' : isApp ? 'APP' : 'FREE';
+    const isTaxi = isOfficeTaxi || request.pricingPreference === 'TAXI';
+    const isApp = !isTaxi && (captainPricingMode === 'APP' || request.pricingPreference === 'APP');
+    const cardPricingMode: 'FREE' | 'APP' | 'TAXI' = isTaxi ? 'TAXI' : isApp ? 'APP' : 'FREE';
 
-    if (isApp && !isOfficeTaxi) {
+    // In Smart App mode: if a valid price is typed directly on the card, submit it
+    if (isApp) {
       const priceStr = directPrices[request.id]?.trim();
       const priceNum = priceStr ? parseFloat(priceStr) : NaN;
       if (!priceStr || isNaN(priceNum) || priceNum <= 0) {
@@ -212,7 +218,7 @@ export function RadarMapView({
       }
     }
 
-    if (isOfficeTaxi) {
+    if (isTaxi) {
       if (onSubmitDirectBid) {
         setSubmittingRequestId(request.id);
         try {
@@ -224,6 +230,8 @@ export function RadarMapView({
       }
     }
 
+    // In non-App modes (Taxi, Free, etc.) or if no direct price was entered,
+    // take the captain to the details page so they can review and set/confirm their price:
     onSelectRequest(request, directPrices[request.id], cardPricingMode);
   }, [captainPricingMode, directPrices, isOfficeTaxi, onSelectRequest, onSubmitDirectBid]);
 
@@ -389,7 +397,8 @@ export function RadarMapView({
               {requests.map((request, index) => {
                 const isOwnPendingOffer = pendingOfferRequestId === request.id;
                 const isBlockedByOtherPendingOffer = Boolean(pendingOfferRequestId) && !isOwnPendingOffer;
-                const isAppMode = captainPricingMode === 'APP' || request.pricingPreference === 'APP';
+                const isTaxiMode = isOfficeTaxi || request.pricingPreference === 'TAXI';
+                const isAppMode = !isTaxiMode && (captainPricingMode === 'APP' || request.pricingPreference === 'APP');
                 const isSubmittingThisRequest = submittingRequestId === request.id;
                 const isExpanded = Boolean(expandedRequestIds[request.id]);
 
@@ -416,6 +425,15 @@ export function RadarMapView({
                     >
                       <div className={styles.cardTopRow} dir={language === 'ar' ? 'rtl' : 'ltr'}>
                         <span className={styles.requestIndexBadge}>{index + 1}/9</span>
+                        {request.pricingPreference === 'APP' ? (
+                          <span className={styles.riderPrefBadgeApp}>📱 {copy.riderPrefApp}</span>
+                        ) : request.pricingPreference === 'TAXI' ? (
+                          <span className={styles.riderPrefBadgeTaxi}>🚕 {copy.riderPrefTaxi}</span>
+                        ) : request.pricingPreference === 'FREE' ? (
+                          <span className={styles.riderPrefBadgeFree}>🟢 {copy.riderPrefFree}</span>
+                        ) : (
+                          <span className={styles.riderPrefBadgeAll}>🌐 {copy.riderPrefAll}</span>
+                        )}
                       </div>
 
                       <div className={styles.style220_33}>
@@ -509,7 +527,7 @@ export function RadarMapView({
                           />
                         </div>
 
-                        {isAppMode && !isOfficeTaxi && !isOwnPendingOffer ? (
+                        {isAppMode && !isOwnPendingOffer ? (
                           <div className={styles.appPriceCard} onClick={(e) => e.stopPropagation()}>
                             <div className={styles.appPriceCardHeader} dir={language === 'ar' ? 'rtl' : 'ltr'}>
                               <span className={styles.appPriceCardBadge}>
@@ -570,7 +588,7 @@ export function RadarMapView({
                           </div>
                         ) : null}
 
-                        {isOfficeTaxi && !isOwnPendingOffer ? (
+                        {isTaxiMode && !isOwnPendingOffer ? (
                           <div className={styles.taxiNoticeBanner} dir={language === 'ar' ? 'rtl' : 'ltr'}>
                             <span className={styles.taxiNoticeIcon}>🚕</span>
                             <span>{copy.taxiModeNotice}</span>
@@ -607,6 +625,7 @@ export function RadarMapView({
                             <button
                               type="button"
                               onClick={() => onSelectRequest(request, directPrices[request.id], isOfficeTaxi ? 'TAXI' : isAppMode ? 'APP' : 'FREE')}
+                              onClick={() => onSelectRequest(request, directPrices[request.id], isTaxiMode ? 'TAXI' : isAppMode ? 'APP' : 'FREE')}
                               className={styles.moreDetailsButton}
                               title={copy.moreDetails}
                               dir={language === 'ar' ? 'rtl' : 'ltr'}
@@ -644,6 +663,7 @@ export function RadarMapView({
                         <button
                           type="button"
                           onClick={() => onSelectRequest(request, directPrices[request.id], isOfficeTaxi ? 'TAXI' : isAppMode ? 'APP' : 'FREE')}
+                          onClick={() => onSelectRequest(request, directPrices[request.id], isTaxiMode ? 'TAXI' : isAppMode ? 'APP' : 'FREE')}
                           className={styles.ownPendingDetailsBtn}
                           title={copy.moreDetails}
                           dir={language === 'ar' ? 'rtl' : 'ltr'}
@@ -811,6 +831,10 @@ const radarCopy = {
     pastePrice: 'لصق السعر من الحافظة',
     paste: 'لصق السعر',
     taxiModeNotice: 'التزم بسعر العداد المعتمد',
+    riderPrefApp: 'الراكب يطلب: تطبيق ذكي',
+    riderPrefTaxi: 'الراكب يطلب: تكسي عام',
+    riderPrefFree: 'الراكب يطلب: سعر حر',
+    riderPrefAll: 'متاح لجميع الفئات',
   },
   en: {
     title: 'Captain radar',
@@ -854,5 +878,9 @@ const radarCopy = {
     pastePrice: 'Paste from clipboard',
     paste: 'Paste Fare',
     taxiModeNotice: 'Stick to the approved meter fare',
+    riderPrefApp: 'Rider wants: Smart App',
+    riderPrefTaxi: 'Rider wants: Taxi Meter',
+    riderPrefFree: 'Rider wants: Free Price',
+    riderPrefAll: 'Open to All Categories',
   },
 } as const;

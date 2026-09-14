@@ -36,6 +36,11 @@ const styles = {
   style148_6: "min-w-0",
   style149_7: "flex flex-wrap items-center gap-x-2 gap-y-1",
   style150_8: "min-w-0 max-w-full truncate text-lg font-extrabold text-[#F8FAFC] sm:text-xl",
+  modeBadgeApp: "inline-flex items-center gap-1 rounded-full border border-amber-400/40 bg-gradient-to-r from-amber-500/20 to-amber-400/10 px-2 py-0.5 text-[10px] font-black text-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.15)]",
+  modeBadgeTaxi: "inline-flex items-center gap-1 rounded-full border border-yellow-400/40 bg-gradient-to-r from-yellow-500/20 to-amber-500/15 px-2 py-0.5 text-[10px] font-black text-yellow-200 shadow-[0_0_10px_rgba(234,179,8,0.15)]",
+  modeBadgeFree: "inline-flex items-center gap-1 rounded-full border border-emerald-400/40 bg-emerald-500/15 px-2 py-0.5 text-[10px] font-black text-emerald-300 shadow-[0_0_10px_rgba(16,185,129,0.15)]",
+  companyBadge: "inline-flex items-center gap-1 rounded-full border border-blue-500/30 bg-blue-500/10 px-2 py-0.5 text-[10px] font-bold text-blue-300",
+  companyIcon: "h-3 w-3 text-blue-400",
   // --- Collapsed face -------------------------------------------------------
   // The rider compares offers on price, arrival and duration. All three used to live behind
   // the expand chevron, so the closed card showed a name, a rank and a raw seconds counter
@@ -155,6 +160,7 @@ export interface CaptainProfile {
   completed_trips?: number;
   company_name?: string | null;
   affiliation_label?: string;
+  affiliation_type?: string;
   is_verified?: boolean;
   phone?: string;
   contact_url?: string;
@@ -195,6 +201,7 @@ export interface CaptainOffer {
   captain: CaptainProfile;
   server_fare: number;
   submitted_fare?: number;
+  pricing_mode?: 'FREE' | 'APP' | 'TAXI';
   eta_minutes: number;
   distance_km: number;
   estimated_duration_minutes?: number;
@@ -307,6 +314,10 @@ export function CaptainOfferCard({
   const companyLabel = captain.company_name?.trim()
     || captain.affiliation_label?.trim()
     || (isArabic ? 'كابتن مستقل' : 'Independent Captain');
+  const pricingMode = offer.pricing_mode || (offer as any).pricingMode;
+  const affiliationType = (captain.affiliation_type || (captain as any).employment_type || '').toLowerCase();
+  const isTaxiOffer = pricingMode === 'TAXI' || affiliationType === 'office-taxi' || affiliationType.includes('taxi');
+  const isAppOffer = pricingMode === 'APP' || affiliationType === 'smart-app' || affiliationType.includes('app');
   const completedTrips = Math.max(0, Number(captain.completed_trips) || 0);
   const durationLabel = formatMinutes(
     preferRoutedMinutes(offer.estimated_duration_minutes, offer.trip_distance_km || offer.distance_km),
@@ -402,8 +413,21 @@ export function CaptainOfferCard({
                   {isArabic ? 'كابتن مفضل' : 'Preferred Captain'}
                 </span>
               ) : null}
-              <span className="inline-flex items-center gap-1 rounded-full border border-blue-500/30 bg-blue-500/10 px-2 py-0.5 text-[10px] font-bold text-blue-300">
-                <Building2 className="h-3 w-3 text-blue-400" />
+              {isTaxiOffer ? (
+                <span className={styles.modeBadgeTaxi}>
+                  🚕 {isArabic ? 'عداد تكسي' : 'Taxi Meter'}
+                </span>
+              ) : isAppOffer ? (
+                <span className={styles.modeBadgeApp}>
+                  📱 {isArabic ? 'تسعيرة تطبيق' : 'App Fare'}
+                </span>
+              ) : (
+                <span className={styles.modeBadgeFree}>
+                  🟢 {isArabic ? 'سعر حر' : 'Free Price'}
+                </span>
+              )}
+              <span className={styles.companyBadge}>
+                <Building2 className={styles.companyIcon} />
                 {companyLabel}
               </span>
             </div>

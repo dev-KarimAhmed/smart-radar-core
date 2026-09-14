@@ -69,6 +69,13 @@ export function prioritizeRiderOffers<T extends Record<string, any>>(
       const bRankWeight = rankWeight[toCaptainOfferRank(b?.captain?.rank || b?.captain?.tier || b?.driverRank || b?.tier)] ?? rankWeight.BRONZE;
       if (aRankWeight !== bRankWeight) return bRankWeight - aRankWeight;
 
+      // 3b. Captain Trust / Rating Score: higher rating ranks before lower rating
+      const aRating = Number(a?.captain?.trust_rating ?? a?.captain?.rating ?? a?.driverRating ?? a?.rating ?? 0);
+      const bRating = Number(b?.captain?.trust_rating ?? b?.captain?.rating ?? b?.driverRating ?? b?.rating ?? 0);
+      if (Number.isFinite(aRating) && Number.isFinite(bRating) && aRating !== bRating) {
+        return bRating - aRating;
+      }
+
       // 4. Lowest fare
       return getComparableOfferFare(a) - getComparableOfferFare(b);
     }) as T[];

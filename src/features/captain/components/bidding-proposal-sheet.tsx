@@ -71,6 +71,9 @@ const styles = {
   appModeHint: "mb-2 text-xs font-normal text-blue-300",
   appModeInput: "w-full rounded-xl border border-blue-400/30 bg-black/40 p-3 text-lg font-black text-white outline-none focus:border-blue-400",
   taxiModeNotice: "mt-4 rounded-xl border border-amber-400/30 bg-amber-500/10 p-3 text-sm font-bold text-amber-200",
+  taxiModeContainer: "mt-4 rounded-xl border border-amber-400/30 bg-amber-500/10 p-4 text-sm font-bold text-amber-200",
+  taxiModeHint: "mt-2 mb-2 text-xs font-normal text-amber-300/80",
+  taxiModeInput: "w-full rounded-xl border border-amber-400/30 bg-black/40 p-3 text-lg font-black text-amber-100 outline-none focus:border-amber-400",
   style163_22: "mt-5 rounded-2xl border border-emerald-500/15 bg-emerald-950/10 p-4",
   style164_23: "text-sm font-black text-emerald-200",
   style165_24: "mt-3 flex items-center gap-3",
@@ -271,6 +274,7 @@ export function BiddingProposalSheet({
     finalOfferPrice = normalizedAppPrice > 0 ? roundMoney(normalizedAppPrice) : 0;
   } else if (pricingMode === 'TAXI') {
     finalOfferPrice = roundMoney(baseFare);
+    finalOfferPrice = normalizedAppPrice > 0 ? roundMoney(normalizedAppPrice) : roundMoney(baseFare);
   }
 
   React.useEffect(() => {
@@ -281,6 +285,7 @@ export function BiddingProposalSheet({
       setIncreaseAmount(0);
     }
     if (existingOffer?.price && pricingMode === 'APP') {
+    if (existingOffer?.price && (pricingMode === 'APP' || pricingMode === 'TAXI')) {
       setAppPrice(String(existingOffer.price));
     } else if (initialOfferPrice && initialOfferPrice > 0) {
       setAppPrice(String(initialOfferPrice));
@@ -610,6 +615,26 @@ export function BiddingProposalSheet({
         {pricingMode === 'TAXI' && (
           <div className={styles.taxiModeNotice}>
             {t('taxiModeNotice')}
+          <div className={styles.taxiModeContainer}>
+            <div className={styles.taxiModeNotice}>
+              🚕 {t('taxiModeNotice')}
+            </div>
+            <p className={styles.taxiModeHint}>
+              {language === 'ar'
+                ? 'أدخل سعر العداد المعتمد للمشوار أو اعتمد السعر المحسوب:'
+                : 'Enter approved meter fare or keep calculated fare:'}
+            </p>
+            <input
+              type="number"
+              step="0.01"
+              min="0.1"
+              inputMode="decimal"
+              value={appPrice}
+              onChange={(e) => setAppPrice(e.target.value)}
+              className={styles.taxiModeInput}
+              placeholder={baseFare > 0 ? baseFare.toFixed(2) : '0.00'}
+              autoFocus
+            />
           </div>
         )}
 
