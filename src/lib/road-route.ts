@@ -447,8 +447,11 @@ export async function fetchRoadRoute(
           continue providerLoop;
         }
 
-        const isOsmProvider = provider === 'valhalla' || provider === 'osrm';
-        const distanceKm = isOsmProvider
+        // Both Mapbox and OSM routers compute theoretical shortest geometries on OpenStreetMap data.
+        // In reality, corridor detours, closed U-turns, and infrastructure construction require a 1.20x calibration.
+        // Proxy already applied calibration on the server.
+        const shouldCalibrateDistance = provider !== 'proxy';
+        const distanceKm = shouldCalibrateDistance
           ? raw.distanceKm * OSM_ROAD_CALIBRATION_FACTOR
           : raw.distanceKm;
 

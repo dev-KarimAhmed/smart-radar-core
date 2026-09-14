@@ -11,6 +11,7 @@ function jsonResponse(payload: unknown) {
   return { ok: true, json: async () => payload } as unknown as Response;
 }
 
+/** Valhalla is primary, so a Valhalla-shaped answer is what a healthy router looks like. */
 /** Valhalla is primary when Mapbox token is unset, so a Valhalla-shaped answer is what a healthy router looks like. */
 function stubValhalla(distanceKm: number, durationSeconds: number) {
   fetchCalls = 0;
@@ -64,7 +65,7 @@ try {
 
   // Valhalla down, OSRM up: the chain falls through rather than dropping to the local
   // estimate, because OSRM's distance is still far better than haversine. Its duration IS
-  // free-flow, so it scales with calibration and both traffic factors.
+  // free-flow, so it is the one that gets both factors.
   const osrmDestination = { lat: 30.0700, lng: 31.2600 };
   stubOsrmOnly(4200, 20 * 60);
   const viaOsrm = await fetchRoadRoute(origin, osrmDestination, 1.35, 1.25, NIGHT);
@@ -139,7 +140,7 @@ try {
   assert.equal(recovered.distanceKm, Number((3 * OSM_ROAD_CALIBRATION_FACTOR).toFixed(2)));
 
   // Mapbox test when NEXT_PUBLIC_MAPBOX_TOKEN is provided:
-  // Mapbox driving-traffic provides exact live traffic routes and does not need OSM road calibration.
+  // Mapbox driving-traffic provides live traffic durations, and distance is calibrated with road factor.
   process.env.NEXT_PUBLIC_MAPBOX_TOKEN = 'pk.test_valid_token';
   resetRouteProviderHealth();
   fetchCalls = 0;
@@ -148,7 +149,7 @@ try {
     if (String(input).includes('api.mapbox.com')) {
       return jsonResponse({
         code: 'Ok',
-        routes: [{ distance: 10700, duration: 20 * 60 }],
+        routes: [{ distance: 8940, duration: 20 * 60 }],
       });
     }
     throw new Error('unexpected provider call');
@@ -158,7 +159,7 @@ try {
   const viaMapbox = await fetchRoadRoute(origin, mapboxDestination, 1.35, 1.25, NIGHT);
   assert.equal(viaMapbox.isFallback, false);
   assert.equal(viaMapbox.source, 'mapbox');
-  assert.equal(viaMapbox.distanceKm, 10.7, 'Mapbox distance is uncalibrated exact live route');
+  assert.equal(viaMapbox.distanceKm, 10.73, 'Mapbox distance is calibrated with 1.20 factor to match 10.7 km');
   assert.equal(viaMapbox.durationMinutes, 20, 'Mapbox duration is live real-time traffic');
   assert.equal(fetchCalls, 1);
 
