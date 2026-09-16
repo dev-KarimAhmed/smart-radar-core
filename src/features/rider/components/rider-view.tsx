@@ -24,7 +24,7 @@ import { IdleMapScreen } from './idle-map-screen';
 import { RiderShellFrame } from './rider-shell-frame';
 import { RiderActiveScreen } from './rider-active-screen';
 import { RiderModals } from './rider-modals';
-import { RadarRiderDashboard } from './rider-dashboard';
+import { RiderDashboard } from './rider-dashboard';
 
 const styles = {
   adRiverWrapper: "hidden overflow-hidden rounded-[24px] border border-[#14B8A6]/15 bg-[#0B0F19]/88 shadow-2xl shadow-black/35 backdrop-blur-xl lg:block",
@@ -226,7 +226,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
         )}
 
         {(state.screen === 'PURGE_LEDGER' || state.screen === 'FAVORITE_CAPTAINS') && (
-          <RadarRiderDashboard
+          <RiderDashboard
             riderProfile={riderProfile}
             tripsWithin72Hours={tripCompletion.tripsWithin72Hours}
             systemMessages={systemMessages}

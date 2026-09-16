@@ -9,7 +9,7 @@ import {
   mapRiderMarketplaceError,
 } from '../services/rider-server-marketplace';
 import { toHistoricalTrip } from '../services/rider-view-format';
-import type { HistoricalTrip } from '../components/rider-dashboard';
+import type { HistoricalTrip } from '../components/dashboard/dashboard-shared';
 import type { RiderMachineAction, RiderMachineState } from '../state/rider-state-machine';
 
 const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;

@@ -26,6 +26,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { AdDisplayCard } from '@/features/ads/ad-display/contract';
+import { useTranslations } from 'next-intl';
 
 const styles = {
   style90_1: "ml-2",
@@ -124,15 +125,15 @@ const styles = {
 
 
 
-const adFormSchema = z.object({
- title: z.string().min(5, 'العنوان يجب أن يكون 5 أحرف على الأقل.'),
- description: z.string().min(10, 'الوصف يجب أن يكون 10 أحرف على الأقل.'),
- posterUrl: z.string().url('يجب أن يكون رابط صورة صالح.'),
- actionUrl: z.string().url('يجب أن يكون رابط إجراء صالح.'),
- buttonText: z.string().min(2, 'نص الزر قصير جداً.'),
+const getAdFormSchema = (t: any) => z.object({
+ title: z.string().min(5, t('schema.titleMin')),
+ description: z.string().min(10, t('schema.descMin')),
+ posterUrl: z.string().url(t('schema.posterUrlValid')),
+ actionUrl: z.string().url(t('schema.actionUrlValid')),
+ buttonText: z.string().min(2, t('schema.buttonTextMin')),
  role: z.enum(['driver', 'rider', 'all']),
- targetImpressions: z.coerce.number().min(1000, 'الحد الأدنى للمشاهدات هو 1000.'),
- endDate: z.date({ required_error: 'تاريخ الانتهاء مطلوب.'}),
+ targetImpressions: z.coerce.number().min(1000, t('schema.targetImpressionsMin')),
+ endDate: z.date({ required_error: t('schema.endDateRequired')}),
  geo: z.object({
  governorate: z.string().optional(),
  district: z.string().optional(),
@@ -143,9 +144,13 @@ const adFormSchema = z.object({
 function AdForm({ onFinish, isProcessing }: { onFinish: (data: AdInput) => Promise<boolean>, isProcessing: boolean }) {
  const [open, setOpen] = useState(false);
  const { toast } = useToast();
+ const t = useTranslations('adminTab.adsManagement');
+ 
+ const formSchema = useMemo(() => getAdFormSchema(t), [t]);
+
  const { register, handleSubmit, control, watch, setValue, formState: { errors } } = useForm<AdInput>({
- resolver: zodResolver(adFormSchema),
- defaultValues: { role: 'all', targetImpressions: 10000, buttonText: 'احجز مقعدك الآن 🚀' },
+ resolver: zodResolver(formSchema),
+ defaultValues: { role: 'all', targetImpressions: 10000, buttonText: t('form.placeholders.buttonText') },
  });
 
  const selectedGov = watch('geo.governorate');
@@ -165,16 +170,16 @@ function AdForm({ onFinish, isProcessing }: { onFinish: (data: AdInput) => Promi
 
  const onError = (formErrors: any) => {
  console.error("AdForm validation errors:", formErrors);
- let errorMessage = "يرجى ملء جميع الحقول المطلوبة بشكل صحيح.\n";
- if (formErrors.title) errorMessage += `- العنوان: ${formErrors.title.message}\n`;
- if (formErrors.description) errorMessage += `- الوصف: ${formErrors.description.message}\n`;
- if (formErrors.posterUrl) errorMessage += `- رابط البوستر: ${formErrors.posterUrl.message}\n`;
- if (formErrors.actionUrl) errorMessage += `- رابط الإجراء: ${formErrors.actionUrl.message}\n`;
- if (formErrors.endDate) errorMessage += `- تاريخ الانتهاء مطلوب ونشط.\n`;
+ let errorMessage = t('form.fillRequired');
+ if (formErrors.title) errorMessage += `${t('form.titleField')}${formErrors.title.message}\n`;
+ if (formErrors.description) errorMessage += `${t('form.descField')}${formErrors.description.message}\n`;
+ if (formErrors.posterUrl) errorMessage += `${t('form.posterUrlField')}${formErrors.posterUrl.message}\n`;
+ if (formErrors.actionUrl) errorMessage += `${t('form.actionUrlField')}${formErrors.actionUrl.message}\n`;
+ if (formErrors.endDate) errorMessage += t('form.endDateActive');
 
  toast({
  variant: 'destructive',
- title: '⚠️ رفض استكمال الاستمارة',
+ title: t('form.rejectTitle'),
  description: errorMessage
  });
  };
@@ -184,35 +189,35 @@ function AdForm({ onFinish, isProcessing }: { onFinish: (data: AdInput) => Promi
  <DialogTrigger asChild>
  <Button>
  <PlusCircle className={styles.style90_1}/>
- إطلاق حملة جديدة
+ {t('form.launchNewBtn')}
  </Button>
  </DialogTrigger>
  <DialogContent className={styles.style94_2}>
  <DialogHeader>
- <DialogTitle>منصة الإضافة الإعلاني</DialogTitle>
- <DialogDescription>أدخل بيانات الحملة الجديدة لعرضها في قسم الإعلانات.</DialogDescription>
+ <DialogTitle>{t('form.dialogTitle')}</DialogTitle>
+ <DialogDescription>{t('form.dialogDesc')}</DialogDescription>
  </DialogHeader>
  <form onSubmit={handleSubmit(onSubmit, onError)} className={styles.style99_3}>
- <Input placeholder="عنوان الحملة الجذاب" {...register('title')} />
+ <Input placeholder={t('form.placeholders.title')} {...register('title')} />
  {errors.title && <p className={styles.style101_4}>{errors.title.message}</p>}
 
- <Input placeholder="وصف موجز للحملة" {...register('description')} />
+ <Input placeholder={t('form.placeholders.desc')} {...register('description')} />
  {errors.description && <p className={styles.style104_5}>{errors.description.message}</p>}
 
  <div className={styles.style106_6}>
- <Input placeholder="رابط صورة البوستر (URL)" {...register('posterUrl')} dir="ltr" />
- <Input placeholder="رابط الإجراء (URL)" {...register('actionUrl')} dir="ltr" />
+ <Input placeholder={t('form.placeholders.posterUrl')} {...register('posterUrl')} dir="ltr" />
+ <Input placeholder={t('form.placeholders.actionUrl')} {...register('actionUrl')} dir="ltr" />
  </div>
  {(errors.posterUrl || errors.actionUrl) && <p className={styles.style110_7}>{errors.posterUrl?.message || errors.actionUrl?.message}</p>}
 
- <Input placeholder="النص على زر الإجراء (مثال: اطلب الآن)" {...register('buttonText')} />
+ <Input placeholder={t('form.placeholders.buttonText')} {...register('buttonText')} />
  {errors.buttonText && <p className={styles.style113_8}>{errors.buttonText.message}</p>}
 
  <Separator className={styles.style115_9} />
 
  <div className={styles.style117_10}>
  <div className={styles.style118_11}>
- <Label>القطاع المستهدف</Label>
+ <Label>{t('form.targetSectorLabel')}</Label>
  <Controller
  control={control}
  name="role"
@@ -220,16 +225,16 @@ function AdForm({ onFinish, isProcessing }: { onFinish: (data: AdInput) => Promi
  <Select onValueChange={field.onChange} defaultValue={field.value}>
  <SelectTrigger><SelectValue /></SelectTrigger>
  <SelectContent>
- <SelectItem value="all">الجميع</SelectItem>
- <SelectItem value="rider">الركاب فقط</SelectItem>
- <SelectItem value="driver">السائقون فقط</SelectItem>
+ <SelectItem value="all">{t('form.sectors.all')}</SelectItem>
+ <SelectItem value="rider">{t('form.sectors.rider')}</SelectItem>
+ <SelectItem value="driver">{t('form.sectors.driver')}</SelectItem>
  </SelectContent>
  </Select>
  )}
  />
  </div>
  <div className={styles.style135_12}>
- <Label>السعة (مرات الظهور)</Label>
+ <Label>{t('form.impressionsLabel')}</Label>
  <Input type="number" step="1000" {...register('targetImpressions')} />
  {errors.targetImpressions && <p className={styles.style138_13}>{errors.targetImpressions.message}</p>}
  </div>
@@ -237,26 +242,26 @@ function AdForm({ onFinish, isProcessing }: { onFinish: (data: AdInput) => Promi
 
  <div className={styles.style142_14}>
  <div className={styles.style143_15}>
- <Label>المحافظة (اختياري)</Label>
+ <Label>{t('form.govLabel')}</Label>
  <Controller
  control={control}
  name="geo.governorate"
  render={({ field }) => (
  <Select onValueChange={field.onChange} defaultValue={field.value}>
- <SelectTrigger><SelectValue placeholder="كل المحافظات" /></SelectTrigger>
+ <SelectTrigger><SelectValue placeholder={t('form.allGovs')} /></SelectTrigger>
  <SelectContent>{jordanGovernorates.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent>
  </Select>
  )}
  />
  </div>
  <div className={styles.style156_16}>
- <Label>المنطقة (اختياري)</Label>
+ <Label>{t('form.districtLabel')}</Label>
  <Controller
  control={control}
  name="geo.district"
  render={({ field }) => (
  <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!selectedGov}>
- <SelectTrigger><SelectValue placeholder="كل الألوية" /></SelectTrigger>
+ <SelectTrigger><SelectValue placeholder={t('form.allDistricts')} /></SelectTrigger>
  <SelectContent>{districts.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
  </Select>
  )}
@@ -265,7 +270,7 @@ function AdForm({ onFinish, isProcessing }: { onFinish: (data: AdInput) => Promi
  </div>
 
  <div className={styles.style171_17}>
- <Label>تاريخ انتهاء الحملة</Label>
+ <Label>{t('form.endDateLabel')}</Label>
  <Controller
  control={control}
  name="endDate"
@@ -274,7 +279,7 @@ function AdForm({ onFinish, isProcessing }: { onFinish: (data: AdInput) => Promi
  <PopoverTrigger asChild>
  <Button variant={"outline"} className={cn(styles.style179_18, !field.value && styles.style179_19)}>
  <CalendarIcon className={styles.style180_20} />
- {field.value ? format(field.value, "PPP") : <span>اختر تاريخاً</span>}
+ {field.value ? format(field.value, "PPP") : <span>{t('form.chooseDate')}</span>}
  </Button>
  </PopoverTrigger>
  <PopoverContent className={styles.style184_21}>
@@ -292,28 +297,28 @@ function AdForm({ onFinish, isProcessing }: { onFinish: (data: AdInput) => Promi
  variant="outline"
  onClick={() => {
  const opts = { shouldValidate: true, shouldDirty: true };
- setValue('title', 'حملة النسر الذهبي للمحروقات', opts);
- setValue('description', 'احصل على خصومات تصل إلى 15% على الصيانة والوقود.', opts);
+ setValue('title', t('form.magicFill.title'), opts);
+ setValue('description', t('form.magicFill.desc'), opts);
  setValue('posterUrl', 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&q=80&w=1000', opts);
  setValue('actionUrl', 'https://wa.me/962790000000', opts);
- setValue('buttonText', 'اطلب كرت الخصم الفوري 🚀', opts);
+ setValue('buttonText', t('form.magicFill.btnText'), opts);
  setValue('targetImpressions', 15000, opts);
  setValue('endDate', new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), opts);
  setValue('geo.governorate', 'عمان', opts);
  toast({
- title: "✨ تم التعبئة التلقائية للنموذج",
- description: "تم ملء الحقول بنجاح. يمكنك الضغط على 'إطلاق الحملة' الآن."
+ title: t('form.magicFill.toastTitle'),
+ description: t('form.magicFill.toastDesc')
  });
  }}
  className={styles.style212_24}
  >
- 🪄 تعبئة تلقائية سريعة
+ {t('form.magicFill.btn')}
  </Button>
  <div className={styles.style216_25}>
- <DialogClose asChild><Button type="button" variant="ghost">إلغاء</Button></DialogClose>
+ <DialogClose asChild><Button type="button" variant="ghost">{t('form.cancelBtn')}</Button></DialogClose>
  <Button type="submit" disabled={isProcessing}>
  {isProcessing && <Loader2 className={styles.style219_26} />}
- إطلاق الحملة
+ {t('form.submitBtn')}
  </Button>
  </div>
  </DialogFooter>
@@ -345,6 +350,7 @@ function AdCampaignCard({
  const isFrozen = statusLower === 'frozen';
  const isActive = statusLower === 'active';
  const isPaused = statusLower === 'paused';
+ const t = useTranslations('adminTab.adsManagement.card');
 
  return (
  <Card className={cn(
@@ -369,17 +375,17 @@ function AdCampaignCard({
  isFrozen && styles.style273_38
  )}
  >
- {isExpired ? 'منتهية' : isFrozen ? 'مجمّد ❄️' : (isActive ? 'نشط ●' : 'معلّق ||')}
+ {isExpired ? t('status.expired') : isFrozen ? t('status.frozen') : (isActive ? t('status.active') : t('status.paused'))}
  </Badge>
  </div>
  <CardDescription className={styles.style279_39}>
  <span className={styles.style280_40}>
  {ad.role === 'all' ? <Users className={styles.style281_41}/> : ad.role === 'driver' ? <Car className={styles.style281_42}/> : <Users className={styles.style281_43}/>}
- {ad.role === 'all' ? 'الجميع' : ad.role === 'driver' ? 'السائقون' : 'الركاب'}
+ {ad.role === 'all' ? t('roles.all') : ad.role === 'driver' ? t('roles.driver') : t('roles.rider')}
  </span>
  <span className={styles.style284_44}>
  <MapPin className={styles.style285_45}/>
- {ad.targetDistrict ? `المنطقة: ${ad.targetDistrict}` : ad.targetGovernorate || 'عمان'}
+ {ad.targetDistrict ? `${t('districtPrefix')}${ad.targetDistrict}` : ad.targetGovernorate || t('defaultGov')}
  </span>
  </CardDescription>
  </CardHeader>
@@ -388,15 +394,15 @@ function AdCampaignCard({
  <AdDisplayCard
  ad={ad}
  showHeart={false}
- badgeText="إعلان قريب"
- ctaText={(ad as any).action?.buttonText || (ad as any).buttonText || 'عرض التفاصيل'}
+ badgeText={t('defaultBadgeText')}
+ ctaText={(ad as any).action?.buttonText || (ad as any).buttonText || t('defaultCtaText')}
  className={styles.style297_47}
  />
  </div>
 
  <CardContent className={styles.style301_48} dir="rtl">
  <div>
- <Label className={styles.style303_49}>نسبة استهلاك السعة</Label>
+ <Label className={styles.style303_49}>{t('consumptionLabel')}</Label>
  <div className={styles.style304_50}>
  <Progress value={consumption} className={styles.style305_51} indicatorClassName={consumption > 85 ? "bg-destructive" : "bg-emerald-500"} />
  <span className={styles.style306_52}>{consumption.toFixed(0)}%</span>
@@ -405,11 +411,11 @@ function AdCampaignCard({
 
  <div className={styles.style310_53}>
  <div className={styles.style311_54}>
- <p className={styles.style312_55}><Eye className={styles.style312_56} /> الظهور </p>
+ <p className={styles.style312_55}><Eye className={styles.style312_56} /> {t('impressionsLabel')} </p>
  <p className={styles.style313_57}>{(ad.currentImpressions || 0).toLocaleString()} / {(ad.targetImpressions || 0).toLocaleString()}</p>
  </div>
  <div className={styles.style315_58}>
- <p className={styles.style316_59}><MousePointerClick className={styles.style316_60} /> النقرات</p>
+ <p className={styles.style316_59}><MousePointerClick className={styles.style316_60} /> {t('clicksLabel')}</p>
  <p className={styles.style317_61}>{(ad.clicksCount || 0).toLocaleString()}</p>
  </div>
  </div>
@@ -417,17 +423,17 @@ function AdCampaignCard({
  {/* Visibility credentials of deep smart links */}
  <div className={styles.style322_62}>
  <div className={styles.style323_63}>
- <span>رابط الواتساب:</span>
+ <span>{t('whatsappLabel')}</span>
  <span className={styles.style325_64}>{ad.whatsapp || 'N/A'}</span>
  </div>
  <div className={styles.style327_65}>
- <span>خط الهاتف السريع:</span>
+ <span>{t('phoneLabel')}</span>
  <span className={styles.style329_66}>{ad.phone || 'N/A'}</span>
  </div>
  </div>
 
  <div className={styles.style333_67}>
- ينتهي تاريخ الصلاحية في: {ad.endDate ? format(new Date(ad.endDate), "dd/MM/yyyy") : 'N/A'}
+ {t('expireLabel')} {ad.endDate ? format(new Date(ad.endDate), "dd/MM/yyyy") : 'N/A'}
  </div>
  </CardContent>
 
@@ -443,7 +449,7 @@ function AdCampaignCard({
  className={styles.style347_69}
  >
  {isActive ? <PauseCircle className={styles.style349_70}/> : <PlayCircle className={styles.style349_71}/>}
- {isActive ? 'تعليق' : 'تفعيل'}
+ {isActive ? t('buttons.pause') : t('buttons.resume')}
  </Button>
 
  {/* Sovereign 2: Freeze contract limits */}
@@ -454,7 +460,7 @@ function AdCampaignCard({
  className={cn(styles.style358_72, isFrozen && styles.style358_73)}
  >
  <Snowflake className={styles.style360_74} />
- {isFrozen ? 'فك التجمد' : 'تجميد العقد'}
+ {isFrozen ? t('buttons.unfreeze') : t('buttons.freeze')}
  </Button>
 
  {/* Sovereign 3: Extend contract (+5k impressions & 30 days) */}
@@ -465,7 +471,7 @@ function AdCampaignCard({
  className={styles.style369_75}
  >
  <Clock className={styles.style371_76} />
- تمديد المدى
+ {t('buttons.extend')}
  </Button>
 
  {/* Sovereign 4: Sovereign Delete with Audited Confirmation */}
@@ -473,19 +479,19 @@ function AdCampaignCard({
  <AlertDialogTrigger asChild>
  <Button variant="destructive" size="sm" className={styles.style378_77}>
  <Trash2 className={styles.style379_78}/>
- أرشفة
+ {t('buttons.archive')}
  </Button>
  </AlertDialogTrigger>
  <AlertDialogContent className={styles.style383_79} dir="rtl">
  <AlertDialogHeader>
- <AlertDialogTitle className={styles.style385_80}>هل أنت متأكد من أرشفة هذه الحملة؟</AlertDialogTitle>
+ <AlertDialogTitle className={styles.style385_80}>{t('archiveDialog.title')}</AlertDialogTitle>
  <AlertDialogDescription className={styles.style386_81}>
- سيتم شطب وحجب الحملة بصفة نهائية ولا رجعة فيها وإلغاء الرادار المخصص لوجهات الانتشار في الميدان.
+ {t('archiveDialog.desc')}
  </AlertDialogDescription>
  </AlertDialogHeader>
  <AlertDialogFooter className={styles.style390_82}>
- <AlertDialogCancel className={styles.style391_83}>تراجع وإلغاء</AlertDialogCancel>
- <AlertDialogAction onClick={() => onDelete(ad.id)} className={styles.style392_84}>نعم، تدمير وأرشفة</AlertDialogAction>
+ <AlertDialogCancel className={styles.style391_83}>{t('archiveDialog.cancel')}</AlertDialogCancel>
+ <AlertDialogAction onClick={() => onDelete(ad.id)} className={styles.style392_84}>{t('archiveDialog.confirm')}</AlertDialogAction>
  </AlertDialogFooter>
  </AlertDialogContent>
  </AlertDialog>
@@ -498,13 +504,14 @@ function AdCampaignCard({
 
 export function AdsManagementTab() {
  const { ads, isLoading, isProcessing, createAd, toggleAdStatus, deleteAd, freezeAd, extendAd } = useAdminAds();
+ const t = useTranslations('adminTab.adsManagement.tab');
 
  return (
  <div className={styles.style407_85} dir="rtl">
  <div className={styles.style408_86}>
  <div className={styles.style409_87}>
- <h2 className={styles.style410_88}>إدارة الإعلانات</h2>
- <p className={styles.style411_89}>مسرح متكامل ممتد على عرض شاشات الركاب خاضع لإدارة المراقبة المطلقة.</p>
+ <h2 className={styles.style410_88}>{t('title')}</h2>
+ <p className={styles.style411_89}>{t('desc')}</p>
  </div>
  <AdForm onFinish={createAd} isProcessing={isProcessing} />
  </div>
@@ -525,7 +532,7 @@ export function AdsManagementTab() {
  ))}
  </div>
  ) : (
- <p className={styles.style432_92}>لا توجد حملات إعلانية نشطة حالياً. أنشئ إعلاناً جديداً للبدء.</p>
+ <p className={styles.style432_92}>{t('empty')}</p>
  )}
 
  </div>

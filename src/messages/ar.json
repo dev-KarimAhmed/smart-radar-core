@@ -180,6 +180,232 @@
     "waitingApproval": "بانتظار موافقة المشرف.",
     "capacityFull": "هذه المنطقة ممتلئة حالياً. جرّب منطقة قريبة."
   },
+  "driversTab": {
+    "title": "برج المراقبة",
+    "desc": "نظرة مباشرة وحية على أداء وهويات جميع السائقون في الأسطول.",
+    "loading": "جاري استدعاء الأسطول ...",
+    "errorPrefix": "خطأ",
+    "empty": "لا يوجد سائقين في الأسطول",
+    "emptyDesc": "لم يقم أي سائق بالتسجيل في المنصة بعد.",
+    "table": {
+      "identity": "الهوية",
+      "rank": "الرتبة",
+      "rating": "الأداء (النجوم)",
+      "loyalty": "نشاط الولاء",
+      "status": "الحالة"
+    },
+    "status": {
+      "active": "نشط",
+      "busy": "مشغول",
+      "rating": "تقييم",
+      "idle": "خامل",
+      "unknown": "غير معروف"
+    }
+  },
+  "delegatesTab": {
+    "title": "إدارة المندوبين",
+    "desc": "إدارة وتحكم كامل بحسابات المندوبين، ألوية الاقتدار، وتوليد الروابط السحرية للاستحواذ الميداني.",
+    "table": {
+      "colDelegate": "المندوب",
+      "colCode": "الكود",
+      "colTarget": "الهدف (يومي)",
+      "colDrivers": "السائقين (بالكود)",
+      "colOrganic": "سائقين (طبيعي)",
+      "colLinks": "صلاحية الرابط",
+      "colStatus": "الحالة",
+      "colControl": "سيطرة"
+    },
+    "badges": {
+      "captain": "كابتن",
+      "independent": "مستقل",
+      "activeField": "ميدان-نشط",
+      "inactiveField": "ميدان-خامل",
+      "targetSuffix": "سائق",
+      "driverSuffix": "سائق",
+      "sigValid": "✓ توقيع رقمي معتمد",
+      "sigInvalid": "⚠️ تالف أو غير موقّع",
+      "match": "✓ تطابق: {count}",
+      "discrepancy": "⚠️ تعارض: الحقيقي {count}",
+      "organicPrefix": "+",
+      "organicSuffix": " س",
+      "hours": "ساعة",
+      "statusActive": "نشط",
+      "statusSuspended": "مجمد"
+    },
+    "actions": {
+      "sign": "مصادقة وتوقيع تشفيري ⚡",
+      "generateLink": "توليد رابط سحري",
+      "freeze": "تجميد",
+      "unfreeze": "إلغاء التجميد"
+    },
+    "empty": "لا يوجد مندوبين حتى الآن."
+  },
+  "magicLinksTab": {
+    "cardTitle": "محرك الروابط السحرية والولوج الفوري",
+    "cardDesc": "قائمة الروابط الصادرة لحسابات المندوبين مع تتبع الأمان والحدود الزمنية لإنهاء الصلاحية تلافياً لأي تسلل.",
+    "table": {
+      "colBeneficiary": "المستفيد",
+      "colLink": "الرابط السحري",
+      "colExpiry": "ينتهي في",
+      "colValidity": "الصلاحية",
+      "colAction": "إجراء"
+    },
+    "status": {
+      "active": "نشط",
+      "expired": "منتهي",
+      "used": "مستخدم",
+      "revoked": "مبطل"
+    },
+    "actions": {
+      "copySuccessTitle": "تم النسخ",
+      "copySuccessDesc": "تم نسخ الرابط السحري إلى الحافظة.",
+      "revoke": "إبطال وحرق الرابط"
+    },
+    "empty": "لا يوجد روابط سحرية مفعلة حالياً."
+  },
+  "performanceTab": {
+    "directGrowth": {
+      "title": "النمو المباشر",
+      "desc": "إحالة عبر كود",
+      "suffix": " كابتن"
+    },
+    "organicGrowth": {
+      "title": "النمو الطبيعي",
+      "prefix": "+",
+      "suffix": " كابتن",
+      "desc": "مؤشر النمو: {index}%"
+    },
+    "churn": {
+      "title": "التسرب الوهمي",
+      "desc": "معدل الحذف ({count})"
+    },
+    "steady": {
+      "title": "الاستقرار الميداني",
+      "suffix": " كابتن",
+      "desc": "تجاوزوا 30 يوم"
+    },
+    "comparison": {
+      "title": "مقارنة كفوءة لألوية الاقتدار والإدارة",
+      "desc": "مخطط الكفاءة والنمو شهرياً بموجب تتبع الحالات الميدانية وحماية الروابط.",
+      "regionPrefix": "إقليم ",
+      "sigValid": "✓ معتمد",
+      "sigInvalid": "⚠️ غير معتمد",
+      "driverSuffix": " سائق",
+      "extendedOrganic": "+{count} نمو طبيعي",
+      "steadyAlerts": "🟢 {count} مستقر"
+    }
+  },
+  "tasksTab": {
+    "cardTitle": "متابعة حالة المهام الميدانية المفتوحة",
+    "table": {
+      "colTask": "المهمة",
+      "colDesc": "الوصف",
+      "colDeadline": "الموعد",
+      "colStatus": "الحالة",
+      "colAction": "إجراء"
+    },
+    "cell": {
+      "delegatePrefix": "المندوب: "
+    },
+    "status": {
+      "pending": "قيد الانتظار",
+      "acknowledged": "تم الاستلام",
+      "completed": "مكتملة",
+      "closed": "مغلقة"
+    },
+    "actions": {
+      "close": "إغلاق وأرشفة"
+    },
+    "createForm": {
+      "cardTitle": "صياغة أمر عسكري ميداني (مهمة)",
+      "cardDesc": "سيصل إشعار فوري للمندوب في لوحته لإلزامه بالتنفيذ والرد بالنتائج الجغرافية.",
+      "selectLabel": "اختر المندوب (اللواء الميداني)",
+      "selectPlaceholder": "اختر مندوباً لإسناد المهمة",
+      "titleLabel": "عنوان المهمة (الهدف)",
+      "titlePlaceholder": "مثال: تمشيط منطقة صويلح لتسجيل 5 سائقين",
+      "descLabel": "الوصف والتعليمات العسكرية",
+      "descPlaceholder": "اكتب تفاصيل المهمة والمتطلبات بوضوح...",
+      "deadlineLabel": "الموعد النهائي الحتمي للتنفيذ",
+      "submit": "إرسال وإسناد الأمر الميداني فورا ⚡"
+    },
+    "empty": "لا توجد مهام ميدانية نشطة حالياً."
+  },
+  "addForm": {
+    "title": "تجنيد مندوب ميداني جديد",
+    "desc": "إضافة مندوب استقطاب لأسطول المبيعات مع صلاحيات إنشاء روابط سحرية محددة.",
+    "nameLabel": "الاسم الرباعي",
+    "namePlaceholder": "مثال: يزن القحطاني",
+    "phoneLabel": "رقم الهاتف",
+    "phonePlaceholder": "079XXXXXXX",
+    "regionLabel": "اللواء / منطقة الاقتدار",
+    "regions": {
+      "wadiSeer": "وادي السير",
+      "univ": "الجامعة",
+      "kasaba": "قصبة عمان",
+      "karrada": "الكرادة"
+    },
+    "targetLabel": "هدف التسجيل اليومي",
+    "targetPlaceholder": "10",
+    "expiryLabel": "صلاحية الرابط السحري (ساعات)",
+    "expirations": {
+      "24": "24 ساعة (قياسي)",
+      "48": "48 ساعة (موسع)",
+      "72": "72 ساعة (أقصى)"
+    },
+    "preCountLabel": "رصيد تسجيلات مسبق (اختياري)",
+    "subRoleLabel": "نوع التجنيد",
+    "subRoles": {
+      "independent": "مستقل (مندوب فقط)",
+      "captain": "كابتن ميداني"
+    },
+    "fleetActiveLabel": "حالة الطيران (للكابتن)",
+    "fleetActiveCheck": "تفعيل الطيران الميداني للكابتن",
+    "cancel": "إلغاء",
+    "submit": "إضافة واعتماد المندوب"
+  },
+  "delegateCommissionPanel": {
+    "title": "محرك الجرد المالي المتكامل للمندوبين (Representative Commission Guard)",
+    "desc1": "يتحكم هذا المحرك في تصفية الإحالات عبر عطل زمني ذكي بمقدار 30 يوماً",
+    "desc2": "ويفرض ذعيرة حذف قدرها",
+    "desc3": "ضد الحسابات الوهمية أو الزومبي.",
+    "stats": {
+      "rawDues": "العمولات الخام المستحقة للمندوبين",
+      "penalties": "إجمالي غرامات الحذف الكلي",
+      "net": "الرصيد الصافي المصدق القابل للصرف"
+    },
+    "loading": "جاري محاذاة البيانات الة للمندوبين...",
+    "empty": "لا يوجد مندوبون معتمدون في قواعد البيانات الحالية.",
+    "table": {
+      "name": "اسم المندوب الميداني",
+      "referralCode": "رمز الإحالة",
+      "referralsCount": "إجمالي الإحالات",
+      "deletionRate": "معدل الحذف (الوهمي)",
+      "rawCommission": "العمولة الخام",
+      "penalty": "عقوبة الفرز (40%)",
+      "netCommission": "العمولة المستحقة الصافية",
+      "action": "صرف / تصفية"
+    },
+    "referralUnit": "إحالة",
+    "currency": "د.أ",
+    "payAction": "تصفية وصرف"
+  },
+  "driverBlackboxPanel": {
+    "title": "الصندوق الأسود",
+    "description": "قراءة الحاكم لنواقل المملكة ومندوبيها",
+    "loading": "جاري تجهيز البيانات...",
+    "empty": "لا يوجد سائقين حالياً.",
+    "colName": "الاسم",
+    "colPhone": "الهاتف",
+    "colHours": "ساعات العمل المتبقية",
+    "colImmunity": "المناعة المهنية",
+    "colSecurity": "الحالة الأمنية",
+    "colAction": "إجراء الطوارئ",
+    "hourUnit": "ساعة",
+    "bannedStatus": "مُعلق أمنياً",
+    "activeStatus": "مُصرح أمنياً",
+    "reviveBtn": "إلغاء التعليق",
+    "killBtn": "إعدام"
+  },
   "admin": {
     "dashboardTitle": "لوحة المشرف",
     "reviewCampaigns": "مراجعة الحملات",
@@ -912,15 +1138,20 @@
     "minutesValue": "{count, plural, =0 {أقل من دقيقة} one {دقيقة واحدة} two {دقيقتان} few {# دقائق} many {# دقيقة} other {# دقيقة}}"
   },
   "captainBidding": {
-    "meterCalculationFallback": "إجمالي سعر عدادك لهذه الرحلة هو {total} {currency}. ويتكوّن من فتحة العداد المحفوظة، وسعر الكيلومتر، وسعر الدقيقة، وتقدير الطريق.",
+    "distanceUnitKm": "كم",
+    "pricingModeApp": "حسب تسعيرة التطبيق",
+    "pricingModeTaxi": "حسب عداد التاكسي",
+    "pricingModeFree": "سعر حر",
+    "pricingModeNone": "بدون تحديد (مفتوح)",
+    "meterCalculationFallback": "إجمالي العداد لهذه الرحلة {total} {currency}. بناءً على فتحة العداد، سعر الكيلومتر، سعر الدقيقة، وتقديرات الطريق.",
     "meterCalculationTitle": "احتساب سعر عدادك",
-    "meterCalculationMarket": "مرجع السوق = \u2066{market} {currency}\u2069",
-    "meterCalculationCeiling": "حد التنبيه: \u2066{market}\u2069 + (\u2066{market}\u2069 × \u2066{percent}%\u2069) = \u2066{ceiling} {currency}\u2069",
-    "meterCalculationFloor": "أقل عرض مسموح: \u2066{market}\u2069 - (\u2066{market}\u2069 × \u2066{percent}%\u2069) = \u2066{floor} {currency}\u2069",
-    "meterCalculationFinal": "العرض = \u2066{meter} {currency}\u2069 \u2066{adjustment}\u2069 = \u2066{total} {currency}\u2069",
-    "dumpingAmberCalculationWarning": "تنبيه: عرضك {offer} {currency} أقل من مرجع السوق {market} {currency} بفارق {difference} {currency} ({percent}%). قد يؤثر ذلك على رتبتك وظهورك.",
+    "meterCalculationMarket": "مرجع السوق = ⁦{market} {currency}⁩",
+    "meterCalculationCeiling": "حد التنبيه: ⁦{market}⁩ + (⁦{market}⁩ × ⁦{percent}%⁩) = ⁦{ceiling} {currency}⁩",
+    "meterCalculationFloor": "أقل عرض مسموح: ⁦{market}⁩ - (⁦{market}⁩ × ⁦{percent}%⁩) = ⁦{floor} {currency}⁩",
+    "meterCalculationFinal": "العرض = ⁦{meter} {currency}⁩ ⁦{adjustment}⁩ = ⁦{total} {currency}⁩",
+    "dumpingAmberCalculationWarning": "تنبيه: عرضك هو {offer} {currency}، وهو أقل من متوسط سعر السوق ({market} {currency}) بمقدار {difference} {currency} ({percent}%-). هذا الانخفاض قد يؤثر على رتبتك وأولويتك في الظهور.",
     "meterCalculationSource": "السعر محسوب من تعريفتك المحفوظة وبيانات الطريق لهذا الطلب. سعر السوق معروض بشكل منفصل.",
-    "meterCalculationFormula": "\u2066{total} {currency}\u2069 = \u2066{base} {currency}\u2069 + (\u2066{billableKm}\u2069 \u2066كم\u2069 × \u2066{perKm} {currency}\u2069) + (\u2066{minutes}\u2069 \u2066دقيقة\u2069 × \u2066{perMin} {currency}\u2069)",
+    "meterCalculationFormula": "⁦{total} {currency}⁩ = ⁦{base} {currency}⁩ + (⁦{billableKm}⁩ ⁦كم⁩ × ⁦{perKm} {currency}⁩) + (⁦{minutes}⁩ ⁦دقيقة⁩ × ⁦{perMin} {currency}⁩)",
     "meterCalculationRoute": "مسافة الطريق: {roadKm} كم. المسافة المشمولة في فتحة العداد: {includedKm} كم. المسافة المحاسبة: {billableKm} كم. وقت الطريق: {minutes} دقيقة.",
     "waitSecondsRange": "اختر مدة انتظار بين {min} و{max} ثانية.",
     "distanceUnavailable": "غير متاح",
@@ -946,7 +1177,6 @@
     "tierAmberWarning": "زيادتك قربت من حد الـ{limit}% اللي بعده بيظهر تنبيه. مفيش حد أقصى — تقدر تكمل زيادة.",
     "tierCrimsonBlock": "لا يمكن تقديم العرض لأن الزيادة أعلى من الحد المسموح لرتبتك.",
     "dumpingAmberWarning": "تنبيه: عرضك أقل من متوسط سعر السوق بنسبة تؤثر على رتبتك وظهورك للركاب.",
-    "dumpingAmberCalculationWarning": "تنبيه: عرضك هو {offer} {currency}، وهو أقل من متوسط سعر السوق ({market} {currency}) بمقدار {difference} {currency} ({percent}%-). هذا الانخفاض قد يؤثر على رتبتك وأولويتك في الظهور.",
     "dumpingCrimsonBlock": "تم قفل الإدخال: عرضك أقل من متوسط سعر السوق بأكثر من 15%، وهذا يُعد حرقاً للأسعار وغير مسموح به.",
     "dumpingCrimsonBlockTitle": "تم قفل العرض لمنع حرق الأسعار",
     "dumpingCrimsonBlockDesc": "عرضك أقل من الحد الأدنى المسموح به قانونياً ({limit}% أقل من متوسط سعر السوق). للمحافظة على استقرار وعدالة السوق، لا يمكن تقديم عروض محروقة.",
@@ -974,7 +1204,6 @@
     "breakdownFloor": "أقل سعر مسموح (الرفض تحته)",
     "breakdownYourIncrease": "زيادتك",
     "breakdownMarketUnknown": "غير متاح",
-    "companyPriceNotice": "أنت تعمل الآن ضمن تسعيرة الشركة المشغلة لك...",
     "companyPriceNotice": "أنت تعمل الآن بنمط السعر الحر وفق تعريفتك المحفوظة",
     "appModeSmartAppNotice": "يمكنك وضع سعرك هنا قبل الإرسال",
     "appModeOfficeTaxiNotice": "التزم في سعر العداد",
@@ -991,7 +1220,38 @@
     "distanceLabel": "المسافة / {distance}",
     "distanceMinimum": "الحد الأدنى (أقل من {distance} كم)",
     "appModeInputNotice": "يمكنك وضع سعرك هنا حسب سعر التطبيق",
-    "appModeInputHint": "انسخ السعر وألصقه أو أكتبه"
+    "appModeInputHint": "انسخ السعر وألصقه أو أكتبه",
+    "marketAvgLabel": "معدل سعر السوق",
+    "baseFareLabel": "فتحة العداد :",
+    "perKmLabel": "الكيلو :",
+    "perMinLabel": "الدقيقة :",
+    "yourTariff": "سعرك الحالي",
+    "editCurrentTariff": "تعديل تعريفتك الحالية",
+    "editBtn": "تعديل",
+    "offerTariff": "حدث سعرك",
+    "freePriceMode": "سعر حر",
+    "appPriceMode": "حسب تسعيرة التطبيق",
+    "taxiMeterMode": "حسب عداد التاكسي",
+    "marketAvgValue": "متوسط سعر السوق: {marketFare} {currency}",
+    "coveredInBaseFare": "مشمول بفتحة العداد",
+    "kmUnit": "كم",
+    "minUnit": "دقيقة",
+    "marketReference": "مرجع السوق",
+    "warningLimit": "حد التنبيه",
+    "lowestAllowedOffer": "أقل عرض مسموح",
+    "appEnteredPrice": "السعر المدخل حسب التطبيق: {price} {currency}",
+    "enterAppPriceHint": "يرجى كتابة سعر التطبيق المطلوب في الحقل أعلاه",
+    "taxiMeterTripPrice": "سعر الرحلة حسب عداد التاكسي: {price} {currency}",
+    "matchesCalculatedMeter": "مطابق لسعر العداد المحسوب",
+    "offerDetailsPrefix": "تفاصيل العرض: ",
+    "updateOffer": "تحديث العرض",
+    "goldBannerMessage": "الراكب يقدر رتبتك {tier} التي تؤهلك لزيادة سعرك عن معدل السوق {percent}%",
+    "withinBaseBanner": "لا تظهر هذه البيانات عندما تكون الرحلة بحدود فتحة العداد",
+    "silverWarning": "⚠️ تنبيه للكابتن الفضي: قد تفقد فرصك عند الركاب إذا تجاوز التخفيض 15%. تخفيض السعر بأكثر من 15% يؤثر على رتب التقييم وخصم النقاط في النظام.",
+    "pricingModeLockedByRider": "نمط المحاسبة محدد بواسطة الراكب: {mode}",
+    "riderNoPreference": "الراكب لم يحدد نمط محاسبة — اختر النمط الأنسب لك",
+    "taxiModeHint": "أدخل سعر العداد المعتمد للمشوار أو اعتمد السعر المحسوب:",
+    "coveredInBaseFareHint": "مسافة الرحلة مشمولة بالكامل ضمن فتحة العداد ({baseFare} {currency}) دون تكلفة مسافة إضافية."
   },
   "captainProfile": {
     "badge": "حسابي",
@@ -1165,5 +1425,719 @@
     "description": "تظهر العمليات هنا بعد وصولها من الخادم.",
     "empty": "لا توجد عمليات مالية لعرضها حالياً.",
     "title": "حركة الرصيد"
+  },
+  "Rider": {
+    "CaptainOfferCard": {
+      "captain": "كابتن",
+      "vehicle": "سيارة",
+      "notSpecified": "غير محدد",
+      "independentCaptain": "كابتن مستقل",
+      "verified": "موثق",
+      "preferredCaptain": "كابتن مفضل",
+      "taxiMeter": "عداد تكسي",
+      "appFare": "تسعيرة تطبيق",
+      "freePrice": "سعر حر",
+      "trips": "رحلة",
+      "arrivesIn": "يوصلك خلال",
+      "tripTime": "مدة الرحلة",
+      "tripDistance": "مسافة الرحلة",
+      "km": "كم",
+      "finalPrice": "السعر النهائي",
+      "allInclusive": "شامل كل شيء",
+      "accepting": "جاري القبول...",
+      "acceptOffer": "قبول العرض",
+      "details": "التفاصيل",
+      "tripDetails": "تفاصيل الرحلة",
+      "distanceToYou": "البعد عنك",
+      "mins": "دقائق",
+      "withoutTrafficDelays": "بدون تأخير مروري",
+      "captainAndVehicle": "بيانات الكابتن والمركبة",
+      "color": "اللون",
+      "plate": "اللوحة",
+      "notAvailable": "غير متاح",
+      "year": "سنة الصنع",
+      "category": "الفئة",
+      "captainType": "نوع الكابتن",
+      "completedTrips": "الرحلات المكتملة",
+      "call": "اتصال",
+      "contactLink": "رابط التواصل",
+      "price": "السعر",
+      "lockedPriceDesc": "مجمّد — شامل كل شيء ولا يزيد بعد القبول",
+      "marketAverage": "متوسط أسعار الكباتن لنفس الرحلة",
+      "competitivePrice": "✨ سعر منافس (أقل من متوسط السوق)",
+      "noTariffReason": "هذا السعر قدّمه الكابتن مباشرة، ولم تُسجَّل تفاصيل تعريفة له عند تقديم العرض.",
+      "facebook": "فيسبوك",
+      "instagram": "انستجرام"
+    }
+  },
+  "requestRide": {
+    "title": "طلب رحلة",
+    "description": "اختر وجهتك واحسب المسافة محلياً",
+    "step1Title": "1. اختر الوجهة",
+    "governorate": "المحافظة",
+    "district": "المنطقة",
+    "step2Title": "2. إحداثيات الوجهة",
+    "pickupPlaceholder": "اختر منطقة أو اكتب الإحداثيات مثل 31.95, 35.91",
+    "localCoordsTooltip": "إحداثيات محلية بدون geocoding",
+    "calculateBtn": "حساب المسافة والسعر",
+    "calculatedLocally": "تم حساب المسافة محلياً",
+    "resetBtn": "إعادة الضبط",
+    "actualDistance": "المسافة الفعلية",
+    "blindSpot": "منطقة لاهوت",
+    "km": "كم",
+    "estimatedTime": "الزمن التقديري",
+    "min": "دقيقة",
+    "formulaTitle": "📐 معادلة العدالة الميدانية V5.1",
+    "haversine": "مسافة الدورة العظمى (Haversine):",
+    "tortuosity": "معامل التعرج المحلي (γ):",
+    "approvedDistance": "المسافة المعتمدة:",
+    "timeCalc": "حساب الزمن (المسافة / السرعة 40 كم/س):",
+    "blindSpotWarning": "⚠️ تعذر استخراج الإحداثيات؛ تم تفعيل \"بروتوكول النقطة العمياء\" لتأمين استمرارية الرادار على مستوى المنطقة.",
+    "step7Title": "7. عدد المقاعد المطلوبة",
+    "selectSeats": "حدد المقاعد",
+    "passenger": "راكب واحد",
+    "passengers": "ركاب",
+    "step8Title": "8. طريقة التسعير",
+    "noPreference": "بدون تحديد",
+    "freePrice": "سعر حر",
+    "appPricing": "حسب تسعيرة التطبيق",
+    "taxiMeter": "حسب عداد التاكسي",
+    "availabilityStatus": "حالة توفر السائقون",
+    "supplyHigh": "🔴 زخم العرض: صاعد ومتوفر",
+    "demandHigh": "⚠️ زخم الطاقة: كثيف ويتطلب سيارة صالون واسعة",
+    "integrityTitle": "النزاهة الميدانية لـ \"الرادار الذكي\"",
+    "integrityDesc": "بموجب ميثاق صفر تشتت وصفر سحابة (SC55)، يمتنع الرادار عن عرض الخرائط للراكب نهائياً (العمى التقني) أو تجاوز فقاعة 1.5 كم. يتم السيطرة وحساب الأبعاد تجميداً بصفر عمولة.",
+    "suspended": "الخدمة معلقة مؤقتاً بناءً على القرارات الرسمية",
+    "sending": "يرسل الطلب...",
+    "sendRequest": "إرسال طلب الرحلة",
+    "amman": "عمان",
+    "wadiSeer": "وادي السير",
+    "wadiSeerAmman": "وادي السير - عمان",
+    "downtown": "وسط البلد",
+    "downtownAmman": "وسط البلد - عمان",
+    "zarqa": "الزرقاء",
+    "newZarqa": "الزرقاء الجديدة",
+    "irbid": "إربد",
+    "irbidDowntown": "إربد البلد",
+    "madaba": "مأدبا",
+    "madabaDowntown": "مأدبا البلد"
+  },
+  "offerGallery": {
+    "rankPlatinum": "بلاتيني",
+    "rankGold": "ذهبي",
+    "rankSilver": "فضي",
+    "rankBronze": "برونزي",
+    "adTitle": "عرض منفعة للراكب",
+    "adDesc": "عرض محلي بسيط يساعدك بعد اختيار عرض منخفض السعر.",
+    "adBtn": "احصل على العرض",
+    "adDesc2": "عرض محلي سريع للتواصل المباشر.",
+    "preferredCaptain": "الكابتن المفضل",
+    "independent": "مستقل",
+    "offeredPrice": "السعر المعروض",
+    "byMeter": "حسب العداد",
+    "currency": "د.أ",
+    "distanceFromYou": "البعد عنك:",
+    "km": "كم",
+    "arrivesIn": "يصلك خلال:",
+    "minutes": "دقائق",
+    "minute": "دقيقة",
+    "priceBurnedWarning": "هذا السعر أقل من متوسط السوق. تأكد من جودة الخدمة وحالة المركبة قبل القبول.",
+    "riderBenefit": "منفعة راكب",
+    "vehicleFile": "ملف المركبة",
+    "estimatedDuration": "مدة الرحلة المتوقعة",
+    "selectOffer": "اختر هذا العرض",
+    "captainsOffers": "عروض السائقون",
+    "offersCountText": "{count} سائق قريب أرسل لك عرضاً.",
+    "cancelRequest": "إلغاء الطلب"
+  },
+  "riderMap": {
+    "activeCaptains": "الكباتن المتاحون",
+    "denied": "اسمح للموقع من المتصفح",
+    "driverOnWay": "السائق في الطريق إليك",
+    "fallback": "GPS غير متاح",
+    "live": "موقعك الحالي",
+    "locating": "يتم تحديد موقعك...",
+    "mapReady": "خريطة الرحلة جاهزة",
+    "moveMap": "حرّك الخريطة",
+    "offPeak": "المنطقة الحالية خارج أوقات الذروة - قد يستغرق قبول الرحلة وقتا أطول",
+    "recenter": "العودة إلى موقعي",
+    "useMyLocation": "استخدم موقعي الحالي"
+  },
+  "profileTab": {
+    "accountData": "بيانات الحساب",
+    "accountNumber": "رقم الحساب",
+    "accountSource": "مصدر بيانات الحساب",
+    "chooseCountry": "اختر الدولة",
+    "chooseDistrict": "اختر المنطقة",
+    "chooseGovernorate": "اختر المحافظة",
+    "country": "الدولة",
+    "currency": "العملة",
+    "currentRating": "التقييم الحالي",
+    "district": "المنطقة",
+    "pleaseLogin": "يرجى تسجيل الدخول لعرض بيانات الحساب.",
+    "editDescription": "يتم تحميل الدولة والمحافظة والمنطقة مباشرة من قاعدة البيانات.",
+    "editTitle": "تعديل بيانات الحساب والمنطقة",
+    "fullName": "الاسم الكامل",
+    "fullNamePlaceholder": "اكتب اسمك الكامل",
+    "governorate": "المحافظة",
+    "languageTitle": "لغة التطبيق",
+    "languageDescription": "اختر اللغة التي تظهر في لوحة التحكم.",
+    "loading": "جاري التحميل...",
+    "loadingProfile": "جاري تحميل بيانات الحساب...",
+    "localInfoDescription": "هذه معلومات محفوظة على جهازك لتحسين التجربة بدون اتصال دائم.",
+    "localInfoTitle": "معلومات محلية",
+    "location": "المحافظة والمنطقة",
+    "logout": "تسجيل الخروج",
+    "notSet": "غير محدد",
+    "phone": "رقم الهاتف",
+    "phoneUnavailable": "رقم الهاتف غير متاح",
+    "save": "حفظ التعديلات",
+    "savedCaptains": "السائقون المحفوظون",
+    "saving": "جاري حفظ البيانات...",
+    "switchToArabic": "العربية",
+    "switchToEnglish": "English",
+    "updatingLists": "جاري تحديث القوائم من قاعدة البيانات...",
+    "roles": {
+      "admin": "مشرف",
+      "driver": "سائق",
+      "rider": "راكب",
+      "user": "مستخدم"
+    },
+    "blockedCaptain": "كابتن محظور",
+    "unblockSuccessTitle": "تم إلغاء الحظر",
+    "unblockSuccessDesc": "تم إلغاء حظر هذا الكابتن بنجاح.",
+    "unblockErrorTitle": "تعذر إلغاء الحظر",
+    "unexpectedError": "حدث خطأ غير متوقع.",
+    "loadErrorTitle": "تعذر تحميل بيانات الحساب",
+    "loadErrorDesc": "تعذر الاتصال بقاعدة البيانات. تحقق من الإنترنت ثم حاول مرة أخرى.",
+    "govLoadErrorTitle": "تعذر تحميل المحافظات",
+    "govLoadErrorDesc": "تعذر تحميل محافظات الدولة المختارة.",
+    "districtLoadErrorTitle": "تعذر تحميل المناطق",
+    "districtLoadErrorDesc": "تعذر تحميل مناطق المحافظة المختارة.",
+    "incompleteData": "بيانات غير مكتملة",
+    "enterFullName": "يرجى كتابة الاسم الكامل.",
+    "chooseLocationData": "يرجى اختيار الدولة والمحافظة والمنطقة.",
+    "saveSuccessTitle": "تم حفظ التعديلات",
+    "saveSuccessDesc": "تم تحديث بيانات الحساب والمنطقة من قاعدة البيانات.",
+    "saveErrorTitle": "تعذر حفظ البيانات",
+    "blockedCaptains": "الكباتن المحظورون",
+    "blockedCaptainsDesc": "قائمة بالسائقين الذين قمت بحظرهم. يمكنك إلغاء الحظر لإعادة التعامل معهم.",
+    "loadingBlockedList": "جاري تحميل قائمة الحظر...",
+    "noBlockedCaptains": "لا يوجد كباتن محظورون حالياً.",
+    "confirm": "تأكيد",
+    "cancel": "تراجع",
+    "unblock": "إلغاء الحظر",
+    "rating": "التقييم"
+  },
+  "historyTab": {
+    "antiChatTitle": "وثيقة براءة الذمة ونقاء النظام (Anti-Chattiness & Zero-Chat Decree)",
+    "antiChatDesc": "شهادة هندسية معتمدة تثبت خلو النظام تماماً من أي بروتوكولات دردشة مساعدة أو استهلاك عشوائي للباقة",
+    "zeroChatTitle": "صفر تعقيد وصفر ثرثرة شبكية (Zero-Chat Mandate)",
+    "zeroChatDesc": "لا توجد قنوات محادثة خلفية أو دردشة معقدة تستهلك باقة الإنترنت. التواصل يتم عبر روابط مباشرة لتقليل الضغط على الشبكة.",
+    "financialActivityTitle": "النشاط المالي والربط المؤتمت",
+    "financialActivityDesc": "يتم جلب النشاط والرحلات عند الحاجة المباشرة فقط (Event-Driven) دون ثرثرة شبكية مستمرة (No polling chat networks). تلتزم شاشة السجل بمبدأ المحكم الرقمي القطعي (SSOT) بنسبة 100%.",
+    "autoPurgeTitle": "تصفية السجلات المؤتمت (72-Hour Auto Purge)",
+    "autoPurgeDesc": "امتثالاً للمحدد الثالث في بنود المعمارية المحلية الحافة، يتم إيقاف ومسح جميع تفاصيل الحركة ميكانيكياً بعد مرور 72 ساعة ثابتة من هاتفك وخادم النظام لحماية خصوصيتك وصفرية التكلفة الحافة.",
+    "purityStatus": "حالة نقاء خطوط النقل الحالية:",
+    "certifiedDecree": "براءة ذمة معتمدة ومختومة رقمياً 🛡️",
+    "eventsLogTitle": "سجل الفعاليات والحركة اللامركزية (الأرشيف)",
+    "eventsLogDesc": "سجل قطاع الناقل الميداني الذاتي لمراقبة تبديل الحالة ومحيط المنطقة",
+    "clearLog": "مسح السجل",
+    "movement": "حركة",
+    "emptyLog": "السجل خاوٍ حالياً.",
+    "emptyLogDesc": "سيتم تلقائياً تخليد الحركات الميدانية مثل تبديل الحالة بين النشط والخامل، التعطيل التلقائي بسبب الخمول أو نفاد الباقة، وخروجك من محيط المنطقة هنا كمرجع آمن وأمني لك.",
+    "statusChange": "تعديل الحالة",
+    "systemAction": "إجراء النظام",
+    "boundaryCross": "تخطي الحدود",
+    "detailedFeedback": "تقييمك المفصّل للكابتن:",
+    "before": "قبل",
+    "ago": "",
+    "logsClearedTitle": "تم تفريغ السجل المحلي بنجاح",
+    "logsClearedDesc": "تم مسح جميع سجلات الحركة المحلية من هاتفك الذكي بنجاح.",
+    "criteria": {
+      "captain": {
+        "polite": "كابتن مهذب",
+        "clean": "سيارة نظيفة ومرتبة",
+        "safe": "قيادة آمنة",
+        "punctual": "وصل في الموعد",
+        "ac": "التكييف كان ممتاز",
+        "music": "الموسيقى هادية",
+        "behavior": "الاحترام والأسلوب",
+        "driving": "القيادة الآمنة والالتزام بالسرعة",
+        "routing": "اختيار مسار ذكي بدون زحام",
+        "communication": "التجاوب والتواصل الاحترافي"
+      },
+      "vehicle": {
+        "cleanliness": "نظافة الصالون",
+        "comfort": "راحة المقاعد",
+        "quietness": "هدوء المركبة",
+        "safety": "سلامة السيارة وأحزمة الأمان"
+      }
+    },
+    "title": "رحلاتي",
+    "subtitle": "راجع رحلاتك الأخيرة. يتم حذف الرحلات التي مر عليها أكثر من 72 ساعة لحماية خصوصيتك.",
+    "recentTripsTitle": "الرحلات الأخيرة (آخر 3 أيام)",
+    "recentTripsDesc": "الرحلات التي اكتملت من حسابك",
+    "tripCount": "رحلة",
+    "noTrips": "لا توجد رحلات نشطة مسجلة في آخر 72 ساعة.",
+    "lessThanHour": "أقل من ساعة",
+    "hours": "ساعة",
+    "callCaptain": "اتصال بالسائق بخصوص الرحلة",
+    "savedCaptainsTitle": "السائقون المفضلون",
+    "savedCaptainsDesc": "السائقون الذين حفظتهم من رحلاتك السابقة",
+    "call": "اتصل",
+    "captainSectionTitle": "سجل العوائد والمهام الميدانية المنجزة",
+    "captainSectionDesc": "المهام المعتمدة الموثقة بمركز النشاط",
+    "commission": "العمولة المستحقة",
+    "status": "الحالة",
+    "active": "نشط",
+    "pending": "قيد الانتظار"
+  },
+  "adminTab": {
+    "driverBlackbox": {
+      "title": "منصة تفعيل \"الصندوق الأسود\" لوقف النواقل الفوري (Black-Box Lethal Strike)",
+      "description": "التحكم الكلي في سلب الحصانة السلوكية للنواقل وبث إشعاعات الوقف وإلغاء الرصيد في الميدان لمنع المضاربات والخرق الجغرافي.",
+      "loading": "جاري محاذاة البيانات الة للنواقل...",
+      "empty": "لا يوجد سائقون أو نواقل مسجلون حالياً.",
+      "colName": "اسم الناقل وموقع التسجيل",
+      "colPhone": "رقم الهاتف",
+      "colHours": "الساعات المتبقية",
+      "colImmunity": "حصانة الناقل",
+      "colSecurity": "الحالة الأمنية",
+      "colAction": "صعق / إعادة فك",
+      "hourUnit": "ساعة",
+      "bannedStatus": "🔴 : مصعوق",
+      "activeStatus": "🟢 محصن ونشط",
+      "reviveBtn": "إلغاء الصعق وإحياء",
+      "killBtn": "صعق أمني فوري 💥"
+    },
+    "simulator": {
+      "title": "محرك سد الثغرات الاستراتيجية الحاكم (V5.5 Strategic Gaps Simulation Hub)",
+      "description": "واجهة المحاكاة والضبط الفوري لثغرات الانتقال الجغرافي والشحن اليدوي بدون سحب تكاليف السيرفر الإضافية.",
+      "commuteCard": {
+        "title": "1. محاكي الارتحال الجغرافي اللحظي",
+        "description": "ينقل السائق من وتد تسجيله الجغرافي إلى منطقة آخر لحظياً لضبط استهداف الإعلانات وتجريم الصمت.",
+        "selectLabel": "اختر السائق المستهدف بالترحيل:",
+        "selectPlaceholder": "-- اختر سائق من الميدان --",
+        "unspecified": "غير محدد",
+        "targetLabel": "المنطقة المستهدف الموجه للإعلان:",
+        "btn": "ترحيل فوري محصن 📡"
+      },
+      "voucherCard": {
+        "title": "2. شحن رصيد الساعات يدوياً (بطاقات المندوبين)",
+        "description": "تمكين الدعم النقدي بالميدان عبر تذاكر الخدش المسبقة الدفع الصادرة بأختام مشفرة.",
+        "selectLabel": "اختر السائق المستهدف بالشحن:",
+        "selectPlaceholder": "-- اختر سائق من الميدان --",
+        "hoursRemaining": "ساعة متبقية",
+        "codeLabel": "أدخل رمز التذكرة (يبدأ بـ RADAR-100H-):",
+        "codePlaceholder": "مثال: RADAR-100H-JORDAN",
+        "copyHint": "💡 اضغط هنا لنسخ الرمز المعتمد للجلسة: ",
+        "btn": "تفعيل شحنة الـ 100 ساعة 🎫"
+      },
+      "metrics": {
+        "title": "أجهزة القياس الذاتي والتحقق التلقائي (Edge Integrity Metrics)",
+        "item1": "استقرار النطاق الجغرافي: تصفية الإعلانات والحسابات تتم محلياً عند الحافة بصفر تكلفة سحابية.",
+        "item2": "محرك الصرف المحصن: تفعيل قاعدة الـ 30 يوماً المستقرة لحسابات المندوبين.",
+        "item3Text": "الصندوق الأسود مغلق بمجهرية النواة ",
+        "item3Code": "Object.freeze(RadarGapLockdownKernel)",
+        "item3Suffix": " لمنع الاختراقات والعبث بالباقات المدفوعة."
+      },
+      "toasts": {
+        "commuteErrorTitle": "خطأ في الترحيل",
+        "commuteErrorNoDriver": "يرجى اختيار السائق المراد ترحيله أولاً.",
+        "commuteSuccessTitle": "📡 تم الارتحال الجغرافي وبث الإعلانات",
+        "commuteSuccessDesc": "تم ترحيل السائق [{name}] بنجاح إلى [{district}].",
+        "commuteErrorUnexpected": "حدث خطأ غير متوقع أثناء ترحيل السائق",
+        "voucherErrorTitle": "خطأ الشحن",
+        "voucherErrorNoDriver": "يرجى اختيار السائق المستهدف بالشحن أولاً.",
+        "voucherErrorCode": "يرجى إدخال رمز تذكرة الشحن.",
+        "voucherSuccessTitle": "🎫 شحن فوري ناجح (تذكرة معتمدة من السيرفر)",
+        "voucherSuccessDesc": "تم قبول بطاقة المندوب وتحديث [{hours}] ساعة رصيد للسائق [{name}] بنجاح.",
+        "voucherFailedTitle": "❌ فشل التحقق السيرفري للكود",
+        "voucherFailedDesc": "رمز البطاقة غير مطابق لبروتوكول التشفير المعتمد \"RADAR-100H-*\""
+      },
+      "areas": {
+        "shouna": "منطقة الشونة الجنوبية",
+        "naour": "منطقة ناعور",
+        "deirGhbar": "منطقة دير غبار",
+        "sweileh": "منطقة صويلح",
+        "muqabalain": "منطقة المقابلين"
+      }
+    },
+    "fuelIndex": {
+      "warning": "تحذير : أي تغيير هنا يضبط \"الحد الأدنى القاتل\" للتسعيرة في الميدان فوراً.",
+      "errorInvalidInput": "يرجى اختيار المنطقة وإدخال سعر وقود صالح.",
+      "title": "ضبط مؤشر الوقود الإقليمي",
+      "placeholders": {
+        "governorate": "المحافظة",
+        "district": "المنطقة",
+        "price": "سعر اللتر (دينار)"
+      },
+      "submitBtn": "اعتماد المؤشر وتفعيل الدرع"
+    },
+    "killSwitch": {
+      "toasts": {
+        "safetyLockedTitle": "بوابات الأمان مقفلة 🔒",
+        "safetyLockedDesc": "يتعين عليك تفعيل بوابتي التأكيد ومطابقة الفرز الأمني لفك حماية الزر الأحمر.",
+        "noTargetTitle": "لم يتم تحديد هدف",
+        "noTargetDesc": "يرجى تحديد الحملة الإعلانية النشطة المستهدفة للإيقاف ال.",
+        "noReasonTitle": "مطلوب إفادة رسمية",
+        "noReasonDesc": "إدخال مبرر الحذف الأمني إلزامي لتبرير نشاطة الإيقاف.",
+        "emptyBroadcastTitle": "فراغ نص الإطلاق",
+        "emptyBroadcastDesc": "يرجى صياغة رسالة بث واضحة لتصل لهواتف السائقون والركاب.",
+        "broadcastSuccessTitle": "📡 تم نشر نشاطة العرض",
+        "broadcastSuccessDesc": "تم نشر الإشعار اللحظي [{district}] في طبقة الهواتف المفتوحة."
+      },
+      "emergency": {
+        "title": "بروتوكول الطوارئ الإداري: مفتاح الفصل الشامل [30-Emergency]",
+        "description": "التحكم الكلي في بوابات الرادار في الأردن. تفعيل هذا المقبس يجبر هواتف المستخدمين كافة على تعليق الملاحة فوراً، لعزل الخوادم وتفادي حروق النشاط في حالات القوة القاهرة.",
+        "safetyLabel": "🔒 بوابات الأمان المصاحبة للزر :",
+        "gate1": "أقر بنية تعليق الملاحة كلياً في ولاية عمان والوسط.",
+        "gate2": "مطابقة البصمة الحالية للقيادة لمنع المضاربة.",
+        "unlockedBtn": "تم فك قفل الأمان - المقبس جاهز للإطلاق",
+        "lockBtn": "تفعيل مفتاح الفك",
+        "radarStatus": "حالة رادار الملاحة الحالية:",
+        "active": "مفتوح ونشط ●",
+        "suspended": "معلق طارئ 🚫",
+        "suspendBtn": "اضغط لتنفيذ التعليق الكلي للميدان 💥",
+        "resumeBtn": "اضغط لإلغاء القفل وإعادة فتح الملاحة 📡",
+        "warning": "* تحذير: هذا التدخل فوري وسيتم ترحيله سحابياً لكافة هواتف السائقون والراكبين في المملكة الأردنية مباشرة."
+      },
+      "annihilation": {
+        "title": "إيقاف الإيقاف الرقمية للحملات (Ad Annihilation)",
+        "description": "بروتوكول [30-Annihilation] لحذف الميدان آلياً. يرسل إشعارات صامتة Silent Web Pushes لإيقاف ومسح الإعلانات المرفوضة من هواتف المستخدمين نهائياً في ثوانٍ.",
+        "selectTarget": "حدد الحملة المستهدفة للإحراق ال:",
+        "selectPlaceholder": "-- اختر حملة إعلانية بث في الميدان --",
+        "reasonLabel": "مبرر الحذف والمذكرة الأمنية للهواتف:",
+        "reasonPlaceholder": "مثال: انتهاك وثيقة الآداب، تحريض على المضاربة، إلخ...",
+        "executeBtn": "بث نشاطة الإيقاف وحذف الهواتف الميدانية 💥"
+      },
+      "broadcast": {
+        "title": "بث راداري صامت (Silent Broadcast Pulses)",
+        "description": "إضافة وبث تنبيهات توجيهية لحظية غير مكلفة لخلية سداسية معينة أو الميدان بالكامل، لتعديل سلوك الهواتف والتسجيل في سجل الطوارئ مباشرة.",
+        "districtLabel": "الإقليم الجغرافي المستهدف:",
+        "districts": {
+          "all": "كل منطقة الأردنيين",
+          "ju": "منطقة الجامعة - عمان",
+          "kasaba": "منطقة قصبة عمان - عمان",
+          "wadiSeer": "منطقة وادي السير - عمان",
+          "marka": "منطقة ماركا - عمان"
+        },
+        "typeLabel": "تصنيف النشاطة :",
+        "types": {
+          "regional": "تنبيه إقليمي توجيهي",
+          "freeze": "تجميد اضطراري للأسعار"
+        },
+        "messageLabel": "نص بلاغ القيادة العامة (بث لحظي):",
+        "messagePlaceholder": "اكتب مضمون الإشعار الميداني هنا...",
+        "executeBtn": "إطلاق النشاطة الصامتة Silent Broadcast 📡"
+      }
+    },
+    "adsManagement": {
+      "schema": {
+        "titleMin": "العنوان يجب أن يكون 5 أحرف على الأقل.",
+        "descMin": "الوصف يجب أن يكون 10 أحرف على الأقل.",
+        "posterUrlValid": "يجب أن يكون رابط صورة صالح.",
+        "actionUrlValid": "يجب أن يكون رابط إجراء صالح.",
+        "buttonTextMin": "نص الزر قصير جداً.",
+        "targetImpressionsMin": "الحد الأدنى للمشاهدات هو 1000.",
+        "endDateRequired": "تاريخ الانتهاء مطلوب."
+      },
+      "form": {
+        "fillRequired": "يرجى ملء جميع الحقول المطلوبة بشكل صحيح.\n",
+        "titleField": "- العنوان: ",
+        "descField": "- الوصف: ",
+        "posterUrlField": "- رابط البوستر: ",
+        "actionUrlField": "- رابط الإجراء: ",
+        "endDateActive": "- تاريخ الانتهاء مطلوب ونشط.\n",
+        "rejectTitle": "⚠️ رفض استكمال الاستمارة",
+        "launchNewBtn": "إطلاق حملة جديدة",
+        "dialogTitle": "منصة الإضافة الإعلاني",
+        "dialogDesc": "أدخل بيانات الحملة الجديدة لعرضها في قسم الإعلانات.",
+        "placeholders": {
+          "title": "عنوان الحملة الجذاب",
+          "desc": "وصف موجز للحملة",
+          "posterUrl": "رابط صورة البوستر (URL)",
+          "actionUrl": "رابط الإجراء (URL)",
+          "buttonText": "النص على زر الإجراء (مثال: اطلب الآن)"
+        },
+        "targetSectorLabel": "القطاع المستهدف",
+        "sectors": {
+          "all": "الجميع",
+          "rider": "الركاب فقط",
+          "driver": "السائقون فقط"
+        },
+        "impressionsLabel": "السعة (مرات الظهور)",
+        "govLabel": "المحافظة (اختياري)",
+        "allGovs": "كل المحافظات",
+        "districtLabel": "المنطقة (اختياري)",
+        "allDistricts": "كل الألوية",
+        "endDateLabel": "تاريخ انتهاء الحملة",
+        "chooseDate": "اختر تاريخاً",
+        "magicFill": {
+          "btn": "🪄 تعبئة تلقائية سريعة",
+          "title": "حملة النسر الذهبي للمحروقات",
+          "desc": "احصل على خصومات تصل إلى 15% على الصيانة والوقود.",
+          "btnText": "اطلب كرت الخصم الفوري 🚀",
+          "toastTitle": "✨ تم التعبئة التلقائية للنموذج",
+          "toastDesc": "تم ملء الحقول بنجاح. يمكنك الضغط على 'إطلاق الحملة' الآن."
+        },
+        "cancelBtn": "إلغاء",
+        "submitBtn": "إطلاق الحملة"
+      },
+      "card": {
+        "status": {
+          "expired": "منتهية",
+          "frozen": "مجمّد ❄️",
+          "active": "نشط ●",
+          "paused": "معلّق ||"
+        },
+        "roles": {
+          "all": "الجميع",
+          "driver": "السائقون",
+          "rider": "الركاب"
+        },
+        "districtPrefix": "المنطقة: ",
+        "defaultGov": "عمان",
+        "defaultBadgeText": "إعلان قريب",
+        "defaultCtaText": "عرض التفاصيل",
+        "consumptionLabel": "نسبة استهلاك السعة",
+        "impressionsLabel": "الظهور",
+        "clicksLabel": "النقرات",
+        "whatsappLabel": "رابط الواتساب:",
+        "phoneLabel": "خط الهاتف السريع:",
+        "expireLabel": "ينتهي تاريخ الصلاحية في:",
+        "buttons": {
+          "pause": "تعليق",
+          "resume": "تفعيل",
+          "unfreeze": "فك التجمد",
+          "freeze": "تجميد العقد",
+          "extend": "تمديد المدى",
+          "archive": "أرشفة"
+        },
+        "archiveDialog": {
+          "title": "هل أنت متأكد من أرشفة هذه الحملة؟",
+          "desc": "سيتم شطب وحجب الحملة بصفة نهائية ولا رجعة فيها وإلغاء الرادار المخصص لوجهات الانتشار في الميدان.",
+          "cancel": "تراجع وإلغاء",
+          "confirm": "نعم، تدمير وأرشفة"
+        }
+      },
+      "tab": {
+        "title": "إدارة الإعلانات",
+        "desc": "مسرح متكامل ممتد على عرض شاشات الركاب خاضع لإدارة المراقبة المطلقة.",
+        "empty": "لا توجد حملات إعلانية نشطة حالياً. أنشئ إعلاناً جديداً للبدء."
+      }
+    },
+    "delegatesManagement": {
+      "toasts": {
+        "copySuccess": "تم النسخ ",
+        "copyDesc": "تم كود إحالة المندوب الأصلي ({code}) إلى الحافظة بنجاح.",
+        "duplicatePhoneTitle": "تنبيه أمني: تكرار الهاتف الميداني",
+        "duplicatePhoneDesc": "المندوب المسجل بالفعل يحمل نفس رقم الهاتف ({phone}). يرجى استخدام رقم هاتف فريد.",
+        "addSuccessTitle": "تم إضافة المندوب الميداني",
+        "addSuccessDesc": "تم ربط المندوب \"{name}\" بكود إحالة وتارجت يومي يبلغ {target} بنجاح.",
+        "addErrorTitle": "فشل الفعالية السحابية",
+        "addErrorDesc": "حدث خطأ أثناء الاتصال ونقل ملف المندوب.",
+        "linkErrorTitle": "فشل إنشاء الرابط السحابي",
+        "linkErrorDescSession": "انتهت جلستك. سجّل الدخول من جديد وحاول مرة أخرى.",
+        "linkErrorDescServer": "حدث خطأ في الخادم أثناء توليد الرابط.",
+        "linkSuccessTitle": "تم توليد الرابط السحري",
+        "linkSuccessDesc": "تم ربط المندوب \"{name}\" برابط دخول مؤقت ومحمي لـ {hours} ساعة.",
+        "linkErrorDescUnknown": "حدث خطأ غير متوقع أثناء معالجة الطلب السحري.",
+        "revokeSuccessTitle": "تم إبطال الرابط بنجاح",
+        "revokeSuccessDesc": "تم حرق ترخيص الرابط السحري ومنع أي محاولة ولوج مستقبلية عبره.",
+        "taskMissingTitle": "بروتوكول المهام ناقص",
+        "taskMissingDesc": "يرجى تعيين المندوب وعنوان المهام والسقف الزمني قبل الإضافة.",
+        "taskAddSuccessTitle": "تم إضافة المهمة ",
+        "taskAddSuccessDesc": "تم إسناد مهمة \"{title}\" للمنتسب الميداني {name}.",
+        "taskCloseErrorTitle": "فشل إغلاق المهمة",
+        "taskCloseErrorDesc": "فشل جدار الحماية السحابي في معالجة الإجراء.",
+        "taskCloseSuccessTitle": "تم إغلاق المهمة وأرشفتها",
+        "taskCloseSuccessDesc": "تم تحويل حالة المهمة الميدانية إلى مغلقة بنجاح ومصادقتها سحابياً.",
+        "statusChangeTitle": "تغيير رتبة الاعتماد الميداني",
+        "statusChangeDescActive": "المندوب الآن في حالة: معتمد ومفعّل ●",
+        "statusChangeDescSuspended": "المندوب الآن في حالة: مجمّد وموقوف !",
+        "payoutSuccessTitle": "براءة ذمة مالية ",
+        "payoutSuccessDesc": "تم توثيق الفعالية وتصفير مستحقات المندوب بقيمة {amount} د.أ بنسخة محاسبية مؤمنة بنجاح.",
+        "signErrorTitle": "فشل بروتوكول التوقيع",
+        "signErrorDescServer": "حدث خطأ في الخادر أثناء معالجة المصادقة والتحقق.",
+        "signSuccessTitle": "تمت المصادقة الثنائية بنجاح ✓",
+        "signSuccessDesc": "تمت مزامنة وإغلاق عدادات المندوب ({name}) بالبكسل التاريخي وتوقيعه بالختم الرقمي من خلال الخادم الأمني.",
+        "signErrorDescUnknown": "حدث خطأ غير متوقع أثناء معالجة المصادقة الرقمية."
+      },
+      "header": {
+        "title": "فيلق جيش المندوبين (Delegates Army Command)",
+        "desc": "بوابة المشرف الموحدة للتحكم بالمناديب، ومراقبة تمديد الروابط السحرية، وإحالات الأقاليم الأردنية والعراقية.",
+        "closeBtn": "إغلاق نافذة التسجيل",
+        "addBtn": "تجنيد مندوب ميداني +"
+      },
+      "tabs": {
+        "delegates": "إدارة المندوبين والاعتماد",
+        "magicLinks": "الروابط السحرية (Magic Links)",
+        "tasks": "متابعة وإسناد المهام",
+        "performance": "محرك الأداء والإحصائيات د.ط"
+      },
+      "addForm": {
+        "title": "صياغة عقد تجنيد جديد لقوات الانتشار الميداني",
+        "desc": "سيتم تخصيص كود إحالة عسكري متين، وتارجت يومي ثابت لتتبع معادلة الكسب والعجز.",
+        "nameLabel": "اسم المندوب المعتمد",
+        "namePlaceholder": "مثال: يوسف مأمون بني ملحم",
+        "phoneLabel": "رقم الهاتف النشط",
+        "phonePlaceholder": "مثال: 0797744111",
+        "regionLabel": "محافظة ومنطقة الإدارة جغرافياً",
+        "regions": {
+          "wadiSeer": "وادي السير (عمان)",
+          "univ": "منطقة الجامعة (عمان)",
+          "kasaba": "قصبة عمان (عمان)",
+          "karrada": "الكرادة (بغداد - العراق)"
+        },
+        "targetLabel": "التارجت اليومي الملتزم به",
+        "targetPlaceholder": "مثال: 10",
+        "expiryLabel": "مدة صلاحية الروابط السحرية",
+        "expirations": {
+          "24": "24 ساعة (يوم كامل)",
+          "48": "48 ساعة (يومين)",
+          "72": "72 ساعة (ثلاثة أيام)"
+        },
+        "preCountLabel": "أرقام مقيدة مسبقاً",
+        "subRoleLabel": "نوع الصلاحيات الميدانية",
+        "subRoles": {
+          "independent": "مندوب مستقل (صامت وموفر للموارد)",
+          "captain": "مندوب سائق (نشط بالنشاط الميداني والـ GPS)"
+        },
+        "fleetActiveLabel": "حالة النشاط الميداني الفوري",
+        "fleetActiveCheck": "تفعيل الـ GPS ومستشعر الحركة",
+        "cancel": "إلغاء الأمر",
+        "submit": "إنشاء العقد وتجهيز الكود 🔒"
+      },
+      "delegatesTab": {
+        "title": "منتسبي جيش الميدان ومنطقة التنسيق الجغرافي",
+        "desc": "تتبع رموز إحالة المندوبين، تعيين التارجت، حظر الأمان التلقائي، وتنسيق تسييل العوائد.",
+        "table": {
+          "colDelegate": "المندوب والإقليم",
+          "colCode": "كود الإحالة",
+          "colTarget": "التارجت اليومي",
+          "colDrivers": "السائقون المسجلين",
+          "colOrganic": "انتساب عضوي",
+          "colLinks": "سقوف الروابط",
+          "colStatus": "حالة الاعتماد",
+          "colControl": "التحكم السحابي"
+        },
+        "badges": {
+          "captain": "🎖️ مندوب سائق",
+          "independent": "💼 مندوب مستقل",
+          "activeField": "● نشط ميدانياً",
+          "inactiveField": "○ خامل",
+          "targetSuffix": "حاقن/يوم",
+          "driverSuffix": "سائق",
+          "sigValid": "✓ توقيع رقمي معتمد",
+          "sigInvalid": "⚠️ تالف أو غير موقّع",
+          "discrepancy": "⚠️ تضارب: الفعلي ({count})",
+          "match": "✓ تطابق مبرهن ({count})",
+          "signBtn": "مصادقة وتوقيع تشفيري ⚡",
+          "organicPrefix": "+",
+          "organicSuffix": " نمو عضوي",
+          "hourSuffix": " ساعة",
+          "statusActive": "مفعّل ونشط ●",
+          "statusSuspended": "مجمّد مؤقتاً ||"
+        },
+        "actions": {
+          "genLink": "توليد رابط سحري",
+          "freeze": "تجميد المندوب",
+          "unfreeze": "تنشيط المندوب"
+        },
+        "empty": "لا يوجد مندوبين معتمدين مسجلين في النظام بعد."
+      },
+      "magicLinksTab": {
+        "title": "محرك الروابط السحرية والولوج الفوري",
+        "desc": "قائمة الروابط الصادرة لحسابات المندوبين مع تتبع الأمان والحدود الزمنية لإنهاء الصلاحية تلافياً لأي تسلل.",
+        "table": {
+          "colBeneficiary": "المندوب المستفيد",
+          "colLink": "رابط الدخول المشفر",
+          "colExpiry": "الانتهاء الزمني",
+          "colValidity": "الصلاحية لمرة واحدة",
+          "colAction": "إجراء "
+        },
+        "actions": {
+          "copySuccessTitle": "تم نسخ الرابط السحري",
+          "copySuccessDesc": "يمكنك إرساله للمندوب للدخول بنقرة واحدة.",
+          "revokeBtn": "إبطال وحرق الرابط"
+        },
+        "status": {
+          "used": "تم الاستهلاك",
+          "revoked": "أبطل بالكامل",
+          "expired": "منتهي الصلاحية",
+          "active": "صالح ونشط"
+        },
+        "empty": "لا يوجد أي روابط سحرية نشطة حالياً. يمكنك توليد رابط بجانب اسم المندوب في الأعلى."
+      },
+      "tasksTab": {
+        "title": "متابعة حالة المهام الميدانية المفتوحة",
+        "table": {
+          "colTask": "المهمة والمندوب",
+          "colDesc": "التفاصيل والتكليف",
+          "colDeadline": "السقف الزمني",
+          "colStatus": "حالة المهمة",
+          "colAction": "الإجراء السلوكي"
+        },
+        "cell": {
+          "delegatePrefix": "للمندوب: "
+        },
+        "status": {
+          "pending": "بانتظار العرض",
+          "acknowledged": "اطّلع المندوب",
+          "completed": "أُنجزت ✓",
+          "closed": "مغلقة ومؤرشفة"
+        },
+        "actions": {
+          "closeBtn": "إغلاق وأرشفة"
+        },
+        "empty": "لا يوجد مهام ميدانية جارية مسندة حالياً. استخدم اللوحة الجانبية لإنشاء أول مهمة للجيش الميدني.",
+        "createForm": {
+          "title": "صياغة أمر عسكري ميداني (مهمة)",
+          "desc": "سيصل إشعار فوري للمندوب في لوحته لإلزامه بالتنفيذ والرد بالنتائج الجغرافية.",
+          "selectLabel": "اختر المندوب المستهدف",
+          "selectPlaceholder": "-- اسم المندوب الرباعي --",
+          "titleLabel": "عنوان التكليف",
+          "titlePlaceholder": "مثال: غرز 15 سائق في منطقة صويلح",
+          "descLabel": "مضمون الإجراء السلوكي والمحفزات",
+          "descPlaceholder": "يرجى توزيع الملصقات وكتابة رمز الإحالة JO-SWAILEH.. ومساعدة السائقون في تخطي عقبة الفحص الأولي للسيارات.",
+          "deadlineLabel": "مستهدف السقف الزمني",
+          "submitBtn": "إرسال وإسناد الأمر الميداني فورا ⚡"
+        }
+      },
+      "performanceTab": {
+        "directGrowth": {
+          "title": "عواصف النمو المباشر",
+          "suffix": " سائق",
+          "desc": "توسّع إيجابي وقدرة تجنيدية صارمة"
+        },
+        "organicGrowth": {
+          "title": "إجمالي الانتساب العضوي (الألوية)",
+          "prefix": "+",
+          "suffix": " منتسب",
+          "desc": "معدل نمو عضوي بنسبة {index}%"
+        },
+        "churn": {
+          "title": "نسبة الانسحاب والخسارة",
+          "desc": "إجمالي حذف التطبيق: {count} سائقين"
+        },
+        "steady": {
+          "title": "السائقون الثابتين (+45 يوم)",
+          "suffix": " سائق",
+          "desc": "معدل التزام مبرهن بصمامات قوية"
+        },
+        "comparison": {
+          "title": "مقارنة كفوءة لألوية الاقتدار والإدارة",
+          "desc": "مخطط الكفاءة والنمو شهرياً بموجب تتبع الحالات الميدانية وحماية الروابط.",
+          "regionPrefix": "الإقليم: ",
+          "sigValid": "✓ موثق تشفيرياً",
+          "sigInvalid": "⚠️ غير موثق",
+          "driverSuffix": " سائق",
+          "extendedOrganic": "النمو العضوي المتمدد: +{count}",
+          "steadyAlerts": "تنبيهات الثبات (45 يوم): {count} سائق ملتزم"
+        }
+      }
+    }
   }
 }

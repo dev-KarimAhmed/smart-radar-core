@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { DriverData } from '@/hooks/admin/useSovereignDashboard';
+import { useTranslations } from 'next-intl';
 
 const styles = {
   style34_1: "bg-[#050505] border border-red-500/15 shadow-[0_8px_32px_rgba(0,0,0,0.5)] rounded-2xl overflow-hidden mt-8",
@@ -74,42 +75,44 @@ export function DriverBlackBoxPanel({
   handleSovereignKillSwitch,
   handleReviveDriver
 }: DriverBlackBoxPanelProps) {
+  const t = useTranslations('driverBlackboxPanel');
+
   return (
     <Card className={styles.style34_1}>
       <CardHeader className={styles.style35_2}>
         <CardTitle className={styles.style36_3}>
           <Flame className={styles.style37_4} />
-          منصة تفعيل "الصندوق الأسود" لوقف النواقل الفوري (Black-Box Lethal Strike)
+          {t('title')}
         </CardTitle>
-        <CardDescription className={styles.style40_5} dir="rtl">
-          التحكم الكلي في سلب الحصانة السلوكية للنواقل وبث إشعاعات الوقف وإلغاء الرصيد في الميدان لمنع المضاربات والخرق الجغرافي.
+        <CardDescription className={styles.style40_5}>
+          {t('description')}
         </CardDescription>
       </CardHeader>
       <CardContent className={styles.style44_6}>
         {loadingDrivers ? (
           <div className={styles.style46_7}>
             <Loader2 className={styles.style47_8} />
-            <span>جاري محاذاة البيانات الة للنواقل...</span>
+            <span>{t('loading')}</span>
           </div>
         ) : drivers.length === 0 ? (
           <div className={styles.style51_9}>
             <AlertTriangle className={styles.style52_10} />
-            <span>لا يوجد سائقون أو نواقل مسجلون حالياً.</span>
+            <span>{t('empty')}</span>
           </div>
         ) : (
           <div className={styles.style56_11}>
             <Table>
               <TableHeader className={styles.style58_12}>
                 <TableRow className={styles.style59_13}>
-                  <TableHead className={styles.style60_14}>اسم الناقل وموقع التسجيل</TableHead>
-                  <TableHead className={styles.style61_15}>رقم الهاتف</TableHead>
-                  <TableHead className={styles.style62_16}>الساعات المتبقية</TableHead>
-                  <TableHead className={styles.style63_17}>حصانة الناقل</TableHead>
-                  <TableHead className={styles.style64_18}>الحالة الأمنية</TableHead>
-                  <TableHead className={styles.style65_19}>صعق / إعادة فك</TableHead>
+                  <TableHead className={styles.style60_14}>{t('colName')}</TableHead>
+                  <TableHead className={styles.style61_15}>{t('colPhone')}</TableHead>
+                  <TableHead className={styles.style62_16}>{t('colHours')}</TableHead>
+                  <TableHead className={styles.style63_17}>{t('colImmunity')}</TableHead>
+                  <TableHead className={styles.style64_18}>{t('colSecurity')}</TableHead>
+                  <TableHead className={styles.style65_19}>{t('colAction')}</TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody dir="rtl">
+              <TableBody>
                 {drivers.map((drv) => (
                   <TableRow key={drv.uid} className={styles.style70_20}>
                     <TableCell className={styles.style71_21}>{drv.name}</TableCell>
@@ -119,7 +122,7 @@ export function DriverBlackBoxPanel({
                         styles.style75_24,
                         (drv.paidHoursRemaining || 0) > 0 ? styles.style76_25 : styles.style76_26
                       )}>
-                        {drv.paidHoursRemaining || 0} ساعة
+                        {drv.paidHoursRemaining || 0} {t('hourUnit')}
                       </span>
                     </TableCell>
                     <TableCell className={styles.style81_27}>
@@ -130,17 +133,16 @@ export function DriverBlackBoxPanel({
                         )}>
                           {drv.immunityScore ?? 100.0}%
                         </span>
-                        <span className={styles.style89_32}>immunity</span>
                       </div>
                     </TableCell>
                     <TableCell className={styles.style92_33}>
                       {drv.isBanned ? (
                         <Badge className={styles.style94_34}>
-                          🔴 : مصعوق
+                          {t('bannedStatus')}
                         </Badge>
                       ) : (
                         <Badge className={styles.style98_35}>
-                          🟢 محصن ونشط
+                          {t('activeStatus')}
                         </Badge>
                       )}
                     </TableCell>
@@ -152,7 +154,7 @@ export function DriverBlackBoxPanel({
                           className={styles.style108_37}
                         >
                           <RotateCcw className={styles.style110_38} />
-                          إلغاء الصعق وإحياء
+                          {t('reviveBtn')}
                         </Button>
                       ) : (
                         <Button
@@ -161,7 +163,7 @@ export function DriverBlackBoxPanel({
                           className={styles.style117_39}
                         >
                           <Ban className={styles.style119_40} />
-                          صعق أمني فوري 💥
+                          {t('killBtn')}
                         </Button>
                       )}
                     </TableCell>

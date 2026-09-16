@@ -23,6 +23,7 @@ import { Loader2, Star, Heart, ShieldAlert, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getRankTheme } from '@/core/utils';
 import { useSovereignFleet } from '@/hooks/use-sovereign-fleet';
+import { useTranslations } from 'next-intl';
 
 const styles = {
   style44_1: "flex items-center justify-center py-20 text-muted-foreground",
@@ -69,14 +70,14 @@ const getStatusIndicator = (status?: string) => {
 
 
 export function DriversManagementTab() {
-  // 🏛️ استدعاء العصب المركزي للأسطول (SSOT)
   const { drivers, loading, error } = useSovereignFleet();
+  const t = useTranslations('driversTab');
 
   if (loading) {
     return (
       <div className={styles.style44_1}>
         <Loader2 className={styles.style45_2} />
-        <span>جاري استدعاء الأسطول ...</span>
+        <span>{t('loading')}</span>
       </div>
     );
   }
@@ -85,7 +86,7 @@ export function DriversManagementTab() {
     return (
       <div className={styles.style53_3}>
         <ShieldAlert className={styles.style54_4} />
-        <span className={styles.style55_5}>{error}</span>
+        <span className={styles.style55_5}>{t('errorPrefix')}: {error}</span>
       </div>
     );
   }
@@ -94,34 +95,41 @@ export function DriversManagementTab() {
     return (
        <div className={styles.style62_6}>
           <Users className={styles.style63_7} />
-          <h3 className={styles.style64_8}>لا يوجد سائقين في الأسطول</h3>
-          <p className={styles.style65_9}>لم يقم أي سائق بالتسجيل في المنصة بعد.</p>
+          <h3 className={styles.style64_8}>{t('empty')}</h3>
+          <p className={styles.style65_9}>{t('emptyDesc')}</p>
         </div>
     )
   }
 
   return (
-    <Card>
+    <Card dir="rtl">
       <CardHeader>
-        <CardTitle>برج المراقبة </CardTitle>
+        <CardTitle>{t('title')}</CardTitle>
         <CardDescription>
-          نظرة مباشرة وحية على أداء وهويات جميع السائقون في الأسطول.
+          {t('desc')}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>الهوية</TableHead>
-              <TableHead className={styles.style83_10}>الرتبة </TableHead>
-              <TableHead className={styles.style84_11}>الأداء (النجوم)</TableHead>
-              <TableHead className={styles.style85_12}>نشاط الولاء</TableHead>
-              <TableHead className={styles.style86_13}>الحالة</TableHead>
+              <TableHead>{t('table.identity')}</TableHead>
+              <TableHead className={styles.style83_10}>{t('table.rank')}</TableHead>
+              <TableHead className={styles.style84_11}>{t('table.rating')}</TableHead>
+              <TableHead className={styles.style85_12}>{t('table.loyalty')}</TableHead>
+              <TableHead className={styles.style86_13}>{t('table.status')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {drivers.map((driver: any) => {
               const rankTheme = getRankTheme(driver.rank);
+              
+              let statusTranslation = t('status.unknown');
+              if (driver.status === 'active') statusTranslation = t('status.active');
+              else if (driver.status === 'busy') statusTranslation = t('status.busy');
+              else if (driver.status === 'rating') statusTranslation = t('status.rating');
+              else if (driver.status === 'idle') statusTranslation = t('status.idle');
+
               return (
                 <TableRow key={driver.uid}>
                   <TableCell>
@@ -152,7 +160,7 @@ export function DriversManagementTab() {
                   </TableCell>
                   <TableCell className={styles.style120_26}>
                      <div className={styles.style121_27}>
-                        <span className={styles.style122_28}>{driver.status || 'unknown'}</span>
+                        <span className={styles.style122_28}>{statusTranslation}</span>
                         <div className={cn(styles.style123_29, getStatusIndicator(driver.status))} />
                      </div>
                   </TableCell>

@@ -1,0 +1,602 @@
+import React from 'react';
+import { dexieDb, type RiderTripLedgerEntry } from '@/lib/dexie-db';
+import { supabase } from '@/lib/supabase-client';
+
+export const styles = {
+  style361_1: "space-y-4 animate-pulse",
+  style363_2: "bg-neutral-900/45 border border-white/5 p-4 rounded-xl space-y-3",
+  style364_3: "flex justify-between items-start",
+  style365_4: "space-y-2 w-2/3",
+  style366_5: "h-4 bg-white/10 rounded w-3/4",
+  style367_6: "h-3 bg-white/5 rounded w-1/2",
+  style369_7: "h-6 bg-white/10 rounded w-16",
+  style371_8: "pt-2 border-t border-white/5 flex gap-2",
+  style372_9: "h-6 bg-white/5 rounded w-32",
+  style830_10: "mt-3 rounded-xl border border-white/5 bg-white/[0.02] p-3 text-xs space-y-2 text-start",
+  style831_11: "flex items-center gap-1.5 text-[#14F5D5] font-bold justify-start",
+  style832_12: "h-3.5 w-3.5 fill-[#14F5D5] text-[#14F5D5]",
+  style837_13: "flex flex-wrap gap-1 justify-start",
+  style839_14: "inline-flex items-center bg-teal-500/10 text-teal-300 text-[10px] px-2 py-0.5 rounded border border-teal-500/10 font-bold",
+  style847_15: "text-[11px] text-slate-300 italic border-r-2 border-emerald-500/40 pr-2 mt-1.5 leading-normal text-right",
+  style857_16: "w-full max-w-xl mx-auto pb-24 text-start font-sans space-y-6 animate-in fade-in duration-500",
+  style858_17: "bg-[#050505] border-emerald-950 text-white overflow-hidden shadow-2xl relative",
+  style859_18: "absolute top-0 left-0 w-full h-1 bg-emerald-500 animate-pulse",
+  style860_19: "p-6 space-y-2",
+  style861_20: "text-lg font-black text-emerald-400 flex items-center gap-2",
+  style862_21: "h-5 w-5 text-emerald-500",
+  style865_22: "text-xs text-gray-400 leading-relaxed font-sans",
+  style871_23: "bg-[#020502]/95 border border-emerald-950 shadow-xl",
+  style872_24: "pb-3 border-b border-white/5 flex flex-row items-center justify-between",
+  style874_25: "text-sm font-extrabold text-white flex items-center gap-1.5",
+  style875_26: "h-4 w-4 text-emerald-500",
+  style878_27: "text-[10px] text-gray-400 mt-1",
+  style882_28: "text-[10px] border-emerald-500/20 text-emerald-400 bg-emerald-950/20 font-mono",
+  style887_29: "p-4 space-y-3.5",
+  style891_30: "p-8 text-center bg-black/40 border border-dashed border-white/5 rounded-xl",
+  style892_31: "h-8 w-8 text-gray-600 mx-auto mb-2 animate-pulse",
+  style893_32: "text-xs text-gray-400 font-medium",
+  style903_33: "bg-black/40 border border-white/5 p-4 rounded-xl space-y-3 relative overflow-hidden group hover:border-emerald-500/20 transition-all",
+  style907_34: "absolute top-4 right-4 p-1.5 rounded-lg bg-emerald-950/20 border border-emerald-500/10 text-rose-500 transition-all hover:scale-105 active:scale-95",
+  style910_35: "h-4.5 w-4.5 transition-all",
+  style910_36: "fill-[#00ffcc] text-[#00ffcc] drop-shadow-[0_0_8px_#00ffcc]",
+  style910_37: "text-gray-400 hover:text-rose-400",
+  style913_38: "flex justify-between items-start pr-8",
+  style915_39: "font-extrabold text-sm text-white flex items-center gap-1.5",
+  style917_40: "text-[9px] font-mono text-amber-400 bg-amber-950/20 border border-amber-500/10 px-1.5 py-0.5 rounded select-none",
+  style921_41: "text-[11px] text-gray-400 font-sans mt-1",
+  style923_42: "mt-1 inline-flex items-center gap-1 bg-[#011e15] text-[#00ffcc] text-[9px] font-mono px-1.5 py-0.5 rounded border border-emerald-500/20",
+  style928_43: "text-right shrink-0",
+  style929_44: "text-[12px] text-emerald-400 font-black font-mono block",
+  style932_45: "text-[9px] text-gray-500 font-sans block mt-0.5",
+  style941_46: "flex gap-2 pt-2 border-t border-white/5",
+  style944_47: "px-3 py-1.5 bg-emerald-950/30 font-black text-[10px] text-emerald-400 border border-emerald-500/20 hover:bg-emerald-950/60 rounded-lg flex items-center gap-1 text-center select-none",
+  style947_48: "h-3 w-3",
+  style959_49: "bg-[#010301] border border-emerald-950 shadow-xl",
+  style960_50: "pb-3 border-b border-white/5 flex flex-row items-center justify-between",
+  style962_51: "text-sm font-extrabold text-[#00ffcc] flex items-center gap-1.5",
+  style963_52: "h-4 w-4 text-emerald-400 animate-pulse",
+  style966_53: "text-[10px] text-gray-400 mt-1",
+  style970_54: "bg-emerald-950 text-emerald-400 text-[9px] border border-emerald-500/20",
+  style974_55: "p-6 text-center text-gray-500 text-[11px]",
+  style985_56: "w-full max-w-xl mx-auto pb-24 font-sans space-y-6 animate-in fade-in duration-500 text-start",
+  style987_57: "bg-[#050505] border-emerald-950 text-white overflow-hidden shadow-2xl relative",
+  style988_58: "absolute top-0 left-0 w-full h-1 bg-emerald-500 animate-pulse",
+  style989_59: "p-6 space-y-2",
+  style990_60: "text-lg font-black text-emerald-400 flex items-center gap-2",
+  style991_61: "h-5 w-5 text-emerald-500",
+  style994_62: "text-xs text-gray-400 leading-relaxed font-sans",
+  style1002_63: "space-y-4",
+  style1003_64: "bg-[#020502]/95 border border-emerald-950 shadow-xl",
+  style1004_65: "pb-3 border-b border-white/5 flex flex-row items-center justify-between",
+  style1006_66: "text-sm font-extrabold text-white flex items-center gap-1.5",
+  style1007_67: "h-4 w-4 text-emerald-500",
+  style1010_68: "text-[10px] text-gray-400 mt-1",
+  style1014_69: "text-[10px] border-emerald-500/20 text-emerald-400 bg-emerald-950/20 font-mono",
+  style1019_70: "p-4 space-y-3.5",
+  style1023_71: "p-8 text-center bg-black/40 border border-dashed border-white/5 rounded-xl",
+  style1024_72: "h-8 w-8 text-gray-600 mx-auto mb-2 animate-pulse",
+  style1025_73: "text-xs text-gray-400 font-medium",
+  style1035_74: "bg-black/40 border border-white/5 p-4 rounded-xl space-y-3 relative overflow-hidden group hover:border-emerald-500/20 transition-all",
+  style1040_75: "absolute top-4 left-4 p-1.5 rounded-lg bg-emerald-950/20 border border-emerald-500/10 text-rose-500 transition-all hover:scale-105 active:scale-95",
+  style1042_76: "h-4.5 w-4.5 transition-all",
+  style1042_77: "fill-[#00ffcc] text-[#00ffcc] drop-shadow-[0_0_8px_#00ffcc]",
+  style1042_78: "text-gray-400 hover:text-rose-400",
+  style1045_79: "flex justify-between items-start pl-8",
+  style1047_80: "font-extrabold text-sm text-white flex items-center gap-1.5",
+  style1049_81: "text-[9px] font-mono text-amber-400 bg-amber-950/20 border border-amber-500/10 px-1.5 py-0.5 rounded select-none",
+  style1053_82: "text-[11px] text-gray-400 font-sans mt-1",
+  style1055_83: "mt-1 flex items-center",
+  style1056_84: "inline-flex items-center gap-1 bg-[#011e15] text-[#00ffcc] text-[9px] font-mono px-1.5 py-0.5 rounded border border-emerald-500/20",
+  style1062_85: "text-left shrink-0",
+  style1063_86: "text-[12px] text-emerald-400 font-black font-mono block",
+  style1066_87: "text-[9px] text-gray-500 font-sans block mt-0.5",
+  style1074_88: "flex gap-2 pt-2 border-t border-white/5",
+  style1077_89: "px-3 py-1.5 bg-emerald-950/30 font-black text-[10px] text-emerald-400 border border-emerald-500/20 hover:bg-emerald-950/60 rounded-lg flex items-center gap-1 text-center select-none",
+  style1080_90: "h-3 w-3",
+  style1092_91: "bg-[#010301] border border-emerald-950 shadow-xl",
+  style1093_92: "pb-3 border-b border-white/5 flex flex-row items-center justify-between",
+  style1095_93: "text-sm font-extrabold text-[#00ffcc] flex items-center gap-1.5",
+  style1096_94: "h-4 w-4 text-emerald-400 animate-pulse",
+  style1099_95: "text-[10px] text-gray-400 mt-1",
+  style1103_96: "bg-emerald-950 text-emerald-400 text-[9px] border border-emerald-500/20",
+  style1107_97: "p-4 space-y-3",
+  style1109_98: "p-6 text-center text-gray-500 text-[11px]",
+  style1111_99: "text-[#00ffcc]",
+  style1113_100: "text-[#00ffcc]",
+  style1117_101: "grid grid-cols-1 gap-2.5",
+  style1121_102: "bg-[#060a06] border border-emerald-500/10 p-3 rounded-lg flex justify-between items-center",
+  style1123_103: "space-y-0.5",
+  style1124_104: "font-extrabold text-white text-[12px] flex items-center gap-1",
+  style1126_105: "text-[8px] font-mono text-amber-500",
+  style1128_106: "text-[10px] text-gray-400 leading-normal font-sans",
+  style1131_107: "flex gap-1.5",
+  style1134_108: "p-1 px-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-[10px] font-bold flex items-center gap-1 shrink-0",
+  style1137_109: "h-3 w-3",
+  style1143_110: "h-7 w-7 text-red-400 hover:bg-red-950/20 border border-transparent hover:border-red-500/20 rounded",
+  style1145_111: "h-3.5 w-3.5",
+  style1158_112: "space-y-6",
+  style1159_113: "bg-[#020502]/95 border border-emerald-950 shadow-xl",
+  style1160_114: "pb-3 border-b border-white/5 flex flex-row items-center justify-between",
+  style1162_115: "text-sm font-extrabold text-white flex items-center gap-1.5",
+  style1163_116: "h-4 w-4 text-emerald-500",
+  style1166_117: "text-[10px] text-gray-400 mt-1 font-sans",
+  style1170_118: "text-[10px] border-emerald-500/20 text-emerald-400 bg-emerald-950/20 font-mono",
+  style1175_119: "p-4 space-y-3.5",
+  style1179_120: "p-8 text-center bg-black/40 border border-dashed border-white/5 rounded-xl",
+  style1180_121: "h-8 w-8 text-gray-600 mx-auto mb-2 animate-pulse",
+  style1181_122: "text-xs text-gray-400 font-medium",
+  style1190_123: "bg-black/40 border border-white/5 p-4 rounded-xl space-y-3 hover:border-emerald-500/20 transition-all font-mono",
+  style1192_124: "flex justify-between items-start",
+  style1194_125: "font-extrabold text-sm text-white flex items-center gap-1",
+  style1197_126: "text-[11px] text-gray-400 font-sans mt-1",
+  style1201_127: "mt-1 flex items-center",
+  style1202_128: "inline-flex items-center gap-1 bg-[#011e15] text-[#00ffcc] text-[9px] font-mono px-1.5 py-0.5 rounded border border-emerald-500/20",
+  style1208_129: "text-left shrink-0",
+  style1209_130: "text-[12px] text-emerald-400 font-black block",
+  style1212_131: "text-[9px] text-gray-500 font-sans block mt-0.5",
+  style1225_132: "bg-[#020502]/95 border border-emerald-950/60 shadow-xl overflow-hidden relative text-right",
+  style1226_133: "absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 animate-pulse",
+  style1227_134: "pb-3 border-b border-white/5",
+  style1228_135: "flex flex-row items-center justify-between",
+  style1230_136: "text-sm font-black text-emerald-400 flex items-center gap-2",
+  style1231_137: "h-5 w-5 text-emerald-500 animate-pulse",
+  style1234_138: "text-[10px] text-gray-400 mt-1 font-sans",
+  style1238_139: "text-[9px] border-emerald-500/30 text-emerald-300 bg-emerald-950/30 font-mono",
+  style1243_140: "p-5 space-y-4",
+  style1244_141: "p-4 bg-emerald-950/10 border border-emerald-500/10 rounded-xl space-y-3",
+  style1245_142: "flex items-start gap-3",
+  style1246_143: "p-2 bg-emerald-950/40 rounded-lg text-emerald-400 shrink-0 mt-0.5 border border-emerald-500/20",
+  style1247_144: "h-4 w-4",
+  style1249_145: "space-y-1",
+  style1250_146: "text-xs font-bold text-white",
+  style1251_147: "text-[11px] text-gray-400 leading-relaxed",
+  style1257_148: "flex items-start gap-3 pt-3 border-t border-white/5",
+  style1258_149: "p-2 bg-cyan-950/40 rounded-lg text-cyan-400 shrink-0 mt-0.5 border border-cyan-500/20",
+  style1259_150: "h-4 w-4",
+  style1261_151: "space-y-1",
+  style1262_152: "text-xs font-bold text-white",
+  style1263_153: "text-[11px] text-gray-400 leading-relaxed",
+  style1269_154: "flex items-start gap-3 pt-3 border-t border-white/5",
+  style1270_155: "p-2 bg-amber-950/40 rounded-lg text-amber-400 shrink-0 mt-0.5 border border-amber-500/20",
+  style1271_156: "h-4 w-4",
+  style1273_157: "space-y-1",
+  style1274_158: "text-xs font-bold text-white",
+  style1275_159: "text-[11px] text-gray-400 leading-relaxed",
+  style1282_160: "flex items-center justify-between p-3 bg-black/40 border border-[#00ffcc]/10 rounded-lg",
+  style1283_161: "flex items-center gap-2",
+  style1284_162: "h-2 w-2 rounded-full bg-[#00ffcc] animate-ping",
+  style1285_163: "text-[10px] text-gray-400 font-sans",
+  style1286_164: "text-[10px] text-[#00ffcc] font-black font-mono",
+  style1288_165: "text-[9px] text-gray-500 font-sans",
+  style1294_166: "bg-[#020502]/95 border border-emerald-950 shadow-xl overflow-hidden relative text-right",
+  style1295_167: "absolute top-0 left-0 w-full h-[2px] bg-cyan-500 animate-pulse",
+  style1296_168: "pb-3 border-b border-white/5 flex flex-row items-center justify-between",
+  style1298_169: "text-sm font-extrabold text-[#00ffcc] flex items-center gap-1.5",
+  style1299_170: "h-4 w-4 text-[#00ffcc] animate-pulse",
+  style1302_171: "text-[10px] text-gray-400 mt-1 font-sans",
+  style1306_172: "flex items-center gap-2",
+  style1312_173: "h-7 text-[10px] text-rose-400 hover:bg-rose-950/20 hover:text-rose-300 gap-1",
+  style1314_174: "h-3 w-3",
+  style1318_175: "text-[10px] border-cyan-500/20 text-cyan-400 bg-cyan-950/20 font-mono",
+  style1324_176: "p-4 space-y-3",
+  style1328_177: "p-8 text-center bg-black/40 border border-dashed border-white/5 rounded-xl space-y-2",
+  style1329_178: "h-8 w-8 text-cyan-800 mx-auto animate-pulse",
+  style1330_179: "text-xs text-gray-400 font-medium",
+  style1331_180: "text-[10px] text-gray-500 leading-normal",
+  style1336_181: "space-y-3 max-h-[400px] overflow-y-auto pr-1",
+  style1351_182: "bg-black/40 border border-white/5 p-3 rounded-lg hover:border-cyan-500/10 transition-all font-sans space-y-1.5 text-right",
+  style1353_183: "flex justify-between items-center",
+  style1354_184: "text-[9px] font-bold px-2 py-0.5 rounded border",
+  style1357_185: "text-[9px] text-gray-500 font-mono",
+  style1361_186: "space-y-0.5",
+  style1362_187: "text-[12px] font-black text-white",
+  style1365_188: "text-[11px] text-gray-400 leading-normal",
+  style1378_189: "bg-[#020502]/95 border border-[#00ffcc]/20 shadow-xl overflow-hidden relative text-right",
+  style1379_190: "absolute top-0 left-0 w-full h-[2px] bg-[#00ffcc] animate-pulse",
+  style1380_191: "pb-3 border-b border-white/5",
+  style1381_192: "flex flex-row items-center justify-between",
+  style1383_193: "text-sm font-extrabold text-[#00ffcc] flex items-center gap-1.5",
+  style1384_194: "h-4 w-4 text-[#00ffcc] animate-pulse",
+  style1387_195: "text-[10px] text-gray-400 mt-1 font-sans",
+  style1391_196: "text-[10px] border-[#00ffcc]/20 text-[#00ffcc] bg-[#00ffcc]/5 font-mono",
+  style1397_197: "mt-4 space-y-2.5",
+  style1398_198: "relative",
+  style1399_199: "absolute right-3 top-2.5 h-3.5 w-3.5 text-gray-500",
+  style1405_200: "w-full bg-black/60 border border-white/5 rounded-lg py-2 pr-9 pl-3 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#00ffcc]/40 transition-all font-sans",
+  style1409_201: "flex flex-wrap gap-1.5 justify-start",
+  style1414_202: "h-7 text-[10px] font-bold px-2",
+  style1414_203: "bg-[#00ffcc] text-black hover:bg-[#00ffcc]/80",
+  style1414_204: "border-white/5 text-gray-400 hover:bg-white/5",
+  style1422_205: "h-7 text-[10px] font-bold px-2",
+  style1422_206: "bg-[#00ffcc] text-black hover:bg-[#00ffcc]/80",
+  style1422_207: "border-white/5 text-gray-400 hover:bg-white/5",
+  style1430_208: "h-7 text-[10px] font-bold px-2",
+  style1430_209: "bg-[#00ffcc] text-black hover:bg-[#00ffcc]/80",
+  style1430_210: "border-white/5 text-gray-400 hover:bg-white/5",
+  style1438_211: "h-7 text-[10px] font-bold px-2",
+  style1438_212: "bg-[#00ffcc] text-black hover:bg-[#00ffcc]/80",
+  style1438_213: "border-white/5 text-gray-400 hover:bg-white/5",
+  style1446_214: "h-7 text-[10px] font-bold px-2",
+  style1446_215: "bg-[#00ffcc] text-black hover:bg-[#00ffcc]/80",
+  style1446_216: "border-white/5 text-gray-400 hover:bg-white/5",
+  style1454_217: "h-7 text-[10px] font-bold px-2",
+  style1454_218: "bg-[#00ffcc] text-black hover:bg-[#00ffcc]/80",
+  style1454_219: "border-white/5 text-gray-400 hover:bg-white/5",
+  style1462_220: "p-4 space-y-3",
+  style1464_221: "p-8 text-center bg-black/40 border border-dashed border-white/5 rounded-xl space-y-1.5",
+  style1465_222: "h-6 w-6 text-gray-600 mx-auto",
+  style1466_223: "text-xs text-gray-400",
+  style1469_224: "grid grid-cols-1 gap-2 max-h-[400px] overflow-y-auto pr-1",
+  style1472_225: "h-3.5 w-3.5 text-cyan-400",
+  style1475_226: "h-3.5 w-3.5 text-emerald-400",
+  style1478_227: "h-3.5 w-3.5 text-sky-400",
+  style1481_228: "h-3.5 w-3.5 text-purple-400",
+  style1484_229: "h-3.5 w-3.5 text-rose-400 animate-pulse",
+  style1492_230: "border rounded-lg p-3 transition-all cursor-pointer text-right select-none",
+  style1494_231: "bg-black/80 border-[#00ffcc]/40 shadow-[0_0_12px_rgba(0,255,204,0.08)]",
+  style1495_232: "bg-black/40 border-white/5 hover:border-white/10",
+  style1498_233: "flex justify-between items-center",
+  style1499_234: "flex items-center gap-1.5",
+  style1501_235: "text-[12px] font-black font-mono text-white",
+  style1505_236: "text-[9px] text-gray-500 font-sans",
+  style1510_237: "mt-1.5",
+  style1511_238: "text-[12px] font-bold text-gray-200",
+  style1517_239: "mt-3 pt-3 border-t border-white/5 space-y-2.5 animate-fadeIn text-right",
+  style1518_240: "space-y-1",
+  style1519_241: "text-[9px] text-gray-500 block",
+  style1520_242: "text-[11px] text-gray-300 leading-normal",
+  style1524_243: "bg-[#022a22]/30 border border-emerald-500/20 rounded p-2 space-y-1",
+  style1525_244: "text-[9px] text-[#00ffcc] font-bold block",
+  style1526_245: "text-[11px] text-emerald-300 leading-normal font-sans",
+  logDefault: "border-cyan-500/10 text-cyan-400 bg-cyan-950/10",
+  logSystem: "border-amber-500/10 text-amber-400 bg-amber-950/10",
+  logDistrict: "border-rose-500/10 text-rose-400 bg-rose-950/10",
+} as const;
+
+export interface HistoricalTrip {
+  tripId: string;
+  captainId?: string;
+  serialId?: string;
+  captainName: string;
+  captainRank: 'PLATINUM' | 'GOLD' | 'SILVER' | 'BRONZE';
+  captainPhone: string;
+  vehicleInfo: string;
+  finalPrice: number;
+  timestamp: number;
+}
+
+export const HISTORY_TTL_MS = 3 * 24 * 60 * 60 * 1000;
+export const UNAVAILABLE_FALLBACK = '';
+
+export function normalizeCaptainRank(value: unknown): HistoricalTrip['captainRank'] {
+  const normalized = `${value || ''}`.toUpperCase();
+  if (normalized.includes('PLATINUM')) return 'PLATINUM';
+  if (normalized.includes('GOLD')) return 'GOLD';
+  if (normalized.includes('SILVER')) return 'SILVER';
+  return 'BRONZE';
+}
+
+export function formatVehicleInfo(vehicle: any) {
+  if (!vehicle || typeof vehicle !== 'object') return UNAVAILABLE_FALLBACK;
+  const parts = [
+    vehicle.make,
+    vehicle.vehicle_make,
+    vehicle.brand,
+    vehicle.vehicle_brand,
+    vehicle.model,
+    vehicle.vehicle_model,
+    vehicle.color,
+    vehicle.vehicle_color,
+    vehicle.plate,
+    vehicle.plate_number,
+    vehicle.vehicle_plate,
+  ].filter(Boolean);
+  return parts.length > 0 ? parts.join(' - ') : UNAVAILABLE_FALLBACK;
+}
+
+export function isPlainRecord(value: unknown): value is Record<string, any> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+export function firstHistoryString(...values: unknown[]) {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim()) return value.trim();
+    if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+  }
+  return '';
+}
+
+export function firstHistoryNumber(...values: unknown[]) {
+  for (const value of values) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return undefined;
+}
+
+export function getCaptainIdFromTrip(trip: any) {
+  return firstHistoryString(
+    trip?.captain_id,
+    trip?.accepted_captain_id,
+    trip?.driver_id,
+    trip?.captain?.id,
+    trip?.captain_profile?.id,
+    trip?.metadata?.captain_id,
+    trip?.metadata?.captainId,
+    trip?.acceptedOffer?.captain_id,
+    trip?.acceptedOffer?.captain?.id,
+    trip?.acceptedOffer?.driverId
+  );
+}
+
+export function getHistoryCaptainName(trip: any, acceptedOffer?: any) {
+  return firstHistoryString(
+    trip?.captain?.full_name,
+    trip?.captain?.name,
+    trip?.captain_profile?.full_name,
+    trip?.metadata?.captain_name,
+    trip?.metadata?.captainName,
+    acceptedOffer?.driverName,
+    acceptedOffer?.captain?.full_name,
+    trip?.driver_name,
+    trip?.captain_name,
+    trip?.driverName
+  ) || 'Captain';
+}
+
+export function getHistoryCaptainPhone(trip: any, acceptedOffer?: any) {
+  return firstHistoryString(
+    trip?.captain?.phone,
+    trip?.captain?.phone_number,
+    trip?.captain_profile?.phone,
+    trip?.metadata?.captain_phone,
+    trip?.metadata?.captainPhone,
+    acceptedOffer?.driverVehicle?.phone,
+    acceptedOffer?.captain?.phone,
+    trip?.driver_phone,
+    trip?.captain_phone,
+    trip?.driverPhone
+  );
+}
+
+export function getHistoryCaptainRank(trip: any, acceptedOffer?: any) {
+  return normalizeCaptainRank(
+    firstHistoryString(
+      trip?.captain_rank,
+      trip?.captainRank,
+      trip?.captain?.rank,
+      trip?.captain?.tier,
+      trip?.captain_profile?.rank,
+      trip?.captain_profile?.tier,
+      trip?.captain_profile?.membership_tier,
+      trip?.metadata?.captain_rank,
+      trip?.metadata?.captainRank,
+      acceptedOffer?.driverRank,
+      acceptedOffer?.tier,
+      trip?.driver_rank,
+      trip?.driverRank
+    ) || firstHistoryNumber(trip?.captain?.rating, trip?.captain?.trust_score, acceptedOffer?.driverRating, 5)
+  );
+}
+
+export function getHistoryVehicleInfo(trip: any, acceptedOffer?: any) {
+  const metadata = isPlainRecord(trip?.metadata) ? trip.metadata : {};
+  const vehicle = acceptedOffer?.driverVehicle || trip?.driver_vehicle || trip?.vehicle || {};
+  const captainProfile = trip?.captain_profile || {};
+  const captain = trip?.captain || {};
+  const parts = [
+    firstHistoryString(
+      metadata.vehicle_make,
+      metadata.vehicle_brand,
+      captainProfile.vehicle_make,
+      captainProfile.vehicle_brand,
+      captain.vehicle_make,
+      captain.vehicle_brand,
+      vehicle.make,
+      vehicle.vehicle_make,
+      vehicle.brand,
+      vehicle.vehicle_brand
+    ),
+    firstHistoryString(
+      metadata.vehicle_model,
+      captainProfile.vehicle_model,
+      captain.vehicle_model,
+      vehicle.model,
+      vehicle.vehicle_model
+    ),
+    firstHistoryString(
+      metadata.vehicle_color,
+      captainProfile.vehicle_color,
+      captain.vehicle_color,
+      vehicle.color,
+      vehicle.vehicle_color
+    ),
+    firstHistoryString(
+      metadata.vehicle_year,
+      captainProfile.vehicle_year,
+      captain.vehicle_year,
+      vehicle.year,
+      vehicle.vehicle_year
+    ),
+    firstHistoryString(
+      metadata.vehicle_plate,
+      metadata.plate_number,
+      captainProfile.vehicle_plate,
+      captainProfile.plate_number,
+      captain.vehicle_plate,
+      captain.plate_number,
+      vehicle.plate,
+      vehicle.plate_number,
+      vehicle.vehicle_plate
+    ),
+  ].filter(Boolean);
+
+  return parts.length > 0
+    ? parts.join(' - ')
+    : firstHistoryString(metadata.vehicle_info, metadata.vehicleInfo, trip?.vehicleInfo, formatVehicleInfo(vehicle));
+}
+
+export async function fetchRowsByIds(tableName: string, ids: string[]) {
+  const uniqueIds = Array.from(new Set(ids.filter(Boolean)));
+  if (uniqueIds.length === 0) return new Map<string, any>();
+
+  try {
+    const { data, error } = await supabase
+      .from(tableName)
+      .select('*')
+      .in('id', uniqueIds);
+
+    if (error || !data) {
+      if (process.env.NODE_ENV !== 'production') console.warn(`[HistoryTab ${tableName} enrichment skipped]`, error);
+      return new Map<string, any>();
+    }
+
+    return new Map(data.map((row: any) => [row.id, row]));
+  } catch (error) {
+    if (process.env.NODE_ENV !== 'production') console.warn(`[HistoryTab ${tableName} enrichment failed]`, error);
+    return new Map<string, any>();
+  }
+}
+
+export async function enrichCaptainDetails(rows: any[]) {
+  const captainIds = Array.from(new Set(rows.map(getCaptainIdFromTrip).filter(Boolean)));
+  if (captainIds.length === 0) return rows;
+
+  const [profileMap, captainProfileMap] = await Promise.all([
+    fetchRowsByIds('profiles', captainIds),
+    fetchRowsByIds('captain_profiles', captainIds),
+  ]);
+
+  return rows.map((row) => {
+    const captainId = getCaptainIdFromTrip(row);
+    const profile = captainId ? profileMap.get(captainId) : null;
+    const captainProfile = captainId ? captainProfileMap.get(captainId) : null;
+    const existingCaptain = isPlainRecord(row?.captain) ? row.captain : {};
+
+    if (!profile && !captainProfile) return row;
+
+    return {
+      ...row,
+      captain_id: row.captain_id || row.accepted_captain_id || captainId,
+      captain: {
+        ...existingCaptain,
+        ...profile,
+        ...(captainProfile ? {
+          vehicle_type: captainProfile.vehicle_type,
+          vehicle_brand: captainProfile.vehicle_brand,
+          vehicle_model: captainProfile.vehicle_model,
+          vehicle_year: captainProfile.vehicle_year,
+          plate_number: captainProfile.plate_number,
+          employment_type: captainProfile.employment_type,
+          contact_page_url: captainProfile.contact_page_url,
+          verification_status: captainProfile.verification_status,
+        } : {}),
+        id: captainId,
+        full_name: firstHistoryString(profile?.full_name, existingCaptain.full_name, captainProfile?.full_name),
+        phone: firstHistoryString(profile?.phone, existingCaptain.phone, captainProfile?.phone),
+      },
+      captain_profile: {
+        ...(isPlainRecord(row?.captain_profile) ? row.captain_profile : {}),
+        ...(captainProfile || {}),
+      },
+    };
+  });
+}
+
+export function parseTripTimestamp(trip: any) {
+  const raw = trip.completed_at ?? trip.completedAt ?? trip.created_at ?? trip.createdAt ?? trip.timestamp;
+  if (typeof raw === 'number') return raw;
+  if (raw?.seconds) return raw.seconds * 1000;
+  const parsed = Date.parse(String(raw || ''));
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+export function getTripHistoryId(row: any) {
+  return String(row?.id || row?.request_id || row?.tripId || '');
+}
+
+export function appendUniqueTrips(existing: any[], incoming: any[]) {
+  const seen = new Set(existing.map(getTripHistoryId).filter(Boolean));
+  const merged = [...existing];
+
+  for (const row of incoming) {
+    const id = getTripHistoryId(row);
+    if (!id || seen.has(id)) continue;
+    merged.push(row);
+    seen.add(id);
+  }
+
+  return merged;
+}
+
+export function mapLedgerRowToTripShape(row: any, captain?: any, captainProfile?: any, rider?: any) {
+  const metadata = row?.metadata && typeof row.metadata === 'object' ? row.metadata : {};
+  const vehicleInfo =
+    metadata.vehicle_info ||
+    metadata.vehicleInfo ||
+    metadata.vehicle ||
+    [
+      metadata.vehicle_make || captainProfile?.vehicle_brand || captain?.vehicle_make || captain?.vehicle_brand,
+      metadata.vehicle_model || captainProfile?.vehicle_model || captain?.vehicle_model,
+      metadata.vehicle_color || captainProfile?.vehicle_color || captain?.vehicle_color,
+      metadata.vehicle_year || captainProfile?.vehicle_year || captain?.vehicle_year,
+      metadata.vehicle_plate || metadata.plate_number || captainProfile?.plate_number || captain?.vehicle_plate || captain?.plate_number,
+    ]
+      .filter(Boolean)
+      .join(' - ');
+
+  return {
+    id: row.request_id || row.id,
+    request_id: row.request_id,
+    status: row.status || 'COMPLETED',
+    completed_at: row.completed_at,
+    created_at: row.completed_at || row.created_at,
+    final_fare: row.final_fare,
+    captain_id: row.captain_id,
+    rider_id: row.rider_id,
+    rider: rider || (row.rider_id ? {
+      id: row.rider_id,
+      full_name: metadata.rider_name || metadata.riderName || '',
+    } : null),
+    captain: captain || {
+      id: row.captain_id,
+      full_name: metadata.captain_name || metadata.captainName || 'Captain',
+      phone: metadata.captain_phone || metadata.captainPhone || '',
+      rating: metadata.captain_rating || metadata.captainRating || 5,
+    },
+    captain_profile: captainProfile || null,
+    captain_rank: metadata.captain_rank || metadata.captainRank || captainProfile?.tier || captainProfile?.rank || captain?.tier || captain?.rank,
+    destination_address_ar: metadata.destination_address_ar || metadata.destinationAddressAr || metadata.destination || '',
+    destination_address: metadata.destination_address || metadata.destinationAddress || metadata.destination || '',
+    metadata: {
+      ...metadata,
+      vehicle_info: vehicleInfo || UNAVAILABLE_FALLBACK,
+    },
+  };
+}
+
+export function tripShapeToRiderLedgerEntry(trip: any): RiderTripLedgerEntry | null {
+  const tripId = getTripHistoryId(trip);
+  const timestamp = parseTripTimestamp(trip);
+  if (!tripId || !timestamp) return null;
+
+  const acceptedOffer = trip.offers?.find((o: any) => o.driverId === trip.driverId) || trip.acceptedOffer;
+  const vehicleInfo = getHistoryVehicleInfo(trip, acceptedOffer);
+
+  return {
+    tripId,
+    captainId: getCaptainIdFromTrip(trip),
+    captainName: getHistoryCaptainName(trip, acceptedOffer),
+    captainRank: getHistoryCaptainRank(trip, acceptedOffer),
+    captainPhone: getHistoryCaptainPhone(trip, acceptedOffer),
+    vehicleInfo,
+    finalPrice: Number(trip.final_fare ?? trip.settled_fare ?? trip.final_price ?? trip.offer_price ?? trip.server_estimated_fare ?? trip.offerPrice ?? 0),
+    timestamp,
+    purgeAt: timestamp + HISTORY_TTL_MS,
+  };
+}
+
+export function formatHistoryMoney(value: number, currencyLabel: string) {
+  return currencyLabel ? `${Number(value).toFixed(2)} ${currencyLabel}` : Number(value).toFixed(2);
+}
+

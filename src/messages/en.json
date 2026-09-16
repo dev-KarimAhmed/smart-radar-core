@@ -180,6 +180,232 @@
     "waitingApproval": "Waiting for admin approval.",
     "capacityFull": "This area is full right now. Try a nearby area."
   },
+  "driversTab": {
+    "title": "Control Tower",
+    "desc": "Live view of the performance and identities of all drivers in the fleet.",
+    "loading": "Summoning fleet...",
+    "errorPrefix": "Error",
+    "empty": "No drivers in the fleet",
+    "emptyDesc": "No driver has registered on the platform yet.",
+    "table": {
+      "identity": "Identity",
+      "rank": "Rank",
+      "rating": "Performance (Stars)",
+      "loyalty": "Loyalty Activity",
+      "status": "Status"
+    },
+    "status": {
+      "active": "Active",
+      "busy": "Busy",
+      "rating": "Rating",
+      "idle": "Idle",
+      "unknown": "Unknown"
+    }
+  },
+  "delegatesTab": {
+    "title": "Delegates Management",
+    "desc": "Complete management and control of delegate accounts, authority brigades, and generation of magic links for field acquisition.",
+    "table": {
+      "colDelegate": "Delegate",
+      "colCode": "Code",
+      "colTarget": "Target (Daily)",
+      "colDrivers": "Drivers (by code)",
+      "colOrganic": "Drivers (Organic)",
+      "colLinks": "Link Validity",
+      "colStatus": "Status",
+      "colControl": "Control"
+    },
+    "badges": {
+      "captain": "Captain",
+      "independent": "Independent",
+      "activeField": "Field-Active",
+      "inactiveField": "Field-Inactive",
+      "targetSuffix": "driver",
+      "driverSuffix": "driver",
+      "sigValid": "✓ Valid Digital Signature",
+      "sigInvalid": "⚠️ Corrupted or Unsigned",
+      "match": "✓ Match: {count}",
+      "discrepancy": "⚠️ Discrepancy: Actual {count}",
+      "organicPrefix": "+",
+      "organicSuffix": " hr",
+      "hours": "hours",
+      "statusActive": "Active",
+      "statusSuspended": "Frozen"
+    },
+    "actions": {
+      "sign": "Certify & Crypto Sign ⚡",
+      "generateLink": "Generate Magic Link",
+      "freeze": "Freeze",
+      "unfreeze": "Unfreeze"
+    },
+    "empty": "No delegates yet."
+  },
+  "magicLinksTab": {
+    "cardTitle": "Magic Links & Instant Access Engine",
+    "cardDesc": "List of links issued to delegate accounts with security tracking and time limits to prevent infiltration.",
+    "table": {
+      "colBeneficiary": "Beneficiary",
+      "colLink": "Magic Link",
+      "colExpiry": "Expires At",
+      "colValidity": "Validity",
+      "colAction": "Action"
+    },
+    "status": {
+      "active": "Active",
+      "expired": "Expired",
+      "used": "Used",
+      "revoked": "Revoked"
+    },
+    "actions": {
+      "copySuccessTitle": "Copied",
+      "copySuccessDesc": "Magic link copied to clipboard.",
+      "revoke": "Revoke & Burn Link"
+    },
+    "empty": "No active magic links currently."
+  },
+  "performanceTab": {
+    "directGrowth": {
+      "title": "Direct Growth",
+      "desc": "Referral via code",
+      "suffix": " captain"
+    },
+    "organicGrowth": {
+      "title": "Organic Growth",
+      "prefix": "+",
+      "suffix": " captain",
+      "desc": "Growth Index: {index}%"
+    },
+    "churn": {
+      "title": "Fake Churn",
+      "desc": "Deletion Rate ({count})"
+    },
+    "steady": {
+      "title": "Field Stability",
+      "suffix": " captain",
+      "desc": "Passed 30 days"
+    },
+    "comparison": {
+      "title": "Competent Comparison of Authority Brigades",
+      "desc": "Monthly efficiency and growth chart based on field case tracking and link protection.",
+      "regionPrefix": "Region ",
+      "sigValid": "✓ Valid",
+      "sigInvalid": "⚠️ Invalid",
+      "driverSuffix": " driver",
+      "extendedOrganic": "+{count} organic growth",
+      "steadyAlerts": "🟢 {count} steady"
+    }
+  },
+  "tasksTab": {
+    "cardTitle": "Track Open Field Tasks",
+    "table": {
+      "colTask": "Task",
+      "colDesc": "Description",
+      "colDeadline": "Deadline",
+      "colStatus": "Status",
+      "colAction": "Action"
+    },
+    "cell": {
+      "delegatePrefix": "Delegate: "
+    },
+    "status": {
+      "pending": "Pending",
+      "acknowledged": "Received",
+      "completed": "Completed",
+      "closed": "Closed"
+    },
+    "actions": {
+      "close": "Close & Archive"
+    },
+    "createForm": {
+      "cardTitle": "Draft Field Military Order (Task)",
+      "cardDesc": "An instant notification will be sent to the delegate's dashboard to compel execution and reply with geographic results.",
+      "selectLabel": "Select Delegate (Field Brigade)",
+      "selectPlaceholder": "Select a delegate for the task",
+      "titleLabel": "Task Title (Objective)",
+      "titlePlaceholder": "Example: Comb Sweileh area to register 5 drivers",
+      "descLabel": "Description & Military Instructions",
+      "descPlaceholder": "Write task details and requirements clearly...",
+      "deadlineLabel": "Strict Deadline",
+      "submit": "Send & Assign Field Order Instantly ⚡"
+    },
+    "empty": "No active field tasks currently."
+  },
+  "addForm": {
+    "title": "Recruit New Field Delegate",
+    "desc": "Add an acquisition delegate to the sales fleet with privileges to create specific magic links.",
+    "nameLabel": "Full Name",
+    "namePlaceholder": "Example: Yazan Al-Qahtani",
+    "phoneLabel": "Phone Number",
+    "phonePlaceholder": "079XXXXXXX",
+    "regionLabel": "Brigade / Authority Region",
+    "regions": {
+      "wadiSeer": "Wadi Seer",
+      "univ": "University",
+      "kasaba": "Amman Kasaba",
+      "karrada": "Karrada"
+    },
+    "targetLabel": "Daily Registration Target",
+    "targetPlaceholder": "10",
+    "expiryLabel": "Magic Link Expiry (Hours)",
+    "expirations": {
+      "24": "24 Hours (Standard)",
+      "48": "48 Hours (Extended)",
+      "72": "72 Hours (Max)"
+    },
+    "preCountLabel": "Pre-registration Balance (Optional)",
+    "subRoleLabel": "Recruitment Type",
+    "subRoles": {
+      "independent": "Independent (Delegate only)",
+      "captain": "Field Captain"
+    },
+    "fleetActiveLabel": "Flight Status (For Captain)",
+    "fleetActiveCheck": "Enable field flight for the captain",
+    "cancel": "Cancel",
+    "submit": "Add & Approve Delegate"
+  },
+  "delegateCommissionPanel": {
+    "title": "Representative Commission Guard Engine",
+    "desc1": "This engine filters referrals via a smart 30-day time delay",
+    "desc2": "and imposes a deletion penalty of",
+    "desc3": "against fake or zombie accounts.",
+    "stats": {
+      "rawDues": "Raw Dues Owed to Representatives",
+      "penalties": "Total Complete Deletion Penalties",
+      "net": "Certified Net Payable Balance"
+    },
+    "loading": "Aligning representatives data...",
+    "empty": "No approved representatives in current databases.",
+    "table": {
+      "name": "Field Representative Name",
+      "referralCode": "Referral Code",
+      "referralsCount": "Total Referrals",
+      "deletionRate": "Deletion Rate (Fake)",
+      "rawCommission": "Raw Commission",
+      "penalty": "Filtering Penalty (40%)",
+      "netCommission": "Net Owed Commission",
+      "action": "Pay / Settle"
+    },
+    "referralUnit": "Referral",
+    "currency": "JOD",
+    "payAction": "Settle & Pay"
+  },
+  "driverBlackboxPanel": {
+    "title": "Black Box",
+    "description": "Sovereign reading of the Kingdom's carriers and representatives",
+    "loading": "Preparing data...",
+    "empty": "No drivers currently available.",
+    "colName": "Name",
+    "colPhone": "Phone",
+    "colHours": "Remaining Hours",
+    "colImmunity": "Professional Immunity",
+    "colSecurity": "Security Status",
+    "colAction": "Emergency Action",
+    "hourUnit": "hr",
+    "bannedStatus": "Security Suspended",
+    "activeStatus": "Security Cleared",
+    "reviveBtn": "Revive",
+    "killBtn": "Terminate"
+  },
   "admin": {
     "dashboardTitle": "Admin dashboard",
     "reviewCampaigns": "Review campaigns",
@@ -912,6 +1138,11 @@
     "minutesValue": "{count, plural, one {# min} other {# min}}"
   },
   "captainBidding": {
+    "distanceUnitKm": "km",
+    "pricingModeApp": "App Pricing",
+    "pricingModeTaxi": "Taxi Meter",
+    "pricingModeFree": "Free Pricing",
+    "pricingModeNone": "No Preference",
     "meterCalculationFallback": "Your meter total for this trip is {total} {currency}. It comes from your saved opening charge, per-kilometre price, per-minute price, and the route estimate.",
     "meterCalculationTitle": "How your meter price was calculated",
     "meterCalculationSource": "This is based on your saved tariff and the route metrics for this request. The market price is shown separately.",
@@ -973,7 +1204,6 @@
     "breakdownFloor": "Lowest allowed price (refused below)",
     "breakdownYourIncrease": "Your increase",
     "breakdownMarketUnknown": "Not available",
-    "companyPriceNotice": "You are now operating under your operating company’s price...",
     "companyPriceNotice": "You are now operating under Free Price mode based on your saved tariff",
     "appModeSmartAppNotice": "You can put your price here before sending",
     "appModeOfficeTaxiNotice": "Commit to the meter price",
@@ -990,7 +1220,38 @@
     "distanceLabel": "Distance / {distance}",
     "distanceMinimum": "Minimum (less than {distance} km)",
     "appModeInputNotice": "Enter your app price here",
-    "appModeInputHint": "Paste or type the price"
+    "appModeInputHint": "Paste or type the price",
+    "marketAvgLabel": "Market Avg",
+    "baseFareLabel": "Base:",
+    "perKmLabel": "Km:",
+    "perMinLabel": "Min:",
+    "yourTariff": "Your Tariff",
+    "editCurrentTariff": "Edit current tariff",
+    "editBtn": "Edit",
+    "offerTariff": "Offer Tariff",
+    "freePriceMode": "Free Price",
+    "appPriceMode": "App Price",
+    "taxiMeterMode": "Taxi Meter",
+    "marketAvgValue": "Market average: {marketFare} {currency}",
+    "coveredInBaseFare": "Covered in Base Fare",
+    "kmUnit": "km",
+    "minUnit": "min",
+    "marketReference": "Market reference",
+    "warningLimit": "Warning limit",
+    "lowestAllowedOffer": "Lowest allowed offer",
+    "appEnteredPrice": "App entered price: {price} {currency}",
+    "enterAppPriceHint": "Please enter the app price in the field above",
+    "taxiMeterTripPrice": "Taxi meter trip price: {price} {currency}",
+    "matchesCalculatedMeter": "Matches calculated meter fare",
+    "offerDetailsPrefix": "Offer details: ",
+    "updateOffer": "Update offer",
+    "goldBannerMessage": "Riders appreciate your {tier} tier which qualifies you to increase your price {percent}% above market average",
+    "withinBaseBanner": "These details are hidden when the trip is within the opening charge distance",
+    "silverWarning": "⚠️ Silver Captain Warning: You may lose rider visibility if discount exceeds 15%. Discounts over 15% affect your rating and points in the system.",
+    "pricingModeLockedByRider": "Pricing mode locked by rider: {mode}",
+    "riderNoPreference": "Rider specified no preference — select your preferred mode",
+    "taxiModeHint": "Enter approved meter fare or keep calculated fare:",
+    "coveredInBaseFareHint": "Trip distance is fully covered by your base fare ({baseFare} {currency})."
   },
   "captainProfile": {
     "badge": "Profile",
@@ -1164,5 +1425,724 @@
     "description": "Transactions appear here after they arrive from the server.",
     "empty": "No financial transactions to show yet.",
     "title": "Balance activity"
+  },
+  "Rider": {
+    "CaptainOfferCard": {
+      "captain": "Captain",
+      "vehicle": "Vehicle",
+      "notSpecified": "Not specified",
+      "independentCaptain": "Independent Captain",
+      "verified": "Verified",
+      "preferredCaptain": "Preferred Captain",
+      "taxiMeter": "Taxi Meter",
+      "appFare": "App Fare",
+      "freePrice": "Free Price",
+      "trips": "trips",
+      "arrivesIn": "Arrives in",
+      "tripTime": "Trip time",
+      "tripDistance": "Trip distance",
+      "km": "km",
+      "finalPrice": "Final price",
+      "allInclusive": "All inclusive",
+      "accepting": "Accepting...",
+      "acceptOffer": "Accept offer",
+      "details": "Details",
+      "tripDetails": "Trip details",
+      "distanceToYou": "Distance to you",
+      "mins": "mins",
+      "withoutTrafficDelays": "Without traffic delays",
+      "captainAndVehicle": "Captain & vehicle",
+      "color": "Color",
+      "plate": "Plate",
+      "notAvailable": "Not available",
+      "year": "Year",
+      "category": "Category",
+      "captainType": "Captain type",
+      "completedTrips": "Completed trips",
+      "call": "Call",
+      "contactLink": "Contact link",
+      "price": "Price",
+      "lockedPriceDesc": "Locked — all-inclusive, never increases after acceptance",
+      "marketAverage": "Market average for this trip",
+      "competitivePrice": "✨ Competitive (Below average)",
+      "noTariffReason": "This price was submitted directly by the captain; no tariff details were recorded with the offer.",
+      "facebook": "Facebook",
+      "instagram": "Instagram"
+    }
+  },
+  "requestRide": {
+    "title": "Request Ride",
+    "description": "Select your destination and calculate distance locally",
+    "step1Title": "1. Select Destination",
+    "governorate": "Governorate",
+    "district": "District",
+    "step2Title": "2. Destination Coordinates",
+    "pickupPlaceholder": "Select an area or enter coordinates like 31.95, 35.91",
+    "localCoordsTooltip": "Local coordinates without geocoding",
+    "calculateBtn": "Calculate Distance & Fare",
+    "calculatedLocally": "Distance calculated locally",
+    "resetBtn": "Reset",
+    "actualDistance": "Actual Distance",
+    "blindSpot": "Blind spot area",
+    "km": "km",
+    "estimatedTime": "Estimated Time",
+    "min": "min",
+    "formulaTitle": "📐 Field Equity Formula V5.1",
+    "haversine": "Great-circle distance (Haversine):",
+    "tortuosity": "Local tortuosity factor (γ):",
+    "approvedDistance": "Approved distance:",
+    "timeCalc": "Time calculation (Distance / Speed 40 km/h):",
+    "blindSpotWarning": "⚠️ Unable to extract coordinates; \"Blind Spot Protocol\" activated to ensure region-level radar continuity.",
+    "step7Title": "7. Required Seats",
+    "selectSeats": "Select seats",
+    "passenger": "Passenger",
+    "passengers": "Passengers",
+    "step8Title": "8. Pricing Mode",
+    "noPreference": "No Preference",
+    "freePrice": "Free Price",
+    "appPricing": "App Pricing",
+    "taxiMeter": "Taxi Meter",
+    "availabilityStatus": "Driver Availability Status",
+    "supplyHigh": "🔴 Supply Momentum: High & Available",
+    "demandHigh": "⚠️ High Demand: Requires Large Sedan",
+    "integrityTitle": "Smart Radar Field Integrity",
+    "integrityDesc": "Under the Zero Distraction and Zero Cloud Charter (SC55), Radar refrains from displaying maps to riders (technical blindness) or exceeding 1.5 km radius. Dimensions are computed frozen at zero commission.",
+    "suspended": "Service is temporarily suspended by official directive",
+    "sending": "Sending request...",
+    "sendRequest": "Send Ride Request",
+    "amman": "Amman",
+    "wadiSeer": "Wadi Al-Seer",
+    "wadiSeerAmman": "Wadi Al-Seer - Amman",
+    "downtown": "Downtown",
+    "downtownAmman": "Downtown - Amman",
+    "zarqa": "Zarqa",
+    "newZarqa": "New Zarqa",
+    "irbid": "Irbid",
+    "irbidDowntown": "Irbid Downtown",
+    "madaba": "Madaba",
+    "madabaDowntown": "Madaba Downtown"
+  },
+  "offerGallery": {
+    "rankPlatinum": "Platinum",
+    "rankGold": "Gold",
+    "rankSilver": "Silver",
+    "rankBronze": "Bronze",
+    "adTitle": "Rider Benefit Offer",
+    "adDesc": "A simple local offer to help you after choosing a low-priced ride.",
+    "adBtn": "Get Offer",
+    "adDesc2": "Quick local offer for direct contact.",
+    "preferredCaptain": "Preferred Captain",
+    "independent": "Independent",
+    "offeredPrice": "Offered Price",
+    "byMeter": "By Meter",
+    "currency": "JOD",
+    "distanceFromYou": "Distance from you:",
+    "km": "km",
+    "arrivesIn": "Arrives in:",
+    "minutes": "mins",
+    "minute": "min",
+    "priceBurnedWarning": "This price is below the market average. Ensure service quality and vehicle condition before accepting.",
+    "riderBenefit": "Rider Benefit",
+    "vehicleFile": "Vehicle Profile",
+    "estimatedDuration": "Estimated Trip Duration",
+    "selectOffer": "Select this offer",
+    "captainsOffers": "Captains' Offers",
+    "offersCountText": "{count} nearby captains sent you an offer.",
+    "cancelRequest": "Cancel Request"
+  },
+  "riderMap": {
+    "activeCaptains": "Active captains",
+    "denied": "Allow location in browser",
+    "driverOnWay": "Driver is on the way",
+    "fallback": "GPS unavailable",
+    "live": "Your location",
+    "locating": "Finding your location...",
+    "mapReady": "Map is ready",
+    "moveMap": "Move map",
+    "offPeak": "This area is quieter now - accepting the ride may take longer",
+    "recenter": "Recenter to my location",
+    "useMyLocation": "Use my location"
+  },
+  "profileTab": {
+    "accountData": "Account data",
+    "accountNumber": "Account number",
+    "accountSource": "Account data source",
+    "chooseCountry": "Choose country",
+    "chooseDistrict": "Choose district",
+    "chooseGovernorate": "Choose governorate",
+    "country": "Country",
+    "currency": "Currency",
+    "currentRating": "Current rating",
+    "district": "District",
+    "pleaseLogin": "Please sign in to view account details.",
+    "editDescription": "Country, governorate, and district are loaded directly from the database.",
+    "editTitle": "Edit account and area",
+    "fullName": "Full name",
+    "fullNamePlaceholder": "Enter your full name",
+    "governorate": "Governorate",
+    "languageTitle": "App language",
+    "languageDescription": "Choose the language used in the dashboard.",
+    "loading": "Loading...",
+    "loadingProfile": "Loading account data...",
+    "localInfoDescription": "This information is saved on your device to improve the experience without constant connection.",
+    "localInfoTitle": "Local information",
+    "location": "Governorate and district",
+    "logout": "Log out",
+    "notSet": "Not set",
+    "phone": "Phone number",
+    "phoneUnavailable": "Phone number unavailable",
+    "emergencyWhatsappContact": "Emergency WhatsApp Contact",
+    "emergencyWhatsappPlaceholder": "+201234567890",
+    "deleteEmergencyContact": "Delete emergency contact",
+    "invalidEmergencyWhatsappTitle": "Invalid emergency contact",
+    "invalidEmergencyWhatsappDescription": "Enter an international WhatsApp number like +201234567890.",
+    "save": "Save changes",
+    "savedCaptains": "Favorite captains",
+    "saving": "Saving data...",
+    "switchToArabic": "العربية",
+    "switchToEnglish": "English",
+    "updatingLists": "Updating lists from the database...",
+    "roles": {
+      "admin": "Admin",
+      "driver": "Driver",
+      "rider": "Rider",
+      "user": "User"
+    },
+    "blockedCaptain": "Blocked Captain",
+    "unblockSuccessTitle": "Unblock Successful",
+    "unblockSuccessDesc": "This captain has been unblocked successfully.",
+    "unblockErrorTitle": "Failed to unblock",
+    "unexpectedError": "An unexpected error occurred.",
+    "loadErrorTitle": "Failed to load account data",
+    "loadErrorDesc": "Failed to connect to the database. Check your internet and try again.",
+    "govLoadErrorTitle": "Failed to load governorates",
+    "govLoadErrorDesc": "Failed to load governorates for the selected country.",
+    "districtLoadErrorTitle": "Failed to load districts",
+    "districtLoadErrorDesc": "Failed to load districts for the selected governorate.",
+    "incompleteData": "Incomplete Data",
+    "enterFullName": "Please enter your full name.",
+    "chooseLocationData": "Please choose country, governorate, and district.",
+    "saveSuccessTitle": "Changes Saved",
+    "saveSuccessDesc": "Account and location data updated.",
+    "saveErrorTitle": "Failed to save",
+    "blockedCaptains": "Blocked Captains",
+    "blockedCaptainsDesc": "List of captains you have blocked. You can unblock them to interact again.",
+    "loadingBlockedList": "Loading blocked list...",
+    "noBlockedCaptains": "No blocked captains currently.",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "unblock": "Unblock",
+    "rating": "Rating"
+  },
+  "historyTab": {
+    "antiChatTitle": "Purity & Anti-Chattiness Decree",
+    "antiChatDesc": "Certified architectural proof that the system is free from backchannel chat protocols or excessive data consumption.",
+    "zeroChatTitle": "Zero-Chat Mandate",
+    "zeroChatDesc": "There are no hidden chat channels or background polling. Direct links are used for communication to minimize network overhead.",
+    "financialActivityTitle": "Automated Financial Ledger",
+    "financialActivityDesc": "Activity is fetched entirely on-demand (Event-Driven) without network polling. Complies 100% with Single Source of Truth (SSOT).",
+    "autoPurgeTitle": "72-Hour Auto Purge",
+    "autoPurgeDesc": "In compliance with the Edge Architecture directives, all movement logs are wiped automatically after 72 hours from your device to ensure privacy and zero cost.",
+    "purityStatus": "Current Transport Lines Purity:",
+    "certifiedDecree": "Digitally sealed & verified 🛡️",
+    "eventsLogTitle": "Decentralized Activity Logs",
+    "eventsLogDesc": "Self-monitoring logs for state transitions and boundaries.",
+    "clearLog": "Clear Logs",
+    "movement": "movement",
+    "emptyLog": "The log is currently empty.",
+    "emptyLogDesc": "Field activities such as toggling online/offline, auto-offline due to inactivity, and leaving the district boundary will be securely recorded here.",
+    "statusChange": "Status Change",
+    "systemAction": "System Action",
+    "boundaryCross": "Boundary Crossed",
+    "detailedFeedback": "Your detailed feedback for captain:",
+    "before": "",
+    "ago": "ago",
+    "logsClearedTitle": "Local Logs Cleared",
+    "logsClearedDesc": "All local movement logs were successfully cleared from your device.",
+    "criteria": {
+      "captain": {
+        "polite": "Polite Captain",
+        "clean": "Clean Car",
+        "safe": "Safe Driving",
+        "punctual": "On Time",
+        "ac": "Good AC",
+        "music": "Good Music",
+        "behavior": "Respect & Attitude",
+        "driving": "Safe Driving",
+        "routing": "Smart Routing",
+        "communication": "Professional Communication"
+      },
+      "vehicle": {
+        "cleanliness": "Clean Salon",
+        "comfort": "Comfortable Seats",
+        "quietness": "Quiet Ride",
+        "safety": "Safety & Seatbelts"
+      }
+    },
+    "title": "My Trips",
+    "subtitle": "Review your recent trips. Trips older than 72 hours are automatically deleted to protect your privacy.",
+    "recentTripsTitle": "Recent Trips (Last 3 Days)",
+    "recentTripsDesc": "Completed trips from your account",
+    "tripCount": "trips",
+    "noTrips": "No active trips recorded in the last 72 hours.",
+    "lessThanHour": "less than an hour",
+    "hours": "hours",
+    "callCaptain": "Call driver regarding this trip",
+    "savedCaptainsTitle": "Favorite Drivers",
+    "savedCaptainsDesc": "Drivers you marked as favorites from your previous trips",
+    "call": "Call",
+    "captainSectionTitle": "Earnings & Completed Tasks History",
+    "captainSectionDesc": "Approved tasks documented at the activity center",
+    "commission": "Commission due",
+    "status": "Status",
+    "active": "Active",
+    "pending": "Pending"
+  },
+  "adminTab": {
+    "driverBlackbox": {
+      "title": "Black-Box Lethal Strike Platform",
+      "description": "Total control to strip driver behavioral immunity and broadcast freeze/cancellation beams in the field to prevent price gouging and geographical breaches.",
+      "loading": "Aligning edge data for drivers...",
+      "empty": "No drivers or carriers currently registered.",
+      "colName": "Carrier Name & Reg. Location",
+      "colPhone": "Phone Number",
+      "colHours": "Remaining Hours",
+      "colImmunity": "Carrier Immunity",
+      "colSecurity": "Security Status",
+      "colAction": "Zap / Unzap",
+      "hourUnit": "hr",
+      "bannedStatus": "🔴 : Zapped",
+      "activeStatus": "🟢 Immune & Active",
+      "reviveBtn": "Cancel Zap & Revive",
+      "killBtn": "Immediate Security Zap 💥"
+    },
+    "simulator": {
+      "title": "V5.5 Strategic Gaps Simulation Hub",
+      "description": "Simulation and instant adjustment interface for geographic commute gaps and manual top-ups without consuming additional server costs.",
+      "commuteCard": {
+        "title": "1. Instant Geographic Commute Simulator",
+        "description": "Relocates the driver from their registered anchor to another area instantly to adjust ad targeting and penalize inactivity.",
+        "selectLabel": "Select driver to commute:",
+        "selectPlaceholder": "-- Select driver from field --",
+        "unspecified": "Unspecified",
+        "targetLabel": "Target ad area:",
+        "btn": "Secure Instant Commute 📡"
+      },
+      "voucherCard": {
+        "title": "2. Manual Hours Top-Up (Delegate Cards)",
+        "description": "Enables field cash support via prepaid scratch cards issued with encrypted seals.",
+        "selectLabel": "Select driver to top-up:",
+        "selectPlaceholder": "-- Select driver from field --",
+        "hoursRemaining": "hours remaining",
+        "codeLabel": "Enter voucher code (starts with RADAR-100H-):",
+        "codePlaceholder": "Example: RADAR-100H-JORDAN",
+        "copyHint": "💡 Click here to copy the approved session code: ",
+        "btn": "Activate 100-Hour Top-Up 🎫"
+      },
+      "metrics": {
+        "title": "Edge Integrity Metrics",
+        "item1": "Geographic Stability: Ad and account filtering is done locally at the Edge with zero cloud cost.",
+        "item2": "Secure Payout Engine: Enforcing the 30-day stable rule for delegate accounts.",
+        "item3Text": "Black Box locked at kernel level ",
+        "item3Code": "Object.freeze(RadarGapLockdownKernel)",
+        "item3Suffix": " to prevent hacks and tampering with paid packages."
+      },
+      "toasts": {
+        "commuteErrorTitle": "Commute Error",
+        "commuteErrorNoDriver": "Please select a driver to commute first.",
+        "commuteSuccessTitle": "📡 Geographic Commute and Ad Broadcast Successful",
+        "commuteSuccessDesc": "Driver [{name}] successfully commuted to [{district}].",
+        "commuteErrorUnexpected": "An unexpected error occurred during driver commute",
+        "voucherErrorTitle": "Top-Up Error",
+        "voucherErrorNoDriver": "Please select a driver to top-up first.",
+        "voucherErrorCode": "Please enter the voucher code.",
+        "voucherSuccessTitle": "🎫 Instant Top-Up Successful (Server Approved)",
+        "voucherSuccessDesc": "Delegate card accepted and [{hours}] hours successfully added to driver [{name}].",
+        "voucherFailedTitle": "❌ Server Code Verification Failed",
+        "voucherFailedDesc": "The card code does not match the approved encryption protocol \"RADAR-100H-*\""
+      },
+      "areas": {
+        "shouna": "South Shouna Area",
+        "naour": "Naour Area",
+        "deirGhbar": "Deir Ghbar Area",
+        "sweileh": "Sweileh Area",
+        "muqabalain": "Al Muqabalain Area"
+      }
+    },
+    "fuelIndex": {
+      "warning": "WARNING: Any changes here instantly set the \"Lethal Minimum\" pricing threshold in the field.",
+      "errorInvalidInput": "Please select a district and enter a valid fuel price.",
+      "title": "Adjust Regional Fuel Index",
+      "placeholders": {
+        "governorate": "Governorate",
+        "district": "District",
+        "price": "Price per Liter (JOD)"
+      },
+      "submitBtn": "Approve Index & Activate Shield"
+    },
+    "killSwitch": {
+      "toasts": {
+        "safetyLockedTitle": "Safety Gates Locked 🔒",
+        "safetyLockedDesc": "You must activate both confirmation gates and security clearance to unlock the red button.",
+        "noTargetTitle": "No Target Selected",
+        "noTargetDesc": "Please select an active ad campaign to annihilate.",
+        "noReasonTitle": "Official Justification Required",
+        "noReasonDesc": "Entering a security deletion reason is mandatory to justify the annihilation pulse.",
+        "emptyBroadcastTitle": "Empty Broadcast Text",
+        "emptyBroadcastDesc": "Please formulate a clear broadcast message to reach drivers and riders.",
+        "broadcastSuccessTitle": "📡 Pulse Broadcasted",
+        "broadcastSuccessDesc": "Instant notification for [{district}] has been broadcasted to open devices."
+      },
+      "emergency": {
+        "title": "Emergency Admin Protocol: Master Kill Switch [30-Emergency]",
+        "description": "Total control over Radar gates in Jordan. Activating this socket forces all users to suspend navigation instantly, isolating servers and preventing activity burns during force majeure.",
+        "safetyLabel": "🔒 Safety Gates for the Button:",
+        "gate1": "I acknowledge the intent to completely suspend navigation in Amman and central regions.",
+        "gate2": "Match current command biometric footprint to prevent speculation.",
+        "unlockedBtn": "Safety Unlocked - Socket Ready to Fire",
+        "lockBtn": "Activate Unlock Key",
+        "radarStatus": "Current Navigation Radar Status:",
+        "active": "Open & Active ●",
+        "suspended": "Emergency Suspend 🚫",
+        "suspendBtn": "Press to Execute Total Field Suspension 💥",
+        "resumeBtn": "Press to Unlock & Re-open Navigation 📡",
+        "warning": "* WARNING: This intervention is instant and will be deployed via cloud to all driver and rider phones in Jordan immediately."
+      },
+      "annihilation": {
+        "title": "Digital Ad Annihilation",
+        "description": "Protocol [30-Annihilation] for automated field deletion. Sends Silent Web Pushes to permanently stop and erase rejected ads from user phones in seconds.",
+        "selectTarget": "Select Target Campaign to Burn:",
+        "selectPlaceholder": "-- Select an active ad in the field --",
+        "reasonLabel": "Deletion Reason & Phone Security Memo:",
+        "reasonPlaceholder": "Example: Ethics document violation, speculation incitement, etc...",
+        "executeBtn": "Broadcast Annihilation Pulse & Delete Field Phones 💥"
+      },
+      "broadcast": {
+        "title": "Silent Broadcast Pulses",
+        "description": "Add and broadcast instant, cost-free directive alerts to a specific hex cell or the entire field to modify phone behavior and log directly to the emergency ledger.",
+        "districtLabel": "Target Geographic Region:",
+        "districts": {
+          "all": "All Jordanian Regions",
+          "ju": "University District - Amman",
+          "kasaba": "Amman Kasaba - Amman",
+          "wadiSeer": "Wadi Seer District - Amman",
+          "marka": "Marka District - Amman"
+        },
+        "typeLabel": "Pulse Classification:",
+        "types": {
+          "regional": "Regional Directive Alert",
+          "freeze": "Emergency Price Freeze"
+        },
+        "messageLabel": "General Command Memo Text (Instant Broadcast):",
+        "messagePlaceholder": "Write the field notification content here...",
+        "executeBtn": "Launch Silent Broadcast 📡"
+      }
+    },
+    "adsManagement": {
+      "schema": {
+        "titleMin": "Title must be at least 5 characters.",
+        "descMin": "Description must be at least 10 characters.",
+        "posterUrlValid": "Must be a valid poster image URL.",
+        "actionUrlValid": "Must be a valid action URL.",
+        "buttonTextMin": "Button text is too short.",
+        "targetImpressionsMin": "Minimum impressions must be 1000.",
+        "endDateRequired": "End date is required."
+      },
+      "form": {
+        "fillRequired": "Please fill all required fields correctly.\n",
+        "titleField": "- Title: ",
+        "descField": "- Description: ",
+        "posterUrlField": "- Poster URL: ",
+        "actionUrlField": "- Action URL: ",
+        "endDateActive": "- End date is required and active.\n",
+        "rejectTitle": "⚠️ Form Submission Rejected",
+        "launchNewBtn": "Launch New Campaign",
+        "dialogTitle": "Ad Addition Platform",
+        "dialogDesc": "Enter new campaign data to display it in the ads section.",
+        "placeholders": {
+          "title": "Catchy Campaign Title",
+          "desc": "Brief campaign description",
+          "posterUrl": "Poster Image URL",
+          "actionUrl": "Action URL",
+          "buttonText": "Action Button Text (e.g. Order Now)"
+        },
+        "targetSectorLabel": "Target Sector",
+        "sectors": {
+          "all": "All",
+          "rider": "Riders Only",
+          "driver": "Drivers Only"
+        },
+        "impressionsLabel": "Capacity (Impressions)",
+        "govLabel": "Governorate (Optional)",
+        "allGovs": "All Governorates",
+        "districtLabel": "District (Optional)",
+        "allDistricts": "All Districts",
+        "endDateLabel": "Campaign End Date",
+        "chooseDate": "Choose a date",
+        "magicFill": {
+          "btn": "🪄 Quick Auto-Fill",
+          "title": "Golden Eagle Fuels Campaign",
+          "desc": "Get discounts up to 15% on maintenance and fuel.",
+          "btnText": "Request Instant Discount Card 🚀",
+          "toastTitle": "✨ Form Auto-Filled",
+          "toastDesc": "Fields successfully filled. You can now click 'Launch Campaign'."
+        },
+        "cancelBtn": "Cancel",
+        "submitBtn": "Launch Campaign"
+      },
+      "card": {
+        "status": {
+          "expired": "Expired",
+          "frozen": "Frozen ❄️",
+          "active": "Active ●",
+          "paused": "Paused ||"
+        },
+        "roles": {
+          "all": "All",
+          "driver": "Drivers",
+          "rider": "Riders"
+        },
+        "districtPrefix": "District: ",
+        "defaultGov": "Amman",
+        "defaultBadgeText": "Nearby Ad",
+        "defaultCtaText": "View Details",
+        "consumptionLabel": "Capacity Consumption Ratio",
+        "impressionsLabel": "Impressions",
+        "clicksLabel": "Clicks",
+        "whatsappLabel": "WhatsApp Link:",
+        "phoneLabel": "Hotline:",
+        "expireLabel": "Expiration Date:",
+        "buttons": {
+          "pause": "Pause",
+          "resume": "Resume",
+          "unfreeze": "Unfreeze",
+          "freeze": "Freeze Contract",
+          "extend": "Extend Range",
+          "archive": "Archive"
+        },
+        "archiveDialog": {
+          "title": "Are you sure you want to archive this campaign?",
+          "desc": "The campaign will be permanently and irreversibly deleted and blocked, and its dedicated field deployment radar will be canceled.",
+          "cancel": "Undo & Cancel",
+          "confirm": "Yes, Destroy & Archive"
+        }
+      },
+      "tab": {
+        "title": "Ads Management",
+        "desc": "An integrated theater extending across passenger screens subject to absolute monitoring administration.",
+        "empty": "No active ad campaigns currently. Create a new ad to start."
+      }
+    },
+    "delegatesManagement": {
+      "toasts": {
+        "copySuccess": "Copied",
+        "copyDesc": "Original delegate referral code ({code}) copied to clipboard successfully.",
+        "duplicatePhoneTitle": "Security Alert: Duplicate Field Phone",
+        "duplicatePhoneDesc": "An already registered delegate carries the same phone number ({phone}). Please use a unique phone number.",
+        "addSuccessTitle": "Field Delegate Added",
+        "addSuccessDesc": "Delegate \"{name}\" linked with a referral code and daily target of {target} successfully.",
+        "addErrorTitle": "Cloud Action Failed",
+        "addErrorDesc": "An error occurred during communication and transferring the delegate file.",
+        "linkErrorTitle": "Failed to Create Cloud Link",
+        "linkErrorDescSession": "Your session has expired. Log in again and try once more.",
+        "linkErrorDescServer": "Server error occurred while generating the link.",
+        "linkSuccessTitle": "Magic Link Generated",
+        "linkSuccessDesc": "Delegate \"{name}\" linked with a temporary secured login link for {hours} hours.",
+        "linkErrorDescUnknown": "An unexpected error occurred while processing the magic request.",
+        "revokeSuccessTitle": "Link Revoked Successfully",
+        "revokeSuccessDesc": "Magic link authorization burned and any future access attempts via it are blocked.",
+        "taskMissingTitle": "Incomplete Task Protocol",
+        "taskMissingDesc": "Please specify the delegate, task title, and deadline before adding.",
+        "taskAddSuccessTitle": "Task Added",
+        "taskAddSuccessDesc": "Task \"{title}\" assigned to field associate {name}.",
+        "taskCloseErrorTitle": "Failed to Close Task",
+        "taskCloseErrorDesc": "Cloud firewall failed to process the action.",
+        "taskCloseSuccessTitle": "Task Closed and Archived",
+        "taskCloseSuccessDesc": "Field task status converted to closed successfully and verified cloud-wise.",
+        "statusChangeTitle": "Field Accreditation Rank Changed",
+        "statusChangeDescActive": "Delegate is now: Accredited & Active ●",
+        "statusChangeDescSuspended": "Delegate is now: Frozen & Suspended !",
+        "payoutSuccessTitle": "Financial Clearance",
+        "payoutSuccessDesc": "Action documented and delegate dues cleared with an amount of {amount} JOD in a secured accounting copy successfully.",
+        "signErrorTitle": "Signature Protocol Failed",
+        "signErrorDescServer": "Error occurred in the server while processing authentication and verification.",
+        "signSuccessTitle": "Dual Authentication Successful ✓",
+        "signSuccessDesc": "Delegate ({name}) counters synced and closed with historical pixel and signed with a digital seal via security server.",
+        "signErrorDescUnknown": "An unexpected error occurred while processing digital authentication."
+      },
+      "header": {
+        "title": "Delegates Army Command",
+        "desc": "Unified supervisor portal to control delegates, monitor magic link extensions, and referrals for Jordanian and Iraqi regions.",
+        "closeBtn": "Close Registration Window",
+        "addBtn": "Recruit Field Delegate +"
+      },
+      "tabs": {
+        "delegates": "Delegates Management & Accreditation",
+        "magicLinks": "Magic Links",
+        "tasks": "Task Tracking & Assignment",
+        "performance": "Performance Engine & Stats"
+      },
+      "addForm": {
+        "title": "Draft New Recruitment Contract for Field Deployment Forces",
+        "desc": "A robust military referral code and fixed daily target will be allocated to track the gain/deficit equation.",
+        "nameLabel": "Accredited Delegate Name",
+        "namePlaceholder": "Example: Yousef Mamoun Bani Melhem",
+        "phoneLabel": "Active Phone Number",
+        "phonePlaceholder": "Example: 0797744111",
+        "regionLabel": "Geographic Management Governorate & District",
+        "regions": {
+          "wadiSeer": "Wadi Seer (Amman)",
+          "univ": "University District (Amman)",
+          "kasaba": "Kasaba Amman (Amman)",
+          "karrada": "Karrada (Baghdad - Iraq)"
+        },
+        "targetLabel": "Committed Daily Target",
+        "targetPlaceholder": "Example: 10",
+        "expiryLabel": "Magic Links Expiry Duration",
+        "expirations": {
+          "24": "24 hours (Full day)",
+          "48": "48 hours (Two days)",
+          "72": "72 hours (Three days)"
+        },
+        "preCountLabel": "Pre-registered Numbers",
+        "subRoleLabel": "Field Authority Type",
+        "subRoles": {
+          "independent": "Independent Delegate (Silent & Resource Saver)",
+          "captain": "Driver Delegate (Active in Field Activity & GPS)"
+        },
+        "fleetActiveLabel": "Instant Field Activity Status",
+        "fleetActiveCheck": "Enable GPS and Motion Sensor",
+        "cancel": "Cancel Command",
+        "submit": "Create Contract & Prepare Code 🔒"
+      },
+      "delegatesTab": {
+        "title": "Field Army Associates & Geographic Coordination Zone",
+        "desc": "Track delegate referral codes, set targets, automatic security block, and coordinate revenue liquidation.",
+        "table": {
+          "colDelegate": "Delegate & Region",
+          "colCode": "Referral Code",
+          "colTarget": "Daily Target",
+          "colDrivers": "Registered Drivers",
+          "colOrganic": "Organic Association",
+          "colLinks": "Links Caps",
+          "colStatus": "Accreditation Status",
+          "colControl": "Cloud Control"
+        },
+        "badges": {
+          "captain": "🎖️ Driver Delegate",
+          "independent": "💼 Independent Delegate",
+          "activeField": "● Field Active",
+          "inactiveField": "○ Idle",
+          "targetSuffix": "Injector/day",
+          "driverSuffix": "Driver",
+          "sigValid": "✓ Valid Digital Signature",
+          "sigInvalid": "⚠️ Corrupted or Unsigned",
+          "discrepancy": "⚠️ Discrepancy: Actual ({count})",
+          "match": "✓ Match Proven ({count})",
+          "signBtn": "Authenticate & Crypto-sign ⚡",
+          "organicPrefix": "+",
+          "organicSuffix": " Organic Growth",
+          "hourSuffix": " Hours",
+          "statusActive": "Activated & Active ●",
+          "statusSuspended": "Temporarily Frozen ||"
+        },
+        "actions": {
+          "genLink": "Generate Magic Link",
+          "freeze": "Freeze Delegate",
+          "unfreeze": "Activate Delegate"
+        },
+        "empty": "No accredited delegates registered in the system yet."
+      },
+      "magicLinksTab": {
+        "title": "Magic Links & Instant Access Engine",
+        "desc": "List of issued links for delegate accounts with security tracking and expiry time limits to prevent infiltration.",
+        "table": {
+          "colBeneficiary": "Beneficiary Delegate",
+          "colLink": "Encrypted Access Link",
+          "colExpiry": "Expiry Time",
+          "colValidity": "One-time Validity",
+          "colAction": "Action"
+        },
+        "actions": {
+          "copySuccessTitle": "Magic Link Copied",
+          "copySuccessDesc": "You can send it to the delegate to login with one click.",
+          "revokeBtn": "Revoke & Burn Link"
+        },
+        "status": {
+          "used": "Consumed",
+          "revoked": "Fully Voided",
+          "expired": "Expired",
+          "active": "Valid & Active"
+        },
+        "empty": "No active magic links currently. You can generate a link next to the delegate name above."
+      },
+      "tasksTab": {
+        "title": "Track Open Field Tasks Status",
+        "table": {
+          "colTask": "Task & Delegate",
+          "colDesc": "Details & Assignment",
+          "colDeadline": "Time Limit",
+          "colStatus": "Task Status",
+          "colAction": "Behavioral Action"
+        },
+        "cell": {
+          "delegatePrefix": "For Delegate: "
+        },
+        "status": {
+          "pending": "Awaiting View",
+          "acknowledged": "Delegate Reviewed",
+          "completed": "Accomplished ✓",
+          "closed": "Closed & Archived"
+        },
+        "actions": {
+          "closeBtn": "Close & Archive"
+        },
+        "empty": "No assigned field tasks currently. Use the side panel to create the first task for the field army.",
+        "createForm": {
+          "title": "Draft Field Military Order (Task)",
+          "desc": "An instant notification will reach the delegate in their panel obligating them to execute and reply with geographic results.",
+          "selectLabel": "Select Target Delegate",
+          "selectPlaceholder": "-- Quadruple Delegate Name --",
+          "titleLabel": "Assignment Title",
+          "titlePlaceholder": "Example: Plant 15 drivers in Swaileh area",
+          "descLabel": "Behavioral Action Content & Incentives",
+          "descPlaceholder": "Please distribute stickers, write referral code JO-SWAILEH.. and help drivers bypass the initial car inspection hurdle.",
+          "deadlineLabel": "Time Limit Target",
+          "submitBtn": "Send & Assign Field Order Instantly ⚡"
+        }
+      },
+      "performanceTab": {
+        "directGrowth": {
+          "title": "Direct Growth Storms",
+          "suffix": " Driver",
+          "desc": "Positive expansion and strict recruitment capability"
+        },
+        "organicGrowth": {
+          "title": "Total Organic Association (Districts)",
+          "prefix": "+",
+          "suffix": " Associate",
+          "desc": "Organic growth rate of {index}%"
+        },
+        "churn": {
+          "title": "Withdrawal & Loss Ratio",
+          "desc": "Total App Deletions: {count} drivers"
+        },
+        "steady": {
+          "title": "Steady Drivers (+45 days)",
+          "suffix": " Driver",
+          "desc": "Proven commitment rate with strong valves"
+        },
+        "comparison": {
+          "title": "Efficient Comparison of Capability & Management Districts",
+          "desc": "Monthly efficiency and growth chart by tracking field cases and protecting links.",
+          "regionPrefix": "Region: ",
+          "sigValid": "✓ Crypto-verified",
+          "sigInvalid": "⚠️ Unverified",
+          "driverSuffix": " Driver",
+          "extendedOrganic": "Extended Organic Growth: +{count}",
+          "steadyAlerts": "Steady Alerts (45 days): {count} committed driver"
+        }
+      }
+    }
   }
 }
