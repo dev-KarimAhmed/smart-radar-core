@@ -273,6 +273,7 @@ const styles = {
 
 
 function PendingAdReviewCard({ ad, onApprove, onReject }: { ad: any; onApprove: (id: string) => Promise<void>; onReject: (id: string, reason: string) => Promise<void> }) {
+    const tAuto = useTranslations('auto');
     const t = useTranslations('auto');
   const [rejecting, setRejecting] = useState(false);
   const [reason, setReason] = useState('');
@@ -313,7 +314,7 @@ function PendingAdReviewCard({ ad, onApprove, onReject }: { ad: any; onApprove: 
         <div className={styles.style61_2}>
           <img src={posterUrl} alt={title} className={styles.style62_3} referrerPolicy="no-referrer" />
           <Badge className={styles.style63_4}>
-            {t('key_ae999e08')}
+            {tAuto('key_ae999e08')}
                                 </Badge>
         </div>
       )}
@@ -322,7 +323,7 @@ function PendingAdReviewCard({ ad, onApprove, onReject }: { ad: any; onApprove: 
         <div className={styles.style70_6}>
           {!posterUrl && (
             <Badge className={styles.style72_7}>
-              {t('key_ae999e08')}
+              {tAuto('key_ae999e08')}
                                       </Badge>
           )}
           <CardTitle className={styles.style76_8}>{title}</CardTitle>
@@ -335,30 +336,30 @@ function PendingAdReviewCard({ ad, onApprove, onReject }: { ad: any; onApprove: 
       <CardContent className={styles.style83_10}>
         <div className={styles.style84_11}>
           <div className={styles.style85_12}>
-            <span className={styles.style86_13}>{t('key_388a477e')}</span>
-            <span className={styles.style87_14}>📍 {ad.targetGovernorate || t('key_b758add8')} {ad.targetDistrict ? `- ${ad.targetDistrict}` : ''}</span>
+            <span className={styles.style86_13}>{tAuto('key_388a477e')}</span>
+            <span className={styles.style87_14}>📍 {ad.targetGovernorate || tAuto('key_b758add8')} {ad.targetDistrict ? `- ${ad.targetDistrict}` : ''}</span>
           </div>
           <div className={styles.style89_15}>
-            <span className={styles.style90_16}>{t('key_f034a882')}</span>
+            <span className={styles.style90_16}>{tAuto('key_f034a882')}</span>
             <span className={styles.style91_17}>⚡ {(ad.targetImpressions || 10000).toLocaleString()}</span>
           </div>
         </div>
 
         <div className={styles.style95_18}>
           <div className={styles.style96_19}>
-            <span className={styles.style97_20}>{t('key_da79fbe3')}</span>
+            <span className={styles.style97_20}>{tAuto('key_da79fbe3')}</span>
             <span className={ad.isPremiumRetentionPaid ? styles.style98_21 : styles.style98_22}>
-              {ad.isPremiumRetentionPaid ? t('key_e2372c21') : t('key_188155dd')}
+              {ad.isPremiumRetentionPaid ? tAuto('key_e2372c21') : tAuto('key_188155dd')}
             </span>
           </div>
           <div className={styles.style102_23}>
-            <span className={styles.style103_24}>{t('key_7d644c75')}</span>
+            <span className={styles.style103_24}>{tAuto('key_7d644c75')}</span>
             <span className={styles.style104_25}>
-              {ad.role === 'all' ? t('key_91559fa2') : ad.role === 'driver' ? t('key_89c5c89e') : t('key_da83fc08')}
+              {ad.role === 'all' ? tAuto('key_91559fa2') : ad.role === 'driver' ? tAuto('key_89c5c89e') : tAuto('key_da83fc08')}
             </span>
           </div>
           <div className={styles.style108_26}>
-            <span className={styles.style109_27}>{t('key_3af3abc0')}</span>
+            <span className={styles.style109_27}>{tAuto('key_3af3abc0')}</span>
             <span className={styles.style110_28}>{ad.whatsapp || ad.phone || 'N/A'}</span>
           </div>
         </div>
@@ -373,7 +374,7 @@ function PendingAdReviewCard({ ad, onApprove, onReject }: { ad: any; onApprove: 
               className={styles.style121_31}
             >
               {isSubmitting ? <Loader2 className={styles.style123_32} /> : <CheckCircle2 className={styles.style123_33} />}
-              {t('key_e82205b7')}
+              {tAuto('key_e82205b7')}
                                       </Button>
             <Button
               onClick={() => setRejecting(true)}
@@ -382,16 +383,16 @@ function PendingAdReviewCard({ ad, onApprove, onReject }: { ad: any; onApprove: 
               className={styles.style130_34}
             >
               <ShieldAlert className={styles.style132_35} />
-              {t('key_848ae5bb')}
+              {tAuto('key_848ae5bb')}
                                       </Button>
           </div>
         ) : (
           <div className={styles.style137_36}>
-            <Label className={styles.style138_37}>{t('key_80e1f450')}</Label>
+            <Label className={styles.style138_37}>{tAuto('key_80e1f450')}</Label>
             <Input
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder={t('key_e6cd6320')}
+              placeholder={tAuto('key_e6cd6320')}
               className={styles.style143_38}
               dir="rtl"
             />
@@ -402,14 +403,14 @@ function PendingAdReviewCard({ ad, onApprove, onReject }: { ad: any; onApprove: 
                 className={styles.style150_40}
               >
                 {isSubmitting ? <Loader2 className={styles.style152_41} /> : null}
-                {t('key_d213271c')}
+                {tAuto('key_d213271c')}
                                                 </Button>
               <Button
                 onClick={() => { setRejecting(false); setReason(''); }}
                 variant="outline"
                 className={styles.style158_42}
               >
-                {t('key_32d990bf')}
+                {tAuto('key_32d990bf')}
                                                 </Button>
             </div>
           </div>
@@ -420,6 +421,7 @@ function PendingAdReviewCard({ ad, onApprove, onReject }: { ad: any; onApprove: 
 }
 
 export function PendingAdsAuditPanel() {
+    const tAuto = useTranslations('auto');
     const t = useTranslations('auto');
   const { approveAd, rejectAd, ads, isLoading } = useAdminAds();
   const pendingAds = React.useMemo(() => {
@@ -552,7 +554,7 @@ export function PendingAdsAuditPanel() {
     return (
       <div className={styles.style300_43}>
         <Loader2 className={styles.style301_44} />
-        <p className={styles.style302_45}>{t('key_bf0f62a3')}</p>
+        <p className={styles.style302_45}>{tAuto('key_bf0f62a3')}</p>
       </div>
     );
   }
@@ -569,28 +571,28 @@ export function PendingAdsAuditPanel() {
               <span className={styles.style316_52}></span>
               <h3 className={styles.style317_53}>
                 <Radio className={styles.style318_54} />
-                {t('key_c91bdcd9')}
+                {tAuto('key_c91bdcd9')}
                                             </h3>
             </div>
             <p className={styles.style322_55}>
-              {t('key_ad7f6699')} <strong className={styles.style323_56}>(SC55)</strong>.
+              {tAuto('key_ad7f6699')} <strong className={styles.style323_56}>(SC55)</strong>.
             </p>
           </div>
           <div className={styles.style326_57}>
             <span className={styles.style327_58}>
-              {t('key_5a857b79')} {geofenceIntegrity.toFixed(1)}%
+              {tAuto('key_5a857b79')} {geofenceIntegrity.toFixed(1)}%
             </span>
             <Badge
               onClick={() => {
                 toast({
-                  title: t('key_a41492ec'),
+                  title: tAuto('key_a41492ec'),
                   description: `يومض هذا المؤشر تلقائياً بشكل نشاطي للتنبيه بوجود (${pendingCount}) حملة إعلانية تتطلب فحصاً أمنياً مسبقاً وتصديقاً  قبل نشرها في قسم الإعلانات المفتوح.`,
                   variant: "default"
                 });
               }}
               className={styles.style338_59}
             >
-              {pendingCount} {t('key_a57d4946')}
+              {pendingCount} {tAuto('key_a57d4946')}
                                       </Badge>
           </div>
         </div>
@@ -598,28 +600,28 @@ export function PendingAdsAuditPanel() {
         {/* Real-time Sovereign Indicators */}
         <div className={styles.style346_60}>
           <div className={styles.style347_61}>
-            <span className={styles.style348_62}>{t('key_7b8d3f39')}</span>
+            <span className={styles.style348_62}>{tAuto('key_7b8d3f39')}</span>
             <span className={styles.style349_63}>
               <Activity className={styles.style350_64} />
-              1.34 Hz <span className={styles.style351_65}>{t('key_8125eae9')}</span>
+              1.34 Hz <span className={styles.style351_65}>{tAuto('key_8125eae9')}</span>
             </span>
           </div>
           <div className={styles.style354_66}>
-            <span className={styles.style355_67}>{t('key_252808c3')}</span>
+            <span className={styles.style355_67}>{tAuto('key_252808c3')}</span>
             <span className={styles.style356_68}>
-              {pendingCount + 12} {t('key_3d40fde5')} <span className={styles.style357_69}>{t('key_61468e91')}</span>
+              {pendingCount + 12} {tAuto('key_3d40fde5')} <span className={styles.style357_69}>{tAuto('key_61468e91')}</span>
             </span>
           </div>
           <div className={styles.style360_70}>
-            <span className={styles.style361_71}>{t('key_51950a4a')}</span>
+            <span className={styles.style361_71}>{tAuto('key_51950a4a')}</span>
             <span className={styles.style362_72}>
-              0.0% <span className={styles.style363_73}>{t('key_9d1d77f0')}</span>
+              0.0% <span className={styles.style363_73}>{tAuto('key_9d1d77f0')}</span>
             </span>
           </div>
           <div className={styles.style366_74}>
-            <span className={styles.style367_75}>{t('key_821d92a0')}</span>
+            <span className={styles.style367_75}>{tAuto('key_821d92a0')}</span>
             <span className={styles.style368_76}>
-              0.00 <span className={styles.style369_77}>{t('key_3151e05a')}</span>
+              0.00 <span className={styles.style369_77}>{tAuto('key_3151e05a')}</span>
             </span>
           </div>
         </div>
@@ -636,9 +638,9 @@ export function PendingAdsAuditPanel() {
             <div className={styles.style383_81}>
               <h4 className={styles.style384_82}>
                 <Compass className={styles.style385_83} />
-                {t('key_b65bd155')}{pendingCount})
+                {tAuto('key_b65bd155')}{pendingCount})
               </h4>
-              <span className={styles.style388_84}>{t('key_32c82ec1')}</span>
+              <span className={styles.style388_84}>{tAuto('key_32c82ec1')}</span>
             </div>
 
             {pendingCount === 0 ? (
@@ -646,9 +648,9 @@ export function PendingAdsAuditPanel() {
                 <div className={styles.style393_86}>
                   <CheckCircle2 className={styles.style394_87} />
                 </div>
-                <h4 className={styles.style396_88}>{t('key_2427477a')}</h4>
+                <h4 className={styles.style396_88}>{tAuto('key_2427477a')}</h4>
                 <p className={styles.style397_89}>
-                  {t('key_a66bde6d')}
+                  {tAuto('key_a66bde6d')}
                                                   </p>
               </div>
             ) : (
@@ -671,10 +673,10 @@ export function PendingAdsAuditPanel() {
               <div>
                 <h4 className={styles.style419_93}>
                   <Fingerprint className={styles.style420_94} />
-                  {t('key_84293290')}
+                  {tAuto('key_84293290')}
                                                   </h4>
                 <p className={styles.style423_95}>
-                  {t('key_9990d005')}
+                  {tAuto('key_9990d005')}
                                                   </p>
               </div>
               <div className={styles.style427_96}>
@@ -685,11 +687,11 @@ export function PendingAdsAuditPanel() {
                     className={styles.style432_97}
                   >
                     <Trash2 className={styles.style434_98} />
-                    {t('key_fbefe958')}
+                    {tAuto('key_fbefe958')}
                                                         </Button>
                 )}
                 <Badge variant="outline" className={styles.style438_99}>
-                  {activeThreatsCount} {t('key_edbed039')}
+                  {activeThreatsCount} {tAuto('key_edbed039')}
                                                   </Badge>
               </div>
             </div>
@@ -697,7 +699,7 @@ export function PendingAdsAuditPanel() {
             <div className={styles.style444_100}>
               {injectedThreats.length === 0 ? (
                 <div className={styles.style446_101}>
-                  {t('key_7e571d77')}
+                  {tAuto('key_7e571d77')}
                                                   </div>
               ) : (
                 injectedThreats.map(threat => (
@@ -717,7 +719,7 @@ export function PendingAdsAuditPanel() {
                             : styles.style464_109,
                           threat.resolved && styles.style465_110
                         )}>
-                          {threat.resolved ? t('key_46a6f86e') : threat.severity === 'severe' ? t('key_888d4095') : t('key_5bfde6d0')}
+                          {threat.resolved ? tAuto('key_46a6f86e') : threat.severity === 'severe' ? tAuto('key_888d4095') : tAuto('key_5bfde6d0')}
                         </span>
                         <span className={styles.style469_111}>
                           📍 {threat.district}
@@ -742,7 +744,7 @@ export function PendingAdsAuditPanel() {
                     ) : (
                       <span className={styles.style490_117}>
                         <ShieldCheck className={styles.style491_118} />
-                        {t('key_f0db1966')}
+                        {tAuto('key_f0db1966')}
                                                           </span>
                     )}
                   </div>
@@ -761,10 +763,10 @@ export function PendingAdsAuditPanel() {
             <div className={styles.style508_121}>
               <h4 className={styles.style509_122}>
                 <Cpu className={styles.style510_123} />
-                {t('key_29811ba4')}
+                {tAuto('key_29811ba4')}
                                             </h4>
               <p className={styles.style513_124}>
-                {t('key_822b92b6')}
+                {tAuto('key_822b92b6')}
                                             </p>
             </div>
 
@@ -774,8 +776,8 @@ export function PendingAdsAuditPanel() {
                 onClick={() => handleInjectThreat('payment')}
                 className={styles.style522_126}
               >
-                <span>{t('key_c37c41ef')}</span>
-                <span className={styles.style525_127}>{t('key_783f4eb4')}</span>
+                <span>{tAuto('key_c37c41ef')}</span>
+                <span className={styles.style525_127}>{tAuto('key_783f4eb4')}</span>
               </Button>
 
               <Button
@@ -783,8 +785,8 @@ export function PendingAdsAuditPanel() {
                 onClick={() => handleInjectThreat('jurisdiction')}
                 className={styles.style531_128}
               >
-                <span>{t('key_3e1cce59')}</span>
-                <span className={styles.style534_129}>{t('key_b34a4153')}</span>
+                <span>{tAuto('key_3e1cce59')}</span>
+                <span className={styles.style534_129}>{tAuto('key_b34a4153')}</span>
               </Button>
 
               <Button
@@ -792,8 +794,8 @@ export function PendingAdsAuditPanel() {
                 onClick={() => handleInjectThreat('unauthorized')}
                 className={styles.style540_130}
               >
-                <span>{t('key_91e3560b')}</span>
-                <span className={styles.style543_131}>{t('key_783f4eb4')}</span>
+                <span>{tAuto('key_91e3560b')}</span>
+                <span className={styles.style543_131}>{tAuto('key_783f4eb4')}</span>
               </Button>
 
               <Button
@@ -801,8 +803,8 @@ export function PendingAdsAuditPanel() {
                 onClick={() => handleInjectThreat('spam')}
                 className={styles.style549_132}
               >
-                <span>{t('key_2189ff4c')}</span>
-                <span className={styles.style552_133}>{t('key_783f4eb4')}</span>
+                <span>{tAuto('key_2189ff4c')}</span>
+                <span className={styles.style552_133}>{tAuto('key_783f4eb4')}</span>
               </Button>
             </div>
           </div>
@@ -812,10 +814,10 @@ export function PendingAdsAuditPanel() {
             <div className={styles.style559_135}>
               <h4 className={styles.style560_136}>
                 <Terminal className={styles.style561_137} />
-                {t('key_dd25df53')}
+                {tAuto('key_dd25df53')}
                                             </h4>
               <p className={styles.style564_138}>
-                {t('key_677339a8')}
+                {tAuto('key_677339a8')}
                                             </p>
             </div>
 
@@ -827,32 +829,32 @@ export function PendingAdsAuditPanel() {
               {isScanning ? (
                 <>
                   <Loader2 className={styles.style576_140} />
-                  {t('key_6de7833f')}
+                  {tAuto('key_6de7833f')}
                                                   </>
               ) : (
                 <>
                   <Sparkles className={styles.style581_141} />
-                  {t('key_cff79ba6')}
+                  {tAuto('key_cff79ba6')}
                                                       </>
               )}
             </Button>
 
             {/* LaTeX Equation showing audit integrity function */}
             <div className={styles.style588_142}>
-              <span className={styles.style589_143}>{t('key_7006cb7e')}</span>
+              <span className={styles.style589_143}>{tAuto('key_7006cb7e')}</span>
               <div className={styles.style590_144}>
                 {"$$\\Omega_{audit} = \\sum_{i=1}^{N} (\\mathcal{I}_{ad} \\times \\lambda_{sovereign}) \\equiv 1$$"}
               </div>
               <p className={styles.style593_145}>
-                {t('key_678a27cf')} {"$\\mathcal{I}_{ad}$"} {t('key_b22fc3aa')} {"$\\lambda_{sovereign}$"} {t('key_ccff1d7f')}
+                {tAuto('key_678a27cf')} {"$\\mathcal{I}_{ad}$"} {tAuto('key_b22fc3aa')} {"$\\lambda_{sovereign}$"} {tAuto('key_ccff1d7f')}
                                             </p>
             </div>
 
             {scanResults && (
               <div className={styles.style599_146}>
                 <div className={styles.style600_147}>
-                  <span className={styles.style601_148}>{t('key_c248563a')}</span>
-                  <span className={styles.style602_149}>{t('key_fac08f76')}</span>
+                  <span className={styles.style601_148}>{tAuto('key_c248563a')}</span>
+                  <span className={styles.style602_149}>{tAuto('key_fac08f76')}</span>
                 </div>
                 {scanResults.map((line, idx) => (
                   <p key={idx} className={styles.style605_150}>{line}</p>
@@ -870,6 +872,7 @@ export function PendingAdsAuditPanel() {
 }
 
 export function AdminPulseOverview() {
+    const tAuto = useTranslations('auto');
     const t = useTranslations('auto');
   const [logs, setLogs] = useState([
     {
@@ -1045,36 +1048,36 @@ export function AdminPulseOverview() {
       <div className={styles.style791_152}>
         <Card className={styles.style792_153}>
           <CardHeader className={styles.style793_154}>
-            <CardDescription className={styles.style794_155}>{t('key_c97a6a23')}</CardDescription>
+            <CardDescription className={styles.style794_155}>{tAuto('key_c97a6a23')}</CardDescription>
             <CardTitle className={styles.style795_156}>
-              {revenue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} {t('key_a13e6dc9')}
+              {revenue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} {tAuto('key_a13e6dc9')}
                                       </CardTitle>
           </CardHeader>
           <CardContent className={styles.style799_157}>
-            <span className={styles.style800_158}><ArrowUpRight className={styles.style800_159} /> {t('key_cce3ad30')}</span>
-            <span>{t('key_a14af4c6')}</span>
+            <span className={styles.style800_158}><ArrowUpRight className={styles.style800_159} /> {tAuto('key_cce3ad30')}</span>
+            <span>{tAuto('key_a14af4c6')}</span>
           </CardContent>
         </Card>
 
         <Card className={styles.style805_160}>
           <CardHeader className={styles.style806_161}>
-            <CardDescription className={styles.style807_162}>{t('key_9c3ec14d')}</CardDescription>
-            <CardTitle className={styles.style808_163}>{zeroYielderCount} {t('key_c5c09fea')}</CardTitle>
+            <CardDescription className={styles.style807_162}>{tAuto('key_9c3ec14d')}</CardDescription>
+            <CardTitle className={styles.style808_163}>{zeroYielderCount} {tAuto('key_c5c09fea')}</CardTitle>
           </CardHeader>
           <CardContent className={styles.style810_164}>
-            <span className={styles.style811_165}>{t('key_e1064f18')}</span>
-            <span>{t('key_21eafbb3')}</span>
+            <span className={styles.style811_165}>{tAuto('key_e1064f18')}</span>
+            <span>{tAuto('key_21eafbb3')}</span>
           </CardContent>
         </Card>
 
         <Card className={styles.style816_166}>
           <CardHeader className={styles.style817_167}>
-            <CardDescription className={styles.style818_168}>{t('key_6740f95f')}</CardDescription>
-            <CardTitle className={styles.style819_169}>{activeCells} {t('key_3b551e95')}</CardTitle>
+            <CardDescription className={styles.style818_168}>{tAuto('key_6740f95f')}</CardDescription>
+            <CardTitle className={styles.style819_169}>{activeCells} {tAuto('key_3b551e95')}</CardTitle>
           </CardHeader>
           <CardContent className={styles.style821_170}>
-            <span className={styles.style822_171}>{t('key_fc9604c6')}</span>
-            <span>{t('key_998b23f1')}</span>
+            <span className={styles.style822_171}>{tAuto('key_fc9604c6')}</span>
+            <span>{tAuto('key_998b23f1')}</span>
           </CardContent>
         </Card>
       </div>
@@ -1094,15 +1097,15 @@ export function AdminPulseOverview() {
               ) : (
                 <span className={styles.style841_177} />
               )}
-              {t('key_5f873a9d')}
+              {tAuto('key_5f873a9d')}
                                       </Button>
             <CardTitle className={styles.style845_178}>
               <TrendingUp className={styles.style846_179} />
-              {t('key_dd9c19fe')}
+              {tAuto('key_dd9c19fe')}
                                       </CardTitle>
           </div>
           <CardDescription className={styles.style850_180}>
-            {t('key_095d3534')}
+            {tAuto('key_095d3534')}
                                 </CardDescription>
         </CardHeader>
         <CardContent className={styles.style854_181}>
@@ -1132,10 +1135,10 @@ export function AdminPulseOverview() {
               <circle cx="400" cy="20" r="3" fill="#14b8a6" />
             </svg>
             <div className={styles.style880_186}>
-              {t('key_cd79ed00')} {peakTrips} {t('key_54976640')}
+              {tAuto('key_cd79ed00')} {peakTrips} {tAuto('key_54976640')}
                                       </div>
             <div className={styles.style883_187}>
-              {t('key_aea03668')}
+              {tAuto('key_aea03668')}
                                       </div>
           </div>
         </CardContent>
@@ -1147,36 +1150,36 @@ export function AdminPulseOverview() {
           <div className={styles.style893_190}>
             <div className={styles.style894_191}>
               <span className={styles.style895_192}>
-                {logs.filter(l => !l.resolved).length} {t('key_d9038b05')}
+                {logs.filter(l => !l.resolved).length} {tAuto('key_d9038b05')}
                                             </span>
               <Button
                 variant="outline"
                 onClick={injectDeviation}
                 className={styles.style901_193}
               >
-                {t('key_758f5bd7')}
+                {tAuto('key_758f5bd7')}
                                             </Button>
               <Button
                 variant="outline"
                 onClick={resetIncidentLogs}
                 className={styles.style908_194}
               >
-                {t('key_cf9531d3')}
+                {tAuto('key_cf9531d3')}
                                             </Button>
             </div>
             <CardTitle className={styles.style913_195}>
               <AlertTriangle className={styles.style914_196} />
-              {t('key_8595850a')}
+              {tAuto('key_8595850a')}
                                       </CardTitle>
           </div>
           <CardDescription className={styles.style918_197}>
-            {t('key_b2720174')}
+            {tAuto('key_b2720174')}
                                 </CardDescription>
 
           <div className={styles.style922_198}>
             <div className={styles.style923_199}>
-              <span className={styles.style924_200}>{t('key_8382b8da')}</span>
-              <span>{t('key_3c84ed97')}</span>
+              <span className={styles.style924_200}>{tAuto('key_8382b8da')}</span>
+              <span>{tAuto('key_3c84ed97')}</span>
             </div>
 
             <div className={styles.style928_201}>
@@ -1189,7 +1192,7 @@ export function AdminPulseOverview() {
             </div>
 
             <div className={styles.style937_204}>
-              {t('key_68bdd68b')} <strong className={styles.style938_205}>15%</strong>{t('key_8ba78317')}
+              {tAuto('key_68bdd68b')} <strong className={styles.style938_205}>15%</strong>{tAuto('key_8ba78317')}
                                       </div>
           </div>
         </CardHeader>
@@ -1203,7 +1206,7 @@ export function AdminPulseOverview() {
                 <div className={styles.style949_211}>
                   <span className={styles.style950_212}>{log.timestamp}</span>
                   <Badge variant={log.resolved ? "secondary" : "destructive"} className={styles.style951_213}>
-                    {log.resolved ? t('key_1f289735') : log.type === "severe" ? t('key_2c70af9e') : t('key_26cd11bc')}
+                    {log.resolved ? tAuto('key_1f289735') : log.type === "severe" ? tAuto('key_2c70af9e') : tAuto('key_26cd11bc')}
                   </Badge>
                 </div>
                 <p className={styles.style955_214}>{log.message}</p>
@@ -1226,6 +1229,7 @@ export function AdminPulseOverview() {
 }
 
 export function AdminViewTab() {
+    const tAuto = useTranslations('auto');
     const t = useTranslations('auto');
   const { pulseData, loadingPulse } = useMarketPulse(true);
 
@@ -1239,38 +1243,38 @@ export function AdminViewTab() {
 
           <TabsTrigger value="dashboard" className={styles.style985_219}>
              <Users className={styles.style986_220} />
-             <span className={styles.style987_221}>{t('key_c9e3bbd7')}</span>
+             <span className={styles.style987_221}>{tAuto('key_c9e3bbd7')}</span>
           </TabsTrigger>
 
           <TabsTrigger value="ads" className={styles.style990_222}>
             <Megaphone className={styles.style991_223} />
-             <span className={styles.style992_224}>{t('key_3d3316a8')}</span>
+             <span className={styles.style992_224}>{tAuto('key_3d3316a8')}</span>
           </TabsTrigger>
 
           {/* الزر  الجديد V5.5 */}
           <TabsTrigger value="owner" className={styles.style996_225}>
             <ShieldAlert className={styles.style997_226} />
-            <span className={styles.style998_227}>{t('key_1a6ee228')}</span>
+            <span className={styles.style998_227}>{tAuto('key_1a6ee228')}</span>
           </TabsTrigger>
 
           <TabsTrigger value="delegates" className={styles.style1001_228}>
             <UsersRound className={styles.style1002_229} />
-            <span className={styles.style1003_230}>{t('key_ffdbf83e')}</span>
+            <span className={styles.style1003_230}>{tAuto('key_ffdbf83e')}</span>
           </TabsTrigger>
 
           <TabsTrigger value="password-resets" className={styles.style1001_228}>
             <KeyRound className={styles.style1002_229} />
-            <span className={styles.style1003_230}>{t('key_47cbc2bf')}</span>
+            <span className={styles.style1003_230}>{tAuto('key_47cbc2bf')}</span>
           </TabsTrigger>
 
            <TabsTrigger value="pulse" className={styles.style1006_231}>
              <Activity className={styles.style1007_232} />
-             <span className={styles.style1008_233}>{t('key_1343c325')}</span>
+             <span className={styles.style1008_233}>{tAuto('key_1343c325')}</span>
           </TabsTrigger>
 
           <TabsTrigger value="controls" className={styles.style1011_234}>
             <Shield className={styles.style1012_235} />
-            <span className={styles.style1013_236}>{t('key_0c6af50a')} </span>
+            <span className={styles.style1013_236}>{tAuto('key_0c6af50a')} </span>
           </TabsTrigger>
         </TabsList>
 

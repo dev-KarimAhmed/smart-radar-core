@@ -271,6 +271,7 @@ export function AdStage({
   isFullScreen?: boolean;
   onRequestRideClick?: () => void;
 }) {
+    const tAuto = useTranslations('auto');
   const { user } = useAuth();
   const { direction, isArabic, language } = useDashboardLanguage();
   const adStageDirection = isArabic ? 'rtl' : 'ltr';
@@ -630,8 +631,8 @@ export function AdStage({
                       )}
                     />
                     {heartedAdIds.includes(takeoverAd.id)
-                      ? ((copy as unknown as Record<string, string>).removeFavorite || (isArabic ? t('key_446a5f99') : 'Remove favorite'))
-                      : ((copy as unknown as Record<string, string>).favorite || (isArabic ? t('key_9ddc8cd6') : 'Favorite'))}
+                      ? ((copy as unknown as Record<string, string>).removeFavorite || (isArabic ? tAuto('key_446a5f99') : 'Remove favorite'))
+                      : ((copy as unknown as Record<string, string>).favorite || (isArabic ? tAuto('key_9ddc8cd6') : 'Favorite'))}
                   </button>
                 ) : null}
               </div>

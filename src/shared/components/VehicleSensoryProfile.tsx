@@ -58,6 +58,7 @@ const SensoryStat = ({ icon, label, value, max }: { icon: React.ReactNode, label
 };
 
 export function VehicleSensoryProfile({ vehicle, isOpen, onClose }: { vehicle: VehicleOfferData | null, isOpen: boolean, onClose: () => void }) {
+    const tAuto = useTranslations('auto');
     const t = useTranslations('auto');
   if (!vehicle) return null;
 
@@ -73,10 +74,10 @@ export function VehicleSensoryProfile({ vehicle, isOpen, onClose }: { vehicle: V
         <DialogHeader>
           <DialogTitle className={styles.style42_9}>
             <Car className={styles.style43_10} />
-            {t('key_95496b1d')}
+            {tAuto('key_95496b1d')}
                                 </DialogTitle>
           <DialogDescription>
-            {t('key_ab600b15')}
+            {tAuto('key_ab600b15')}
                                 </DialogDescription>
         </DialogHeader>
         <div className={styles.style50_11}>
@@ -94,19 +95,19 @@ export function VehicleSensoryProfile({ vehicle, isOpen, onClose }: { vehicle: V
              <div className={styles.style62_17}>
                 <p className={styles.style63_18}>
                     <Star className={styles.style64_19} />
-                    {t('key_a088d59e')}
+                    {tAuto('key_a088d59e')}
                                               </p>
                 <p className={styles.style67_20}>{avgVehicleRating.toFixed(1)}</p>
             </div>
             
-            <p className={styles.style70_21}>{t('key_0bd7bcf4')} {totalRatings} {t('key_a616ab8a')}</p>
+            <p className={styles.style70_21}>{tAuto('key_0bd7bcf4')} {totalRatings} {tAuto('key_a616ab8a')}</p>
             
             <Separator className={styles.style72_22}/>
 
-            <h4 className={styles.style74_23}>{t('key_23eaaed3')}</h4>
-            <SensoryStat icon={<Sparkles className={styles.style75_24}/>} label={t('key_19c01e8c')} value={avgCleanliness} max={5} />
-            <SensoryStat icon={<VolumeX className={styles.style76_25}/>} label={t('key_7980842d')} value={avgQuietness} max={5} />
-            <SensoryStat icon={<TrafficCone className={styles.style77_26}/>} label={t('key_13fc2844')} value={avgAdherence} max={5} />
+            <h4 className={styles.style74_23}>{tAuto('key_23eaaed3')}</h4>
+            <SensoryStat icon={<Sparkles className={styles.style75_24}/>} label={tAuto('key_19c01e8c')} value={avgCleanliness} max={5} />
+            <SensoryStat icon={<VolumeX className={styles.style76_25}/>} label={tAuto('key_7980842d')} value={avgQuietness} max={5} />
+            <SensoryStat icon={<TrafficCone className={styles.style77_26}/>} label={tAuto('key_13fc2844')} value={avgAdherence} max={5} />
           </div>
 
         </div>

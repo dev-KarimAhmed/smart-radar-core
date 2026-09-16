@@ -60,6 +60,7 @@ interface DriverSovereignCardProps {
  * تعرض البيانات التشغيلية والصفة القانونية بشفافية  تامة.
  */
 export const DriverSovereignCard = memo(({ driver }: DriverSovereignCardProps) => {
+    const tAuto = useTranslations('auto');
     const t = useTranslations('auto');
   const rankTheme = getRankTheme(driver.rank);
   const isSilent = driver.silencePreference === 'silent';
@@ -121,18 +122,18 @@ export const DriverSovereignCard = memo(({ driver }: DriverSovereignCardProps) =
                         </div>
                         <div className={styles.style80_30}>
                             <MapPin className={styles.style81_31} />
-                            <span>{driver.distance.toFixed(1)} {t('key_e8594184')}</span>
+                            <span>{driver.distance.toFixed(1)} {tAuto('key_e8594184')}</span>
                         </div>
                     </div>
 
                     <div className={styles.style86_32}>
                         {isSilent ? (
                             <div className={styles.style88_33}>
-                                <VolumeX className={styles.style89_34} /> {t('key_955d3cd2')}
+                                <VolumeX className={styles.style89_34} /> {tAuto('key_955d3cd2')}
                                                               </div>
                         ) : (
                             <div className={styles.style92_35}>
-                                <MessageSquare className={styles.style93_36} /> {t('key_4dfff550')}
+                                <MessageSquare className={styles.style93_36} /> {tAuto('key_4dfff550')}
                                                                   </div>
                         )}
                     </div>

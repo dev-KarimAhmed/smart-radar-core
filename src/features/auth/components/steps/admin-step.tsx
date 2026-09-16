@@ -22,6 +22,7 @@ const styles = {
 
 
 export function AdminStep() {
+    const tAuto = useTranslations('auto');
     const t = useTranslations('auto');
   const { adminCreds, setAdminCreds, handleAdminSubmit, isSubmitting, setStep } = useRegistration();
 
@@ -32,7 +33,7 @@ export function AdminStep() {
       </div>
       <div>
         <label className={styles.style18_4}>
-          {t('key_f0090978')}
+          {tAuto('key_f0090978')}
                           </label>
         <Input
           type="email"
@@ -47,7 +48,7 @@ export function AdminStep() {
 
       <div>
         <label className={styles.style33_6}>
-          {t('key_c3b1d7ff')}
+          {tAuto('key_c3b1d7ff')}
                           </label>
         <Input
           type="password"
@@ -66,7 +67,7 @@ export function AdminStep() {
           className={styles.style50_9}
           disabled={isSubmitting}
         >
-          {isSubmitting ? t('key_dab541ae') : t('key_9fad1828')}
+          {isSubmitting ? tAuto('key_dab541ae') : tAuto('key_9fad1828')}
         </button>
       </div>
 
@@ -75,7 +76,7 @@ export function AdminStep() {
         className={styles.style59_10}
         onClick={() => setStep('role')}
       >
-        {t('key_eb54aae2')}
+        {tAuto('key_eb54aae2')}
                     </button>
     </form>
   );

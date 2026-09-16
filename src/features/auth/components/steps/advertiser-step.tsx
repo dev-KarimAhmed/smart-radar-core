@@ -30,6 +30,7 @@ const styles = {
 
 
 export function AdvertiserStep() {
+    const tAuto = useTranslations('auto');
     const t = useTranslations('auto');
   const { advertiserProfile, setAdvertiserProfile, handleAdvertiserSubmit, isSubmitting, setStep } = useRegistration();
 
@@ -37,10 +38,10 @@ export function AdvertiserStep() {
     <form onSubmit={handleAdvertiserSubmit} className={styles.style13_1} dir="rtl">
       <div>
         <label className={styles.style15_2}>
-          {t('key_b931fbf5')}
+          {tAuto('key_b931fbf5')}
                           </label>
         <Input
-          placeholder={t('key_b1dc2667')}
+          placeholder={tAuto('key_b1dc2667')}
           value={advertiserProfile.companyName}
           onChange={(e) => setAdvertiserProfile({ ...advertiserProfile, companyName: e.target.value })}
           className={styles.style22_3}
@@ -50,10 +51,10 @@ export function AdvertiserStep() {
 
       <div>
         <label className={styles.style28_4}>
-          {t('key_b8ef81e2')}
+          {tAuto('key_b8ef81e2')}
                           </label>
         <Input
-          placeholder={t('key_157fcb1f')}
+          placeholder={tAuto('key_157fcb1f')}
           value={advertiserProfile.commercialRegister}
           onChange={(e) => setAdvertiserProfile({ ...advertiserProfile, commercialRegister: e.target.value })}
           className={styles.style35_5}
@@ -63,10 +64,10 @@ export function AdvertiserStep() {
 
       <div>
         <label className={styles.style41_6}>
-          {t('key_4d7fddd8')}
+          {tAuto('key_4d7fddd8')}
                           </label>
         <Input
-          placeholder={t('key_c16a815e')}
+          placeholder={tAuto('key_c16a815e')}
           value={advertiserProfile.adLicense}
           onChange={(e) => setAdvertiserProfile({ ...advertiserProfile, adLicense: e.target.value })}
           className={styles.style48_7}
@@ -76,7 +77,7 @@ export function AdvertiserStep() {
 
       <div>
         <label className={styles.style54_8}>
-          {t('key_870b6a6e')}
+          {tAuto('key_870b6a6e')}
                           </label>
         <Select
           value={advertiserProfile.businessType}
@@ -84,14 +85,14 @@ export function AdvertiserStep() {
           required
         >
           <SelectTrigger className={styles.style62_9} dir="rtl">
-            <SelectValue placeholder={t('key_4d7ab853')} />
+            <SelectValue placeholder={tAuto('key_4d7ab853')} />
           </SelectTrigger>
           <SelectContent className={styles.style65_10}>
-            <SelectItem value="commercial" className={styles.style66_11}>{t('key_0875be63')}</SelectItem>
-            <SelectItem value="services" className={styles.style67_12}>{t('key_12dbac46')}</SelectItem>
-            <SelectItem value="entertainment" className={styles.style68_13}>{t('key_3542d52e')}</SelectItem>
-            <SelectItem value="real_estate" className={styles.style69_14}>{t('key_341c9025')}</SelectItem>
-            <SelectItem value="e_commerce" className={styles.style70_15}>{t('key_aa119bf7')}</SelectItem>
+            <SelectItem value="commercial" className={styles.style66_11}>{tAuto('key_0875be63')}</SelectItem>
+            <SelectItem value="services" className={styles.style67_12}>{tAuto('key_12dbac46')}</SelectItem>
+            <SelectItem value="entertainment" className={styles.style68_13}>{tAuto('key_3542d52e')}</SelectItem>
+            <SelectItem value="real_estate" className={styles.style69_14}>{tAuto('key_341c9025')}</SelectItem>
+            <SelectItem value="e_commerce" className={styles.style70_15}>{tAuto('key_aa119bf7')}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -102,7 +103,7 @@ export function AdvertiserStep() {
           className={styles.style78_17}
           disabled={isSubmitting}
         >
-          {isSubmitting ? t('key_7f87061b') : t('key_1e52c113')}
+          {isSubmitting ? tAuto('key_7f87061b') : tAuto('key_1e52c113')}
         </button>
       </div>
 
@@ -111,7 +112,7 @@ export function AdvertiserStep() {
         className={styles.style87_18}
         onClick={() => setStep('personal')}
       >
-        {t('key_dfc1d6cc')}
+        {tAuto('key_dfc1d6cc')}
                     </button>
     </form>
   );

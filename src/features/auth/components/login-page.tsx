@@ -55,6 +55,7 @@ const styles = {
 const isStrictDevelopment = process.env.NODE_ENV === 'development';
 
 function LoginOrchestrator() {
+    const tAuto = useTranslations('auto');
     const t = useTranslations('auto');
   const { setRole, setAuthMode, handleLogoTap } = useRegistration();
   const { loginAsMockUser } = useAuth();
@@ -207,10 +208,10 @@ function LoginOrchestrator() {
         {/* Step title */}
         <div className={styles.style162_14}>
           <h2 className={styles.style163_15}>
-            {t('key_99bbe84a')}
+            {tAuto('key_99bbe84a')}
                                 </h2>
           <p className={styles.style166_16}>
-            {t('key_97503f81')}
+            {tAuto('key_97503f81')}
                                 </p>
         </div>
 
@@ -222,10 +223,10 @@ function LoginOrchestrator() {
             <div className={styles.style176_17}>
               <div className={styles.style177_18}>
                 <span className={styles.style178_19}>
-                  {t('key_c7f74e6a')}
+                  {tAuto('key_c7f74e6a')}
                                                   </span>
                 <p className={styles.style181_20}>
-                  {t('key_960ae63d')}
+                  {tAuto('key_960ae63d')}
                                                   </p>
               </div>
               <div className={styles.style185_21}>
@@ -235,7 +236,7 @@ function LoginOrchestrator() {
                   className={styles.style189_22}
                 >
                   <UserCheck className={styles.style191_23} />
-                  <span>{t('key_b5f2617a')}</span>
+                  <span>{tAuto('key_b5f2617a')}</span>
                 </button>
                 <button
                   type="button"
@@ -243,7 +244,7 @@ function LoginOrchestrator() {
                   className={styles.style197_24}
                 >
                   <Car className={styles.style199_25} />
-                  <span>{t('key_f88ba116')}</span>
+                  <span>{tAuto('key_f88ba116')}</span>
                 </button>
                 <button
                   type="button"
@@ -251,7 +252,7 @@ function LoginOrchestrator() {
                   className={styles.style205_26}
                 >
                   <Key className={styles.style207_27} />
-                  <span>{t('key_78278817')}</span>
+                  <span>{tAuto('key_78278817')}</span>
                 </button>
                 <button
                   type="button"
@@ -259,7 +260,7 @@ function LoginOrchestrator() {
                   className={styles.style213_28}
                 >
                   <Megaphone className={styles.style215_29} />
-                  <span>{t('key_f2d3c89f')}</span>
+                  <span>{tAuto('key_f2d3c89f')}</span>
                 </button>
                 <button
                   type="button"
@@ -267,7 +268,7 @@ function LoginOrchestrator() {
                   className={styles.style221_30}
                 >
                   <Users className={styles.style223_31} />
-                  <span>{t('key_3df54374')}</span>
+                  <span>{tAuto('key_3df54374')}</span>
                 </button>
               </div>
             </div>
@@ -276,7 +277,7 @@ function LoginOrchestrator() {
 
         {/* Footer */}
         <div className={styles.style232_32}>
-          <p>{t('key_0bcf6815')}</p>
+          <p>{tAuto('key_0bcf6815')}</p>
         </div>
       </div>
     </div>

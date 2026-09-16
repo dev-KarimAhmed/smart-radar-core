@@ -59,6 +59,7 @@ interface IssuedToken {
  * password_reset_audit.
  */
 export function PasswordResetsTab() {
+    const tAuto = useTranslations('auto');
     const t = useTranslations('auto');
   const { toast } = useToast();
   const [requests, setRequests] = React.useState<PasswordResetRequestRow[]>([]);
@@ -135,45 +136,45 @@ export function PasswordResetsTab() {
     <div className={styles.wrap}>
       <div className={styles.headerRow}>
         <div>
-          <h2 className={styles.title}>{t('key_45cbab9c')}</h2>
+          <h2 className={styles.title}>{tAuto('key_45cbab9c')}</h2>
           <p className={styles.subtitle}>
-            {t('key_522df74a')}
+            {tAuto('key_522df74a')}
                                 </p>
         </div>
         <button type="button" onClick={() => void load()} disabled={isLoading} className={styles.refresh}>
           {isLoading ? <Loader2 className={styles.spin} /> : <RefreshCw className={styles.refreshIcon} />}
-          {t('key_061401dc')}
+          {tAuto('key_061401dc')}
                           </button>
       </div>
 
       <p className={styles.warning}>
         <AlertTriangle className={styles.warningIcon} />
-        {t('key_32617a5b')}
+        {tAuto('key_32617a5b')}
                     </p>
 
       {issued ? (
         <div className={styles.tokenBox}>
-          <span className={styles.tokenLabel}>{t('key_a6696aa0')}</span>
+          <span className={styles.tokenLabel}>{tAuto('key_a6696aa0')}</span>
           <code className={styles.tokenValue}>{issued.url}</code>
           <p className={styles.tokenHint}>
-            {t('key_ce5d8c18')} {issued.expiresInMinutes} {t('key_a444da69')}
+            {tAuto('key_ce5d8c18')} {issued.expiresInMinutes} {tAuto('key_a444da69')}
                                 </p>
           <button
             type="button"
             onClick={() => {
               void navigator.clipboard.writeText(issued.url);
-              toast({ title: t('key_005a34e1') });
+              toast({ title: tAuto('key_005a34e1') });
             }}
             className={styles.copy}
           >
             <Copy className={styles.copyIcon} />
-            {t('key_0d8af0ab')}
+            {tAuto('key_0d8af0ab')}
                                 </button>
         </div>
       ) : null}
 
       {isLoading ? null : requests.length === 0 ? (
-        <p className={styles.empty}>{t('key_56b43fd7')}</p>
+        <p className={styles.empty}>{tAuto('key_56b43fd7')}</p>
       ) : (
         <div className={styles.list}>
           {requests.map((request) => (
@@ -188,24 +189,24 @@ export function PasswordResetsTab() {
                 {request.profile_id ? (
                   <span className={styles.matched}>
                     <ShieldCheck className={styles.badgeIcon} />
-                    {t('key_80bb0aa3')}
+                    {tAuto('key_80bb0aa3')}
                                                 </span>
                 ) : (
                   <span className={styles.unmatched}>
                     <XCircle className={styles.badgeIcon} />
-                    {t('key_235aa0f8')}
+                    {tAuto('key_235aa0f8')}
                                                     </span>
                 )}
               </div>
 
               <label className={styles.noteLabel} htmlFor={`note-${request.id}`}>
-                {t('key_40081c53')}
+                {tAuto('key_40081c53')}
                                     </label>
               <input
                 id={`note-${request.id}`}
                 value={notes[request.id] || ''}
                 onChange={(event) => setNotes((current) => ({ ...current, [request.id]: event.target.value }))}
-                placeholder={t('key_f5824925')}
+                placeholder={tAuto('key_f5824925')}
                 className={styles.noteInput}
               />
 
@@ -217,7 +218,7 @@ export function PasswordResetsTab() {
                   className={styles.approve}
                 >
                   {busyId === request.id ? <Loader2 className={styles.spin} /> : <KeyRound className={styles.refreshIcon} />}
-                  {t('key_916daeb8')}
+                  {tAuto('key_916daeb8')}
                                           </button>
                 <button
                   type="button"
@@ -226,7 +227,7 @@ export function PasswordResetsTab() {
                   className={styles.reject}
                 >
                   <XCircle className={styles.refreshIcon} />
-                  {t('key_b7dee974')}
+                  {tAuto('key_b7dee974')}
                                           </button>
               </div>
             </div>

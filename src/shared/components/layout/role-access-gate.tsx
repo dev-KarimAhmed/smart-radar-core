@@ -10,13 +10,14 @@ const styles = {
 } as const;
 
 export function RoleAccessGate({ body, title }: { body: string; title: string }) {
+    const tAuto = useTranslations('auto');
     const t = useTranslations('auto');
   return (
     <main className={styles.root}>
       <section className={styles.card}>
         <h1 className={styles.title}>{title}</h1>
         <p className={styles.body}>{body}</p>
-        <Link className={styles.link} href="/">{t('key_b5dcde74')}</Link>
+        <Link className={styles.link} href="/">{tAuto('key_b5dcde74')}</Link>
       </section>
     </main>
   );

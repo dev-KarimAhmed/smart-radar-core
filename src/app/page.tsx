@@ -20,6 +20,7 @@ const styles = {
 } as const;
 
 export default function HomePage() {
+    const tAuto = useTranslations('auto');
     const t = useTranslations('auto');
   const { loading, user } = useAuth();
   const router = useRouter();
@@ -35,8 +36,8 @@ export default function HomePage() {
     return (
       <div className={styles.loadingRoot}>
         <div className={styles.loadingIconFrame}><div className={styles.loadingIcon} /></div>
-        <div className={styles.loadingTitle}>{t('key_74d1106b')}</div>
-        <div className={styles.loadingBody}>{t('key_7588d11e')}</div>
+        <div className={styles.loadingTitle}>{tAuto('key_74d1106b')}</div>
+        <div className={styles.loadingBody}>{tAuto('key_7588d11e')}</div>
       </div>
     );
   }
@@ -46,9 +47,9 @@ export default function HomePage() {
   return (
     <div className={styles.fallback}>
       <div className={styles.fallbackContent}>
-        <h1 className={styles.fallbackTitle}>{t('key_aa12bda7')} {user.name}</h1>
-        <p className={styles.fallbackRole}>{t('key_ccda32d9')} {user.role}</p>
-        <p className={styles.fallbackWarning}>{t('key_8160066f')}</p>
+        <h1 className={styles.fallbackTitle}>{tAuto('key_aa12bda7')} {user.name}</h1>
+        <p className={styles.fallbackRole}>{tAuto('key_ccda32d9')} {user.role}</p>
+        <p className={styles.fallbackWarning}>{tAuto('key_8160066f')}</p>
       </div>
     </div>
   );

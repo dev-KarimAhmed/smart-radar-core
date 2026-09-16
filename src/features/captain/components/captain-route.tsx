@@ -8,7 +8,8 @@ import { useTranslations } from "next-intl";
 
 const CaptainWorkspace = dynamic(
   () => import('./captain-workspace').then((module) => module.CaptainWorkspace),
-  { loading: function Loading() { const t = useTranslations('auto'); return <RouteLoading label={t('key_7638191e')} />; } },
+  { loading: function Loading() {
+      const tAuto = useTranslations('auto'); const t = useTranslations('auto'); return <RouteLoading label={tAuto('key_7638191e')} />; } },
 );
 
 const styles = {
@@ -21,19 +22,20 @@ const styles = {
 } as const;
 
 export function CaptainRoute() {
+    const tAuto = useTranslations('auto');
     const t = useTranslations('auto');
   const { loading, user } = useAuth();
 
   return (
     <div className={styles.root} data-captain-route>
-      {loading ? <RouteLoading label={t('key_7588d11e')} /> : user?.role === 'driver' ? (
+      {loading ? <RouteLoading label={tAuto('key_7588d11e')} /> : user?.role === 'driver' ? (
         <CaptainWorkspace />
       ) : (
         <main className={styles.gate}>
           <section className={styles.gateCard}>
-            <h1 className={styles.gateTitle}>{t('key_0864e85b')}</h1>
-            <p className={styles.gateBody}>{t('key_42de5ca2')}</p>
-            <Link className={styles.gateLink} href="/">{t('key_b5dcde74')}</Link>
+            <h1 className={styles.gateTitle}>{tAuto('key_0864e85b')}</h1>
+            <p className={styles.gateBody}>{tAuto('key_42de5ca2')}</p>
+            <Link className={styles.gateLink} href="/">{tAuto('key_b5dcde74')}</Link>
           </section>
         </main>
       )}

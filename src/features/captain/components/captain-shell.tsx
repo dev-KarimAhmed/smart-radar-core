@@ -8,7 +8,8 @@ import { useTranslations } from "next-intl";
 
 const CaptainView = dynamic(
   () => import('./captain-view').then((module) => module.DriverViewTab),
-  { loading: function Loading() { const t = useTranslations('auto'); return <RouteLoading label={t('key_44baaa8e')} />; } },
+  { loading: function Loading() {
+      const tAuto = useTranslations('auto'); const t = useTranslations('auto'); return <RouteLoading label={tAuto('key_44baaa8e')} />; } },
 );
 
 const styles = {

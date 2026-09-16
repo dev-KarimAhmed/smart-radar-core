@@ -91,6 +91,7 @@ export function SovereignGapSimulator({
   isProcessing,
   setIsProcessing
 }: SovereignGapSimulatorProps) {
+    const tAuto = useTranslations('auto');
   const { toast } = useToast();
   const t = useTranslations('adminTab.simulator');
 
@@ -233,11 +234,11 @@ export function SovereignGapSimulator({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className={styles.customSelectContent}>
-                  <SelectItem value={t('key_3fadd59c')} className={styles.customSelectItem}>{t('areas.shouna')}</SelectItem>
-                  <SelectItem value={t('key_643e2556')} className={styles.customSelectItem}>{t('areas.naour')}</SelectItem>
-                  <SelectItem value={t('key_656e3770')} className={styles.customSelectItem}>{t('areas.deirGhbar')}</SelectItem>
-                  <SelectItem value={t('key_34c7df09')} className={styles.customSelectItem}>{t('areas.sweileh')}</SelectItem>
-                  <SelectItem value={t('key_edbefa77')} className={styles.customSelectItem}>{t('areas.muqabalain')}</SelectItem>
+                  <SelectItem value={tAuto('key_3fadd59c')} className={styles.customSelectItem}>{t('areas.shouna')}</SelectItem>
+                  <SelectItem value={tAuto('key_643e2556')} className={styles.customSelectItem}>{t('areas.naour')}</SelectItem>
+                  <SelectItem value={tAuto('key_656e3770')} className={styles.customSelectItem}>{t('areas.deirGhbar')}</SelectItem>
+                  <SelectItem value={tAuto('key_34c7df09')} className={styles.customSelectItem}>{t('areas.sweileh')}</SelectItem>
+                  <SelectItem value={tAuto('key_edbefa77')} className={styles.customSelectItem}>{t('areas.muqabalain')}</SelectItem>
                 </SelectContent>
               </Select>
 

@@ -17,6 +17,7 @@ const styles = {
 } as const;
 
 function PwaUpdater() {
+    const tAuto = useTranslations('auto');
     const t = useTranslations('auto');
   const [needRefresh, setNeedRefresh] = useState(false);
   const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null);
@@ -63,12 +64,12 @@ function PwaUpdater() {
   return (
     <div className={styles.update}>
       <div className={styles.copy} dir="rtl">
-        <h4 className={styles.title}>{t('key_2900748a')}</h4>
-        <p className={styles.description}>{t('key_dc03e7e1')}</p>
+        <h4 className={styles.title}>{tAuto('key_2900748a')}</h4>
+        <p className={styles.description}>{tAuto('key_dc03e7e1')}</p>
       </div>
       <div className={styles.actions}>
-        <Button onClick={updateServiceWorker} className={styles.updateButton}>{t('key_ccfb3df0')}</Button>
-        <Button onClick={() => setNeedRefresh(false)} variant="ghost" className={styles.laterButton}>{t('key_68d7ad5a')}</Button>
+        <Button onClick={updateServiceWorker} className={styles.updateButton}>{tAuto('key_ccfb3df0')}</Button>
+        <Button onClick={() => setNeedRefresh(false)} variant="ghost" className={styles.laterButton}>{tAuto('key_68d7ad5a')}</Button>
       </div>
     </div>
   );

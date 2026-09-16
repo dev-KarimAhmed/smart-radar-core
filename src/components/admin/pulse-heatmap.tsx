@@ -161,6 +161,7 @@ const getGovernorateOfDistrict = (districtName: string): string => {
 };
 
 export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
+    const tAuto = useTranslations('auto');
     const t = useTranslations('auto');
   const [selectedGov, setSelectedGov] = React.useState<string>('الكل');
   const [selectedDistrict, setSelectedDistrict] = React.useState<string>('الكل');
@@ -319,10 +320,10 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
             <div>
               <CardTitle className={styles.style230_12}>
                 <Activity className={styles.style231_13} />
-                {t('key_a5d3d09c')}
+                {tAuto('key_a5d3d09c')}
                                             </CardTitle>
               <CardDescription className={styles.style234_14}>
-                {t('key_056804be')}
+                {tAuto('key_056804be')}
                                             </CardDescription>
             </div>
 
@@ -331,14 +332,14 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
               {/* Governorate Selector */}
               <div className={styles.style242_16}>
                 <span className={styles.style243_17}>
-                  <MapPin className={styles.style244_18} /> {t('key_d5113593')}
+                  <MapPin className={styles.style244_18} /> {tAuto('key_d5113593')}
                                                   </span>
                 <Select value={selectedGov} onValueChange={handleGovChange}>
                   <SelectTrigger className={styles.style247_19}>
-                    <SelectValue placeholder={t('key_2f5a1a9e')} />
+                    <SelectValue placeholder={tAuto('key_2f5a1a9e')} />
                   </SelectTrigger>
                   <SelectContent className={styles.style250_20}>
-                    <SelectItem value={t('key_6d08f196')} className={styles.style251_21}>{t('key_0a8d5f35')}</SelectItem>
+                    <SelectItem value={tAuto('key_6d08f196')} className={styles.style251_21}>{tAuto('key_0a8d5f35')}</SelectItem>
                     {jordanGovernorates.map(gov => (
                       <SelectItem key={gov} value={gov} className={styles.style253_22}>{gov}</SelectItem>
                     ))}
@@ -349,18 +350,18 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
               {/* District Selector */}
               <div className={styles.style260_23}>
                 <span className={styles.style261_24}>
-                  <Navigation className={styles.style262_25} /> {t('key_5ebad0b9')}
+                  <Navigation className={styles.style262_25} /> {tAuto('key_5ebad0b9')}
                                                   </span>
                 <Select
                   value={selectedDistrict}
                   onValueChange={setSelectedDistrict}
-                  disabled={selectedGov === t('key_6d08f196')}
+                  disabled={selectedGov === tAuto('key_6d08f196')}
                 >
                   <SelectTrigger className={styles.style269_26}>
-                    <SelectValue placeholder={t('key_ab5f2b73')} />
+                    <SelectValue placeholder={tAuto('key_ab5f2b73')} />
                   </SelectTrigger>
                   <SelectContent className={styles.style272_27}>
-                    <SelectItem value={t('key_6d08f196')} className={styles.style273_28}>{t('key_45704af2')}</SelectItem>
+                    <SelectItem value={tAuto('key_6d08f196')} className={styles.style273_28}>{tAuto('key_45704af2')}</SelectItem>
                     {availableDistricts.map(dist => (
                       <SelectItem key={dist} value={dist} className={styles.style275_29}>{dist}</SelectItem>
                     ))}
@@ -377,18 +378,18 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
         <div className={styles.style287_31}>
           <div className={styles.style288_32}>
             <BarChart3 className={styles.style289_33} />
-            <h3 className={styles.style290_34}>{t('key_fdbcd104')}</h3>
+            <h3 className={styles.style290_34}>{tAuto('key_fdbcd104')}</h3>
           </div>
 
           {/* 🏷️ Customized Legend */}
           <div className={styles.style294_35}>
             <div className={styles.style295_36}>
               <span className={styles.style296_37}></span>
-              <span className={styles.style297_38}>{t('key_396fae76')}</span>
+              <span className={styles.style297_38}>{tAuto('key_396fae76')}</span>
             </div>
             <div className={styles.style299_39}>
               <span className={styles.style300_40}></span>
-              <span className={styles.style301_41}>{t('key_3e458216')}</span>
+              <span className={styles.style301_41}>{tAuto('key_3e458216')}</span>
             </div>
           </div>
         </div>
@@ -396,7 +397,7 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
         {chartData.length === 0 ? (
           <div className={styles.style307_42}>
             <Activity className={styles.style308_43} />
-            <p className={styles.style309_44}>{t('key_769faef5')}</p>
+            <p className={styles.style309_44}>{tAuto('key_769faef5')}</p>
           </div>
         ) : (
           <div ref={containerRef} className={styles.style312_45}>
@@ -559,15 +560,15 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
                 </p>
                 <div className={styles.style470_55}>
                   <p className={styles.style471_56}>
-                    <span>{t('key_4b858334')}</span>
+                    <span>{tAuto('key_4b858334')}</span>
                     <span className={styles.style473_57}>{chartData[hoveredIndex].demand}</span>
                   </p>
                   <p className={styles.style475_58}>
-                    <span>{t('key_a4dbedc2')}</span>
+                    <span>{tAuto('key_a4dbedc2')}</span>
                     <span className={styles.style477_59}>{chartData[hoveredIndex].supply}</span>
                   </p>
                   <p className={styles.style479_60}>
-                    <span>{t('key_8f0a48c3')}</span>
+                    <span>{tAuto('key_8f0a48c3')}</span>
                     <span className={styles.style481_61}>{chartData[hoveredIndex].density}%</span>
                   </p>
                 </div>
@@ -580,7 +581,7 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
       {/* 📝 Granular Details List */}
       <div>
         <h4 className={styles.style492_62}>
-          <span>●</span> {t('key_bc95a008')}{filteredData.length})
+          <span>●</span> {tAuto('key_bc95a008')}{filteredData.length})
         </h4>
         <div className={styles.style495_63}>
           {filteredData.sort((a,b) => b.demand - a.demand).map((pulse) => {
@@ -594,21 +595,21 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
                     <style.Icon className={cn(styles.style504_68, style.iconColor)} />
                   </CardTitle>
                   <CardDescription className={styles.style506_69}>
-                    <span>{t('key_42b7cd22')} {govName}</span>
+                    <span>{tAuto('key_42b7cd22')} {govName}</span>
                     <span className={cn(styles.style508_70, style.iconColor)}>{style.label}</span>
                   </CardDescription>
                 </CardHeader>
                 <CardContent className={styles.style511_71}>
                   <div className={styles.style512_72}>
                     <div className={styles.style513_73}>
-                      <span className={styles.style514_74}>{t('key_bf9c02da')}</span>
+                      <span className={styles.style514_74}>{tAuto('key_bf9c02da')}</span>
                       <div className={styles.style515_75}>
                         <Users className={styles.style516_76} />
                         <span className={styles.style517_77}>{pulse.demand}</span>
                       </div>
                     </div>
                     <div className={styles.style520_78}>
-                      <span className={styles.style521_79}>{t('key_196230d2')}</span>
+                      <span className={styles.style521_79}>{tAuto('key_196230d2')}</span>
                       <div className={styles.style522_80}>
                         <Car className={styles.style523_81} />
                         <span className={styles.style524_82}>{pulse.supply}</span>
@@ -618,9 +619,9 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
 
                   {/* Geospatial Density Counter */}
                   <div className={styles.style530_83}>
-                    <span>{t('key_3fa65efd')}</span>
+                    <span>{tAuto('key_3fa65efd')}</span>
                     <span className={styles.style532_84}>
-                      {isProcessingScores ? t('key_861f2229') : `${calculatedScores[pulse.id] ?? '0.0'}%`}
+                      {isProcessingScores ? tAuto('key_861f2229') : `${calculatedScores[pulse.id] ?? '0.0'}%`}
                     </span>
                   </div>
                 </CardContent>

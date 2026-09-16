@@ -78,6 +78,7 @@ const styles = {
 
 
 export function PwaInstallPrompt() {
+    const tAuto = useTranslations('auto');
     const t = useTranslations('auto');
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'android' | 'ios'>('android');
@@ -118,9 +119,9 @@ export function PwaInstallPrompt() {
             statement of what it is asking. Hidden visually for the same reason as the title:
             the sighted layout below already says all of this. */}
         <VisuallyHidden>
-          <DialogTitle>{t('key_f3119d83')}</DialogTitle>
+          <DialogTitle>{tAuto('key_f3119d83')}</DialogTitle>
           <DialogDescription>
-            {t('key_aa98a608')}
+            {tAuto('key_aa98a608')}
                                 </DialogDescription>
         </VisuallyHidden>
 
@@ -144,12 +145,12 @@ export function PwaInstallPrompt() {
           {/* Title */}
           <div className={styles.style68_7}>
             <Sparkles className={styles.style69_8} />
-            <h2>{t('key_44eecd12')}</h2>
+            <h2>{tAuto('key_44eecd12')}</h2>
           </div>
 
           {/* Subtitle */}
           <p className={styles.style74_9}>
-            {t('key_dba8c672')} <span className={styles.style75_10}>{t('key_d21b1c65')}</span> {t('key_a8b72173')}
+            {tAuto('key_dba8c672')} <span className={styles.style75_10}>{tAuto('key_d21b1c65')}</span> {tAuto('key_a8b72173')}
                                 </p>
 
           {/* Tab Selector */}
@@ -161,7 +162,7 @@ export function PwaInstallPrompt() {
                   : styles.style85_14)}
             >
               <Layers className={styles.style88_15} />
-              <span>{t('key_77cad099')}</span>
+              <span>{tAuto('key_77cad099')}</span>
             </button>
             <button
               onClick={() => setActiveTab('ios')}
@@ -170,7 +171,7 @@ export function PwaInstallPrompt() {
                   : styles.style96_18)}
             >
               <Phone className={styles.style99_19} />
-              <span>{t('key_36787f36')}</span>
+              <span>{tAuto('key_36787f36')}</span>
             </button>
           </div>
 
@@ -185,13 +186,13 @@ export function PwaInstallPrompt() {
                   </div>
                   <div className={styles.style113_23}>
                     <h4 className={styles.style114_24}>
-                      {t('key_8639bd1c')}
+                      {tAuto('key_8639bd1c')}
                                                                 <span className={styles.style116_25}>
                         <MoreVertical className={styles.style117_26} />
                       </span>
                     </h4>
                     <p className={styles.style120_27}>
-                      {t('key_33868974')}
+                      {tAuto('key_33868974')}
                                                               </p>
                   </div>
                 </div>
@@ -203,13 +204,13 @@ export function PwaInstallPrompt() {
                   </div>
                   <div className={styles.style131_30}>
                     <h4 className={styles.style132_31}>
-                      {t('key_edc34971')}
+                      {tAuto('key_edc34971')}
                                                                 <span className={styles.style134_32}>
                         <Download className={styles.style135_33} />
                       </span>
                     </h4>
                     <p className={styles.style138_34}>
-                      {t('key_3fb8ebba')}
+                      {tAuto('key_3fb8ebba')}
                                                               </p>
                   </div>
                 </div>
@@ -221,10 +222,10 @@ export function PwaInstallPrompt() {
                   </div>
                   <div className={styles.style149_37}>
                     <h4 className={styles.style150_38}>
-                      {t('key_3e166536')}
+                      {tAuto('key_3e166536')}
                                                               </h4>
                     <p className={styles.style153_39}>
-                      {t('key_49e1fedb')}
+                      {tAuto('key_49e1fedb')}
                                                               </p>
                   </div>
                 </div>
@@ -238,13 +239,13 @@ export function PwaInstallPrompt() {
                   </div>
                   <div className={styles.style166_42}>
                     <h4 className={styles.style167_43}>
-                      {t('key_fba872a8')}
+                      {tAuto('key_fba872a8')}
                                                                     <span className={styles.style169_44}>
                         <Share2 className={styles.style170_45} />
                       </span>
                     </h4>
                     <p className={styles.style173_46}>
-                      {t('key_de709b0c')}
+                      {tAuto('key_de709b0c')}
                                                                   </p>
                   </div>
                 </div>
@@ -256,13 +257,13 @@ export function PwaInstallPrompt() {
                   </div>
                   <div className={styles.style184_49}>
                     <h4 className={styles.style185_50}>
-                      {t('key_614596ed')}
+                      {tAuto('key_614596ed')}
                                                                     <span className={styles.style187_51}>
                         <PlusSquare className={styles.style188_52} />
                       </span>
                     </h4>
                     <p className={styles.style191_53}>
-                      {t('key_2d95a4ec')}
+                      {tAuto('key_2d95a4ec')}
                                                                   </p>
                   </div>
                 </div>
@@ -274,10 +275,10 @@ export function PwaInstallPrompt() {
                   </div>
                   <div className={styles.style202_56}>
                     <h4 className={styles.style203_57}>
-                      {t('key_a9bacca4')}
+                      {tAuto('key_a9bacca4')}
                                                                   </h4>
                     <p className={styles.style206_58}>
-                      {t('key_5d44d5c8')}
+                      {tAuto('key_5d44d5c8')}
                                                                   </p>
                   </div>
                 </div>
@@ -290,7 +291,7 @@ export function PwaInstallPrompt() {
             onClick={handleDismiss}
             className={styles.style218_59}
           >
-            {t('key_0d1c83d0')}
+            {tAuto('key_0d1c83d0')}
                                 </Button>
 
           {/* Footer information */}

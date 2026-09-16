@@ -8,7 +8,8 @@ import { useTranslations } from "next-intl";
 
 const AdvertiserWorkspace = dynamic(
   () => import('./advertiser-workspace').then((module) => module.AdvertiserWorkspace),
-  { loading: function Loading() { const t = useTranslations('auto'); return <RouteLoading label={t('key_a04d84ed')} />; } },
+  { loading: function Loading() {
+      const tAuto = useTranslations('auto'); const t = useTranslations('auto'); return <RouteLoading label={tAuto('key_a04d84ed')} />; } },
 );
 
 const styles = {
@@ -16,13 +17,14 @@ const styles = {
 } as const;
 
 export function AdvertiserRoute() {
+    const tAuto = useTranslations('auto');
     const t = useTranslations('auto');
   const { loading, user } = useAuth();
   return (
     <main className={styles.root} data-advertiser-route>
-      {loading ? <RouteLoading label={t('key_7588d11e')} /> : user?.role === 'advertiser'
+      {loading ? <RouteLoading label={tAuto('key_7588d11e')} /> : user?.role === 'advertiser'
         ? <AdvertiserWorkspace />
-        : <RoleAccessGate title={t('key_86da01ef')} body={t('key_b5e4f25a')} />}
+        : <RoleAccessGate title={tAuto('key_86da01ef')} body={tAuto('key_b5e4f25a')} />}
     </main>
   );
 }

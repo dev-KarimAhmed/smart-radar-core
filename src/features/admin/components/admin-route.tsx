@@ -8,7 +8,8 @@ import { useTranslations } from "next-intl";
 
 const AdminWorkspace = dynamic(
   () => import('./admin-workspace').then((module) => module.AdminWorkspace),
-  { loading: function Loading() { const t = useTranslations('auto'); return <RouteLoading label={t('key_ddd2872a')} />; } },
+  { loading: function Loading() {
+      const tAuto = useTranslations('auto'); const t = useTranslations('auto'); return <RouteLoading label={tAuto('key_ddd2872a')} />; } },
 );
 
 const styles = {
@@ -16,13 +17,14 @@ const styles = {
 } as const;
 
 export function AdminRoute() {
+    const tAuto = useTranslations('auto');
     const t = useTranslations('auto');
   const { loading, user } = useAuth();
   return (
     <main className={styles.root} data-admin-route>
-      {loading ? <RouteLoading label={t('key_7588d11e')} /> : user?.role === 'admin'
+      {loading ? <RouteLoading label={tAuto('key_7588d11e')} /> : user?.role === 'admin'
         ? <AdminWorkspace />
-        : <RoleAccessGate title={t('key_afa34246')} body={t('key_d9b948a8')} />}
+        : <RoleAccessGate title={tAuto('key_afa34246')} body={tAuto('key_d9b948a8')} />}
     </main>
   );
 }

@@ -22,6 +22,7 @@ interface CaptainDashboardProps {
 }
 
 export const RadarCaptainDashboard: React.FC<CaptainDashboardProps> = ({ captainProfile }) => {
+    const tAuto = useTranslations('auto');
     const t = useTranslations('auto');
   const { user } = useAuth();
   const { language } = useDashboardLanguage();
@@ -31,7 +32,7 @@ export const RadarCaptainDashboard: React.FC<CaptainDashboardProps> = ({ captain
   if (!driverOps) {
     return (
       <section className={styles.style26_1}>
-        {language === 'ar' ? t('key_9733e0c8') : 'Loading captain dashboard...'}
+        {language === 'ar' ? tAuto('key_9733e0c8') : 'Loading captain dashboard...'}
       </section>
     );
   }

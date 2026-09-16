@@ -18,6 +18,7 @@ const styles = {
 const OVERSPEED_THRESHOLD = 40; // km/h
 
 export function SpeedSentry() {
+    const tAuto = useTranslations('auto');
     const t = useTranslations('auto');
   const driverOps = useDriverOperations();
   const { driverSpeed, driverStatus } = driverOps || { driverSpeed: 0, driverStatus: 'idle' };
@@ -38,9 +39,9 @@ export function SpeedSentry() {
     >
       <AlertTriangle className={styles.style27_4} />
       <div>
-        <h3 className={styles.style29_5}>{t('key_733fa7c6')} </h3>
+        <h3 className={styles.style29_5}>{tAuto('key_733fa7c6')} </h3>
         <p className={styles.style30_6}>
-          {t('key_9de603e2')}
+          {tAuto('key_9de603e2')}
                           </p>
       </div>
     </div>

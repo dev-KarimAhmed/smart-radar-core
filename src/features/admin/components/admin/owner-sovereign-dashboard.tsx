@@ -83,6 +83,7 @@ const styles = {
  * Refactored under [Sovereign Splitting Operation - RAD-MAP-086] to adhere to cloud performance protocols.
  */
 export function RadarOwnerSovereignDashboard() {
+    const tAuto = useTranslations('auto');
     const t = useTranslations('auto');
   const {
     delegates,
@@ -135,23 +136,23 @@ export function RadarOwnerSovereignDashboard() {
         <div>
           <div className={styles.style68_3}>
             <Badge className={styles.style69_4}>
-              {t('key_94bbe688')}
+              {tAuto('key_94bbe688')}
                                       </Badge>
           </div>
           <h2 className={styles.style73_5}>
             <ShieldAlert className={styles.style74_6} />
-            {t('key_cd6258c9')}
+            {tAuto('key_cd6258c9')}
                                 </h2>
           <p className={styles.style77_7}>
-            {t('key_e690030c')}
+            {tAuto('key_e690030c')}
                                 </p>
         </div>
 
         {/* Absolute Global Stats */}
         <div className={styles.style83_8}>
-          <span className={styles.style84_9}>{t('key_2b2c2b12')}</span>
-          <span className={styles.style85_10}>{(auditedStats.totalNet).toFixed(2)} {t('key_a13e6dc9')}</span>
-          <span className={styles.style86_11}>{t('key_1c51f19f')}{auditedStats.totalPenalties.toFixed(2)} {t('key_af380944')}</span>
+          <span className={styles.style84_9}>{tAuto('key_2b2c2b12')}</span>
+          <span className={styles.style85_10}>{(auditedStats.totalNet).toFixed(2)} {tAuto('key_a13e6dc9')}</span>
+          <span className={styles.style86_11}>{tAuto('key_1c51f19f')}{auditedStats.totalPenalties.toFixed(2)} {tAuto('key_af380944')}</span>
         </div>
       </div>
 
@@ -187,10 +188,10 @@ export function RadarOwnerSovereignDashboard() {
         <CardHeader className={styles.style119_13}>
           <CardTitle className={styles.style120_14}>
             <Shield className={styles.style121_15} />
-            {t('key_805f50cb')}
+            {tAuto('key_805f50cb')}
                                 </CardTitle>
           <CardDescription className={styles.style124_16} dir="rtl">
-            {t('key_4ebc4293')}
+            {tAuto('key_4ebc4293')}
                                 </CardDescription>
         </CardHeader>
         <CardContent className={styles.style128_17}>
@@ -198,7 +199,7 @@ export function RadarOwnerSovereignDashboard() {
 
             {/* Regions List */}
             <div className={styles.style132_19}>
-              <h3 className={styles.style133_20}>{t('key_9a5ad34f')}</h3>
+              <h3 className={styles.style133_20}>{tAuto('key_9a5ad34f')}</h3>
               <div className={styles.style134_21}>
                 {Object.values(SovereignDemarcationCatalog.regions).map(region => (
                   <div key={region.id} className={styles.style136_22}>
@@ -208,7 +209,7 @@ export function RadarOwnerSovereignDashboard() {
                     </div>
                     <p className={styles.style141_26}>{region.descriptionAr}</p>
                     <div className={styles.style142_27}>
-                      <span className={styles.style143_28}>{t('key_63ca12cc')}</span>
+                      <span className={styles.style143_28}>{tAuto('key_63ca12cc')}</span>
                       <div className={styles.style144_29}>
                         {region.paths.map(path => (
                           <code key={path} className={styles.style146_30}>{path}</code>
@@ -222,7 +223,7 @@ export function RadarOwnerSovereignDashboard() {
 
             {/* Sectors List */}
             <div className={styles.style156_31}>
-              <h3 className={styles.style157_32}>{t('key_24553cb1')}</h3>
+              <h3 className={styles.style157_32}>{tAuto('key_24553cb1')}</h3>
               <div className={styles.style158_33}>
                 {Object.values(SovereignDemarcationCatalog.sectors).map(sector => (
                   <div key={sector.id} className={styles.style160_34}>
@@ -235,42 +236,42 @@ export function RadarOwnerSovereignDashboard() {
                       <div className={styles.style167_40}>
                         {/* Front-End Sub-Sector */}
                         <div className={styles.style169_41}>
-                          <span className={styles.style170_42}>{t('key_6ad85d24')}</span>
+                          <span className={styles.style170_42}>{tAuto('key_6ad85d24')}</span>
                           <div>
-                            <span className={styles.style172_43}>{t('key_eb2ff9e6')}{sector.frontend.components.length}):</span>
+                            <span className={styles.style172_43}>{tAuto('key_eb2ff9e6')}{sector.frontend.components.length}):</span>
                             <div className={styles.style173_44}>
                               {sector.frontend.components.length > 0 ? sector.frontend.components.map(c => (
                                 <code key={c} className={styles.style175_45}>{c.split('/').pop()}</code>
-                              )) : <span className={styles.style176_46}>{t('key_9d7155f3')}</span>}
+                              )) : <span className={styles.style176_46}>{tAuto('key_9d7155f3')}</span>}
                             </div>
                           </div>
                           <div className={styles.style179_47}>
-                            <span className={styles.style180_48}>{t('key_e061f48e')}{sector.frontend.hooks.length}):</span>
+                            <span className={styles.style180_48}>{tAuto('key_e061f48e')}{sector.frontend.hooks.length}):</span>
                             <div className={styles.style181_49}>
                               {sector.frontend.hooks.length > 0 ? sector.frontend.hooks.map(h => (
                                 <code key={h} className={styles.style183_50}>{h.split('/').pop()}</code>
-                              )) : <span className={styles.style184_51}>{t('key_9d7155f3')}</span>}
+                              )) : <span className={styles.style184_51}>{tAuto('key_9d7155f3')}</span>}
                             </div>
                           </div>
                         </div>
 
                         {/* Back-End Sub-Sector */}
                         <div className={styles.style190_52}>
-                          <span className={styles.style191_53}>{t('key_fd27ec57')}</span>
+                          <span className={styles.style191_53}>{tAuto('key_fd27ec57')}</span>
                           <div>
-                            <span className={styles.style193_54}>{t('key_ce18ff4e')}{sector.backend.cores.length}):</span>
+                            <span className={styles.style193_54}>{tAuto('key_ce18ff4e')}{sector.backend.cores.length}):</span>
                             <div className={styles.style194_55}>
                               {sector.backend.cores.length > 0 ? sector.backend.cores.map(c => (
                                 <code key={c} className={styles.style196_56}>{c.split('/').pop()}</code>
-                              )) : <span className={styles.style197_57}>{t('key_9d7155f3')}</span>}
+                              )) : <span className={styles.style197_57}>{tAuto('key_9d7155f3')}</span>}
                             </div>
                           </div>
                           <div className={styles.style200_58}>
-                            <span className={styles.style201_59}>{t('key_f394b95a')}{sector.backend.databaseCollections.length}):</span>
+                            <span className={styles.style201_59}>{tAuto('key_f394b95a')}{sector.backend.databaseCollections.length}):</span>
                             <div className={styles.style202_60}>
                               {sector.backend.databaseCollections.length > 0 ? sector.backend.databaseCollections.map(c => (
                                 <code key={c} className={styles.style204_61}>{c}</code>
-                              )) : <span className={styles.style205_62}>{t('key_9d7155f3')}</span>}
+                              )) : <span className={styles.style205_62}>{tAuto('key_9d7155f3')}</span>}
                             </div>
                           </div>
                         </div>

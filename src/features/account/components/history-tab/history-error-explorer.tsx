@@ -26,6 +26,7 @@ export function HistoryErrorExplorer({
   setExpandedErrorCode,
   filteredErrors
 }: HistoryErrorExplorerProps) {
+    const tAuto = useTranslations('auto');
     const t = useTranslations('auto');
   return (
     <Card id="ssot-error-explorer-card" className={styles.style1378_189}>
@@ -35,10 +36,10 @@ export function HistoryErrorExplorer({
           <div>
             <CardTitle className={styles.style1383_193}>
               <ShieldAlert className={styles.style1384_194} />
-              {t('key_9c90eafa')}
+              {tAuto('key_9c90eafa')}
                                       </CardTitle>
             <CardDescription className={styles.style1387_195}>
-              {t('key_84c42d08')}
+              {tAuto('key_84c42d08')}
                                       </CardDescription>
           </div>
           <Badge variant="outline" className={styles.style1391_196}>
@@ -52,7 +53,7 @@ export function HistoryErrorExplorer({
             <Search className={styles.style1399_199} />
             <input
               type="text"
-              placeholder={t('key_8e9e141a')}
+              placeholder={tAuto('key_8e9e141a')}
               value={errorSearch}
               onChange={(e) => setErrorSearch(e.target.value)}
               className={styles.style1405_200}
@@ -66,7 +67,7 @@ export function HistoryErrorExplorer({
               onClick={() => setErrorCategory('ALL')}
               className={cn(styles.style1414_202, errorCategory === 'ALL' ? styles.style1414_203 : styles.style1414_204)}
             >
-              {t('key_6d08f196')}
+              {tAuto('key_6d08f196')}
                                       </Button>
             <Button
               variant={errorCategory === 'ERR-SOV' ? 'default' : 'outline'}
@@ -74,7 +75,7 @@ export function HistoryErrorExplorer({
               onClick={() => setErrorCategory('ERR-SOV')}
               className={cn(styles.style1422_205, errorCategory === 'ERR-SOV' ? styles.style1422_206 : styles.style1422_207)}
             >
-              {t('key_d5b2b79a')}
+              {tAuto('key_d5b2b79a')}
                                       </Button>
             <Button
               variant={errorCategory === 'ERR-FIN' ? 'default' : 'outline'}
@@ -82,7 +83,7 @@ export function HistoryErrorExplorer({
               onClick={() => setErrorCategory('ERR-FIN')}
               className={cn(styles.style1430_208, errorCategory === 'ERR-FIN' ? styles.style1430_209 : styles.style1430_210)}
             >
-              {t('key_dd06bdf8')}
+              {tAuto('key_dd06bdf8')}
                                       </Button>
             <Button
               variant={errorCategory === 'ERR-MAP' ? 'default' : 'outline'}
@@ -90,7 +91,7 @@ export function HistoryErrorExplorer({
               onClick={() => setErrorCategory('ERR-MAP')}
               className={cn(styles.style1438_211, errorCategory === 'ERR-MAP' ? styles.style1438_212 : styles.style1438_213)}
             >
-              {t('key_5e095665')}
+              {tAuto('key_5e095665')}
                                       </Button>
             <Button
               variant={errorCategory === 'ERR-ADV' ? 'default' : 'outline'}
@@ -98,7 +99,7 @@ export function HistoryErrorExplorer({
               onClick={() => setErrorCategory('ERR-ADV')}
               className={cn(styles.style1446_214, errorCategory === 'ERR-ADV' ? styles.style1446_215 : styles.style1446_216)}
             >
-              {t('key_bf91d5ec')}
+              {tAuto('key_bf91d5ec')}
                                       </Button>
             <Button
               variant={errorCategory === 'ERR-KNL' ? 'default' : 'outline'}
@@ -106,7 +107,7 @@ export function HistoryErrorExplorer({
               onClick={() => setErrorCategory('ERR-KNL')}
               className={cn(styles.style1454_217, errorCategory === 'ERR-KNL' ? styles.style1454_218 : styles.style1454_219)}
             >
-              {t('key_8e9c483f')}
+              {tAuto('key_8e9c483f')}
                                       </Button>
           </div>
         </div>
@@ -116,26 +117,26 @@ export function HistoryErrorExplorer({
         {filteredErrors.length === 0 ? (
           <div className={styles.style1464_221}>
             <AlertCircle className={styles.style1465_222} />
-            <p className={styles.style1466_223}>{t('key_b1d4cff0')}</p>
+            <p className={styles.style1466_223}>{tAuto('key_b1d4cff0')}</p>
           </div>
         ) : (
           <div className={styles.style1469_224}>
             {filteredErrors.map((err) => {
               const isExpanded = expandedErrorCode === err.code;
               let categoryIcon = <Lock className={styles.style1472_225} />;
-              let label = t('key_a0e2968e');
+              let label = tAuto('key_a0e2968e');
               if (err.code.startsWith('ERR-FIN')) {
                 categoryIcon = <Coins className={styles.style1475_226} />;
-                label = t('key_39b6e039');
+                label = tAuto('key_39b6e039');
               } else if (err.code.startsWith('ERR-MAP')) {
                 categoryIcon = <Compass className={styles.style1478_227} />;
-                label = t('key_d8868093');
+                label = tAuto('key_d8868093');
               } else if (err.code.startsWith('ERR-ADV')) {
                 categoryIcon = <Megaphone className={styles.style1481_228} />;
-                label = t('key_11c911c5');
+                label = tAuto('key_11c911c5');
               } else if (err.code.startsWith('ERR-KNL')) {
                 categoryIcon = <Sliders className={styles.style1484_229} />;
-                label = t('key_3e931179');
+                label = tAuto('key_3e931179');
               }
 
               return (
@@ -167,13 +168,13 @@ export function HistoryErrorExplorer({
                   {isExpanded && (
                     <div className={styles.style1517_239}>
                       <div className={styles.style1518_240}>
-                        <span className={styles.style1519_241}>{t('key_f8deb079')}</span>
+                        <span className={styles.style1519_241}>{tAuto('key_f8deb079')}</span>
                         <p className={styles.style1520_242}>
                           {err.description}
                         </p>
                       </div>
                       <div className={styles.style1524_243}>
-                        <span className={styles.style1525_244}>{t('key_a6b82bc5')}</span>
+                        <span className={styles.style1525_244}>{tAuto('key_a6b82bc5')}</span>
                         <p className={styles.style1526_245}>
                           {err.action}
                         </p>

@@ -14,6 +14,7 @@ const styles = {
 
 
 export function AffiliationStep() {
+    const tAuto = useTranslations('auto');
     const t = useTranslations('auto');
   const { setAffiliation, setStep } = useRegistration();
 
@@ -28,7 +29,7 @@ export function AffiliationStep() {
         }}
       >
         <span>🚕</span>
-        <span>{t('key_c43e37b6')}</span>
+        <span>{tAuto('key_c43e37b6')}</span>
       </button>
 
       <button
@@ -40,7 +41,7 @@ export function AffiliationStep() {
         }}
       >
         <span>📱</span>
-        <span>{t('key_b42e76aa')}</span>
+        <span>{tAuto('key_b42e76aa')}</span>
       </button>
 
       <button 
@@ -48,7 +49,7 @@ export function AffiliationStep() {
         className={styles.style38_4}
         onClick={() => setStep('personal')}
       >
-        {t('key_b6bb284d')}
+        {tAuto('key_b6bb284d')}
                     </button>
     </div>
   );

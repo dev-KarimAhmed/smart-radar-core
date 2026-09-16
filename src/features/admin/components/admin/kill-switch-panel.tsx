@@ -127,6 +127,7 @@ const styles = {
 
 
 export function KillSwitchPanel() {
+    const tAuto = useTranslations('auto');
   const { toast } = useToast();
   const {
     isRadarActive,
@@ -456,11 +457,11 @@ export function KillSwitchPanel() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className={styles.customSelectContent}>
-                      <SelectItem value={t('key_91559fa2')} className={styles.customSelectItem}>{t('broadcast.districts.all')}</SelectItem>
-                      <SelectItem value={t('key_cd57565c')} className={styles.customSelectItem}>{t('broadcast.districts.ju')}</SelectItem>
-                      <SelectItem value={t('key_dece580e')} className={styles.customSelectItem}>{t('broadcast.districts.kasaba')}</SelectItem>
-                      <SelectItem value={t('key_6d2b91d3')} className={styles.customSelectItem}>{t('broadcast.districts.wadiSeer')}</SelectItem>
-                      <SelectItem value={t('key_e07be56d')} className={styles.customSelectItem}>{t('broadcast.districts.marka')}</SelectItem>
+                      <SelectItem value={tAuto('key_91559fa2')} className={styles.customSelectItem}>{t('broadcast.districts.all')}</SelectItem>
+                      <SelectItem value={tAuto('key_cd57565c')} className={styles.customSelectItem}>{t('broadcast.districts.ju')}</SelectItem>
+                      <SelectItem value={tAuto('key_dece580e')} className={styles.customSelectItem}>{t('broadcast.districts.kasaba')}</SelectItem>
+                      <SelectItem value={tAuto('key_6d2b91d3')} className={styles.customSelectItem}>{t('broadcast.districts.wadiSeer')}</SelectItem>
+                      <SelectItem value={tAuto('key_e07be56d')} className={styles.customSelectItem}>{t('broadcast.districts.marka')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

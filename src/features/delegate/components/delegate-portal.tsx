@@ -59,6 +59,7 @@ type DelegateTask = {
 };
 
 export function DelegatePortal() {
+    const tAuto = useTranslations('auto');
     const t = useTranslations('auto');
   const { user, logout } = useAuth();
   const [tasks, setTasks] = useState<DelegateTask[]>([]);
@@ -135,9 +136,9 @@ export function DelegatePortal() {
                 <UserRound className={styles.style91_7} />
               </div>
               <div>
-                <Badge className={styles.style94_8}>{t('key_7a8af2bb')}</Badge>
-                <h1 className={styles.style95_9}>{user?.name || t('key_68c14cbb')}</h1>
-                <p className={styles.style96_10}>{user?.phone || t('key_b4faea98')}</p>
+                <Badge className={styles.style94_8}>{tAuto('key_7a8af2bb')}</Badge>
+                <h1 className={styles.style95_9}>{user?.name || tAuto('key_68c14cbb')}</h1>
+                <p className={styles.style96_10}>{user?.phone || tAuto('key_b4faea98')}</p>
               </div>
             </div>
 
@@ -149,7 +150,7 @@ export function DelegatePortal() {
                 onClick={() => window.location.reload()}
               >
                 <RefreshCw className={styles.style107_13} />
-                {t('key_061401dc')}
+                {tAuto('key_061401dc')}
                                             </Button>
               <Button
                 type="button"
@@ -157,25 +158,25 @@ export function DelegatePortal() {
                 onClick={() => void logout()}
               >
                 <LogOut className={styles.style115_15} />
-                {t('key_5c4e4796')}
+                {tAuto('key_5c4e4796')}
                                             </Button>
             </div>
           </div>
         </header>
 
         <section className={styles.style122_16}>
-          <StatusCard label={t('key_4801f283')} value={tasks.filter((task) => task.status !== 'completed').length.toString()} icon={<ClipboardList className={styles.style123_17} />} />
-          <StatusCard label={t('key_b02b8918')} value={tasks.filter((task) => task.status === 'completed').length.toString()} icon={<CheckCircle2 className={styles.style124_18} />} />
-          <StatusCard label={t('key_a41331b1')} value="0" icon={<Bell className={styles.style125_19} />} />
+          <StatusCard label={tAuto('key_4801f283')} value={tasks.filter((task) => task.status !== 'completed').length.toString()} icon={<ClipboardList className={styles.style123_17} />} />
+          <StatusCard label={tAuto('key_b02b8918')} value={tasks.filter((task) => task.status === 'completed').length.toString()} icon={<CheckCircle2 className={styles.style124_18} />} />
+          <StatusCard label={tAuto('key_a41331b1')} value="0" icon={<Bell className={styles.style125_19} />} />
         </section>
 
         <section className={styles.style128_20}>
           <div className={styles.style129_21}>
             <div>
-              <h2 className={styles.style131_22}>{t('key_503b39f2')}</h2>
-              <p className={styles.style132_23}>{t('key_fc5692c0')}</p>
+              <h2 className={styles.style131_22}>{tAuto('key_503b39f2')}</h2>
+              <p className={styles.style132_23}>{tAuto('key_fc5692c0')}</p>
             </div>
-            {loading && <Badge className={styles.style134_24}>{t('key_02483e43')}</Badge>}
+            {loading && <Badge className={styles.style134_24}>{tAuto('key_02483e43')}</Badge>}
           </div>
 
           {tasks.length > 0 ? (
@@ -184,7 +185,7 @@ export function DelegatePortal() {
                 <article key={task.id} className={styles.style140_26}>
                   <div className={styles.style141_27}>
                     <div>
-                      <h3 className={styles.style143_28}>{task.title || t('key_5601535e')}</h3>
+                      <h3 className={styles.style143_28}>{task.title || tAuto('key_5601535e')}</h3>
                       {task.description && <p className={styles.style144_29}>{task.description}</p>}
                     </div>
                     <Badge className={styles.style146_30}>{formatStatus(task.status)}</Badge>
@@ -195,8 +196,8 @@ export function DelegatePortal() {
           ) : (
             <div className={styles.style152_31}>
               <ClipboardList className={styles.style153_32} />
-              <p className={styles.style154_33}>{syncMessage || t('key_b5d8d30b')}</p>
-              <p className={styles.style155_34}>{t('key_7aad439e')}</p>
+              <p className={styles.style154_33}>{syncMessage || tAuto('key_b5d8d30b')}</p>
+              <p className={styles.style155_34}>{tAuto('key_7aad439e')}</p>
             </div>
           )}
         </section>
