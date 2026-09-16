@@ -4,10 +4,11 @@ import dynamic from 'next/dynamic';
 import { RouteLoading } from '@/shared/components/layout/route-loading';
 import { RoleAccessGate } from '@/shared/components/layout/role-access-gate';
 import { useAuth } from '@/features/auth/contract';
+import { useTranslations } from "next-intl";
 
 const AdminWorkspace = dynamic(
   () => import('./admin-workspace').then((module) => module.AdminWorkspace),
-  { loading: () => <RouteLoading label="ط¬ط§ط±ظٹ طھط­ظ…ظٹظ„ ظ„ظˆط­ط© ط§ظ„ط¥ط¯ط§ط±ط©..." /> },
+  { loading: function Loading() { const t = useTranslations('auto'); return <RouteLoading label={t('key_ddd2872a')} />; } },
 );
 
 const styles = {
@@ -15,12 +16,13 @@ const styles = {
 } as const;
 
 export function AdminRoute() {
+    const t = useTranslations('auto');
   const { loading, user } = useAuth();
   return (
     <main className={styles.root} data-admin-route>
-      {loading ? <RouteLoading label="جاري التحقق من الجلسة..." /> : user?.role === 'admin'
+      {loading ? <RouteLoading label={t('key_7588d11e')} /> : user?.role === 'admin'
         ? <AdminWorkspace />
-        : <RoleAccessGate title="لوحة الإدارة" body="سجّل الدخول بحساب إداري مصرح للوصول إلى أدوات السيادة." />}
+        : <RoleAccessGate title={t('key_afa34246')} body={t('key_d9b948a8')} />}
     </main>
   );
 }

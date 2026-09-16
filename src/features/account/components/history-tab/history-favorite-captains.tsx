@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Sparkles, Phone, Trash2 } from 'lucide-react';
 import { styles } from './history-shared';
+import { useTranslations } from "next-intl";
 
 interface HistoryFavoriteCaptainsProps {
   favoriteCaptains: any[];
@@ -18,6 +19,7 @@ export function HistoryFavoriteCaptains({
   isArabic,
   t
 }: HistoryFavoriteCaptainsProps) {
+  const tAuto = useTranslations('auto');
   return (
     <Card className={styles.style1092_91}>
       <CardHeader className={styles.style1093_92}>
@@ -31,14 +33,14 @@ export function HistoryFavoriteCaptains({
           </CardDescription>
         </div>
         <Badge className={styles.style1103_96}>
-          {favoriteCaptains.length} {isArabic ? 'سائق' : 'drivers'}
+          {favoriteCaptains.length} {isArabic ? tAuto('key_603ab93b') : 'drivers'}
         </Badge>
       </CardHeader>
       <CardContent className={styles.style1107_97}>
         {favoriteCaptains.length === 0 ? (
           <div className={styles.style1109_98}>
             {isArabic ? (
-              <>اضغط على أيقونة <strong className={styles.style1111_99}>القلب</strong> في أي رحلة مكتملة لإضافة السائق إلى المفضلة.</>
+              <>{tAuto('key_258a9b0d')} <strong className={styles.style1111_99}>{tAuto('key_31002ea0')}</strong> {tAuto('key_e8de888f')}</>
             ) : (
               <>Click the <strong className={styles.style1113_100}>heart</strong> icon on any completed trip to add the driver to your favorites.</>
             )}

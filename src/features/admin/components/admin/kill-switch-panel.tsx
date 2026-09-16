@@ -456,11 +456,11 @@ export function KillSwitchPanel() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className={styles.customSelectContent}>
-                      <SelectItem value="الجميع" className={styles.customSelectItem}>{t('broadcast.districts.all')}</SelectItem>
-                      <SelectItem value="منطقة الجامعة" className={styles.customSelectItem}>{t('broadcast.districts.ju')}</SelectItem>
-                      <SelectItem value="منطقة قصبة عمان" className={styles.customSelectItem}>{t('broadcast.districts.kasaba')}</SelectItem>
-                      <SelectItem value="منطقة وادي السير" className={styles.customSelectItem}>{t('broadcast.districts.wadiSeer')}</SelectItem>
-                      <SelectItem value="منطقة ماركا" className={styles.customSelectItem}>{t('broadcast.districts.marka')}</SelectItem>
+                      <SelectItem value={t('key_91559fa2')} className={styles.customSelectItem}>{t('broadcast.districts.all')}</SelectItem>
+                      <SelectItem value={t('key_cd57565c')} className={styles.customSelectItem}>{t('broadcast.districts.ju')}</SelectItem>
+                      <SelectItem value={t('key_dece580e')} className={styles.customSelectItem}>{t('broadcast.districts.kasaba')}</SelectItem>
+                      <SelectItem value={t('key_6d2b91d3')} className={styles.customSelectItem}>{t('broadcast.districts.wadiSeer')}</SelectItem>
+                      <SelectItem value={t('key_e07be56d')} className={styles.customSelectItem}>{t('broadcast.districts.marka')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

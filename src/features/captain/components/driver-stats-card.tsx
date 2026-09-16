@@ -6,6 +6,7 @@ import type { User } from '@/core/types';
 import { getRankTheme } from '@/core/utils';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { useTranslations } from "next-intl";
 
 const styles = {
   style16_1: "bg-[#0F172A]/90 border-white/[0.06] shadow-lg",
@@ -32,6 +33,7 @@ const styles = {
 
 
 export function DriverStatsCard({ user }: { user: User }) {
+    const t = useTranslations('auto');
  // تم بتر مستمعات النشاط من هنا وحذف الملف (Protocol 16)
  const rankTheme = getRankTheme(user.rank);
 
@@ -39,14 +41,14 @@ export function DriverStatsCard({ user }: { user: User }) {
  <Card className={styles.style16_1}>
  <CardContent className={styles.style17_2}>
  <div className={styles.style18_3}>
- <p className={styles.style19_4}>التقييم</p>
+ <p className={styles.style19_4}>{t('key_e0efcd03')}</p>
  <div className={styles.style20_5}>
  <span className={styles.style21_6}>{user.rating?.toFixed(1) || '5.0'}</span>
  <Star className={styles.style22_7} />
  </div>
  </div>
  <div className={styles.style25_8}>
- <p className={styles.style26_9}>معدل قبول الطلبات</p>
+ <p className={styles.style26_9}>{t('key_df057b14')}</p>
  <div className={styles.style27_10}>
  <span className={styles.style28_11}>98% ●</span>
  <span className={styles.style29_12}>
@@ -56,7 +58,7 @@ export function DriverStatsCard({ user }: { user: User }) {
  </div>
  </div>
  <div className={styles.style35_15}>
- <p className={styles.style36_16}>رتبة السائق</p>
+ <p className={styles.style36_16}>{t('key_f811ea6f')}</p>
  <div className={styles.style37_17}>
  <Badge variant="outline" className={cn(styles.style38_18, rankTheme.border, rankTheme.color, styles.style38_19)}>
  {rankTheme.label}

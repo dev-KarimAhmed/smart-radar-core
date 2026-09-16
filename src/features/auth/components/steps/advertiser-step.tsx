@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useRegistration } from '../../hooks/use-registration';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useTranslations } from "next-intl";
 
 const styles = {
   style13_1: "space-y-4 text-right animate-fade-in",
@@ -29,16 +30,17 @@ const styles = {
 
 
 export function AdvertiserStep() {
+    const t = useTranslations('auto');
   const { advertiserProfile, setAdvertiserProfile, handleAdvertiserSubmit, isSubmitting, setStep } = useRegistration();
 
   return (
     <form onSubmit={handleAdvertiserSubmit} className={styles.style13_1} dir="rtl">
       <div>
         <label className={styles.style15_2}>
-          اسم المنشأة / العلامة التجارية (اسم معلن فريد)
-        </label>
+          {t('key_b931fbf5')}
+                          </label>
         <Input
-          placeholder="رنين للمبيعات، سيف بلس، إلخ..."
+          placeholder={t('key_b1dc2667')}
           value={advertiserProfile.companyName}
           onChange={(e) => setAdvertiserProfile({ ...advertiserProfile, companyName: e.target.value })}
           className={styles.style22_3}
@@ -48,10 +50,10 @@ export function AdvertiserStep() {
 
       <div>
         <label className={styles.style28_4}>
-          رقم السجل التجاري المعمتد
-        </label>
+          {t('key_b8ef81e2')}
+                          </label>
         <Input
-          placeholder="مثال: CR-88294-A"
+          placeholder={t('key_157fcb1f')}
           value={advertiserProfile.commercialRegister}
           onChange={(e) => setAdvertiserProfile({ ...advertiserProfile, commercialRegister: e.target.value })}
           className={styles.style35_5}
@@ -61,10 +63,10 @@ export function AdvertiserStep() {
 
       <div>
         <label className={styles.style41_6}>
-          رقم رخصة الإعلان الحكومي / الأمانة
-        </label>
+          {t('key_4d7fddd8')}
+                          </label>
         <Input
-          placeholder="مثال: LIC-990-2026"
+          placeholder={t('key_c16a815e')}
           value={advertiserProfile.adLicense}
           onChange={(e) => setAdvertiserProfile({ ...advertiserProfile, adLicense: e.target.value })}
           className={styles.style48_7}
@@ -74,22 +76,22 @@ export function AdvertiserStep() {
 
       <div>
         <label className={styles.style54_8}>
-          التخصص والنشاط التجاري الرئيسي
-        </label>
+          {t('key_870b6a6e')}
+                          </label>
         <Select
           value={advertiserProfile.businessType}
           onValueChange={(value) => setAdvertiserProfile({ ...advertiserProfile, businessType: value })}
           required
         >
           <SelectTrigger className={styles.style62_9} dir="rtl">
-            <SelectValue placeholder="اختر تخصص المنشأة" />
+            <SelectValue placeholder={t('key_4d7ab853')} />
           </SelectTrigger>
           <SelectContent className={styles.style65_10}>
-            <SelectItem value="commercial" className={styles.style66_11}>تجاري / بيع بالتجزئة</SelectItem>
-            <SelectItem value="services" className={styles.style67_12}>خدمات وصيانة</SelectItem>
-            <SelectItem value="entertainment" className={styles.style68_13}>مطاعم وترفيه ونشاطات</SelectItem>
-            <SelectItem value="real_estate" className={styles.style69_14}>عقارات ونقل</SelectItem>
-            <SelectItem value="e_commerce" className={styles.style70_15}>تجارة إلكترونية ودعم رقمي</SelectItem>
+            <SelectItem value="commercial" className={styles.style66_11}>{t('key_0875be63')}</SelectItem>
+            <SelectItem value="services" className={styles.style67_12}>{t('key_12dbac46')}</SelectItem>
+            <SelectItem value="entertainment" className={styles.style68_13}>{t('key_3542d52e')}</SelectItem>
+            <SelectItem value="real_estate" className={styles.style69_14}>{t('key_341c9025')}</SelectItem>
+            <SelectItem value="e_commerce" className={styles.style70_15}>{t('key_aa119bf7')}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -100,7 +102,7 @@ export function AdvertiserStep() {
           className={styles.style78_17}
           disabled={isSubmitting}
         >
-          {isSubmitting ? 'جاري حفظ البيانات...' : 'تأكيد البيانات'}
+          {isSubmitting ? t('key_7f87061b') : t('key_1e52c113')}
         </button>
       </div>
 
@@ -109,8 +111,8 @@ export function AdvertiserStep() {
         className={styles.style87_18}
         onClick={() => setStep('personal')}
       >
-        العودة لتعديل البيانات الشخصية
-      </button>
+        {t('key_dfc1d6cc')}
+                    </button>
     </form>
   );
 }

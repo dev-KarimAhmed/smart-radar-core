@@ -4,10 +4,11 @@ import dynamic from 'next/dynamic';
 import { RecoveryEmailBanner } from '@/features/auth/contract';
 import { RouteErrorBoundary } from '@/shared/components/layout/route-error-boundary';
 import { RouteLoading } from '@/shared/components/layout/route-loading';
+import { useTranslations } from "next-intl";
 
 const CaptainView = dynamic(
   () => import('./captain-view').then((module) => module.DriverViewTab),
-  { loading: () => <RouteLoading label="ط¬ط§ط±ظٹ طھط­ظ…ظٹظ„ ظ„ظˆط­ط© ط§ظ„ظƒط§ط¨طھظ†..." /> },
+  { loading: function Loading() { const t = useTranslations('auto'); return <RouteLoading label={t('key_44baaa8e')} />; } },
 );
 
 const styles = {

@@ -503,7 +503,7 @@ export function RadarMapView({
                           />
                           <Info
                             label={copy.tripDistance}
-                            value={request.estimatedDistance != null ? `${request.estimatedDistance.toFixed(1)} ${language === 'ar' ? 'كيلو' : 'km'}` : t('distanceUnavailable')}
+                            value={request.estimatedDistance != null ? `${request.estimatedDistance.toFixed(1)} ${language === 'ar' ? t('key_4171dde6') : 'km'}` : t('distanceUnavailable')}
                           />
                           <Info
                             label={copy.marketFare}

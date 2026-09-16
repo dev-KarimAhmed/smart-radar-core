@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { AlertCircle, FileText } from 'lucide-react';
 import { styles, formatHistoryMoney } from './history-shared';
 import { HistorySkeleton } from './history-skeleton';
+import { useTranslations } from "next-intl";
 
 interface HistoryCaptainTripsProps {
   captainHistoricalTrips: any[];
@@ -22,6 +23,7 @@ export function HistoryCaptainTrips({
   now,
   t
 }: HistoryCaptainTripsProps) {
+  const tAuto = useTranslations('auto');
   return (
     <div className={styles.style1158_112}>
       <Card className={styles.style1159_113}>
@@ -36,7 +38,7 @@ export function HistoryCaptainTrips({
             </CardDescription>
           </div>
           <Badge variant="outline" className={styles.style1170_118}>
-            {captainHistoricalTrips.length} {isArabic ? 'مهمة' : 'tasks'}
+            {captainHistoricalTrips.length} {isArabic ? tAuto('key_8238548e') : 'tasks'}
           </Badge>
         </CardHeader>
 
@@ -47,7 +49,7 @@ export function HistoryCaptainTrips({
             <div className={styles.style1179_120}>
               <AlertCircle className={styles.style1180_121} />
               <p className={styles.style1181_122}>
-                {isArabic ? "لا توجد مهام ميدانية منجزة مسجلة لمنطقة حالياً." : "No completed field tasks recorded for this area currently."}
+                {isArabic ? tAuto('key_407660f1') : "No completed field tasks recorded for this area currently."}
               </p>
             </div>
           ) : (
@@ -59,10 +61,10 @@ export function HistoryCaptainTrips({
                   <div className={styles.style1192_124}>
                     <div>
                       <h4 className={styles.style1194_125}>
-                        👤 {isArabic ? 'الراكب' : 'Rider'}: {trip.riderName}
+                        👤 {isArabic ? tAuto('key_5620a395') : 'Rider'}: {trip.riderName}
                       </h4>
                       <p className={styles.style1197_126}>
-                        {isArabic ? 'من' : 'From'}: {trip.pickup} ➔ {isArabic ? 'إلى' : 'To'}: {trip.dropoff}
+                        {isArabic ? tAuto('key_99fb92ed') : 'From'}: {trip.pickup} ➔ {isArabic ? tAuto('key_0985d27c') : 'To'}: {trip.dropoff}
                       </p>
                       {trip.serialId && (
                         <div className={styles.style1201_127}>
@@ -77,7 +79,7 @@ export function HistoryCaptainTrips({
                         +{formatHistoryMoney(trip.earnedPrice, currencyLabel)}
                       </span>
                       <span className={styles.style1212_131}>
-                        {isArabic ? 'قبل' : ''} {timeAgo} {t('hours')} {isArabic ? '' : 'ago'}
+                        {isArabic ? tAuto('key_cf811897') : ''} {timeAgo} {t('hours')} {isArabic ? '' : 'ago'}
                       </span>
                     </div>
                   </div>

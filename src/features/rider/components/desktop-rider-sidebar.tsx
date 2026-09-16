@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import type { AppLanguage } from '@/lib/i18n/simple-copy';
 import { cn } from '@/lib/utils';
+import { useTranslations } from "next-intl";
 
 const styles = {
   root: 'fixed inset-y-0 start-0 z-[140] hidden w-[288px] flex-col border-e border-white/[0.06] bg-[#0A0F1D]/95 shadow-[22px_0_70px_rgba(0,0,0,0.38)] backdrop-blur-xl lg:flex',
@@ -87,6 +88,7 @@ export function DesktopRiderSidebar({
   onNotify: () => void;
   user: { name?: string; phone?: string };
 }) {
+    const t = useTranslations('auto');
   const { isArabic, toggleLanguage } = useDashboardLanguage();
   const text = copy[language];
   const directionClass = language === 'ar' ? styles.identityRtl : styles.identityLtr;
@@ -103,7 +105,7 @@ export function DesktopRiderSidebar({
   };
 
   return (
-    <aside aria-label="قائمة الراكب الرئيسية" className={styles.root} dir={language === 'ar' ? 'rtl' : 'ltr'}>
+    <aside aria-label={t('key_5cbbdfd5')} className={styles.root} dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <div className={styles.profile}>
         <Avatar className={styles.avatar}>
           <AvatarFallback className={styles.avatarFallback}>
@@ -115,16 +117,16 @@ export function DesktopRiderSidebar({
           <p className={cn(styles.phone, directionClass)}>{user.phone || text.fallbackPhone}</p>
         </div>
         <Button
-          aria-label={isArabic ? 'Switch to English' : 'التبديل إلى العربية'}
+          aria-label={isArabic ? 'Switch to English' : t('key_60799d01')}
           className={styles.language}
           onClick={toggleLanguage}
           size="sm"
-          title={isArabic ? 'English' : 'العربية'}
+          title={isArabic ? 'English' : t('key_26b1b2b0')}
           type="button"
           variant="ghost"
         >
           <Languages className={styles.languageIcon} />
-          <span>{isArabic ? 'EN' : 'ع'}</span>
+          <span>{isArabic ? 'EN' : t('key_b4dfa835')}</span>
         </Button>
       </div>
 

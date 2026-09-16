@@ -233,11 +233,11 @@ export function SovereignGapSimulator({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className={styles.customSelectContent}>
-                  <SelectItem value="منطقة الشونة الجنوبية" className={styles.customSelectItem}>{t('areas.shouna')}</SelectItem>
-                  <SelectItem value="منطقة ناعور" className={styles.customSelectItem}>{t('areas.naour')}</SelectItem>
-                  <SelectItem value="منطقة دير غبار" className={styles.customSelectItem}>{t('areas.deirGhbar')}</SelectItem>
-                  <SelectItem value="منطقة صويلح" className={styles.customSelectItem}>{t('areas.sweileh')}</SelectItem>
-                  <SelectItem value="منطقة المقابلين" className={styles.customSelectItem}>{t('areas.muqabalain')}</SelectItem>
+                  <SelectItem value={t('key_3fadd59c')} className={styles.customSelectItem}>{t('areas.shouna')}</SelectItem>
+                  <SelectItem value={t('key_643e2556')} className={styles.customSelectItem}>{t('areas.naour')}</SelectItem>
+                  <SelectItem value={t('key_656e3770')} className={styles.customSelectItem}>{t('areas.deirGhbar')}</SelectItem>
+                  <SelectItem value={t('key_34c7df09')} className={styles.customSelectItem}>{t('areas.sweileh')}</SelectItem>
+                  <SelectItem value={t('key_edbefa77')} className={styles.customSelectItem}>{t('areas.muqabalain')}</SelectItem>
                 </SelectContent>
               </Select>
 

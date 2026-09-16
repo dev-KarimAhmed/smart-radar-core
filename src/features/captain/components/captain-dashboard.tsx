@@ -6,6 +6,7 @@ import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { useDriverOperations } from '../hooks/use-driver-operations';
 import { useSovereignWallet } from '@/hooks/use-sovereign-wallet';
 import dynamic from 'next/dynamic';
+import { useTranslations } from "next-intl";
 
 const styles = {
   style26_1: "rounded-3xl border border-emerald-500/20 bg-[#05080f] p-6 text-center text-slate-400",
@@ -21,6 +22,7 @@ interface CaptainDashboardProps {
 }
 
 export const RadarCaptainDashboard: React.FC<CaptainDashboardProps> = ({ captainProfile }) => {
+    const t = useTranslations('auto');
   const { user } = useAuth();
   const { language } = useDashboardLanguage();
   const driverOps = useDriverOperations();
@@ -29,7 +31,7 @@ export const RadarCaptainDashboard: React.FC<CaptainDashboardProps> = ({ captain
   if (!driverOps) {
     return (
       <section className={styles.style26_1}>
-        {language === 'ar' ? 'جاري تحميل لوحة الكابتن...' : 'Loading captain dashboard...'}
+        {language === 'ar' ? t('key_9733e0c8') : 'Loading captain dashboard...'}
       </section>
     );
   }

@@ -29,6 +29,8 @@ import { SOVEREIGN_PRICING_PACKAGES, SovereignPricingPackage } from '@/lib/const
 import { AdDisplayCard } from '@/features/ads/ad-display/contract';
 
 import { cn } from '@/lib/utils';
+import { useTranslations } from "next-intl";
+
 const styles = {
   style44_1: "w-full overflow-hidden py-3 bg-zinc-950/60 rounded-2xl border border-white/5 relative",
   style45_2: "absolute top-2.5 right-3.5 z-10 flex items-center gap-1.5 select-none pointer-events-none",
@@ -439,6 +441,7 @@ const VIRTUAL_ADS_STREAM = [
 ];
 
 export function LiveStreamRegistry({ ads }: { ads: any[] }) {
+    const t = useTranslations('auto');
   const stream = useMemo(() => {
     const activeAds = ads.filter(ad => ad.status === 'active' || ad.status === 'ACTIVE' || !ad.status);
     return activeAds.length > 0 ? [...activeAds, ...VIRTUAL_ADS_STREAM] : VIRTUAL_ADS_STREAM;
@@ -448,7 +451,7 @@ export function LiveStreamRegistry({ ads }: { ads: any[] }) {
     <div className={styles.style44_1} dir="ltr">
       <div className={styles.style45_2} dir="rtl">
         <span className={styles.style46_3} />
-        <span className={styles.style47_4}>LIVE AD STREAM PREVIEW • الإعلانات الحي</span>
+        <span className={styles.style47_4}>{t('key_f1360aee')}</span>
       </div>
 
       <div className={styles.style50_5}>
@@ -471,7 +474,7 @@ export function LiveStreamRegistry({ ads }: { ads: any[] }) {
               >
                 <div className={styles.style68_9}>
                   <span className={cn(styles.style69_10, isVirtual ? styles.style70_11 : styles.style70_12)}>
-                    {isVirtual ? 'افتراضي 🛡️' : 'نشاط حي ⚡'}
+                    {isVirtual ? t('key_cb6aad46') : t('key_797741d3')}
                   </span>
                 </div>
                 <div className={styles.style75_13}>
@@ -488,6 +491,7 @@ export function LiveStreamRegistry({ ads }: { ads: any[] }) {
 }
 
 export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
+    const t = useTranslations('auto');
   const { createAd, ads, toggleAdStatus, deleteAd, extendAd } = useAdminAds();
   const pendingAds = useMemo(() => {
     return (ads || []).filter(ad => (ad.status || '').toLowerCase() === 'pending' || (ad.status || '') === 'PENDING');
@@ -871,8 +875,8 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
         <div className={styles.style469_20}>
           <span className={styles.style470_21}>
             <ShieldCheck className={styles.style471_22} />
-            غرفة تحكم المعلن  V5.5
-          </span>
+            {t('key_3e65fc05')}
+                                </span>
           <span className={styles.style474_23}>
             SCR-AD-DASH-122
           </span>
@@ -881,8 +885,8 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
               onClick={onClose}
               className={styles.style480_24}
             >
-              الخروج الآمن ✕
-            </button>
+              {t('key_e3fa69fc')}
+                                      </button>
           )}
         </div>
 
@@ -894,8 +898,8 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
                 ? styles.style493_27
                 : styles.style494_28)}
           >
-            📊 لوحة التحكم والنشاط
-          </button>
+            {t('key_7824c02e')}
+                                </button>
           <button
             onClick={() => {
               setActiveTab('create');
@@ -905,18 +909,18 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
                 ? styles.style506_30
                 : styles.style507_31)}
           >
-            🚀 إطلاق حملة جديدة
-          </button>
+            {t('key_521c0f3f')}
+                                </button>
         </div>
       </div>
       <div className={styles.style514_32}>
         <div className={styles.style515_33} />
         <Zap className={styles.style516_34} />
         <div className={styles.style517_35}>
-          <h4 className={styles.style518_36}>ميثاق حوكمة الإعلانات (شروط الرادار الدائري):</h4>
+          <h4 className={styles.style518_36}>{t('key_28758112')}</h4>
           <p className={styles.style519_37}>
-            "الشاشة في وضع الاستعداد هي إعلانات دائم الدوران وهو مصدر الدخل الوحيد والأساسي للمنصة."
-            <span className={styles.style521_38}>تمكين صفر كلفة ($Zero-Cost$) مستدام وشامل لتسهيل الانتقال الميداني.</span>
+            {t('key_4d543aae')}
+                                  <span className={styles.style521_38}>{t('key_3b363114')}</span>
           </p>
         </div>
       </div>
@@ -931,45 +935,45 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
           <div className={styles.style533_40}>
             <h3 className={styles.style534_41}>
               <TrendingUp className={styles.style535_42} />
-              1. بورصة النشاط الإعلاني والمشاهدات (Ledger & Live ROI)
-            </h3>
+              {t('key_73c3dc1d')}
+                                      </h3>
 
             <div className={styles.style539_43}>
               <div className={styles.style540_44}>
                 <div className={styles.style541_45}>Impressions</div>
-                <span className={styles.style542_46}>المشاهدات الحية</span>
+                <span className={styles.style542_46}>{t('key_bee75bad')}</span>
                 <span className={styles.style543_47}>
                   {ledgerStats.impressions.toLocaleString()}
                 </span>
-                <span className={styles.style546_48}>كل ظهور = نشاطة</span>
+                <span className={styles.style546_48}>{t('key_4e2104a1')}</span>
               </div>
 
               <div className={styles.style549_49}>
                 <div className={styles.style550_50}>Clicks</div>
-                <span className={styles.style551_51}>المداخلات المباشرة</span>
+                <span className={styles.style551_51}>{t('key_008e53c0')}</span>
                 <span className={styles.style552_52}>
                   {ledgerStats.clicks.toLocaleString()}
                 </span>
-                <span className={styles.style555_53}>مكاملة الروابط مباشرة</span>
+                <span className={styles.style555_53}>{t('key_882266a3')}</span>
               </div>
 
               <div className={styles.style558_54}>
                 <div className={styles.style559_55}>CTR</div>
-                <span className={styles.style560_56}>نسبة كفاءة النشاط</span>
+                <span className={styles.style560_56}>{t('key_df410aed')}</span>
                 <span className={styles.style561_57}>
                   {ledgerStats.ctr}%
                 </span>
-                <span className={styles.style564_58}>تفاعل مستخلص</span>
+                <span className={styles.style564_58}>{t('key_7027de41')}</span>
               </div>
 
               {/* [SCR-AD-HEART-125] Active Follower Pulse (Retention Gauge) */}
               <div className={styles.style568_59}>
                 <div className={styles.style569_60}>Retention</div>
-                <span className={styles.style570_61}>الجمهور المهتم النشط</span>
+                <span className={styles.style570_61}>{t('key_1e392636')}</span>
                 <span className={styles.style571_62}>
                   {ledgerStats.followerPulse.toLocaleString()}
                 </span>
-                <span className={styles.style574_63}>نشاط المتابع النشط ✓</span>
+                <span className={styles.style574_63}>{t('key_def0c097')}</span>
               </div>
             </div>
           </div>
@@ -978,8 +982,8 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
           <div className={styles.style580_64}>
             <h3 className={styles.style581_65}>
               <ShieldCheck className={styles.style582_66} />
-              2. مركز حوكمة وحالة الإعلانات المرفوعة (Ad Safety Ledger)
-            </h3>
+              {t('key_b82223ca')}
+                                      </h3>
 
             <div className={styles.style586_67}>
               {allSovereignAds.map((ad) => {
@@ -993,17 +997,17 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
                 let statusLabel = '';
                 let statusStyle = '';
                 if (isActive) {
-                  statusLabel = 'نشط 🟢';
+                  statusLabel = t('key_c590e500');
                   statusStyle = 'text-emerald-400 bg-emerald-950/40 border-emerald-500/30';
                 } else if (isPending && !isRejected) {
-                  statusLabel = 'معلّق 🟡';
+                  statusLabel = t('key_d5b29e57');
                   statusStyle = 'text-amber-400 bg-amber-950/40 border-amber-500/30';
                 } else {
-                  statusLabel = 'مرفوض 🔴';
+                  statusLabel = t('key_0cc3f598');
                   statusStyle = 'text-red-400 bg-red-950/40 border-red-500/30';
                 }
 
-                const rejectionText = ad.rejectionReason || '“حظر محتوى: تم رفض الإعلان لوجود نصوص غير واضحة أو جودة بصرية منخفضة تضر بمسرح الشاشة. نرحب بإعادة الرفع فوراً بعد التعديل لإنفاذ حملتك بنجاح.”';
+                const rejectionText = ad.rejectionReason || t('key_fe6c3aac');
                 const hasPremium = ad.isPremiumRetentionPaid !== false; // for demo and defaults
                 const isExpanded = expandedAdId === ad.id;
                 const posterUrlShow = ad.posterUrl || ad.content?.posterUrl || '';
@@ -1054,7 +1058,7 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
                               rel="noopener noreferrer"
                               onClick={(e) => e.stopPropagation()}
                               className={styles.style658_80}
-                              title="اتصال واتساب سريع"
+                              title={t('key_8141e3d8')}
                             >
                               <MessageSquare className={styles.style661_81} />
                             </a>
@@ -1064,7 +1068,7 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
                               href={`tel:${ad.phone || ad.whatsapp}`}
                               onClick={(e) => e.stopPropagation()}
                               className={styles.style668_82}
-                              title="اتصال هاتفي سريع"
+                              title={t('key_27d356bc')}
                             >
                               <Phone className={styles.style671_83} />
                             </a>
@@ -1096,22 +1100,22 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
                           <div className={styles.style698_88}>
                             {hasPremium && (
                               <div className={styles.style700_89}>
-                                🟢 باقة التخليد الفعّالة (القلب الأخضر) - تتيح للمستهلكين حبس الإعلان في الذاكرة المحلية للأبد
-                              </div>
+                                {t('key_c1077e4a')}
+                                                                              </div>
                             )}
 
                             <div className={styles.style705_90}>
                               <div className={styles.style706_91}>
-                                الموقع: <span className={styles.style707_92}>{ad.targetGovernorate || 'عمان'} - {ad.targetDistrict || 'الجامعة'}</span>
+                                {t('key_17e491f7')} <span className={styles.style707_92}>{ad.targetGovernorate || t('key_20a48924')} - {ad.targetDistrict || t('key_1aacb23c')}</span>
                               </div>
                               <div className={styles.style709_93}>
-                                النشاط المستهدف: <span className={styles.style710_94}>{(ad.targetImpressions || 0).toLocaleString()}</span>
+                                {t('key_341239f6')} <span className={styles.style710_94}>{(ad.targetImpressions || 0).toLocaleString()}</span>
                               </div>
                               <div className={styles.style712_95}>
-                                النشاط الفعلي: <span className={styles.style713_96}>{(ad.currentImpressions || 0).toLocaleString()}</span>
+                                {t('key_776f80d5')} <span className={styles.style713_96}>{(ad.currentImpressions || 0).toLocaleString()}</span>
                               </div>
                               <div className={styles.style715_97}>
-                                النقرات: <span className={styles.style716_98}>{(ad.clicksCount || 0).toLocaleString()}</span>
+                                {t('key_1e14b2d6')} <span className={styles.style716_98}>{(ad.clicksCount || 0).toLocaleString()}</span>
                               </div>
                             </div>
 
@@ -1121,7 +1125,7 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
                                 <div className={styles.style723_100}>
                                   <ShieldAlert className={styles.style724_101} />
                                   <div className={styles.style725_102}>
-                                    <span className={styles.style726_103}>إفادة مركز السلامة  (سبب الرفض):</span>
+                                    <span className={styles.style726_103}>{t('key_eceab960')}</span>
                                     <p className={styles.style727_104}>
                                       {rejectionText}
                                     </p>
@@ -1139,7 +1143,7 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
                                   onClick={() => toggleAdStatus(ad.id, ad.status)}
                                   className={styles.style742_106}
                                 >
-                                  {ad.status === 'active' || ad.status === 'ACTIVE' ? '⚙️ إيقاف مؤقت' : '⚡ تفعيل النشاط'}
+                                  {ad.status === 'active' || ad.status === 'ACTIVE' ? t('key_581e1e83') : t('key_fb3c9e7b')}
                                 </Button>
                                 <Button
                                   size="sm"
@@ -1147,16 +1151,16 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
                                   onClick={() => extendAd(ad.id, 1000, 3)}
                                   className={styles.style750_107}
                                 >
-                                  ➕ تمديد الحملة (+1000 نشاطة)
-                                </Button>
+                                  {t('key_99ad46fa')}
+                                                                                    </Button>
                                 <Button
                                   size="sm"
                                   variant="outline"
                                   onClick={() => deleteAd(ad.id)}
                                   className={styles.style758_108}
                                 >
-                                  🗑️ أرشفة الإعلان
-                                </Button>
+                                  {t('key_acbf642c')}
+                                                                                    </Button>
                               </div>
                             )}
                           </div>
@@ -1173,28 +1177,28 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
           <div className={styles.style775_109}>
             <h3 className={styles.style776_110}>
               <Activity className={styles.style777_111} />
-              3. خريطة السعة المحلية الديناميكية (Dynamic Geo-Capacity Heatmap)
-            </h3>
+              {t('key_25a3312d')}
+                                      </h3>
 
             <div className={styles.style781_112}>
               <p className={styles.style782_113}>
-                الرصد اللحظي لزخم حركات الركاب ومستويات الانتباه الميداني للأجهزة النشطة على حافة النظام دون إرهاق العتاد أو تحميل خرائط خارجية.
-              </p>
+                {t('key_0f2801b5')}
+                                            </p>
 
               <div className={styles.style786_114}>
                 {[
-                  { name: 'منطقة ناعور (عمان)', capacity: 94, priceAnom: 'نشط جداً', attention: 'استثنائي 98%', color: 'from-emerald-500 to-teal-500' },
-                  { name: 'منطقة وادي السير (عمان)', capacity: 85, priceAnom: 'مكتظ (حرق أسعار)', attention: 'مرتفع 89%', color: 'from-amber-500 to-orange-500' },
-                  { name: 'منطقة قصبة السلط (البلقاء)', capacity: 68, priceAnom: 'متزن', attention: 'عادي 65%', color: 'from-indigo-500 to-blue-500' },
-                  { name: 'منطقة الجيزة (عمان)', capacity: 42, priceAnom: 'منخفض', attention: 'عادي 50%', color: 'from-slate-500 to-gray-500' }
+                  { name: t('key_78c02346'), capacity: 94, priceAnom: t('key_d4c18ed1'), attention: t('key_b48d814b'), color: 'from-emerald-500 to-teal-500' },
+                  { name: t('key_55143fc0'), capacity: 85, priceAnom: t('key_bbe78d51'), attention: t('key_cbe11573'), color: 'from-amber-500 to-orange-500' },
+                  { name: t('key_1ef0ac54'), capacity: 68, priceAnom: t('key_e24062c5'), attention: t('key_87906a28'), color: 'from-indigo-500 to-blue-500' },
+                  { name: t('key_e9fa2ae9'), capacity: 42, priceAnom: t('key_96a1c4d7'), attention: t('key_75550486'), color: 'from-slate-500 to-gray-500' }
                 ].map((item, idx) => (
                   <div key={idx} className={styles.style793_115}>
                     <div className={styles.style794_116}>
                       <span className={styles.style795_117}>{item.name}</span>
                       <div className={styles.style796_118}>
-                        <span>انتباه الركاب: <strong className={styles.style797_119}>{item.attention}</strong></span>
+                        <span>{t('key_570300b8')} <strong className={styles.style797_119}>{item.attention}</strong></span>
                         <span className={styles.style798_120} />
-                        <span>حالة السعة: <strong className={styles.style799_121}>{item.priceAnom}</strong></span>
+                        <span>{t('key_bbde3bdc')} <strong className={styles.style799_121}>{item.priceAnom}</strong></span>
                       </div>
                     </div>
 
@@ -1207,23 +1211,23 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
                     </div>
 
                     <div className={styles.style811_125}>
-                      <span>مستوى الاستهداف البصري: {item.capacity}%</span>
+                      <span>{t('key_8b93b0da')} {item.capacity}%</span>
                       {item.capacity >= 80 && (
                         <button
                           onClick={() => {
-                            setGovernorate('عمان');
-                            setDistrict(item.name.replace(' (عمان)', ''));
+                            setGovernorate(t('key_20a48924'));
+                            setDistrict(item.name.replace(t('key_d83938b5'), ''));
                             setActiveTab('create');
                             setStep(2);
                             toast({
-                              title: '🎯 توجيه ذكي للميزانية',
-                              description: `تم تحويل الحملة الجغرافية فوراً لاكتساح منطقة ${item.name.replace(' (عمان)', '')}.`
+                              title: t('key_86a2a8e1'),
+                              description: `تم تحويل الحملة الجغرافية فوراً لاكتساح منطقة ${item.name.replace(t('key_d83938b5'), '')}.`
                             });
                           }}
                           className={styles.style825_126}
                         >
-                          ⚡ وجه ميزانيتك هنا واكتسح المنطقة
-                        </button>
+                          {t('key_d3b37c72')}
+                                                            </button>
                       )}
                     </div>
                   </div>
@@ -1236,45 +1240,45 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
           <div className={styles.style838_127}>
             <h3 className={styles.style839_128}>
               <Sparkles className={styles.style840_129} />
-              4. لوحة الرسائل الترحيبية والتنبيهات التشجيعية (Retention Pulse Alerts)
-            </h3>
+              {t('key_4f9a11eb')}
+                                      </h3>
 
             <div className={styles.style844_130}>
               <div className={styles.style845_131} />
 
               <div className={styles.style847_132}>
                 <Award className={styles.style848_133} />
-                <span>إشعار الاستحقاق والتكريم  للمعلنين الوفيين</span>
+                <span>{t('key_fbefef19')}</span>
               </div>
 
               {/* The exact requested retention notification message inside system configuration */}
               <p className={styles.style853_134}>
-                🏆 تهانينا! إعلانك غطى <strong className={styles.style854_135}>94%</strong> من السعة الإعلانية المتاحة في منطقة ناعور خلال آخر 24 ساعة وجلب لك <strong className={styles.style854_136}>45</strong> اتصالاً مباشراً. الميدان متعطش لنشاطك، هل تريد تكرار النشاط للأسبوع القادم بخصم رتبة المعلن الوفي؟
-              </p>
+                {t('key_d7d8a096')} <strong className={styles.style854_135}>94%</strong> {t('key_4dbad637')} <strong className={styles.style854_136}>45</strong> {t('key_90a7011e')}
+                                            </p>
 
               <div className={styles.style857_137}>
                 <Button
                   size="sm"
                   onClick={() => {
-                    handleRecommendationAccept('تكرار تجديد النشاط الوفي', 2.50, 'ناعور');
+                    handleRecommendationAccept(t('key_e613d832'), 2.50, t('key_9de2290c'));
                   }}
                   className={styles.style863_138}
                 >
-                  🚀 تجديد الحملة للأسبوع القادم (بـ 2.50 دينار فقط)
-                </Button>
+                  {t('key_d3fdebaa')}
+                                                  </Button>
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={() => {
                     toast({
-                      title: '💬 تواصل مباشر صامت',
-                      description: 'تم توجيه طلب التخصيص والميزانيات الكبرى للصندوق الأمني لتسجيل نقاط ولاء.'
+                      title: t('key_74ba956d'),
+                      description: t('key_ceb9b892')
                     });
                   }}
                   className={styles.style876_139}
                 >
-                  ⚙️ طلب تخصيص ميزانية كبرى
-                </Button>
+                  {t('key_9924212e')}
+                                                  </Button>
               </div>
             </div>
           </div>
@@ -1283,8 +1287,8 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
           <div className={styles.style885_140}>
             <h3 className={styles.style886_141}>
               <Award className={styles.style887_142} />
-              3. محرك التحفيز والتوجيه التلقائي (The Gamification System)
-            </h3>
+              {t('key_6869fd8a')}
+                                      </h3>
 
             <div className={styles.style891_143}>
               {/* Rec 1 */}
@@ -1292,19 +1296,19 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
                 <div className={styles.style894_145} />
                 <div className={styles.style895_146}>
                   <Sparkles className={styles.style896_147} />
-                  <span>توصية زخم منطقة ناعور</span>
+                  <span>{t('key_54ec234e')}</span>
                 </div>
                 <p className={styles.style899_148}>
-                  "إعلانك حقق تفاعلاً هائلاً في منطقة ناعور، اضغط هنا لتمديد الحملة بـ 2 دينار فقط واكتساح المنطقة بالكامل."
-                </p>
+                  {t('key_cc564e92')}
+                                                  </p>
                 <div className={styles.style902_149}>
                   <Button
                     size="sm"
-                    onClick={() => handleRecommendationAccept('تمديد ناعور الذكي', 2.00, 'ناعور')}
+                    onClick={() => handleRecommendationAccept(t('key_b15519f0'), 2.00, t('key_9de2290c'))}
                     className={styles.style906_150}
                   >
-                    🚀 تمويل التمديد بـ 2.00 د.أ وصفر انتظار
-                  </Button>
+                    {t('key_d1d701be')}
+                                                        </Button>
                 </div>
               </div>
 
@@ -1313,19 +1317,19 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
                 <div className={styles.style915_152} />
                 <div className={styles.style916_153}>
                   <Zap className={styles.style917_154} />
-                  <span>حافز وادي السير الطارئ</span>
+                  <span>{t('key_af81d0d4')}</span>
                 </div>
                 <p className={styles.style920_155}>
-                  "حظر واضمحلال السعة الإعلانية بوادي السير نشط الآن! انقر لإتاحة التمديد المستعجل بخصم 45% بقيمة 1.5 دينار."
-                </p>
+                  {t('key_15729b30')}
+                                                  </p>
                 <div className={styles.style923_156}>
                   <Button
                     size="sm"
-                    onClick={() => handleRecommendationAccept('تمديد السعة الاستباقي', 1.50, 'وادي السير')}
+                    onClick={() => handleRecommendationAccept(t('key_74ad11dd'), 1.50, t('key_161b5e38'))}
                     className={styles.style927_157}
                   >
-                    ⚡ تفعيل وقنص السعة بـ 1.50 د.أ
-                  </Button>
+                    {t('key_cddb5bb4')}
+                                                        </Button>
                 </div>
               </div>
             </div>
@@ -1335,16 +1339,16 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
           <div className={styles.style937_158}>
             <h3 className={styles.style938_159}>
               <Wallet className={styles.style939_160} />
-              4. محطة الموازنة والمحفظة  ($Zero-Cost$ Budget Management)
-            </h3>
+              {t('key_39038708')}
+                                      </h3>
 
             <div className={styles.style943_161}>
               <div className={styles.style944_162}>
                 <div className={styles.style945_163}>
-                  <span className={styles.style946_164}>رصيد ميزانيتك الجاري الرقمي:</span>
+                  <span className={styles.style946_164}>{t('key_36f0b240')}</span>
                   <div className={styles.style947_165}>
                     <span className={styles.style948_166}>{advertiserBalance.toFixed(2)}</span>
-                    <span className={styles.style949_167}>دينار أردني</span>
+                    <span className={styles.style949_167}>{t('key_83c7caab')}</span>
                   </div>
                 </div>
 
@@ -1354,33 +1358,33 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
                     onClick={() => handleDepositSimulate(10.00)}
                     className={styles.style957_169}
                   >
-                    💵 شحن 10 د.أ
-                  </Button>
+                    {t('key_647d9fa6')}
+                                                        </Button>
                   <Button
                     size="sm"
                     onClick={() => handleDepositSimulate(25.00)}
                     className={styles.style964_170}
                   >
-                    💵 شحن 25 د.أ
-                  </Button>
+                    {t('key_318cddf2')}
+                                                        </Button>
                 </div>
               </div>
 
               <div className={styles.style971_171}>
-                <span className={styles.style972_172}>بوابات السداد المتاحة (التشفير والربط الأردني المباشر)</span>
+                <span className={styles.style972_172}>{t('key_3ba54706')}</span>
                 <div className={styles.style973_173}>
                   <span className={styles.style974_174}>
                     <span className={styles.style975_175} />
-                    <strong>زين كاش (Zain Cash)</strong>: متاح بنقر آلي
-                  </span>
+                    <strong>{t('key_6e10ce95')}</strong>{t('key_d47e2c0a')}
+                                                        </span>
                   <span className={styles.style978_176}>
                     <span className={styles.style979_177} />
-                    <strong>كليك الأردن (CliQ Jordan)</strong>: معرّف مشفّر
-                  </span>
+                    <strong>{t('key_354e348c')}</strong>{t('key_bc790a24')}
+                                                        </span>
                   <span className={styles.style982_178}>
                     <span className={styles.style983_179} />
-                    إيداعات صامتة بصفر رسوم معاملات
-                  </span>
+                    {t('key_e2d48eec')}
+                                                        </span>
                 </div>
               </div>
             </div>
@@ -1396,9 +1400,9 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
           {/* Unified 3-Step Map Progress */}
           <div className={styles.style999_181}>
             {[
-              { id: 1, title: 'التحديد الجغرافي والسعة', desc: 'المحافظة، المنطقة ومسح السعر' },
-              { id: 2, title: 'رفع الحملة وبناء الروابط', desc: 'مسرح الشاشة الكامل والاتصال' },
-              { id: 3, title: 'الفحص الأمني والنشاط', desc: 'المطابقة والتدقيق الأمني للـ AI' }
+              { id: 1, title: t('key_a2a84b82'), desc: t('key_a68b6c53') },
+              { id: 2, title: t('key_f8908264'), desc: t('key_4f6f9aed') },
+              { id: 3, title: t('key_a6ef7e9f'), desc: t('key_23b5c78a') }
             ].map((s) => (
               <div key={s.id} className={styles.style1005_182}>
                 <div className={styles.style1006_183}>
@@ -1429,11 +1433,11 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
               <div className={styles.style1033_196}>
                 <h2 className={styles.style1034_197}>
                   <Megaphone className={styles.style1035_198} />
-                  بناء الحملة الإعلانية وتفويض النشاط
-                </h2>
+                  {t('key_a8e8192d')}
+                                                  </h2>
                 <p className={styles.style1038_199}>
-                  نظم البيانات عبر بوابات الأكورديون التالية لضمان الفحص المسبق واستغلال كامل الأبعاد البصرية للشاشات.
-                </p>
+                  {t('key_f1ff1381')}
+                                                  </p>
               </div>
 
               {/* ACCORDION SYSTEM */}
@@ -1448,11 +1452,11 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
                   >
                     <div className={styles.style1053_203}>
                       <div className={styles.style1054_204}>1</div>
-                      <span className={styles.style1055_205}>القسم (1): التوجيه الجغرافي والسعة (جغرافي)</span>
+                      <span className={styles.style1055_205}>{t('key_da22d551')}</span>
                     </div>
                     <div className={styles.style1057_206}>
-                      <span>{governorate && district ? `[${governorate} - ${district}]` : '[خطوة معلّقة]'}</span>
-                      <span>{openSecs[1] ? '▲ طي' : '▼ توسيع'}</span>
+                      <span>{governorate && district ? `[${governorate} - ${district}]` : t('key_3114f61b')}</span>
+                      <span>{openSecs[1] ? t('key_ae972e10') : t('key_d9cc6a45')}</span>
                     </div>
                   </button>
                   <AnimatePresence initial={false}>
@@ -1466,10 +1470,10 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
                       >
                         <div className={styles.style1071_208}>
                           <div className={styles.style1072_209}>
-                            <Label className={styles.style1073_210}>المحافظة المستهدفة</Label>
+                            <Label className={styles.style1073_210}>{t('key_3c3801f6')}</Label>
                             <Select onValueChange={(val) => { setGovernorate(val); setDistrict(''); }} value={governorate}>
                               <SelectTrigger className={styles.style1075_211}>
-                                <SelectValue placeholder="اختر المحافظة" />
+                                <SelectValue placeholder={t('key_2f5a1a9e')} />
                               </SelectTrigger>
                               <SelectContent className={styles.style1078_212}>
                                 {jordanGovernorates.map(gov => (
@@ -1480,10 +1484,10 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
                           </div>
 
                           <div className={styles.style1086_214}>
-                            <Label className={styles.style1087_215}>المنطقة المستهدف</Label>
+                            <Label className={styles.style1087_215}>{t('key_ac4aa794')}</Label>
                             <Select onValueChange={(val) => setDistrict(val)} value={district} disabled={!governorate}>
                               <SelectTrigger className={styles.style1089_216}>
-                                <SelectValue placeholder={governorate ? "اختر المنطقة الجغرافي" : "اختر المحافظة أولاً"} />
+                                <SelectValue placeholder={governorate ? t('key_e725bad5') : t('key_b5360e7a')} />
                               </SelectTrigger>
                               <SelectContent className={styles.style1092_217}>
                                 {districts.map(dist => (
@@ -1495,16 +1499,16 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
                         </div>
 
                         <div className={styles.style1101_219}>
-                          <Label className={styles.style1102_220}>مرات الظهور والنشاط المطلوبة لحجم الاكتساح:</Label>
+                          <Label className={styles.style1102_220}>{t('key_3ec1d9b6')}</Label>
                           <Select onValueChange={(val) => setTargetImpressions(parseInt(val))} value={targetImpressions.toString()}>
                             <SelectTrigger className={styles.style1104_221}>
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent className={styles.style1107_222}>
-                              <SelectItem value="1000" className={styles.style1108_223}>1,000 ظهور (مستوى اختبار)</SelectItem>
-                              <SelectItem value="5000" className={styles.style1109_224}>5,000 ظهور (تأثير محلي)</SelectItem>
-                              <SelectItem value="10000" className={styles.style1110_225}>10,000 ظهور (انتشار واسع في المنطقة)</SelectItem>
-                              <SelectItem value="50000" className={styles.style1111_226}>50,000 ظهور (تأثير  وشامل)</SelectItem>
+                              <SelectItem value="1000" className={styles.style1108_223}>{t('key_54bc1911')}</SelectItem>
+                              <SelectItem value="5000" className={styles.style1109_224}>{t('key_4e98ce1b')}</SelectItem>
+                              <SelectItem value="10000" className={styles.style1110_225}>{t('key_4e932545')}</SelectItem>
+                              <SelectItem value="50000" className={styles.style1111_226}>{t('key_ea61a25a')}</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -1515,49 +1519,49 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
                               <div className={styles.style1119_228}>
                                 <div className={styles.style1120_229}>
                                   <ShieldAlert className={styles.style1121_230} />
-                                  <span className={styles.style1122_231}>تحذير محرك السعة المكتظة (Capacity Saturation)</span>
+                                  <span className={styles.style1122_231}>{t('key_04aed0f1')}</span>
                                 </div>
                                 <p className={styles.style1124_232}>
-                                  “الوقت الحالي ممتلئ، ولكن يوجد زخم ركاب مرتفع في المنطقة المجاور <strong className={styles.style1125_233}>ناعور</strong> نتيجة تذبذب الأسعار بنسبة 10%، نقترح توجيه حملتك هناك لتحقيق مشاهدات أعلى بجودة أكبر”.
-                                </p>
+                                  {t('key_94b3d566')} <strong className={styles.style1125_233}>{t('key_9de2290c')}</strong> {t('key_619a8ac1')}
+                                                                                                  </p>
                                 <Button
                                   type="button"
                                   onClick={redirectCampaignToNaour}
                                   className={styles.style1130_234}
                                 >
                                   <Sparkles className={styles.style1132_235} />
-                                  توجيه الحملة فوراً إلى منطقة ناعور المكبّر (خصومات ومرونة قصوى)
-                                </Button>
+                                  {t('key_2e8f9899')}
+                                                                                                  </Button>
                               </div>
                             ) : (
                               <div className={styles.style1137_236}>
                                 <div className={styles.style1138_237}>
                                   <div className={styles.style1139_238}>
                                     <Activity className={styles.style1140_239} />
-                                    <span>بيانات النشاط العام الموحد (Global Pulse) لمنطقة: {district}</span>
+                                    <span>{t('key_7b15de39')} {district}</span>
                                   </div>
                                   <span className={styles.style1143_240}>
-                                    السعة متاحة ✓
-                                  </span>
+                                    {t('key_60ba036e')}
+                                                                                                            </span>
                                 </div>
 
                                 <div className={styles.style1148_241}>
                                   <div className={styles.style1149_242}>
-                                    <span className={styles.style1150_243}>شذوذ السعر المرصود</span>
+                                    <span className={styles.style1150_243}>{t('key_ae15bf01')}</span>
                                     <span className={styles.style1151_244}>
-                                      {activeDistrictPulse?.priceAnomaliesCount || 0} حالات حرق
-                                    </span>
+                                      {activeDistrictPulse?.priceAnomaliesCount || 0} {t('key_3e62f4f5')}
+                                                                                                                  </span>
                                   </div>
                                   <div className={styles.style1155_245}>
-                                    <span className={styles.style1156_246}>السعة الطارئة</span>
+                                    <span className={styles.style1156_246}>{t('key_cd98c530')}</span>
                                     <span className={cn(styles.style1157_247, activeDistrictPulse?.emergencyAdCapacityActive ? styles.style1157_248 : styles.style1157_249)}>
-                                      {activeDistrictPulse?.emergencyAdCapacityActive ? '🔥 نشطة (خصم %40)' : 'خاملة'}
+                                      {activeDistrictPulse?.emergencyAdCapacityActive ? t('key_719dc884') : t('key_3af733f7')}
                                     </span>
                                   </div>
                                   <div className={styles.style1161_250}>
-                                    <span className={styles.style1162_251}>انتباه الركاب الميداني</span>
+                                    <span className={styles.style1162_251}>{t('key_e348d2d6')}</span>
                                     <span className={styles.style1163_252}>
-                                      {activeDistrictPulse?.emergencyAdCapacityActive ? 'عالي %98' : 'عادي %65'}
+                                      {activeDistrictPulse?.emergencyAdCapacityActive ? t('key_0947c9af') : t('key_bdbce49e')}
                                     </span>
                                   </div>
                                 </div>
@@ -1566,8 +1570,8 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
                                   <div className={styles.style1170_253}>
                                     <Sparkles className={styles.style1171_254} />
                                     <span>
-                                      تم تفعيل <strong>الحزم الإعلانية الطارئة ومكثفة الانتباه</strong> لمنطقة {district} بنصف السعر. استفد من الخصم الحالي الميداني حالاً.
-                                    </span>
+                                      {t('key_f9f3d522')} <strong>{t('key_a0689481')}</strong> {t('key_26892e37')} {district} {t('key_a5c0bf40')}
+                                                                                                                  </span>
                                   </div>
                                 )}
                               </div>
@@ -1588,11 +1592,11 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
                   >
                     <div className={styles.style1193_257}>
                       <div className={styles.style1194_258}>2</div>
-                      <span className={styles.style1195_259}>القسم (2): مادة الإعلانات والاتصالات المباشرة (مادي)</span>
+                      <span className={styles.style1195_259}>{t('key_80f323aa')}</span>
                     </div>
                     <div className={styles.style1197_260}>
-                      <span>{title ? '[مادة إعلانية مجهزة]' : '[خطوة معلّقة]'}</span>
-                      <span>{openSecs[2] ? '▲ طي' : '▼ توسيع'}</span>
+                      <span>{title ? t('key_503a1698') : t('key_3114f61b')}</span>
+                      <span>{openSecs[2] ? t('key_ae972e10') : t('key_d9cc6a45')}</span>
                     </div>
                   </button>
                   <AnimatePresence initial={false}>
@@ -1607,9 +1611,9 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
                         <div className={styles.style1211_262}>
                           <div className={styles.style1212_263}>
                             <div className={styles.style1213_264}>
-                              <Label className={styles.style1214_265}>عنوان الحملة المثير للانتباه</Label>
+                              <Label className={styles.style1214_265}>{t('key_e9254a9d')}</Label>
                               <Input
-                                placeholder="معروض شاورما السائق  الفاخر"
+                                placeholder={t('key_e6f68cc6')}
                                 value={title}
                                 onChange={(e) => setTitle(e.target.value)}
                                 className={styles.style1219_266}
@@ -1617,9 +1621,9 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
                             </div>
 
                             <div className={styles.style1223_267}>
-                              <Label className={styles.style1224_268}>الوصف البصري والخصومات للركاب</Label>
+                              <Label className={styles.style1224_268}>{t('key_0774f421')}</Label>
                               <Input
-                                placeholder="احصل على خصم 25% مع كل طوافة نقل للراكب الفعال."
+                                placeholder={t('key_d8a86f03')}
                                 value={description}
                                 onChange={(e) => setDescription(e.target.value)}
                                 className={styles.style1229_269}
@@ -1627,7 +1631,7 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
                             </div>
 
                             <div className={styles.style1233_270}>
-                              <Label className={styles.style1234_271}>رابط بوستر الحملة البصري الكامل</Label>
+                              <Label className={styles.style1234_271}>{t('key_603ff897')}</Label>
                               <Input
                                 placeholder="https://images.unsplash.com/photo-..."
                                 value={posterUrl}
@@ -1639,10 +1643,10 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
 
                             {/* Direct Acquisition Links */}
                             <div className={styles.style1245_273}>
-                              <span className={styles.style1246_274}>روابط التواصل المباشرة (Direct Acquisition Links)</span>
+                              <span className={styles.style1246_274}>{t('key_6e2d00d8')}</span>
                               <div className={styles.style1247_275}>
                                 <div className={styles.style1248_276}>
-                                  <Label className={styles.style1249_277}>رقم الواتساب </Label>
+                                  <Label className={styles.style1249_277}>{t('key_409c7417')} </Label>
                                   <Input
                                     value={whatsapp}
                                     onChange={(e) => setWhatsapp(e.target.value)}
@@ -1651,7 +1655,7 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
                                   />
                                 </div>
                                 <div className={styles.style1257_279}>
-                                  <Label className={styles.style1258_280}>رقم الاتصال المباشر</Label>
+                                  <Label className={styles.style1258_280}>{t('key_87c32fad')}</Label>
                                   <Input
                                     value={phone}
                                     onChange={(e) => setPhone(e.target.value)}
@@ -1660,7 +1664,7 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
                                   />
                                 </div>
                                 <div className={styles.style1266_282}>
-                                  <Label className={styles.style1267_283}>رابط الموقع الجغرافي أو الهبوط</Label>
+                                  <Label className={styles.style1267_283}>{t('key_09a4e53c')}</Label>
                                   <Input
                                     placeholder="https://maps.google.com/?q=..."
                                     value={geoLoc}
@@ -1676,19 +1680,19 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
                           {/* Theater Preview Mock */}
                           <div className={styles.style1281_285}>
                             <span className={styles.style1282_286}>
-                              🖥️ مسرح العرض الكامل للراكب (Theatre Preview)
-                            </span>
+                              {t('key_1570dfb8')}
+                                                                                      </span>
 
                             <AdDisplayCard
                               ad={{
-                                title: title || 'عنوان الحملة',
-                                description: description || 'وصف قصير وواضح للحملة.',
+                                title: title || t('key_cb0efebf'),
+                                description: description || t('key_e09f0ee2'),
                                 posterUrl,
                                 bannerUrl: posterUrl,
                                 buttonText,
                               }}
                               showHeart={false}
-                              badgeText="نشاط ميداني"
+                              badgeText={t('key_2f7e0c5a')}
                               ctaText={buttonText}
                               className={styles.style1297_287}
                             />
@@ -1704,7 +1708,7 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
                               ) : (
                                 <div className={styles.style1309_290}>
                                   <ImageIcon className={styles.style1310_291} />
-                                  <span>مسرح الشاشة الكامل ممتد هنا</span>
+                                  <span>{t('key_8a8138e2')}</span>
                                 </div>
                               )}
 
@@ -1712,11 +1716,11 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
 
                               <div className={styles.style1317_293}>
                                 <span className={styles.style1318_294}>
-                                  إعلانات الرادار النشطة
-                                </span>
+                                  {t('key_0a7ed83b')}
+                                                                                                  </span>
                                 <div className={styles.style1321_295}>
-                                  <h4 className={styles.style1322_296}>{title || 'عنوان الحملة البصرية'}</h4>
-                                  <p className={styles.style1323_297}>{description || 'وصف الحملة وتوجيه الاستبصار.'}</p>
+                                  <h4 className={styles.style1322_296}>{title || t('key_0dd26350')}</h4>
+                                  <p className={styles.style1323_297}>{description || t('key_aa84c941')}</p>
                                 </div>
                                 <Button className={styles.style1325_298}>
                                   {buttonText}
@@ -1739,11 +1743,11 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
                   >
                     <div className={styles.style1344_301}>
                       <div className={styles.style1345_302}>3</div>
-                      <span className={styles.style1346_303}>القسم (3): التسعير والذكاء الاصطناعي  (تسعيري)</span>
+                      <span className={styles.style1346_303}>{t('key_15f9afdb')}</span>
                     </div>
                     <div className={styles.style1348_304}>
-                      <span>الباقة: {currentPackage?.name || 'غير محددة'}</span>
-                      <span>{openSecs[3] ? '▲ طي' : '▼ توسيع'}</span>
+                      <span>{t('key_9c4026df')} {currentPackage?.name || t('key_c1a25ec0')}</span>
+                      <span>{openSecs[3] ? t('key_ae972e10') : t('key_d9cc6a45')}</span>
                     </div>
                   </button>
                   <AnimatePresence initial={false}>
@@ -1758,14 +1762,14 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
                         {/* AI Recommendation Widget */}
                         <div className={styles.style1363_306}>
                           <span className={styles.style1364_307}>
-                            <Sparkles className={styles.style1365_308} /> مستشار الباقة الذكي (AI Pricing Recommendation)
-                          </span>
+                            <Sparkles className={styles.style1365_308} /> {t('key_526d959b')}
+                                                                                </span>
                           <p className={styles.style1367_309}>
-                            أدخل ميزانيتك التقديرية وهدفك التسويقي ليقترح لك المحرك  الباقة المثلى تلقائياً:
-                          </p>
+                            {t('key_4d6e5671')}
+                                                                                </p>
                           <div className={styles.style1370_310}>
                             <div>
-                              <Label className={styles.style1372_311}>ميزانيتك التقديرية (د.أ):</Label>
+                              <Label className={styles.style1372_311}>{t('key_f36df902')}</Label>
                               <Input
                                 type="number"
                                 value={aiBudget}
@@ -1774,15 +1778,15 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
                               />
                             </div>
                             <div>
-                              <Label className={styles.style1381_313}>الغاية التسويقية:</Label>
+                              <Label className={styles.style1381_313}>{t('key_01cde821')}</Label>
                               <Select value={aiGoal} onValueChange={(value) => setAiGoal(value as 'awareness' | 'retention' | 'broad')}>
                                 <SelectTrigger className={styles.style1104_221}>
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent className={styles.style1107_222}>
-                                  <SelectItem value="awareness" className={styles.style1108_223}>النشاط العادي (وعي عابر)</SelectItem>
-                                  <SelectItem value="retention" className={styles.style1108_223}>التخليد (حفظ مكرر بالذاكرة)</SelectItem>
-                                  <SelectItem value="broad" className={styles.style1108_223}>الاكتساح (تغطية  قصوى)</SelectItem>
+                                  <SelectItem value="awareness" className={styles.style1108_223}>{t('key_0128e342')}</SelectItem>
+                                  <SelectItem value="retention" className={styles.style1108_223}>{t('key_f5dc17e4')}</SelectItem>
+                                  <SelectItem value="broad" className={styles.style1108_223}>{t('key_340a886f')}</SelectItem>
                                 </SelectContent>
                               </Select>
                             </div>
@@ -1792,8 +1796,8 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
                             onClick={() => suggestBestPackage(aiBudget, aiGoal)}
                             className={styles.style1396_315}
                           >
-                            <Sparkles className={styles.style1398_316} /> احصل على التوصية الفورية وتطبيقها
-                          </Button>
+                            <Sparkles className={styles.style1398_316} /> {t('key_2b525a23')}
+                                                                                </Button>
                           {aiRecommendation && (
                             <div className={styles.style1401_317}>
                               {aiRecommendation}
@@ -1803,36 +1807,36 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
 
                         {/* Package Selection Button Launcher [RAD-CMD-062] */}
                         <div className={styles.style1408_318}>
-                          <Label className={styles.style1409_319}>الباقة التسعيرية المعتمدة للحملة:</Label>
+                          <Label className={styles.style1409_319}>{t('key_677d88b6')}</Label>
                           <div className={styles.style1410_320}>
                             <div className={styles.style1411_321}>
-                              <span className={styles.style1412_322}>الباقة الحالية:</span>
-                              <span className={styles.style1413_323}>🟢 {currentPackage?.name || 'لم يتم الاختيار بعد'}</span>
-                              <span className={styles.style1414_324}>{currentPackage?.pricePerImpression.toFixed(3)} د.أ / ظهور</span>
+                              <span className={styles.style1412_322}>{t('key_59f53b14')}</span>
+                              <span className={styles.style1413_323}>🟢 {currentPackage?.name || t('key_1e19732b')}</span>
+                              <span className={styles.style1414_324}>{currentPackage?.pricePerImpression.toFixed(3)} {t('key_a90490be')}</span>
                             </div>
                             <Button
                               type="button"
                               onClick={() => setIsPackageModalOpen(true)}
                               className={styles.style1419_325}
                             >
-                              ⚙️ اختيار الباقة
-                            </Button>
+                              {t('key_116098d6')}
+                                                                                      </Button>
                           </div>
                         </div>
 
                         {/* Invoice & Wallet sync display */}
                         <div className={styles.style1427_326}>
                           <div className={styles.style1428_327}>
-                            <span className={styles.style1429_328}>الفاتورة التقديرية المعتمدة للباقة:</span>
+                            <span className={styles.style1429_328}>{t('key_0c2d9978')}</span>
                             <span className={styles.style1430_329}>
-                              {calculatedCost.toFixed(2)} د.أ
-                            </span>
+                              {calculatedCost.toFixed(2)} {t('key_a13e6dc9')}
+                                                                                      </span>
                           </div>
                           <div className={styles.style1434_330}>
-                            <span className={styles.style1435_331}>رصيد محفظتك  الجاري:</span>
+                            <span className={styles.style1435_331}>{t('key_05d91cbf')}</span>
                             <span className={cn(styles.style1436_332, advertiserBalance < calculatedCost ? styles.style1436_333 : styles.style1436_334)}>
-                              {advertiserBalance.toFixed(2)} د.أ
-                            </span>
+                              {advertiserBalance.toFixed(2)} {t('key_a13e6dc9')}
+                                                                                      </span>
                           </div>
                         </div>
                       </motion.div>
@@ -1853,7 +1857,7 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
                   className={styles.style1456_336}
                 >
                   <ShieldCheck className={styles.style1458_337} />
-                  <span>رفع الفحص الأمني وإطلاق النشاط 🛡️</span>
+                  <span>{t('key_341f68b4')}</span>
                 </Button>
 
                 <Button
@@ -1865,7 +1869,7 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
                   }}
                   className={styles.style1469_338}
                 >
-                  <span>إلغاء</span>
+                  <span>{t('key_b9568e86')}</span>
                 </Button>
               </div>
 
@@ -1878,17 +1882,17 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
               <div className={styles.style1481_340}>
                 <h2 className={styles.style1482_341}>
                   <ShieldCheck className={styles.style1483_342} />
-                  المرحلة الثالثة: الفحص الأمني للذكاء الاصطناعي (حارس الجودة)
-                </h2>
+                  {t('key_f62df242')}
+                                                  </h2>
                 <p className={styles.style1486_343}>
-                  يقوم حارس الجودة الصامت بفحص قائمة البيكسلات والكود الجغرافي لضمان الخلو الكامل من الملوثات البصرية وامتثال الحملة لشروط الأمان الميداني.
-                </p>
+                  {t('key_b9f90acf')}
+                                                  </p>
               </div>
 
               <div className={styles.style1491_344}>
                 <div className={styles.style1492_345}>
                   <div className={styles.style1493_346}>
-                    <span>الربط البرمجي السداسي ومستوى التدقيق:</span>
+                    <span>{t('key_6ff2ae85')}</span>
                     <span className={styles.style1495_347}>{auditProgress}%</span>
                   </div>
                   <div className={styles.style1497_348}>
@@ -1914,10 +1918,10 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
                   <div className={styles.style1517_353}>
                     <div className={styles.style1518_354}>
                       <CheckCircle className={styles.style1519_355} />
-                      <span>تمت المطابقة والامتثال القانوني!</span>
+                      <span>{t('key_8d05b5ae')}</span>
                     </div>
                     <p className={styles.style1522_356}>
-                      تم إضافة إعلانك بنجاح في قائمة النشاط الميداني بمحافظة <strong className={styles.style1523_357}>{governorate}</strong> - منطقة <strong className={styles.style1523_358}>{district}</strong>.
+                      {t('key_9caec1c5')} <strong className={styles.style1523_357}>{governorate}</strong> {t('key_31458469')} <strong className={styles.style1523_358}>{district}</strong>.
                     </p>
                   </div>
                 )}
@@ -1933,8 +1937,8 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
                   disabled={isSimulatingAudit}
                   className={styles.style1537_360}
                 >
-                  العودة للوحة التحكم وصندوق النشاط الميداني 🤝
-                </Button>
+                  {t('key_e39b2437')}
+                                                  </Button>
               </div>
             </div>
           )}
@@ -1945,7 +1949,7 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
       {/* Sovereign Footing Info Panel */}
       <div className={styles.style1549_361}>
         <span>$ZERO_COST_MICRO_ALGO - PWA V5.5 SECURITY LAYER</span>
-        <span>صلاحية العقد: مستمر حتى استهلاك سقف النشاط</span>
+        <span>{t('key_85519995')}</span>
       </div>
 
       <AnimatePresence>
@@ -1959,11 +1963,11 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
             >
               <h3 className={styles.style1563_364}>
                 <Sparkles className={styles.style1564_365} />
-                معالج اختيار الباقات الثابتة والنشاط الفاخر
-              </h3>
+                {t('key_be621b53')}
+                                            </h3>
               <p className={styles.style1567_366}>
-                اختر الباقة المناسبة لأبعاد حملتك الإعلانية . سيتم ربط الكلفة مباشرة برصيدك وحساب الفاتورة فورياً:
-              </p>
+                {t('key_9566329c')}
+                                            </p>
 
               <div className={styles.style1571_367}>
                 {SOVEREIGN_PRICING_PACKAGES.map((pkg) => {
@@ -1991,17 +1995,17 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
                           {isSelected ? '🟢 ' : '⚪ '} {pkg.name}
                         </span>
                         <span className={styles.style1598_376}>
-                          {pkg.pricePerImpression.toFixed(3)} د.أ / ظهور
-                        </span>
+                          {pkg.pricePerImpression.toFixed(3)} {t('key_a90490be')}
+                                                          </span>
                       </div>
                       <p className={styles.style1602_377}>
                         {pkg.description}
                       </p>
 
                       <div className={styles.style1606_378}>
-                        <span className={styles.style1607_379}>الفاتورة التقديرية لـ {targetImpressions.toLocaleString()} ظهور:</span>
+                        <span className={styles.style1607_379}>{t('key_09509a6e')} {targetImpressions.toLocaleString()} {t('key_10ee01c0')}</span>
                         <span className={cn(styles.style1608_380, isAffordable ? styles.style1608_381 : styles.style1608_382)}>
-                          {tempCost.toFixed(2)} د.أ {isAffordable ? '✓ متوفرة' : '⚠️ رصيد غير كاف'}
+                          {tempCost.toFixed(2)} {t('key_a13e6dc9')} {isAffordable ? t('key_e33e05aa') : t('key_d6f70314')}
                         </span>
                       </div>
                     </button>
@@ -2011,14 +2015,14 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
 
               <div className={styles.style1617_383}>
                 <div className={styles.style1618_384}>
-                  <span className={styles.style1619_385}>الفاتورة المحددة:</span>
-                  <span className={styles.style1620_386}>{calculatedCost.toFixed(2)} د.أ</span>
+                  <span className={styles.style1619_385}>{t('key_e2ce3c32')}</span>
+                  <span className={styles.style1620_386}>{calculatedCost.toFixed(2)} {t('key_a13e6dc9')}</span>
                 </div>
                 <div className={styles.style1622_387}>
-                  <span className={styles.style1623_388}>رصيدك الكلي:</span>
+                  <span className={styles.style1623_388}>{t('key_767772e1')}</span>
                   <span className={cn(styles.style1624_389, advertiserBalance < calculatedCost ? styles.style1624_390 : styles.style1624_391)}>
-                    {advertiserBalance.toFixed(2)} د.أ
-                  </span>
+                    {advertiserBalance.toFixed(2)} {t('key_a13e6dc9')}
+                                                        </span>
                 </div>
               </div>
 
@@ -2028,16 +2032,16 @@ export function AdvertiserPortal({ onClose }: { onClose?: () => void }) {
                   onClick={() => setIsPackageModalOpen(false)}
                   className={styles.style1634_393}
                 >
-                  تأكيد وحفظ الباقة العقدية 🛡️
-                </Button>
+                  {t('key_ea09e0bd')}
+                                                  </Button>
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => setIsPackageModalOpen(false)}
                   className={styles.style1642_394}
                 >
-                  إغلاق
-                </Button>
+                  {t('key_9932cca0')}
+                                                  </Button>
               </div>
             </motion.div>
           </div>
@@ -2073,6 +2077,7 @@ export interface AdvertiserDashboardProps {
 }
 
 export const RadarAdvertiserDashboard: React.FC<AdvertiserDashboardProps> = ({ advertiserProfile, myAds, marketInsights }) => {
+    const t = useTranslations('auto');
   const [activeTab, setActiveTab] = useState<'METRICS' | 'LAUNCH'>('METRICS');
 
   return (
@@ -2080,52 +2085,53 @@ export const RadarAdvertiserDashboard: React.FC<AdvertiserDashboardProps> = ({ a
 
       {/* 1. الهيدر والترحيب  برتبة المعلن */}
       <div className={styles.style1687_396} style={{ borderBottom: '2px solid #111', paddingBottom: '15px', marginBottom: '25px' }}>
-        <h3>📡 لوحة تحكم المعلن  - الرادار V5.5</h3>
+        <h3>{t('key_69a664ab')}</h3>
         <div style={{ display: 'flex', justifyContent: 'space-between', backgroundColor: '#0d0d0d', padding: '10px 15px', borderRadius: '4px', border: '1px solid #1a1a1a' }}>
-          <span>المعلن: <strong>{advertiserProfile.companyName}</strong></span>
-          <span>رتبة الولاء: <strong style={{ color: '#ffcc00' }}>[{advertiserProfile.loyaltyRank}]</strong></span>
+          <span>{t('key_41e38506')} <strong>{advertiserProfile.companyName}</strong></span>
+          <span>{t('key_ee74053b')} <strong style={{ color: '#ffcc00' }}>[{advertiserProfile.loyaltyRank}]</strong></span>
         </div>
       </div>
 
       {/* 2. تنبيهات التشجيع والتنبيهات التلقائية للنظام من أجل التكرار */}
       <div className={styles.style1696_397} style={{ backgroundColor: '#001a0d', border: '1px solid #00cc66', padding: '15px', borderRadius: '6px', marginBottom: '25px' }}>
-        <h4 style={{ color: '#00cc66', margin: '0 0 5px 0' }}>🏆 نشاط النجاح التلقائي وصوت الرادار:</h4>
+        <h4 style={{ color: '#00cc66', margin: '0 0 5px 0' }}>{t('key_ee202bc1')}</h4>
         <p style={{ margin: 0, fontSize: '12px', lineHeight: '1.5', color: '#b3ffd9' }}>
-          إعلاناتك غطت خلايا جغرافية واسعة! نوصي بتكرار الحملة وتوجيه نشاط إعلاني إضافي إلى
-          <strong> (منطقة {marketInsights.hottestDistrict}) </strong> حيث يشهد الميدان هناك {marketInsights.trafficGrowth} في حركة الركاب حالياً، مما يضمن تضاعف المشاهدات بصفر تشتيت.
-        </p>
+          {t('key_d5685ead')}
+                            <strong> {t('key_06a48bb2')} {marketInsights.hottestDistrict}) </strong> {t('key_1b9807b2')} {marketInsights.trafficGrowth} {t('key_21e6c0e4')}
+                          </p>
       </div>
 
       {/* 3. عرض ومتابعة قائمة الإعلانات الحالية وإحصائياتها */}
       <div className={styles.style1705_398}>
-        <h4>📋 حملاتك الإعلانية ومؤشرات الأداء اللحظية</h4>
+        <h4>{t('key_0a56333f')}</h4>
         {myAds.map(ad => {
+            const t = useTranslations('auto');
           const ctr = ad.impressions > 0 ? ((ad.clicks / ad.impressions) * 100).toFixed(1) : '0.0';
 
           return (
             <div key={ad.id} style={{ backgroundColor: '#0d0d0d', padding: '15px', borderRadius: '6px', marginBottom: '15px', border: '1px solid #1a1a1a' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span>📢 اسم الحملة: <strong>{ad.title}</strong></span>
+                <span>{t('key_ef91cc9b')} <strong>{ad.title}</strong></span>
 
                 {/* عرض حالة الحوكمة والأختام الرقمية للاعلان */}
-                {ad.status === 'ACTIVE' && <strong style={{ color: '#00cc66', fontSize: '12px' }}>🟢 نشط وينشر النشاط</strong>}
-                {ad.status === 'PENDING' && <strong style={{ color: '#ffcc00', fontSize: '12px' }}>🟡 قيد الفحص الأمني الصامت</strong>}
-                {ad.status === 'REJECTED' && <strong style={{ color: '#ff3366', fontSize: '12px' }}>🚫 مرفوض </strong>}
+                {ad.status === 'ACTIVE' && <strong style={{ color: '#00cc66', fontSize: '12px' }}>{t('key_104a6ff7')}</strong>}
+                {ad.status === 'PENDING' && <strong style={{ color: '#ffcc00', fontSize: '12px' }}>{t('key_19d22dc1')}</strong>}
+                {ad.status === 'REJECTED' && <strong style={{ color: '#ff3366', fontSize: '12px' }}>{t('key_c58eb57d')} </strong>}
               </div>
 
               {ad.status === 'REJECTED' && (
                 <div style={{ backgroundColor: '#260005', color: '#ffb3bf', padding: '8px', borderRadius: '4px', marginTop: '10px', fontSize: '11px' }}>
-                  ❌ رسالة النظام: {ad.rejectionReason}
+                  {t('key_a07683eb')} {ad.rejectionReason}
                 </div>
               )}
 
               {/* عدادات بورصة الأرقام والمشاهدات للمعلن */}
               {ad.status === 'ACTIVE' && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '15px', backgroundColor: '#050505', padding: '10px', borderRadius: '4px', fontSize: '12px' }}>
-                  <span>👁️ المشاهدات: <strong style={{ color: '#00ffcc' }}>{ad.impressions}</strong></span>
-                  <span>🖱️ التفاعل والنقر: <strong style={{ color: '#00ffcc' }}>{ad.clicks}</strong></span>
-                  <span>📈 كفاءة النشاط الجغرافي (CTR): <strong style={{ color: '#ffcc00' }}>{ctr}%</strong></span>
-                  <span>📍 النطاق: <strong>منطقة {ad.targetDistrict}</strong></span>
+                  <span>{t('key_3a463faa')} <strong style={{ color: '#00ffcc' }}>{ad.impressions}</strong></span>
+                  <span>{t('key_1015af3e')} <strong style={{ color: '#00ffcc' }}>{ad.clicks}</strong></span>
+                  <span>{t('key_451dbc0c')} <strong style={{ color: '#ffcc00' }}>{ctr}%</strong></span>
+                  <span>{t('key_a9bca74d')} <strong>{t('key_c9006cb7')} {ad.targetDistrict}</strong></span>
                 </div>
               )}
 
@@ -2133,8 +2139,8 @@ export const RadarAdvertiserDashboard: React.FC<AdvertiserDashboardProps> = ({ a
               {ad.status === 'ACTIVE' && (
                 <div style={{ textAlign: 'left', marginTop: '10px' }}>
                   <button style={{ backgroundColor: '#111', color: '#ffcc00', border: '1px solid #ffcc00', padding: '4px 10px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer', fontWeight: 'bold' }}>
-                    🔄 تكرار وتمديد الحملة فوراً بنفس الميزانية
-                  </button>
+                    {t('key_adacb2db')}
+                                                </button>
                 </div>
               )}
             </div>

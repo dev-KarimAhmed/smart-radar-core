@@ -23,6 +23,7 @@ import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { useDriverOperations } from '@/hooks/use-driver-operations';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { useTranslations } from "next-intl";
 
 const DriverPricingCard = dynamic(
   () => import('@/components/dashboard/driver-pricing-card').then((module) => module.DriverPricingCard),
@@ -90,6 +91,7 @@ function PulseIndicator() {
 }
 
 function DriverCabin() {
+    const t = useTranslations('auto');
   const driverOps = useDriverOperations();
   const driverStatus = driverOps?.driverStatus || 'idle';
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -111,7 +113,7 @@ function DriverCabin() {
             />
           ) : null}
           <Label htmlFor="driver-status-switch" className={styles.statusLabel}>
-            {driverStatus === 'active' ? 'نشط' : isDriverBusy ? 'بمهمة' : 'خامل'}
+            {driverStatus === 'active' ? t('key_8caaf953') : isDriverBusy ? t('key_628d6c16') : t('key_c813d1e8')}
           </Label>
         </div>
 
@@ -125,7 +127,7 @@ function DriverCabin() {
             onClick={() => window.dispatchEvent(new CustomEvent('open-captain-dashboard'))}
           >
             <Shield className={styles.shield} />
-            <span>لوحة العمليات</span>
+            <span>{t('key_36099fc4')}</span>
           </Button>
           {driverOps?.toggleRequestList ? (
             <Button
@@ -167,6 +169,7 @@ function initials(name = '') {
 }
 
 export function AppHeader({ sidebar }: { sidebar?: ReactNode }) {
+    const t = useTranslations('auto');
   const { user, isCaptain } = useAuth();
   const { toast } = useToast();
   const { isArabic, toggleLanguage } = useDashboardLanguage();
@@ -178,7 +181,7 @@ export function AppHeader({ sidebar }: { sidebar?: ReactNode }) {
           <Sheet>
             <SheetTrigger asChild>
               <Button
-                aria-label="فتح قائمة الحساب"
+                aria-label={t('key_4541dad4')}
                 className={styles.menuButton}
                 size="icon"
                 variant="ghost"
@@ -189,8 +192,8 @@ export function AppHeader({ sidebar }: { sidebar?: ReactNode }) {
               </Button>
             </SheetTrigger>
             <SheetContent className={styles.menuContent} side="right">
-              <SheetTitle className={styles.srOnly}>القائمة</SheetTitle>
-              <SheetDescription className={styles.srOnly}>قائمة حساب الراكب</SheetDescription>
+              <SheetTitle className={styles.srOnly}>{t('key_426510a4')}</SheetTitle>
+              <SheetDescription className={styles.srOnly}>{t('key_aa21658a')}</SheetDescription>
               {sidebar}
             </SheetContent>
           </Sheet>
@@ -200,7 +203,7 @@ export function AppHeader({ sidebar }: { sidebar?: ReactNode }) {
             size="icon"
             variant="ghost"
             className={styles.notification}
-            onClick={() => toast({ title: 'التنبيهات', description: 'لا توجد تنبيهات جديدة حالياً.' })}
+            onClick={() => toast({ title: t('key_a41331b1'), description: t('key_9608e3b5') })}
           >
             <Bell className={styles.icon} />
           </Button>
@@ -209,12 +212,12 @@ export function AppHeader({ sidebar }: { sidebar?: ReactNode }) {
             variant="ghost"
             size="sm"
             onClick={toggleLanguage}
-            aria-label={isArabic ? 'Switch to English' : 'التبديل إلى العربية'}
-            title={isArabic ? 'English' : 'العربية'}
+            aria-label={isArabic ? 'Switch to English' : t('key_60799d01')}
+            title={isArabic ? 'English' : t('key_26b1b2b0')}
             className={styles.language}
           >
             <Languages className={styles.smallIcon} />
-            <span>{isArabic ? 'EN' : 'ع'}</span>
+            <span>{isArabic ? 'EN' : t('key_b4dfa835')}</span>
           </Button>
         </div>
       </header>

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { useTranslations } from "next-intl";
 
 const styles = {
   root: 'flex min-h-screen items-center justify-center bg-[#0A0F1D] p-6 text-center text-white',
@@ -9,12 +10,13 @@ const styles = {
 } as const;
 
 export function RoleAccessGate({ body, title }: { body: string; title: string }) {
+    const t = useTranslations('auto');
   return (
     <main className={styles.root}>
       <section className={styles.card}>
         <h1 className={styles.title}>{title}</h1>
         <p className={styles.body}>{body}</p>
-        <Link className={styles.link} href="/">تسجيل الدخول</Link>
+        <Link className={styles.link} href="/">{t('key_b5dcde74')}</Link>
       </section>
     </main>
   );

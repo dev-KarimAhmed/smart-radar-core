@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Star, Sparkles, VolumeX, TrafficCone, Car } from 'lucide-react';
 import type { VehicleOfferData } from '@/core/types';
+import { useTranslations } from "next-intl";
 
 const styles = {
   style14_1: "flex items-center justify-between gap-4",
@@ -57,6 +58,7 @@ const SensoryStat = ({ icon, label, value, max }: { icon: React.ReactNode, label
 };
 
 export function VehicleSensoryProfile({ vehicle, isOpen, onClose }: { vehicle: VehicleOfferData | null, isOpen: boolean, onClose: () => void }) {
+    const t = useTranslations('auto');
   if (!vehicle) return null;
 
   const totalRatings = vehicle.ratingCount || 0;
@@ -71,11 +73,11 @@ export function VehicleSensoryProfile({ vehicle, isOpen, onClose }: { vehicle: V
         <DialogHeader>
           <DialogTitle className={styles.style42_9}>
             <Car className={styles.style43_10} />
-            الهوية الحسية للمركبة
-          </DialogTitle>
+            {t('key_95496b1d')}
+                                </DialogTitle>
           <DialogDescription>
-            هذه البيانات تمثل متوسط تقييمات الركاب السابقين لهذه المركبة.
-          </DialogDescription>
+            {t('key_ab600b15')}
+                                </DialogDescription>
         </DialogHeader>
         <div className={styles.style50_11}>
           <div className={styles.style51_12}>
@@ -92,19 +94,19 @@ export function VehicleSensoryProfile({ vehicle, isOpen, onClose }: { vehicle: V
              <div className={styles.style62_17}>
                 <p className={styles.style63_18}>
                     <Star className={styles.style64_19} />
-                    التقييم العام للمركبة
-                </p>
+                    {t('key_a088d59e')}
+                                              </p>
                 <p className={styles.style67_20}>{avgVehicleRating.toFixed(1)}</p>
             </div>
             
-            <p className={styles.style70_21}>بناءً على {totalRatings} تقييم</p>
+            <p className={styles.style70_21}>{t('key_0bd7bcf4')} {totalRatings} {t('key_a616ab8a')}</p>
             
             <Separator className={styles.style72_22}/>
 
-            <h4 className={styles.style74_23}>المؤشرات الحسية</h4>
-            <SensoryStat icon={<Sparkles className={styles.style75_24}/>} label="النظافة والترتيب" value={avgCleanliness} max={5} />
-            <SensoryStat icon={<VolumeX className={styles.style76_25}/>} label="الهدوء (العزل)" value={avgQuietness} max={5} />
-            <SensoryStat icon={<TrafficCone className={styles.style77_26}/>} label="التزام السائق (مهنية)" value={avgAdherence} max={5} />
+            <h4 className={styles.style74_23}>{t('key_23eaaed3')}</h4>
+            <SensoryStat icon={<Sparkles className={styles.style75_24}/>} label={t('key_19c01e8c')} value={avgCleanliness} max={5} />
+            <SensoryStat icon={<VolumeX className={styles.style76_25}/>} label={t('key_7980842d')} value={avgQuietness} max={5} />
+            <SensoryStat icon={<TrafficCone className={styles.style77_26}/>} label={t('key_13fc2844')} value={avgAdherence} max={5} />
           </div>
 
         </div>

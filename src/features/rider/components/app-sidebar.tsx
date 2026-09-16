@@ -9,6 +9,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { calculateRiderRank } from '@/core/utils';
 import { cn } from '@/lib/utils';
 import { useRiderSidebarRadar } from '../hooks/use-rider-sidebar-radar';
+import { useTranslations } from "next-intl";
 
 const styles = {
   root: 'flex h-full flex-col bg-[#0A0F1D]',
@@ -68,6 +69,7 @@ function statusClass(status?: string) {
 }
 
 function RiderFavoriteDrivers() {
+    const t = useTranslations('auto');
   const { nearbyFavorites, isLoading } = useRiderSidebarRadar();
 
   if (isLoading) {
@@ -79,7 +81,7 @@ function RiderFavoriteDrivers() {
   }
 
   if (nearbyFavorites.length === 0) {
-    return <p className={styles.empty}>لا يوجد سائقون مفضلون بالقرب منك حالياً.</p>;
+    return <p className={styles.empty}>{t('key_0ea45449')}</p>;
   }
 
   return (
@@ -88,7 +90,7 @@ function RiderFavoriteDrivers() {
         <div className={styles.favoriteItem} key={driver.uid}>
           <span className={styles.favoriteName}>{driver.name}</span>
           <div className={styles.favoriteStatus}>
-            <span className={styles.favoriteStatusText}>{driver.status || 'غير متاح'}</span>
+            <span className={styles.favoriteStatusText}>{driver.status || t('key_eaec5eff')}</span>
             <span className={cn(styles.favoriteStatusDot, statusClass(driver.status))} />
           </div>
         </div>
@@ -98,20 +100,21 @@ function RiderFavoriteDrivers() {
 }
 
 export function AppSidebar() {
+    const t = useTranslations('auto');
   const { logout, user } = useAuth();
 
   if (!user || user.role !== 'rider') return null;
 
   return (
-    <nav aria-label="قائمة حساب الراكب" className={styles.root}>
+    <nav aria-label={t('key_aa21658a')} className={styles.root}>
       <div className={styles.header}>
-        <Badge className={styles.role} variant="outline">راكب</Badge>
+        <Badge className={styles.role} variant="outline">{t('key_3c26d043')}</Badge>
         <div className={styles.brand}>
-          <h2 className={styles.brandTitle}>رادار</h2>
+          <h2 className={styles.brandTitle}>{t('key_d9033ee1')}</h2>
           <ShieldCheck className={styles.brandIcon} />
         </div>
         <SheetClose asChild>
-          <Button aria-label="إغلاق قائمة الحساب" className={styles.close} size="icon" variant="ghost">
+          <Button aria-label={t('key_f050ab3c')} className={styles.close} size="icon" variant="ghost">
             <X className={styles.closeIcon} />
           </Button>
         </SheetClose>
@@ -120,42 +123,42 @@ export function AppSidebar() {
       <ScrollArea className={styles.scroll} type="scroll">
         <div className={styles.profile}>
           <div className={styles.avatar}><UserCircle className={styles.avatarIcon} /></div>
-          <h3 className={styles.name}>{user.name || 'مستخدم جديد'}</h3>
+          <h3 className={styles.name}>{user.name || t('key_f38edfd8')}</h3>
           <p className={styles.phone}>{user.phone}</p>
         </div>
 
         <div className={styles.content}>
           <div className={styles.rating}>
             <div className={styles.ratingRow}>
-              <span className={styles.ratingLabel}>تقييم الحساب</span>
+              <span className={styles.ratingLabel}>{t('key_fcd4e169')}</span>
               <Badge className={styles.ratingBadge} variant="outline">
                 {calculateRiderRank(user.ratingSum, user.ratingCount)}
               </Badge>
             </div>
-            <p className={styles.ratingBody}>تقييمك جيد كراكب ملتزم.</p>
+            <p className={styles.ratingBody}>{t('key_841c52c1')}</p>
           </div>
 
           {user.isBufferActive && user.lastTripBuffer ? (
             <div className={styles.buffer}>
               <div className={styles.bufferTitle}>
                 <Clock className={styles.bufferIcon} />
-                <span className={styles.bufferHeading}>تواصل بعد الرحلة (24 ساعة)</span>
+                <span className={styles.bufferHeading}>{t('key_cee0c805')}</span>
               </div>
-              <p className={styles.bufferBody}>يمكنك التواصل مع سائق الرحلة الأخيرة عند الحاجة.</p>
+              <p className={styles.bufferBody}>{t('key_771c5823')}</p>
               <Button asChild className={styles.bufferCall} size="sm" variant="outline">
                 <a href={`tel:${user.lastTripBuffer.driverPhone}`}>
-                  اتصال بالسائق: {user.lastTripBuffer.driverName}
+                  {t('key_3b04938d')} {user.lastTripBuffer.driverName}
                 </a>
               </Button>
             </div>
           ) : null}
 
           <div className={styles.operations}>
-            <div className={styles.sectionTitle}><span className={styles.sectionText}>العمليات</span></div>
+            <div className={styles.sectionTitle}><span className={styles.sectionText}>{t('key_2133ac1c')}</span></div>
             <SheetClose asChild>
               <a className={styles.operationLink} href="#history">
                 <Button className={styles.operationButton} variant="ghost">
-                  <span className={styles.operationText}>سجل الرحلات السابقة</span>
+                  <span className={styles.operationText}>{t('key_894f7524')}</span>
                   <History className={styles.operationIcon} />
                 </Button>
               </a>
@@ -163,7 +166,7 @@ export function AppSidebar() {
             <SheetClose asChild>
               <a className={styles.operationLink} href="#messages">
                 <Button className={styles.operationButton} variant="ghost">
-                  <span className={styles.operationText}>رسائل الرادار</span>
+                  <span className={styles.operationText}>{t('key_d9de8840')}</span>
                   <MessageSquare className={styles.operationIcon} />
                 </Button>
               </a>
@@ -173,17 +176,17 @@ export function AppSidebar() {
           <div className={styles.favorites}>
             <span className={styles.favoritesLabel}>
               <Heart className={styles.heart} />
-              السائقون المفضلون
-            </span>
+              {t('key_0ae33a07')}
+                                      </span>
             <RiderFavoriteDrivers />
           </div>
         </div>
       </ScrollArea>
 
       <div className={styles.footer}>
-        <div className={styles.footerText}>منصة وساطة مستقلة لطلب الرحلات</div>
+        <div className={styles.footerText}>{t('key_89b66bbd')}</div>
         <Button className={styles.logout} onClick={() => void logout()} variant="destructive">
-          <span>تسجيل الخروج</span>
+          <span>{t('key_5c4e4796')}</span>
           <LogOut className={styles.logoutIcon} />
         </Button>
       </div>

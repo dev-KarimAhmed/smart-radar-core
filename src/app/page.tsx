@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/features/auth/contract';
 import LoginPage from '@/features/auth/components/login-page';
+import { useTranslations } from "next-intl";
 
 const styles = {
   loadingRoot: 'flex h-dvh w-screen select-none flex-col items-center justify-center bg-[#0A0F1D] text-white/90',
@@ -19,6 +20,7 @@ const styles = {
 } as const;
 
 export default function HomePage() {
+    const t = useTranslations('auto');
   const { loading, user } = useAuth();
   const router = useRouter();
   const isRedirecting = !!user && (user.role === 'driver' || user.role === 'rider');
@@ -33,8 +35,8 @@ export default function HomePage() {
     return (
       <div className={styles.loadingRoot}>
         <div className={styles.loadingIconFrame}><div className={styles.loadingIcon} /></div>
-        <div className={styles.loadingTitle}>الرادار الذكي</div>
-        <div className={styles.loadingBody}>جاري التحقق من الجلسة...</div>
+        <div className={styles.loadingTitle}>{t('key_74d1106b')}</div>
+        <div className={styles.loadingBody}>{t('key_7588d11e')}</div>
       </div>
     );
   }
@@ -44,9 +46,9 @@ export default function HomePage() {
   return (
     <div className={styles.fallback}>
       <div className={styles.fallbackContent}>
-        <h1 className={styles.fallbackTitle}>مرحباً بك {user.name}</h1>
-        <p className={styles.fallbackRole}>دور المستخدم الحالي: {user.role}</p>
-        <p className={styles.fallbackWarning}>دور المستخدم هذا غير مسجل في مسارات الرادار الحية.</p>
+        <h1 className={styles.fallbackTitle}>{t('key_aa12bda7')} {user.name}</h1>
+        <p className={styles.fallbackRole}>{t('key_ccda32d9')} {user.role}</p>
+        <p className={styles.fallbackWarning}>{t('key_8160066f')}</p>
       </div>
     </div>
   );

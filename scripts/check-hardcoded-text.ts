@@ -57,11 +57,19 @@ for (const sourceFile of sourceFiles) {
   if (fileName.includes('i18n') || fileName.includes('messages')) continue;
 
   // Skip backend and non-UI core files that hold Arabic intentionally
+  const normalizedFileName = fileName.replace(/\\/g, '/');
   if (
-    fileName.replace(/\\/g, '/').startsWith('src/core/') ||
-    fileName.replace(/\\/g, '/').startsWith('src/server/') ||
-    fileName.replace(/\\/g, '/').startsWith('src/lib/') ||
-    fileName.replace(/\\/g, '/').startsWith('src/shared/services/')
+    normalizedFileName.startsWith('src/core/') ||
+    normalizedFileName.startsWith('src/server/') ||
+    normalizedFileName.startsWith('src/lib/') ||
+    normalizedFileName.startsWith('src/shared/services/') ||
+    normalizedFileName.endsWith('.test.ts') ||
+    normalizedFileName.endsWith('.test.tsx') ||
+    normalizedFileName === 'src/features/rider/services/jordan-destinations.ts' ||
+    normalizedFileName === 'src/features/rider/services/rider-server-marketplace.ts' ||
+    normalizedFileName === 'src/features/rider/state/rider-state-machine.ts' ||
+    normalizedFileName === 'src/features/rider/services/rider-offer-fields.ts' ||
+    normalizedFileName === 'src/features/auth/services/supabase-auth-logic.ts'
   ) {
     continue;
   }

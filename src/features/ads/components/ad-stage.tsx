@@ -630,8 +630,8 @@ export function AdStage({
                       )}
                     />
                     {heartedAdIds.includes(takeoverAd.id)
-                      ? ((copy as unknown as Record<string, string>).removeFavorite || (isArabic ? 'إزالة من الخزنة' : 'Remove favorite'))
-                      : ((copy as unknown as Record<string, string>).favorite || (isArabic ? 'إضافة للخزنة' : 'Favorite'))}
+                      ? ((copy as unknown as Record<string, string>).removeFavorite || (isArabic ? t('key_446a5f99') : 'Remove favorite'))
+                      : ((copy as unknown as Record<string, string>).favorite || (isArabic ? t('key_9ddc8cd6') : 'Favorite'))}
                   </button>
                 ) : null}
               </div>

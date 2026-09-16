@@ -24,6 +24,7 @@ import {
 import type { MarketPulse } from '@/core/types';
 import { cn } from '@/lib/utils';
 import { jordanGovernorates, getDistrictsByGovernorate } from '@/lib/data';
+import { useTranslations } from "next-intl";
 
 const styles = {
   style207_1: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4",
@@ -160,6 +161,7 @@ const getGovernorateOfDistrict = (districtName: string): string => {
 };
 
 export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
+    const t = useTranslations('auto');
   const [selectedGov, setSelectedGov] = React.useState<string>('الكل');
   const [selectedDistrict, setSelectedDistrict] = React.useState<string>('الكل');
   const [calculatedScores, setCalculatedScores] = React.useState<Record<string, number>>({});
@@ -317,11 +319,11 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
             <div>
               <CardTitle className={styles.style230_12}>
                 <Activity className={styles.style231_13} />
-                مراقبة نشاط السوق والإدارة الجغرافية 📊
-              </CardTitle>
+                {t('key_a5d3d09c')}
+                                            </CardTitle>
               <CardDescription className={styles.style234_14}>
-                عرض بياني تفاعلي لعوامات الطلب وعروض السائقين حسب المحافظة والمنطقة لضمان توازن السوق.
-              </CardDescription>
+                {t('key_056804be')}
+                                            </CardDescription>
             </div>
 
             {/* 🔍 Selectors */}
@@ -329,14 +331,14 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
               {/* Governorate Selector */}
               <div className={styles.style242_16}>
                 <span className={styles.style243_17}>
-                  <MapPin className={styles.style244_18} /> المحافظة
-                </span>
+                  <MapPin className={styles.style244_18} /> {t('key_d5113593')}
+                                                  </span>
                 <Select value={selectedGov} onValueChange={handleGovChange}>
                   <SelectTrigger className={styles.style247_19}>
-                    <SelectValue placeholder="اختر المحافظة" />
+                    <SelectValue placeholder={t('key_2f5a1a9e')} />
                   </SelectTrigger>
                   <SelectContent className={styles.style250_20}>
-                    <SelectItem value="الكل" className={styles.style251_21}>كل المحافظات</SelectItem>
+                    <SelectItem value={t('key_6d08f196')} className={styles.style251_21}>{t('key_0a8d5f35')}</SelectItem>
                     {jordanGovernorates.map(gov => (
                       <SelectItem key={gov} value={gov} className={styles.style253_22}>{gov}</SelectItem>
                     ))}
@@ -347,18 +349,18 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
               {/* District Selector */}
               <div className={styles.style260_23}>
                 <span className={styles.style261_24}>
-                  <Navigation className={styles.style262_25} /> المنطقة
-                </span>
+                  <Navigation className={styles.style262_25} /> {t('key_5ebad0b9')}
+                                                  </span>
                 <Select
                   value={selectedDistrict}
                   onValueChange={setSelectedDistrict}
-                  disabled={selectedGov === 'الكل'}
+                  disabled={selectedGov === t('key_6d08f196')}
                 >
                   <SelectTrigger className={styles.style269_26}>
-                    <SelectValue placeholder="اختر المنطقة" />
+                    <SelectValue placeholder={t('key_ab5f2b73')} />
                   </SelectTrigger>
                   <SelectContent className={styles.style272_27}>
-                    <SelectItem value="الكل" className={styles.style273_28}>كل الألوية</SelectItem>
+                    <SelectItem value={t('key_6d08f196')} className={styles.style273_28}>{t('key_45704af2')}</SelectItem>
                     {availableDistricts.map(dist => (
                       <SelectItem key={dist} value={dist} className={styles.style275_29}>{dist}</SelectItem>
                     ))}
@@ -375,18 +377,18 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
         <div className={styles.style287_31}>
           <div className={styles.style288_32}>
             <BarChart3 className={styles.style289_33} />
-            <h3 className={styles.style290_34}>الرسم البياني العامودي لعوامات ونشاط الميدان</h3>
+            <h3 className={styles.style290_34}>{t('key_fdbcd104')}</h3>
           </div>
 
           {/* 🏷️ Customized Legend */}
           <div className={styles.style294_35}>
             <div className={styles.style295_36}>
               <span className={styles.style296_37}></span>
-              <span className={styles.style297_38}>الطلب (الركاب)</span>
+              <span className={styles.style297_38}>{t('key_396fae76')}</span>
             </div>
             <div className={styles.style299_39}>
               <span className={styles.style300_40}></span>
-              <span className={styles.style301_41}>العرض (السائقون)</span>
+              <span className={styles.style301_41}>{t('key_3e458216')}</span>
             </div>
           </div>
         </div>
@@ -394,7 +396,7 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
         {chartData.length === 0 ? (
           <div className={styles.style307_42}>
             <Activity className={styles.style308_43} />
-            <p className={styles.style309_44}>لا توجد سجلات نشاط متوفرة في التحديد الميداني الحالي.</p>
+            <p className={styles.style309_44}>{t('key_769faef5')}</p>
           </div>
         ) : (
           <div ref={containerRef} className={styles.style312_45}>
@@ -557,15 +559,15 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
                 </p>
                 <div className={styles.style470_55}>
                   <p className={styles.style471_56}>
-                    <span>الطلب (الركاب):</span>
+                    <span>{t('key_4b858334')}</span>
                     <span className={styles.style473_57}>{chartData[hoveredIndex].demand}</span>
                   </p>
                   <p className={styles.style475_58}>
-                    <span>العرض (السائقون):</span>
+                    <span>{t('key_a4dbedc2')}</span>
                     <span className={styles.style477_59}>{chartData[hoveredIndex].supply}</span>
                   </p>
                   <p className={styles.style479_60}>
-                    <span>كثافة التقاطع:</span>
+                    <span>{t('key_8f0a48c3')}</span>
                     <span className={styles.style481_61}>{chartData[hoveredIndex].density}%</span>
                   </p>
                 </div>
@@ -578,7 +580,7 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
       {/* 📝 Granular Details List */}
       <div>
         <h4 className={styles.style492_62}>
-          <span>●</span> تفاصيل الطلبات حسب المنطقة ({filteredData.length})
+          <span>●</span> {t('key_bc95a008')}{filteredData.length})
         </h4>
         <div className={styles.style495_63}>
           {filteredData.sort((a,b) => b.demand - a.demand).map((pulse) => {
@@ -592,21 +594,21 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
                     <style.Icon className={cn(styles.style504_68, style.iconColor)} />
                   </CardTitle>
                   <CardDescription className={styles.style506_69}>
-                    <span>محافظة {govName}</span>
+                    <span>{t('key_42b7cd22')} {govName}</span>
                     <span className={cn(styles.style508_70, style.iconColor)}>{style.label}</span>
                   </CardDescription>
                 </CardHeader>
                 <CardContent className={styles.style511_71}>
                   <div className={styles.style512_72}>
                     <div className={styles.style513_73}>
-                      <span className={styles.style514_74}>الطلب</span>
+                      <span className={styles.style514_74}>{t('key_bf9c02da')}</span>
                       <div className={styles.style515_75}>
                         <Users className={styles.style516_76} />
                         <span className={styles.style517_77}>{pulse.demand}</span>
                       </div>
                     </div>
                     <div className={styles.style520_78}>
-                      <span className={styles.style521_79}>العرض</span>
+                      <span className={styles.style521_79}>{t('key_196230d2')}</span>
                       <div className={styles.style522_80}>
                         <Car className={styles.style523_81} />
                         <span className={styles.style524_82}>{pulse.supply}</span>
@@ -616,9 +618,9 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
 
                   {/* Geospatial Density Counter */}
                   <div className={styles.style530_83}>
-                    <span>مؤشر الكثافة (Worker):</span>
+                    <span>{t('key_3fa65efd')}</span>
                     <span className={styles.style532_84}>
-                      {isProcessingScores ? 'محاسبة...' : `${calculatedScores[pulse.id] ?? '0.0'}%`}
+                      {isProcessingScores ? t('key_861f2229') : `${calculatedScores[pulse.id] ?? '0.0'}%`}
                     </span>
                   </div>
                 </CardContent>

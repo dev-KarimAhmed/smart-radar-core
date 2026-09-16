@@ -37,6 +37,8 @@ import { requestPasswordRecovery } from '../../services/password-recovery';
 import { navigateAuth } from '@/lib/auth-routing';
 
 import { cn } from '@/lib/utils';
+import { useTranslations } from "next-intl";
+
 const styles = {
   style329_1: "relative min-h-screen overflow-hidden bg-[#0B0F19] text-slate-100",
   style331_2: "pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle_at_18%_12%,rgba(20,184,166,0.20),transparent_30%),radial-gradient(circle_at_82%_22%,rgba(45,212,191,0.08),transparent_28%)]",
@@ -427,6 +429,7 @@ const authCopy = {
 } as const;
 
 export function PersonalStep() {
+  const tAuto = useTranslations('auto');
   const {
     personal,
     setPersonal,
@@ -807,7 +810,7 @@ export function PersonalStep() {
             <DialogTitle className={styles.style824_139}>{t.resetTitle}</DialogTitle>
             <DialogDescription className={styles.style825_140}>
               {isArabic
-                ? 'استرجاع فوري بالإيميل لو مضيف واحد، أو عبر الدعم بعد التحقق من هويتك.'
+                ? tAuto('key_7db68566')
                 : 'Instant email recovery if you added an address, or through support after your identity is verified.'}
             </DialogDescription>
           </DialogHeader>
@@ -815,7 +818,7 @@ export function PersonalStep() {
           <div className={styles.style832_141}>
             <div className={styles.style833_142}>
               {isArabic
-                ? 'اكتب رقم هاتفك. لو حسابك عليه إيميل استرجاع، هيوصلك رابط عليه فوراً. لو لأ، الطلب هيروح للدعم ويتم التحقق من هويتك قبل إعادة التعيين.'
+                ? tAuto('key_2d995bb9')
                 : 'Enter your phone number. If your account has a recovery email, a link is sent there right away. If not, the request goes to support and your identity is verified before any reset.'}
             </div>
 
@@ -832,7 +835,7 @@ export function PersonalStep() {
             </Field>
 
             <Field
-              label={isArabic ? 'إيميل الاسترجاع (لو مضيفه)' : 'Recovery email (if you added one)'}
+              label={isArabic ? tAuto('key_dabb094c') : 'Recovery email (if you added one)'}
               icon={<Mail className={styles.style839_143} />}
             >
               <input
@@ -848,7 +851,7 @@ export function PersonalStep() {
             </Field>
             <p className={styles.resetEmailNote}>
               {isArabic
-                ? 'الرابط بيتبعت على الإيميل المسجّل على حسابك بس. اللي بتكتبه هنا بيتقارن بيه للتأكيد — مش بنبعت لأي إيميل تاني.'
+                ? tAuto('key_49fde036')
                 : 'The link is only ever sent to the address already on your account. What you type here is checked against it — we never send to a different address.'}
             </p>
 
@@ -864,8 +867,8 @@ export function PersonalStep() {
               className={styles.resetSubmit}
             >
               {resetSubmitting
-                ? (isArabic ? 'جاري الإرسال…' : 'Sending…')
-                : (isArabic ? 'إرسال طلب الاسترجاع' : 'Send recovery request')}
+                ? (isArabic ? tAuto('key_afcce661') : 'Sending…')
+                : (isArabic ? tAuto('key_0090be3b') : 'Send recovery request')}
             </button>
 
             {/* Kept as a way to chase a queued request, not as the mechanism itself. */}
@@ -876,13 +879,13 @@ export function PersonalStep() {
                 rel="noopener noreferrer"
                 className={styles.style856_146}
               >
-                {isArabic ? 'متابعة عبر واتساب' : 'Follow up on WhatsApp'}
+                {isArabic ? tAuto('key_06b63e55') : 'Follow up on WhatsApp'}
               </a>
               <a
                 href={buildSupportTelUrl()}
                 className={styles.style862_147}
               >
-                {isArabic ? 'اتصال بالدعم' : 'Call support'}
+                {isArabic ? tAuto('key_f2064d83') : 'Call support'}
               </a>
             </div>
           </div>

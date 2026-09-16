@@ -304,7 +304,7 @@ function AdForm({ onFinish, isProcessing }: { onFinish: (data: AdInput) => Promi
  setValue('buttonText', t('form.magicFill.btnText'), opts);
  setValue('targetImpressions', 15000, opts);
  setValue('endDate', new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), opts);
- setValue('geo.governorate', 'عمان', opts);
+ setValue('geo.governorate', t('key_20a48924'), opts);
  toast({
  title: t('form.magicFill.toastTitle'),
  description: t('form.magicFill.toastDesc')

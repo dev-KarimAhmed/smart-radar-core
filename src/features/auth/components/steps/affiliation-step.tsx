@@ -3,6 +3,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { useRegistration } from '../../hooks/use-registration';
+import { useTranslations } from "next-intl";
 
 const styles = {
   style11_1: "space-y-4 animate-fade-in text-right",
@@ -13,6 +14,7 @@ const styles = {
 
 
 export function AffiliationStep() {
+    const t = useTranslations('auto');
   const { setAffiliation, setStep } = useRegistration();
 
   return (
@@ -26,7 +28,7 @@ export function AffiliationStep() {
         }}
       >
         <span>🚕</span>
-        <span>تكسي مكتب (أصفر)</span>
+        <span>{t('key_c43e37b6')}</span>
       </button>
 
       <button
@@ -38,7 +40,7 @@ export function AffiliationStep() {
         }}
       >
         <span>📱</span>
-        <span>تطبيقات ذكية (خاص)</span>
+        <span>{t('key_b42e76aa')}</span>
       </button>
 
       <button 
@@ -46,8 +48,8 @@ export function AffiliationStep() {
         className={styles.style38_4}
         onClick={() => setStep('personal')}
       >
-        العودة للبيانات الشخصية
-      </button>
+        {t('key_b6bb284d')}
+                    </button>
     </div>
   );
 }
