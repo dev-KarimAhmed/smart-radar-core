@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { getSovereignErrorMessage } from '@/core/constants/error-dictionary';
 import { jordanGovernorates, getDistrictsByGovernorate } from '@/lib/data';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useTranslations } from 'next-intl';
 
 const styles = {
   style43_1: "max-w-2xl mx-auto space-y-6 animate-in fade-in duration-500",
@@ -34,6 +35,7 @@ const styles = {
 export function FuelIndexPanel() {
   const { toast } = useToast();
   const { updateFuelIndex, isProcessing } = useSovereignControls();
+  const t = useTranslations('adminTab.fuelIndex');
 
   const [error, setError] = useState<string | null>(null);
   const [selectedGovernorate, setSelectedGovernorate] = useState('');
@@ -51,7 +53,7 @@ export function FuelIndexPanel() {
 
   const handleUpdate = async () => {
     if (!selectedDistrict || !price || Number(price) <= 0) {
-      setError('يرجى اختيار المنطقة وإدخال سعر وقود صالح.');
+      setError(t('errorInvalidInput'));
       return;
     }
     setError(null);
@@ -63,7 +65,7 @@ export function FuelIndexPanel() {
     <div className={styles.style43_1}>
       <div className={styles.style44_2}>
         <ShieldCheck className={styles.style45_3} />
-        <p className={styles.style46_4}>تحذير : أي تغيير هنا يضبط "الحد الأدنى القاتل" للتسعيرة في الميدان فوراً.</p>
+        <p className={styles.style46_4}>{t('warning')}</p>
       </div>
 
        {error && (
@@ -77,23 +79,23 @@ export function FuelIndexPanel() {
         <CardHeader>
             <CardTitle className={styles.style58_8}>
                 <Fuel className={styles.style59_9}/>
-                ضبط مؤشر الوقود الإقليمي
+                {t('title')}
             </CardTitle>
         </CardHeader>
         <CardContent className={styles.style63_10}>
           <div className={styles.style64_11}>
             <Select value={selectedGovernorate} onValueChange={setSelectedGovernorate}>
-              <SelectTrigger className={styles.style66_12}><SelectValue placeholder="المحافظة" /></SelectTrigger>
+              <SelectTrigger className={styles.style66_12}><SelectValue placeholder={t('placeholders.governorate')} /></SelectTrigger>
               <SelectContent>{jordanGovernorates.map(gov => <SelectItem key={gov} value={gov}>{gov}</SelectItem>)}</SelectContent>
             </Select>
             <Select value={selectedDistrict} onValueChange={setSelectedDistrict} disabled={!selectedGovernorate}>
-              <SelectTrigger className={styles.style70_13}><SelectValue placeholder="المنطقة" /></SelectTrigger>
+              <SelectTrigger className={styles.style70_13}><SelectValue placeholder={t('placeholders.district')} /></SelectTrigger>
               <SelectContent>{districts.map(dist => <SelectItem key={dist} value={dist}>{dist}</SelectItem>)}</SelectContent>
             </Select>
           </div>
-          <Input type="number" placeholder="سعر اللتر (دينار)" value={price} onChange={e => setPrice(e.target.value)} className={styles.style74_14} />
+          <Input type="number" placeholder={t('placeholders.price')} value={price} onChange={e => setPrice(e.target.value)} className={styles.style74_14} />
           <Button onClick={handleUpdate} disabled={isProcessing || !selectedDistrict || !price} className={styles.style75_15}>
-            {isProcessing ? <Loader2 className={styles.style76_16} /> : 'اعتماد المؤشر وتفعيل الدرع'}
+            {isProcessing ? <Loader2 className={styles.style76_16} /> : t('submitBtn')}
           </Button>
         </CardContent>
       </Card>

@@ -4,10 +4,12 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useAuth } from '@/features/auth/contract';
 import { RouteLoading } from '@/shared/components/layout/route-loading';
+import { useTranslations } from "next-intl";
 
 const CaptainWorkspace = dynamic(
   () => import('./captain-workspace').then((module) => module.CaptainWorkspace),
-  { loading: () => <RouteLoading label="جاري تحميل منصة الكابتن..." /> },
+  { loading: function Loading() {
+      const tAuto = useTranslations('auto'); const t = useTranslations('auto'); return <RouteLoading label={tAuto('key_7638191e')} />; } },
 );
 
 const styles = {
@@ -20,18 +22,20 @@ const styles = {
 } as const;
 
 export function CaptainRoute() {
+    const tAuto = useTranslations('auto');
+    const t = useTranslations('auto');
   const { loading, user } = useAuth();
 
   return (
     <div className={styles.root} data-captain-route>
-      {loading ? <RouteLoading label="جاري التحقق من الجلسة..." /> : user?.role === 'driver' ? (
+      {loading ? <RouteLoading label={tAuto('key_7588d11e')} /> : user?.role === 'driver' ? (
         <CaptainWorkspace />
       ) : (
         <main className={styles.gate}>
           <section className={styles.gateCard}>
-            <h1 className={styles.gateTitle}>منصة الكابتن</h1>
-            <p className={styles.gateBody}>سجّل الدخول بحساب كابتن للوصول إلى الطلبات والرادار.</p>
-            <Link className={styles.gateLink} href="/">تسجيل الدخول</Link>
+            <h1 className={styles.gateTitle}>{tAuto('key_0864e85b')}</h1>
+            <p className={styles.gateBody}>{tAuto('key_42de5ca2')}</p>
+            <Link className={styles.gateLink} href="/">{tAuto('key_b5dcde74')}</Link>
           </section>
         </main>
       )}

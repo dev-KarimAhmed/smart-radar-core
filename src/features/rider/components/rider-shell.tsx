@@ -15,22 +15,27 @@ import { cn } from '@/lib/utils';
 import { useRiderOperations } from '../hooks/use-rider-operations';
 import { AppSidebar } from './app-sidebar';
 import { DesktopRiderSidebar } from './desktop-rider-sidebar';
+import { useTranslations } from "next-intl";
 
 const RiderView = dynamic(
   () => import('./rider-view').then((module) => module.RiderViewTab),
-  { loading: () => <RouteLoading label="جاري تحميل رحلة الراكب..." /> },
+  { loading: function Loading() {
+      const tAuto = useTranslations('auto'); const t = useTranslations('auto'); return <RouteLoading label={tAuto('key_1b555d14')} />; } },
 );
 const HistoryScreen = dynamic(
   () => import('@/features/account/history/contract').then((module) => module.HistoryTab),
-  { loading: () => <RouteLoading label="جاري تحميل الرحلات..." /> },
+  { loading: function Loading() {
+      const tAuto = useTranslations('auto'); const t = useTranslations('auto'); return <RouteLoading label={tAuto('key_a14eef96')} />; } },
 );
 const ProfileScreen = dynamic(
   () => import('@/features/account/profile/contract').then((module) => module.ProfileTab),
-  { loading: () => <RouteLoading label="جاري تحميل الحساب..." /> },
+  { loading: function Loading() {
+      const tAuto = useTranslations('auto'); const t = useTranslations('auto'); return <RouteLoading label={tAuto('key_890243fa')} />; } },
 );
 const VaultScreen = dynamic(
   () => import('@/features/account/vault/contract').then((module) => module.VaultTab),
-  { loading: () => <RouteLoading label="جاري تحميل الخزنة..." /> },
+  { loading: function Loading() {
+      const tAuto = useTranslations('auto'); const t = useTranslations('auto'); return <RouteLoading label={tAuto('key_4ccb93e5')} />; } },
 );
 
 const styles = {
@@ -51,6 +56,8 @@ const styles = {
 const CRITICAL_RIDER_STATES = ['searching', 'busy', 'rating', 'checkpoint_required'];
 
 export function RiderShell() {
+    const tAuto = useTranslations('auto');
+    const t = useTranslations('auto');
   const { loading, logout, user } = useAuth();
   const { toast } = useToast();
   const dashboardLanguage = useDashboardLanguage();
@@ -91,7 +98,7 @@ export function RiderShell() {
     [hasRequestedRideOnce, isCritical, isHome, showRequestFlow],
   );
 
-  if (loading) return <RouteLoading fullscreen label={dashboardLanguage.language === 'ar' ? 'جاري تحميل المنصة...' : 'Loading platform...'} />;
+  if (loading) return <RouteLoading fullscreen label={dashboardLanguage.language === 'ar' ? tAuto('key_4e3169c6') : 'Loading platform...'} />;
 
   const exitRequestFlow = () => {
     setShowRequestFlow(false);
@@ -113,7 +120,7 @@ export function RiderShell() {
           hash={hash}
           language={dashboardLanguage.language}
           logout={logout}
-          onNotify={() => toast({ title: 'التنبيهات', description: 'لا توجد تنبيهات جديدة حاليا.' })}
+          onNotify={() => toast({ title: tAuto('key_a41331b1'), description: tAuto('key_dc8539e4') })}
           user={user}
         />
       ) : null}

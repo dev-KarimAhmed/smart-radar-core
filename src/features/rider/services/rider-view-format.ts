@@ -1,5 +1,5 @@
 import type { RiderActiveTrip } from '../state/rider-state-machine';
-import type { HistoricalTrip } from '../components/rider-dashboard';
+import type { HistoricalTrip } from '../components/dashboard/dashboard-shared';
 import { toCaptainOfferRank } from './rider-offer-fields';
 
 export { getCurrencyLabel } from '@/shared/services/currency-label';

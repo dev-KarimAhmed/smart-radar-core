@@ -1,4 +1,4 @@
-import type { CaptainRank } from '../components/captain-offer-card';
+import type { CaptainRank } from '../components/offer-card/offer-card-shared';
 import { firstDisplayString } from './rider-view-format';
 
 export interface OfferPresentationLabels {

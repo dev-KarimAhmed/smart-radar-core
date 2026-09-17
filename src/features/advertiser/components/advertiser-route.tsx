@@ -4,10 +4,12 @@ import dynamic from 'next/dynamic';
 import { RouteLoading } from '@/shared/components/layout/route-loading';
 import { RoleAccessGate } from '@/shared/components/layout/role-access-gate';
 import { useAuth } from '@/features/auth/contract';
+import { useTranslations } from "next-intl";
 
 const AdvertiserWorkspace = dynamic(
   () => import('./advertiser-workspace').then((module) => module.AdvertiserWorkspace),
-  { loading: () => <RouteLoading label="ط¬ط§ط±ظٹ طھط­ظ…ظٹظ„ ظ„ظˆط­ط© ط§ظ„ظ…ط¹ظ„ظ†..." /> },
+  { loading: function Loading() {
+      const tAuto = useTranslations('auto'); const t = useTranslations('auto'); return <RouteLoading label={tAuto('key_a04d84ed')} />; } },
 );
 
 const styles = {
@@ -15,12 +17,14 @@ const styles = {
 } as const;
 
 export function AdvertiserRoute() {
+    const tAuto = useTranslations('auto');
+    const t = useTranslations('auto');
   const { loading, user } = useAuth();
   return (
     <main className={styles.root} data-advertiser-route>
-      {loading ? <RouteLoading label="جاري التحقق من الجلسة..." /> : user?.role === 'advertiser'
+      {loading ? <RouteLoading label={tAuto('key_7588d11e')} /> : user?.role === 'advertiser'
         ? <AdvertiserWorkspace />
-        : <RoleAccessGate title="لوحة المعلن" body="سجّل الدخول بحساب معلن لإدارة الحملات الإعلانية." />}
+        : <RoleAccessGate title={tAuto('key_86da01ef')} body={tAuto('key_b5e4f25a')} />}
     </main>
   );
 }

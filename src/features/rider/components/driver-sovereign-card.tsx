@@ -8,6 +8,7 @@ import { Star, ShieldCheck, MapPin, VolumeX, MessageSquare, Car } from 'lucide-r
 import { getRankTheme } from '@/core/utils';
 import { cn } from '@/lib/utils';
 import type { User } from '@/core/types';
+import { useTranslations } from "next-intl";
 
 const styles = {
   style33_1: "bg-[#0F172A]/40 border-white/[0.06] transition-all duration-500 overflow-hidden mb-3 shadow-xl hover:border-[#14B8A6]/50",
@@ -59,6 +60,8 @@ interface DriverSovereignCardProps {
  * تعرض البيانات التشغيلية والصفة القانونية بشفافية  تامة.
  */
 export const DriverSovereignCard = memo(({ driver }: DriverSovereignCardProps) => {
+    const tAuto = useTranslations('auto');
+    const t = useTranslations('auto');
   const rankTheme = getRankTheme(driver.rank);
   const isSilent = driver.silencePreference === 'silent';
 
@@ -119,19 +122,19 @@ export const DriverSovereignCard = memo(({ driver }: DriverSovereignCardProps) =
                         </div>
                         <div className={styles.style80_30}>
                             <MapPin className={styles.style81_31} />
-                            <span>{driver.distance.toFixed(1)} كم</span>
+                            <span>{driver.distance.toFixed(1)} {tAuto('key_e8594184')}</span>
                         </div>
                     </div>
 
                     <div className={styles.style86_32}>
                         {isSilent ? (
                             <div className={styles.style88_33}>
-                                <VolumeX className={styles.style89_34} /> مسار هادئ (صامت)
-                            </div>
+                                <VolumeX className={styles.style89_34} /> {tAuto('key_955d3cd2')}
+                                                              </div>
                         ) : (
                             <div className={styles.style92_35}>
-                                <MessageSquare className={styles.style93_36} /> مرحب بالحديث
-                            </div>
+                                <MessageSquare className={styles.style93_36} /> {tAuto('key_4dfff550')}
+                                                                  </div>
                         )}
                     </div>
                 </div>

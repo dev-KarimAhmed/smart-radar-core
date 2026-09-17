@@ -4,6 +4,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useRegistration } from '../../hooks/use-registration';
+import { useTranslations } from "next-intl";
 
 const styles = {
   style72_1: "space-y-4  animate-fade-in",
@@ -51,6 +52,8 @@ const styles = {
 
 
 export function VehicleStep() {
+    const tAuto = useTranslations('auto');
+    const t = useTranslations('auto');
   const {
     affiliation,
     vehicle,
@@ -122,11 +125,11 @@ export function VehicleStep() {
             onClick={fillCaptainRegistrationData}
             className={styles.style78_3}
           >
-            إضافة بيانات كابتن تجربة
-          </Button>
+            {tAuto('key_f06c06a0')}
+                                </Button>
           <p className={styles.style82_4}>
-            زر اختبار فقط: يملأ بيانات الحساب والسيارة لإكمال تسجيل الكابتن بسرعة.
-          </p>
+            {tAuto('key_1e9d34e7')}
+                                </p>
         </div>
       }
 
@@ -134,10 +137,10 @@ export function VehicleStep() {
         <>
           <div>
             <label className={styles.style91_5}>
-              اسم المكتب
-            </label>
+              {tAuto('key_d36e572a')}
+                                      </label>
             <Input
-              placeholder="اسم المكتب"
+              placeholder={tAuto('key_d36e572a')}
               value={vehicle.officeName}
               onChange={(e) => setVehicle({ ...vehicle, officeName: e.target.value })}
               className={styles.style98_6}
@@ -146,11 +149,11 @@ export function VehicleStep() {
           </div>
           <div>
             <label className={styles.style103_7}>
-              رقم هاتف المكتب
-            </label>
+              {tAuto('key_d9162751')}
+                                      </label>
             <Input
               type="tel"
-              placeholder="رقم هاتف المكتب"
+              placeholder={tAuto('key_d9162751')}
               value={vehicle.officePhone}
               onChange={(e) => setVehicle({ ...vehicle, officePhone: e.target.value })}
               className={styles.style111_8}
@@ -160,10 +163,10 @@ export function VehicleStep() {
           <div className={styles.style115_9}>
             <div>
               <label className={styles.style117_10}>
-                اللوحة الجانبية
-              </label>
+                {tAuto('key_f0cafb7c')}
+                                            </label>
               <Input
-                placeholder="اللوحة الجانبية"
+                placeholder={tAuto('key_f0cafb7c')}
                 value={vehicle.sideId}
                 onChange={(e) => setVehicle({ ...vehicle, sideId: e.target.value })}
                 className={styles.style124_11}
@@ -172,10 +175,10 @@ export function VehicleStep() {
             </div>
             <div>
               <label className={styles.style129_12}>
-                لوحة السيارة
-              </label>
+                {tAuto('key_ddc5f6b0')}
+                                            </label>
               <Input
-                placeholder="لوحة السيارة"
+                placeholder={tAuto('key_ddc5f6b0')}
                 value={vehicle.plate}
                 onChange={(e) => setVehicle({ ...vehicle, plate: e.target.value })}
                 className={styles.style136_13}
@@ -185,11 +188,11 @@ export function VehicleStep() {
           </div>
           <div>
             <label className={styles.style142_14}>
-              سنة الصنع
-            </label>
+              {tAuto('key_19c502e1')}
+                                      </label>
             <Input
               type="number"
-              placeholder="سنة الصنع"
+              placeholder={tAuto('key_19c502e1')}
               value={vehicle.year}
               onChange={(e) => setVehicle({ ...vehicle, year: e.target.value })}
               className={styles.style150_15}
@@ -203,10 +206,10 @@ export function VehicleStep() {
         <>
           <div>
             <label className={styles.style160_16}>
-              اسم الشركة (أوبر، كريم...)
-            </label>
+              {tAuto('key_ae69bf11')}
+                                          </label>
             <Input
-              placeholder="اسم الشركة (أوبر، كريم...)"
+              placeholder={tAuto('key_ae69bf11')}
               value={vehicle.companyName}
               onChange={(e) => setVehicle({ ...vehicle, companyName: e.target.value })}
               className={styles.style167_17}
@@ -216,10 +219,10 @@ export function VehicleStep() {
           <div className={styles.style171_18}>
             <div>
               <label className={styles.style173_19}>
-                نوع السيارة
-              </label>
+                {tAuto('key_5db84e2e')}
+                                                </label>
               <Input
-                placeholder="نوع السيارة (تويوتا..)"
+                placeholder={tAuto('key_7fd1a36c')}
                 value={vehicle.make}
                 onChange={(e) => setVehicle({ ...vehicle, make: e.target.value })}
                 className={styles.style180_20}
@@ -228,10 +231,10 @@ export function VehicleStep() {
             </div>
             <div>
               <label className={styles.style185_21}>
-                اللون
-              </label>
+                {tAuto('key_4851a7c0')}
+                                                </label>
               <Input
-                placeholder="اللون"
+                placeholder={tAuto('key_4851a7c0')}
                 value={vehicle.color}
                 onChange={(e) => setVehicle({ ...vehicle, color: e.target.value })}
                 className={styles.style192_22}
@@ -242,10 +245,10 @@ export function VehicleStep() {
           <div className={styles.style197_23}>
             <div>
               <label className={styles.style199_24}>
-                لوحة السيارة
-              </label>
+                {tAuto('key_ddc5f6b0')}
+                                                </label>
               <Input
-                placeholder="لوحة السيارة"
+                placeholder={tAuto('key_ddc5f6b0')}
                 value={vehicle.plate}
                 onChange={(e) => setVehicle({ ...vehicle, plate: e.target.value })}
                 className={styles.style206_25}
@@ -254,11 +257,11 @@ export function VehicleStep() {
             </div>
             <div>
               <label className={styles.style211_26}>
-                سنة الصنع
-              </label>
+                {tAuto('key_19c502e1')}
+                                                </label>
               <Input
                 type="number"
-                placeholder="سنة الصنع"
+                placeholder={tAuto('key_19c502e1')}
                 value={vehicle.year}
                 onChange={(e) => setVehicle({ ...vehicle, year: e.target.value })}
                 className={styles.style219_27}
@@ -274,8 +277,8 @@ export function VehicleStep() {
       {/* 📥 [معمارية SC55 - وثيقة التحقق المهنية للناقل] */}
       <div className={styles.style230_28}>
         <label className={styles.style231_29}>
-          🔐 رخصة السوق / رخصة القيادة المهنية:
-        </label>
+          {tAuto('key_dcb56e26')}
+                          </label>
         <div className={styles.style234_30}>
           <input
             type="file"
@@ -285,15 +288,15 @@ export function VehicleStep() {
           />
           {personal.verificationDoc ? (
             <div className={styles.style242_32}>
-              <span className={styles.style243_33}>✓ تم تشفير وضغط الرخصة بـ SC55</span>
+              <span className={styles.style243_33}>{tAuto('key_bfaaf7e3')}</span>
               <span className={styles.style244_34}>🛡️</span>
             </div>
           ) : compressing ? (
-            <span className={styles.style247_35}>جاري فحص وتكثيف رقعة الصورة...</span>
+            <span className={styles.style247_35}>{tAuto('key_724eadce')}</span>
           ) : (
             <div className={styles.style249_36}>
-              <span className={styles.style250_37}>اسحب وأسقِط رخصتك هنا لتفعيل المناعة المهنية</span>
-              <span className={styles.style251_38}>تُضغط الصورة تلقائياً لصفر كلفة قراءة</span>
+              <span className={styles.style250_37}>{tAuto('key_d174be37')}</span>
+              <span className={styles.style251_38}>{tAuto('key_b5d786bc')}</span>
             </div>
           )}
         </div>
@@ -305,7 +308,7 @@ export function VehicleStep() {
           className={styles.style260_40}
           disabled={isSubmitting || compressing}
         >
-          {isSubmitting ? 'جاري تجهيز البيانات...' : 'الدخول للنظام'}
+          {isSubmitting ? tAuto('key_9e20ee28') : tAuto('key_210d395b')}
         </button>
       </div>
 
@@ -314,8 +317,8 @@ export function VehicleStep() {
         className={styles.style269_41}
         onClick={() => setStep('affiliation')}
       >
-        العودة لتعديل الانتماء
-      </button>
+        {tAuto('key_16c42f71')}
+                    </button>
     </form>
   );
 }

@@ -35,6 +35,7 @@ import {
   EyeOff
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslations } from 'next-intl';
 
 const styles = {
   style143_1: "space-y-8 text-right",
@@ -126,6 +127,7 @@ const styles = {
 
 
 export function KillSwitchPanel() {
+    const tAuto = useTranslations('auto');
   const { toast } = useToast();
   const {
     isRadarActive,
@@ -135,6 +137,7 @@ export function KillSwitchPanel() {
   } = useSovereignControls();
 
   const { ads, executeAdAnnihilation } = useAdminAds();
+  const t = useTranslations('adminTab.killSwitch');
 
   // Control confirmation gates
   const [gate1, setGate1] = useState(false);
@@ -159,8 +162,8 @@ export function KillSwitchPanel() {
     if (!gate1 || !gate2) {
       toast({
         variant: 'destructive',
-        title: 'بوابات الأمان مقفلة 🔒',
-        description: 'يتعين عليك تفعيل بوابتي التأكيد ومطابقة الفرز الأمني لفك حماية الزر الأحمر.'
+        title: t('toasts.safetyLockedTitle'),
+        description: t('toasts.safetyLockedDesc')
       });
       return;
     }
@@ -184,16 +187,16 @@ export function KillSwitchPanel() {
     if (!selectedAdId) {
       toast({
         variant: 'destructive',
-        title: 'لم يتم تحديد هدف',
-        description: 'يرجى تحديد الحملة الإعلانية النشطة المستهدفة للإيقاف ال.'
+        title: t('toasts.noTargetTitle'),
+        description: t('toasts.noTargetDesc')
       });
       return;
     }
     if (!annihilationReason.trim()) {
       toast({
         variant: 'destructive',
-        title: 'مطلوب إفادة رسمية',
-        description: 'إدخال مبرر الحذف الأمني إلزامي لتبرير نشاطة الإيقاف.'
+        title: t('toasts.noReasonTitle'),
+        description: t('toasts.noReasonDesc')
       });
       return;
     }
@@ -212,8 +215,8 @@ export function KillSwitchPanel() {
     if (!broadcastMessage.trim()) {
       toast({
         variant: 'destructive',
-        title: 'فراغ نص الإطلاق',
-        description: 'يرجى صياغة رسالة بث واضحة لتصل لهواتف السائقون والركاب.'
+        title: t('toasts.emptyBroadcastTitle'),
+        description: t('toasts.emptyBroadcastDesc')
       });
       return;
     }
@@ -228,8 +231,8 @@ export function KillSwitchPanel() {
 
     if (success) {
       toast({
-        title: '📡 تم نشر نشاطة العرض ',
-        description: `تم نشر الإشعار اللحظي [${selectedDistrict}] في طبقة الهواتف المفتوحة.`
+        title: t('toasts.broadcastSuccessTitle'),
+        description: t('toasts.broadcastSuccessDesc', { district: selectedDistrict })
       });
       setBroadcastMessage('');
     }
@@ -242,17 +245,17 @@ export function KillSwitchPanel() {
         <CardHeader className={styles.style146_3}>
           <CardTitle className={styles.style147_4}>
             <ShieldAlert className={styles.style148_5} />
-            بروتوكول الطوارئ الإداري: مفتاح الفصل الشامل [30-Emergency]
+            {t('emergency.title')}
           </CardTitle>
           <CardDescription className={styles.style151_6}>
-            التحكم الكلي في بوابات الرادار في الأردن. تفعيل هذا المقبس يجبر هواتف المستخدمين كافة على تعليق الملاحة فوراً، لعزل الخوادم وتفادي حروق النشاط في حالات القوة القاهرة.
+            {t('emergency.description')}
           </CardDescription>
         </CardHeader>
         <CardContent className={styles.style155_7}>
           <div className={styles.style156_8}>
             {/* Safety Confirmation Checklist */}
             <div className={styles.style158_9}>
-              <span className={styles.style159_10}>🔒 بوابات الأمان المصاحبة للزر :</span>
+              <span className={styles.style159_10}>{t('emergency.safetyLabel')}</span>
 
               <div className={styles.style161_11}>
                 <label className={cn(
@@ -268,7 +271,7 @@ export function KillSwitchPanel() {
                     }}
                     className={styles.style173_15}
                   />
-                  <span>أقر بنية تعليق الملاحة كلياً في ولاية عمان والوسط.</span>
+                  <span>{t('emergency.gate1')}</span>
                 </label>
 
                 <label className={cn(
@@ -284,7 +287,7 @@ export function KillSwitchPanel() {
                     }}
                     className={styles.style189_19}
                   />
-                  <span>مطابقة البصمة الحالية للقيادة لمنع المضاربة.</span>
+                  <span>{t('emergency.gate2')}</span>
                 </label>
               </div>
 
@@ -302,12 +305,12 @@ export function KillSwitchPanel() {
                 {safetyCleared ? (
                   <span className={styles.style207_23}>
                     <Unlock className={styles.style208_24} />
-                    تم فك قفل الأمان - المقبس جاهز للإطلاق
+                    {t('emergency.unlockedBtn')}
                   </span>
                 ) : (
                   <span className={styles.style212_25}>
                     <Lock className={styles.style213_26} />
-                    تفعيل مفتاح الفك
+                    {t('emergency.lockBtn')}
                   </span>
                 )}
               </Button>
@@ -316,7 +319,7 @@ export function KillSwitchPanel() {
             {/* Lethal Red Execution Button */}
             <div className={styles.style221_27}>
               <div className={styles.style222_28}>
-                <span className={styles.style223_29}>حالة رادار الملاحة الحالية:</span>
+                <span className={styles.style223_29}>{t('emergency.radarStatus')}</span>
                 <div className={styles.style224_30}>
                   <span className={cn(
                     styles.style226_31,
@@ -326,7 +329,7 @@ export function KillSwitchPanel() {
                     styles.style230_34,
                     isRadarActive ? styles.style231_35 : styles.style231_36
                   )}>
-                    {isRadarActive ? "مفتوح ونشط ●" : "معلق طارئ 🚫"}
+                    {isRadarActive ? t('emergency.active') : t('emergency.suspended')}
                   </span>
                 </div>
               </div>
@@ -348,18 +351,18 @@ export function KillSwitchPanel() {
                 ) : isRadarActive ? (
                   <>
                     <PowerOff className={styles.style254_42} />
-                    اضغط لتنفيذ التعليق الكلي للميدان 💥
+                    {t('emergency.suspendBtn')}
                   </>
                 ) : (
                   <>
                     <Power className={styles.style259_43} />
-                    اضغط لإلغاء القفل وإعادة فتح الملاحة 📡
+                    {t('emergency.resumeBtn')}
                   </>
                 )}
               </Button>
 
               <span className={styles.style265_44}>
-                * تحذير: هذا التدخل فوري وسيتم ترحيله سحابياً لكافة هواتف السائقون والراكبين في المملكة الأردنية مباشرة.
+                {t('emergency.warning')}
               </span>
             </div>
           </div>
@@ -373,19 +376,19 @@ export function KillSwitchPanel() {
             <CardHeader className={styles.style277_48}>
               <CardTitle className={styles.style278_49}>
                 <Flame className={styles.style279_50} />
-                إيقاف الإيقاف الرقمية للحملات (Ad Annihilation)
+                {t('annihilation.title')}
               </CardTitle>
               <CardDescription className={styles.style282_51}>
-                بروتوكول [30-Annihilation] لحذف الميدان آلياً. يرسل إشعارات صامتة Silent Web Pushes لإيقاف ومسح الإعلانات المرفوضة من هواتف المستخدمين نهائياً في ثوانٍ.
+                {t('annihilation.description')}
               </CardDescription>
             </CardHeader>
             <CardContent className={styles.style286_52}>
               {/* Select Active Ads dropdown */}
               <div className={styles.style288_53}>
-                <Label className={styles.style289_54}>حدد الحملة المستهدفة للإحراق ال:</Label>
-                <Select value={selectedAdId} onValueChange={setSelectedAdId} dir="rtl">
+                <Label className={styles.style289_54}>{t('annihilation.selectTarget')}</Label>
+                <Select value={selectedAdId} onValueChange={setSelectedAdId}>
                   <SelectTrigger className={styles.style293_55}>
-                    <SelectValue placeholder="-- اختر حملة إعلانية بث في الميدان --" />
+                    <SelectValue placeholder={t('annihilation.selectPlaceholder')} />
                   </SelectTrigger>
                   <SelectContent className={styles.customSelectContent}>
                     {activeAds.map(ad => (
@@ -399,11 +402,11 @@ export function KillSwitchPanel() {
 
               {/* Annihilation Reason justification prompt */}
               <div className={styles.style306_56}>
-                <Label className={styles.style307_57}>مبرر الحذف والمذكرة الأمنية للهواتف:</Label>
+                <Label className={styles.style307_57}>{t('annihilation.reasonLabel')}</Label>
                 <Input
                   value={annihilationReason}
                   onChange={(e) => setAnnihilationReason(e.target.value)}
-                  placeholder="مثال: انتهاك وثيقة الآداب، تحريض على المضاربة، إلخ..."
+                  placeholder={t('annihilation.reasonPlaceholder')}
                   className={styles.style312_58}
                 />
               </div>
@@ -424,7 +427,7 @@ export function KillSwitchPanel() {
                 ) : (
                   <>
                     <EyeOff className={styles.style331_63} />
-                    بث نشاطة الإيقاف وحذف الهواتف الميدانية 💥
+                    {t('annihilation.executeBtn')}
                   </>
                 )}
               </Button>
@@ -438,41 +441,41 @@ export function KillSwitchPanel() {
             <CardHeader className={styles.style343_66}>
               <CardTitle className={styles.style344_67}>
                 <Radio className={styles.style345_68} />
-                بث راداري صامت (Silent Broadcast Pulses)
+                {t('broadcast.title')}
               </CardTitle>
               <CardDescription className={styles.style348_69}>
-                إضافة وبث تنبيهات توجيهية لحظية غير مكلفة لخلية سداسية معينة أو الميدان بالكامل، لتعديل سلوك الهواتف والتسجيل في سجل الطوارئ مباشرة.
+                {t('broadcast.description')}
               </CardDescription>
             </CardHeader>
             <CardContent className={styles.style352_70}>
               <div className={styles.style353_71}>
                 {/* District targeting selector */}
                 <div className={styles.style355_72}>
-                  <Label className={styles.style356_73}>الإقليم الجغرافي المستهدف:</Label>
+                  <Label className={styles.style356_73}>{t('broadcast.districtLabel')}</Label>
                   <Select value={selectedDistrict} onValueChange={setSelectedDistrict}>
                     <SelectTrigger className={styles.style360_74}>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className={styles.customSelectContent}>
-                      <SelectItem value="الجميع" className={styles.customSelectItem}>كل منطقة الأردنيين</SelectItem>
-                      <SelectItem value="منطقة الجامعة" className={styles.customSelectItem}>منطقة الجامعة - عمان</SelectItem>
-                      <SelectItem value="منطقة قصبة عمان" className={styles.customSelectItem}>منطقة قصبة عمان - عمان</SelectItem>
-                      <SelectItem value="منطقة وادي السير" className={styles.customSelectItem}>منطقة وادي السير - عمان</SelectItem>
-                      <SelectItem value="منطقة ماركا" className={styles.customSelectItem}>منطقة ماركا - عمان</SelectItem>
+                      <SelectItem value={tAuto('key_91559fa2')} className={styles.customSelectItem}>{t('broadcast.districts.all')}</SelectItem>
+                      <SelectItem value={tAuto('key_cd57565c')} className={styles.customSelectItem}>{t('broadcast.districts.ju')}</SelectItem>
+                      <SelectItem value={tAuto('key_dece580e')} className={styles.customSelectItem}>{t('broadcast.districts.kasaba')}</SelectItem>
+                      <SelectItem value={tAuto('key_6d2b91d3')} className={styles.customSelectItem}>{t('broadcast.districts.wadiSeer')}</SelectItem>
+                      <SelectItem value={tAuto('key_e07be56d')} className={styles.customSelectItem}>{t('broadcast.districts.marka')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 {/* Pulse Classification */}
                 <div className={styles.style371_75}>
-                  <Label className={styles.style372_76}>تصنيف النشاطة :</Label>
+                  <Label className={styles.style372_76}>{t('broadcast.typeLabel')}</Label>
                   <Select value={alertType} onValueChange={(value) => setAlertType(value as any)}>
                     <SelectTrigger className={styles.style376_77}>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className={styles.customSelectContent}>
-                      <SelectItem value="REGIONAL_ALERT" className={styles.customSelectItem}>تنبيه إقليمي توجيهي</SelectItem>
-                      <SelectItem value="GLOBAL_FREEZE" className={styles.customSelectItem}>تجميد اضطراري للأسعار</SelectItem>
+                      <SelectItem value="REGIONAL_ALERT" className={styles.customSelectItem}>{t('broadcast.types.regional')}</SelectItem>
+                      <SelectItem value="GLOBAL_FREEZE" className={styles.customSelectItem}>{t('broadcast.types.freeze')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -480,11 +483,11 @@ export function KillSwitchPanel() {
 
               {/* Message text area */}
               <div className={styles.style385_78}>
-                <Label className={styles.style386_79}>نص بلاغ القيادة العامة (بث لحظي):</Label>
+                <Label className={styles.style386_79}>{t('broadcast.messageLabel')}</Label>
                 <textarea
                   value={broadcastMessage}
                   onChange={(e) => setBroadcastMessage(e.target.value)}
-                  placeholder="اكتب مضمون الإشعار الميداني هنا..."
+                  placeholder={t('broadcast.messagePlaceholder')}
                   className={styles.style391_80}
                 />
               </div>
@@ -500,7 +503,7 @@ export function KillSwitchPanel() {
                 ) : (
                   <>
                     <Send className={styles.style405_83} />
-                    إطلاق النشاطة الصامتة Silent Broadcast 📡
+                    {t('broadcast.executeBtn')}
                   </>
                 )}
               </Button>

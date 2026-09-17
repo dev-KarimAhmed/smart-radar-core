@@ -169,6 +169,7 @@ function BalanceDisplay({ balance, currencyLabel, walletLoaded, onChargeFunds, c
 }
 
 export function WalletTab() {
+    const tAuto = useTranslations('auto');
   const { user } = useAuth();
   const { isArabic, language } = useDashboardLanguage();
   const t = useTranslations('wallet');
@@ -409,7 +410,7 @@ export function WalletTab() {
 
                 <div className={styles.style270_77}>
                   <span className={tx.amount >= 0 ? styles.style271_78 : styles.style271_79}>
-                    {tx.amount > 0 ? '+' : ''}{tx.amount.toFixed(tx.currency === 'ساعة' ? 1 : 2)} {tx.currency}
+                    {tx.amount > 0 ? '+' : ''}{tx.amount.toFixed(tx.currency === tAuto('key_d54c0ef8') ? 1 : 2)} {tx.currency}
                   </span>
                   <span className={styles.style274_80}>{tx.status}</span>
                 </div>

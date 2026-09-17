@@ -3,6 +3,7 @@
 import { useDriverOperations } from '@/hooks/use-driver-operations';
 import { AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslations } from "next-intl";
 
 const styles = {
   style22_1: "absolute bottom-24 left-4 right-4 z-20 p-4 rounded-xl shadow-2xl",
@@ -17,6 +18,8 @@ const styles = {
 const OVERSPEED_THRESHOLD = 40; // km/h
 
 export function SpeedSentry() {
+    const tAuto = useTranslations('auto');
+    const t = useTranslations('auto');
   const driverOps = useDriverOperations();
   const { driverSpeed, driverStatus } = driverOps || { driverSpeed: 0, driverStatus: 'idle' };
 
@@ -36,10 +39,10 @@ export function SpeedSentry() {
     >
       <AlertTriangle className={styles.style27_4} />
       <div>
-        <h3 className={styles.style29_5}>تم تفعيل درع السرعة </h3>
+        <h3 className={styles.style29_5}>{tAuto('key_733fa7c6')} </h3>
         <p className={styles.style30_6}>
-          تم إخفاء الإعلانات والطلبات مؤقتاً لضمان تركيزك على الطريق. السلامة أولاً.
-        </p>
+          {tAuto('key_9de603e2')}
+                          </p>
       </div>
     </div>
   );

@@ -159,6 +159,7 @@ export function RadarMapView({
   onIgnoreRequest,
   onSubmitDirectBid,
 }: RadarMapViewProps) {
+    const tAuto = useTranslations('auto');
   const copy = radarCopy[language];
   const t = useTranslations('captainPickup');
   const mapContainerRef = React.useRef<HTMLDivElement | null>(null);
@@ -503,7 +504,7 @@ export function RadarMapView({
                           />
                           <Info
                             label={copy.tripDistance}
-                            value={request.estimatedDistance != null ? `${request.estimatedDistance.toFixed(1)} ${language === 'ar' ? 'كيلو' : 'km'}` : t('distanceUnavailable')}
+                            value={request.estimatedDistance != null ? `${request.estimatedDistance.toFixed(1)} ${language === 'ar' ? tAuto('key_4171dde6') : 'km'}` : t('distanceUnavailable')}
                           />
                           <Info
                             label={copy.marketFare}

@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
 
 import { cn } from '@/lib/utils';
+import { useTranslations } from "next-intl";
+
 const styles = {
   style45_1: "max-w-md bg-[#0A0F1D]/95 border border-white/10 text-white rounded-[28px] p-6 shadow-[0_25px_60px_rgba(0,0,0,0.8)] backdrop-blur-2xl overflow-hidden focus:outline-none",
   style58_2: "flex flex-col items-center text-center mt-2 space-y-4",
@@ -76,6 +78,8 @@ const styles = {
 
 
 export function PwaInstallPrompt() {
+    const tAuto = useTranslations('auto');
+    const t = useTranslations('auto');
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'android' | 'ios'>('android');
   const { loading } = useAuth();
@@ -115,10 +119,10 @@ export function PwaInstallPrompt() {
             statement of what it is asking. Hidden visually for the same reason as the title:
             the sighted layout below already says all of this. */}
         <VisuallyHidden>
-          <DialogTitle>تثبيت التطبيق</DialogTitle>
+          <DialogTitle>{tAuto('key_f3119d83')}</DialogTitle>
           <DialogDescription>
-            خطوات تثبيت تطبيق رادار على شاشة هاتفك للوصول السريع والعمل بدون إنترنت.
-          </DialogDescription>
+            {tAuto('key_aa98a608')}
+                                </DialogDescription>
         </VisuallyHidden>
 
         {/* Close Button */}
@@ -141,13 +145,13 @@ export function PwaInstallPrompt() {
           {/* Title */}
           <div className={styles.style68_7}>
             <Sparkles className={styles.style69_8} />
-            <h2>بوابة التثبيت السيادي PWA</h2>
+            <h2>{tAuto('key_44eecd12')}</h2>
           </div>
 
           {/* Subtitle */}
           <p className={styles.style74_9}>
-            قم بإضافة تطبيق <span className={styles.style75_10}>بينكم الدولية</span> لشاشتك الرئيسية للاستمتاع بواجهات أصيلة وسريعة بنسبة 100% ودون الحاجة للمتاجر الاحتكارية.
-          </p>
+            {tAuto('key_dba8c672')} <span className={styles.style75_10}>{tAuto('key_d21b1c65')}</span> {tAuto('key_a8b72173')}
+                                </p>
 
           {/* Tab Selector */}
           <div className={styles.style79_11}>
@@ -158,7 +162,7 @@ export function PwaInstallPrompt() {
                   : styles.style85_14)}
             >
               <Layers className={styles.style88_15} />
-              <span>أندرويد / كروم</span>
+              <span>{tAuto('key_77cad099')}</span>
             </button>
             <button
               onClick={() => setActiveTab('ios')}
@@ -167,7 +171,7 @@ export function PwaInstallPrompt() {
                   : styles.style96_18)}
             >
               <Phone className={styles.style99_19} />
-              <span>هواتف آيفون (iOS)</span>
+              <span>{tAuto('key_36787f36')}</span>
             </button>
           </div>
 
@@ -182,14 +186,14 @@ export function PwaInstallPrompt() {
                   </div>
                   <div className={styles.style113_23}>
                     <h4 className={styles.style114_24}>
-                      اضغط على خيارات المتصفح
-                      <span className={styles.style116_25}>
+                      {tAuto('key_8639bd1c')}
+                                                                <span className={styles.style116_25}>
                         <MoreVertical className={styles.style117_26} />
                       </span>
                     </h4>
                     <p className={styles.style120_27}>
-                      (Chrome) اضغط على النقاط الثلاث في أعلى يمين المتصفح.
-                    </p>
+                      {tAuto('key_33868974')}
+                                                              </p>
                   </div>
                 </div>
 
@@ -200,14 +204,14 @@ export function PwaInstallPrompt() {
                   </div>
                   <div className={styles.style131_30}>
                     <h4 className={styles.style132_31}>
-                      اختر "تثبيت التطبيق" أو "إضافة للرئيسية"
-                      <span className={styles.style134_32}>
+                      {tAuto('key_edc34971')}
+                                                                <span className={styles.style134_32}>
                         <Download className={styles.style135_33} />
                       </span>
                     </h4>
                     <p className={styles.style138_34}>
-                      "Add to Home Screen" أو "Install app" اضغط على خيار.
-                    </p>
+                      {tAuto('key_3fb8ebba')}
+                                                              </p>
                   </div>
                 </div>
 
@@ -218,11 +222,11 @@ export function PwaInstallPrompt() {
                   </div>
                   <div className={styles.style149_37}>
                     <h4 className={styles.style150_38}>
-                      قم بتأكيد التثبيت في النافذة المنبثقة
-                    </h4>
+                      {tAuto('key_3e166536')}
+                                                              </h4>
                     <p className={styles.style153_39}>
-                      سيتم تثبيت التطبيق وتلقي إشعارات النبض بشكل موثوق وسلس.
-                    </p>
+                      {tAuto('key_49e1fedb')}
+                                                              </p>
                   </div>
                 </div>
               </>
@@ -235,14 +239,14 @@ export function PwaInstallPrompt() {
                   </div>
                   <div className={styles.style166_42}>
                     <h4 className={styles.style167_43}>
-                      اضغط على زر المشاركة
-                      <span className={styles.style169_44}>
+                      {tAuto('key_fba872a8')}
+                                                                    <span className={styles.style169_44}>
                         <Share2 className={styles.style170_45} />
                       </span>
                     </h4>
                     <p className={styles.style173_46}>
-                      اضغط على زر المشاركة في أسفل متصفح Safari.
-                    </p>
+                      {tAuto('key_de709b0c')}
+                                                                  </p>
                   </div>
                 </div>
 
@@ -253,14 +257,14 @@ export function PwaInstallPrompt() {
                   </div>
                   <div className={styles.style184_49}>
                     <h4 className={styles.style185_50}>
-                      اختر "إضافة إلى الشاشة الرئيسية"
-                      <span className={styles.style187_51}>
+                      {tAuto('key_614596ed')}
+                                                                    <span className={styles.style187_51}>
                         <PlusSquare className={styles.style188_52} />
                       </span>
                     </h4>
                     <p className={styles.style191_53}>
-                      اضغط على خيار "إضافة إلى الشاشة الرئيسية" من القائمة.
-                    </p>
+                      {tAuto('key_2d95a4ec')}
+                                                                  </p>
                   </div>
                 </div>
 
@@ -271,11 +275,11 @@ export function PwaInstallPrompt() {
                   </div>
                   <div className={styles.style202_56}>
                     <h4 className={styles.style203_57}>
-                      قم بتأكيد التثبيت
-                    </h4>
+                      {tAuto('key_a9bacca4')}
+                                                                  </h4>
                     <p className={styles.style206_58}>
-                      اضغط على "إضافة" في أعلى اليسار وسيظهر التطبيق على شاشتك.
-                    </p>
+                      {tAuto('key_5d44d5c8')}
+                                                                  </p>
                   </div>
                 </div>
               </>
@@ -287,8 +291,8 @@ export function PwaInstallPrompt() {
             onClick={handleDismiss}
             className={styles.style218_59}
           >
-            سأقوم بالتثبيت لاحقاً
-          </Button>
+            {tAuto('key_0d1c83d0')}
+                                </Button>
 
           {/* Footer information */}
           <div className={styles.style224_60}>

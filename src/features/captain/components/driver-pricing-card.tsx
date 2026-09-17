@@ -17,6 +17,8 @@ import { AdDisplayCard } from '@/features/ads/ad-display/contract';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 
 import { cn } from '@/lib/utils';
+import { useTranslations } from "next-intl";
+
 const styles = {
   style30_1: "space-y-1 font-sans",
   style31_2: "text-sm text-gray-400 flex items-center gap-2",
@@ -188,6 +190,8 @@ const PricingInput = React.memo(({ id, label, icon, value, onChange, hasError }:
 PricingInput.displayName = 'PricingInput';
 
 export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, pricingPreference = null, onConfirm, onCancel, isSubmitting = false }: PricingCardProps) {
+    const tAuto = useTranslations('auto');
+    const t = useTranslations('auto');
   const { isArabic } = useDashboardLanguage();
   const { matrix: savedMatrix, saveMatrix, isSaving } = usePricingMatrix();
   const { toast } = useToast();
@@ -388,9 +392,9 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, pr
                   <div className={styles.style247_12}>
                     <AlertCircle className={styles.style248_13} />
                     <div>
-                      <h4 className={styles.style250_14}>{isArabic ? "🚫 خطأ في المداخلات: القيمة غير منطقية تشغيلياً" : "🚫 Input Error: Value is operationally illogical"}</h4>
+                      <h4 className={styles.style250_14}>{isArabic ? tAuto('key_ec8882fc') : "🚫 Input Error: Value is operationally illogical"}</h4>
                       <p className={styles.style251_15}>
-                        {isArabic ? "السعر المدخل بعيد جداً عن السعر المناسب. تم إيقاف العرض مؤقتاً حتى تعدل السعر بما يناسب السوق." : "The entered price is too far from the appropriate market price. The offer has been paused until you adjust it."}
+                        {isArabic ? tAuto('key_9ed950c9') : "The entered price is too far from the appropriate market price. The offer has been paused until you adjust it."}
                       </p>
                     </div>
                   </div>
@@ -399,7 +403,7 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, pr
                     <AdDisplayCard
                       ad={professionalAd}
                       showHeart={false}
-                      badgeText={isArabic ? "دعم السائق" : "Driver Support"}
+                      badgeText={isArabic ? tAuto('key_747ae6ec') : "Driver Support"}
                       ctaText={professionalAd.buttonText}
                       className={styles.style263_16}
                       onOpen={(event: React.MouseEvent) => {
@@ -419,8 +423,8 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, pr
                       />
                       <div className={styles.style279_19}>
                         <span className={styles.style280_20}>
-                          🛠️ إعلانات مهنية موجهة للناقلين
-                        </span>
+                          {tAuto('key_149ae37d')}
+                                                                    </span>
                         <h3 className={styles.style283_21}>{professionalAd.title}</h3>
                         <p className={styles.style284_22}>
                           {professionalAd.description}
@@ -440,8 +444,8 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, pr
 
                 <div className={styles.style300_25}>
                   <p className={styles.style301_26}>
-                    عد إلى السعر المناسب لاستقبال طلبات الركاب في منطقتك:
-                  </p>
+                    {tAuto('key_6745363d')}
+                                                  </p>
 
                   <div className={styles.style305_27}>
                     <Button
@@ -455,7 +459,7 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, pr
                       }}
                       className={styles.style315_28}
                     >
-                      <span>استعادة السعر المناسب بضغطة واحدة</span>
+                      <span>{tAuto('key_02a19696')}</span>
                     </Button>
 
                     <Button
@@ -463,8 +467,8 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, pr
                       variant="outline"
                       className={styles.style323_29}
                     >
-                      إلغاء الخروج
-                    </Button>
+                      {tAuto('key_c7ae9d1f')}
+                                                        </Button>
                   </div>
                 </div>
               </div>
@@ -475,7 +479,7 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, pr
                     <div className={styles.style334_32}>
                         <div className={styles.style335_33}>
                         <Activity className={styles.style336_34} />
-                        <span className={styles.style337_35}>متوسط السعر المحلي</span>
+                        <span className={styles.style337_35}>{tAuto('key_a2c9a591')}</span>
                         </div>
                         <Badge variant="outline" className={styles.style339_36}>
                         {pulseData?.trend === 'up' ? <TrendingUp className={styles.style340_37} /> : <TrendingDown className={styles.style340_38} />}
@@ -489,18 +493,18 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, pr
             </div>
 
             <div className={styles.style350_40}>
-              <h3 className={styles.style351_41}>إعدادات التسعير</h3>
-              <p className={styles.style352_42}>هذه هي هويتك المالية في الميدان. اضبطها مرة واحدة.</p>
+              <h3 className={styles.style351_41}>{tAuto('key_fc747737')}</h3>
+              <p className={styles.style352_42}>{tAuto('key_ed117f6c')}</p>
 
                <div className={styles.style354_43}>
                   <div className={styles.style355_44}>
                       <div className={styles.style356_45}>
                           <Label className={styles.style357_46}>
-                              <ShieldCheck className={styles.style358_47} /> التزام بنمط المشغل (أوبر/كريم/تكسي)
-                          </Label>
+                              <ShieldCheck className={styles.style358_47} /> {tAuto('key_26ab989c')}
+                                                              </Label>
                           <p className={styles.style360_48}>
-                              تفعيل هذا الزر يعني أنك تزاول المهنة حالياً تحت مظلة مشغلك الرسمي، والمنصة مجرد وسيط تقني لعرض هويتك.
-                          </p>
+                              {tAuto('key_810f8db4')}
+                                                              </p>
                       </div>
                       <Switch
                           checked={isOperatorLinked}
@@ -511,9 +515,8 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, pr
 
                   <div className={styles.style371_50}>
                       <p className={styles.style372_51}>
-                          "بصفتي الناقل، أقر بأن تفعيل هذا الخيار هو تصريح مني للركاب بتبعية مرجعتي السعرية للمشغل المسجل في ملفي،
-                          وأن الرادار الذكي لا يتدخل في هذا العقد التشغيلي."
-                      </p>
+                          {tAuto('key_d5a4e5e2')}
+                                                      </p>
                   </div>
               </div>
 
@@ -525,10 +528,10 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, pr
                     <div className={styles.style384_53}>
                       <span className={styles.style385_54}>🚫</span>
                       <div className={styles.style386_55}>
-                        <strong className={styles.style387_56}>خطأ في المداخلات: القيمة غير منطقية تشغيلياً.</strong>
+                        <strong className={styles.style387_56}>{tAuto('key_193abc87')}</strong>
                         <p className={styles.style388_57}>
-                          السعر الحالي غير مناسب للسوق. يرجى مراجعة قيم التسعير.
-                        </p>
+                          {tAuto('key_82954d59')}
+                                                                    </p>
                       </div>
                     </div>
                   )}
@@ -538,10 +541,10 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, pr
                     <div className={styles.style397_58}>
                       <span className={styles.style398_59}>⚠️</span>
                       <div className={styles.style399_60}>
-                        <strong className={styles.style400_61}>تنبيه: سعرك الحالي بعيد عن متوسط السوق.</strong>
+                        <strong className={styles.style400_61}>{tAuto('key_05b7d234')}</strong>
                         <p className={styles.style401_62}>
-                          هذا السعر قد يؤثر على تقييمك وظهورك للركاب.
-                        </p>
+                          {tAuto('key_63f73e63')}
+                                                                    </p>
                       </div>
                     </div>
                   )}
@@ -551,10 +554,10 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, pr
                     <div className={styles.style410_63}>
                       <span className={styles.style411_64}>🧬</span>
                       <div className={styles.style412_65}>
-                        <strong className={styles.style413_66}>تحذير مناعي حرج: رصيد الثقة الخاص بك يقترب من عتبة الحظر التلقائي (4.2).</strong>
+                        <strong className={styles.style413_66}>{tAuto('key_934367c7')}</strong>
                         <p className={styles.style414_67}>
-                          أي انخفاض إضافي قد يؤدي إلى إيقاف الحساب مؤقتاً لحماية جودة الخدمة.
-                        </p>
+                          {tAuto('key_c5f40bd5')}
+                                                                    </p>
                       </div>
                     </div>
                   )}
@@ -563,19 +566,19 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, pr
 
               <div className={cn(styles.style423_68, isOperatorLinked ? styles.style423_69 : styles.style423_70)}>
                 <div>
-                   <h4 className={styles.style425_71}>🟢 المنطقة الأولى: التسعير المقطوع (الأساس)</h4>
+                   <h4 className={styles.style425_71}>{tAuto('key_87e0eb00')}</h4>
                    <div className={styles.style426_72}>
-                     <PricingInput id="shortTripFare" label="السعر الأساسي المقطوع (يشمل أول 1 كم) 🚕" value={matrix.shortTripFare} onChange={val => setMatrix(m => ({...m, shortTripFare: val}))} icon={<BarChart2 className={styles.style427_73}/>} hasError={!isOperatorLinked && ((matrix.shortTripFare || 0) < 1.0 || isBlocked)}/>
+                     <PricingInput id="shortTripFare" label={tAuto('key_cc656643')} value={matrix.shortTripFare} onChange={val => setMatrix(m => ({...m, shortTripFare: val}))} icon={<BarChart2 className={styles.style427_73}/>} hasError={!isOperatorLinked && ((matrix.shortTripFare || 0) < 1.0 || isBlocked)}/>
                    </div>
                 </div>
 
                 <Separator className={styles.style431_74}/>
 
                 <div>
-                   <h4 className={styles.style434_75}>🟡 المنطقة الثانية: التسعير المدمج (المسافة + الوقت)</h4>
+                   <h4 className={styles.style434_75}>{tAuto('key_09a247fe')}</h4>
                    <div className={styles.style435_76}>
-                    <PricingInput id="longTripKmRate" label="سعر الكيلومتر الإضافي (بعد أول كم) 🛣️" value={matrix.longTripKmRate} onChange={val => setMatrix(m => ({...m, longTripKmRate: val}))} icon={<BarChart2 className={styles.style436_77}/>} hasError={!isOperatorLinked && isBlocked}/>
-                    <PricingInput id="minuteRate" label="سعر دقيقة الطريق (لمواجهة الأزمات) ⏱️" value={matrix.minuteRate} onChange={val => setMatrix(m => ({...m, minuteRate: val}))} icon={<ShieldAlert className={styles.style437_78}/>} hasError={!isOperatorLinked && isBlocked}/>
+                    <PricingInput id="longTripKmRate" label={tAuto('key_02c1325b')} value={matrix.longTripKmRate} onChange={val => setMatrix(m => ({...m, longTripKmRate: val}))} icon={<BarChart2 className={styles.style436_77}/>} hasError={!isOperatorLinked && isBlocked}/>
+                    <PricingInput id="minuteRate" label={tAuto('key_2af82021')} value={matrix.minuteRate} onChange={val => setMatrix(m => ({...m, minuteRate: val}))} icon={<ShieldAlert className={styles.style437_78}/>} hasError={!isOperatorLinked && isBlocked}/>
                    </div>
                 </div>
               </div>
@@ -590,9 +593,9 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, pr
                       ? styles.style450_83
                       : styles.style451_84)}
                 >
-                  {isSaving ? <Loader2 className={styles.style454_85} /> : 'حفظ الهوية السعرية 💾'}
+                  {isSaving ? <Loader2 className={styles.style454_85} /> : tAuto('key_cd789dd0')}
                 </Button>
-                <Button onClick={onCancel} variant="outline" className={styles.style456_86}>إغلاق</Button>
+                <Button onClick={onCancel} variant="outline" className={styles.style456_86}>{tAuto('key_9932cca0')}</Button>
               </div>
             </div>
           </div>
@@ -607,23 +610,23 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, pr
           <div className={styles.style468_88}>
              <h3 className={styles.style469_89}>
                <ShieldAlert className={styles.style470_90} />
-               طلب مقيد بالعداد الموحد
-             </h3>
+               {tAuto('key_2230e090')}
+                                   </h3>
              <p className={styles.style473_91}>
-               اختار الراكب نمط "عداد التطبيقات الذكية". تم إلغاء وتجميد تسعيرتك الحرة قسرياً لهذا الطلب التزاماً بالعدالة.
-             </p>
+               {tAuto('key_2e1fb4fc')}
+                                   </p>
 
              <div className={styles.style477_92}>
-                <p className={styles.style478_93}>تسعيرة العداد الموحد المجمد</p>
+                <p className={styles.style478_93}>{tAuto('key_50a1f4eb')}</p>
                 <div className={styles.style479_94}>
-                  {officialRateFare.toFixed(2)} <span className={styles.style480_95}>دينار عراقي</span>
+                  {officialRateFare.toFixed(2)} <span className={styles.style480_95}>{tAuto('key_220dddd6')}</span>
                 </div>
-                <span className={styles.style482_96}>تشمل معامل الطريق التقريبي (γ = 1.35)</span>
+                <span className={styles.style482_96}>{tAuto('key_a5a9c2c5')}</span>
              </div>
 
              <p className={styles.style485_97}>
-               بموجب ميثاق صفر عمولة، السعر مستقطع بالكامل لصالحك والمنصة تعمل كحارس أمين للقيمة بصفر تكلفة سحابة ($0.00).
-             </p>
+               {tAuto('key_ac419809')}
+                                   </p>
 
              <div className={styles.style489_98}>
                 <Button
@@ -632,7 +635,7 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, pr
                   size="lg"
                   className={styles.style494_99}
                 >
-                   {isSubmitting ? <Loader2 className={styles.style496_100} /> : 'تقديم عرض العداد وتجميد القيمة'}
+                   {isSubmitting ? <Loader2 className={styles.style496_100} /> : tAuto('key_09b7f5c7')}
                 </Button>
 
                 <Button
@@ -640,8 +643,8 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, pr
                   variant="outline"
                   className={styles.style502_101}
                 >
-                  تجاهل وإغلاق
-                </Button>
+                  {tAuto('key_ad1436e3')}
+                                          </Button>
              </div>
           </div>
         </div>
@@ -653,21 +656,21 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, pr
       return (
         <div className={styles.style515_102}>
           <div className={styles.style516_103}>
-             <h3 className={styles.style517_104}><ShieldCheck className={styles.style517_105}/> وضع التسعير المؤسسي</h3>
+             <h3 className={styles.style517_104}><ShieldCheck className={styles.style517_105}/> {tAuto('key_3a80d104')}</h3>
              <p className={styles.style518_106}>
-                أنت تعمل حالياً تحت مظلة مشغلك الرسمي. السعر سيتم تحديده بناءً على عداد المشغل الرسمي عند انتهاء الرحلة.
-             </p>
+                {tAuto('key_1f1cda12')}
+                                   </p>
              <div className={styles.style521_107}>
-                <p className={styles.style522_108}>السعر المعتمد</p>
-                <p className={styles.style523_109}>حسب عداد المشغل</p>
+                <p className={styles.style522_108}>{tAuto('key_7f876217')}</p>
+                <p className={styles.style523_109}>{tAuto('key_f8522b9b')}</p>
              </div>
-             <p className={styles.style525_110}>هل توافق على قبول المهمة بهذا الشرط؟</p>
+             <p className={styles.style525_110}>{tAuto('key_81cb0f54')}</p>
              <div className={styles.style526_111}>
                 <Button onClick={() => onConfirm(-1)} disabled={isSubmitting} size="lg" className={styles.style527_112}>
-                   {isSubmitting ? <Loader2 className={styles.style528_113} /> : <span className={styles.style528_114}>نعم، أقبل وألتزم بتسعيرة المشغل</span>}
+                   {isSubmitting ? <Loader2 className={styles.style528_113} /> : <span className={styles.style528_114}>{tAuto('key_a0fba9f4')}</span>}
                 </Button>
              </div>
-             <Button onClick={onCancel} variant="ghost" className={styles.style531_115}>تجاهل وإغلاق</Button>
+             <Button onClick={onCancel} variant="ghost" className={styles.style531_115}>{tAuto('key_ad1436e3')}</Button>
           </div>
         </div>
       );
@@ -676,32 +679,32 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, pr
     return (
       <div className={styles.style538_116}>
         <div className={styles.style539_117}>
-           <h3 className={styles.style540_118}>محاكي العرض الذكي 🎯</h3>
+           <h3 className={styles.style540_118}>{tAuto('key_fa12de96')}</h3>
            <p className={styles.style541_119}>
-              بناءً على هويتك، هذه هي خياراتك للمسافة ({tripDistance.toFixed(1)} كم).
-           </p>
+              {tAuto('key_bbcf5dc8')}{tripDistance.toFixed(1)} {tAuto('key_15f14042')}
+                               </p>
 
            <div className={styles.style545_120}>
-              <p className={styles.style546_121}>السعر المرجعي المحسوب</p>
-              <p className={styles.style547_122}>{calculatedOffers.avg.toFixed(2)} <span className={styles.style547_123}>دينار</span></p>
+              <p className={styles.style546_121}>{tAuto('key_52cc73f2')}</p>
+              <p className={styles.style547_122}>{calculatedOffers.avg.toFixed(2)} <span className={styles.style547_123}>{tAuto('key_1801c96b')}</span></p>
            </div>
 
-           <p className={styles.style550_124}>اختر استراتيجيتك بضغطة واحدة:</p>
+           <p className={styles.style550_124}>{tAuto('key_fff81cc9')}</p>
            <div className={styles.style551_125}>
               <Button onClick={() => onConfirm(calculatedOffers.min)} disabled={isSubmitting} variant="outline" size="lg" className={styles.style552_126}>
-                {isSubmitting ? <Loader2 className={styles.style553_127} /> : <span className={styles.style553_128}>إرسال الحد الأدنى (تنافسي)</span>}
+                {isSubmitting ? <Loader2 className={styles.style553_127} /> : <span className={styles.style553_128}>{tAuto('key_8dbb0844')}</span>}
                 <span className={styles.style554_129}>{calculatedOffers.min.toFixed(2)}</span>
               </Button>
               <Button onClick={() => onConfirm(calculatedOffers.avg)} disabled={isSubmitting} size="lg" className={styles.style556_130}>
-                 {isSubmitting ? <Loader2 className={styles.style557_131} /> : <span className={styles.style557_132}>إرسال السعر المتوسط (المعتاد)</span>}
+                 {isSubmitting ? <Loader2 className={styles.style557_131} /> : <span className={styles.style557_132}>{tAuto('key_60ac2455')}</span>}
                  <span className={styles.style558_133}>{calculatedOffers.avg.toFixed(2)}</span>
               </Button>
               <Button onClick={() => onConfirm(calculatedOffers.peak)} disabled={isSubmitting} variant="outline" size="lg" className={styles.style560_134}>
-                {isSubmitting ? <Loader2 className={styles.style561_135} /> : <span className={styles.style561_136}>إرسال سعر الذروة (الأعلى)</span>}
+                {isSubmitting ? <Loader2 className={styles.style561_135} /> : <span className={styles.style561_136}>{tAuto('key_bace34ec')}</span>}
                 <span className={styles.style562_137}>{calculatedOffers.peak.toFixed(2)}</span>
               </Button>
            </div>
-           <Button onClick={onCancel} variant="ghost" className={styles.style565_138}>تجاهل وإغلاق</Button>
+           <Button onClick={onCancel} variant="ghost" className={styles.style565_138}>{tAuto('key_ad1436e3')}</Button>
         </div>
       </div>
     );

@@ -10,6 +10,7 @@ import {
   rejectPasswordResetRequest,
   type PasswordResetRequestRow,
 } from '@/features/auth/contract';
+import { useTranslations } from "next-intl";
 
 const styles = {
   wrap: 'space-y-4',
@@ -58,6 +59,8 @@ interface IssuedToken {
  * password_reset_audit.
  */
 export function PasswordResetsTab() {
+    const tAuto = useTranslations('auto');
+    const t = useTranslations('auto');
   const { toast } = useToast();
   const [requests, setRequests] = React.useState<PasswordResetRequestRow[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -133,48 +136,45 @@ export function PasswordResetsTab() {
     <div className={styles.wrap}>
       <div className={styles.headerRow}>
         <div>
-          <h2 className={styles.title}>طلبات استرجاع كلمة المرور</h2>
+          <h2 className={styles.title}>{tAuto('key_45cbab9c')}</h2>
           <p className={styles.subtitle}>
-            الحسابات اللي مالهاش إيميل استرجاع بتوصل هنا. اتأكد من هوية صاحب الحساب بنفسك
-            (رقم قومي، لوحة المركبة، آخر رحلة) قبل ما تصدر الرمز.
-          </p>
+            {tAuto('key_522df74a')}
+                                </p>
         </div>
         <button type="button" onClick={() => void load()} disabled={isLoading} className={styles.refresh}>
           {isLoading ? <Loader2 className={styles.spin} /> : <RefreshCw className={styles.refreshIcon} />}
-          تحديث
-        </button>
+          {tAuto('key_061401dc')}
+                          </button>
       </div>
 
       <p className={styles.warning}>
         <AlertTriangle className={styles.warningIcon} />
-        إصدار الرمز معناه إن صاحبه هيقدر يحط كلمة مرور جديدة ويدخل الحساب. كل عملية بتتسجّل
-        باسمك في سجل التدقيق.
-      </p>
+        {tAuto('key_32617a5b')}
+                    </p>
 
       {issued ? (
         <div className={styles.tokenBox}>
-          <span className={styles.tokenLabel}>رابط الاسترجاع — ابعته لصاحب الحساب</span>
+          <span className={styles.tokenLabel}>{tAuto('key_a6696aa0')}</span>
           <code className={styles.tokenValue}>{issued.url}</code>
           <p className={styles.tokenHint}>
-            صالح لمدة {issued.expiresInMinutes} دقيقة، ويشتغل مرة واحدة بس. مش هيتعرض تاني بعد
-            ما تقفل الشاشة — انسخه دلوقتي.
-          </p>
+            {tAuto('key_ce5d8c18')} {issued.expiresInMinutes} {tAuto('key_a444da69')}
+                                </p>
           <button
             type="button"
             onClick={() => {
               void navigator.clipboard.writeText(issued.url);
-              toast({ title: 'تم نسخ الرابط' });
+              toast({ title: tAuto('key_005a34e1') });
             }}
             className={styles.copy}
           >
             <Copy className={styles.copyIcon} />
-            نسخ الرابط
-          </button>
+            {tAuto('key_0d8af0ab')}
+                                </button>
         </div>
       ) : null}
 
       {isLoading ? null : requests.length === 0 ? (
-        <p className={styles.empty}>مفيش طلبات استرجاع منتظرة.</p>
+        <p className={styles.empty}>{tAuto('key_56b43fd7')}</p>
       ) : (
         <div className={styles.list}>
           {requests.map((request) => (
@@ -189,24 +189,24 @@ export function PasswordResetsTab() {
                 {request.profile_id ? (
                   <span className={styles.matched}>
                     <ShieldCheck className={styles.badgeIcon} />
-                    مرتبط بحساب
-                  </span>
+                    {tAuto('key_80bb0aa3')}
+                                                </span>
                 ) : (
                   <span className={styles.unmatched}>
                     <XCircle className={styles.badgeIcon} />
-                    الرقم مش مسجّل
-                  </span>
+                    {tAuto('key_235aa0f8')}
+                                                    </span>
                 )}
               </div>
 
               <label className={styles.noteLabel} htmlFor={`note-${request.id}`}>
-                إزاي اتأكدت من هويته؟
-              </label>
+                {tAuto('key_40081c53')}
+                                    </label>
               <input
                 id={`note-${request.id}`}
                 value={notes[request.id] || ''}
                 onChange={(event) => setNotes((current) => ({ ...current, [request.id]: event.target.value }))}
-                placeholder="مثال: طابق الرقم القومي ولوحة المركبة وآخر رحلة"
+                placeholder={tAuto('key_f5824925')}
                 className={styles.noteInput}
               />
 
@@ -218,8 +218,8 @@ export function PasswordResetsTab() {
                   className={styles.approve}
                 >
                   {busyId === request.id ? <Loader2 className={styles.spin} /> : <KeyRound className={styles.refreshIcon} />}
-                  إصدار رمز الاسترجاع
-                </button>
+                  {tAuto('key_916daeb8')}
+                                          </button>
                 <button
                   type="button"
                   onClick={() => void reject(request)}
@@ -227,8 +227,8 @@ export function PasswordResetsTab() {
                   className={styles.reject}
                 >
                   <XCircle className={styles.refreshIcon} />
-                  رفض
-                </button>
+                  {tAuto('key_b7dee974')}
+                                          </button>
               </div>
             </div>
           ))}

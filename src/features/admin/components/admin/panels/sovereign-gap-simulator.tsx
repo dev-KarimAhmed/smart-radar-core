@@ -5,7 +5,8 @@ import {
   Sparkles,
   Clock,
   Award,
-  Loader2
+  Loader2,
+  Check
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,6 +22,8 @@ import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 import { DriverData } from '@/hooks/admin/useSovereignDashboard';
+import { useTranslations } from 'next-intl';
+import { cn } from '@/lib/utils';
 
 const styles = {
   style181_1: "bg-[#050505] border border-[#00ffcc]/15 shadow-[0_8px_32px_rgba(0,0,0,0.5)] rounded-2xl overflow-hidden mt-8",
@@ -73,56 +76,7 @@ const styles = {
 
 // [SCR-GAP-LOCKDOWN-150] محرك سد الثغرات الاستراتيجية (الارتحال، الشحن، والصندوق الأسود)
 // محصن ومغلق اً - يعمل بمعمارية الحافة وصفر كلفة تشغيلية
-export interface CaptainSovereignState {
-  captainId: string;
-  homeDistrict: string;
-  currentDistrict: string;
-  walletHours: number;
-  isBanned: boolean;
-}
-
-export const RadarGapLockdownKernel = {
-  /**
-   * 1. معالجة الارتحال الجغرافي: تحديث المنطقة الإحصائي تلقائياً عند الحافة
-   */
-  handleDistrictCommute: function(
-    currentState: CaptainSovereignState,
-    newDistrictFromH3: string
-  ): CaptainSovereignState {
-    if (currentState.currentDistrict !== newDistrictFromH3) {
-      currentState.currentDistrict = newDistrictFromH3;
-    }
-    return currentState;
-  },
-
-  /**
-   * 2. آلية الشحن الميداني (أكواد الشحن المشفرة للمندوبين)
-   */
-  redeemVoucherHours: function(
-    currentWallet: { paidHours: number },
-    voucherCode: string,
-    secureServerKey: string
-  ): { success: boolean; hoursAdded: number } {
-    // [BANNED-CLIENT-SIDE] منطق التحقق مرحّل كلياً للسيرفر الخلفي الآمن لمنع إضافة الساعات
-    throw new Error("يُحظر التحقق من بطاقات الشحن من جهة العميل. منطق التحقق مرحّل كلياً للسيرفر الخلفي الآمن.");
-  },
-
-  /**
-   * 3. الصندوق الأسود للمشرف: الحذف القاطع وقطع صلاحيات طيران الحسابات
-   */
-  enforceAdminBlackBoxAction: function(
-    captain: CaptainSovereignState,
-    action: 'WARN' | 'BAN'
-  ): CaptainSovereignState {
-    if (action === 'BAN') {
-      captain.isBanned = true;
-      captain.walletHours = 0;
-    }
-    return captain;
-  }
-};
-
-Object.freeze(RadarGapLockdownKernel);
+import { CaptainSovereignState, RadarGapLockdownKernel } from './sovereign-gap-kernel';
 
 interface SovereignGapSimulatorProps {
   drivers: DriverData[];
@@ -137,7 +91,9 @@ export function SovereignGapSimulator({
   isProcessing,
   setIsProcessing
 }: SovereignGapSimulatorProps) {
+    const tAuto = useTranslations('auto');
   const { toast } = useToast();
+  const t = useTranslations('adminTab.simulator');
 
   // Simulated operations states
   const [commuteDriverUid, setCommuteDriverUid] = useState<string>('');
@@ -151,7 +107,7 @@ export function SovereignGapSimulator({
    */
   const executeCommuteSim = async () => {
     if (!commuteDriverUid) {
-      toast({ variant: 'destructive', title: 'خطأ في الترحيل', description: 'يرجى اختيار السائق المراد ترحيله أولاً.' });
+      toast({ variant: 'destructive', title: t('toasts.commuteErrorTitle'), description: t('toasts.commuteErrorNoDriver') });
       return;
     }
     const targetDriver = drivers.find(d => d.uid === commuteDriverUid);
@@ -168,19 +124,19 @@ export function SovereignGapSimulator({
 
       if (response.ok && data.success) {
         toast({
-          title: '📡 تم الارتحال الجغرافي وبث الإعلانات',
-          description: `تم ترحيل السائق [${targetDriver.name}] بنجاح إلى [${targetDistrict}].`
+          title: t('toasts.commuteSuccessTitle'),
+          description: t('toasts.commuteSuccessDesc', { name: targetDriver.name, district: targetDistrict })
         });
         await fetchDrivers();
       } else {
         toast({
           variant: 'destructive',
-          title: 'خطأ بالارتحال',
-          description: data.error || 'حدث خطأ غير متوقع أثناء ترحيل السائق'
+          title: t('toasts.commuteErrorTitle'),
+          description: data.error || t('toasts.commuteErrorUnexpected')
         });
       }
     } catch (err: any) {
-      toast({ variant: 'destructive', title: 'خطأ بالارتحال', description: err.message });
+      toast({ variant: 'destructive', title: t('toasts.commuteErrorTitle'), description: err.message });
     } finally {
       setIsProcessing(false);
     }
@@ -192,11 +148,11 @@ export function SovereignGapSimulator({
    */
   const executeVoucherRedeemSim = async () => {
     if (!voucherDriverUid) {
-      toast({ variant: 'destructive', title: 'خطأ الشحن', description: 'يرجى اختيار السائق المستهدف بالشحن أولاً.' });
+      toast({ variant: 'destructive', title: t('toasts.voucherErrorTitle'), description: t('toasts.voucherErrorNoDriver') });
       return;
     }
     if (!voucherCode) {
-      toast({ variant: 'destructive', title: 'خطأ الشحن', description: 'يرجى إدخال رمز تذكرة الشحن.' });
+      toast({ variant: 'destructive', title: t('toasts.voucherErrorTitle'), description: t('toasts.voucherErrorCode') });
       return;
     }
 
@@ -214,20 +170,20 @@ export function SovereignGapSimulator({
 
       if (response.ok && data.success) {
         toast({
-          title: '🎫 شحن فوري ناجح (تذكرة معتمدة من السيرفر)',
-          description: `تم قبول بطاقة المندوب وتحديث [${data.hoursAdded}] ساعة رصيد للسائق [${targetDriver.name}] بنجاح.`
+          title: t('toasts.voucherSuccessTitle'),
+          description: t('toasts.voucherSuccessDesc', { hours: data.hoursAdded, name: targetDriver.name })
         });
         setVoucherCode('');
         await fetchDrivers();
       } else {
         toast({
           variant: 'destructive',
-          title: '❌ فشل التحقق السيرفري للكود',
-          description: data.error || 'رمز البطاقة غير مطابق لبروتوكول التشفير المعتمد "RADAR-100H-*"'
+          title: t('toasts.voucherFailedTitle'),
+          description: data.error || t('toasts.voucherFailedDesc')
         });
       }
     } catch (err: any) {
-      toast({ variant: 'destructive', title: 'خطأ الشحن', description: err.message });
+      toast({ variant: 'destructive', title: t('toasts.voucherErrorTitle'), description: err.message });
     } finally {
       setIsProcessing(false);
     }
@@ -238,10 +194,10 @@ export function SovereignGapSimulator({
       <CardHeader className={styles.style182_2}>
         <CardTitle className={styles.style183_3}>
           <Sparkles className={styles.style184_4} />
-          محرك سد الثغرات الاستراتيجية الحاكم (V5.5 Strategic Gaps Simulation Hub)
+          {t('title')}
         </CardTitle>
-        <CardDescription className={styles.style187_5} dir="rtl">
-          واجهة المحاكاة والضبط الفوري لثغرات الانتقال الجغرافي والشحن اليدوي بدون سحب تكاليف السيرفر الإضافية.
+        <CardDescription className={styles.style187_5}>
+          {t('description')}
         </CardDescription>
       </CardHeader>
       <CardContent className={styles.style191_6}>
@@ -251,38 +207,38 @@ export function SovereignGapSimulator({
           <div className={styles.style195_8}>
             <div className={styles.style196_9}>
               <Clock className={styles.style197_10} />
-              <span className={styles.style198_11}>1. محاكي الارتحال الجغرافي اللحظي</span>
+              <span className={styles.style198_11}>{t('commuteCard.title')}</span>
             </div>
             <p className={styles.style200_12}>
-              ينقل السائق من وتد تسجيله الجغرافي إلى منطقة آخر لحظياً لضبط استهداف الإعلانات وتجريم الصمت.
+              {t('commuteCard.description')}
             </p>
 
             <div className={styles.style204_13}>
-              <label className={styles.style205_14}>اختر السائق المستهدف بالترحيل:</label>
+              <label className={styles.style205_14}>{t('commuteCard.selectLabel')}</label>
               <Select value={commuteDriverUid} onValueChange={setCommuteDriverUid}>
                 <SelectTrigger className={styles.style207_15}>
-                  <SelectValue placeholder="-- اختر سائق من الميدان --" />
+                  <SelectValue placeholder={t('commuteCard.selectPlaceholder')} />
                 </SelectTrigger>
                 <SelectContent className={styles.customSelectContent}>
                   {drivers.map(d => (
                     <SelectItem key={d.uid} value={d.uid} className={styles.customSelectItem}>
-                      {d.name} ({d.currentDistrict || 'غير محدد'})
+                      {d.name} ({d.currentDistrict || t('commuteCard.unspecified')})
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
 
-              <label className={styles.style219_16}>المنطقة المستهدف الموجه للإعلان:</label>
+              <label className={styles.style219_16}>{t('commuteCard.targetLabel')}</label>
               <Select value={targetDistrict} onValueChange={setTargetDistrict}>
                 <SelectTrigger className={styles.style221_17}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className={styles.customSelectContent}>
-                  <SelectItem value="منطقة الشونة الجنوبية" className={styles.customSelectItem}>منطقة الشونة الجنوبية</SelectItem>
-                  <SelectItem value="منطقة ناعور" className={styles.customSelectItem}>منطقة ناعور</SelectItem>
-                  <SelectItem value="منطقة دير غبار" className={styles.customSelectItem}>منطقة دير غبار</SelectItem>
-                  <SelectItem value="منطقة صويلح" className={styles.customSelectItem}>منطقة صويلح</SelectItem>
-                  <SelectItem value="منطقة المقابلين" className={styles.customSelectItem}>منطقة المقابلين</SelectItem>
+                  <SelectItem value={tAuto('key_3fadd59c')} className={styles.customSelectItem}>{t('areas.shouna')}</SelectItem>
+                  <SelectItem value={tAuto('key_643e2556')} className={styles.customSelectItem}>{t('areas.naour')}</SelectItem>
+                  <SelectItem value={tAuto('key_656e3770')} className={styles.customSelectItem}>{t('areas.deirGhbar')}</SelectItem>
+                  <SelectItem value={tAuto('key_34c7df09')} className={styles.customSelectItem}>{t('areas.sweileh')}</SelectItem>
+                  <SelectItem value={tAuto('key_edbefa77')} className={styles.customSelectItem}>{t('areas.muqabalain')}</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -291,7 +247,7 @@ export function SovereignGapSimulator({
                 disabled={isProcessing}
                 className={styles.style235_18}
               >
-                ترحيل فوري محصن 📡
+                {t('commuteCard.btn')}
               </Button>
             </div>
           </div>
@@ -300,39 +256,39 @@ export function SovereignGapSimulator({
           <div className={styles.style243_19}>
             <div className={styles.style244_20}>
               <Award className={styles.style245_21} />
-              <span className={styles.style246_22}>2. شحن رصيد الساعات يدوياً (بطاقات المندوبين)</span>
+              <span className={styles.style246_22}>{t('voucherCard.title')}</span>
             </div>
             <p className={styles.style248_23}>
-              تمكين الدعم النقدي بالميدان عبر تذاكر الخدش المسبقة الدفع الصادرة بأختام  مشفرة.
+              {t('voucherCard.description')}
             </p>
 
             <div className={styles.style252_24}>
-              <label className={styles.style253_25}>اختر السائق المستهدف بالشحن:</label>
+              <label className={styles.style253_25}>{t('voucherCard.selectLabel')}</label>
               <Select value={voucherDriverUid} onValueChange={setVoucherDriverUid}>
                 <SelectTrigger className={styles.style255_26}>
-                  <SelectValue placeholder="-- اختر سائق من الميدان --" />
+                  <SelectValue placeholder={t('voucherCard.selectPlaceholder')} />
                 </SelectTrigger>
                 <SelectContent className={styles.customSelectContent}>
                   {drivers.map(d => (
                     <SelectItem key={d.uid} value={d.uid} className={styles.customSelectItem}>
-                      {d.name} ({d.paidHoursRemaining || 0} ساعة متبقية)
+                      {d.name} ({d.paidHoursRemaining || 0} {t('voucherCard.hoursRemaining')})
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
 
-              <label className={styles.style267_27}>أدخل رمز التذكرة (يبدأ بـ RADAR-100H-):</label>
+              <label className={styles.style267_27}>{t('voucherCard.codeLabel')}</label>
               <div className={styles.style268_28}>
                 <Input
                   type="text"
-                  placeholder="مثال: RADAR-100H-JORDAN"
+                  placeholder={t('voucherCard.codePlaceholder')}
                   value={voucherCode}
                   onChange={(e) => setVoucherCode(e.target.value)}
                   className={styles.style274_29}
                   dir="ltr"
                 />
                 <span className={styles.style277_30} onClick={() => setVoucherCode('RADAR-100H-JORDAN')}>
-                  💡 اضغط هنا لنسخ الرمز المعتمد للجلسة: <code className={styles.style278_31}>RADAR-100H-JORDAN</code>
+                  {t('voucherCard.copyHint')}<code className={styles.style278_31}>RADAR-100H-JORDAN</code>
                 </span>
               </div>
 
@@ -341,7 +297,7 @@ export function SovereignGapSimulator({
                 disabled={isProcessing}
                 className={styles.style285_32}
               >
-                تفعيل شحنة الـ 100 ساعة 🎫
+                {t('voucherCard.btn')}
               </Button>
             </div>
           </div>
@@ -349,20 +305,20 @@ export function SovereignGapSimulator({
         </div>
 
         {/* 3. Operational Integrity Audit Checklist */}
-        <div className={styles.style295_33} dir="rtl">
-          <h4 className={styles.style296_34}>أجهزة القياس الذاتي والتحقق التلقائي (Edge Integrity Metrics)</h4>
+        <div className={styles.style295_33}>
+          <h4 className={styles.style296_34}>{t('metrics.title')}</h4>
           <ul className={styles.style297_35}>
             <li className={styles.style298_36}>
-              <span className={styles.style299_37}>✔</span>
-              <span>استقرار النطاق الجغرافي: تصفية الإعلانات والحسابات تتم محلياً عند الحافة بصفر تكلفة سحابية.</span>
+              <Check className={cn(styles.style299_37, 'w-4 h-4')} />
+              <span>{t('metrics.item1')}</span>
             </li>
             <li className={styles.style302_38}>
-              <span className={styles.style303_39}>✔</span>
-              <span>محرك الصرف المحصن: تفعيل قاعدة الـ 30 يوماً المستقرة لحسابات المندوبين.</span>
+              <Check className={cn(styles.style303_39, 'w-4 h-4')} />
+              <span>{t('metrics.item2')}</span>
             </li>
             <li className={styles.style306_40}>
-              <span className={styles.style307_41}>✔</span>
-              <span className={styles.style308_42}>الصندوق الأسود  مغلق بمجهرية النواة <code className={styles.style308_43}>Object.freeze(RadarGapLockdownKernel)</code> لمنع الاختراقات والعبث بالباقات المدفوعة.</span>
+              <Check className={cn(styles.style307_41, 'w-4 h-4')} />
+              <span className={styles.style308_42}>{t('metrics.item3Text')}<code className={styles.style308_43}>{t('metrics.item3Code')}</code>{t('metrics.item3Suffix')}</span>
             </li>
           </ul>
         </div>

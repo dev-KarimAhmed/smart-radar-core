@@ -1,0 +1,82 @@
+const fs = require('fs');
+
+const original = fs.readFileSync('scratch/history-original.tsx', 'utf8');
+
+const hookStartStr = 'export function HistoryTab({ hideCaptainDiagnostics = false }: HistoryTabProps = {}) {';
+const hookStart = original.indexOf(hookStartStr);
+
+const renderStartStr = "if (language === 'en' && isPassenger) {";
+const hookEnd = original.indexOf(renderStartStr, hookStart);
+
+let hookBody = original.substring(hookStart + hookStartStr.length, hookEnd);
+
+hookBody = hookBody.replace(/const copy = historyLanguageCopy\[language\];/, "const t = useTranslations('historyTab');");
+
+// Strip renderDetailedReview accurately
+const reviewIndex = hookBody.indexOf('const renderDetailedReview');
+const endOfReviewIndex = hookBody.indexOf('  };\n\n', reviewIndex);
+if (reviewIndex > -1 && endOfReviewIndex > -1) {
+  hookBody = hookBody.substring(0, reviewIndex) + hookBody.substring(endOfReviewIndex + 5);
+} else {
+    console.error("Could not find renderDetailedReview bounds", reviewIndex, endOfReviewIndex);
+}
+
+const finalHook = `import { useState, useEffect, useMemo } from 'react';
+import { useAuth } from '@/hooks/use-auth';
+import { dexieDb, type RiderTripLedgerEntry } from '@/lib/dexie-db';
+import { fetchFavoriteCaptainIds, setFavoriteCaptain } from '../services/favorite-captains';
+import { supabase } from '@/lib/supabase-client';
+import { useToast } from '@/hooks/use-toast';
+import { SOVEREIGN_ERR_DICTIONARY } from '@/core/config/sovereign-errors';
+import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
+import { useTranslations } from 'next-intl';
+import {
+  HISTORY_TTL_MS,
+  type HistoricalTrip,
+  getCaptainIdFromTrip,
+  getHistoryCaptainName,
+  getHistoryCaptainRank,
+  getHistoryCaptainPhone,
+  getHistoryVehicleInfo,
+  parseTripTimestamp,
+  fetchRowsByIds,
+  enrichCaptainDetails,
+  getTripHistoryId,
+  appendUniqueTrips,
+  mapLedgerRowToTripShape,
+  tripShapeToRiderLedgerEntry
+} from './history-shared';
+
+export function useHistoryState() {
+${hookBody}
+  return {
+    favoriteCaptainIds,
+    sovereignLogs,
+    realTrips,
+    tripReviews,
+    loading,
+    errorSearch,
+    setErrorSearch,
+    errorCategory,
+    setErrorCategory,
+    expandedErrorCode,
+    setExpandedErrorCode,
+    filteredErrors,
+    riderHistoricalTrips,
+    favoriteCaptains,
+    captainHistoricalTrips,
+    toggleFavorite,
+    clearSovereignLogs,
+    user,
+    isCaptain,
+    isPassenger,
+    isArabic,
+    language,
+    currencyLabel,
+    t,
+  };
+}
+`;
+
+fs.writeFileSync('src/features/account/components/history-tab/use-history-state.ts', finalHook);
+console.log('Hook rewritten cleanly!');

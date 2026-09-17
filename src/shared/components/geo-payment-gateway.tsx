@@ -18,6 +18,7 @@ import {
   Wallet,
   X,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 const styles = {
   style83_1: "fixed inset-0 z-[150] flex items-center justify-center bg-black/90 p-4 backdrop-blur-md",
@@ -104,6 +105,8 @@ type PaymentChannel = (typeof PAYMENT_CHANNELS)[number]["id"];
 type PaymentMode = "receipt" | "voucher";
 
 export function GeoPaymentGateway({ isOpen, onClose, onSuccess }: GeoPaymentGatewayProps) {
+    const tAuto = useTranslations('auto');
+    const t = useTranslations('auto');
   const { user } = useAuth();
   const { submitWalletReceipt, redeemVoucherCode, loading } = useSovereignWallet(user);
   const [mode, setMode] = useState<PaymentMode>("receipt");
@@ -157,8 +160,8 @@ export function GeoPaymentGateway({ isOpen, onClose, onSuccess }: GeoPaymentGate
               <Wallet className={styles.style88_6} />
             </div>
             <div>
-              <CardTitle className={styles.style91_7}>شحن الرصيد</CardTitle>
-              <CardDescription className={styles.style92_8}>أرسل إيصال دفع أو فعّل كود شحن.</CardDescription>
+              <CardTitle className={styles.style91_7}>{tAuto('key_b4a7ae52')}</CardTitle>
+              <CardDescription className={styles.style92_8}>{tAuto('key_c4ec66a0')}</CardDescription>
             </div>
           </div>
           <Button
@@ -178,12 +181,12 @@ export function GeoPaymentGateway({ isOpen, onClose, onSuccess }: GeoPaymentGate
                 <CheckCircle2 className={styles.style109_14} />
               </div>
               <div className={styles.style111_15}>
-                <h3 className={styles.style112_16}>تمت العملية</h3>
+                <h3 className={styles.style112_16}>{tAuto('key_84e69e2c')}</h3>
                 <p className={styles.style113_17}>{completedMessage}</p>
               </div>
               <Button onClick={resetAndClose} className={styles.style115_18}>
-                العودة إلى الرصيد
-              </Button>
+                {tAuto('key_2254945e')}
+                                            </Button>
             </div>
           ) : (
             <>
@@ -197,8 +200,8 @@ export function GeoPaymentGateway({ isOpen, onClose, onSuccess }: GeoPaymentGate
                   )}
                 >
                   <ReceiptText className={styles.style130_23} />
-                  إيصال دفع
-                </button>
+                  {tAuto('key_5742076f')}
+                                                      </button>
                 <button
                   type="button"
                   onClick={() => setMode("voucher")}
@@ -208,14 +211,14 @@ export function GeoPaymentGateway({ isOpen, onClose, onSuccess }: GeoPaymentGate
                   )}
                 >
                   <Ticket className={styles.style141_27} />
-                  كود شحن
-                </button>
+                  {tAuto('key_8ebc995a')}
+                                                      </button>
               </div>
 
               {mode === "receipt" ? (
                 <div className={styles.style147_28}>
                   <div className={styles.style148_29}>
-                    <label className={styles.style149_30}>المبلغ</label>
+                    <label className={styles.style149_30}>{tAuto('key_faba469e')}</label>
                     <div className={styles.style150_31}>
                       {["1", "5", "10", "20"].map((preset) => (
                         <Button
@@ -247,7 +250,7 @@ export function GeoPaymentGateway({ isOpen, onClose, onSuccess }: GeoPaymentGate
                   </div>
 
                   <div className={styles.style180_38}>
-                    <span className={styles.style181_39}>طريقة الدفع</span>
+                    <span className={styles.style181_39}>{tAuto('key_8f31e70d')}</span>
                     <div className={styles.style182_40}>
                       {PAYMENT_CHANNELS.map((channel) => (
                         <button
@@ -270,19 +273,19 @@ export function GeoPaymentGateway({ isOpen, onClose, onSuccess }: GeoPaymentGate
                   </div>
 
                   <div className={styles.style203_47}>
-                    <label className={styles.style204_48}>صورة الإيصال</label>
+                    <label className={styles.style204_48}>{tAuto('key_7443e408')}</label>
                     <label className={styles.style205_49}>
                       {receiptFile ? (
                         <>
                           <FileImage className={styles.style208_50} />
                           <span className={styles.style209_51}>{receiptFile.name}</span>
-                          <span className={styles.style210_52}>اضغط لتغيير الصورة</span>
+                          <span className={styles.style210_52}>{tAuto('key_86ecd2d6')}</span>
                         </>
                       ) : (
                         <>
                           <UploadCloud className={styles.style214_53} />
-                          <span className={styles.style215_54}>ارفع صورة إيصال الدفع</span>
-                          <span className={styles.style216_55}>PNG أو JPG أو PDF</span>
+                          <span className={styles.style215_54}>{tAuto('key_960aa8c9')}</span>
+                          <span className={styles.style216_55}>{tAuto('key_0999fd8d')}</span>
                         </>
                       )}
                       <input
@@ -299,20 +302,20 @@ export function GeoPaymentGateway({ isOpen, onClose, onSuccess }: GeoPaymentGate
                     disabled={loading || !receiptFile || !Number.isFinite(Number(amount)) || Number(amount) <= 0}
                     className={styles.style231_57}
                   >
-                    {loading ? <Loader2 className={styles.style233_58} /> : "إرسال الإيصال للمراجعة"}
+                    {loading ? <Loader2 className={styles.style233_58} /> : tAuto('key_1527eb1d')}
                   </Button>
                 </div>
               ) : (
                 <div className={styles.style237_59}>
                   <div className={styles.style238_60}>
-                    أدخل كود الشحن كما هو مكتوب على البطاقة أو الإيصال. سيتم التحقق منه من الخادم مباشرة.
-                  </div>
+                    {tAuto('key_e183ebed')}
+                                                                </div>
                   <div className={styles.style241_61}>
-                    <label className={styles.style242_62}>كود الشحن</label>
+                    <label className={styles.style242_62}>{tAuto('key_7b94eeef')}</label>
                     <Input
                       value={voucherCode}
                       onChange={(event) => setVoucherCode(event.target.value)}
-                      placeholder="مثال: RADAR-2026"
+                      placeholder={tAuto('key_b24b85fc')}
                       className={styles.style247_63}
                     />
                   </div>
@@ -321,7 +324,7 @@ export function GeoPaymentGateway({ isOpen, onClose, onSuccess }: GeoPaymentGate
                     disabled={loading || !voucherCode.trim()}
                     className={styles.style253_64}
                   >
-                    {loading ? <Loader2 className={styles.style255_65} /> : "تفعيل الكود"}
+                    {loading ? <Loader2 className={styles.style255_65} /> : tAuto('key_c78f1ec3')}
                   </Button>
                 </div>
               )}

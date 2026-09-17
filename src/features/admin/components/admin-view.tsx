@@ -21,6 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { useTranslations } from "next-intl";
 
 const styles = {
   style59_1: "bg-black/90 border border-amber-500/30 overflow-hidden relative shadow-[0_4px_20px_rgba(245,158,11,0.05)] rounded-2xl flex flex-col text-right",
@@ -272,6 +273,8 @@ const styles = {
 
 
 function PendingAdReviewCard({ ad, onApprove, onReject }: { ad: any; onApprove: (id: string) => Promise<void>; onReject: (id: string, reason: string) => Promise<void> }) {
+    const tAuto = useTranslations('auto');
+    const t = useTranslations('auto');
   const [rejecting, setRejecting] = useState(false);
   const [reason, setReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -311,8 +314,8 @@ function PendingAdReviewCard({ ad, onApprove, onReject }: { ad: any; onApprove: 
         <div className={styles.style61_2}>
           <img src={posterUrl} alt={title} className={styles.style62_3} referrerPolicy="no-referrer" />
           <Badge className={styles.style63_4}>
-            قيد الفحص الأمني 🔍
-          </Badge>
+            {tAuto('key_ae999e08')}
+                                </Badge>
         </div>
       )}
 
@@ -320,8 +323,8 @@ function PendingAdReviewCard({ ad, onApprove, onReject }: { ad: any; onApprove: 
         <div className={styles.style70_6}>
           {!posterUrl && (
             <Badge className={styles.style72_7}>
-              قيد الفحص الأمني 🔍
-            </Badge>
+              {tAuto('key_ae999e08')}
+                                      </Badge>
           )}
           <CardTitle className={styles.style76_8}>{title}</CardTitle>
         </div>
@@ -333,30 +336,30 @@ function PendingAdReviewCard({ ad, onApprove, onReject }: { ad: any; onApprove: 
       <CardContent className={styles.style83_10}>
         <div className={styles.style84_11}>
           <div className={styles.style85_12}>
-            <span className={styles.style86_13}>النطاق الجغرافي</span>
-            <span className={styles.style87_14}>📍 {ad.targetGovernorate || 'كل الأردن'} {ad.targetDistrict ? `- ${ad.targetDistrict}` : ''}</span>
+            <span className={styles.style86_13}>{tAuto('key_388a477e')}</span>
+            <span className={styles.style87_14}>📍 {ad.targetGovernorate || tAuto('key_b758add8')} {ad.targetDistrict ? `- ${ad.targetDistrict}` : ''}</span>
           </div>
           <div className={styles.style89_15}>
-            <span className={styles.style90_16}>مرات الظهور المستهدفة</span>
+            <span className={styles.style90_16}>{tAuto('key_f034a882')}</span>
             <span className={styles.style91_17}>⚡ {(ad.targetImpressions || 10000).toLocaleString()}</span>
           </div>
         </div>
 
         <div className={styles.style95_18}>
           <div className={styles.style96_19}>
-            <span className={styles.style97_20}>ميزة التخليد الفاخرة (القلب الأخضر):</span>
+            <span className={styles.style97_20}>{tAuto('key_da79fbe3')}</span>
             <span className={ad.isPremiumRetentionPaid ? styles.style98_21 : styles.style98_22}>
-              {ad.isPremiumRetentionPaid ? "✅ مدفوعة وتخلد" : "❌ عادية فقط"}
+              {ad.isPremiumRetentionPaid ? tAuto('key_e2372c21') : tAuto('key_188155dd')}
             </span>
           </div>
           <div className={styles.style102_23}>
-            <span className={styles.style103_24}>المستهدف المهني:</span>
+            <span className={styles.style103_24}>{tAuto('key_7d644c75')}</span>
             <span className={styles.style104_25}>
-              {ad.role === 'all' ? 'الجميع' : ad.role === 'driver' ? 'السائقون' : 'الركاب'}
+              {ad.role === 'all' ? tAuto('key_91559fa2') : ad.role === 'driver' ? tAuto('key_89c5c89e') : tAuto('key_da83fc08')}
             </span>
           </div>
           <div className={styles.style108_26}>
-            <span className={styles.style109_27}>واتساب المعلن:</span>
+            <span className={styles.style109_27}>{tAuto('key_3af3abc0')}</span>
             <span className={styles.style110_28}>{ad.whatsapp || ad.phone || 'N/A'}</span>
           </div>
         </div>
@@ -371,8 +374,8 @@ function PendingAdReviewCard({ ad, onApprove, onReject }: { ad: any; onApprove: 
               className={styles.style121_31}
             >
               {isSubmitting ? <Loader2 className={styles.style123_32} /> : <CheckCircle2 className={styles.style123_33} />}
-              اعتماد ونشر للقسم الإعلانات
-            </Button>
+              {tAuto('key_e82205b7')}
+                                      </Button>
             <Button
               onClick={() => setRejecting(true)}
               variant="destructive"
@@ -380,16 +383,16 @@ function PendingAdReviewCard({ ad, onApprove, onReject }: { ad: any; onApprove: 
               className={styles.style130_34}
             >
               <ShieldAlert className={styles.style132_35} />
-              إيقاف
-            </Button>
+              {tAuto('key_848ae5bb')}
+                                      </Button>
           </div>
         ) : (
           <div className={styles.style137_36}>
-            <Label className={styles.style138_37}>مبرر الرفض الأمني (صيغة الإفادة الرسمية):</Label>
+            <Label className={styles.style138_37}>{tAuto('key_80e1f450')}</Label>
             <Input
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="اكتب سبب الرفض هنا..."
+              placeholder={tAuto('key_e6cd6320')}
               className={styles.style143_38}
               dir="rtl"
             />
@@ -400,15 +403,15 @@ function PendingAdReviewCard({ ad, onApprove, onReject }: { ad: any; onApprove: 
                 className={styles.style150_40}
               >
                 {isSubmitting ? <Loader2 className={styles.style152_41} /> : null}
-                تأكيد الإيقاف
-              </Button>
+                {tAuto('key_d213271c')}
+                                                </Button>
               <Button
                 onClick={() => { setRejecting(false); setReason(''); }}
                 variant="outline"
                 className={styles.style158_42}
               >
-                تراجع
-              </Button>
+                {tAuto('key_32d990bf')}
+                                                </Button>
             </div>
           </div>
         )}
@@ -418,6 +421,8 @@ function PendingAdReviewCard({ ad, onApprove, onReject }: { ad: any; onApprove: 
 }
 
 export function PendingAdsAuditPanel() {
+    const tAuto = useTranslations('auto');
+    const t = useTranslations('auto');
   const { approveAd, rejectAd, ads, isLoading } = useAdminAds();
   const pendingAds = React.useMemo(() => {
     return (ads || []).filter(ad => (ad.status || '').toLowerCase() === 'pending' || (ad.status || '') === 'PENDING');
@@ -549,7 +554,7 @@ export function PendingAdsAuditPanel() {
     return (
       <div className={styles.style300_43}>
         <Loader2 className={styles.style301_44} />
-        <p className={styles.style302_45}>بانتظار تدفق المذكرة السحابية للحملات المعلقة...</p>
+        <p className={styles.style302_45}>{tAuto('key_bf0f62a3')}</p>
       </div>
     );
   }
@@ -566,57 +571,57 @@ export function PendingAdsAuditPanel() {
               <span className={styles.style316_52}></span>
               <h3 className={styles.style317_53}>
                 <Radio className={styles.style318_54} />
-                برج مراقبة الإعلانات والنشاط  (Control Tower V5.5)
-              </h3>
+                {tAuto('key_c91bdcd9')}
+                                            </h3>
             </div>
             <p className={styles.style322_55}>
-              محرك الرصد اللحظي والفحص الأمني لحماية الهوية الإعلانية وحماية السائقون من الإغراق والوكالات الوهمية، مع الامتثال لميثاق صفر كلفة <strong className={styles.style323_56}>(SC55)</strong>.
+              {tAuto('key_ad7f6699')} <strong className={styles.style323_56}>(SC55)</strong>.
             </p>
           </div>
           <div className={styles.style326_57}>
             <span className={styles.style327_58}>
-              ⚡ الحصانة المحلية: {geofenceIntegrity.toFixed(1)}%
+              {tAuto('key_5a857b79')} {geofenceIntegrity.toFixed(1)}%
             </span>
             <Badge
               onClick={() => {
                 toast({
-                  title: "🛡️ فحص حالة معلّقات الإعلانات",
+                  title: tAuto('key_a41492ec'),
                   description: `يومض هذا المؤشر تلقائياً بشكل نشاطي للتنبيه بوجود (${pendingCount}) حملة إعلانية تتطلب فحصاً أمنياً مسبقاً وتصديقاً  قبل نشرها في قسم الإعلانات المفتوح.`,
                   variant: "default"
                 });
               }}
               className={styles.style338_59}
             >
-              {pendingCount} في قسم الإعلانات المعلق
-            </Badge>
+              {pendingCount} {tAuto('key_a57d4946')}
+                                      </Badge>
           </div>
         </div>
 
         {/* Real-time Sovereign Indicators */}
         <div className={styles.style346_60}>
           <div className={styles.style347_61}>
-            <span className={styles.style348_62}>النشاط الجغرافي النشط</span>
+            <span className={styles.style348_62}>{tAuto('key_7b8d3f39')}</span>
             <span className={styles.style349_63}>
               <Activity className={styles.style350_64} />
-              1.34 Hz <span className={styles.style351_65}>منظم</span>
+              1.34 Hz <span className={styles.style351_65}>{tAuto('key_8125eae9')}</span>
             </span>
           </div>
           <div className={styles.style354_66}>
-            <span className={styles.style355_67}>أشغال الإعلانات</span>
+            <span className={styles.style355_67}>{tAuto('key_252808c3')}</span>
             <span className={styles.style356_68}>
-              {pendingCount + 12} حملة <span className={styles.style357_69}>/ 1,000 جيو-خلية</span>
+              {pendingCount + 12} {tAuto('key_3d40fde5')} <span className={styles.style357_69}>{tAuto('key_61468e91')}</span>
             </span>
           </div>
           <div className={styles.style360_70}>
-            <span className={styles.style361_71}>حمولة المعالجة (SC55)</span>
+            <span className={styles.style361_71}>{tAuto('key_51950a4a')}</span>
             <span className={styles.style362_72}>
-              0.0% <span className={styles.style363_73}>توزيع طرفي بالكامل</span>
+              0.0% <span className={styles.style363_73}>{tAuto('key_9d1d77f0')}</span>
             </span>
           </div>
           <div className={styles.style366_74}>
-            <span className={styles.style367_75}>تضارب الأدوار (Audit Index)</span>
+            <span className={styles.style367_75}>{tAuto('key_821d92a0')}</span>
             <span className={styles.style368_76}>
-              0.00 <span className={styles.style369_77}>صفر تضخّم</span>
+              0.00 <span className={styles.style369_77}>{tAuto('key_3151e05a')}</span>
             </span>
           </div>
         </div>
@@ -633,9 +638,9 @@ export function PendingAdsAuditPanel() {
             <div className={styles.style383_81}>
               <h4 className={styles.style384_82}>
                 <Compass className={styles.style385_83} />
-                الدفعات الإعلانية الواردة حديثاً بانتظار الختم  ({pendingCount})
+                {tAuto('key_b65bd155')}{pendingCount})
               </h4>
-              <span className={styles.style388_84}>تحديث آلي مستمر من سحابة التوازن</span>
+              <span className={styles.style388_84}>{tAuto('key_32c82ec1')}</span>
             </div>
 
             {pendingCount === 0 ? (
@@ -643,10 +648,10 @@ export function PendingAdsAuditPanel() {
                 <div className={styles.style393_86}>
                   <CheckCircle2 className={styles.style394_87} />
                 </div>
-                <h4 className={styles.style396_88}>قسم الإعلانات النمذجة سليم ونقي</h4>
+                <h4 className={styles.style396_88}>{tAuto('key_2427477a')}</h4>
                 <p className={styles.style397_89}>
-                  لا توجد حملات من معلنين خارجيين بانتظار الفحص الأمني حالياً. كل الدعاية النشطة تمت صيانتها وتعقيم بنودها التاريخية بامتياز.
-                </p>
+                  {tAuto('key_a66bde6d')}
+                                                  </p>
               </div>
             ) : (
               <div className={styles.style402_90}>
@@ -668,11 +673,11 @@ export function PendingAdsAuditPanel() {
               <div>
                 <h4 className={styles.style419_93}>
                   <Fingerprint className={styles.style420_94} />
-                  سجل رادار الفحص الأمني الإعلاني والمخالفات الموضعية
-                </h4>
+                  {tAuto('key_84293290')}
+                                                  </h4>
                 <p className={styles.style423_95}>
-                  بوابة رصد واجهة المالك للسيطرة السريعة وإضافة وسحق التشوهات التي تهدد ميثاق العدالة والإدارة.
-                </p>
+                  {tAuto('key_9990d005')}
+                                                  </p>
               </div>
               <div className={styles.style427_96}>
                 {injectedThreats.some(t => t.resolved) && (
@@ -682,20 +687,20 @@ export function PendingAdsAuditPanel() {
                     className={styles.style432_97}
                   >
                     <Trash2 className={styles.style434_98} />
-                    تنظيف المعقم
-                  </Button>
+                    {tAuto('key_fbefe958')}
+                                                        </Button>
                 )}
                 <Badge variant="outline" className={styles.style438_99}>
-                  {activeThreatsCount} مخالفات نشطة
-                </Badge>
+                  {activeThreatsCount} {tAuto('key_edbed039')}
+                                                  </Badge>
               </div>
             </div>
 
             <div className={styles.style444_100}>
               {injectedThreats.length === 0 ? (
                 <div className={styles.style446_101}>
-                  لا توجد انحرافات مسجلة حالياً في السجل الموضعي. استخدم أزرار مختبر المحاكاة لإضافة تهديدات جديدة.
-                </div>
+                  {tAuto('key_7e571d77')}
+                                                  </div>
               ) : (
                 injectedThreats.map(threat => (
                   <div
@@ -714,7 +719,7 @@ export function PendingAdsAuditPanel() {
                             : styles.style464_109,
                           threat.resolved && styles.style465_110
                         )}>
-                          {threat.resolved ? "تم الحذف والموازنة ✓" : threat.severity === 'severe' ? "خطر فادح 🩸" : "مخالفة معيارية ⚠️"}
+                          {threat.resolved ? tAuto('key_46a6f86e') : threat.severity === 'severe' ? tAuto('key_888d4095') : tAuto('key_5bfde6d0')}
                         </span>
                         <span className={styles.style469_111}>
                           📍 {threat.district}
@@ -739,8 +744,8 @@ export function PendingAdsAuditPanel() {
                     ) : (
                       <span className={styles.style490_117}>
                         <ShieldCheck className={styles.style491_118} />
-                        مؤمن ومصدق
-                      </span>
+                        {tAuto('key_f0db1966')}
+                                                          </span>
                     )}
                   </div>
                 ))
@@ -758,11 +763,11 @@ export function PendingAdsAuditPanel() {
             <div className={styles.style508_121}>
               <h4 className={styles.style509_122}>
                 <Cpu className={styles.style510_123} />
-                مختبر الإضافة الموضعي للإخلالات الإعلانية
-              </h4>
+                {tAuto('key_29811ba4')}
+                                            </h4>
               <p className={styles.style513_124}>
-                اضغط على الزر لإضافة انحراف بروتوكولي أو تسعيري إعلاني لحظي داخل النظام الجيو-سداسي واختبار رد فعل الإيقاف الرقمية:
-              </p>
+                {tAuto('key_822b92b6')}
+                                            </p>
             </div>
 
             <div className={styles.style518_125}>
@@ -771,8 +776,8 @@ export function PendingAdsAuditPanel() {
                 onClick={() => handleInjectThreat('payment')}
                 className={styles.style522_126}
               >
-                <span>إضافة التفاف مالي / تخليد وهمي 💸</span>
-                <span className={styles.style525_127}>فادح</span>
+                <span>{tAuto('key_c37c41ef')}</span>
+                <span className={styles.style525_127}>{tAuto('key_783f4eb4')}</span>
               </Button>
 
               <Button
@@ -780,8 +785,8 @@ export function PendingAdsAuditPanel() {
                 onClick={() => handleInjectThreat('jurisdiction')}
                 className={styles.style531_128}
               >
-                <span>إضافة خرق تفتيتي جغرافي (الحدود) 🌐</span>
-                <span className={styles.style534_129}>تحذير</span>
+                <span>{tAuto('key_3e1cce59')}</span>
+                <span className={styles.style534_129}>{tAuto('key_b34a4153')}</span>
               </Button>
 
               <Button
@@ -789,8 +794,8 @@ export function PendingAdsAuditPanel() {
                 onClick={() => handleInjectThreat('unauthorized')}
                 className={styles.style540_130}
               >
-                <span>إضافة منشور بدون هوية وطنية ⚖️</span>
-                <span className={styles.style543_131}>فادح</span>
+                <span>{tAuto('key_91e3560b')}</span>
+                <span className={styles.style543_131}>{tAuto('key_783f4eb4')}</span>
               </Button>
 
               <Button
@@ -798,8 +803,8 @@ export function PendingAdsAuditPanel() {
                 onClick={() => handleInjectThreat('spam')}
                 className={styles.style549_132}
               >
-                <span>إضافة إغراق تكراري إعلاني مكثف 📡</span>
-                <span className={styles.style552_133}>فادح</span>
+                <span>{tAuto('key_2189ff4c')}</span>
+                <span className={styles.style552_133}>{tAuto('key_783f4eb4')}</span>
               </Button>
             </div>
           </div>
@@ -809,11 +814,11 @@ export function PendingAdsAuditPanel() {
             <div className={styles.style559_135}>
               <h4 className={styles.style560_136}>
                 <Terminal className={styles.style561_137} />
-                المسح الأمني التلقائي للأصول (Forensic Scanner)
-              </h4>
+                {tAuto('key_dd25df53')}
+                                            </h4>
               <p className={styles.style564_138}>
-                مإضافة الفحص الذاتي المشفر لمطابقة فروع الإشهار والدلائل المحلية بشروط الأمان  الموحد.
-              </p>
+                {tAuto('key_677339a8')}
+                                            </p>
             </div>
 
             <Button
@@ -824,32 +829,32 @@ export function PendingAdsAuditPanel() {
               {isScanning ? (
                 <>
                   <Loader2 className={styles.style576_140} />
-                  جاري تشريح الأصول ومطابقة المعيار...
-                </>
+                  {tAuto('key_6de7833f')}
+                                                  </>
               ) : (
                 <>
                   <Sparkles className={styles.style581_141} />
-                  بدء فحص أمني رقمي فوري 📡
-                </>
+                  {tAuto('key_cff79ba6')}
+                                                      </>
               )}
             </Button>
 
             {/* LaTeX Equation showing audit integrity function */}
             <div className={styles.style588_142}>
-              <span className={styles.style589_143}>معيار السيطرة الرياضي:</span>
+              <span className={styles.style589_143}>{tAuto('key_7006cb7e')}</span>
               <div className={styles.style590_144}>
                 {"$$\\Omega_{audit} = \\sum_{i=1}^{N} (\\mathcal{I}_{ad} \\times \\lambda_{sovereign}) \\equiv 1$$"}
               </div>
               <p className={styles.style593_145}>
-                حيث {"$\\mathcal{I}_{ad}$"} مؤشر سلامة المصادقة الموثقة لكل إشهار، و {"$\\lambda_{sovereign}$"} المعامل الضامن لحصانة الاستهلاك الطرفي.
-              </p>
+                {tAuto('key_678a27cf')} {"$\\mathcal{I}_{ad}$"} {tAuto('key_b22fc3aa')} {"$\\lambda_{sovereign}$"} {tAuto('key_ccff1d7f')}
+                                            </p>
             </div>
 
             {scanResults && (
               <div className={styles.style599_146}>
                 <div className={styles.style600_147}>
-                  <span className={styles.style601_148}>تم التوثيق والمطابقة ✓</span>
-                  <span className={styles.style602_149}>تقرير الفحص الأمني الرقمي:</span>
+                  <span className={styles.style601_148}>{tAuto('key_c248563a')}</span>
+                  <span className={styles.style602_149}>{tAuto('key_fac08f76')}</span>
                 </div>
                 {scanResults.map((line, idx) => (
                   <p key={idx} className={styles.style605_150}>{line}</p>
@@ -867,6 +872,8 @@ export function PendingAdsAuditPanel() {
 }
 
 export function AdminPulseOverview() {
+    const tAuto = useTranslations('auto');
+    const t = useTranslations('auto');
   const [logs, setLogs] = useState([
     {
       id: "log-1",
@@ -1041,36 +1048,36 @@ export function AdminPulseOverview() {
       <div className={styles.style791_152}>
         <Card className={styles.style792_153}>
           <CardHeader className={styles.style793_154}>
-            <CardDescription className={styles.style794_155}>إجمالي الأرباح اللحظية (النشاط الفعلي)</CardDescription>
+            <CardDescription className={styles.style794_155}>{tAuto('key_c97a6a23')}</CardDescription>
             <CardTitle className={styles.style795_156}>
-              {revenue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} د.أ
-            </CardTitle>
+              {revenue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} {tAuto('key_a13e6dc9')}
+                                      </CardTitle>
           </CardHeader>
           <CardContent className={styles.style799_157}>
-            <span className={styles.style800_158}><ArrowUpRight className={styles.style800_159} /> +8.4% الأسبوع الماضي</span>
-            <span>حوسبة الحافة للنشاط</span>
+            <span className={styles.style800_158}><ArrowUpRight className={styles.style800_159} /> {tAuto('key_cce3ad30')}</span>
+            <span>{tAuto('key_a14af4c6')}</span>
           </CardContent>
         </Card>
 
         <Card className={styles.style805_160}>
           <CardHeader className={styles.style806_161}>
-            <CardDescription className={styles.style807_162}>الرحلات ذات العائد الصفري (التكافلية)</CardDescription>
-            <CardTitle className={styles.style808_163}>{zeroYielderCount} رحلة</CardTitle>
+            <CardDescription className={styles.style807_162}>{tAuto('key_9c3ec14d')}</CardDescription>
+            <CardTitle className={styles.style808_163}>{zeroYielderCount} {tAuto('key_c5c09fea')}</CardTitle>
           </CardHeader>
           <CardContent className={styles.style810_164}>
-            <span className={styles.style811_165}>بث مباشر متكامل</span>
-            <span>توزيع تنموي عادل</span>
+            <span className={styles.style811_165}>{tAuto('key_e1064f18')}</span>
+            <span>{tAuto('key_21eafbb3')}</span>
           </CardContent>
         </Card>
 
         <Card className={styles.style816_166}>
           <CardHeader className={styles.style817_167}>
-            <CardDescription className={styles.style818_168}>حجز الخلايا السداسية H3 الجغرافية</CardDescription>
-            <CardTitle className={styles.style819_169}>{activeCells} خلية نشطة</CardTitle>
+            <CardDescription className={styles.style818_168}>{tAuto('key_6740f95f')}</CardDescription>
+            <CardTitle className={styles.style819_169}>{activeCells} {tAuto('key_3b551e95')}</CardTitle>
           </CardHeader>
           <CardContent className={styles.style821_170}>
-            <span className={styles.style822_171}>بدقة Resolution 9</span>
-            <span>الانتشار الآني</span>
+            <span className={styles.style822_171}>{tAuto('key_fc9604c6')}</span>
+            <span>{tAuto('key_998b23f1')}</span>
           </CardContent>
         </Card>
       </div>
@@ -1090,16 +1097,16 @@ export function AdminPulseOverview() {
               ) : (
                 <span className={styles.style841_177} />
               )}
-              تحديث فوري  ●
-            </Button>
+              {tAuto('key_5f873a9d')}
+                                      </Button>
             <CardTitle className={styles.style845_178}>
               <TrendingUp className={styles.style846_179} />
-              نشاط الإيرادات الإعلانية والرحلات الميدانية اللحظية (مؤشر التوازن الحالي)
-            </CardTitle>
+              {tAuto('key_dd9c19fe')}
+                                      </CardTitle>
           </div>
           <CardDescription className={styles.style850_180}>
-            قياسية تدفق السيولة الميدانية بشكل مستمر ومقارنتها عبر طبقات السحابة.
-          </CardDescription>
+            {tAuto('key_095d3534')}
+                                </CardDescription>
         </CardHeader>
         <CardContent className={styles.style854_181}>
           <div className={styles.style855_182}>
@@ -1128,11 +1135,11 @@ export function AdminPulseOverview() {
               <circle cx="400" cy="20" r="3" fill="#14b8a6" />
             </svg>
             <div className={styles.style880_186}>
-              أقصى ذروة: {peakTrips} رحلة/ساعة
-            </div>
+              {tAuto('key_cd79ed00')} {peakTrips} {tAuto('key_54976640')}
+                                      </div>
             <div className={styles.style883_187}>
-              طبقة الحسم: 20:00 - الآن
-            </div>
+              {tAuto('key_aea03668')}
+                                      </div>
           </div>
         </CardContent>
       </Card>
@@ -1143,36 +1150,36 @@ export function AdminPulseOverview() {
           <div className={styles.style893_190}>
             <div className={styles.style894_191}>
               <span className={styles.style895_192}>
-                {logs.filter(l => !l.resolved).length} معلق التدخل
-              </span>
+                {logs.filter(l => !l.resolved).length} {tAuto('key_d9038b05')}
+                                            </span>
               <Button
                 variant="outline"
                 onClick={injectDeviation}
                 className={styles.style901_193}
               >
-                إضافة انحراف 🧪
-              </Button>
+                {tAuto('key_758f5bd7')}
+                                            </Button>
               <Button
                 variant="outline"
                 onClick={resetIncidentLogs}
                 className={styles.style908_194}
               >
-                إعادة تعيين 🔄
-              </Button>
+                {tAuto('key_cf9531d3')}
+                                            </Button>
             </div>
             <CardTitle className={styles.style913_195}>
               <AlertTriangle className={styles.style914_196} />
-              سجل تدقيق الانحرافات والتحصين البروتوكولي (تجاوز الـ 15% والأذونات الزجاجية)
-            </CardTitle>
+              {tAuto('key_8595850a')}
+                                      </CardTitle>
           </div>
           <CardDescription className={styles.style918_197}>
-            لوحة الاستجابة الفورية المعزولة لرصد وضبط أي انتهاك جغرافي أو زمني يهدد توازن عصب الملاحة.
-          </CardDescription>
+            {tAuto('key_b2720174')}
+                                </CardDescription>
 
           <div className={styles.style922_198}>
             <div className={styles.style923_199}>
-              <span className={styles.style924_200}>بروتوكول الفحص 12</span>
-              <span>🔒 معيار الاستنباط والتحصين الرياضي (The Protocol Guard):</span>
+              <span className={styles.style924_200}>{tAuto('key_8382b8da')}</span>
+              <span>{tAuto('key_3c84ed97')}</span>
             </div>
 
             <div className={styles.style928_201}>
@@ -1185,8 +1192,8 @@ export function AdminPulseOverview() {
             </div>
 
             <div className={styles.style937_204}>
-              بموجب ميثاق النظام الماسي، يتم عزل بث الملاحة الجغرافية وتجميد العقود الميدانية كلياً فور تخطي نسبة انحراف تدفق السيولة عتبة الـ <strong className={styles.style938_205}>15%</strong>، أو عند رصد محاولات تنشيط الأذونات الزجاجية (Glass Permissions) بدون مصادقة  ثنائية.
-            </div>
+              {tAuto('key_68bdd68b')} <strong className={styles.style938_205}>15%</strong>{tAuto('key_8ba78317')}
+                                      </div>
           </div>
         </CardHeader>
         <CardContent className={styles.style942_206}>
@@ -1199,7 +1206,7 @@ export function AdminPulseOverview() {
                 <div className={styles.style949_211}>
                   <span className={styles.style950_212}>{log.timestamp}</span>
                   <Badge variant={log.resolved ? "secondary" : "destructive"} className={styles.style951_213}>
-                    {log.resolved ? "تمت السيطرة والموازنة" : log.type === "severe" ? "عارض  حرج" : "تنبيه تشغيلي"}
+                    {log.resolved ? tAuto('key_1f289735') : log.type === "severe" ? tAuto('key_2c70af9e') : tAuto('key_26cd11bc')}
                   </Badge>
                 </div>
                 <p className={styles.style955_214}>{log.message}</p>
@@ -1222,6 +1229,8 @@ export function AdminPulseOverview() {
 }
 
 export function AdminViewTab() {
+    const tAuto = useTranslations('auto');
+    const t = useTranslations('auto');
   const { pulseData, loadingPulse } = useMarketPulse(true);
 
   return (
@@ -1234,38 +1243,38 @@ export function AdminViewTab() {
 
           <TabsTrigger value="dashboard" className={styles.style985_219}>
              <Users className={styles.style986_220} />
-             <span className={styles.style987_221}>برج المراقبة</span>
+             <span className={styles.style987_221}>{tAuto('key_c9e3bbd7')}</span>
           </TabsTrigger>
 
           <TabsTrigger value="ads" className={styles.style990_222}>
             <Megaphone className={styles.style991_223} />
-             <span className={styles.style992_224}>إدارة الإعلانات</span>
+             <span className={styles.style992_224}>{tAuto('key_3d3316a8')}</span>
           </TabsTrigger>
 
           {/* الزر  الجديد V5.5 */}
           <TabsTrigger value="owner" className={styles.style996_225}>
             <ShieldAlert className={styles.style997_226} />
-            <span className={styles.style998_227}>👑 V5.5 لوحة المالك</span>
+            <span className={styles.style998_227}>{tAuto('key_1a6ee228')}</span>
           </TabsTrigger>
 
           <TabsTrigger value="delegates" className={styles.style1001_228}>
             <UsersRound className={styles.style1002_229} />
-            <span className={styles.style1003_230}>جيش المندوبين 📣</span>
+            <span className={styles.style1003_230}>{tAuto('key_ffdbf83e')}</span>
           </TabsTrigger>
 
           <TabsTrigger value="password-resets" className={styles.style1001_228}>
             <KeyRound className={styles.style1002_229} />
-            <span className={styles.style1003_230}>استرجاع كلمات المرور 🔑</span>
+            <span className={styles.style1003_230}>{tAuto('key_47cbc2bf')}</span>
           </TabsTrigger>
 
            <TabsTrigger value="pulse" className={styles.style1006_231}>
              <Activity className={styles.style1007_232} />
-             <span className={styles.style1008_233}>نشاط السوق</span>
+             <span className={styles.style1008_233}>{tAuto('key_1343c325')}</span>
           </TabsTrigger>
 
           <TabsTrigger value="controls" className={styles.style1011_234}>
             <Shield className={styles.style1012_235} />
-            <span className={styles.style1013_236}>التحكم </span>
+            <span className={styles.style1013_236}>{tAuto('key_0c6af50a')} </span>
           </TabsTrigger>
         </TabsList>
 

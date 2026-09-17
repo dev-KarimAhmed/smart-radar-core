@@ -113,6 +113,7 @@ export function PricePerKmSetupModal({
   onClose,
   onSave,
 }: PricePerKmSetupModalProps) {
+    const tAuto = useTranslations('auto');
   const t = useTranslations('captainDashboard');
   const { user } = useAuth();
   const rank = user?.rank || 'Bronze';
@@ -292,7 +293,7 @@ export function PricePerKmSetupModal({
               )}
             >
               <span className={styles.modeButtonTitle}>
-                {isArabic ? 'أسعار حرة' : 'Free Pricing'}
+                {isArabic ? tAuto('key_8993e183') : 'Free Pricing'}
               </span>
               <span className={styles.modeButtonSubtitle}>
                 {t('tariffFreePriceSubtitle')}
@@ -310,7 +311,7 @@ export function PricePerKmSetupModal({
               )}
             >
               <span className={styles.modeButtonTitle}>
-                {isArabic ? 'أسعار التطبيق' : 'App Pricing'}
+                {isArabic ? tAuto('key_02958076') : 'App Pricing'}
               </span>
               <span className={styles.modeButtonSubtitle}>
                 {t('tariffAppPriceSubtitle')}
@@ -323,11 +324,11 @@ export function PricePerKmSetupModal({
           <div className={styles.appNoticeCard}>
             <p className={styles.appNoticeTitle}>
               <span>📱</span>
-              <span>{isArabic ? 'الالتزام بتسعيرة الشركة المشغلة' : 'Official Operator Tariff Commitment'}</span>
+              <span>{isArabic ? tAuto('key_b2d7fc61') : 'Official Operator Tariff Commitment'}</span>
             </p>
             <p className={styles.appNoticeBody}>
               {isArabic
-                ? 'أنت تعمل الآن ضمن سعر الشركة المشغلة لك وترخيص المزاولة (تكسي أصفر، أوبر، كريم... إلخ). ويظهر للراكب أن هذا السائق يعمل من خلال الشركة المشغلة له.'
+                ? tAuto('key_94359bb8')
                 : 'You are operating under your licensed operator tariff (Yellow Taxi, Uber, Careem, etc.). Riders will see that you operate via your registered operator.'}
             </p>
           </div>
@@ -504,7 +505,7 @@ export function PricePerKmSetupModal({
               onClick={onClose}
               className="rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-xs font-bold text-slate-300 hover:bg-white/10 transition-colors"
             >
-              {isArabic ? 'إلغاء' : 'Cancel'}
+              {isArabic ? tAuto('key_b9568e86') : 'Cancel'}
             </button>
           ) : null}
           <AlertDialogAction disabled={isSaving} onClick={handleSave} className={styles.confirm}>

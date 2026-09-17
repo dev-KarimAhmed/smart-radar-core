@@ -202,7 +202,6 @@ export function ReceivingOffersScreen({
                 key={offer.id || offer.driverId}
                 offer={captainOffer}
                 currencyCode={currencyLabel || 'EGP'}
-                language={language === 'ar' ? 'ar' : 'en'}
                 isAccepting={acceptingOfferId === (offer.id || offer.driverId)}
                 isPreferred={isPreferred}
                 isExpanded={expandedOfferId === captainOffer.id}

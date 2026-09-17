@@ -1,6 +1,6 @@
 import type { Offer } from '@/core/types';
 import type { AppLanguage } from '@/lib/i18n/simple-copy';
-import type { CaptainOffer } from '../components/captain-offer-card';
+import type { CaptainOffer } from '../components/offer-card/offer-card-shared';
 import type { CaptainPresencePoint } from './rider-server-marketplace';
 import { mapRiderMarketplaceError } from './rider-server-marketplace';
 import { firstDisplayString } from './rider-view-format';

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Toaster } from '@/components/ui/toaster';
 import { PwaInstallPrompt } from '@/components/pwa-install-prompt';
+import { useTranslations } from "next-intl";
 
 const styles = {
   update: 'fixed bottom-20 left-4 right-4 z-[999] mx-auto flex max-w-sm animate-in flex-col gap-3 rounded-2xl border border-[#14B8A6]/20 bg-[#0F172A]/90 p-4 shadow-2xl backdrop-blur-xl fade-in slide-in-from-bottom-5',
@@ -16,6 +17,8 @@ const styles = {
 } as const;
 
 function PwaUpdater() {
+    const tAuto = useTranslations('auto');
+    const t = useTranslations('auto');
   const [needRefresh, setNeedRefresh] = useState(false);
   const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null);
 
@@ -61,12 +64,12 @@ function PwaUpdater() {
   return (
     <div className={styles.update}>
       <div className={styles.copy} dir="rtl">
-        <h4 className={styles.title}>تحديث جديد متاح 🚀</h4>
-        <p className={styles.description}>تم إطلاق ميزات جديدة، يرجى تحديث التطبيق للحصول على أفضل أداء.</p>
+        <h4 className={styles.title}>{tAuto('key_2900748a')}</h4>
+        <p className={styles.description}>{tAuto('key_dc03e7e1')}</p>
       </div>
       <div className={styles.actions}>
-        <Button onClick={updateServiceWorker} className={styles.updateButton}>تحديث الآن</Button>
-        <Button onClick={() => setNeedRefresh(false)} variant="ghost" className={styles.laterButton}>لاحقاً</Button>
+        <Button onClick={updateServiceWorker} className={styles.updateButton}>{tAuto('key_ccfb3df0')}</Button>
+        <Button onClick={() => setNeedRefresh(false)} variant="ghost" className={styles.laterButton}>{tAuto('key_68d7ad5a')}</Button>
       </div>
     </div>
   );
