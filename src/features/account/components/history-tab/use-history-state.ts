@@ -219,45 +219,10 @@ export function useHistoryState() {
             .eq('status', 'COMPLETED')
             .order('created_at', { ascending: false });
 
-          if (error && error.code === 'PGRST200') {
-            // Fallback: Query ride_requests and profiles separately to avoid foreign key relationship errors before migration runs
-            const { data: rawRequests, error: reqError } = await supabase
-              .from('ride_requests')
-              .select(`
-                *,
-                rider:profiles!rider_id(id, full_name, phone, rating)
-              `)
-              .eq(userColumn, user!.uid)
-              .eq('status', 'COMPLETED')
-              .order('created_at', { ascending: false });
-
-            if (reqError) throw reqError;
-
-            if (rawRequests && rawRequests.length > 0) {
-              const captainIds = Array.from(new Set(rawRequests.map(r => r.accepted_captain_id).filter(Boolean)));
-              if (captainIds.length > 0) {
-                const { data: captains, error: capError } = await supabase
-                  .from('profiles')
-                  .select('id, full_name, phone, rating')
-                  .in('id', captainIds);
-                
-                if (!capError && captains) {
-                  const captainMap = new Map(captains.map(c => [c.id, c]));
-                  fetchedData = appendUniqueTrips(fetchedData, rawRequests.map(r => ({
-                    ...r,
-                    captain: r.accepted_captain_id ? captainMap.get(r.accepted_captain_id) : null
-                  })));
-                } else {
-                  fetchedData = appendUniqueTrips(fetchedData, rawRequests);
-                }
-              } else {
-                fetchedData = appendUniqueTrips(fetchedData, rawRequests);
-              }
-            }
-          } else if (error) {
-            throw error;
-          } else {
-            fetchedData = appendUniqueTrips(fetchedData, data || []);
+          if (error) {
+            if (process.env.NODE_ENV !== 'production') console.warn('[HistoryTab query notice]', error.message);
+          } else if (data) {
+            fetchedData = appendUniqueTrips(fetchedData, data);
           }
         } catch (supabaseError) {
           if ((process.env.NODE_ENV !== 'production')) console.warn('[HistoryTab Supabase Fetch Failed, falling back to local]', supabaseError);

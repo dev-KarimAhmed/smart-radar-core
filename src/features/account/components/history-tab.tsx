@@ -140,7 +140,7 @@ export function HistoryTab({ hideCaptainDiagnostics = false }: HistoryTabProps =
             t={t}
           />
 
-          {!hideCaptainDiagnostics && (
+          {state.user?.role === 'admin' && !hideCaptainDiagnostics && (
             <HistoryErrorExplorer
               errorSearch={errorSearch}
               setErrorSearch={setErrorSearch}
