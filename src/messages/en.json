@@ -968,6 +968,7 @@
       "colorInvalid": "Choose a valid color",
       "colorRequired": "Vehicle color is required",
       "nationalIdNumberInvalid": "Invalid national ID number",
+      "nationalIdNumberJordanInvalid": "Jordanian National ID must be exactly 10 digits",
       "nationalIdNumberRequired": "National ID number is required",
       "licenseNumberInvalid": "Invalid driving license number",
       "licenseNumberRequired": "Driving license number is required",

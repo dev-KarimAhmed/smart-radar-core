@@ -4,12 +4,16 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useAuth } from '@/features/auth/contract';
 import { RouteLoading } from '@/shared/components/layout/route-loading';
-import { useTranslations } from "next-intl";
+import { useTranslations } from 'next-intl';
 
 const CaptainWorkspace = dynamic(
   () => import('./captain-workspace').then((module) => module.CaptainWorkspace),
-  { loading: function Loading() {
-      const tAuto = useTranslations('auto'); const t = useTranslations('auto'); return <RouteLoading label={tAuto('key_7638191e')} />; } },
+  {
+    loading: function Loading() {
+      const tAuto = useTranslations('auto');
+      return <RouteLoading label={tAuto('key_7638191e')} />;
+    },
+  },
 );
 
 const styles = {
@@ -22,13 +26,14 @@ const styles = {
 } as const;
 
 export function CaptainRoute() {
-    const tAuto = useTranslations('auto');
-    const t = useTranslations('auto');
+  const tAuto = useTranslations('auto');
   const { loading, user } = useAuth();
 
   return (
     <div className={styles.root} data-captain-route>
-      {loading ? <RouteLoading label={tAuto('key_7588d11e')} /> : user?.role === 'driver' ? (
+      {loading ? (
+        <RouteLoading label={tAuto('key_7588d11e')} />
+      ) : user?.role === 'driver' ? (
         <CaptainWorkspace />
       ) : (
         <main className={styles.gate}>

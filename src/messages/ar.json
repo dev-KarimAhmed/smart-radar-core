@@ -968,6 +968,7 @@
       "colorInvalid": "اختر لوناً صحيحاً",
       "colorRequired": "لون المركبة مطلوب",
       "nationalIdNumberInvalid": "رقم البطاقة القومية غير صحيح",
+      "nationalIdNumberJordanInvalid": "يجب أن يتكون الرقم الوطني من 10 أرقام",
       "nationalIdNumberRequired": "رقم البطاقة القومية مطلوب",
       "licenseNumberInvalid": "رقم رخصة القيادة غير صحيح",
       "licenseNumberRequired": "رقم رخصة القيادة مطلوب",

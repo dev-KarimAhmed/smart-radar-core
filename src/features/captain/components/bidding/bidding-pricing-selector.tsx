@@ -55,6 +55,9 @@ interface BiddingPricingSelectorProps {
   setIncreaseAmount: (val: number) => void;
   isAboveBand: boolean;
   aboveBandPercent: number;
+  isDumpingBlocked?: boolean;
+  isDumpingAmber?: boolean;
+  handleApplyFloorPrice?: () => void;
 }
 
 export function BiddingPricingSelector({
@@ -78,6 +81,9 @@ export function BiddingPricingSelector({
   setIncreaseAmount,
   isAboveBand,
   aboveBandPercent,
+  isDumpingBlocked,
+  isDumpingAmber,
+  handleApplyFloorPrice,
 }: BiddingPricingSelectorProps) {
   const t = useTranslations('captainBidding');
 
@@ -107,10 +113,29 @@ export function BiddingPricingSelector({
             inputMode="decimal"
             value={appPrice}
             onChange={(e) => setAppPrice(e.target.value)}
-            className={styles.appModeInput}
+            className={cn(
+              styles.appModeInput,
+              isDumpingBlocked && 'border-rose-500/80 bg-rose-950/40 text-rose-200 ring-2 ring-rose-500/40 focus:border-rose-500 focus:ring-rose-500/60'
+            )}
             placeholder={marketFare > 0 ? marketFare.toFixed(2) : "0.00"}
             autoFocus
           />
+          {isDumpingBlocked ? (
+            <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-rose-500/40 bg-rose-950/50 p-2.5 text-xs text-rose-200 animate-fade-in">
+              <span className="font-semibold">
+                ⛔ السعر المدخل أقل من الحد المسموح (كوابح السوق 15% - {floorPrice.toFixed(2)} {currency})
+              </span>
+              {handleApplyFloorPrice ? (
+                <button
+                  type="button"
+                  onClick={handleApplyFloorPrice}
+                  className="shrink-0 rounded-md bg-rose-600 hover:bg-rose-500 px-2.5 py-1 text-[11px] font-black text-white transition shadow"
+                >
+                  تطبيق الحد الأدنى
+                </button>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       )}
 
@@ -125,14 +150,33 @@ export function BiddingPricingSelector({
           <input
             type="number"
             step="0.01"
-            min="0.1"
+            min={floorPrice > 0 ? floorPrice : "0.1"}
             inputMode="decimal"
             value={appPrice}
             onChange={(e) => setAppPrice(e.target.value)}
-            className={styles.taxiModeInput}
+            className={cn(
+              styles.taxiModeInput,
+              isDumpingBlocked && 'border-rose-500/80 bg-rose-950/40 text-rose-200 ring-2 ring-rose-500/40 focus:border-rose-500 focus:ring-rose-500/60'
+            )}
             placeholder={baseFare > 0 ? baseFare.toFixed(2) : '0.00'}
             autoFocus
           />
+          {isDumpingBlocked ? (
+            <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-rose-500/40 bg-rose-950/50 p-2.5 text-xs text-rose-200 animate-fade-in">
+              <span className="font-semibold">
+                ⛔ السعر المدخل أقل من الحد الأدنى المسموح به لخدمة التاكسي ({floorPrice.toFixed(2)} {currency})
+              </span>
+              {handleApplyFloorPrice ? (
+                <button
+                  type="button"
+                  onClick={handleApplyFloorPrice}
+                  className="shrink-0 rounded-md bg-rose-600 hover:bg-rose-500 px-2.5 py-1 text-[11px] font-black text-white transition shadow"
+                >
+                  تطبيق الحد الأدنى
+                </button>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       )}
 

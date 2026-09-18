@@ -142,6 +142,9 @@ export function BiddingProposalSheet({
           setIncreaseAmount={proposal.setIncreaseAmount}
           isAboveBand={proposal.isAboveBand}
           aboveBandPercent={proposal.aboveBandPercent}
+          isDumpingBlocked={proposal.isDumpingBlocked}
+          isDumpingAmber={proposal.isDumpingAmber}
+          handleApplyFloorPrice={proposal.handleApplyFloorPrice}
         />
       </div>
 
