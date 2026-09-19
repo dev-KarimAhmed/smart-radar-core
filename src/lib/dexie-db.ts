@@ -156,6 +156,10 @@ export const RadarCaptainFavoriteKernel = {
   mummifyTrustedCaptain: function(expiredTrip: any, isHeartChecked: boolean): void {
     if (!isHeartChecked) {
       console.log("🕒 بروتوكول التطهير: لم يتم تفعيل التفضيل، إبادة سجل الرحلة والبيانات نهائياً.");
+      if (expiredTrip?.tripId) {
+        void dexieDb.riderTripLedger.where('tripId').equals(expiredTrip.tripId).delete();
+      }
+      void dexieDb.riderTripLedger.where('purgeAt').belowOrEqual(Date.now()).delete();
       return; // يُمحى تلقائياً لحفظ المساحة
     }
 
@@ -183,6 +187,15 @@ export const RadarCaptainFavoriteKernel = {
     }
   }
 };
+
+export async function purgeExpiredRiderTrips(): Promise<number> {
+  try {
+    return await dexieDb.riderTripLedger.where('purgeAt').belowOrEqual(Date.now()).delete();
+  } catch (err) {
+    console.error("Failed to purge expired trips from Dexie:", err);
+    return 0;
+  }
+}
 
 Object.freeze(RadarCaptainFavoriteKernel);
 

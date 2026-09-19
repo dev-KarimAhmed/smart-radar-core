@@ -62,7 +62,7 @@ interface BiddingOfferStepperProps {
   waitSecondsInput: string;
   setWaitSecondsInput: React.Dispatch<React.SetStateAction<string>>;
   MIN_OFFER_WAIT_SECONDS: number;
-  MAX_OFFER_WAIT_SECONDS: number;
+  MAX_OFFER_WAIT_SECONDS?: number;
   parsedWaitSeconds: number;
   isWaitSecondsValid: boolean;
   onSubmit: (price: number, waitSecs: number, mode?: PricingMode) => void;
@@ -302,10 +302,9 @@ export function BiddingOfferStepper({
             onClick={() => setWaitSecondsInput((current: any) => {
               const value = Number(current);
               const next = (Number.isFinite(value) ? value : MIN_OFFER_WAIT_SECONDS) + 1;
-              return String(Math.min(MAX_OFFER_WAIT_SECONDS, Math.max(MIN_OFFER_WAIT_SECONDS, next)));
+              return String(Math.max(MIN_OFFER_WAIT_SECONDS, next));
             })}
-            disabled={parsedWaitSeconds >= MAX_OFFER_WAIT_SECONDS}
-            className={cn(styles.style182_28, parsedWaitSeconds >= MAX_OFFER_WAIT_SECONDS ? styles.inputLocked : '')}
+            className={styles.style182_28}
           >
             <Plus className={styles.style184_29} />
           </button>
@@ -314,7 +313,7 @@ export function BiddingOfferStepper({
         {!isWaitSecondsValid ? (
           <div className={styles.style208_37}>
             <AlertTriangle className={styles.style209_38} />
-            {t('waitSecondsRange', { min: MIN_OFFER_WAIT_SECONDS, max: MAX_OFFER_WAIT_SECONDS })}
+            {t('waitSecondsMin', { min: MIN_OFFER_WAIT_SECONDS })}
           </div>
         ) : null}
       </div>
@@ -336,7 +335,7 @@ export function BiddingOfferStepper({
       <div className={styles.style215_39}>
         <span
           className={styles.submitWrap}
-          title={!isWaitSecondsValid ? t('waitSecondsRange', { min: MIN_OFFER_WAIT_SECONDS, max: MAX_OFFER_WAIT_SECONDS }) : undefined}
+          title={!isWaitSecondsValid ? t('waitSecondsMin', { min: MIN_OFFER_WAIT_SECONDS }) : undefined}
         >
           <button
             onClick={() => onSubmit(finalOfferPrice, parsedWaitSeconds, pricingMode || undefined)}

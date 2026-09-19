@@ -54,7 +54,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
   });
   const { pin, geography, search, mapPicker, clipboard, selectionHandlers } = destination;
 
-  const tripCompletion = useTripCompletion(state, dispatch);
+  const tripCompletion = useTripCompletion(state, dispatch, user?.uid);
   const offers = useOffersLifecycle(state, dispatch, language, tripCompletion.pricingPreference);
   const fareAndRoute = useServerFareAndRoute({
     activeCountryId,

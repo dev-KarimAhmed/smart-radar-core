@@ -8,6 +8,11 @@ import {
   fetchRideRequestStatus,
   mapRiderMarketplaceError,
 } from '../services/rider-server-marketplace';
+import {
+  AntiCheatKernel,
+  getStoredRiderImmunity,
+  saveStoredRiderImmunity,
+} from '@/core/logic/anti-cheat-kernel';
 import { toHistoricalTrip } from '../services/rider-view-format';
 import type { HistoricalTrip } from '../components/dashboard/dashboard-shared';
 import type { RiderMachineAction, RiderMachineState } from '../state/rider-state-machine';
@@ -23,7 +28,11 @@ const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
  * the submit_ride_rating RPC that no component ever called — removed, because two writers
  * of profiles.rating clobber each other. See docs/rating-system-audit.md.
  */
-export function useTripCompletion(state: RiderMachineState, dispatch: React.Dispatch<RiderMachineAction>) {
+export function useTripCompletion(
+  state: RiderMachineState,
+  dispatch: React.Dispatch<RiderMachineAction>,
+  userId?: string,
+) {
   const { toast } = useToast();
   const t = useTranslations('riderView');
 
@@ -71,6 +80,12 @@ export function useTripCompletion(state: RiderMachineState, dispatch: React.Disp
       } catch (cacheError) {
         if ((process.env.NODE_ENV !== 'production')) console.warn('[Rider Complete Trip Cache]', cacheError);
         setLocalCompletedTrips((previous) => [historicalTrip, ...previous]);
+      }
+
+      if (userId) {
+        const immunity = getStoredRiderImmunity(userId);
+        const updated = AntiCheatKernel.recordSuccessfulTrip(immunity);
+        saveStoredRiderImmunity(updated);
       }
 
       dispatch({ type: 'COMPLETE_TRIP' });

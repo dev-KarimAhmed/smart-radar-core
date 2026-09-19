@@ -78,12 +78,11 @@ interface RawRoute {
   modelsCongestion: boolean;
 }
 /**
- * 1.5s was too tight for the free public OSRM endpoint, which is shared and rate-limited:
- * the request was being aborted while the router was still answering, and every abort
- * dropped the trip onto the local estimate. 4.5s costs nothing and converts a good share of
- * those into real routed answers. The rider sees a debounced spinner either way.
+ * Sovereign Constitution V2.6-Secured (Chapter 2, Section 4):
+ * OSRM routing timeout is capped at 1500ms hard ceiling. If the server does not respond
+ * within 1500ms, the system immediately activates edge Haversine x 1.3 fallback.
  */
-const ROUTE_TIMEOUT_MS = 4500;
+const ROUTE_TIMEOUT_MS = 1500;
 /**
  * One retry on top of the initial attempt. A dropped connection or a momentary rate-limit
  * from the shared free router is often gone a beat later, so a single extra try converts
@@ -94,16 +93,9 @@ const ROUTE_TIMEOUT_MS = 4500;
 const ROUTE_FETCH_ATTEMPTS = 2;
 
 /**
- * The primary router gets a tighter deadline and no retry, because it is the least reliable
- * link in the chain. Measured: valhalla1.openstreetmap.de answered fine in the morning and
- * was timing out entirely a few hours later, while OSRM stayed up throughout. With the
- * shared 4.5s budget and two attempts, EVERY trip then sat for ~9s before OSRM was even
- * asked — the rider waiting on a spinner for a router that was never going to answer.
- *
- * A community instance being occasionally unavailable is not a bug to fix; it is a property
- * to design around.
+ * The primary router gets a 1500ms deadline and no retry.
  */
-const PRIMARY_TIMEOUT_MS = 2500;
+const PRIMARY_TIMEOUT_MS = 1500;
 
 /**
  * Circuit breaker. After this many consecutive failures the provider is skipped entirely for
