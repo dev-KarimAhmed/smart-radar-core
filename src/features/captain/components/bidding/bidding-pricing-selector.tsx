@@ -7,14 +7,14 @@ import { AdDisplayCard } from '@/features/ads/ad-display/contract';
 // Pricing Selector styles
 const styles = {
   freeModeNotice: 'text-sm text-center text-teal-200/80 mt-4 leading-relaxed tracking-wide',
-  appModeContainer: 'mt-5 space-y-4 rounded-xl bg-slate-900/40 p-4 border border-slate-700/50 shadow-inner',
+  appModeContainer: 'mt-3 space-y-2 rounded-xl bg-slate-900/40 p-3 border border-slate-700/50 shadow-inner',
+  appModeHeader: 'flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2',
   appModeTitle: 'text-sm font-semibold text-slate-100',
   appModeHint: 'text-xs text-slate-400 mt-1 leading-relaxed',
-  appModeInput: 'w-full rounded-lg bg-slate-800/80 border border-slate-700 px-4 py-3.5 text-lg font-mono font-bold text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-teal-500/40 focus:border-teal-500 transition-all text-center dir-ltr',
-  taxiModeContainer: 'mt-5 space-y-4 rounded-xl bg-slate-900/40 p-4 border border-slate-700/50 shadow-inner',
-  taxiModeNotice: 'text-sm font-medium text-amber-200 mb-2',
+  marketAvgBadge: 'rounded-lg border border-teal-400/30 bg-teal-500/15 px-3 py-1.5 text-xs font-black text-teal-300 self-start sm:self-center',
+  taxiModeContainer: 'mt-3 space-y-2 rounded-xl bg-slate-900/40 p-3 border border-slate-700/50 shadow-inner',
+  taxiModeNotice: 'text-sm font-medium text-amber-200',
   taxiModeHint: 'text-xs text-slate-400 mt-1 leading-relaxed',
-  taxiModeInput: 'w-full rounded-lg bg-slate-800/80 border border-amber-700/30 px-4 py-3.5 text-lg font-mono font-bold text-amber-100 placeholder:text-amber-900/50 focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 transition-all text-center dir-ltr',
   meterDetails: 'mt-6 rounded-xl border border-slate-700/60 bg-slate-900/60 p-4 sm:p-5',
   meterDetailsHeader: 'flex items-center justify-between mb-3',
   meterDetailsTitle: 'text-sm font-bold text-slate-200',
@@ -29,6 +29,13 @@ const styles = {
   breakdownValue: 'font-mono font-semibold text-slate-200',
   aboveBandWarning: 'mt-4 text-xs font-medium text-amber-300/90 leading-relaxed text-center px-4',
   style156_21: 'mt-4 w-full rounded-lg bg-emerald-500/10 py-3 text-sm font-medium text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors',
+  formulaInner: 'inline-flex items-center gap-1.5 flex-wrap justify-center font-mono text-sm leading-relaxed tracking-wide',
+  formulaTotal: 'font-extrabold text-emerald-400',
+  formulaOperator: 'text-slate-400',
+  formulaPart: 'whitespace-nowrap',
+  marketLabel: 'text-slate-300',
+  marketValue: 'inline-block font-mono font-bold text-amber-300 mx-1.5 me-2',
+  limitValue: 'inline-block font-mono text-slate-200',
 } as const;
 
 export type PricingMode = 'FREE' | 'APP' | 'TAXI';
@@ -91,26 +98,17 @@ export function BiddingPricingSelector({
 
       {pricingMode === 'APP' && (
         <div className={styles.appModeContainer}>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+          <div className={styles.appModeHeader}>
             <div>
               <p className={styles.appModeTitle}>{t('appModeInputNotice')}</p>
               <p className={styles.appModeHint}>{t('appModeInputHint')}</p>
             </div>
             {marketFare > 0 && (
-              <div className="rounded-lg border border-teal-400/30 bg-teal-500/15 px-3 py-1.5 text-xs font-black text-teal-300 self-start sm:self-center">
+              <div className={styles.marketAvgBadge}>
                 {t('marketAvgValue', { marketFare: marketFare.toFixed(2), currency })}
               </div>
             )}
           </div>
-          <input
-            type="number"
-            inputMode="decimal"
-            value={appPrice}
-            onChange={(e) => setAppPrice(e.target.value)}
-            className={styles.appModeInput}
-            placeholder={marketFare > 0 ? marketFare.toFixed(2) : "0.00"}
-            autoFocus
-          />
         </div>
       )}
 
@@ -122,17 +120,6 @@ export function BiddingPricingSelector({
           <p className={styles.taxiModeHint}>
             {t('taxiModeHint')}
           </p>
-          <input
-            type="number"
-            step="0.01"
-            min="0.1"
-            inputMode="decimal"
-            value={appPrice}
-            onChange={(e) => setAppPrice(e.target.value)}
-            className={styles.taxiModeInput}
-            placeholder={baseFare > 0 ? baseFare.toFixed(2) : '0.00'}
-            autoFocus
-          />
         </div>
       )}
 
@@ -157,14 +144,14 @@ export function BiddingPricingSelector({
             ) : meterDetails ? (
               <>
                 <p className={styles.meterFormula} dir="ltr">
-                  <span className="inline-flex items-center gap-1.5 flex-wrap justify-center font-mono text-sm leading-relaxed tracking-wide" dir="ltr">
-                    <strong className="font-extrabold text-emerald-400">{captainMeterFare.toFixed(2)} {currency}</strong>
-                    <span className="text-slate-400">=</span>
+                  <span className={styles.formulaInner} dir="ltr">
+                    <strong className={styles.formulaTotal}>{captainMeterFare.toFixed(2)} {currency}</strong>
+                    <span className={styles.formulaOperator}>=</span>
                     <span>{meterDetails.baseFare.toFixed(2)} {currency}</span>
-                    <span className="text-slate-400">+</span>
-                    <span className="whitespace-nowrap">({meterDetails.billableKm.toFixed(2)} <bdi>{t('kmUnit')}</bdi> × {meterDetails.perKm.toFixed(2)} {currency})</span>
-                    <span className="text-slate-400">+</span>
-                    <span className="whitespace-nowrap">({meterDetails.estimatedMinutes.toFixed(1)} <bdi>{t('minUnit')}</bdi> × {meterDetails.perMin.toFixed(2)} {currency})</span>
+                    <span className={styles.formulaOperator}>+</span>
+                    <span className={styles.formulaPart}>({meterDetails.billableKm.toFixed(2)} <bdi>{t('kmUnit')}</bdi> × {meterDetails.perKm.toFixed(2)} {currency})</span>
+                    <span className={styles.formulaOperator}>+</span>
+                    <span className={styles.formulaPart}>({meterDetails.estimatedMinutes.toFixed(1)} <bdi>{t('minUnit')}</bdi> × {meterDetails.perMin.toFixed(2)} {currency})</span>
                   </span>
                 </p>
                 <p className={styles.meterDetailsRoute}>
@@ -182,20 +169,20 @@ export function BiddingPricingSelector({
             {marketFare > 0 && (
               <>
                 <p className={styles.meterFormula}>
-                  <span className="text-slate-300">{t('marketReference')}</span>
-                  <span dir="ltr" className="inline-block font-mono font-bold text-amber-300 mx-1.5 me-2">
+                  <span className={styles.marketLabel}>{t('marketReference')}</span>
+                  <span dir="ltr" className={styles.marketValue}>
                     = {marketFare.toFixed(2)} {currency}
                   </span>
                 </p>
                 <p className={styles.meterDetailsRoute}>
                   <span>{t('warningLimit')}: </span>
-                  <span dir="ltr" className="inline-block font-mono text-slate-200">
+                  <span dir="ltr" className={styles.limitValue}>
                     {marketFare.toFixed(2)} + ({marketFare.toFixed(2)} × {Math.round(premiumFactor * 100)}%) = {ceilingPrice.toFixed(2)} {currency}
                   </span>
                 </p>
                 <p className={styles.meterDetailsRoute}>
                   <span>{t('lowestAllowedOffer')}: </span>
-                  <span dir="ltr" className="inline-block font-mono text-slate-200">
+                  <span dir="ltr" className={styles.limitValue}>
                     {marketFare.toFixed(2)} - ({marketFare.toFixed(2)} × {Math.round(MARKET_FLOOR_FACTOR * 100)}%) = {floorPrice.toFixed(2)} {currency}
                   </span>
                 </p>
