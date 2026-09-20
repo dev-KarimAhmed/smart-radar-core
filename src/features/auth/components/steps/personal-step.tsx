@@ -874,7 +874,7 @@ export function PersonalStep() {
             {/* Kept as a way to chase a queued request, not as the mechanism itself. */}
             <div className={styles.style851_145}>
               <a
-                href={buildSupportWhatsappUrl(resetPhone)}
+                href={buildSupportWhatsappUrl(resetPhone, isArabic ? tAuto('key_6d7db928') : 'Unspecified')}
                 target="_blank"
                 rel="noopener noreferrer"
                 className={styles.style856_146}
@@ -929,10 +929,9 @@ function Field({
   );
 }
 
-function buildSupportWhatsappUrl(phone: string) {
-    const tAuto = useTranslations('auto');
+function buildSupportWhatsappUrl(phone: string, fallbackLabel = 'غير محدد') {
   const supportPhone = getSupportPhone();
-  const message = `طلب إعادة تعيين كلمة مرور الراكب. رقم الحساب: ${phone || tAuto('key_6d7db928')}`;
+  const message = `طلب إعادة تعيين كلمة مرور الراكب. رقم الحساب: ${phone || fallbackLabel}`;
 
   if (!supportPhone) {
     return `https://wa.me/?text=${encodeURIComponent(message)}`;

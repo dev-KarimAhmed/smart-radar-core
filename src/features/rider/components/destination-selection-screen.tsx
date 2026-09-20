@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { Check } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import type { AppLanguage } from '@/lib/i18n/simple-copy';
@@ -27,21 +26,6 @@ const styles = {
   title: "mt-1 text-2xl font-black leading-tight text-white",
   subtitle: "mt-1 text-xs leading-relaxed text-slate-400",
   countryBadge: "shrink-0 rounded-full border border-[#14B8A6]/25 bg-[#14B8A6]/10 px-3 py-1.5 text-[10px] font-black text-[#14F5D5]",
-  progress: "grid grid-cols-3 gap-1.5",
-  progressStep: "flex min-w-0 items-center gap-1.5 rounded-lg border px-2 py-2 text-[9px] font-black transition-colors",
-  progressStepComplete: "border-[#14B8A6]/30 bg-[#14B8A6]/12 text-[#BFFCF2]",
-  progressStepIncomplete: "border-white/8 bg-white/[0.03] text-slate-500",
-  progressBadge: "flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[8px]",
-  progressBadgeComplete: "bg-[#14B8A6] text-[#061316]",
-  progressBadgeIncomplete: "bg-slate-800 text-slate-400",
-  progressCheckIcon: "h-2.5 w-2.5 stroke-[3]",
-  progressLabel: "truncate",
-  categorySelectorCard: "rounded-2xl border border-white/10 bg-[#0F172A]/70 p-3 space-y-2",
-  categorySubtitle: "text-center text-[11px] font-bold text-slate-400",
-  categoryTabs: "grid grid-cols-3 gap-2",
-  categoryTab: "flex items-center justify-center rounded-xl py-2.5 px-2 text-xs font-black transition cursor-pointer select-none",
-  categoryTabActive: "bg-gradient-to-r from-[#14F5D5] via-[#14B8A6] to-[#0d9488] text-[#031518] shadow-md shadow-[#14B8A6]/25 ring-1 ring-[#14F5D5]",
-  categoryTabInactive: "border border-white/10 bg-black/40 text-slate-300 hover:bg-white/5 hover:text-white",
 } as const;
 
 export interface DestinationSelectionScreenProps {
@@ -155,63 +139,6 @@ export function DestinationSelectionScreen({
               {isArabic ? countryConfig.name_ar || countryConfig.name_en : countryConfig.name_en || countryConfig.name_ar}
             </span>
           ) : null}
-        </div>
-
-        {/* 3-Category Selector: All, Smart App, Taxi (Page 3 Mockup) */}
-        <div className={styles.categorySelectorCard}>
-          <p className={styles.categorySubtitle}>
-            {t('destination.categorySubtitle')}
-          </p>
-          <div className={styles.categoryTabs}>
-            <button
-              type="button"
-              onClick={() => setPricingPreference(null)}
-              className={cn(
-                styles.categoryTab,
-                !pricingPreference ? styles.categoryTabActive : styles.categoryTabInactive
-              )}
-            >
-              {t('destination.categoryAll')}
-            </button>
-            <button
-              type="button"
-              onClick={() => setPricingPreference('APP')}
-              className={cn(
-                styles.categoryTab,
-                pricingPreference === 'APP' ? styles.categoryTabActive : styles.categoryTabInactive
-              )}
-            >
-              {t('destination.categorySmartApp')}
-            </button>
-            <button
-              type="button"
-              onClick={() => setPricingPreference('TAXI')}
-              className={cn(
-                styles.categoryTab,
-                pricingPreference === 'TAXI' ? styles.categoryTabActive : styles.categoryTabInactive
-              )}
-            >
-              {t('destination.categoryTaxi')}
-            </button>
-          </div>
-        </div>
-
-        <div className={styles.progress} aria-label={locationCopy('progress_label')}>
-          {[
-            { label: locationCopy('progress_area'), complete: !!geography.selectedDistrict },
-            { label: locationCopy('progress_location'), complete: hasImportedLocation || selectedDestinationHasCoords },
-            { label: locationCopy('progress_review'), complete: destinationReady },
-          ].map((step, index) => (
-            <div
-              key={step.label}
-              className={cn(styles.progressStep, step.complete ? styles.progressStepComplete : styles.progressStepIncomplete)}
-            >
-              <span className={cn(styles.progressBadge, step.complete ? styles.progressBadgeComplete : styles.progressBadgeIncomplete)}>
-                {step.complete ? <Check className={styles.progressCheckIcon} /> : index + 1}
-              </span>
-              <span className={styles.progressLabel}>{step.label}</span>
-            </div>
-          ))}
         </div>
       </div>
 

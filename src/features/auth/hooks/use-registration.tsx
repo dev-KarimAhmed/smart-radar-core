@@ -656,10 +656,22 @@ function getLocationLabel(row: SupabaseCountryRow | SupabaseGovernorateRow | Sup
 // src/features/captain/lib/captain-registration-schema.ts), so a phone that's
 // valid in one flow is valid in the other. Local-format numbers (e.g. a
 // leading "0") are accepted as long as a country is selected.
-function normalizePhoneForCountry(rawPhone: string, country: SupabaseCountryRow | null, tAuto: any) {
+function normalizePhoneForCountry(
+  rawPhone: string,
+  country: SupabaseCountryRow | null,
+  tAuto?: (key: string) => string,
+) {
   const trimmed = rawPhone.trim();
+  const getMsg = (key: string, fallback: string) => {
+    try {
+      return tAuto ? tAuto(key) : fallback;
+    } catch {
+      return fallback;
+    }
+  };
+
   if (!trimmed) {
-    return { ok: false as const, message: tAuto('key_9a6b40b6') };
+    return { ok: false as const, message: getMsg('key_9a6b40b6', 'اكتب رقم الهاتف.') };
   }
 
   const isoCode = getCountryIsoCode(country) as CountryCode | undefined;
@@ -670,14 +682,14 @@ function normalizePhoneForCountry(rawPhone: string, country: SupabaseCountryRow 
       return {
         ok: false as const,
         message: isoCode
-          ? tAuto('key_9812501b')
-          : tAuto('key_af6d7dd9'),
+          ? getMsg('key_9812501b', 'رقم الهاتف غير صحيح لهذه الدولة، اكتبه بالنسق المحلي أو الدولي.')
+          : getMsg('key_af6d7dd9', 'اختر الدولة أولاً حتى نتحقق من رقم الهاتف.'),
       };
     }
 
     return { ok: true as const, phone: parsed.number };
   } catch {
-    return { ok: false as const, message: tAuto('key_286d6c55') };
+    return { ok: false as const, message: getMsg('key_286d6c55', 'رقم الهاتف غير صحيح.') };
   }
 }
 
