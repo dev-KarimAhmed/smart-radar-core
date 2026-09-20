@@ -403,7 +403,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const normalizedPhone = normalizePhoneForCountry(personal.phone, selectedCountry);
+    const normalizedPhone = normalizePhoneForCountry(personal.phone, selectedCountry, tAuto);
     if (!normalizedPhone.ok) {
       toast({
         variant: 'destructive',
@@ -656,8 +656,7 @@ function getLocationLabel(row: SupabaseCountryRow | SupabaseGovernorateRow | Sup
 // src/features/captain/lib/captain-registration-schema.ts), so a phone that's
 // valid in one flow is valid in the other. Local-format numbers (e.g. a
 // leading "0") are accepted as long as a country is selected.
-function normalizePhoneForCountry(rawPhone: string, country: SupabaseCountryRow | null) {
-    const tAuto = useTranslations('auto');
+function normalizePhoneForCountry(rawPhone: string, country: SupabaseCountryRow | null, tAuto: any) {
   const trimmed = rawPhone.trim();
   if (!trimmed) {
     return { ok: false as const, message: tAuto('key_9a6b40b6') };
