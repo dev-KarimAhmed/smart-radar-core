@@ -71,6 +71,7 @@ interface BiddingOfferStepperProps {
   existingOffer: any;
   onIgnore: () => void;
   roundMoney: (val: number) => number;
+  isSmartApp: boolean;
 }
 
 export function BiddingOfferStepper({
@@ -111,6 +112,7 @@ export function BiddingOfferStepper({
   existingOffer,
   onIgnore,
   roundMoney,
+  isSmartApp,
 }: BiddingOfferStepperProps) {
   const t = useTranslations('captainBidding');
 
@@ -276,48 +278,50 @@ export function BiddingOfferStepper({
         </div>
       ) : null}
 
-      <div className={styles.style163_22}>
-        <label className={styles.style164_23}>{t('waitSecondsLabel')}</label>
-        <div className={styles.style165_24}>
-          <button
-            type="button"
-            onClick={() => setWaitSecondsInput((current: any) => {
-              const value = Number(current);
-              const next = (Number.isFinite(value) ? value : MIN_OFFER_WAIT_SECONDS) - 1;
-              return String(Math.max(MIN_OFFER_WAIT_SECONDS, next));
-            })}
-            disabled={parsedWaitSeconds <= MIN_OFFER_WAIT_SECONDS}
-            className={cn(styles.style169_25, parsedWaitSeconds <= MIN_OFFER_WAIT_SECONDS ? styles.inputLocked : '')}
-          >
-            <Minus className={styles.style171_26} />
-          </button>
-          <input
-            value={waitSecondsInput}
-            onChange={(event) => setWaitSecondsInput(event.target.value.replace(/[^0-9]/g, ''))}
-            inputMode="numeric"
-            className={styles.style177_27}
-          />
-          <button
-            type="button"
-            onClick={() => setWaitSecondsInput((current: any) => {
-              const value = Number(current);
-              const next = (Number.isFinite(value) ? value : MIN_OFFER_WAIT_SECONDS) + 1;
-              return String(Math.min(MAX_OFFER_WAIT_SECONDS, Math.max(MIN_OFFER_WAIT_SECONDS, next)));
-            })}
-            disabled={parsedWaitSeconds >= MAX_OFFER_WAIT_SECONDS}
-            className={cn(styles.style182_28, parsedWaitSeconds >= MAX_OFFER_WAIT_SECONDS ? styles.inputLocked : '')}
-          >
-            <Plus className={styles.style184_29} />
-          </button>
-        </div>
-        <p className={styles.style192_34}>{t('waitSecondsHint')}</p>
-        {!isWaitSecondsValid ? (
-          <div className={styles.style208_37}>
-            <AlertTriangle className={styles.style209_38} />
-            {t('waitSecondsRange', { min: MIN_OFFER_WAIT_SECONDS, max: MAX_OFFER_WAIT_SECONDS })}
+      {!isSmartApp && (
+        <div className={styles.style163_22}>
+          <label className={styles.style164_23}>{t('waitSecondsLabel')}</label>
+          <div className={styles.style165_24}>
+            <button
+              type="button"
+              onClick={() => setWaitSecondsInput((current: any) => {
+                const value = Number(current);
+                const next = (Number.isFinite(value) ? value : MIN_OFFER_WAIT_SECONDS) - 1;
+                return String(Math.max(MIN_OFFER_WAIT_SECONDS, next));
+              })}
+              disabled={parsedWaitSeconds <= MIN_OFFER_WAIT_SECONDS}
+              className={cn(styles.style169_25, parsedWaitSeconds <= MIN_OFFER_WAIT_SECONDS ? styles.inputLocked : '')}
+            >
+              <Minus className={styles.style171_26} />
+            </button>
+            <input
+              value={waitSecondsInput}
+              onChange={(event) => setWaitSecondsInput(event.target.value.replace(/[^0-9]/g, ''))}
+              inputMode="numeric"
+              className={styles.style177_27}
+            />
+            <button
+              type="button"
+              onClick={() => setWaitSecondsInput((current: any) => {
+                const value = Number(current);
+                const next = (Number.isFinite(value) ? value : MIN_OFFER_WAIT_SECONDS) + 1;
+                return String(Math.min(MAX_OFFER_WAIT_SECONDS, Math.max(MIN_OFFER_WAIT_SECONDS, next)));
+              })}
+              disabled={parsedWaitSeconds >= MAX_OFFER_WAIT_SECONDS}
+              className={cn(styles.style182_28, parsedWaitSeconds >= MAX_OFFER_WAIT_SECONDS ? styles.inputLocked : '')}
+            >
+              <Plus className={styles.style184_29} />
+            </button>
           </div>
-        ) : null}
-      </div>
+          <p className={styles.style192_34}>{t('waitSecondsHint')}</p>
+          {!isWaitSecondsValid ? (
+            <div className={styles.style208_37}>
+              <AlertTriangle className={styles.style209_38} />
+              {t('waitSecondsRange', { min: MIN_OFFER_WAIT_SECONDS, max: MAX_OFFER_WAIT_SECONDS })}
+            </div>
+          ) : null}
+        </div>
+      )}
 
       {isDumpingBlocked && professionalAd ? (
         <AdDisplayCard

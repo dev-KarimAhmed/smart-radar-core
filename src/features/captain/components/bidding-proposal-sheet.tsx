@@ -559,6 +559,7 @@ export function BiddingProposalSheet({
         existingOffer={existingOffer}
         onIgnore={onIgnore}
         roundMoney={roundMoney}
+        isSmartApp={isSmartApp}
       />
     </section>
   );

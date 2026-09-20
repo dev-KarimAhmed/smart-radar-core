@@ -66,68 +66,86 @@ export function DestinationSearchPanel({
 
   return (
     <section className={styles.section}>
-      <div>
-        <div className={styles.step1Header}>
-          <span className={styles.stepBadge}>1</span>
+      {!isCaptainScanPreviewActive ? (
+        <>
           <div>
-            <p className={styles.stepTitle}>{locationCopy('step_search_title')}</p>
-            <p className={styles.stepHelper}>{locationCopy('step_search_helper')}</p>
+            <div className={styles.step1Header}>
+              <span className={styles.stepBadge}>1</span>
+              <div>
+                <p className={styles.stepTitle}>{locationCopy('step_search_title')}</p>
+                <p className={styles.stepHelper}>{locationCopy('step_search_helper')}</p>
+              </div>
+            </div>
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                mapPicker.handleOpenGoogleMapsSearch();
+              }}
+              className={styles.searchForm}
+            >
+              <div className={styles.searchInputWrapper}>
+                <Search className={styles.searchIcon} />
+                <input
+                  type="search"
+                  value={destinationSearchQuery}
+                  onChange={(event) => onSearchQueryChange(event.target.value)}
+                  placeholder={locationCopy('placeholder_landmark')}
+                  className={styles.searchInput}
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={destinationSearchQuery.trim().length < 2}
+                aria-label={locationCopy('btn_open_google_maps')}
+                title={locationCopy('btn_open_google_maps')}
+                className={styles.searchButton}
+              >
+                <Search className={styles.searchButtonIcon} />
+                <span className={styles.searchButtonLabel}>
+                  {locationCopy('btn_open_google_maps')}
+                </span>
+              </button>
+            </form>
           </div>
-        </div>
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            mapPicker.handleOpenGoogleMapsSearch();
-          }}
-          className={styles.searchForm}
-        >
-          <div className={styles.searchInputWrapper}>
-            <Search className={styles.searchIcon} />
-            <input
-              type="search"
-              value={destinationSearchQuery}
-              onChange={(event) => onSearchQueryChange(event.target.value)}
-              placeholder={locationCopy('placeholder_landmark')}
-              className={styles.searchInput}
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={destinationSearchQuery.trim().length < 2}
-            aria-label={locationCopy('btn_open_google_maps')}
-            title={locationCopy('btn_open_google_maps')}
-            className={styles.searchButton}
-          >
-            <Search className={styles.searchButtonIcon} />
-            <span className={styles.searchButtonLabel}>
-              {locationCopy('btn_open_google_maps')}
-            </span>
-          </button>
-        </form>
-      </div>
 
-      <div className={styles.step2Wrapper}>
-        <div className={styles.step2Header}>
-          <span className={styles.stepBadge}>2</span>
-          <div>
-            <p className={styles.stepTitle}>{locationCopy('step_confirm_title')}</p>
-            <p className={styles.stepHelper}>{locationCopy('step_confirm_helper')}</p>
+          <div className={styles.step2Wrapper}>
+            <div className={styles.step2Header}>
+              <span className={styles.stepBadge}>2</span>
+              <div>
+                <p className={styles.stepTitle}>{locationCopy('step_confirm_title')}</p>
+                <p className={styles.stepHelper}>{locationCopy('step_confirm_helper')}</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={clipboard.handleConfirmClipboardLocation}
+              disabled={clipboard.isReadingClipboardLocation}
+              className={styles.confirmButton}
+            >
+              {clipboard.isReadingClipboardLocation ? <Loader2 className={styles.confirmButtonLoadingIcon} /> : <MapPin className={styles.confirmButtonIcon} />}
+              <span>
+                {clipboard.isReadingClipboardLocation
+                  ? locationCopy('status_reading_clipboard')
+                  : locationCopy('btn_confirm_and_calculate')}
+              </span>
+            </button>
           </div>
-        </div>
+        </>
+      ) : (
         <button
           type="button"
-          onClick={clipboard.handleConfirmClipboardLocation}
-          disabled={clipboard.isReadingClipboardLocation}
+          onClick={() => {
+            clipboard.reset?.();
+            search.setDestinationSearchStatus?.('idle');
+            // Reset scan state manually if needed, but since we are modifying state in a parent
+            // we dispatch a custom event that RiderView Tab handles, or rely on window reload
+            window.dispatchEvent(new CustomEvent('exit-request-flow'));
+          }}
           className={styles.confirmButton}
         >
-          {clipboard.isReadingClipboardLocation ? <Loader2 className={styles.confirmButtonLoadingIcon} /> : <MapPin className={styles.confirmButtonIcon} />}
-          <span>
-            {clipboard.isReadingClipboardLocation
-              ? locationCopy('status_reading_clipboard')
-              : locationCopy('btn_confirm_and_calculate')}
-          </span>
+          <span>إعادة الطلب</span>
         </button>
-      </div>
+      )}
 
       {clipboard.externalLocationUrl ? (
         <DestinationConfirmedLocationCard
