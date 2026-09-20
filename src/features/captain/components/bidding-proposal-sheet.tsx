@@ -9,7 +9,7 @@ import { supabase } from '@/lib/supabase-client';
 import { RadarAntiCheatKernel } from '@/core/RadarAntiCheatKernel';
 import { useCaptainProfessionalAd } from '../hooks/use-captain-professional-ad';
 import { usePricePerKmSetup } from '../hooks/use-price-per-km-setup';
-import { MAX_OFFER_WAIT_SECONDS, MIN_OFFER_WAIT_SECONDS } from '../hooks/use-driver-transactions';
+import { DEFAULT_OFFER_WAIT_SECONDS, MAX_OFFER_WAIT_SECONDS, MIN_OFFER_WAIT_SECONDS } from '../hooks/use-driver-transactions';
 import { AdDisplayCard } from '@/features/ads/ad-display/contract';
 import { cn } from '@/lib/utils';
 import { estimateHaversineDistanceKm } from '../services/ride-location';
@@ -190,7 +190,7 @@ export function BiddingProposalSheet({
     ? estimateHaversineDistanceKm(driverLocation.lat, driverLocation.lng, request.pickupCoords.lat, request.pickupCoords.lng)
     : null;
   const pickupEtaMinutes = estimatePickupMinutes(pickupDistanceKm);
-  const [waitSecondsInput, setWaitSecondsInput] = React.useState(String(MIN_OFFER_WAIT_SECONDS));
+  const [waitSecondsInput, setWaitSecondsInput] = React.useState(String(DEFAULT_OFFER_WAIT_SECONDS));
   const parsedWaitSeconds = Number(waitSecondsInput);
   const isWaitSecondsValid = Number.isInteger(parsedWaitSeconds)
     && parsedWaitSeconds >= MIN_OFFER_WAIT_SECONDS
@@ -321,7 +321,7 @@ export function BiddingProposalSheet({
         setAppPrice(String(existingOffer.price));
         setIncreaseAmount(0);
       }
-      setWaitSecondsInput(String(existingOffer.wait_seconds || MIN_OFFER_WAIT_SECONDS));
+      setWaitSecondsInput(String(existingOffer.wait_seconds || DEFAULT_OFFER_WAIT_SECONDS));
     } else {
       setIncreaseAmount(0);
       if (initialOfferPrice && initialOfferPrice > 0) {
@@ -329,7 +329,7 @@ export function BiddingProposalSheet({
       } else {
         setAppPrice('');
       }
-      setWaitSecondsInput(String(MIN_OFFER_WAIT_SECONDS));
+      setWaitSecondsInput(String(DEFAULT_OFFER_WAIT_SECONDS));
     }
   }, [request.id, existingOffer?.id, existingOffer?.price, existingOffer?.wait_seconds, baseFare, pricingMode, initialOfferPrice]);
 
@@ -534,6 +534,8 @@ export function BiddingProposalSheet({
         language={language}
         currency={currency}
         pricingMode={pricingMode}
+        appPrice={appPrice}
+        setAppPrice={setAppPrice}
         increaseAmount={increaseAmount}
         setIncreaseAmount={setIncreaseAmount}
         minIncreaseAmount={minIncreaseAmount}
@@ -559,6 +561,7 @@ export function BiddingProposalSheet({
         waitSecondsInput={waitSecondsInput}
         setWaitSecondsInput={setWaitSecondsInput}
         MIN_OFFER_WAIT_SECONDS={MIN_OFFER_WAIT_SECONDS}
+        DEFAULT_OFFER_WAIT_SECONDS={DEFAULT_OFFER_WAIT_SECONDS}
         MAX_OFFER_WAIT_SECONDS={MAX_OFFER_WAIT_SECONDS}
         parsedWaitSeconds={parsedWaitSeconds}
         isWaitSecondsValid={isWaitSecondsValid}
