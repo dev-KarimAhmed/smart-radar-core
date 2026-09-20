@@ -1243,6 +1243,7 @@
     "distanceMinimum": "Minimum (less than {distance} km)",
     "appModeInputNotice": "Enter your app price here",
     "appModeInputHint": "Paste or type the price",
+    "appModeHint": "Paste or type the price",
     "marketAvgLabel": "Market Avg",
     "baseFareLabel": "Base:",
     "perKmLabel": "Km:",

@@ -1243,6 +1243,7 @@
     "distanceMinimum": "الحد الأدنى (أقل من {distance} كم)",
     "appModeInputNotice": "يمكنك وضع سعرك هنا حسب سعر التطبيق",
     "appModeInputHint": "انسخ السعر وألصقه أو أكتبه",
+    "appModeHint": "انسخ السعر وألصقه أو أكتبه",
     "marketAvgLabel": "معدل سعر السوق",
     "baseFareLabel": "فتحة العداد :",
     "perKmLabel": "الكيلو :",
