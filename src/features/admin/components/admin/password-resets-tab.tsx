@@ -75,8 +75,8 @@ export function PasswordResetsTab() {
     } catch (error) {
       toast({
         variant: 'destructive',
-        title: 'تعذّر تحميل الطلبات',
-        description: error instanceof Error ? error.message : 'خطأ غير معروف.',
+        title: tAuto('key_f7540c29'),
+        description: error instanceof Error ? error.message : tAuto('key_6f959529'),
       });
     } finally {
       setIsLoading(false);
@@ -90,8 +90,8 @@ export function PasswordResetsTab() {
     if (note.length < 10) {
       toast({
         variant: 'destructive',
-        title: 'اكتب طريقة التحقق',
-        description: 'لازم تسجّل إزاي اتأكدت من هوية صاحب الحساب (10 أحرف على الأقل).',
+        title: tAuto('key_40cb583c'),
+        description: tAuto('key_269b7bdc'),
       });
       return;
     }
@@ -108,8 +108,8 @@ export function PasswordResetsTab() {
     } catch (error) {
       toast({
         variant: 'destructive',
-        title: 'تعذّر إصدار الرمز',
-        description: error instanceof Error ? error.message : 'خطأ غير معروف.',
+        title: tAuto('key_26f7305b'),
+        description: error instanceof Error ? error.message : tAuto('key_6f959529'),
       });
     } finally {
       setBusyId(null);
@@ -124,8 +124,8 @@ export function PasswordResetsTab() {
     } catch (error) {
       toast({
         variant: 'destructive',
-        title: 'تعذّر رفض الطلب',
-        description: error instanceof Error ? error.message : 'خطأ غير معروف.',
+        title: tAuto('key_25f422c2'),
+        description: error instanceof Error ? error.message : tAuto('key_6f959529'),
       });
     } finally {
       setBusyId(null);

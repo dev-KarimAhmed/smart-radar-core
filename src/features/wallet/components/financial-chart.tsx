@@ -45,6 +45,7 @@ interface FinancialChartProps {
 export function SovereignFinancialActivityChart({ transactions, balanceJD, currencyLabel = '' }: FinancialChartProps) {
   const { isArabic, language } = useDashboardLanguage();
   const t = useTranslations('financialChart');
+  const tAuto = useTranslations('auto');
   const copy = {
     baseline: t('baseline'),
     currentBalance: t('currentBalance'),
@@ -73,7 +74,7 @@ export function SovereignFinancialActivityChart({ transactions, balanceJD, curre
     }];
 
     sorted.forEach((tx) => {
-      const value = tx.currency === 'ساعة' ? tx.amount * 0.5 : tx.amount;
+      const value = tx.currency === tAuto('key_d54c0ef8') ? tx.amount * 0.5 : tx.amount;
       runningBalance += value;
       points.push({
         timestamp: tx.timestamp,

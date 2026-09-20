@@ -78,12 +78,12 @@ function LoginOrchestrator() {
         uid: 'dev-rider-001',
         phone: '+962790000000',
         role: 'rider',
-        name: 'راكب تجريبي',
-        governorate: 'عمّان',
+        name: tAuto('key_b5f2617a'),
+        governorate: tAuto('key_c20836dc'),
         countryId: 1,
-        currencyAr: 'د.أ',
+        currencyAr: tAuto('key_a13e6dc9'),
         currencyEn: 'JOD',
-        district: 'الجامعة',
+        district: tAuto('key_1aacb23c'),
         isBufferActive: false,
         rating: 5.0
       });
@@ -92,9 +92,9 @@ function LoginOrchestrator() {
         uid: 'dev-driver-001',
         phone: '+962791111111',
         role: 'driver',
-        name: 'سائق تجريبي',
-        governorate: 'عمّان',
-        district: 'الجامعة',
+        name: tAuto('key_f88ba116'),
+        governorate: tAuto('key_c20836dc'),
+        district: tAuto('key_1aacb23c'),
         isBufferActive: false,
         status: 'idle',
         rating: 4.9,
@@ -110,7 +110,7 @@ function LoginOrchestrator() {
         },
         affiliation: {
           type: 'independent',
-          name: 'مستقل'
+          name: tAuto('key_409e38e8')
         }
       });
     } else if (roleType === 'admin') {
@@ -118,9 +118,9 @@ function LoginOrchestrator() {
         uid: 'dev-admin-001',
         phone: '+962792222222',
         role: 'admin',
-        name: 'مشرف تجريبي',
-        governorate: 'عمّان',
-        district: 'الجامعة',
+        name: tAuto('key_78278817'),
+        governorate: tAuto('key_c20836dc'),
+        district: tAuto('key_1aacb23c'),
         isBufferActive: false,
         rating: 5.0
       });
@@ -129,12 +129,12 @@ function LoginOrchestrator() {
         uid: 'dev-advertiser-001',
         phone: '+962793333333',
         role: 'advertiser',
-        name: 'معلن تجريبي',
-        governorate: 'عمّان',
-        district: 'الجامعة',
+        name: tAuto('key_f2d3c89f'),
+        governorate: tAuto('key_c20836dc'),
+        district: tAuto('key_1aacb23c'),
         isBufferActive: false,
         rating: 5.0,
-        companyName: 'شركة إعلانات تجريبية',
+        companyName: tAuto('key_fd12b08f'),
         commercialRegister: 'CR-88294-A',
         adLicense: 'LIC-990-2026',
         businessType: 'commercial'
@@ -144,9 +144,9 @@ function LoginOrchestrator() {
         uid: 'dev-delegate-001',
         phone: '+962794444444',
         role: 'delegate',
-        name: 'مندوب تجريبي',
-        governorate: 'عمّان',
-        district: 'وادي السير',
+        name: tAuto('key_3df54374'),
+        governorate: tAuto('key_c20836dc'),
+        district: tAuto('key_161b5e38'),
         isBufferActive: false,
         rating: 4.8,
         referralCode: 'RAD-JOR-777',

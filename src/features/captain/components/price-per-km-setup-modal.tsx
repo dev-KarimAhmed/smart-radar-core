@@ -171,7 +171,7 @@ export function PricePerKmSetupModal({
     setShortDistancesError('');
 
     if (!isIndependent && !setupMode) {
-      setError(isArabic ? 'يرجى اختيار طريقة التسعير أولاً' : 'Please select a pricing mode first');
+      setError(isArabic ? tAuto('key_981af5fb') : 'Please select a pricing mode first');
       return;
     }
 

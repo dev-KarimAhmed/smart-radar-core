@@ -120,6 +120,7 @@ interface PulseHeatmapProps {
 }
 
 const getTrendStyle = (trend: MarketPulse['trend']) => {
+    const tAuto = useTranslations('auto');
   switch (trend) {
     case 'high_demand':
       return {
@@ -127,7 +128,7 @@ const getTrendStyle = (trend: MarketPulse['trend']) => {
         glow: 'shadow-[0_0_15px_rgba(239,68,68,0.15)]',
         iconColor: 'text-red-400',
         Icon: TrendingUp,
-        label: 'طلب مرتفع 📈'
+        label: tAuto('key_47bc21aa')
       };
     case 'high_supply':
       return {
@@ -135,7 +136,7 @@ const getTrendStyle = (trend: MarketPulse['trend']) => {
         glow: 'shadow-[0_0_15px_rgba(59,130,246,0.15)]',
         iconColor: 'text-blue-400',
         Icon: TrendingDown,
-        label: 'وفرة سائقين 📉'
+        label: tAuto('key_8b1b33e1')
       };
     case 'balanced':
     default:
@@ -144,27 +145,28 @@ const getTrendStyle = (trend: MarketPulse['trend']) => {
         glow: 'shadow-[0_0_15px_rgba(16,185,129,0.1)]',
         iconColor: 'text-emerald-400',
         Icon: ArrowRightLeft,
-        label: 'سوق متوازن ⚖️'
+        label: tAuto('key_aaa488cb')
       };
   }
 };
 
 // Programmatic mapping to reverse district to governorate
 const getGovernorateOfDistrict = (districtName: string): string => {
+    const tAuto = useTranslations('auto');
   for (const gov of jordanGovernorates) {
     const distList = getDistrictsByGovernorate(gov);
     if (distList.includes(districtName)) {
       return gov;
     }
   }
-  return "عمان"; // Default fallback
+  return tAuto('key_20a48924'); // Default fallback
 };
 
 export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
     const tAuto = useTranslations('auto');
     const t = useTranslations('auto');
-  const [selectedGov, setSelectedGov] = React.useState<string>('الكل');
-  const [selectedDistrict, setSelectedDistrict] = React.useState<string>('الكل');
+  const [selectedGov, setSelectedGov] = React.useState<string>(tAuto('key_6d08f196'));
+  const [selectedDistrict, setSelectedDistrict] = React.useState<string>(tAuto('key_6d08f196'));
   const [calculatedScores, setCalculatedScores] = React.useState<Record<string, number>>({});
   const [isProcessingScores, setIsProcessingScores] = React.useState(false);
 
@@ -189,12 +191,12 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
   // Reset district when governorate changes
   const handleGovChange = (value: string) => {
     setSelectedGov(value);
-    setSelectedDistrict('الكل');
+    setSelectedDistrict(tAuto('key_6d08f196'));
   };
 
   // Get available districts for governorate
   const availableDistricts = React.useMemo(() => {
-    if (selectedGov === 'الكل') return [];
+    if (selectedGov === tAuto('key_6d08f196')) return [];
     return getDistrictsByGovernorate(selectedGov);
   }, [selectedGov]);
 
@@ -260,8 +262,8 @@ export function PulseHeatmap({ pulseData, isLoading }: PulseHeatmapProps) {
       const pulseDistrict = pulse.id;
       const gov = getGovernorateOfDistrict(pulseDistrict);
 
-      const matchesGov = selectedGov === 'الكل' || gov === selectedGov;
-      const matchesDistrict = selectedDistrict === 'الكل' || pulseDistrict === selectedDistrict;
+      const matchesGov = selectedGov === tAuto('key_6d08f196') || gov === selectedGov;
+      const matchesDistrict = selectedDistrict === tAuto('key_6d08f196') || pulseDistrict === selectedDistrict;
 
       return matchesGov && matchesDistrict;
     });

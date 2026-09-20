@@ -265,8 +265,8 @@ export function GeoPaymentGateway({ isOpen, onClose, onSuccess }: GeoPaymentGate
                           )}
                         >
                           <CreditCard className={styles.style195_44} />
-                          <div className={styles.style196_45}>{channel.label}</div>
-                          <div className={styles.style197_46}>{channel.description}</div>
+                          <div className={styles.style196_45}>{tAuto(`paymentChannel_${channel.id}_label` as any)}</div>
+                          <div className={styles.style197_46}>{tAuto(`paymentChannel_${channel.id}_desc` as any)}</div>
                         </button>
                       ))}
                     </div>

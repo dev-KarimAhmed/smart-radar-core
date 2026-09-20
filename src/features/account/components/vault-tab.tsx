@@ -2,8 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { Heart, MessageCircle, Phone, Trash2, ShieldCheck, HelpCircle } from 'lucide-react';
-import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
-
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 const styles = {
   style112_1: "w-full max-w-4xl mx-auto px-4 pb-12 font-sans",
@@ -52,10 +51,10 @@ const styles = {
 
 
 export function VaultTab() {
- const { isArabic, language } = useDashboardLanguage();
+ const isArabic = document.documentElement.dir === 'rtl';
+ const tAuto = useTranslations('auto');
  const [heartedAdIds, setHeartedAdIds] = useState<string[]>([]);
  const [vaultDetails, setVaultDetails] = useState<Record<string, any>>({});
- const copy = vaultCopy[language];
 
  useEffect(() => {
  try {
@@ -137,7 +136,7 @@ export function VaultTab() {
  if (typeof navigator !== 'undefined' && navigator.vibrate) {
  navigator.vibrate([40, 40]);
  }
- alert(copy.extendAlert);
+ alert(tAuto('vaultTab_extendAlert'));
  }
  };
 
@@ -146,7 +145,7 @@ export function VaultTab() {
  const cleanNum = contactNumber.replace(/[^0-9+]/g, '');
  if (actionType === 'whatsapp') {
  const text = encodeURIComponent(
- copy.whatsappMessage(title || '')
+ tAuto('vaultTab_whatsappMessage', { title: title || '' })
  );
  url = `https://wa.me/${cleanNum}?text=${text}`;
  } else {
@@ -164,12 +163,12 @@ export function VaultTab() {
  <ShieldCheck className={styles.style117_7} />
  </div>
  <div className={isArabic ? styles.style119_8 : styles.style119_9}>
- <h3 className={styles.style120_10}>{copy.title}</h3>
- <p className={styles.style121_11}>{copy.subtitle}</p>
+ <h3 className={styles.style120_10}>{tAuto('vaultTab_title')}</h3>
+ <p className={styles.style121_11}>{tAuto('vaultTab_subtitle')}</p>
  </div>
  </div>
  <div className={styles.style124_12}>
- {copy.count(heartedAdIds.length)}
+ {tAuto('vaultTab_count', { count: heartedAdIds.length })}
  </div>
  </div>
 
@@ -180,9 +179,9 @@ export function VaultTab() {
  <HelpCircle className={styles.style133_15} />
  </div>
  <div className={styles.style135_16}>
- <p className={styles.style136_17}>{copy.emptyTitle}</p>
+ <p className={styles.style136_17}>{tAuto('vaultTab_emptyTitle')}</p>
  <p className={styles.style137_18}>
- {copy.emptyDescription}
+ {tAuto('vaultTab_emptyDescription')}
  </p>
  </div>
  </div>
@@ -218,7 +217,7 @@ export function VaultTab() {
  </p>
  <div className={styles.style172_29}>
  <span className={styles.style173_30}>
- {copy.area}: {ad.targetDistrict || copy.unknownArea}
+ {tAuto('vaultTab_area')}: {ad.targetDistrict || tAuto('vaultTab_unknownArea')}
  </span>
  </div>
  </div>
@@ -226,7 +225,7 @@ export function VaultTab() {
  <button
  onClick={() => handleDelete(ad.id)}
  className={styles.style181_31}
- title={copy.deleteTitle}
+ title={tAuto('vaultTab_deleteTitle')}
  >
  <Trash2 className={styles.style184_32} />
  </button>
@@ -235,15 +234,15 @@ export function VaultTab() {
  {/* Expiration warning and storage controls */}
  <div className={styles.style189_33}>
  <span className={styles.style190_34}>
- {copy.savedFor}: <strong className={daysLeft > 7 ? styles.style191_35 : styles.style191_36}>
- {daysLeft > 0 ? copy.daysLeft(daysLeft) : copy.expiresToday}
+ {tAuto('vaultTab_savedFor')}: <strong className={daysLeft > 7 ? styles.style191_35 : styles.style191_36}>
+ {daysLeft > 0 ? tAuto('vaultTab_daysLeft', { days: daysLeft }) : tAuto('vaultTab_expiresToday')}
  </strong>
  </span>
  <button
  onClick={() => handleExtend(ad.id)}
  className={styles.style197_37}
  >
- {copy.extend}
+ {tAuto('vaultTab_extend')}
  </button>
  </div>
 
@@ -260,7 +259,7 @@ export function VaultTab() {
  className={styles.style213_39}
  >
  <MessageCircle className={styles.style215_40} />
- <span>{copy.whatsapp}</span>
+ <span>{tAuto('vaultTab_whatsapp')}</span>
  </button>
 
  <button
@@ -274,7 +273,7 @@ export function VaultTab() {
  className={styles.style227_41}
  >
  <Phone className={styles.style229_42} />
- <span>{copy.call}</span>
+ <span>{tAuto('vaultTab_call')}</span>
  </button>
  </div>
  </div>
@@ -285,42 +284,3 @@ export function VaultTab() {
  </div>
  );
 }
-
-const vaultCopy = {
- ar: {
- area: 'المنطقة',
- call: 'اتصال هاتفي',
- count: (count: number) => `محفوظاتك: (${count})`,
- daysLeft: (days: number) => `متبقي ${days} يوم`,
-    deleteTitle: 'حذف من الخزنة',
- emptyDescription: 'اضغط على أيقونة القلب في أي إعلان لحفظه هنا والرجوع إليه لاحقاً.',
- emptyTitle: 'لا توجد إعلانات محفوظة حالياً',
- expiresToday: 'ينتهي اليوم',
- extend: 'تمديد الحفظ 20 يوماً',
- extendAlert: 'تم تمديد حفظ الإعلان لمدة 20 يوماً إضافية.',
- savedFor: 'مدة الحفظ',
- subtitle: 'تظهر هنا الإعلانات التي حفظتها لمدة 20 يوماً.',
- title: 'الإعلانات المحفوظة',
- unknownArea: 'غير محدد',
- whatsapp: 'واتساب مباشر',
- whatsappMessage: (title: string) => `مرحباً، شاهدت إعلانكم "${title}" وأود معرفة تفاصيل العرض.`,
- },
- en: {
- area: 'Area',
- call: 'Phone call',
- count: (count: number) => `Vault: (${count})`,
- daysLeft: (days: number) => `${days} days left`,
- deleteTitle: 'Remove from vault',
- emptyDescription: 'Tap the heart icon on any ad to save it here and return to it later.',
- emptyTitle: 'No vault ads yet',
- expiresToday: 'Expires today',
- extend: 'Extend for 20 days',
- extendAlert: 'The ad was saved for 20 more days.',
- savedFor: 'Stored for',
- subtitle: 'Ads you add to the Vault appear here for 20 days.',
- title: 'Vault ads',
- unknownArea: 'Not set',
- whatsapp: 'WhatsApp',
- whatsappMessage: (title: string) => `Hello, I saw your ad "${title}" and would like to know more about the offer.`,
- },
-} as const;

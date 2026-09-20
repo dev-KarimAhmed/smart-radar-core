@@ -6,8 +6,10 @@ import { useProfileState } from './profile-tab/use-profile-state';
 import { ProfileHeaderCard } from './profile-tab/profile-header-card';
 import { ProfileFormSection } from './profile-tab/profile-form-section';
 import { BlockedCaptainsSection } from './profile-tab/blocked-captains-section';
+import { useTranslations } from "next-intl";
 
 export function ProfileTab() {
+    const tAuto = useTranslations('auto');
   const state = useProfileState();
 
   if (!state.user) {
@@ -21,7 +23,7 @@ export function ProfileTab() {
   }
 
   const rating = Number(state.profile?.rating ?? state.user?.rating ?? 5);
-  const displayName = state.fullName || state.user?.name || 'مستخدم جديد';
+  const displayName = state.fullName || state.user?.name || tAuto('key_f38edfd8');
   const displayPhone = state.phone || state.user?.phone || '';
   const displayRole = state.isSovereign ? state.t('roles.admin') : state.isCaptain ? state.t('roles.driver') : state.isPassenger ? state.t('roles.rider') : state.t('roles.user');
   

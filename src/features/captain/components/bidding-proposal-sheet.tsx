@@ -567,11 +567,12 @@ export function BiddingProposalSheet({
 
 
 function normalizeCaptainTier(value: unknown, rating = 5): CaptainTier {
+    const tAuto = useTranslations('auto');
   const normalized = String(value || '').trim().toUpperCase();
-  if (normalized.includes('PLATINUM') || normalized.includes('بلات')) return 'PLATINUM';
-  if (normalized.includes('GOLD') || normalized.includes('ذهب')) return 'GOLD';
-  if (normalized.includes('BRONZE') || normalized.includes('برون')) return 'BRONZE';
-  if (normalized.includes('SILVER') || normalized.includes('فض')) return 'SILVER';
+  if (normalized.includes('PLATINUM') || normalized.includes(tAuto('key_282a0db1'))) return 'PLATINUM';
+  if (normalized.includes('GOLD') || normalized.includes(tAuto('key_fa5d054b'))) return 'GOLD';
+  if (normalized.includes('BRONZE') || normalized.includes(tAuto('key_141a4400'))) return 'BRONZE';
+  if (normalized.includes('SILVER') || normalized.includes(tAuto('key_8c7402b2'))) return 'SILVER';
   if (rating >= 4.9) return 'PLATINUM';
   if (rating >= 4.7) return 'GOLD';
   if (rating >= 4.4) return 'SILVER';

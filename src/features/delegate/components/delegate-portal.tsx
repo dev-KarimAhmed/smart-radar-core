@@ -76,6 +76,7 @@ export function DelegatePortal() {
     const delegateId = user.uid;
 
     async function loadTasks() {
+        const tAuto = useTranslations('auto');
       setLoading(true);
       setSyncMessage('');
 
@@ -95,7 +96,7 @@ export function DelegatePortal() {
         }
         if (active) {
           setTasks([]);
-          setSyncMessage('لا توجد مهام متاحة حالياً أو تعذر تحميلها من الخادم.');
+          setSyncMessage(tAuto('key_d06912fe'));
         }
       } finally {
         if (active) setLoading(false);
@@ -219,17 +220,18 @@ function StatusCard({ label, value, icon }: { label: string; value: string; icon
 }
 
 function formatStatus(status: string | null) {
+    const tAuto = useTranslations('auto');
   switch (status) {
     case 'completed':
-      return 'مكتملة';
+      return tAuto('key_03eacf6f');
     case 'acknowledged':
-      return 'قيد المتابعة';
+      return tAuto('key_854b12c6');
     case 'closed':
-      return 'مغلقة';
+      return tAuto('key_55b303b4');
     case 'pending':
-      return 'بانتظار المتابعة';
+      return tAuto('key_d0615b62');
     default:
-      return 'غير محددة';
+      return tAuto('key_c1a25ec0');
   }
 }
 

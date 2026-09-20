@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { User } from '@/core/types';
 import { supabase } from '@/lib/supabase-client';
 import { useToast } from './use-toast';
+import { useTranslations } from 'next-intl';
 
 interface ServerWalletSnapshot {
   balance: number;
@@ -66,14 +67,14 @@ function isUuid(value: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
 
-function mapWalletTransactionRow(row: Record<string, any>): WalletTransaction {
+function mapWalletTransactionRow(row: Record<string, any>, tAuto: any): WalletTransaction {
   const timestamp = parseTimestamp(row.created_at ?? row.createdAt ?? row.timestamp);
   return {
     id: String(row.id),
     type: row.type || row.transaction_type || 'transaction',
     amount: firstNumber(row.amount, 0),
     currency: firstString(row.currency_ar, row.currency, row.currency_code, ''),
-    description: firstString(row.description_ar, row.description, row.memo, 'عملية على الرصيد'),
+    description: firstString(row.description_ar, row.description, row.memo, tAuto('transactionOnBalance')),
     createdAt: timestamp
       ? new Date(timestamp).toLocaleString('ar', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })
       : '',
@@ -99,6 +100,7 @@ function mapWalletAccountRow(row: Record<string, any> | null, transactions: Wall
 }
 
 export function useSovereignWallet(user: User | null) {
+  const tAuto = useTranslations();
   const { toast } = useToast();
   const realtimeInstanceId = useMemo(() => Math.random().toString(36).slice(2), []);
   const [loading, setLoading] = useState(false);
@@ -148,7 +150,7 @@ export function useSovereignWallet(user: User | null) {
         paid_minutes_remaining: user?.paidHoursRemaining ?? 0,
         bonus_minutes_remaining: user?.bonusHoursRemaining ?? 0,
         active_package_name: user?.activePackageName ?? '',
-      }, Array.isArray(user?.walletTransactions) ? user.walletTransactions.map(mapWalletTransactionRow) : []));
+      }, Array.isArray(user?.walletTransactions) ? user.walletTransactions.map(t => mapWalletTransactionRow(t, tAuto)) : []));
       setWalletLoaded(true);
       setWalletLoadState('ready');
       setWalletError('');
@@ -186,7 +188,7 @@ export function useSovereignWallet(user: User | null) {
         if (txError) throw txError;
         if (!active) return;
 
-        const transactions = Array.isArray(txData) ? txData.map(mapWalletTransactionRow) : [];
+        const transactions = Array.isArray(txData) ? txData.map(t => mapWalletTransactionRow(t, tAuto)) : [];
         setServerWallet(mapWalletAccountRow(walletData as Record<string, any> | null, transactions));
         setWalletLoadState(walletData ? 'ready' : 'missing');
         if (!walletData && (process.env.NODE_ENV !== 'production')) {
@@ -298,12 +300,12 @@ export function useSovereignWallet(user: User | null) {
 
   const submitWalletReceipt = useCallback(async (input: SubmitWalletReceiptInput) => {
     if (!userId) {
-      toast({ variant: 'destructive', title: 'تعذر إرسال الإيصال', description: 'يرجى تسجيل الدخول ثم حاول مرة أخرى.' });
+      toast({ variant: 'destructive', title: tAuto('failedToSubmitReceipt'), description: tAuto('pleaseLoginToTryAgain') });
       return false;
     }
 
     if (!Number.isFinite(input.amount) || input.amount <= 0) {
-      toast({ variant: 'destructive', title: 'قيمة غير صحيحة', description: 'اكتب مبلغاً صحيحاً أكبر من صفر.' });
+      toast({ variant: 'destructive', title: tAuto('invalidValue'), description: tAuto('enterValidAmountGtZero') });
       return false;
     }
 
@@ -326,7 +328,7 @@ export function useSovereignWallet(user: User | null) {
         currency_code: user?.currencyEn || null,
         currency_ar: user?.currencyAr || null,
         status: 'PENDING',
-        description_ar: 'إيصال شحن بانتظار المراجعة.',
+        description_ar: tAuto('receiptAwaitingReview'),
         payment_channel: input.channel,
         receipt_path: receiptPath,
         metadata: {
@@ -336,12 +338,12 @@ export function useSovereignWallet(user: User | null) {
       });
       if (insertError) throw insertError;
 
-      toast({ title: 'تم إرسال الإيصال', description: 'وصل الإيصال للمراجعة. سيظهر الرصيد بعد اعتماده.' });
+      toast({ title: tAuto('receiptSubmitted'), description: tAuto('receiptAwaitingReviewMsg') });
       refreshWallet();
       return true;
     } catch (error) {
       if ((process.env.NODE_ENV !== 'production')) console.warn('[Wallet Receipt]', error);
-      toast({ variant: 'destructive', title: 'تعذر إرسال الإيصال', description: 'تحقق من الاتصال وحاول مرة أخرى.' });
+      toast({ variant: 'destructive', title: tAuto('failedToSubmitReceipt'), description: tAuto('checkConnectionTryAgain') });
       return false;
     } finally {
       setLoading(false);
@@ -350,7 +352,7 @@ export function useSovereignWallet(user: User | null) {
 
   const redeemVoucherCode = useCallback(async (code: string) => {
     if (!code.trim()) {
-      toast({ variant: 'destructive', title: 'الكود مطلوب', description: 'اكتب كود الشحن ثم حاول مرة أخرى.' });
+      toast({ variant: 'destructive', title: tAuto('codeRequired'), description: tAuto('enterRechargeCodeTryAgain') });
       return false;
     }
 
@@ -358,17 +360,17 @@ export function useSovereignWallet(user: User | null) {
     try {
       const { error } = await supabase.rpc('redeem_voucher_code', { p_code: code.trim().toUpperCase() });
       if (error) throw error;
-      toast({ title: 'تم تفعيل الكود', description: 'تمت إضافة قيمة الكود إلى حسابك.' });
+      toast({ title: tAuto('codeActivated'), description: tAuto('codeValueAddedToAccount') });
       refreshWallet();
       return true;
     } catch (error) {
       if ((process.env.NODE_ENV !== 'production')) console.warn('[Wallet Voucher]', error);
-      toast({ variant: 'destructive', title: 'تعذر تفعيل الكود', description: 'تأكد من صحة الكود أو حاول مرة أخرى.' });
+      toast({ variant: 'destructive', title: tAuto('failedToActivateCode'), description: tAuto('verifyCodeOrTryAgain') });
       return false;
     } finally {
       setLoading(false);
     }
-  }, [refreshWallet, toast]);
+  }, [refreshWallet, toast, tAuto]);
 
   const delegateChargeCaptain = useCallback(async (input: DelegateChargeInput) => {
     setLoading(true);
@@ -383,12 +385,12 @@ export function useSovereignWallet(user: User | null) {
       return true;
     } catch (error) {
       if ((process.env.NODE_ENV !== 'production')) console.warn('[Wallet Delegate Charge]', error);
-      toast({ variant: 'destructive', title: 'تعذر شحن الرصيد', description: 'لم يتم تنفيذ العملية من الخادم.' });
+      toast({ variant: 'destructive', title: tAuto('failedToRechargeBalance'), description: tAuto('operationNotExecutedByServer') });
       return false;
     } finally {
       setLoading(false);
     }
-  }, [refreshWallet, toast]);
+  }, [refreshWallet, toast, tAuto]);
 
   /**
    * TESTING ONLY. Credits the signed-in captain's own wallet with no approver.
@@ -418,8 +420,8 @@ export function useSovereignWallet(user: User | null) {
         subscriptionHours: Number((((res?.paidMinutesRemaining ?? (current.paidMinutesRemaining + creditedMins)) + current.bonusMinutesRemaining) / 60).toFixed(3)),
       } : null));
       toast({
-        title: 'تم الشحن في المحفظة',
-        description: 'تم إضافة المبلغ لرصيدك النقدي. يمكنك تخصيص جزء منه لدقائق الرادار الآن.',
+        title: tAuto('walletRecharged'),
+        description: tAuto('amountAddedToCashBalanceAllocatable'),
       });
       refreshWallet();
       return true;
@@ -428,27 +430,27 @@ export function useSovereignWallet(user: User | null) {
       if ((process.env.NODE_ENV !== 'production')) console.warn('[Wallet Self Topup]', error);
       toast({
         variant: 'destructive',
-        title: 'تعذر الشحن الاختباري',
+        title: tAuto('failedTestRecharge'),
         description: message.includes('self_topup_disabled')
-          ? 'الشحن الذاتي متوقف من الإدارة.'
+          ? tAuto('selfTopupDisabled')
           : message.includes('above_test_limit')
-            ? 'المبلغ أو الدقائق أعلى من حد التجربة المسموح.'
+            ? tAuto('aboveTestLimit')
             : message.includes('amount_below_one_minute')
-              ? 'المبلغ أقل من سعر دقيقة واحدة. زوّد المبلغ.'
-              : 'لم يتم تنفيذ العملية من الخادم.',
+              ? tAuto('amountBelowOneMinute')
+              : tAuto('operationNotExecutedByServer'),
       });
       return false;
     } finally {
       setLoading(false);
     }
-  }, [refreshWallet, toast]);
+  }, [refreshWallet, toast, tAuto]);
 
   /**
    * Allocates a custom cash amount from wallet_accounts.balance into radar minutes.
    */
   const allocateBalanceToMinutes = useCallback(async (amount: number) => {
     if (!amount || amount <= 0) {
-      toast({ variant: 'destructive', title: 'المبلغ غير صحيح', description: 'يرجى إدخال مبلغ أكبر من الصفر.' });
+      toast({ variant: 'destructive', title: tAuto('invalidAmount'), description: tAuto('enterAmountGtZero') });
       return false;
     }
     setLoading(true);
@@ -465,8 +467,8 @@ export function useSovereignWallet(user: User | null) {
         } : null));
 
         toast({
-          title: 'تم تخصيص وقت الرادار',
-          description: `تم خصم ${amount} وإضافة ${result.minutesGranted ?? 0} دقيقة رادار لحسابك.`,
+          title: tAuto('radarTimeAllocated'),
+          description: tAuto('amountDeductedAndMinutesAdded', { amount, minutes: result.minutesGranted ?? 0 }),
         });
       }
       refreshWallet();
@@ -476,16 +478,16 @@ export function useSovereignWallet(user: User | null) {
       if ((process.env.NODE_ENV !== 'production')) console.warn('[Wallet Allocate Balance]', error);
       toast({
         variant: 'destructive',
-        title: 'تعذر التخصيص',
+        title: tAuto('failedToAllocate'),
         description: message.includes('insufficient_balance')
-          ? 'رصيدك النقدي الحالي أقل من المبلغ المدخل.'
-          : 'لم يتم تنفيذ عملية التخصيص.',
+          ? tAuto('insufficientCashBalance')
+          : tAuto('allocationNotExecuted'),
       });
       return false;
     } finally {
       setLoading(false);
     }
-  }, [refreshWallet, toast]);
+  }, [refreshWallet, toast, tAuto]);
 
   /**
    * Converts any stranded cash balance (wallet_accounts.balance) into radar minutes.
@@ -508,12 +510,12 @@ export function useSovereignWallet(user: User | null) {
 
         if ((result.minutesGranted ?? 0) > 0) {
           toast({
-            title: 'تم تحويل الرصيد',
-            description: `تم تحويل رصيدك إلى ${result.minutesGranted} دقيقة رادار.`,
+            title: tAuto('balanceConverted'),
+            description: tAuto('balanceConvertedToRadarMinutes', { minutes: result.minutesGranted ?? 0 }),
           });
         }
       } else if (result?.reason === 'balance_already_zero') {
-        toast({ title: 'الرصيد صفر', description: 'لا يوجد رصيد نقدي للتحويل.' });
+        toast({ title: tAuto('zeroBalance'), description: tAuto('noCashBalanceToConvert') });
       }
       refreshWallet();
       return true;
@@ -521,25 +523,25 @@ export function useSovereignWallet(user: User | null) {
       if ((process.env.NODE_ENV !== 'production')) console.warn('[Wallet Convert Balance]', error);
       toast({
         variant: 'destructive',
-        title: 'تعذر التحويل',
-        description: 'لم يتم تحويل الرصيد. حاول مرة أخرى أو تواصل مع المندوب.',
+        title: tAuto('failedToConvert'),
+        description: tAuto('balanceNotConvertedTryAgainOrContactAgent'),
       });
       return false;
     } finally {
       setLoading(false);
     }
-  }, [refreshWallet, toast]);
+  }, [refreshWallet, toast, tAuto]);
 
 
 
   const rejectClientMutation = useCallback(async (..._args: unknown[]) => {
     toast({
       variant: 'destructive',
-      title: 'تعذر تعديل الرصيد',
-      description: 'تعديل الرصيد يتم من الخادم فقط بعد تأكيد العملية.',
+      title: tAuto('failedToModifyBalance'),
+      description: tAuto('balanceModificationOnlyFromServer'),
     });
     return false;
-  }, [toast]);
+  }, [toast, tAuto]);
 
   const isDriver = user?.role === 'driver';
   const balanceJD = serverWallet?.balance ?? 0;

@@ -475,7 +475,7 @@ export function PersonalStep() {
     try {
       setResetMessage(await requestPasswordRecovery(resetPhone, resetEmail));
     } catch (error) {
-      setResetError(error instanceof Error ? error.message : 'تعذّر إرسال الطلب.');
+      setResetError(error instanceof Error ? error.message : tAuto('key_ae0a0345'));
     } finally {
       setResetSubmitting(false);
     }
@@ -487,7 +487,7 @@ export function PersonalStep() {
     if (authMode === 'register' && personal.email && personal.email.trim().length > 0) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(personal.email.trim())) {
-        setEmailError(lang === 'ar' ? 'البريد الإلكتروني غير صحيح' : 'Invalid email format');
+        setEmailError(lang === 'ar' ? tAuto('key_445e75c0') : 'Invalid email format');
         return;
       }
     }
@@ -930,8 +930,9 @@ function Field({
 }
 
 function buildSupportWhatsappUrl(phone: string) {
+    const tAuto = useTranslations('auto');
   const supportPhone = getSupportPhone();
-  const message = `طلب إعادة تعيين كلمة مرور الراكب. رقم الحساب: ${phone || 'غير مكتوب'}`;
+  const message = `طلب إعادة تعيين كلمة مرور الراكب. رقم الحساب: ${phone || tAuto('key_6d7db928')}`;
 
   if (!supportPhone) {
     return `https://wa.me/?text=${encodeURIComponent(message)}`;
