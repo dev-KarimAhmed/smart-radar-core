@@ -185,6 +185,7 @@ export function BiddingProposalSheet({
 }: BiddingProposalSheetProps) {
   const t = useTranslations('captainBidding');
   const pickupT = useTranslations('captainPickup');
+  const tAuto = useTranslations('auto');
   const pickupDistanceKm = driverLocation && request.pickupCoords
     ? estimateHaversineDistanceKm(driverLocation.lat, driverLocation.lng, request.pickupCoords.lat, request.pickupCoords.lng)
     : null;
@@ -371,7 +372,7 @@ export function BiddingProposalSheet({
         ceilingPrice: row.ceilingPrice == null && row.ceiling_price == null ? null : Number(row.ceilingPrice ?? row.ceiling_price),
         suggestedFare: Number(row.suggestedFare ?? row.suggested_fare),
         isOutsideBand: Boolean(row.isOutsideBand),
-        tier: normalizeCaptainTier(row.tier),
+        tier: normalizeCaptainTier(row.tier, 5, tAuto),
         roadKm: toFiniteNumberOrNull(roadKm),
         billableKm: toFiniteNumberOrNull(billableKm),
         estimatedMinutes: toFiniteNumberOrNull(estimatedMinutes),
@@ -454,9 +455,17 @@ export function BiddingProposalSheet({
   return (
     <section className={styles.style103_1}>
       <div className={styles.style104_2}>
-        <div>
+        <div className="flex-1">
           <p className={styles.style106_3}>{t('badge')}</p>
-          <h1 className={styles.style107_4}>{t('title')}</h1>
+          <div className="mt-1 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
+            <h1 className="text-2xl font-black">{t('title')}</h1>
+            <div className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-slate-700/60 bg-slate-800/40 px-3 py-1.5 shadow-sm">
+              <span className="text-[11px] font-medium text-slate-400">{t('requestTimeLabel')}</span>
+              <span className="text-sm font-black tracking-wide text-slate-100" dir="ltr">
+                {request.createdAt ? new Date(request.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
+              </span>
+            </div>
+          </div>
           <p className={styles.style108_5}>{t('subtitle')}</p>
         </div>
         <button onClick={onIgnore} className={styles.style110_6} aria-label={t('ignore')}>
@@ -567,8 +576,7 @@ export function BiddingProposalSheet({
 
 
 
-function normalizeCaptainTier(value: unknown, rating = 5): CaptainTier {
-    const tAuto = useTranslations('auto');
+function normalizeCaptainTier(value: unknown, rating = 5, tAuto: any): CaptainTier {
   const normalized = String(value || '').trim().toUpperCase();
   if (normalized.includes('PLATINUM') || normalized.includes(tAuto('key_282a0db1'))) return 'PLATINUM';
   if (normalized.includes('GOLD') || normalized.includes(tAuto('key_fa5d054b'))) return 'GOLD';

@@ -5,11 +5,11 @@ import type { Trip } from '@/core/types';
 
 const styles = {
   container: "mt-5 rounded-2xl border border-slate-800 bg-black/45 p-4",
-  destinationLabel: "text-xs text-slate-400",
+  destinationLabel: "text-xs font-bold text-slate-300",
   destinationValue: "mt-1 text-xl font-black",
   grid: "mt-4 grid grid-cols-2 gap-2",
   infoCard: "rounded-xl border border-white/10 bg-white/[0.03] p-3",
-  infoLabel: "text-xs text-slate-500",
+  infoLabel: "text-xs font-bold text-slate-300",
   infoValue: "mt-1 font-black text-white",
   pickupCard: "mt-4 rounded-2xl border border-cyan-400/20 bg-cyan-400/[0.06] p-4",
   pickupCardRow: "flex items-start justify-between gap-3",
@@ -53,10 +53,6 @@ export function BiddingTripSummary({ request, language, pickupEtaMinutes }: Bidd
             value={`${request.riderRating != null ? request.riderRating.toFixed(1) : '5.0'} ⭐️`}
           />
           <Info
-            label={t('requestTimeLabel')}
-            value={request.createdAt ? new Date(request.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
-          />
-          <Info
             label={t('tripsCountLabel')}
             value={String(request.riderCompletedTrips || 0)}
           />
@@ -68,15 +64,6 @@ export function BiddingTripSummary({ request, language, pickupEtaMinutes }: Bidd
           <Info
             label={t('tripTime')}
             value={request.estimatedTime != null ? pickupT('minutesValue', { count: Math.round(request.estimatedTime) }) : pickupT('distanceUnavailable')}
-          />
-          <Info
-            label={t('pricingPreference')}
-            value={
-              request.pricingPreference === 'APP' ? t('pricingModeApp') :
-              request.pricingPreference === 'TAXI' ? t('pricingModeTaxi') :
-              request.pricingPreference === 'FREE' ? t('pricingModeFree') :
-              t('pricingModeNone')
-            }
           />
         </div>
       </div>
