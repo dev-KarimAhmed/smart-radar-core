@@ -54,6 +54,7 @@
     "node_modules",
     "functions",
     "src/functions",
-    "src/ai"
+    "src/ai",
+    "src/**/*.legacy.*"
   ]
 }
