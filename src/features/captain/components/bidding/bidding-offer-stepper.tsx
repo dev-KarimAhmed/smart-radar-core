@@ -169,7 +169,6 @@ export function BiddingOfferStepper({
   roundMoney,
 }: BiddingOfferStepperProps) {
   const t = useTranslations('captainBidding');
-  const [showEmptyError, setShowEmptyError] = React.useState(false);
 
   const handlePastePrice = React.useCallback(async () => {
     try {
@@ -216,24 +215,19 @@ export function BiddingOfferStepper({
           </div>
 
           {pricingMode === 'APP' || pricingMode === 'TAXI' ? (
-            <div className="flex flex-col">
-              <div className={styles.inputWrapper}>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0.1"
-                  inputMode="decimal"
-                  value={appPrice}
-                  onChange={(e) => setAppPrice?.(e.target.value)}
-                  placeholder={marketFare > 0 ? marketFare.toFixed(2) : '0.00'}
-                  className={styles.cardInput}
-                  autoFocus
-                />
-                <span className={styles.currencyBadge}>{currency}</span>
-              </div>
-              {showEmptyError && (!appPrice || finalOfferPrice <= 0) && (
-                <p className="mt-1.5 text-[11px] font-bold text-rose-400 text-center">{t('emptyAppPriceError')}</p>
-              )}
+            <div className={styles.inputWrapper}>
+              <input
+                type="number"
+                step="0.01"
+                min="0.1"
+                inputMode="decimal"
+                value={appPrice}
+                onChange={(e) => setAppPrice?.(e.target.value)}
+                placeholder={marketFare > 0 ? marketFare.toFixed(2) : '0.00'}
+                className={styles.cardInput}
+                autoFocus
+              />
+              <span className={styles.currencyBadge}>{currency}</span>
             </div>
           ) : (
             <div className={styles.stepperRow}>
@@ -457,10 +451,9 @@ export function BiddingOfferStepper({
             type="button"
             onClick={() => {
               if ((pricingMode === 'APP' || pricingMode === 'TAXI') && (!appPrice || finalOfferPrice <= 0)) {
-                setShowEmptyError(true);
+                alert(t('emptyAppPriceError'));
                 return;
               }
-              setShowEmptyError(false);
               onSubmit(finalOfferPrice, parsedWaitSeconds, pricingMode || undefined);
             }}
             disabled={isSubmitting || isBlockedDeviation || !isWaitSecondsValid}

@@ -204,7 +204,7 @@ export function RadarMapView({
       const priceStr = directPrices[request.id]?.trim();
       const priceNum = priceStr ? parseFloat(priceStr) : NaN;
       if (!priceStr || isNaN(priceNum) || priceNum <= 0) {
-        onSelectRequest(request, undefined, 'APP');
+        setPriceErrors((prev) => ({ ...prev, [request.id]: true }));
         return;
       }
       setPriceErrors((prev) => ({ ...prev, [request.id]: false }));
@@ -609,7 +609,7 @@ export function RadarMapView({
                               ) : (
                                 <Route className={styles.style233_41} />
                               )}
-                              <span>{copy.openBid}</span>
+                              <span>{isAppMode ? copy.submitDirect : copy.openBid}</span>
                             </button>
                             <button
                               type="button"
@@ -794,6 +794,7 @@ const radarCopy = {
     riderNotFavoritedYou: 'مش في مفضلته',
     pricingPreference: 'طريقة التسعير',
     openBid: 'تقديم عرض',
+    submitDirect: 'تقديم مباشر',
     pendingOfferHint: 'لديك عرض قيد الانتظار، انتظر رد الراكب أولاً.',
     blockedPendingOfferHint: 'لديك عرض قيد الانتظار لطلب آخر — انتظر رد الراكب للمتابعة',
     ownPendingOffer: 'عرضك قيد الانتظار',
@@ -841,6 +842,7 @@ const radarCopy = {
     riderNotFavoritedYou: 'Not a favourite yet',
     pricingPreference: 'Pricing Mode',
     openBid: 'Submit bid',
+    submitDirect: 'Submit directly',
     pendingOfferHint: 'You have a pending offer — wait for the rider to respond first.',
     blockedPendingOfferHint: 'You have a pending offer on another trip — wait for rider response',
     ownPendingOffer: 'Offer pending',

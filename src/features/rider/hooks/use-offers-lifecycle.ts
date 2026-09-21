@@ -16,7 +16,7 @@ import { collectPreferredCaptainIds, prioritizeRiderOffers } from '../services/r
 import { getOfferCountdown } from '../services/offer-countdown';
 import type { RiderMachineState, RiderMachineAction } from '../state/rider-state-machine';
 
-const OFFER_TIMEOUT_MS = 180 * 1000;
+const OFFER_TIMEOUT_MS = 300 * 1000;
 
 /**
  * Owns the incoming-offers poll/subscription for `RECEIVING_OFFERS`, the
@@ -135,7 +135,7 @@ export function useOffersLifecycle(
 
     const timeoutId = window.setTimeout(() => {
       cancelRideRequest(supabase, state.requestId!)
-        .catch(() => {})
+        .catch(() => { })
         .finally(() => {
           toast({
             variant: 'destructive',
