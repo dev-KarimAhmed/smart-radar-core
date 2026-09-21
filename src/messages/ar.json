@@ -1194,6 +1194,8 @@
     "finalOffer": "السعر النهائي",
     "pasteAppPrice": "الصق سعر التطبيق",
     "pasteAction": "لصق",
+    "emptyAppPriceError": "يرجى كتابة السعر أو لصقه أولاً",
+    "submitDirect": "تقديم مباشر",
     "offerDurationShort": "مدة العرض",
     "secondsUnit": "ثانية",
     "tripFareLabel": "سعر الرحلة",

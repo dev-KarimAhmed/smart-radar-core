@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useTranslations } from 'next-intl';
-import { X } from 'lucide-react';
+import { X, Clock } from 'lucide-react';
 import type { Trip } from '@/core/types';
 import { MARKET_FLOOR_FACTOR, warnFactorForTier } from '../services/offer-band';
 import { BiddingTripSummary } from './bidding/bidding-trip-summary';
@@ -73,13 +73,36 @@ export function BiddingProposalSheet({
 
   const tierLabel = t(`tierLabels.${proposal.tier}`);
 
+  const requestTime = React.useMemo(() => {
+    if (!request.createdAt) return null;
+    try {
+      const date = typeof request.createdAt.toDate === 'function' 
+        ? request.createdAt.toDate() 
+        : new Date(request.createdAt);
+      return date.toLocaleTimeString(language === 'ar' ? 'ar-EG' : 'en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch (e) {
+      return null;
+    }
+  }, [request.createdAt, language]);
+
   return (
     <section className={styles.container}>
       {/* Header bar */}
       <div className={styles.header}>
         <div>
           <p className={styles.badge}>{t('badge')}</p>
-          <h1 className={styles.title}>{t('title')}</h1>
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className={styles.title}>{t('title')}</h1>
+            {requestTime && (
+              <span className="mt-1 flex items-center gap-1.5 rounded-lg bg-slate-800/80 px-2.5 py-1 text-sm font-bold text-slate-200 border border-slate-700/80 shadow-sm">
+                <Clock className="h-4 w-4 text-slate-400" />
+                <span dir="ltr">{requestTime}</span>
+              </span>
+            )}
+          </div>
           <p className={styles.subtitle}>{t('subtitle')}</p>
         </div>
         <button onClick={onIgnore} className={styles.ignoreBtn} aria-label={t('ignore')}>

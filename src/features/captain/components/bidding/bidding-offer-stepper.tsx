@@ -98,6 +98,7 @@ export interface BiddingOfferStepperProps {
   normalizedAppPrice: number;
   baseFare: number;
   normalizedIncreaseAmount: number;
+  isBlockedDeviation?: boolean;
   isTierAmber: boolean;
   isAboveBand: boolean;
   premiumFactor: number;
@@ -149,6 +150,7 @@ export function BiddingOfferStepper({
   marketDifference,
   marketDifferencePercent,
   isDumpingBlocked,
+  isBlockedDeviation = isDumpingBlocked,
   professionalAd,
   floorPrice,
   handleApplyFloorPrice,
@@ -167,6 +169,7 @@ export function BiddingOfferStepper({
   roundMoney,
 }: BiddingOfferStepperProps) {
   const t = useTranslations('captainBidding');
+  const [showEmptyError, setShowEmptyError] = React.useState(false);
 
   const handlePastePrice = React.useCallback(async () => {
     try {
@@ -196,8 +199,8 @@ export function BiddingOfferStepper({
               {pricingMode === 'APP'
                 ? t('pasteAppPrice')
                 : pricingMode === 'TAXI'
-                ? t('pricingModeTaxi')
-                : t('increaseAmount')}
+                  ? t('pricingModeTaxi')
+                  : t('increaseAmount')}
             </span>
             {pricingMode === 'APP' && (
               <button
@@ -213,19 +216,24 @@ export function BiddingOfferStepper({
           </div>
 
           {pricingMode === 'APP' || pricingMode === 'TAXI' ? (
-            <div className={styles.inputWrapper}>
-              <input
-                type="number"
-                step="0.01"
-                min="0.1"
-                inputMode="decimal"
-                value={appPrice}
-                onChange={(e) => setAppPrice?.(e.target.value)}
-                placeholder={marketFare > 0 ? marketFare.toFixed(2) : '0.00'}
-                className={styles.cardInput}
-                autoFocus
-              />
-              <span className={styles.currencyBadge}>{currency}</span>
+            <div className="flex flex-col">
+              <div className={styles.inputWrapper}>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0.1"
+                  inputMode="decimal"
+                  value={appPrice}
+                  onChange={(e) => setAppPrice?.(e.target.value)}
+                  placeholder={marketFare > 0 ? marketFare.toFixed(2) : '0.00'}
+                  className={styles.cardInput}
+                  autoFocus
+                />
+                <span className={styles.currencyBadge}>{currency}</span>
+              </div>
+              {showEmptyError && (!appPrice || finalOfferPrice <= 0) && (
+                <p className="mt-1.5 text-[11px] font-bold text-rose-400 text-center">{t('emptyAppPriceError')}</p>
+              )}
             </div>
           ) : (
             <div className={styles.stepperRow}>
@@ -263,8 +271,8 @@ export function BiddingOfferStepper({
             {pricingMode === 'APP'
               ? (normalizedAppPrice > 0 ? `${normalizedAppPrice.toFixed(2)} ${currency}` : t('appModeHint'))
               : pricingMode === 'TAXI'
-              ? t('taxiModeHint')
-              : `${baseFare.toFixed(2)} ${currency}`}
+                ? t('taxiModeHint')
+                : `${baseFare.toFixed(2)} ${currency}`}
           </span>
         </div>
 
@@ -447,12 +455,19 @@ export function BiddingOfferStepper({
         >
           <button
             type="button"
-            onClick={() => onSubmit(finalOfferPrice, parsedWaitSeconds, pricingMode || undefined)}
-            disabled={!canSubmit}
+            onClick={() => {
+              if ((pricingMode === 'APP' || pricingMode === 'TAXI') && (!appPrice || finalOfferPrice <= 0)) {
+                setShowEmptyError(true);
+                return;
+              }
+              setShowEmptyError(false);
+              onSubmit(finalOfferPrice, parsedWaitSeconds, pricingMode || undefined);
+            }}
+            disabled={isSubmitting || isBlockedDeviation || !isWaitSecondsValid}
             className={styles.submitBtn}
           >
             {isSubmitting ? <Loader2 className={styles.submitSpinner} /> : <Send className={styles.submitIcon} />}
-            <span>{existingOffer ? t('updateOffer') : t('submit')}</span>
+            <span>{existingOffer ? t('updateOffer') : t('submitDirect')}</span>
           </button>
         </span>
         <button type="button" onClick={onIgnore} className={styles.ignoreBtn}>

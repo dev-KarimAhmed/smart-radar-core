@@ -1160,6 +1160,8 @@
     "pricingModeApp": "App Pricing",
     "pricingModeTaxi": "Taxi Meter",
     "pricingModeFree": "Free Pricing",
+    "emptyAppPriceError": "Please write or paste the price first",
+    "submitDirect": "Submit directly",
     "pricingModeNone": "No Preference",
     "meterCalculationFallback": "Your meter total for this trip is {total} {currency}. It comes from your saved opening charge, per-kilometre price, per-minute price, and the route estimate.",
     "meterCalculationTitle": "How your meter price was calculated",
