@@ -1,93 +1,42 @@
 import React from 'react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
-import { Minus, Plus, AlertTriangle, Loader2, Send, Sparkles, ClipboardPaste } from 'lucide-react';
+import { Minus, Plus, AlertTriangle, Loader2, Send, Sparkles } from 'lucide-react';
 import { AdDisplayCard } from '@/features/ads/ad-display/contract';
 import { type PricingMode } from './bidding-pricing-selector';
 
 const styles = {
-  container: 'mt-4 space-y-3',
-  biddingGrid: 'grid grid-cols-1 sm:grid-cols-3 gap-2.5',
-
-  // Card 1: App price / input / paste
-  card: 'flex flex-col justify-between rounded-2xl border border-teal-500/25 bg-[#071318]/90 p-3 shadow-md',
-  cardHeader: 'flex items-center justify-between gap-1 mb-2',
-  cardTitle: 'text-[11px] font-black text-teal-300 truncate',
-  pasteBtn: 'inline-flex items-center gap-1 rounded-lg border border-teal-500/30 bg-teal-500/20 px-2 py-1 text-[10px] font-black text-teal-200 transition hover:bg-teal-500/30 active:scale-95',
-  pasteIcon: 'h-3 w-3 text-teal-300',
-  inputWrapper: 'relative',
-  cardInput: 'w-full rounded-xl border border-teal-500/30 bg-black/60 px-3 py-2 text-center text-lg font-black font-mono text-white outline-none focus:border-teal-400 focus:ring-1 focus:ring-teal-400 dir-ltr',
-  currencyBadge: 'absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400 pointer-events-none',
-  cardHint: 'mt-1.5 text-center text-[10px] font-medium text-slate-400 truncate',
-
-  // Stepper for Free Mode in Card 1
-  stepperRow: 'flex items-center justify-center gap-1.5',
-  stepperBtn: 'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-slate-800 text-slate-200 transition hover:bg-slate-700 active:scale-95 disabled:opacity-40 disabled:pointer-events-none',
-  stepperIcon: 'h-3.5 w-3.5',
-  stepperInput: 'h-9 w-full min-w-0 flex-1 rounded-xl border border-white/10 bg-black/50 text-center text-base font-black font-mono text-white outline-none focus:border-teal-400 dir-ltr',
-
-  // Card 2: Final Offer Price
-  finalCard: 'flex flex-col justify-between rounded-2xl border border-emerald-500/25 bg-[#071714]/90 p-3 text-center shadow-md',
-  finalTitle: 'text-[11px] font-black text-emerald-300 mb-1',
-  finalPriceRow: 'my-auto py-1 flex items-baseline justify-center gap-1',
-  finalPriceValue: 'text-2xl font-black font-mono text-white tracking-tight dir-ltr',
-  finalPriceCurrency: 'text-xs font-black text-emerald-400',
-  finalSubtitle: 'text-[10px] font-medium text-slate-400 truncate',
-
-  // Card 3: Offer Duration
-  durationCard: 'flex flex-col justify-between rounded-2xl border border-cyan-500/25 bg-[#0b1424]/90 p-3 text-center shadow-md',
-  durationTitle: 'text-[11px] font-black text-cyan-300 mb-1',
-  durationStepperRow: 'my-auto flex items-center justify-center gap-2 py-0.5',
-  durationBtn: 'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-slate-200 transition hover:bg-white/15 active:scale-95 disabled:opacity-40 disabled:pointer-events-none',
-  durationBtnIcon: 'h-3.5 w-3.5',
-  durationValue: 'w-10 text-center text-xl font-black font-mono text-white dir-ltr',
-  durationInput: 'w-12 bg-transparent text-center text-xl font-black font-mono text-white outline-none focus:ring-1 focus:ring-cyan-400 rounded dir-ltr',
-  durationSubtitle: 'text-[10px] font-medium text-slate-400',
-
-  // Warnings
-  amberWarningBox: 'flex items-center justify-center gap-2 rounded-xl bg-amber-500/10 border border-amber-500/30 px-3 py-2 text-xs font-semibold text-amber-300',
-  warningIcon: 'h-4 w-4 shrink-0',
-  dumpingAmberBox: 'overflow-hidden rounded-2xl border border-amber-500/40 bg-gradient-to-br from-amber-950/30 via-amber-950/15 to-black/40 p-3 text-xs font-bold text-amber-200 shadow-lg',
-  dumpingAmberInner: 'flex items-start gap-2.5',
-  dumpingAmberIcon: 'mt-0.5 h-4 w-4 shrink-0 text-amber-400',
-  dumpingAmberText: 'min-w-0 flex-1 leading-relaxed',
-  dumpingBlockBox: 'overflow-hidden rounded-2xl border border-rose-500/40 bg-gradient-to-br from-rose-950/40 via-red-950/20 to-black/60 p-3.5 text-rose-200 shadow-xl shadow-rose-950/30',
-  dumpingBlockHeader: 'flex items-start gap-3',
-  dumpingBlockIconWrap: 'flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-rose-500/40 bg-rose-500/20 text-rose-300',
-  dumpingBlockIcon: 'h-5 w-5',
-  dumpingBlockContent: 'min-w-0 flex-1',
-  dumpingBlockTitle: 'text-xs font-black text-rose-300',
-  dumpingBlockDesc: 'mt-0.5 text-[11px] leading-relaxed text-rose-200/85',
-  dumpingStatsGrid: 'mt-2.5 grid grid-cols-3 gap-2',
-  dumpingStatItemMarket: 'rounded-xl border border-amber-500/30 bg-amber-500/10 p-2',
-  dumpingStatLabelMarket: 'block text-[10px] font-bold text-amber-300/90',
-  dumpingStatValueMarket: 'mt-0.5 block font-mono text-xs font-black text-amber-300 dir-ltr',
-  dumpingStatItemFloor: 'rounded-xl border border-rose-500/30 bg-rose-500/10 p-2',
-  dumpingStatLabelFloor: 'block text-[10px] font-bold text-rose-300/90',
-  dumpingStatValueFloor: 'mt-0.5 block font-mono text-xs font-black text-rose-200 dir-ltr',
-  dumpingStatItemCurrent: 'rounded-xl border border-white/10 bg-black/40 p-2',
-  dumpingStatLabelCurrent: 'block text-[10px] font-bold text-slate-400',
-  dumpingStatValueCurrent: 'mt-0.5 block font-mono text-xs font-black text-rose-400 line-through decoration-rose-500 dir-ltr',
-  applyFloorBtn: 'mt-2.5 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-rose-500/40 bg-rose-500/20 py-2 px-3 text-xs font-black text-rose-200 transition hover:bg-rose-500/30 active:scale-[0.99]',
-  sparklesIcon: 'h-3.5 w-3.5 text-amber-300',
-
-  // Actions row
-  actionsRow: 'flex items-center gap-2.5 pt-1',
-  submitWrap: 'flex-1',
-  submitBtn: 'w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#14F5D5] via-[#14B8A6] to-[#0d9488] py-3.5 px-4 font-black text-[#031518] shadow-lg shadow-[#14B8A6]/20 transition active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed text-sm',
-  submitIcon: 'h-4 w-4',
-  submitSpinner: 'h-4 w-4 animate-spin',
-  ignoreBtn: 'rounded-2xl border border-white/10 bg-black/40 px-5 py-3.5 text-xs font-bold text-slate-300 hover:bg-white/10 transition shrink-0',
-  professionalAdCard: 'mt-3 w-full shadow-md rounded-2xl border border-white/5 overflow-hidden',
-  inputLocked: 'opacity-40 pointer-events-none',
+  style163_22: 'mt-6 space-y-5',
+  style164_23: 'block text-sm font-semibold text-slate-200',
+  style165_24: 'flex items-center gap-3',
+  style169_25: 'flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white transition-colors active:scale-95',
+  style171_26: 'h-5 w-5',
+  style177_27: 'h-12 w-full min-w-0 flex-1 rounded-xl bg-slate-900/50 px-4 text-center text-xl font-mono font-bold text-white shadow-inner focus:outline-none focus:ring-2 focus:ring-emerald-500/50 dir-ltr',
+  style182_28: 'flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white transition-colors active:scale-95',
+  style184_29: 'h-5 w-5',
+  style187_30: 'mt-6 rounded-2xl bg-gradient-to-br from-emerald-950/40 via-teal-900/20 to-slate-900/60 p-4 border border-emerald-500/20 shadow-[0_0_20px_rgba(16,185,129,0.05)]',
+  style188_31: 'flex items-center justify-between',
+  style189_32: 'text-sm font-bold text-emerald-100',
+  style190_33: 'text-2xl font-mono font-black text-emerald-400 tracking-tight dir-ltr',
+  style192_34: 'text-[13px] text-slate-400/90 mt-2 leading-relaxed',
+  style201_35: 'mt-3 flex items-center justify-center gap-2 rounded-lg bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-300',
+  style202_36: 'h-4 w-4',
+  style208_37: 'mt-2 flex items-center gap-1.5 text-[13px] text-amber-400',
+  style209_38: 'h-4 w-4',
+  style215_39: 'mt-6 grid grid-cols-[1fr,auto] gap-3 sm:mt-8',
+  submitWrap: 'block w-full',
+  style219_40: 'flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-500 px-4 py-4 text-[15px] font-bold text-white shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all hover:bg-emerald-400 hover:shadow-[0_0_25px_rgba(16,185,129,0.4)] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none',
+  style221_41: 'h-5 w-5 animate-spin',
+  style221_42: 'h-5 w-5',
+  style224_43: 'flex items-center justify-center rounded-2xl bg-slate-800 px-6 py-4 text-[15px] font-semibold text-slate-300 transition-colors hover:bg-slate-700 hover:text-white active:scale-[0.98]',
+  inputLocked: 'opacity-50 pointer-events-none',
+  professionalAdCard: 'mt-4 w-full shadow-md rounded-2xl border border-white/5 overflow-hidden',
 } as const;
 
-export interface BiddingOfferStepperProps {
+interface BiddingOfferStepperProps {
   language: string;
   currency: string;
   pricingMode: PricingMode | null;
-  appPrice?: string;
-  setAppPrice?: (val: string) => void;
   increaseAmount: number | string;
   setIncreaseAmount: React.Dispatch<React.SetStateAction<number | string>>;
   minIncreaseAmount: number;
@@ -106,15 +55,14 @@ export interface BiddingOfferStepperProps {
   marketDifference: number;
   marketDifferencePercent: number;
   isDumpingBlocked: boolean;
-  professionalAd: any;
+  professionalAd: any; // Ad type
   MARKET_FLOOR_FACTOR: number;
   floorPrice: number;
   handleApplyFloorPrice: () => void;
   waitSecondsInput: string;
   setWaitSecondsInput: React.Dispatch<React.SetStateAction<string>>;
   MIN_OFFER_WAIT_SECONDS: number;
-  DEFAULT_OFFER_WAIT_SECONDS?: number;
-  MAX_OFFER_WAIT_SECONDS: number;
+  MAX_OFFER_WAIT_SECONDS?: number;
   parsedWaitSeconds: number;
   isWaitSecondsValid: boolean;
   onSubmit: (price: number, waitSecs: number, mode?: PricingMode) => void;
@@ -123,14 +71,12 @@ export interface BiddingOfferStepperProps {
   existingOffer: any;
   onIgnore: () => void;
   roundMoney: (val: number) => number;
-  isSmartApp?: boolean;
 }
 
 export function BiddingOfferStepper({
+  language,
   currency,
   pricingMode,
-  appPrice = '',
-  setAppPrice,
   increaseAmount,
   setIncreaseAmount,
   minIncreaseAmount,
@@ -150,12 +96,12 @@ export function BiddingOfferStepper({
   marketDifferencePercent,
   isDumpingBlocked,
   professionalAd,
+  MARKET_FLOOR_FACTOR,
   floorPrice,
   handleApplyFloorPrice,
   waitSecondsInput,
   setWaitSecondsInput,
   MIN_OFFER_WAIT_SECONDS,
-  DEFAULT_OFFER_WAIT_SECONDS = 90,
   MAX_OFFER_WAIT_SECONDS,
   parsedWaitSeconds,
   isWaitSecondsValid,
@@ -168,184 +114,89 @@ export function BiddingOfferStepper({
 }: BiddingOfferStepperProps) {
   const t = useTranslations('captainBidding');
 
-  const handlePastePrice = React.useCallback(async () => {
-    try {
-      if (typeof navigator !== 'undefined' && navigator.clipboard?.readText) {
-        const text = await navigator.clipboard.readText();
-        const cleaned = text.replace(/,/g, '.');
-        const match = cleaned.match(/\d+(?:\.\d+)?/);
-        if (match && setAppPrice) {
-          setAppPrice(match[0]);
-        }
-      }
-    } catch {
-      // Clipboard denied or unsupported - fail silently
-    }
-  }, [setAppPrice]);
-
   if (pricingMode === null) return null;
 
   return (
-    <div className={styles.container}>
-      {/* 3-Box Grid: [الصق سعر التطبيق] | [السعر النهائي] | [مدة العرض] */}
-      <div className={styles.biddingGrid}>
-        {/* Card 1: Paste App Price / Fare Adjustment */}
-        <div className={styles.card}>
-          <div className={styles.cardHeader}>
-            <span className={styles.cardTitle}>
-              {pricingMode === 'APP'
-                ? t('pasteAppPrice')
-                : pricingMode === 'TAXI'
-                ? t('pricingModeTaxi')
-                : t('increaseAmount')}
-            </span>
-            {pricingMode === 'APP' && (
-              <button
-                type="button"
-                onClick={() => void handlePastePrice()}
-                className={styles.pasteBtn}
-                title={t('pasteAction')}
-              >
-                <ClipboardPaste className={styles.pasteIcon} />
-                <span>{t('pasteAction')}</span>
-              </button>
-            )}
-          </div>
-
-          {pricingMode === 'APP' || pricingMode === 'TAXI' ? (
-            <div className={styles.inputWrapper}>
-              <input
-                type="number"
-                step="0.01"
-                min="0.1"
-                inputMode="decimal"
-                value={appPrice}
-                onChange={(e) => setAppPrice?.(e.target.value)}
-                placeholder={marketFare > 0 ? marketFare.toFixed(2) : '0.00'}
-                className={styles.cardInput}
-                autoFocus
-              />
-              <span className={styles.currencyBadge}>{currency}</span>
-            </div>
-          ) : (
-            <div className={styles.stepperRow}>
-              <button
-                type="button"
-                onClick={() => setIncreaseAmount((value: any) => Math.max(minIncreaseAmount, roundMoney((Number(value) || 0) - step)))}
-                disabled={isMinusDisabled}
-                className={cn(styles.stepperBtn, isMinusDisabled ? styles.inputLocked : '')}
-              >
-                <Minus className={styles.stepperIcon} />
-              </button>
-              <input
-                value={increaseAmount.toString()}
-                onChange={(event) => {
-                  const val = event.target.value;
-                  if (val === '' || val === '-' || /^-?\d*\.?\d*$/.test(val)) {
-                    setIncreaseAmount(val);
-                  }
-                }}
-                inputMode="decimal"
-                className={styles.stepperInput}
-              />
-              <button
-                type="button"
-                onClick={() => setIncreaseAmount((value: any) => roundMoney((Number(value) || 0) + step))}
-                disabled={isPlusDisabled}
-                className={cn(styles.stepperBtn, isPlusDisabled ? styles.inputLocked : '')}
-              >
-                <Plus className={styles.stepperIcon} />
-              </button>
-            </div>
-          )}
-
-          <span className={styles.cardHint}>
-            {pricingMode === 'APP'
-              ? (normalizedAppPrice > 0 ? `${normalizedAppPrice.toFixed(2)} ${currency}` : t('appModeHint'))
-              : pricingMode === 'TAXI'
-              ? t('taxiModeHint')
-              : `${baseFare.toFixed(2)} ${currency}`}
-          </span>
-        </div>
-
-        {/* Card 2: Final Offer Price */}
-        <div className={styles.finalCard}>
-          <span className={styles.finalTitle}>{t('finalOffer')}</span>
-          <div className={styles.finalPriceRow}>
-            <strong className={styles.finalPriceValue}>
-              {finalOfferPrice.toFixed(2)}
-            </strong>
-            <span className={styles.finalPriceCurrency}>{currency}</span>
-          </div>
-          <span className={styles.finalSubtitle}>
-            {pricingMode === 'APP' && normalizedAppPrice <= 0
-              ? t('enterAppPriceHint')
-              : t('tripFareLabel')}
-          </span>
-        </div>
-
-        {/* Card 3: Offer Duration */}
-        <div className={styles.durationCard}>
-          <span className={styles.durationTitle}>{t('offerDurationShort')}</span>
-          <div className={styles.durationStepperRow}>
+    <div className={styles.style163_22}>
+      {pricingMode === 'FREE' && (
+        <>
+          <label className={styles.style164_23}>{t('increaseAmount')}</label>
+          <div className={styles.style165_24}>
             <button
               type="button"
-              onClick={() => setWaitSecondsInput((current: any) => {
-                const value = Number(current);
-                const next = (Number.isFinite(value) ? value : DEFAULT_OFFER_WAIT_SECONDS) - 5;
-                return String(Math.max(MIN_OFFER_WAIT_SECONDS, next));
-              })}
-              disabled={parsedWaitSeconds <= MIN_OFFER_WAIT_SECONDS}
-              className={cn(styles.durationBtn, parsedWaitSeconds <= MIN_OFFER_WAIT_SECONDS ? styles.inputLocked : '')}
+              onClick={() => setIncreaseAmount((value: any) => Math.max(minIncreaseAmount, roundMoney((Number(value) || 0) - step)))}
+              disabled={isMinusDisabled}
+              className={cn(styles.style169_25, isMinusDisabled ? styles.inputLocked : '')}
             >
-              <Minus className={styles.durationBtnIcon} />
+              <Minus className={styles.style171_26} />
             </button>
             <input
-              type="text"
-              inputMode="numeric"
-              value={waitSecondsInput}
+              value={increaseAmount.toString()}
               onChange={(event) => {
-                const val = event.target.value.replace(/[^0-9]/g, '');
-                setWaitSecondsInput(val);
-              }}
-              onBlur={() => {
-                const val = Number(waitSecondsInput);
-                if (!Number.isFinite(val) || val < MIN_OFFER_WAIT_SECONDS) {
-                  setWaitSecondsInput(String(DEFAULT_OFFER_WAIT_SECONDS));
+                const val = event.target.value;
+                if (val === '' || val === '-' || /^-?\d*\.?\d*$/.test(val)) {
+                  setIncreaseAmount(val);
                 }
               }}
-              className={styles.durationInput}
+              inputMode="decimal"
+              className={styles.style177_27}
             />
             <button
               type="button"
-              onClick={() => setWaitSecondsInput((current: any) => {
-                const value = Number(current);
-                const next = (Number.isFinite(value) ? value : DEFAULT_OFFER_WAIT_SECONDS) + 5;
-                return String(Math.min(MAX_OFFER_WAIT_SECONDS, Math.max(MIN_OFFER_WAIT_SECONDS, next)));
-              })}
-              disabled={parsedWaitSeconds >= MAX_OFFER_WAIT_SECONDS}
-              className={cn(styles.durationBtn, parsedWaitSeconds >= MAX_OFFER_WAIT_SECONDS ? styles.inputLocked : '')}
+              onClick={() => setIncreaseAmount((value: any) => roundMoney((Number(value) || 0) + step))}
+              disabled={isPlusDisabled}
+              className={cn(styles.style182_28, isPlusDisabled ? styles.inputLocked : '')}
             >
-              <Plus className={styles.durationBtnIcon} />
+              <Plus className={styles.style184_29} />
             </button>
           </div>
-          <span className={styles.durationSubtitle}>{t('secondsUnit')}</span>
+        </>
+      )}
+      <div className={styles.style187_30}>
+        <div className={styles.style188_31}>
+          <span className={styles.style189_32}>{t('finalOffer')}</span>
+          <strong className={styles.style190_33}>{finalOfferPrice.toFixed(2)} {currency}</strong>
         </div>
+        <p className={styles.style192_34}>
+          {pricingMode === 'APP' ? (
+            <span>
+              {normalizedAppPrice > 0 ? (
+                t('appEnteredPrice', { price: finalOfferPrice.toFixed(2), currency })
+              ) : (
+                t('enterAppPriceHint')
+              )}
+            </span>
+          ) : pricingMode === 'TAXI' ? (
+            <span>
+              {t('taxiMeterTripPrice', { price: finalOfferPrice.toFixed(2), currency })}
+            </span>
+          ) : normalizedIncreaseAmount === 0 ? (
+            <span>
+              {t('matchesCalculatedMeter')}
+            </span>
+          ) : (
+            <>
+              <span>{t('offerDetailsPrefix')}</span>
+              <span dir="ltr" className="inline-block font-mono text-slate-300">
+                {baseFare.toFixed(2)} {currency} {normalizedIncreaseAmount >= 0 ? '+' : '-'} {Math.abs(normalizedIncreaseAmount).toFixed(2)} {currency} = {finalOfferPrice.toFixed(2)} {currency}
+              </span>
+            </>
+          )}
+        </p>
       </div>
 
-      {/* Warnings */}
       {isTierAmber && !isAboveBand ? (
-        <div className={styles.amberWarningBox}>
-          <AlertTriangle className={styles.warningIcon} />
-          <span>{t('tierAmberWarning', { limit: Math.round(premiumFactor * 100) })}</span>
+        <div className={styles.style201_35}>
+          <AlertTriangle className={styles.style202_36} />
+          {t('tierAmberWarning', { limit: Math.round(premiumFactor * 100) })}
         </div>
       ) : null}
 
       {isDumpingAmber ? (
-        <div className={styles.dumpingAmberBox}>
-          <div className={styles.dumpingAmberInner}>
-            <AlertTriangle className={styles.dumpingAmberIcon} />
-            <div className={styles.dumpingAmberText}>
+        <div className="mt-3 overflow-hidden rounded-2xl border border-amber-500/40 bg-gradient-to-br from-amber-950/30 via-amber-950/15 to-black/40 p-3.5 text-xs font-bold text-amber-200 shadow-lg">
+          <div className="flex items-start gap-2.5">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+            <div className="min-w-0 flex-1 leading-relaxed">
               {t('dumpingAmberCalculationWarning', {
                 offer: finalOfferPrice.toFixed(2),
                 market: marketFare.toFixed(2),
@@ -359,48 +210,48 @@ export function BiddingOfferStepper({
       ) : null}
 
       {isDumpingBlocked ? (
-        <div className={styles.dumpingBlockBox}>
-          <div className={styles.dumpingBlockHeader}>
-            <div className={styles.dumpingBlockIconWrap}>
-              <AlertTriangle className={styles.dumpingBlockIcon} />
+        <div className="mt-4 overflow-hidden rounded-2xl border border-rose-500/40 bg-gradient-to-br from-rose-950/40 via-red-950/20 to-black/60 p-4 text-rose-200 shadow-xl shadow-rose-950/30">
+          <div className="flex items-start gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-rose-500/40 bg-rose-500/20 text-rose-300">
+              <AlertTriangle className="h-5 w-5" />
             </div>
-            <div className={styles.dumpingBlockContent}>
-              <h4 className={styles.dumpingBlockTitle}>
+            <div className="min-w-0 flex-1">
+              <h4 className="text-sm font-black text-rose-300">
                 {t('dumpingCrimsonBlockTitle')}
               </h4>
-              <p className={styles.dumpingBlockDesc}>
+              <p className="mt-1 text-xs leading-relaxed text-rose-200/85">
                 {t('dumpingCrimsonBlockDesc', {
-                  limit: Math.round(15),
+                  limit: Math.round(MARKET_FLOOR_FACTOR * 100),
                 })}
               </p>
             </div>
           </div>
 
           {marketFare > 0 ? (
-            <div className={styles.dumpingStatsGrid}>
-              <div className={styles.dumpingStatItemMarket}>
-                <span className={styles.dumpingStatLabelMarket}>
+            <div className="mt-3.5 grid grid-cols-2 gap-2 sm:grid-cols-3">
+              <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-2.5">
+                <span className="block text-[11px] font-bold text-amber-300/90">
                   {t('breakdownMarket')}
                 </span>
-                <strong className={styles.dumpingStatValueMarket}>
+                <strong className="mt-1 block font-mono text-sm font-black text-amber-300" dir="ltr">
                   {marketFare.toFixed(2)} {currency}
                 </strong>
               </div>
 
-              <div className={styles.dumpingStatItemFloor}>
-                <span className={styles.dumpingStatLabelFloor}>
+              <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-2.5">
+                <span className="block text-[11px] font-bold text-rose-300/90">
                   {t('breakdownFloor')}
                 </span>
-                <strong className={styles.dumpingStatValueFloor}>
+                <strong className="mt-1 block font-mono text-sm font-black text-rose-200" dir="ltr">
                   {floorPrice.toFixed(2)} {currency}
                 </strong>
               </div>
 
-              <div className={styles.dumpingStatItemCurrent}>
-                <span className={styles.dumpingStatLabelCurrent}>
+              <div className="col-span-2 rounded-xl border border-white/10 bg-black/40 p-2.5 sm:col-span-1">
+                <span className="block text-[11px] font-bold text-slate-400">
                   {t('currentOfferFare')}
                 </span>
-                <strong className={styles.dumpingStatValueCurrent}>
+                <strong className="mt-1 block font-mono text-sm font-black text-rose-400 line-through decoration-rose-500" dir="ltr">
                   {finalOfferPrice.toFixed(2)} {currency}
                 </strong>
               </div>
@@ -411,9 +262,9 @@ export function BiddingOfferStepper({
             <button
               type="button"
               onClick={handleApplyFloorPrice}
-              className={styles.applyFloorBtn}
+              className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-rose-500/40 bg-rose-500/20 py-2.5 px-3 text-xs font-black text-rose-200 transition hover:bg-rose-500/30 active:scale-[0.99]"
             >
-              <Sparkles className={styles.sparklesIcon} />
+              <Sparkles className="h-4 w-4 text-amber-300" />
               <span>
                 {t('applyMinimumAllowedPrice', {
                   price: floorPrice.toFixed(2),
@@ -424,6 +275,48 @@ export function BiddingOfferStepper({
           ) : null}
         </div>
       ) : null}
+
+      <div className={styles.style163_22}>
+        <label className={styles.style164_23}>{t('waitSecondsLabel')}</label>
+        <div className={styles.style165_24}>
+          <button
+            type="button"
+            onClick={() => setWaitSecondsInput((current: any) => {
+              const value = Number(current);
+              const next = (Number.isFinite(value) ? value : MIN_OFFER_WAIT_SECONDS) - 1;
+              return String(Math.max(MIN_OFFER_WAIT_SECONDS, next));
+            })}
+            disabled={parsedWaitSeconds <= MIN_OFFER_WAIT_SECONDS}
+            className={cn(styles.style169_25, parsedWaitSeconds <= MIN_OFFER_WAIT_SECONDS ? styles.inputLocked : '')}
+          >
+            <Minus className={styles.style171_26} />
+          </button>
+          <input
+            value={waitSecondsInput}
+            onChange={(event) => setWaitSecondsInput(event.target.value.replace(/[^0-9]/g, ''))}
+            inputMode="numeric"
+            className={styles.style177_27}
+          />
+          <button
+            type="button"
+            onClick={() => setWaitSecondsInput((current: any) => {
+              const value = Number(current);
+              const next = (Number.isFinite(value) ? value : MIN_OFFER_WAIT_SECONDS) + 1;
+              return String(Math.max(MIN_OFFER_WAIT_SECONDS, next));
+            })}
+            className={styles.style182_28}
+          >
+            <Plus className={styles.style184_29} />
+          </button>
+        </div>
+        <p className={styles.style192_34}>{t('waitSecondsHint')}</p>
+        {!isWaitSecondsValid ? (
+          <div className={styles.style208_37}>
+            <AlertTriangle className={styles.style209_38} />
+            {t('waitSecondsMin', { min: MIN_OFFER_WAIT_SECONDS })}
+          </div>
+        ) : null}
+      </div>
 
       {isDumpingBlocked && professionalAd ? (
         <AdDisplayCard
@@ -439,23 +332,21 @@ export function BiddingOfferStepper({
         />
       ) : null}
 
-      {/* Action Buttons: [تقديم العرض] & [تجاهل] */}
-      <div className={styles.actionsRow}>
+      <div className={styles.style215_39}>
         <span
           className={styles.submitWrap}
-          title={!isWaitSecondsValid ? t('waitSecondsRange', { min: MIN_OFFER_WAIT_SECONDS, max: MAX_OFFER_WAIT_SECONDS }) : undefined}
+          title={!isWaitSecondsValid ? t('waitSecondsMin', { min: MIN_OFFER_WAIT_SECONDS }) : undefined}
         >
           <button
-            type="button"
             onClick={() => onSubmit(finalOfferPrice, parsedWaitSeconds, pricingMode || undefined)}
             disabled={!canSubmit}
-            className={styles.submitBtn}
+            className={styles.style219_40}
           >
-            {isSubmitting ? <Loader2 className={styles.submitSpinner} /> : <Send className={styles.submitIcon} />}
-            <span>{existingOffer ? t('updateOffer') : t('submit')}</span>
+            {isSubmitting ? <Loader2 className={styles.style221_41} /> : <Send className={styles.style221_42} />}
+            {existingOffer ? t('updateOffer') : t('submit')}
           </button>
         </span>
-        <button type="button" onClick={onIgnore} className={styles.ignoreBtn}>
+        <button onClick={onIgnore} className={styles.style224_43}>
           {t('ignore')}
         </button>
       </div>

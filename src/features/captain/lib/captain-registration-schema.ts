@@ -18,11 +18,19 @@ export const SIDE_ID_REGEX = /^[A-Za-z0-9؀-ۿ-]{2,15}$/;
 // specific layout like "77-12345".
 export const PLATE_REGEX = /^[A-Za-z0-9؀-ۿ\s-]{3,15}$/;
 export const VEHICLE_COLOR_REGEX = /^[؀-ۿa-zA-Z\s]{2,30}$/;
-export const NATIONAL_ID_NUMBER_REGEX = /^[A-Za-z0-9؀-ۿ]{5,20}$/;
+export const JORDAN_NATIONAL_ID_REGEX = /^[0-9]{10}$/;
+export const GENERAL_NATIONAL_ID_REGEX = /^[A-Za-z0-9؀-ۿ]{5,20}$/;
+export const NATIONAL_ID_NUMBER_REGEX = GENERAL_NATIONAL_ID_REGEX;
 export const LICENSE_NUMBER_REGEX = /^[A-Za-z0-9؀-ۿ]{3,20}$/;
 export const SOCIAL_URL_REGEX = /^https?:\/\/[^\s]+$/i;
 export const VEHICLE_YEAR_MIN = 1990;
 export const VEHICLE_YEAR_MAX = 2027;
+
+function isJordanCountry(country?: string) {
+  if (!country) return true; // Sovereign default is Jordan
+  const normalized = country.trim().toUpperCase();
+  return normalized === 'JO' || normalized === '1' || normalized === 'JORDAN';
+}
 
 // A phone typed in local format (e.g. "01159133110") is only valid relative to a
 // country, so `country` is required here — either from a sibling schema field
@@ -77,6 +85,10 @@ export function getCaptainPersonalSchema(t: CaptainValidationT) {
 }
 
 export function getCaptainTaxiVehicleSchema(t: CaptainValidationT, country?: string) {
+  const isJordan = isJordanCountry(country);
+  const nationalIdRegex = isJordan ? JORDAN_NATIONAL_ID_REGEX : GENERAL_NATIONAL_ID_REGEX;
+  const nationalIdError = isJordan ? t('nationalIdNumberJordanInvalid') : t('nationalIdNumberInvalid');
+
   return yup.object({
     officeName: yup.string().trim().matches(ENTITY_NAME_REGEX, t('officeNameInvalid')).required(t('officeNameRequired')),
     officePhone: yup
@@ -99,14 +111,18 @@ export function getCaptainTaxiVehicleSchema(t: CaptainValidationT, country?: str
       .min(VEHICLE_YEAR_MIN, t('yearMin', { min: VEHICLE_YEAR_MIN }))
       .max(VEHICLE_YEAR_MAX, t('yearMax', { max: VEHICLE_YEAR_MAX }))
       .required(t('yearRequired')),
-    nationalIdNumber: yup.string().trim().matches(NATIONAL_ID_NUMBER_REGEX, t('nationalIdNumberInvalid')).required(t('nationalIdNumberRequired')),
+    nationalIdNumber: yup.string().trim().matches(nationalIdRegex, nationalIdError).required(t('nationalIdNumberRequired')),
     licenseNumber: yup.string().trim().matches(LICENSE_NUMBER_REGEX, t('licenseNumberInvalid')).required(t('licenseNumberRequired')),
     facebookUrl: yup.string().trim().test('facebook-url', t('facebookInvalid'), (value) => !value || SOCIAL_URL_REGEX.test(value)),
     instagramUrl: yup.string().trim().test('instagram-url', t('instagramInvalid'), (value) => !value || SOCIAL_URL_REGEX.test(value)),
   });
 }
 
-export function getCaptainSmartAppVehicleSchema(t: CaptainValidationT) {
+export function getCaptainSmartAppVehicleSchema(t: CaptainValidationT, country?: string) {
+  const isJordan = isJordanCountry(country);
+  const nationalIdRegex = isJordan ? JORDAN_NATIONAL_ID_REGEX : GENERAL_NATIONAL_ID_REGEX;
+  const nationalIdError = isJordan ? t('nationalIdNumberJordanInvalid') : t('nationalIdNumberInvalid');
+
   return yup.object({
     companyName: yup.string().trim().matches(ENTITY_NAME_REGEX, t('companyNameInvalid')).required(t('companyNameRequired')),
     companyCode: yup.string().trim().required(t('companyCodeRequired')),
@@ -120,7 +136,7 @@ export function getCaptainSmartAppVehicleSchema(t: CaptainValidationT) {
       .min(VEHICLE_YEAR_MIN, t('yearMin', { min: VEHICLE_YEAR_MIN }))
       .max(VEHICLE_YEAR_MAX, t('yearMax', { max: VEHICLE_YEAR_MAX }))
       .required(t('yearRequired')),
-    nationalIdNumber: yup.string().trim().matches(NATIONAL_ID_NUMBER_REGEX, t('nationalIdNumberInvalid')).required(t('nationalIdNumberRequired')),
+    nationalIdNumber: yup.string().trim().matches(nationalIdRegex, nationalIdError).required(t('nationalIdNumberRequired')),
     licenseNumber: yup.string().trim().matches(LICENSE_NUMBER_REGEX, t('licenseNumberInvalid')).required(t('licenseNumberRequired')),
     facebookUrl: yup.string().trim().test('facebook-url', t('facebookInvalid'), (value) => !value || SOCIAL_URL_REGEX.test(value)),
     instagramUrl: yup.string().trim().test('instagram-url', t('instagramInvalid'), (value) => !value || SOCIAL_URL_REGEX.test(value)),

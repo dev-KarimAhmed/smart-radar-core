@@ -107,12 +107,13 @@ export function createInitialRiderMachineState(): RiderMachineState {
 }
 
 export function shouldShowAdRiver(state: RiderMachineState): boolean {
-  if (state.screen === 'TRIP_ACTIVE' || state.screen === 'RATING_MODAL' || state.screen === 'DESTINATION_SELECTION') {
+  if (
+    state.screen === 'TRIP_ACTIVE' ||
+    state.screen === 'RATING_MODAL' ||
+    state.screen === 'DESTINATION_SELECTION' ||
+    state.screen === 'RECEIVING_OFFERS'
+  ) {
     return false;
-  }
-
-  if (state.screen === 'RECEIVING_OFFERS') {
-    return state.offers.length === 0;
   }
 
   return true;

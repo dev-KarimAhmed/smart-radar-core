@@ -38,7 +38,7 @@ assert.equal(shouldShowAdRiver(state), false);
 
 state = riderDashboardReducer(state, { type: 'SERVER_STATUS_RECEIVING_OFFERS' });
 assert.equal(state.screen, 'RECEIVING_OFFERS');
-assert.equal(shouldShowAdRiver(state), true);
+assert.equal(shouldShowAdRiver(state), false);
 
 const offers: Offer[] = [
   {

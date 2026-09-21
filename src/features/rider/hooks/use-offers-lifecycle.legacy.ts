@@ -16,7 +16,7 @@ import { collectPreferredCaptainIds, prioritizeRiderOffers } from '../services/r
 import { getOfferCountdown } from '../services/offer-countdown';
 import type { RiderMachineState, RiderMachineAction } from '../state/rider-state-machine';
 
-const OFFER_TIMEOUT_MS = 180 * 1000;
+const OFFER_TIMEOUT_MS = 5 * 60 * 1000;
 
 /**
  * Owns the incoming-offers poll/subscription for `RECEIVING_OFFERS`, the
@@ -25,7 +25,7 @@ const OFFER_TIMEOUT_MS = 180 * 1000;
  * ride-request status subscription (a different hook) needs to read/clear it
  * once the server confirms the acceptance.
  */
-export function useOffersLifecycle(
+export  Legacy(
   state: RiderMachineState,
   dispatch: React.Dispatch<RiderMachineAction>,
   language: AppLanguage,
@@ -129,25 +129,19 @@ export function useOffersLifecycle(
   React.useEffect(() => {
     if (!state.requestId || state.screen !== 'RECEIVING_OFFERS' || state.offers.length > 0 || state.requestCancelledAt) return;
 
-    const startedAt = state.requestStartedAt ?? Date.now();
-    const elapsed = Date.now() - startedAt;
-    const remainingMs = Math.max(0, OFFER_TIMEOUT_MS - elapsed);
-
     const timeoutId = window.setTimeout(() => {
       cancelRideRequest(supabase, state.requestId!)
-        .catch(() => {})
-        .finally(() => {
+        .catch(() => {
           toast({
             variant: 'destructive',
-            title: '🛑 لا يوجد سائقين متوفرين في محيطك الحالي',
-            description: 'يرجى إعادة المحاولة بعد قليل.',
+            title: t('request.updateFailedTitle'),
+            description: t('request.networkError'),
           });
-          dispatch({ type: 'RESET_TO_IDLE' });
         });
-    }, remainingMs);
+    }, OFFER_TIMEOUT_MS);
 
     return () => window.clearTimeout(timeoutId);
-  }, [dispatch, state.offers.length, state.requestCancelledAt, state.requestId, state.requestStartedAt, state.screen, toast]);
+  }, [dispatch, state.offers.length, state.requestCancelledAt, state.requestId, state.screen, t, toast]);
 
   React.useEffect(() => {
     if (state.screen !== 'RECEIVING_OFFERS' || state.requestCancelledAt) {

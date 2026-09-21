@@ -137,12 +137,20 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
       return;
     }
 
-    const query = supabase
+    // Read location/cells from refs — latest values without being deps
+    const loc = radarLocationRef.current;
+    const cells = nearbyChellsRef.current;
+
+    let query = supabase
       .from('captain_radar_requests')
       .select('*')
-      .eq('status', 'PENDING')
-      .order('created_at', { ascending: false })
-      .limit(100);
+      .eq('status', 'PENDING');
+
+    if (cells && cells.length > 0) {
+      query = query.in('origin_h3', cells).order('created_at', { ascending: false }).limit(50);
+    } else {
+      query = query.order('created_at', { ascending: false }).limit(50);
+    }
 
     const { data, error } = await query;
     if (error) {
@@ -151,10 +159,6 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
       setRawRequests([]);
       return;
     }
-
-    // Read location/cells from refs — latest values without being deps
-    const loc = radarLocationRef.current;
-    const cells = nearbyChellsRef.current;
 
     const mappedRequests = Array.isArray(data)
       ? data.map(mapRideRequestToTrip).filter(Boolean) as Trip[]

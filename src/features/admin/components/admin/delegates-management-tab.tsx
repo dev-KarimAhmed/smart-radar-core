@@ -3,10 +3,8 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Users, Link as LinkIcon, ClipboardList, TrendingUp } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Users, Link as LinkIcon, ClipboardList, TrendingUp, Plus } from 'lucide-react';
 import { useDelegatesState } from './delegates-tab/use-delegates-state';
-import { styles } from './delegates-tab/delegates-shared';
 
 import { AddDelegateForm } from './delegates-tab/add-delegate-form';
 import { DelegatesTable } from './delegates-tab/delegates-table';
@@ -20,81 +18,95 @@ export function DelegatesManagementTab() {
   const { t, activeSubTab, setActiveSubTab, isAdding, setIsAdding } = state;
 
   return (
-    <div className={styles.style588_1} dir="rtl">
+    <div className="space-y-5 text-right font-sans" dir="rtl">
       {/* Header Panel */}
-      <div className={styles.style591_2}>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-white/10 pb-4">
         <div>
-          <h2 className={styles.style593_3}>
-            <Users className={styles.style594_4} />
+          <h2 className="text-xl font-black text-white flex items-center gap-2">
+            <Users className="w-5 h-5 text-emerald-400" />
             {t('header.title')}
           </h2>
-          <p className={styles.style597_5}>
+          <p className="text-xs text-slate-400 mt-0.5">
             {t('header.desc')}
           </p>
         </div>
-        <div className={styles.style601_6}>
+        <div className="flex gap-2">
           <Button
+            type="button"
             onClick={() => setIsAdding(!isAdding)}
-            className={styles.style604_7}
+            className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs h-10 px-4 rounded-xl flex items-center gap-1.5 shadow-lg shadow-emerald-600/20"
           >
+            <Plus className="h-4 w-4" />
             {isAdding ? t('header.closeBtn') : t('header.addBtn')}
           </Button>
         </div>
       </div>
 
       {/* Sub-navigation Controls */}
-      <div className={styles.style612_8}>
+      <div className="flex flex-wrap gap-2 border-b border-white/5 pb-3">
         <Button
+          type="button"
           variant={activeSubTab === 'delegates' ? 'default' : 'ghost'}
           onClick={() => setActiveSubTab('delegates')}
-          className={cn(
-            styles.style617_9,
-            activeSubTab === 'delegates' ? styles.style618_10 : styles.style618_11
-          )}
+          className={`text-xs px-4 py-2 font-black rounded-xl h-10 transition-all ${
+            activeSubTab === 'delegates'
+              ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md'
+              : 'text-slate-400 hover:text-white'
+          }`}
         >
-          <Users className={styles.style621_12} />
+          <Users className="w-4 h-4 ml-1.5 shrink-0" />
           {t('tabs.delegates')}
         </Button>
 
         <Button
+          type="button"
           variant={activeSubTab === 'magic-links' ? 'default' : 'ghost'}
           onClick={() => setActiveSubTab('magic-links')}
-          className={cn(
-            styles.style629_13,
-            activeSubTab === 'magic-links' ? styles.style630_14 : styles.style630_15
-          )}
+          className={`text-xs px-4 py-2 font-black rounded-xl h-10 transition-all ${
+            activeSubTab === 'magic-links'
+              ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md'
+              : 'text-slate-400 hover:text-white'
+          }`}
         >
-          <LinkIcon className={styles.style633_16} />
+          <LinkIcon className="w-4 h-4 ml-1.5 shrink-0" />
           {t('tabs.magicLinks')}
           {state.magicLinks.filter(l => l.status === 'active').length > 0 && (
-            <Badge className={styles.style636_17}>{state.magicLinks.filter(l => l.status === 'active').length}</Badge>
+            <Badge className="mr-1.5 bg-amber-500 text-black text-[9px] font-black rounded-full px-1.5">
+              {state.magicLinks.filter(l => l.status === 'active').length}
+            </Badge>
           )}
         </Button>
 
         <Button
+          type="button"
           variant={activeSubTab === 'tasks' ? 'default' : 'ghost'}
           onClick={() => setActiveSubTab('tasks')}
-          className={cn(
-            styles.style644_18,
-            activeSubTab === 'tasks' ? styles.style645_19 : styles.style645_20
-          )}
+          className={`text-xs px-4 py-2 font-black rounded-xl h-10 transition-all ${
+            activeSubTab === 'tasks'
+              ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md'
+              : 'text-slate-400 hover:text-white'
+          }`}
         >
-          <ClipboardList className={styles.style648_21} />
+          <ClipboardList className="w-4 h-4 ml-1.5 shrink-0" />
           {t('tabs.tasks')}
           {state.tasks.filter(t => t.status === 'pending').length > 0 && (
-            <Badge className={styles.style651_22}>{state.tasks.filter(t => t.status === 'pending').length}</Badge>
+            <Badge className="mr-1.5 bg-red-500 text-white text-[9px] font-black rounded-full px-1.5">
+              {state.tasks.filter(t => t.status === 'pending').length}
+            </Badge>
           )}
         </Button>
 
         <Button
+          type="button"
           variant={activeSubTab === 'performance' ? 'default' : 'ghost'}
           onClick={() => setActiveSubTab('performance')}
-          className={cn(
-            styles.style659_23,
-            activeSubTab === 'performance' ? styles.style660_24 : styles.style660_25
-          )}
+          className={`text-xs px-4 py-2 font-black rounded-xl h-10 transition-all ${
+            activeSubTab === 'performance'
+              ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md'
+              : 'text-slate-400 hover:text-white'
+          }`}
         >
-          <TrendingUp className={styles.style663_26} />
+          <TrendingUp className="w-4 h-4 ml-1.5 shrink-0" />
           {t('tabs.performance')}
         </Button>
       </div>
@@ -116,9 +128,13 @@ export function DelegatesManagementTab() {
 
       {/* Tasks sub-tab */}
       {activeSubTab === 'tasks' && (
-        <div className={styles.style1090_150}>
-          <TasksTable {...state} />
-          <CreateTaskForm {...state} />
+        <div className="grid md:grid-cols-3 gap-4">
+          <div className="md:col-span-2">
+            <TasksTable {...state} />
+          </div>
+          <div>
+            <CreateTaskForm {...state} />
+          </div>
         </div>
       )}
 

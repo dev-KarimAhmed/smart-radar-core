@@ -20,6 +20,7 @@ import { useCountryConfig } from '@/shared/hooks/use-country-config';
 import { getCurrencyLabel } from '@/shared/services/currency-label';
 import { useLiveCurrencyFromLocation } from '@/shared/hooks/use-live-currency-from-location';
 import { ActiveTripTracker } from './active-trip-tracker';
+import { CaptainActiveTripOverlay } from './captain-active-trip-overlay';
 import { BiddingProposalSheet } from './bidding-proposal-sheet';
 import { DriverRatingModal } from './driver-rating-modal';
 import { PricePerKmSetupModal } from './price-per-km-setup-modal';
@@ -334,52 +335,25 @@ export function DriverViewTab() {
   // because it changes nothing about the trip.
   if (screen === 'ACTIVE_TRIP' && driverOps.activeRequest) {
     return (
-      <div className={styles.tripFocusRoot} dir={direction} data-captain-trip-focus>
-        <div className={styles.tripFocusInner}>
-          <div className={styles.tripFocusBar}>
-            <button
-              type="button"
-              onClick={toggleLanguage}
-              aria-label={t('switchLanguageAria')}
-              title={t('switchLanguageLabel')}
-              className={styles.style186_20}
-            >
-              <Languages className={styles.style186_21} />
-              <span className={styles.style186_22}>{t('switchLanguageLabel')}</span>
-            </button>
-          </div>
-
-          {/* Connectivity matters more here than anywhere else on the dashboard: every step
-              button below writes to the server, so a captain must be able to tell "the tap
-              did nothing" from "I'm offline". */}
-          {isOffline || isReconnecting ? (
-            <div className={styles.connectionBanner}>
-              <WifiOff className={styles.connectionBannerIcon} />
-              <div>
-                <p className={styles.connectionBannerTitle}>{isOffline ? t('offlineBannerTitle') : t('reconnectingTitle')}</p>
-                <p className={styles.connectionBannerBody}>{isOffline ? t('offlineBannerBody') : t('reconnectingBody')}</p>
-              </div>
-            </div>
-          ) : null}
-
-          <ActiveTripTracker
-            language={language}
-            request={driverOps.activeRequest}
-            rider={driverOps.acceptedRider}
-            step={state.tripStep}
-            isCompleting={driverOps.isEndingTrip || driverOps.isUpdatingTripStep}
-            isCancelling={driverOps.isCancellingTrip}
-            currency={currency}
-            driverLocation={driverOps.driverLocation}
-            handshakeAt={driverOps.handshakeAt}
-            isFullScreen
-            onArrived={markArrived}
-            onStartTrip={startTrip}
-            onCompleteTrip={completeTrip}
-            onCancelTrip={() => void cancelTrip()}
-          />
-        </div>
-      </div>
+      <CaptainActiveTripOverlay
+        direction={direction}
+        language={language === 'en' ? 'en' : 'ar'}
+        isOffline={isOffline}
+        isReconnecting={isReconnecting}
+        activeRequest={driverOps.activeRequest}
+        acceptedRider={driverOps.acceptedRider}
+        step={state.tripStep}
+        currency={currency}
+        driverLocation={driverOps.driverLocation}
+        handshakeAt={driverOps.handshakeAt}
+        isCompleting={driverOps.isEndingTrip || driverOps.isUpdatingTripStep}
+        isCancelling={driverOps.isCancellingTrip}
+        onToggleLanguage={toggleLanguage}
+        onArrived={markArrived}
+        onStartTrip={startTrip}
+        onCompleteTrip={completeTrip}
+        onCancelTrip={() => { void cancelTrip(); }}
+      />
     );
   }
 

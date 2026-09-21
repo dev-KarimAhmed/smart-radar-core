@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Toaster } from '@/components/ui/toaster';
-import { PwaInstallPrompt } from '@/components/pwa-install-prompt';
+import { PwaInstallBanner } from '@/components/PwaInstallBanner';
 import { useTranslations } from "next-intl";
 
 const styles = {
@@ -80,7 +80,7 @@ export function DeferredClientTools() {
     <>
       <Toaster />
       <PwaUpdater />
-      <PwaInstallPrompt />
+      <PwaInstallBanner />
     </>
   );
 }

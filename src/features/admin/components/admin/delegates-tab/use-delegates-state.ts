@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
-import { db, auth, handleFirestoreError, OperationType } from '@/lib/firebase';
+import { db, handleFirestoreError, OperationType } from '@/lib/firebase';
 import { supabase } from '@/lib/supabase-client';
 import { collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, getDocs, setDoc, query, where, runTransaction } from 'firebase/firestore';
 import { Delegate, MagicLink, DelegateTask } from './delegates-shared';
@@ -39,9 +39,16 @@ export function useDelegatesState() {
   const [taskDescription, setTaskDescription] = useState('');
   const [taskDeadline, setTaskDeadline] = useState('');
 
-  // Signature validation via backend-proxy
+  const lastVerifiedKey = useRef<string>('');
+
+  // Signature validation via backend-proxy (Hash-guarded to prevent duplicate network calls)
   useEffect(() => {
     if (delegates.length === 0) return;
+    const currentKey = delegates.map(d => `${d.id}:${d.integritySignature || ''}:${d.referredCount || 0}`).join('|');
+    if (currentKey === lastVerifiedKey.current) return;
+    lastVerifiedKey.current = currentKey;
+
+    let active = true;
     const verifyAll = async () => {
       try {
         const response = await fetch('/api/verify-signatures', {
@@ -59,14 +66,15 @@ export function useDelegatesState() {
           })
         });
         const data = await response.json();
-        if (response.ok && data.success) {
+        if (active && response.ok && data.success) {
           setVerifiedSignatures(data.results);
         }
       } catch (err) {
-        console.error("Failed to verify signatures via backend proxy:", err);
+        if (process.env.NODE_ENV !== 'production') console.warn("Backend proxy signature check skipped:", err);
       }
     };
-    verifyAll();
+    void verifyAll();
+    return () => { active = false; };
   }, [delegates]);
 
   // Load real-time data from Firestore
@@ -430,7 +438,7 @@ export function useDelegatesState() {
       const targetDelegate = delegates.find(d => d.id === id);
       if (!targetDelegate) return;
 
-      const adminIdentity = auth.currentUser ? (auth.currentUser.email || auth.currentUser.uid) : 'SYSTEM_SOVEREIGN_ADMIN';
+      const adminIdentity = user?.uid || 'SYSTEM_SOVEREIGN_ADMIN';
 
       await addDoc(collection(db, 'audit_ledger'), {
         action: 'DELEGATE_PAYOUT_SETTLEMENT',
@@ -461,8 +469,8 @@ export function useDelegatesState() {
       const targetDelegate = delegates.find(d => d.id === id);
       if (!targetDelegate) return;
 
-      const adminIdentity = auth.currentUser ? (auth.currentUser.email || auth.currentUser.uid) : 'SYSTEM_SOVEREIGN_ADMIN';
-      const idToken = await auth.currentUser?.getIdToken();
+      const adminIdentity = user?.uid || 'SYSTEM_SOVEREIGN_ADMIN';
+      const idToken = (user as any)?.token || null;
 
       const response = await fetch('/api/reconcile-and-sign', {
         method: 'POST',

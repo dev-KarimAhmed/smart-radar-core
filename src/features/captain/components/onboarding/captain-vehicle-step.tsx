@@ -117,7 +117,7 @@ export function CaptainVehicleStep({
 
   const isTaxi = affiliation === 'office-taxi';
   const schema = React.useMemo(
-    () => (isTaxi ? getCaptainTaxiVehicleSchema(tv, country) : getCaptainSmartAppVehicleSchema(tv)),
+    () => (isTaxi ? getCaptainTaxiVehicleSchema(tv, country) : getCaptainSmartAppVehicleSchema(tv, country)),
     [isTaxi, tv, country],
   );
   const yearOptions = React.useMemo(
@@ -379,9 +379,11 @@ export function CaptainVehicleStep({
           <label className={styles.label}>{t('nationalIdNumberLabel')}</label>
           <Input
             dir="ltr"
+            inputMode="numeric"
+            maxLength={10}
             placeholder={t('nationalIdNumberPlaceholder')}
             value={vehicle.nationalIdNumber}
-            onChange={(event) => handleFieldChange('nationalIdNumber', event.target.value)}
+            onChange={(event) => handleFieldChange('nationalIdNumber', event.target.value.replace(/[^0-9]/g, ''))}
             className={styles.input}
             required
           />

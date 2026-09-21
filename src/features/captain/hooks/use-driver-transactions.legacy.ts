@@ -13,9 +13,9 @@ import { toEpochMs } from '@/shared/services/trip-countdown';
 type RideOfferRow = Record<string, unknown>;
 type RideRequestRow = Record<string, unknown>;
 
-export const MIN_OFFER_WAIT_SECONDS = 5;
-export const DEFAULT_OFFER_WAIT_SECONDS = 90;
-export const MAX_OFFER_WAIT_SECONDS = Number.POSITIVE_INFINITY;
+export  Legacy = 5;
+export  Legacy = 90;
+export  Legacy = 300;
 
 /**
  * submit_ride_offer refuses out-of-band prices server-side, so these are reachable even
@@ -57,7 +57,7 @@ function describeOfferSubmitError(rawMessage: string | undefined, t: any) {
   };
 }
 
-export function useDriverTransactions(
+export  Legacy(
   user: User | null,
   setDriverStatus?: (status: 'active' | 'idle' | 'busy' | 'rating') => void,
   driverStatus?: string,
