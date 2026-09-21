@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { styles } from './styles';
-import { LiveStreamRegistry } from '../advertiser-portal';
 
 export function AdvertiserDashboardTab({
   allSovereignAds,
