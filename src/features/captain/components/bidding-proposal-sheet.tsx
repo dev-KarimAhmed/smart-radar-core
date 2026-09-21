@@ -10,7 +10,7 @@ import { BiddingTariffComparison } from './bidding/bidding-tariff-comparison';
 import { BiddingPricingSelector } from './bidding/bidding-pricing-selector';
 import { BiddingOfferStepper } from './bidding/bidding-offer-stepper';
 import { useBiddingProposal, roundMoney } from '../hooks/use-bidding-proposal';
-import { MIN_OFFER_WAIT_SECONDS, MAX_OFFER_WAIT_SECONDS } from '../hooks/use-driver-transactions';
+import { MIN_OFFER_WAIT_SECONDS, MAX_OFFER_WAIT_SECONDS, DEFAULT_OFFER_WAIT_SECONDS } from '../hooks/use-driver-transactions';
 
 const styles = {
   container: "mx-auto max-w-3xl rounded-3xl border border-emerald-500/20 bg-[#05080f] p-5 text-white shadow-2xl",
@@ -19,6 +19,7 @@ const styles = {
   title: "mt-1 text-2xl font-black",
   subtitle: "mt-2 text-sm leading-6 text-slate-400",
   ignoreBtn: "rounded-2xl border border-white/10 p-3 text-slate-300 hover:bg-white/10 transition-colors",
+  closeIcon: "h-5 w-5",
   pricingComparisonWrap: "mt-5 rounded-2xl border border-[#14B8A6]/20 bg-[#0B2A2A]/25 p-4",
 } as const;
 
@@ -82,7 +83,7 @@ export function BiddingProposalSheet({
           <p className={styles.subtitle}>{t('subtitle')}</p>
         </div>
         <button onClick={onIgnore} className={styles.ignoreBtn} aria-label={t('ignore')}>
-          <X className="h-5 w-5" />
+          <X className={styles.closeIcon} />
         </button>
       </div>
 
@@ -153,6 +154,8 @@ export function BiddingProposalSheet({
         language={language}
         currency={currency}
         pricingMode={proposal.pricingMode}
+        appPrice={proposal.appPrice}
+        setAppPrice={proposal.setAppPrice}
         increaseAmount={proposal.increaseAmount}
         setIncreaseAmount={proposal.setIncreaseAmount}
         minIncreaseAmount={proposal.minIncreaseAmount}
@@ -178,6 +181,7 @@ export function BiddingProposalSheet({
         waitSecondsInput={proposal.waitSecondsInput}
         setWaitSecondsInput={proposal.setWaitSecondsInput}
         MIN_OFFER_WAIT_SECONDS={MIN_OFFER_WAIT_SECONDS}
+        DEFAULT_OFFER_WAIT_SECONDS={DEFAULT_OFFER_WAIT_SECONDS}
         MAX_OFFER_WAIT_SECONDS={MAX_OFFER_WAIT_SECONDS}
         parsedWaitSeconds={proposal.parsedWaitSeconds}
         isWaitSecondsValid={proposal.isWaitSecondsValid}
