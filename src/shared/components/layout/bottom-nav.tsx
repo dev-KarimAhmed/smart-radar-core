@@ -24,6 +24,7 @@ export function BottomNav() {
   const { toast } = useToast();
   const t = useTranslations('nav');
   const tErrors = useTranslations('errors');
+  const tAuto = useTranslations('auto');
   const isPassenger = user?.role === 'rider';
   const isCaptain = user?.role === 'driver';
   const [tripStatus, setTripStatus] = useState(() =>
@@ -59,7 +60,7 @@ export function BottomNav() {
       event.preventDefault();
       toast({
         variant: 'destructive',
-        title: 'لا يمكن تغيير الصفحة الآن',
+        title: tAuto('key_2e2149ae'),
         description: tErrors('activeTripLocked'),
       });
     },

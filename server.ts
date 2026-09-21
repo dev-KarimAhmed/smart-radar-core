@@ -65,7 +65,7 @@ async function startServer() {
   const rateLimiterMiddleware = (req: express.Request, res: express.Response, next: express.NextFunction) => {
     const ip = (req.headers['x-forwarded-for'] as string || req.socket.remoteAddress || 'unknown-ip').split(',')[0].trim();
     const now = Date.now();
-    
+
     let tracker = rateLimitMap.get(ip);
     if (!tracker) {
       tracker = { timestamps: [] };
@@ -161,10 +161,10 @@ async function startServer() {
 
       console.log(`[Sovereign Core] Revived driver ${driverUid}. Token: ${approveToken}`);
 
-      return res.json({ 
-        success: true, 
-        hoursGranted: 12, 
-        message: 'تمت مصادقة وتوقيع شحنة الإحياء سحابياً بسلام' 
+      return res.json({
+        success: true,
+        hoursGranted: 12,
+        message: 'تمت مصادقة وتوقيع شحنة الإحياء سحابياً بسلام'
       });
     } catch (err: any) {
       console.error("[Revive Driver Error]:", err);
@@ -320,9 +320,9 @@ async function startServer() {
     const reqData = requesterSnap.exists() ? requesterSnap.data() : null;
     const reqRole = reqData?.role;
 
-    const isAuthorized = requesterUid === delegateId || 
-                         reqRole === 'admin' || 
-                         reqRole === 'owner';
+    const isAuthorized = requesterUid === delegateId ||
+      reqRole === 'admin' ||
+      reqRole === 'owner';
 
     if (!isAuthorized) {
       return res.status(403).json({ success: false, error: 'غير مصرح لك بتنفيذ هذه التسوية المالية.' });
@@ -343,7 +343,7 @@ async function startServer() {
 
       const data = delSnap.data();
       const rawDues = data?.pendingDues || 0;
-      
+
       if (rawDues <= 0) {
         return res.status(400).json({ success: false, error: '🚨 عطل مالي: لا توجد مستحقات مالية معلقة لتصفيتها أو صرفها لهذا المندوب حالياً!' });
       }
@@ -380,8 +380,8 @@ async function startServer() {
       }
 
       console.log(`[Sovereign Core] Cleared dues for delegate ${delegateId}. Net settled: ${withdrawableBalance}`);
-      return res.json({ 
-        success: true, 
+      return res.json({
+        success: true,
         message: 'تم تصفية وتصفير مستحقات المندوب بنجاح وتسجيل العملية في الأرشيف المالي',
         netSettled: withdrawableBalance
       });
@@ -479,17 +479,17 @@ async function startServer() {
         where('role', '==', 'driver')
       );
       const usersSnap = await getDocs(usersQuery);
-      
+
       const actualCount = usersSnap.docs.filter(docSnap => {
         const d = docSnap.data();
-        return d.referralCode === referralCode || 
-               d.referredByCode === referralCode || 
-               d.usedReferralCode === referralCode;
+        return d.referralCode === referralCode ||
+          d.referredByCode === referralCode ||
+          d.usedReferralCode === referralCode;
       }).length;
 
       // Reconcile count: if actualCount > 0, we can use actualCount, or keep current referredCount but sign it
       const finalCount = actualCount > 0 ? actualCount : (delegateData.referredCount || 0);
-      
+
       // Calculate server-side signature incorporating geography!
       const signature = generateIntegritySignatureServer(delegateId, finalCount, referralCode, homeDistrict, currentH3Cell);
 
@@ -656,7 +656,7 @@ async function startServer() {
   // 4. SECURE DELEGATE TASK STATE TRANSITION ENFORCER (Server-Side State Machine)
   app.post('/api/delegate-task-transition', rateLimiterMiddleware, async (req, res) => {
     let { taskId, targetStatus, delegateId, actorUid, actorRole } = req.body;
-    
+
     // Check for Authorization header first to extract verified credentials
     const authHeader = req.headers.authorization;
     let verifiedUid: string | null = null;
@@ -668,7 +668,7 @@ async function startServer() {
       if (!verifiedUid) {
         return res.status(401).json({ success: false, error: '🚨 اختراق أمني: رمز التحقق الرقمي منتهي الصلاحية أو تم التلاعب به!' });
       }
-      
+
       // Look up verified user profile
       const userRef = doc(db, 'users', verifiedUid);
       const userSnap = await getDoc(userRef);

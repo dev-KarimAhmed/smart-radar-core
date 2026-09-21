@@ -203,7 +203,7 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, pr
 
   const { user } = useAuth();
 
-  const { activeAds } = usePromoStream(user?.district || 'وادي السير', user?.governorate || 'عمان', 'captain');
+  const { activeAds } = usePromoStream(user?.district || tAuto('key_161b5e38'), user?.governorate || tAuto('key_20a48924'), 'captain');
 
   const currentRating = useMemo(() => {
     if (!user) return 5.0;
@@ -235,10 +235,10 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, pr
   const professionalAd = useMemo(() => {
     const defaultProfessionalAd = {
       adId: 'promo-captain-professional-default',
-      title: 'مركز صيانة للسائقين',
-      description: 'عرض صيانة قريب للسائقين والناقلين مع حجز مباشر وسعر واضح.',
+      title: tAuto('key_fd9fc253'),
+      description: tAuto('key_acbd8f5c'),
       actionUrl: 'https://wa.me/962790000000',
-      buttonText: 'احجز العرض',
+      buttonText: tAuto('key_9071994f'),
       bannerUrl: 'https://images.unsplash.com/photo-1486006920555-c77dce18193b?auto=format&fit=crop&q=80&w=1200'
     };
 
@@ -248,7 +248,7 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, pr
     const passAds = activeAds.map(ad => ({
       adId: ad.id,
       targetScale: ad.targetDistrict ? 'District' : 'Governorate' as any,
-      targetLocationName: ad.targetDistrict || ad.targetGovernorate || 'وادي السير',
+      targetLocationName: ad.targetDistrict || ad.targetGovernorate || tAuto('key_161b5e38'),
       adType: ad.adType as any,
       bannerUrl: ad.content?.posterUrl || ''
     })).filter(ad => ad.adType === 'CAPTAIN_PROFESSIONAL');
@@ -256,17 +256,17 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, pr
     if (passAds.length === 0) {
       return {
         adId: 'promo-captain-professional-default',
-        title: '🛠️ مركز تكنولوجيا الزيوت والصيانة المعتمد للناقلين',
-        description: 'للقباطنة والناقلين الأحرار: وفر وقت غضبك واستفد من التجميد السعري! احصل على غيار زيت توتال بخصم 25% مجاناً وفحص كمبيوتر فوري لمركبتك.',
+        title: tAuto('key_d80d3b93'),
+        description: tAuto('key_220e34d8'),
         actionUrl: 'https://wa.me/962790000000',
-        buttonText: 'احجز العرض الفوري للناقلين',
+        buttonText: tAuto('key_4ae32a46'),
         bannerUrl: 'https://images.unsplash.com/photo-1486006920555-c77dce18193b?auto=format&fit=crop&q=80&w=1200'
       };
     }
 
     const matchedPass = RadarSovereignIntegrationKernel.triggerContextualAdStream(
       dynamicDeviationRatio, // deviation ratio here is >= 0.15
-      { role: 'captain', district: user?.district || 'وادي السير', governorate: user?.governorate || 'عمان' },
+      { role: 'captain', district: user?.district || tAuto('key_161b5e38'), governorate: user?.governorate || tAuto('key_20a48924') },
       passAds as any
     );
 
@@ -274,10 +274,10 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, pr
       const realAd = activeAds.find(ad => ad.id === matchedPass.adId);
       return {
         adId: matchedPass.adId,
-        title: realAd?.content?.title || '🛠️ عرض صيانة مهني معتمد',
-        description: realAd?.content?.description || 'عرض تكنولوجي للناقلين الأحرار في جهتهم الصيانة.',
+        title: realAd?.content?.title || tAuto('key_4a1fdada'),
+        description: realAd?.content?.description || tAuto('key_49572be0'),
         actionUrl: realAd?.action?.actionUrl || realAd?.actionUrl || 'https://wa.me/962790000000',
-        buttonText: realAd?.action?.buttonText || realAd?.buttonText || 'احجز العرض',
+        buttonText: realAd?.action?.buttonText || realAd?.buttonText || tAuto('key_9071994f'),
         bannerUrl: realAd?.content?.posterUrl || 'https://images.unsplash.com/photo-1486006920555-c77dce18193b?auto=format&fit=crop&q=80&w=1200'
       };
     }
@@ -288,7 +288,7 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, pr
   useEffect(() => {
     setPulseData({
       trend: 'up',
-      msg: 'السوق متعطش في قطاعك الحالي، يمكنك المناورة برفع قيمك.',
+      msg: tAuto('key_6e4eea43'),
       change: '+5.2%'
     });
   }, [mode]);
@@ -298,7 +298,7 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, pr
 
     if (!isOperatorLinked) {
       if (matrixToSave.shortTripFare <= 0 || matrixToSave.longTripKmRate <= 0) {
-        setError('يُمنع وجود قيم صفرية أو سالبة في الحقول الأساسية عند استخدام التسعير اليدوي.');
+        setError(tAuto('key_e4a99cfa'));
         return;
       }
 
@@ -322,7 +322,7 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, pr
         setError(evaluation.message);
         toast({
           variant: 'destructive',
-          title: 'تم رفض العرض',
+          title: tAuto('key_6041d7f0'),
           description: evaluation.message,
         });
         return;
@@ -331,7 +331,7 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, pr
       if (evaluation.status === 'APPROVED_WITH_WARNING') {
         toast({
           variant: 'default',
-          title: 'تنبيه',
+          title: tAuto('key_5540ce43'),
           description: evaluation.message
         });
       }

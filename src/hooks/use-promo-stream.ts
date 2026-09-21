@@ -4,8 +4,9 @@ import { recordLocalClick } from '@/lib/ad-cache-sentry';
 import { trackSovereignError } from '@/lib/error-tracker';
 import { useAdCampaigns } from '@/hooks/use-ad-campaigns';
 import { filterAdsByAudience, readAdAudience, type AdAudience } from '@/features/ads/contract';
+import { useTranslations } from 'next-intl';
 
-function mapCampaignRow(row: Record<string, any>): SovereignAd {
+function mapCampaignRow(row: Record<string, any>, tAuto: any): SovereignAd {
   return {
     id: String(row.id),
     status: row.status || 'active',
@@ -16,7 +17,7 @@ function mapCampaignRow(row: Record<string, any>): SovereignAd {
       posterUrl: row.image_url || row.poster_url || row.content?.posterUrl || '',
     },
     action: {
-      buttonText: row.cta_ar || row.button_text || row.action?.buttonText || 'عرض التفاصيل',
+      buttonText: row.cta_ar || row.button_text || row.action?.buttonText || tAuto('showDetails'),
       actionUrl: row.action_url || row.url || row.action?.actionUrl || '',
     },
     forDriver: readAdAudience(row) === 'captain',
@@ -44,13 +45,14 @@ function scoreAd(ad: SovereignAd, district?: string, governorate?: string) {
  * of React Query's cache + persistence.)
  */
 export function usePromoStream(district?: string, governorate?: string, audience?: AdAudience) {
+  const tAuto = useTranslations();
   const { data } = useAdCampaigns();
 
   const activeAds = useMemo<SovereignAd[]>(() => {
     const rows = Array.isArray(data) ? data : [];
-    return filterAdsByAudience(rows.map(mapCampaignRow), audience)
+    return filterAdsByAudience(rows.map(row => mapCampaignRow(row, tAuto)), audience)
       .sort((a, b) => scoreAd(b, district, governorate) - scoreAd(a, district, governorate));
-  }, [audience, data, district, governorate]);
+  }, [audience, data, district, governorate, tAuto]);
 
   const registerClick = async (adId: string, _locationStr: string) => {
     try {

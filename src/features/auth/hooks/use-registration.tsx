@@ -24,6 +24,7 @@ import {
 import { useDetectedCountryCode } from './use-detected-country-code';
 import { parsePhoneNumberFromString, getExampleNumber, type CountryCode } from 'libphonenumber-js';
 import phoneNumberExamples from 'libphonenumber-js/mobile/examples';
+import { useTranslations } from "next-intl";
 
 const styles = {
   root: "",
@@ -107,6 +108,7 @@ interface RegistrationContextType {
 const RegistrationContext = createContext<RegistrationContextType | undefined>(undefined);
 
 export function RegistrationProvider({ children }: { children: ReactNode }) {
+    const tAuto = useTranslations('auto');
   const router = useRouter();
   const { toast } = useToast();
   const [step, setStep] = useState<RegistrationStep>('role');
@@ -142,8 +144,8 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     onError: () =>
       toast({
         variant: 'destructive',
-        title: 'تعذر تحميل الدول',
-        description: 'تعذر تحميل قائمة الدول. يرجى المحاولة مرة أخرى.',
+        title: tAuto('key_2a3ac6a0'),
+        description: tAuto('key_4a1a36ba'),
       }),
   });
   const countryIdNum = Number(personal.country) || null;
@@ -152,16 +154,16 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     onError: () =>
       toast({
         variant: 'destructive',
-        title: 'تعذر تحميل المحافظات',
-        description: 'تعذر تحميل محافظات الدولة المختارة. يرجى المحاولة مرة أخرى.',
+        title: tAuto('key_64ee8ed7'),
+        description: tAuto('key_4966bf15'),
       }),
   });
   const { districtRows, loading: districtsLoading } = useSupabaseDistricts(governorateIdNum, {
     onError: () =>
       toast({
         variant: 'destructive',
-        title: 'تعذر تحميل المناطق',
-        description: 'تعذر تحميل مناطق المحافظة المختارة. يرجى المحاولة مرة أخرى.',
+        title: tAuto('key_ae97e002'),
+        description: tAuto('key_9a947721'),
       }),
   });
   const isSubmittingRef = useRef(false);
@@ -234,7 +236,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
   const phonePlaceholder = useMemo(() => getDemoPhoneForCountry(selectedCountry), [selectedCountry]);
   const phoneValidationHint =
     lang === 'ar'
-      ? 'اكتب رقمك بالصيغة المحلية لدولتك، أو بالنسق الدولي إن أحببت'
+      ? tAuto('key_1a0de9e5')
       : "Write your number in your country's local format, or international format if you prefer";
 
   const fillRandomRegistrationData = useCallback(() => {
@@ -243,8 +245,8 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     if (!selectedCountry || !personal.gov || districtRows.length === 0) {
       toast({
         variant: 'destructive',
-        title: 'المناطق غير جاهزة',
-        description: 'اختر الدولة والمحافظة وانتظر تحميل المناطق ثم حاول مرة أخرى.',
+        title: tAuto('key_4e1d745a'),
+        description: tAuto('key_a041f296'),
       });
       return;
     }
@@ -253,8 +255,8 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     if (!dialCode) {
       toast({
         variant: 'destructive',
-        title: 'كود الدولة غير متاح',
-        description: 'بيانات الدولة المختارة لا تحتوي على كود هاتف.',
+        title: tAuto('key_a644ed7b'),
+        description: tAuto('key_912f6acb'),
       });
       return;
     }
@@ -276,8 +278,8 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     setAuthPassword(`Test${serial}!`);
 
     toast({
-      title: 'تمت إضافة بيانات تجربة',
-      description: 'تم اختيار منطقة من بيانات الدولة والمحافظة المختارة.',
+      title: tAuto('key_294a26b3'),
+      description: tAuto('key_38e7e080'),
     });
   }, [districtRows, personal.gov, selectedCountry, toast]);
 
@@ -327,8 +329,8 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     if (!country || !Number.isInteger(governorateId) || !Number.isInteger(districtId)) {
       toast({
         variant: 'destructive',
-        title: 'بيانات المنطقة غير جاهزة',
-        description: 'انتظر تحميل الدولة والمحافظة والمنطقة، ثم جرّب إضافة بيانات الكابتن.',
+        title: tAuto('key_7e63a867'),
+        description: tAuto('key_f67ac42d'),
       });
       return;
     }
@@ -364,8 +366,8 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     }));
 
     toast({
-      title: 'تمت إضافة بيانات كابتن تجربة',
-      description: 'تم تعبئة بيانات الحساب والسيارة للاختبار فقط.',
+      title: tAuto('key_c3d38c4f'),
+      description: tAuto('key_61287ae0'),
     });
   }, [
     affiliation,
@@ -395,17 +397,17 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     if (!personal.phone || !authPassword) {
       toast({
         variant: 'destructive',
-        title: 'بيانات ناقصة',
-        description: 'يرجى كتابة رقم الهاتف وكلمة المرور.',
+        title: tAuto('key_e1da8e5b'),
+        description: tAuto('key_48c653a4'),
       });
       return;
     }
 
-    const normalizedPhone = normalizePhoneForCountry(personal.phone, selectedCountry);
+    const normalizedPhone = normalizePhoneForCountry(personal.phone, selectedCountry, tAuto);
     if (!normalizedPhone.ok) {
       toast({
         variant: 'destructive',
-        title: 'رقم الهاتف غير صحيح',
+        title: tAuto('key_c4fdecb8'),
         description: normalizedPhone.message,
       });
       return;
@@ -423,8 +425,8 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     ) {
       toast({
         variant: 'destructive',
-        title: 'بيانات ناقصة',
-        description: 'يرجى اختيار الدولة والمحافظة والمنطقة وكتابة الاسم الكامل.',
+        title: tAuto('key_e1da8e5b'),
+        description: tAuto('key_97c980d3'),
       });
       return;
     }
@@ -441,8 +443,8 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
         });
 
         toast({
-          title: 'تم تسجيل الدخول',
-          description: 'أهلاً بك، تم فتح حسابك بنجاح.',
+          title: tAuto('key_93857427'),
+          description: tAuto('key_79708394'),
         });
         // Don't push a role-based route directly here: AuthContext may not have
         // picked up the fresh session yet, which would race this navigation and
@@ -485,7 +487,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
           const isTaxi = affiliation === 'office-taxi';
           const { error: profileError } = await supabase.from('captain_profiles').upsert({
             id: userId,
-            vehicle_type: isTaxi ? 'تاكسي' : 'ملاكي',
+            vehicle_type: isTaxi ? tAuto('key_0870671f') : tAuto('key_3e71cbbc'),
             vehicle_brand: isTaxi ? null : vehicle.make,
             vehicle_year: Number(vehicle.year) || null,
             plate_number: vehicle.plate,
@@ -499,16 +501,16 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
 
           if (profileError) {
             console.error('[Captain Profile Insert Error]', profileError);
-            throw new Error(profileError.message || 'تعذر حفظ بيانات الكابتن الإضافية.');
+            throw new Error(profileError.message || tAuto('key_643f2795'));
           }
         }
       }
 
       toast({
-        title: 'تم إنشاء الحساب',
+        title: tAuto('key_b4c64c00'),
         description: role === 'driver'
-          ? 'تم إنشاء حساب الكابتن وتقديم طلب الانضمام للمراجعة. يمكنك تسجيل الدخول الآن.'
-          : 'تم حفظ بياناتك بأمان. يمكنك تسجيل الدخول الآن.',
+          ? tAuto('key_cd6703e6')
+          : tAuto('key_7132f656'),
       });
       if (signUpResult.session) {
         // Same reasoning as the login branch above: let `/` redirect once
@@ -536,7 +538,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
 
       toast({
         variant: 'destructive',
-        title: authMode === 'register' ? 'تعذر إنشاء الحساب' : 'تعذر تسجيل الدخول',
+        title: authMode === 'register' ? tAuto('key_71272649') : tAuto('key_64bc4896'),
         description: wrongCredentials
           ? `${mapSupabaseAuthError(error)} يمكنك إنشاء حساب جديد إذا لم يكن لديك حساب بعد.`
           : mapSupabaseAuthError(error),
@@ -577,8 +579,8 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     e.preventDefault();
     toast({
       variant: 'destructive',
-      title: 'غير مفعل الآن',
-      description: 'تسجيل المعلن سيكتمل في مرحلة لاحقة.',
+      title: tAuto('key_002904c4'),
+      description: tAuto('key_dea165fb'),
     });
   };
 
@@ -595,8 +597,8 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     e.preventDefault();
     toast({
       variant: 'destructive',
-      title: 'غير مفعل الآن',
-      description: 'دخول المشرف ليس ضمن خطوة Supabase الحالية.',
+      title: tAuto('key_002904c4'),
+      description: tAuto('key_91e1ce75'),
     });
   };
 
@@ -654,10 +656,22 @@ function getLocationLabel(row: SupabaseCountryRow | SupabaseGovernorateRow | Sup
 // src/features/captain/lib/captain-registration-schema.ts), so a phone that's
 // valid in one flow is valid in the other. Local-format numbers (e.g. a
 // leading "0") are accepted as long as a country is selected.
-function normalizePhoneForCountry(rawPhone: string, country: SupabaseCountryRow | null) {
+function normalizePhoneForCountry(
+  rawPhone: string,
+  country: SupabaseCountryRow | null,
+  tAuto?: (key: string) => string,
+) {
   const trimmed = rawPhone.trim();
+  const getMsg = (key: string, fallback: string) => {
+    try {
+      return tAuto ? tAuto(key) : fallback;
+    } catch {
+      return fallback;
+    }
+  };
+
   if (!trimmed) {
-    return { ok: false as const, message: 'اكتب رقم الهاتف.' };
+    return { ok: false as const, message: getMsg('key_9a6b40b6', 'اكتب رقم الهاتف.') };
   }
 
   const isoCode = getCountryIsoCode(country) as CountryCode | undefined;
@@ -668,14 +682,14 @@ function normalizePhoneForCountry(rawPhone: string, country: SupabaseCountryRow 
       return {
         ok: false as const,
         message: isoCode
-          ? 'رقم الهاتف غير صحيح لهذه الدولة، اكتبه بالنسق المحلي أو الدولي.'
-          : 'اختر الدولة أولاً حتى نتحقق من رقم الهاتف.',
+          ? getMsg('key_9812501b', 'رقم الهاتف غير صحيح لهذه الدولة، اكتبه بالنسق المحلي أو الدولي.')
+          : getMsg('key_af6d7dd9', 'اختر الدولة أولاً حتى نتحقق من رقم الهاتف.'),
       };
     }
 
     return { ok: true as const, phone: parsed.number };
   } catch {
-    return { ok: false as const, message: 'رقم الهاتف غير صحيح.' };
+    return { ok: false as const, message: getMsg('key_286d6c55', 'رقم الهاتف غير صحيح.') };
   }
 }
 

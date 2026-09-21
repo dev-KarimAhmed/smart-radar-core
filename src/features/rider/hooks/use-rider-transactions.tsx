@@ -20,6 +20,7 @@ export function useRiderTransactions(
 ) {
   const { toast } = useToast();
   const t = useTranslations('transactions');
+  const tAuto = useTranslations('auto');
   const [isRequesting, setIsRequesting] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [isRating, setIsRating] = useState(false);
@@ -40,8 +41,8 @@ export function useRiderTransactions(
 
   const requestRide = useCallback(async (_payload: any) => {
     toast({
-      title: 'استخدم شاشة طلب الرحلة الجديدة',
-      description: 'إنشاء الطلبات يتم الآن من شاشة الراكب عبر Supabase.',
+      title: tAuto('key_b7aec7c9'),
+      description: tAuto('key_310e8246'),
     });
     setInternalStatus('searching');
   }, [setInternalStatus, toast]);

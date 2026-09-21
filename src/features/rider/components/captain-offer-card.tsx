@@ -99,20 +99,6 @@ export function CaptainOfferCard({
       dir={isArabic ? 'rtl' : 'ltr'}
       className={cn(styles.style136_1, isPreferred ? styles.style137_2 : styles.style137_3)}
     >
-      {countdown?.hasCountdown ? (
-        <div className={styles.countdownWrap}>
-          <div className={styles.countdownTrack}>
-            <div
-              className={cn(styles.countdownFill, isCountdownUrgent ? styles.countdownFillUrgent : '')}
-              style={{ width: `${countdown.percentRemaining}%` }}
-            />
-          </div>
-          <span className={isCountdownUrgent ? styles.countdownLabelUrgent : styles.countdownLabel} dir="ltr">
-            {formatCountdown(countdown.remainingSeconds)}
-          </span>
-        </div>
-      ) : null}
-
       <div className={styles.headerRow}>
         <div className={styles.style146_5}>
           <CaptainAvatar captain={captain} captainName={captainName} />
@@ -195,6 +181,20 @@ export function CaptainOfferCard({
           {t('allInclusive')}
         </span>
       </div>
+
+      {countdown?.hasCountdown ? (
+        <div className={styles.countdownWrap}>
+          <div className={styles.countdownTrack}>
+            <div
+              className={cn(styles.countdownFill, isCountdownUrgent ? styles.countdownFillUrgent : '')}
+              style={{ width: `${countdown.percentRemaining}%` }}
+            />
+          </div>
+          <span className={isCountdownUrgent ? styles.countdownLabelUrgent : styles.countdownLabel} dir="ltr">
+            {formatCountdown(countdown.remainingSeconds)}
+          </span>
+        </div>
+      ) : null}
 
       <div className={styles.actionRow}>
         <button

@@ -11,11 +11,10 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
+import { useTranslations } from 'next-intl';
 import { useToast } from '@/hooks/use-toast';
 import { dexieDb } from '@/lib/dexie-db';
 import { setFavoriteCaptain } from '@/features/account/services/favorite-captains';
-import type { AppLanguage } from '@/lib/i18n/simple-copy';
 
 import { cn } from '@/lib/utils';
 const styles = {
@@ -132,8 +131,8 @@ export function RatingModal({
   finalPrice = 0,
 }: RatingModalProps) {
   const { toast } = useToast();
-  const { language, isArabic } = useDashboardLanguage();
-  const copy = ratingModalCopy[language] as typeof ratingModalCopy.en;
+  const tAuto = useTranslations('auto');
+  const isArabic = document.documentElement.dir === 'rtl';
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isBlocking, setIsBlocking] = useState(false);
   const [confirmBlock, setConfirmBlock] = useState(false);
@@ -208,19 +207,19 @@ export function RatingModal({
           JSON.stringify({
             captainId,
             driverId: captainId,
-            captainName: captainName?.trim() || copy.defaultCaptainName,
-            fullName: captainName?.trim() || copy.defaultCaptainName,
+            captainName: captainName?.trim() || tAuto('ratingModal_defaultCaptainName'),
+            fullName: captainName?.trim() || tAuto('ratingModal_defaultCaptainName'),
             captainPhone: captainPhone || '',
             phoneNumber: captainPhone || '',
-            vehicleSpecs: vehicleInfo || copy.notAvailable,
+            vehicleSpecs: vehicleInfo || tAuto('ratingModal_notAvailable'),
             savedTimestamp: Date.now(),
           }),
         );
       }
 
       toast({
-        title: saveFavorite ? copy.submitAndFavoriteSuccessTitle : copy.submitSuccessTitle,
-        description: saveFavorite ? copy.submitAndFavoriteSuccessDescription : copy.submitSuccessDescription,
+        title: saveFavorite ? tAuto('ratingModal_submitAndFavoriteSuccessTitle') : tAuto('ratingModal_submitSuccessTitle'),
+        description: saveFavorite ? tAuto('ratingModal_submitAndFavoriteSuccessDescription') : tAuto('ratingModal_submitSuccessDescription'),
       });
 
       onSuccess();
@@ -228,8 +227,8 @@ export function RatingModal({
       if ((process.env.NODE_ENV !== 'production')) console.error('[Rating Modal] Submit rating error:', error);
       toast({
         variant: 'destructive',
-        title: copy.submitErrorTitle,
-        description: error?.message || copy.submitErrorDescription,
+        title: tAuto('ratingModal_submitErrorTitle'),
+        description: error?.message || tAuto('ratingModal_submitErrorDescription'),
       });
     } finally {
       setIsSubmitting(false);
@@ -247,8 +246,8 @@ export function RatingModal({
       if (error) throw error;
 
       toast({
-        title: copy.blockSuccessTitle,
-        description: copy.blockSuccessDescription,
+        title: tAuto('ratingModal_blockSuccessTitle'),
+        description: tAuto('ratingModal_blockSuccessDescription'),
       });
 
       onSuccess();
@@ -256,8 +255,8 @@ export function RatingModal({
       if ((process.env.NODE_ENV !== 'production')) console.error('[Rating Modal] Block driver error:', error);
       toast({
         variant: 'destructive',
-        title: copy.blockErrorTitle,
-        description: error?.message || copy.blockErrorDescription,
+        title: tAuto('ratingModal_blockErrorTitle'),
+        description: error?.message || tAuto('ratingModal_blockErrorDescription'),
       });
     } finally {
       setIsBlocking(false);
@@ -266,19 +265,19 @@ export function RatingModal({
   };
 
   const vehicleCriteria = [
-    { key: 'cleanliness' as const, label: copy.vehicleCleanliness },
-    { key: 'ac' as const, label: copy.vehicleAc },
-    { key: 'comfort' as const, label: copy.vehicleComfort },
-    { key: 'quietness' as const, label: copy.vehicleQuietness },
-    { key: 'safety' as const, label: copy.vehicleSafety },
+    { key: 'cleanliness' as const, label: tAuto('ratingModal_vehicleCleanliness') },
+    { key: 'ac' as const, label: tAuto('ratingModal_vehicleAc') },
+    { key: 'comfort' as const, label: tAuto('ratingModal_vehicleComfort') },
+    { key: 'quietness' as const, label: tAuto('ratingModal_vehicleQuietness') },
+    { key: 'safety' as const, label: tAuto('ratingModal_vehicleSafety') },
   ];
 
   const captainCriteria = [
-    { key: 'behavior' as const, label: copy.captainBehavior },
-    { key: 'driving' as const, label: copy.captainDriving },
-    { key: 'punctuality' as const, label: copy.captainPunctuality },
-    { key: 'routing' as const, label: copy.captainRouting },
-    { key: 'communication' as const, label: copy.captainCommunication },
+    { key: 'behavior' as const, label: tAuto('ratingModal_captainBehavior') },
+    { key: 'driving' as const, label: tAuto('ratingModal_captainDriving') },
+    { key: 'punctuality' as const, label: tAuto('ratingModal_captainPunctuality') },
+    { key: 'routing' as const, label: tAuto('ratingModal_captainRouting') },
+    { key: 'communication' as const, label: tAuto('ratingModal_captainCommunication') },
   ];
 
   return (
@@ -289,8 +288,8 @@ export function RatingModal({
       >
         <DialogHeader className={cn(styles.style218_2, isArabic ? styles.style218_3 : styles.style218_4)}>
           <div>
-            <DialogTitle className={styles.style220_5}>{copy.title}</DialogTitle>
-            <DialogDescription className={styles.style221_6}>{copy.description}</DialogDescription>
+            <DialogTitle className={styles.style220_5}>{tAuto('ratingModal_title')}</DialogTitle>
+            <DialogDescription className={styles.style221_6}>{tAuto('ratingModal_description')}</DialogDescription>
           </div>
           <button onClick={onClose} className={styles.style223_7}>
             <X className={styles.style224_8} />
@@ -299,16 +298,16 @@ export function RatingModal({
 
         <div className={styles.style228_9}>
           <RatingCriteriaSection
-            title={copy.vehicleSection}
-            hint={copy.criteriaHint}
+            title={tAuto('ratingModal_vehicleSection')}
+            hint={tAuto('ratingModal_criteriaHint')}
             items={vehicleCriteria}
             values={vehicle}
             accent="amber"
             onSelect={handleSetVehicle}
           />
           <RatingCriteriaSection
-            title={copy.captainSection}
-            hint={copy.criteriaHint}
+            title={tAuto('ratingModal_captainSection')}
+            hint={tAuto('ratingModal_criteriaHint')}
             items={captainCriteria}
             values={captain}
             accent="teal"
@@ -325,10 +324,10 @@ export function RatingModal({
           >
             <div className={styles.style254_13}>
               <span className={styles.style255_14}>
-                {saveFavorite ? copy.favoriteWillSave : copy.favoriteSave}
+                {saveFavorite ? tAuto('ratingModal_favoriteWillSave') : tAuto('ratingModal_favoriteSave')}
               </span>
               <span className={styles.style258_15}>
-                {captainName ? copy.favoriteDescription(captainName) : copy.favoriteFallbackDescription}
+                {captainName ? tAuto('ratingModal_favoriteDescription', { name: captainName }) : tAuto('ratingModal_favoriteFallbackDescription')}
               </span>
             </div>
             <span
@@ -341,11 +340,11 @@ export function RatingModal({
           </button>
 
           <div className={styles.style273_21}>
-            <Label className={styles.style274_22}>{copy.commentLabel}</Label>
+            <Label className={styles.style274_22}>{tAuto('ratingModal_commentLabel')}</Label>
             <textarea
               value={comment}
               onChange={(event) => setComment(event.target.value)}
-              placeholder={copy.commentPlaceholder}
+              placeholder={tAuto('ratingModal_commentPlaceholder')}
               rows={3}
               className={styles.style280_23}
             />
@@ -359,7 +358,7 @@ export function RatingModal({
               disabled={isSubmitting || isBlocking}
               onClick={handleSubmit}
             >
-              {isSubmitting ? copy.submitting : copy.submit}
+              {isSubmitting ? tAuto('ratingModal_submitting') : tAuto('ratingModal_submit')}
             </Button>
           ) : null}
 
@@ -371,11 +370,11 @@ export function RatingModal({
               className={styles.style301_26}
             >
               <AlertOctagon className={styles.style303_27} />
-              {copy.blockDriver}
+              {tAuto('ratingModal_blockDriver')}
             </button>
           ) : (
             <div className={styles.style307_28}>
-              <p className={styles.style308_29}>{copy.blockConfirm}</p>
+              <p className={styles.style308_29}>{tAuto('ratingModal_blockConfirm')}</p>
               <div className={styles.style309_30}>
                 <Button
                   variant="destructive"
@@ -383,7 +382,7 @@ export function RatingModal({
                   disabled={isBlocking}
                   onClick={handleBlockDriver}
                 >
-                  {isBlocking ? copy.blocking : copy.confirmBlock}
+                  {isBlocking ? tAuto('ratingModal_blocking') : tAuto('ratingModal_confirmBlock')}
                 </Button>
                 <Button
                   variant="outline"
@@ -391,7 +390,7 @@ export function RatingModal({
                   disabled={isBlocking}
                   onClick={() => setConfirmBlock(false)}
                 >
-                  {copy.back}
+                  {tAuto('ratingModal_back')}
                 </Button>
               </div>
             </div>
@@ -457,90 +456,3 @@ function RatingCriteriaSection<T extends string>({
     </div>
   );
 }
-
-const ratingModalCopy = {
-  ar: {
-    title: 'قيّم الرحلة',
-    description: 'يساعدنا تقييمك على تحسين الخدمة.',
-    vehicleSection: 'تقييم المركبة والسيارة',
-    captainSection: 'تقييم السائق',
-    criteriaHint: 'قيّم البنود اللي تحب فقط — البند اللي تسيبه فاضي مش محسوب ضد السائق.',
-    vehicleCleanliness: 'نظافة السيارة',
-    vehicleAc: 'التكييف',
-    vehicleComfort: 'راحة المقاعد',
-    vehicleQuietness: 'هدوء المركبة',
-    vehicleSafety: 'السلامة',
-    captainBehavior: 'الاحترام',
-    captainDriving: 'القيادة الآمنة',
-    captainPunctuality: 'الالتزام بالوقت',
-    captainRouting: 'اختيار المسار',
-    captainCommunication: 'التواصل',
-    favoriteSave: 'حفظ السائق في المفضلين',
-    favoriteWillSave: 'سيتم حفظ السائق في المفضلين',
-    favoriteDescription: (name: string) => `احفظ ${name} لتفضيله في الرحلات القادمة.`,
-    favoriteFallbackDescription: 'احفظ هذا السائق لتفضيله في الرحلات القادمة.',
-    commentLabel: 'ملاحظات إضافية (اختياري)',
-    commentPlaceholder: 'اكتب رأيك في السائق والرحلة...',
-    submit: 'إرسال التقييم',
-    submitting: 'جاري إرسال التقييم...',
-    blockDriver: 'حظر هذا السائق',
-    blockConfirm: 'هل أنت متأكد من حظر هذا السائق؟ لن تظهر لك عروضه مرة أخرى.',
-    blocking: 'جاري الحظر...',
-    confirmBlock: 'نعم، تأكيد الحظر',
-    back: 'تراجع',
-    submitSuccessTitle: 'تم إرسال التقييم بنجاح',
-    submitSuccessDescription: 'شكراً لك. يساعدنا تقييمك على تحسين الخدمة.',
-    submitAndFavoriteSuccessTitle: 'تم إرسال التقييم وحفظ السائق',
-    submitAndFavoriteSuccessDescription: 'تم حفظ السائق في قائمتك المفضلة للرحلات القادمة.',
-    submitErrorTitle: 'تعذر حفظ التقييم',
-    submitErrorDescription: 'حدث خطأ غير متوقع أثناء حفظ تقييمك.',
-    blockSuccessTitle: 'تم حظر السائق',
-    blockSuccessDescription: 'لن تظهر لك عروض هذا السائق مرة أخرى.',
-    blockErrorTitle: 'تعذر حظر السائق',
-    blockErrorDescription: 'حدث خطأ غير متوقع أثناء حظر السائق.',
-    defaultCaptainName: 'سائق',
-    notAvailable: 'غير متاح',
-  },
-  en: {
-    title: 'Rate your trip',
-    description: 'Your feedback helps us improve the service.',
-    vehicleSection: 'Vehicle rating',
-    captainSection: 'Captain rating',
-    criteriaHint: 'Answer only the points you want — anything left blank is not counted against the captain.',
-    vehicleCleanliness: 'Cleanliness',
-    vehicleAc: 'Air conditioning',
-    vehicleComfort: 'Seat comfort',
-    vehicleQuietness: 'Quiet ride',
-    vehicleSafety: 'Safety',
-    captainBehavior: 'Respect',
-    captainDriving: 'Safe driving',
-    captainPunctuality: 'Punctuality',
-    captainRouting: 'Route choice',
-    captainCommunication: 'Communication',
-    favoriteSave: 'Save captain as preferred',
-    favoriteWillSave: 'Captain will be saved as preferred',
-    favoriteDescription: (name: string) => `Save ${name} for future trips.`,
-    favoriteFallbackDescription: 'Save this captain for future trips.',
-    commentLabel: 'Additional notes (optional)',
-    commentPlaceholder: 'Write your feedback about the captain and trip...',
-    submit: 'Submit rating',
-    submitting: 'Submitting rating...',
-    blockDriver: 'Block this captain',
-    blockConfirm: 'Are you sure you want to block this captain? Their offers will not appear again.',
-    blocking: 'Blocking...',
-    confirmBlock: 'Yes, block captain',
-    back: 'Back',
-    submitSuccessTitle: 'Rating submitted',
-    submitSuccessDescription: 'Thank you. Your feedback helps us improve the service.',
-    submitAndFavoriteSuccessTitle: 'Rating submitted and captain saved',
-    submitAndFavoriteSuccessDescription: 'The captain was saved as preferred for future trips.',
-    submitErrorTitle: 'Could not save rating',
-    submitErrorDescription: 'An unexpected error occurred while saving your rating.',
-    blockSuccessTitle: 'Captain blocked',
-    blockSuccessDescription: 'This captain’s offers will not appear again.',
-    blockErrorTitle: 'Could not block captain',
-    blockErrorDescription: 'An unexpected error occurred while blocking this captain.',
-    defaultCaptainName: 'Captain',
-    notAvailable: 'Not available',
-  },
-} satisfies Record<AppLanguage, Record<string, string | ((value: string) => string)>>;

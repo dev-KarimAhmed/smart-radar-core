@@ -151,7 +151,7 @@ export function KillSwitchPanel() {
 
   // Broadcast Alert tool states
   const [broadcastMessage, setBroadcastMessage] = useState('');
-  const [selectedDistrict, setSelectedDistrict] = useState('الجميع');
+  const [selectedDistrict, setSelectedDistrict] = useState(tAuto('key_91559fa2'));
   const [alertType, setAlertType] = useState<'REGIONAL_ALERT' | 'GLOBAL_FREEZE'>('REGIONAL_ALERT');
   const [isBroadcasting, setIsBroadcasting] = useState(false);
 
@@ -224,7 +224,7 @@ export function KillSwitchPanel() {
     setIsBroadcasting(true);
     const success = await broadcastSilentPush({
       type: alertType,
-      targetDistrict: selectedDistrict === 'الجميع' ? undefined : selectedDistrict,
+      targetDistrict: selectedDistrict === tAuto('key_91559fa2') ? undefined : selectedDistrict,
       message: broadcastMessage
     });
     setIsBroadcasting(false);

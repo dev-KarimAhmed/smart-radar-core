@@ -97,7 +97,7 @@ export function SovereignGapSimulator({
 
   // Simulated operations states
   const [commuteDriverUid, setCommuteDriverUid] = useState<string>('');
-  const [targetDistrict, setTargetDistrict] = useState<string>('منطقة الشونة الجنوبية');
+  const [targetDistrict, setTargetDistrict] = useState<string>(tAuto('key_3fadd59c'));
   const [voucherCode, setVoucherCode] = useState<string>('');
   const [voucherDriverUid, setVoucherDriverUid] = useState<string>('');
 

@@ -35,8 +35,9 @@ export function OfferCard({
   referencePrice,
 }: OfferCardProps) {
   const { user } = useAuth();
-  const { activeAds } = usePromoStream(user?.district || 'وادي السير', user?.governorate || 'عمان', 'rider');
   const t = useTranslations('offerGallery');
+  const tAuto = useTranslations('auto');
+  const { activeAds } = usePromoStream(user?.district || tAuto('key_161b5e38'), user?.governorate || tAuto('key_20a48924'), 'rider');
   const { currentLocale } = useLocaleContext();
 
   const deviationRatio = referencePrice > 0 && offer.price > 0
@@ -51,7 +52,7 @@ export function OfferCard({
       .map((ad) => ({
         adId: ad.id,
         targetScale: ad.targetDistrict ? 'District' : ('Governorate' as any),
-        targetLocationName: ad.targetDistrict || ad.targetGovernorate || 'وادي السير',
+        targetLocationName: ad.targetDistrict || ad.targetGovernorate || tAuto('key_161b5e38'),
         adType: ad.adType as any,
         bannerUrl: ad.content?.posterUrl || ad.posterUrl || (ad as any).bannerUrl || '',
       }))
@@ -71,7 +72,7 @@ export function OfferCard({
 
     const matchedPass = RadarSovereignIntegrationKernel.triggerContextualAdStream(
       deviationRatio,
-      { role: 'rider', district: user?.district || 'وادي السير', governorate: user?.governorate || 'عمان' },
+      { role: 'rider', district: user?.district || tAuto('key_161b5e38'), governorate: user?.governorate || tAuto('key_20a48924') },
       passAds as any
     );
 

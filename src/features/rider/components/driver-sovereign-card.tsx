@@ -69,8 +69,8 @@ export const DriverSovereignCard = memo(({ driver }: DriverSovereignCardProps) =
   const isUp = driver.uid ? (driver.uid.charCodeAt(driver.uid.length - 1) % 2 === 0) : true;
 
   // شارة الهوية القانونية (جهة التشغيل)
-  const operationalLabel = driver.affiliation?.type === 'office-taxi' ? 'تكسي مكتب' : 'تطبيق ذكي';
-  const entityName = driver.affiliation?.name || 'مستقل';
+  const operationalLabel = driver.affiliation?.type === 'office-taxi' ? tAuto('key_462270e5') : tAuto('key_f9f9ba8f');
+  const entityName = driver.affiliation?.name || tAuto('key_409e38e8');
 
   return (
     <Card className={cn(styles.style33_1, rankTheme.glow)}>

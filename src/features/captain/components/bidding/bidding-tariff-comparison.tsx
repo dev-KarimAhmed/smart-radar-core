@@ -54,6 +54,26 @@ const styles = {
   pricingBtnActive: "border-teal-500 bg-teal-500/20 text-teal-300",
   pricingBtnInactive: "border-white/10 bg-white/5 text-slate-400 hover:bg-white/10",
   pricingBtnDisabled: "opacity-50 grayscale cursor-not-allowed",
+
+  tariffGrid: "mt-3 grid grid-cols-3 gap-2 text-center dir-rtl",
+  tariffColMarket: "rounded-xl border border-slate-800 bg-slate-900/50 p-2 sm:p-3",
+  tariffTitleMarket: "text-[11px] sm:text-xs font-black text-slate-400 mb-2 truncate",
+  tariffListMarket: "space-y-1.5 text-xs font-black text-slate-200",
+  tariffRow: "flex justify-between items-center px-1 text-[11px] sm:text-xs",
+  tariffRowLabel: "text-slate-400",
+  tariffValueMarket: "font-mono text-teal-400",
+  
+  tariffColCurrent: "rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 p-2 sm:p-3 relative group",
+  tariffHeaderCurrent: "flex items-center justify-between mb-2 gap-1",
+  tariffTitleCurrent: "text-[11px] sm:text-xs font-black text-[#5eead4] truncate",
+  tariffEditBtn: "inline-flex items-center gap-1 text-[10px] font-bold text-[#14B8A6] hover:text-[#5eead4] hover:underline transition-colors shrink-0",
+  tariffEditIcon: "h-3.5 w-3.5",
+  tariffListWhite: "space-y-1.5 text-xs font-black text-white",
+  tariffValueCurrent: "font-mono text-[#5eead4]",
+
+  tariffColOffer: "rounded-xl border border-teal-500/20 bg-teal-950/20 p-2 sm:p-3",
+  tariffTitleOffer: "text-[11px] sm:text-xs font-black text-emerald-300 mb-2 truncate",
+  tariffValueOffer: "font-mono text-emerald-300",
 } as const;
 
 export function BiddingTariffComparison({
@@ -127,79 +147,79 @@ export function BiddingTariffComparison({
           {t('withinBaseBanner')}
         </div>
       ) : (
-        <div className="mt-3 grid grid-cols-3 gap-2 text-center dir-rtl">
+        <div className={styles.tariffGrid}>
           {/* Column 1: Market Avg */}
-          <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-2 sm:p-3">
-            <h4 className="text-[11px] sm:text-xs font-black text-slate-400 mb-2 truncate">
+          <div className={styles.tariffColMarket}>
+            <h4 className={styles.tariffTitleMarket}>
               {t('marketAvgLabel')}
             </h4>
-            <div className="space-y-1.5 text-xs font-black text-slate-200">
-              <div className="flex justify-between items-center px-1 text-[11px] sm:text-xs">
-                <span className="text-slate-400">{t('baseFareLabel')}</span>
-                <span className="font-mono text-teal-400">{marketBaseFare.toFixed(2)}</span>
+            <div className={styles.tariffListMarket}>
+              <div className={styles.tariffRow}>
+                <span className={styles.tariffRowLabel}>{t('baseFareLabel')}</span>
+                <span className={styles.tariffValueMarket}>{marketBaseFare.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between items-center px-1 text-[11px] sm:text-xs">
-                <span className="text-slate-400">{t('perKmLabel')}</span>
-                <span className="font-mono text-teal-400">{marketPerKm.toFixed(2)}</span>
+              <div className={styles.tariffRow}>
+                <span className={styles.tariffRowLabel}>{t('perKmLabel')}</span>
+                <span className={styles.tariffValueMarket}>{marketPerKm.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between items-center px-1 text-[11px] sm:text-xs">
-                <span className="text-slate-400">{t('perMinLabel')}</span>
-                <span className="font-mono text-teal-400">{marketPerMin.toFixed(2)}</span>
+              <div className={styles.tariffRow}>
+                <span className={styles.tariffRowLabel}>{t('perMinLabel')}</span>
+                <span className={styles.tariffValueMarket}>{marketPerMin.toFixed(2)}</span>
               </div>
             </div>
           </div>
 
           {/* Column 2: Current Tariff */}
-          <div className="rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 p-2 sm:p-3 relative group">
-            <div className="flex items-center justify-between mb-2 gap-1">
-              <h4 className="text-[11px] sm:text-xs font-black text-[#5eead4] truncate">
+          <div className={styles.tariffColCurrent}>
+            <div className={styles.tariffHeaderCurrent}>
+              <h4 className={styles.tariffTitleCurrent}>
                 {t('yourTariff')}
               </h4>
               {onEditTariff ? (
                 <button
                   type="button"
                   onClick={onEditTariff}
-                  className="inline-flex items-center gap-1 text-[10px] font-bold text-[#14B8A6] hover:text-[#5eead4] hover:underline transition-colors shrink-0"
+                  className={styles.tariffEditBtn}
                   title={t('editCurrentTariff')}
                 >
-                  <Pencil className="h-3.5 w-3.5" />
+                  <Pencil className={styles.tariffEditIcon} />
                   <span>{t('editBtn')}</span>
                 </button>
               ) : null}
             </div>
-            <div className="space-y-1.5 text-xs font-black text-white">
-              <div className="flex justify-between items-center px-1 text-[11px] sm:text-xs">
-                <span className="text-slate-400">{t('baseFareLabel')}</span>
-                <span className="font-mono text-[#5eead4]">{currentBaseFare.toFixed(2)}</span>
+            <div className={styles.tariffListWhite}>
+              <div className={styles.tariffRow}>
+                <span className={styles.tariffRowLabel}>{t('baseFareLabel')}</span>
+                <span className={styles.tariffValueCurrent}>{currentBaseFare.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between items-center px-1 text-[11px] sm:text-xs">
-                <span className="text-slate-400">{t('perKmLabel')}</span>
-                <span className="font-mono text-[#5eead4]">{currentPerKm.toFixed(2)}</span>
+              <div className={styles.tariffRow}>
+                <span className={styles.tariffRowLabel}>{t('perKmLabel')}</span>
+                <span className={styles.tariffValueCurrent}>{currentPerKm.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between items-center px-1 text-[11px] sm:text-xs">
-                <span className="text-slate-400">{t('perMinLabel')}</span>
-                <span className="font-mono text-[#5eead4]">{currentPerMin.toFixed(2)}</span>
+              <div className={styles.tariffRow}>
+                <span className={styles.tariffRowLabel}>{t('perMinLabel')}</span>
+                <span className={styles.tariffValueCurrent}>{currentPerMin.toFixed(2)}</span>
               </div>
             </div>
           </div>
 
           {/* Column 3: Offer Tariff */}
-          <div className="rounded-xl border border-teal-500/20 bg-teal-950/20 p-2 sm:p-3">
-            <h4 className="text-[11px] sm:text-xs font-black text-emerald-300 mb-2 truncate">
+          <div className={styles.tariffColOffer}>
+            <h4 className={styles.tariffTitleOffer}>
               {t('offerTariff')}
             </h4>
-            <div className="space-y-1.5 text-xs font-black text-white">
-              <div className="flex justify-between items-center px-1 text-[11px] sm:text-xs">
-                <span className="text-slate-400">{t('baseFareLabel')}</span>
-                <span className="font-mono text-emerald-300">{offerBaseFare.toFixed(2)}</span>
+            <div className={styles.tariffListWhite}>
+              <div className={styles.tariffRow}>
+                <span className={styles.tariffRowLabel}>{t('baseFareLabel')}</span>
+                <span className={styles.tariffValueOffer}>{offerBaseFare.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between items-center px-1 text-[11px] sm:text-xs">
-                <span className="text-slate-400">{t('perKmLabel')}</span>
-                <span className="font-mono text-emerald-300">{offerPerKm.toFixed(2)}</span>
+              <div className={styles.tariffRow}>
+                <span className={styles.tariffRowLabel}>{t('perKmLabel')}</span>
+                <span className={styles.tariffValueOffer}>{offerPerKm.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between items-center px-1 text-[11px] sm:text-xs">
-                <span className="text-slate-400">{t('perMinLabel')}</span>
-                <span className="font-mono text-emerald-300">{offerPerMin.toFixed(2)}</span>
+              <div className={styles.tariffRow}>
+                <span className={styles.tariffRowLabel}>{t('perMinLabel')}</span>
+                <span className={styles.tariffValueOffer}>{offerPerMin.toFixed(2)}</span>
               </div>
             </div>
           </div>
@@ -212,8 +232,8 @@ export function BiddingTariffComparison({
         </div>
       )}
 
-      <div className={styles.pricingModeContainer}>
-        {riderPreference ? (
+      {riderPreference ? (
+        <div className={styles.pricingModeContainer}>
           <div className={styles.riderPrefBadge}>
             <Lock className={styles.riderPrefIcon} />
             <span>
@@ -228,57 +248,8 @@ export function BiddingTariffComparison({
               })}
             </span>
           </div>
-        ) : (
-          <div className={styles.noPrefBadge}>
-            <Sparkles className={styles.noPrefIcon} />
-            <span>{t('riderNoPreference')}</span>
-          </div>
-        )}
-        <div className={styles.pricingButtonsGrid}>
-          <button
-            type="button"
-            disabled={!!riderPreference}
-            onClick={() => setPricingMode('FREE')}
-            className={cn(
-              styles.pricingBtnBase,
-              pricingMode === 'FREE'
-                ? styles.pricingBtnActive
-                : styles.pricingBtnInactive,
-              riderPreference && riderPreference !== 'FREE' && styles.pricingBtnDisabled
-            )}
-          >
-            {t('freePriceMode')}
-          </button>
-          <button
-            type="button"
-            disabled={!!riderPreference}
-            onClick={() => setPricingMode('APP')}
-            className={cn(
-              styles.pricingBtnBase,
-              pricingMode === 'APP'
-                ? styles.pricingBtnActive
-                : styles.pricingBtnInactive,
-              riderPreference && riderPreference !== 'APP' && styles.pricingBtnDisabled
-            )}
-          >
-            {t('appPriceMode')}
-          </button>
-          <button
-            type="button"
-            disabled={!!riderPreference}
-            onClick={() => setPricingMode('TAXI')}
-            className={cn(
-              styles.pricingBtnBase,
-              pricingMode === 'TAXI'
-                ? styles.pricingBtnActive
-                : styles.pricingBtnInactive,
-              riderPreference && riderPreference !== 'TAXI' && styles.pricingBtnDisabled
-            )}
-          >
-            {t('taxiMeterMode')}
-          </button>
         </div>
-      </div>
+      ) : null}
     </>
   );
 }

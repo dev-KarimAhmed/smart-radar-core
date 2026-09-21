@@ -6,6 +6,7 @@ import { db } from '@/lib/firebase';
 import { useToast } from './use-toast';
 import { trackSovereignError } from '@/lib/error-tracker';
 import { broadcastSilentPush } from '@/lib/push-notifications';
+import { useTranslations } from 'next-intl';
 
 export interface SovereignAd {
  id: string;
@@ -64,6 +65,7 @@ export interface AdInput {
 }
 
 export function useAdminAds() {
+ const tAuto = useTranslations();
  const [localPromos, setLocalPromos] = useState<SovereignAd[]>(() => {
  if (typeof window !== 'undefined') {
  try {
@@ -304,12 +306,12 @@ export function useAdminAds() {
  const isMock = adId.startsWith('promo-') || adId.startsWith('mock-') || localPromos.some(p => p.id === adId);
  if (isMock) {
  updateLocalPromos(prev => prev.map(a => a.id === adId ? { ...a, status: 'archived' } : a));
- toast({ title: 'تمت أرشفة الحملة وإيقاف عرضها' });
+ toast({ title: tAuto('campaignArchived') });
  } else {
  try {
  const adRef = doc(db, 'promos', adId);
  await updateDoc(adRef, { status: 'archived' });
- toast({ title: 'تمت أرشفة الحملة وإيقاف عرضها' });
+ toast({ title: tAuto('campaignArchived') });
  } catch (fbError) {
  console.warn("Firebase delete failed, falling back to local:", fbError);
  updateLocalPromos(prev => {
@@ -324,17 +326,17 @@ export function useAdminAds() {
  }
  return prev;
  });
- toast({ title: 'تمت أرشفة الحملة وإيقاف عرضها محلياً' });
+ toast({ title: tAuto('campaignArchivedLocal') });
  }
  }
  } catch (error) {
  trackSovereignError(error, { context: 'DeleteAd_Direct' });
- toast({ variant: 'destructive', title: 'فشل أرشفة الحملة' });
+ toast({ variant: 'destructive', title: tAuto('failedToArchiveCampaign') });
  } finally {
  setIsProcessing(false);
  isProcessingRef.current = false;
  }
- }, [localPromos, dbPromos, toast, updateLocalPromos]);
+ }, [localPromos, dbPromos, toast, updateLocalPromos, tAuto]);
 
  // 3. تجميد العقد (Freeze)
  const freezeAd = useCallback(async (adId: string, isFrozen: boolean) => {
@@ -346,12 +348,12 @@ export function useAdminAds() {
  const isMock = adId.startsWith('promo-') || adId.startsWith('mock-') || localPromos.some(p => p.id === adId);
  if (isMock) {
  updateLocalPromos(prev => prev.map(a => a.id === adId ? { ...a, status: targetStatus } : a));
- toast({ title: isFrozen ? 'تم تفعيل الحملة' : 'تم إيقاف الحملة مؤقتاً' });
+ toast({ title: isFrozen ? tAuto('campaignActivated') : tAuto('campaignPausedTemp') });
  } else {
  try {
  const adRef = doc(db, 'promos', adId);
  await updateDoc(adRef, { status: targetStatus });
- toast({ title: isFrozen ? 'تم تفعيل الحملة' : 'تم إيقاف الحملة مؤقتاً' });
+ toast({ title: isFrozen ? tAuto('campaignActivated') : tAuto('campaignPausedTemp') });
  } catch (fbError) {
  console.warn("Firebase freeze failed, falling back to local:", fbError);
  updateLocalPromos(prev => {
@@ -366,17 +368,17 @@ export function useAdminAds() {
  }
  return prev;
  });
- toast({ title: isFrozen ? 'تم تفعيل الحملة محلياً' : 'تم إيقاف الحملة مؤقتاً محلياً' });
+ toast({ title: isFrozen ? tAuto('campaignActivatedLocal') : tAuto('campaignPausedTempLocal') });
  }
  }
  } catch (error) {
  trackSovereignError(error, { context: 'FreezeAd_Direct' });
- toast({ variant: 'destructive', title: 'فشل تجميد الحملة' });
+ toast({ variant: 'destructive', title: tAuto('failedToFreezeCampaign') });
  } finally {
  setIsProcessing(false);
  isProcessingRef.current = false;
  }
- }, [localPromos, dbPromos, toast, updateLocalPromos]);
+ }, [localPromos, dbPromos, toast, updateLocalPromos, tAuto]);
 
  // 4. تمديد التاريخ والظهور (Extend)
  const extendAd = useCallback(async (adId: string, extraImpressions: number, extraDays: number) => {
@@ -397,7 +399,7 @@ export function useAdminAds() {
  targetImpressions: currentTarget + extraImpressions,
  endDate: newEndDateStr
  } : a));
- toast({ title: 'تم تمديد سعة الحملة بنجاح.' });
+ toast({ title: tAuto('campaignCapacityExtended') });
  } else {
  try {
  const adRef = doc(db, 'promos', adId);
@@ -405,7 +407,7 @@ export function useAdminAds() {
  targetImpressions: currentTarget + extraImpressions,
  endDate: newEndDateStr
  });
- toast({ title: 'تم تمديد سعة الحملة بنجاح.' });
+ toast({ title: tAuto('campaignCapacityExtended') });
  } catch (fbError) {
  console.warn("Firebase extend failed, falling back to local:", fbError);
  updateLocalPromos(prev => {
@@ -428,17 +430,17 @@ export function useAdminAds() {
  }
  return prev;
  });
- toast({ title: 'تم تمديد سعة الحملة محلياً.' });
+ toast({ title: tAuto('campaignCapacityExtendedLocal') });
  }
  }
  } catch (error) {
  trackSovereignError(error, { context: 'ExtendAd_Direct' });
- toast({ variant: 'destructive', title: 'فشل تمديد معالم الحملة' });
+ toast({ variant: 'destructive', title: tAuto('failedToExtendCampaign') });
  } finally {
  setIsProcessing(false);
  isProcessingRef.current = false;
  }
- }, [ads, localPromos, dbPromos, toast, updateLocalPromos]);
+ }, [ads, localPromos, dbPromos, toast, updateLocalPromos, tAuto]);
 
  const approveAd = useCallback(async (adId: string) => {
  if (isProcessingRef.current) return;
@@ -448,12 +450,12 @@ export function useAdminAds() {
  const isMock = adId.startsWith('promo-') || adId.startsWith('mock-') || localPromos.some(p => p.id === adId);
  if (isMock) {
  updateLocalPromos(prev => prev.map(a => a.id === adId ? { ...a, status: 'active', isSovereignStopped: false, rejectionReason: '' } : a));
- toast({ title: 'تم قبول الإعلان', description: 'تم نشر الإعلان بنجاح.' });
+ toast({ title: tAuto('adApproved'), description: tAuto('adPublished') });
  } else {
  try {
  const adRef = doc(db, 'promos', adId);
  await updateDoc(adRef, { status: 'active', isSovereignStopped: false, rejectionReason: '' });
- toast({ title: 'تم قبول الإعلان', description: 'تم نشر الإعلان بنجاح.' });
+ toast({ title: tAuto('adApproved'), description: tAuto('adPublished') });
  } catch (fbError) {
  console.warn("Firebase approve failed, falling back to local:", fbError);
  updateLocalPromos(prev => {
@@ -468,21 +470,21 @@ export function useAdminAds() {
  }
  return prev;
  });
- toast({ title: 'تم قبول الإعلان محلياً', description: 'تم نشر الإعلان بنجاح.' });
+ toast({ title: tAuto('adApprovedLocal'), description: tAuto('adPublished') });
  }
  }
  } catch (error: any) {
  trackSovereignError(error, { context: 'ApproveAd_Admin' });
- toast({ variant: 'destructive', title: 'فشل الاعتماد', description: error.message || 'خطأ في قاموس السحابة.' });
+ toast({ variant: 'destructive', title: tAuto('approvalFailed'), description: error.message || tAuto('cloudDictionaryError') });
  } finally {
  setIsProcessing(false);
  isProcessingRef.current = false;
  }
- }, [localPromos, dbPromos, toast, updateLocalPromos]);
+ }, [localPromos, dbPromos, toast, updateLocalPromos, tAuto]);
 
  const rejectAd = useCallback(async (adId: string, reason: string) => {
  if (!reason.trim()) {
- toast({ variant: 'destructive', title: 'رفض الإجراء', description: 'إفادة المدعي العام (سبب الرفض) إلزامية.' });
+ toast({ variant: 'destructive', title: tAuto('actionRejected'), description: tAuto('rejectionReasonRequired') });
  return;
  }
  if (isProcessingRef.current) return;
@@ -492,12 +494,12 @@ export function useAdminAds() {
  const isMock = adId.startsWith('promo-') || adId.startsWith('mock-') || localPromos.some(p => p.id === adId);
  if (isMock) {
  updateLocalPromos(prev => prev.map(a => a.id === adId ? { ...a, status: 'REJECTED', isSovereignStopped: true, rejectionReason: reason } : a));
- toast({ title: 'تم رفض الإعلان', description: 'تم حفظ سبب الرفض للمعلن.' });
+ toast({ title: tAuto('adRejected'), description: tAuto('rejectionReasonSaved') });
  } else {
  try {
  const adRef = doc(db, 'promos', adId);
  await updateDoc(adRef, { status: 'REJECTED', isSovereignStopped: true, rejectionReason: reason });
- toast({ title: 'تم رفض الإعلان', description: 'تم حفظ سبب الرفض للمعلن.' });
+ toast({ title: tAuto('adRejected'), description: tAuto('rejectionReasonSaved') });
  } catch (fbError) {
  console.warn("Firebase reject failed, falling back to local:", fbError);
  updateLocalPromos(prev => {
@@ -512,22 +514,22 @@ export function useAdminAds() {
  }
  return prev;
  });
- toast({ title: 'تم رفض الإعلان محلياً', description: 'تم حفظ سبب الرفض للمعلن.' });
+ toast({ title: tAuto('adRejectedLocal'), description: tAuto('rejectionReasonSaved') });
  }
  }
  } catch (error: any) {
  trackSovereignError(error, { context: 'RejectAd_Admin' });
- toast({ variant: 'destructive', title: 'فشل الرفض', description: error.message || 'خطأ في قاموس السحابة.' });
+ toast({ variant: 'destructive', title: tAuto('rejectionFailed'), description: error.message || tAuto('cloudDictionaryError') });
  } finally {
  setIsProcessing(false);
  isProcessingRef.current = false;
  }
- }, [localPromos, dbPromos, toast, updateLocalPromos]);
+ }, [localPromos, dbPromos, toast, updateLocalPromos, tAuto]);
 
  // 🛡️ [RAD-MAP-076-KILL-SWITCH] executeAdAnnihilation (Digital Annihilation)
  const executeAdAnnihilation = useCallback(async (adId: string, reason: string) => {
  if (!reason.trim()) {
- toast({ variant: 'destructive', title: 'تعذر إيقاف الإعلان', description: 'يرجى كتابة سبب الإيقاف قبل المتابعة.' });
+ toast({ variant: 'destructive', title: tAuto('couldNotStopAd'), description: tAuto('stopReasonRequired') });
  return false;
  }
  if (isProcessingRef.current) return false;
@@ -536,10 +538,10 @@ export function useAdminAds() {
  try {
  const isMock = adId.startsWith('promo-') || adId.startsWith('mock-') || localPromos.some(p => p.id === adId);
  if (isMock) {
- updateLocalPromos(prev => prev.map(a => a.id === adId ? { ...a, status: 'REJECTED', isSovereignStopped: true, rejectionReason: `[إيقاف الإعلان]: ${reason}` } : a));
+ updateLocalPromos(prev => prev.map(a => a.id === adId ? { ...a, status: 'REJECTED', isSovereignStopped: true, rejectionReason: tAuto('adStoppedReason', { reason }) } : a));
  toast({
- title: 'تم إيقاف الإعلان',
- description: 'تم إيقاف الإعلان وإرسال تنبيه للمستخدمين.'
+ title: tAuto('adStopped'),
+ description: tAuto('adStoppedAlertSent')
  });
  } else {
  try {
@@ -549,19 +551,19 @@ export function useAdminAds() {
  await updateDoc(adRef, {
  status: 'REJECTED',
  isSovereignStopped: true,
- rejectionReason: `[إيقاف الإعلان]: ${reason}`
+ rejectionReason: tAuto('adStoppedReason', { reason })
  });
 
  // 2. Broadcast Silent Web Push for immediate local cache purge
  await broadcastSilentPush({
  type: 'PURGE_AD',
  targetId: adId,
- message: `تم إيقاف الإعلان [${adId}] بسبب: ${reason}`
+ message: tAuto('adStoppedPushMessage', { adId, reason })
  });
 
  toast({
- title: 'تم إيقاف الإعلان',
- description: 'تم إيقاف الإعلان وإرسال تنبيه للمستخدمين.'
+ title: tAuto('adStopped'),
+ description: tAuto('adStoppedAlertSent')
  });
  } catch (fbError) {
  console.warn("Firebase execution failed, falling back to local:", fbError);

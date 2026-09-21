@@ -7,8 +7,10 @@ import { db } from '@/lib/firebase';
 import { useToast } from './use-toast';
 import { getSovereignErrorMessage } from '@/core/constants/error-dictionary';
 import { trackSovereignError } from '@/lib/error-tracker';
+import { useTranslations } from 'next-intl';
 
 export function useSovereignControls() {
+  const tAuto = useTranslations();
   const { toast } = useToast();
 
   const [isProcessing, setIsProcessing] = useState(false);
@@ -49,8 +51,8 @@ export function useSovereignControls() {
          await setDoc(stateRef, { isRadarActive: nextState }, { merge: true });
 
          toast({
-           title: 'تم تعديل النظام  المالي نظاماً',
-           description: nextState ? 'تم تفعيل التتبع ورادارات المسارات' : 'تم تعليق رادارات الهواتف وأدوات النقل  للسائقين مؤقتاً.',
+           title: tAuto('systemFinancialsModified'),
+           description: nextState ? tAuto('trackingEnabled') : tAuto('trackingSuspended'),
          });
          return;
       }
@@ -58,21 +60,21 @@ export function useSovereignControls() {
       const toggleFn = httpsCallable(getFunctions(), 'toggleSovereignKillSwitch');
       const result: any = await toggleFn();
       toast({
-        title: 'تم تعديل حالة رادار النظام',
-        description: result.data.message || (result.data.isRadarActive ? 'تم فتح الخدمة ' : 'تم تجميد الخدمة '),
+        title: tAuto('radarStateModified'),
+        description: result.data.message || (result.data.isRadarActive ? tAuto('serviceOpened') : tAuto('serviceFrozen')),
       });
     } catch (err: any) {
       trackSovereignError(err, { context: 'ToggleKillSwitch' });
       toast({
         variant: 'destructive',
-        title: 'تعذر تنشيط مقبس الأمان الخاص بالنظام',
+        title: tAuto('failedToActivateSafetySocket'),
         description: getSovereignErrorMessage(err),
       });
     } finally {
       setIsProcessing(false);
       isProcessingRef.current = false;
     }
-  }, [isRadarActive, toast]);
+  }, [isRadarActive, toast, tAuto]);
 
   const updateFuelIndex = useCallback(async (district: string, newPrice: number) => {
     if (isProcessingRef.current) return;
@@ -81,18 +83,17 @@ export function useSovereignControls() {
     try {
       const fuelIndexFn = httpsCallable(getFunctions(), 'adminUpdateFuelIndex');
       await fuelIndexFn({ district, price: newPrice });
-
-      toast({ title: 'تم تعديل مؤشر الوقود للمنطقة', description: `تم بنجاح تحديث تسعيرة الكيلومتر لتتلائم مع نشاط السوق في ${district}.` });
+      toast({ title: tAuto('fuelIndexModified'), description: tAuto('kmPricingUpdated', { district }) });
     } catch (error) {
       trackSovereignError(error, { context: 'UpdateFuelIndex' });
 
       // Local fallback representation for dry-run
-      toast({ title: 'تنبيه: محاكاة محلية لنظام الأسعار', description: `تم تعديل تسعيرة الحصان  في ${district} لتصبح ${newPrice} د.أ.` });
+      toast({ title: tAuto('alertLocalSimulation'), description: tAuto('horsePricingModified', { district, price: newPrice }) });
     } finally {
       setIsProcessing(false);
       isProcessingRef.current = false;
     }
-  }, [toast]);
+  }, [toast, tAuto]);
 
   return {
     isProcessing,

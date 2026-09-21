@@ -161,7 +161,7 @@ function AdForm({ onFinish, isProcessing }: { onFinish: (data: AdInput) => Promi
  // Map nested geo object directly to the flat fields that useAdminAds expects
  const formattedData = {
  ...data,
- targetGovernorate: data.geo?.governorate || 'عمان',
+ targetGovernorate: data.geo?.governorate || tAuto('key_20a48924'),
  targetDistrict: data.geo?.district || '',
  endDate: format(data.endDate, 'yyyy-MM-dd')
  };
