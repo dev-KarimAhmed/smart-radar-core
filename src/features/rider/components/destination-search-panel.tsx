@@ -51,6 +51,7 @@ export interface DestinationSearchPanelProps {
   isCaptainScanPreviewActive: boolean;
   nearbyCaptainCount: number;
   onResetDraft?: () => void;
+  onCancelPreview?: () => void;
 }
 
 export function DestinationSearchPanel({
@@ -64,6 +65,7 @@ export function DestinationSearchPanel({
   isCaptainScanPreviewActive,
   nearbyCaptainCount,
   onResetDraft,
+  onCancelPreview,
 }: DestinationSearchPanelProps) {
   const locationCopy = useTranslations('location');
 
@@ -148,13 +150,15 @@ export function DestinationSearchPanel({
         <button
           type="button"
           onClick={() => {
-            onResetDraft?.();
-            clipboard.reset?.();
-            search.setDestinationSearchStatus?.('idle');
-            // Reset scan state manually if needed, but since we are modifying state in a parent
-            // we dispatch a custom event that RiderView Tab handles, or rely on window reload
-            search.reset?.();
-            window.dispatchEvent(new CustomEvent('exit-request-flow'));
+            if (onCancelPreview) {
+              onCancelPreview();
+            } else {
+              onResetDraft?.();
+              clipboard.reset?.();
+              search.setDestinationSearchStatus?.('idle');
+              search.reset?.();
+              window.dispatchEvent(new CustomEvent('exit-request-flow'));
+            }
           }}
           className={styles.confirmButton}
         >

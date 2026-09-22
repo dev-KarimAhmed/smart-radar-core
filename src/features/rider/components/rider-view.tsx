@@ -230,6 +230,10 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
           onDistrictChange={selectionHandlers.onDistrictChange}
           onSearchQueryChange={selectionHandlers.onSearchQueryChange}
           onResetDraft={resetRideDraftState}
+          onCancelPreview={() => {
+            destination.setIsCaptainScanPreviewActive(false);
+            destination.search.reset();
+          }}
         />
 
         {showAdRiver && (

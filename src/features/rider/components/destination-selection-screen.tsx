@@ -55,6 +55,7 @@ export interface DestinationSelectionScreenProps {
   onSearchQueryChange: (value: string) => void;
   onSendRequest: () => void;
   onResetDraft?: () => void;
+  onCancelPreview?: () => void;
 }
 
 export function DestinationSelectionScreen({
@@ -83,6 +84,7 @@ export function DestinationSelectionScreen({
   onSearchQueryChange,
   onSendRequest,
   onResetDraft,
+  onCancelPreview,
 }: DestinationSelectionScreenProps) {
   const locationCopy = useTranslations('location');
   const t = useTranslations('riderView');
@@ -155,6 +157,7 @@ export function DestinationSelectionScreen({
         isCaptainScanPreviewActive={isCaptainScanPreviewActive}
         nearbyCaptainCount={nearbyCaptainCount}
         onResetDraft={onResetDraft}
+        onCancelPreview={onCancelPreview}
       />
 
       <DestinationTripSummary
