@@ -56,6 +56,7 @@ export interface RiderActiveScreenProps {
   onGovernorateChange: (governorateId: string) => void;
   onDistrictChange: (districtId: string) => void;
   onSearchQueryChange: (value: string) => void;
+  onResetDraft?: () => void;
 }
 
 /** Renders whichever screen matches the state machine's current step. */
@@ -87,6 +88,7 @@ export function RiderActiveScreen(props: RiderActiveScreenProps) {
     onGovernorateChange,
     onDistrictChange,
     onSearchQueryChange,
+    onResetDraft,
   } = props;
 
   if (state.screen === 'DESTINATION_SELECTION') {
@@ -116,6 +118,7 @@ export function RiderActiveScreen(props: RiderActiveScreenProps) {
         onDistrictChange={onDistrictChange}
         onSearchQueryChange={onSearchQueryChange}
         onSendRequest={sendCancel.handleSendRequest}
+        onResetDraft={onResetDraft}
       />
     );
   }

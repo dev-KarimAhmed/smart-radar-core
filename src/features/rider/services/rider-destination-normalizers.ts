@@ -149,9 +149,9 @@ export function buildRiderDestination(
 export function buildFareRequestKey(origin: RiderLocation, destination: RiderLocation, countryId: unknown) {
   return [
     Number(countryId) || 'no-country',
-    origin.lat.toFixed(6),
-    origin.lng.toFixed(6),
-    destination.lat.toFixed(6),
-    destination.lng.toFixed(6),
+    origin.lat.toFixed(4),
+    origin.lng.toFixed(4),
+    destination.lat.toFixed(5),
+    destination.lng.toFixed(5),
   ].join(':');
 }

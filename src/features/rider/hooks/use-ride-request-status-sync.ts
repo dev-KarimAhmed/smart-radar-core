@@ -107,6 +107,12 @@ export function useRideRequestStatusSync(params: {
 
       const status = String(row.status || '').toUpperCase();
       if (status === 'PENDING' || status === 'RECEIVING_OFFERS') {
+        const createdAt = row.created_at ? new Date(row.created_at as string).getTime() : 0;
+        const now = Date.now();
+        // If the request was created more than 180 seconds (3 minutes) ago, it is expired.
+        if (createdAt > 0 && now - createdAt > 180000) {
+          return;
+        }
         // The row goes along too: the destination only ever lived in client state, so
         // without it a reload mid-auction left the rider looking at "الوجهة: غير متاح".
         dispatch({ type: 'REHYDRATE_SEARCHING', requestId, row });

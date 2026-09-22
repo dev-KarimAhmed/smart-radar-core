@@ -22,8 +22,11 @@ export interface LiveGeolocationResult {
  * fix (for a "use my location" retry action). While not live, the reported
  * location tracks `fallbackLocation` if it changes.
  */
+const MIN_GPS_DISTANCE_CHANGE_DEG = 0.00008;
+
 export function useLiveGeolocation({ fallbackLocation }: { fallbackLocation: LiveGeolocationPoint }): LiveGeolocationResult {
   const cleanupWatchRef = React.useRef<(() => void) | null>(null);
+  const lastCoordsRef = React.useRef<LiveGeolocationPoint | null>(null);
   const [location, setLocation] = React.useState<LiveGeolocationPoint>(fallbackLocation);
   const [status, setStatus] = React.useState<LiveGeolocationStatus>('locating');
   const fallbackLat = fallbackLocation.lat;
@@ -32,6 +35,7 @@ export function useLiveGeolocation({ fallbackLocation }: { fallbackLocation: Liv
   const refresh = React.useCallback(() => {
     cleanupWatchRef.current?.();
     cleanupWatchRef.current = null;
+    lastCoordsRef.current = null;
 
     if (!('geolocation' in navigator)) {
       setLocation({ lat: fallbackLat, lng: fallbackLng });
@@ -44,12 +48,24 @@ export function useLiveGeolocation({ fallbackLocation }: { fallbackLocation: Liv
 
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
+        const nextLat = position.coords.latitude;
+        const nextLng = position.coords.longitude;
+        const last = lastCoordsRef.current;
+
         didResolve = true;
         setStatus('live');
-        setLocation({
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        });
+
+        if (
+          !last ||
+          Math.abs(nextLat - last.lat) > MIN_GPS_DISTANCE_CHANGE_DEG ||
+          Math.abs(nextLng - last.lng) > MIN_GPS_DISTANCE_CHANGE_DEG
+        ) {
+          lastCoordsRef.current = { lat: nextLat, lng: nextLng };
+          setLocation({
+            lat: nextLat,
+            lng: nextLng,
+          });
+        }
       },
       (error) => {
         if (didResolve) return;

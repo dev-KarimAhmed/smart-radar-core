@@ -379,42 +379,6 @@ export function CaptainVehicleStep({
             {errors.companyCode ? <p className={styles.error}>{errors.companyCode}</p> : null}
           </div>
           {renderVehicleIdentityFields()}
-          <div className={styles.fieldRow}>
-            <div>
-              <label className={styles.label}>{t('color')}</label>
-              <div className={styles.colorRow}>
-                <input
-                  type="color"
-                  value={colorSwatch}
-                  onChange={(event) => {
-                    setColorSwatch(event.target.value);
-                    handleFieldChange('color', hexToColorName(event.target.value, isArabic ? 'ar' : 'en'));
-                  }}
-                  className={styles.colorSwatch}
-                />
-                <input
-                  type="text"
-                  value={vehicle.color || ''}
-                  readOnly
-                  className={styles.input}
-                  placeholder={t('colorPlaceholder')}
-                  required
-                />
-              </div>
-              {errors.color ? <p className={styles.error}>{errors.color}</p> : null}
-            </div>
-            <div>
-              <label className={styles.label}>{t('plate')}</label>
-              <Input
-                placeholder={t('platePlaceholder')}
-                value={vehicle.plate}
-                onChange={(event) => handleFieldChange('plate', event.target.value)}
-                className={styles.input}
-                required
-              />
-              {errors.plate ? <p className={styles.error}>{errors.plate}</p> : null}
-            </div>
-          </div>
           {renderColorAndPlateFields()}
         </>
       )}

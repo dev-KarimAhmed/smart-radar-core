@@ -150,17 +150,29 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
 
   const { riderProfile, systemMessages, currencyLabel } = useRiderProfileSummary(user, language, countryConfig, geolocation.locationStatus, geolocation.liveCurrencyCode);
 
+  React.useEffect(() => {
+    const handleExit = () => {
+      resetRideDraftState();
+      dispatch({ type: 'RESET_TO_IDLE' });
+    };
+    window.addEventListener('exit-request-flow', handleExit);
+    return () => window.removeEventListener('exit-request-flow', handleExit);
+  }, [dispatch, resetRideDraftState]);
+
   const handleCloseOrCancel = React.useCallback(async () => {
     if (state.requestId) {
       await sendCancel.handleCancelRideRequest();
     } else if (state.screen === 'DESTINATION_SELECTION' || state.screen === 'PURGE_LEDGER' || state.screen === 'FAVORITE_CAPTAINS') {
+      resetRideDraftState();
       dispatch({ type: 'RETURN_TO_MAP' });
     } else if (onExitRequestFlow) {
+      resetRideDraftState();
       onExitRequestFlow();
     } else {
+      resetRideDraftState();
       window.dispatchEvent(new CustomEvent('exit-request-flow'));
     }
-  }, [dispatch, onExitRequestFlow, sendCancel, state.requestId, state.screen]);
+  }, [dispatch, onExitRequestFlow, resetRideDraftState, sendCancel, state.requestId, state.screen]);
 
   return (
     <>
@@ -217,6 +229,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
           onGovernorateChange={selectionHandlers.onGovernorateChange}
           onDistrictChange={selectionHandlers.onDistrictChange}
           onSearchQueryChange={selectionHandlers.onSearchQueryChange}
+          onResetDraft={resetRideDraftState}
         />
 
         {showAdRiver && (

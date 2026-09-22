@@ -35,17 +35,25 @@ export function useDestinationSelectionState(params: {
   const pin = useDestinationPin();
   const geography = useDestinationGeographyData(user, pin.destinationPinLocation);
 
-  // District selection changed: recenter the pin to its anchor (leaves any
-  // in-flight fly-to target alone) — a genuinely cross-hook concern.
+  // District selection changed: recenter the pin to its anchor — but only when
+  // an external location is imported or when explicitly changing to a district
+  // different from the rider's home district, so the rider's home is not
+  // prefilled as their destination on mount.
   React.useEffect(() => {
-    pin.setDestinationPinLocation(geography.selectedDistrict?.anchor || null);
+    const isGoogle = geography.selectedGovernorateId.startsWith('google:');
+    const isDifferentDistrict = Boolean(
+      geography.selectedDistrict?.id && geography.selectedDistrict.id !== String(user?.district || '')
+    );
+    if (isGoogle || isDifferentDistrict) {
+      pin.setDestinationPinLocation(geography.selectedDistrict?.anchor || null);
+    }
     pin.setIsDestinationPinMoving(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [geography.selectedDistrict?.anchor, geography.selectedDistrict?.id]);
+  }, [geography.selectedDistrict?.anchor, geography.selectedDistrict?.id, geography.selectedGovernorateId, user?.district]);
 
   const [isCaptainScanPreviewActive, setIsCaptainScanPreviewActive] = React.useState(false);
   const profileFallbackLocation = geography.profileDistrict?.anchor || geography.selectedDistrict?.anchor || riderLocation;
-  const selectedDestinationCoords = pin.destinationPinLocation || geography.selectedDistrict?.anchor || null;
+  const selectedDestinationCoords = pin.destinationPinLocation;
 
   /**
    * The name of the place the pin actually sits on, resolved once here rather than in the
