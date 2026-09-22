@@ -1,5 +1,5 @@
 export type UserRole = 'rider' | 'driver' | 'admin' | 'advertiser' | 'delegate';
-export type AffiliationType = 'smart-app' | 'office-taxi';
+export type AffiliationType = 'smart-app' | 'office-taxi' | 'independent';
 
 export interface LastTripBuffer {
   driverId: string;

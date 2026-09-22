@@ -5,6 +5,7 @@ import {
   GENERAL_NATIONAL_ID_REGEX,
   getCaptainSmartAppVehicleSchema,
   getCaptainTaxiVehicleSchema,
+  getCaptainIndependentVehicleSchema,
 } from './captain-registration-schema';
 
 const mockT = (key: string) => key;
@@ -65,5 +66,32 @@ test('captain vehicle schema allows general national ID format for foreign count
   };
 
   await assert.doesNotReject(schemaForeign.validate(validPayload));
+});
+
+test('captain independent vehicle schema validates without companyName and companyCode', async () => {
+  const schemaJo = getCaptainIndependentVehicleSchema(mockT, 'JO');
+
+  // Valid independent payload: no companyName or companyCode needed
+  const validPayload = {
+    make: 'Hyundai',
+    model: 'Elantra',
+    color: 'Silver',
+    plate: '50-12345',
+    year: 2021,
+    nationalIdNumber: '2001987654',
+    licenseNumber: '11223344',
+    facebookUrl: '',
+    instagramUrl: '',
+  };
+
+  await assert.doesNotReject(schemaJo.validate(validPayload));
+
+  // Invalid payload: missing required make
+  const invalidPayload = {
+    ...validPayload,
+    make: '',
+  };
+
+  await assert.rejects(schemaJo.validate(invalidPayload));
 });
 

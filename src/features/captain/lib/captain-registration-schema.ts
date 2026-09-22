@@ -142,3 +142,27 @@ export function getCaptainSmartAppVehicleSchema(t: CaptainValidationT, country?:
     instagramUrl: yup.string().trim().test('instagram-url', t('instagramInvalid'), (value) => !value || SOCIAL_URL_REGEX.test(value)),
   });
 }
+
+export function getCaptainIndependentVehicleSchema(t: CaptainValidationT, country?: string) {
+  const isJordan = isJordanCountry(country);
+  const nationalIdRegex = isJordan ? JORDAN_NATIONAL_ID_REGEX : GENERAL_NATIONAL_ID_REGEX;
+  const nationalIdError = isJordan ? t('nationalIdNumberJordanInvalid') : t('nationalIdNumberInvalid');
+
+  return yup.object({
+    make: yup.string().trim().matches(VEHICLE_MAKE_REGEX, t('makeInvalid')).required(t('makeRequired')),
+    model: yup.string().trim().matches(VEHICLE_MODEL_REGEX, t('modelInvalid')).required(t('modelRequired')),
+    color: yup.string().trim().matches(VEHICLE_COLOR_REGEX, t('colorInvalid')).required(t('colorRequired')),
+    plate: yup.string().trim().matches(PLATE_REGEX, t('plateInvalid')).required(t('plateRequired')),
+    year: yup
+      .number()
+      .typeError(t('yearType'))
+      .min(VEHICLE_YEAR_MIN, t('yearMin', { min: VEHICLE_YEAR_MIN }))
+      .max(VEHICLE_YEAR_MAX, t('yearMax', { max: VEHICLE_YEAR_MAX }))
+      .required(t('yearRequired')),
+    nationalIdNumber: yup.string().trim().matches(nationalIdRegex, nationalIdError).required(t('nationalIdNumberRequired')),
+    licenseNumber: yup.string().trim().matches(LICENSE_NUMBER_REGEX, t('licenseNumberInvalid')).required(t('licenseNumberRequired')),
+    facebookUrl: yup.string().trim().test('facebook-url', t('facebookInvalid'), (value) => !value || SOCIAL_URL_REGEX.test(value)),
+    instagramUrl: yup.string().trim().test('instagram-url', t('instagramInvalid'), (value) => !value || SOCIAL_URL_REGEX.test(value)),
+  });
+}
+

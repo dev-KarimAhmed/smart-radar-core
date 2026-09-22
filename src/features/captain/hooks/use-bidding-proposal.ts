@@ -101,7 +101,7 @@ export function useBiddingProposal({
 
   const [quote, setQuote] = React.useState<CaptainOfferQuote | null>(null);
 
-  const isIndependent = user?.subRole === 'independent';
+  const isIndependent = user?.subRole === 'independent' || user?.affiliation?.type === 'independent';
   const isSmartApp = user?.affiliation?.type === 'smart-app';
   const isOfficeTaxi = user?.affiliation?.type === 'office-taxi';
 

@@ -902,6 +902,8 @@
     "affiliation": {
       "taxi": "Office taxi",
       "smartApp": "Smart app or independent work",
+      "smartApp": "Smart app",
+      "independent": "Independent work",
       "back": "Back to personal information"
     },
     "vehicle": {

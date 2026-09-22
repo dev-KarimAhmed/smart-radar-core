@@ -7,6 +7,7 @@ import { AppSelect } from '@/shared/components/ui/app-select';
 import type { AffiliationType } from '@/core/types';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import {
+  getCaptainIndependentVehicleSchema,
   getCaptainSmartAppVehicleSchema,
   getCaptainTaxiVehicleSchema,
   VEHICLE_YEAR_MAX,
@@ -43,7 +44,19 @@ export interface CaptainSmartAppVehicleValues {
   instagramUrl: string;
 }
 
-export type CaptainVehicleValues = CaptainTaxiVehicleValues & CaptainSmartAppVehicleValues;
+export interface CaptainIndependentVehicleValues {
+  make: string;
+  model: string;
+  color: string;
+  plate: string;
+  year: string;
+  nationalIdNumber: string;
+  licenseNumber: string;
+  facebookUrl: string;
+  instagramUrl: string;
+}
+
+export type CaptainVehicleValues = CaptainTaxiVehicleValues & CaptainSmartAppVehicleValues & CaptainIndependentVehicleValues;
 
 const styles = {
   root: 'space-y-4  animate-fade-in',
@@ -116,10 +129,16 @@ export function CaptainVehicleStep({
   }, [vehicle.color]);
 
   const isTaxi = affiliation === 'office-taxi';
-  const schema = React.useMemo(
-    () => (isTaxi ? getCaptainTaxiVehicleSchema(tv, country) : getCaptainSmartAppVehicleSchema(tv, country)),
-    [isTaxi, tv, country],
-  );
+  const isIndependent = affiliation === 'independent';
+  const schema = React.useMemo(() => {
+    if (isTaxi) {
+      return getCaptainTaxiVehicleSchema(tv, country);
+    }
+    if (isIndependent) {
+      return getCaptainIndependentVehicleSchema(tv, country);
+    }
+    return getCaptainSmartAppVehicleSchema(tv, country);
+  }, [isTaxi, isIndependent, tv, country]);
   const yearOptions = React.useMemo(
     () => Array.from({ length: VEHICLE_YEAR_MAX - VEHICLE_YEAR_MIN + 1 }, (_, index) => {
       const year = String(VEHICLE_YEAR_MAX - index);
@@ -236,6 +255,45 @@ export function CaptainVehicleStep({
     </div>
   );
 
+  const renderColorAndPlateFields = () => (
+    <div className={styles.fieldRow}>
+      <div>
+        <label className={styles.label}>{t('color')}</label>
+        <div className={styles.colorRow}>
+          <input
+            type="color"
+            value={colorSwatch}
+            onChange={(event) => {
+              setColorSwatch(event.target.value);
+              handleFieldChange('color', hexToColorName(event.target.value, isArabic ? 'ar' : 'en'));
+            }}
+            className={styles.colorSwatch}
+          />
+          <input
+            type="text"
+            value={vehicle.color || ''}
+            readOnly
+            className={styles.input}
+            placeholder={t('colorPlaceholder')}
+            required
+          />
+        </div>
+        {errors.color ? <p className={styles.error}>{errors.color}</p> : null}
+      </div>
+      <div>
+        <label className={styles.label}>{t('plate')}</label>
+        <Input
+          placeholder={t('platePlaceholder')}
+          value={vehicle.plate}
+          onChange={(event) => handleFieldChange('plate', event.target.value)}
+          className={styles.input}
+          required
+        />
+        {errors.plate ? <p className={styles.error}>{errors.plate}</p> : null}
+      </div>
+    </div>
+  );
+
   return (
     <div className={styles.root} dir={isArabic ? 'rtl' : 'ltr'}>
       {isTaxi ? (
@@ -289,6 +347,11 @@ export function CaptainVehicleStep({
               {errors.plate ? <p className={styles.error}>{errors.plate}</p> : null}
             </div>
           </div>
+        </>
+      ) : isIndependent ? (
+        <>
+          {renderVehicleIdentityFields()}
+          {renderColorAndPlateFields()}
         </>
       ) : (
         <>
@@ -352,6 +415,7 @@ export function CaptainVehicleStep({
               {errors.plate ? <p className={styles.error}>{errors.plate}</p> : null}
             </div>
           </div>
+          {renderColorAndPlateFields()}
         </>
       )}
 

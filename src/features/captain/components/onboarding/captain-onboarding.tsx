@@ -110,6 +110,7 @@ export function CaptainOnboarding() {
     if (!personal.country || !personal.governorate || !personal.district || !affiliation) return;
 
     const isTaxi = affiliation === 'office-taxi';
+    const isIndependent = affiliation === 'independent';
     const captainProfile: CaptainProfileMetadata = {
       vehicle_type: isTaxi ? 'TAXI' : 'PRIVATE',
       vehicle_brand: isTaxi ? null : vehicle.make.trim() || null,
@@ -117,11 +118,11 @@ export function CaptainOnboarding() {
       vehicle_color: isTaxi ? null : vehicle.color.trim() || null,
       vehicle_year: Number(vehicle.year) || null,
       plate_number: vehicle.plate.trim() || null,
-      employment_type: isTaxi ? vehicle.officeName.trim() || null : vehicle.companyName.trim() || null,
+      employment_type: isTaxi ? vehicle.officeName.trim() || null : isIndependent ? 'مستقل' : vehicle.companyName.trim() || null,
       affiliation_type: affiliation,
       office_phone: isTaxi ? vehicle.officePhone.trim() || null : null,
       side_id: isTaxi ? vehicle.sideId.trim() || null : null,
-      company_code: isTaxi ? null : vehicle.companyCode.trim() || null,
+      company_code: isTaxi || isIndependent ? null : vehicle.companyCode.trim() || null,
       identity_url: null,
       contact_page_url: null,
       driving_license_url: null,
