@@ -124,25 +124,17 @@ export function parseGoogleMapsLocation(value: string): ParsedMapLocation | null
 
   // Google place pages and short-link redirects often embed the map center as
   // longitude first (`!2d{lng}!3d{lat}`) inside the page bootstrap payload.
-  const placePayloadMatch = text.match(
-    /!2d(-?\d+(?:\.\d+)?)!3d(-?\d+(?:\.\d+)?)/,
+  // Note: `!1m3!1d{zoom}!2d{lng}!3d{lat}` is the map-framing viewport camera, NOT
+  // a place pin. We must ignore `!1m3!1d` viewport matches so they don't hijack the location.
+  const placePayloadMatches = text.matchAll(
+    /(!1m3!1d[\d.]+)?!2d(-?\d+(?:\.\d+)?)!3d(-?\d+(?:\.\d+)?)/g,
   );
-  if (placePayloadMatch) {
-    const lng = Number(placePayloadMatch[1]);
-    const lat = Number(placePayloadMatch[2]);
-    if (isValidLocation(lat, lng)) return { lat, lng };
-  }
-
-  // Google Maps place pages ALWAYS embed a staticmap preview URL containing the
-  // exact place coordinates in <meta property="og:image"> or itemprop="image":
-  // e.g. `staticmap?center=30.0384256%2C30.9886976` or `center=30.0384256,30.9886976`.
-  const staticMapMatch = value.match(
-    /staticmap\?[^"'\s<>]*center(?:=|%3D|\\u003d)(-?\d+(?:\.\d+)?)(?:%2c|%2C|,)(-?\d+(?:\.\d+)?)/i,
-  );
-  if (staticMapMatch) {
-    const lat = Number(staticMapMatch[1]);
-    const lng = Number(staticMapMatch[2]);
-    if (isValidLocation(lat, lng)) return { lat, lng };
+  for (const m of placePayloadMatches) {
+    if (!m[1]) {
+      const lng = Number(m[2]);
+      const lat = Number(m[3]);
+      if (isValidLocation(lat, lng)) return { lat, lng };
+    }
   }
 
   // Directions URLs (`/maps/dir/{origin}/{destination}/@{viewCenter}/data=!...
@@ -170,6 +162,8 @@ export function parseGoogleMapsLocation(value: string): ParsedMapLocation | null
   // rider was quoted a distance and a duration for a trip to that point. It is worse when
   // the page HTML is scanned (readGoogleMapsPageLocation): the first `@lat,lng` anywhere in
   // a Google Maps document is usually a thumbnail's static-map URL, unrelated to the place.
+  const isHtml = /<html|<!doctype|<body|<meta\s+/i.test(text);
+
   const patterns = [
     // `!8m2!3d{lat}!4d{lng}` — the canonical place marker in a /maps/place data= payload.
     /!8m2!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/,
@@ -177,25 +171,29 @@ export function parseGoogleMapsLocation(value: string): ParsedMapLocation | null
     /!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/,
     // Coordinates the URL states outright as the target.
     /(?:[?&](?:q|query|destination|daddr)=)(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/,
-    /(?:[?&](?:ll|center)=)(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/,
-    /(?:[?&](?:ll|center)=)(-?\d+(?:\.\d+)?)(?:%2c|%2C|,|\s*)(-?\d+(?:\.\d+)?)/i,
-    // LAST RESORT — the camera. Correct only for a bare /maps/@lat,lng link, where there
-    // is no pin and the camera is all the link carries.
-    /@(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/,
-    /(^|[^\d.-])(-?\d{1,2}(?:\.\d+)?),\s*(-?\d{1,3}(?:\.\d+)?)([^\d.]|$)/,
   ];
+
+  // Only allow URL parameters like ?center= or camera @lat,lng on URL/plain text, never in HTML documents
+  // (where staticmap?center= is Google's GeoIP default for the caller server).
+  if (!isHtml) {
+    patterns.push(
+      /(?:[?&](?:ll|center)=)(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/,
+      /(?:[?&](?:ll|center)=)(-?\d+(?:\.\d+)?)(?:%2c|%2C|,|\s*)(-?\d+(?:\.\d+)?)/i,
+      /@(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/,
+    );
+  }
 
   for (const pattern of patterns) {
     const match = text.match(pattern);
     if (!match) continue;
-    const lat = Number(match.length === 5 ? match[2] : match[1]);
-    const lng = Number(match.length === 5 ? match[3] : match[2]);
+    const lat = Number(match[1]);
+    const lng = Number(match[2]);
     if (isValidLocation(lat, lng)) return { lat, lng };
   }
 
-  // The loose decimal-pair pattern must ONLY run on short strings (e.g. user input or a short URL).
+  // The loose decimal-pair pattern must ONLY run on short non-HTML strings (e.g. user input or a short URL).
   // Running this on an entire HTML document matches random numbers (like analytics or US datacenter IP coords).
-  if (text.length < 500) {
+  if (!isHtml && text.length < 500) {
     const looseMatch = text.match(/(^|[^\d.-])(-?\d{1,2}(?:\.\d+)?),\s*(-?\d{1,3}(?:\.\d+)?)([^\d.]|$)/);
     if (looseMatch) {
       const lat = Number(looseMatch[2]);

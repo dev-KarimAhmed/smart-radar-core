@@ -172,17 +172,17 @@ test('prefers an explicit q= target over the camera', () => {
   assert.deepEqual(location, { lat: 29.9931, lng: 30.9714 });
 });
 
-test('parses staticmap preview center coordinates from place page HTML', () => {
+test('ignores staticmap preview center coordinates in HTML to avoid GeoIP datacenter trap', () => {
   const html = `
     <html>
       <head>
-        <meta content="https://maps.google.com/maps/api/staticmap?center=30.0384256%2C30.9886976&amp;zoom=12" property="og:image">
+        <meta content="https://maps.google.com/maps/api/staticmap?center=38.4477%2C-122.6715&amp;zoom=12" property="og:image">
       </head>
       <body><div>random content 37.2962, -121.8158</div></body>
     </html>
   `;
   const location = parseGoogleMapsLocation(html);
-  assert.deepEqual(location, { lat: 30.0384256, lng: 30.9886976 });
+  assert.equal(location, null);
 });
 
 test('strips leading Google Plus Code from extracted place name', () => {
