@@ -26,6 +26,16 @@ const REQUEST_TIMEOUT_MS = 5_000;
  */
 const PLACE_NAME_MISMATCH_KM = 3;
 
+function isValidLocation(lat: number, lng: number) {
+  return (
+    Number.isFinite(lat)
+    && Number.isFinite(lng)
+    && Math.abs(lat) <= 90
+    && Math.abs(lng) <= 180
+    && !(lat === 0 && lng === 0)
+  );
+}
+
 export async function GET(request: NextRequest) {
   const rawUrl = request.nextUrl.searchParams.get('url')?.trim() || '';
   const shortUrl = sanitizeGoogleMapsUrl(rawUrl);
@@ -42,6 +52,14 @@ export async function GET(request: NextRequest) {
     // the address. Fetch the final page and inspect its map bootstrap payload.
     if (!location) {
       location = await readGoogleMapsPageLocation(resolvedUrl);
+    }
+
+    // If coordinates are still missing, attempt cascading locality geocode:
+    if (!location) {
+      const fallback = await geocodePlaceName(resolvedUrl);
+      if (fallback) {
+        location = { lat: fallback.lat, lng: fallback.lng };
+      }
     }
 
     if (!location) {
@@ -123,7 +141,96 @@ async function readGoogleMapsPageLocation(url: string) {
   });
 
   if (!response.ok) return null;
-  return parseGoogleMapsLocation(await response.text());
+  const html = await response.text();
+
+  // 1. Google's internal place preview endpoint (highest fidelity for true place pin)
+  // Google place pages include: <link href="/maps/preview/place?authuser=0&hl=ar&gl=eg&q=...&pb=...">
+  // which returns the actual place coordinates [[..., lng, lat], ...] regardless of caller GeoIP or map viewport.
+  const previewMatch = /href=["'](\/maps\/preview\/place[^"']+)["']/i.exec(html);
+  if (previewMatch && previewMatch[1]) {
+    const previewPath: string = previewMatch[1];
+    try {
+      const previewUrl = 'https://www.google.com' + previewPath.replace(/&amp;/g, '&');
+      const prevResponse = await fetch(previewUrl, {
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        },
+      });
+      if (prevResponse.ok) {
+        const prevText = await prevResponse.text();
+        const coordMatch = prevText.match(
+          /\[\[\s*[\d.]+\s*,\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\]/,
+        );
+        const lngStr = coordMatch?.[1];
+        const latStr = coordMatch?.[2];
+        if (lngStr && latStr) {
+          const lng = Number(lngStr);
+          const lat = Number(latStr);
+          if (isValidLocation(lat, lng)) {
+            return { lat, lng };
+          }
+        }
+      }
+    } catch {
+      // preview fetch failed, continue to fallback
+    }
+  }
+
+  // 2. Direct coordinate markers inside HTML (!3d, !4d) as fallback
+  const direct = parseGoogleMapsLocation(html);
+  if (direct) return direct;
+
+  return null;
+}
+
+/**
+ * Geocodes the place name using Nominatim with cascading locality fallback:
+ * tries full clean place name, then drops specific venue and tries the district/governorate.
+ */
+async function geocodePlaceName(resolvedUrl: string) {
+  const rawPlaceName = extractGoogleMapsPlaceName(resolvedUrl);
+  if (!rawPlaceName) return null;
+
+  const cleanName = rawPlaceName.replace(/^[A-Z0-9]{2,8}\+[A-Z0-9]{2,4}\s*[-–—,]?\s*/i, '').trim();
+  if (!cleanName || /^-?\d+(\.\d+)?,\s*-?\d+(\.\d+)?$/.test(cleanName)) return null;
+
+  const segments = cleanName.split(',').map((s) => s.trim()).filter(Boolean);
+  const candidateQueries = [cleanName];
+  if (segments.length > 1) {
+    candidateQueries.push(segments.slice(1).join(', '));
+  }
+  if (segments.length > 2) {
+    candidateQueries.push(segments.slice(2).join(', '));
+  }
+
+  for (const q of candidateQueries) {
+    try {
+      const params = new URLSearchParams({
+        format: 'jsonv2',
+        q,
+        limit: '1',
+        'accept-language': 'ar,en',
+      });
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, {
+        cache: 'no-store',
+        signal: AbortSignal.timeout(3_000),
+        headers: { Accept: 'application/json', 'User-Agent': 'RadarLocationResolver/1.0' },
+      });
+      if (!response.ok) continue;
+
+      const [match] = await response.json() as Array<{ lat?: string; lon?: string }>;
+      const lat = Number(match?.lat);
+      const lng = Number(match?.lon);
+      if (isValidLocation(lat, lng)) {
+        return { lat, lng, placeName: cleanName };
+      }
+    } catch {
+      // continue to broader query
+    }
+  }
+
+  return null;
 }
 
 /**
@@ -142,37 +249,17 @@ async function crossCheckPlaceName(
   // A bare coordinate link has no name to check against, and a name that is itself just
   // coordinates would only be comparing the extraction with itself.
   if (!placeName || /^-?\d+(\.\d+)?,\s*-?\d+(\.\d+)?$/.test(placeName)) return null;
+  const geocoded = await geocodePlaceName(resolvedUrl);
+  if (!geocoded) return null;
 
-  try {
-    const params = new URLSearchParams({
-      format: 'jsonv2',
-      q: placeName,
-      limit: '1',
-      'accept-language': 'ar,en',
-    });
-    const response = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, {
-      cache: 'no-store',
-      signal: AbortSignal.timeout(3_000),
-      headers: { Accept: 'application/json', 'User-Agent': 'RadarLocationResolver/1.0' },
-    });
-    if (!response.ok) return null;
+  const distanceKm = calculateHaversineKm(location, { lat: geocoded.lat, lng: geocoded.lng });
 
-    const [match] = await response.json() as Array<{ lat?: string; lon?: string }>;
-    const lat = Number(match?.lat);
-    const lng = Number(match?.lon);
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
-
-    const distanceKm = calculateHaversineKm(location, { lat, lng });
-
-    return {
-      placeName,
-      geocodedLocation: { lat, lng },
-      distanceKm: Number(distanceKm.toFixed(2)),
-      isMismatch: distanceKm > PLACE_NAME_MISMATCH_KM,
-    };
-  } catch {
-    return null;
-  }
+  return {
+    placeName: geocoded.placeName,
+    geocodedLocation: { lat: geocoded.lat, lng: geocoded.lng },
+    distanceKm: Number(distanceKm.toFixed(2)),
+    isMismatch: distanceKm > PLACE_NAME_MISMATCH_KM,
+  };
 }
 
 async function reverseResolveGeography(location: { lat: number; lng: number }) {
