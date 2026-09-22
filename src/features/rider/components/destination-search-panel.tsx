@@ -4,6 +4,7 @@ import React from 'react';
 import { Loader2, MapPin, Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { RoadRouteEstimate } from '@/lib/road-route';
+import { isMapsLink } from '@/shared/services/google-maps-location';
 import type { useDestinationTextSearch } from '../hooks/use-destination-text-search';
 import type { useDestinationMapPicker } from '../hooks/use-destination-map-picker';
 import type { useClipboardLocationImport } from '../hooks/use-clipboard-location-import';
@@ -82,6 +83,12 @@ export function DestinationSearchPanel({
               onSubmit={(event) => {
                 event.preventDefault();
                 mapPicker.handleOpenGoogleMapsSearch();
+                const query = destinationSearchQuery.trim();
+                if (isMapsLink(query)) {
+                  clipboard.handleConfirmClipboardLocation(query);
+                } else {
+                  mapPicker.handleOpenGoogleMapsSearch();
+                }
               }}
               className={styles.searchForm}
             >
@@ -120,7 +127,11 @@ export function DestinationSearchPanel({
             </div>
             <button
               type="button"
-              onClick={clipboard.handleConfirmClipboardLocation}
+              onClick={() => {
+                const query = destinationSearchQuery.trim();
+                const isLink = isMapsLink(query);
+                clipboard.handleConfirmClipboardLocation(isLink ? query : undefined);
+              }}
               disabled={clipboard.isReadingClipboardLocation}
               className={styles.confirmButton}
             >

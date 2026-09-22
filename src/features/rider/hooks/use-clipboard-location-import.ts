@@ -11,30 +11,42 @@ import { slugifyLocationPart, type DistrictOption, type GovernorateOption } from
 import type { useDestinationGeographyData } from './use-destination-geography-data';
 import type { RiderLocation } from '../components/rider-map';
 
-async function readClipboardLocationText() {
-  const plainText = await navigator.clipboard.readText();
-  if (!navigator.clipboard.read) return plainText;
-
+async function readClipboardLocationText(): Promise<string> {
+  let plainText = '';
   try {
-    const items = await navigator.clipboard.read();
-    const richText = await Promise.all(
-      items.flatMap((item) =>
-        item.types
-          .filter((type) => type === 'text/plain' || type === 'text/html')
-          .map(async (type) => {
-            try {
-              return await (await item.getType(type)).text();
-            } catch {
-              return '';
-            }
-          }),
-      ),
-    );
-
-    return [plainText, ...richText].filter(Boolean).join('\n');
+    if (navigator.clipboard?.readText) {
+      plainText = await navigator.clipboard.readText();
+    }
   } catch {
-    return plainText;
+    plainText = '';
   }
+
+  if (plainText && plainText.trim()) {
+    return plainText.trim();
+  }
+
+  if (navigator.clipboard?.read) {
+    try {
+      const items = await navigator.clipboard.read();
+      for (const item of items) {
+        for (const type of ['text/plain', 'text/html']) {
+          if (item.types.includes(type)) {
+            try {
+              const blob = await item.getType(type);
+              const text = await blob.text();
+              if (text && text.trim()) return text.trim();
+            } catch {
+              // ignore
+            }
+          }
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  return '';
 }
 
 /**
@@ -88,14 +100,15 @@ export function useClipboardLocationImport(params: {
   ) => {
     const placeName = extractGoogleMapsPlaceName(clipboardValue);
     const resolvedPlaceName = placeName || locationCopy('external_place_name');
-    // Google's own name for the pin (e.g. "El-Gamaleya, El Gamaliya, Cairo Governorate") is
-    // what the place is actually called — the first, most specific segment of it wins over
-    // Nominatim's reverse-geocoded neighbourhood/city, which names the administrative area
-    // the point happens to fall inside and can legitimately be a different, less-recognised
-    // name for the same spot (a real example: Nominatim called an El-Gamaleya pin "المنصورية"
-    // — a real but different neighbourhood nearby). Right but in English beats wrong in
-    // Arabic; only a bare coordinate link with no name falls back to Nominatim's classification.
-    const primaryPlaceName = placeName?.split(',')[0]?.trim() || null;
+    // Split on comma to get the primary name, but skip "Unnamed Road" or raw Plus Codes
+    const rawSegments = (placeName || '')
+      .replace(/^[A-Z0-9]{2,8}\+[A-Z0-9]{2,4}\s*[-–—,]?\s*/i, '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter((s) => s && !/^unnamed\s+road/i.test(s));
+    const cleanPrimaryName = rawSegments[0] || placeName?.split(',')[0]?.trim() || null;
+    const primaryPlaceName = cleanPrimaryName?.replace(/^[A-Z0-9]{2,8}\+[A-Z0-9]{2,4}\s*[-–—,]?\s*/i, '').trim() || null;
+
     const governorate = resolvedGeography?.governorate || locationCopy('external_governorate');
     const district = primaryPlaceName || resolvedGeography?.district || resolvedGeography?.city || resolvedPlaceName;
     const externalGovernorateId = `google:${slugifyLocationPart(governorate)}`;
@@ -137,19 +150,22 @@ export function useClipboardLocationImport(params: {
     setIsCaptainScanPreviewActive(true);
   }, [geography, locationCopy, setDestinationFlyToTarget, setDestinationPinLocation, setDestinationSearchQuery, setDestinationSearchResults, setIsCaptainScanPreviewActive, setIsDestinationPinMoving]);
 
-  const handleConfirmClipboardLocation = React.useCallback(async () => {
-    if (!navigator.clipboard?.readText) {
-      toast({
-        variant: 'destructive',
-        title: locationCopy('err_invalid_clipboard_maps_link'),
-      });
-      return;
-    }
-
+  const handleConfirmClipboardLocation = React.useCallback(async (overrideText?: string) => {
     setIsReadingClipboardLocation(true);
     setIsCaptainScanPreviewActive(false);
     try {
-      const clipboardText = await readClipboardLocationText();
+      let clipboardText = typeof overrideText === 'string' && overrideText.trim() ? overrideText.trim() : '';
+      if (!clipboardText) {
+        clipboardText = await readClipboardLocationText();
+      }
+      if (!clipboardText) {
+        toast({
+          variant: 'destructive',
+          title: locationCopy('err_invalid_clipboard_maps_link'),
+        });
+        return;
+      }
+
       const result = await resolveClipboardMapLocation(clipboardText);
       applyClipboardLocation(result.resolvedUrl, result.location, result.geography);
 

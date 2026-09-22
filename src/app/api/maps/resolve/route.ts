@@ -4,6 +4,7 @@ import {
   extractGoogleMapsPlaceName,
   isGoogleMapsLink,
   parseGoogleMapsLocation,
+  sanitizeGoogleMapsUrl,
 } from '@/shared/services/google-maps-location';
 import { calculateHaversineKm } from '@/lib/road-route';
 
@@ -26,7 +27,8 @@ const REQUEST_TIMEOUT_MS = 5_000;
 const PLACE_NAME_MISMATCH_KM = 3;
 
 export async function GET(request: NextRequest) {
-  const shortUrl = request.nextUrl.searchParams.get('url')?.trim() || '';
+  const rawUrl = request.nextUrl.searchParams.get('url')?.trim() || '';
+  const shortUrl = sanitizeGoogleMapsUrl(rawUrl);
   if (!isGoogleMapsLink(shortUrl)) {
     return NextResponse.json({ error: 'invalid_maps_url' }, { status: 400 });
   }
@@ -44,14 +46,31 @@ export async function GET(request: NextRequest) {
 
     if (!location) {
       return NextResponse.json(
-        { error: 'coordinates_not_found', resolvedUrl },
+        { error: 'coordinates_not_found', resolvedUrl: sanitizeGoogleMapsUrl(resolvedUrl) },
         { status: 422 },
       );
     }
 
-    const geography = await reverseResolveGeography(location);
     const placeNameCheck = await crossCheckPlaceName(resolvedUrl, location);
+    // If the extracted location is drastically mismatched (> 500 km, e.g. USA datacenter vs Middle East),
+    // and the place name geocodes cleanly to a real spot, trust the geocoded location!
+    if (
+      placeNameCheck?.isMismatch
+      && placeNameCheck.distanceKm > 500
+      && Number.isFinite(placeNameCheck.geocodedLocation.lat)
+      && Number.isFinite(placeNameCheck.geocodedLocation.lng)
+    ) {
+      location = placeNameCheck.geocodedLocation;
+    }
+
+    const geography = await reverseResolveGeography(location);
     return NextResponse.json({ resolvedUrl, location, geography, placeNameCheck });
+    return NextResponse.json({
+      resolvedUrl: sanitizeGoogleMapsUrl(resolvedUrl),
+      location,
+      geography,
+      placeNameCheck,
+    });
   } catch {
     return NextResponse.json({ error: 'maps_link_resolution_failed' }, { status: 502 });
   }
@@ -68,13 +87,19 @@ async function followGoogleMapsRedirects(initialUrl: string) {
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       headers: {
         Accept: 'text/html,application/xhtml+xml',
-        'User-Agent': 'Mozilla/5.0 (compatible; RadarLocationResolver/1.0)',
+        'Accept-Language': 'ar,en-US;q=0.9,en;q=0.8',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
       },
     });
     const locationHeader = response.headers.get('location');
     if (!locationHeader) return response.url || currentUrl;
 
     const nextUrl = new URL(locationHeader, currentUrl);
+    // Google Maps redirects European / US requests to consent.google.com when cookies are absent.
+    // The previous URL already contained the target place segment, so do not follow into consent.
+    if (nextUrl.hostname.toLowerCase().startsWith('consent.')) {
+      return currentUrl;
+    }
     if (!isAllowedRedirectHost(nextUrl.hostname)) {
       throw new Error('disallowed_redirect_host');
     }
@@ -92,7 +117,8 @@ async function readGoogleMapsPageLocation(url: string) {
     signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     headers: {
       Accept: 'text/html,application/xhtml+xml',
-      'User-Agent': 'Mozilla/5.0 (compatible; RadarLocationResolver/1.0)',
+      'Accept-Language': 'ar,en-US;q=0.9,en;q=0.8',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
     },
   });
 
@@ -111,7 +137,8 @@ async function crossCheckPlaceName(
   resolvedUrl: string,
   location: { lat: number; lng: number },
 ) {
-  const placeName = extractGoogleMapsPlaceName(resolvedUrl);
+  const rawPlaceName = extractGoogleMapsPlaceName(resolvedUrl);
+  const placeName = rawPlaceName?.replace(/^[A-Z0-9]{2,8}\+[A-Z0-9]{2,4}\s*[-–—,]?\s*/i, '').trim() || null;
   // A bare coordinate link has no name to check against, and a name that is itself just
   // coordinates would only be comparing the extraction with itself.
   if (!placeName || /^-?\d+(\.\d+)?,\s*-?\d+(\.\d+)?$/.test(placeName)) return null;

@@ -3,8 +3,10 @@ import test from 'node:test';
 
 import {
   extractGoogleMapsPlaceName,
+  isMapsLink,
   parseGoogleMapsLocation,
   resolveClipboardMapLocation,
+  sanitizeGoogleMapsUrl,
 } from './google-maps-location';
 
 test('resolves geography for a full Google Maps URL after parsing its coordinates', async () => {
@@ -169,3 +171,46 @@ test('prefers an explicit q= target over the camera', () => {
 
   assert.deepEqual(location, { lat: 29.9931, lng: 30.9714 });
 });
+
+test('parses staticmap preview center coordinates from place page HTML', () => {
+  const html = `
+    <html>
+      <head>
+        <meta content="https://maps.google.com/maps/api/staticmap?center=30.0384256%2C30.9886976&amp;zoom=12" property="og:image">
+      </head>
+      <body><div>random content 37.2962, -121.8158</div></body>
+    </html>
+  `;
+  const location = parseGoogleMapsLocation(html);
+  assert.deepEqual(location, { lat: 30.0384256, lng: 30.9886976 });
+});
+
+test('strips leading Google Plus Code from extracted place name', () => {
+  const name = extractGoogleMapsPlaceName(
+    'https://www.google.com/maps/place/XXJ5%2B99G+Saiyeda+Khadija+Bint+Khuwelid+Mosque,+Unnamed+Road,+First+6th+of+October/data=!4m2',
+  );
+  assert.equal(name, 'Saiyeda Khadija Bint Khuwelid Mosque, Unnamed Road, First 6th of October');
+});
+
+test('sanitizeGoogleMapsUrl strips mobile tracking parameters from short links', () => {
+  const clean = sanitizeGoogleMapsUrl('https://maps.app.goo.gl/1H2GgVvVAkAw1wgM9?g_st=ac');
+  assert.equal(clean, 'https://maps.app.goo.gl/1H2GgVvVAkAw1wgM9');
+
+  const cleanIos = sanitizeGoogleMapsUrl('https://maps.app.goo.gl/1H2GgVvVAkAw1wgM9?g_st=ic&feature=shared');
+  assert.equal(cleanIos, 'https://maps.app.goo.gl/1H2GgVvVAkAw1wgM9');
+});
+
+test('sanitizeGoogleMapsUrl strips tracking params while preserving search params on full links', () => {
+  const sanitized = sanitizeGoogleMapsUrl(
+    'https://www.google.com/maps/search/?api=1&query=30.04,30.99&g_st=ac&utm_source=share',
+  );
+  assert.equal(sanitized, 'https://www.google.com/maps/search/?api=1&query=30.04%2C30.99');
+});
+
+test('isMapsLink identifies Google Maps and OpenStreetMap URLs', () => {
+  assert.equal(isMapsLink('https://maps.app.goo.gl/1H2GgVvVAkAw1wgM9?g_st=ac'), true);
+  assert.equal(isMapsLink('https://www.google.com/maps/place/test'), true);
+  assert.equal(isMapsLink('https://www.openstreetmap.org/#map=16/30.04/30.99'), true);
+  assert.equal(isMapsLink('Cairo Festival City'), false);
+});
+

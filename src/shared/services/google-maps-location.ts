@@ -105,9 +105,22 @@ export async function resolveClipboardMapLocation(
 
 export function parseGoogleMapsLocation(value: string): ParsedMapLocation | null {
   // Google embeds the place preview URL inside HTML with `%21`-encoded
-  // exclamation markers. Decode those markers even when the full HTML cannot
-  // be URI-decoded because it contains unrelated percent-encoded content.
-  const text = safeDecodeURIComponent(value.trim()).replace(/%21/gi, '!');
+  // exclamation markers and `%2C`-encoded commas. Decode those markers even when
+  // the full HTML cannot be URI-decoded because it contains unrelated percent-encoded content.
+  const trimmed = value.trim();
+  let text = safeDecodeURIComponent(trimmed);
+  if (text === trimmed) {
+    text = text
+      .replace(/%21/gi, '!')
+      .replace(/%2c/gi, ',')
+      .replace(/%2f/gi, '/')
+      .replace(/%3a/gi, ':')
+      .replace(/%3d/gi, '=')
+      .replace(/%26/gi, '&')
+      .replace(/%2b/gi, '+');
+  } else {
+    text = text.replace(/%21/gi, '!').replace(/%2c/gi, ',');
+  }
 
   // Google place pages and short-link redirects often embed the map center as
   // longitude first (`!2d{lng}!3d{lat}`) inside the page bootstrap payload.
@@ -117,6 +130,18 @@ export function parseGoogleMapsLocation(value: string): ParsedMapLocation | null
   if (placePayloadMatch) {
     const lng = Number(placePayloadMatch[1]);
     const lat = Number(placePayloadMatch[2]);
+    if (isValidLocation(lat, lng)) return { lat, lng };
+  }
+
+  // Google Maps place pages ALWAYS embed a staticmap preview URL containing the
+  // exact place coordinates in <meta property="og:image"> or itemprop="image":
+  // e.g. `staticmap?center=30.0384256%2C30.9886976` or `center=30.0384256,30.9886976`.
+  const staticMapMatch = value.match(
+    /staticmap\?[^"'\s<>]*center(?:=|%3D|\\u003d)(-?\d+(?:\.\d+)?)(?:%2c|%2C|,)(-?\d+(?:\.\d+)?)/i,
+  );
+  if (staticMapMatch) {
+    const lat = Number(staticMapMatch[1]);
+    const lng = Number(staticMapMatch[2]);
     if (isValidLocation(lat, lng)) return { lat, lng };
   }
 
@@ -153,6 +178,7 @@ export function parseGoogleMapsLocation(value: string): ParsedMapLocation | null
     // Coordinates the URL states outright as the target.
     /(?:[?&](?:q|query|destination|daddr)=)(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/,
     /(?:[?&](?:ll|center)=)(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/,
+    /(?:[?&](?:ll|center)=)(-?\d+(?:\.\d+)?)(?:%2c|%2C|,|\s*)(-?\d+(?:\.\d+)?)/i,
     // LAST RESORT — the camera. Correct only for a bare /maps/@lat,lng link, where there
     // is no pin and the camera is all the link carries.
     /@(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/,
@@ -165,6 +191,17 @@ export function parseGoogleMapsLocation(value: string): ParsedMapLocation | null
     const lat = Number(match.length === 5 ? match[2] : match[1]);
     const lng = Number(match.length === 5 ? match[3] : match[2]);
     if (isValidLocation(lat, lng)) return { lat, lng };
+  }
+
+  // The loose decimal-pair pattern must ONLY run on short strings (e.g. user input or a short URL).
+  // Running this on an entire HTML document matches random numbers (like analytics or US datacenter IP coords).
+  if (text.length < 500) {
+    const looseMatch = text.match(/(^|[^\d.-])(-?\d{1,2}(?:\.\d+)?),\s*(-?\d{1,3}(?:\.\d+)?)([^\d.]|$)/);
+    if (looseMatch) {
+      const lat = Number(looseMatch[2]);
+      const lng = Number(looseMatch[3]);
+      if (isValidLocation(lat, lng)) return { lat, lng };
+    }
   }
 
   return null;
@@ -251,6 +288,11 @@ export function extractGoogleMapsPlaceName(value: string): string | null {
       if (lastNamedSegment) return decodeGoogleMapsPathSegment(lastNamedSegment);
     }
 
+    const qParam = url.searchParams.get('q') || url.searchParams.get('query') || url.searchParams.get('destination');
+    if (qParam && !isCoordinatePairSegment(qParam)) {
+      return decodeGoogleMapsPathSegment(qParam);
+    }
+
     return null;
   } catch {
     return null;
@@ -262,9 +304,12 @@ function isCoordinatePairSegment(segment: string) {
 }
 
 function decodeGoogleMapsPathSegment(rawSegment: string) {
-  const placeName = safeDecodeURIComponent(rawSegment.replace(/\+/g, ' '))
+  let placeName = safeDecodeURIComponent(rawSegment.replace(/\+/g, ' '))
     .replace(/[\u200B-\u200F\u202A-\u202E\u2060]/g, '')
     .trim();
+
+  // Strip leading Plus Code (e.g. "XXJ5+99G ", "7CQG+25, ", "8G4P+X9-")
+  placeName = placeName.replace(/^[A-Z0-9]{2,8}\+[A-Z0-9]{2,4}\s*[-–—,]?\s*/i, '').trim();
 
   return placeName || null;
 }
@@ -292,6 +337,52 @@ export function isGoogleMapsLink(value: string) {
   }
 }
 
+export function isMapsLink(value: string) {
+  return isGoogleMapsLink(value) || isOpenStreetMapLink(value);
+}
+
+export function sanitizeGoogleMapsUrl(urlStr: string): string {
+  try {
+    const normalized = normalizeGoogleMapsUrl(urlStr);
+    const url = new URL(normalized);
+    const hostname = url.hostname.toLowerCase();
+
+    // On short links (maps.app.goo.gl or goo.gl), ALL query params are mobile share tracking
+    // (e.g. g_st=ac, g_st=ic, utm_*, feature=shared). The short token in the pathname
+    // is all that identifies the place.
+    if (hostname === 'maps.app.goo.gl' || hostname === 'goo.gl') {
+      url.search = '';
+      return url.toString();
+    }
+
+    // On full Google Maps links, remove tracking parameters while keeping place/navigation params:
+    const trackingParams = [
+      'g_st',
+      'utm_source',
+      'utm_medium',
+      'utm_campaign',
+      'utm_term',
+      'utm_content',
+      'feature',
+      'si',
+      'entry',
+      'coh',
+      'g_ep',
+      'skid',
+    ];
+    for (const param of trackingParams) {
+      url.searchParams.delete(param);
+    }
+    return url.toString();
+  } catch {
+    return urlStr
+      .replace(/[?&]g_st=[^&#\s]+/gi, '')
+      .replace(/[?&]utm_[a-z]+=[^&#\s]+/gi, '')
+      .replace(/\?&/, '?')
+      .replace(/[?&]$/, '');
+  }
+}
+
 function looksLikeGoogleMapsLocation(value: string) {
   const normalized = normalizeGoogleMapsUrl(value).toLowerCase();
   if (!normalized) return false;
@@ -306,7 +397,7 @@ function extractGoogleMapsUrl(rawValue: string) {
   const urlMatch = value.match(
     /(?:https?:\/\/)?(?:www\.)?(?:maps\.app\.goo\.gl|goo\.gl|maps\.google\.com|google\.com)\/[^\s<>"']+/i,
   );
-  return normalizeGoogleMapsUrl((urlMatch?.[0] || value).replace(/[),.;]+$/, ''));
+  return sanitizeGoogleMapsUrl(normalizeGoogleMapsUrl((urlMatch?.[0] || value).replace(/[),.;]+$/, '')));
 }
 
 function normalizeGoogleMapsUrl(value: string) {
