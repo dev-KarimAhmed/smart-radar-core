@@ -73,6 +73,19 @@ export function useRideRequestStatusSync(params: {
     }
   }, [dispatch, selectedDraftDestination, state.screen]);
 
+  // Cancel trip if the user logs out while a request is active
+  const previousUserId = React.useRef(userId);
+  const previousRequestId = React.useRef(state.requestId);
+  React.useEffect(() => {
+    if (previousUserId.current && !userId && previousRequestId.current) {
+      import('../services/rider-server-marketplace').then(({ cancelRideRequest }) => {
+        cancelRideRequest(supabase, previousRequestId.current!).catch(() => {});
+      }).catch(() => {});
+    }
+    previousUserId.current = userId;
+    previousRequestId.current = state.requestId;
+  }, [userId, state.requestId]);
+
   // Resync on mount/reload — without this, a reload mid-trip previously wiped
   // the whole flow back to the idle map even though the ride_requests row was
   // still active on the server. Look up the rider's own still-open request

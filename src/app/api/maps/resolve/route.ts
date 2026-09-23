@@ -70,16 +70,10 @@ export async function GET(request: NextRequest) {
     }
 
     const placeNameCheck = await crossCheckPlaceName(resolvedUrl, location);
-    // If the extracted location is drastically mismatched (> 500 km, e.g. USA datacenter vs Middle East),
-    // and the place name geocodes cleanly to a real spot, trust the geocoded location!
-    if (
-      placeNameCheck?.isMismatch
-      && placeNameCheck.distanceKm > 500
-      && Number.isFinite(placeNameCheck.geocodedLocation.lat)
-      && Number.isFinite(placeNameCheck.geocodedLocation.lng)
-    ) {
-      location = placeNameCheck.geocodedLocation;
-    }
+    // We deliberately do not override the parsed location with the geocoded location here,
+    // even if they are drastically mismatched. Nominatim's global search can return a place
+    // on the other side of the world for generic names like "KFC" or "Dubai Mall", and
+    // overriding the explicit URL coordinate with Nominatim's guess causes wrong addresses.
 
     const geography = await reverseResolveGeography(location);
     return NextResponse.json({ resolvedUrl, location, geography, placeNameCheck });
@@ -188,7 +182,7 @@ async function readGoogleMapsPageLocation(url: string) {
  * Geocodes the place name using Nominatim with cascading locality fallback:
  * tries full clean place name, then drops specific venue and tries the district/governorate.
  */
-async function geocodePlaceName(resolvedUrl: string) {
+async function geocodePlaceName(resolvedUrl: string, locationHint?: { lat: number; lng: number }) {
   const rawPlaceName = extractGoogleMapsPlaceName(resolvedUrl);
   if (!rawPlaceName) return null;
 
@@ -212,6 +206,14 @@ async function geocodePlaceName(resolvedUrl: string) {
         limit: '1',
         'accept-language': 'ar,en',
       });
+      if (locationHint) {
+        // Use a ~50km bounding box to strongly bias Nominatim toward the region of the coordinate.
+        // x1,y1,x2,y2 -> left,top,right,bottom -> lng1,lat1,lng2,lat2
+        const viewbox = `${locationHint.lng - 0.5},${locationHint.lat + 0.5},${locationHint.lng + 0.5},${locationHint.lat - 0.5}`;
+        params.set('viewbox', viewbox);
+        // We don't use bounded=1 because we still want fallback to global if it's completely unmatched,
+        // but viewbox alone strongly biases results.
+      }
       const response = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, {
         cache: 'no-store',
         signal: AbortSignal.timeout(3_000),
@@ -249,7 +251,7 @@ async function crossCheckPlaceName(
   // A bare coordinate link has no name to check against, and a name that is itself just
   // coordinates would only be comparing the extraction with itself.
   if (!placeName || /^-?\d+(\.\d+)?,\s*-?\d+(\.\d+)?$/.test(placeName)) return null;
-  const geocoded = await geocodePlaceName(resolvedUrl);
+  const geocoded = await geocodePlaceName(resolvedUrl, location);
   if (!geocoded) return null;
 
   const distanceKm = calculateHaversineKm(location, { lat: geocoded.lat, lng: geocoded.lng });

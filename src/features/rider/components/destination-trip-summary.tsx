@@ -144,12 +144,6 @@ export function DestinationTripSummary({
         </div>
       )}
 
-      {isSameLocation && (
-        <div className={styles.sameLocationError}>
-          {t('destination.sameLocationError')}
-        </div>
-      )}
-
       <div className={styles.submitWrapper}>
         <button
           onClick={onSendRequest}
@@ -167,7 +161,7 @@ export function DestinationTripSummary({
           )}
         >
           {isSendingRideRequest ? <Loader2 className={styles.submitButtonLoadingIcon} /> : <Navigation className={styles.submitButtonIcon} />}
-          {isSendingRideRequest ? t('request.sending') : t('request.now')}
+          {isSendingRideRequest ? t('request.sending') : isSameLocation ? t('panel.whereTo') : t('request.now')}
         </button>
       </div>
     </>
