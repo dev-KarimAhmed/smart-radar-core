@@ -498,16 +498,6 @@ export function PricePerKmSetupModal({
         {error ? <p className={styles.error}>{error}</p> : null}
 
         <AlertDialogFooter className={styles.footer}>
-          {onClose ? (
-            <button
-              type="button"
-              disabled={isSaving}
-              onClick={onClose}
-              className="rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-xs font-bold text-slate-300 hover:bg-white/10 transition-colors"
-            >
-              {isArabic ? tAuto('key_b9568e86') : 'Cancel'}
-            </button>
-          ) : null}
           <AlertDialogAction disabled={isSaving} onClick={handleSave} className={styles.confirm}>
             {isSaving
               ? t('pricePerKmModalSaving')
