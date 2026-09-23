@@ -149,6 +149,41 @@ export function useOffersLifecycle(
     return () => window.clearTimeout(timeoutId);
   }, [dispatch, state.offers.length, state.requestCancelledAt, state.requestId, state.requestStartedAt, state.screen, toast]);
 
+  // Cancel trip if the user leaves the app (backgrounds or logs out) for more than 30s during RECEIVING_OFFERS
+  React.useEffect(() => {
+    if (!state.requestId || state.screen !== 'RECEIVING_OFFERS' || state.requestCancelledAt) return;
+
+    const currentRequestId = state.requestId;
+    let timeoutId: number | undefined;
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        timeoutId = window.setTimeout(() => {
+          cancelRideRequest(supabase, currentRequestId).catch(() => {});
+          dispatch({ type: 'RESET_TO_IDLE' });
+        }, 30_000);
+      } else {
+        if (timeoutId !== undefined) {
+          window.clearTimeout(timeoutId);
+          timeoutId = undefined;
+        }
+      }
+    };
+
+    const onBeforeUnload = () => {
+      cancelRideRequest(supabase, currentRequestId).catch(() => {});
+    };
+
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    window.addEventListener('beforeunload', onBeforeUnload);
+
+    return () => {
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      window.removeEventListener('beforeunload', onBeforeUnload);
+    };
+  }, [state.requestId, state.screen, state.requestCancelledAt, dispatch]);
+
   React.useEffect(() => {
     if (state.screen !== 'RECEIVING_OFFERS' || state.requestCancelledAt) {
       setCaptainSearchRadiusKm(1.5);
