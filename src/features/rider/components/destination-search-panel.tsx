@@ -84,7 +84,6 @@ export function DestinationSearchPanel({
             <form
               onSubmit={(event) => {
                 event.preventDefault();
-                mapPicker.handleOpenGoogleMapsSearch();
                 const query = destinationSearchQuery.trim();
                 if (isMapsLink(query)) {
                   clipboard.handleConfirmClipboardLocation(query);

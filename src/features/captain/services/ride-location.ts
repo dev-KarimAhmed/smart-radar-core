@@ -67,7 +67,7 @@ export function estimateHaversineDistanceKm(
       * Math.sin(dLng / 2) ** 2;
   const distanceKm = 2 * radiusKm * Math.atan2(Math.sqrt(a), Math.sqrt(Math.max(0, 1 - a)));
 
-  return Number.isFinite(distanceKm) && distanceKm > 0 && distanceKm <= 3000
+  return Number.isFinite(distanceKm) && distanceKm > 0 && distanceKm <= 40000
     ? Math.round(distanceKm * 10) / 10
     : null;
 }

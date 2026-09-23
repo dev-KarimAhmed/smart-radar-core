@@ -186,7 +186,7 @@ export function normalizeTrafficFactor(value: number) {
 }
 export const MIN_TORTUOSITY_FACTOR = 1.15;
 export const MAX_TORTUOSITY_FACTOR = 1.35;
-export const MAX_ROUTE_DISTANCE_KM = 3000;
+export const MAX_ROUTE_DISTANCE_KM = 40000;
 // A road route can be longer than the straight line, but a result that is
 // several times longer is usually a bad router response or a coordinate
 // mismatch. In that case the local, bounded estimate is safer for the rider.
