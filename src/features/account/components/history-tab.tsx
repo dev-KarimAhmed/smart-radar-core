@@ -9,6 +9,8 @@ import { HistoryCaptainTrips } from './history-tab/history-captain-trips';
 import { HistoryFavoriteCaptains } from './history-tab/history-favorite-captains';
 import { HistorySovereignLogs } from './history-tab/history-sovereign-logs';
 import { HistoryErrorExplorer } from './history-tab/history-error-explorer';
+import { BlockedCaptainsSection } from './profile-tab/blocked-captains-section';
+import { useBlockedCaptains } from '../hooks/use-blocked-captains';
 
 export interface HistoryTabProps {
   hideCaptainDiagnostics?: boolean;
@@ -16,6 +18,7 @@ export interface HistoryTabProps {
 
 export function HistoryTab({ hideCaptainDiagnostics = false }: HistoryTabProps = {}) {
   const state = useHistoryState();
+  const blockedState = useBlockedCaptains();
 
   const {
     favoriteCaptainIds,
@@ -42,6 +45,28 @@ export function HistoryTab({ hideCaptainDiagnostics = false }: HistoryTabProps =
   } = state;
 
   const now = Date.now();
+
+  const renderCaptainsWithDivider = () => (
+    <div className="space-y-4">
+      <HistoryFavoriteCaptains
+        favoriteCaptains={favoriteCaptains}
+        toggleFavorite={toggleFavorite}
+        isArabic={isArabic}
+        t={t}
+      />
+
+
+      <BlockedCaptainsSection
+        isArabic={isArabic}
+        t={blockedState.t}
+        isLoadingBlocks={blockedState.isLoadingBlocks}
+        blockedCaptains={blockedState.blockedCaptains}
+        confirmingUnblockId={blockedState.confirmingUnblockId}
+        setConfirmingUnblockId={blockedState.setConfirmingUnblockId}
+        handleUnblockCaptain={blockedState.handleUnblockCaptain}
+      />
+    </div>
+  );
 
   if (state.language === 'en' && isPassenger) {
     return (
@@ -71,12 +96,7 @@ export function HistoryTab({ hideCaptainDiagnostics = false }: HistoryTabProps =
           t={t}
         />
 
-        <HistoryFavoriteCaptains
-          favoriteCaptains={favoriteCaptains}
-          toggleFavorite={toggleFavorite}
-          isArabic={isArabic}
-          t={t}
-        />
+        {renderCaptainsWithDivider()}
       </div>
     );
   }
@@ -112,12 +132,7 @@ export function HistoryTab({ hideCaptainDiagnostics = false }: HistoryTabProps =
             t={t}
           />
 
-          <HistoryFavoriteCaptains
-            favoriteCaptains={favoriteCaptains}
-            toggleFavorite={toggleFavorite}
-            isArabic={isArabic}
-            t={t}
-          />
+          {renderCaptainsWithDivider()}
         </div>
       )}
 

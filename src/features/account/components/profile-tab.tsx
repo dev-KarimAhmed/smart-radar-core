@@ -5,7 +5,7 @@ import { styles, labelFor } from './profile-tab/profile-shared';
 import { useProfileState } from './profile-tab/use-profile-state';
 import { ProfileHeaderCard } from './profile-tab/profile-header-card';
 import { ProfileFormSection } from './profile-tab/profile-form-section';
-import { BlockedCaptainsSection } from './profile-tab/blocked-captains-section';
+import { RiderChangePasswordCard } from './profile-tab/rider-change-password-card';
 import { RiderPasswordResetCard } from './profile-tab/rider-password-reset-card';
 import { useTranslations } from "next-intl";
 
@@ -78,19 +78,11 @@ export function ProfileTab() {
       />
 
       {!state.isCaptain && (
-        <RiderPasswordResetCard />
+        <RiderChangePasswordCard />
       )}
 
       {!state.isCaptain && (
-        <BlockedCaptainsSection
-          isArabic={state.isArabic}
-          t={state.t}
-          isLoadingBlocks={state.isLoadingBlocks}
-          blockedCaptains={state.blockedCaptains}
-          confirmingUnblockId={state.confirmingUnblockId}
-          setConfirmingUnblockId={state.setConfirmingUnblockId}
-          handleUnblockCaptain={state.handleUnblockCaptain}
-        />
+        <RiderPasswordResetCard />
       )}
 
       <Button

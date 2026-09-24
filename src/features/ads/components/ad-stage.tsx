@@ -7,6 +7,7 @@ import { useTranslations } from 'next-intl';
 import { AdDisplayCard, getAdDescription, getAdImage, getAdTitle } from './ad-display-card';
 import { getAdManualScrollDelta, getAdScrollDelta, wrapAdScrollPosition } from '../services/ad-stage-scroll';
 import { filterAdsByAudience, readAdAudience, type AdAudience } from '../services/ad-audience';
+import { SAMPLE_VAULT_ADS } from '../services/sample-vault-ads';
 import { useAuth } from '@/hooks/use-auth';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { useAdCampaigns } from '@/hooks/use-ad-campaigns';
@@ -307,6 +308,7 @@ export function AdStage({
     if (filteredAds.length > 0) return filteredAds;
 
     return [
+      ...SAMPLE_VAULT_ADS,
       buildBrandPlaceholderAd(copy, hasAdFetchIssue ? copy.emptyFetchIssue : copy.emptyDescription, audience),
     ];
   }, [audience, copy, hasAdFetchIssue, liveDistrict, liveGovernorate, serverAds]);
