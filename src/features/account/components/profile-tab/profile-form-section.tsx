@@ -3,8 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Database, Loader2, MessageCircle, Save, Trash2 } from 'lucide-react';
-import { styles, labelFor } from './profile-shared';
+import { Globe, Loader2, MessageCircle, Phone, Save, Trash2, User } from 'lucide-react';
+import { labelFor } from './profile-shared';
 import { RecoveryEmailField } from '@/features/auth/components/recovery-email-field';
 import type { CountryRow, GovernorateRow, DistrictRow } from './profile-shared';
 
@@ -64,62 +64,77 @@ export function ProfileFormSection({
   handleSubmit,
 }: ProfileFormSectionProps) {
   return (
-    <Card className={styles.style631_38}>
-      <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-transparent via-[#14F5D5]/60 to-transparent" />
-      <CardHeader className={styles.style632_39}>
-        <CardTitle className={styles.style633_40}>
-          <Database className={styles.style634_41} />
-          {t('editTitle')}
-        </CardTitle>
-        <CardDescription className={styles.style637_42}>
-          {t('editDescription')}
-        </CardDescription>
+    <Card className="relative overflow-hidden rounded-3xl border border-[#14B8A6]/20 bg-[#0B0F19]/90 text-white shadow-2xl backdrop-blur-xl">
+      {/* Top glowing ambient accent */}
+      <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#14F5D5]/60 to-transparent" />
+
+      <CardHeader className="p-5 pb-3">
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 text-[#14F5D5] shadow-sm">
+            <User className="h-5 w-5" />
+          </div>
+          <div>
+            <CardTitle className="text-base font-black text-white flex items-center gap-2">
+              {t('editTitle')}
+            </CardTitle>
+            <CardDescription className="text-xs text-slate-400 mt-0.5 leading-relaxed">
+              {t('editDescription')}
+            </CardDescription>
+          </div>
+        </div>
       </CardHeader>
 
-      <CardContent>
+      <CardContent className="p-5 pt-2">
         {isLoadingProfile ? (
-          <div className={styles.style644_43}>
-            <Loader2 className={styles.style645_44} />
-            {t('loadingProfile')}
+          <div className="flex items-center justify-center gap-2 rounded-2xl border border-[#14B8A6]/20 bg-black/30 p-8 text-sm text-slate-300">
+            <Loader2 className="h-5 w-5 animate-spin text-[#14F5D5]" />
+            <span className="font-semibold">{t('loadingProfile')}</span>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className={styles.style649_45}>
-            <div className={styles.style650_46}>
-              <label className={styles.style651_47}>{t('fullName')}</label>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* 1. Full Name */}
+            <div className="space-y-1.5">
+              <label className="flex items-center gap-1.5 text-xs font-bold text-slate-300">
+                <User className="h-3.5 w-3.5 text-[#14F5D5]" />
+                <span>{t('fullName')}</span>
+              </label>
               <Input
                 value={fullName}
                 onChange={(event) => setFullName(event.target.value)}
-                className={styles.style655_48}
+                className="h-11 rounded-2xl border-[#14B8A6]/25 bg-black/40 text-white text-sm focus-visible:border-[#14B8A6] focus-visible:ring-1 focus-visible:ring-[#14B8A6]"
                 placeholder={t('fullNamePlaceholder')}
                 required
               />
             </div>
 
-            <div className={styles.style661_49}>
-              <label className={styles.style662_50}>{t('phone')}</label>
+            {/* 2. Phone Number */}
+            <div className="space-y-1.5">
+              <label className="flex items-center gap-1.5 text-xs font-bold text-slate-300">
+                <Phone className="h-3.5 w-3.5 text-[#14F5D5]" />
+                <span>{t('phone')}</span>
+              </label>
               <Input
                 value={phone}
+                dir="ltr"
                 onChange={(event) => setPhone(event.target.value)}
-                className={styles.style667_51}
+                className="h-11 rounded-2xl border-[#14B8A6]/25 bg-black/40 text-white text-sm font-mono focus-visible:border-[#14B8A6] focus-visible:ring-1 focus-visible:ring-[#14B8A6]"
                 placeholder="+962790000000"
                 required
               />
             </div>
 
-            <div className={styles.recoveryEmailSlot}>
-              <RecoveryEmailField />
-            </div>
-
-            <div className={styles.style673_52}>
-              <label className={styles.style674_53}>
-                <MessageCircle className={styles.style675_54} />
-                {t('emergencyWhatsappContact')}
+            {/* 3. Emergency WhatsApp Contact */}
+            <div className="space-y-1.5">
+              <label className="flex items-center gap-1.5 text-xs font-bold text-slate-300">
+                <MessageCircle className="h-3.5 w-3.5 text-[#14F5D5]" />
+                <span>{t('emergencyWhatsappContact')}</span>
               </label>
-              <div className={styles.style678_55}>
+              <div className="flex gap-2">
                 <Input
                   value={emergencyWhatsappContact}
+                  dir="ltr"
                   onChange={(event) => setEmergencyWhatsappContact(event.target.value)}
-                  className={styles.style682_56}
+                  className="h-11 rounded-2xl border-[#14B8A6]/25 bg-black/40 text-white text-sm font-mono focus-visible:border-[#14B8A6] focus-visible:ring-1 focus-visible:ring-[#14B8A6]"
                   placeholder={t('emergencyWhatsappPlaceholder')}
                 />
                 {emergencyWhatsappContact ? (
@@ -127,86 +142,103 @@ export function ProfileFormSection({
                     type="button"
                     variant="outline"
                     onClick={() => setEmergencyWhatsappContact('')}
-                    className={styles.style690_57}
+                    className="h-11 shrink-0 rounded-2xl border-rose-500/20 bg-rose-950/20 px-3 text-rose-300 hover:bg-rose-500 hover:text-white transition-all cursor-pointer"
                     aria-label={t('deleteEmergencyContact')}
                   >
-                    <Trash2 className={styles.style693_58} />
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 ) : null}
               </div>
             </div>
 
-            <div className={styles.style699_59}>
-              <div className={styles.style700_60}>
-                <label className={styles.style701_61}>{t('country')}</label>
-                <Select value={countryId} onValueChange={handleCountryChange} required>
-                  <SelectTrigger className={styles.style703_62} dir={isArabic ? 'rtl' : 'ltr'}>
-                    <SelectValue placeholder={isLoadingCountries ? t('loading') : t('chooseCountry')} />
-                  </SelectTrigger>
-                  <SelectContent className={styles.style706_63}>
-                    {countries.map((country) => (
-                      <SelectItem key={country.id} value={String(country.id)} className={styles.style708_64}>
-                        {labelFor(country, language as 'en' | 'ar')}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            {/* 4. Location Dropdowns */}
+            <div className="space-y-2 pt-1">
+              <label className="flex items-center gap-1.5 text-xs font-bold text-slate-300">
+                <Globe className="h-3.5 w-3.5 text-[#14F5D5]" />
+                <span>{t('location')}</span>
+              </label>
+              
+              <div className="grid gap-3 sm:grid-cols-3">
+                {/* Country */}
+                <div className="space-y-1">
+                  <span className="block text-[11px] font-semibold text-slate-400">{t('country')}</span>
+                  <Select value={countryId} onValueChange={handleCountryChange} required>
+                    <SelectTrigger className="h-11 rounded-xl border-[#14B8A6]/25 bg-black/40 text-white focus:border-[#14B8A6] focus:ring-1 focus:ring-[#14B8A6]" dir={isArabic ? 'rtl' : 'ltr'}>
+                      <SelectValue placeholder={isLoadingCountries ? t('loading') : t('chooseCountry')} />
+                    </SelectTrigger>
+                    <SelectContent className="border-[#14B8A6]/30 bg-[#0B0F19] text-white shadow-2xl">
+                      {countries.map((country) => (
+                        <SelectItem key={country.id} value={String(country.id)} className="justify-end text-start cursor-pointer hover:bg-white/10">
+                          {labelFor(country, language as 'en' | 'ar')}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              <div className={styles.style716_65}>
-                <label className={styles.style717_66}>{t('governorate')}</label>
-                <Select value={governorateId} onValueChange={handleGovernorateChange} disabled={!countryId || isLoadingGovernorates} required>
-                  <SelectTrigger className={styles.style719_67} dir={isArabic ? 'rtl' : 'ltr'}>
-                    <SelectValue placeholder={isLoadingGovernorates ? t('loading') : t('chooseGovernorate')} />
-                  </SelectTrigger>
-                  <SelectContent className={styles.style722_68}>
-                    {governorates.map((governorate) => (
-                      <SelectItem key={governorate.id} value={String(governorate.id)} className={styles.style724_69}>
-                        {labelFor(governorate, language as 'en' | 'ar')}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                {/* Governorate */}
+                <div className="space-y-1">
+                  <span className="block text-[11px] font-semibold text-slate-400">{t('governorate')}</span>
+                  <Select value={governorateId} onValueChange={handleGovernorateChange} disabled={!countryId || isLoadingGovernorates} required>
+                    <SelectTrigger className="h-11 rounded-xl border-[#14B8A6]/25 bg-black/40 text-white focus:border-[#14B8A6] focus:ring-1 focus:ring-[#14B8A6]" dir={isArabic ? 'rtl' : 'ltr'}>
+                      <SelectValue placeholder={isLoadingGovernorates ? t('loading') : t('chooseGovernorate')} />
+                    </SelectTrigger>
+                    <SelectContent className="border-[#14B8A6]/30 bg-[#0B0F19] text-white shadow-2xl">
+                      {governorates.map((governorate) => (
+                        <SelectItem key={governorate.id} value={String(governorate.id)} className="justify-end text-start cursor-pointer hover:bg-white/10">
+                          {labelFor(governorate, language as 'en' | 'ar')}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              <div className={styles.style732_70}>
-                <label className={styles.style733_71}>{t('district')}</label>
-                <Select value={districtId} onValueChange={setDistrictId} disabled={!governorateId || isLoadingDistricts} required>
-                  <SelectTrigger className={styles.style735_72} dir={isArabic ? 'rtl' : 'ltr'}>
-                    <SelectValue placeholder={isLoadingDistricts ? t('loading') : t('chooseDistrict')} />
-                  </SelectTrigger>
-                  <SelectContent className={styles.style738_73}>
-                    {districts.map((district) => (
-                      <SelectItem key={district.id} value={String(district.id)} className={styles.style740_74}>
-                        {labelFor(district, language as 'en' | 'ar')}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {/* District */}
+                <div className="space-y-1">
+                  <span className="block text-[11px] font-semibold text-slate-400">{t('district')}</span>
+                  <Select value={districtId} onValueChange={setDistrictId} disabled={!governorateId || isLoadingDistricts} required>
+                    <SelectTrigger className="h-11 rounded-xl border-[#14B8A6]/25 bg-black/40 text-white focus:border-[#14B8A6] focus:ring-1 focus:ring-[#14B8A6]" dir={isArabic ? 'rtl' : 'ltr'}>
+                      <SelectValue placeholder={isLoadingDistricts ? t('loading') : t('chooseDistrict')} />
+                    </SelectTrigger>
+                    <SelectContent className="border-[#14B8A6]/30 bg-[#0B0F19] text-white shadow-2xl">
+                      {districts.map((district) => (
+                        <SelectItem key={district.id} value={String(district.id)} className="justify-end text-start cursor-pointer hover:bg-white/10">
+                          {labelFor(district, language as 'en' | 'ar')}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
 
+            {/* 5. Recovery Email Slot */}
+            <div className="pt-2">
+              <RecoveryEmailField />
+            </div>
+
             {isLocationLoading ? (
-              <p className={styles.style750_75}>
-                <Loader2 className={styles.style751_76} />
-                {t('updatingLists')}
+              <p className="flex items-center gap-2 text-xs text-[#14F5D5]">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <span>{t('updatingLists')}</span>
               </p>
             ) : null}
 
+            {/* Submit Button */}
             <Button
               type="submit"
               disabled={isSaving || isLocationLoading}
-              className={styles.style759_77}
+              className="h-12 w-full gap-2 rounded-2xl bg-[#14B8A6] text-sm font-black text-[#0B0F19] shadow-lg shadow-[#14B8A6]/20 hover:bg-[#0fa596] active:scale-[0.99] transition-all cursor-pointer mt-4"
             >
               {isSaving ? (
                 <>
-                  <Loader2 className={styles.style763_78} />
-                  {t('saving')}
+                  <Loader2 className="h-4 w-4 animate-spin text-[#0B0F19]" />
+                  <span>{t('saving')}</span>
                 </>
               ) : (
                 <>
-                  <Save className={styles.style768_79} />
-                  {t('save')}
+                  <Save className="h-4 w-4 text-[#0B0F19]" />
+                  <span>{t('save')}</span>
                 </>
               )}
             </Button>
