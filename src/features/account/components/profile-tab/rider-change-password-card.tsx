@@ -130,13 +130,13 @@ export function RiderChangePasswordCard() {
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder={t.newPasswordPlaceholder}
-                className="pe-10 rounded-xl border-[#14B8A6]/25 bg-black/40 text-white focus-visible:border-[#14B8A6] focus-visible:ring-1 focus-visible:ring-[#14B8A6]"
+                className="pr-11 pl-4 rounded-xl border-[#14B8A6]/25 bg-black/40 text-white focus-visible:border-[#14B8A6] focus-visible:ring-1 focus-visible:ring-[#14B8A6]"
                 required
               />
               <button
                 type="button"
                 onClick={() => setShowNewPassword((prev) => !prev)}
-                className="absolute inset-y-0 end-0 flex items-center pe-3 text-slate-400 hover:text-white"
+                className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-slate-400 hover:text-white cursor-pointer"
                 tabIndex={-1}
               >
                 {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -156,13 +156,13 @@ export function RiderChangePasswordCard() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder={t.confirmPasswordPlaceholder}
-                className="pe-10 rounded-xl border-[#14B8A6]/25 bg-black/40 text-white focus-visible:border-[#14B8A6] focus-visible:ring-1 focus-visible:ring-[#14B8A6]"
+                className="pr-11 pl-4 rounded-xl border-[#14B8A6]/25 bg-black/40 text-white focus-visible:border-[#14B8A6] focus-visible:ring-1 focus-visible:ring-[#14B8A6]"
                 required
               />
               <button
                 type="button"
                 onClick={() => setShowConfirmPassword((prev) => !prev)}
-                className="absolute inset-y-0 end-0 flex items-center pe-3 text-slate-400 hover:text-white"
+                className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-slate-400 hover:text-white cursor-pointer"
                 tabIndex={-1}
               >
                 {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}

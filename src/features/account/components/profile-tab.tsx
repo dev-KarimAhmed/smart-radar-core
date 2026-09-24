@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { LogOut, ShieldCheck, User } from 'lucide-react';
+import { LogOut, ShieldCheck } from 'lucide-react';
 import { labelFor } from './profile-tab/profile-shared';
 import { useProfileState } from './profile-tab/use-profile-state';
 import { ProfileHeaderCard } from './profile-tab/profile-header-card';
@@ -14,7 +14,6 @@ import { useTranslations } from "next-intl";
 export function ProfileTab() {
   const tAuto = useTranslations('auto');
   const state = useProfileState();
-  const [activeTab, setActiveTab] = useState<'info' | 'security'>('info');
 
   if (!state.user) {
     return (
@@ -40,7 +39,7 @@ export function ProfileTab() {
   const locationLabel = `${labelFor(state.selectedGovernorate, state.language) || state.t('notSet')} - ${labelFor(state.selectedDistrict, state.language) || state.t('notSet')}`;
 
   return (
-    <div className="mx-auto w-full max-w-xl space-y-5 pb-28 text-start font-sans" dir={state.isArabic ? 'rtl' : 'ltr'}>
+    <div className="mx-auto w-full max-w-xl space-y-6 pb-28 text-start font-sans" dir={state.isArabic ? 'rtl' : 'ltr'}>
       {/* 1. Hero Identity Card */}
       <ProfileHeaderCard
         isArabic={state.isArabic}
@@ -55,69 +54,50 @@ export function ProfileTab() {
         currency={currency}
       />
 
-      {/* 2. Sleek Segmented Tab Switcher */}
-      <div className="grid grid-cols-2 gap-1.5 p-1 rounded-2xl border border-white/10 bg-[#0B0F19]/80 backdrop-blur-xl shadow-lg">
-        <button
-          type="button"
-          onClick={() => setActiveTab('info')}
-          className={
-            activeTab === 'info'
-              ? 'flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-bold transition-all cursor-pointer bg-[#14B8A6] text-[#0B0F19] shadow-md shadow-[#14B8A6]/20 font-black'
-              : 'flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-bold transition-all cursor-pointer text-slate-400 hover:text-white hover:bg-white/5'
-          }
-        >
-          <User className="h-4 w-4" />
-          <span>{state.isArabic ? 'البيانات الشخصية' : 'Personal Info'}</span>
-        </button>
+      {/* 2. Personal Info & Location Section */}
+      <ProfileFormSection
+        t={state.t}
+        language={state.language}
+        isArabic={state.isArabic}
+        isLoadingProfile={state.isLoadingProfile}
+        isLocationLoading={state.isLocationLoading}
+        isSaving={state.isSaving}
+        fullName={state.fullName}
+        setFullName={state.setFullName}
+        phone={state.phone}
+        setPhone={state.setPhone}
+        emergencyWhatsappContact={state.emergencyWhatsappContact}
+        setEmergencyWhatsappContact={state.setEmergencyWhatsappContact}
+        countryId={state.countryId}
+        handleCountryChange={state.handleCountryChange}
+        countries={state.countries}
+        isLoadingCountries={state.isLoadingCountries}
+        governorateId={state.governorateId}
+        handleGovernorateChange={state.handleGovernorateChange}
+        governorates={state.governorates}
+        isLoadingGovernorates={state.isLoadingGovernorates}
+        districtId={state.districtId}
+        setDistrictId={state.setDistrictId}
+        districts={state.districts}
+        isLoadingDistricts={state.isLoadingDistricts}
+        handleSubmit={state.handleSubmit}
+      />
 
-        <button
-          type="button"
-          onClick={() => setActiveTab('security')}
-          className={
-            activeTab === 'security'
-              ? 'flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-bold transition-all cursor-pointer bg-[#14B8A6] text-[#0B0F19] shadow-md shadow-[#14B8A6]/20 font-black'
-              : 'flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-bold transition-all cursor-pointer text-slate-400 hover:text-white hover:bg-white/5'
-          }
-        >
-          <ShieldCheck className="h-4 w-4" />
+      {/* 3. Sleek Divider / Barrier Between Personal Info and Security */}
+      <div className="relative py-2 flex items-center justify-center">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-[#14B8A6]/25" />
+        </div>
+        <div className="relative flex items-center gap-2 rounded-full border border-[#14B8A6]/30 bg-[#0B0F19] px-4 py-1.5 text-xs font-black text-[#14F5D5] shadow-lg shadow-[#14B8A6]/10">
+          <ShieldCheck className="h-4 w-4 text-[#14F5D5]" />
           <span>{state.isArabic ? 'الأمان وكلمة المرور' : 'Security & Password'}</span>
-        </button>
+        </div>
       </div>
 
-      {/* 3. Tab Contents */}
-      {activeTab === 'info' ? (
-        <ProfileFormSection
-          t={state.t}
-          language={state.language}
-          isArabic={state.isArabic}
-          isLoadingProfile={state.isLoadingProfile}
-          isLocationLoading={state.isLocationLoading}
-          isSaving={state.isSaving}
-          fullName={state.fullName}
-          setFullName={state.setFullName}
-          phone={state.phone}
-          setPhone={state.setPhone}
-          emergencyWhatsappContact={state.emergencyWhatsappContact}
-          setEmergencyWhatsappContact={state.setEmergencyWhatsappContact}
-          countryId={state.countryId}
-          handleCountryChange={state.handleCountryChange}
-          countries={state.countries}
-          isLoadingCountries={state.isLoadingCountries}
-          governorateId={state.governorateId}
-          handleGovernorateChange={state.handleGovernorateChange}
-          governorates={state.governorates}
-          isLoadingGovernorates={state.isLoadingGovernorates}
-          districtId={state.districtId}
-          setDistrictId={state.setDistrictId}
-          districts={state.districts}
-          isLoadingDistricts={state.isLoadingDistricts}
-          handleSubmit={state.handleSubmit}
-        />
-      ) : (
-        <RiderSecuritySection />
-      )}
+      {/* 4. Security & Password Section */}
+      <RiderSecuritySection />
 
-      {/* 4. Elegant Tasteful Logout Button */}
+      {/* 5. Elegant Tasteful Logout Button */}
       <div className="pt-2">
         <Button
           type="button"

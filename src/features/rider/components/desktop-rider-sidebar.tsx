@@ -31,41 +31,32 @@ const styles = {
   navIdle: 'border-transparent text-slate-400 hover:border-white/10 hover:bg-white/[0.04] hover:text-white',
   navIcon: 'h-5 w-5',
   footer: 'space-y-3 border-t border-white/10 p-4',
-  account: 'rounded-2xl border border-[#14B8A6]/15 bg-[#14B8A6]/8 p-3',
-  accountTitle: 'text-[11px] font-black text-[#14F5D5]',
-  accountState: 'mt-1 text-xs font-bold text-slate-300',
   logout: 'h-12 w-full justify-center gap-2 rounded-2xl bg-red-600/90 text-sm font-black text-white hover:bg-red-500',
 } as const;
 
 const copy = {
   ar: {
-    accountStatus: 'حالة الحساب',
     fallbackName: 'راكب',
     fallbackPhone: 'تطبيق الرحلات',
     logout: 'تسجيل الخروج',
     nav: { home: 'الرئيسية', history: 'رحلاتي', profile: 'حسابي', vault: 'الخزنة' },
     notifications: 'التنبيهات',
-    ready: 'جاهز لطلب رحلة',
     requestRide: 'اطلب رحلة',
   },
   en: {
-    accountStatus: 'Account status',
     fallbackName: 'Rider',
     fallbackPhone: 'Ride app',
     logout: 'Log out',
     nav: { home: 'Home', history: 'Trips', profile: 'Profile', vault: 'Vault' },
     notifications: 'Notifications',
-    ready: 'Ready to request a ride',
     requestRide: 'Request ride',
   },
 } satisfies Record<AppLanguage, {
-  accountStatus: string;
   fallbackName: string;
   fallbackPhone: string;
   logout: string;
   nav: Record<'home' | 'history' | 'profile' | 'vault', string>;
   notifications: string;
-  ready: string;
   requestRide: string;
 }>;
 
@@ -88,8 +79,7 @@ export function DesktopRiderSidebar({
   onNotify: () => void;
   user: { name?: string; phone?: string };
 }) {
-    const tAuto = useTranslations('auto');
-    const t = useTranslations('auto');
+  const tAuto = useTranslations('auto');
   const { isArabic, toggleLanguage } = useDashboardLanguage();
   const text = copy[language];
   const directionClass = language === 'ar' ? styles.identityRtl : styles.identityLtr;
@@ -155,10 +145,6 @@ export function DesktopRiderSidebar({
       </nav>
 
       <div className={styles.footer}>
-        <div className={cn(styles.account, directionClass)}>
-          <p className={styles.accountTitle}>{text.accountStatus}</p>
-          <p className={styles.accountState}>{text.ready}</p>
-        </div>
         <Button className={styles.logout} onClick={() => void logout()}>
           <LogOut className={styles.actionIcon} />
           {text.logout}
