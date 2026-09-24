@@ -12,6 +12,7 @@ interface ProfileHeaderCardProps {
   displayRole: string;
   serialId?: string | null;
   rating: number;
+  ratingCount: number;
   locationLabel: string;
   displayPhone: string;
   currency?: string | null;
@@ -25,10 +26,13 @@ export function ProfileHeaderCard({
   displayRole,
   serialId,
   rating,
+  ratingCount,
   locationLabel,
   displayPhone,
   currency,
 }: ProfileHeaderCardProps) {
+  const formattedScore = rating % 1 === 0 ? rating.toFixed(0) : rating.toFixed(1);
+
   return (
     <Card className="relative overflow-hidden rounded-3xl border border-[#14B8A6]/20 bg-[#0B0F19]/90 text-white shadow-2xl backdrop-blur-xl transition-all duration-300">
       {/* Top glowing ambient accent */}
@@ -84,19 +88,38 @@ export function ProfileHeaderCard({
             </div>
           </div>
 
-          {/* Rating box */}
-          <div className="shrink-0 flex sm:flex-col items-center sm:items-end justify-between gap-1 rounded-2xl border border-white/5 bg-black/30 px-3.5 py-2">
-            <span className="text-[10px] font-bold text-slate-400">
-              {t('currentRating')}
-            </span>
-            <div className="flex items-center gap-1.5 text-amber-400">
-              <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
-              <strong className="text-sm font-black text-white font-mono">
-                {rating.toFixed(1)}
-              </strong>
-              <span className="text-[11px] text-slate-500 font-mono">/ 5</span>
+          {/* Rating Badge — Compact, Modern & Luxury */}
+          {ratingCount > 0 ? (
+            <div className="shrink-0 flex items-center gap-2.5 rounded-2xl border border-amber-400/25 bg-amber-400/[0.07] px-3.5 py-2 shadow-sm backdrop-blur-md">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-amber-400/30 bg-amber-400/15 text-amber-400">
+                <Star className="h-4 w-4 fill-amber-400" />
+              </div>
+              <div className="flex flex-col">
+                <div className="flex items-center gap-1 font-mono text-sm font-black text-white leading-none" dir="ltr">
+                  <span>{formattedScore}</span>
+                  <span className="text-slate-400 font-normal">/</span>
+                  <span>5</span>
+                </div>
+                <span className="text-[10px] font-bold text-amber-300/80 mt-1 leading-none">
+                  {isArabic ? `${ratingCount} تقييم` : `${ratingCount} ratings`}
+                </span>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="shrink-0 flex items-center gap-2.5 rounded-2xl border border-[#14B8A6]/25 bg-[#14B8A6]/10 px-3.5 py-2 shadow-sm backdrop-blur-md">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/15 text-[#14F5D5]">
+                <Star className="h-4 w-4 text-[#14F5D5]" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-xs font-black text-[#14F5D5] leading-none">
+                  {isArabic ? 'راكب جديد' : 'New Rider'}
+                </span>
+                <span className="text-[10px] font-medium text-slate-400 mt-1 leading-none">
+                  {isArabic ? 'بدون تقييم' : 'No ratings'}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Location & Account Meta Grid */}

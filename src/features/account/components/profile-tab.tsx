@@ -28,6 +28,7 @@ export function ProfileTab() {
   }
 
   const rating = Number(state.profile?.rating ?? state.user?.rating ?? 5);
+  const ratingCount = Number(state.profile?.rating_count ?? 0);
   const displayName = state.fullName || state.user?.name || tAuto('key_f38edfd8');
   const displayPhone = state.phone || state.user?.phone || '';
   const displayRole = state.isSovereign ? state.t('roles.admin') : state.isCaptain ? state.t('roles.driver') : state.isPassenger ? state.t('roles.rider') : state.t('roles.user');
@@ -49,6 +50,7 @@ export function ProfileTab() {
         displayRole={displayRole}
         serialId={state.profile?.serial_id || state.user.serial_id}
         rating={rating}
+        ratingCount={ratingCount}
         locationLabel={locationLabel}
         displayPhone={displayPhone}
         currency={currency}

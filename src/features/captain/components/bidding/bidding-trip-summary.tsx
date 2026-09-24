@@ -50,7 +50,7 @@ export function BiddingTripSummary({ request, language, pickupEtaMinutes }: Bidd
         <div className={styles.grid}>
           <Info
             label={t('passengerRatingLabel')}
-            value={`${request.riderRating != null ? request.riderRating.toFixed(1) : '5.0'} ⭐️`}
+            value={request.riderRating != null ? `${request.riderRating.toFixed(1)} ⭐️` : (language === 'ar' ? 'راكب جديد بدون تقييم' : 'New rider — no ratings')}
           />
           <Info
             label={t('tripsCountLabel')}
