@@ -65,7 +65,7 @@ export function BlockedCaptainsSection({
           </div>
         ) : blockedCaptains.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 sm:p-5 flex items-center gap-4">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 shadow-sm">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 text-[#14F5D5] shadow-sm">
               <ShieldCheck className="h-5 w-5 stroke-[1.5]" />
             </div>
             <div className="flex-1 min-w-0">

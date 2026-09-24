@@ -7,16 +7,16 @@ import { useDashboardLanguage } from '@/shared/hooks/use-dashboard-language';
 import { useRecoveryEmail } from '../hooks/use-recovery-email';
 
 const styles = {
-  block: 'rounded-2xl border border-white/10 bg-black/20 p-3.5',
+  block: 'rounded-2xl border border-[#14B8A6]/20 bg-black/40 p-3.5',
   head: 'flex items-center gap-2',
-  icon: 'h-3.5 w-3.5 text-[#5eead4]',
+  icon: 'h-3.5 w-3.5 text-[#14F5D5]',
   label: 'text-xs font-black text-slate-200',
-  hint: 'mt-1 text-[10px] leading-relaxed text-slate-500',
+  hint: 'mt-1 text-[10px] leading-relaxed text-slate-400',
   row: 'mt-2.5 flex flex-wrap items-center gap-2',
-  input: 'min-w-0 flex-1 rounded-xl border border-slate-800 bg-black/50 px-3 py-2 text-xs text-white outline-none transition focus:border-[#14B8A6]',
-  save: 'shrink-0 rounded-xl border border-emerald-500/40 bg-emerald-500/20 px-3 py-2 text-[11px] font-bold text-emerald-300 transition hover:bg-emerald-500/30 disabled:cursor-not-allowed disabled:opacity-40',
+  input: 'min-w-0 flex-1 rounded-xl border border-[#14B8A6]/25 bg-black/50 px-3 py-2 text-xs text-white outline-none transition focus:border-[#14B8A6]',
+  save: 'shrink-0 rounded-xl border border-[#14B8A6]/40 bg-[#14B8A6]/20 px-3 py-2 text-[11px] font-bold text-[#14F5D5] transition hover:bg-[#14B8A6]/30 disabled:cursor-not-allowed disabled:opacity-40',
   pending: 'mt-2 flex items-start gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-[10px] font-bold leading-relaxed text-amber-200',
-  active: 'mt-2 flex items-start gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-[10px] font-bold leading-relaxed text-emerald-200',
+  active: 'mt-2 flex items-start gap-2 rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-3 py-2 text-[10px] font-bold leading-relaxed text-[#14F5D5]',
   error: 'mt-2 rounded-xl border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-[10px] font-bold leading-relaxed text-rose-200',
   statusIcon: 'mt-0.5 h-3 w-3 shrink-0',
 } as const;

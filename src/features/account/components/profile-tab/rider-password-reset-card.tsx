@@ -104,7 +104,8 @@ export function RiderPasswordResetCard() {
   };
 
   return (
-    <Card className="border border-[#14B8A6]/20 bg-[#0B0F19]/90 text-white shadow-xl">
+    <Card className="relative overflow-hidden rounded-2xl border border-[#14B8A6]/20 bg-[#0B0F19]/90 text-white shadow-2xl backdrop-blur-xl">
+      <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-transparent via-[#14F5D5]/60 to-transparent" />
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base font-extrabold text-[#14F5D5]">
           <KeyRound className="h-5 w-5 text-[#14B8A6]" />
@@ -117,7 +118,7 @@ export function RiderPasswordResetCard() {
 
       <CardContent className="space-y-4">
         {currentEmail ? (
-          <div className="flex items-center gap-2 rounded-xl border border-white/5 bg-black/30 p-3">
+          <div className="flex items-center gap-2 rounded-xl border border-[#14B8A6]/20 bg-black/40 p-3">
             <Mail className="h-4 w-4 text-[#14F5D5] shrink-0" />
             <span className="text-xs text-slate-400">{t.linkedEmail}</span>
             <strong className="font-mono text-xs text-white ltr" dir="ltr">{currentEmail}</strong>
@@ -131,7 +132,7 @@ export function RiderPasswordResetCard() {
               placeholder={t.emailPlaceholder}
               value={inputEmail}
               onChange={(e) => setInputEmail(e.target.value)}
-              className="rounded-xl border-[#14B8A6]/30 bg-black/50 text-white"
+              className="rounded-xl border-[#14B8A6]/25 bg-black/40 text-white focus-visible:border-[#14B8A6] focus-visible:ring-1 focus-visible:ring-[#14B8A6]"
             />
           </div>
         )}
@@ -152,15 +153,15 @@ export function RiderPasswordResetCard() {
                 placeholder={t.emailPlaceholder}
                 value={inputEmail}
                 onChange={(e) => setInputEmail(e.target.value)}
-                className="mt-1.5 rounded-xl border-[#14B8A6]/30 bg-black/50 text-white text-xs"
+                className="mt-1.5 rounded-xl border-[#14B8A6]/25 bg-black/40 text-white text-xs focus-visible:border-[#14B8A6] focus-visible:ring-1 focus-visible:ring-[#14B8A6]"
               />
             )}
           </div>
         )}
 
         {successMessage ? (
-          <div className="flex items-start gap-2.5 rounded-xl border border-emerald-500/30 bg-emerald-950/40 p-3 text-xs font-bold leading-relaxed text-emerald-200">
-            <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
+          <div className="flex items-start gap-2.5 rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 p-3 text-xs font-bold leading-relaxed text-[#14F5D5]">
+            <CheckCircle2 className="h-4 w-4 text-[#14F5D5] shrink-0 mt-0.5" />
             <span>{successMessage}</span>
           </div>
         ) : null}
@@ -175,16 +176,16 @@ export function RiderPasswordResetCard() {
           type="button"
           onClick={() => void handleSendResetEmail()}
           disabled={isSending || (!currentEmail && !inputEmail.trim())}
-          className="w-full h-11 gap-2 rounded-xl bg-[#14B8A6] font-bold text-[#0B0F19] hover:bg-[#0fa596] disabled:opacity-50"
+          className="w-full h-11 gap-2 rounded-xl bg-[#14B8A6] font-bold text-[#0B0F19] shadow-lg shadow-[#14B8A6]/20 hover:bg-[#0fa596] disabled:opacity-50 transition-all"
         >
           {isSending ? (
             <>
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin text-[#0B0F19]" />
               <span>{t.sending}</span>
             </>
           ) : (
             <>
-              <Send className="h-4 w-4" />
+              <Send className="h-4 w-4 text-[#0B0F19]" />
               <span>{t.sendButton}</span>
             </>
           )}
@@ -193,4 +194,3 @@ export function RiderPasswordResetCard() {
     </Card>
   );
 }
-

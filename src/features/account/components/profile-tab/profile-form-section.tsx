@@ -65,6 +65,7 @@ export function ProfileFormSection({
 }: ProfileFormSectionProps) {
   return (
     <Card className={styles.style631_38}>
+      <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-transparent via-[#14F5D5]/60 to-transparent" />
       <CardHeader className={styles.style632_39}>
         <CardTitle className={styles.style633_40}>
           <Database className={styles.style634_41} />

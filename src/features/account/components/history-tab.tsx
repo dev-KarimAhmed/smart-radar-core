@@ -55,7 +55,6 @@ export function HistoryTab({ hideCaptainDiagnostics = false }: HistoryTabProps =
         t={t}
       />
 
-
       <BlockedCaptainsSection
         isArabic={isArabic}
         t={blockedState.t}
@@ -71,14 +70,14 @@ export function HistoryTab({ hideCaptainDiagnostics = false }: HistoryTabProps =
   if (state.language === 'en' && isPassenger) {
     return (
       <div className={cn(styles.style857_16, !isArabic && "font-sans")} dir={isArabic ? 'rtl' : 'ltr'}>
-        <Card className={styles.style858_17}>
-          <div className={styles.style859_18} />
-          <CardContent className={styles.style860_19}>
-            <h2 className={styles.style861_20}>
-              <History className={styles.style862_21} />
+        <Card className="relative overflow-hidden rounded-3xl border border-[#14B8A6]/20 bg-[#0B0F19]/90 shadow-2xl backdrop-blur-xl text-white">
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#14F5D5]/60 to-transparent" />
+          <CardContent className="p-5 sm:p-6 space-y-1">
+            <h2 className="text-lg font-black text-white flex items-center gap-2.5">
+              <History className="h-5 w-5 text-[#14F5D5]" />
               {t('title')}
             </h2>
-            <p className={styles.style865_22}>
+            <p className="text-xs text-slate-400 leading-relaxed font-sans">
               {t('subtitle')}
             </p>
           </CardContent>
@@ -104,14 +103,14 @@ export function HistoryTab({ hideCaptainDiagnostics = false }: HistoryTabProps =
   return (
     <div className={cn(styles.style985_56, !isArabic && "font-sans")} dir={isArabic ? 'rtl' : 'ltr'}>
       {/* 1. Header Card */}
-      <Card className={styles.style987_57}>
-        <div className={styles.style988_58} />
-        <CardContent className={styles.style989_59}>
-          <h2 className={styles.style990_60}>
-            <History className={styles.style991_61} />
+      <Card className="relative overflow-hidden rounded-3xl border border-[#14B8A6]/20 bg-[#0B0F19]/90 shadow-2xl backdrop-blur-xl text-white">
+        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#14F5D5]/60 to-transparent" />
+        <CardContent className="p-5 sm:p-6 space-y-1">
+          <h2 className="text-lg font-black text-white flex items-center gap-2.5">
+            <History className="h-5 w-5 text-[#14F5D5]" />
             {t('title')}
           </h2>
-          <p className={styles.style994_62}>
+          <p className="text-xs text-slate-400 leading-relaxed font-sans">
             {t('subtitle')}
           </p>
         </CardContent>

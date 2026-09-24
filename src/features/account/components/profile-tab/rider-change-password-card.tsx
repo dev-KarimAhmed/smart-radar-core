@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { CheckCircle2, Eye, EyeOff, KeyRound, Loader2, Lock, ShieldCheck } from 'lucide-react';
+import { CheckCircle2, Eye, EyeOff, Loader2, Lock, ShieldCheck } from 'lucide-react';
 import { supabase } from '@/lib/supabase-client';
 import { useToast } from '@/hooks/use-toast';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
@@ -105,7 +105,8 @@ export function RiderChangePasswordCard() {
   };
 
   return (
-    <Card className="border border-[#14B8A6]/20 bg-[#0B0F19]/90 text-white shadow-xl">
+    <Card className="relative overflow-hidden rounded-2xl border border-[#14B8A6]/20 bg-[#0B0F19]/90 text-white shadow-2xl backdrop-blur-xl">
+      <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-transparent via-[#14F5D5]/60 to-transparent" />
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base font-extrabold text-[#14F5D5]">
           <Lock className="h-5 w-5 text-[#14B8A6]" />
@@ -129,7 +130,7 @@ export function RiderChangePasswordCard() {
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder={t.newPasswordPlaceholder}
-                className="pe-10 rounded-xl border-[#14B8A6]/30 bg-black/50 text-white"
+                className="pe-10 rounded-xl border-[#14B8A6]/25 bg-black/40 text-white focus-visible:border-[#14B8A6] focus-visible:ring-1 focus-visible:ring-[#14B8A6]"
                 required
               />
               <button
@@ -155,7 +156,7 @@ export function RiderChangePasswordCard() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder={t.confirmPasswordPlaceholder}
-                className="pe-10 rounded-xl border-[#14B8A6]/30 bg-black/50 text-white"
+                className="pe-10 rounded-xl border-[#14B8A6]/25 bg-black/40 text-white focus-visible:border-[#14B8A6] focus-visible:ring-1 focus-visible:ring-[#14B8A6]"
                 required
               />
               <button
@@ -170,8 +171,8 @@ export function RiderChangePasswordCard() {
           </div>
 
           {successMessage ? (
-            <div className="flex items-start gap-2.5 rounded-xl border border-emerald-500/30 bg-emerald-950/40 p-3 text-xs font-bold leading-relaxed text-emerald-200">
-              <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
+            <div className="flex items-start gap-2.5 rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 p-3 text-xs font-bold leading-relaxed text-[#14F5D5]">
+              <CheckCircle2 className="h-4 w-4 text-[#14F5D5] shrink-0 mt-0.5" />
               <span>{successMessage}</span>
             </div>
           ) : null}
@@ -185,16 +186,16 @@ export function RiderChangePasswordCard() {
           <Button
             type="submit"
             disabled={isSubmitting || !newPassword || !confirmPassword}
-            className="w-full h-11 gap-2 rounded-xl bg-[#14B8A6] font-bold text-[#0B0F19] hover:bg-[#0fa596] disabled:opacity-50"
+            className="w-full h-11 gap-2 rounded-xl bg-[#14B8A6] font-bold text-[#0B0F19] shadow-lg shadow-[#14B8A6]/20 hover:bg-[#0fa596] disabled:opacity-50 transition-all"
           >
             {isSubmitting ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin text-[#0B0F19]" />
                 <span>{t.submitting}</span>
               </>
             ) : (
               <>
-                <ShieldCheck className="h-4 w-4" />
+                <ShieldCheck className="h-4 w-4 text-[#0B0F19]" />
                 <span>{t.submitButton}</span>
               </>
             )}
@@ -204,4 +205,3 @@ export function RiderChangePasswordCard() {
     </Card>
   );
 }
-
