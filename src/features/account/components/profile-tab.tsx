@@ -6,6 +6,7 @@ import { useProfileState } from './profile-tab/use-profile-state';
 import { ProfileHeaderCard } from './profile-tab/profile-header-card';
 import { ProfileFormSection } from './profile-tab/profile-form-section';
 import { BlockedCaptainsSection } from './profile-tab/blocked-captains-section';
+import { RiderPasswordResetCard } from './profile-tab/rider-password-reset-card';
 import { useTranslations } from "next-intl";
 
 export function ProfileTab() {
@@ -75,6 +76,10 @@ export function ProfileTab() {
         isLoadingDistricts={state.isLoadingDistricts}
         handleSubmit={state.handleSubmit}
       />
+
+      {!state.isCaptain && (
+        <RiderPasswordResetCard />
+      )}
 
       {!state.isCaptain && (
         <BlockedCaptainsSection

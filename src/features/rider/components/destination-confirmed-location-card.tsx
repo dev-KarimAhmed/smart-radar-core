@@ -42,12 +42,14 @@ export interface DestinationConfirmedLocationCardProps {
   externalLocationUrl: string;
   isRouteEstimateLoading: boolean;
   currentRouteEstimate: RoadRouteEstimate | null;
+  hideMetrics?: boolean;
 }
 
 export function DestinationConfirmedLocationCard({
   externalLocationUrl,
   isRouteEstimateLoading,
   currentRouteEstimate,
+  hideMetrics = false,
 }: DestinationConfirmedLocationCardProps) {
   const locationCopy = useTranslations('location');
   const t = useTranslations('riderView');
@@ -72,33 +74,35 @@ export function DestinationConfirmedLocationCard({
         </div>
       </div>
 
-      {isRouteEstimateLoading ? (
-        <div className={styles.routeStatus} role="status">
-          {locationCopy('status_calculating_route')}
-        </div>
-      ) : currentRouteEstimate ? (
-        <div className={styles.routeGrid}>
-          <div className={styles.routeCard}>
-            <span className={styles.routeCardLabel}>{locationCopy('lbl_calculated_distance')}</span>
-            <strong className={styles.routeCardValue}>
-              {currentRouteEstimate.distanceKm.toFixed(1)} {locationCopy('unit_km')}
-            </strong>
+      {!hideMetrics && (
+        isRouteEstimateLoading ? (
+          <div className={styles.routeStatus} role="status">
+            {locationCopy('status_calculating_route')}
           </div>
-          <div className={styles.routeCardDuration}>
-            <span className={styles.routeCardDurationLabel}>{locationCopy('lbl_estimated_duration')}</span>
-            <strong className={styles.routeCardDurationValue}>
-              {formatDurationLabel(currentRouteEstimate.durationMinutes, durationLabels)}
-            </strong>
-            <span className={styles.routeCardDurationHelper}>{locationCopy('helper_without_traffic')}</span>
+        ) : currentRouteEstimate ? (
+          <div className={styles.routeGrid}>
+            <div className={styles.routeCard}>
+              <span className={styles.routeCardLabel}>{locationCopy('lbl_calculated_distance')}</span>
+              <strong className={styles.routeCardValue}>
+                {currentRouteEstimate.distanceKm.toFixed(1)} {locationCopy('unit_km')}
+              </strong>
+            </div>
+            <div className={styles.routeCardDuration}>
+              <span className={styles.routeCardDurationLabel}>{locationCopy('lbl_estimated_duration')}</span>
+              <strong className={styles.routeCardDurationValue}>
+                {formatDurationLabel(currentRouteEstimate.durationMinutes, durationLabels)}
+              </strong>
+              <span className={styles.routeCardDurationHelper}>{locationCopy('helper_without_traffic')}</span>
+            </div>
           </div>
-        </div>
-      ) : null}
+        ) : null
+      )}
 
       {/* Development only. "The distance is wrong" has now been reported three times from a
           screenshot of the RESULT, which cannot tell a bad router from correct routing
           between the wrong two points — and those have completely different fixes. Putting
           the inputs on screen means the same screenshot answers the question. */}
-      {isDevBuild && currentRouteEstimate?.origin && currentRouteEstimate?.destination ? (
+      {!hideMetrics && isDevBuild && currentRouteEstimate?.origin && currentRouteEstimate?.destination ? (
         <p className={styles.debugLine} dir="ltr">
           {currentRouteEstimate.source}
           {' · from '}

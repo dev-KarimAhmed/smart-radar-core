@@ -120,6 +120,7 @@ const AD_STAGE_COPY = {
     emptyDescription: 'لا توجد إعلانات نشطة في منطقتك الآن. سنعرض لك العروض فور توفرها.',
     emptyFetchIssue: 'لا توجد إعلانات متاحة الآن. سنعرض لك العروض فور توفرها.',
     emptyButton: 'ابدأ رحلتك',
+    emptyButtonRider: 'أعلن هنا',
     fallbackDistrict: 'عمّان',
     fallbackGovernorate: 'العاصمة',
   },
@@ -145,6 +146,7 @@ const AD_STAGE_COPY = {
     emptyDescription: 'No active ads are available in your area right now. We will show offers as soon as they are available.',
     emptyFetchIssue: 'No ads are available right now. We will show offers as soon as they are available.',
     emptyButton: 'Start your ride',
+    emptyButtonRider: 'Advertise here',
     fallbackDistrict: 'Amman',
     fallbackGovernorate: 'Capital',
   },
@@ -167,13 +169,18 @@ function filterAdsByLocalContext(userDistrict: string, userGovernorate: string, 
   });
 }
 
-function buildBrandPlaceholderAd(copy: AdStageCopy, description: string = copy.emptyDescription) {
+function buildBrandPlaceholderAd(
+  copy: AdStageCopy,
+  description: string = copy.emptyDescription,
+  audience?: AdAudience,
+) {
+  const isRider = audience === 'rider';
   return {
     id: 'brand-empty-state',
     title: copy.emptyTitle,
     description,
     bannerUrl: PLACEHOLDER_BANNER_URL,
-    buttonText: copy.emptyButton,
+    buttonText: isRider ? copy.emptyButtonRider : copy.emptyButton,
     content: {
       title: copy.emptyTitle,
       description,
@@ -300,7 +307,7 @@ export function AdStage({
     if (filteredAds.length > 0) return filteredAds;
 
     return [
-      buildBrandPlaceholderAd(copy, hasAdFetchIssue ? copy.emptyFetchIssue : copy.emptyDescription),
+      buildBrandPlaceholderAd(copy, hasAdFetchIssue ? copy.emptyFetchIssue : copy.emptyDescription, audience),
     ];
   }, [audience, copy, hasAdFetchIssue, liveDistrict, liveGovernorate, serverAds]);
 
@@ -571,7 +578,17 @@ export function AdStage({
                 ad={ad}
                 isHearted={heartedAdIds.includes(ad.id)}
                 onHeart={toggleHeart}
-                onOpen={ad.isPlaceholder ? undefined : openTakeover}
+                onOpen={
+                  ad.isPlaceholder
+                    ? audience === 'rider'
+                      ? () => {
+                          if (typeof window !== 'undefined') {
+                            window.location.href = '/register/advertiser';
+                          }
+                        }
+                      : undefined
+                    : openTakeover
+                }
                 badgeText={getBadgeText(ad, copy)}
                 showHeart={!ad.isPlaceholder}
                 className={cardClassName}

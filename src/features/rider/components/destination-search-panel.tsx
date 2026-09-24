@@ -170,6 +170,7 @@ export function DestinationSearchPanel({
           externalLocationUrl={clipboard.externalLocationUrl}
           isRouteEstimateLoading={isRouteEstimateLoading}
           currentRouteEstimate={currentRouteEstimate}
+          hideMetrics={isCaptainScanPreviewActive}
         />
       ) : null}
 
