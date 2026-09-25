@@ -32,7 +32,7 @@ const copy = {
     linkedEmail: 'البريد الإلكتروني المرتبط بالحساب:',
     noEmailLinked: 'لم يتم ربط بريد إلكتروني بحسابك بعد. أدخل بريدك لإرسال رابط الاسترجاع وحفظه.',
     emailPlaceholder: 'you@example.com',
-    sendResetButton: 'إرسال رابط إعادة تعيين الرمز',
+    sendResetButton: 'إرسال رابط إعادة تعيين كلمة المرور',
     sendingLink: 'جاري إرسال الرابط…',
     resetLinkSuccess: (email: string) => `تم إرسال رابط آمن إلى ${email}. تفقّد صندوق الوارد أو الرسائل غير المرغوب فيها (Spam).`,
     emailErrorEmpty: 'يرجى إدخال بريد إلكتروني صالح أولاً.',
@@ -275,16 +275,16 @@ export function RiderSecuritySection() {
           <Button
             type="submit"
             disabled={isSubmittingPassword || !newPassword || !confirmPassword}
-            className="w-full h-11 gap-2 rounded-xl bg-[#14B8A6] font-bold text-[#0B0F19] shadow-lg shadow-[#14B8A6]/20 hover:bg-[#0fa596] disabled:opacity-50 transition-all cursor-pointer"
+            className="w-full h-12 gap-2.5 rounded-2xl bg-[#14B8A6] font-black text-sm text-[#0B0F19] shadow-lg shadow-[#14B8A6]/25 hover:bg-[#0fa596] active:scale-[0.99] disabled:opacity-50 transition-all cursor-pointer"
           >
             {isSubmittingPassword ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin text-[#0B0F19]" />
+                <Loader2 className="h-4.5 w-4.5 animate-spin text-[#0B0F19]" />
                 <span>{t.submitting}</span>
               </>
             ) : (
               <>
-                <ShieldCheck className="h-4 w-4 text-[#0B0F19]" />
+                <ShieldCheck className="h-4.5 w-4.5 text-[#0B0F19]" />
                 <span>{t.submitButton}</span>
               </>
             )}
@@ -325,23 +325,30 @@ export function RiderSecuritySection() {
           )}
 
           {currentEmail && (
-            <div className="space-y-1">
-              <button
-                type="button"
-                onClick={() => setInputEmail((prev) => (prev ? '' : currentEmail))}
-                className="text-[11px] font-bold text-slate-400 hover:text-[#14F5D5] transition-colors cursor-pointer"
-              >
-                {inputEmail ? t.cancelCustomEmail : t.useDifferentEmail}
-              </button>
+            <div className="space-y-2 pt-0.5">
+              <div className="flex items-center justify-start">
+                <button
+                  type="button"
+                  onClick={() => setInputEmail((prev) => (prev ? '' : currentEmail))}
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-[#14F5D5] hover:text-white transition-colors cursor-pointer py-1"
+                >
+                  <Mail className="h-3.5 w-3.5 text-[#14F5D5]" />
+                  <span className="underline underline-offset-4 decoration-[#14F5D5]/50 hover:decoration-white">
+                    {inputEmail ? t.cancelCustomEmail : t.useDifferentEmail}
+                  </span>
+                </button>
+              </div>
               {inputEmail !== '' && (
-                <Input
-                  type="email"
-                  dir="ltr"
-                  placeholder={t.emailPlaceholder}
-                  value={inputEmail}
-                  onChange={(e) => setInputEmail(e.target.value)}
-                  className="mt-1.5 rounded-xl border-[#14B8A6]/25 bg-black/40 text-white text-xs focus-visible:border-[#14B8A6] focus-visible:ring-1 focus-visible:ring-[#14B8A6]"
-                />
+                <div className="space-y-1">
+                  <Input
+                    type="email"
+                    dir="ltr"
+                    placeholder={t.emailPlaceholder}
+                    value={inputEmail}
+                    onChange={(e) => setInputEmail(e.target.value)}
+                    className="rounded-xl border-[#14B8A6]/40 bg-black/60 text-white text-xs focus-visible:border-[#14B8A6] focus-visible:ring-1 focus-visible:ring-[#14B8A6]"
+                  />
+                </div>
               )}
             </div>
           )}
@@ -363,16 +370,16 @@ export function RiderSecuritySection() {
             type="button"
             onClick={() => void handleSendResetEmail()}
             disabled={isSendingReset || (!currentEmail && !inputEmail.trim())}
-            className="w-full h-11 gap-2 rounded-xl border border-[#14B8A6]/40 bg-[#14B8A6]/15 font-bold text-[#14F5D5] shadow-lg shadow-[#14B8A6]/10 hover:bg-[#14B8A6] hover:text-[#0B0F19] disabled:opacity-50 transition-all cursor-pointer"
+            className="w-full h-12 gap-2.5 rounded-2xl border-2 border-[#14F5D5]/40 bg-gradient-to-r from-[#14B8A6]/25 via-[#14B8A6]/35 to-[#14B8A6]/25 font-black text-sm text-[#14F5D5] shadow-lg shadow-[#14B8A6]/15 hover:bg-[#14B8A6] hover:text-[#0B0F19] hover:border-[#14B8A6] active:scale-[0.99] disabled:opacity-40 transition-all cursor-pointer"
           >
             {isSendingReset ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin text-current" />
+                <Loader2 className="h-4.5 w-4.5 animate-spin text-current" />
                 <span>{t.sendingLink}</span>
               </>
             ) : (
               <>
-                <Send className="h-4 w-4 text-current" />
+                <Send className="h-4.5 w-4.5 text-current" />
                 <span>{t.sendResetButton}</span>
               </>
             )}

@@ -99,15 +99,14 @@ export function ProfileTab() {
       {/* 4. Security & Password Section */}
       <RiderSecuritySection />
 
-      {/* 5. Elegant Tasteful Logout Button */}
-      <div className="pt-2">
+      {/* 5. Clear, High-Contrast Logout Button */}
+      <div className="pt-3">
         <Button
           type="button"
           onClick={state.logout}
-          variant="outline"
-          className="h-12 w-full gap-2 rounded-2xl border border-rose-500/20 bg-rose-950/20 text-xs font-bold text-rose-300 hover:bg-rose-500 hover:text-white transition-all shadow-sm cursor-pointer"
+          className="h-12 w-full gap-2.5 rounded-2xl border-2 border-red-500/40 bg-red-600/15 text-sm font-black text-red-200 hover:bg-red-600 hover:text-white hover:border-red-600 transition-all shadow-lg shadow-red-950/40 cursor-pointer"
         >
-          <LogOut className="h-4 w-4" />
+          <LogOut className="h-4.5 w-4.5 text-red-400 group-hover:text-white transition-colors" />
           <span>{state.t('logout')}</span>
         </Button>
       </div>
