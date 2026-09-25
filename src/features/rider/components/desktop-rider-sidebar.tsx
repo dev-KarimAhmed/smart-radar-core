@@ -129,15 +129,16 @@ export function DesktopRiderSidebar({
           {text.requestRide}
         </Button>
         <Button className={styles.notifications} onClick={onNotify} variant="ghost">
-          <Bell className={styles.notificationIcon} />
-          {text.notifications}
-          <div className="relative flex items-center">
+          <span>{text.notifications}</span>
+          <div className="relative flex items-center justify-center">
             <Bell className={styles.notificationIcon} />
             {hasUnread && (
-              <span className="absolute -top-1 -end-1 h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
+              <span className="absolute -top-1 -end-1 flex h-2.5 w-2.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75" />
+                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-rose-500 ring-1 ring-[#0A0F1D]" />
+              </span>
             )}
           </div>
-          <span>{text.notifications}</span>
         </Button>
       </div>
 

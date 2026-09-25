@@ -212,10 +212,15 @@ export function AppHeader({ sidebar }: { sidebar?: ReactNode }) {
                 className={styles.notification}
                 aria-label={tAuto('key_a41331b1')}
               >
-                <Bell className={styles.icon} />
-                {hasUnread && (
-                  <span className="absolute top-2.5 end-2.5 h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-[#0A0F1D] animate-pulse" />
-                )}
+                <div className="relative flex items-center justify-center">
+                  <Bell className={styles.icon} />
+                  {hasUnread && (
+                    <span className="absolute -top-1 -end-1 flex h-2.5 w-2.5">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75" />
+                      <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-rose-500 ring-1 ring-[#0A0F1D]" />
+                    </span>
+                  )}
+                </div>
               </Button>
             </PopoverTrigger>
             <PopoverContent
@@ -278,14 +283,6 @@ export function AppHeader({ sidebar }: { sidebar?: ReactNode }) {
               </div>
             </PopoverContent>
           </Popover>
-          <Button
-            size="icon"
-            variant="ghost"
-            className={styles.notification}
-            onClick={() => toast({ title: tAuto('key_a41331b1'), description: tAuto('key_9608e3b5') })}
-          >
-            <Bell className={styles.icon} />
-          </Button>
           <Button
             type="button"
             variant="ghost"
