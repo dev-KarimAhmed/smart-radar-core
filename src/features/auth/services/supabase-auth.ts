@@ -141,6 +141,17 @@ export async function signInRiderWithPhone(input: RiderSupabaseSignInInput) {
   });
 
   if (error) throw error;
+
+  if (input.expectedRole && data.user) {
+    const rawRole = (data.user.user_metadata?.role as string) || 'RIDER';
+    const userRole = rawRole.toUpperCase();
+    if (userRole !== input.expectedRole) {
+      await supabase.auth.signOut();
+      clearSupabaseSessionCache();
+      throw new Error(`role_mismatch:${userRole}:${input.expectedRole}`);
+    }
+  }
+
   await syncCaptainProfileFromAuthUser(data.user);
   cacheSupabaseSession(data.session);
   return data;

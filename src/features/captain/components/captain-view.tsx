@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useTranslations } from 'next-intl';
-import { AlertTriangle, History, Languages, Loader2, LogOut, Map, ShieldAlert, User, Wallet, WifiOff } from 'lucide-react';
+import { AlertTriangle, History, Languages, Loader2, LogOut, Map, ShieldAlert, User, Wallet, WifiOff, Download } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import type { Trip } from '@/core/types';
 import { useAuth } from '@/hooks/use-auth';
@@ -21,6 +21,7 @@ import { getCurrencyLabel } from '@/shared/services/currency-label';
 import { useLiveCurrencyFromLocation } from '@/shared/hooks/use-live-currency-from-location';
 import { ActiveTripTracker } from './active-trip-tracker';
 import { CaptainActiveTripOverlay } from './captain-active-trip-overlay';
+import { usePwaInstall } from '@/hooks/usePwaInstall';
 import { BiddingProposalSheet } from './bidding-proposal-sheet';
 import { DriverRatingModal } from './driver-rating-modal';
 import { PricePerKmSetupModal } from './price-per-km-setup-modal';
@@ -100,6 +101,7 @@ export function DriverViewTab() {
   const { isTimeTamperingDetected } = useDeviceTimeGuard();
   const { isOffline, isReconnecting } = useConnectionGuard();
   const countryConfig = useCountryConfig(user?.countryId);
+  const { isStandalone, canPromptNative, triggerNativeInstall, platformEnv } = usePwaInstall();
   const isDriverLocationLive = driverOps?.driverLocation && (driverOps.driverLocation as { source?: string }).source === 'gps';
   const { currencyCode: liveCurrencyCode, countryCode: liveCountryCode } = useLiveCurrencyFromLocation(
     isDriverLocationLive ? driverOps?.driverLocation : null,
@@ -367,6 +369,20 @@ export function DriverViewTab() {
               <h1 className={styles.style158_7}>{t('title')}</h1>
             </div>
             <div className={styles.style160_8}>
+              {(!isStandalone && (canPromptNative || platformEnv.isIOS)) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (canPromptNative) void triggerNativeInstall();
+                    else alert(direction === 'rtl' ? 'يرجى الضغط على خيارات المتصفح (مشاركة) واختيار "إضافة إلى الشاشة الرئيسية".' : 'Please tap the browser options (Share) and select "Add to Home Screen".');
+                  }}
+                  title={direction === 'rtl' ? 'تثبيت التطبيق' : 'Install App'}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-2.5 py-2 text-[#14F5D5] transition hover:bg-[#14B8A6]/20 sm:rounded-2xl sm:px-4 sm:py-3"
+                >
+                  <Download className="h-4 w-4" />
+                  <span className={styles.style186_22}>{direction === 'rtl' ? 'تثبيت' : 'Install'}</span>
+                </button>
+              )}
               <button
                 type="button"
                 onClick={toggleLanguage}

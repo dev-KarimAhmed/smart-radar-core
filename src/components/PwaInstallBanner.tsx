@@ -32,12 +32,13 @@ export function PwaInstallBanner() {
 
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // If already standalone (installed) or dismissed by user, do not render banner
-  if (isStandalone || isDismissed) {
+  const isIOS = platformEnv.isIOS;
+
+  // If already standalone (installed) or dismissed by user, do not render banner.
+  // Also hide if we can't natively prompt and it's not iOS (meaning it's already installed on Android/PC or unsupported).
+  if (isStandalone || isDismissed || (!canPromptNative && !isIOS)) {
     return null;
   }
-
-  const isIOS = platformEnv.isIOS;
 
   return (
     <aside

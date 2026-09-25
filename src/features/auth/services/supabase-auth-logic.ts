@@ -41,6 +41,7 @@ export interface RiderSupabaseSignInInput {
   phone: string;
   password: string;
   rememberMe?: boolean;
+  expectedRole?: 'RIDER' | 'CAPTAIN' | 'ADVERTISER' | 'DELEGATE';
 }
 
 export interface RiderAuthMetadata {
@@ -109,7 +110,8 @@ export function isInvalidPhoneOrPasswordError(error: unknown) {
   const isInvalidCredentials =
     code.includes('invalid_credentials') ||
     message.includes('invalid login') ||
-    message.includes('invalid credentials');
+    message.includes('invalid credentials') ||
+    message.includes('role_mismatch');
 
   return isInvalidCredentials && !code.includes('otp') && !message.includes('token');
 }
@@ -197,7 +199,11 @@ export function mapSupabaseAuthError(error: unknown) {
     return 'رقم الهاتف غير صحيح. اكتبه مع رمز الدولة مثل +962 أو +20.';
   }
 
-  if (error instanceof Error && /^(يرجى|كلمة المرور|قيمة)/.test(error.message)) return error.message;
+  if (message.startsWith('role_mismatch:')) {
+    return 'رقم الهاتف أو كلمة المرور غير صحيحة.';
+  }
+
+  if (error instanceof Error && /^(يرجى|كلمة المرور|قيمة|هذه)/.test(error.message)) return error.message;
 
   return 'تعذر إكمال العملية. يرجى المحاولة مرة أخرى.';
 }

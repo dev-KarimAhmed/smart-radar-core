@@ -1,6 +1,6 @@
 'use client';
 
-import { Archive, Bell, History, Home, Languages, LogOut, PlusCircle, User } from 'lucide-react';
+import { Archive, Bell, History, Home, Languages, LogOut, PlusCircle, User, Download } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
@@ -8,6 +8,7 @@ import type { AppLanguage } from '@/lib/i18n/simple-copy';
 import { cn } from '@/lib/utils';
 import { useTranslations } from "next-intl";
 import { useNotifications } from '@/shared/hooks/use-notifications';
+import { usePwaInstall } from '@/hooks/usePwaInstall';
 
 const styles = {
   root: 'fixed inset-y-0 start-0 z-[140] hidden w-[288px] flex-col border-e border-white/[0.06] bg-[#0A0F1D]/95 shadow-[22px_0_70px_rgba(0,0,0,0.38)] backdrop-blur-xl lg:flex',
@@ -83,6 +84,7 @@ export function DesktopRiderSidebar({
   const tAuto = useTranslations('auto');
   const { isArabic, toggleLanguage } = useDashboardLanguage();
   const { hasUnread } = useNotifications();
+  const { isStandalone, canPromptNative, triggerNativeInstall, platformEnv } = usePwaInstall();
   const text = copy[language];
   const directionClass = language === 'ar' ? styles.identityRtl : styles.identityLtr;
   const items = [
@@ -128,6 +130,18 @@ export function DesktopRiderSidebar({
           <PlusCircle className={styles.actionIcon} />
           {text.requestRide}
         </Button>
+        {(!isStandalone && (canPromptNative || platformEnv.isIOS)) && (
+          <Button
+            className="h-10 w-full justify-center gap-2 rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 text-[#14F5D5] hover:bg-[#14B8A6]/20 transition-colors"
+            onClick={() => {
+              if (canPromptNative) void triggerNativeInstall();
+              else alert(isArabic ? 'يرجى الضغط على خيارات المتصفح (مشاركة) واختيار "إضافة إلى الشاشة الرئيسية".' : 'Please tap the browser options (Share) and select "Add to Home Screen".');
+            }}
+          >
+            <Download className="h-4 w-4" />
+            {isArabic ? 'تثبيت التطبيق' : 'Install App'}
+          </Button>
+        )}
         <Button className={styles.notifications} onClick={onNotify} variant="ghost">
           <span>{text.notifications}</span>
           <div className="relative flex items-center justify-center">

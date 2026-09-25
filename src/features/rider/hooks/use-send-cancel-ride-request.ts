@@ -193,7 +193,6 @@ export function useSendCancelRideRequest(params: {
     if (!state.requestId) {
       resetRideDraftState();
       dispatch({ type: 'RESET_TO_IDLE' });
-      onExitRequestFlow?.();
       return;
     }
 
@@ -204,7 +203,6 @@ export function useSendCancelRideRequest(params: {
 
       resetRideDraftState();
       dispatch({ type: 'RESET_TO_IDLE' });
-      onExitRequestFlow?.();
       toast({
         title: t('request.cancelledTitle'),
         description: t('request.cancelledDescription'),
@@ -224,7 +222,6 @@ export function useSendCancelRideRequest(params: {
         pendingAcceptedOfferIdRef.current = null;
         resetRideDraftState();
         dispatch({ type: 'RESET_TO_IDLE' });
-        onExitRequestFlow?.();
         return;
       }
 

@@ -122,19 +122,23 @@ export function parseGoogleMapsLocation(value: string): ParsedMapLocation | null
     text = text.replace(/%21/gi, '!').replace(/%2c/gi, ',');
   }
 
-  // Google place pages and short-link redirects often embed the map center as
-  // longitude first (`!2d{lng}!3d{lat}`) inside the page bootstrap payload.
-  // Note: `!1m3!1d{zoom}!2d{lng}!3d{lat}` is the map-framing viewport camera, NOT
-  // a place pin. We must ignore `!1m3!1d` viewport matches so they don't hijack the location.
-  const placePayloadMatches = text.matchAll(
-    /(!1m3!1d[\d.]+)?!2d(-?\d+(?:\.\d+)?)!3d(-?\d+(?:\.\d+)?)/g,
-  );
-  for (const m of placePayloadMatches) {
-    if (!m[1]) {
-      const lng = Number(m[2]);
-      const lat = Number(m[3]);
-      if (isValidLocation(lat, lng)) return { lat, lng };
-    }
+  const isHtml = /<html|<!doctype|<body|<meta\s+/i.test(text);
+
+  const patterns = [
+    // `!8m2!3d{lat}!4d{lng}` — the canonical place marker in a /maps/place data= payload.
+    /!8m2!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/,
+    // Same marker without the !8m2 wrapper.
+    /!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/,
+    // Coordinates the URL states outright as the target.
+    /(?:[?&](?:q|query|destination|daddr)=)(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/,
+  ];
+
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (!match) continue;
+    const lat = Number(match[1]);
+    const lng = Number(match[2]);
+    if (isValidLocation(lat, lng)) return { lat, lng };
   }
 
   // Directions URLs (`/maps/dir/{origin}/{destination}/@{viewCenter}/data=!...
@@ -154,41 +158,36 @@ export function parseGoogleMapsLocation(value: string): ParsedMapLocation | null
     if (isValidLocation(lat, lng)) return { lat, lng };
   }
 
-  // Ordered most-specific-first. The comment on dirWaypointMatch above spells out why
-  // `@lat,lng` must lose to any real pin marker — it is the map-framing viewport centre,
-  // not the destination — but `@` was nonetheless listed FIRST here, ahead of the standard
-  // `!3d{lat}!4d{lng}` place marker. So every /maps/place/ link whose camera was not
-  // sitting exactly on the place resolved to wherever the camera happened to be, and the
-  // rider was quoted a distance and a duration for a trip to that point. It is worse when
-  // the page HTML is scanned (readGoogleMapsPageLocation): the first `@lat,lng` anywhere in
-  // a Google Maps document is usually a thumbnail's static-map URL, unrelated to the place.
-  const isHtml = /<html|<!doctype|<body|<meta\s+/i.test(text);
-
-  const patterns = [
-    // `!8m2!3d{lat}!4d{lng}` — the canonical place marker in a /maps/place data= payload.
-    /!8m2!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/,
-    // Same marker without the !8m2 wrapper.
-    /!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/,
-    // Coordinates the URL states outright as the target.
-    /(?:[?&](?:q|query|destination|daddr)=)(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/,
-  ];
+  // Google place pages and short-link redirects often embed the map center as
+  // longitude first (`!2d{lng}!3d{lat}`) inside the page bootstrap payload.
+  // Note: `!1m3!1d{zoom}!2d{lng}!3d{lat}` is the map-framing viewport camera, NOT
+  // a place pin. We must ignore `!1m3!1d` viewport matches so they don't hijack the location.
+  const placePayloadMatches = text.matchAll(
+    /(!1m3!1d[\d.]+)?!2d(-?\d+(?:\.\d+)?)!3d(-?\d+(?:\.\d+)?)/g,
+  );
+  for (const m of placePayloadMatches) {
+    if (!m[1]) {
+      const lng = Number(m[2]);
+      const lat = Number(m[3]);
+      if (isValidLocation(lat, lng)) return { lat, lng };
+    }
+  }
 
   // Only allow URL parameters like ?center= or camera @lat,lng on URL/plain text, never in HTML documents
   // (where staticmap?center= is Google's GeoIP default for the caller server).
   if (!isHtml) {
-    patterns.push(
+    const fallbackPatterns = [
       /(?:[?&](?:ll|center)=)(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/,
       /(?:[?&](?:ll|center)=)(-?\d+(?:\.\d+)?)(?:%2c|%2C|,|\s*)(-?\d+(?:\.\d+)?)/i,
       /@(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/,
-    );
-  }
-
-  for (const pattern of patterns) {
-    const match = text.match(pattern);
-    if (!match) continue;
-    const lat = Number(match[1]);
-    const lng = Number(match[2]);
-    if (isValidLocation(lat, lng)) return { lat, lng };
+    ];
+    for (const pattern of fallbackPatterns) {
+      const match = text.match(pattern);
+      if (!match) continue;
+      const lat = Number(match[1]);
+      const lng = Number(match[2]);
+      if (isValidLocation(lat, lng)) return { lat, lng };
+    }
   }
 
   // The loose decimal-pair pattern must ONLY run on short non-HTML strings (e.g. user input or a short URL).

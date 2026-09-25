@@ -24,10 +24,14 @@ export interface LiveGeolocationResult {
  */
 const MIN_GPS_DISTANCE_CHANGE_DEG = 0.00008;
 
+let cachedLastKnownLocation: LiveGeolocationPoint | null = null;
+
 export function useLiveGeolocation({ fallbackLocation }: { fallbackLocation: LiveGeolocationPoint }): LiveGeolocationResult {
   const cleanupWatchRef = React.useRef<(() => void) | null>(null);
   const lastCoordsRef = React.useRef<LiveGeolocationPoint | null>(null);
-  const [location, setLocation] = React.useState<LiveGeolocationPoint>(fallbackLocation);
+  const [location, setLocation] = React.useState<LiveGeolocationPoint>(
+    cachedLastKnownLocation || fallbackLocation
+  );
   const [status, setStatus] = React.useState<LiveGeolocationStatus>('locating');
   const fallbackLat = fallbackLocation.lat;
   const fallbackLng = fallbackLocation.lng;
@@ -61,6 +65,7 @@ export function useLiveGeolocation({ fallbackLocation }: { fallbackLocation: Liv
           Math.abs(nextLng - last.lng) > MIN_GPS_DISTANCE_CHANGE_DEG
         ) {
           lastCoordsRef.current = { lat: nextLat, lng: nextLng };
+          cachedLastKnownLocation = lastCoordsRef.current;
           setLocation({
             lat: nextLat,
             lng: nextLng,

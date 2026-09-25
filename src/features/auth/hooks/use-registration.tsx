@@ -440,6 +440,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
           phone: normalizedPhone.phone,
           password: authPassword,
           rememberMe,
+          expectedRole: toSupabaseAuthRole(role),
         });
 
         toast({

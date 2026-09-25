@@ -45,7 +45,6 @@ export function RiderModals({
           onClose={() => {
             dispatch({ type: 'SUBMIT_RATING' });
             onTripFullyEnded();
-            onExitRequestFlow?.();
           }}
           tripId={state.requestId}
           captainId={state.completedTrip.captainId}
@@ -64,7 +63,6 @@ export function RiderModals({
             onRatingSuccess();
             dispatch({ type: 'SUBMIT_RATING' });
             onTripFullyEnded();
-            onExitRequestFlow?.();
           }}
         />
       )}
