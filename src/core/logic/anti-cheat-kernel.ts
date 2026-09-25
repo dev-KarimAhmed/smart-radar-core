@@ -114,7 +114,8 @@ export function getStoredRiderImmunity(riderId: string): RiderImmunityRecord {
   try {
     const raw = localStorage.getItem(`${RIDER_IMMUNITY_STORAGE_KEY_PREFIX}${riderId}`);
     if (!raw) return AntiCheatKernel.createDefaultRecord(riderId);
-    return JSON.parse(raw) as RiderImmunityRecord;
+    const parsed = JSON.parse(raw) as RiderImmunityRecord;
+    return { ...parsed, isSuspended: false };
   } catch {
     return AntiCheatKernel.createDefaultRecord(riderId);
   }

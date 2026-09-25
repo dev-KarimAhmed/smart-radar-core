@@ -11,11 +11,6 @@ import {
   createRideRequest,
 } from '../services/rider-server-marketplace';
 import { getLocalizedMarketplaceError } from '../services/rider-offer-presentation';
-import {
-  AntiCheatKernel,
-  getStoredRiderImmunity,
-  saveStoredRiderImmunity,
-} from '@/core/logic/anti-cheat-kernel';
 import type { RiderDestination, RiderMachineAction, RiderMachineState } from '../state/rider-state-machine';
 import type { RiderLocation } from '../components/rider-map';
 
@@ -87,17 +82,6 @@ export function useSendCancelRideRequest(params: {
         variant: 'destructive',
         title: t('request.loginRequiredTitle'),
         description: t('request.loginRequiredDescription'),
-      });
-      return;
-    }
-
-    // Sovereign Constitution Chapter 4: Anti-Cheat Immunity Suspension Gate
-    const immunity = getStoredRiderImmunity(userId);
-    if (immunity.isSuspended) {
-      toast({
-        variant: 'destructive',
-        title: '🚫 تم تعليق حسابك',
-        description: 'تم تقييد الحساب بسبب تكرار الإلغاءات المتتالية وانخفاض المناعة السلوكية عن 4.2.',
       });
       return;
     }
@@ -217,20 +201,6 @@ export function useSendCancelRideRequest(params: {
 
     try {
       await cancelRideRequest(supabase, state.requestId);
-
-      if (userId) {
-        const currentImmunity = getStoredRiderImmunity(userId);
-        const evalResult = AntiCheatKernel.evaluateCancellationPenalty(currentImmunity);
-        saveStoredRiderImmunity(evalResult.updatedRecord);
-
-        if (evalResult.penaltyApplied) {
-          toast({
-            variant: 'destructive',
-            title: '⚠️ كبح الإلغاء المتكرر',
-            description: `تم خصم 0.5 من رصيد المناعة السلوكية لتكرار الإلغاء (3 مرات). رصيدك الحالي: ${evalResult.updatedRecord.immunityScore}`,
-          });
-        }
-      }
 
       resetRideDraftState();
       dispatch({ type: 'RESET_TO_IDLE' });

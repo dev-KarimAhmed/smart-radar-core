@@ -30,17 +30,6 @@ const styles = {
   subtitle: "text-xs text-slate-400",
   cancelButton: "h-11 rounded-xl border border-red-500/30 bg-red-600/15 px-4 text-sm font-black text-red-100 hover:bg-red-600/25 flex items-center justify-center gap-1 cursor-pointer",
   cancelIcon: "h-4 w-4",
-  // One quiet line, not a four-metric card.
-  //
-  // This block used to stack "طلب الرحلة المحفوظ" above a grid carrying the request id and
-  // the literal words "محفوظ في قاعدة البيانات" — diagnostics, in the most valuable space on
-  // the screen, pushing the first actual offer below the fold. The destination is the only
-  // part of it the rider needs, and it was the one being truncated.
-  savedCard: "flex flex-wrap items-baseline gap-x-2 gap-y-1 rounded-xl border border-white/5 bg-white/[0.03] px-3.5 py-2.5",
-  savedIcon: "h-3.5 w-3.5 shrink-0 self-center text-[#14F5D5]",
-  savedLabel: "text-[11px] font-bold text-slate-400",
-  savedDestination: "min-w-0 flex-1 text-sm font-black text-white",
-  savedRequestId: "shrink-0 font-mono text-[10px] font-bold tracking-wider text-slate-500",
   loadingCard: "flex min-h-36 flex-col items-center justify-center gap-3 rounded-2xl border border-white/5 bg-white/5",
   loadingIcon: "h-9 w-9 animate-spin text-[#14F5D5]",
   loadingText: "px-4 text-center text-xs font-bold leading-relaxed text-slate-300",
@@ -103,9 +92,6 @@ export function ReceivingOffersScreen({
 
   const hasOffers = state.offers.length > 0;
 
-
-  const shortRequestId = state.requestId ? state.requestId.slice(0, 8).toUpperCase() : t('destination.notAvailable');
-
   const labels = React.useMemo(() => ({
     fallbackCaptainName: t('offerPresentation.fallbackCaptainName'),
     notAvailable: t('offerPresentation.notAvailable'),
@@ -141,9 +127,6 @@ export function ReceivingOffersScreen({
         <div className={styles.headerText}>
           <p className={styles.eyebrow}>{hasOffers ? t('offers.arrived') : t('offers.searchingCaptain')}</p>
           <h2 className={styles.title}>{hasOffers ? t('offers.chooseCaptain') : t('request.visibleTitle')}</h2>
-          {/* Only while waiting. Once cards are on screen the line said "اختر العرض المناسب
-              لك" directly under a heading that already says "اختر السائق" — a third of a
-              screen of chrome restating itself above the first offer. */}
           {!hasOffers ? (
             <p className={styles.subtitle}>{t('offers.waitingDescription')}</p>
           ) : null}
@@ -159,14 +142,19 @@ export function ReceivingOffersScreen({
         </button>
       </div>
 
-      {state.requestId ? (
-        <div className={styles.savedCard}>
-          <MapPin className={styles.savedIcon} aria-hidden="true" />
-          <span className={styles.savedLabel}>{t('destination.label')}</span>
-          <span className={styles.savedDestination}>
-            {state.destination?.label || t('destination.notAvailable')}
-          </span>
-          <span className={styles.savedRequestId} dir="ltr">{shortRequestId}</span>
+      {state.destination?.label || state.requestId ? (
+        <div className="flex items-center gap-3 rounded-2xl border border-[#14B8A6]/25 bg-gradient-to-r from-[#14B8A6]/10 via-[#0B0F19]/90 to-[#14B8A6]/5 p-3.5 shadow-lg shadow-black/30 backdrop-blur-xl">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/15 text-[#14F5D5] shadow-sm shadow-[#14B8A6]/10">
+            <MapPin className="h-5 w-5 text-[#14F5D5]" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <span className="block text-[10px] font-black uppercase tracking-wider text-[#14F5D5]">
+              {t('destination.label')}
+            </span>
+            <p className="mt-0.5 truncate text-sm font-bold text-white leading-tight" dir="auto">
+              {state.destination?.label || t('destination.notAvailable')}
+            </p>
+          </div>
         </div>
       ) : null}
 
