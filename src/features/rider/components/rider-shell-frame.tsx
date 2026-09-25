@@ -24,7 +24,7 @@ const styles = {
   closeButton: "h-9 w-9 flex items-center justify-center rounded-full bg-slate-800 border border-white/20 text-white shadow-md active:scale-95 cursor-pointer hover:bg-slate-700 transition-colors",
   closeIcon: "h-4 w-4 stroke-[3]",
   scrollArea: "flex-1 space-y-4 overflow-y-auto px-4 pb-4 pt-3 lg:p-5",
-  panelHeaderCard: "rounded-2xl border border-white/5 bg-white/5 p-4 shadow-xl shadow-black/20 backdrop-blur",
+  panelHeaderCard: "hidden lg:block rounded-2xl border border-white/5 bg-white/5 p-4 shadow-xl shadow-black/20 backdrop-blur",
   panelHeaderCardHidden: "hidden",
   panelHeaderRow: "mb-3 flex items-center justify-between sm:mb-4",
   panelEyebrow: "text-[11px] font-black text-[#14F5D5] tracking-wider",

@@ -7,6 +7,7 @@ import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import type { AppLanguage } from '@/lib/i18n/simple-copy';
 import { cn } from '@/lib/utils';
 import { useTranslations } from "next-intl";
+import { useNotifications } from '@/shared/hooks/use-notifications';
 
 const styles = {
   root: 'fixed inset-y-0 start-0 z-[140] hidden w-[288px] flex-col border-e border-white/[0.06] bg-[#0A0F1D]/95 shadow-[22px_0_70px_rgba(0,0,0,0.38)] backdrop-blur-xl lg:flex',
@@ -81,6 +82,7 @@ export function DesktopRiderSidebar({
 }) {
   const tAuto = useTranslations('auto');
   const { isArabic, toggleLanguage } = useDashboardLanguage();
+  const { hasUnread } = useNotifications();
   const text = copy[language];
   const directionClass = language === 'ar' ? styles.identityRtl : styles.identityLtr;
   const items = [
@@ -129,6 +131,13 @@ export function DesktopRiderSidebar({
         <Button className={styles.notifications} onClick={onNotify} variant="ghost">
           <Bell className={styles.notificationIcon} />
           {text.notifications}
+          <div className="relative flex items-center">
+            <Bell className={styles.notificationIcon} />
+            {hasUnread && (
+              <span className="absolute -top-1 -end-1 h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
+            )}
+          </div>
+          <span>{text.notifications}</span>
         </Button>
       </div>
 
