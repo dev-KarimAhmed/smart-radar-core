@@ -206,10 +206,6 @@ function buildActiveTrip(state: RiderMachineState, acceptedRow: Record<string, u
     captainName:
       selectedOffer?.captain?.full_name ||
       selectedOffer?.captain?.nickname ||
-      acceptedRow.captain?.full_name ||
-      acceptedRow.captain?.nickname ||
-      acceptedRow.captain_profile?.full_name ||
-      acceptedRow.captain_profile?.nickname ||
       rowCaptain?.full_name ||
       rowCaptain?.nickname ||
       selectedOffer?.driverName ||
@@ -248,7 +244,6 @@ function buildActiveTrip(state: RiderMachineState, acceptedRow: Record<string, u
     startedAtMs: toEpochMs(acceptedRow.started_at),
     pickupEtaMinutes: firstNumber(acceptedRow.pickup_eta_minutes, selectedOffer?.pickup_eta_minutes) ?? undefined,
     tripDurationMinutes: estimatedTripMinutes,
-    captain: selectedOffer?.captain || acceptedRow.captain || acceptedRow.captain_profile || null,
     captain: selectedOffer?.captain || rowCaptain || null,
     status: String(acceptedRow.status || 'ACCEPTED').toUpperCase(),
   };
