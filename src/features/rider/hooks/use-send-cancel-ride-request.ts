@@ -236,6 +236,41 @@ export function useSendCancelRideRequest(params: {
     }
   }, [dispatch, errorLabels, language, onExitRequestFlow, resetRideDraftState, state.requestId, t, toast]);
 
+  React.useEffect(() => {
+    if (
+      state.screen === 'DESTINATION_SELECTION' &&
+      state.autoRetryRequested &&
+      !isSendingRideRequest &&
+      selectedDraftDestination &&
+      selectedDestinationCoords &&
+      !isServerFareLoading &&
+      !isRouteEstimateLoading &&
+      currentRouteEstimate &&
+      selectedDraftDestination.serverEstimatedFare !== undefined
+    ) {
+      // Short delay to avoid race conditions and give the UI a moment to breathe
+      const timer = setTimeout(() => {
+        dispatch({ type: 'CLEAR_AUTO_RETRY' });
+        handleSendRequest();
+      }, 100);
+      
+      // Don't clearTimeout on unmount because if the component re-renders (e.g. from state change), 
+      // it would cancel the pending retry before it can execute.
+      return () => {};
+    }
+  }, [
+    state.screen,
+    state.autoRetryRequested,
+    isSendingRideRequest,
+    selectedDraftDestination,
+    selectedDestinationCoords,
+    isServerFareLoading,
+    isRouteEstimateLoading,
+    currentRouteEstimate,
+    dispatch,
+    handleSendRequest,
+  ]);
+
   return {
     isSendingRideRequest,
     isCancellingRideRequest,

@@ -228,7 +228,6 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
           isCaptainScanPreviewActive={destination.isCaptainScanPreviewActive}
           onGovernorateChange={selectionHandlers.onGovernorateChange}
           onDistrictChange={selectionHandlers.onDistrictChange}
-          onSearchQueryChange={selectionHandlers.onSearchQueryChange}
           onResetDraft={resetRideDraftState}
           onCancelPreview={resetRideDraftState}
         />

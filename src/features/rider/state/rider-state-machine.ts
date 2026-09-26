@@ -69,6 +69,7 @@ export interface RiderMachineState {
   requestId: string | null;
   requestCancelledAt: number | null;
   pendingAcceptedOfferId: string | null;
+  autoRetryRequested?: boolean;
 }
 
 export type RiderMachineAction =
@@ -90,6 +91,7 @@ export type RiderMachineAction =
   | { type: 'OPEN_PURGE_LEDGER' }
   | { type: 'OPEN_FAVORITE_CAPTAINS' }
   | { type: 'RETURN_TO_MAP' }
+  | { type: 'CLEAR_AUTO_RETRY' }
   | { type: 'RESET_TO_IDLE' };
 
 export function createInitialRiderMachineState(): RiderMachineState {
@@ -199,7 +201,16 @@ function buildActiveTrip(state: RiderMachineState, acceptedRow: Record<string, u
   return {
     tripId: firstString(acceptedRow.trip_id, acceptedRow.active_trip_id, acceptedRow.id) || state.requestId || '',
     captainId: selectedOffer?.driverId || acceptedCaptainId || '',
-    captainName: selectedOffer?.driverName || firstString(acceptedRow.driver_name, acceptedRow.captain_name) || 'السائق',
+    captainName:
+      selectedOffer?.captain?.full_name ||
+      selectedOffer?.captain?.nickname ||
+      acceptedRow.captain?.full_name ||
+      acceptedRow.captain?.nickname ||
+      acceptedRow.captain_profile?.full_name ||
+      acceptedRow.captain_profile?.nickname ||
+      selectedOffer?.driverName ||
+      firstString(acceptedRow.driver_name, acceptedRow.captain_name) ||
+      'السائق',
     captainSerial:
       selectedOffer?.driverName ||
       firstString(acceptedRow.driver_serial, acceptedRow.captain_serial, acceptedRow.driver_name, acceptedRow.captain_name) ||
@@ -302,13 +313,15 @@ export function riderDashboardReducer(state: RiderMachineState, action: RiderMac
       return { ...state, requestStartedAt: null, requestId: null };
 
     case 'REQUEST_CANCELLED':
-      // A trip already accepted (or further along) has nothing to retry —
-      // unlike a pre-acceptance cancellation, drop straight back to idle
-      // instead of parking on RECEIVING_OFFERS with a now-meaningless trip.
+      // A trip already accepted (or further along) that gets cancelled
+      // is usually a captain cancellation. Auto-retry search for the rider.
       if (state.screen === 'TRIP_ACTIVE') {
         return {
           ...createInitialRiderMachineState(),
+          destination: state.destination,
+          screen: 'DESTINATION_SELECTION',
           requestCancelledAt: Date.now(),
+          autoRetryRequested: true,
         };
       }
       if (state.screen !== 'DESTINATION_SELECTION' && state.screen !== 'RECEIVING_OFFERS') return state;
@@ -396,6 +409,9 @@ export function riderDashboardReducer(state: RiderMachineState, action: RiderMac
     case 'RETURN_TO_MAP':
       if (state.screen === 'TRIP_ACTIVE' || state.screen === 'RATING_MODAL' || state.screen === 'RECEIVING_OFFERS') return state;
       return { ...state, screen: 'IDLE_MAP' };
+
+    case 'CLEAR_AUTO_RETRY':
+      return { ...state, autoRetryRequested: false };
 
     case 'RESET_TO_IDLE':
       return createInitialRiderMachineState();

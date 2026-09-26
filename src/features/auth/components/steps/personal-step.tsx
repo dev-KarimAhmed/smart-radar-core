@@ -655,6 +655,7 @@ export function PersonalStep() {
                     <div className={styles.style652_87}>
                       <Field label={t.country} icon={<MapPin className={styles.style653_88} />}>
                         <Select
+                          dir={isArabic ? 'rtl' : 'ltr'}
                           value={personal.country}
                           onValueChange={(value) => setPersonal({ ...personal, country: value, gov: '', district: '' })}
                           disabled={locationDataLoading && !countries.length}
@@ -674,6 +675,7 @@ export function PersonalStep() {
 
                       <Field label={t.governorate} icon={<MapPin className={styles.style679_96} />}>
                         <Select
+                          dir={isArabic ? 'rtl' : 'ltr'}
                           value={personal.gov}
                           onValueChange={(value) => setPersonal({ ...personal, gov: value, district: '' })}
                           disabled={!personal.country || locationDataLoading}
@@ -693,6 +695,7 @@ export function PersonalStep() {
 
                       <Field label={t.district} icon={<MapPin className={styles.style705_104} />}>
                         <Select
+                          dir={isArabic ? 'rtl' : 'ltr'}
                           value={personal.district}
                           onValueChange={(value) => setPersonal({ ...personal, district: value })}
                           disabled={!personal.gov || locationDataLoading}

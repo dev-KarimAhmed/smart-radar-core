@@ -55,7 +55,6 @@ export interface RiderActiveScreenProps {
   isCaptainScanPreviewActive: boolean;
   onGovernorateChange: (governorateId: string) => void;
   onDistrictChange: (districtId: string) => void;
-  onSearchQueryChange: (value: string) => void;
   onResetDraft?: () => void;
   onCancelPreview?: () => void;
 }
@@ -88,7 +87,6 @@ export function RiderActiveScreen(props: RiderActiveScreenProps) {
     isCaptainScanPreviewActive,
     onGovernorateChange,
     onDistrictChange,
-    onSearchQueryChange,
     onResetDraft,
     onCancelPreview,
   } = props;
@@ -118,7 +116,6 @@ export function RiderActiveScreen(props: RiderActiveScreenProps) {
         nearbyCaptainCount={captainPresence.mappedCaptains.length}
         onGovernorateChange={onGovernorateChange}
         onDistrictChange={onDistrictChange}
-        onSearchQueryChange={onSearchQueryChange}
         onSendRequest={sendCancel.handleSendRequest}
         onResetDraft={onResetDraft}
         onCancelPreview={onCancelPreview}

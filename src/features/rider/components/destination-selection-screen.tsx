@@ -52,7 +52,6 @@ export interface DestinationSelectionScreenProps {
   nearbyCaptainCount: number;
   onGovernorateChange: (governorateId: string) => void;
   onDistrictChange: (districtId: string) => void;
-  onSearchQueryChange: (value: string) => void;
   onSendRequest: () => void;
   onResetDraft?: () => void;
   onCancelPreview?: () => void;
@@ -81,7 +80,6 @@ export function DestinationSelectionScreen({
   nearbyCaptainCount,
   onGovernorateChange,
   onDistrictChange,
-  onSearchQueryChange,
   onSendRequest,
   onResetDraft,
   onCancelPreview,
@@ -147,8 +145,6 @@ export function DestinationSelectionScreen({
       </div>
 
       <DestinationSearchPanel
-        destinationSearchQuery={search.destinationSearchQuery}
-        onSearchQueryChange={onSearchQueryChange}
         search={search}
         mapPicker={mapPicker}
         clipboard={clipboard}

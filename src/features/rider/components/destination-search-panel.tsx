@@ -4,7 +4,6 @@ import React from 'react';
 import { Loader2, MapPin, Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { RoadRouteEstimate } from '@/lib/road-route';
-import { isMapsLink } from '@/shared/services/google-maps-location';
 import type { useDestinationTextSearch } from '../hooks/use-destination-text-search';
 import type { useDestinationMapPicker } from '../hooks/use-destination-map-picker';
 import type { useClipboardLocationImport } from '../hooks/use-clipboard-location-import';
@@ -17,13 +16,8 @@ const styles = {
   stepBadge: "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#14B8A6]/15 text-xs font-black text-[#14F5D5]",
   stepTitle: "text-xs font-black text-white",
   stepHelper: "mt-1 text-[11px] leading-relaxed text-slate-400",
-  searchForm: "flex gap-2",
-  searchInputWrapper: "relative min-w-0 flex-1",
-  searchIcon: "pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#14B8A6]",
-  searchInput: "h-11 w-full rounded-xl border border-white/10 bg-black/40 pe-3 ps-10 text-sm font-bold text-white outline-none transition placeholder:text-slate-500 focus:border-[#14B8A6]/60",
-  searchButton: "flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#14B8A6] px-3 text-sm font-black text-[#031315] transition hover:bg-[#2DD4BF] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#14F5D5] disabled:cursor-not-allowed disabled:opacity-50",
+  searchButton: "flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#14B8A6] px-4 text-sm font-black text-[#031315] transition hover:bg-[#2DD4BF] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#14F5D5] disabled:cursor-not-allowed disabled:opacity-50",
   searchButtonIcon: "h-4 w-4",
-  searchButtonLabel: "hidden sm:inline",
   step2Wrapper: "border-t border-white/8 pt-3",
   step2Header: "mb-2.5 flex items-start gap-2.5",
   confirmButton: "flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-[#14B8A6]/35 bg-[#14B8A6]/12 px-4 text-xs font-black text-[#BFFCF2] transition-all duration-300 hover:bg-[#14B8A6]/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#14F5D5] disabled:cursor-not-allowed disabled:opacity-60",
@@ -32,8 +26,6 @@ const styles = {
 } as const;
 
 export interface DestinationSearchPanelProps {
-  destinationSearchQuery: string;
-  onSearchQueryChange: (value: string) => void;
   search: ReturnType<typeof useDestinationTextSearch>;
   mapPicker: ReturnType<typeof useDestinationMapPicker>;
   clipboard: ReturnType<typeof useClipboardLocationImport>;
@@ -46,8 +38,6 @@ export interface DestinationSearchPanelProps {
 }
 
 export function DestinationSearchPanel({
-  destinationSearchQuery,
-  onSearchQueryChange,
   search,
   mapPicker,
   clipboard,
@@ -71,41 +61,18 @@ export function DestinationSearchPanel({
                 <p className={styles.stepHelper}>{locationCopy('step_search_helper')}</p>
               </div>
             </div>
-            <form
-              onSubmit={(event) => {
-                event.preventDefault();
-                const query = destinationSearchQuery.trim();
-                if (isMapsLink(query)) {
-                  clipboard.handleConfirmClipboardLocation(query);
-                } else {
-                  mapPicker.handleOpenGoogleMapsSearch();
-                }
-              }}
-              className={styles.searchForm}
+            <button
+              type="button"
+              onClick={() => mapPicker.handleOpenGoogleMapsSearch()}
+              aria-label={locationCopy('btn_open_google_maps')}
+              title={locationCopy('btn_open_google_maps')}
+              className={styles.searchButton}
             >
-              <div className={styles.searchInputWrapper}>
-                <Search className={styles.searchIcon} />
-                <input
-                  type="search"
-                  value={destinationSearchQuery}
-                  onChange={(event) => onSearchQueryChange(event.target.value)}
-                  placeholder={locationCopy('placeholder_landmark')}
-                  className={styles.searchInput}
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={destinationSearchQuery.trim().length < 2}
-                aria-label={locationCopy('btn_open_google_maps')}
-                title={locationCopy('btn_open_google_maps')}
-                className={styles.searchButton}
-              >
-                <Search className={styles.searchButtonIcon} />
-                <span className={styles.searchButtonLabel}>
-                  {locationCopy('btn_open_google_maps')}
-                </span>
-              </button>
-            </form>
+              <Search className={styles.searchButtonIcon} />
+              <span>
+                {locationCopy('btn_open_google_maps')}
+              </span>
+            </button>
           </div>
 
           <div className={styles.step2Wrapper}>
@@ -118,11 +85,7 @@ export function DestinationSearchPanel({
             </div>
             <button
               type="button"
-              onClick={() => {
-                const query = destinationSearchQuery.trim();
-                const isLink = isMapsLink(query);
-                clipboard.handleConfirmClipboardLocation(isLink ? query : undefined);
-              }}
+              onClick={() => clipboard.handleConfirmClipboardLocation()}
               disabled={clipboard.isReadingClipboardLocation}
               className={styles.confirmButton}
             >

@@ -145,7 +145,7 @@
     "status_scanning_captains": "جاري البحث عن سائقين في المنطقة المحددة...",
     "unit_km": "كم",
     "step_search_title": "ابحث عن الوجهة في خرائط Google",
-    "step_search_helper": "اكتب اسم المكان وافتحه في خرائط Google، ثم انسخ رابط المشاركة.",
+    "step_search_helper": "افتح في خرائط جوجل وانسخ الرابط",
     "step_confirm_title": "استخدم الموقع المنسوخ",
     "step_confirm_helper": "هذا الزر يقرأ الرابط المنسوخ فقط، ولن يفتح خرائط Google مرة أخرى.",
     "status_reading_clipboard": "جاري قراءة الموقع المنسوخ...",
