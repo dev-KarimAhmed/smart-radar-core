@@ -191,8 +191,23 @@ export function buildCaptainOfferFromOffer(
       contact_url: getOfferContactUrl(offer),
       vehicle_year: firstDisplayString(offer.captain?.vehicle_year, offerRecord.driverVehicle?.year),
       vehicle_category: firstDisplayString(offer.captain?.vehicle_category, offerRecord.driverVehicle?.category),
-      facebook_url: firstDisplayString(offer.captain?.facebook_url),
-      instagram_url: firstDisplayString(offer.captain?.instagram_url),
+      facebook_url: firstDisplayString(
+        offer.captain?.facebook_url,
+        offerRecord.facebook_url,
+        offerRecord.captain_facebook_url,
+        offerRecord.driverVehicle?.facebook_url,
+      ),
+      instagram_url: firstDisplayString(
+        offer.captain?.instagram_url,
+        offerRecord.instagram_url,
+        offerRecord.captain_instagram_url,
+        offerRecord.driverVehicle?.instagram_url,
+      ),
+      whatsapp_url: firstDisplayString(
+        offer.captain?.whatsapp_url,
+        offerRecord.whatsapp_url,
+        offerRecord.captain_whatsapp_url,
+      ),
       serial_number: firstDisplayString(
         offer.captain?.serial_number,
         offer.captain?.serial,

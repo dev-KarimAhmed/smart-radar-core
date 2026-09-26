@@ -81,13 +81,19 @@ export function CaptainOfferCard({
 
   const captainSerial = captain.serial_number || captain.id?.slice(0, 8).toUpperCase() || '---';
 
+  const normalizedCompany = (companyLabel && companyLabel !== t('independentCaptain'))
+    ? companyLabel.trim()
+    : '';
+
+  const displayCompany = normalizedCompany
+    ? (normalizedCompany.toLowerCase() === 'uber' ? (isArabic ? 'اوبر' : 'Uber') : normalizedCompany)
+    : (isArabic ? 'اوبر' : 'Uber');
+
   const pricingLabel = isTaxiOffer
-    ? (isArabic ? 'تسعير العداد / تاكسي' : 'Meter Fare / Taxi')
-    : isAppOffer
-    ? (companyLabel && companyLabel !== t('independentCaptain')
-        ? `${isArabic ? 'تسعير التطبيق' : 'App Fare'} / ${companyLabel}`
-        : (isArabic ? 'تسعير التطبيق / أوبر' : 'App Fare / Uber'))
-    : (isArabic ? 'تسعير حر مباشر' : 'Direct Fare');
+    ? (isArabic ? 'سعر العداد / تاكسي' : 'Meter Fare / Taxi')
+    : isAppOffer || !isTaxiOffer
+    ? `${isArabic ? 'سعر تطبيق' : 'App Fare'} / ${displayCompany}`
+    : (isArabic ? 'سعر حر مباشر' : 'Direct Fare');
 
   return (
     <article
@@ -122,47 +128,56 @@ export function CaptainOfferCard({
           </span>
         </div>
 
-        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[#94A3B8]">
-          <span className="inline-flex items-center gap-1 rounded-md border border-amber-400/25 bg-amber-400/10 px-2 py-0.5 text-xs font-black text-amber-300">
-            <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.7)]" />
-            <span>{rating}.0</span>
+        {/* سطر التقييم والرتبة متقابلين على الطرفين */}
+        <div className="mt-2.5 flex items-center justify-between gap-2 text-xs">
+          {/* جانب التقييم */}
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-lg border border-amber-400/25 bg-amber-400/10 px-2.5 py-1 text-xs font-black text-amber-300 shadow-sm">
+              <span className="text-[10px] font-bold text-slate-300">{isArabic ? 'التقييم:' : 'Rating:'}</span>
+              <span className="flex items-center gap-1 font-mono">
+                <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.7)]" />
+                <span>{rating}.0</span>
+              </span>
+            </span>
+            {completedTrips > 0 ? (
+              <span className="text-[11px] text-slate-400 font-semibold">
+                ({completedTrips} {t('trips')})
+              </span>
+            ) : null}
+          </div>
+
+          {/* جانب الرتبة على الطرف الآخر */}
+          <span className="inline-flex items-center gap-1.5 rounded-lg border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-2.5 py-1 text-xs font-black text-[#14F5D5] shadow-sm">
+            <span className="text-[10px] font-bold text-slate-400">{isArabic ? 'الرتبة:' : 'Rank:'}</span>
+            <span>{rankLabel}</span>
           </span>
-          <span className="rounded-full border border-[#14B8A6]/25 bg-[#14B8A6]/10 px-2.5 py-0.5 text-xs font-black text-[#14B8A6]">
-            {rankLabel}
-          </span>
-          {completedTrips > 0 ? (
-            <>
-              <span className="text-[#334155]">·</span>
-              <span className="text-slate-400 font-semibold">{completedTrips} {t('trips')}</span>
-            </>
-          ) : null}
         </div>
       </div>
 
-      {/* 2. الوجهة: واضحة وبارزة ومميزة */}
+      {/* 2. الوجهة: واضحة وبارزة وتظهر كاملة */}
       {(offer.destination_label || (offer as any).destinationLabel) ? (
-        <div className="mx-4 mt-3 flex items-center gap-2.5 rounded-xl border border-[#14B8A6]/35 bg-gradient-to-r from-[#14B8A6]/15 via-[#081324] to-[#040812] px-3.5 py-2.5 shadow-sm sm:mx-5">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#14B8A6]/20 text-[#14F5D5]">
+        <div className="mx-4 mt-3 flex items-start gap-2.5 rounded-xl border border-[#14B8A6]/35 bg-gradient-to-r from-[#14B8A6]/15 via-[#081324] to-[#040812] px-3.5 py-2.5 shadow-sm sm:mx-5">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#14B8A6]/20 text-[#14F5D5] mt-0.5">
             <MapPin className="h-4 w-4 text-[#14F5D5]" />
           </div>
           <div className="min-w-0 flex-1">
-            <span className="block text-[10px] font-black uppercase tracking-wider text-[#14F5D5]/80">
+            <span className="block text-[10px] font-black uppercase tracking-wider text-[#14F5D5]/80 mb-0.5">
               {isArabic ? 'الوجهة المطلوبة' : 'Destination'}
             </span>
-            <p className="truncate text-xs sm:text-sm font-black text-white leading-tight mt-0.5" dir="auto">
+            <p className="text-xs sm:text-sm font-black text-white leading-relaxed break-words whitespace-normal" dir="auto">
               {offer.destination_label || (offer as any).destinationLabel}
             </p>
           </div>
         </div>
       ) : null}
 
-      {/* 3. مؤشر صلاحية العرض: موضح بالكامل للراكب */}
+      {/* 3. مؤشر مدة قبول العرض: مقسم على مراحل بالكامل */}
       {countdown?.hasCountdown ? (
         <div className="mx-4 mt-3 rounded-xl border border-[#14B8A6]/25 bg-[#081220]/80 p-2.5 sm:mx-5">
-          <div className="flex items-center justify-between text-xs mb-1.5">
+          <div className="flex items-center justify-between text-xs mb-2">
             <span className="inline-flex items-center gap-1.5 font-bold text-slate-300">
               <Timer className="h-3.5 w-3.5 text-[#14F5D5]" />
-              <span>{isArabic ? 'صلاحية قبول العرض تنتهي خلال:' : 'Offer validity expires in:'}</span>
+              <span>{isArabic ? 'مدة قبول العرض' : 'Offer Acceptance Time'}</span>
             </span>
             <span
               className={cn(
@@ -174,14 +189,54 @@ export function CaptainOfferCard({
               {formatCountdown(countdown.remainingSeconds)}
             </span>
           </div>
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800/90 border border-white/5">
-            <div
-              className={cn(
-                "h-full rounded-full bg-gradient-to-r from-[#14B8A6] to-[#14F5D5] transition-all duration-200 ease-linear shadow-[0_0_8px_rgba(20,245,213,0.5)]",
-                isCountdownUrgent && "from-rose-500 to-rose-400 shadow-[0_0_8px_rgba(244,63,94,0.6)]"
-              )}
-              style={{ width: `${countdown.percentRemaining}%` }}
-            />
+
+          {/* مؤشر مقسم إلى 4 مراحل مع مسار تفاعلي */}
+          <div className="grid grid-cols-4 gap-1.5" dir="ltr">
+            {[1, 2, 3, 4].map((stage) => {
+              const stageStart = (stage - 1) * 25;
+              const percent = countdown.percentRemaining;
+              const fill = Math.max(0, Math.min(100, ((percent - stageStart) / 25) * 100));
+              return (
+                <div
+                  key={stage}
+                  className="h-2 w-full overflow-hidden rounded-full bg-slate-800/90 border border-white/5"
+                >
+                  <div
+                    className={cn(
+                      "h-full rounded-full bg-gradient-to-r from-[#14B8A6] to-[#14F5D5] transition-all duration-200 ease-linear shadow-[0_0_8px_rgba(20,245,213,0.5)]",
+                      isCountdownUrgent && "from-rose-500 to-rose-400 shadow-[0_0_8px_rgba(244,63,94,0.6)]"
+                    )}
+                    style={{ width: `${fill}%` }}
+                  />
+                </div>
+              );
+            })}
+          </div>
+
+          {/* مقياس المراحل بالأسفل: صفر، 1، 2، 3، 4 مع علامات التحديد */}
+          <div className="relative mt-1.5 h-6 text-[10px] font-bold text-slate-400 font-mono select-none" dir="ltr">
+            <div className="absolute left-0 flex flex-col items-start">
+              <div className="h-1 w-0.5 bg-slate-600 rounded-full mb-0.5 ml-0.5" />
+              <span className={cn(countdown.percentRemaining <= 5 ? "text-rose-400 font-black" : "")}>
+                {isArabic ? 'صفر' : '0'}
+              </span>
+            </div>
+            <div className="absolute left-1/4 -translate-x-1/2 flex flex-col items-center">
+              <div className="h-1 w-0.5 bg-slate-600 rounded-full mb-0.5" />
+              <span className={cn(countdown.percentRemaining > 0 && countdown.percentRemaining <= 25 ? "text-[#14F5D5] font-black" : "")}>1</span>
+            </div>
+            <div className="absolute left-2/4 -translate-x-1/2 flex flex-col items-center">
+              <div className="h-1 w-0.5 bg-slate-600 rounded-full mb-0.5" />
+              <span className={cn(countdown.percentRemaining > 25 && countdown.percentRemaining <= 50 ? "text-[#14F5D5] font-black" : "")}>2</span>
+            </div>
+            <div className="absolute left-3/4 -translate-x-1/2 flex flex-col items-center">
+              <div className="h-1 w-0.5 bg-slate-600 rounded-full mb-0.5" />
+              <span className={cn(countdown.percentRemaining > 50 && countdown.percentRemaining <= 75 ? "text-[#14F5D5] font-black" : "")}>3</span>
+            </div>
+            <div className="absolute right-0 flex flex-col items-end">
+              <div className="h-1 w-0.5 bg-slate-600 rounded-full mb-0.5 mr-0.5" />
+              <span className={cn(countdown.percentRemaining > 75 ? "text-[#14F5D5] font-black" : "")}>4</span>
+            </div>
           </div>
         </div>
       ) : null}
@@ -189,7 +244,7 @@ export function CaptainOfferCard({
       {/* 4. تفاصيل الوصول والمسافة */}
       <div className="mx-4 mt-3 grid grid-cols-3 overflow-hidden rounded-xl border border-white/[0.07] bg-black/30 sm:mx-5">
         <div className="px-2 py-2.5 text-center">
-          <span className="block text-[10px] font-bold leading-tight text-[#94A3B8]">{t('arrivesIn')}</span>
+          <span className="block text-[10px] font-bold leading-tight text-[#94A3B8]">{isArabic ? 'وصول الكابتن' : t('arrivesIn')}</span>
           <span className="mt-1 block text-sm sm:text-base font-black text-[#14F5D5]">{formatMinutes(offer.eta_minutes, language)}</span>
         </div>
         <div className="border-s border-white/[0.07] px-2 py-2.5 text-center">
@@ -202,17 +257,19 @@ export function CaptainOfferCard({
         </div>
       </div>
 
-      {/* 5. السعر النهائي وشارة التسعير */}
-      <div className="flex items-center justify-between gap-3 px-4 pt-3.5 sm:px-5">
-        <div>
-          <span className="block text-[11px] font-bold text-[#94A3B8]">{t('finalPrice')}</span>
-          <div className="mt-0.5 flex items-baseline gap-1.5" dir="ltr">
-            <strong className="text-2xl sm:text-3xl font-black leading-none text-[#14F5D5]">{finalFare.toFixed(2)}</strong>
-            <span className="text-xs font-bold text-[#14F5D5]/80">{currencyCode}</span>
-          </div>
+      {/* 5. سطر السعر ونوع التسعير بنفس ديزاين المستخدم (سعر تطبيق / اوبر بجانب السعر وتحتهما خط فاصل) */}
+      <div className="mx-4 mt-3.5 sm:mx-5 pb-2.5 border-b border-[#D5BF76]/70 flex items-center justify-between gap-3">
+        {/* السعر على اليمين في RTL */}
+        <div className="flex items-baseline gap-1.5" dir="ltr">
+          <strong className="text-xl sm:text-2xl font-black leading-none text-[#14F5D5] font-mono">
+            {finalFare.toFixed(2)}
+          </strong>
+          <span className="text-xs sm:text-sm font-black text-[#14F5D5]">{currencyCode}</span>
         </div>
-        <div className="shrink-0 text-end">
-          <span className="inline-flex items-center gap-1.5 rounded-xl border border-[#14B8A6]/40 bg-[#14B8A6]/15 px-3 py-1.5 text-xs font-black text-[#14F5D5] shadow-sm">
+
+        {/* نوع التسعير كنص صريح بدون صندوق على اليسار في RTL */}
+        <div className="shrink-0">
+          <span className="text-xs sm:text-sm font-black text-[#14F5D5] tracking-wide">
             {pricingLabel}
           </span>
         </div>
@@ -224,18 +281,18 @@ export function CaptainOfferCard({
           type="button"
           onClick={() => onAccept(offer)}
           disabled={isAccepting}
-          className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#14B8A6] py-3.5 text-sm font-extrabold text-[#0B0F19] transition-all duration-300 hover:bg-[#2DD4BF] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/70 disabled:cursor-wait disabled:opacity-60 cursor-pointer shadow-lg shadow-[#14B8A6]/20"
+          className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#14B8A6] py-3.5 px-4 text-sm font-extrabold text-[#0B0F19] transition-all duration-300 hover:bg-[#2DD4BF] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/70 disabled:cursor-wait disabled:opacity-60 cursor-pointer shadow-lg shadow-[#14B8A6]/20 whitespace-nowrap"
         >
-          <Navigation className="h-5 w-5" />
-          {isAccepting ? t('accepting') : t('acceptOffer')}
+          <Navigation className="h-5 w-5 shrink-0" />
+          <span>{isAccepting ? t('accepting') : t('acceptOffer')}</span>
         </button>
         <button
           type="button"
           onClick={onToggleExpand}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.04] px-3.5 text-xs font-black text-slate-200 transition hover:border-[#14B8A6]/35 hover:bg-[#14B8A6]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/60 cursor-pointer"
+          className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.04] px-3.5 text-xs font-black text-slate-200 transition hover:border-[#14B8A6]/35 hover:bg-[#14B8A6]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/60 cursor-pointer whitespace-nowrap"
           aria-expanded={isExpanded}
         >
-          {t('details')}
+          <span>{isArabic ? 'معلومات الكابتن' : t('details')}</span>
           <ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform duration-300", isExpanded ? "rotate-180" : "")} />
         </button>
       </div>

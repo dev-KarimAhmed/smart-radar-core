@@ -137,6 +137,7 @@ export interface CaptainProfile {
   facebook_url?: string;
   instagram_url?: string;
   serial_number?: string | number;
+  whatsapp_url?: string;
 }
 
 export interface OfferFareBreakdown {

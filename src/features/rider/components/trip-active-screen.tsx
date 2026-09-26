@@ -8,7 +8,6 @@ import {
   Facebook,
   Instagram,
   MapPin,
-  MessageCircle,
   Palette,
   Phone,
   ShieldAlert,
@@ -226,39 +225,25 @@ export function TripActiveScreen({
         </div>
       </div>
 
-      {/* 5. أزرار الإجراءات والتواصل فوق زر الإلغاء */}
+      {/* 5. أزرار الإجراءات: زر الاتصال بالكابتن بعرض الكارد وتحته زر إلغاء الطلب */}
       <div className="space-y-2.5 pt-1">
-        {/* صف زري الاتصال بالكابتن وواتساب الطوارئ مع كتابة الوظيفة عليهما بوضوح */}
-        <div className="grid grid-cols-2 gap-2.5">
-          {/* زر الاتصال بالكابتن */}
-          <a
-            href={captainPhone ? `tel:${captainPhone}` : '#'}
-            onClick={(e) => {
-              if (!captainPhone) {
-                e.preventDefault();
-              }
-            }}
-            className={cn(
-              "flex items-center justify-center gap-2 h-12 rounded-xl border border-[#14B8A6]/40 bg-[#14B8A6]/15 hover:bg-[#14B8A6]/25 text-[#14F5D5] font-black text-xs sm:text-sm py-2.5 transition-all active:scale-[0.98] cursor-pointer shadow-md shadow-[#14B8A6]/10",
-              !captainPhone && "opacity-50 cursor-not-allowed pointer-events-none"
-            )}
-            title={isArabic ? 'اتصال بالكابتن' : t('trip.callCaptain')}
-          >
-            <Phone className="h-4 w-4 shrink-0" />
-            <span className="truncate">{isArabic ? 'اتصال بالكابتن' : 'Call Captain'}</span>
-          </a>
-
-          {/* زر واتساب طوارئ */}
-          <button
-            type="button"
-            onClick={onEmergencyWhatsapp}
-            className="flex items-center justify-center gap-2 h-12 rounded-xl border border-emerald-500/40 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 font-black text-xs sm:text-sm py-2.5 transition-all active:scale-[0.98] cursor-pointer shadow-md shadow-emerald-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60"
-            title={isArabic ? 'واتساب طوارئ' : 'Emergency WhatsApp'}
-          >
-            <MessageCircle className="h-4 w-4 shrink-0 text-emerald-400" />
-            <span className="truncate">{isArabic ? 'واتساب طوارئ' : 'Emergency WhatsApp'}</span>
-          </button>
-        </div>
+        {/* زر الاتصال بالكابتن بعرض الكارد بالكامل */}
+        <a
+          href={captainPhone ? `tel:${captainPhone}` : '#'}
+          onClick={(e) => {
+            if (!captainPhone) {
+              e.preventDefault();
+            }
+          }}
+          className={cn(
+            "w-full flex items-center justify-center gap-2.5 h-12 rounded-xl border border-[#14B8A6]/40 bg-[#14B8A6]/15 hover:bg-[#14B8A6]/25 text-[#14F5D5] font-black text-sm py-2.5 transition-all active:scale-[0.98] cursor-pointer shadow-md shadow-[#14B8A6]/10",
+            !captainPhone && "opacity-50 cursor-not-allowed pointer-events-none"
+          )}
+          title={isArabic ? 'اتصال بالكابتن' : t('trip.callCaptain')}
+        >
+          <Phone className="h-4 w-4 shrink-0" />
+          <span>{isArabic ? 'اتصال بالكابتن' : 'Call Captain'}</span>
+        </a>
 
         {/* زر إلغاء الطلب بكامل العرض في الأسفل (أو زر SOS إذا بدأت الرحلة) */}
         {!tripHasStarted ? (
