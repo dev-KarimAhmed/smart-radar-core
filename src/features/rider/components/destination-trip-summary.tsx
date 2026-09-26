@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Loader2, Minus, Navigation, Plus, Users } from 'lucide-react';
+import { Loader2, Minus, Navigation, Plus, Search, Users } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import type { RiderLocation } from './rider-map';
@@ -27,6 +27,21 @@ const styles = {
   submitButtonEnabled: "cursor-pointer bg-[#14B8A6] text-[#0A0F1D] hover:bg-[#2DD4BF] hover:shadow-[0_22px_48px_rgba(20,184,166,0.32)] disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none",
   submitButtonLoadingIcon: "h-5 w-5 animate-spin",
   submitButtonIcon: "h-5 w-5",
+  scanRow: "grid grid-cols-12 gap-2.5",
+  scanCard: "col-span-8 flex items-center gap-2.5 rounded-xl border border-[#14B8A6]/25 bg-[#0B1220] p-3 shadow-lg shadow-black/15 min-w-0",
+  scanIconWrapper: "relative flex h-9 w-9 shrink-0 items-center justify-center",
+  scanPing1: "absolute h-8 w-8 animate-ping rounded-full border border-[#14B8A6]/50",
+  scanPing2: "absolute h-5 w-5 animate-ping rounded-full border border-[#14F5D5]/40 [animation-delay:180ms]",
+  scanPulse: "absolute h-5 w-5 animate-pulse rounded-full bg-[#14B8A6]/20",
+  scanIcon: "relative z-10 h-4 w-4 text-[#14F5D5]",
+  scanText: "min-w-0 text-start",
+  scanTitle: "text-xs font-black text-white leading-tight",
+  scanSubtitle: "mt-0.5 text-[9px] leading-relaxed text-slate-400 line-clamp-1",
+  captainCountCard: "col-span-4 flex flex-col items-center justify-center rounded-xl border border-[#14B8A6]/25 bg-[#0B1220] p-2 text-center shadow-lg shadow-black/15 min-w-0",
+  captainCountIconWrap: "flex h-6 w-6 items-center justify-center rounded-lg bg-[#14B8A6]/15 text-[#14F5D5]",
+  captainCountIcon: "h-3.5 w-3.5",
+  captainCountLabel: "mt-1 line-clamp-2 text-[9px] font-black leading-tight text-slate-300",
+  captainCountValue: "mt-0.5 font-mono text-base sm:text-lg font-black text-[#14F5D5]",
 } as const;
 
 export interface DestinationTripSummaryProps {
@@ -52,6 +67,7 @@ export interface DestinationTripSummaryProps {
   hasDestinationOptions: boolean;
   selectedDestinationHasCoords: boolean;
   hasServerEstimatedFare: boolean;
+  isCaptainScanPreviewActive?: boolean;
   onSendRequest: () => void;
 }
 
@@ -78,6 +94,7 @@ export function DestinationTripSummary({
   hasDestinationOptions,
   selectedDestinationHasCoords,
   hasServerEstimatedFare,
+  isCaptainScanPreviewActive = false,
   onSendRequest,
 }: DestinationTripSummaryProps) {
   const locationCopy = useTranslations('location');
@@ -87,6 +104,68 @@ export function DestinationTripSummary({
 
   return (
     <>
+      {destinationDataError ? (
+        <div className={styles.dataError}>
+          {destinationDataError}
+        </div>
+      ) : null}
+
+      {/* 1. ملخص الرحلة (Trip Summary Card) - ABOVE the scanning card */}
+      <DestinationSummaryCard
+        destinationReady={destinationReady}
+        isServerFareLoading={isServerFareLoading}
+        isDestinationPinMoving={isDestinationPinMoving}
+        destinationLabel={destinationLabel}
+        selectedDestinationCoords={selectedDestinationCoords}
+        hasDestinationCoordsAnchor={hasDestinationCoordsAnchor}
+        serverFareLabel={serverFareLabel}
+        isRouteEstimateLoading={isRouteEstimateLoading}
+        estimatedDurationMinutes={estimatedDurationMinutes}
+        estimatedDistanceKm={estimatedDistanceKm}
+        nearbyCaptainCount={nearbyCaptainCount}
+      />
+
+      {/* 2. جاري البحث عن سائقين + عدد السائقين المتاحين - SIDE BY SIDE */}
+      {isCaptainScanPreviewActive ? (
+        <div className={styles.scanRow}>
+          <div className={styles.scanCard} role="status">
+            <div className={styles.scanIconWrapper}>
+              {nearbyCaptainCount === 0 ? (
+                <>
+                  <span className={styles.scanPing1} />
+                  <span className={styles.scanPing2} />
+                </>
+              ) : null}
+              <span className={styles.scanPulse} />
+              <Search className={styles.scanIcon} />
+            </div>
+            <div className={styles.scanText}>
+              <p className={styles.scanTitle}>
+                {nearbyCaptainCount > 0
+                  ? locationCopy('captains_found', { count: nearbyCaptainCount })
+                  : locationCopy('status_scanning_captains')}
+              </p>
+              <p className={styles.scanSubtitle}>
+                {locationCopy('captain_search_origin_helper')}
+              </p>
+            </div>
+          </div>
+
+          <div className={styles.captainCountCard} role="status">
+            <span className={styles.captainCountIconWrap}>
+              <Users className={styles.captainCountIcon} />
+            </span>
+            <span className={styles.captainCountLabel}>
+              {locationCopy('nearby_captains_label')}
+            </span>
+            <strong className={styles.captainCountValue}>
+              {nearbyCaptainCount}
+            </strong>
+          </div>
+        </div>
+      ) : null}
+
+      {/* 3. عدد الركاب (Passenger Stepper) */}
       <div className={styles.passengerRow}>
         <div className={styles.passengerLabelWrap}>
           <span className={styles.passengerIcon}>
@@ -118,32 +197,13 @@ export function DestinationTripSummary({
         </div>
       </div>
 
-      {destinationDataError ? (
-        <div className={styles.dataError}>
-          {destinationDataError}
-        </div>
-      ) : null}
-
-      <DestinationSummaryCard
-        destinationReady={destinationReady}
-        isServerFareLoading={isServerFareLoading}
-        isDestinationPinMoving={isDestinationPinMoving}
-        destinationLabel={destinationLabel}
-        selectedDestinationCoords={selectedDestinationCoords}
-        hasDestinationCoordsAnchor={hasDestinationCoordsAnchor}
-        serverFareLabel={serverFareLabel}
-        isRouteEstimateLoading={isRouteEstimateLoading}
-        estimatedDurationMinutes={estimatedDurationMinutes}
-        estimatedDistanceKm={estimatedDistanceKm}
-        nearbyCaptainCount={nearbyCaptainCount}
-      />
-
       {serverFareError && (
         <div className={styles.fareError}>
           {serverFareError}
         </div>
       )}
 
+      {/* 4. اطلب الآن (Submit Button) */}
       <div className={styles.submitWrapper}>
         <button
           onClick={onSendRequest}

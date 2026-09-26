@@ -16,7 +16,7 @@ import { collectPreferredCaptainIds, prioritizeRiderOffers } from '../services/r
 import { getOfferCountdown } from '../services/offer-countdown';
 import type { RiderMachineState, RiderMachineAction } from '../state/rider-state-machine';
 
-const OFFER_TIMEOUT_MS = 300 * 1000;
+const OFFER_TIMEOUT_MS = 240 * 1000; // 4 minutes (240s) search window
 
 /**
  * Owns the incoming-offers poll/subscription for `RECEIVING_OFFERS`, the

@@ -29,15 +29,6 @@ const styles = {
   confirmButton: "flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-[#14B8A6]/35 bg-[#14B8A6]/12 px-4 text-xs font-black text-[#BFFCF2] transition-all duration-300 hover:bg-[#14B8A6]/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#14F5D5] disabled:cursor-not-allowed disabled:opacity-60",
   confirmButtonLoadingIcon: "h-5 w-5 animate-spin",
   confirmButtonIcon: "h-5 w-5",
-  scanCard: "flex items-center gap-3 rounded-xl border border-[#14B8A6]/25 bg-[#0B1220] p-3",
-  scanIconWrapper: "relative flex h-10 w-10 shrink-0 items-center justify-center",
-  scanPing1: "absolute h-9 w-9 animate-ping rounded-full border border-[#14B8A6]/50",
-  scanPing2: "absolute h-6 w-6 animate-ping rounded-full border border-[#14F5D5]/40 [animation-delay:180ms]",
-  scanPulse: "absolute h-6 w-6 animate-pulse rounded-full bg-[#14B8A6]/20",
-  scanIcon: "relative z-10 h-4 w-4 text-[#14F5D5]",
-  scanText: "min-w-0 text-start",
-  scanTitle: "text-xs font-black text-white",
-  scanSubtitle: "mt-0.5 text-[9px] leading-relaxed text-slate-400",
 } as const;
 
 export interface DestinationSearchPanelProps {
@@ -49,7 +40,7 @@ export interface DestinationSearchPanelProps {
   isRouteEstimateLoading: boolean;
   currentRouteEstimate: RoadRouteEstimate | null;
   isCaptainScanPreviewActive: boolean;
-  nearbyCaptainCount: number;
+  nearbyCaptainCount?: number;
   onResetDraft?: () => void;
   onCancelPreview?: () => void;
 }
@@ -63,7 +54,6 @@ export function DestinationSearchPanel({
   isRouteEstimateLoading,
   currentRouteEstimate,
   isCaptainScanPreviewActive,
-  nearbyCaptainCount,
   onResetDraft,
   onCancelPreview,
 }: DestinationSearchPanelProps) {
@@ -172,31 +162,6 @@ export function DestinationSearchPanel({
           currentRouteEstimate={currentRouteEstimate}
           hideMetrics={isCaptainScanPreviewActive}
         />
-      ) : null}
-
-      {isCaptainScanPreviewActive ? (
-        <div className={styles.scanCard} role="status">
-          <div className={styles.scanIconWrapper}>
-            {nearbyCaptainCount === 0 ? (
-              <>
-                <span className={styles.scanPing1} />
-                <span className={styles.scanPing2} />
-              </>
-            ) : null}
-            <span className={styles.scanPulse} />
-            <Search className={styles.scanIcon} />
-          </div>
-          <div className={styles.scanText}>
-            <p className={styles.scanTitle}>
-              {nearbyCaptainCount > 0
-                ? locationCopy('captains_found', { count: nearbyCaptainCount })
-                : locationCopy('status_scanning_captains')}
-            </p>
-            <p className={styles.scanSubtitle}>
-              {locationCopy('captain_search_origin_helper')}
-            </p>
-          </div>
-        </div>
       ) : null}
 
       <DestinationSearchResults

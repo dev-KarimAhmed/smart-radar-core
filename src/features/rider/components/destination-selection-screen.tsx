@@ -183,6 +183,7 @@ export function DestinationSelectionScreen({
         hasDestinationOptions={hasDestinationOptions}
         selectedDestinationHasCoords={selectedDestinationHasCoords}
         hasServerEstimatedFare={selectedDraftDestination?.serverEstimatedFare !== undefined}
+        isCaptainScanPreviewActive={isCaptainScanPreviewActive}
         onSendRequest={onSendRequest}
       />
     </div>

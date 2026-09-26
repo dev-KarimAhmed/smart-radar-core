@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { CheckCircle2, Clock, Loader2, Route, Users } from 'lucide-react';
+import { CheckCircle2, Clock, Loader2, Route } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { formatDurationLabel } from '../services/rider-view-format';
@@ -26,9 +26,7 @@ const styles = {
   fieldLabel: "block text-[9px] font-black uppercase text-slate-500",
   destinationValue: "mt-1 block truncate text-sm font-black text-white",
   coords: "mt-1 block font-mono text-[9px] text-slate-600",
-  fare: "shrink-0 text-end",
-  fareValue: "mt-1 block font-mono text-xl font-black text-[#14F5D5]",
-  metricsGrid: "grid grid-cols-3 gap-2",
+  metricsGrid: "grid grid-cols-2 gap-2",
   metricCardDuration: "rounded-xl border border-[#14B8A6]/18 bg-[#14B8A6]/8 p-2.5",
   metricIconDuration: "mb-1.5 h-3.5 w-3.5 text-[#14F5D5]",
   metricLabelDuration: "block text-[9px] font-black text-slate-500",
@@ -37,7 +35,6 @@ const styles = {
   metricCard: "rounded-xl border border-white/8 bg-black/20 p-2.5",
   metricIcon: "mb-1.5 h-3.5 w-3.5 text-slate-400",
   metricLabel: "block text-[9px] font-black text-slate-500",
-  metricLabelTight: "block text-[9px] font-black leading-tight text-slate-500",
 } as const;
 
 export interface DestinationSummaryCardProps {
@@ -51,7 +48,7 @@ export interface DestinationSummaryCardProps {
   isRouteEstimateLoading: boolean;
   estimatedDurationMinutes: number | null;
   estimatedDistanceKm: number | null;
-  nearbyCaptainCount: number;
+  nearbyCaptainCount?: number;
 }
 
 export function DestinationSummaryCard({
@@ -65,7 +62,6 @@ export function DestinationSummaryCard({
   isRouteEstimateLoading,
   estimatedDurationMinutes,
   estimatedDistanceKm,
-  nearbyCaptainCount,
 }: DestinationSummaryCardProps) {
   const locationCopy = useTranslations('location');
   const t = useTranslations('riderView');
@@ -110,14 +106,6 @@ export function DestinationSummaryCard({
               </span>
             ) : null}
           </div>
-          {/* Estimated fare display disabled — kept hidden from rider by product request.
-          <div className={styles.fare}>
-            <span className={styles.fieldLabel}>
-              {locationCopy('lbl_estimated_fare')}
-            </span>
-            <strong className={styles.fareValue}>{serverFareLabel}</strong>
-          </div>
-          */}
         </div>
 
         <div className={styles.metricsGrid}>
@@ -149,13 +137,6 @@ export function DestinationSummaryCard({
                   ? `${estimatedDistanceKm.toFixed(1)} ${t('trip.km')}`
                   : t('destination.notAvailable')}
             </strong>
-          </div>
-          <div className={styles.metricCard}>
-            <Users className={styles.metricIcon} />
-            <span className={styles.metricLabelTight}>
-              {locationCopy('nearby_captains_label')}
-            </span>
-            <strong className={styles.metricValue}>{nearbyCaptainCount}</strong>
           </div>
         </div>
       </div>
