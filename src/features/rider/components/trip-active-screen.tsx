@@ -68,14 +68,23 @@ export function TripActiveScreen({
   const activeTripStatus = String(activeTrip.status || '').toUpperCase();
   const tripHasStarted = isTripStartedStatus(activeTripStatus);
 
+  const serialNumber = activeTrip.captain?.serial_number || (activeTrip.captain as any)?.serial || activeTrip.captainId?.slice(0, 8).toUpperCase();
+
   return (
     <div className={cn(styles.wrapper, isArabic ? styles.rtl : styles.ltr)} dir={isArabic ? 'rtl' : 'ltr'}>
       <div className={styles.header}>
         <div className={styles.headerText}>
           <p className={styles.eyebrow}>{t('trip.started')}</p>
-          <h2 className={styles.captainName}>
-            {activeTrip.captain?.nickname || activeTrip.captain?.full_name || activeTrip.captain?.name || activeTrip.captainName || t('trip.captainFallbackName')}
-          </h2>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h2 className={styles.captainName}>
+              {activeTrip.captain?.nickname || activeTrip.captain?.full_name || activeTrip.captain?.name || activeTrip.captainName || t('trip.captainFallbackName')}
+            </h2>
+            {serialNumber ? (
+              <span className="font-mono text-xs font-bold text-[#14F5D5] bg-[#14B8A6]/10 border border-[#14B8A6]/30 rounded-md px-2 py-0.5">
+                #{serialNumber}
+              </span>
+            ) : null}
+          </div>
           <p className={styles.destination}>{activeTrip.destinationLabel}</p>
         </div>
         <div className={styles.etaBox}>
@@ -122,7 +131,8 @@ export function TripActiveScreen({
       </div>
 
       <div className={styles.actions}>
-        {activeTrip.captainPhone && (
+        {/* إزالة أيقونة الاتصال طالما أن الرحلة لم تبدأ بعد */}
+        {tripHasStarted && activeTrip.captainPhone && (
           <a
             href={`tel:${activeTrip.captainPhone}`}
             className={styles.callButton}

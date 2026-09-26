@@ -192,57 +192,77 @@ export function ReceivingOffersScreen({
         {/* Subtle accent light on top border */}
         <div className="pointer-events-none absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-[#14F5D5]/60 to-transparent" />
 
-        {/* Top Row: Live Indicator + Cancel Action Button */}
-        <div className="flex items-center justify-between gap-3">
-          <div className="inline-flex items-center gap-2 rounded-full border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-2.5 py-1 shadow-sm shadow-[#14B8A6]/10">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#14F5D5] opacity-75" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-[#14F5D5]" />
-            </span>
-            <span className="text-[11px] font-black text-[#14F5D5]">
-              {hasOffers ? t('offers.arrived') : t('offers.searchingCaptain')}
-            </span>
-          </div>
-
-          <button
-            type="button"
-            onClick={onCancelRideRequest}
-            disabled={isCancellingRideRequest}
-            className="group inline-flex items-center gap-1.5 rounded-full border border-rose-500/35 bg-rose-500/12 px-3 py-1 text-xs font-black text-rose-300 shadow-sm transition-all duration-200 hover:border-rose-500/60 hover:bg-rose-500/22 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
-          >
-            <X className="h-3.5 w-3.5 transition-transform group-hover:rotate-90" />
-            <span>{isCancellingRideRequest ? t('request.cancelling') : t('request.cancel')}</span>
-          </button>
-        </div>
-
-        {/* Title & Helper Description */}
-        <div className="mt-3">
-          <h2 className="text-lg font-black text-white leading-snug">
-            {hasOffers ? t('offers.chooseCaptain') : t('request.visibleTitle')}
-          </h2>
-          {!hasOffers ? (
-            <p className="mt-0.5 text-xs text-slate-400 leading-relaxed">
-              {t('offers.waitingDescription')}
-            </p>
-          ) : null}
-        </div>
-
-        {/* Integrated Route / Destination Inset Badge */}
-        {state.destination?.label || state.requestId ? (
-          <div className="mt-3.5 flex items-center gap-2.5 rounded-xl border border-[#14B8A6]/20 bg-[#03060E]/90 px-3 py-2.5 transition-colors hover:border-[#14B8A6]/40">
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#14B8A6]/15 text-[#14F5D5]">
-              <MapPin className="h-4 w-4 text-[#14F5D5]" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <span className="block text-[9px] font-black uppercase tracking-wider text-slate-400">
-                {t('destination.label')}
-              </span>
-              <p className="mt-0.5 truncate text-xs sm:text-sm font-black text-white leading-tight" dir="auto">
-                {state.destination?.label || t('destination.notAvailable')}
+        {hasOffers ? (
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-xl sm:text-2xl font-black text-white leading-tight">
+                {t('offers.chooseCaptain')}
+              </h2>
+              <p className="mt-1 text-xs text-slate-400">
+                {isArabic ? 'اختر العرض الأنسب لك لبدء الرحلة فوراً' : 'Select your preferred offer to start the ride'}
               </p>
             </div>
+
+            <button
+              type="button"
+              onClick={onCancelRideRequest}
+              disabled={isCancellingRideRequest}
+              className="group inline-flex shrink-0 items-center gap-2 rounded-xl border border-rose-500/40 bg-rose-500/15 px-3.5 py-2 text-xs font-black text-rose-200 shadow-sm transition-all duration-200 hover:border-rose-500/70 hover:bg-rose-500/25 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
+            >
+              <X className="h-4 w-4 text-rose-400 transition-transform group-hover:rotate-90" />
+              <span>{isCancellingRideRequest ? t('request.cancelling') : (isArabic ? 'إلغاء الطلب' : t('request.cancel'))}</span>
+            </button>
           </div>
-        ) : null}
+        ) : (
+          <>
+            <div className="flex items-center justify-between gap-3">
+              <div className="inline-flex items-center gap-2 rounded-full border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-2.5 py-1 shadow-sm shadow-[#14B8A6]/10">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#14F5D5] opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-[#14F5D5]" />
+                </span>
+                <span className="text-[11px] font-black text-[#14F5D5]">
+                  {t('offers.searchingCaptain')}
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={onCancelRideRequest}
+                disabled={isCancellingRideRequest}
+                className="group inline-flex items-center gap-1.5 rounded-xl border border-rose-500/40 bg-rose-500/15 px-3 py-1.5 text-xs font-black text-rose-200 shadow-sm transition-all duration-200 hover:border-rose-500/70 hover:bg-rose-500/25 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
+              >
+                <X className="h-3.5 w-3.5 text-rose-400 transition-transform group-hover:rotate-90" />
+                <span>{isCancellingRideRequest ? t('request.cancelling') : t('request.cancel')}</span>
+              </button>
+            </div>
+
+            <div className="mt-3">
+              <h2 className="text-lg font-black text-white leading-snug">
+                {t('request.visibleTitle')}
+              </h2>
+              <p className="mt-0.5 text-xs text-slate-400 leading-relaxed">
+                {t('offers.waitingDescription')}
+              </p>
+            </div>
+
+            {(state.destination?.label || state.requestId) ? (
+              <div className="mt-3.5 flex items-center gap-2.5 rounded-xl border border-[#14B8A6]/20 bg-[#03060E]/90 px-3 py-2.5 transition-colors hover:border-[#14B8A6]/40">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#14B8A6]/15 text-[#14F5D5]">
+                  <MapPin className="h-4 w-4 text-[#14F5D5]" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <span className="block text-[9px] font-black uppercase tracking-wider text-slate-400">
+                    {t('destination.label')}
+                  </span>
+                  <p className="mt-0.5 truncate text-xs sm:text-sm font-black text-white leading-tight" dir="auto">
+                    {state.destination?.label || t('destination.notAvailable')}
+                  </p>
+                </div>
+              </div>
+            ) : null}
+          </>
+        )}
       </div>
 
       {!hasOffers ? (

@@ -19,7 +19,7 @@ export const styles = {
   headerRow: "flex items-start gap-3 p-4 pb-0 sm:p-5 sm:pb-0",
   metaRow: "mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[#94A3B8]",
   metaDot: "text-[#334155]",
-  factsStrip: "mx-4 mt-4 grid grid-cols-3 overflow-hidden rounded-xl border border-white/[0.07] bg-black/25 sm:mx-5",
+  factsStrip: "mx-4 mt-3 grid grid-cols-3 overflow-hidden rounded-xl border border-white/[0.07] bg-black/25 sm:mx-5",
   fact: "px-1.5 py-2.5 text-center",
   factDivided: "border-s border-white/[0.07]",
   factLabel: "block text-[10px] font-bold leading-tight text-[#94A3B8]",
@@ -48,7 +48,7 @@ export const styles = {
   style193_27: "grid-rows-[1fr] opacity-100",
   style193_28: "grid-rows-[0fr] opacity-0",
   style196_29: "min-h-0 overflow-hidden",
-  cardBody: "space-y-5 border-t border-white/5 p-5 pt-4",
+  cardBody: "space-y-4 border-t border-white/5 p-4 sm:p-5",
   sectionWrap: "space-y-3",
   sectionHeader: "flex items-center gap-2 text-[11px] font-black uppercase tracking-wide text-[#14B8A6]",
   sectionHeaderIcon: "h-3.5 w-3.5",
@@ -106,12 +106,12 @@ export const styles = {
   breakdownValueAccent: "text-[#14B8A6]",
   breakdownValuePlain: "text-[#F8FAFC]",
   breakdownValueStrong: "text-lg",
-  countdownWrap: "flex items-center gap-2 px-4 pt-3 sm:px-5",
-  countdownTrack: "h-1 flex-1 overflow-hidden rounded-full bg-white/10",
-  countdownFill: "h-full rounded-full bg-[#14B8A6] transition-[width] duration-200 ease-linear",
-  countdownFillUrgent: "bg-rose-400",
-  countdownLabel: "shrink-0 text-[10px] font-black tabular-nums text-[#94A3B8]",
-  countdownLabelUrgent: "shrink-0 text-[10px] font-black tabular-nums text-rose-300",
+  countdownWrap: "mx-4 mt-3 flex items-center gap-2 rounded-xl border border-[#14B8A6]/20 bg-black/30 px-3 py-1.5 sm:mx-5",
+  countdownTrack: "h-1.5 flex-1 overflow-hidden rounded-full bg-slate-800/80 border border-white/5",
+  countdownFill: "h-full rounded-full bg-gradient-to-r from-[#14B8A6] to-[#14F5D5] transition-[width] duration-200 ease-linear shadow-[0_0_8px_rgba(20,245,213,0.5)]",
+  countdownFillUrgent: "bg-rose-400 shadow-[0_0_8px_rgba(251,113,133,0.6)]",
+  countdownLabel: "shrink-0 font-mono text-xs font-black tabular-nums text-[#14F5D5]",
+  countdownLabelUrgent: "shrink-0 font-mono text-xs font-black tabular-nums text-rose-300 animate-pulse",
 } as const;
 
 export type CaptainRank = 'PLATINUM' | 'GOLD' | 'SILVER' | 'BRONZE';
@@ -136,6 +136,7 @@ export interface CaptainProfile {
   vehicle_category?: string;
   facebook_url?: string;
   instagram_url?: string;
+  serial_number?: string | number;
 }
 
 export interface OfferFareBreakdown {
@@ -169,6 +170,7 @@ export interface CaptainOffer {
   distance_km: number;
   estimated_duration_minutes?: number;
   trip_distance_km?: number;
+  destination_label?: string;
   additional_info?: string;
   wait_seconds?: number;
   created_at?: string;
