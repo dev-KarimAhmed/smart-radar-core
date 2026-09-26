@@ -198,6 +198,8 @@ function buildActiveTrip(state: RiderMachineState, acceptedRow: Record<string, u
     acceptedRow.trip_duration_minutes
   ) ?? Math.max(1, Math.ceil((distanceKm || 2) * 1.5));
 
+  const rowCaptain = (acceptedRow.captain || acceptedRow.captain_profile) as Record<string, any> | undefined;
+
   return {
     tripId: firstString(acceptedRow.trip_id, acceptedRow.active_trip_id, acceptedRow.id) || state.requestId || '',
     captainId: selectedOffer?.driverId || acceptedCaptainId || '',
@@ -208,6 +210,8 @@ function buildActiveTrip(state: RiderMachineState, acceptedRow: Record<string, u
       acceptedRow.captain?.nickname ||
       acceptedRow.captain_profile?.full_name ||
       acceptedRow.captain_profile?.nickname ||
+      rowCaptain?.full_name ||
+      rowCaptain?.nickname ||
       selectedOffer?.driverName ||
       firstString(acceptedRow.driver_name, acceptedRow.captain_name) ||
       'السائق',
@@ -245,6 +249,7 @@ function buildActiveTrip(state: RiderMachineState, acceptedRow: Record<string, u
     pickupEtaMinutes: firstNumber(acceptedRow.pickup_eta_minutes, selectedOffer?.pickup_eta_minutes) ?? undefined,
     tripDurationMinutes: estimatedTripMinutes,
     captain: selectedOffer?.captain || acceptedRow.captain || acceptedRow.captain_profile || null,
+    captain: selectedOffer?.captain || rowCaptain || null,
     status: String(acceptedRow.status || 'ACCEPTED').toUpperCase(),
   };
 }
