@@ -36,6 +36,7 @@ export function useSendCancelRideRequest(params: {
   dispatch: React.Dispatch<RiderMachineAction>;
   pricingPreference: 'APP' | 'TAXI' | 'FREE' | null;
   pendingAcceptedOfferIdRef: React.RefObject<string | null>;
+  riderCount?: number;
   onExitRequestFlow?: () => void;
   resetRideDraftState: () => void;
 }) {
@@ -54,6 +55,7 @@ export function useSendCancelRideRequest(params: {
     dispatch,
     pricingPreference,
     pendingAcceptedOfferIdRef,
+    riderCount,
     onExitRequestFlow,
     resetRideDraftState,
   } = params;
@@ -82,6 +84,15 @@ export function useSendCancelRideRequest(params: {
         variant: 'destructive',
         title: t('request.loginRequiredTitle'),
         description: t('request.loginRequiredDescription'),
+      });
+      return;
+    }
+
+    if (riderCount !== undefined && riderCount < 1) {
+      toast({
+        variant: 'destructive',
+        title: t('request.passengersMissingTitle'),
+        description: t('request.passengersMissingDescription'),
       });
       return;
     }
@@ -181,6 +192,7 @@ export function useSendCancelRideRequest(params: {
     pendingAcceptedOfferIdRef,
     pricingPreference,
     pickupAddress,
+    riderCount,
     riderLocation,
     selectedDestinationCoords,
     selectedDraftDestination,

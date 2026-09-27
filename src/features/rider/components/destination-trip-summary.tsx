@@ -32,8 +32,11 @@ const styles = {
   captainCountIcon: "h-3.5 w-3.5",
   captainCountLabel: "mt-1 line-clamp-2 text-[9px] font-black leading-tight text-slate-300",
   captainCountValue: "mt-0.5 font-mono text-base sm:text-lg font-black text-[#14F5D5]",
-  passengerRow: "flex items-center justify-between rounded-xl border border-white/8 bg-[#0B1220] p-3 shadow-lg shadow-black/15",
+  passengerRow: "flex items-center justify-between rounded-xl border border-white/8 bg-[#0B1220] p-3 shadow-lg shadow-black/15 transition-colors",
+  passengerRowAttention: "border-amber-500/40 bg-amber-500/[0.04]",
   passengerLabelWrap: "flex items-center gap-2.5",
+  passengerTextCol: "flex flex-col text-start",
+  passengerRequiredBadge: "text-[10px] font-bold text-amber-400 animate-pulse",
   passengerIcon: "flex h-8 w-8 items-center justify-center rounded-lg bg-[#14B8A6]/15 text-[#14F5D5]",
   passengerIconGlyph: "h-4 w-4",
   passengerLabel: "text-xs font-black text-white",
@@ -41,7 +44,9 @@ const styles = {
   stepperButton: "flex h-8 w-8 items-center justify-center rounded-md border border-white/5 bg-white/5 text-slate-300 transition hover:bg-white/10 active:scale-95 disabled:opacity-30 disabled:pointer-events-none cursor-pointer",
   stepperIcon: "h-3.5 w-3.5",
   stepperValue: "w-6 text-center font-mono text-sm font-black text-white",
+  stepperValueZero: "text-amber-400 font-black",
   stepperIncrement: "flex h-8 w-8 items-center justify-center rounded-md border border-[#14B8A6]/30 bg-[#14B8A6]/15 text-[#14F5D5] transition hover:bg-[#14B8A6]/25 active:scale-95 cursor-pointer",
+  stepperIncrementPrompt: "border-amber-400/50 bg-amber-400/20 text-amber-300 shadow-sm shadow-amber-500/20",
   fareError: "rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs leading-relaxed text-rose-200",
   submitWrapper: "pt-1",
   submitButton: "flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-base font-black transition-all active:scale-[0.99] cursor-pointer shadow-xl",
@@ -108,6 +113,15 @@ export function DestinationTripSummary({
   const t = useTranslations('riderView');
   const locale = useLocale();
   const isArabic = locale === 'ar';
+  const isPassengerCountZero = riderCount <= 0;
+  const isSubmitDisabled =
+    isSendingRideRequest ||
+    isServerFareLoading ||
+    !hasDestinationOptions ||
+    !selectedDestinationHasCoords ||
+    !hasServerEstimatedFare ||
+    isSameLocation ||
+    isPassengerCountZero;
 
   return (
     <>
@@ -170,30 +184,37 @@ export function DestinationTripSummary({
       ) : null}
 
       {/* 3. عدد الركاب (Passenger Stepper) */}
-      <div className={styles.passengerRow}>
+      <div className={cn(styles.passengerRow, isPassengerCountZero && styles.passengerRowAttention)}>
         <div className={styles.passengerLabelWrap}>
           <span className={styles.passengerIcon}>
             <Users className={styles.passengerIconGlyph} />
           </span>
-          <span className={styles.passengerLabel}>{locationCopy('passengers_label')}</span>
+          <div className={styles.passengerTextCol}>
+            <span className={styles.passengerLabel}>{locationCopy('passengers_label')}</span>
+            {isPassengerCountZero ? (
+              <span className={styles.passengerRequiredBadge}>
+                {locationCopy('passengers_required')}
+              </span>
+            ) : null}
+          </div>
         </div>
         <div className={styles.stepper}>
           <button
             type="button"
-            onClick={() => setRiderCount((current) => Math.max(1, current - 1))}
-            disabled={riderCount <= 1}
+            onClick={() => setRiderCount((current) => Math.max(0, current - 1))}
+            disabled={riderCount <= 0}
             className={styles.stepperButton}
             aria-label="-"
           >
             <Minus className={styles.stepperIcon} />
           </button>
-          <output className={styles.stepperValue} aria-live="polite">
+          <output className={cn(styles.stepperValue, isPassengerCountZero && styles.stepperValueZero)} aria-live="polite">
             {riderCount}
           </output>
           <button
             type="button"
-            onClick={() => setRiderCount((current) => current + 1)}
-            className={styles.stepperIncrement}
+            onClick={() => setRiderCount((current) => Math.min(6, current + 1))}
+            className={cn(styles.stepperIncrement, isPassengerCountZero && styles.stepperIncrementPrompt)}
             aria-label="+"
           >
             <Plus className={styles.stepperIcon} />
@@ -211,21 +232,24 @@ export function DestinationTripSummary({
       <div className={styles.submitWrapper}>
         <button
           onClick={onSendRequest}
-          disabled={
-            isSendingRideRequest ||
-            isServerFareLoading ||
-            !hasDestinationOptions ||
-            !selectedDestinationHasCoords ||
-            !hasServerEstimatedFare ||
-            isSameLocation
-          }
+          disabled={isSubmitDisabled}
           className={cn(
             styles.submitButton,
-            isSameLocation ? styles.submitButtonDisabled : styles.submitButtonEnabled,
+            isSubmitDisabled ? styles.submitButtonDisabled : styles.submitButtonEnabled,
           )}
         >
-          {isSendingRideRequest ? <Loader2 className={styles.submitButtonLoadingIcon} /> : <Navigation className={styles.submitButtonIcon} />}
-          {isSendingRideRequest ? t('request.sending') : isSameLocation ? t('panel.whereTo') : t('request.now')}
+          {isSendingRideRequest ? (
+            <Loader2 className={styles.submitButtonLoadingIcon} />
+          ) : (
+            <Navigation className={styles.submitButtonIcon} />
+          )}
+          {isSendingRideRequest
+            ? t('request.sending')
+            : isSameLocation
+            ? t('panel.whereTo')
+            : isPassengerCountZero
+            ? t('request.selectPassengersFirst')
+            : t('request.now')}
         </button>
       </div>
     </>

@@ -68,7 +68,7 @@ const resolvedPromise = () => Promise.resolve();
  */
 export function RiderOperationsProvider({ children }: { children: ReactNode }) {
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
-  const [seats, setSeats] = useState('1');
+  const [seats, setSeats] = useState('0');
   const [dropoff, setDropoff] = useState('');
   const [pickup, setPickup] = useState('');
   const [pricingPreference, setPricingPreference] = useState<'APP' | 'TAXI' | 'FREE' | null>(null);

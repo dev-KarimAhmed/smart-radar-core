@@ -38,7 +38,7 @@ export function useTripCompletion(
 
   const [localCompletedTrips, setLocalCompletedTrips] = React.useState<HistoricalTrip[]>([]);
   const [isCompletingTrip, setIsCompletingTrip] = React.useState(false);
-  const [riderCount, setRiderCount] = React.useState(1);
+  const [riderCount, setRiderCount] = React.useState(0);
   const [rating, setRating] = React.useState({ captain: 0, vehicle: 0, favorite: false });
   const [ratingComment, setRatingComment] = React.useState('');
   const [isSubmittingRating, setIsSubmittingRating] = React.useState(false);
@@ -112,7 +112,7 @@ export function useTripCompletion(
   }, [dispatch, state.activeTrip, state.requestId, t, toast]);
 
   const reset = React.useCallback(() => {
-    setRiderCount(1);
+    setRiderCount(0);
     setRating({ captain: 0, vehicle: 0, favorite: false });
     setRatingComment('');
     setPricingPreference(null);

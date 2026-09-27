@@ -168,6 +168,7 @@
     "trip_summary_title": "ملخص الرحلة",
     "nearby_captains_label": "السائقون قرب نقطة الركوب",
     "passengers_label": "عدد الركاب",
+    "passengers_required": "مطلوب تحديد العدد",
     "map_adjust_helper": "حرك الخريطة لضبط الوجهة بدقة.",
     "ready_to_request": "كل شيء جاهز. راجع التفاصيل ثم اطلب الرحلة.",
     "return_to_app": "العودة إلى التطبيق",
@@ -713,6 +714,9 @@
     },
     "request": {
       "now": "اطلب الآن",
+      "selectPassengersFirst": "يرجى تحديد عدد الركاب",
+      "passengersMissingTitle": "يرجى تحديد عدد الركاب",
+      "passengersMissingDescription": "حدد عدد الركاب قبل إرسال طلب الرحلة لتجنب الخلاف مع السائق.",
       "number": "رقم الطلب",
       "status": "حالة الطلب",
       "sending": "جاري إرسال الطلب...",

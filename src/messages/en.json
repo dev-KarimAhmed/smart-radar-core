@@ -168,6 +168,7 @@
     "trip_summary_title": "Trip summary",
     "nearby_captains_label": "Captains near pickup",
     "passengers_label": "Passengers",
+    "passengers_required": "Count required",
     "map_adjust_helper": "Move the map to fine-tune the destination.",
     "ready_to_request": "Everything is ready. Review the details and request your ride.",
     "return_to_app": "Back to app",
@@ -713,6 +714,9 @@
     },
     "request": {
       "now": "Request now",
+      "selectPassengersFirst": "Please select passenger count",
+      "passengersMissingTitle": "Passenger Count Required",
+      "passengersMissingDescription": "Please select the number of passengers before requesting to avoid driver disputes.",
       "number": "Request number",
       "status": "Request status",
       "sending": "Sending request...",
