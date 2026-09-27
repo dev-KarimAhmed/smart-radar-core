@@ -302,6 +302,9 @@ export function AdStage({
   const impressedAdIdsRef = useRef<Set<string>>(new Set());
   const lastManualSwipeMetricAtRef = useRef(0);
 
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+
   const adsToUse = useMemo(() => {
     const audienceAds = filterAdsByAudience(serverAds, audience);
     const filteredAds = filterAdsByLocalContext(liveDistrict, liveGovernorate, audienceAds);
@@ -344,28 +347,49 @@ export function AdStage({
     }
   }, []);
 
-  useEffect(() => {
+  const updateScrollButtons = useCallback(() => {
     const track = scrollTrackRef.current;
-    if (!track || takeoverAd || adsToUse.length <= 1) return;
+    if (!track) return;
+    
+    const tolerance = 2;
+    const maxScroll = track.scrollWidth - track.clientWidth;
+    
+    if (maxScroll <= 0) {
+      setCanScrollLeft(false);
+      setCanScrollRight(false);
+      return;
+    }
 
-    const stepSize = isFullScreen ? 3 : 2;
-    const intervalId = window.setInterval(() => {
-      if (isAdStreamPausedRef.current) return;
+    if (adStageDirection === 'rtl') {
+      const isAtRightEdge = track.scrollLeft >= -tolerance; 
+      const isAtLeftEdge = track.scrollLeft <= -(maxScroll - tolerance);
+      
+      setCanScrollRight(!isAtRightEdge);
+      setCanScrollLeft(!isAtLeftEdge);
+    } else {
+      const isAtLeftEdge = track.scrollLeft <= tolerance; 
+      const isAtRightEdge = track.scrollLeft >= maxScroll - tolerance;
+      
+      setCanScrollLeft(!isAtLeftEdge);
+      setCanScrollRight(!isAtRightEdge);
+    }
+  }, [adStageDirection]);
 
-      const loopPoint = track.scrollWidth / 2;
-      const nextPosition = track.scrollLeft + getAdScrollDelta(adStageDirection, stepSize);
-      track.scrollLeft = wrapAdScrollPosition(adStageDirection, nextPosition, loopPoint);
-    }, 40);
+  useEffect(() => {
+    updateScrollButtons();
+    window.addEventListener('resize', updateScrollButtons);
+    return () => window.removeEventListener('resize', updateScrollButtons);
+  }, [updateScrollButtons, adsToUse.length]);
 
-    return () => window.clearInterval(intervalId);
-  }, [adStageDirection, adsToUse.length, isFullScreen, takeoverAd]);
+  // Disabled auto-scroll as per finite card request
+  // (removed setInterval logic)
 
   const setAdStreamPaused = useCallback((paused: boolean) => {
     isAdStreamPausedRef.current = paused;
     setIsAdStreamPaused(paused);
   }, []);
 
-  const scrollAds = useCallback((scrollDirection: 'previous' | 'next') => {
+  const scrollAds = useCallback((scrollDirection: 'left' | 'right') => {
     const track = scrollTrackRef.current;
     if (!track || adsToUse.length <= 1) return;
 
@@ -374,11 +398,12 @@ export function AdStage({
     enqueueAdEvent(getVisibleAdForMetric(track, adsToUse), 'swipe');
 
     const distance = Math.max(240, Math.min(track.clientWidth * 0.82, 520));
+    const delta = scrollDirection === 'left' ? -distance : distance;
     track.scrollBy({
-      left: getAdManualScrollDelta(adStageDirection, scrollDirection, distance),
+      left: delta,
       behavior: 'smooth',
     });
-  }, [adStageDirection, adsToUse, setAdStreamPaused]);
+  }, [adsToUse, setAdStreamPaused]);
 
   const registerManualTrackScroll = useCallback(() => {
     const track = scrollTrackRef.current;
@@ -528,12 +553,12 @@ export function AdStage({
           <>
             <button
               type="button"
-              aria-label={canNavigate ? copy.previous : copy.noMoreAds}
-              disabled={!canNavigate}
-              onClick={() => scrollAds('previous')}
+              aria-label={copy.previous}
+              disabled={!canScrollLeft}
+              onClick={() => scrollAds('left')}
               className={cn(
                 styles.style457_20,
-                canNavigate
+                canScrollLeft
                   ? styles.style459_21
                   : styles.style460_22
               )}
@@ -543,12 +568,12 @@ export function AdStage({
 
             <button
               type="button"
-              aria-label={canNavigate ? copy.next : copy.noMoreAds}
-              disabled={!canNavigate}
-              onClick={() => scrollAds('next')}
+              aria-label={copy.next}
+              disabled={!canScrollRight}
+              onClick={() => scrollAds('right')}
               className={cn(
                 styles.style472_24,
-                canNavigate
+                canScrollRight
                   ? styles.style474_25
                   : styles.style475_26
               )}
@@ -563,7 +588,10 @@ export function AdStage({
           data-ad-carousel-track="true"
           data-paused={isAdStreamPaused ? 'true' : 'false'}
           data-ad-count={adsToUse.length}
-          onScroll={registerManualTrackScroll}
+          onScroll={() => {
+            updateScrollButtons();
+            registerManualTrackScroll();
+          }}
           onTouchStart={() => setAdStreamPaused(true)}
           onTouchEnd={() => { window.setTimeout(() => setAdStreamPaused(false), 2000); }}
           style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-x' }}
@@ -572,7 +600,7 @@ export function AdStage({
             adsToUse.length === 1 ? styles.style491_29 : styles.style491_30
           )}
         >
-          {(adsToUse.length > 1 ? [...adsToUse, ...adsToUse] : adsToUse).map((ad: any, index: number) => (
+          {adsToUse.map((ad: any, index: number) => (
             <div
               key={`${ad.id}-${index}`}
               className={styles.style497_31}
