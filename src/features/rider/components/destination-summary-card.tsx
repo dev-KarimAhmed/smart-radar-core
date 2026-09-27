@@ -24,17 +24,17 @@ const styles = {
   row: "flex items-start justify-between gap-3",
   destination: "min-w-0",
   fieldLabel: "block text-[9px] font-black uppercase text-slate-500",
-  destinationValue: "mt-1 block truncate text-sm font-black text-white",
+  destinationValue: "mt-1 block truncate text-base font-black text-[#F97316]",
   coords: "mt-1 block font-mono text-[9px] text-slate-600",
   metricsGrid: "grid grid-cols-2 gap-2",
   metricCardDuration: "rounded-xl border border-[#14B8A6]/18 bg-[#14B8A6]/8 p-2.5",
   metricIconDuration: "mb-1.5 h-3.5 w-3.5 text-[#14F5D5]",
-  metricLabelDuration: "block text-[9px] font-black text-slate-500",
-  metricValue: "mt-1 block text-xs font-black text-white",
-  metricHelper: "mt-0.5 block text-[8px] leading-tight text-slate-500",
+  metricLabelDuration: "block text-[11px] font-black text-slate-400",
+  metricValue: "mt-1 block text-sm font-black text-white",
+  metricHelper: "mt-1 block text-[11px] font-bold leading-snug text-amber-400/90",
   metricCard: "rounded-xl border border-white/8 bg-black/20 p-2.5",
   metricIcon: "mb-1.5 h-3.5 w-3.5 text-slate-400",
-  metricLabel: "block text-[9px] font-black text-slate-500",
+  metricLabel: "block text-[11px] font-black text-slate-400",
 } as const;
 
 export interface DestinationSummaryCardProps {
