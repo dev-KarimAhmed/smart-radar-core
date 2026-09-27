@@ -564,6 +564,9 @@ export function AdStage({
           data-paused={isAdStreamPaused ? 'true' : 'false'}
           data-ad-count={adsToUse.length}
           onScroll={registerManualTrackScroll}
+          onTouchStart={() => setAdStreamPaused(true)}
+          onTouchEnd={() => { window.setTimeout(() => setAdStreamPaused(false), 2000); }}
+          style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-x' }}
           className={cn(
             styles.style490_28,
             adsToUse.length === 1 ? styles.style491_29 : styles.style491_30
