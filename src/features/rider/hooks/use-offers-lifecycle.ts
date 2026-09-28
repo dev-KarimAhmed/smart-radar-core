@@ -16,7 +16,7 @@ import { collectPreferredCaptainIds, prioritizeRiderOffers } from '../services/r
 import { getOfferCountdown } from '../services/offer-countdown';
 import type { RiderMachineState, RiderMachineAction } from '../state/rider-state-machine';
 
-const OFFER_TIMEOUT_MS = 240 * 1000; // 4 minutes (240s) search window
+const OFFER_TIMEOUT_MS = 240 * 1000; // 4 minute (240s) search window
 
 /**
  * Owns the incoming-offers poll/subscription for `RECEIVING_OFFERS`, the
@@ -139,10 +139,10 @@ export function useOffersLifecycle(
         .finally(() => {
           toast({
             variant: 'destructive',
-            title: '🛑 لا يوجد سائقين متوفرين في محيطك الحالي',
-            description: 'يرجى إعادة المحاولة بعد قليل.',
+            title: 'لا يتوفر سائقين الان',
+            description: 'جرب تاني',
           });
-          dispatch({ type: 'RESET_TO_IDLE' });
+          dispatch({ type: 'REQUEST_CANCELLED' });
         });
     }, remainingMs);
 
@@ -159,8 +159,8 @@ export function useOffersLifecycle(
     const onVisibilityChange = () => {
       if (document.visibilityState === 'hidden') {
         timeoutId = window.setTimeout(() => {
-          cancelRideRequest(supabase, currentRequestId).catch(() => {});
-          dispatch({ type: 'RESET_TO_IDLE' });
+          cancelRideRequest(supabase, currentRequestId).catch(() => { });
+          dispatch({ type: 'REQUEST_CANCELLED' });
         }, 30_000);
       } else {
         if (timeoutId !== undefined) {
@@ -171,7 +171,7 @@ export function useOffersLifecycle(
     };
 
     const onBeforeUnload = () => {
-      cancelRideRequest(supabase, currentRequestId).catch(() => {});
+      cancelRideRequest(supabase, currentRequestId).catch(() => { });
     };
 
     document.addEventListener('visibilitychange', onVisibilityChange);

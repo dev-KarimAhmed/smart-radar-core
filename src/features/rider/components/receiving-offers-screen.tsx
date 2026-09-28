@@ -13,10 +13,10 @@ import { getOfferCountdown } from '../services/offer-countdown';
 import type { RiderLocation } from './rider-map';
 import { CaptainOfferCard } from './captain-offer-card';
 
-const TOTAL_SEARCH_SECONDS = 240; // 4 minutes
+const TOTAL_SEARCH_SECONDS = 60; // 1 minute
 
 const styles = {
-  cancelledWrapper: "space-y-4",
+  cancelledWrapper: "space-y-4 pointer-events-auto",
   rtl: "text-right",
   ltr: "text-left",
   cancelledCard: "rounded-[24px] border border-amber-400/20 bg-amber-400/10 p-5",
@@ -151,7 +151,7 @@ export function ReceivingOffersScreen({
         ];
   }, [isArabic, isExpandingCaptainSearch]);
 
-  const currentStageIndex = Math.min(3, Math.floor(elapsedSeconds / 60));
+  const currentStageIndex = Math.min(3, Math.floor(elapsedSeconds / 15));
   const currentStage = stages[currentStageIndex];
 
   const hasOffers = state.offers.length > 0;
@@ -313,11 +313,11 @@ export function ReceivingOffersScreen({
           <div className="relative z-10 mt-2 space-y-2">
             <div className="grid grid-cols-4 gap-2">
               {stages.map((stg) => {
-                const start = stg.index * 60;
-                const end = (stg.index + 1) * 60;
+                const start = stg.index * 15;
+                const end = (stg.index + 1) * 15;
                 const isCompleted = elapsedSeconds >= end;
                 const isCurrent = elapsedSeconds >= start && elapsedSeconds < end;
-                const fillPct = isCompleted ? 100 : isCurrent ? Math.min(100, Math.max(0, ((elapsedSeconds - start) / 60) * 100)) : 0;
+                const fillPct = isCompleted ? 100 : isCurrent ? Math.min(100, Math.max(0, ((elapsedSeconds - start) / 15) * 100)) : 0;
 
                 return (
                   <div key={stg.index} className="space-y-1.5">
@@ -351,7 +351,7 @@ export function ReceivingOffersScreen({
               <span>{isArabic ? 'رادار جغرافي فوري مشفّر' : 'Encrypted Geospatial Radar'}</span>
             </div>
             <span className="text-[10px] font-mono font-bold text-slate-400">
-              {isArabic ? 'الحد الأقصى: 4:00 د' : 'Max Search: 4:00m'}
+              {isArabic ? 'الحد الأقصى: 1:00 د' : 'Max Search: 1:00m'}
             </span>
           </div>
         </div>

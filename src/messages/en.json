@@ -752,7 +752,7 @@
       "arrived": "Offers arrived",
       "noOffersEyebrow": "No offers arrived",
       "noOffersTitle": "Sorry, all nearby captains are busy right now",
-      "noOffersDescription": "We did not find offers for your trip at this moment. You can retry or change the destination.",
+      "noOffersDescription": "We did not find offers for your trip at this moment. You can retry.",
       "waitingDescription": "Wait a moment. Offers will appear here.",
       "waitingLoader": "Looking for the nearest available captains... please wait a few seconds",
       "retry": "Retry",

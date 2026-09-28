@@ -12,8 +12,6 @@ const styles = {
   icon: "flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#14B8A6]/15",
   iconGlyph: "h-4 w-4",
   text: "min-w-0",
-  title: "block text-xs font-black",
-  subtitle: "mt-0.5 text-[10px] leading-relaxed text-slate-400",
   title: "block text-sm font-black text-[#14F5D5]",
   subtitle: "mt-0.5 text-xs sm:text-sm font-bold leading-normal text-slate-200",
   routeStatus: "rounded-xl border border-[#14B8A6]/20 bg-[#14B8A6]/10 px-3 py-3 text-xs font-bold text-[#BFFCF2]",

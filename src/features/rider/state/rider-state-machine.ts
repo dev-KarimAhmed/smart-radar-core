@@ -258,11 +258,11 @@ export function riderDashboardReducer(state: RiderMachineState, action: RiderMac
       return { ...state, screen: 'DESTINATION_SELECTION' };
 
     case 'CONFIRM_DESTINATION':
-      if (state.screen !== 'DESTINATION_SELECTION') return state;
+      if (state.screen !== 'DESTINATION_SELECTION' && state.screen !== 'RECEIVING_OFFERS') return state;
       return { ...state, destination: action.destination };
 
     case 'SEND_REQUEST':
-      if (state.screen !== 'DESTINATION_SELECTION' || !state.destination) return state;
+      if ((state.screen !== 'DESTINATION_SELECTION' && state.screen !== 'RECEIVING_OFFERS') || !state.destination) return state;
       return {
         ...state,
         offers: [],
@@ -275,7 +275,7 @@ export function riderDashboardReducer(state: RiderMachineState, action: RiderMac
       };
 
     case 'SERVER_REQUEST_CREATED':
-      if (state.screen !== 'DESTINATION_SELECTION') return state;
+      if (state.screen !== 'DESTINATION_SELECTION' && state.screen !== 'RECEIVING_OFFERS') return state;
       return { ...state, requestId: action.requestId, requestStartedAt: state.requestStartedAt ?? Date.now() };
 
     case 'SERVER_STATUS_RECEIVING_OFFERS':

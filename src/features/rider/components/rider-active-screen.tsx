@@ -18,6 +18,7 @@ import type { RiderLocation } from './rider-map';
 import { DestinationSelectionScreen } from './destination-selection-screen';
 import { ReceivingOffersScreen } from './receiving-offers-screen';
 import { TripActiveScreen } from './trip-active-screen';
+import { CaptainCancelledDialog } from './captain-cancelled-dialog';
 
 // Pure routing component — renders one of three fully-styled child screens
 // and owns no DOM/className of its own, but every .tsx file must declare a
@@ -93,7 +94,8 @@ export function RiderActiveScreen(props: RiderActiveScreenProps) {
 
   if (state.screen === 'DESTINATION_SELECTION') {
     return (
-      <DestinationSelectionScreen
+      <>
+        <DestinationSelectionScreen
         isArabic={isArabic}
         language={language}
         geography={geography}
@@ -120,6 +122,20 @@ export function RiderActiveScreen(props: RiderActiveScreenProps) {
         onResetDraft={onResetDraft}
         onCancelPreview={onCancelPreview}
       />
+      {state.autoRetryRequested && (
+        <CaptainCancelledDialog
+          isArabic={isArabic}
+          open={true}
+          onRetry={() => {
+            dispatch({ type: 'CLEAR_AUTO_RETRY' });
+            void sendCancel.handleSendRequest();
+          }}
+          onCancel={() => {
+            dispatch({ type: 'RESET_TO_IDLE' });
+          }}
+        />
+      )}
+      </>
     );
   }
 
@@ -143,8 +159,7 @@ export function RiderActiveScreen(props: RiderActiveScreenProps) {
         onCancelRideRequest={() => void sendCancel.handleCancelRideRequest()}
         onAcceptOffer={(offer) => void offers.handleAcceptOffer(offer)}
         onRetry={() => {
-          dispatch({ type: 'RESET_TO_IDLE' });
-          window.setTimeout(statusSync.openDestination, 0);
+          void sendCancel.handleSendRequest();
         }}
       />
     );

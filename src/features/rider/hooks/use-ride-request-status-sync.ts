@@ -210,15 +210,6 @@ export function useRideRequestStatusSync(params: {
 
         if (status === 'CANCELLED') {
           pendingAcceptedOfferIdRef.current = null;
-          // A cancellation arriving while a trip is already underway can
-          // only be the captain's doing (the rider's own cancel button
-          // already shows its own toast) — flag it explicitly here.
-          if (screenRef.current === 'TRIP_ACTIVE') {
-            toast({
-              title: t('request.cancelledByCaptainTitle'),
-              description: t('request.cancelledByCaptainDescription'),
-            });
-          }
           dispatch({ type: 'REQUEST_CANCELLED' });
         }
 

@@ -107,7 +107,10 @@ export function useSendCancelRideRequest(params: {
       return;
     }
 
-    if (!selectedDraftDestination || !selectedDestinationCoords) {
+    const effectiveDraftDestination = selectedDraftDestination || state.destination;
+    const effectiveDestinationCoords = selectedDestinationCoords || state.destination?.coords;
+
+    if (!effectiveDraftDestination || !effectiveDestinationCoords) {
       toast({
         variant: 'destructive',
         title: t('request.destinationNotReadyTitle'),
@@ -117,10 +120,10 @@ export function useSendCancelRideRequest(params: {
     }
 
     if (
-      selectedDraftDestination.serverEstimatedFare === undefined ||
-      isServerFareLoading ||
-      isRouteEstimateLoading ||
-      !currentRouteEstimate
+      effectiveDraftDestination.serverEstimatedFare === undefined ||
+      (isServerFareLoading && !state.destination) ||
+      (isRouteEstimateLoading && !state.destination) ||
+      (!currentRouteEstimate && !state.destination)
     ) {
       toast({
         variant: 'destructive',
@@ -137,7 +140,7 @@ export function useSendCancelRideRequest(params: {
       unlockAudio.play().catch(() => {});
     }
 
-    dispatch({ type: 'CONFIRM_DESTINATION', destination: selectedDraftDestination });
+    dispatch({ type: 'CONFIRM_DESTINATION', destination: effectiveDraftDestination as RiderDestination });
     dispatch({ type: 'SEND_REQUEST' });
     setIsSendingRideRequest(true);
 
@@ -146,15 +149,15 @@ export function useSendCancelRideRequest(params: {
         riderId: userId,
         origin: riderLocation,
         pickupAddress,
-        destination: selectedDestinationCoords,
-        originH3: selectedDraftDestination.originCell || latLngToCell(riderLocation.lat, riderLocation.lng, H3_RIDER_REQUEST_RESOLUTION),
+        destination: effectiveDestinationCoords,
+        originH3: effectiveDraftDestination.originCell || latLngToCell(riderLocation.lat, riderLocation.lng, H3_RIDER_REQUEST_RESOLUTION),
         destinationH3:
-          selectedDraftDestination.destinationCell ||
-          latLngToCell(selectedDestinationCoords.lat, selectedDestinationCoords.lng, H3_RIDER_REQUEST_RESOLUTION),
-        destinationAddressAr: selectedDraftDestination.label,
-        serverEstimatedFare: selectedDraftDestination.serverEstimatedFare,
-        routeDistanceKm: currentRouteEstimate.distanceKm,
-        routeDurationMinutes: currentRouteEstimate.durationMinutes,
+          effectiveDraftDestination.destinationCell ||
+          latLngToCell(effectiveDestinationCoords.lat, effectiveDestinationCoords.lng, H3_RIDER_REQUEST_RESOLUTION),
+        destinationAddressAr: effectiveDraftDestination.label,
+        serverEstimatedFare: effectiveDraftDestination.serverEstimatedFare,
+        routeDistanceKm: currentRouteEstimate?.distanceKm ?? effectiveDraftDestination.fareQuote?.estimatedRoadDistanceKm ?? 2,
+        routeDurationMinutes: currentRouteEstimate?.durationMinutes ?? Math.max(1, Math.ceil((effectiveDraftDestination.fareQuote?.estimatedRoadDistanceKm ?? 2) * 1.5)),
         countryId,
         pricingPreference: pricingPreference || null,
       });
@@ -248,40 +251,7 @@ export function useSendCancelRideRequest(params: {
     }
   }, [dispatch, errorLabels, language, onExitRequestFlow, resetRideDraftState, state.requestId, t, toast]);
 
-  React.useEffect(() => {
-    if (
-      state.screen === 'DESTINATION_SELECTION' &&
-      state.autoRetryRequested &&
-      !isSendingRideRequest &&
-      selectedDraftDestination &&
-      selectedDestinationCoords &&
-      !isServerFareLoading &&
-      !isRouteEstimateLoading &&
-      currentRouteEstimate &&
-      selectedDraftDestination.serverEstimatedFare !== undefined
-    ) {
-      // Short delay to avoid race conditions and give the UI a moment to breathe
-      const timer = setTimeout(() => {
-        dispatch({ type: 'CLEAR_AUTO_RETRY' });
-        handleSendRequest();
-      }, 100);
-      
-      // Don't clearTimeout on unmount because if the component re-renders (e.g. from state change), 
-      // it would cancel the pending retry before it can execute.
-      return () => {};
-    }
-  }, [
-    state.screen,
-    state.autoRetryRequested,
-    isSendingRideRequest,
-    selectedDraftDestination,
-    selectedDestinationCoords,
-    isServerFareLoading,
-    isRouteEstimateLoading,
-    currentRouteEstimate,
-    dispatch,
-    handleSendRequest,
-  ]);
+
 
   return {
     isSendingRideRequest,
