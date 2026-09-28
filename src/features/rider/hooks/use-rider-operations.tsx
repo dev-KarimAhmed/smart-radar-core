@@ -16,9 +16,11 @@ const styles = {
 } as const;
 
 
+export type RiderTripStatus = 'idle' | 'searching' | 'busy' | 'rating' | string;
+
 interface RiderOperationsContextType {
   trip: Trip | null;
-  tripStatus: 'idle';
+  tripStatus: RiderTripStatus;
   acceptedDriver: User | null;
   isRequestModalOpen: boolean;
   openRequestModal: () => void;
@@ -72,6 +74,7 @@ export function RiderOperationsProvider({ children }: { children: ReactNode }) {
   const [dropoff, setDropoff] = useState('');
   const [pickup, setPickup] = useState('');
   const [pricingPreference, setPricingPreference] = useState<'APP' | 'TAXI' | 'FREE' | null>(null);
+  const [tripStatus, setTripStatus] = useState<string>('idle');
 
   const openRequestModal = useCallback(() => {
     setIsRequestModalOpen(true);
@@ -88,19 +91,19 @@ export function RiderOperationsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    try {
-      sessionStorage.setItem('sovereign_trip_status', 'idle');
-      window.dispatchEvent(new CustomEvent('sovereign-status-change', {
-        detail: { role: 'rider', status: 'idle' },
-      }));
-    } catch {
-      // Session storage may be unavailable in private or restricted contexts.
-    }
+    const handleStatusChange = (event: Event) => {
+      const customEvent = event as CustomEvent<{ role?: string; status?: string }>;
+      if (customEvent.detail?.role === 'rider' && customEvent.detail?.status) {
+        setTripStatus(customEvent.detail.status);
+      }
+    };
+    window.addEventListener('sovereign-status-change', handleStatusChange);
+    return () => window.removeEventListener('sovereign-status-change', handleStatusChange);
   }, []);
 
   const value = useMemo<RiderOperationsContextType>(() => ({
     trip: null,
-    tripStatus: 'idle',
+    tripStatus,
     acceptedDriver: null,
     isRequestModalOpen,
     openRequestModal,

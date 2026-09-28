@@ -13,6 +13,7 @@ import {
 } from '../services/rider-server-marketplace';
 import { getLocalizedMarketplaceError } from '../services/rider-offer-presentation';
 import { collectPreferredCaptainIds, prioritizeRiderOffers } from '../services/rider-offer-ranking';
+import { fetchFavoriteCaptainIds } from '@/features/account/services/favorite-captains';
 import { getOfferCountdown } from '../services/offer-countdown';
 import type { RiderMachineState, RiderMachineAction } from '../state/rider-state-machine';
 
@@ -39,7 +40,6 @@ export function useOffersLifecycle(
   const [captainSearchRadiusKm, setCaptainSearchRadiusKm] = React.useState(1.5);
   const [isExpandingCaptainSearch, setIsExpandingCaptainSearch] = React.useState(false);
   const [acceptingOfferId, setAcceptingOfferId] = React.useState<string | null>(null);
-  const pendingAcceptedOfferIdRef = React.useRef<string | null>(null);
 
   // Shared with the screen's countdown UI so both sides agree on exactly
   // when each offer's visibility window started — anchored to when THIS
@@ -54,12 +54,12 @@ export function useOffersLifecycle(
 
     const refreshOffers = async () => {
       try {
-        const [offers, favs] = await Promise.all([
+        const [offers, favIdsSet] = await Promise.all([
           fetchRideOffers(supabase, state.requestId!),
-          dexieDb.favoriteCaptains.toArray().catch(() => [])
+          fetchFavoriteCaptainIds().catch(() => new Set<string>()),
         ]);
 
-        const favoriteIds = collectPreferredCaptainIds(favs);
+        const favoriteIds = Array.from(favIdsSet);
         // جميع العروض المقدمة من الكباتن المتاحين للطلب يتم عرضها للراكب
         const validOffers = offers;
 
@@ -247,7 +247,7 @@ export function useOffersLifecycle(
     }
 
     setAcceptingOfferId(offerId);
-    pendingAcceptedOfferIdRef.current = offerId;
+    // Offer ID tracked centrally via SELECT_OFFER
 
     try {
       await acceptRideOffer(supabase, {
@@ -256,7 +256,7 @@ export function useOffersLifecycle(
       });
       dispatch({ type: 'SELECT_OFFER', offerId });
     } catch (error) {
-      pendingAcceptedOfferIdRef.current = null;
+      
       if ((process.env.NODE_ENV !== 'production')) console.warn('[Rider Accept Offer]', error);
       toast({
         variant: 'destructive',
@@ -279,7 +279,7 @@ export function useOffersLifecycle(
   }, [dispatch, language, state.requestId, t, toast]);
 
   const reset = React.useCallback(() => {
-    pendingAcceptedOfferIdRef.current = null;
+    
     firstSeenAtRef.current.clear();
     setPreferredCaptainIds([]);
     setExpandedOfferId(null);
@@ -295,7 +295,6 @@ export function useOffersLifecycle(
     captainSearchRadiusKm,
     isExpandingCaptainSearch,
     acceptingOfferId,
-    pendingAcceptedOfferIdRef,
     firstSeenAtRef,
     handleAcceptOffer,
     reset,

@@ -1,6 +1,7 @@
 import React from 'react';
 import { latLngToCell } from 'h3-js';
 import type { AppLanguage } from '@/lib/i18n/simple-copy';
+import { reverseGeocodeCoordinates } from '../services/reverse-geocoding-cache';
 import { countryCodeToCurrency } from '@/shared/services/geo-currency';
 import type { RiderLocation, RiderLocationStatus, RiderLocationUpdate } from '../components/rider-map';
 
@@ -45,11 +46,7 @@ export function useRiderGeolocation(language: AppLanguage, countryDefaultCenter?
     const fetchAddress = async () => {
       setIsGeocoding(true);
       try {
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?lat=${riderLocation.lat}&lon=${riderLocation.lng}&format=json&accept-language=${language}`
-        );
-        if (!res.ok) throw new Error('Geocoding fail');
-        const data = await res.json();
+        const data = await reverseGeocodeCoordinates(riderLocation.lat, riderLocation.lng, language);
         if (active && data) {
           const addr = data.address || {};
           const localPart =
@@ -72,6 +69,7 @@ export function useRiderGeolocation(language: AppLanguage, countryDefaultCenter?
             displayAddress = `${localPart}${separator}${cityPart}`;
           } else {
             displayAddress = localPart || cityPart || data.display_name || '';
+            displayAddress = localPart || cityPart || data.displayName || '';
           }
           setCurrentAddressName(displayAddress);
           setLiveCurrencyCode(countryCodeToCurrency(addr.country_code));

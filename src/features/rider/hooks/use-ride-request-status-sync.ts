@@ -21,9 +21,8 @@ export function useRideRequestStatusSync(params: {
   language: AppLanguage;
   state: RiderMachineState;
   dispatch: React.Dispatch<RiderMachineAction>;
-  pendingAcceptedOfferIdRef: React.RefObject<string | null>;
 }) {
-  const { userId, selectedDraftDestination, language, state, dispatch, pendingAcceptedOfferIdRef } = params;
+  const { userId, selectedDraftDestination, language, state, dispatch } = params;
 
   const { toast } = useToast();
   const t = useTranslations('riderView');
@@ -67,11 +66,7 @@ export function useRideRequestStatusSync(params: {
     }
   }, [dispatch, selectedDraftDestination]);
 
-  React.useEffect(() => {
-    if (state.screen === 'DESTINATION_SELECTION' && selectedDraftDestination) {
-      dispatch({ type: 'CONFIRM_DESTINATION', destination: selectedDraftDestination });
-    }
-  }, [dispatch, selectedDraftDestination, state.screen]);
+// [ACT-SSOT-01] Removed duplicate reactive CONFIRM_DESTINATION useEffect to enforce single user pulse
 
   // Cancel trip if the user logs out while a request is active
   const previousUserId = React.useRef(userId);
@@ -179,11 +174,11 @@ export function useRideRequestStatusSync(params: {
             type: 'SERVER_STATUS_ACCEPTED',
             row: {
               ...row,
-              selected_offer_id: row.selected_offer_id || row.accepted_offer_id || pendingAcceptedOfferIdRef.current,
+              selected_offer_id: row.selected_offer_id || row.accepted_offer_id || state.pendingAcceptedOfferId,
             },
           });
           if (status === 'ACCEPTED') {
-            pendingAcceptedOfferIdRef.current = null;
+            // pendingAcceptedOfferId managed centrally by state machine
           }
 
           // The captain pressing "إبلاغ الراكب بالوصول" is the one transition the rider is
@@ -209,12 +204,12 @@ export function useRideRequestStatusSync(params: {
         }
 
         if (status === 'CANCELLED') {
-          pendingAcceptedOfferIdRef.current = null;
+          // pendingAcceptedOfferId managed centrally by state machine
           dispatch({ type: 'REQUEST_CANCELLED' });
         }
 
         if (status === 'COMPLETED') {
-          pendingAcceptedOfferIdRef.current = null;
+          // pendingAcceptedOfferId managed centrally by state machine
           dispatch({ type: 'SERVER_STATUS_COMPLETED', row });
         }
       },
@@ -236,7 +231,7 @@ export function useRideRequestStatusSync(params: {
         });
       },
     );
-  }, [dispatch, language, pendingAcceptedOfferIdRef, state.requestId, t, toast]);
+  }, [dispatch, language, state.requestId, t, toast]);
 
   /**
    * Safety net: re-read the request's status while the rider sits on the trip screen.
@@ -268,10 +263,10 @@ export function useRideRequestStatusSync(params: {
 
       const status = String((data as Record<string, unknown>).status || '').toUpperCase();
       if (status === 'COMPLETED') {
-        pendingAcceptedOfferIdRef.current = null;
+        // pendingAcceptedOfferId managed centrally by state machine
         dispatch({ type: 'SERVER_STATUS_COMPLETED', row: data as Record<string, unknown> });
       } else if (status === 'CANCELLED') {
-        pendingAcceptedOfferIdRef.current = null;
+        // pendingAcceptedOfferId managed centrally by state machine
         dispatch({ type: 'REQUEST_CANCELLED' });
       }
     };
@@ -288,7 +283,7 @@ export function useRideRequestStatusSync(params: {
       window.clearInterval(interval);
       document.removeEventListener('visibilitychange', onVisible);
     };
-  }, [dispatch, pendingAcceptedOfferIdRef, state.requestId, state.screen]);
+  }, [dispatch, state.requestId, state.screen]);
 
   return {
     countdown,

@@ -134,7 +134,52 @@ export function useHistoryState() {
     let active = true;
 
     async function fetchTripHistory() {
-      setLoading(true);
+      // [ACT-SSOT-04] Offline-First / Cache-First: immediately read and render local Dexie trips
+      try {
+        if (isCaptain) {
+          const localCaptain = await dexieDb.captainLedger.toArray();
+          if (localCaptain.length > 0 && active) {
+            setRealTrips(localCaptain.map(entry => ({
+              id: entry.requestId,
+              status: 'COMPLETED',
+              completed_at: new Date(entry.completedAt).toISOString(),
+              created_at: new Date(entry.completedAt).toISOString(),
+              final_fare: entry.finalFare,
+              rider: { full_name: 'راكب محلي', phone: '', rating: 5.0 },
+              destination_address_ar: entry.destination || 'غير متاح',
+              trip_fare: entry.finalFare,
+            } as any)));
+            setLoading(false);
+          }
+        } else {
+          const localRider = await dexieDb.riderTripLedger.toArray();
+          if (localRider.length > 0 && active) {
+            setRealTrips(localRider.map(entry => ({
+              id: entry.tripId,
+              status: 'COMPLETED',
+              completed_at: new Date(entry.timestamp).toISOString(),
+              created_at: new Date(entry.timestamp).toISOString(),
+              final_fare: entry.finalPrice,
+              accepted_captain_id: entry.captainId,
+              captain: {
+                id: entry.captainId,
+                full_name: entry.captainName,
+                phone: entry.captainPhone,
+                rating: 5.0,
+                rank: entry.captainRank,
+              },
+              vehicle: entry.vehicleInfo ? { model: entry.vehicleInfo } : undefined,
+              destination_address_ar: 'رحلة سابقة',
+              trip_fare: entry.finalPrice,
+            } as any)));
+            setLoading(false);
+          }
+        }
+      } catch (cacheErr) {
+        if (process.env.NODE_ENV !== 'production') console.warn('[HistoryTab Cache-First read error]', cacheErr);
+      }
+
+      // Background Sync with remote Supabase
       try {
         const userColumn = isCaptain ? 'accepted_captain_id' : 'rider_id';
         let fetchedData: any[] = [];

@@ -35,7 +35,6 @@ export function useSendCancelRideRequest(params: {
   state: RiderMachineState;
   dispatch: React.Dispatch<RiderMachineAction>;
   pricingPreference: 'APP' | 'TAXI' | 'FREE' | null;
-  pendingAcceptedOfferIdRef: React.RefObject<string | null>;
   riderCount?: number;
   onExitRequestFlow?: () => void;
   resetRideDraftState: () => void;
@@ -54,7 +53,6 @@ export function useSendCancelRideRequest(params: {
     state,
     dispatch,
     pricingPreference,
-    pendingAcceptedOfferIdRef,
     riderCount,
     onExitRequestFlow,
     resetRideDraftState,
@@ -174,7 +172,7 @@ export function useSendCancelRideRequest(params: {
       if ((process.env.NODE_ENV !== 'production')) {
         console.warn('[Rider Ride Request Insert]', error);
       }
-      pendingAcceptedOfferIdRef.current = null;
+      // pendingAcceptedOfferId managed centrally
       dispatch({ type: 'REQUEST_FAILED' });
       toast({
         variant: 'destructive',
@@ -192,7 +190,6 @@ export function useSendCancelRideRequest(params: {
     isRouteEstimateLoading,
     isServerFareLoading,
     language,
-    pendingAcceptedOfferIdRef,
     pricingPreference,
     pickupAddress,
     riderCount,
@@ -234,7 +231,7 @@ export function useSendCancelRideRequest(params: {
       // realtime recovery before the user pressed the close button. Treat that state as an
       // idempotent close instead of trapping the rider in a dead request screen.
       if (isStaleOrAlreadyClosed) {
-        pendingAcceptedOfferIdRef.current = null;
+        // pendingAcceptedOfferId managed centrally
         resetRideDraftState();
         dispatch({ type: 'RESET_TO_IDLE' });
         return;

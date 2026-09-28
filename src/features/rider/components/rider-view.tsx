@@ -99,7 +99,6 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
     language,
     state,
     dispatch,
-    pendingAcceptedOfferIdRef: offers.pendingAcceptedOfferIdRef,
   });
 
   const resetRideDraftState = React.useCallback(() => {
@@ -143,11 +142,27 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
     state,
     dispatch,
     pricingPreference: tripCompletion.pricingPreference,
-    pendingAcceptedOfferIdRef: offers.pendingAcceptedOfferIdRef,
     riderCount: tripCompletion.riderCount,
     onExitRequestFlow,
     resetRideDraftState,
   });
+
+  // [ACT-SSOT-07] Broadcast live rider state to outer shell to eliminate shell blindness
+  React.useEffect(() => {
+    const statusMap: Record<string, string> = {
+      IDLE_MAP: 'idle',
+      DESTINATION_SELECTION: 'searching',
+      RECEIVING_OFFERS: 'searching',
+      TRIP_ACTIVE: 'busy',
+      RATING_MODAL: 'rating',
+      PURGE_LEDGER: 'idle',
+      FAVORITE_CAPTAINS: 'idle',
+    };
+    const currentStatus = statusMap[state.screen] || 'idle';
+    window.dispatchEvent(new CustomEvent('sovereign-status-change', {
+      detail: { role: 'rider', status: currentStatus },
+    }));
+  }, [state.screen]);
 
   const { riderProfile, systemMessages, currencyLabel } = useRiderProfileSummary(user, language, countryConfig, geolocation.locationStatus, geolocation.liveCurrencyCode);
 

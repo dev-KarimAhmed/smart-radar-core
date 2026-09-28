@@ -313,6 +313,10 @@ export function riderDashboardReducer(state: RiderMachineState, action: RiderMac
       return { ...state, requestStartedAt: null, requestId: null };
 
     case 'REQUEST_CANCELLED':
+      // Cancel Collision Shield: reject any delayed server echo if screen has already settled outside active search
+      if (state.screen === 'IDLE_MAP' || state.screen === 'PURGE_LEDGER' || state.screen === 'FAVORITE_CAPTAINS' || state.screen === 'RATING_MODAL') {
+        return state;
+      }
       // A trip already accepted (or further along) that gets cancelled
       // is usually a captain cancellation. Auto-retry search for the rider.
       if (state.screen === 'TRIP_ACTIVE') {

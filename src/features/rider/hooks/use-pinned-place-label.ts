@@ -4,6 +4,7 @@ import React from 'react';
 
 import type { AppLanguage } from '@/lib/i18n/simple-copy';
 import type { RiderLocation } from '../components/rider-map';
+import { reverseGeocodeCoordinates } from '../services/reverse-geocoding-cache';
 
 /**
  * The name of the place the destination pin is actually sitting on.
@@ -44,13 +45,7 @@ export function usePinnedPlaceLabel(
     const timeoutId = window.setTimeout(async () => {
       setIsResolving(true);
       try {
-        const response = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=${language}`,
-          { headers: { Accept: 'application/json' } },
-        );
-        if (!response.ok) throw new Error('reverse_geocode_failed');
-
-        const data = await response.json() as { address?: Record<string, string> };
+        const data = await reverseGeocodeCoordinates(Number(lat), Number(lng), language);
         const address = data.address || {};
 
         // Narrow to wide, so the rider gets the most specific name the map knows.

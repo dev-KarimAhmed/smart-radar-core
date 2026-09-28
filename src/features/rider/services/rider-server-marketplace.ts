@@ -307,11 +307,6 @@ export function subscribeToRideRequestStatus(
       },
       (payload) => {
         if (payload.new) {
-          if (typeof window !== 'undefined') {
-            const audio = new Audio('/sounds/notification.mp3');
-            audio.volume = 0.5;
-            audio.play().catch((err) => console.log("Audio autoplay blocked until user interaction:", err));
-          }
           onStatus(payload.new);
         }
       },
@@ -357,13 +352,6 @@ export function subscribeToRideOffers(
           payload.event === 'insert' ||
           !payload.eventType
         );
-        if (isInsert) {
-          if (typeof window !== 'undefined') {
-            const audio = new Audio('/sounds/notification.mp3');
-            audio.volume = 0.5;
-            audio.play().catch((err) => console.log("Audio autoplay blocked until user interaction:", err));
-          }
-        }
         onChange();
       },
     )
