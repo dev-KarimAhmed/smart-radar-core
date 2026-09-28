@@ -24,7 +24,7 @@ const styles = {
   row: "flex items-start justify-between gap-3",
   destination: "min-w-0",
   fieldLabel: "block text-[9px] font-black uppercase text-slate-500",
-  destinationValue: "mt-1 block truncate text-base font-black text-[#F97316]",
+  destinationValue: "mt-1 block truncate text-base font-black text-white",
   coords: "mt-1 block font-mono text-[9px] text-slate-600",
   metricsGrid: "grid grid-cols-2 gap-2",
   metricCardDuration: "rounded-xl border border-[#14B8A6]/18 bg-[#14B8A6]/8 p-2.5",

@@ -104,9 +104,9 @@ export function ProfileTab() {
         <Button
           type="button"
           onClick={state.logout}
-          className="h-12 w-full gap-2.5 rounded-2xl border-2 border-red-500/40 bg-red-600/15 text-sm font-black text-red-200 hover:bg-red-600 hover:text-white hover:border-red-600 transition-all shadow-lg shadow-red-950/40 cursor-pointer"
+          className="h-12 w-full gap-2.5 rounded-2xl bg-red-600/90 text-sm font-black text-white hover:bg-red-500 transition-all shadow-lg shadow-red-950/40 cursor-pointer"
         >
-          <LogOut className="h-4.5 w-4.5 text-red-400 group-hover:text-white transition-colors" />
+          <LogOut className="h-4.5 w-4.5 text-white" />
           <span>{state.t('logout')}</span>
         </Button>
       </div>
