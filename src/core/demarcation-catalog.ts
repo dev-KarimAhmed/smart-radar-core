@@ -136,7 +136,7 @@ export const SovereignDemarcationCatalog = {
       },
       backend: {
         cores: [
-          '/src/lib/sovereign-digger.ts'
+          '/src/shared/services/google-maps-location.ts'
         ],
         cloudFunctions: [
           '/functions/src/handlers/trips.ts'

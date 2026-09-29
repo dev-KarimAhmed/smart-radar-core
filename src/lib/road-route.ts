@@ -54,17 +54,7 @@ const DEFAULT_OSRM_URL = 'https://router.project-osrm.org';
  */
 export const OSM_ROAD_CALIBRATION_FACTOR = 1.0;
 
-/**
- * 'proxy' is this app's own /api/road-route, tried last and only in a browser.
- *
- * Direct-from-browser stays first on purpose: it spreads load across users rather than
- * pointing every request in the system at a community fair-use server from one IP. The
- * proxy is the rescue for the browsers that cannot reach the routers at all — ad-blockers,
- * corporate DNS, captive portals — which previously dropped straight to a straight-line
- * guess. On the server this entry is skipped, so the endpoint calling back into here cannot
- * recurse.
- */
-const ROUTE_PROVIDERS = ['mapbox', 'valhalla', 'osrm', 'proxy'] as const;
+const ROUTE_PROVIDERS = ['mapbox', 'valhalla', 'osrm'] as const;
 export type RouteProvider = (typeof ROUTE_PROVIDERS)[number];
 
 interface RawRoute {
@@ -439,8 +429,7 @@ export async function fetchRoadRoute(
 
   const straightDistanceKm = calculateHaversineKm(origin, destination);
   const mapboxToken = getMapboxToken();
-  // 'proxy' has no base URL of its own — it is this app's own same-origin endpoint.
-  const baseUrls: Record<Exclude<RouteProvider, 'proxy'>, string> = {
+  const baseUrls: Record<RouteProvider, string> = {
     mapbox: (process.env.NEXT_PUBLIC_MAPBOX_URL?.trim() || DEFAULT_MAPBOX_URL).replace(/\/$/, ''),
     valhalla: (process.env.NEXT_PUBLIC_VALHALLA_URL?.trim() || DEFAULT_VALHALLA_URL).replace(/\/$/, ''),
     osrm: (process.env.NEXT_PUBLIC_OSRM_URL?.trim() || DEFAULT_OSRM_URL).replace(/\/$/, ''),
@@ -449,9 +438,6 @@ export async function fetchRoadRoute(
   providerLoop:
   for (const provider of ROUTE_PROVIDERS) {
     if (provider === 'mapbox' && !mapboxToken) continue;
-    // A relative URL has nothing to resolve against outside a browser, and on the server
-    // this entry is the endpoint we are already inside.
-    if (provider === 'proxy' && typeof window === 'undefined') continue;
     if (isProviderCoolingDown(provider)) continue;
 
     const isFastTimeout = provider === 'mapbox' || provider === 'valhalla';
@@ -467,15 +453,7 @@ export async function fetchRoadRoute(
           ? await requestMapboxRoute(baseUrls.mapbox, mapboxToken, origin, destination, controller.signal)
           : provider === 'valhalla'
             ? await requestValhallaRoute(baseUrls.valhalla, origin, destination, controller.signal)
-            : provider === 'osrm'
-              ? await requestOsrmRoute(baseUrls.osrm, origin, destination, controller.signal)
-              : await requestProxyRoute(
-                  origin,
-                  destination,
-                  normalizedTortuosityFactor,
-                  normalizedTrafficFactor,
-                  controller.signal,
-                );
+            : await requestOsrmRoute(baseUrls.osrm, origin, destination, controller.signal);
 
         // The router answered, just not usefully. That is a real result, not a hiccup, so
         // retrying it would only waste time — hand over to the next provider instead of
@@ -487,11 +465,7 @@ export async function fetchRoadRoute(
 
         // Both Mapbox and OSM routers compute theoretical shortest geometries on OpenStreetMap data.
         // In reality, corridor detours, closed U-turns, and infrastructure construction require a 1.20x calibration.
-        // Proxy already applied calibration on the server.
-        const shouldCalibrateDistance = provider !== 'proxy';
-        const distanceKm = shouldCalibrateDistance
-          ? raw.distanceKm * OSM_ROAD_CALIBRATION_FACTOR
-          : raw.distanceKm;
+        const distanceKm = raw.distanceKm * OSM_ROAD_CALIBRATION_FACTOR;
 
         // Valhalla and Mapbox already model real-world road friction/traffic.
         // OSRM is free-flow, so it scales with the road calibration factor and traffic factors.
@@ -500,8 +474,7 @@ export async function fetchRoadRoute(
           : raw.minutes;
 
         // A free-flow duration gets the country factor AND the time of day. A
-        // congestion-aware one gets neither: Valhalla already prices the road, and the
-        // proxy already applied both of these server-side.
+        // congestion-aware one gets neither: Valhalla already prices the road.
         const minutes = raw.modelsCongestion
           ? baseMinutes
           : baseMinutes * normalizedTrafficFactor * timeOfDayFactor;
