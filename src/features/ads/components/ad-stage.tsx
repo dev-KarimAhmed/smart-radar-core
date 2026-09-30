@@ -302,6 +302,8 @@ export function AdStage({
   const impressedAdIdsRef = useRef<Set<string>>(new Set());
   const lastManualSwipeMetricAtRef = useRef(0);
 
+  const touchResumeTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
 
@@ -315,6 +317,14 @@ export function AdStage({
       buildBrandPlaceholderAd(copy, hasAdFetchIssue ? copy.emptyFetchIssue : copy.emptyDescription, audience),
     ];
   }, [audience, copy, hasAdFetchIssue, liveDistrict, liveGovernorate, serverAds]);
+
+  const displayAds = useMemo(() => {
+    if (adsToUse.length <= 1) return adsToUse;
+    if (adsToUse.length < 4) {
+      return [...adsToUse, ...adsToUse, ...adsToUse];
+    }
+    return [...adsToUse, ...adsToUse];
+  }, [adsToUse]);
 
   useEffect(() => {
     adsToUse.forEach((ad: any) => {
@@ -381,13 +391,109 @@ export function AdStage({
     return () => window.removeEventListener('resize', updateScrollButtons);
   }, [updateScrollButtons, adsToUse.length]);
 
-  // Disabled auto-scroll as per finite card request
-  // (removed setInterval logic)
-
   const setAdStreamPaused = useCallback((paused: boolean) => {
     isAdStreamPausedRef.current = paused;
     setIsAdStreamPaused(paused);
   }, []);
+
+  const handleTouchStart = useCallback(() => {
+    if (touchResumeTimerRef.current) {
+      clearTimeout(touchResumeTimerRef.current);
+      touchResumeTimerRef.current = null;
+    }
+    setAdStreamPaused(true);
+  }, [setAdStreamPaused]);
+
+  const handleTouchEnd = useCallback(() => {
+    if (touchResumeTimerRef.current) {
+      clearTimeout(touchResumeTimerRef.current);
+    }
+    touchResumeTimerRef.current = setTimeout(() => {
+      setAdStreamPaused(false);
+    }, 1200);
+  }, [setAdStreamPaused]);
+
+  const handleMouseEnter = useCallback(() => {
+    if (touchResumeTimerRef.current) {
+      clearTimeout(touchResumeTimerRef.current);
+      touchResumeTimerRef.current = null;
+    }
+    setAdStreamPaused(true);
+  }, [setAdStreamPaused]);
+
+  const handleMouseLeave = useCallback(() => {
+    if (touchResumeTimerRef.current) {
+      clearTimeout(touchResumeTimerRef.current);
+      touchResumeTimerRef.current = null;
+    }
+    setAdStreamPaused(false);
+  }, [setAdStreamPaused]);
+
+  useEffect(() => {
+    return () => {
+      if (touchResumeTimerRef.current) {
+        clearTimeout(touchResumeTimerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (adsToUse.length <= 1 || prefersReducedMotion) return;
+
+    let animFrameId: number;
+    let lastTimestamp = performance.now();
+
+    const animateScroll = (currentTimestamp: number) => {
+      const deltaSeconds = Math.min((currentTimestamp - lastTimestamp) / 1000, 0.1);
+      lastTimestamp = currentTimestamp;
+
+      const track = scrollTrackRef.current;
+      if (
+        track &&
+        !isAdStreamPausedRef.current &&
+        !takeoverAd &&
+        document.visibilityState === 'visible'
+      ) {
+        const speed = 25;
+        const deltaPixels = speed * deltaSeconds;
+        const maxScroll = track.scrollWidth - track.clientWidth;
+
+        if (maxScroll > 0) {
+          const repeatMultiplier = adsToUse.length < 4 ? 3 : 2;
+          const singleSetWidth = track.scrollWidth / repeatMultiplier;
+
+          if (adStageDirection === 'rtl') {
+            const currentScroll = track.scrollLeft;
+            const currentAbs = Math.abs(currentScroll);
+
+            if (currentAbs >= singleSetWidth - 1 && singleSetWidth > 0) {
+              if (currentScroll < 0) {
+                track.scrollLeft += singleSetWidth;
+              } else {
+                track.scrollLeft -= singleSetWidth;
+              }
+            } else {
+              track.scrollBy({ left: -deltaPixels });
+            }
+          } else {
+            if (track.scrollLeft >= singleSetWidth - 1 && singleSetWidth > 0) {
+              track.scrollLeft -= singleSetWidth;
+            } else {
+              track.scrollBy({ left: deltaPixels });
+            }
+          }
+        }
+      }
+
+      animFrameId = requestAnimationFrame(animateScroll);
+    };
+
+    animFrameId = requestAnimationFrame(animateScroll);
+
+    return () => {
+      cancelAnimationFrame(animFrameId);
+    };
+  }, [adsToUse.length, adStageDirection, prefersReducedMotion, takeoverAd]);
 
   const scrollAds = useCallback((scrollDirection: 'left' | 'right') => {
     const track = scrollTrackRef.current;
@@ -592,20 +698,32 @@ export function AdStage({
             updateScrollButtons();
             registerManualTrackScroll();
           }}
-          onTouchStart={() => setAdStreamPaused(true)}
-          onTouchEnd={() => { window.setTimeout(() => setAdStreamPaused(false), 2000); }}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          onTouchCancel={handleTouchEnd}
+          onPointerDown={(e) => {
+            if (e.pointerType === 'touch') handleTouchStart();
+          }}
+          onPointerUp={(e) => {
+            if (e.pointerType === 'touch') handleTouchEnd();
+          }}
           style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-x' }}
           className={cn(
             styles.style490_28,
             adsToUse.length === 1 ? styles.style491_29 : styles.style491_30
           )}
         >
-          {adsToUse.map((ad: any, index: number) => (
+          {displayAds.map((ad: any, index: number) => (
             <div
               key={`${ad.id}-${index}`}
               className={styles.style497_31}
-              onMouseEnter={() => setAdStreamPaused(true)}
-              onMouseLeave={() => setAdStreamPaused(false)}
+              onMouseEnter={handleMouseEnter}
+              onMouseLeave={handleMouseLeave}
+              onTouchStart={handleTouchStart}
+              onTouchEnd={handleTouchEnd}
+              onTouchCancel={handleTouchEnd}
             >
               <AdDisplayCard
                 ad={ad}

@@ -77,6 +77,7 @@
     "login": "Sign in",
     "requiredFields": "Please fill in all required fields.",
     "invalidPhone": "Invalid phone number. Use +9627xxxxxxxx.",
+    "recoveryEmailWarning": "No recovery email is linked to your account. To avoid waiting for admin verification if you forget your password, add an email now and recover it yourself in seconds.",
     "logout": {
       "title": "Confirm sign out",
       "description": "Are you sure you want to sign out? Your current session will be removed from this device only.",

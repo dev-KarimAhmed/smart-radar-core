@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase-client';
 import { useRecoveryEmail } from '@/features/auth/hooks/use-recovery-email';
 import { useToast } from '@/hooks/use-toast';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
+import { getAuthRedirectUrl } from '@/lib/utils';
 
 const MIN_PASSWORD_LENGTH = 8;
 
@@ -156,8 +157,7 @@ export function RiderSecuritySection() {
         }
       }
 
-      const origin = typeof window !== 'undefined' ? window.location.origin : '';
-      const redirectTo = `${origin}/reset-password`;
+      const redirectTo = getAuthRedirectUrl('/reset-password');
 
       const { error } = await supabase.auth.resetPasswordForEmail(targetEmail, {
         redirectTo,

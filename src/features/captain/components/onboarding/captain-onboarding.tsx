@@ -157,7 +157,11 @@ export function CaptainOnboarding() {
       if (result.session) {
         if (personal.email?.trim().includes('@')) {
           const { supabase } = await import('@/lib/supabase-client');
-          const { error: emailError } = await supabase.auth.updateUser({ email: personal.email.trim() });
+          const { getAuthRedirectUrl } = await import('@/lib/utils');
+          const { error: emailError } = await supabase.auth.updateUser(
+            { email: personal.email.trim() },
+            { emailRedirectTo: getAuthRedirectUrl('/reset-password') },
+          );
           if (emailError && (process.env.NODE_ENV !== 'production')) {
             console.warn('[Registration Email Update Error]', emailError);
           }

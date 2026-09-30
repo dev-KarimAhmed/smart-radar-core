@@ -24,13 +24,13 @@ const DISMISS_KEY = 'radar_recovery_email_prompt_dismissed';
 
 const copy = {
   ar: {
-    message: 'حسابك مالوش إيميل استرجاع. لو نسيت كلمة المرور، هتحتاج تستنى الإدارة تتحقق من هويتك. ضيف إيميل دلوقتي وترجّعها بنفسك في ثانية.',
+    message: 'لا يوجد بريد استرداد مسجل لحسابك. لتجنب انتظار مراجعة الإدارة عند نسيان كلمة المرور، أضف بريدك الإلكتروني الآن واسترد حسابك بنفسك في ثوانٍ.',
     placeholder: 'you@example.com',
     save: 'إضافة',
     saving: 'جاري الحفظ…',
-    done: 'بعتنالك رسالة تأكيد على الإيميل. افتحها عشان يتفعّل.',
+    done: 'تم إرسال رسالة تأكيد إلى بريدك الإلكتروني. يرجى فتحها للتفعيل.',
     dismiss: 'إخفاء',
-    failed: 'تعذّر حفظ الإيميل.',
+    failed: 'تعذّر حفظ البريد الإلكتروني.',
   },
   en: {
     message: 'Your account has no recovery email. If you forget your password you will have to wait for an admin to verify you. Add one now and you can reset it yourself.',

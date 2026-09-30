@@ -43,8 +43,8 @@ async function readJson<T>(response: Response): Promise<T> {
   } catch {
     throw new Error(
       response.status === 404
-        ? 'خدمة استرجاع كلمة المرور غير متاحة على الخادم حالياً. حاول تاني بعد شوية أو تواصل مع الدعم.'
-        : 'رد غير متوقع من الخادم. حاول تاني بعد شوية.',
+        ? 'خدمة استرداد كلمة المرور غير متاحة حالياً. يرجى المحاولة لاحقاً أو التواصل مع الدعم.'
+        : 'استجابة غير متوقعة من الخادم. يرجى المحاولة لاحقاً.',
     );
   }
 }
@@ -112,8 +112,13 @@ export async function hasRecoverySession() {
  * to the new address; until it is confirmed the account keeps its old one, so the caller
  * must tell the user to go and confirm rather than reporting success outright.
  */
+import { getAuthRedirectUrl } from '@/lib/utils';
+
 export async function setRecoveryEmail(email: string) {
-  const { error } = await supabase.auth.updateUser({ email: email.trim() });
+  const { error } = await supabase.auth.updateUser(
+    { email: email.trim() },
+    { emailRedirectTo: getAuthRedirectUrl('/reset-password') },
+  );
   if (error) throw new Error(error.message);
 }
 

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import type { AffiliationType } from '@/core/types';
 import { buildRiderSignUpMetadata, isInvalidPhoneOrPasswordError, mapSupabaseAuthError, signInRiderWithPhone, signUpRiderWithPhone } from '../services/supabase-auth';
 import { shouldRememberSupabaseSession, supabase } from '@/lib/supabase-client';
+import { getAuthRedirectUrl } from '@/lib/utils';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -476,7 +477,10 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
       const signUpResult = await signUpRiderWithPhone(signUpInput);
 
       if (signUpResult.session && personal.email?.trim().includes('@')) {
-        const { error: emailError } = await supabase.auth.updateUser({ email: personal.email.trim() });
+        const { error: emailError } = await supabase.auth.updateUser(
+          { email: personal.email.trim() },
+          { emailRedirectTo: getAuthRedirectUrl('/reset-password') },
+        );
         if (emailError && (process.env.NODE_ENV !== 'production')) {
           console.warn('[Registration Email Update Error]', emailError);
         }

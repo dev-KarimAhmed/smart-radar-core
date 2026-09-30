@@ -134,7 +134,7 @@ passwordResetRouter.post('/password-reset/request', async (req, res) => {
   // every account in the system.
   const genericAnswer = {
     success: true,
-    message: 'لو الرقم ده مسجّل عندنا، هتوصلك خطوات استرجاع كلمة المرور. لو مضفتش إيميل، الدعم هيتواصل معاك بعد التحقق من هويتك.',
+    message: 'إذا كان الرقم مسجلاً لدينا، فستصلك خطوات استرداد كلمة المرور. وإن لم تقم بإضافة بريد إلكتروني، ستتواصل معك الإدارة بعد التحقق من هويتك.',
   };
 
   try {
@@ -157,7 +157,10 @@ passwordResetRouter.post('/password-reset/request', async (req, res) => {
     if (user?.email && !emailMismatch) {
       // Route 1: self-service. Supabase mails the recovery link itself, to the stored
       // address — never to whatever was typed above.
-      const origin = `${req.headers['x-forwarded-proto'] || 'http'}://${req.headers.host}`;
+      const host = String(req.headers.host || '');
+      const proto = String(req.headers['x-forwarded-proto'] || (host.includes('localhost') ? 'http' : 'https'));
+      const origin = host ? `${proto}://${host}` : (process.env.NEXT_PUBLIC_APP_URL || 'https://smart-radar-core-production-8d61.up.railway.app');
+
       await fetch(`${config.url}/auth/v1/recover`, {
         method: 'POST',
         headers: serviceHeaders(config.serviceKey),
@@ -472,7 +475,7 @@ passwordResetRouter.post('/password-reset/complete', async (req, res) => {
       detail: { route: 'admin_token' },
     });
 
-    return res.json({ success: true, message: 'تم تغيير كلمة المرور. تقدر تسجّل الدخول دلوقتي.' });
+    return res.json({ success: true, message: 'تم تغيير كلمة المرور بنجاح. يمكنك تسجيل الدخول الآن.' });
   } catch (error) {
     console.error('[password-reset/complete]', error);
     return res.status(500).json({ success: false, error: 'تعذّر تحديث كلمة المرور.' });

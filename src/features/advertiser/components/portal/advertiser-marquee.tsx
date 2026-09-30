@@ -8,6 +8,7 @@ interface AdvertiserMarqueeProps {
 }
 
 export function AdvertiserMarquee({ ads }: AdvertiserMarqueeProps) {
+  const [isPaused, setIsPaused] = React.useState(false);
   const stream = ads.length > 0 ? ads : [
     { id: 'v1', title: 'عروض المطاعم السياحية', description: 'خصومات حصرية لكباتن الرادار في عمان' },
     { id: 'v2', title: 'خدمات الصيانة السريعة', description: 'فحص ميكانيكي وغيار زيت فوري بخصم 25%' },
@@ -15,7 +16,15 @@ export function AdvertiserMarquee({ ads }: AdvertiserMarqueeProps) {
   ];
 
   return (
-    <div className="w-full overflow-hidden py-3 bg-black/60 rounded-2xl border border-white/5 relative" dir="ltr">
+    <div
+      className="w-full overflow-hidden py-3 bg-black/60 rounded-2xl border border-white/5 relative"
+      dir="ltr"
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+      onTouchStart={() => setIsPaused(true)}
+      onTouchEnd={() => setIsPaused(false)}
+      onTouchCancel={() => setIsPaused(false)}
+    >
       <div className="absolute top-2.5 right-3.5 z-10 flex items-center gap-1.5 pointer-events-none" dir="rtl">
         <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
         <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest font-mono">
@@ -26,7 +35,7 @@ export function AdvertiserMarquee({ ads }: AdvertiserMarqueeProps) {
       <div className="w-full flex items-center overflow-hidden pt-4">
         <motion.div
           className="flex gap-3 pl-4"
-          animate={{ x: ['0%', '-50%'] }}
+          animate={isPaused ? undefined : { x: ['0%', '-50%'] }}
           transition={{ repeat: Infinity, duration: 25, ease: 'linear' }}
         >
           {[...stream, ...stream].map((ad, idx) => {
