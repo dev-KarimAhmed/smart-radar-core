@@ -19,6 +19,9 @@ import { useRideRequestStatusSync } from '../hooks/use-ride-request-status-sync'
 import { useSendCancelRideRequest } from '../hooks/use-send-cancel-ride-request';
 import { useTripCompletion } from '../hooks/use-trip-completion';
 import { useRiderProfileSummary } from '../hooks/use-rider-profile-summary';
+import { purgeExpiredRiderTrips } from '@/lib/dexie-db';
+import { supabase } from '@/lib/supabase-client';
+import { fetchServerRiderImmunity } from '@/core/logic/anti-cheat-kernel';
 import { buildRiderDestination } from '../services/rider-destination-normalizers';
 import { IdleMapScreen } from './idle-map-screen';
 import { RiderShellFrame } from './rider-shell-frame';
@@ -35,6 +38,14 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
   const { isArabic, language } = useDashboardLanguage();
   const { state, dispatch, showAdRiver } = useRiderDashboardMachine();
   useActiveTripReloadGuard(Boolean(state.requestId) && (state.screen === 'RECEIVING_OFFERS' || state.screen === 'TRIP_ACTIVE'));
+
+  // Sovereign Purge (Chapter 3) & Anti-Cheat Sync (Chapter 4): Automatically purge expired 72h records and sync server immunity
+  React.useEffect(() => {
+    void purgeExpiredRiderTrips();
+    if (user?.uid) {
+      void fetchServerRiderImmunity(supabase, user.uid);
+    }
+  }, [user?.uid]);
 
   const activeCountryId = user?.countryId;
   const countryConfig = useCountryConfig(activeCountryId);
