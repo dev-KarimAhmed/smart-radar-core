@@ -173,7 +173,7 @@ const styles = {
   style820_136: "text-left",
   style821_137: "mb-2 flex h-11 w-11 items-center justify-center rounded-2xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 text-[#14B8A6]",
   style822_138: "h-5 w-5",
-  style824_139: "text-2xl font-black text-white",
+  style824_139: "text-2xl font-black text-white mt-5",
   style825_140: "text-sm leading-6 text-[#94A3B8]",
   style832_141: "space-y-4",
   style833_142: "rounded-2xl border border-[#14B8A6]/20 bg-[#14B8A6]/10 p-4 text-sm leading-7 text-[#D8FDF8]",
@@ -569,206 +569,206 @@ export function PersonalStep() {
               className={styles.style405_21}
               onSubmit={onFormSubmit}
             >
-                  {mode === 'register' && (role !== 'rider' && canUseDevMockData) ? (
-                    <div className={styles.style591_73}>
-                      <div className={styles.style592_74}>
-                        {locationDataLoading ? (
-                          <>
-                            <Loader2 className={styles.style595_75} aria-hidden="true" />
-                            <span>{t.loadingLocations}</span>
-                          </>
-                        ) : (
-                          <>
-                            <MapPin className={styles.style600_76} aria-hidden="true" />
-                            <span>{`${countries.length} / ${governorates.length} / ${districts.length}`}</span>
-                          </>
-                        )}
-                      </div>
+              {mode === 'register' && (role !== 'rider' && canUseDevMockData) ? (
+                <div className={styles.style591_73}>
+                  <div className={styles.style592_74}>
+                    {locationDataLoading ? (
+                      <>
+                        <Loader2 className={styles.style595_75} aria-hidden="true" />
+                        <span>{t.loadingLocations}</span>
+                      </>
+                    ) : (
+                      <>
+                        <MapPin className={styles.style600_76} aria-hidden="true" />
+                        <span>{`${countries.length} / ${governorates.length} / ${districts.length}`}</span>
+                      </>
+                    )}
+                  </div>
 
-                      <button
-                        type="button"
-                        onClick={fillRandomRegistrationData}
-                        disabled={locationDataLoading}
-                        className={styles.style611_77}
-                      >
-                        <Sparkles className={styles.style613_78} aria-hidden="true" />
-                        {t.mockData}
-                      </button>
-                    </div>
-                  ) : null}
-
-                  {mode === 'register' ? (
-                    <Field label={t.fullName} icon={<UserRound className={styles.style621_79} />}>
-                      <input
-                        type="text"
-                        placeholder={t.fullNamePlaceholder}
-                        value={personal.name}
-                        onChange={(event) => setPersonal({ ...personal, name: event.target.value })}
-                        className={cn(styles.input, isArabic ? styles.style627_80 : styles.style627_81)}
-                        autoComplete="name"
-                        required
-                      />
-                    </Field>
-                  ) : null}
-
-                  <Field label={t.phone} icon={<Phone className={styles.style634_82} />}>
-                    <input
-                      type="tel"
-                      dir="ltr"
-                      inputMode="tel"
-                      placeholder={phonePlaceholder || t.phonePlaceholder}
-                      value={personal.phone}
-                      onChange={(event) => setPersonal({ ...personal, phone: event.target.value })}
-                      className={cn(styles.input, styles.style642_83)}
-                      autoComplete="tel"
-                      required
-                    />
-                    <p className={cn(isArabic ? styles.style646_84 : styles.style646_85, styles.style646_86)}>
-                      {phoneValidationHint}
-                    </p>
-                  </Field>
-
-                  {mode === 'register' ? (
-                    <Field label={t.email} icon={<Mail className={styles.style634_82} />}>
-                      <input
-                        type="email"
-                        dir="ltr"
-                        inputMode="email"
-                        placeholder={t.emailPlaceholder}
-                        value={personal.email}
-                        onChange={(event) => {
-                          setPersonal({ ...personal, email: event.target.value });
-                          if (emailError) setEmailError('');
-                        }}
-                        className={cn(styles.input, styles.style642_83, emailError && 'border-rose-500/50')}
-                        autoComplete="email"
-                      />
-                      {emailError ? (
-                        <p className={cn(isArabic ? styles.style646_84 : styles.style646_85, 'text-rose-400 mt-1 font-bold text-[10px]')}>
-                          {emailError}
-                        </p>
-                      ) : null}
-                    </Field>
-                  ) : null}
-
-                  {mode === 'register' ? (
-                    <div className={styles.style652_87}>
-                      <Field label={t.country} icon={<MapPin className={styles.style653_88} />}>
-                        <Select
-                          dir={isArabic ? 'rtl' : 'ltr'}
-                          value={personal.country}
-                          onValueChange={(value) => setPersonal({ ...personal, country: value, gov: '', district: '' })}
-                          disabled={locationDataLoading && !countries.length}
-                        >
-                          <SelectTrigger className={styles.customSelectTrigger}>
-                            <SelectValue placeholder={locationDataLoading && !countries.length ? '...' : t.countryPlaceholder} />
-                          </SelectTrigger>
-                          <SelectContent className={styles.customSelectContent}>
-                            {countries.map((country) => (
-                              <SelectItem key={country.id} value={country.id} className={styles.customSelectItem}>
-                                {isArabic ? country.label : country.labelEn}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </Field>
-
-                      <Field label={t.governorate} icon={<MapPin className={styles.style679_96} />}>
-                        <Select
-                          dir={isArabic ? 'rtl' : 'ltr'}
-                          value={personal.gov}
-                          onValueChange={(value) => setPersonal({ ...personal, gov: value, district: '' })}
-                          disabled={!personal.country || locationDataLoading}
-                        >
-                          <SelectTrigger className={styles.customSelectTrigger}>
-                            <SelectValue placeholder={locationDataLoading ? '...' : t.governoratePlaceholder} />
-                          </SelectTrigger>
-                          <SelectContent className={styles.customSelectContent}>
-                            {governorates.map((gov) => (
-                              <SelectItem key={gov.id} value={gov.id} className={styles.customSelectItem}>
-                                {isArabic ? gov.label : gov.labelEn}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </Field>
-
-                      <Field label={t.district} icon={<MapPin className={styles.style705_104} />}>
-                        <Select
-                          dir={isArabic ? 'rtl' : 'ltr'}
-                          value={personal.district}
-                          onValueChange={(value) => setPersonal({ ...personal, district: value })}
-                          disabled={!personal.gov || locationDataLoading}
-                        >
-                          <SelectTrigger className={styles.customSelectTrigger}>
-                            <SelectValue placeholder={locationDataLoading ? '...' : t.districtPlaceholder} />
-                          </SelectTrigger>
-                          <SelectContent className={styles.customSelectContent}>
-                            {districts.map((district) => (
-                              <SelectItem key={district.id} value={district.value} className={styles.customSelectItem}>
-                                {isArabic ? district.label : district.labelEn}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </Field>
-                    </div>
-                  ) : null}
-
-                  <Field label={t.password} icon={<LockKeyhole className={styles.style731_112} />}>
-                    <div className={styles.style732_113}>
-                      <input
-                        type={showPassword ? 'text' : 'password'}
-                        placeholder={t.passwordPlaceholder}
-                        value={authPassword}
-                        onChange={(event) => setAuthPassword(event.target.value)}
-                        className={cn(styles.input, isArabic ? styles.style738_114 : styles.style738_115)}
-                        autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
-                        required
-                      />
-                      <button
-                        type="button"
-                        aria-label={showPassword ? t.hidePassword : t.showPassword}
-                        onClick={() => setShowPassword((current) => !current)}
-                        className={cn(styles.style746_116, isArabic ? styles.style747_117 : styles.style747_118)}
-                      >
-                        {showPassword ? <EyeOff className={styles.style750_119} /> : <Eye className={styles.style750_120} />}
-                      </button>
-                    </div>
-                  </Field>
-
-                  {mode === 'login' ? (
-                    <button
-                      type="button"
-                      onClick={openPasswordReset}
-                      className={cn(styles.style759_121, isArabic ? styles.style760_122 : styles.style760_123)}
-                    >
-                      {t.forgotPassword}
-                    </button>
-                  ) : null}
-
-                  <label className={styles.style767_124}>
-                    <span className={cn(isArabic ? styles.style768_125 : styles.style768_126)}>
-                      <span className={styles.style769_127}>{t.rememberMe}</span>
-                      <span className={styles.style770_128}>{t.rememberHint}</span>
-                    </span>
-                    <input
-                      type="checkbox"
-                      checked={rememberMe}
-                      onChange={(event) => setRememberMe(event.target.checked)}
-                      className={styles.style776_129}
-                    />
-                  </label>
-
-                  <motion.button
-                    whileTap={{ scale: 0.98 }}
-                    whileHover={{ y: -1 }}
-                    type="submit"
-                    disabled={isSubmitting}
-                    className={styles.style785_130}
+                  <button
+                    type="button"
+                    onClick={fillRandomRegistrationData}
+                    disabled={locationDataLoading}
+                    className={styles.style611_77}
                   >
-                    {isSubmitting ? '...' : mode === 'register' ? t.submitRegister : t.submitLogin}
-                  </motion.button>
+                    <Sparkles className={styles.style613_78} aria-hidden="true" />
+                    {t.mockData}
+                  </button>
+                </div>
+              ) : null}
+
+              {mode === 'register' ? (
+                <Field label={t.fullName} icon={<UserRound className={styles.style621_79} />}>
+                  <input
+                    type="text"
+                    placeholder={t.fullNamePlaceholder}
+                    value={personal.name}
+                    onChange={(event) => setPersonal({ ...personal, name: event.target.value })}
+                    className={cn(styles.input, isArabic ? styles.style627_80 : styles.style627_81)}
+                    autoComplete="name"
+                    required
+                  />
+                </Field>
+              ) : null}
+
+              <Field label={t.phone} icon={<Phone className={styles.style634_82} />}>
+                <input
+                  type="tel"
+                  dir="ltr"
+                  inputMode="tel"
+                  placeholder={phonePlaceholder || t.phonePlaceholder}
+                  value={personal.phone}
+                  onChange={(event) => setPersonal({ ...personal, phone: event.target.value })}
+                  className={cn(styles.input, styles.style642_83)}
+                  autoComplete="tel"
+                  required
+                />
+                <p className={cn(isArabic ? styles.style646_84 : styles.style646_85, styles.style646_86)}>
+                  {phoneValidationHint}
+                </p>
+              </Field>
+
+              {mode === 'register' ? (
+                <Field label={t.email} icon={<Mail className={styles.style634_82} />}>
+                  <input
+                    type="email"
+                    dir="ltr"
+                    inputMode="email"
+                    placeholder={t.emailPlaceholder}
+                    value={personal.email}
+                    onChange={(event) => {
+                      setPersonal({ ...personal, email: event.target.value });
+                      if (emailError) setEmailError('');
+                    }}
+                    className={cn(styles.input, styles.style642_83, emailError && 'border-rose-500/50')}
+                    autoComplete="email"
+                  />
+                  {emailError ? (
+                    <p className={cn(isArabic ? styles.style646_84 : styles.style646_85, 'text-rose-400 mt-1 font-bold text-[10px]')}>
+                      {emailError}
+                    </p>
+                  ) : null}
+                </Field>
+              ) : null}
+
+              {mode === 'register' ? (
+                <div className={styles.style652_87}>
+                  <Field label={t.country} icon={<MapPin className={styles.style653_88} />}>
+                    <Select
+                      dir={isArabic ? 'rtl' : 'ltr'}
+                      value={personal.country}
+                      onValueChange={(value) => setPersonal({ ...personal, country: value, gov: '', district: '' })}
+                      disabled={locationDataLoading && !countries.length}
+                    >
+                      <SelectTrigger className={styles.customSelectTrigger}>
+                        <SelectValue placeholder={locationDataLoading && !countries.length ? '...' : t.countryPlaceholder} />
+                      </SelectTrigger>
+                      <SelectContent className={styles.customSelectContent}>
+                        {countries.map((country) => (
+                          <SelectItem key={country.id} value={country.id} className={styles.customSelectItem}>
+                            {isArabic ? country.label : country.labelEn}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </Field>
+
+                  <Field label={t.governorate} icon={<MapPin className={styles.style679_96} />}>
+                    <Select
+                      dir={isArabic ? 'rtl' : 'ltr'}
+                      value={personal.gov}
+                      onValueChange={(value) => setPersonal({ ...personal, gov: value, district: '' })}
+                      disabled={!personal.country || locationDataLoading}
+                    >
+                      <SelectTrigger className={styles.customSelectTrigger}>
+                        <SelectValue placeholder={locationDataLoading ? '...' : t.governoratePlaceholder} />
+                      </SelectTrigger>
+                      <SelectContent className={styles.customSelectContent}>
+                        {governorates.map((gov) => (
+                          <SelectItem key={gov.id} value={gov.id} className={styles.customSelectItem}>
+                            {isArabic ? gov.label : gov.labelEn}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </Field>
+
+                  <Field label={t.district} icon={<MapPin className={styles.style705_104} />}>
+                    <Select
+                      dir={isArabic ? 'rtl' : 'ltr'}
+                      value={personal.district}
+                      onValueChange={(value) => setPersonal({ ...personal, district: value })}
+                      disabled={!personal.gov || locationDataLoading}
+                    >
+                      <SelectTrigger className={styles.customSelectTrigger}>
+                        <SelectValue placeholder={locationDataLoading ? '...' : t.districtPlaceholder} />
+                      </SelectTrigger>
+                      <SelectContent className={styles.customSelectContent}>
+                        {districts.map((district) => (
+                          <SelectItem key={district.id} value={district.value} className={styles.customSelectItem}>
+                            {isArabic ? district.label : district.labelEn}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                </div>
+              ) : null}
+
+              <Field label={t.password} icon={<LockKeyhole className={styles.style731_112} />}>
+                <div className={styles.style732_113}>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder={t.passwordPlaceholder}
+                    value={authPassword}
+                    onChange={(event) => setAuthPassword(event.target.value)}
+                    className={cn(styles.input, isArabic ? styles.style738_114 : styles.style738_115)}
+                    autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
+                    required
+                  />
+                  <button
+                    type="button"
+                    aria-label={showPassword ? t.hidePassword : t.showPassword}
+                    onClick={() => setShowPassword((current) => !current)}
+                    className={cn(styles.style746_116, isArabic ? styles.style747_117 : styles.style747_118)}
+                  >
+                    {showPassword ? <EyeOff className={styles.style750_119} /> : <Eye className={styles.style750_120} />}
+                  </button>
+                </div>
+              </Field>
+
+              {mode === 'login' ? (
+                <button
+                  type="button"
+                  onClick={openPasswordReset}
+                  className={cn(styles.style759_121, isArabic ? styles.style760_122 : styles.style760_123)}
+                >
+                  {t.forgotPassword}
+                </button>
+              ) : null}
+
+              <label className={styles.style767_124}>
+                <span className={cn(isArabic ? styles.style768_125 : styles.style768_126)}>
+                  <span className={styles.style769_127}>{t.rememberMe}</span>
+                  <span className={styles.style770_128}>{t.rememberHint}</span>
+                </span>
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(event) => setRememberMe(event.target.checked)}
+                  className={styles.style776_129}
+                />
+              </label>
+
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                whileHover={{ y: -1 }}
+                type="submit"
+                disabled={isSubmitting}
+                className={styles.style785_130}
+              >
+                {isSubmitting ? '...' : mode === 'register' ? t.submitRegister : t.submitLogin}
+              </motion.button>
             </motion.form>
           </AnimatePresence>
 
@@ -807,9 +807,9 @@ export function PersonalStep() {
           className={styles.style818_134}
         >
           <DialogHeader className={isArabic ? styles.style820_135 : styles.style820_136}>
-            <div className={styles.style821_137}>
+            {/* <div className={styles.style821_137}>
               <KeyRound className={styles.style822_138} aria-hidden="true" />
-            </div>
+            </div> */}
             <DialogTitle className={styles.style824_139}>{t.resetTitle}</DialogTitle>
             <DialogDescription className={styles.style825_140}>
               {isArabic
@@ -898,8 +898,8 @@ export function PersonalStep() {
       <div className={styles.style871_148}>
         <div
           className={cn(styles.style873_149, isArabic
-              ? styles.style875_150
-              : styles.style876_151)}
+            ? styles.style875_150
+            : styles.style876_151)}
         >
           {tickerItems.map((item, index) => (
             <span key={`${item}-${index}`} className={styles.style880_152}>
