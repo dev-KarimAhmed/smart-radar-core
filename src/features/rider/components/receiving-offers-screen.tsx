@@ -12,6 +12,7 @@ import { buildCaptainOfferFromOffer } from '../services/rider-offer-presentation
 import { getOfferCountdown } from '../services/offer-countdown';
 import type { RiderLocation } from './rider-map';
 import { CaptainOfferCard } from './captain-offer-card';
+import { useWakeLock } from '@/hooks/use-wake-lock';
 
 const TOTAL_SEARCH_SECONDS = 240; // 4 minutes
 
@@ -69,6 +70,9 @@ export function ReceivingOffersScreen({
 }: ReceivingOffersScreenProps) {
   const t = useTranslations('riderView');
   const isCancelled = !!state.requestCancelledAt;
+
+  // [ACT-PWA-02] Keep screen awake during active offer scanning
+  useWakeLock(!isCancelled);
 
   const fallbackStartedAtRef = React.useRef<number | null>(null);
   if (fallbackStartedAtRef.current === null) {

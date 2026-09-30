@@ -18,11 +18,11 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 const STORAGE_DISMISS_KEY = 'sovereign_pwa_dismissed_until';
-const DEFAULT_DISMISS_DAYS = 7;
+const DEFAULT_DISMISS_DAYS = 1;
 
-export function usePwaInstall() {
+export function usePwaInstall(role: 'rider' | 'captain' = 'rider') {
   const [platformEnv, setPlatformEnv] = useState<PlatformEnvironment>(() => detectPlatform());
-  const [guidance, setGuidance] = useState<PwaGuidanceDetails>(() => getPwaGuidance());
+  const [guidance, setGuidance] = useState<PwaGuidanceDetails>(() => getPwaGuidance(undefined, role));
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isDismissed, setIsDismissed] = useState<boolean>(true); // default true until client mounts
   const [wakeLockActive, setWakeLockActive] = useState<boolean>(false);
@@ -32,7 +32,7 @@ export function usePwaInstall() {
   useEffect(() => {
     const env = detectPlatform();
     setPlatformEnv(env);
-    setGuidance(getPwaGuidance(env));
+    setGuidance(getPwaGuidance(env, role));
 
     if (env.isStandalone) {
       setIsDismissed(true);
@@ -97,31 +97,6 @@ export function usePwaInstall() {
       setWakeLockActive(false);
     }
   }, []);
-
-  useEffect(() => {
-    // Acquire initial lock
-    void acquireWakeLock();
-
-    // Auto-Recovery on visibilitychange (e.g. returning from phone call or navigation app)
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        void acquireWakeLock();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      if (wakeLockRef.current) {
-        try {
-          void wakeLockRef.current.release();
-        } catch {
-          // silent cleanup
-        }
-      }
-    };
-  }, [acquireWakeLock]);
 
   const triggerNativeInstall = useCallback(async (): Promise<boolean> => {
     if (!deferredPrompt) return false;
