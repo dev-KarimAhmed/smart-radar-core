@@ -47,44 +47,40 @@ export function useOffersLifecycle(
   // services/offer-countdown.ts for why).
   const firstSeenAtRef = React.useRef<Map<string, number>>(new Map());
 
-  React.useEffect(() => {
+  const refreshOffers = React.useCallback(async () => {
     if (!state.requestId || state.screen !== 'RECEIVING_OFFERS' || state.requestCancelledAt) return;
 
-    let active = true;
+    try {
+      const [offers, favIdsSet] = await Promise.all([
+        fetchRideOffers(supabase, state.requestId),
+        fetchFavoriteCaptainIds().catch(() => new Set<string>()),
+      ]);
 
-    const refreshOffers = async () => {
-      try {
-        const [offers, favIdsSet] = await Promise.all([
-          fetchRideOffers(supabase, state.requestId!),
-          fetchFavoriteCaptainIds().catch(() => new Set<string>()),
-        ]);
+      const favoriteIds = Array.from(favIdsSet);
+      const validOffers = offers;
 
-        const favoriteIds = Array.from(favIdsSet);
-        // جميع العروض المقدمة من الكباتن المتاحين للطلب يتم عرضها للراكب
-        const validOffers = offers;
+      // حصة الراكب من السوق: 9 عروض كباتن كحد أقصى تفرز حسب: الفئة، المفضلين، الرتبة، السعر
+      const sortedOffers = prioritizeRiderOffers(validOffers, favoriteIds, pricingPreference).slice(0, 9);
 
-        // حصة الراكب من السوق: 9 عروض كباتن كحد أقصى تفرز حسب: الفئة، المفضلين، الرتبة، السعر
-        const sortedOffers = prioritizeRiderOffers(validOffers, favoriteIds, pricingPreference).slice(0, 9);
-
-        const nowTs = Date.now();
-        for (const offer of sortedOffers) {
-          const offerId = offer.id || offer.driverId;
-          if (offerId && !firstSeenAtRef.current.has(offerId)) {
-            firstSeenAtRef.current.set(offerId, nowTs);
-          }
+      const nowTs = Date.now();
+      for (const offer of sortedOffers) {
+        const offerId = offer.id || offer.driverId;
+        if (offerId && !firstSeenAtRef.current.has(offerId)) {
+          firstSeenAtRef.current.set(offerId, nowTs);
         }
-
-        if (active) {
-          setPreferredCaptainIds(favoriteIds);
-          dispatch({ type: 'RECEIVE_OFFERS', offers: sortedOffers });
-        }
-      } catch (error) {
-        if (!active) return;
-        if ((process.env.NODE_ENV !== 'production')) console.warn('[Rider Offers]', error);
-        setPreferredCaptainIds([]);
-        dispatch({ type: 'RECEIVE_OFFERS', offers: [] });
       }
-    };
+
+      setPreferredCaptainIds(favoriteIds);
+      dispatch({ type: 'RECEIVE_OFFERS', offers: sortedOffers });
+    } catch (error) {
+      if ((process.env.NODE_ENV !== 'production')) console.warn('[Rider Offers]', error);
+      setPreferredCaptainIds([]);
+      dispatch({ type: 'RECEIVE_OFFERS', offers: [] });
+    }
+  }, [dispatch, pricingPreference, state.requestCancelledAt, state.requestId, state.screen]);
+
+  React.useEffect(() => {
+    if (!state.requestId || state.screen !== 'RECEIVING_OFFERS' || state.requestCancelledAt) return;
 
     void refreshOffers();
 
@@ -98,10 +94,9 @@ export function useOffersLifecycle(
     );
 
     return () => {
-      active = false;
       unsubscribe();
     };
-  }, [captainSearchRadiusKm, dispatch, pricingPreference, state.requestCancelledAt, state.requestId, state.screen]);
+  }, [refreshOffers, state.requestCancelledAt, state.requestId, state.screen]);
 
   // Drops an offer from state the moment its captain-chosen wait_seconds
   // window elapses — without this, an expired offer stayed in state.offers
@@ -149,40 +144,21 @@ export function useOffersLifecycle(
     return () => window.clearTimeout(timeoutId);
   }, [dispatch, state.offers.length, state.requestCancelledAt, state.requestId, state.requestStartedAt, state.screen, toast]);
 
-  // Cancel trip if the user leaves the app (backgrounds or logs out) for more than 30s during RECEIVING_OFFERS
+  // Resync offers immediately when the rider returns to the app (e.g. from answering a call or WhatsApp message)
   React.useEffect(() => {
     if (!state.requestId || state.screen !== 'RECEIVING_OFFERS' || state.requestCancelledAt) return;
 
-    const currentRequestId = state.requestId;
-    let timeoutId: number | undefined;
-
     const onVisibilityChange = () => {
-      if (document.visibilityState === 'hidden') {
-        timeoutId = window.setTimeout(() => {
-          cancelRideRequest(supabase, currentRequestId).catch(() => { });
-          dispatch({ type: 'REQUEST_CANCELLED' });
-        }, 30_000);
-      } else {
-        if (timeoutId !== undefined) {
-          window.clearTimeout(timeoutId);
-          timeoutId = undefined;
-        }
+      if (document.visibilityState === 'visible') {
+        void refreshOffers();
       }
     };
 
-    const onBeforeUnload = () => {
-      cancelRideRequest(supabase, currentRequestId).catch(() => { });
-    };
-
     document.addEventListener('visibilitychange', onVisibilityChange);
-    window.addEventListener('beforeunload', onBeforeUnload);
-
     return () => {
-      if (timeoutId !== undefined) window.clearTimeout(timeoutId);
       document.removeEventListener('visibilitychange', onVisibilityChange);
-      window.removeEventListener('beforeunload', onBeforeUnload);
     };
-  }, [state.requestId, state.screen, state.requestCancelledAt, dispatch]);
+  }, [refreshOffers, state.requestCancelledAt, state.requestId, state.screen]);
 
   React.useEffect(() => {
     if (state.screen !== 'RECEIVING_OFFERS' || state.requestCancelledAt) {

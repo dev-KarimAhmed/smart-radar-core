@@ -234,39 +234,51 @@ export function useRideRequestStatusSync(params: {
   }, [dispatch, language, state.requestId, t, toast]);
 
   /**
-   * Safety net: re-read the request's status while the rider sits on the trip screen.
+   * Safety net & background recovery: re-read the request's status while any request is active.
    *
-   * Leaving that screen depended on exactly ONE realtime event arriving. Miss it — dropped
-   * socket, backgrounded tab, an RLS hiccup, a transaction that rolled back and republished
-   * nothing — and the rider stays inside a finished trip forever, with no way out and no
-   * indication anything is wrong. That is the "الكابتن نهى الرحلة ولسه شغالة عند الراكب"
-   * report, and it stays possible however the underlying cause is fixed, because a live
-   * subscription is not a guarantee of delivery.
-   *
-   * A poll is not a substitute for realtime — it is the floor under it. Realtime still does
-   * the work and updates instantly; this only catches what realtime dropped, which is why
-   * 20s is frequent enough.
+   * Leaving that screen or missing events during backgrounding (taking a call, checking a message)
+   * depended on realtime events. If the socket dropped or paused during backgrounding,
+   * this reconciliation catches state changes (ACCEPTED, CANCELLED, COMPLETED) immediately when
+   * the rider returns to the page.
    */
   React.useEffect(() => {
-    if (!state.requestId || state.screen !== 'TRIP_ACTIVE') return;
+    if (!state.requestId) return;
 
     let cancelled = false;
 
     const reconcile = async () => {
       const { data, error } = await supabase
         .from('ride_requests')
-        .select('id,status,completed_at,cancelled_at,accepted_offer_id,selected_offer_id')
+        .select('*')
         .eq('id', state.requestId!)
         .maybeSingle();
 
       if (cancelled || error || !data) return;
 
-      const status = String((data as Record<string, unknown>).status || '').toUpperCase();
-      if (status === 'COMPLETED') {
-        // pendingAcceptedOfferId managed centrally by state machine
-        dispatch({ type: 'SERVER_STATUS_COMPLETED', row: data as Record<string, unknown> });
+      const row = data as Record<string, unknown>;
+      const status = String(row.status || '').toUpperCase();
+
+      if (
+        status === 'ACCEPTED'
+        || status === 'EN_ROUTE'
+        || status === 'ARRIVED'
+        || status === 'STARTED'
+        || status === 'TRIP_ACTIVE'
+        || status === 'ACTIVE'
+        || status === 'IN_PROGRESS'
+      ) {
+        if (state.screen !== 'TRIP_ACTIVE') {
+          dispatch({
+            type: 'SERVER_STATUS_ACCEPTED',
+            row: {
+              ...row,
+              selected_offer_id: row.selected_offer_id || row.accepted_offer_id || state.pendingAcceptedOfferId,
+            },
+          });
+        }
+      } else if (status === 'COMPLETED') {
+        dispatch({ type: 'SERVER_STATUS_COMPLETED', row });
       } else if (status === 'CANCELLED') {
-        // pendingAcceptedOfferId managed centrally by state machine
         dispatch({ type: 'REQUEST_CANCELLED' });
       }
     };
@@ -274,7 +286,7 @@ export function useRideRequestStatusSync(params: {
     // Once straight away: if the event was missed while the tab was hidden, the rider should
     // not have to wait a whole interval after coming back.
     void reconcile();
-    const interval = window.setInterval(() => void reconcile(), 20_000);
+    const interval = window.setInterval(() => void reconcile(), 15_000);
     const onVisible = () => { if (document.visibilityState === 'visible') void reconcile(); };
     document.addEventListener('visibilitychange', onVisible);
 
@@ -283,7 +295,7 @@ export function useRideRequestStatusSync(params: {
       window.clearInterval(interval);
       document.removeEventListener('visibilitychange', onVisible);
     };
-  }, [dispatch, state.requestId, state.screen]);
+  }, [dispatch, state.pendingAcceptedOfferId, state.requestId, state.screen]);
 
   return {
     countdown,

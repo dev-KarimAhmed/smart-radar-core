@@ -337,8 +337,9 @@ export function riderDashboardReducer(state: RiderMachineState, action: RiderMac
         pendingAcceptedOfferId: null,
       };
 
-    case 'REHYDRATE_SEARCHING':
+    case 'REHYDRATE_SEARCHING': {
       if (state.screen !== 'IDLE_MAP') return state;
+      const rowCreatedAt = action.row?.created_at ? new Date(action.row.created_at as string).getTime() : Date.now();
       return {
         ...state,
         screen: 'RECEIVING_OFFERS',
@@ -346,8 +347,9 @@ export function riderDashboardReducer(state: RiderMachineState, action: RiderMac
         // Keep whatever is already in state — it is the richer object, with the fare quote
         // and the governorate/district the picker knew. Only fall back to the row.
         destination: state.destination ?? buildDestinationFromRow(action.requestId, action.row),
-        requestStartedAt: state.requestStartedAt ?? Date.now(),
+        requestStartedAt: state.requestStartedAt ?? (Number.isFinite(rowCreatedAt) && rowCreatedAt > 0 ? rowCreatedAt : Date.now()),
       };
+    }
 
     case 'REHYDRATE_ACTIVE_TRIP': {
       if (state.screen !== 'IDLE_MAP') return state;
@@ -359,7 +361,12 @@ export function riderDashboardReducer(state: RiderMachineState, action: RiderMac
       };
       const activeTrip = buildActiveTrip(stateWithOffers, action.row);
       if (!activeTrip) {
-        return { ...stateWithOffers, screen: 'RECEIVING_OFFERS', requestStartedAt: state.requestStartedAt ?? Date.now() };
+        const rowCreatedAt = action.row?.created_at ? new Date(action.row.created_at as string).getTime() : Date.now();
+        return {
+          ...stateWithOffers,
+          screen: 'RECEIVING_OFFERS',
+          requestStartedAt: state.requestStartedAt ?? (Number.isFinite(rowCreatedAt) && rowCreatedAt > 0 ? rowCreatedAt : Date.now()),
+        };
       }
       return { ...stateWithOffers, screen: 'TRIP_ACTIVE', activeTrip };
     }
