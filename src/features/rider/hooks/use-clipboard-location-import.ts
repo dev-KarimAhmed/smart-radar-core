@@ -10,6 +10,7 @@ import {
 import { slugifyLocationPart, type DistrictOption, type GovernorateOption } from '../services/rider-destination-normalizers';
 import type { useDestinationGeographyData } from './use-destination-geography-data';
 import type { RiderLocation } from '../components/rider-map';
+import { useLinkCatcher } from '@/hooks/use-link-catcher';
 
 async function readClipboardLocationText(): Promise<string> {
   let plainText = '';
@@ -187,6 +188,15 @@ export function useClipboardLocationImport(params: {
       setIsReadingClipboardLocation(false);
     }
   }, [applyClipboardLocation, locationCopy, setIsCaptainScanPreviewActive, toast]);
+
+  const { capturedLink, clearCapturedLink } = useLinkCatcher();
+
+  React.useEffect(() => {
+    if (capturedLink) {
+      handleConfirmClipboardLocation(capturedLink);
+      clearCapturedLink();
+    }
+  }, [capturedLink, handleConfirmClipboardLocation, clearCapturedLink]);
 
   const reset = React.useCallback(() => {
     setExternalLocationUrl('');

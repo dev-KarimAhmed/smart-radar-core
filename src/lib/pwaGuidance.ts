@@ -74,7 +74,7 @@ export function detectPlatform(): PlatformEnvironment {
   };
 }
 
-export function getPwaGuidance(env?: PlatformEnvironment): PwaGuidanceDetails {
+export function getPwaGuidance(env?: PlatformEnvironment, role: 'rider' | 'captain' = 'rider'): PwaGuidanceDetails {
   const currentEnv = env || detectPlatform();
 
   if (currentEnv.isIOS) {
@@ -109,8 +109,12 @@ export function getPwaGuidance(env?: PlatformEnvironment): PwaGuidanceDetails {
           iconType: 'install',
         },
       ],
-      batteryNoticeAr: 'تنبيه: يُرجى تعطيل وضع حفظ الطاقة المنخفض (Low Power Mode) لضمان استمرار حسابات الرادار في الخلفية.',
-      batteryNoticeEn: 'Notice: Please disable Low Power Mode to ensure continuous background radar tracking.',
+      batteryNoticeAr: role === 'captain'
+        ? 'تنبيه: يُرجى تعطيل وضع حفظ الطاقة المنخفض (Low Power Mode) لضمان استمرار حسابات الرادار في الخلفية.'
+        : 'تنبيه: يُرجى إبقاء التطبيق نشطاً في الخلفية لضمان استلام عروض الكباتن وتحديثات الرحلة اللحظية.',
+      batteryNoticeEn: role === 'captain'
+        ? 'Notice: Please disable Low Power Mode to ensure continuous background radar tracking.'
+        : 'Notice: Keep the app enabled in background to ensure receiving instant captain offers and trip updates.',
       webPushNoticeAr: 'إلزامي: تثبيت التطبيق على الشاشة الرئيسية مطلوب لتفعيل الإشعارات اللحظية (Web Push) على أجهزة Apple.',
       webPushNoticeEn: 'Required: Home Screen installation is mandatory for Web Push notifications on Apple devices.',
     };
@@ -120,8 +124,8 @@ export function getPwaGuidance(env?: PlatformEnvironment): PwaGuidanceDetails {
     return {
       platform: 'android',
       platformName: 'Android (Google Chrome)',
-      titleAr: 'تثبيت التطبيق السيادي الميداني',
-      titleEn: 'Install Sovereign Field PWA',
+      titleAr: role === 'captain' ? 'تثبيت التطبيق السيادي الميداني' : 'تثبيت تطبيق رادار الراكب',
+      titleEn: role === 'captain' ? 'Install Sovereign Field PWA' : 'Install Radar Rider PWA',
       steps: [
         {
           number: 1,
@@ -148,8 +152,12 @@ export function getPwaGuidance(env?: PlatformEnvironment): PwaGuidanceDetails {
           iconType: 'desktop',
         },
       ],
-      batteryNoticeAr: 'هام للكابتن: يُرجى استثناء التطبيق من تحسين البطارية (Battery Optimization Whitelist) لمنع تجميد خلايا H3 عند الانتقال للملاحة.',
-      batteryNoticeEn: 'Important for Captains: Exclude app from Battery Optimization to prevent H3 freeze when navigating.',
+      batteryNoticeAr: role === 'captain'
+        ? 'هام للكابتن: يُرجى استثناء التطبيق من تحسين البطارية (Battery Optimization Whitelist) لمنع تجميد خلايا H3 عند الانتقال للملاحة.'
+        : 'تنبيه للراكب: يُرجى السماح للتطبيق بالعمل في الخلفية لاستلام إشعارات العروض وتتبع وصول الكابتن.',
+      batteryNoticeEn: role === 'captain'
+        ? 'Important for Captains: Exclude app from Battery Optimization to prevent H3 freeze when navigating.'
+        : 'Notice for Riders: Allow background activity to receive live captain offers and approach alerts.',
     };
   }
 

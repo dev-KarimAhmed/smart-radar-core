@@ -20,6 +20,7 @@ import { formatMoney, isTripStartedStatus } from '../services/rider-view-format'
 import { resolveColorDisplayName } from '@/shared/services/color-name';
 import type { RiderActiveTrip } from '../state/rider-state-machine';
 import type { TripCountdown } from '@/shared/services/trip-countdown';
+import { useWakeLock } from '@/hooks/use-wake-lock';
 
 export interface TripActiveScreenProps {
   isArabic: boolean;
@@ -42,6 +43,9 @@ export function TripActiveScreen({
   onEmergencyWhatsapp,
   onCancelRideRequest,
 }: TripActiveScreenProps) {
+  // [ACT-PWA-02] Keep screen awake during active trip
+  useWakeLock(true);
+
   const t = useTranslations('riderView');
   const remainingSeconds = countdown ? countdown.remainingSeconds : etaSeconds;
   const displayTimer = countdown?.hasCountdown
