@@ -816,7 +816,7 @@
       "messageCaptainLine": "السائق: {captainName}.",
       "messageDestinationLine": "الوجهة: {destination}.",
       "messageRequestLine": "رقم الطلب: {requestId}.",
-      "sosButton": "طوارئ SOS / تتبع الرحلة",
+      "sosButton": "اتصال بالطوارئ",
       "sosToastTitle": "طوارئ وتتبع الرحلة",
       "sosToastDescription": "تم نسخ رابط تتبع الرحلة لمشاركته بأمان."
     },

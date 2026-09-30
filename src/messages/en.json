@@ -816,7 +816,7 @@
       "messageCaptainLine": "Captain: {captainName}.",
       "messageDestinationLine": "Destination: {destination}.",
       "messageRequestLine": "Request: {requestId}.",
-      "sosButton": "SOS / Share Trip",
+      "sosButton": "Emergency Call",
       "sosToastTitle": "SOS & Trip Sharing",
       "sosToastDescription": "Trip tracking link copied to clipboard."
     },
