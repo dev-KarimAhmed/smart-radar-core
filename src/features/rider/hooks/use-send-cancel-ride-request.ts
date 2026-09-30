@@ -11,10 +11,6 @@ import {
   createRideRequest,
 } from '../services/rider-server-marketplace';
 import { getLocalizedMarketplaceError } from '../services/rider-offer-presentation';
-import {
-  applyServerCancellationPenalty,
-  getStoredRiderImmunity,
-} from '@/core/logic/anti-cheat-kernel';
 import type { RiderDestination, RiderMachineAction, RiderMachineState } from '../state/rider-state-machine';
 import type { RiderLocation } from '../components/rider-map';
 
@@ -86,18 +82,6 @@ export function useSendCancelRideRequest(params: {
         variant: 'destructive',
         title: t('request.loginRequiredTitle'),
         description: t('request.loginRequiredDescription'),
-      });
-      return;
-    }
-
-    const immunity = getStoredRiderImmunity(userId);
-    if (immunity.isSuspended) {
-      toast({
-        variant: 'destructive',
-        title: language === 'ar' ? 'تم تعليق الحساب مؤقتاً' : 'Account Suspended',
-        description: language === 'ar'
-          ? 'تم تعليق حسابك لتكرار الإلغاءات المتتالية (المناعة السلوكية أقل من 4.2). يرجى التواصل مع الدعم الفني.'
-          : 'Your account has been temporarily suspended due to consecutive cancellations. Please contact support.',
       });
       return;
     }
@@ -228,10 +212,6 @@ export function useSendCancelRideRequest(params: {
 
     try {
       await cancelRideRequest(supabase, state.requestId);
-
-      if (userId) {
-        void applyServerCancellationPenalty(supabase, userId);
-      }
 
       resetRideDraftState();
       dispatch({ type: 'RESET_TO_IDLE' });

@@ -9,7 +9,9 @@ import {
   mapRiderMarketplaceError,
 } from '../services/rider-server-marketplace';
 import {
-  resetServerCancellationsOnTripCompletion,
+  AntiCheatKernel,
+  getStoredRiderImmunity,
+  saveStoredRiderImmunity,
 } from '@/core/logic/anti-cheat-kernel';
 import { toHistoricalTrip } from '../services/rider-view-format';
 import type { HistoricalTrip } from '../components/dashboard/dashboard-shared';
@@ -81,7 +83,9 @@ export function useTripCompletion(
       }
 
       if (userId) {
-        void resetServerCancellationsOnTripCompletion(supabase, userId);
+        const immunity = getStoredRiderImmunity(userId);
+        const updated = AntiCheatKernel.recordSuccessfulTrip(immunity);
+        saveStoredRiderImmunity(updated);
       }
 
       dispatch({ type: 'COMPLETE_TRIP' });

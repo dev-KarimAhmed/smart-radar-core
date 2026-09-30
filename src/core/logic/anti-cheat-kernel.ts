@@ -115,8 +115,7 @@ export function getStoredRiderImmunity(riderId: string): RiderImmunityRecord {
     const raw = localStorage.getItem(`${RIDER_IMMUNITY_STORAGE_KEY_PREFIX}${riderId}`);
     if (!raw) return AntiCheatKernel.createDefaultRecord(riderId);
     const parsed = JSON.parse(raw) as RiderImmunityRecord;
-    const isSuspended = Boolean(parsed.isSuspended) || parsed.immunityScore < AntiCheatKernel.CONFIG.SUSPENSION_THRESHOLD;
-    return { ...parsed, isSuspended };
+    return { ...parsed, isSuspended: false };
   } catch {
     return AntiCheatKernel.createDefaultRecord(riderId);
   }
@@ -129,115 +128,4 @@ export function saveStoredRiderImmunity(record: RiderImmunityRecord): void {
   } catch (err) {
     console.error('Failed to persist rider immunity record:', err);
   }
-}
-
-/**
- * [ACT-SERVER-IMMUNITY] Fetches authoritative behavioral immunity record from Supabase.
- * Updates local cache so clearing browser data cannot bypass account penalties.
- */
-export async function fetchServerRiderImmunity(
-  client: any,
-  riderId: string,
-): Promise<RiderImmunityRecord> {
-  const local = getStoredRiderImmunity(riderId);
-  if (!client || !riderId) return local;
-
-  try {
-    const { data, error } = await client
-      .from('profiles')
-      .select('immunity_score, consecutive_cancellations, is_suspended')
-      .eq('id', riderId)
-      .maybeSingle();
-
-    if (error || !data) return local;
-
-    const immunityScore = typeof data.immunity_score === 'number'
-      ? data.immunity_score
-      : Number(data.immunity_score ?? AntiCheatKernel.CONFIG.DEFAULT_IMMUNITY_SCORE);
-    const consecutiveCancellations = Number(data.consecutive_cancellations ?? 0);
-    const isSuspended = Boolean(data.is_suspended) || immunityScore < AntiCheatKernel.CONFIG.SUSPENSION_THRESHOLD;
-
-    const serverRecord: RiderImmunityRecord = {
-      riderId,
-      immunityScore,
-      consecutiveCancellations,
-      isSuspended,
-    };
-
-    saveStoredRiderImmunity(serverRecord);
-    return serverRecord;
-  } catch (err) {
-    if (process.env.NODE_ENV !== 'production') {
-      console.warn('[AntiCheat] Failed to fetch server immunity:', err);
-    }
-    return local;
-  }
-}
-
-/**
- * [ACT-SERVER-PENALTY] Applies cancellation penalty on server and local cache.
- */
-export async function applyServerCancellationPenalty(
-  client: any,
-  riderId: string,
-): Promise<CancellationPenaltyResult> {
-  const local = getStoredRiderImmunity(riderId);
-  const evaluated = AntiCheatKernel.evaluateCancellationPenalty(local);
-  saveStoredRiderImmunity(evaluated.updatedRecord);
-
-  if (!client || !riderId) return evaluated;
-
-  try {
-    const { data, error } = await client.rpc('apply_rider_cancellation_penalty', {
-      p_rider_id: riderId,
-    });
-
-    if (!error && data && typeof data === 'object') {
-      const serverResult: CancellationPenaltyResult = {
-        updatedRecord: {
-          riderId,
-          immunityScore: Number(data.immunity_score ?? evaluated.updatedRecord.immunityScore),
-          consecutiveCancellations: Number(data.consecutive_cancellations ?? evaluated.updatedRecord.consecutiveCancellations),
-          isSuspended: Boolean(data.is_suspended ?? evaluated.updatedRecord.isSuspended),
-        },
-        penaltyApplied: Boolean(data.penalty_applied ?? evaluated.penaltyApplied),
-        isSuspended: Boolean(data.is_suspended ?? evaluated.isSuspended),
-        reason: data.reason ? String(data.reason) : evaluated.reason,
-      };
-      saveStoredRiderImmunity(serverResult.updatedRecord);
-      return serverResult;
-    }
-  } catch (rpcErr) {
-    if (process.env.NODE_ENV !== 'production') {
-      console.warn('[AntiCheat] Server penalty RPC failed, falling back to local evaluation:', rpcErr);
-    }
-  }
-
-  return evaluated;
-}
-
-/**
- * [ACT-SERVER-RESET] Resets consecutive cancellation streak upon successful trip completion.
- */
-export async function resetServerCancellationsOnTripCompletion(
-  client: any,
-  riderId: string,
-): Promise<RiderImmunityRecord> {
-  const local = getStoredRiderImmunity(riderId);
-  const updated = AntiCheatKernel.recordSuccessfulTrip(local);
-  saveStoredRiderImmunity(updated);
-
-  if (!client || !riderId) return updated;
-
-  try {
-    await client.rpc('reset_rider_cancellations_on_trip_completion', {
-      p_rider_id: riderId,
-    });
-  } catch (rpcErr) {
-    if (process.env.NODE_ENV !== 'production') {
-      console.warn('[AntiCheat] Server reset RPC failed:', rpcErr);
-    }
-  }
-
-  return updated;
 }
