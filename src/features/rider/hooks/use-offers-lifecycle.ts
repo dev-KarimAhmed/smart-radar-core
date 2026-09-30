@@ -47,7 +47,7 @@ export function useOffersLifecycle(
   // services/offer-countdown.ts for why).
   const firstSeenAtRef = React.useRef<Map<string, number>>(new Map());
 
-  const refreshOffers = React.useCallback(async () => {
+  const refreshOffers = React.useCallback(async (isActive?: () => boolean) => {
     if (!state.requestId || state.screen !== 'RECEIVING_OFFERS' || state.requestCancelledAt) return;
 
     try {
@@ -55,6 +55,8 @@ export function useOffersLifecycle(
         fetchRideOffers(supabase, state.requestId),
         fetchFavoriteCaptainIds().catch(() => new Set<string>()),
       ]);
+
+      if (isActive && !isActive()) return;
 
       const favoriteIds = Array.from(favIdsSet);
       const validOffers = offers;
@@ -73,6 +75,7 @@ export function useOffersLifecycle(
       setPreferredCaptainIds(favoriteIds);
       dispatch({ type: 'RECEIVE_OFFERS', offers: sortedOffers });
     } catch (error) {
+      if (isActive && !isActive()) return;
       if ((process.env.NODE_ENV !== 'production')) console.warn('[Rider Offers]', error);
       setPreferredCaptainIds([]);
       dispatch({ type: 'RECEIVE_OFFERS', offers: [] });
@@ -80,20 +83,25 @@ export function useOffersLifecycle(
   }, [dispatch, pricingPreference, state.requestCancelledAt, state.requestId, state.screen]);
 
   React.useEffect(() => {
+    let isMounted = true;
     if (!state.requestId || state.screen !== 'RECEIVING_OFFERS' || state.requestCancelledAt) return;
 
-    void refreshOffers();
+    const runRefresh = async () => {
+      await refreshOffers(() => isMounted);
+    };
+    void runRefresh();
 
     const unsubscribe = subscribeToRideOffers(
       supabase,
       state.requestId,
-      () => void refreshOffers(),
+      () => void refreshOffers(() => isMounted),
       () => {
         if ((process.env.NODE_ENV !== 'production')) console.warn('[Rider Offers Realtime] subscription unavailable');
       },
     );
 
     return () => {
+      isMounted = false; // لا يجوز بعد الإلغاء
       unsubscribe();
     };
   }, [refreshOffers, state.requestCancelledAt, state.requestId, state.screen]);
@@ -159,6 +167,21 @@ export function useOffersLifecycle(
       document.removeEventListener('visibilitychange', onVisibilityChange);
     };
   }, [refreshOffers, state.requestCancelledAt, state.requestId, state.screen]);
+
+  // Handle sudden tab closure while receiving offers
+  React.useEffect(() => {
+    if (!state.requestId || state.screen !== 'RECEIVING_OFFERS' || state.requestCancelledAt) return;
+
+    const onBeforeUnload = () => {
+      // Best effort to cancel the request if the rider closes the tab
+      cancelRideRequest(supabase, state.requestId!).catch(() => {});
+    };
+
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', onBeforeUnload);
+    };
+  }, [state.requestCancelledAt, state.requestId, state.screen]);
 
   React.useEffect(() => {
     if (state.screen !== 'RECEIVING_OFFERS' || state.requestCancelledAt) {

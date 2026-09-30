@@ -355,7 +355,6 @@ export function riderDashboardReducer(state: RiderMachineState, action: RiderMac
 
     case 'REHYDRATE_SEARCHING': {
       if (state.screen !== 'IDLE_MAP') return state;
-      const rowCreatedAt = action.row?.created_at ? new Date(action.row.created_at as string).getTime() : Date.now();
       return {
         ...state,
         screen: 'RECEIVING_OFFERS',
@@ -363,7 +362,7 @@ export function riderDashboardReducer(state: RiderMachineState, action: RiderMac
         // Keep whatever is already in state — it is the richer object, with the fare quote
         // and the governorate/district the picker knew. Only fall back to the row.
         destination: state.destination ?? buildDestinationFromRow(action.requestId, action.row),
-        requestStartedAt: state.requestStartedAt ?? (Number.isFinite(rowCreatedAt) && rowCreatedAt > 0 ? rowCreatedAt : Date.now()),
+        requestStartedAt: state.requestStartedAt ?? extractRowStartTime(action.row),
       };
     }
 
@@ -377,11 +376,10 @@ export function riderDashboardReducer(state: RiderMachineState, action: RiderMac
       };
       const activeTrip = buildActiveTrip(stateWithOffers, action.row);
       if (!activeTrip) {
-        const rowCreatedAt = action.row?.created_at ? new Date(action.row.created_at as string).getTime() : Date.now();
         return {
           ...stateWithOffers,
           screen: 'RECEIVING_OFFERS',
-          requestStartedAt: state.requestStartedAt ?? (Number.isFinite(rowCreatedAt) && rowCreatedAt > 0 ? rowCreatedAt : Date.now()),
+          requestStartedAt: state.requestStartedAt ?? extractRowStartTime(action.row),
         };
       }
       return { ...stateWithOffers, screen: 'TRIP_ACTIVE', activeTrip };
@@ -452,6 +450,11 @@ export function useRiderDashboardMachine() {
   const [state, dispatch] = React.useReducer(riderDashboardReducer, undefined, createInitialRiderMachineState);
 
   return { state, dispatch, showAdRiver: shouldShowAdRiver(state) };
+}
+
+function extractRowStartTime(row?: Record<string, unknown> | null): number {
+  const rowCreatedAt = row?.created_at ? new Date(row.created_at as string).getTime() : Date.now();
+  return Number.isFinite(rowCreatedAt) && rowCreatedAt > 0 ? rowCreatedAt : Date.now();
 }
 
 function firstString(...values: unknown[]) {
