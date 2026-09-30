@@ -4,7 +4,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import { db, handleFirestoreError, OperationType } from '@/lib/firebase';
 import { supabase } from '@/lib/supabase-client';
-import { collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, getDocs, setDoc, query, where, runTransaction } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, getDocs, setDoc, query, where, limit, runTransaction } from 'firebase/firestore';
 import { Delegate, MagicLink, DelegateTask } from './delegates-shared';
 
 export function useDelegatesState() {
@@ -87,7 +87,7 @@ export function useDelegatesState() {
     if (!authLoading && user && user.role === 'admin') {
       setLoading(true);
 
-      unsubDrivers = onSnapshot(query(collection(db, 'users'), where('role', '==', 'driver')), (snapshot) => {
+      unsubDrivers = onSnapshot(query(collection(db, 'users'), where('role', '==', 'driver'), limit(100)), (snapshot) => {
         const list = snapshot.docs.map(docSnap => ({
           uid: docSnap.id,
           ...docSnap.data()
@@ -97,7 +97,7 @@ export function useDelegatesState() {
         console.error("Firestore error loading drivers for cross-validation:", err);
       });
 
-      unsubDelegates = onSnapshot(collection(db, 'delegates'), (snapshot) => {
+      unsubDelegates = onSnapshot(query(collection(db, 'delegates'), limit(100)), (snapshot) => {
         if (snapshot.empty) {
           const defaultDelegates: Delegate[] = [
             {
@@ -171,7 +171,7 @@ export function useDelegatesState() {
         handleFirestoreError(err, OperationType.LIST, 'delegates');
       });
 
-      unsubLinks = onSnapshot(collection(db, 'delegate_links'), (snapshot) => {
+      unsubLinks = onSnapshot(query(collection(db, 'delegate_links'), limit(100)), (snapshot) => {
         const list = snapshot.docs.map(docSnap => ({
           id: docSnap.id,
           ...docSnap.data()
@@ -182,7 +182,7 @@ export function useDelegatesState() {
         handleFirestoreError(err, OperationType.LIST, 'delegate_links');
       });
 
-      unsubTasks = onSnapshot(collection(db, 'delegate_tasks'), (snapshot) => {
+      unsubTasks = onSnapshot(query(collection(db, 'delegate_tasks'), limit(100)), (snapshot) => {
         const list = snapshot.docs.map(docSnap => ({
           id: docSnap.id,
           ...docSnap.data()

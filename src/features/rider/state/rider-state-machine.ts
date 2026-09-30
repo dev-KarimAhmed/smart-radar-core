@@ -34,6 +34,22 @@ export interface RiderLocalRating {
   favorite: boolean;
 }
 
+export interface RiderActiveTripCaptain {
+  serial_number?: string | null;
+  serial?: string | null;
+  nickname?: string | null;
+  full_name?: string | null;
+  name?: string | null;
+  phone?: string | null;
+  plate_number?: string | null;
+  license_plate?: string | null;
+  vehicle_model?: string | null;
+  vehicle_color?: string | null;
+  facebook_url?: string | null;
+  instagram_url?: string | null;
+  [key: string]: unknown;
+}
+
 export interface RiderActiveTrip {
   tripId: string;
   captainId: string;
@@ -55,7 +71,7 @@ export interface RiderActiveTrip {
   startedAtMs?: number | null;
   pickupEtaMinutes?: number | null;
   tripDurationMinutes?: number | null;
-  captain?: any;
+  captain?: RiderActiveTripCaptain | null;
   status?: string;
 }
 

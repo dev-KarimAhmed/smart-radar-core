@@ -90,7 +90,7 @@ export function useCaptainPresence(userId: string | undefined, activeCountryId: 
       });
     }, CAPTAIN_PRESENCE_PRUNE_MS);
 
-    const channel = activeCountryId
+    const channel = activeCountryId && riderH3Cell
       ? supabase
           .channel(`captain-presence-${activeCountryId}-${riderH3Cell}`)
           .on(
@@ -99,6 +99,7 @@ export function useCaptainPresence(userId: string | undefined, activeCountryId: 
               event: '*',
               schema: 'public',
               table: 'captain_locations',
+              filter: `h3_cell=eq.${riderH3Cell}`,
             },
             () => void loadCaptainPresence(),
           )

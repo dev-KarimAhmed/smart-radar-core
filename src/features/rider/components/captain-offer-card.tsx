@@ -37,7 +37,7 @@ interface CaptainOfferCardProps {
   onAccept: (offer: CaptainOffer) => void;
 }
 
-export function CaptainOfferCard({
+function CaptainOfferCardBase({
   offer,
   currencyCode = 'EGP',
   isAccepting = false,
@@ -316,3 +316,6 @@ export function CaptainOfferCard({
     </article>
   );
 }
+
+export const CaptainOfferCard = React.memo(CaptainOfferCardBase);
+

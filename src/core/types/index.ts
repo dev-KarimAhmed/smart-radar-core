@@ -147,7 +147,26 @@ export interface Offer {
     distance_to_rider?: number;
     pickup_eta_minutes?: number;
     estimated_duration_minutes?: number;
-    captain?: any;
+    captain?: {
+      id?: string;
+      name?: string;
+      full_name?: string;
+      nickname?: string;
+      phone?: string;
+      avatar_url?: string;
+      trust_rating?: number;
+      tier?: string;
+      vehicle_model?: string;
+      vehicle_name?: string;
+      vehicle_color?: string;
+      plate_number?: string;
+      license_plate?: string;
+      serial_number?: string;
+      serial?: string;
+      bio?: string;
+      notes?: string;
+      [key: string]: any;
+    } | null;
     wait_seconds?: number;
     created_at?: string;
     /**

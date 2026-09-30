@@ -79,10 +79,10 @@ export function ReceivingOffersScreen({
     fallbackStartedAtRef.current = Date.now();
   }
 
-  // Ticks smoothly for the 4-minute search countdown & for each offer's wait-seconds progress bar
+  // Ticks smoothly for the search countdown & offer wait-seconds progress bar
   const [now, setNow] = React.useState(() => Date.now());
   React.useEffect(() => {
-    const interval = setInterval(() => setNow(Date.now()), 250);
+    const interval = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(interval);
   }, []);
 
