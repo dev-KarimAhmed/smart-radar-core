@@ -257,15 +257,16 @@ const styles = {
  >
  {/* Visual Cover row */}
  <div className={styles.style156_21}>
- <div className={styles.style157_22}>
- <Image
- src={ad.content?.posterUrl || ad.bannerUrl || 'https://via.placeholder.com/150'}
- alt={ad.content?.title || ad.title}
- className={styles.style161_23}
- width={64}
- height={64}
- />
- </div>
+                <div className={styles.style157_22}>
+                  <Image
+                    src={ad.content?.posterUrl || ad.bannerUrl || 'https://via.placeholder.com/150'}
+                    alt={ad.content?.title || ad.title || 'Ad'}
+                    className={styles.style161_23}
+                    width={64}
+                    height={64}
+                    unoptimized
+                  />
+                </div>
  <div className={cn(styles.style165_24, isArabic ? styles.style165_25 : styles.style165_26)}>
  <h4 className={styles.style166_27}>
  {ad.content?.title || ad.title}
