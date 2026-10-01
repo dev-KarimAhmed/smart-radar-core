@@ -187,78 +187,6 @@ async function readGoogleMapsPageLocation(url: string) {
  * Geocodes the place name using Nominatim with cascading locality fallback:
  * tries full clean place name, then drops specific venue and tries the district/governorate.
  */
-function buildArabicPlaceQueryCandidates(rawName: string): string[] {
-  const clean = rawName.replace(/[\u200B-\u200F\u202A-\u202E\u2060]/g, '').trim();
-  const segments = clean.split(/[,،]/).map((s) => s.trim()).filter(Boolean);
-  const primary = segments[0] || '';
-  const lastSeg = segments[segments.length - 1] || '';
-
-  const stripPrefixes = (s: string) =>
-    s
-      .replace(/\b(مركز|محافظة|محافظه|مدينة|مدينه|قرية|قريه|منطقة|منطقه|حي)\s+/g, '')
-      .replace(/\s+/g, ' ')
-      .trim();
-
-  const swapTehHeh = (s: string) =>
-    s
-      .split(' ')
-      .map((w) => {
-        if (w.endsWith('ه')) return `${w.slice(0, -1)}ة`;
-        if (w.endsWith('ة')) return `${w.slice(0, -1)}ه`;
-        return w;
-      })
-      .join(' ');
-
-  const primaryClean = stripPrefixes(primary);
-  const primaryAlt = swapTehHeh(primaryClean);
-  const govClean = stripPrefixes(lastSeg);
-  const govAlt = swapTehHeh(govClean);
-
-  const broader = segments.slice(1).map(stripPrefixes).join(' ');
-  const broaderAlt = swapTehHeh(broader);
-
-  const queries: string[] = [];
-
-  // 1. High-priority targeted queries: Primary place + governorate with normalized teh/heh
-  if (primaryAlt && govClean && primaryAlt !== govClean) {
-    queries.push(`${primaryAlt} ${govClean}`);
-  }
-  if (primaryClean && govClean && primaryClean !== govClean) {
-    queries.push(`${primaryClean} ${govClean}`);
-  }
-  if (primaryAlt && broader && broader !== govClean) {
-    queries.push(`${primaryAlt} ${broader}`);
-    queries.push(`${primaryAlt} ${broaderAlt}`);
-  }
-
-  // 2. Full clean with normalized teh/heh and prefix stripping
-  queries.push(swapTehHeh(clean.replace(/[,،]/g, ' ')));
-  queries.push(clean.replace(/[,،]/g, ' '));
-  queries.push(stripPrefixes(swapTehHeh(clean)));
-  queries.push(stripPrefixes(clean));
-
-  // 3. Primary place alone (relies on proximity bias)
-  if (primaryAlt) queries.push(primaryAlt);
-  if (primaryClean) queries.push(primaryClean);
-
-  // 4. Broader fallbacks only as last resort
-  if (broader) {
-    queries.push(broader);
-    queries.push(broaderAlt);
-  }
-
-  return [...new Set(queries.map((q) => q.replace(/\s+/g, ' ').trim()).filter((q) => q.length >= 2))];
-}
-
-function matchesPrimaryPlace(featureText: string, primaryName: string): boolean {
-  if (!primaryName) return false;
-  const p1 = primaryName.trim().replace(/\b(مركز|محافظة|محافظه|مدينة|مدينه|قرية|قريه|حي)\s+/g, '');
-  const p2 = p1.endsWith('ه') ? `${p1.slice(0, -1)}ة` : p1.endsWith('ة') ? `${p1.slice(0, -1)}ه` : p1;
-  const normFeature = featureText.toLowerCase();
-  return (p1.length >= 2 && normFeature.includes(p1.toLowerCase())) ||
-         (p2.length >= 2 && normFeature.includes(p2.toLowerCase()));
-}
-
 async function geocodePlaceName(resolvedUrl: string, locationHint?: { lat: number; lng: number }) {
   const rawPlaceName = extractGoogleMapsPlaceName(resolvedUrl);
   if (!rawPlaceName) return null;
@@ -278,14 +206,17 @@ async function geocodePlaceName(resolvedUrl: string, locationHint?: { lat: numbe
     .trim();
   if (!cleanName || /^-?\d+(\.\d+)?,\s*-?\d+(\.\d+)?$/.test(cleanName)) return null;
 
-  const candidateQueries = buildArabicPlaceQueryCandidates(cleanName);
   const segments = cleanName.split(/[,،]/).map((s) => s.trim()).filter(Boolean);
-  const primaryName = segments[0] || '';
+  const candidateQueries = [cleanName];
+  if (segments.length > 1) {
+    candidateQueries.push(segments.slice(1).join(', '));
+  }
+  if (segments.length > 2) {
+    candidateQueries.push(segments.slice(2).join(', '));
+  }
 
   // 3. Mapbox Geocoding: Fast, robust MENA coverage (Egypt, Jordan, etc.)
   const mapboxToken = (process.env.NEXT_PUBLIC_MAPBOX_TOKEN || process.env.MAPBOX_ACCESS_TOKEN || '').trim();
-  let firstValidResult: { lat: number; lng: number; placeName: string } | null = null;
-
   if (mapboxToken) {
     for (const q of candidateQueries) {
       try {
@@ -296,28 +227,16 @@ async function geocodePlaceName(resolvedUrl: string, locationHint?: { lat: numbe
           headers: { Accept: 'application/json' },
         });
         if (res.ok) {
-          const payload = await res.json() as { features?: Array<{ center?: [number, number]; place_name?: string; text?: string }> };
+          const payload = await res.json() as { features?: Array<{ center?: [number, number]; place_name?: string }> };
           const feature = payload.features?.[0];
           if (feature?.center && isValidLocation(feature.center[1], feature.center[0])) {
-            const result = { lat: feature.center[1], lng: feature.center[0], placeName: cleanName };
-            const featText = `${feature.text || ''} ${feature.place_name || ''}`;
-            // If the feature actually contains the primary place name, return immediately
-            if (matchesPrimaryPlace(featText, primaryName)) {
-              return result;
-            }
-            if (!firstValidResult) {
-              firstValidResult = result;
-            }
+            return { lat: feature.center[1], lng: feature.center[0], placeName: cleanName };
           }
         }
       } catch {
         // try next candidate or fall back
       }
     }
-  }
-
-  if (firstValidResult) {
-    return firstValidResult;
   }
 
   // 4. OpenStreetMap Nominatim Fallback
@@ -331,6 +250,7 @@ async function geocodePlaceName(resolvedUrl: string, locationHint?: { lat: numbe
       });
       if (locationHint) {
         // Use a ~50km bounding box to strongly bias Nominatim toward the region of the coordinate.
+        // x1,y1,x2,y2 -> left,top,right,bottom -> lng1,lat1,lng2,lat2
         const viewbox = `${locationHint.lng - 0.5},${locationHint.lat + 0.5},${locationHint.lng + 0.5},${locationHint.lat - 0.5}`;
         params.set('viewbox', viewbox);
       }
@@ -341,24 +261,18 @@ async function geocodePlaceName(resolvedUrl: string, locationHint?: { lat: numbe
       });
       if (!response.ok) continue;
 
-      const [match] = await response.json() as Array<{ lat?: string; lon?: string; display_name?: string }>;
+      const [match] = await response.json() as Array<{ lat?: string; lon?: string }>;
       const lat = Number(match?.lat);
       const lng = Number(match?.lon);
       if (isValidLocation(lat, lng)) {
-        const result = { lat, lng, placeName: cleanName };
-        if (matchesPrimaryPlace(match?.display_name || '', primaryName)) {
-          return result;
-        }
-        if (!firstValidResult) {
-          firstValidResult = result;
-        }
+        return { lat, lng, placeName: cleanName };
       }
     } catch {
       // continue to broader query
     }
   }
 
-  return firstValidResult;
+  return null;
 }
 
 /**
@@ -391,49 +305,6 @@ async function crossCheckPlaceName(
 }
 
 async function reverseResolveGeography(location: { lat: number; lng: number }) {
-  const mapboxToken = (process.env.NEXT_PUBLIC_MAPBOX_TOKEN || process.env.MAPBOX_ACCESS_TOKEN || '').trim();
-  if (mapboxToken) {
-    try {
-      const endpoint = `https://api.mapbox.com/geocoding/v5/mapbox.places/${location.lng},${location.lat}.json?access_token=${encodeURIComponent(mapboxToken)}&language=ar`;
-      const res = await fetch(endpoint, {
-        signal: AbortSignal.timeout(3_000),
-        headers: { Accept: 'application/json' },
-      });
-      if (res.ok) {
-        const payload = await res.json() as { features?: Array<{ place_type?: string[]; text?: string; place_name?: string }> };
-        if (payload.features && payload.features.length > 0) {
-          let governorate: string | null = null;
-          let district: string | null = null;
-          let city: string | null = null;
-
-          for (const f of payload.features) {
-            const type = f.place_type?.[0];
-            const text = (f.text || f.place_name || '').replace(/\b(محافظة|محافظه)\s+/g, '').trim();
-            if (type === 'region' && !governorate) {
-              governorate = text;
-            } else if (type === 'place' && !district) {
-              district = text;
-            } else if ((type === 'locality' || type === 'neighborhood') && !city) {
-              city = text;
-            }
-          }
-
-          if (governorate || district) {
-            return {
-              governorate: governorate || district || null,
-              district: district || city || governorate || null,
-              city: city || district || governorate || null,
-              governorateCandidates: governorate ? [governorate] : [],
-              districtCandidates: [district, city].filter(Boolean) as string[],
-            };
-          }
-        }
-      }
-    } catch {
-      // Fall through to Nominatim
-    }
-  }
-
   try {
     const params = new URLSearchParams({
       format: 'jsonv2',

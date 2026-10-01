@@ -115,7 +115,7 @@ export function useClipboardLocationImport(params: {
     const governorate = resolvedGeography?.governorate || locationCopy('external_governorate');
     const geographicDistrict = resolvedGeography?.district || resolvedGeography?.city || resolvedPlaceName;
     const district = primaryPlaceName && primaryPlaceName !== geographicDistrict
-      ? (geographicDistrict === governorate ? primaryPlaceName : `${primaryPlaceName} - ${geographicDistrict}`)
+      ? `${primaryPlaceName} - ${geographicDistrict}`
       : geographicDistrict;
     const externalGovernorateId = `google:${slugifyLocationPart(governorate)}`;
     const externalDistrictId = `google:${slugifyLocationPart(`${district}-${parsedLocation.lat}-${parsedLocation.lng}`)}`;
