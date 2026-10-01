@@ -231,7 +231,7 @@ export function parseGoogleMapsLocation(
   }
 
   const isHtml = /<html|<!doctype|<body|<meta\s+/i.test(text);
-  const isDirectionsUrl = /\/maps\/dir\//i.test(text);
+  const isDirectionsUrl = !isHtml && /(?:^|https?:\/\/[^/]+)\/maps\/dir\//i.test(text);
 
   // If camera coordinates are present in the URL, they serve as a reference for short Plus Codes
   const cameraMatch = text.match(/@(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/);
