@@ -104,6 +104,7 @@ export function useDestinationSelectionState(params: {
     setDestinationFlyToTarget: pin.setDestinationFlyToTarget,
     setIsDestinationPinMoving: pin.setIsDestinationPinMoving,
     setIsCaptainScanPreviewActive,
+    riderLocation,
   });
   const selectionHandlers = useDestinationSelectionHandlers({
     geography,

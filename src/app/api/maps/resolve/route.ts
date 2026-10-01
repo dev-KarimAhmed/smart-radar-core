@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import {
   extractGoogleMapsPlaceName,
+  extractPlusCode,
   isGoogleMapsLink,
   parseGoogleMapsLocation,
+  resolvePlusCodeLocation,
   sanitizeGoogleMapsUrl,
 } from '@/shared/services/google-maps-location';
 import { calculateHaversineKm } from '@/lib/road-route';
@@ -38,15 +40,19 @@ function isValidLocation(lat: number, lng: number) {
 
 export async function GET(request: NextRequest) {
   const rawUrl = request.nextUrl.searchParams.get('url')?.trim() || '';
+  const latParam = Number(request.nextUrl.searchParams.get('lat'));
+  const lngParam = Number(request.nextUrl.searchParams.get('lng'));
+  const locationHint = isValidLocation(latParam, lngParam) ? { lat: latParam, lng: lngParam } : undefined;
+
   const shortUrl = sanitizeGoogleMapsUrl(rawUrl);
   if (!isGoogleMapsLink(shortUrl)) {
     return NextResponse.json({ error: 'invalid_maps_url' }, { status: 400 });
   }
 
   try {
-    const directLocation = parseGoogleMapsLocation(shortUrl);
+    const directLocation = parseGoogleMapsLocation(shortUrl, locationHint);
     const resolvedUrl = directLocation ? shortUrl : await followGoogleMapsRedirects(shortUrl);
-    let location = directLocation || parseGoogleMapsLocation(resolvedUrl);
+    let location = directLocation || parseGoogleMapsLocation(resolvedUrl, locationHint);
 
     // A Google short link may resolve to a place URL without coordinates in
     // the address. Fetch the final page and inspect its map bootstrap payload.
@@ -56,7 +62,7 @@ export async function GET(request: NextRequest) {
 
     // If coordinates are still missing, attempt cascading locality geocode:
     if (!location) {
-      const fallback = await geocodePlaceName(resolvedUrl);
+      const fallback = await geocodePlaceName(resolvedUrl, locationHint);
       if (fallback) {
         location = { lat: fallback.lat, lng: fallback.lng };
       }
@@ -76,7 +82,6 @@ export async function GET(request: NextRequest) {
     // overriding the explicit URL coordinate with Nominatim's guess causes wrong addresses.
 
     const geography = await reverseResolveGeography(location);
-    return NextResponse.json({ resolvedUrl, location, geography, placeNameCheck });
     return NextResponse.json({
       resolvedUrl: sanitizeGoogleMapsUrl(resolvedUrl),
       location,
@@ -186,10 +191,22 @@ async function geocodePlaceName(resolvedUrl: string, locationHint?: { lat: numbe
   const rawPlaceName = extractGoogleMapsPlaceName(resolvedUrl);
   if (!rawPlaceName) return null;
 
-  const cleanName = rawPlaceName.replace(/^[A-Z0-9]{2,8}\+[A-Z0-9]{2,4}\s*[-–—,]?\s*/i, '').trim();
+  // 1. Direct Plus Code resolution if present in URL or place name
+  const plusCode = extractPlusCode(rawPlaceName) || extractPlusCode(resolvedUrl);
+  if (plusCode) {
+    const resolved = resolvePlusCodeLocation(plusCode, locationHint);
+    if (resolved) {
+      return { lat: resolved.lat, lng: resolved.lng, placeName: rawPlaceName };
+    }
+  }
+
+  // 2. Clean place name: strip Plus Codes anywhere in name, remove Arabic/Latin commas
+  const cleanName = rawPlaceName
+    .replace(/\b[A-Z0-9]{2,8}\+[A-Z0-9]{2,4}\b\s*[-–—,،]?\s*/gi, '')
+    .trim();
   if (!cleanName || /^-?\d+(\.\d+)?,\s*-?\d+(\.\d+)?$/.test(cleanName)) return null;
 
-  const segments = cleanName.split(',').map((s) => s.trim()).filter(Boolean);
+  const segments = cleanName.split(/[,،]/).map((s) => s.trim()).filter(Boolean);
   const candidateQueries = [cleanName];
   if (segments.length > 1) {
     candidateQueries.push(segments.slice(1).join(', '));
@@ -198,6 +215,31 @@ async function geocodePlaceName(resolvedUrl: string, locationHint?: { lat: numbe
     candidateQueries.push(segments.slice(2).join(', '));
   }
 
+  // 3. Mapbox Geocoding: Fast, robust MENA coverage (Egypt, Jordan, etc.)
+  const mapboxToken = (process.env.NEXT_PUBLIC_MAPBOX_TOKEN || process.env.MAPBOX_ACCESS_TOKEN || '').trim();
+  if (mapboxToken) {
+    for (const q of candidateQueries) {
+      try {
+        const proximityParam = locationHint ? `&proximity=${locationHint.lng},${locationHint.lat}` : '';
+        const endpoint = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json?access_token=${encodeURIComponent(mapboxToken)}${proximityParam}&limit=1`;
+        const res = await fetch(endpoint, {
+          signal: AbortSignal.timeout(3_000),
+          headers: { Accept: 'application/json' },
+        });
+        if (res.ok) {
+          const payload = await res.json() as { features?: Array<{ center?: [number, number]; place_name?: string }> };
+          const feature = payload.features?.[0];
+          if (feature?.center && isValidLocation(feature.center[1], feature.center[0])) {
+            return { lat: feature.center[1], lng: feature.center[0], placeName: cleanName };
+          }
+        }
+      } catch {
+        // try next candidate or fall back
+      }
+    }
+  }
+
+  // 4. OpenStreetMap Nominatim Fallback
   for (const q of candidateQueries) {
     try {
       const params = new URLSearchParams({
@@ -211,8 +253,6 @@ async function geocodePlaceName(resolvedUrl: string, locationHint?: { lat: numbe
         // x1,y1,x2,y2 -> left,top,right,bottom -> lng1,lat1,lng2,lat2
         const viewbox = `${locationHint.lng - 0.5},${locationHint.lat + 0.5},${locationHint.lng + 0.5},${locationHint.lat - 0.5}`;
         params.set('viewbox', viewbox);
-        // We don't use bounded=1 because we still want fallback to global if it's completely unmatched,
-        // but viewbox alone strongly biases results.
       }
       const response = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, {
         cache: 'no-store',
@@ -247,7 +287,7 @@ async function crossCheckPlaceName(
   location: { lat: number; lng: number },
 ) {
   const rawPlaceName = extractGoogleMapsPlaceName(resolvedUrl);
-  const placeName = rawPlaceName?.replace(/^[A-Z0-9]{2,8}\+[A-Z0-9]{2,4}\s*[-–—,]?\s*/i, '').trim() || null;
+  const placeName = rawPlaceName?.replace(/\b[A-Z0-9]{2,8}\+[A-Z0-9]{2,4}\b\s*[-–—,،]?\s*/gi, '').trim() || null;
   // A bare coordinate link has no name to check against, and a name that is itself just
   // coordinates would only be comparing the extraction with itself.
   if (!placeName || /^-?\d+(\.\d+)?,\s*-?\d+(\.\d+)?$/.test(placeName)) return null;

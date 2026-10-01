@@ -40,9 +40,105 @@ export class ClipboardMapLocationError extends Error {
   }
 }
 
+export const PLUS_CODE_ALPHABET = '23456789CFGHJMPQRVWX';
+
+export function decodePlusCode(code: string): ParsedMapLocation | null {
+  const clean = code.trim().toUpperCase().replace('+', '');
+  let lat = -90;
+  let lng = -180;
+  let latRes = 20;
+  let lngRes = 20;
+  const len = Math.min(clean.length, 10);
+  for (let i = 0; i < len; i += 2) {
+    const r = PLUS_CODE_ALPHABET.indexOf(clean[i]);
+    const c = PLUS_CODE_ALPHABET.indexOf(clean[i + 1]);
+    if (r === -1 || c === -1) return null;
+    lat += r * latRes;
+    lng += c * lngRes;
+    latRes /= 20;
+    lngRes /= 20;
+  }
+  const resultLat = lat + latRes * 10;
+  const resultLng = lng + lngRes * 10;
+  return isValidLocation(resultLat, resultLng) ? { lat: resultLat, lng: resultLng } : null;
+}
+
+export function recoverNearestPlusCode(
+  shortCode: string,
+  refLat: number,
+  refLng: number,
+): ParsedMapLocation | null {
+  const clean = shortCode.trim().toUpperCase();
+  const plusIdx = clean.indexOf('+');
+  if (plusIdx === -1) return null;
+  if (plusIdx >= 8) {
+    return decodePlusCode(clean);
+  }
+  const prefixLen = 8 - plusIdx;
+  if (prefixLen !== 4 && prefixLen !== 6 && prefixLen !== 2) return null;
+
+  const step = prefixLen === 4 ? 1.0 : prefixLen === 6 ? 0.05 : 20.0;
+  let best: ParsedMapLocation | null = null;
+  let bestDist = Infinity;
+
+  for (let dLat = -1; dLat <= 1; dLat++) {
+    for (let dLng = -1; dLng <= 1; dLng++) {
+      const candLat = refLat + dLat * step;
+      const candLng = refLng + dLng * step;
+      let cLat = candLat + 90;
+      let cLng = candLng + 180;
+      let prefix = '';
+      let gLat = 20;
+      let gLng = 20;
+      for (let i = 0; i < prefixLen / 2; i++) {
+        const lDigit = Math.floor(cLat / gLat);
+        const lnDigit = Math.floor(cLng / gLng);
+        cLat -= lDigit * gLat;
+        cLng -= lnDigit * gLng;
+        if (lDigit < 0 || lDigit >= 20 || lnDigit < 0 || lnDigit >= 20) continue;
+        prefix += PLUS_CODE_ALPHABET[lDigit] + PLUS_CODE_ALPHABET[lnDigit];
+        gLat /= 20;
+        gLng /= 20;
+      }
+      if (prefix.length !== prefixLen) continue;
+      const full = prefix + clean;
+      const decoded = decodePlusCode(full);
+      if (!decoded) continue;
+      const dist = (decoded.lat - refLat) ** 2 + (decoded.lng - refLng) ** 2;
+      if (dist < bestDist) {
+        bestDist = dist;
+        best = decoded;
+      }
+    }
+  }
+  return best;
+}
+
+export function extractPlusCode(text: string): string | null {
+  const match = text.match(/\b([23456789CFGHJMPQRVWX]{4,8}\+[23456789CFGHJMPQRVWX]{2,4})\b/i);
+  return match ? match[1].toUpperCase() : null;
+}
+
+export function resolvePlusCodeLocation(
+  codeOrText: string,
+  referenceLocation?: ParsedMapLocation,
+): ParsedMapLocation | null {
+  const code = extractPlusCode(codeOrText) || codeOrText.trim().toUpperCase();
+  const plusIdx = code.indexOf('+');
+  if (plusIdx === -1) return null;
+  if (plusIdx >= 8) {
+    return decodePlusCode(code);
+  }
+  if (referenceLocation && isValidLocation(referenceLocation.lat, referenceLocation.lng)) {
+    return recoverNearestPlusCode(code, referenceLocation.lat, referenceLocation.lng);
+  }
+  return null;
+}
+
 export async function resolveClipboardMapLocation(
   rawValue: string,
   fetcher: FetchLike = fetch,
+  referenceLocation?: ParsedMapLocation,
 ): Promise<ResolvedClipboardMapLocation> {
   const openStreetMapValue = extractOpenStreetMapUrl(rawValue);
   if (openStreetMapValue && isOpenStreetMapLink(openStreetMapValue)) {
@@ -51,15 +147,24 @@ export async function resolveClipboardMapLocation(
     return { location, resolvedUrl: openStreetMapValue };
   }
 
+  // Check if rawValue contains a standalone Plus Code or Plus Code with address text
+  const plusLocation = resolvePlusCodeLocation(rawValue, referenceLocation);
+
   const clipboardValue = extractGoogleMapsUrl(rawValue);
-  if (!clipboardValue || !looksLikeGoogleMapsLocation(clipboardValue)) {
+  if (!clipboardValue || (!looksLikeGoogleMapsLocation(clipboardValue) && !plusLocation)) {
     throw new ClipboardMapLocationError('INVALID_MAPS_LINK');
   }
 
-  const directLocation = parseGoogleMapsLocation(clipboardValue);
+  const directLocation = plusLocation || parseGoogleMapsLocation(clipboardValue, referenceLocation);
+  const queryParams = new URLSearchParams({ url: clipboardValue });
+  if (referenceLocation && isValidLocation(referenceLocation.lat, referenceLocation.lng)) {
+    queryParams.set('lat', String(referenceLocation.lat));
+    queryParams.set('lng', String(referenceLocation.lng));
+  }
+
   let response: Response;
   try {
-    response = await fetcher(`/api/maps/resolve?url=${encodeURIComponent(clipboardValue)}`, {
+    response = await fetcher(`/api/maps/resolve?${queryParams.toString()}`, {
       headers: { Accept: 'application/json' },
     });
   } catch {
@@ -89,7 +194,7 @@ export async function resolveClipboardMapLocation(
   const lng = Number(payload.location?.lng);
   const location = isValidLocation(lat, lng)
     ? { lat, lng }
-    : parseGoogleMapsLocation(resolvedUrl);
+    : directLocation || parseGoogleMapsLocation(resolvedUrl, referenceLocation);
 
   if (!location) {
     throw new ClipboardMapLocationError('COORDINATES_NOT_FOUND');
@@ -103,7 +208,10 @@ export async function resolveClipboardMapLocation(
   };
 }
 
-export function parseGoogleMapsLocation(value: string): ParsedMapLocation | null {
+export function parseGoogleMapsLocation(
+  value: string,
+  referenceLocation?: ParsedMapLocation,
+): ParsedMapLocation | null {
   // Google embeds the place preview URL inside HTML with `%21`-encoded
   // exclamation markers and `%2C`-encoded commas. Decode those markers even when
   // the full HTML cannot be URI-decoded because it contains unrelated percent-encoded content.
@@ -123,7 +231,64 @@ export function parseGoogleMapsLocation(value: string): ParsedMapLocation | null
   }
 
   const isHtml = /<html|<!doctype|<body|<meta\s+/i.test(text);
+  const isDirectionsUrl = /\/maps\/dir\//i.test(text);
 
+  // If camera coordinates are present in the URL, they serve as a reference for short Plus Codes
+  const cameraMatch = text.match(/@(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/);
+  const cameraCoords = cameraMatch && isValidLocation(Number(cameraMatch[1]), Number(cameraMatch[2]))
+    ? { lat: Number(cameraMatch[1]), lng: Number(cameraMatch[2]) }
+    : null;
+  const effectiveRefLocation = referenceLocation || cameraCoords || undefined;
+
+  // Directions URLs (`/maps/dir/{origin}/{destination}/@{viewCenter}/data=!...
+  // !2m2!1d{lng}!2d{lat}!...`)
+  // Waypoints are ordered from origin to destination. The destination waypoint is the
+  // LAST `!2m2!1d{lng}!2d{lat}` marker in the data payload.
+  if (isDirectionsUrl) {
+    const allWaypoints = [...text.matchAll(/!2m2!1d(-?\d+(?:\.\d+)?)!2d(-?\d+(?:\.\d+)?)/g)];
+    if (allWaypoints.length > 0) {
+      const lastMatch = allWaypoints[allWaypoints.length - 1];
+      const lng = Number(lastMatch[1]);
+      const lat = Number(lastMatch[2]);
+      if (isValidLocation(lat, lng)) return { lat, lng };
+    }
+
+    // Check if the destination path segment in /maps/dir/{origin}/{destination}/... is coordinates or Plus Code
+    const dirMatch = text.match(/\/maps\/dir\/(.+?)(?:\/@|$)/i);
+    if (dirMatch?.[1]) {
+      const segments = dirMatch[1].split('/').filter(Boolean);
+      const lastSegment = segments[segments.length - 1];
+      if (lastSegment) {
+        // Explicit coordinates in destination segment: e.g. /maps/dir/.../26.5889,31.8137/@...
+        const coordMatch = lastSegment.match(/^(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)$/);
+        if (coordMatch) {
+          const lat = Number(coordMatch[1]);
+          const lng = Number(coordMatch[2]);
+          if (isValidLocation(lat, lng)) return { lat, lng };
+        }
+        // Plus code in destination segment: e.g. HRQ7+HGG or 7GRHHRQ7+HGG
+        const plusCode = extractPlusCode(lastSegment);
+        if (plusCode) {
+          const resolved = resolvePlusCodeLocation(plusCode, effectiveRefLocation);
+          if (resolved) return resolved;
+        }
+      }
+    }
+
+    // Plus code anywhere in the directions URL text
+    const plusCode = extractPlusCode(text);
+    if (plusCode) {
+      const resolved = resolvePlusCodeLocation(plusCode, effectiveRefLocation);
+      if (resolved) return resolved;
+    }
+
+    // CRITICAL: A directions URL uses `@lat,lng` ONLY as the map-framing viewport camera
+    // (the midpoint fitting both origin and destination on screen). Under NO circumstances
+    // should `@lat,lng` be returned as the destination of a directions trip.
+    return null;
+  }
+
+  // Non-directions URLs: canonical place markers in a /maps/place data= payload
   const patterns = [
     // `!8m2!3d{lat}!4d{lng}` — the canonical place marker in a /maps/place data= payload.
     /!8m2!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/,
@@ -141,21 +306,11 @@ export function parseGoogleMapsLocation(value: string): ParsedMapLocation | null
     if (isValidLocation(lat, lng)) return { lat, lng };
   }
 
-  // Directions URLs (`/maps/dir/{origin}/{destination}/@{viewCenter}/data=!...
-  // !2m2!1d{lng}!2d{lat}!...`) embed the actual destination pin, longitude
-  // first, inside the `data=` payload's `!2m2` marker. This must be checked
-  // before the generic `@lat,lng` pattern below, because that pattern matches
-  // the URL's map-framing viewport center (the midpoint used to fit both
-  // origin and destination on screen) rather than the destination itself —
-  // the two can be a kilometers-wide error, silently producing a route that
-  // is neither the origin-to-viewport-center distance nor the real trip.
-  const dirWaypointMatch = text.match(
-    /!2m2!1d(-?\d+(?:\.\d+)?)!2d(-?\d+(?:\.\d+)?)/,
-  );
-  if (dirWaypointMatch) {
-    const lng = Number(dirWaypointMatch[1]);
-    const lat = Number(dirWaypointMatch[2]);
-    if (isValidLocation(lat, lng)) return { lat, lng };
+  // Check Plus Code in non-directions URL
+  const placePlusCode = extractPlusCode(text);
+  if (placePlusCode) {
+    const resolved = resolvePlusCodeLocation(placePlusCode, effectiveRefLocation);
+    if (resolved) return resolved;
   }
 
   // Google place pages and short-link redirects often embed the map center as
@@ -305,8 +460,11 @@ function decodeGoogleMapsPathSegment(rawSegment: string) {
     .replace(/[\u200B-\u200F\u202A-\u202E\u2060]/g, '')
     .trim();
 
-  // Strip leading Plus Code (e.g. "XXJ5+99G ", "7CQG+25, ", "8G4P+X9-")
-  placeName = placeName.replace(/^[A-Z0-9]{2,8}\+[A-Z0-9]{2,4}\s*[-–—,]?\s*/i, '').trim();
+  // Strip Plus Code anywhere in name (e.g. "XXJ5+99G ", "7CQG+25, ", "مقابر ... HRQ7+HGG ...")
+  placeName = placeName
+    .replace(/\b[A-Z0-9]{2,8}\+[A-Z0-9]{2,4}\b\s*[-–—,،]?\s*/gi, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
 
   return placeName || null;
 }
@@ -384,7 +542,11 @@ function looksLikeGoogleMapsLocation(value: string) {
   const normalized = normalizeGoogleMapsUrl(value).toLowerCase();
   if (!normalized) return false;
 
-  return isGoogleMapsLink(normalized) || parseGoogleMapsLocation(normalized) !== null;
+  return (
+    isGoogleMapsLink(normalized) ||
+    parseGoogleMapsLocation(normalized) !== null ||
+    extractPlusCode(value) !== null
+  );
 }
 
 function extractGoogleMapsUrl(rawValue: string) {

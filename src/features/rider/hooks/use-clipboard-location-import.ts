@@ -73,6 +73,7 @@ export function useClipboardLocationImport(params: {
   setDestinationFlyToTarget: (location: RiderLocation | null) => void;
   setIsDestinationPinMoving: (moving: boolean) => void;
   setIsCaptainScanPreviewActive: (active: boolean) => void;
+  riderLocation?: RiderLocation;
 }) {
   const {
     geography,
@@ -82,6 +83,7 @@ export function useClipboardLocationImport(params: {
     setDestinationFlyToTarget,
     setIsDestinationPinMoving,
     setIsCaptainScanPreviewActive,
+    riderLocation,
   } = params;
 
   const { toast } = useToast();
@@ -103,12 +105,12 @@ export function useClipboardLocationImport(params: {
     const resolvedPlaceName = placeName || locationCopy('external_place_name');
     // Split on comma to get the primary name, but skip "Unnamed Road" or raw Plus Codes
     const rawSegments = (placeName || '')
-      .replace(/^[A-Z0-9]{2,8}\+[A-Z0-9]{2,4}\s*[-–—,]?\s*/i, '')
-      .split(',')
+      .replace(/\b[A-Z0-9]{2,8}\+[A-Z0-9]{2,4}\b\s*[-–—,،]?\s*/gi, '')
+      .split(/[,،]/)
       .map((s) => s.trim())
       .filter((s) => s && !/^unnamed\s+road/i.test(s));
-    const cleanPrimaryName = rawSegments[0] || placeName?.split(',')[0]?.trim() || null;
-    const primaryPlaceName = cleanPrimaryName?.replace(/^[A-Z0-9]{2,8}\+[A-Z0-9]{2,4}\s*[-–—,]?\s*/i, '').trim() || null;
+    const cleanPrimaryName = rawSegments[0] || placeName?.split(/[,،]/)[0]?.trim() || null;
+    const primaryPlaceName = cleanPrimaryName?.replace(/\b[A-Z0-9]{2,8}\+[A-Z0-9]{2,4}\b\s*[-–—,،]?\s*/gi, '').trim() || null;
 
     const governorate = resolvedGeography?.governorate || locationCopy('external_governorate');
     const geographicDistrict = resolvedGeography?.district || resolvedGeography?.city || resolvedPlaceName;
@@ -170,7 +172,7 @@ export function useClipboardLocationImport(params: {
         return;
       }
 
-      const result = await resolveClipboardMapLocation(clipboardText);
+      const result = await resolveClipboardMapLocation(clipboardText, fetch, riderLocation);
       applyClipboardLocation(result.resolvedUrl, result.location, result.geography);
 
     } catch (error) {

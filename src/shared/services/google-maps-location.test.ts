@@ -2,10 +2,14 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  decodePlusCode,
   extractGoogleMapsPlaceName,
+  extractPlusCode,
   isMapsLink,
   parseGoogleMapsLocation,
+  recoverNearestPlusCode,
   resolveClipboardMapLocation,
+  resolvePlusCodeLocation,
   sanitizeGoogleMapsUrl,
 } from './google-maps-location';
 
@@ -212,5 +216,50 @@ test('isMapsLink identifies Google Maps and OpenStreetMap URLs', () => {
   assert.equal(isMapsLink('https://www.google.com/maps/place/test'), true);
   assert.equal(isMapsLink('https://www.openstreetmap.org/#map=16/30.04/30.99'), true);
   assert.equal(isMapsLink('Cairo Festival City'), false);
+});
+
+test('prefers the destination waypoint over origin when directions URL has multiple waypoints in data', () => {
+  // Two waypoints: Origin at (26.556, 31.695) and Destination at (26.58894, 31.81375).
+  // The parser must pick the destination (last waypoint), not the origin.
+  const location = parseGoogleMapsLocation(
+    'https://www.google.com/maps/dir/Origin/Destination/@26.572,31.754,13z/data=!4m14!4m13!1m5!1m1!1s0x1!2m2!1d31.695!2d26.556!1m5!1m1!1s0x2!2m2!1d31.81375!2d26.58894!3e0',
+  );
+  assert.deepEqual(location, { lat: 26.58894, lng: 31.81375 });
+});
+
+test('recovers Plus Code from directions URL path instead of returning camera midpoint', () => {
+  // The exact real-world scenario from Sohag: directions from "موقعك" to "مقابر الحواويش الأثرية، HRQ7+HGG"
+  // The URL contains camera viewport @26.57247,31.75437 (framing the whole trip) and Plus Code HRQ7+HGG.
+  // Returning the camera gave 8.4 km instead of the true 13.5 km trip.
+  const location = parseGoogleMapsLocation(
+    'https://www.google.com/maps/dir/%D9%85%D9%88%D9%82%D8%B9%D9%83/%D9%85%D9%82%D8%A7%D8%A8%D8%B1+%D8%A7%D9%84%D8%AD%D9%88%D8%A7%D9%88%D9%8A%D8%B4+%D8%A7%D9%84%D8%A3%D8%AB%D8%B1%D9%8A%D8%A9%D8%8C+HRQ7%2BHGG%D8%8C+%D8%B7%D8%B1%D9%8A%D9%82+%D8%A7%D9%84%D8%AC%D9%8A%D8%B4%D8%8C+%D8%B3%D9%88%D9%87%D8%A7%D8%AC/@26.57247,31.75437,13z',
+  );
+  assert.ok(location);
+  // Must match the actual tomb location (~26.5889, 31.8138), NOT the camera center (26.57247, 31.75437)
+  assert.ok(Math.abs(location.lat - 26.5889) < 0.001);
+  assert.ok(Math.abs(location.lng - 31.8138) < 0.001);
+});
+
+test('refuses to return camera center for directions URL without waypoints or plus code', () => {
+  // A directions URL with only place names and no data= coordinates:
+  // Must return null so the resolver can geocode the destination, NEVER the camera midpoint.
+  const location = parseGoogleMapsLocation(
+    'https://www.google.com/maps/dir/%D9%85%D9%88%D9%82%D8%B9%D9%83/%D9%85%D9%82%D8%A7%D8%A8%D8%B1+%D8%A7%D9%84%D8%AD%D9%88%D8%A7%D9%88%D9%8A%D8%B4/@26.57247,31.75437,13z',
+  );
+  assert.equal(location, null);
+});
+
+test('decodes and recovers full and short Plus Codes accurately', () => {
+  // Full code
+  const full = decodePlusCode('7GRHHRQ7+HGG');
+  assert.ok(full);
+  assert.ok(Math.abs(full.lat - 26.5889) < 0.001);
+  assert.ok(Math.abs(full.lng - 31.8138) < 0.001);
+
+  // Short code recovered with nearby reference point
+  const short = recoverNearestPlusCode('HRQ7+HGG', 26.56, 31.70);
+  assert.ok(short);
+  assert.ok(Math.abs(short.lat - 26.5889) < 0.001);
+  assert.ok(Math.abs(short.lng - 31.8138) < 0.001);
 });
 
