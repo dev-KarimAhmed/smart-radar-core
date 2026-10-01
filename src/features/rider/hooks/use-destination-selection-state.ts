@@ -7,7 +7,7 @@ import { useDestinationMapPicker } from './use-destination-map-picker';
 import { useClipboardLocationImport } from './use-clipboard-location-import';
 import { useDestinationSelectionHandlers } from './use-destination-selection-handlers';
 import { usePinnedPlaceLabel } from './use-pinned-place-label';
-import type { RiderLocation } from '../components/rider-map';
+import type { RiderLocation, RiderLocationStatus } from '../components/rider-map';
 
 interface RiderProfileLike {
   countryId?: number;
@@ -29,11 +29,45 @@ export function useDestinationSelectionState(params: {
   language: AppLanguage;
   countryConfig: CountryNameConfig | null;
   riderLocation: RiderLocation;
+  riderLocationStatus?: RiderLocationStatus;
 }) {
-  const { user, language, countryConfig, riderLocation } = params;
+  const { user, language, countryConfig, riderLocation, riderLocationStatus } = params;
 
   const pin = useDestinationPin();
   const geography = useDestinationGeographyData(user, pin.destinationPinLocation);
+
+  const hasUserMovedPinRef = React.useRef(false);
+
+  // Sync destination pin to rider's position initially, and auto-update when live GPS locks in
+  React.useEffect(() => {
+    if (hasUserMovedPinRef.current) return;
+    if (
+      riderLocation &&
+      Number.isFinite(riderLocation.lat) &&
+      Number.isFinite(riderLocation.lng) &&
+      (riderLocation.lat !== 0 || riderLocation.lng !== 0)
+    ) {
+      if (riderLocationStatus === 'live' || !pin.destinationPinLocation) {
+        pin.setDestinationPinLocation(riderLocation);
+      }
+    }
+  }, [pin, riderLocation, riderLocationStatus]);
+
+  const handleDestinationPinChange = React.useCallback((location: RiderLocation) => {
+    hasUserMovedPinRef.current = true;
+    pin.handleDestinationPinChange(location);
+  }, [pin]);
+
+  const resetPin = React.useCallback(() => {
+    hasUserMovedPinRef.current = false;
+    pin.reset();
+  }, [pin]);
+
+  const wrappedPin = React.useMemo(() => ({
+    ...pin,
+    handleDestinationPinChange,
+    reset: resetPin,
+  }), [pin, handleDestinationPinChange, resetPin]);
 
   // Recenter the pin to its anchor only when an external location is imported (google:*),
   // never on initial mount so a distant district is never preselected as a destination.
@@ -45,19 +79,6 @@ export function useDestinationSelectionState(params: {
     pin.setIsDestinationPinMoving(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [geography.selectedDistrict?.anchor, geography.selectedGovernorateId]);
-
-  // When opening destination selection, initialize the pin to the rider's live position
-  React.useEffect(() => {
-    if (
-      !pin.destinationPinLocation &&
-      riderLocation &&
-      Number.isFinite(riderLocation.lat) &&
-      Number.isFinite(riderLocation.lng) &&
-      (riderLocation.lat !== 0 || riderLocation.lng !== 0)
-    ) {
-      pin.setDestinationPinLocation(riderLocation);
-    }
-  }, [pin, riderLocation]);
 
   const [isCaptainScanPreviewActive, setIsCaptainScanPreviewActive] = React.useState(false);
   const profileFallbackLocation = geography.profileDistrict?.anchor || geography.selectedDistrict?.anchor || riderLocation;
@@ -73,13 +94,18 @@ export function useDestinationSelectionState(params: {
    * component fixed only what the rider saw and left the captain reading the district.
    */
   const districtAnchor = geography.selectedDistrict?.anchor;
+  const isMapPoint = Boolean(
+    !geography.draftDestinationId
+    || geography.selectedDistrict?.id.startsWith('map:')
+  );
   const hasMovedPinOffDistrict = Boolean(
     selectedDestinationCoords
-    && (!districtAnchor
+    && (isMapPoint
+      || !districtAnchor
       || Math.abs(selectedDestinationCoords.lat - districtAnchor.lat) > 0.0005
       || Math.abs(selectedDestinationCoords.lng - districtAnchor.lng) > 0.0005),
   );
-  const { label: pinnedPlaceLabel } = usePinnedPlaceLabel(
+  const { label: pinnedPlaceLabel, isResolving: isResolvingPinnedPlace } = usePinnedPlaceLabel(
     selectedDestinationCoords,
     language,
     hasMovedPinOffDistrict && !geography.externalLocationContext,
@@ -124,7 +150,7 @@ export function useDestinationSelectionState(params: {
   });
 
   return {
-    pin,
+    pin: wrappedPin,
     geography,
     search,
     mapPicker,
@@ -135,5 +161,6 @@ export function useDestinationSelectionState(params: {
     profileFallbackLocation,
     selectedDestinationCoords,
     pinnedPlaceLabel,
+    isResolvingPinnedPlace,
   };
 }

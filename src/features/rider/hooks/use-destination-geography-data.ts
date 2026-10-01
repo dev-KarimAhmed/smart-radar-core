@@ -57,11 +57,11 @@ export function useDestinationGeographyData(
       return {
         id: pinId,
         numericId: 0,
-        governorateId: selectedGovernorateId || 'map',
-        governorateAr: externalLocationContext?.governorate || selectedGovernorate?.nameAr || 'الموقع المحدد',
-        governorateEn: externalLocationContext?.governorate || selectedGovernorate?.nameEn || 'Selected Location',
-        districtAr: externalLocationContext?.district || externalLocationContext?.placeName || 'نقطة على الخريطة',
-        districtEn: externalLocationContext?.district || externalLocationContext?.placeName || 'Map Point',
+        governorateId: externalLocationContext?.governorate ? selectedGovernorateId || 'map' : 'map',
+        governorateAr: externalLocationContext?.governorate || '',
+        governorateEn: externalLocationContext?.governorate || '',
+        districtAr: externalLocationContext?.district || externalLocationContext?.placeName || 'موقع محدد على الخريطة',
+        districtEn: externalLocationContext?.district || externalLocationContext?.placeName || 'Pinned Map Location',
         anchor: destinationPinLocation,
         tortuosityFactor: 1.3,
       };

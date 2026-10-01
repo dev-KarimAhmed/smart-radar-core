@@ -131,12 +131,27 @@ export function buildRiderDestination(
     ? localFareQuote
     : { ...localFareQuote, estimatedRoadDistanceKm: roadDistanceKm };
 
+  let finalDistrict = destination.districtAr;
+  let finalGovernorate = destination.governorateAr;
+  if (pinnedPlaceLabel && destination.id.startsWith('map:')) {
+    const parts = pinnedPlaceLabel.split(' - ');
+    if (parts.length > 1) {
+      finalDistrict = parts[0].trim();
+      finalGovernorate = parts.slice(1).join(' - ').trim();
+    } else {
+      finalDistrict = pinnedPlaceLabel.trim();
+      finalGovernorate = '';
+    }
+  }
+
+  const fallbackLabel = [destination.districtAr, destination.governorateAr].filter(Boolean).join(' - ');
+
   return {
     id: destination.id,
     // The pinned place wins: it names the point the captain is actually driving to.
-    label: pinnedPlaceLabel?.trim() || `${destination.districtAr} - ${destination.governorateAr}`,
-    governorate: destination.governorateAr,
-    district: destination.districtAr,
+    label: pinnedPlaceLabel?.trim() || fallbackLabel || 'موقع محدد على الخريطة',
+    governorate: finalGovernorate,
+    district: finalDistrict,
     coords: preciseDestination,
     tortuosityFactor: destination.tortuosityFactor,
     fareQuote,

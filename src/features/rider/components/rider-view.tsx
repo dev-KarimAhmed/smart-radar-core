@@ -51,6 +51,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
     language,
     countryConfig,
     riderLocation: geolocation.riderLocation,
+    riderLocationStatus: geolocation.locationStatus,
   });
   const { pin, geography, search, mapPicker, clipboard, selectionHandlers } = destination;
 

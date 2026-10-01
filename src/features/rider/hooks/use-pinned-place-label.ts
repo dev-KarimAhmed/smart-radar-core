@@ -48,14 +48,13 @@ export function usePinnedPlaceLabel(
         const data = await reverseGeocodeCoordinates(Number(lat), Number(lng), language);
         const address = data.address || {};
 
-        // Narrow to wide, so the rider gets the most specific name the map knows.
-        const local = address.suburb
+        const road = address.road || '';
+        const area = address.suburb
           || address.neighbourhood
           || address.quarter
           || address.city_district
           || address.village
           || address.town
-          || address.road
           || '';
         const wide = address.city
           || address.state
@@ -63,8 +62,28 @@ export function usePinnedPlaceLabel(
           || address.governorate
           || '';
 
+        const sep = language === 'ar' ? '، ' : ', ';
+        let local = '';
+        if (road && area && road !== area) {
+          local = `${road}${sep}${area}`;
+        } else {
+          local = road || area || '';
+        }
+
+        const parts: string[] = [];
+        if (local) parts.push(local);
+        if (wide && !parts.some((p) => p.includes(wide))) {
+          parts.push(wide);
+        }
+
+        let resolvedLabel = parts.join(' - ');
+        if (!resolvedLabel && (data.displayName || data.display_name)) {
+          const raw = (data.displayName || data.display_name || '').split(',').map((s) => s.trim()).filter(Boolean);
+          resolvedLabel = raw.slice(0, 2).join(' - ');
+        }
+
         if (!active) return;
-        setLabel([local, wide].filter(Boolean).join(' - '));
+        setLabel(resolvedLabel);
       } catch {
         // A failed lookup leaves the label empty, and the caller falls back to the district
         // name. Being unable to name the pin is not a reason to block the trip.

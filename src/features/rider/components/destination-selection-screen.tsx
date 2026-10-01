@@ -117,17 +117,15 @@ export function DestinationSelectionScreen({
     !isDestinationPinMoving &&
     !isSameLocation;
   const districtLabel = geography.externalLocationContext
-    ? `${geography.externalLocationContext.district} - ${geography.externalLocationContext.governorate}`
+    ? [geography.externalLocationContext.district, geography.externalLocationContext.governorate].filter(Boolean).join(' - ')
     : geography.selectedDistrict
       ? isArabic
-        ? `${geography.selectedDistrict.districtAr} - ${geography.selectedDistrict.governorateAr}`
-        : `${geography.selectedDistrict.districtEn || geography.selectedDistrict.districtAr} - ${geography.selectedDistrict.governorateEn || geography.selectedDistrict.governorateAr}`
+        ? [geography.selectedDistrict.districtAr, geography.selectedDistrict.governorateAr].filter(Boolean).join(' - ')
+        : [geography.selectedDistrict.districtEn || geography.selectedDistrict.districtAr, geography.selectedDistrict.governorateEn || geography.selectedDistrict.governorateAr].filter(Boolean).join(' - ')
       : t('destination.notAvailable');
 
   // The pin wins when it has one: it is what the trip is actually priced and driven to.
-  const destinationLabel = isSameLocation
-    ? (isArabic ? 'موقعك الحالي (حرّك الخريطة لتحديد الوجهة)' : 'Current location (Move map to pick destination)')
-    : (pinnedPlaceLabel || districtLabel);
+  const destinationLabel = pinnedPlaceLabel || districtLabel;
 
   return (
     <div className={styles.wrapper} dir={isArabic ? 'rtl' : 'ltr'}>
