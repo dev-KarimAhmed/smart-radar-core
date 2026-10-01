@@ -248,7 +248,26 @@ export function useRiderMapState({
     });
   }, [riderLocation, showDestinationPin, mapRef]);
 
+  const hasCenteredDestinationPinRef = React.useRef(false);
+  React.useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !isMapReady) return;
 
+    if (showDestinationPin) {
+      if (!destinationFlyToTarget && !hasCenteredDestinationPinRef.current && riderLocation && (riderLocation.lat !== 0 || riderLocation.lng !== 0)) {
+        hasCenteredDestinationPinRef.current = true;
+        map.flyTo({
+          center: [riderLocation.lng, riderLocation.lat],
+          zoom: Math.max(map.getZoom(), 15),
+          duration: 600,
+          essential: true,
+        });
+        onDestinationChange?.(riderLocation);
+      }
+    } else {
+      hasCenteredDestinationPinRef.current = false;
+    }
+  }, [destinationFlyToTarget, isMapReady, mapRef, onDestinationChange, riderLocation, showDestinationPin]);
 
   React.useEffect(() => {
     const map = mapRef.current;

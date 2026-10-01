@@ -37,23 +37,17 @@ export function useDestinationSelectionState(params: {
   const geography = useDestinationGeographyData(user, pin.destinationPinLocation);
 
   const hasUserMovedPinRef = React.useRef(false);
-  const hasReceivedLiveGpsRef = React.useRef(false);
 
   // Sync destination pin to rider's position initially, and auto-update when live GPS locks in
   React.useEffect(() => {
-    if (riderLocationStatus === 'live') {
-      if (!hasReceivedLiveGpsRef.current) {
-        hasReceivedLiveGpsRef.current = true;
-        hasUserMovedPinRef.current = false;
-        pin.setDestinationPinLocation(riderLocation);
-      }
-    } else if (!hasReceivedLiveGpsRef.current && !pin.destinationPinLocation) {
-      if (
-        riderLocation &&
-        Number.isFinite(riderLocation.lat) &&
-        Number.isFinite(riderLocation.lng) &&
-        (riderLocation.lat !== 0 || riderLocation.lng !== 0)
-      ) {
+    if (hasUserMovedPinRef.current) return;
+    if (
+      riderLocation &&
+      Number.isFinite(riderLocation.lat) &&
+      Number.isFinite(riderLocation.lng) &&
+      (riderLocation.lat !== 0 || riderLocation.lng !== 0)
+    ) {
+      if (riderLocationStatus === 'live' || !pin.destinationPinLocation) {
         pin.setDestinationPinLocation(riderLocation);
       }
     }
