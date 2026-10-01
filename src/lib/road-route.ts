@@ -68,11 +68,11 @@ interface RawRoute {
   modelsCongestion: boolean;
 }
 /**
- * Sovereign Constitution V2.6-Secured (Chapter 2, Section 4):
- * OSRM routing timeout is capped at 1500ms hard ceiling. If the server does not respond
- * within 1500ms, the system immediately activates edge Haversine x 1.3 fallback.
+ * Realistic network timeout for real-world driving routers (Mapbox, OSRM, Valhalla).
+ * 1500ms was prematurely aborting Mapbox and OSRM over mobile connections,
+ * falsely tripping the circuit breaker and forcing users into crude straight-line fallback.
  */
-const ROUTE_TIMEOUT_MS = 1500;
+const ROUTE_TIMEOUT_MS = 4500;
 /**
  * One retry on top of the initial attempt. A dropped connection or a momentary rate-limit
  * from the shared free router is often gone a beat later, so a single extra try converts
@@ -83,18 +83,17 @@ const ROUTE_TIMEOUT_MS = 1500;
 const ROUTE_FETCH_ATTEMPTS = 2;
 
 /**
- * The primary router gets a 1500ms deadline and no retry.
+ * The primary router (Mapbox traffic / Valhalla) gets 4000ms deadline to return live traffic routes.
  */
-const PRIMARY_TIMEOUT_MS = 1500;
+const PRIMARY_TIMEOUT_MS = 4000;
 
 /**
  * Circuit breaker. After this many consecutive failures the provider is skipped entirely for
  * the cooldown, so a router that is simply down costs one slow request instead of one per
- * route lookup. I argued against adding this earlier on the grounds that a blocked network
- * fails fast — that was wrong: an unreachable host TIMES OUT, it does not refuse.
+ * route lookup.
  */
 const PROVIDER_FAILURE_LIMIT = 2;
-const PROVIDER_COOLDOWN_MS = 120_000;
+const PROVIDER_COOLDOWN_MS = 60_000;
 const providerFailures = new Map<RouteProvider, { count: number; until: number }>();
 
 function isProviderCoolingDown(provider: RouteProvider) {
