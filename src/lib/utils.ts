@@ -36,3 +36,12 @@ export function getAuthRedirectUrl(path: string = '/reset-password'): string {
   return `${origin}${cleanPath}`;
 }
 
+export function formatTelUri(phone: string | null | undefined): string {
+  if (!phone) return 'tel:';
+  const digits = phone.replace(/[^\d+]/g, '');
+  if (!digits) return 'tel:';
+  if (digits.startsWith('00')) return `tel:+${digits.substring(2)}`;
+  if (digits.startsWith('07')) return `tel:+962${digits.substring(1)}`;
+  if (!digits.startsWith('+')) return `tel:+${digits}`;
+  return `tel:${digits}`;
+}

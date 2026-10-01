@@ -20,9 +20,6 @@ export function useProfileState() {
   const [governorates, setGovernorates] = useState<GovernorateRow[]>([]);
   const [districts, setDistricts] = useState<DistrictRow[]>([]);
   const [favoriteCount, setFavoriteCount] = useState(0);
-  const [blockedCaptains, setBlockedCaptains] = useState<{ id: string; name: string; phone: string; rating: number; serialId: string }[]>([]);
-  const [confirmingUnblockId, setConfirmingUnblockId] = useState<string | null>(null);
-  const [isLoadingBlocks, setIsLoadingBlocks] = useState(false);
 
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
@@ -52,77 +49,7 @@ export function useProfileState() {
 
   const isLocationLoading = isLoadingCountries || isLoadingGovernorates || isLoadingDistricts;
 
-  const fetchBlockedCaptains = useCallback(async () => {
-    if (!user?.uid) return;
-    setIsLoadingBlocks(true);
-    try {
-      const { data: blocks, error: blocksError } = await supabase
-        .from('user_blocks')
-        .select('blocked_id')
-        .eq('blocker_id', user.uid);
 
-      if (blocksError) throw blocksError;
-
-      const blockedIds = (blocks || []).map((b: any) => b.blocked_id);
-      if (blockedIds.length === 0) {
-        setBlockedCaptains([]);
-        return;
-      }
-
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, full_name, phone, rating, serial_id')
-        .in('id', blockedIds);
-
-      if (profilesError) throw profilesError;
-
-      const formatted = (profiles || []).map((prof: any) => ({
-        id: prof.id,
-        name: prof.full_name || t('blockedCaptain'),
-        phone: prof.phone || '',
-        rating: Number(prof.rating || 5),
-        serialId: prof.serial_id || '',
-      }));
-      setBlockedCaptains(formatted);
-    } catch (err) {
-      console.error('[Profile] Fetch blocked captains error:', err);
-    } finally {
-      setIsLoadingBlocks(false);
-    }
-  }, [user?.uid, t]);
-
-  const handleUnblockCaptain = async (captainId: string) => {
-    if (!user?.uid) return;
-    try {
-      const { error } = await supabase
-        .from('user_blocks')
-        .delete()
-        .eq('blocker_id', user.uid)
-        .eq('blocked_id', captainId);
-
-      if (error) throw error;
-
-      toast({
-        title: t('unblockSuccessTitle'),
-        description: t('unblockSuccessDesc'),
-      });
-
-      fetchBlockedCaptains();
-    } catch (err: any) {
-      console.error('[Profile] Unblock captain error:', err);
-      toast({
-        variant: 'destructive',
-        title: t('unblockErrorTitle'),
-        description: err.message || t('unexpectedError'),
-      });
-    }
-  };
-
-  useEffect(() => {
-    if (user?.uid && !isCaptain) {
-      fetchBlockedCaptains();
-    }
-  }, [user?.uid, isCaptain, fetchBlockedCaptains]);
 
   useEffect(() => {
     let active = true;
@@ -362,10 +289,6 @@ export function useProfileState() {
     governorates,
     districts,
     favoriteCount,
-    blockedCaptains,
-    confirmingUnblockId,
-    setConfirmingUnblockId,
-    isLoadingBlocks,
     fullName,
     setFullName,
     phone,
@@ -389,7 +312,6 @@ export function useProfileState() {
     selectedDistrict,
     handleCountryChange,
     handleGovernorateChange,
-    handleSubmit,
-    handleUnblockCaptain
+    handleSubmit
   };
 }

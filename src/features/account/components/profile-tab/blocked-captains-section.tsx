@@ -1,39 +1,41 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, ShieldAlert, ShieldCheck, UserX, Star, Phone, Ban } from 'lucide-react';
+import { Loader2, ShieldAlert, ShieldCheck, UserX, Star, Phone, Ban, ChevronDown, ChevronUp } from 'lucide-react';
+import { useBlockedCaptains } from '../../hooks/use-blocked-captains';
 
 interface BlockedCaptainsSectionProps {
   isArabic: boolean;
-  t: any;
-  isLoadingBlocks: boolean;
-  blockedCaptains: {
-    id: string;
-    name: string;
-    phone: string;
-    rating: number;
-    serialId: string;
-  }[];
-  confirmingUnblockId: string | null;
-  setConfirmingUnblockId: (id: string | null) => void;
-  handleUnblockCaptain: (id: string) => void;
 }
 
-export function BlockedCaptainsSection({
-  isArabic,
-  t,
-  isLoadingBlocks,
-  blockedCaptains,
-  confirmingUnblockId,
-  setConfirmingUnblockId,
-  handleUnblockCaptain,
-}: BlockedCaptainsSectionProps) {
+export function BlockedCaptainsSection({ isArabic }: BlockedCaptainsSectionProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const {
+    t,
+    isLoadingBlocks,
+    blockedCaptains,
+    confirmingUnblockId,
+    setConfirmingUnblockId,
+    handleUnblockCaptain,
+    refreshBlockedCaptains
+  } = useBlockedCaptains();
+
+  const handleToggle = () => {
+    if (!isExpanded) {
+      refreshBlockedCaptains();
+    }
+    setIsExpanded(!isExpanded);
+  };
+
   return (
     <Card className="relative overflow-hidden rounded-3xl border border-rose-500/20 bg-[#0B0F19]/90 shadow-2xl backdrop-blur-xl w-full">
       {/* Top glowing accent gradient */}
       <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-rose-500/50 to-transparent" />
 
-      <CardHeader className="p-5 pb-3">
+      <CardHeader 
+        className="p-5 pb-3 cursor-pointer select-none" 
+        onClick={handleToggle}
+      >
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-rose-500/30 bg-rose-500/10 text-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.15)]">
@@ -49,15 +51,20 @@ export function BlockedCaptainsSection({
             </div>
           </div>
 
-          <span className="shrink-0 rounded-full border border-rose-500/30 bg-rose-500/10 px-3 py-1 text-xs font-bold text-rose-300 flex items-center gap-1.5 shadow-sm">
-            <Ban className="h-3 w-3 text-rose-400" />
-            <span>{blockedCaptains.length}</span>
-            <span>{isArabic ? 'كابتن' : 'captains'}</span>
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="shrink-0 rounded-full border border-rose-500/30 bg-rose-500/10 px-3 py-1 text-xs font-bold text-rose-300 flex items-center gap-1.5 shadow-sm">
+              <Ban className="h-3 w-3 text-rose-400" />
+              <span>{blockedCaptains.length}</span>
+            </span>
+            <div className="text-rose-400/70">
+              {isExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+            </div>
+          </div>
         </div>
       </CardHeader>
 
-      <CardContent className="p-5 pt-2">
+      {isExpanded && (
+        <CardContent className="p-5 pt-2">
         {isLoadingBlocks ? (
           <div className="flex items-center justify-center py-8 gap-2 text-slate-400">
             <Loader2 className="h-5 w-5 animate-spin text-rose-400" />
@@ -157,6 +164,7 @@ export function BlockedCaptainsSection({
           </div>
         )}
       </CardContent>
+      )}
     </Card>
   );
 }

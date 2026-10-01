@@ -3,7 +3,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Heart, MessageCircle, Phone, Trash2, ShieldCheck, HelpCircle, Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { cn } from '@/lib/utils';
+import { cn, formatTelUri } from '@/lib/utils';
+import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
+import { useToast } from '@/hooks/use-toast';
+import Image from 'next/image';
+
+const USER_VAULT_LIFETIME_MS = 30 * 24 * 60 * 60 * 1000;
 import { SAMPLE_VAULT_ADS } from '@/features/ads/services/sample-vault-ads';
 const styles = {
   style112_1: "w-full max-w-4xl mx-auto px-4 pb-12 font-sans",
@@ -51,8 +56,9 @@ const styles = {
 } as const;
 
 
-export function VaultTab() {
- const isArabic = document.documentElement.dir === 'rtl';
+ export function VaultTab() {
+ const { isArabic } = useDashboardLanguage();
+ const { toast } = useToast();
  const tAuto = useTranslations('auto');
  const [heartedAdIds, setHeartedAdIds] = useState<string[]>([]);
  const [vaultDetails, setVaultDetails] = useState<Record<string, any>>({});
@@ -73,7 +79,7 @@ export function VaultTab() {
  const ad = detailsDict[id];
  if (ad) {
  const savedTime = ad.savedAtTimestamp || now;
- const isExpired = now - savedTime > 20 * 24 * 60 * 60 * 1000;
+ const isExpired = now - savedTime > USER_VAULT_LIFETIME_MS;
  if (isExpired) {
  delete detailsDict[id];
  changed = true;
@@ -137,7 +143,7 @@ export function VaultTab() {
  if (typeof navigator !== 'undefined' && navigator.vibrate) {
  navigator.vibrate([40, 40]);
  }
- alert(tAuto('vaultTab_extendAlert'));
+ toast({ title: tAuto('vaultTab_extendAlert') });
  }
  };
 
@@ -149,10 +155,11 @@ export function VaultTab() {
  tAuto('vaultTab_whatsappMessage', { title: title || '' })
  );
  url = `https://wa.me/${cleanNum}?text=${text}`;
+ window.location.href = url;
  } else {
- url = `tel:${cleanNum}`;
+ url = formatTelUri(contactNumber);
+ window.location.href = url;
  }
- window.open(url, '_blank');
  };
 
  const seedSampleAds = () => {
@@ -240,7 +247,7 @@ export function VaultTab() {
  {savedAds.map((ad: any) => {
  const savedTime = ad.savedAtTimestamp || Date.now();
  const daysLeft = Math.ceil(
- (savedTime + 20 * 24 * 60 * 60 * 1000 - Date.now()) / (24 * 60 * 60 * 1000)
+ (savedTime + USER_VAULT_LIFETIME_MS - Date.now()) / (24 * 60 * 60 * 1000)
  );
 
  return (
@@ -251,11 +258,12 @@ export function VaultTab() {
  {/* Visual Cover row */}
  <div className={styles.style156_21}>
  <div className={styles.style157_22}>
- <img
+ <Image
  src={ad.content?.posterUrl || ad.bannerUrl || 'https://via.placeholder.com/150'}
  alt={ad.content?.title || ad.title}
  className={styles.style161_23}
- referrerPolicy="no-referrer"
+ width={64}
+ height={64}
  />
  </div>
  <div className={cn(styles.style165_24, isArabic ? styles.style165_25 : styles.style165_26)}>

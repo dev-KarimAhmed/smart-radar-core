@@ -3,6 +3,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Button } from '@/components/ui/button';
 import { Sparkles, Phone, Trash2, Heart, Car, UserCheck } from 'lucide-react';
 import { useTranslations } from "next-intl";
+import { formatTelUri } from '@/lib/utils';
 
 interface HistoryFavoriteCaptainsProps {
   favoriteCaptains: any[];
@@ -137,7 +138,7 @@ export function HistoryFavoriteCaptains({
                   {/* Left side: Action buttons */}
                   <div className="flex items-center gap-2 shrink-0">
                     <a
-                      href={`tel:${captain.captainPhone}`}
+                      href={formatTelUri(captain.captainPhone)}
                       className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-xl bg-gradient-to-r from-[#14B8A6] to-[#0ea5e9] text-slate-950 font-black text-xs hover:brightness-110 active:scale-[0.98] transition-all shadow-md shadow-teal-500/15"
                       style={{ textDecoration: 'none' }}
                     >

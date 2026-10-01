@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { AlertCircle, FileText, Heart, Phone, Car } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, formatTelUri } from '@/lib/utils';
 import { formatHistoryMoney, type HistoricalTrip } from './history-shared';
 import { HistorySkeleton } from './history-skeleton';
 
@@ -193,7 +193,7 @@ export function HistoryRiderTrips({
 
                   <div className="pt-1">
                     <a
-                      href={`tel:${trip.captainPhone}`}
+                      href={formatTelUri(trip.captainPhone)}
                       className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-xl bg-gradient-to-r from-[#14B8A6] to-[#0ea5e9] text-slate-950 font-black text-xs hover:brightness-110 active:scale-[0.98] transition-all shadow-md shadow-teal-500/15"
                       style={{ textDecoration: 'none' }}
                     >

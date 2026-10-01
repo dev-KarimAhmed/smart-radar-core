@@ -62,9 +62,6 @@ export function useBlockedCaptains() {
     }
   }, [user?.uid, t]);
 
-  useEffect(() => {
-    void fetchBlockedCaptains();
-  }, [fetchBlockedCaptains]);
 
   const handleUnblockCaptain = async (captainId: string) => {
     if (!user?.uid) return;
