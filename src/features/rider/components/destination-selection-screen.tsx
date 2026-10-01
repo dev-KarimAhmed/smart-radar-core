@@ -104,10 +104,8 @@ export function DestinationSelectionScreen({
   // "same location". SAME_LOCATION_THRESHOLD_KM only catches genuinely
   // unmoved selections, not district-anchor/GPS coincidences.
   const straightDistanceKm = selectedDraftDestination?.fareQuote?.straightDistanceKm;
+  const isSameLocation = straightDistanceKm !== undefined && straightDistanceKm < SAME_LOCATION_THRESHOLD_KM;
   const estimatedDistanceKm = currentRouteEstimate?.distanceKm ?? null;
-  const isSameLocation =
-    (straightDistanceKm !== undefined && straightDistanceKm < SAME_LOCATION_THRESHOLD_KM) ||
-    (estimatedDistanceKm !== null && estimatedDistanceKm < SAME_LOCATION_THRESHOLD_KM);
   const estimatedDurationMinutes = currentRouteEstimate?.durationMinutes ?? null;
   const hasImportedLocation = clipboard.externalLocationUrl.length > 0;
   const destinationReady =

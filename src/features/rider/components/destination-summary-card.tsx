@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { CheckCircle2, Clock, Loader2, Route } from 'lucide-react';
-import { useTranslations, useLocale } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { formatDurationLabel } from '../services/rider-view-format';
 import type { RiderLocation } from './rider-map';
@@ -49,7 +49,6 @@ export interface DestinationSummaryCardProps {
   estimatedDurationMinutes: number | null;
   estimatedDistanceKm: number | null;
   nearbyCaptainCount?: number;
-  isSameLocation?: boolean;
 }
 
 export function DestinationSummaryCard({
@@ -63,12 +62,9 @@ export function DestinationSummaryCard({
   isRouteEstimateLoading,
   estimatedDurationMinutes,
   estimatedDistanceKm,
-  isSameLocation,
 }: DestinationSummaryCardProps) {
   const locationCopy = useTranslations('location');
   const t = useTranslations('riderView');
-  const locale = useLocale();
-  const isArabic = locale === 'ar';
 
   const durationLabels = React.useMemo(() => ({
     minutes: (count: number) => t('duration.minutes', { count }),
@@ -113,9 +109,7 @@ export function DestinationSummaryCard({
                   : t('destination.notAvailable')}
             </strong>
             <span className={styles.metricHelper}>
-              {isSameLocation
-                ? (isArabic ? 'حرّك الدبوس لتحديد المسافة' : 'Move pin to set distance')
-                : locationCopy('helper_without_traffic')}
+              {locationCopy('helper_without_traffic')}
             </span>
           </div>
           <div className={styles.metricCard}>
