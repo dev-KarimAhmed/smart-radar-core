@@ -48,10 +48,26 @@ export function useDestinationGeographyData(
   });
 
   const selectedDistrict = React.useMemo(() => {
-    if (!draftDestinationId) return null;
-    const direct = destinationDistricts.find((district) => district.id === draftDestinationId);
-    return direct || null;
-  }, [destinationDistricts, draftDestinationId]);
+    if (draftDestinationId) {
+      const direct = destinationDistricts.find((district) => district.id === draftDestinationId);
+      if (direct) return direct;
+    }
+    if (destinationPinLocation && destinationPinLocation.lat !== 0 && destinationPinLocation.lng !== 0) {
+      const pinId = `map:${destinationPinLocation.lat.toFixed(5)}-${destinationPinLocation.lng.toFixed(5)}`;
+      return {
+        id: pinId,
+        numericId: 0,
+        governorateId: selectedGovernorateId || 'map',
+        governorateAr: externalLocationContext?.governorate || selectedGovernorate?.nameAr || 'الموقع المحدد',
+        governorateEn: externalLocationContext?.governorate || selectedGovernorate?.nameEn || 'Selected Location',
+        districtAr: externalLocationContext?.district || externalLocationContext?.placeName || 'نقطة على الخريطة',
+        districtEn: externalLocationContext?.district || externalLocationContext?.placeName || 'Map Point',
+        anchor: destinationPinLocation,
+        tortuosityFactor: 1.3,
+      };
+    }
+    return null;
+  }, [destinationDistricts, draftDestinationId, destinationPinLocation, externalLocationContext, selectedGovernorate, selectedGovernorateId]);
 
   const profileDistrict = React.useMemo(() => {
     const profileDistrictId = String(user?.district || '');

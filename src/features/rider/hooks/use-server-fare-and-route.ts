@@ -84,22 +84,12 @@ export function useServerFareAndRoute(params: {
     let active = true;
     const countryId = Number(activeCountryId);
 
-    if (!selectedDistrict) {
-      setServerFareState({
-        key: fareRequestKey,
-        fare: null,
-        isLoading: false,
-        error: destinationDataError || t('destination.noAreaSelectedError'),
-      });
-      return;
-    }
-
     if (!selectedDestinationCoords) {
       setServerFareState({
         key: fareRequestKey,
         fare: null,
         isLoading: false,
-        error: t('destination.noCoordinatesError'),
+        error: null,
       });
       return;
     }
