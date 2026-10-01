@@ -3,6 +3,7 @@
 import React from 'react';
 import {
   Clock,
+  Compass,
   Loader2,
   Minus,
   Navigation,
@@ -18,6 +19,11 @@ import { DestinationSummaryCard } from './destination-summary-card';
 
 const styles = {
   dataError: "rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs leading-relaxed text-rose-200",
+  sameLocationBanner: "flex items-start gap-2.5 rounded-xl border border-amber-400/30 bg-amber-400/10 p-3 shadow-lg shadow-black/20",
+  sameLocationIconWrap: "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-amber-400/20 text-amber-300",
+  sameLocationIcon: "h-4 w-4",
+  sameLocationTitle: "text-xs font-black text-amber-300",
+  sameLocationText: "mt-0.5 text-[11px] leading-relaxed text-amber-200/80",
   scanRow: "grid grid-cols-12 gap-2.5",
   scanCard: "col-span-8 flex items-center gap-2.5 rounded-xl border border-[#14B8A6]/25 bg-[#0B1220] p-3 shadow-lg shadow-black/15 min-w-0",
   scanIconWrapper: "relative flex h-9 w-9 shrink-0 items-center justify-center",
@@ -144,7 +150,27 @@ export function DestinationTripSummary({
         estimatedDurationMinutes={estimatedDurationMinutes}
         estimatedDistanceKm={estimatedDistanceKm}
         nearbyCaptainCount={nearbyCaptainCount}
+        isSameLocation={isSameLocation}
       />
+
+      {/* تنبيه لطيف عند اختيار نفس موقع الانطلاق كوجهة */}
+      {isSameLocation && (
+        <div className={styles.sameLocationBanner} role="alert">
+          <div className={styles.sameLocationIconWrap}>
+            <Compass className={styles.sameLocationIcon} />
+          </div>
+          <div className="min-w-0 flex-1 text-start">
+            <p className={styles.sameLocationTitle}>
+              {isArabic ? 'وجهتك هي نفس موقع تواجدك الحالي' : 'Destination is your current location'}
+            </p>
+            <p className={styles.sameLocationText}>
+              {isArabic
+                ? 'لا يمكن طلب رحلة لنفس المكان. حرّك الدبوس على الخريطة لتحديد الوجهة التي تود الذهاب إليها 📍'
+                : 'You cannot request a ride to your pickup spot. Please move the pin on the map to pick your destination 📍'}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* 2. جاري البحث عن سائقين + عدد السائقين المتاحين - SIDE BY SIDE */}
       {isCaptainScanPreviewActive ? (
@@ -246,7 +272,7 @@ export function DestinationTripSummary({
           {isSendingRideRequest
             ? t('request.sending')
             : isSameLocation
-            ? t('panel.whereTo')
+            ? (isArabic ? 'حرّك الخريطة لتحديد الوجهة' : 'Move map to pick destination')
             : isPassengerCountZero
             ? t('request.selectPassengersFirst')
             : t('request.now')}

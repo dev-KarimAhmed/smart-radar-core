@@ -13,17 +13,17 @@ import { NavButton } from './rider-view-primitives';
 const RiderMap = dynamic(() => import('./rider-map').then((m) => m.RiderMap), { ssr: false });
 
 const styles = {
-  shell: "relative h-full min-h-0 w-full overflow-hidden text-white lg:h-screen lg:min-h-screen lg:overflow-hidden lg:bg-transparent",
+  shell: "relative h-[calc(100vh-120px)] w-full overflow-hidden text-white lg:h-screen lg:min-h-screen lg:overflow-hidden lg:bg-transparent",
   shellInner: "relative h-full w-full lg:block lg:max-w-none",
-  mapLayer: "absolute inset-0 z-0",
+  mapLayer: "hidden lg:block lg:absolute lg:inset-0 lg:z-0",
   map: "h-full w-full lg:rounded-none lg:border-0",
-  aside: "absolute bottom-0 start-0 end-0 z-10 w-full max-h-[88%] overflow-hidden flex flex-col rounded-t-[32px] rounded-b-none border-t border-[#14B8A6]/20 bg-[#060A14] shadow-[0_-12px_35px_rgba(0,0,0,0.7)] lg:absolute lg:bottom-6 lg:start-auto lg:end-6 lg:top-6 lg:z-40 lg:w-[420px] lg:rounded-[28px] lg:border lg:border-[#14B8A6]/20 lg:bg-[#060A14] lg:shadow-[0_30px_100px_rgba(0,0,0,0.6)] lg:max-h-none lg:rounded-b-[28px] lg:overflow-hidden",
+  aside: "absolute bottom-0 start-0 end-0 z-10 w-full max-h-full overflow-hidden flex flex-col rounded-t-[32px] rounded-b-none border-t border-[#14B8A6]/20 bg-[#060A14] shadow-[0_-12px_35px_rgba(0,0,0,0.7)] lg:absolute lg:bottom-6 lg:start-auto lg:end-6 lg:top-6 lg:z-40 lg:w-[420px] lg:rounded-[28px] lg:border lg:border-[#14B8A6]/20 lg:bg-[#060A14] lg:shadow-[0_30px_100px_rgba(0,0,0,0.6)] lg:max-h-none lg:rounded-b-[28px] lg:overflow-hidden",
   topBar: "relative z-50 flex items-center justify-between rounded-t-[32px] border-b border-[#14B8A6]/15 bg-[#04070F] px-4 py-3 lg:rounded-t-[28px] lg:px-5",
   topBarSpacer: "w-9",
   dragHandle: "w-12 h-1.5 bg-[#14B8A6]/25 rounded-full transition-colors",
   closeButton: "h-9 w-9 flex items-center justify-center rounded-full bg-[#0B1322] border border-[#14B8A6]/30 text-[#14F5D5] shadow-md shadow-black/40 active:scale-95 cursor-pointer hover:bg-[#14B8A6]/20 hover:border-[#14F5D5]/50 transition-all",
   closeIcon: "h-4 w-4 stroke-[3]",
-  scrollArea: "flex-1 space-y-4 overflow-y-auto px-4 pb-8 pt-3 lg:p-5",
+  scrollArea: "flex-1 space-y-4 overflow-y-auto px-4 pb-4 pt-3 lg:p-5",
   panelHeaderCard: "hidden lg:block rounded-2xl border border-[#14B8A6]/20 bg-[#0B1322] p-4 shadow-xl shadow-black/30",
   panelHeaderRow: "mb-3 flex items-center justify-between sm:mb-4",
   panelEyebrow: "text-[11px] font-black text-[#14F5D5] tracking-wider",

@@ -8,8 +8,8 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
 const styles = {
-  root: 'w-full z-50',
-  nav: 'flex items-center justify-around border-t border-white/[0.06] bg-[#0A0F1D] px-2 pb-safe pt-2 shadow-[0_-4px_30px_rgba(0,0,0,0.3)] backdrop-blur-xl',
+  root: 'fixed bottom-0 left-0 right-0 z-50',
+  nav: 'flex items-center justify-around border-t border-white/[0.06] bg-[#0A0F1D]/80 px-2 pb-safe pt-2 shadow-[0_-4px_30px_rgba(0,0,0,0.3)] backdrop-blur-xl',
   item: 'flex h-14 w-16 flex-col items-center justify-center rounded-xl transition-all',
   itemActive: 'bg-[#14B8A6]/10 text-[#14B8A6]',
   itemIdle: 'text-[#94A3B8] hover:text-[#14B8A6]/70',
