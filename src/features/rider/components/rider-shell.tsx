@@ -39,18 +39,18 @@ const VaultScreen = dynamic(
 );
 
 const styles = {
-  root: 'flex min-h-screen w-full flex-col bg-[#0A0F1D] text-white lg:h-screen lg:overflow-hidden',
+  root: 'flex h-[100dvh] max-h-[100dvh] w-full flex-col overflow-hidden bg-[#0A0F1D] text-white lg:h-screen lg:overflow-hidden',
   header: 'sticky top-0 z-[100] w-full shrink-0 lg:hidden',
-  main: 'relative flex w-full flex-1 flex-col overflow-y-visible lg:h-screen lg:min-h-0 lg:overflow-hidden',
+  main: 'relative flex w-full flex-1 min-h-0 flex-col overflow-hidden lg:h-screen lg:min-h-0 lg:overflow-hidden',
   mainShifted: 'lg:ps-[288px]',
-  mainStandby: 'h-[calc(100vh-120px)] overflow-hidden',
+  mainStandby: 'h-full overflow-hidden',
   adStage: 'relative z-[80] flex w-full flex-1 flex-col border-b-2 border-[#14B8A6]/20 shadow-[0_10px_30px_rgba(20,184,166,0.08)]',
-  content: 'w-full flex-1 p-4 md:p-8',
+  content: 'w-full flex-1 min-h-0 p-4 md:p-8',
   recoveryPrompt: 'absolute top-4 start-4 end-4 z-[200] empty:hidden lg:start-[320px] lg:end-8',
-  contentHome: 'p-0 md:p-0 lg:p-0',
+  contentHome: 'p-0 md:p-0 lg:p-0 h-full flex flex-col min-h-0',
   contentInner: 'min-h-0 overflow-y-auto px-0 py-4 md:px-0 md:py-6',
   contentHidden: 'hidden',
-  footer: 'sticky bottom-0 z-[100] w-full shrink-0 lg:hidden',
+  footer: 'w-full shrink-0 z-50 lg:hidden',
 } as const;
 
 const CRITICAL_RIDER_STATES = ['searching', 'busy', 'rating', 'checkpoint_required'];
