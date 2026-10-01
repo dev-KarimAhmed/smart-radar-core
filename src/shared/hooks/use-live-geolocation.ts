@@ -26,6 +26,10 @@ const MIN_GPS_DISTANCE_CHANGE_DEG = 0.00008;
 
 let cachedLastKnownLocation: LiveGeolocationPoint | null = null;
 
+export function getLastKnownLocation(): LiveGeolocationPoint | null {
+  return cachedLastKnownLocation;
+}
+
 export function useLiveGeolocation({ fallbackLocation }: { fallbackLocation: LiveGeolocationPoint }): LiveGeolocationResult {
   const cleanupWatchRef = React.useRef<(() => void) | null>(null);
   const lastCoordsRef = React.useRef<LiveGeolocationPoint | null>(null);

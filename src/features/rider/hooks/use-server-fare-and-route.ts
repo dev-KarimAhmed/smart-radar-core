@@ -94,6 +94,20 @@ export function useServerFareAndRoute(params: {
       return;
     }
 
+    const isNearbyOrigin =
+      Math.abs(selectedDestinationCoords.lat - riderLocation.lat) < 0.0008 &&
+      Math.abs(selectedDestinationCoords.lng - riderLocation.lng) < 0.0008;
+
+    if (isNearbyOrigin) {
+      setServerFareState({
+        key: fareRequestKey,
+        fare: null,
+        isLoading: false,
+        error: null,
+      });
+      return;
+    }
+
     if (!Number.isInteger(countryId) || countryId <= 0) {
       setServerFareState({
         key: fareRequestKey,
@@ -173,6 +187,19 @@ export function useServerFareAndRoute(params: {
   React.useEffect(() => {
     if (!selectedDestinationCoords || !hasUsableRiderLocation) {
       setRouteEstimateState({ key: fareRequestKey, estimate: null, isLoading: false });
+      return;
+    }
+
+    const isNearbyOrigin =
+      Math.abs(selectedDestinationCoords.lat - riderLocation.lat) < 0.0008 &&
+      Math.abs(selectedDestinationCoords.lng - riderLocation.lng) < 0.0008;
+
+    if (isNearbyOrigin) {
+      setRouteEstimateState({
+        key: fareRequestKey,
+        estimate: { distanceKm: 0, durationMinutes: 0, isFallback: false },
+        isLoading: false,
+      });
       return;
     }
 

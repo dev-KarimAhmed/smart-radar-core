@@ -46,6 +46,19 @@ export function useDestinationSelectionState(params: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [geography.selectedDistrict?.anchor, geography.selectedGovernorateId]);
 
+  // When opening destination selection, initialize the pin to the rider's live position
+  React.useEffect(() => {
+    if (
+      !pin.destinationPinLocation &&
+      riderLocation &&
+      Number.isFinite(riderLocation.lat) &&
+      Number.isFinite(riderLocation.lng) &&
+      (riderLocation.lat !== 0 || riderLocation.lng !== 0)
+    ) {
+      pin.setDestinationPinLocation(riderLocation);
+    }
+  }, [pin, riderLocation]);
+
   const [isCaptainScanPreviewActive, setIsCaptainScanPreviewActive] = React.useState(false);
   const profileFallbackLocation = geography.profileDistrict?.anchor || geography.selectedDistrict?.anchor || riderLocation;
   const selectedDestinationCoords = pin.destinationPinLocation;

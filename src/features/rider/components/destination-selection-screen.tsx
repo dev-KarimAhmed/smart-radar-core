@@ -125,7 +125,9 @@ export function DestinationSelectionScreen({
       : t('destination.notAvailable');
 
   // The pin wins when it has one: it is what the trip is actually priced and driven to.
-  const destinationLabel = pinnedPlaceLabel || districtLabel;
+  const destinationLabel = isSameLocation
+    ? (isArabic ? 'موقعك الحالي (حرّك الخريطة لتحديد الوجهة)' : 'Current location (Move map to pick destination)')
+    : (pinnedPlaceLabel || districtLabel);
 
   return (
     <div className={styles.wrapper} dir={isArabic ? 'rtl' : 'ltr'}>

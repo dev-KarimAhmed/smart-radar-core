@@ -3,6 +3,7 @@ import { latLngToCell } from 'h3-js';
 import type { AppLanguage } from '@/lib/i18n/simple-copy';
 import { reverseGeocodeCoordinates } from '../services/reverse-geocoding-cache';
 import { countryCodeToCurrency } from '@/shared/services/geo-currency';
+import { getLastKnownLocation } from '@/shared/hooks/use-live-geolocation';
 import type { RiderLocation, RiderLocationStatus, RiderLocationUpdate } from '../components/rider-map';
 
 const H3_RIDER_REQUEST_RESOLUTION = 9;
@@ -14,9 +15,10 @@ const INITIAL_RIDER_LOCATION: RiderLocation = { lat: 30.0444, lng: 31.2357 };
  * display address, debounced 800ms after each move.
  */
 export function useRiderGeolocation(language: AppLanguage, countryDefaultCenter?: RiderLocation | null) {
-  const [riderLocation, setRiderLocation] = React.useState<RiderLocation>(INITIAL_RIDER_LOCATION);
-  const [riderH3Cell, setRiderH3Cell] = React.useState(latLngToCell(INITIAL_RIDER_LOCATION.lat, INITIAL_RIDER_LOCATION.lng, H3_RIDER_REQUEST_RESOLUTION));
-  const [locationStatus, setLocationStatus] = React.useState<RiderLocationStatus>('fallback');
+  const initialPoint = getLastKnownLocation() || countryDefaultCenter || INITIAL_RIDER_LOCATION;
+  const [riderLocation, setRiderLocation] = React.useState<RiderLocation>(initialPoint);
+  const [riderH3Cell, setRiderH3Cell] = React.useState(latLngToCell(initialPoint.lat, initialPoint.lng, H3_RIDER_REQUEST_RESOLUTION));
+  const [locationStatus, setLocationStatus] = React.useState<RiderLocationStatus>(getLastKnownLocation() ? 'live' : 'fallback');
   const [currentAddressName, setCurrentAddressName] = React.useState<string>('');
   const [isGeocoding, setIsGeocoding] = React.useState<boolean>(false);
   const [liveCurrencyCode, setLiveCurrencyCode] = React.useState<string | undefined>(undefined);
