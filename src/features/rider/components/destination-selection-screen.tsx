@@ -156,32 +156,34 @@ export function DestinationSelectionScreen({
         onCancelPreview={onCancelPreview}
       />
 
-      <DestinationTripSummary
-        riderCount={riderCount}
-        setRiderCount={setRiderCount}
-        pricingPreference={pricingPreference}
-        setPricingPreference={setPricingPreference}
-        destinationDataError={geography.destinationDataError}
-        destinationReady={destinationReady}
-        isServerFareLoading={isServerFareLoading}
-        isDestinationPinMoving={isDestinationPinMoving}
-        destinationLabel={destinationLabel}
-        selectedDestinationCoords={selectedDestinationCoords}
-        hasDestinationCoordsAnchor={!!geography.selectedDistrict?.anchor && !!selectedDestinationCoords}
-        serverFareLabel={serverFareLabel}
-        isRouteEstimateLoading={isRouteEstimateLoading}
-        estimatedDurationMinutes={estimatedDurationMinutes}
-        estimatedDistanceKm={estimatedDistanceKm}
-        nearbyCaptainCount={nearbyCaptainCount}
-        serverFareError={serverFareError}
-        isSameLocation={isSameLocation}
-        isSendingRideRequest={isSendingRideRequest}
-        hasDestinationOptions={hasDestinationOptions}
-        selectedDestinationHasCoords={selectedDestinationHasCoords}
-        hasServerEstimatedFare={selectedDraftDestination?.serverEstimatedFare !== undefined}
-        isCaptainScanPreviewActive={isCaptainScanPreviewActive}
-        onSendRequest={onSendRequest}
-      />
+      {Boolean(selectedDestinationCoords || isCaptainScanPreviewActive) && (
+        <DestinationTripSummary
+          riderCount={riderCount}
+          setRiderCount={setRiderCount}
+          pricingPreference={pricingPreference}
+          setPricingPreference={setPricingPreference}
+          destinationDataError={geography.destinationDataError}
+          destinationReady={destinationReady}
+          isServerFareLoading={isServerFareLoading}
+          isDestinationPinMoving={isDestinationPinMoving}
+          destinationLabel={destinationLabel}
+          selectedDestinationCoords={selectedDestinationCoords}
+          hasDestinationCoordsAnchor={!!geography.selectedDistrict?.anchor && !!selectedDestinationCoords}
+          serverFareLabel={serverFareLabel}
+          isRouteEstimateLoading={isRouteEstimateLoading}
+          estimatedDurationMinutes={estimatedDurationMinutes}
+          estimatedDistanceKm={estimatedDistanceKm}
+          nearbyCaptainCount={nearbyCaptainCount}
+          serverFareError={serverFareError}
+          isSameLocation={isSameLocation}
+          isSendingRideRequest={isSendingRideRequest}
+          hasDestinationOptions={hasDestinationOptions}
+          selectedDestinationHasCoords={selectedDestinationHasCoords}
+          hasServerEstimatedFare={selectedDraftDestination?.serverEstimatedFare !== undefined}
+          isCaptainScanPreviewActive={isCaptainScanPreviewActive}
+          onSendRequest={onSendRequest}
+        />
+      )}
     </div>
   );
 }

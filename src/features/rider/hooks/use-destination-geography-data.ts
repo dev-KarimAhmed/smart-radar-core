@@ -48,8 +48,9 @@ export function useDestinationGeographyData(
   });
 
   const selectedDistrict = React.useMemo(() => {
+    if (!draftDestinationId) return null;
     const direct = destinationDistricts.find((district) => district.id === draftDestinationId);
-    return direct || destinationDistricts[0] || null;
+    return direct || null;
   }, [destinationDistricts, draftDestinationId]);
 
   const profileDistrict = React.useMemo(() => {
@@ -158,13 +159,8 @@ export function useDestinationGeographyData(
         const options = normalizeDistricts(data, selectedGovernorate, (id) => t('destination.districtFallback', { id }));
         setDestinationDistricts(options);
 
-        const profileDistrictId = String(user?.district || '');
-        const preferred = options.find((district) => district.id === profileDistrictId)
-          || options.find((district) => district.anchor)
-          || options[0]
-          || null;
-        setDraftDestinationId(preferred?.id || '');
-        if (!preferred) setDestinationDataError(t('destination.noDistrictsAvailableError'));
+        setDraftDestinationId('');
+        if (options.length === 0) setDestinationDataError(t('destination.noDistrictsAvailableError'));
       } catch (error) {
         if (!active) return;
         if ((process.env.NODE_ENV !== 'production')) console.warn('[Rider Destinations: Districts]', error);
@@ -190,9 +186,7 @@ export function useDestinationGeographyData(
   }, []);
 
   // Used by the ride-request draft reset (cancel/send, and trip completion) —
-  // returns the governorate/district back to the account's own default
-  // instead of leaving the last trip's destination selected (or blank, if no
-  // profile default is available).
+  // returns the governorate back to the account's own default and clears the draft destination.
   const reset = React.useCallback(() => {
     clearExternalEntries();
     const profileGovernorateId = String(user?.governorate || '');
@@ -201,26 +195,10 @@ export function useDestinationGeographyData(
       || destinationGovernorates[0]
       || null;
     const nextGovernorateId = preferredGovernorate?.id || '';
-    const governorateUnchanged = nextGovernorateId === selectedGovernorateId;
     setSelectedGovernorateId(nextGovernorateId);
-
-    // Changing selectedGovernorateId feeds districtLoadKey, so the district
-    // effect re-fetches and re-applies the profile default on its own — but
-    // only when the governorate actually changes. If it's already the
-    // preferred one, that effect won't re-run, so pick the default district
-    // from the already-loaded list here instead.
-    if (governorateUnchanged) {
-      const profileDistrictId = String(user?.district || '');
-      const preferredDistrict =
-        destinationDistricts.find((district) => district.id === profileDistrictId)
-        || destinationDistricts.find((district) => district.anchor)
-        || destinationDistricts[0]
-        || null;
-      setDraftDestinationId(preferredDistrict?.id || '');
-    }
-
+    setDraftDestinationId('');
     setDestinationDataError(null);
-  }, [clearExternalEntries, destinationGovernorates, destinationDistricts, selectedGovernorateId, user?.governorate, user?.district]);
+  }, [clearExternalEntries, destinationGovernorates, user?.governorate]);
 
   return {
     activeCountryId,

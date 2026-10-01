@@ -35,21 +35,16 @@ export function useDestinationSelectionState(params: {
   const pin = useDestinationPin();
   const geography = useDestinationGeographyData(user, pin.destinationPinLocation);
 
-  // District selection changed: recenter the pin to its anchor — but only when
-  // an external location is imported or when explicitly changing to a district
-  // different from the rider's home district, so the rider's home is not
-  // prefilled as their destination on mount.
+  // Recenter the pin to its anchor only when an external location is imported (google:*),
+  // never on initial mount so a distant district is never preselected as a destination.
   React.useEffect(() => {
     const isGoogle = geography.selectedGovernorateId.startsWith('google:');
-    const isDifferentDistrict = Boolean(
-      geography.selectedDistrict?.id && geography.selectedDistrict.id !== String(user?.district || '')
-    );
-    if (isGoogle || isDifferentDistrict) {
-      pin.setDestinationPinLocation(geography.selectedDistrict?.anchor || null);
+    if (isGoogle && geography.selectedDistrict?.anchor) {
+      pin.setDestinationPinLocation(geography.selectedDistrict.anchor);
     }
     pin.setIsDestinationPinMoving(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [geography.selectedDistrict?.anchor, geography.selectedDistrict?.id, geography.selectedGovernorateId, user?.district]);
+  }, [geography.selectedDistrict?.anchor, geography.selectedGovernorateId]);
 
   const [isCaptainScanPreviewActive, setIsCaptainScanPreviewActive] = React.useState(false);
   const profileFallbackLocation = geography.profileDistrict?.anchor || geography.selectedDistrict?.anchor || riderLocation;
@@ -95,6 +90,7 @@ export function useDestinationSelectionState(params: {
     destinationSearchQuery: search.destinationSearchQuery,
     setDestinationSearchResults: search.setDestinationSearchResults,
     setDestinationSearchStatus: search.setDestinationSearchStatus,
+    riderLocation,
   });
   const clipboard = useClipboardLocationImport({
     geography,
