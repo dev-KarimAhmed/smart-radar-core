@@ -156,13 +156,7 @@ export function DestinationSelectionScreen({
         onCancelPreview={onCancelPreview}
       />
 
-      {isSameLocation && selectedDestinationCoords && (
-        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-center text-xs font-bold text-amber-300">
-          ⚠️ موقع الوجهة مطابق لموقعك الحالي. يرجى البحث أو اختيار وجهة تريد الذهاب إليها.
-        </div>
-      )}
-
-      {Boolean((selectedDestinationCoords && !isSameLocation) || isCaptainScanPreviewActive) && (
+      {Boolean(selectedDestinationCoords || isCaptainScanPreviewActive) && (
         <DestinationTripSummary
           riderCount={riderCount}
           setRiderCount={setRiderCount}

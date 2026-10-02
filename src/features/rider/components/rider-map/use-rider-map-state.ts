@@ -262,11 +262,12 @@ export function useRiderMapState({
           duration: 600,
           essential: true,
         });
+        onDestinationChange?.(riderLocation);
       }
     } else {
       hasCenteredDestinationPinRef.current = false;
     }
-  }, [destinationFlyToTarget, isMapReady, mapRef, riderLocation, showDestinationPin]);
+  }, [destinationFlyToTarget, isMapReady, mapRef, onDestinationChange, riderLocation, showDestinationPin]);
 
   React.useEffect(() => {
     const map = mapRef.current;
