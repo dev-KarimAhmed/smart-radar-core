@@ -22,13 +22,6 @@ import type { RiderActiveTrip } from '../state/rider-state-machine';
 import type { TripCountdown } from '@/shared/services/trip-countdown';
 import { useWakeLock } from '@/hooks/use-wake-lock';
 
-function toSafeExternalHttpUrl(url?: unknown): string | null {
-  if (typeof url !== 'string') return null;
-  const trimmed = url.trim();
-  if (/^https?:\/\//i.test(trimmed)) return trimmed;
-  return null;
-}
-
 export interface TripActiveScreenProps {
   isArabic: boolean;
   activeTrip: RiderActiveTrip;
@@ -279,30 +272,30 @@ export function TripActiveScreen({
         )}
 
         {/* روابط السوشيال إن وجدت في الأسفل */}
-        {Boolean(toSafeExternalHttpUrl(activeTrip.captain?.facebook_url) || toSafeExternalHttpUrl(activeTrip.captain?.instagram_url)) && (
+        {(activeTrip.captain?.facebook_url || activeTrip.captain?.instagram_url) && (
           <div className="flex items-center justify-center gap-2 pt-1">
-            {toSafeExternalHttpUrl(activeTrip.captain?.facebook_url) ? (
+            {activeTrip.captain?.facebook_url && (
               <a
-                href={toSafeExternalHttpUrl(activeTrip.captain?.facebook_url)!}
+                href={activeTrip.captain.facebook_url}
                 target="_blank"
-                rel="noopener noreferrer"
+                rel="noreferrer"
                 className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-slate-300 hover:text-white hover:bg-white/10 transition-colors"
                 title="Facebook"
               >
                 <Facebook className="h-4 w-4" />
               </a>
-            ) : null}
-            {toSafeExternalHttpUrl(activeTrip.captain?.instagram_url) ? (
+            )}
+            {activeTrip.captain?.instagram_url && (
               <a
-                href={toSafeExternalHttpUrl(activeTrip.captain?.instagram_url)!}
+                href={activeTrip.captain.instagram_url}
                 target="_blank"
-                rel="noopener noreferrer"
+                rel="noreferrer"
                 className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-slate-300 hover:text-white hover:bg-white/10 transition-colors"
                 title="Instagram"
               >
                 <Instagram className="h-4 w-4" />
               </a>
-            ) : null}
+            )}
           </div>
         )}
       </div>
