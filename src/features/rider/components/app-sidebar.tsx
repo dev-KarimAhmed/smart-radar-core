@@ -70,8 +70,8 @@ function statusClass(status?: string) {
 }
 
 function RiderFavoriteDrivers() {
-    const tAuto = useTranslations('auto');
-    const t = useTranslations('auto');
+  const tAuto = useTranslations('auto');
+  const t = useTranslations('auto');
   const { nearbyFavorites, isLoading } = useRiderSidebarRadar();
 
   if (isLoading) {
@@ -102,8 +102,8 @@ function RiderFavoriteDrivers() {
 }
 
 export function AppSidebar({ isCritical = false }: { isCritical?: boolean } = {}) {
-    const tAuto = useTranslations('auto');
-    const t = useTranslations('auto');
+  const tAuto = useTranslations('auto');
+  const t = useTranslations('auto');
   const { logout, user } = useAuth();
   const { hasUnread } = useNotifications();
 
@@ -159,7 +159,7 @@ export function AppSidebar({ isCritical = false }: { isCritical?: boolean } = {}
 
           <div className={styles.operations}>
             <div className={styles.sectionTitle}><span className={styles.sectionText}>{tAuto('key_2133ac1c')}</span></div>
-            
+
             {/* Notification Trigger with Pulsing Badge */}
             <SheetClose asChild>
               <Button
@@ -203,6 +203,7 @@ export function AppSidebar({ isCritical = false }: { isCritical?: boolean } = {}
               >
                 <Button className={styles.operationButton} variant="ghost" disabled={isCritical}>
                   <span className={styles.operationText}>الخزنة</span>
+                  <span className={styles.operationText}>{tAuto('key_0ae33a07')}</span>
                   <Archive className={styles.operationIcon} />
                 </Button>
               </a>
@@ -216,6 +217,7 @@ export function AppSidebar({ isCritical = false }: { isCritical?: boolean } = {}
               >
                 <Button className={styles.operationButton} variant="ghost" disabled={isCritical}>
                   <span className={styles.operationText}>حسابي</span>
+                  <span className={styles.operationText}>{tAuto('key_f38edfd8')}</span>
                   <User className={styles.operationIcon} />
                 </Button>
               </a>
@@ -226,7 +228,7 @@ export function AppSidebar({ isCritical = false }: { isCritical?: boolean } = {}
             <span className={styles.favoritesLabel}>
               <Heart className={styles.heart} />
               {tAuto('key_0ae33a07')}
-                                      </span>
+            </span>
             <RiderFavoriteDrivers />
           </div>
         </div>
