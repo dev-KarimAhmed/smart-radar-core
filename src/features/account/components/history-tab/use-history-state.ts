@@ -165,11 +165,11 @@ export function useHistoryState() {
                 id: entry.captainId,
                 full_name: entry.captainName,
                 phone: entry.captainPhone,
-                rating: 5.0,
+                rating: entry.rating ?? 5.0,
                 rank: entry.captainRank,
               },
               vehicle: entry.vehicleInfo ? { model: entry.vehicleInfo } : undefined,
-              destination_address_ar: 'رحلة سابقة',
+              destination_address_ar: entry.destinationAddressAr || 'رحلة مكتملة',
               trip_fare: entry.finalPrice,
             } as any)));
             setLoading(false);

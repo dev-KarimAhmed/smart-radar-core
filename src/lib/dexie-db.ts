@@ -52,6 +52,8 @@ export interface RiderTripLedgerEntry {
   finalPrice: number;
   timestamp: number;
   purgeAt: number;
+  destinationAddressAr?: string;
+  rating?: number;
 }
 
 export interface CaptainLedgerEntry {

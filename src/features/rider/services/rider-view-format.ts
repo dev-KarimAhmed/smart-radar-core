@@ -54,6 +54,7 @@ export function isTripStartedStatus(status: string) {
 }
 
 export function toHistoricalTrip(trip: RiderActiveTrip): HistoricalTrip {
+  const captainRating = typeof trip.captain?.rating === 'number' ? trip.captain.rating : undefined;
   return {
     tripId: trip.tripId,
     captainId: trip.captainId,
@@ -63,5 +64,7 @@ export function toHistoricalTrip(trip: RiderActiveTrip): HistoricalTrip {
     vehicleInfo: `${trip.vehicleType} - ${trip.vehiclePlate}`,
     finalPrice: trip.finalPrice,
     timestamp: Date.now(),
+    destinationAddressAr: trip.destinationLabel,
+    rating: captainRating,
   };
 }

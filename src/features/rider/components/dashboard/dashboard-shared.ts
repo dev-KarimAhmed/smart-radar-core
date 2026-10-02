@@ -119,6 +119,8 @@ export interface HistoricalTrip {
   vehicleInfo: string;
   finalPrice: number;
   timestamp: number;
+  destinationAddressAr?: string;
+  rating?: number;
 }
 
 export interface FavoriteCaptain extends HistoricalTrip {

@@ -582,6 +582,8 @@ export function tripShapeToRiderLedgerEntry(trip: any): RiderTripLedgerEntry | n
 
   const acceptedOffer = trip.offers?.find((o: any) => o.driverId === trip.driverId) || trip.acceptedOffer;
   const vehicleInfo = getHistoryVehicleInfo(trip, acceptedOffer);
+  const destinationAddress = trip.destination_address_ar || trip.destination_address || trip.destinationAddress || trip.metadata?.destination_address || '';
+  const captainRating = typeof trip.captain?.rating === 'number' ? trip.captain.rating : undefined;
 
   return {
     tripId,
@@ -593,6 +595,8 @@ export function tripShapeToRiderLedgerEntry(trip: any): RiderTripLedgerEntry | n
     finalPrice: Number(trip.final_fare ?? trip.settled_fare ?? trip.final_price ?? trip.offer_price ?? trip.server_estimated_fare ?? trip.offerPrice ?? 0),
     timestamp,
     purgeAt: timestamp + HISTORY_TTL_MS,
+    destinationAddressAr: destinationAddress,
+    rating: captainRating,
   };
 }
 
