@@ -38,21 +38,9 @@ export function useDestinationSelectionState(params: {
 
   const hasUserMovedPinRef = React.useRef(false);
 
-  // Sync destination pin to rider's position initially, and auto-update when live GPS locks in
-  React.useEffect(() => {
-    if (hasUserMovedPinRef.current) return;
-    if (
-      riderLocation &&
-      Number.isFinite(riderLocation.lat) &&
-      Number.isFinite(riderLocation.lng) &&
-      (riderLocation.lat !== 0 || riderLocation.lng !== 0)
-    ) {
-      const isDummyCairo = Math.abs(riderLocation.lat - 30.0444) < 0.001 && Math.abs(riderLocation.lng - 31.2357) < 0.001;
-      if (riderLocationStatus === 'live' || (!pin.destinationPinLocation && !isDummyCairo)) {
-        pin.setDestinationPinLocation(riderLocation);
-      }
-    }
-  }, [pin, riderLocation, riderLocationStatus]);
+  // A trip destination is where the rider wants to GO, never where the rider is standing.
+  // The destination pin starts as null and is only set when the user explicitly chooses
+  // a destination (via search, clipboard import, or manual pin move).
 
   const handleDestinationPinChange = React.useCallback((location: RiderLocation) => {
     hasUserMovedPinRef.current = true;
