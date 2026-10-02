@@ -44,6 +44,12 @@ export function useRiderGeolocation(language: AppLanguage, countryDefaultCenter?
   React.useEffect(() => {
     if (!riderLocation.lat || !riderLocation.lng) return;
 
+    // Never reverse geocode unconfirmed dummy Cairo placeholder coordinates
+    const isDummyCairo = Math.abs(riderLocation.lat - 30.0444) < 0.001 && Math.abs(riderLocation.lng - 31.2357) < 0.001;
+    if (locationStatus !== 'live' && isDummyCairo) {
+      return;
+    }
+
     let active = true;
     const fetchAddress = async () => {
       setIsGeocoding(true);

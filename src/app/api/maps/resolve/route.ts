@@ -75,13 +75,20 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const placeNameCheck = await crossCheckPlaceName(resolvedUrl, location);
-    // We deliberately do not override the parsed location with the geocoded location here,
-    // even if they are drastically mismatched. Nominatim's global search can return a place
-    // on the other side of the world for generic names like "KFC" or "Dubai Mall", and
-    // overriding the explicit URL coordinate with Nominatim's guess causes wrong addresses.
+    let placeNameCheck = null;
+    try {
+      placeNameCheck = await crossCheckPlaceName(resolvedUrl, location);
+    } catch {
+      // Continue even if cross-check times out
+    }
 
-    const geography = await reverseResolveGeography(location);
+    let geography = null;
+    try {
+      geography = await reverseResolveGeography(location);
+    } catch {
+      // Continue even if reverse geocode times out
+    }
+
     return NextResponse.json({
       resolvedUrl: sanitizeGoogleMapsUrl(resolvedUrl),
       location,
@@ -176,7 +183,15 @@ async function readGoogleMapsPageLocation(url: string) {
     }
   }
 
-  // 2. Direct coordinate markers inside HTML (!3d, !4d) as fallback
+  // 2. Directions destination coordinate marker (!1s... tied to !3m2!1d{lng}!2d{lat})
+  const destMatch = html.match(/!1s0x[0-9a-f]+:0x[0-9a-f]+[^"]*?!3m2!1d(-?\d+(?:\.\d+)?)!2d(-?\d+(?:\.\d+)?)/i);
+  if (destMatch) {
+    const lng = Number(destMatch[1]);
+    const lat = Number(destMatch[2]);
+    if (isValidLocation(lat, lng)) return { lat, lng };
+  }
+
+  // 3. Direct coordinate markers inside HTML (!3d, !4d) as fallback
   const direct = parseGoogleMapsLocation(html);
   if (direct) return direct;
 

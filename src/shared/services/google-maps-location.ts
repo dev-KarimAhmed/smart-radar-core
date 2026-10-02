@@ -231,7 +231,7 @@ export function parseGoogleMapsLocation(
   }
 
   const isHtml = /<html|<!doctype|<body|<meta\s+/i.test(text);
-  const isDirectionsUrl = /\/maps\/dir\//i.test(text);
+  const isDirectionsUrl = /\/maps\/dir\/|[?&](?:daddr|saddr)=/i.test(text);
 
   // If camera coordinates are present in the URL, they serve as a reference for short Plus Codes
   const cameraMatch = text.match(/@(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/);
@@ -241,10 +241,17 @@ export function parseGoogleMapsLocation(
   const effectiveRefLocation = referenceLocation || cameraCoords || undefined;
 
   // Directions URLs (`/maps/dir/{origin}/{destination}/@{viewCenter}/data=!...
-  // !2m2!1d{lng}!2d{lat}!...`)
+  // !2m2!1d{lng}!2d{lat}!...` or `?daddr=...`)
   // Waypoints are ordered from origin to destination. The destination waypoint is the
   // LAST `!2m2!1d{lng}!2d{lat}` marker in the data payload.
   if (isDirectionsUrl) {
+    const daddrCoordMatch = text.match(/[?&]daddr=(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/i);
+    if (daddrCoordMatch) {
+      const lat = Number(daddrCoordMatch[1]);
+      const lng = Number(daddrCoordMatch[2]);
+      if (isValidLocation(lat, lng)) return { lat, lng };
+    }
+
     const allWaypoints = [...text.matchAll(/!2m2!1d(-?\d+(?:\.\d+)?)!2d(-?\d+(?:\.\d+)?)/g)];
     if (allWaypoints.length > 0) {
       const lastMatch = allWaypoints[allWaypoints.length - 1];
@@ -440,7 +447,7 @@ export function extractGoogleMapsPlaceName(value: string): string | null {
       if (lastNamedSegment) return decodeGoogleMapsPathSegment(lastNamedSegment);
     }
 
-    const qParam = url.searchParams.get('q') || url.searchParams.get('query') || url.searchParams.get('destination');
+    const qParam = url.searchParams.get('q') || url.searchParams.get('query') || url.searchParams.get('destination') || url.searchParams.get('daddr');
     if (qParam && !isCoordinatePairSegment(qParam)) {
       return decodeGoogleMapsPathSegment(qParam);
     }

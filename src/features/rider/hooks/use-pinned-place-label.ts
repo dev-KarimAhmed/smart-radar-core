@@ -40,12 +40,19 @@ export function usePinnedPlaceLabel(
 
     let active = true;
     const [lat, lng] = key.split(',');
+    const latNum = Number(lat);
+    const lngNum = Number(lng);
+
+    if (Math.abs(latNum - 30.0444) < 0.001 && Math.abs(lngNum - 31.2357) < 0.001) {
+      setLabel('');
+      return;
+    }
 
     // Debounced: the pin emits continuously while it is being dragged.
     const timeoutId = window.setTimeout(async () => {
       setIsResolving(true);
       try {
-        const data = await reverseGeocodeCoordinates(Number(lat), Number(lng), language);
+        const data = await reverseGeocodeCoordinates(latNum, lngNum, language);
         const address = data.address || {};
 
         const road = address.road || '';

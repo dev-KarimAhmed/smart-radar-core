@@ -48,7 +48,7 @@ export function IdleMapScreen({ isArabic, isGeocoding, currentAddressName, locat
           <Metric
             label={t('panel.yourArea')}
             value={
-              isGeocoding
+              isGeocoding || (!currentAddressName && locationStatus !== 'live')
                 ? t('panel.locating')
                 : currentAddressName || (locationStatus === 'live' ? t('destination.currentLocation') : t('destination.fallbackLocation'))
             }
