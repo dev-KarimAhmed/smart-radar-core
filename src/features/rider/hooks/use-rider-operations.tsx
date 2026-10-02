@@ -27,13 +27,25 @@ export const RiderOperationsContext = createContext<RiderOperationsContextType |
  * Now cleanly provides sovereign real-time rider status tracking.
  */
 export function RiderOperationsProvider({ children }: { children: ReactNode }) {
-  const [tripStatus, setTripStatus] = useState<RiderTripStatus>('idle');
+  const [tripStatus, setTripStatus] = useState<RiderTripStatus>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = window.localStorage.getItem('radar_rider_trip_status');
+        if (saved) return saved;
+      } catch {}
+    }
+    return 'idle';
+  });
 
   useEffect(() => {
     const handleStatusChange = (event: Event) => {
       const customEvent = event as CustomEvent<{ role?: string; status?: string }>;
       if (customEvent.detail?.role === 'rider' && customEvent.detail?.status) {
-        setTripStatus(customEvent.detail.status);
+        const newStatus = customEvent.detail.status;
+        setTripStatus(newStatus);
+        try {
+          window.localStorage.setItem('radar_rider_trip_status', newStatus);
+        } catch {}
       }
     };
     window.addEventListener('sovereign-status-change', handleStatusChange);

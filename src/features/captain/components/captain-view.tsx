@@ -137,15 +137,15 @@ export function DriverViewTab() {
 
     if (driverOps.activeRequest) {
       const syncedStep = getCaptainTripStepFromStatus(driverOps.activeRequest.status);
-      if (
-        state.screen === 'ACTIVE_TRIP'
-        && state.selectedRequest?.id === driverOps.activeRequest.id
-      ) {
+      const isSameTrip = state.selectedRequest?.id === driverOps.activeRequest.id;
+
+      if (isSameTrip) {
         if (state.tripStep !== syncedStep) {
           dispatch({ type: 'SERVER_ACCEPTED', request: driverOps.activeRequest, step: syncedStep });
         }
         return;
       }
+
       dispatch({ type: 'SERVER_ACCEPTED', request: driverOps.activeRequest, step: syncedStep });
       return;
     }
@@ -227,17 +227,7 @@ export function DriverViewTab() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [screen]);
 
-  // Trip focus mode is a fixed overlay, so the dashboard behind it would still scroll under
-  // the captain's finger — they'd be dragging invisible chrome while the trip's own content
-  // stays put. Locking the body makes the trip surface the only thing that moves.
-  React.useEffect(() => {
-    if (screen !== 'ACTIVE_TRIP') return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [screen]);
+
 
   if (!driverOps) {
     return (
@@ -330,35 +320,6 @@ export function DriverViewTab() {
     await driverOps.cancelActiveTrip();
   };
 
-  // A trip in progress takes over the whole screen: no tabs, no radar, no availability
-  // toggle, no logout. Every one of those is either meaningless mid-trip or actively
-  // harmful — going offline or signing out with a rider in the car strands the trip in a
-  // state only the captain can move forward. The one control kept is the language switch,
-  // because it changes nothing about the trip.
-  if (screen === 'ACTIVE_TRIP' && driverOps.activeRequest) {
-    return (
-      <CaptainActiveTripOverlay
-        direction={direction}
-        language={language === 'en' ? 'en' : 'ar'}
-        isOffline={isOffline}
-        isReconnecting={isReconnecting}
-        activeRequest={driverOps.activeRequest}
-        acceptedRider={driverOps.acceptedRider}
-        step={state.tripStep}
-        currency={currency}
-        driverLocation={driverOps.driverLocation}
-        handshakeAt={driverOps.handshakeAt}
-        isCompleting={driverOps.isEndingTrip || driverOps.isUpdatingTripStep}
-        isCancelling={driverOps.isCancellingTrip}
-        onToggleLanguage={toggleLanguage}
-        onArrived={markArrived}
-        onStartTrip={startTrip}
-        onCompleteTrip={completeTrip}
-        onCancelTrip={() => { void cancelTrip(); }}
-      />
-    );
-  }
-
   return (
     <div className={styles.style153_3} dir={direction}>
       <div className={styles.style154_4}>
@@ -416,13 +377,32 @@ export function DriverViewTab() {
             </button>
             <MarketStatusIndicator indicator={marketIndicator} size="compact" />
             <div className={styles.style167_1}>
-              <NavButton active={screen === 'RADAR_MAP' || screen === 'BIDDING'} onClick={() => dispatch({ type: 'OPEN_RADAR' })} label={t('radar')} icon={<Map className={styles.style170_12} />} />
+              <NavButton active={screen === 'RADAR_MAP' || screen === 'BIDDING' || screen === 'ACTIVE_TRIP'} onClick={() => dispatch({ type: 'OPEN_RADAR' })} label={t('radar')} icon={<Map className={styles.style170_12} />} />
               <NavButton active={screen === 'WALLET'} onClick={() => dispatch({ type: 'OPEN_WALLET' })} label={t('wallet')} icon={<Wallet className={styles.style171_13} />} />
               <NavButton active={screen === 'HISTORY'} onClick={() => dispatch({ type: 'OPEN_HISTORY' })} label={t('history')} icon={<History className={styles.style172_14} />} />
               <NavButton active={screen === 'PROFILE'} onClick={() => dispatch({ type: 'OPEN_PROFILE' })} label={t('profile')} icon={<User className={styles.style172_14} />} />
             </div>
           </div>
         </header>
+
+        {driverOps.activeRequest && screen !== 'ACTIVE_TRIP' ? (
+          <div className="flex items-center justify-between rounded-2xl border border-emerald-500/40 bg-emerald-950/90 p-3.5 shadow-lg backdrop-blur-md">
+            <div className="flex items-center gap-2 text-xs font-bold text-emerald-300">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400" />
+              </span>
+              <span>{direction === 'rtl' ? 'لديك رحلة نشطة جارية الآن' : 'Active trip in progress'}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => dispatch({ type: 'OPEN_RADAR' })}
+              className="rounded-xl border border-emerald-400/40 bg-emerald-500/20 px-3 py-1.5 text-xs font-black text-emerald-200 transition hover:bg-emerald-500/30 cursor-pointer"
+            >
+              {direction === 'rtl' ? 'العودة للرحلة' : 'Return to trip'}
+            </button>
+          </div>
+        ) : null}
 
         {driverOps.isDormancyWarningVisible ? (
           <div className={styles.style221_1}>
@@ -453,13 +433,34 @@ export function DriverViewTab() {
           </div>
         ) : null}
 
-        {screen === 'RADAR_MAP' && !isActive ? (
+        {screen === 'ACTIVE_TRIP' && driverOps.activeRequest ? (
+          <CaptainActiveTripOverlay
+            direction={direction}
+            language={language === 'en' ? 'en' : 'ar'}
+            isOffline={isOffline}
+            isReconnecting={isReconnecting}
+            activeRequest={driverOps.activeRequest}
+            acceptedRider={driverOps.acceptedRider}
+            step={state.tripStep}
+            currency={currency}
+            driverLocation={driverOps.driverLocation}
+            handshakeAt={driverOps.handshakeAt}
+            isCompleting={driverOps.isEndingTrip || driverOps.isUpdatingTripStep}
+            isCancelling={driverOps.isCancellingTrip}
+            onArrived={markArrived}
+            onStartTrip={startTrip}
+            onCompleteTrip={completeTrip}
+            onCancelTrip={() => { void cancelTrip(); }}
+          />
+        ) : null}
+
+        {screen === 'RADAR_MAP' && !driverOps.activeRequest && !isActive ? (
           <div className={styles.style328_1}>
             <AdStage audience="captain" isFullScreen />
           </div>
         ) : null}
 
-        {screen === 'RADAR_MAP' && isActive ? (
+        {screen === 'RADAR_MAP' && !driverOps.activeRequest && isActive ? (
           <RadarMapView
             language={language}
             isActive={isActive}

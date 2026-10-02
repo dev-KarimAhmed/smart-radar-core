@@ -105,11 +105,11 @@ export function RiderShell() {
     setHasRequestedRideOnce(false);
   };
 
-  const content = !isCritical && hash === '#vault'
+  const content = hash === '#vault'
     ? <VaultScreen />
-    : !isCritical && hash === '#history'
+    : hash === '#history'
       ? <HistoryScreen />
-      : !isCritical && hash === '#profile'
+      : hash === '#profile'
         ? <ProfileScreen />
         : <RiderView onExitRequestFlow={exitRequestFlow} isStandbyDismissed={hasRequestedRideOnce} />;
 
@@ -122,11 +122,29 @@ export function RiderShell() {
           logout={logout}
           onNotify={() => window.dispatchEvent(new CustomEvent('open-app-notifications'))}
           user={user}
-          isCritical={isCritical}
+          isCritical={false}
         />
       ) : null}
-      <header className={styles.header}><AppHeader sidebar={<AppSidebar isCritical={isCritical} />} /></header>
+      <header className={styles.header}><AppHeader sidebar={<AppSidebar isCritical={false} />} /></header>
       <main className={cn(styles.main, !isHome && styles.mainShifted, isStandby && styles.mainStandby)}>
+        {isCritical && !isHome && (
+          <div className="sticky top-0 z-[150] flex items-center justify-between border-b border-[#14B8A6]/40 bg-[#0C1527]/95 px-4 py-2.5 shadow-lg backdrop-blur-md">
+            <div className="flex items-center gap-2 text-xs font-bold text-[#14F5D5]">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#14F5D5] opacity-75" />
+                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#14F5D5]" />
+              </span>
+              <span>{dashboardLanguage.language === 'ar' ? 'لديك رحلة جارية الآن' : 'Active trip in progress'}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => { window.location.hash = '#'; }}
+              className="rounded-xl border border-[#14B8A6]/40 bg-[#14B8A6]/20 px-3 py-1 text-xs font-black text-[#14F5D5] transition hover:bg-[#14B8A6]/30 cursor-pointer"
+            >
+              {dashboardLanguage.language === 'ar' ? 'العودة للتتبع' : 'Return to trip'}
+            </button>
+          </div>
+        )}
         {isStandby ? (
           <div className={styles.adStage}>
             <AdStage audience="rider" isFullScreen onRequestRideClick={() => setShowRequestFlow(true)} />

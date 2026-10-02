@@ -122,6 +122,8 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
         'radar_auction_draft',
         'radar_external_location_draft',
         'radar_request_flow',
+        'radar_active_rider_machine_state',
+        'radar_rider_trip_status',
       ].forEach((key) => window.localStorage.removeItem(key));
     } catch {
       // Storage can be unavailable in private browsing; in-memory state is still reset.

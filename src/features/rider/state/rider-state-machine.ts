@@ -110,7 +110,24 @@ export type RiderMachineAction =
   | { type: 'CLEAR_AUTO_RETRY' }
   | { type: 'RESET_TO_IDLE' };
 
+const RIDER_STATE_STORAGE_KEY = 'radar_active_rider_machine_state';
+
 export function createInitialRiderMachineState(): RiderMachineState {
+  if (typeof window !== 'undefined') {
+    try {
+      const saved = window.localStorage.getItem(RIDER_STATE_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved) as RiderMachineState;
+        if (
+          parsed &&
+          parsed.requestId &&
+          (parsed.screen === 'RECEIVING_OFFERS' || parsed.screen === 'TRIP_ACTIVE' || parsed.screen === 'RATING_MODAL')
+        ) {
+          return parsed;
+        }
+      }
+    } catch {}
+  }
   return {
     screen: 'IDLE_MAP',
     destination: null,
@@ -448,6 +465,20 @@ export function riderDashboardReducer(state: RiderMachineState, action: RiderMac
 
 export function useRiderDashboardMachine() {
   const [state, dispatch] = React.useReducer(riderDashboardReducer, undefined, createInitialRiderMachineState);
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      if (
+        state.requestId &&
+        (state.screen === 'RECEIVING_OFFERS' || state.screen === 'TRIP_ACTIVE' || state.screen === 'RATING_MODAL')
+      ) {
+        window.localStorage.setItem(RIDER_STATE_STORAGE_KEY, JSON.stringify(state));
+      } else if (state.screen === 'IDLE_MAP') {
+        window.localStorage.removeItem(RIDER_STATE_STORAGE_KEY);
+      }
+    } catch {}
+  }, [state]);
 
   return { state, dispatch, showAdRiver: shouldShowAdRiver(state) };
 }

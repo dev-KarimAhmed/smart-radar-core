@@ -34,6 +34,7 @@ export function CaptainCancelledDialog({ isArabic, open, onRetry, onCancel }: Ca
     <Dialog open={open} onOpenChange={() => {}}>
       <DialogContent 
         className={styles.content} 
+        hideCloseButton
         dir={isArabic ? 'rtl' : 'ltr'}
         onInteractOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}

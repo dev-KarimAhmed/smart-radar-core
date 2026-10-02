@@ -68,18 +68,7 @@ export function useRideRequestStatusSync(params: {
 
 // [ACT-SSOT-01] Removed duplicate reactive CONFIRM_DESTINATION useEffect to enforce single user pulse
 
-  // Cancel trip if the user logs out while a request is active
-  const previousUserId = React.useRef(userId);
-  const previousRequestId = React.useRef(state.requestId);
-  React.useEffect(() => {
-    if (previousUserId.current && !userId && previousRequestId.current) {
-      import('../services/rider-server-marketplace').then(({ cancelRideRequest }) => {
-        cancelRideRequest(supabase, previousRequestId.current!).catch(() => {});
-      }).catch(() => {});
-    }
-    previousUserId.current = userId;
-    previousRequestId.current = state.requestId;
-  }, [userId, state.requestId]);
+
 
   // Resync on mount/reload — without this, a reload mid-trip previously wiped
   // the whole flow back to the idle map even though the ride_requests row was
@@ -105,13 +94,17 @@ export function useRideRequestStatusSync(params: {
 
       if (isCancelled) return;
 
-      dispatch({ type: 'RESET_TO_IDLE' });
-
-      if (error || !data) return;
+      if (error || !data) {
+        dispatch({ type: 'RESET_TO_IDLE' });
+        return;
+      }
 
       const row = data as Record<string, unknown>;
       const requestId = String(row.id || '');
-      if (!requestId) return;
+      if (!requestId) {
+        dispatch({ type: 'RESET_TO_IDLE' });
+        return;
+      }
 
       const status = String(row.status || '').toUpperCase();
       if (status === 'PENDING' || status === 'RECEIVING_OFFERS') {
@@ -119,6 +112,7 @@ export function useRideRequestStatusSync(params: {
         const now = Date.now();
         // If the request was created more than 180 seconds (3 minutes) ago, it is expired.
         if (createdAt > 0 && now - createdAt > 180000) {
+          dispatch({ type: 'RESET_TO_IDLE' });
           return;
         }
         // The row goes along too: the destination only ever lived in client state, so

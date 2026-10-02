@@ -24,7 +24,22 @@ export interface LiveGeolocationResult {
  */
 const MIN_GPS_DISTANCE_CHANGE_DEG = 0.00008;
 
-let cachedLastKnownLocation: LiveGeolocationPoint | null = null;
+const GPS_STORAGE_KEY = 'radar_last_known_gps';
+
+let cachedLastKnownLocation: LiveGeolocationPoint | null = (() => {
+  if (typeof window !== 'undefined') {
+    try {
+      const saved = window.localStorage.getItem(GPS_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed.lat === 'number' && typeof parsed.lng === 'number' && parsed.lat !== 0) {
+          return parsed;
+        }
+      }
+    } catch {}
+  }
+  return null;
+})();
 
 export function getLastKnownLocation(): LiveGeolocationPoint | null {
   return cachedLastKnownLocation;
@@ -32,64 +47,91 @@ export function getLastKnownLocation(): LiveGeolocationPoint | null {
 
 export function useLiveGeolocation({ fallbackLocation }: { fallbackLocation: LiveGeolocationPoint }): LiveGeolocationResult {
   const cleanupWatchRef = React.useRef<(() => void) | null>(null);
-  const lastCoordsRef = React.useRef<LiveGeolocationPoint | null>(null);
+  const lastCoordsRef = React.useRef<LiveGeolocationPoint | null>(cachedLastKnownLocation);
   const [location, setLocation] = React.useState<LiveGeolocationPoint>(
     cachedLastKnownLocation || fallbackLocation
   );
-  const [status, setStatus] = React.useState<LiveGeolocationStatus>('locating');
+  const [status, setStatus] = React.useState<LiveGeolocationStatus>(cachedLastKnownLocation ? 'live' : 'locating');
   const fallbackLat = fallbackLocation.lat;
   const fallbackLng = fallbackLocation.lng;
+
+  const updateLocation = React.useCallback((nextLat: number, nextLng: number) => {
+    const last = lastCoordsRef.current;
+    if (
+      !last ||
+      Math.abs(nextLat - last.lat) > MIN_GPS_DISTANCE_CHANGE_DEG ||
+      Math.abs(nextLng - last.lng) > MIN_GPS_DISTANCE_CHANGE_DEG
+    ) {
+      const newPoint = { lat: nextLat, lng: nextLng };
+      lastCoordsRef.current = newPoint;
+      cachedLastKnownLocation = newPoint;
+      try {
+        window.localStorage.setItem(GPS_STORAGE_KEY, JSON.stringify(newPoint));
+      } catch {}
+      setLocation(newPoint);
+      setStatus('live');
+    } else {
+      setStatus('live');
+    }
+  }, []);
 
   const refresh = React.useCallback(() => {
     cleanupWatchRef.current?.();
     cleanupWatchRef.current = null;
-    lastCoordsRef.current = null;
 
     if (!('geolocation' in navigator)) {
-      setLocation({ lat: fallbackLat, lng: fallbackLng });
-      setStatus('fallback');
+      if (!cachedLastKnownLocation) {
+        setLocation({ lat: fallbackLat, lng: fallbackLng });
+        setStatus('fallback');
+      }
       return;
     }
 
     let didResolve = false;
-    setStatus('locating');
+    if (!cachedLastKnownLocation) {
+      setStatus('locating');
+    }
 
-    const watchId = navigator.geolocation.watchPosition(
+    // Direct immediate fix request
+    navigator.geolocation.getCurrentPosition(
       (position) => {
-        const nextLat = position.coords.latitude;
-        const nextLng = position.coords.longitude;
-        const last = lastCoordsRef.current;
-
         didResolve = true;
-        setStatus('live');
-
-        if (
-          !last ||
-          Math.abs(nextLat - last.lat) > MIN_GPS_DISTANCE_CHANGE_DEG ||
-          Math.abs(nextLng - last.lng) > MIN_GPS_DISTANCE_CHANGE_DEG
-        ) {
-          lastCoordsRef.current = { lat: nextLat, lng: nextLng };
-          cachedLastKnownLocation = lastCoordsRef.current;
-          setLocation({
-            lat: nextLat,
-            lng: nextLng,
-          });
-        }
+        updateLocation(position.coords.latitude, position.coords.longitude);
       },
       (error) => {
-        if (didResolve) return;
-        setLocation({ lat: fallbackLat, lng: fallbackLng });
-        setStatus(error.code === error.PERMISSION_DENIED ? 'denied' : 'fallback');
+        if (!didResolve && !cachedLastKnownLocation) {
+          setLocation({ lat: fallbackLat, lng: fallbackLng });
+          setStatus(error.code === error.PERMISSION_DENIED ? 'denied' : 'fallback');
+        }
       },
       {
         enableHighAccuracy: true,
-        maximumAge: 15000,
+        maximumAge: 0,
+        timeout: 5000,
+      }
+    );
+
+    // Continuous watch stream
+    const watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        didResolve = true;
+        updateLocation(position.coords.latitude, position.coords.longitude);
+      },
+      (error) => {
+        if (!didResolve && !cachedLastKnownLocation) {
+          setLocation({ lat: fallbackLat, lng: fallbackLng });
+          setStatus(error.code === error.PERMISSION_DENIED ? 'denied' : 'fallback');
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        maximumAge: 0,
         timeout: 10000,
       },
     );
 
     cleanupWatchRef.current = () => navigator.geolocation.clearWatch(watchId);
-  }, [fallbackLat, fallbackLng]);
+  }, [fallbackLat, fallbackLng, updateLocation]);
 
   React.useEffect(() => {
     if (status === 'live' || status === 'locating') return;

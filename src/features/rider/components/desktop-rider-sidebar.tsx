@@ -174,20 +174,13 @@ export function DesktopRiderSidebar({
         <nav className={styles.navigation}>
           {items.map(({ href, icon: Icon, label }) => {
             const active = hash === href || (href === '#' && (hash === '' || hash === '#/'));
-            const isDisabled = isCritical && href !== '#';
             return (
               <a
                 className={cn(
                   styles.navItem,
                   active ? styles.navActive : styles.navIdle,
-                  isDisabled && 'opacity-40 cursor-not-allowed pointer-events-none'
                 )}
-                href={isDisabled ? '#' : href}
-                onClick={(e) => {
-                  if (isDisabled) {
-                    e.preventDefault();
-                  }
-                }}
+                href={href}
                 key={href}
               >
                 <span>{label}</span>

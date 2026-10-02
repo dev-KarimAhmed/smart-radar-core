@@ -399,9 +399,12 @@ export function AdStage({
   const handleTouchStart = useCallback(() => {
     if (touchResumeTimerRef.current) {
       clearTimeout(touchResumeTimerRef.current);
-      touchResumeTimerRef.current = null;
     }
     setAdStreamPaused(true);
+    // Auto-resume after 2s as a failsafe for mobile browsers where touchEnd might not fire during page scroll
+    touchResumeTimerRef.current = setTimeout(() => {
+      setAdStreamPaused(false);
+    }, 2000);
   }, [setAdStreamPaused]);
 
   const handleTouchEnd = useCallback(() => {
@@ -410,7 +413,7 @@ export function AdStage({
     }
     touchResumeTimerRef.current = setTimeout(() => {
       setAdStreamPaused(false);
-    }, 400);
+    }, 600);
   }, [setAdStreamPaused]);
 
   const handleMouseEnter = useCallback(() => {
@@ -473,13 +476,23 @@ export function AdStage({
                 track.scrollLeft -= singleSetWidth;
               }
             } else {
-              track.scrollBy({ left: -deltaPixels });
+              if (currentScroll < 0) {
+                track.scrollLeft -= deltaPixels;
+              } else if (currentScroll > 0) {
+                track.scrollLeft += deltaPixels;
+              } else {
+                const prev = track.scrollLeft;
+                track.scrollLeft -= deltaPixels;
+                if (track.scrollLeft === prev) {
+                  track.scrollLeft += deltaPixels;
+                }
+              }
             }
           } else {
             if (track.scrollLeft >= singleSetWidth - 1 && singleSetWidth > 0) {
               track.scrollLeft -= singleSetWidth;
             } else {
-              track.scrollBy({ left: deltaPixels });
+              track.scrollLeft += deltaPixels;
             }
           }
         }

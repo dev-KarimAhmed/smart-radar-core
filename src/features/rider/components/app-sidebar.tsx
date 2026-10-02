@@ -184,11 +184,10 @@ export function AppSidebar({ isCritical = false }: { isCritical?: boolean } = {}
 
             <SheetClose asChild>
               <a
-                className={cn(styles.operationLink, isCritical && 'opacity-40 cursor-not-allowed pointer-events-none')}
-                href={isCritical ? '#' : '#history'}
-                onClick={(e) => { if (isCritical) e.preventDefault(); }}
+                className={styles.operationLink}
+                href="#history"
               >
-                <Button className={styles.operationButton} variant="ghost" disabled={isCritical}>
+                <Button className={styles.operationButton} variant="ghost">
                   <span className={styles.operationText}>{tAuto('key_894f7524')}</span>
                   <History className={styles.operationIcon} />
                 </Button>
@@ -197,12 +196,10 @@ export function AppSidebar({ isCritical = false }: { isCritical?: boolean } = {}
 
             <SheetClose asChild>
               <a
-                className={cn(styles.operationLink, isCritical && 'opacity-40 cursor-not-allowed pointer-events-none')}
-                href={isCritical ? '#' : '#vault'}
-                onClick={(e) => { if (isCritical) e.preventDefault(); }}
+                className={styles.operationLink}
+                href="#vault"
               >
-                <Button className={styles.operationButton} variant="ghost" disabled={isCritical}>
-                  <span className={styles.operationText}>الخزنة</span>
+                <Button className={styles.operationButton} variant="ghost">
                   <span className={styles.operationText}>{tAuto('key_0ae33a07')}</span>
                   <Archive className={styles.operationIcon} />
                 </Button>
@@ -211,12 +208,10 @@ export function AppSidebar({ isCritical = false }: { isCritical?: boolean } = {}
 
             <SheetClose asChild>
               <a
-                className={cn(styles.operationLink, isCritical && 'opacity-40 cursor-not-allowed pointer-events-none')}
-                href={isCritical ? '#' : '#profile'}
-                onClick={(e) => { if (isCritical) e.preventDefault(); }}
+                className={styles.operationLink}
+                href="#profile"
               >
-                <Button className={styles.operationButton} variant="ghost" disabled={isCritical}>
-                  <span className={styles.operationText}>حسابي</span>
+                <Button className={styles.operationButton} variant="ghost">
                   <span className={styles.operationText}>{tAuto('key_f38edfd8')}</span>
                   <User className={styles.operationIcon} />
                 </Button>

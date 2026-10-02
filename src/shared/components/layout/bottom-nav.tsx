@@ -50,21 +50,11 @@ export function BottomNav() {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  const isRestricted =
-    (isPassenger && ['searching', 'busy', 'rating', 'checkpoint_required'].includes(tripStatus)) ||
-    (isCaptain && ['busy', 'rating'].includes(driverStatus));
-
   const handleNavClick = useCallback(
-    (event: React.MouseEvent<HTMLAnchorElement>, targetHref: string) => {
-      if (!isRestricted || targetHref === '#') return;
-      event.preventDefault();
-      toast({
-        variant: 'destructive',
-        title: tAuto('key_2e2149ae'),
-        description: tErrors('activeTripLocked'),
-      });
+    (_event: React.MouseEvent<HTMLAnchorElement>, targetHref: string) => {
+      setHash(targetHref);
     },
-    [isRestricted, tErrors, toast],
+    [],
   );
 
   if (!user || isSovereign) return null;

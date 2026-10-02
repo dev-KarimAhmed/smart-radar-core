@@ -154,11 +154,11 @@ export function useOffersLifecycle(
       cancelRideRequest(supabase, state.requestId!)
         .catch(() => { })
         .finally(() => {
-          toast({
-            variant: 'destructive',
-            title: 'لا يتوفر سائقين الان',
-            description: 'جرب تاني',
-          });
+          // toast({
+          //   variant: 'destructive',
+          //   title: 'لا يتوفر سائقين الان',
+          //   description: 'جرب تاني',
+          // });
           dispatch({ type: 'REQUEST_CANCELLED' });
         });
     }, remainingMs);
@@ -188,7 +188,7 @@ export function useOffersLifecycle(
 
     const onBeforeUnload = () => {
       // Best effort to cancel the request if the rider closes the tab
-      cancelRideRequest(supabase, state.requestId!).catch(() => {});
+      cancelRideRequest(supabase, state.requestId!).catch(() => { });
     };
 
     window.addEventListener('beforeunload', onBeforeUnload);
@@ -269,7 +269,7 @@ export function useOffersLifecycle(
       });
       dispatch({ type: 'SELECT_OFFER', offerId });
     } catch (error) {
-      
+
       if ((process.env.NODE_ENV !== 'production')) console.warn('[Rider Accept Offer]', error);
       toast({
         variant: 'destructive',
@@ -292,7 +292,7 @@ export function useOffersLifecycle(
   }, [dispatch, language, state.requestId, t, toast]);
 
   const reset = React.useCallback(() => {
-    
+
     firstSeenAtRef.current.clear();
     setPreferredCaptainIds([]);
     setExpandedOfferId(null);

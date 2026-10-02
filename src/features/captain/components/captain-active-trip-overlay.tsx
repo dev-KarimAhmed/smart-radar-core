@@ -20,7 +20,7 @@ interface CaptainActiveTripOverlayProps {
   handshakeAt: any;
   isCompleting: boolean;
   isCancelling: boolean;
-  onToggleLanguage: () => void;
+  onToggleLanguage?: () => void;
   onArrived: () => void | Promise<void>;
   onStartTrip: () => void | Promise<void>;
   onCompleteTrip: () => void | Promise<void>;
@@ -28,7 +28,7 @@ interface CaptainActiveTripOverlayProps {
 }
 
 const styles = {
-  tripFocusRoot: "fixed inset-0 z-40 overflow-y-auto bg-[#0B0F19] p-3 text-white sm:p-5",
+  tripFocusRoot: "w-full space-y-3 p-1 text-white",
   tripFocusInner: "mx-auto flex min-h-full w-full max-w-4xl flex-col gap-3",
   tripFocusBar: "flex items-center justify-end gap-2",
   langButton: "inline-flex items-center gap-1.5 rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-2.5 py-2 text-[#14F5D5] transition hover:bg-[#14B8A6]/20 sm:rounded-2xl sm:px-4 sm:py-3",
@@ -64,19 +64,6 @@ export const CaptainActiveTripOverlay = React.memo(function CaptainActiveTripOve
   return (
     <div className={styles.tripFocusRoot} dir={direction} data-captain-trip-focus>
       <div className={styles.tripFocusInner}>
-        <div className={styles.tripFocusBar}>
-          <button
-            type="button"
-            onClick={onToggleLanguage}
-            aria-label={t('switchLanguageAria')}
-            title={t('switchLanguageLabel')}
-            className={styles.langButton}
-          >
-            <Languages className={styles.langIcon} />
-            <span className={styles.langText}>{t('switchLanguageLabel')}</span>
-          </button>
-        </div>
-
         {isOffline || isReconnecting ? (
           <div className={styles.connectionBanner}>
             <WifiOff className={styles.connectionBannerIcon} />

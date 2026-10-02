@@ -48,19 +48,15 @@ export function captainDashboardReducer(
 ): CaptainDashboardState {
   switch (action.type) {
     case 'OPEN_RADAR':
-      if (state.screen === 'ACTIVE_TRIP') return state;
-      return { ...state, screen: 'RADAR_MAP', selectedRequest: null };
+      return { ...state, screen: state.selectedRequest ? 'ACTIVE_TRIP' : 'RADAR_MAP' };
 
     case 'OPEN_WALLET':
-      if (state.screen === 'ACTIVE_TRIP') return state;
       return { ...state, screen: 'WALLET' };
 
     case 'OPEN_PROFILE':
-      if (state.screen === 'ACTIVE_TRIP') return state;
       return { ...state, screen: 'PROFILE' };
 
     case 'OPEN_HISTORY':
-      if (state.screen === 'ACTIVE_TRIP') return state;
       return { ...state, screen: 'HISTORY' };
 
     case 'SELECT_REQUEST':
@@ -81,15 +77,17 @@ export function captainDashboardReducer(
         selectedRequest: null,
       };
 
-    case 'SERVER_ACCEPTED':
+    case 'SERVER_ACCEPTED': {
+      const isSameTrip = state.selectedRequest?.id === action.request.id;
       return {
         ...state,
-        screen: 'ACTIVE_TRIP',
+        screen: isSameTrip && state.screen !== 'RADAR_MAP' && state.screen !== 'BIDDING' ? state.screen : 'ACTIVE_TRIP',
         tripStep: action.step || 'ACCEPTED',
         selectedRequest: action.request,
         submittedOfferRequestId: action.request.id,
         submittedOfferId: action.offerId || state.submittedOfferId,
       };
+    }
 
     case 'CONFIRM_ARRIVAL':
       if (state.screen !== 'ACTIVE_TRIP') return state;
