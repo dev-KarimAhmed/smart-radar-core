@@ -65,11 +65,25 @@ export function useOffersLifecycle(
       const sortedOffers = prioritizeRiderOffers(validOffers, favoriteIds, pricingPreference).slice(0, 9);
 
       const nowTs = Date.now();
+      let hasNewOffer = false;
       for (const offer of sortedOffers) {
         const offerId = offer.id || offer.driverId;
         if (offerId && !firstSeenAtRef.current.has(offerId)) {
           firstSeenAtRef.current.set(offerId, nowTs);
+          hasNewOffer = true;
         }
+      }
+
+      if (hasNewOffer && typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('app-notification', {
+            detail: {
+              title: language === 'ar' ? 'عرض كابتن جديد' : 'New Captain Offer',
+              description: language === 'ar' ? 'وصلك عرض جديد على رحلتك الان' : 'A new offer has arrived for your ride request',
+              type: 'offer',
+            },
+          })
+        );
       }
 
       setPreferredCaptainIds(favoriteIds);

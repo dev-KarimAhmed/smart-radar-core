@@ -120,11 +120,12 @@ export function RiderShell() {
           hash={hash}
           language={dashboardLanguage.language}
           logout={logout}
-          onNotify={() => toast({ title: tAuto('key_a41331b1'), description: tAuto('key_dc8539e4') })}
+          onNotify={() => window.dispatchEvent(new CustomEvent('open-app-notifications'))}
           user={user}
+          isCritical={isCritical}
         />
       ) : null}
-      <header className={styles.header}><AppHeader sidebar={<AppSidebar />} /></header>
+      <header className={styles.header}><AppHeader sidebar={<AppSidebar isCritical={isCritical} />} /></header>
       <main className={cn(styles.main, !isHome && styles.mainShifted, isStandby && styles.mainStandby)}>
         {isStandby ? (
           <div className={styles.adStage}>

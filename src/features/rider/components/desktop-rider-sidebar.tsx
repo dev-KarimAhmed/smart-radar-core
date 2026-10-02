@@ -82,12 +82,14 @@ export function DesktopRiderSidebar({
   logout,
   onNotify,
   user,
+  isCritical = false,
 }: {
   hash: string;
   language: AppLanguage;
   logout: () => void | Promise<void>;
   onNotify: () => void;
   user: { name?: string; phone?: string };
+  isCritical?: boolean;
 }) {
   const tAuto = useTranslations('auto');
   const { isArabic, toggleLanguage } = useDashboardLanguage();
@@ -172,8 +174,22 @@ export function DesktopRiderSidebar({
         <nav className={styles.navigation}>
           {items.map(({ href, icon: Icon, label }) => {
             const active = hash === href || (href === '#' && (hash === '' || hash === '#/'));
+            const isDisabled = isCritical && href !== '#';
             return (
-              <a className={cn(styles.navItem, active ? styles.navActive : styles.navIdle)} href={href} key={href}>
+              <a
+                className={cn(
+                  styles.navItem,
+                  active ? styles.navActive : styles.navIdle,
+                  isDisabled && 'opacity-40 cursor-not-allowed pointer-events-none'
+                )}
+                href={isDisabled ? '#' : href}
+                onClick={(e) => {
+                  if (isDisabled) {
+                    e.preventDefault();
+                  }
+                }}
+                key={href}
+              >
                 <span>{label}</span>
                 <Icon className={styles.navIcon} />
               </a>

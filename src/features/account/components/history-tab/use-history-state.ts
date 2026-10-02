@@ -251,26 +251,28 @@ export function useHistoryState() {
           }
         }
 
-        // 1. Fetch from Supabase remote database
-        try {
-          const { data, error } = await supabase
-            .from('ride_requests')
-            .select(`
-              *,
-              rider:profiles!rider_id(id, full_name, phone, rating),
-              captain:profiles!accepted_captain_id(id, full_name, phone, rating)
-            `)
-            .eq(userColumn, user!.uid)
-            .eq('status', 'COMPLETED')
-            .order('created_at', { ascending: false });
+        // 1. Fetch from Supabase remote database only if ledger rows were empty
+        if (fetchedData.length === 0) {
+          try {
+            const { data, error } = await supabase
+              .from('ride_requests')
+              .select(`
+                *,
+                rider:profiles!rider_id(id, full_name, phone, rating),
+                captain:profiles!accepted_captain_id(id, full_name, phone, rating)
+              `)
+              .eq(userColumn, user!.uid)
+              .eq('status', 'COMPLETED')
+              .order('created_at', { ascending: false });
 
-          if (error) {
-            if (process.env.NODE_ENV !== 'production') console.warn('[HistoryTab query notice]', error.message);
-          } else if (data) {
-            fetchedData = appendUniqueTrips(fetchedData, data);
+            if (error) {
+              if (process.env.NODE_ENV !== 'production') console.warn('[HistoryTab query notice]', error.message);
+            } else if (data) {
+              fetchedData = appendUniqueTrips(fetchedData, data);
+            }
+          } catch (supabaseError) {
+            if ((process.env.NODE_ENV !== 'production')) console.warn('[HistoryTab Supabase Fetch Failed, falling back to local]', supabaseError);
           }
-        } catch (supabaseError) {
-          if ((process.env.NODE_ENV !== 'production')) console.warn('[HistoryTab Supabase Fetch Failed, falling back to local]', supabaseError);
         }
 
         if (fetchedData.length > 0) {

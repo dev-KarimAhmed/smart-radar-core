@@ -194,8 +194,7 @@ export function HistoryRiderTrips({
                   <div className="pt-1">
                     <a
                       href={formatTelUri(trip.captainPhone)}
-                      className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-xl bg-gradient-to-r from-[#14B8A6] to-[#0ea5e9] text-slate-950 font-black text-xs hover:brightness-110 active:scale-[0.98] transition-all shadow-md shadow-teal-500/15"
-                      style={{ textDecoration: 'none' }}
+                      className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-xl bg-gradient-to-r from-[#14B8A6] to-[#0ea5e9] text-slate-950 font-black text-xs hover:brightness-110 active:scale-[0.98] transition-all shadow-md shadow-teal-500/15 no-underline"
                     >
                       <Phone className="h-3.5 w-3.5 stroke-[2.5]" />
                       <span>{t('callCaptain')}</span>

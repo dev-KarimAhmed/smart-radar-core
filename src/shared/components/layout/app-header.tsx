@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useState, type ReactNode } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import {
   Bell,
   Download,
@@ -181,6 +181,13 @@ export function AppHeader({ sidebar }: { sidebar?: ReactNode }) {
   const { isArabic, toggleLanguage } = useDashboardLanguage();
   const { notifications, unreadCount, hasUnread, markAllAsRead } = useNotifications();
   const { isStandalone, canPromptNative, triggerNativeInstall, platformEnv } = usePwaInstall();
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+
+  useEffect(() => {
+    const handleOpen = () => setIsNotificationOpen(true);
+    window.addEventListener('open-app-notifications', handleOpen);
+    return () => window.removeEventListener('open-app-notifications', handleOpen);
+  }, []);
 
   return (
     <div className={styles.root}>
@@ -222,7 +229,7 @@ export function AppHeader({ sidebar }: { sidebar?: ReactNode }) {
               <span className="hidden sm:inline">{isArabic ? 'تثبيت التطبيق' : 'Install App'}</span>
             </Button>
           )}
-          <Popover>
+          <Popover open={isNotificationOpen} onOpenChange={setIsNotificationOpen}>
             <PopoverTrigger asChild>
               <Button
                 size="icon"

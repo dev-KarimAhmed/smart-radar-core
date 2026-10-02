@@ -100,7 +100,7 @@ function RiderFavoriteDrivers() {
   );
 }
 
-export function AppSidebar() {
+export function AppSidebar({ isCritical = false }: { isCritical?: boolean } = {}) {
     const tAuto = useTranslations('auto');
     const t = useTranslations('auto');
   const { logout, user } = useAuth();
@@ -158,16 +158,24 @@ export function AppSidebar() {
           <div className={styles.operations}>
             <div className={styles.sectionTitle}><span className={styles.sectionText}>{tAuto('key_2133ac1c')}</span></div>
             <SheetClose asChild>
-              <a className={styles.operationLink} href="#history">
-                <Button className={styles.operationButton} variant="ghost">
+              <a
+                className={cn(styles.operationLink, isCritical && 'opacity-40 cursor-not-allowed pointer-events-none')}
+                href={isCritical ? '#' : '#history'}
+                onClick={(e) => { if (isCritical) e.preventDefault(); }}
+              >
+                <Button className={styles.operationButton} variant="ghost" disabled={isCritical}>
                   <span className={styles.operationText}>{tAuto('key_894f7524')}</span>
                   <History className={styles.operationIcon} />
                 </Button>
               </a>
             </SheetClose>
             <SheetClose asChild>
-              <a className={styles.operationLink} href="#messages">
-                <Button className={styles.operationButton} variant="ghost">
+              <a
+                className={cn(styles.operationLink, isCritical && 'opacity-40 cursor-not-allowed pointer-events-none')}
+                href={isCritical ? '#' : '#messages'}
+                onClick={(e) => { if (isCritical) e.preventDefault(); }}
+              >
+                <Button className={styles.operationButton} variant="ghost" disabled={isCritical}>
                   <span className={styles.operationText}>{tAuto('key_d9de8840')}</span>
                   <MessageSquare className={styles.operationIcon} />
                 </Button>

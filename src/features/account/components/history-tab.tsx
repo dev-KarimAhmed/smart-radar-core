@@ -60,7 +60,7 @@ export function HistoryTab({ hideCaptainDiagnostics = false }: HistoryTabProps =
     </div>
   );
 
-  if (state.language === 'en' && isPassenger) {
+  if (isPassenger) {
     return (
       <div className={cn(styles.style857_16, !isArabic && "font-sans")} dir={isArabic ? 'rtl' : 'ltr'}>
         <Card className="relative overflow-hidden rounded-3xl border border-[#14B8A6]/20 bg-[#0B0F19]/90 shadow-2xl backdrop-blur-xl text-white">
@@ -75,10 +75,14 @@ export function HistoryTab({ hideCaptainDiagnostics = false }: HistoryTabProps =
                 {t('subtitle')}
               </p>
             </div>
-            <Link href="/" className="shrink-0 flex items-center gap-2 text-xs font-bold text-[#14F5D5] bg-[#14B8A6]/10 px-3 py-2 rounded-xl border border-[#14B8A6]/30 hover:bg-[#14B8A6]/20 transition-all">
+            <button
+              type="button"
+              onClick={() => { window.location.hash = '#'; }}
+              className="shrink-0 flex items-center gap-2 text-xs font-bold text-[#14F5D5] bg-[#14B8A6]/10 px-3 py-2 rounded-xl border border-[#14B8A6]/30 hover:bg-[#14B8A6]/20 transition-all cursor-pointer"
+            >
               {isArabic ? <ArrowRight className="h-4 w-4" /> : <ArrowLeft className="h-4 w-4" />}
               {isArabic ? 'الرادار' : 'Radar'}
-            </Link>
+            </button>
           </CardContent>
         </Card>
 
@@ -114,32 +118,18 @@ export function HistoryTab({ hideCaptainDiagnostics = false }: HistoryTabProps =
               {t('subtitle')}
             </p>
           </div>
-          <Link href="/" className="shrink-0 flex items-center gap-2 text-xs font-bold text-[#14F5D5] bg-[#14B8A6]/10 px-3 py-2 rounded-xl border border-[#14B8A6]/30 hover:bg-[#14B8A6]/20 transition-all">
+          <button
+            type="button"
+            onClick={() => { window.location.hash = '#'; }}
+            className="shrink-0 flex items-center gap-2 text-xs font-bold text-[#14F5D5] bg-[#14B8A6]/10 px-3 py-2 rounded-xl border border-[#14B8A6]/30 hover:bg-[#14B8A6]/20 transition-all cursor-pointer"
+          >
             {isArabic ? <ArrowRight className="h-4 w-4" /> : <ArrowLeft className="h-4 w-4" />}
             {isArabic ? 'الرادار' : 'Radar'}
-          </Link>
+          </button>
         </CardContent>
       </Card>
 
-      {/* 2. Primary Listing */}
-      {isPassenger && (
-        <div className={styles.style1002_63}>
-          <HistoryRiderTrips
-            riderHistoricalTrips={riderHistoricalTrips}
-            loading={loading}
-            favoriteCaptainIds={favoriteCaptainIds}
-            toggleFavorite={toggleFavorite}
-            currencyLabel={currencyLabel}
-            isArabic={isArabic}
-            now={now}
-            tripReviews={tripReviews}
-            t={t}
-          />
-
-          {renderCaptainsWithDivider()}
-        </div>
-      )}
-
+      {/* 2. Captain / Admin Listing */}
       {isCaptain && (
         <div className={styles.style1158_112}>
           <HistoryCaptainTrips
