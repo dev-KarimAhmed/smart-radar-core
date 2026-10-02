@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useTranslations } from 'next-intl';
 import { dexieDb, RadarCaptainFavoriteKernel, type RiderTripLedgerEntry } from '@/lib/dexie-db';
+import { setFavoriteCaptain } from '@/features/account/services/favorite-captains';
 import { HistoricalTrip, FavoriteCaptain } from '../components/dashboard/dashboard-shared';
 
 const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
@@ -145,6 +146,7 @@ export function useRiderDashboardState(
 
     try {
       if (favorite.captainId) {
+        void setFavoriteCaptain(favorite.captainId, false).catch(() => {});
         localStorage.removeItem(`radar_preferred_captain_${favorite.captainId}`);
       }
       localStorage.removeItem(`radar_preferred_captain_${favorite.tripId}`);
@@ -167,6 +169,10 @@ export function useRiderDashboardState(
       if (existing) {
         await removeFavorite({ ...(existing as FavoriteCaptain), ...trip });
         return;
+      }
+
+      if (trip.captainId) {
+        void setFavoriteCaptain(trip.captainId, true).catch(() => {});
       }
 
       const captainType =
