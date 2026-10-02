@@ -24,20 +24,27 @@ export interface LiveGeolocationResult {
  */
 const MIN_GPS_DISTANCE_CHANGE_DEG = 0.00008;
 const LAST_KNOWN_LOCATION_STORAGE_KEY = 'smart_radar_last_known_location';
+const GPS_STORAGE_KEY = 'radar_last_known_gps';
 
 function isDummyCairo(lat: number, lng: number): boolean {
   return Math.abs(lat - 30.0444) < 0.001 && Math.abs(lng - 31.2357) < 0.001;
 }
 
-const GPS_STORAGE_KEY = 'radar_last_known_gps';
-
 let cachedLastKnownLocation: LiveGeolocationPoint | null = (() => {
   if (typeof window !== 'undefined') {
     try {
-      const saved = window.localStorage.getItem(GPS_STORAGE_KEY);
+      const saved = window.localStorage.getItem(GPS_STORAGE_KEY) || window.localStorage.getItem(LAST_KNOWN_LOCATION_STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (parsed && typeof parsed.lat === 'number' && typeof parsed.lng === 'number' && parsed.lat !== 0) {
+        if (
+          parsed &&
+          typeof parsed.lat === 'number' &&
+          typeof parsed.lng === 'number' &&
+          Number.isFinite(parsed.lat) &&
+          Number.isFinite(parsed.lng) &&
+          (parsed.lat !== 0 || parsed.lng !== 0) &&
+          !isDummyCairo(parsed.lat, parsed.lng)
+        ) {
           return parsed;
         }
       }
@@ -52,7 +59,7 @@ export function getLastKnownLocation(): LiveGeolocationPoint | null {
   }
   if (typeof window !== 'undefined') {
     try {
-      const stored = window.localStorage.getItem(LAST_KNOWN_LOCATION_STORAGE_KEY);
+      const stored = window.localStorage.getItem(GPS_STORAGE_KEY) || window.localStorage.getItem(LAST_KNOWN_LOCATION_STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
         if (
@@ -78,10 +85,11 @@ export function getLastKnownLocation(): LiveGeolocationPoint | null {
 export function useLiveGeolocation({ fallbackLocation }: { fallbackLocation: LiveGeolocationPoint }): LiveGeolocationResult {
   const cleanupWatchRef = React.useRef<(() => void) | null>(null);
   const lastCoordsRef = React.useRef<LiveGeolocationPoint | null>(null);
+  const initialSaved = getLastKnownLocation();
   const [location, setLocation] = React.useState<LiveGeolocationPoint>(
     initialSaved || fallbackLocation
   );
-  const [status, setStatus] = React.useState<LiveGeolocationStatus>('locating');
+  const [status, setStatus] = React.useState<LiveGeolocationStatus>(initialSaved ? 'live' : 'locating');
   const fallbackLat = fallbackLocation.lat;
   const fallbackLng = fallbackLocation.lng;
 
@@ -95,9 +103,12 @@ export function useLiveGeolocation({ fallbackLocation }: { fallbackLocation: Liv
       const newPoint = { lat: nextLat, lng: nextLng };
       lastCoordsRef.current = newPoint;
       cachedLastKnownLocation = newPoint;
-      try {
-        window.localStorage.setItem(GPS_STORAGE_KEY, JSON.stringify(newPoint));
-      } catch {}
+      if (!isDummyCairo(nextLat, nextLng) && typeof window !== 'undefined') {
+        try {
+          window.localStorage.setItem(LAST_KNOWN_LOCATION_STORAGE_KEY, JSON.stringify(newPoint));
+          window.localStorage.setItem(GPS_STORAGE_KEY, JSON.stringify(newPoint));
+        } catch {}
+      }
       setLocation(newPoint);
       setStatus('live');
     } else {
@@ -145,20 +156,7 @@ export function useLiveGeolocation({ fallbackLocation }: { fallbackLocation: Liv
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
         didResolve = true;
-        setStatus('live');
-
-        if (
-          !last ||
-          Math.abs(nextLat - last.lat) > MIN_GPS_DISTANCE_CHANGE_DEG ||
-          Math.abs(nextLng - last.lng) > MIN_GPS_DISTANCE_CHANGE_DEG
-        ) {
-          lastCoordsRef.current = { lat: nextLat, lng: nextLng };
-          cachedLastKnownLocation = lastCoordsRef.current;
-          setLocation({
-            lat: nextLat,
-            lng: nextLng,
-          });
-        }
+        updateLocation(position.coords.latitude, position.coords.longitude);
       },
       (error) => {
         if (!didResolve && !cachedLastKnownLocation) {
@@ -191,3 +189,4 @@ export function useLiveGeolocation({ fallbackLocation }: { fallbackLocation: Liv
 
   return { location, status, refresh };
 }
+
