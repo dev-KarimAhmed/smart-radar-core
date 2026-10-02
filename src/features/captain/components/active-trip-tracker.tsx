@@ -239,8 +239,6 @@ export function ActiveTripTracker({
           {request.pickupGoogleMapsUrl ? (
             <a
               href={request.pickupGoogleMapsUrl}
-              target="_blank"
-              rel="noreferrer"
               className={styles.pickupCardLink}
             >
               <ExternalLink className={styles.pickupCardLinkIcon} aria-hidden="true" />

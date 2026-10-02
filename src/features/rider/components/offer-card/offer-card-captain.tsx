@@ -113,8 +113,6 @@ export function OfferCardCaptain({
                 {whatsappUrl ? (
                   <a
                     href={formatExternalLink(whatsappUrl)}
-                    target="_blank"
-                    rel="noreferrer"
                     className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-3 text-xs font-black text-emerald-300 transition hover:border-emerald-500/45 hover:bg-emerald-500/20"
                   >
                     <MessageCircle className="h-4 w-4" />

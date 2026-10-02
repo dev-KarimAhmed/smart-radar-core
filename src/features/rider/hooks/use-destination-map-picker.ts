@@ -50,13 +50,13 @@ export function useDestinationMapPicker(params: {
         isArabic ? countryConfig?.name_ar || countryConfig?.name_en : countryConfig?.name_en || countryConfig?.name_ar,
       ].filter(Boolean);
       const query = queryParts.join(', ') || trimmedQuery;
-      window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`, '_blank', 'noopener,noreferrer');
+      window.location.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
       return;
     }
 
     // When no search query is typed, open Google Maps centered on the rider's actual GPS location
     if (riderLocation && isValidCoord(riderLocation.lat) && isValidCoord(riderLocation.lng)) {
-      window.open(`https://www.google.com/maps/@${riderLocation.lat},${riderLocation.lng},16z`, '_blank', 'noopener,noreferrer');
+      window.location.href = `https://www.google.com/maps/@${riderLocation.lat},${riderLocation.lng},16z`;
       return;
     }
 
@@ -68,12 +68,12 @@ export function useDestinationMapPicker(params: {
       ].filter(Boolean);
       const query = queryParts.join(', ');
       if (query) {
-        window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`, '_blank', 'noopener,noreferrer');
+        window.location.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
         return;
       }
     }
 
-    window.open('https://www.google.com/maps', '_blank', 'noopener,noreferrer');
+    window.location.href = 'https://www.google.com/maps';
   }, [countryConfig, destinationSearchQuery, isArabic, riderLocation, selectedDistrict, setDestinationSearchResults, setDestinationSearchStatus]);
 
   return { handleOpenGoogleMapsSearch };

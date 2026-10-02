@@ -43,7 +43,7 @@ const styles = {
   header: 'sticky top-0 z-[100] w-full shrink-0 lg:hidden',
   main: 'relative flex w-full flex-1 flex-col overflow-y-visible lg:h-screen lg:min-h-0 lg:overflow-hidden',
   mainShifted: 'lg:ps-[288px]',
-  mainStandby: 'h-[calc(100vh-120px)] overflow-hidden',
+  mainStandby: 'h-[calc(100dvh-120px)] overflow-hidden',
   adStage: 'relative z-[80] flex w-full flex-1 flex-col border-b-2 border-[#14B8A6]/20 shadow-[0_10px_30px_rgba(20,184,166,0.08)]',
   content: 'w-full flex-1 p-4 md:p-8',
   recoveryPrompt: 'absolute top-4 start-4 end-4 z-[200] empty:hidden lg:start-[320px] lg:end-8',

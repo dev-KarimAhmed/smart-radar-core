@@ -123,8 +123,6 @@ export function DestinationConfirmedLocationCard({
         <div className={styles.detailsBody}>
           <a
             href={externalLocationUrl}
-            target="_blank"
-            rel="noopener noreferrer"
             dir="ltr"
             aria-label={locationCopy('btn_open_google_maps')}
             title={locationCopy('btn_open_google_maps')}

@@ -14,7 +14,12 @@ export const triggerHaptic = (type: 'light' | 'heavy' = 'light') => {
 export const handleAdAction = (actionUrl: string | undefined) => {
   if (!actionUrl) return;
 
-  if (actionUrl.startsWith('tel:') || actionUrl.startsWith('https://wa.me/')) {
+  const isDeepOrMapLink =
+    actionUrl.startsWith('tel:') ||
+    actionUrl.startsWith('https://wa.me/') ||
+    /maps|google\.com\/maps|goo\.gl/i.test(actionUrl);
+
+  if (isDeepOrMapLink) {
     window.location.href = actionUrl;
   } else if (actionUrl.startsWith('http')) {
     window.open(actionUrl, '_blank', 'noopener,noreferrer');

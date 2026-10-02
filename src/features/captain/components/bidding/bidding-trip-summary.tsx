@@ -85,8 +85,6 @@ export function BiddingTripSummary({ request, language, pickupEtaMinutes }: Bidd
           {request.pickupGoogleMapsUrl ? (
             <a
               href={request.pickupGoogleMapsUrl}
-              target="_blank"
-              rel="noreferrer"
               className={styles.pickupCardLink}
             >
               <ExternalLink className={styles.pickupCardLinkIcon} aria-hidden="true" />

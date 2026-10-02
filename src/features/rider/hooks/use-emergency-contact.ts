@@ -78,14 +78,7 @@ export function useEmergencyContact(userId: string | undefined, tripContext: Eme
     ].filter(Boolean).join(' ');
 
     const message = encodeURIComponent(t('emergency.message') || defaultMessage);
-    const opened = window.open(`https://wa.me/${whatsapp}?text=${message}`, '_blank', 'noopener,noreferrer');
-    if (!opened) {
-      toast({
-        variant: 'destructive',
-        title: t('emergency.unavailableTitle'),
-        description: t('emergency.unavailableDescription'),
-      });
-    }
+    window.location.href = `https://wa.me/${whatsapp}?text=${message}`;
   }, [emergencyWhatsappContact, t, toast, tripContext.captainName, tripContext.destinationLabel, tripContext.requestId]);
 
   return {

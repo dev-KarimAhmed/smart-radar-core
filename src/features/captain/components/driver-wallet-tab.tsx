@@ -408,8 +408,6 @@ export function DriverWalletTab({ user, language, isFlightActive = false }: Driv
               </a>
               <a
                 href={`https://wa.me/${districtPaymentInfo.delegatePhone}`}
-                target="_blank"
-                rel="noopener noreferrer"
                 className={styles.style180_2}
               >
                 <MessageCircle className={styles.style181_1} />
