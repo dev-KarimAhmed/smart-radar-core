@@ -440,7 +440,7 @@ export function extractGoogleMapsPlaceName(value: string): string | null {
       if (lastNamedSegment) return decodeGoogleMapsPathSegment(lastNamedSegment);
     }
 
-    const qParam = url.searchParams.get('q') || url.searchParams.get('query') || url.searchParams.get('destination');
+    const qParam = url.searchParams.get('q') || url.searchParams.get('query') || url.searchParams.get('destination') || url.searchParams.get('daddr');
     if (qParam && !isCoordinatePairSegment(qParam)) {
       return decodeGoogleMapsPathSegment(qParam);
     }
