@@ -68,11 +68,12 @@ export function useServerFareAndRoute(params: {
    * charged for a trip starting in downtown Cairo. `locationStatus` already knew the
    * difference; nothing was asking it.
    */
+  const isDummyCairo = Math.abs(riderLocation.lat - 30.0444) < 0.001 && Math.abs(riderLocation.lng - 31.2357) < 0.001;
   const hasUsableRiderLocation =
     Number.isFinite(riderLocation.lat) &&
     Number.isFinite(riderLocation.lng) &&
     (riderLocation.lat !== 0 || riderLocation.lng !== 0) &&
-    riderLocationStatus !== 'fallback';
+    (!isDummyCairo || riderLocationStatus === 'live');
   const isRouteEstimateLoading =
     !!selectedDestinationCoords &&
     (!hasUsableRiderLocation || routeEstimateState.key !== fareRequestKey || routeEstimateState.isLoading || isDestinationPinMoving);

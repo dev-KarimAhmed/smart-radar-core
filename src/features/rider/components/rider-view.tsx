@@ -8,6 +8,7 @@ import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { useActiveTripReloadGuard } from '@/shared/hooks/use-active-trip-reload-guard';
 import { useRiderDashboardMachine } from '../state/rider-state-machine';
 import { useRiderGeolocation } from '../hooks/use-rider-geolocation';
+import { getLastKnownLocation } from '@/shared/hooks/use-live-geolocation';
 import { useCaptainPresence } from '../hooks/use-captain-presence';
 import { useEmergencyContact } from '../hooks/use-emergency-contact';
 import { useCountryConfig } from '../hooks/use-country-config';
@@ -36,7 +37,11 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
   const { state, dispatch, showAdRiver } = useRiderDashboardMachine();
   useActiveTripReloadGuard(Boolean(state.requestId) && (state.screen === 'RECEIVING_OFFERS' || state.screen === 'TRIP_ACTIVE'));
 
-  const activeCountryId = user?.countryId;
+  const lastKnown = getLastKnownLocation();
+  const isInitialJordanCoords = lastKnown
+    ? lastKnown.lat >= 29.0 && lastKnown.lat <= 33.5 && lastKnown.lng >= 34.5 && lastKnown.lng <= 39.5
+    : false;
+  const activeCountryId = user?.countryId ?? (isInitialJordanCoords ? 1 : undefined);
   const countryConfig = useCountryConfig(activeCountryId);
   const geolocation = useRiderGeolocation(language, getCountryDefaultCenter(countryConfig));
   const captainPresence = useCaptainPresence(user?.uid, activeCountryId, geolocation.riderH3Cell);
@@ -57,8 +62,13 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
 
   const tripCompletion = useTripCompletion(state, dispatch, user?.uid);
   const offers = useOffersLifecycle(state, dispatch, language, tripCompletion.pricingPreference);
+  const effectiveCountryId = activeCountryId ?? (
+    geolocation.riderLocation.lat >= 29.0 && geolocation.riderLocation.lat <= 33.5 &&
+    geolocation.riderLocation.lng >= 34.5 && geolocation.riderLocation.lng <= 39.5 ? 1 : undefined
+  );
   const fareAndRoute = useServerFareAndRoute({
-    activeCountryId,
+    activeCountryId: effectiveCountryId,
+    trafficFactor: countryConfig?.traffic_factor,
     riderLocation: geolocation.riderLocation,
     riderLocationStatus: geolocation.locationStatus,
     selectedDestinationCoords: destination.selectedDestinationCoords,
