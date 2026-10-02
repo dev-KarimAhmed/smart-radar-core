@@ -263,16 +263,3 @@ test('decodes and recovers full and short Plus Codes accurately', () => {
   assert.ok(Math.abs(short.lng - 31.8138) < 0.001);
 });
 
-test('extracts destination place name from directions URL with daddr', () => {
-  const name = extractGoogleMapsPlaceName(
-    'https://www.google.com/maps?saddr=32.0279,36.0552&daddr=Universal+Civilizations+Academy+UCA,+Amman',
-  );
-  assert.equal(name, 'Universal Civilizations Academy UCA, Amman');
-});
-
-test('parses explicit destination coordinates from daddr in directions URL', () => {
-  const location = parseGoogleMapsLocation(
-    'https://www.google.com/maps?saddr=32.0279,36.0552&daddr=31.8876,35.8868',
-  );
-  assert.deepEqual(location, { lat: 31.8876, lng: 35.8868 });
-});

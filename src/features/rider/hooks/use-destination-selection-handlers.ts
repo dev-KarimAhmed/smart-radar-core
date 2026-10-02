@@ -32,7 +32,7 @@ export function useDestinationSelectionHandlers(params: {
     clipboard.clearExternalLocationContext();
     geography.setDraftDestinationId(districtId);
     const district = geography.destinationDistricts.find((item) => item.id === districtId);
-    pin.setDestinationPinLocation(district?.anchor || null);
+    pin.setDestinationPinLocation(null);
     pin.setDestinationFlyToTarget(district?.anchor || null);
     search.reset();
     setIsCaptainScanPreviewActive(false);

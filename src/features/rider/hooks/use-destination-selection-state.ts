@@ -47,8 +47,7 @@ export function useDestinationSelectionState(params: {
       Number.isFinite(riderLocation.lng) &&
       (riderLocation.lat !== 0 || riderLocation.lng !== 0)
     ) {
-      const isDummyCairo = Math.abs(riderLocation.lat - 30.0444) < 0.001 && Math.abs(riderLocation.lng - 31.2357) < 0.001;
-      if (riderLocationStatus === 'live' || (!pin.destinationPinLocation && !isDummyCairo)) {
+      if (riderLocationStatus === 'live' || !pin.destinationPinLocation) {
         pin.setDestinationPinLocation(riderLocation);
       }
     }
@@ -59,11 +58,6 @@ export function useDestinationSelectionState(params: {
     pin.handleDestinationPinChange(location);
   }, [pin]);
 
-  const setExplicitDestinationPinLocation: React.Dispatch<React.SetStateAction<RiderLocation | null>> = React.useCallback((action) => {
-    hasUserMovedPinRef.current = true;
-    pin.setDestinationPinLocation(action);
-  }, [pin]);
-
   const resetPin = React.useCallback(() => {
     hasUserMovedPinRef.current = false;
     pin.reset();
@@ -72,9 +66,8 @@ export function useDestinationSelectionState(params: {
   const wrappedPin = React.useMemo(() => ({
     ...pin,
     handleDestinationPinChange,
-    setDestinationPinLocation: setExplicitDestinationPinLocation,
     reset: resetPin,
-  }), [pin, handleDestinationPinChange, setExplicitDestinationPinLocation, resetPin]);
+  }), [pin, handleDestinationPinChange, resetPin]);
 
   // Recenter the pin to its anchor only when an external location is imported (google:*),
   // never on initial mount so a distant district is never preselected as a destination.
@@ -124,7 +117,7 @@ export function useDestinationSelectionState(params: {
     selectedGovernorateId: geography.selectedGovernorateId,
     selectedDistrict: geography.selectedDistrict,
     profileFallbackLocation,
-    setDestinationPinLocation: wrappedPin.setDestinationPinLocation,
+    setDestinationPinLocation: pin.setDestinationPinLocation,
     setDestinationFlyToTarget: pin.setDestinationFlyToTarget,
     setIsDestinationPinMoving: pin.setIsDestinationPinMoving,
     setIsCaptainScanPreviewActive,
@@ -142,7 +135,7 @@ export function useDestinationSelectionState(params: {
     geography,
     setDestinationSearchQuery: search.setDestinationSearchQuery,
     setDestinationSearchResults: search.setDestinationSearchResults,
-    setDestinationPinLocation: wrappedPin.setDestinationPinLocation,
+    setDestinationPinLocation: pin.setDestinationPinLocation,
     setDestinationFlyToTarget: pin.setDestinationFlyToTarget,
     setIsDestinationPinMoving: pin.setIsDestinationPinMoving,
     setIsCaptainScanPreviewActive,
@@ -150,7 +143,7 @@ export function useDestinationSelectionState(params: {
   });
   const selectionHandlers = useDestinationSelectionHandlers({
     geography,
-    pin: wrappedPin,
+    pin,
     search,
     clipboard,
     setIsCaptainScanPreviewActive,

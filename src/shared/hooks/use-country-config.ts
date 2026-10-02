@@ -18,26 +18,18 @@ export interface CountryCurrencyConfig {
   traffic_factor?: number | null;
 }
 
-const countryConfigCache = new Map<number, CountryCurrencyConfig>();
-
 /** Fetches the account's country name/currency config from Supabase. */
 export function useCountryConfig(activeCountryId: number | undefined) {
-  const countryId = Number(activeCountryId);
-  const validCountryId = Number.isInteger(countryId) && countryId > 0 ? countryId : undefined;
-  const [countryConfig, setCountryConfig] = React.useState<CountryCurrencyConfig | null>(() => {
-    return validCountryId ? countryConfigCache.get(validCountryId) ?? null : null;
-  });
+  const [countryConfig, setCountryConfig] = React.useState<CountryCurrencyConfig | null>(null);
 
   React.useEffect(() => {
     let active = true;
-    if (typeof validCountryId !== 'number') {
-      setCountryConfig(null);
-      return;
-    }
-    const resolvedId: number = validCountryId;
+    const countryId = Number(activeCountryId);
 
-    if (countryConfigCache.has(resolvedId)) {
-      setCountryConfig(countryConfigCache.get(resolvedId)!);
+    setCountryConfig(null);
+
+    if (!Number.isInteger(countryId) || countryId <= 0) {
+      return;
     }
 
     async function fetchCountryCurrency() {
@@ -45,14 +37,10 @@ export function useCountryConfig(activeCountryId: number | undefined) {
         const { data, error } = await supabase
           .from('countries')
           .select('id,name_ar,name_en,currency_ar,currency_en,default_lat,default_lng,iso_code,traffic_factor')
-          .eq('id', resolvedId)
+          .eq('id', countryId)
           .single();
         if (error) throw error;
-        if (active && data) {
-          const config = data as CountryCurrencyConfig;
-          countryConfigCache.set(resolvedId, config);
-          setCountryConfig(config);
-        }
+        if (active) setCountryConfig(data as CountryCurrencyConfig);
       } catch (error) {
         if (!active) return;
         if ((process.env.NODE_ENV !== 'production')) console.warn('[Supabase Country Currency Fetch]', error);
