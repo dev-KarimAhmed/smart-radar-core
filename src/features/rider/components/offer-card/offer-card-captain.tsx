@@ -92,7 +92,7 @@ export function OfferCardCaptain({
                   <a
                     href={formatExternalLink(facebookUrl)}
                     target="_blank"
-                    rel="noreferrer"
+                    rel="noopener noreferrer"
                     className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-blue-500/25 bg-blue-500/10 px-3 text-xs font-black text-blue-300 transition hover:border-blue-500/45 hover:bg-blue-500/20"
                   >
                     <Facebook className="h-4 w-4" />
@@ -103,7 +103,7 @@ export function OfferCardCaptain({
                   <a
                     href={formatExternalLink(instagramUrl)}
                     target="_blank"
-                    rel="noreferrer"
+                    rel="noopener noreferrer"
                     className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-pink-500/25 bg-pink-500/10 px-3 text-xs font-black text-pink-300 transition hover:border-pink-500/45 hover:bg-pink-500/20"
                   >
                     <Instagram className="h-4 w-4" />
@@ -123,7 +123,7 @@ export function OfferCardCaptain({
                   <a
                     href={formatExternalLink(contactUrl)}
                     target="_blank"
-                    rel="noreferrer"
+                    rel="noopener noreferrer"
                     className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-3 text-xs font-black text-[#14F5D5] transition hover:border-[#14B8A6]/50 hover:bg-[#14B8A6]/20"
                   >
                     <ExternalLink className="h-4 w-4" />

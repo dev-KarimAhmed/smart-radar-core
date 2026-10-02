@@ -1,13 +1,14 @@
 'use client';
 
-import { Clock, Heart, History, LogOut, MessageSquare, ShieldCheck, UserCircle, X } from 'lucide-react';
+import { Archive, Bell, Clock, Heart, History, LogOut, ShieldCheck, User, UserCircle, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { SheetClose } from '@/components/ui/sheet';
 import { useAuth } from '@/hooks/use-auth';
 import { calculateRiderRank } from '@/core/utils';
-import { cn } from '@/lib/utils';
+import { cn, formatTelUri } from '@/lib/utils';
+import { useNotifications } from '@/shared/hooks/use-notifications';
 import { useRiderSidebarRadar } from '../hooks/use-rider-sidebar-radar';
 import { useTranslations } from "next-intl";
 
@@ -104,6 +105,7 @@ export function AppSidebar({ isCritical = false }: { isCritical?: boolean } = {}
     const tAuto = useTranslations('auto');
     const t = useTranslations('auto');
   const { logout, user } = useAuth();
+  const { hasUnread } = useNotifications();
 
   if (!user || user.role !== 'rider') return null;
 
@@ -148,7 +150,7 @@ export function AppSidebar({ isCritical = false }: { isCritical?: boolean } = {}
               </div>
               <p className={styles.bufferBody}>{tAuto('key_771c5823')}</p>
               <Button asChild className={styles.bufferCall} size="sm" variant="outline">
-                <a href={`tel:${user.lastTripBuffer.driverPhone}`}>
+                <a href={formatTelUri(user.lastTripBuffer.driverPhone)}>
                   {tAuto('key_3b04938d')} {user.lastTripBuffer.driverName}
                 </a>
               </Button>
@@ -157,6 +159,29 @@ export function AppSidebar({ isCritical = false }: { isCritical?: boolean } = {}
 
           <div className={styles.operations}>
             <div className={styles.sectionTitle}><span className={styles.sectionText}>{tAuto('key_2133ac1c')}</span></div>
+            
+            {/* Notification Trigger with Pulsing Badge */}
+            <SheetClose asChild>
+              <Button
+                className={styles.operationButton}
+                variant="ghost"
+                onClick={() => window.dispatchEvent(new CustomEvent('open-app-notifications'))}
+              >
+                <div className="relative flex items-center justify-between w-full">
+                  <span className={styles.operationText}>{tAuto('key_d9de8840')}</span>
+                  <div className="relative flex items-center gap-2">
+                    <Bell className={styles.operationIcon} />
+                    {hasUnread && (
+                      <span className="relative flex h-2.5 w-2.5">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75" />
+                        <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-rose-500" />
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </Button>
+            </SheetClose>
+
             <SheetClose asChild>
               <a
                 className={cn(styles.operationLink, isCritical && 'opacity-40 cursor-not-allowed pointer-events-none')}
@@ -169,15 +194,29 @@ export function AppSidebar({ isCritical = false }: { isCritical?: boolean } = {}
                 </Button>
               </a>
             </SheetClose>
+
             <SheetClose asChild>
               <a
                 className={cn(styles.operationLink, isCritical && 'opacity-40 cursor-not-allowed pointer-events-none')}
-                href={isCritical ? '#' : '#messages'}
+                href={isCritical ? '#' : '#vault'}
                 onClick={(e) => { if (isCritical) e.preventDefault(); }}
               >
                 <Button className={styles.operationButton} variant="ghost" disabled={isCritical}>
-                  <span className={styles.operationText}>{tAuto('key_d9de8840')}</span>
-                  <MessageSquare className={styles.operationIcon} />
+                  <span className={styles.operationText}>الخزنة</span>
+                  <Archive className={styles.operationIcon} />
+                </Button>
+              </a>
+            </SheetClose>
+
+            <SheetClose asChild>
+              <a
+                className={cn(styles.operationLink, isCritical && 'opacity-40 cursor-not-allowed pointer-events-none')}
+                href={isCritical ? '#' : '#profile'}
+                onClick={(e) => { if (isCritical) e.preventDefault(); }}
+              >
+                <Button className={styles.operationButton} variant="ghost" disabled={isCritical}>
+                  <span className={styles.operationText}>حسابي</span>
+                  <User className={styles.operationIcon} />
                 </Button>
               </a>
             </SheetClose>

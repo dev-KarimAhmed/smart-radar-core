@@ -408,7 +408,7 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, pr
                       className={styles.style263_16}
                       onOpen={(event: React.MouseEvent) => {
                         event.stopPropagation();
-                        window.open(professionalAd.actionUrl, '_blank');
+                        window.open(professionalAd.actionUrl, '_blank', 'noopener,noreferrer');
                       }}
                     />
                   )}
@@ -432,7 +432,7 @@ export function DriverPricingCard({ mode, tripDistance = 0, tripDuration = 0, pr
                       </div>
 
                       <Button
-                        onClick={() => window.open(professionalAd.actionUrl, '_blank')}
+                        onClick={() => window.open(professionalAd.actionUrl, '_blank', 'noopener,noreferrer')}
                         className={styles.style291_23}
                       >
                         <MessageCircle className={styles.style293_24} />

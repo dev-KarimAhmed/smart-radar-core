@@ -15,7 +15,7 @@ import {
   X,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { cn } from '@/lib/utils';
+import { cn, formatTelUri } from '@/lib/utils';
 import { formatMoney, isTripStartedStatus } from '../services/rider-view-format';
 import { resolveColorDisplayName } from '@/shared/services/color-name';
 import type { RiderActiveTrip } from '../state/rider-state-machine';
@@ -233,7 +233,7 @@ export function TripActiveScreen({
       <div className="space-y-2.5 pt-1">
         {/* زر الاتصال بالكابتن بعرض الكارد بالكامل */}
         <a
-          href={captainPhone ? `tel:${captainPhone}` : '#'}
+          href={captainPhone ? formatTelUri(captainPhone) : '#'}
           onClick={(e) => {
             if (!captainPhone) {
               e.preventDefault();
@@ -278,7 +278,7 @@ export function TripActiveScreen({
               <a
                 href={activeTrip.captain.facebook_url}
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
                 className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-slate-300 hover:text-white hover:bg-white/10 transition-colors"
                 title="Facebook"
               >
@@ -289,7 +289,7 @@ export function TripActiveScreen({
               <a
                 href={activeTrip.captain.instagram_url}
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
                 className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-slate-300 hover:text-white hover:bg-white/10 transition-colors"
                 title="Instagram"
               >

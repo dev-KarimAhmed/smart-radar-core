@@ -436,7 +436,7 @@ export function BiddingOfferStepper({
           className={styles.professionalAdCard}
           onOpen={(event: React.MouseEvent) => {
             event.stopPropagation();
-            window.open(professionalAd.actionUrl, '_blank');
+            window.open(professionalAd.actionUrl, '_blank', 'noopener,noreferrer');
           }}
         />
       ) : null}
