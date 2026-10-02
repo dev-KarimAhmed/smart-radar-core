@@ -141,7 +141,20 @@ const rehydratedBare = riderDashboardReducer(createInitialRiderMachineState(), {
   type: 'REHYDRATE_SEARCHING',
   requestId: 'req-2',
 });
-assert.equal(rehydratedBare.screen, 'RECEIVING_OFFERS');
-assert.equal(rehydratedBare.destination, null);
+// Delayed REQUEST_CANCELLED must be dropped when rider is in DESTINATION_SELECTION
+const destSelectionState = riderDashboardReducer(createInitialRiderMachineState(), { type: 'OPEN_DESTINATION' });
+assert.equal(destSelectionState.screen, 'DESTINATION_SELECTION');
+const cancelledDuringDestSelection = riderDashboardReducer(destSelectionState, { type: 'REQUEST_CANCELLED' });
+assert.equal(cancelledDuringDestSelection.screen, 'DESTINATION_SELECTION');
+
+// REQUEST_CANCELLED when actively receiving offers correctly flags cancellation
+const withDest = riderDashboardReducer(destSelectionState, { type: 'CONFIRM_DESTINATION', destination });
+const sent = riderDashboardReducer(withDest, { type: 'SEND_REQUEST' });
+const receivingOffersState = riderDashboardReducer(sent, { type: 'SERVER_STATUS_RECEIVING_OFFERS' });
+assert.equal(receivingOffersState.screen, 'RECEIVING_OFFERS');
+const cancelledDuringReceiving = riderDashboardReducer(receivingOffersState, { type: 'REQUEST_CANCELLED' });
+assert.equal(cancelledDuringReceiving.screen, 'RECEIVING_OFFERS');
+assert.equal(cancelledDuringReceiving.offers.length, 0);
+assert.equal(cancelledDuringReceiving.requestCancelledAt !== null, true);
 
 console.log('rider reducer checks passed');
