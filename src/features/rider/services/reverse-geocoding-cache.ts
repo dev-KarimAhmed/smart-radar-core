@@ -38,6 +38,23 @@ export async function reverseGeocodeCoordinates(
     return { address: cached.address, displayName: cached.displayName, display_name: cached.display_name };
   }
 
+  // Check persistent storage fallback across page reloads
+  if (typeof window !== 'undefined') {
+    try {
+      const persisted = localStorage.getItem(`smart_radar_geo_${key}`);
+      if (persisted) {
+        const parsed = JSON.parse(persisted) as CachedGeocode;
+        if (now - parsed.timestamp < CACHE_TTL_MS) {
+          cache.set(key, parsed);
+          return { address: parsed.address, displayName: parsed.displayName, display_name: parsed.display_name };
+        }
+        localStorage.removeItem(`smart_radar_geo_${key}`);
+      }
+    } catch {
+      // LocalStorage access errors ignored
+    }
+  }
+
   const existingInFlight = inFlightRequests.get(key);
   if (existingInFlight) {
     return existingInFlight;
@@ -47,7 +64,12 @@ export async function reverseGeocodeCoordinates(
     try {
       const response = await fetch(
         `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=${language}`,
-        { headers: { Accept: 'application/json' } },
+        {
+          headers: {
+            Accept: 'application/json',
+            'User-Agent': 'SmartRadar/1.0 (contact@smartradar.jo)',
+          },
+        },
       );
 
       if (!response.ok) {
@@ -65,6 +87,15 @@ export async function reverseGeocodeCoordinates(
         timestamp: Date.now(),
       };
       cache.set(key, entry);
+
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem(`smart_radar_geo_${key}`, JSON.stringify(entry));
+        } catch {
+          // Quota exceeded ignored
+        }
+      }
+
       return { address, displayName, display_name: displayName };
     } finally {
       inFlightRequests.delete(key);
