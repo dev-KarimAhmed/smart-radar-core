@@ -188,7 +188,7 @@ export function OfferCard({
                 className={styles.style207_36}
                 onOpen={(event) => {
                   event.stopPropagation();
-                  window.open(benefitAd.actionUrl, '_blank');
+                  window.open(benefitAd.actionUrl, '_blank', 'noopener,noreferrer');
                 }}
               />
             )}

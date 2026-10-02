@@ -1,6 +1,6 @@
 'use client';
 
-import { Clock, Heart, History, LogOut, MessageSquare, ShieldCheck, UserCircle, X } from 'lucide-react';
+import { Archive, Clock, Heart, History, LogOut, ShieldCheck, User, UserCircle, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -172,12 +172,24 @@ export function AppSidebar({ isCritical = false }: { isCritical?: boolean } = {}
             <SheetClose asChild>
               <a
                 className={cn(styles.operationLink, isCritical && 'opacity-40 cursor-not-allowed pointer-events-none')}
-                href={isCritical ? '#' : '#messages'}
+                href={isCritical ? '#' : '#vault'}
                 onClick={(e) => { if (isCritical) e.preventDefault(); }}
               >
                 <Button className={styles.operationButton} variant="ghost" disabled={isCritical}>
-                  <span className={styles.operationText}>{tAuto('key_d9de8840')}</span>
-                  <MessageSquare className={styles.operationIcon} />
+                  <span className={styles.operationText}>{tAuto('key_0ae33a07')}</span>
+                  <Archive className={styles.operationIcon} />
+                </Button>
+              </a>
+            </SheetClose>
+            <SheetClose asChild>
+              <a
+                className={cn(styles.operationLink, isCritical && 'opacity-40 cursor-not-allowed pointer-events-none')}
+                href={isCritical ? '#' : '#profile'}
+                onClick={(e) => { if (isCritical) e.preventDefault(); }}
+              >
+                <Button className={styles.operationButton} variant="ghost" disabled={isCritical}>
+                  <span className={styles.operationText}>{tAuto('key_f38edfd8')}</span>
+                  <User className={styles.operationIcon} />
                 </Button>
               </a>
             </SheetClose>
