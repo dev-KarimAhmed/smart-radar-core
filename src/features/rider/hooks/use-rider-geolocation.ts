@@ -29,6 +29,36 @@ export function useRiderGeolocation(language: AppLanguage, countryDefaultCenter?
     setLocationStatus(payload.status);
   }, []);
 
+  // Listen to system permission events and active browser permission state
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleDenied = () => setLocationStatus('denied');
+    const handleGranted = () => setLocationStatus('live');
+
+    window.addEventListener('system-location-denied', handleDenied);
+    window.addEventListener('system-location-granted', handleGranted);
+
+    if (typeof navigator !== 'undefined' && navigator.permissions?.query) {
+      navigator.permissions.query({ name: 'geolocation' }).then((perm) => {
+        if (perm.state === 'denied') {
+          setLocationStatus('denied');
+        } else if (perm.state === 'granted') {
+          setLocationStatus('live');
+        }
+        perm.onchange = () => {
+          if (perm.state === 'denied') setLocationStatus('denied');
+          else if (perm.state === 'granted') setLocationStatus('live');
+        };
+      }).catch(() => undefined);
+    }
+
+    return () => {
+      window.removeEventListener('system-location-denied', handleDenied);
+      window.removeEventListener('system-location-granted', handleGranted);
+    };
+  }, []);
+
   // The account's own country center resolves shortly after mount (one quick
   // Supabase lookup) — replace the generic seed with it as soon as it's
   // available, but only while no real GPS fix has come in yet, so a rider in
