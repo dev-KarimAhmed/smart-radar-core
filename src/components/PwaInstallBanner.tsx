@@ -66,7 +66,7 @@ export function PwaInstallBanner({ role: propRole }: PwaInstallBannerProps = {})
     <aside
       aria-label={isArabic ? 'تثبيت التطبيق السيادي' : 'Install Sovereign App'}
       dir={isArabic ? 'rtl' : 'ltr'}
-      className="fixed bottom-3 inset-x-3 sm:inset-x-auto sm:right-4 sm:max-w-md z-50 rounded-2xl border border-[#14B8A6]/30 bg-[#0B0F19]/95 p-4 shadow-[0_20px_50px_rgba(0,0,0,0.8)] backdrop-blur-xl text-white transition-all duration-300"
+      className="fixed bottom-20 sm:bottom-6 inset-x-3 sm:inset-x-auto rtl:sm:left-6 rtl:sm:right-auto ltr:sm:right-6 ltr:sm:left-auto sm:max-w-md z-[160] rounded-2xl border border-[#14B8A6]/30 bg-[#0B0F19]/95 p-4 shadow-[0_20px_50px_rgba(0,0,0,0.8)] backdrop-blur-xl text-white transition-all duration-300"
     >
       {/* Top bar: Title and Close button */}
       <div className="flex items-center justify-between gap-3">

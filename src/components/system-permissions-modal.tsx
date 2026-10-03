@@ -22,8 +22,8 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
+} from '@/shared/components/ui/dialog';
+import { Button } from '@/shared/components/ui/button';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { cn } from '@/lib/utils';
 
@@ -60,6 +60,7 @@ export type PermissionCheckStatus = 'checking' | 'granted' | 'prompt' | 'denied'
 
 export function SystemPermissionsModal() {
   const { isArabic } = useDashboardLanguage();
+  const [mounted, setMounted] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [locationStatus, setLocationStatus] = useState<PermissionCheckStatus>('checking');
   const [clipboardStatus, setClipboardStatus] = useState<PermissionCheckStatus>('checking');
@@ -69,6 +70,10 @@ export function SystemPermissionsModal() {
   const [showInstructions, setShowInstructions] = useState(false);
   const [hasUserDismissed, setHasUserDismissed] = useState(false);
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const checkPermissions = useCallback(async () => {
     if (typeof window === 'undefined') return;
 
@@ -76,15 +81,27 @@ export function SystemPermissionsModal() {
     const secure = window.isSecureContext || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     setIsSecureContext(secure);
 
-    // 1. Geolocation Check
+    // 1. Geolocation Check via Permissions API
     if (typeof navigator === 'undefined' || !('geolocation' in navigator)) {
       setLocationStatus('denied');
+      setShowInstructions(true);
+      setIsOpen(true);
     } else if (navigator.permissions?.query) {
       try {
         const geoPerm = await navigator.permissions.query({ name: 'geolocation' });
-        setLocationStatus(geoPerm.state as PermissionCheckStatus);
+        const state = geoPerm.state as PermissionCheckStatus;
+        setLocationStatus(state);
+        if (state === 'denied') {
+          setShowInstructions(true);
+          setIsOpen(true);
+        }
         geoPerm.onchange = () => {
-          setLocationStatus(geoPerm.state as PermissionCheckStatus);
+          const next = geoPerm.state as PermissionCheckStatus;
+          setLocationStatus(next);
+          if (next === 'denied') {
+            setShowInstructions(true);
+            setIsOpen(true);
+          }
         };
       } catch {
         setLocationStatus('prompt');
@@ -93,15 +110,38 @@ export function SystemPermissionsModal() {
       setLocationStatus('prompt');
     }
 
+    // Direct active check using getCurrentPosition with 0 maximumAge to catch immediate browser block
+    if (typeof navigator !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        () => {
+          setLocationStatus('granted');
+        },
+        (err) => {
+          if (err.code === 1) { // PERMISSION_DENIED
+            setLocationStatus('denied');
+            setShowInstructions(true);
+            setIsOpen(true);
+          }
+        },
+        { timeout: 3000, maximumAge: 60000 }
+      );
+    }
+
     // 2. Clipboard Check
     if (typeof navigator === 'undefined' || !navigator.clipboard) {
       setClipboardStatus('denied');
     } else if (navigator.permissions?.query) {
       try {
         const clipPerm = await navigator.permissions.query({ name: 'clipboard-read' as any });
-        setClipboardStatus(clipPerm.state as PermissionCheckStatus);
+        const cState = clipPerm.state as PermissionCheckStatus;
+        setClipboardStatus(cState);
         clipPerm.onchange = () => {
-          setClipboardStatus(clipPerm.state as PermissionCheckStatus);
+          const next = clipPerm.state as PermissionCheckStatus;
+          setClipboardStatus(next);
+          if (next === 'denied') {
+            setShowInstructions(true);
+            setIsOpen(true);
+          }
         };
       } catch {
         // iOS Safari / Firefox don't support query('clipboard-read') but support user gesture
@@ -112,38 +152,56 @@ export function SystemPermissionsModal() {
     }
   }, []);
 
-  // Initial check on mount
+  // Initial check on mount & system events
   useEffect(() => {
     void checkPermissions();
 
     const handleOpen = () => {
       setHasUserDismissed(false);
+      setShowInstructions(true);
       setIsOpen(true);
       void checkPermissions();
     };
 
+    const handleLocationDenied = () => {
+      setLocationStatus('denied');
+      setShowInstructions(true);
+      setHasUserDismissed(false);
+      setIsOpen(true);
+    };
+
+    const handleLocationGranted = () => {
+      setLocationStatus('granted');
+    };
+
     window.addEventListener('open-system-permissions-modal', handleOpen);
-    return () => window.removeEventListener('open-system-permissions-modal', handleOpen);
+    window.addEventListener('system-location-denied', handleLocationDenied);
+    window.addEventListener('system-location-granted', handleLocationGranted);
+
+    return () => {
+      window.removeEventListener('open-system-permissions-modal', handleOpen);
+      window.removeEventListener('system-location-denied', handleLocationDenied);
+      window.removeEventListener('system-location-granted', handleLocationGranted);
+    };
   }, [checkPermissions]);
 
   // Evaluate whether to display modal automatically
   useEffect(() => {
     if (hasUserDismissed) return;
+    if (locationStatus === 'checking' || clipboardStatus === 'checking') return;
 
-    // Small delay to prevent layout flicker on initial hydration
-    const timer = setTimeout(() => {
-      const isLocGranted = locationStatus === 'granted';
-      const isClipGranted = clipboardStatus === 'granted';
+    const isLocGranted = locationStatus === 'granted';
+    const isClipGranted = clipboardStatus === 'granted';
 
-      // If either permission is not granted or we are on insecure HTTP, show popup
-      if (!isLocGranted || !isClipGranted || !isSecureContext) {
-        setIsOpen(true);
-      } else {
-        setIsOpen(false);
+    // If either permission is not granted or we are on insecure HTTP, show popup
+    if (!isLocGranted || !isClipGranted || !isSecureContext) {
+      if (locationStatus === 'denied' || clipboardStatus === 'denied') {
+        setShowInstructions(true);
       }
-    }, 600);
-
-    return () => clearTimeout(timer);
+      setIsOpen(true);
+    } else {
+      setIsOpen(false);
+    }
   }, [locationStatus, clipboardStatus, isSecureContext, hasUserDismissed]);
 
   const requestLocation = () => {
@@ -201,6 +259,8 @@ export function SystemPermissionsModal() {
   };
 
   const allGranted = locationStatus === 'granted' && clipboardStatus === 'granted';
+
+  if (!mounted) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => {
