@@ -278,3 +278,18 @@ test('parses explicit destination coordinates from daddr in directions URL', () 
   assert.deepEqual(location, { lat: 31.8876, lng: 35.8868 });
 });
 
+test('refuses to return origin saddr when daddr is a place name in directions URL', () => {
+  const location = parseGoogleMapsLocation(
+    'https://maps.google.com/?geocode=xxx&daddr=Universal+Civilizations+Academy+UCA,+Amman&saddr=32.0279426,36.0552927&dirflg=d',
+  );
+  assert.equal(location, null, 'Must return null so resolver can fetch HTML or geocode daddr, never saddr');
+});
+
+test('prefers destination !3d!4d marker over origin in directions HTML payload', () => {
+  const html = '<html><body>!3d32.027943!4d36.055293<div>...</div>!3d31.887619!4d35.886854</body></html>';
+  const location = parseGoogleMapsLocation(html);
+  // In directions payload with multiple !3d!4d, destination is the last marker
+  assert.deepEqual(location, { lat: 31.887619, lng: 35.886854 });
+});
+
+
