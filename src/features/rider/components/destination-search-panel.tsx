@@ -1,7 +1,6 @@
 'use client';
 
-import React from 'react';
-import { Loader2, MapPin, Search } from 'lucide-react';
+import { ExternalLink, Loader2, MapPin } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { RoadRouteEstimate } from '@/lib/road-route';
 import type { useDestinationTextSearch } from '../hooks/use-destination-text-search';
@@ -61,37 +60,20 @@ export function DestinationSearchPanel({
                 <p className={styles.stepHelper}>{locationCopy('step_search_helper')}</p>
               </div>
             </div>
-            <form onSubmit={search.handleDestinationSearch} className="mb-2.5 flex items-center gap-2">
-              <input
-                type="text"
-                value={search.destinationSearchQuery}
-                onChange={(e) => search.setDestinationSearchQuery(e.target.value)}
-                placeholder="ابحث هنا مباشرة (مثال: سيتي مول، الجامعة الأردنية)..."
-                className="h-11 flex-1 rounded-xl border border-white/10 bg-black/40 px-3 text-xs font-semibold text-white placeholder-slate-500 focus:border-[#14B8A6] focus:outline-none"
-                dir="auto"
-              />
-              <button
-                type="submit"
-                disabled={search.destinationSearchStatus === 'searching'}
-                className="h-11 px-4 rounded-xl bg-[#14B8A6] text-[#0A0F1D] font-black text-xs transition hover:bg-[#2DD4BF] disabled:opacity-50 flex items-center gap-1.5 shrink-0"
-              >
-                {search.destinationSearchStatus === 'searching' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                <span>بحث</span>
-              </button>
-            </form>
-
-            <button
-              type="button"
-              onClick={() => mapPicker.handleOpenGoogleMapsSearch()}
+            <a
+              href={mapPicker.googleMapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => mapPicker.handleOpenGoogleMapsSearch(e)}
               aria-label={locationCopy('btn_open_google_maps')}
               title={locationCopy('btn_open_google_maps')}
               className={styles.searchButton}
             >
-              <Search className={styles.searchButtonIcon} />
+              <ExternalLink className={styles.searchButtonIcon} />
               <span>
                 {locationCopy('btn_open_google_maps')}
               </span>
-            </button>
+            </a>
           </div>
 
           <div className={styles.step2Wrapper}>

@@ -37,11 +37,8 @@ export function useDestinationMapPicker(params: {
   } = params;
   const isArabic = language === 'ar';
 
-  const handleOpenGoogleMapsSearch = React.useCallback(() => {
-    setDestinationSearchResults([]);
-    setDestinationSearchStatus('idle');
-
-    const trimmedQuery = destinationSearchQuery.trim();
+  const googleMapsUrl = React.useMemo(() => {
+    const trimmedQuery = destinationSearchQuery?.trim?.() || '';
     if (trimmedQuery) {
       const queryParts = [
         trimmedQuery,
@@ -50,14 +47,12 @@ export function useDestinationMapPicker(params: {
         isArabic ? countryConfig?.name_ar || countryConfig?.name_en : countryConfig?.name_en || countryConfig?.name_ar,
       ].filter(Boolean);
       const query = queryParts.join(', ') || trimmedQuery;
-      window.location.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
-      return;
+      return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
     }
 
     // When no search query is typed, open Google Maps centered on the rider's actual GPS location
     if (riderLocation && isValidCoord(riderLocation.lat) && isValidCoord(riderLocation.lng)) {
-      window.location.href = `https://www.google.com/maps/@${riderLocation.lat},${riderLocation.lng},16z`;
-      return;
+      return `https://www.google.com/maps/@${riderLocation.lat},${riderLocation.lng},16z`;
     }
 
     if (selectedDistrict) {
@@ -68,13 +63,24 @@ export function useDestinationMapPicker(params: {
       ].filter(Boolean);
       const query = queryParts.join(', ');
       if (query) {
-        window.location.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
-        return;
+        return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
       }
     }
 
-    window.location.href = 'https://www.google.com/maps';
-  }, [countryConfig, destinationSearchQuery, isArabic, riderLocation, selectedDistrict, setDestinationSearchResults, setDestinationSearchStatus]);
+    return 'https://www.google.com/maps';
+  }, [countryConfig, destinationSearchQuery, isArabic, riderLocation, selectedDistrict]);
 
-  return { handleOpenGoogleMapsSearch };
+  const handleOpenGoogleMapsSearch = React.useCallback((event?: React.MouseEvent) => {
+    setDestinationSearchResults([]);
+    setDestinationSearchStatus('idle');
+
+    if (!event && typeof window !== 'undefined') {
+      window.open(googleMapsUrl, '_blank', 'noopener,noreferrer');
+    }
+  }, [googleMapsUrl, setDestinationSearchResults, setDestinationSearchStatus]);
+
+  return {
+    handleOpenGoogleMapsSearch,
+    googleMapsUrl,
+  };
 }
