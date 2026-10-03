@@ -4,7 +4,7 @@ import { useTranslations } from 'next-intl';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase-client';
 import type { AppLanguage } from '@/lib/i18n/simple-copy';
-import type { RoadRouteEstimate } from '@/lib/road-route';
+import { calculateHaversineKm, type RoadRouteEstimate } from '@/lib/road-route';
 import {
   buildRideRequestInsertPayload,
   cancelRideRequest,
@@ -12,7 +12,6 @@ import {
 } from '../services/rider-server-marketplace';
 import { getLocalizedMarketplaceError } from '../services/rider-offer-presentation';
 import type { RiderDestination, RiderMachineAction, RiderMachineState } from '../state/rider-state-machine';
-import type { RiderLocation } from '../components/rider-map';
 
 const H3_RIDER_REQUEST_RESOLUTION = 9;
 
@@ -38,6 +37,7 @@ export function useSendCancelRideRequest(params: {
   riderCount?: number;
   onExitRequestFlow?: () => void;
   resetRideDraftState: () => void;
+  locationStatus?: RiderLocationStatus;
 }) {
   const {
     userId,
@@ -56,6 +56,7 @@ export function useSendCancelRideRequest(params: {
     riderCount,
     onExitRequestFlow,
     resetRideDraftState,
+    locationStatus,
   } = params;
 
   const { toast } = useToast();
@@ -77,6 +78,15 @@ export function useSendCancelRideRequest(params: {
   }), [t]);
 
   const handleSendRequest = React.useCallback(async () => {
+    if (locationStatus === 'denied') {
+      toast({
+        variant: 'destructive',
+        title: t('request.locationPermissionDeniedTitle'),
+        description: t('request.locationPermissionDeniedDescription'),
+      });
+      return;
+    }
+
     if (!userId) {
       toast({
         variant: 'destructive',
@@ -113,6 +123,19 @@ export function useSendCancelRideRequest(params: {
         variant: 'destructive',
         title: t('request.destinationNotReadyTitle'),
         description: t('request.destinationNotReadyDescription'),
+      });
+      return;
+    }
+
+    const directDistanceKm =
+      effectiveDraftDestination.fareQuote?.straightDistanceKm ??
+      calculateHaversineKm(riderLocation, effectiveDestinationCoords);
+
+    if (directDistanceKm < 0.1) {
+      toast({
+        variant: 'destructive',
+        title: t('request.sameLocationTitle'),
+        description: t('request.sameLocationDescription'),
       });
       return;
     }
@@ -190,6 +213,7 @@ export function useSendCancelRideRequest(params: {
     isRouteEstimateLoading,
     isServerFareLoading,
     language,
+    locationStatus,
     pricingPreference,
     pickupAddress,
     riderCount,

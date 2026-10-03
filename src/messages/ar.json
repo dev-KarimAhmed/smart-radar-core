@@ -175,7 +175,18 @@
     "return_to_app": "العودة إلى التطبيق",
     "return_to_app_hint": "تم فتح خرائط Google. عد إلى التطبيق بعد نسخ رابط الموقع.",
     "warn_place_name_mismatch_title": "تأكد من الوجهة",
-    "warn_place_name_mismatch_body": "النقطة المستخرجة من الرابط تبعد حوالي {km} كم عن «{place}». لو دي مش وجهتك، حرّك الدبوس أو ابعت الرابط تاني."
+    "warn_place_name_mismatch_body": "النقطة المستخرجة من الرابط تبعد حوالي {km} كم عن «{place}». لو دي مش وجهتك، حرّك الدبوس أو ابعت الرابط تاني.",
+    "err_clipboard_permission_denied": "تعذر قراءة الحافظة تلقائياً بسبب أذونات المتصفح. يمكنك تفعيل إذن الحافظة أو لصق الرابط يدوياً أدناه.",
+    "err_clipboard_empty": "الحافظة فارغة حالياً. يرجى نسخ رابط الموقع من خرائط Google أولاً ثم المحاولة.",
+    "btn_paste_manually": "أو الصق الرابط يدوياً",
+    "btn_hide_manual_paste": "إخفاء حقل اللصق",
+    "placeholder_paste_link": "الصق رابط خرائط Google هنا...",
+    "btn_confirm_pasted_link": "تأكيد الرابط",
+    "err_clipboard_permission_denied_hint": "إذن قراءة الحافظة محظور من إعدادات المتصفح. الصق الرابط المنسوخ في الحقل أدناه للمتابعة.",
+    "warn_location_permission_denied_title": "إذن تحديد الموقع الجغرافي معطل",
+    "warn_location_permission_denied_body": "يجب السماح للتطبيق بالوصول إلى موقعك الجغرافي من إعدادات المتصفح لمتابعة طلب الرحلة.",
+    "btn_retry_location": "إعادة محاولة الموقع",
+    "btn_location_permission_required": "مطلوب تفعيل إذن الموقع للمتابعة"
   },
   "advertiser": {
     "dashboardTitle": "لوحة المعلن",
@@ -743,7 +754,11 @@
       "fareNotReadyDescription": "انتظر حساب السعر من الخادم ثم حاول مرة أخرى.",
       "loginRequiredTitle": "يلزم تسجيل الدخول",
       "loginRequiredDescription": "يرجى تسجيل الدخول قبل إرسال طلب الرحلة.",
-      "networkError": "عذراً، تعذر الاتصال بالخادم. تحقق من شبكة الإنترنت."
+      "networkError": "عذراً، تعذر الاتصال بالخادم. تحقق من شبكة الإنترنت.",
+      "locationPermissionDeniedTitle": "إذن الموقع الجغرافي مطلوب",
+      "locationPermissionDeniedDescription": "يرجى تفعيل إذن تحديد الموقع في إعدادات المتصفح قبل إرسال طلب الرحلة.",
+      "sameLocationTitle": "موقع الوجهة مطابق لنقطة الركوب",
+      "sameLocationDescription": "لا يمكن أن تكون الوجهة مطابقة لموقعك الحالي. يرجى اختيار وجهة أخرى."
     },
     "offers": {
       "chooseCaptain": "اختر السائق",

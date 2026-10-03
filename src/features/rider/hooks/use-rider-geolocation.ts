@@ -99,6 +99,49 @@ export function useRiderGeolocation(language: AppLanguage, countryDefaultCenter?
     };
   }, [riderLocation.lat, riderLocation.lng, language]);
 
+  const refreshLocation = React.useCallback(() => {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('request-live-location'));
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const loc: RiderLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+            setRiderLocation(loc);
+            setRiderH3Cell(latLngToCell(loc.lat, loc.lng, H3_RIDER_REQUEST_RESOLUTION));
+            setLocationStatus('live');
+          },
+          (err) => {
+            if (err.code === err.PERMISSION_DENIED) {
+              setLocationStatus('denied');
+            }
+          },
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+        );
+      }
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (typeof navigator !== 'undefined' && 'permissions' in navigator) {
+      navigator.permissions?.query({ name: 'geolocation' as PermissionName }).then((permissionStatus) => {
+        if (permissionStatus.state === 'denied') {
+          setLocationStatus('denied');
+        }
+        const handleChange = () => {
+          if (permissionStatus.state === 'denied') {
+            setLocationStatus('denied');
+          } else if (permissionStatus.state === 'granted') {
+            refreshLocation();
+          }
+        };
+        permissionStatus.addEventListener('change', handleChange);
+        return () => {
+          permissionStatus.removeEventListener('change', handleChange);
+        };
+      }).catch(() => {});
+    }
+  }, [refreshLocation]);
+
   return {
     riderLocation,
     riderH3Cell,
@@ -107,5 +150,6 @@ export function useRiderGeolocation(language: AppLanguage, countryDefaultCenter?
     isGeocoding,
     liveCurrencyCode,
     handleLocationChange,
+    refreshLocation,
   };
 }

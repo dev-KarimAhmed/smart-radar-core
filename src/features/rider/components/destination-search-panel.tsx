@@ -1,6 +1,6 @@
 'use client';
 
-import { ExternalLink, Loader2, MapPin } from 'lucide-react';
+import { AlertTriangle, ExternalLink, Loader2, MapPin } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { RoadRouteEstimate } from '@/lib/road-route';
 import type { useDestinationTextSearch } from '../hooks/use-destination-text-search';
@@ -97,6 +97,59 @@ export function DestinationSearchPanel({
                   : locationCopy('btn_confirm_and_calculate')}
               </span>
             </button>
+
+            <button
+              type="button"
+              onClick={() => clipboard.setShowManualPasteInput((prev) => !prev)}
+              className="mt-2 block w-full text-center text-[11px] font-bold text-[#14F5D5] transition hover:underline cursor-pointer"
+            >
+              {clipboard.showManualPasteInput
+                ? locationCopy('btn_hide_manual_paste')
+                : locationCopy('btn_paste_manually')}
+            </button>
+
+            {clipboard.showManualPasteInput && (
+              <div className="mt-2.5 space-y-2 rounded-xl border border-[#14B8A6]/25 bg-[#0B0F19]/90 p-2.5 shadow-inner">
+                {clipboard.clipboardPermissionDenied && (
+                  <div className="flex items-start gap-1.5 text-[11px] font-medium leading-tight text-amber-300">
+                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                    <span>{locationCopy('err_clipboard_permission_denied_hint')}</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={clipboard.manualPasteText}
+                    onChange={(e) => clipboard.setManualPasteText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && clipboard.manualPasteText.trim()) {
+                        e.preventDefault();
+                        clipboard.handleConfirmClipboardLocation(clipboard.manualPasteText.trim());
+                      }
+                    }}
+                    placeholder={locationCopy('placeholder_paste_link')}
+                    className="h-10 flex-1 rounded-lg border border-white/10 bg-black/40 px-3 text-xs text-white placeholder-slate-500 transition focus:border-[#14B8A6] focus:outline-none"
+                    dir="ltr"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (clipboard.manualPasteText.trim()) {
+                        clipboard.handleConfirmClipboardLocation(clipboard.manualPasteText.trim());
+                      }
+                    }}
+                    disabled={!clipboard.manualPasteText.trim() || clipboard.isReadingClipboardLocation}
+                    className="h-10 shrink-0 rounded-lg bg-[#14B8A6] px-3.5 text-xs font-black text-[#031315] transition hover:bg-[#2DD4BF] disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
+                  >
+                    {clipboard.isReadingClipboardLocation ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      locationCopy('btn_confirm_pasted_link')
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </>
       ) : (
