@@ -89,7 +89,7 @@ export function useLiveGeolocation({ fallbackLocation }: { fallbackLocation: Liv
   const [location, setLocation] = React.useState<LiveGeolocationPoint>(
     initialSaved || fallbackLocation
   );
-  const [status, setStatus] = React.useState<LiveGeolocationStatus>('locating');
+  const [status, setStatus] = React.useState<LiveGeolocationStatus>(initialSaved ? 'live' : 'locating');
   const fallbackLat = fallbackLocation.lat;
   const fallbackLng = fallbackLocation.lng;
 
@@ -125,14 +125,13 @@ export function useLiveGeolocation({ fallbackLocation }: { fallbackLocation: Liv
         setLocation({ lat: fallbackLat, lng: fallbackLng });
       }
       setStatus('denied');
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('system-location-denied'));
-      }
       return;
     }
 
     let didResolve = false;
-    setStatus('locating');
+    if (!cachedLastKnownLocation) {
+      setStatus('locating');
+    }
 
     // Direct immediate fix request
     navigator.geolocation.getCurrentPosition(
@@ -144,13 +143,16 @@ export function useLiveGeolocation({ fallbackLocation }: { fallbackLocation: Liv
         }
       },
       (error) => {
-        // Any error (1=denied, 2=unavailable, 3=timeout) means live GPS is not working
-        setStatus('denied');
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('system-location-denied'));
+        if (error.code === error.PERMISSION_DENIED || error.code === error.POSITION_UNAVAILABLE) {
+          setStatus('denied');
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('system-location-denied'));
+          }
+          return;
         }
         if (!didResolve && !cachedLastKnownLocation) {
           setLocation({ lat: fallbackLat, lng: fallbackLng });
+          setStatus('fallback');
         }
       },
       {
@@ -170,12 +172,16 @@ export function useLiveGeolocation({ fallbackLocation }: { fallbackLocation: Liv
         }
       },
       (error) => {
-        setStatus('denied');
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('system-location-denied'));
+        if (error.code === error.PERMISSION_DENIED || error.code === error.POSITION_UNAVAILABLE) {
+          setStatus('denied');
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('system-location-denied'));
+          }
+          return;
         }
         if (!didResolve && !cachedLastKnownLocation) {
           setLocation({ lat: fallbackLat, lng: fallbackLng });
+          setStatus('fallback');
         }
       },
       {

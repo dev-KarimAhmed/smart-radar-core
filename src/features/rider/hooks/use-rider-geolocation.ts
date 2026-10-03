@@ -18,7 +18,7 @@ export function useRiderGeolocation(language: AppLanguage, countryDefaultCenter?
   const initialPoint = getLastKnownLocation() || countryDefaultCenter || INITIAL_RIDER_LOCATION;
   const [riderLocation, setRiderLocation] = React.useState<RiderLocation>(initialPoint);
   const [riderH3Cell, setRiderH3Cell] = React.useState(latLngToCell(initialPoint.lat, initialPoint.lng, H3_RIDER_REQUEST_RESOLUTION));
-  const [locationStatus, setLocationStatus] = React.useState<RiderLocationStatus>('locating');
+  const [locationStatus, setLocationStatus] = React.useState<RiderLocationStatus>(getLastKnownLocation() ? 'live' : 'fallback');
   const [currentAddressName, setCurrentAddressName] = React.useState<string>('');
   const [isGeocoding, setIsGeocoding] = React.useState<boolean>(false);
   const [liveCurrencyCode, setLiveCurrencyCode] = React.useState<string | undefined>(undefined);
@@ -27,39 +27,35 @@ export function useRiderGeolocation(language: AppLanguage, countryDefaultCenter?
     setRiderLocation(payload.location);
     setRiderH3Cell(payload.h3Cell);
     setLocationStatus(payload.status);
-    if (payload.status !== 'live') {
-      setCurrentAddressName('');
-    }
   }, []);
 
   // Listen to system permission events and active browser permission state
   React.useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const handleDenied = () => {
-      setLocationStatus('denied');
-      setCurrentAddressName('');
-    };
+    const handleDenied = () => setLocationStatus('denied');
+    const handleGranted = () => setLocationStatus('live');
 
     window.addEventListener('system-location-denied', handleDenied);
+    window.addEventListener('system-location-granted', handleGranted);
 
     if (typeof navigator !== 'undefined' && navigator.permissions?.query) {
       navigator.permissions.query({ name: 'geolocation' }).then((perm) => {
         if (perm.state === 'denied') {
           setLocationStatus('denied');
-          setCurrentAddressName('');
+        } else if (perm.state === 'granted') {
+          setLocationStatus('live');
         }
         perm.onchange = () => {
-          if (perm.state === 'denied') {
-            setLocationStatus('denied');
-            setCurrentAddressName('');
-          }
+          if (perm.state === 'denied') setLocationStatus('denied');
+          else if (perm.state === 'granted') setLocationStatus('live');
         };
       }).catch(() => undefined);
     }
 
     return () => {
       window.removeEventListener('system-location-denied', handleDenied);
+      window.removeEventListener('system-location-granted', handleGranted);
     };
   }, []);
 
@@ -76,16 +72,11 @@ export function useRiderGeolocation(language: AppLanguage, countryDefaultCenter?
   }, [countryDefaultCenter, locationStatus]);
 
   React.useEffect(() => {
-    if (locationStatus !== 'live') {
-      setCurrentAddressName('');
-      return;
-    }
-
     if (!riderLocation.lat || !riderLocation.lng) return;
 
     // Never reverse geocode unconfirmed dummy Cairo placeholder coordinates
     const isDummyCairo = Math.abs(riderLocation.lat - 30.0444) < 0.001 && Math.abs(riderLocation.lng - 31.2357) < 0.001;
-    if (isDummyCairo) {
+    if (locationStatus !== 'live' && isDummyCairo) {
       return;
     }
 
