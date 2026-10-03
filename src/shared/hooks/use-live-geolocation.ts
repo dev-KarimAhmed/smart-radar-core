@@ -123,8 +123,8 @@ export function useLiveGeolocation({ fallbackLocation }: { fallbackLocation: Liv
     if (!('geolocation' in navigator)) {
       if (!cachedLastKnownLocation) {
         setLocation({ lat: fallbackLat, lng: fallbackLng });
-        setStatus('fallback');
       }
+      setStatus('denied');
       return;
     }
 
@@ -140,9 +140,13 @@ export function useLiveGeolocation({ fallbackLocation }: { fallbackLocation: Liv
         updateLocation(position.coords.latitude, position.coords.longitude);
       },
       (error) => {
+        if (error.code === error.PERMISSION_DENIED) {
+          setStatus('denied');
+          return;
+        }
         if (!didResolve && !cachedLastKnownLocation) {
           setLocation({ lat: fallbackLat, lng: fallbackLng });
-          setStatus(error.code === error.PERMISSION_DENIED ? 'denied' : 'fallback');
+          setStatus('fallback');
         }
       },
       {
@@ -159,9 +163,13 @@ export function useLiveGeolocation({ fallbackLocation }: { fallbackLocation: Liv
         updateLocation(position.coords.latitude, position.coords.longitude);
       },
       (error) => {
+        if (error.code === error.PERMISSION_DENIED) {
+          setStatus('denied');
+          return;
+        }
         if (!didResolve && !cachedLastKnownLocation) {
           setLocation({ lat: fallbackLat, lng: fallbackLng });
-          setStatus(error.code === error.PERMISSION_DENIED ? 'denied' : 'fallback');
+          setStatus('fallback');
         }
       },
       {
@@ -181,6 +189,30 @@ export function useLiveGeolocation({ fallbackLocation }: { fallbackLocation: Liv
       return { lat: fallbackLat, lng: fallbackLng };
     });
   }, [fallbackLat, fallbackLng, status]);
+
+  React.useEffect(() => {
+    if (typeof navigator !== 'undefined' && navigator.permissions?.query) {
+      navigator.permissions.query({ name: 'geolocation' }).then((perm) => {
+        if (perm.state === 'denied') {
+          setStatus('denied');
+        }
+        perm.onchange = () => {
+          if (perm.state === 'denied') {
+            setStatus('denied');
+          } else if (perm.state === 'granted') {
+            refresh();
+          }
+        };
+      }).catch(() => {});
+    }
+  }, [refresh]);
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleRequest = () => refresh();
+    window.addEventListener('request-live-location', handleRequest);
+    return () => window.removeEventListener('request-live-location', handleRequest);
+  }, [refresh]);
 
   React.useEffect(() => {
     refresh();

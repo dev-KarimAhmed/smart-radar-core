@@ -4,6 +4,7 @@ import { useToast } from '@/hooks/use-toast';
 import {
   ClipboardMapLocationError,
   extractGoogleMapsPlaceName,
+  isInvalidPlaceName,
   resolveClipboardMapLocation,
   type ResolvedLocationGeography,
 } from '@/shared/services/google-maps-location';
@@ -12,21 +13,44 @@ import type { useDestinationGeographyData } from './use-destination-geography-da
 import type { RiderLocation } from '../components/rider-map';
 import { useLinkCatcher } from '@/hooks/use-link-catcher';
 
-async function readClipboardLocationText(): Promise<string> {
+export interface ClipboardReadResult {
+  text: string;
+  error?: 'permission-denied' | 'empty';
+}
+
+async function readClipboardLocationText(): Promise<ClipboardReadResult> {
+  if (typeof navigator === 'undefined' || !navigator.clipboard) {
+    return { text: '', error: 'permission-denied' };
+  }
+
   let plainText = '';
+  let isPermissionDenied = false;
+
   try {
-    if (navigator.clipboard?.readText) {
+    if (navigator.clipboard.readText) {
       plainText = await navigator.clipboard.readText();
     }
-  } catch {
-    plainText = '';
+  } catch (err: unknown) {
+    if (
+      err instanceof Error &&
+      (err.name === 'NotAllowedError' ||
+        err.name === 'SecurityError' ||
+        err.message.toLowerCase().includes('denied') ||
+        err.message.toLowerCase().includes('not allowed'))
+    ) {
+      isPermissionDenied = true;
+    }
   }
 
   if (plainText && plainText.trim()) {
-    return plainText.trim();
+    return { text: plainText.trim() };
   }
 
-  if (navigator.clipboard?.read) {
+  if (isPermissionDenied) {
+    return { text: '', error: 'permission-denied' };
+  }
+
+  if (navigator.clipboard.read) {
     try {
       const items = await navigator.clipboard.read();
       for (const item of items) {
@@ -35,19 +59,27 @@ async function readClipboardLocationText(): Promise<string> {
             try {
               const blob = await item.getType(type);
               const text = await blob.text();
-              if (text && text.trim()) return text.trim();
+              if (text && text.trim()) return { text: text.trim() };
             } catch {
               // ignore
             }
           }
         }
       }
-    } catch {
-      // ignore
+    } catch (err: unknown) {
+      if (
+        err instanceof Error &&
+        (err.name === 'NotAllowedError' ||
+          err.name === 'SecurityError' ||
+          err.message.toLowerCase().includes('denied') ||
+          err.message.toLowerCase().includes('not allowed'))
+      ) {
+        return { text: '', error: 'permission-denied' };
+      }
     }
   }
 
-  return '';
+  return { text: '', error: 'empty' };
 }
 
 /**
@@ -91,6 +123,9 @@ export function useClipboardLocationImport(params: {
 
   const [externalLocationUrl, setExternalLocationUrl] = React.useState('');
   const [isReadingClipboardLocation, setIsReadingClipboardLocation] = React.useState(false);
+  const [clipboardPermissionDenied, setClipboardPermissionDenied] = React.useState(false);
+  const [showManualPasteInput, setShowManualPasteInput] = React.useState(false);
+  const [manualPasteText, setManualPasteText] = React.useState('');
 
   const clearExternalLocationContext = React.useCallback(() => {
     geography.clearExternalEntries();
@@ -101,7 +136,8 @@ export function useClipboardLocationImport(params: {
     parsedLocation: RiderLocation,
     resolvedGeography?: ResolvedLocationGeography,
   ) => {
-    const placeName = extractGoogleMapsPlaceName(clipboardValue);
+    const rawPlaceName = extractGoogleMapsPlaceName(clipboardValue);
+    const placeName = rawPlaceName && !isInvalidPlaceName(rawPlaceName) ? rawPlaceName : null;
     const resolvedPlaceName = placeName || locationCopy('external_place_name');
     // Split on comma to get the primary name, but skip "Unnamed Road" or raw Plus Codes
     const rawSegments = (placeName || '')
@@ -162,18 +198,33 @@ export function useClipboardLocationImport(params: {
     try {
       let clipboardText = typeof overrideText === 'string' && overrideText.trim() ? overrideText.trim() : '';
       if (!clipboardText) {
-        clipboardText = await readClipboardLocationText();
+        const readResult = await readClipboardLocationText();
+        clipboardText = readResult.text;
+        if (readResult.error === 'permission-denied') {
+          setClipboardPermissionDenied(true);
+          setShowManualPasteInput(true);
+          toast({
+            variant: 'destructive',
+            title: locationCopy('err_clipboard_permission_denied'),
+          });
+          return;
+        }
       }
       if (!clipboardText) {
+        setShowManualPasteInput(true);
         toast({
           variant: 'destructive',
-          title: locationCopy('err_invalid_clipboard_maps_link'),
+          title: locationCopy('err_clipboard_empty'),
         });
         return;
       }
 
+      setClipboardPermissionDenied(false);
+
       const result = await resolveClipboardMapLocation(clipboardText, fetch, riderLocation);
       applyClipboardLocation(result.resolvedUrl, result.location, result.geography);
+      setShowManualPasteInput(false);
+      setManualPasteText('');
 
     } catch (error) {
       const errorKey =
@@ -186,10 +237,11 @@ export function useClipboardLocationImport(params: {
         variant: 'destructive',
         title: locationCopy(errorKey),
       });
+      setShowManualPasteInput(true);
     } finally {
       setIsReadingClipboardLocation(false);
     }
-  }, [applyClipboardLocation, locationCopy, setIsCaptainScanPreviewActive, toast]);
+  }, [applyClipboardLocation, locationCopy, riderLocation, setIsCaptainScanPreviewActive, toast]);
 
   const { capturedLink, clearCapturedLink } = useLinkCatcher();
 
@@ -203,11 +255,19 @@ export function useClipboardLocationImport(params: {
   const reset = React.useCallback(() => {
     setExternalLocationUrl('');
     setIsReadingClipboardLocation(false);
+    setClipboardPermissionDenied(false);
+    setShowManualPasteInput(false);
+    setManualPasteText('');
   }, []);
 
   return {
     externalLocationUrl,
     isReadingClipboardLocation,
+    clipboardPermissionDenied,
+    showManualPasteInput,
+    setShowManualPasteInput,
+    manualPasteText,
+    setManualPasteText,
     clearExternalLocationContext,
     handleConfirmClipboardLocation,
     reset,
