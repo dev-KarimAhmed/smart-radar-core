@@ -85,7 +85,7 @@ export function SystemPermissionsModal() {
     const secure = window.isSecureContext || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     setIsSecureContext(secure);
 
-    // 1. Geolocation Check via Permissions API
+    // 1. Geolocation Check via Permissions API & Active Probe
     if (typeof navigator === 'undefined' || !('geolocation' in navigator)) {
       setLocationStatus('denied');
       setIsOpen(true);
@@ -93,15 +93,63 @@ export function SystemPermissionsModal() {
       try {
         const geoPerm = await navigator.permissions.query({ name: 'geolocation' });
         const state = geoPerm.state as PermissionCheckStatus;
-        setLocationStatus(state);
-        if (state !== 'granted') {
+        if (state === 'denied') {
+          setLocationStatus('denied');
           setIsOpen(true);
+        } else if (state === 'prompt') {
+          setLocationStatus('prompt');
+          setIsOpen(true);
+        } else {
+          // Even if granted at origin level, verify actual device GPS via getCurrentPosition
+          setLocationStatus('checking');
+          navigator.geolocation.getCurrentPosition(
+            () => {
+              setLocationStatus('granted');
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('system-location-granted'));
+                window.dispatchEvent(new CustomEvent('request-live-location'));
+              }
+            },
+            () => {
+              setLocationStatus('denied');
+              setIsOpen(true);
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('system-location-denied'));
+              }
+            },
+            { enableHighAccuracy: false, timeout: 2500, maximumAge: 0 }
+          );
         }
+
         geoPerm.onchange = () => {
           const next = geoPerm.state as PermissionCheckStatus;
-          setLocationStatus(next);
-          if (next !== 'granted') {
+          if (next === 'denied') {
+            setLocationStatus('denied');
             setIsOpen(true);
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('system-location-denied'));
+            }
+          } else if (next === 'prompt') {
+            setLocationStatus('prompt');
+            setIsOpen(true);
+          } else if (next === 'granted') {
+            navigator.geolocation.getCurrentPosition(
+              () => {
+                setLocationStatus('granted');
+                if (typeof window !== 'undefined') {
+                  window.dispatchEvent(new CustomEvent('system-location-granted'));
+                  window.dispatchEvent(new CustomEvent('request-live-location'));
+                }
+              },
+              () => {
+                setLocationStatus('denied');
+                setIsOpen(true);
+                if (typeof window !== 'undefined') {
+                  window.dispatchEvent(new CustomEvent('system-location-denied'));
+                }
+              },
+              { enableHighAccuracy: false, timeout: 2500, maximumAge: 0 }
+            );
           }
         };
       } catch {
@@ -111,24 +159,6 @@ export function SystemPermissionsModal() {
     } else {
       setLocationStatus('prompt');
       setIsOpen(true);
-    }
-
-    // Direct active check using getCurrentPosition:
-    // Catches OS-level disable (e.g. Windows location services off, Android location toggle off)
-    // where permissions.query may report 'granted' for the domain, but OS returns code 2 (POSITION_UNAVAILABLE)
-    if (typeof navigator !== 'undefined' && navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        () => {
-          setLocationStatus('granted');
-        },
-        () => {
-          // Any error (1 = PERMISSION_DENIED, 2 = POSITION_UNAVAILABLE, 3 = TIMEOUT)
-          // means Location is not working/disabled on device or browser
-          setLocationStatus('denied');
-          setIsOpen(true);
-        },
-        { enableHighAccuracy: false, timeout: 3500, maximumAge: 0 }
-      );
     }
 
     // 2. Clipboard Check
@@ -232,14 +262,18 @@ export function SystemPermissionsModal() {
         setLocationStatus('granted');
         setIsRequestingLocation(false);
         if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('system-location-granted'));
           window.dispatchEvent(new CustomEvent('request-live-location'));
         }
       },
       () => {
         setIsRequestingLocation(false);
         setLocationStatus('denied');
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('system-location-denied'));
+        }
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      { enableHighAccuracy: true, timeout: 6000, maximumAge: 0 }
     );
   };
 
@@ -354,10 +388,23 @@ export function SystemPermissionsModal() {
                   </span>
                 )}
                 {locationStatus === 'denied' && (
-                  <span className={styles.statusBadgeDenied}>
-                    <XCircle className="h-2.5 w-2.5" />
-                    {isArabic ? 'محظور' : 'Denied'}
-                  </span>
+                  <div className="flex items-center gap-1">
+                    <span className={styles.statusBadgeDenied}>
+                      <XCircle className="h-2.5 w-2.5" />
+                      {isArabic ? 'محظور' : 'Denied'}
+                    </span>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={requestLocation}
+                      disabled={isRequestingLocation}
+                      className={styles.inlineActionButton}
+                    >
+                      {isRequestingLocation
+                        ? (isArabic ? '...' : '...')
+                        : (isArabic ? 'إعادة طلب' : 'Retry')}
+                    </Button>
+                  </div>
                 )}
                 {(locationStatus === 'prompt' || locationStatus === 'checking') && (
                   <Button
@@ -401,10 +448,23 @@ export function SystemPermissionsModal() {
                   </span>
                 )}
                 {clipboardStatus === 'denied' && (
-                  <span className={styles.statusBadgeDenied}>
-                    <XCircle className="h-2.5 w-2.5" />
-                    {isArabic ? 'محظور' : 'Denied'}
-                  </span>
+                  <div className="flex items-center gap-1">
+                    <span className={styles.statusBadgeDenied}>
+                      <XCircle className="h-2.5 w-2.5" />
+                      {isArabic ? 'محظور' : 'Denied'}
+                    </span>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={requestClipboard}
+                      disabled={isRequestingClipboard}
+                      className={styles.inlineActionButton}
+                    >
+                      {isRequestingClipboard
+                        ? (isArabic ? '...' : '...')
+                        : (isArabic ? 'إعادة طلب' : 'Retry')}
+                    </Button>
+                  </div>
                 )}
                 {(clipboardStatus === 'prompt' || clipboardStatus === 'checking') && (
                   <Button

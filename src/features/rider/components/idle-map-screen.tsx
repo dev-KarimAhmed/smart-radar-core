@@ -38,34 +38,54 @@ export interface IdleMapScreenProps {
 
 export function IdleMapScreen({ isArabic, isGeocoding, currentAddressName, locationStatus, riderRating, onOpenDestination }: IdleMapScreenProps) {
   const t = useTranslations('riderView');
-  const [isDenied, setIsDenied] = useState(locationStatus === 'denied');
+  const [isLocationDisabled, setIsLocationDisabled] = useState(
+    locationStatus === 'denied' || locationStatus === 'fallback'
+  );
 
   useEffect(() => {
-    if (locationStatus === 'denied') {
-      setIsDenied(true);
+    if (locationStatus === 'denied' || locationStatus === 'fallback') {
+      setIsLocationDisabled(true);
     } else if (locationStatus === 'live') {
-      setIsDenied(false);
+      setIsLocationDisabled(false);
     }
   }, [locationStatus]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const handleDenied = () => setIsDenied(true);
-    const handleGranted = () => setIsDenied(false);
-
-    window.addEventListener('system-location-denied', handleDenied);
-    window.addEventListener('system-location-granted', handleGranted);
-
+    // 1. Check Permissions API
     if (typeof navigator !== 'undefined' && navigator.permissions?.query) {
       navigator.permissions.query({ name: 'geolocation' }).then((res) => {
-        if (res.state === 'denied') setIsDenied(true);
-        else if (res.state === 'granted') setIsDenied(false);
+        if (res.state === 'denied') {
+          setIsLocationDisabled(true);
+        }
         res.onchange = () => {
-          setIsDenied(res.state === 'denied');
+          if (res.state === 'denied') {
+            setIsLocationDisabled(true);
+          }
         };
       }).catch(() => undefined);
     }
+
+    // 2. Active probe to catch OS-level location disabled (e.g. Windows location off)
+    if (typeof navigator !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        () => {
+          setIsLocationDisabled(false);
+        },
+        () => {
+          setIsLocationDisabled(true);
+          window.dispatchEvent(new CustomEvent('system-location-denied'));
+        },
+        { enableHighAccuracy: false, timeout: 2500, maximumAge: 0 }
+      );
+    }
+
+    const handleDenied = () => setIsLocationDisabled(true);
+    const handleGranted = () => setIsLocationDisabled(false);
+
+    window.addEventListener('system-location-denied', handleDenied);
+    window.addEventListener('system-location-granted', handleGranted);
 
     return () => {
       window.removeEventListener('system-location-denied', handleDenied);
@@ -74,14 +94,22 @@ export function IdleMapScreen({ isArabic, isGeocoding, currentAddressName, locat
   }, []);
 
   const handleRequestClick = () => {
-    if (isDenied) {
+    if (isLocationDisabled) {
       // Trigger system permission prompt & open permissions guidance modal
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('open-system-permissions-modal'));
+        window.dispatchEvent(new CustomEvent('request-live-location'));
         if (typeof navigator !== 'undefined' && navigator.geolocation) {
           navigator.geolocation.getCurrentPosition(
-            () => setIsDenied(false),
-            () => setIsDenied(true),
+            () => {
+              setIsLocationDisabled(false);
+              window.dispatchEvent(new CustomEvent('system-location-granted'));
+              window.dispatchEvent(new CustomEvent('request-live-location'));
+            },
+            () => {
+              setIsLocationDisabled(true);
+              window.dispatchEvent(new CustomEvent('system-location-denied'));
+            },
             { enableHighAccuracy: true, timeout: 5000 }
           );
         }
@@ -104,7 +132,7 @@ export function IdleMapScreen({ isArabic, isGeocoding, currentAddressName, locat
         </div>
 
         {/* Location Denied Critical Notice */}
-        {isDenied && (
+        {isLocationDisabled && (
           <div className={styles.warningBox}>
             <div className={styles.warningHeader}>
               <MapPinOff className={styles.warningIcon} />
@@ -122,7 +150,7 @@ export function IdleMapScreen({ isArabic, isGeocoding, currentAddressName, locat
           <Metric
             label={t('panel.yourArea')}
             value={
-              isDenied
+              isLocationDisabled
                 ? (isArabic ? 'الموقع متوقف (غير محدد)' : 'Location Disabled')
                 : isGeocoding || (!currentAddressName && locationStatus !== 'live')
                 ? t('panel.locating')
@@ -132,7 +160,7 @@ export function IdleMapScreen({ isArabic, isGeocoding, currentAddressName, locat
           <Metric label={t('panel.yourRating')} value={`${Math.floor(riderRating || 5)} / 5`} />
         </div>
 
-        {isDenied ? (
+        {isLocationDisabled ? (
           <div>
             <button
               type="button"
