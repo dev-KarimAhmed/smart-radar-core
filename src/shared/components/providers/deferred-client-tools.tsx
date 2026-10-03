@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Toaster } from '@/components/ui/toaster';
 import { PwaInstallBanner } from '@/components/PwaInstallBanner';
-import { SystemPermissionsModal } from '@/components/system-permissions-modal';
 import { useTranslations } from "next-intl";
 
 const styles = {
@@ -82,7 +81,6 @@ export function DeferredClientTools() {
       <Toaster />
       <PwaUpdater />
       <PwaInstallBanner />
-      <SystemPermissionsModal />
     </>
   );
 }
