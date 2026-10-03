@@ -40,7 +40,6 @@ export interface DestinationSelectionScreenProps {
   currencyLabel: string;
   selectedDraftDestination: RiderDestination | null;
   selectedDestinationCoords: RiderLocation | null;
-  riderLocation?: RiderLocation;
   /** Resolved name of the pinned point; overrides the district label when present. */
   pinnedPlaceLabel: string;
   isDestinationPinMoving: boolean;
@@ -70,7 +69,6 @@ export function DestinationSelectionScreen({
   currencyLabel,
   selectedDraftDestination,
   selectedDestinationCoords,
-  riderLocation,
   pinnedPlaceLabel,
   isDestinationPinMoving,
   riderCount,
@@ -106,21 +104,7 @@ export function DestinationSelectionScreen({
   // "same location". SAME_LOCATION_THRESHOLD_KM only catches genuinely
   // unmoved selections, not district-anchor/GPS coincidences.
   const straightDistanceKm = selectedDraftDestination?.fareQuote?.straightDistanceKm;
-  const directDistanceKm =
-    selectedDestinationCoords && riderLocation &&
-    Number.isFinite(selectedDestinationCoords.lat) && Number.isFinite(selectedDestinationCoords.lng) &&
-    Number.isFinite(riderLocation.lat) && Number.isFinite(riderLocation.lng)
-      ? Math.hypot(
-          (selectedDestinationCoords.lat - riderLocation.lat) * 111.32,
-          (selectedDestinationCoords.lng - riderLocation.lng) * 111.32 * Math.cos((riderLocation.lat * Math.PI) / 180),
-        )
-      : undefined;
-
-  const isSameLocation = Boolean(
-    (straightDistanceKm !== undefined && straightDistanceKm < SAME_LOCATION_THRESHOLD_KM) ||
-    (directDistanceKm !== undefined && directDistanceKm < SAME_LOCATION_THRESHOLD_KM) ||
-    (currentRouteEstimate && currentRouteEstimate.distanceKm === 0 && currentRouteEstimate.durationMinutes === 0 && Boolean(selectedDestinationCoords)),
-  );
+  const isSameLocation = straightDistanceKm !== undefined && straightDistanceKm < SAME_LOCATION_THRESHOLD_KM;
   const estimatedDistanceKm = currentRouteEstimate?.distanceKm ?? null;
   const estimatedDurationMinutes = currentRouteEstimate?.durationMinutes ?? null;
   const hasImportedLocation = clipboard.externalLocationUrl.length > 0;
@@ -172,13 +156,13 @@ export function DestinationSelectionScreen({
         onCancelPreview={onCancelPreview}
       />
 
-      {isSameLocation && (
+      {isSameLocation && selectedDestinationCoords && (
         <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-center text-xs font-bold text-amber-300">
           ⚠️ موقع الوجهة مطابق لموقعك الحالي. يرجى البحث أو اختيار وجهة تريد الذهاب إليها.
         </div>
       )}
 
-      {Boolean(!isSameLocation && (selectedDestinationCoords || isCaptainScanPreviewActive)) && (
+      {Boolean((selectedDestinationCoords && !isSameLocation) || isCaptainScanPreviewActive) && (
         <DestinationTripSummary
           riderCount={riderCount}
           setRiderCount={setRiderCount}
