@@ -133,7 +133,7 @@
   },
   "location": {
     "placeholder_landmark": "Type a landmark, street, or place name",
-    "btn_open_google_maps": "Open in Google Maps (New Tab)",
+    "btn_open_google_maps": "Open in Google Maps",
     "btn_confirm_and_calculate": "Activate coordinates",
     "err_invalid_clipboard_maps_link": "Clipboard does not contain a valid Google Maps link.",
     "err_no_coords_found": "No coordinates were found in the copied map link.",
