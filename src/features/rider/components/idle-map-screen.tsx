@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Navigation } from 'lucide-react';
+import { AlertCircle, Navigation, RefreshCw } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
@@ -28,10 +28,12 @@ export interface IdleMapScreenProps {
   locationStatus: RiderLocationStatus;
   riderRating: number;
   onOpenDestination: () => void;
+  onRefreshLocation?: () => void;
 }
 
-export function IdleMapScreen({ isArabic, isGeocoding, currentAddressName, locationStatus, riderRating, onOpenDestination }: IdleMapScreenProps) {
+export function IdleMapScreen({ isArabic, isGeocoding, currentAddressName, locationStatus, riderRating, onOpenDestination, onRefreshLocation }: IdleMapScreenProps) {
   const t = useTranslations('riderView');
+  const locationCopy = useTranslations('location');
 
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
@@ -55,6 +57,28 @@ export function IdleMapScreen({ isArabic, isGeocoding, currentAddressName, locat
           />
           <Metric label={t('panel.yourRating')} value={`${Math.floor(riderRating || 5)} / 5`} />
         </div>
+
+        {locationStatus === 'denied' && (
+          <div className="flex flex-col gap-2 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-start">
+            <div className="flex items-center gap-2 text-rose-300">
+              <AlertCircle className="h-4 w-4 shrink-0 text-rose-400" />
+              <span className="text-xs font-black">{locationCopy('warn_location_permission_denied_title')}</span>
+            </div>
+            <p className="text-[11px] leading-relaxed text-rose-200/90">
+              {locationCopy('warn_location_permission_denied_body')}
+            </p>
+            {onRefreshLocation && (
+              <button
+                type="button"
+                onClick={onRefreshLocation}
+                className="mt-1 inline-flex w-fit items-center gap-1.5 rounded-lg border border-rose-500/30 bg-rose-500/20 px-3 py-1.5 text-xs font-bold text-rose-200 transition hover:bg-rose-500/30 active:scale-95 cursor-pointer"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                <span>{locationCopy('btn_retry_location')}</span>
+              </button>
+            )}
+          </div>
+        )}
 
         <button
           onClick={onOpenDestination}

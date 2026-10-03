@@ -175,7 +175,18 @@
     "return_to_app": "Back to app",
     "return_to_app_hint": "Google Maps opened. Return here after copying the location link.",
     "warn_place_name_mismatch_title": "Check the destination",
-    "warn_place_name_mismatch_body": "The point taken from the link is about {km} km away from \"{place}\". If that is not where you meant, move the pin or paste the link again."
+    "warn_place_name_mismatch_body": "The point taken from the link is about {km} km away from \"{place}\". If that is not where you meant, move the pin or paste the link again.",
+    "err_clipboard_permission_denied": "Automatic clipboard access was blocked by browser permissions. Please allow clipboard permissions or paste the link manually below.",
+    "err_clipboard_empty": "Clipboard is currently empty. Please copy a Google Maps link first, then try again.",
+    "btn_paste_manually": "Or paste the link manually",
+    "btn_hide_manual_paste": "Hide paste field",
+    "placeholder_paste_link": "Paste Google Maps link here...",
+    "btn_confirm_pasted_link": "Confirm Link",
+    "err_clipboard_permission_denied_hint": "Clipboard read permission is blocked in browser settings. Paste the copied link in the field below to proceed.",
+    "warn_location_permission_denied_title": "Location Permission Disabled",
+    "warn_location_permission_denied_body": "Location access must be allowed in your browser settings to request a ride.",
+    "btn_retry_location": "Retry Location Access",
+    "btn_location_permission_required": "Location permission required to proceed"
   },
   "advertiser": {
     "dashboardTitle": "Advertiser dashboard",
@@ -743,7 +754,11 @@
       "fareNotReadyDescription": "Wait for the server fare calculation, then try again.",
       "loginRequiredTitle": "Sign in required",
       "loginRequiredDescription": "Please sign in before sending a ride request.",
-      "networkError": "Could not connect to the server. Check your internet connection."
+      "networkError": "Could not connect to the server. Check your internet connection.",
+      "locationPermissionDeniedTitle": "Location Permission Required",
+      "locationPermissionDeniedDescription": "Please enable location permission in browser settings before requesting a ride.",
+      "sameLocationTitle": "Destination matches pickup location",
+      "sameLocationDescription": "Destination cannot be identical to your current pickup point. Please select a different destination."
     },
     "offers": {
       "chooseCaptain": "Choose captain",

@@ -12,6 +12,7 @@ import {
 } from '../services/rider-server-marketplace';
 import { getLocalizedMarketplaceError } from '../services/rider-offer-presentation';
 import type { RiderDestination, RiderMachineAction, RiderMachineState } from '../state/rider-state-machine';
+import type { RiderLocation, RiderLocationStatus } from '../components/rider-map';
 
 const H3_RIDER_REQUEST_RESOLUTION = 9;
 

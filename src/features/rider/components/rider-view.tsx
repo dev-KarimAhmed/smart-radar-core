@@ -145,6 +145,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
     userId: user?.uid,
     activeCountryId,
     riderLocation: geolocation.riderLocation,
+    locationStatus: geolocation.locationStatus,
     pickupAddress: geolocation.currentAddressName,
     selectedDraftDestination,
     selectedDestinationCoords: destination.selectedDestinationCoords,
@@ -227,6 +228,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
               locationStatus={geolocation.locationStatus}
               riderRating={riderProfile.rating}
               onOpenDestination={statusSync.openDestination}
+              onRefreshLocation={geolocation.refreshLocation}
             />
           </motion.div>
         )}
@@ -249,6 +251,8 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
           emergencyContact={emergencyContact}
           countryConfig={countryConfig}
           riderLocation={geolocation.riderLocation}
+          locationStatus={geolocation.locationStatus}
+          onRefreshLocation={geolocation.refreshLocation}
           currencyLabel={currencyLabel}
           selectedDraftDestination={selectedDraftDestination}
           selectedDestinationCoords={destination.selectedDestinationCoords}
