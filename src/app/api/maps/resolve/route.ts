@@ -4,6 +4,7 @@ import {
   extractGoogleMapsPlaceName,
   extractPlusCode,
   isGoogleMapsLink,
+  isInvalidPlaceName,
   parseGoogleMapsLocation,
   resolvePlusCodeLocation,
   sanitizeGoogleMapsUrl,
@@ -288,9 +289,8 @@ async function crossCheckPlaceName(
 ) {
   const rawPlaceName = extractGoogleMapsPlaceName(resolvedUrl);
   const placeName = rawPlaceName?.replace(/\b[A-Z0-9]{2,8}\+[A-Z0-9]{2,4}\b\s*[-–—,،]?\s*/gi, '').trim() || null;
-  // A bare coordinate link has no name to check against, and a name that is itself just
-  // coordinates would only be comparing the extraction with itself.
-  if (!placeName || /^-?\d+(\.\d+)?,\s*-?\d+(\.\d+)?$/.test(placeName)) return null;
+  // A bare coordinate link or protobuf segment has no valid name to check against
+  if (!placeName || isInvalidPlaceName(placeName)) return null;
   const geocoded = await geocodePlaceName(resolvedUrl, location);
   if (!geocoded) return null;
 

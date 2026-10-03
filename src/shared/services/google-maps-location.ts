@@ -455,28 +455,93 @@ function normalizeOpenStreetMapUrl(value: string) {
   return trimmed;
 }
 
+export function isInvalidPlaceName(name: string | null | undefined): boolean {
+  if (!name || typeof name !== 'string') return true;
+  const trimmed = name.trim();
+  if (!trimmed || trimmed.length < 2) return true;
+
+  // Google Maps protobuf parameters or internal data segments (e.g. data=!4m12..., !4m11..., !1m5..., am=t)
+  if (
+    trimmed.startsWith('data=') ||
+    trimmed.includes('data=!') ||
+    trimmed.startsWith('!') ||
+    /^!?[0-9]+[a-z][0-9]+/i.test(trimmed) ||
+    /^am=[a-z0-9]+/i.test(trimmed)
+  ) {
+    return true;
+  }
+
+  // Camera / viewport / zoom / coordinate markers (e.g. @31.8876,35.8867,17z)
+  if (
+    trimmed.startsWith('@') ||
+    isCoordinatePairSegment(trimmed) ||
+    /^-?\d+(?:\.\d+)?,\s*-?\d+(?:\.\d+)?$/.test(trimmed)
+  ) {
+    return true;
+  }
+
+  // Degrees, minutes, seconds coordinate format (e.g. 31°53'15.5"N 35°53'12.5"E)
+  if (/^\d+°\d+['′]/i.test(trimmed) || /\d+°\d+['′"″][NSEW]/i.test(trimmed)) {
+    return true;
+  }
+
+  // Raw Plus Code only (e.g. 8G4P+3R)
+  if (/^[A-Z0-9]{2,8}\+[A-Z0-9]{2,4}$/i.test(trimmed)) {
+    return true;
+  }
+
+  // Raw hexadecimal IDs (e.g. 0x151ca7e4b:0x1234)
+  if (/^0x[0-9a-f]+(:0x[0-9a-f]+)?$/i.test(trimmed)) {
+    return true;
+  }
+
+  // Generic origin keywords that are not destinations
+  const normalized = trimmed.replace(/\+/g, ' ').toLowerCase();
+  if (
+    normalized === 'current location' ||
+    normalized === 'my location' ||
+    normalized === 'your location' ||
+    normalized === 'موقعي' ||
+    normalized === 'موقعي الحالي' ||
+    normalized === 'موقعك' ||
+    normalized === 'موقعك الحالي'
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
 export function extractGoogleMapsPlaceName(value: string): string | null {
   try {
     const url = new URL(value.trim());
     const placeMatch = url.pathname.match(/\/maps\/(?:place|search)\/([^/?#]+)/i);
-    if (placeMatch?.[1]) return decodeGoogleMapsPathSegment(placeMatch[1]);
+    if (placeMatch?.[1]) {
+      const decoded = decodeGoogleMapsPathSegment(placeMatch[1]);
+      if (decoded && !isInvalidPlaceName(decoded)) {
+        return decoded;
+      }
+    }
 
     // Directions links (`/maps/dir/{origin}/{waypoint...}/{destination}/@{viewCenter}/...`)
-    // have no dedicated "place" segment \u2014 the destination's name is just the last
-    // non-coordinate segment before the `@` viewport marker. Sharing a place via "Directions"
-    // rather than "Share" produces exactly this shape, so without this the name (and every
-    // other signal derived from it, like the plausibility cross-check) silently went missing
-    // for a link that in fact names the destination right there in the URL.
-    const dirMatch = url.pathname.match(/\/maps\/dir\/(.+?)(?:\/@|$)/i);
+    // have no dedicated "place" segment — the destination's name is just the last
+    // non-coordinate segment before the `@` viewport marker or protobuf data=` / `am=` blocks.
+    const dirMatch = url.pathname.match(/\/maps\/dir\/(.+?)(?:\/@|\/data=!|\/am=|$)/i);
     if (dirMatch?.[1]) {
-      const namedSegments = dirMatch[1].split('/').filter((segment) => segment && !isCoordinatePairSegment(segment));
+      const namedSegments = dirMatch[1]
+        .split('/')
+        .map((segment) => decodeGoogleMapsPathSegment(segment))
+        .filter((segment): segment is string => Boolean(segment && !isCoordinatePairSegment(segment) && !isInvalidPlaceName(segment)));
       const lastNamedSegment = namedSegments[namedSegments.length - 1];
-      if (lastNamedSegment) return decodeGoogleMapsPathSegment(lastNamedSegment);
+      if (lastNamedSegment) return lastNamedSegment;
     }
 
     const qParam = url.searchParams.get('q') || url.searchParams.get('query') || url.searchParams.get('destination') || url.searchParams.get('daddr');
     if (qParam && !isCoordinatePairSegment(qParam)) {
-      return decodeGoogleMapsPathSegment(qParam);
+      const decoded = decodeGoogleMapsPathSegment(qParam);
+      if (decoded && !isInvalidPlaceName(decoded)) {
+        return decoded;
+      }
     }
 
     return null;
@@ -494,11 +559,19 @@ function decodeGoogleMapsPathSegment(rawSegment: string) {
     .replace(/[\u200B-\u200F\u202A-\u202E\u2060]/g, '')
     .trim();
 
+  if (isInvalidPlaceName(placeName)) {
+    return null;
+  }
+
   // Strip Plus Code anywhere in name (e.g. "XXJ5+99G ", "7CQG+25, ", "مقابر ... HRQ7+HGG ...")
   placeName = placeName
     .replace(/\b[A-Z0-9]{2,8}\+[A-Z0-9]{2,4}\b\s*[-–—,،]?\s*/gi, '')
     .replace(/\s{2,}/g, ' ')
     .trim();
+
+  if (isInvalidPlaceName(placeName)) {
+    return null;
+  }
 
   return placeName || null;
 }

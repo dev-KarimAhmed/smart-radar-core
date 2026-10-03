@@ -4,6 +4,7 @@ import { useToast } from '@/hooks/use-toast';
 import {
   ClipboardMapLocationError,
   extractGoogleMapsPlaceName,
+  isInvalidPlaceName,
   resolveClipboardMapLocation,
   type ResolvedLocationGeography,
 } from '@/shared/services/google-maps-location';
@@ -101,8 +102,8 @@ export function useClipboardLocationImport(params: {
     parsedLocation: RiderLocation,
     resolvedGeography?: ResolvedLocationGeography,
   ) => {
-    const placeName = extractGoogleMapsPlaceName(clipboardValue);
-    const resolvedPlaceName = placeName || locationCopy('external_place_name');
+    const rawPlaceName = extractGoogleMapsPlaceName(clipboardValue);
+    const placeName = rawPlaceName && !isInvalidPlaceName(rawPlaceName) ? rawPlaceName : null;
     // Split on comma to get the primary name, but skip "Unnamed Road" or raw Plus Codes
     const rawSegments = (placeName || '')
       .replace(/\b[A-Z0-9]{2,8}\+[A-Z0-9]{2,4}\b\s*[-–—,،]?\s*/gi, '')
@@ -110,13 +111,17 @@ export function useClipboardLocationImport(params: {
       .map((s) => s.trim())
       .filter((s) => s && !/^unnamed\s+road/i.test(s));
     const cleanPrimaryName = rawSegments[0] || placeName?.split(/[,،]/)[0]?.trim() || null;
-    const primaryPlaceName = cleanPrimaryName?.replace(/\b[A-Z0-9]{2,8}\+[A-Z0-9]{2,4}\b\s*[-–—,،]?\s*/gi, '').trim() || null;
+    const primaryPlaceName = cleanPrimaryName && !isInvalidPlaceName(cleanPrimaryName)
+      ? cleanPrimaryName.replace(/\b[A-Z0-9]{2,8}\+[A-Z0-9]{2,4}\b\s*[-–—,،]?\s*/gi, '').trim() || null
+      : null;
 
+    const fallbackDistrict = resolvedGeography?.district || resolvedGeography?.city || resolvedGeography?.districtCandidates?.[0];
     const governorate = resolvedGeography?.governorate || locationCopy('external_governorate');
-    const geographicDistrict = resolvedGeography?.district || resolvedGeography?.city || resolvedPlaceName;
+    const geographicDistrict = fallbackDistrict || locationCopy('external_place_name');
     const district = primaryPlaceName && primaryPlaceName !== geographicDistrict
       ? `${primaryPlaceName} - ${geographicDistrict}`
       : geographicDistrict;
+    const resolvedPlaceName = primaryPlaceName || district;
     const externalGovernorateId = `google:${slugifyLocationPart(governorate)}`;
     const externalDistrictId = `google:${slugifyLocationPart(`${district}-${parsedLocation.lat}-${parsedLocation.lng}`)}`;
     const externalGovernorate: GovernorateOption = {

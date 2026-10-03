@@ -1,6 +1,7 @@
 import { latLngToCell } from 'h3-js';
 
 import { calculateSovereignFareQuote } from '@/core/logic/geospatial-kernel';
+import { isInvalidPlaceName } from '@/shared/services/google-maps-location';
 import type { RiderDestination } from '../state/rider-state-machine';
 import type { RiderLocation } from '../components/rider-map';
 
@@ -144,12 +145,19 @@ export function buildRiderDestination(
     }
   }
 
-  const fallbackLabel = [destination.districtAr, destination.governorateAr].filter(Boolean).join(' - ');
+  const rawFallbackLabel = [destination.districtAr, destination.governorateAr].filter(Boolean).join(' - ');
+  const fallbackLabel = isInvalidPlaceName(rawFallbackLabel)
+    ? (destination.governorateAr && !isInvalidPlaceName(destination.governorateAr) ? destination.governorateAr : 'موقع محدد على الخريطة')
+    : rawFallbackLabel;
+
+  const resolvedLabel = (pinnedPlaceLabel && !isInvalidPlaceName(pinnedPlaceLabel))
+    ? pinnedPlaceLabel.trim()
+    : fallbackLabel || 'موقع محدد على الخريطة';
 
   return {
     id: destination.id,
     // The pinned place wins: it names the point the captain is actually driving to.
-    label: pinnedPlaceLabel?.trim() || fallbackLabel || 'موقع محدد على الخريطة',
+    label: resolvedLabel,
     governorate: finalGovernorate,
     district: finalDistrict,
     coords: preciseDestination,

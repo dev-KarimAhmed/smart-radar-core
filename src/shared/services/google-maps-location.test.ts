@@ -5,6 +5,7 @@ import {
   decodePlusCode,
   extractGoogleMapsPlaceName,
   extractPlusCode,
+  isInvalidPlaceName,
   isMapsLink,
   parseGoogleMapsLocation,
   recoverNearestPlusCode,
@@ -290,6 +291,37 @@ test('prefers destination !3d!4d marker over origin in directions HTML payload',
   const location = parseGoogleMapsLocation(html);
   // In directions payload with multiple !3d!4d, destination is the last marker
   assert.deepEqual(location, { lat: 31.887619, lng: 35.886854 });
+});
+
+test('isInvalidPlaceName flags protobuf data strings, coordinates, and origin labels as invalid', () => {
+  assert.equal(isInvalidPlaceName('data=!4m12!4m11!1m1!4e1!1m5!1m4!1s0x15...'), true);
+  assert.equal(isInvalidPlaceName('!4m12!4m11!1m1!4e1'), true);
+  assert.equal(isInvalidPlaceName('am=t'), true);
+  assert.equal(isInvalidPlaceName('@31.8876,35.8867,17z'), true);
+  assert.equal(isInvalidPlaceName('31.8876,35.8868'), true);
+  assert.equal(isInvalidPlaceName('31°53\'15.5"N 35°53\'12.5"E'), true);
+  assert.equal(isInvalidPlaceName('Current Location'), true);
+  assert.equal(isInvalidPlaceName('Current+Location'), true);
+  assert.equal(isInvalidPlaceName('موقعي'), true);
+  assert.equal(isInvalidPlaceName('0x151ca7e4b:0x1234'), true);
+
+  // Real places must be valid:
+  assert.equal(isInvalidPlaceName('Universal Civilizations Academy'), false);
+  assert.equal(isInvalidPlaceName('City Mall'), false);
+  assert.equal(isInvalidPlaceName('مول العرب'), false);
+  assert.equal(isInvalidPlaceName('البنيات الشمالي'), false);
+});
+
+test('extractGoogleMapsPlaceName refuses to return data=! protobuf segment from directions URL', () => {
+  const url = 'https://www.google.com/maps/dir/Current+Location/data=!4m12!4m11!1m1!4e1!1m5!1m4!1s0x15...';
+  const name = extractGoogleMapsPlaceName(url);
+  assert.equal(name, null, 'Protobuf data= segment must never be returned as a destination place name');
+});
+
+test('extractGoogleMapsPlaceName refuses to return DMS coordinate strings as a place name', () => {
+  const url = 'https://www.google.com/maps/place/31%C2%B053\'15.5%22N+35%C2%B053\'12.5%22E/@31.8876389,35.8842224,17z/data=!3m1!4b1';
+  const name = extractGoogleMapsPlaceName(url);
+  assert.equal(name, null, 'DMS coordinates must never be returned as a destination place name');
 });
 
 

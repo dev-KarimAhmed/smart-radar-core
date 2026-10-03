@@ -7,6 +7,7 @@ import { useDestinationMapPicker } from './use-destination-map-picker';
 import { useClipboardLocationImport } from './use-clipboard-location-import';
 import { useDestinationSelectionHandlers } from './use-destination-selection-handlers';
 import { usePinnedPlaceLabel } from './use-pinned-place-label';
+import { isInvalidPlaceName } from '@/shared/services/google-maps-location';
 import type { RiderLocation, RiderLocationStatus } from '../components/rider-map';
 
 interface RiderProfileLike {
@@ -100,10 +101,18 @@ export function useDestinationSelectionState(params: {
       || Math.abs(selectedDestinationCoords.lat - districtAnchor.lat) > 0.0005
       || Math.abs(selectedDestinationCoords.lng - districtAnchor.lng) > 0.0005),
   );
+  const hasSpecificImportedPlaceName = Boolean(
+    geography.externalLocationContext?.placeName &&
+    !isInvalidPlaceName(geography.externalLocationContext.placeName),
+  );
+  const shouldResolvePin = Boolean(
+    selectedDestinationCoords &&
+    (hasMovedPinOffDistrict || !hasSpecificImportedPlaceName),
+  );
   const { label: pinnedPlaceLabel, isResolving: isResolvingPinnedPlace } = usePinnedPlaceLabel(
     selectedDestinationCoords,
     language,
-    hasMovedPinOffDistrict && !geography.externalLocationContext,
+    shouldResolvePin,
   );
 
   const search = useDestinationTextSearch({

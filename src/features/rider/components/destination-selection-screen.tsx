@@ -12,6 +12,7 @@ import type { useClipboardLocationImport } from '../hooks/use-clipboard-location
 import type { useServerFareAndRoute } from '../hooks/use-server-fare-and-route';
 import type { RiderLocation } from './rider-map';
 import { formatMoney } from '../services/rider-view-format';
+import { isInvalidPlaceName } from '@/shared/services/google-maps-location';
 import { DestinationSearchPanel } from './destination-search-panel';
 import { DestinationTripSummary } from './destination-trip-summary';
 
@@ -116,7 +117,7 @@ export function DestinationSelectionScreen({
     !isRouteEstimateLoading &&
     !isDestinationPinMoving &&
     !isSameLocation;
-  const districtLabel = geography.externalLocationContext
+  const rawDistrictLabel = geography.externalLocationContext
     ? [geography.externalLocationContext.district, geography.externalLocationContext.governorate].filter(Boolean).join(' - ')
     : geography.selectedDistrict
       ? isArabic
@@ -124,8 +125,17 @@ export function DestinationSelectionScreen({
         : [geography.selectedDistrict.districtEn || geography.selectedDistrict.districtAr, geography.selectedDistrict.governorateEn || geography.selectedDistrict.governorateAr].filter(Boolean).join(' - ')
       : t('destination.notAvailable');
 
+  const districtLabel = isInvalidPlaceName(rawDistrictLabel)
+    ? (geography.externalLocationContext?.governorate || t('destination.notAvailable'))
+    : rawDistrictLabel;
+
   // The pin wins when it has one: it is what the trip is actually priced and driven to.
-  const destinationLabel = pinnedPlaceLabel || districtLabel;
+  const rawDestinationLabel = (pinnedPlaceLabel && !isInvalidPlaceName(pinnedPlaceLabel))
+    ? pinnedPlaceLabel
+    : districtLabel;
+  const destinationLabel = isInvalidPlaceName(rawDestinationLabel)
+    ? (districtLabel && !isInvalidPlaceName(districtLabel) ? districtLabel : locationCopy('external_place_name'))
+    : rawDestinationLabel;
 
   return (
     <div className={styles.wrapper} dir={isArabic ? 'rtl' : 'ltr'}>
