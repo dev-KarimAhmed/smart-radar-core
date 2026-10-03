@@ -231,10 +231,7 @@ export function parseGoogleMapsLocation(
   }
 
   const isHtml = /<html|<!doctype|<body|<meta\s+/i.test(text);
-  const isDirectionsUrl = /\/maps\/dir\//i.test(text)
-    || /[?&]daddr=/i.test(text)
-    || /[?&]saddr=/i.test(text)
-    || /[?&]dirflg=/i.test(text);
+  const isDirectionsUrl = /\/maps\/dir\//i.test(text);
 
   // If camera coordinates are present in the URL, they serve as a reference for short Plus Codes
   const cameraMatch = text.match(/@(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/);
@@ -243,34 +240,16 @@ export function parseGoogleMapsLocation(
     : null;
   const effectiveRefLocation = referenceLocation || cameraCoords || undefined;
 
-  // Directions URLs (`/maps/dir/{origin}/{destination}/...` or `?saddr=...&daddr=...`)
+  // Directions URLs (`/maps/dir/{origin}/{destination}/@{viewCenter}/data=!...
+  // !2m2!1d{lng}!2d{lat}!...`)
   // Waypoints are ordered from origin to destination. The destination waypoint is the
-  // LAST marker in the payload.
+  // LAST `!2m2!1d{lng}!2d{lat}` marker in the data payload.
   if (isDirectionsUrl) {
     const allWaypoints = [...text.matchAll(/!2m2!1d(-?\d+(?:\.\d+)?)!2d(-?\d+(?:\.\d+)?)/g)];
     if (allWaypoints.length > 0) {
       const lastMatch = allWaypoints[allWaypoints.length - 1];
       const lng = Number(lastMatch[1]);
       const lat = Number(lastMatch[2]);
-      if (isValidLocation(lat, lng)) return { lat, lng };
-    }
-
-    // Directions HTML payloads often embed origin and destination as !3d{lat}!4d{lng} markers.
-    // The LAST marker is the destination.
-    const all3d4d = [...text.matchAll(/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/g)];
-    if (all3d4d.length > 1) {
-      const lastMatch = all3d4d[all3d4d.length - 1];
-      const lat = Number(lastMatch[1]);
-      const lng = Number(lastMatch[2]);
-      if (isValidLocation(lat, lng)) return { lat, lng };
-    }
-
-    // Explicit numeric coordinates in destination query parameter (daddr or destination).
-    // Note: NEVER match saddr (start address) as the trip destination.
-    const destParamMatch = text.match(/[?&](?:destination|daddr)=(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/i);
-    if (destParamMatch) {
-      const lat = Number(destParamMatch[1]);
-      const lng = Number(destParamMatch[2]);
       if (isValidLocation(lat, lng)) return { lat, lng };
     }
 
@@ -303,22 +282,10 @@ export function parseGoogleMapsLocation(
       if (resolved) return resolved;
     }
 
-    // CRITICAL: A directions URL uses `@lat,lng` ONLY as the map-framing viewport camera,
-    // and `saddr=` as the start point. Under NO circumstances should `@lat,lng` or `saddr`
-    // be returned as the destination of a directions trip.
+    // CRITICAL: A directions URL uses `@lat,lng` ONLY as the map-framing viewport camera
+    // (the midpoint fitting both origin and destination on screen). Under NO circumstances
+    // should `@lat,lng` be returned as the destination of a directions trip.
     return null;
-  }
-
-  // In HTML documents with multiple !3d!4d markers (such as directions pages with origin and destination),
-  // the LAST marker represents the destination.
-  if (isHtml) {
-    const all3d4d = [...text.matchAll(/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/g)];
-    if (all3d4d.length > 1) {
-      const lastMatch = all3d4d[all3d4d.length - 1];
-      const lat = Number(lastMatch[1]);
-      const lng = Number(lastMatch[2]);
-      if (isValidLocation(lat, lng)) return { lat, lng };
-    }
   }
 
   // Non-directions URLs: canonical place markers in a /maps/place data= payload
