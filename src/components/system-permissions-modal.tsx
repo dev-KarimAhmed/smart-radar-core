@@ -16,6 +16,7 @@ import {
   Smartphone,
   ExternalLink,
   X,
+  HelpCircle,
 } from 'lucide-react';
 import {
   Dialog,
@@ -29,33 +30,33 @@ import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { cn } from '@/lib/utils';
 
 const styles = {
-  content: 'max-w-[390px] w-[92vw] rounded-2xl border border-[#14B8A6]/30 bg-[#0A0F1D]/95 text-white p-4 shadow-2xl backdrop-blur-xl',
-  headerRow: 'flex items-center justify-between gap-2.5 border-b border-white/[0.08] pb-2.5',
+  content: 'max-w-[380px] w-[92vw] max-h-[85vh] overflow-y-auto rounded-2xl border border-[#14B8A6]/30 bg-[#0A0F1D]/95 text-white p-3.5 sm:p-4 shadow-2xl backdrop-blur-xl space-y-2.5',
+  headerRow: 'flex items-center justify-between gap-2 border-b border-white/[0.08] pb-2',
   headerStart: 'flex items-center gap-2 min-w-0',
-  headerIconWrap: 'flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#14B8A6]/15 text-[#14F5D5] border border-[#14B8A6]/30',
+  headerIconWrap: 'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#14B8A6]/15 text-[#14F5D5] border border-[#14B8A6]/30',
   title: 'text-xs sm:text-sm font-black text-white truncate',
-  subtitle: 'text-[10px] text-slate-400 font-medium leading-none mt-0.5',
-  closeIconButton: 'flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-full bg-white/10 border border-white/20 text-white/90 hover:text-white hover:bg-white/20 transition-all cursor-pointer shadow-sm active:scale-95',
-  warningBanner: 'my-2 rounded-xl border border-amber-500/30 bg-amber-500/10 p-2 flex items-start gap-2',
+  subtitle: 'text-[9.5px] text-slate-400 font-medium leading-none mt-0.5',
+  closeBadgeButton: 'flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white hover:text-white text-[11px] font-bold transition-all active:scale-95 cursor-pointer shadow-sm shrink-0',
+  warningBanner: 'rounded-xl border border-amber-500/30 bg-amber-500/10 p-2 flex items-start gap-2',
   warningIcon: 'h-3.5 w-3.5 text-amber-400 shrink-0 mt-0.5',
-  warningText: 'text-[10px] leading-relaxed text-amber-200/90 font-medium',
-  cardList: 'my-2 space-y-2',
+  warningText: 'text-[9.5px] leading-relaxed text-amber-200/90 font-medium',
+  cardList: 'space-y-1.5',
   permissionCard: 'rounded-xl border border-white/8 bg-white/[0.03] p-2.5 transition-colors',
   cardHeader: 'flex items-center justify-between gap-2',
-  cardTitleWrap: 'flex items-center gap-2',
+  cardTitleWrap: 'flex items-center gap-2 min-w-0',
   cardIconWrap: 'flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-[#14B8A6]/15 text-[#14F5D5]',
-  cardTitle: 'text-[11px] font-black text-white',
-  cardDesc: 'mt-0.5 text-[9.5px] text-slate-400 leading-tight',
-  statusBadgeGranted: 'inline-flex items-center gap-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-1.5 py-0.5 text-[9px] font-black text-emerald-300',
-  statusBadgeDenied: 'inline-flex items-center gap-1 rounded-full bg-rose-500/15 border border-rose-500/30 px-1.5 py-0.5 text-[9px] font-black text-rose-300',
-  statusBadgePrompt: 'inline-flex items-center gap-1 rounded-full bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.5 text-[9px] font-black text-amber-300',
-  actionButton: 'mt-2 h-7.5 w-full rounded-lg bg-[#14B8A6] font-black text-[11px] text-[#0A0F1D] hover:bg-[#2DD4BF] transition-all active:scale-[0.98]',
-  actionButtonDisabled: 'mt-2 h-7.5 w-full rounded-lg bg-white/10 font-bold text-[11px] text-slate-400 cursor-not-allowed',
-  instructionsToggle: 'w-full py-1 text-[10px] font-bold text-slate-400 hover:text-white flex items-center justify-between transition-colors',
-  instructionsPanel: 'mt-1.5 rounded-xl bg-black/50 border border-white/5 p-2 space-y-1.5 text-[10px] text-slate-300 leading-relaxed max-h-36 overflow-y-auto',
-  footerActions: 'mt-2.5 flex items-center gap-2',
-  refreshButton: 'h-8.5 flex-1 rounded-xl border border-white/10 bg-white/5 font-bold text-[11px] text-white hover:bg-white/10 transition-all flex items-center justify-center gap-1.5',
-  closeButton: 'h-8.5 flex-1 rounded-xl bg-[#14B8A6] font-black text-[11px] text-[#0A0F1D] hover:bg-[#2DD4BF] transition-all active:scale-[0.98]',
+  cardTitle: 'text-[11px] font-bold text-white leading-tight',
+  cardDesc: 'text-[9px] text-slate-400 leading-tight',
+  statusBadgeGranted: 'inline-flex items-center gap-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-1.5 py-0.5 text-[9px] font-black text-emerald-300 shrink-0',
+  statusBadgeDenied: 'inline-flex items-center gap-1 rounded-full bg-rose-500/15 border border-rose-500/30 px-1.5 py-0.5 text-[9px] font-black text-rose-300 shrink-0',
+  statusBadgePrompt: 'inline-flex items-center gap-1 rounded-full bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.5 text-[9px] font-black text-amber-300 shrink-0',
+  inlineActionButton: 'h-6 px-2.5 rounded-md bg-[#14B8A6] font-bold text-[10px] text-[#0A0F1D] hover:bg-[#2DD4BF] transition-all active:scale-[0.98] shrink-0',
+  deniedBanner: 'rounded-xl border border-rose-500/25 bg-rose-500/10 p-2 flex items-start gap-2 text-slate-300',
+  instructionsToggle: 'w-full py-0.5 text-[9.5px] font-medium text-slate-400 hover:text-[#14F5D5] flex items-center justify-between transition-colors',
+  instructionsPanel: 'rounded-xl bg-black/50 border border-white/5 p-2 space-y-1 text-[9.5px] text-slate-300 leading-relaxed max-h-32 overflow-y-auto',
+  footerActions: 'pt-1 flex items-center gap-2',
+  refreshButton: 'h-8.5 flex-1 rounded-xl border border-white/10 bg-white/5 font-bold text-[10.5px] text-white hover:bg-white/10 transition-all flex items-center justify-center gap-1.5',
+  closeButton: 'h-8.5 flex-1 rounded-xl bg-[#14B8A6] font-black text-[10.5px] text-[#0A0F1D] hover:bg-[#2DD4BF] transition-all active:scale-[0.98]',
 } as const;
 
 export type PermissionCheckStatus = 'checking' | 'granted' | 'prompt' | 'denied';
@@ -260,6 +261,7 @@ export function SystemPermissionsModal() {
   };
 
   const allGranted = locationStatus === 'granted' && clipboardStatus === 'granted';
+  const hasAnyDenied = locationStatus === 'denied' || clipboardStatus === 'denied';
 
   if (!mounted) return null;
 
@@ -274,29 +276,27 @@ export function SystemPermissionsModal() {
         className={styles.content}
         dir={isArabic ? 'rtl' : 'ltr'}
         hideCloseButton={true}
-        onPointerDownOutside={(e) => {
-          if (!allGranted) e.preventDefault();
+        onPointerDownOutside={() => {
+          setHasUserDismissed(true);
+          setIsOpen(false);
         }}
-        onInteractOutside={(e) => {
-          if (!allGranted) e.preventDefault();
+        onInteractOutside={() => {
+          setHasUserDismissed(true);
+          setIsOpen(false);
         }}
       >
-        {/* Header row with prominent close button */}
+        {/* Header row with prominent close badge button */}
         <div className={styles.headerRow}>
           <div className={styles.headerStart}>
             <div className={styles.headerIconWrap}>
-              <ShieldAlert className="h-4 w-4" />
+              <ShieldAlert className="h-3.5 w-3.5" />
             </div>
             <div className="min-w-0">
               <DialogTitle className={styles.title}>
-                {isArabic
-                  ? 'أذونات المنظومة (الموقع والحافظة)'
-                  : 'System Permissions (GPS & Clipboard)'}
+                {isArabic ? 'أذونات المنظومة' : 'System Permissions'}
               </DialogTitle>
               <DialogDescription className={styles.subtitle}>
-                {isArabic
-                  ? 'مطلوب لحساب المسار وقراءة الروابط'
-                  : 'Required for live routing & links'}
+                {isArabic ? 'الموقع الجغرافي والحافظة' : 'GPS & Clipboard'}
               </DialogDescription>
             </div>
           </div>
@@ -307,11 +307,11 @@ export function SystemPermissionsModal() {
               setHasUserDismissed(true);
               setIsOpen(false);
             }}
-            aria-label={isArabic ? 'إغلاق' : 'Close'}
-            title={isArabic ? 'إغلاق' : 'Close'}
-            className={styles.closeIconButton}
+            aria-label={isArabic ? 'إغلاق وتخطي' : 'Close and skip'}
+            className={styles.closeBadgeButton}
           >
-            <X className="h-4 w-4" />
+            <X className="h-3 w-3" />
+            <span>{isArabic ? 'إغلاق' : 'Close'}</span>
           </button>
         </div>
 
@@ -321,86 +321,59 @@ export function SystemPermissionsModal() {
             <AlertTriangle className={styles.warningIcon} />
             <p className={styles.warningText}>
               {isArabic
-                ? 'تنبيه أمان: الرابط الحالي غير مشفر (HTTP). متصفحات الهواتف تحظر الـ GPS والحافظة تلقائياً خارج HTTPS أو localhost.'
-                : 'Security Warning: Insecure HTTP connection. Mobile browsers automatically block GPS & Clipboard outside HTTPS or localhost.'}
+                ? 'تنبيه أمان: الرابط غير مشفر (HTTP). المتصفحات تحظر الـ GPS والحافظة خارج HTTPS.'
+                : 'Security Warning: Insecure HTTP connection. Browsers block GPS outside HTTPS.'}
             </p>
           </div>
         )}
 
+        {/* Permission items list */}
         <div className={styles.cardList}>
           {/* Card 1: GPS Location */}
           <div className={styles.permissionCard}>
             <div className={styles.cardHeader}>
               <div className={styles.cardTitleWrap}>
                 <div className={styles.cardIconWrap}>
-                  <MapPin className="h-3.5 w-3.5" />
+                  <MapPin className="h-3 w-3" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <h4 className={styles.cardTitle}>
-                    {isArabic ? 'إذن الموقع الجغرافي (GPS)' : 'Location Permission (GPS)'}
+                    {isArabic ? 'الموقع الجغرافي (GPS)' : 'Location (GPS)'}
                   </h4>
                   <p className={styles.cardDesc}>
-                    {isArabic
-                      ? 'مطلوب لتحديد نقطة انطلاقك وحساب الأسعار'
-                      : 'Required to detect origin & calculate pricing'}
+                    {isArabic ? 'لحساب المسافات والأسعار' : 'For live routes & pricing'}
                   </p>
                 </div>
               </div>
 
-              {locationStatus === 'granted' && (
-                <span className={styles.statusBadgeGranted}>
-                  <CheckCircle2 className="h-2.5 w-2.5" />
-                  {isArabic ? 'مُفعّل' : 'Granted'}
-                </span>
-              )}
-              {locationStatus === 'denied' && (
-                <span className={styles.statusBadgeDenied}>
-                  <XCircle className="h-2.5 w-2.5" />
-                  {isArabic ? 'محظور' : 'Denied'}
-                </span>
-              )}
-              {(locationStatus === 'prompt' || locationStatus === 'checking') && (
-                <span className={styles.statusBadgePrompt}>
-                  <AlertTriangle className="h-2.5 w-2.5" />
-                  {isArabic ? 'مطلوب' : 'Required'}
-                </span>
-              )}
-            </div>
-
-            {locationStatus !== 'granted' && (
-              locationStatus === 'denied' ? (
-                <div className="mt-2 rounded-lg bg-rose-500/10 border border-rose-500/25 p-2 text-[10px] space-y-1">
-                  <div className="flex items-center gap-1 font-bold text-rose-300">
-                    <Lock className="h-3 w-3 shrink-0" />
-                    <span>{isArabic ? 'محظور في إعدادات المتصفح / الجهاز:' : 'Blocked in Browser / OS Settings:'}</span>
-                  </div>
-                  <p className="text-slate-300 leading-normal">
-                    {isArabic
-                      ? 'اضغط على أيقونة القفل أو الإعدادات 🔒 بجانب الرابط بأعلى المتصفح ➔ اختر "السماح بالموقع" (Allow).'
-                      : 'Click lock icon 🔒 next to address bar ➔ Set Location to Allow.'}
-                  </p>
+              <div className="flex items-center gap-1.5 shrink-0">
+                {locationStatus === 'granted' && (
+                  <span className={styles.statusBadgeGranted}>
+                    <CheckCircle2 className="h-2.5 w-2.5" />
+                    {isArabic ? 'مُفعّل' : 'Granted'}
+                  </span>
+                )}
+                {locationStatus === 'denied' && (
+                  <span className={styles.statusBadgeDenied}>
+                    <XCircle className="h-2.5 w-2.5" />
+                    {isArabic ? 'محظور' : 'Denied'}
+                  </span>
+                )}
+                {(locationStatus === 'prompt' || locationStatus === 'checking') && (
                   <Button
                     type="button"
+                    size="sm"
                     onClick={requestLocation}
                     disabled={isRequestingLocation}
-                    className="mt-1 h-6.5 w-full rounded-md bg-white/10 hover:bg-white/15 text-white text-[10px] font-bold border border-white/15 transition-all"
+                    className={styles.inlineActionButton}
                   >
-                    {isRequestingLocation ? (isArabic ? 'جاري الفحص...' : 'Checking...') : (isArabic ? 'إعادة محاولة الطلب' : 'Retry Access')}
+                    {isRequestingLocation
+                      ? (isArabic ? 'جاري الطلب...' : '...')
+                      : (isArabic ? 'تفعيل الآن' : 'Enable')}
                   </Button>
-                </div>
-              ) : (
-                <Button
-                  type="button"
-                  onClick={requestLocation}
-                  disabled={isRequestingLocation}
-                  className={styles.actionButton}
-                >
-                  {isRequestingLocation
-                    ? (isArabic ? 'جاري طلب الإذن...' : 'Requesting...')
-                    : (isArabic ? 'تفعيل إذن الموقع الآن' : 'Allow Location Access')}
-                </Button>
-              )
-            )}
+                )}
+              </div>
+            </div>
           </div>
 
           {/* Card 2: Clipboard Access */}
@@ -408,78 +381,65 @@ export function SystemPermissionsModal() {
             <div className={styles.cardHeader}>
               <div className={styles.cardTitleWrap}>
                 <div className={styles.cardIconWrap}>
-                  <ClipboardCheck className="h-3.5 w-3.5" />
+                  <ClipboardCheck className="h-3 w-3" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <h4 className={styles.cardTitle}>
-                    {isArabic ? 'إذن قراءة الحافظة (Clipboard)' : 'Clipboard Access'}
+                    {isArabic ? 'قراءة الحافظة (Clipboard)' : 'Clipboard'}
                   </h4>
                   <p className={styles.cardDesc}>
-                    {isArabic
-                      ? 'مطلوب لقراءة روابط خرائط جوجل فور نسخها'
-                      : 'Required to auto-import Google Maps links on copy'}
+                    {isArabic ? 'لقراءة روابط الخرائط المنسوخة' : 'Reads copied map links'}
                   </p>
                 </div>
               </div>
 
-              {clipboardStatus === 'granted' && (
-                <span className={styles.statusBadgeGranted}>
-                  <CheckCircle2 className="h-2.5 w-2.5" />
-                  {isArabic ? 'مُفعّل' : 'Granted'}
-                </span>
-              )}
-              {clipboardStatus === 'denied' && (
-                <span className={styles.statusBadgeDenied}>
-                  <XCircle className="h-2.5 w-2.5" />
-                  {isArabic ? 'محظور' : 'Denied'}
-                </span>
-              )}
-              {(clipboardStatus === 'prompt' || clipboardStatus === 'checking') && (
-                <span className={styles.statusBadgePrompt}>
-                  <AlertTriangle className="h-2.5 w-2.5" />
-                  {isArabic ? 'مطلوب' : 'Required'}
-                </span>
-              )}
-            </div>
-
-            {clipboardStatus !== 'granted' && (
-              clipboardStatus === 'denied' ? (
-                <div className="mt-2 rounded-lg bg-rose-500/10 border border-rose-500/25 p-2 text-[10px] space-y-1">
-                  <div className="flex items-center gap-1 font-bold text-rose-300">
-                    <Lock className="h-3 w-3 shrink-0" />
-                    <span>{isArabic ? 'محظور في إعدادات المتصفح:' : 'Blocked in Browser Settings:'}</span>
-                  </div>
-                  <p className="text-slate-300 leading-normal">
-                    {isArabic
-                      ? 'اضغط على أيقونة القفل 🔒 بجانب الرابط بأعلى المتصفح ➔ فعّل "الحافظة" (Clipboard).'
-                      : 'Click lock icon 🔒 next to address bar ➔ Set Clipboard to Allow.'}
-                  </p>
+              <div className="flex items-center gap-1.5 shrink-0">
+                {clipboardStatus === 'granted' && (
+                  <span className={styles.statusBadgeGranted}>
+                    <CheckCircle2 className="h-2.5 w-2.5" />
+                    {isArabic ? 'مُفعّل' : 'Granted'}
+                  </span>
+                )}
+                {clipboardStatus === 'denied' && (
+                  <span className={styles.statusBadgeDenied}>
+                    <XCircle className="h-2.5 w-2.5" />
+                    {isArabic ? 'محظور' : 'Denied'}
+                  </span>
+                )}
+                {(clipboardStatus === 'prompt' || clipboardStatus === 'checking') && (
                   <Button
                     type="button"
+                    size="sm"
                     onClick={requestClipboard}
                     disabled={isRequestingClipboard}
-                    className="mt-1 h-6.5 w-full rounded-md bg-white/10 hover:bg-white/15 text-white text-[10px] font-bold border border-white/15 transition-all"
+                    className={styles.inlineActionButton}
                   >
-                    {isRequestingClipboard ? (isArabic ? 'جاري الفحص...' : 'Checking...') : (isArabic ? 'إعادة محاولة الطلب' : 'Retry Access')}
+                    {isRequestingClipboard
+                      ? (isArabic ? 'جاري الفحص...' : '...')
+                      : (isArabic ? 'تفعيل الآن' : 'Enable')}
                   </Button>
-                </div>
-              ) : (
-                <Button
-                  type="button"
-                  onClick={requestClipboard}
-                  disabled={isRequestingClipboard}
-                  className={styles.actionButton}
-                >
-                  {isRequestingClipboard
-                    ? (isArabic ? 'جاري فحص الحافظة...' : 'Testing...')
-                    : (isArabic ? 'اختبار وتفعيل إذن الحافظة' : 'Allow Clipboard Access')}
-                </Button>
-              )
-            )}
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Browser Settings Help Accordion */}
+        {/* Single Compact Denied Guidance Banner */}
+        {hasAnyDenied && (
+          <div className={styles.deniedBanner}>
+            <Lock className="h-3.5 w-3.5 text-rose-400 shrink-0 mt-0.5" />
+            <div className="text-[10px] leading-relaxed text-slate-300 flex-1">
+              <span className="font-bold text-rose-300">
+                {isArabic ? 'الأذونات محظورة في المتصفح: ' : 'Blocked in browser: '}
+              </span>
+              {isArabic
+                ? 'اضغط على أيقونة القفل أو الإعدادات 🔒 بجانب الرابط بأعلى المتصفح واجعلهما "سماح" (Allow)، ثم اضغط "إعادة الفحص".'
+                : 'Click lock icon 🔒 next to address bar ➔ Set to Allow ➔ Tap Re-check.'}
+            </div>
+          </div>
+        )}
+
+        {/* Browser Settings Help Accordion (Optional) */}
         <div>
           <button
             type="button"
@@ -487,8 +447,8 @@ export function SystemPermissionsModal() {
             className={styles.instructionsToggle}
           >
             <span className="flex items-center gap-1.5">
-              <Lock className="h-3 w-3 text-[#14F5D5]" />
-              {isArabic ? 'كيف أفعّل الأذونات المحظورة في المتصفح؟' : 'How to unblock in browser settings?'}
+              <HelpCircle className="h-3 w-3 text-[#14F5D5]" />
+              {isArabic ? 'شرح فك الحظر بالتفصيل حسب جهازك' : 'Detailed device instructions'}
             </span>
             {showInstructions ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
           </button>
@@ -496,28 +456,28 @@ export function SystemPermissionsModal() {
           {showInstructions && (
             <div className={styles.instructionsPanel}>
               <p className="font-bold text-white">
-                {isArabic ? '📱 على هواتف iPhone (Safari):' : '📱 On iPhone (Safari):'}
+                {isArabic ? '📱 هواتف iPhone (Safari):' : '📱 iPhone (Safari):'}
               </p>
-              <p className="leading-relaxed">
+              <p>
                 {isArabic
-                  ? 'اضغط على زر (aA) أو الإعدادات في شريط العنوان ➔ إعدادات موقع الويب (Website Settings) ➔ اختر "الموقع: السماح" (Location: Allow).'
+                  ? 'اضغط زر (aA) بشريط العنوان ➔ إعدادات موقع الويب ➔ اختر الموقع: السماح.'
                   : 'Tap (aA) in Safari address bar ➔ Website Settings ➔ Set Location to Allow.'}
               </p>
-              <p className="font-bold text-white mt-1.5">
-                {isArabic ? '🤖 على هواتف Android (Chrome):' : '🤖 On Android (Chrome):'}
+              <p className="font-bold text-white mt-1">
+                {isArabic ? '🤖 هواتف Android (Chrome):' : '🤖 Android (Chrome):'}
               </p>
-              <p className="leading-relaxed">
+              <p>
                 {isArabic
-                  ? 'اضغط على أيقونة القفل أو الإعدادات بجانب الرابط ➔ الأذونات (Permissions) ➔ فعّل الموقع الجغرافي والحافظة.'
-                  : 'Tap the lock/tune icon in Chrome address bar ➔ Permissions ➔ Turn on Location and Clipboard.'}
+                  ? 'اضغط أيقونة القفل 🔒 بجانب الرابط ➔ الأذونات ➔ فعّل الموقع والحافظة.'
+                  : 'Tap lock icon 🔒 ➔ Permissions ➔ Allow Location & Clipboard.'}
               </p>
-              <p className="font-bold text-white mt-1.5">
-                {isArabic ? '💻 على أجهزة الكمبيوتر (Windows / Chrome):' : '💻 On PC (Windows / Chrome):'}
+              <p className="font-bold text-white mt-1">
+                {isArabic ? '💻 الكمبيوتر (Windows / Chrome):' : '💻 PC (Windows / Chrome):'}
               </p>
-              <p className="leading-relaxed">
+              <p>
                 {isArabic
-                  ? 'إعدادات ويندوز (Windows Settings) ➔ الخصوصية والأمان (Privacy & Security) ➔ الموقع (Location) ➔ تفعيل "خدمات الموقع" (Location services). وفي المتصفح اضغط أيقونة القفل/الإعدادات بجانب الرابط واختر "السماح بالموقع".'
-                  : 'Windows Settings ➔ Privacy & Security ➔ Location ➔ Turn ON "Location services". In browser, click lock/tune icon next to URL and set Location to Allow.'}
+                  ? 'إعدادات ويندوز ➔ الخصوصية ➔ فعّل "خدمات الموقع". واضغط أيقونة القفل 🔒 بالمتصفح واختر "سماح".'
+                  : 'Windows Settings ➔ Privacy ➔ Turn ON Location. Click lock 🔒 in Chrome ➔ Allow.'}
               </p>
             </div>
           )}
@@ -546,7 +506,7 @@ export function SystemPermissionsModal() {
           >
             {allGranted
               ? (isArabic ? 'تم التفعيل (متابعة)' : 'All Set (Continue)')
-              : (isArabic ? 'المتابعة مؤقتاً' : 'Continue Anyway')}
+              : (isArabic ? 'المتابعة وتخطي' : 'Skip & Continue')}
           </Button>
         </div>
       </DialogContent>
