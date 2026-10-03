@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Archive, Bell, History, Home, Languages, LogOut, User } from 'lucide-react';
+import { Archive, Bell, History, Home, Languages, LogOut, PlusCircle, User } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
@@ -23,6 +23,7 @@ const styles = {
   language: 'ms-auto h-8 shrink-0 gap-1 rounded-lg border border-[#14B8A6]/25 bg-[#14B8A6]/10 px-2 text-[10px] font-black text-[#14F5D5] hover:bg-[#14B8A6]/20 hover:text-[#14F5D5]',
   languageIcon: 'h-3.5 w-3.5',
   actions: 'space-y-3 p-4',
+  request: 'h-12 w-full justify-center gap-2 rounded-2xl bg-[#14B8A6] text-sm font-black text-[#031315] shadow-[0_16px_35px_rgba(20,184,166,0.18)] hover:bg-[#2DD4BF]',
   actionIcon: 'h-5 w-5',
   notifications: 'h-11 w-full justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 text-sm font-bold text-slate-200 hover:bg-white/[0.07]',
   notificationIcon: 'h-4 w-4 text-[#14B8A6]',
@@ -78,6 +79,7 @@ export function DesktopRiderSidebar({
   onNotify,
   user,
   isCritical = false,
+  isRideFlowActive = false,
 }: {
   hash: string;
   language: AppLanguage;
@@ -85,6 +87,7 @@ export function DesktopRiderSidebar({
   onNotify: () => void;
   user: { name?: string; phone?: string };
   isCritical?: boolean;
+  isRideFlowActive?: boolean;
 }) {
   const tAuto = useTranslations('auto');
   const { isArabic, toggleLanguage } = useDashboardLanguage();
@@ -97,6 +100,31 @@ export function DesktopRiderSidebar({
     { href: '#vault', icon: Archive, label: text.nav.vault },
     { href: '#profile', icon: User, label: text.nav.profile },
   ];
+
+  const [isFlowActive, setIsFlowActive] = React.useState(Boolean(isRideFlowActive));
+
+  React.useEffect(() => {
+    setIsFlowActive(Boolean(isRideFlowActive));
+  }, [isRideFlowActive]);
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleActive = () => setIsFlowActive(true);
+    const handleInactive = () => setIsFlowActive(false);
+    window.addEventListener('rider-flow-active', handleActive);
+    window.addEventListener('rider-flow-inactive', handleInactive);
+    window.addEventListener('exit-request-flow', handleInactive);
+    return () => {
+      window.removeEventListener('rider-flow-active', handleActive);
+      window.removeEventListener('rider-flow-inactive', handleInactive);
+      window.removeEventListener('exit-request-flow', handleInactive);
+    };
+  }, []);
+
+  const openRideRequest = () => {
+    window.location.hash = '#';
+    window.dispatchEvent(new CustomEvent('rider-open-destination'));
+  };
 
   return (
     <aside aria-label={tAuto('key_5cbbdfd5')} className={styles.root} dir={language === 'ar' ? 'rtl' : 'ltr'}>
@@ -125,6 +153,12 @@ export function DesktopRiderSidebar({
       </div>
 
       <div className={styles.actions}>
+        {!isFlowActive && !isCritical && (
+          <Button className={styles.request} onClick={openRideRequest}>
+            <PlusCircle className={styles.actionIcon} />
+            {text.requestRide}
+          </Button>
+        )}
         <Button className={styles.notifications} onClick={onNotify} variant="ghost">
           <span>{text.notifications}</span>
           <div className={styles.notificationBadgeContainer}>

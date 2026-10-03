@@ -123,6 +123,7 @@ export function RiderShell() {
           onNotify={() => window.dispatchEvent(new CustomEvent('open-app-notifications'))}
           user={user}
           isCritical={false}
+          isRideFlowActive={showRequestFlow || isCritical}
         />
       ) : null}
       <header className={styles.header}><AppHeader sidebar={<AppSidebar isCritical={false} />} /></header>

@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { ChevronLeft, ChevronRight, Heart, MapPin, MessageCircle, Phone, Plus, ShieldCheck, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Heart, MapPin, MessageCircle, Navigation, Phone, Plus, ShieldCheck, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { AdDisplayCard, getAdDescription, getAdImage, getAdTitle } from './ad-display-card';
 import { getAdManualScrollDelta, getAdScrollDelta, wrapAdScrollPosition } from '../services/ad-stage-scroll';
@@ -23,7 +23,7 @@ const styles = {
   style398_6: "relative z-[10] flex w-full flex-col overflow-hidden border-b border-white/5 bg-[#0B0F19] py-2 pointer-events-auto select-none sm:py-6",
   style400_7: "justify-start",
   style400_8: "justify-center",
-  style405_9: "sticky top-0 z-[40] mb-2 flex shrink-0 items-center justify-center w-full px-3 py-2 sm:px-6 sm:py-3 border-b border-[#14B8A6]/20 bg-[#0B0F19]/95 backdrop-blur-md lg:hidden",
+  style405_9: "sticky top-0 z-[40] mb-2 flex shrink-0 items-center justify-center w-full px-3 py-2 sm:px-6 sm:py-3 border-b border-[#14B8A6]/20 bg-[#0B0F19]/95 backdrop-blur-md",
   style423_10: "group flex min-h-[48px] sm:min-h-[56px] w-full max-w-[260px] sm:max-w-[300px] cursor-pointer items-center justify-center gap-2.5 rounded-full border border-[#14F5D5]/50 bg-gradient-to-r from-[#14B8A6] via-[#14F5D5] to-[#14B8A6] px-5 py-2.5 sm:px-7 sm:py-3.5 text-base sm:text-xl font-black !text-[#040914] shadow-[0_8px_24px_rgba(20,184,166,0.35)] transition-all duration-300 hover:brightness-110 hover:shadow-[0_12px_32px_rgba(20,245,213,0.45)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14F5D5]",
   style429_11: "z-[20] mb-3 flex shrink-0 items-center justify-between px-4 sm:mb-4 sm:px-6",
   style430_12: "flex items-center gap-2",
@@ -651,6 +651,7 @@ export function AdStage({
             whileTap={{ scale: 0.96 }}
             className={styles.style423_10}
           >
+            <Navigation className="h-5 w-5 shrink-0" />
             <span>{t('requestRide')}</span>
           </motion.button>
         </div>
