@@ -147,7 +147,14 @@ export function RiderShell() {
         )}
         {isStandby ? (
           <div className={styles.adStage}>
-            <AdStage audience="rider" isFullScreen onRequestRideClick={() => setShowRequestFlow(true)} />
+            <AdStage
+              audience="rider"
+              isFullScreen
+              onRequestRideClick={() => {
+                setShowRequestFlow(true);
+                window.dispatchEvent(new CustomEvent('rider-open-destination'));
+              }}
+            />
           </div>
         ) : null}
         <div className={styles.recoveryPrompt}><RecoveryEmailBanner /></div>

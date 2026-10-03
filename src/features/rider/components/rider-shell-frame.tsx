@@ -65,6 +65,21 @@ export function RiderShellFrame({
   const t = useTranslations('riderView');
   const isRideFlowActive = screen === 'DESTINATION_SELECTION' || screen === 'RECEIVING_OFFERS' || screen === 'TRIP_ACTIVE';
 
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (isRideFlowActive) {
+      window.dispatchEvent(new CustomEvent('rider-flow-active'));
+      document.body.setAttribute('data-rider-flow', 'active');
+    } else {
+      window.dispatchEvent(new CustomEvent('rider-flow-inactive'));
+      document.body.removeAttribute('data-rider-flow');
+    }
+    return () => {
+      window.dispatchEvent(new CustomEvent('rider-flow-inactive'));
+      document.body.removeAttribute('data-rider-flow');
+    };
+  }, [isRideFlowActive]);
+
   return (
     <div className={styles.shell} dir={isArabic ? 'rtl' : 'ltr'}>
       <div className={styles.shellInner}>
@@ -82,7 +97,7 @@ export function RiderShellFrame({
           />
         </div>
 
-        <aside className={styles.aside}>
+        <aside className={styles.aside} data-rider-panel="true">
           <div className={styles.topBar}>
             <div className={styles.topBarSpacer} />
             <div className={styles.dragHandle} />

@@ -39,8 +39,39 @@ export function PwaInstallBanner({ role: propRole }: PwaInstallBannerProps = {})
   } = usePwaInstall(role);
 
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isRideFlowActive, setIsRideFlowActive] = useState(false);
 
   const isIOS = platformEnv.isIOS;
+
+  // Listen to ride flow state to prevent blocking order flow
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleActive = () => setIsRideFlowActive(true);
+    const handleInactive = () => setIsRideFlowActive(false);
+
+    window.addEventListener('rider-flow-active', handleActive);
+    window.addEventListener('rider-flow-inactive', handleInactive);
+    window.addEventListener('rider-open-destination', handleActive);
+    window.addEventListener('exit-request-flow', handleInactive);
+
+    const checkActive = () => {
+      const isFlowActive =
+        document.body.getAttribute('data-rider-flow') === 'active' ||
+        Boolean(document.querySelector('[data-rider-panel="true"]'));
+      if (isFlowActive) {
+        setIsRideFlowActive(true);
+      }
+    };
+    checkActive();
+
+    return () => {
+      window.removeEventListener('rider-flow-active', handleActive);
+      window.removeEventListener('rider-flow-inactive', handleInactive);
+      window.removeEventListener('rider-open-destination', handleActive);
+      window.removeEventListener('exit-request-flow', handleInactive);
+    };
+  }, []);
 
   // [ACT-PWA-08] Exit Intent Listener for uninstalled users
   useEffect(() => {
@@ -59,7 +90,8 @@ export function PwaInstallBanner({ role: propRole }: PwaInstallBannerProps = {})
 
   // If already standalone (installed) or dismissed by user, do not render banner.
   // Also hide if we can't natively prompt and it's not iOS (meaning it's already installed on Android/PC or unsupported).
-  if (isStandalone || isDismissed || (!canPromptNative && !isIOS)) {
+  // CRITICAL: NEVER render banner while rider is in active ride flow (destination selection, offers, active trip)
+  if (isStandalone || isDismissed || (!canPromptNative && !isIOS) || isRideFlowActive) {
     return null;
   }
 
@@ -68,8 +100,9 @@ export function PwaInstallBanner({ role: propRole }: PwaInstallBannerProps = {})
       aria-label={isArabic ? 'تثبيت التطبيق السيادي' : 'Install Sovereign App'}
       dir={isArabic ? 'rtl' : 'ltr'}
       className={cn(
-        "fixed bottom-20 sm:bottom-6 inset-x-3 sm:inset-x-auto sm:max-w-md z-[160] rounded-2xl border border-[#14B8A6]/30 bg-[#0B0F19]/95 p-4 shadow-[0_20px_50px_rgba(0,0,0,0.8)] backdrop-blur-xl text-white transition-all duration-300",
-        isArabic ? "sm:left-6 sm:right-auto" : "sm:right-6 sm:left-auto"
+        "fixed bottom-20 lg:bottom-6 z-[160] rounded-2xl border border-[#14B8A6]/30 bg-[#0B0F19]/95 p-4 shadow-[0_20px_50px_rgba(0,0,0,0.8)] backdrop-blur-xl text-white transition-all duration-300",
+        "inset-x-3 sm:inset-x-auto sm:max-w-md",
+        "lg:start-[312px] lg:end-auto"
       )}
       style={{
         zIndex: 160,
