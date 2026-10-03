@@ -145,7 +145,7 @@
     "status_scanning_captains": "Scanning for captains in your selected area...",
     "unit_km": "km",
     "step_search_title": "Step 1: Open Google Maps",
-    "step_search_helper": "Open Google Maps in a new tab, choose your destination, and copy the link (Share > Copy link)",
+    "step_search_helper": "Open Google Maps, choose your destination, and copy the link (Share > Copy link)",
     "step_confirm_title": "Use the copied location",
     "step_confirm_helper": "This button reads the copied link only. It will not open Google Maps again.",
     "status_reading_clipboard": "Reading the copied location...",

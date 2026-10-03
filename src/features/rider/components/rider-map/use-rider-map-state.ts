@@ -288,11 +288,14 @@ export function useRiderMapState({
     const map = mapRef.current;
     if (!map || !isMapReady || !showDestinationPin) return;
 
-    const handleMoveStart = () => {
-      onDestinationMoveStart?.();
+    const handleMoveStart = (e?: { originalEvent?: unknown }) => {
+      if (e?.originalEvent) {
+        onDestinationMoveStart?.();
+      }
     };
 
-    const handleMoveEnd = () => {
+    const handleMoveEnd = (e?: { originalEvent?: unknown }) => {
+      if (!e?.originalEvent) return;
       const center = map.getCenter();
       onDestinationChange?.({ lat: center.lat, lng: center.lng });
     };
