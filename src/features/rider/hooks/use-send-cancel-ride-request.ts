@@ -117,6 +117,27 @@ export function useSendCancelRideRequest(params: {
       return;
     }
 
+    const isSameLocation =
+      (effectiveDraftDestination.fareQuote?.straightDistanceKm !== undefined &&
+        effectiveDraftDestination.fareQuote.straightDistanceKm < 0.1) ||
+      (riderLocation &&
+        effectiveDestinationCoords &&
+        Number.isFinite(riderLocation.lat) && Number.isFinite(riderLocation.lng) &&
+        Number.isFinite(effectiveDestinationCoords.lat) && Number.isFinite(effectiveDestinationCoords.lng) &&
+        Math.hypot(
+          (riderLocation.lat - effectiveDestinationCoords.lat) * 111.32,
+          (riderLocation.lng - effectiveDestinationCoords.lng) * 111.32 * Math.cos((riderLocation.lat * Math.PI) / 180),
+        ) < 0.1);
+
+    if (isSameLocation) {
+      toast({
+        variant: 'destructive',
+        title: 'موقع الوجهة مطابق لموقعك الحالي',
+        description: 'يرجى اختيار وجهة تريد الذهاب إليها.',
+      });
+      return;
+    }
+
     if (
       effectiveDraftDestination.serverEstimatedFare === undefined ||
       (isServerFareLoading && !state.destination) ||

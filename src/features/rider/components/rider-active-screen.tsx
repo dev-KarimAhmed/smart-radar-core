@@ -107,6 +107,7 @@ export function RiderActiveScreen(props: RiderActiveScreenProps) {
         currencyLabel={currencyLabel}
         selectedDraftDestination={selectedDraftDestination}
         selectedDestinationCoords={selectedDestinationCoords}
+        riderLocation={riderLocation}
         pinnedPlaceLabel={pinnedPlaceLabel}
         isDestinationPinMoving={isDestinationPinMoving}
         riderCount={tripCompletion.riderCount}
