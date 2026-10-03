@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils"
 const styles = {
   style24_1: "fixed inset-0 z-[300] bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
   style41_2: "fixed left-[50%] top-[50%] z-[310] grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg",
-  style47_3: "absolute top-2 right-2 h-8 w-8 flex items-center justify-center rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-colors text-white/70 hover:text-white cursor-pointer",
+  style47_3: "absolute top-3 end-3 h-8 w-8 flex items-center justify-center rounded-full bg-white/10 border border-white/20 hover:bg-white/20 transition-all text-white/80 hover:text-white cursor-pointer z-30 shadow-sm",
   style48_4: "h-4 w-4",
   style49_5: "sr-only",
   style62_6: "flex flex-col space-y-1.5 text-center sm:text-start",
