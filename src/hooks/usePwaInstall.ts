@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   detectPlatform,
   getPwaGuidance,
@@ -25,8 +25,6 @@ export function usePwaInstall(role: 'rider' | 'captain' = 'rider') {
   const [guidance, setGuidance] = useState<PwaGuidanceDetails>(() => getPwaGuidance(undefined, role));
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isDismissed, setIsDismissed] = useState<boolean>(true); // default true until client mounts
-  const [wakeLockActive, setWakeLockActive] = useState<boolean>(false);
-  const wakeLockRef = useRef<any>(null);
 
   // Initialize and check local storage
   useEffect(() => {
@@ -49,7 +47,12 @@ export function usePwaInstall(role: 'rider' | 'captain' = 'rider') {
     } catch {
       setIsDismissed(false);
     }
-  }, []);
+  }, [role]);
+
+  // Update guidance whenever platformEnv or role changes
+  useEffect(() => {
+    setGuidance(getPwaGuidance(platformEnv, role));
+  }, [platformEnv, role]);
 
   // Listen to beforeinstallprompt event (Android / Chromium)
   useEffect(() => {
@@ -73,29 +76,6 @@ export function usePwaInstall(role: 'rider' | 'captain' = 'rider') {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
     };
-  }, []);
-
-  // Sovereign WakeLock Protocol with visibilitychange Auto-Recovery
-  const acquireWakeLock = useCallback(async () => {
-    if (typeof window === 'undefined' || typeof navigator === 'undefined') return;
-    if (!('wakeLock' in navigator)) return;
-
-    try {
-      if (wakeLockRef.current !== null && !wakeLockRef.current.released) {
-        return;
-      }
-      const lock = await (navigator as any).wakeLock.request('screen');
-      wakeLockRef.current = lock;
-      setWakeLockActive(true);
-
-      lock.addEventListener('release', () => {
-        wakeLockRef.current = null;
-        setWakeLockActive(false);
-      });
-    } catch (err) {
-      // In non-supported or restricted environments, silent fallback
-      setWakeLockActive(false);
-    }
   }, []);
 
   const triggerNativeInstall = useCallback(async (): Promise<boolean> => {
@@ -139,7 +119,7 @@ export function usePwaInstall(role: 'rider' | 'captain' = 'rider') {
     isDismissed,
     guidance,
     platformEnv,
-    wakeLockActive,
+    wakeLockActive: false,
     triggerNativeInstall,
     dismissBanner,
     resetDismissal,

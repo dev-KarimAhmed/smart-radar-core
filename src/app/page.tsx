@@ -28,8 +28,9 @@ export default function HomePage() {
 
   useEffect(() => {
     if (loading || !user) return;
-    if (user.role === 'driver') router.replace('/captain');
-    if (user.role === 'rider') router.replace('/rider');
+    const search = typeof window !== 'undefined' ? window.location.search : '';
+    if (user.role === 'driver') router.replace(`/captain${search}`);
+    if (user.role === 'rider') router.replace(`/rider${search}`);
   }, [loading, router, user]);
 
   if (loading || isRedirecting) {

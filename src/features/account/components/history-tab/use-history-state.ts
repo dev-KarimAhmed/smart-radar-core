@@ -362,11 +362,13 @@ export function useHistoryState() {
           if ((process.env.NODE_ENV !== 'production')) console.warn('[HistoryTab fetch reviews failed]', revErr);
         }
 
-        if (active) setRealTrips(Array.isArray(fetchedData) ? fetchedData : []);
+        if (active && Array.isArray(fetchedData) && fetchedData.length > 0) {
+          setRealTrips(fetchedData);
+        }
       } catch (error) {
         if (!active) return;
         if ((process.env.NODE_ENV !== 'production')) console.warn('[HistoryTab trips fetch]', error);
-        setRealTrips([]);
+        // [ACT-PWA-09] Offline-First: Retain locally loaded Dexie ledger records if remote fetch fails
       } finally {
         if (active) setLoading(false);
       }

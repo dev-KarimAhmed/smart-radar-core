@@ -22,6 +22,7 @@ import { useLiveCurrencyFromLocation } from '@/shared/hooks/use-live-currency-fr
 import { ActiveTripTracker } from './active-trip-tracker';
 import { CaptainActiveTripOverlay } from './captain-active-trip-overlay';
 import { usePwaInstall } from '@/hooks/usePwaInstall';
+import { SovereignPwaInstallModal } from '@/components/sovereign-pwa-install-modal';
 import { BiddingProposalSheet } from './bidding-proposal-sheet';
 import { DriverRatingModal } from './driver-rating-modal';
 import { PricePerKmSetupModal } from './price-per-km-setup-modal';
@@ -101,7 +102,8 @@ export function DriverViewTab() {
   const { isTimeTamperingDetected } = useDeviceTimeGuard();
   const { isOffline, isReconnecting } = useConnectionGuard();
   const countryConfig = useCountryConfig(user?.countryId);
-  const { isStandalone, canPromptNative, triggerNativeInstall, platformEnv } = usePwaInstall();
+  const { isStandalone, canPromptNative, triggerNativeInstall, platformEnv } = usePwaInstall('captain');
+  const [isInstallModalOpen, setIsInstallModalOpen] = React.useState(false);
   const isDriverLocationLive = driverOps?.driverLocation && (driverOps.driverLocation as { source?: string }).source === 'gps';
   const { currencyCode: liveCurrencyCode, countryCode: liveCountryCode } = useLiveCurrencyFromLocation(
     isDriverLocationLive ? driverOps?.driverLocation : null,
@@ -335,7 +337,7 @@ export function DriverViewTab() {
                   type="button"
                   onClick={() => {
                     if (canPromptNative) void triggerNativeInstall();
-                    else alert(direction === 'rtl' ? 'يرجى الضغط على خيارات المتصفح (مشاركة) واختيار "إضافة إلى الشاشة الرئيسية".' : 'Please tap the browser options (Share) and select "Add to Home Screen".');
+                    else setIsInstallModalOpen(true);
                   }}
                   title={direction === 'rtl' ? 'تثبيت التطبيق' : 'Install App'}
                   className="inline-flex items-center gap-1.5 rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-2.5 py-2 text-[#14F5D5] transition hover:bg-[#14B8A6]/20 sm:rounded-2xl sm:px-4 sm:py-3"
@@ -541,6 +543,13 @@ export function DriverViewTab() {
           onSuccess={() => dispatch({ type: 'RATING_DISMISSED' })}
         />
       ) : null}
+
+      <SovereignPwaInstallModal
+        isOpen={isInstallModalOpen}
+        onClose={() => setIsInstallModalOpen(false)}
+        isArabic={direction === 'rtl'}
+        role="captain"
+      />
     </div>
   );
 }

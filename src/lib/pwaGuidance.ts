@@ -81,8 +81,8 @@ export function getPwaGuidance(env?: PlatformEnvironment, role: 'rider' | 'capta
     return {
       platform: 'ios',
       platformName: 'Apple iOS (Safari)',
-      titleAr: 'تثبيت التطبيق السيادي على iPhone',
-      titleEn: 'Install Sovereign PWA on iPhone',
+      titleAr: role === 'captain' ? 'تثبيت تطبيق الكابتن السيادي على iPhone' : 'تثبيت تطبيق رادار الراكب على iPhone',
+      titleEn: role === 'captain' ? 'Install Sovereign Captain PWA on iPhone' : 'Install Radar Rider PWA on iPhone',
       steps: [
         {
           number: 1,

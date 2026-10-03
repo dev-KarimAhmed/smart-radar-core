@@ -24,6 +24,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { useDriverOperations } from '@/hooks/use-driver-operations';
 import { usePwaInstall } from '@/hooks/usePwaInstall';
+import { SovereignPwaInstallModal } from '@/components/sovereign-pwa-install-modal';
 import { useNotifications } from '@/shared/hooks/use-notifications';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -180,7 +181,8 @@ export function AppHeader({ sidebar }: { sidebar?: ReactNode }) {
   const { toast } = useToast();
   const { isArabic, toggleLanguage } = useDashboardLanguage();
   const { notifications, unreadCount, hasUnread, markAllAsRead } = useNotifications();
-  const { isStandalone, canPromptNative, triggerNativeInstall, platformEnv } = usePwaInstall();
+  const { isStandalone, canPromptNative, triggerNativeInstall, platformEnv } = usePwaInstall(isCaptain ? 'captain' : 'rider');
+  const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
 
   useEffect(() => {
@@ -221,7 +223,7 @@ export function AppHeader({ sidebar }: { sidebar?: ReactNode }) {
               size="sm"
               onClick={() => {
                 if (canPromptNative) void triggerNativeInstall();
-                else toast({ title: isArabic ? 'تثبيت التطبيق' : 'Install App', description: isArabic ? 'يرجى الضغط على خيارات المتصفح (مشاركة) واختيار "إضافة إلى الشاشة الرئيسية".' : 'Please tap the browser options (Share) and select "Add to Home Screen".' });
+                else setIsInstallModalOpen(true);
               }}
               className="h-8 gap-1 rounded-lg border border-[#14B8A6]/25 bg-[#14B8A6]/10 px-2 text-[10px] font-black text-[#14F5D5] hover:bg-[#14B8A6]/20 hover:text-[#14F5D5]"
             >
@@ -323,6 +325,13 @@ export function AppHeader({ sidebar }: { sidebar?: ReactNode }) {
         </div>
       </header>
       {user && isCaptain ? <DriverCabin /> : null}
+
+      <SovereignPwaInstallModal
+        isOpen={isInstallModalOpen}
+        onClose={() => setIsInstallModalOpen(false)}
+        isArabic={isArabic}
+        role={isCaptain ? 'captain' : 'rider'}
+      />
     </div>
   );
 }

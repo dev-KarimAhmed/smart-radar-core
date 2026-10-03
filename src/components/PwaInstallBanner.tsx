@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import {
   Download,
   Share2,
@@ -17,7 +18,13 @@ import { Button } from '@/components/ui/button';
 import { usePwaInstall } from '@/hooks/usePwaInstall';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 
-export function PwaInstallBanner() {
+export interface PwaInstallBannerProps {
+  role?: 'rider' | 'captain';
+}
+
+export function PwaInstallBanner({ role: propRole }: PwaInstallBannerProps = {}) {
+  const pathname = usePathname();
+  const role: 'rider' | 'captain' = propRole || (pathname?.startsWith('/captain') ? 'captain' : 'rider');
   const { isArabic } = useDashboardLanguage();
   const {
     isStandalone,
@@ -25,14 +32,29 @@ export function PwaInstallBanner() {
     canPromptNative,
     guidance,
     platformEnv,
-    wakeLockActive,
     triggerNativeInstall,
     dismissBanner,
-  } = usePwaInstall();
+    resetDismissal,
+  } = usePwaInstall(role);
 
   const [isExpanded, setIsExpanded] = useState(false);
 
   const isIOS = platformEnv.isIOS;
+
+  // [ACT-PWA-08] Exit Intent Listener for uninstalled users
+  useEffect(() => {
+    if (isStandalone || typeof window === 'undefined') return;
+
+    const handleMouseLeave = (e: MouseEvent) => {
+      if (e.clientY <= 10 && isDismissed) {
+        // User moves mouse to exit/close tab -> offer install one last time
+        resetDismissal();
+      }
+    };
+
+    document.addEventListener('mouseleave', handleMouseLeave);
+    return () => document.removeEventListener('mouseleave', handleMouseLeave);
+  }, [isStandalone, isDismissed, resetDismissal]);
 
   // If already standalone (installed) or dismissed by user, do not render banner.
   // Also hide if we can't natively prompt and it's not iOS (meaning it's already installed on Android/PC or unsupported).
@@ -63,16 +85,20 @@ export function PwaInstallBanner() {
               </span>
             </div>
             <p className="text-[11px] font-semibold text-slate-300 leading-tight">
-              {isArabic
-                ? 'تطبيق خفيف ومستقل بدون استهلاك للمتجر أو الذاكرة'
-                : 'Lightweight standalone app with zero app store bloat'}
+              {role === 'captain'
+                ? (isArabic
+                    ? 'تطبيق كابتن مستقل وخفيف دون استهلاك للمتجر والذاكرة'
+                    : 'Standalone lightweight Captain PWA with zero app store bloat')
+                : (isArabic
+                    ? 'تطبيق خفيف ومستقل بدون استهلاك للمتجر أو الذاكرة'
+                    : 'Lightweight standalone app with zero app store bloat')}
             </p>
           </div>
         </div>
 
         <button
           type="button"
-          onClick={() => dismissBanner(7)}
+          onClick={() => dismissBanner(1)}
           aria-label={isArabic ? 'إغلاق الإشعار' : 'Dismiss notice'}
           className="h-11 w-11 shrink-0 flex items-center justify-center rounded-xl border border-white/5 bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
         >
@@ -111,7 +137,7 @@ export function PwaInstallBanner() {
         <Button
           type="button"
           variant="ghost"
-          onClick={() => dismissBanner(3)}
+          onClick={() => dismissBanner(1)}
           className="h-11 px-3 rounded-xl text-[11px] font-bold text-slate-400 hover:text-white hover:bg-white/5"
         >
           {isArabic ? 'لاحقاً' : 'Later'}
@@ -164,16 +190,12 @@ export function PwaInstallBanner() {
         </div>
       )}
 
-      {/* WakeLock status and Sovereign Badge */}
+      {/* Sovereign Engine Badge */}
       <div className="mt-2.5 pt-2 border-t border-white/5 flex items-center justify-between text-[10px] text-slate-400 font-bold">
         <span className="flex items-center gap-1.5">
-          <span
-            className={`h-2 w-2 rounded-full ${wakeLockActive ? 'bg-emerald-400 animate-pulse' : 'bg-slate-600'}`}
-          />
+          <span className="h-2 w-2 rounded-full bg-emerald-400" />
           <span>
-            {wakeLockActive
-              ? (isArabic ? 'قفل الشاشة السيادي نشط (WakeLock)' : 'Screen WakeLock Active')
-              : (isArabic ? 'وضع الاستعداد' : 'Standby Mode')}
+            {isArabic ? 'منظومة الـ PWA المستقلة' : 'Sovereign Standalone PWA'}
           </span>
         </span>
         <span className="font-mono text-[#14B8A6]">V2.6-Secured</span>
