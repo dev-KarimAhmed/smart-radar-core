@@ -143,7 +143,7 @@ export function useLiveGeolocation({ fallbackLocation }: { fallbackLocation: Liv
         }
       },
       (error) => {
-        if (error.code === error.PERMISSION_DENIED) {
+        if (error.code === error.PERMISSION_DENIED || error.code === error.POSITION_UNAVAILABLE) {
           setStatus('denied');
           if (typeof window !== 'undefined') {
             window.dispatchEvent(new CustomEvent('system-location-denied'));
@@ -172,7 +172,7 @@ export function useLiveGeolocation({ fallbackLocation }: { fallbackLocation: Liv
         }
       },
       (error) => {
-        if (error.code === error.PERMISSION_DENIED) {
+        if (error.code === error.PERMISSION_DENIED || error.code === error.POSITION_UNAVAILABLE) {
           setStatus('denied');
           if (typeof window !== 'undefined') {
             window.dispatchEvent(new CustomEvent('system-location-denied'));

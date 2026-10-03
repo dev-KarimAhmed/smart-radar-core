@@ -91,39 +91,47 @@ export function SystemPermissionsModal() {
         const geoPerm = await navigator.permissions.query({ name: 'geolocation' });
         const state = geoPerm.state as PermissionCheckStatus;
         setLocationStatus(state);
-        if (state === 'denied') {
-          setShowInstructions(true);
+        if (state !== 'granted') {
+          if (state === 'denied') {
+            setShowInstructions(true);
+          }
           setIsOpen(true);
         }
         geoPerm.onchange = () => {
           const next = geoPerm.state as PermissionCheckStatus;
           setLocationStatus(next);
-          if (next === 'denied') {
-            setShowInstructions(true);
+          if (next !== 'granted') {
+            if (next === 'denied') {
+              setShowInstructions(true);
+            }
             setIsOpen(true);
           }
         };
       } catch {
         setLocationStatus('prompt');
+        setIsOpen(true);
       }
     } else {
       setLocationStatus('prompt');
+      setIsOpen(true);
     }
 
-    // Direct active check using getCurrentPosition with 0 maximumAge to catch immediate browser block
+    // Direct active check using getCurrentPosition:
+    // Catches OS-level disable (e.g. Windows location services off, Android location toggle off)
+    // where permissions.query may report 'granted' for the domain, but OS returns code 2 (POSITION_UNAVAILABLE)
     if (typeof navigator !== 'undefined' && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         () => {
           setLocationStatus('granted');
         },
         (err) => {
-          if (err.code === 1) { // PERMISSION_DENIED
-            setLocationStatus('denied');
-            setShowInstructions(true);
-            setIsOpen(true);
-          }
+          // Any error (1 = PERMISSION_DENIED, 2 = POSITION_UNAVAILABLE, 3 = TIMEOUT)
+          // means Location is not working/disabled on device or browser
+          setLocationStatus('denied');
+          setShowInstructions(true);
+          setIsOpen(true);
         },
-        { timeout: 3000, maximumAge: 60000 }
+        { enableHighAccuracy: false, timeout: 3500, maximumAge: 0 }
       );
     }
 
@@ -188,25 +196,39 @@ export function SystemPermissionsModal() {
   // Evaluate whether to display modal automatically
   useEffect(() => {
     if (hasUserDismissed) return;
-    if (locationStatus === 'checking' || clipboardStatus === 'checking') return;
 
     const isLocGranted = locationStatus === 'granted';
     const isClipGranted = clipboardStatus === 'granted';
 
-    // If either permission is not granted or we are on insecure HTTP, show popup
-    if (!isLocGranted || !isClipGranted || !isSecureContext) {
+    // Fast check: if location is not granted or clipboard is denied or context is insecure
+    if (locationStatus === 'denied' || locationStatus === 'prompt' || clipboardStatus === 'denied') {
       if (locationStatus === 'denied' || clipboardStatus === 'denied') {
         setShowInstructions(true);
       }
       setIsOpen(true);
-    } else {
+    } else if (!isSecureContext) {
+      setIsOpen(true);
+    } else if (isLocGranted && isClipGranted) {
       setIsOpen(false);
     }
   }, [locationStatus, clipboardStatus, isSecureContext, hasUserDismissed]);
 
+  // Fallback timer: if after 400ms location is still not granted, guarantee popup is visible
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (hasUserDismissed) return;
+      if (locationStatus !== 'granted') {
+        setShowInstructions(locationStatus === 'denied');
+        setIsOpen(true);
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [hasUserDismissed, locationStatus]);
+
   const requestLocation = () => {
     if (typeof navigator === 'undefined' || !navigator.geolocation) {
       setLocationStatus('denied');
+      setShowInstructions(true);
       return;
     }
 
@@ -221,11 +243,8 @@ export function SystemPermissionsModal() {
       },
       (err) => {
         setIsRequestingLocation(false);
-        if (err.code === 1) { // PERMISSION_DENIED
-          setLocationStatus('denied');
-        } else {
-          setLocationStatus('prompt');
-        }
+        setLocationStatus('denied');
+        setShowInstructions(true);
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
@@ -234,6 +253,7 @@ export function SystemPermissionsModal() {
   const requestClipboard = async () => {
     if (typeof navigator === 'undefined' || !navigator.clipboard?.readText) {
       setClipboardStatus('denied');
+      setShowInstructions(true);
       return;
     }
 
@@ -242,17 +262,8 @@ export function SystemPermissionsModal() {
       await navigator.clipboard.readText();
       setClipboardStatus('granted');
     } catch (err: unknown) {
-      if (
-        err instanceof Error &&
-        (err.name === 'NotAllowedError' ||
-          err.name === 'SecurityError' ||
-          err.message.toLowerCase().includes('denied') ||
-          err.message.toLowerCase().includes('not allowed'))
-      ) {
-        setClipboardStatus('denied');
-      } else {
-        setClipboardStatus('prompt');
-      }
+      setClipboardStatus('denied');
+      setShowInstructions(true);
     } finally {
       setIsRequestingClipboard(false);
     }
@@ -269,7 +280,16 @@ export function SystemPermissionsModal() {
         setIsOpen(false);
       }
     }}>
-      <DialogContent className={styles.content} dir={isArabic ? 'rtl' : 'ltr'}>
+      <DialogContent
+        className={styles.content}
+        dir={isArabic ? 'rtl' : 'ltr'}
+        onPointerDownOutside={(e) => {
+          if (!allGranted) e.preventDefault();
+        }}
+        onInteractOutside={(e) => {
+          if (!allGranted) e.preventDefault();
+        }}
+      >
         <DialogHeader className={cn(isArabic ? styles.headerRtl : styles.headerLtr)}>
           <DialogTitle className={styles.title}>
             <ShieldAlert className={styles.titleIcon} />
@@ -437,6 +457,14 @@ export function SystemPermissionsModal() {
                 {isArabic
                   ? 'اضغط على أيقونة القفل أو الإعدادات بجانب الرابط ➔ الأذونات (Permissions) ➔ فعّل الموقع الجغرافي والحافظة.'
                   : 'Tap the lock/tune icon in Chrome address bar ➔ Permissions ➔ Turn on Location and Clipboard.'}
+              </p>
+              <p className="font-bold text-white mt-2">
+                {isArabic ? '💻 على أجهزة الكمبيوتر (Windows / Chrome):' : '💻 On PC (Windows / Chrome):'}
+              </p>
+              <p className="leading-relaxed">
+                {isArabic
+                  ? 'إعدادات ويندوز (Windows Settings) ➔ الخصوصية والأمان (Privacy & Security) ➔ الموقع (Location) ➔ تفعيل "خدمات الموقع" (Location services). وفي المتصفح اضغط أيقونة القفل/الإعدادات بجانب الرابط واختر "السماح بالموقع".'
+                  : 'Windows Settings ➔ Privacy & Security ➔ Location ➔ Turn ON "Location services". In browser, click lock/tune icon next to URL and set Location to Allow.'}
               </p>
             </div>
           )}
