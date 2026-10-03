@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { AlertCircle, RefreshCw } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import type { AppLanguage } from '@/lib/i18n/simple-copy';
@@ -11,7 +10,7 @@ import type { useDestinationTextSearch } from '../hooks/use-destination-text-sea
 import type { useDestinationMapPicker } from '../hooks/use-destination-map-picker';
 import type { useClipboardLocationImport } from '../hooks/use-clipboard-location-import';
 import type { useServerFareAndRoute } from '../hooks/use-server-fare-and-route';
-import type { RiderLocation, RiderLocationStatus } from './rider-map';
+import type { RiderLocation } from './rider-map';
 import { formatMoney } from '../services/rider-view-format';
 import { DestinationSearchPanel } from './destination-search-panel';
 import { DestinationTripSummary } from './destination-trip-summary';
@@ -51,8 +50,6 @@ export interface DestinationSelectionScreenProps {
   isSendingRideRequest: boolean;
   isCaptainScanPreviewActive: boolean;
   nearbyCaptainCount: number;
-  locationStatus?: RiderLocationStatus;
-  onRefreshLocation?: () => void;
   onGovernorateChange: (governorateId: string) => void;
   onDistrictChange: (districtId: string) => void;
   onSendRequest: () => void;
@@ -81,8 +78,6 @@ export function DestinationSelectionScreen({
   isSendingRideRequest,
   isCaptainScanPreviewActive,
   nearbyCaptainCount,
-  locationStatus = 'live',
-  onRefreshLocation,
   onGovernorateChange,
   onDistrictChange,
   onSendRequest,
@@ -114,7 +109,6 @@ export function DestinationSelectionScreen({
   const estimatedDurationMinutes = currentRouteEstimate?.durationMinutes ?? null;
   const hasImportedLocation = clipboard.externalLocationUrl.length > 0;
   const destinationReady =
-    locationStatus !== 'denied' &&
     selectedDestinationHasCoords &&
     selectedDraftDestination?.serverEstimatedFare !== undefined &&
     currentRouteEstimate !== null &&
@@ -149,28 +143,6 @@ export function DestinationSelectionScreen({
           ) : null}
         </div>
       </div>
-
-      {locationStatus === 'denied' && (
-        <div className="flex flex-col gap-2 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-start">
-          <div className="flex items-center gap-2 text-rose-300">
-            <AlertCircle className="h-4 w-4 shrink-0 text-rose-400" />
-            <span className="text-xs font-black">{locationCopy('warn_location_permission_denied_title')}</span>
-          </div>
-          <p className="text-[11px] leading-relaxed text-rose-200/90">
-            {locationCopy('warn_location_permission_denied_body')}
-          </p>
-          {onRefreshLocation && (
-            <button
-              type="button"
-              onClick={onRefreshLocation}
-              className="mt-1 inline-flex w-fit items-center gap-1.5 rounded-lg border border-rose-500/30 bg-rose-500/20 px-3 py-1.5 text-xs font-bold text-rose-200 transition hover:bg-rose-500/30 active:scale-95 cursor-pointer"
-            >
-              <RefreshCw className="h-3.5 w-3.5" />
-              <span>{locationCopy('btn_retry_location')}</span>
-            </button>
-          )}
-        </div>
-      )}
 
       <DestinationSearchPanel
         search={search}
@@ -215,8 +187,6 @@ export function DestinationSelectionScreen({
           selectedDestinationHasCoords={selectedDestinationHasCoords}
           hasServerEstimatedFare={selectedDraftDestination?.serverEstimatedFare !== undefined}
           isCaptainScanPreviewActive={isCaptainScanPreviewActive}
-          locationStatus={locationStatus}
-          onRefreshLocation={onRefreshLocation}
           onSendRequest={onSendRequest}
         />
       )}

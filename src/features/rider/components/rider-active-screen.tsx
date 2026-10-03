@@ -14,7 +14,7 @@ import type { useTripCompletion } from '../hooks/use-trip-completion';
 import type { useSendCancelRideRequest } from '../hooks/use-send-cancel-ride-request';
 import type { useRideRequestStatusSync } from '../hooks/use-ride-request-status-sync';
 import type { useEmergencyContact } from '../hooks/use-emergency-contact';
-import type { RiderLocation, RiderLocationStatus } from './rider-map';
+import type { RiderLocation } from './rider-map';
 import { DestinationSelectionScreen } from './destination-selection-screen';
 import { ReceivingOffersScreen } from './receiving-offers-screen';
 import { TripActiveScreen } from './trip-active-screen';
@@ -48,8 +48,6 @@ export interface RiderActiveScreenProps {
   emergencyContact: ReturnType<typeof useEmergencyContact>;
   countryConfig: CountryNameConfig | null;
   riderLocation: RiderLocation;
-  locationStatus?: RiderLocationStatus;
-  onRefreshLocation?: () => void;
   currencyLabel: string;
   selectedDraftDestination: RiderMachineState['destination'];
   selectedDestinationCoords: RiderLocation | null;
@@ -82,8 +80,6 @@ export function RiderActiveScreen(props: RiderActiveScreenProps) {
     emergencyContact,
     countryConfig,
     riderLocation,
-    locationStatus,
-    onRefreshLocation,
     currencyLabel,
     selectedDraftDestination,
     selectedDestinationCoords,
@@ -108,8 +104,6 @@ export function RiderActiveScreen(props: RiderActiveScreenProps) {
         clipboard={clipboard}
         fareAndRoute={fareAndRoute}
         countryConfig={countryConfig}
-        locationStatus={locationStatus}
-        onRefreshLocation={onRefreshLocation}
         currencyLabel={currencyLabel}
         selectedDraftDestination={selectedDraftDestination}
         selectedDestinationCoords={selectedDestinationCoords}

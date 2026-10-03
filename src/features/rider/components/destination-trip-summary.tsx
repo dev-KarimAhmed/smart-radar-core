@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 import { cn } from '@/lib/utils';
-import type { RiderLocation, RiderLocationStatus } from './rider-map';
+import type { RiderLocation } from './rider-map';
 import { DestinationSummaryCard } from './destination-summary-card';
 
 const styles = {
@@ -80,8 +80,6 @@ export interface DestinationTripSummaryProps {
   selectedDestinationHasCoords: boolean;
   hasServerEstimatedFare: boolean;
   isCaptainScanPreviewActive?: boolean;
-  locationStatus?: RiderLocationStatus;
-  onRefreshLocation?: () => void;
   onSendRequest: () => void;
 }
 
@@ -109,8 +107,6 @@ export function DestinationTripSummary({
   selectedDestinationHasCoords,
   hasServerEstimatedFare,
   isCaptainScanPreviewActive = true,
-  locationStatus = 'live',
-  onRefreshLocation,
   onSendRequest,
 }: DestinationTripSummaryProps) {
   const locationCopy = useTranslations('location');
@@ -118,11 +114,9 @@ export function DestinationTripSummary({
   const locale = useLocale();
   const isArabic = locale === 'ar';
   const isPassengerCountZero = riderCount <= 0;
-  const isLocationDenied = locationStatus === 'denied';
   const isSubmitDisabled =
     isSendingRideRequest ||
     isServerFareLoading ||
-    isLocationDenied ||
     !hasDestinationOptions ||
     !selectedDestinationHasCoords ||
     !hasServerEstimatedFare ||
@@ -251,8 +245,6 @@ export function DestinationTripSummary({
           )}
           {isSendingRideRequest
             ? t('request.sending')
-            : isLocationDenied
-            ? locationCopy('btn_location_permission_required')
             : isSameLocation
             ? t('panel.whereTo')
             : isPassengerCountZero
