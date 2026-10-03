@@ -296,6 +296,14 @@ export function parseGoogleMapsLocation(
       }
     }
 
+    // Check query params in directions URL (e.g. ?destination=lat,lng or ?daddr=lat,lng or ?q=lat,lng)
+    const destParamMatch = text.match(/[?&](?:destination|daddr|q|query)=(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/i);
+    if (destParamMatch) {
+      const lat = Number(destParamMatch[1]);
+      const lng = Number(destParamMatch[2]);
+      if (isValidLocation(lat, lng)) return { lat, lng };
+    }
+
     // Plus code anywhere in the directions URL text
     const plusCode = extractPlusCode(text);
     if (plusCode) {
