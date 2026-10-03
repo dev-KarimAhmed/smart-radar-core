@@ -158,7 +158,6 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
     riderCount: tripCompletion.riderCount,
     onExitRequestFlow,
     resetRideDraftState,
-    locationStatus: geolocation.locationStatus,
   });
 
   // [ACT-SSOT-07] Broadcast live rider state to outer shell to eliminate shell blindness

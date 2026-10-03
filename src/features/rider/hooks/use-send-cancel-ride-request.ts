@@ -85,9 +85,6 @@ export function useSendCancelRideRequest(params: {
         title: t('request.locationPermissionDeniedTitle'),
         description: t('request.locationPermissionDeniedDescription'),
       });
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('open-system-permissions-modal'));
-      }
       return;
     }
 

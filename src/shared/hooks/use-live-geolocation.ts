@@ -138,16 +138,10 @@ export function useLiveGeolocation({ fallbackLocation }: { fallbackLocation: Liv
       (position) => {
         didResolve = true;
         updateLocation(position.coords.latitude, position.coords.longitude);
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('system-location-granted'));
-        }
       },
       (error) => {
         if (error.code === error.PERMISSION_DENIED) {
           setStatus('denied');
-          if (typeof window !== 'undefined') {
-            window.dispatchEvent(new CustomEvent('system-location-denied'));
-          }
           return;
         }
         if (!didResolve && !cachedLastKnownLocation) {
@@ -167,16 +161,10 @@ export function useLiveGeolocation({ fallbackLocation }: { fallbackLocation: Liv
       (position) => {
         didResolve = true;
         updateLocation(position.coords.latitude, position.coords.longitude);
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('system-location-granted'));
-        }
       },
       (error) => {
         if (error.code === error.PERMISSION_DENIED) {
           setStatus('denied');
-          if (typeof window !== 'undefined') {
-            window.dispatchEvent(new CustomEvent('system-location-denied'));
-          }
           return;
         }
         if (!didResolve && !cachedLastKnownLocation) {
@@ -207,20 +195,11 @@ export function useLiveGeolocation({ fallbackLocation }: { fallbackLocation: Liv
       navigator.permissions.query({ name: 'geolocation' }).then((perm) => {
         if (perm.state === 'denied') {
           setStatus('denied');
-          if (typeof window !== 'undefined') {
-            window.dispatchEvent(new CustomEvent('system-location-denied'));
-          }
         }
         perm.onchange = () => {
           if (perm.state === 'denied') {
             setStatus('denied');
-            if (typeof window !== 'undefined') {
-              window.dispatchEvent(new CustomEvent('system-location-denied'));
-            }
           } else if (perm.state === 'granted') {
-            if (typeof window !== 'undefined') {
-              window.dispatchEvent(new CustomEvent('system-location-granted'));
-            }
             refresh();
           }
         };

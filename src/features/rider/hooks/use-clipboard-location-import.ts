@@ -207,9 +207,6 @@ export function useClipboardLocationImport(params: {
             variant: 'destructive',
             title: locationCopy('err_clipboard_permission_denied'),
           });
-          if (typeof window !== 'undefined') {
-            window.dispatchEvent(new CustomEvent('open-system-permissions-modal'));
-          }
           return;
         }
       }

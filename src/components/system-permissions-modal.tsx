@@ -22,8 +22,8 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/shared/components/ui/dialog';
-import { Button } from '@/shared/components/ui/button';
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { cn } from '@/lib/utils';
 
@@ -112,7 +112,7 @@ export function SystemPermissionsModal() {
     }
   }, []);
 
-  // Initial check on mount & system events
+  // Initial check on mount
   useEffect(() => {
     void checkPermissions();
 
@@ -122,32 +122,13 @@ export function SystemPermissionsModal() {
       void checkPermissions();
     };
 
-    const handleLocationDenied = () => {
-      setLocationStatus('denied');
-      setShowInstructions(true);
-      setHasUserDismissed(false);
-      setIsOpen(true);
-    };
-
-    const handleLocationGranted = () => {
-      setLocationStatus('granted');
-    };
-
     window.addEventListener('open-system-permissions-modal', handleOpen);
-    window.addEventListener('system-location-denied', handleLocationDenied);
-    window.addEventListener('system-location-granted', handleLocationGranted);
-
-    return () => {
-      window.removeEventListener('open-system-permissions-modal', handleOpen);
-      window.removeEventListener('system-location-denied', handleLocationDenied);
-      window.removeEventListener('system-location-granted', handleLocationGranted);
-    };
+    return () => window.removeEventListener('open-system-permissions-modal', handleOpen);
   }, [checkPermissions]);
 
   // Evaluate whether to display modal automatically
   useEffect(() => {
     if (hasUserDismissed) return;
-    if (locationStatus === 'checking' || clipboardStatus === 'checking') return;
 
     // Small delay to prevent layout flicker on initial hydration
     const timer = setTimeout(() => {
@@ -156,14 +137,11 @@ export function SystemPermissionsModal() {
 
       // If either permission is not granted or we are on insecure HTTP, show popup
       if (!isLocGranted || !isClipGranted || !isSecureContext) {
-        if (locationStatus === 'denied' || clipboardStatus === 'denied') {
-          setShowInstructions(true);
-        }
         setIsOpen(true);
       } else {
         setIsOpen(false);
       }
-    }, 400);
+    }, 600);
 
     return () => clearTimeout(timer);
   }, [locationStatus, clipboardStatus, isSecureContext, hasUserDismissed]);
