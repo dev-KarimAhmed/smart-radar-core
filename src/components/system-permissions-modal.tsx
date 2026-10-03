@@ -71,6 +71,7 @@ export function SystemPermissionsModal() {
   const [isSecureContext, setIsSecureContext] = useState(true);
   const [showInstructions, setShowInstructions] = useState(false);
   const [hasUserDismissed, setHasUserDismissed] = useState(false);
+  const [isChecking, setIsChecking] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -152,6 +153,12 @@ export function SystemPermissionsModal() {
       setClipboardStatus('prompt');
     }
   }, []);
+ 
+  const handleRecheck = useCallback(async () => {
+    setIsChecking(true);
+    await checkPermissions();
+    setTimeout(() => setIsChecking(false), 500);
+  }, [checkPermissions]);
 
   // Initial check on mount & system events
   useEffect(() => {
@@ -361,16 +368,38 @@ export function SystemPermissionsModal() {
             </div>
 
             {locationStatus !== 'granted' && (
-              <Button
-                type="button"
-                onClick={requestLocation}
-                disabled={isRequestingLocation}
-                className={styles.actionButton}
-              >
-                {isRequestingLocation
-                  ? (isArabic ? 'جاري طلب الإذن...' : 'Requesting...')
-                  : (isArabic ? 'تفعيل إذن الموقع الآن' : 'Allow Location Access')}
-              </Button>
+              locationStatus === 'denied' ? (
+                <div className="mt-2 rounded-lg bg-rose-500/10 border border-rose-500/25 p-2 text-[10px] space-y-1">
+                  <div className="flex items-center gap-1 font-bold text-rose-300">
+                    <Lock className="h-3 w-3 shrink-0" />
+                    <span>{isArabic ? 'محظور في إعدادات المتصفح / الجهاز:' : 'Blocked in Browser / OS Settings:'}</span>
+                  </div>
+                  <p className="text-slate-300 leading-normal">
+                    {isArabic
+                      ? 'اضغط على أيقونة القفل أو الإعدادات 🔒 بجانب الرابط بأعلى المتصفح ➔ اختر "السماح بالموقع" (Allow).'
+                      : 'Click lock icon 🔒 next to address bar ➔ Set Location to Allow.'}
+                  </p>
+                  <Button
+                    type="button"
+                    onClick={requestLocation}
+                    disabled={isRequestingLocation}
+                    className="mt-1 h-6.5 w-full rounded-md bg-white/10 hover:bg-white/15 text-white text-[10px] font-bold border border-white/15 transition-all"
+                  >
+                    {isRequestingLocation ? (isArabic ? 'جاري الفحص...' : 'Checking...') : (isArabic ? 'إعادة محاولة الطلب' : 'Retry Access')}
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  onClick={requestLocation}
+                  disabled={isRequestingLocation}
+                  className={styles.actionButton}
+                >
+                  {isRequestingLocation
+                    ? (isArabic ? 'جاري طلب الإذن...' : 'Requesting...')
+                    : (isArabic ? 'تفعيل إذن الموقع الآن' : 'Allow Location Access')}
+                </Button>
+              )
             )}
           </div>
 
@@ -414,16 +443,38 @@ export function SystemPermissionsModal() {
             </div>
 
             {clipboardStatus !== 'granted' && (
-              <Button
-                type="button"
-                onClick={requestClipboard}
-                disabled={isRequestingClipboard}
-                className={styles.actionButton}
-              >
-                {isRequestingClipboard
-                  ? (isArabic ? 'جاري فحص الحافظة...' : 'Testing...')
-                  : (isArabic ? 'اختبار وتفعيل إذن الحافظة' : 'Allow Clipboard Access')}
-              </Button>
+              clipboardStatus === 'denied' ? (
+                <div className="mt-2 rounded-lg bg-rose-500/10 border border-rose-500/25 p-2 text-[10px] space-y-1">
+                  <div className="flex items-center gap-1 font-bold text-rose-300">
+                    <Lock className="h-3 w-3 shrink-0" />
+                    <span>{isArabic ? 'محظور في إعدادات المتصفح:' : 'Blocked in Browser Settings:'}</span>
+                  </div>
+                  <p className="text-slate-300 leading-normal">
+                    {isArabic
+                      ? 'اضغط على أيقونة القفل 🔒 بجانب الرابط بأعلى المتصفح ➔ فعّل "الحافظة" (Clipboard).'
+                      : 'Click lock icon 🔒 next to address bar ➔ Set Clipboard to Allow.'}
+                  </p>
+                  <Button
+                    type="button"
+                    onClick={requestClipboard}
+                    disabled={isRequestingClipboard}
+                    className="mt-1 h-6.5 w-full rounded-md bg-white/10 hover:bg-white/15 text-white text-[10px] font-bold border border-white/15 transition-all"
+                  >
+                    {isRequestingClipboard ? (isArabic ? 'جاري الفحص...' : 'Checking...') : (isArabic ? 'إعادة محاولة الطلب' : 'Retry Access')}
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  onClick={requestClipboard}
+                  disabled={isRequestingClipboard}
+                  className={styles.actionButton}
+                >
+                  {isRequestingClipboard
+                    ? (isArabic ? 'جاري فحص الحافظة...' : 'Testing...')
+                    : (isArabic ? 'اختبار وتفعيل إذن الحافظة' : 'Allow Clipboard Access')}
+                </Button>
+              )
             )}
           </div>
         </div>
@@ -477,11 +528,12 @@ export function SystemPermissionsModal() {
           <Button
             type="button"
             variant="outline"
-            onClick={() => void checkPermissions()}
+            onClick={handleRecheck}
+            disabled={isChecking}
             className={styles.refreshButton}
           >
-            <RefreshCw className="h-3 w-3 text-[#14F5D5]" />
-            <span>{isArabic ? 'إعادة الفحص' : 'Re-check'}</span>
+            <RefreshCw className={cn("h-3 w-3 text-[#14F5D5]", isChecking && "animate-spin")} />
+            <span>{isChecking ? (isArabic ? 'جاري الفحص...' : 'Checking...') : (isArabic ? 'إعادة الفحص' : 'Re-check')}</span>
           </Button>
 
           <Button
