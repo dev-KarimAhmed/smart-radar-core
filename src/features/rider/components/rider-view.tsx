@@ -250,6 +250,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
           emergencyContact={emergencyContact}
           countryConfig={countryConfig}
           riderLocation={geolocation.riderLocation}
+          locationStatus={geolocation.locationStatus}
           currencyLabel={currencyLabel}
           selectedDraftDestination={selectedDraftDestination}
           selectedDestinationCoords={destination.selectedDestinationCoords}

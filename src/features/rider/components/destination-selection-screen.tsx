@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { Lock, MapPinOff } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import type { AppLanguage } from '@/lib/i18n/simple-copy';
@@ -10,7 +11,7 @@ import type { useDestinationTextSearch } from '../hooks/use-destination-text-sea
 import type { useDestinationMapPicker } from '../hooks/use-destination-map-picker';
 import type { useClipboardLocationImport } from '../hooks/use-clipboard-location-import';
 import type { useServerFareAndRoute } from '../hooks/use-server-fare-and-route';
-import type { RiderLocation } from './rider-map';
+import type { RiderLocation, RiderLocationStatus } from './rider-map';
 import { formatMoney } from '../services/rider-view-format';
 import { DestinationSearchPanel } from './destination-search-panel';
 import { DestinationTripSummary } from './destination-trip-summary';
@@ -31,6 +32,7 @@ const styles = {
 export interface DestinationSelectionScreenProps {
   isArabic: boolean;
   language: AppLanguage;
+  locationStatus?: RiderLocationStatus;
   geography: ReturnType<typeof useDestinationGeographyData>;
   search: ReturnType<typeof useDestinationTextSearch>;
   mapPicker: ReturnType<typeof useDestinationMapPicker>;
@@ -60,6 +62,7 @@ export interface DestinationSelectionScreenProps {
 export function DestinationSelectionScreen({
   isArabic,
   language,
+  locationStatus,
   geography,
   search,
   mapPicker,
@@ -86,6 +89,78 @@ export function DestinationSelectionScreen({
 }: DestinationSelectionScreenProps) {
   const locationCopy = useTranslations('location');
   const t = useTranslations('riderView');
+
+  const [isLocationDisabled, setIsLocationDisabled] = React.useState(
+    locationStatus === 'denied' || locationStatus === 'fallback'
+  );
+
+  React.useEffect(() => {
+    if (locationStatus === 'denied' || locationStatus === 'fallback') {
+      setIsLocationDisabled(true);
+    } else if (locationStatus === 'live') {
+      setIsLocationDisabled(false);
+    }
+  }, [locationStatus]);
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    if (typeof navigator !== 'undefined' && navigator.permissions?.query) {
+      navigator.permissions.query({ name: 'geolocation' }).then((res) => {
+        if (res.state === 'denied') {
+          setIsLocationDisabled(true);
+        }
+        res.onchange = () => {
+          if (res.state === 'denied') {
+            setIsLocationDisabled(true);
+          }
+        };
+      }).catch(() => undefined);
+    }
+
+    if (typeof navigator !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        () => setIsLocationDisabled(false),
+        () => {
+          setIsLocationDisabled(true);
+          window.dispatchEvent(new CustomEvent('system-location-denied'));
+        },
+        { enableHighAccuracy: false, timeout: 2500, maximumAge: 0 }
+      );
+    }
+
+    const handleDenied = () => setIsLocationDisabled(true);
+    const handleGranted = () => setIsLocationDisabled(false);
+
+    window.addEventListener('system-location-denied', handleDenied);
+    window.addEventListener('system-location-granted', handleGranted);
+
+    return () => {
+      window.removeEventListener('system-location-denied', handleDenied);
+      window.removeEventListener('system-location-granted', handleGranted);
+    };
+  }, []);
+
+  const handleRequestLocation = () => {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('open-system-permissions-modal'));
+      window.dispatchEvent(new CustomEvent('request-live-location'));
+      if (typeof navigator !== 'undefined' && navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          () => {
+            setIsLocationDisabled(false);
+            window.dispatchEvent(new CustomEvent('system-location-granted'));
+            window.dispatchEvent(new CustomEvent('request-live-location'));
+          },
+          () => {
+            setIsLocationDisabled(true);
+            window.dispatchEvent(new CustomEvent('system-location-denied'));
+          },
+          { enableHighAccuracy: true, timeout: 5000 }
+        );
+      }
+    }
+  };
 
   const hasDestinationOptions = geography.destinationGovernorates.length > 0 && geography.destinationDistricts.length > 0;
   const selectedDestinationHasCoords = !!selectedDestinationCoords;
@@ -144,6 +219,29 @@ export function DestinationSelectionScreen({
         </div>
       </div>
 
+      {/* Location Disabled Critical Notice */}
+      {isLocationDisabled && (
+        <div className="rounded-2xl border border-rose-500/40 bg-rose-500/10 p-3.5 space-y-2 text-start shadow-lg shadow-rose-950/30 animate-in fade-in duration-200">
+          <div className="flex items-center gap-2 text-rose-300 font-black text-xs sm:text-sm">
+            <MapPinOff className="h-4 w-4 shrink-0 text-rose-400" />
+            <span>{isArabic ? 'إذن الموقع الجغرافي (GPS) مغلق' : 'Location Permission Disabled'}</span>
+          </div>
+          <p className="text-[11px] sm:text-xs leading-relaxed text-slate-200 font-medium">
+            {isArabic
+              ? 'لن تتمكن من تحديد نقطة انطلاقك أو إرسال طلب رحلة للكباتن دون تفعيل الموقع. يجب تفعيل إذن الموقع للمتابعة.'
+              : 'You cannot determine your pickup location or request a ride without location access. Please enable location to continue.'}
+          </p>
+          <button
+            type="button"
+            onClick={handleRequestLocation}
+            className="min-h-[44px] w-full bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white font-black text-xs sm:text-sm py-2.5 rounded-xl transition-transform active:scale-[0.98] shadow-md shadow-rose-950/50 flex items-center justify-center gap-2 cursor-pointer border border-rose-400/30"
+          >
+            <Lock className="h-4 w-4" />
+            <span>{isArabic ? 'تفعيل إذن الموقع لبدء الطلب' : 'Enable Location to Request'}</span>
+          </button>
+        </div>
+      )}
+
       <DestinationSearchPanel
         search={search}
         mapPicker={mapPicker}
@@ -187,6 +285,8 @@ export function DestinationSelectionScreen({
           selectedDestinationHasCoords={selectedDestinationHasCoords}
           hasServerEstimatedFare={selectedDraftDestination?.serverEstimatedFare !== undefined}
           isCaptainScanPreviewActive={isCaptainScanPreviewActive}
+          isLocationDisabled={isLocationDisabled}
+          onEnableLocation={handleRequestLocation}
           onSendRequest={onSendRequest}
         />
       )}

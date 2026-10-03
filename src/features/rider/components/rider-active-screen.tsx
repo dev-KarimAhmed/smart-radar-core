@@ -14,7 +14,7 @@ import type { useTripCompletion } from '../hooks/use-trip-completion';
 import type { useSendCancelRideRequest } from '../hooks/use-send-cancel-ride-request';
 import type { useRideRequestStatusSync } from '../hooks/use-ride-request-status-sync';
 import type { useEmergencyContact } from '../hooks/use-emergency-contact';
-import type { RiderLocation } from './rider-map';
+import type { RiderLocation, RiderLocationStatus } from './rider-map';
 import { DestinationSelectionScreen } from './destination-selection-screen';
 import { ReceivingOffersScreen } from './receiving-offers-screen';
 import { TripActiveScreen } from './trip-active-screen';
@@ -33,6 +33,7 @@ interface CountryNameConfig {
 export interface RiderActiveScreenProps {
   isArabic: boolean;
   language: AppLanguage;
+  locationStatus?: RiderLocationStatus;
   state: RiderMachineState;
   dispatch: React.Dispatch<RiderMachineAction>;
   geography: ReturnType<typeof useDestinationGeographyData>;
@@ -65,6 +66,7 @@ export function RiderActiveScreen(props: RiderActiveScreenProps) {
   const {
     isArabic,
     language,
+    locationStatus,
     state,
     dispatch,
     geography,
@@ -98,6 +100,7 @@ export function RiderActiveScreen(props: RiderActiveScreenProps) {
         <DestinationSelectionScreen
         isArabic={isArabic}
         language={language}
+        locationStatus={locationStatus}
         geography={geography}
         search={search}
         mapPicker={mapPicker}

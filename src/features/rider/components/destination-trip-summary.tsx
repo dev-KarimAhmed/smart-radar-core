@@ -4,6 +4,7 @@ import React from 'react';
 import {
   Clock,
   Loader2,
+  Lock,
   Minus,
   Navigation,
   Plus,
@@ -80,6 +81,8 @@ export interface DestinationTripSummaryProps {
   selectedDestinationHasCoords: boolean;
   hasServerEstimatedFare: boolean;
   isCaptainScanPreviewActive?: boolean;
+  isLocationDisabled?: boolean;
+  onEnableLocation?: () => void;
   onSendRequest: () => void;
 }
 
@@ -107,6 +110,8 @@ export function DestinationTripSummary({
   selectedDestinationHasCoords,
   hasServerEstimatedFare,
   isCaptainScanPreviewActive = true,
+  isLocationDisabled = false,
+  onEnableLocation,
   onSendRequest,
 }: DestinationTripSummaryProps) {
   const locationCopy = useTranslations('location');
@@ -230,27 +235,38 @@ export function DestinationTripSummary({
 
       {/* 4. اطلب الآن (Submit Button) */}
       <div className={styles.submitWrapper}>
-        <button
-          onClick={onSendRequest}
-          disabled={isSubmitDisabled}
-          className={cn(
-            styles.submitButton,
-            isSubmitDisabled ? styles.submitButtonDisabled : styles.submitButtonEnabled,
-          )}
-        >
-          {isSendingRideRequest ? (
-            <Loader2 className={styles.submitButtonLoadingIcon} />
-          ) : (
-            <Navigation className={styles.submitButtonIcon} />
-          )}
-          {isSendingRideRequest
-            ? t('request.sending')
-            : isSameLocation
-            ? t('panel.whereTo')
-            : isPassengerCountZero
-            ? t('request.selectPassengersFirst')
-            : t('request.now')}
-        </button>
+        {isLocationDisabled ? (
+          <button
+            type="button"
+            onClick={onEnableLocation}
+            className="flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-base font-black transition-all active:scale-[0.99] cursor-pointer shadow-xl bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white border border-rose-400/30"
+          >
+            <Lock className="h-5 w-5" />
+            <span>{isArabic ? 'تفعيل إذن الموقع لبدء الطلب' : 'Enable Location to Request'}</span>
+          </button>
+        ) : (
+          <button
+            onClick={onSendRequest}
+            disabled={isSubmitDisabled}
+            className={cn(
+              styles.submitButton,
+              isSubmitDisabled ? styles.submitButtonDisabled : styles.submitButtonEnabled,
+            )}
+          >
+            {isSendingRideRequest ? (
+              <Loader2 className={styles.submitButtonLoadingIcon} />
+            ) : (
+              <Navigation className={styles.submitButtonIcon} />
+            )}
+            {isSendingRideRequest
+              ? t('request.sending')
+              : isSameLocation
+              ? t('panel.whereTo')
+              : isPassengerCountZero
+              ? t('request.selectPassengersFirst')
+              : t('request.now')}
+          </button>
+        )}
       </div>
     </>
   );
