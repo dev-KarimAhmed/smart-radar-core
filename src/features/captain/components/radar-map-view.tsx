@@ -412,19 +412,6 @@ export function RadarMapView({
                       }}
                       className={styles.cardHeaderToggle}
                     >
-                      <div className={styles.cardTopRow} dir={language === 'ar' ? 'rtl' : 'ltr'}>
-                        <span className={styles.requestIndexBadge}>{index + 1}/9</span>
-                        {request.pricingPreference === 'APP' ? (
-                          <span className={styles.riderPrefBadgeApp}>📱 {copy.riderPrefApp}</span>
-                        ) : request.pricingPreference === 'TAXI' ? (
-                          <span className={styles.riderPrefBadgeTaxi}>🚕 {copy.riderPrefTaxi}</span>
-                        ) : request.pricingPreference === 'FREE' ? (
-                          <span className={styles.riderPrefBadgeFree}>🟢 {copy.riderPrefFree}</span>
-                        ) : (
-                          <span className={styles.riderPrefBadgeAll}>🌐 {copy.riderPrefAll}</span>
-                        )}
-                      </div>
-
                       <div className={styles.style220_33}>
                         <MapPin className={styles.style221_34} />
                         <div className={styles.style222_35}>
@@ -448,7 +435,7 @@ export function RadarMapView({
                               )}
                             />
                             {request.riderRating != null && request.riderRating > 0
-                              ? `${request.riderRating.toFixed(1)}${request.riderRatingCount ? ` (${request.riderRatingCount})` : ''}`
+                              ? `${copy.ratingPrefix} ${request.riderRating.toFixed(1)}${request.riderRatingCount ? ` (${request.riderRatingCount})` : ''}`
                               : copy.riderUnrated}
                           </span>
                           {request.riderCompletedTrips != null ? (
@@ -777,6 +764,7 @@ const radarCopy = {
     pickupTime: 'الوقت حتى تصل للراكب',
     tripDistance: 'مسافة الرحلة',
     requestTime: 'وقت الطلب',
+    ratingPrefix: 'تقييم',
     riderUnrated: 'راكب جديد بدون تقييم',
     riderFavoritedYou: 'في مفضلته',
     riderNotFavoritedYou: 'مش في مفضلته',
@@ -825,6 +813,7 @@ const radarCopy = {
     pickupTime: 'Time to reach the rider',
     tripDistance: 'Trip distance',
     requestTime: 'Request time',
+    ratingPrefix: 'Rating',
     riderUnrated: 'New rider — no ratings yet',
     riderFavoritedYou: 'Has you as a favourite',
     riderNotFavoritedYou: 'Not a favourite yet',

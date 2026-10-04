@@ -1167,7 +1167,7 @@
     "key_b9568e86": "Key_b9568e86"
   },
   "captainPickup": {
-    "tripsValue": "{count, plural, one {# trip} other {# trips}}",
+    "tripsValue": "{count, plural, =0 {Trips: 0} one {Trips: # trip} other {Trips: # trips}}",
     "pickupLocation": "Pickup location",
     "pickupApproximate": "Approximate area before acceptance",
     "pickupExact": "Exact pickup location",
