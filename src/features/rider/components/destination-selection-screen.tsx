@@ -91,13 +91,13 @@ export function DestinationSelectionScreen({
   const t = useTranslations('riderView');
 
   const [isLocationDisabled, setIsLocationDisabled] = React.useState(
-    locationStatus === 'denied' || locationStatus === 'fallback'
+    locationStatus === 'denied'
   );
 
   React.useEffect(() => {
-    if (locationStatus === 'denied' || locationStatus === 'fallback') {
+    if (locationStatus === 'denied') {
       setIsLocationDisabled(true);
-    } else if (locationStatus === 'live') {
+    } else if (locationStatus === 'live' || locationStatus === 'locating') {
       setIsLocationDisabled(false);
     }
   }, [locationStatus]);
@@ -109,10 +109,14 @@ export function DestinationSelectionScreen({
       navigator.permissions.query({ name: 'geolocation' }).then((res) => {
         if (res.state === 'denied') {
           setIsLocationDisabled(true);
+        } else if (res.state === 'granted') {
+          setIsLocationDisabled(false);
         }
         res.onchange = () => {
           if (res.state === 'denied') {
             setIsLocationDisabled(true);
+          } else if (res.state === 'granted') {
+            setIsLocationDisabled(false);
           }
         };
       }).catch(() => undefined);
@@ -121,11 +125,13 @@ export function DestinationSelectionScreen({
     if (typeof navigator !== 'undefined' && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         () => setIsLocationDisabled(false),
-        () => {
-          setIsLocationDisabled(true);
-          window.dispatchEvent(new CustomEvent('system-location-denied'));
+        (err) => {
+          if (err.code === err.PERMISSION_DENIED) {
+            setIsLocationDisabled(true);
+            window.dispatchEvent(new CustomEvent('system-location-denied'));
+          }
         },
-        { enableHighAccuracy: false, timeout: 2500, maximumAge: 0 }
+        { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
       );
     }
 
@@ -143,7 +149,6 @@ export function DestinationSelectionScreen({
 
   const handleRequestLocation = () => {
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('open-system-permissions-modal'));
       window.dispatchEvent(new CustomEvent('request-live-location'));
       if (typeof navigator !== 'undefined' && navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
@@ -152,11 +157,30 @@ export function DestinationSelectionScreen({
             window.dispatchEvent(new CustomEvent('system-location-granted'));
             window.dispatchEvent(new CustomEvent('request-live-location'));
           },
-          () => {
-            setIsLocationDisabled(true);
-            window.dispatchEvent(new CustomEvent('system-location-denied'));
+          (err) => {
+            if (err.code === err.PERMISSION_DENIED) {
+              setIsLocationDisabled(true);
+              window.dispatchEvent(new CustomEvent('open-system-permissions-modal'));
+              window.dispatchEvent(new CustomEvent('system-location-denied'));
+            } else {
+              navigator.geolocation.getCurrentPosition(
+                () => {
+                  setIsLocationDisabled(false);
+                  window.dispatchEvent(new CustomEvent('system-location-granted'));
+                  window.dispatchEvent(new CustomEvent('request-live-location'));
+                },
+                (err2) => {
+                  if (err2.code === err2.PERMISSION_DENIED) {
+                    setIsLocationDisabled(true);
+                    window.dispatchEvent(new CustomEvent('open-system-permissions-modal'));
+                    window.dispatchEvent(new CustomEvent('system-location-denied'));
+                  }
+                },
+                { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
+              );
+            }
           },
-          { enableHighAccuracy: true, timeout: 5000 }
+          { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
         );
       }
     }

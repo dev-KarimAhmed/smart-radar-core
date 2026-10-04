@@ -94,40 +94,35 @@ export function SystemPermissionsModal() {
         const geoPerm = await navigator.permissions.query({ name: 'geolocation' });
         const state = geoPerm.state as PermissionCheckStatus;
         setLocationStatus(state);
-        if (state !== 'granted') {
+        if (state === 'denied') {
           setIsOpen(true);
         }
         geoPerm.onchange = () => {
           const next = geoPerm.state as PermissionCheckStatus;
           setLocationStatus(next);
-          if (next !== 'granted') {
+          if (next === 'denied') {
             setIsOpen(true);
           }
         };
       } catch {
-        setLocationStatus('prompt');
-        setIsOpen(true);
+        // iOS Safari throws on permissions.query({ name: 'geolocation' })
+        // We do not force prompt or open modal here; let getCurrentPosition check below.
       }
-    } else {
-      setLocationStatus('prompt');
-      setIsOpen(true);
     }
 
     // Direct active check using getCurrentPosition:
-    // Catches OS-level disable (e.g. Windows location services off, Android location toggle off)
-    // where permissions.query may report 'granted' for the domain, but OS returns code 2 (POSITION_UNAVAILABLE)
     if (typeof navigator !== 'undefined' && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         () => {
           setLocationStatus('granted');
         },
-        () => {
-          // Any error (1 = PERMISSION_DENIED, 2 = POSITION_UNAVAILABLE, 3 = TIMEOUT)
-          // means Location is not working/disabled on device or browser
-          setLocationStatus('denied');
-          setIsOpen(true);
+        (err) => {
+          if (err.code === err.PERMISSION_DENIED) {
+            setLocationStatus('denied');
+            setIsOpen(true);
+          }
         },
-        { enableHighAccuracy: false, timeout: 3500, maximumAge: 0 }
+        { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
       );
     }
 

@@ -75,14 +75,22 @@ export function IdleMapScreen({ isArabic, isGeocoding, currentAddressName, locat
 
   const handleRequestClick = () => {
     if (isDenied) {
-      // Trigger system permission prompt & open permissions guidance modal
       if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('open-system-permissions-modal'));
+        window.dispatchEvent(new CustomEvent('request-live-location'));
         if (typeof navigator !== 'undefined' && navigator.geolocation) {
           navigator.geolocation.getCurrentPosition(
-            () => setIsDenied(false),
-            () => setIsDenied(true),
-            { enableHighAccuracy: true, timeout: 5000 }
+            () => {
+              setIsDenied(false);
+              window.dispatchEvent(new CustomEvent('system-location-granted'));
+            },
+            (err) => {
+              if (err.code === err.PERMISSION_DENIED) {
+                setIsDenied(true);
+                window.dispatchEvent(new CustomEvent('open-system-permissions-modal'));
+                window.dispatchEvent(new CustomEvent('system-location-denied'));
+              }
+            },
+            { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
           );
         }
       }

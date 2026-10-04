@@ -143,12 +143,36 @@ export function useLiveGeolocation({ fallbackLocation }: { fallbackLocation: Liv
         }
       },
       (error) => {
-        if (error.code === error.PERMISSION_DENIED || error.code === error.POSITION_UNAVAILABLE) {
+        if (error.code === error.PERMISSION_DENIED) {
           setStatus('denied');
           if (typeof window !== 'undefined') {
             window.dispatchEvent(new CustomEvent('system-location-denied'));
           }
           return;
+        }
+        if (error.code === error.TIMEOUT || error.code === error.POSITION_UNAVAILABLE) {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              didResolve = true;
+              updateLocation(pos.coords.latitude, pos.coords.longitude);
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('system-location-granted'));
+              }
+            },
+            (err2) => {
+              if (err2.code === err2.PERMISSION_DENIED) {
+                setStatus('denied');
+                if (typeof window !== 'undefined') {
+                  window.dispatchEvent(new CustomEvent('system-location-denied'));
+                }
+              }
+            },
+            {
+              enableHighAccuracy: false,
+              maximumAge: 300000,
+              timeout: 10000,
+            }
+          );
         }
         if (!didResolve && !cachedLastKnownLocation) {
           setLocation({ lat: fallbackLat, lng: fallbackLng });
@@ -157,8 +181,8 @@ export function useLiveGeolocation({ fallbackLocation }: { fallbackLocation: Liv
       },
       {
         enableHighAccuracy: true,
-        maximumAge: 0,
-        timeout: 5000,
+        maximumAge: 60000,
+        timeout: 10000,
       }
     );
 
@@ -172,7 +196,7 @@ export function useLiveGeolocation({ fallbackLocation }: { fallbackLocation: Liv
         }
       },
       (error) => {
-        if (error.code === error.PERMISSION_DENIED || error.code === error.POSITION_UNAVAILABLE) {
+        if (error.code === error.PERMISSION_DENIED) {
           setStatus('denied');
           if (typeof window !== 'undefined') {
             window.dispatchEvent(new CustomEvent('system-location-denied'));
@@ -186,8 +210,8 @@ export function useLiveGeolocation({ fallbackLocation }: { fallbackLocation: Liv
       },
       {
         enableHighAccuracy: true,
-        maximumAge: 0,
-        timeout: 10000,
+        maximumAge: 60000,
+        timeout: 15000,
       },
     );
 
