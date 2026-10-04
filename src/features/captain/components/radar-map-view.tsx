@@ -466,25 +466,12 @@ export function RadarMapView({
                             {t('tripsValue', { count: request.riderCompletedTrips })}
                           </span>
                         ) : null}
-                        {/* Always rendered, in both states.
-                            The ask was "توضيح ما إذا كان الكابتن ضمن قائمة المفضلين لدى الراكب" —
-                            whether or NOT. Showing the chip only when true means the absence of a
-                            badge has two meanings the captain cannot tell apart: "this rider has
-                            not favourited me" and "this is broken". */}
-                        <span
-                          className={cn(
-                            styles.riderChip,
-                            request.riderFavoritedMe ? styles.riderFavoriteChipOn : styles.riderFavoriteChipOff,
-                          )}
-                        >
-                          <Heart
-                            className={cn(
-                              styles.riderChipIcon,
-                              request.riderFavoritedMe ? styles.heartFilled : styles.heartEmpty,
-                            )}
-                          />
-                          {request.riderFavoritedMe ? copy.riderFavoritedYou : copy.riderNotFavoritedYou}
-                        </span>
+                        {request.riderFavoritedMe ? (
+                          <span className={cn(styles.riderChip, styles.riderFavoriteChipOn)}>
+                            <Heart className={cn(styles.riderChipIcon, styles.heartFilled)} />
+                            {copy.riderFavoritedYou}
+                          </span>
+                        ) : null}
                       </div>
                     </div>
 
