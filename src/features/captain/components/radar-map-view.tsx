@@ -766,7 +766,7 @@ const radarCopy = {
     requestTime: 'وقت الطلب',
     ratingPrefix: 'تقييم',
     riderUnrated: 'راكب جديد بدون تقييم',
-    riderFavoritedYou: 'في مفضلته',
+    riderFavoritedYou: 'انت في قائمة المفضلة عند الراكب',
     riderNotFavoritedYou: 'مش في مفضلته',
     pricingPreference: 'طريقة التسعير',
     openBid: 'تقديم عرض',
