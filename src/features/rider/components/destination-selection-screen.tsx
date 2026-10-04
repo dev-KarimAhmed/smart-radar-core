@@ -128,6 +128,7 @@ export function DestinationSelectionScreen({
         (err) => {
           if (err.code === err.PERMISSION_DENIED) {
             setIsLocationDisabled(true);
+            window.dispatchEvent(new CustomEvent('system-location-denied'));
           }
         },
         { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
@@ -253,11 +254,6 @@ export function DestinationSelectionScreen({
             {isArabic
               ? 'لن تتمكن من تحديد نقطة انطلاقك أو إرسال طلب رحلة للكباتن دون تفعيل الموقع. يجب تفعيل إذن الموقع للمتابعة.'
               : 'You cannot determine your pickup location or request a ride without location access. Please enable location to continue.'}
-          </p>
-          <p className="text-[10px] text-amber-300/90 leading-tight">
-            {isArabic
-              ? '💡 لمستخدمي آيفون: إن كان مفعلاً في سفاري، تأكد أيضاً من (إعدادات الآيفون ⚙️ ➔ الخصوصية والأمن ➔ خدمات الموقع ➔ مواقع Safari ➔ أثناء استخدام التطبيق).'
-              : '💡 iPhone users: If allowed in Safari, also verify (iPhone Settings ⚙️ ➔ Privacy & Security ➔ Location Services ➔ Safari Websites ➔ While Using App).'}
           </p>
           <button
             type="button"
