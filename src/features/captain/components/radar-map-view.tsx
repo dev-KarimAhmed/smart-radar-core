@@ -447,16 +447,16 @@ export function RadarMapView({
                         <span
                           className={cn(
                             styles.riderChip,
-                            request.riderRating != null ? styles.riderRatingChip : styles.riderDefaultChip,
+                            request.riderRating != null && request.riderRating > 0 ? styles.riderRatingChip : styles.riderDefaultChip,
                           )}
                         >
                           <Star
                             className={cn(
                               styles.riderChipIcon,
-                              request.riderRating != null ? styles.starFilled : styles.starEmpty,
+                              request.riderRating != null && request.riderRating > 0 ? styles.starFilled : styles.starEmpty,
                             )}
                           />
-                          {request.riderRating != null
+                          {request.riderRating != null && request.riderRating > 0
                             ? `${request.riderRating.toFixed(1)}${request.riderRatingCount ? ` (${request.riderRatingCount})` : ''}`
                             : copy.riderUnrated}
                         </span>
