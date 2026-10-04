@@ -65,7 +65,7 @@ const styles = {
   stateEmpty: "border-dashed border-slate-700 bg-slate-950/80 text-slate-300",
   pendingOfferHint: "mt-2 text-[11px] font-bold text-amber-300",
   pendingOfferDisabled: "cursor-not-allowed opacity-40 grayscale-[35%] hover:brightness-100 shadow-none",
-  riderRow: "mt-3 flex flex-wrap items-center gap-2",
+  riderRow: "mt-3 flex items-center justify-between gap-2",
   riderChip: "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all duration-200",
   riderDefaultChip: "border border-white/10 bg-white/5 text-slate-300",
   riderRatingChip: "border border-amber-400/60 bg-gradient-to-r from-amber-500/25 to-amber-400/15 text-amber-300 shadow-[0_0_12px_rgba(251,191,36,0.25)] font-black",
@@ -430,6 +430,41 @@ export function RadarMapView({
                         <div className={styles.style222_35}>
                           <h3 className={styles.style223_36}>{request.dropoff || copy.destination}</h3>
                         </div>
+                      </div>
+
+                      {/* Who the rider is + toggle chevron at the end of the card */}
+                      <div className={styles.riderRow}>
+                        <div className="flex flex-wrap items-center gap-2 min-w-0 flex-1">
+                          <span
+                            className={cn(
+                              styles.riderChip,
+                              request.riderRating != null && request.riderRating > 0 ? styles.riderRatingChip : styles.riderDefaultChip,
+                            )}
+                          >
+                            <Star
+                              className={cn(
+                                styles.riderChipIcon,
+                                request.riderRating != null && request.riderRating > 0 ? styles.starFilled : styles.starEmpty,
+                              )}
+                            />
+                            {request.riderRating != null && request.riderRating > 0
+                              ? `${request.riderRating.toFixed(1)}${request.riderRatingCount ? ` (${request.riderRatingCount})` : ''}`
+                              : copy.riderUnrated}
+                          </span>
+                          {request.riderCompletedTrips != null ? (
+                            <span className={cn(styles.riderChip, styles.riderTripsChip)}>
+                              <Route className={cn(styles.riderChipIcon, styles.routeIconActive)} />
+                              {t('tripsValue', { count: request.riderCompletedTrips })}
+                            </span>
+                          ) : null}
+                          {request.riderFavoritedMe ? (
+                            <span className={cn(styles.riderChip, styles.riderFavoriteChipOn)}>
+                              <Heart className={cn(styles.riderChipIcon, styles.heartFilled)} />
+                              {copy.riderFavoritedYou}
+                            </span>
+                          ) : null}
+                        </div>
+
                         <span className={styles.toggleChevronWrap}>
                           <ChevronDown
                             className={cn(
@@ -438,40 +473,6 @@ export function RadarMapView({
                             )}
                           />
                         </span>
-                      </div>
-
-                      {/* Who the rider is. The captain was deciding whether to bid with nothing
-                          about the person at all — no score, and no way to know this rider had
-                          already picked them out as a favourite. */}
-                      <div className={styles.riderRow}>
-                        <span
-                          className={cn(
-                            styles.riderChip,
-                            request.riderRating != null && request.riderRating > 0 ? styles.riderRatingChip : styles.riderDefaultChip,
-                          )}
-                        >
-                          <Star
-                            className={cn(
-                              styles.riderChipIcon,
-                              request.riderRating != null && request.riderRating > 0 ? styles.starFilled : styles.starEmpty,
-                            )}
-                          />
-                          {request.riderRating != null && request.riderRating > 0
-                            ? `${request.riderRating.toFixed(1)}${request.riderRatingCount ? ` (${request.riderRatingCount})` : ''}`
-                            : copy.riderUnrated}
-                        </span>
-                        {request.riderCompletedTrips != null ? (
-                          <span className={cn(styles.riderChip, styles.riderTripsChip)}>
-                            <Route className={cn(styles.riderChipIcon, styles.routeIconActive)} />
-                            {t('tripsValue', { count: request.riderCompletedTrips })}
-                          </span>
-                        ) : null}
-                        {request.riderFavoritedMe ? (
-                          <span className={cn(styles.riderChip, styles.riderFavoriteChipOn)}>
-                            <Heart className={cn(styles.riderChipIcon, styles.heartFilled)} />
-                            {copy.riderFavoritedYou}
-                          </span>
-                        ) : null}
                       </div>
                     </div>
 
