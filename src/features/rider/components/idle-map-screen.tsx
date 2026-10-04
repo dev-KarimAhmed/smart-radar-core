@@ -123,6 +123,11 @@ export function IdleMapScreen({ isArabic, isGeocoding, currentAddressName, locat
                 ? 'لن تتمكن من تحديد منطقتك الحالية أو إرسال طلب رحلة للكباتن دون تفعيل الموقع. يجب تفعيل إذن الموقع إذا أردت المتابعة.'
                 : 'You cannot determine your pickup area or request a ride without location access. You must enable location to continue.'}
             </p>
+            <p className="text-[10px] text-amber-300/90 leading-tight mt-1">
+              {isArabic
+                ? '💡 لمستخدمي آيفون: إن كان مفعلاً في سفاري، تأكد أيضاً من (إعدادات الآيفون ⚙️ ➔ الخصوصية والأمن ➔ خدمات الموقع ➔ مواقع Safari ➔ أثناء استخدام التطبيق).'
+                : '💡 iPhone users: If allowed in Safari, also verify (iPhone Settings ⚙️ ➔ Privacy & Security ➔ Location Services ➔ Safari Websites ➔ While Using App).'}
+            </p>
           </div>
         )}
 

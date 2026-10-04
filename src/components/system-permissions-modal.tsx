@@ -119,7 +119,6 @@ export function SystemPermissionsModal() {
         (err) => {
           if (err.code === err.PERMISSION_DENIED) {
             setLocationStatus('denied');
-            setIsOpen(true);
           }
         },
         { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
@@ -204,17 +203,6 @@ export function SystemPermissionsModal() {
     }
   }, [locationStatus, clipboardStatus, isSecureContext, hasUserDismissed]);
 
-  // Fallback timer: if after 400ms location is still not granted, guarantee popup is visible
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (hasUserDismissed) return;
-      if (locationStatus !== 'granted') {
-        setIsOpen(true);
-      }
-    }, 400);
-    return () => clearTimeout(timer);
-  }, [hasUserDismissed, locationStatus]);
-
   const requestLocation = () => {
     if (typeof navigator === 'undefined' || !navigator.geolocation) {
       setLocationStatus('denied');
@@ -227,14 +215,36 @@ export function SystemPermissionsModal() {
         setLocationStatus('granted');
         setIsRequestingLocation(false);
         if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('system-location-granted'));
           window.dispatchEvent(new CustomEvent('request-live-location'));
         }
       },
-      () => {
-        setIsRequestingLocation(false);
-        setLocationStatus('denied');
+      (err) => {
+        if (err.code === err.PERMISSION_DENIED) {
+          setIsRequestingLocation(false);
+          setLocationStatus('denied');
+        } else {
+          // Retry with standard accuracy if timeout or unavailable
+          navigator.geolocation.getCurrentPosition(
+            () => {
+              setLocationStatus('granted');
+              setIsRequestingLocation(false);
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('system-location-granted'));
+                window.dispatchEvent(new CustomEvent('request-live-location'));
+              }
+            },
+            (err2) => {
+              setIsRequestingLocation(false);
+              if (err2.code === err2.PERMISSION_DENIED) {
+                setLocationStatus('denied');
+              }
+            },
+            { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
+          );
+        }
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
     );
   };
 
@@ -425,11 +435,11 @@ export function SystemPermissionsModal() {
             <Lock className="h-3.5 w-3.5 text-rose-400 shrink-0 mt-0.5" />
             <div className="text-[10px] leading-relaxed text-slate-300 flex-1">
               <span className="font-bold text-rose-300">
-                {isArabic ? 'الأذونات محظورة في المتصفح: ' : 'Blocked in browser: '}
+                {isArabic ? 'الأذونات محظورة في المتصفح أو النظام: ' : 'Blocked in browser or system: '}
               </span>
               {isArabic
-                ? 'اضغط على أيقونة القفل أو الإعدادات 🔒 بجانب الرابط بأعلى المتصفح واجعلهما "سماح" (Allow)، ثم اضغط "إعادة الفحص".'
-                : 'Click lock icon 🔒 next to address bar ➔ Set to Allow ➔ Tap Re-check.'}
+                ? 'في الآيفون (سفاري): إن كان مفعلاً بزر aA، تأكد أيضاً من (إعدادات الآيفون ⚙️ ➔ الخصوصية والأمن ➔ خدمات الموقع ➔ مواقع Safari ➔ أثناء استخدام التطبيق).'
+                : 'On iPhone (Safari): Also check (Settings ⚙️ ➔ Privacy & Security ➔ Location Services ➔ Safari Websites ➔ While Using App).'}
             </div>
           </div>
         )}
@@ -451,13 +461,20 @@ export function SystemPermissionsModal() {
           {showInstructions && (
             <div className={styles.instructionsPanel}>
               <p className="font-bold text-white">
-                {isArabic ? '📱 هواتف iPhone (Safari):' : '📱 iPhone (Safari):'}
+                {isArabic ? '📱 هواتف iPhone (متصفح Safari):' : '📱 iPhone (Safari):'}
               </p>
-              <p>
-                {isArabic
-                  ? 'اضغط زر (aA) بشريط العنوان ➔ إعدادات موقع الويب ➔ اختر الموقع: السماح.'
-                  : 'Tap (aA) in Safari address bar ➔ Website Settings ➔ Set Location to Allow.'}
-              </p>
+              <div className="space-y-1 text-slate-300 text-[11px]">
+                <p>
+                  {isArabic
+                    ? '1️⃣ داخل سفاري: اضغط زر (aA) بشريط العنوان ➔ إعدادات موقع الويب ➔ اختر الموقع: "السماح".'
+                    : '1️⃣ In Safari: Tap (aA) in address bar ➔ Website Settings ➔ Set Location to "Allow".'}
+                </p>
+                <p className="text-amber-300 bg-amber-500/10 p-2 rounded-lg border border-amber-500/20 leading-relaxed">
+                  {isArabic
+                    ? '⚠️ الخطوة الأهم إن استمر الرفض: ادخل إعدادات الآيفون العامة ⚙️ ➔ الخصوصية والأمن ➔ خدمات الموقع ➔ مواقع Safari ➔ اختر "أثناء استخدام التطبيق" وفعّل "الموقع الدقيق".'
+                    : '⚠️ Crucial step if still blocked: Open iPhone Settings ⚙️ ➔ Privacy & Security ➔ Location Services ➔ Safari Websites ➔ Select "While Using the App" & turn ON "Precise Location".'}
+                </p>
+              </div>
               <p className="font-bold text-white mt-1">
                 {isArabic ? '🤖 هواتف Android (Chrome):' : '🤖 Android (Chrome):'}
               </p>
