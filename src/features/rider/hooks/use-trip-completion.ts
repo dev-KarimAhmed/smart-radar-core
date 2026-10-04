@@ -38,7 +38,34 @@ export function useTripCompletion(
 
   const [localCompletedTrips, setLocalCompletedTrips] = React.useState<HistoricalTrip[]>([]);
   const [isCompletingTrip, setIsCompletingTrip] = React.useState(false);
-  const [riderCount, setRiderCount] = React.useState(0);
+  const [riderCount, setRiderCountState] = React.useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = window.localStorage.getItem('radar_rider_passenger_count');
+        const parsed = stored ? parseInt(stored, 10) : 0;
+        return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+      } catch {
+        return 0;
+      }
+    }
+    return 0;
+  });
+
+  const setRiderCount = React.useCallback((updater: number | ((current: number) => number)) => {
+    setRiderCountState((current) => {
+      const next = typeof updater === 'function' ? updater(current) : updater;
+      if (typeof window !== 'undefined') {
+        try {
+          if (next > 0) {
+            window.localStorage.setItem('radar_rider_passenger_count', String(next));
+          } else {
+            window.localStorage.removeItem('radar_rider_passenger_count');
+          }
+        } catch {}
+      }
+      return next;
+    });
+  }, []);
   const [rating, setRating] = React.useState({ captain: 0, vehicle: 0, favorite: false });
   const [ratingComment, setRatingComment] = React.useState('');
   const [isSubmittingRating, setIsSubmittingRating] = React.useState(false);
@@ -112,7 +139,7 @@ export function useTripCompletion(
   }, [dispatch, state.activeTrip, state.requestId, t, toast]);
 
   const reset = React.useCallback(() => {
-    setRiderCount(0);
+    setRiderCountState(0);
     setRating({ captain: 0, vehicle: 0, favorite: false });
     setRatingComment('');
     setPricingPreference(null);

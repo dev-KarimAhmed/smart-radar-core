@@ -100,13 +100,33 @@ export function useSendCancelRideRequest(params: {
       return;
     }
 
-    if (riderCount !== undefined && riderCount < 1) {
+    let effectiveRiderCount = riderCount;
+    if (!effectiveRiderCount || effectiveRiderCount < 1) {
+      if (typeof window !== 'undefined') {
+        const stored = window.localStorage.getItem('radar_rider_passenger_count');
+        const parsed = stored ? parseInt(stored, 10) : 0;
+        if (parsed >= 1) effectiveRiderCount = parsed;
+      }
+    }
+
+    // When retrying or if destination was already confirmed, never block the rider for passenger count: fallback to at least 1
+    if ((state.screen === 'RECEIVING_OFFERS' || Boolean(state.destination)) && (!effectiveRiderCount || effectiveRiderCount < 1)) {
+      effectiveRiderCount = 1;
+    }
+
+    if (effectiveRiderCount !== undefined && effectiveRiderCount < 1) {
       toast({
         variant: 'destructive',
         title: t('request.passengersMissingTitle'),
         description: t('request.passengersMissingDescription'),
       });
       return;
+    }
+
+    if (effectiveRiderCount && effectiveRiderCount >= 1 && typeof window !== 'undefined') {
+      try {
+        window.localStorage.setItem('radar_rider_passenger_count', String(effectiveRiderCount));
+      } catch {}
     }
 
     const countryId = Number(activeCountryId);

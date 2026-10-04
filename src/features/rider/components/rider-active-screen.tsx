@@ -162,6 +162,17 @@ export function RiderActiveScreen(props: RiderActiveScreenProps) {
         onCancelRideRequest={() => void sendCancel.handleCancelRideRequest()}
         onAcceptOffer={(offer) => void offers.handleAcceptOffer(offer)}
         onRetry={() => {
+          if (!tripCompletion.riderCount || tripCompletion.riderCount < 1) {
+            let countToRestore = 1;
+            if (typeof window !== 'undefined') {
+              try {
+                const stored = window.localStorage.getItem('radar_rider_passenger_count');
+                const parsed = stored ? parseInt(stored, 10) : 1;
+                if (parsed >= 1) countToRestore = parsed;
+              } catch {}
+            }
+            tripCompletion.setRiderCount(countToRestore);
+          }
           void sendCancel.handleSendRequest();
         }}
       />
