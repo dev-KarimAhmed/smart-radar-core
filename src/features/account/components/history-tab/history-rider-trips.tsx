@@ -165,7 +165,7 @@ export function HistoryRiderTrips({
                         </div>
                         {trip.serialId && (
                           <span className="text-[10px] font-mono text-teal-400/80 bg-teal-950/40 border border-teal-500/20 px-1.5 py-0.5 rounded mt-0.5 inline-block">
-                            🧬 {trip.serialId}
+                            #{trip.serialId}
                           </span>
                         )}
                       </div>

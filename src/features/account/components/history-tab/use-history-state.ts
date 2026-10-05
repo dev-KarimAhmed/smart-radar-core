@@ -7,6 +7,8 @@ import { useToast } from '@/hooks/use-toast';
 import { SOVEREIGN_ERR_DICTIONARY } from '@/core/config/sovereign-errors';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { useTranslations } from 'next-intl';
+import { useCountryConfig } from '@/shared/hooks/use-country-config';
+import { getCurrencyLabel } from '@/shared/services/currency-label';
 import {
   HISTORY_TTL_MS,
   type HistoricalTrip,
@@ -39,9 +41,10 @@ export function useHistoryState() {
   const [sovereignLogs, setSovereignLogs] = useState<any[]>([]);
   const [realTrips, setRealTrips] = useState<any[]>([]);
   const [tripReviews, setTripReviews] = useState<Record<string, any>>({});
-  const [loading, setLoading] = useState(true); // ┘à╪╢╪د┘ ╪«╪╡┘è╪╡╪د┘ï ┘┘à┘╪╣ ╪د┘╪▓┘è╪د╪ص CLS
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
-  const currencyLabel = user?.currencyAr || user?.currencyEn || '';
+  const countryConfig = useCountryConfig(user?.countryId);
+  const currencyLabel = getCurrencyLabel(countryConfig, user, language) || (isArabic ? 'د.أ' : 'JOD');
 
   const [errorSearch, setErrorSearch] = useState('');
   const [errorCategory, setErrorCategory] = useState<string>('ALL');
@@ -290,15 +293,15 @@ export function useHistoryState() {
               created_at: new Date(entry.completedAt).toISOString(),
               final_fare: entry.finalFare,
               rider: {
-                full_name: '╪▒╪د┘â╪ذ ┘à╪ص┘┘è',
+                full_name: isArabic ? 'راكب محلي' : 'Local Rider',
                 phone: '',
                 rating: 5.0
               },
-              destination_address_ar: entry.destination || '╪║┘è╪▒ ┘à╪ز╪د╪ص',
-              destination_address: entry.destination || '╪║┘è╪▒ ┘à╪ز╪د╪ص',
+              destination_address_ar: entry.destination || (isArabic ? 'غير محدد' : 'Unspecified'),
+              destination_address: entry.destination || (isArabic ? 'غير محدد' : 'Unspecified'),
               metadata: {
-                pickup_address_ar: '┘à┘ê┘é╪╣┘è ╪د┘╪ص╪د┘┘è',
-                destination_address_ar: entry.destination || '╪║┘è╪▒ ┘à╪ز╪د╪ص'
+                pickup_address_ar: isArabic ? 'موقعي الحالي' : 'Current Location',
+                destination_address_ar: entry.destination || (isArabic ? 'غير محدد' : 'Unspecified')
               }
             }));
             
@@ -434,9 +437,9 @@ export function useHistoryState() {
       return {
         tripId: trip.id,
         serialId: trip.serial_id || trip.serialId || ('T-' + trip.id.slice(0, 4).toUpperCase()),
-        riderName: trip.rider?.full_name || trip.rider_name || trip.riderName || '╪▒╪د┘â╪ذ',
-        pickup: trip.metadata?.pickup_address_ar || trip.pickup_address_ar || trip.pickup || '┘à┘ê┘é╪╣┘è ╪د┘╪ص╪د┘┘è',
-        dropoff: trip.destination_address_ar || trip.destination_address || trip.dropoff || '╪║┘è╪▒ ┘à╪ز╪د╪ص',
+        riderName: trip.rider?.full_name || trip.rider_name || trip.riderName || (isArabic ? 'راكب' : 'Rider'),
+        pickup: trip.metadata?.pickup_address_ar || trip.pickup_address_ar || trip.pickup || (isArabic ? 'موقعي الحالي' : 'Current Location'),
+        dropoff: trip.destination_address_ar || trip.destination_address || trip.dropoff || (isArabic ? 'غير محدد' : 'Unspecified'),
         earnedPrice: Number(trip.final_fare ?? trip.settled_fare ?? trip.final_price ?? trip.offer_price ?? trip.server_estimated_fare ?? trip.offerPrice ?? 0),
         timestamp: parseTripTimestamp(trip),
         status: trip.status || 'COMPLETED'
@@ -469,8 +472,8 @@ export function useHistoryState() {
         console.error('[Favorites] server write failed:', error);
         toast({
           variant: 'destructive',
-          title: '╪ز╪╣╪░╪▒ ╪ز╪ص╪»┘è╪س ╪د┘┘à┘╪╢┘╪ر',
-          description: '╪ص╪د┘ê┘ ╪ز╪د┘┘è ╪ذ╪╣╪» ╪┤┘ê┘è╪ر.',
+          title: isArabic ? 'تعذر تحديث المفضلة' : 'Failed to update favorites',
+          description: isArabic ? 'حاول مرة أخرى بعد قليل.' : 'Please try again later.',
         });
         return;
       }
@@ -506,12 +509,12 @@ export function useHistoryState() {
 
     toast(wasFavorite
       ? {
-          title: '≡اْ¤ ╪ز┘à ╪د┘╪ح╪▓╪د┘╪ر ┘à┘ ╪د┘┘à┘╪╢┘╪ر',
-          description: `╪ز┘à╪ز ╪ح╪▓╪د┘╪ر ╪د┘╪│╪د╪خ┘é ${trip.captainName} ┘à┘ ┘é╪د╪خ┘à╪ز┘â.`,
+          title: isArabic ? 'تمت الإزالة من المفضلة' : 'Removed from favorites',
+          description: isArabic ? `تمت إزالة السائق ${trip.captainName} من قائمتك.` : `Removed driver ${trip.captainName} from your list.`,
         }
       : {
-          title: '╪ز┘à ╪د┘╪ص┘╪╕ ╪ذ┘╪ش╪د╪ص ≡اîا',
-          description: '╪ز┘à ╪ح╪╢╪د┘╪ر ╪د┘╪│╪د╪خ┘é ┘┘à┘╪╢┘╪ز┘â ظ¤ ╪╣┘┘ë ┘â┘ ╪▒╪ص┘╪د╪ز┘â ┘à╪╣╪د┘ç╪î ┘ê╪╣┘┘ë ╪ث┘è ╪ش┘ç╪د╪▓.',
+          title: isArabic ? 'تم الحفظ بنجاح' : 'Saved successfully',
+          description: isArabic ? 'تم إضافة السائق لمفضلتك في جميع رحلاتك.' : 'Driver added to your favorites across all trips.',
         });
 
     void loadFavorites();

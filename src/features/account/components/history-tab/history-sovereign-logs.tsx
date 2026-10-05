@@ -156,15 +156,14 @@ export function HistorySovereignLogs({
                         {iconEmoji} {t(log.type === 'status_change' ? 'statusChange' : log.type === 'system_action' ? 'systemAction' : 'boundaryCross')}
                       </span>
                       <span className={styles.style1357_185}>
-                        {new Date(log.timestamp).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
+                        {new Date(log.timestamp).toLocaleDateString('ar-EG')} • {new Date(log.timestamp).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
-                    <p className={styles.style859_18}>{log.message}</p>
-                    <div className={styles.style861_20}>
-                      <span className={styles.style862_21}>
-                        {new Date(log.timestamp).toLocaleDateString('ar-EG')}
-                      </span>
-                    </div>
+                    {Boolean(log.message || log.details || log.event) && (
+                      <p className={styles.style1365_188}>
+                        {log.message || log.details || log.event}
+                      </p>
+                    )}
                   </div>
                 );
               })}
