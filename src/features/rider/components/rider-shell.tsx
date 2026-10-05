@@ -43,8 +43,8 @@ const styles = {
   header: 'sticky top-0 z-[100] w-full shrink-0 lg:hidden',
   main: 'relative flex w-full flex-1 flex-col overflow-y-visible lg:h-screen lg:min-h-0 lg:overflow-hidden',
   mainShifted: 'lg:ps-[288px]',
-  mainStandby: 'h-[calc(100dvh-120px)] overflow-hidden',
-  adStage: 'relative z-[80] flex w-full flex-1 flex-col border-b-2 border-[#14B8A6]/20 shadow-[0_10px_30px_rgba(20,184,166,0.08)]',
+  mainStandby: 'h-[calc(100dvh-120px)] overflow-hidden flex flex-col justify-start items-center pt-2 lg:h-full lg:justify-center lg:pt-0',
+  adStage: 'relative z-[80] flex w-full flex-1 flex-col justify-start items-center pt-2 border-b-2 border-[#14B8A6]/20 shadow-[0_10px_30px_rgba(20,184,166,0.08)] lg:h-full lg:justify-center lg:pt-0',
   content: 'w-full flex-1 p-4 md:p-8',
   recoveryPrompt: 'absolute top-4 start-4 end-4 z-[200] empty:hidden lg:start-[320px] lg:end-8',
   contentHome: 'p-0 md:p-0 lg:p-0',
@@ -127,7 +127,7 @@ export function RiderShell() {
         />
       ) : null}
       <header className={styles.header}><AppHeader sidebar={<AppSidebar isCritical={false} />} /></header>
-      <main className={cn(styles.main, !isHome && styles.mainShifted, isStandby && styles.mainStandby)}>
+      <main className={cn(styles.main, Boolean(user) && styles.mainShifted, isStandby && styles.mainStandby)}>
         {isCritical && !isHome && (
           <div className="sticky top-0 z-[150] flex items-center justify-between border-b border-[#14B8A6]/40 bg-[#0C1527]/95 px-4 py-2.5 shadow-lg backdrop-blur-md">
             <div className="flex items-center gap-2 text-xs font-bold text-[#14F5D5]">

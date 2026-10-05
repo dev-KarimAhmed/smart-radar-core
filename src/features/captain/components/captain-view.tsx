@@ -102,7 +102,7 @@ export function DriverViewTab() {
   const { isTimeTamperingDetected } = useDeviceTimeGuard();
   const { isOffline, isReconnecting } = useConnectionGuard();
   const countryConfig = useCountryConfig(user?.countryId);
-  const { isStandalone, canPromptNative, triggerNativeInstall, platformEnv } = usePwaInstall('captain');
+  const { canShowInstallButton, canPromptNative, triggerNativeInstall } = usePwaInstall('captain');
   const [isInstallModalOpen, setIsInstallModalOpen] = React.useState(false);
   const isDriverLocationLive = driverOps?.driverLocation && (driverOps.driverLocation as { source?: string }).source === 'gps';
   const { currencyCode: liveCurrencyCode, countryCode: liveCountryCode } = useLiveCurrencyFromLocation(
@@ -332,7 +332,7 @@ export function DriverViewTab() {
               <h1 className={styles.style158_7}>{t('title')}</h1>
             </div>
             <div className={styles.style160_8}>
-              {(!isStandalone && (canPromptNative || platformEnv.isIOS)) && (
+              {canShowInstallButton && (
                 <button
                   type="button"
                   onClick={() => {

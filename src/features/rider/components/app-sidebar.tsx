@@ -1,11 +1,15 @@
 'use client';
 
-import { Archive, Bell, Clock, Heart, History, LogOut, ShieldCheck, User, UserCircle, X } from 'lucide-react';
+import { useState } from 'react';
+import { Archive, Bell, Clock, Download, Heart, History, Languages, LogOut, ShieldCheck, User, UserCircle, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { SheetClose } from '@/components/ui/sheet';
 import { useAuth } from '@/hooks/use-auth';
+import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
+import { usePwaInstall } from '@/hooks/usePwaInstall';
+import { SovereignPwaInstallModal } from '@/components/sovereign-pwa-install-modal';
 import { calculateRiderRank } from '@/core/utils';
 import { cn, formatTelUri } from '@/lib/utils';
 import { useNotifications } from '@/shared/hooks/use-notifications';
@@ -105,7 +109,11 @@ export function AppSidebar({ isCritical = false }: { isCritical?: boolean } = {}
   const tAuto = useTranslations('auto');
   const t = useTranslations('auto');
   const { logout, user } = useAuth();
-  const { hasUnread } = useNotifications();
+  const { notifications, unreadCount, hasUnread, markAllAsRead } = useNotifications();
+  const { isArabic, toggleLanguage } = useDashboardLanguage();
+  const { canShowInstallButton, canPromptNative, triggerNativeInstall } = usePwaInstall('rider');
+  const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   if (!user || user.role !== 'rider') return null;
 
@@ -129,6 +137,36 @@ export function AppSidebar({ isCritical = false }: { isCritical?: boolean } = {}
           <div className={styles.avatar}><UserCircle className={styles.avatarIcon} /></div>
           <h3 className={styles.name}>{user.name || tAuto('key_f38edfd8')}</h3>
           <p className={styles.phone}>{user.phone}</p>
+
+          {/* Controls inside Sidebar: Language Switch & Install App */}
+          <div className="mt-4 flex items-center justify-center gap-2 flex-wrap px-4">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={toggleLanguage}
+              className="h-8 gap-1.5 rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-3 text-xs font-black text-[#14F5D5] hover:bg-[#14B8A6]/20 transition-all cursor-pointer"
+            >
+              <Languages className="h-4 w-4" />
+              <span>{isArabic ? 'English (EN)' : 'العربية'}</span>
+            </Button>
+
+            {canShowInstallButton && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  if (canPromptNative) void triggerNativeInstall();
+                  else setIsInstallModalOpen(true);
+                }}
+                className="h-8 gap-1.5 rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-3 text-xs font-black text-[#14F5D5] hover:bg-[#14B8A6]/20 transition-all cursor-pointer"
+              >
+                <Download className="h-4 w-4" />
+                <span>{isArabic ? 'تثبيت التطبيق' : 'Install App'}</span>
+              </Button>
+            )}
+          </div>
         </div>
 
         <div className={styles.content}>
@@ -161,26 +199,80 @@ export function AppSidebar({ isCritical = false }: { isCritical?: boolean } = {}
             <div className={styles.sectionTitle}><span className={styles.sectionText}>{tAuto('key_2133ac1c')}</span></div>
 
             {/* Notification Trigger with Pulsing Badge */}
-            <SheetClose asChild>
-              <Button
-                className={styles.operationButton}
-                variant="ghost"
-                onClick={() => window.dispatchEvent(new CustomEvent('open-app-notifications'))}
-              >
-                <div className="relative flex items-center justify-between w-full">
-                  <span className={styles.operationText}>{tAuto('key_d9de8840')}</span>
-                  <div className="relative flex items-center gap-2">
-                    <Bell className={styles.operationIcon} />
+            <Button
+              className={styles.operationButton}
+              variant="ghost"
+              onClick={() => setShowNotifications((prev) => !prev)}
+            >
+              <span className={styles.operationText}>{tAuto('key_d9de8840')}</span>
+              <div className="relative flex items-center gap-2">
+                <Bell className={styles.operationIcon} />
+                {hasUnread && (
+                  <span className="relative flex h-2.5 w-2.5">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75" />
+                    <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-rose-500" />
+                  </span>
+                )}
+              </div>
+            </Button>
+
+            {/* Inline Notifications Panel inside Sidebar */}
+            {showNotifications && (
+              <div className="rounded-xl border border-[#14B8A6]/20 bg-[#0B0F19] p-3 text-white space-y-3 shadow-inner">
+                <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                  <div className="flex items-center gap-2">
+                    <Bell className="h-4 w-4 text-[#14F5D5]" />
+                    <span className="text-xs font-black">
+                      {isArabic ? 'التنبيهات' : 'Notifications'}
+                    </span>
                     {hasUnread && (
-                      <span className="relative flex h-2.5 w-2.5">
-                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75" />
-                        <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-rose-500" />
+                      <span className="rounded-full bg-rose-500/20 border border-rose-500/40 px-1.5 py-0.5 text-[10px] font-bold text-rose-300">
+                        {unreadCount}
                       </span>
                     )}
                   </div>
+                  {hasUnread && (
+                    <button
+                      type="button"
+                      onClick={markAllAsRead}
+                      className="text-[10px] font-bold text-slate-400 hover:text-[#14F5D5] transition-colors cursor-pointer"
+                    >
+                      {isArabic ? 'تحديد كمقروء' : 'Mark all read'}
+                    </button>
+                  )}
                 </div>
-              </Button>
-            </SheetClose>
+
+                <div className="max-h-60 overflow-y-auto divide-y divide-white/5 space-y-1">
+                  {notifications.length > 0 ? (
+                    notifications.map((item) => (
+                      <div
+                        key={item.id}
+                        className={cn(
+                          "p-2.5 rounded-lg transition-colors",
+                          item.read ? "opacity-75" : "bg-white/[0.04]"
+                        )}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <h4 className={cn("text-xs font-bold leading-snug", item.read ? "text-slate-300" : "text-white")}>
+                            {item.title}
+                          </h4>
+                          {!item.read && (
+                            <span className="h-2 w-2 rounded-full bg-rose-500 shrink-0 mt-1" />
+                          )}
+                        </div>
+                        <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
+                          {item.description}
+                        </p>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-4 text-center text-xs text-slate-400">
+                      {isArabic ? 'لا توجد تنبيهات جديدة حالياً.' : 'No new notifications right now.'}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             <SheetClose asChild>
               <a
@@ -236,6 +328,13 @@ export function AppSidebar({ isCritical = false }: { isCritical?: boolean } = {}
           <LogOut className={styles.logoutIcon} />
         </Button>
       </div>
+
+      <SovereignPwaInstallModal
+        isOpen={isInstallModalOpen}
+        onClose={() => setIsInstallModalOpen(false)}
+        isArabic={isArabic}
+        role="rider"
+      />
     </nav>
   );
 }

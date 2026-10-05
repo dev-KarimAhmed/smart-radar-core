@@ -29,6 +29,7 @@ export function PwaInstallBanner({ role: propRole }: PwaInstallBannerProps = {})
   const { isArabic } = useDashboardLanguage();
   const {
     isStandalone,
+    isInstalled,
     isDismissed,
     canPromptNative,
     guidance,
@@ -75,7 +76,7 @@ export function PwaInstallBanner({ role: propRole }: PwaInstallBannerProps = {})
 
   // [ACT-PWA-08] Exit Intent Listener for uninstalled users
   useEffect(() => {
-    if (isStandalone || typeof window === 'undefined') return;
+    if (isInstalled || typeof window === 'undefined') return;
 
     const handleMouseLeave = (e: MouseEvent) => {
       if (e.clientY <= 10 && isDismissed) {
@@ -86,12 +87,12 @@ export function PwaInstallBanner({ role: propRole }: PwaInstallBannerProps = {})
 
     document.addEventListener('mouseleave', handleMouseLeave);
     return () => document.removeEventListener('mouseleave', handleMouseLeave);
-  }, [isStandalone, isDismissed, resetDismissal]);
+  }, [isInstalled, isDismissed, resetDismissal]);
 
-  // If already standalone (installed) or dismissed by user, do not render banner.
+  // If already installed or dismissed by user, do not render banner.
   // Also hide if we can't natively prompt and it's not iOS (meaning it's already installed on Android/PC or unsupported).
   // CRITICAL: NEVER render banner while rider is in active ride flow (destination selection, offers, active trip)
-  if (isStandalone || isDismissed || (!canPromptNative && !isIOS) || isRideFlowActive) {
+  if (isInstalled || isDismissed || (!canPromptNative && !isIOS) || isRideFlowActive) {
     return null;
   }
 

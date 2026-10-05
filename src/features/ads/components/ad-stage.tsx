@@ -20,20 +20,20 @@ const styles = {
   style385_3: "mb-4 h-12 w-12 animate-spin rounded-full border-t-2 border-[#14B8A6]",
   style386_4: "px-4 text-center text-sm font-bold tracking-widest text-[#14B8A6]",
   style389_5: "text-xs text-gray-400",
-  style398_6: "relative z-[10] flex w-full flex-col overflow-hidden border-b border-white/5 bg-[#0B0F19] py-2 pointer-events-auto select-none sm:py-6",
-  style400_7: "justify-start",
-  style400_8: "justify-center",
+  style398_6: "relative z-[10] flex w-full flex-col justify-start items-center overflow-hidden border-b border-white/5 bg-[#0B0F19] pt-0 pb-2 pointer-events-auto select-none sm:py-2 lg:justify-center",
+  style400_7: "justify-start items-center lg:justify-center",
+  style400_8: "justify-start items-center lg:justify-center",
   style405_9: "sticky top-0 z-[40] mb-2 flex shrink-0 items-center justify-center w-full px-3 py-2 sm:px-6 sm:py-3 border-b border-[#14B8A6]/20 bg-[#0B0F19]/95 backdrop-blur-md lg:hidden",
   style423_10: "group flex min-h-[48px] sm:min-h-[56px] w-full max-w-[260px] sm:max-w-[300px] cursor-pointer items-center justify-center gap-2.5 rounded-full border border-[#14F5D5]/50 bg-gradient-to-r from-[#14B8A6] via-[#14F5D5] to-[#14B8A6] px-5 py-2.5 sm:px-7 sm:py-3.5 text-base sm:text-xl font-black !text-[#040914] shadow-[0_8px_24px_rgba(20,184,166,0.35)] transition-all duration-300 hover:brightness-110 hover:shadow-[0_12px_32px_rgba(20,245,213,0.45)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14F5D5]",
-  style429_11: "z-[20] mb-3 flex shrink-0 items-center justify-between px-4 sm:mb-4 sm:px-6",
+  style429_11: "z-[20] mb-1 flex w-full shrink-0 items-center justify-between px-4 sm:mb-2 sm:px-6",
   style430_12: "flex items-center gap-2",
   style431_13: "relative flex h-2.5 w-2.5",
   style432_14: "absolute inline-flex h-full w-full animate-ping rounded-full bg-[#14B8A6] opacity-75",
   style433_15: "relative inline-flex h-2.5 w-2.5 rounded-full bg-[#14B8A6]",
   style435_16: "text-xs font-black uppercase tracking-widest text-[#14F5D5] md:text-sm",
   style439_17: "font-mono text-[9px] font-bold text-gray-500 md:text-[10px]",
-  style446_18: "group/river relative flex min-h-0 w-full flex-1 items-center overflow-hidden",
-  style446_19: "pb-4 sm:pb-8 lg:pb-12",
+  style446_18: "group/river relative flex min-h-0 w-full flex-1 items-start justify-center pt-0 overflow-hidden lg:items-center",
+  style446_19: "py-2 sm:py-4",
   style457_20: "absolute left-3 top-1/2 z-30 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-[#0B0F19]/88 text-white shadow-xl shadow-black/35 backdrop-blur-md transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/45 sm:left-4",
   style459_21: "hover:border-[#14B8A6]/45 hover:bg-[#14B8A6]/15",
   style460_22: "cursor-not-allowed opacity-35",
@@ -42,11 +42,11 @@ const styles = {
   style474_25: "hover:border-[#14B8A6]/45 hover:bg-[#14B8A6]/15",
   style475_26: "cursor-not-allowed opacity-35",
   style478_27: "h-5 w-5",
-  style490_28: "no-scrollbar flex min-w-0 flex-1 flex-nowrap gap-8 overflow-x-auto",
+  style490_28: "no-scrollbar flex min-w-0 flex-1 flex-nowrap gap-8 overflow-x-auto lg:items-center",
   style491_29: "justify-center px-6 sm:px-16",
-  style491_30: "px-14",
-  style497_31: "flex-shrink-0",
-  style518_32: "fixed inset-0 z-[100] flex flex-col items-center justify-end bg-black/85 p-0 backdrop-blur-sm md:p-4",
+  style491_30: "px-14 lg:justify-center",
+  style497_31: "flex-shrink-0 my-auto",
+  style518_32: "fixed inset-0 z-[100] flex flex-col items-center justify-end bg-black/85 p-0 backdrop-blur-sm md:p-4 md:justify-center",
   style526_33: "relative flex max-h-[92vh] w-full max-w-lg flex-col gap-4 overflow-y-auto rounded-t-[32px] border-t-2 border-[#14B8A6]/40 bg-[#070D19] px-6 pt-6 pb-28 shadow-[0_-12px_45px_rgba(20,184,166,0.25)] md:rounded-[32px] md:border-x-2 md:p-6",
   style534_34: "absolute right-4 top-4 z-30 flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-[#0B0F19]/90 text-white shadow-xl shadow-black/35 backdrop-blur-md transition hover:border-red-400/40 hover:bg-red-950/70",
   style536_35: "h-5 w-5",
@@ -75,7 +75,7 @@ const styles = {
   style629_58: "relative overflow-hidden rounded-3xl border border-white/10 bg-[#0B0F19] shadow-[0_18px_40px_rgba(0,0,0,0.35)]",
   style632_59: "aspect-video w-full bg-black object-cover",
   style644_60: "aspect-video w-full bg-[#07101F] object-cover",
-  stageFull: "h-full flex-1",
+  stageFull: "h-full flex-1 lg:h-full lg:flex-1 lg:justify-center",
   stageCompact: "h-[280px] w-full sm:h-[320px]",
   cardFull: "h-[calc(100vh-250px)] min-h-[280px] sm:min-h-[340px] max-h-[440px] sm:max-h-[480px] w-[260px] sm:w-[320px] md:w-[350px]",
   cardCompact: "h-[216px] w-[270px] sm:h-[250px] sm:w-[280px] md:w-[340px]",
@@ -279,7 +279,7 @@ export function AdStage({
   isFullScreen?: boolean;
   onRequestRideClick?: () => void;
 }) {
-    const tAuto = useTranslations('auto');
+  const tAuto = useTranslations('auto');
   const { user } = useAuth();
   const { direction, isArabic, language } = useDashboardLanguage();
   const adStageDirection = isArabic ? 'rtl' : 'ltr';
@@ -360,10 +360,10 @@ export function AdStage({
   const updateScrollButtons = useCallback(() => {
     const track = scrollTrackRef.current;
     if (!track) return;
-    
+
     const tolerance = 2;
     const maxScroll = track.scrollWidth - track.clientWidth;
-    
+
     if (maxScroll <= 0) {
       setCanScrollLeft(false);
       setCanScrollRight(false);
@@ -371,15 +371,15 @@ export function AdStage({
     }
 
     if (adStageDirection === 'rtl') {
-      const isAtRightEdge = track.scrollLeft >= -tolerance; 
+      const isAtRightEdge = track.scrollLeft >= -tolerance;
       const isAtLeftEdge = track.scrollLeft <= -(maxScroll - tolerance);
-      
+
       setCanScrollRight(!isAtRightEdge);
       setCanScrollLeft(!isAtLeftEdge);
     } else {
-      const isAtLeftEdge = track.scrollLeft <= tolerance; 
+      const isAtLeftEdge = track.scrollLeft <= tolerance;
       const isAtRightEdge = track.scrollLeft >= maxScroll - tolerance;
-      
+
       setCanScrollLeft(!isAtLeftEdge);
       setCanScrollRight(!isAtRightEdge);
     }
@@ -630,47 +630,20 @@ export function AdStage({
       )}
       dir={direction}
     >
-      {isFullScreen && onRequestRideClick ? (
-        <div className={styles.style405_9}>
-          <motion.button
-            type="button"
-            onClick={onRequestRideClick}
-            animate={prefersReducedMotion ? undefined : {
-              scale: [1, 1.035, 1],
-              boxShadow: [
-                '0 10px 28px rgba(20,184,166,0.18)',
-                '0 14px 38px rgba(20,245,213,0.34)',
-                '0 10px 28px rgba(20,184,166,0.18)',
-              ],
-            }}
-            transition={prefersReducedMotion ? undefined : {
-              duration: 2.4,
-              ease: 'easeInOut',
-              repeat: Infinity,
-            }}
-            whileTap={{ scale: 0.96 }}
-            className={styles.style423_10}
-          >
-            <Navigation className="h-5 w-5 shrink-0" />
-            <span>{t('requestRide')}</span>
-          </motion.button>
-        </div>
-      ) : (
-        <div className={styles.style429_11}>
-          <div className={styles.style430_12}>
-            <span className={styles.style431_13}>
-              <span className={styles.style432_14} />
-              <span className={styles.style433_15} />
-            </span>
-            <h2 className={styles.style435_16}>
-              {copy.title}
-            </h2>
-          </div>
-          <span className={styles.style439_17}>
-            {copy.count(adsToUse.length)}
+      {/* <div className={styles.style429_11}>
+        <div className={styles.style430_12}>
+          <span className={styles.style431_13}>
+            <span className={styles.style432_14} />
+            <span className={styles.style433_15} />
           </span>
+          <h2 className={styles.style435_16}>
+            {copy.title}
+          </h2>
         </div>
-      )}
+        <span className={styles.style439_17}>
+          {copy.count(adsToUse.length)}
+        </span>
+      </div> */}
 
       <div
         className={cn(styles.style446_18, isFullScreen && styles.style446_19)}
@@ -754,10 +727,10 @@ export function AdStage({
                   ad.isPlaceholder
                     ? audience === 'rider'
                       ? () => {
-                          if (typeof window !== 'undefined') {
-                            window.location.href = '/register/advertiser';
-                          }
+                        if (typeof window !== 'undefined') {
+                          window.location.href = '/register/advertiser';
                         }
+                      }
                       : undefined
                     : openTakeover
                 }
@@ -1057,7 +1030,7 @@ function mapAdCampaignRow(row: Record<string, any>) {
     targetLocationName,
     adType: row.adType || row.ad_type,
     forDriver: readAdAudience(row) === 'captain',
-    buttonText: firstString(row.buttonText, row.button_text, row.cta_text) ,
+    buttonText: firstString(row.buttonText, row.button_text, row.cta_text),
     content: {
       ...(row.content || {}),
       title,

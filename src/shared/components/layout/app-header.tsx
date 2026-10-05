@@ -96,8 +96,8 @@ function PulseIndicator() {
 }
 
 function DriverCabin() {
-    const tAuto = useTranslations('auto');
-    const t = useTranslations('auto');
+  const tAuto = useTranslations('auto');
+  const t = useTranslations('auto');
   const driverOps = useDriverOperations();
   const driverStatus = driverOps?.driverStatus || 'idle';
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -193,7 +193,7 @@ export function AppHeader({ sidebar }: { sidebar?: ReactNode }) {
 
   return (
     <div className={styles.root}>
-      <header className={styles.primary}>
+      <header className={cn(styles.primary, "relative")}>
         {sidebar && user ? (
           <Sheet>
             <SheetTrigger asChild>
@@ -203,126 +203,40 @@ export function AppHeader({ sidebar }: { sidebar?: ReactNode }) {
                 size="icon"
                 variant="ghost"
               >
-                <Avatar className={styles.menuAvatar}>
-                  <AvatarFallback className={styles.menuFallback}>{initials(user.name)}</AvatarFallback>
-                </Avatar>
+                <div className="relative flex items-center justify-center">
+                  <Avatar className={styles.menuAvatar}>
+                    <AvatarFallback className={styles.menuFallback}>{initials(user.name)}</AvatarFallback>
+                  </Avatar>
+                  {hasUnread && (
+                    <span className="absolute -top-0.5 -end-0.5 flex h-3.5 w-3.5">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75" />
+                      <span className="relative inline-flex h-3.5 w-3.5 rounded-full bg-rose-500 ring-2 ring-[#0A0F1D]" />
+                    </span>
+                  )}
+                </div>
               </Button>
             </SheetTrigger>
-            <SheetContent className={styles.menuContent} side="right">
+            <SheetContent className={styles.menuContent} side="right" hideClose>
               <SheetTitle className={styles.srOnly}>{tAuto('key_426510a4')}</SheetTitle>
               <SheetDescription className={styles.srOnly}>{tAuto('key_aa21658a')}</SheetDescription>
               {sidebar}
             </SheetContent>
           </Sheet>
         ) : <div className={styles.spacer} />}
-        <div className={styles.actions}>
-          {(!isStandalone && (canPromptNative || platformEnv.isIOS)) && (
+
+        {user?.role === 'rider' && (
+          <div className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center">
             <Button
               type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                if (canPromptNative) void triggerNativeInstall();
-                else setIsInstallModalOpen(true);
-              }}
-              className="h-8 gap-1 rounded-lg border border-[#14B8A6]/25 bg-[#14B8A6]/10 px-2 text-[10px] font-black text-[#14F5D5] hover:bg-[#14B8A6]/20 hover:text-[#14F5D5]"
+              onClick={() => window.dispatchEvent(new CustomEvent('rider-open-destination'))}
+              className="h-11 sm:h-12 gap-2.5 rounded-full border-2 border-[#14F5D5]/60 bg-gradient-to-r from-[#14B8A6] via-[#14F5D5] to-[#14B8A6] px-7 sm:px-9 text-base sm:text-lg font-black text-slate-950 shadow-[0_0_25px_rgba(20,245,213,0.5)] transition-all hover:scale-105 active:scale-95 cursor-pointer"
             >
-              <Download className={styles.smallIcon} />
-              <span className="hidden sm:inline">{isArabic ? 'تثبيت التطبيق' : 'Install App'}</span>
+              <span>{isArabic ? 'اطلب رحلة' : 'Request Ride'}</span>
             </Button>
-          )}
-          <Popover open={isNotificationOpen} onOpenChange={setIsNotificationOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                size="icon"
-                variant="ghost"
-                className={styles.notification}
-                aria-label={tAuto('key_a41331b1')}
-              >
-                <div className="relative flex items-center justify-center">
-                  <Bell className={styles.icon} />
-                  {hasUnread && (
-                    <span className="absolute -top-1 -end-1 flex h-2.5 w-2.5">
-                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75" />
-                      <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-rose-500 ring-1 ring-[#0A0F1D]" />
-                    </span>
-                  )}
-                </div>
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent
-              align={isArabic ? 'start' : 'end'}
-              sideOffset={8}
-              className="w-80 p-0 rounded-2xl border border-[#14B8A6]/20 bg-[#0B0F19]/95 text-white shadow-2xl backdrop-blur-2xl"
-              dir={isArabic ? 'rtl' : 'ltr'}
-            >
-              <div className="flex items-center justify-between border-b border-white/10 p-3.5">
-                <div className="flex items-center gap-2">
-                  <Bell className="h-4 w-4 text-[#14F5D5]" />
-                  <span className="text-xs font-black text-white">
-                    {isArabic ? 'التنبيهات' : 'Notifications'}
-                  </span>
-                  {hasUnread && (
-                    <span className="rounded-full bg-rose-500/20 border border-rose-500/40 px-1.5 py-0.5 text-[10px] font-bold text-rose-300">
-                      {unreadCount}
-                    </span>
-                  )}
-                </div>
-                {hasUnread && (
-                  <button
-                    type="button"
-                    onClick={markAllAsRead}
-                    className="text-[10px] font-bold text-slate-400 hover:text-[#14F5D5] transition-colors cursor-pointer"
-                  >
-                    {isArabic ? 'تحديد كمقروء' : 'Mark all read'}
-                  </button>
-                )}
-              </div>
+          </div>
+        )}
 
-              <div className="max-h-80 overflow-y-auto divide-y divide-white/5 p-1">
-                {notifications.length > 0 ? (
-                  notifications.map((item) => (
-                    <div
-                      key={item.id}
-                      className={cn(
-                        "p-3 rounded-xl transition-colors",
-                        item.read ? "opacity-75" : "bg-white/[0.04]"
-                      )}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <h4 className={cn("text-xs font-bold leading-snug", item.read ? "text-slate-300" : "text-white")}>
-                          {item.title}
-                        </h4>
-                        {!item.read && (
-                          <span className="h-2 w-2 rounded-full bg-rose-500 shrink-0 mt-1" />
-                        )}
-                      </div>
-                      <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
-                        {item.description}
-                      </p>
-                    </div>
-                  ))
-                ) : (
-                  <div className="p-6 text-center text-xs text-slate-400">
-                    {isArabic ? 'لا توجد تنبيهات جديدة حالياً.' : 'No new notifications right now.'}
-                  </div>
-                )}
-              </div>
-            </PopoverContent>
-          </Popover>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={toggleLanguage}
-            aria-label={isArabic ? 'Switch to English' : tAuto('key_60799d01')}
-            title={isArabic ? 'English' : tAuto('key_26b1b2b0')}
-            className={styles.language}
-          >
-            <Languages className={styles.smallIcon} />
-            <span>{isArabic ? 'EN' : tAuto('key_b4dfa835')}</span>
-          </Button>
-        </div>
+        <div className={styles.spacer} />
       </header>
       {user && isCaptain ? <DriverCabin /> : null}
 

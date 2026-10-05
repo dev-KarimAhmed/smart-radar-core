@@ -18,6 +18,7 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 const STORAGE_DISMISS_KEY = 'sovereign_pwa_dismissed_until';
+const STORAGE_INSTALLED_KEY = 'sovereign_pwa_installed';
 const DEFAULT_DISMISS_DAYS = 1;
 
 export function usePwaInstall(role: 'rider' | 'captain' = 'rider') {
@@ -25,8 +26,9 @@ export function usePwaInstall(role: 'rider' | 'captain' = 'rider') {
   const [guidance, setGuidance] = useState<PwaGuidanceDetails>(() => getPwaGuidance(undefined, role));
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isDismissed, setIsDismissed] = useState<boolean>(true); // default true until client mounts
+  const [isAppInstalled, setIsAppInstalled] = useState<boolean>(false);
 
-  // Initialize and check local storage
+  // Initialize and check local storage & installed related apps
   useEffect(() => {
     const env = detectPlatform();
     setPlatformEnv(env);
@@ -34,7 +36,33 @@ export function usePwaInstall(role: 'rider' | 'captain' = 'rider') {
 
     if (env.isStandalone) {
       setIsDismissed(true);
+      setIsAppInstalled(true);
       return;
+    }
+
+    try {
+      const storedInstalled = localStorage.getItem(STORAGE_INSTALLED_KEY);
+      if (storedInstalled === 'true') {
+        setIsAppInstalled(true);
+      }
+    } catch {
+      // silent
+    }
+
+    if (typeof navigator !== 'undefined' && 'getInstalledRelatedApps' in navigator) {
+      (navigator as unknown as { getInstalledRelatedApps: () => Promise<unknown[]> })
+        .getInstalledRelatedApps()
+        .then((relatedApps) => {
+          if (Array.isArray(relatedApps) && relatedApps.length > 0) {
+            setIsAppInstalled(true);
+            try {
+              localStorage.setItem(STORAGE_INSTALLED_KEY, 'true');
+            } catch {
+              // silent
+            }
+          }
+        })
+        .catch(() => {});
     }
 
     try {
@@ -66,6 +94,12 @@ export function usePwaInstall(role: 'rider' | 'captain' = 'rider') {
     const handleAppInstalled = () => {
       setDeferredPrompt(null);
       setIsDismissed(true);
+      setIsAppInstalled(true);
+      try {
+        localStorage.setItem(STORAGE_INSTALLED_KEY, 'true');
+      } catch {
+        // silent
+      }
       setPlatformEnv(prev => ({ ...prev, isStandalone: true }));
     };
 
@@ -86,6 +120,12 @@ export function usePwaInstall(role: 'rider' | 'captain' = 'rider') {
       if (choice.outcome === 'accepted') {
         setDeferredPrompt(null);
         setIsDismissed(true);
+        setIsAppInstalled(true);
+        try {
+          localStorage.setItem(STORAGE_INSTALLED_KEY, 'true');
+        } catch {
+          // silent
+        }
         return true;
       }
     } catch (err) {
@@ -113,9 +153,16 @@ export function usePwaInstall(role: 'rider' | 'captain' = 'rider') {
     setIsDismissed(false);
   }, []);
 
+  const canPromptNative = Boolean(deferredPrompt);
+  const isInstalled = platformEnv.isStandalone || isAppInstalled;
+  // On Chromium (desktop/android), if app is installed or cannot prompt natively, hide install button. On iOS, allow showing guidance.
+  const canShowInstallButton = !isInstalled && (platformEnv.isIOS || canPromptNative);
+
   return {
     isStandalone: platformEnv.isStandalone,
-    canPromptNative: Boolean(deferredPrompt),
+    isInstalled,
+    canShowInstallButton,
+    canPromptNative,
     isDismissed,
     guidance,
     platformEnv,

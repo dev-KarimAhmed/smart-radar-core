@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Archive, Bell, History, Home, Languages, LogOut, PlusCircle, User } from 'lucide-react';
+import { Archive, Bell, Download, History, Home, Languages, LogOut, PlusCircle, User } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
@@ -9,6 +9,8 @@ import type { AppLanguage } from '@/lib/i18n/simple-copy';
 import { cn } from '@/lib/utils';
 import { useTranslations } from "next-intl";
 import { useNotifications } from '@/shared/hooks/use-notifications';
+import { usePwaInstall } from '@/hooks/usePwaInstall';
+import { SovereignPwaInstallModal } from '@/components/sovereign-pwa-install-modal';
 
 const styles = {
   root: 'fixed inset-y-0 start-0 z-[140] hidden w-[288px] flex-col border-e border-white/[0.06] bg-[#0A0F1D]/95 shadow-[22px_0_70px_rgba(0,0,0,0.38)] backdrop-blur-xl lg:flex',
@@ -92,6 +94,8 @@ export function DesktopRiderSidebar({
   const tAuto = useTranslations('auto');
   const { isArabic, toggleLanguage } = useDashboardLanguage();
   const { hasUnread } = useNotifications();
+  const { canShowInstallButton, canPromptNative, triggerNativeInstall } = usePwaInstall('rider');
+  const [isInstallModalOpen, setIsInstallModalOpen] = React.useState(false);
   const text = copy[language];
   const directionClass = language === 'ar' ? styles.identityRtl : styles.identityLtr;
   const items = [
@@ -171,6 +175,19 @@ export function DesktopRiderSidebar({
             )}
           </div>
         </Button>
+        {canShowInstallButton && (
+          <Button
+            className="h-11 w-full justify-between rounded-2xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-4 text-sm font-bold text-[#14F5D5] hover:bg-[#14B8A6]/20 transition-all cursor-pointer"
+            onClick={() => {
+              if (canPromptNative) void triggerNativeInstall();
+              else setIsInstallModalOpen(true);
+            }}
+            variant="ghost"
+          >
+            <span>{isArabic ? 'تثبيت التطبيق' : 'Install App'}</span>
+            <Download className="h-4 w-4 text-[#14F5D5]" />
+          </Button>
+        )}
       </div>
 
       <nav className={styles.navigation}>
@@ -198,6 +215,13 @@ export function DesktopRiderSidebar({
           {text.logout}
         </Button>
       </div>
+
+      <SovereignPwaInstallModal
+        isOpen={isInstallModalOpen}
+        onClose={() => setIsInstallModalOpen(false)}
+        isArabic={isArabic}
+        role="rider"
+      />
     </aside>
   );
 }
