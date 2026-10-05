@@ -419,6 +419,17 @@ export function RadarMapView({
                         </div>
                       </div>
 
+                      {/* If the rider favorited this captain: show as clean text without a field/box, heart at the start */}
+                      {request.riderFavoritedMe ? (
+                        <div
+                          className="mt-2.5 flex items-center gap-1.5 text-xs font-bold text-rose-400 select-none"
+                          dir={language === 'ar' ? 'rtl' : 'ltr'}
+                        >
+                          <Heart className="h-3.5 w-3.5 shrink-0 fill-rose-400 text-rose-400 drop-shadow-[0_0_6px_rgba(244,63,94,0.7)] animate-pulse" />
+                          <span>{copy.riderFavoritedYou}</span>
+                        </div>
+                      ) : null}
+
                       {/* Who the rider is + toggle chevron at the end of the card */}
                       <div className={styles.riderRow}>
                         <div className="flex flex-wrap items-center gap-2 min-w-0 flex-1">
@@ -442,12 +453,6 @@ export function RadarMapView({
                             <span className={cn(styles.riderChip, styles.riderTripsChip)}>
                               <Route className={cn(styles.riderChipIcon, styles.routeIconActive)} />
                               {t('tripsValue', { count: request.riderCompletedTrips })}
-                            </span>
-                          ) : null}
-                          {request.riderFavoritedMe ? (
-                            <span className={cn(styles.riderChip, styles.riderFavoriteChipOn)}>
-                              <Heart className={cn(styles.riderChipIcon, styles.heartFilled)} />
-                              {copy.riderFavoritedYou}
                             </span>
                           ) : null}
                         </div>
