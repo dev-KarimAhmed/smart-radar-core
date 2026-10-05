@@ -419,35 +419,43 @@ export function RadarMapView({
                         </div>
                       </div>
 
-                      {/* Rider info (rating, trips, favorite) & toggle chevron at the end of the card */}
-                      <div className="mt-3 flex items-center justify-between gap-4" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-                        <div className="space-y-1.5 min-w-0 flex-1 text-xs select-none">
-                          {/* تقييم الراكب */}
-                          <div className="flex items-center justify-between">
-                            <span className="text-slate-400 font-medium">{copy.riderRatingLabel}</span>
-                            <span className={cn('font-bold', request.riderRating != null && request.riderRating > 0 ? 'text-amber-300 font-mono' : 'text-slate-400')}>
-                              {request.riderRating != null && request.riderRating > 0
-                                ? `${request.riderRating % 1 === 0 ? request.riderRating.toFixed(0) : request.riderRating.toFixed(1)}/5${request.riderRatingCount ? ` (${request.riderRatingCount})` : ''}`
-                                : copy.riderUnrated}
-                            </span>
-                          </div>
-
-                          {/* رحلات الراكب */}
-                          <div className="flex items-center justify-between">
-                            <span className="text-slate-400 font-medium">{copy.riderTripsLabel}</span>
-                            <span className="font-bold text-slate-200 font-mono">
-                              {request.riderCompletedTrips != null ? request.riderCompletedTrips : 0}
-                            </span>
-                          </div>
-
-                          {/* انت في قائمة الكباتن المفضلين */}
-                          {request.riderFavoritedMe ? (
-                            <div className="pt-0.5 flex items-center gap-1.5 font-bold text-emerald-400">
-                              <Heart className="h-3.5 w-3.5 shrink-0 fill-emerald-400 text-emerald-400 drop-shadow-[0_0_6px_rgba(16,185,129,0.7)] animate-pulse" />
-                              <span>{copy.riderFavoritedYou}</span>
-                            </div>
-                          ) : null}
+                      {/* Rider info (rating, trips) */}
+                      <div className="mt-3.5 space-y-2 select-none" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                        {/* تقييم الراكب */}
+                        <div className="flex items-center justify-between text-sm font-bold">
+                          <span className="text-slate-200">{copy.riderRatingLabel}</span>
+                          <span
+                            dir="ltr"
+                            className={cn(
+                              'font-black font-mono',
+                              request.riderRating != null && request.riderRating > 0 ? 'text-amber-400 text-base' : 'text-slate-400 text-xs sm:text-sm font-bold',
+                            )}
+                          >
+                            {request.riderRating != null && request.riderRating > 0
+                              ? `${request.riderRating % 1 === 0 ? request.riderRating.toFixed(0) : request.riderRating.toFixed(1)}/5${request.riderRatingCount ? ` (${request.riderRatingCount})` : ''}`
+                              : copy.riderUnrated}
+                          </span>
                         </div>
+
+                        {/* رحلات الراكب */}
+                        <div className="flex items-center justify-between text-sm font-bold">
+                          <span className="text-slate-200">{copy.riderTripsLabel}</span>
+                          <span dir="ltr" className="font-black text-base font-mono text-white">
+                            {request.riderCompletedTrips != null ? request.riderCompletedTrips : 0}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Favorite indicator and toggle chevron at the end of the card */}
+                      <div className="mt-2.5 flex items-center justify-between gap-2 pt-1 border-t border-white/5" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                        {request.riderFavoritedMe ? (
+                          <div className="flex items-center gap-1.5 text-xs sm:text-sm font-black text-emerald-400">
+                            <Heart className="h-4 w-4 shrink-0 fill-emerald-400 text-emerald-400 drop-shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse" />
+                            <span>{copy.riderFavoritedYou}</span>
+                          </div>
+                        ) : (
+                          <span />
+                        )}
 
                         <span className={styles.toggleChevronWrap}>
                           <ChevronDown
