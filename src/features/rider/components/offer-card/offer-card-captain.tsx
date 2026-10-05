@@ -1,5 +1,5 @@
 import React from 'react';
-import { Car, Building2, Trophy, ExternalLink, Facebook, Instagram, Link2, MessageCircle } from 'lucide-react';
+import { Car, Building2, Trophy, Facebook, Instagram, Link2 } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 import { resolveColorDisplayName } from '@/shared/services/color-name';
 import { CaptainOffer, styles, SectionHeader, InfoRow } from './offer-card-shared';
@@ -31,10 +31,8 @@ export function OfferCardCaptain({
 
   const facebookUrl = captain.facebook_url || (offer as any).facebook_url || (offer as any).captain_facebook_url;
   const instagramUrl = captain.instagram_url || (offer as any).instagram_url || (offer as any).captain_instagram_url;
-  const contactUrl = captain.contact_url || (offer as any).contact_url;
-  const whatsappUrl = captain.whatsapp_url || (offer as any).whatsapp_url || (offer as any).captain_whatsapp_url;
 
-  const hasContactLinks = Boolean(facebookUrl || instagramUrl || contactUrl || whatsappUrl);
+  const hasContactLinks = Boolean(facebookUrl || instagramUrl);
   const hasVehicleYear = Boolean(captain.vehicle_year);
   const hasVehicleCategory = Boolean(captain.vehicle_category);
   const vehicleDetailFieldCount = 1 + Number(hasVehicleYear) + Number(hasVehicleCategory);
@@ -80,14 +78,14 @@ export function OfferCardCaptain({
             <InfoRow icon={<Trophy className={styles.captainMetaIcon} />} label={t('completedTrips')} value={String(completedTrips)} />
           </div>
 
-          {/* روابط الكابتن: تظهر إذا كانت موجودة ومرفوعة من الكابتن */}
+          {/* روابط الكابتن: فيسبوك وإنستغرام فقط */}
           {hasContactLinks ? (
             <div className="mt-3 rounded-xl border border-white/5 bg-black/20 p-3">
               <span className="mb-2.5 flex items-center gap-1.5 text-xs font-bold text-[#94A3B8]">
                 <Link2 className="h-3.5 w-3.5 text-[#14F5D5]" />
                 <span>{isArabic ? 'روابط الكابتن' : 'Captain Links'}</span>
               </span>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              <div className="grid grid-cols-2 gap-2">
                 {facebookUrl ? (
                   <a
                     href={formatExternalLink(facebookUrl)}
@@ -108,26 +106,6 @@ export function OfferCardCaptain({
                   >
                     <Instagram className="h-4 w-4" />
                     <span>{isArabic ? 'إنستغرام' : 'Instagram'}</span>
-                  </a>
-                ) : null}
-                {whatsappUrl ? (
-                  <a
-                    href={formatExternalLink(whatsappUrl)}
-                    className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-3 text-xs font-black text-emerald-300 transition hover:border-emerald-500/45 hover:bg-emerald-500/20"
-                  >
-                    <MessageCircle className="h-4 w-4" />
-                    <span>{isArabic ? 'واتساب' : 'WhatsApp'}</span>
-                  </a>
-                ) : null}
-                {contactUrl ? (
-                  <a
-                    href={formatExternalLink(contactUrl)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-3 text-xs font-black text-[#14F5D5] transition hover:border-[#14B8A6]/50 hover:bg-[#14B8A6]/20"
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                    <span>{isArabic ? 'رابط التواصل' : 'Contact Link'}</span>
                   </a>
                 ) : null}
               </div>
