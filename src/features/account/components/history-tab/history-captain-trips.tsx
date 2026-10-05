@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { AlertCircle, FileText, User, Clock, ChevronDown } from 'lucide-react';
 import { formatHistoryMoney } from './history-shared';
@@ -103,6 +103,9 @@ export function HistoryCaptainTrips({
                 <CardTitle className={styles.title}>
                   {t('captainSectionTitle')}
                 </CardTitle>
+                <CardDescription className={styles.desc}>
+                  {t('captainSectionDesc')}
+                </CardDescription>
               </div>
             </div>
 

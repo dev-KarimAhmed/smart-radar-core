@@ -66,10 +66,15 @@ export function HistoryTab({ hideCaptainDiagnostics = false }: HistoryTabProps =
         <Card className="relative overflow-hidden rounded-3xl border border-[#14B8A6]/20 bg-[#0B0F19]/90 shadow-2xl backdrop-blur-xl text-white">
           <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#14F5D5]/60 to-transparent" />
           <CardContent className="p-4 sm:p-5">
-            <h2 className="text-lg font-black text-white flex items-center gap-2.5">
-              <History className="h-5 w-5 text-[#14F5D5]" />
-              {t('title')}
-            </h2>
+            <div className="space-y-1">
+              <h2 className="text-lg font-black text-white flex items-center gap-2.5">
+                <History className="h-5 w-5 text-[#14F5D5]" />
+                {t('title')}
+              </h2>
+              <p className="text-xs text-slate-400 leading-relaxed font-sans">
+                {t('subtitle')}
+              </p>
+            </div>
           </CardContent>
         </Card>
 
@@ -96,10 +101,15 @@ export function HistoryTab({ hideCaptainDiagnostics = false }: HistoryTabProps =
       <Card className="relative overflow-hidden rounded-3xl border border-[#14B8A6]/20 bg-[#0B0F19]/90 shadow-2xl backdrop-blur-xl text-white">
         <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#14F5D5]/60 to-transparent" />
         <CardContent className="p-4 sm:p-5">
-          <h2 className="text-lg font-black text-white flex items-center gap-2.5">
-            <History className="h-5 w-5 text-[#14F5D5]" />
-            {t('title')}
-          </h2>
+          <div className="space-y-1">
+            <h2 className="text-lg font-black text-white flex items-center gap-2.5">
+              <History className="h-5 w-5 text-[#14F5D5]" />
+              {t('title')}
+            </h2>
+            <p className="text-xs text-slate-400 leading-relaxed font-sans">
+              {t('subtitle')}
+            </p>
+          </div>
         </CardContent>
       </Card>
 

@@ -1728,7 +1728,7 @@
       }
     },
     "title": "My Trips",
-    "subtitle": "Review your recent trips. Trips older than 72 hours are automatically deleted to protect your privacy.",
+    "subtitle": "Trips older than 72 hours are automatically deleted to protect your privacy.",
     "recentTripsTitle": "Recent Trips (Last 3 Days)",
     "recentTripsDesc": "Completed trips from your account",
     "tripCount": "trips",
@@ -1740,7 +1740,7 @@
     "savedCaptainsDesc": "Drivers you marked as favorites from your previous trips",
     "call": "Call",
     "captainSectionTitle": "Completed Trips History",
-    "captainSectionDesc": "Details of completed trips and earnings",
+    "captainSectionDesc": "Details of completed trips",
     "commission": "Commission due",
     "status": "Status",
     "active": "Active",
