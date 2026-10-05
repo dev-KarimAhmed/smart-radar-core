@@ -432,7 +432,7 @@ export function RadarMapView({
                             )}
                           >
                             {request.riderRating != null && request.riderRating > 0
-                              ? `${request.riderRating % 1 === 0 ? request.riderRating.toFixed(0) : request.riderRating.toFixed(1)}/5${request.riderRatingCount ? ` (${request.riderRatingCount})` : ''}`
+                              ? `${request.riderRating % 1 === 0 ? request.riderRating.toFixed(0) : request.riderRating.toFixed(1)}/5`
                               : copy.riderUnrated}
                           </span>
                         </div>
