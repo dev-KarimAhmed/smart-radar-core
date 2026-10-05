@@ -62,6 +62,7 @@ export interface CaptainLedgerEntry {
   captainId: string;
   riderId?: string;
   destination: string;
+  pickup?: string;
   finalFare: number;
   completedAt: number;
   purgeAt: number;

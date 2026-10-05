@@ -148,8 +148,9 @@ export function useHistoryState() {
               completed_at: new Date(entry.completedAt).toISOString(),
               created_at: new Date(entry.completedAt).toISOString(),
               final_fare: entry.finalFare,
-              rider: { full_name: 'راكب محلي', phone: '', rating: 5.0 },
-              destination_address_ar: entry.destination || 'غير متاح',
+              rider: { full_name: isArabic ? 'راكب محلي' : 'Local Rider', phone: '', rating: 5.0 },
+              destination_address_ar: (entry.destination && entry.destination !== 'Destination' && entry.destination !== 'غير متاح') ? entry.destination : '',
+              pickup_address_ar: entry.pickup || '',
               trip_fare: entry.finalFare,
             } as any)));
             setLoading(false);
@@ -239,14 +240,33 @@ export function useHistoryState() {
               if ((process.env.NODE_ENV !== 'production')) console.warn('[HistoryTab captain ledger fetch skipped]', ledgerError);
             } else if (ledgerRows && ledgerRows.length > 0) {
               const riderIds = Array.from(new Set(ledgerRows.map((row: any) => row.rider_id).filter(Boolean)));
-              const riderMap = await fetchRowsByIds('profiles', riderIds);
+              const requestIds = Array.from(new Set(ledgerRows.map((row: any) => row.request_id).filter(Boolean)));
+              const [riderMap, requestMap] = await Promise.all([
+                fetchRowsByIds('profiles', riderIds),
+                fetchRowsByIds('ride_requests', requestIds),
+              ]);
 
-              const ledgerTrips = ledgerRows.map((row: any) => mapLedgerRowToTripShape(
-                row,
-                undefined,
-                undefined,
-                row.rider_id ? riderMap.get(row.rider_id) : null,
-              ));
+              const ledgerTrips = ledgerRows.map((row: any) => {
+                const req = row.request_id ? requestMap.get(row.request_id) : null;
+                const base = mapLedgerRowToTripShape(
+                  row,
+                  undefined,
+                  undefined,
+                  row.rider_id ? riderMap.get(row.rider_id) : null,
+                );
+                return {
+                  ...base,
+                  destination_address_ar: req?.destination_address_ar || req?.destination_address || base.destination_address_ar,
+                  destination_address: req?.destination_address || req?.destination_address_ar || base.destination_address,
+                  pickup_address_ar: req?.origin_address || '',
+                  pickup_address: req?.origin_address || '',
+                  metadata: {
+                    ...base.metadata,
+                    pickup_address_ar: req?.origin_address,
+                    destination_address_ar: req?.destination_address_ar || req?.destination_address || base.destination_address_ar,
+                  }
+                };
+              });
               fetchedData = appendUniqueTrips(fetchedData, ledgerTrips);
             }
           } catch (ledgerFetchError) {
@@ -286,24 +306,30 @@ export function useHistoryState() {
         try {
           if (isCaptain) {
             const localCaptainTrips = await dexieDb.captainLedger.toArray();
-            const localMapped = localCaptainTrips.map(entry => ({
-              id: entry.requestId,
-              status: 'COMPLETED',
-              completed_at: new Date(entry.completedAt).toISOString(),
-              created_at: new Date(entry.completedAt).toISOString(),
-              final_fare: entry.finalFare,
-              rider: {
-                full_name: isArabic ? 'راكب محلي' : 'Local Rider',
-                phone: '',
-                rating: 5.0
-              },
-              destination_address_ar: entry.destination || (isArabic ? 'غير محدد' : 'Unspecified'),
-              destination_address: entry.destination || (isArabic ? 'غير محدد' : 'Unspecified'),
-              metadata: {
-                pickup_address_ar: isArabic ? 'موقعي الحالي' : 'Current Location',
-                destination_address_ar: entry.destination || (isArabic ? 'غير محدد' : 'Unspecified')
-              }
-            }));
+            const localMapped = localCaptainTrips.map(entry => {
+              const cleanDest = (entry.destination && entry.destination !== 'Destination' && entry.destination !== 'غير محدد') ? entry.destination : '';
+              const cleanPick = (entry.pickup && entry.pickup !== 'موقعي الحالي') ? entry.pickup : '';
+              return {
+                id: entry.requestId,
+                status: 'COMPLETED',
+                completed_at: new Date(entry.completedAt).toISOString(),
+                created_at: new Date(entry.completedAt).toISOString(),
+                final_fare: entry.finalFare,
+                rider: {
+                  full_name: isArabic ? 'راكب محلي' : 'Local Rider',
+                  phone: '',
+                  rating: 5.0
+                },
+                destination_address_ar: cleanDest,
+                destination_address: cleanDest,
+                pickup_address_ar: cleanPick,
+                pickup_address: cleanPick,
+                metadata: {
+                  pickup_address_ar: cleanPick,
+                  destination_address_ar: cleanDest
+                }
+              };
+            });
             
             const seenIds = new Set(fetchedData.map(r => r.id));
             for (const item of localMapped) {
@@ -434,12 +460,22 @@ export function useHistoryState() {
 
   const captainHistoricalTrips = useMemo(() => {
     const combinedReal = realTrips.map(trip => {
+      const rawPickup = trip.metadata?.pickup_address_ar || trip.pickup_address_ar || trip.pickup || trip.origin_address;
+      const cleanPickup = (!rawPickup || rawPickup === 'موقعي الحالي' || rawPickup === 'Current Location')
+        ? (isArabic ? 'نقطة الانطلاق' : 'Pickup Location')
+        : rawPickup;
+
+      const rawDropoff = trip.destination_address_ar || trip.destination_address || trip.dropoff || trip.metadata?.destination_address_ar;
+      const cleanDropoff = (!rawDropoff || rawDropoff === 'غير محدد' || rawDropoff === 'Unspecified' || rawDropoff === 'Destination' || rawDropoff === 'غير متاح')
+        ? (isArabic ? 'وجهة الرحلة' : 'Trip Destination')
+        : rawDropoff;
+
       return {
         tripId: trip.id,
         serialId: trip.serial_id || trip.serialId || ('T-' + trip.id.slice(0, 4).toUpperCase()),
         riderName: trip.rider?.full_name || trip.rider_name || trip.riderName || (isArabic ? 'راكب' : 'Rider'),
-        pickup: trip.metadata?.pickup_address_ar || trip.pickup_address_ar || trip.pickup || (isArabic ? 'موقعي الحالي' : 'Current Location'),
-        dropoff: trip.destination_address_ar || trip.destination_address || trip.dropoff || (isArabic ? 'غير محدد' : 'Unspecified'),
+        pickup: cleanPickup,
+        dropoff: cleanDropoff,
         earnedPrice: Number(trip.final_fare ?? trip.settled_fare ?? trip.final_price ?? trip.offer_price ?? trip.server_estimated_fare ?? trip.offerPrice ?? 0),
         timestamp: parseTripTimestamp(trip),
         status: trip.status || 'COMPLETED'
@@ -449,7 +485,7 @@ export function useHistoryState() {
     const all = [...combinedReal];
     all.sort((a, b) => b.timestamp - a.timestamp);
     return all.filter(trip => (now - trip.timestamp) < THREE_DAYS_MS);
-  }, [realTrips, now]);
+  }, [realTrips, now, isArabic]);
 
   const toggleFavorite = async (trip: HistoricalTrip) => {
     // Decided per CAPTAIN, not per trip. Looking the existing record up by tripId is what

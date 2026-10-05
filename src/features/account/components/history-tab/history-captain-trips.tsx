@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, FileText, User, MapPin, Clock } from 'lucide-react';
+import { AlertCircle, FileText, User, Clock } from 'lucide-react';
 import { formatHistoryMoney } from './history-shared';
 import { HistorySkeleton } from './history-skeleton';
 
@@ -33,12 +33,13 @@ const styles = {
   riderName: "font-black text-white text-sm truncate block",
   priceBox: "text-left shrink-0",
   priceText: "text-base font-black text-[#14F5D5] font-mono block",
-  routeBox: "flex items-center gap-2 text-xs bg-black/40 border border-white/5 rounded-xl p-2.5",
-  routePin: "h-3.5 w-3.5 text-[#14F5D5] shrink-0",
-  routeText: "flex items-center gap-1.5 flex-wrap font-sans min-w-0",
-  routeLabel: "text-slate-400 font-medium",
-  routeValue: "font-semibold text-slate-200 truncate",
-  routeArrow: "text-[#14F5D5] font-black px-1",
+  routeBox: "rounded-2xl border border-white/5 bg-black/40 p-3 space-y-2",
+  routeItem: "flex items-center gap-2.5 min-w-0 text-xs",
+  routeDivider: "border-t border-white/5 mx-1",
+  pickupDot: "h-2.5 w-2.5 rounded-full bg-emerald-400 shrink-0 shadow-[0_0_8px_rgba(52,211,153,0.5)]",
+  dropoffDot: "h-2.5 w-2.5 rounded-full bg-rose-400 shrink-0 shadow-[0_0_8px_rgba(251,113,133,0.5)]",
+  routeLabel: "text-[11px] font-medium text-slate-400 shrink-0 font-sans",
+  routeValue: "font-semibold text-slate-200 truncate flex-1 text-xs font-sans",
   tripBottomRow: "flex items-center justify-between pt-2 border-t border-white/5 text-xs text-slate-300 gap-2 flex-wrap",
   dateTimeBox: "flex items-center gap-1.5 text-slate-300 font-sans text-xs flex-wrap",
   clockIcon: "h-3.5 w-3.5 text-[#14F5D5] shrink-0",
@@ -140,15 +141,18 @@ export function HistoryCaptainTrips({
                       </div>
                     </div>
 
-                    {/* Middle Row: Route Details */}
+                    {/* Middle Row: Route Details (Pickup & Dropoff) */}
                     <div className={styles.routeBox}>
-                      <MapPin className={styles.routePin} />
-                      <div className={styles.routeText}>
+                      <div className={styles.routeItem}>
+                        <span className={styles.pickupDot} aria-hidden="true" />
                         <span className={styles.routeLabel}>{isArabic ? 'من:' : 'From:'}</span>
-                        <span className={styles.routeValue}>{trip.pickup}</span>
-                        <span className={styles.routeArrow}>➔</span>
+                        <span className={styles.routeValue} dir="auto">{trip.pickup}</span>
+                      </div>
+                      <div className={styles.routeDivider} />
+                      <div className={styles.routeItem}>
+                        <span className={styles.dropoffDot} aria-hidden="true" />
                         <span className={styles.routeLabel}>{isArabic ? 'إلى:' : 'To:'}</span>
-                        <span className={styles.routeValue}>{trip.dropoff}</span>
+                        <span className={styles.routeValue} dir="auto">{trip.dropoff}</span>
                       </div>
                     </div>
 
