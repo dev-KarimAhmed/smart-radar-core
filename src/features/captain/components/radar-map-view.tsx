@@ -419,41 +419,33 @@ export function RadarMapView({
                         </div>
                       </div>
 
-                      {/* If the rider favorited this captain: show as clean text without a field/box, heart at the start */}
-                      {request.riderFavoritedMe ? (
-                        <div
-                          className="mt-2.5 flex items-center gap-1.5 text-xs font-bold text-rose-400 select-none"
-                          dir={language === 'ar' ? 'rtl' : 'ltr'}
-                        >
-                          <Heart className="h-3.5 w-3.5 shrink-0 fill-rose-400 text-rose-400 drop-shadow-[0_0_6px_rgba(244,63,94,0.7)] animate-pulse" />
-                          <span>{copy.riderFavoritedYou}</span>
-                        </div>
-                      ) : null}
-
-                      {/* Who the rider is + toggle chevron at the end of the card */}
-                      <div className={styles.riderRow}>
-                        <div className="flex flex-wrap items-center gap-2 min-w-0 flex-1">
-                          <span
-                            className={cn(
-                              styles.riderChip,
-                              request.riderRating != null && request.riderRating > 0 ? styles.riderRatingChip : styles.riderDefaultChip,
-                            )}
-                          >
-                            <Star
-                              className={cn(
-                                styles.riderChipIcon,
-                                request.riderRating != null && request.riderRating > 0 ? styles.starFilled : styles.starEmpty,
-                              )}
-                            />
-                            {request.riderRating != null && request.riderRating > 0
-                              ? `${copy.ratingPrefix} ${request.riderRating.toFixed(1)}${request.riderRatingCount ? ` (${request.riderRatingCount})` : ''}`
-                              : copy.riderUnrated}
-                          </span>
-                          {request.riderCompletedTrips != null ? (
-                            <span className={cn(styles.riderChip, styles.riderTripsChip)}>
-                              <Route className={cn(styles.riderChipIcon, styles.routeIconActive)} />
-                              {t('tripsValue', { count: request.riderCompletedTrips })}
+                      {/* Rider info (rating, trips, favorite) & toggle chevron at the end of the card */}
+                      <div className="mt-3 flex items-center justify-between gap-4" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                        <div className="space-y-1.5 min-w-0 flex-1 text-xs select-none">
+                          {/* تقييم الراكب */}
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-400 font-medium">{copy.riderRatingLabel}</span>
+                            <span className={cn('font-bold', request.riderRating != null && request.riderRating > 0 ? 'text-amber-300 font-mono' : 'text-slate-400')}>
+                              {request.riderRating != null && request.riderRating > 0
+                                ? `${request.riderRating % 1 === 0 ? request.riderRating.toFixed(0) : request.riderRating.toFixed(1)}/5${request.riderRatingCount ? ` (${request.riderRatingCount})` : ''}`
+                                : copy.riderUnrated}
                             </span>
+                          </div>
+
+                          {/* رحلات الراكب */}
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-400 font-medium">{copy.riderTripsLabel}</span>
+                            <span className="font-bold text-slate-200 font-mono">
+                              {request.riderCompletedTrips != null ? request.riderCompletedTrips : 0}
+                            </span>
+                          </div>
+
+                          {/* انت في قائمة الكباتن المفضلين */}
+                          {request.riderFavoritedMe ? (
+                            <div className="pt-0.5 flex items-center gap-1.5 font-bold text-emerald-400">
+                              <Heart className="h-3.5 w-3.5 shrink-0 fill-emerald-400 text-emerald-400 drop-shadow-[0_0_6px_rgba(16,185,129,0.7)] animate-pulse" />
+                              <span>{copy.riderFavoritedYou}</span>
+                            </div>
                           ) : null}
                         </div>
 
@@ -770,8 +762,10 @@ const radarCopy = {
     tripDistance: 'مسافة الرحلة',
     requestTime: 'وقت الطلب',
     ratingPrefix: 'تقييم',
+    riderRatingLabel: 'تقييم الراكب',
+    riderTripsLabel: 'رحلات الراكب',
     riderUnrated: 'راكب جديد بدون تقييم',
-    riderFavoritedYou: 'انت في قائمة المفضلة عند الراكب',
+    riderFavoritedYou: 'انت في قائمة الكباتن المفضلين',
     riderNotFavoritedYou: 'مش في مفضلته',
     pricingPreference: 'طريقة التسعير',
     openBid: 'تقديم عرض',
@@ -819,8 +813,10 @@ const radarCopy = {
     tripDistance: 'Trip distance',
     requestTime: 'Request time',
     ratingPrefix: 'Rating',
+    riderRatingLabel: 'Rider rating',
+    riderTripsLabel: 'Rider trips',
     riderUnrated: 'New rider — no ratings yet',
-    riderFavoritedYou: 'Has you as a favourite',
+    riderFavoritedYou: 'You are in favorite captains list',
     riderNotFavoritedYou: 'Not a favourite yet',
     pricingPreference: 'Pricing Mode',
     openBid: 'Submit bid',
