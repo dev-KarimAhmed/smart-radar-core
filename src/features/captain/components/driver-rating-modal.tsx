@@ -305,7 +305,7 @@ const driverRatingModalCopy = {
     title: 'قيّم الراكب',
     description: 'يساعدنا تقييمك على تحسين تجربة الرحلات.',
     riderSection: 'تقييم الراكب',
-    criteriaHint: 'قيّم البنود اللي تحب فقط — البند اللي تسيبه فاضي مش محسوب ضد الراكب.',
+    criteriaHint: 'قيّم البنود التي تفضلها فقط — البند المتروك فارغاً لا يُحتسب ضد الراكب.',
     riderRespect: 'الاحترام',
     riderPunctuality: 'الالتزام بالوقت',
     riderCleanliness: 'المحافظة على نظافة المركبة',

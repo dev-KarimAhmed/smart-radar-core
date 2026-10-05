@@ -339,10 +339,10 @@ passwordResetRouter.post('/password-reset/issue', async (req, res) => {
       return res.status(404).json({ success: false, error: 'الطلب غير موجود.' });
     }
     if (request.status !== 'PENDING') {
-      return res.status(409).json({ success: false, error: 'الطلب اتعامل معاه قبل كده.' });
+      return res.status(409).json({ success: false, error: 'تمت معالجة الطلب مسبقاً.' });
     }
     if (!request.profile_id) {
-      return res.status(422).json({ success: false, error: 'الرقم ده مش مرتبط بحساب. ارفض الطلب.' });
+      return res.status(422).json({ success: false, error: 'هذا الرقم غير مرتبط بأي حساب مسجل.' });
     }
 
     const token = crypto.randomBytes(32).toString('hex');
@@ -370,7 +370,7 @@ passwordResetRouter.post('/password-reset/issue', async (req, res) => {
     if (!update.ok || updated.length === 0) {
       // status=eq.PENDING in the filter means a second admin approving the same request at
       // the same time matches nothing and cannot mint a second live token.
-      return res.status(409).json({ success: false, error: 'الطلب اتعامل معاه للتو من حد تاني.' });
+      return res.status(409).json({ success: false, error: 'تمت معالجة الطلب للتو من قِبل مسؤول آخر.' });
     }
 
     await auditReset(config, {
