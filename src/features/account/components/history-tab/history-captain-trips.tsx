@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, FileText, User, Clock } from 'lucide-react';
+import { AlertCircle, FileText, User, Clock, ChevronDown } from 'lucide-react';
 import { formatHistoryMoney } from './history-shared';
+import { cn } from '@/lib/utils';
 import { HistorySkeleton } from './history-skeleton';
 
 const styles = {
@@ -10,6 +11,7 @@ const styles = {
   card: "relative overflow-hidden rounded-3xl border border-[#14B8A6]/20 bg-[#0B0F19]/90 shadow-2xl backdrop-blur-xl w-full text-white",
   accentBar: "absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#14F5D5]/50 to-transparent",
   header: "p-5 pb-3",
+  headerButton: "w-full text-right cursor-pointer select-none transition-colors hover:bg-white/[0.02]",
   headerRow: "flex items-center justify-between gap-3",
   headerInfo: "flex items-center gap-3 min-w-0",
   iconBox: "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 text-[#14F5D5] shadow-[0_0_15px_rgba(20,245,213,0.15)]",
@@ -17,7 +19,11 @@ const styles = {
   titleBox: "min-w-0",
   title: "text-base font-black text-white flex items-center gap-2 font-sans",
   desc: "text-xs text-slate-400 mt-0.5 leading-relaxed truncate font-sans",
+  actionsBox: "flex items-center gap-2",
   countBadge: "shrink-0 rounded-full border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-3 py-1 text-xs font-bold text-[#14F5D5] shadow-sm font-mono",
+  chevronBox: "flex h-8 w-8 items-center justify-center rounded-xl border border-[#14B8A6]/20 bg-[#14B8A6]/10 text-[#14F5D5] transition-all hover:bg-[#14B8A6]/20 shrink-0",
+  chevronIcon: "h-4 w-4 transition-transform duration-200",
+  chevronRotated: "rotate-180",
   content: "p-5 pt-2",
   emptyBox: "rounded-2xl border border-dashed border-white/10 bg-black/20 p-6 text-center flex flex-col items-center justify-center gap-2.5 my-2",
   emptyIcon: "h-8 w-8 text-slate-500",
@@ -67,13 +73,26 @@ export function HistoryCaptainTrips({
   now,
   t
 }: HistoryCaptainTripsProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
   const activeCurrency = currencyLabel || (isArabic ? 'د.أ' : 'JOD');
 
   return (
     <div className={styles.container}>
       <Card className={styles.card}>
         <div className={styles.accentBar} />
-        <CardHeader className={styles.header}>
+        <CardHeader
+          className={cn(styles.header, styles.headerButton)}
+          onClick={() => setIsExpanded((prev) => !prev)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setIsExpanded((prev) => !prev);
+            }
+          }}
+          aria-expanded={isExpanded}
+        >
           <div className={styles.headerRow}>
             <div className={styles.headerInfo}>
               <div className={styles.iconBox}>
@@ -89,13 +108,19 @@ export function HistoryCaptainTrips({
               </div>
             </div>
 
-            <Badge variant="outline" className={styles.countBadge}>
-              {captainHistoricalTrips.length} {isArabic ? t('tripCount') : 'trips'}
-            </Badge>
+            <div className={styles.actionsBox}>
+              <Badge variant="outline" className={styles.countBadge}>
+                {captainHistoricalTrips.length} {isArabic ? t('tripCount') : 'trips'}
+              </Badge>
+              <div className={styles.chevronBox}>
+                <ChevronDown className={cn(styles.chevronIcon, isExpanded && styles.chevronRotated)} />
+              </div>
+            </div>
           </div>
         </CardHeader>
 
-        <CardContent className={styles.content}>
+        {isExpanded && (
+          <CardContent className={styles.content}>
           {loading ? (
             <HistorySkeleton />
           ) : captainHistoricalTrips.length === 0 ? (
@@ -182,6 +207,7 @@ export function HistoryCaptainTrips({
             </div>
           )}
         </CardContent>
+        )}
       </Card>
     </div>
   );

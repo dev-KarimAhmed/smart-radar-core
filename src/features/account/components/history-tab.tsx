@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { History, ArrowRight, ArrowLeft } from 'lucide-react';
+import { History } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { styles } from './history-tab/history-shared';
@@ -65,7 +65,7 @@ export function HistoryTab({ hideCaptainDiagnostics = false }: HistoryTabProps =
       <div className={cn(styles.style857_16, !isArabic && "font-sans")} dir={isArabic ? 'rtl' : 'ltr'}>
         <Card className="relative overflow-hidden rounded-3xl border border-[#14B8A6]/20 bg-[#0B0F19]/90 shadow-2xl backdrop-blur-xl text-white">
           <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#14F5D5]/60 to-transparent" />
-          <CardContent className="p-5 sm:p-6 flex items-center justify-between gap-4">
+          <CardContent className="p-5 sm:p-6">
             <div className="space-y-1">
               <h2 className="text-lg font-black text-white flex items-center gap-2.5">
                 <History className="h-5 w-5 text-[#14F5D5]" />
@@ -75,14 +75,6 @@ export function HistoryTab({ hideCaptainDiagnostics = false }: HistoryTabProps =
                 {t('subtitle')}
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => { window.location.hash = '#'; }}
-              className="shrink-0 flex items-center gap-2 text-xs font-bold text-[#14F5D5] bg-[#14B8A6]/10 px-3 py-2 rounded-xl border border-[#14B8A6]/30 hover:bg-[#14B8A6]/20 transition-all cursor-pointer"
-            >
-              {isArabic ? <ArrowRight className="h-4 w-4" /> : <ArrowLeft className="h-4 w-4" />}
-              {isArabic ? 'الرادار' : 'Radar'}
-            </button>
           </CardContent>
         </Card>
 
@@ -108,7 +100,7 @@ export function HistoryTab({ hideCaptainDiagnostics = false }: HistoryTabProps =
       {/* 1. Header Card */}
       <Card className="relative overflow-hidden rounded-3xl border border-[#14B8A6]/20 bg-[#0B0F19]/90 shadow-2xl backdrop-blur-xl text-white">
         <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#14F5D5]/60 to-transparent" />
-        <CardContent className="p-5 sm:p-6 flex items-center justify-between gap-4">
+        <CardContent className="p-5 sm:p-6">
           <div className="space-y-1">
             <h2 className="text-lg font-black text-white flex items-center gap-2.5">
               <History className="h-5 w-5 text-[#14F5D5]" />
@@ -118,14 +110,6 @@ export function HistoryTab({ hideCaptainDiagnostics = false }: HistoryTabProps =
               {t('subtitle')}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => { window.location.hash = '#'; }}
-            className="shrink-0 flex items-center gap-2 text-xs font-bold text-[#14F5D5] bg-[#14B8A6]/10 px-3 py-2 rounded-xl border border-[#14B8A6]/30 hover:bg-[#14B8A6]/20 transition-all cursor-pointer"
-          >
-            {isArabic ? <ArrowRight className="h-4 w-4" /> : <ArrowLeft className="h-4 w-4" />}
-            {isArabic ? 'الرادار' : 'Radar'}
-          </button>
         </CardContent>
       </Card>
 
