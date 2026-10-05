@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { AlertCircle, FileText, User, Clock, ChevronDown } from 'lucide-react';
 import { formatHistoryMoney } from './history-shared';
@@ -37,8 +37,9 @@ const styles = {
   riderNameContainer: "min-w-0 space-y-0.5",
   riderLabel: "text-[11px] text-slate-400 font-medium block",
   riderName: "font-black text-white text-sm truncate block",
-  priceBox: "text-left shrink-0",
-  priceText: "text-base font-black text-[#14F5D5] font-mono block",
+  priceBox: "flex items-center gap-1.5 shrink-0 text-left",
+  priceLabel: "text-xs font-semibold text-slate-400 font-sans",
+  priceText: "text-base font-black text-[#14F5D5] font-mono",
   routeBox: "rounded-2xl border border-white/5 bg-black/40 p-3 space-y-2",
   routeItem: "flex items-center gap-2.5 min-w-0 text-xs",
   routeDivider: "border-t border-white/5 mx-1",
@@ -102,9 +103,6 @@ export function HistoryCaptainTrips({
                 <CardTitle className={styles.title}>
                   {t('captainSectionTitle')}
                 </CardTitle>
-                <CardDescription className={styles.desc}>
-                  {t('captainSectionDesc')}
-                </CardDescription>
               </div>
             </div>
 
@@ -160,6 +158,7 @@ export function HistoryCaptainTrips({
                       </div>
 
                       <div className={styles.priceBox}>
+                        <span className={styles.priceLabel}>{isArabic ? 'سعر الرحلة:' : 'Trip Fare:'}</span>
                         <span className={styles.priceText}>
                           +{formatHistoryMoney(trip.earnedPrice, activeCurrency)}
                         </span>
