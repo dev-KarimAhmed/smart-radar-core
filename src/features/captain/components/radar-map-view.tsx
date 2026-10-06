@@ -878,8 +878,8 @@ export function RadarMapView({
                   onChange={(e) => setWaitSeconds(Math.max(30, Math.min(900, Number(e.target.value) || 120)))}
                   className="w-full rounded-xl border border-emerald-500/40 bg-black/70 px-3 py-2.5 text-start font-mono text-base font-black text-emerald-300 outline-none focus:border-emerald-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-400">
-                  {language === 'ar' ? 'ثانية' : 'sec'}
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono font-bold text-emerald-400/80">
+                  {language === 'ar' ? 'ثانية' : 's'}
                 </span>
               </div>
               {/* Preset buttons */}
@@ -890,13 +890,14 @@ export function RadarMapView({
                     type="button"
                     onClick={() => setWaitSeconds(sec)}
                     className={cn(
-                      'flex-1 rounded-lg border py-1.5 text-xs font-black transition-all cursor-pointer',
+                      'flex-1 rounded-lg border py-1.5 text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1',
                       waitSeconds === sec
                         ? 'border-[#14B8A6] bg-[#14B8A6]/20 text-[#14F5D5] shadow-sm'
                         : 'border-slate-800 bg-slate-900/60 text-slate-400 hover:border-slate-700'
                     )}
                   >
-                    {sec}{language === 'ar' ? 'ث' : 's'}
+                    <span>{sec}</span>
+                    <span className="text-[10px]">{language === 'ar' ? 'ث' : 's'}</span>
                   </button>
                 ))}
               </div>

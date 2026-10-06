@@ -128,6 +128,7 @@ export interface BiddingOfferStepperProps {
 }
 
 export function BiddingOfferStepper({
+  language,
   currency,
   pricingMode,
   appPrice = '',
@@ -331,7 +332,11 @@ export function BiddingOfferStepper({
               <Plus className={styles.durationBtnIcon} />
             </button>
           </div>
-          <span className={styles.durationSubtitle}>{t('secondsUnit')}</span>
+          <span className={styles.durationSubtitle}>
+            {parsedWaitSeconds > 0 
+              ? `${parsedWaitSeconds} ${language === 'ar' ? 'ثانية' : 'sec'}` 
+              : t('secondsUnit')}
+          </span>
         </div>
       </div>
 
