@@ -518,14 +518,21 @@ export function RadarMapView({
                               <div className={styles.appPriceInputGroup} dir="ltr">
                                 <input
                                   type="text"
-                                  readOnly
+                                  inputMode="decimal"
                                   placeholder="0.00"
                                   disabled={isBlockedByOtherPendingOffer}
                                   value={directPrices[request.id] ?? ''}
-                                  onKeyDown={(e) => e.preventDefault()}
+                                  onChange={(e) => {
+                                    const val = e.target.value.replace(/[^0-9.]/g, '');
+                                    const parts = val.split('.');
+                                    const cleanVal = parts.length > 2 ? `${parts[0]}.${parts.slice(1).join('')}` : val;
+                                    setDirectPrices((prev) => ({ ...prev, [request.id]: cleanVal }));
+                                    if (priceErrors[request.id]) setPriceErrors((prev) => ({ ...prev, [request.id]: false }));
+                                  }}
+                                  onWheel={(e) => (e.target as HTMLInputElement).blur()}
                                   className={cn(
                                     styles.appPriceInputField,
-                                    'cursor-not-allowed select-none bg-slate-950/60 text-amber-300 font-mono font-black',
+                                    'text-amber-300 font-mono font-black',
                                     isBlockedByOtherPendingOffer ? styles.appPriceInputDisabled : '',
                                   )}
                                   dir="ltr"
@@ -1076,8 +1083,8 @@ const radarCopy = {
     seizeMarket: 'اقـتـنص فرصتك من السوق',
     marketFare: 'متوسط سعر السوق',
     appModeBadge: 'تطبيق ذكي',
-    appModeInputNotice: 'الصق نفس تسعيرة المشوار المعتمدة من تطبيقك (ممنوع الكتابة)',
-    appModePriceRequired: 'يرجى إدخال السعر عبر زر اللصق أولاً',
+    appModeInputNotice: 'أدخل أو الصق تسعيرة المشوار المعتمدة من تطبيقك',
+    appModePriceRequired: 'يرجى إدخال السعر أولاً',
     pastePrice: 'لصق السعر من الحافظة',
     paste: 'لصق السعر',
     taxiModeNotice: 'تكسي عام - التزم بسعر العداد المعتمد',
@@ -1139,8 +1146,8 @@ const radarCopy = {
     seizeMarket: 'Seize your market opportunity',
     marketFare: 'Market Average Fare',
     appModeBadge: 'Smart App',
-    appModeInputNotice: 'Paste trip fare from your app (direct typing disabled)',
-    appModePriceRequired: 'Please paste a valid price first',
+    appModeInputNotice: 'Enter or paste trip fare from your app',
+    appModePriceRequired: 'Please enter a valid price first',
     pastePrice: 'Paste from clipboard',
     paste: 'Paste Fare',
     taxiModeNotice: 'Standard Taxi - Meter fare enforced',
