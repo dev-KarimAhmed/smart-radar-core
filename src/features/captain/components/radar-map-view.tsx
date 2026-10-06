@@ -171,7 +171,7 @@ export function RadarMapView({
     price: number;
     pricingMode: 'FREE' | 'APP' | 'TAXI';
   } | null>(null);
-  const [waitSeconds, setWaitSeconds] = React.useState<number>(120);
+  const [waitSeconds, setWaitSeconds] = React.useState<string>('120');
 
   const handlePastePrice = React.useCallback(async (requestId: string) => {
     try {
@@ -233,7 +233,7 @@ export function RadarMapView({
       price: priceNum,
       pricingMode: cardPricingMode,
     });
-    setWaitSeconds(120);
+    setWaitSeconds('120');
   }, [captainPricingMode, directPrices, isOfficeTaxi, subRole]);
 
   const handleConfirmSubmitBid = React.useCallback(async () => {
@@ -241,7 +241,8 @@ export function RadarMapView({
     const { trip, price, pricingMode } = confirmModalTrip;
     setSubmittingRequestId(trip.id);
     try {
-      await onSubmitDirectBid(trip, price, waitSeconds, pricingMode);
+      const finalWaitSeconds = Math.max(30, Math.min(900, parseInt(waitSeconds, 10) || 120));
+      await onSubmitDirectBid(trip, price, finalWaitSeconds, pricingMode);
       setConfirmModalTrip(null);
     } finally {
       setSubmittingRequestId(null);
@@ -869,36 +870,35 @@ export function RadarMapView({
               </label>
               <div className="relative">
                 <input
-                  type="number"
-                  min="30"
-                  max="900"
-                  step="10"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={waitSeconds}
-                  onChange={(e) => setWaitSeconds(Math.max(30, Math.min(900, Number(e.target.value) || 120)))}
-                  className="w-full rounded-xl border border-emerald-500/40 bg-black/70 px-3 py-2.5 text-start font-mono text-base font-black text-emerald-300 outline-none focus:border-emerald-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  onChange={(e) => {
+                    const cleaned = e.target.value.replace(/\D/g, '');
+                    setWaitSeconds(cleaned);
+                  }}
+                  onBlur={() => {
+                    const num = parseInt(waitSeconds, 10);
+                    if (isNaN(num) || num < 30) {
+                      setWaitSeconds('30');
+                    } else if (num > 900) {
+                      setWaitSeconds('900');
+                    } else {
+                      setWaitSeconds(String(num));
+                    }
+                  }}
+                  onWheel={(e) => (e.target as HTMLInputElement).blur()}
+                  onKeyDown={(e) => {
+                    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                      e.preventDefault();
+                    }
+                  }}
+                  className="w-full rounded-xl border border-emerald-500/40 bg-black/70 px-3 py-2.5 text-start font-mono text-base font-black text-emerald-300 outline-none focus:border-emerald-400"
                 />
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono font-bold text-emerald-400/80">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono font-bold text-emerald-400/80 pointer-events-none select-none">
                   {language === 'ar' ? 'ثانية' : 's'}
                 </span>
-              </div>
-              {/* Preset buttons */}
-              <div className="flex gap-1.5 pt-1">
-                {[60, 120, 180, 300, 600].map((sec) => (
-                  <button
-                    key={sec}
-                    type="button"
-                    onClick={() => setWaitSeconds(sec)}
-                    className={cn(
-                      'flex-1 rounded-lg border py-1.5 text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1',
-                      waitSeconds === sec
-                        ? 'border-[#14B8A6] bg-[#14B8A6]/20 text-[#14F5D5] shadow-sm'
-                        : 'border-slate-800 bg-slate-900/60 text-slate-400 hover:border-slate-700'
-                    )}
-                  >
-                    <span>{sec}</span>
-                    <span className="text-[10px]">{language === 'ar' ? 'ث' : 's'}</span>
-                  </button>
-                ))}
               </div>
               <p className="text-[11px] text-slate-400 leading-tight pt-0.5">{copy.waitSecondsHint}</p>
             </div>
