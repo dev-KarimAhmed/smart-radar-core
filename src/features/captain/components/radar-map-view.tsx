@@ -384,7 +384,6 @@ export function RadarMapView({
           <div>
             <p className={styles.style204_24}>{copy.queueBadge}</p>
             <h2 className={styles.style205_25}>{copy.sheetTitle}</h2>
-            <p className={styles.style206_26}>{copy.sheetSubtitle}</p>
           </div>
           <span className={styles.style208_27}>{requests.length}</span>
         </div>
@@ -1052,7 +1051,6 @@ const radarCopy = {
     radarFallback: 'الرادار المحلي يعمل، وستظهر الطلبات في القائمة يمين الشاشة.',
     queueBadge: 'قائمة الطلبات',
     sheetTitle: 'طلبات قريبة',
-    sheetSubtitle: 'الطلبات القريبة من خلية H3 الحالية أو الخلايا المجاورة تظهر هنا مباشرة.',
     radarLocked: 'الرادار غير مفعل',
     noRequestsTitle: 'لا توجد طلبات الآن',
     empty: 'ابق متاحاً. ستظهر طلبات الركاب هنا فور وصولها إلى منطقتك.',
@@ -1116,7 +1114,6 @@ const radarCopy = {
     radarFallback: 'Local radar stays active; requests appear in the queue on the right.',
     queueBadge: 'Request queue',
     sheetTitle: 'Nearby requests',
-    sheetSubtitle: 'Requests in your current H3 cell or neighboring cells appear here.',
     radarLocked: 'Radar is inactive',
     noRequestsTitle: 'No requests right now',
     empty: 'Stay online. Rider requests will appear here as soon as they reach your area.',
