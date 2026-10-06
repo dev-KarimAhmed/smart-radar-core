@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslations } from 'next-intl';
-import { MapPin, ExternalLink } from 'lucide-react';
+import { MapPin } from 'lucide-react';
 import type { Trip } from '@/core/types';
 
 const styles = {
@@ -18,8 +18,6 @@ const styles = {
   pickupCardIcon: "h-4 w-4",
   pickupCardValue: "mt-1 truncate text-sm font-black text-white",
   pickupCardHint: "mt-1 text-xs text-slate-400",
-  pickupCardLink: "inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-cyan-400/25 px-3 py-2 text-xs font-black text-cyan-200 transition hover:border-cyan-300 hover:text-white",
-  pickupCardLinkIcon: "h-3.5 w-3.5",
 } as const;
 
 function Info({ label, value }: { label: string; value: string }) {
@@ -82,15 +80,6 @@ export function BiddingTripSummary({ request, language, pickupEtaMinutes }: Bidd
               {request.pickupLocationIsApproximate ? pickupT('pickupApproximate') : pickupT('pickupExact')}
             </p>
           </div>
-          {request.pickupGoogleMapsUrl ? (
-            <a
-              href={request.pickupGoogleMapsUrl}
-              className={styles.pickupCardLink}
-            >
-              <ExternalLink className={styles.pickupCardLinkIcon} aria-hidden="true" />
-              {pickupT('openPickupMap')}
-            </a>
-          ) : null}
         </div>
       </div>
     </>

@@ -212,11 +212,11 @@ export function ActiveTripTracker({
 
         <div className={styles.style51_12}>
           <p className={styles.style52_13}>{t('rider')}</p>
-          <h2 className={styles.style53_14}>{rider?.name || t('riderFallback')}</h2>
-          {rider?.phone ? (
-            <a href={`tel:${rider.phone}`} className={styles.style55_15}>
+          <h2 className={styles.style53_14}>{rider?.name || request.riderName || t('riderFallback')}</h2>
+          {(rider?.phone || request.riderPhone || (request as any).riderPhoneNumber) ? (
+            <a href={`tel:${rider?.phone || request.riderPhone || (request as any).riderPhoneNumber}`} className={styles.style55_15}>
               <Phone className={styles.style56_16} />
-              {t('callRider')}
+              <span>{t('callRider')}</span>
             </a>
           ) : null}
         </div>
@@ -236,9 +236,11 @@ export function ActiveTripTracker({
               {request.pickupLocationIsApproximate ? pickupT('pickupApproximate') : pickupT('pickupExact')}
             </p>
           </div>
-          {request.pickupGoogleMapsUrl ? (
+          {(request.pickupGoogleMapsUrl || pickupLocation) ? (
             <a
-              href={request.pickupGoogleMapsUrl}
+              href={request.pickupGoogleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${pickupLocation?.lat},${pickupLocation?.lng}`}
+              target="_blank"
+              rel="noopener noreferrer"
               className={styles.pickupCardLink}
             >
               <ExternalLink className={styles.pickupCardLinkIcon} aria-hidden="true" />

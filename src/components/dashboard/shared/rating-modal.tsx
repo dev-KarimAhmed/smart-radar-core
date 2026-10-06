@@ -291,9 +291,6 @@ export function RatingModal({
             <DialogTitle className={styles.style220_5}>{tAuto('ratingModal_title')}</DialogTitle>
             <DialogDescription className={styles.style221_6}>{tAuto('ratingModal_description')}</DialogDescription>
           </div>
-          <button onClick={onClose} className={styles.style223_7}>
-            <X className={styles.style224_8} />
-          </button>
         </DialogHeader>
 
         <div className={styles.style228_9}>

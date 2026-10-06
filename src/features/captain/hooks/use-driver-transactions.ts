@@ -14,7 +14,7 @@ type RideOfferRow = Record<string, unknown>;
 type RideRequestRow = Record<string, unknown>;
 
 export const MIN_OFFER_WAIT_SECONDS = 5;
-export const DEFAULT_OFFER_WAIT_SECONDS = 90;
+export const DEFAULT_OFFER_WAIT_SECONDS = 120;
 export const MAX_OFFER_WAIT_SECONDS = Number.POSITIVE_INFINITY;
 
 /**
@@ -97,24 +97,25 @@ export function useDriverTransactions(
     }
   }, [driverStatus, clearPendingOffer]);
 
-  // Checks whether the captain's own offer is still PENDING on the server.
-  // When the captain goes idle or the offer expires/cancels, this clears the pending state
-  // so the captain can submit a new offer without being locked.
+  // Checks whether the captain's pending offer request is still active on the radar.
+  // If the rider cancels the trip, accepts an offer, or the request expires from captain_radar_requests,
+  // clears the pending state so the captain can bid on other requests.
   useEffect(() => {
     if (!pendingOfferRequestId || !captainId) return;
     let isCancelled = false;
 
     const checkStillPending = async () => {
       const { data, error } = await supabase
-        .from('ride_offers')
+        .from('captain_radar_requests')
         .select('id')
-        .eq('request_id', pendingOfferRequestId)
-        .eq('captain_id', captainId)
-        .or('status.eq.PENDING,status.eq.pending')
+        .eq('id', pendingOfferRequestId)
         .maybeSingle();
 
-      if (isCancelled || error) return;
-      if (!data) clearPendingOffer();
+      if (isCancelled) return;
+
+      if (error || !data) {
+        clearPendingOffer();
+      }
     };
 
     const intervalId = window.setInterval(() => void checkStillPending(), 3_000);
