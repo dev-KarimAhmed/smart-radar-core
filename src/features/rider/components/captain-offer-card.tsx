@@ -75,12 +75,13 @@ function CaptainOfferCardBase({
   ).trim();
 
   const isTaxiVehicle = rawAffiliation === 'office-taxi' || rawAffiliation.includes('taxi') || (captain.vehicle_category || '').toLowerCase().includes('taxi');
-  const isSmartAppCaptain = rawAffiliation === 'smart-app' || (!isTaxiVehicle && (rawAffiliation.includes('app') || Boolean(rawCompany && rawAffiliation !== 'independent')));
-  const isIndependentCaptain = rawAffiliation === 'independent' || (!isTaxiVehicle && !isSmartAppCaptain);
+  const isIndependentCaptain = rawAffiliation === 'independent' || (!isTaxiVehicle && (rawAffiliation === '' && !rawCompany)) || (!isTaxiVehicle && rawCompany === 'مستقل') || (captain.company_name === 'مستقل');
+  const isSmartAppCaptain = !isTaxiVehicle && !isIndependentCaptain && (rawAffiliation === 'smart-app' || rawAffiliation.includes('app') || Boolean(rawCompany));
 
-  const isTaxiOffer = pricingMode === 'TAXI' || (pricingMode !== 'FREE' && isTaxiVehicle);
-  const isAppOffer = pricingMode === 'APP' || (pricingMode !== 'FREE' && !isTaxiOffer && isSmartAppCaptain);
-  const isFreeOffer = pricingMode === 'FREE' || (!isTaxiOffer && !isAppOffer) || isIndependentCaptain;
+  // If captain is independent, their fare is always a free direct fare ("سعر حر")
+  const isFreeOffer = isIndependentCaptain || pricingMode === 'FREE';
+  const isTaxiOffer = !isFreeOffer && (pricingMode === 'TAXI' || isTaxiVehicle);
+  const isAppOffer = !isFreeOffer && !isTaxiOffer && (pricingMode === 'APP' || isSmartAppCaptain);
 
   const cleanCompany = isIndependentCaptain || rawCompany === t('independentCaptain') || rawCompany.toLowerCase() === 'independent' || rawCompany === 'مستقل' || rawCompany === 'كابتن مستقل'
     ? ''
@@ -91,7 +92,9 @@ function CaptainOfferCardBase({
     : '';
 
   let pricingLabel = isArabic ? 'سعر حر' : 'Direct Fare';
-  if (isTaxiOffer) {
+  if (isFreeOffer) {
+    pricingLabel = isArabic ? 'سعر حر' : 'Direct Fare';
+  } else if (isTaxiOffer) {
     pricingLabel = displayCompany
       ? (isArabic ? `سعر تكسي / ${displayCompany}` : `Taxi Fare / ${displayCompany}`)
       : (isArabic ? 'سعر تكسي' : 'Taxi Fare');

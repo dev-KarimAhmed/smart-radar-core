@@ -41,8 +41,8 @@ export function OfferCardCaptain({
   ).trim();
 
   const isOfficeTaxi = rawAffiliation === 'office-taxi' || rawAffiliation.includes('taxi') || (captain.vehicle_category || '').toLowerCase().includes('taxi');
-  const isSmartApp = rawAffiliation === 'smart-app' || (!isOfficeTaxi && (rawAffiliation.includes('app') || Boolean(rawCompany && rawAffiliation !== 'independent')));
-  const isIndependent = rawAffiliation === 'independent' || (!isOfficeTaxi && !isSmartApp);
+  const isIndependent = rawAffiliation === 'independent' || (!isOfficeTaxi && (rawAffiliation === '' && !rawCompany)) || (!isOfficeTaxi && (rawCompany === 'مستقل' || rawCompany === 'كابتن مستقل' || rawCompany.toLowerCase() === 'independent')) || (captain.company_name === 'مستقل');
+  const isSmartApp = !isOfficeTaxi && !isIndependent && (rawAffiliation === 'smart-app' || rawAffiliation.includes('app') || Boolean(rawCompany));
 
   const cleanCompany = isIndependent || rawCompany === t('independentCaptain') || rawCompany.toLowerCase() === 'independent' || rawCompany === 'مستقل' || rawCompany === 'كابتن مستقل'
     ? ''

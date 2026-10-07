@@ -508,9 +508,14 @@ function mapRideOfferRow(row: Record<string, unknown>): Offer | null {
     profile.company,
     (profile.affiliation as any)?.name,
   );
-  const resolvedAffiliationType = rawAffiliationType
-    || (isTaxiVehicle ? 'office-taxi' : rawCompany ? 'smart-app' : 'independent');
-  const resolvedAffiliationName = (resolvedAffiliationType === 'independent' ? '' : rawCompany) || '';
+  const isIndependentDriver = rawAffiliationType === 'independent'
+    || rawCompany === 'مستقل'
+    || rawCompany === 'كابتن مستقل'
+    || rawCompany?.toLowerCase() === 'independent';
+  const resolvedAffiliationType = isIndependentDriver
+    ? 'independent'
+    : (rawAffiliationType || (isTaxiVehicle ? 'office-taxi' : rawCompany ? 'smart-app' : 'independent'));
+  const resolvedAffiliationName = (resolvedAffiliationType === 'independent' || isIndependentDriver ? '' : rawCompany) || '';
   const captainPhone = firstString(row.driver_phone, row.captain_phone, row.phone, profile.phone, profile.phone_number);
   const pricingMode = firstString(row.pricing_mode, row.pricingMode) as 'FREE' | 'APP' | 'TAXI' | undefined;
 

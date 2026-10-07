@@ -10,6 +10,7 @@ export function DriverVehiclePanel({ state, language }: { state: any, language: 
     vehiclePlate, setVehiclePlate, vehicleMake, setVehicleMake,
     vehicleModel, setVehicleModel, vehicleColor, vehicleYear, setVehicleYear,
     businessName, setBusinessName, companyCode, setCompanyCode,
+    officePhone, setOfficePhone,
     sideId, setSideId, facebookUrl, setFacebookUrl, instagramUrl, setInstagramUrl,
     affiliationType, setAffiliationType,
     savedSnapshotRef, isFieldEditing, isSaving, startEditingField, stopEditingField, handleFieldSave
@@ -107,7 +108,16 @@ export function DriverVehiclePanel({ state, language }: { state: any, language: 
           >
             <select
               value={affiliationType || 'independent'}
-              onChange={(event) => setAffiliationType(event.target.value)}
+              onChange={(event) => {
+                const nextType = event.target.value;
+                setAffiliationType(nextType);
+                if (nextType === 'independent') {
+                  setBusinessName('');
+                  setCompanyCode('');
+                  setOfficePhone('');
+                  setSideId('');
+                }
+              }}
               className={styles.editingInput}
             >
               <option value="smart-app" className={styles.selectOption}>{t('affiliationSmartApp')}</option>

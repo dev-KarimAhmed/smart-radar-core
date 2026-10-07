@@ -101,9 +101,9 @@ export function useBiddingProposal({
 
   const [quote, setQuote] = React.useState<CaptainOfferQuote | null>(null);
 
-  const isIndependent = user?.subRole === 'independent' || user?.affiliation?.type === 'independent';
-  const isSmartApp = user?.affiliation?.type === 'smart-app';
-  const isOfficeTaxi = user?.affiliation?.type === 'office-taxi';
+  const isIndependent = user?.subRole === 'independent' || user?.affiliation?.type === 'independent' || user?.affiliation?.name === 'مستقل';
+  const isSmartApp = !isIndependent && (user?.affiliation?.type === 'smart-app');
+  const isOfficeTaxi = !isIndependent && (user?.affiliation?.type === 'office-taxi');
 
   const riderPreference = React.useMemo(() => {
     const pref = String(request.pricingPreference || '').toUpperCase();
@@ -111,13 +111,14 @@ export function useBiddingProposal({
   }, [request.pricingPreference]);
 
   const resolvedDefaultPricingMode = React.useMemo<'FREE' | 'APP' | 'TAXI'>(() => {
+    if (isIndependent) return 'FREE';
+    if (isOfficeTaxi) return 'TAXI';
+    if (isSmartApp) return 'APP';
     if (riderPreference) return riderPreference;
     if (initialPricingMode) return initialPricingMode;
-    if (isOfficeTaxi) return 'TAXI';
-    if (captainPricingMode === 'APP' || isSmartApp) return 'APP';
+    if (captainPricingMode === 'APP') return 'APP';
     if (captainPricingMode === 'FREE') return 'FREE';
-    if (isIndependent) return 'FREE';
-    return 'APP';
+    return 'FREE';
   }, [riderPreference, initialPricingMode, isOfficeTaxi, captainPricingMode, isSmartApp, isIndependent]);
 
   const [pricingMode, setPricingMode] = React.useState<'FREE' | 'APP' | 'TAXI' | null>(

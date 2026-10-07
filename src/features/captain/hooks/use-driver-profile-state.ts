@@ -356,6 +356,7 @@ const [profile, setProfile] = React.useState<ProfileRow | null>(null);
         id: user.uid,
         vehicle_type: isOfficeTaxi ? 'TAXI' : 'PRIVATE',
         affiliation_type: isOfficeTaxi ? 'office-taxi' : isSmartApp ? 'smart-app' : 'independent',
+        pricing_mode: isIndependent ? 'FREE' : isOfficeTaxi ? 'TAXI' : 'APP',
         plate_number: vehicle.plate || null,
         vehicle_brand: vehicle.make || null,
         vehicle_model: vehicleModel.trim() || null,
@@ -477,6 +478,12 @@ const [profile, setProfile] = React.useState<ProfileRow | null>(null);
   };
 
   const applySavedProfileState = () => {
+    if (affiliationType === 'independent') {
+      setBusinessName('');
+      setCompanyCode('');
+      setOfficePhone('');
+      setSideId('');
+    }
     setProfile((current) => ({
       ...(current || {}),
       full_name: fullName.trim(),
