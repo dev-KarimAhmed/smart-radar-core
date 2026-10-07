@@ -151,7 +151,7 @@ export function BiddingOfferStepper({
   marketDifference,
   marketDifferencePercent,
   isDumpingBlocked,
-  isBlockedDeviation = isDumpingBlocked,
+  isBlockedDeviation = false,
   professionalAd,
   floorPrice,
   handleApplyFloorPrice,
@@ -461,7 +461,7 @@ export function BiddingOfferStepper({
               }
               onSubmit(finalOfferPrice, parsedWaitSeconds, pricingMode || undefined);
             }}
-            disabled={isSubmitting || isBlockedDeviation || !isWaitSecondsValid}
+            disabled={isSubmitting || !isWaitSecondsValid}
             className={styles.submitBtn}
           >
             {isSubmitting ? <Loader2 className={styles.submitSpinner} /> : <Send className={styles.submitIcon} />}

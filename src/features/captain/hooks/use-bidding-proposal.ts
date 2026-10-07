@@ -308,8 +308,8 @@ export function useBiddingProposal({
   const professionalAd = useCaptainProfessionalAd(dumpingDeviationRatio, isDumpingBlocked);
 
   const isAmberDeviation = isTierAmber || isDumpingAmber;
-  const isBlockedDeviation = isDumpingBlocked;
-  const canSubmit = pricingMode !== null && Number.isFinite(finalOfferPrice) && finalOfferPrice > 0 && !isSubmitting && !isBlockedDeviation && isWaitSecondsValid;
+  const isBlockedDeviation = false;
+  const canSubmit = pricingMode !== null && Number.isFinite(finalOfferPrice) && finalOfferPrice > 0 && !isSubmitting && isWaitSecondsValid;
 
   const handleApplyFloorPrice = React.useCallback(() => {
     if (floorPrice <= 0) return;
@@ -321,7 +321,7 @@ export function useBiddingProposal({
   }, [pricingMode, floorPrice, minIncreaseAmount]);
 
   const isPlusDisabled = pricingMode === 'TAXI' || (pricingMode === 'APP' && isOfficeTaxi) || pricingMode === null;
-  const isMinusDisabled = pricingMode === 'TAXI' || (pricingMode === 'APP' && isOfficeTaxi) || pricingMode === null || (isDumpingBlocked && normalizedIncreaseAmount <= minIncreaseAmount);
+  const isMinusDisabled = pricingMode === 'TAXI' || (pricingMode === 'APP' && isOfficeTaxi) || pricingMode === null;
 
   return {
     existingOffer,

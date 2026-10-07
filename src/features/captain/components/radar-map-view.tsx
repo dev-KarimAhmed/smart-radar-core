@@ -214,13 +214,6 @@ export function RadarMapView({
       }
     }
 
-    const baseMarketPrice = request.offerPrice != null && request.offerPrice > 0 ? request.offerPrice : null;
-    if (baseMarketPrice && baseMarketPrice > 0 && priceNum && priceNum > 0) {
-      const marketBrake = RadarAntiCheatKernel.enforceMarketBrakes(priceNum, baseMarketPrice);
-      if (marketBrake.status === 'CRIMSON_BLOCK' || priceNum < baseMarketPrice * 0.85) {
-        return; // Crimson Block: prevent initiating offer
-      }
-    }
 
     if (priceNum == null || priceNum <= 0) {
       setPriceErrors((prev) => ({ ...prev, [request.id]: true }));
@@ -611,7 +604,7 @@ export function RadarMapView({
                                   onKeyDown={(e) => {
                                     if (e.key === 'Enter') {
                                       e.preventDefault();
-                                      if (!isDumpingCrimson) handleInitiateOffer(request);
+                                      handleInitiateOffer(request);
                                     }
                                   }}
                                   className={cn(
@@ -705,7 +698,7 @@ export function RadarMapView({
                                   onKeyDown={(e) => {
                                     if (e.key === 'Enter') {
                                       e.preventDefault();
-                                      if (!isDumpingCrimson) handleInitiateOffer(request);
+                                      handleInitiateOffer(request);
                                     }
                                   }}
                                   className={cn(
@@ -797,12 +790,12 @@ export function RadarMapView({
                         <button
                           type="button"
                           onClick={() => handleInitiateOffer(request)}
-                          disabled={isBlockedByOtherPendingOffer || isSubmittingThisRequest || isDumpingCrimson}
-                          title={isDumpingCrimson ? copy.dumpingCrimsonMsg : isBlockedByOtherPendingOffer ? copy.blockedPendingOfferHint : undefined}
+                          disabled={isBlockedByOtherPendingOffer || isSubmittingThisRequest}
+                          title={isBlockedByOtherPendingOffer ? copy.blockedPendingOfferHint : undefined}
                           className={cn(
                             styles.style232_40,
-                            (isBlockedByOtherPendingOffer || isSubmittingThisRequest || isDumpingCrimson) ? styles.pendingOfferDisabled : '',
-                            isDumpingCrimson ? '!bg-rose-950/60 !border-rose-500/50 !text-rose-300 opacity-60 cursor-not-allowed' : isDumpingAmber ? '!border-amber-500/80' : '',
+                            (isBlockedByOtherPendingOffer || isSubmittingThisRequest) ? styles.pendingOfferDisabled : '',
+                            isDumpingCrimson ? '!border-rose-500/80' : isDumpingAmber ? '!border-amber-500/80' : '',
                           )}
                           dir={language === 'ar' ? 'rtl' : 'ltr'}
                         >
@@ -1103,7 +1096,7 @@ const radarCopy = {
     callRider: 'اتصال بالراكب',
     openPickupMap: 'فتح الموقع في خرائط جوجل',
     dumpingAmberMsg: '⚠️ تنبيه: السعر منخفض (أقل من سعر السوق بنسبة 10% إلى 14.9%)، وقد يؤثر على تقييمك ورتبتك.',
-    dumpingCrimsonMsg: '🛑 السعر أقل من الحد الأدنى المسموح به (أقل من سعر السوق بأكثر من 15%). تم إيقاف تقديم العرض.',
+    dumpingCrimsonMsg: '🛑 تنبيه: السعر أقل من سعر السوق بأكثر من 15% (سعر محروق قد يؤثر على تقييمك ورتبتك).',
     upperWarnMsg: '⚠️ تنبيه: السعر أعلى من النطاق المعتمد (+15% فما فوق).',
     applyFloorBtn: 'تطبيق الحد الأدنى المسموح به',
   },
@@ -1166,7 +1159,7 @@ const radarCopy = {
     callRider: 'Call Rider',
     openPickupMap: 'Open in Google Maps',
     dumpingAmberMsg: '⚠️ Warning: Price is below market average (10% - 14.9% below), which may affect your rating.',
-    dumpingCrimsonMsg: '🛑 Price is below the minimum allowed limit (more than 15% below market). Offer submission paused.',
+    dumpingCrimsonMsg: '🛑 Warning: Price is more than 15% below market average (may affect your evaluation and rating).',
     upperWarnMsg: '⚠️ Warning: Price exceeds allowed band (+15% or above).',
     applyFloorBtn: 'Apply minimum allowed price',
   },
