@@ -192,15 +192,17 @@ const [profile, setProfile] = React.useState<ProfileRow | null>(null);
         setPricePerMin(newPricePerMin);
         setIncludedKm(newIncludedKm);
         setVehicleModel(newVehicleModel);
-        setBusinessName(newBusinessName);
         setOfficePhone(newOfficePhone);
         setSideId(newSideId);
         setCompanyCode(newCompanyCode);
         setFacebookUrl(newFacebookUrl);
         setInstagramUrl(newInstagramUrl);
         const rawAffiliation = firstString(captainProfile?.affiliation_type, user?.affiliation?.type);
-        const newAffiliationType = rawAffiliation || (captainProfile?.vehicle_type === 'TAXI' ? 'office-taxi' : (newBusinessName ? 'smart-app' : 'independent'));
+        const isIndep = rawAffiliation === 'independent' || newBusinessName === 'مستقل' || newBusinessName.toLowerCase() === 'independent';
+        const newAffiliationType = rawAffiliation || (captainProfile?.vehicle_type === 'TAXI' ? 'office-taxi' : isIndep ? 'independent' : (newBusinessName ? 'smart-app' : 'independent'));
+        const cleanBusinessName = (newAffiliationType === 'independent' || isIndep) ? '' : newBusinessName;
         setAffiliationType(newAffiliationType);
+        setBusinessName(cleanBusinessName);
 
         savedSnapshotRef.current = {
           fullName: newFullName,
@@ -211,7 +213,7 @@ const [profile, setProfile] = React.useState<ProfileRow | null>(null);
           vehicleModel: newVehicleModel,
           vehicleColor: newVehicleColor,
           vehicleYear: newVehicleYear,
-          businessName: newBusinessName,
+          businessName: cleanBusinessName,
           officePhone: newOfficePhone,
           sideId: newSideId,
           companyCode: newCompanyCode,
@@ -358,7 +360,9 @@ const [profile, setProfile] = React.useState<ProfileRow | null>(null);
         vehicle_brand: vehicle.make || null,
         vehicle_model: vehicleModel.trim() || null,
         vehicle_year: vehicle.year ? Number(vehicle.year) || null : null,
-        employment_type: isIndependent ? null : (businessName.trim() || null),
+        employment_type: isIndependent
+          ? 'مستقل'
+          : (businessName.trim() || (isOfficeTaxi ? 'مكتب تاكسي' : 'تطبيق ذكي')),
         nickname: nickname.trim() || null,
         // A vehicle's color isn't tied to how the captain is affiliated — office-taxi
         // captains can set it too, so this is unconditional, not just the smart-app branch.
@@ -485,7 +489,7 @@ const [profile, setProfile] = React.useState<ProfileRow | null>(null);
         ...(getCaptainProfile(current || null) || {}),
         affiliation_type: affiliationType,
         vehicle_model: vehicleModel.trim(),
-        employment_type: affiliationType === 'independent' ? '' : businessName.trim(),
+        employment_type: affiliationType === 'independent' ? 'مستقل' : businessName.trim(),
         nickname: nickname.trim(),
         office_phone: affiliationType === 'office-taxi' ? officePhone.trim() : '',
         side_id: affiliationType === 'office-taxi' ? sideId.trim() : '',
@@ -501,7 +505,7 @@ const [profile, setProfile] = React.useState<ProfileRow | null>(null);
   const captureSavedSnapshot = () => {
     savedSnapshotRef.current = {
       fullName, nickname, phone, vehiclePlate, vehicleMake, vehicleModel, vehicleColor, vehicleYear,
-      businessName, officePhone, sideId, companyCode, facebookUrl, instagramUrl,
+      businessName: affiliationType === 'independent' ? '' : businessName, officePhone, sideId, companyCode, facebookUrl, instagramUrl,
       baseFare, includedKm, pricePerKm, pricePerMin,
       affiliationType,
     };
