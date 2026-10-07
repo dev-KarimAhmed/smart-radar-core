@@ -126,7 +126,7 @@ interface RadarMapViewProps {
   radarLockMessage?: string;
   requests: Trip[];
   pendingOfferRequestId?: string | null;
-  captainPricingMode?: 'FREE' | 'APP' | null;
+  captainPricingMode?: 'FREE' | 'APP' | 'TAXI' | null;
   isOfficeTaxi?: boolean;
   subRole?: string | null;
   onSelectRequest: (request: Trip, initialPrice?: string, pricingMode?: 'FREE' | 'APP' | 'TAXI') => void;

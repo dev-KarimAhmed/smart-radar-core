@@ -13,8 +13,8 @@ export type CaptainTariff = {
   pricePerMin: number;
   /** المسافة المشمولة في فتحة العداد — km billed at zero before per-km charging starts. */
   includedKm: number;
-  /** النمط المفضل للتسعير (أسعار حرة أم أسعار التطبيق) */
-  pricingMode?: 'FREE' | 'APP' | null;
+  /** النمط المفضل للتسعير (أسعار حرة أم أسعار التطبيق أم تاكسي) */
+  pricingMode?: 'FREE' | 'APP' | 'TAXI' | null;
 };
 
 export type CaptainTariffSaveResult =
@@ -45,7 +45,7 @@ type TariffContext = {
   pricePerKm: number | null;
   pricePerMin: number | null;
   includedKm: number;
-  pricingMode: 'FREE' | 'APP' | null;
+  pricingMode: 'FREE' | 'APP' | 'TAXI' | null;
   /** Lowest meter-opening charge this captain may set. */
   minBaseFare: number;
   minBaseFareSource: MinBaseFareSource;
@@ -147,9 +147,9 @@ export function usePricePerKmSetup(
         if (error) throw error;
 
         const context = (data ?? {}) as Record<string, unknown>;
-        const rawMode = context.pricingMode || context.pricing_mode;
-        const parsedMode: 'FREE' | 'APP' | null =
-          rawMode === 'APP' ? 'APP' : rawMode === 'FREE' ? 'FREE' : 'FREE';
+        const rawMode = (context.pricingMode || context.pricing_mode || '').toString().toUpperCase();
+        const parsedMode: 'FREE' | 'APP' | 'TAXI' | null =
+          rawMode === 'APP' ? 'APP' : rawMode === 'TAXI' ? 'TAXI' : rawMode === 'FREE' ? 'FREE' : null;
 
         setTariff({
           baseFare: toNumberOrNull(context.baseFare),

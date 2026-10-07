@@ -43,15 +43,18 @@ const styles = {
   shortDistancesToggleIconOpen: 'rotate-180',
   shortDistancesFields: 'space-y-4 border-t border-emerald-500/15 p-4',
   shortDistancesError: 'text-sm font-bold text-rose-400 text-start',
-  modeSelector: 'mt-3 mb-4 grid grid-cols-2 gap-2 rounded-2xl border border-slate-800 bg-black/50 p-1.5 shadow-inner',
-  modeButton: 'flex flex-col items-center justify-center rounded-xl py-2.5 px-3 text-center transition cursor-pointer',
+  modeSelector: 'mt-3 mb-4 grid grid-cols-3 gap-1.5 sm:gap-2 rounded-2xl border border-slate-800 bg-black/50 p-1.5 shadow-inner',
+  modeButton: 'flex flex-col items-center justify-center rounded-xl py-2 px-1 sm:py-2.5 sm:px-2 text-center transition cursor-pointer select-none',
   modeButtonActive: 'bg-[#14B8A6] text-[#06111f] shadow-lg shadow-[#14B8A6]/20 font-black',
   modeButtonInactive: 'text-slate-400 hover:bg-white/5 hover:text-white font-bold',
-  modeButtonTitle: 'text-xs font-black sm:text-sm',
-  modeButtonSubtitle: 'mt-0.5 text-[10px] leading-tight opacity-80',
+  modeButtonTitle: 'text-xs font-black sm:text-sm whitespace-nowrap',
+  modeButtonSubtitle: 'mt-0.5 text-[9px] sm:text-[10px] leading-tight opacity-80 line-clamp-2',
   appNoticeCard: 'my-4 rounded-2xl border border-blue-400/30 bg-blue-500/10 p-4 text-sm font-bold text-blue-200 shadow-xl',
   appNoticeTitle: 'font-black text-base text-blue-300 mb-2 flex items-center gap-2',
   appNoticeBody: 'leading-relaxed text-xs sm:text-sm text-slate-300',
+  taxiNoticeCard: 'my-4 rounded-2xl border border-amber-400/30 bg-amber-500/10 p-4 text-sm font-bold text-amber-200 shadow-xl',
+  taxiNoticeTitle: 'font-black text-base text-amber-300 mb-2 flex items-center gap-2',
+  taxiNoticeBody: 'leading-relaxed text-xs sm:text-sm text-slate-300',
   goldRankNotice: 'mb-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs font-black text-amber-300 text-center leading-relaxed',
   comparisonGrid: 'grid grid-cols-3 gap-2 sm:gap-3 mb-4',
   comparisonCard: 'flex flex-col justify-between rounded-2xl border border-slate-800 bg-black/40 p-2 sm:p-3 text-center',
@@ -88,7 +91,7 @@ interface PricePerKmSetupModalProps {
   marketAverage?: MarketAverageTariff | null;
   /** How crowded the local market is right now — rendered as a banner above the fields. */
   marketIndicator?: CaptainMarketIndicator | null;
-  initialTariff?: { baseFare: number | null; pricePerKm: number | null; pricePerMin: number | null; includedKm?: number; pricingMode?: 'FREE' | 'APP' | null };
+  initialTariff?: { baseFare: number | null; pricePerKm: number | null; pricePerMin: number | null; includedKm?: number; pricingMode?: 'FREE' | 'APP' | 'TAXI' | null };
   isCountryChange?: boolean;
   /** The tariff is already set and this is the per-activation confirmation. */
   isActivationConfirm?: boolean;
@@ -120,16 +123,47 @@ export function PricePerKmSetupModal({
   const isGoldOrPlatinum = rank === 'Gold' || rank === 'Platinum';
   const isSilver = rank === 'Silver';
   const isArabic = direction === 'rtl';
-  const isIndependent = user?.subRole === 'independent';
-  const [setupMode, setSetupMode] = React.useState<'FREE' | 'APP' | null>(
-    initialTariff?.pricingMode ?? (isIndependent ? 'FREE' : null)
+
+  const defaultModeFromAccount = React.useMemo<'FREE' | 'APP' | 'TAXI'>(() => {
+    const rawAffiliationType = (user?.affiliation?.type || '').toLowerCase();
+    const rawAffiliationName = (user?.affiliation?.name || '').toLowerCase();
+    const vehicleType = String((user?.vehicle as any)?.type || (user?.vehicle as any)?.category || '').toUpperCase();
+
+    const isIndependent = user?.subRole === 'independent'
+      || rawAffiliationType === 'independent'
+      || rawAffiliationName === 'مستقل'
+      || rawAffiliationName === 'independent';
+
+    if (isIndependent) return 'FREE';
+
+    const isOfficeTaxi = rawAffiliationType === 'office-taxi'
+      || rawAffiliationType.includes('taxi')
+      || rawAffiliationName.includes('تاكسي')
+      || rawAffiliationName.includes('مكتب')
+      || vehicleType === 'TAXI';
+
+    if (isOfficeTaxi) return 'TAXI';
+
+    const isSmartApp = rawAffiliationType === 'smart-app'
+      || rawAffiliationType.includes('app')
+      || Boolean(rawAffiliationName);
+
+    if (isSmartApp) return 'APP';
+
+    if (initialTariff?.pricingMode === 'TAXI' || initialTariff?.pricingMode === 'APP' || initialTariff?.pricingMode === 'FREE') {
+      return initialTariff.pricingMode;
+    }
+
+    return 'FREE';
+  }, [user?.affiliation, user?.subRole, user?.vehicle, initialTariff?.pricingMode]);
+
+  const [setupMode, setSetupMode] = React.useState<'FREE' | 'APP' | 'TAXI'>(
+    defaultModeFromAccount
   );
 
   React.useEffect(() => {
-    if (initialTariff?.pricingMode) {
-      setSetupMode(initialTariff.pricingMode);
-    }
-  }, [initialTariff?.pricingMode]);
+    setSetupMode(defaultModeFromAccount);
+  }, [defaultModeFromAccount]);
 
   const [baseFare, setBaseFare] = React.useState(toInputValue(initialTariff?.baseFare));
   const [pricePerKm, setPricePerKm] = React.useState(toInputValue(initialTariff?.pricePerKm));
@@ -170,8 +204,8 @@ export function PricePerKmSetupModal({
     setError('');
     setShortDistancesError('');
 
-    if (!isIndependent && !setupMode) {
-      setError(isArabic ? tAuto('key_981af5fb') : 'Please select a pricing mode first');
+    if (!setupMode) {
+      setError(isArabic ? 'يرجى اختيار نمط التسعير أولاً' : 'Please select a pricing mode first');
       return;
     }
 
@@ -278,64 +312,90 @@ export function PricePerKmSetupModal({
           </div>
         ) : null}
 
-        {/* Pricing Setup Mode Selector Tabs (Hidden for independent captains) */}
-        {!isIndependent && (
-          <div className={styles.modeSelector}>
-            <button
-              type="button"
-              onClick={() => {
-                setSetupMode('FREE');
-                setError('');
-              }}
-              className={cn(
-                styles.modeButton,
-                setupMode === 'FREE' ? styles.modeButtonActive : styles.modeButtonInactive
-              )}
-            >
-              <span className={styles.modeButtonTitle}>
-                {isArabic ? tAuto('key_8993e183') : 'Free Pricing'}
-              </span>
-              <span className={styles.modeButtonSubtitle}>
-                {t('tariffFreePriceSubtitle')}
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setSetupMode('APP');
-                setError('');
-              }}
-              className={cn(
-                styles.modeButton,
-                setupMode === 'APP' ? styles.modeButtonActive : styles.modeButtonInactive
-              )}
-            >
-              <span className={styles.modeButtonTitle}>
-                {isArabic ? tAuto('key_02958076') : 'App Pricing'}
-              </span>
-              <span className={styles.modeButtonSubtitle}>
-                {t('tariffAppPriceSubtitle')}
-              </span>
-            </button>
-          </div>
-        )}
+        {/* Pricing Setup Mode Selector Tabs: 3 choices (Free Prices, Smart App, Taxi) */}
+        <div className={styles.modeSelector}>
+          <button
+            type="button"
+            onClick={() => {
+              setSetupMode('FREE');
+              setError('');
+            }}
+            className={cn(
+              styles.modeButton,
+              setupMode === 'FREE' ? styles.modeButtonActive : styles.modeButtonInactive
+            )}
+          >
+            <span className={styles.modeButtonTitle}>
+              {t('tariffFreePriceTitle')}
+            </span>
+            <span className={styles.modeButtonSubtitle}>
+              {t('tariffFreePriceSubtitle')}
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setSetupMode('APP');
+              setError('');
+            }}
+            className={cn(
+              styles.modeButton,
+              setupMode === 'APP' ? styles.modeButtonActive : styles.modeButtonInactive
+            )}
+          >
+            <span className={styles.modeButtonTitle}>
+              {t('tariffAppPriceTitle')}
+            </span>
+            <span className={styles.modeButtonSubtitle}>
+              {t('tariffAppPriceSubtitle')}
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setSetupMode('TAXI');
+              setError('');
+            }}
+            className={cn(
+              styles.modeButton,
+              setupMode === 'TAXI' ? styles.modeButtonActive : styles.modeButtonInactive
+            )}
+          >
+            <span className={styles.modeButtonTitle}>
+              {t('tariffTaxiPriceTitle')}
+            </span>
+            <span className={styles.modeButtonSubtitle}>
+              {t('tariffTaxiPriceSubtitle')}
+            </span>
+          </button>
+        </div>
 
         {setupMode === 'APP' && (
           <div className={styles.appNoticeCard}>
             <p className={styles.appNoticeTitle}>
               <span>📱</span>
-              <span>{isArabic ? tAuto('key_b2d7fc61') : 'Official Operator Tariff Commitment'}</span>
+              <span>{t('tariffAppNoticeTitle')}</span>
             </p>
             <p className={styles.appNoticeBody}>
-              {isArabic
-                ? tAuto('key_94359bb8')
-                : 'You are operating under your licensed operator tariff (Yellow Taxi, Uber, Careem, etc.). Riders will see that you operate via your registered operator.'}
+              {t('tariffAppNoticeBody')}
             </p>
           </div>
         )}
 
-        {/* Bottom Tariff Fields: Hidden until "FREE" mode is selected (or automatically shown for independent captains) */}
-        {(setupMode === 'FREE' || isIndependent) && (
+        {setupMode === 'TAXI' && (
+          <div className={styles.taxiNoticeCard}>
+            <p className={styles.taxiNoticeTitle}>
+              <span>🚕</span>
+              <span>{t('tariffTaxiNoticeTitle')}</span>
+            </p>
+            <p className={styles.taxiNoticeBody}>
+              {t('tariffTaxiNoticeBody')}
+            </p>
+          </div>
+        )}
+
+        {/* Bottom Tariff Fields: Shown only when "FREE" mode is selected */}
+        {setupMode === 'FREE' && (
           <div className={styles.fields}>
           <div className={styles.shortDistancesSection}>
             <button

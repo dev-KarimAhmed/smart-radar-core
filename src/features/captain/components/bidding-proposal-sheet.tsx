@@ -31,13 +31,13 @@ interface BiddingProposalSheetProps {
   isSubmitting: boolean;
   initialOfferPrice?: number | null;
   initialPricingMode?: 'FREE' | 'APP' | 'TAXI' | null;
-  captainPricingMode?: 'FREE' | 'APP' | null;
+  captainPricingMode?: 'FREE' | 'APP' | 'TAXI' | null;
   currentTariff?: {
     baseFare: number | null;
     pricePerKm: number | null;
     pricePerMin: number | null;
     includedKm?: number;
-    pricingMode?: 'FREE' | 'APP' | null;
+    pricingMode?: 'FREE' | 'APP' | 'TAXI' | null;
     marketAverage?: any;
   } | null;
   onEditTariff?: () => void;
