@@ -34,8 +34,8 @@ const styles = {
   style51_12: "rounded-2xl border border-slate-800 bg-black/45 p-4",
   style52_13: "text-xs text-slate-400",
   style53_14: "mt-1 text-xl font-black",
-  style55_15: "mt-3 inline-flex items-center gap-2 rounded-xl border border-emerald-500/30 px-3 py-2 text-sm font-bold text-emerald-300",
-  style56_16: "h-4 w-4",
+  style55_15: "mt-3 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-400 via-[#10B981] to-teal-500 px-4 py-2.5 text-sm font-black text-slate-950 shadow-[0_4px_16px_rgba(16,185,129,0.35)] hover:brightness-110 active:scale-95 transition-all cursor-pointer",
+  style56_16: "h-4 w-4 stroke-[2.5] text-slate-950",
   style63_17: "mt-5 grid gap-3 md:grid-cols-3",
   style68_18: "h-5 w-5 animate-spin",
   style68_19: "h-5 w-5",
@@ -212,11 +212,11 @@ export function ActiveTripTracker({
 
         <div className={styles.style51_12}>
           <p className={styles.style52_13}>{t('rider')}</p>
-          <h2 className={styles.style53_14}>{rider?.name || t('riderFallback')}</h2>
-          {rider?.phone ? (
-            <a href={`tel:${rider.phone}`} className={styles.style55_15}>
+          <h2 className={styles.style53_14}>{rider?.name || request.riderName || t('riderFallback')}</h2>
+          {(rider?.phone || request.riderPhone || (request as any).riderPhoneNumber) ? (
+            <a href={`tel:${rider?.phone || request.riderPhone || (request as any).riderPhoneNumber}`} className={styles.style55_15}>
               <Phone className={styles.style56_16} />
-              {t('callRider')}
+              <span>{t('callRider')}</span>
             </a>
           ) : null}
         </div>
@@ -236,9 +236,11 @@ export function ActiveTripTracker({
               {request.pickupLocationIsApproximate ? pickupT('pickupApproximate') : pickupT('pickupExact')}
             </p>
           </div>
-          {request.pickupGoogleMapsUrl ? (
+          {(request.pickupGoogleMapsUrl || pickupLocation) ? (
             <a
-              href={request.pickupGoogleMapsUrl}
+              href={request.pickupGoogleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${pickupLocation?.lat},${pickupLocation?.lng}`}
+              target="_blank"
+              rel="noopener noreferrer"
               className={styles.pickupCardLink}
             >
               <ExternalLink className={styles.pickupCardLinkIcon} aria-hidden="true" />

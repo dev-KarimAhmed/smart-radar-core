@@ -9,8 +9,9 @@ export function DriverVehiclePanel({ state, language }: { state: any, language: 
   const {
     vehiclePlate, setVehiclePlate, vehicleMake, setVehicleMake,
     vehicleModel, setVehicleModel, vehicleColor, vehicleYear, setVehicleYear,
-    businessName, companyCode, setCompanyCode, isTaxi, officePhone, setOfficePhone,
+    businessName, setBusinessName, companyCode, setCompanyCode,
     sideId, setSideId, facebookUrl, setFacebookUrl, instagramUrl, setInstagramUrl,
+    affiliationType, setAffiliationType,
     savedSnapshotRef, isFieldEditing, isSaving, startEditingField, stopEditingField, handleFieldSave
   } = state;
 
@@ -19,6 +20,19 @@ export function DriverVehiclePanel({ state, language }: { state: any, language: 
       if (typeof value === 'string' && value.trim()) return value.trim();
     }
     return '';
+  };
+
+  const getAffiliationLabel = (type: string) => {
+    switch (type) {
+      case 'smart-app':
+        return t('affiliationSmartApp');
+      case 'office-taxi':
+        return t('affiliationOfficeTaxi');
+      case 'independent':
+        return t('affiliationIndependent');
+      default:
+        return t('notProvided');
+    }
   };
 
   return (
@@ -78,42 +92,98 @@ export function DriverVehiclePanel({ state, language }: { state: any, language: 
               className={styles.editingInput}
             />
           </EditableField>
-          {/* Fixed — company/office name cannot be edited directly by the captain. */}
-          <Field label={isTaxi ? t('officeName') : t('companyName')} value={firstString(businessName, t('notProvided'))} />
-          {!isTaxi ? (
-            <EditableField
-              label={t('companyCode')}
-              helper={t('companyCodeHelper')}
-              value={firstString(companyCode, t('notProvided'))}
-              originalValue={firstString(savedSnapshotRef.current.companyCode, t('notProvided'))}
-              isEditing={isFieldEditing('companyCode')}
-              isSaving={isSaving}
-              onEdit={() => startEditingField('companyCode')}
-              onSave={handleFieldSave}
-              onCancel={() => { setCompanyCode(savedSnapshotRef.current.companyCode); stopEditingField('companyCode'); }}
+          <EditableField
+            label={t('affiliationTypeLabel')}
+            value={getAffiliationLabel(affiliationType)}
+            originalValue={getAffiliationLabel(savedSnapshotRef.current.affiliationType)}
+            isEditing={isFieldEditing('affiliationType')}
+            isSaving={isSaving}
+            onEdit={() => startEditingField('affiliationType')}
+            onSave={handleFieldSave}
+            onCancel={() => {
+              setAffiliationType(savedSnapshotRef.current.affiliationType || 'independent');
+              stopEditingField('affiliationType');
+            }}
+          >
+            <select
+              value={affiliationType || 'independent'}
+              onChange={(event) => setAffiliationType(event.target.value)}
+              className={styles.editingInput}
             >
-              <input
-                value={companyCode}
-                onChange={(event) => setCompanyCode(event.target.value)}
-                placeholder={t('companyCodePlaceholder')}
-                className={styles.editingInput}
-                dir="ltr"
-              />
-            </EditableField>
-          ) : null}
-          {isTaxi ? (
+              <option value="smart-app" className={styles.selectOption}>{t('affiliationSmartApp')}</option>
+              <option value="office-taxi" className={styles.selectOption}>{t('affiliationOfficeTaxi')}</option>
+              <option value="independent" className={styles.selectOption}>{t('affiliationIndependent')}</option>
+            </select>
+          </EditableField>
+
+          {affiliationType === 'smart-app' ? (
             <>
               <EditableField
-                label={t('officePhone')}
-                value={firstString(officePhone, t('notProvided'))}
-                originalValue={firstString(savedSnapshotRef.current.officePhone, t('notProvided'))}
-                isEditing={isFieldEditing('officePhone')}
+                label={t('companyName')}
+                value={firstString(businessName, t('notProvided'))}
+                originalValue={firstString(savedSnapshotRef.current.businessName, t('notProvided'))}
+                isEditing={isFieldEditing('businessName')}
                 isSaving={isSaving}
-                onEdit={() => startEditingField('officePhone')}
+                onEdit={() => startEditingField('businessName')}
                 onSave={handleFieldSave}
-                onCancel={() => { setOfficePhone(savedSnapshotRef.current.officePhone); stopEditingField('officePhone'); }}
+                onCancel={() => {
+                  setBusinessName(savedSnapshotRef.current.businessName);
+                  stopEditingField('businessName');
+                }}
               >
-                <input value={officePhone} onChange={(event) => setOfficePhone(event.target.value)} className={styles.editingInput} />
+                <input
+                  value={businessName}
+                  onChange={(event) => setBusinessName(event.target.value)}
+                  placeholder={t('companyNamePlaceholder')}
+                  className={styles.editingInput}
+                />
+              </EditableField>
+              <EditableField
+                label={t('companyCode')}
+                helper={t('companyCodeHelper')}
+                value={firstString(companyCode, t('notProvided'))}
+                originalValue={firstString(savedSnapshotRef.current.companyCode, t('notProvided'))}
+                isEditing={isFieldEditing('companyCode')}
+                isSaving={isSaving}
+                onEdit={() => startEditingField('companyCode')}
+                onSave={handleFieldSave}
+                onCancel={() => {
+                  setCompanyCode(savedSnapshotRef.current.companyCode);
+                  stopEditingField('companyCode');
+                }}
+              >
+                <input
+                  value={companyCode}
+                  onChange={(event) => setCompanyCode(event.target.value)}
+                  placeholder={t('companyCodePlaceholder')}
+                  className={styles.editingInput}
+                  dir="ltr"
+                />
+              </EditableField>
+            </>
+          ) : null}
+
+          {affiliationType === 'office-taxi' ? (
+            <>
+              <EditableField
+                label={t('officeName')}
+                value={firstString(businessName, t('notProvided'))}
+                originalValue={firstString(savedSnapshotRef.current.businessName, t('notProvided'))}
+                isEditing={isFieldEditing('businessName')}
+                isSaving={isSaving}
+                onEdit={() => startEditingField('businessName')}
+                onSave={handleFieldSave}
+                onCancel={() => {
+                  setBusinessName(savedSnapshotRef.current.businessName);
+                  stopEditingField('businessName');
+                }}
+              >
+                <input
+                  value={businessName}
+                  onChange={(event) => setBusinessName(event.target.value)}
+                  placeholder={t('officeNamePlaceholder')}
+                  className={styles.editingInput}
+                />
               </EditableField>
               <EditableField
                 label={t('sideId')}
@@ -123,9 +193,16 @@ export function DriverVehiclePanel({ state, language }: { state: any, language: 
                 isSaving={isSaving}
                 onEdit={() => startEditingField('sideId')}
                 onSave={handleFieldSave}
-                onCancel={() => { setSideId(savedSnapshotRef.current.sideId); stopEditingField('sideId'); }}
+                onCancel={() => {
+                  setSideId(savedSnapshotRef.current.sideId);
+                  stopEditingField('sideId');
+                }}
               >
-                <input value={sideId} onChange={(event) => setSideId(event.target.value)} className={styles.editingInput} />
+                <input
+                  value={sideId}
+                  onChange={(event) => setSideId(event.target.value)}
+                  className={styles.editingInput}
+                />
               </EditableField>
             </>
           ) : null}

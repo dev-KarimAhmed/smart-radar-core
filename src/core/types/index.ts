@@ -90,6 +90,8 @@ export interface Trip {
   id: string;
   serial_id?: string;
   riderId: string;
+  riderName?: string;
+  riderPhone?: string;
   driverId?: string;
   status: TripStatus;
   offerPrice?: number;

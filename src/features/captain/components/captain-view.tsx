@@ -264,7 +264,7 @@ export function DriverViewTab() {
     if (ok) dispatch({ type: 'OFFER_SUBMITTED', requestId: state.selectedRequest.id });
   };
 
-  const submitDirectBid = async (request: Trip, price: number, waitSeconds = 300, pricingMode?: 'FREE' | 'APP' | 'TAXI') => {
+  const submitDirectBid = async (request: Trip, price: number, waitSeconds = 120, pricingMode?: 'FREE' | 'APP' | 'TAXI') => {
     if (driverOps.pendingOfferRequestId && driverOps.pendingOfferRequestId !== request.id) {
       toast({
         variant: 'destructive',
@@ -476,9 +476,11 @@ export function DriverViewTab() {
             pendingOfferRequestId={driverOps.pendingOfferRequestId}
             captainPricingMode={currentTariff?.pricingMode ?? null}
             isOfficeTaxi={user?.affiliation?.type === 'office-taxi'}
+            subRole={user?.subRole}
             onSelectRequest={selectRequest}
             onIgnoreRequest={driverOps.rejectRequest}
             onSubmitDirectBid={submitDirectBid}
+            onEditTariff={() => setIsManualPriceSetupOpen(true)}
           />
         ) : null}
 

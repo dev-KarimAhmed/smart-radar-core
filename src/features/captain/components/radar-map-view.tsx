@@ -2,7 +2,26 @@
 
 import React from 'react';
 import maplibregl from 'maplibre-gl';
-import { ChevronDown, ClipboardPaste, Clock, Heart, Loader2, MapPin, RadioTower, Route, Star } from 'lucide-react';
+import {
+  AlertTriangle,
+  CheckCircle2,
+  ChevronDown,
+  ClipboardPaste,
+  Clock,
+  Edit3,
+  ExternalLink,
+  Heart,
+  Loader2,
+  MapPin,
+  Minus,
+  Phone,
+  Plus,
+  RadioTower,
+  Route,
+  Sparkles,
+  Star,
+  X,
+} from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { Trip } from '@/core/types';
 import { DEFAULT_MAP_CENTER } from '@/shared/services/maplibre-runtime';
@@ -10,6 +29,7 @@ import { useMaplibreInstance } from '@/shared/hooks/use-maplibre-instance';
 import { RecenterMapButton } from '@/shared/components/map/recenter-map-button';
 import { estimateHaversineDistanceKm } from '../services/ride-location';
 import { estimatePickupMinutes } from '@/shared/services/trip-duration';
+import { RadarAntiCheatKernel } from '@/core/RadarAntiCheatKernel';
 
 import { cn } from '@/lib/utils';
 const styles = {
@@ -65,50 +85,24 @@ const styles = {
   stateEmpty: "border-dashed border-slate-700 bg-slate-950/80 text-slate-300",
   pendingOfferHint: "mt-2 text-[11px] font-bold text-amber-300",
   pendingOfferDisabled: "cursor-not-allowed opacity-40 grayscale-[35%] hover:brightness-100 shadow-none",
-  riderRow: "mt-3 flex items-center justify-between gap-2",
-  riderChip: "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all duration-200",
-  riderDefaultChip: "border border-white/10 bg-white/5 text-slate-300",
-  riderRatingChip: "border border-amber-400/60 bg-gradient-to-r from-amber-500/25 to-amber-400/15 text-amber-300 shadow-[0_0_12px_rgba(251,191,36,0.25)] font-black",
-  riderTripsChip: "border border-cyan-400/40 bg-gradient-to-r from-cyan-500/20 to-teal-500/15 text-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.2)] font-bold",
-  riderFavoriteChipOn: "border border-rose-400 bg-gradient-to-r from-rose-500/35 via-pink-500/30 to-rose-600/25 text-white font-black shadow-[0_0_18px_rgba(244,63,94,0.45)] ring-1 ring-rose-400/60",
-  riderFavoriteChipOff: "border border-slate-700/60 bg-slate-900/50 text-slate-400 font-medium",
-  starFilled: "fill-amber-400 text-amber-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.9)]",
-  starEmpty: "text-slate-500",
-  routeIconActive: "text-cyan-400 drop-shadow-[0_0_4px_rgba(6,182,212,0.6)]",
-  heartFilled: "fill-rose-400 text-rose-300 drop-shadow-[0_0_8px_rgba(244,63,94,1)] animate-pulse",
-  heartEmpty: "text-slate-500",
-  riderChipIcon: "h-3.5 w-3.5 shrink-0",
   cardPendingOffer: "border-amber-400/35 shadow-[0_0_20px_rgba(251,191,36,0.12)] hover:border-amber-400/60",
-  ownPendingRow: "mt-3 flex items-center gap-2",
-  ownPendingBadge: "w-full flex-1 min-w-0 flex items-center justify-center gap-1.5 rounded-xl border border-amber-400/40 bg-gradient-to-r from-amber-500/15 via-amber-400/10 to-amber-500/15 h-11 px-2.5 text-xs font-black text-amber-200 shadow-[0_0_16px_rgba(251,191,36,0.12)] backdrop-blur-sm transition-all duration-200 overflow-hidden",
-  ownPendingDetailsBtn: "inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-3 h-11 text-xs font-bold text-cyan-300 shadow-sm hover:border-cyan-400/60 hover:bg-cyan-500/20 active:scale-[0.98] transition-all whitespace-nowrap",
+  ownPendingRow: "mt-3 space-y-2",
+  ownPendingBadge: "w-full flex items-center justify-center gap-1.5 rounded-xl border border-amber-400/40 bg-gradient-to-r from-amber-500/15 via-amber-400/10 to-amber-500/15 h-10 px-2.5 text-xs font-black text-amber-200 shadow-[0_0_16px_rgba(251,191,36,0.12)] backdrop-blur-sm transition-all duration-200 overflow-hidden",
   ownPendingIcon: "h-3.5 w-3.5 shrink-0 text-amber-300 drop-shadow-[0_0_6px_rgba(251,191,36,0.7)] animate-pulse",
   ownPendingPulseWrap: "relative flex h-2 w-2 shrink-0",
   ownPendingPing: "absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75",
   ownPendingDot: "relative inline-flex h-2 w-2 rounded-full bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.9)]",
   ownPendingText: "truncate font-black text-amber-100 text-xs tracking-tight whitespace-nowrap",
   infoFullWidth: "col-span-2",
-  cardHeaderToggle: "flex w-full flex-col text-start cursor-pointer select-none rounded-xl transition-opacity hover:opacity-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400",
-  toggleChevronWrap: "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-slate-400 transition-colors hover:border-emerald-500/40 hover:text-emerald-300",
-  toggleChevron: "h-4 w-4 transition-transform duration-200",
-  toggleChevronExpanded: "rotate-180 text-emerald-400",
-  toggleChevronCollapsed: "rotate-0 text-slate-400",
-  collapsibleContent: "mt-3 pt-3 border-t border-slate-800/80 transition-all duration-200",
   seizeMarketBanner: "mb-3 flex items-center justify-between gap-2 rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-3.5 py-2 text-xs font-black text-[#5eead4] shadow-sm",
   seizeMarketBadge: "flex h-5 items-center justify-center rounded-md border border-[#14B8A6]/40 bg-black/40 px-2 text-[10px] font-mono font-black text-[#14F5D5]",
-  requestIndexBadge: "inline-flex items-center justify-center rounded-lg border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-2 py-0.5 text-[10px] font-mono font-black text-[#14F5D5] shadow-sm",
-  cardTopRow: "flex items-center justify-between gap-2 mb-2",
-  riderPrefBadgeApp: "inline-flex items-center gap-1 rounded-lg border border-amber-400/40 bg-gradient-to-r from-amber-500/20 to-amber-400/10 px-2 py-0.5 text-[10px] sm:text-[11px] font-black text-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.15)] shrink-0",
-  riderPrefBadgeTaxi: "inline-flex items-center gap-1 rounded-lg border border-yellow-400/40 bg-gradient-to-r from-yellow-500/20 to-amber-500/15 px-2 py-0.5 text-[10px] sm:text-[11px] font-black text-yellow-200 shadow-[0_0_10px_rgba(234,179,8,0.15)] shrink-0",
-  riderPrefBadgeFree: "inline-flex items-center gap-1 rounded-lg border border-emerald-400/40 bg-emerald-500/15 px-2 py-0.5 text-[10px] sm:text-[11px] font-black text-emerald-300 shadow-[0_0_10px_rgba(16,185,129,0.15)] shrink-0",
-  riderPrefBadgeAll: "inline-flex items-center gap-1 rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-2 py-0.5 text-[10px] sm:text-[11px] font-black text-cyan-300 shadow-sm shrink-0",
   appPriceCard: "mt-3 rounded-2xl border border-amber-500/30 bg-gradient-to-b from-amber-500/[0.08] via-black/50 to-black/70 p-3 shadow-[0_4px_20px_rgba(0,0,0,0.4)] backdrop-blur-sm space-y-2.5",
   appPriceCardHeader: "flex items-center gap-2",
   appPriceCardBadge: "inline-flex items-center gap-1 rounded-lg border border-amber-400/30 bg-amber-500/15 px-2 py-0.5 text-[11px] font-black text-amber-300 shadow-sm shrink-0",
   appPriceCardNotice: "text-xs font-medium text-slate-300 min-w-0 flex-1",
   appPriceInputRow: "flex items-center gap-2 pt-0.5",
   appPriceInputGroup: "relative flex flex-1 items-center h-11 rounded-xl border border-amber-400/40 bg-black/70 shadow-inner focus-within:border-amber-400 focus-within:ring-2 focus-within:ring-amber-400/20 transition-all overflow-hidden",
-  appPriceInputField: "flex-1 min-w-0 h-full bg-transparent px-3 text-start font-mono text-base sm:text-lg font-black text-amber-100 placeholder:text-amber-500/30 outline-none",
+  appPriceInputField: "flex-1 min-w-0 h-full bg-transparent px-3 text-start font-mono text-base sm:text-lg font-black text-amber-100 placeholder:text-amber-500/30 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
   appPriceCurrencyBadge: "px-3 h-full flex items-center justify-center text-xs font-mono font-black text-amber-400/80 bg-amber-500/5 select-none border-s border-white/10 shrink-0",
   appPriceInputDisabled: "opacity-50 cursor-not-allowed",
   appPricePasteBtn: "h-11 px-3.5 inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl border border-amber-400/50 bg-amber-500/15 text-xs font-black text-amber-300 shadow-sm transition-all hover:bg-amber-400/25 hover:border-amber-400/70 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap",
@@ -116,13 +110,10 @@ const styles = {
   appPriceInputError: "text-center text-xs font-bold text-rose-400 pt-0.5",
   blockedPendingBanner: "mt-3 flex items-center justify-center gap-2 rounded-xl border border-amber-500/35 bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-amber-500/15 px-3.5 py-2.5 text-center text-xs font-black text-amber-200 shadow-sm backdrop-blur-sm",
   blockedPendingIcon: "h-4 w-4 shrink-0 text-amber-300 animate-pulse",
-  taxiNoticeBanner: "mt-3 flex items-center justify-center gap-2 rounded-xl border border-amber-400/35 bg-gradient-to-r from-amber-500/15 via-amber-400/10 to-amber-500/15 px-3.5 py-2.5 text-center text-xs sm:text-sm font-black text-amber-200 shadow-[0_0_16px_rgba(245,158,11,0.08)] backdrop-blur-sm",
+  taxiNoticeBanner: "mt-3 flex items-center justify-between gap-2 rounded-xl border border-amber-400/35 bg-gradient-to-r from-amber-500/15 via-amber-400/10 to-amber-500/15 px-3.5 py-2.5 text-xs font-black text-amber-200 shadow-[0_0_16px_rgba(245,158,11,0.08)] backdrop-blur-sm",
   taxiNoticeIcon: "h-4 w-4 shrink-0 text-amber-300",
-  moreDetailsButton: "inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-2.5 h-11 text-[11px] sm:text-xs font-bold text-cyan-300 shadow-sm hover:border-cyan-400/60 hover:bg-cyan-500/20 active:scale-[0.98] transition-all whitespace-nowrap",
-  moreDetailsIcon: "h-3.5 w-3.5 stroke-[2.2] shrink-0 text-cyan-300",
   submitSpinner: "h-4 w-4 animate-spin shrink-0",
 } as const;
-
 
 interface RadarMapViewProps {
   language: 'ar' | 'en';
@@ -137,9 +128,11 @@ interface RadarMapViewProps {
   pendingOfferRequestId?: string | null;
   captainPricingMode?: 'FREE' | 'APP' | null;
   isOfficeTaxi?: boolean;
+  subRole?: string | null;
   onSelectRequest: (request: Trip, initialPrice?: string, pricingMode?: 'FREE' | 'APP' | 'TAXI') => void;
   onIgnoreRequest: (requestId: string) => void;
   onSubmitDirectBid?: (request: Trip, price: number, waitSeconds?: number, pricingMode?: 'FREE' | 'APP' | 'TAXI') => Promise<void> | void;
+  onEditTariff?: () => void;
 }
 
 export function RadarMapView({
@@ -155,28 +148,30 @@ export function RadarMapView({
   pendingOfferRequestId = null,
   captainPricingMode = null,
   isOfficeTaxi = false,
+  subRole = null,
   onSelectRequest,
   onIgnoreRequest,
   onSubmitDirectBid,
+  onEditTariff,
 }: RadarMapViewProps) {
-    const tAuto = useTranslations('auto');
+  const tAuto = useTranslations('auto');
   const copy = radarCopy[language];
   const t = useTranslations('captainPickup');
   const mapContainerRef = React.useRef<HTMLDivElement | null>(null);
   const markerRef = React.useRef<maplibregl.Marker | null>(null);
   const requestMarkersRef = React.useRef<maplibregl.Marker[]>([]);
   const [mapIssue, setMapIssue] = React.useState(false);
-  const [expandedRequestIds, setExpandedRequestIds] = React.useState<Record<string, boolean>>({});
   const [directPrices, setDirectPrices] = React.useState<Record<string, string>>({});
   const [priceErrors, setPriceErrors] = React.useState<Record<string, boolean>>({});
   const [submittingRequestId, setSubmittingRequestId] = React.useState<string | null>(null);
 
-  const toggleRequestExpanded = React.useCallback((requestId: string) => {
-    setExpandedRequestIds((prev) => ({
-      ...prev,
-      [requestId]: !prev[requestId],
-    }));
-  }, []);
+  // State for the Wait Seconds Confirmation Modal popup
+  const [confirmModalTrip, setConfirmModalTrip] = React.useState<{
+    trip: Trip;
+    price: number;
+    pricingMode: 'FREE' | 'APP' | 'TAXI';
+  } | null>(null);
+  const [waitSeconds, setWaitSeconds] = React.useState<string>('120');
 
   const handlePastePrice = React.useCallback(async (requestId: string) => {
     try {
@@ -190,39 +185,69 @@ export function RadarMapView({
         }
       }
     } catch {
-      // Clipboard access denied or unsupported - fail silently
+      // Clipboard access denied or unsupported
     }
   }, []);
 
-  const handleOpenBid = React.useCallback(async (request: Trip) => {
+  const handleInitiateOffer = React.useCallback((request: Trip) => {
     const isTaxi = isOfficeTaxi || request.pricingPreference === 'TAXI';
     const isApp = !isTaxi && (captainPricingMode === 'APP' || request.pricingPreference === 'APP');
+    const isIndependent = !isTaxi && !isApp && (subRole === 'independent' || subRole === 'المستقل');
     const cardPricingMode: 'FREE' | 'APP' | 'TAXI' = isTaxi ? 'TAXI' : isApp ? 'APP' : 'FREE';
 
-    // In Smart App mode: if a valid price is typed directly on the card, submit it
-    if (isApp) {
-      const priceStr = directPrices[request.id]?.trim();
-      const priceNum = priceStr ? parseFloat(priceStr) : NaN;
-      if (!priceStr || isNaN(priceNum) || priceNum <= 0) {
-        setPriceErrors((prev) => ({ ...prev, [request.id]: true }));
-        return;
+    let priceNum: number | null = null;
+    const priceStr = directPrices[request.id]?.trim();
+    const parsed = priceStr ? parseFloat(priceStr) : NaN;
+
+    if (isTaxi) {
+      priceNum = request.offerPrice != null && request.offerPrice > 0 ? request.offerPrice : null;
+    } else if (isApp || isIndependent) {
+      if (priceStr && !isNaN(parsed) && parsed > 0) {
+        priceNum = parsed;
       }
-      setPriceErrors((prev) => ({ ...prev, [request.id]: false }));
-      if (onSubmitDirectBid) {
-        setSubmittingRequestId(request.id);
-        try {
-          await onSubmitDirectBid(request, priceNum, 300, 'APP');
-        } finally {
-          setSubmittingRequestId(null);
-        }
-        return;
+    } else {
+      // Radar / Free Mode: check typed/stepped price override or default calculated offerPrice
+      if (priceStr && !isNaN(parsed) && parsed > 0) {
+        priceNum = parsed;
+      } else if (request.offerPrice != null && request.offerPrice > 0) {
+        priceNum = request.offerPrice;
       }
     }
 
-    // In non-App modes (Taxi, Free, etc.) or if no direct price was entered,
-    // take the captain to the details page so they can review and set/confirm their price:
-    onSelectRequest(request, directPrices[request.id], cardPricingMode);
-  }, [captainPricingMode, directPrices, isOfficeTaxi, onSelectRequest, onSubmitDirectBid]);
+    const baseMarketPrice = request.offerPrice != null && request.offerPrice > 0 ? request.offerPrice : null;
+    if (baseMarketPrice && baseMarketPrice > 0 && priceNum && priceNum > 0) {
+      const marketBrake = RadarAntiCheatKernel.enforceMarketBrakes(priceNum, baseMarketPrice);
+      if (marketBrake.status === 'CRIMSON_BLOCK' || priceNum < baseMarketPrice * 0.85) {
+        return; // Crimson Block: prevent initiating offer
+      }
+    }
+
+    if (priceNum == null || priceNum <= 0) {
+      setPriceErrors((prev) => ({ ...prev, [request.id]: true }));
+      return;
+    }
+
+    setPriceErrors((prev) => ({ ...prev, [request.id]: false }));
+    setConfirmModalTrip({
+      trip: request,
+      price: priceNum,
+      pricingMode: cardPricingMode,
+    });
+    setWaitSeconds('120');
+  }, [captainPricingMode, directPrices, isOfficeTaxi, subRole]);
+
+  const handleConfirmSubmitBid = React.useCallback(async () => {
+    if (!confirmModalTrip || !onSubmitDirectBid) return;
+    const { trip, price, pricingMode } = confirmModalTrip;
+    setSubmittingRequestId(trip.id);
+    try {
+      const finalWaitSeconds = Math.max(30, Math.min(900, parseInt(waitSeconds, 10) || 120));
+      await onSubmitDirectBid(trip, price, finalWaitSeconds, pricingMode);
+      setConfirmModalTrip(null);
+    } finally {
+      setSubmittingRequestId(null);
+    }
+  }, [confirmModalTrip, onSubmitDirectBid, waitSeconds]);
 
   const visibleLocation = driverLocation || DEFAULT_MAP_CENTER;
   const totalMinutes = paidMinutes + bonusMinutes;
@@ -240,16 +265,11 @@ export function RadarMapView({
     window.requestAnimationFrame(() => map.resize());
   }, [mapRef]);
 
-  // Runs once the map instance exists (mirrors the original code, which set
-  // these up synchronously right after `new maplibregl.Map(...)`, before
-  // `'load'` fires) — error health-check and the fallback resize nudge are
-  // captain-specific, not shared with rider.
   React.useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
 
     map.on('error', () => setMapIssue(true));
-
     const resizeTimer = window.setTimeout(resize, 300);
 
     return () => {
@@ -358,8 +378,6 @@ export function RadarMapView({
           className={styles.style192_20}
           ariaLabel={copy.recenter}
         />
-
-
       </div>
 
       <aside className={styles.style201_22}>
@@ -367,7 +385,6 @@ export function RadarMapView({
           <div>
             <p className={styles.style204_24}>{copy.queueBadge}</p>
             <h2 className={styles.style205_25}>{copy.sheetTitle}</h2>
-            <p className={styles.style206_26}>{copy.sheetSubtitle}</p>
           </div>
           <span className={styles.style208_27}>{requests.length}</span>
         </div>
@@ -383,13 +400,36 @@ export function RadarMapView({
                 <span>{copy.seizeMarket}</span>
                 <span className={styles.seizeMarketBadge}>{requests.length}/9</span>
               </div>
-              {requests.map((request, index) => {
+              {requests.map((request) => {
                 const isOwnPendingOffer = pendingOfferRequestId === request.id;
                 const isBlockedByOtherPendingOffer = Boolean(pendingOfferRequestId) && !isOwnPendingOffer;
                 const isTaxiMode = isOfficeTaxi || request.pricingPreference === 'TAXI';
                 const isAppMode = !isTaxiMode && (captainPricingMode === 'APP' || request.pricingPreference === 'APP');
+                const isIndependentMode = !isTaxiMode && !isAppMode && (subRole === 'independent' || subRole === 'المستقل');
+                const isRadarFreeMode = !isTaxiMode && !isAppMode && !isIndependentMode;
+
                 const isSubmittingThisRequest = submittingRequestId === request.id;
-                const isExpanded = Boolean(expandedRequestIds[request.id]);
+
+                const pickupCoords = request.exactPickupCoords || request.obfuscatedPickupCoords || request.pickupCoords;
+                const googleMapsUrl = request.pickupGoogleMapsUrl || (pickupCoords?.lat && pickupCoords?.lng ? `https://www.google.com/maps/search/?api=1&query=${pickupCoords.lat},${pickupCoords.lng}` : null);
+                const riderPhoneNum = request.riderPhone || (request as any).riderPhoneNumber || (request as any).rider?.phone;
+
+                // Anti-dumping and price limit calculations for card
+                const baseMarketPrice = request.offerPrice != null && request.offerPrice > 0 ? request.offerPrice : null;
+                const rawPriceStr = directPrices[request.id];
+                const rawPriceNum = rawPriceStr != null && rawPriceStr.trim() !== '' ? parseFloat(rawPriceStr) : null;
+                const currentPrice = rawPriceNum != null && !isNaN(rawPriceNum) && rawPriceNum > 0
+                  ? rawPriceNum
+                  : (baseMarketPrice ?? 0);
+
+                const marketBrake = (baseMarketPrice && baseMarketPrice > 0 && currentPrice > 0)
+                  ? RadarAntiCheatKernel.enforceMarketBrakes(currentPrice, baseMarketPrice)
+                  : { status: 'NORMAL' as const };
+
+                const isDumpingCrimson = !isTaxiMode && (marketBrake.status === 'CRIMSON_BLOCK' || (Boolean(baseMarketPrice) && currentPrice > 0 && currentPrice < (baseMarketPrice! * 0.85)));
+                const isDumpingAmber = !isTaxiMode && !isDumpingCrimson && marketBrake.status === 'AMBER_WARNING';
+                const isUpperWarn = !isTaxiMode && !isDumpingCrimson && !isDumpingAmber && Boolean(baseMarketPrice) && currentPrice > 0 && currentPrice > (baseMarketPrice! * 1.15);
+                const floorPrice = baseMarketPrice ? Math.round(baseMarketPrice * 0.85 * 100) / 100 : 0;
 
                 return (
                   <article
@@ -399,104 +439,71 @@ export function RadarMapView({
                       isOwnPendingOffer ? styles.cardPendingOffer : '',
                     )}
                   >
-                    <div
-                      role="button"
-                      tabIndex={0}
-                      aria-expanded={isExpanded}
-                      onClick={() => toggleRequestExpanded(request.id)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          toggleRequestExpanded(request.id);
-                        }
-                      }}
-                      className={styles.cardHeaderToggle}
-                    >
-                      <div className={styles.style220_33}>
-                        <MapPin className={styles.style221_34} />
-                        <div className={styles.style222_35}>
-                          <h3 className={styles.style223_36}>{request.dropoff || copy.destination}</h3>
-                        </div>
-                      </div>
-
-                      {/* Rider info (rating, trips) */}
-                      <div className="mt-3.5 space-y-2 select-none" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-                        {/* تقييم الراكب */}
-                        <div className="flex items-center justify-between text-sm font-bold">
-                          <span className="text-slate-200">{copy.riderRatingLabel}</span>
-                          <span
-                            dir="ltr"
-                            className={cn(
-                              'font-black font-mono',
-                              request.riderRating != null && request.riderRating > 0 ? 'text-amber-400 text-base' : 'text-slate-400 text-xs sm:text-sm font-bold',
-                            )}
-                          >
-                            {request.riderRating != null && request.riderRating > 0
-                              ? `${request.riderRating % 1 === 0 ? request.riderRating.toFixed(0) : request.riderRating.toFixed(1)}/5`
-                              : copy.riderUnrated}
-                          </span>
-                        </div>
-
-                        {/* رحلات الراكب */}
-                        <div className="flex items-center justify-between text-sm font-bold">
-                          <span className="text-slate-200">{copy.riderTripsLabel}</span>
-                          <span dir="ltr" className="font-black text-base font-mono text-white">
-                            {request.riderCompletedTrips != null ? request.riderCompletedTrips : 0}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Favorite indicator and toggle chevron at the end of the card */}
-                      <div className="mt-2.5 flex items-center justify-between gap-2 pt-1 border-t border-white/5" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-                        {request.riderFavoritedMe ? (
-                          <div className="flex items-center gap-1.5 text-xs sm:text-sm font-black text-emerald-400">
-                            <Heart className="h-4 w-4 shrink-0 fill-emerald-400 text-emerald-400 drop-shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse" />
-                            <span>{copy.riderFavoritedYou}</span>
-                          </div>
-                        ) : (
-                          <span />
-                        )}
-
-                        <span className={styles.toggleChevronWrap}>
-                          <ChevronDown
-                            className={cn(
-                              styles.toggleChevron,
-                              isExpanded ? styles.toggleChevronExpanded : styles.toggleChevronCollapsed,
-                            )}
-                          />
-                        </span>
+                    {/* Destination Title & Header */}
+                    <div className={styles.style220_33}>
+                      <MapPin className={styles.style221_34} />
+                      <div className={styles.style222_35}>
+                        <h3 className={styles.style223_36}>{request.dropoff || copy.destination}</h3>
                       </div>
                     </div>
 
-                    {/* Details and actions are collapsed by default.
-                        The captain opens to inspect pickup time, distance, and place a bid. */}
-                    {isExpanded ? (
-                      <div className={styles.collapsibleContent}>
-                        {/* Pickup location (address, exact-map link) is deliberately withheld at
-                            this stage — before the captain has even opened an offer, it's only
-                            visible once they open the bidding sheet. The trip distance and how long
-                            the approach to the rider will take are still useful for deciding
-                            whether the trip is worth it, so those stay. */}
-                        <div className={styles.style227_38}>
-                          <Info
-                            label={copy.pickupTime}
-                            value={t('minutesValue', { count: estimatePickupMinutes(pickupDistanceKm(driverLocation, request)) })}
-                          />
-                          <Info
-                            label={copy.tripDistance}
-                            value={request.estimatedDistance != null ? `${request.estimatedDistance.toFixed(1)} ${language === 'ar' ? tAuto('key_4171dde6') : 'km'}` : t('distanceUnavailable')}
-                          />
-                          <Info
-                            label={copy.marketFare}
-                            value={request.offerPrice != null ? `${request.offerPrice.toFixed(2)} ${currency}` : '—'}
-                          />
-                          <Info
-                            label={copy.requestTime}
-                            value={formatRequestTime(request.createdAt, language)}
-                          />
-                        </div>
+                    {/* Rider Info (Rating, Trips, Favorite) */}
+                    <div className="mt-3 space-y-2 select-none" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                      <div className="flex items-center justify-between text-xs sm:text-sm font-bold">
+                        <span className="text-slate-300">{copy.riderRatingLabel}</span>
+                        <span
+                          dir="ltr"
+                          className={cn(
+                            'font-black font-mono',
+                            request.riderRating != null && request.riderRating > 0 ? 'text-amber-400 text-sm sm:text-base' : 'text-slate-400 text-xs font-bold',
+                          )}
+                        >
+                          {request.riderRating != null && request.riderRating > 0
+                            ? `${request.riderRating % 1 === 0 ? request.riderRating.toFixed(0) : request.riderRating.toFixed(1)}/5`
+                            : copy.riderUnrated}
+                        </span>
+                      </div>
 
-                        {isAppMode && !isOwnPendingOffer ? (
+                      <div className="flex items-center justify-between text-xs sm:text-sm font-bold">
+                        <span className="text-slate-300">{copy.riderTripsLabel}</span>
+                        <span dir="ltr" className="font-black text-sm sm:text-base font-mono text-white">
+                          {request.riderCompletedTrips != null ? request.riderCompletedTrips : 0}
+                        </span>
+                      </div>
+
+                      {request.riderFavoritedMe && (
+                        <div className="flex items-center gap-1.5 text-xs font-black text-emerald-400 pt-1">
+                          <Heart className="h-3.5 w-3.5 shrink-0 fill-emerald-400 text-emerald-400 animate-pulse" />
+                          <span>{copy.riderFavoritedYou}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Trip Info Grid (directly on the card) */}
+                    <div className={styles.style227_38} dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                      <Info
+                        label={copy.pickupTime}
+                        value={t('minutesValue', { count: estimatePickupMinutes(pickupDistanceKm(driverLocation, request)) })}
+                      />
+                      <Info
+                        label={copy.tripDistance}
+                        value={request.estimatedDistance != null ? `${request.estimatedDistance.toFixed(1)} ${language === 'ar' ? tAuto('key_4171dde6') : 'km'}` : t('distanceUnavailable')}
+                      />
+                      <Info
+                        label={copy.marketFare}
+                        value={request.offerPrice != null ? `${request.offerPrice.toFixed(2)} ${currency}` : '—'}
+                      />
+                      <Info
+                        label={copy.requestTime}
+                        value={formatRequestTime(request.createdAt, language)}
+                      />
+                    </div>
+
+                    {/* PRICING INPUT / DISPLAY ON THE CARD */}
+                    {!isOwnPendingOffer && (
+                      <div className="mt-3.5 pt-3 border-t border-slate-800/80">
+                        {/* CASE 1: Smart App Mode (Uber etc.) - Input readOnly + Paste button only */}
+                        {isAppMode && (
                           <div className={styles.appPriceCard} onClick={(e) => e.stopPropagation()}>
                             <div className={styles.appPriceCardHeader} dir={language === 'ar' ? 'rtl' : 'ltr'}>
                               <span className={styles.appPriceCardBadge}>
@@ -510,27 +517,22 @@ export function RadarMapView({
                             <div className={styles.appPriceInputRow} dir={language === 'ar' ? 'rtl' : 'ltr'}>
                               <div className={styles.appPriceInputGroup} dir="ltr">
                                 <input
-                                  type="number"
-                                  step="0.01"
-                                  min="0.1"
+                                  type="text"
+                                  inputMode="decimal"
                                   placeholder="0.00"
                                   disabled={isBlockedByOtherPendingOffer}
                                   value={directPrices[request.id] ?? ''}
                                   onChange={(e) => {
-                                    const val = e.target.value;
-                                    setDirectPrices((prev) => ({ ...prev, [request.id]: val }));
-                                    if (priceErrors[request.id]) {
-                                      setPriceErrors((prev) => ({ ...prev, [request.id]: false }));
-                                    }
+                                    const val = e.target.value.replace(/[^0-9.]/g, '');
+                                    const parts = val.split('.');
+                                    const cleanVal = parts.length > 2 ? `${parts[0]}.${parts.slice(1).join('')}` : val;
+                                    setDirectPrices((prev) => ({ ...prev, [request.id]: cleanVal }));
+                                    if (priceErrors[request.id]) setPriceErrors((prev) => ({ ...prev, [request.id]: false }));
                                   }}
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                      e.preventDefault();
-                                      void handleOpenBid(request);
-                                    }
-                                  }}
+                                  onWheel={(e) => (e.target as HTMLInputElement).blur()}
                                   className={cn(
                                     styles.appPriceInputField,
+                                    'text-amber-300 font-mono font-black',
                                     isBlockedByOtherPendingOffer ? styles.appPriceInputDisabled : '',
                                   )}
                                   dir="ltr"
@@ -555,69 +557,274 @@ export function RadarMapView({
                               <p className={styles.appPriceInputError}>{copy.appModePriceRequired}</p>
                             ) : null}
                           </div>
-                        ) : null}
+                        )}
 
-                        {isTaxiMode && !isOwnPendingOffer ? (
+                        {/* CASE 2: Independent Mode (مستقل) - Stepper + Input directly on card */}
+                        {isIndependentMode && (
+                          <div className={styles.appPriceCard} onClick={(e) => e.stopPropagation()}>
+                            <div className={styles.appPriceCardHeader} dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                              <span className={styles.appPriceCardBadge}>
+                                💼 {copy.independentBadge}
+                              </span>
+                              <span className={styles.appPriceCardNotice}>
+                                {copy.independentNotice}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-2 pt-1 w-full" dir="ltr">
+                              <button
+                                type="button"
+                                disabled={isBlockedByOtherPendingOffer}
+                                onClick={() => {
+                                  const stepVal = 0.5;
+                                  const nextVal = Math.max(0.1, Math.round((currentPrice - stepVal) * 100) / 100);
+                                  setDirectPrices((prev) => ({ ...prev, [request.id]: nextVal.toFixed(2) }));
+                                  if (priceErrors[request.id]) setPriceErrors((prev) => ({ ...prev, [request.id]: false }));
+                                }}
+                                className="flex h-11 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-700/80 bg-slate-900 text-slate-200 hover:bg-slate-800 active:scale-95 transition-all disabled:opacity-40 cursor-pointer shadow-sm"
+                              >
+                                <Minus className="h-4 w-4" />
+                              </button>
+
+                              <div
+                                className={cn(
+                                  styles.appPriceInputGroup,
+                                  'min-w-0 flex-1',
+                                  isDumpingCrimson ? '!border-rose-500/80 !bg-rose-950/40' : isDumpingAmber ? '!border-amber-500/80 !bg-amber-950/30' : '',
+                                )}
+                                dir="ltr"
+                              >
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  min="0.1"
+                                  placeholder="0.00"
+                                  disabled={isBlockedByOtherPendingOffer}
+                                  value={directPrices[request.id] ?? ''}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setDirectPrices((prev) => ({ ...prev, [request.id]: val }));
+                                    if (priceErrors[request.id]) {
+                                      setPriceErrors((prev) => ({ ...prev, [request.id]: false }));
+                                    }
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      e.preventDefault();
+                                      if (!isDumpingCrimson) handleInitiateOffer(request);
+                                    }
+                                  }}
+                                  className={cn(
+                                    styles.appPriceInputField,
+                                    'font-mono font-black text-center text-base',
+                                    isBlockedByOtherPendingOffer ? styles.appPriceInputDisabled : '',
+                                    isDumpingCrimson ? '!text-rose-300' : isDumpingAmber ? '!text-amber-300' : '',
+                                  )}
+                                  dir="ltr"
+                                />
+                                <span className={styles.appPriceCurrencyBadge}>{currency}</span>
+                              </div>
+
+                              <button
+                                type="button"
+                                disabled={isBlockedByOtherPendingOffer}
+                                onClick={() => {
+                                  const stepVal = 0.5;
+                                  const nextVal = Math.round((currentPrice + stepVal) * 100) / 100;
+                                  setDirectPrices((prev) => ({ ...prev, [request.id]: nextVal.toFixed(2) }));
+                                  if (priceErrors[request.id]) setPriceErrors((prev) => ({ ...prev, [request.id]: false }));
+                                }}
+                                className="flex h-11 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-700/80 bg-slate-900 text-slate-200 hover:bg-slate-800 active:scale-95 transition-all disabled:opacity-40 cursor-pointer shadow-sm"
+                              >
+                                <Plus className="h-4 w-4" />
+                              </button>
+                            </div>
+
+                            {priceErrors[request.id] ? (
+                              <p className={styles.appPriceInputError}>{copy.independentPriceRequired}</p>
+                            ) : null}
+                          </div>
+                        )}
+
+                        {/* CASE 3: Radar / Free Mode (رادار) - Stepper + Input + Edit Setup Button */}
+                        {isRadarFreeMode && (
+                          <div className="rounded-2xl border border-emerald-500/30 bg-emerald-950/20 p-3 shadow-inner space-y-2" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                            <div className="flex items-center justify-between gap-2.5">
+                              <span className="inline-flex items-center gap-1 text-xs font-black text-emerald-300 min-w-0 flex-1 leading-snug">
+                                📡 {copy.radarModeNotice}
+                              </span>
+                              {onEditTariff && (
+                                <button
+                                  type="button"
+                                  onClick={onEditTariff}
+                                  className="inline-flex shrink-0 items-center gap-1 rounded-md border border-emerald-400/40 bg-emerald-500/15 px-2 py-0.5 text-[11px] font-bold text-emerald-300 hover:bg-emerald-500/25 active:scale-95 transition-all cursor-pointer"
+                                >
+                                  <Edit3 className="h-3 w-3" />
+                                  <span>{copy.editTariffBtn}</span>
+                                </button>
+                              )}
+                            </div>
+
+                            <div className="flex items-center gap-2 pt-1 w-full" dir="ltr">
+                              <button
+                                type="button"
+                                disabled={isBlockedByOtherPendingOffer}
+                                onClick={() => {
+                                  const stepVal = 0.5;
+                                  const nextVal = Math.max(0.1, Math.round((currentPrice - stepVal) * 100) / 100);
+                                  setDirectPrices((prev) => ({ ...prev, [request.id]: nextVal.toFixed(2) }));
+                                  if (priceErrors[request.id]) setPriceErrors((prev) => ({ ...prev, [request.id]: false }));
+                                }}
+                                className="flex h-11 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-700/80 bg-slate-900 text-slate-200 hover:bg-slate-800 active:scale-95 transition-all disabled:opacity-40 cursor-pointer shadow-sm"
+                              >
+                                <Minus className="h-4 w-4" />
+                              </button>
+
+                              <div
+                                className={cn(
+                                  styles.appPriceInputGroup,
+                                  'min-w-0 flex-1',
+                                  isDumpingCrimson ? '!border-rose-500/80 !bg-rose-950/40' : isDumpingAmber ? '!border-amber-500/80 !bg-amber-950/30' : '',
+                                )}
+                                dir="ltr"
+                              >
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  min="0.1"
+                                  placeholder={baseMarketPrice ? baseMarketPrice.toFixed(2) : '0.00'}
+                                  disabled={isBlockedByOtherPendingOffer}
+                                  value={directPrices[request.id] ?? (baseMarketPrice ? baseMarketPrice.toFixed(2) : '')}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setDirectPrices((prev) => ({ ...prev, [request.id]: val }));
+                                    if (priceErrors[request.id]) {
+                                      setPriceErrors((prev) => ({ ...prev, [request.id]: false }));
+                                    }
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      e.preventDefault();
+                                      if (!isDumpingCrimson) handleInitiateOffer(request);
+                                    }
+                                  }}
+                                  className={cn(
+                                    styles.appPriceInputField,
+                                    'font-mono font-black text-center text-base',
+                                    isBlockedByOtherPendingOffer ? styles.appPriceInputDisabled : '',
+                                    isDumpingCrimson ? '!text-rose-300' : isDumpingAmber ? '!text-amber-300' : '',
+                                  )}
+                                  dir="ltr"
+                                />
+                                <span className={styles.appPriceCurrencyBadge}>{currency}</span>
+                              </div>
+
+                              <button
+                                type="button"
+                                disabled={isBlockedByOtherPendingOffer}
+                                onClick={() => {
+                                  const stepVal = 0.5;
+                                  const nextVal = Math.round((currentPrice + stepVal) * 100) / 100;
+                                  setDirectPrices((prev) => ({ ...prev, [request.id]: nextVal.toFixed(2) }));
+                                  if (priceErrors[request.id]) setPriceErrors((prev) => ({ ...prev, [request.id]: false }));
+                                }}
+                                className="flex h-11 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-700/80 bg-slate-900 text-slate-200 hover:bg-slate-800 active:scale-95 transition-all disabled:opacity-40 cursor-pointer shadow-sm"
+                              >
+                                <Plus className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* CASE 4: Taxi Mode (تاكسي) - Fixed Meter Fare Display (Read-Only) */}
+                        {isTaxiMode && (
                           <div className={styles.taxiNoticeBanner} dir={language === 'ar' ? 'rtl' : 'ltr'}>
-                            <span className={styles.taxiNoticeIcon}>🚕</span>
-                            <span>{copy.taxiModeNotice}</span>
+                            <div className="flex items-center gap-1.5">
+                              <span className={styles.taxiNoticeIcon}>🚕</span>
+                              <span>{copy.taxiModeNotice}</span>
+                            </div>
+                            <span className="font-mono font-black text-sm text-amber-300" dir="ltr">
+                              {request.offerPrice != null ? `${request.offerPrice.toFixed(2)} ${currency}` : '—'}
+                            </span>
                           </div>
-                        ) : null}
+                        )}
 
-                        {isBlockedByOtherPendingOffer ? (
-                          <div className={styles.blockedPendingBanner} dir={language === 'ar' ? 'rtl' : 'ltr'}>
-                            <Clock className={styles.blockedPendingIcon} />
-                            <span>{copy.blockedPendingOfferHint}</span>
+                        {/* DYNAMIC ANTI-DUMPING / LIMIT ALERTS (Shown ONLY when breached) */}
+                        {isDumpingCrimson ? (
+                          <div className="mt-2.5 rounded-xl border border-rose-500/40 bg-rose-950/50 p-2.5 text-xs text-rose-200 space-y-2 animate-in fade-in duration-150" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                            <div className="flex items-start gap-2 font-bold">
+                              <AlertTriangle className="h-4 w-4 shrink-0 text-rose-400 mt-0.5" />
+                              <span>{copy.dumpingCrimsonMsg}</span>
+                            </div>
+                            {floorPrice > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setDirectPrices((prev) => ({ ...prev, [request.id]: floorPrice.toFixed(2) }));
+                                  if (priceErrors[request.id]) setPriceErrors((prev) => ({ ...prev, [request.id]: false }));
+                                }}
+                                className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-rose-400/40 bg-rose-500/20 py-1.5 px-3 text-xs font-black text-rose-200 hover:bg-rose-500/30 active:scale-95 transition-all cursor-pointer"
+                              >
+                                <Sparkles className="h-3.5 w-3.5 text-amber-300" />
+                                <span>{copy.applyFloorBtn} ({floorPrice.toFixed(2)} {currency})</span>
+                              </button>
+                            )}
                           </div>
-                        ) : null}
-
-                        {!isOwnPendingOffer ? (
-                          <div className={styles.style231_39} dir={language === 'ar' ? 'rtl' : 'ltr'}>
-                            <button
-                              type="button"
-                              onClick={() => void handleOpenBid(request)}
-                              disabled={isBlockedByOtherPendingOffer || isSubmittingThisRequest}
-                              title={isBlockedByOtherPendingOffer ? copy.blockedPendingOfferHint : undefined}
-                              className={cn(
-                                styles.style232_40,
-                                (isBlockedByOtherPendingOffer || isSubmittingThisRequest) ? styles.pendingOfferDisabled : '',
-                              )}
-                              dir={language === 'ar' ? 'rtl' : 'ltr'}
-                            >
-                              {isSubmittingThisRequest ? (
-                                <Loader2 className={styles.submitSpinner} />
-                              ) : (
-                                <Route className={styles.style233_41} />
-                              )}
-                              <span>{isAppMode ? copy.submitDirect : copy.openBid}</span>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => onSelectRequest(request, directPrices[request.id], isTaxiMode ? 'TAXI' : isAppMode ? 'APP' : 'FREE')}
-                              className={styles.moreDetailsButton}
-                              title={copy.moreDetails}
-                              dir={language === 'ar' ? 'rtl' : 'ltr'}
-                            >
-                              <MapPin className={styles.moreDetailsIcon} />
-                              <span>{copy.moreDetails}</span>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => onIgnoreRequest(request.id)}
-                              className={styles.style236_42}
-                              dir={language === 'ar' ? 'rtl' : 'ltr'}
-                            >
-                              {copy.ignore}
-                            </button>
+                        ) : isDumpingAmber ? (
+                          <div className="mt-2.5 flex items-center gap-2 rounded-xl border border-amber-500/40 bg-amber-950/40 p-2.5 text-xs font-bold text-amber-200 animate-in fade-in duration-150" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                            <AlertTriangle className="h-4 w-4 shrink-0 text-amber-400" />
+                            <span>{copy.dumpingAmberMsg}</span>
+                          </div>
+                        ) : isUpperWarn ? (
+                          <div className="mt-2.5 flex items-center gap-2 rounded-xl border border-amber-500/40 bg-amber-950/40 p-2.5 text-xs font-bold text-amber-200 animate-in fade-in duration-150" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                            <AlertTriangle className="h-4 w-4 shrink-0 text-amber-400" />
+                            <span>{copy.upperWarnMsg}</span>
                           </div>
                         ) : null}
                       </div>
+                    )}
+
+                    {isBlockedByOtherPendingOffer ? (
+                      <div className={styles.blockedPendingBanner} dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                        <Clock className={styles.blockedPendingIcon} />
+                        <span>{copy.blockedPendingOfferHint}</span>
+                      </div>
                     ) : null}
 
-                    {/* When the captain has placed an offer, this status banner is ALWAYS
-                        visible whether the card is closed or open — so the captain can see
-                        at a glance that their offer is awaiting the rider's decision without
-                        having to expand the card first. */}
+                    {/* Submit Offer Button */}
+                    {!isOwnPendingOffer ? (
+                      <div className={styles.style231_39} dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                        <button
+                          type="button"
+                          onClick={() => handleInitiateOffer(request)}
+                          disabled={isBlockedByOtherPendingOffer || isSubmittingThisRequest || isDumpingCrimson}
+                          title={isDumpingCrimson ? copy.dumpingCrimsonMsg : isBlockedByOtherPendingOffer ? copy.blockedPendingOfferHint : undefined}
+                          className={cn(
+                            styles.style232_40,
+                            (isBlockedByOtherPendingOffer || isSubmittingThisRequest || isDumpingCrimson) ? styles.pendingOfferDisabled : '',
+                            isDumpingCrimson ? '!bg-rose-950/60 !border-rose-500/50 !text-rose-300 opacity-60 cursor-not-allowed' : isDumpingAmber ? '!border-amber-500/80' : '',
+                          )}
+                          dir={language === 'ar' ? 'rtl' : 'ltr'}
+                        >
+                          {isSubmittingThisRequest ? (
+                            <Loader2 className={styles.submitSpinner} />
+                          ) : (
+                            <Route className={styles.style233_41} />
+                          )}
+                          <span>{copy.submitDirect}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onIgnoreRequest(request.id)}
+                          className={styles.style236_42}
+                          dir={language === 'ar' ? 'rtl' : 'ltr'}
+                        >
+                          {copy.ignore}
+                        </button>
+                      </div>
+                    ) : null}
+
+                    {/* IF OFFER PENDING: Show Status Banner only */}
                     {isOwnPendingOffer ? (
                       <div className={styles.ownPendingRow} dir={language === 'ar' ? 'rtl' : 'ltr'}>
                         <div className={styles.ownPendingBadge} title={copy.ownPendingOfferDesc}>
@@ -637,6 +844,98 @@ export function RadarMapView({
           )}
         </div>
       </aside>
+
+      {/* POPUP MODAL: Wait Seconds Confirmation Modal for Submitting Offer */}
+      {confirmModalTrip && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm animate-in fade-in duration-150"
+          dir={language === 'ar' ? 'rtl' : 'ltr'}
+        >
+          <div className="w-full max-w-md rounded-3xl border border-emerald-500/30 bg-[#0B0F19] p-5 shadow-2xl text-white space-y-4">
+            {/* Modal Header */}
+            <div className="flex items-start justify-between gap-3 border-b border-slate-800 pb-3">
+              <div>
+                <span className="text-xs font-black text-[#14B8A6]">{copy.confirmOfferTitle}</span>
+                <h3 className="text-lg font-black text-white mt-0.5">{confirmModalTrip.trip.dropoff || copy.destination}</h3>
+                <p className="text-xs text-slate-400 mt-0.5">{copy.confirmOfferSubtitle}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setConfirmModalTrip(null)}
+                className="rounded-xl border border-white/10 p-2 text-slate-400 hover:bg-white/10 hover:text-white transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+
+
+            {/* Wait Seconds Box */}
+            <div className="space-y-2">
+              <label className="block text-xs font-black text-slate-200">
+                {copy.waitSecondsLabel}
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={waitSeconds}
+                  onChange={(e) => {
+                    const cleaned = e.target.value.replace(/\D/g, '');
+                    setWaitSeconds(cleaned);
+                  }}
+                  onBlur={() => {
+                    const num = parseInt(waitSeconds, 10);
+                    if (isNaN(num) || num < 30) {
+                      setWaitSeconds('30');
+                    } else if (num > 900) {
+                      setWaitSeconds('900');
+                    } else {
+                      setWaitSeconds(String(num));
+                    }
+                  }}
+                  onWheel={(e) => (e.target as HTMLInputElement).blur()}
+                  onKeyDown={(e) => {
+                    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                      e.preventDefault();
+                    }
+                  }}
+                  className="w-full rounded-xl border border-emerald-500/40 bg-black/70 px-3 py-2.5 text-start font-mono text-base font-black text-emerald-300 outline-none focus:border-emerald-400"
+                />
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono font-bold text-emerald-400/80 pointer-events-none select-none">
+                  {language === 'ar' ? 'ثانية' : 's'}
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400 leading-tight pt-0.5">{copy.waitSecondsHint}</p>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => void handleConfirmSubmitBid()}
+                disabled={submittingRequestId === confirmModalTrip.trip.id}
+                className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#14F5D5] via-[#14B8A6] to-[#0d9488] px-4 py-3 text-xs sm:text-sm font-black text-[#031518] shadow-lg hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer"
+              >
+                {submittingRequestId === confirmModalTrip.trip.id ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="h-4 w-4" />
+                )}
+                <span>{copy.confirmBid}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmModalTrip(null)}
+                className="rounded-xl border border-slate-700 bg-slate-900/80 px-4 py-3 text-xs font-bold text-slate-300 hover:bg-slate-800 transition-all cursor-pointer"
+              >
+                {copy.cancel}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
@@ -706,7 +1005,6 @@ function formatMinutes(totalMinutes: number, language: 'ar' | 'en') {
   return language === 'ar' ? `${hours} ساعة ${minutes} دقيقة` : `${hours}h ${minutes}m`;
 }
 
-/** Straight-line captain-to-pickup distance, in km — null when either point is unknown. */
 function pickupDistanceKm(driverLocation: { lat: number; lng: number } | null, request: Trip) {
   if (!driverLocation || !request.pickupCoords) return null;
   return estimateHaversineDistanceKm(
@@ -760,7 +1058,6 @@ const radarCopy = {
     radarFallback: 'الرادار المحلي يعمل، وستظهر الطلبات في القائمة يمين الشاشة.',
     queueBadge: 'قائمة الطلبات',
     sheetTitle: 'طلبات قريبة',
-    sheetSubtitle: 'الطلبات القريبة من خلية H3 الحالية أو الخلايا المجاورة تظهر هنا مباشرة.',
     radarLocked: 'الرادار غير مفعل',
     noRequestsTitle: 'لا توجد طلبات الآن',
     empty: 'ابق متاحاً. ستظهر طلبات الركاب هنا فور وصولها إلى منطقتك.',
@@ -777,7 +1074,7 @@ const radarCopy = {
     riderNotFavoritedYou: 'لست في المفضلة',
     pricingPreference: 'طريقة التسعير',
     openBid: 'تقديم عرض',
-    submitDirect: 'تقديم مباشر',
+    submitDirect: 'تقديم عرض',
     pendingOfferHint: 'لديك عرض قيد الانتظار، انتظر رد الراكب أولاً.',
     blockedPendingOfferHint: 'لديك عرض قيد الانتظار لطلب آخر — انتظر رد الراكب للمتابعة',
     ownPendingOffer: 'عرضك قيد الانتظار',
@@ -785,17 +1082,30 @@ const radarCopy = {
     ignore: 'تجاهل',
     seizeMarket: 'اقـتـنص فرصتك من السوق',
     marketFare: 'متوسط سعر السوق',
-    moreDetails: 'تفاصيل وموقع الالتقاط',
     appModeBadge: 'تطبيق ذكي',
-    appModeInputNotice: 'أدخل نفس تسعيرة المشوار المعتمدة في تطبيقك',
+    appModeInputNotice: 'أدخل أو الصق تسعيرة المشوار المعتمدة من تطبيقك',
     appModePriceRequired: 'يرجى إدخال السعر أولاً',
     pastePrice: 'لصق السعر من الحافظة',
     paste: 'لصق السعر',
-    taxiModeNotice: 'التزم بسعر العداد المعتمد',
-    riderPrefApp: 'الراكب يطلب: تطبيق ذكي',
-    riderPrefTaxi: 'الراكب يطلب: تكسي عام',
-    riderPrefFree: 'الراكب يطلب: سعر حر',
-    riderPrefAll: 'متاح لجميع الفئات',
+    taxiModeNotice: 'تكسي عام - التزم بسعر العداد المعتمد',
+    independentBadge: 'مستقل (سعر حر)',
+    independentNotice: 'أدخل السعر الذي تجده مناسباً للمشوار',
+    independentPriceRequired: 'يرجى كتابة السعر المطلوب أولاً',
+    radarModeNotice: 'سعر الرادار المحسوب بناءً على تسعيرتك العامة',
+    editTariffBtn: 'تعديل',
+    confirmOfferTitle: 'تأكيد تقديم العرض',
+    confirmOfferSubtitle: 'حدد ثواني الانتظار للراكب قبل تأكيد تقديم عرضك',
+    offerPriceLabel: 'قيمة العرض المالي',
+    waitSecondsLabel: 'عدد ثواني الانتظار (ثانية)',
+    waitSecondsHint: 'مدة صلاحية العرض قبل انتهاء مهلة الانتظار للراكب',
+    confirmBid: 'تأكيد وتقديم العرض',
+    cancel: 'إلغاء',
+    callRider: 'اتصال بالراكب',
+    openPickupMap: 'فتح الموقع في خرائط جوجل',
+    dumpingAmberMsg: '⚠️ تنبيه: السعر منخفض (أقل من سعر السوق بنسبة 10% إلى 14.9%)، وقد يؤثر على تقييمك ورتبتك.',
+    dumpingCrimsonMsg: '🛑 السعر أقل من الحد الأدنى المسموح به (أقل من سعر السوق بأكثر من 15%). تم إيقاف تقديم العرض.',
+    upperWarnMsg: '⚠️ تنبيه: السعر أعلى من النطاق المعتمد (+15% فما فوق).',
+    applyFloorBtn: 'تطبيق الحد الأدنى المسموح به',
   },
   en: {
     title: 'Captain radar',
@@ -811,7 +1121,6 @@ const radarCopy = {
     radarFallback: 'Local radar stays active; requests appear in the queue on the right.',
     queueBadge: 'Request queue',
     sheetTitle: 'Nearby requests',
-    sheetSubtitle: 'Requests in your current H3 cell or neighboring cells appear here.',
     radarLocked: 'Radar is inactive',
     noRequestsTitle: 'No requests right now',
     empty: 'Stay online. Rider requests will appear here as soon as they reach your area.',
@@ -828,7 +1137,7 @@ const radarCopy = {
     riderNotFavoritedYou: 'Not a favourite yet',
     pricingPreference: 'Pricing Mode',
     openBid: 'Submit bid',
-    submitDirect: 'Submit directly',
+    submitDirect: 'Submit offer',
     pendingOfferHint: 'You have a pending offer — wait for the rider to respond first.',
     blockedPendingOfferHint: 'You have a pending offer on another trip — wait for rider response',
     ownPendingOffer: 'Offer pending',
@@ -836,16 +1145,29 @@ const radarCopy = {
     ignore: 'Ignore',
     seizeMarket: 'Seize your market opportunity',
     marketFare: 'Market Average Fare',
-    moreDetails: 'Details & Pickup',
     appModeBadge: 'Smart App',
-    appModeInputNotice: 'Enter the fare approved in your app',
-    appModePriceRequired: 'Please enter a price first',
+    appModeInputNotice: 'Enter or paste trip fare from your app',
+    appModePriceRequired: 'Please enter a valid price first',
     pastePrice: 'Paste from clipboard',
     paste: 'Paste Fare',
-    taxiModeNotice: 'Stick to the approved meter fare',
-    riderPrefApp: 'Rider wants: Smart App',
-    riderPrefTaxi: 'Rider wants: Taxi Meter',
-    riderPrefFree: 'Rider wants: Free Price',
-    riderPrefAll: 'Open to All Categories',
+    taxiModeNotice: 'Standard Taxi - Meter fare enforced',
+    independentBadge: 'Independent',
+    independentNotice: 'Type your custom fare for this trip',
+    independentPriceRequired: 'Please enter a valid price first',
+    radarModeNotice: 'Calculated Radar Fare from your general setup',
+    editTariffBtn: 'Edit',
+    confirmOfferTitle: 'Confirm Offer Submission',
+    confirmOfferSubtitle: 'Set wait seconds for rider response then confirm',
+    offerPriceLabel: 'Offer Price',
+    waitSecondsLabel: 'Wait duration (seconds)',
+    waitSecondsHint: 'Seconds rider has to respond before offer expires',
+    confirmBid: 'Confirm & Send Offer',
+    cancel: 'Cancel',
+    callRider: 'Call Rider',
+    openPickupMap: 'Open in Google Maps',
+    dumpingAmberMsg: '⚠️ Warning: Price is below market average (10% - 14.9% below), which may affect your rating.',
+    dumpingCrimsonMsg: '🛑 Price is below the minimum allowed limit (more than 15% below market). Offer submission paused.',
+    upperWarnMsg: '⚠️ Warning: Price exceeds allowed band (+15% or above).',
+    applyFloorBtn: 'Apply minimum allowed price',
   },
 } as const;

@@ -94,6 +94,7 @@ export const styles = {
   editActionText: "whitespace-nowrap",
   recoveryEmailBlock: "border-t border-white/5 py-3",
   editingInput: "w-full rounded-2xl border border-slate-800 bg-black/60 px-4 py-3 text-white outline-none transition focus:border-emerald-400",
+  selectOption: "bg-slate-900 text-white",
   tariffError: "mt-3 text-sm font-bold text-rose-400",
   tariffSectionHeader: "mt-6 flex items-center gap-2 border-t border-white/5 pt-5 text-emerald-300",
   tariffSectionHint: "mt-2 text-xs leading-5 text-slate-500",

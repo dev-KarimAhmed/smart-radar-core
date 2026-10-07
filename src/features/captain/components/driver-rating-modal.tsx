@@ -197,9 +197,6 @@ export function DriverRatingModal({
             <DialogTitle className={styles.title}>{copy.title}</DialogTitle>
             <DialogDescription className={styles.description}>{copy.description}</DialogDescription>
           </div>
-          <button onClick={onClose} className={styles.closeButton}>
-            <X className={styles.closeIcon} />
-          </button>
         </DialogHeader>
 
         <div className={styles.body}>
