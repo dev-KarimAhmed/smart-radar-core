@@ -25,7 +25,63 @@ export function OfferCardCaptain({
   const captain = offer.captain;
   const vehicleModelLabel = captain.vehicle_model?.trim() || t('vehicle');
   const vehicleColorLabel = resolveColorDisplayName(captain.vehicle_color, language) || t('notSpecified');
-  const companyLabel = captain.company_name?.trim() || captain.affiliation_label?.trim() || t('independentCaptain');
+  const rawAffiliation = (
+    captain.affiliation_type ||
+    (offer as any).affiliation_type ||
+    (offer as any).driverAffiliation?.type ||
+    ''
+  ).toLowerCase();
+
+  const rawCompany = (
+    captain.company_name ||
+    (captain as any).employment_type ||
+    (offer as any).driverAffiliation?.company_name ||
+    (offer as any).driverAffiliation?.name ||
+    ''
+  ).trim();
+
+  const isOfficeTaxi = rawAffiliation === 'office-taxi' || rawAffiliation.includes('taxi') || (captain.vehicle_category || '').toLowerCase().includes('taxi');
+  const isSmartApp = rawAffiliation === 'smart-app' || (!isOfficeTaxi && (rawAffiliation.includes('app') || Boolean(rawCompany && rawAffiliation !== 'independent')));
+  const isIndependent = rawAffiliation === 'independent' || (!isOfficeTaxi && !isSmartApp);
+
+  const cleanCompany = isIndependent || rawCompany === t('independentCaptain') || rawCompany.toLowerCase() === 'independent' || rawCompany === 'مستقل' || rawCompany === 'كابتن مستقل'
+    ? ''
+    : rawCompany;
+
+  const displayCompany = cleanCompany
+    ? (cleanCompany.toLowerCase() === 'uber' ? (isArabic ? 'اوبر' : 'Uber') : cleanCompany.toLowerCase() === 'careem' ? (isArabic ? 'كريم' : 'Careem') : cleanCompany)
+    : '';
+
+  let captainTypeValue = isArabic ? 'مستقل' : 'Independent';
+  let captainTypeHelper: string | undefined = undefined;
+
+  if (isOfficeTaxi) {
+    const base = isArabic ? 'تاكسي مكتب' : 'Office Taxi';
+    if (displayCompany) {
+      if (displayCompany.length <= 15) {
+        captainTypeValue = `${base} (${displayCompany})`;
+      } else {
+        captainTypeValue = base;
+        captainTypeHelper = displayCompany;
+      }
+    } else {
+      captainTypeValue = base;
+    }
+  } else if (isSmartApp) {
+    const base = isArabic ? 'تطبيق ذكي' : 'Smart App';
+    if (displayCompany) {
+      if (displayCompany.length <= 15) {
+        captainTypeValue = `${base} (${displayCompany})`;
+      } else {
+        captainTypeValue = base;
+        captainTypeHelper = displayCompany;
+      }
+    } else {
+      captainTypeValue = base;
+    }
+  } else {
+    captainTypeValue = isArabic ? 'مستقل' : 'Independent';
+  }
   
   const completedTrips = Math.max(0, Number(captain.completed_trips) || 0);
 
@@ -74,7 +130,12 @@ export function OfferCardCaptain({
           </div>
 
           <div className={styles.captainMetaGrid}>
-            <InfoRow icon={<Building2 className={styles.captainMetaIcon} />} label={t('captainType')} value={companyLabel} />
+            <InfoRow
+              icon={<Building2 className={styles.captainMetaIcon} />}
+              label={t('captainType')}
+              value={captainTypeValue}
+              helper={captainTypeHelper}
+            />
             <InfoRow icon={<Trophy className={styles.captainMetaIcon} />} label={t('completedTrips')} value={String(completedTrips)} />
           </div>
 

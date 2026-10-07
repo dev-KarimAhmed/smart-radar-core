@@ -488,8 +488,16 @@ function mapRideOfferRow(row: Record<string, unknown>): Offer | null {
   const vehicleColor = firstString(vehicle.color, vehicle.vehicle_color, row.vehicle_color);
   const vehicleYear = firstNumber(vehicle.year, vehicle.vehicle_year, row.vehicle_year);
   const plate = firstString(vehicle.plate, vehicle.plate_number, vehicle.vehicle_plate, row.plate_number, row.vehicle_plate);
-  const affiliationType = firstString(row.affiliation_type, vehicle.employment_type, profile.employment_type) || 'independent';
-  const affiliationName = firstString(
+  const rawAffiliationType = firstString(
+    captainProfile.affiliation_type,
+    row.affiliation_type,
+    profile.affiliation_type,
+    (profile.affiliation as any)?.type,
+  );
+  const isTaxiVehicle = vehicleType === 'TAXI' || captainProfile.vehicle_type === 'TAXI';
+  const rawCompany = firstString(
+    captainProfile.company_name,
+    captainProfile.employment_type,
     row.affiliation_name,
     vehicle.company_name,
     vehicle.companyName,
@@ -498,7 +506,11 @@ function mapRideOfferRow(row: Record<string, unknown>): Offer | null {
     vehicle.office_name,
     profile.company_name,
     profile.company,
-  ) || (affiliationType === 'independent' ? 'مستقل' : affiliationType);
+    (profile.affiliation as any)?.name,
+  );
+  const resolvedAffiliationType = rawAffiliationType
+    || (isTaxiVehicle ? 'office-taxi' : rawCompany ? 'smart-app' : 'independent');
+  const resolvedAffiliationName = (resolvedAffiliationType === 'independent' ? '' : rawCompany) || '';
   const captainPhone = firstString(row.driver_phone, row.captain_phone, row.phone, profile.phone, profile.phone_number);
   const pricingMode = firstString(row.pricing_mode, row.pricingMode) as 'FREE' | 'APP' | 'TAXI' | undefined;
 
@@ -521,9 +533,9 @@ function mapRideOfferRow(row: Record<string, unknown>): Offer | null {
       type: vehicleType || 'سيارة',
     },
     driverAffiliation: {
-      type: affiliationType,
-      name: affiliationName,
-      phone: captainPhone ?? undefined,
+      type: resolvedAffiliationType,
+      name: resolvedAffiliationName,
+      phone: captainPhone || undefined,
     },
     silencePreference: 'neutral',
     // `pickup_distance_km` and `eta_minutes` are the columns that actually exist on
@@ -558,8 +570,9 @@ function mapRideOfferRow(row: Record<string, unknown>): Offer | null {
       vehicle_color: vehicleColor || undefined,
       vehicle_year: vehicleYear ?? undefined,
       plate_number: plate || undefined,
-      affiliation_type: affiliationType,
-      affiliation_name: affiliationName,
+      affiliation_type: resolvedAffiliationType,
+      affiliation_name: resolvedAffiliationName,
+      company_name: resolvedAffiliationName || undefined,
     },
   };
 

@@ -513,6 +513,14 @@ const [profile, setProfile] = React.useState<ProfileRow | null>(null);
         data: {
           full_name: fullName.trim(),
           phone: phone.trim(),
+          subRole: affiliationType === 'independent' ? 'independent' : 'captain',
+          affiliation: {
+            type: affiliationType,
+            companyName: affiliationType === 'independent' ? '' : businessName.trim(),
+            companyCode: affiliationType === 'smart-app' ? companyCode.trim() : '',
+            officePhone: affiliationType === 'office-taxi' ? officePhone.trim() : '',
+            sideId: affiliationType === 'office-taxi' ? sideId.trim() : '',
+          },
           vehicle: {
             plate: vehiclePlate.trim(),
             make: vehicleMake.trim(),

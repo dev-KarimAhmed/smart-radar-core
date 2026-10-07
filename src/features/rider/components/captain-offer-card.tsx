@@ -58,14 +58,51 @@ function CaptainOfferCardBase({
   const { finalFare } = getCaptainOfferPricing(offer);
   
   const captainName = captain.name?.trim() || t('captain');
-  const companyLabel = captain.company_name?.trim()
-    || captain.affiliation_label?.trim()
-    || t('independentCaptain');
+  const pricingMode = (offer.pricing_mode || (offer as any).pricingMode || '').toUpperCase();
+  const rawAffiliation = (
+    captain.affiliation_type ||
+    (offer as any).affiliation_type ||
+    (offer as any).driverAffiliation?.type ||
+    ''
+  ).toLowerCase();
 
-  const pricingMode = offer.pricing_mode || (offer as any).pricingMode;
-  const affiliationType = (captain.affiliation_type || (captain as any).employment_type || '').toLowerCase();
-  const isTaxiOffer = pricingMode === 'TAXI' || affiliationType === 'office-taxi' || affiliationType.includes('taxi');
-  const isAppOffer = pricingMode === 'APP' || affiliationType === 'smart-app' || affiliationType.includes('app');
+  const rawCompany = (
+    captain.company_name ||
+    (captain as any).employment_type ||
+    (offer as any).driverAffiliation?.company_name ||
+    (offer as any).driverAffiliation?.name ||
+    ''
+  ).trim();
+
+  const isTaxiVehicle = rawAffiliation === 'office-taxi' || rawAffiliation.includes('taxi') || (captain.vehicle_category || '').toLowerCase().includes('taxi');
+  const isSmartAppCaptain = rawAffiliation === 'smart-app' || (!isTaxiVehicle && (rawAffiliation.includes('app') || Boolean(rawCompany && rawAffiliation !== 'independent')));
+  const isIndependentCaptain = rawAffiliation === 'independent' || (!isTaxiVehicle && !isSmartAppCaptain);
+
+  const isTaxiOffer = pricingMode === 'TAXI' || (pricingMode !== 'FREE' && isTaxiVehicle);
+  const isAppOffer = pricingMode === 'APP' || (pricingMode !== 'FREE' && !isTaxiOffer && isSmartAppCaptain);
+  const isFreeOffer = pricingMode === 'FREE' || (!isTaxiOffer && !isAppOffer) || isIndependentCaptain;
+
+  const cleanCompany = isIndependentCaptain || rawCompany === t('independentCaptain') || rawCompany.toLowerCase() === 'independent' || rawCompany === 'مستقل' || rawCompany === 'كابتن مستقل'
+    ? ''
+    : rawCompany;
+
+  const displayCompany = cleanCompany
+    ? (cleanCompany.toLowerCase() === 'uber' ? (isArabic ? 'اوبر' : 'Uber') : cleanCompany.toLowerCase() === 'careem' ? (isArabic ? 'كريم' : 'Careem') : cleanCompany)
+    : '';
+
+  let pricingLabel = isArabic ? 'سعر حر' : 'Direct Fare';
+  if (isTaxiOffer) {
+    pricingLabel = displayCompany
+      ? (isArabic ? `سعر تكسي / ${displayCompany}` : `Taxi Fare / ${displayCompany}`)
+      : (isArabic ? 'سعر تكسي' : 'Taxi Fare');
+  } else if (isAppOffer) {
+    pricingLabel = displayCompany
+      ? (isArabic ? `سعر تطبيق / ${displayCompany}` : `App Fare / ${displayCompany}`)
+      : (isArabic ? 'سعر تطبيق' : 'App Fare');
+  } else {
+    pricingLabel = isArabic ? 'سعر حر' : 'Direct Fare';
+  }
+
   const completedTrips = Math.max(0, Number(captain.completed_trips) || 0);
 
   const durationLabel = formatMinutes(
@@ -80,20 +117,6 @@ function CaptainOfferCardBase({
   );
 
   const captainSerial = captain.serial_number || captain.id?.slice(0, 8).toUpperCase() || '---';
-
-  const normalizedCompany = (companyLabel && companyLabel !== t('independentCaptain'))
-    ? companyLabel.trim()
-    : '';
-
-  const displayCompany = normalizedCompany
-    ? (normalizedCompany.toLowerCase() === 'uber' ? (isArabic ? 'اوبر' : 'Uber') : normalizedCompany)
-    : (isArabic ? 'اوبر' : 'Uber');
-
-  const pricingLabel = isTaxiOffer
-    ? (isArabic ? 'سعر العداد / تاكسي' : 'Meter Fare / Taxi')
-    : isAppOffer || !isTaxiOffer
-    ? `${isArabic ? 'سعر تطبيق' : 'App Fare'} / ${displayCompany}`
-    : (isArabic ? 'سعر حر مباشر' : 'Direct Fare');
 
   return (
     <article

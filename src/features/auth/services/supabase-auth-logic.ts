@@ -218,10 +218,18 @@ export function buildUserFromSupabaseAuth(authUser: User) {
     ? metadataStatus as 'active' | 'idle' | 'busy' | 'rating'
     : 'idle';
 
+  const affiliation = metadata.affiliation && typeof metadata.affiliation === 'object'
+    ? metadata.affiliation as Record<string, unknown>
+    : {};
+  const affiliationType = String(affiliation.type || metadata.affiliation_type || '').toLowerCase();
+  const affiliationName = String(affiliation.name || affiliation.companyName || metadata.company_name || '');
+  const subRole = (metadata.subRole || (affiliationType === 'independent' ? 'independent' : 'captain')) as 'independent' | 'captain' | undefined;
+
   return {
     uid: authUser.id,
     phone: String(metadata.phone || authUser.phone || ''),
     role: role === 'rider' ? 'rider' : role,
+    subRole,
     name: String(metadata.full_name || metadata.name || authUser.phone || ''),
     countryId: metadata.country_id !== undefined ? Number(metadata.country_id) : undefined,
     currencyAr: metadata.currency_ar !== undefined ? String(metadata.currency_ar) : undefined,
@@ -230,6 +238,10 @@ export function buildUserFromSupabaseAuth(authUser: User) {
     district: metadata.district_id !== undefined ? String(metadata.district_id) : '',
     status,
     rating: 5,
+    affiliation: {
+      type: affiliationType,
+      name: affiliationName,
+    },
     vehicle: {
       plate: String(vehicle.plate || ''),
       make: String(vehicle.make || ''),

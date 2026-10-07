@@ -173,12 +173,17 @@ export function buildCaptainOfferFromOffer(
         offerRecord.completedTrips,
         offerRecord.driverCompletedTrips,
       ) || 0,
-      company_name: firstDisplayString(
-        offer.captain?.company_name,
-        offer.captain?.company,
-        offerRecord.driverAffiliation?.company_name,
-        offerRecord.driverAffiliation?.name,
-      ),
+      company_name: (() => {
+        const affType = firstDisplayString(offerRecord.driverAffiliation?.type, offer.captain?.affiliation_type, offerRecord.affiliation_type).toLowerCase();
+        if (affType === 'independent') return '';
+        const name = firstDisplayString(
+          offer.captain?.company_name,
+          offer.captain?.company,
+          offerRecord.driverAffiliation?.company_name,
+          offerRecord.driverAffiliation?.name,
+        );
+        return (name === 'مستقل' || name === 'كابتن مستقل') ? '' : name;
+      })(),
       affiliation_label: getOfferAffiliationLabel(offer, labels),
       affiliation_type: firstDisplayString(offerRecord.driverAffiliation?.type, offer.captain?.affiliation_type, offerRecord.affiliation_type),
       is_verified: Boolean(
