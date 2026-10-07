@@ -186,6 +186,8 @@ export function useRideRequestStatusSync(params: {
             toast({
               title: t('trip.driverArrivedTitle'),
               description: t('trip.driverArrivedNote'),
+              variant: 'success',
+              duration: 15000,
             });
             // Best-effort only: unsupported on iOS Safari and silently ignored when the
             // page has never been interacted with.

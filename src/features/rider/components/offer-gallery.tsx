@@ -51,10 +51,12 @@ export function OfferGallery({
         const bPriority = rankPriority[String(b.driverRank || b.tier || 'SILVER').toUpperCase()] || 2;
         if (aPriority !== bPriority) return bPriority - aPriority;
 
-        if (a.price === -1) return 1;
-        if (b.price === -1) return -1;
+        const priceDiff = a.price - b.price;
+        if (priceDiff !== 0) return priceDiff;
 
-        return a.price - b.price;
+        const aTime = Date.parse(a.created_at || (a as any).createdAt || '') || 0;
+        const bTime = Date.parse(b.created_at || (b as any).createdAt || '') || 0;
+        return aTime - bTime;
       })
       .slice(0, 9);
   }, [offers, favoriteIds]);

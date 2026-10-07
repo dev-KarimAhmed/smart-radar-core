@@ -203,6 +203,8 @@ export function useDriverTransactions(
               toast({
                 title: t('tripCancelledTitle'),
                 description: t('tripCancelledDesc'),
+                variant: 'warning',
+                duration: 12000,
               });
             }
             cleanUpAndReset();
@@ -382,7 +384,9 @@ export function useDriverTransactions(
 
       toast({
         title: t('tripArrivedTitle'),
-      description: t('tripArrivedDesc'),
+        description: t('tripArrivedDesc'),
+        variant: 'success',
+        duration: 12000,
       });
       return true;
     } catch (error) {
@@ -413,7 +417,9 @@ export function useDriverTransactions(
 
       toast({
         title: t('tripStartedTitle'),
-      description: t('tripStartedDesc'),
+        description: t('tripStartedDesc'),
+        variant: 'success',
+        duration: 12000,
       });
       return true;
     } catch (error) {
@@ -454,7 +460,9 @@ export function useDriverTransactions(
 
       toast({
         title: t('tripEndedTitle'),
-      description: t('tripEndedDesc'),
+        description: t('tripEndedDesc'),
+        variant: 'success',
+        duration: 12000,
       });
       cleanUpAndReset();
       return true;
@@ -504,7 +512,9 @@ export function useDriverTransactions(
 
       toast({
         title: t('tripCancelledTitle'),
-      description: t('tripCancelledByCaptainDesc'),
+        description: t('tripCancelledByCaptainDesc'),
+        variant: 'warning',
+        duration: 12000,
       });
       cleanUpAndReset();
       return true;

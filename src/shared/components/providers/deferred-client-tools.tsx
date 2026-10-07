@@ -76,10 +76,31 @@ function PwaUpdater() {
   );
 }
 
+function NumberInputWheelGuard() {
+  useEffect(() => {
+    const handleWheelGlobal = () => {
+      const activeEl = document.activeElement;
+      if (
+        activeEl &&
+        activeEl.tagName === 'INPUT' &&
+        (activeEl as HTMLInputElement).type === 'number'
+      ) {
+        (activeEl as HTMLElement).blur();
+      }
+    };
+
+    document.addEventListener('wheel', handleWheelGlobal, { passive: true });
+    return () => document.removeEventListener('wheel', handleWheelGlobal);
+  }, []);
+
+  return null;
+}
+
 export function DeferredClientTools() {
   return (
     <>
       <Toaster />
+      <NumberInputWheelGuard />
       <PwaUpdater />
       <PwaInstallBanner />
       <SystemPermissionsModal />

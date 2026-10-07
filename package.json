@@ -14,6 +14,7 @@
     "test:routes": "node scripts/run-route-tests.mjs",
     "analyze:bundle": "node tests/performance/bundle-budget.mjs",
     "seed:captains": "node scripts/seed-10-captains.mjs",
+    "create:captains": "node scripts/create-4-captains.mjs",
     "verify": "npm run lint && npm run test:unit && npm run test:architecture && npm run test:routes && npm run build && npm run analyze:bundle"
   },
   "dependencies": {
