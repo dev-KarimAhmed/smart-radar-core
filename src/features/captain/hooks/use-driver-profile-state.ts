@@ -39,7 +39,8 @@ const [profile, setProfile] = React.useState<ProfileRow | null>(null);
   // Market-derived floor from captain_base_fare_floor(); a trigger re-checks it on save.
   const [minBaseFare, setMinBaseFare] = React.useState(1);
   const [tariffError, setTariffError] = React.useState('');
-  const [affiliationType, setAffiliationType] = React.useState('');
+  const initialAffiliation = (user?.affiliation?.type as string) || 'independent';
+  const [affiliationType, setAffiliationType] = React.useState(initialAffiliation);
   const isTaxi = affiliationType === 'office-taxi';
 
   const [isSaving, setIsSaving] = React.useState(false);
@@ -66,6 +67,7 @@ const [profile, setProfile] = React.useState<ProfileRow | null>(null);
     fullName: '', nickname: '', phone: '', vehiclePlate: '', vehicleMake: '', vehicleModel: '',
     vehicleColor: '', vehicleYear: '', businessName: '', officePhone: '', sideId: '', companyCode: '',
     facebookUrl: '', instagramUrl: '', baseFare: '', includedKm: '', pricePerKm: '', pricePerMin: '',
+    affiliationType: initialAffiliation,
   });
   const [isLoadingProfile, setIsLoadingProfile] = React.useState(Boolean(user?.uid));
   const [profileLoadFailed, setProfileLoadFailed] = React.useState(false);
@@ -196,7 +198,9 @@ const [profile, setProfile] = React.useState<ProfileRow | null>(null);
         setCompanyCode(newCompanyCode);
         setFacebookUrl(newFacebookUrl);
         setInstagramUrl(newInstagramUrl);
-        setAffiliationType(firstString(captainProfile?.affiliation_type, user?.affiliation?.type));
+        const rawAffiliation = firstString(captainProfile?.affiliation_type, user?.affiliation?.type);
+        const newAffiliationType = rawAffiliation || (captainProfile?.vehicle_type === 'TAXI' ? 'office-taxi' : (newBusinessName ? 'smart-app' : 'independent'));
+        setAffiliationType(newAffiliationType);
 
         savedSnapshotRef.current = {
           fullName: newFullName,
@@ -217,6 +221,7 @@ const [profile, setProfile] = React.useState<ProfileRow | null>(null);
           includedKm: newIncludedKm,
           pricePerKm: newPricePerKm,
           pricePerMin: newPricePerMin,
+          affiliationType: newAffiliationType,
         };
       } catch (error) {
         if (!active) return;
@@ -341,14 +346,19 @@ const [profile, setProfile] = React.useState<ProfileRow | null>(null);
       // this screen never lets the captain change their affiliation: if no
       // captain_profiles row exists yet, the upsert becomes an insert and a
       // missing NOT NULL column fails outright rather than defaulting.
+      const isOfficeTaxi = affiliationType === 'office-taxi';
+      const isSmartApp = affiliationType === 'smart-app';
+      const isIndependent = affiliationType === 'independent' || (!isOfficeTaxi && !isSmartApp);
+
       const captainProfilePayload: Record<string, unknown> = {
         id: user.uid,
-        vehicle_type: isTaxi ? 'TAXI' : 'PRIVATE',
+        vehicle_type: isOfficeTaxi ? 'TAXI' : 'PRIVATE',
+        affiliation_type: isOfficeTaxi ? 'office-taxi' : isSmartApp ? 'smart-app' : 'independent',
         plate_number: vehicle.plate || null,
         vehicle_brand: vehicle.make || null,
         vehicle_model: vehicleModel.trim() || null,
         vehicle_year: vehicle.year ? Number(vehicle.year) || null : null,
-        employment_type: businessName.trim() || null,
+        employment_type: isIndependent ? null : (businessName.trim() || null),
         nickname: nickname.trim() || null,
         // A vehicle's color isn't tied to how the captain is affiliated — office-taxi
         // captains can set it too, so this is unconditional, not just the smart-app branch.
@@ -372,11 +382,18 @@ const [profile, setProfile] = React.useState<ProfileRow | null>(null);
         // NOT NULL with a zero default, so a blank field means "no allowance", not "unset".
         captainProfilePayload.included_km = inputToNumber(includedKm) ?? 0;
       }
-      if (isTaxi) {
+      if (isOfficeTaxi) {
         captainProfilePayload.office_phone = officePhone.trim() || null;
         captainProfilePayload.side_id = sideId.trim() || null;
-      } else {
+        captainProfilePayload.company_code = null;
+      } else if (isSmartApp) {
         captainProfilePayload.company_code = companyCode.trim() || null;
+        captainProfilePayload.office_phone = null;
+        captainProfilePayload.side_id = null;
+      } else {
+        captainProfilePayload.company_code = null;
+        captainProfilePayload.office_phone = null;
+        captainProfilePayload.side_id = null;
       }
 
       const { data: captainProfileRows, error: captainProfileError } = await supabase
@@ -466,12 +483,13 @@ const [profile, setProfile] = React.useState<ProfileRow | null>(null);
       vehicle_year: vehicleYear.trim(),
       captain_profile: {
         ...(getCaptainProfile(current || null) || {}),
+        affiliation_type: affiliationType,
         vehicle_model: vehicleModel.trim(),
-        employment_type: businessName.trim(),
+        employment_type: affiliationType === 'independent' ? '' : businessName.trim(),
         nickname: nickname.trim(),
-        office_phone: officePhone.trim(),
-        side_id: sideId.trim(),
-        company_code: companyCode.trim(),
+        office_phone: affiliationType === 'office-taxi' ? officePhone.trim() : '',
+        side_id: affiliationType === 'office-taxi' ? sideId.trim() : '',
+        company_code: affiliationType === 'smart-app' ? companyCode.trim() : '',
         facebook_url: facebookUrl.trim(),
         instagram_url: instagramUrl.trim(),
       },
@@ -485,6 +503,7 @@ const [profile, setProfile] = React.useState<ProfileRow | null>(null);
       fullName, nickname, phone, vehiclePlate, vehicleMake, vehicleModel, vehicleColor, vehicleYear,
       businessName, officePhone, sideId, companyCode, facebookUrl, instagramUrl,
       baseFare, includedKm, pricePerKm, pricePerMin,
+      affiliationType,
     };
   };
 
@@ -516,11 +535,11 @@ const [profile, setProfile] = React.useState<ProfileRow | null>(null);
     profile, fullName, setFullName, nickname, setNickname, phone, setPhone,
     nationalIdNumber, licenseNumber, vehiclePlate, setVehiclePlate,
     vehicleMake, setVehicleMake, vehicleModel, setVehicleModel,
-    vehicleColor, vehicleYear, setVehicleYear, businessName,
+    vehicleColor, vehicleYear, setVehicleYear, businessName, setBusinessName,
     officePhone, setOfficePhone, sideId, setSideId, companyCode, setCompanyCode,
     facebookUrl, setFacebookUrl, instagramUrl, setInstagramUrl,
     baseFare, setBaseFare, pricePerKm, setPricePerKm, pricePerMin, setPricePerMin,
-    includedKm, setIncludedKm, minBaseFare, tariffError, affiliationType, isTaxi,
+    includedKm, setIncludedKm, minBaseFare, tariffError, affiliationType, setAffiliationType, isTaxi,
     isSaving, isFieldEditing, startEditingField, stopEditingField, savedSnapshotRef,
     isLoadingProfile, profileLoadFailed, setProfileReloadToken, handleFieldSave, tier
   };
