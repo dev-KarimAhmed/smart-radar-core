@@ -178,6 +178,22 @@ export function usePricePerKmSetup(
   const saveTariff = React.useCallback(async (value: CaptainTariff): Promise<CaptainTariffSaveResult> => {
     if (!user?.uid) return { saved: false, reason: 'unknown' };
 
+    const mode = value.pricingMode || 'FREE';
+    const affiliationType =
+      mode === 'FREE' ? 'independent' : mode === 'TAXI' ? 'office-taxi' : 'smart-app';
+    const subRole = affiliationType === 'independent' ? 'independent' : 'captain';
+    const vehicleType = mode === 'TAXI' ? 'TAXI' : 'PRIVATE';
+
+    const currentAffiliation = (user?.affiliation || {}) as Record<string, unknown>;
+    const currentName = String(currentAffiliation?.name || currentAffiliation?.companyName || '').trim();
+
+    let employmentType = 'مستقل';
+    if (mode === 'APP') {
+      employmentType = currentName && currentName !== 'مستقل' ? currentName : 'تطبيق ذكي';
+    } else if (mode === 'TAXI') {
+      employmentType = currentName && currentName !== 'مستقل' ? currentName : 'مكتب تاكسي';
+    }
+
     const { error } = await supabase
       .from('captain_profiles')
       .update({
@@ -185,7 +201,10 @@ export function usePricePerKmSetup(
         price_per_km: value.pricePerKm,
         price_per_min: value.pricePerMin,
         included_km: value.includedKm,
-        pricing_mode: value.pricingMode || 'FREE',
+        pricing_mode: mode,
+        affiliation_type: affiliationType,
+        employment_type: employmentType,
+        vehicle_type: vehicleType,
       })
       .eq('id', user.uid);
 
@@ -199,14 +218,35 @@ export function usePricePerKmSetup(
       return { saved: false, reason: 'unknown' };
     }
 
+    // Sync with Supabase Auth user metadata so user context in frontend immediately reflects the new account type
+    try {
+      await supabase.auth.updateUser({
+        data: {
+          subRole,
+          affiliation: {
+            ...currentAffiliation,
+            type: affiliationType,
+            companyName: affiliationType === 'independent' ? '' : employmentType,
+            name: affiliationType === 'independent' ? 'مستقل' : employmentType,
+          },
+          vehicle: {
+            ...((user as any)?.vehicle || {}),
+            type: vehicleType,
+          },
+        },
+      });
+    } catch (authErr) {
+      if ((process.env.NODE_ENV !== 'production')) console.warn('[Captain tariff sync auth metadata]', authErr);
+    }
+
     setTariff((previous) => ({
       ...previous,
       ...value,
-      pricingMode: value.pricingMode || 'FREE',
+      pricingMode: mode,
     }));
     setConfirmedNonce(activationNonce);
     return { saved: true };
-  }, [activationNonce, user?.uid]);
+  }, [activationNonce, user]);
 
   // Any missing component keeps the captain in the setup gate — a fare cannot be computed
   // from a partial tariff.

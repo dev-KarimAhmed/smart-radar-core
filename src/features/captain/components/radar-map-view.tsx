@@ -190,9 +190,9 @@ export function RadarMapView({
   }, []);
 
   const handleInitiateOffer = React.useCallback((request: Trip) => {
-    const isTaxi = isOfficeTaxi || request.pricingPreference === 'TAXI';
+    const isTaxi = isOfficeTaxi || captainPricingMode === 'TAXI' || request.pricingPreference === 'TAXI';
     const isApp = !isTaxi && (captainPricingMode === 'APP' || request.pricingPreference === 'APP');
-    const isIndependent = !isTaxi && !isApp && (subRole === 'independent' || subRole === 'المستقل');
+    const isIndependent = !isTaxi && !isApp && (captainPricingMode === 'FREE' || subRole === 'independent' || subRole === 'المستقل');
     const cardPricingMode: 'FREE' | 'APP' | 'TAXI' = isTaxi ? 'TAXI' : isApp ? 'APP' : 'FREE';
 
     let priceNum: number | null = null;

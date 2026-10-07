@@ -230,6 +230,22 @@ export function PricePerKmSetupModal({
       return;
     }
 
+    if (setupMode === 'TAXI') {
+      setIsSaving(true);
+      const result = await onSave({
+        baseFare: Number.isFinite(parsedBaseFare) && parsedBaseFare >= minBaseFare ? parsedBaseFare : minBaseFare,
+        pricePerKm: Number.isFinite(parsedPricePerKm) && parsedPricePerKm > 0 ? parsedPricePerKm : 0.25,
+        pricePerMin: Number.isFinite(parsedPricePerMin) && parsedPricePerMin >= 0 ? parsedPricePerMin : 0.05,
+        includedKm: Number.isFinite(parsedIncludedKm) && parsedIncludedKm >= 0 ? parsedIncludedKm : 0,
+        pricingMode: 'TAXI',
+      });
+      setIsSaving(false);
+      if (!result.saved) {
+        setError(t('pricePerKmModalError'));
+      }
+      return;
+    }
+
     if (!Number.isFinite(parsedBaseFare) || parsedBaseFare < minBaseFare) {
       setIsShortDistancesOpen(true);
       setShortDistancesError(t('tariffModalBaseFareTooLow', { min: minBaseFare.toFixed(2) }));
@@ -264,21 +280,6 @@ export function PricePerKmSetupModal({
       }
     }
 
-    setIsSaving(true);
-    const result = await onSave({
-      baseFare: parsedBaseFare,
-      pricePerKm: parsedPricePerKm,
-      pricePerMin: parsedPricePerMin,
-      includedKm: parsedIncludedKm,
-      pricingMode: 'FREE',
-    });
-    setIsSaving(false);
-    if (!result.saved && result.reason === 'base_fare_below_market_minimum') {
-      setIsShortDistancesOpen(true);
-      setShortDistancesError(t('tariffModalBaseFareTooLow', { min: result.minBaseFare.toFixed(2) }));
-    } else if (!result.saved) {
-      setError(t('pricePerKmModalError'));
-    }
     await executeFreeSave(parsedBaseFare, parsedPricePerKm, parsedPricePerMin, parsedIncludedKm);
   };
 

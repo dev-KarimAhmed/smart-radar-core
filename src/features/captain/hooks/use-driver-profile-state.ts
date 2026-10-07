@@ -239,7 +239,7 @@ const [profile, setProfile] = React.useState<ProfileRow | null>(null);
     return () => {
       active = false;
     };
-  }, [profileReloadToken, user?.name, user?.phone, user?.serial_id, user?.uid, user?.vehicle?.color, user?.vehicle?.make, user?.vehicle?.plate, user?.vehicle?.year]);
+  }, [profileReloadToken, user?.name, user?.phone, user?.serial_id, user?.uid, user?.vehicle?.color, user?.vehicle?.make, user?.vehicle?.plate, user?.vehicle?.year, user?.subRole, user?.affiliation?.type, (user?.affiliation as any)?.name]);
 
   const rating = firstNumber(profile?.trust_score, profile?.rating, profile?.trust_rating, user?.rating, 5);
   const normalizedRating = Math.max(0, Math.min(5, rating));
