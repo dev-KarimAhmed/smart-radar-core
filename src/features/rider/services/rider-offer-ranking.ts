@@ -50,34 +50,38 @@ export function prioritizeRiderOffers<T extends Record<string, any>>(
       __matchesRequestedMode: matchesRequestedMode(offer, requestedMode),
     }))
     .sort((a, b) => {
-      // 1. Requested category matching offers float first
-      const aMatches = matchesRequestedMode(a, requestedMode);
-      const bMatches = matchesRequestedMode(b, requestedMode);
-      if (aMatches && !bMatches) return -1;
-      if (!aMatches && bMatches) return 1;
-
-      // 2. Rider's favorite captains
+      // 1. Rider's favorite captains float first (Priority for preferred captain)
       const aIsFavorite = isPreferredOffer(a, favoriteIds);
       const bIsFavorite = isPreferredOffer(b, favoriteIds);
       if (aIsFavorite && !bIsFavorite) return -1;
       if (!aIsFavorite && bIsFavorite) return 1;
 
-      // 3. Captain Rank: Platinum > Gold > Silver > Bronze
-      // Fall back to BRONZE's weight, not SILVER's: an offer whose rank cannot be read must
-      // not outrank a captain who actually holds a rank.
+      // 2. Requested category matching offers float next
+      const aMatches = matchesRequestedMode(a, requestedMode);
+      const bMatches = matchesRequestedMode(b, requestedMode);
+      if (aMatches && !bMatches) return -1;
+      if (!aMatches && bMatches) return 1;
+
+      // 3. Lowest fare first — highest fare comes last
+      const aFare = getComparableOfferFare(a);
+      const bFare = getComparableOfferFare(b);
+      if (aFare !== bFare) {
+        return aFare - bFare;
+      }
+
+      // 4. Captain Rank: Platinum > Gold > Silver > Bronze (tie-breaker when fares are equal)
       const aRankWeight = rankWeight[toCaptainOfferRank(a?.captain?.rank || a?.captain?.tier || a?.driverRank || a?.tier)] ?? rankWeight.BRONZE;
       const bRankWeight = rankWeight[toCaptainOfferRank(b?.captain?.rank || b?.captain?.tier || b?.driverRank || b?.tier)] ?? rankWeight.BRONZE;
       if (aRankWeight !== bRankWeight) return bRankWeight - aRankWeight;
 
-      // 3b. Captain Trust / Rating Score: higher rating ranks before lower rating
+      // 4b. Captain Trust / Rating Score: higher rating ranks before lower rating (tie-breaker when ranks are equal)
       const aRating = Number(a?.captain?.trust_rating ?? a?.captain?.rating ?? a?.driverRating ?? a?.rating ?? 0);
       const bRating = Number(b?.captain?.trust_rating ?? b?.captain?.rating ?? b?.driverRating ?? b?.rating ?? 0);
       if (Number.isFinite(aRating) && Number.isFinite(bRating) && aRating !== bRating) {
         return bRating - aRating;
       }
 
-      // 4. Lowest fare
-      return getComparableOfferFare(a) - getComparableOfferFare(b);
+      return 0;
     }) as T[];
 }
 

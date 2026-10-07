@@ -11,6 +11,7 @@ import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 
 import { styles } from './offer-gallery/offer-gallery-shared';
 import { OfferCard } from './offer-gallery/offer-card';
+import { isPreferredOffer } from '../services/rider-offer-ranking';
 
 export function OfferGallery({
   offers,
@@ -41,20 +42,23 @@ export function OfferGallery({
   const sortedOffers = React.useMemo(() => {
     return [...offers]
       .sort((a, b) => {
-        const aIsFav = favoriteIds.includes(a.driverId);
-        const bIsFav = favoriteIds.includes(b.driverId);
+        const aIsFav = favoriteIds.includes(a.driverId) || isPreferredOffer(a as any, favoriteIds);
+        const bIsFav = favoriteIds.includes(b.driverId) || isPreferredOffer(b as any, favoriteIds);
         if (aIsFav && !bIsFav) return -1;
         if (!aIsFav && bIsFav) return 1;
+
+        const aPrice = Number.isFinite(a.price) && a.price >= 0 ? a.price : Number.MAX_SAFE_INTEGER;
+        const bPrice = Number.isFinite(b.price) && b.price >= 0 ? b.price : Number.MAX_SAFE_INTEGER;
+        if (aPrice !== bPrice) {
+          return aPrice - bPrice;
+        }
 
         const rankPriority: Record<string, number> = { PLATINUM: 4, GOLD: 3, SILVER: 2, BRONZE: 1 };
         const aPriority = rankPriority[String(a.driverRank || a.tier || 'SILVER').toUpperCase()] || 2;
         const bPriority = rankPriority[String(b.driverRank || b.tier || 'SILVER').toUpperCase()] || 2;
         if (aPriority !== bPriority) return bPriority - aPriority;
 
-        if (a.price === -1) return 1;
-        if (b.price === -1) return -1;
-
-        return a.price - b.price;
+        return 0;
       })
       .slice(0, 9);
   }, [offers, favoriteIds]);
