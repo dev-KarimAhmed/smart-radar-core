@@ -8,9 +8,6 @@ import { fetchRideOffers, subscribeToRideRequestStatus } from '../services/rider
 import { getLocalizedMarketplaceError } from '../services/rider-offer-presentation';
 import type { RiderDestination, RiderMachineAction, RiderMachineState } from '../state/rider-state-machine';
 import { useTripCountdown } from '@/shared/hooks/use-trip-countdown';
-import { dexieDb } from '@/lib/dexie-db';
-import { toHistoricalTrip } from '../services/rider-view-format';
-import { AntiCheatKernel, getStoredRiderImmunity, saveStoredRiderImmunity } from '@/core/logic/anti-cheat-kernel';
 
 /**
  * Owns the server ride-request status subscription that drives most
@@ -145,37 +142,6 @@ export function useRideRequestStatusSync(params: {
     return () => window.removeEventListener('rider-open-destination', openDestination);
   }, [openDestination]);
 
-  const tRef = React.useRef(t);
-  tRef.current = t;
-  const toastRef = React.useRef(toast);
-  toastRef.current = toast;
-  const languageRef = React.useRef(language);
-  languageRef.current = language;
-
-  const recordCompletionLocally = React.useCallback(() => {
-    if (state.activeTrip) {
-      try {
-        const historicalTrip = toHistoricalTrip(state.activeTrip);
-        const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
-        void dexieDb.riderTripLedger.put({
-          ...historicalTrip,
-          purgeAt: historicalTrip.timestamp + THREE_DAYS_MS,
-        });
-      } catch (e) {
-        if (process.env.NODE_ENV !== 'production') console.warn('[Rider status sync] ledger save failed:', e);
-      }
-    }
-    if (userId) {
-      try {
-        const immunity = getStoredRiderImmunity(userId);
-        const updated = AntiCheatKernel.recordSuccessfulTrip(immunity);
-        saveStoredRiderImmunity(updated);
-      } catch (e) {
-        if (process.env.NODE_ENV !== 'production') console.warn('[Rider status sync] immunity save failed:', e);
-      }
-    }
-  }, [state.activeTrip, userId]);
-
   React.useEffect(() => {
     if (!state.requestId) return;
 
@@ -205,18 +171,26 @@ export function useRideRequestStatusSync(params: {
               selected_offer_id: row.selected_offer_id || row.accepted_offer_id || state.pendingAcceptedOfferId,
             },
           });
+          if (status === 'ACCEPTED') {
+            // pendingAcceptedOfferId managed centrally by state machine
+          }
 
           // The captain pressing "إبلاغ الراكب بالوصول" is the one transition the rider is
           // actively waiting on, so it gets an announcement rather than only a changed
           // banner. Fired off the realtime row, so it needs no page reload.
+          //
+          // Guarded by a ref because the subscription re-delivers the row on any column
+          // change: without it, every later update while still ARRIVED re-announces.
           if (status === 'ARRIVED' && announcedArrivalForRef.current !== state.requestId) {
             announcedArrivalForRef.current = state.requestId;
-            toastRef.current({
-              title: tRef.current('trip.driverArrivedTitle'),
-              description: tRef.current('trip.driverArrivedNote'),
+            toast({
+              title: t('trip.driverArrivedTitle'),
+              description: t('trip.driverArrivedNote'),
               variant: 'success',
               duration: 15000,
             });
+            // Best-effort only: unsupported on iOS Safari and silently ignored when the
+            // page has never been interacted with.
             try {
               navigator.vibrate?.([120, 60, 120]);
             } catch {
@@ -226,33 +200,34 @@ export function useRideRequestStatusSync(params: {
         }
 
         if (status === 'CANCELLED') {
+          // pendingAcceptedOfferId managed centrally by state machine
           dispatch({ type: 'REQUEST_CANCELLED' });
         }
 
         if (status === 'COMPLETED') {
-          recordCompletionLocally();
+          // pendingAcceptedOfferId managed centrally by state machine
           dispatch({ type: 'SERVER_STATUS_COMPLETED', row });
         }
       },
       (error) => {
-        toastRef.current({
+        toast({
           variant: 'destructive',
-          title: tRef.current('request.updateFailedTitle'),
-          description: getLocalizedMarketplaceError(error, languageRef.current, {
-            permissionDenied: tRef.current('errors.permissionDenied'),
-            authRequired: tRef.current('errors.authRequired'),
-            network: tRef.current('errors.network'),
-            fareCalculation: tRef.current('errors.fareCalculation'),
-            missingColumns: tRef.current('errors.missingColumns'),
-            invalidStatus: tRef.current('errors.invalidStatus'),
-            foreignKeyMismatch: tRef.current('errors.foreignKeyMismatch'),
-            duplicateActive: tRef.current('errors.duplicateActive'),
-            generic: tRef.current('errors.generic'),
+          title: t('request.updateFailedTitle'),
+          description: getLocalizedMarketplaceError(error, language, {
+            permissionDenied: t('errors.permissionDenied'),
+            authRequired: t('errors.authRequired'),
+            network: t('errors.network'),
+            fareCalculation: t('errors.fareCalculation'),
+            missingColumns: t('errors.missingColumns'),
+            invalidStatus: t('errors.invalidStatus'),
+            foreignKeyMismatch: t('errors.foreignKeyMismatch'),
+            duplicateActive: t('errors.duplicateActive'),
+            generic: t('errors.generic'),
           }),
         });
       },
     );
-  }, [dispatch, recordCompletionLocally, state.pendingAcceptedOfferId, state.requestId]);
+  }, [dispatch, language, state.requestId, t, toast]);
 
   /**
    * Safety net & background recovery: re-read the request's status while any request is active.
@@ -261,9 +236,6 @@ export function useRideRequestStatusSync(params: {
    * depended on realtime events. If the socket dropped or paused during backgrounding,
    * this reconciliation catches state changes (ACCEPTED, CANCELLED, COMPLETED) immediately when
    * the rider returns to the page.
-   *
-   * During an active trip (TRIP_ACTIVE), polling runs every 2.5s so captain completion is
-   * reflected immediately with zero perceptible lag even if Realtime WebSocket drops.
    */
   React.useEffect(() => {
     if (!state.requestId) return;
@@ -273,7 +245,7 @@ export function useRideRequestStatusSync(params: {
     const reconcile = async () => {
       const { data, error } = await supabase
         .from('ride_requests')
-        .select('*')
+        .select('id,status,completed_at,cancelled_at,accepted_offer_id,selected_offer_id,created_at')
         .eq('id', state.requestId!)
         .maybeSingle();
 
@@ -301,7 +273,6 @@ export function useRideRequestStatusSync(params: {
           });
         }
       } else if (status === 'COMPLETED') {
-        recordCompletionLocally();
         dispatch({ type: 'SERVER_STATUS_COMPLETED', row });
       } else if (status === 'CANCELLED') {
         dispatch({ type: 'REQUEST_CANCELLED' });
@@ -311,8 +282,7 @@ export function useRideRequestStatusSync(params: {
     // Once straight away: if the event was missed while the tab was hidden, the rider should
     // not have to wait a whole interval after coming back.
     void reconcile();
-    const pollInterval = (state.screen === 'TRIP_ACTIVE' || state.screen === 'RECEIVING_OFFERS') ? 2500 : 8000;
-    const interval = window.setInterval(() => void reconcile(), pollInterval);
+    const interval = window.setInterval(() => void reconcile(), 15_000);
     const onVisible = () => { if (document.visibilityState === 'visible') void reconcile(); };
     document.addEventListener('visibilitychange', onVisible);
 

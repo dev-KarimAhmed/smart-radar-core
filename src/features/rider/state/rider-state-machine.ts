@@ -328,49 +328,18 @@ export function riderDashboardReducer(state: RiderMachineState, action: RiderMac
       };
     }
 
-    case 'SERVER_STATUS_COMPLETED': {
+    case 'SERVER_STATUS_COMPLETED':
       if (state.screen === 'RATING_MODAL') return state;
-      if (state.screen === 'IDLE_MAP') return state;
-
-      const completedCaptainId =
-        state.activeTrip?.captainId ||
-        firstString(action.row?.accepted_captain_id, action.row?.captain_id, action.row?.driver_id);
-
-      if (state.activeTrip || completedCaptainId) {
-        const baseTrip: RiderActiveTrip = state.activeTrip || {
-          tripId: firstString(action.row?.id, state.requestId) || '',
-          captainId: completedCaptainId || '',
-          captainName: firstString(action.row?.captain_name, action.row?.driver_name) || 'السائق',
-          captainSerial: firstString(action.row?.captain_serial, action.row?.driver_serial) || '',
-          captainPhone: firstString(action.row?.captain_phone, action.row?.driver_phone) || '',
-          vehicleType: firstString(action.row?.vehicle_type) || 'سيارة',
-          vehiclePlate: firstString(action.row?.vehicle_plate) || 'غير متاح',
-          finalPrice: firstNumber(action.row?.final_fare, action.row?.final_price) ?? 0,
-          destinationLabel: state.destination?.label || 'الوجهة',
-          distanceKm: 0,
-          etaSeconds: 0,
-          startedAt: Date.now(),
-          status: 'COMPLETED',
-        };
-
-        return {
-          ...state,
-          screen: 'RATING_MODAL',
-          completedTrip: {
-            ...baseTrip,
-            captainId: completedCaptainId || baseTrip.captainId,
-            status: String(action.row?.status || 'COMPLETED').toUpperCase(),
-            finalPrice: firstNumber(action.row?.final_fare, action.row?.final_price, baseTrip.finalPrice) ?? baseTrip.finalPrice,
-          },
-          activeTrip: null,
-        };
-      }
-
+      if (state.screen !== 'TRIP_ACTIVE' || !state.activeTrip) return state;
       return {
-        ...createInitialRiderMachineState(),
-        screen: 'IDLE_MAP',
+        ...state,
+        screen: 'RATING_MODAL',
+        completedTrip: {
+          ...state.activeTrip,
+          status: String(action.row?.status || 'COMPLETED').toUpperCase(),
+        },
+        activeTrip: null,
       };
-    }
 
     case 'REQUEST_FAILED':
       if (state.screen !== 'DESTINATION_SELECTION') return state;
@@ -457,10 +426,18 @@ export function riderDashboardReducer(state: RiderMachineState, action: RiderMac
       };
 
     case 'SUBMIT_RATING':
-      if (state.screen !== 'RATING_MODAL') return state;
+      if (state.screen !== 'RATING_MODAL' || !state.completedTrip) return state;
       return {
-        ...createInitialRiderMachineState(),
+        ...state,
         screen: 'IDLE_MAP',
+        destination: null,
+        offers: [],
+        activeTrip: null,
+        completedTrip: null,
+        requestStartedAt: null,
+        requestId: null,
+        requestCancelledAt: null,
+        pendingAcceptedOfferId: null,
       };
 
     case 'OPEN_PURGE_LEDGER':

@@ -37,18 +37,6 @@ export function RiderModals({
   setShowEmergencyContactDialog,
   onAddEmergencyNumber,
 }: RiderModalsProps) {
-  // Safety guard: If the trip completed but we cannot render the rating modal (e.g. missing captainId, requestId, or userId),
-  // automatically finish the completed flow and reset to idle map so the rider is not stranded.
-  React.useEffect(() => {
-    if (state.screen === 'RATING_MODAL') {
-      const canRenderRatingModal = Boolean(state.completedTrip?.captainId && state.requestId && userId);
-      if (!canRenderRatingModal) {
-        dispatch({ type: 'SUBMIT_RATING' });
-        onTripFullyEnded();
-      }
-    }
-  }, [dispatch, onTripFullyEnded, state.completedTrip?.captainId, state.requestId, state.screen, userId]);
-
   return (
     <>
       {state.screen === 'RATING_MODAL' && state.completedTrip?.captainId && state.requestId && userId && (

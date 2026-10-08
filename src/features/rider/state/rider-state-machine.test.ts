@@ -155,31 +155,6 @@ assert.equal(receivingOffersState.screen, 'RECEIVING_OFFERS');
 const cancelledDuringReceiving = riderDashboardReducer(receivingOffersState, { type: 'REQUEST_CANCELLED' });
 assert.equal(cancelledDuringReceiving.screen, 'RECEIVING_OFFERS');
 assert.equal(cancelledDuringReceiving.offers.length, 0);
-// SERVER_STATUS_COMPLETED resilience tests:
-// 1. When in RECEIVING_OFFERS and trip completed without activeTrip in state -> transitions cleanly to IDLE_MAP
-const completedFromOffers = riderDashboardReducer(receivingOffersState, {
-  type: 'SERVER_STATUS_COMPLETED',
-  row: { status: 'COMPLETED' },
-});
-assert.equal(completedFromOffers.screen, 'IDLE_MAP');
-
-// 2. When activeTrip is missing but action.row provides accepted_captain_id -> transitions to RATING_MODAL
-const completedWithRowCaptain = riderDashboardReducer(receivingOffersState, {
-  type: 'SERVER_STATUS_COMPLETED',
-  row: {
-    status: 'COMPLETED',
-    accepted_captain_id: 'cap-recovery-1',
-    final_fare: 5.5,
-    captain_name: 'كابتن محمد',
-  },
-});
-assert.equal(completedWithRowCaptain.screen, 'RATING_MODAL');
-assert.equal(completedWithRowCaptain.completedTrip?.captainId, 'cap-recovery-1');
-assert.equal(completedWithRowCaptain.completedTrip?.finalPrice, 5.5);
-
-// 3. SUBMIT_RATING cleans up state even if completedTrip is empty
-const ratingStateBare = { ...createInitialRiderMachineState(), screen: 'RATING_MODAL' as const };
-const afterSubmitBare = riderDashboardReducer(ratingStateBare, { type: 'SUBMIT_RATING' });
-assert.equal(afterSubmitBare.screen, 'IDLE_MAP');
+assert.equal(cancelledDuringReceiving.requestCancelledAt !== null, true);
 
 console.log('rider reducer checks passed');
