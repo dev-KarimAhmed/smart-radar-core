@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useTranslations } from 'next-intl';
-import { dexieDb, RadarCaptainFavoriteKernel, type RiderTripLedgerEntry, upsertRiderTripLedgerEntry } from '@/lib/dexie-db';
+import { dexieDb, RadarCaptainFavoriteKernel, type RiderTripLedgerEntry } from '@/lib/dexie-db';
 import { setFavoriteCaptain } from '@/features/account/services/favorite-captains';
 import { HistoricalTrip, FavoriteCaptain } from '../components/dashboard/dashboard-shared';
 
@@ -96,7 +96,20 @@ export function useRiderDashboardState(
             vehicleInfo: sanitizeText(trip.vehicleInfo),
             purgeAt: trip.timestamp + THREE_DAYS_MS,
           };
-          await upsertRiderTripLedgerEntry(entry);
+          const stored = await dexieDb.riderTripLedger.where('tripId').equals(trip.tripId).first();
+          if (stored?.id !== undefined) {
+            await dexieDb.riderTripLedger.update(stored.id, entry);
+          } else {
+            try {
+              await dexieDb.riderTripLedger.add(entry);
+            } catch (error: any) {
+              if (error?.name !== 'ConstraintError') throw error;
+              const duplicate = await dexieDb.riderTripLedger.where('tripId').equals(trip.tripId).first();
+              if (duplicate?.id !== undefined) {
+                await dexieDb.riderTripLedger.update(duplicate.id, entry);
+              }
+            }
+          }
         }
       }
 

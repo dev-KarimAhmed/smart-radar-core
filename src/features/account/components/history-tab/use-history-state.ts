@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '@/hooks/use-auth';
-import { dexieDb, type RiderTripLedgerEntry, upsertRiderTripLedgerBatch } from '@/lib/dexie-db';
+import { dexieDb, type RiderTripLedgerEntry } from '@/lib/dexie-db';
 import { fetchFavoriteCaptainIds, setFavoriteCaptain } from '../../services/favorite-captains';
 import { supabase } from '@/lib/supabase-client';
 import { useToast } from '@/hooks/use-toast';
@@ -256,7 +256,7 @@ export function useHistoryState() {
                 const cacheEntries = ledgerTrips
                   .map(tripShapeToRiderLedgerEntry)
                   .filter((entry): entry is RiderTripLedgerEntry => Boolean(entry));
-                await upsertRiderTripLedgerBatch(cacheEntries);
+                await Promise.all(cacheEntries.map((entry) => dexieDb.riderTripLedger.put(entry)));
               } catch (cacheError) {
                 if ((process.env.NODE_ENV !== 'production')) console.warn('[HistoryTab ledger cache skipped]', cacheError);
               }

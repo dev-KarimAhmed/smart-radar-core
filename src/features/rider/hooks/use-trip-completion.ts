@@ -2,7 +2,7 @@ import React from 'react';
 import { useTranslations } from 'next-intl';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase-client';
-import { dexieDb, type RiderTripLedgerEntry, upsertRiderTripLedgerEntry } from '@/lib/dexie-db';
+import { dexieDb, type RiderTripLedgerEntry } from '@/lib/dexie-db';
 import {
   completeRideTrip,
   fetchRideRequestStatus,
@@ -99,7 +99,7 @@ export function useTripCompletion(
       await completeRideTrip(supabase, { requestId: state.requestId });
 
       try {
-        await upsertRiderTripLedgerEntry(ledgerEntry);
+        await dexieDb.riderTripLedger.put(ledgerEntry);
         setLocalCompletedTrips((previous) => [
           historicalTrip,
           ...previous.filter((trip) => trip.tripId !== historicalTrip.tripId),
