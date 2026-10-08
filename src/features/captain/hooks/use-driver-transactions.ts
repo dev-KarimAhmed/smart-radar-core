@@ -107,13 +107,20 @@ export function useDriverTransactions(
     const checkStillPending = async () => {
       const { data, error } = await supabase
         .from('captain_radar_requests')
-        .select('id')
+        .select('id, created_at')
         .eq('id', pendingOfferRequestId)
         .maybeSingle();
 
       if (isCancelled) return;
 
       if (error || !data) {
+        clearPendingOffer();
+        return;
+      }
+
+      const row = data as Record<string, unknown>;
+      const createdAt = row.created_at ? new Date(row.created_at as string).getTime() : 0;
+      if (createdAt > 0 && Date.now() - createdAt > 240_000) {
         clearPendingOffer();
       }
     };
@@ -267,7 +274,7 @@ export function useDriverTransactions(
     (async () => {
       const { data, error } = await supabase
         .from('ride_requests')
-        .select('id')
+        .select('id, created_at, updated_at')
         .eq('accepted_captain_id', captainId)
         .not('status', 'in', '("COMPLETED","CANCELLED")')
         .order('updated_at', { ascending: false })
@@ -276,8 +283,15 @@ export function useDriverTransactions(
 
       if (isCancelled || error || !data) return;
 
-      const requestId = String((data as Record<string, unknown>).id || '');
+      const row = data as Record<string, unknown>;
+      const requestId = String(row.id || '');
       if (!requestId) return;
+
+      // Ignore ancient abandoned trips from previous days/sessions (> 12 hours)
+      const lastTouch = new Date((row.updated_at || row.created_at || 0) as string).getTime();
+      if (lastTouch > 0 && Date.now() - lastTouch > 12 * 60 * 60 * 1000) {
+        return;
+      }
 
       try {
         await loadAcceptedRequest(requestId);

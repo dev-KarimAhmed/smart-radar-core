@@ -172,16 +172,29 @@ export function DriverViewTab() {
     const checkStillPending = async () => {
       const { data, error } = await supabase
         .from('captain_radar_requests')
-        .select('id')
+        .select('id, created_at')
         .eq('id', requestId)
         .maybeSingle();
 
-      if (isCancelled || error || data) return;
-      toast({
-        title: t('requestNoLongerAvailableTitle'),
-        description: t('requestNoLongerAvailableBody'),
-      });
-      dispatch({ type: 'IGNORE_REQUEST', requestId });
+      if (isCancelled || error) return;
+      if (!data) {
+        toast({
+          title: t('requestNoLongerAvailableTitle'),
+          description: t('requestNoLongerAvailableBody'),
+        });
+        dispatch({ type: 'IGNORE_REQUEST', requestId });
+        return;
+      }
+
+      const row = data as Record<string, unknown>;
+      const createdAt = row.created_at ? new Date(row.created_at as string).getTime() : 0;
+      if (createdAt > 0 && Date.now() - createdAt > 240_000) {
+        toast({
+          title: t('requestNoLongerAvailableTitle'),
+          description: t('requestNoLongerAvailableBody'),
+        });
+        dispatch({ type: 'IGNORE_REQUEST', requestId });
+      }
     };
 
     const intervalId = window.setInterval(() => void checkStillPending(), 5_000);

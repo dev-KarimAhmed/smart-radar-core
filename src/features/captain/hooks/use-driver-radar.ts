@@ -21,6 +21,8 @@ const RADAR_FALLBACK_LIMIT = 9;
 // Hard visibility cutoff — a captain further than this from the pickup point
 // never sees the request at all, regardless of how few pending requests exist.
 const RADAR_MAX_DISTANCE_KM = 9;
+// مدة صلاحية طلب الرحلة الحتمية على الرادار: 4 دقائق (240 ثانية) كحد أقصى لمنع ظهور الطلبات القديمة
+const MAX_RADAR_REQUEST_AGE_MS = 240_000;
 
 type RideRequestRow = Record<string, unknown>;
 type RadarLocation = { lat: number; lng: number; speed?: number; source?: string };
@@ -55,14 +57,51 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
     }
   });
 
-  const radarLocation = useMemo<RadarLocation | null>(() => {
-    return driverLocation || user?.location || profileAnchor || getCountryDefaultCenter(countryConfig);
-  }, [driverLocation, profileAnchor, user?.location, countryConfig]);
+  // Cached real GPS location from previous session in this device to eliminate fallback jumps
+  const [cachedGpsLocation] = useState<RadarLocation | null>(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const raw = localStorage.getItem('radar_captain_last_known_gps');
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed.lat === 'number' && typeof parsed.lng === 'number') {
+        if (!parsed.timestamp || Date.now() - parsed.timestamp < 24 * 60 * 60 * 1000) {
+          return { lat: parsed.lat, lng: parsed.lng, source: 'cached_gps' };
+        }
+      }
+    } catch {}
+    return null;
+  });
+
+  useEffect(() => {
+    if (driverLocation?.lat && driverLocation?.lng && driverLocation.source === 'gps') {
+      try {
+        localStorage.setItem(
+          'radar_captain_last_known_gps',
+          JSON.stringify({ lat: driverLocation.lat, lng: driverLocation.lng, timestamp: Date.now() })
+        );
+      } catch {}
+    }
+  }, [driverLocation]);
+
+  // The captain's true physical position (never capital city center fallback)
+  const effectiveCaptainLocation = useMemo<RadarLocation | null>(() => {
+    if (driverLocation && driverLocation.source !== 'fallback') return driverLocation;
+    if (cachedGpsLocation) return cachedGpsLocation;
+    if (user?.location) return user.location;
+    if (profileAnchor) return profileAnchor;
+    return null;
+  }, [driverLocation, cachedGpsLocation, user?.location, profileAnchor]);
+
+  // Display location for UI map background only
+  const displayLocation = useMemo<RadarLocation | null>(() => {
+    return effectiveCaptainLocation || getCountryDefaultCenter(countryConfig);
+  }, [effectiveCaptainLocation, countryConfig]);
 
   const currentH3Cell = useMemo(() => {
-    if (!radarLocation?.lat || !radarLocation?.lng) return '';
-    return latLngToCell(radarLocation.lat, radarLocation.lng, DRIVER_H3_RESOLUTION);
-  }, [radarLocation?.lat, radarLocation?.lng]);
+    if (!effectiveCaptainLocation?.lat || !effectiveCaptainLocation?.lng) return '';
+    return latLngToCell(effectiveCaptainLocation.lat, effectiveCaptainLocation.lng, DRIVER_H3_RESOLUTION);
+  }, [effectiveCaptainLocation?.lat, effectiveCaptainLocation?.lng]);
 
   const nearbyCells = useMemo(() => {
     if (!currentH3Cell) return [];
@@ -73,10 +112,10 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
   // listed as deps (listing them caused a new callback ref on every GPS tick,
   // which in turn re-fired the useEffect on line ~174 and created an infinite
   // API call loop).
-  const radarLocationRef = useRef(radarLocation);
-  radarLocationRef.current = radarLocation;
-  const nearbyChellsRef = useRef(nearbyCells);
-  nearbyChellsRef.current = nearbyCells;
+  const effectiveCaptainLocationRef = useRef(effectiveCaptainLocation);
+  effectiveCaptainLocationRef.current = effectiveCaptainLocation;
+  const nearbyCellsRef = useRef(nearbyCells);
+  nearbyCellsRef.current = nearbyCells;
   const driverStatusRef = useRef(driverStatus);
   driverStatusRef.current = driverStatus;
   const tRef = useRef(t);
@@ -138,21 +177,26 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
     }
 
     // Read location/cells from refs — latest values without being deps
-    const loc = radarLocationRef.current;
-    const cells = nearbyChellsRef.current;
+    const loc = effectiveCaptainLocationRef.current;
+    const cells = nearbyCellsRef.current;
 
-    let query = supabase
-      .from('captain_radar_requests')
-      .select('*')
-      .eq('status', 'PENDING');
-
-    if (cells && cells.length > 0) {
-      query = query.in('origin_h3', cells).order('created_at', { ascending: false }).limit(50);
-    } else {
-      query = query.order('created_at', { ascending: false }).limit(50);
+    // Zero-leakage: if captain's location is not resolved yet, do not query or show out-of-range requests
+    if (!loc || !cells || cells.length === 0) {
+      setRawRequests([]);
+      return;
     }
 
-    const { data, error } = await query;
+    const earliestCreatedAt = new Date(Date.now() - MAX_RADAR_REQUEST_AGE_MS).toISOString();
+
+    const { data, error } = await supabase
+      .from('captain_radar_requests')
+      .select('*')
+      .eq('status', 'PENDING')
+      .gte('created_at', earliestCreatedAt)
+      .in('origin_h3', cells)
+      .order('created_at', { ascending: false })
+      .limit(50);
+
     if (error) {
       if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver radar] request fetch failed:', error);
       setRadarLockMessage(tRef.current('radarRequestsLoadFailed'));
@@ -160,22 +204,29 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
       return;
     }
 
+    const now = Date.now();
     const mappedRequests = Array.isArray(data)
-      ? data.map(mapRideRequestToTrip).filter(Boolean) as Trip[]
+      ? (data.map(mapRideRequestToTrip).filter(Boolean) as Trip[])
       : [];
 
     const rankedRequests = mappedRequests
+      // 1. Strict age filter: trip must be created within last 4 minutes (never show old zombie trips)
+      .filter((request) => {
+        const createdMs = request.createdAt ? new Date(request.createdAt).getTime() : 0;
+        return createdMs > 0 && (now - createdMs) <= MAX_RADAR_REQUEST_AGE_MS;
+      })
       .map((request) => {
-        const driverDistanceKm = loc
-          ? estimateHaversineDistanceKm(loc.lat, loc.lng, request.pickupCoords.lat, request.pickupCoords.lng) ?? Number.POSITIVE_INFINITY
-          : Number.POSITIVE_INFINITY;
+        const driverDistanceKm = estimateHaversineDistanceKm(
+          loc.lat,
+          loc.lng,
+          request.pickupCoords.lat,
+          request.pickupCoords.lng
+        ) ?? Number.POSITIVE_INFINITY;
         const isInH3Disk = request.h3Index ? cells.includes(request.h3Index) : false;
         return { request, driverDistanceKm, isInH3Disk };
       })
-      // Requests further than RADAR_MAX_DISTANCE_KM never reach this captain's
-      // radar. When the captain's own location isn't known yet, distance is
-      // unresolvable (Infinity) — don't hide everything in that case.
-      .filter(({ driverDistanceKm }) => !loc || driverDistanceKm <= RADAR_MAX_DISTANCE_KM)
+      // 2. Strict distance cutoff: only requests with finite distance <= 9 km
+      .filter(({ driverDistanceKm }) => Number.isFinite(driverDistanceKm) && driverDistanceKm <= RADAR_MAX_DISTANCE_KM)
       .sort((a, b) => {
         if (a.isInH3Disk !== b.isInH3Disk) return a.isInH3Disk ? -1 : 1;
         return a.driverDistanceKm - b.driverDistanceKm;
@@ -235,11 +286,19 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
   }, [user?.district]);
 
   // Fetch once on mount and whenever driverStatus changes (active ↔ idle).
-  // fetchPendingRequests is now stable (no GPS-tick deps), so this effect
-  // fires only when the status actually changes — not on every GPS update.
   useEffect(() => {
     void fetchPendingRequests();
   }, [fetchPendingRequests, driverStatus]);
+
+  // Immediate reactive fetch as soon as GPS establishes/updates currentH3Cell
+  const lastFetchedCellRef = useRef<string>('');
+  useEffect(() => {
+    if (driverStatus !== 'active' || !currentH3Cell) return;
+    if (currentH3Cell !== lastFetchedCellRef.current) {
+      lastFetchedCellRef.current = currentH3Cell;
+      void fetchPendingRequests();
+    }
+  }, [driverStatus, currentH3Cell, fetchPendingRequests]);
 
   useEffect(() => {
     if (driverStatus !== 'active') return;
@@ -252,23 +311,11 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
           event: '*',
           schema: 'public',
           table: 'ride_requests',
-          // No status filter on purpose: Supabase Realtime evaluates the filter
-          // against the row's state AFTER the change, so a request leaving PENDING
-          // (rider cancels, another captain accepted) would never match
-          // `status=eq.PENDING` and would be silently dropped — leaving the stale
-          // request on the radar. fetchPendingRequests already re-queries for
-          // status=PENDING server-side, so any change triggers a fresh server read.
         },
         () => {
           void fetchPendingRequests();
         },
       )
-      // NOTE: wallet_accounts listener deliberately removed from here.
-      // consume_captain_radar_minutes UPDATE wallet_accounts every 20 s, which
-      // was causing fetchPendingRequests (and therefore get_captain_wallet_status)
-      // to fire on every consumption tick on top of the 10 s poll = infinite loop.
-      // Wallet balance is checked inside fetchPendingRequests itself via
-      // checkTimeBundle(), so no extra listener is needed.
       .subscribe((status) => {
         if ((status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') && (process.env.NODE_ENV !== 'production')) {
           console.warn('[Driver radar] realtime channel issue:', status);
@@ -278,28 +325,16 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
     return () => {
       void channel.unsubscribe();
     };
-  // currentH3Cell intentionally NOT in deps: it changes on every GPS tick and
-  // would cause unsubscribe/resubscribe + fetchPendingRequests on every location
-  // update. The channel filters on the whole ride_requests table, so cell changes
-  // have no effect on which events arrive.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [driverStatus, fetchPendingRequests, user?.uid]);
 
-  // Belt-and-suspenders poll: `ride_requests` realtime depends on the table
-  // being part of the `supabase_realtime` publication server-side, which is
-  // easy to silently miss (only profiles/wallet_accounts were ever wired up
-  // that way in this project's migrations). If that publication is ever
-  // missing or lags, a stale request (e.g. one the rider just cancelled)
-  // would otherwise sit on the radar indefinitely with no other correction.
-  // Belt-and-suspenders poll: stable now — driverStatus triggers setup/teardown,
-  // fetchPendingRequests is stable so the interval is never recreated mid-session.
+  // Belt-and-suspenders poll every 10 seconds: cleans up expired requests and syncs radar
   useEffect(() => {
     if (driverStatus !== 'active') return;
     const intervalId = window.setInterval(() => {
       void fetchPendingRequests();
     }, 10_000);
     return () => window.clearInterval(intervalId);
-  }, [driverStatus, fetchPendingRequests]); // ✅ fetchPendingRequests is stable
+  }, [driverStatus, fetchPendingRequests]);
 
   const rejectRequest = useCallback((tripId: string) => {
     setRejectedTripIds((prev) => {
@@ -316,11 +351,11 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
   }, [rawRequests, rejectedTripIds]);
 
   return {
-    driverLocation: radarLocation,
+    driverLocation: displayLocation,
     requests,
     rejectRequest,
     rejectedTripIds,
-    driverSpeed: radarLocation?.speed || 0,
+    driverSpeed: effectiveCaptainLocation?.speed || 0,
     currentDistrict: user?.district || '',
     currentH3Cell,
     radarLockMessage,
