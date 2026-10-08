@@ -295,19 +295,20 @@ export function subscribeToRideRequestStatus(
   onStatus: (row: Record<string, unknown>) => void,
   onError?: (error: unknown) => void,
 ) {
+  const channelTopic = `ride-request-${requestId}-${Date.now()}`;
   const channel = client
-    .channel(`ride-request-${requestId}`)
+    .channel(channelTopic)
     .on(
       'postgres_changes',
       {
-        event: 'UPDATE',
+        event: '*',
         schema: 'public',
         table: 'ride_requests',
         filter: `id=eq.${requestId}`,
       },
       (payload) => {
-        if (payload.new) {
-          onStatus(payload.new);
+        if (payload.new && typeof payload.new === 'object') {
+          onStatus(payload.new as Record<string, unknown>);
         }
       },
     )
@@ -323,8 +324,16 @@ export function subscribeToRideRequestStatus(
     if (closed) return;
     closed = true;
 
-    const maybeChannel = channel as { unsubscribe?: () => Promise<unknown> | unknown };
-    void maybeChannel.unsubscribe?.();
+    try {
+      if (typeof (client as any).removeChannel === 'function') {
+        void (client as any).removeChannel(channel);
+      } else {
+        const maybeChannel = channel as { unsubscribe?: () => Promise<unknown> | unknown };
+        void maybeChannel.unsubscribe?.();
+      }
+    } catch {
+      // Best-effort channel cleanup
+    }
   };
 }
 
@@ -367,8 +376,16 @@ export function subscribeToRideOffers(
     if (closed) return;
     closed = true;
 
-    const maybeChannel = channel as { unsubscribe?: () => Promise<unknown> | unknown };
-    void maybeChannel.unsubscribe?.();
+    try {
+      if (typeof (client as any).removeChannel === 'function') {
+        void (client as any).removeChannel(channel);
+      } else {
+        const maybeChannel = channel as { unsubscribe?: () => Promise<unknown> | unknown };
+        void maybeChannel.unsubscribe?.();
+      }
+    } catch {
+      // Best-effort channel cleanup
+    }
   };
 }
 
