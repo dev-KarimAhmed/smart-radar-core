@@ -207,5 +207,55 @@ export async function purgeExpiredRiderTrips(): Promise<number> {
   }
 }
 
+/**
+ * Safely upsert a single entry into riderTripLedger.
+ * If the tripId already exists, it updates the row using the auto-increment primary key `id`.
+ * If it doesn't exist, it adds it, catching any concurrent ConstraintError gracefully.
+ */
+export async function upsertRiderTripLedgerEntry(entry: RiderTripLedgerEntry): Promise<void> {
+  if (!entry?.tripId) return;
+  try {
+    const existing = await dexieDb.riderTripLedger.where('tripId').equals(entry.tripId).first();
+    if (existing?.id !== undefined) {
+      await dexieDb.riderTripLedger.update(existing.id, entry);
+    } else {
+      try {
+        await dexieDb.riderTripLedger.add(entry);
+      } catch (addError: any) {
+        if (addError?.name === 'ConstraintError') {
+          const duplicate = await dexieDb.riderTripLedger.where('tripId').equals(entry.tripId).first();
+          if (duplicate?.id !== undefined) {
+            await dexieDb.riderTripLedger.update(duplicate.id, entry);
+          }
+        } else {
+          throw addError;
+        }
+      }
+    }
+  } catch (err) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('[Dexie upsertRiderTripLedgerEntry skipped]', err);
+    }
+  }
+}
+
+/**
+ * Safely upsert an array of entries into riderTripLedger in sequential order.
+ * Deduplicates the array by tripId first to avoid race conditions.
+ */
+export async function upsertRiderTripLedgerBatch(entries: RiderTripLedgerEntry[]): Promise<void> {
+  if (!Array.isArray(entries) || entries.length === 0) return;
+  const uniqueMap = new Map<string, RiderTripLedgerEntry>();
+  for (const entry of entries) {
+    if (entry?.tripId) {
+      uniqueMap.set(entry.tripId, entry);
+    }
+  }
+  for (const entry of uniqueMap.values()) {
+    await upsertRiderTripLedgerEntry(entry);
+  }
+}
+
 Object.freeze(RadarCaptainFavoriteKernel);
+
 
