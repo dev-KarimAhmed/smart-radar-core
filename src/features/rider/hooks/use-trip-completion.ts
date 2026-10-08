@@ -99,7 +99,12 @@ export function useTripCompletion(
       await completeRideTrip(supabase, { requestId: state.requestId });
 
       try {
-        await dexieDb.riderTripLedger.put(ledgerEntry);
+        const existing = await dexieDb.riderTripLedger.where('tripId').equals(ledgerEntry.tripId).first();
+        if (existing?.id) {
+          await dexieDb.riderTripLedger.update(existing.id, ledgerEntry);
+        } else {
+          await dexieDb.riderTripLedger.add(ledgerEntry);
+        }
         setLocalCompletedTrips((previous) => [
           historicalTrip,
           ...previous.filter((trip) => trip.tripId !== historicalTrip.tripId),
