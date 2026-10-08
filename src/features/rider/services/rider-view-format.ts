@@ -63,5 +63,8 @@ export function toHistoricalTrip(trip: RiderActiveTrip): HistoricalTrip {
     vehicleInfo: `${trip.vehicleType} - ${trip.vehiclePlate}`,
     finalPrice: trip.finalPrice,
     timestamp: Date.now(),
+    destinationAddress: trip.destinationLabel,
+    destinationAddressAr: trip.destinationLabel,
+    distanceKm: trip.distanceKm,
   };
 }

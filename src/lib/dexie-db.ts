@@ -53,6 +53,13 @@ export interface RiderTripLedgerEntry {
   timestamp: number;
   purgeAt: number;
   destinationAddressAr?: string;
+  pickupAddressAr?: string;
+  distanceKm?: number;
+  durationMinutes?: number;
+  originLat?: number;
+  originLng?: number;
+  destinationLat?: number;
+  destinationLng?: number;
   rating?: number;
 }
 

@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { AlertCircle, FileText, Heart, Phone, Car } from 'lucide-react';
+import { AlertCircle, FileText, Heart, Phone, Car, ChevronDown, Navigation, Star, ExternalLink } from 'lucide-react';
 import { cn, formatTelUri } from '@/lib/utils';
 import { formatHistoryMoney, type HistoricalTrip } from './history-shared';
 import { HistorySkeleton } from './history-skeleton';
+import { RatingModal } from '@/components/dashboard/shared/rating-modal';
+import { supabase } from '@/lib/supabase-client';
 
 interface HistoryRiderTripsProps {
   riderHistoricalTrips: HistoricalTrip[];
@@ -14,7 +16,25 @@ interface HistoryRiderTripsProps {
   isArabic: boolean;
   now: number;
   tripReviews: Record<string, any>;
+  currentUserId?: string;
+  onRatingSuccess?: (tripId: string) => void;
   t: any;
+}
+
+function getRouteMapUrl(trip: HistoricalTrip): string | null {
+  if (trip.destinationLat && trip.destinationLng) {
+    if (trip.originLat && trip.originLng) {
+      return `https://www.google.com/maps/dir/?api=1&origin=${trip.originLat},${trip.originLng}&destination=${trip.destinationLat},${trip.destinationLng}`;
+    }
+    return `https://www.google.com/maps/search/?api=1&query=${trip.destinationLat},${trip.destinationLng}`;
+  }
+  if (trip.destinationAddress && trip.destinationAddress !== 'رحلة سابقة' && trip.destinationAddress !== 'غير محدد') {
+    if (trip.pickupAddress && trip.pickupAddress !== 'موقعي الحالي') {
+      return `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(trip.pickupAddress)}&destination=${encodeURIComponent(trip.destinationAddress)}`;
+    }
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(trip.destinationAddress)}`;
+  }
+  return null;
 }
 
 function getRankBadge(rank: string = 'GOLD') {
@@ -52,8 +72,25 @@ export function HistoryRiderTrips({
   isArabic,
   now,
   tripReviews,
+  currentUserId,
+  onRatingSuccess,
   t
 }: HistoryRiderTripsProps) {
+  const [expandedTripIds, setExpandedTripIds] = useState<Set<string>>(new Set());
+  const [ratingTargetTrip, setRatingTargetTrip] = useState<HistoricalTrip | null>(null);
+
+  const toggleRouteExpand = (tripId: string) => {
+    setExpandedTripIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(tripId)) {
+        next.delete(tripId);
+      } else {
+        next.add(tripId);
+      }
+      return next;
+    });
+  };
+
   const renderDetailedReview = (tripId: string) => {
     const review = tripReviews[tripId];
     if (!review) return null;
@@ -132,6 +169,9 @@ export function HistoryRiderTrips({
               const isHearted = favoriteCaptainIds.has(String(trip.captainId));
               const timeAgo = Math.floor((now - trip.timestamp) / (1000 * 60 * 60));
               const rankBadge = getRankBadge(trip.captainRank);
+              const isExpanded = expandedTripIds.has(trip.tripId);
+              const hasReview = Boolean(tripReviews[trip.tripId]);
+              const routeMapUrl = getRouteMapUrl(trip);
 
               return (
                 <div
@@ -171,11 +211,28 @@ export function HistoryRiderTrips({
                       </div>
                     </div>
 
-                    {/* Left side: Price & Time */}
+                    {/* Left side: Price & Time & Route Toggle */}
                     <div className="flex items-baseline sm:flex-col sm:items-end justify-between gap-1 shrink-0">
-                      <span className="text-sm font-black text-[#14F5D5] font-mono">
-                        {formatHistoryMoney(trip.finalPrice, currencyLabel)}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-sm font-black text-[#14F5D5] font-mono">
+                          {formatHistoryMoney(trip.finalPrice, currencyLabel)}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => toggleRouteExpand(trip.tripId)}
+                          aria-expanded={isExpanded}
+                          className={cn(
+                            "inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border text-[11px] font-bold transition-all cursor-pointer",
+                            isExpanded
+                              ? "border-[#14B8A6]/50 bg-[#14B8A6]/20 text-[#14F5D5] shadow-[0_0_10px_rgba(20,245,213,0.15)]"
+                              : "border-white/10 bg-white/5 text-slate-300 hover:border-[#14B8A6]/30 hover:text-[#14F5D5] hover:bg-[#14B8A6]/10"
+                          )}
+                          title={isExpanded ? (t('hideRoute') || 'إخفاء المسار') : (t('showRoute') || 'عرض المسار')}
+                        >
+                          <span>{t('route') || 'المسار'}</span>
+                          <ChevronDown className={cn("h-3.5 w-3.5 transition-transform duration-200", isExpanded && "rotate-180")} />
+                        </button>
+                      </div>
                       <span className="text-[10px] text-slate-400">
                         {isArabic ? t('before') : ''} {timeAgo === 0 ? t('lessThanHour') : `${timeAgo} ${t('hours')}`} {isArabic ? '' : t('ago')}
                       </span>
@@ -189,9 +246,73 @@ export function HistoryRiderTrips({
                     </div>
                   )}
 
+                  {/* Collapsible Route / Address Details */}
+                  {isExpanded && (
+                    <div className="rounded-xl border border-[#14B8A6]/25 bg-gradient-to-b from-[#14B8A6]/10 to-black/30 p-3 space-y-2.5 text-xs text-slate-200 animate-in fade-in slide-in-from-top-1 duration-200">
+                      <div className="flex items-center justify-between border-b border-white/5 pb-2">
+                        <div className="flex items-center gap-1.5 font-bold text-[#14F5D5] text-[11px]">
+                          <Navigation className="h-3.5 w-3.5 text-[#14F5D5]" />
+                          <span>{t('routeDetails') || 'مسار الرحلة'}</span>
+                        </div>
+                        {trip.distanceKm && (
+                          <span className="text-[10px] font-mono font-black text-slate-200 bg-black/50 border border-teal-500/20 px-2 py-0.5 rounded-md">
+                            {trip.distanceKm} {isArabic ? 'كم' : 'km'}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="space-y-2 text-start">
+                        {/* Pickup address */}
+                        <div className="flex items-start gap-2">
+                          <div className="h-2 w-2 rounded-full bg-emerald-400 mt-1 shrink-0 ring-2 ring-emerald-400/20" />
+                          <div className="min-w-0 flex-1">
+                            <span className="text-[10px] font-bold text-slate-400 block">
+                              {t('pickupPoint') || 'نقطة الانطلاق'}:
+                            </span>
+                            <span className="text-xs font-medium text-white break-words">
+                              {trip.pickupAddress && trip.pickupAddress !== 'موقعي الحالي'
+                                ? trip.pickupAddress
+                                : (isArabic ? 'موقع الركوب المحدد' : 'Pickup location')}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Destination address */}
+                        <div className="flex items-start gap-2">
+                          <div className="h-2 w-2 rounded-full bg-cyan-400 mt-1 shrink-0 ring-2 ring-cyan-400/20" />
+                          <div className="min-w-0 flex-1">
+                            <span className="text-[10px] font-bold text-slate-400 block">
+                              {t('dropoffPoint') || 'الوجهة'}:
+                            </span>
+                            <span className="text-xs font-medium text-white break-words">
+                              {trip.destinationAddress && trip.destinationAddress !== 'رحلة سابقة' && trip.destinationAddress !== 'غير محدد'
+                                ? trip.destinationAddress
+                                : (isArabic ? 'الوجهة المحددة' : 'Destination location')}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {routeMapUrl && (
+                        <div className="pt-2 border-t border-white/5 flex justify-end">
+                          <a
+                            href={routeMapUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 text-[10px] font-bold text-[#14F5D5] hover:underline"
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                            <span>{t('viewOnMap') || 'عرض على الخريطة'}</span>
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {renderDetailedReview(trip.tripId)}
 
-                  <div className="pt-1">
+                  {/* Actions row: Call Captain & Deferred Rating Button */}
+                  <div className="pt-1 flex items-center justify-between gap-2.5 flex-wrap">
                     <a
                       href={formatTelUri(trip.captainPhone)}
                       className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-xl bg-gradient-to-r from-[#14B8A6] to-[#0ea5e9] text-slate-950 font-black text-xs hover:brightness-110 active:scale-[0.98] transition-all shadow-md shadow-teal-500/15 no-underline"
@@ -199,6 +320,27 @@ export function HistoryRiderTrips({
                       <Phone className="h-3.5 w-3.5 stroke-[2.5]" />
                       <span>{t('callCaptain')}</span>
                     </a>
+
+                    {!hasReview ? (
+                      <button
+                        type="button"
+                        onClick={() => setRatingTargetTrip(trip)}
+                        className="inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-xl border border-emerald-500/40 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 hover:text-white font-black text-xs active:scale-[0.98] transition-all shadow-md shadow-emerald-500/10 cursor-pointer"
+                      >
+                        <Star className="h-3.5 w-3.5 fill-emerald-400 text-emerald-400" />
+                        <span>{t('rateCaptain') || (isArabic ? 'تقييم الكابتن' : 'Rate Captain')}</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setRatingTargetTrip(trip)}
+                        className="inline-flex items-center justify-center gap-1 h-8 px-2.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white font-bold text-[11px] active:scale-[0.98] transition-all cursor-pointer"
+                        title={t('editRating') || (isArabic ? 'تعديل التقييم' : 'Edit Rating')}
+                      >
+                        <Star className="h-3 w-3 text-amber-400 fill-amber-400" />
+                        <span>{t('editRating') || (isArabic ? 'تعديل التقييم' : 'Edit Rating')}</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               );
@@ -206,6 +348,26 @@ export function HistoryRiderTrips({
           </div>
         )}
       </CardContent>
+
+      {ratingTargetTrip && (
+        <RatingModal
+          isOpen={Boolean(ratingTargetTrip)}
+          onClose={() => setRatingTargetTrip(null)}
+          tripId={ratingTargetTrip.tripId}
+          captainId={ratingTargetTrip.captainId || ''}
+          reviewerId={currentUserId || ''}
+          supabase={supabase}
+          onSuccess={() => {
+            onRatingSuccess?.(ratingTargetTrip.tripId);
+            setRatingTargetTrip(null);
+          }}
+          captainName={ratingTargetTrip.captainName}
+          captainPhone={ratingTargetTrip.captainPhone}
+          captainRank={ratingTargetTrip.captainRank}
+          vehicleInfo={ratingTargetTrip.vehicleInfo}
+          finalPrice={ratingTargetTrip.finalPrice}
+        />
+      )}
     </Card>
   );
 }

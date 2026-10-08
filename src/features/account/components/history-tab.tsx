@@ -43,6 +43,8 @@ export function HistoryTab({ hideCaptainDiagnostics = false }: HistoryTabProps =
     currencyLabel,
     t,
     tripReviews,
+    refreshReviews,
+    user,
   } = state;
 
   const now = Date.now();
@@ -87,6 +89,8 @@ export function HistoryTab({ hideCaptainDiagnostics = false }: HistoryTabProps =
           isArabic={isArabic}
           now={now}
           tripReviews={tripReviews}
+          currentUserId={user?.uid}
+          onRatingSuccess={refreshReviews}
           t={t}
         />
 

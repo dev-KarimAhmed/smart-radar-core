@@ -71,6 +71,12 @@ export function RecentTripsSection({
                 <p className={styles.style437_29}>
                   {t('recent.vehicle')}: {trip.vehicleInfo}
                 </p>
+                {(trip.destinationAddress || trip.destinationAddressAr) && (
+                  <p className={styles.style437_29}>
+                    {isArabic ? 'الوجهة' : 'Destination'}: {trip.destinationAddress || trip.destinationAddressAr}
+                    {trip.distanceKm ? ` (${trip.distanceKm} ${isArabic ? 'كم' : 'km'})` : ''}
+                  </p>
+                )}
               </div>
 
               <a href={`tel:${trip.captainPhone}`} className={styles.style444_30} style={{ textDecoration: 'none' }}>

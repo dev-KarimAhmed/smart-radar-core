@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { dexieDb, type RiderTripLedgerEntry } from '@/lib/dexie-db';
 import { fetchFavoriteCaptainIds, setFavoriteCaptain } from '../../services/favorite-captains';
@@ -173,7 +173,16 @@ export function useHistoryState() {
                 rank: entry.captainRank,
               },
               vehicle: entry.vehicleInfo ? { model: entry.vehicleInfo } : undefined,
-              destination_address_ar: 'رحلة سابقة',
+              destination_address_ar: entry.destinationAddressAr || 'رحلة سابقة',
+              destination_address: entry.destinationAddressAr || 'رحلة سابقة',
+              pickup_address_ar: entry.pickupAddressAr || '',
+              pickup_address: entry.pickupAddressAr || '',
+              distance_km: entry.distanceKm,
+              duration_minutes: entry.durationMinutes,
+              origin_lat: entry.originLat,
+              origin_lng: entry.originLng,
+              destination_lat: entry.destinationLat,
+              destination_lng: entry.destinationLng,
               trip_fare: entry.finalPrice,
             } as any)));
             setLoading(false);
@@ -203,16 +212,44 @@ export function useHistoryState() {
               if ((process.env.NODE_ENV !== 'production')) console.warn('[HistoryTab ledger fetch skipped]', ledgerError);
             } else if (ledgerRows && ledgerRows.length > 0) {
               const captainIds = Array.from(new Set(ledgerRows.map((row: any) => row.captain_id).filter(Boolean)));
-              const [captainMap, captainProfileMap] = await Promise.all([
+              const requestIds = Array.from(new Set(ledgerRows.map((row: any) => row.request_id).filter(Boolean)));
+              const [captainMap, captainProfileMap, requestMap] = await Promise.all([
                 fetchRowsByIds('profiles', captainIds),
                 fetchRowsByIds('captain_profiles', captainIds),
+                fetchRowsByIds('ride_requests', requestIds),
               ]);
 
-              const ledgerTrips = ledgerRows.map((row: any) => mapLedgerRowToTripShape(
-                row,
-                row.captain_id ? captainMap.get(row.captain_id) : null,
-                row.captain_id ? captainProfileMap.get(row.captain_id) : null
-              ));
+              const ledgerTrips = ledgerRows.map((row: any) => {
+                const req = row.request_id ? requestMap.get(row.request_id) : null;
+                const base = mapLedgerRowToTripShape(
+                  row,
+                  row.captain_id ? captainMap.get(row.captain_id) : null,
+                  row.captain_id ? captainProfileMap.get(row.captain_id) : null
+                );
+                return {
+                  ...base,
+                  destination_address_ar: req?.destination_address_ar || req?.destination_address || base.destination_address_ar,
+                  destination_address: req?.destination_address || req?.destination_address_ar || base.destination_address,
+                  pickup_address_ar: req?.origin_address || base.metadata?.pickup_address_ar || '',
+                  pickup_address: req?.origin_address || base.metadata?.pickup_address_ar || '',
+                  distance_km: req?.distance_km ?? (row.distance_meters ? Number((row.distance_meters / 1000).toFixed(1)) : undefined),
+                  duration_minutes: req?.duration_minutes ?? row.duration_minutes,
+                  origin_lat: req?.origin_lat,
+                  origin_lng: req?.origin_lng,
+                  destination_lat: req?.destination_lat,
+                  destination_lng: req?.destination_lng,
+                  metadata: {
+                    ...base.metadata,
+                    pickup_address_ar: req?.origin_address,
+                    destination_address_ar: req?.destination_address_ar || req?.destination_address || base.destination_address_ar,
+                    distance_km: req?.distance_km,
+                    origin_lat: req?.origin_lat,
+                    origin_lng: req?.origin_lng,
+                    destination_lat: req?.destination_lat,
+                    destination_lng: req?.destination_lng,
+                  }
+                };
+              });
               fetchedData = appendUniqueTrips(fetchedData, ledgerTrips);
 
               try {
@@ -351,10 +388,23 @@ export function useHistoryState() {
                 id: entry.captainId,
                 full_name: entry.captainName,
                 phone: entry.captainPhone,
-                rating: entry.captainRank === 'PLATINUM' ? 5.0 : entry.captainRank === 'GOLD' ? 4.5 : 4.0
+                rating: entry.captainRank === 'PLATINUM' ? 5.0 : entry.captainRank === 'GOLD' ? 4.5 : 4.0,
+                rank: entry.captainRank,
               },
+              destination_address_ar: entry.destinationAddressAr || '',
+              destination_address: entry.destinationAddressAr || '',
+              pickup_address_ar: entry.pickupAddressAr || '',
+              pickup_address: entry.pickupAddressAr || '',
+              distance_km: entry.distanceKm,
+              duration_minutes: entry.durationMinutes,
+              origin_lat: entry.originLat,
+              origin_lng: entry.originLng,
+              destination_lat: entry.destinationLat,
+              destination_lng: entry.destinationLng,
               metadata: {
-                vehicle_info: entry.vehicleInfo
+                vehicle_info: entry.vehicleInfo,
+                destination_address_ar: entry.destinationAddressAr,
+                pickup_address_ar: entry.pickupAddressAr,
               }
             }));
 
@@ -423,6 +473,14 @@ export function useHistoryState() {
         vehicleInfo: getHistoryVehicleInfo(trip, acceptedOffer),
         finalPrice: Number(trip.final_fare ?? trip.settled_fare ?? trip.final_price ?? trip.offer_price ?? trip.server_estimated_fare ?? trip.offerPrice ?? 0),
         timestamp: parseTripTimestamp(trip),
+        pickupAddress: trip.pickup_address_ar || trip.pickup_address || trip.origin_address || trip.metadata?.pickup_address_ar || '',
+        destinationAddress: trip.destination_address_ar || trip.destination_address || trip.destinationAddress || trip.metadata?.destination_address_ar || trip.destination || '',
+        distanceKm: trip.distance_km ?? trip.distanceKm ?? (trip.distance_meters ? Number((trip.distance_meters / 1000).toFixed(1)) : undefined),
+        durationMinutes: trip.duration_minutes ?? trip.metadata?.duration_minutes,
+        originLat: trip.origin_lat ?? trip.originLat ?? trip.metadata?.origin_lat,
+        originLng: trip.origin_lng ?? trip.originLng ?? trip.metadata?.origin_lng,
+        destinationLat: trip.destination_lat ?? trip.destinationLat ?? trip.metadata?.destination_lat,
+        destinationLng: trip.destination_lng ?? trip.destinationLng ?? trip.metadata?.destination_lng,
       };
     });
 
@@ -556,13 +614,34 @@ export function useHistoryState() {
     void loadFavorites();
   };
 
-  
-  
+  const refreshReviews = useCallback(async () => {
+    try {
+      const tripIds = realTrips.map(r => r.id).filter(Boolean);
+      if (tripIds.length > 0) {
+        const { data: reviewsData, error: reviewsError } = await supabase
+          .from('reviews')
+          .select('*')
+          .in('trip_id', tripIds);
+
+        if (!reviewsError && reviewsData) {
+          const reviewsMap: Record<string, any> = {};
+          reviewsData.forEach(rev => {
+            reviewsMap[rev.trip_id] = rev;
+          });
+          setTripReviews(reviewsMap);
+        }
+      }
+    } catch (err) {
+      if (process.env.NODE_ENV !== 'production') console.warn('[HistoryTab] refresh reviews failed', err);
+    }
+  }, [realTrips]);
+
   return {
     favoriteCaptainIds,
     sovereignLogs,
     realTrips,
     tripReviews,
+    refreshReviews,
     loading,
     errorSearch,
     setErrorSearch,

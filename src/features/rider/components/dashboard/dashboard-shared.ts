@@ -119,7 +119,11 @@ export interface HistoricalTrip {
   vehicleInfo: string;
   finalPrice: number;
   timestamp: number;
+  pickupAddress?: string;
+  destinationAddress?: string;
   destinationAddressAr?: string;
+  distanceKm?: number;
+  durationMinutes?: number;
   rating?: number;
 }
 

@@ -263,6 +263,14 @@ export interface HistoricalTrip {
   vehicleInfo: string;
   finalPrice: number;
   timestamp: number;
+  pickupAddress?: string;
+  destinationAddress?: string;
+  distanceKm?: number;
+  durationMinutes?: number;
+  originLat?: number;
+  originLng?: number;
+  destinationLat?: number;
+  destinationLng?: number;
 }
 
 export const HISTORY_TTL_MS = 3 * 24 * 60 * 60 * 1000;
@@ -582,7 +590,10 @@ export function tripShapeToRiderLedgerEntry(trip: any): RiderTripLedgerEntry | n
 
   const acceptedOffer = trip.offers?.find((o: any) => o.driverId === trip.driverId) || trip.acceptedOffer;
   const vehicleInfo = getHistoryVehicleInfo(trip, acceptedOffer);
-  const destinationAddress = trip.destination_address_ar || trip.destination_address || trip.destinationAddress || trip.metadata?.destination_address || '';
+  const destinationAddress = trip.destination_address_ar || trip.destination_address || trip.destinationAddress || trip.metadata?.destination_address || trip.destination || '';
+  const pickupAddress = trip.pickup_address_ar || trip.pickup_address || trip.pickupAddress || trip.origin_address || trip.metadata?.pickup_address_ar || '';
+  const distanceKm = trip.distance_km ?? trip.distanceKm ?? (trip.distance_meters ? Number((trip.distance_meters / 1000).toFixed(1)) : undefined);
+  const durationMinutes = trip.duration_minutes ?? trip.durationMinutes ?? trip.metadata?.duration_minutes;
   const captainRating = typeof trip.captain?.rating === 'number' ? trip.captain.rating : undefined;
 
   return {
@@ -596,6 +607,13 @@ export function tripShapeToRiderLedgerEntry(trip: any): RiderTripLedgerEntry | n
     timestamp,
     purgeAt: timestamp + HISTORY_TTL_MS,
     destinationAddressAr: destinationAddress,
+    pickupAddressAr: pickupAddress,
+    distanceKm,
+    durationMinutes,
+    originLat: trip.origin_lat ?? trip.originLat ?? trip.metadata?.origin_lat,
+    originLng: trip.origin_lng ?? trip.originLng ?? trip.metadata?.origin_lng,
+    destinationLat: trip.destination_lat ?? trip.destinationLat ?? trip.metadata?.destination_lat,
+    destinationLng: trip.destination_lng ?? trip.destinationLng ?? trip.metadata?.destination_lng,
     rating: captainRating,
   };
 }
