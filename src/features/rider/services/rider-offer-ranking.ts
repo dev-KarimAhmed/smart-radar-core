@@ -81,7 +81,10 @@ export function prioritizeRiderOffers<T extends Record<string, any>>(
         return bRating - aRating;
       }
 
-      return 0;
+      // 5. Submission time: earlier offer comes first (top), latest offer comes last (bottom)
+      const aTime = Date.parse(a?.created_at || a?.createdAt || '') || 0;
+      const bTime = Date.parse(b?.created_at || b?.createdAt || '') || 0;
+      return aTime - bTime;
     }) as T[];
 }
 

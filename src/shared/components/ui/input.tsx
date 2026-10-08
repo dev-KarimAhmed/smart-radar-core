@@ -8,7 +8,17 @@ const styles = {
 
 
 const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
-  ({ className, type, ...props }, ref) => {
+  ({ className, type, onWheel, ...props }, ref) => {
+    const handleWheel = React.useCallback(
+      (e: React.WheelEvent<HTMLInputElement>) => {
+        if (type === "number" || (e.target as HTMLInputElement).type === "number") {
+          (e.target as HTMLElement).blur();
+        }
+        onWheel?.(e);
+      },
+      [type, onWheel]
+    );
+
     return (
       <input
         type={type}
@@ -17,6 +27,7 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
           className
         )}
         ref={ref}
+        onWheel={handleWheel}
         {...props}
       />
     )

@@ -58,7 +58,9 @@ export function OfferGallery({
         const bPriority = rankPriority[String(b.driverRank || b.tier || 'SILVER').toUpperCase()] || 2;
         if (aPriority !== bPriority) return bPriority - aPriority;
 
-        return 0;
+        const aTime = Date.parse(a.created_at || (a as any).createdAt || '') || 0;
+        const bTime = Date.parse(b.created_at || (b as any).createdAt || '') || 0;
+        return aTime - bTime;
       })
       .slice(0, 9);
   }, [offers, favoriteIds]);

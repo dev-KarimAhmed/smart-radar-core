@@ -55,7 +55,7 @@ export function useRiderTransactions(
         const { error } = await supabase.rpc('cancel_ride_request', { p_request_id: trip.id });
         if (error) throw error;
         resetState();
-        toast({ title: t('cancelledTitle'), description: t('cancelledByServerDesc') });
+        toast({ title: t('cancelledTitle'), description: t('cancelledByServerDesc'), variant: 'warning', duration: 10000 });
       } catch {
         toast({ variant: 'destructive', title: t('cancelFailedTitle'), description: t('cancelFailedDesc') });
       } finally {
@@ -83,7 +83,7 @@ export function useRiderTransactions(
       try {
         const { error } = await supabase.rpc('complete_ride_trip', { p_request_id: trip.id });
         if (error) throw error;
-        toast({ title: t('confirmTripTitle'), description: t('confirmTripDesc') });
+        toast({ title: t('confirmTripTitle'), description: t('confirmTripDesc'), variant: 'success', duration: 12000 });
         setInternalStatus('rating');
       } catch {
         toast({ variant: 'destructive', title: t('confirmTripFailedTitle'), description: t('confirmTripFailedDesc') });
@@ -109,7 +109,7 @@ export function useRiderTransactions(
           p_offer_id: offer.id,
         });
         if (error) throw error;
-        toast({ title: t('offerAcceptedTitle'), description: t('offerAcceptedDesc') });
+        toast({ title: t('offerAcceptedTitle'), description: t('offerAcceptedDesc'), variant: 'success', duration: 12000 });
       } catch {
         toast({ variant: 'destructive', title: t('offerAcceptFailedTitle'), description: t('offerAcceptFailedDesc') });
       } finally {

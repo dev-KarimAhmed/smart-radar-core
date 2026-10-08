@@ -6,14 +6,20 @@ export interface Toast {
   id: string;
   title: string;
   description?: string;
-  variant?: 'default' | 'destructive';
+  variant?: 'default' | 'destructive' | 'success' | 'warning' | 'info';
+  duration?: number;
 }
 
 type ToastListener = (toasts: Toast[]) => void;
 const listeners = new Set<ToastListener>();
 let toastMemory: Toast[] = [];
 
-export const toast = (options: { title: string; description?: string; variant?: 'default' | 'destructive' }) => {
+export const toast = (options: {
+  title: string;
+  description?: string;
+  variant?: 'default' | 'destructive' | 'success' | 'warning' | 'info';
+  duration?: number;
+}) => {
   const id = Math.random().toString(36).substring(2, 9);
   const newToast: Toast = { id, ...options };
   
@@ -21,11 +27,13 @@ export const toast = (options: { title: string; description?: string; variant?: 
   toastMemory = [newToast, ...toastMemory].slice(0, 3);
   listeners.forEach((listener) => listener(toastMemory));
 
-  // Auto dismiss after 3.5 seconds
+  // Default auto-dismiss duration: 7500ms (7.5 seconds) instead of 3.5s
+  const duration = options.duration ?? 7500;
+
   setTimeout(() => {
     toastMemory = toastMemory.filter((t) => t.id !== id);
     listeners.forEach((listener) => listener(toastMemory));
-  }, 3500);
+  }, duration);
 
   return {
     id,
@@ -59,3 +67,4 @@ export function useToast() {
     }
   };
 }
+

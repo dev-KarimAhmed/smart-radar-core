@@ -126,4 +126,13 @@ test('prioritizeRiderOffers: multiple favorites - favorites all come first sorte
   assert.equal(sorted[3].id, 'nonfav-high', 'Most expensive overall must be last');
 });
 
+test('prioritizeRiderOffers: earlier offer comes before later offer when all else equal (latest at bottom)', () => {
+  const offers = [
+    { id: 'newer-offer', driverRank: 'BRONZE', driverRating: 5.0, finalFare: 20, created_at: '2026-10-07T12:00:10Z' },
+    { id: 'older-offer', driverRank: 'BRONZE', driverRating: 5.0, finalFare: 20, created_at: '2026-10-07T12:00:00Z' },
+  ];
 
+  const sorted = prioritizeRiderOffers(offers, [], null);
+  assert.equal(sorted[0].id, 'older-offer', 'Older offer should be at top');
+  assert.equal(sorted[1].id, 'newer-offer', 'Newer offer should be at bottom');
+});
