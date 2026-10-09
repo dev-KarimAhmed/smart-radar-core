@@ -10,7 +10,7 @@ import {
   cacheSupabaseSession,
   clearSupabaseSessionCache,
 } from '@/lib/supabase-auth';
-import { hasStoredSupabaseAuthSession } from '@/features/auth/services/supabase-auth-storage';
+import { hasStoredSupabaseAuthSession, SUPABASE_AUTH_STORAGE_KEY } from '@/features/auth/services/supabase-auth-storage';
 import { DASHBOARD_LANGUAGE_KEY, useDashboardLanguage } from './use-dashboard-language';
 
 const LogoutDialog = dynamic(
@@ -20,6 +20,22 @@ const LogoutDialog = dynamic(
 
 const styles = { root: 'contents' } as const;
 
+function getInitialUserFromCache(): SovereignUser | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw =
+      window.localStorage.getItem(SUPABASE_AUTH_STORAGE_KEY) ||
+      window.sessionStorage.getItem(SUPABASE_AUTH_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed && parsed.user && typeof parsed.user === 'object') {
+      return buildUserFromSupabaseAuth(parsed.user) as SovereignUser;
+    }
+  } catch {
+    // Ignore cache parse errors
+  }
+  return null;
+}
 
 interface AuthContextType {
   user: SovereignUser | null;
@@ -41,8 +57,13 @@ function AuthContent({ children }: { children: ReactNode }) {
   const router = useRouter();
   const t = useTranslations('auth.logout');
   const { direction } = useDashboardLanguage();
-  const [user, setUser] = useState<SovereignUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<SovereignUser | null>(getInitialUserFromCache);
+  const [loading, setLoading] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    const cachedUser = getInitialUserFromCache();
+    if (cachedUser) return false;
+    return hasStoredSupabaseAuthSession();
+  });
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const [logoutInProgress, setLogoutInProgress] = useState(false);
   const [promoData] = useState<any>(null);
@@ -57,26 +78,20 @@ function AuthContent({ children }: { children: ReactNode }) {
       setLoading(false);
     };
 
-    // Always subscribe to onAuthStateChange, even with no stored session at
-    // mount (e.g. sitting on the login page logged out) — that's exactly the
-    // moment a sign-in is about to happen, and this subscription is what
-    // picks it up. A prior version skipped the subscription in that case and
-    // relied on a same-tab custom event to trigger a hard `location.reload()`
-    // instead; that reload raced the sign-in call's own (synchronous, but not
-    // guaranteed to already be flushed) session persistence, so a reload
-    // could land back on a state that looks like "no session" and bounce the
-    // user straight back to the login page right after a successful login.
     const hadStoredSession = hasStoredSupabaseAuthSession();
-    setLoading(hadStoredSession);
+    if (!hadStoredSession && !user) {
+      finishBootstrap();
+    }
 
-    // A failed dynamic chunk or an unavailable auth SDK must never strand a
-    // logged-out user behind the full-screen loading view.
     const bootstrapTimeout = window.setTimeout(() => {
       if (!mounted || bootstrapCompleted) return;
-      clearSupabaseSessionCache();
-      setUser(null);
+      // Do not wipe session if we already restored a valid cached user
+      if (!user && !getInitialUserFromCache()) {
+        clearSupabaseSessionCache();
+        setUser(null);
+      }
       finishBootstrap();
-    }, 10_000);
+    }, 5_000);
 
     void import('@/lib/supabase-client').then(({ supabase }) => {
       if (!mounted) return;
@@ -85,12 +100,18 @@ function AuthContent({ children }: { children: ReactNode }) {
         void supabase.auth.getSession().then(({ data }) => {
           if (!mounted) return;
           cacheSupabaseSession(data.session);
-          setUser(data.session?.user ? (buildUserFromSupabaseAuth(data.session.user) as SovereignUser) : null);
+          if (data.session?.user) {
+            setUser(buildUserFromSupabaseAuth(data.session.user) as SovereignUser);
+          } else if (!user) {
+            setUser(null);
+          }
           finishBootstrap();
         }).catch(() => {
           if (!mounted) return;
-          clearSupabaseSessionCache();
-          setUser(null);
+          if (!user && !getInitialUserFromCache()) {
+            clearSupabaseSessionCache();
+            setUser(null);
+          }
           finishBootstrap();
         });
       } else {
@@ -100,21 +121,21 @@ function AuthContent({ children }: { children: ReactNode }) {
       const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
         if (!mounted) return;
         cacheSupabaseSession(session);
-        // Realtime authenticates separately from the REST client. Channels subscribe as
-        // soon as a component mounts, which can happen before the session is restored from
-        // storage — the socket then carries only the anon key, every postgres_changes
-        // binding on an RLS-protected table is denied, and the channel reports
-        // CHANNEL_ERROR. Pushing the token here re-authenticates the socket and any channel
-        // already open on it. Harmless when supabase-js has already done it itself.
         supabase.realtime.setAuth(session?.access_token ?? null);
-        setUser(session?.user ? (buildUserFromSupabaseAuth(session.user) as SovereignUser) : null);
+        if (session?.user) {
+          setUser(buildUserFromSupabaseAuth(session.user) as SovereignUser);
+        } else if (_event === 'SIGNED_OUT') {
+          setUser(null);
+        }
         finishBootstrap();
       });
       unsubscribe = () => subscription.subscription.unsubscribe();
     }).catch(() => {
       if (!mounted) return;
-      clearSupabaseSessionCache();
-      setUser(null);
+      if (!user && !getInitialUserFromCache()) {
+        clearSupabaseSessionCache();
+        setUser(null);
+      }
       finishBootstrap();
     });
 
@@ -261,6 +282,27 @@ async function cancelActiveRequestBeforeLogout(user: SovereignUser | null) {
         await supabase.rpc('cancel_ride_request', { p_request_id: data.id });
       }
     } else if (user.role === 'driver') {
+      // If the captain submitted offers in the auction, withdraw/cancel and delete them on logout
+      try {
+        await supabase
+          .from('ride_offers')
+          .update({ status: 'CANCELLED' })
+          .eq('captain_id', user.uid);
+        await supabase
+          .from('ride_offers')
+          .delete()
+          .eq('captain_id', user.uid);
+        try {
+          await supabase.rpc('set_captain_status', { p_status: 'IDLE' });
+        } catch {
+          // Ignore status reset error
+        }
+      } catch (offerErr) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn('[Logout captain offers cleanup failed]', offerErr);
+        }
+      }
+
       const { data } = await supabase
         .from('ride_requests')
         .select('id')
@@ -285,6 +327,7 @@ function purgeTransientFrontendCache() {
     'sovereign_trip_status',
     'sovereign_driver_status',
     'sovereign_rejected_trips_v1',
+    'radar_driver_rejected_requests_v1',
   ];
 
   const localKeys = [

@@ -1141,7 +1141,7 @@
     "marketIndicatorScopeCountry": "دولتك",
     "marketIndicatorLowTitle": "السوق في {scope} تمام",
     "marketIndicatorLowBody": "طلبات منتظرة حالياً في {scope}: {demand} — كباتن نشطين: {count}. فيه شغل كفاية.",
-    "marketIndicatorLowShort": "السوق تمام",
+    "marketIndicatorLowShort": "قوة السوق ",
     "marketIndicatorHighTitle": "السوق في {scope} مزدحم",
     "marketIndicatorHighBody": "طلبات منتظرة حالياً في {scope}: {demand} — كباتن نشطين: {count}. الكباتن أكتر من الطلبات.",
     "marketIndicatorHighShort": "السوق مزدحم",
