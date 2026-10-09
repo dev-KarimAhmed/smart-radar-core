@@ -321,7 +321,7 @@ export function HistoryRiderTrips({
                       <span>{t('callCaptain')}</span>
                     </a>
 
-                    {!hasReview ? (
+                    {!hasReview && (
                       <button
                         type="button"
                         onClick={() => setRatingTargetTrip(trip)}
@@ -329,16 +329,6 @@ export function HistoryRiderTrips({
                       >
                         <Star className="h-3.5 w-3.5 fill-emerald-400 text-emerald-400" />
                         <span>{t('rateCaptain') || (isArabic ? 'تقييم الكابتن' : 'Rate Captain')}</span>
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => setRatingTargetTrip(trip)}
-                        className="inline-flex items-center justify-center gap-1 h-8 px-2.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white font-bold text-[11px] active:scale-[0.98] transition-all cursor-pointer"
-                        title={t('editRating') || (isArabic ? 'تعديل التقييم' : 'Edit Rating')}
-                      >
-                        <Star className="h-3 w-3 text-amber-400 fill-amber-400" />
-                        <span>{t('editRating') || (isArabic ? 'تعديل التقييم' : 'Edit Rating')}</span>
                       </button>
                     )}
                   </div>
