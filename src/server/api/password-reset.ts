@@ -538,3 +538,67 @@ passwordResetRouter.post('/password-reset/complete', async (req, res) => {
     return res.status(500).json({ success: false, error: 'تعذّر تحديث كلمة المرور.' });
   }
 });
+
+// ---------------------------------------------------------------------------
+// 4. Rescue route: Updates password directly via Admin API when client-side
+// session in the browser is dropped or fails with "Auth session missing".
+// ---------------------------------------------------------------------------
+
+passwordResetRouter.post('/password-reset/rescue-with-token', async (req, res) => {
+  const config = serviceConfig();
+  if (!config) {
+    return res.status(503).json({ success: false, error: 'خدمة استرجاع كلمة المرور غير متاحة حالياً.' });
+  }
+
+  const accessToken = String(req.body?.accessToken ?? '').trim();
+  const newPassword = String(req.body?.newPassword ?? '');
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() || config.serviceKey;
+
+  if (!accessToken) {
+    return res.status(400).json({ success: false, error: 'رمز الجلسة مفقود.' });
+  }
+  if (newPassword.length < MIN_PASSWORD_LENGTH) {
+    return res.status(400).json({ success: false, error: `كلمة المرور لازم تكون ${MIN_PASSWORD_LENGTH} أحرف على الأقل.` });
+  }
+
+  try {
+    const verifyRes = await fetch(`${config.url}/auth/v1/user`, {
+      headers: {
+        apikey: anonKey,
+        Authorization: `Bearer ${accessToken}`,
+      },
+      signal: AbortSignal.timeout(8_000),
+    });
+
+    if (!verifyRes.ok) {
+      return res.status(401).json({ success: false, error: 'انتهت صلاحية جلسة الاستعادة. يرجى طلب رابط جديد.' });
+    }
+
+    const userData = (await verifyRes.json()) as { id?: string };
+    if (!userData?.id) {
+      return res.status(401).json({ success: false, error: 'تعذّر التحقق من صاحب الحساب.' });
+    }
+
+    const updateRes = await fetch(`${config.url}/auth/v1/admin/users/${userData.id}`, {
+      method: 'PUT',
+      headers: serviceHeaders(config.serviceKey),
+      body: JSON.stringify({ password: newPassword }),
+      signal: AbortSignal.timeout(8_000),
+    });
+
+    if (!updateRes.ok) {
+      return res.status(502).json({ success: false, error: 'تعذّر تحديث كلمة المرور في قاعدة البيانات.' });
+    }
+
+    await auditReset(config, {
+      profile_id: userData.id,
+      action: 'PASSWORD_RESET_COMPLETED',
+      detail: { route: 'rescue_token' },
+    });
+
+    return res.json({ success: true, message: 'تم تغيير كلمة المرور بنجاح. يمكنك تسجيل الدخول الآن.' });
+  } catch (err) {
+    console.error('[password-reset/rescue-with-token]', err);
+    return res.status(500).json({ success: false, error: 'حدث خطأ أثناء تحديث كلمة المرور.' });
+  }
+});

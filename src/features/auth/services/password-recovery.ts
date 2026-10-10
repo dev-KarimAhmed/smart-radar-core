@@ -98,8 +98,62 @@ export async function completePasswordReset(token: string, newPassword: string) 
  * Supabase from the link. Setting the password is then an ordinary authenticated update.
  */
 export async function completeEmailRecovery(newPassword: string) {
-  const { error } = await supabase.auth.updateUser({ password: newPassword });
-  if (error) throw new Error(error.message);
+  let tokenFromHash = '';
+  if (typeof window !== 'undefined') {
+    const hash = window.location.hash || '';
+    if (hash.includes('access_token=')) {
+      const hashParams = new URLSearchParams(hash.replace(/^#/, ''));
+      tokenFromHash = hashParams.get('access_token') || '';
+      const refreshToken = hashParams.get('refresh_token') || '';
+      if (tokenFromHash) {
+        try {
+          await supabase.auth.setSession({
+            access_token: tokenFromHash,
+            refresh_token: refreshToken,
+          });
+        } catch {
+          // continue
+        }
+      }
+    }
+  }
+
+  // 1. Try native client update
+  const { data, error } = await supabase.auth.updateUser({ password: newPassword });
+  if (!error && data?.user) {
+    return;
+  }
+
+  // 2. Rescue fallback: If client session dropped ("Auth session missing"), rescue via server using the accessToken!
+  let tokenToRescue = tokenFromHash;
+  if (!tokenToRescue) {
+    const { data: sessionData } = await supabase.auth.getSession();
+    tokenToRescue = sessionData.session?.access_token || '';
+  }
+
+  if (tokenToRescue) {
+    try {
+      const rescueRes = await fetch('/api/password-reset/rescue-with-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accessToken: tokenToRescue, newPassword }),
+      });
+      if (rescueRes.ok) {
+        const payload = (await rescueRes.json()) as { success?: boolean; error?: string };
+        if (payload.success) return;
+      }
+    } catch (rescueErr) {
+      console.warn('[password-recovery] rescue endpoint failed:', rescueErr);
+    }
+  }
+
+  if (error) {
+    throw new Error(
+      error.message.includes('session missing')
+        ? 'انتهت صلاحية جلسة الاستعادة أو الرابط. يرجى طلب رابط جديد من شاشة الدخول.'
+        : error.message,
+    );
+  }
 }
 
 export async function hasRecoverySession() {
