@@ -115,6 +115,25 @@ export function ResetPasswordRoute() {
       return;
     }
 
+    // 0.5. Immediate check for access_token in URL hash and establish session
+    if (typeof window !== 'undefined' && window.location.hash.includes('access_token=')) {
+      const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+      const accessToken = hashParams.get('access_token');
+      const refreshToken = hashParams.get('refresh_token');
+      if (accessToken) {
+        void supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken || '',
+        }).then(({ data, error: setErr }) => {
+          if (!active) return;
+          if (data.session && !setErr) {
+            setHasSession(true);
+            setCheckingSession(false);
+          }
+        });
+      }
+    }
+
     // 1. Check for PKCE ?code= in searchParams
     const code = searchParams.get('code');
     if (code) {
@@ -199,7 +218,11 @@ export function ResetPasswordRoute() {
     }
   };
 
-  const canUseForm = Boolean(token) || hasSession;
+  const canUseForm =
+    Boolean(token) ||
+    hasSession ||
+    (typeof window !== 'undefined' &&
+      (window.location.hash.includes('access_token=') || window.location.search.includes('code=')));
 
   return (
     <main dir={direction} className={styles.page}>
