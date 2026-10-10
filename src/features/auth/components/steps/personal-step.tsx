@@ -461,6 +461,7 @@ export function PersonalStep() {
   const [resetEmail, setResetEmail] = useState('');
   const [resetSubmitting, setResetSubmitting] = useState(false);
   const [resetMessage, setResetMessage] = useState('');
+  const [devRecoveryUrl, setDevRecoveryUrl] = useState('');
   const [resetError, setResetError] = useState('');
   const [emailError, setEmailError] = useState('');
 
@@ -472,8 +473,13 @@ export function PersonalStep() {
     setResetSubmitting(true);
     setResetError('');
     setResetMessage('');
+    setDevRecoveryUrl('');
     try {
-      setResetMessage(await requestPasswordRecovery(resetPhone, resetEmail));
+      const result = await requestPasswordRecovery(resetPhone, resetEmail);
+      setResetMessage(result.message);
+      if (result.devRecoveryUrl) {
+        setDevRecoveryUrl(result.devRecoveryUrl);
+      }
     } catch (error) {
       setResetError(error instanceof Error ? error.message : tAuto('key_ae0a0345'));
     } finally {
@@ -859,7 +865,17 @@ export function PersonalStep() {
             </p>
 
             {resetMessage ? (
-              <p className={styles.resetSuccess}>{resetMessage}</p>
+              <div className="space-y-2">
+                <p className={styles.resetSuccess}>{resetMessage}</p>
+                {devRecoveryUrl ? (
+                  <a
+                    href={devRecoveryUrl}
+                    className="block text-center text-xs font-black text-[#14B8A6] underline p-2 bg-[#14B8A6]/10 rounded-xl border border-[#14B8A6]/30 hover:bg-[#14B8A6]/20 transition-colors"
+                  >
+                    🔗 {isArabic ? 'فتح رابط إعادة تعيين كلمة المرور فوراً (اختبار مباشر)' : 'Open recovery link directly (Dev test)'}
+                  </a>
+                ) : null}
+              </div>
             ) : null}
             {resetError ? <p className={styles.resetError}>{resetError}</p> : null}
 
