@@ -21,8 +21,8 @@ export function useDetectedCountryCode(): string | null {
         const payload = (await response.json()) as { country_code?: string; country?: string };
         const code = String(payload.country_code || payload.country || '').trim().toUpperCase();
         if (active && code) setDetectedCountryCode(code);
-      } catch {
-        // IP country lookup is purely best-effort convenience; fail silently without console noise
+      } catch (error) {
+        if ((process.env.NODE_ENV !== 'production')) console.warn('[IP Country Detect]', error);
       }
     }
 
