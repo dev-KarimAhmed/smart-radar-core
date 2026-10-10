@@ -128,13 +128,73 @@ async function syncCaptainProfileFromAuthUser(
   if (error) throw error;
 }
 
+export async function checkAccountInUseByPhone(supabase: any, phone: string, currentDeviceId: string): Promise<boolean> {
+  if (typeof window === 'undefined') return false;
+  const normalized = phone.trim().replace(/[\s()-]/g, '');
+  if (!normalized) return false;
+
+  return new Promise((resolve) => {
+    let resolved = false;
+
+    const channel = supabase.channel('user-session-phone-' + normalized);
+
+    const timer = setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        try {
+          void channel.unsubscribe();
+        } catch {}
+        resolve(false);
+      }
+    }, 600);
+
+    channel.on('broadcast', { event: 'session_active' }, (payload: any) => {
+      const foreignDeviceId = payload.payload?.deviceId;
+      if (foreignDeviceId && foreignDeviceId !== currentDeviceId && !resolved) {
+        resolved = true;
+        clearTimeout(timer);
+        try {
+          void channel.unsubscribe();
+        } catch {}
+        resolve(true);
+      }
+    });
+
+    channel.subscribe((status: string) => {
+      if (status === 'SUBSCRIBED') {
+        channel.send({
+          type: 'broadcast',
+          event: 'check_active_session',
+          payload: { deviceId: currentDeviceId },
+        });
+      }
+    });
+  });
+}
+
 export async function signInRiderWithPhone(input: RiderSupabaseSignInInput) {
   const validation = validatePhoneAndPassword(input.phone, input.password);
   if (!validation.ok) throw new Error(validation.message);
 
+  const { supabase } = await import('@/lib/supabase-client');
+
+  let currentDeviceId = '';
+  if (typeof window !== 'undefined') {
+    currentDeviceId = window.sessionStorage.getItem('radar_device_id') || '';
+    if (!currentDeviceId) {
+      currentDeviceId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString();
+      window.sessionStorage.setItem('radar_device_id', currentDeviceId);
+    }
+  }
+
+  // Check if account is in active use BEFORE calling signInWithPassword
+  const inUse = await checkAccountInUseByPhone(supabase, validation.phone, currentDeviceId);
+  if (inUse) {
+    throw new Error('account_in_use:الحساب قيد الاستخدام حالياً على جهاز آخر.');
+  }
+
   setSupabaseRememberSession(input.rememberMe ?? shouldRememberSupabaseSession());
 
-  const { supabase } = await import('@/lib/supabase-client');
   const { data, error } = await supabase.auth.signInWithPassword({
     phone: validation.phone,
     password: input.password,

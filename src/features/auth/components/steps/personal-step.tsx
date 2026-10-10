@@ -813,16 +813,16 @@ export function PersonalStep() {
             <DialogTitle className={styles.style824_139}>{t.resetTitle}</DialogTitle>
             <DialogDescription className={styles.style825_140}>
               {isArabic
-                ? tAuto('key_7db68566')
-                : 'Instant email recovery if you added an address, or through support after your identity is verified.'}
+                ? 'استرجاع فوري لكلمة المرور عبر البريد الإلكتروني (Gmail)'
+                : 'Instant password recovery via email (Gmail)'}
             </DialogDescription>
           </DialogHeader>
 
           <div className={styles.style832_141}>
             <div className={styles.style833_142}>
               {isArabic
-                ? tAuto('key_2d995bb9')
-                : 'Enter your phone number. If your account has a recovery email, a link is sent there right away. If not, the request goes to support and your identity is verified before any reset.'}
+                ? 'أدخل رقم هاتفك أو بريدك الإلكتروني. سيصلك رابط لإعادة تعيين كلمة المرور فوراً على بريدك.'
+                : 'Enter your phone number or email. You will receive an instant password reset link in your inbox.'}
             </div>
 
             <Field label={t.resetPhone} icon={<Phone className={styles.style839_143} />}>
@@ -838,7 +838,7 @@ export function PersonalStep() {
             </Field>
 
             <Field
-              label={isArabic ? tAuto('key_dabb094c') : 'Recovery email (if you added one)'}
+              label={isArabic ? 'البريد الإلكتروني (Gmail)' : 'Email address (Gmail)'}
               icon={<Mail className={styles.style839_143} />}
             >
               <input
@@ -854,8 +854,8 @@ export function PersonalStep() {
             </Field>
             <p className={styles.resetEmailNote}>
               {isArabic
-                ? tAuto('key_49fde036')
-                : 'The link is only ever sent to the address already on your account. What you type here is checked against it — we never send to a different address.'}
+                ? 'سيصلك رابط مباشر لإنشاء كلمة مرور جديدة إلى بريدك الإلكتروني.'
+                : 'A direct link to set a new password will be sent to your email.'}
             </p>
 
             {resetMessage ? (
@@ -866,12 +866,12 @@ export function PersonalStep() {
             <button
               type="button"
               onClick={() => void submitPasswordRecovery()}
-              disabled={resetSubmitting || resetPhone.trim().length < 8}
+              disabled={resetSubmitting || (resetPhone.trim().length < 8 && !resetEmail.trim().includes('@'))}
               className={styles.resetSubmit}
             >
               {resetSubmitting
-                ? (isArabic ? tAuto('key_afcce661') : 'Sending…')
-                : (isArabic ? tAuto('key_0090be3b') : 'Send recovery request')}
+                ? (isArabic ? 'جاري الإرسال…' : 'Sending…')
+                : (isArabic ? 'إرسال رابط الاسترجاع' : 'Send recovery link')}
             </button>
 
             {/* Kept as a way to chase a queued request, not as the mechanism itself. */}

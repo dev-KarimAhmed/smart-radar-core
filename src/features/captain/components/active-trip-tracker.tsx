@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React from 'react';
 import dynamic from 'next/dynamic';
@@ -10,6 +10,7 @@ import { SOVEREIGN_CONSTANTS } from '@/core/constants/sovereign-protocols';
 
 import { cn } from '@/lib/utils';
 import { useTripCountdown } from '@/shared/hooks/use-trip-countdown';
+import { getServerTime } from '@/lib/server-time';
 
 // MapLibre GL touches browser-only APIs at import time, so this must load
 // client-side only — same reason RadarMapView is dynamic-imported in
@@ -109,7 +110,7 @@ function playSystemNotificationSound() {
 
 function useHandshakeCountdown(handshakeAt: number | null, step: CaptainTripStep) {
   const expiresAt = handshakeAt ? handshakeAt + SOVEREIGN_CONSTANTS.TRIP_FORGOTTEN_GRACE_MIN * 60 * 1000 : null;
-  const [remainingMs, setRemainingMs] = React.useState(() => (expiresAt ? Math.max(0, expiresAt - Date.now()) : 0));
+  const [remainingMs, setRemainingMs] = React.useState(() => (expiresAt ? Math.max(0, expiresAt - getServerTime()) : 0));
   const alertedRef = React.useRef(false);
 
   React.useEffect(() => {
@@ -118,7 +119,7 @@ function useHandshakeCountdown(handshakeAt: number | null, step: CaptainTripStep
       return;
     }
     const update = () => {
-      const rem = Math.max(0, expiresAt - Date.now());
+      const rem = Math.max(0, expiresAt - getServerTime());
       setRemainingMs(rem);
       if (rem === 0 && step !== 'STARTED' && !alertedRef.current) {
         alertedRef.current = true;

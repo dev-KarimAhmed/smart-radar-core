@@ -6,6 +6,7 @@ export interface RiderSupabaseSignUpInput {
   phone: string;
   password: string;
   fullName: string;
+  email?: string;
   role?: 'RIDER' | 'CAPTAIN' | 'ADVERTISER' | 'DELEGATE';
   countryId: number;
   governorateId: number;
@@ -48,6 +49,7 @@ export interface RiderAuthMetadata {
   role: 'RIDER' | 'CAPTAIN' | 'ADVERTISER' | 'DELEGATE';
   full_name: string;
   phone: string;
+  email?: string;
   country_id: number;
   governorate_id: number;
   district_id: number;
@@ -94,6 +96,7 @@ export function buildRiderSignUpMetadata(input: RiderSupabaseSignUpInput): Rider
     country_id: toStrictPositiveInteger(input.countryId, 'country_id'),
     governorate_id: toStrictPositiveInteger(input.governorateId, 'governorate_id'),
     district_id: toStrictPositiveInteger(input.districtId, 'district_id'),
+    ...(input.email?.trim() ? { email: input.email.trim().toLowerCase() } : {}),
     ...(input.captainProfile ? { captain_profile: input.captainProfile } : {}),
   };
 }
@@ -117,44 +120,75 @@ export function isInvalidPhoneOrPasswordError(error: unknown) {
 }
 
 export function mapSupabaseAuthError(error: unknown) {
-  const authError = error as Partial<AuthError> & { message?: string; code?: string; status?: number };
+  const authError = typeof error === 'object' && error !== null
+    ? (error as Partial<AuthError> & { message?: string; code?: string; status?: number; details?: string; error_description?: string })
+    : {};
   const name = `${(authError as { name?: string })?.name || ''}`.toLowerCase();
-  const message = `${authError?.message || error || ''}`.toLowerCase();
+  const message = `${authError?.message || authError?.details || authError?.error_description || error || ''}`.toLowerCase();
   const code = `${authError?.code || ''}`.toLowerCase();
+  const details = `${authError?.details || ''}`.toLowerCase();
+  const fullText = `${code} ${message} ${details}`;
+
+  if (
+    fullText.includes('account_in_use') ||
+    fullText.includes('قيد الاستخدام')
+  ) {
+    return 'الحساب قيد الاستخدام حالياً على جهاز آخر. لا يمكنك تسجيل الدخول حتى يتم الخروج من الجهاز الآخر.';
+  }
+
+  if (
+    fullText.includes('unique_national_id_number') ||
+    fullText.includes('national_id_number') ||
+    fullText.includes('national_id') ||
+    fullText.includes('nationalidnumber')
+  ) {
+    return 'رقم الهوية الوطنية مسجل بالفعل مسبقاً. يرجى التأكد من الرقم أو استخدام رقم آخر.';
+  }
+
+  if (
+    fullText.includes('unique_license_number') ||
+    fullText.includes('license_number') ||
+    fullText.includes('licensenumber') ||
+    (fullText.includes('license') && (fullText.includes('unique') || fullText.includes('duplicate') || fullText.includes('exists')))
+  ) {
+    return 'رقم رخصة القيادة مسجل بالفعل مسبقاً. يرجى التأكد من الرقم أو استخدام رقم آخر.';
+  }
 
   if (
     code.includes('phone_exists') ||
     code.includes('user_already_exists') ||
-    message.includes('already registered') ||
-    message.includes('already exists')
+    fullText.includes('already registered') ||
+    fullText.includes('already exists') ||
+    fullText.includes('user_already_exists') ||
+    fullText.includes('phone_exists')
   ) {
-    return 'رقم الهاتف مسجل بالفعل. يرجى تسجيل الدخول.';
+    return 'رقم الهاتف مسجل بالفعل مسبقاً. يرجى تسجيل الدخول بدلاً من إنشاء حساب جديد.';
   }
 
   if (
     code.includes('invalid_credentials') ||
     code.includes('otp_expired') ||
     code.includes('otp_disabled') ||
-    message.includes('invalid login') ||
-    message.includes('invalid credentials') ||
-    message.includes('token has expired') ||
-    message.includes('invalid token') ||
-    message.includes('authentication')
+    fullText.includes('invalid login') ||
+    fullText.includes('invalid credentials') ||
+    fullText.includes('token has expired') ||
+    fullText.includes('invalid token') ||
+    fullText.includes('authentication')
   ) {
-    return code.includes('otp') || message.includes('token')
+    return code.includes('otp') || fullText.includes('token')
       ? 'رمز التحقق غير صحيح أو انتهت صلاحيته.'
       : 'رقم الهاتف أو كلمة المرور غير صحيحة.';
   }
 
   if (
     code.includes('phone_provider_disabled') ||
-    message.includes('phone provider') ||
-    message.includes('phone signups are disabled')
+    fullText.includes('phone provider') ||
+    fullText.includes('phone signups are disabled')
   ) {
     return 'تسجيل الهاتف غير مفعّل حالياً في إعدادات الخدمة.';
   }
 
-  if (code.includes('weak_password') || message.includes('weak password') || message.includes('password')) {
+  if (code.includes('weak_password') || fullText.includes('weak password') || fullText.includes('password')) {
     return 'كلمة المرور ضعيفة. يجب ألا تقل عن 6 أحرف.';
   }
 
@@ -165,10 +199,10 @@ export function mapSupabaseAuthError(error: unknown) {
     code.includes('hook_timeout_after_retry') ||
     authError?.status === 504 ||
     authError?.status === 502 ||
-    message.includes('network') ||
-    message.includes('timeout') ||
-    message.includes('failed to fetch') ||
-    message.includes('gateway')
+    fullText.includes('network') ||
+    fullText.includes('timeout') ||
+    fullText.includes('failed to fetch') ||
+    fullText.includes('gateway')
   ) {
     return 'تعذر الاتصال بالخدمة. تحقق من الإنترنت وحاول مرة أخرى.';
   }
@@ -177,33 +211,43 @@ export function mapSupabaseAuthError(error: unknown) {
     code.includes('unexpected_failure') ||
     code.includes('hook_payload_invalid_content_type') ||
     code.includes('hook_payload_over_size_limit') ||
-    message.includes('database error saving new user') ||
-    message.includes('error saving new user') ||
-    message.includes('database error') ||
-    message.includes('trigger') ||
+    fullText.includes('database error saving new user') ||
+    fullText.includes('error saving new user') ||
+    fullText.includes('database error') ||
+    fullText.includes('trigger') ||
     authError?.status === 500
   ) {
     if (
-      message.includes('foreign key') ||
-      message.includes('governorate') ||
-      message.includes('district') ||
-      message.includes('country')
+      fullText.includes('foreign key') ||
+      fullText.includes('governorate') ||
+      fullText.includes('district') ||
+      fullText.includes('country')
     ) {
       return 'تعذر إنشاء الحساب لأن الدولة أو المحافظة أو المنطقة غير موجودة. حدّث الاختيارات ثم حاول مرة أخرى.';
+    }
+
+    if (code === '23505' || fullText.includes('duplicate key')) {
+      if (fullText.includes('national_id') || fullText.includes('unique_national_id_number')) {
+        return 'رقم الهوية الوطنية مسجل بالفعل مسبقاً. يرجى التأكد من الرقم أو استخدام رقم آخر.';
+      }
+      if (fullText.includes('license') || fullText.includes('unique_license_number')) {
+        return 'رقم رخصة القيادة مسجل بالفعل مسبقاً. يرجى التأكد من الرقم أو استخدام رقم آخر.';
+      }
+      return 'بعض البيانات المدخلة (الهوية أو الرخصة أو رقم الهاتف) مسجلة بالفعل مسبقاً.';
     }
 
     return 'تعذر إنشاء الحساب من قاعدة البيانات. راجع البيانات وحاول مرة أخرى.';
   }
 
-  if (code.includes('validation_failed') || message.includes('invalid phone')) {
+  if (code.includes('validation_failed') || fullText.includes('invalid phone')) {
     return 'رقم الهاتف غير صحيح. اكتبه مع رمز الدولة مثل +962 أو +20.';
   }
 
-  if (message.startsWith('role_mismatch:')) {
+  if (fullText.startsWith('role_mismatch:')) {
     return 'رقم الهاتف أو كلمة المرور غير صحيحة.';
   }
 
-  if (error instanceof Error && /^(يرجى|كلمة المرور|قيمة|هذه)/.test(error.message)) return error.message;
+  if (error instanceof Error && /^(يرجى|كلمة المرور|قيمة|هذه|رقم)/.test(error.message)) return error.message;
 
   return 'تعذر إكمال العملية. يرجى المحاولة مرة أخرى.';
 }

@@ -460,6 +460,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
         phone: normalizedPhone.phone,
         password: authPassword,
         fullName: personal.name.trim(),
+        email: personal.email?.trim() || undefined,
         role: toSupabaseAuthRole(role),
         countryId,
         governorateId,

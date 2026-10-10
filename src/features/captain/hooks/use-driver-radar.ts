@@ -145,8 +145,9 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
       return false;
     }
 
-    const walletStatus = data as { has_active_bundle?: boolean; balance?: number } | null;
-    const hasActiveBundle = walletStatus?.has_active_bundle === true;
+    const walletStatus = data as { has_active_bundle?: boolean; balance?: number; paid_minutes_remaining?: number; bonus_minutes_remaining?: number } | null;
+    const totalMinutes = Number(walletStatus?.paid_minutes_remaining || 0) + Number(walletStatus?.bonus_minutes_remaining || 0);
+    const hasActiveBundle = walletStatus?.has_active_bundle === true || totalMinutes > 0;
     const cashBalance = Number(walletStatus?.balance || 0);
 
     if (!hasActiveBundle) {

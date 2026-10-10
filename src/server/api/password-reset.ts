@@ -105,6 +105,52 @@ async function findAuthUserByPhone(
   return { id: row.user_id, email: row.email?.trim() || null };
 }
 
+async function findAuthUserByEmail(
+  config: { url: string; serviceKey: string },
+  email: string,
+): Promise<{ id: string; email: string | null; phone: string | null } | null> {
+  if (!email) return null;
+
+  const response = await fetch(`${config.url}/rest/v1/rpc/find_account_by_email`, {
+    method: 'POST',
+    headers: serviceHeaders(config.serviceKey),
+    body: JSON.stringify({ p_email: email }),
+    signal: AbortSignal.timeout(8_000),
+  });
+  if (!response.ok) return null;
+
+  const [row] = (await response.json()) as Array<{ user_id?: string; phone?: string | null; email?: string | null }>;
+  if (!row?.user_id) return null;
+
+  return { id: row.user_id, phone: row.phone?.trim() || null, email: row.email?.trim() || null };
+}
+
+function resolveAppOrigin(req: Request): string {
+  const originHeader = req.headers['origin'];
+  if (typeof originHeader === 'string' && originHeader.startsWith('http')) {
+    return originHeader.replace(/\/$/, '');
+  }
+
+  const refererHeader = req.headers['referer'];
+  if (typeof refererHeader === 'string' && refererHeader.startsWith('http')) {
+    try {
+      const url = new URL(refererHeader);
+      return url.origin;
+    } catch {
+      // ignore
+    }
+  }
+
+  const fwdHost = req.headers['x-forwarded-host'];
+  const host = typeof fwdHost === 'string' ? fwdHost.split(',')[0].trim() : String(req.headers.host || '');
+  if (host) {
+    const fwdProto = req.headers['x-forwarded-proto'];
+    const proto = typeof fwdProto === 'string' ? fwdProto.split(',')[0].trim() : (host.includes('localhost') ? 'http' : 'https');
+    return `${proto}://${host}`;
+  }
+
+  return process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') || 'https://bynkcom.com';
+}
 
 // ---------------------------------------------------------------------------
 // 1. The locked-out person asks for help. Public, rate-limited by the caller.
@@ -117,97 +163,108 @@ passwordResetRouter.post('/password-reset/request', async (req, res) => {
   }
 
   const digits = phoneDigits(req.body?.phone);
-  if (digits.length < 8) {
-    return res.status(400).json({ success: false, error: 'رقم الهاتف غير صالح.' });
+  const claimedEmail = String(req.body?.email ?? '').trim().toLowerCase();
+  const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(claimedEmail);
+
+  if (digits.length < 8 && !isEmailValid) {
+    return res.status(400).json({ success: false, error: 'يرجى إدخال رقم هاتف صالح أو بريد إلكتروني صحيح.' });
   }
 
-  // Optional, and CONFIRMATION ONLY — never a destination.
-  //
-  // Letting an anonymous caller name the address a reset link is sent to is account
-  // takeover with extra steps: type the victim's phone and your own email. So the link only
-  // ever goes to the address already stored on the account, and anything typed here is
-  // compared against that address rather than used in its place.
-  const claimedEmail = String(req.body?.email ?? '').trim().toLowerCase();
-
-  // ONE response shape for every outcome below. Telling the caller whether a phone is
-  // registered, or whether it has an email, turns this endpoint into a way to enumerate
-  // every account in the system.
-  const genericAnswer = {
-    success: true,
-    message: 'إذا كان الرقم مسجلاً لدينا، فستصلك خطوات استرداد كلمة المرور. وإن لم تقم بإضافة بريد إلكتروني، ستتواصل معك الإدارة بعد التحقق من هويتك.',
-  };
-
   try {
-    const user = await findAuthUserByPhone(config, digits);
+    let user: { id: string; email: string | null } | null = null;
 
-    // A typed address that does not match the one on file is not a typo to be helpful
-    // about — it is what an attempted takeover looks like. Record it and fall through to
-    // the admin queue, where a human decides.
-    const emailMismatch = Boolean(
-      user?.email && claimedEmail && claimedEmail !== user.email.trim().toLowerCase(),
-    );
-    if (emailMismatch) {
+    if (digits.length >= 8) {
+      user = await findAuthUserByPhone(config, digits);
+    }
+
+    if (!user && isEmailValid) {
+      user = await findAuthUserByEmail(config, claimedEmail);
+    }
+
+    if (!user) {
       await auditReset(config, {
-        profile_id: user?.id ?? null,
-        action: 'EMAIL_MISMATCH_REFUSED',
-        detail: { route: 'email', reason: 'claimed address does not match the account' },
+        profile_id: null,
+        action: 'PASSWORD_RESET_ACCOUNT_NOT_FOUND',
+        detail: { digits, claimedEmail },
+      });
+      return res.status(404).json({
+        success: false,
+        error: 'لم يتم العثور على حساب مسجل بهذه البيانات. يرجى التأكد من رقم الهاتف أو البريد الإلكتروني.',
       });
     }
 
-    if (user?.email && !emailMismatch) {
-      // Route 1: self-service. Supabase mails the recovery link itself, to the stored
-      // address — never to whatever was typed above.
-      const host = String(req.headers.host || '');
-      const proto = String(req.headers['x-forwarded-proto'] || (host.includes('localhost') ? 'http' : 'https'));
-      const origin = host ? `${proto}://${host}` : (process.env.NEXT_PUBLIC_APP_URL || 'https://smart-radar-core-production-8d61.up.railway.app');
+    let targetEmail = user.email;
 
-      await fetch(`${config.url}/auth/v1/recover`, {
-        method: 'POST',
-        headers: serviceHeaders(config.serviceKey),
-        body: JSON.stringify({ email: user.email, redirect_to: `${origin}/reset-password` }),
-        signal: AbortSignal.timeout(8_000),
-      });
-
-      await auditReset(config, {
-        profile_id: user.id,
-        action: 'EMAIL_RECOVERY_SENT',
-        detail: { route: 'email' },
-      });
-
-      return res.json(genericAnswer);
+    // If an email was provided, ensure it is linked and verified on the auth account via admin API
+    if (isEmailValid) {
+      if (!user.email || user.email.toLowerCase() !== claimedEmail) {
+        try {
+          const updateRes = await fetch(`${config.url}/auth/v1/admin/users/${user.id}`, {
+            method: 'PUT',
+            headers: serviceHeaders(config.serviceKey),
+            body: JSON.stringify({ email: claimedEmail, email_confirm: true }),
+            signal: AbortSignal.timeout(8_000),
+          });
+          if (updateRes.ok) {
+            targetEmail = claimedEmail;
+          }
+        } catch (err) {
+          console.warn('[password-reset] Failed to link user email via admin API:', err);
+        }
+      } else {
+        targetEmail = claimedEmail;
+      }
     }
 
-    // Route 2: queue it for an admin. Recorded even when the phone matched nothing, so a
-    // flood of misses is visible rather than silently dropped.
-    const insert = await fetch(`${config.url}/rest/v1/password_reset_requests`, {
+    if (!targetEmail) {
+      return res.status(400).json({
+        success: false,
+        error: 'هذا الحساب غير مرتبط ببريد إلكتروني حالياً. يرجى كتابة بريدك الإلكتروني (Gmail) في خانة البريد لإرسال رابط الاسترجاع إليه.',
+      });
+    }
+
+    const origin = resolveAppOrigin(req);
+    const redirectTo = `${origin}/reset-password`;
+
+    const recoverResponse = await fetch(`${config.url}/auth/v1/recover`, {
       method: 'POST',
-      headers: { ...serviceHeaders(config.serviceKey), Prefer: 'return=representation' },
-      body: JSON.stringify({
-        claimed_phone: digits,
-        profile_id: user?.id ?? null,
-        requested_ip: clientIp(req),
-      }),
+      headers: serviceHeaders(config.serviceKey),
+      body: JSON.stringify({ email: targetEmail, redirect_to: redirectTo }),
       signal: AbortSignal.timeout(8_000),
     });
 
-    const [row] = insert.ok ? ((await insert.json()) as Array<{ id: string }>) : [];
+    if (recoverResponse.status === 429) {
+      return res.json({
+        success: true,
+        message: 'تم إرسال رابط مؤخراً إلى هذا البريد. يرجى مراجعة بريدك الإلكتروني (صندوق الوارد والرسائل غير المرغوبة Spam) أو الانتظار دقيقة قبل المحاولة مجدداً.',
+      });
+    }
+
+    if (!recoverResponse.ok) {
+      const errBody = await recoverResponse.text();
+      console.error('[password-reset] recover API failed:', recoverResponse.status, errBody);
+      return res.status(500).json({
+        success: false,
+        error: 'تعذّر إرسال رابط الاسترجاع عبر البريد الإلكتروني في الوقت الحالي. يرجى المحاولة بعد قليل.',
+      });
+    }
+
     await auditReset(config, {
-      request_id: row?.id ?? null,
-      profile_id: user?.id ?? null,
-      action: 'ADMIN_REVIEW_REQUESTED',
-      detail: {
-        route: 'admin',
-        matchedAccount: Boolean(user),
-        accountHasEmail: Boolean(user?.email),
-        emailMismatch,
-      },
+      profile_id: user.id,
+      action: 'EMAIL_RECOVERY_SENT',
+      detail: { route: 'email', targetEmail, redirectTo },
     });
 
-    return res.json(genericAnswer);
+    return res.json({
+      success: true,
+      message: `تم إرسال رابط استعادة كلمة المرور بنجاح إلى (${targetEmail}). يرجى فتح بريدك الإلكتروني (صندوق الوارد أو مجلد Spam) والضغط على الرابط لإعادة تعيين كلمة المرور.`,
+    });
   } catch (error) {
     console.error('[password-reset/request]', error);
-    // Still generic: an error message that differs by outcome leaks the same information.
-    return res.json(genericAnswer);
+    return res.status(500).json({
+      success: false,
+      error: 'حدث خطأ غير متوقع أثناء معالجة طلب الاسترجاع. يرجى المحاولة لاحقاً.',
+    });
   }
 });
 

@@ -89,6 +89,7 @@ interface CaptainVehicleStepProps {
   affiliation: AffiliationType | null;
   vehicle: CaptainVehicleValues;
   setVehicle: (vehicle: CaptainVehicleValues) => void;
+  serverErrors?: Record<string, string>;
   // Document image uploads are disabled for now — replaced by the plain-text
   // national ID / license number fields below. Re-enabling image upload later
   // just means uncommenting these props + the picker calls further down.
@@ -106,6 +107,7 @@ export function CaptainVehicleStep({
   affiliation,
   vehicle,
   setVehicle,
+  serverErrors,
   // identityFile,
   // onIdentityFileChange,
   // drivingLicenseFile,
@@ -120,6 +122,13 @@ export function CaptainVehicleStep({
   const { isArabic } = useDashboardLanguage();
   const [errors, setErrors] = React.useState<Record<string, string>>({});
   const [colorSwatch, setColorSwatch] = React.useState('#14b8a6');
+
+  // Sync incoming server validation errors (e.g. duplicate National ID / License Number)
+  React.useEffect(() => {
+    if (serverErrors && Object.keys(serverErrors).length > 0) {
+      setErrors((current) => ({ ...current, ...serverErrors }));
+    }
+  }, [serverErrors]);
 
   // Keeps the swatch showing the color that matches the stored name (e.g.
   // navigating back to this step) instead of sitting at an unrelated default.
@@ -158,6 +167,12 @@ export function CaptainVehicleStep({
   const handleFieldChange = (field: keyof CaptainVehicleValues, value: string) => {
     const nextValues = { ...vehicle, [field]: value };
     setVehicle(nextValues);
+    setErrors((current) => {
+      if (!current[field]) return current;
+      const copy = { ...current };
+      delete copy[field];
+      return copy;
+    });
     void runFieldValidation(field, nextValues);
   };
 

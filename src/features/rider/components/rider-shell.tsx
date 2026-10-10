@@ -37,6 +37,10 @@ const VaultScreen = dynamic(
   { loading: function Loading() {
       const tAuto = useTranslations('auto'); const t = useTranslations('auto'); return <RouteLoading label={tAuto('key_4ccb93e5')} />; } },
 );
+const NotificationsScreen = dynamic(
+  () => import('@/features/account/components/notifications-tab').then((module) => module.NotificationsTab),
+  { loading: function Loading() { return <RouteLoading label="Loading..." />; } },
+);
 
 const styles = {
   root: 'flex min-h-screen w-full flex-col bg-[#0A0F1D] text-white lg:h-screen lg:overflow-hidden',
@@ -111,7 +115,9 @@ export function RiderShell() {
       ? <HistoryScreen />
       : hash === '#profile'
         ? <ProfileScreen />
-        : <RiderView onExitRequestFlow={exitRequestFlow} isStandbyDismissed={hasRequestedRideOnce} />;
+        : hash === '#notifications'
+          ? <NotificationsScreen />
+          : <RiderView onExitRequestFlow={exitRequestFlow} isStandbyDismissed={hasRequestedRideOnce} />;
 
   return (
     <div className={styles.root}>

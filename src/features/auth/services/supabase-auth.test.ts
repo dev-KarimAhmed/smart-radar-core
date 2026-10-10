@@ -1,4 +1,4 @@
-﻿import assert from 'node:assert/strict';
+import assert from 'node:assert/strict';
 import {
   buildRiderSignUpMetadata,
   mapSupabaseAuthError,
@@ -11,7 +11,7 @@ assert.equal(validatePhoneAndPassword('+962790000000', '123').ok, false);
 
 assert.equal(
   mapSupabaseAuthError({ code: 'phone_exists', message: 'User already registered' }),
-  'رقم الهاتف مسجل بالفعل. يرجى تسجيل الدخول.',
+  'رقم الهاتف مسجل بالفعل مسبقاً. يرجى تسجيل الدخول بدلاً من إنشاء حساب جديد.',
 );
 
 assert.equal(

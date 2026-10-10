@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import dynamic from 'next/dynamic';
 import { useState, useEffect, type ReactNode } from 'react';
@@ -183,10 +183,10 @@ export function AppHeader({ sidebar }: { sidebar?: ReactNode }) {
   const { notifications, unreadCount, hasUnread, markAllAsRead } = useNotifications();
   const { isStandalone, canPromptNative, triggerNativeInstall, platformEnv } = usePwaInstall(isCaptain ? 'captain' : 'rider');
   const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
-  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+
 
   useEffect(() => {
-    const handleOpen = () => setIsNotificationOpen(true);
+    const handleOpen = () => { window.location.hash = '#notifications'; };
     window.addEventListener('open-app-notifications', handleOpen);
     return () => window.removeEventListener('open-app-notifications', handleOpen);
   }, []);

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { KeyRound, Loader2, ShieldCheck } from 'lucide-react';
 
 import { useDashboardLanguage } from '@/shared/hooks/use-dashboard-language';
+import { supabase } from '@/lib/supabase-client';
 import {
   completeEmailRecovery,
   completePasswordReset,
@@ -93,15 +94,62 @@ export function ResetPasswordRoute() {
   React.useEffect(() => {
     if (token) return;
     let active = true;
-    // Supabase parses the recovery fragment and establishes the session asynchronously, so
-    // a synchronous check here races it and would report "no session" on a valid link.
-    void hasRecoverySession().then((value) => {
+
+    // 1. Check for PKCE ?code= in searchParams
+    const code = searchParams.get('code');
+    if (code) {
+      void supabase.auth.exchangeCodeForSession(code).then(({ data, error: exErr }) => {
+        if (!active) return;
+        if (data.session && !exErr) {
+          setHasSession(true);
+          setCheckingSession(false);
+        }
+      });
+    }
+
+    // 2. Check existing session
+    void supabase.auth.getSession().then(({ data }) => {
       if (!active) return;
-      setHasSession(value);
-      setCheckingSession(false);
+      if (data.session) {
+        setHasSession(true);
+        setCheckingSession(false);
+      }
     });
-    return () => { active = false; };
-  }, [token]);
+
+    // 3. Listen to auth state changes (crucial for PASSWORD_RECOVERY event!)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!active) return;
+      if (event === 'PASSWORD_RECOVERY' || (session && (event === 'SIGNED_IN' || event === 'USER_UPDATED'))) {
+        setHasSession(true);
+        setCheckingSession(false);
+      }
+    });
+
+    // 4. Fallback timeout to stop spinner after 2.5 seconds if no session arrived
+    const timer = setTimeout(() => {
+      if (!active) return;
+      void supabase.auth.getSession().then(({ data }) => {
+        if (!active) return;
+        setHasSession(Boolean(data.session));
+        setCheckingSession(false);
+      });
+    }, 2500);
+
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+      clearTimeout(timer);
+    };
+  }, [token, searchParams]);
+
+  React.useEffect(() => {
+    if (isDone) {
+      const timer = setTimeout(() => {
+        router.replace('/');
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [isDone, router]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
