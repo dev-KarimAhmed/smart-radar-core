@@ -73,21 +73,11 @@ export async function requestPasswordRecovery(phone: string, email?: string) {
     body: JSON.stringify({ phone, email: email?.trim() || undefined }),
   });
 
-  const payload = await readJson<{
-    success?: boolean;
-    message?: string;
-    error?: string;
-    recoveryUrl?: string;
-    emailOtp?: string;
-  }>(response);
+  const payload = await readJson<{ success?: boolean; message?: string; error?: string }>(response);
   if (!response.ok || !payload.success) {
     throw new Error(payload.error || 'تعذّر إرسال طلب الاسترجاع.');
   }
-  return {
-    message: payload.message ?? '',
-    recoveryUrl: payload.recoveryUrl || '',
-    emailOtp: payload.emailOtp || '',
-  };
+  return payload.message ?? '';
 }
 
 /** Redeems an admin-issued token. No session needed — the whole point is being locked out. */
