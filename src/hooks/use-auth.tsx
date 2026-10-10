@@ -78,6 +78,24 @@ function AuthContent({ children }: { children: ReactNode }) {
     
     // Sync server time as early as possible
     syncServerTime();
+
+    // Intercept recovery links landing on root or dashboard before auth redirects kick in
+    if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/reset-password')) {
+      const hash = window.location.hash || '';
+      const search = window.location.search || '';
+      const isRecoveryIntent =
+        hash.includes('type=recovery') ||
+        hash.includes('access_token=') ||
+        hash.includes('error=') ||
+        search.includes('type=recovery') ||
+        search.includes('error=');
+
+      if (isRecoveryIntent) {
+        window.location.replace('/reset-password' + search + hash);
+        return;
+      }
+    }
+
     const finishBootstrap = () => {
       if (bootstrapCompleted || !mounted) return;
       bootstrapCompleted = true;
@@ -128,6 +146,12 @@ function AuthContent({ children }: { children: ReactNode }) {
         if (!mounted) return;
         cacheSupabaseSession(session);
         supabase.realtime.setAuth(session?.access_token ?? null);
+        if (_event === 'PASSWORD_RECOVERY') {
+          if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/reset-password')) {
+            window.location.replace('/reset-password' + window.location.search + window.location.hash);
+            return;
+          }
+        }
         if (session?.user) {
           setUser(buildUserFromSupabaseAuth(session.user) as SovereignUser);
         } else if (_event === 'SIGNED_OUT') {
