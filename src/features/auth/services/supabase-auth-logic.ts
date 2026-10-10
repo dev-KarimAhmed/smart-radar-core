@@ -6,6 +6,7 @@ export interface RiderSupabaseSignUpInput {
   phone: string;
   password: string;
   fullName: string;
+  email?: string;
   role?: 'RIDER' | 'CAPTAIN' | 'ADVERTISER' | 'DELEGATE';
   countryId: number;
   governorateId: number;
@@ -48,6 +49,7 @@ export interface RiderAuthMetadata {
   role: 'RIDER' | 'CAPTAIN' | 'ADVERTISER' | 'DELEGATE';
   full_name: string;
   phone: string;
+  email?: string;
   country_id: number;
   governorate_id: number;
   district_id: number;
@@ -94,6 +96,7 @@ export function buildRiderSignUpMetadata(input: RiderSupabaseSignUpInput): Rider
     country_id: toStrictPositiveInteger(input.countryId, 'country_id'),
     governorate_id: toStrictPositiveInteger(input.governorateId, 'governorate_id'),
     district_id: toStrictPositiveInteger(input.districtId, 'district_id'),
+    ...(input.email?.trim() ? { email: input.email.trim().toLowerCase() } : {}),
     ...(input.captainProfile ? { captain_profile: input.captainProfile } : {}),
   };
 }

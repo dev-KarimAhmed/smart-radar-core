@@ -27,6 +27,18 @@ export default function HomePage() {
   const isRedirecting = !!user && (user.role === 'driver' || user.role === 'rider');
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const hash = window.location.hash;
+      const search = window.location.search;
+      if (hash && (hash.includes('type=recovery') || hash.includes('access_token='))) {
+        router.replace(`/reset-password${search}${hash}`);
+        return;
+      }
+      if (search && search.includes('type=recovery')) {
+        router.replace(`/reset-password${search}${hash}`);
+        return;
+      }
+    }
     if (loading || !user) return;
     const search = typeof window !== 'undefined' ? window.location.search : '';
     if (user.role === 'driver') router.replace(`/captain${search}`);

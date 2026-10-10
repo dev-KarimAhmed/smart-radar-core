@@ -189,6 +189,7 @@ export function CaptainOnboarding() {
         phone: personal.phone,
         password: personal.password,
         fullName: personal.name,
+        email: personal.email?.trim() || undefined,
         countryId: Number(personal.country),
         governorateId: Number(personal.governorate),
         districtId: Number(personal.district),
