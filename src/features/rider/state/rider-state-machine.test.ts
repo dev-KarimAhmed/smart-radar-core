@@ -157,4 +157,23 @@ assert.equal(cancelledDuringReceiving.screen, 'RECEIVING_OFFERS');
 assert.equal(cancelledDuringReceiving.offers.length, 0);
 assert.equal(cancelledDuringReceiving.requestCancelledAt !== null, true);
 
+// REQUEST_CANCELLED when in TRIP_ACTIVE flags autoRetryRequested and clears activeTrip
+const activeTripState = riderDashboardReducer(receivingOffersState, {
+  type: 'SERVER_STATUS_ACCEPTED',
+  row: { id: 'req-active-1', accepted_driver_id: 'driver-1' },
+});
+assert.equal(activeTripState.screen, 'TRIP_ACTIVE');
+assert.notEqual(activeTripState.activeTrip, null);
+
+const captainCancelledState = riderDashboardReducer(activeTripState, { type: 'REQUEST_CANCELLED' });
+assert.equal(captainCancelledState.screen, 'DESTINATION_SELECTION');
+assert.equal(captainCancelledState.autoRetryRequested, true);
+assert.equal(captainCancelledState.activeTrip, null);
+
+// RESET_TO_IDLE from captain cancelled dialog resets cleanly to IDLE_MAP
+const resetFromCancelled = riderDashboardReducer(captainCancelledState, { type: 'RESET_TO_IDLE' });
+assert.equal(resetFromCancelled.screen, 'IDLE_MAP');
+assert.equal(resetFromCancelled.activeTrip, null);
+assert.equal(resetFromCancelled.autoRetryRequested, undefined);
+
 console.log('rider reducer checks passed');

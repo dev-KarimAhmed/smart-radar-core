@@ -80,6 +80,7 @@ export function useDriverTransactions(
   const endingRef = useRef(false);
   const cancellingRef = useRef(false);
   const ratingRef = useRef(false);
+  const selfCancelledTripId = useRef<string | null>(null);
 
   const captainId = user?.uid || '';
 
@@ -138,6 +139,7 @@ export function useDriverTransactions(
     setActiveReq(null);
     setAcceptedRider(null);
     setHandshakeAt(null);
+    selfCancelledTripId.current = null;
     clearPendingOffer();
     setDriverStatus?.('active');
   }, [clearPendingOffer, setDriverStatus]);
@@ -206,7 +208,7 @@ export function useDriverTransactions(
 
           const status = String(row.status || '').toUpperCase();
           if (status === 'COMPLETED' || status === 'CANCELLED') {
-            if (status === 'CANCELLED') {
+            if (status === 'CANCELLED' && selfCancelledTripId.current !== activeRequest.id) {
               toast({
                 title: t('tripCancelledTitle'),
                 description: t('tripCancelledDesc'),
@@ -516,10 +518,13 @@ export function useDriverTransactions(
     if (!activeRequest?.id || cancellingRef.current) return false;
     cancellingRef.current = true;
     setIsCancellingTrip(true);
+    
+    const tripId = activeRequest.id;
+    selfCancelledTripId.current = tripId;
 
     try {
       const { error } = await supabase.rpc('captain_cancel_active_trip', {
-        p_request_id: activeRequest.id,
+        p_request_id: tripId,
       });
 
       if (error) throw error;
@@ -537,6 +542,9 @@ export function useDriverTransactions(
       if (isAlreadyClosedTripError(error)) {
         cleanUpAndReset();
         return true;
+      }
+      if (selfCancelledTripId.current === tripId) {
+        selfCancelledTripId.current = null;
       }
       toast({
         variant: 'destructive',

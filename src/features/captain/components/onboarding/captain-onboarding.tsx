@@ -93,6 +93,7 @@ export function CaptainOnboarding() {
   // const [identityFile, setIdentityFile] = React.useState<File | null>(null);
   // const [drivingLicenseFile, setDrivingLicenseFile] = React.useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [vehicleErrors, setVehicleErrors] = React.useState<Record<string, string>>({});
   const { toast } = useToast();
 
   React.useEffect(() => {
@@ -109,33 +110,81 @@ export function CaptainOnboarding() {
   const submitCaptainRegistration = async () => {
     if (!personal.country || !personal.governorate || !personal.district || !affiliation) return;
 
-    const isTaxi = affiliation === 'office-taxi';
-    const isIndependent = affiliation === 'independent';
-    const captainProfile: CaptainProfileMetadata = {
-      vehicle_type: isTaxi ? 'TAXI' : 'PRIVATE',
-      vehicle_brand: isTaxi ? null : vehicle.make.trim() || null,
-      vehicle_model: vehicle.model.trim() || null,
-      vehicle_color: isTaxi ? null : vehicle.color.trim() || null,
-      vehicle_year: Number(vehicle.year) || null,
-      plate_number: vehicle.plate.trim() || null,
-      employment_type: isTaxi ? vehicle.officeName.trim() || null : isIndependent ? 'مستقل' : vehicle.companyName.trim() || null,
-      affiliation_type: affiliation,
-      office_phone: isTaxi ? vehicle.officePhone.trim() || null : null,
-      side_id: isTaxi ? vehicle.sideId.trim() || null : null,
-      company_code: isTaxi || isIndependent ? null : vehicle.companyCode.trim() || null,
-      identity_url: null,
-      contact_page_url: null,
-      driving_license_url: null,
-      national_id_number: vehicle.nationalIdNumber.trim() || null,
-      license_number: vehicle.licenseNumber.trim() || null,
-      nickname: personal.nickname.trim() || null,
-      facebook_url: vehicle.facebookUrl.trim() || null,
-      instagram_url: vehicle.instagramUrl.trim() || null,
-      verification_status: 'PENDING',
-    };
-
+    setVehicleErrors({});
     setIsSubmitting(true);
+
     try {
+      const { supabase } = await import('@/lib/supabase-client');
+
+      // Pre-check national ID number duplicate in database
+      const trimmedNatId = vehicle.nationalIdNumber.trim();
+      if (trimmedNatId) {
+        const { data: existingId } = await supabase
+          .from('captain_profiles')
+          .select('id')
+          .eq('national_id_number', trimmedNatId)
+          .maybeSingle();
+
+        if (existingId) {
+          const errorMsg = 'رقم الهوية الوطنية مسجل بالفعل مسبقاً. يرجى التأكد من الرقم أو استخدام رقم آخر.';
+          setVehicleErrors({ nationalIdNumber: errorMsg });
+          toast({
+            variant: 'destructive',
+            title: t('errorTitle'),
+            description: errorMsg,
+          });
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
+      // Pre-check driver license number duplicate in database
+      const trimmedLic = vehicle.licenseNumber.trim();
+      if (trimmedLic) {
+        const { data: existingLic } = await supabase
+          .from('captain_profiles')
+          .select('id')
+          .eq('license_number', trimmedLic)
+          .maybeSingle();
+
+        if (existingLic) {
+          const errorMsg = 'رقم رخصة القيادة مسجل بالفعل مسبقاً. يرجى التأكد من الرقم أو استخدام رقم آخر.';
+          setVehicleErrors({ licenseNumber: errorMsg });
+          toast({
+            variant: 'destructive',
+            title: t('errorTitle'),
+            description: errorMsg,
+          });
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
+      const isTaxi = affiliation === 'office-taxi';
+      const isIndependent = affiliation === 'independent';
+      const captainProfile: CaptainProfileMetadata = {
+        vehicle_type: isTaxi ? 'TAXI' : 'PRIVATE',
+        vehicle_brand: isTaxi ? null : vehicle.make.trim() || null,
+        vehicle_model: vehicle.model.trim() || null,
+        vehicle_color: isTaxi ? null : vehicle.color.trim() || null,
+        vehicle_year: Number(vehicle.year) || null,
+        plate_number: vehicle.plate.trim() || null,
+        employment_type: isTaxi ? vehicle.officeName.trim() || null : isIndependent ? 'مستقل' : vehicle.companyName.trim() || null,
+        affiliation_type: affiliation,
+        office_phone: isTaxi ? vehicle.officePhone.trim() || null : null,
+        side_id: isTaxi ? vehicle.sideId.trim() || null : null,
+        company_code: isTaxi || isIndependent ? null : vehicle.companyCode.trim() || null,
+        identity_url: null,
+        contact_page_url: null,
+        driving_license_url: null,
+        national_id_number: trimmedNatId || null,
+        license_number: trimmedLic || null,
+        nickname: personal.nickname.trim() || null,
+        facebook_url: vehicle.facebookUrl.trim() || null,
+        instagram_url: vehicle.instagramUrl.trim() || null,
+        verification_status: 'PENDING',
+      };
+
       const result = await signUpCaptainWithPhone({
         phone: personal.phone,
         password: personal.password,
@@ -156,7 +205,6 @@ export function CaptainOnboarding() {
 
       if (result.session) {
         if (personal.email?.trim().includes('@')) {
-          const { supabase } = await import('@/lib/supabase-client');
           const { getAuthRedirectUrl } = await import('@/lib/utils');
           const { error: emailError } = await supabase.auth.updateUser(
             { email: personal.email.trim() },
@@ -171,10 +219,25 @@ export function CaptainOnboarding() {
         navigateAuth('login', 'driver');
       }
     } catch (error) {
+      const errorMsg = mapSupabaseAuthError(error);
+      const errText = `${errorMsg} ${JSON.stringify(error || '')}`.toLowerCase();
+      const newVehicleErrors: Record<string, string> = {};
+
+      if (errText.includes('national_id') || errText.includes('هوية')) {
+        newVehicleErrors.nationalIdNumber = 'رقم الهوية الوطنية مسجل بالفعل مسبقاً.';
+      }
+      if (errText.includes('license') || errText.includes('رخصة')) {
+        newVehicleErrors.licenseNumber = 'رقم رخصة القيادة مسجل بالفعل مسبقاً.';
+      }
+
+      if (Object.keys(newVehicleErrors).length > 0) {
+        setVehicleErrors(newVehicleErrors);
+      }
+
       toast({
         variant: 'destructive',
         title: t('errorTitle'),
-        description: mapSupabaseAuthError(error),
+        description: errorMsg,
       });
     } finally {
       setIsSubmitting(false);
@@ -244,6 +307,7 @@ export function CaptainOnboarding() {
               affiliation={affiliation}
               vehicle={vehicle}
               setVehicle={setVehicle}
+              serverErrors={vehicleErrors}
               // identityFile={identityFile}
               // onIdentityFileChange={setIdentityFile}
               // drivingLicenseFile={drivingLicenseFile}

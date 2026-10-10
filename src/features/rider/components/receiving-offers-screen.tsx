@@ -1,8 +1,9 @@
-'use client';
+﻿'use client';
 
 import React from 'react';
 import { Clock, MapPin, Radio, ShieldCheck, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { getServerTime } from '@/lib/server-time';
 import type { AppLanguage } from '@/lib/i18n/simple-copy';
 import type { Offer } from '@/core/types';
 import { cn } from '@/lib/utils';
@@ -76,13 +77,13 @@ export function ReceivingOffersScreen({
 
   const fallbackStartedAtRef = React.useRef<number | null>(null);
   if (fallbackStartedAtRef.current === null) {
-    fallbackStartedAtRef.current = Date.now();
+    fallbackStartedAtRef.current = getServerTime();
   }
 
   // Ticks smoothly for the search countdown & offer wait-seconds progress bar
-  const [now, setNow] = React.useState(() => Date.now());
+  const [now, setNow] = React.useState(() => getServerTime());
   React.useEffect(() => {
-    const interval = setInterval(() => setNow(Date.now()), 1000);
+    const interval = setInterval(() => setNow(getServerTime()), 1000);
     return () => clearInterval(interval);
   }, []);
 

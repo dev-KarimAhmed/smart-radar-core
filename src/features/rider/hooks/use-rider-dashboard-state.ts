@@ -33,6 +33,8 @@ export const favoriteMatchesTrip = (favorite: FavoriteCaptain, trip: HistoricalT
   );
 };
 
+import { getServerTime } from '@/lib/server-time';
+
 export function useRiderDashboardState(
   riderProfile: { id: string },
   tripsWithin72Hours: HistoricalTrip[]
@@ -44,7 +46,7 @@ export function useRiderDashboardState(
   const [favoriteCaptains, setFavoriteCaptains] = useState<FavoriteCaptain[]>([]);
   const [ledgerTrips, setLedgerTrips] = useState<RiderTripLedgerEntry[]>([]);
   const [isPortfolioOpen, setIsPortfolioOpen] = useState(false);
-  const [currentTime, setCurrentTime] = useState(Date.now());
+  const [currentTime, setCurrentTime] = useState(getServerTime());
 
   const activeArchive = useMemo(
     () => ledgerTrips.filter((trip) => currentTime < trip.purgeAt).sort((a, b) => b.timestamp - a.timestamp),
@@ -79,7 +81,7 @@ export function useRiderDashboardState(
   }, []);
 
   useEffect(() => {
-    const interval = window.setInterval(() => setCurrentTime(Date.now()), 60000);
+    const interval = window.setInterval(() => setCurrentTime(getServerTime()), 60000);
     return () => window.clearInterval(interval);
   }, []);
 

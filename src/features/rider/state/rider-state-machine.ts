@@ -112,6 +112,18 @@ export type RiderMachineAction =
 
 const RIDER_STATE_STORAGE_KEY = 'radar_active_rider_machine_state';
 
+export const initialRiderMachineState: RiderMachineState = {
+  screen: 'IDLE_MAP',
+  destination: null,
+  offers: [],
+  activeTrip: null,
+  completedTrip: null,
+  requestStartedAt: null,
+  requestId: null,
+  requestCancelledAt: null,
+  pendingAcceptedOfferId: null,
+};
+
 export function createInitialRiderMachineState(): RiderMachineState {
   if (typeof window !== 'undefined') {
     try {
@@ -128,17 +140,7 @@ export function createInitialRiderMachineState(): RiderMachineState {
       }
     } catch {}
   }
-  return {
-    screen: 'IDLE_MAP',
-    destination: null,
-    offers: [],
-    activeTrip: null,
-    completedTrip: null,
-    requestStartedAt: null,
-    requestId: null,
-    requestCancelledAt: null,
-    pendingAcceptedOfferId: null,
-  };
+  return initialRiderMachineState;
 }
 
 export function shouldShowAdRiver(state: RiderMachineState): boolean {
@@ -346,11 +348,16 @@ export function riderDashboardReducer(state: RiderMachineState, action: RiderMac
       return { ...state, requestStartedAt: null, requestId: null };
 
     case 'REQUEST_CANCELLED':
+      if (typeof window !== 'undefined') {
+        try {
+          window.localStorage.removeItem(RIDER_STATE_STORAGE_KEY);
+        } catch {}
+      }
       // A trip already accepted (or further along) that gets cancelled
       // is usually a captain cancellation. Auto-retry search for the rider.
       if (state.screen === 'TRIP_ACTIVE') {
         return {
-          ...createInitialRiderMachineState(),
+          ...initialRiderMachineState,
           destination: state.destination,
           screen: 'DESTINATION_SELECTION',
           requestCancelledAt: Date.now(),
@@ -363,7 +370,8 @@ export function riderDashboardReducer(state: RiderMachineState, action: RiderMac
         return state;
       }
       return {
-        ...state,
+        ...initialRiderMachineState,
+        destination: state.destination,
         screen: 'RECEIVING_OFFERS',
         offers: [],
         requestCancelledAt: Date.now(),
@@ -427,18 +435,12 @@ export function riderDashboardReducer(state: RiderMachineState, action: RiderMac
 
     case 'SUBMIT_RATING':
       if (state.screen !== 'RATING_MODAL' || !state.completedTrip) return state;
-      return {
-        ...state,
-        screen: 'IDLE_MAP',
-        destination: null,
-        offers: [],
-        activeTrip: null,
-        completedTrip: null,
-        requestStartedAt: null,
-        requestId: null,
-        requestCancelledAt: null,
-        pendingAcceptedOfferId: null,
-      };
+      if (typeof window !== 'undefined') {
+        try {
+          window.localStorage.removeItem(RIDER_STATE_STORAGE_KEY);
+        } catch {}
+      }
+      return initialRiderMachineState;
 
     case 'OPEN_PURGE_LEDGER':
       if (state.screen === 'TRIP_ACTIVE' || state.screen === 'RATING_MODAL' || state.screen === 'RECEIVING_OFFERS') return state;
@@ -456,7 +458,12 @@ export function riderDashboardReducer(state: RiderMachineState, action: RiderMac
       return { ...state, autoRetryRequested: false };
 
     case 'RESET_TO_IDLE':
-      return createInitialRiderMachineState();
+      if (typeof window !== 'undefined') {
+        try {
+          window.localStorage.removeItem(RIDER_STATE_STORAGE_KEY);
+        } catch {}
+      }
+      return initialRiderMachineState;
 
     default:
       return state;
@@ -474,7 +481,7 @@ export function useRiderDashboardMachine() {
         (state.screen === 'RECEIVING_OFFERS' || state.screen === 'TRIP_ACTIVE' || state.screen === 'RATING_MODAL')
       ) {
         window.localStorage.setItem(RIDER_STATE_STORAGE_KEY, JSON.stringify(state));
-      } else if (state.screen === 'IDLE_MAP') {
+      } else {
         window.localStorage.removeItem(RIDER_STATE_STORAGE_KEY);
       }
     } catch {}

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { Archive, Bell, Clock, Download, Heart, History, Languages, LogOut, ShieldCheck, User, UserCircle, X } from 'lucide-react';
@@ -113,7 +113,7 @@ export function AppSidebar({ isCritical = false }: { isCritical?: boolean } = {}
   const { isArabic, toggleLanguage } = useDashboardLanguage();
   const { canShowInstallButton, canPromptNative, triggerNativeInstall } = usePwaInstall('rider');
   const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
+
 
   if (!user || user.role !== 'rider') return null;
 
@@ -202,7 +202,7 @@ export function AppSidebar({ isCritical = false }: { isCritical?: boolean } = {}
             <Button
               className={styles.operationButton}
               variant="ghost"
-              onClick={() => setShowNotifications((prev) => !prev)}
+              onClick={() => { window.location.hash = '#notifications'; document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); }}
             >
               <span className={styles.operationText}>{tAuto('key_d9de8840')}</span>
               <div className="relative flex items-center gap-2">
@@ -216,63 +216,7 @@ export function AppSidebar({ isCritical = false }: { isCritical?: boolean } = {}
               </div>
             </Button>
 
-            {/* Inline Notifications Panel inside Sidebar */}
-            {showNotifications && (
-              <div className="rounded-xl border border-[#14B8A6]/20 bg-[#0B0F19] p-3 text-white space-y-3 shadow-inner">
-                <div className="flex items-center justify-between border-b border-white/10 pb-2">
-                  <div className="flex items-center gap-2">
-                    <Bell className="h-4 w-4 text-[#14F5D5]" />
-                    <span className="text-xs font-black">
-                      {isArabic ? 'التنبيهات' : 'Notifications'}
-                    </span>
-                    {hasUnread && (
-                      <span className="rounded-full bg-rose-500/20 border border-rose-500/40 px-1.5 py-0.5 text-[10px] font-bold text-rose-300">
-                        {unreadCount}
-                      </span>
-                    )}
-                  </div>
-                  {hasUnread && (
-                    <button
-                      type="button"
-                      onClick={markAllAsRead}
-                      className="text-[10px] font-bold text-slate-400 hover:text-[#14F5D5] transition-colors cursor-pointer"
-                    >
-                      {isArabic ? 'تحديد كمقروء' : 'Mark all read'}
-                    </button>
-                  )}
-                </div>
 
-                <div className="max-h-60 overflow-y-auto divide-y divide-white/5 space-y-1">
-                  {notifications.length > 0 ? (
-                    notifications.map((item) => (
-                      <div
-                        key={item.id}
-                        className={cn(
-                          "p-2.5 rounded-lg transition-colors",
-                          item.read ? "opacity-75" : "bg-white/[0.04]"
-                        )}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <h4 className={cn("text-xs font-bold leading-snug", item.read ? "text-slate-300" : "text-white")}>
-                            {item.title}
-                          </h4>
-                          {!item.read && (
-                            <span className="h-2 w-2 rounded-full bg-rose-500 shrink-0 mt-1" />
-                          )}
-                        </div>
-                        <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
-                          {item.description}
-                        </p>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="p-4 text-center text-xs text-slate-400">
-                      {isArabic ? 'لا توجد تنبيهات جديدة حالياً.' : 'No new notifications right now.'}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
 
             <SheetClose asChild>
               <a

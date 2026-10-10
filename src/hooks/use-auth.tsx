@@ -12,6 +12,8 @@ import {
 } from '@/lib/supabase-auth';
 import { hasStoredSupabaseAuthSession, SUPABASE_AUTH_STORAGE_KEY } from '@/features/auth/services/supabase-auth-storage';
 import { DASHBOARD_LANGUAGE_KEY, useDashboardLanguage } from './use-dashboard-language';
+import { useToast } from './use-toast';
+import { syncServerTime } from '@/lib/server-time';
 
 const LogoutDialog = dynamic(
   () => import('@/features/auth/components/logout-dialog').then((module) => module.LogoutDialog),
@@ -56,6 +58,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 function AuthContent({ children }: { children: ReactNode }) {
   const router = useRouter();
   const t = useTranslations('auth.logout');
+  const { toast } = useToast();
   const { direction } = useDashboardLanguage();
   const [user, setUser] = useState<SovereignUser | null>(getInitialUserFromCache);
   const [loading, setLoading] = useState<boolean>(() => {
@@ -72,6 +75,9 @@ function AuthContent({ children }: { children: ReactNode }) {
     let mounted = true;
     let unsubscribe = () => {};
     let bootstrapCompleted = false;
+    
+    // Sync server time as early as possible
+    syncServerTime();
     const finishBootstrap = () => {
       if (bootstrapCompleted || !mounted) return;
       bootstrapCompleted = true;
@@ -145,6 +151,100 @@ function AuthContent({ children }: { children: ReactNode }) {
       unsubscribe();
     };
   }, []);
+
+    const forceKickout = useCallback(async () => {
+    const preservedLanguage =
+      typeof window !== 'undefined' ? window.localStorage.getItem(DASHBOARD_LANGUAGE_KEY) : null;
+    try {
+      await cancelActiveRequestBeforeLogout(user);
+    } catch {}
+    clearSupabaseSessionCache();
+    purgeTransientFrontendCache();
+    restorePreservedLanguage(preservedLanguage);
+    setUser(null);
+    try {
+      const { supabase } = await import('@/lib/supabase-client');
+      await supabase.auth.signOut();
+    } catch {
+      setUser(null);
+    } finally {
+      clearSupabaseSessionCache();
+      purgeTransientFrontendCache();
+      restorePreservedLanguage(preservedLanguage);
+      setLoading(false);
+      if (typeof window !== 'undefined') {
+        window.location.href = '/';
+      }
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (!user?.uid) return;
+    let isMounted = true;
+    let channel: any = null;
+
+    let deviceId = '';
+    if (typeof window !== 'undefined') {
+      deviceId = window.sessionStorage.getItem('radar_device_id') || '';
+      if (!deviceId) {
+        deviceId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString();
+        window.sessionStorage.setItem('radar_device_id', deviceId);
+      }
+    }
+    
+    const phoneKey = user.phone ? user.phone.trim().replace(/[\s()-]/g, '') : '';
+
+    import('@/lib/supabase-client').then(({ supabase }) => {
+      if (!isMounted) return;
+
+      const channels: any[] = [];
+      const handleCheckActive = (payload: any, ch: any) => {
+        const foreignDeviceId = payload.payload?.deviceId;
+        if (foreignDeviceId && foreignDeviceId !== deviceId) {
+          ch.send({
+            type: 'broadcast',
+            event: 'session_active',
+            payload: { deviceId },
+          });
+        }
+      };
+
+      channel = supabase.channel('user-session-' + user.uid);
+      channel.on('broadcast', { event: 'check_active_session' }, (payload: any) => handleCheckActive(payload, channel));
+      channel.on('broadcast', { event: 'session_active' }, async (payload: any) => {
+        const foreignDeviceId = payload.payload?.deviceId;
+        if (foreignDeviceId && foreignDeviceId !== deviceId) {
+          toast({
+            variant: 'destructive',
+            title: 'الحساب قيد الاستخدام',
+            description: 'هذا الحساب مفتوح حالياً على جهاز آخر. لا يمكنك استخدامه حتى يتم تسجيل الخروج من الجهاز الآخر.',
+            duration: 10000,
+          });
+          await forceKickout();
+        }
+      });
+      channel.subscribe((status: string) => {
+        if (status === 'SUBSCRIBED') {
+          channel.send({
+            type: 'broadcast',
+            event: 'check_active_session',
+            payload: { deviceId },
+          });
+        }
+      });
+
+      if (phoneKey) {
+        const channelPhone = supabase.channel('user-session-phone-' + phoneKey);
+        channelPhone.on('broadcast', { event: 'check_active_session' }, (payload: any) => handleCheckActive(payload, channelPhone));
+        channelPhone.subscribe();
+      }
+    });
+    
+    return () => {
+      isMounted = false;
+      if (channel) channel.unsubscribe();
+    };
+  }, [user?.uid, toast, forceKickout]);
 
   const loginAsMockUser = useCallback((mockUser: SovereignUser) => {
     if (!(process.env.NODE_ENV !== 'production')) return;
@@ -354,3 +454,4 @@ export function useAuth() {
   if (context === undefined) throw new Error('useAuth must be used within an AuthProvider');
   return context;
 }
+

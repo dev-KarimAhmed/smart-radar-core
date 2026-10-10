@@ -78,7 +78,9 @@ export function useDriverLifecycle(user: User | null) {
         let status = String((data as { status?: unknown } | null)?.status || '').toLowerCase();
         if (status === 'active') {
           const { data: walletData } = await supabase.rpc('get_captain_wallet_status');
-          const hasBundle = (walletData as { has_active_bundle?: boolean } | null)?.has_active_bundle === true;
+          const wallet = walletData as { has_active_bundle?: boolean; paid_minutes_remaining?: number; bonus_minutes_remaining?: number } | null;
+          const totalMinutes = Number(wallet?.paid_minutes_remaining || 0) + Number(wallet?.bonus_minutes_remaining || 0);
+          const hasBundle = wallet?.has_active_bundle === true || totalMinutes > 0;
           if (!hasBundle) {
             status = 'idle';
             void supabase.from('profiles').update({ status: 'IDLE' }).eq('id', user.uid);
@@ -126,8 +128,10 @@ export function useDriverLifecycle(user: User | null) {
             let bundleTitle = t('radarBundleRequired');
             try {
               const { data: walletData } = await supabase.rpc('get_captain_wallet_status');
-              const cashBalance = Number((walletData as { balance?: number } | null)?.balance || 0);
-              if (cashBalance > 0) {
+              const wallet = walletData as { balance?: number; paid_minutes_remaining?: number; bonus_minutes_remaining?: number } | null;
+              const cashBalance = Number(wallet?.balance || 0);
+              const totalMins = Number(wallet?.paid_minutes_remaining || 0) + Number(wallet?.bonus_minutes_remaining || 0);
+              if (cashBalance > 0 && totalMins === 0) {
                 bundleTitle = t('radarAllocationRequired');
               }
             } catch {
