@@ -24,18 +24,30 @@ export default function HomePage() {
     const t = useTranslations('auto');
   const { loading, user } = useAuth();
   const router = useRouter();
-  const isRedirecting = !!user && (user.role === 'driver' || user.role === 'rider');
+  const isRecoveryIntent =
+    typeof window !== 'undefined' &&
+    ((window.location.hash &&
+      (window.location.hash.includes('type=recovery') ||
+       window.location.hash.includes('access_token=') ||
+       window.location.hash.includes('error='))) ||
+     (window.location.search &&
+      (window.location.search.includes('type=recovery') ||
+       window.location.search.includes('error='))));
+
+  const isRedirecting = !isRecoveryIntent && !!user && (user.role === 'driver' || user.role === 'rider');
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const hash = window.location.hash;
-      const search = window.location.search;
-      if (hash && (hash.includes('type=recovery') || hash.includes('access_token='))) {
-        router.replace(`/reset-password${search}${hash}`);
-        return;
-      }
-      if (search && search.includes('type=recovery')) {
-        router.replace(`/reset-password${search}${hash}`);
+      const hash = window.location.hash || '';
+      const search = window.location.search || '';
+      if (
+        hash.includes('type=recovery') ||
+        hash.includes('access_token=') ||
+        hash.includes('error=') ||
+        search.includes('type=recovery') ||
+        search.includes('error=')
+      ) {
+        window.location.replace(`/reset-password${search}${hash}`);
         return;
       }
     }

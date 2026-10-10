@@ -95,6 +95,26 @@ export function ResetPasswordRoute() {
     if (token) return;
     let active = true;
 
+    // 0. Immediate check for error in hash (e.g. expired or already used OTP token)
+    if (typeof window !== 'undefined' && window.location.hash.includes('error=')) {
+      const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+      const errorDesc = hashParams.get('error_description');
+      const errorCode = hashParams.get('error_code');
+      if (errorCode === 'otp_expired' || errorDesc?.includes('expired') || errorDesc?.includes('invalid')) {
+        setError(
+          language === 'en'
+            ? 'This link has expired or has already been used. Please request a new recovery link from the login screen.'
+            : 'هذا الرابط غير صالح أو انتهت صلاحيته (أو تم استخدامه مسبقاً). يرجى طلب رابط استعادة جديد من شاشة الدخول.',
+        );
+      } else if (errorDesc) {
+        setError(decodeURIComponent(errorDesc.replace(/\+/g, ' ')));
+      } else {
+        setError(t.missing);
+      }
+      setCheckingSession(false);
+      return;
+    }
+
     // 1. Check for PKCE ?code= in searchParams
     const code = searchParams.get('code');
     if (code) {
@@ -140,7 +160,7 @@ export function ResetPasswordRoute() {
       subscription.unsubscribe();
       clearTimeout(timer);
     };
-  }, [token, searchParams]);
+  }, [token, searchParams, language, t.missing]);
 
   React.useEffect(() => {
     if (isDone) {
@@ -200,7 +220,7 @@ export function ResetPasswordRoute() {
           <p className={styles.subtitle}>{t.checking}</p>
         ) : !canUseForm ? (
           <>
-            <p className={styles.error}>{t.missing}</p>
+            <p className={styles.error}>{error || t.missing}</p>
             <button type="button" onClick={() => router.replace('/')} className={styles.link}>
               {t.backToLogin}
             </button>
