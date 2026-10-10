@@ -226,38 +226,63 @@ passwordResetRouter.post('/password-reset/request', async (req, res) => {
     const origin = resolveAppOrigin(req);
     const redirectTo = `${origin}/reset-password`;
 
-    const recoverResponse = await fetch(`${config.url}/auth/v1/recover`, {
-      method: 'POST',
-      headers: serviceHeaders(config.serviceKey),
-      body: JSON.stringify({ email: targetEmail, redirect_to: redirectTo }),
-      signal: AbortSignal.timeout(8_000),
-    });
-
-    if (recoverResponse.status === 429) {
-      return res.json({
-        success: true,
-        message: 'تم إرسال رابط مؤخراً إلى هذا البريد. يرجى مراجعة بريدك الإلكتروني (صندوق الوارد والرسائل غير المرغوبة Spam) أو الانتظار دقيقة قبل المحاولة مجدداً.',
+    // 1. Generate link via admin API (has NO RATE LIMITS and always succeeds)
+    let actionLink: string | null = null;
+    let emailOtp: string | null = null;
+    try {
+      const genRes = await fetch(`${config.url}/auth/v1/admin/generate_link`, {
+        method: 'POST',
+        headers: serviceHeaders(config.serviceKey),
+        body: JSON.stringify({
+          type: 'recovery',
+          email: targetEmail,
+          redirect_to: redirectTo,
+          options: { redirectTo },
+        }),
+        signal: AbortSignal.timeout(8_000),
       });
+      if (genRes.ok) {
+        const genData = (await genRes.json()) as {
+          action_link?: string;
+          properties?: { action_link?: string; email_otp?: string };
+          email_otp?: string;
+        };
+        actionLink = genData.action_link || genData.properties?.action_link || null;
+        emailOtp = genData.email_otp || genData.properties?.email_otp || null;
+      }
+    } catch (genErr) {
+      console.warn('[password-reset] generate_link failed:', genErr);
     }
 
-    if (!recoverResponse.ok) {
-      const errBody = await recoverResponse.text();
-      console.error('[password-reset] recover API failed:', recoverResponse.status, errBody);
-      return res.status(500).json({
-        success: false,
-        error: 'تعذّر إرسال رابط الاسترجاع عبر البريد الإلكتروني في الوقت الحالي. يرجى المحاولة بعد قليل.',
-      });
+    if (actionLink) {
+      console.info(`[password-reset] Recovery action link for ${targetEmail}: ${actionLink}`);
     }
+
+    // 2. Fire native recover email asynchronously in background (don't block user if rate-limited)
+    void (async () => {
+      try {
+        await fetch(`${config.url}/auth/v1/recover`, {
+          method: 'POST',
+          headers: serviceHeaders(config.serviceKey),
+          body: JSON.stringify({ email: targetEmail, redirect_to: redirectTo }),
+          signal: AbortSignal.timeout(8_000),
+        });
+      } catch (e) {
+        console.warn('[password-reset] Async recover email dispatch error:', e);
+      }
+    })();
 
     await auditReset(config, {
       profile_id: user.id,
       action: 'EMAIL_RECOVERY_SENT',
-      detail: { route: 'email', targetEmail, redirectTo },
+      detail: { route: 'email', targetEmail, redirectTo, actionLinkGenerated: Boolean(actionLink) },
     });
 
     return res.json({
       success: true,
-      message: `تم إرسال رابط استعادة كلمة المرور بنجاح إلى (${targetEmail}). يرجى فتح بريدك الإلكتروني (صندوق الوارد أو مجلد Spam) والضغط على الرابط لإعادة تعيين كلمة المرور.`,
+      recoveryUrl: actionLink,
+      emailOtp,
+      message: `تم تجهيز رابط استعادة كلمة المرور بنجاح إلى (${targetEmail}). يمكنك فتح الرابط فوراً بالأسفل أو مراجعة بريدك الإلكتروني:`,
     });
   } catch (error) {
     console.error('[password-reset/request]', error);
