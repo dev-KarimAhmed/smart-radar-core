@@ -9,6 +9,7 @@ import { useTranslations } from 'next-intl';
 const CaptainWorkspace = dynamic(
   () => import('./captain-workspace').then((module) => module.CaptainWorkspace),
   {
+    ssr: false,
     loading: function Loading() {
       const tAuto = useTranslations('auto');
       return <RouteLoading label={tAuto('key_7638191e')} />;
