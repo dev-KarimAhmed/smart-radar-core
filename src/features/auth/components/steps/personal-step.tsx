@@ -33,7 +33,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useRegistration } from '../../hooks/use-registration';
-import { requestPasswordRecovery, completePasswordReset } from '../../services/password-recovery';
+import { requestPasswordRecovery } from '../../services/password-recovery';
 import { navigateAuth } from '@/lib/auth-routing';
 
 import { cn } from '@/lib/utils';
@@ -462,63 +462,22 @@ export function PersonalStep() {
   const [resetSubmitting, setResetSubmitting] = useState(false);
   const [resetMessage, setResetMessage] = useState('');
   const [resetError, setResetError] = useState('');
-  const [resetStep, setResetStep] = useState<'request' | 'new_password'>('request');
-  const [resetToken, setResetToken] = useState('');
-  const [resetRecoveryUrl, setResetRecoveryUrl] = useState('');
-  const [newResetPassword, setNewResetPassword] = useState('');
-  const [confirmResetPassword, setConfirmResetPassword] = useState('');
-  const [showNewResetPassword, setShowNewResetPassword] = useState(false);
-  const [newPasswordSubmitting, setNewPasswordSubmitting] = useState(false);
   const [emailError, setEmailError] = useState('');
 
-  // Password recovery files a request and enables immediate dual-factor password reset
-  // when phone and email match, saving the user from email delay.
+  // This dialog used to be a dead end: two links to WhatsApp and a phone number, with no
+  // mechanism behind either and no way for support to actually reset anything. It now files
+  // a real request — either Supabase mails a recovery link (accounts with an email) or the
+  // request is queued for an admin to verify and approve.
   const submitPasswordRecovery = async () => {
     setResetSubmitting(true);
     setResetError('');
     setResetMessage('');
-    setResetRecoveryUrl('');
     try {
-      const result = await requestPasswordRecovery(resetPhone, resetEmail);
-      setResetMessage(result.message);
-      if (result.recoveryUrl) {
-        setResetRecoveryUrl(result.recoveryUrl);
-      }
-      if (result.canResetImmediately && result.resetToken) {
-        setResetToken(result.resetToken);
-        setResetStep('new_password');
-      }
+      setResetMessage(await requestPasswordRecovery(resetPhone, resetEmail));
     } catch (error) {
       setResetError(error instanceof Error ? error.message : tAuto('key_ae0a0345'));
     } finally {
       setResetSubmitting(false);
-    }
-  };
-
-  const handleSaveNewPassword = async () => {
-    if (!resetToken) return;
-    if (newResetPassword.length < 8) {
-      setResetError(isArabic ? 'كلمة المرور يجب أن تكون 8 أحرف على الأقل.' : 'Password must be at least 8 characters.');
-      return;
-    }
-    if (newResetPassword !== confirmResetPassword) {
-      setResetError(isArabic ? 'كلمتا المرور غير متطابقتين.' : 'Passwords do not match.');
-      return;
-    }
-    setNewPasswordSubmitting(true);
-    setResetError('');
-    try {
-      await completePasswordReset(resetToken, newResetPassword);
-      setResetMessage(isArabic ? 'تم تحديث كلمة المرور بنجاح! جاري إدخالك...' : 'Password updated successfully! Logging you in...');
-      setPersonal((prev) => ({ ...prev, phone: resetPhone, password: newResetPassword }));
-      setResetStep('request');
-      setTimeout(() => {
-        setResetOpen(false);
-      }, 1500);
-    } catch (error) {
-      setResetError(error instanceof Error ? error.message : (isArabic ? 'تعذّر تحديث كلمة المرور.' : 'Failed to update password.'));
-    } finally {
-      setNewPasswordSubmitting(false);
     }
   };
 
@@ -547,12 +506,6 @@ export function PersonalStep() {
     setResetEmail('');
     setResetMessage('');
     setResetError('');
-    setResetStep('request');
-    setResetToken('');
-    setResetRecoveryUrl('');
-    setNewResetPassword('');
-    setConfirmResetPassword('');
-    setShowNewResetPassword(false);
     setResetOpen(true);
   };
 
@@ -854,163 +807,91 @@ export function PersonalStep() {
           className={styles.style818_134}
         >
           <DialogHeader className={isArabic ? styles.style820_135 : styles.style820_136}>
-            <DialogTitle className={styles.style824_139}>
-              {resetStep === 'new_password'
-                ? (isArabic ? '🔐 تعيين كلمة المرور الجديدة' : '🔐 Set New Password')
-                : t.resetTitle}
-            </DialogTitle>
+            {/* <div className={styles.style821_137}>
+              <KeyRound className={styles.style822_138} aria-hidden="true" />
+            </div> */}
+            <DialogTitle className={styles.style824_139}>{t.resetTitle}</DialogTitle>
             <DialogDescription className={styles.style825_140}>
-              {resetStep === 'new_password'
-                ? (isArabic
-                    ? 'تم التحقق من بيانات حسابك بنجاح. اكتب كلمة المرور الجديدة أدناه:'
-                    : 'Account verified successfully. Type your new password below:')
-                : (isArabic
-                    ? 'استرجاع فوري لكلمة المرور والتحقق بالهاتف والبريد'
-                    : 'Instant password recovery via Phone & Gmail')}
+              {isArabic
+                ? 'استرجاع فوري لكلمة المرور عبر البريد الإلكتروني (Gmail)'
+                : 'Instant password recovery via email (Gmail)'}
             </DialogDescription>
           </DialogHeader>
 
-          {resetStep === 'request' ? (
-            <div className={styles.style832_141}>
-              <div className={styles.style833_142}>
-                {isArabic
-                  ? 'أدخل رقم هاتفك وبريدك الإلكتروني المسجل للتحقق وتعيين كلمة المرور فوراً وبأمان تام.'
-                  : 'Enter your registered phone and email to verify and reset your password instantly.'}
-              </div>
-
-              <Field label={t.resetPhone} icon={<Phone className={styles.style839_143} />}>
-                <input
-                  type="tel"
-                  dir="ltr"
-                  inputMode="tel"
-                  placeholder={phonePlaceholder || t.phonePlaceholder}
-                  value={resetPhone}
-                  onChange={(event) => setResetPhone(event.target.value)}
-                  className={cn(styles.input, styles.style847_144)}
-                />
-              </Field>
-
-              <Field
-                label={isArabic ? 'البريد الإلكتروني (Gmail)' : 'Email address (Gmail)'}
-                icon={<Mail className={styles.style839_143} />}
-              >
-                <input
-                  type="email"
-                  dir="ltr"
-                  inputMode="email"
-                  autoComplete="email"
-                  placeholder="you@example.com"
-                  value={resetEmail}
-                  onChange={(event) => setResetEmail(event.target.value)}
-                  className={cn(styles.input, styles.style847_144)}
-                />
-              </Field>
-
-              {resetMessage ? (
-                <div className="space-y-2">
-                  <p className={styles.resetSuccess}>{resetMessage}</p>
-                  {resetRecoveryUrl ? (
-                    <a
-                      href={resetRecoveryUrl}
-                      className="block text-center text-xs font-black text-[#14B8A6] underline p-2 bg-[#14B8A6]/10 rounded-xl border border-[#14B8A6]/30 hover:bg-[#14B8A6]/20 transition-colors"
-                    >
-                      🔗 {isArabic ? 'فتح رابط إعادة تعيين كلمة المرور فوراً' : 'Open recovery link directly'}
-                    </a>
-                  ) : null}
-                </div>
-              ) : null}
-              {resetError ? <p className={styles.resetError}>{resetError}</p> : null}
-
-              <button
-                type="button"
-                onClick={() => void submitPasswordRecovery()}
-                disabled={resetSubmitting || (resetPhone.trim().length < 8 && !resetEmail.trim().includes('@'))}
-                className={styles.resetSubmit}
-              >
-                {resetSubmitting
-                  ? (isArabic ? 'جاري التحقق…' : 'Verifying…')
-                  : (isArabic ? 'التحقق وتعيين كلمة المرور فوراً' : 'Verify & Set Password')}
-              </button>
-
-              <div className={styles.style851_145}>
-                <a
-                  href={buildSupportWhatsappUrl(resetPhone, isArabic ? tAuto('key_6d7db928') : 'Unspecified')}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={styles.style856_146}
-                >
-                  {isArabic ? tAuto('key_06b63e55') : 'Follow up on WhatsApp'}
-                </a>
-                <a
-                  href={buildSupportTelUrl()}
-                  className={styles.style862_147}
-                >
-                  {isArabic ? tAuto('key_f2064d83') : 'Call support'}
-                </a>
-              </div>
+          <div className={styles.style832_141}>
+            <div className={styles.style833_142}>
+              {isArabic
+                ? 'أدخل رقم هاتفك أو بريدك الإلكتروني. سيصلك رابط لإعادة تعيين كلمة المرور فوراً على بريدك.'
+                : 'Enter your phone number or email. You will receive an instant password reset link in your inbox.'}
             </div>
-          ) : (
-            <div className={styles.style832_141}>
-              <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-3.5 text-xs font-bold leading-6 text-emerald-300">
-                {isArabic
-                  ? `✅ تم التحقق من ملكية الحساب بنجاح. اكتب كلمة المرور الجديدة لحفظها فوراً ودخول حسابك:`
-                  : `✅ Account verified successfully. Set your new password below:`}
-              </div>
 
-              <Field label={isArabic ? 'كلمة المرور الجديدة' : 'New Password'} icon={<LockKeyhole className={styles.style839_143} />}>
-                <div className="relative">
-                  <input
-                    type={showNewResetPassword ? 'text' : 'password'}
-                    dir="ltr"
-                    placeholder="••••••••"
-                    value={newResetPassword}
-                    onChange={(event) => setNewResetPassword(event.target.value)}
-                    className={cn(styles.input, styles.style847_144, 'pr-12')}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowNewResetPassword(!showNewResetPassword)}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
-                  >
-                    {showNewResetPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-              </Field>
+            <Field label={t.resetPhone} icon={<Phone className={styles.style839_143} />}>
+              <input
+                type="tel"
+                dir="ltr"
+                inputMode="tel"
+                placeholder={phonePlaceholder || t.phonePlaceholder}
+                value={resetPhone}
+                onChange={(event) => setResetPhone(event.target.value)}
+                className={cn(styles.input, styles.style847_144)}
+              />
+            </Field>
 
-              <Field label={isArabic ? 'تأكيد كلمة المرور' : 'Confirm Password'} icon={<LockKeyhole className={styles.style839_143} />}>
-                <input
-                  type={showNewResetPassword ? 'text' : 'password'}
-                  dir="ltr"
-                  placeholder="••••••••"
-                  value={confirmResetPassword}
-                  onChange={(event) => setConfirmResetPassword(event.target.value)}
-                  className={cn(styles.input, styles.style847_144)}
-                />
-              </Field>
+            <Field
+              label={isArabic ? 'البريد الإلكتروني (Gmail)' : 'Email address (Gmail)'}
+              icon={<Mail className={styles.style839_143} />}
+            >
+              <input
+                type="email"
+                dir="ltr"
+                inputMode="email"
+                autoComplete="email"
+                placeholder="you@example.com"
+                value={resetEmail}
+                onChange={(event) => setResetEmail(event.target.value)}
+                className={cn(styles.input, styles.style847_144)}
+              />
+            </Field>
+            <p className={styles.resetEmailNote}>
+              {isArabic
+                ? 'سيصلك رابط مباشر لإنشاء كلمة مرور جديدة إلى بريدك الإلكتروني.'
+                : 'A direct link to set a new password will be sent to your email.'}
+            </p>
 
-              {resetMessage ? <p className={styles.resetSuccess}>{resetMessage}</p> : null}
-              {resetError ? <p className={styles.resetError}>{resetError}</p> : null}
+            {resetMessage ? (
+              <p className={styles.resetSuccess}>{resetMessage}</p>
+            ) : null}
+            {resetError ? <p className={styles.resetError}>{resetError}</p> : null}
 
-              <button
-                type="button"
-                onClick={() => void handleSaveNewPassword()}
-                disabled={newPasswordSubmitting || newResetPassword.length < 8 || newResetPassword !== confirmResetPassword}
-                className={styles.resetSubmit}
+            <button
+              type="button"
+              onClick={() => void submitPasswordRecovery()}
+              disabled={resetSubmitting || (resetPhone.trim().length < 8 && !resetEmail.trim().includes('@'))}
+              className={styles.resetSubmit}
+            >
+              {resetSubmitting
+                ? (isArabic ? 'جاري الإرسال…' : 'Sending…')
+                : (isArabic ? 'إرسال رابط الاسترجاع' : 'Send recovery link')}
+            </button>
+
+            {/* Kept as a way to chase a queued request, not as the mechanism itself. */}
+            <div className={styles.style851_145}>
+              <a
+                href={buildSupportWhatsappUrl(resetPhone, isArabic ? tAuto('key_6d7db928') : 'Unspecified')}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.style856_146}
               >
-                {newPasswordSubmitting
-                  ? (isArabic ? 'جاري الحفظ والدخول…' : 'Saving & Logging in…')
-                  : (isArabic ? 'حفظ كلمة المرور الجديدة والدخول الآن' : 'Save New Password & Login')}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setResetStep('request')}
-                className="w-full text-center text-xs font-bold text-slate-400 hover:text-white py-1 transition-colors"
+                {isArabic ? tAuto('key_06b63e55') : 'Follow up on WhatsApp'}
+              </a>
+              <a
+                href={buildSupportTelUrl()}
+                className={styles.style862_147}
               >
-                {isArabic ? '⬅ العودة لتعديل الهاتف أو البريد' : '⬅ Change Phone or Email'}
-              </button>
+                {isArabic ? tAuto('key_f2064d83') : 'Call support'}
+              </a>
             </div>
-          )}
+          </div>
         </DialogContent>
       </Dialog>
 

@@ -193,7 +193,28 @@ passwordResetRouter.post('/password-reset/request', async (req, res) => {
       });
     }
 
-    let targetEmail = isEmailValid ? claimedEmail : (user.email || null);
+    let targetEmail = user.email;
+
+    // If an email was provided, ensure it is linked and verified on the auth account via admin API
+    if (isEmailValid) {
+      if (!user.email || user.email.toLowerCase() !== claimedEmail) {
+        try {
+          const updateRes = await fetch(`${config.url}/auth/v1/admin/users/${user.id}`, {
+            method: 'PUT',
+            headers: serviceHeaders(config.serviceKey),
+            body: JSON.stringify({ email: claimedEmail, email_confirm: true }),
+            signal: AbortSignal.timeout(8_000),
+          });
+          if (updateRes.ok) {
+            targetEmail = claimedEmail;
+          }
+        } catch (err) {
+          console.warn('[password-reset] Failed to link user email via admin API:', err);
+        }
+      } else {
+        targetEmail = claimedEmail;
+      }
+    }
 
     if (!targetEmail) {
       return res.status(400).json({
@@ -202,113 +223,41 @@ passwordResetRouter.post('/password-reset/request', async (req, res) => {
       });
     }
 
-    // Always ensure the targetEmail is linked and confirmed directly on the core auth.users table
-    // via the Supabase Admin API. Phone-registered accounts only have it in user_metadata, which
-    // Supabase /auth/v1/recover cannot see until explicitly linked here.
-    try {
-      const updateRes = await fetch(`${config.url}/auth/v1/admin/users/${user.id}`, {
-        method: 'PUT',
-        headers: serviceHeaders(config.serviceKey),
-        body: JSON.stringify({ email: targetEmail, email_confirm: true }),
-        signal: AbortSignal.timeout(8_000),
-      });
-      if (!updateRes.ok) {
-        const errBody = await updateRes.text();
-        console.warn('[password-reset] Failed to link targetEmail via admin API:', updateRes.status, errBody);
-      }
-    } catch (err) {
-      console.warn('[password-reset] Error updating user email via admin API:', err);
-    }
-
     const origin = resolveAppOrigin(req);
     const redirectTo = `${origin}/reset-password`;
 
-    // 1. Generate link via admin API (provides action_link and direct OTP backup)
-    let actionLink: string | null = null;
-    try {
-      const genRes = await fetch(`${config.url}/auth/v1/admin/generate_link`, {
-        method: 'POST',
-        headers: serviceHeaders(config.serviceKey),
-        body: JSON.stringify({
-          type: 'recovery',
-          email: targetEmail,
-          options: { redirectTo },
-        }),
-        signal: AbortSignal.timeout(8_000),
+    const recoverResponse = await fetch(`${config.url}/auth/v1/recover`, {
+      method: 'POST',
+      headers: serviceHeaders(config.serviceKey),
+      body: JSON.stringify({ email: targetEmail, redirect_to: redirectTo }),
+      signal: AbortSignal.timeout(8_000),
+    });
+
+    if (recoverResponse.status === 429) {
+      return res.json({
+        success: true,
+        message: 'تم إرسال رابط مؤخراً إلى هذا البريد. يرجى مراجعة بريدك الإلكتروني (صندوق الوارد والرسائل غير المرغوبة Spam) أو الانتظار دقيقة قبل المحاولة مجدداً.',
       });
-      if (genRes.ok) {
-        const genData = (await genRes.json()) as {
-          action_link?: string;
-          properties?: { action_link?: string };
-        };
-        actionLink = genData.action_link || genData.properties?.action_link || null;
-      }
-    } catch (genErr) {
-      console.warn('[password-reset] generate_link failed:', genErr);
     }
 
-    if (actionLink) {
-      console.info(`[password-reset] Action link for ${targetEmail}: ${actionLink}`);
+    if (!recoverResponse.ok) {
+      const errBody = await recoverResponse.text();
+      console.error('[password-reset] recover API failed:', recoverResponse.status, errBody);
+      return res.status(500).json({
+        success: false,
+        error: 'تعذّر إرسال رابط الاسترجاع عبر البريد الإلكتروني في الوقت الحالي. يرجى المحاولة بعد قليل.',
+      });
     }
-
-    // 2. Dual-Factor Instant Reset: If both valid phone and matching email are provided,
-    // generate an instant one-time token so the user can set their password immediately without waiting for slow email delivery.
-    let resetToken: string | null = null;
-    let canResetImmediately = false;
-
-    if (digits.length >= 8 && isEmailValid) {
-      resetToken = crypto.randomBytes(32).toString('hex');
-      const tokenHash = hashToken(resetToken);
-      const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
-
-      try {
-        await fetch(`${config.url}/rest/v1/password_reset_requests`, {
-          method: 'POST',
-          headers: serviceHeaders(config.serviceKey),
-          body: JSON.stringify({
-            claimed_phone: digits,
-            profile_id: user.id,
-            status: 'APPROVED',
-            token_hash: tokenHash,
-            token_expires_at: expiresAt,
-            verification_note: 'Verified via Dual-Factor Phone + Email match',
-          }),
-          signal: AbortSignal.timeout(8_000),
-        });
-        canResetImmediately = true;
-      } catch (reqErr) {
-        console.warn('[password-reset] Failed to save instant reset request:', reqErr);
-      }
-    }
-
-    // 3. Dispatch native Supabase recovery email asynchronously as secondary confirmation/receipt
-    void (async () => {
-      try {
-        await fetch(`${config.url}/auth/v1/recover`, {
-          method: 'POST',
-          headers: serviceHeaders(config.serviceKey),
-          body: JSON.stringify({ email: targetEmail, redirect_to: redirectTo }),
-          signal: AbortSignal.timeout(8_000),
-        });
-      } catch (e) {
-        console.warn('[password-reset] Async recover email dispatch error:', e);
-      }
-    })();
 
     await auditReset(config, {
       profile_id: user.id,
       action: 'EMAIL_RECOVERY_SENT',
-      detail: { route: 'email', targetEmail, redirectTo, canResetImmediately },
+      detail: { route: 'email', targetEmail, redirectTo },
     });
 
     return res.json({
       success: true,
-      canResetImmediately,
-      resetToken,
-      recoveryUrl: actionLink,
-      message: canResetImmediately
-        ? 'تم التحقق من بيانات حسابك بنجاح! يمكنك كتابة كلمة المرور الجديدة أدناه وتأكيدها فوراً:'
-        : `تم إرسال رابط استعادة كلمة المرور بنجاح إلى (${targetEmail}). يرجى فتح بريدك الإلكتروني (صندوق الوارد أو مجلد Spam) والضغط على الرابط لإعادة تعيين كلمة المرور.`,
+      message: `تم إرسال رابط استعادة كلمة المرور بنجاح إلى (${targetEmail}). يرجى فتح بريدك الإلكتروني (صندوق الوارد أو مجلد Spam) والضغط على الرابط لإعادة تعيين كلمة المرور.`,
     });
   } catch (error) {
     console.error('[password-reset/request]', error);
