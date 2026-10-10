@@ -7,14 +7,24 @@ import { useTranslations } from "next-intl";
 
 const LoginPage = dynamic(
   () => import('@/features/auth/components/login-page'),
-  { loading: function Loading() {
-      const tAuto = useTranslations('auto'); const t = useTranslations('auto'); return <RouteLoading fullscreen label={tAuto('key_7588d11e')} />; } },
+  {
+    ssr: false,
+    loading: function Loading() {
+      const tAuto = useTranslations('auto');
+      return <RouteLoading fullscreen label={tAuto('key_7588d11e')} />;
+    },
+  },
 );
 
 const RiderWorkspace = dynamic(
   () => import('./rider-workspace').then((module) => module.RiderWorkspace),
-  { loading: function Loading() {
-      const tAuto = useTranslations('auto'); const t = useTranslations('auto'); return <RouteLoading label={tAuto('key_68bee0d5')} />; } },
+  {
+    ssr: false,
+    loading: function Loading() {
+      const tAuto = useTranslations('auto');
+      return <RouteLoading label={tAuto('key_68bee0d5')} />;
+    },
+  },
 );
 
 const styles = {

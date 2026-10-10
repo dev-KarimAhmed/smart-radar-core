@@ -60,13 +60,8 @@ function AuthContent({ children }: { children: ReactNode }) {
   const t = useTranslations('auth.logout');
   const { toast } = useToast();
   const { direction } = useDashboardLanguage();
-  const [user, setUser] = useState<SovereignUser | null>(getInitialUserFromCache);
-  const [loading, setLoading] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return true;
-    const cachedUser = getInitialUserFromCache();
-    if (cachedUser) return false;
-    return hasStoredSupabaseAuthSession();
-  });
+  const [user, setUser] = useState<SovereignUser | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const [logoutInProgress, setLogoutInProgress] = useState(false);
   const [promoData] = useState<any>(null);
@@ -78,6 +73,13 @@ function AuthContent({ children }: { children: ReactNode }) {
     
     // Sync server time as early as possible
     syncServerTime();
+
+    // Fast-restore cached session on client mount without hydration mismatch
+    const cachedUser = getInitialUserFromCache();
+    if (cachedUser) {
+      setUser(cachedUser);
+      setLoading(false);
+    }
 
     // Intercept recovery links landing on root or dashboard before auth redirects kick in
     if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/reset-password')) {
@@ -103,14 +105,14 @@ function AuthContent({ children }: { children: ReactNode }) {
     };
 
     const hadStoredSession = hasStoredSupabaseAuthSession();
-    if (!hadStoredSession && !user) {
+    if (!hadStoredSession && !cachedUser) {
       finishBootstrap();
     }
 
     const bootstrapTimeout = window.setTimeout(() => {
       if (!mounted || bootstrapCompleted) return;
       // Do not wipe session if we already restored a valid cached user
-      if (!user && !getInitialUserFromCache()) {
+      if (!cachedUser && !getInitialUserFromCache()) {
         clearSupabaseSessionCache();
         setUser(null);
       }
@@ -126,13 +128,13 @@ function AuthContent({ children }: { children: ReactNode }) {
           cacheSupabaseSession(data.session);
           if (data.session?.user) {
             setUser(buildUserFromSupabaseAuth(data.session.user) as SovereignUser);
-          } else if (!user) {
+          } else if (!cachedUser) {
             setUser(null);
           }
           finishBootstrap();
         }).catch(() => {
           if (!mounted) return;
-          if (!user && !getInitialUserFromCache()) {
+          if (!cachedUser && !getInitialUserFromCache()) {
             clearSupabaseSessionCache();
             setUser(null);
           }
