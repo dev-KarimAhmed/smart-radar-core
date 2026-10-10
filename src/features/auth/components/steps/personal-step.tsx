@@ -461,19 +461,22 @@ export function PersonalStep() {
   const [resetEmail, setResetEmail] = useState('');
   const [resetSubmitting, setResetSubmitting] = useState(false);
   const [resetMessage, setResetMessage] = useState('');
+  const [resetRecoveryUrl, setResetRecoveryUrl] = useState('');
   const [resetError, setResetError] = useState('');
   const [emailError, setEmailError] = useState('');
 
-  // This dialog used to be a dead end: two links to WhatsApp and a phone number, with no
-  // mechanism behind either and no way for support to actually reset anything. It now files
-  // a real request — either Supabase mails a recovery link (accounts with an email) or the
-  // request is queued for an admin to verify and approve.
+  // Password recovery files a request and returns the direct recoveryUrl to bypass any email delay or rate limits.
   const submitPasswordRecovery = async () => {
     setResetSubmitting(true);
     setResetError('');
     setResetMessage('');
+    setResetRecoveryUrl('');
     try {
-      setResetMessage(await requestPasswordRecovery(resetPhone, resetEmail));
+      const res = await requestPasswordRecovery(resetPhone, resetEmail);
+      setResetMessage(res.message);
+      if (res.recoveryUrl) {
+        setResetRecoveryUrl(res.recoveryUrl);
+      }
     } catch (error) {
       setResetError(error instanceof Error ? error.message : tAuto('key_ae0a0345'));
     } finally {
@@ -859,7 +862,18 @@ export function PersonalStep() {
             </p>
 
             {resetMessage ? (
-              <p className={styles.resetSuccess}>{resetMessage}</p>
+              <div className="space-y-3">
+                <p className={styles.resetSuccess}>{resetMessage}</p>
+                {resetRecoveryUrl ? (
+                  <a
+                    href={resetRecoveryUrl}
+                    target="_self"
+                    className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#14B8A6] p-3 text-center text-sm font-black text-[#0B0F19] shadow-[0_16px_45px_rgba(20,184,166,0.3)] transition hover:bg-[#2DD4BF]"
+                  >
+                    🚀 {isArabic ? 'فتح صفحة تعيين كلمة المرور فوراً' : 'Reset Password Now'}
+                  </a>
+                ) : null}
+              </div>
             ) : null}
             {resetError ? <p className={styles.resetError}>{resetError}</p> : null}
 
