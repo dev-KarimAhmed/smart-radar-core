@@ -24,7 +24,7 @@ export async function sendPasswordResetEmail(params: {
     const { data, error } = await resend.emails.send({
       from: fromEmail,
       to: params.to,
-      subject: 'إعادة تعيين كلمة المرور | الرادار الذكي BYNK',
+      subject: 'إعادة تعيين كلمة المرور | الرادار الذكي',
       html: `
 <!DOCTYPE html>
 <html dir="rtl" lang="ar">
@@ -41,7 +41,7 @@ export async function sendPasswordResetEmail(params: {
           <tr>
             <td style="padding: 36px 32px 24px 32px; text-align: center; border-bottom: 1px solid rgba(255, 255, 255, 0.06);">
               <div style="display: inline-block; background: rgba(20, 184, 166, 0.15); border: 1px solid rgba(20, 184, 166, 0.3); border-radius: 16px; padding: 12px 24px;">
-                <span style="font-size: 20px; font-weight: 900; color: #14F5D5; letter-spacing: 0.5px;">⚡ الرادار الذكي | BYNK</span>
+                <span style="font-size: 20px; font-weight: 900; color: #14F5D5; letter-spacing: 0.5px;">⚡ الرادار الذكي</span>
               </div>
             </td>
           </tr>
@@ -57,16 +57,6 @@ export async function sendPasswordResetEmail(params: {
                   تعيين كلمة مرور جديدة 🔒
                 </a>
               </div>
-              ${
-                params.otpCode
-                  ? `
-              <div style="background-color: rgba(0, 0, 0, 0.35); border: 1px dashed rgba(255, 255, 255, 0.15); border-radius: 14px; padding: 16px; text-align: center; margin: 24px 0;">
-                <p style="margin: 0 0 6px 0; font-size: 12px; color: #64748B;">رمز التحقق المباشر (OTP):</p>
-                <span style="font-size: 24px; font-weight: 900; letter-spacing: 4px; color: #14F5D5; font-family: monospace;">${params.otpCode}</span>
-              </div>
-              `
-                  : ''
-              }
               <p style="margin: 20px 0 0 0; font-size: 13px; line-height: 1.6; color: #64748B;">
                 ⚠️ إذا لم تكن قد طلبت استعادة كلمة المرور، يمكنك تجاهل هذا البريد الإلكتروني بأمان ولن يتم إجراء أي تعديل على حسابك.
               </p>
