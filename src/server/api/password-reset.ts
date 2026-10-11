@@ -300,7 +300,7 @@ passwordResetRouter.post('/password-reset/request', async (req, res) => {
       success: true,
       recoveryUrl: actionLink,
       emailOtp,
-      message: `تم تجهيز رابط استعادة كلمة المرور بنجاح إلى (${targetEmail}). يمكنك فتح الرابط فوراً بالأسفل أو مراجعة بريدك الإلكتروني:`,
+      message: `تم إرسال رابط استعادة كلمة المرور بنجاح إلى (${targetEmail}). يرجى فتح بريدك الإلكتروني (صندوق الوارد أو مجلد Spam) والضغط على الرابط لإعادة تعيين كلمة المرور.`,
     });
   } catch (error) {
     console.error('[password-reset/request]', error);
