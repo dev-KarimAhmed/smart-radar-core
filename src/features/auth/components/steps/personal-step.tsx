@@ -824,21 +824,9 @@ export function PersonalStep() {
           <div className={styles.style832_141}>
             <div className={styles.style833_142}>
               {isArabic
-                ? 'أدخل رقم هاتفك أو بريدك الإلكتروني. سيصلك رابط لإعادة تعيين كلمة المرور فوراً على بريدك.'
-                : 'Enter your phone number or email. You will receive an instant password reset link in your inbox.'}
+                ? 'أدخل بريدك الإلكتروني. سيصلك رابط لإعادة تعيين كلمة المرور فوراً على بريدك.'
+                : 'Enter your email. You will receive an instant password reset link in your inbox.'}
             </div>
-
-            <Field label={t.resetPhone} icon={<Phone className={styles.style839_143} />}>
-              <input
-                type="tel"
-                dir="ltr"
-                inputMode="tel"
-                placeholder={phonePlaceholder || t.phonePlaceholder}
-                value={resetPhone}
-                onChange={(event) => setResetPhone(event.target.value)}
-                className={cn(styles.input, styles.style847_144)}
-              />
-            </Field>
 
             <Field
               label={isArabic ? 'البريد الإلكتروني (Gmail)' : 'Email address (Gmail)'}
@@ -862,25 +850,14 @@ export function PersonalStep() {
             </p>
 
             {resetMessage ? (
-              <div className="space-y-3">
-                <p className={styles.resetSuccess}>{resetMessage}</p>
-                {resetRecoveryUrl ? (
-                  <a
-                    href={resetRecoveryUrl}
-                    target="_self"
-                    className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#14B8A6] p-3 text-center text-sm font-black text-[#0B0F19] shadow-[0_16px_45px_rgba(20,184,166,0.3)] transition hover:bg-[#2DD4BF]"
-                  >
-                    🚀 {isArabic ? 'فتح صفحة تعيين كلمة المرور فوراً' : 'Reset Password Now'}
-                  </a>
-                ) : null}
-              </div>
+              <p className={styles.resetSuccess}>{resetMessage}</p>
             ) : null}
             {resetError ? <p className={styles.resetError}>{resetError}</p> : null}
 
             <button
               type="button"
               onClick={() => void submitPasswordRecovery()}
-              disabled={resetSubmitting || (resetPhone.trim().length < 8 && !resetEmail.trim().includes('@'))}
+              disabled={resetSubmitting || !resetEmail.trim().includes('@')}
               className={styles.resetSubmit}
             >
               {resetSubmitting
