@@ -1,7 +1,25 @@
+import fs from 'fs';
+import path from 'path';
+import dotenv from 'dotenv';
 import { Resend } from 'resend';
 
 function getResendClient(): Resend | null {
-  const apiKey = process.env.RESEND_API_KEY?.trim();
+  let apiKey = process.env.RESEND_API_KEY?.trim();
+  if (!apiKey || !apiKey.startsWith('re_')) {
+    try {
+      const envLocalPath = path.join(process.cwd(), '.env.local');
+      if (fs.existsSync(envLocalPath)) {
+        const parsed = dotenv.parse(fs.readFileSync(envLocalPath));
+        if (parsed.RESEND_API_KEY) {
+          process.env.RESEND_API_KEY = parsed.RESEND_API_KEY;
+          apiKey = parsed.RESEND_API_KEY.trim();
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }
+
   if (!apiKey || !apiKey.startsWith('re_')) {
     return null;
   }
