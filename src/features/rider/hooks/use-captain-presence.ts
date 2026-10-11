@@ -23,10 +23,15 @@ export function useCaptainPresence(userId: string | undefined, activeCountryId: 
     try {
       const { data, error } = await supabase
         .from('user_blocks')
-        .select('blocked_id')
-        .eq('blocker_id', userId);
+        .select('blocker_id, blocked_id')
+        .or(`blocker_id.eq.${userId},blocked_id.eq.${userId}`);
       if (error) throw error;
-      setBlockedCaptainIds(new Set((data || []).map((row: any) => String(row.blocked_id))));
+      const ids = new Set<string>();
+      (data || []).forEach((row: any) => {
+        if (row.blocker_id === userId) ids.add(String(row.blocked_id));
+        if (row.blocked_id === userId) ids.add(String(row.blocker_id));
+      });
+      setBlockedCaptainIds(ids);
     } catch (err) {
       if ((process.env.NODE_ENV !== 'production')) console.warn('[Rider View Tab] loadBlockedCaptains error:', err);
     }
@@ -37,10 +42,12 @@ export function useCaptainPresence(userId: string | undefined, activeCountryId: 
   }, [loadBlockedCaptains]);
 
   const mappedCaptains = React.useMemo(() => {
-    return captainLocations.map((captain) => ({
-      ...captain,
-      isBlocked: blockedCaptainIds.has(captain.id),
-    }));
+    return captainLocations
+      .filter((captain) => !blockedCaptainIds.has(captain.id))
+      .map((captain) => ({
+        ...captain,
+        isBlocked: false,
+      }));
   }, [captainLocations, blockedCaptainIds]);
 
   React.useEffect(() => {

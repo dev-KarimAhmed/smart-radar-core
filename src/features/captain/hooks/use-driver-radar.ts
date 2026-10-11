@@ -317,6 +317,17 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
           void fetchPendingRequests();
         },
       )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'user_blocks',
+        },
+        () => {
+          void fetchPendingRequests();
+        },
+      )
       .subscribe((status) => {
         if ((status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') && (process.env.NODE_ENV !== 'production')) {
           console.warn('[Driver radar] realtime channel issue:', status);

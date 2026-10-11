@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, FileText, User, Clock, ChevronDown } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { AlertCircle, FileText, User, Clock, ChevronDown, Ban, ShieldCheck } from 'lucide-react';
 import { formatHistoryMoney } from './history-shared';
 import { cn } from '@/lib/utils';
 import { HistorySkeleton } from './history-skeleton';
+import { useBlockedRiders } from '@/features/captain/hooks/use-blocked-riders';
 
 const styles = {
   container: "space-y-6",
@@ -77,6 +79,10 @@ export function HistoryCaptainTrips({
   const [isExpanded, setIsExpanded] = useState(false);
   const activeCurrency = currencyLabel || (isArabic ? 'د.أ' : 'JOD');
 
+  const { blockedRiders = [], handleBlockRider, handleUnblockRider } = useBlockedRiders(isArabic ? 'ar' : 'en');
+  const blockedRiderIdSet = useMemo(() => new Set((blockedRiders || []).map((r) => r.id)), [blockedRiders]);
+  const [confirmingBlockId, setConfirmingBlockId] = useState<string | null>(null);
+
   return (
     <div className={styles.container}>
       <Card className={styles.card}>
@@ -146,6 +152,8 @@ export function HistoryCaptainTrips({
                   minute: '2-digit'
                 });
 
+                const isBlocked = trip.riderId ? blockedRiderIdSet.has(trip.riderId) : false;
+
                 return (
                   <div key={trip.tripId} className={styles.tripCard}>
                     {/* Top Row: Rider Info & Earned Price */}
@@ -183,7 +191,7 @@ export function HistoryCaptainTrips({
                       </div>
                     </div>
 
-                    {/* Bottom Row: Clear Date, Time, Relative Age & Serial ID */}
+                    {/* Bottom Row: Date, Time & Serial */}
                     <div className={styles.tripBottomRow}>
                       <div className={styles.dateTimeBox}>
                         <Clock className={styles.clockIcon} />
@@ -203,6 +211,62 @@ export function HistoryCaptainTrips({
                         </div>
                       )}
                     </div>
+
+                    {/* Actions Row: Block / Unblock Rider */}
+                    {trip.riderId && (
+                      <div className="pt-2 flex items-center justify-between border-t border-white/5 gap-2 flex-wrap">
+                        <span className="text-[11px] font-medium text-slate-400">
+                          {isBlocked
+                            ? (isArabic ? 'هذا الراكب محظور من رادارك' : 'Rider is blocked from radar')
+                            : ''}
+                        </span>
+                        <div>
+                          {isBlocked ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => void handleUnblockRider(trip.riderId)}
+                              className="h-8 px-3 rounded-xl border border-rose-500/30 bg-rose-500/10 text-[11px] font-bold text-rose-300 hover:bg-rose-500 hover:text-white transition-all cursor-pointer flex items-center gap-1.5"
+                            >
+                              <ShieldCheck className="h-3.5 w-3.5" />
+                              <span>{isArabic ? 'إلغاء الحظر' : 'Unblock Rider'}</span>
+                            </Button>
+                          ) : confirmingBlockId === trip.tripId ? (
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={async () => {
+                                  await handleBlockRider(trip.riderId);
+                                  setConfirmingBlockId(null);
+                                }}
+                                className="h-8 px-3 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-[11px] cursor-pointer"
+                              >
+                                {isArabic ? 'تأكيد الحظر' : 'Confirm'}
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setConfirmingBlockId(null)}
+                                className="h-8 px-2.5 rounded-xl border border-white/10 bg-white/5 text-slate-300 font-bold text-[11px] cursor-pointer"
+                              >
+                                {isArabic ? 'إلغاء' : 'Cancel'}
+                              </Button>
+                            </div>
+                          ) : (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setConfirmingBlockId(trip.tripId)}
+                              className="h-8 px-3 rounded-xl border border-white/10 bg-white/5 hover:border-rose-500/40 hover:bg-rose-500/10 text-slate-400 hover:text-rose-400 text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                            >
+                              <Ban className="h-3.5 w-3.5" />
+                              <span>{isArabic ? 'حظر الراكب' : 'Block Rider'}</span>
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })}

@@ -466,7 +466,7 @@ export function useHistoryState() {
       return {
         tripId: trip.id,
         captainId: getCaptainIdFromTrip(trip),
-        serialId: trip.serial_id || trip.serialId || ('T-' + trip.id.slice(0, 4).toUpperCase()),
+        serialId: trip.serial_id || trip.serialId || (trip.id ? ('T-' + String(trip.id).slice(0, 4).toUpperCase()) : 'T-TRIP'),
         captainName: getHistoryCaptainName(trip, acceptedOffer),
         captainRank: getHistoryCaptainRank(trip, acceptedOffer),
         captainPhone: getHistoryCaptainPhone(trip, acceptedOffer),
@@ -530,7 +530,9 @@ export function useHistoryState() {
 
       return {
         tripId: trip.id,
-        serialId: trip.serial_id || trip.serialId || ('T-' + trip.id.slice(0, 4).toUpperCase()),
+        riderId: trip.rider?.id || trip.rider_id || trip.metadata?.rider_id || trip.riderId || '',
+        riderPhone: trip.rider?.phone || trip.rider_phone || '',
+        serialId: trip.serial_id || trip.serialId || (trip.id ? ('T-' + String(trip.id).slice(0, 4).toUpperCase()) : 'T-TRIP'),
         riderName: trip.rider?.full_name || trip.rider_name || trip.riderName || (isArabic ? 'راكب' : 'Rider'),
         pickup: cleanPickup,
         dropoff: cleanDropoff,

@@ -115,7 +115,7 @@ export function BlockedCaptainsSection({ isArabic }: BlockedCaptainsSectionProps
                   <div className="flex items-center gap-1.5">
                     <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
                     <span className="text-slate-400 text-[11px]">{t('rating')}:</span>
-                    <span className="font-bold text-amber-400">{captain.rating.toFixed(1)}</span>
+                    <span className="font-bold text-amber-400">{(Number(captain.rating) || 5).toFixed(1)}</span>
                   </div>
                   <div className="flex items-center gap-1.5 font-mono text-slate-300 text-[11px]">
                     <Phone className="h-3 w-3 text-slate-500" />
