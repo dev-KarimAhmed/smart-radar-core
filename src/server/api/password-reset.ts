@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import { Router, type Request } from 'express';
 
 import { requireRole } from './supabase-identity';
+import { sendPasswordResetEmail } from '../services/email-service';
 
 /**
  * Password recovery for a phone-only login.
@@ -258,19 +259,36 @@ passwordResetRouter.post('/password-reset/request', async (req, res) => {
       console.info(`[password-reset] Recovery action link for ${targetEmail}: ${actionLink}`);
     }
 
-    // 2. Fire native recover email asynchronously in background (don't block user if rate-limited)
-    void (async () => {
+    // 2. Dispatch email directly via Resend SDK if API key is configured
+    let emailSentViaResend = false;
+    if (actionLink) {
       try {
-        await fetch(`${config.url}/auth/v1/recover`, {
-          method: 'POST',
-          headers: serviceHeaders(config.serviceKey),
-          body: JSON.stringify({ email: targetEmail, redirect_to: redirectTo }),
-          signal: AbortSignal.timeout(8_000),
+        const resendRes = await sendPasswordResetEmail({
+          to: targetEmail,
+          resetUrl: actionLink,
+          otpCode: emailOtp,
         });
-      } catch (e) {
-        console.warn('[password-reset] Async recover email dispatch error:', e);
+        emailSentViaResend = resendRes.success;
+      } catch (resendErr) {
+        console.warn('[password-reset] Resend direct dispatch attempt:', resendErr);
       }
-    })();
+    }
+
+    // 3. Fallback: Fire Supabase native recover email asynchronously in background if Resend was not used
+    if (!emailSentViaResend) {
+      void (async () => {
+        try {
+          await fetch(`${config.url}/auth/v1/recover`, {
+            method: 'POST',
+            headers: serviceHeaders(config.serviceKey),
+            body: JSON.stringify({ email: targetEmail, redirect_to: redirectTo }),
+            signal: AbortSignal.timeout(8_000),
+          });
+        } catch (e) {
+          console.warn('[password-reset] Async recover email dispatch error:', e);
+        }
+      })();
+    }
 
     await auditReset(config, {
       profile_id: user.id,
@@ -625,5 +643,31 @@ passwordResetRouter.post('/password-reset/rescue-with-token', async (req, res) =
   } catch (err) {
     console.error('[password-reset/rescue-with-token]', err);
     return res.status(500).json({ success: false, error: 'حدث خطأ أثناء تحديث كلمة المرور.' });
+  }
+});
+
+passwordResetRouter.post('/password-reset/test-resend', async (req, res) => {
+  const to = String(req.body?.to || 'devkarimahmed@gmail.com').trim();
+  const apiKey = String(req.body?.apiKey || process.env.RESEND_API_KEY || '').trim();
+  if (!apiKey || !apiKey.startsWith('re_')) {
+    return res.status(400).json({ success: false, error: 'Valid Resend API Key is required (starts with re_).' });
+  }
+
+  try {
+    const { Resend: ResendClient } = await import('resend');
+    const client = new ResendClient(apiKey);
+    const result = await client.emails.send({
+      from: 'Smart Radar <onboarding@resend.dev>',
+      to,
+      subject: 'تجربة إرسال عبر Resend API | الرادار الذكي',
+      html: '<p dir="rtl">تهانينا! تم إرسال هذا الإيميل بنجاح وبسرعة فائقة عبر <strong>Resend API</strong> 🚀</p>',
+    });
+
+    if (result.error) {
+      return res.status(400).json({ success: false, error: result.error });
+    }
+    return res.json({ success: true, data: result.data });
+  } catch (e) {
+    return res.status(500).json({ success: false, error: e instanceof Error ? e.message : String(e) });
   }
 });
