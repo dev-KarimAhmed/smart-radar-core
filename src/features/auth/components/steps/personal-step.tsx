@@ -168,7 +168,7 @@ const styles = {
   createAccountLink: "inline-flex items-center gap-1 font-black text-[#14B8A6] underline-offset-4 transition hover:text-[#2DD4BF] hover:underline",
   createAccountIcon: "h-4 w-4",
   style807_133: "mt-5 w-full text-xs font-bold text-[#94A3B8]/70 transition hover:text-white",
-  style818_134: "border border-[#14B8A6]/25 bg-[#0B0F19] text-white shadow-2xl sm:max-w-md",
+  style818_134: "border border-[#14B8A6]/25 bg-[#0B0F19] text-white shadow-2xl sm:max-w-md max-h-[88vh] overflow-y-auto scrollbar-thin rounded-3xl",
   style820_135: "text-right",
   style820_136: "text-left",
   style821_137: "mb-2 flex h-11 w-11 items-center justify-center rounded-2xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 text-[#14B8A6]",
