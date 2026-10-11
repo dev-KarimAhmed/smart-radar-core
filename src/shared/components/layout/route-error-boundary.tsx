@@ -56,6 +56,21 @@ export class RouteErrorBoundary extends Component<RouteErrorBoundaryProps, Route
             <p className={styles.body}>
               نواجه مشكلة مؤقتة في تحميل هذا الجزء. يرجى إعادة المحاولة مرة أخرى، وبقية الخدمات تعمل بشكل طبيعي.
             </p>
+            {this.state.error && (
+              <div className="mt-4 p-3 bg-black/80 rounded-xl text-left font-mono text-xs text-red-300 overflow-auto max-h-60 whitespace-pre-wrap select-all border border-red-500/30">
+                <p className="font-bold text-red-400 mb-1">{this.state.error.name}: {this.state.error.message}</p>
+                <p className="text-[10px] text-slate-400">{this.state.error.stack}</p>
+              </div>
+            )}
+            <div className="mt-4 flex justify-center">
+              <button
+                type="button"
+                onClick={() => this.setState({ hasError: false, error: null })}
+                className="px-4 py-2 rounded-xl bg-destructive hover:bg-destructive/80 text-white text-xs font-bold transition-all cursor-pointer"
+              >
+                إعادة المحاولة
+              </button>
+            </div>
           </CardContent>
         </Card>
       </div>

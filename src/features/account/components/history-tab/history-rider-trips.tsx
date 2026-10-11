@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { AlertCircle, FileText, Heart, Phone, Car, ChevronDown, Navigation, Star, ExternalLink } from 'lucide-react';
+import { AlertCircle, FileText, Heart, Phone, Car, ChevronDown, Navigation, Star, ExternalLink, Ban, ShieldCheck } from 'lucide-react';
 import { cn, formatTelUri } from '@/lib/utils';
 import { formatHistoryMoney, type HistoricalTrip } from './history-shared';
 import { HistorySkeleton } from './history-skeleton';
 import { RatingModal } from '@/components/dashboard/shared/rating-modal';
 import { supabase } from '@/lib/supabase-client';
+import { useBlockedCaptains } from '../../hooks/use-blocked-captains';
 
 interface HistoryRiderTripsProps {
   riderHistoricalTrips: HistoricalTrip[];
@@ -78,6 +79,10 @@ export function HistoryRiderTrips({
 }: HistoryRiderTripsProps) {
   const [expandedTripIds, setExpandedTripIds] = useState<Set<string>>(new Set());
   const [ratingTargetTrip, setRatingTargetTrip] = useState<HistoricalTrip | null>(null);
+  const [confirmingBlockId, setConfirmingBlockId] = useState<string | null>(null);
+
+  const { blockedCaptains = [], handleBlockCaptain, handleUnblockCaptain } = useBlockedCaptains();
+  const blockedCaptainIdSet = React.useMemo(() => new Set((blockedCaptains || []).map((c) => c.id)), [blockedCaptains]);
 
   const toggleRouteExpand = (tripId: string) => {
     setExpandedTripIds((prev) => {
@@ -311,7 +316,7 @@ export function HistoryRiderTrips({
 
                   {renderDetailedReview(trip.tripId)}
 
-                  {/* Actions row: Call Captain & Deferred Rating Button */}
+                  {/* Actions row: Call Captain & Deferred Rating / Blocking */}
                   <div className="pt-1 flex items-center justify-between gap-2.5 flex-wrap">
                     <a
                       href={formatTelUri(trip.captainPhone)}
@@ -321,16 +326,72 @@ export function HistoryRiderTrips({
                       <span>{t('callCaptain')}</span>
                     </a>
 
-                    {!hasReview && (
-                      <button
-                        type="button"
-                        onClick={() => setRatingTargetTrip(trip)}
-                        className="inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-xl border border-emerald-500/40 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 hover:text-white font-black text-xs active:scale-[0.98] transition-all shadow-md shadow-emerald-500/10 cursor-pointer"
-                      >
-                        <Star className="h-3.5 w-3.5 fill-emerald-400 text-emerald-400" />
-                        <span>{t('rateCaptain') || (isArabic ? 'تقييم الكابتن' : 'Rate Captain')}</span>
-                      </button>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {!hasReview && !trip.captainId && (
+                        <button
+                          type="button"
+                          onClick={() => setRatingTargetTrip(trip)}
+                          className="inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-xl border border-emerald-500/40 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 hover:text-white font-black text-xs active:scale-[0.98] transition-all shadow-md shadow-emerald-500/10 cursor-pointer"
+                        >
+                          <Star className="h-3.5 w-3.5 fill-emerald-400 text-emerald-400" />
+                          <span>{t('rateCaptain') || (isArabic ? 'تقييم الكابتن' : 'Rate Captain')}</span>
+                        </button>
+                      )}
+
+                      {!hasReview && trip.captainId && !blockedCaptainIdSet.has(trip.captainId) && (
+                        <button
+                          type="button"
+                          onClick={() => setRatingTargetTrip(trip)}
+                          className="inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-xl border border-emerald-500/40 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 hover:text-white font-black text-xs active:scale-[0.98] transition-all shadow-md shadow-emerald-500/10 cursor-pointer"
+                        >
+                          <Star className="h-3.5 w-3.5 fill-emerald-400 text-emerald-400" />
+                          <span>{t('rateCaptain') || (isArabic ? 'تقييم الكابتن' : 'Rate Captain')}</span>
+                        </button>
+                      )}
+
+                      {trip.captainId && (
+                        blockedCaptainIdSet.has(trip.captainId) ? (
+                          <button
+                            type="button"
+                            onClick={() => void handleUnblockCaptain(trip.captainId!)}
+                            className="inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-xl border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500 hover:text-white text-rose-300 font-bold text-xs transition-all cursor-pointer"
+                          >
+                            <ShieldCheck className="h-3.5 w-3.5" />
+                            <span>{isArabic ? 'إلغاء حظر الكابتن' : 'Unblock Captain'}</span>
+                          </button>
+                        ) : confirmingBlockId === trip.tripId ? (
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                await handleBlockCaptain(trip.captainId!);
+                                setConfirmingBlockId(null);
+                              }}
+                              className="h-9 px-3 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs cursor-pointer"
+                            >
+                              {isArabic ? 'تأكيد الحظر' : 'Confirm'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setConfirmingBlockId(null)}
+                              className="h-9 px-2.5 rounded-xl border border-white/10 bg-white/5 text-slate-300 font-bold text-xs cursor-pointer"
+                            >
+                              {isArabic ? 'إلغاء' : 'Cancel'}
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setConfirmingBlockId(trip.tripId)}
+                            title={isArabic ? 'حظر هذا الكابتن' : 'Block Captain'}
+                            className="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-xl border border-white/10 bg-white/5 hover:border-rose-500/40 hover:bg-rose-500/10 text-slate-400 hover:text-rose-400 text-xs font-bold transition-all cursor-pointer"
+                          >
+                            <Ban className="h-3.5 w-3.5" />
+                            <span>{isArabic ? 'حظر الكابتن' : 'Block'}</span>
+                          </button>
+                        )
+                      )}
+                    </div>
                   </div>
                 </div>
               );

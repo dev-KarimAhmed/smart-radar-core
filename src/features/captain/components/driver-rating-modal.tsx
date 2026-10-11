@@ -152,17 +152,26 @@ export function DriverRatingModal({
   const handleBlockRider = async () => {
     setIsBlocking(true);
     try {
-      const { error } = await supabase.from('user_blocks').insert({
-        blocker_id: captainId,
-        blocked_id: riderId,
+      const { error: rpcError } = await supabase.rpc('block_user', {
+        p_blocked_id: riderId,
       });
 
-      if (error) throw error;
+      if (rpcError) {
+        const { error: insertError } = await supabase.from('user_blocks').insert({
+          blocker_id: captainId,
+          blocked_id: riderId,
+        });
+        if (insertError) throw insertError;
+      }
 
       toast({
         title: copy.blockSuccessTitle,
         description: copy.blockSuccessDescription,
       });
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('radar-user-blocked', { detail: { riderId } }));
+      }
 
       onSuccess();
     } catch (error: any) {
