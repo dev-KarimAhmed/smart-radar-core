@@ -91,6 +91,8 @@ export function ResetPasswordRoute() {
   const [error, setError] = React.useState('');
   const [isDone, setIsDone] = React.useState(false);
 
+  const [capturedToken, setCapturedToken] = React.useState('');
+
   React.useEffect(() => {
     if (token) return;
     let active = true;
@@ -115,22 +117,39 @@ export function ResetPasswordRoute() {
       return;
     }
 
-    // 0.5. Immediate check for access_token in URL hash and establish session
-    if (typeof window !== 'undefined' && window.location.hash.includes('access_token=')) {
-      const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-      const accessToken = hashParams.get('access_token');
-      const refreshToken = hashParams.get('refresh_token');
-      if (accessToken) {
-        void supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken || '',
-        }).then(({ data, error: setErr }) => {
-          if (!active) return;
-          if (data.session && !setErr) {
-            setHasSession(true);
-            setCheckingSession(false);
+    // 0.5. Immediate check for access_token in URL hash, store in state and sessionStorage, and establish session
+    if (typeof window !== 'undefined') {
+      const hash = window.location.hash || '';
+      if (hash.includes('access_token=')) {
+        const hashParams = new URLSearchParams(hash.replace(/^#/, ''));
+        const accessToken = hashParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token');
+        if (accessToken) {
+          setCapturedToken(accessToken);
+          try {
+            window.sessionStorage.setItem('recovery_access_token', accessToken);
+            if (refreshToken) window.sessionStorage.setItem('recovery_refresh_token', refreshToken);
+          } catch {
+            // ignore
           }
-        });
+          void supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken || '',
+          }).then(({ data, error: setErr }) => {
+            if (!active) return;
+            if (data.session && !setErr) {
+              setHasSession(true);
+              setCheckingSession(false);
+            }
+          });
+        }
+      } else {
+        try {
+          const stored = window.sessionStorage.getItem('recovery_access_token');
+          if (stored) setCapturedToken(stored);
+        } catch {
+          // ignore
+        }
       }
     }
 
@@ -208,7 +227,7 @@ export function ResetPasswordRoute() {
       if (token) {
         await completePasswordReset(token, password);
       } else {
-        await completeEmailRecovery(password);
+        await completeEmailRecovery(password, capturedToken);
       }
       setIsDone(true);
     } catch (submitError) {
