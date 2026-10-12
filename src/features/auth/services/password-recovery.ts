@@ -107,31 +107,52 @@ export async function completePasswordReset(token: string, newPassword: string) 
  * The email route lands the user here already carrying a recovery session, created by
  * Supabase from the link. Setting the password is then an ordinary authenticated update.
  */
-export async function completeEmailRecovery(newPassword: string) {
-  let tokenFromHash = '';
+export async function completeEmailRecovery(newPassword: string, fallbackToken?: string) {
+  let tokenFromHash = fallbackToken || '';
+  let refreshToken = '';
+
   if (typeof window !== 'undefined') {
-    const hash = window.location.hash || '';
-    if (hash.includes('access_token=')) {
-      const hashParams = new URLSearchParams(hash.replace(/^#/, ''));
-      tokenFromHash = hashParams.get('access_token') || '';
-      const refreshToken = hashParams.get('refresh_token') || '';
-      if (tokenFromHash) {
-        try {
-          await supabase.auth.setSession({
-            access_token: tokenFromHash,
-            refresh_token: refreshToken,
-          });
-        } catch {
-          // continue
-        }
+    if (!tokenFromHash) {
+      const hash = window.location.hash || '';
+      if (hash.includes('access_token=')) {
+        const hashParams = new URLSearchParams(hash.replace(/^#/, ''));
+        tokenFromHash = hashParams.get('access_token') || '';
+        refreshToken = hashParams.get('refresh_token') || '';
       }
+    }
+    if (!tokenFromHash) {
+      tokenFromHash = window.sessionStorage.getItem('recovery_access_token') || '';
+      refreshToken = window.sessionStorage.getItem('recovery_refresh_token') || '';
+    }
+  }
+
+  if (tokenFromHash) {
+    try {
+      await supabase.auth.setSession({
+        access_token: tokenFromHash,
+        refresh_token: refreshToken || '',
+      });
+    } catch {
+      // continue
     }
   }
 
   // 1. Try native client update
-  const { data, error } = await supabase.auth.updateUser({ password: newPassword });
-  if (!error && data?.user) {
-    return;
+  let clientError: Error | null = null;
+  try {
+    const { data, error } = await supabase.auth.updateUser({ password: newPassword });
+    if (!error && data?.user) {
+      if (typeof window !== 'undefined') {
+        window.sessionStorage.removeItem('recovery_access_token');
+        window.sessionStorage.removeItem('recovery_refresh_token');
+      }
+      return;
+    }
+    if (error) {
+      clientError = error;
+    }
+  } catch (err) {
+    clientError = err instanceof Error ? err : new Error(String(err));
   }
 
   // 2. Rescue fallback: If client session dropped ("Auth session missing"), rescue via server using the accessToken!
@@ -150,18 +171,30 @@ export async function completeEmailRecovery(newPassword: string) {
       });
       if (rescueRes.ok) {
         const payload = (await rescueRes.json()) as { success?: boolean; error?: string };
-        if (payload.success) return;
+        if (payload.success) {
+          if (typeof window !== 'undefined') {
+            window.sessionStorage.removeItem('recovery_access_token');
+            window.sessionStorage.removeItem('recovery_refresh_token');
+          }
+          return;
+        }
+        if (payload.error) {
+          throw new Error(payload.error);
+        }
       }
     } catch (rescueErr) {
       console.warn('[password-recovery] rescue endpoint failed:', rescueErr);
+      if (rescueErr instanceof Error && !rescueErr.message.includes('fetch')) {
+        throw rescueErr;
+      }
     }
   }
 
-  if (error) {
+  if (clientError) {
     throw new Error(
-      error.message.includes('session missing')
+      clientError.message.includes('session missing')
         ? 'انتهت صلاحية جلسة الاستعادة أو الرابط. يرجى طلب رابط جديد من شاشة الدخول.'
-        : error.message,
+        : clientError.message,
     );
   }
 }
