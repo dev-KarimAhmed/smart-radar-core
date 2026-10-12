@@ -260,6 +260,13 @@ export function DriverViewTab() {
           <ShieldAlert className={styles.lockScreenIcon} />
           <h1 className={styles.lockScreenTitle}>{t('timeTamperingTitle')}</h1>
           <p className={styles.lockScreenBody}>{t('timeTamperingBody')}</p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="mt-4 inline-flex items-center justify-center rounded-2xl bg-rose-500/20 border border-rose-500/50 px-6 py-2.5 text-xs font-black text-rose-300 hover:bg-rose-500/30 transition shadow-lg"
+          >
+            {direction === 'rtl' ? 'إعادة تحميل الصفحة 🔄' : 'Reload Page 🔄'}
+          </button>
         </div>
       </div>
     );
