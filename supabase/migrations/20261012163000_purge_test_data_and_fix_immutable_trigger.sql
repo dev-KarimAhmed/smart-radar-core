@@ -60,3 +60,4 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER tr_wallet_transactions_immutable
 BEFORE UPDATE OR DELETE ON public.wallet_transactions
 FOR EACH ROW EXECUTE FUNCTION public.check_wallet_transactions_immutable();
+

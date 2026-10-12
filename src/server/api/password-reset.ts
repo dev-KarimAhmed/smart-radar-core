@@ -194,34 +194,27 @@ passwordResetRouter.post('/password-reset/request', async (req, res) => {
       });
     }
 
-    let targetEmail = user.email;
-
-    // If an email was provided, ensure it is linked and verified on the auth account via admin API
-    if (isEmailValid) {
-      if (!user.email || user.email.toLowerCase() !== claimedEmail) {
-        try {
-          const updateRes = await fetch(`${config.url}/auth/v1/admin/users/${user.id}`, {
-            method: 'PUT',
-            headers: serviceHeaders(config.serviceKey),
-            body: JSON.stringify({ email: claimedEmail, email_confirm: true }),
-            signal: AbortSignal.timeout(8_000),
-          });
-          if (updateRes.ok) {
-            targetEmail = claimedEmail;
-          }
-        } catch (err) {
-          console.warn('[password-reset] Failed to link user email via admin API:', err);
-        }
-      } else {
-        targetEmail = claimedEmail;
-      }
-    }
+    let targetEmail = isEmailValid ? claimedEmail : (user.email || claimedEmail);
 
     if (!targetEmail) {
       return res.status(400).json({
         success: false,
         error: 'هذا الحساب غير مرتبط ببريد إلكتروني حالياً. يرجى كتابة بريدك الإلكتروني (Gmail) في خانة البريد لإرسال رابط الاسترجاع إليه.',
       });
+    }
+
+    // ALWAYS ensure this email is actually set on the underlying auth.users row and confirmed!
+    // For phone-registered users, Supabase GoTrue only sets user_metadata->email, while auth.users.email
+    // is left blank or empty string. Without this step, /admin/generate_link returns 404 user_not_found!
+    try {
+      await fetch(`${config.url}/auth/v1/admin/users/${user.id}`, {
+        method: 'PUT',
+        headers: serviceHeaders(config.serviceKey),
+        body: JSON.stringify({ email: targetEmail, email_confirm: true }),
+        signal: AbortSignal.timeout(8_000),
+      });
+    } catch (err) {
+      console.warn('[password-reset] Failed to sync auth.users email:', err);
     }
 
     const origin = resolveAppOrigin(req);
