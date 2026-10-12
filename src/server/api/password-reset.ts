@@ -269,6 +269,11 @@ passwordResetRouter.post('/password-reset/request', async (req, res) => {
           otpCode: emailOtp,
         });
         emailSentViaResend = resendRes.success;
+        if (resendRes.success) {
+          console.info(`[password-reset] Email sent via Resend successfully to ${targetEmail}, ID: ${resendRes.id}`);
+        } else {
+          console.error(`[password-reset] Resend failed to send to ${targetEmail}:`, resendRes.error);
+        }
       } catch (resendErr) {
         console.warn('[password-reset] Resend direct dispatch attempt:', resendErr);
       }
