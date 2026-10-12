@@ -28,6 +28,8 @@ export function Toaster() {
         return (
           <div
             key={toast.id}
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
             className={cn(
               "relative flex items-start justify-between gap-3 p-3.5 sm:p-4 rounded-xl shadow-xl border backdrop-blur-xl transition-all duration-300 pointer-events-auto animate-in fade-in slide-in-from-top-4",
               isDestructive && "bg-red-950/95 border-red-500/80 text-red-50 shadow-red-950/50",
@@ -64,8 +66,13 @@ export function Toaster() {
             </div>
 
             <button
-              onClick={() => dismiss(toast.id)}
-              className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-white/10 transition-colors shrink-0"
+              type="button"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                dismiss(toast.id);
+              }}
+              className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-white/10 transition-colors shrink-0 cursor-pointer"
               aria-label="Close notification"
             >
               <X className="h-4 w-4" />

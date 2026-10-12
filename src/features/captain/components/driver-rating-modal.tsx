@@ -200,6 +200,8 @@ export function DriverRatingModal({
       <DialogContent
         className={styles.content}
         dir={isArabic ? 'rtl' : 'ltr'}
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
       >
         <DialogHeader className={cn(styles.headerRtl, isArabic ? styles.headerTextRtl : styles.headerTextLtr)}>
           <div>

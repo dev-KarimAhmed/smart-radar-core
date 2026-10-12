@@ -28,6 +28,7 @@ export function useRideRequestStatusSync(params: {
   const t = useTranslations('riderView');
   /** Which request has already had its arrival announced, so it is announced exactly once. */
   const announcedArrivalForRef = React.useRef<string | null>(null);
+  const arrivalToastDismissRef = React.useRef<(() => void) | null>(null);
 
   /**
    * The trip countdown.
@@ -183,12 +184,13 @@ export function useRideRequestStatusSync(params: {
           // change: without it, every later update while still ARRIVED re-announces.
           if (status === 'ARRIVED' && announcedArrivalForRef.current !== state.requestId) {
             announcedArrivalForRef.current = state.requestId;
-            toast({
+            const arrivalToast = toast({
               title: t('trip.driverArrivedTitle'),
               description: t('trip.driverArrivedNote'),
               variant: 'success',
               duration: 15000,
             });
+            arrivalToastDismissRef.current = arrivalToast?.dismiss || null;
             // Best-effort only: unsupported on iOS Safari and silently ignored when the
             // page has never been interacted with.
             try {
@@ -201,11 +203,15 @@ export function useRideRequestStatusSync(params: {
 
         if (status === 'CANCELLED') {
           // pendingAcceptedOfferId managed centrally by state machine
+          arrivalToastDismissRef.current?.();
+          arrivalToastDismissRef.current = null;
           dispatch({ type: 'REQUEST_CANCELLED' });
         }
 
         if (status === 'COMPLETED') {
           // pendingAcceptedOfferId managed centrally by state machine
+          arrivalToastDismissRef.current?.();
+          arrivalToastDismissRef.current = null;
           dispatch({ type: 'SERVER_STATUS_COMPLETED', row });
         }
       },
@@ -273,8 +279,12 @@ export function useRideRequestStatusSync(params: {
           });
         }
       } else if (status === 'COMPLETED') {
+        arrivalToastDismissRef.current?.();
+        arrivalToastDismissRef.current = null;
         dispatch({ type: 'SERVER_STATUS_COMPLETED', row });
       } else if (status === 'CANCELLED') {
+        arrivalToastDismissRef.current?.();
+        arrivalToastDismissRef.current = null;
         dispatch({ type: 'REQUEST_CANCELLED' });
       }
     };
@@ -288,6 +298,8 @@ export function useRideRequestStatusSync(params: {
 
     return () => {
       cancelled = true;
+      arrivalToastDismissRef.current?.();
+      arrivalToastDismissRef.current = null;
       window.clearInterval(interval);
       document.removeEventListener('visibilitychange', onVisible);
     };

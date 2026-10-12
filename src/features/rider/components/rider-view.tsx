@@ -181,6 +181,12 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
   const { riderProfile, systemMessages, currencyLabel } = useRiderProfileSummary(user, language, countryConfig, geolocation.locationStatus, geolocation.liveCurrencyCode);
 
   React.useEffect(() => {
+    if (isStandbyDismissed && state.screen === 'IDLE_MAP') {
+      dispatch({ type: 'OPEN_DESTINATION' });
+    }
+  }, [isStandbyDismissed, state.screen, dispatch]);
+
+  React.useEffect(() => {
     const handleExit = () => {
       resetRideDraftState();
       dispatch({ type: 'RESET_TO_IDLE' });
