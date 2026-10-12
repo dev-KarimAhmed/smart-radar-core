@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { CheckCircle2, Eye, EyeOff, Loader2, Lock, Mail, Send, ShieldCheck } from 'lucide-react';
 import { supabase } from '@/lib/supabase-client';
 import { useRecoveryEmail } from '@/features/auth/hooks/use-recovery-email';
+import { requestPasswordRecovery } from '@/features/auth/services/password-recovery';
 import { useToast } from '@/hooks/use-toast';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { getAuthRedirectUrl } from '@/lib/utils';
@@ -157,13 +158,7 @@ export function RiderSecuritySection() {
         }
       }
 
-      const redirectTo = getAuthRedirectUrl('/reset-password');
-
-      const { error } = await supabase.auth.resetPasswordForEmail(targetEmail, {
-        redirectTo,
-      });
-
-      if (error) throw error;
+      await requestPasswordRecovery('', targetEmail);
 
       const successText = t.resetLinkSuccess(targetEmail);
       setResetSuccess(successText);
