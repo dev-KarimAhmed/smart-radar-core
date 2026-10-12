@@ -84,6 +84,9 @@ export function RiderShell() {
       setHasRequestedRideOnce(false);
     };
     const handleOpen = () => {
+      if (typeof window !== 'undefined' && window.location.hash && window.location.hash !== '#') {
+        window.location.hash = '#';
+      }
       setShowRequestFlow(true);
       setHasRequestedRideOnce(true);
     };

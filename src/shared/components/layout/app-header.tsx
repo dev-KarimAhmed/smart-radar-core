@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import dynamic from 'next/dynamic';
 import { useState, useEffect, type ReactNode } from 'react';
@@ -67,6 +67,8 @@ const styles = {
   shield: 'h-4 w-4 animate-pulse text-[#00ffcc]',
   roundAction: 'h-10 w-10 rounded-full hover:bg-black/20',
   srOnly: 'sr-only',
+  requestRideWrapper: 'absolute left-1/2 -translate-x-1/2 flex items-center justify-center',
+  requestRideButton: 'h-11 sm:h-12 gap-2.5 rounded-full border-2 border-[#14F5D5]/60 bg-gradient-to-r from-[#14B8A6] via-[#14F5D5] to-[#14B8A6] px-7 sm:px-9 text-base sm:text-lg font-black text-slate-950 shadow-[0_0_25px_rgba(20,245,213,0.5)] transition-all hover:scale-105 active:scale-95 cursor-pointer',
 } as const;
 
 const pulseMap = {
@@ -225,11 +227,21 @@ export function AppHeader({ sidebar }: { sidebar?: ReactNode }) {
         ) : <div className={styles.spacer} />}
 
         {user?.role === 'rider' && (
-          <div className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center">
+          <div className={styles.requestRideWrapper}>
             <Button
               type="button"
-              onClick={() => window.dispatchEvent(new CustomEvent('rider-open-destination'))}
-              className="h-11 sm:h-12 gap-2.5 rounded-full border-2 border-[#14F5D5]/60 bg-gradient-to-r from-[#14B8A6] via-[#14F5D5] to-[#14B8A6] px-7 sm:px-9 text-base sm:text-lg font-black text-slate-950 shadow-[0_0_25px_rgba(20,245,213,0.5)] transition-all hover:scale-105 active:scale-95 cursor-pointer"
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  if (window.location.hash && window.location.hash !== '#') {
+                    window.location.hash = '#';
+                  }
+                  window.dispatchEvent(new CustomEvent('rider-open-destination'));
+                  setTimeout(() => {
+                    window.dispatchEvent(new CustomEvent('rider-open-destination'));
+                  }, 50);
+                }
+              }}
+              className={styles.requestRideButton}
             >
               <span>{isArabic ? 'اطلب رحلة' : 'Request Ride'}</span>
             </Button>

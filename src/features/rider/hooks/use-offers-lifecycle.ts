@@ -65,25 +65,30 @@ export function useOffersLifecycle(
       const sortedOffers = prioritizeRiderOffers(validOffers, favoriteIds, pricingPreference).slice(0, 9);
 
       const nowTs = Date.now();
-      let hasNewOffer = false;
       for (const offer of sortedOffers) {
         const offerId = offer.id || offer.driverId;
         if (offerId && !firstSeenAtRef.current.has(offerId)) {
           firstSeenAtRef.current.set(offerId, nowTs);
-          hasNewOffer = true;
-        }
-      }
 
-      if (hasNewOffer && typeof window !== 'undefined') {
-        window.dispatchEvent(
-          new CustomEvent('app-notification', {
-            detail: {
-              title: language === 'ar' ? 'عرض كابتن جديد' : 'New Captain Offer',
-              description: language === 'ar' ? 'وصلك عرض جديد على رحلتك الان' : 'A new offer has arrived for your ride request',
-              type: 'offer',
-            },
-          })
-        );
+          if (typeof window !== 'undefined') {
+            const captainName = offer.driverName || (language === 'ar' ? 'كابتن' : 'Captain');
+            const price = offer.price ? `${offer.price} ج.م` : '';
+            const eta = offer.pickup_eta_minutes ? ` (وصول خلال ${offer.pickup_eta_minutes} د)` : '';
+
+            window.dispatchEvent(
+              new CustomEvent('app-notification', {
+                detail: {
+                  id: `notif_offer_${offerId}`,
+                  title: language === 'ar' ? 'عرض كابتن جديد 🚗' : 'New Captain Offer 🚗',
+                  description: language === 'ar'
+                    ? `وصلك عرض بقيمة ${price} من الكابتن ${captainName}${eta}`
+                    : `Offer of ${price} received from ${captainName}${eta}`,
+                  type: 'offer',
+                },
+              })
+            );
+          }
+        }
       }
 
       setPreferredCaptainIds(favoriteIds);

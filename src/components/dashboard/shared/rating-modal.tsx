@@ -294,6 +294,8 @@ export function RatingModal({
       <DialogContent
         className={styles.style215_1}
         dir={isArabic ? 'rtl' : 'ltr'}
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
       >
         <DialogHeader className={cn(styles.style218_2, isArabic ? styles.style218_3 : styles.style218_4)}>
           <div>
