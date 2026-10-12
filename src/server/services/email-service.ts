@@ -1,7 +1,25 @@
+import fs from 'fs';
+import path from 'path';
+import dotenv from 'dotenv';
 import { Resend } from 'resend';
 
 function getResendClient(): Resend | null {
-  const apiKey = process.env.RESEND_API_KEY?.trim();
+  let apiKey = process.env.RESEND_API_KEY?.trim();
+  if (!apiKey || !apiKey.startsWith('re_')) {
+    try {
+      const envLocalPath = path.join(process.cwd(), '.env.local');
+      if (fs.existsSync(envLocalPath)) {
+        const parsed = dotenv.parse(fs.readFileSync(envLocalPath));
+        if (parsed.RESEND_API_KEY) {
+          process.env.RESEND_API_KEY = parsed.RESEND_API_KEY;
+          apiKey = parsed.RESEND_API_KEY.trim();
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }
+
   if (!apiKey || !apiKey.startsWith('re_')) {
     return null;
   }
@@ -48,18 +66,15 @@ export async function sendPasswordResetEmail(params: {
           <tr>
             <td style="padding: 32px 32px 24px 32px; text-align: right;" dir="rtl">
               <h2 style="margin: 0 0 16px 0; font-size: 22px; font-weight: 800; color: #FFFFFF;">طلب إعادة تعيين كلمة المرور</h2>
-              <p style="margin: 0 0 20px 0; font-size: 15px; line-height: 1.8; color: #94A3B8;">
+              <p style="margin: 0 0 24px 0; font-size: 15px; line-height: 1.8; color: #94A3B8;">
                 مرحباً بك،<br>
-                تلقينا طلباً لإعادة تعيين كلمة المرور الخاصة بحسابك في منصة <strong>الرادار الذكي</strong>. للبدء في تعيين كلمة مرور جديدة، يرجى الضغط على الزر أدناه:
+                ⚠️ إذا لم تكن قد طلبت استعادة كلمة المرور، يمكنك تجاهل هذا البريد الإلكتروني بأمان ولن يتم إجراء أي تعديل على حسابك.
               </p>
-              <div style="text-align: center; margin: 32px 0;">
+              <div style="text-align: center; margin: 32px 0 16px 0;">
                 <a href="${params.resetUrl}" target="_blank" style="display: inline-block; background-color: #14B8A6; color: #04140F; font-size: 16px; font-weight: 900; text-decoration: none; padding: 16px 36px; border-radius: 14px; box-shadow: 0 10px 25px rgba(20, 184, 166, 0.35);">
                   تعيين كلمة مرور جديدة 🔒
                 </a>
               </div>
-              <p style="margin: 20px 0 0 0; font-size: 13px; line-height: 1.6; color: #64748B;">
-                ⚠️ إذا لم تكن قد طلبت استعادة كلمة المرور، يمكنك تجاهل هذا البريد الإلكتروني بأمان ولن يتم إجراء أي تعديل على حسابك.
-              </p>
             </td>
           </tr>
           <tr>
