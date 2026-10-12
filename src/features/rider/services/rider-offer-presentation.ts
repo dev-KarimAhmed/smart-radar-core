@@ -1,9 +1,10 @@
 import type { Offer } from '@/core/types';
 import type { AppLanguage } from '@/lib/i18n/simple-copy';
-import type { CaptainOffer } from '../components/captain-offer-card';
+import type { CaptainOffer } from '../components/offer-card/offer-card-shared';
 import type { CaptainPresencePoint } from './rider-server-marketplace';
 import { mapRiderMarketplaceError } from './rider-server-marketplace';
 import { firstDisplayString } from './rider-view-format';
+import { estimatePickupMinutes, preferRoutedMinutes } from '@/shared/services/trip-duration';
 import { firstNumber } from './rider-destination-normalizers';
 import {
   getOfferAffiliationLabel,
@@ -110,7 +111,8 @@ export function buildCaptainOfferFromOffer(
 ): { offer: CaptainOffer; isPreferred: boolean } {
   const { captainLocations, riderLocation, destination, preferredCaptainIds, serverEstimatedFare } = context;
   const captain = captainLocations.find((c) => c.id === offer.driverId || c.serial === offer.driverName);
-  let realDistance = (offer as unknown as Record<string, any>).distance_to_rider as number | null | undefined;
+  const offerRecord = offer as unknown as Record<string, any>;
+  let realDistance = offerRecord.distance_to_rider as number | null | undefined;
 
   if (realDistance == null && captain && riderLocation) {
     realDistance = haversineKm(riderLocation, captain.coordinates);
@@ -121,14 +123,28 @@ export function buildCaptainOfferFromOffer(
     tripDistance = haversineKm(riderLocation, destination.coords);
   }
 
+  // The offer's own receipt (written by submit_ride_offer) carries the road distance the
+  // price was actually calculated on. That has to win over the straight-line haversine
+  // guess above — otherwise the rider sees two different "trip distance" numbers for the
+  // same offer: a shorter one here, and the real one in the price breakdown below.
+  const breakdownForDistance = (offerRecord.fare_breakdown ?? null) as CaptainOffer['fare_breakdown'];
+  const routedTripDistance = Number(breakdownForDistance?.roadKm ?? breakdownForDistance?.billableKm);
+  if (Number.isFinite(routedTripDistance) && routedTripDistance > 0) {
+    tripDistance = routedTripDistance;
+  }
+
   const distanceDisplay = realDistance != null ? (realDistance < 0.1 ? 0 : realDistance).toFixed(1) : '---';
-  const etaDisplay = (offer as unknown as Record<string, any>).pickup_eta_minutes ?? (realDistance != null ? Math.max(1, Math.round(realDistance * 3)) : '---');
-  const rawDuration = (offer as unknown as Record<string, any>).estimated_duration_minutes ?? (tripDistance != null ? Math.max(5, Math.round(tripDistance * 1.2)) : null);
+  const etaDisplay = offerRecord.pickup_eta_minutes
+    ?? (realDistance != null ? estimatePickupMinutes(realDistance) : '---');
+  // Was `tripDistance * 1.2` — 50 km/h — while the fare and every other screen used 2.2.
+  // The same trip could be shown as 12 minutes here and 22 on the offer card.
+  const rawDuration = tripDistance != null || offerRecord.estimated_duration_minutes != null
+    ? preferRoutedMinutes(offerRecord.estimated_duration_minutes, tripDistance)
+    : null;
 
   const captainName = getOfferCaptainName(offer, labels);
   const vehicleSummary = getOfferVehicleSummary(offer, labels);
   const plateValue = getOfferPlate(offer, labels);
-  const offerRecord = offer as unknown as Record<string, any>;
   const rawOfferIsPreferred =
     Boolean(offerRecord.__isPreferredCaptain) ||
     isPreferredOffer(offer, preferredCaptainIds);
@@ -157,13 +173,19 @@ export function buildCaptainOfferFromOffer(
         offerRecord.completedTrips,
         offerRecord.driverCompletedTrips,
       ) || 0,
-      company_name: firstDisplayString(
-        offer.captain?.company_name,
-        offer.captain?.company,
-        offerRecord.driverAffiliation?.company_name,
-        offerRecord.driverAffiliation?.name,
-      ),
+      company_name: (() => {
+        const affType = firstDisplayString(offerRecord.driverAffiliation?.type, offer.captain?.affiliation_type, offerRecord.affiliation_type).toLowerCase();
+        if (affType === 'independent') return '';
+        const name = firstDisplayString(
+          offer.captain?.company_name,
+          offer.captain?.company,
+          offerRecord.driverAffiliation?.company_name,
+          offerRecord.driverAffiliation?.name,
+        );
+        return (name === 'مستقل' || name === 'كابتن مستقل') ? '' : name;
+      })(),
       affiliation_label: getOfferAffiliationLabel(offer, labels),
+      affiliation_type: firstDisplayString(offerRecord.driverAffiliation?.type, offer.captain?.affiliation_type, offerRecord.affiliation_type),
       is_verified: Boolean(
         offer.captain?.is_verified ||
         offer.captain?.verified ||
@@ -174,14 +196,47 @@ export function buildCaptainOfferFromOffer(
       contact_url: getOfferContactUrl(offer),
       vehicle_year: firstDisplayString(offer.captain?.vehicle_year, offerRecord.driverVehicle?.year),
       vehicle_category: firstDisplayString(offer.captain?.vehicle_category, offerRecord.driverVehicle?.category),
+      facebook_url: firstDisplayString(
+        offer.captain?.facebook_url,
+        offerRecord.facebook_url,
+        offerRecord.captain_facebook_url,
+        offerRecord.driverVehicle?.facebook_url,
+      ),
+      instagram_url: firstDisplayString(
+        offer.captain?.instagram_url,
+        offerRecord.instagram_url,
+        offerRecord.captain_instagram_url,
+        offerRecord.driverVehicle?.instagram_url,
+      ),
+      whatsapp_url: firstDisplayString(
+        offer.captain?.whatsapp_url,
+        offerRecord.whatsapp_url,
+        offerRecord.captain_whatsapp_url,
+      ),
+      serial_number: firstDisplayString(
+        offer.captain?.serial_number,
+        offer.captain?.serial,
+        offerRecord.serial,
+        offerRecord.captain_serial,
+        offerRecord.driverSerial,
+        captain?.serial,
+        (offer.driverId || offer.captain?.id || '').slice(0, 8).toUpperCase(),
+      ),
     },
     server_fare: Number(serverEstimatedFare || offer.price || 0),
     submitted_fare: Number(offer.price || 0),
+    pricing_mode: (offerRecord.pricing_mode || offerRecord.pricingMode || (offer as any).pricing_mode || (offer as any).pricingMode) as 'FREE' | 'APP' | 'TAXI' | undefined,
     eta_minutes: Number(etaDisplay) || 1,
     distance_km: Number(distanceDisplay) || 0,
     estimated_duration_minutes: rawDuration || undefined,
     trip_distance_km: tripDistance || undefined,
+    destination_label: destination?.label || '',
     additional_info: firstDisplayString(offer.captain?.bio, offer.captain?.notes, offerRecord.additional_info),
+    wait_seconds: offer.wait_seconds,
+    created_at: offer.created_at,
+    // Written by submit_ride_offer at submit time. Passed through untouched — it is a
+    // receipt, so nothing here should be recomputed or filled in client-side.
+    fare_breakdown: (offerRecord.fare_breakdown ?? null) as CaptainOffer['fare_breakdown'],
   };
 
   const isPreferred =

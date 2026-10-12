@@ -4,7 +4,7 @@ import { useTranslations } from 'next-intl';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase-client';
 import type { AppLanguage } from '@/lib/i18n/simple-copy';
-import type { RoadRouteEstimate } from '@/lib/road-route';
+import { calculateHaversineKm, type RoadRouteEstimate } from '@/lib/road-route';
 import {
   buildRideRequestInsertPayload,
   cancelRideRequest,
@@ -12,7 +12,7 @@ import {
 } from '../services/rider-server-marketplace';
 import { getLocalizedMarketplaceError } from '../services/rider-offer-presentation';
 import type { RiderDestination, RiderMachineAction, RiderMachineState } from '../state/rider-state-machine';
-import type { RiderLocation } from '../components/rider-map';
+import type { RiderLocation, RiderLocationStatus } from '../components/rider-map';
 
 const H3_RIDER_REQUEST_RESOLUTION = 9;
 
@@ -25,6 +25,7 @@ export function useSendCancelRideRequest(params: {
   userId: string | undefined;
   activeCountryId: number | undefined;
   riderLocation: RiderLocation;
+  pickupAddress?: string;
   selectedDraftDestination: RiderDestination | null;
   selectedDestinationCoords: RiderLocation | null;
   isServerFareLoading: boolean;
@@ -33,14 +34,17 @@ export function useSendCancelRideRequest(params: {
   language: AppLanguage;
   state: RiderMachineState;
   dispatch: React.Dispatch<RiderMachineAction>;
-  pendingAcceptedOfferIdRef: React.RefObject<string | null>;
+  pricingPreference: 'APP' | 'TAXI' | 'FREE' | null;
+  riderCount?: number;
   onExitRequestFlow?: () => void;
   resetRideDraftState: () => void;
+  locationStatus?: RiderLocationStatus;
 }) {
   const {
     userId,
     activeCountryId,
     riderLocation,
+    pickupAddress,
     selectedDraftDestination,
     selectedDestinationCoords,
     isServerFareLoading,
@@ -49,9 +53,11 @@ export function useSendCancelRideRequest(params: {
     language,
     state,
     dispatch,
-    pendingAcceptedOfferIdRef,
+    pricingPreference,
+    riderCount,
     onExitRequestFlow,
     resetRideDraftState,
+    locationStatus,
   } = params;
 
   const { toast } = useToast();
@@ -73,6 +79,18 @@ export function useSendCancelRideRequest(params: {
   }), [t]);
 
   const handleSendRequest = React.useCallback(async () => {
+    if (locationStatus === 'denied') {
+      toast({
+        variant: 'destructive',
+        title: t('request.locationPermissionDeniedTitle'),
+        description: t('request.locationPermissionDeniedDescription'),
+      });
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('open-system-permissions-modal'));
+      }
+      return;
+    }
+
     if (!userId) {
       toast({
         variant: 'destructive',
@@ -80,6 +98,35 @@ export function useSendCancelRideRequest(params: {
         description: t('request.loginRequiredDescription'),
       });
       return;
+    }
+
+    let effectiveRiderCount = riderCount;
+    if (!effectiveRiderCount || effectiveRiderCount < 1) {
+      if (typeof window !== 'undefined') {
+        const stored = window.localStorage.getItem('radar_rider_passenger_count');
+        const parsed = stored ? parseInt(stored, 10) : 0;
+        if (parsed >= 1) effectiveRiderCount = parsed;
+      }
+    }
+
+    // When retrying or if destination was already confirmed, never block the rider for passenger count: fallback to at least 1
+    if ((state.screen === 'RECEIVING_OFFERS' || Boolean(state.destination)) && (!effectiveRiderCount || effectiveRiderCount < 1)) {
+      effectiveRiderCount = 1;
+    }
+
+    if (effectiveRiderCount !== undefined && effectiveRiderCount < 1) {
+      toast({
+        variant: 'destructive',
+        title: t('request.passengersMissingTitle'),
+        description: t('request.passengersMissingDescription'),
+      });
+      return;
+    }
+
+    if (effectiveRiderCount && effectiveRiderCount >= 1 && typeof window !== 'undefined') {
+      try {
+        window.localStorage.setItem('radar_rider_passenger_count', String(effectiveRiderCount));
+      } catch {}
     }
 
     const countryId = Number(activeCountryId);
@@ -92,7 +139,10 @@ export function useSendCancelRideRequest(params: {
       return;
     }
 
-    if (!selectedDraftDestination || !selectedDestinationCoords) {
+    const effectiveDraftDestination = selectedDraftDestination || state.destination;
+    const effectiveDestinationCoords = selectedDestinationCoords || state.destination?.coords;
+
+    if (!effectiveDraftDestination || !effectiveDestinationCoords) {
       toast({
         variant: 'destructive',
         title: t('request.destinationNotReadyTitle'),
@@ -101,11 +151,24 @@ export function useSendCancelRideRequest(params: {
       return;
     }
 
+    const directDistanceKm =
+      effectiveDraftDestination.fareQuote?.straightDistanceKm ??
+      calculateHaversineKm(riderLocation, effectiveDestinationCoords);
+
+    if (directDistanceKm < 0.1) {
+      toast({
+        variant: 'destructive',
+        title: t('request.sameLocationTitle'),
+        description: t('request.sameLocationDescription'),
+      });
+      return;
+    }
+
     if (
-      selectedDraftDestination.serverEstimatedFare === undefined ||
-      isServerFareLoading ||
-      isRouteEstimateLoading ||
-      !currentRouteEstimate
+      effectiveDraftDestination.serverEstimatedFare === undefined ||
+      (isServerFareLoading && !state.destination) ||
+      (isRouteEstimateLoading && !state.destination) ||
+      (!currentRouteEstimate && !state.destination)
     ) {
       toast({
         variant: 'destructive',
@@ -122,7 +185,7 @@ export function useSendCancelRideRequest(params: {
       unlockAudio.play().catch(() => {});
     }
 
-    dispatch({ type: 'CONFIRM_DESTINATION', destination: selectedDraftDestination });
+    dispatch({ type: 'CONFIRM_DESTINATION', destination: effectiveDraftDestination as RiderDestination });
     dispatch({ type: 'SEND_REQUEST' });
     setIsSendingRideRequest(true);
 
@@ -130,14 +193,18 @@ export function useSendCancelRideRequest(params: {
       const payload = buildRideRequestInsertPayload({
         riderId: userId,
         origin: riderLocation,
-        destination: selectedDestinationCoords,
-        originH3: selectedDraftDestination.originCell || latLngToCell(riderLocation.lat, riderLocation.lng, H3_RIDER_REQUEST_RESOLUTION),
+        pickupAddress,
+        destination: effectiveDestinationCoords,
+        originH3: effectiveDraftDestination.originCell || latLngToCell(riderLocation.lat, riderLocation.lng, H3_RIDER_REQUEST_RESOLUTION),
         destinationH3:
-          selectedDraftDestination.destinationCell ||
-          latLngToCell(selectedDestinationCoords.lat, selectedDestinationCoords.lng, H3_RIDER_REQUEST_RESOLUTION),
-        destinationAddressAr: selectedDraftDestination.label,
-        serverEstimatedFare: selectedDraftDestination.serverEstimatedFare,
+          effectiveDraftDestination.destinationCell ||
+          latLngToCell(effectiveDestinationCoords.lat, effectiveDestinationCoords.lng, H3_RIDER_REQUEST_RESOLUTION),
+        destinationAddressAr: effectiveDraftDestination.label,
+        serverEstimatedFare: effectiveDraftDestination.serverEstimatedFare,
+        routeDistanceKm: currentRouteEstimate?.distanceKm ?? effectiveDraftDestination.fareQuote?.estimatedRoadDistanceKm ?? 2,
+        routeDurationMinutes: currentRouteEstimate?.durationMinutes ?? Math.max(1, Math.ceil((effectiveDraftDestination.fareQuote?.estimatedRoadDistanceKm ?? 2) * 1.5)),
         countryId,
+        pricingPreference: pricingPreference || null,
       });
 
       const request = await createRideRequest(supabase, payload);
@@ -152,7 +219,7 @@ export function useSendCancelRideRequest(params: {
       if ((process.env.NODE_ENV !== 'production')) {
         console.warn('[Rider Ride Request Insert]', error);
       }
-      pendingAcceptedOfferIdRef.current = null;
+      // pendingAcceptedOfferId managed centrally
       dispatch({ type: 'REQUEST_FAILED' });
       toast({
         variant: 'destructive',
@@ -170,7 +237,10 @@ export function useSendCancelRideRequest(params: {
     isRouteEstimateLoading,
     isServerFareLoading,
     language,
-    pendingAcceptedOfferIdRef,
+    locationStatus,
+    pricingPreference,
+    pickupAddress,
+    riderCount,
     riderLocation,
     selectedDestinationCoords,
     selectedDraftDestination,
@@ -183,7 +253,6 @@ export function useSendCancelRideRequest(params: {
     if (!state.requestId) {
       resetRideDraftState();
       dispatch({ type: 'RESET_TO_IDLE' });
-      onExitRequestFlow?.();
       return;
     }
 
@@ -191,14 +260,31 @@ export function useSendCancelRideRequest(params: {
 
     try {
       await cancelRideRequest(supabase, state.requestId);
+
       resetRideDraftState();
       dispatch({ type: 'RESET_TO_IDLE' });
-      onExitRequestFlow?.();
       toast({
         title: t('request.cancelledTitle'),
         description: t('request.cancelledDescription'),
       });
     } catch (error) {
+      const errorMessage = error && typeof error === 'object' && 'message' in error
+        ? String((error as { message?: unknown }).message ?? '').toLowerCase()
+        : String(error ?? '').toLowerCase();
+      const isStaleOrAlreadyClosed =
+        errorMessage.includes('ride_request_closed') ||
+        errorMessage.includes('ride_request_not_found');
+
+      // The request may have been cancelled by another tab, by the server timeout, or by
+      // realtime recovery before the user pressed the close button. Treat that state as an
+      // idempotent close instead of trapping the rider in a dead request screen.
+      if (isStaleOrAlreadyClosed) {
+        // pendingAcceptedOfferId managed centrally
+        resetRideDraftState();
+        dispatch({ type: 'RESET_TO_IDLE' });
+        return;
+      }
+
       if ((process.env.NODE_ENV !== 'production')) console.warn('[Rider Cancel Request]', error);
       toast({
         variant: 'destructive',
@@ -209,6 +295,8 @@ export function useSendCancelRideRequest(params: {
       setIsCancellingRideRequest(false);
     }
   }, [dispatch, errorLabels, language, onExitRequestFlow, resetRideDraftState, state.requestId, t, toast]);
+
+
 
   return {
     isSendingRideRequest,

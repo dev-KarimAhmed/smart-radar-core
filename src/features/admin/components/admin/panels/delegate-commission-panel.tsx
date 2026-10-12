@@ -12,6 +12,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Button } from '@/components/ui/button';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { DelegateData } from '@/hooks/admin/useSovereignDashboard';
+import { useTranslations } from 'next-intl';
 
 const styles = {
   style42_1: "bg-[#050505] border border-red-500/15 shadow-[0_8px_32px_rgba(0,0,0,0.5)] rounded-2xl overflow-hidden",
@@ -89,56 +90,58 @@ export function DelegateCommissionPanel({
   auditedStats,
   auditRepresentativeCommissions
 }: DelegateCommissionPanelProps) {
+  const t = useTranslations('delegateCommissionPanel');
+
   return (
     <Card className={styles.style42_1}>
       <CardHeader className={styles.style43_2}>
         <CardTitle className={styles.style44_3}>
           <DollarSign className={styles.style45_4} />
-          محرك الجرد المالي المتكامل للمندوبين (Representative Commission Guard)
+          {t('title')}
         </CardTitle>
         <CardDescription className={styles.style48_5} dir="rtl">
-          يتحكم هذا المحرك في تصفية الإحالات عبر عطل زمني ذكي بمقدار 30 يوماً <code className={styles.style49_6}>STABILITY_THRESHOLD_MS</code> ويفرض ذعيرة حذف قدرها <code className={styles.style49_7}>PENALTY_FACTOR = 40%</code> ضد الحسابات الوهمية أو الزومبي.
+          {t('desc1')} <code className={styles.style49_6}>STABILITY_THRESHOLD_MS</code> {t('desc2')} <code className={styles.style49_7}>PENALTY_FACTOR = 40%</code> {t('desc3')}
         </CardDescription>
       </CardHeader>
       <CardContent className={styles.style52_8}>
         <div className={styles.style53_9} dir="rtl">
           <div className={styles.style54_10}>
-            <span className={styles.style55_11}>العمولات الخام المستحقة للمندوبين</span>
-            <span className={styles.style56_12}>{auditedStats.totalDues.toFixed(2)} د.أ</span>
+            <span className={styles.style55_11}>{t('stats.rawDues')}</span>
+            <span className={styles.style56_12}>{auditedStats.totalDues.toFixed(2)} {t('currency')}</span>
           </div>
           <div className={styles.style58_13}>
-            <span className={styles.style59_14}>إجمالي غرامات الحذف الكلي</span>
-            <span className={styles.style60_15}>-{auditedStats.totalPenalties.toFixed(2)} د.أ</span>
+            <span className={styles.style59_14}>{t('stats.penalties')}</span>
+            <span className={styles.style60_15}>-{auditedStats.totalPenalties.toFixed(2)} {t('currency')}</span>
           </div>
           <div className={styles.style62_16}>
-            <span className={styles.style63_17}>الرصيد الصافي المصدق القابل للصرف</span>
-            <span className={styles.style64_18}>{auditedStats.totalNet.toFixed(2)} د.أ</span>
+            <span className={styles.style63_17}>{t('stats.net')}</span>
+            <span className={styles.style64_18}>{auditedStats.totalNet.toFixed(2)} {t('currency')}</span>
           </div>
         </div>
 
         {loadingDelegates ? (
           <div className={styles.style69_19}>
             <Loader2 className={styles.style70_20} />
-            <span>جاري محاذاة البيانات الة للمندوبين...</span>
+            <span>{t('loading')}</span>
           </div>
         ) : delegates.length === 0 ? (
           <div className={styles.style74_21}>
             <AlertTriangle className={styles.style75_22} />
-            <span>لا يوجد مندوبون معتمدون في قواعد البيانات الحالية.</span>
+            <span>{t('empty')}</span>
           </div>
         ) : (
           <div className={styles.style79_23}>
             <Table>
               <TableHeader className={styles.style81_24}>
                 <TableRow className={styles.style82_25}>
-                  <TableHead className={styles.style83_26}>اسم المندوب الميداني</TableHead>
-                  <TableHead className={styles.style84_27}>رمز الإحالة </TableHead>
-                  <TableHead className={styles.style85_28}>إجمالي الإحالات</TableHead>
-                  <TableHead className={styles.style86_29}>معدل الحذف (الوهمي)</TableHead>
-                  <TableHead className={styles.style87_30}>العمولة الخام</TableHead>
-                  <TableHead className={styles.style88_31}>عقوبة الفرز (40%)</TableHead>
-                  <TableHead className={styles.style89_32}>العمولة المستحقة الصافية</TableHead>
-                  <TableHead className={styles.style90_33}>صرف / تصفية</TableHead>
+                  <TableHead className={styles.style83_26}>{t('table.name')}</TableHead>
+                  <TableHead className={styles.style84_27}>{t('table.referralCode')}</TableHead>
+                  <TableHead className={styles.style85_28}>{t('table.referralsCount')}</TableHead>
+                  <TableHead className={styles.style86_29}>{t('table.deletionRate')}</TableHead>
+                  <TableHead className={styles.style87_30}>{t('table.rawCommission')}</TableHead>
+                  <TableHead className={styles.style88_31}>{t('table.penalty')}</TableHead>
+                  <TableHead className={styles.style89_32}>{t('table.netCommission')}</TableHead>
+                  <TableHead className={styles.style90_33}>{t('table.action')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -148,18 +151,18 @@ export function DelegateCommissionPanel({
                     <TableRow key={del.id} className={styles.style97_34}>
                       <TableCell className={styles.style98_35}>{del.name}</TableCell>
                       <TableCell className={styles.style99_36}>{del.referralCode || 'N/A'}</TableCell>
-                      <TableCell className={styles.style100_37}>{del.referredCount || 0} إحالة</TableCell>
+                      <TableCell className={styles.style100_37}>{del.referredCount || 0} {t('referralUnit')}</TableCell>
                       <TableCell className={styles.style101_38}>
                         <span className={styles.style102_39}>{(del.deletionRate || 0).toFixed(1)}%</span>
                       </TableCell>
                       <TableCell className={styles.style104_40}>
-                        {audit.rawDues.toFixed(2)} د.أ
+                        {audit.rawDues.toFixed(2)} {t('currency')}
                       </TableCell>
                       <TableCell className={styles.style107_41}>
-                        {audit.penaltyAmount.toFixed(2)} د.أ
+                        {audit.penaltyAmount.toFixed(2)} {t('currency')}
                       </TableCell>
                       <TableCell className={styles.style110_42}>
-                        {audit.withdrawableBalance.toFixed(2)} د.أ
+                        {audit.withdrawableBalance.toFixed(2)} {t('currency')}
                       </TableCell>
                       <TableCell className={styles.style113_43}>
                         <Button
@@ -173,7 +176,7 @@ export function DelegateCommissionPanel({
                           )}
                         >
                           <CheckCircle2 className={styles.style124_47} />
-                          تصفية وصرف
+                          {t('payAction')}
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -184,6 +187,7 @@ export function DelegateCommissionPanel({
           </div>
         )}
       </CardContent>
+
     </Card>
   );
 }

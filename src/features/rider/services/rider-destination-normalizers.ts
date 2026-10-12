@@ -1,6 +1,7 @@
 import { latLngToCell } from 'h3-js';
 
 import { calculateSovereignFareQuote } from '@/core/logic/geospatial-kernel';
+import { isInvalidPlaceName } from '@/shared/services/google-maps-location';
 import type { RiderDestination } from '../state/rider-state-machine';
 import type { RiderLocation } from '../components/rider-map';
 
@@ -112,6 +113,15 @@ export function buildRiderDestination(
   preciseDestination: RiderLocation,
   roadDistanceKm: number | null = null,
   h3Resolution = 9,
+  /**
+   * The name of the place the pin is actually on, when it has been resolved.
+   *
+   * Without this the stored label was always `district - governorate`, so a rider who
+   * dragged the pin to Cairo sent "سادس من أكتوبر - الجيزة" to the server — and that is the
+   * string the CAPTAIN then sees on the request card as the rider's destination. Fixing the
+   * rider's own display was not enough: this is the value that travels.
+   */
+  pinnedPlaceLabel: string | null = null,
 ): RiderDestination {
   if (!preciseDestination) {
     throw new Error('destination_missing_coordinates');
@@ -122,11 +132,34 @@ export function buildRiderDestination(
     ? localFareQuote
     : { ...localFareQuote, estimatedRoadDistanceKm: roadDistanceKm };
 
+  let finalDistrict = destination.districtAr;
+  let finalGovernorate = destination.governorateAr;
+  if (pinnedPlaceLabel && destination.id.startsWith('map:')) {
+    const parts = pinnedPlaceLabel.split(' - ');
+    if (parts.length > 1) {
+      finalDistrict = parts[0].trim();
+      finalGovernorate = parts.slice(1).join(' - ').trim();
+    } else {
+      finalDistrict = pinnedPlaceLabel.trim();
+      finalGovernorate = '';
+    }
+  }
+
+  const rawFallbackLabel = [destination.districtAr, destination.governorateAr].filter(Boolean).join(' - ');
+  const fallbackLabel = isInvalidPlaceName(rawFallbackLabel)
+    ? (destination.governorateAr && !isInvalidPlaceName(destination.governorateAr) ? destination.governorateAr : 'موقع محدد على الخريطة')
+    : rawFallbackLabel;
+
+  const resolvedLabel = (pinnedPlaceLabel && !isInvalidPlaceName(pinnedPlaceLabel))
+    ? pinnedPlaceLabel.trim()
+    : fallbackLabel || 'موقع محدد على الخريطة';
+
   return {
     id: destination.id,
-    label: `${destination.districtAr} - ${destination.governorateAr}`,
-    governorate: destination.governorateAr,
-    district: destination.districtAr,
+    // The pinned place wins: it names the point the captain is actually driving to.
+    label: resolvedLabel,
+    governorate: finalGovernorate,
+    district: finalDistrict,
     coords: preciseDestination,
     tortuosityFactor: destination.tortuosityFactor,
     fareQuote,
@@ -139,9 +172,9 @@ export function buildRiderDestination(
 export function buildFareRequestKey(origin: RiderLocation, destination: RiderLocation, countryId: unknown) {
   return [
     Number(countryId) || 'no-country',
-    origin.lat.toFixed(6),
-    origin.lng.toFixed(6),
-    destination.lat.toFixed(6),
-    destination.lng.toFixed(6),
+    origin.lat.toFixed(4),
+    origin.lng.toFixed(4),
+    destination.lat.toFixed(5),
+    destination.lng.toFixed(5),
   ].join(':');
 }

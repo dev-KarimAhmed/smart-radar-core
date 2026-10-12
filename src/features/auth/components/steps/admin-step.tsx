@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useRegistration } from '../../hooks/use-registration';
 import { ShieldAlert } from 'lucide-react';
+import { useTranslations } from "next-intl";
 
 const styles = {
   style13_1: "space-y-4 animate-fade-in text-right",
@@ -21,6 +22,8 @@ const styles = {
 
 
 export function AdminStep() {
+    const tAuto = useTranslations('auto');
+    const t = useTranslations('auto');
   const { adminCreds, setAdminCreds, handleAdminSubmit, isSubmitting, setStep } = useRegistration();
 
   return (
@@ -30,8 +33,8 @@ export function AdminStep() {
       </div>
       <div>
         <label className={styles.style18_4}>
-          المعرف الرقمي (Email)
-        </label>
+          {tAuto('key_f0090978')}
+                          </label>
         <Input
           type="email"
           dir="ltr"
@@ -45,8 +48,8 @@ export function AdminStep() {
 
       <div>
         <label className={styles.style33_6}>
-          رمز المرور (Password)
-        </label>
+          {tAuto('key_c3b1d7ff')}
+                          </label>
         <Input
           type="password"
           dir="ltr"
@@ -64,7 +67,7 @@ export function AdminStep() {
           className={styles.style50_9}
           disabled={isSubmitting}
         >
-          {isSubmitting ? 'جاري التحقق...' : 'دخول المالك'}
+          {isSubmitting ? tAuto('key_dab541ae') : tAuto('key_9fad1828')}
         </button>
       </div>
 
@@ -73,8 +76,8 @@ export function AdminStep() {
         className={styles.style59_10}
         onClick={() => setStep('role')}
       >
-        العودة لشاشة الاختيار
-      </button>
+        {tAuto('key_eb54aae2')}
+                    </button>
     </form>
   );
 }

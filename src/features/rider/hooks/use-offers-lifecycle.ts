@@ -13,9 +13,11 @@ import {
 } from '../services/rider-server-marketplace';
 import { getLocalizedMarketplaceError } from '../services/rider-offer-presentation';
 import { collectPreferredCaptainIds, prioritizeRiderOffers } from '../services/rider-offer-ranking';
+import { fetchFavoriteCaptainIds } from '@/features/account/services/favorite-captains';
+import { getOfferCountdown } from '../services/offer-countdown';
 import type { RiderMachineState, RiderMachineAction } from '../state/rider-state-machine';
 
-const OFFER_TIMEOUT_MS = 2 * 60 * 1000;
+const OFFER_TIMEOUT_MS = 240 * 1000; // 4 minute (240s) search window
 
 /**
  * Owns the incoming-offers poll/subscription for `RECEIVING_OFFERS`, the
@@ -28,6 +30,7 @@ export function useOffersLifecycle(
   state: RiderMachineState,
   dispatch: React.Dispatch<RiderMachineAction>,
   language: AppLanguage,
+  pricingPreference?: 'APP' | 'TAXI' | 'FREE' | null,
 ) {
   const { toast } = useToast();
   const t = useTranslations('riderView');
@@ -37,77 +40,179 @@ export function useOffersLifecycle(
   const [captainSearchRadiusKm, setCaptainSearchRadiusKm] = React.useState(1.5);
   const [isExpandingCaptainSearch, setIsExpandingCaptainSearch] = React.useState(false);
   const [acceptingOfferId, setAcceptingOfferId] = React.useState<string | null>(null);
-  const pendingAcceptedOfferIdRef = React.useRef<string | null>(null);
 
-  React.useEffect(() => {
+  // Shared with the screen's countdown UI so both sides agree on exactly
+  // when each offer's visibility window started — anchored to when THIS
+  // client first observed the offer, not the server's created_at (see
+  // services/offer-countdown.ts for why).
+  const firstSeenAtRef = React.useRef<Map<string, number>>(new Map());
+
+  const refreshOffers = React.useCallback(async (isActive?: () => boolean) => {
     if (!state.requestId || state.screen !== 'RECEIVING_OFFERS' || state.requestCancelledAt) return;
 
-    let active = true;
+    try {
+      const [offers, favIdsSet] = await Promise.all([
+        fetchRideOffers(supabase, state.requestId),
+        fetchFavoriteCaptainIds().catch(() => new Set<string>()),
+      ]);
 
-    const refreshOffers = async () => {
-      try {
-        const [offers, favs] = await Promise.all([
-          fetchRideOffers(supabase, state.requestId!),
-          dexieDb.favoriteCaptains.toArray().catch(() => [])
-        ]);
+      if (isActive && !isActive()) return;
 
-        const favoriteIds = collectPreferredCaptainIds(favs);
-        const sortedOffers = prioritizeRiderOffers(offers, favoriteIds);
+      const favoriteIds = Array.from(favIdsSet);
+      const validOffers = offers;
 
-        if (active) {
-          setPreferredCaptainIds(favoriteIds);
-          dispatch({ type: 'RECEIVE_OFFERS', offers: sortedOffers });
+      // حصة الراكب من السوق: 9 عروض كباتن كحد أقصى تفرز حسب: الفئة، المفضلين، الرتبة، السعر
+      const sortedOffers = prioritizeRiderOffers(validOffers, favoriteIds, pricingPreference).slice(0, 9);
+
+      const nowTs = Date.now();
+      for (const offer of sortedOffers) {
+        const offerId = offer.id || offer.driverId;
+        if (offerId && !firstSeenAtRef.current.has(offerId)) {
+          firstSeenAtRef.current.set(offerId, nowTs);
+
+          if (typeof window !== 'undefined') {
+            const captainName = offer.driverName || (language === 'ar' ? 'كابتن' : 'Captain');
+            const price = offer.price ? `${offer.price} ج.م` : '';
+            const eta = offer.pickup_eta_minutes ? ` (وصول خلال ${offer.pickup_eta_minutes} د)` : '';
+
+            window.dispatchEvent(
+              new CustomEvent('app-notification', {
+                detail: {
+                  id: `notif_offer_${offerId}`,
+                  title: language === 'ar' ? 'عرض كابتن جديد 🚗' : 'New Captain Offer 🚗',
+                  description: language === 'ar'
+                    ? `وصلك عرض بقيمة ${price} من الكابتن ${captainName}${eta}`
+                    : `Offer of ${price} received from ${captainName}${eta}`,
+                  type: 'offer',
+                },
+              })
+            );
+          }
         }
-      } catch (error) {
-        if (!active) return;
-        if ((process.env.NODE_ENV !== 'production')) console.warn('[Rider Offers]', error);
-        setPreferredCaptainIds([]);
-        dispatch({ type: 'RECEIVE_OFFERS', offers: [] });
       }
-    };
 
-    void refreshOffers();
+      setPreferredCaptainIds(favoriteIds);
+      dispatch({ type: 'RECEIVE_OFFERS', offers: sortedOffers });
+    } catch (error) {
+      if (isActive && !isActive()) return;
+      if ((process.env.NODE_ENV !== 'production')) console.warn('[Rider Offers]', error);
+      setPreferredCaptainIds([]);
+      dispatch({ type: 'RECEIVE_OFFERS', offers: [] });
+    }
+  }, [dispatch, pricingPreference, state.requestCancelledAt, state.requestId, state.screen]);
+
+  React.useEffect(() => {
+    let isMounted = true;
+    if (!state.requestId || state.screen !== 'RECEIVING_OFFERS' || state.requestCancelledAt) return;
+
+    const runRefresh = async () => {
+      await refreshOffers(() => isMounted);
+    };
+    void runRefresh();
 
     const unsubscribe = subscribeToRideOffers(
       supabase,
       state.requestId,
-      () => void refreshOffers(),
+      () => void refreshOffers(() => isMounted),
       () => {
         if ((process.env.NODE_ENV !== 'production')) console.warn('[Rider Offers Realtime] subscription unavailable');
       },
     );
 
     return () => {
-      active = false;
+      isMounted = false; // لا يجوز بعد الإلغاء
       unsubscribe();
     };
-  }, [dispatch, state.requestCancelledAt, state.requestId, state.screen]);
+  }, [refreshOffers, state.requestCancelledAt, state.requestId, state.screen]);
+
+  // Drops an offer from state the moment its captain-chosen wait_seconds
+  // window elapses — without this, an expired offer stayed in state.offers
+  // forever (only hidden at render time), so the expand logic below still
+  // considered it "present" and kept it selected: the rider had a card open
+  // that no longer rendered, and no way to see it was gone.
+  React.useEffect(() => {
+    if (state.screen !== 'RECEIVING_OFFERS' || state.offers.length === 0) return;
+
+    const pruneExpiredOffers = () => {
+      const now = Date.now();
+      const stillActive = state.offers.filter((offer) => {
+        const offerId = offer.id || offer.driverId;
+        return !getOfferCountdown(offer, firstSeenAtRef.current.get(offerId), now).isExpired;
+      });
+      if (stillActive.length !== state.offers.length) {
+        dispatch({ type: 'RECEIVE_OFFERS', offers: stillActive });
+      }
+    };
+
+    const intervalId = window.setInterval(pruneExpiredOffers, 500);
+    return () => window.clearInterval(intervalId);
+  }, [dispatch, state.offers, state.screen]);
 
   React.useEffect(() => {
     if (!state.requestId || state.screen !== 'RECEIVING_OFFERS' || state.offers.length > 0 || state.requestCancelledAt) return;
 
+    const startedAt = state.requestStartedAt ?? Date.now();
+    const elapsed = Date.now() - startedAt;
+    const remainingMs = Math.max(0, OFFER_TIMEOUT_MS - elapsed);
+
     const timeoutId = window.setTimeout(() => {
       cancelRideRequest(supabase, state.requestId!)
-        .catch(() => {
-          toast({
-            variant: 'destructive',
-            title: t('request.updateFailedTitle'),
-            description: t('request.networkError'),
-          });
+        .catch(() => { })
+        .finally(() => {
+          // toast({
+          //   variant: 'destructive',
+          //   title: 'لا يتوفر سائقين الان',
+          //   description: 'جرب تاني',
+          // });
+          dispatch({ type: 'REQUEST_CANCELLED' });
         });
-    }, OFFER_TIMEOUT_MS);
+    }, remainingMs);
 
     return () => window.clearTimeout(timeoutId);
-  }, [dispatch, state.offers.length, state.requestCancelledAt, state.requestId, state.screen, t, toast]);
+  }, [dispatch, state.offers.length, state.requestCancelledAt, state.requestId, state.requestStartedAt, state.screen, toast]);
+
+  // Resync offers immediately when the rider returns to the app (e.g. from answering a call or WhatsApp message)
+  React.useEffect(() => {
+    if (!state.requestId || state.screen !== 'RECEIVING_OFFERS' || state.requestCancelledAt) return;
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        void refreshOffers();
+      }
+    };
+
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+  }, [refreshOffers, state.requestCancelledAt, state.requestId, state.screen]);
+
+  // Handle sudden tab closure while receiving offers
+  React.useEffect(() => {
+    if (!state.requestId || state.screen !== 'RECEIVING_OFFERS' || state.requestCancelledAt) return;
+
+    const onBeforeUnload = () => {
+      // Best effort to cancel the request if the rider closes the tab
+      cancelRideRequest(supabase, state.requestId!).catch(() => { });
+    };
+
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', onBeforeUnload);
+    };
+  }, [state.requestCancelledAt, state.requestId, state.screen]);
 
   React.useEffect(() => {
-    if (state.screen !== 'RECEIVING_OFFERS' || state.offers.length > 0 || state.requestCancelledAt) {
+    if (state.screen !== 'RECEIVING_OFFERS' || state.requestCancelledAt) {
       setCaptainSearchRadiusKm(1.5);
       setIsExpandingCaptainSearch(false);
       return;
     }
 
-    if (captainSearchRadiusKm >= 2.5) return;
+    if (state.offers.length > 0 || captainSearchRadiusKm >= 2.5) {
+      setIsExpandingCaptainSearch(false);
+      return;
+    }
 
     const timeoutId = window.setTimeout(() => {
       setIsExpandingCaptainSearch(true);
@@ -120,16 +225,22 @@ export function useOffersLifecycle(
     return () => window.clearTimeout(timeoutId);
   }, [captainSearchRadiusKm, state.offers.length, state.requestCancelledAt, state.screen]);
 
+  // Cards start collapsed — the rider opens whichever offer they want to look at,
+  // rather than the first one arriving being force-expanded for them. This effect
+  // only clears the expanded id once its offer is no longer in the list; it never
+  // picks a new one on its own.
   React.useEffect(() => {
     if (state.screen !== 'RECEIVING_OFFERS' || state.offers.length === 0) {
       setExpandedOfferId(null);
       return;
     }
 
+    // Every card starts closed and only the rider opens one. This used to auto-expand the
+    // first offer, which both hid the fact that the card is expandable and gave whichever
+    // offer sorted first a permanent head start in the rider's attention.
     setExpandedOfferId((current) => {
       if (current && state.offers.some((offer) => (offer.id || offer.driverId) === current)) return current;
-      const first = state.offers[0];
-      return first ? first.id || first.driverId : null;
+      return null;
     });
   }, [state.offers, state.screen]);
 
@@ -154,7 +265,7 @@ export function useOffersLifecycle(
     }
 
     setAcceptingOfferId(offerId);
-    pendingAcceptedOfferIdRef.current = offerId;
+    // Offer ID tracked centrally via SELECT_OFFER
 
     try {
       await acceptRideOffer(supabase, {
@@ -163,7 +274,7 @@ export function useOffersLifecycle(
       });
       dispatch({ type: 'SELECT_OFFER', offerId });
     } catch (error) {
-      pendingAcceptedOfferIdRef.current = null;
+
       if ((process.env.NODE_ENV !== 'production')) console.warn('[Rider Accept Offer]', error);
       toast({
         variant: 'destructive',
@@ -186,7 +297,8 @@ export function useOffersLifecycle(
   }, [dispatch, language, state.requestId, t, toast]);
 
   const reset = React.useCallback(() => {
-    pendingAcceptedOfferIdRef.current = null;
+
+    firstSeenAtRef.current.clear();
     setPreferredCaptainIds([]);
     setExpandedOfferId(null);
     setCaptainSearchRadiusKm(1.5);
@@ -201,7 +313,7 @@ export function useOffersLifecycle(
     captainSearchRadiusKm,
     isExpandingCaptainSearch,
     acceptingOfferId,
-    pendingAcceptedOfferIdRef,
+    firstSeenAtRef,
     handleAcceptOffer,
     reset,
   };

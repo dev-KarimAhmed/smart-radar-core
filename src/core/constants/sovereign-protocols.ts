@@ -4,7 +4,10 @@
  */
 export const SOVEREIGN_CONSTANTS = {
   // 1. الثوابت الجغرافية (Geo-Constraints)
-  RADAR_RADIUS_KM: 1.5,             // نصف قطر الدوران الفعال للرحلات
+  RADAR_RADIUS_KM: 1.5,             // المسح الجغرافي الأولي للرحلات (1.5 كم)
+  RADAR_MAX_EXPANDED_RADIUS_KM: 2.5, // التوسع الأقصى في حال عدم وجود سائقين (2.5 كم فقط ليس أكثر)
+  RADAR_INITIAL_H3_RING: 4,         // حجم حلقة H3 للمسح الأولي (1.5 كم - دقة 9)
+  RADAR_EXPANDED_H3_RING: 7,        // حجم حلقة H3 الأقصى للتوسع (2.5 كم - دقة 9)
   URBAN_DETOUR_INDEX: 1.35,         // معدل الاستدارة الميداني المحاكي لكثافة الشوارع
   PULSE_SECTOR_SIZE: 1.5,           // The size of the market pulse sectors in kilometers.
 
@@ -18,8 +21,8 @@ export const SOVEREIGN_CONSTANTS = {
   TRIP_LIFESPAN_EXTENSION_MIN: 30,    // Minutes to add when extending a trip's lifespan
 
   // 3. معايير الحصص والحدود (Quota)
-  QUOTA_MAX_DRIVERS_VISIBLE: 12,      // 9 فرسان نشيطين + 3 في الاستماع
-  QUOTA_MAX_RIDERS_VISIBLE: 9,        // الأقصى للفرسان المرئيين للفرسان النشيطين
+  QUOTA_MAX_DRIVERS_VISIBLE: 9,       // حصة الراكب: 9 كباتن كحد أقصى في المحيط والمزاد
+  QUOTA_MAX_RIDERS_VISIBLE: 9,        // حصة الكابتن: 9 طلبات ركاب كحد أقصى على الرادار
   RADAR_SCAN_LIMIT: 50,             // Max trips/drivers to query in a single go
 
   // 4. معايير السرعات والمحاكاة لسرعة النبض (V-Pulse Speeds & Simulation)
@@ -32,8 +35,8 @@ export const SOVEREIGN_CONSTANTS = {
   PRICE_DUMPING_THRESHOLD_PERCENT: 15, // Max allowed undercut percentage
 
   // 5. معايير النشاط والخماد (Operational)
-  DORMANCY_WARNING_MS: 4 * 60 * 1000,  // 4 minutes until a dormancy warning
-  DORMANCY_TIMEOUT_MS: 5 * 60 * 1000,   // 5 minutes of inactivity until status is set to 'idle'
+  DORMANCY_WARNING_MS: 9 * 60 * 1000,  // 9 minutes until a dormancy warning
+  DORMANCY_TIMEOUT_MS: 10 * 60 * 1000,   // 10 minutes of inactivity until status is set to 'idle'
   MIN_TRIP_DURATION_MIN: 3,           // الأدنى المعتمد للرحلات كأمان
 
   // 6. ثوابت الرتب والتصنيفات (Ranking)

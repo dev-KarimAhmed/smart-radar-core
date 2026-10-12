@@ -6,13 +6,14 @@ import type { User as SovereignUser } from '@/core/types';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
-  AUTH_SESSION_CREATED_EVENT,
   buildUserFromSupabaseAuth,
   cacheSupabaseSession,
   clearSupabaseSessionCache,
 } from '@/lib/supabase-auth';
-import { hasStoredSupabaseAuthSession } from '@/features/auth/services/supabase-auth-storage';
+import { hasStoredSupabaseAuthSession, SUPABASE_AUTH_STORAGE_KEY } from '@/features/auth/services/supabase-auth-storage';
 import { DASHBOARD_LANGUAGE_KEY, useDashboardLanguage } from './use-dashboard-language';
+import { useToast } from './use-toast';
+import { syncServerTime } from '@/lib/server-time';
 
 const LogoutDialog = dynamic(
   () => import('@/features/auth/components/logout-dialog').then((module) => module.LogoutDialog),
@@ -21,6 +22,22 @@ const LogoutDialog = dynamic(
 
 const styles = { root: 'contents' } as const;
 
+function getInitialUserFromCache(): SovereignUser | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw =
+      window.localStorage.getItem(SUPABASE_AUTH_STORAGE_KEY) ||
+      window.sessionStorage.getItem(SUPABASE_AUTH_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed && parsed.user && typeof parsed.user === 'object') {
+      return buildUserFromSupabaseAuth(parsed.user) as SovereignUser;
+    }
+  } catch {
+    // Ignore cache parse errors
+  }
+  return null;
+}
 
 interface AuthContextType {
   user: SovereignUser | null;
@@ -41,9 +58,10 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 function AuthContent({ children }: { children: ReactNode }) {
   const router = useRouter();
   const t = useTranslations('auth.logout');
+  const { toast } = useToast();
   const { direction } = useDashboardLanguage();
   const [user, setUser] = useState<SovereignUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(true);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const [logoutInProgress, setLogoutInProgress] = useState(false);
   const [promoData] = useState<any>(null);
@@ -51,46 +69,208 @@ function AuthContent({ children }: { children: ReactNode }) {
   useEffect(() => {
     let mounted = true;
     let unsubscribe = () => {};
+    let bootstrapCompleted = false;
+    
+    // Sync server time as early as possible
+    syncServerTime();
 
-    if (!hasStoredSupabaseAuthSession()) {
+    // Fast-restore cached session on client mount without hydration mismatch
+    const cachedUser = getInitialUserFromCache();
+    if (cachedUser) {
+      setUser(cachedUser);
       setLoading(false);
-      const reloadForSession = () => window.location.reload();
-      window.addEventListener(AUTH_SESSION_CREATED_EVENT, reloadForSession, { once: true });
-      return () => {
-        mounted = false;
-        window.removeEventListener(AUTH_SESSION_CREATED_EVENT, reloadForSession);
-      };
     }
 
-    setLoading(true);
-    void import('@/lib/supabase-client').then(({ supabase }) => {
-      if (!mounted) return;
-      void supabase.auth.getSession().then(({ data }) => {
-        if (!mounted) return;
-        cacheSupabaseSession(data.session);
-        setUser(data.session?.user ? (buildUserFromSupabaseAuth(data.session.user) as SovereignUser) : null);
-        setLoading(false);
-      }).catch(() => {
-        if (!mounted) return;
+    // Intercept recovery links landing on root or dashboard before auth redirects kick in
+    if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/reset-password')) {
+      const hash = window.location.hash || '';
+      const search = window.location.search || '';
+      const isRecoveryIntent =
+        hash.includes('type=recovery') ||
+        hash.includes('access_token=') ||
+        hash.includes('error=') ||
+        search.includes('type=recovery') ||
+        search.includes('error=');
+
+      if (isRecoveryIntent) {
+        window.location.replace('/reset-password' + search + hash);
+        return;
+      }
+    }
+
+    const finishBootstrap = () => {
+      if (bootstrapCompleted || !mounted) return;
+      bootstrapCompleted = true;
+      setLoading(false);
+    };
+
+    const hadStoredSession = hasStoredSupabaseAuthSession();
+    if (!hadStoredSession && !cachedUser) {
+      finishBootstrap();
+    }
+
+    const bootstrapTimeout = window.setTimeout(() => {
+      if (!mounted || bootstrapCompleted) return;
+      // Do not wipe session if we already restored a valid cached user
+      if (!cachedUser && !getInitialUserFromCache()) {
         clearSupabaseSessionCache();
         setUser(null);
-        setLoading(false);
-      });
+      }
+      finishBootstrap();
+    }, 5_000);
+
+    void import('@/lib/supabase-client').then(({ supabase }) => {
+      if (!mounted) return;
+
+      if (hadStoredSession) {
+        void supabase.auth.getSession().then(({ data }) => {
+          if (!mounted) return;
+          cacheSupabaseSession(data.session);
+          if (data.session?.user) {
+            setUser(buildUserFromSupabaseAuth(data.session.user) as SovereignUser);
+          } else if (!cachedUser) {
+            setUser(null);
+          }
+          finishBootstrap();
+        }).catch(() => {
+          if (!mounted) return;
+          if (!cachedUser && !getInitialUserFromCache()) {
+            clearSupabaseSessionCache();
+            setUser(null);
+          }
+          finishBootstrap();
+        });
+      } else {
+        finishBootstrap();
+      }
 
       const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
         if (!mounted) return;
         cacheSupabaseSession(session);
-        setUser(session?.user ? (buildUserFromSupabaseAuth(session.user) as SovereignUser) : null);
-        setLoading(false);
+        supabase.realtime.setAuth(session?.access_token ?? null);
+        if (_event === 'PASSWORD_RECOVERY') {
+          if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/reset-password')) {
+            window.location.replace('/reset-password' + window.location.search + window.location.hash);
+            return;
+          }
+        }
+        if (session?.user) {
+          setUser(buildUserFromSupabaseAuth(session.user) as SovereignUser);
+        } else if (_event === 'SIGNED_OUT') {
+          setUser(null);
+        }
+        finishBootstrap();
       });
       unsubscribe = () => subscription.subscription.unsubscribe();
+    }).catch(() => {
+      if (!mounted) return;
+      if (!user && !getInitialUserFromCache()) {
+        clearSupabaseSessionCache();
+        setUser(null);
+      }
+      finishBootstrap();
     });
 
     return () => {
       mounted = false;
+      window.clearTimeout(bootstrapTimeout);
       unsubscribe();
     };
   }, []);
+
+    const forceKickout = useCallback(async () => {
+    const preservedLanguage =
+      typeof window !== 'undefined' ? window.localStorage.getItem(DASHBOARD_LANGUAGE_KEY) : null;
+    try {
+      await cancelActiveRequestBeforeLogout(user);
+    } catch {}
+    clearSupabaseSessionCache();
+    purgeTransientFrontendCache();
+    restorePreservedLanguage(preservedLanguage);
+    setUser(null);
+    try {
+      const { supabase } = await import('@/lib/supabase-client');
+      await supabase.auth.signOut();
+    } catch {
+      setUser(null);
+    } finally {
+      clearSupabaseSessionCache();
+      purgeTransientFrontendCache();
+      restorePreservedLanguage(preservedLanguage);
+      setLoading(false);
+      if (typeof window !== 'undefined') {
+        window.location.href = '/';
+      }
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (!user?.uid) return;
+    let isMounted = true;
+    let channel: any = null;
+
+    let deviceId = '';
+    if (typeof window !== 'undefined') {
+      deviceId = window.sessionStorage.getItem('radar_device_id') || '';
+      if (!deviceId) {
+        deviceId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString();
+        window.sessionStorage.setItem('radar_device_id', deviceId);
+      }
+    }
+    
+    const phoneKey = user.phone ? user.phone.trim().replace(/[\s()-]/g, '') : '';
+
+    import('@/lib/supabase-client').then(({ supabase }) => {
+      if (!isMounted) return;
+
+      const channels: any[] = [];
+      const handleCheckActive = (payload: any, ch: any) => {
+        const foreignDeviceId = payload.payload?.deviceId;
+        if (foreignDeviceId && foreignDeviceId !== deviceId) {
+          ch.send({
+            type: 'broadcast',
+            event: 'session_active',
+            payload: { deviceId },
+          });
+        }
+      };
+
+      channel = supabase.channel('user-session-' + user.uid);
+      channel.on('broadcast', { event: 'check_active_session' }, (payload: any) => handleCheckActive(payload, channel));
+      channel.on('broadcast', { event: 'session_active' }, async (payload: any) => {
+        const foreignDeviceId = payload.payload?.deviceId;
+        if (foreignDeviceId && foreignDeviceId !== deviceId) {
+          toast({
+            variant: 'destructive',
+            title: 'الحساب قيد الاستخدام',
+            description: 'هذا الحساب مفتوح حالياً على جهاز آخر. لا يمكنك استخدامه حتى يتم تسجيل الخروج من الجهاز الآخر.',
+            duration: 10000,
+          });
+          await forceKickout();
+        }
+      });
+      channel.subscribe((status: string) => {
+        if (status === 'SUBSCRIBED') {
+          channel.send({
+            type: 'broadcast',
+            event: 'check_active_session',
+            payload: { deviceId },
+          });
+        }
+      });
+
+      if (phoneKey) {
+        const channelPhone = supabase.channel('user-session-phone-' + phoneKey);
+        channelPhone.on('broadcast', { event: 'check_active_session' }, (payload: any) => handleCheckActive(payload, channelPhone));
+        channelPhone.subscribe();
+      }
+    });
+    
+    return () => {
+      isMounted = false;
+      if (channel) channel.unsubscribe();
+    };
+  }, [user?.uid, toast, forceKickout]);
 
   const loginAsMockUser = useCallback((mockUser: SovereignUser) => {
     if (!(process.env.NODE_ENV !== 'production')) return;
@@ -106,6 +286,10 @@ function AuthContent({ children }: { children: ReactNode }) {
     setLogoutInProgress(true);
     const preservedLanguage =
       typeof window !== 'undefined' ? window.localStorage.getItem(DASHBOARD_LANGUAGE_KEY) : null;
+    // Must run before signOut/cache-clear below — it needs the still-active
+    // session (RLS relies on auth.uid()) to find and cancel the user's own
+    // in-flight request, if any, instead of leaving it orphaned.
+    await cancelActiveRequestBeforeLogout(user);
     clearSupabaseSessionCache();
     purgeTransientFrontendCache();
     restorePreservedLanguage(preservedLanguage);
@@ -124,7 +308,7 @@ function AuthContent({ children }: { children: ReactNode }) {
       setLogoutDialogOpen(false);
       setLogoutInProgress(false);
     }
-  }, [router]);
+  }, [router, user]);
 
   const suspendUserDocListener = useCallback(() => {
     if (typeof window !== 'undefined') {
@@ -194,6 +378,73 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return <AuthContent>{children}</AuthContent>;
 }
 
+// A request still "in flight" — anything before the trip is over — must be
+// cancelled server-side on logout instead of left orphaned for the other
+// side (rider or captain) to keep waiting on. Re-derives this from the DB by
+// id/role rather than any client-side dashboard state, since that state may
+// not be mounted at all from wherever the logout button was pressed.
+// Must exactly match the live `ride_request_status` Postgres enum members —
+// any value here that isn't a real enum label makes PostgREST fail the whole
+// `.in()` filter with a 400 (bad enum cast), silently skipping the cancel.
+const NON_TERMINAL_REQUEST_STATUSES = [
+  'PENDING', 'RECEIVING_OFFERS', 'ACCEPTED', 'EN_ROUTE', 'ARRIVED', 'TRIP_ACTIVE',
+];
+
+async function cancelActiveRequestBeforeLogout(user: SovereignUser | null) {
+  if (!user?.uid) return;
+
+  try {
+    const { supabase } = await import('@/lib/supabase-client');
+
+    if (user.role === 'rider') {
+      const { data } = await supabase
+        .from('ride_requests')
+        .select('id')
+        .eq('rider_id', user.uid)
+        .in('status', NON_TERMINAL_REQUEST_STATUSES)
+        .limit(1)
+        .maybeSingle();
+      if (data?.id) {
+        await supabase.rpc('cancel_ride_request', { p_request_id: data.id });
+      }
+    } else if (user.role === 'driver') {
+      // If the captain submitted offers in the auction, withdraw/cancel and delete them on logout
+      try {
+        await supabase
+          .from('ride_offers')
+          .update({ status: 'CANCELLED' })
+          .eq('captain_id', user.uid);
+        await supabase
+          .from('ride_offers')
+          .delete()
+          .eq('captain_id', user.uid);
+        try {
+          await supabase.rpc('set_captain_status', { p_status: 'IDLE' });
+        } catch {
+          // Ignore status reset error
+        }
+      } catch (offerErr) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn('[Logout captain offers cleanup failed]', offerErr);
+        }
+      }
+
+      const { data } = await supabase
+        .from('ride_requests')
+        .select('id')
+        .eq('accepted_captain_id', user.uid)
+        .in('status', NON_TERMINAL_REQUEST_STATUSES)
+        .limit(1)
+        .maybeSingle();
+      if (data?.id) {
+        await supabase.rpc('captain_cancel_active_trip', { p_request_id: data.id });
+      }
+    }
+  } catch (error) {
+    if ((process.env.NODE_ENV !== 'production')) console.warn('[Logout active-request cleanup]', error);
+  }
+}
+
 function purgeTransientFrontendCache() {
   if (typeof window === 'undefined') return;
 
@@ -202,6 +453,7 @@ function purgeTransientFrontendCache() {
     'sovereign_trip_status',
     'sovereign_driver_status',
     'sovereign_rejected_trips_v1',
+    'radar_driver_rejected_requests_v1',
   ];
 
   const localKeys = [
@@ -228,3 +480,4 @@ export function useAuth() {
   if (context === undefined) throw new Error('useAuth must be used within an AuthProvider');
   return context;
 }
+

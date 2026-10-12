@@ -2,364 +2,340 @@
 
 import React from 'react';
 import {
-  Building2,
-  Car,
   CheckCircle2,
   ChevronDown,
-  Clock,
-  ExternalLink,
   Heart,
   MapPin,
   Navigation,
-  Phone,
-  ShieldCheck,
   Star,
-  Trophy,
+  Timer,
 } from 'lucide-react';
+import { useTranslations, useLocale } from 'next-intl';
 
 import { cn } from '@/lib/utils';
-const styles = {
-  style136_1: "group overflow-hidden rounded-2xl border bg-[#161F30]/80 text-[#F8FAFC] shadow-2xl shadow-black/20 backdrop-blur-md transition-all duration-300 hover:border-[#14B8A6]",
-  style137_2: "border-emerald-300/70 shadow-[0_0_34px_rgba(20,184,166,0.18)]",
-  style137_3: "border-[#243249]",
-  style143_4: "flex w-full items-center justify-between gap-4 p-5 text-start transition hover:bg-white/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/60",
-  style146_5: "flex min-w-0 items-center gap-3",
-  style148_6: "min-w-0",
-  style149_7: "flex flex-wrap items-center gap-2",
-  style150_8: "truncate text-lg font-extrabold text-[#F8FAFC] sm:text-xl",
-  style152_9: "inline-flex items-center gap-1 rounded-full border border-[#14B8A6]/35 bg-[#14B8A6]/10 px-2 py-0.5 text-[10px] font-black text-[#14F5D5]",
-  style153_10: "h-3 w-3",
-  style158_11: "inline-flex items-center gap-1 rounded-full border border-emerald-300/50 bg-emerald-400/15 px-2.5 py-1 text-[10px] font-black text-emerald-100 shadow-[0_0_18px_rgba(52,211,153,0.2)]",
-  style159_12: "h-3.5 w-3.5 fill-emerald-200 text-emerald-200",
-  style164_13: "mt-1 flex flex-wrap items-center gap-2 text-sm text-[#94A3B8]",
-  style165_14: "inline-flex items-center gap-1",
-  style166_15: "h-4 w-4 fill-yellow-400 text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.7)]",
-  style167_16: "text-[#F8FAFC]",
-  style169_17: "rounded-full border border-[#14B8A6]/25 bg-[#14B8A6]/10 px-2 py-0.5 text-xs font-black text-[#14B8A6]",
-  style172_18: "inline-flex items-center gap-1",
-  style173_19: "h-3.5 w-3.5 text-[#14B8A6]",
-  style180_20: "flex shrink-0 items-center gap-3",
-  style181_21: "text-end",
-  style182_22: "text-[11px] font-bold text-[#94A3B8]",
-  style183_23: "block text-xl font-black text-[#00ffcc] sm:text-2xl",
-  style187_24: "h-5 w-5 text-slate-400 transition-transform duration-300",
-  style187_25: "rotate-180",
-  style192_26: "grid transition-all duration-300 ease-out",
-  style193_27: "grid-rows-[1fr] opacity-100",
-  style193_28: "grid-rows-[0fr] opacity-0",
-  style196_29: "min-h-0 overflow-hidden",
-  style197_30: "space-y-4 border-t border-white/5 p-5 pt-4",
-  style198_31: "grid gap-3 sm:grid-cols-3",
-  style200_32: "h-4 w-4",
-  style205_33: "h-4 w-4",
-  style211_34: "h-4 w-4",
-  style219_35: "grid gap-3 rounded-xl bg-[#0B0F19]/70 p-4 sm:grid-cols-2",
-  style220_36: "h-4 w-4",
-  style226_37: "grid gap-3 rounded-xl border border-white/5 bg-white/[0.03] p-4 sm:grid-cols-2",
-  style227_38: "h-4 w-4",
-  style228_39: "h-4 w-4",
-  style232_40: "grid gap-2 sm:grid-cols-2",
-  style236_41: "inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 text-sm font-black text-[#14F5D5] transition hover:bg-[#14B8A6]/20",
-  style238_42: "h-4 w-4",
-  style247_43: "inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] text-sm font-black text-white transition hover:border-[#14B8A6]/35 hover:bg-[#14B8A6]/10",
-  style249_44: "h-4 w-4",
-  style257_45: "rounded-xl border border-[#14B8A6]/20 bg-[#14B8A6]/10 p-4",
-  style258_46: "space-y-2 text-sm",
-  style267_47: "mt-3 text-xs leading-5 text-[#94A3B8]",
-  style274_48: "rounded-2xl border border-[#14B8A6]/35 bg-[#14B8A6]/10 p-4",
-  style280_49: "rounded-xl border border-white/5 bg-white/[0.03] p-3 text-xs leading-relaxed text-[#94A3B8]",
-  style289_50: "flex w-full items-center justify-center gap-2 rounded-xl bg-[#14B8A6] py-3 font-extrabold text-[#0B0F19] transition-all duration-300 hover:bg-opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#161F30] disabled:cursor-wait disabled:opacity-60",
-  style291_51: "h-5 w-5",
-  style307_52: "h-14 w-14 shrink-0 rounded-2xl border border-[#14B8A6]/30 object-cover",
-  style313_53: "grid h-14 w-14 shrink-0 place-items-center rounded-2xl border border-[#14B8A6]/30 bg-[#14B8A6]/10",
-  style314_54: "h-7 w-7 text-[#14B8A6]",
-  style333_55: "min-w-0 rounded-xl border border-white/5 bg-black/20 p-3",
-  style334_56: "flex items-center gap-2 text-xs font-bold text-[#94A3B8]",
-  style335_57: "text-[#14B8A6]",
-  style335_58: "text-[#94A3B8]",
-  style338_59: "mt-1 truncate text-lg font-extrabold",
-  style338_60: "text-[#14B8A6]",
-  style338_61: "text-[#F8FAFC]",
-  style339_62: "mt-0.5 text-[11px] font-semibold text-[#94A3B8]/75",
-  style356_63: "flex items-center justify-between gap-4",
-  style357_64: "font-black text-[#F8FAFC]",
-  style357_65: "text-[#94A3B8]",
-  style358_66: "text-[#14B8A6]",
-  style358_67: "text-[#F8FAFC]",
-  style358_68: "text-lg",
-} as const;
+import { preferRoutedMinutes } from '@/shared/services/trip-duration';
+import { formatCountdown } from '@/shared/services/trip-countdown';
 
-
-export type CaptainRank = 'PLATINUM' | 'GOLD' | 'SILVER' | 'BRONZE';
-
-export interface CaptainProfile {
-  id: string;
-  name: string;
-  avatar_url?: string;
-  trust_rating: number;
-  rank: CaptainRank;
-  vehicle_model: string;
-  vehicle_color: string;
-  plate_number: string;
-  completed_trips?: number;
-  company_name?: string | null;
-  affiliation_label?: string;
-  is_verified?: boolean;
-  phone?: string;
-  contact_url?: string;
-  vehicle_year?: string | number;
-  vehicle_category?: string;
-}
-
-export interface CaptainOffer {
-  id: string;
-  captain: CaptainProfile;
-  server_fare: number;
-  submitted_fare?: number;
-  eta_minutes: number;
-  distance_km: number;
-  estimated_duration_minutes?: number;
-  trip_distance_km?: number;
-  additional_info?: string;
-}
+import { 
+  styles, 
+  CaptainOffer, 
+  CaptainOfferCardCountdown,
+  rankLabels,
+  getCaptainOfferPricing,
+  formatMinutes
+} from './offer-card/offer-card-shared';
+import { OfferCardCaptain } from './offer-card/offer-card-captain';
 
 interface CaptainOfferCardProps {
   offer: CaptainOffer;
   currencyCode?: string;
-  language?: 'ar' | 'en';
   isAccepting?: boolean;
   isPreferred?: boolean;
   isExpanded?: boolean;
+  countdown?: CaptainOfferCardCountdown;
   onToggleExpand?: () => void;
   onAccept: (offer: CaptainOffer) => void;
 }
 
-const premiumFactors: Record<CaptainRank, number> = {
-  PLATINUM: 0.2,
-  GOLD: 0.1,
-  SILVER: 0,
-  BRONZE: 0.05,
-};
-
-const rankLabels: Record<'ar' | 'en', Record<CaptainRank, string>> = {
-  ar: {
-    PLATINUM: 'بلاتيني',
-    GOLD: 'ذهبي',
-    SILVER: 'فضي',
-    BRONZE: 'برونزي',
-  },
-  en: {
-    PLATINUM: 'Platinum',
-    GOLD: 'Gold',
-    SILVER: 'Silver',
-    BRONZE: 'Bronze',
-  },
-};
-
-export function getCaptainOfferPricing(offer: CaptainOffer) {
-  const baseFare = Math.max(0, Number(offer.server_fare) || 0);
-  const premiumFactor = premiumFactors[offer.captain.rank] ?? 0;
-  const submittedFare = Math.max(0, Number(offer.submitted_fare) || 0);
-  const fallbackFinalFare = baseFare + baseFare * premiumFactor;
-  const finalFare = submittedFare > 0 ? submittedFare : fallbackFinalFare;
-  const rankPremiumValue = Math.max(0, finalFare - baseFare);
-  const actualPremiumFactor = baseFare > 0 ? rankPremiumValue / baseFare : 0;
-
-  return {
-    baseFare,
-    premiumFactor,
-    actualPremiumFactor,
-    rankPremiumValue,
-    finalFare,
-  };
-}
-
-export function CaptainOfferCard({
+function CaptainOfferCardBase({
   offer,
   currencyCode = 'EGP',
-  language = 'ar',
   isAccepting = false,
   isPreferred = false,
-  isExpanded = true,
+  isExpanded = false,
+  countdown,
   onToggleExpand,
   onAccept,
 }: CaptainOfferCardProps) {
-  const isArabic = language === 'ar';
+  const t = useTranslations('Rider.CaptainOfferCard');
+  const locale = useLocale();
+  const isArabic = locale === 'ar';
+  const language = isArabic ? 'ar' : 'en';
+
   const captain = offer.captain;
   const rating = Math.floor(Number(captain.trust_rating) || 5);
   const rankLabel = rankLabels[language][captain.rank] || captain.rank;
-  const { baseFare, premiumFactor, actualPremiumFactor, rankPremiumValue, finalFare } = getCaptainOfferPricing(offer);
-  const hasPremium = premiumFactor > 0 && rankPremiumValue > 0;
-  const premiumPercent = Math.round(actualPremiumFactor * 100);
-  const maxPremiumPercent = Math.round(premiumFactor * 100);
-  const captainName = captain.name?.trim() || (isArabic ? 'كابتن' : 'Captain');
-  const vehicleSummary =
-    [captain.vehicle_model, captain.vehicle_color].filter((value) => value && String(value).trim()).join(' - ') ||
-    (isArabic ? 'سيارة' : 'Vehicle');
-  const companyLabel = captain.company_name?.trim()
-    || captain.affiliation_label?.trim()
-    || (isArabic ? 'كابتن مستقل' : 'Independent Captain');
+  const { finalFare } = getCaptainOfferPricing(offer);
+  
+  const captainName = captain.name?.trim() || t('captain');
+  const pricingMode = (offer.pricing_mode || (offer as any).pricingMode || '').toUpperCase();
+  const rawAffiliation = (
+    captain.affiliation_type ||
+    (offer as any).affiliation_type ||
+    (offer as any).driverAffiliation?.type ||
+    ''
+  ).toLowerCase();
+
+  const rawCompany = (
+    captain.company_name ||
+    (captain as any).employment_type ||
+    (offer as any).driverAffiliation?.company_name ||
+    (offer as any).driverAffiliation?.name ||
+    ''
+  ).trim();
+
+  const isTaxiVehicle = rawAffiliation === 'office-taxi' || rawAffiliation.includes('taxi') || (captain.vehicle_category || '').toLowerCase().includes('taxi');
+  const isIndependentCaptain = rawAffiliation === 'independent' || (!isTaxiVehicle && (rawAffiliation === '' && !rawCompany)) || (!isTaxiVehicle && rawCompany === 'مستقل') || (captain.company_name === 'مستقل');
+  const isSmartAppCaptain = !isTaxiVehicle && !isIndependentCaptain && (rawAffiliation === 'smart-app' || rawAffiliation.includes('app') || Boolean(rawCompany));
+
+  // If captain is independent, their fare is always a free direct fare ("سعر حر")
+  const isFreeOffer = isIndependentCaptain || pricingMode === 'FREE';
+  const isTaxiOffer = !isFreeOffer && (pricingMode === 'TAXI' || isTaxiVehicle);
+  const isAppOffer = !isFreeOffer && !isTaxiOffer && (pricingMode === 'APP' || isSmartAppCaptain);
+
+  const cleanCompany = isIndependentCaptain || rawCompany === t('independentCaptain') || rawCompany.toLowerCase() === 'independent' || rawCompany === 'مستقل' || rawCompany === 'كابتن مستقل'
+    ? ''
+    : rawCompany;
+
+  const displayCompany = cleanCompany
+    ? (cleanCompany.toLowerCase() === 'uber' ? (isArabic ? 'اوبر' : 'Uber') : cleanCompany.toLowerCase() === 'careem' ? (isArabic ? 'كريم' : 'Careem') : cleanCompany)
+    : '';
+
+  let pricingLabel = isArabic ? 'سعر حر' : 'Direct Fare';
+  if (isFreeOffer) {
+    pricingLabel = isArabic ? 'سعر حر' : 'Direct Fare';
+  } else if (isTaxiOffer) {
+    pricingLabel = displayCompany
+      ? (isArabic ? `سعر تكسي / ${displayCompany}` : `Taxi Fare / ${displayCompany}`)
+      : (isArabic ? 'سعر تكسي' : 'Taxi Fare');
+  } else if (isAppOffer) {
+    pricingLabel = displayCompany
+      ? (isArabic ? `سعر تطبيق / ${displayCompany}` : `App Fare / ${displayCompany}`)
+      : (isArabic ? 'سعر تطبيق' : 'App Fare');
+  } else {
+    pricingLabel = isArabic ? 'سعر حر' : 'Direct Fare';
+  }
+
   const completedTrips = Math.max(0, Number(captain.completed_trips) || 0);
-  const durationLabel = formatMinutes(offer.estimated_duration_minutes || Math.max(5, Math.round((offer.trip_distance_km || offer.distance_km || 1) * 2.2)), language);
+
+  const durationLabel = formatMinutes(
+    preferRoutedMinutes(offer.estimated_duration_minutes, offer.trip_distance_km || offer.distance_km),
+    language,
+  );
   const tripDistance = offer.trip_distance_km ?? offer.distance_km;
+
+  const isCountdownUrgent = Boolean(
+    countdown?.hasCountdown
+    && (countdown.percentRemaining <= 20 || countdown.remainingSeconds <= 10),
+  );
+
+  const captainSerial = captain.serial_number || captain.id?.slice(0, 8).toUpperCase() || '---';
 
   return (
     <article
       dir={isArabic ? 'rtl' : 'ltr'}
       className={cn(styles.style136_1, isPreferred ? styles.style137_2 : styles.style137_3)}
     >
-      <button
-        type="button"
-        onClick={onToggleExpand}
-        className={styles.style143_4}
-        aria-expanded={isExpanded}
-      >
-        <div className={styles.style146_5}>
-          <CaptainAvatar captain={captain} captainName={captainName} />
-          <div className={styles.style148_6}>
-            <div className={styles.style149_7}>
-              <h3 className={styles.style150_8}>{captainName}</h3>
-              {captain.is_verified ? (
-                <span className={styles.style152_9}>
-                  <CheckCircle2 className={styles.style153_10} />
-                  {isArabic ? 'موثق' : 'Verified'}
-                </span>
-              ) : null}
-              {isPreferred ? (
-                <span className={styles.style158_11}>
-                  <Heart className={styles.style159_12} />
-                  {isArabic ? 'كابتن مفضل' : 'Preferred Captain'}
-                </span>
-              ) : null}
+      {/* 1. اسم الكابتن والتقييم والكود في الأعلى بشكل أنيق وبدون صندوق الأفاتار الضخم */}
+      <div className="p-4 pb-0 sm:p-5 sm:pb-0">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0 flex-wrap">
+            <h3 dir="auto" className="text-xl sm:text-2xl font-black text-[#F8FAFC] truncate">
+              {captainName}
+            </h3>
+            {captain.is_verified ? (
+              <span className="inline-flex items-center gap-1 rounded-full border border-[#14B8A6]/35 bg-[#14B8A6]/10 px-2 py-0.5 text-[10px] font-black text-[#14F5D5]">
+                <CheckCircle2 className="h-3 w-3" />
+                {t('verified')}
+              </span>
+            ) : null}
+            {isPreferred ? (
+              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300/50 bg-emerald-400/15 px-2.5 py-1 text-[10px] font-black text-emerald-100 shadow-[0_0_18px_rgba(52,211,153,0.2)]">
+                <Heart className="h-3.5 w-3.5 fill-emerald-200 text-emerald-200" />
+                {t('preferredCaptain')}
+              </span>
+            ) : null}
+          </div>
+
+          {/* الرقم التسلسلي للكابتن */}
+          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-[#14B8A6]/30 bg-[#14B8A6]/12 px-2.5 py-1 font-mono text-xs font-black text-[#14F5D5] shadow-sm">
+            <span className="text-[10px] font-bold text-slate-400">{isArabic ? 'كود:' : 'ID:'}</span>
+            <span>#{captainSerial}</span>
+          </span>
+        </div>
+
+        {/* سطر التقييم والرتبة متقابلين على الطرفين */}
+        <div className="mt-2.5 flex items-center justify-between gap-2 text-xs">
+          {/* جانب التقييم */}
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-lg border border-amber-400/25 bg-amber-400/10 px-2.5 py-1 text-xs font-black text-amber-300 shadow-sm">
+              <span className="text-[10px] font-bold text-slate-300">{isArabic ? 'التقييم:' : 'Rating:'}</span>
+              <span className="flex items-center gap-1 font-mono">
+                <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.7)]" />
+                <span>{rating}.0</span>
+              </span>
+            </span>
+            {completedTrips > 0 ? (
+              <span className="text-[11px] text-slate-400 font-semibold">
+                ({completedTrips} {t('trips')})
+              </span>
+            ) : null}
+          </div>
+
+          {/* جانب الرتبة على الطرف الآخر */}
+          <span className="inline-flex items-center gap-1.5 rounded-lg border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-2.5 py-1 text-xs font-black text-[#14F5D5] shadow-sm">
+            <span className="text-[10px] font-bold text-slate-400">{isArabic ? 'الرتبة:' : 'Rank:'}</span>
+            <span>{rankLabel}</span>
+          </span>
+        </div>
+      </div>
+
+      {/* 2. الوجهة: واضحة وبارزة وتظهر كاملة */}
+      {(offer.destination_label || (offer as any).destinationLabel) ? (
+        <div className="mx-4 mt-3 flex items-start gap-2.5 rounded-xl border border-[#14B8A6]/35 bg-gradient-to-r from-[#14B8A6]/15 via-[#081324] to-[#040812] px-3.5 py-2.5 shadow-sm sm:mx-5">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#14B8A6]/20 text-[#14F5D5] mt-0.5">
+            <MapPin className="h-4 w-4 text-[#14F5D5]" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <span className="block text-[10px] font-black uppercase tracking-wider text-[#14F5D5]/80 mb-0.5">
+              {isArabic ? 'الوجهة المطلوبة' : 'Destination'}
+            </span>
+            <p className="text-xs sm:text-sm font-black text-white leading-relaxed break-words whitespace-normal" dir="auto">
+              {offer.destination_label || (offer as any).destinationLabel}
+            </p>
+          </div>
+        </div>
+      ) : null}
+
+      {/* 3. مؤشر مدة قبول العرض: مقسم على مراحل بالكامل */}
+      {countdown?.hasCountdown ? (
+        <div className="mx-4 mt-3 rounded-xl border border-[#14B8A6]/25 bg-[#081220]/80 p-2.5 sm:mx-5">
+          <div className="flex items-center justify-between text-xs mb-2">
+            <span className="inline-flex items-center gap-1.5 font-bold text-slate-300">
+              <Timer className="h-3.5 w-3.5 text-[#14F5D5]" />
+              <span>{isArabic ? 'مدة قبول العرض' : 'Offer Acceptance Time'}</span>
+            </span>
+            <span
+              className={cn(
+                "font-mono font-black text-xs sm:text-sm",
+                isCountdownUrgent ? "text-rose-400 animate-pulse" : "text-[#14F5D5]"
+              )}
+              dir="ltr"
+            >
+              {formatCountdown(countdown.remainingSeconds)}
+            </span>
+          </div>
+
+          {/* مؤشر مقسم إلى 4 مراحل مع مسار تفاعلي */}
+          <div className="grid grid-cols-4 gap-1.5" dir="ltr">
+            {[1, 2, 3, 4].map((stage) => {
+              const stageStart = (stage - 1) * 25;
+              const percent = countdown.percentRemaining;
+              const fill = Math.max(0, Math.min(100, ((percent - stageStart) / 25) * 100));
+              return (
+                <div
+                  key={stage}
+                  className="h-2 w-full overflow-hidden rounded-full bg-slate-800/90 border border-white/5"
+                >
+                  <div
+                    className={cn(
+                      "h-full rounded-full bg-gradient-to-r from-[#14B8A6] to-[#14F5D5] transition-all duration-200 ease-linear shadow-[0_0_8px_rgba(20,245,213,0.5)]",
+                      isCountdownUrgent && "from-rose-500 to-rose-400 shadow-[0_0_8px_rgba(244,63,94,0.6)]"
+                    )}
+                    style={{ width: `${fill}%` }}
+                  />
+                </div>
+              );
+            })}
+          </div>
+
+          {/* مقياس المراحل بالأسفل: صفر، 1، 2، 3، 4 مع علامات التحديد */}
+          <div className="relative mt-1.5 h-6 text-[10px] font-bold text-slate-400 font-mono select-none" dir="ltr">
+            <div className="absolute left-0 flex flex-col items-start">
+              <div className="h-1 w-0.5 bg-slate-600 rounded-full mb-0.5 ml-0.5" />
+              <span className={cn(countdown.percentRemaining <= 5 ? "text-rose-400 font-black" : "")}>
+                {isArabic ? 'صفر' : '0'}
+              </span>
             </div>
-            <div className={styles.style164_13}>
-              <span className={styles.style165_14}>
-                <Star className={styles.style166_15} />
-                <strong className={styles.style167_16}>{rating}.0</strong>
-              </span>
-              <span className={styles.style169_17}>
-                {rankLabel}
-              </span>
-              <span className={styles.style172_18}>
-                <Clock className={styles.style173_19} />
-                {offer.eta_minutes} {isArabic ? 'د' : 'min'}
-              </span>
+            <div className="absolute left-1/4 -translate-x-1/2 flex flex-col items-center">
+              <div className="h-1 w-0.5 bg-slate-600 rounded-full mb-0.5" />
+              <span className={cn(countdown.percentRemaining > 0 && countdown.percentRemaining <= 25 ? "text-[#14F5D5] font-black" : "")}>1</span>
+            </div>
+            <div className="absolute left-2/4 -translate-x-1/2 flex flex-col items-center">
+              <div className="h-1 w-0.5 bg-slate-600 rounded-full mb-0.5" />
+              <span className={cn(countdown.percentRemaining > 25 && countdown.percentRemaining <= 50 ? "text-[#14F5D5] font-black" : "")}>2</span>
+            </div>
+            <div className="absolute left-3/4 -translate-x-1/2 flex flex-col items-center">
+              <div className="h-1 w-0.5 bg-slate-600 rounded-full mb-0.5" />
+              <span className={cn(countdown.percentRemaining > 50 && countdown.percentRemaining <= 75 ? "text-[#14F5D5] font-black" : "")}>3</span>
+            </div>
+            <div className="absolute right-0 flex flex-col items-end">
+              <div className="h-1 w-0.5 bg-slate-600 rounded-full mb-0.5 mr-0.5" />
+              <span className={cn(countdown.percentRemaining > 75 ? "text-[#14F5D5] font-black" : "")}>4</span>
             </div>
           </div>
         </div>
+      ) : null}
 
-        <div className={styles.style180_20}>
-          <div className={styles.style181_21}>
-            <p className={styles.style182_22}>{isArabic ? 'السعر' : 'Price'}</p>
-            <strong className={styles.style183_23}>
-              {finalFare.toFixed(2)} {currencyCode}
-            </strong>
-          </div>
-          <ChevronDown className={cn(styles.style187_24, isExpanded ? styles.style187_25 : '')} />
+      {/* 4. تفاصيل الوصول والمسافة */}
+      <div className="mx-4 mt-3 grid grid-cols-3 overflow-hidden rounded-xl border border-white/[0.07] bg-black/30 sm:mx-5">
+        <div className="px-2 py-2.5 text-center">
+          <span className="block text-[10px] font-bold leading-tight text-[#94A3B8]">{isArabic ? 'وصول الكابتن' : t('arrivesIn')}</span>
+          <span className="mt-1 block text-sm sm:text-base font-black text-[#14F5D5]">{formatMinutes(offer.eta_minutes, language)}</span>
         </div>
-      </button>
+        <div className="border-s border-white/[0.07] px-2 py-2.5 text-center">
+          <span className="block text-[10px] font-bold leading-tight text-[#94A3B8]">{t('tripTime')}</span>
+          <span className="mt-1 block text-sm sm:text-base font-black text-white">{durationLabel}</span>
+        </div>
+        <div className="border-s border-white/[0.07] px-2 py-2.5 text-center">
+          <span className="block text-[10px] font-bold leading-tight text-[#94A3B8]">{t('tripDistance')}</span>
+          <span className="mt-1 block text-sm sm:text-base font-black text-white">{Number(tripDistance || 0).toFixed(1)} {t('km')}</span>
+        </div>
+      </div>
 
+      {/* 5. سطر السعر ونوع التسعير بنفس ديزاين المستخدم (سعر تطبيق / اوبر بجانب السعر وتحتهما خط فاصل) */}
+      <div className="mx-4 mt-3.5 sm:mx-5 pb-2.5 border-b border-[#D5BF76]/70 flex items-center justify-between gap-3">
+        {/* السعر على اليمين في RTL */}
+        <div className="flex items-baseline gap-1.5" dir="ltr">
+          <strong className="text-xl sm:text-2xl font-black leading-none text-[#14F5D5] font-mono">
+            {finalFare.toFixed(2)}
+          </strong>
+          <span className="text-xs sm:text-sm font-black text-[#14F5D5]">{currencyCode}</span>
+        </div>
+
+        {/* نوع التسعير كنص صريح بدون صندوق على اليسار في RTL */}
+        <div className="shrink-0">
+          <span className="text-xs sm:text-sm font-black text-[#14F5D5] tracking-wide">
+            {pricingLabel}
+          </span>
+        </div>
+      </div>
+
+      {/* 6. أزرار الإجراءات */}
+      <div className="flex items-stretch gap-2.5 p-4 pt-3 sm:p-5 sm:pt-3">
+        <button
+          type="button"
+          onClick={() => onAccept(offer)}
+          disabled={isAccepting}
+          className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#14B8A6] py-3.5 px-4 text-sm font-extrabold text-[#0B0F19] transition-all duration-300 hover:bg-[#2DD4BF] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/70 disabled:cursor-wait disabled:opacity-60 cursor-pointer shadow-lg shadow-[#14B8A6]/20 whitespace-nowrap"
+        >
+          <Navigation className="h-5 w-5 shrink-0" />
+          <span>{isAccepting ? t('accepting') : t('acceptOffer')}</span>
+        </button>
+        <button
+          type="button"
+          onClick={onToggleExpand}
+          className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.04] px-3.5 text-xs font-black text-slate-200 transition hover:border-[#14B8A6]/35 hover:bg-[#14B8A6]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/60 cursor-pointer whitespace-nowrap"
+          aria-expanded={isExpanded}
+        >
+          <span>{isArabic ? 'معلومات الكابتن' : t('details')}</span>
+          <ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform duration-300", isExpanded ? "rotate-180" : "")} />
+        </button>
+      </div>
+
+      {/* 7. التفاصيل الموسعة: فقط بيانات الكابتن والمركبة */}
       <div
         className={cn(styles.style192_26, isExpanded ? styles.style193_27 : styles.style193_28)}
       >
         <div className={styles.style196_29}>
-          <div className={styles.style197_30}>
-            <div className={styles.style198_31}>
-              <InfoRow
-                icon={<MapPin className={styles.style200_32} />}
-                label={isArabic ? 'البعد عنك' : 'Distance'}
-                value={`${offer.distance_km.toFixed(1)} ${isArabic ? 'كم' : 'km'}`}
-              />
-              <InfoRow
-                icon={<Clock className={styles.style205_33} />}
-                label={isArabic ? 'يوصلك خلال' : 'ETA'}
-                value={`${offer.eta_minutes} ${isArabic ? 'دقائق' : 'mins'}`}
-                highlight
-              />
-              <InfoRow
-                icon={<Navigation className={styles.style211_34} />}
-                label={isArabic ? 'مدة الرحلة' : 'Trip duration'}
-                value={durationLabel}
-                helper={isArabic ? 'بدون تأخير مروري' : 'Without traffic delays'}
-                highlight
-              />
-            </div>
-
-            <div className={styles.style219_35}>
-              <InfoRow icon={<Car className={styles.style220_36} />} label={isArabic ? 'السيارة' : 'Vehicle'} value={vehicleSummary} />
-              <InfoRow label={isArabic ? 'اللوحة' : 'Plate'} value={captain.plate_number?.trim() || (isArabic ? 'غير متاح' : 'Not available')} />
-              {captain.vehicle_year ? <InfoRow label={isArabic ? 'سنة الصنع' : 'Year'} value={String(captain.vehicle_year)} /> : null}
-              {captain.vehicle_category ? <InfoRow label={isArabic ? 'الفئة' : 'Category'} value={captain.vehicle_category} /> : null}
-            </div>
-
-            <div className={styles.style226_37}>
-              <InfoRow icon={<Building2 className={styles.style227_38} />} label={isArabic ? 'نوع الكابتن' : 'Captain type'} value={companyLabel} />
-              <InfoRow icon={<Trophy className={styles.style228_39} />} label={isArabic ? 'الرحلات المكتملة' : 'Completed trips'} value={String(completedTrips)} />
-            </div>
-
-            {captain.phone || captain.contact_url ? (
-              <div className={styles.style232_40}>
-                {captain.phone ? (
-                  <a
-                    href={`tel:${captain.phone}`}
-                    className={styles.style236_41}
-                  >
-                    <Phone className={styles.style238_42} />
-                    {isArabic ? 'اتصال' : 'Call'}
-                  </a>
-                ) : null}
-                {captain.contact_url ? (
-                  <a
-                    href={captain.contact_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className={styles.style247_43}
-                  >
-                    <ExternalLink className={styles.style249_44} />
-                    {isArabic ? 'رابط التواصل' : 'Contact link'}
-                  </a>
-                ) : null}
-              </div>
-            ) : null}
-
-            {hasPremium ? (
-              <div className={styles.style257_45}>
-                <div className={styles.style258_46}>
-                  <BreakdownRow label={isArabic ? 'سعر الرحلة الأساسي' : 'Base trip fare'} value={`${baseFare.toFixed(2)} ${currencyCode}`} />
-                  <BreakdownRow
-                    label={isArabic ? `علاوة الجودة (${rankLabel})` : `Quality surcharge (${rankLabel})`}
-                    value={`+${rankPremiumValue.toFixed(2)} ${currencyCode}`}
-                    accent
-                  />
-                  <BreakdownRow label={isArabic ? 'السعر الإجمالي' : 'Total price'} value={`${finalFare.toFixed(2)} ${currencyCode}`} accent strong />
-                </div>
-                <p className={styles.style267_47}>
-                  {isArabic
-                    ? `يشمل ${premiumPercent}% علاوة جودة اختارها الكابتن ضمن الحد المسموح لرتبة ${rankLabel} من 1 إلى ${maxPremiumPercent}%.`
-                    : `Includes a ${premiumPercent}% quality premium selected by the captain within the allowed ${rankLabel} range: 1-${maxPremiumPercent}%.`}
-                </p>
-              </div>
-            ) : (
-              <div className={styles.style274_48}>
-                <BreakdownRow label={isArabic ? 'السعر الإجمالي' : 'Total price'} value={`${finalFare.toFixed(2)} ${currencyCode}`} accent strong />
-              </div>
-            )}
+          <div className={styles.cardBody}>
+            <OfferCardCaptain offer={offer} />
 
             {offer.additional_info ? (
-              <p className={styles.style280_49}>
+              <p className={styles.additionalInfo}>
                 {offer.additional_info}
               </p>
             ) : null}
-
-            <button
-              type="button"
-              onClick={() => onAccept(offer)}
-              disabled={isAccepting}
-              className={styles.style289_50}
-            >
-              <Navigation className={styles.style291_51} />
-              {isAccepting ? (isArabic ? 'جاري قبول العرض...' : 'Accepting offer...') : isArabic ? 'قبول العرض' : 'Accept offer'}
-            </button>
           </div>
         </div>
       </div>
@@ -367,73 +343,5 @@ export function CaptainOfferCard({
   );
 }
 
-function CaptainAvatar({ captain, captainName }: { captain: CaptainProfile; captainName: string }) {
-  if (captain.avatar_url) {
-    return (
-      <img
-        src={captain.avatar_url}
-        alt={captainName}
-        className={styles.style307_52}
-      />
-    );
-  }
+export const CaptainOfferCard = React.memo(CaptainOfferCardBase);
 
-  return (
-    <div className={styles.style313_53}>
-      <ShieldCheck className={styles.style314_54} />
-    </div>
-  );
-}
-
-function InfoRow({
-  icon,
-  label,
-  value,
-  helper,
-  highlight = false,
-}: {
-  icon?: React.ReactNode;
-  label: string;
-  value: string;
-  helper?: string;
-  highlight?: boolean;
-}) {
-  return (
-    <div className={styles.style333_55}>
-      <p className={styles.style334_56}>
-        {icon ? <span className={highlight ? styles.style335_57 : styles.style335_58}>{icon}</span> : null}
-        {label}
-      </p>
-      <p className={cn(styles.style338_59, highlight ? styles.style338_60 : styles.style338_61)}>{value}</p>
-      {helper ? <p className={styles.style339_62}>{helper}</p> : null}
-    </div>
-  );
-}
-
-function BreakdownRow({
-  label,
-  value,
-  accent = false,
-  strong = false,
-}: {
-  label: string;
-  value: string;
-  accent?: boolean;
-  strong?: boolean;
-}) {
-  return (
-    <div className={styles.style356_63}>
-      <span className={strong ? styles.style357_64 : styles.style357_65}>{label}</span>
-      <strong className={cn(accent ? styles.style358_66 : styles.style358_67, strong ? styles.style358_68 : '')}>{value}</strong>
-    </div>
-  );
-}
-
-function formatMinutes(minutes: number, language: 'ar' | 'en') {
-  const value = Math.max(1, Math.round(Number(minutes) || 1));
-  if (value < 60) return language === 'ar' ? `${value} دقيقة` : `${value} min`;
-  const hours = Math.floor(value / 60);
-  const rest = value % 60;
-  if (language === 'ar') return rest ? `${hours} س ${rest} د` : `${hours} س`;
-  return rest ? `${hours}h ${rest}m` : `${hours}h`;
-}

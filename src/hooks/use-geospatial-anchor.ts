@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useTranslations } from 'next-intl';
 
 interface GeoLocation {
   lat: number;
@@ -14,6 +15,7 @@ interface GeoLocation {
  * المستند الرقمي والأساسي لتجميع الإحداثيات والنهج المركزي دون تشويش.
  */
 export const useGeospatialAnchor = (watch = false) => {
+  const tAuto = useTranslations();
   const [location, setLocation] = useState<GeoLocation | null>(null);
   const [error, setError] = useState<string | null>(null);
   const watcherRef = useRef<number | null>(null);
@@ -37,9 +39,10 @@ export const useGeospatialAnchor = (watch = false) => {
 
     // 2. التحقق من قدرة النظام على الاتصال بجهاز الاستقبال
     if (!navigator.geolocation) {
-      setError("الرجاء التحقق من تفعيل التتبع الجغرافي للجهاز.");
-      // Fallback fallback
-      setLocation({ lat: 31.95, lng: 35.91, source: 'fallback' });
+      setError(tAuto('enableGeoTracking'));
+      // Leave location unset (null) — a hardcoded coordinate here would
+      // shadow better fallbacks (profile country/district) in callers that
+      // do `driverLocation || ...`, since a truthy object always wins over them.
       return;
     }
 
@@ -60,8 +63,7 @@ export const useGeospatialAnchor = (watch = false) => {
         },
         (err) => {
           setError(err.message);
-          // If denied, fallback gracefully
-          setLocation({ lat: 31.95, lng: 35.91, source: 'fallback' });
+          // Leave location as-is (do not shadow profile/country fallbacks).
         },
         { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
       );
@@ -76,12 +78,12 @@ export const useGeospatialAnchor = (watch = false) => {
         },
         (err) => {
           setError(err.message);
-          setLocation({ lat: 31.95, lng: 35.91, source: 'fallback' });
+          // Leave location as-is (do not shadow profile/country fallbacks).
         },
         { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
       );
     }
-  }, [watch]);
+  }, [watch, tAuto]);
 
   useEffect(() => {
     establishAnchor();

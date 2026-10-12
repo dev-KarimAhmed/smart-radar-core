@@ -38,7 +38,7 @@ assert.equal(shouldShowAdRiver(state), false);
 
 state = riderDashboardReducer(state, { type: 'SERVER_STATUS_RECEIVING_OFFERS' });
 assert.equal(state.screen, 'RECEIVING_OFFERS');
-assert.equal(shouldShowAdRiver(state), true);
+assert.equal(shouldShowAdRiver(state), false);
 
 const offers: Offer[] = [
   {
@@ -107,5 +107,73 @@ const blocked = riderDashboardReducer(createInitialRiderMachineState(), {
   offerId: 'missing',
 });
 assert.equal(blocked.screen, 'IDLE_MAP');
+
+// A reload mid-auction must not lose the destination.
+//
+// REHYDRATE_SEARCHING restored the screen and the request id and nothing else, so
+// state.destination came back null and the offers screen rendered "الوجهة: غير متاح" for a
+// request whose address was in the very row it rehydrated from. It also cost every offer
+// card its trip distance, which is measured from destination.coords.
+const rehydrated = riderDashboardReducer(createInitialRiderMachineState(), {
+  type: 'REHYDRATE_SEARCHING',
+  requestId: 'req-1',
+  row: {
+    id: 'req-1',
+    status: 'PENDING',
+    destination_address_ar: 'الحي الرابع - السادس من أكتوبر',
+    destination_lat: 29.9585,
+    destination_lng: 30.9188,
+    destination_h3: '8a2ffff',
+    origin_h3: '8a1ffff',
+    server_estimated_fare: 241.89,
+  },
+});
+assert.equal(rehydrated.screen, 'RECEIVING_OFFERS');
+assert.equal(rehydrated.destination?.label, 'الحي الرابع - السادس من أكتوبر');
+assert.equal(rehydrated.destination?.coords.lat, 29.9585);
+assert.equal(rehydrated.destination?.coords.lng, 30.9188);
+assert.equal(rehydrated.destination?.serverEstimatedFare, 241.89);
+assert.equal(rehydrated.destination?.destinationCell, '8a2ffff');
+
+// No row (an older caller, or a row with neither address nor coordinates) must stay null
+// rather than producing an empty destination that reads as a real one.
+const rehydratedBare = riderDashboardReducer(createInitialRiderMachineState(), {
+  type: 'REHYDRATE_SEARCHING',
+  requestId: 'req-2',
+});
+// Delayed REQUEST_CANCELLED must be dropped when rider is in DESTINATION_SELECTION
+const destSelectionState = riderDashboardReducer(createInitialRiderMachineState(), { type: 'OPEN_DESTINATION' });
+assert.equal(destSelectionState.screen, 'DESTINATION_SELECTION');
+const cancelledDuringDestSelection = riderDashboardReducer(destSelectionState, { type: 'REQUEST_CANCELLED' });
+assert.equal(cancelledDuringDestSelection.screen, 'DESTINATION_SELECTION');
+
+// REQUEST_CANCELLED when actively receiving offers correctly flags cancellation
+const withDest = riderDashboardReducer(destSelectionState, { type: 'CONFIRM_DESTINATION', destination });
+const sent = riderDashboardReducer(withDest, { type: 'SEND_REQUEST' });
+const receivingOffersState = riderDashboardReducer(sent, { type: 'SERVER_STATUS_RECEIVING_OFFERS' });
+assert.equal(receivingOffersState.screen, 'RECEIVING_OFFERS');
+const cancelledDuringReceiving = riderDashboardReducer(receivingOffersState, { type: 'REQUEST_CANCELLED' });
+assert.equal(cancelledDuringReceiving.screen, 'RECEIVING_OFFERS');
+assert.equal(cancelledDuringReceiving.offers.length, 0);
+assert.equal(cancelledDuringReceiving.requestCancelledAt !== null, true);
+
+// REQUEST_CANCELLED when in TRIP_ACTIVE flags autoRetryRequested and clears activeTrip
+const activeTripState = riderDashboardReducer(receivingOffersState, {
+  type: 'SERVER_STATUS_ACCEPTED',
+  row: { id: 'req-active-1', accepted_driver_id: 'driver-1' },
+});
+assert.equal(activeTripState.screen, 'TRIP_ACTIVE');
+assert.notEqual(activeTripState.activeTrip, null);
+
+const captainCancelledState = riderDashboardReducer(activeTripState, { type: 'REQUEST_CANCELLED' });
+assert.equal(captainCancelledState.screen, 'DESTINATION_SELECTION');
+assert.equal(captainCancelledState.autoRetryRequested, true);
+assert.equal(captainCancelledState.activeTrip, null);
+
+// RESET_TO_IDLE from captain cancelled dialog resets cleanly to IDLE_MAP
+const resetFromCancelled = riderDashboardReducer(captainCancelledState, { type: 'RESET_TO_IDLE' });
+assert.equal(resetFromCancelled.screen, 'IDLE_MAP');
+assert.equal(resetFromCancelled.activeTrip, null);
+assert.equal(resetFromCancelled.autoRetryRequested, undefined);
 
 console.log('rider reducer checks passed');

@@ -1,8 +1,8 @@
 'use client';
 
 import React from 'react';
-import { Button } from '@/components/ui/button';
 import { useRegistration } from '../../hooks/use-registration';
+import { useTranslations } from "next-intl";
 
 const styles = {
   style11_1: "space-y-4 animate-fade-in text-right",
@@ -11,24 +11,12 @@ const styles = {
   style38_4: "w-full text-xs text-[#94A3B8]/60 hover:text-white transition-colors py-2 cursor-pointer",
 } as const;
 
-
 export function AffiliationStep() {
+  const tAuto = useTranslations('auto');
   const { setAffiliation, setStep } = useRegistration();
 
   return (
     <div className={styles.style11_1} dir="rtl">
-      <button
-        type="button"
-        className={styles.style14_2}
-        onClick={() => {
-          setAffiliation('office-taxi');
-          setStep('vehicle');
-        }}
-      >
-        <span>🚕</span>
-        <span>تكسي مكتب (أصفر)</span>
-      </button>
-
       <button
         type="button"
         className={styles.style26_3}
@@ -38,7 +26,7 @@ export function AffiliationStep() {
         }}
       >
         <span>📱</span>
-        <span>تطبيقات ذكية (خاص)</span>
+        <span>{tAuto('key_b42e76aa')}</span>
       </button>
 
       <button 
@@ -46,7 +34,7 @@ export function AffiliationStep() {
         className={styles.style38_4}
         onClick={() => setStep('personal')}
       >
-        العودة للبيانات الشخصية
+        {tAuto('key_b6bb284d')}
       </button>
     </div>
   );

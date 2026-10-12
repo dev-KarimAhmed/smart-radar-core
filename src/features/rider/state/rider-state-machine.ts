@@ -1,6 +1,7 @@
 import React from 'react';
 import type { SovereignFareQuote } from '@/core/logic/geospatial-kernel';
 import type { Offer } from '@/core/types';
+import { toEpochMs } from '@/shared/services/trip-countdown';
 
 export type RiderMachineScreen =
   | 'IDLE_MAP'
@@ -33,6 +34,22 @@ export interface RiderLocalRating {
   favorite: boolean;
 }
 
+export interface RiderActiveTripCaptain {
+  serial_number?: string | null;
+  serial?: string | null;
+  nickname?: string | null;
+  full_name?: string | null;
+  name?: string | null;
+  phone?: string | null;
+  plate_number?: string | null;
+  license_plate?: string | null;
+  vehicle_model?: string | null;
+  vehicle_color?: string | null;
+  facebook_url?: string | null;
+  instagram_url?: string | null;
+  [key: string]: unknown;
+}
+
 export interface RiderActiveTrip {
   tripId: string;
   captainId: string;
@@ -49,7 +66,12 @@ export interface RiderActiveTrip {
   tortuosityFactor?: number;
   etaSeconds: number;
   startedAt: number;
-  captain?: any;
+  acceptedAtMs?: number | null;
+  arrivedAtMs?: number | null;
+  startedAtMs?: number | null;
+  pickupEtaMinutes?: number | null;
+  tripDurationMinutes?: number | null;
+  captain?: RiderActiveTripCaptain | null;
   status?: string;
 }
 
@@ -63,6 +85,7 @@ export interface RiderMachineState {
   requestId: string | null;
   requestCancelledAt: number | null;
   pendingAcceptedOfferId: string | null;
+  autoRetryRequested?: boolean;
 }
 
 export type RiderMachineAction =
@@ -75,6 +98,8 @@ export type RiderMachineAction =
   | { type: 'SERVER_STATUS_COMPLETED'; row?: Record<string, unknown> }
   | { type: 'REQUEST_FAILED' }
   | { type: 'REQUEST_CANCELLED' }
+  | { type: 'REHYDRATE_SEARCHING'; requestId: string; row?: Record<string, unknown> }
+  | { type: 'REHYDRATE_ACTIVE_TRIP'; requestId: string; row: Record<string, unknown>; offers: Offer[] }
   | { type: 'RECEIVE_OFFERS'; offers: Offer[] }
   | { type: 'SELECT_OFFER'; offerId: string }
   | { type: 'COMPLETE_TRIP' }
@@ -82,39 +107,114 @@ export type RiderMachineAction =
   | { type: 'OPEN_PURGE_LEDGER' }
   | { type: 'OPEN_FAVORITE_CAPTAINS' }
   | { type: 'RETURN_TO_MAP' }
+  | { type: 'CLEAR_AUTO_RETRY' }
   | { type: 'RESET_TO_IDLE' };
 
+const RIDER_STATE_STORAGE_KEY = 'radar_active_rider_machine_state';
+
+export const initialRiderMachineState: RiderMachineState = {
+  screen: 'IDLE_MAP',
+  destination: null,
+  offers: [],
+  activeTrip: null,
+  completedTrip: null,
+  requestStartedAt: null,
+  requestId: null,
+  requestCancelledAt: null,
+  pendingAcceptedOfferId: null,
+};
+
 export function createInitialRiderMachineState(): RiderMachineState {
-  return {
-    screen: 'IDLE_MAP',
-    destination: null,
-    offers: [],
-    activeTrip: null,
-    completedTrip: null,
-    requestStartedAt: null,
-    requestId: null,
-    requestCancelledAt: null,
-    pendingAcceptedOfferId: null,
-  };
+  if (typeof window !== 'undefined') {
+    try {
+      const saved = window.localStorage.getItem(RIDER_STATE_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved) as RiderMachineState;
+        if (
+          parsed &&
+          parsed.requestId &&
+          (parsed.screen === 'RECEIVING_OFFERS' || parsed.screen === 'TRIP_ACTIVE' || parsed.screen === 'RATING_MODAL')
+        ) {
+          return parsed;
+        }
+      }
+    } catch {}
+  }
+  return initialRiderMachineState;
 }
 
 export function shouldShowAdRiver(state: RiderMachineState): boolean {
-  if (state.screen === 'TRIP_ACTIVE' || state.screen === 'RATING_MODAL' || state.screen === 'DESTINATION_SELECTION') {
+  if (
+    state.screen === 'TRIP_ACTIVE' ||
+    state.screen === 'RATING_MODAL' ||
+    state.screen === 'DESTINATION_SELECTION' ||
+    state.screen === 'RECEIVING_OFFERS'
+  ) {
     return false;
   }
 
-  if (state.screen === 'RECEIVING_OFFERS') {
-    return state.offers.length === 0;
-  }
-
   return true;
+}
+
+/**
+ * Rebuilds the rider's destination from the ride_requests row.
+ *
+ * The destination is chosen on the client and only ever lived in this state — so a reload
+ * mid-request lost it. `REHYDRATE_SEARCHING` restored the screen and the request id and
+ * nothing else, which is why the offers screen showed "الوجهة: غير متاح" for a request whose
+ * address is sitting right there in the row it was rehydrated from.
+ *
+ * It also cost more than a label: buildCaptainOfferFromOffer measures the trip distance from
+ * `destination.coords`, so after a reload every offer card lost its trip distance too.
+ *
+ * governorate/district stay empty on purpose — the row stores the composed address, not its
+ * parts, and nothing downstream of a rehydrate reads them. Inventing a split by string
+ * surgery on the label would be a guess dressed as data.
+ */
+function buildDestinationFromRow(
+  requestId: string,
+  row: Record<string, unknown> | undefined,
+): RiderDestination | null {
+  if (!row) return null;
+
+  const label = firstString(
+    row.destination_address_ar,
+    row.destination_address,
+    row.destination_address_en,
+  );
+  const lat = firstNumber(row.destination_lat);
+  const lng = firstNumber(row.destination_lng);
+
+  // A label with no coordinates is still worth restoring: the rider gets to see where they
+  // asked to go, and the offer cards fall back to the routed distance on each offer's own
+  // receipt for the number.
+  if (!label && (lat === null || lng === null)) return null;
+
+  return {
+    id: requestId,
+    label: label || '',
+    governorate: '',
+    district: '',
+    coords: {
+      lat: lat ?? 0,
+      lng: lng ?? 0,
+    },
+    serverEstimatedFare: firstNumber(row.server_estimated_fare) ?? undefined,
+    originCell: firstString(row.origin_h3) || undefined,
+    destinationCell: firstString(row.destination_h3) || undefined,
+  };
 }
 
 function buildActiveTrip(state: RiderMachineState, acceptedRow: Record<string, unknown>): RiderActiveTrip | null {
   const acceptedOfferId =
     firstString(acceptedRow.accepted_offer_id, acceptedRow.offer_id, acceptedRow.selected_offer_id) ||
     state.pendingAcceptedOfferId;
-  const acceptedCaptainId = firstString(acceptedRow.accepted_driver_id, acceptedRow.driver_id, acceptedRow.captain_id);
+  const acceptedCaptainId = firstString(
+    acceptedRow.accepted_driver_id,
+    acceptedRow.driver_id,
+    acceptedRow.captain_id,
+    acceptedRow.accepted_captain_id,
+  );
   const selectedOffer = state.offers.find((offer) => (
     offer.id === acceptedOfferId ||
     offer.driverId === acceptedOfferId ||
@@ -124,20 +224,36 @@ function buildActiveTrip(state: RiderMachineState, acceptedRow: Record<string, u
   if (!selectedOffer && !acceptedCaptainId) return null;
 
   const vehicle = selectedOffer?.driverVehicle || {};
-  const distanceKm = state.destination?.fareQuote?.estimatedRoadDistanceKm ?? 0;
+  const distanceKm = state.destination?.fareQuote?.estimatedRoadDistanceKm
+    ?? firstNumber(acceptedRow.estimated_distance_km, acceptedRow.route_distance_km)
+    ?? 0;
+  const estimatedTripMinutes = firstNumber(
+    acceptedRow.estimated_duration_minutes,
+    acceptedRow.route_duration_minutes,
+    acceptedRow.trip_duration_minutes
+  ) ?? Math.max(1, Math.ceil((distanceKm || 2) * 1.5));
+
+  const rowCaptain = (acceptedRow.captain || acceptedRow.captain_profile) as Record<string, any> | undefined;
 
   return {
     tripId: firstString(acceptedRow.trip_id, acceptedRow.active_trip_id, acceptedRow.id) || state.requestId || '',
     captainId: selectedOffer?.driverId || acceptedCaptainId || '',
-    captainName: selectedOffer?.driverName || firstString(acceptedRow.driver_name, acceptedRow.captain_name) || '\u0627\u0644\u0633\u0627\u0626\u0642',
+    captainName:
+      selectedOffer?.captain?.full_name ||
+      selectedOffer?.captain?.nickname ||
+      rowCaptain?.full_name ||
+      rowCaptain?.nickname ||
+      selectedOffer?.driverName ||
+      firstString(acceptedRow.driver_name, acceptedRow.captain_name) ||
+      'السائق',
     captainSerial:
       selectedOffer?.driverName ||
       firstString(acceptedRow.driver_serial, acceptedRow.captain_serial, acceptedRow.driver_name, acceptedRow.captain_name) ||
       acceptedCaptainId ||
-      '\u0627\u0644\u0633\u0627\u0626\u0642',
+      'السائق',
     captainPhone: selectedOffer?.driverAffiliation?.phone || firstString(acceptedRow.driver_phone, acceptedRow.captain_phone, acceptedRow.phone) || '',
-    vehicleType: vehicle.type || `${vehicle.make || '\u0633\u064a\u0627\u0631\u0629'} ${vehicle.color || ''}`.trim(),
-    vehiclePlate: vehicle.plate || firstString(acceptedRow.vehicle_plate, acceptedRow.plate) || '\u063a\u064a\u0631 \u0645\u062a\u0627\u062d',
+    vehicleType: vehicle.type || `${vehicle.make || 'سيارة'} ${vehicle.color || ''}`.trim(),
+    vehiclePlate: vehicle.plate || firstString(acceptedRow.vehicle_plate, acceptedRow.plate) || 'غير متاح',
     finalPrice:
       firstNumber(
         acceptedRow.final_fare,
@@ -149,14 +265,21 @@ function buildActiveTrip(state: RiderMachineState, acceptedRow: Record<string, u
       (selectedOffer?.price === -1
         ? state.destination?.serverEstimatedFare ?? 0
         : selectedOffer?.price ?? state.destination?.serverEstimatedFare ?? 0),
-    destinationLabel: state.destination?.label || '\u0648\u062c\u0647\u0629',
+    destinationLabel: state.destination?.label
+      || firstString(acceptedRow.destination_address_ar, acceptedRow.destination_address, acceptedRow.destination_address_en)
+      || 'وجهة',
     distanceKm,
     originCell: state.destination?.originCell ?? state.destination?.fareQuote?.originCell,
     destinationCell: state.destination?.destinationCell ?? state.destination?.fareQuote?.destinationCell,
     tortuosityFactor: state.destination?.fareQuote?.tortuosityFactor,
-    etaSeconds: Math.max(4 * 60, Math.round((distanceKm || 4) * 85)),
+    etaSeconds: Math.round(estimatedTripMinutes * 60),
     startedAt: Date.now(),
-    captain: selectedOffer?.captain || acceptedRow.captain || acceptedRow.captain_profile || null,
+    acceptedAtMs: toEpochMs(acceptedRow.accepted_at),
+    arrivedAtMs: toEpochMs(acceptedRow.arrived_at),
+    startedAtMs: toEpochMs(acceptedRow.started_at),
+    pickupEtaMinutes: firstNumber(acceptedRow.pickup_eta_minutes, selectedOffer?.pickup_eta_minutes) ?? undefined,
+    tripDurationMinutes: estimatedTripMinutes,
+    captain: selectedOffer?.captain || rowCaptain || null,
     status: String(acceptedRow.status || 'ACCEPTED').toUpperCase(),
   };
 }
@@ -170,11 +293,11 @@ export function riderDashboardReducer(state: RiderMachineState, action: RiderMac
       return { ...state, screen: 'DESTINATION_SELECTION' };
 
     case 'CONFIRM_DESTINATION':
-      if (state.screen !== 'DESTINATION_SELECTION') return state;
+      if (state.screen !== 'DESTINATION_SELECTION' && state.screen !== 'RECEIVING_OFFERS') return state;
       return { ...state, destination: action.destination };
 
     case 'SEND_REQUEST':
-      if (state.screen !== 'DESTINATION_SELECTION' || !state.destination) return state;
+      if ((state.screen !== 'DESTINATION_SELECTION' && state.screen !== 'RECEIVING_OFFERS') || !state.destination) return state;
       return {
         ...state,
         offers: [],
@@ -187,7 +310,7 @@ export function riderDashboardReducer(state: RiderMachineState, action: RiderMac
       };
 
     case 'SERVER_REQUEST_CREATED':
-      if (state.screen !== 'DESTINATION_SELECTION') return state;
+      if (state.screen !== 'DESTINATION_SELECTION' && state.screen !== 'RECEIVING_OFFERS') return state;
       return { ...state, requestId: action.requestId, requestStartedAt: state.requestStartedAt ?? Date.now() };
 
     case 'SERVER_STATUS_RECEIVING_OFFERS':
@@ -225,14 +348,67 @@ export function riderDashboardReducer(state: RiderMachineState, action: RiderMac
       return { ...state, requestStartedAt: null, requestId: null };
 
     case 'REQUEST_CANCELLED':
-      if (state.screen !== 'DESTINATION_SELECTION' && state.screen !== 'RECEIVING_OFFERS') return state;
+      if (typeof window !== 'undefined') {
+        try {
+          window.localStorage.removeItem(RIDER_STATE_STORAGE_KEY);
+        } catch {}
+      }
+      // A trip already accepted (or further along) that gets cancelled
+      // is usually a captain cancellation. Auto-retry search for the rider.
+      if (state.screen === 'TRIP_ACTIVE') {
+        return {
+          ...initialRiderMachineState,
+          destination: state.destination,
+          screen: 'DESTINATION_SELECTION',
+          requestCancelledAt: Date.now(),
+          autoRetryRequested: true,
+        };
+      }
+      // Cancel Collision Shield: reject any delayed server echo if the rider is not actively waiting for offers
+      // (prevents dragging the rider away from DESTINATION_SELECTION, IDLE_MAP, or modals)
+      if (state.screen !== 'RECEIVING_OFFERS') {
+        return state;
+      }
       return {
-        ...state,
+        ...initialRiderMachineState,
+        destination: state.destination,
         screen: 'RECEIVING_OFFERS',
         offers: [],
         requestCancelledAt: Date.now(),
         pendingAcceptedOfferId: null,
       };
+
+    case 'REHYDRATE_SEARCHING': {
+      if (state.screen !== 'IDLE_MAP') return state;
+      return {
+        ...state,
+        screen: 'RECEIVING_OFFERS',
+        requestId: action.requestId,
+        // Keep whatever is already in state — it is the richer object, with the fare quote
+        // and the governorate/district the picker knew. Only fall back to the row.
+        destination: state.destination ?? buildDestinationFromRow(action.requestId, action.row),
+        requestStartedAt: state.requestStartedAt ?? extractRowStartTime(action.row),
+      };
+    }
+
+    case 'REHYDRATE_ACTIVE_TRIP': {
+      if (state.screen !== 'IDLE_MAP') return state;
+      const stateWithOffers = {
+        ...state,
+        offers: action.offers,
+        requestId: action.requestId,
+        destination: state.destination ?? buildDestinationFromRow(action.requestId, action.row),
+      };
+      const activeTrip = buildActiveTrip(stateWithOffers, action.row);
+      if (!activeTrip) {
+        return {
+          ...stateWithOffers,
+          screen: 'RECEIVING_OFFERS',
+          requestStartedAt: state.requestStartedAt ?? extractRowStartTime(action.row),
+        };
+      }
+      return { ...stateWithOffers, screen: 'TRIP_ACTIVE', activeTrip };
+    }
 
     case 'RECEIVE_OFFERS':
       if (state.screen !== 'RECEIVING_OFFERS') return state;
@@ -259,18 +435,12 @@ export function riderDashboardReducer(state: RiderMachineState, action: RiderMac
 
     case 'SUBMIT_RATING':
       if (state.screen !== 'RATING_MODAL' || !state.completedTrip) return state;
-      return {
-        ...state,
-        screen: 'IDLE_MAP',
-        destination: null,
-        offers: [],
-        activeTrip: null,
-        completedTrip: null,
-        requestStartedAt: null,
-        requestId: null,
-        requestCancelledAt: null,
-        pendingAcceptedOfferId: null,
-      };
+      if (typeof window !== 'undefined') {
+        try {
+          window.localStorage.removeItem(RIDER_STATE_STORAGE_KEY);
+        } catch {}
+      }
+      return initialRiderMachineState;
 
     case 'OPEN_PURGE_LEDGER':
       if (state.screen === 'TRIP_ACTIVE' || state.screen === 'RATING_MODAL' || state.screen === 'RECEIVING_OFFERS') return state;
@@ -284,8 +454,16 @@ export function riderDashboardReducer(state: RiderMachineState, action: RiderMac
       if (state.screen === 'TRIP_ACTIVE' || state.screen === 'RATING_MODAL' || state.screen === 'RECEIVING_OFFERS') return state;
       return { ...state, screen: 'IDLE_MAP' };
 
+    case 'CLEAR_AUTO_RETRY':
+      return { ...state, autoRetryRequested: false };
+
     case 'RESET_TO_IDLE':
-      return createInitialRiderMachineState();
+      if (typeof window !== 'undefined') {
+        try {
+          window.localStorage.removeItem(RIDER_STATE_STORAGE_KEY);
+        } catch {}
+      }
+      return initialRiderMachineState;
 
     default:
       return state;
@@ -295,7 +473,26 @@ export function riderDashboardReducer(state: RiderMachineState, action: RiderMac
 export function useRiderDashboardMachine() {
   const [state, dispatch] = React.useReducer(riderDashboardReducer, undefined, createInitialRiderMachineState);
 
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      if (
+        state.requestId &&
+        (state.screen === 'RECEIVING_OFFERS' || state.screen === 'TRIP_ACTIVE' || state.screen === 'RATING_MODAL')
+      ) {
+        window.localStorage.setItem(RIDER_STATE_STORAGE_KEY, JSON.stringify(state));
+      } else {
+        window.localStorage.removeItem(RIDER_STATE_STORAGE_KEY);
+      }
+    } catch {}
+  }, [state]);
+
   return { state, dispatch, showAdRiver: shouldShowAdRiver(state) };
+}
+
+function extractRowStartTime(row?: Record<string, unknown> | null): number {
+  const rowCreatedAt = row?.created_at ? new Date(row.created_at as string).getTime() : Date.now();
+  return Number.isFinite(rowCreatedAt) && rowCreatedAt > 0 ? rowCreatedAt : Date.now();
 }
 
 function firstString(...values: unknown[]) {

@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import { useEffect, useMemo, useState } from 'react';
 import { AdStage } from '@/features/ads/ad-stage/contract';
 import { AppHeader } from '@/shared/components/layout/app-header';
+import { RecoveryEmailBanner } from '@/features/auth/contract';
 import { BottomNav } from '@/shared/components/layout/bottom-nav';
 import { RouteErrorBoundary } from '@/shared/components/layout/route-error-boundary';
 import { RouteLoading } from '@/shared/components/layout/route-loading';
@@ -14,22 +15,31 @@ import { cn } from '@/lib/utils';
 import { useRiderOperations } from '../hooks/use-rider-operations';
 import { AppSidebar } from './app-sidebar';
 import { DesktopRiderSidebar } from './desktop-rider-sidebar';
+import { useTranslations } from "next-intl";
 
 const RiderView = dynamic(
   () => import('./rider-view').then((module) => module.RiderViewTab),
-  { loading: () => <RouteLoading label="جاري تحميل رحلة الراكب..." /> },
+  { loading: function Loading() {
+      const tAuto = useTranslations('auto'); const t = useTranslations('auto'); return <RouteLoading label={tAuto('key_1b555d14')} />; } },
 );
 const HistoryScreen = dynamic(
   () => import('@/features/account/history/contract').then((module) => module.HistoryTab),
-  { loading: () => <RouteLoading label="جاري تحميل الرحلات..." /> },
+  { loading: function Loading() {
+      const tAuto = useTranslations('auto'); const t = useTranslations('auto'); return <RouteLoading label={tAuto('key_a14eef96')} />; } },
 );
 const ProfileScreen = dynamic(
   () => import('@/features/account/profile/contract').then((module) => module.ProfileTab),
-  { loading: () => <RouteLoading label="جاري تحميل الحساب..." /> },
+  { loading: function Loading() {
+      const tAuto = useTranslations('auto'); const t = useTranslations('auto'); return <RouteLoading label={tAuto('key_890243fa')} />; } },
 );
 const VaultScreen = dynamic(
   () => import('@/features/account/vault/contract').then((module) => module.VaultTab),
-  { loading: () => <RouteLoading label="جاري تحميل الخزنة..." /> },
+  { loading: function Loading() {
+      const tAuto = useTranslations('auto'); const t = useTranslations('auto'); return <RouteLoading label={tAuto('key_4ccb93e5')} />; } },
+);
+const NotificationsScreen = dynamic(
+  () => import('@/features/account/components/notifications-tab').then((module) => module.NotificationsTab),
+  { loading: function Loading() { return <RouteLoading label="Loading..." />; } },
 );
 
 const styles = {
@@ -37,9 +47,10 @@ const styles = {
   header: 'sticky top-0 z-[100] w-full shrink-0 lg:hidden',
   main: 'relative flex w-full flex-1 flex-col overflow-y-visible lg:h-screen lg:min-h-0 lg:overflow-hidden',
   mainShifted: 'lg:ps-[288px]',
-  mainStandby: 'h-[calc(100vh-120px)] overflow-hidden',
-  adStage: 'relative z-[80] flex w-full flex-1 flex-col border-b-2 border-[#14B8A6]/20 shadow-[0_10px_30px_rgba(20,184,166,0.08)]',
+  mainStandby: 'h-[calc(100dvh-120px)] overflow-hidden flex flex-col justify-start items-center pt-2 lg:h-full lg:justify-center lg:pt-0',
+  adStage: 'relative z-[80] flex w-full flex-1 flex-col justify-start items-center pt-2 border-b-2 border-[#14B8A6]/20 shadow-[0_10px_30px_rgba(20,184,166,0.08)] lg:h-full lg:justify-center lg:pt-0',
   content: 'w-full flex-1 p-4 md:p-8',
+  recoveryPrompt: 'absolute top-4 start-4 end-4 z-[200] empty:hidden lg:start-[320px] lg:end-8',
   contentHome: 'p-0 md:p-0 lg:p-0',
   contentInner: 'min-h-0 overflow-y-auto px-0 py-4 md:px-0 md:py-6',
   contentHidden: 'hidden',
@@ -49,6 +60,8 @@ const styles = {
 const CRITICAL_RIDER_STATES = ['searching', 'busy', 'rating', 'checkpoint_required'];
 
 export function RiderShell() {
+    const tAuto = useTranslations('auto');
+    const t = useTranslations('auto');
   const { loading, logout, user } = useAuth();
   const { toast } = useToast();
   const dashboardLanguage = useDashboardLanguage();
@@ -71,6 +84,9 @@ export function RiderShell() {
       setHasRequestedRideOnce(false);
     };
     const handleOpen = () => {
+      if (typeof window !== 'undefined' && window.location.hash && window.location.hash !== '#') {
+        window.location.hash = '#';
+      }
       setShowRequestFlow(true);
       setHasRequestedRideOnce(true);
     };
@@ -89,20 +105,22 @@ export function RiderShell() {
     [hasRequestedRideOnce, isCritical, isHome, showRequestFlow],
   );
 
-  if (loading) return <RouteLoading fullscreen label={dashboardLanguage.language === 'ar' ? 'جاري تحميل المنصة...' : 'Loading platform...'} />;
+  if (loading) return <RouteLoading fullscreen label={dashboardLanguage.language === 'ar' ? tAuto('key_4e3169c6') : 'Loading platform...'} />;
 
   const exitRequestFlow = () => {
     setShowRequestFlow(false);
     setHasRequestedRideOnce(false);
   };
 
-  const content = !isCritical && hash === '#vault'
+  const content = hash === '#vault'
     ? <VaultScreen />
-    : !isCritical && hash === '#history'
+    : hash === '#history'
       ? <HistoryScreen />
-      : !isCritical && hash === '#profile'
+      : hash === '#profile'
         ? <ProfileScreen />
-        : <RiderView onExitRequestFlow={exitRequestFlow} isStandbyDismissed={hasRequestedRideOnce} />;
+        : hash === '#notifications'
+          ? <NotificationsScreen />
+          : <RiderView onExitRequestFlow={exitRequestFlow} isStandbyDismissed={hasRequestedRideOnce} />;
 
   return (
     <div className={styles.root}>
@@ -111,17 +129,45 @@ export function RiderShell() {
           hash={hash}
           language={dashboardLanguage.language}
           logout={logout}
-          onNotify={() => toast({ title: 'التنبيهات', description: 'لا توجد تنبيهات جديدة حاليا.' })}
+          onNotify={() => window.dispatchEvent(new CustomEvent('open-app-notifications'))}
           user={user}
+          isCritical={false}
+          isRideFlowActive={showRequestFlow || isCritical}
         />
       ) : null}
-      <header className={styles.header}><AppHeader sidebar={<AppSidebar />} /></header>
-      <main className={cn(styles.main, !isHome && styles.mainShifted, isStandby && styles.mainStandby)}>
+      <header className={styles.header}><AppHeader sidebar={<AppSidebar isCritical={false} />} /></header>
+      <main className={cn(styles.main, Boolean(user) && styles.mainShifted, isStandby && styles.mainStandby)}>
+        {isCritical && !isHome && (
+          <div className="sticky top-0 z-[150] flex items-center justify-between border-b border-[#14B8A6]/40 bg-[#0C1527]/95 px-4 py-2.5 shadow-lg backdrop-blur-md">
+            <div className="flex items-center gap-2 text-xs font-bold text-[#14F5D5]">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#14F5D5] opacity-75" />
+                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#14F5D5]" />
+              </span>
+              <span>{dashboardLanguage.language === 'ar' ? 'لديك رحلة جارية الآن' : 'Active trip in progress'}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => { window.location.hash = '#'; }}
+              className="rounded-xl border border-[#14B8A6]/40 bg-[#14B8A6]/20 px-3 py-1 text-xs font-black text-[#14F5D5] transition hover:bg-[#14B8A6]/30 cursor-pointer"
+            >
+              {dashboardLanguage.language === 'ar' ? 'العودة للتتبع' : 'Return to trip'}
+            </button>
+          </div>
+        )}
         {isStandby ? (
           <div className={styles.adStage}>
-            <AdStage isFullScreen onRequestRideClick={() => setShowRequestFlow(true)} />
+            <AdStage
+              audience="rider"
+              isFullScreen
+              onRequestRideClick={() => {
+                setShowRequestFlow(true);
+                window.dispatchEvent(new CustomEvent('rider-open-destination'));
+              }}
+            />
           </div>
         ) : null}
+        <div className={styles.recoveryPrompt}><RecoveryEmailBanner /></div>
         <div className={cn(styles.content, isHome ? styles.contentHome : styles.contentInner, isStandby && styles.contentHidden)}>
           <RouteErrorBoundary>{content}</RouteErrorBoundary>
         </div>

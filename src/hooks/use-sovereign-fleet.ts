@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import type { User } from '@/core/types';
 import { supabase } from '@/lib/supabase-client';
+import { useTranslations } from 'next-intl';
 
-function mapProfileToUser(row: Record<string, any>): User {
+function mapProfileToUser(row: Record<string, any>, tAuto: any): User {
   return {
     uid: String(row.id),
-    name: row.full_name || row.name || 'سائق',
+    name: row.full_name || row.name || tAuto('driverDefaultName'),
     phone: row.phone || '',
     role: 'driver',
     status: row.status || 'idle',
@@ -18,6 +19,7 @@ function mapProfileToUser(row: Record<string, any>): User {
 }
 
 export function useSovereignFleet() {
+  const tAuto = useTranslations();
   const [drivers, setDrivers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -36,12 +38,12 @@ export function useSovereignFleet() {
         if (fetchError) throw fetchError;
         if (!active) return;
 
-        setDrivers(Array.isArray(data) ? data.map(mapProfileToUser) : []);
+        setDrivers(Array.isArray(data) ? data.map(r => mapProfileToUser(r, tAuto)) : []);
         setError(null);
       } catch (err) {
         if (!active) return;
         setDrivers([]);
-        setError((err as { message?: string })?.message || 'تعذر تحميل السائقين.');
+        setError((err as { message?: string })?.message || tAuto('failedToLoadDrivers'));
       } finally {
         if (active) setLoading(false);
       }
@@ -60,7 +62,7 @@ export function useSovereignFleet() {
       active = false;
       void supabase.removeChannel(channel);
     };
-  }, []);
+  }, [tAuto]);
 
   return { drivers, loading, error };
 }

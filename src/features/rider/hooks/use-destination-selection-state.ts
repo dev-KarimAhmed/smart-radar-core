@@ -6,7 +6,9 @@ import { useDestinationTextSearch } from './use-destination-text-search';
 import { useDestinationMapPicker } from './use-destination-map-picker';
 import { useClipboardLocationImport } from './use-clipboard-location-import';
 import { useDestinationSelectionHandlers } from './use-destination-selection-handlers';
-import type { RiderLocation } from '../components/rider-map';
+import { usePinnedPlaceLabel } from './use-pinned-place-label';
+import { isInvalidPlaceName } from '@/shared/services/google-maps-location';
+import type { RiderLocation, RiderLocationStatus } from '../components/rider-map';
 
 interface RiderProfileLike {
   countryId?: number;
@@ -28,23 +30,90 @@ export function useDestinationSelectionState(params: {
   language: AppLanguage;
   countryConfig: CountryNameConfig | null;
   riderLocation: RiderLocation;
+  riderLocationStatus?: RiderLocationStatus;
 }) {
-  const { user, language, countryConfig, riderLocation } = params;
+  const { user, language, countryConfig, riderLocation, riderLocationStatus } = params;
 
   const pin = useDestinationPin();
   const geography = useDestinationGeographyData(user, pin.destinationPinLocation);
 
-  // District selection changed: recenter the pin to its anchor (leaves any
-  // in-flight fly-to target alone) — a genuinely cross-hook concern.
+  const hasUserMovedPinRef = React.useRef(false);
+
+  // A trip destination is where the rider wants to GO, never where the rider is standing.
+  // The destination pin starts as null and is only set when the user explicitly chooses
+  // a destination (via search, clipboard import, or manual pin move).
+
+  const handleDestinationPinChange = React.useCallback((location: RiderLocation) => {
+    hasUserMovedPinRef.current = true;
+    pin.handleDestinationPinChange(location);
+  }, [pin]);
+
+  const setExplicitDestinationPinLocation: React.Dispatch<React.SetStateAction<RiderLocation | null>> = React.useCallback((action) => {
+    hasUserMovedPinRef.current = true;
+    pin.setDestinationPinLocation(action);
+  }, [pin]);
+
+  const resetPin = React.useCallback(() => {
+    hasUserMovedPinRef.current = false;
+    pin.reset();
+  }, [pin]);
+
+  const wrappedPin = React.useMemo(() => ({
+    ...pin,
+    handleDestinationPinChange,
+    setDestinationPinLocation: setExplicitDestinationPinLocation,
+    reset: resetPin,
+  }), [pin, handleDestinationPinChange, setExplicitDestinationPinLocation, resetPin]);
+
+  // Recenter the pin to its anchor only when an external location is imported (google:*),
+  // never on initial mount so a distant district is never preselected as a destination.
   React.useEffect(() => {
-    pin.setDestinationPinLocation(geography.selectedDistrict?.anchor || null);
+    const isGoogle = geography.selectedGovernorateId.startsWith('google:');
+    if (isGoogle && geography.selectedDistrict?.anchor) {
+      pin.setDestinationPinLocation(geography.selectedDistrict.anchor);
+    }
     pin.setIsDestinationPinMoving(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [geography.selectedDistrict?.anchor, geography.selectedDistrict?.id]);
+  }, [geography.selectedDistrict?.anchor, geography.selectedGovernorateId]);
 
   const [isCaptainScanPreviewActive, setIsCaptainScanPreviewActive] = React.useState(false);
   const profileFallbackLocation = geography.profileDistrict?.anchor || geography.selectedDistrict?.anchor || riderLocation;
-  const selectedDestinationCoords = pin.destinationPinLocation || geography.selectedDistrict?.anchor || null;
+  const selectedDestinationCoords = pin.destinationPinLocation;
+
+  /**
+   * The name of the place the pin actually sits on, resolved once here rather than in the
+   * screen that displays it.
+   *
+   * It has to live at this level because TWO consumers need the same answer: the summary the
+   * rider reads, and buildRiderDestination in rider-view, whose `label` is the string sent
+   * to the server and shown to the CAPTAIN as the destination. Resolving it in the display
+   * component fixed only what the rider saw and left the captain reading the district.
+   */
+  const districtAnchor = geography.selectedDistrict?.anchor;
+  const isMapPoint = Boolean(
+    !geography.draftDestinationId
+    || geography.selectedDistrict?.id.startsWith('map:')
+  );
+  const hasMovedPinOffDistrict = Boolean(
+    selectedDestinationCoords
+    && (isMapPoint
+      || !districtAnchor
+      || Math.abs(selectedDestinationCoords.lat - districtAnchor.lat) > 0.0005
+      || Math.abs(selectedDestinationCoords.lng - districtAnchor.lng) > 0.0005),
+  );
+  const hasSpecificImportedPlaceName = Boolean(
+    geography.externalLocationContext?.placeName &&
+    !isInvalidPlaceName(geography.externalLocationContext.placeName),
+  );
+  const shouldResolvePin = Boolean(
+    selectedDestinationCoords &&
+    (hasMovedPinOffDistrict || !hasSpecificImportedPlaceName),
+  );
+  const { label: pinnedPlaceLabel, isResolving: isResolvingPinnedPlace } = usePinnedPlaceLabel(
+    selectedDestinationCoords,
+    language,
+    shouldResolvePin,
+  );
 
   const search = useDestinationTextSearch({
     language,
@@ -52,7 +121,7 @@ export function useDestinationSelectionState(params: {
     selectedGovernorateId: geography.selectedGovernorateId,
     selectedDistrict: geography.selectedDistrict,
     profileFallbackLocation,
-    setDestinationPinLocation: pin.setDestinationPinLocation,
+    setDestinationPinLocation: wrappedPin.setDestinationPinLocation,
     setDestinationFlyToTarget: pin.setDestinationFlyToTarget,
     setIsDestinationPinMoving: pin.setIsDestinationPinMoving,
     setIsCaptainScanPreviewActive,
@@ -64,26 +133,28 @@ export function useDestinationSelectionState(params: {
     destinationSearchQuery: search.destinationSearchQuery,
     setDestinationSearchResults: search.setDestinationSearchResults,
     setDestinationSearchStatus: search.setDestinationSearchStatus,
+    riderLocation,
   });
   const clipboard = useClipboardLocationImport({
     geography,
     setDestinationSearchQuery: search.setDestinationSearchQuery,
     setDestinationSearchResults: search.setDestinationSearchResults,
-    setDestinationPinLocation: pin.setDestinationPinLocation,
+    setDestinationPinLocation: wrappedPin.setDestinationPinLocation,
     setDestinationFlyToTarget: pin.setDestinationFlyToTarget,
     setIsDestinationPinMoving: pin.setIsDestinationPinMoving,
     setIsCaptainScanPreviewActive,
+    riderLocation,
   });
   const selectionHandlers = useDestinationSelectionHandlers({
     geography,
-    pin,
+    pin: wrappedPin,
     search,
     clipboard,
     setIsCaptainScanPreviewActive,
   });
 
   return {
-    pin,
+    pin: wrappedPin,
     geography,
     search,
     mapPicker,
@@ -93,5 +164,7 @@ export function useDestinationSelectionState(params: {
     setIsCaptainScanPreviewActive,
     profileFallbackLocation,
     selectedDestinationCoords,
+    pinnedPlaceLabel,
+    isResolvingPinnedPlace,
   };
 }

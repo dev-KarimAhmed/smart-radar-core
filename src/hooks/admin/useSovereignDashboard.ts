@@ -14,6 +14,7 @@ import {
 } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
+import { useTranslations } from 'next-intl';
 
 export interface DelegateData {
   id: string;
@@ -48,6 +49,7 @@ const CONSTANTS = Object.freeze({
 });
 
 export const useSovereignDashboard = () => {
+  const tAuto = useTranslations();
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
   const [delegates, setDelegates] = useState<DelegateData[]>([]);
@@ -78,7 +80,7 @@ export const useSovereignDashboard = () => {
         const defaults: DelegateData[] = [
           {
             id: 'delegate-1',
-            name: 'علاء الحموري دير غبار',
+            name: tAuto('delegate1Name'),
             phone: '0795544332',
             referralCode: 'JO-AMMAN-GHUBAR-7',
             referredCount: 38,
@@ -90,7 +92,7 @@ export const useSovereignDashboard = () => {
           },
           {
             id: 'delegate-2',
-            name: 'أبو طارق العراقي الكرادة',
+            name: tAuto('delegate2Name'),
             phone: '0770112233',
             referralCode: 'IQ-BAGHDAD-KARRADA-9',
             referredCount: 64,
@@ -102,7 +104,7 @@ export const useSovereignDashboard = () => {
           },
           {
             id: 'delegate-3',
-            name: 'يزن القحطاني صويلح',
+            name: tAuto('delegate3Name'),
             phone: '0780445566',
             referralCode: 'JO-SWAILEH-08',
             referredCount: 14,
@@ -140,7 +142,7 @@ export const useSovereignDashboard = () => {
         const data = docSnap.data();
         return {
           uid: docSnap.id,
-          name: data.name || 'سائق مجهول',
+          name: data.name || tAuto('unknownDriver'),
           phone: data.phone || '',
           rating: data.rating || 5.0,
           heartCount: data.heartCount || 0,
@@ -148,7 +150,7 @@ export const useSovereignDashboard = () => {
           status: data.status || 'idle',
           isBanned: data.isBanned || false,
           immunityScore: data.immunityScore ?? 100.0,
-          currentDistrict: data.currentDistrict || 'منطقة ناعور'
+          currentDistrict: data.currentDistrict || tAuto('districtNaour')
         } as DriverData;
       });
       setDrivers(list);
@@ -162,7 +164,7 @@ export const useSovereignDashboard = () => {
       unsubDelegates();
       unsubDrivers();
     };
-  }, [user, authLoading]);
+  }, [user, authLoading, tAuto]);
 
   const handleSovereignKillSwitch = useCallback(async (driverUid: string, driverName: string) => {
     if (isProcessingRef.current) return;
@@ -179,28 +181,28 @@ export const useSovereignDashboard = () => {
       if (response.ok && data.success) {
         toast({
           variant: 'destructive',
-          title: '💥 تم الصعق الأمني الكلي للهدف',
-          description: `تم سحب حصانة السائق [${driverName}] لتبلغ 0.0، ومصادرة ساعاته المدفوعة بالكامل وحظره بنجاح.`
+          title: tAuto('securityKillSwitchSuccess'),
+          description: tAuto('driverImmunityRevoked', { driverName })
         });
         await fetchDrivers();
       } else {
         toast({
           variant: 'destructive',
-          title: 'خطأ في عملية الصعق',
-          description: data.error || 'حدث خطأ سيرفري أثناء معالجة الصعق الأمني'
+          title: tAuto('killSwitchError'),
+          description: data.error || tAuto('killSwitchServerError')
         });
       }
     } catch (err: any) {
       toast({
         variant: 'destructive',
-        title: 'خطأ في عملية الصعق',
-        description: err.message || 'خطأ فني'
+        title: tAuto('killSwitchError'),
+        description: err.message || tAuto('technicalError')
       });
     } finally {
       setIsProcessing(false);
       isProcessingRef.current = false;
     }
-  }, [fetchDrivers, toast]);
+  }, [fetchDrivers, toast, tAuto]);
 
   const handleReviveDriver = useCallback(async (driverUid: string, driverName: string) => {
     if (isProcessingRef.current) return;
@@ -216,28 +218,28 @@ export const useSovereignDashboard = () => {
 
       if (response.ok && data.success) {
         toast({
-          title: '🟢 تم إعادة الإحياء بتصديق رقمي وموافقة سحابية',
-          description: `تم إحياء السائق [${driverName}] لترتفع حصانته لـ 100%، وتسييل (12 ساعة) طارئة مصدقة سيرفرياً.`
+          title: tAuto('revivalSuccess'),
+          description: tAuto('driverRevivedMsg', { driverName })
         });
         await fetchDrivers();
       } else {
         toast({
           variant: 'destructive',
-          title: 'فشل الفك والتصديق السحابي',
-          description: data.error || 'خطأ أثناء محاذاة الصندوق الأسود'
+          title: tAuto('revivalFailure'),
+          description: data.error || tAuto('blackBoxAlignmentError')
         });
       }
     } catch (err: any) {
       toast({
         variant: 'destructive',
-        title: 'فشل الفك ',
-        description: err.message || 'خطأ فني'
+        title: tAuto('unlockFailure'),
+        description: err.message || tAuto('technicalError')
       });
     } finally {
       setIsProcessing(false);
       isProcessingRef.current = false;
     }
-  }, [fetchDrivers, toast]);
+  }, [fetchDrivers, toast, tAuto]);
 
   const handleClearDelegateDues = useCallback(async (delegateId: string, delegateName: string) => {
     if (isProcessingRef.current) return;
@@ -266,8 +268,8 @@ export const useSovereignDashboard = () => {
 
       if (response.ok && data.success) {
         toast({
-          title: '✅ تصفية مالية ناجحة',
-          description: `تم تسوية وتصفير مستحقات المندوب [${delegateName}] بالكامل وإصدار وصل الصرف بمبلغ صافي قدره ${data.netSettled?.toFixed(2) || '0.00'} د.أ.`
+          title: tAuto('financialSettlementSuccess'),
+          description: tAuto('delegateDuesClearedMsg', { delegateName, netSettled: data.netSettled?.toFixed(2) || '0.00' })
         });
         await fetchDelegates();
       } else {
@@ -276,8 +278,8 @@ export const useSovereignDashboard = () => {
         }
         toast({
           variant: 'destructive',
-          title: 'فشل تسوية المستحقات',
-          description: data.error || 'حدث خطأ سيرفري عند تصفية مستحقات المندوب'
+          title: tAuto('settlementFailure'),
+          description: data.error || tAuto('settlementServerError')
         });
       }
     } catch (err: any) {
@@ -286,14 +288,14 @@ export const useSovereignDashboard = () => {
       }
       toast({
         variant: 'destructive',
-        title: 'فشل تسوية المستحقات',
+        title: tAuto('settlementFailure'),
         description: err.message
       });
     } finally {
       setIsProcessing(false);
       isProcessingRef.current = false;
     }
-  }, [fetchDelegates, toast]);
+  }, [fetchDelegates, toast, tAuto]);
 
   return {
     delegates,

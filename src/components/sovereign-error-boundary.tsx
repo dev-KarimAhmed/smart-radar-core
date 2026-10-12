@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/sha
 import { ShieldAlert } from 'lucide-react';
 import { trackSovereignError } from '@/lib/error-tracker';
 import { getSovereignErrorMessage } from '@/core/constants/error-dictionary';
+import { useTranslations } from 'next-intl';
 
 const styles = {
   style35_1: "flex items-center justify-center min-h-[60vh] p-4",
@@ -21,12 +22,16 @@ interface Props {
   children: ReactNode;
 }
 
+interface InnerProps extends Props {
+  tAuto: any;
+}
+
 interface State {
   hasError: boolean;
   error: Error | null;
 }
 
-export class SovereignErrorBoundary extends Component<Props, State> {
+class SovereignErrorBoundaryInner extends Component<InnerProps, State> {
   public state: State = {
     hasError: false,
     error: null,
@@ -42,19 +47,20 @@ export class SovereignErrorBoundary extends Component<Props, State> {
 
   public render() {
     if (this.state.hasError) {
+      const { tAuto } = this.props;
       return (
         <div className={styles.style35_1}>
             <Card className={styles.style36_2}>
               <CardHeader className={styles.style37_3}>
                 <ShieldAlert className={styles.style38_4} />
-                <CardTitle>عذراً، حدث خطأ غير متوقع</CardTitle>
+                <CardTitle>{tAuto('unexpectedErrorOccurred')}</CardTitle>
                 <CardDescription className={styles.style40_5}>
-                  {getSovereignErrorMessage(this.state.error || { code: 'SYS_COMPONENT_CRASH' })}
+                  {getSovereignErrorMessage(this.state.error || { code: 'SYS_COMPONENT_CRASH' }, tAuto)}
                 </CardDescription>
               </CardHeader>
               <CardContent className={styles.style44_6}>
                 <p className={styles.style45_7}>
-                    نواجه مشكلة مؤقتة في تحميل هذا الجزء. يرجى إعادة المحاولة مرة أخرى، وبقية الخدمات تعمل بشكل طبيعي.
+                    {tAuto('temporaryLoadingIssue')}
                 </p>
               </CardContent>
             </Card>
@@ -64,4 +70,9 @@ export class SovereignErrorBoundary extends Component<Props, State> {
 
     return this.props.children;
   }
+}
+
+export function SovereignErrorBoundary(props: Props) {
+  const tAuto = useTranslations();
+  return <SovereignErrorBoundaryInner {...props} tAuto={tAuto} />;
 }

@@ -4,6 +4,7 @@ import { useCallback, useRef, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import type { Offer, Trip, User } from '@/core/types';
 import { supabase } from '@/lib/supabase-client';
+import { useTranslations } from 'next-intl';
 
 const styles = {
   root: "",
@@ -18,6 +19,8 @@ export function useRiderTransactions(
   setInternalStatus: (status: any) => void,
 ) {
   const { toast } = useToast();
+  const t = useTranslations('transactions');
+  const tAuto = useTranslations('auto');
   const [isRequesting, setIsRequesting] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [isRating, setIsRating] = useState(false);
@@ -38,8 +41,8 @@ export function useRiderTransactions(
 
   const requestRide = useCallback(async (_payload: any) => {
     toast({
-      title: 'استخدم شاشة طلب الرحلة الجديدة',
-      description: 'إنشاء الطلبات يتم الآن من شاشة الراكب عبر Supabase.',
+      title: tAuto('key_b7aec7c9'),
+      description: tAuto('key_310e8246'),
     });
     setInternalStatus('searching');
   }, [setInternalStatus, toast]);
@@ -52,35 +55,26 @@ export function useRiderTransactions(
         const { error } = await supabase.rpc('cancel_ride_request', { p_request_id: trip.id });
         if (error) throw error;
         resetState();
-        toast({ title: 'تم إلغاء الرحلة', description: 'تم إلغاء الطلب من الخادم.' });
+        toast({ title: t('cancelledTitle'), description: t('cancelledByServerDesc'), variant: 'warning', duration: 10000 });
       } catch {
-        toast({ variant: 'destructive', title: 'تعذر إلغاء الرحلة', description: 'حاول مرة أخرى بعد قليل.' });
+        toast({ variant: 'destructive', title: t('cancelFailedTitle'), description: t('cancelFailedDesc') });
       } finally {
         setIsCancelling(false);
       }
     });
   }, [resetState, toast, trip?.id, withLock]);
 
-  const rateTrip = useCallback(async (ratings: { driverRating: number }) => {
+  /**
+   * Rating lives in RatingModal, which writes the detailed criteria to `reviews`. This
+   * function used to call the submit_ride_rating RPC, a second writer of profiles.rating
+   * that would clobber the reviews aggregate; no component ever called it. Kept as a no-op
+   * only because RiderOperationsContextType still declares it.
+   * See docs/rating-system-audit.md.
+   */
+  const rateTrip = useCallback(async () => {
     if (!trip?.id || !acceptedDriver?.uid) return;
-    await withLock('rating', async () => {
-      setIsRating(true);
-      try {
-        const { error } = await supabase.rpc('submit_ride_rating', {
-          p_request_id: trip.id,
-          p_captain_id: acceptedDriver.uid,
-          p_rating_value: Math.max(1, Math.min(5, Math.round(ratings.driverRating))),
-        });
-        if (error) throw error;
-        toast({ title: 'شكراً لتقييمك', description: 'تم حفظ التقييم.' });
-        resetState();
-      } catch {
-        toast({ variant: 'destructive', title: 'تعذر حفظ التقييم', description: 'حاول مرة أخرى بعد قليل.' });
-      } finally {
-        setIsRating(false);
-      }
-    });
-  }, [acceptedDriver?.uid, resetState, toast, trip?.id, withLock]);
+    resetState();
+  }, [acceptedDriver?.uid, resetState, trip?.id]);
 
   const confirmCheckpoint = useCallback(async () => {
     if (!trip?.id) return;
@@ -89,10 +83,10 @@ export function useRiderTransactions(
       try {
         const { error } = await supabase.rpc('complete_ride_trip', { p_request_id: trip.id });
         if (error) throw error;
-        toast({ title: 'تم تأكيد الرحلة', description: 'يمكنك الآن تقييم التجربة.' });
+        toast({ title: t('confirmTripTitle'), description: t('confirmTripDesc'), variant: 'success', duration: 12000 });
         setInternalStatus('rating');
       } catch {
-        toast({ variant: 'destructive', title: 'تعذر تأكيد الرحلة', description: 'حاول مرة أخرى بعد قليل.' });
+        toast({ variant: 'destructive', title: t('confirmTripFailedTitle'), description: t('confirmTripFailedDesc') });
       } finally {
         setIsConfirmingCheckpoint(false);
       }
@@ -101,7 +95,7 @@ export function useRiderTransactions(
 
   const executeRedPathGuillotine = useCallback(async () => {
     setIsExecutingGuillotine(true);
-    toast({ title: 'تم إرسال البلاغ', description: 'سنراجع الرحلة ونتابع الإجراء المناسب.' });
+    toast({ title: t('reportSentTitle'), description: t('reportSentDesc') });
     setIsExecutingGuillotine(false);
   }, [toast]);
 
@@ -115,9 +109,9 @@ export function useRiderTransactions(
           p_offer_id: offer.id,
         });
         if (error) throw error;
-        toast({ title: 'تم قبول العرض', description: 'سيتم تحديث حالة الرحلة من الخادم.' });
+        toast({ title: t('offerAcceptedTitle'), description: t('offerAcceptedDesc'), variant: 'success', duration: 12000 });
       } catch {
-        toast({ variant: 'destructive', title: 'تعذر قبول العرض', description: 'قد يكون العرض انتهى أو تم قبوله من قبل.' });
+        toast({ variant: 'destructive', title: t('offerAcceptFailedTitle'), description: t('offerAcceptFailedDesc') });
       } finally {
         setIsSelectingOffer(false);
       }

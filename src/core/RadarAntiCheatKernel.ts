@@ -11,10 +11,10 @@ export const RadarAntiCheatKernel = Object.freeze({
   },
   
   /**
-   * صمام الأمان الجنائي لعوامة المسح (1.5 كم صارمة)
-   * يرفض ويحجب أوتوماتيكياً أي عرض سعر قادم من سائق يتجاوز محيط العوامة المحدد للراكب
+   * صمام الأمان الجنائي لعوامة المسح (يبدأ بـ 1.5 كم ويتوسع إلى 2.5 كم فقط ليس أكثر)
+   * يرفض ويحجب أوتوماتيكياً أي عرض سعر قادم من سائق يتجاوز محيط المسح المصرح به
    */
-  validateBuoyProximity: (riderLat: number, riderLon: number, driverLat: number, driverLon: number): boolean => {
+  validateBuoyProximity: (riderLat: number, riderLon: number, driverLat: number, driverLon: number, maxRadiusKm: number = 2.5): boolean => {
     const R = 6371000; // نصف قطر الأرض بالمتر
     const dLat = (driverLat - riderLat) * Math.PI / 180;
     const dLon = (driverLon - riderLon) * Math.PI / 180;
@@ -26,9 +26,10 @@ export const RadarAntiCheatKernel = Object.freeze({
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     const distanceMeters = R * c;
 
-    // قفل الحظر الصارم: 1500 متر حتمية (1.5 كم)
-    if (distanceMeters > 1500) {
-      throw new Error("SECURITY_ALERT: Driver proposal blocked. Outside the 1.5km sovereign perimeter.");
+    // قفل الحظر الصارم: سقف أقصى 2500 متر (2.5 كم فقط ليس أكثر)
+    const maxAllowedMeters = Math.min(maxRadiusKm * 1000, 2500);
+    if (distanceMeters > maxAllowedMeters) {
+      throw new Error(`SECURITY_ALERT: Driver proposal blocked. Outside the ${maxAllowedMeters / 1000}km sovereign perimeter.`);
     }
     
     return true; 

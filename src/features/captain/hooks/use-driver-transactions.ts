@@ -5,34 +5,144 @@ import { supabase } from '@/lib/supabase-client';
 import { dexieDb } from '@/lib/dexie-db';
 import { useToast } from '@/hooks/use-toast';
 import type { Trip, User } from '@/core/types';
+import { useTranslations } from 'next-intl';
+import { buildGoogleMapsUrl, isValidCoordinatePair, normalizeExternalMapUrl } from '../services/ride-location';
+import { generateWeeklyReport, type CaptainRankName } from '../services/captain-rank';
+import { toEpochMs } from '@/shared/services/trip-countdown';
 
 type RideOfferRow = Record<string, unknown>;
 type RideRequestRow = Record<string, unknown>;
 
+export const MIN_OFFER_WAIT_SECONDS = 5;
+export const DEFAULT_OFFER_WAIT_SECONDS = 120;
+export const MAX_OFFER_WAIT_SECONDS = Number.POSITIVE_INFINITY;
+
+/**
+ * submit_ride_offer refuses out-of-band prices server-side, so these are reachable even
+ * when the bidding sheet's own guards pass — a stale server fare on the captain's screen,
+ * or a rank that changed between load and submit.
+ */
+function describeOfferSubmitError(rawMessage: string | undefined, t: any) {
+  const message = String(rawMessage || '');
+  const limit = message.match(/:\s*([\d.]+)\s*$/)?.[1];
+
+  if (message.includes('captain_too_far_from_pickup')) {
+    return {
+      title: t('errorTooFarTitle'),
+      description: t('errorTooFarDesc'),
+    };
+  }
+
+  if (message.includes('offer_below_market_floor')) {
+    return {
+      title: t('errorBelowFloorTitle'),
+      description: limit
+        ? t('errorBelowFloorDescDynamic', { limit })
+        : t('errorBelowFloorDescStatic'),
+    };
+  }
+
+  if (message.includes('offer_above_rank_ceiling')) {
+    return {
+      title: t('errorAboveCeilingTitle'),
+      description: limit
+        ? t('errorAboveCeilingDescDynamic', { limit })
+        : t('errorAboveCeilingDescStatic'),
+    };
+  }
+
+  return {
+    title: t('errorSubmitFailedTitle'),
+    description: t('errorSubmitFailedDesc'),
+  };
+}
+
 export function useDriverTransactions(
   user: User | null,
   setDriverStatus?: (status: 'active' | 'idle' | 'busy' | 'rating') => void,
+  driverStatus?: string,
 ) {
   const { toast } = useToast();
+  const t = useTranslations('transactions');
   const [activeRequest, setActiveReq] = useState<Trip | null>(null);
   const [acceptedRider, setAcceptedRider] = useState<User | null>(null);
+  const [handshakeAt, setHandshakeAt] = useState<number | null>(null);
+  const [pendingOfferRequestId, setPendingOfferRequestId] = useState<string | null>(null);
+  const pendingOfferTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isSubmittingOffer, setIsSubmittingOffer] = useState(false);
   const [isUpdatingTripStep, setIsUpdatingTripStep] = useState(false);
   const [isEndingTrip, setIsEndingTrip] = useState(false);
+  const [isCancellingTrip, setIsCancellingTrip] = useState(false);
   const [isRatingRider, setIsRatingRider] = useState(false);
   const [isRequestingReport, setIsRequestingReport] = useState(false);
   const submittingRef = useRef(false);
   const updatingStepRef = useRef(false);
   const endingRef = useRef(false);
+  const cancellingRef = useRef(false);
   const ratingRef = useRef(false);
+  const selfCancelledTripId = useRef<string | null>(null);
 
   const captainId = user?.uid || '';
+
+  const clearPendingOffer = useCallback(() => {
+    if (pendingOfferTimeoutRef.current) {
+      clearTimeout(pendingOfferTimeoutRef.current);
+      pendingOfferTimeoutRef.current = null;
+    }
+    setPendingOfferRequestId(null);
+  }, []);
+
+  useEffect(() => {
+    if (driverStatus === 'idle') {
+      clearPendingOffer();
+    }
+  }, [driverStatus, clearPendingOffer]);
+
+  // Checks whether the captain's pending offer request is still active on the radar.
+  // If the rider cancels the trip, accepts an offer, or the request expires from captain_radar_requests,
+  // clears the pending state so the captain can bid on other requests.
+  useEffect(() => {
+    if (!pendingOfferRequestId || !captainId) return;
+    let isCancelled = false;
+
+    const checkStillPending = async () => {
+      const { data, error } = await supabase
+        .from('captain_radar_requests')
+        .select('id, created_at')
+        .eq('id', pendingOfferRequestId)
+        .maybeSingle();
+
+      if (isCancelled) return;
+
+      if (error || !data) {
+        clearPendingOffer();
+        return;
+      }
+
+      const row = data as Record<string, unknown>;
+      const createdAt = row.created_at ? new Date(row.created_at as string).getTime() : 0;
+      if (createdAt > 0 && Date.now() - createdAt > 240_000) {
+        clearPendingOffer();
+      }
+    };
+
+    const intervalId = window.setInterval(() => void checkStillPending(), 3_000);
+    void checkStillPending();
+
+    return () => {
+      isCancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [pendingOfferRequestId, captainId, clearPendingOffer]);
 
   const cleanUpAndReset = useCallback(() => {
     setActiveReq(null);
     setAcceptedRider(null);
+    setHandshakeAt(null);
+    selfCancelledTripId.current = null;
+    clearPendingOffer();
     setDriverStatus?.('active');
-  }, [setDriverStatus]);
+  }, [clearPendingOffer, setDriverStatus]);
 
   const loadAcceptedRequest = useCallback(async (requestId: string) => {
     const { data, error } = await supabase
@@ -47,6 +157,8 @@ export function useDriverTransactions(
     if (!trip) throw new Error('ride_request_missing_required_fields');
 
     setActiveReq(trip);
+    setHandshakeAt(Date.now());
+    clearPendingOffer();
     setDriverStatus?.('busy');
 
     if (trip.riderId) {
@@ -61,7 +173,7 @@ export function useDriverTransactions(
         setAcceptedRider({
           uid: String(row.id),
           role: 'rider',
-          name: String(row.full_name || 'راكب'),
+          name: String(row.full_name || 'Rider'),
           phone: String(row.phone || ''),
           governorate: String(row.governorate_id || ''),
           district: String(row.district_id || ''),
@@ -69,7 +181,13 @@ export function useDriverTransactions(
         });
       }
     }
-  }, [setDriverStatus]);
+  }, [clearPendingOffer, setDriverStatus]);
+
+  useEffect(() => {
+    return () => {
+      if (pendingOfferTimeoutRef.current) clearTimeout(pendingOfferTimeoutRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (!activeRequest?.id) return;
@@ -90,6 +208,14 @@ export function useDriverTransactions(
 
           const status = String(row.status || '').toUpperCase();
           if (status === 'COMPLETED' || status === 'CANCELLED') {
+            if (status === 'CANCELLED' && selfCancelledTripId.current !== activeRequest.id) {
+              toast({
+                title: t('tripCancelledTitle'),
+                description: t('tripCancelledDesc'),
+                variant: 'warning',
+                duration: 12000,
+              });
+            }
             cleanUpAndReset();
             return;
           }
@@ -138,12 +264,55 @@ export function useDriverTransactions(
     };
   }, [captainId, loadAcceptedRequest]);
 
-  const submitOffer = useCallback(async (payload: { tripId: string; offerPrice: number }, rejectRequest: (tripId: string) => void) => {
+  // Resync on mount/reload — `activeRequest` otherwise only ever populates via
+  // the realtime channel above (a live "offer accepted" event), so a reload
+  // mid-trip previously lost all trace of it even though it's still active on
+  // the server. Look up the captain's own still-open request and re-hydrate
+  // through the same `loadAcceptedRequest` path the live flow already uses.
+  useEffect(() => {
+    if (!captainId) return;
+    let isCancelled = false;
+
+    (async () => {
+      const { data, error } = await supabase
+        .from('ride_requests')
+        .select('id, created_at, updated_at')
+        .eq('accepted_captain_id', captainId)
+        .not('status', 'in', '("COMPLETED","CANCELLED")')
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (isCancelled || error || !data) return;
+
+      const row = data as Record<string, unknown>;
+      const requestId = String(row.id || '');
+      if (!requestId) return;
+
+      // Ignore ancient abandoned trips from previous days/sessions (> 12 hours)
+      const lastTouch = new Date((row.updated_at || row.created_at || 0) as string).getTime();
+      if (lastTouch > 0 && Date.now() - lastTouch > 12 * 60 * 60 * 1000) {
+        return;
+      }
+
+      try {
+        await loadAcceptedRequest(requestId);
+      } catch (bootstrapError) {
+        if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver transactions] active trip resync failed:', bootstrapError);
+      }
+    })();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [captainId, loadAcceptedRequest]);
+
+  const submitOffer = useCallback(async (payload: { tripId: string; offerPrice: number; waitSeconds: number; pricingMode?: 'FREE' | 'APP' | 'TAXI' }) => {
     if (!captainId) {
       toast({
         variant: 'destructive',
-        title: 'تعذر إرسال العرض',
-        description: 'يجب تسجيل الدخول بحساب كابتن قبل إرسال العرض.',
+        title: t('errorSubmitFailedTitle'),
+        description: t('errorAuthRequiredDesc'),
       });
       return false;
     }
@@ -151,8 +320,26 @@ export function useDriverTransactions(
     if (!Number.isFinite(payload.offerPrice) || payload.offerPrice <= 0) {
       toast({
         variant: 'destructive',
-        title: 'سعر غير صحيح',
-        description: 'اكتب قيمة صحيحة للعرض ثم حاول مرة أخرى.',
+        title: t('errorInvalidPriceTitle'),
+        description: t('errorInvalidPriceDesc'),
+      });
+      return false;
+    }
+
+    if (!Number.isInteger(payload.waitSeconds) || payload.waitSeconds < MIN_OFFER_WAIT_SECONDS) {
+      toast({
+        variant: 'destructive',
+        title: t('errorInvalidWaitTimeTitle'),
+        description: t('errorInvalidWaitTimeDesc', { min: MIN_OFFER_WAIT_SECONDS }),
+      });
+      return false;
+    }
+
+    if (pendingOfferRequestId && pendingOfferRequestId !== payload.tripId) {
+      toast({
+        variant: 'destructive',
+        title: t('errorPendingOfferTitle'),
+        description: t('errorPendingOfferDesc'),
       });
       return false;
     }
@@ -165,29 +352,39 @@ export function useDriverTransactions(
       const { error } = await supabase.rpc('submit_ride_offer', {
         p_request_id: payload.tripId,
         p_offer_price: Number(payload.offerPrice),
+        p_wait_seconds: payload.waitSeconds,
+        p_pricing_mode: payload.pricingMode || 'FREE',
       });
 
       if (error) throw error;
 
-      rejectRequest(payload.tripId);
+      // The card for this request stays visible on the radar (in a "pending"
+      // state, per the UI layer) instead of being hidden like an ignored
+      // request — the captain should still see their own submitted bid.
+      // Cleared after exactly `waitSeconds` — the same window the rider's
+      // offer countdown uses — so the captain is freed to bid again the
+      // moment the offer disappears from the rider's screen, not blocked
+      // for some unrelated fixed duration.
+      setPendingOfferRequestId(payload.tripId);
+      if (pendingOfferTimeoutRef.current) clearTimeout(pendingOfferTimeoutRef.current);
+      pendingOfferTimeoutRef.current = setTimeout(() => setPendingOfferRequestId(null), payload.waitSeconds * 1000);
       toast({
-        title: 'تم إرسال العرض',
-        description: 'سنخبرك فور قبول الراكب للعرض.',
+        title: t('offerSubmittedTitle'),
+      description: t('offerSubmittedDesc'),
       });
       return true;
     } catch (error) {
       if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver transactions] offer submit failed:', error);
       toast({
         variant: 'destructive',
-        title: 'تعذر إرسال العرض',
-        description: 'تحقق من الاتصال أو صلاحيات قاعدة البيانات ثم حاول مرة أخرى.',
+        ...describeOfferSubmitError((error as { message?: string })?.message, t),
       });
       return false;
     } finally {
       submittingRef.current = false;
       setIsSubmittingOffer(false);
     }
-  }, [captainId, toast]);
+  }, [captainId, pendingOfferRequestId, toast]);
 
   const markArrivedAtPickup = useCallback(async () => {
     if (!activeRequest?.id || updatingStepRef.current) return false;
@@ -202,16 +399,18 @@ export function useDriverTransactions(
       if (error) throw error;
 
       toast({
-        title: 'تم تحديث الرحلة',
-        description: 'تم تأكيد وصولك إلى نقطة الركوب.',
+        title: t('tripArrivedTitle'),
+        description: t('tripArrivedDesc'),
+        variant: 'success',
+        duration: 12000,
       });
       return true;
     } catch (error) {
       if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver transactions] arrival milestone failed:', error);
       toast({
         variant: 'destructive',
-        title: 'تعذر تحديث الرحلة',
-        description: 'لم يتم تأكيد الوصول من الخادم. حاول مرة أخرى.',
+        title: t('tripArrivedFailedTitle'),
+        description: t('tripArrivedFailedDesc'),
       });
       return false;
     } finally {
@@ -233,16 +432,18 @@ export function useDriverTransactions(
       if (error) throw error;
 
       toast({
-        title: 'بدأت الرحلة',
-        description: 'تم تأكيد بدء الرحلة من الخادم.',
+        title: t('tripStartedTitle'),
+        description: t('tripStartedDesc'),
+        variant: 'success',
+        duration: 12000,
       });
       return true;
     } catch (error) {
       if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver transactions] start trip milestone failed:', error);
       toast({
         variant: 'destructive',
-        title: 'تعذر بدء الرحلة',
-        description: 'لم يتم تأكيد بدء الرحلة من الخادم. حاول مرة أخرى.',
+        title: t('tripStartedFailedTitle'),
+        description: t('tripStartedFailedDesc'),
       });
       return false;
     } finally {
@@ -267,15 +468,17 @@ export function useDriverTransactions(
         requestId: activeRequest.id,
         captainId,
         riderId: activeRequest.riderId,
-        destination: activeRequest.dropoff || 'وجهة الرحلة',
+        destination: activeRequest.dropoff || 'Destination',
         finalFare: Number(activeRequest.offerPrice || 0),
         completedAt: Date.now(),
         purgeAt: Date.now() + 72 * 60 * 60 * 1000,
       });
 
       toast({
-        title: 'تم إنهاء الرحلة',
-        description: 'تم حفظ الرحلة بعد تأكيد الخادم.',
+        title: t('tripEndedTitle'),
+        description: t('tripEndedDesc'),
+        variant: 'success',
+        duration: 12000,
       });
       cleanUpAndReset();
       return true;
@@ -301,8 +504,8 @@ export function useDriverTransactions(
       }
       toast({
         variant: 'destructive',
-        title: 'تعذر إنهاء الرحلة',
-        description: 'لم يقبل الخادم إنهاء الرحلة حالياً. حاول مرة أخرى.',
+        title: t('tripEndedFailedTitle'),
+        description: t('tripEndedFailedDesc'),
       });
       return false;
     } finally {
@@ -311,45 +514,99 @@ export function useDriverTransactions(
     }
   }, [activeRequest, captainId, cleanUpAndReset, toast]);
 
-  const rateAndFinishTrip = useCallback(async (rating: number) => {
-    if (!activeRequest?.id || !activeRequest.riderId || ratingRef.current) return;
-    ratingRef.current = true;
-    setIsRatingRider(true);
+  const cancelActiveTrip = useCallback(async () => {
+    if (!activeRequest?.id || cancellingRef.current) return false;
+    cancellingRef.current = true;
+    setIsCancellingTrip(true);
+    
+    const tripId = activeRequest.id;
+    selfCancelledTripId.current = tripId;
 
     try {
-      const { error } = await supabase.rpc('submit_ride_rating', {
-        p_request_id: activeRequest.id,
-        p_captain_id: activeRequest.riderId,
-        p_rating_value: Math.min(5, Math.max(1, Math.round(rating))),
+      const { error } = await supabase.rpc('captain_cancel_active_trip', {
+        p_request_id: tripId,
       });
 
       if (error) throw error;
 
       toast({
-        title: 'تم حفظ التقييم',
-        description: 'شكراً لك، تم تحديث تقييم الرحلة من الخادم.',
+        title: t('tripCancelledTitle'),
+        description: t('tripCancelledByCaptainDesc'),
+        variant: 'warning',
+        duration: 12000,
       });
       cleanUpAndReset();
+      return true;
     } catch (error) {
-      if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver transactions] rating failed:', error);
+      if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver transactions] cancel trip failed:', error);
+      if (isAlreadyClosedTripError(error)) {
+        cleanUpAndReset();
+        return true;
+      }
+      if (selfCancelledTripId.current === tripId) {
+        selfCancelledTripId.current = null;
+      }
       toast({
         variant: 'destructive',
-        title: 'تعذر حفظ التقييم',
-        description: 'لم يقبل الخادم التقييم حالياً. يمكنك المحاولة لاحقاً.',
+        title: t('tripCancelFailedTitle'),
+        description: t('tripCancelFailedDesc'),
       });
+      return false;
+    } finally {
+      cancellingRef.current = false;
+      setIsCancellingTrip(false);
+    }
+  }, [activeRequest?.id, cleanUpAndReset, toast]);
+
+  /**
+   * The captain rates the rider through DriverRatingModal (captain-view renders it on
+   * screen === 'RATING_MODAL'), which writes the detailed criteria to `reviews`. This hook
+   * only has to close the trip out afterwards.
+   *
+   * It used to call the submit_ride_rating RPC with p_captain_id = riderId, which that
+   * function rejects unconditionally — it raises `not_request_owner` for any caller that is
+   * not the request's rider, and a captain never is. So it always failed, and had it ever
+   * succeeded it would have written the rider's id into rider_ratings.captain_id.
+   */
+  const rateAndFinishTrip = useCallback(async () => {
+    if (!activeRequest?.id || ratingRef.current) return;
+    ratingRef.current = true;
+    setIsRatingRider(true);
+
+    try {
       cleanUpAndReset();
     } finally {
       ratingRef.current = false;
       setIsRatingRider(false);
     }
-  }, [activeRequest?.id, activeRequest?.riderId, cleanUpAndReset, toast]);
+  }, [activeRequest?.id, cleanUpAndReset]);
 
   const requestWeeklyReport = useCallback(async () => {
     setIsRequestingReport(true);
     try {
+      const report = await generateWeeklyReport();
+
+      if (!report.success) {
+        // COURT_001 = no new ratings since the last report, COURT_002 = still inside the
+        // 72h disciplinary lock. Both are legitimate answers, not failures.
+        toast({
+          title: t(`rank${report.rank}`) ?? report.rank,
+          description: report.message,
+        });
+        return;
+      }
+
+      const { averageRating, heartCount, newRank } = report.stats;
       toast({
-        title: 'التقرير غير متاح حالياً',
-        description: 'سيتم ربط تقارير الأداء التفصيلية بعد اكتمال لوحة الإدارة.',
+        title: t('rankLabel', { rank: t(`rank${newRank}`) ?? newRank }),
+        description: t('rankStats', { rating: Number(averageRating).toFixed(2), hearts: heartCount }),
+      });
+    } catch (error: any) {
+      if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver transactions] weekly report failed:', error);
+      toast({
+        variant: 'destructive',
+        title: t('reportFailedTitle'),
+        description: error?.message || t('reportFailedDesc'),
       });
     } finally {
       setIsRequestingReport(false);
@@ -359,6 +616,8 @@ export function useDriverTransactions(
   return useMemo(() => ({
     activeRequest,
     acceptedRider,
+    handshakeAt,
+    pendingOfferRequestId,
     submitOffer,
     isSubmittingOffer,
     markArrivedAtPickup,
@@ -366,6 +625,8 @@ export function useDriverTransactions(
     isUpdatingTripStep,
     endTrip,
     isEndingTrip,
+    cancelActiveTrip,
+    isCancellingTrip,
     rateAndFinishTrip,
     isRatingRider,
     requestWeeklyReport,
@@ -373,13 +634,17 @@ export function useDriverTransactions(
   }), [
     activeRequest,
     acceptedRider,
+    cancelActiveTrip,
     endTrip,
+    handshakeAt,
+    isCancellingTrip,
     isEndingTrip,
     isRatingRider,
     isRequestingReport,
     isSubmittingOffer,
     isUpdatingTripStep,
     markArrivedAtPickup,
+    pendingOfferRequestId,
     rateAndFinishTrip,
     requestWeeklyReport,
     startTrip,
@@ -393,22 +658,44 @@ function mapRideRequestToTrip(row: RideRequestRow | null): Trip | null {
   const riderId = String(row.rider_id || '');
   const originLat = toNumber(row.origin_lat);
   const originLng = toNumber(row.origin_lng);
-  if (!id || !riderId || originLat === null || originLng === null) return null;
+  if (!id || !riderId || !isValidCoordinatePair(originLat, originLng)) return null;
+
+  const safeOriginLat = originLat as number;
+  const safeOriginLng = originLng as number;
+  const pickupGoogleMapsUrl = normalizeExternalMapUrl(row.origin_google_maps_url) || buildGoogleMapsUrl(safeOriginLat, safeOriginLng) || undefined;
+  const estimatedDistance = firstPositiveNumber(row.estimated_distance_km, row.route_distance_km, row.trip_distance_km);
+  const estimatedTime = firstPositiveNumber(row.estimated_duration_minutes, row.route_duration_minutes, row.trip_duration_minutes);
+  const pickupEtaMinutes = firstPositiveNumber(row.pickup_eta_minutes, row.pickup_eta, row.pickup_eta_min, row.eta);
+  const destinationLat = toNumber(row.destination_lat);
+  const destinationLng = toNumber(row.destination_lng);
 
   return {
     id,
     riderId,
     driverId: String(row.accepted_captain_id || ''),
     status: mapRideRequestStatusToTripStatus(row.status),
-    pickupCoords: { lat: originLat, lng: originLng },
-    exactPickupCoords: { lat: originLat, lng: originLng },
+    pickupCoords: { lat: safeOriginLat, lng: safeOriginLng },
+    exactPickupCoords: { lat: safeOriginLat, lng: safeOriginLng },
+    pickupLabel: String(row.origin_address || ''),
+    pickupGoogleMapsUrl,
+    pickupLocationIsApproximate: false,
     h3Index: String(row.origin_h3 || ''),
     gridId: String(row.origin_h3 || id),
-    dropoff: String(row.destination_address_ar || row.destination_address || 'وجهة الراكب'),
-    estimatedDistance: 0,
-    estimatedTime: 0,
+    dropoff: String(row.destination_address_ar || row.destination_address || 'Destination'),
+    dropoffCoords: isValidCoordinatePair(destinationLat, destinationLng)
+      ? { lat: destinationLat as number, lng: destinationLng as number }
+      : undefined,
+    estimatedDistance: estimatedDistance ?? undefined,
+    estimatedTime: estimatedTime ?? undefined,
+    pickup_eta_minutes: pickupEtaMinutes ?? undefined,
     offerPrice: toNumber(row.final_fare) ?? toNumber(row.offered_fare) ?? toNumber(row.offer_price) ?? toNumber(row.server_estimated_fare) ?? undefined,
     createdAt: String(row.created_at || ''),
+    acceptedAtMs: toEpochMs(row.accepted_at) || undefined,
+    arrivedAtMs: toEpochMs(row.arrived_at) || undefined,
+    startedAtMs: toEpochMs(row.started_at) || undefined,
+    pricingPreference: (['APP', 'TAXI', 'FREE'].includes(String(row.pricing_preference || '').toUpperCase())
+      ? String(row.pricing_preference).toUpperCase() as 'APP' | 'TAXI' | 'FREE'
+      : null),
   };
 }
 
@@ -429,6 +716,14 @@ function mapRideRequestStatusToTripStatus(value: unknown): Trip['status'] {
 function toNumber(value: unknown) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function firstPositiveNumber(...values: unknown[]) {
+  for (const value of values) {
+    const parsed = toNumber(value);
+    if (parsed !== null && parsed > 0) return parsed;
+  }
+  return null;
 }
 
 function isAlreadyClosedTripError(error: unknown) {

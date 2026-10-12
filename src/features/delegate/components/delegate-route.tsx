@@ -4,10 +4,12 @@ import dynamic from 'next/dynamic';
 import { RouteLoading } from '@/shared/components/layout/route-loading';
 import { RoleAccessGate } from '@/shared/components/layout/role-access-gate';
 import { useAuth } from '@/features/auth/contract';
+import { useTranslations } from "next-intl";
 
 const DelegateWorkspace = dynamic(
   () => import('./delegate-workspace').then((module) => module.DelegateWorkspace),
-  { loading: () => <RouteLoading label="ط¬ط§ط±ظٹ طھط­ظ…ظٹظ„ ظ„ظˆط­ط© ط§ظ„ظ…ظ†ط¯ظˆط¨..." /> },
+  { loading: function Loading() {
+      const tAuto = useTranslations('auto'); const t = useTranslations('auto'); return <RouteLoading label={tAuto('key_ac21beff')} />; } },
 );
 
 const styles = {
@@ -15,12 +17,14 @@ const styles = {
 } as const;
 
 export function DelegateRoute() {
+    const tAuto = useTranslations('auto');
+    const t = useTranslations('auto');
   const { loading, user } = useAuth();
   return (
     <main className={styles.root} data-delegate-route>
-      {loading ? <RouteLoading label="جاري التحقق من الجلسة..." /> : user?.role === 'delegate'
+      {loading ? <RouteLoading label={tAuto('key_7588d11e')} /> : user?.role === 'delegate'
         ? <DelegateWorkspace />
-        : <RoleAccessGate title="لوحة المندوب" body="سجّل الدخول بحساب مندوب للوصول إلى المهام والعمولات." />}
+        : <RoleAccessGate title={tAuto('key_729b322e')} body={tAuto('key_cdd1f760')} />}
     </main>
   );
 }

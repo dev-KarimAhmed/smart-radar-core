@@ -1,4 +1,4 @@
-import type { CaptainRank } from '../components/captain-offer-card';
+import type { CaptainRank } from '../components/offer-card/offer-card-shared';
 import { firstDisplayString } from './rider-view-format';
 
 export interface OfferPresentationLabels {
@@ -14,6 +14,7 @@ export interface OfferPresentationLabels {
 
 export function getOfferCaptainName(offer: any, labels: Pick<OfferPresentationLabels, 'fallbackCaptainName'>) {
   return firstDisplayString(
+    offer?.captain?.nickname,
     offer?.captain?.full_name,
     offer?.captain?.name,
     offer?.driverName,
@@ -73,7 +74,12 @@ export function toCaptainOfferRank(value: unknown): CaptainRank {
   if (normalized.includes('PLATINUM') || normalized.includes('بلات')) return 'PLATINUM';
   if (normalized.includes('GOLD') || normalized.includes('ذهب')) return 'GOLD';
   if (normalized.includes('BRONZE') || normalized.includes('برون')) return 'BRONZE';
-  return 'SILVER';
+  if (normalized.includes('SILVER') || normalized.includes('فض')) return 'SILVER';
+  // BRONZE is the founding rank every captain starts at ("نقطة البداية لجميع الكباتن
+  // الجدد"). Falling back to SILVER handed an unranked or unrecognised captain a free
+  // promotion — a silver trust badge in the auction and a higher sort weight than a real
+  // BRONZE captain who had earned their way there.
+  return 'BRONZE';
 }
 
 export function getOfferVehicleSummary(offer: any, labels: Pick<OfferPresentationLabels, 'notAvailable'>) {

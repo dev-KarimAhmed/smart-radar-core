@@ -9,6 +9,8 @@ import { PersonalStep } from './steps/personal-step';
 import { AdminStep } from './steps/admin-step';
 import { useAuth } from '@/hooks/use-auth';
 import { useAuthLocation } from '@/lib/auth-routing';
+import { CaptainOnboarding } from '@/features/captain/contract';
+import { useTranslations } from "next-intl";
 
 const styles = {
   style128_1: "min-h-screen bg-[#0B0F19] flex flex-col justify-center items-center p-4 relative overflow-hidden font-sans",
@@ -46,11 +48,15 @@ const styles = {
 } as const;
 
 
-const isStrictDevelopment =
-  (globalThis as any).process?.env?.NODE_ENV === 'development' ||
-  ((process.env.NODE_ENV !== 'production') && process.env.MODE === 'development');
+// Same hydration hazard as in use-registration.tsx: `globalThis.process?.env?.NODE_ENV` is a
+// runtime lookup the bundler cannot replace, so it read true on the server and false in the
+// browser — and this value gates rendered output. The literal expression is inlined at build
+// time and therefore agrees on both sides.
+const isStrictDevelopment = process.env.NODE_ENV === 'development';
 
 function LoginOrchestrator() {
+    const tAuto = useTranslations('auto');
+    const t = useTranslations('auto');
   const { setRole, setAuthMode, handleLogoTap } = useRegistration();
   const { loginAsMockUser } = useAuth();
   const location = useAuthLocation();
@@ -72,12 +78,12 @@ function LoginOrchestrator() {
         uid: 'dev-rider-001',
         phone: '+962790000000',
         role: 'rider',
-        name: 'راكب تجريبي',
-        governorate: 'عمّان',
+        name: tAuto('key_b5f2617a'),
+        governorate: tAuto('key_c20836dc'),
         countryId: 1,
-        currencyAr: 'د.أ',
+        currencyAr: tAuto('key_a13e6dc9'),
         currencyEn: 'JOD',
-        district: 'الجامعة',
+        district: tAuto('key_1aacb23c'),
         isBufferActive: false,
         rating: 5.0
       });
@@ -86,9 +92,9 @@ function LoginOrchestrator() {
         uid: 'dev-driver-001',
         phone: '+962791111111',
         role: 'driver',
-        name: 'سائق تجريبي',
-        governorate: 'عمّان',
-        district: 'الجامعة',
+        name: tAuto('key_f88ba116'),
+        governorate: tAuto('key_c20836dc'),
+        district: tAuto('key_1aacb23c'),
         isBufferActive: false,
         status: 'idle',
         rating: 4.9,
@@ -104,7 +110,7 @@ function LoginOrchestrator() {
         },
         affiliation: {
           type: 'independent',
-          name: 'مستقل'
+          name: tAuto('key_409e38e8')
         }
       });
     } else if (roleType === 'admin') {
@@ -112,9 +118,9 @@ function LoginOrchestrator() {
         uid: 'dev-admin-001',
         phone: '+962792222222',
         role: 'admin',
-        name: 'مشرف تجريبي',
-        governorate: 'عمّان',
-        district: 'الجامعة',
+        name: tAuto('key_78278817'),
+        governorate: tAuto('key_c20836dc'),
+        district: tAuto('key_1aacb23c'),
         isBufferActive: false,
         rating: 5.0
       });
@@ -123,12 +129,12 @@ function LoginOrchestrator() {
         uid: 'dev-advertiser-001',
         phone: '+962793333333',
         role: 'advertiser',
-        name: 'معلن تجريبي',
-        governorate: 'عمّان',
-        district: 'الجامعة',
+        name: tAuto('key_f2d3c89f'),
+        governorate: tAuto('key_c20836dc'),
+        district: tAuto('key_1aacb23c'),
         isBufferActive: false,
         rating: 5.0,
-        companyName: 'شركة إعلانات تجريبية',
+        companyName: tAuto('key_fd12b08f'),
         commercialRegister: 'CR-88294-A',
         adLicense: 'LIC-990-2026',
         businessType: 'commercial'
@@ -138,9 +144,9 @@ function LoginOrchestrator() {
         uid: 'dev-delegate-001',
         phone: '+962794444444',
         role: 'delegate',
-        name: 'مندوب تجريبي',
-        governorate: 'عمّان',
-        district: 'وادي السير',
+        name: tAuto('key_3df54374'),
+        governorate: tAuto('key_c20836dc'),
+        district: tAuto('key_161b5e38'),
         isBufferActive: false,
         rating: 4.8,
         referralCode: 'RAD-JOR-777',
@@ -153,6 +159,11 @@ function LoginOrchestrator() {
   // Full-screen pages carry their own layout.
   if (location.view === 'role') {
     return <RoleStep />;
+  }
+
+  // Captain sign-up uses the dedicated onboarding flow and persists both auth and profile data.
+  if (location.view === 'register' && location.role === 'driver') {
+    return <CaptainOnboarding />;
   }
 
   if (location.view === 'login' || location.view === 'register') {
@@ -197,11 +208,11 @@ function LoginOrchestrator() {
         {/* Step title */}
         <div className={styles.style162_14}>
           <h2 className={styles.style163_15}>
-            دخول المشرف
-          </h2>
+            {tAuto('key_99bbe84a')}
+                                </h2>
           <p className={styles.style166_16}>
-            أدخل بيانات اعتماد المشرف
-          </p>
+            {tAuto('key_97503f81')}
+                                </p>
         </div>
 
         <div>
@@ -212,11 +223,11 @@ function LoginOrchestrator() {
             <div className={styles.style176_17}>
               <div className={styles.style177_18}>
                 <span className={styles.style178_19}>
-                  اختصارات التجربة
-                </span>
+                  {tAuto('key_c7f74e6a')}
+                                                  </span>
                 <p className={styles.style181_20}>
-                  أزرار مخصصة للتجربة السريعة أثناء التطوير.
-                </p>
+                  {tAuto('key_960ae63d')}
+                                                  </p>
               </div>
               <div className={styles.style185_21}>
                 <button
@@ -225,7 +236,7 @@ function LoginOrchestrator() {
                   className={styles.style189_22}
                 >
                   <UserCheck className={styles.style191_23} />
-                  <span>راكب تجريبي</span>
+                  <span>{tAuto('key_b5f2617a')}</span>
                 </button>
                 <button
                   type="button"
@@ -233,7 +244,7 @@ function LoginOrchestrator() {
                   className={styles.style197_24}
                 >
                   <Car className={styles.style199_25} />
-                  <span>سائق تجريبي</span>
+                  <span>{tAuto('key_f88ba116')}</span>
                 </button>
                 <button
                   type="button"
@@ -241,7 +252,7 @@ function LoginOrchestrator() {
                   className={styles.style205_26}
                 >
                   <Key className={styles.style207_27} />
-                  <span>مشرف تجريبي</span>
+                  <span>{tAuto('key_78278817')}</span>
                 </button>
                 <button
                   type="button"
@@ -249,7 +260,7 @@ function LoginOrchestrator() {
                   className={styles.style213_28}
                 >
                   <Megaphone className={styles.style215_29} />
-                  <span>معلن تجريبي</span>
+                  <span>{tAuto('key_f2d3c89f')}</span>
                 </button>
                 <button
                   type="button"
@@ -257,7 +268,7 @@ function LoginOrchestrator() {
                   className={styles.style221_30}
                 >
                   <Users className={styles.style223_31} />
-                  <span>مندوب تجريبي</span>
+                  <span>{tAuto('key_3df54374')}</span>
                 </button>
               </div>
             </div>
@@ -266,7 +277,7 @@ function LoginOrchestrator() {
 
         {/* Footer */}
         <div className={styles.style232_32}>
-          <p>© 2026 الرادار الذكي. جميع الحقوق محفوظة.</p>
+          <p>{tAuto('key_0bcf6815')}</p>
         </div>
       </div>
     </div>

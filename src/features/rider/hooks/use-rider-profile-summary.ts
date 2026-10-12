@@ -22,10 +22,16 @@ export function useRiderProfileSummary(
   language: AppLanguage,
   countryConfig: CountryCurrencyConfig | null,
   locationStatus: RiderLocationStatus,
+  liveCurrencyCode?: string,
 ) {
   const t = useTranslations('riderView');
 
-  const currencyLabel = getCurrencyLabel(countryConfig, user, language);
+  // Prefer the currency for the rider's actual live GPS position over the
+  // one tied to their account's registered country — only once a real GPS
+  // fix (not a country/district fallback) confirms where they physically are.
+  const currencyLabel = locationStatus === 'live' && liveCurrencyCode
+    ? liveCurrencyCode
+    : getCurrencyLabel(countryConfig, user, language);
 
   const riderProfile = React.useMemo(() => {
     const ratingValue =

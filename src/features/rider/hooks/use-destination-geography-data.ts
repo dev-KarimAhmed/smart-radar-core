@@ -1,12 +1,6 @@
 import React from 'react';
 import { useTranslations } from 'next-intl';
 import { supabase } from '@/lib/supabase-client';
-import {
-  findDistrictForGeography,
-  findGovernorateForGeography,
-  findNearestDistrict,
-} from '@/shared/services/destination-geography';
-import type { ResolvedLocationGeography } from '@/shared/services/google-maps-location';
 import { buildDistrictLoadKey } from '../services/rider-district-query';
 import {
   normalizeDistricts,
@@ -40,8 +34,6 @@ export function useDestinationGeographyData(
   const [isLoadingDistricts, setIsLoadingDistricts] = React.useState(false);
   const [destinationDataError, setDestinationDataError] = React.useState<string | null>(null);
   const [externalLocationContext, setExternalLocationContext] = React.useState<ExternalLocationContext | null>(null);
-  const pendingConfirmedGeographyRef = React.useRef<ResolvedLocationGeography | null>(null);
-  const pendingConfirmedLocationRef = React.useRef<RiderLocation | null>(null);
   const t = useTranslations('riderView');
 
   const selectedGovernorate = React.useMemo(
@@ -56,9 +48,26 @@ export function useDestinationGeographyData(
   });
 
   const selectedDistrict = React.useMemo(() => {
-    const direct = destinationDistricts.find((district) => district.id === draftDestinationId);
-    return direct || destinationDistricts[0] || null;
-  }, [destinationDistricts, draftDestinationId]);
+    if (draftDestinationId) {
+      const direct = destinationDistricts.find((district) => district.id === draftDestinationId);
+      if (direct) return direct;
+    }
+    if (destinationPinLocation && destinationPinLocation.lat !== 0 && destinationPinLocation.lng !== 0) {
+      const pinId = `map:${destinationPinLocation.lat.toFixed(5)}-${destinationPinLocation.lng.toFixed(5)}`;
+      return {
+        id: pinId,
+        numericId: 0,
+        governorateId: externalLocationContext?.governorate ? selectedGovernorateId || 'map' : 'map',
+        governorateAr: externalLocationContext?.governorate || '',
+        governorateEn: externalLocationContext?.governorate || '',
+        districtAr: externalLocationContext?.district || externalLocationContext?.placeName || 'موقع محدد على الخريطة',
+        districtEn: externalLocationContext?.district || externalLocationContext?.placeName || 'Pinned Map Location',
+        anchor: destinationPinLocation,
+        tortuosityFactor: 1.3,
+      };
+    }
+    return null;
+  }, [destinationDistricts, draftDestinationId, destinationPinLocation, externalLocationContext, selectedGovernorate, selectedGovernorateId]);
 
   const profileDistrict = React.useMemo(() => {
     const profileDistrictId = String(user?.district || '');
@@ -166,26 +175,8 @@ export function useDestinationGeographyData(
         const options = normalizeDistricts(data, selectedGovernorate, (id) => t('destination.districtFallback', { id }));
         setDestinationDistricts(options);
 
-        const confirmedDistrict = findDistrictForGeography(
-          options,
-          pendingConfirmedGeographyRef.current || undefined,
-        ) || (
-          pendingConfirmedLocationRef.current
-            ? findNearestDistrict(options, pendingConfirmedLocationRef.current)
-            : null
-        );
-        if (confirmedDistrict) {
-          pendingConfirmedGeographyRef.current = null;
-          pendingConfirmedLocationRef.current = null;
-        }
-        const profileDistrictId = String(user?.district || '');
-        const preferred = confirmedDistrict
-          || options.find((district) => district.id === profileDistrictId)
-          || options.find((district) => district.anchor)
-          || options[0]
-          || null;
-        setDraftDestinationId(preferred?.id || '');
-        if (!preferred) setDestinationDataError(t('destination.noDistrictsAvailableError'));
+        setDraftDestinationId('');
+        if (options.length === 0) setDestinationDataError(t('destination.noDistrictsAvailableError'));
       } catch (error) {
         if (!active) return;
         if ((process.env.NODE_ENV !== 'production')) console.warn('[Rider Destinations: Districts]', error);
@@ -210,15 +201,20 @@ export function useDestinationGeographyData(
     setDestinationDistricts((current) => current.filter((item) => !item.id.startsWith('google:')));
   }, []);
 
-  // Used by the ride-request draft reset (cancel/send) — clears selection too.
+  // Used by the ride-request draft reset (cancel/send, and trip completion) —
+  // returns the governorate back to the account's own default and clears the draft destination.
   const reset = React.useCallback(() => {
     clearExternalEntries();
-    setSelectedGovernorateId('');
+    const profileGovernorateId = String(user?.governorate || '');
+    const preferredGovernorate =
+      destinationGovernorates.find((governorate) => governorate.id === profileGovernorateId)
+      || destinationGovernorates[0]
+      || null;
+    const nextGovernorateId = preferredGovernorate?.id || '';
+    setSelectedGovernorateId(nextGovernorateId);
     setDraftDestinationId('');
     setDestinationDataError(null);
-    pendingConfirmedGeographyRef.current = null;
-    pendingConfirmedLocationRef.current = null;
-  }, [clearExternalEntries]);
+  }, [clearExternalEntries, destinationGovernorates, user?.governorate]);
 
   return {
     activeCountryId,
@@ -238,8 +234,6 @@ export function useDestinationGeographyData(
     selectedGovernorate,
     selectedDistrict,
     profileDistrict,
-    pendingConfirmedGeographyRef,
-    pendingConfirmedLocationRef,
     clearExternalEntries,
     reset,
   };

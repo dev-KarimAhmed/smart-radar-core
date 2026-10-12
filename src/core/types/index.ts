@@ -1,5 +1,5 @@
 export type UserRole = 'rider' | 'driver' | 'admin' | 'advertiser' | 'delegate';
-export type AffiliationType = 'smart-app' | 'office-taxi';
+export type AffiliationType = 'smart-app' | 'office-taxi' | 'independent';
 
 export interface LastTripBuffer {
   driverId: string;
@@ -90,6 +90,8 @@ export interface Trip {
   id: string;
   serial_id?: string;
   riderId: string;
+  riderName?: string;
+  riderPhone?: string;
   driverId?: string;
   status: TripStatus;
   offerPrice?: number;
@@ -98,20 +100,32 @@ export interface Trip {
   pickupCoords: { lat: number; lng: number; };
   exactPickupCoords?: { lat: number; lng: number; };
   obfuscatedPickupCoords?: { lat: number; lng: number; };
+  pickupLabel?: string;
+  pickupGoogleMapsUrl?: string;
+  pickupLocationIsApproximate?: boolean;
   h3Index?: string;
   gridId: string;
   isRatedByRider?: boolean;
   ratingSubmittedByDriver?: number;
   offers?: Offer[];
   district?: string;
-  requiresOfficialRate?: boolean;
+  pricingPreference?: 'APP' | 'TAXI' | 'FREE' | null;
   auditLog?: string[];
   rejectedDrivers?: string[];
   riderNotification?: string; 
   estimatedDistance?: number;
   dropoff?: string;
+  dropoffCoords?: { lat: number; lng: number; };
   estimatedTime?: number;
+  acceptedAtMs?: number;
+  arrivedAtMs?: number;
+  startedAtMs?: number;
+  pickup_eta_minutes?: number;
   seats?: number;
+  riderRating?: number;
+  riderRatingCount?: number;
+  riderCompletedTrips?: number;
+  riderFavoritedMe?: boolean;
 }
 
 export interface Offer {
@@ -135,7 +149,36 @@ export interface Offer {
     distance_to_rider?: number;
     pickup_eta_minutes?: number;
     estimated_duration_minutes?: number;
-    captain?: any;
+    captain?: {
+      id?: string;
+      name?: string;
+      full_name?: string;
+      nickname?: string;
+      phone?: string;
+      avatar_url?: string;
+      trust_rating?: number;
+      tier?: string;
+      vehicle_model?: string;
+      vehicle_name?: string;
+      vehicle_color?: string;
+      plate_number?: string;
+      license_plate?: string;
+      serial_number?: string;
+      serial?: string;
+      bio?: string;
+      notes?: string;
+      [key: string]: any;
+    } | null;
+    wait_seconds?: number;
+    created_at?: string;
+    /**
+     * Itemised fare receipt stored on the offer by submit_ride_offer. Shape is defined by
+     * OfferFareBreakdown in the rider's captain-offer-card; kept loose here so this legacy
+     * core type does not have to import from a feature.
+     */
+    fare_breakdown?: Record<string, unknown> | null;
+    pricing_mode?: 'FREE' | 'APP' | 'TAXI' | string;
+    pricingMode?: 'FREE' | 'APP' | 'TAXI' | string;
 }
 
 export interface SovereignAd {
@@ -163,6 +206,7 @@ export interface SovereignAd {
   createdAt?: string;
   type?: 'image' | 'video' | string;
   role?: 'all' | 'rider' | 'driver' | string;
+  forDriver?: boolean; // public.ad_campaigns.for_driver — true routes the ad to captains
   geo?: {
     governorate?: string;
     district?: string;

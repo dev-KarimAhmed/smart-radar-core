@@ -1,13 +1,16 @@
+import dotenv from 'dotenv';
+dotenv.config({ path: '.env.local' });
+dotenv.config();
+
 import express from 'express';
 import path from 'path';
 import crypto from 'crypto';
 import next from 'next';
-import { extractCoordsLocally } from './src/lib/sovereign-digger';
-import dns from 'dns';
 import { db } from './src/lib/firebase';
 import { doc, getDoc, updateDoc, arrayUnion, addDoc, collection, query, where, getDocs, limit, setDoc } from 'firebase/firestore';
 import fs from 'fs';
-import { cleanupRouter } from './src/server/api/cleanup';
+import { requireRole } from './src/server/api/supabase-identity';
+import { passwordResetRouter } from './src/server/api/password-reset';
 
 // Helper to load firebase config securely on the server
 const getFirebaseApiKey = (): string => {
@@ -52,7 +55,7 @@ async function startServer() {
   await nextApp.prepare();
 
   const app = express();
-  const PORT = 3000;
+  const PORT = 3000
 
   // Real-time IP-based Sliding Window Rate Limiter (Zone B)
   const rateLimitMap = new Map<string, { timestamps: number[] }>();
@@ -62,7 +65,7 @@ async function startServer() {
   const rateLimiterMiddleware = (req: express.Request, res: express.Response, next: express.NextFunction) => {
     const ip = (req.headers['x-forwarded-for'] as string || req.socket.remoteAddress || 'unknown-ip').split(',')[0].trim();
     const now = Date.now();
-    
+
     let tracker = rateLimitMap.get(ip);
     if (!tracker) {
       tracker = { timestamps: [] };
@@ -87,8 +90,9 @@ async function startServer() {
   // Parse JSON bodies
   app.use(express.json());
 
-  // Mount the Cloud-Side Mechanical Shovel Router [SR-CMD-2026-0104]
-  app.use('/api', cleanupRouter);
+  // Rate limited like every other state-mutating route: /password-reset/request is public
+  // and unauthenticated, so it is the one an attacker would hammer to enumerate phones.
+  app.use('/api', rateLimiterMiddleware, passwordResetRouter);
 
   // Diagnostic Endpoint for Sovereignties (Zone D)
   app.get('/api/health', (req, res) => {
@@ -154,10 +158,10 @@ async function startServer() {
 
       console.log(`[Sovereign Core] Revived driver ${driverUid}. Token: ${approveToken}`);
 
-      return res.json({ 
-        success: true, 
-        hoursGranted: 12, 
-        message: 'تمت مصادقة وتوقيع شحنة الإحياء سحابياً بسلام' 
+      return res.json({
+        success: true,
+        hoursGranted: 12,
+        message: 'تمت مصادقة وتوقيع شحنة الإحياء سحابياً بسلام'
       });
     } catch (err: any) {
       console.error("[Revive Driver Error]:", err);
@@ -313,9 +317,9 @@ async function startServer() {
     const reqData = requesterSnap.exists() ? requesterSnap.data() : null;
     const reqRole = reqData?.role;
 
-    const isAuthorized = requesterUid === delegateId || 
-                         reqRole === 'admin' || 
-                         reqRole === 'owner';
+    const isAuthorized = requesterUid === delegateId ||
+      reqRole === 'admin' ||
+      reqRole === 'owner';
 
     if (!isAuthorized) {
       return res.status(403).json({ success: false, error: 'غير مصرح لك بتنفيذ هذه التسوية المالية.' });
@@ -336,7 +340,7 @@ async function startServer() {
 
       const data = delSnap.data();
       const rawDues = data?.pendingDues || 0;
-      
+
       if (rawDues <= 0) {
         return res.status(400).json({ success: false, error: '🚨 عطل مالي: لا توجد مستحقات مالية معلقة لتصفيتها أو صرفها لهذا المندوب حالياً!' });
       }
@@ -373,8 +377,8 @@ async function startServer() {
       }
 
       console.log(`[Sovereign Core] Cleared dues for delegate ${delegateId}. Net settled: ${withdrawableBalance}`);
-      return res.json({ 
-        success: true, 
+      return res.json({
+        success: true,
         message: 'تم تصفية وتصفير مستحقات المندوب بنجاح وتسجيل العملية في الأرشيف المالي',
         netSettled: withdrawableBalance
       });
@@ -472,17 +476,17 @@ async function startServer() {
         where('role', '==', 'driver')
       );
       const usersSnap = await getDocs(usersQuery);
-      
+
       const actualCount = usersSnap.docs.filter(docSnap => {
         const d = docSnap.data();
-        return d.referralCode === referralCode || 
-               d.referredByCode === referralCode || 
-               d.usedReferralCode === referralCode;
+        return d.referralCode === referralCode ||
+          d.referredByCode === referralCode ||
+          d.usedReferralCode === referralCode;
       }).length;
 
       // Reconcile count: if actualCount > 0, we can use actualCount, or keep current referredCount but sign it
       const finalCount = actualCount > 0 ? actualCount : (delegateData.referredCount || 0);
-      
+
       // Calculate server-side signature incorporating geography!
       const signature = generateIntegritySignatureServer(delegateId, finalCount, referralCode, homeDistrict, currentH3Cell);
 
@@ -529,7 +533,17 @@ async function startServer() {
 
   // 2. GENERATE MAGIC LINK (Server-Authoritative Ticket Inception)
   app.post('/api/generate-magic-link', rateLimiterMiddleware, async (req, res) => {
-    const { delegateId, delegateName, expiryHours, actorRole } = req.body;
+    // [SECURITY] This endpoint mints a link that logs its holder in AS the named delegate.
+    // It used to take `actorRole` from req.body — and then never even read it — so any
+    // caller could mint a login link for any delegate id. Full account takeover, reachable
+    // by anyone who could reach the port. The role now comes from the verified caller's own
+    // profile row, never from the request.
+    const authorized = await requireRole(req, ['ADMIN', 'OWNER']);
+    if (!authorized.ok) {
+      return res.status(authorized.status).json({ success: false, error: authorized.error });
+    }
+
+    const { delegateId, delegateName, expiryHours } = req.body;
     if (!delegateId || !delegateName) {
       return res.status(400).json({ success: false, error: 'المعطيات غير مكتملة لتوليد الرابط السحري' });
     }
@@ -554,7 +568,12 @@ async function startServer() {
         expiresAt,
         expiryHours: hours,
         status: 'active',
-        url: magicLinkUrl
+        url: magicLinkUrl,
+        // Who minted it. A link that logs someone in must be traceable to the admin who
+        // issued it, otherwise a takeover leaves no record of who performed it.
+        issuedByUserId: authorized.caller.userId,
+        issuedByRole: authorized.caller.role,
+        issuedAt: new Date().toISOString()
       };
 
       await addDoc(collection(db, 'delegate_links'), newLink);
@@ -634,7 +653,7 @@ async function startServer() {
   // 4. SECURE DELEGATE TASK STATE TRANSITION ENFORCER (Server-Side State Machine)
   app.post('/api/delegate-task-transition', rateLimiterMiddleware, async (req, res) => {
     let { taskId, targetStatus, delegateId, actorUid, actorRole } = req.body;
-    
+
     // Check for Authorization header first to extract verified credentials
     const authHeader = req.headers.authorization;
     let verifiedUid: string | null = null;
@@ -646,7 +665,7 @@ async function startServer() {
       if (!verifiedUid) {
         return res.status(401).json({ success: false, error: '🚨 اختراق أمني: رمز التحقق الرقمي منتهي الصلاحية أو تم التلاعب به!' });
       }
-      
+
       // Look up verified user profile
       const userRef = doc(db, 'users', verifiedUid);
       const userSnap = await getDoc(userRef);
@@ -762,287 +781,6 @@ async function startServer() {
       return res.status(500).json({ success: false, error: err.message });
     } finally {
       releaseBackendLock(lockKey);
-    }
-  });
-
-  // Safe SSRF URL validation (Zone C)
-  function isSafeUrl(targetUrl: string): boolean {
-    try {
-      const parsed = new URL(targetUrl);
-      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-        return false;
-      }
-      const hostname = parsed.hostname.toLowerCase();
-      // Block common private network loopbacks and Cloud Metadata services
-      const unsafeBlocklist = [
-        'localhost',
-        '127.0.0.1',
-        '0.0.0.0',
-        '169.254.169.254', // AWS/GCP Metadata
-        'metadata.google.internal'
-      ];
-      if (unsafeBlocklist.includes(hostname)) {
-        return false;
-      }
-      // Block GCP/AWS/Azure Private subnet classes
-      if (
-        hostname.startsWith('10.') ||
-        hostname.startsWith('192.168.') ||
-        hostname.startsWith('172.16.') ||
-        hostname.startsWith('172.17.') ||
-        hostname.startsWith('172.18.') ||
-        hostname.startsWith('172.19.') ||
-        hostname.startsWith('172.20.') ||
-        hostname.startsWith('172.21.') ||
-        hostname.startsWith('172.22.') ||
-        hostname.startsWith('172.23.') ||
-        hostname.startsWith('172.24.') ||
-        hostname.startsWith('172.25.') ||
-        hostname.startsWith('172.26.') ||
-        hostname.startsWith('172.27.') ||
-        hostname.startsWith('172.28.') ||
-        hostname.startsWith('172.29.') ||
-        hostname.startsWith('172.30.') ||
-        hostname.startsWith('172.31.')
-      ) {
-        return false;
-      }
-      return true;
-    } catch (_) {
-      return false;
-    }
-  }
-
-  // Safe IP check for DNS Rebinding blocklist
-  function isSafeIp(ip: string): boolean {
-    if (
-      ip === '127.0.0.1' ||
-      ip === '0.0.0.0' ||
-      ip === '169.254.169.254' ||
-      ip.startsWith('10.') ||
-      ip.startsWith('192.168.') ||
-      ip.startsWith('172.16.') ||
-      ip.startsWith('172.17.') ||
-      ip.startsWith('172.18.') ||
-      ip.startsWith('172.19.') ||
-      ip.startsWith('172.20.') ||
-      ip.startsWith('172.21.') ||
-      ip.startsWith('172.22.') ||
-      ip.startsWith('172.23.') ||
-      ip.startsWith('172.24.') ||
-      ip.startsWith('172.25.') ||
-      ip.startsWith('172.26.') ||
-      ip.startsWith('172.27.') ||
-      ip.startsWith('172.28.') ||
-      ip.startsWith('172.29.') ||
-      ip.startsWith('172.30.') ||
-      ip.startsWith('172.31.')
-    ) {
-      return false;
-    }
-    return true;
-  }
-
-  // Custom fetch wrapper with manual DNS lookup & verification to prevent DNS Rebinding
-  async function secureFetch(targetUrl: string, options: any = {}) {
-    const parsed = new URL(targetUrl);
-    const hostname = parsed.hostname;
-
-    // Reject outright if original URL hostname triggers safe URL filter
-    if (!isSafeUrl(targetUrl)) {
-      throw new Error('الرابط المقدم غير آمن أو ينتهك ميثاق الأمان السيادي');
-    }
-
-    const ipRegex = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/;
-    let resolvedIp = hostname;
-
-    if (!ipRegex.test(hostname)) {
-      try {
-        const lookupResult = await dns.promises.lookup(hostname, { family: 4 });
-        resolvedIp = lookupResult.address;
-      } catch (err) {
-        throw new Error(`تعذر حل العنوان لـ ${hostname}`);
-      }
-    }
-
-    if (!isSafeIp(resolvedIp)) {
-      throw new Error(`حظر أمن سيادي: العنوان الموجه له ${resolvedIp} غير آمن أو مغمور بنظام الحظر المحلي`);
-    }
-
-    // Reconstruct the URL using the resolved raw IP to fully lock the connection destination
-    parsed.hostname = resolvedIp;
-    const resolvedUrl = parsed.toString();
-
-    // Prepare headers with Host override to bypass redirect/proxy validation
-    const headers = {
-      ...(options.headers || {}),
-      'Host': hostname
-    };
-
-    // Since we fetch by IP, bypass TLS altname errors in Node sandbox
-    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
-
-    return fetch(resolvedUrl, {
-      ...options,
-      headers
-    });
-  }
-
-  // In-Memory Cache for Sovereign Digger coordinate lookup (Zone B - Zero cloud chativeness / TTL 1 hour)
-  const diggerCache = new Map<string, { coords: { lat: number; lng: number }; expiresAt: number }>();
-
-  // Self-cleaning routine for cache entries
-  setInterval(() => {
-    const now = Date.now();
-    for (const [key, value] of diggerCache.entries()) {
-      if (now > value.expiresAt) {
-        diggerCache.delete(key);
-      }
-    }
-  }, 60 * 1000); // Check and sweep expired keys every minute
-
-  // API Route for Sovereign Digger proxying to bypass CORS with rate limits
-  app.post('/api/sovereign-digger', rateLimiterMiddleware, async (req, res) => {
-    try {
-      const { shortUrl } = req.body;
-
-      if (!shortUrl || typeof shortUrl !== 'string') {
-        return res.status(400).json({ error: 'الرابط مفقود أو غير صالح' });
-      }
-
-      // Check cache first before any external request
-      const cacheKey = shortUrl.trim();
-      const cached = diggerCache.get(cacheKey);
-      if (cached && Date.now() < cached.expiresAt) {
-        console.log(`[Sovereign Cache Hit] Returning coordinates from cache for: ${cacheKey}`);
-        return res.json({ success: true, coords: cached.coords });
-      }
-
-      // Check SSRF vulnerability / validity of the target short url
-      if (!isSafeUrl(shortUrl)) {
-        console.warn(`[Sovereign Security Shield] Blocked potential SSRF attempt: ${shortUrl}`);
-        return res.status(400).json({ error: 'الرابط المقدم غير آمن أو ينتهك ميثاق الأمان السيادي' });
-      }
-
-      // Group of URLs in redirect chain
-      const urlChain: string[] = [shortUrl];
-      let currentUrl = shortUrl;
-      let hops = 0;
-
-      // Helper to store coords to cache and return response
-      const saveToCacheAndReturn = (coords: { lat: number; lng: number }) => {
-        diggerCache.set(cacheKey, {
-          coords,
-          expiresAt: Date.now() + 60 * 60 * 1000 // 1 hour TTL
-        });
-        return res.json({ success: true, coords });
-      };
-
-      // 1. Manually follow redirects with manual DNS checks (Zone A)
-      while (hops < 6) {
-        try {
-          if (!isSafeUrl(currentUrl)) break;
-
-          const response = await secureFetch(currentUrl, {
-            method: 'GET',
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-              'Accept-Language': 'en-US,en;q=0.5'
-            },
-            redirect: 'manual'
-          });
-
-          const loc = response.headers.get('location');
-          if (loc) {
-            const resolvedLoc = new URL(loc, currentUrl).toString();
-            if (isSafeUrl(resolvedLoc)) {
-              urlChain.push(resolvedLoc);
-              currentUrl = resolvedLoc;
-              hops++;
-
-              if (response.status >= 300 && response.status < 400) {
-                continue;
-              }
-            }
-          }
-        } catch (fetchErr) {
-          console.error("[Sovereign Digger hops error]:", fetchErr);
-          break;
-        }
-        break;
-      }
-
-      // 2. Scan parsed URL chain (with decodeURIComponent) (Zone A)
-      for (const url of urlChain) {
-        const decoded = decodeURIComponent(url);
-        const coords = extractCoordsLocally(decoded);
-        if (coords) {
-          console.log(`[Sovereign Digger Server Chain Success] Extracted: ${coords.lat}, ${coords.lng}`);
-          return saveToCacheAndReturn(coords);
-        }
-      }
-
-      // 3. Jettison fetch follow to scrape the final HTML safely with content-length checks (Zone A & B - zero waste)
-      try {
-        if (isSafeUrl(currentUrl)) {
-          const sizeLimit = 1 * 1024 * 1024; // Guard memory: max 1MB response limit
-          const response = await secureFetch(currentUrl, {
-            method: 'GET',
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
-            },
-            redirect: 'follow'
-          });
-
-          const contentLength = response.headers.get('content-length');
-          if (contentLength && parseInt(contentLength, 10) > sizeLimit) {
-            return res.status(413).json({ error: 'تم إلغاء العملية: حجم صفحة الإحداثيات كبير جداً ويتنكب الموارد.' });
-          }
-
-          const finalUrl = response.url;
-          // Guard final redirected URL
-          if (!isSafeUrl(finalUrl)) {
-            return res.status(400).json({ error: 'إعادة التوجيه النهائية تنتهك ميثاق الأمان السيادي' });
-          }
-
-          const htmlText = await response.text();
-          if (htmlText.length > sizeLimit) {
-            return res.status(413).json({ error: 'حجم مخرجات صفحة الإحداثيات تجاوز الحد الآمن' });
-          }
-
-          urlChain.push(finalUrl);
-
-          // Check final decoded URL
-          const decodedFinalUrl = decodeURIComponent(finalUrl);
-          const finalUrlCoords = extractCoordsLocally(decodedFinalUrl);
-          if (finalUrlCoords) {
-            return saveToCacheAndReturn(finalUrlCoords);
-          }
-
-          // Check raw and decoded HTML
-          let decodedHtmlText = htmlText;
-          try {
-            decodedHtmlText = decodeURIComponent(htmlText);
-          } catch (e) {
-            // ignore parsing error
-          }
-
-          const htmlCoords = extractCoordsLocally(htmlText) || extractCoordsLocally(decodedHtmlText);
-          if (htmlCoords) {
-            return saveToCacheAndReturn(htmlCoords);
-          }
-        }
-      } catch (finalFetchErr: any) {
-        console.error("[Sovereign Digger Final Fetch Error]:", finalFetchErr);
-      }
-
-      return res.status(404).json({ error: 'تعذر انتزاع الإحداثيات من الرابط المختصر' });
-
-    } catch (error: any) {
-      console.error("[Sovereign Digger Server General Error]:", error);
-      return res.status(500).json({ error: error.message });
     }
   });
 

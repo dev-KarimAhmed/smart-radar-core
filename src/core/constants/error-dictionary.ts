@@ -32,16 +32,20 @@ export const SOVEREIGN_ERRORS = {
 
 export type SovereignErrorCode = keyof typeof SOVEREIGN_ERRORS;
 
-export function getSovereignErrorMessage(error: any): string {
+export function getSovereignErrorMessage(error: any, tAuto?: any): string {
   const rawCode = error?.code || error?.message || (typeof error === 'string' ? error : 'SYS_UNKNOWN');
   const rawCodeStr = String(rawCode).trim().toUpperCase().replace(/_/g, '-');
 
+  const getTranslatedMessage = (code: SovereignErrorCode) => {
+    return tAuto ? tAuto(code, SOVEREIGN_ERRORS[code]) : SOVEREIGN_ERRORS[code];
+  };
+
   if (SOVEREIGN_ERR_DICTIONARY[rawCodeStr]) {
-    return SOVEREIGN_ERRORS.SYS_PERMISSION_DENIED;
+    return getTranslatedMessage('SYS_PERMISSION_DENIED');
   }
 
   if (rawCode === 'auth/operation-not-allowed') {
-    return SOVEREIGN_ERRORS.AUTH_OPERATION_NOT_ALLOWED;
+    return getTranslatedMessage('AUTH_OPERATION_NOT_ALLOWED');
   }
 
   const mapping: { [key: string]: SovereignErrorCode } = {
@@ -72,17 +76,17 @@ export function getSovereignErrorMessage(error: any): string {
   const sovereignCode: string = mapping[rawCode] || mapping[String(rawCode).toUpperCase()];
 
   if (sovereignCode && Object.prototype.hasOwnProperty.call(SOVEREIGN_ERRORS, sovereignCode)) {
-    return SOVEREIGN_ERRORS[sovereignCode as SovereignErrorCode];
+    return getTranslatedMessage(sovereignCode as SovereignErrorCode);
   }
 
   if (typeof rawCode === 'string' && rawCode.includes('auth/')) {
-    return SOVEREIGN_ERRORS.AUTH_GENERIC_FAILURE;
+    return getTranslatedMessage('AUTH_GENERIC_FAILURE');
   }
 
   if (typeof rawCode === 'string' && rawCode.includes('permission-denied')) {
-    return SOVEREIGN_ERRORS.SYS_PERMISSION_DENIED;
+    return getTranslatedMessage('SYS_PERMISSION_DENIED');
   }
 
-  return SOVEREIGN_ERRORS.SYS_UNKNOWN;
+  return getTranslatedMessage('SYS_UNKNOWN');
 }
 

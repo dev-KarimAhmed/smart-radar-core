@@ -59,7 +59,7 @@ function buildNominatimUrl(query: string, options: {
   if (options.countryIsoCode) params.set('countrycodes', options.countryIsoCode);
   if (options.biasLocation) {
     params.set('viewbox', buildViewbox(options.biasLocation));
-    params.set('bounded', '0');
+    params.set('bounded', '1');
   }
   return `https://nominatim.openstreetmap.org/search?${params.toString()}`;
 }

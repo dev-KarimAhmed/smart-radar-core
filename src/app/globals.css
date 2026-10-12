@@ -1,5 +1,21 @@
 @import "tailwindcss";
 
+@theme inline {
+  --font-sans: var(--font-almarai);
+  --font-mono: var(--font-geist-mono);
+}
+
+/* Arabic (default, dir="rtl") reads in Almarai; English (dir="ltr", toggled
+   via LocaleProvider) switches to Geist. Overriding --font-sans here means
+   every `font-sans` Tailwind utility follows the active language too. */
+html[dir="ltr"] {
+  --font-sans: var(--font-geist-sans);
+}
+
+body {
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
 @keyframes ad-river-rtl {
   from {
     transform: translateX(0);

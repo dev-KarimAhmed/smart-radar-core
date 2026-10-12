@@ -6,6 +6,7 @@ import type { MarketPulse, Trip, User as RiderUser } from '@/core/types';
 import { useDriverLifecycle } from './use-driver-lifecycle';
 import { useDriverRadar } from './use-driver-radar';
 import { useCaptainLocationPulse } from './use-captain-location-pulse';
+import { useCaptainRadarMinuteConsumption } from './use-captain-radar-minute-consumption';
 import { useDriverTransactions } from './use-driver-transactions';
 import { sovereignEventBroker } from '@/lib/event-broker';
 
@@ -20,20 +21,27 @@ interface DriverOpsContextType {
   driverStatus: DriverStatus;
   activeRequest: Trip | null;
   acceptedRider: RiderUser | null;
+  handshakeAt: number | null;
+  pendingOfferRequestId: string | null;
   isDormancyWarningVisible: boolean;
   resetDormancyTimer: () => void;
-  submitOffer: (payload: { tripId: string; offerPrice: number }) => Promise<boolean>;
+  submitOffer: (payload: { tripId: string; offerPrice: number; waitSeconds: number; pricingMode?: 'FREE' | 'APP' | 'TAXI' }) => Promise<boolean>;
   isSubmittingOffer: boolean;
   markArrivedAtPickup: () => Promise<boolean>;
   startTrip: () => Promise<boolean>;
   isUpdatingTripStep: boolean;
   endTrip: () => Promise<boolean>;
   isEndingTrip: boolean;
-  rateAndFinishTrip: (rating: number) => Promise<void>;
+  cancelActiveTrip: () => Promise<boolean>;
+  isCancellingTrip: boolean;
+  rateAndFinishTrip: () => Promise<void>;
   isRatingRider: boolean;
   isRequestListOpen: boolean;
   toggleRequestList: (open?: boolean) => void;
-  toggleDriverStatus: (desiredStatus: 'active' | 'idle') => void;
+  toggleDriverStatus: (desiredStatus: 'active' | 'idle') => Promise<boolean>;
+  /** Increments on each self-activation, so gates like the tariff modal can re-run. */
+  activationNonce: number;
+  isUpdatingStatus: boolean;
   requests: Trip[];
   driverLocation: { lat: number; lng: number } | null;
   rejectRequest: (tripId: string) => void;
@@ -60,8 +68,10 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
     driverStatus,
     setDriverStatus,
     isDormancyWarningVisible,
+    isUpdatingStatus,
     resetDormancyTimer,
     toggleDriverStatus: rawToggleDriverStatus,
+    activationNonce,
     updateDriverDoc,
   } = useDriverLifecycle(user);
 
@@ -79,7 +89,7 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
   }, [setDriverStatus, updateDriverDoc]);
 
   const toggleDriverStatus = useCallback((desiredStatus: 'active' | 'idle') => {
-    rawToggleDriverStatus(desiredStatus);
+    return rawToggleDriverStatus(desiredStatus);
   }, [rawToggleDriverStatus]);
 
   const {
@@ -100,6 +110,12 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
     location: driverLocation,
   });
 
+  useCaptainRadarMinuteConsumption({
+    user,
+    driverStatus,
+    onBundleExhausted: () => setDriverStatus('idle'),
+  });
+
   const rejectRequest = useCallback((tripId: string) => {
     rawRejectRequest(tripId);
   }, [rawRejectRequest]);
@@ -107,6 +123,8 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
   const {
     activeRequest,
     acceptedRider,
+    handshakeAt,
+    pendingOfferRequestId,
     submitOffer: rawSubmitOffer,
     isSubmittingOffer,
     markArrivedAtPickup: rawMarkArrivedAtPickup,
@@ -114,15 +132,17 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
     isUpdatingTripStep,
     endTrip: rawEndTrip,
     isEndingTrip,
+    cancelActiveTrip: rawCancelActiveTrip,
+    isCancellingTrip,
     rateAndFinishTrip: rawRateAndFinishTrip,
     isRatingRider,
     requestWeeklyReport: rawRequestWeeklyReport,
     isRequestingReport,
-  } = useDriverTransactions(user, setDriverStatus);
+  } = useDriverTransactions(user, setDriverStatus, driverStatus);
 
-  const submitOffer = useCallback(async (payload: { tripId: string; offerPrice: number }) => {
-    return rawSubmitOffer(payload, rejectRequest);
-  }, [rawSubmitOffer, rejectRequest]);
+  const submitOffer = useCallback(async (payload: { tripId: string; offerPrice: number; waitSeconds: number; pricingMode?: 'FREE' | 'APP' | 'TAXI' }) => {
+    return rawSubmitOffer(payload);
+  }, [rawSubmitOffer]);
 
   const markArrivedAtPickup = useCallback(async () => {
     return rawMarkArrivedAtPickup();
@@ -136,8 +156,12 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
     return rawEndTrip();
   }, [rawEndTrip]);
 
-  const rateAndFinishTrip = useCallback(async (rating: number) => {
-    await rawRateAndFinishTrip(rating);
+  const cancelActiveTrip = useCallback(async () => {
+    return rawCancelActiveTrip();
+  }, [rawCancelActiveTrip]);
+
+  const rateAndFinishTrip = useCallback(async () => {
+    await rawRateAndFinishTrip();
   }, [rawRateAndFinishTrip]);
 
   const requestWeeklyReport = useCallback(async () => {
@@ -169,7 +193,10 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
     driverStatus,
     activeRequest,
     acceptedRider,
+    handshakeAt,
+    pendingOfferRequestId,
     isDormancyWarningVisible,
+    isUpdatingStatus,
     resetDormancyTimer,
     submitOffer,
     isSubmittingOffer,
@@ -178,11 +205,14 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
     isUpdatingTripStep,
     endTrip,
     isEndingTrip,
+    cancelActiveTrip,
+    isCancellingTrip,
     rateAndFinishTrip,
     isRatingRider,
     isRequestListOpen,
     toggleRequestList,
     toggleDriverStatus,
+    activationNonce,
     requests,
     driverLocation,
     rejectRequest,
@@ -198,13 +228,18 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
     radarLockMessage,
   }), [
     acceptedRider,
+    activationNonce,
     activeRequest,
+    cancelActiveTrip,
     currentDistrict,
     currentH3Cell,
     driverLocation,
     driverSpeed,
     driverStatus,
     endTrip,
+    handshakeAt,
+    pendingOfferRequestId,
+    isCancellingTrip,
     isDisconnectionLockActive,
     isDormancyWarningVisible,
     isEndingTrip,
@@ -212,6 +247,7 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
     isRequestListOpen,
     isRequestingReport,
     isSubmittingOffer,
+    isUpdatingStatus,
     isUpdatingTripStep,
     loadingPulse,
     markArrivedAtPickup,

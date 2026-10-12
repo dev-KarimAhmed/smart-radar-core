@@ -1,9 +1,10 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useState, type ReactNode } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import {
   Bell,
+  Download,
   Languages,
   Loader2,
   Minus,
@@ -18,11 +19,16 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Switch } from '@/components/ui/switch';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useAuth } from '@/hooks/use-auth';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { useDriverOperations } from '@/hooks/use-driver-operations';
+import { usePwaInstall } from '@/hooks/usePwaInstall';
+import { SovereignPwaInstallModal } from '@/components/sovereign-pwa-install-modal';
+import { useNotifications } from '@/shared/hooks/use-notifications';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { useTranslations } from "next-intl";
 
 const DriverPricingCard = dynamic(
   () => import('@/components/dashboard/driver-pricing-card').then((module) => module.DriverPricingCard),
@@ -61,6 +67,8 @@ const styles = {
   shield: 'h-4 w-4 animate-pulse text-[#00ffcc]',
   roundAction: 'h-10 w-10 rounded-full hover:bg-black/20',
   srOnly: 'sr-only',
+  requestRideWrapper: 'absolute left-1/2 -translate-x-1/2 flex items-center justify-center',
+  requestRideButton: 'h-11 sm:h-12 gap-2.5 rounded-full border-2 border-[#14F5D5]/60 bg-gradient-to-r from-[#14B8A6] via-[#14F5D5] to-[#14B8A6] px-7 sm:px-9 text-base sm:text-lg font-black text-slate-950 shadow-[0_0_25px_rgba(20,245,213,0.5)] transition-all hover:scale-105 active:scale-95 cursor-pointer',
 } as const;
 
 const pulseMap = {
@@ -90,6 +98,8 @@ function PulseIndicator() {
 }
 
 function DriverCabin() {
+  const tAuto = useTranslations('auto');
+  const t = useTranslations('auto');
   const driverOps = useDriverOperations();
   const driverStatus = driverOps?.driverStatus || 'idle';
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -111,7 +121,7 @@ function DriverCabin() {
             />
           ) : null}
           <Label htmlFor="driver-status-switch" className={styles.statusLabel}>
-            {driverStatus === 'active' ? 'نشط' : isDriverBusy ? 'بمهمة' : 'خامل'}
+            {driverStatus === 'active' ? tAuto('key_8caaf953') : isDriverBusy ? tAuto('key_628d6c16') : tAuto('key_c813d1e8')}
           </Label>
         </div>
 
@@ -125,7 +135,7 @@ function DriverCabin() {
             onClick={() => window.dispatchEvent(new CustomEvent('open-captain-dashboard'))}
           >
             <Shield className={styles.shield} />
-            <span>لوحة العمليات</span>
+            <span>{tAuto('key_36099fc4')}</span>
           </Button>
           {driverOps?.toggleRequestList ? (
             <Button
@@ -167,58 +177,87 @@ function initials(name = '') {
 }
 
 export function AppHeader({ sidebar }: { sidebar?: ReactNode }) {
+  const tAuto = useTranslations('auto');
+  const t = useTranslations('auto');
   const { user, isCaptain } = useAuth();
   const { toast } = useToast();
   const { isArabic, toggleLanguage } = useDashboardLanguage();
+  const { notifications, unreadCount, hasUnread, markAllAsRead } = useNotifications();
+  const { isStandalone, canPromptNative, triggerNativeInstall, platformEnv } = usePwaInstall(isCaptain ? 'captain' : 'rider');
+  const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
+
+
+  useEffect(() => {
+    const handleOpen = () => { window.location.hash = '#notifications'; };
+    window.addEventListener('open-app-notifications', handleOpen);
+    return () => window.removeEventListener('open-app-notifications', handleOpen);
+  }, []);
 
   return (
     <div className={styles.root}>
-      <header className={styles.primary}>
+      <header className={cn(styles.primary, "relative")}>
         {sidebar && user ? (
           <Sheet>
             <SheetTrigger asChild>
               <Button
-                aria-label="فتح قائمة الحساب"
+                aria-label={tAuto('key_4541dad4')}
                 className={styles.menuButton}
                 size="icon"
                 variant="ghost"
               >
-                <Avatar className={styles.menuAvatar}>
-                  <AvatarFallback className={styles.menuFallback}>{initials(user.name)}</AvatarFallback>
-                </Avatar>
+                <div className="relative flex items-center justify-center">
+                  <Avatar className={styles.menuAvatar}>
+                    <AvatarFallback className={styles.menuFallback}>{initials(user.name)}</AvatarFallback>
+                  </Avatar>
+                  {hasUnread && (
+                    <span className="absolute -top-0.5 -end-0.5 flex h-3.5 w-3.5">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75" />
+                      <span className="relative inline-flex h-3.5 w-3.5 rounded-full bg-rose-500 ring-2 ring-[#0A0F1D]" />
+                    </span>
+                  )}
+                </div>
               </Button>
             </SheetTrigger>
-            <SheetContent className={styles.menuContent} side="right">
-              <SheetTitle className={styles.srOnly}>القائمة</SheetTitle>
-              <SheetDescription className={styles.srOnly}>قائمة حساب الراكب</SheetDescription>
+            <SheetContent className={styles.menuContent} side="right" hideClose>
+              <SheetTitle className={styles.srOnly}>{tAuto('key_426510a4')}</SheetTitle>
+              <SheetDescription className={styles.srOnly}>{tAuto('key_aa21658a')}</SheetDescription>
               {sidebar}
             </SheetContent>
           </Sheet>
         ) : <div className={styles.spacer} />}
-        <div className={styles.actions}>
-          <Button
-            size="icon"
-            variant="ghost"
-            className={styles.notification}
-            onClick={() => toast({ title: 'التنبيهات', description: 'لا توجد تنبيهات جديدة حالياً.' })}
-          >
-            <Bell className={styles.icon} />
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={toggleLanguage}
-            aria-label={isArabic ? 'Switch to English' : 'التبديل إلى العربية'}
-            title={isArabic ? 'English' : 'العربية'}
-            className={styles.language}
-          >
-            <Languages className={styles.smallIcon} />
-            <span>{isArabic ? 'EN' : 'ع'}</span>
-          </Button>
-        </div>
+
+        {user?.role === 'rider' && (
+          <div className={styles.requestRideWrapper}>
+            <Button
+              type="button"
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  if (window.location.hash && window.location.hash !== '#') {
+                    window.location.hash = '#';
+                  }
+                  window.dispatchEvent(new CustomEvent('rider-open-destination'));
+                  setTimeout(() => {
+                    window.dispatchEvent(new CustomEvent('rider-open-destination'));
+                  }, 50);
+                }
+              }}
+              className={styles.requestRideButton}
+            >
+              <span>{isArabic ? 'اطلب رحلة' : 'Request Ride'}</span>
+            </Button>
+          </div>
+        )}
+
+        <div className={styles.spacer} />
       </header>
       {user && isCaptain ? <DriverCabin /> : null}
+
+      <SovereignPwaInstallModal
+        isOpen={isInstallModalOpen}
+        onClose={() => setIsInstallModalOpen(false)}
+        isArabic={isArabic}
+        role={isCaptain ? 'captain' : 'rider'}
+      />
     </div>
   );
 }

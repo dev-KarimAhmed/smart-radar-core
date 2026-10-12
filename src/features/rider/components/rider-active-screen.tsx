@@ -14,10 +14,11 @@ import type { useTripCompletion } from '../hooks/use-trip-completion';
 import type { useSendCancelRideRequest } from '../hooks/use-send-cancel-ride-request';
 import type { useRideRequestStatusSync } from '../hooks/use-ride-request-status-sync';
 import type { useEmergencyContact } from '../hooks/use-emergency-contact';
-import type { RiderLocation } from './rider-map';
+import type { RiderLocation, RiderLocationStatus } from './rider-map';
 import { DestinationSelectionScreen } from './destination-selection-screen';
 import { ReceivingOffersScreen } from './receiving-offers-screen';
 import { TripActiveScreen } from './trip-active-screen';
+import { CaptainCancelledDialog } from './captain-cancelled-dialog';
 
 // Pure routing component — renders one of three fully-styled child screens
 // and owns no DOM/className of its own, but every .tsx file must declare a
@@ -32,6 +33,7 @@ interface CountryNameConfig {
 export interface RiderActiveScreenProps {
   isArabic: boolean;
   language: AppLanguage;
+  locationStatus?: RiderLocationStatus;
   state: RiderMachineState;
   dispatch: React.Dispatch<RiderMachineAction>;
   geography: ReturnType<typeof useDestinationGeographyData>;
@@ -50,11 +52,13 @@ export interface RiderActiveScreenProps {
   currencyLabel: string;
   selectedDraftDestination: RiderMachineState['destination'];
   selectedDestinationCoords: RiderLocation | null;
+  pinnedPlaceLabel: string;
   isDestinationPinMoving: boolean;
   isCaptainScanPreviewActive: boolean;
   onGovernorateChange: (governorateId: string) => void;
   onDistrictChange: (districtId: string) => void;
-  onSearchQueryChange: (value: string) => void;
+  onResetDraft?: () => void;
+  onCancelPreview?: () => void;
 }
 
 /** Renders whichever screen matches the state machine's current step. */
@@ -62,6 +66,7 @@ export function RiderActiveScreen(props: RiderActiveScreenProps) {
   const {
     isArabic,
     language,
+    locationStatus,
     state,
     dispatch,
     geography,
@@ -80,18 +85,22 @@ export function RiderActiveScreen(props: RiderActiveScreenProps) {
     currencyLabel,
     selectedDraftDestination,
     selectedDestinationCoords,
+    pinnedPlaceLabel,
     isDestinationPinMoving,
     isCaptainScanPreviewActive,
     onGovernorateChange,
     onDistrictChange,
-    onSearchQueryChange,
+    onResetDraft,
+    onCancelPreview,
   } = props;
 
   if (state.screen === 'DESTINATION_SELECTION') {
     return (
-      <DestinationSelectionScreen
+      <>
+        <DestinationSelectionScreen
         isArabic={isArabic}
         language={language}
+        locationStatus={locationStatus}
         geography={geography}
         search={search}
         mapPicker={mapPicker}
@@ -101,17 +110,35 @@ export function RiderActiveScreen(props: RiderActiveScreenProps) {
         currencyLabel={currencyLabel}
         selectedDraftDestination={selectedDraftDestination}
         selectedDestinationCoords={selectedDestinationCoords}
+        pinnedPlaceLabel={pinnedPlaceLabel}
         isDestinationPinMoving={isDestinationPinMoving}
         riderCount={tripCompletion.riderCount}
         setRiderCount={tripCompletion.setRiderCount}
+        pricingPreference={tripCompletion.pricingPreference}
+        setPricingPreference={tripCompletion.setPricingPreference}
         isSendingRideRequest={sendCancel.isSendingRideRequest}
         isCaptainScanPreviewActive={isCaptainScanPreviewActive}
         nearbyCaptainCount={captainPresence.mappedCaptains.length}
         onGovernorateChange={onGovernorateChange}
         onDistrictChange={onDistrictChange}
-        onSearchQueryChange={onSearchQueryChange}
         onSendRequest={sendCancel.handleSendRequest}
+        onResetDraft={onResetDraft}
+        onCancelPreview={onCancelPreview}
       />
+      {state.autoRetryRequested && (
+        <CaptainCancelledDialog
+          isArabic={isArabic}
+          open={true}
+          onRetry={() => {
+            dispatch({ type: 'CLEAR_AUTO_RETRY' });
+            void sendCancel.handleSendRequest();
+          }}
+          onCancel={() => {
+            dispatch({ type: 'RESET_TO_IDLE' });
+          }}
+        />
+      )}
+      </>
     );
   }
 
@@ -128,14 +155,25 @@ export function RiderActiveScreen(props: RiderActiveScreenProps) {
         acceptingOfferId={offers.acceptingOfferId}
         expandedOfferId={offers.expandedOfferId}
         onToggleExpandOffer={(offerId) => offers.setExpandedOfferId((current) => (current === offerId ? null : offerId))}
+        firstSeenAtRef={offers.firstSeenAtRef}
         captainSearchRadiusKm={offers.captainSearchRadiusKm}
         isExpandingCaptainSearch={offers.isExpandingCaptainSearch}
         isCancellingRideRequest={sendCancel.isCancellingRideRequest}
         onCancelRideRequest={() => void sendCancel.handleCancelRideRequest()}
         onAcceptOffer={(offer) => void offers.handleAcceptOffer(offer)}
         onRetry={() => {
-          dispatch({ type: 'RESET_TO_IDLE' });
-          window.setTimeout(statusSync.openDestination, 0);
+          if (!tripCompletion.riderCount || tripCompletion.riderCount < 1) {
+            let countToRestore = 1;
+            if (typeof window !== 'undefined') {
+              try {
+                const stored = window.localStorage.getItem('radar_rider_passenger_count');
+                const parsed = stored ? parseInt(stored, 10) : 1;
+                if (parsed >= 1) countToRestore = parsed;
+              } catch {}
+            }
+            tripCompletion.setRiderCount(countToRestore);
+          }
+          void sendCancel.handleSendRequest();
         }}
       />
     );
@@ -146,7 +184,7 @@ export function RiderActiveScreen(props: RiderActiveScreenProps) {
       <TripActiveScreen
         isArabic={isArabic}
         activeTrip={state.activeTrip}
-        etaSeconds={statusSync.etaSeconds}
+        countdown={statusSync.countdown}
         currencyLabel={currencyLabel}
         isCancellingRideRequest={sendCancel.isCancellingRideRequest}
         onEmergencyWhatsapp={emergencyContact.handleEmergencyWhatsapp}

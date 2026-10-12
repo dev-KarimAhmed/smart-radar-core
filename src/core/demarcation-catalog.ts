@@ -68,7 +68,7 @@ export const SovereignDemarcationCatalog = {
       paths: [
         '/src/core/logic/geospatial-kernel.ts',
         '/src/core/logic/time-kernel.ts',
-        '/src/core/logic/anti-cheat-kernel.ts',
+        '/src/core/RadarAntiCheatKernel.ts',
         '/src/core/logic/sovereign-market-kernel.ts',
         '/src/lib/sovereign-dictionary.ts',
         '/src/core/constants/error-dictionary.ts'
@@ -136,7 +136,7 @@ export const SovereignDemarcationCatalog = {
       },
       backend: {
         cores: [
-          '/src/lib/sovereign-digger.ts'
+          '/src/shared/services/google-maps-location.ts'
         ],
         cloudFunctions: [
           '/functions/src/handlers/trips.ts'
@@ -212,7 +212,7 @@ export const SovereignDemarcationCatalog = {
       },
       backend: {
         cores: [
-          '/src/core/logic/anti-cheat-kernel.ts'
+          '/src/core/RadarAntiCheatKernel.ts'
         ],
         cloudFunctions: [
           '/functions/src/handlers/admin.ts'
@@ -276,7 +276,7 @@ export const SovereignDemarcationCatalog = {
       },
       backend: {
         cores: [
-          '/src/core/logic/anti-cheat-kernel.ts',
+          '/src/core/RadarAntiCheatKernel.ts',
           '/src/core/logic/geospatial-kernel.ts',
           '/src/core/logic/time-kernel.ts',
           '/src/core/logic/sovereign-market-kernel.ts',

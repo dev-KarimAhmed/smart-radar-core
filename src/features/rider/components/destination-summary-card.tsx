@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { CheckCircle2, Clock, Loader2, Route, Users } from 'lucide-react';
+import { CheckCircle2, Clock, Loader2, Route } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { formatDurationLabel } from '../services/rider-view-format';
@@ -24,20 +24,17 @@ const styles = {
   row: "flex items-start justify-between gap-3",
   destination: "min-w-0",
   fieldLabel: "block text-[9px] font-black uppercase text-slate-500",
-  destinationValue: "mt-1 block truncate text-sm font-black text-white",
+  destinationValue: "mt-1 block truncate text-base font-black text-white",
   coords: "mt-1 block font-mono text-[9px] text-slate-600",
-  fare: "shrink-0 text-end",
-  fareValue: "mt-1 block font-mono text-xl font-black text-[#14F5D5]",
-  metricsGrid: "grid grid-cols-3 gap-2",
+  metricsGrid: "grid grid-cols-2 gap-2",
   metricCardDuration: "rounded-xl border border-[#14B8A6]/18 bg-[#14B8A6]/8 p-2.5",
   metricIconDuration: "mb-1.5 h-3.5 w-3.5 text-[#14F5D5]",
-  metricLabelDuration: "block text-[9px] font-black text-slate-500",
-  metricValue: "mt-1 block text-xs font-black text-white",
-  metricHelper: "mt-0.5 block text-[8px] leading-tight text-slate-500",
+  metricLabelDuration: "block text-[11px] font-black text-slate-400",
+  metricValue: "mt-1 block text-sm font-black text-white",
+  metricHelper: "mt-1 block text-[11px] font-bold leading-snug text-amber-400/90",
   metricCard: "rounded-xl border border-white/8 bg-black/20 p-2.5",
   metricIcon: "mb-1.5 h-3.5 w-3.5 text-slate-400",
-  metricLabel: "block text-[9px] font-black text-slate-500",
-  metricLabelTight: "block text-[9px] font-black leading-tight text-slate-500",
+  metricLabel: "block text-[11px] font-black text-slate-400",
 } as const;
 
 export interface DestinationSummaryCardProps {
@@ -51,7 +48,7 @@ export interface DestinationSummaryCardProps {
   isRouteEstimateLoading: boolean;
   estimatedDurationMinutes: number | null;
   estimatedDistanceKm: number | null;
-  nearbyCaptainCount: number;
+  nearbyCaptainCount?: number;
 }
 
 export function DestinationSummaryCard({
@@ -65,7 +62,6 @@ export function DestinationSummaryCard({
   isRouteEstimateLoading,
   estimatedDurationMinutes,
   estimatedDistanceKm,
-  nearbyCaptainCount,
 }: DestinationSummaryCardProps) {
   const locationCopy = useTranslations('location');
   const t = useTranslations('riderView');
@@ -85,9 +81,6 @@ export function DestinationSummaryCard({
           </span>
           <div>
             <h3 className={styles.title}>{locationCopy('trip_summary_title')}</h3>
-            <p className={styles.subtitle}>
-              {destinationReady ? locationCopy('ready_to_request') : locationCopy('map_adjust_helper')}
-            </p>
           </div>
         </div>
         {isServerFareLoading || isDestinationPinMoving ? <Loader2 className={styles.loadingIcon} /> : null}
@@ -97,18 +90,8 @@ export function DestinationSummaryCard({
         <div className={styles.row}>
           <div className={styles.destination}>
             <span className={styles.fieldLabel}>{t('destination.label')}</span>
-            <strong className={styles.destinationValue}>{destinationLabel}</strong>
-            {hasDestinationCoordsAnchor && selectedDestinationCoords ? (
-              <span className={styles.coords}>
-                {selectedDestinationCoords.lat.toFixed(4)}, {selectedDestinationCoords.lng.toFixed(4)}
-              </span>
-            ) : null}
-          </div>
-          <div className={styles.fare}>
-            <span className={styles.fieldLabel}>
-              {locationCopy('lbl_estimated_fare')}
-            </span>
-            <strong className={styles.fareValue}>{serverFareLabel}</strong>
+            {/* dir="auto" so a Latin destination name truncates from its own tail instead of the RTL page's. */}
+            <strong dir="auto" className={styles.destinationValue}>{destinationLabel}</strong>
           </div>
         </div>
 
@@ -141,13 +124,6 @@ export function DestinationSummaryCard({
                   ? `${estimatedDistanceKm.toFixed(1)} ${t('trip.km')}`
                   : t('destination.notAvailable')}
             </strong>
-          </div>
-          <div className={styles.metricCard}>
-            <Users className={styles.metricIcon} />
-            <span className={styles.metricLabelTight}>
-              {locationCopy('nearby_captains_label')}
-            </span>
-            <strong className={styles.metricValue}>{nearbyCaptainCount}</strong>
           </div>
         </div>
       </div>

@@ -5,11 +5,14 @@ import { motion } from 'motion/react';
 import { AdStage } from '@/features/ads/ad-stage/contract';
 import { useAuth } from '@/hooks/use-auth';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
+import { useActiveTripReloadGuard } from '@/shared/hooks/use-active-trip-reload-guard';
 import { useRiderDashboardMachine } from '../state/rider-state-machine';
 import { useRiderGeolocation } from '../hooks/use-rider-geolocation';
+import { getLastKnownLocation } from '@/shared/hooks/use-live-geolocation';
 import { useCaptainPresence } from '../hooks/use-captain-presence';
 import { useEmergencyContact } from '../hooks/use-emergency-contact';
 import { useCountryConfig } from '../hooks/use-country-config';
+import { getCountryDefaultCenter } from '@/shared/hooks/use-country-config';
 import { useDestinationSelectionState } from '../hooks/use-destination-selection-state';
 import { useServerFareAndRoute } from '../hooks/use-server-fare-and-route';
 import { useOffersLifecycle } from '../hooks/use-offers-lifecycle';
@@ -22,7 +25,7 @@ import { IdleMapScreen } from './idle-map-screen';
 import { RiderShellFrame } from './rider-shell-frame';
 import { RiderActiveScreen } from './rider-active-screen';
 import { RiderModals } from './rider-modals';
-import { RadarRiderDashboard } from './rider-dashboard';
+import { RiderDashboard } from './rider-dashboard';
 
 const styles = {
   adRiverWrapper: "hidden overflow-hidden rounded-[24px] border border-[#14B8A6]/15 bg-[#0B0F19]/88 shadow-2xl shadow-black/35 backdrop-blur-xl lg:block",
@@ -32,29 +35,42 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
   const { user } = useAuth();
   const { isArabic, language } = useDashboardLanguage();
   const { state, dispatch, showAdRiver } = useRiderDashboardMachine();
+  useActiveTripReloadGuard(Boolean(state.requestId) && (state.screen === 'RECEIVING_OFFERS' || state.screen === 'TRIP_ACTIVE'));
 
-  const geolocation = useRiderGeolocation(language);
-  const activeCountryId = user?.countryId;
+  const lastKnown = getLastKnownLocation();
+  const isInitialJordanCoords = lastKnown
+    ? lastKnown.lat >= 29.0 && lastKnown.lat <= 33.5 && lastKnown.lng >= 34.5 && lastKnown.lng <= 39.5
+    : false;
+  const activeCountryId = user?.countryId ?? (isInitialJordanCoords ? 1 : undefined);
+  const countryConfig = useCountryConfig(activeCountryId);
+  const geolocation = useRiderGeolocation(language, getCountryDefaultCenter(countryConfig));
   const captainPresence = useCaptainPresence(user?.uid, activeCountryId, geolocation.riderH3Cell);
   const emergencyContact = useEmergencyContact(user?.uid, {
     captainName: state.activeTrip?.captainName,
     destinationLabel: state.activeTrip?.destinationLabel,
     requestId: state.requestId,
   });
-  const countryConfig = useCountryConfig(activeCountryId);
 
   const destination = useDestinationSelectionState({
     user,
     language,
     countryConfig,
     riderLocation: geolocation.riderLocation,
+    riderLocationStatus: geolocation.locationStatus,
   });
   const { pin, geography, search, mapPicker, clipboard, selectionHandlers } = destination;
 
-  const offers = useOffersLifecycle(state, dispatch, language);
+  const tripCompletion = useTripCompletion(state, dispatch, user?.uid);
+  const offers = useOffersLifecycle(state, dispatch, language, tripCompletion.pricingPreference);
+  const effectiveCountryId = activeCountryId ?? (
+    geolocation.riderLocation.lat >= 29.0 && geolocation.riderLocation.lat <= 33.5 &&
+    geolocation.riderLocation.lng >= 34.5 && geolocation.riderLocation.lng <= 39.5 ? 1 : undefined
+  );
   const fareAndRoute = useServerFareAndRoute({
-    activeCountryId,
+    activeCountryId: effectiveCountryId,
+    trafficFactor: countryConfig?.traffic_factor,
     riderLocation: geolocation.riderLocation,
+    riderLocationStatus: geolocation.locationStatus,
     selectedDestinationCoords: destination.selectedDestinationCoords,
     selectedDistrict: geography.selectedDistrict,
     destinationDataError: geography.destinationDataError,
@@ -69,11 +85,16 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
       fareAndRoute.currentServerFare,
       destination.selectedDestinationCoords,
       fareAndRoute.currentRouteEstimate?.distanceKm ?? null,
+      undefined,
+      // Goes into the stored label, so the captain's request card names where the rider is
+      // actually going instead of the district they picked from the dropdown.
+      destination.pinnedPlaceLabel,
     );
     return search.destinationSearchStatus === 'selected' && search.destinationSearchQuery.trim()
       ? { ...builtDestination, label: search.destinationSearchQuery.trim() }
       : builtDestination;
   }, [
+    destination.pinnedPlaceLabel,
     destination.selectedDestinationCoords,
     fareAndRoute.currentRouteEstimate?.distanceKm,
     fareAndRoute.currentServerFare,
@@ -89,9 +110,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
     language,
     state,
     dispatch,
-    pendingAcceptedOfferIdRef: offers.pendingAcceptedOfferIdRef,
   });
-  const tripCompletion = useTripCompletion(state, dispatch);
 
   const resetRideDraftState = React.useCallback(() => {
     geography.reset();
@@ -101,7 +120,8 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
     fareAndRoute.reset();
     offers.reset();
     captainPresence.reset();
-    statusSync.reset();
+    // statusSync no longer needs resetting: the countdown it used to hold in state is now
+    // derived from the trip's own server timestamps, so clearing the trip clears the timer.
     tripCompletion.reset();
     destination.setIsCaptainScanPreviewActive(false);
 
@@ -112,6 +132,8 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
         'radar_auction_draft',
         'radar_external_location_draft',
         'radar_request_flow',
+        'radar_active_rider_machine_state',
+        'radar_rider_trip_status',
       ].forEach((key) => window.localStorage.removeItem(key));
     } catch {
       // Storage can be unavailable in private browsing; in-memory state is still reset.
@@ -123,6 +145,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
     userId: user?.uid,
     activeCountryId,
     riderLocation: geolocation.riderLocation,
+    pickupAddress: geolocation.currentAddressName,
     selectedDraftDestination,
     selectedDestinationCoords: destination.selectedDestinationCoords,
     isServerFareLoading: fareAndRoute.isServerFareLoading,
@@ -131,24 +154,61 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
     language,
     state,
     dispatch,
-    pendingAcceptedOfferIdRef: offers.pendingAcceptedOfferIdRef,
+    pricingPreference: tripCompletion.pricingPreference,
+    riderCount: tripCompletion.riderCount,
     onExitRequestFlow,
     resetRideDraftState,
+    locationStatus: geolocation.locationStatus,
   });
 
-  const { riderProfile, systemMessages, currencyLabel } = useRiderProfileSummary(user, language, countryConfig, geolocation.locationStatus);
+  // [ACT-SSOT-07] Broadcast live rider state to outer shell to eliminate shell blindness
+  React.useEffect(() => {
+    const statusMap: Record<string, string> = {
+      IDLE_MAP: 'idle',
+      DESTINATION_SELECTION: 'searching',
+      RECEIVING_OFFERS: 'searching',
+      TRIP_ACTIVE: 'busy',
+      RATING_MODAL: 'rating',
+      PURGE_LEDGER: 'idle',
+      FAVORITE_CAPTAINS: 'idle',
+    };
+    const currentStatus = statusMap[state.screen] || 'idle';
+    window.dispatchEvent(new CustomEvent('sovereign-status-change', {
+      detail: { role: 'rider', status: currentStatus },
+    }));
+  }, [state.screen]);
+
+  const { riderProfile, systemMessages, currencyLabel } = useRiderProfileSummary(user, language, countryConfig, geolocation.locationStatus, geolocation.liveCurrencyCode);
+
+  React.useEffect(() => {
+    if (isStandbyDismissed && state.screen === 'IDLE_MAP') {
+      dispatch({ type: 'OPEN_DESTINATION' });
+    }
+  }, [isStandbyDismissed, state.screen, dispatch]);
+
+  React.useEffect(() => {
+    const handleExit = () => {
+      resetRideDraftState();
+      dispatch({ type: 'RESET_TO_IDLE' });
+    };
+    window.addEventListener('exit-request-flow', handleExit);
+    return () => window.removeEventListener('exit-request-flow', handleExit);
+  }, [dispatch, resetRideDraftState]);
 
   const handleCloseOrCancel = React.useCallback(async () => {
     if (state.requestId) {
       await sendCancel.handleCancelRideRequest();
     } else if (state.screen === 'DESTINATION_SELECTION' || state.screen === 'PURGE_LEDGER' || state.screen === 'FAVORITE_CAPTAINS') {
+      resetRideDraftState();
       dispatch({ type: 'RETURN_TO_MAP' });
     } else if (onExitRequestFlow) {
+      resetRideDraftState();
       onExitRequestFlow();
     } else {
+      resetRideDraftState();
       window.dispatchEvent(new CustomEvent('exit-request-flow'));
     }
-  }, [dispatch, onExitRequestFlow, sendCancel, state.requestId, state.screen]);
+  }, [dispatch, onExitRequestFlow, resetRideDraftState, sendCancel, state.requestId, state.screen]);
 
   return (
     <>
@@ -196,24 +256,27 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
           emergencyContact={emergencyContact}
           countryConfig={countryConfig}
           riderLocation={geolocation.riderLocation}
+          locationStatus={geolocation.locationStatus}
           currencyLabel={currencyLabel}
           selectedDraftDestination={selectedDraftDestination}
           selectedDestinationCoords={destination.selectedDestinationCoords}
+          pinnedPlaceLabel={destination.pinnedPlaceLabel}
           isDestinationPinMoving={pin.isDestinationPinMoving}
           isCaptainScanPreviewActive={destination.isCaptainScanPreviewActive}
           onGovernorateChange={selectionHandlers.onGovernorateChange}
           onDistrictChange={selectionHandlers.onDistrictChange}
-          onSearchQueryChange={selectionHandlers.onSearchQueryChange}
+          onResetDraft={resetRideDraftState}
+          onCancelPreview={resetRideDraftState}
         />
 
         {showAdRiver && (
           <div className={styles.adRiverWrapper}>
-            <AdStage />
+            <AdStage audience="rider" />
           </div>
         )}
 
         {(state.screen === 'PURGE_LEDGER' || state.screen === 'FAVORITE_CAPTAINS') && (
-          <RadarRiderDashboard
+          <RiderDashboard
             riderProfile={riderProfile}
             tripsWithin72Hours={tripCompletion.tripsWithin72Hours}
             systemMessages={systemMessages}
@@ -229,6 +292,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
         userId={user?.uid}
         onExitRequestFlow={onExitRequestFlow}
         onRatingSuccess={() => void captainPresence.loadBlockedCaptains()}
+        onTripFullyEnded={resetRideDraftState}
         showEmergencyContactDialog={emergencyContact.showEmergencyContactDialog}
         setShowEmergencyContactDialog={emergencyContact.setShowEmergencyContactDialog}
         onAddEmergencyNumber={emergencyContact.handleAddEmergencyContact}

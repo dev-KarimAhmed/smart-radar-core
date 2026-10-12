@@ -5,13 +5,13 @@
 .pnp.js
 
 # Firebase Functions build output
-/functions/lib
+/functions/lib 
 
 # Testing
 /coverage
 /test-results/
 /playwright-report/
-
+/supabase/.temp
 # Next.js
 /.next/
 /out/
@@ -30,11 +30,17 @@ yarn-error.log*
 pnpm-debug.log*
 
 # Local env files
+# `.env` itself was NOT listed here and was tracked, so anything put in it — including the
+# Supabase service_role key, which bypasses RLS on every table — went straight into git on
+# the next commit. Ignoring it is only half the fix: git keeps tracking a file it already
+# tracks, so it also has to be removed from the index with `git rm --cached .env`.
+.env
 .env.local
+.env*.local
 .env.development.local
 .env.test.local
 .env.production.local
-
+   
 # Vercel
 .vercel
 

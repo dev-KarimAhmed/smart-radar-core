@@ -1,0 +1,239 @@
+'use client';
+
+import React from 'react';
+import { AlertTriangle, Copy, KeyRound, Loader2, RefreshCw, ShieldCheck, XCircle } from 'lucide-react';
+
+import { useToast } from '@/hooks/use-toast';
+import {
+  issuePasswordResetToken,
+  listPasswordResetRequests,
+  rejectPasswordResetRequest,
+  type PasswordResetRequestRow,
+} from '@/features/auth/contract';
+import { useTranslations } from "next-intl";
+
+const styles = {
+  wrap: 'space-y-4',
+  headerRow: 'flex flex-wrap items-center justify-between gap-3',
+  title: 'text-lg font-black text-white',
+  subtitle: 'mt-1 max-w-2xl text-xs leading-relaxed text-slate-400',
+  refresh: 'inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-bold text-slate-200 transition hover:bg-white/10 disabled:opacity-50',
+  refreshIcon: 'h-3.5 w-3.5',
+  spin: 'h-3.5 w-3.5 animate-spin',
+  warning: 'flex items-start gap-2.5 rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-xs font-bold leading-relaxed text-amber-200',
+  warningIcon: 'mt-0.5 h-4 w-4 shrink-0',
+  empty: 'rounded-2xl border border-white/10 bg-black/20 px-4 py-8 text-center text-xs font-bold text-slate-400',
+  list: 'space-y-3',
+  card: 'rounded-2xl border border-white/10 bg-[#0B0F19] p-4',
+  cardTop: 'flex flex-wrap items-center justify-between gap-2',
+  phone: 'font-mono text-sm font-black text-white',
+  meta: 'mt-1 text-[10px] text-slate-500',
+  unmatched: 'inline-flex items-center gap-1.5 rounded-lg border border-rose-500/40 bg-rose-500/10 px-2 py-1 text-[10px] font-black text-rose-200',
+  matched: 'inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-2 py-1 text-[10px] font-black text-emerald-200',
+  badgeIcon: 'h-3 w-3',
+  noteLabel: 'mt-3 block text-[11px] font-bold text-slate-300',
+  noteInput: 'mt-1.5 w-full rounded-xl border border-slate-800 bg-black/50 px-3 py-2 text-xs text-white outline-none transition focus:border-[#14B8A6]',
+  actions: 'mt-3 flex flex-wrap gap-2',
+  approve: 'inline-flex items-center gap-2 rounded-xl bg-[#14B8A6] px-3.5 py-2 text-xs font-black text-[#04140F] transition hover:bg-[#2DD4BF] disabled:cursor-not-allowed disabled:opacity-50',
+  reject: 'inline-flex items-center gap-2 rounded-xl border border-rose-500/40 bg-rose-500/10 px-3.5 py-2 text-xs font-black text-rose-200 transition hover:bg-rose-500/20 disabled:opacity-50',
+  tokenBox: 'mt-3 rounded-2xl border border-[#14B8A6]/40 bg-[#14B8A6]/10 p-3',
+  tokenLabel: 'text-[10px] font-black text-[#5eead4]',
+  tokenValue: 'mt-1.5 block break-all font-mono text-[11px] font-bold text-white',
+  tokenHint: 'mt-2 text-[10px] leading-relaxed text-amber-200',
+  copy: 'mt-2 inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-2.5 py-1.5 text-[10px] font-bold text-slate-200 transition hover:bg-white/10',
+  copyIcon: 'h-3 w-3',
+} as const;
+
+interface IssuedToken {
+  requestId: string;
+  url: string;
+  expiresInMinutes: number;
+}
+
+/**
+ * The admin side of password recovery for phone-only accounts.
+ *
+ * This screen hands out the ability to set someone else's password. That cannot be made
+ * risk-free, so it is made accountable instead: approving requires a written note saying how
+ * identity was checked, and every issue/reject/completion is written to
+ * password_reset_audit.
+ */
+export function PasswordResetsTab() {
+    const tAuto = useTranslations('auto');
+    const t = useTranslations('auto');
+  const { toast } = useToast();
+  const [requests, setRequests] = React.useState<PasswordResetRequestRow[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [notes, setNotes] = React.useState<Record<string, string>>({});
+  const [busyId, setBusyId] = React.useState<string | null>(null);
+  const [issued, setIssued] = React.useState<IssuedToken | null>(null);
+
+  const load = React.useCallback(async () => {
+    setIsLoading(true);
+    try {
+      setRequests(await listPasswordResetRequests('PENDING'));
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: tAuto('key_f7540c29'),
+        description: error instanceof Error ? error.message : tAuto('key_6f959529'),
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [toast]);
+
+  React.useEffect(() => { void load(); }, [load]);
+
+  const approve = async (request: PasswordResetRequestRow) => {
+    const note = (notes[request.id] || '').trim();
+    if (note.length < 10) {
+      toast({
+        variant: 'destructive',
+        title: tAuto('key_40cb583c'),
+        description: tAuto('key_269b7bdc'),
+      });
+      return;
+    }
+
+    setBusyId(request.id);
+    try {
+      const result = await issuePasswordResetToken(request.id, note);
+      setIssued({
+        requestId: request.id,
+        url: `${window.location.origin}/reset-password?token=${result.token}`,
+        expiresInMinutes: result.expiresInMinutes,
+      });
+      await load();
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: tAuto('key_26f7305b'),
+        description: error instanceof Error ? error.message : tAuto('key_6f959529'),
+      });
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const reject = async (request: PasswordResetRequestRow) => {
+    setBusyId(request.id);
+    try {
+      await rejectPasswordResetRequest(request.id, (notes[request.id] || '').trim());
+      await load();
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: tAuto('key_25f422c2'),
+        description: error instanceof Error ? error.message : tAuto('key_6f959529'),
+      });
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  return (
+    <div className={styles.wrap}>
+      <div className={styles.headerRow}>
+        <div>
+          <h2 className={styles.title}>{tAuto('key_45cbab9c')}</h2>
+          <p className={styles.subtitle}>
+            {tAuto('key_522df74a')}
+                                </p>
+        </div>
+        <button type="button" onClick={() => void load()} disabled={isLoading} className={styles.refresh}>
+          {isLoading ? <Loader2 className={styles.spin} /> : <RefreshCw className={styles.refreshIcon} />}
+          {tAuto('key_061401dc')}
+                          </button>
+      </div>
+
+      <p className={styles.warning}>
+        <AlertTriangle className={styles.warningIcon} />
+        {tAuto('key_32617a5b')}
+                    </p>
+
+      {issued ? (
+        <div className={styles.tokenBox}>
+          <span className={styles.tokenLabel}>{tAuto('key_a6696aa0')}</span>
+          <code className={styles.tokenValue}>{issued.url}</code>
+          <p className={styles.tokenHint}>
+            {tAuto('key_ce5d8c18')} {issued.expiresInMinutes} {tAuto('key_a444da69')}
+                                </p>
+          <button
+            type="button"
+            onClick={() => {
+              void navigator.clipboard.writeText(issued.url);
+              toast({ title: tAuto('key_005a34e1') });
+            }}
+            className={styles.copy}
+          >
+            <Copy className={styles.copyIcon} />
+            {tAuto('key_0d8af0ab')}
+                                </button>
+        </div>
+      ) : null}
+
+      {isLoading ? null : requests.length === 0 ? (
+        <p className={styles.empty}>{tAuto('key_56b43fd7')}</p>
+      ) : (
+        <div className={styles.list}>
+          {requests.map((request) => (
+            <div key={request.id} className={styles.card}>
+              <div className={styles.cardTop}>
+                <div>
+                  <span className={styles.phone} dir="ltr">{request.claimed_phone}</span>
+                  <p className={styles.meta}>
+                    {new Date(request.created_at).toLocaleString('ar-EG')}
+                  </p>
+                </div>
+                {request.profile_id ? (
+                  <span className={styles.matched}>
+                    <ShieldCheck className={styles.badgeIcon} />
+                    {tAuto('key_80bb0aa3')}
+                                                </span>
+                ) : (
+                  <span className={styles.unmatched}>
+                    <XCircle className={styles.badgeIcon} />
+                    {tAuto('key_235aa0f8')}
+                                                    </span>
+                )}
+              </div>
+
+              <label className={styles.noteLabel} htmlFor={`note-${request.id}`}>
+                {tAuto('key_40081c53')}
+                                    </label>
+              <input
+                id={`note-${request.id}`}
+                value={notes[request.id] || ''}
+                onChange={(event) => setNotes((current) => ({ ...current, [request.id]: event.target.value }))}
+                placeholder={tAuto('key_f5824925')}
+                className={styles.noteInput}
+              />
+
+              <div className={styles.actions}>
+                <button
+                  type="button"
+                  onClick={() => void approve(request)}
+                  disabled={busyId === request.id || !request.profile_id}
+                  className={styles.approve}
+                >
+                  {busyId === request.id ? <Loader2 className={styles.spin} /> : <KeyRound className={styles.refreshIcon} />}
+                  {tAuto('key_916daeb8')}
+                                          </button>
+                <button
+                  type="button"
+                  onClick={() => void reject(request)}
+                  disabled={busyId === request.id}
+                  className={styles.reject}
+                >
+                  <XCircle className={styles.refreshIcon} />
+                  {tAuto('key_b7dee974')}
+                                          </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

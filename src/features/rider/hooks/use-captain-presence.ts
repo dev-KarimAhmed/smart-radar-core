@@ -23,10 +23,15 @@ export function useCaptainPresence(userId: string | undefined, activeCountryId: 
     try {
       const { data, error } = await supabase
         .from('user_blocks')
-        .select('blocked_id')
-        .eq('blocker_id', userId);
+        .select('blocker_id, blocked_id')
+        .or(`blocker_id.eq.${userId},blocked_id.eq.${userId}`);
       if (error) throw error;
-      setBlockedCaptainIds(new Set((data || []).map((row: any) => String(row.blocked_id))));
+      const ids = new Set<string>();
+      (data || []).forEach((row: any) => {
+        if (row.blocker_id === userId) ids.add(String(row.blocked_id));
+        if (row.blocked_id === userId) ids.add(String(row.blocker_id));
+      });
+      setBlockedCaptainIds(ids);
     } catch (err) {
       if ((process.env.NODE_ENV !== 'production')) console.warn('[Rider View Tab] loadBlockedCaptains error:', err);
     }
@@ -37,10 +42,12 @@ export function useCaptainPresence(userId: string | undefined, activeCountryId: 
   }, [loadBlockedCaptains]);
 
   const mappedCaptains = React.useMemo(() => {
-    return captainLocations.map((captain) => ({
-      ...captain,
-      isBlocked: blockedCaptainIds.has(captain.id),
-    }));
+    return captainLocations
+      .filter((captain) => !blockedCaptainIds.has(captain.id))
+      .map((captain) => ({
+        ...captain,
+        isBlocked: false,
+      }));
   }, [captainLocations, blockedCaptainIds]);
 
   React.useEffect(() => {
@@ -53,12 +60,23 @@ export function useCaptainPresence(userId: string | undefined, activeCountryId: 
       }
 
       try {
-        const rows = await fetchAvailableCaptainPresence(supabase, {
+        // 1. يبدأ المسح الجغرافي بـ 1.5 كم (حلقة H3 بحجم 4)
+        let rows = await fetchAvailableCaptainPresence(supabase, {
           centerH3Cell: riderH3Cell,
           countryId: activeCountryId,
-          ringSize: 1,
+          ringSize: 4, // نطاق 1.5 كم
         });
-        if (active) setCaptainLocations(rows);
+
+        // 2. إذا لم يجد في هذا الحيز الجغرافي سائقين، يتوسع إلى 2.5 كم فقط ليس أكثر (حلقة H3 بحجم 7)
+        if (rows.length === 0) {
+          rows = await fetchAvailableCaptainPresence(supabase, {
+            centerH3Cell: riderH3Cell,
+            countryId: activeCountryId,
+            ringSize: 7, // نطاق 2.5 كم كحد أقصى قطعي
+          });
+        }
+
+        if (active) setCaptainLocations(rows.slice(0, 9));
       } catch (error) {
         if (!active) return;
         if ((process.env.NODE_ENV !== 'production')) console.warn('[Rider Captain Presence]', error);
@@ -69,10 +87,17 @@ export function useCaptainPresence(userId: string | undefined, activeCountryId: 
     void loadCaptainPresence();
     const refreshInterval = window.setInterval(() => void loadCaptainPresence(), CAPTAIN_PRESENCE_REFRESH_MS);
     const pruneInterval = window.setInterval(() => {
-      setCaptainLocations((previous) => previous.filter((captain) => isCaptainPresenceFresh(captain)));
+      setCaptainLocations((previous) => {
+        const fresh = previous.filter((captain) => isCaptainPresenceFresh(captain));
+        // إذا نقص أي كابتن عن الـ 9 وكان هناك احتمال لوجود كباتن متاحين في الحوض، يتم طلب التحديث فوراً لتعويض النقص وإكمال الـ 9
+        if (fresh.length < 9 && fresh.length < previous.length) {
+          void loadCaptainPresence();
+        }
+        return fresh.slice(0, 9);
+      });
     }, CAPTAIN_PRESENCE_PRUNE_MS);
 
-    const channel = activeCountryId
+    const channel = activeCountryId && riderH3Cell
       ? supabase
           .channel(`captain-presence-${activeCountryId}-${riderH3Cell}`)
           .on(
@@ -81,6 +106,7 @@ export function useCaptainPresence(userId: string | undefined, activeCountryId: 
               event: '*',
               schema: 'public',
               table: 'captain_locations',
+              filter: `h3_cell=eq.${riderH3Cell}`,
             },
             () => void loadCaptainPresence(),
           )

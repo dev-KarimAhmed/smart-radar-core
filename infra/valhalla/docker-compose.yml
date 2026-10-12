@@ -1,0 +1,54 @@
+# Self-hosted Valhalla routing (Egypt + Jordan), 100% free / open-source.
+#
+# The app already prefers Valhalla for road distance & duration (src/lib/road-route.ts);
+# this replaces the shared community server (valhalla1.openstreetmap.de) — which is
+# occasionally down and rate-limited — with an instance you own. Point
+# NEXT_PUBLIC_VALHALLA_URL at it and both the browser and the Express server use it,
+# with the public routers still in place as automatic fallbacks.
+#
+# First start downloads the two OSM extracts (~400 MB) and builds routing tiles
+# (roughly 15–40 minutes depending on CPU). Later restarts reuse the built tiles
+# (use_tiles_ignore_pbf=True) and are ready in seconds.
+
+services:
+  valhalla:
+    image: ghcr.io/valhalla/valhalla-scripted:latest
+    container_name: radar-valhalla
+    restart: unless-stopped
+    volumes:
+      # All tiles/config/databases persist here — do not delete unless rebuilding.
+      - ./custom_files:/custom_files
+    environment:
+      # Egypt + Jordan built into ONE tile set. Space-separated on purpose — that is the
+      # image's list syntax. Note: trips are routed within each country; there is no land
+      # continuity between the two extracts, so a cross-country request will simply fail
+      # and the app falls back to its local estimate, which is fine — no rider trip
+      # crosses that border.
+      - tile_urls=https://download.geofabrik.de/africa/egypt-latest.osm.pbf https://download.geofabrik.de/asia/jordan-latest.osm.pbf
+      - serve_tiles=True
+      # Reuse the already-built tiles on restart instead of rebuilding from the PBFs.
+      - use_tiles_ignore_pbf=True
+      # Admin + timezone databases: border/crossing penalties and time-dependent routing.
+      - build_admins=True
+      - build_time_zones=True
+      # Conservative for a small VPS; raise it (or remove to use all cores) for a
+      # faster first build.
+      - server_threads=2
+      # Flip to True for ONE restart when you want to re-download fresh map data
+      # (Geofabrik updates the extracts daily), then set it back to False.
+      - force_rebuild=False
+    # Deliberately not published on the host: the browser talks to the nginx proxy
+    # below, which adds the CORS headers Valhalla itself does not send.
+    expose:
+      - "8002"
+
+  valhalla-cors:
+    image: nginx:alpine
+    container_name: radar-valhalla-cors
+    restart: unless-stopped
+    depends_on:
+      - valhalla
+    ports:
+      - "8002:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro

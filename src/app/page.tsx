@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/features/auth/contract';
 import LoginPage from '@/features/auth/components/login-page';
+import { useTranslations } from "next-intl";
 
 const styles = {
   loadingRoot: 'flex h-dvh w-screen select-none flex-col items-center justify-center bg-[#0A0F1D] text-white/90',
@@ -19,22 +20,49 @@ const styles = {
 } as const;
 
 export default function HomePage() {
+    const tAuto = useTranslations('auto');
+    const t = useTranslations('auto');
   const { loading, user } = useAuth();
   const router = useRouter();
-  const isRedirecting = !!user && (user.role === 'driver' || user.role === 'rider');
+  const isRecoveryIntent =
+    typeof window !== 'undefined' &&
+    ((window.location.hash &&
+      (window.location.hash.includes('type=recovery') ||
+       window.location.hash.includes('access_token=') ||
+       window.location.hash.includes('error='))) ||
+     (window.location.search &&
+      (window.location.search.includes('type=recovery') ||
+       window.location.search.includes('error='))));
+
+  const isRedirecting = !isRecoveryIntent && !!user && (user.role === 'driver' || user.role === 'rider');
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const hash = window.location.hash || '';
+      const search = window.location.search || '';
+      if (
+        hash.includes('type=recovery') ||
+        hash.includes('access_token=') ||
+        hash.includes('error=') ||
+        search.includes('type=recovery') ||
+        search.includes('error=')
+      ) {
+        window.location.replace(`/reset-password${search}${hash}`);
+        return;
+      }
+    }
     if (loading || !user) return;
-    if (user.role === 'driver') router.replace('/captain');
-    if (user.role === 'rider') router.replace('/rider');
+    const search = typeof window !== 'undefined' ? window.location.search : '';
+    if (user.role === 'driver') router.replace(`/captain${search}`);
+    if (user.role === 'rider') router.replace(`/rider${search}`);
   }, [loading, router, user]);
 
   if (loading || isRedirecting) {
     return (
       <div className={styles.loadingRoot}>
         <div className={styles.loadingIconFrame}><div className={styles.loadingIcon} /></div>
-        <div className={styles.loadingTitle}>الرادار الذكي</div>
-        <div className={styles.loadingBody}>جاري التحقق من الجلسة...</div>
+        <div className={styles.loadingTitle}>{tAuto('key_74d1106b')}</div>
+        <div className={styles.loadingBody}>{tAuto('key_7588d11e')}</div>
       </div>
     );
   }
@@ -44,9 +72,9 @@ export default function HomePage() {
   return (
     <div className={styles.fallback}>
       <div className={styles.fallbackContent}>
-        <h1 className={styles.fallbackTitle}>مرحباً بك {user.name}</h1>
-        <p className={styles.fallbackRole}>دور المستخدم الحالي: {user.role}</p>
-        <p className={styles.fallbackWarning}>دور المستخدم هذا غير مسجل في مسارات الرادار الحية.</p>
+        <h1 className={styles.fallbackTitle}>{tAuto('key_aa12bda7')} {user.name}</h1>
+        <p className={styles.fallbackRole}>{tAuto('key_ccda32d9')} {user.role}</p>
+        <p className={styles.fallbackWarning}>{tAuto('key_8160066f')}</p>
       </div>
     </div>
   );

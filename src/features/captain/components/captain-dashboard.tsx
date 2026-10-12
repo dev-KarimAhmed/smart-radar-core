@@ -6,6 +6,7 @@ import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { useDriverOperations } from '../hooks/use-driver-operations';
 import { useSovereignWallet } from '@/hooks/use-sovereign-wallet';
 import dynamic from 'next/dynamic';
+import { useTranslations } from "next-intl";
 
 const styles = {
   style26_1: "rounded-3xl border border-emerald-500/20 bg-[#05080f] p-6 text-center text-slate-400",
@@ -21,6 +22,8 @@ interface CaptainDashboardProps {
 }
 
 export const RadarCaptainDashboard: React.FC<CaptainDashboardProps> = ({ captainProfile }) => {
+    const tAuto = useTranslations('auto');
+    const t = useTranslations('auto');
   const { user } = useAuth();
   const { language } = useDashboardLanguage();
   const driverOps = useDriverOperations();
@@ -29,25 +32,14 @@ export const RadarCaptainDashboard: React.FC<CaptainDashboardProps> = ({ captain
   if (!driverOps) {
     return (
       <section className={styles.style26_1}>
-        {language === 'ar' ? 'جاري تحميل لوحة الكابتن...' : 'Loading captain dashboard...'}
+        {language === 'ar' ? tAuto('key_9733e0c8') : 'Loading captain dashboard...'}
       </section>
     );
   }
 
   const walletIsReady = wallet.walletLoadState === 'ready';
-  const currentBalance = walletIsReady ? wallet.balanceJD : 0;
-
-  // Time conversion constants
-  const TEST_PRICE_PER_HOUR = 200; 
-  const totalPaidHours = currentBalance / TEST_PRICE_PER_HOUR;
-  const paidHours = Math.floor(totalPaidHours);
-  const paidMinutesCalculated = Math.round((totalPaidHours - paidHours) * 60);
-  const paidMinutes = paidHours * 60 + paidMinutesCalculated;
-
-  const totalExtraHours = currentBalance > 0 ? paidHours * 0.4 : 0;
-  const extraHours = Math.floor(totalExtraHours);
-  const extraMinutesCalculated = Math.round((totalExtraHours - extraHours) * 60);
-  const bonusMinutes = extraHours * 60 + extraMinutesCalculated;
+  const paidMinutes = walletIsReady ? wallet.paidMinutesRemaining : 0;
+  const bonusMinutes = walletIsReady ? wallet.bonusMinutesRemaining : 0;
 
   return (
     <RadarMapView

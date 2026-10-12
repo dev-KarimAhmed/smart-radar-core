@@ -1,8 +1,41 @@
-import type { CaptainRank } from '../components/captain-offer-card';
+import type { CaptainRank } from '../components/offer-card/offer-card-shared';
 import { firstDisplayString } from './rider-view-format';
 import { toCaptainOfferRank } from './rider-offer-fields';
 
-export function prioritizeRiderOffers<T extends Record<string, any>>(offers: T[], favoriteIds: string[]) {
+export function matchesRequestedMode(
+  offer: Record<string, any>,
+  requestedMode?: 'APP' | 'TAXI' | 'FREE' | null,
+): boolean {
+  if (!requestedMode) return true;
+
+  const mode = String(offer?.pricing_mode || offer?.pricingMode || '').toUpperCase();
+  const affType = String(
+    offer?.driverAffiliation?.type ||
+      offer?.captain?.affiliation_type ||
+      offer?.captain?.employment_type ||
+      '',
+  ).toLowerCase();
+
+  if (requestedMode === 'APP') {
+    return mode === 'APP' || affType === 'smart-app' || affType.includes('app');
+  }
+
+  if (requestedMode === 'TAXI') {
+    return mode === 'TAXI' || affType === 'office-taxi' || affType.includes('taxi');
+  }
+
+  if (requestedMode === 'FREE') {
+    return mode === 'FREE' || affType === 'independent' || (!mode && !affType);
+  }
+
+  return true;
+}
+
+export function prioritizeRiderOffers<T extends Record<string, any>>(
+  offers: T[],
+  favoriteIds: string[],
+  requestedMode?: 'APP' | 'TAXI' | 'FREE' | null,
+) {
   const rankWeight: Record<CaptainRank, number> = {
     PLATINUM: 4,
     GOLD: 3,
@@ -10,23 +43,49 @@ export function prioritizeRiderOffers<T extends Record<string, any>>(offers: T[]
     BRONZE: 1,
   };
 
-  return offers.map((offer) => ({
-    ...offer,
-    __isPreferredCaptain: isPreferredOffer(offer, favoriteIds),
-  })).sort((a, b) => {
-    const aIsFavorite = isPreferredOffer(a, favoriteIds);
-    const bIsFavorite = isPreferredOffer(b, favoriteIds);
+  return offers
+    .map((offer) => ({
+      ...offer,
+      __isPreferredCaptain: isPreferredOffer(offer, favoriteIds),
+      __matchesRequestedMode: matchesRequestedMode(offer, requestedMode),
+    }))
+    .sort((a, b) => {
+      // 1. Rider's favorite captains float first (Priority for preferred captain)
+      const aIsFavorite = isPreferredOffer(a, favoriteIds);
+      const bIsFavorite = isPreferredOffer(b, favoriteIds);
+      if (aIsFavorite && !bIsFavorite) return -1;
+      if (!aIsFavorite && bIsFavorite) return 1;
 
-    if (aIsFavorite && !bIsFavorite) return -1;
-    if (!aIsFavorite && bIsFavorite) return 1;
+      // 2. Requested category matching offers float next
+      const aMatches = matchesRequestedMode(a, requestedMode);
+      const bMatches = matchesRequestedMode(b, requestedMode);
+      if (aMatches && !bMatches) return -1;
+      if (!aMatches && bMatches) return 1;
 
-    const aRankWeight = rankWeight[toCaptainOfferRank(a?.captain?.rank || a?.captain?.tier || a?.driverRank || a?.tier)] || 2;
-    const bRankWeight = rankWeight[toCaptainOfferRank(b?.captain?.rank || b?.captain?.tier || b?.driverRank || b?.tier)] || 2;
+      // 3. Lowest fare first — highest fare comes last
+      const aFare = getComparableOfferFare(a);
+      const bFare = getComparableOfferFare(b);
+      if (aFare !== bFare) {
+        return aFare - bFare;
+      }
 
-    if (aRankWeight !== bRankWeight) return bRankWeight - aRankWeight;
+      // 4. Captain Rank: Platinum > Gold > Silver > Bronze (tie-breaker when fares are equal)
+      const aRankWeight = rankWeight[toCaptainOfferRank(a?.captain?.rank || a?.captain?.tier || a?.driverRank || a?.tier)] ?? rankWeight.BRONZE;
+      const bRankWeight = rankWeight[toCaptainOfferRank(b?.captain?.rank || b?.captain?.tier || b?.driverRank || b?.tier)] ?? rankWeight.BRONZE;
+      if (aRankWeight !== bRankWeight) return bRankWeight - aRankWeight;
 
-    return getComparableOfferFare(a) - getComparableOfferFare(b);
-  }) as T[];
+      // 4b. Captain Trust / Rating Score: higher rating ranks before lower rating (tie-breaker when ranks are equal)
+      const aRating = Number(a?.captain?.trust_rating ?? a?.captain?.rating ?? a?.driverRating ?? a?.rating ?? 0);
+      const bRating = Number(b?.captain?.trust_rating ?? b?.captain?.rating ?? b?.driverRating ?? b?.rating ?? 0);
+      if (Number.isFinite(aRating) && Number.isFinite(bRating) && aRating !== bRating) {
+        return bRating - aRating;
+      }
+
+      // 5. Submission time: earlier offer comes first (top), latest offer comes last (bottom)
+      const aTime = Date.parse(a?.created_at || a?.createdAt || '') || 0;
+      const bTime = Date.parse(b?.created_at || b?.createdAt || '') || 0;
+      return aTime - bTime;
+    }) as T[];
 }
 
 export function collectPreferredCaptainIds(favorites: Array<Record<string, any>> = []) {

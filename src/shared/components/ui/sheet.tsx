@@ -48,8 +48,9 @@ const SheetContent = React.forwardRef<
   React.ElementRef<typeof SheetPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof SheetPrimitive.Content> & {
     side?: "top" | "bottom" | "left" | "right"
+    hideClose?: boolean
   }
->(({ side = "right", className, children, ...props }, ref) => (
+>(({ side = "right", hideClose = false, className, children, ...props }, ref) => (
   <SheetPortal>
     <SheetOverlay />
     <SheetPrimitive.Content
@@ -65,10 +66,12 @@ const SheetContent = React.forwardRef<
       {...props}
     >
       {children}
-      <SheetPrimitive.Close className={styles.style51_7}>
-        <X className={styles.style52_8} />
-        <span className={styles.style53_9}>Close</span>
-      </SheetPrimitive.Close>
+      {!hideClose && (
+        <SheetPrimitive.Close className={styles.style51_7}>
+          <X className={styles.style52_8} />
+          <span className={styles.style53_9}>Close</span>
+        </SheetPrimitive.Close>
+      )}
     </SheetPrimitive.Content>
   </SheetPortal>
 ))

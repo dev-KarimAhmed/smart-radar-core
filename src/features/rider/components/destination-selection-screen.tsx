@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Check } from 'lucide-react';
+import { Lock, MapPinOff } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import type { AppLanguage } from '@/lib/i18n/simple-copy';
@@ -11,11 +11,12 @@ import type { useDestinationTextSearch } from '../hooks/use-destination-text-sea
 import type { useDestinationMapPicker } from '../hooks/use-destination-map-picker';
 import type { useClipboardLocationImport } from '../hooks/use-clipboard-location-import';
 import type { useServerFareAndRoute } from '../hooks/use-server-fare-and-route';
-import type { RiderLocation } from './rider-map';
+import type { RiderLocation, RiderLocationStatus } from './rider-map';
 import { formatMoney } from '../services/rider-view-format';
-import { DestinationAreaPicker } from './destination-area-picker';
 import { DestinationSearchPanel } from './destination-search-panel';
 import { DestinationTripSummary } from './destination-trip-summary';
+
+const SAME_LOCATION_THRESHOLD_KM = 0.1;
 
 const styles = {
   wrapper: "space-y-3 pb-20 lg:pb-4",
@@ -26,20 +27,12 @@ const styles = {
   title: "mt-1 text-2xl font-black leading-tight text-white",
   subtitle: "mt-1 text-xs leading-relaxed text-slate-400",
   countryBadge: "shrink-0 rounded-full border border-[#14B8A6]/25 bg-[#14B8A6]/10 px-3 py-1.5 text-[10px] font-black text-[#14F5D5]",
-  progress: "grid grid-cols-3 gap-1.5",
-  progressStep: "flex min-w-0 items-center gap-1.5 rounded-lg border px-2 py-2 text-[9px] font-black transition-colors",
-  progressStepComplete: "border-[#14B8A6]/30 bg-[#14B8A6]/12 text-[#BFFCF2]",
-  progressStepIncomplete: "border-white/8 bg-white/[0.03] text-slate-500",
-  progressBadge: "flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[8px]",
-  progressBadgeComplete: "bg-[#14B8A6] text-[#061316]",
-  progressBadgeIncomplete: "bg-slate-800 text-slate-400",
-  progressCheckIcon: "h-2.5 w-2.5 stroke-[3]",
-  progressLabel: "truncate",
 } as const;
 
 export interface DestinationSelectionScreenProps {
   isArabic: boolean;
   language: AppLanguage;
+  locationStatus?: RiderLocationStatus;
   geography: ReturnType<typeof useDestinationGeographyData>;
   search: ReturnType<typeof useDestinationTextSearch>;
   mapPicker: ReturnType<typeof useDestinationMapPicker>;
@@ -49,21 +42,27 @@ export interface DestinationSelectionScreenProps {
   currencyLabel: string;
   selectedDraftDestination: RiderDestination | null;
   selectedDestinationCoords: RiderLocation | null;
+  /** Resolved name of the pinned point; overrides the district label when present. */
+  pinnedPlaceLabel: string;
   isDestinationPinMoving: boolean;
   riderCount: number;
   setRiderCount: (updater: (current: number) => number) => void;
+  pricingPreference: 'APP' | 'TAXI' | 'FREE' | null;
+  setPricingPreference: (pref: 'APP' | 'TAXI' | 'FREE' | null) => void;
   isSendingRideRequest: boolean;
   isCaptainScanPreviewActive: boolean;
   nearbyCaptainCount: number;
   onGovernorateChange: (governorateId: string) => void;
   onDistrictChange: (districtId: string) => void;
-  onSearchQueryChange: (value: string) => void;
   onSendRequest: () => void;
+  onResetDraft?: () => void;
+  onCancelPreview?: () => void;
 }
 
 export function DestinationSelectionScreen({
   isArabic,
   language,
+  locationStatus,
   geography,
   search,
   mapPicker,
@@ -73,19 +72,119 @@ export function DestinationSelectionScreen({
   currencyLabel,
   selectedDraftDestination,
   selectedDestinationCoords,
+  pinnedPlaceLabel,
   isDestinationPinMoving,
   riderCount,
   setRiderCount,
+  pricingPreference,
+  setPricingPreference,
   isSendingRideRequest,
   isCaptainScanPreviewActive,
   nearbyCaptainCount,
   onGovernorateChange,
   onDistrictChange,
-  onSearchQueryChange,
   onSendRequest,
+  onResetDraft,
+  onCancelPreview,
 }: DestinationSelectionScreenProps) {
   const locationCopy = useTranslations('location');
   const t = useTranslations('riderView');
+
+  const [isLocationDisabled, setIsLocationDisabled] = React.useState(
+    locationStatus === 'denied'
+  );
+
+  React.useEffect(() => {
+    if (locationStatus === 'denied') {
+      setIsLocationDisabled(true);
+    } else if (locationStatus === 'live' || locationStatus === 'locating') {
+      setIsLocationDisabled(false);
+    }
+  }, [locationStatus]);
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    if (typeof navigator !== 'undefined' && navigator.permissions?.query) {
+      navigator.permissions.query({ name: 'geolocation' }).then((res) => {
+        if (res.state === 'denied') {
+          setIsLocationDisabled(true);
+        } else if (res.state === 'granted') {
+          setIsLocationDisabled(false);
+        }
+        res.onchange = () => {
+          if (res.state === 'denied') {
+            setIsLocationDisabled(true);
+          } else if (res.state === 'granted') {
+            setIsLocationDisabled(false);
+          }
+        };
+      }).catch(() => undefined);
+    }
+
+    if (typeof navigator !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        () => setIsLocationDisabled(false),
+        (err) => {
+          if (err.code === err.PERMISSION_DENIED) {
+            setIsLocationDisabled(true);
+            window.dispatchEvent(new CustomEvent('system-location-denied'));
+          }
+        },
+        { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
+      );
+    }
+
+    const handleDenied = () => setIsLocationDisabled(true);
+    const handleGranted = () => setIsLocationDisabled(false);
+
+    window.addEventListener('system-location-denied', handleDenied);
+    window.addEventListener('system-location-granted', handleGranted);
+
+    return () => {
+      window.removeEventListener('system-location-denied', handleDenied);
+      window.removeEventListener('system-location-granted', handleGranted);
+    };
+  }, []);
+
+  const handleRequestLocation = () => {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('request-live-location'));
+      if (typeof navigator !== 'undefined' && navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          () => {
+            setIsLocationDisabled(false);
+            window.dispatchEvent(new CustomEvent('system-location-granted'));
+            window.dispatchEvent(new CustomEvent('request-live-location'));
+          },
+          (err) => {
+            if (err.code === err.PERMISSION_DENIED) {
+              setIsLocationDisabled(true);
+              window.dispatchEvent(new CustomEvent('open-system-permissions-modal'));
+              window.dispatchEvent(new CustomEvent('system-location-denied'));
+            } else {
+              navigator.geolocation.getCurrentPosition(
+                () => {
+                  setIsLocationDisabled(false);
+                  window.dispatchEvent(new CustomEvent('system-location-granted'));
+                  window.dispatchEvent(new CustomEvent('request-live-location'));
+                },
+                (err2) => {
+                  if (err2.code === err2.PERMISSION_DENIED) {
+                    setIsLocationDisabled(true);
+                    window.dispatchEvent(new CustomEvent('open-system-permissions-modal'));
+                    window.dispatchEvent(new CustomEvent('system-location-denied'));
+                  }
+                },
+                { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
+              );
+            }
+          },
+          { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
+        );
+      }
+    }
+  };
 
   const hasDestinationOptions = geography.destinationGovernorates.length > 0 && geography.destinationDistricts.length > 0;
   const selectedDestinationHasCoords = !!selectedDestinationCoords;
@@ -98,9 +197,13 @@ export function DestinationSelectionScreen({
         ? formatMoney(selectedDraftDestination.serverEstimatedFare, currencyLabel)
         : t('destination.notAvailable');
 
-  const originH3 = selectedDraftDestination?.originCell || '';
-  const destinationH3 = selectedDraftDestination?.destinationCell || '';
-  const isSameLocation = !!originH3 && !!destinationH3 && originH3 === destinationH3;
+  // Real straight-line distance, not H3-cell equality — resolution-9 cells are
+  // ~350m wide, so comparing cell IDs falsely flagged destinations several
+  // hundred meters from the rider (e.g. right after a trip ends nearby) as
+  // "same location". SAME_LOCATION_THRESHOLD_KM only catches genuinely
+  // unmoved selections, not district-anchor/GPS coincidences.
+  const straightDistanceKm = selectedDraftDestination?.fareQuote?.straightDistanceKm;
+  const isSameLocation = straightDistanceKm !== undefined && straightDistanceKm < SAME_LOCATION_THRESHOLD_KM;
   const estimatedDistanceKm = currentRouteEstimate?.distanceKm ?? null;
   const estimatedDurationMinutes = currentRouteEstimate?.durationMinutes ?? null;
   const hasImportedLocation = clipboard.externalLocationUrl.length > 0;
@@ -112,13 +215,16 @@ export function DestinationSelectionScreen({
     !isRouteEstimateLoading &&
     !isDestinationPinMoving &&
     !isSameLocation;
-  const destinationLabel = geography.externalLocationContext
-    ? `${geography.externalLocationContext.district} - ${geography.externalLocationContext.governorate}`
+  const districtLabel = geography.externalLocationContext
+    ? [geography.externalLocationContext.district, geography.externalLocationContext.governorate].filter(Boolean).join(' - ')
     : geography.selectedDistrict
       ? isArabic
-        ? `${geography.selectedDistrict.districtAr} - ${geography.selectedDistrict.governorateAr}`
-        : `${geography.selectedDistrict.districtEn || geography.selectedDistrict.districtAr} - ${geography.selectedDistrict.governorateEn || geography.selectedDistrict.governorateAr}`
+        ? [geography.selectedDistrict.districtAr, geography.selectedDistrict.governorateAr].filter(Boolean).join(' - ')
+        : [geography.selectedDistrict.districtEn || geography.selectedDistrict.districtAr, geography.selectedDistrict.governorateEn || geography.selectedDistrict.governorateAr].filter(Boolean).join(' - ')
       : t('destination.notAvailable');
+
+  // The pin wins when it has one: it is what the trip is actually priced and driven to.
+  const destinationLabel = pinnedPlaceLabel || districtLabel;
 
   return (
     <div className={styles.wrapper} dir={isArabic ? 'rtl' : 'ltr'}>
@@ -135,41 +241,32 @@ export function DestinationSelectionScreen({
             </span>
           ) : null}
         </div>
-
-        <div className={styles.progress} aria-label={locationCopy('progress_label')}>
-          {[
-            { label: locationCopy('progress_area'), complete: !!geography.selectedDistrict },
-            { label: locationCopy('progress_location'), complete: hasImportedLocation || selectedDestinationHasCoords },
-            { label: locationCopy('progress_review'), complete: destinationReady },
-          ].map((step, index) => (
-            <div
-              key={step.label}
-              className={cn(styles.progressStep, step.complete ? styles.progressStepComplete : styles.progressStepIncomplete)}
-            >
-              <span className={cn(styles.progressBadge, step.complete ? styles.progressBadgeComplete : styles.progressBadgeIncomplete)}>
-                {step.complete ? <Check className={styles.progressCheckIcon} /> : index + 1}
-              </span>
-              <span className={styles.progressLabel}>{step.label}</span>
-            </div>
-          ))}
-        </div>
       </div>
 
-      <DestinationAreaPicker
-        isArabic={isArabic}
-        destinationGovernorates={geography.destinationGovernorates}
-        destinationDistricts={geography.destinationDistricts}
-        selectedGovernorateId={geography.selectedGovernorateId}
-        selectedDistrictId={geography.selectedDistrict?.id || ''}
-        isLoadingGovernorates={geography.isLoadingGovernorates}
-        isLoadingDistricts={geography.isLoadingDistricts}
-        onGovernorateChange={onGovernorateChange}
-        onDistrictChange={onDistrictChange}
-      />
+      {/* Location Disabled Critical Notice */}
+      {isLocationDisabled && (
+        <div className="rounded-2xl border border-rose-500/40 bg-rose-500/10 p-3.5 space-y-2 text-start shadow-lg shadow-rose-950/30 animate-in fade-in duration-200">
+          <div className="flex items-center gap-2 text-rose-300 font-black text-xs sm:text-sm">
+            <MapPinOff className="h-4 w-4 shrink-0 text-rose-400" />
+            <span>{isArabic ? 'إذن الموقع الجغرافي (GPS) مغلق' : 'Location Permission Disabled'}</span>
+          </div>
+          <p className="text-[11px] sm:text-xs leading-relaxed text-slate-200 font-medium">
+            {isArabic
+              ? 'لن تتمكن من تحديد نقطة انطلاقك أو إرسال طلب رحلة للكباتن دون تفعيل الموقع. يجب تفعيل إذن الموقع للمتابعة.'
+              : 'You cannot determine your pickup location or request a ride without location access. Please enable location to continue.'}
+          </p>
+          <button
+            type="button"
+            onClick={handleRequestLocation}
+            className="min-h-[44px] w-full bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white font-black text-xs sm:text-sm py-2.5 rounded-xl transition-transform active:scale-[0.98] shadow-md shadow-rose-950/50 flex items-center justify-center gap-2 cursor-pointer border border-rose-400/30"
+          >
+            <Lock className="h-4 w-4" />
+            <span>{isArabic ? 'تفعيل إذن الموقع لبدء الطلب' : 'Enable Location to Request'}</span>
+          </button>
+        </div>
+      )}
 
       <DestinationSearchPanel
-        destinationSearchQuery={search.destinationSearchQuery}
-        onSearchQueryChange={onSearchQueryChange}
         search={search}
         mapPicker={mapPicker}
         clipboard={clipboard}
@@ -177,31 +274,46 @@ export function DestinationSelectionScreen({
         currentRouteEstimate={currentRouteEstimate}
         isCaptainScanPreviewActive={isCaptainScanPreviewActive}
         nearbyCaptainCount={nearbyCaptainCount}
+        onResetDraft={onResetDraft}
+        onCancelPreview={onCancelPreview}
       />
 
-      <DestinationTripSummary
-        riderCount={riderCount}
-        setRiderCount={setRiderCount}
-        destinationDataError={geography.destinationDataError}
-        destinationReady={destinationReady}
-        isServerFareLoading={isServerFareLoading}
-        isDestinationPinMoving={isDestinationPinMoving}
-        destinationLabel={destinationLabel}
-        selectedDestinationCoords={selectedDestinationCoords}
-        hasDestinationCoordsAnchor={!!geography.selectedDistrict?.anchor && !!selectedDestinationCoords}
-        serverFareLabel={serverFareLabel}
-        isRouteEstimateLoading={isRouteEstimateLoading}
-        estimatedDurationMinutes={estimatedDurationMinutes}
-        estimatedDistanceKm={estimatedDistanceKm}
-        nearbyCaptainCount={nearbyCaptainCount}
-        serverFareError={serverFareError}
-        isSameLocation={isSameLocation}
-        isSendingRideRequest={isSendingRideRequest}
-        hasDestinationOptions={hasDestinationOptions}
-        selectedDestinationHasCoords={selectedDestinationHasCoords}
-        hasServerEstimatedFare={selectedDraftDestination?.serverEstimatedFare !== undefined}
-        onSendRequest={onSendRequest}
-      />
+      {isSameLocation && selectedDestinationCoords && (
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-center text-xs font-bold text-amber-300">
+          ⚠️ موقع الوجهة مطابق لموقعك الحالي. يرجى البحث أو اختيار وجهة تريد الذهاب إليها.
+        </div>
+      )}
+
+      {Boolean((selectedDestinationCoords && !isSameLocation) || isCaptainScanPreviewActive) && (
+        <DestinationTripSummary
+          riderCount={riderCount}
+          setRiderCount={setRiderCount}
+          pricingPreference={pricingPreference}
+          setPricingPreference={setPricingPreference}
+          destinationDataError={geography.destinationDataError}
+          destinationReady={destinationReady}
+          isServerFareLoading={isServerFareLoading}
+          isDestinationPinMoving={isDestinationPinMoving}
+          destinationLabel={destinationLabel}
+          selectedDestinationCoords={selectedDestinationCoords}
+          hasDestinationCoordsAnchor={!!geography.selectedDistrict?.anchor && !!selectedDestinationCoords}
+          serverFareLabel={serverFareLabel}
+          isRouteEstimateLoading={isRouteEstimateLoading}
+          estimatedDurationMinutes={estimatedDurationMinutes}
+          estimatedDistanceKm={estimatedDistanceKm}
+          nearbyCaptainCount={nearbyCaptainCount}
+          serverFareError={serverFareError}
+          isSameLocation={isSameLocation}
+          isSendingRideRequest={isSendingRideRequest}
+          hasDestinationOptions={hasDestinationOptions}
+          selectedDestinationHasCoords={selectedDestinationHasCoords}
+          hasServerEstimatedFare={selectedDraftDestination?.serverEstimatedFare !== undefined}
+          isCaptainScanPreviewActive={isCaptainScanPreviewActive}
+          isLocationDisabled={isLocationDisabled}
+          onEnableLocation={handleRequestLocation}
+          onSendRequest={onSendRequest}
+        />
+      )}
     </div>
   );
 }

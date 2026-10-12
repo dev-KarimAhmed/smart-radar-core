@@ -24,6 +24,7 @@ export function BottomNav() {
   const { toast } = useToast();
   const t = useTranslations('nav');
   const tErrors = useTranslations('errors');
+  const tAuto = useTranslations('auto');
   const isPassenger = user?.role === 'rider';
   const isCaptain = user?.role === 'driver';
   const [tripStatus, setTripStatus] = useState(() =>
@@ -49,21 +50,11 @@ export function BottomNav() {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  const isRestricted =
-    (isPassenger && ['searching', 'busy', 'rating', 'checkpoint_required'].includes(tripStatus)) ||
-    (isCaptain && ['busy', 'rating'].includes(driverStatus));
-
   const handleNavClick = useCallback(
-    (event: React.MouseEvent<HTMLAnchorElement>, targetHref: string) => {
-      if (!isRestricted || targetHref === '#') return;
-      event.preventDefault();
-      toast({
-        variant: 'destructive',
-        title: 'لا يمكن تغيير الصفحة الآن',
-        description: tErrors('activeTripLocked'),
-      });
+    (_event: React.MouseEvent<HTMLAnchorElement>, targetHref: string) => {
+      setHash(targetHref);
     },
-    [isRestricted, tErrors, toast],
+    [],
   );
 
   if (!user || isSovereign) return null;

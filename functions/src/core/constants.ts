@@ -4,7 +4,10 @@
  */
 export const SOVEREIGN_CONSTANTS = {
   // 1. الثوابت الجغرافية (Geo-Constraints)
-  RADAR_RADIUS_KM: 1.5,             // القطر السيادي للبحث
+  RADAR_RADIUS_KM: 1.5,             // القطر السيادي الأولي للبحث (1.5 كم)
+  RADAR_MAX_EXPANDED_RADIUS_KM: 2.5, // التوسع الأقصى في حال عدم وجود سائقين (2.5 كم فقط ليس أكثر)
+  RADAR_INITIAL_H3_RING: 4,         // حجم حلقة H3 للمسح الأولي (1.5 كم - دقة 9)
+  RADAR_EXPANDED_H3_RING: 7,        // حجم حلقة H3 الأقصى للتوسع (2.5 كم - دقة 9)
   URBAN_DETOUR_INDEX: 1.35,         // معامل التعرج لتعويض خرائط جوجل محلياً
   PULSE_SECTOR_SIZE: 1.5,           // The size of the market pulse sectors in kilometers.
 
@@ -18,8 +21,8 @@ export const SOVEREIGN_CONSTANTS = {
   SOVEREIGN_TRIP_AUTO_COMPLETE_DURATION_MIN: 120, // Sovereign fixed time to auto-complete a busy trip (in minutes)
 
   // 3. ثوابت الحصة (Quota)
-  QUOTA_MAX_DRIVERS_VISIBLE: 12,      // 9 أساسي + 3 احتياط
-  QUOTA_MAX_RIDERS_VISIBLE: 9,        // الحد الأقصى للسائقين الظاهرين للراكب
+  QUOTA_MAX_DRIVERS_VISIBLE: 9,       // 9 كباتن كحد أقصى للراكب
+  QUOTA_MAX_RIDERS_VISIBLE: 9,        // 9 ركاب كحد أقصى للكابتن
   RADAR_SCAN_LIMIT: 50,             // Max trips/drivers to query in a single go
 
   // 4. ثوابت النبض الاقتصادي (V-Pulse Speeds & Simulation)
@@ -36,12 +39,9 @@ export const SOVEREIGN_CONSTANTS = {
   DORMANCY_TIMEOUT_MS: 5 * 60 * 1000,   // 5 minutes of inactivity until status is set to 'idle'
   MIN_TRIP_DURATION_MIN: 3,           // الحد الأدنى المحتسب لأي رحلة
   
-  // 6. ثوابت الرتب (Ranking)
-  RANKING_RULES: {
-    PLATINUM: { minRating: 4.8, minHearts: 50, name: 'Platinum' },
-    GOLD: { minRating: 4.5, minHearts: 20, name: 'Gold' },
-    SILVER: { minRating: 4.0, minHearts: 0, name: 'Silver' },
-    BRONZE: { minRating: 0, minHearts: 0, name: 'Bronze' }
-  },
+  // 6. ثوابت الرتب (Ranking) — نُقلت بالكامل إلى Postgres.
+  // The single source of truth is now public.calculate_sovereign_rank(), installed by
+  // supabase/migrations/20260822090000_captain_rank_sovereign_engine.sql.
+  // Do not reintroduce the thresholds here — two copies is how they drifted last time.
 
 } as const;

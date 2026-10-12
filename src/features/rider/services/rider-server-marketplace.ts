@@ -1,6 +1,7 @@
 import type { Offer } from '@/core/types';
 import type { RiderLocation } from '../components/rider-map';
 import { cellToLatLng, gridDisk } from 'h3-js';
+import { buildGoogleMapsUrl, isValidCoordinatePair, normalizeExternalMapUrl } from '../../captain/services/ride-location';
 
 type SupabaseRpcLike = {
   rpc: (name: string, args: Record<string, number>) => PromiseLike<{ data: unknown; error: unknown }>;
@@ -46,23 +47,39 @@ export interface ServerFareInput {
   origin: RiderLocation;
   destination: RiderLocation;
   countryId: number;
+  /**
+   * The routed road distance and duration, when the caller already has them. The fare is
+   * quoted before the request row exists, so the server cannot look them up — passing them
+   * is what stops the rider being shown one route and charged for another.
+   */
+  roadKm?: number | null;
+  durationMinutes?: number | null;
 }
 
 export interface RideRequestInsertInput {
   riderId: string;
   origin: RiderLocation;
+  pickupAddress?: string;
+  pickupGoogleMapsUrl?: string;
   destination: RiderLocation;
   originH3: string;
   destinationH3: string;
   destinationAddressAr: string;
   serverEstimatedFare: number;
+  routeDistanceKm?: number;
+  routeDurationMinutes?: number;
   countryId: number;
+  pricingPreference?: 'FREE' | 'APP' | 'TAXI' | null;
 }
 
 export interface RideRequestInsertPayload {
   rider_id: string;
   origin_lat: number;
   origin_lng: number;
+  origin_address: string | null;
+  origin_google_maps_url: string;
+  estimated_distance_km: number | null;
+  estimated_duration_minutes: number | null;
   destination_lat: number;
   destination_lng: number;
   origin_h3: string;
@@ -71,6 +88,7 @@ export interface RideRequestInsertPayload {
   server_estimated_fare: number;
   country_id: number;
   status: 'PENDING';
+  pricing_preference?: 'FREE' | 'APP' | 'TAXI' | null;
 }
 
 export interface RideRequestRow {
@@ -100,13 +118,22 @@ export interface CaptainPresenceQueryInput {
 const CAPTAIN_PRESENCE_TTL_MS = 60_000;
 
 export async function calculateServerFare(client: SupabaseRpcLike, input: ServerFareInput): Promise<number> {
-  const args = {
+  const args: Record<string, number> = {
     lat1: toFiniteNumber(input.origin.lat, 'lat1'),
     lng1: toFiniteNumber(input.origin.lng, 'lng1'),
     lat2: toFiniteNumber(input.destination.lat, 'lat2'),
     lng2: toFiniteNumber(input.destination.lng, 'lng2'),
     p_country_id: toStrictPositiveInteger(input.countryId, 'p_country_id'),
   };
+
+  // The real route when the caller has one. Omitted entirely rather than sent as null, so
+  // the RPC falls back to its own estimate — and so a caller with no route produces exactly
+  // the argument list this function has always sent.
+  const roadKm = Number(input.roadKm);
+  if (Number.isFinite(roadKm) && roadKm > 0) args.p_road_km = roadKm;
+
+  const durationMinutes = Number(input.durationMinutes);
+  if (Number.isFinite(durationMinutes) && durationMinutes > 0) args.p_minutes = durationMinutes;
 
   const { data, error } = await client.rpc('calculate_server_fare', args);
   if (error) throw error;
@@ -115,19 +142,39 @@ export async function calculateServerFare(client: SupabaseRpcLike, input: Server
 }
 
 export function buildRideRequestInsertPayload(input: RideRequestInsertInput): RideRequestInsertPayload {
+  const originLat = toFiniteNumber(input.origin.lat, 'origin_lat');
+  const originLng = toFiniteNumber(input.origin.lng, 'origin_lng');
+  const destinationLat = toFiniteNumber(input.destination.lat, 'destination_lat');
+  const destinationLng = toFiniteNumber(input.destination.lng, 'destination_lng');
+  if (!isValidCoordinatePair(originLat, originLng) || !isValidCoordinatePair(destinationLat, destinationLng)) {
+    throw new Error('invalid_ride_coordinates');
+  }
+
+  const pickupMapUrl = normalizeExternalMapUrl(input.pickupGoogleMapsUrl) || buildGoogleMapsUrl(originLat, originLng);
+  if (!pickupMapUrl) throw new Error('invalid_pickup_map_url');
+
   return {
     rider_id: input.riderId,
-    origin_lat: toFiniteNumber(input.origin.lat, 'origin_lat'),
-    origin_lng: toFiniteNumber(input.origin.lng, 'origin_lng'),
-    destination_lat: toFiniteNumber(input.destination.lat, 'destination_lat'),
-    destination_lng: toFiniteNumber(input.destination.lng, 'destination_lng'),
+    origin_lat: originLat,
+    origin_lng: originLng,
+    origin_address: input.pickupAddress?.trim() || null,
+    origin_google_maps_url: pickupMapUrl,
+    estimated_distance_km: toPositiveMetric(input.routeDistanceKm),
+    estimated_duration_minutes: toPositiveMetric(input.routeDurationMinutes),
+    destination_lat: destinationLat,
+    destination_lng: destinationLng,
     origin_h3: input.originH3,
     destination_h3: input.destinationH3,
     destination_address_ar: input.destinationAddressAr,
     server_estimated_fare: toFiniteNumber(input.serverEstimatedFare, 'server_estimated_fare'),
     country_id: toStrictPositiveInteger(input.countryId, 'country_id'),
     status: 'PENDING',
+    pricing_preference: input.pricingPreference || null,
   };
+}
+
+function toPositiveMetric(value: number | undefined) {
+  return Number.isFinite(value) && Number(value) > 0 ? Number(value) : null;
 }
 
 export async function createRideRequest(client: SupabaseInsertLike, payload: RideRequestInsertPayload): Promise<RideRequestRow> {
@@ -152,17 +199,15 @@ export async function createRideRequest(client: SupabaseInsertLike, payload: Rid
   };
 }
 
-export async function fetchRideOffers(client: SupabaseFromLike, requestId: string): Promise<Offer[]> {
-  const { data, error } = await client
-    .from('ride_offers')
-    .select('*')
-    .eq('request_id', requestId)
-    .order('created_at', { ascending: true });
+export async function fetchRideOffers(client: SupabaseMarketplaceRpcLike, requestId: string): Promise<Offer[]> {
+  const { data, error } = await client.rpc('get_passenger_bids', {
+    p_request_id: requestId,
+  });
 
   if (error) throw error;
   if (!Array.isArray(data)) return [];
 
-  const enrichedRows = await enrichRideOfferRows(client, data as Record<string, unknown>[]);
+  const enrichedRows = await enrichRideOfferRows(client as unknown as SupabaseFromLike, data as Record<string, unknown>[]);
   return enrichedRows.map(mapRideOfferRow).filter(Boolean) as Offer[];
 }
 
@@ -206,24 +251,6 @@ export async function fetchRideRequestStatus(client: SupabaseFromLike, requestId
   return data as Record<string, unknown> | null;
 }
 
-export async function submitRideRating(
-  client: SupabaseMarketplaceRpcLike,
-  input: { requestId: string; captainId: string; ratingValue: number; comment?: string },
-) {
-  if (input.comment && (process.env.NODE_ENV !== 'production')) {
-    console.log('[Sovereign Feedback Comment]:', input.comment);
-  }
-
-  const { data, error } = await client.rpc('submit_ride_rating', {
-    p_request_id: input.requestId,
-    p_captain_id: input.captainId,
-    p_rating_value: toStrictRating(input.ratingValue),
-  });
-
-  if (error) throw error;
-  return data;
-}
-
 export async function cancelRideRequest(client: SupabaseMarketplaceRpcLike, requestId: string) {
   const { error } = await client.rpc('cancel_ride_request', {
     p_request_id: requestId,
@@ -242,7 +269,9 @@ export async function fetchAvailableCaptainPresence(
   const nowMs = query.nowMs ?? Date.now();
   const ttlMs = query.ttlMs ?? CAPTAIN_PRESENCE_TTL_MS;
   const staleBeforeIso = new Date(nowMs - ttlMs).toISOString();
-  const h3Cells = gridDisk(query.centerH3Cell, query.ringSize ?? 1);
+  // السقف الأقصى لحلقة H3: مقفول عند 7 (ما يعادل 2.5 كم فقط ليس أكثر) والافتراضي 4 (1.5 كم)
+  const ringSize = Math.min(Math.max(query.ringSize ?? 4, 0), 7);
+  const h3Cells = gridDisk(query.centerH3Cell, ringSize);
   const { data, error } = await client
     .from('captain_locations')
     .select('*')
@@ -255,7 +284,9 @@ export async function fetchAvailableCaptainPresence(
   return data
     .filter((row) => captainRowMatchesPresenceQuery(row as Record<string, unknown>, h3Cells, query.countryId))
     .map(mapCaptainPresenceRow)
-    .filter((row): row is CaptainPresencePoint => !!row && isCaptainPresenceFresh(row, nowMs, ttlMs));
+    .filter((row): row is CaptainPresencePoint => !!row && isCaptainPresenceFresh(row, nowMs, ttlMs))
+    .sort((a, b) => (Date.parse(b.updatedAt || '0') || 0) - (Date.parse(a.updatedAt || '0') || 0))
+    .slice(0, 9);
 }
 
 export function subscribeToRideRequestStatus(
@@ -276,11 +307,6 @@ export function subscribeToRideRequestStatus(
       },
       (payload) => {
         if (payload.new) {
-          if (typeof window !== 'undefined') {
-            const audio = new Audio('/sounds/notification.mp3');
-            audio.volume = 0.5;
-            audio.play().catch((err) => console.log("Audio autoplay blocked until user interaction:", err));
-          }
           onStatus(payload.new);
         }
       },
@@ -326,13 +352,6 @@ export function subscribeToRideOffers(
           payload.event === 'insert' ||
           !payload.eventType
         );
-        if (isInsert) {
-          if (typeof window !== 'undefined') {
-            const audio = new Audio('/sounds/notification.mp3');
-            audio.volume = 0.5;
-            audio.play().catch((err) => console.log("Audio autoplay blocked until user interaction:", err));
-          }
-        }
         onChange();
       },
     )
@@ -469,8 +488,16 @@ function mapRideOfferRow(row: Record<string, unknown>): Offer | null {
   const vehicleColor = firstString(vehicle.color, vehicle.vehicle_color, row.vehicle_color);
   const vehicleYear = firstNumber(vehicle.year, vehicle.vehicle_year, row.vehicle_year);
   const plate = firstString(vehicle.plate, vehicle.plate_number, vehicle.vehicle_plate, row.plate_number, row.vehicle_plate);
-  const affiliationType = firstString(row.affiliation_type, vehicle.employment_type, profile.employment_type) || 'independent';
-  const affiliationName = firstString(
+  const rawAffiliationType = firstString(
+    captainProfile.affiliation_type,
+    row.affiliation_type,
+    profile.affiliation_type,
+    (profile.affiliation as any)?.type,
+  );
+  const isTaxiVehicle = vehicleType === 'TAXI' || captainProfile.vehicle_type === 'TAXI';
+  const rawCompany = firstString(
+    captainProfile.company_name,
+    captainProfile.employment_type,
     row.affiliation_name,
     vehicle.company_name,
     vehicle.companyName,
@@ -479,13 +506,25 @@ function mapRideOfferRow(row: Record<string, unknown>): Offer | null {
     vehicle.office_name,
     profile.company_name,
     profile.company,
-  ) || (affiliationType === 'independent' ? 'مستقل' : affiliationType);
+    (profile.affiliation as any)?.name,
+  );
+  const isIndependentDriver = rawAffiliationType === 'independent'
+    || rawCompany === 'مستقل'
+    || rawCompany === 'كابتن مستقل'
+    || rawCompany?.toLowerCase() === 'independent';
+  const resolvedAffiliationType = isIndependentDriver
+    ? 'independent'
+    : (rawAffiliationType || (isTaxiVehicle ? 'office-taxi' : rawCompany ? 'smart-app' : 'independent'));
+  const resolvedAffiliationName = (resolvedAffiliationType === 'independent' || isIndependentDriver ? '' : rawCompany) || '';
   const captainPhone = firstString(row.driver_phone, row.captain_phone, row.phone, profile.phone, profile.phone_number);
+  const pricingMode = firstString(row.pricing_mode, row.pricingMode) as 'FREE' | 'APP' | 'TAXI' | undefined;
 
   const offer: Offer = {
     id: offerId,
     driverId,
     price,
+    pricing_mode: pricingMode,
+    pricingMode,
     driverName: firstString(row.driver_name, row.captain_name, profile.full_name, profile.name, row.driver_serial, row.captain_serial, profile.serial_id) || 'سائق',
     driverRating: firstNumber(row.driver_rating, row.captain_rating, row.rating, profile.trust_score, profile.rating, profile.trust_rating) ?? 5,
     driverRank: parseDriverRank(firstString(row.driver_rank, row.captain_rank, row.rank, profile.tier, profile.rank)),
@@ -499,14 +538,30 @@ function mapRideOfferRow(row: Record<string, unknown>): Offer | null {
       type: vehicleType || 'سيارة',
     },
     driverAffiliation: {
-      type: affiliationType,
-      name: affiliationName,
-      phone: captainPhone ?? undefined,
+      type: resolvedAffiliationType,
+      name: resolvedAffiliationName,
+      phone: captainPhone || undefined,
     },
     silencePreference: 'neutral',
-    distance_to_rider: firstNumber(row.distance_to_rider, row.distance) ?? undefined,
-    pickup_eta_minutes: firstNumber(row.pickup_eta_minutes, row.eta, row.pickup_eta) ?? undefined,
+    // `pickup_distance_km` and `eta_minutes` are the columns that actually exist on
+    // ride_offers, both now server-measured from captain_locations (20260907090000). The
+    // aliases after them were the only names read before, none of which is a column — so
+    // the captain's real distance and ETA never reached this screen at all.
+    distance_to_rider: firstNumber(row.pickup_distance_km, row.distance_to_rider, row.distance) ?? undefined,
+    // eta_minutes is NOT NULL with a column default of 5, so an offer whose captain had no
+    // recorded location still carries a 5. pickup_distance_km is the proof the ETA was
+    // actually measured — without it, treat the ETA as unknown and let the caller estimate
+    // rather than passing off the default as a measurement.
+    pickup_eta_minutes: (
+      firstNumber(row.pickup_distance_km) != null
+        ? firstNumber(row.eta_minutes)
+        : firstNumber(row.pickup_eta_minutes, row.eta, row.pickup_eta)
+    ) ?? undefined,
     estimated_duration_minutes: firstNumber(row.estimated_duration_minutes, row.duration, row.estimated_duration) ?? undefined,
+    wait_seconds: firstNumber(row.wait_seconds) ?? undefined,
+    created_at: firstString(row.created_at) || undefined,
+    // The itemised receipt submit_ride_offer stored with the offer, passed straight through.
+    fare_breakdown: (row.fare_breakdown ?? null) as Record<string, unknown> | null,
     captain: {
       ...captainProfile,
       ...profile,
@@ -520,8 +575,9 @@ function mapRideOfferRow(row: Record<string, unknown>): Offer | null {
       vehicle_color: vehicleColor || undefined,
       vehicle_year: vehicleYear ?? undefined,
       plate_number: plate || undefined,
-      affiliation_type: affiliationType,
-      affiliation_name: affiliationName,
+      affiliation_type: resolvedAffiliationType,
+      affiliation_name: resolvedAffiliationName,
+      company_name: resolvedAffiliationName || undefined,
     },
   };
 
@@ -687,11 +743,3 @@ function toStrictPositiveInteger(value: unknown, fieldName: string) {
   return numberValue;
 }
 
-function toStrictRating(value: unknown) {
-  const numberValue = Number(value);
-  if (!Number.isInteger(numberValue) || numberValue < 1 || numberValue > 5) {
-    throw new Error('invalid_p_rating_value');
-  }
-
-  return numberValue;
-}

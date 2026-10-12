@@ -10,19 +10,13 @@ import {
   Languages,
   Loader2,
   LockKeyhole,
+  Mail,
   MapPin,
   Phone,
   ShieldCheck,
   Sparkles,
+  UserPlus,
   UserRound,
-  UploadCloud,
-  FileText,
-  Car,
-  Calendar,
-  Hash,
-  Briefcase,
-  Link,
-  Globe,
 } from 'lucide-react';
 import {
   Dialog,
@@ -39,9 +33,12 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useRegistration } from '../../hooks/use-registration';
+import { requestPasswordRecovery } from '../../services/password-recovery';
 import { navigateAuth } from '@/lib/auth-routing';
 
 import { cn } from '@/lib/utils';
+import { useTranslations } from "next-intl";
+
 const styles = {
   style329_1: "relative min-h-screen overflow-hidden bg-[#0B0F19] text-slate-100",
   style331_2: "pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle_at_18%_12%,rgba(20,184,166,0.20),transparent_30%),radial-gradient(circle_at_82%_22%,rgba(45,212,191,0.08),transparent_28%)]",
@@ -57,12 +54,6 @@ const styles = {
   style351_12: "text-sm font-bold text-[#14B8A6]",
   style362_13: "mt-3 text-3xl font-black tracking-normal text-[#F8FAFC]",
   style365_14: "mt-3 text-sm font-medium leading-6 text-[#94A3B8]",
-  style372_15: "mb-5 grid grid-cols-2 rounded-2xl border border-white/10 bg-[#0B0F19]/45 p-1",
-  style381_16: "relative min-h-11 rounded-xl px-3 text-sm font-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/50",
-  style386_17: "absolute inset-0 rounded-xl border border-[#14B8A6]/45 bg-[#14B8A6]/15 shadow-[0_0_18px_rgba(20,184,166,0.14)]",
-  style390_18: "relative z-10",
-  style390_19: "text-[#F8FAFC]",
-  style390_20: "text-[#94A3B8]",
   style405_21: "space-y-4",
   style410_22: "space-y-4 animate-fadeIn text-right animate-in fade-in duration-200",
   style411_23: "flex justify-between items-center text-xs text-slate-400 mb-4 bg-white/5 border border-white/10 rounded-2xl p-3",
@@ -174,14 +165,15 @@ const styles = {
   style776_129: "h-5 w-5 shrink-0 accent-[#14B8A6]",
   style785_130: "mt-2 w-full rounded-2xl bg-[#14B8A6] p-4 text-base font-black text-[#0B0F19] shadow-[0_16px_45px_rgba(20,184,166,0.22)] transition hover:bg-[#2DD4BF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/60 disabled:opacity-50 cursor-pointer",
   style794_131: "mt-6 text-center text-sm font-semibold text-[#94A3B8]",
-  style799_132: "font-black text-[#14B8A6] underline-offset-4 transition hover:text-[#2DD4BF] hover:underline",
+  createAccountLink: "inline-flex items-center gap-1 font-black text-[#14B8A6] underline-offset-4 transition hover:text-[#2DD4BF] hover:underline",
+  createAccountIcon: "h-4 w-4",
   style807_133: "mt-5 w-full text-xs font-bold text-[#94A3B8]/70 transition hover:text-white",
-  style818_134: "border border-[#14B8A6]/25 bg-[#0B0F19] text-white shadow-2xl sm:max-w-md",
+  style818_134: "border border-[#14B8A6]/25 bg-[#0B0F19] text-white shadow-2xl sm:max-w-md max-h-[88vh] overflow-y-auto scrollbar-thin rounded-3xl",
   style820_135: "text-right",
   style820_136: "text-left",
   style821_137: "mb-2 flex h-11 w-11 items-center justify-center rounded-2xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 text-[#14B8A6]",
   style822_138: "h-5 w-5",
-  style824_139: "text-2xl font-black text-white",
+  style824_139: "text-2xl font-black text-white mt-5",
   style825_140: "text-sm leading-6 text-[#94A3B8]",
   style832_141: "space-y-4",
   style833_142: "rounded-2xl border border-[#14B8A6]/20 bg-[#14B8A6]/10 p-4 text-sm leading-7 text-[#D8FDF8]",
@@ -189,6 +181,10 @@ const styles = {
   style847_144: "text-left",
   style851_145: "grid gap-3 sm:grid-cols-2",
   style856_146: "inline-flex min-h-12 items-center justify-center rounded-2xl bg-[#14B8A6] px-4 text-sm font-black text-[#0B0F19] shadow-[0_16px_45px_rgba(20,184,166,0.18)] transition hover:bg-[#2DD4BF]",
+  resetSubmit: "mt-3 w-full rounded-2xl bg-[#14B8A6] px-4 py-3 text-sm font-black text-[#04140F] transition hover:bg-[#2DD4BF] disabled:cursor-not-allowed disabled:opacity-50",
+  resetEmailNote: "mt-2 text-[10px] leading-relaxed text-slate-500",
+  resetSuccess: "mt-3 rounded-2xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-xs font-bold leading-relaxed text-emerald-200",
+  resetError: "mt-3 rounded-2xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-xs font-bold leading-relaxed text-rose-200",
   style862_147: "inline-flex min-h-12 items-center justify-center rounded-2xl border border-white/10 bg-white/10 px-4 text-sm font-black text-white transition hover:bg-white/15",
   style871_148: "absolute inset-x-0 bottom-0 z-0 h-14 overflow-hidden border-t border-white/10 bg-slate-950/70 backdrop-blur-xl",
   style873_149: "flex w-max min-w-[200%] gap-8 whitespace-nowrap py-5",
@@ -228,6 +224,8 @@ const copy = {
     fullNamePlaceholder: 'اكتب اسمك',
     phone: 'رقم الهاتف',
     phonePlaceholder: '+962790000000',
+    email: 'البريد الإلكتروني (اختياري)',
+    emailPlaceholder: 'you@example.com',
     country: 'الدولة',
     countryPlaceholder: 'اختر الدولة',
     governorate: 'المحافظة',
@@ -277,6 +275,8 @@ const copy = {
     fullNamePlaceholder: 'Enter your name',
     phone: 'Phone Number',
     phonePlaceholder: '+962790000000',
+    email: 'Email (optional)',
+    emailPlaceholder: 'you@example.com',
     country: 'Country',
     countryPlaceholder: 'Choose country',
     governorate: 'Governorate',
@@ -336,6 +336,8 @@ const authCopy = {
     fullNamePlaceholder: 'اكتب اسمك',
     phone: 'رقم الهاتف',
     phonePlaceholder: '+962790000000',
+    email: 'البريد الإلكتروني (اختياري)',
+    emailPlaceholder: 'you@example.com',
     country: 'الدولة',
     countryPlaceholder: 'اختر الدولة',
     governorate: 'المحافظة',
@@ -385,6 +387,8 @@ const authCopy = {
     fullNamePlaceholder: 'Enter your name',
     phone: 'Phone Number',
     phonePlaceholder: '+962790000000',
+    email: 'Email (optional)',
+    emailPlaceholder: 'you@example.com',
     country: 'Country',
     countryPlaceholder: 'Choose country',
     governorate: 'Governorate',
@@ -425,6 +429,7 @@ const authCopy = {
 } as const;
 
 export function PersonalStep() {
+  const tAuto = useTranslations('auto');
   const {
     personal,
     setPersonal,
@@ -442,38 +447,54 @@ export function PersonalStep() {
     locationDataLoading,
     canUseDevMockData,
     fillRandomRegistrationData,
-    fillCaptainRegistrationData,
     isSubmitting,
     role,
     authMode,
     setAuthMode,
     lang,
     setLang,
-    vehicle,
-    setVehicle,
+    createAccountPulseKey,
   } = useRegistration();
   const [showPassword, setShowPassword] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
   const [resetPhone, setResetPhone] = useState(personal.phone);
-  const [registerStep, setRegisterStep] = useState(1);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetSubmitting, setResetSubmitting] = useState(false);
+  const [resetMessage, setResetMessage] = useState('');
+  const [resetRecoveryUrl, setResetRecoveryUrl] = useState('');
+  const [resetError, setResetError] = useState('');
+  const [emailError, setEmailError] = useState('');
 
-  React.useEffect(() => {
-    setRegisterStep(1);
-  }, [authMode]);
+  // Password recovery files a request and returns the direct recoveryUrl to bypass any email delay or rate limits.
+  const submitPasswordRecovery = async () => {
+    setResetSubmitting(true);
+    setResetError('');
+    setResetMessage('');
+    setResetRecoveryUrl('');
+    try {
+      const res = await requestPasswordRecovery(resetPhone, resetEmail);
+      setResetMessage(res.message);
+      if (res.recoveryUrl) {
+        setResetRecoveryUrl(res.recoveryUrl);
+      }
+    } catch (error) {
+      setResetError(error instanceof Error ? error.message : tAuto('key_ae0a0345'));
+    } finally {
+      setResetSubmitting(false);
+    }
+  };
 
   const onFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (authMode === 'register' && role === 'driver') {
-      if (registerStep === 1) {
-        setRegisterStep(2);
-      } else if (registerStep === 2) {
-        setRegisterStep(3);
-      } else if (registerStep === 3) {
-        handlePersonalSubmit(e);
+    setEmailError('');
+    if (authMode === 'register' && personal.email && personal.email.trim().length > 0) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(personal.email.trim())) {
+        setEmailError(lang === 'ar' ? tAuto('key_445e75c0') : 'Invalid email format');
+        return;
       }
-    } else {
-      handlePersonalSubmit(e);
     }
+    handlePersonalSubmit(e);
   };
 
   const currentLang = lang as Lang;
@@ -485,6 +506,9 @@ export function PersonalStep() {
 
   const openPasswordReset = () => {
     setResetPhone(personal.phone);
+    setResetEmail('');
+    setResetMessage('');
+    setResetError('');
     setResetOpen(true);
   };
 
@@ -538,32 +562,6 @@ export function PersonalStep() {
             </AnimatePresence>
           </header>
 
-          <div className={styles.style372_15}>
-            {(['register', 'login'] as AuthMode[]).map((nextMode) => {
-              const active = mode === nextMode;
-
-              return (
-                <button
-                  key={nextMode}
-                  type="button"
-                  onClick={() => goToMode(nextMode)}
-                  className={styles.style381_16}
-                >
-                  {active ? (
-                    <motion.span
-                      layoutId="auth-view-active"
-                      className={styles.style386_17}
-                      transition={{ type: 'spring', stiffness: 420, damping: 34 }}
-                    />
-                  ) : null}
-                  <span className={cn(styles.style390_18, active ? styles.style390_19 : styles.style390_20)}>
-                    {nextMode === 'register' ? t.register : t.login}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
           <AnimatePresence mode="wait" initial={false}>
             <motion.form
               key={mode}
@@ -574,377 +572,226 @@ export function PersonalStep() {
               className={styles.style405_21}
               onSubmit={onFormSubmit}
             >
-              {/* Conditional Multi-Step for Captains Registration */}
-              {mode === 'register' && role === 'driver' && registerStep === 2 ? (
-                <div className={styles.style410_22} dir="rtl">
-                  <div className={styles.style411_23}>
-                    <span className={styles.style412_24}>الخطوة 2 من 3</span>
-                    <span className={styles.style413_25}>معلومات المركبة والعمل</span>
+              {mode === 'register' && (role !== 'rider' && canUseDevMockData) ? (
+                <div className={styles.style591_73}>
+                  <div className={styles.style592_74}>
+                    {locationDataLoading ? (
+                      <>
+                        <Loader2 className={styles.style595_75} aria-hidden="true" />
+                        <span>{t.loadingLocations}</span>
+                      </>
+                    ) : (
+                      <>
+                        <MapPin className={styles.style600_76} aria-hidden="true" />
+                        <span>{`${countries.length} / ${governorates.length} / ${districts.length}`}</span>
+                      </>
+                    )}
                   </div>
 
-                  <Field label="نوع المركبة" icon={<ChevronDown className={styles.style416_26} />}>
+                  <button
+                    type="button"
+                    onClick={fillRandomRegistrationData}
+                    disabled={locationDataLoading}
+                    className={styles.style611_77}
+                  >
+                    <Sparkles className={styles.style613_78} aria-hidden="true" />
+                    {t.mockData}
+                  </button>
+                </div>
+              ) : null}
+
+              {mode === 'register' ? (
+                <Field label={t.fullName} icon={<UserRound className={styles.style621_79} />}>
+                  <input
+                    type="text"
+                    placeholder={t.fullNamePlaceholder}
+                    value={personal.name}
+                    onChange={(event) => setPersonal({ ...personal, name: event.target.value })}
+                    className={cn(styles.input, isArabic ? styles.style627_80 : styles.style627_81)}
+                    autoComplete="name"
+                    required
+                  />
+                </Field>
+              ) : null}
+
+              <Field label={t.phone} icon={<Phone className={styles.style634_82} />}>
+                <input
+                  type="tel"
+                  dir="ltr"
+                  inputMode="tel"
+                  placeholder={phonePlaceholder || t.phonePlaceholder}
+                  value={personal.phone}
+                  onChange={(event) => setPersonal({ ...personal, phone: event.target.value })}
+                  className={cn(styles.input, styles.style642_83)}
+                  autoComplete="tel"
+                  required
+                />
+                <p className={cn(isArabic ? styles.style646_84 : styles.style646_85, styles.style646_86)}>
+                  {phoneValidationHint}
+                </p>
+              </Field>
+
+              {mode === 'register' ? (
+                <Field label={t.email} icon={<Mail className={styles.style634_82} />}>
+                  <input
+                    type="email"
+                    dir="ltr"
+                    inputMode="email"
+                    placeholder={t.emailPlaceholder}
+                    value={personal.email}
+                    onChange={(event) => {
+                      setPersonal({ ...personal, email: event.target.value });
+                      if (emailError) setEmailError('');
+                    }}
+                    className={cn(styles.input, styles.style642_83, emailError && 'border-rose-500/50')}
+                    autoComplete="email"
+                  />
+                  {emailError ? (
+                    <p className={cn(isArabic ? styles.style646_84 : styles.style646_85, 'text-rose-400 mt-1 font-bold text-[10px]')}>
+                      {emailError}
+                    </p>
+                  ) : null}
+                </Field>
+              ) : null}
+
+              {mode === 'register' ? (
+                <div className={styles.style652_87}>
+                  <Field label={t.country} icon={<MapPin className={styles.style653_88} />}>
                     <Select
-                      value={vehicle.type || ''}
-                      onValueChange={(value) => setVehicle({ ...vehicle, type: value })}
+                      dir={isArabic ? 'rtl' : 'ltr'}
+                      value={personal.country}
+                      onValueChange={(value) => setPersonal({ ...personal, country: value, gov: '', district: '' })}
+                      disabled={locationDataLoading && !countries.length}
                     >
                       <SelectTrigger className={styles.customSelectTrigger}>
-                        <SelectValue placeholder="اختر نوع المركبة" />
+                        <SelectValue placeholder={locationDataLoading && !countries.length ? '...' : t.countryPlaceholder} />
                       </SelectTrigger>
                       <SelectContent className={styles.customSelectContent}>
-                        <SelectItem value="ملاكي" className={styles.customSelectItem}>ملاكي (سيارة خاصة)</SelectItem>
-                        <SelectItem value="تاكسي" className={styles.customSelectItem}>تاكسي</SelectItem>
-                        <SelectItem value="سكوتر" className={styles.customSelectItem}>سكوتر</SelectItem>
+                        {countries.map((country) => (
+                          <SelectItem key={country.id} value={country.id} className={styles.customSelectItem}>
+                            {isArabic ? country.label : country.labelEn}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </Field>
 
-                  <div className={styles.style433_30}>
-                    <Field label="الماركة" icon={<Car className={styles.style434_31} />}>
-                      <input
-                        type="text"
-                        placeholder="مثل: تويوتا، كيا"
-                        value={vehicle.brand || ''}
-                        onChange={(e) => setVehicle({ ...vehicle, brand: e.target.value })}
-                        className={cn(styles.input, styles.style440_32)}
-                        required
-                      />
-                    </Field>
-                    <Field label="الموديل" icon={<Car className={styles.style444_33} />}>
-                      <input
-                        type="text"
-                        placeholder="مثل: كورولا، سيراتو"
-                        value={vehicle.model || ''}
-                        onChange={(e) => setVehicle({ ...vehicle, model: e.target.value })}
-                        className={cn(styles.input, styles.style450_34)}
-                        required
-                      />
-                    </Field>
-                  </div>
-
-                  <div className={styles.style456_35}>
-                    <Field label="سنة الصنع" icon={<Calendar className={styles.style457_36} />}>
-                      <input
-                        type="number"
-                        placeholder="سنة الصنع"
-                        value={vehicle.year || ''}
-                        onChange={(e) => setVehicle({ ...vehicle, year: e.target.value })}
-                        className={cn(styles.input, styles.style463_37)}
-                        required
-                        min="1990"
-                        max="2027"
-                      />
-                    </Field>
-                    <Field label="رقم اللوحة" icon={<Hash className={styles.style469_38} />}>
-                      <input
-                        type="text"
-                        placeholder="مثال: 77-12345"
-                        value={vehicle.plate || ''}
-                        onChange={(e) => setVehicle({ ...vehicle, plate: e.target.value })}
-                        className={cn(styles.input, styles.style475_39)}
-                        required
-                      />
-                    </Field>
-                  </div>
-
-                  <Field label="جهة العمل الحالية (اسم الشركة أو مستقل)" icon={<Briefcase className={styles.style481_40} />}>
-                    <input
-                      type="text"
-                      placeholder="جهة العمل الحالية"
-                      value={vehicle.employment_type || ''}
-                      onChange={(e) => setVehicle({ ...vehicle, employment_type: e.target.value })}
-                      className={cn(styles.input, styles.style487_41)}
-                      required
-                    />
-                    <p className={styles.style490_42}>
-                      اكتب اسم الشركة التابع لها، أو اكتب 'مستقل' إذا كنت تعمل لحسابك الخاص
-                    </p>
+                  <Field label={t.governorate} icon={<MapPin className={styles.style679_96} />}>
+                    <Select
+                      dir={isArabic ? 'rtl' : 'ltr'}
+                      value={personal.gov}
+                      onValueChange={(value) => setPersonal({ ...personal, gov: value, district: '' })}
+                      disabled={!personal.country || locationDataLoading}
+                    >
+                      <SelectTrigger className={styles.customSelectTrigger}>
+                        <SelectValue placeholder={locationDataLoading ? '...' : t.governoratePlaceholder} />
+                      </SelectTrigger>
+                      <SelectContent className={styles.customSelectContent}>
+                        {governorates.map((gov) => (
+                          <SelectItem key={gov.id} value={gov.id} className={styles.customSelectItem}>
+                            {isArabic ? gov.label : gov.labelEn}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </Field>
 
-                  <div className={styles.style495_43}>
-                    <button
-                      type="button"
-                      onClick={() => setRegisterStep(1)}
-                      className={styles.style499_44}
+                  <Field label={t.district} icon={<MapPin className={styles.style705_104} />}>
+                    <Select
+                      dir={isArabic ? 'rtl' : 'ltr'}
+                      value={personal.district}
+                      onValueChange={(value) => setPersonal({ ...personal, district: value })}
+                      disabled={!personal.gov || locationDataLoading}
                     >
-                      رجوع
-                    </button>
-                    <button
-                      type="submit"
-                      className={styles.style505_45}
-                    >
-                      المتابعة للخطوة التالية
-                    </button>
-                  </div>
+                      <SelectTrigger className={styles.customSelectTrigger}>
+                        <SelectValue placeholder={locationDataLoading ? '...' : t.districtPlaceholder} />
+                      </SelectTrigger>
+                      <SelectContent className={styles.customSelectContent}>
+                        {districts.map((district) => (
+                          <SelectItem key={district.id} value={district.value} className={styles.customSelectItem}>
+                            {isArabic ? district.label : district.labelEn}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </Field>
                 </div>
-              ) : mode === 'register' && role === 'driver' && registerStep === 3 ? (
-                <div className={styles.style512_46} dir="rtl">
-                  <div className={styles.style513_47}>
-                    <span className={styles.style514_48}>الخطوة 3 من 3</span>
-                    <span className={styles.style515_49}>التوثيق والهوية</span>
-                  </div>
+              ) : null}
 
-                  <Field label="رابط صفحة التواصل الخاصة بك (فيسبوك / لينكد إن) - اختياري" icon={<Globe className={styles.style518_50} />}>
-                    <input
-                      type="url"
-                      placeholder="https://facebook.com/username"
-                      value={vehicle.contact_page_url || ''}
-                      onChange={(e) => setVehicle({ ...vehicle, contact_page_url: e.target.value })}
-                      className={cn(styles.input, styles.style524_51)}
-                    />
-                  </Field>
-
-                  <div className={styles.style528_52}>
-                    <label className={styles.style529_53}>تحميل الوثائق الرسمية (KYC)</label>
-                    <div className={styles.style530_54}>
-                      <div className={styles.style531_55}>
-                        <UploadCloud className={styles.style532_56} />
-                        <span className={styles.style533_57}>رخصة القيادة الشخصية</span>
-                        <input
-                          type="file"
-                          accept="image/*,application/pdf"
-                          className={styles.style537_58}
-                        />
-                      </div>
-
-                      <div className={styles.style541_59}>
-                        <FileText className={styles.style542_60} />
-                        <span className={styles.style543_61}>رخصة المركبة</span>
-                        <input
-                          type="file"
-                          accept="image/*,application/pdf"
-                          className={styles.style547_62}
-                        />
-                      </div>
-
-                      <div className={styles.style551_63}>
-                        <UploadCloud className={styles.style552_64} />
-                        <span className={styles.style553_65}>بطاقة الهوية الوطنية</span>
-                        <input
-                          type="file"
-                          accept="image/*,application/pdf"
-                          className={styles.style557_66}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className={styles.style563_67}>
-                    <button
-                      type="button"
-                      onClick={() => setRegisterStep(2)}
-                      className={styles.style567_68}
-                    >
-                      رجوع
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={isSubmitting}
-                      className={styles.style574_69}
-                    >
-                      {isSubmitting ? 'جاري الإرسال...' : 'إرسال طلب الانضمام للمراجعة'}
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  {/* Step 1 or Login view */}
-                  {mode === 'register' && role === 'driver' && (
-                    <div className={styles.style584_70} dir="rtl">
-                      <span className={styles.style585_71}>الخطوة 1 من 3</span>
-                      <span className={styles.style586_72}>المعلومات الشخصية والمدينة</span>
-                    </div>
-                  )}
-
-                  {mode === 'register' && (role === 'driver' || (role !== 'rider' && canUseDevMockData)) ? (
-                    <div className={styles.style591_73}>
-                      <div className={styles.style592_74}>
-                        {locationDataLoading ? (
-                          <>
-                            <Loader2 className={styles.style595_75} aria-hidden="true" />
-                            <span>{t.loadingLocations}</span>
-                          </>
-                        ) : (
-                          <>
-                            <MapPin className={styles.style600_76} aria-hidden="true" />
-                            <span>{`${countries.length} / ${governorates.length} / ${districts.length}`}</span>
-                          </>
-                        )}
-                      </div>
-
-                      {role === 'driver' || canUseDevMockData ? (
-                        <button
-                          type="button"
-                          onClick={role === 'driver' ? fillCaptainRegistrationData : fillRandomRegistrationData}
-                          disabled={locationDataLoading}
-                          className={styles.style611_77}
-                        >
-                          <Sparkles className={styles.style613_78} aria-hidden="true" />
-                          {role === 'driver' ? (isArabic ? 'بيانات كابتن تجربة' : 'Captain test data') : t.mockData}
-                        </button>
-                      ) : null}
-                    </div>
-                  ) : null}
-
-                  {mode === 'register' ? (
-                    <Field label={t.fullName} icon={<UserRound className={styles.style621_79} />}>
-                      <input
-                        type="text"
-                        placeholder={t.fullNamePlaceholder}
-                        value={personal.name}
-                        onChange={(event) => setPersonal({ ...personal, name: event.target.value })}
-                        className={cn(styles.input, isArabic ? styles.style627_80 : styles.style627_81)}
-                        autoComplete="name"
-                        required
-                      />
-                    </Field>
-                  ) : null}
-
-                  <Field label={t.phone} icon={<Phone className={styles.style634_82} />}>
-                    <input
-                      type="tel"
-                      dir="ltr"
-                      inputMode="tel"
-                      placeholder={phonePlaceholder || t.phonePlaceholder}
-                      value={personal.phone}
-                      onChange={(event) => setPersonal({ ...personal, phone: event.target.value })}
-                      className={cn(styles.input, styles.style642_83)}
-                      autoComplete="tel"
-                      required
-                    />
-                    <p className={cn(isArabic ? styles.style646_84 : styles.style646_85, styles.style646_86)}>
-                      {phoneValidationHint}
-                    </p>
-                  </Field>
-
-                  {mode === 'register' ? (
-                    <div className={styles.style652_87}>
-                      <Field label={t.country} icon={<MapPin className={styles.style653_88} />}>
-                        <Select
-                          value={personal.country}
-                          onValueChange={(value) => setPersonal({ ...personal, country: value, gov: '', district: '' })}
-                          disabled={locationDataLoading && !countries.length}
-                        >
-                          <SelectTrigger className={styles.customSelectTrigger}>
-                            <SelectValue placeholder={locationDataLoading && !countries.length ? '...' : t.countryPlaceholder} />
-                          </SelectTrigger>
-                          <SelectContent className={styles.customSelectContent}>
-                            {countries.map((country) => (
-                              <SelectItem key={country.id} value={country.id} className={styles.customSelectItem}>
-                                {isArabic ? country.label : country.labelEn}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </Field>
-
-                      <Field label={t.governorate} icon={<MapPin className={styles.style679_96} />}>
-                        <Select
-                          value={personal.gov}
-                          onValueChange={(value) => setPersonal({ ...personal, gov: value, district: '' })}
-                          disabled={!personal.country || locationDataLoading}
-                        >
-                          <SelectTrigger className={styles.customSelectTrigger}>
-                            <SelectValue placeholder={locationDataLoading ? '...' : t.governoratePlaceholder} />
-                          </SelectTrigger>
-                          <SelectContent className={styles.customSelectContent}>
-                            {governorates.map((gov) => (
-                              <SelectItem key={gov.id} value={gov.id} className={styles.customSelectItem}>
-                                {isArabic ? gov.label : gov.labelEn}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </Field>
-
-                      <Field label={t.district} icon={<MapPin className={styles.style705_104} />}>
-                        <Select
-                          value={personal.district}
-                          onValueChange={(value) => setPersonal({ ...personal, district: value })}
-                          disabled={!personal.gov || locationDataLoading}
-                        >
-                          <SelectTrigger className={styles.customSelectTrigger}>
-                            <SelectValue placeholder={locationDataLoading ? '...' : t.districtPlaceholder} />
-                          </SelectTrigger>
-                          <SelectContent className={styles.customSelectContent}>
-                            {districts.map((district) => (
-                              <SelectItem key={district.id} value={district.value} className={styles.customSelectItem}>
-                                {isArabic ? district.label : district.labelEn}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </Field>
-                    </div>
-                  ) : null}
-
-                  <Field label={t.password} icon={<LockKeyhole className={styles.style731_112} />}>
-                    <div className={styles.style732_113}>
-                      <input
-                        type={showPassword ? 'text' : 'password'}
-                        placeholder={t.passwordPlaceholder}
-                        value={authPassword}
-                        onChange={(event) => setAuthPassword(event.target.value)}
-                        className={cn(styles.input, isArabic ? styles.style738_114 : styles.style738_115)}
-                        autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
-                        required
-                      />
-                      <button
-                        type="button"
-                        aria-label={showPassword ? t.hidePassword : t.showPassword}
-                        onClick={() => setShowPassword((current) => !current)}
-                        className={cn(styles.style746_116, isArabic ? styles.style747_117 : styles.style747_118)}
-                      >
-                        {showPassword ? <EyeOff className={styles.style750_119} /> : <Eye className={styles.style750_120} />}
-                      </button>
-                    </div>
-                  </Field>
-
-                  {mode === 'login' ? (
-                    <button
-                      type="button"
-                      onClick={openPasswordReset}
-                      className={cn(styles.style759_121, isArabic ? styles.style760_122 : styles.style760_123)}
-                    >
-                      {t.forgotPassword}
-                    </button>
-                  ) : null}
-
-                  <label className={styles.style767_124}>
-                    <span className={cn(isArabic ? styles.style768_125 : styles.style768_126)}>
-                      <span className={styles.style769_127}>{t.rememberMe}</span>
-                      <span className={styles.style770_128}>{t.rememberHint}</span>
-                    </span>
-                    <input
-                      type="checkbox"
-                      checked={rememberMe}
-                      onChange={(event) => setRememberMe(event.target.checked)}
-                      className={styles.style776_129}
-                    />
-                  </label>
-
-                  <motion.button
-                    whileTap={{ scale: 0.98 }}
-                    whileHover={{ y: -1 }}
-                    type="submit"
-                    disabled={isSubmitting}
-                    className={styles.style785_130}
+              <Field label={t.password} icon={<LockKeyhole className={styles.style731_112} />}>
+                <div className={styles.style732_113}>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder={t.passwordPlaceholder}
+                    value={authPassword}
+                    onChange={(event) => setAuthPassword(event.target.value)}
+                    className={cn(styles.input, isArabic ? styles.style738_114 : styles.style738_115)}
+                    autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
+                    required
+                  />
+                  <button
+                    type="button"
+                    aria-label={showPassword ? t.hidePassword : t.showPassword}
+                    onClick={() => setShowPassword((current) => !current)}
+                    className={cn(styles.style746_116, isArabic ? styles.style747_117 : styles.style747_118)}
                   >
-                    {isSubmitting ? '...' : mode === 'register' ? (role === 'driver' ? 'المتابعة للخطوة التالية' : t.submitRegister) : t.submitLogin}
-                  </motion.button>
-                </>
-              )}
+                    {showPassword ? <EyeOff className={styles.style750_119} /> : <Eye className={styles.style750_120} />}
+                  </button>
+                </div>
+              </Field>
+
+              {mode === 'login' ? (
+                <button
+                  type="button"
+                  onClick={openPasswordReset}
+                  className={cn(styles.style759_121, isArabic ? styles.style760_122 : styles.style760_123)}
+                >
+                  {t.forgotPassword}
+                </button>
+              ) : null}
+
+              <label className={styles.style767_124}>
+                <span className={cn(isArabic ? styles.style768_125 : styles.style768_126)}>
+                  <span className={styles.style769_127}>{t.rememberMe}</span>
+                  <span className={styles.style770_128}>{t.rememberHint}</span>
+                </span>
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(event) => setRememberMe(event.target.checked)}
+                  className={styles.style776_129}
+                />
+              </label>
+
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                whileHover={{ y: -1 }}
+                type="submit"
+                disabled={isSubmitting}
+                className={styles.style785_130}
+              >
+                {isSubmitting ? '...' : mode === 'register' ? t.submitRegister : t.submitLogin}
+              </motion.button>
             </motion.form>
           </AnimatePresence>
 
           <div className={styles.style794_131}>
             <span>{mode === 'register' ? t.hasAccount : t.noAccount}</span>{' '}
-            <button
+            {/* Remounts (via `key`) on every failed login attempt caused by a
+                wrong phone/password, replaying the entrance animation to draw
+                the eye toward creating a new account instead. */}
+            <motion.button
+              key={mode === 'login' ? createAccountPulseKey : 'static'}
               type="button"
               onClick={() => goToMode(mode === 'register' ? 'login' : 'register')}
-              className={styles.style799_132}
+              className={styles.createAccountLink}
+              initial={mode === 'login' ? { scale: 1, color: '#94A3B8' } : false}
+              animate={mode === 'login' ? { scale: [1, 1.22, 0.94, 1.06, 1], color: '#14B8A6' } : undefined}
+              transition={{ duration: 0.6, ease: 'easeInOut' }}
             >
+              {mode === 'login' ? <UserPlus className={styles.createAccountIcon} aria-hidden="true" /> : null}
               {mode === 'register' ? t.switchToLogin : t.switchToRegister}
-            </button>
+            </motion.button>
           </div>
 
           <button
@@ -963,50 +810,86 @@ export function PersonalStep() {
           className={styles.style818_134}
         >
           <DialogHeader className={isArabic ? styles.style820_135 : styles.style820_136}>
-            <div className={styles.style821_137}>
+            {/* <div className={styles.style821_137}>
               <KeyRound className={styles.style822_138} aria-hidden="true" />
-            </div>
+            </div> */}
             <DialogTitle className={styles.style824_139}>{t.resetTitle}</DialogTitle>
             <DialogDescription className={styles.style825_140}>
               {isArabic
-                ? 'إعادة كلمة المرور تتم عبر الدعم، بدون رسائل SMS مدفوعة.'
-                : 'Password reset is handled through support, without paid SMS messages.'}
+                ? 'استرجاع فوري لكلمة المرور عبر البريد الإلكتروني (Gmail)'
+                : 'Instant password recovery via email (Gmail)'}
             </DialogDescription>
           </DialogHeader>
 
           <div className={styles.style832_141}>
             <div className={styles.style833_142}>
               {isArabic
-                ? 'للحفاظ على التكلفة الصفرية، لا نرسل رمز SMS لإعادة كلمة المرور. تواصل مع الدعم الرسمي وسيتم التحقق من هويتك ومساعدتك في إعادة تعيين كلمة المرور.'
-                : 'To keep the system zero-cost, SMS password reset is disabled. Contact official support so your identity can be verified and your password can be reset safely.'}
+                ? 'أدخل بريدك الإلكتروني. سيصلك رابط لإعادة تعيين كلمة المرور فوراً على بريدك.'
+                : 'Enter your email. You will receive an instant password reset link in your inbox.'}
             </div>
 
-            <Field label={t.resetPhone} icon={<Phone className={styles.style839_143} />}>
+            <Field
+              label={isArabic ? 'البريد الإلكتروني (Gmail)' : 'Email address (Gmail)'}
+              icon={<Mail className={styles.style839_143} />}
+            >
               <input
-                type="tel"
+                type="email"
                 dir="ltr"
-                inputMode="tel"
-                placeholder={phonePlaceholder || t.phonePlaceholder}
-                value={resetPhone}
-                onChange={(event) => setResetPhone(event.target.value)}
+                inputMode="email"
+                autoComplete="email"
+                placeholder="you@example.com"
+                value={resetEmail}
+                onChange={(event) => setResetEmail(event.target.value)}
                 className={cn(styles.input, styles.style847_144)}
               />
             </Field>
+            <p className={styles.resetEmailNote}>
+              {isArabic
+                ? 'سيصلك رابط مباشر لإنشاء كلمة مرور جديدة إلى بريدك الإلكتروني.'
+                : 'A direct link to set a new password will be sent to your email.'}
+            </p>
 
+            {resetMessage ? (
+              <p className={styles.resetSuccess}>{resetMessage}</p>
+            ) : null}
+            {resetRecoveryUrl ? (
+              <a
+                href={resetRecoveryUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 mb-2 block w-full rounded-2xl bg-[#14B8A6]/20 border border-[#14B8A6]/50 p-3.5 text-center text-sm font-black text-[#14F5D5] hover:bg-[#14B8A6]/30 transition shadow-lg shadow-[#14B8A6]/10"
+              >
+                {isArabic ? 'فتح رابط تعيين كلمة المرور فوراً 🔗' : 'Open password reset link directly 🔗'}
+              </a>
+            ) : null}
+            {resetError ? <p className={styles.resetError}>{resetError}</p> : null}
+
+            <button
+              type="button"
+              onClick={() => void submitPasswordRecovery()}
+              disabled={resetSubmitting || !resetEmail.trim().includes('@')}
+              className={styles.resetSubmit}
+            >
+              {resetSubmitting
+                ? (isArabic ? 'جاري الإرسال…' : 'Sending…')
+                : (isArabic ? 'إرسال رابط الاسترجاع' : 'Send recovery link')}
+            </button>
+
+            {/* Kept as a way to chase a queued request, not as the mechanism itself. */}
             <div className={styles.style851_145}>
               <a
-                href={buildSupportWhatsappUrl(resetPhone)}
+                href={buildSupportWhatsappUrl(resetPhone, isArabic ? tAuto('key_6d7db928') : 'Unspecified')}
                 target="_blank"
                 rel="noopener noreferrer"
                 className={styles.style856_146}
               >
-                {isArabic ? 'تواصل عبر واتساب' : 'WhatsApp support'}
+                {isArabic ? tAuto('key_06b63e55') : 'Follow up on WhatsApp'}
               </a>
               <a
                 href={buildSupportTelUrl()}
                 className={styles.style862_147}
               >
-                {isArabic ? 'اتصال بالدعم' : 'Call support'}
+                {isArabic ? tAuto('key_f2064d83') : 'Call support'}
               </a>
             </div>
           </div>
@@ -1016,8 +899,8 @@ export function PersonalStep() {
       <div className={styles.style871_148}>
         <div
           className={cn(styles.style873_149, isArabic
-              ? styles.style875_150
-              : styles.style876_151)}
+            ? styles.style875_150
+            : styles.style876_151)}
         >
           {tickerItems.map((item, index) => (
             <span key={`${item}-${index}`} className={styles.style880_152}>
@@ -1050,9 +933,9 @@ function Field({
   );
 }
 
-function buildSupportWhatsappUrl(phone: string) {
+function buildSupportWhatsappUrl(phone: string, fallbackLabel = 'غير محدد') {
   const supportPhone = getSupportPhone();
-  const message = `طلب إعادة تعيين كلمة مرور الراكب. رقم الحساب: ${phone || 'غير مكتوب'}`;
+  const message = `طلب إعادة تعيين كلمة مرور الراكب. رقم الحساب: ${phone || fallbackLabel}`;
 
   if (!supportPhone) {
     return `https://wa.me/?text=${encodeURIComponent(message)}`;
@@ -1067,7 +950,12 @@ function buildSupportTelUrl() {
 }
 
 function getSupportPhone() {
-  const env = (import.meta as unknown as { env?: Record<string, string | undefined> }).env;
-  const rawPhone = env?.NEXT_PUBLIC_SUPPORT_WHATSAPP || env?.NEXT_PUBLIC_SUPPORT_PHONE || '';
+  // `import.meta.env` is Vite's API and is always empty under Next, so this returned '' every
+  // time and both support links resolved to '#' — the WhatsApp and call buttons in the
+  // password-recovery dialog have never gone anywhere. Next inlines the literal
+  // `process.env.NEXT_PUBLIC_*` reads below at build time, on both server and client.
+  const rawPhone = process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP
+    || process.env.NEXT_PUBLIC_SUPPORT_PHONE
+    || '';
   return rawPhone.replace(/\D/g, '');
 }
