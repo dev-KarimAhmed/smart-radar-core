@@ -852,16 +852,6 @@ export function PersonalStep() {
             {resetMessage ? (
               <p className={styles.resetSuccess}>{resetMessage}</p>
             ) : null}
-            {resetRecoveryUrl ? (
-              <a
-                href={resetRecoveryUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-2 mb-2 block w-full rounded-2xl bg-[#14B8A6]/20 border border-[#14B8A6]/50 p-3.5 text-center text-sm font-black text-[#14F5D5] hover:bg-[#14B8A6]/30 transition shadow-lg shadow-[#14B8A6]/10"
-              >
-                {isArabic ? 'فتح رابط تعيين كلمة المرور فوراً 🔗' : 'Open password reset link directly 🔗'}
-              </a>
-            ) : null}
             {resetError ? <p className={styles.resetError}>{resetError}</p> : null}
 
             <button
