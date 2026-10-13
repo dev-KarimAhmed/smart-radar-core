@@ -110,7 +110,7 @@ export function CaptainPersonalStep({
   }, [detectedCountryCode, countryRows]);
 
   const isValid = isYupSchemaValid(schema, values);
-  const [isCheckingEmail, setIsCheckingEmail] = React.useState(false);
+  const [isCheckingAvailability, setIsCheckingAvailability] = React.useState(false);
 
   const checkEmailUniqueness = React.useCallback(
     async (emailToTest: string) => {
@@ -136,6 +136,56 @@ export function CaptainPersonalStep({
     [tv],
   );
 
+  const checkPhoneUniqueness = React.useCallback(
+    async (phoneToTest: string) => {
+      const cleanPhone = phoneToTest.trim();
+      const digitsOnly = cleanPhone.replace(/\D/g, '');
+      if (!cleanPhone || digitsOnly.length < 8) return true;
+      try {
+        const { supabase } = await import('@/lib/supabase-client');
+        const { data: availability, error } = await supabase.rpc('check_captain_identity_available', {
+          p_phone: cleanPhone,
+        });
+        if (!error && availability?.phone_taken) {
+          setErrors((current) => ({
+            ...current,
+            phone: tv('phoneDuplicate') || 'رقم الهاتف مسجل بالفعل مسبقاً لحساب آخر.',
+          }));
+          return false;
+        }
+      } catch (err) {
+        console.warn('Phone uniqueness check error:', err);
+      }
+      return true;
+    },
+    [tv],
+  );
+
+  // Realtime debounce check for phone
+  React.useEffect(() => {
+    const cleanPhone = values.phone.trim();
+    const digitsOnly = cleanPhone.replace(/\D/g, '');
+    if (!cleanPhone || digitsOnly.length < 8) return;
+
+    const timer = setTimeout(() => {
+      void checkPhoneUniqueness(cleanPhone);
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [values.phone, checkPhoneUniqueness]);
+
+  // Realtime debounce check for email
+  React.useEffect(() => {
+    const cleanEmail = values.email.trim().toLowerCase();
+    if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) return;
+
+    const timer = setTimeout(() => {
+      void checkEmailUniqueness(cleanEmail);
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [values.email, checkEmailUniqueness]);
+
   const handleContinueClick = async () => {
     if (!isValid) {
       // Surface every unfilled/invalid field at once, not just the ones the
@@ -150,11 +200,20 @@ export function CaptainPersonalStep({
       return;
     }
 
-    setIsCheckingEmail(true);
-    const isAvailable = await checkEmailUniqueness(cleanEmail);
-    setIsCheckingEmail(false);
+    const cleanPhone = values.phone?.trim();
+    if (!cleanPhone) {
+      setErrors((current) => ({ ...current, phone: tv('phoneRequired') }));
+      return;
+    }
 
-    if (!isAvailable) {
+    setIsCheckingAvailability(true);
+    const [isEmailAvailable, isPhoneAvailable] = await Promise.all([
+      checkEmailUniqueness(cleanEmail),
+      checkPhoneUniqueness(cleanPhone),
+    ]);
+    setIsCheckingAvailability(false);
+
+    if (!isEmailAvailable || !isPhoneAvailable) {
       return;
     }
 
@@ -242,6 +301,11 @@ export function CaptainPersonalStep({
             placeholder={t('phonePlaceholder')}
             value={values.phone}
             onChange={(e) => handleFieldChange('phone', e.target.value)}
+            onBlur={() => {
+              if (values.phone?.trim()) {
+                void checkPhoneUniqueness(values.phone);
+              }
+            }}
             className={styles.input}
             required
           />
@@ -359,10 +423,10 @@ export function CaptainPersonalStep({
       <button
         type="button"
         onClick={handleContinueClick}
-        disabled={isCheckingEmail}
+        disabled={isCheckingAvailability}
         className={styles.continueButton}
       >
-        {isCheckingEmail ? '...' : t('continue')}
+        {isCheckingAvailability ? '...' : t('continue')}
       </button>
     </div>
   );
