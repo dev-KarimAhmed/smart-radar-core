@@ -448,6 +448,25 @@ const [profile, setProfile] = React.useState<ProfileRow | null>(null);
     } catch (error) {
       if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver profile save]', error);
 
+      const errText = `${error instanceof Error ? error.message : ''} ${JSON.stringify(error || '')}`.toLowerCase();
+      if (errText.includes('unique_profiles_phone') || (errText.includes('phone') && errText.includes('duplicate'))) {
+        toast({
+          variant: 'destructive',
+          title: t('saveErrorTitle'),
+          description: 'رقم الهاتف مسجل بالفعل لحساب آخر في النظام. يرجى استخدام رقم آخر.',
+        });
+        return;
+      }
+
+      if (errText.includes('unique_plate_number') || errText.includes('unique_profiles_vehicle_plate') || (errText.includes('plate') && errText.includes('duplicate'))) {
+        toast({
+          variant: 'destructive',
+          title: t('saveErrorTitle'),
+          description: 'رقم لوحة المركبة مسجل بالفعل لمركبة أخرى في النظام. يرجى استخدام لوحة أخرى.',
+        });
+        return;
+      }
+
       // The metadata fallback cannot stand in for captain_profiles, so this failure is
       // reported as a failure — with the database's own message, because "تعذر الحفظ" alone
       // does not distinguish an RLS denial from a NOT NULL violation from a missing column,
