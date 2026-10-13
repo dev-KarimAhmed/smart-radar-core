@@ -4,7 +4,6 @@ import dynamic from 'next/dynamic';
 import { useEffect, useMemo, useState } from 'react';
 import { AdStage } from '@/features/ads/ad-stage/contract';
 import { AppHeader } from '@/shared/components/layout/app-header';
-import { RecoveryEmailBanner } from '@/features/auth/contract';
 import { BottomNav } from '@/shared/components/layout/bottom-nav';
 import { RouteErrorBoundary } from '@/shared/components/layout/route-error-boundary';
 import { RouteLoading } from '@/shared/components/layout/route-loading';
@@ -50,7 +49,6 @@ const styles = {
   mainStandby: 'h-[calc(100dvh-120px)] overflow-hidden flex flex-col justify-start items-center pt-2 lg:h-full lg:justify-center lg:pt-0',
   adStage: 'relative z-[80] flex w-full flex-1 flex-col justify-start items-center pt-2 border-b-2 border-[#14B8A6]/20 shadow-[0_10px_30px_rgba(20,184,166,0.08)] lg:h-full lg:justify-center lg:pt-0',
   content: 'w-full flex-1 p-4 md:p-8',
-  recoveryPrompt: 'absolute top-4 start-4 end-4 z-[200] empty:hidden lg:start-[320px] lg:end-8',
   contentHome: 'p-0 md:p-0 lg:p-0',
   contentInner: 'min-h-0 overflow-y-auto px-0 py-4 md:px-0 md:py-6',
   contentHidden: 'hidden',
@@ -167,7 +165,6 @@ export function RiderShell() {
             />
           </div>
         ) : null}
-        <div className={styles.recoveryPrompt}><RecoveryEmailBanner /></div>
         <div className={cn(styles.content, isHome ? styles.contentHome : styles.contentInner, isStandby && styles.contentHidden)}>
           <RouteErrorBoundary>{content}</RouteErrorBoundary>
         </div>
