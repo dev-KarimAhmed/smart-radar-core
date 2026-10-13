@@ -114,6 +114,7 @@ test('getCaptainPersonalSchema validates quad name', async () => {
 
   const valid = {
     name: 'محمد أحمد محمود خليل',
+    email: 'captain@example.com',
     phone: '+962791234567',
     password: 'password123',
     country: '1',
@@ -134,6 +135,31 @@ test('getCaptainPersonalSchema validates quad name', async () => {
     name: 'Sss',
   };
   await assert.rejects(schema.validate(invalid3Letters));
+});
+
+test('getCaptainPersonalSchema enforces mandatory email and rejects invalid format', async () => {
+  const schema = getCaptainPersonalSchema(mockT);
+
+  const base = {
+    name: 'محمد أحمد محمود خليل',
+    phone: '+962791234567',
+    password: 'password123',
+    country: '1',
+    governorate: '1',
+    district: '1',
+    countryIso: 'JO',
+  };
+
+  // Missing email
+  await assert.rejects(schema.validate({ ...base, email: '' }));
+  await assert.rejects(schema.validate({ ...base, email: undefined }));
+
+  // Invalid email format
+  await assert.rejects(schema.validate({ ...base, email: 'not-an-email' }));
+  await assert.rejects(schema.validate({ ...base, email: 'captain@' }));
+
+  // Valid email format
+  await assert.doesNotReject(schema.validate({ ...base, email: 'captain@test.com' }));
 });
 
 

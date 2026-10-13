@@ -116,19 +116,32 @@ export function CaptainOnboarding() {
     try {
       const { supabase } = await import('@/lib/supabase-client');
 
-      // Pre-check national ID number, driver license number, and vehicle plate uniqueness via Security Definer RPC
+      // Pre-check national ID number, driver license number, vehicle plate, and email uniqueness via Security Definer RPC
       const trimmedNatId = vehicle.nationalIdNumber.trim();
       const trimmedLic = vehicle.licenseNumber.trim();
       const trimmedPlate = vehicle.plate.trim();
+      const cleanEmail = personal.email?.trim().toLowerCase() || null;
 
-      if (trimmedNatId || trimmedLic || trimmedPlate) {
+      if (trimmedNatId || trimmedLic || trimmedPlate || cleanEmail) {
         const { data: availability, error: rpcError } = await supabase.rpc('check_captain_identity_available', {
           p_national_id: trimmedNatId || null,
           p_license_number: trimmedLic || null,
           p_plate_number: trimmedPlate || null,
+          p_email: cleanEmail,
         });
 
         if (!rpcError && availability) {
+          if (availability.email_taken) {
+            toast({
+              variant: 'destructive',
+              title: t('errorTitle'),
+              description: 'البريد الإلكتروني مسجل بالفعل مسبقاً لحساب آخر. يرجى استخدام بريد إلكتروني آخر.',
+            });
+            setStep(1);
+            setIsSubmitting(false);
+            return;
+          }
+
           const newErrors: Record<string, string> = {};
 
           if (availability.national_id_taken) {
@@ -228,7 +241,16 @@ export function CaptainOnboarding() {
         newVehicleErrors.plate = 'رقم لوحة المركبة مسجل بالفعل مسبقاً لمركبة أخرى.';
       }
 
-      // If generic DB error occurred, verify via RPC if it was caused by identity or plate uniqueness
+      if (
+        errText.includes('unique_email') ||
+        errText.includes('missing_email') ||
+        (errText.includes('email') && (errText.includes('مسجل') || errText.includes('مسبق') || errText.includes('already exists') || errText.includes('taken')))
+      ) {
+        errorMsg = 'البريد الإلكتروني مسجل بالفعل مسبقاً لحساب آخر. يرجى استخدام بريد إلكتروني آخر.';
+        setStep(1);
+      }
+
+      // If generic DB error occurred, verify via RPC if it was caused by identity, plate, or email uniqueness
       if (Object.keys(newVehicleErrors).length === 0) {
         try {
           const { supabase } = await import('@/lib/supabase-client');
@@ -236,7 +258,12 @@ export function CaptainOnboarding() {
             p_national_id: vehicle.nationalIdNumber.trim() || null,
             p_license_number: vehicle.licenseNumber.trim() || null,
             p_plate_number: vehicle.plate.trim() || null,
+            p_email: personal.email?.trim().toLowerCase() || null,
           });
+          if (availability?.email_taken) {
+            errorMsg = 'البريد الإلكتروني مسجل بالفعل مسبقاً لحساب آخر. يرجى استخدام بريد إلكتروني آخر.';
+            setStep(1);
+          }
           if (availability?.national_id_taken) {
             newVehicleErrors.nationalIdNumber = 'رقم الهوية الوطنية مسجل بالفعل مسبقاً.';
             errorMsg = 'رقم الهوية الوطنية مسجل بالفعل مسبقاً. يرجى التأكد من الرقم أو استخدام رقم آخر.';

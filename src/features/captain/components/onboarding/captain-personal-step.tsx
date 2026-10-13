@@ -110,15 +110,55 @@ export function CaptainPersonalStep({
   }, [detectedCountryCode, countryRows]);
 
   const isValid = isYupSchemaValid(schema, values);
+  const [isCheckingEmail, setIsCheckingEmail] = React.useState(false);
 
-  const handleContinueClick = () => {
-    if (isValid) {
-      onNext();
+  const checkEmailUniqueness = React.useCallback(
+    async (emailToTest: string) => {
+      const cleanEmail = emailToTest.trim().toLowerCase();
+      if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) return true;
+      try {
+        const { supabase } = await import('@/lib/supabase-client');
+        const { data: availability, error } = await supabase.rpc('check_captain_identity_available', {
+          p_email: cleanEmail,
+        });
+        if (!error && availability?.email_taken) {
+          setErrors((current) => ({
+            ...current,
+            email: tv('emailDuplicate') || 'البريد الإلكتروني مسجل بالفعل مسبقاً لحساب آخر.',
+          }));
+          return false;
+        }
+      } catch (err) {
+        console.warn('Email uniqueness check error:', err);
+      }
+      return true;
+    },
+    [tv],
+  );
+
+  const handleContinueClick = async () => {
+    if (!isValid) {
+      // Surface every unfilled/invalid field at once, not just the ones the
+      // user has already interacted with, so it's obvious why "Continue" won't advance.
+      setErrors(collectYupSchemaErrors(schema, values));
       return;
     }
-    // Surface every unfilled/invalid field at once, not just the ones the
-    // user has already interacted with, so it's obvious why "Continue" won't advance.
-    setErrors(collectYupSchemaErrors(schema, values));
+
+    const cleanEmail = values.email?.trim().toLowerCase();
+    if (!cleanEmail) {
+      setErrors((current) => ({ ...current, email: tv('emailRequired') }));
+      return;
+    }
+
+    setIsCheckingEmail(true);
+    const isAvailable = await checkEmailUniqueness(cleanEmail);
+    setIsCheckingEmail(false);
+
+    if (!isAvailable) {
+      return;
+    }
+
+    onNext();
   };
 
   const styles = {
@@ -221,8 +261,14 @@ export function CaptainPersonalStep({
           inputMode="email"
           placeholder={t('emailPlaceholder')}
           value={values.email}
-          onChange={(e) => handleFieldChange('email' as any, e.target.value)}
+          onChange={(e) => handleFieldChange('email', e.target.value)}
+          onBlur={() => {
+            if (values.email?.trim()) {
+              void checkEmailUniqueness(values.email);
+            }
+          }}
           className={styles.input}
+          required
         />
         {errors.email ? <p className={styles.error}>{errors.email}</p> : null}
       </div>
@@ -310,8 +356,13 @@ export function CaptainPersonalStep({
         />
       </label>
 
-      <button type="button" onClick={handleContinueClick} className={styles.continueButton}>
-        {t('continue')}
+      <button
+        type="button"
+        onClick={handleContinueClick}
+        disabled={isCheckingEmail}
+        className={styles.continueButton}
+      >
+        {isCheckingEmail ? '...' : t('continue')}
       </button>
     </div>
   );
