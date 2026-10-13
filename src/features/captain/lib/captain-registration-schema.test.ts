@@ -6,6 +6,8 @@ import {
   getCaptainSmartAppVehicleSchema,
   getCaptainTaxiVehicleSchema,
   getCaptainIndependentVehicleSchema,
+  getCaptainPersonalSchema,
+  isQuadName,
 } from './captain-registration-schema';
 
 const mockT = (key: string) => key;
@@ -94,4 +96,44 @@ test('captain independent vehicle schema validates without companyName and compa
 
   await assert.rejects(schemaJo.validate(invalidPayload));
 });
+
+test('isQuadName strictly enforces at least 4 legal names and rejects short names', () => {
+  assert.equal(isQuadName('محمد أحمد محمود خليل'), true, 'Accepts standard 4-part Arabic name');
+  assert.equal(isQuadName('عبد الرحمن محمد خالد يوسف'), true, 'Accepts 5-part Arabic compound name');
+  assert.equal(isQuadName('Mohammad Ahmad Mahmoud Khalil'), true, 'Accepts 4-part English name');
+  assert.equal(isQuadName('محمد'), false, 'Rejects single name');
+  assert.equal(isQuadName('محمد أحمد'), false, 'Rejects 2 names');
+  assert.equal(isQuadName('محمد أحمد محمود'), false, 'Rejects 3 names');
+  assert.equal(isQuadName('Sss'), false, 'Rejects 3-letter single word');
+  assert.equal(isQuadName('علي 123 أحمد محمود'), false, 'Rejects digits');
+  assert.equal(isQuadName('م أ م خ'), false, 'Rejects 1-letter abbreviations');
+});
+
+test('getCaptainPersonalSchema validates quad name', async () => {
+  const schema = getCaptainPersonalSchema(mockT);
+
+  const valid = {
+    name: 'محمد أحمد محمود خليل',
+    phone: '+962791234567',
+    password: 'password123',
+    country: '1',
+    governorate: '1',
+    district: '1',
+    countryIso: 'JO',
+  };
+  await assert.doesNotReject(schema.validate(valid));
+
+  const invalid3Words = {
+    ...valid,
+    name: 'محمد أحمد محمود',
+  };
+  await assert.rejects(schema.validate(invalid3Words));
+
+  const invalid3Letters = {
+    ...valid,
+    name: 'Sss',
+  };
+  await assert.rejects(schema.validate(invalid3Letters));
+});
+
 

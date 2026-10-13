@@ -89,6 +89,13 @@ export function buildRiderSignUpMetadata(input: RiderSupabaseSignUpInput): Rider
     throw new Error('يرجى كتابة الاسم الكامل.');
   }
 
+  if (input.role === 'CAPTAIN') {
+    const parts = fullName.split(/\s+/).filter(Boolean);
+    if (parts.length < 4 || !parts.every((p) => p.length >= 2 && /^[؀-ۿa-zA-Z]+$/.test(p))) {
+      throw new Error('يرجى كتابة الاسم الرباعي كاملاً (الاسم، الأب، الجد، العائلة) بحروف صحيحة دون أرقام أو رموز.');
+    }
+  }
+
   return {
     role: input.role || 'RIDER',
     full_name: fullName,
@@ -143,6 +150,19 @@ export function mapSupabaseAuthError(error: unknown) {
     fullText.includes('nationalidnumber')
   ) {
     return 'رقم الهوية الوطنية مسجل بالفعل مسبقاً. يرجى التأكد من الرقم أو استخدام رقم آخر.';
+  }
+
+  if (fullText.includes('invalid_quad_name')) {
+    return 'يرجى كتابة الاسم الرباعي كاملاً (الاسم، الأب، الجد، العائلة) بحروف صحيحة دون أرقام أو رموز.';
+  }
+
+  if (
+    fullText.includes('unique_plate_number') ||
+    fullText.includes('plate_number') ||
+    fullText.includes('platenumber') ||
+    (fullText.includes('plate') && (fullText.includes('unique') || fullText.includes('duplicate') || fullText.includes('exists')))
+  ) {
+    return 'رقم لوحة المركبة مسجل بالفعل مسبقاً لمركبة أخرى في النظام. يرجى التأكد من الرقم أو استخدام لوحة أخرى.';
   }
 
   if (

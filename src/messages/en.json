@@ -967,8 +967,8 @@
       "back": "Back to edit work type"
     },
     "validation": {
-      "nameInvalid": "Name must contain only letters (3 to 50 characters)",
-      "nameRequired": "Full name is required",
+      "nameInvalid": "Please enter your full 4-part legal name (First, Father, Grandfather, Family) using letters only.",
+      "nameRequired": "Full 4-part legal name is required",
       "emailInvalid": "Invalid email format",
       "phoneInvalid": "Invalid phone number for this country",
       "phoneMissingCountryCode": "Write the phone number in international format starting with the country code, like +962790000000 or +201000000000.",
@@ -985,6 +985,7 @@
       "sideIdRequired": "Side plate is required",
       "plateInvalid": "Invalid plate number (3 to 15 letters or digits)",
       "plateRequired": "Plate number is required",
+      "plateDuplicate": "This license plate number is already registered for another vehicle.",
       "yearType": "Manufacture year must be a number",
       "yearMin": "Manufacture year must not be earlier than {min}",
       "yearMax": "Manufacture year must not be later than {max}",
