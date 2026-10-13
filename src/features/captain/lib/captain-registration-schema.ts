@@ -76,8 +76,9 @@ export function getCaptainPersonalSchema(t: CaptainValidationT) {
     email: yup
       .string()
       .trim()
+      .required(t('emailRequired'))
       .test('is-valid-email', t('emailInvalid'), (value) => {
-        if (!value) return true;
+        if (!value) return false;
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
       }),
     phone: yup
