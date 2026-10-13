@@ -116,14 +116,16 @@ export function CaptainOnboarding() {
     try {
       const { supabase } = await import('@/lib/supabase-client');
 
-      // Pre-check national ID number and driver license number uniqueness via Security Definer RPC
+      // Pre-check national ID number, driver license number, and vehicle plate uniqueness via Security Definer RPC
       const trimmedNatId = vehicle.nationalIdNumber.trim();
       const trimmedLic = vehicle.licenseNumber.trim();
+      const trimmedPlate = vehicle.plate.trim();
 
-      if (trimmedNatId || trimmedLic) {
+      if (trimmedNatId || trimmedLic || trimmedPlate) {
         const { data: availability, error: rpcError } = await supabase.rpc('check_captain_identity_available', {
           p_national_id: trimmedNatId || null,
           p_license_number: trimmedLic || null,
+          p_plate_number: trimmedPlate || null,
         });
 
         if (!rpcError && availability) {
@@ -135,13 +137,16 @@ export function CaptainOnboarding() {
           if (availability.license_taken) {
             newErrors.licenseNumber = 'رقم رخصة القيادة مسجل بالفعل مسبقاً. يرجى التأكد من الرقم أو استخدام رقم آخر.';
           }
+          if (availability.plate_taken) {
+            newErrors.plate = 'رقم لوحة المركبة مسجل بالفعل مسبقاً لمركبة أخرى. يرجى التأكد من اللوحة أو استخدام رقم آخر.';
+          }
 
           if (Object.keys(newErrors).length > 0) {
             setVehicleErrors(newErrors);
             toast({
               variant: 'destructive',
               title: t('errorTitle'),
-              description: newErrors.nationalIdNumber || newErrors.licenseNumber,
+              description: newErrors.plate || newErrors.nationalIdNumber || newErrors.licenseNumber,
             });
             setIsSubmitting(false);
             return;
@@ -219,14 +224,18 @@ export function CaptainOnboarding() {
       if (errText.includes('license') || errText.includes('رخصة')) {
         newVehicleErrors.licenseNumber = 'رقم رخصة القيادة مسجل بالفعل مسبقاً.';
       }
+      if (errText.includes('plate') || errText.includes('لوحة')) {
+        newVehicleErrors.plate = 'رقم لوحة المركبة مسجل بالفعل مسبقاً لمركبة أخرى.';
+      }
 
-      // If generic DB error occurred, verify via RPC if it was caused by identity uniqueness
+      // If generic DB error occurred, verify via RPC if it was caused by identity or plate uniqueness
       if (Object.keys(newVehicleErrors).length === 0) {
         try {
           const { supabase } = await import('@/lib/supabase-client');
           const { data: availability } = await supabase.rpc('check_captain_identity_available', {
             p_national_id: vehicle.nationalIdNumber.trim() || null,
             p_license_number: vehicle.licenseNumber.trim() || null,
+            p_plate_number: vehicle.plate.trim() || null,
           });
           if (availability?.national_id_taken) {
             newVehicleErrors.nationalIdNumber = 'رقم الهوية الوطنية مسجل بالفعل مسبقاً.';
@@ -235,6 +244,10 @@ export function CaptainOnboarding() {
           if (availability?.license_taken) {
             newVehicleErrors.licenseNumber = 'رقم رخصة القيادة مسجل بالفعل مسبقاً.';
             errorMsg = 'رقم رخصة القيادة مسجل بالفعل مسبقاً. يرجى التأكد من الرقم أو استخدام رقم آخر.';
+          }
+          if (availability?.plate_taken) {
+            newVehicleErrors.plate = 'رقم لوحة المركبة مسجل بالفعل مسبقاً لمركبة أخرى.';
+            errorMsg = 'رقم لوحة المركبة مسجل بالفعل مسبقاً لمركبة أخرى. يرجى التأكد من اللوحة أو استخدام رقم آخر.';
           }
         } catch {}
       }

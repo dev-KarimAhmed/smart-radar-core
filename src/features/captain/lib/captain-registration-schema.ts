@@ -9,6 +9,16 @@ import { isValidPhoneNumber, type CountryCode } from 'libphonenumber-js/min';
 export type CaptainValidationT = (key: string, values?: Record<string, string | number>) => string;
 
 export const NAME_REGEX = /^[؀-ۿa-zA-Z\s]{3,50}$/;
+
+export function isQuadName(value: string | undefined): boolean {
+  if (!value) return false;
+  const trimmed = value.trim();
+  // Allow letters and spaces only (Arabic or Latin)
+  if (!/^[؀-ۿa-zA-Z\s]+$/.test(trimmed)) return false;
+  const parts = trimmed.split(/\s+/).filter(Boolean);
+  if (parts.length < 4) return false;
+  return parts.every((p) => p.length >= 2 && /^[؀-ۿa-zA-Z]+$/.test(p));
+}
 export const ENTITY_NAME_REGEX = /^[؀-ۿa-zA-Z0-9\s\-&.]{2,60}$/;
 export const VEHICLE_MAKE_REGEX = /^[؀-ۿa-zA-Z\s]{2,30}$/;
 export const VEHICLE_MODEL_REGEX = /^[؀-ۿa-zA-Z0-9\s\-&.]{2,40}$/;
@@ -56,7 +66,11 @@ function hasCountryCodePrefix(value: string | undefined) {
 
 export function getCaptainPersonalSchema(t: CaptainValidationT) {
   return yup.object({
-    name: yup.string().trim().matches(NAME_REGEX, t('nameInvalid')).required(t('nameRequired')),
+    name: yup
+      .string()
+      .trim()
+      .required(t('nameRequired'))
+      .test('is-quad-name', t('nameInvalid'), isQuadName),
     // Optional: shown to riders instead of the legal name when set.
     nickname: yup.string().trim(),
     email: yup
