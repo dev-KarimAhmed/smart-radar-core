@@ -975,6 +975,7 @@
       "phoneInvalid": "Invalid phone number for this country",
       "phoneMissingCountryCode": "Write the phone number in international format starting with the country code, like +962790000000 or +201000000000.",
       "phoneRequired": "Phone number is required",
+      "phoneDuplicate": "This phone number is already registered for another account.",
       "passwordMin": "Password must be at least 6 characters",
       "passwordRequired": "Password is required",
       "countryRequired": "Choose a country",

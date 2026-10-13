@@ -121,16 +121,29 @@ export function CaptainOnboarding() {
       const trimmedLic = vehicle.licenseNumber.trim();
       const trimmedPlate = vehicle.plate.trim();
       const cleanEmail = personal.email?.trim().toLowerCase() || null;
+      const cleanPhone = personal.phone?.trim() || null;
 
-      if (trimmedNatId || trimmedLic || trimmedPlate || cleanEmail) {
+      if (trimmedNatId || trimmedLic || trimmedPlate || cleanEmail || cleanPhone) {
         const { data: availability, error: rpcError } = await supabase.rpc('check_captain_identity_available', {
           p_national_id: trimmedNatId || null,
           p_license_number: trimmedLic || null,
           p_plate_number: trimmedPlate || null,
           p_email: cleanEmail,
+          p_phone: cleanPhone,
         });
 
         if (!rpcError && availability) {
+          if (availability.phone_taken) {
+            toast({
+              variant: 'destructive',
+              title: t('errorTitle'),
+              description: 'رقم الهاتف مسجل بالفعل مسبقاً لحساب آخر. يرجى تسجيل الدخول أو استخدام رقم آخر.',
+            });
+            setStep(1);
+            setIsSubmitting(false);
+            return;
+          }
+
           if (availability.email_taken) {
             toast({
               variant: 'destructive',
@@ -259,7 +272,12 @@ export function CaptainOnboarding() {
             p_license_number: vehicle.licenseNumber.trim() || null,
             p_plate_number: vehicle.plate.trim() || null,
             p_email: personal.email?.trim().toLowerCase() || null,
+            p_phone: personal.phone?.trim() || null,
           });
+          if (availability?.phone_taken) {
+            errorMsg = 'رقم الهاتف مسجل بالفعل مسبقاً لحساب آخر. يرجى تسجيل الدخول بدلاً من إنشاء حساب جديد.';
+            setStep(1);
+          }
           if (availability?.email_taken) {
             errorMsg = 'البريد الإلكتروني مسجل بالفعل مسبقاً لحساب آخر. يرجى استخدام بريد إلكتروني آخر.';
             setStep(1);
