@@ -98,3 +98,4 @@ END;
 $$;
 
 GRANT EXECUTE ON FUNCTION public.check_captain_identity_available(text, text, text, text, text) TO anon, authenticated, service_role;
+

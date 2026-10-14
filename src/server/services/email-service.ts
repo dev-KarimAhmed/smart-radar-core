@@ -45,7 +45,7 @@ export async function sendPasswordResetEmail(params: {
     return { success: false, error: 'RESEND_API_KEY is not configured or invalid' };
   }
 
-  const fromEmail = process.env.RESEND_FROM_EMAIL?.trim() || 'Smart Radar <onboarding@resend.dev>';
+  const fromEmail = process.env.RESEND_FROM_EMAIL?.trim() || 'الرادار الذكي <noreply@bynkcom.com>';
 
   try {
     const { data, error } = await resend.emails.send({

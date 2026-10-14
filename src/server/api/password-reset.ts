@@ -654,8 +654,9 @@ passwordResetRouter.post('/password-reset/test-resend', async (req, res) => {
   try {
     const { Resend: ResendClient } = await import('resend');
     const client = new ResendClient(apiKey);
+    const fromEmail = process.env.RESEND_FROM_EMAIL?.trim() || 'الرادار الذكي <noreply@bynkcom.com>';
     const result = await client.emails.send({
-      from: 'Smart Radar <onboarding@resend.dev>',
+      from: fromEmail,
       to,
       subject: 'تجربة إرسال عبر Resend API | الرادار الذكي',
       html: '<p dir="rtl">تهانينا! تم إرسال هذا الإيميل بنجاح وبسرعة فائقة عبر <strong>Resend API</strong> 🚀</p>',
