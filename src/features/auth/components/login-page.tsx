@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useEffect } from 'react';
 
@@ -16,7 +16,7 @@ const styles = {
   style128_1: "min-h-screen bg-[#0B0F19] flex flex-col justify-center items-center p-4 relative overflow-hidden font-sans",
   style130_2: "absolute w-[500px] h-[500px] bg-[#14B8A6]/5 rounded-full blur-[120px] top-1/4 left-1/4 pointer-events-none",
   style131_3: "absolute w-[400px] h-[400px] bg-[#3B82F6]/5 rounded-full blur-[100px] bottom-1/4 right-1/4 pointer-events-none",
-  style134_4: "w-full max-w-md bg-[#161F30]/95 border transition-all duration-500 rounded-2xl p-8 shadow-2xl backdrop-blur-md relative z-10 border-destructive/50 shadow-destructive/20",
+  style134_4: "w-full max-w-md bg-[#161F30]/85 border border-white/10 hover:border-[#14B8A6]/30 transition-all duration-500 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl relative z-10 shadow-[0_20px_50px_rgba(0,0,0,0.6)]",
   style137_5: "text-center mb-8 select-none",
   style138_6: "flex items-center justify-center gap-2 tracking-wide cursor-pointer active:scale-95 transition-transform",
   style140_7: "text-3xl font-light text-[#3B82F6] font-mono lowercase",
@@ -27,7 +27,7 @@ const styles = {
   style150_12: "text-3xl font-bold text-[#3B82F6] font-mono lowercase",
   style155_13: "flex justify-between items-center px-4 mt-2 text-[10px] uppercase tracking-[0.4em] text-[#94A3B8]/60 font-semibold border-t border-[#243249]/50 pt-2 w-[85%] mx-auto",
   style162_14: "text-center mb-6",
-  style163_15: "text-xl font-bold tracking-wide text-destructive",
+  style163_15: "text-2xl font-black tracking-normal text-[#F8FAFC]",
   style166_16: "text-xs text-[#94A3B8]/80 mt-1.5",
   style176_17: "pt-4 border-t border-[#243249]/50 mt-6 space-y-3",
   style177_18: "text-center",
@@ -38,7 +38,7 @@ const styles = {
   style191_23: "h-4 w-4 text-[#14B8A6] mb-1",
   style197_24: "flex flex-col items-center justify-center p-2.5 rounded-lg bg-[#0B0F19] border border-[#243249] hover:bg-[#161F30] hover:border-[#14B8A6]/50 text-white/85 text-[11px] transition-all cursor-pointer active:scale-95 select-none",
   style199_25: "h-4 w-4 text-emerald-400 mb-1",
-  style205_26: "flex flex-col items-center justify-center p-2.5 rounded-lg bg-[#0B0F19] border border-[#243249] hover:bg-[#161F30] hover:border-destructive/50 text-white/85 text-[11px] transition-all cursor-pointer active:scale-95 select-none",
+  style205_26: "flex flex-col items-center justify-center p-2.5 rounded-lg bg-[#0B0F19] border border-[#243249] hover:bg-[#161F30] hover:border-[#14B8A6]/50 text-white/85 text-[11px] transition-all cursor-pointer active:scale-95 select-none",
   style207_27: "h-4 w-4 text-amber-500 mb-1",
   style213_28: "flex flex-col items-center justify-center p-2.5 rounded-lg bg-[#0B0F19] border border-[#243249] hover:bg-[#161F30] hover:border-[#00ffcc]/50 text-white/85 text-[11px] transition-all cursor-pointer active:scale-95 select-none",
   style215_29: "h-4 w-4 text-[#00ffcc] mb-1",
