@@ -260,11 +260,6 @@ export function RoleStep() {
   // "create account" switch here; a failed login is what offers to create
   // an account instead (see PersonalStep's create-account link).
   const handleRoleSelect = (role: RoleKey) => {
-    if (role === 'admin') {
-      navigateAuth('admin');
-      return;
-    }
-
     setRole(role);
     navigateAuth('login', role);
   };

@@ -209,6 +209,7 @@ const roleLabels = {
   driver: { ar: 'سائق', en: 'Driver' },
   advertiser: { ar: 'معلن', en: 'Advertiser' },
   delegate: { ar: 'مندوب تسويق', en: 'Delegate' },
+  admin: { ar: 'مشرف', en: 'Admin' },
 } as const;
 
 const copy = {
@@ -321,6 +322,7 @@ const authRoleLabels = {
   driver: { ar: 'سائق', en: 'Driver' },
   advertiser: { ar: 'معلن', en: 'Advertiser' },
   delegate: { ar: 'مندوب تسويق', en: 'Delegate' },
+  admin: { ar: 'مشرف', en: 'Admin' },
 } as const;
 
 const authCopy = {
@@ -775,24 +777,26 @@ export function PersonalStep() {
             </motion.form>
           </AnimatePresence>
 
-          <div className={styles.style794_131}>
-            <span>{mode === 'register' ? t.hasAccount : t.noAccount}</span>{' '}
-            {/* Remounts (via `key`) on every failed login attempt caused by a
-                wrong phone/password, replaying the entrance animation to draw
-                the eye toward creating a new account instead. */}
-            <motion.button
-              key={mode === 'login' ? createAccountPulseKey : 'static'}
-              type="button"
-              onClick={() => goToMode(mode === 'register' ? 'login' : 'register')}
-              className={styles.createAccountLink}
-              initial={mode === 'login' ? { scale: 1, color: '#94A3B8' } : false}
-              animate={mode === 'login' ? { scale: [1, 1.22, 0.94, 1.06, 1], color: '#14B8A6' } : undefined}
-              transition={{ duration: 0.6, ease: 'easeInOut' }}
-            >
-              {mode === 'login' ? <UserPlus className={styles.createAccountIcon} aria-hidden="true" /> : null}
-              {mode === 'register' ? t.switchToLogin : t.switchToRegister}
-            </motion.button>
-          </div>
+          {role !== 'admin' && (
+            <div className={styles.style794_131}>
+              <span>{mode === 'register' ? t.hasAccount : t.noAccount}</span>{' '}
+              {/* Remounts (via `key`) on every failed login attempt caused by a
+                  wrong phone/password, replaying the entrance animation to draw
+                  the eye toward creating a new account instead. */}
+              <motion.button
+                key={mode === 'login' ? createAccountPulseKey : 'static'}
+                type="button"
+                onClick={() => goToMode(mode === 'register' ? 'login' : 'register')}
+                className={styles.createAccountLink}
+                initial={mode === 'login' ? { scale: 1, color: '#94A3B8' } : false}
+                animate={mode === 'login' ? { scale: [1, 1.22, 0.94, 1.06, 1], color: '#14B8A6' } : undefined}
+                transition={{ duration: 0.6, ease: 'easeInOut' }}
+              >
+                {mode === 'login' ? <UserPlus className={styles.createAccountIcon} aria-hidden="true" /> : null}
+                {mode === 'register' ? t.switchToLogin : t.switchToRegister}
+              </motion.button>
+            </div>
+          )}
 
           <button
             type="button"
