@@ -2,6 +2,10 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DriversManagementTab } from './admin/drivers-management-tab';
+import { AdminMasterKPIBar } from './admin/admin-master-kpi-bar';
+import { RidersManagementPanel } from './admin/riders-management-panel';
+import { SystemBroadcastPanel } from './admin/system-broadcast-panel';
+import { CapacityPricingPanel } from './admin/capacity-pricing-panel';
 import { AdsManagementTab } from './admin/ads-management-tab';
 import { DelegatesManagementTab } from './admin/delegates-management-tab';
 import { PasswordResetsTab } from './admin/password-resets-tab';
@@ -10,7 +14,7 @@ import { RadarOwnerSovereignDashboard } from './admin/owner-sovereign-dashboard'
 import { FuelIndexPanel } from './admin/fuel-index-panel';
 import { PulseHeatmap } from '@/components/admin/pulse-heatmap';
 import { useMarketPulse } from '@/hooks/use-market-pulse';
-import { Shield, Megaphone, Users, Activity, UsersRound, ShieldAlert, CheckCircle2, KeyRound, Loader2, ArrowUpRight, TrendingUp, AlertTriangle, Radio, ShieldCheck, Cpu, Eye, AlertCircle, RefreshCw, Sparkles, Fingerprint, Terminal, Scale, Compass, Trash2 } from 'lucide-react';
+import { Shield, Megaphone, Users, Activity, UsersRound, ShieldAlert, CheckCircle2, KeyRound, Loader2, ArrowUpRight, TrendingUp, AlertTriangle, Radio, ShieldCheck, Cpu, Eye, AlertCircle, RefreshCw, Sparkles, Fingerprint, Terminal, Scale, Compass, Trash2, Gauge, DollarSign, Sliders, UserCheck } from 'lucide-react';
 import React, { useState } from 'react';
 import { useAdminAds } from '@/hooks/use-admin-ads';
 import { SovereignErrorBoundary } from '@/components/sovereign-error-boundary';
@@ -1235,6 +1239,9 @@ export function AdminViewTab() {
 
   return (
     <div className={styles.style978_216} dir="rtl">
+      {/* شريط الإحصائيات السيادية الموحد - Master Supervisor KPI Bar */}
+      <AdminMasterKPIBar />
+
       {/* تم تعيين لوحة المالك كشاشة الافتتاح الأساسية للمشرف */}
       <Tabs defaultValue="owner" className={styles.style980_217}>
 
@@ -1244,6 +1251,11 @@ export function AdminViewTab() {
           <TabsTrigger value="dashboard" className={styles.style985_219}>
              <Users className={styles.style986_220} />
              <span className={styles.style987_221}>{tAuto('key_c9e3bbd7')}</span>
+          </TabsTrigger>
+
+          <TabsTrigger value="riders" className={styles.style985_219}>
+             <UserCheck className={styles.style986_220} />
+             <span className={styles.style987_221}>الركاب</span>
           </TabsTrigger>
 
           <TabsTrigger value="ads" className={styles.style990_222}>
@@ -1260,6 +1272,16 @@ export function AdminViewTab() {
           <TabsTrigger value="delegates" className={styles.style1001_228}>
             <UsersRound className={styles.style1002_229} />
             <span className={styles.style1003_230}>{tAuto('key_ffdbf83e')}</span>
+          </TabsTrigger>
+
+          <TabsTrigger value="broadcast" className={styles.style1001_228}>
+            <Radio className={styles.style1002_229} />
+            <span className={styles.style1003_230}>البث والتعميم</span>
+          </TabsTrigger>
+
+          <TabsTrigger value="capacity-pricing" className={styles.style1001_228}>
+            <Gauge className={styles.style1002_229} />
+            <span className={styles.style1003_230}>السعة والأسعار</span>
           </TabsTrigger>
 
           <TabsTrigger value="password-resets" className={styles.style1001_228}>
@@ -1289,6 +1311,12 @@ export function AdminViewTab() {
            </SovereignErrorBoundary>
         </TabsContent>
 
+        <TabsContent value="riders" className={styles.style1019_237}>
+           <SovereignErrorBoundary>
+              <RidersManagementPanel />
+           </SovereignErrorBoundary>
+        </TabsContent>
+
         <TabsContent value="ads" className={styles.style1028_239}>
            <SovereignErrorBoundary>
               <div className={styles.style1030_240}>
@@ -1308,6 +1336,18 @@ export function AdminViewTab() {
         <TabsContent value="delegates" className={styles.style1044_242}>
            <SovereignErrorBoundary>
               <DelegatesManagementTab />
+           </SovereignErrorBoundary>
+        </TabsContent>
+
+        <TabsContent value="broadcast" className={styles.style1044_242}>
+           <SovereignErrorBoundary>
+              <SystemBroadcastPanel />
+           </SovereignErrorBoundary>
+        </TabsContent>
+
+        <TabsContent value="capacity-pricing" className={styles.style1044_242}>
+           <SovereignErrorBoundary>
+              <CapacityPricingPanel />
            </SovereignErrorBoundary>
         </TabsContent>
 
