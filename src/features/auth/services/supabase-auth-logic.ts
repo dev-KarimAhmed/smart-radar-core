@@ -7,7 +7,7 @@ export interface RiderSupabaseSignUpInput {
   password: string;
   fullName: string;
   email?: string;
-  role?: 'RIDER' | 'CAPTAIN' | 'ADVERTISER' | 'DELEGATE';
+  role?: 'RIDER' | 'CAPTAIN' | 'ADVERTISER' | 'DELEGATE' | 'ADMIN';
   countryId: number;
   governorateId: number;
   districtId: number;
@@ -42,11 +42,11 @@ export interface RiderSupabaseSignInInput {
   phone: string;
   password: string;
   rememberMe?: boolean;
-  expectedRole?: 'RIDER' | 'CAPTAIN' | 'ADVERTISER' | 'DELEGATE';
+  expectedRole?: 'RIDER' | 'CAPTAIN' | 'ADVERTISER' | 'DELEGATE' | 'ADMIN';
 }
 
 export interface RiderAuthMetadata {
-  role: 'RIDER' | 'CAPTAIN' | 'ADVERTISER' | 'DELEGATE';
+  role: 'RIDER' | 'CAPTAIN' | 'ADVERTISER' | 'DELEGATE' | 'ADMIN';
   full_name: string;
   phone: string;
   email?: string;
