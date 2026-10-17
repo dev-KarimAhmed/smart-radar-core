@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { adminFetch } from '@/features/admin/lib/admin-api-client';
-import { Users, Car, Megaphone, UsersRound, Activity, ArrowUpRight } from 'lucide-react';
+import { Users, Car, Megaphone, UsersRound, ArrowUpRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
 
@@ -17,7 +17,7 @@ interface KPIStats {
 }
 
 const styles = {
-  container: "grid grid-cols-2 lg:grid-cols-5 gap-3.5 mb-6 text-right",
+  container: "grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-6 text-right",
   card: "relative overflow-hidden rounded-2xl border border-white/10 bg-[#0B0F19]/95 p-4 transition-all duration-300 hover:border-white/20 shadow-xl backdrop-blur-xl",
   iconWrapper: "flex h-9 w-9 items-center justify-center rounded-xl",
   label: "mt-2.5 text-xs font-bold text-slate-300 tracking-wide",
@@ -121,20 +121,6 @@ export function AdminMasterKPIBar() {
           <span className={styles.mainValue}>{loading ? '...' : stats.totalDelegates}</span>
           <span className={cn(styles.subBadge, "bg-indigo-500/15 text-indigo-300 border-indigo-500/30")}>
             الميدان
-          </span>
-        </div>
-      </div>
-
-      {/* 5. حالة النظام */}
-      <div className={styles.card}>
-        <div className={cn(styles.iconWrapper, "bg-teal-500/10 text-[#14F5D5] border border-teal-500/20")}>
-          <Activity className="h-4 w-4" />
-        </div>
-        <p className={styles.label}>{t('systemStatus')}</p>
-        <div className={styles.valueContainer}>
-          <span className="font-mono text-base font-bold text-[#14F5D5]">{stats.systemHealth}</span>
-          <span className={cn(styles.subBadge, "bg-teal-500/15 text-teal-300 border-teal-500/30")}>
-            الرادار الحافة
           </span>
         </div>
       </div>

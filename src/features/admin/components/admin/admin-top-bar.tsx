@@ -164,14 +164,9 @@ export function AdminTopBar() {
               <Badge className="bg-teal-500/15 hover:bg-teal-500/20 text-teal-300 border border-teal-500/30 text-[11px] font-bold py-0.5 px-2">
                 مشرف عام
               </Badge>
-              <Badge className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-mono">
-                جلسة متصلة
-              </Badge>
             </div>
             <p className="text-xs text-slate-400 font-mono flex items-center gap-1.5">
               <span>{user?.phone || user?.serial_id || 'UID: ' + (user?.uid ? user.uid.slice(0, 8) + '...' : 'المسؤول')}</span>
-              <span className="text-slate-600">•</span>
-              <span className="text-teal-400/80">لوحة التحكم والسيطرة</span>
             </p>
           </div>
         </div>

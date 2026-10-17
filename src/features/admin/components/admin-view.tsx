@@ -6,17 +6,10 @@ import { AdminTopBar } from './admin/admin-top-bar';
 import { AdminMasterKPIBar } from './admin/admin-master-kpi-bar';
 import { WalletManagementTab } from './admin/wallet-management-tab';
 import { RidersManagementPanel } from './admin/riders-management-panel';
-import { SystemBroadcastPanel } from './admin/system-broadcast-panel';
-import { CapacityPricingPanel } from './admin/capacity-pricing-panel';
 import { AdminsManagementPanel } from './admin/admins-management-panel';
 import { AdsManagementTab } from './admin/ads-management-tab';
 import { DelegatesManagementTab } from './admin/delegates-management-tab';
-import { PasswordResetsTab } from './admin/password-resets-tab';
-import { KillSwitchPanel } from './admin/kill-switch-panel';
-import { FuelIndexPanel } from './admin/fuel-index-panel';
-import { PulseHeatmap } from '@/components/admin/pulse-heatmap';
-import { useMarketPulse } from '@/hooks/use-market-pulse';
-import { Shield, Megaphone, Users, Activity, UsersRound, ShieldAlert, CheckCircle2, KeyRound, Loader2, ArrowUpRight, TrendingUp, AlertTriangle, Radio, ShieldCheck, Cpu, Eye, AlertCircle, RefreshCw, Sparkles, Fingerprint, Terminal, Scale, Compass, Trash2, Gauge, DollarSign, Sliders, UserCheck, Wallet } from 'lucide-react';
+import { Shield, Megaphone, Users, Activity, UsersRound, ShieldAlert, CheckCircle2, KeyRound, Loader2, ArrowUpRight, TrendingUp, AlertTriangle, Radio, ShieldCheck, Cpu, Eye, AlertCircle, RefreshCw, Sparkles, Fingerprint, Terminal, Scale, Compass, Trash2, Gauge, DollarSign, UserCheck, Wallet } from 'lucide-react';
 import React, { useState } from 'react';
 import { useAdminAds } from '@/hooks/use-admin-ads';
 import { supabase } from '@/lib/supabase-client';
@@ -981,8 +974,6 @@ export function AdminPulseOverview() {
 }
 
 export function AdminViewTab() {
-  const { pulseData, loadingPulse } = useMarketPulse(true);
-
   return (
     <div className="space-y-6 text-right font-sans" dir="rtl">
       {/* شريط الإدارة العلوي - الملف الشخصي، تغيير كلمة السر، تسجيل الخروج */}
@@ -991,10 +982,10 @@ export function AdminViewTab() {
       {/* شريط الإحصائيات السيادية الموحد - Master Supervisor KPI Bar */}
       <AdminMasterKPIBar />
 
-      {/* المنظومة الإدارية المنظمة - 7 وحدات تشغيلية محكمة */}
+      {/* المنظومة الإدارية المنظمة */}
       <Tabs defaultValue="captains" className="space-y-6">
         {/* شريط التبويبات الرئيسي - تصميم أنيق ومتناسق */}
-        <TabsList className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 bg-[#050A0F]/90 border border-white/10 p-2 rounded-2xl h-auto">
+        <TabsList className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 bg-[#050A0F]/90 border border-white/10 p-2 rounded-2xl h-auto">
           <TabsTrigger
             value="captains"
             className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all data-[state=active]:bg-[#14B8A6] data-[state=active]:text-[#0B0F19] text-slate-300 hover:text-white"
@@ -1036,27 +1027,11 @@ export function AdminViewTab() {
           </TabsTrigger>
 
           <TabsTrigger
-            value="broadcast"
-            className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all data-[state=active]:bg-[#14B8A6] data-[state=active]:text-[#0B0F19] text-slate-300 hover:text-white"
-          >
-            <Radio className="w-4 h-4" />
-            <span>البث والتعميم</span>
-          </TabsTrigger>
-
-          <TabsTrigger
             value="admins"
             className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all data-[state=active]:bg-[#14B8A6] data-[state=active]:text-[#0B0F19] text-slate-300 hover:text-white"
           >
             <ShieldCheck className="w-4 h-4" />
             <span>المشرفين</span>
-          </TabsTrigger>
-
-          <TabsTrigger
-            value="controls"
-            className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all data-[state=active]:bg-[#14B8A6] data-[state=active]:text-[#0B0F19] text-slate-300 hover:text-white"
-          >
-            <Sliders className="w-4 h-4" />
-            <span>التحكم والإعدادات</span>
           </TabsTrigger>
         </TabsList>
 
@@ -1100,32 +1075,10 @@ export function AdminViewTab() {
           </SovereignErrorBoundary>
         </TabsContent>
 
-        {/* 5. البث والتعميم */}
-        <TabsContent value="broadcast" className="space-y-6">
-          <SovereignErrorBoundary>
-            <SystemBroadcastPanel />
-          </SovereignErrorBoundary>
-        </TabsContent>
-
         {/* 6. المشرفين */}
         <TabsContent value="admins" className="space-y-6">
           <SovereignErrorBoundary>
             <AdminsManagementPanel />
-          </SovereignErrorBoundary>
-        </TabsContent>
-
-        {/* 7. التحكم والإعدادات المجمعة */}
-        <TabsContent value="controls" className="space-y-6">
-          <SovereignErrorBoundary>
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <KillSwitchPanel />
-                <FuelIndexPanel />
-              </div>
-              <CapacityPricingPanel />
-              <PasswordResetsTab />
-              <PulseHeatmap pulseData={pulseData} isLoading={loadingPulse} />
-            </div>
           </SovereignErrorBoundary>
         </TabsContent>
       </Tabs>
