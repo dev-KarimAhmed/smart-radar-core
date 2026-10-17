@@ -95,17 +95,17 @@ export interface CaptainUser {
 const styles = {
   header: "flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-white/10",
   kpiGrid: "grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-6",
-  kpiCard: "rounded-2xl border border-white/10 bg-[#161F30]/60 p-4 backdrop-blur-xl shadow-lg relative overflow-hidden",
-  kpiTitle: "text-[11px] font-bold text-slate-400 mb-1 flex items-center gap-1.5",
+  kpiCard: "rounded-2xl border border-white/10 bg-[#161F30]/70 p-4 backdrop-blur-xl shadow-lg relative overflow-hidden",
+  kpiTitle: "text-xs font-bold text-slate-300 mb-1.5 flex items-center gap-1.5",
   kpiValue: "text-2xl font-black text-white font-mono",
   searchContainer: "relative w-full sm:w-80",
-  searchInput: "bg-black/60 border-white/10 text-white pl-3 pr-9 h-10 text-xs rounded-xl focus:border-[#14B8A6] text-right",
+  searchInput: "bg-black/70 border-white/15 text-white pl-3 pr-9 h-10 text-xs rounded-xl focus:border-[#14B8A6] text-right font-medium placeholder:text-slate-500",
   searchIcon: "absolute right-3 top-3 h-4 w-4 text-slate-400",
-  tableCard: "rounded-2xl border border-white/10 bg-[#0B0F19]/90 overflow-hidden shadow-2xl",
-  tableHead: "border-b border-white/10 bg-black/40 text-slate-300 text-xs font-bold",
-  tableRow: "border-b border-white/5 transition hover:bg-white/[0.02]",
-  avatar: "flex h-9 w-9 items-center justify-center rounded-xl bg-[#14B8A6]/10 text-[#14B8A6] font-bold border border-[#14B8A6]/30 text-xs",
-  statusBadge: "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold border",
+  tableCard: "rounded-2xl border border-white/10 bg-[#0B0F19]/95 overflow-hidden shadow-2xl backdrop-blur-xl",
+  tableHead: "border-b border-white/10 bg-[#0F172A]/90 text-slate-200 text-xs font-black tracking-wide",
+  tableRow: "border-b border-white/[0.06] transition-colors hover:bg-white/[0.03]",
+  avatar: "flex h-10 w-10 items-center justify-center rounded-xl bg-[#14B8A6]/15 text-[#14B8A6] font-black border border-[#14B8A6]/30 text-xs",
+  statusBadge: "inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold border shadow-sm",
 } as const;
 
 export function DriversManagementTab() {
@@ -248,37 +248,37 @@ export function DriversManagementTab() {
     switch (status) {
       case 'ACTIVE':
         return (
-          <span className={cn(styles.statusBadge, "bg-emerald-500/10 text-emerald-400 border-emerald-500/20")}>
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            نشط على الرادار
+          <span className={cn(styles.statusBadge, "bg-emerald-500/15 text-emerald-300 border-emerald-500/30")}>
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            متصل بالرادار
           </span>
         );
       case 'BUSY':
         return (
-          <span className={cn(styles.statusBadge, "bg-amber-500/10 text-amber-400 border-amber-500/20")}>
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+          <span className={cn(styles.statusBadge, "bg-amber-500/15 text-amber-300 border-amber-500/30")}>
+            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
             في رحلة
           </span>
         );
       case 'SUSPENDED':
         return (
-          <span className={cn(styles.statusBadge, "bg-rose-500/10 text-rose-400 border-rose-500/20")}>
-            <XCircle className="w-3 h-3 text-rose-400" />
-            معلق وموقوف
+          <span className={cn(styles.statusBadge, "bg-rose-500/15 text-rose-300 border-rose-500/30")}>
+            <XCircle className="w-3.5 h-3.5 text-rose-400" />
+            موقوف مؤقتاً
           </span>
         );
       case 'BANNED':
         return (
-          <span className={cn(styles.statusBadge, "bg-red-950/60 text-red-400 border-red-500/30")}>
-            <ShieldAlert className="w-3 h-3 text-red-400" />
+          <span className={cn(styles.statusBadge, "bg-red-950/80 text-red-300 border-red-500/40")}>
+            <ShieldAlert className="w-3.5 h-3.5 text-red-400" />
             محظور نهائياً
           </span>
         );
       case 'IDLE':
       default:
         return (
-          <span className={cn(styles.statusBadge, "bg-slate-500/10 text-slate-300 border-slate-500/20")}>
-            <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+          <span className={cn(styles.statusBadge, "bg-slate-800/80 text-slate-200 border-slate-700")}>
+            <span className="w-2 h-2 rounded-full bg-slate-400" />
             خامل / جاهز
           </span>
         );
@@ -289,23 +289,23 @@ export function DriversManagementTab() {
     switch (ver) {
       case 'APPROVED':
         return (
-          <Badge className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold">
-            <CheckCircle2 className="w-3 h-3 ml-1" />
-            معتمد
+          <Badge className="bg-emerald-500/15 text-emerald-300 border border-emerald-500/40 text-xs font-bold px-2.5 py-1 shadow-sm">
+            <CheckCircle2 className="w-3.5 h-3.5 ml-1 text-emerald-400" />
+            معتمد وموثق
           </Badge>
         );
       case 'REJECTED':
         return (
-          <Badge className="bg-rose-500/10 text-rose-400 border border-rose-500/30 text-[10px] font-bold">
-            <XCircle className="w-3 h-3 ml-1" />
+          <Badge className="bg-rose-500/15 text-rose-300 border border-rose-500/40 text-xs font-bold px-2.5 py-1 shadow-sm">
+            <XCircle className="w-3.5 h-3.5 ml-1 text-rose-400" />
             مرفوض
           </Badge>
         );
       case 'PENDING':
       default:
         return (
-          <Badge className="bg-amber-500/10 text-amber-400 border border-amber-500/30 text-[10px] font-bold animate-pulse">
-            <AlertTriangle className="w-3 h-3 ml-1" />
+          <Badge className="bg-amber-500/15 text-amber-300 border border-amber-500/40 text-xs font-bold px-2.5 py-1 shadow-sm">
+            <AlertTriangle className="w-3.5 h-3.5 ml-1 text-amber-400" />
             قيد التدقيق
           </Badge>
         );
@@ -458,13 +458,13 @@ export function DriversManagementTab() {
               <table className="w-full text-right text-xs">
                 <thead className={styles.tableHead}>
                   <tr>
-                    <th className="p-3.5">الكابتن والهوية</th>
-                    <th className="p-3.5">المركبة واللوحة</th>
-                    <th className="p-3.5">دقائق الرادار</th>
-                    <th className="p-3.5">الرتبة والتقييم</th>
-                    <th className="p-3.5">حالة الاعتماد</th>
-                    <th className="p-3.5">الحالة التشغيلية</th>
-                    <th className="p-3.5 text-center">إجراءات المشرف</th>
+                    <th className="py-4 px-4 font-black text-slate-200">الكابتن والهوية</th>
+                    <th className="py-4 px-4 font-black text-slate-200">المركبة واللوحة</th>
+                    <th className="py-4 px-4 font-black text-slate-200">دقائق الرادار</th>
+                    <th className="py-4 px-4 font-black text-slate-200">الرتبة والتقييم</th>
+                    <th className="py-4 px-4 font-black text-slate-200">حالة الاعتماد</th>
+                    <th className="py-4 px-4 font-black text-slate-200">الحالة التشغيلية</th>
+                    <th className="py-4 px-4 font-black text-slate-200 text-center">إجراءات المشرف</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -475,21 +475,22 @@ export function DriversManagementTab() {
                     return (
                       <tr key={captain.id} className={styles.tableRow}>
                         {/* 1. Identity */}
-                        <td className="p-3.5">
+                        <td className="py-4 px-4">
                           <div className="flex items-center gap-3">
-                            <Avatar className="h-9 w-9 border border-white/10 rounded-xl">
-                              <AvatarFallback className="bg-[#14B8A6]/10 text-[#14B8A6] font-black text-xs">
-                                {captain.full_name.substring(0, 2)}
+                            <Avatar className="h-10 w-10 border border-[#14B8A6]/40 rounded-xl shadow-sm">
+                              <AvatarFallback className="bg-[#14B8A6]/15 text-[#14B8A6] font-black text-xs">
+                                {captain.full_name ? captain.full_name.substring(0, 2) : 'ك'}
                               </AvatarFallback>
                             </Avatar>
-                            <div>
+                            <div className="space-y-1">
                               <div className="flex items-center gap-2">
-                                <span className="font-bold text-white text-sm">{captain.full_name}</span>
-                                <Badge variant="outline" className="font-mono text-[10px] bg-black/60 border-cyan-500/30 text-cyan-300">
+                                <span className="font-black text-white text-sm tracking-wide">{captain.full_name}</span>
+                                <Badge variant="outline" className="font-mono text-[10px] font-bold bg-cyan-950/60 border-cyan-500/40 text-cyan-300 px-1.5 py-0.5 rounded-md">
                                   {captain.serial_id}
                                 </Badge>
                               </div>
-                              <div className="flex items-center gap-3 text-slate-400 text-[11px] mt-0.5 font-mono" dir="ltr">
+                              <div className="flex items-center gap-1.5 text-slate-300 text-xs font-mono font-semibold" dir="ltr">
+                                <Phone className="h-3 w-3 text-[#14B8A6]" />
                                 <span>{captain.phone}</span>
                               </div>
                             </div>
@@ -497,21 +498,25 @@ export function DriversManagementTab() {
                         </td>
 
                         {/* 2. Vehicle */}
-                        <td className="p-3.5">
-                          <div>
-                            <div className="flex items-center gap-1.5 font-bold text-slate-200">
-                              <Car className="h-3.5 w-3.5 text-[#14B8A6]" />
-                              <span>{captain.vehicle.brand || 'غير محدد'} {captain.vehicle.model}</span>
+                        <td className="py-4 px-4">
+                          <div className="space-y-1.5">
+                            <div className="flex items-center gap-2 font-bold text-white text-xs">
+                              <Car className="h-4 w-4 text-[#14B8A6] shrink-0" />
+                              <bdi className="font-black text-white text-xs tracking-wide">
+                                {captain.vehicle.brand || 'مركبة'} {captain.vehicle.model}
+                              </bdi>
                               {captain.vehicle.year ? (
-                                <span className="text-slate-500 font-mono text-[11px]">({captain.vehicle.year})</span>
+                                <span className="font-mono text-[10px] text-cyan-300 bg-cyan-950/40 border border-cyan-500/30 px-1.5 py-0.5 rounded font-bold">
+                                  {captain.vehicle.year}
+                                </span>
                               ) : null}
                             </div>
-                            <div className="flex items-center gap-2 mt-1">
-                              <span className="font-mono font-bold text-[10px] bg-black/60 px-2 py-0.5 rounded border border-white/10 text-amber-300">
-                                {captain.vehicle.plate || 'بدون لوحة'}
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono font-black text-[11px] bg-slate-900 border border-slate-700/80 px-2.5 py-0.5 rounded-md text-amber-300 tracking-wider inline-flex items-center gap-1 shadow-sm" dir="ltr">
+                                <span>{captain.vehicle.plate || 'بدون لوحة'}</span>
                               </span>
                               {captain.vehicle.color && (
-                                <span className="text-[10px] text-slate-400">
+                                <span className="text-[11px] text-slate-300 font-bold bg-white/5 border border-white/10 px-2 py-0.5 rounded-md">
                                   {captain.vehicle.color}
                                 </span>
                               )}
@@ -520,34 +525,50 @@ export function DriversManagementTab() {
                         </td>
 
                         {/* 3. Flight Minutes */}
-                        <td className="p-3.5">
+                        <td className="py-4 px-4">
                           <div className="space-y-1 font-mono">
-                            <div className="flex items-center gap-1.5">
-                              <Clock className={cn("h-3.5 w-3.5", hasMinutes ? "text-[#14B8A6]" : "text-rose-400")} />
-                              <span className={cn("font-black text-sm", hasMinutes ? "text-white" : "text-rose-400")}>
-                                {captain.wallet.total_minutes} دقيقة
-                              </span>
-                            </div>
-                            <span className="text-[10px] text-slate-500 block">
-                              {(captain.wallet.total_minutes / 60).toFixed(1)} ساعة رادار
-                            </span>
+                            {hasMinutes ? (
+                              <>
+                                <div className="flex items-center gap-1.5">
+                                  <Clock className="h-4 w-4 text-emerald-400" />
+                                  <span className="font-black text-sm text-emerald-400">
+                                    {captain.wallet.total_minutes}
+                                  </span>
+                                  <span className="text-xs font-bold text-slate-200">دقيقة</span>
+                                </div>
+                                <span className="text-[11px] font-bold text-emerald-400/90 font-mono block">
+                                  ≈ {(captain.wallet.total_minutes / 60).toFixed(1)} ساعة طيران
+                                </span>
+                              </>
+                            ) : (
+                              <>
+                                <div className="flex items-center gap-1.5">
+                                  <Clock className="h-4 w-4 text-rose-400" />
+                                  <span className="font-black text-sm text-rose-400">0</span>
+                                  <span className="text-xs font-bold text-rose-300">دقيقة</span>
+                                </div>
+                                <span className="text-[10px] font-bold text-rose-300 bg-rose-500/15 border border-rose-500/30 px-1.5 py-0.5 rounded inline-block">
+                                  منتهي الرصيد
+                                </span>
+                              </>
+                            )}
                           </div>
                         </td>
 
                         {/* 4. Rank & Rating */}
-                        <td className="p-3.5">
-                          <div className="space-y-1">
+                        <td className="py-4 px-4">
+                          <div className="space-y-1.5">
                             <div className="flex items-center gap-2">
-                              <Badge variant="outline" className={cn("text-[10px] font-black px-2 py-0.5", rankTheme.bg, rankTheme.color, rankTheme.border)}>
-                                {captain.tier}
+                              <Badge variant="outline" className={cn("text-xs font-black px-2.5 py-0.5 rounded-lg border", rankTheme.bg, rankTheme.color, rankTheme.border, rankTheme.glow)}>
+                                {rankTheme.label}
                               </Badge>
-                              <div className="flex items-center gap-1 font-bold font-mono text-amber-400 text-xs">
-                                <Star className="h-3 w-3 fill-amber-400" />
-                                {captain.rating.toFixed(1)}
+                              <div className="flex items-center gap-1 font-black font-mono text-amber-300 text-xs bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-lg">
+                                <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                                <span>{captain.rating.toFixed(1)}</span>
                               </div>
                             </div>
                             {captain.penalty_count > 0 && (
-                              <Badge className="bg-rose-500/10 text-rose-400 border border-rose-500/30 text-[9px] font-bold">
+                              <Badge className="bg-rose-500/15 text-rose-300 border border-rose-500/40 text-[10px] font-bold">
                                 {captain.penalty_count} مخالفة مسجلة
                               </Badge>
                             )}
@@ -555,25 +576,25 @@ export function DriversManagementTab() {
                         </td>
 
                         {/* 5. Verification status */}
-                        <td className="p-3.5">
+                        <td className="py-4 px-4">
                           {getVerificationBadge(captain.verification_status)}
                         </td>
 
                         {/* 6. Operational status */}
-                        <td className="p-3.5">
+                        <td className="py-4 px-4">
                           {getStatusBadge(captain.status)}
                         </td>
 
                         {/* 7. Action buttons */}
-                        <td className="p-3.5 text-center">
-                          <div className="flex items-center justify-center gap-1.5">
+                        <td className="py-4 px-4 text-center">
+                          <div className="flex items-center justify-center gap-2">
                             {/* Inspect */}
                             <Button
                               type="button"
                               size="sm"
                               variant="outline"
                               onClick={() => setInspectCaptain(captain)}
-                              className="h-8 px-2.5 rounded-xl border-white/10 bg-white/5 hover:bg-white/10 text-slate-200 text-xs flex items-center gap-1"
+                              className="h-8 px-3 rounded-xl border border-cyan-500/30 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 text-xs font-bold flex items-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer"
                               title="عرض وتدقيق الملف والوثائق"
                             >
                               <Eye className="h-3.5 w-3.5 text-cyan-400" />
@@ -590,10 +611,10 @@ export function DriversManagementTab() {
                                 setExtendDays(30);
                                 setCashBalanceToAdd(0);
                               }}
-                              className="h-8 px-2.5 rounded-xl bg-[#14B8A6] hover:bg-[#2DD4BF] text-[#0B0F19] text-xs font-black flex items-center gap-1 shadow-md shadow-[#14B8A6]/20"
+                              className="h-8 px-3 rounded-xl border border-emerald-500/40 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 text-xs font-black flex items-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer"
                               title="شحن باقات دقائق الرادار"
                             >
-                              <Zap className="h-3.5 w-3.5" />
+                              <Zap className="h-3.5 w-3.5 text-emerald-400" />
                               <span>شحن</span>
                             </Button>
 
@@ -608,10 +629,10 @@ export function DriversManagementTab() {
                                 setTargetTier(captain.tier);
                                 setSecurityReason('');
                               }}
-                              className="h-8 px-2.5 rounded-xl border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-xs flex items-center gap-1"
+                              className="h-8 px-3 rounded-xl border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-xs font-bold flex items-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer"
                               title="إدارة الحالة والأمان والمخالفات"
                             >
-                              <ShieldAlert className="h-3.5 w-3.5" />
+                              <ShieldAlert className="h-3.5 w-3.5 text-amber-400" />
                               <span>أمان</span>
                             </Button>
                           </div>
