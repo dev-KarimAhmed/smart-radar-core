@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Heart, MessageCircle, Phone, Trash2, ShieldCheck, HelpCircle, Sparkles } from 'lucide-react';
+import { Heart, MessageCircle, Phone, Trash2, ShieldCheck, HelpCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { cn, formatTelUri } from '@/lib/utils';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
@@ -9,7 +9,6 @@ import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 
 const USER_VAULT_LIFETIME_MS = 30 * 24 * 60 * 60 * 1000;
-import { SAMPLE_VAULT_ADS } from '@/features/ads/services/sample-vault-ads';
 const styles = {
   style112_1: "w-full max-w-4xl mx-auto px-4 pb-12 font-sans",
   style112_2: "text-right",
@@ -162,39 +161,9 @@ const styles = {
  }
  };
 
- const seedSampleAds = () => {
- try {
- const stored = localStorage.getItem('sovereign_hearted_ads');
- const details = localStorage.getItem('sovereign_ad_vault_details');
- let heartedIds: string[] = stored ? JSON.parse(stored) : [];
- let detailsDict = details ? JSON.parse(details) : {};
-
- SAMPLE_VAULT_ADS.forEach((sampleAd) => {
- if (!heartedIds.includes(sampleAd.id)) {
- heartedIds.push(sampleAd.id);
- }
- detailsDict[sampleAd.id] = {
- ...sampleAd,
- savedAtTimestamp: Date.now(),
- };
- });
-
- localStorage.setItem('sovereign_hearted_ads', JSON.stringify(heartedIds));
- localStorage.setItem('sovereign_ad_vault_details', JSON.stringify(detailsDict));
- setHeartedAdIds([...heartedIds]);
- setVaultDetails({ ...detailsDict });
-
- if (typeof navigator !== 'undefined' && navigator.vibrate) {
- navigator.vibrate([30, 30]);
- }
- } catch (e) {
- console.error('Failed to seed sample vault ads:', e);
- }
- };
-
+  
  return (
  <div className={cn(styles.style112_1, isArabic ? styles.style112_2 : styles.style112_3)} dir={isArabic ? 'rtl' : 'ltr'}>
- {/* Header Info Banner */}
  <div className={styles.style114_4}>
  <div className={styles.style115_5}>
  <div className={styles.style116_6}>
@@ -206,15 +175,6 @@ const styles = {
  </div>
  </div>
  <div className="flex items-center gap-2 shrink-0">
- <button
- type="button"
- onClick={seedSampleAds}
- title={isArabic ? 'إضافة إعلانات تجريبية للخزنة' : 'Add test ads to vault'}
- className="flex items-center gap-1.5 rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-3 py-1.5 text-[11px] font-bold text-[#14F5D5] transition hover:bg-[#14B8A6]/20 active:scale-95 cursor-pointer"
- >
- <Sparkles className="h-3.5 w-3.5" />
- <span>{isArabic ? '+ إعلانات تجريبية' : '+ Test ads'}</span>
- </button>
  <div className={styles.style124_12}>
  {tAuto('vaultTab_count', { count: heartedAdIds.length })}
  </div>
@@ -232,14 +192,6 @@ const styles = {
  <p className={styles.style137_18}>
  {tAuto('vaultTab_emptyDescription')}
  </p>
- <button
- type="button"
- onClick={seedSampleAds}
- className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[#14B8A6] px-5 py-2.5 text-xs font-bold text-[#0B0F19] transition hover:bg-[#2DD4BF] active:scale-95 shadow-lg shadow-[#14B8A6]/20 cursor-pointer"
- >
- <Sparkles className="h-4 w-4" />
- <span>{isArabic ? 'إضافة إعلانات تجريبية للخزنة' : 'Add sample ads to vault'}</span>
- </button>
  </div>
  </div>
  ) : (
