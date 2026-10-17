@@ -158,9 +158,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: false, error: 'Unauthorized: Admin privileges required' }, { status: 401 });
   }
 
+  let body: any;
   try {
-    const body = await req.json();
-    const { action, userId } = body;
+    body = await req.json();
+  } catch (err: any) {
+    console.error('[Admin Users API] Error parsing JSON body:', err);
+    return NextResponse.json({ success: false, error: 'تعذر قراءة بيانات الطلب (Invalid JSON body)' }, { status: 400 });
+  }
+
+  try {
+    const { action, userId } = body || {};
 
     if (!userId) {
       return NextResponse.json({ success: false, error: 'userId is required' }, { status: 400 });
