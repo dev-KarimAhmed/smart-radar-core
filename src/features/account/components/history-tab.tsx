@@ -12,6 +12,7 @@ import { HistorySovereignLogs } from './history-tab/history-sovereign-logs';
 import { HistoryErrorExplorer } from './history-tab/history-error-explorer';
 import { BlockedCaptainsSection } from './profile-tab/blocked-captains-section';
 import { BlockedRidersSection } from '@/features/captain/components/profile/blocked-riders-section';
+import { HistoryFavoriteRiders } from '@/features/referral/components/history-favorite-riders';
 
 
 export interface HistoryTabProps {
@@ -129,6 +130,8 @@ export function HistoryTab({ hideCaptainDiagnostics = false }: HistoryTabProps =
             now={now}
             t={t}
           />
+
+          <HistoryFavoriteRiders user={user} isArabic={isArabic} />
 
           <BlockedRidersSection isArabic={isArabic} />
 

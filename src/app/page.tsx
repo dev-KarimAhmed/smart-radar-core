@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/features/auth/contract';
 import LoginPage from '@/features/auth/components/login-page';
 import { useTranslations } from "next-intl";
+import { storePendingCaptainReferral, clearPendingCaptainReferral, removeReferralParamFromUrl } from '@/features/referral/services/captain-referral';
 
 const styles = {
   loadingRoot: 'flex h-dvh w-screen select-none flex-col items-center justify-center bg-[#0A0F1D] text-white/90',
@@ -40,6 +41,19 @@ export default function HomePage() {
     if (typeof window !== 'undefined') {
       const hash = window.location.hash || '';
       const search = window.location.search || '';
+
+      const searchParams = new URLSearchParams(search);
+      const ref = searchParams.get('ref') || searchParams.get('captain');
+      if (ref && ref.trim()) {
+        if (!user && !loading) {
+          storePendingCaptainReferral(ref.trim());
+          router.replace(`/register/rider${search}`);
+          return;
+        } else if (user) {
+          clearPendingCaptainReferral();
+          removeReferralParamFromUrl();
+        }
+      }
       if (
         hash.includes('type=recovery') ||
         hash.includes('access_token=') ||
@@ -52,9 +66,8 @@ export default function HomePage() {
       }
     }
     if (loading || !user) return;
-    const search = typeof window !== 'undefined' ? window.location.search : '';
-    if (user.role === 'driver') router.replace(`/captain${search}`);
-    if (user.role === 'rider') router.replace(`/rider${search}`);
+    if (user.role === 'driver') router.replace('/captain');
+    if (user.role === 'rider') router.replace('/rider');
   }, [loading, router, user]);
 
   if (loading || isRedirecting) {

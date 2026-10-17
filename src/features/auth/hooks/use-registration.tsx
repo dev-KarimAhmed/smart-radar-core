@@ -9,6 +9,13 @@ import { getAuthRedirectUrl } from '@/lib/utils';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { useToast } from '@/hooks/use-toast';
 import {
+  claimCaptainReferral,
+  getPendingCaptainReferral,
+  storePendingCaptainReferral,
+  clearPendingCaptainReferral,
+  removeReferralParamFromUrl,
+} from '@/features/referral/services/captain-referral';
+import {
   useSupabaseCountries,
   getCountryDialCode,
   getCountryIsoCode,
@@ -173,7 +180,37 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     setRememberMe(shouldRememberSupabaseSession());
+    // Only capture referral parameter when registering a new account, never on login routes
+    if (typeof window !== 'undefined') {
+      try {
+        const isLoginRoute = window.location.pathname.includes('/login');
+        if (isLoginRoute) {
+          clearPendingCaptainReferral();
+          removeReferralParamFromUrl();
+          window.sessionStorage.removeItem('radar_newly_registered_referral');
+          return;
+        }
+        const params = new URLSearchParams(window.location.search);
+        const ref = params.get('ref') || params.get('captain');
+        if (ref && ref.trim()) {
+          storePendingCaptainReferral(ref.trim());
+        }
+      } catch {
+        // ignore
+      }
+    }
   }, []);
+
+  // Strict rule: if the user switches to or views the login form, referral must never apply
+  useEffect(() => {
+    if (authMode === 'login') {
+      clearPendingCaptainReferral();
+      removeReferralParamFromUrl();
+      if (typeof window !== 'undefined') {
+        window.sessionStorage.removeItem('radar_newly_registered_referral');
+      }
+    }
+  }, [authMode]);
 
   useEffect(() => {
     const countryId = Number(personal.country);
@@ -436,7 +473,21 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     setIsSubmitting(true);
 
     try {
+      const queryRef = typeof window !== 'undefined'
+        ? new URLSearchParams(window.location.search).get('ref') ||
+          new URLSearchParams(window.location.search).get('captain')
+        : null;
+      const pendingRef = (getPendingCaptainReferral() || queryRef || '').trim();
+
       if (authMode === 'login') {
+        // STRICT RULE: If the user logs in, they ALREADY have an account.
+        // Even if ?ref= was in the URL or storage, referral must NEVER be applied!
+        clearPendingCaptainReferral();
+        removeReferralParamFromUrl();
+        if (typeof window !== 'undefined') {
+          window.sessionStorage.removeItem('radar_newly_registered_referral');
+        }
+
         await signInRiderWithPhone({
           phone: normalizedPhone.phone,
           password: authPassword,
@@ -454,6 +505,11 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
         // its effect redirect once `useAuth()` actually reflects the new session.
         router.replace('/');
         return;
+      }
+
+      // authMode === 'register'
+      if (role === 'rider' && pendingRef && typeof window !== 'undefined') {
+        window.sessionStorage.setItem('radar_newly_registered_referral', pendingRef);
       }
 
       const signUpInput = {
@@ -476,6 +532,62 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
       }
 
       const signUpResult = await signUpRiderWithPhone(signUpInput);
+
+      const isExistingUser =
+        Array.isArray(signUpResult.user?.identities) &&
+        signUpResult.user.identities.length === 0;
+
+      if (isExistingUser) {
+        clearPendingCaptainReferral();
+        removeReferralParamFromUrl();
+        if (typeof window !== 'undefined') {
+          window.sessionStorage.removeItem('radar_newly_registered_referral');
+        }
+        return;
+      }
+
+      // Claim referral link exclusively for new rider signups
+      if (role === 'rider' && pendingRef) {
+        let hasActiveSession = Boolean(signUpResult.session);
+
+        if (!hasActiveSession) {
+          try {
+            const signInRes = await signInRiderWithPhone({
+              phone: normalizedPhone.phone,
+              password: authPassword,
+              rememberMe,
+              expectedRole: 'RIDER',
+            });
+            if (signInRes.session) {
+              hasActiveSession = true;
+            }
+          } catch (autoSignInErr) {
+            if (process.env.NODE_ENV !== 'production') {
+              console.warn('[Auto sign-in on registration]', autoSignInErr);
+            }
+          }
+        }
+
+        if (hasActiveSession) {
+          try {
+            const claimResult = await claimCaptainReferral(pendingRef);
+            if (process.env.NODE_ENV !== 'production') {
+              console.info('[Referral on Signup Claimed]', claimResult);
+            }
+          } catch (referralErr) {
+            if (process.env.NODE_ENV !== 'production') {
+              console.warn('[Referral on Signup Error]', referralErr);
+            }
+          } finally {
+            clearPendingCaptainReferral();
+            removeReferralParamFromUrl();
+            if (typeof window !== 'undefined') {
+              window.sessionStorage.removeItem('radar_newly_registered_referral');
+              window.dispatchEvent(new CustomEvent('radar_favorites_updated'));
+            }
+          }
+        }
+      }
 
       if (signUpResult.session && personal.email?.trim().includes('@')) {
         const { error: emailError } = await supabase.auth.updateUser(

@@ -1768,7 +1768,10 @@
     "commission": "العمولة المستحقة",
     "status": "الحالة",
     "active": "نشط",
-    "pending": "قيد الانتظار"
+    "pending": "قيد الانتظار",
+    "linkedCaptainBadge": "كابتنك المعتمد (رابط الإحالة)",
+    "removeFromFavorites": "إزالة من المفضلة",
+    "noSavedCaptains": "لم تقم بحفظ أي كابتن في المفضلة بعد"
   },
   "adminTab": {
     "driverBlackbox": {
@@ -3486,5 +3489,79 @@
   "irbid": "Irbid",
   "irbidDowntown": "Irbid Downtown",
   "madaba": "Madaba",
-  "madabaDowntown": "Madaba Downtown"
+  "madabaDowntown": "Madaba Downtown",
+  "referral": {
+    "driverCard": {
+      "title": "رابط إحالة الركاب المفضلين",
+      "ridersCount": "الركاب: {count}",
+      "description": "أرسل هذا الرابط لأي راكب لينضم من خلالك لترقيه رتبتك واجماع النقاط.",
+      "copyButton": "نسخ الرابط",
+      "copiedButton": "تم النسخ",
+      "whatsAppTooltip": "إرسال عبر واتساب",
+      "copySuccessTitle": "تم نسخ الرابط بنجاح",
+      "copySuccessDesc": "شارك الرابط مع الركاب ليتم ربطهم بك كمفضلين تلقائياً",
+      "copyErrorTitle": "تعذر نسخ الرابط",
+      "copyErrorDesc": "يرجى نسخ الرابط يدوياً.",
+      "whatsAppShareMessage": "حمّل تطبيق الرادار وسجّل عبر رابط إحالتي لتكون من ركابي المفضلين وتتمتع بأولوية في تلبية رحلاتك:\n{link}",
+      "modalTitle": "الركاب التابعون لك",
+      "modalSubtitle": "قائمة بالركاب الذين انضموا عبر رابط إحالتك ",
+      "call": "اتصال",
+      "removeFromFavorites": "إزالة من المفضلة",
+      "emptyTitle": "لا يوجد ركاب مرتبطون بك حالياً",
+      "emptyDesc": "شارك رابط الإحالة مع الركاب لتتم إضافتهم تلقائياً هنا كمفضلين.",
+      "defaultRiderName": "راكب معتمد",
+      "close": "إغلاق"
+    },
+    "linkedCaptain": {
+      "defaultCaptainName": "الكابتن المعتمد",
+      "badgeSubtitle": "كابتنك المعتمد ",
+      "unlinkButton": "فك الارتباط",
+      "unlinkDialogTitle": "تأكيد فك الارتباط بالكابتن",
+      "unlinkDialogDesc": "هل أنت متأكد من فك الارتباط بالكابتن {captainName}؟",
+      "currentCaptainFallback": "الكابتن الحالي",
+      "consequence1": "حذف الكابتن من قائمتك المفضلة",
+      "consequence2": "إلغاء تفضيلك عند الكابتن",
+      "consequence3": "تصبح حراً طليقاً للانضمام لأي كابتن آخر في أي وقت",
+      "cancelButton": "تراجع",
+      "confirmUnlinkButton": "نعم، فك الارتباط",
+      "unlinkingButton": "جاري الفك...",
+      "unlinkSuccessTitle": "تم فك الارتباط بنجاح",
+      "unlinkSuccessDesc": "تمت إزالة الكابتن من مفضلتك وأصبحت حراً طليقاً للانضمام لأي كابتن آخر.",
+      "unlinkErrorTitle": "تعذر فك الارتباط",
+      "unlinkErrorDefault": "يرجى المحاولة لاحقاً.",
+      "unexpectedError": "حدث خطأ غير متوقع",
+      "errorTitle": "خطأ"
+    },
+    "conflictModal": {
+      "title": "حسابك مرتبط مسبقاً بكابتن آخر",
+      "currentCaptainPrefix": "أنت مسجل حالياً وتابع للكابتن ",
+      "policyNote": "وفقاً لسياسة التطبيق، لا يمكن الانضمام عبر رابط كابتن آخر طالما أنك مرتبط بكابتن حالي. يمكنك الانضمام لكابتن جديد فقط بعد الدخول لحسابك وإلغاء الارتباط بالكابتن الحالي لتصبح حراً طليقاً.",
+      "manageProfileButton": "إدارة الارتباط في حسابي",
+      "closeButton": "إغلاق"
+    },
+    "listener": {
+      "linkedSuccessTitle": "🎉 تم ربط الحساب بالمفضلة بنجاح",
+      "linkedSuccessDesc": "تم ربط حسابك بالكابتن {captainName} وإضافتكما للمفضلة تلقائياً!",
+      "alreadyLinkedTitle": "مرتبط مسبقاً",
+      "alreadyLinkedDesc": "أنت بالفعل مسجل ومضاف في قائمة المفضلة مع الكابتن {captainName}.",
+      "conflictToastTitle": "تعذر الانضمام عبر هذا الرابط",
+      "conflictToastDesc": "أنت مرتبط مسبقاً بالكابتن ({captainName}). يجب إلغاء الارتباط الحالي أولاً لتتمكن من الانضمام لكابتن آخر.",
+      "anotherCaptain": "كابتن آخر",
+      "invalidReferralTitle": "كود الإحالة غير صالح",
+      "invalidReferralDesc": "لم يتم العثور على الكابتن صاحب هذا الرابط.",
+      "selfReferralTitle": "تنبيه",
+      "selfReferralDesc": "لا يمكنك استخدام رابط الإحالة الخاص بك كراكب."
+    },
+    "favoriteRiders": {
+      "title": "الركاب المفضَّلون",
+      "subtitle": "قائمة الركاب المحفوظين في المفضلة لديك",
+      "ridersCountBadge": "{count} راكب",
+      "loading": "جاري تحميل قائمة الركاب المفضلين...",
+      "emptyTitle": "لم تقم بحفظ أي راكب في المفضلة بعد",
+      "emptyDesc": "يظهر هنا الركاب المضافون إلى قائمتك المفضلة.",
+      "defaultRiderName": "راكب مفضل",
+      "call": "اتصال",
+      "removeFromFavorites": "إزالة من المفضلة"
+    }
+  }
 }

@@ -9,6 +9,7 @@ import { useProfileState } from './profile-tab/use-profile-state';
 import { ProfileHeaderCard } from './profile-tab/profile-header-card';
 import { ProfileFormSection } from './profile-tab/profile-form-section';
 import { RiderSecuritySection } from './profile-tab/rider-security-section';
+import { LinkedCaptainCard } from '@/features/referral/components/linked-captain-card';
 import { useTranslations } from "next-intl";
 
 export function ProfileTab() {
@@ -32,7 +33,7 @@ export function ProfileTab() {
   const displayName = state.fullName || state.user?.name || tAuto('key_f38edfd8');
   const displayPhone = state.phone || state.user?.phone || '';
   const displayRole = state.isSovereign ? state.t('roles.admin') : state.isCaptain ? state.t('roles.driver') : state.isPassenger ? state.t('roles.rider') : state.t('roles.user');
-  
+
   const currency = state.isArabic
     ? state.selectedCountry?.currency_ar || state.selectedCountry?.currency_en || state.selectedCountry?.currency_code || state.user?.currencyAr || state.user?.currencyEn
     : state.selectedCountry?.currency_en || state.selectedCountry?.currency_code || state.selectedCountry?.currency_ar || state.user?.currencyEn || state.user?.currencyAr;
@@ -54,9 +55,13 @@ export function ProfileTab() {
         locationLabel={locationLabel}
         displayPhone={displayPhone}
         currency={currency}
-      />
+      >
+        {state.isPassenger && (
+          <LinkedCaptainCard isArabic={state.isArabic} />
+        )}
+      </ProfileHeaderCard>
 
-      {/* 2. Personal Info & Location Section */}
+      {/* 2. Personal Info & Location Section (بيانات الحساب) */}
       <ProfileFormSection
         t={state.t}
         language={state.language}

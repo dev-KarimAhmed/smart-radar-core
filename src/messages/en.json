@@ -1768,7 +1768,10 @@
     "commission": "Commission due",
     "status": "Status",
     "active": "Active",
-    "pending": "Pending"
+    "pending": "Pending",
+    "linkedCaptainBadge": "Linked Captain (Referral)",
+    "removeFromFavorites": "Remove from favorites",
+    "noSavedCaptains": "No favorite drivers saved yet"
   },
   "adminTab": {
     "driverBlackbox": {
@@ -3486,5 +3489,79 @@
   "irbid": "Irbid",
   "irbidDowntown": "Irbid Downtown",
   "madaba": "Madaba",
-  "madabaDowntown": "Madaba Downtown"
+  "madabaDowntown": "Madaba Downtown",
+  "referral": {
+    "driverCard": {
+      "title": "Passenger Referral Link",
+      "ridersCount": "Riders: {count}",
+      "description": "Share this link with passengers to upgrade your rank, collect points",
+      "copyButton": "Copy Link",
+      "copiedButton": "Copied",
+      "whatsAppTooltip": "Send via WhatsApp",
+      "copySuccessTitle": "Link copied successfully",
+      "copySuccessDesc": "Share this link with passengers to mutually favorite each other",
+      "copyErrorTitle": "Failed to copy link",
+      "copyErrorDesc": "Please copy the link manually.",
+      "whatsAppShareMessage": "Join Smart Radar via my referral link to become one of my favorite riders with priority dispatch:\n{link}",
+      "modalTitle": "Your Referred Riders",
+      "modalSubtitle": "List of riders who joined via your referral link.",
+      "call": "Call",
+      "removeFromFavorites": "Remove from favorites",
+      "emptyTitle": "No referred riders yet",
+      "emptyDesc": "Share your referral link with riders to automatically add them here as favorites.",
+      "defaultRiderName": "Verified Rider",
+      "close": "Close"
+    },
+    "linkedCaptain": {
+      "defaultCaptainName": "Linked Captain",
+      "badgeSubtitle": "Your Certified Captain",
+      "unlinkButton": "Unlink",
+      "unlinkDialogTitle": "Confirm Unlinking Captain",
+      "unlinkDialogDesc": "Are you sure you want to unlink from Captain {captainName}?",
+      "currentCaptainFallback": "your current captain",
+      "consequence1": "Remove captain from your favorites",
+      "consequence2": "Remove you from captain favorites",
+      "consequence3": "Become free to join any other captain anytime",
+      "cancelButton": "Cancel",
+      "confirmUnlinkButton": "Yes, Unlink",
+      "unlinkingButton": "Unlinking...",
+      "unlinkSuccessTitle": "Unlinked successfully",
+      "unlinkSuccessDesc": "You are now free to join through any other captain referral link.",
+      "unlinkErrorTitle": "Failed to unlink",
+      "unlinkErrorDefault": "Please try again later.",
+      "unexpectedError": "Unexpected error",
+      "errorTitle": "Error"
+    },
+    "conflictModal": {
+      "title": "Account Already Linked to Another Captain",
+      "currentCaptainPrefix": "You are currently linked to Captain ",
+      "policyNote": "According to app policy, you cannot join via another captain link while currently linked. You may join a new captain after unlinking your current captain in your profile to become free.",
+      "manageProfileButton": "Manage in Profile",
+      "closeButton": "Close"
+    },
+    "listener": {
+      "linkedSuccessTitle": "🎉 Account linked successfully",
+      "linkedSuccessDesc": "You are now mutually favorited with Captain {captainName}!",
+      "alreadyLinkedTitle": "Already linked",
+      "alreadyLinkedDesc": "You are already linked with Captain {captainName}.",
+      "conflictToastTitle": "Cannot join via this link",
+      "conflictToastDesc": "You are already linked to Captain ({captainName}). Please unlink first to join another captain.",
+      "anotherCaptain": "Another captain",
+      "invalidReferralTitle": "Invalid referral code",
+      "invalidReferralDesc": "Captain for this link was not found.",
+      "selfReferralTitle": "Notice",
+      "selfReferralDesc": "You cannot use your own referral link as a passenger."
+    },
+    "favoriteRiders": {
+      "title": "Favorite Riders",
+      "subtitle": "List of riders saved in your favorites",
+      "ridersCountBadge": "{count} riders",
+      "loading": "Loading favorite riders...",
+      "emptyTitle": "No favorite riders saved yet",
+      "emptyDesc": "Riders added to your favorites will appear here.",
+      "defaultRiderName": "Favorite Rider",
+      "call": "Call",
+      "removeFromFavorites": "Remove from favorites"
+    }
+  }
 }

@@ -57,9 +57,10 @@ export function navigateAuth(view: AuthView, role?: AuthRole | null): void {
   if (typeof window === 'undefined') return;
 
   const path = buildAuthPath(view, role);
+  const search = window.location.search || '';
   if (window.location.pathname === path) return;
 
-  window.history.pushState(null, '', path);
+  window.history.pushState(null, '', path + search);
   window.dispatchEvent(new PopStateEvent('popstate'));
 }
 

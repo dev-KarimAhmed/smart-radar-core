@@ -63,7 +63,7 @@ export const styles = {
   style412_58: "h-5 w-5",
   style421_59: "inline-flex items-center justify-center gap-2 rounded-2xl border border-red-500/30 bg-red-600/15 px-5 py-4 font-black text-red-100 hover:bg-red-600/25",
   style423_60: "h-5 w-5",
-  style430_61: "grid gap-5 lg:grid-cols-2",
+  style430_61: "grid gap-5 lg:grid-cols-2 items-start",
   style431_62: "h-5 w-5",
   style439_63: "h-5 w-5",
   style447_64: "rounded-3xl border border-emerald-500/20 bg-[#05080f] p-5",
@@ -102,7 +102,7 @@ export const styles = {
 
 export function Panel({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
   return (
-    <div className={styles.style460_69}>
+    <div className={`${styles.style460_69} h-fit`}>
       <div className={styles.style461_70}>
         {icon}
         <h2 className={styles.style463_71}>{title}</h2>
