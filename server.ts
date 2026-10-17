@@ -11,6 +11,7 @@ import { doc, getDoc, updateDoc, arrayUnion, addDoc, collection, query, where, g
 import fs from 'fs';
 import { requireRole } from './src/server/api/supabase-identity';
 import { passwordResetRouter } from './src/server/api/password-reset';
+import { adminManagementRouter } from './src/server/api/admin-management';
 
 // Helper to load firebase config securely on the server
 const getFirebaseApiKey = (): string => {
@@ -93,6 +94,7 @@ async function startServer() {
   // Rate limited like every other state-mutating route: /password-reset/request is public
   // and unauthenticated, so it is the one an attacker would hammer to enumerate phones.
   app.use('/api', rateLimiterMiddleware, passwordResetRouter);
+  app.use('/api', rateLimiterMiddleware, adminManagementRouter);
 
   // Diagnostic Endpoint for Sovereignties (Zone D)
   app.get('/api/health', (req, res) => {
