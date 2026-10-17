@@ -279,8 +279,7 @@ export const SovereignDemarcationCatalog = {
           '/src/core/RadarAntiCheatKernel.ts',
           '/src/core/logic/geospatial-kernel.ts',
           '/src/core/logic/time-kernel.ts',
-          '/src/core/logic/sovereign-market-kernel.ts',
-          '/src/core/RadarAntiCheatKernel.ts'
+          '/src/core/logic/sovereign-market-kernel.ts'
         ],
         cloudFunctions: [],
         databaseCollections: []
