@@ -194,6 +194,20 @@ export async function POST(req: Request) {
           .eq('id', userId);
 
         if (error) throw error;
+
+        // Push notification to captain
+        if (normStatus === 'APPROVED') {
+          await supabaseAdmin.from('user_notifications').insert({
+            id: `notif_verif_${userId}_${Date.now()}`,
+            user_id: userId,
+            title: 'تهانينا يا كابتن! تم اعتماد وتوثيق حسابك رسمياً 🏆',
+            description: 'تمت مراجعة وتدقيق هويتك ومستنداتك بنجاح من قبل إدارة المنظومة، ومُنحت شارة «كابتن موثق رسمياً ✓».',
+            type: 'admin_message',
+            is_read: false,
+            created_at: new Date().toISOString(),
+          });
+        }
+
         return NextResponse.json({ success: true, message: `تم تحديث حالة الاعتماد إلى ${normStatus}` });
       }
 

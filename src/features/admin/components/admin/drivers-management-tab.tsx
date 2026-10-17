@@ -288,7 +288,7 @@ export function DriversManagementTab() {
         return (
           <Badge className="bg-emerald-500/15 text-emerald-300 border border-emerald-500/40 text-xs font-bold px-2.5 py-1 shadow-sm">
             <CheckCircle2 className="w-3.5 h-3.5 ml-1 text-emerald-400" />
-            معتمد وموثق
+            معتمد وموثق رسمياً
           </Badge>
         );
       case 'REJECTED':
@@ -303,7 +303,7 @@ export function DriversManagementTab() {
         return (
           <Badge className="bg-amber-500/15 text-amber-300 border border-amber-500/40 text-xs font-bold px-2.5 py-1 shadow-sm">
             <AlertTriangle className="w-3.5 h-3.5 ml-1 text-amber-400" />
-            قيد التدقيق
+            قبول تلقائي (غير معتمد يدوي)
           </Badge>
         );
     }

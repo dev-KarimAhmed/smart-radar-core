@@ -28,6 +28,8 @@ import { BiddingProposalSheet } from './bidding-proposal-sheet';
 import { DriverRatingModal } from './driver-rating-modal';
 import { PricePerKmSetupModal } from './price-per-km-setup-modal';
 import { MarketStatusIndicator } from './market-status-indicator';
+import { useCaptainVerification } from '../hooks/use-captain-verification';
+import { CaptainVerificationBadge } from './captain-verification-badge';
 import {
   captainDashboardReducer,
   initialCaptainDashboardState,
@@ -100,6 +102,7 @@ export function DriverViewTab() {
   const { language, direction, toggleLanguage } = useDashboardLanguage();
   const t = useTranslations('captainDashboard');
   const { unreadCount, hasUnread } = useNotifications();
+  const { verificationStatus } = useCaptainVerification(user?.uid);
   const driverOps = useDriverOperations();
   const wallet = useSovereignWallet(user);
   const { isTimeTamperingDetected } = useDeviceTimeGuard();
@@ -421,6 +424,7 @@ export function DriverViewTab() {
               {driverOps.isUpdatingStatus ? t('statusUpdating') : isActive ? t('online') : t('offline')}
             </button>
             <MarketStatusIndicator indicator={marketIndicator} size="compact" />
+            <CaptainVerificationBadge status={verificationStatus} isArabic={direction === 'rtl'} />
             <div className={styles.style167_1}>
               <NavButton active={screen === 'RADAR_MAP' || screen === 'BIDDING' || screen === 'ACTIVE_TRIP'} onClick={() => dispatch({ type: 'OPEN_RADAR' })} label={t('radar')} icon={<Map className={styles.style170_12} />} />
               <NavButton active={screen === 'WALLET'} onClick={() => dispatch({ type: 'OPEN_WALLET' })} label={t('wallet')} icon={<Wallet className={styles.style171_13} />} />
