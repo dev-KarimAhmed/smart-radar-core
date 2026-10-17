@@ -95,8 +95,7 @@ async function startServer() {
   // causing Next.js App Router to throw: "TypeError: Response body object should not be disturbed or locked".
   const jsonParser = express.json();
   const nextApiPrefixes = [
-    '/api/admin/users',
-    '/api/admin/list-admins',
+    '/api/admin/',
     '/api/maps/',
   ];
 

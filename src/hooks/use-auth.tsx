@@ -445,7 +445,7 @@ async function cancelActiveRequestBeforeLogout(user: SovereignUser | null) {
   }
 }
 
-function purgeTransientFrontendCache() {
+export function purgeTransientFrontendCache() {
   if (typeof window === 'undefined') return;
 
   const sessionKeys = [

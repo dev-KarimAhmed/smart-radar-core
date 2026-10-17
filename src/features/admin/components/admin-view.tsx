@@ -2,6 +2,7 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DriversManagementTab } from './admin/drivers-management-tab';
+import { AdminTopBar } from './admin/admin-top-bar';
 import { AdminMasterKPIBar } from './admin/admin-master-kpi-bar';
 import { RidersManagementPanel } from './admin/riders-management-panel';
 import { SystemBroadcastPanel } from './admin/system-broadcast-panel';
@@ -988,6 +989,9 @@ export function AdminViewTab() {
 
   return (
     <div className="space-y-6 text-right font-sans" dir="rtl">
+      {/* شريط الإدارة العلوي - الملف الشخصي، تغيير كلمة السر، تسجيل الخروج */}
+      <AdminTopBar />
+
       {/* شريط الإحصائيات السيادية الموحد - Master Supervisor KPI Bar */}
       <AdminMasterKPIBar />
 
