@@ -88,8 +88,25 @@ async function startServer() {
     next();
   };
 
-  // Parse JSON bodies
-  app.use(express.json());
+  // Parse JSON bodies ONLY for custom Express endpoints.
+  // Next.js App Router routes (/api/admin/users, /api/admin/list-admins, /api/maps/resolve, pages)
+  // handle their own body streaming natively via Web API Request.json().
+  // If express.json() reads a request destined for Next.js, it consumes and locks the body stream,
+  // causing Next.js App Router to throw: "TypeError: Response body object should not be disturbed or locked".
+  const jsonParser = express.json();
+  const nextApiPrefixes = [
+    '/api/admin/users',
+    '/api/admin/list-admins',
+    '/api/maps/',
+  ];
+
+  app.use((req, res, next) => {
+    // If request is destined for Next.js App Router, bypass express.json()
+    if (nextApiPrefixes.some(p => req.path.startsWith(p)) || !req.path.startsWith('/api/')) {
+      return next();
+    }
+    return jsonParser(req, res, next);
+  });
 
   // Rate limited like every other state-mutating route: /password-reset/request is public
   // and unauthenticated, so it is the one an attacker would hammer to enumerate phones.
