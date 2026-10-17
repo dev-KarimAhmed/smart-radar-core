@@ -481,7 +481,7 @@ export function RidersManagementPanel() {
                         <td className="py-4 px-4">
                           <div className="inline-flex items-center gap-1.5 font-mono font-black text-slate-100 bg-black/60 border border-white/10 px-2.5 py-1 rounded-lg text-xs">
                             <Wallet className="h-3.5 w-3.5 text-[#14B8A6]" />
-                            <span>{(rider.wallet?.balance ?? 0).toFixed(2)} د.أ</span>
+                            <span>{(rider.wallet?.balance ?? 0).toFixed(2)} {(rider as any).currency || (rider.wallet as any)?.currency_ar || (rider.phone?.startsWith('+20') ? 'ج.م' : 'د.أ')}</span>
                           </div>
                         </td>
 
@@ -645,7 +645,7 @@ export function RidersManagementPanel() {
                   <span className="text-slate-300 font-bold">الرصيد المالي في المحفظة:</span>
                 </div>
                 <span className="text-base font-black text-white font-mono">
-                  {(inspectRider.wallet?.balance ?? 0).toFixed(2)} د.أ
+                  {(inspectRider.wallet?.balance ?? 0).toFixed(2)} {(inspectRider as any).currency || (inspectRider.wallet as any)?.currency_ar || (inspectRider.phone?.startsWith('+20') ? 'ج.م' : 'د.أ')}
                 </span>
               </div>
 
@@ -782,14 +782,16 @@ export function RidersManagementPanel() {
                   إيداع رصيد تعويضي في محفظة الراكب
                 </DialogTitle>
                 <DialogDescription className="text-xs text-slate-400 mt-1">
-                  إيداع مبلغ نقدي مباشر بالدينار الأردني لحل نزاع أو تعويض عن شكوى للراكب <span className="text-white font-bold">{compensationRider.full_name}</span>.
+                  إيداع مبلغ نقدي مباشر لحل نزاع أو تعويض عن شكوى للراكب <span className="text-white font-bold">{compensationRider.full_name}</span>.
                 </DialogDescription>
               </DialogHeader>
 
               {/* Current balance */}
               <div className="bg-black/60 border border-white/10 p-3 rounded-2xl flex items-center justify-between text-xs font-mono">
                 <span className="text-slate-400">الرصيد المتوفر حالياً:</span>
-                <span className="text-base font-black text-emerald-400">{(compensationRider.wallet?.balance ?? 0).toFixed(2)} د.أ</span>
+                <span className="text-base font-black text-emerald-400">
+                  {(compensationRider.wallet?.balance ?? 0).toFixed(2)} {(compensationRider as any).currency || (compensationRider.wallet as any)?.currency_ar || (compensationRider.phone?.startsWith('+20') ? 'ج.م' : 'د.أ')}
+                </span>
               </div>
 
               {/* Quick Amount Options */}
@@ -808,7 +810,7 @@ export function RidersManagementPanel() {
                           : "border-white/10 bg-black/40 text-slate-400 hover:text-white"
                       )}
                     >
-                      +{amt.toFixed(1)} د.أ
+                      +{amt.toFixed(1)} {(compensationRider as any).currency || (compensationRider.wallet as any)?.currency_ar || (compensationRider.phone?.startsWith('+20') ? 'ج.م' : 'د.أ')}
                     </button>
                   ))}
                 </div>
@@ -816,7 +818,9 @@ export function RidersManagementPanel() {
 
               {/* Custom Amount */}
               <div>
-                <label className="text-xs font-bold text-slate-300 block mb-1">أو أدخل مبلغاً مخصصاً (د.أ):</label>
+                <label className="text-xs font-bold text-slate-300 block mb-1">
+                  أو أدخل مبلغاً مخصصاً ({(compensationRider as any).currency || (compensationRider.wallet as any)?.currency_ar || (compensationRider.phone?.startsWith('+20') ? 'ج.م' : 'د.أ')}):
+                </label>
                 <Input
                   type="number"
                   step="0.25"
@@ -853,12 +857,13 @@ export function RidersManagementPanel() {
                   type="button"
                   disabled={submittingAction || compensationAmount <= 0}
                   onClick={async () => {
+                    const riderCurr = (compensationRider as any).currency || (compensationRider.wallet as any)?.currency_ar || (compensationRider.phone?.startsWith('+20') ? 'ج.م' : 'د.أ');
                     const ok = await executeAdminAction({
                       action: 'adjust_balance',
                       userId: compensationRider.id,
                       amount: compensationAmount,
                       note: compensationReason,
-                    }, `تم إيداع ${compensationAmount.toFixed(2)} د.أ في محفظة الراكب بنجاح.`);
+                    }, `تم إيداع ${compensationAmount.toFixed(2)} ${riderCurr} في محفظة الراكب بنجاح.`);
                     if (ok) setCompensationRider(null);
                   }}
                   className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs h-10 px-5 rounded-xl shadow-lg shadow-emerald-600/20"

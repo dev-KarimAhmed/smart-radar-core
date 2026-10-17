@@ -49,6 +49,8 @@ import { cn } from '@/lib/utils';
 
 interface WalletOverview {
   totalCashBalance: number;
+  jodBalance?: number;
+  egpBalance?: number;
   totalPaidMinutes: number;
   totalFlightHours: number;
   pendingReceiptsCount: number;
@@ -111,9 +113,15 @@ interface CaptainOption {
   full_name: string;
   phone: string;
   governorate: string;
+  country_id?: number;
+  currency?: string;
+  currency_ar?: string;
+  currency_code?: string;
   wallet: {
     balance: number;
     total_minutes: number;
+    currency_code?: string;
+    currency_ar?: string;
   };
 }
 
@@ -490,11 +498,36 @@ export function WalletManagementTab() {
             </Badge>
           </div>
           <div className="mt-2.5 text-xs font-bold text-slate-300">إجمالي الرصيد النقدي</div>
-          <div className="mt-1 flex items-baseline justify-between">
-            <span className="font-mono text-2xl font-black text-amber-400">
-              {loadingOverview ? '...' : `${overview?.totalCashBalance.toFixed(2) || '0.00'}`}
-            </span>
-            <span className="text-xs font-bold text-amber-500/80">دينار أردني</span>
+          <div className="mt-1">
+            {loadingOverview ? (
+              <span className="font-mono text-2xl font-black text-amber-400">...</span>
+            ) : (overview?.egpBalance ?? 0) > 0 && (overview?.jodBalance ?? 0) > 0 ? (
+              <div className="space-y-0.5">
+                <div className="flex items-baseline justify-between">
+                  <span className="font-mono text-xl font-black text-amber-400">
+                    {overview?.jodBalance?.toFixed(2)}
+                  </span>
+                  <span className="text-xs font-bold text-amber-500/80 font-sans">د.أ (الأردن)</span>
+                </div>
+                <div className="flex items-baseline justify-between border-t border-white/5 pt-0.5">
+                  <span className="font-mono text-base font-bold text-amber-300">
+                    {overview?.egpBalance?.toFixed(2)}
+                  </span>
+                  <span className="text-[11px] font-bold text-amber-400/70 font-sans">ج.م (مصر)</span>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-baseline justify-between">
+                <span className="font-mono text-2xl font-black text-amber-400">
+                  {((overview?.jodBalance ?? 0) > 0
+                    ? overview?.jodBalance?.toFixed(2)
+                    : overview?.egpBalance?.toFixed(2)) || overview?.totalCashBalance.toFixed(2) || '0.00'}
+                </span>
+                <span className="text-xs font-bold text-amber-500/80">
+                  {(overview?.egpBalance ?? 0) > 0 ? 'جنيه مصري (ج.م)' : 'دينار أردني (د.أ)'}
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -953,7 +986,7 @@ export function WalletManagementTab() {
                   <div>
                     <span className="text-slate-400 text-[11px] block">الرصيد النقدي الحالي:</span>
                     <span className="font-mono text-base font-black text-amber-400">
-                      {selectedCaptain.wallet?.balance?.toFixed(2) || '0.00'} د.أ
+                      {selectedCaptain.wallet?.balance?.toFixed(2) || '0.00'} {selectedCaptain.currency || (selectedCaptain.phone?.startsWith('+20') ? 'ج.م' : 'د.أ')}
                     </span>
                   </div>
                   <div>
@@ -972,7 +1005,7 @@ export function WalletManagementTab() {
               <div className="space-y-2.5 p-4 rounded-2xl bg-black/40 border border-white/5">
                 <div className="flex items-center justify-between">
                   <Label className="text-xs font-bold text-amber-300">
-                    1. شحن رصيد نقدي (دينار أردني JD)
+                    1. شحن رصيد نقدي ({selectedCaptain ? (selectedCaptain.currency || (selectedCaptain.phone?.startsWith('+20') ? 'جنيه مصري ج.م' : 'دينار أردني د.أ')) : 'العملة المحلية'})
                   </Label>
                   <span className="text-[10px] text-slate-500">يضاف لمحفظة الكابتن</span>
                 </div>
@@ -989,7 +1022,7 @@ export function WalletManagementTab() {
                           : "border-white/10 bg-white/5 text-slate-300 hover:bg-white/10"
                       )}
                     >
-                      +{amt} د.أ
+                      +{amt} {selectedCaptain ? (selectedCaptain.currency || (selectedCaptain.phone?.startsWith('+20') ? 'ج.م' : 'د.أ')) : 'د.أ'}
                     </button>
                   ))}
                 </div>
@@ -999,7 +1032,7 @@ export function WalletManagementTab() {
                   min="0"
                   value={directCashAmount}
                   onChange={(e) => setDirectCashAmount(e.target.value)}
-                  placeholder="المبلغ بالدينار..."
+                  placeholder={`المبلغ بـ ${selectedCaptain ? (selectedCaptain.currency || (selectedCaptain.phone?.startsWith('+20') ? 'الجنيه' : 'الدينار')) : 'العملة'}...`}
                   className="bg-black/60 border-white/10 text-white font-mono text-sm h-10 rounded-xl focus:border-amber-500/50 text-right"
                 />
               </div>
@@ -1419,8 +1452,8 @@ export function WalletManagementTab() {
                         : "border-white/10 bg-black/40 text-slate-400 hover:text-white"
                     )}
                   >
-                    <span className="font-bold text-xs text-amber-300">رصيد نقدي (JD)</span>
-                    <span className="text-[10px] text-slate-400 mt-1">إيداع {receiptToApprove.amount} د.أ بالمحفظة</span>
+                    <span className="font-bold text-xs text-amber-300">رصيد نقدي ({receiptToApprove.currency})</span>
+                    <span className="text-[10px] text-slate-400 mt-1">إيداع {receiptToApprove.amount} {receiptToApprove.currency} بالمحفظة</span>
                   </button>
 
                   <button

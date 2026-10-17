@@ -51,6 +51,8 @@ export interface RiderAuthMetadata {
   phone: string;
   email?: string;
   country_id: number;
+  currency_ar?: string;
+  currency_en?: string;
   governorate_id: number;
   district_id: number;
   captain_profile?: CaptainProfileMetadata;
@@ -103,11 +105,16 @@ export function buildRiderSignUpMetadata(input: RiderSupabaseSignUpInput): Rider
     }
   }
 
+  const countryId = toStrictPositiveInteger(input.countryId, 'country_id');
+  const isEgypt = countryId === 2 || validation.phone.startsWith('+20');
+
   return {
     role: input.role || 'RIDER',
     full_name: fullName,
     phone: validation.phone,
-    country_id: toStrictPositiveInteger(input.countryId, 'country_id'),
+    country_id: countryId,
+    currency_ar: isEgypt ? 'ج.م' : 'د.أ',
+    currency_en: isEgypt ? 'EGP' : 'JOD',
     governorate_id: toStrictPositiveInteger(input.governorateId, 'governorate_id'),
     district_id: toStrictPositiveInteger(input.districtId, 'district_id'),
     ...(input.email?.trim() ? { email: input.email.trim().toLowerCase() } : {}),
@@ -315,15 +322,25 @@ export function buildUserFromSupabaseAuth(authUser: User) {
   const affiliationName = String(affiliation.name || affiliation.companyName || metadata.company_name || '');
   const subRole = (metadata.subRole || (affiliationType === 'independent' ? 'independent' : 'captain')) as 'independent' | 'captain' | undefined;
 
+  const countryId = metadata.country_id !== undefined ? Number(metadata.country_id) : undefined;
+  const phone = String(metadata.phone || authUser.phone || '');
+  const isEgypt = countryId === 2 || phone.startsWith('+20');
+  const currencyAr = metadata.currency_ar !== undefined && metadata.currency_ar !== null
+    ? String(metadata.currency_ar)
+    : (isEgypt ? 'ج.م' : 'د.أ');
+  const currencyEn = metadata.currency_en !== undefined && metadata.currency_en !== null
+    ? String(metadata.currency_en)
+    : (isEgypt ? 'EGP' : 'JOD');
+
   return {
     uid: authUser.id,
-    phone: String(metadata.phone || authUser.phone || ''),
+    phone,
     role: role === 'rider' ? 'rider' : role,
     subRole,
     name: String(metadata.full_name || metadata.name || authUser.phone || ''),
-    countryId: metadata.country_id !== undefined ? Number(metadata.country_id) : undefined,
-    currencyAr: metadata.currency_ar !== undefined ? String(metadata.currency_ar) : undefined,
-    currencyEn: metadata.currency_en !== undefined ? String(metadata.currency_en) : undefined,
+    countryId,
+    currencyAr,
+    currencyEn,
     governorate: metadata.governorate_id !== undefined ? String(metadata.governorate_id) : '',
     district: metadata.district_id !== undefined ? String(metadata.district_id) : '',
     status,

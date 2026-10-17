@@ -320,13 +320,17 @@ export function useSovereignWallet(user: User | null) {
       });
       if (uploadError) throw uploadError;
 
+      const isEgypt = user?.countryId === 2 || String(user?.phone || '').startsWith('+20');
+      const resolvedCurrencyCode = user?.currencyEn || (isEgypt ? 'EGP' : 'JOD');
+      const resolvedCurrencyAr = user?.currencyAr || (isEgypt ? 'ج.م' : 'د.أ');
+
       const { error: insertError } = await supabase.from('wallet_transactions').insert({
         profile_id: userId,
         type: 'receipt',
         transaction_type: 'receipt',
         amount: input.amount,
-        currency_code: user?.currencyEn || null,
-        currency_ar: user?.currencyAr || null,
+        currency_code: resolvedCurrencyCode,
+        currency_ar: resolvedCurrencyAr,
         status: 'PENDING',
         description_ar: tAuto('receiptAwaitingReview'),
         payment_channel: input.channel,

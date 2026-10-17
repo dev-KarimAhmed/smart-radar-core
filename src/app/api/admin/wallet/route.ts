@@ -41,18 +41,38 @@ export async function GET(req: Request) {
       // 1. General Overview KPIs
       case 'overview': {
         const [walletsRes, pendingReceiptsRes, vouchersRes, flagRes] = await Promise.all([
-          supabaseAdmin.from('wallet_accounts').select('balance, paid_minutes_remaining'),
+          supabaseAdmin.from('wallet_accounts').select('profile_id, balance, paid_minutes_remaining, currency_code'),
           supabaseAdmin.from('wallet_transactions').select('id', { count: 'exact', head: true }).eq('status', 'PENDING'),
           supabaseAdmin.from('wallet_vouchers').select('status'),
           supabaseAdmin.from('app_flags').select('enabled').eq('flag', 'captain_self_topup').maybeSingle(),
         ]);
 
+        const wallets = walletsRes.data || [];
+        const profileIds = Array.from(new Set(wallets.map(w => w.profile_id).filter(Boolean)));
+        let profilesMap = new Map();
+
+        if (profileIds.length > 0) {
+          const { data: profs } = await supabaseAdmin.from('profiles').select('id, country_id, phone').in('id', profileIds);
+          profilesMap = new Map((profs || []).map(p => [p.id, p]));
+        }
+
         let totalCashBalance = 0;
         let totalPaidMinutes = 0;
+        let jodBalance = 0;
+        let egpBalance = 0;
 
-        (walletsRes.data || []).forEach(w => {
-          totalCashBalance += Number(w.balance || 0);
+        wallets.forEach(w => {
+          const bal = Number(w.balance || 0);
+          totalCashBalance += bal;
           totalPaidMinutes += Number(w.paid_minutes_remaining || 0);
+
+          const prof = profilesMap.get(w.profile_id);
+          const isEgypt = prof?.country_id === 2 || String(prof?.phone || '').startsWith('+20') || w.currency_code === 'EGP';
+          if (isEgypt) {
+            egpBalance += bal;
+          } else {
+            jodBalance += bal;
+          }
         });
 
         const unusedVouchersCount = (vouchersRes.data || []).filter(v => v.status === 'UNUSED').length;
@@ -62,6 +82,8 @@ export async function GET(req: Request) {
           success: true,
           overview: {
             totalCashBalance: Number(totalCashBalance.toFixed(2)),
+            jodBalance: Number(jodBalance.toFixed(2)),
+            egpBalance: Number(egpBalance.toFixed(2)),
             totalPaidMinutes,
             totalFlightHours: Number((totalPaidMinutes / 60).toFixed(1)),
             pendingReceiptsCount: pendingReceiptsRes.count || 0,
@@ -86,17 +108,18 @@ export async function GET(req: Request) {
         const transactions = rawTransactions || [];
         const profileIds = Array.from(new Set(transactions.map(t => t.profile_id).filter(Boolean)));
 
-        // Fetch captain details, captain_profiles, and governorates/districts lookup
+        // Fetch captain details, captain_profiles, countries, and governorates/districts lookup
         let profilesMap = new Map();
         let captainProfilesMap = new Map();
         let govMap = new Map();
         let distMap = new Map();
+        let countriesMap = new Map();
 
         if (profileIds.length > 0) {
-          const [profilesRes, capRes, govRes, distRes] = await Promise.all([
+          const [profilesRes, capRes, govRes, distRes, countriesRes] = await Promise.all([
             supabaseAdmin
               .from('profiles')
-              .select('id, full_name, phone, serial_id, governorate_id, district_id')
+              .select('id, full_name, phone, serial_id, governorate_id, district_id, country_id')
               .in('id', profileIds),
             supabaseAdmin
               .from('captain_profiles')
@@ -104,12 +127,14 @@ export async function GET(req: Request) {
               .in('id', profileIds),
             supabaseAdmin.from('governorates').select('id, name_ar'),
             supabaseAdmin.from('districts').select('id, name_ar'),
+            supabaseAdmin.from('countries').select('id, currency_ar, currency_en, name_ar'),
           ]);
 
           profilesMap = new Map((profilesRes.data || []).map(p => [p.id, p]));
           captainProfilesMap = new Map((capRes.data || []).map(c => [c.id, c]));
           govMap = new Map((govRes.data || []).map(g => [g.id, g.name_ar]));
           distMap = new Map((distRes.data || []).map(d => [d.id, d.name_ar]));
+          countriesMap = new Map((countriesRes.data || []).map(c => [c.id, c]));
         }
 
         // Build signed URLs for receipt images
@@ -117,6 +142,10 @@ export async function GET(req: Request) {
           transactions.map(async (tx) => {
             const profile = profilesMap.get(tx.profile_id) || {};
             const cap = captainProfilesMap.get(tx.profile_id) || {};
+            const country = profile.country_id ? countriesMap.get(profile.country_id) : null;
+            const isEgypt = profile.country_id === 2 || String(profile.phone || '').startsWith('+20');
+            const fallbackCurrencyAr = country?.currency_ar || (isEgypt ? 'ج.م' : 'د.أ');
+
             let signedImageUrl = null;
 
             if (tx.receipt_path) {
@@ -145,7 +174,7 @@ export async function GET(req: Request) {
               district: distName || 'المركز',
               plateNumber: cap.plate_number || '',
               amount: Number(tx.amount || 0),
-              currency: tx.currency_ar || tx.currency_code || 'د.أ',
+              currency: tx.currency_ar || tx.currency_code || fallbackCurrencyAr,
               channel: tx.payment_channel || 'تحويل مباشر',
               receiptPath: tx.receipt_path,
               receiptImageUrl: signedImageUrl,
@@ -214,18 +243,27 @@ export async function GET(req: Request) {
 
         const profileIds = Array.from(new Set((transactions || []).map(t => t.profile_id).filter(Boolean)));
         let profilesMap = new Map();
+        let countriesMap = new Map();
 
         if (profileIds.length > 0) {
-          const { data: profiles } = await supabaseAdmin
-            .from('profiles')
-            .select('id, full_name, phone, serial_id, role')
-            .in('id', profileIds);
+          const [profilesRes, countriesRes] = await Promise.all([
+            supabaseAdmin
+              .from('profiles')
+              .select('id, full_name, phone, serial_id, role, country_id')
+              .in('id', profileIds),
+            supabaseAdmin.from('countries').select('id, currency_ar, currency_en'),
+          ]);
 
-          profilesMap = new Map((profiles || []).map(p => [p.id, p]));
+          profilesMap = new Map((profilesRes.data || []).map(p => [p.id, p]));
+          countriesMap = new Map((countriesRes.data || []).map(c => [c.id, c]));
         }
 
         const ledger = (transactions || []).map(t => {
           const user = profilesMap.get(t.profile_id);
+          const country = user?.country_id ? countriesMap.get(user.country_id) : null;
+          const isEgypt = user?.country_id === 2 || String(user?.phone || '').startsWith('+20');
+          const fallbackCurrencyAr = country?.currency_ar || (isEgypt ? 'ج.م' : 'د.أ');
+
           return {
             id: t.id,
             profileId: t.profile_id,
@@ -235,7 +273,7 @@ export async function GET(req: Request) {
             userRole: user?.role || 'CAPTAIN',
             type: t.type || t.transaction_type || 'transaction',
             amount: Number(t.amount || 0),
-            currency: t.currency_ar || t.currency_code || 'د.أ',
+            currency: t.currency_ar || t.currency_code || fallbackCurrencyAr,
             status: t.status || 'COMPLETED',
             description: t.description_ar || t.description || '',
             createdAt: t.created_at,
@@ -296,6 +334,17 @@ export async function POST(req: Request) {
         const captainId = tx.profile_id;
         const amount = Number(tx.amount || 0);
 
+        // Fetch captain profile to resolve currency accurately
+        const { data: capProfile } = await supabaseAdmin
+          .from('profiles')
+          .select('country_id, phone')
+          .eq('id', captainId)
+          .single();
+
+        const isEgypt = capProfile?.country_id === 2 || String(capProfile?.phone || '').startsWith('+20');
+        const captainCurrency = tx.currency_ar || (isEgypt ? 'ج.م' : 'د.أ');
+        const captainCurrencyCode = tx.currency_code || (isEgypt ? 'EGP' : 'JOD');
+
         // Fetch or create wallet
         const { data: existingWallet } = await supabaseAdmin
           .from('wallet_accounts')
@@ -314,6 +363,7 @@ export async function POST(req: Request) {
           await supabaseAdmin.from('wallet_accounts').upsert({
             profile_id: captainId,
             paid_minutes_remaining: newMins,
+            currency_code: captainCurrencyCode,
             time_bundle_expires_at: expiryDate.toISOString(),
             active_package_name: `شحن إيصال (${grantedMins} دقيقة)`,
             updated_at: new Date().toISOString(),
@@ -322,6 +372,8 @@ export async function POST(req: Request) {
           // Update transaction
           await supabaseAdmin.from('wallet_transactions').update({
             status: 'COMPLETED',
+            currency_ar: captainCurrency,
+            currency_code: captainCurrencyCode,
             description_ar: `تمت الموافقة على الإيصال وتخصيص ${grantedMins} دقيقة رادار.`,
             metadata: {
               ...(tx.metadata || {}),
@@ -329,6 +381,7 @@ export async function POST(req: Request) {
               approved_at: new Date().toISOString(),
               credit_type: 'MINUTES',
               minutes_credited: grantedMins,
+              currency: captainCurrency,
               admin_note: adminNote || null,
             },
             updated_at: new Date().toISOString(),
@@ -348,26 +401,30 @@ export async function POST(req: Request) {
             message: `تم اعتماد الإيصال وإضافة ${grantedMins} دقيقة رادار لحساب الكابتن بنجاح.`,
           });
         } else {
-          // Credit as CASH JD
+          // Credit as CASH (dynamically in captain currency)
           const currentBalance = Number(existingWallet?.balance || 0);
           const newBalance = Number((currentBalance + amount).toFixed(2));
 
           await supabaseAdmin.from('wallet_accounts').upsert({
             profile_id: captainId,
             balance: newBalance,
+            currency_code: captainCurrencyCode,
             updated_at: new Date().toISOString(),
           }, { onConflict: 'profile_id' });
 
           // Update transaction
           await supabaseAdmin.from('wallet_transactions').update({
             status: 'COMPLETED',
-            description_ar: `تمت الموافقة على الإيصال وإيداع ${amount.toFixed(2)} د.أ في الرصيد النقدي.`,
+            currency_ar: captainCurrency,
+            currency_code: captainCurrencyCode,
+            description_ar: `تمت الموافقة على الإيصال وإيداع ${amount.toFixed(2)} ${captainCurrency} في الرصيد النقدي.`,
             metadata: {
               ...(tx.metadata || {}),
               approved_by: admin.id,
               approved_at: new Date().toISOString(),
               credit_type: 'CASH',
               amount_credited: amount,
+              currency: captainCurrency,
               admin_note: adminNote || null,
             },
             updated_at: new Date().toISOString(),
@@ -378,13 +435,13 @@ export async function POST(req: Request) {
             captainId,
             `notif_rcpt_app_${transactionId}`,
             'تم اعتماد إيصال الشحن بنجاح 💰',
-            `تمت الموافقة على إيصالك وإيداع ${amount.toFixed(2)} د.أ في رصيد محفظتك. يمكنك تخصيص الرصيد لدقائق رادار بأي وقت.`,
+            `تمت الموافقة على إيصالك وإيداع ${amount.toFixed(2)} ${captainCurrency} في رصيد محفظتك. يمكنك تخصيص الرصيد لدقائق رادار بأي وقت.`,
             'WALLET_CREDIT'
           );
 
           return NextResponse.json({
             success: true,
-            message: `تم اعتماد الإيصال وإيداع ${amount.toFixed(2)} د.أ في رصيد الكابتن بنجاح.`,
+            message: `تم اعتماد الإيصال وإيداع ${amount.toFixed(2)} ${captainCurrency} في رصيد الكابتن بنجاح.`,
           });
         }
       }
@@ -449,6 +506,17 @@ export async function POST(req: Request) {
           return NextResponse.json({ success: false, error: 'يرجى تحديد مبلغ نقدي أو عدد دقائق للشحن' }, { status: 400 });
         }
 
+        // Fetch captain profile to resolve currency accurately
+        const { data: capProfile } = await supabaseAdmin
+          .from('profiles')
+          .select('country_id, phone')
+          .eq('id', captainId)
+          .single();
+
+        const isEgypt = capProfile?.country_id === 2 || String(capProfile?.phone || '').startsWith('+20');
+        const capCurrency = isEgypt ? 'ج.م' : 'د.أ';
+        const capCurrencyCode = isEgypt ? 'EGP' : 'JOD';
+
         const { data: existingWallet } = await supabaseAdmin
           .from('wallet_accounts')
           .select('*')
@@ -468,6 +536,7 @@ export async function POST(req: Request) {
           profile_id: captainId,
           balance: newBalance,
           paid_minutes_remaining: newMinutes,
+          currency_code: capCurrencyCode,
           time_bundle_expires_at: minutesNum > 0 ? expiryDate.toISOString() : existingWallet?.time_bundle_expires_at,
           active_package_name: minutesNum > 0 ? `شحن إداري (${minutesNum} دقيقة)` : existingWallet?.active_package_name,
           updated_at: new Date().toISOString(),
@@ -480,12 +549,15 @@ export async function POST(req: Request) {
           transaction_type: 'admin_topup',
           amount: cashNum,
           paid_minutes_delta: minutesNum,
+          currency_ar: capCurrency,
+          currency_code: capCurrencyCode,
           status: 'COMPLETED',
-          description_ar: note || `شحن إداري مباشر: ${cashNum > 0 ? cashNum + ' د.أ ' : ''}${minutesNum > 0 ? minutesNum + ' دقيقة' : ''}`,
+          description_ar: note || `شحن إداري مباشر: ${cashNum > 0 ? cashNum + ' ' + capCurrency + ' ' : ''}${minutesNum > 0 ? minutesNum + ' دقيقة' : ''}`,
           metadata: {
             admin_id: admin.id,
             cash_added: cashNum,
             minutes_added: minutesNum,
+            currency: capCurrency,
             note: note || null,
           },
         });
@@ -495,13 +567,13 @@ export async function POST(req: Request) {
           captainId,
           `notif_admin_top_${Date.now()}`,
           'شحن رصيد من الإدارة ⚡',
-          `تم شحن حسابك من قِبل إدارة النظام: ${cashNum > 0 ? `+${cashNum} د.أ ` : ''}${minutesNum > 0 ? `+${minutesNum} دقيقة رادار` : ''}.`,
+          `تم شحن حسابك من قِبل إدارة النظام: ${cashNum > 0 ? `+${cashNum} ${capCurrency} ` : ''}${minutesNum > 0 ? `+${minutesNum} دقيقة رادار` : ''}.`,
           'WALLET_CREDIT'
         );
 
         return NextResponse.json({
           success: true,
-          message: `تم الشحن بنجاح: ${cashNum > 0 ? `+${cashNum} د.أ ` : ''}${minutesNum > 0 ? `+${minutesNum} دقيقة` : ''}`,
+          message: `تم الشحن بنجاح: ${cashNum > 0 ? `+${cashNum} ${capCurrency} ` : ''}${minutesNum > 0 ? `+${minutesNum} دقيقة` : ''}`,
         });
       }
 

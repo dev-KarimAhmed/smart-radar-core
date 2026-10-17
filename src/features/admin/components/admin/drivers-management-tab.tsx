@@ -553,7 +553,7 @@ export function DriversManagementTab() {
                             {/* Cash Balance */}
                             <div className="flex items-center gap-1 text-[11px] font-mono text-amber-300 font-bold pt-1 border-t border-white/5">
                               <span className="text-slate-400 text-[10px] font-normal">نقدي:</span>
-                              <span>{(captain.wallet.balance || 0).toFixed(2)} د.أ</span>
+                              <span>{(captain.wallet.balance || 0).toFixed(2)} {(captain as any).currency || (captain.wallet as any)?.currency_ar || (captain.phone?.startsWith('+20') ? 'ج.م' : 'د.أ')}</span>
                             </div>
                           </div>
                         </td>
@@ -897,7 +897,9 @@ export function DriversManagementTab() {
                 </div>
                 <div>
                   <span className="text-slate-500 text-[10px] block">الرصيد النقدي الحالي:</span>
-                  <span className="text-base font-black text-amber-400">{(topupCaptain.wallet.balance || 0).toFixed(2)} د.أ</span>
+                  <span className="text-base font-black text-amber-400">
+                    {(topupCaptain.wallet.balance || 0).toFixed(2)} {(topupCaptain as any).currency || (topupCaptain.wallet as any)?.currency_ar || (topupCaptain.phone?.startsWith('+20') ? 'ج.م' : 'د.أ')}
+                  </span>
                 </div>
               </div>
 
@@ -1018,13 +1020,15 @@ export function DriversManagementTab() {
                             : "border-white/10 bg-white/5 text-slate-300 hover:bg-white/10"
                         )}
                       >
-                        +{amt} د.أ
+                        +{amt} {(topupCaptain as any).currency || (topupCaptain.wallet as any)?.currency_ar || (topupCaptain.phone?.startsWith('+20') ? 'ج.م' : 'د.أ')}
                       </button>
                     ))}
                   </div>
 
                   <div>
-                    <label className="text-xs font-bold text-slate-300 block mb-1">أو أدخل المبلغ يدوياً (د.أ):</label>
+                    <label className="text-xs font-bold text-slate-300 block mb-1">
+                      أو أدخل المبلغ يدوياً ({(topupCaptain as any).currency || (topupCaptain.wallet as any)?.currency_ar || (topupCaptain.phone?.startsWith('+20') ? 'ج.م' : 'د.أ')}):
+                    </label>
                     <Input
                       type="number"
                       step="0.5"
@@ -1051,6 +1055,7 @@ export function DriversManagementTab() {
                   type="button"
                   disabled={submittingAction || (topupMode === 'minutes' ? minutesToAdd <= 0 : cashBalanceToAdd <= 0)}
                   onClick={async () => {
+                    const capCurr = (topupCaptain as any).currency || (topupCaptain.wallet as any)?.currency_ar || (topupCaptain.phone?.startsWith('+20') ? 'ج.م' : 'د.أ');
                     if (topupMode === 'minutes') {
                       const ok = await executeAdminAction({
                         action: 'topup_minutes',
@@ -1064,7 +1069,7 @@ export function DriversManagementTab() {
                         action: 'adjust_balance',
                         userId: topupCaptain.id,
                         amount: cashBalanceToAdd,
-                      }, `تم إيداع ${cashBalanceToAdd} د.أ في محفظة الكابتن بنجاح.`);
+                      }, `تم إيداع ${cashBalanceToAdd} ${capCurr} في محفظة الكابتن بنجاح.`);
                       if (ok) setTopupCaptain(null);
                     }
                   }}

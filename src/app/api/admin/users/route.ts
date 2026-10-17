@@ -47,14 +47,16 @@ export async function GET(req: Request) {
       captainProfilesMap = new Map((caps || []).map(c => [c.id, c]));
     }
 
-    // 4. Fetch governorate and district lookup tables
-    const [govRes, distRes] = await Promise.all([
+    // 4. Fetch governorate, district, and countries lookup tables
+    const [govRes, distRes, countriesRes] = await Promise.all([
       supabaseAdmin.from('governorates').select('id, name_ar'),
       supabaseAdmin.from('districts').select('id, name_ar'),
+      supabaseAdmin.from('countries').select('id, currency_ar, currency_en, name_ar'),
     ]);
 
     const govMap = new Map((govRes.data || []).map(g => [g.id, g.name_ar]));
     const distMap = new Map((distRes.data || []).map(d => [d.id, d.name_ar]));
+    const countriesMap = new Map((countriesRes.data || []).map(c => [c.id, c]));
 
     // Combine data
     const users = profiles.map(p => {
@@ -63,6 +65,10 @@ export async function GET(req: Request) {
 
       const govName = p.governorate_id ? govMap.get(p.governorate_id) : p.governorate;
       const distName = p.district_id ? distMap.get(p.district_id) : p.district;
+      const country = p.country_id ? countriesMap.get(p.country_id) : null;
+      const isEgypt = p.country_id === 2 || String(p.phone || '').startsWith('+20');
+      const currencyAr = country?.currency_ar || (isEgypt ? 'ج.م' : 'د.أ');
+      const currencyCode = country?.currency_en || w.currency_code || (isEgypt ? 'EGP' : 'JOD');
 
       return {
         id: p.id,
@@ -71,6 +77,10 @@ export async function GET(req: Request) {
         phone: p.phone || '',
         email: p.email || '',
         role: p.role,
+        country_id: p.country_id,
+        currency: currencyAr,
+        currency_ar: currencyAr,
+        currency_code: currencyCode,
         status: (p.status || 'IDLE').toUpperCase(),
         tier: (p.tier || 'SILVER').toUpperCase(),
         rating: Number(p.rating ?? 5.0),
@@ -112,7 +122,8 @@ export async function GET(req: Request) {
           total_minutes: Number(w.paid_minutes_remaining ?? 0) + Number(w.bonus_minutes_remaining ?? 0),
           active_package_name: w.active_package_name || null,
           time_bundle_expires_at: w.time_bundle_expires_at || null,
-          currency_code: w.currency_code || 'JOD',
+          currency_code: currencyCode,
+          currency_ar: currencyAr,
         },
       };
     });
