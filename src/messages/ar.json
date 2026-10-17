@@ -3605,8 +3605,8 @@
       "closeButton": "إغلاق"
     },
     "listener": {
-      "linkedSuccessTitle": "🎉 تم ربط الحساب بالمفضلة بنجاح",
-      "linkedSuccessDesc": "تم ربط حسابك بالكابتن {captainName} وإضافتكما للمفضلة تلقائياً!",
+      "linkedSuccessTitle": "🎉 تم الانضمام بنجاح",
+      "linkedSuccessDesc": "تم ربط حسابك بنجاح وأصبحت تابعاً للكابتن {captainName}!",
       "alreadyLinkedTitle": "مرتبط مسبقاً",
       "alreadyLinkedDesc": "أنت بالفعل مسجل ومضاف في قائمة المفضلة مع الكابتن {captainName}.",
       "conflictToastTitle": "تعذر الانضمام عبر هذا الرابط",
