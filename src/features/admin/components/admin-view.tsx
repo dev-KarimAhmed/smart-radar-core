@@ -11,7 +11,6 @@ import { AdsManagementTab } from './admin/ads-management-tab';
 import { DelegatesManagementTab } from './admin/delegates-management-tab';
 import { PasswordResetsTab } from './admin/password-resets-tab';
 import { KillSwitchPanel } from './admin/kill-switch-panel';
-import { RadarOwnerSovereignDashboard } from './admin/owner-sovereign-dashboard';
 import { FuelIndexPanel } from './admin/fuel-index-panel';
 import { PulseHeatmap } from '@/components/admin/pulse-heatmap';
 import { useMarketPulse } from '@/hooks/use-market-pulse';
@@ -985,156 +984,135 @@ export function AdminPulseOverview() {
 }
 
 export function AdminViewTab() {
-    const tAuto = useTranslations('auto');
-    const t = useTranslations('auto');
   const { pulseData, loadingPulse } = useMarketPulse(true);
 
   return (
-    <div className={styles.style978_216} dir="rtl">
+    <div className="space-y-6 text-right font-sans" dir="rtl">
       {/* شريط الإحصائيات السيادية الموحد - Master Supervisor KPI Bar */}
       <AdminMasterKPIBar />
 
-      {/* تم تعيين لوحة المالك كشاشة الافتتاح الأساسية للمشرف */}
-      <Tabs defaultValue="owner" className={styles.style980_217}>
-
-        {/* شريط الأزرار  - تم ربط القيم بدقة لمنع الانهيار */}
-        <TabsList className={styles.style983_218}>
-
-          <TabsTrigger value="dashboard" className={styles.style985_219}>
-             <Users className={styles.style986_220} />
-             <span className={styles.style987_221}>{tAuto('key_c9e3bbd7')}</span>
+      {/* المنظومة الإدارية المنظمة - 7 وحدات تشغيلية محكمة */}
+      <Tabs defaultValue="captains" className="space-y-6">
+        {/* شريط التبويبات الرئيسي - تصميم أنيق ومتناسق */}
+        <TabsList className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 bg-[#050A0F]/90 border border-white/10 p-2 rounded-2xl h-auto">
+          <TabsTrigger
+            value="captains"
+            className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all data-[state=active]:bg-[#14B8A6] data-[state=active]:text-[#0B0F19] text-slate-300 hover:text-white"
+          >
+            <Users className="w-4 h-4" />
+            <span>الكباتن</span>
           </TabsTrigger>
 
-          <TabsTrigger value="riders" className={styles.style985_219}>
-             <UserCheck className={styles.style986_220} />
-             <span className={styles.style987_221}>الركاب</span>
+          <TabsTrigger
+            value="riders"
+            className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all data-[state=active]:bg-[#14B8A6] data-[state=active]:text-[#0B0F19] text-slate-300 hover:text-white"
+          >
+            <UserCheck className="w-4 h-4" />
+            <span>الركاب</span>
           </TabsTrigger>
 
-          <TabsTrigger value="ads" className={styles.style990_222}>
-            <Megaphone className={styles.style991_223} />
-             <span className={styles.style992_224}>{tAuto('key_3d3316a8')}</span>
+          <TabsTrigger
+            value="ads"
+            className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all data-[state=active]:bg-[#14B8A6] data-[state=active]:text-[#0B0F19] text-slate-300 hover:text-white"
+          >
+            <Megaphone className="w-4 h-4" />
+            <span>الإعلانات</span>
           </TabsTrigger>
 
-          {/* الزر  الجديد V5.5 */}
-          <TabsTrigger value="owner" className={styles.style996_225}>
-            <ShieldAlert className={styles.style997_226} />
-            <span className={styles.style998_227}>{tAuto('key_1a6ee228')}</span>
+          <TabsTrigger
+            value="delegates"
+            className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all data-[state=active]:bg-[#14B8A6] data-[state=active]:text-[#0B0F19] text-slate-300 hover:text-white"
+          >
+            <UsersRound className="w-4 h-4" />
+            <span>المندوبين</span>
           </TabsTrigger>
 
-          <TabsTrigger value="delegates" className={styles.style1001_228}>
-            <UsersRound className={styles.style1002_229} />
-            <span className={styles.style1003_230}>{tAuto('key_ffdbf83e')}</span>
+          <TabsTrigger
+            value="broadcast"
+            className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all data-[state=active]:bg-[#14B8A6] data-[state=active]:text-[#0B0F19] text-slate-300 hover:text-white"
+          >
+            <Radio className="w-4 h-4" />
+            <span>البث والتعميم</span>
           </TabsTrigger>
 
-          <TabsTrigger value="broadcast" className={styles.style1001_228}>
-            <Radio className={styles.style1002_229} />
-            <span className={styles.style1003_230}>البث والتعميم</span>
+          <TabsTrigger
+            value="admins"
+            className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all data-[state=active]:bg-[#14B8A6] data-[state=active]:text-[#0B0F19] text-slate-300 hover:text-white"
+          >
+            <ShieldCheck className="w-4 h-4" />
+            <span>المشرفين</span>
           </TabsTrigger>
 
-          <TabsTrigger value="capacity-pricing" className={styles.style1001_228}>
-            <Gauge className={styles.style1002_229} />
-            <span className={styles.style1003_230}>السعة والأسعار</span>
-          </TabsTrigger>
-
-          <TabsTrigger value="password-resets" className={styles.style1001_228}>
-            <KeyRound className={styles.style1002_229} />
-            <span className={styles.style1003_230}>{tAuto('key_47cbc2bf')}</span>
-          </TabsTrigger>
-
-          <TabsTrigger value="admins" className={styles.style1001_228}>
-            <ShieldCheck className={styles.style1002_229} />
-            <span className={styles.style1003_230}>فريق المشرفين</span>
-          </TabsTrigger>
-
-           <TabsTrigger value="pulse" className={styles.style1006_231}>
-             <Activity className={styles.style1007_232} />
-             <span className={styles.style1008_233}>{tAuto('key_1343c325')}</span>
-          </TabsTrigger>
-
-          <TabsTrigger value="controls" className={styles.style1011_234}>
-            <Shield className={styles.style1012_235} />
-            <span className={styles.style1013_236}>{tAuto('key_0c6af50a')} </span>
+          <TabsTrigger
+            value="controls"
+            className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all data-[state=active]:bg-[#14B8A6] data-[state=active]:text-[#0B0F19] text-slate-300 hover:text-white"
+          >
+            <Sliders className="w-4 h-4" />
+            <span>التحكم والإعدادات</span>
           </TabsTrigger>
         </TabsList>
 
-        {/* ================= حاويات المحتوى (الجسر الحركي) ================= */}
+        {/* ================= حاويات المحتوى ================= */}
 
-        <TabsContent value="dashboard" className={styles.style1019_237}>
-           <SovereignErrorBoundary>
-              <div className={styles.style1021_238}>
-                <AdminPulseOverview />
-                <DriversManagementTab />
+        {/* 1. الكباتن */}
+        <TabsContent value="captains" className="space-y-6">
+          <SovereignErrorBoundary>
+            <DriversManagementTab />
+          </SovereignErrorBoundary>
+        </TabsContent>
+
+        {/* 2. الركاب */}
+        <TabsContent value="riders" className="space-y-6">
+          <SovereignErrorBoundary>
+            <RidersManagementPanel />
+          </SovereignErrorBoundary>
+        </TabsContent>
+
+        {/* 3. الإعلانات */}
+        <TabsContent value="ads" className="space-y-6">
+          <SovereignErrorBoundary>
+            <div className="space-y-6">
+              <PendingAdsAuditPanel />
+              <AdsManagementTab />
+            </div>
+          </SovereignErrorBoundary>
+        </TabsContent>
+
+        {/* 4. المندوبين */}
+        <TabsContent value="delegates" className="space-y-6">
+          <SovereignErrorBoundary>
+            <DelegatesManagementTab />
+          </SovereignErrorBoundary>
+        </TabsContent>
+
+        {/* 5. البث والتعميم */}
+        <TabsContent value="broadcast" className="space-y-6">
+          <SovereignErrorBoundary>
+            <SystemBroadcastPanel />
+          </SovereignErrorBoundary>
+        </TabsContent>
+
+        {/* 6. المشرفين */}
+        <TabsContent value="admins" className="space-y-6">
+          <SovereignErrorBoundary>
+            <AdminsManagementPanel />
+          </SovereignErrorBoundary>
+        </TabsContent>
+
+        {/* 7. التحكم والإعدادات المجمعة */}
+        <TabsContent value="controls" className="space-y-6">
+          <SovereignErrorBoundary>
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <KillSwitchPanel />
+                <FuelIndexPanel />
               </div>
-           </SovereignErrorBoundary>
-        </TabsContent>
-
-        <TabsContent value="riders" className={styles.style1019_237}>
-           <SovereignErrorBoundary>
-              <RidersManagementPanel />
-           </SovereignErrorBoundary>
-        </TabsContent>
-
-        <TabsContent value="ads" className={styles.style1028_239}>
-           <SovereignErrorBoundary>
-              <div className={styles.style1030_240}>
-                <PendingAdsAuditPanel />
-                <AdsManagementTab />
-              </div>
-           </SovereignErrorBoundary>
-        </TabsContent>
-
-        {/* 👑 الحاوية المفقودة التي تسببت بالشلل: حاوية لوحة المالك */}
-        <TabsContent value="owner" className={styles.style1038_241}>
-           <SovereignErrorBoundary>
-              <RadarOwnerSovereignDashboard />
-           </SovereignErrorBoundary>
-        </TabsContent>
-
-        <TabsContent value="delegates" className={styles.style1044_242}>
-           <SovereignErrorBoundary>
-              <DelegatesManagementTab />
-           </SovereignErrorBoundary>
-        </TabsContent>
-
-        <TabsContent value="broadcast" className={styles.style1044_242}>
-           <SovereignErrorBoundary>
-              <SystemBroadcastPanel />
-           </SovereignErrorBoundary>
-        </TabsContent>
-
-        <TabsContent value="capacity-pricing" className={styles.style1044_242}>
-           <SovereignErrorBoundary>
               <CapacityPricingPanel />
-           </SovereignErrorBoundary>
-        </TabsContent>
-
-        <TabsContent value="password-resets" className={styles.style1044_242}>
-           <SovereignErrorBoundary>
               <PasswordResetsTab />
-           </SovereignErrorBoundary>
+              <PulseHeatmap pulseData={pulseData} isLoading={loadingPulse} />
+            </div>
+          </SovereignErrorBoundary>
         </TabsContent>
-
-        <TabsContent value="admins" className={styles.style1044_242}>
-           <SovereignErrorBoundary>
-              <AdminsManagementPanel />
-           </SovereignErrorBoundary>
-        </TabsContent>
-
-        <TabsContent value="pulse" className={styles.style1050_243}>
-           <SovereignErrorBoundary>
-             <PulseHeatmap pulseData={pulseData} isLoading={loadingPulse} />
-           </SovereignErrorBoundary>
-        </TabsContent>
-
-        <TabsContent value="controls" className={styles.style1056_244}>
-           <SovereignErrorBoundary>
-             <div className={styles.style1058_245}>
-               <KillSwitchPanel />
-               <FuelIndexPanel />
-              </div>
-           </SovereignErrorBoundary>
-        </TabsContent>
-
       </Tabs>
     </div>
   );
