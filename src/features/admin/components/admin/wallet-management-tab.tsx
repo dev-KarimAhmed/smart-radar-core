@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { supabase } from '@/lib/supabase-client';
+import { adminFetch } from '@/features/admin/lib/admin-api-client';
 import { useToast } from '@/hooks/use-toast';
 import {
   Wallet,
@@ -160,20 +160,11 @@ export function WalletManagementTab() {
   // Self Topup toggle
   const [togglingSelfTopup, setTogglingSelfTopup] = useState(false);
 
-  // Fetch Auth Token
-  const getAuthToken = useCallback(async () => {
-    const { data } = await supabase.auth.getSession();
-    return data.session?.access_token || '';
-  }, []);
-
   // Load Overview Data
   const loadOverview = useCallback(async () => {
     try {
       setLoadingOverview(true);
-      const token = await getAuthToken();
-      const res = await fetch('/api/admin/wallet?view=overview', {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
+      const res = await adminFetch('/api/admin/wallet?view=overview');
       const data = await res.json();
       if (data.success) {
         setOverview(data.overview);
@@ -183,38 +174,29 @@ export function WalletManagementTab() {
     } finally {
       setLoadingOverview(false);
     }
-  }, [getAuthToken]);
+  }, []);
 
   // Load Subtab Data
   const loadSubTabData = useCallback(async (tab: 'receipts' | 'direct' | 'vouchers' | 'ledger') => {
     try {
       setLoadingData(true);
-      const token = await getAuthToken();
 
       if (tab === 'receipts') {
-        const res = await fetch('/api/admin/wallet?view=receipts', {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
+        const res = await adminFetch('/api/admin/wallet?view=receipts');
         const data = await res.json();
         if (data.success) setReceipts(data.receipts || []);
       } else if (tab === 'vouchers') {
-        const res = await fetch('/api/admin/wallet?view=vouchers', {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
+        const res = await adminFetch('/api/admin/wallet?view=vouchers');
         const data = await res.json();
         if (data.success) setVouchers(data.vouchers || []);
       } else if (tab === 'ledger') {
-        const res = await fetch('/api/admin/wallet?view=ledger', {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
+        const res = await adminFetch('/api/admin/wallet?view=ledger');
         const data = await res.json();
         if (data.success) setLedger(data.ledger || []);
       } else if (tab === 'direct') {
         // Fetch captains for dropdown
         setLoadingCaptains(true);
-        const res = await fetch('/api/admin/users?role=CAPTAIN', {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
+        const res = await adminFetch('/api/admin/users?role=CAPTAIN');
         const data = await res.json();
         if (data.success) setCaptainsList(data.users || []);
         setLoadingCaptains(false);
@@ -224,7 +206,7 @@ export function WalletManagementTab() {
     } finally {
       setLoadingData(false);
     }
-  }, [getAuthToken]);
+  }, []);
 
   // Initial mount load
   useEffect(() => {
@@ -237,13 +219,8 @@ export function WalletManagementTab() {
     if (!receiptToApprove) return;
     setSubmittingModalAction(true);
     try {
-      const token = await getAuthToken();
-      const res = await fetch('/api/admin/wallet', {
+      const res = await adminFetch('/api/admin/wallet', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
         body: JSON.stringify({
           action: 'approve_receipt',
           transactionId: receiptToApprove.id,
@@ -284,13 +261,8 @@ export function WalletManagementTab() {
     if (!receiptToReject) return;
     setSubmittingModalAction(true);
     try {
-      const token = await getAuthToken();
-      const res = await fetch('/api/admin/wallet', {
+      const res = await adminFetch('/api/admin/wallet', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
         body: JSON.stringify({
           action: 'reject_receipt',
           transactionId: receiptToReject.id,
@@ -342,13 +314,8 @@ export function WalletManagementTab() {
 
     setSubmittingDirectTopup(true);
     try {
-      const token = await getAuthToken();
-      const res = await fetch('/api/admin/wallet', {
+      const res = await adminFetch('/api/admin/wallet', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
         body: JSON.stringify({
           action: 'direct_topup',
           captainId: selectedCaptain.id,
@@ -393,13 +360,8 @@ export function WalletManagementTab() {
     e.preventDefault();
     setGeneratingVouchers(true);
     try {
-      const token = await getAuthToken();
-      const res = await fetch('/api/admin/wallet', {
+      const res = await adminFetch('/api/admin/wallet', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
         body: JSON.stringify({
           action: 'generate_vouchers',
           count: voucherCount,
@@ -437,13 +399,8 @@ export function WalletManagementTab() {
     setTogglingSelfTopup(true);
     const targetState = !overview.selfTopupEnabled;
     try {
-      const token = await getAuthToken();
-      const res = await fetch('/api/admin/wallet', {
+      const res = await adminFetch('/api/admin/wallet', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
         body: JSON.stringify({
           action: 'toggle_self_topup',
           enabled: targetState,

@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { supabase } from '@/lib/supabase-client';
+import { adminFetch } from '@/features/admin/lib/admin-api-client';
 import { useToast } from '@/hooks/use-toast';
 import {
   Dialog,
@@ -70,19 +71,11 @@ export function AdminTopBar() {
     setSubmittingPassword(true);
 
     try {
-      // 1. Get access token from active session
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token;
-
-      // 2. Call server-side administrative route
-      const response = await fetch('/api/admin/change-password', {
+      // Call server-side administrative route with adminFetch
+      const response = await adminFetch('/api/admin/change-password', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
         body: JSON.stringify({ newPassword }),
-      });
+      }, user?.uid);
 
       const data = await response.json();
 

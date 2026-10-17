@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabase-client';
+import { adminFetch } from '@/features/admin/lib/admin-api-client';
 import {
   ShieldCheck,
   UserPlus,
@@ -72,16 +72,7 @@ export function AdminsManagementPanel() {
   const fetchAdmins = useCallback(async () => {
     try {
       setLoading(true);
-      const session = (await supabase.auth.getSession()).data.session;
-      const token = session?.access_token || '';
-
-      const res = await fetch('/api/admin/list-admins', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/json',
-        },
-      });
-
+      const res = await adminFetch('/api/admin/list-admins');
       const data = await res.json();
       if (data?.success && Array.isArray(data.admins)) {
         setAdmins(data.admins);
@@ -117,15 +108,8 @@ export function AdminsManagementPanel() {
 
     try {
       setSubmitting(true);
-      const session = (await supabase.auth.getSession()).data.session;
-      const token = session?.access_token || '';
-
-      const res = await fetch('/api/admin/create-sub-admin', {
+      const res = await adminFetch('/api/admin/create-sub-admin', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify({
           fullName: fullName.trim(),
           phone: phone.trim(),

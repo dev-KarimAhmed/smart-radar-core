@@ -1,34 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
-
-// Helper to authenticate caller as an Admin
-async function verifyAdminCaller(req: Request) {
-  const authHeader = req.headers.get('authorization') || '';
-  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
-  if (!token) return null;
-
-  try {
-    const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
-    if (error || !user) return null;
-
-    const roleInMeta = String(user.user_metadata?.role || user.app_metadata?.role || '').toUpperCase();
-    if (roleInMeta === 'ADMIN') return user;
-
-    const { data: profile } = await supabaseAdmin
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-
-    if (profile && String(profile.role).toUpperCase() === 'ADMIN') {
-      return user;
-    }
-  } catch (err) {
-    console.warn('[Admin Wallet API] Auth verification error:', err);
-  }
-
-  return null;
-}
+import { verifyAdminCaller } from '@/lib/admin-auth-verifier';
 
 // Generate human-friendly voucher codes
 function generateVoucherCode(minutes: number): string {

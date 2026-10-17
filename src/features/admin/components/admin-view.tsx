@@ -20,6 +20,7 @@ import { Shield, Megaphone, Users, Activity, UsersRound, ShieldAlert, CheckCircl
 import React, { useState } from 'react';
 import { useAdminAds } from '@/hooks/use-admin-ads';
 import { supabase } from '@/lib/supabase-client';
+import { adminFetch } from '../lib/admin-api-client';
 import { SovereignErrorBoundary } from '@/components/sovereign-error-boundary';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -790,26 +791,20 @@ export function AdminPulseOverview() {
   const loadRealPulse = React.useCallback(async (showToast = false) => {
     setIsRefreshing(true);
     try {
-      const [driversRes, ridersRes] = await Promise.all([
-        supabase.from('profiles').select('id, status', { count: 'exact' }).eq('role', 'CAPTAIN'),
-        supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'RIDER'),
-      ]);
+      const res = await adminFetch('/api/admin/kpis');
+      const data = await res.json();
 
-      const allDrivers = driversRes.data || [];
-      const activeCount = allDrivers.filter((d: any) => {
-        const s = String(d.status || '').toLowerCase();
-        return s === 'active' || s === 'busy';
-      }).length;
+      if (data?.success && data?.stats) {
+        setTotalCaptains(data.stats.totalCaptains ?? 0);
+        setActiveCaptains(data.stats.activeCaptains ?? 0);
+        setTotalRiders(data.stats.totalRiders ?? 0);
 
-      setTotalCaptains(driversRes.count ?? allDrivers.length);
-      setActiveCaptains(activeCount);
-      setTotalRiders(ridersRes.count ?? 0);
-
-      if (showToast) {
-        toast({
-          title: "⚡ اكتمال التحديث اللحظي",
-          description: `تمت مزامنة بيانات الكباتن (${driversRes.count ?? allDrivers.length}) والركاب (${ridersRes.count ?? 0}) مباشرة من قاعدة البيانات.`,
-        });
+        if (showToast) {
+          toast({
+            title: "⚡ اكتمال التحديث اللحظي",
+            description: `تمت مزامنة بيانات الكباتن (${data.stats.totalCaptains}) والركاب (${data.stats.totalRiders}) مباشرة من قاعدة البيانات.`,
+          });
+        }
       }
     } catch (err) {
       console.warn('[Admin Pulse] Fetch error:', err);

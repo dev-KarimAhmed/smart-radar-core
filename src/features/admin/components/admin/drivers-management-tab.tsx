@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/lib/supabase-client';
+import { adminFetch } from '@/features/admin/lib/admin-api-client';
 import {
   Users,
   Search,
@@ -138,16 +139,7 @@ export function DriversManagementTab() {
   const fetchCaptains = useCallback(async (quiet = false) => {
     if (!quiet) setLoading(true);
     try {
-      const session = (await supabase.auth.getSession()).data.session;
-      const token = session?.access_token || '';
-
-      const res = await fetch('/api/admin/users?role=CAPTAIN', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/json',
-        },
-      });
-
+      const res = await adminFetch('/api/admin/users?role=CAPTAIN');
       const data = await res.json();
       if (data?.success && Array.isArray(data.users)) {
         setCaptains(data.users);
@@ -174,15 +166,8 @@ export function DriversManagementTab() {
   const executeAdminAction = async (payload: Record<string, any>, successMsg: string) => {
     setSubmittingAction(true);
     try {
-      const session = (await supabase.auth.getSession()).data.session;
-      const token = session?.access_token || '';
-
-      const res = await fetch('/api/admin/users', {
+      const res = await adminFetch('/api/admin/users', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify(payload),
       });
 

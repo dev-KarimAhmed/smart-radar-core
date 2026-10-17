@@ -1,19 +1,14 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { verifyAdminCaller } from '@/lib/admin-auth-verifier';
 
 export async function POST(req: Request) {
-  const authHeader = req.headers.get('authorization') || '';
-  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
-
-  if (!token) {
-    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+  const admin = await verifyAdminCaller(req);
+  if (!admin) {
+    return NextResponse.json({ success: false, error: 'Unauthorized: Admin privileges required' }, { status: 401 });
   }
 
   try {
-    const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
-    if (authErr || !user) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-    }
 
     const { fullName, phone, password } = await req.json();
     if (!fullName || !phone || !password) {

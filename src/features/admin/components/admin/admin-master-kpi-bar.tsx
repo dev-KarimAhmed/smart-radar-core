@@ -1,9 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase-client';
-import { db } from '@/lib/firebase';
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { adminFetch } from '@/features/admin/lib/admin-api-client';
 import { Users, Car, Megaphone, UsersRound, Activity, ArrowUpRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
@@ -46,43 +44,11 @@ export function AdminMasterKPIBar() {
 
     async function loadStats() {
       try {
-        const [driversRes, ridersRes, delegatesRes] = await Promise.all([
-          supabase.from('profiles').select('id, status', { count: 'exact' }).eq('role', 'CAPTAIN'),
-          supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'RIDER'),
-          supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'DELEGATE'),
-        ]);
+        const res = await adminFetch('/api/admin/kpis');
+        const data = await res.json();
 
-        let activeAdsCount = 0;
-        let pendingAdsCount = 0;
-
-        try {
-          const promosSnap = await getDocs(collection(db, 'promos'));
-          promosSnap.forEach((doc) => {
-            const data = doc.data();
-            const status = String(data.status || '').toLowerCase();
-            if (status === 'active') activeAdsCount++;
-            else if (status === 'pending') pendingAdsCount++;
-          });
-        } catch {
-          // Ignore ads count failure
-        }
-
-        if (isMounted) {
-          const allDrivers = driversRes.data || [];
-          const activeCount = allDrivers.filter((d: any) => {
-            const s = String(d.status || '').toLowerCase();
-            return s === 'active' || s === 'busy';
-          }).length;
-
-          setStats({
-            totalCaptains: driversRes.count ?? allDrivers.length,
-            activeCaptains: activeCount,
-            totalRiders: ridersRes.count ?? 0,
-            activeAds: activeAdsCount,
-            pendingAds: pendingAdsCount,
-            totalDelegates: delegatesRes.count ?? 0,
-            systemHealth: '100% مستقر',
-          });
+        if (isMounted && data?.success && data?.stats) {
+          setStats(data.stats);
         }
       } catch (err) {
         console.warn('[Admin KPI Bar] Fetch error:', err);

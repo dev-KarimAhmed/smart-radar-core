@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { supabase } from '@/lib/supabase-client';
+import { adminFetch } from '@/features/admin/lib/admin-api-client';
 import {
   Users,
   Search,
@@ -101,16 +101,7 @@ export function RidersManagementPanel() {
   const fetchRiders = useCallback(async (quiet = false) => {
     if (!quiet) setLoading(true);
     try {
-      const session = (await supabase.auth.getSession()).data.session;
-      const token = session?.access_token || '';
-
-      const res = await fetch('/api/admin/users?role=RIDER', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/json',
-        },
-      });
-
+      const res = await adminFetch('/api/admin/users?role=RIDER');
       const data = await res.json();
       if (data?.success && Array.isArray(data.users)) {
         setRiders(data.users);
@@ -137,15 +128,8 @@ export function RidersManagementPanel() {
   const executeAdminAction = async (payload: Record<string, any>, successMsg: string) => {
     setSubmittingAction(true);
     try {
-      const session = (await supabase.auth.getSession()).data.session;
-      const token = session?.access_token || '';
-
-      const res = await fetch('/api/admin/users', {
+      const res = await adminFetch('/api/admin/users', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify(payload),
       });
 
