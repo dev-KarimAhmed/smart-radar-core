@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DriversManagementTab } from './admin/drivers-management-tab';
 import { AdminTopBar } from './admin/admin-top-bar';
 import { AdminMasterKPIBar } from './admin/admin-master-kpi-bar';
+import { WalletManagementTab } from './admin/wallet-management-tab';
 import { RidersManagementPanel } from './admin/riders-management-panel';
 import { SystemBroadcastPanel } from './admin/system-broadcast-panel';
 import { CapacityPricingPanel } from './admin/capacity-pricing-panel';
@@ -15,7 +16,7 @@ import { KillSwitchPanel } from './admin/kill-switch-panel';
 import { FuelIndexPanel } from './admin/fuel-index-panel';
 import { PulseHeatmap } from '@/components/admin/pulse-heatmap';
 import { useMarketPulse } from '@/hooks/use-market-pulse';
-import { Shield, Megaphone, Users, Activity, UsersRound, ShieldAlert, CheckCircle2, KeyRound, Loader2, ArrowUpRight, TrendingUp, AlertTriangle, Radio, ShieldCheck, Cpu, Eye, AlertCircle, RefreshCw, Sparkles, Fingerprint, Terminal, Scale, Compass, Trash2, Gauge, DollarSign, Sliders, UserCheck } from 'lucide-react';
+import { Shield, Megaphone, Users, Activity, UsersRound, ShieldAlert, CheckCircle2, KeyRound, Loader2, ArrowUpRight, TrendingUp, AlertTriangle, Radio, ShieldCheck, Cpu, Eye, AlertCircle, RefreshCw, Sparkles, Fingerprint, Terminal, Scale, Compass, Trash2, Gauge, DollarSign, Sliders, UserCheck, Wallet } from 'lucide-react';
 import React, { useState } from 'react';
 import { useAdminAds } from '@/hooks/use-admin-ads';
 import { supabase } from '@/lib/supabase-client';
@@ -998,7 +999,7 @@ export function AdminViewTab() {
       {/* المنظومة الإدارية المنظمة - 7 وحدات تشغيلية محكمة */}
       <Tabs defaultValue="captains" className="space-y-6">
         {/* شريط التبويبات الرئيسي - تصميم أنيق ومتناسق */}
-        <TabsList className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 bg-[#050A0F]/90 border border-white/10 p-2 rounded-2xl h-auto">
+        <TabsList className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 bg-[#050A0F]/90 border border-white/10 p-2 rounded-2xl h-auto">
           <TabsTrigger
             value="captains"
             className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all data-[state=active]:bg-[#14B8A6] data-[state=active]:text-[#0B0F19] text-slate-300 hover:text-white"
@@ -1013,6 +1014,14 @@ export function AdminViewTab() {
           >
             <UserCheck className="w-4 h-4" />
             <span>الركاب</span>
+          </TabsTrigger>
+
+          <TabsTrigger
+            value="wallet"
+            className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all data-[state=active]:bg-[#14B8A6] data-[state=active]:text-[#0B0F19] text-slate-300 hover:text-white"
+          >
+            <Wallet className="w-4 h-4" />
+            <span>المالية والشحن</span>
           </TabsTrigger>
 
           <TabsTrigger
@@ -1069,6 +1078,13 @@ export function AdminViewTab() {
         <TabsContent value="riders" className="space-y-6">
           <SovereignErrorBoundary>
             <RidersManagementPanel />
+          </SovereignErrorBoundary>
+        </TabsContent>
+
+        {/* 3. المالية والشحن */}
+        <TabsContent value="wallet" className="space-y-6">
+          <SovereignErrorBoundary>
+            <WalletManagementTab />
           </SovereignErrorBoundary>
         </TabsContent>
 

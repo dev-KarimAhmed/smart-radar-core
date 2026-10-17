@@ -28,6 +28,7 @@ import {
   ChevronDown,
   RefreshCw,
   BadgeAlert,
+  DollarSign,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -125,7 +126,8 @@ export function DriversManagementTab() {
   // Topup modal inputs
   const [minutesToAdd, setMinutesToAdd] = useState<number>(60);
   const [extendDays, setExtendDays] = useState<number>(30);
-  const [cashBalanceToAdd, setCashBalanceToAdd] = useState<number>(0);
+  const [cashBalanceToAdd, setCashBalanceToAdd] = useState<number>(10);
+  const [topupMode, setTopupMode] = useState<'minutes' | 'cash'>('minutes');
   const [submittingAction, setSubmittingAction] = useState(false);
 
   // Security modal inputs
@@ -548,10 +550,16 @@ export function DriversManagementTab() {
                                   <span className="text-xs font-bold text-rose-300">دقيقة</span>
                                 </div>
                                 <span className="text-[10px] font-bold text-rose-300 bg-rose-500/15 border border-rose-500/30 px-1.5 py-0.5 rounded inline-block">
-                                  منتهي الرصيد
+                                  منتهي الدقائق
                                 </span>
                               </>
                             )}
+
+                            {/* Cash Balance */}
+                            <div className="flex items-center gap-1 text-[11px] font-mono text-amber-300 font-bold pt-1 border-t border-white/5">
+                              <span className="text-slate-400 text-[10px] font-normal">نقدي:</span>
+                              <span>{(captain.wallet.balance || 0).toFixed(2)} د.أ</span>
+                            </div>
                           </div>
                         </td>
 
@@ -843,90 +851,161 @@ export function DriversManagementTab() {
               <DialogHeader>
                 <DialogTitle className="text-lg font-black text-white flex items-center gap-2">
                   <Zap className="h-5 w-5 text-[#14B8A6]" />
-                  شحن باقات دقائق طيران الرادار
+                  شحن رصيد وباقات الكابتن
                 </DialogTitle>
                 <DialogDescription className="text-xs text-slate-400 mt-1">
-                  تغذية رصيد الكابتن <span className="text-white font-bold">{topupCaptain.full_name}</span> بدقائق تشغيلية فورية للظهور واستقبال الطلبات.
+                  تغذية حساب الكابتن <span className="text-white font-bold">{topupCaptain.full_name}</span> بدقائق طيران تشغيلية أو رصيد نقدي بالمحفظة.
                 </DialogDescription>
               </DialogHeader>
 
               {/* Current Wallet status */}
-              <div className="bg-black/60 border border-white/10 p-3.5 rounded-2xl flex items-center justify-between text-xs font-mono">
+              <div className="bg-black/60 border border-white/10 p-3.5 rounded-2xl grid grid-cols-2 gap-3 text-xs font-mono">
                 <div>
-                  <span className="text-slate-500 text-[10px] block">الرصيد المتبقي حالياً:</span>
+                  <span className="text-slate-500 text-[10px] block">دقائق الرادار المتبقية:</span>
                   <span className="text-base font-black text-[#14B8A6]">{topupCaptain.wallet.total_minutes} دقيقة</span>
+                  <span className="text-[10px] text-slate-400 block">≈ {((topupCaptain.wallet.total_minutes || 0) / 60).toFixed(1)} س</span>
                 </div>
-                <div className="text-left">
-                  <span className="text-slate-500 text-[10px] block">المعادل بالساعات:</span>
-                  <span className="text-sm font-bold text-slate-300">{(topupCaptain.wallet.total_minutes / 60).toFixed(1)} س</span>
-                </div>
-              </div>
-
-              {/* Quick Packages */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-300 block">اختر باقة شحن سريعة:</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { m: 60, label: '+60 دقيقة', sub: 'ساعة رادار' },
-                    { m: 300, label: '+300 دقيقة', sub: '5 ساعات' },
-                    { m: 600, label: '+600 دقيقة', sub: '10 ساعات' },
-                    { m: 1440, label: '+1440 دقيقة', sub: '24 ساعة (يوم)' },
-                  ].map((pkg) => (
-                    <button
-                      key={pkg.m}
-                      type="button"
-                      onClick={() => setMinutesToAdd(pkg.m)}
-                      className={cn(
-                        "p-2.5 rounded-xl border text-right transition cursor-pointer flex flex-col justify-between",
-                        minutesToAdd === pkg.m
-                          ? "border-[#14B8A6] bg-[#14B8A6]/10 text-white"
-                          : "border-white/10 bg-white/5 text-slate-300 hover:bg-white/10"
-                      )}
-                    >
-                      <span className="font-mono font-black text-sm">{pkg.label}</span>
-                      <span className="text-[10px] text-slate-400">{pkg.sub}</span>
-                    </button>
-                  ))}
+                <div>
+                  <span className="text-slate-500 text-[10px] block">الرصيد النقدي الحالي:</span>
+                  <span className="text-base font-black text-amber-400">{(topupCaptain.wallet.balance || 0).toFixed(2)} د.أ</span>
                 </div>
               </div>
 
-              {/* Custom Minutes Input */}
-              <div>
-                <label className="text-xs font-bold text-slate-300 block mb-1">أو أدخل عدد الدقائق يدوياً:</label>
-                <Input
-                  type="number"
-                  min="1"
-                  value={minutesToAdd}
-                  onChange={(e) => setMinutesToAdd(Number(e.target.value))}
-                  className="bg-black/60 border-white/10 text-white font-mono h-10 rounded-xl focus:border-[#14B8A6] text-right"
-                />
+              {/* Mode Selector */}
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setTopupMode('minutes')}
+                  className={cn(
+                    "py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5",
+                    topupMode === 'minutes'
+                      ? "border-[#14B8A6] bg-[#14B8A6]/20 text-[#14B8A6]"
+                      : "border-white/10 bg-black/40 text-slate-400 hover:text-white"
+                  )}
+                >
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>دقائق طيران الرادار</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setTopupMode('cash')}
+                  className={cn(
+                    "py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5",
+                    topupMode === 'cash'
+                      ? "border-amber-500 bg-amber-500/20 text-amber-300"
+                      : "border-white/10 bg-black/40 text-slate-400 hover:text-white"
+                  )}
+                >
+                  <DollarSign className="w-3.5 h-3.5" />
+                  <span>رصيد نقدي (JD)</span>
+                </button>
               </div>
 
-              {/* Extension days */}
-              <div>
-                <label className="text-xs font-bold text-slate-300 block mb-1">تمديد صلاحية الباقة:</label>
-                <div className="grid grid-cols-3 gap-2 text-xs">
-                  {[
-                    { days: 30, label: '+30 يوماً' },
-                    { days: 60, label: '+60 يوماً' },
-                    { days: 90, label: '+90 يوماً' },
-                  ].map((opt) => (
-                    <button
-                      key={opt.days}
-                      type="button"
-                      onClick={() => setExtendDays(opt.days)}
-                      className={cn(
-                        "py-2 rounded-xl border font-bold text-center transition",
-                        extendDays === opt.days
-                          ? "border-[#14B8A6] bg-[#14B8A6]/15 text-[#14B8A6]"
-                          : "border-white/10 bg-black/40 text-slate-400 hover:text-white"
-                      )}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
+              {/* Topup Mode: Minutes */}
+              {topupMode === 'minutes' ? (
+                <>
+                  {/* Quick Packages */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-300 block">اختر باقة دقائق سريعة:</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { m: 60, label: '+60 دقيقة', sub: 'ساعة رادار' },
+                        { m: 300, label: '+300 دقيقة', sub: '5 ساعات' },
+                        { m: 600, label: '+600 دقيقة', sub: '10 ساعات' },
+                        { m: 1440, label: '+1440 دقيقة', sub: '24 ساعة (يوم)' },
+                      ].map((pkg) => (
+                        <button
+                          key={pkg.m}
+                          type="button"
+                          onClick={() => setMinutesToAdd(pkg.m)}
+                          className={cn(
+                            "p-2.5 rounded-xl border text-right transition cursor-pointer flex flex-col justify-between",
+                            minutesToAdd === pkg.m
+                              ? "border-[#14B8A6] bg-[#14B8A6]/10 text-white"
+                              : "border-white/10 bg-white/5 text-slate-300 hover:bg-white/10"
+                          )}
+                        >
+                          <span className="font-mono font-black text-sm">{pkg.label}</span>
+                          <span className="text-[10px] text-slate-400">{pkg.sub}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Custom Minutes Input */}
+                  <div>
+                    <label className="text-xs font-bold text-slate-300 block mb-1">أو أدخل عدد الدقائق يدوياً:</label>
+                    <Input
+                      type="number"
+                      min="1"
+                      value={minutesToAdd}
+                      onChange={(e) => setMinutesToAdd(Number(e.target.value))}
+                      className="bg-black/60 border-white/10 text-white font-mono h-10 rounded-xl focus:border-[#14B8A6] text-right"
+                    />
+                  </div>
+
+                  {/* Extension days */}
+                  <div>
+                    <label className="text-xs font-bold text-slate-300 block mb-1">تمديد صلاحية الباقة:</label>
+                    <div className="grid grid-cols-3 gap-2 text-xs">
+                      {[
+                        { days: 30, label: '+30 يوماً' },
+                        { days: 60, label: '+60 يوماً' },
+                        { days: 90, label: '+90 يوماً' },
+                      ].map((opt) => (
+                        <button
+                          key={opt.days}
+                          type="button"
+                          onClick={() => setExtendDays(opt.days)}
+                          className={cn(
+                            "py-2 rounded-xl border font-bold text-center transition",
+                            extendDays === opt.days
+                              ? "border-[#14B8A6] bg-[#14B8A6]/15 text-[#14B8A6]"
+                              : "border-white/10 bg-black/40 text-slate-400 hover:text-white"
+                          )}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                /* Topup Mode: Cash JD */
+                <div className="space-y-3">
+                  <label className="text-xs font-bold text-slate-300 block">اختر مبلغ الشحن النقدي (دينار أردني):</label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {[5, 10, 20, 50].map((amt) => (
+                      <button
+                        key={amt}
+                        type="button"
+                        onClick={() => setCashBalanceToAdd(amt)}
+                        className={cn(
+                          "py-2 rounded-xl border text-xs font-mono font-bold transition",
+                          cashBalanceToAdd === amt
+                            ? "border-amber-500 bg-amber-500/20 text-amber-300"
+                            : "border-white/10 bg-white/5 text-slate-300 hover:bg-white/10"
+                        )}
+                      >
+                        +{amt} د.أ
+                      </button>
+                    ))}
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-slate-300 block mb-1">أو أدخل المبلغ يدوياً (د.أ):</label>
+                    <Input
+                      type="number"
+                      step="0.5"
+                      min="0.5"
+                      value={cashBalanceToAdd}
+                      onChange={(e) => setCashBalanceToAdd(Number(e.target.value))}
+                      className="bg-black/60 border-white/10 text-white font-mono h-10 rounded-xl focus:border-amber-500 text-right"
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
 
               <DialogFooter className="flex items-center justify-between gap-3 border-t border-white/10 pt-4">
                 <Button
@@ -940,20 +1019,34 @@ export function DriversManagementTab() {
 
                 <Button
                   type="button"
-                  disabled={submittingAction || minutesToAdd <= 0}
+                  disabled={submittingAction || (topupMode === 'minutes' ? minutesToAdd <= 0 : cashBalanceToAdd <= 0)}
                   onClick={async () => {
-                    const ok = await executeAdminAction({
-                      action: 'topup_minutes',
-                      userId: topupCaptain.id,
-                      minutes: minutesToAdd,
-                      extendDays,
-                    }, `تم شحن ${minutesToAdd} دقيقة رادار بنجاح.`);
-                    if (ok) setTopupCaptain(null);
+                    if (topupMode === 'minutes') {
+                      const ok = await executeAdminAction({
+                        action: 'topup_minutes',
+                        userId: topupCaptain.id,
+                        minutes: minutesToAdd,
+                        extendDays,
+                      }, `تم شحن ${minutesToAdd} دقيقة رادار بنجاح.`);
+                      if (ok) setTopupCaptain(null);
+                    } else {
+                      const ok = await executeAdminAction({
+                        action: 'adjust_balance',
+                        userId: topupCaptain.id,
+                        amount: cashBalanceToAdd,
+                      }, `تم إيداع ${cashBalanceToAdd} د.أ في محفظة الكابتن بنجاح.`);
+                      if (ok) setTopupCaptain(null);
+                    }
                   }}
-                  className="bg-[#14B8A6] hover:bg-[#2DD4BF] text-[#0B0F19] font-black text-xs h-10 px-5 rounded-xl shadow-lg shadow-[#14B8A6]/20"
+                  className={cn(
+                    "font-black text-xs h-10 px-5 rounded-xl shadow-lg transition-all",
+                    topupMode === 'minutes'
+                      ? "bg-[#14B8A6] hover:bg-[#2DD4BF] text-[#0B0F19] shadow-[#14B8A6]/20"
+                      : "bg-amber-500 hover:bg-amber-600 text-black shadow-amber-500/20"
+                  )}
                 >
                   {submittingAction ? <Loader2 className="h-4 w-4 animate-spin ml-1" /> : <Zap className="h-4 w-4 ml-1" />}
-                  تأكيد الشحن الفوري
+                  {topupMode === 'minutes' ? 'تأكيد شحن الدقائق' : 'تأكيد الإيداع النقدي'}
                 </Button>
               </DialogFooter>
             </div>
