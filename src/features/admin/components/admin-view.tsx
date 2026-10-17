@@ -6,6 +6,7 @@ import { AdminMasterKPIBar } from './admin/admin-master-kpi-bar';
 import { RidersManagementPanel } from './admin/riders-management-panel';
 import { SystemBroadcastPanel } from './admin/system-broadcast-panel';
 import { CapacityPricingPanel } from './admin/capacity-pricing-panel';
+import { AdminsManagementPanel } from './admin/admins-management-panel';
 import { AdsManagementTab } from './admin/ads-management-tab';
 import { DelegatesManagementTab } from './admin/delegates-management-tab';
 import { PasswordResetsTab } from './admin/password-resets-tab';
@@ -1289,6 +1290,11 @@ export function AdminViewTab() {
             <span className={styles.style1003_230}>{tAuto('key_47cbc2bf')}</span>
           </TabsTrigger>
 
+          <TabsTrigger value="admins" className={styles.style1001_228}>
+            <ShieldCheck className={styles.style1002_229} />
+            <span className={styles.style1003_230}>فريق المشرفين</span>
+          </TabsTrigger>
+
            <TabsTrigger value="pulse" className={styles.style1006_231}>
              <Activity className={styles.style1007_232} />
              <span className={styles.style1008_233}>{tAuto('key_1343c325')}</span>
@@ -1354,6 +1360,12 @@ export function AdminViewTab() {
         <TabsContent value="password-resets" className={styles.style1044_242}>
            <SovereignErrorBoundary>
               <PasswordResetsTab />
+           </SovereignErrorBoundary>
+        </TabsContent>
+
+        <TabsContent value="admins" className={styles.style1044_242}>
+           <SovereignErrorBoundary>
+              <AdminsManagementPanel />
            </SovereignErrorBoundary>
         </TabsContent>
 
