@@ -804,67 +804,23 @@ export function DriversManagementTab() {
               </div>
 
               {/* Action buttons in Modal Footer */}
-              <DialogFooter className="flex flex-row items-center justify-between gap-3 border-t border-white/10 pt-4">
+              <DialogFooter className="flex flex-row items-center justify-end gap-3 border-t border-white/10 pt-4">
                 <Button
                   type="button"
-                  variant="outline"
-                  onClick={() => setInspectCaptain(null)}
-                  className="border-white/10 text-slate-300 text-xs h-9 rounded-xl"
+                  disabled={submittingAction}
+                  onClick={async () => {
+                    const ok = await executeAdminAction({
+                      action: 'update_verification',
+                      userId: inspectCaptain.id,
+                      verificationStatus: 'APPROVED',
+                    }, 'تم اعتماد وتوثيق الكابتن بنجاح');
+                    if (ok) setInspectCaptain(null);
+                  }}
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs h-9 rounded-xl px-5 shadow-lg shadow-emerald-600/20"
                 >
-                  إغلاق
+                  {submittingAction ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4 ml-1" />}
+                  اعتماد الكابتن كلياً
                 </Button>
-
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      const target = inspectCaptain;
-                      setInspectCaptain(null);
-                      setMessageCaptain(target);
-                      setMessageTitle('رسالة من إدارة المنظومة');
-                      setMessageBody('');
-                      setMessageType('admin_message');
-                    }}
-                    className="border-teal-500/30 bg-teal-500/10 hover:bg-teal-500/20 text-teal-300 text-xs h-9 rounded-xl px-3 flex items-center gap-1.5"
-                  >
-                    <MessageSquare className="h-3.5 w-3.5 text-teal-400" />
-                    <span>مراسلة الكابتن</span>
-                  </Button>
-
-                  <Button
-                    type="button"
-                    disabled={submittingAction}
-                    onClick={async () => {
-                      const ok = await executeAdminAction({
-                        action: 'update_verification',
-                        userId: inspectCaptain.id,
-                        verificationStatus: 'REJECTED',
-                      }, 'تم رفض مستندات الكابتن');
-                      if (ok) setInspectCaptain(null);
-                    }}
-                    className="bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs h-9 rounded-xl px-4"
-                  >
-                    رفض المستندات
-                  </Button>
-
-                  <Button
-                    type="button"
-                    disabled={submittingAction}
-                    onClick={async () => {
-                      const ok = await executeAdminAction({
-                        action: 'update_verification',
-                        userId: inspectCaptain.id,
-                        verificationStatus: 'APPROVED',
-                      }, 'تم اعتماد وتوثيق الكابتن بنجاح');
-                      if (ok) setInspectCaptain(null);
-                    }}
-                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs h-9 rounded-xl px-5 shadow-lg shadow-emerald-600/20"
-                  >
-                    {submittingAction ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4 ml-1" />}
-                    اعتماد الكابتن كلياً
-                  </Button>
-                </div>
               </DialogFooter>
             </div>
           )}
