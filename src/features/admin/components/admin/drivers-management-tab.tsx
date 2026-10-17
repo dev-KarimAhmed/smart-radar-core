@@ -30,6 +30,9 @@ import {
   RefreshCw,
   BadgeAlert,
   DollarSign,
+  MessageSquare,
+  Send,
+  MessageCircle,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -123,6 +126,13 @@ export function DriversManagementTab() {
   const [inspectCaptain, setInspectCaptain] = useState<CaptainUser | null>(null);
   const [topupCaptain, setTopupCaptain] = useState<CaptainUser | null>(null);
   const [securityCaptain, setSecurityCaptain] = useState<CaptainUser | null>(null);
+  const [messageCaptain, setMessageCaptain] = useState<CaptainUser | null>(null);
+
+  // Message modal inputs
+  const [messageTitle, setMessageTitle] = useState('رسالة من إدارة المنظومة');
+  const [messageBody, setMessageBody] = useState('');
+  const [messageType, setMessageType] = useState<'info' | 'admin_message' | 'warning' | 'urgent'>('admin_message');
+  const [submittingMessage, setSubmittingMessage] = useState(false);
 
   // Topup modal inputs
   const [minutesToAdd, setMinutesToAdd] = useState<number>(60);
@@ -628,6 +638,24 @@ export function DriversManagementTab() {
                               <ShieldAlert className="h-3.5 w-3.5 text-amber-400" />
                               <span>أمان</span>
                             </Button>
+
+                            {/* Direct Message / Notification */}
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setMessageCaptain(captain);
+                                setMessageTitle('رسالة من إدارة المنظومة');
+                                setMessageBody('');
+                                setMessageType('admin_message');
+                              }}
+                              className="h-8 px-3 rounded-xl border border-teal-500/30 bg-teal-500/10 hover:bg-teal-500/20 text-teal-300 text-xs font-bold flex items-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer"
+                              title="إرسال رسالة وتوجيه إداري فوري للكابتن"
+                            >
+                              <MessageSquare className="h-3.5 w-3.5 text-teal-400" />
+                              <span>مراسلة</span>
+                            </Button>
                           </div>
                         </td>
                       </tr>
@@ -787,6 +815,23 @@ export function DriversManagementTab() {
                 </Button>
 
                 <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      const target = inspectCaptain;
+                      setInspectCaptain(null);
+                      setMessageCaptain(target);
+                      setMessageTitle('رسالة من إدارة المنظومة');
+                      setMessageBody('');
+                      setMessageType('admin_message');
+                    }}
+                    className="border-teal-500/30 bg-teal-500/10 hover:bg-teal-500/20 text-teal-300 text-xs h-9 rounded-xl px-3 flex items-center gap-1.5"
+                  >
+                    <MessageSquare className="h-3.5 w-3.5 text-teal-400" />
+                    <span>مراسلة الكابتن</span>
+                  </Button>
+
                   <Button
                     type="button"
                     disabled={submittingAction}
@@ -1189,6 +1234,204 @@ export function DriversManagementTab() {
                 >
                   {submittingAction ? <Loader2 className="h-4 w-4 animate-spin ml-1" /> : <ShieldCheck className="h-4 w-4 ml-1" />}
                   حفظ الإجراءات الأمنية
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ========================================================================= */}
+      {/* MODAL 4: Send Direct Message & Administrative Directive                   */}
+      {/* ========================================================================= */}
+      <Dialog open={!!messageCaptain} onOpenChange={(open) => !open && setMessageCaptain(null)}>
+        <DialogContent className="max-w-lg bg-[#0B0F19] border border-teal-500/40 text-white rounded-3xl p-6 text-right shadow-2xl backdrop-blur-xl" dir="rtl">
+          {messageCaptain && (
+            <div className="space-y-4">
+              <DialogHeader>
+                <DialogTitle className="text-lg font-black text-white flex items-center gap-2">
+                  <div className="p-2 rounded-xl bg-teal-500/10 border border-teal-500/30">
+                    <MessageSquare className="h-5 w-5 text-teal-400" />
+                  </div>
+                  <span>إرسال رسالة وتوجيه إداري للكابتن</span>
+                </DialogTitle>
+                <DialogDescription className="text-xs text-slate-400 mt-1">
+                  إرسال إشعار لحظي يظهر فوراً على شاشة الكابتن وقائمة إشعاراته.
+                </DialogDescription>
+              </DialogHeader>
+
+              {/* Captain Target Profile Banner */}
+              <div className="bg-[#161F30]/60 border border-white/10 p-3.5 rounded-2xl flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-10 w-10 border border-teal-500/40 rounded-xl">
+                    <AvatarFallback className="bg-teal-500/20 text-teal-300 font-bold text-xs">
+                      {messageCaptain.full_name.substring(0, 2)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-white text-sm">{messageCaptain.full_name}</span>
+                      <Badge className="bg-teal-500/15 text-teal-300 border border-teal-500/30 text-[10px] font-mono">
+                        {messageCaptain.serial_id}
+                      </Badge>
+                    </div>
+                    <p className="text-[11px] text-slate-400 font-mono mt-0.5">
+                      {messageCaptain.phone} • {messageCaptain.governorate}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Direct WhatsApp Action */}
+                {messageCaptain.phone && (
+                  <a
+                    href={`https://wa.me/${messageCaptain.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`مرحباً كابتن ${messageCaptain.full_name}، نتواصل معك من إدارة رادار الذكي.`)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 text-xs font-bold transition-all shrink-0"
+                    title="فتح محادثة واتساب فورية"
+                  >
+                    <MessageCircle className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>واتساب</span>
+                  </a>
+                )}
+              </div>
+
+              {/* Message Type Selector */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-300">نوع الرسالة / الأولوية</label>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setMessageType('admin_message')}
+                    className={cn(
+                      "py-2 px-2.5 rounded-xl text-xs font-bold border transition-all text-center",
+                      messageType === 'admin_message'
+                        ? "bg-teal-500/20 border-teal-500/50 text-teal-300 shadow-sm"
+                        : "bg-black/40 border-white/10 text-slate-400 hover:text-white"
+                    )}
+                  >
+                    رسالة إدارية
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMessageType('warning')}
+                    className={cn(
+                      "py-2 px-2.5 rounded-xl text-xs font-bold border transition-all text-center",
+                      messageType === 'warning'
+                        ? "bg-amber-500/20 border-amber-500/50 text-amber-300 shadow-sm"
+                        : "bg-black/40 border-white/10 text-slate-400 hover:text-white"
+                    )}
+                  >
+                    تنبيه تشغيلي
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMessageType('urgent')}
+                    className={cn(
+                      "py-2 px-2.5 rounded-xl text-xs font-bold border transition-all text-center",
+                      messageType === 'urgent'
+                        ? "bg-rose-500/20 border-rose-500/50 text-rose-300 shadow-sm"
+                        : "bg-black/40 border-white/10 text-slate-400 hover:text-white"
+                    )}
+                  >
+                    إشعار عاجل
+                  </button>
+                </div>
+              </div>
+
+              {/* Message Title */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-300">عنوان الرسالة / الإشعار</label>
+                <Input
+                  value={messageTitle}
+                  onChange={(e) => setMessageTitle(e.target.value)}
+                  placeholder="مثال: رسالة من إدارة المنظومة"
+                  className="bg-black/60 border-white/10 text-white text-xs h-9 rounded-xl focus:border-teal-500 text-right"
+                />
+              </div>
+
+              {/* Fast Quick Templates */}
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-slate-400">نصوص سريعة جاهزة (بنقرة واحدة):</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    "يرجى تجديد رخصة القيادة أو وثائق المركبة لتجنب تعليق الحساب.",
+                    "تمت مراجعة حسابك واعتماد بياناتك ووثائقك بنجاح.",
+                    "تنبيه إداري: نرجو الالتزام بعدم إلغاء الرحلات بعد قبولها لضمان استقرار حسابك.",
+                    "شكر وتقدير من إدارة الرادار لأدائك المتميز والتزامك العالي.",
+                    "يرجى التأكد من تشغيل محدد الموقع (GPS) بدقة عالية أثناء فترات العمل."
+                  ].map((tpl, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setMessageBody(tpl)}
+                      className="text-[10px] bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 px-2.5 py-1 rounded-lg transition-colors text-right"
+                    >
+                      {tpl.length > 35 ? tpl.slice(0, 35) + '...' : tpl}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Message Body */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-300">نص الرسالة المرسلة</label>
+                <textarea
+                  value={messageBody}
+                  onChange={(e) => setMessageBody(e.target.value)}
+                  placeholder="اكتب التوجيه أو الإشعار للكابتن هنا..."
+                  rows={4}
+                  className="w-full bg-black/60 border border-white/10 text-white text-xs p-3 rounded-xl focus:border-teal-500 outline-none resize-none text-right font-sans leading-relaxed"
+                  required
+                />
+              </div>
+
+              <DialogFooter className="flex items-center justify-between gap-3 border-t border-white/10 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setMessageCaptain(null)}
+                  disabled={submittingMessage}
+                  className="border-white/10 text-slate-300 text-xs h-9 rounded-xl"
+                >
+                  إلغاء
+                </Button>
+
+                <Button
+                  type="button"
+                  disabled={submittingMessage || !messageBody.trim()}
+                  onClick={async () => {
+                    setSubmittingMessage(true);
+                    try {
+                      const ok = await executeAdminAction({
+                        action: 'send_message',
+                        userId: messageCaptain.id,
+                        title: messageTitle.trim(),
+                        message: messageBody.trim(),
+                        type: messageType,
+                      }, 'تم إرسال الرسالة إلى الكابتن بنجاح عبر الإشعار اللحظي.');
+
+                      if (ok) {
+                        setMessageCaptain(null);
+                        setMessageBody('');
+                      }
+                    } finally {
+                      setSubmittingMessage(false);
+                    }
+                  }}
+                  className="bg-teal-500 hover:bg-teal-600 text-[#0B0F19] font-black text-xs h-10 px-6 rounded-xl shadow-lg shadow-teal-500/20 flex items-center gap-1.5 active:scale-95 transition-all"
+                >
+                  {submittingMessage ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin ml-1" />
+                      جاري الإرسال...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4 ml-1" />
+                      إرسال الإشعار اللحظي
+                    </>
+                  )}
                 </Button>
               </DialogFooter>
             </div>

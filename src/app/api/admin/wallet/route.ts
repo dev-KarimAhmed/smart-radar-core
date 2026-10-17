@@ -86,21 +86,37 @@ export async function GET(req: Request) {
         const transactions = rawTransactions || [];
         const profileIds = Array.from(new Set(transactions.map(t => t.profile_id).filter(Boolean)));
 
-        // Fetch captain details
+        // Fetch captain details, captain_profiles, and governorates/districts lookup
         let profilesMap = new Map();
-        if (profileIds.length > 0) {
-          const { data: profiles } = await supabaseAdmin
-            .from('profiles')
-            .select('id, full_name, phone, serial_id, governorate, district')
-            .in('id', profileIds);
+        let captainProfilesMap = new Map();
+        let govMap = new Map();
+        let distMap = new Map();
 
-          profilesMap = new Map((profiles || []).map(p => [p.id, p]));
+        if (profileIds.length > 0) {
+          const [profilesRes, capRes, govRes, distRes] = await Promise.all([
+            supabaseAdmin
+              .from('profiles')
+              .select('id, full_name, phone, serial_id, governorate_id, district_id')
+              .in('id', profileIds),
+            supabaseAdmin
+              .from('captain_profiles')
+              .select('id, nickname, plate_number, vehicle_brand, vehicle_model')
+              .in('id', profileIds),
+            supabaseAdmin.from('governorates').select('id, name_ar'),
+            supabaseAdmin.from('districts').select('id, name_ar'),
+          ]);
+
+          profilesMap = new Map((profilesRes.data || []).map(p => [p.id, p]));
+          captainProfilesMap = new Map((capRes.data || []).map(c => [c.id, c]));
+          govMap = new Map((govRes.data || []).map(g => [g.id, g.name_ar]));
+          distMap = new Map((distRes.data || []).map(d => [d.id, d.name_ar]));
         }
 
         // Build signed URLs for receipt images
         const receiptsWithDetails = await Promise.all(
           transactions.map(async (tx) => {
             const profile = profilesMap.get(tx.profile_id) || {};
+            const cap = captainProfilesMap.get(tx.profile_id) || {};
             let signedImageUrl = null;
 
             if (tx.receipt_path) {
@@ -114,14 +130,20 @@ export async function GET(req: Request) {
               }
             }
 
+            const govName = profile.governorate_id ? govMap.get(profile.governorate_id) : 'عمّان';
+            const distName = profile.district_id ? distMap.get(profile.district_id) : 'المركز';
+            const captainName = profile.full_name || cap.nickname || 'كابتن غير مسمّى';
+            const captainSerial = profile.serial_id || `C-${String(tx.profile_id).slice(0, 4)}`;
+
             return {
               id: tx.id,
               profileId: tx.profile_id,
-              captainName: profile.full_name || 'كابتن غير مسمّى',
+              captainName,
               captainPhone: profile.phone || '',
-              captainSerial: profile.serial_id || `C-${String(tx.profile_id).slice(0, 4)}`,
-              governorate: profile.governorate || 'عمّان',
-              district: profile.district || 'المركز',
+              captainSerial,
+              governorate: govName || 'عمّان',
+              district: distName || 'المركز',
+              plateNumber: cap.plate_number || '',
               amount: Number(tx.amount || 0),
               currency: tx.currency_ar || tx.currency_code || 'د.أ',
               channel: tx.payment_channel || 'تحويل مباشر',
@@ -531,6 +553,37 @@ export async function POST(req: Request) {
           success: true,
           message: `تم ${isEnabled ? 'تفعيل' : 'إيقاف'} ميزة الشحن الذاتي التجريبي للكباتن.`,
           enabled: isEnabled,
+        });
+      }
+
+      // 6. Direct notification/message to captain regarding financial operations
+      case 'send_message': {
+        const { captainId, title, message, type } = body;
+        if (!captainId || !message || !String(message).trim()) {
+          return NextResponse.json({ success: false, error: 'captainId ونص الرسالة مطلوبان' }, { status: 400 });
+        }
+
+        const msgTitle = title && String(title).trim() ? String(title).trim() : 'إشعار مالي من إدارة المنظومة';
+
+        const { data: notif, error: notifErr } = await supabaseAdmin
+          .from('user_notifications')
+          .insert({
+            user_id: captainId,
+            title: msgTitle,
+            description: String(message).trim(),
+            type: type || 'admin_message',
+            is_read: false,
+            created_at: new Date().toISOString(),
+          })
+          .select()
+          .single();
+
+        if (notifErr) throw notifErr;
+
+        return NextResponse.json({
+          success: true,
+          message: 'تم إرسال الرسالة إلى الكابتن بنجاح عبر الإشعار اللحظي.',
+          notification: notif,
         });
       }
 

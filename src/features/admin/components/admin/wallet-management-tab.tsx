@@ -29,6 +29,8 @@ import {
   DollarSign,
   Calendar,
   Layers,
+  MessageSquare,
+  MessageCircle,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -140,6 +142,13 @@ export function WalletManagementTab() {
   const [approveAdminNote, setApproveAdminNote] = useState('');
   const [rejectReason, setRejectReason] = useState('');
   const [submittingModalAction, setSubmittingModalAction] = useState(false);
+
+  // Receipt Message Modal State
+  const [messageReceiptItem, setMessageReceiptItem] = useState<ReceiptItem | null>(null);
+  const [receiptMessageTitle, setReceiptMessageTitle] = useState('إشعار بخصوص إيصال الشحن');
+  const [receiptMessageBody, setReceiptMessageBody] = useState('');
+  const [receiptMessageType, setReceiptMessageType] = useState<'info' | 'admin_message' | 'warning' | 'urgent'>('admin_message');
+  const [submittingReceiptMessage, setSubmittingReceiptMessage] = useState(false);
 
   // Direct Topup State
   const [captainsList, setCaptainsList] = useState<CaptainOption[]>([]);
@@ -827,42 +836,61 @@ export function WalletManagementTab() {
 
                       {/* Actions */}
                       <td className="py-3.5 px-4 text-center">
-                        {rcpt.status === 'PENDING' ? (
-                          <div className="flex items-center justify-center gap-1.5">
-                            <Button
-                              type="button"
-                              size="sm"
-                              onClick={() => {
-                                setReceiptToApprove(rcpt);
-                                setApproveCreditType('CASH');
-                                setApproveCustomMinutes(Math.round(rcpt.amount * 60));
-                                setApproveAdminNote('');
-                              }}
-                              className="h-8 px-3 rounded-xl bg-teal-500 hover:bg-teal-600 text-[#0B0F19] text-xs font-black flex items-center gap-1 shadow-sm active:scale-95"
-                            >
-                              <CheckCircle2 className="w-3.5 h-3.5" />
-                              <span>موافقة</span>
-                            </Button>
+                        <div className="flex items-center justify-center gap-1.5">
+                          {rcpt.status === 'PENDING' ? (
+                            <>
+                              <Button
+                                type="button"
+                                size="sm"
+                                onClick={() => {
+                                  setReceiptToApprove(rcpt);
+                                  setApproveCreditType('CASH');
+                                  setApproveCustomMinutes(Math.round(rcpt.amount * 60));
+                                  setApproveAdminNote('');
+                                }}
+                                className="h-8 px-2.5 rounded-xl bg-teal-500 hover:bg-teal-600 text-[#0B0F19] text-xs font-black flex items-center gap-1 shadow-sm active:scale-95"
+                              >
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                <span>موافقة</span>
+                              </Button>
 
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                setReceiptToReject(rcpt);
-                                setRejectReason('');
-                              }}
-                              className="h-8 px-3 rounded-xl border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs font-bold flex items-center gap-1"
-                            >
-                              <XCircle className="w-3.5 h-3.5" />
-                              <span>رفض</span>
-                            </Button>
-                          </div>
-                        ) : (
-                          <span className="text-[11px] text-slate-500 font-mono">
-                            {rcpt.metadata?.approved_by ? 'معتمد' : rcpt.metadata?.rejected_by ? 'مرفوض' : 'مكتمل'}
-                          </span>
-                        )}
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setReceiptToReject(rcpt);
+                                  setRejectReason('');
+                                }}
+                                className="h-8 px-2.5 rounded-xl border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs font-bold flex items-center gap-1"
+                              >
+                                <XCircle className="w-3.5 h-3.5" />
+                                <span>رفض</span>
+                              </Button>
+                            </>
+                          ) : (
+                            <span className="text-[11px] text-slate-500 font-mono ml-2">
+                              {rcpt.metadata?.approved_by ? 'معتمد' : rcpt.metadata?.rejected_by ? 'مرفوض' : 'مكتمل'}
+                            </span>
+                          )}
+
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setMessageReceiptItem(rcpt);
+                              setReceiptMessageTitle('إشعار بخصوص إيصال الشحن');
+                              setReceiptMessageBody('');
+                              setReceiptMessageType('admin_message');
+                            }}
+                            className="h-8 px-2.5 rounded-xl border-teal-500/30 bg-teal-500/10 hover:bg-teal-500/20 text-teal-300 text-xs font-bold flex items-center gap-1"
+                            title="إرسال رسالة وتنبيه للكابتن بخصوص هذا الإيصال"
+                          >
+                            <MessageSquare className="w-3.5 h-3.5 text-teal-400" />
+                            <span>مراسلة</span>
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -1525,6 +1553,167 @@ export function WalletManagementTab() {
                     <>
                       <XCircle className="w-4 h-4 ml-1.5" />
                       تأكيد الرفض
+                    </>
+                  )}
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL 4: Message Captain Regarding Receipt */}
+      <Dialog open={!!messageReceiptItem} onOpenChange={(open) => !open && setMessageReceiptItem(null)}>
+        <DialogContent className="max-w-md bg-[#0B0F19] border border-teal-500/40 text-white rounded-3xl p-6 text-right shadow-2xl backdrop-blur-xl" dir="rtl">
+          {messageReceiptItem && (
+            <div className="space-y-4">
+              <DialogHeader>
+                <DialogTitle className="text-lg font-black text-white flex items-center gap-2">
+                  <div className="p-2 rounded-xl bg-teal-500/10 border border-teal-500/30">
+                    <MessageSquare className="w-5 h-5 text-teal-400" />
+                  </div>
+                  <span>إرسال رسالة للكابتن</span>
+                </DialogTitle>
+                <DialogDescription className="text-slate-400 text-xs mt-1">
+                  إرسال إشعار فوري للكابتن بخصوص إيصال الشحن أو التحويل المالي.
+                </DialogDescription>
+              </DialogHeader>
+
+              {/* Captain mini info banner */}
+              <div className="bg-[#161F30]/60 border border-white/10 p-3 rounded-2xl flex items-center justify-between gap-3 text-xs">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-white text-sm">{messageReceiptItem.captainName}</span>
+                    <Badge className="bg-teal-500/15 text-teal-300 border border-teal-500/30 text-[10px] font-mono">
+                      {messageReceiptItem.captainSerial}
+                    </Badge>
+                  </div>
+                  <p className="text-[11px] text-slate-400 font-mono mt-0.5">
+                    {messageReceiptItem.captainPhone} • {messageReceiptItem.amount} {messageReceiptItem.currency} ({messageReceiptItem.channel})
+                  </p>
+                </div>
+
+                {messageReceiptItem.captainPhone && (
+                  <a
+                    href={`https://wa.me/${messageReceiptItem.captainPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`مرحباً كابتن ${messageReceiptItem.captainName}، بخصوص إيصال الشحن المرسل بقيمة ${messageReceiptItem.amount} ${messageReceiptItem.currency}...`)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 text-xs font-bold transition-all shrink-0"
+                    title="فتح محادثة واتساب"
+                  >
+                    <MessageCircle className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>واتساب</span>
+                  </a>
+                )}
+              </div>
+
+              {/* Title input */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-slate-300">عنوان الرسالة / الإشعار</Label>
+                <Input
+                  value={receiptMessageTitle}
+                  onChange={(e) => setReceiptMessageTitle(e.target.value)}
+                  placeholder="مثال: إشعار بخصوص إيصال الشحن"
+                  className="bg-black/60 border-white/10 text-white text-xs h-9 rounded-xl focus:border-teal-500 text-right"
+                />
+              </div>
+
+              {/* Fast Templates */}
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-slate-400">قوالب نصوص سريعة جاهزة:</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    "يرجى إعادة رفع صورة إشعار التحويل بشكل أوضح تظهر كافة التفاصيل.",
+                    "لم نتمكن من مطابقة الرقم المرجعي للحوالة، يرجى تزويدنا به للتأكيد.",
+                    "تم استلام حوالتك بنجاح وجاري تدقيقها واعتماد الرصيد بمحفظتك.",
+                    "نرجو التأكد من إرسال الحوالة إلى الرقم المعتمد للمحفظة.",
+                  ].map((tpl, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setReceiptMessageBody(tpl)}
+                      className="text-[10px] bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 px-2.5 py-1 rounded-lg transition-colors text-right"
+                    >
+                      {tpl.length > 32 ? tpl.slice(0, 32) + '...' : tpl}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Message body */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-slate-300">نص الرسالة</Label>
+                <textarea
+                  value={receiptMessageBody}
+                  onChange={(e) => setReceiptMessageBody(e.target.value)}
+                  placeholder="اكتب التوجيه أو الاستفسار الموجه للكابتن هنا..."
+                  rows={3}
+                  className="w-full bg-black/60 border border-white/10 text-white text-xs p-3 rounded-xl focus:border-teal-500 outline-none resize-none text-right font-sans leading-relaxed"
+                  required
+                />
+              </div>
+
+              <DialogFooter className="flex items-center justify-between gap-3 border-t border-white/10 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setMessageReceiptItem(null)}
+                  disabled={submittingReceiptMessage}
+                  className="border-white/10 text-slate-300 text-xs h-9 rounded-xl"
+                >
+                  إلغاء
+                </Button>
+
+                <Button
+                  type="button"
+                  disabled={submittingReceiptMessage || !receiptMessageBody.trim()}
+                  onClick={async () => {
+                    setSubmittingReceiptMessage(true);
+                    try {
+                      const res = await adminFetch('/api/admin/wallet', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                          action: 'send_message',
+                          captainId: messageReceiptItem.profileId,
+                          title: receiptMessageTitle.trim(),
+                          message: receiptMessageBody.trim(),
+                          type: receiptMessageType,
+                        }),
+                      });
+
+                      const data = await res.json();
+                      if (!res.ok || !data.success) {
+                        throw new Error(data.error || 'فشل إرسال الرسالة');
+                      }
+
+                      toast({
+                        title: 'تم إرسال الرسالة بنجاح',
+                        description: data.message || 'تم إرسال الإشعار اللحظي إلى الكابتن.',
+                      });
+
+                      setMessageReceiptItem(null);
+                      setReceiptMessageBody('');
+                    } catch (err: any) {
+                      toast({
+                        variant: 'destructive',
+                        title: 'خطأ أثناء الإرسال',
+                        description: err.message || 'تعذر إرسال الإشعار للكابتن',
+                      });
+                    } finally {
+                      setSubmittingReceiptMessage(false);
+                    }
+                  }}
+                  className="bg-teal-500 hover:bg-teal-600 text-[#0B0F19] font-black text-xs h-10 px-6 rounded-xl shadow-lg shadow-teal-500/20 flex items-center gap-1.5 active:scale-95 transition-all"
+                >
+                  {submittingReceiptMessage ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin ml-1" />
+                      جاري الإرسال...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4 ml-1" />
+                      إرسال الرسالة للكابتن
                     </>
                   )}
                 </Button>

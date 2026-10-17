@@ -325,6 +325,38 @@ export async function POST(req: Request) {
         return NextResponse.json({ success: true, message: 'تم فك تعليق الرحلة وإعادة الكابتن لوضع الجاهزية (IDLE).' });
       }
 
+      // 8. Send direct real-time message/notification to user or captain
+      case 'send_message': {
+        const { title, message, type } = body;
+        if (!message || !String(message).trim()) {
+          return NextResponse.json({ success: false, error: 'نص الرسالة مطلوب' }, { status: 400 });
+        }
+
+        const msgTitle = title && String(title).trim() ? String(title).trim() : 'رسالة من إدارة المنظومة';
+        const msgType = type || 'admin_message';
+
+        const { data: notif, error: notifErr } = await supabaseAdmin
+          .from('user_notifications')
+          .insert({
+            user_id: userId,
+            title: msgTitle,
+            description: String(message).trim(),
+            type: msgType,
+            is_read: false,
+            created_at: new Date().toISOString(),
+          })
+          .select()
+          .single();
+
+        if (notifErr) throw notifErr;
+
+        return NextResponse.json({
+          success: true,
+          message: 'تم إرسال الرسالة إلى الكابتن بنجاح عبر الإشعار اللحظي.',
+          notification: notif,
+        });
+      }
+
       default:
         return NextResponse.json({ success: false, error: `إجراء غير معروف: ${action}` }, { status: 400 });
     }
