@@ -64,17 +64,17 @@ export interface RiderUser {
 const styles = {
   header: "flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-white/10",
   kpiGrid: "grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-6",
-  kpiCard: "rounded-2xl border border-white/10 bg-[#161F30]/60 p-4 backdrop-blur-xl shadow-lg relative overflow-hidden",
-  kpiTitle: "text-[11px] font-bold text-slate-400 mb-1 flex items-center gap-1.5",
+  kpiCard: "rounded-2xl border border-white/10 bg-[#161F30]/70 p-4 backdrop-blur-xl shadow-lg relative overflow-hidden",
+  kpiTitle: "text-xs font-bold text-slate-300 mb-1.5 flex items-center gap-1.5",
   kpiValue: "text-2xl font-black text-white font-mono",
   searchContainer: "relative w-full sm:w-80",
-  searchInput: "bg-black/60 border-white/10 text-white pl-3 pr-9 h-10 text-xs rounded-xl focus:border-[#14B8A6] text-right",
+  searchInput: "bg-black/70 border-white/15 text-white pl-3 pr-9 h-10 text-xs rounded-xl focus:border-[#14B8A6] text-right font-medium placeholder:text-slate-500",
   searchIcon: "absolute right-3 top-3 h-4 w-4 text-slate-400",
-  tableCard: "rounded-2xl border border-white/10 bg-[#0B0F19]/90 overflow-hidden shadow-2xl",
-  tableHead: "border-b border-white/10 bg-black/40 text-slate-300 text-xs font-bold",
-  tableRow: "border-b border-white/5 transition hover:bg-white/[0.02]",
-  avatar: "flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-500/10 text-cyan-400 font-bold border border-cyan-500/30 text-xs",
-  statusBadge: "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold border",
+  tableCard: "rounded-2xl border border-white/10 bg-[#0B0F19]/95 overflow-hidden shadow-2xl backdrop-blur-xl",
+  tableHead: "border-b border-white/10 bg-[#0F172A]/90 text-slate-200 text-xs font-black tracking-wide",
+  tableRow: "border-b border-white/[0.06] transition-colors hover:bg-white/[0.03]",
+  avatar: "flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-500/15 text-cyan-400 font-black border border-cyan-500/30 text-xs",
+  statusBadge: "inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold border shadow-sm",
 } as const;
 
 export function RidersManagementPanel() {
@@ -210,37 +210,37 @@ export function RidersManagementPanel() {
     switch (status) {
       case 'ACTIVE':
         return (
-          <span className={cn(styles.statusBadge, "bg-emerald-500/10 text-emerald-400 border-emerald-500/20")}>
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            نشط
+          <span className={cn(styles.statusBadge, "bg-emerald-500/15 text-emerald-300 border-emerald-500/30")}>
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            نشط بالرادار
           </span>
         );
       case 'BUSY':
         return (
-          <span className={cn(styles.statusBadge, "bg-amber-500/10 text-amber-400 border-amber-500/20")}>
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+          <span className={cn(styles.statusBadge, "bg-amber-500/15 text-amber-300 border-amber-500/30")}>
+            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
             في رحلة
           </span>
         );
       case 'SUSPENDED':
         return (
-          <span className={cn(styles.statusBadge, "bg-rose-500/10 text-rose-400 border-rose-500/20")}>
-            <XCircle className="w-3 h-3 text-rose-400" />
-            معلق وموقوف
+          <span className={cn(styles.statusBadge, "bg-rose-500/15 text-rose-300 border-rose-500/30")}>
+            <XCircle className="w-3.5 h-3.5 text-rose-400" />
+            موقوف مؤقتاً
           </span>
         );
       case 'BANNED':
         return (
-          <span className={cn(styles.statusBadge, "bg-red-950/60 text-red-400 border-red-500/30")}>
-            <ShieldAlert className="w-3 h-3 text-red-400" />
+          <span className={cn(styles.statusBadge, "bg-red-950/80 text-red-300 border-red-500/40")}>
+            <ShieldAlert className="w-3.5 h-3.5 text-red-400" />
             محظور نهائياً
           </span>
         );
       case 'IDLE':
       default:
         return (
-          <span className={cn(styles.statusBadge, "bg-slate-500/10 text-slate-300 border-slate-500/20")}>
-            <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+          <span className={cn(styles.statusBadge, "bg-slate-800/80 text-slate-200 border-slate-700")}>
+            <span className="w-2 h-2 rounded-full bg-slate-400" />
             جاهز / خامل
           </span>
         );
@@ -250,24 +250,27 @@ export function RidersManagementPanel() {
   const getImmunityBadge = (score: number) => {
     if (score >= 4.5) {
       return (
-        <span className="inline-flex items-center gap-1 font-mono font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-lg text-xs">
-          <Star className="h-3 w-3 fill-emerald-400" />
-          {score.toFixed(1)}
+        <span className="inline-flex items-center gap-1.5 font-mono font-bold text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-1 rounded-lg text-xs shadow-sm">
+          <Star className="h-3.5 w-3.5 fill-emerald-400 text-emerald-400" />
+          <span>{score.toFixed(1)}</span>
+          <span className="text-[10px] text-emerald-400/90 font-bold">(ممتاز)</span>
         </span>
       );
     }
     if (score >= 4.2) {
       return (
-        <span className="inline-flex items-center gap-1 font-mono font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2.5 py-0.5 rounded-lg text-xs">
-          <AlertTriangle className="h-3 w-3" />
-          {score.toFixed(1)} (إنذار)
+        <span className="inline-flex items-center gap-1.5 font-mono font-bold text-amber-300 bg-amber-500/15 border border-amber-500/30 px-2.5 py-1 rounded-lg text-xs shadow-sm">
+          <AlertTriangle className="h-3.5 w-3.5 text-amber-400" />
+          <span>{score.toFixed(1)}</span>
+          <span className="text-[10px] text-amber-400/90 font-bold">(إنذار)</span>
         </span>
       );
     }
     return (
-      <span className="inline-flex items-center gap-1 font-mono font-bold text-rose-400 bg-rose-500/20 border border-rose-500/40 px-2.5 py-0.5 rounded-lg text-xs animate-pulse">
-        <AlertOctagon className="h-3 w-3" />
-        {score.toFixed(1)} (خطر أمني)
+      <span className="inline-flex items-center gap-1.5 font-mono font-bold text-rose-300 bg-rose-500/20 border border-rose-500/40 px-2.5 py-1 rounded-lg text-xs shadow-sm animate-pulse">
+        <AlertOctagon className="h-3.5 w-3.5 text-rose-400" />
+        <span>{score.toFixed(1)}</span>
+        <span className="text-[10px] text-rose-300 font-bold">(خطر أمني)</span>
       </span>
     );
   };
@@ -423,13 +426,13 @@ export function RidersManagementPanel() {
               <table className="w-full text-right text-xs">
                 <thead className={styles.tableHead}>
                   <tr>
-                    <th className="p-3.5">الراكب والهوية</th>
-                    <th className="p-3.5">الموقع الجغرافي</th>
-                    <th className="p-3.5">مؤشر النزاهة (المناعة)</th>
-                    <th className="p-3.5">الإلغاءات المتتالية</th>
-                    <th className="p-3.5">رصيد المحفظة</th>
-                    <th className="p-3.5">الحالة</th>
-                    <th className="p-3.5 text-center">إجراءات المشرف</th>
+                    <th className="py-4 px-4 font-black text-slate-200">الراكب والهوية</th>
+                    <th className="py-4 px-4 font-black text-slate-200">الموقع الجغرافي</th>
+                    <th className="py-4 px-4 font-black text-slate-200">مؤشر النزاهة (المناعة)</th>
+                    <th className="py-4 px-4 font-black text-slate-200">الإلغاءات المتتالية</th>
+                    <th className="py-4 px-4 font-black text-slate-200">رصيد المحفظة</th>
+                    <th className="py-4 px-4 font-black text-slate-200">الحالة</th>
+                    <th className="py-4 px-4 font-black text-slate-200 text-center">إجراءات المشرف</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -439,21 +442,22 @@ export function RidersManagementPanel() {
                     return (
                       <tr key={rider.id} className={styles.tableRow}>
                         {/* 1. Identity */}
-                        <td className="p-3.5">
+                        <td className="py-4 px-4">
                           <div className="flex items-center gap-3">
-                            <Avatar className="h-9 w-9 border border-white/10 rounded-xl">
-                              <AvatarFallback className="bg-cyan-500/10 text-cyan-400 font-black text-xs">
-                                {rider.full_name.substring(0, 2)}
+                            <Avatar className="h-10 w-10 border border-cyan-500/40 rounded-xl shadow-sm">
+                              <AvatarFallback className="bg-cyan-500/15 text-cyan-400 font-black text-xs">
+                                {rider.full_name ? rider.full_name.substring(0, 2) : 'ر'}
                               </AvatarFallback>
                             </Avatar>
-                            <div>
+                            <div className="space-y-1">
                               <div className="flex items-center gap-2">
-                                <span className="font-bold text-white text-sm">{rider.full_name}</span>
-                                <Badge variant="outline" className="font-mono text-[10px] bg-black/60 border-cyan-500/30 text-cyan-300">
+                                <span className="font-black text-white text-sm tracking-wide">{rider.full_name}</span>
+                                <Badge variant="outline" className="font-mono text-[10px] font-bold bg-cyan-950/60 border-cyan-500/40 text-cyan-300 px-1.5 py-0.5 rounded-md">
                                   {rider.serial_id}
                                 </Badge>
                               </div>
-                              <div className="flex items-center gap-3 text-slate-400 text-[11px] mt-0.5 font-mono" dir="ltr">
+                              <div className="flex items-center gap-1.5 text-slate-300 text-xs font-mono font-semibold" dir="ltr">
+                                <Phone className="h-3 w-3 text-cyan-400" />
                                 <span>{rider.phone}</span>
                               </div>
                             </div>
@@ -461,57 +465,57 @@ export function RidersManagementPanel() {
                         </td>
 
                         {/* 2. Location */}
-                        <td className="p-3.5">
-                          <span className="inline-flex items-center gap-1.5 text-slate-300 font-bold">
+                        <td className="py-4 px-4">
+                          <span className="inline-flex items-center gap-1.5 text-slate-200 font-bold bg-white/5 border border-white/10 px-2.5 py-1 rounded-lg text-xs">
                             <MapPin className="h-3.5 w-3.5 text-[#14B8A6]" />
                             {rider.governorate} - {rider.district}
                           </span>
                         </td>
 
                         {/* 3. Behavioral Immunity Trust Score */}
-                        <td className="p-3.5">
+                        <td className="py-4 px-4">
                           {getImmunityBadge(rider.trust_score)}
                         </td>
 
                         {/* 4. Consecutive cancellations */}
-                        <td className="p-3.5">
+                        <td className="py-4 px-4">
                           {rider.consecutive_cancellations > 0 ? (
                             <Badge className={cn(
-                              "font-mono font-bold text-[10px] border",
+                              "font-mono font-bold text-xs px-2.5 py-1 border shadow-sm",
                               rider.consecutive_cancellations >= 3
-                                ? "bg-red-950/60 text-red-400 border-red-500/30"
-                                : "bg-amber-950/60 text-amber-400 border-amber-500/30"
+                                ? "bg-red-950/80 text-red-300 border-red-500/40"
+                                : "bg-amber-950/80 text-amber-300 border-amber-500/40"
                             )}>
                               {rider.consecutive_cancellations} إلغاء متتالي ⚠️
                             </Badge>
                           ) : (
-                            <span className="text-slate-500 font-mono text-[11px]">0 إلغاء</span>
+                            <span className="text-slate-400 font-mono text-xs font-semibold">0 إلغاء</span>
                           )}
                         </td>
 
                         {/* 5. Wallet balance */}
-                        <td className="p-3.5">
-                          <div className="inline-flex items-center gap-1 font-mono font-bold text-slate-200">
+                        <td className="py-4 px-4">
+                          <div className="inline-flex items-center gap-1.5 font-mono font-black text-slate-100 bg-black/60 border border-white/10 px-2.5 py-1 rounded-lg text-xs">
                             <Wallet className="h-3.5 w-3.5 text-[#14B8A6]" />
                             <span>{(rider.wallet?.balance ?? 0).toFixed(2)} د.أ</span>
                           </div>
                         </td>
 
                         {/* 6. Status */}
-                        <td className="p-3.5">
+                        <td className="py-4 px-4">
                           {getStatusBadge(rider.status)}
                         </td>
 
                         {/* 7. Action buttons */}
-                        <td className="p-3.5 text-center">
-                          <div className="flex items-center justify-center gap-1.5">
+                        <td className="py-4 px-4 text-center">
+                          <div className="flex items-center justify-center gap-2">
                             {/* Inspect */}
                             <Button
                               type="button"
                               size="sm"
                               variant="outline"
                               onClick={() => setInspectRider(rider)}
-                              className="h-8 px-2.5 rounded-xl border-white/10 bg-white/5 hover:bg-white/10 text-slate-200 text-xs flex items-center gap-1"
+                              className="h-8 px-3 rounded-xl border border-cyan-500/30 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 text-xs font-bold flex items-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer"
                               title="عرض تفاصيل الراكب وسجل السلوك"
                             >
                               <Eye className="h-3.5 w-3.5 text-cyan-400" />
@@ -528,9 +532,9 @@ export function RidersManagementPanel() {
                                 setTargetStatus(rider.status);
                               }}
                               className={cn(
-                                "h-8 px-2.5 rounded-xl border text-xs flex items-center gap-1 transition",
+                                "h-8 px-3 rounded-xl border text-xs font-bold flex items-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer",
                                 isAtRisk
-                                  ? "border-rose-500/40 bg-rose-500/10 text-rose-300 hover:bg-rose-500/20"
+                                  ? "border-rose-500/40 bg-rose-500/15 text-rose-300 hover:bg-rose-500/25"
                                   : "border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20"
                               )}
                               title="إدارة النزاهة والحظر وتصفير العقوبات"
@@ -548,10 +552,10 @@ export function RidersManagementPanel() {
                                 setCompensationAmount(1.0);
                                 setCompensationReason('تعويض إداري عن شكوى رحلة');
                               }}
-                              className="h-8 px-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black flex items-center gap-1 shadow-md shadow-emerald-600/20"
+                              className="h-8 px-3 rounded-xl border border-emerald-500/40 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 text-xs font-black flex items-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer"
                               title="تعويض مالي مباشر في المحفظة"
                             >
-                              <Coins className="h-3.5 w-3.5" />
+                              <Coins className="h-3.5 w-3.5 text-emerald-400" />
                               <span>تعويض</span>
                             </Button>
                           </div>

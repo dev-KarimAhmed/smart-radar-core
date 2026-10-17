@@ -20,12 +20,12 @@ interface KPIStats {
 
 const styles = {
   container: "grid grid-cols-2 lg:grid-cols-5 gap-3.5 mb-6 text-right",
-  card: "relative overflow-hidden rounded-2xl border border-white/10 bg-[#0B0F19]/90 p-4 transition-all duration-300 hover:border-white/20 shadow-lg",
+  card: "relative overflow-hidden rounded-2xl border border-white/10 bg-[#0B0F19]/95 p-4 transition-all duration-300 hover:border-white/20 shadow-xl backdrop-blur-xl",
   iconWrapper: "flex h-9 w-9 items-center justify-center rounded-xl",
-  label: "mt-2 text-xs font-bold text-slate-400",
-  valueContainer: "mt-1 flex items-baseline justify-between",
-  mainValue: "font-mono text-2xl font-black text-white",
-  subBadge: "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold",
+  label: "mt-2.5 text-xs font-bold text-slate-300 tracking-wide",
+  valueContainer: "mt-1.5 flex items-baseline justify-between",
+  mainValue: "font-mono text-2xl font-black text-white tracking-tight",
+  subBadge: "inline-flex items-center gap-1 rounded-lg px-2.5 py-0.5 text-[11px] font-bold border shadow-sm",
 } as const;
 
 export function AdminMasterKPIBar() {
@@ -105,7 +105,7 @@ export function AdminMasterKPIBar() {
         <p className={styles.label}>{t('captains')}</p>
         <div className={styles.valueContainer}>
           <span className={styles.mainValue}>{loading ? '...' : stats.totalCaptains}</span>
-          <span className={cn(styles.subBadge, "bg-emerald-500/15 text-emerald-300")}>
+          <span className={cn(styles.subBadge, "bg-emerald-500/15 text-emerald-300 border-emerald-500/30")}>
             {stats.activeCaptains} {t('online')}
           </span>
         </div>
@@ -119,7 +119,7 @@ export function AdminMasterKPIBar() {
         <p className={styles.label}>{t('riders')}</p>
         <div className={styles.valueContainer}>
           <span className={styles.mainValue}>{loading ? '...' : stats.totalRiders}</span>
-          <span className={cn(styles.subBadge, "bg-cyan-500/15 text-cyan-300")}>
+          <span className={cn(styles.subBadge, "bg-cyan-500/15 text-cyan-300 border-cyan-500/30")}>
             <ArrowUpRight className="h-2.5 w-2.5 ml-0.5" /> مسجل
           </span>
         </div>
@@ -134,11 +134,11 @@ export function AdminMasterKPIBar() {
         <div className={styles.valueContainer}>
           <span className={styles.mainValue}>{loading ? '...' : stats.activeAds}</span>
           {stats.pendingAds > 0 ? (
-            <span className={cn(styles.subBadge, "bg-red-500/20 text-red-300 animate-pulse border border-red-500/30")}>
+            <span className={cn(styles.subBadge, "bg-red-500/20 text-red-300 animate-pulse border-red-500/40")}>
               {stats.pendingAds} معلق
             </span>
           ) : (
-            <span className={cn(styles.subBadge, "bg-slate-800 text-slate-400")}>
+            <span className={cn(styles.subBadge, "bg-slate-800/80 text-slate-300 border-slate-700")}>
               0 معلق
             </span>
           )}
@@ -153,7 +153,7 @@ export function AdminMasterKPIBar() {
         <p className={styles.label}>{t('delegates')}</p>
         <div className={styles.valueContainer}>
           <span className={styles.mainValue}>{loading ? '...' : stats.totalDelegates}</span>
-          <span className={cn(styles.subBadge, "bg-indigo-500/15 text-indigo-300")}>
+          <span className={cn(styles.subBadge, "bg-indigo-500/15 text-indigo-300 border-indigo-500/30")}>
             الميدان
           </span>
         </div>
@@ -167,7 +167,7 @@ export function AdminMasterKPIBar() {
         <p className={styles.label}>{t('systemStatus')}</p>
         <div className={styles.valueContainer}>
           <span className="font-mono text-base font-bold text-[#14F5D5]">{stats.systemHealth}</span>
-          <span className={cn(styles.subBadge, "bg-teal-500/15 text-teal-300")}>
+          <span className={cn(styles.subBadge, "bg-teal-500/15 text-teal-300 border-teal-500/30")}>
             الرادار الحافة
           </span>
         </div>
