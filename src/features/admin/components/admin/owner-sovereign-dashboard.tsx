@@ -211,8 +211,8 @@ export function RadarOwnerSovereignDashboard() {
                     <div className={styles.style142_27}>
                       <span className={styles.style143_28}>{tAuto('key_63ca12cc')}</span>
                       <div className={styles.style144_29}>
-                        {region.paths.map(path => (
-                          <code key={path} className={styles.style146_30}>{path}</code>
+                        {region.paths.map((path, idx) => (
+                          <code key={`${path}-${idx}`} className={styles.style146_30}>{path}</code>
                         ))}
                       </div>
                     </div>
@@ -240,16 +240,16 @@ export function RadarOwnerSovereignDashboard() {
                           <div>
                             <span className={styles.style172_43}>{tAuto('key_eb2ff9e6')}{sector.frontend.components.length}):</span>
                             <div className={styles.style173_44}>
-                              {sector.frontend.components.length > 0 ? sector.frontend.components.map(c => (
-                                <code key={c} className={styles.style175_45}>{c.split('/').pop()}</code>
+                              {sector.frontend.components.length > 0 ? sector.frontend.components.map((c, idx) => (
+                                <code key={`${c}-${idx}`} className={styles.style175_45}>{c.split('/').pop()}</code>
                               )) : <span className={styles.style176_46}>{tAuto('key_9d7155f3')}</span>}
                             </div>
                           </div>
                           <div className={styles.style179_47}>
                             <span className={styles.style180_48}>{tAuto('key_e061f48e')}{sector.frontend.hooks.length}):</span>
                             <div className={styles.style181_49}>
-                              {sector.frontend.hooks.length > 0 ? sector.frontend.hooks.map(h => (
-                                <code key={h} className={styles.style183_50}>{h.split('/').pop()}</code>
+                              {sector.frontend.hooks.length > 0 ? sector.frontend.hooks.map((h, idx) => (
+                                <code key={`${h}-${idx}`} className={styles.style183_50}>{h.split('/').pop()}</code>
                               )) : <span className={styles.style184_51}>{tAuto('key_9d7155f3')}</span>}
                             </div>
                           </div>
@@ -261,16 +261,16 @@ export function RadarOwnerSovereignDashboard() {
                           <div>
                             <span className={styles.style193_54}>{tAuto('key_ce18ff4e')}{sector.backend.cores.length}):</span>
                             <div className={styles.style194_55}>
-                              {sector.backend.cores.length > 0 ? sector.backend.cores.map(c => (
-                                <code key={c} className={styles.style196_56}>{c.split('/').pop()}</code>
+                              {sector.backend.cores.length > 0 ? sector.backend.cores.map((c, idx) => (
+                                <code key={`${c}-${idx}`} className={styles.style196_56}>{c.split('/').pop()}</code>
                               )) : <span className={styles.style197_57}>{tAuto('key_9d7155f3')}</span>}
                             </div>
                           </div>
                           <div className={styles.style200_58}>
                             <span className={styles.style201_59}>{tAuto('key_f394b95a')}{sector.backend.databaseCollections.length}):</span>
                             <div className={styles.style202_60}>
-                              {sector.backend.databaseCollections.length > 0 ? sector.backend.databaseCollections.map(c => (
-                                <code key={c} className={styles.style204_61}>{c}</code>
+                              {sector.backend.databaseCollections.length > 0 ? sector.backend.databaseCollections.map((c, idx) => (
+                                <code key={`${c}-${idx}`} className={styles.style204_61}>{c}</code>
                               )) : <span className={styles.style205_62}>{tAuto('key_9d7155f3')}</span>}
                             </div>
                           </div>
