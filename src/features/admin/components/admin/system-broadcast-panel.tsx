@@ -38,24 +38,7 @@ export function SystemBroadcastPanel() {
   const [governorate, setGovernorate] = useState('ALL');
   const [priority, setPriority] = useState<'normal' | 'urgent'>('normal');
   const [sending, setSending] = useState(false);
-  const [history, setHistory] = useState<SentBroadcast[]>([
-    {
-      id: '1',
-      title: 'تحديث تسعيرة الرحلات الليلية',
-      message: 'تم تفعيل معامل الرادار الليلي لكافة ألوية العاصمة عمّان.',
-      audience: 'captains',
-      targetRegion: 'عمّان',
-      sentAt: 'منذ ساعتين',
-    },
-    {
-      id: '2',
-      title: 'استقرار الشبكة وترقية السيرفر',
-      message: 'تمت ترقية خوادم OSRM لتوفير توجيه لحظي فائق الدقة.',
-      audience: 'all',
-      targetRegion: 'كافة المحافظات',
-      sentAt: 'أمس',
-    },
-  ]);
+  const [history, setHistory] = useState<SentBroadcast[]>([]);
 
   const handleSendBroadcast = async () => {
     if (!title.trim() || !message.trim()) {
@@ -197,20 +180,24 @@ export function SystemBroadcastPanel() {
           <Bell className="h-4 w-4 text-[#14F5D5]" />
           {t('historyTitle')}
         </h3>
-        <div className="space-y-3">
-          {history.map((item) => (
-            <div key={item.id} className="rounded-xl border border-white/5 bg-black/40 p-3.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-              <div>
-                <p className="text-xs font-black text-white">{item.title}</p>
-                <p className="text-[11px] text-slate-400 mt-0.5">{item.message}</p>
+        {history.length === 0 ? (
+          <p className="text-xs text-slate-500 py-6 text-center font-bold">لا توجد تعميمات سابقة مرسلة حتى الآن.</p>
+        ) : (
+          <div className="space-y-3">
+            {history.map((item) => (
+              <div key={item.id} className="rounded-xl border border-white/5 bg-black/40 p-3.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div>
+                  <p className="text-xs font-black text-white">{item.title}</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">{item.message}</p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-[10px] text-slate-500 font-mono">{item.targetRegion}</span>
+                  <span className="text-[10px] text-[#14B8A6] font-mono">{item.sentAt}</span>
+                </div>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="text-[10px] text-slate-500 font-mono">{item.targetRegion}</span>
-                <span className="text-[10px] text-[#14B8A6] font-mono">{item.sentAt}</span>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -217,62 +217,6 @@ function LoginOrchestrator() {
 
         <div>
           <AdminStep />
-
-          {/* Development demo shortcuts */}
-          {isStrictDevelopment && (
-            <div className={styles.style176_17}>
-              <div className={styles.style177_18}>
-                <span className={styles.style178_19}>
-                  {tAuto('key_c7f74e6a')}
-                                                  </span>
-                <p className={styles.style181_20}>
-                  {tAuto('key_960ae63d')}
-                                                  </p>
-              </div>
-              <div className={styles.style185_21}>
-                <button
-                  type="button"
-                  onClick={() => handleDevBypass('rider')}
-                  className={styles.style189_22}
-                >
-                  <UserCheck className={styles.style191_23} />
-                  <span>{tAuto('key_b5f2617a')}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleDevBypass('driver')}
-                  className={styles.style197_24}
-                >
-                  <Car className={styles.style199_25} />
-                  <span>{tAuto('key_f88ba116')}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleDevBypass('admin')}
-                  className={styles.style205_26}
-                >
-                  <Key className={styles.style207_27} />
-                  <span>{tAuto('key_78278817')}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleDevBypass('advertiser')}
-                  className={styles.style213_28}
-                >
-                  <Megaphone className={styles.style215_29} />
-                  <span>{tAuto('key_f2d3c89f')}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleDevBypass('delegate')}
-                  className={styles.style221_30}
-                >
-                  <Users className={styles.style223_31} />
-                  <span>{tAuto('key_3df54374')}</span>
-                </button>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Footer */}

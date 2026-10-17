@@ -116,45 +116,7 @@ export function useAdminAds() {
 
  const unsubscribe = onSnapshot(promosQuery, (snapshot) => {
  if (snapshot.empty) {
- // Fallback simulation mock ads matching Jordan & Iraq context
- setDbPromos([
- {
- id: 'promo-wadi-seer',
- status: 'active',
- content: {
- title: 'مركز أعمال وادي السير الحرفي المطور',
- description: 'لأهالي وادي السير: احصل على تمويل للمشاريع الصغيرة بدون فوائد.',
- posterUrl: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&q=80&w=1200',
- },
- role: 'all',
- phone: '0790123456',
- whatsapp: '962790123456',
- targetDistrict: 'وادي السير',
- targetGovernorate: 'عمان',
- currentImpressions: 4890,
- targetImpressions: 10000,
- clicksCount: 312,
- endDate: '2026-12-31'
- },
- {
- id: 'promo-university',
- status: 'active',
- content: {
- title: 'ملتقى تكنولوجيا الجامعة',
- description: 'لرواد قطاع الجامعة: حلول الذكاء الاصطناعي كحارس أمين (AI Sentry) وحلول الحوسبة السحابية الحرة بميزانية صفرية.',
- posterUrl: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&q=80&w=1200',
- },
- role: 'all',
- phone: '0790111222',
- whatsapp: '962790111222',
- targetDistrict: 'الجامعة',
- targetGovernorate: 'عمان',
- currentImpressions: 1200,
- targetImpressions: 5000,
- clicksCount: 94,
- endDate: '2026-09-30'
- }
- ]);
+ setDbPromos([]);
  } else {
  const fetchedPromos = snapshot.docs.map(docSnap => {
  const data = docSnap.data();
@@ -195,7 +157,7 @@ export function useAdminAds() {
  isProcessingRef.current = true;
  setIsProcessing(true);
  try {
- const generatedId = `mock-${Date.now()}`;
+ const generatedId = doc(collection(db, 'promos')).id;
  const adModel = {
  id: generatedId,
  status: adData.status || 'active',

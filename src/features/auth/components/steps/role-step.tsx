@@ -353,39 +353,6 @@ export function RoleStep() {
             })}
           </AnimatePresence>
         </motion.div>
-
-        {(process.env.NODE_ENV !== 'production') ? (
-          <section className={styles.style372_30}>
-            <div className={cn(styles.style373_31, isArabic ? styles.style373_32 : styles.style373_33)}>
-              <p className={styles.style374_34}>
-                Demo dashboards
-              </p>
-              <p className={styles.style377_35}>
-                Testing-only buttons that load demo data and enter each role dashboard.
-              </p>
-            </div>
-
-            <div className={styles.style382_36}>
-              {demoUsers.map((demo) => (
-                <motion.button
-                  key={demo.role}
-                  type="button"
-                  whileHover={{ y: -2 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => openDemoDashboard(demo.user)}
-                  className={styles.style390_37}
-                >
-                  <span className={styles.style392_38}>
-                    {demo.label}
-                  </span>
-                  <span className={styles.style395_39}>
-                    {demo.description}
-                  </span>
-                </motion.button>
-              ))}
-            </div>
-          </section>
-        ) : null}
       </section>
     </main>
   );
