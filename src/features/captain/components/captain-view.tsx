@@ -51,7 +51,7 @@ const styles = {
   style164_9: "shrink-0 rounded-2xl px-2.5 py-2.5 text-xs font-black transition sm:px-4 sm:py-3 sm:text-sm",
   style165_10: "bg-emerald-500/15 text-emerald-200 ring-1 ring-emerald-400/40",
   style165_11: "bg-slate-800 text-slate-200",
-  style167_1: "grid basis-full grow-0 grid-cols-5 gap-1 sm:basis-0 sm:grow sm:gap-2",
+  style167_1: "grid basis-full grow-0 grid-cols-4 gap-1.5 sm:basis-0 sm:grow sm:gap-2",
   style170_12: "h-4 w-4",
   style171_13: "h-4 w-4",
   style172_14: "h-4 w-4",
@@ -424,7 +424,6 @@ export function DriverViewTab() {
             <div className={styles.style167_1}>
               <NavButton active={screen === 'RADAR_MAP' || screen === 'BIDDING' || screen === 'ACTIVE_TRIP'} onClick={() => dispatch({ type: 'OPEN_RADAR' })} label={t('radar')} icon={<Map className={styles.style170_12} />} />
               <NavButton active={screen === 'WALLET'} onClick={() => dispatch({ type: 'OPEN_WALLET' })} label={t('wallet')} icon={<Wallet className={styles.style171_13} />} />
-              <NavButton active={screen === 'NOTIFICATIONS'} onClick={() => dispatch({ type: 'OPEN_NOTIFICATIONS' })} label={t('notifications')} icon={<Bell className={styles.style171_13} />} badge={unreadCount} />
               <NavButton active={screen === 'HISTORY'} onClick={() => dispatch({ type: 'OPEN_HISTORY' })} label={t('history')} icon={<History className={styles.style172_14} />} />
               <NavButton active={screen === 'PROFILE'} onClick={() => dispatch({ type: 'OPEN_PROFILE' })} label={t('profile')} icon={<User className={styles.style172_14} />} />
             </div>
@@ -550,7 +549,7 @@ export function DriverViewTab() {
         {screen === 'WALLET' ? <DriverWalletTab user={user} language={language} isFlightActive={isActive} /> : null}
         {screen === 'NOTIFICATIONS' ? (
           <div className="flex-1 rounded-3xl border border-emerald-500/20 bg-[#05080f] p-3 sm:p-6 shadow-2xl">
-            <NotificationsScreen />
+            <NotificationsScreen onClose={() => dispatch({ type: 'OPEN_RADAR' })} />
           </div>
         ) : null}
         {screen === 'HISTORY' ? <HistoryScreen hideCaptainDiagnostics /> : null}
