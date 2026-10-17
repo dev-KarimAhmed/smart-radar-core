@@ -27,17 +27,7 @@ export function useMarketPulse(enabled = true) {
         if (!isMounted) return;
         
         if (snapshot.empty) {
-          // 🚩 [SCR-MOCK-MARKET] Fallback mock data if the collection is empty
-            setPulseData([
-              { id: tAuto('wadiSeer'), trend: 'balanced', demand: 5, supply: 5 },
-              { id: tAuto('university'), trend: 'high_demand', demand: 8, supply: 2 },
-              { id: tAuto('ammanQasaba'), trend: 'high_supply', demand: 2, supply: 8 },
-              { id: tAuto('marka'), trend: 'balanced', demand: 4, supply: 4 },
-              { id: tAuto('naour'), trend: 'balanced', demand: 5, supply: 5 },
-              { id: tAuto('irbidQasaba'), trend: 'high_demand', demand: 9, supply: 3 },
-              { id: tAuto('ramtha'), trend: 'balanced', demand: 6, supply: 6 },
-              { id: tAuto('zarqaQasaba'), trend: 'high_supply', demand: 3, supply: 7 }
-            ]);
+          setPulseData([]);
         } else {
           setPulseData(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MarketPulse)));
         }
@@ -46,18 +36,7 @@ export function useMarketPulse(enabled = true) {
       (err) => {
         if (!isMounted) return;
         trackSovereignError(err, { context: 'MarketPulseListener' });
-        
-        // Fallback on permission/CORS error in preview
-        setPulseData([
-          { id: tAuto('wadiSeer'), trend: 'balanced', demand: 5, supply: 5 },
-          { id: tAuto('university'), trend: 'high_demand', demand: 8, supply: 2 },
-          { id: tAuto('ammanQasaba'), trend: 'high_supply', demand: 2, supply: 8 },
-          { id: tAuto('marka'), trend: 'balanced', demand: 4, supply: 4 },
-          { id: tAuto('naour'), trend: 'balanced', demand: 5, supply: 5 },
-          { id: tAuto('irbidQasaba'), trend: 'high_demand', demand: 9, supply: 3 },
-          { id: tAuto('ramtha'), trend: 'balanced', demand: 6, supply: 6 },
-          { id: tAuto('zarqaQasaba'), trend: 'high_supply', demand: 3, supply: 7 }
-        ]);
+        setPulseData([]);
         setIsLoading(false);
       }
     );

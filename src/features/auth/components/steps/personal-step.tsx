@@ -574,34 +574,6 @@ export function PersonalStep() {
               className={styles.style405_21}
               onSubmit={onFormSubmit}
             >
-              {mode === 'register' && (role !== 'rider' && canUseDevMockData) ? (
-                <div className={styles.style591_73}>
-                  <div className={styles.style592_74}>
-                    {locationDataLoading ? (
-                      <>
-                        <Loader2 className={styles.style595_75} aria-hidden="true" />
-                        <span>{t.loadingLocations}</span>
-                      </>
-                    ) : (
-                      <>
-                        <MapPin className={styles.style600_76} aria-hidden="true" />
-                        <span>{`${countries.length} / ${governorates.length} / ${districts.length}`}</span>
-                      </>
-                    )}
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={fillRandomRegistrationData}
-                    disabled={locationDataLoading}
-                    className={styles.style611_77}
-                  >
-                    <Sparkles className={styles.style613_78} aria-hidden="true" />
-                    {t.mockData}
-                  </button>
-                </div>
-              ) : null}
-
               {mode === 'register' ? (
                 <Field label={t.fullName} icon={<UserRound className={styles.style621_79} />}>
                   <input
