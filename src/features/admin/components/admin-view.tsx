@@ -7,8 +7,6 @@ import { AdminMasterKPIBar } from './admin/admin-master-kpi-bar';
 import { WalletManagementTab } from './admin/wallet-management-tab';
 import { RidersManagementPanel } from './admin/riders-management-panel';
 import { AdminsManagementPanel } from './admin/admins-management-panel';
-import { AdsManagementTab } from './admin/ads-management-tab';
-import { DelegatesManagementTab } from './admin/delegates-management-tab';
 import { Shield, Megaphone, Users, Activity, UsersRound, ShieldAlert, CheckCircle2, KeyRound, Loader2, ArrowUpRight, TrendingUp, AlertTriangle, Radio, ShieldCheck, Cpu, Eye, AlertCircle, RefreshCw, Sparkles, Fingerprint, Terminal, Scale, Compass, Trash2, Gauge, DollarSign, UserCheck, Wallet, Construction } from 'lucide-react';
 import React, { useState } from 'react';
 import { useAdminAds } from '@/hooks/use-admin-ads';
@@ -1066,67 +1064,130 @@ export function AdminViewTab() {
 
         {/* 3. الإعلانات */}
         <TabsContent value="ads" className="space-y-6">
-          <div className="relative overflow-hidden rounded-2xl border border-amber-500/30 bg-gradient-to-r from-amber-500/15 via-amber-500/5 to-transparent p-4 sm:p-5 shadow-xl backdrop-blur-xl">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-3.5">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-amber-500/40 bg-amber-500/20 text-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.25)]">
-                  <Construction className="h-6 w-6 animate-pulse" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="text-base font-black text-white">منظومة الإعلانات والنهر الإعلاني</h3>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2.5 py-0.5 text-[11px] font-black">
-                      🚧 هذه الشاشة تحت التأسيس
-                    </span>
+          <div className="relative overflow-hidden rounded-3xl border border-amber-500/20 bg-[#0B0F19]/90 p-8 sm:p-12 text-center shadow-2xl backdrop-blur-xl">
+            <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-96 h-96 bg-amber-500/10 blur-3xl pointer-events-none rounded-full" />
+            <div className="absolute -bottom-24 left-1/2 -translate-x-1/2 w-96 h-96 bg-teal-500/5 blur-3xl pointer-events-none rounded-full" />
+
+            <div className="relative z-10 max-w-2xl mx-auto flex flex-col items-center">
+              <div className="relative mb-6 flex h-20 w-20 items-center justify-center rounded-3xl border border-amber-500/40 bg-gradient-to-br from-amber-500/20 to-amber-500/5 text-amber-400 shadow-[0_0_35px_rgba(245,158,11,0.25)]">
+                <Construction className="h-10 w-10 animate-pulse" />
+                <span className="absolute -bottom-1 -right-1 flex h-4 w-4">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-4 w-4 bg-amber-500" />
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2 mb-3">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 border border-amber-500/30 px-3.5 py-1 text-xs font-black text-amber-300">
+                  🚧 هذه الشاشة تحت التأسيس
+                </span>
+                <span className="rounded-full bg-white/5 border border-white/10 px-3 py-1 text-xs font-mono text-slate-400 font-bold">
+                  UNDER CONSTRUCTION
+                </span>
+              </div>
+
+              <h2 className="text-2xl sm:text-3xl font-black text-white tracking-wide mb-3">
+                منظومة الإعلانات والنهر الإعلاني
+              </h2>
+
+              <p className="text-sm sm:text-base text-slate-300 leading-relaxed mb-8">
+                يجري حالياً العمل على تأسيس وبرمجة منظومة الإعلانات والنهر الإعلاني الذكي، والربط مع معايير صفرية التكلفة الحافة لضمان الأمان والتدقيق الآلي للحملات الإعلانية.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full text-right mb-8">
+                <div className="p-4 rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-md">
+                  <div className="flex items-center gap-2 text-amber-300 font-bold text-xs mb-1">
+                    <Megaphone className="w-4 h-4" />
+                    <span>الحملات الإعلانية</span>
                   </div>
-                  <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                    قسم الحملات الإعلانية ومراجعة البنرات قيد التجهيز والتأسيس البرمجي، وسيتم ربطه وتفعيله قريباً وفق خطة التحديث.
-                  </p>
+                  <p className="text-[11px] text-slate-400">إدارة البنرات والعروض الترويجية المستهدفة جغرافياً</p>
+                </div>
+                <div className="p-4 rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-md">
+                  <div className="flex items-center gap-2 text-teal-300 font-bold text-xs mb-1">
+                    <ShieldCheck className="w-4 h-4" />
+                    <span>التدقيق والاعتماد</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400">فحص أمني تلقائي للمحتوى والمواد الإعلانية قبل العرض</p>
+                </div>
+                <div className="p-4 rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-md">
+                  <div className="flex items-center gap-2 text-cyan-300 font-bold text-xs mb-1">
+                    <Activity className="w-4 h-4" />
+                    <span>إحصائيات المشاهدات</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400">تقارير دقيقة لنِسب النقر والظهور في واجهات الركاب</p>
                 </div>
               </div>
-              <span className="shrink-0 rounded-xl border border-amber-500/30 bg-[#0B0F19]/90 px-3 py-1.5 text-xs font-mono font-bold text-amber-400">
-                UNDER CONSTRUCTION
-              </span>
+
+              <div className="inline-flex items-center gap-2 text-xs text-slate-400 bg-white/5 border border-white/10 px-4 py-2 rounded-xl">
+                <span className="h-2 w-2 rounded-full bg-amber-400 animate-ping" />
+                <span>الحالة: قيد البرمجة والتطوير • سيتم إطلاقها رسمياً في التحديث القادم</span>
+              </div>
             </div>
           </div>
-
-          <SovereignErrorBoundary>
-            <div className="space-y-6">
-              <PendingAdsAuditPanel />
-              <AdsManagementTab />
-            </div>
-          </SovereignErrorBoundary>
         </TabsContent>
 
         {/* 4. المندوبين */}
         <TabsContent value="delegates" className="space-y-6">
-          <div className="relative overflow-hidden rounded-2xl border border-amber-500/30 bg-gradient-to-r from-amber-500/15 via-amber-500/5 to-transparent p-4 sm:p-5 shadow-xl backdrop-blur-xl">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-3.5">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-amber-500/40 bg-amber-500/20 text-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.25)]">
-                  <Construction className="h-6 w-6 animate-pulse" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="text-base font-black text-white">منظومة المندوبين وإدارة الميدان</h3>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2.5 py-0.5 text-[11px] font-black">
-                      🚧 هذه الشاشة تحت التأسيس
-                    </span>
+          <div className="relative overflow-hidden rounded-3xl border border-amber-500/20 bg-[#0B0F19]/90 p-8 sm:p-12 text-center shadow-2xl backdrop-blur-xl">
+            <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-96 h-96 bg-amber-500/10 blur-3xl pointer-events-none rounded-full" />
+            <div className="absolute -bottom-24 left-1/2 -translate-x-1/2 w-96 h-96 bg-indigo-500/5 blur-3xl pointer-events-none rounded-full" />
+
+            <div className="relative z-10 max-w-2xl mx-auto flex flex-col items-center">
+              <div className="relative mb-6 flex h-20 w-20 items-center justify-center rounded-3xl border border-amber-500/40 bg-gradient-to-br from-amber-500/20 to-amber-500/5 text-amber-400 shadow-[0_0_35px_rgba(245,158,11,0.25)]">
+                <Construction className="h-10 w-10 animate-pulse" />
+                <span className="absolute -bottom-1 -right-1 flex h-4 w-4">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-4 w-4 bg-amber-500" />
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2 mb-3">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 border border-amber-500/30 px-3.5 py-1 text-xs font-black text-amber-300">
+                  🚧 هذه الشاشة تحت التأسيس
+                </span>
+                <span className="rounded-full bg-white/5 border border-white/10 px-3 py-1 text-xs font-mono text-slate-400 font-bold">
+                  UNDER CONSTRUCTION
+                </span>
+              </div>
+
+              <h2 className="text-2xl sm:text-3xl font-black text-white tracking-wide mb-3">
+                منظومة المندوبين وإدارة الميدان
+              </h2>
+
+              <p className="text-sm sm:text-base text-slate-300 leading-relaxed mb-8">
+                يجري حالياً العمل على تأسيس وبرمجة منظومة مناديب الميدان، وإدارة الروابط السحرية وخطوط الاستحواذ الميداني وحساب العمولات التلقائية.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full text-right mb-8">
+                <div className="p-4 rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-md">
+                  <div className="flex items-center gap-2 text-indigo-300 font-bold text-xs mb-1">
+                    <UsersRound className="w-4 h-4" />
+                    <span>شبكة المناديب</span>
                   </div>
-                  <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                    قسم إدارة المندوبين ومسارات الميدان وروابط الاستحواذ قيد التأسيس والتجهيز البرمجي، وسيتم اعتماده وتفعيله قريباً.
-                  </p>
+                  <p className="text-[11px] text-slate-400">تجنيد واعتماد المناديب وتوزيع المهام الميدانية بالمحافظات</p>
+                </div>
+                <div className="p-4 rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-md">
+                  <div className="flex items-center gap-2 text-teal-300 font-bold text-xs mb-1">
+                    <Sparkles className="w-4 h-4" />
+                    <span>الروابط السحرية</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400">روابط ذكية للاستحواذ وتتبع تسجيل الكباتن والركاب بدقة</p>
+                </div>
+                <div className="p-4 rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-md">
+                  <div className="flex items-center gap-2 text-emerald-300 font-bold text-xs mb-1">
+                    <Wallet className="w-4 h-4" />
+                    <span>العمولات والتحصيلات</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400">محاسبة وتصفية أرباح المناديب آلياً وفق قاعدة الاستقرار</p>
                 </div>
               </div>
-              <span className="shrink-0 rounded-xl border border-amber-500/30 bg-[#0B0F19]/90 px-3 py-1.5 text-xs font-mono font-bold text-amber-400">
-                UNDER CONSTRUCTION
-              </span>
+
+              <div className="inline-flex items-center gap-2 text-xs text-slate-400 bg-white/5 border border-white/10 px-4 py-2 rounded-xl">
+                <span className="h-2 w-2 rounded-full bg-amber-400 animate-ping" />
+                <span>الحالة: قيد البرمجة والتطوير • سيتم إطلاقها رسمياً في التحديث القادم</span>
+              </div>
             </div>
           </div>
-
-          <SovereignErrorBoundary>
-            <DelegatesManagementTab />
-          </SovereignErrorBoundary>
         </TabsContent>
 
         {/* 6. المشرفين */}
