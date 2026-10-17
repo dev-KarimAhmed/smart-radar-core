@@ -82,19 +82,14 @@ export function useDelegatesState() {
     let unsubDelegates: (() => void) | null = null;
     let unsubLinks: (() => void) | null = null;
     let unsubTasks: (() => void) | null = null;
-    let unsubDrivers: (() => void) | null = null;
 
-    if (!authLoading && user && user.role === 'admin') {
+    if (!authLoading && user && (user.role === 'admin' || (user as any).role === 'ADMIN')) {
       setLoading(true);
 
-      unsubDrivers = onSnapshot(query(collection(db, 'users'), where('role', '==', 'driver'), limit(100)), (snapshot) => {
-        const list = snapshot.docs.map(docSnap => ({
-          uid: docSnap.id,
-          ...docSnap.data()
-        }));
-        setDrivers(list);
-      }, (err) => {
-        console.error("Firestore error loading drivers for cross-validation:", err);
+      void supabase.from('profiles').select('*').eq('role', 'CAPTAIN').then(({ data }) => {
+        if (data) {
+          setDrivers(data.map(d => ({ uid: d.id, ...d, name: d.full_name })));
+        }
       });
 
       unsubDelegates = onSnapshot(query(collection(db, 'delegates'), limit(100)), (snapshot) => {
@@ -141,7 +136,6 @@ export function useDelegatesState() {
       if (unsubDelegates) unsubDelegates();
       if (unsubLinks) unsubLinks();
       if (unsubTasks) unsubTasks();
-      if (unsubDrivers) unsubDrivers();
     };
   }, [user, authLoading]);
 

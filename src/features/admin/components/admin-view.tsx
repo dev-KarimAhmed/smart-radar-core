@@ -789,8 +789,8 @@ export function AdminPulseOverview() {
     setIsRefreshing(true);
     try {
       const [driversRes, ridersRes] = await Promise.all([
-        supabase.from('profiles').select('id, status', { count: 'exact' }).in('role', ['driver', 'DRIVER', 'CAPTAIN', 'captain']),
-        supabase.from('profiles').select('id', { count: 'exact', head: true }).in('role', ['rider', 'RIDER']),
+        supabase.from('profiles').select('id, status', { count: 'exact' }).eq('role', 'CAPTAIN'),
+        supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'RIDER'),
       ]);
 
       const allDrivers = driversRes.data || [];

@@ -18,7 +18,7 @@ export async function GET(req: Request) {
     const { data: admins, error } = await supabaseAdmin
       .from('profiles')
       .select('id, full_name, phone, email, status, created_at')
-      .in('role', ['ADMIN', 'admin'])
+      .eq('role', 'ADMIN')
       .order('created_at', { ascending: false });
 
     if (error) throw error;

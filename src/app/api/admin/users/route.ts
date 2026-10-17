@@ -40,15 +40,13 @@ export async function GET(req: Request) {
   const roleFilter = searchParams.get('role')?.toUpperCase() || 'CAPTAIN';
 
   try {
-    const roleValues = roleFilter === 'CAPTAIN'
-      ? ['CAPTAIN', 'captain', 'driver', 'DRIVER']
-      : ['RIDER', 'rider'];
+    const targetRole = roleFilter === 'CAPTAIN' ? 'CAPTAIN' : 'RIDER';
 
     // 1. Fetch profiles
     const { data: profiles, error: pErr } = await supabaseAdmin
       .from('profiles')
       .select('*')
-      .in('role', roleValues)
+      .eq('role', targetRole)
       .order('created_at', { ascending: false });
 
     if (pErr) throw pErr;

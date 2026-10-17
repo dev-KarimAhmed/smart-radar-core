@@ -47,9 +47,9 @@ export function AdminMasterKPIBar() {
     async function loadStats() {
       try {
         const [driversRes, ridersRes, delegatesRes] = await Promise.all([
-          supabase.from('profiles').select('id, status', { count: 'exact' }).in('role', ['driver', 'DRIVER', 'CAPTAIN', 'captain']),
-          supabase.from('profiles').select('id', { count: 'exact', head: true }).in('role', ['rider', 'RIDER']),
-          supabase.from('profiles').select('id', { count: 'exact', head: true }).in('role', ['delegate', 'DELEGATE']),
+          supabase.from('profiles').select('id, status', { count: 'exact' }).eq('role', 'CAPTAIN'),
+          supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'RIDER'),
+          supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'DELEGATE'),
         ]);
 
         let activeAdsCount = 0;

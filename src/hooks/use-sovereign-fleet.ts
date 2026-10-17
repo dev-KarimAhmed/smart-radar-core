@@ -33,7 +33,7 @@ export function useSovereignFleet() {
         const { data, error: fetchError } = await supabase
           .from('profiles')
           .select('*')
-          .in('role', ['DRIVER', 'CAPTAIN', 'driver', 'captain']);
+          .eq('role', 'CAPTAIN');
 
         if (fetchError) throw fetchError;
         if (!active) return;
