@@ -54,7 +54,7 @@ const styles = {
 const isStrictDevelopment = process.env.NODE_ENV === 'development';
 
 type RegistrationStep = 'role' | 'personal' | 'affiliation' | 'vehicle' | 'admin' | 'advertiser' | 'ProfessionalStep';
-type RegistrationRole = 'rider' | 'driver' | 'advertiser' | 'delegate' | null;
+type RegistrationRole = 'rider' | 'driver' | 'advertiser' | 'delegate' | 'admin' | null;
 type AuthMode = 'register' | 'login';
 type LocationOption = { id: string; label: string; labelEn: string; value: string };
 
@@ -811,10 +811,11 @@ function normalizePhoneForCountry(
   }
 }
 
-function toSupabaseAuthRole(role: RegistrationRole): 'RIDER' | 'CAPTAIN' | 'ADVERTISER' | 'DELEGATE' {
+function toSupabaseAuthRole(role: RegistrationRole): 'RIDER' | 'CAPTAIN' | 'ADVERTISER' | 'DELEGATE' | 'ADMIN' {
   if (role === 'driver') return 'CAPTAIN';
   if (role === 'advertiser') return 'ADVERTISER';
   if (role === 'delegate') return 'DELEGATE';
+  if (role === 'admin') return 'ADMIN';
   return 'RIDER';
 }
 

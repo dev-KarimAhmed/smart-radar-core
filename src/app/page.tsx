@@ -35,7 +35,13 @@ export default function HomePage() {
       (window.location.search.includes('type=recovery') ||
        window.location.search.includes('error='))));
 
-  const isRedirecting = !isRecoveryIntent && !!user && (user.role === 'driver' || user.role === 'rider');
+  const isRedirecting = !isRecoveryIntent && !!user && (
+    user.role === 'driver' ||
+    user.role === 'rider' ||
+    user.role === 'admin' ||
+    user.role === 'advertiser' ||
+    user.role === 'delegate'
+  );
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -66,8 +72,12 @@ export default function HomePage() {
       }
     }
     if (loading || !user) return;
-    if (user.role === 'driver') router.replace('/captain');
-    if (user.role === 'rider') router.replace('/rider');
+    const search = typeof window !== 'undefined' ? window.location.search : '';
+    if (user.role === 'driver') router.replace(`/captain${search}`);
+    if (user.role === 'rider') router.replace(`/rider${search}`);
+    if (user.role === 'admin') router.replace(`/admin${search}`);
+    if (user.role === 'advertiser') router.replace(`/advertiser/dashboard${search}`);
+    if (user.role === 'delegate') router.replace(`/delegate${search}`);
   }, [loading, router, user]);
 
   if (loading || isRedirecting) {

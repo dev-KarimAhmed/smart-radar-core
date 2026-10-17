@@ -92,7 +92,7 @@ export function PwaInstallBanner({ role: propRole }: PwaInstallBannerProps = {})
   // If already installed or dismissed by user, do not render banner.
   // Also hide if we can't natively prompt and it's not iOS (meaning it's already installed on Android/PC or unsupported).
   // CRITICAL: NEVER render banner while rider is in active ride flow (destination selection, offers, active trip)
-  if (isInstalled || isDismissed || (!canPromptNative && !isIOS) || isRideFlowActive) {
+  if (isInstalled || isDismissed || (!canPromptNative && !isIOS) || isRideFlowActive || pathname?.startsWith('/admin')) {
     return null;
   }
 

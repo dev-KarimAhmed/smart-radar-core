@@ -209,6 +209,7 @@ const roleLabels = {
   driver: { ar: 'سائق', en: 'Driver' },
   advertiser: { ar: 'معلن', en: 'Advertiser' },
   delegate: { ar: 'مندوب تسويق', en: 'Delegate' },
+  admin: { ar: 'مشرف', en: 'Admin' },
 } as const;
 
 const copy = {
@@ -321,6 +322,7 @@ const authRoleLabels = {
   driver: { ar: 'سائق', en: 'Driver' },
   advertiser: { ar: 'معلن', en: 'Advertiser' },
   delegate: { ar: 'مندوب تسويق', en: 'Delegate' },
+  admin: { ar: 'مشرف', en: 'Admin' },
 } as const;
 
 const authCopy = {
@@ -572,34 +574,6 @@ export function PersonalStep() {
               className={styles.style405_21}
               onSubmit={onFormSubmit}
             >
-              {mode === 'register' && (role !== 'rider' && canUseDevMockData) ? (
-                <div className={styles.style591_73}>
-                  <div className={styles.style592_74}>
-                    {locationDataLoading ? (
-                      <>
-                        <Loader2 className={styles.style595_75} aria-hidden="true" />
-                        <span>{t.loadingLocations}</span>
-                      </>
-                    ) : (
-                      <>
-                        <MapPin className={styles.style600_76} aria-hidden="true" />
-                        <span>{`${countries.length} / ${governorates.length} / ${districts.length}`}</span>
-                      </>
-                    )}
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={fillRandomRegistrationData}
-                    disabled={locationDataLoading}
-                    className={styles.style611_77}
-                  >
-                    <Sparkles className={styles.style613_78} aria-hidden="true" />
-                    {t.mockData}
-                  </button>
-                </div>
-              ) : null}
-
               {mode === 'register' ? (
                 <Field label={t.fullName} icon={<UserRound className={styles.style621_79} />}>
                   <input
@@ -775,24 +749,26 @@ export function PersonalStep() {
             </motion.form>
           </AnimatePresence>
 
-          <div className={styles.style794_131}>
-            <span>{mode === 'register' ? t.hasAccount : t.noAccount}</span>{' '}
-            {/* Remounts (via `key`) on every failed login attempt caused by a
-                wrong phone/password, replaying the entrance animation to draw
-                the eye toward creating a new account instead. */}
-            <motion.button
-              key={mode === 'login' ? createAccountPulseKey : 'static'}
-              type="button"
-              onClick={() => goToMode(mode === 'register' ? 'login' : 'register')}
-              className={styles.createAccountLink}
-              initial={mode === 'login' ? { scale: 1, color: '#94A3B8' } : false}
-              animate={mode === 'login' ? { scale: [1, 1.22, 0.94, 1.06, 1], color: '#14B8A6' } : undefined}
-              transition={{ duration: 0.6, ease: 'easeInOut' }}
-            >
-              {mode === 'login' ? <UserPlus className={styles.createAccountIcon} aria-hidden="true" /> : null}
-              {mode === 'register' ? t.switchToLogin : t.switchToRegister}
-            </motion.button>
-          </div>
+          {role !== 'admin' && (
+            <div className={styles.style794_131}>
+              <span>{mode === 'register' ? t.hasAccount : t.noAccount}</span>{' '}
+              {/* Remounts (via `key`) on every failed login attempt caused by a
+                  wrong phone/password, replaying the entrance animation to draw
+                  the eye toward creating a new account instead. */}
+              <motion.button
+                key={mode === 'login' ? createAccountPulseKey : 'static'}
+                type="button"
+                onClick={() => goToMode(mode === 'register' ? 'login' : 'register')}
+                className={styles.createAccountLink}
+                initial={mode === 'login' ? { scale: 1, color: '#94A3B8' } : false}
+                animate={mode === 'login' ? { scale: [1, 1.22, 0.94, 1.06, 1], color: '#14B8A6' } : undefined}
+                transition={{ duration: 0.6, ease: 'easeInOut' }}
+              >
+                {mode === 'login' ? <UserPlus className={styles.createAccountIcon} aria-hidden="true" /> : null}
+                {mode === 'register' ? t.switchToLogin : t.switchToRegister}
+              </motion.button>
+            </div>
+          )}
 
           <button
             type="button"

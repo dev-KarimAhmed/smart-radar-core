@@ -77,52 +77,7 @@ export const useSovereignDashboard = () => {
     const qDelegates = query(collection(db, 'delegates'), where('status', '==', 'active'));
     const unsubDelegates = onSnapshot(qDelegates, (snapshot: any) => {
       if (snapshot.empty) {
-        const defaults: DelegateData[] = [
-          {
-            id: 'delegate-1',
-            name: tAuto('delegate1Name'),
-            phone: '0795544332',
-            referralCode: 'JO-AMMAN-GHUBAR-7',
-            referredCount: 38,
-            deletionRate: 8.5,
-            revivalRate: 88.5,
-            pendingDues: 120.00,
-            status: 'active',
-            createdAt: new Date().toISOString()
-          },
-          {
-            id: 'delegate-2',
-            name: tAuto('delegate2Name'),
-            phone: '0770112233',
-            referralCode: 'IQ-BAGHDAD-KARRADA-9',
-            referredCount: 64,
-            deletionRate: 2.1,
-            revivalRate: 94.2,
-            pendingDues: 245.50,
-            status: 'active',
-            createdAt: new Date().toISOString()
-          },
-          {
-            id: 'delegate-3',
-            name: tAuto('delegate3Name'),
-            phone: '0780445566',
-            referralCode: 'JO-SWAILEH-08',
-            referredCount: 14,
-            deletionRate: 15.0,
-            revivalRate: 45.0,
-            pendingDues: 40.00,
-            status: 'active',
-            createdAt: new Date().toISOString()
-          }
-        ];
-        defaults.forEach(async (d) => {
-          try {
-            await setDoc(doc(db, 'delegates', d.id), d);
-          } catch (e: any) {
-            console.error("Self-healing background delegation seeding error:", e);
-          }
-        });
-        setDelegates(defaults);
+        setDelegates([]);
       } else {
         const list = snapshot.docs.map((docSnap: any) => ({
           id: docSnap.id,

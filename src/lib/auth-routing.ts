@@ -13,9 +13,9 @@ import { usePathname } from 'next/navigation';
  */
 
 export type AuthView = 'role' | 'login' | 'register' | 'admin';
-export type AuthRole = 'rider' | 'driver' | 'advertiser' | 'delegate';
+export type AuthRole = 'rider' | 'driver' | 'advertiser' | 'delegate' | 'admin';
 
-const AUTH_ROLES = new Set<AuthRole>(['rider', 'driver', 'advertiser', 'delegate']);
+const AUTH_ROLES = new Set<AuthRole>(['rider', 'driver', 'advertiser', 'delegate', 'admin']);
 
 export interface AuthLocation {
   view: AuthView;
@@ -34,7 +34,7 @@ export function parseAuthLocation(pathname: string): AuthLocation {
   const [first, second] = pathname.replace(/^\/+|\/+$/g, '').split('/').filter(Boolean);
 
   if (first === 'login') {
-    if (second === 'admin') return { view: 'admin', role: null };
+    if (second === 'admin') return { view: 'login', role: 'admin' };
     if (isAuthRole(second)) return { view: 'login', role: second };
   }
 
@@ -46,6 +46,7 @@ export function parseAuthLocation(pathname: string): AuthLocation {
 }
 
 export function buildAuthPath(view: AuthView, role?: AuthRole | null): string {
+  if (view === 'login' && role === 'admin') return '/login/admin';
   if (view === 'admin') return '/login/admin';
   if (view === 'login' && role === 'rider') return '/rider';
   if (view === 'login' && role) return `/login/${role}`;

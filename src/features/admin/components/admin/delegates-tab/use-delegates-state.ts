@@ -82,81 +82,19 @@ export function useDelegatesState() {
     let unsubDelegates: (() => void) | null = null;
     let unsubLinks: (() => void) | null = null;
     let unsubTasks: (() => void) | null = null;
-    let unsubDrivers: (() => void) | null = null;
 
-    if (!authLoading && user && user.role === 'admin') {
+    if (!authLoading && user && (user.role === 'admin' || (user as any).role === 'ADMIN')) {
       setLoading(true);
 
-      unsubDrivers = onSnapshot(query(collection(db, 'users'), where('role', '==', 'driver'), limit(100)), (snapshot) => {
-        const list = snapshot.docs.map(docSnap => ({
-          uid: docSnap.id,
-          ...docSnap.data()
-        }));
-        setDrivers(list);
-      }, (err) => {
-        console.error("Firestore error loading drivers for cross-validation:", err);
+      void supabase.from('profiles').select('*').eq('role', 'CAPTAIN').then(({ data }) => {
+        if (data) {
+          setDrivers(data.map(d => ({ uid: d.id, ...d, name: d.full_name })));
+        }
       });
 
       unsubDelegates = onSnapshot(query(collection(db, 'delegates'), limit(100)), (snapshot) => {
         if (snapshot.empty) {
-          const defaultDelegates: Delegate[] = [
-            {
-              id: 'delegate-1',
-              name: 'علاء الحموري - دير غبار',
-              phone: '0795544332',
-              district: 'وادي السير',
-              referralCode: 'JO-AMMAN-GHUBAR-7',
-              referredCount: 38,
-              organicCount: 12,
-              churnCount: 2,
-              steadyCount: 48,
-              targetDaily: 10,
-              carriedDeficit: 3,
-              linkExpiryHours: 24,
-              status: 'active',
-              createdAt: new Date().toISOString()
-            },
-            {
-              id: 'delegate-2',
-              name: 'أبو طارق العراقي - الكرادة',
-              phone: '0770112233',
-              district: 'الكرادة',
-              referralCode: 'IQ-BAGHDAD-KARRADA-9',
-              referredCount: 64,
-              organicCount: 28,
-              churnCount: 1,
-              steadyCount: 91,
-              targetDaily: 15,
-              carriedDeficit: 0,
-              linkExpiryHours: 48,
-              status: 'active',
-              createdAt: new Date().toISOString()
-            },
-            {
-              id: 'delegate-3',
-              name: 'يزن القحطاني - صويلح',
-              phone: '0780445566',
-              district: 'الجامعة',
-              referralCode: 'JO-SWAILEH-08',
-              referredCount: 14,
-              organicCount: 4,
-              churnCount: 3,
-              steadyCount: 15,
-              targetDaily: 8,
-              carriedDeficit: 5,
-              linkExpiryHours: 72,
-              status: 'active',
-              createdAt: new Date().toISOString()
-            }
-          ];
-          setDelegates(defaultDelegates);
-          defaultDelegates.forEach(async (d) => {
-            try {
-              await setDoc(doc(db, 'delegates', d.id), d);
-            } catch (e) {
-              console.error("Self-healing background delegation seeding error:", e);
-            }
-          });
+          setDelegates([]);
         } else {
           const list = snapshot.docs.map(docSnap => ({
             id: docSnap.id,
@@ -198,7 +136,6 @@ export function useDelegatesState() {
       if (unsubDelegates) unsubDelegates();
       if (unsubLinks) unsubLinks();
       if (unsubTasks) unsubTasks();
-      if (unsubDrivers) unsubDrivers();
     };
   }, [user, authLoading]);
 
