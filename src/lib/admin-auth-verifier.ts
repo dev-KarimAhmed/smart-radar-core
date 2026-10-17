@@ -109,47 +109,59 @@ export async function verifyAdminCaller(req: Request) {
     }
   }
 
-  // 5. Fallback to Supabase Auth API with 2.5s timeout guard to prevent network hangs
-  try {
-    const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 2500));
-    const authPromise = supabaseAdmin.auth.getUser(token).then(({ data, error }) => {
-      if (error || !data?.user) return null;
-      return data.user;
-    });
+  // 5. Fallback to Supabase Auth API with 1200ms timeout guard (production only)
+  if (!isDev && token && token.length > 20) {
+    try {
+      const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 1200));
+      const authPromise = supabaseAdmin.auth.getUser(token).then(({ data, error }) => {
+        if (error || !data?.user) return null;
+        return data.user;
+      });
 
-    const user = await Promise.race([authPromise, timeoutPromise]);
+      const user = await Promise.race([authPromise, timeoutPromise]);
 
-    if (user) {
-      const roleInMeta = String(user.user_metadata?.role || user.app_metadata?.role || '').toUpperCase();
-      if (roleInMeta === 'ADMIN') {
-        adminCache.set(token, { admin: user, expiresAt: Date.now() + 5 * 60 * 1000 });
-        return user;
+      if (user) {
+        const roleInMeta = String(user.user_metadata?.role || user.app_metadata?.role || '').toUpperCase();
+        if (roleInMeta === 'ADMIN') {
+          adminCache.set(token, { admin: user, expiresAt: Date.now() + 5 * 60 * 1000 });
+          return user;
+        }
+
+        const { data: profile } = await supabaseAdmin
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        if (profile && String(profile.role).toUpperCase() === 'ADMIN') {
+          adminCache.set(token, { admin: profile, expiresAt: Date.now() + 5 * 60 * 1000 });
+          return profile;
+        }
       }
-
-      const { data: profile } = await supabaseAdmin
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .maybeSingle();
-
-      if (profile && String(profile.role).toUpperCase() === 'ADMIN') {
-        adminCache.set(token, { admin: profile, expiresAt: Date.now() + 5 * 60 * 1000 });
-        return profile;
-      }
+    } catch (err) {
+      console.warn('[Admin Verifier] Supabase auth fallback error:', err);
     }
-  } catch (err) {
-    console.warn('[Admin Verifier] Supabase auth fallback error:', err);
   }
 
-  // In development, if all else failed, still permit sovereign admin
+  // In development, if all else failed, immediately permit sovereign admin (< 1ms)
   if (isDev) {
+    const cachedDev = adminCache.get('__dev_admin__');
+    if (cachedDev && cachedDev.expiresAt > Date.now()) {
+      return cachedDev.admin;
+    }
+
     const { data: defaultAdmin } = await supabaseAdmin
       .from('profiles')
       .select('*')
       .eq('role', 'ADMIN')
       .limit(1)
       .maybeSingle();
-    if (defaultAdmin) return defaultAdmin;
+
+    if (defaultAdmin) {
+      adminCache.set('__dev_admin__', { admin: defaultAdmin, expiresAt: Date.now() + 5 * 60 * 1000 });
+      return defaultAdmin;
+    }
+    return { id: 'dev-admin-001', role: 'ADMIN', full_name: 'مشرف التطوير' };
   }
 
   return null;
