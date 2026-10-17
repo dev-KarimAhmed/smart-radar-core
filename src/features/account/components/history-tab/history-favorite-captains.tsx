@@ -83,7 +83,7 @@ export function HistoryFavoriteCaptains({
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-bold text-slate-300">
-                {isArabic ? 'لم تقم بحفظ أي كابتن في المفضلة بعد' : 'No favorite drivers saved yet'}
+                {t('noSavedCaptains')}
               </p>
               <p className="text-[11px] text-slate-500 leading-relaxed mt-0.5">
                 {isArabic ? (
@@ -126,14 +126,14 @@ export function HistoryFavoriteCaptains({
                   </div>
 
                   {/* Center: Vehicle Details */}
-                  {captain.vehicleInfo ? (
+                  {/* {captain.vehicleInfo ? (
                     <div className="flex-1 min-w-0 flex items-center gap-2 text-xs text-slate-300 bg-black/40 border border-white/5 rounded-xl px-3 py-2">
                       <Car className="h-3.5 w-3.5 text-slate-400 shrink-0" />
                       <span className="truncate font-medium">{captain.vehicleInfo}</span>
                     </div>
                   ) : (
                     <div className="flex-1" />
-                  )}
+                  )} */}
 
                   {/* Left side: Action buttons */}
                   <div className="flex items-center gap-2 shrink-0">
@@ -149,7 +149,7 @@ export function HistoryFavoriteCaptains({
                       variant="ghost"
                       size="icon"
                       onClick={() => toggleFavorite(captain)}
-                      title={isArabic ? 'إزالة من المفضلة' : 'Remove from favorites'}
+                      title={t('removeFromFavorites')}
                       className="h-9 w-9 shrink-0 rounded-xl border border-white/10 bg-white/5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 hover:border-rose-500/30 transition-all"
                     >
                       <Trash2 className="h-4 w-4" />

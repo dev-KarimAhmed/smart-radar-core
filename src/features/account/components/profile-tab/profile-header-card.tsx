@@ -16,6 +16,7 @@ interface ProfileHeaderCardProps {
   locationLabel: string;
   displayPhone: string;
   currency?: string | null;
+  children?: React.ReactNode;
 }
 
 export function ProfileHeaderCard({
@@ -30,6 +31,7 @@ export function ProfileHeaderCard({
   locationLabel,
   displayPhone,
   currency,
+  children,
 }: ProfileHeaderCardProps) {
   const formattedScore = rating % 1 === 0 ? rating.toFixed(0) : rating.toFixed(1);
 
@@ -42,16 +44,16 @@ export function ProfileHeaderCard({
         {/* Top utility bar: Badges + Language Switcher */}
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2 flex-wrap">
-            <Badge 
-              variant="outline" 
+            <Badge
+              variant="outline"
               className="border-[#14B8A6]/30 bg-[#14B8A6]/10 text-[#14F5D5] text-[11px] font-bold px-2.5 py-0.5 rounded-lg shadow-sm"
             >
               {displayRole}
             </Badge>
 
             {serialId ? (
-              <Badge 
-                variant="outline" 
+              <Badge
+                variant="outline"
                 className="border-white/10 bg-black/40 font-mono text-[10px] text-slate-300 px-2.5 py-0.5 rounded-lg"
               >
                 🧬 {t('accountNumber')}: {String(serialId)}
@@ -159,6 +161,8 @@ export function ProfileHeaderCard({
             </div>
           </div>
         </div>
+
+        {children}
       </CardContent>
     </Card>
   );

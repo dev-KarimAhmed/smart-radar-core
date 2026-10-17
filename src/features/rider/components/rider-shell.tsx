@@ -15,6 +15,8 @@ import { useRiderOperations } from '../hooks/use-rider-operations';
 import { AppSidebar } from './app-sidebar';
 import { DesktopRiderSidebar } from './desktop-rider-sidebar';
 import { useTranslations } from "next-intl";
+import { useReferralListener } from '@/features/referral/hooks/use-referral-listener';
+import { ReferralConflictModal } from '@/features/referral/components/referral-conflict-modal';
 
 const RiderView = dynamic(
   () => import('./rider-view').then((module) => module.RiderViewTab),
@@ -64,6 +66,8 @@ export function RiderShell() {
   const { toast } = useToast();
   const dashboardLanguage = useDashboardLanguage();
   const riderOperations = useRiderOperations();
+  const isArabic = dashboardLanguage.language === 'ar';
+  const { conflictModalInfo, closeConflictModal } = useReferralListener(isArabic);
   const [hash, setHash] = useState('#');
   const [showRequestFlow, setShowRequestFlow] = useState(false);
   const [hasRequestedRideOnce, setHasRequestedRideOnce] = useState(false);
@@ -170,6 +174,14 @@ export function RiderShell() {
         </div>
       </main>
       <footer className={styles.footer}><BottomNav /></footer>
+
+      <ReferralConflictModal
+        open={conflictModalInfo.open}
+        onClose={closeConflictModal}
+        existingCaptainName={conflictModalInfo.existingCaptainName}
+        existingCaptainSerial={conflictModalInfo.existingCaptainSerial}
+        isArabic={isArabic}
+      />
     </div>
   );
 }

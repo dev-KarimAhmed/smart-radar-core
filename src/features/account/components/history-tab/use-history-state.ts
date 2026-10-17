@@ -25,12 +25,14 @@ import {
   mapLedgerRowToTripShape,
   tripShapeToRiderLedgerEntry
 } from './history-shared';
+import { getRiderLinkedCaptain, removeCaptainReferral, type LinkedCaptainInfo } from '@/features/referral/services/captain-referral';
 
 export function useHistoryState() {
 
   const { user, isCaptain, isPassenger } = useAuth();
   const { isArabic, language } = useDashboardLanguage();
   const t = useTranslations('historyTab');
+  const tRef = useTranslations('referral.linkedCaptain');
   // NOT its own store any more. The ids come from the server (favoriteCaptainIds) and the
   // display details are read off the rider's own trips below, so there is exactly one place
   // that knows who is favourited. Keeping a second table of captain details was how the list
@@ -38,6 +40,7 @@ export function useHistoryState() {
   // Captain ids, from the server. Keyed by captain so one favourite covers every trip with
   // them ظ¤ the Dexie list above is keyed by trip and cannot answer that question.
   const [favoriteCaptainIds, setFavoriteCaptainIds] = useState<Set<string>>(new Set());
+  const [linkedCaptain, setLinkedCaptain] = useState<LinkedCaptainInfo | null>(null);
   const [sovereignLogs, setSovereignLogs] = useState<any[]>([]);
   const [realTrips, setRealTrips] = useState<any[]>([]);
   const [tripReviews, setTripReviews] = useState<Record<string, any>>({});
@@ -68,11 +71,23 @@ export function useHistoryState() {
   /**
    * One source: fetchFavoriteCaptainIds. It reads the server, falls back to the
    * captain-keyed offline cache, and migrates any device-only legacy favourites on the way.
-   * This screen no longer reads the per-trip Dexie table at all.
+   * Also merges the referral linked captain for riders.
    */
   const loadFavorites = async () => {
     try {
-      setFavoriteCaptainIds(await fetchFavoriteCaptainIds());
+      const ids = await fetchFavoriteCaptainIds();
+      if (isPassenger) {
+        try {
+          const linked = await getRiderLinkedCaptain();
+          setLinkedCaptain(linked);
+          if (linked.is_linked && linked.captain_id) {
+            ids.add(linked.captain_id);
+          }
+        } catch {
+          // ignore
+        }
+      }
+      setFavoriteCaptainIds(ids);
     } catch (e) {
       console.error('Failed to load favorites:', e);
     }
@@ -121,11 +136,17 @@ export function useHistoryState() {
       }
     };
 
+    const handleFavoritesUpdated = () => {
+      void loadFavorites();
+    };
+
     window.addEventListener('sovereign-log-added', handleLogAdded);
+    window.addEventListener('radar_favorites_updated', handleFavoritesUpdated);
     return () => {
       window.removeEventListener('sovereign-log-added', handleLogAdded);
+      window.removeEventListener('radar_favorites_updated', handleFavoritesUpdated);
     };
-  }, [user, isCaptain]);
+  }, [user, isCaptain, isPassenger]);
 
   useEffect(() => {
     if (!user?.uid) {
@@ -504,7 +525,29 @@ export function useHistoryState() {
       if (!captainId || !favoriteCaptainIds.has(captainId)) continue;
       // Trips are already newest-first, so the first one seen is the freshest snapshot of
       // this captain's name, vehicle and phone.
-      if (!byCaptain.has(captainId)) byCaptain.set(captainId, trip);
+      if (!byCaptain.has(captainId)) {
+        const isReferred = Boolean(linkedCaptain?.is_linked && linkedCaptain.captain_id === captainId);
+        byCaptain.set(captainId, {
+          ...trip,
+          isReferredCaptain: isReferred,
+        } as any);
+      }
+    }
+
+    // If the rider is linked to a captain via referral who is not in trips yet:
+    if (linkedCaptain?.is_linked && linkedCaptain.captain_id && !byCaptain.has(linkedCaptain.captain_id)) {
+      byCaptain.set(linkedCaptain.captain_id, {
+        tripId: 'referral-' + linkedCaptain.captain_id,
+        captainId: linkedCaptain.captain_id,
+        serialId: linkedCaptain.captain_serial || '',
+        captainName: linkedCaptain.captain_name || tRef('defaultCaptainName'),
+        captainRank: 'GOLD',
+        captainPhone: linkedCaptain.captain_phone || '',
+        vehicleInfo: '',
+        finalPrice: 0,
+        timestamp: linkedCaptain.linked_at ? new Date(linkedCaptain.linked_at).getTime() : Date.now(),
+        isReferredCaptain: true,
+      } as any);
     }
 
     // Spread the whole trip: the "remove" button in the list calls toggleFavorite, which
@@ -514,7 +557,7 @@ export function useHistoryState() {
       id: captainId,
       captainId,
     }));
-  }, [favoriteCaptainIds, riderHistoricalTrips]);
+  }, [favoriteCaptainIds, riderHistoricalTrips, linkedCaptain, tRef]);
 
   const captainHistoricalTrips = useMemo(() => {
     const combinedReal = realTrips.map(trip => {
@@ -552,6 +595,10 @@ export function useHistoryState() {
     // made the heart light up on one trip and stay empty on every other trip with the same
     // captain.
     const wasFavorite = trip.captainId ? favoriteCaptainIds.has(String(trip.captainId)) : false;
+    const isReferred = Boolean(
+      (trip as any).isReferredCaptain ||
+      (linkedCaptain?.is_linked && linkedCaptain.captain_id === trip.captainId)
+    );
 
     // The server first, because this is the copy the CAPTAIN reads. The old code wrote only
     // Dexie and localStorage, so the captain's card never learned about it at all.
@@ -640,6 +687,7 @@ export function useHistoryState() {
 
   return {
     favoriteCaptainIds,
+    linkedCaptain,
     sovereignLogs,
     realTrips,
     tripReviews,
