@@ -93,34 +93,38 @@ export function AdminMasterKPIBar() {
 
       {/* 3. الإعلانات */}
       <div className={styles.card}>
-        <div className={cn(styles.iconWrapper, "bg-amber-500/10 text-amber-400 border border-amber-500/20")}>
-          <Megaphone className="h-4 w-4" />
+        <div className="flex items-center justify-between">
+          <div className={cn(styles.iconWrapper, "bg-amber-500/10 text-amber-400 border border-amber-500/20")}>
+            <Megaphone className="h-4 w-4" />
+          </div>
+          <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[10px] font-bold text-amber-300">
+            تحت التأسيس
+          </span>
         </div>
         <p className={styles.label}>{t('ads')}</p>
         <div className={styles.valueContainer}>
           <span className={styles.mainValue}>{loading ? '...' : stats.activeAds}</span>
-          {stats.pendingAds > 0 ? (
-            <span className={cn(styles.subBadge, "bg-red-500/20 text-red-300 animate-pulse border-red-500/40")}>
-              {stats.pendingAds} معلق
-            </span>
-          ) : (
-            <span className={cn(styles.subBadge, "bg-slate-800/80 text-slate-300 border-slate-700")}>
-              0 معلق
-            </span>
-          )}
+          <span className={cn(styles.subBadge, "bg-amber-500/15 text-amber-300 border-amber-500/30")}>
+            قيد التطوير
+          </span>
         </div>
       </div>
 
       {/* 4. المندوبون */}
       <div className={styles.card}>
-        <div className={cn(styles.iconWrapper, "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20")}>
-          <UsersRound className="h-4 w-4" />
+        <div className="flex items-center justify-between">
+          <div className={cn(styles.iconWrapper, "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20")}>
+            <UsersRound className="h-4 w-4" />
+          </div>
+          <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[10px] font-bold text-amber-300">
+            تحت التأسيس
+          </span>
         </div>
         <p className={styles.label}>{t('delegates')}</p>
         <div className={styles.valueContainer}>
           <span className={styles.mainValue}>{loading ? '...' : stats.totalDelegates}</span>
-          <span className={cn(styles.subBadge, "bg-indigo-500/15 text-indigo-300 border-indigo-500/30")}>
-            الميدان
+          <span className={cn(styles.subBadge, "bg-amber-500/15 text-amber-300 border-amber-500/30")}>
+            قيد التطوير
           </span>
         </div>
       </div>

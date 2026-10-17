@@ -9,7 +9,7 @@ import { RidersManagementPanel } from './admin/riders-management-panel';
 import { AdminsManagementPanel } from './admin/admins-management-panel';
 import { AdsManagementTab } from './admin/ads-management-tab';
 import { DelegatesManagementTab } from './admin/delegates-management-tab';
-import { Shield, Megaphone, Users, Activity, UsersRound, ShieldAlert, CheckCircle2, KeyRound, Loader2, ArrowUpRight, TrendingUp, AlertTriangle, Radio, ShieldCheck, Cpu, Eye, AlertCircle, RefreshCw, Sparkles, Fingerprint, Terminal, Scale, Compass, Trash2, Gauge, DollarSign, UserCheck, Wallet } from 'lucide-react';
+import { Shield, Megaphone, Users, Activity, UsersRound, ShieldAlert, CheckCircle2, KeyRound, Loader2, ArrowUpRight, TrendingUp, AlertTriangle, Radio, ShieldCheck, Cpu, Eye, AlertCircle, RefreshCw, Sparkles, Fingerprint, Terminal, Scale, Compass, Trash2, Gauge, DollarSign, UserCheck, Wallet, Construction } from 'lucide-react';
 import React, { useState } from 'react';
 import { useAdminAds } from '@/hooks/use-admin-ads';
 import { supabase } from '@/lib/supabase-client';
@@ -1012,18 +1012,24 @@ export function AdminViewTab() {
 
           <TabsTrigger
             value="ads"
-            className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all data-[state=active]:bg-[#14B8A6] data-[state=active]:text-[#0B0F19] text-slate-300 hover:text-white"
+            className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-bold transition-all data-[state=active]:bg-[#14B8A6] data-[state=active]:text-[#0B0F19] text-slate-300 hover:text-white"
           >
             <Megaphone className="w-4 h-4" />
             <span>الإعلانات</span>
+            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+              تحت التأسيس
+            </span>
           </TabsTrigger>
 
           <TabsTrigger
             value="delegates"
-            className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all data-[state=active]:bg-[#14B8A6] data-[state=active]:text-[#0B0F19] text-slate-300 hover:text-white"
+            className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-bold transition-all data-[state=active]:bg-[#14B8A6] data-[state=active]:text-[#0B0F19] text-slate-300 hover:text-white"
           >
             <UsersRound className="w-4 h-4" />
             <span>المندوبين</span>
+            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+              تحت التأسيس
+            </span>
           </TabsTrigger>
 
           <TabsTrigger
@@ -1060,6 +1066,30 @@ export function AdminViewTab() {
 
         {/* 3. الإعلانات */}
         <TabsContent value="ads" className="space-y-6">
+          <div className="relative overflow-hidden rounded-2xl border border-amber-500/30 bg-gradient-to-r from-amber-500/15 via-amber-500/5 to-transparent p-4 sm:p-5 shadow-xl backdrop-blur-xl">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-amber-500/40 bg-amber-500/20 text-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.25)]">
+                  <Construction className="h-6 w-6 animate-pulse" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-base font-black text-white">منظومة الإعلانات والنهر الإعلاني</h3>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2.5 py-0.5 text-[11px] font-black">
+                      🚧 هذه الشاشة تحت التأسيس
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                    قسم الحملات الإعلانية ومراجعة البنرات قيد التجهيز والتأسيس البرمجي، وسيتم ربطه وتفعيله قريباً وفق خطة التحديث.
+                  </p>
+                </div>
+              </div>
+              <span className="shrink-0 rounded-xl border border-amber-500/30 bg-[#0B0F19]/90 px-3 py-1.5 text-xs font-mono font-bold text-amber-400">
+                UNDER CONSTRUCTION
+              </span>
+            </div>
+          </div>
+
           <SovereignErrorBoundary>
             <div className="space-y-6">
               <PendingAdsAuditPanel />
@@ -1070,6 +1100,30 @@ export function AdminViewTab() {
 
         {/* 4. المندوبين */}
         <TabsContent value="delegates" className="space-y-6">
+          <div className="relative overflow-hidden rounded-2xl border border-amber-500/30 bg-gradient-to-r from-amber-500/15 via-amber-500/5 to-transparent p-4 sm:p-5 shadow-xl backdrop-blur-xl">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-amber-500/40 bg-amber-500/20 text-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.25)]">
+                  <Construction className="h-6 w-6 animate-pulse" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-base font-black text-white">منظومة المندوبين وإدارة الميدان</h3>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2.5 py-0.5 text-[11px] font-black">
+                      🚧 هذه الشاشة تحت التأسيس
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                    قسم إدارة المندوبين ومسارات الميدان وروابط الاستحواذ قيد التأسيس والتجهيز البرمجي، وسيتم اعتماده وتفعيله قريباً.
+                  </p>
+                </div>
+              </div>
+              <span className="shrink-0 rounded-xl border border-amber-500/30 bg-[#0B0F19]/90 px-3 py-1.5 text-xs font-mono font-bold text-amber-400">
+                UNDER CONSTRUCTION
+              </span>
+            </div>
+          </div>
+
           <SovereignErrorBoundary>
             <DelegatesManagementTab />
           </SovereignErrorBoundary>
