@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase-client';
+import { useToast } from '@/hooks/use-toast';
 
 export interface AppNotification {
   id: string;
@@ -9,7 +10,7 @@ export interface AppNotification {
   description: string;
   timestamp: number;
   read: boolean;
-  type?: 'info' | 'offer' | 'trip' | 'system';
+  type?: 'info' | 'offer' | 'trip' | 'system' | 'WALLET_CREDIT' | 'WALLET_ALERT' | 'admin_message' | string;
 }
 
 const STORAGE_KEY = 'radar_user_notifications_v1';
@@ -40,6 +41,8 @@ export function useNotifications() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [userId, setUserId] = useState<string | null>(() => getInitialUserId());
   const isFetchingRef = useRef(false);
+
+  const { toast } = useToast();
 
   // 1. Initial instant load from localStorage for 0ms offline-first rendering
   useEffect(() => {
@@ -237,7 +240,32 @@ export function useNotifications() {
           table: 'user_notifications',
           filter: `user_id=eq.${userId}`,
         },
-        () => {
+        (payload) => {
+          if (payload.eventType === 'INSERT' && payload.new) {
+            const newRow = payload.new as any;
+            if (newRow?.title) {
+              toast({
+                title: newRow.title,
+                description: newRow.description || '',
+                variant: newRow.type === 'WALLET_ALERT' ? 'destructive' : 'default',
+              });
+
+              try {
+                const audio = new Audio('/sounds/notification.mp3');
+                void audio.play().catch(() => {});
+              } catch {}
+
+              // If financial notification, trigger immediate wallet balance refresh
+              if (
+                newRow.type === 'WALLET_CREDIT' ||
+                newRow.type === 'WALLET_ALERT' ||
+                String(newRow.id || '').includes('rcpt') ||
+                String(newRow.id || '').includes('top')
+              ) {
+                window.dispatchEvent(new CustomEvent('radar-wallet-refresh'));
+              }
+            }
+          }
           void fetchRemoteNotifications(userId);
         }
       )
@@ -246,7 +274,7 @@ export function useNotifications() {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [userId, fetchRemoteNotifications]);
+  }, [userId, fetchRemoteNotifications, toast]);
 
   // 6. Add notification
   const addNotification = useCallback((item: Omit<AppNotification, 'timestamp' | 'read'> & { id?: string; read?: boolean }) => {

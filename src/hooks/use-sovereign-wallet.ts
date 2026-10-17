@@ -219,6 +219,15 @@ export function useSovereignWallet(user: User | null) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshIndex, user?.activePackageName, user?.bonusHoursRemaining, user?.paidHoursRemaining, user?.walletBalanceJD, userId]);
 
+  // Listen to cross-system notification wallet refresh event (e.g., when a receipt is approved or topped up)
+  useEffect(() => {
+    const handleWalletRefresh = () => {
+      refreshWallet();
+    };
+    window.addEventListener('radar-wallet-refresh', handleWalletRefresh);
+    return () => window.removeEventListener('radar-wallet-refresh', handleWalletRefresh);
+  }, [refreshWallet]);
+
   useEffect(() => {
     if (!userId || !isUuid(userId)) return;
 

@@ -1,6 +1,6 @@
 import type { Trip } from '@/core/types';
 
-export type CaptainScreen = 'RADAR_MAP' | 'BIDDING' | 'ACTIVE_TRIP' | 'RATING_MODAL' | 'WALLET' | 'PROFILE' | 'HISTORY';
+export type CaptainScreen = 'RADAR_MAP' | 'BIDDING' | 'ACTIVE_TRIP' | 'RATING_MODAL' | 'WALLET' | 'PROFILE' | 'HISTORY' | 'NOTIFICATIONS';
 export type CaptainTripStep = 'IDLE' | 'OFFER_SUBMITTED' | 'ACCEPTED' | 'ARRIVED' | 'STARTED' | 'COMPLETED';
 
 export interface CaptainCompletedTrip {
@@ -23,6 +23,7 @@ export type CaptainDashboardAction =
   | { type: 'OPEN_WALLET' }
   | { type: 'OPEN_PROFILE' }
   | { type: 'OPEN_HISTORY' }
+  | { type: 'OPEN_NOTIFICATIONS' }
   | { type: 'SELECT_REQUEST'; request: Trip }
   | { type: 'IGNORE_REQUEST'; requestId: string }
   | { type: 'OFFER_SUBMITTED'; requestId: string; offerId?: string | null }
@@ -58,6 +59,9 @@ export function captainDashboardReducer(
 
     case 'OPEN_HISTORY':
       return { ...state, screen: 'HISTORY' };
+
+    case 'OPEN_NOTIFICATIONS':
+      return { ...state, screen: 'NOTIFICATIONS' };
 
     case 'SELECT_REQUEST':
       if (state.screen === 'ACTIVE_TRIP') return state;

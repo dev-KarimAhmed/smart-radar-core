@@ -1176,6 +1176,7 @@
     "statusActivated": "Requests are now enabled.",
     "statusDeactivated": "Requests are now disabled.",
     "history": "Trip history",
+    "notifications": "Notifications",
     "pricePerKmModalTitle": "Set your price per km",
     "pricePerKmModalBody": "Before using the dashboard, please set your price per kilometer. This step cannot be skipped.",
     "pricePerKmModalCountryChangeTitle": "You're now in a different country",

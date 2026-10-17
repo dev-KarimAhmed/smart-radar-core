@@ -2,13 +2,14 @@
 
 import React from 'react';
 import { useTranslations } from 'next-intl';
-import { AlertTriangle, History, Languages, Loader2, LogOut, Map, ShieldAlert, User, Wallet, WifiOff, Download } from 'lucide-react';
+import { AlertTriangle, Bell, History, Languages, Loader2, LogOut, Map, ShieldAlert, User, Wallet, WifiOff, Download } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import type { Trip } from '@/core/types';
 import { useAuth } from '@/hooks/use-auth';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { supabase } from '@/lib/supabase-client';
 import { useActiveTripReloadGuard } from '@/shared/hooks/use-active-trip-reload-guard';
+import { useNotifications } from '@/shared/hooks/use-notifications';
 import { useDriverOperations } from '../hooks/use-driver-operations';
 import { useSovereignWallet } from '@/hooks/use-sovereign-wallet';
 import { useToast } from '@/hooks/use-toast';
@@ -50,7 +51,7 @@ const styles = {
   style164_9: "shrink-0 rounded-2xl px-2.5 py-2.5 text-xs font-black transition sm:px-4 sm:py-3 sm:text-sm",
   style165_10: "bg-emerald-500/15 text-emerald-200 ring-1 ring-emerald-400/40",
   style165_11: "bg-slate-800 text-slate-200",
-  style167_1: "grid basis-full grow-0 grid-cols-4 gap-1.5 sm:basis-0 sm:grow sm:gap-2",
+  style167_1: "grid basis-full grow-0 grid-cols-5 gap-1 sm:basis-0 sm:grow sm:gap-2",
   style170_12: "h-4 w-4",
   style171_13: "h-4 w-4",
   style172_14: "h-4 w-4",
@@ -91,12 +92,14 @@ const styles = {
 const RadarMapView = dynamic(() => import('./radar-map-view').then(m => m.RadarMapView), { ssr: false });
 const AdStage = dynamic(() => import('@/features/ads/ad-stage/contract').then((m) => m.AdStage), { ssr: false });
 const HistoryScreen = dynamic(() => import('@/features/account/history/contract').then((m) => m.HistoryTab), { ssr: false });
+const NotificationsScreen = dynamic(() => import('@/features/account/components/notifications-tab').then((m) => m.NotificationsTab), { ssr: false });
 
 export function DriverViewTab() {
   const { user, logout } = useAuth();
   const { toast } = useToast();
   const { language, direction, toggleLanguage } = useDashboardLanguage();
   const t = useTranslations('captainDashboard');
+  const { unreadCount, hasUnread } = useNotifications();
   const driverOps = useDriverOperations();
   const wallet = useSovereignWallet(user);
   const { isTimeTamperingDetected } = useDeviceTimeGuard();
@@ -368,6 +371,26 @@ export function DriverViewTab() {
               )}
               <button
                 type="button"
+                onClick={() => dispatch({ type: 'OPEN_NOTIFICATIONS' })}
+                aria-label={t('notifications')}
+                title={t('notifications')}
+                className={cn(
+                  "relative inline-flex items-center gap-1.5 rounded-xl border px-2.5 py-2 transition sm:rounded-2xl sm:px-4 sm:py-3",
+                  screen === 'NOTIFICATIONS'
+                    ? "border-[#14B8A6]/50 bg-[#14B8A6]/20 text-[#14F5D5]"
+                    : "border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 hover:text-white"
+                )}
+              >
+                <Bell className="h-4 w-4" />
+                <span className={styles.style186_22}>{t('notifications')}</span>
+                {hasUnread && (
+                  <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-black text-white shadow-lg animate-pulse">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
+              </button>
+              <button
+                type="button"
                 onClick={toggleLanguage}
                 aria-label={t('switchLanguageAria')}
                 title={t('switchLanguageLabel')}
@@ -401,6 +424,7 @@ export function DriverViewTab() {
             <div className={styles.style167_1}>
               <NavButton active={screen === 'RADAR_MAP' || screen === 'BIDDING' || screen === 'ACTIVE_TRIP'} onClick={() => dispatch({ type: 'OPEN_RADAR' })} label={t('radar')} icon={<Map className={styles.style170_12} />} />
               <NavButton active={screen === 'WALLET'} onClick={() => dispatch({ type: 'OPEN_WALLET' })} label={t('wallet')} icon={<Wallet className={styles.style171_13} />} />
+              <NavButton active={screen === 'NOTIFICATIONS'} onClick={() => dispatch({ type: 'OPEN_NOTIFICATIONS' })} label={t('notifications')} icon={<Bell className={styles.style171_13} />} badge={unreadCount} />
               <NavButton active={screen === 'HISTORY'} onClick={() => dispatch({ type: 'OPEN_HISTORY' })} label={t('history')} icon={<History className={styles.style172_14} />} />
               <NavButton active={screen === 'PROFILE'} onClick={() => dispatch({ type: 'OPEN_PROFILE' })} label={t('profile')} icon={<User className={styles.style172_14} />} />
             </div>
@@ -524,6 +548,11 @@ export function DriverViewTab() {
         {/* ACTIVE_TRIP never reaches here — it returns above as its own full-screen surface. */}
 
         {screen === 'WALLET' ? <DriverWalletTab user={user} language={language} isFlightActive={isActive} /> : null}
+        {screen === 'NOTIFICATIONS' ? (
+          <div className="flex-1 rounded-3xl border border-emerald-500/20 bg-[#05080f] p-3 sm:p-6 shadow-2xl">
+            <NotificationsScreen />
+          </div>
+        ) : null}
         {screen === 'HISTORY' ? <HistoryScreen hideCaptainDiagnostics /> : null}
         {screen === 'PROFILE' ? <DriverProfileTab user={user} language={language} /> : null}
       </div>
@@ -593,20 +622,27 @@ function NavButton({
   icon,
   label,
   onClick,
+  badge,
 }: {
   active: boolean;
   icon: React.ReactNode;
   label: string;
   onClick: () => void;
+  badge?: number;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={cn(styles.style260_17, active ? styles.style261_18 : styles.style261_19)}
+      className={cn("relative", styles.style260_17, active ? styles.style261_18 : styles.style261_19)}
     >
       {icon}
       <span className={styles.style311_1}>{label}</span>
+      {typeof badge === 'number' && badge > 0 ? (
+        <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-black text-white shadow-md animate-pulse">
+          {badge > 99 ? '99+' : badge}
+        </span>
+      ) : null}
     </button>
   );
 }

@@ -14,13 +14,15 @@ function generateVoucherCode(minutes: number): string {
 
 async function sendCaptainNotification(userId: string, id: string, title: string, description: string, type: string) {
   try {
+    const notifId = `${id}_${Date.now()}`;
     await supabaseAdmin.from('user_notifications').insert({
-      id,
+      id: notifId,
       user_id: userId,
       title,
       description,
       type,
       is_read: false,
+      created_at: new Date().toISOString(),
     });
   } catch (err) {
     console.warn('[Admin Wallet] Failed to send notification:', err);
