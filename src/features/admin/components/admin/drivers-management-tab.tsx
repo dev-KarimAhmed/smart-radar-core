@@ -276,7 +276,7 @@ export function DriversManagementTab() {
         return (
           <span className={cn(styles.statusBadge, "bg-slate-800/80 text-slate-200 border-slate-700")}>
             <span className="w-2 h-2 rounded-full bg-slate-400" />
-            خامل / جاهز
+            خامل
           </span>
         );
     }
@@ -1112,7 +1112,7 @@ export function DriversManagementTab() {
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   {[
                     { st: 'ACTIVE', label: 'تنشيط فوري', cl: 'text-emerald-400 border-emerald-500/30' },
-                    { st: 'IDLE', label: 'خامل / جاهز', cl: 'text-slate-300 border-slate-500/30' },
+                    { st: 'IDLE', label: 'خامل', cl: 'text-slate-300 border-slate-500/30' },
                     { st: 'SUSPENDED', label: 'تعليق مؤقت', cl: 'text-amber-400 border-amber-500/30' },
                     { st: 'BANNED', label: 'حظر نهائي', cl: 'text-rose-400 border-rose-500/30' },
                   ].map((s) => (
