@@ -3605,8 +3605,8 @@
       "closeButton": "Close"
     },
     "listener": {
-      "linkedSuccessTitle": "🎉 Account linked successfully",
-      "linkedSuccessDesc": "You are now mutually favorited with Captain {captainName}!",
+      "linkedSuccessTitle": "🎉 Joined Successfully",
+      "linkedSuccessDesc": "You are now successfully linked as a follower of Captain {captainName}!",
       "alreadyLinkedTitle": "Already linked",
       "alreadyLinkedDesc": "You are already linked with Captain {captainName}.",
       "conflictToastTitle": "Cannot join via this link",

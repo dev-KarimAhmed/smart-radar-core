@@ -80,9 +80,6 @@ export function useHistoryState() {
         try {
           const linked = await getRiderLinkedCaptain();
           setLinkedCaptain(linked);
-          if (linked.is_linked && linked.captain_id) {
-            ids.add(linked.captain_id);
-          }
         } catch {
           // ignore
         }
@@ -534,8 +531,13 @@ export function useHistoryState() {
       }
     }
 
-    // If the rider is linked to a captain via referral who is not in trips yet:
-    if (linkedCaptain?.is_linked && linkedCaptain.captain_id && !byCaptain.has(linkedCaptain.captain_id)) {
+    // If the rider is linked to a captain via referral who is not in trips yet, but is favorited:
+    if (
+      linkedCaptain?.is_linked &&
+      linkedCaptain.captain_id &&
+      favoriteCaptainIds.has(linkedCaptain.captain_id) &&
+      !byCaptain.has(linkedCaptain.captain_id)
+    ) {
       byCaptain.set(linkedCaptain.captain_id, {
         tripId: 'referral-' + linkedCaptain.captain_id,
         captainId: linkedCaptain.captain_id,
@@ -660,6 +662,9 @@ export function useHistoryState() {
           description: isArabic ? 'تم إضافة السائق لمفضلتك في جميع رحلاتك.' : 'Driver added to your favorites across all trips.',
         });
 
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('radar_favorites_updated'));
+    }
     void loadFavorites();
   };
 

@@ -571,6 +571,9 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
         if (hasActiveSession) {
           try {
             const claimResult = await claimCaptainReferral(pendingRef);
+            if (claimResult.success && typeof window !== 'undefined') {
+              window.sessionStorage.setItem('radar_just_linked_captain_name', claimResult.captain_name || '');
+            }
             if (process.env.NODE_ENV !== 'production') {
               console.info('[Referral on Signup Claimed]', claimResult);
             }
