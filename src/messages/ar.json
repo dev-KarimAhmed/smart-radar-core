@@ -1066,15 +1066,15 @@
     "allocateExceedsBalanceError": "المبلغ المدخل أكبر من الرصيد النقدي المتوفر في محفظتك."
   },
   "adminKPI": {
-    "captains": "السائقون",
+    "captains": "الكباتن",
     "online": "نشط",
     "riders": "الركاب",
-    "organic": "عضوي",
+    "organic": "مسجل",
     "ads": "الإعلانات",
     "pending": "معلقة",
-    "delegates": "المندوبون",
-    "fieldNetwork": "شبكة الميدان",
-    "systemStatus": "حالة النظام"
+    "delegates": "المندوبين",
+    "fieldNetwork": "الميدان",
+    "systemStatus": "استقرار الرادار"
   },
   "adminRiders": {
     "title": "إدارة الركاب والمستخدمين",

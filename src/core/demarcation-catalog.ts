@@ -199,7 +199,6 @@ export const SovereignDemarcationCatalog = {
       frontend: {
         components: [
           '/src/components/dashboard/admin-view-tab.tsx',
-          '/src/components/dashboard/admin/owner-sovereign-dashboard.tsx',
           '/src/components/dashboard/admin/kill-switch-panel.tsx',
           '/src/components/dashboard/admin/fuel-index-panel.tsx',
           '/src/components/dashboard/admin/drivers-management-tab.tsx'

@@ -2,7 +2,9 @@
 
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase-client';
-import { Users, Car, Megaphone, UsersRound, Activity, AlertCircle, ArrowUpRight } from 'lucide-react';
+import { db } from '@/lib/firebase';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { Users, Car, Megaphone, UsersRound, Activity, ArrowUpRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
 
@@ -18,9 +20,9 @@ interface KPIStats {
 
 const styles = {
   container: "grid grid-cols-2 lg:grid-cols-5 gap-3.5 mb-6 text-right",
-  card: "relative overflow-hidden rounded-2xl border border-white/10 bg-[#0B0F19]/90 p-4 transition-all duration-300 hover:border-white/20",
+  card: "relative overflow-hidden rounded-2xl border border-white/10 bg-[#0B0F19]/90 p-4 transition-all duration-300 hover:border-white/20 shadow-lg",
   iconWrapper: "flex h-9 w-9 items-center justify-center rounded-xl",
-  label: "mt-2 text-xs font-medium text-slate-400",
+  label: "mt-2 text-xs font-bold text-slate-400",
   valueContainer: "mt-1 flex items-baseline justify-between",
   mainValue: "font-mono text-2xl font-black text-white",
   subBadge: "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold",
@@ -44,24 +46,40 @@ export function AdminMasterKPIBar() {
 
     async function loadStats() {
       try {
-        const [driversRes, ridersRes, activeAdsRes, pendingAdsRes, delegatesRes] = await Promise.all([
+        const [driversRes, ridersRes, delegatesRes] = await Promise.all([
           supabase.from('profiles').select('id, status', { count: 'exact' }).in('role', ['driver', 'DRIVER', 'CAPTAIN', 'captain']),
           supabase.from('profiles').select('id', { count: 'exact', head: true }).in('role', ['rider', 'RIDER']),
-          supabase.from('ads').select('id', { count: 'exact', head: true }).eq('status', 'active'),
-          supabase.from('ads').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
           supabase.from('profiles').select('id', { count: 'exact', head: true }).in('role', ['delegate', 'DELEGATE']),
         ]);
 
+        let activeAdsCount = 0;
+        let pendingAdsCount = 0;
+
+        try {
+          const promosSnap = await getDocs(collection(db, 'promos'));
+          promosSnap.forEach((doc) => {
+            const data = doc.data();
+            const status = String(data.status || '').toLowerCase();
+            if (status === 'active') activeAdsCount++;
+            else if (status === 'pending') pendingAdsCount++;
+          });
+        } catch {
+          // Ignore ads count failure
+        }
+
         if (isMounted) {
           const allDrivers = driversRes.data || [];
-          const activeCount = allDrivers.filter((d: any) => d.status === 'active' || d.status === 'busy').length;
+          const activeCount = allDrivers.filter((d: any) => {
+            const s = String(d.status || '').toLowerCase();
+            return s === 'active' || s === 'busy';
+          }).length;
 
           setStats({
             totalCaptains: driversRes.count ?? allDrivers.length,
             activeCaptains: activeCount,
             totalRiders: ridersRes.count ?? 0,
-            activeAds: activeAdsRes.count ?? 0,
-            pendingAds: pendingAdsRes.count ?? 0,
+            activeAds: activeAdsCount,
+            pendingAds: pendingAdsCount,
             totalDelegates: delegatesRes.count ?? 0,
             systemHealth: '100% مستقر',
           });
@@ -102,12 +120,12 @@ export function AdminMasterKPIBar() {
         <div className={styles.valueContainer}>
           <span className={styles.mainValue}>{loading ? '...' : stats.totalRiders}</span>
           <span className={cn(styles.subBadge, "bg-cyan-500/15 text-cyan-300")}>
-            <ArrowUpRight className="h-2.5 w-2.5" /> {t('organic')}
+            <ArrowUpRight className="h-2.5 w-2.5 ml-0.5" /> مسجل
           </span>
         </div>
       </div>
 
-      {/* 3. الإعلانات النشطة والمعلقة */}
+      {/* 3. الإعلانات */}
       <div className={styles.card}>
         <div className={cn(styles.iconWrapper, "bg-amber-500/10 text-amber-400 border border-amber-500/20")}>
           <Megaphone className="h-4 w-4" />
@@ -117,11 +135,11 @@ export function AdminMasterKPIBar() {
           <span className={styles.mainValue}>{loading ? '...' : stats.activeAds}</span>
           {stats.pendingAds > 0 ? (
             <span className={cn(styles.subBadge, "bg-red-500/20 text-red-300 animate-pulse border border-red-500/30")}>
-              {stats.pendingAds} {t('pending')}
+              {stats.pendingAds} معلق
             </span>
           ) : (
             <span className={cn(styles.subBadge, "bg-slate-800 text-slate-400")}>
-              0 {t('pending')}
+              0 معلق
             </span>
           )}
         </div>
@@ -136,12 +154,12 @@ export function AdminMasterKPIBar() {
         <div className={styles.valueContainer}>
           <span className={styles.mainValue}>{loading ? '...' : stats.totalDelegates}</span>
           <span className={cn(styles.subBadge, "bg-indigo-500/15 text-indigo-300")}>
-            {t('fieldNetwork')}
+            الميدان
           </span>
         </div>
       </div>
 
-      {/* 5. حالة النظام والضغط */}
+      {/* 5. حالة النظام */}
       <div className={styles.card}>
         <div className={cn(styles.iconWrapper, "bg-teal-500/10 text-[#14F5D5] border border-teal-500/20")}>
           <Activity className="h-4 w-4" />
@@ -150,11 +168,10 @@ export function AdminMasterKPIBar() {
         <div className={styles.valueContainer}>
           <span className="font-mono text-base font-bold text-[#14F5D5]">{stats.systemHealth}</span>
           <span className={cn(styles.subBadge, "bg-teal-500/15 text-teal-300")}>
-            OSRM + H3
+            الرادار الحافة
           </span>
         </div>
       </div>
     </div>
   );
 }
-
