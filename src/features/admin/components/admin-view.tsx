@@ -795,7 +795,10 @@ export function AdminPulseOverview() {
       ]);
 
       const allDrivers = driversRes.data || [];
-      const activeCount = allDrivers.filter((d: any) => d.status === 'active' || d.status === 'busy').length;
+      const activeCount = allDrivers.filter((d: any) => {
+        const s = String(d.status || '').toLowerCase();
+        return s === 'active' || s === 'busy';
+      }).length;
 
       setTotalCaptains(driversRes.count ?? allDrivers.length);
       setActiveCaptains(activeCount);
