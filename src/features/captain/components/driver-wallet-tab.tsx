@@ -22,7 +22,6 @@ import { useSovereignWallet } from '@/hooks/use-sovereign-wallet';
 import { cn } from '@/lib/utils';
 import {
   CAPTAIN_PAYMENT_CHANNELS,
-  CAPTAIN_WALLET_AMOUNT_PRESETS,
   getCaptainDistrictPaymentInfo,
 } from '../lib/wallet-static-config';
 
@@ -80,7 +79,7 @@ export function DriverWalletTab({ user, language, isFlightActive = false }: Driv
   const currencySymbol = user?.currencyAr || user?.currencyEn || '';
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 pb-12 text-white">
+    <div className="mx-auto max-w-4xl space-y-6 pb-12 text-white">
       {/* 1. Header & Live Radar Status */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
@@ -114,7 +113,6 @@ export function DriverWalletTab({ user, language, isFlightActive = false }: Driv
 
       {/* 2. Unified Hero Balance Card */}
       <div className="relative overflow-hidden rounded-3xl border border-emerald-500/25 bg-gradient-to-br from-slate-900/95 via-[#071324] to-[#040812] p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
-        {/* Decorative background glows */}
         <div className="pointer-events-none absolute -left-20 -top-20 h-56 w-56 rounded-full bg-emerald-500/15 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-20 -right-20 h-56 w-56 rounded-full bg-cyan-500/15 blur-3xl" />
 
@@ -185,12 +183,6 @@ export function DriverWalletTab({ user, language, isFlightActive = false }: Driv
             <span>{t('rateLinkingNote')}</span>
           </div>
 
-          {walletIsReady && wallet.activePackageName ? (
-            <div className="inline-flex items-center gap-2 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-3.5 py-1.5 text-xs font-bold text-emerald-300">
-              <span>{t('activePackagePrefix')} {wallet.activePackageName}</span>
-            </div>
-          ) : null}
-
           {walletIsMissing || walletHasError ? (
             <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-xs text-amber-100">
               <p className="font-bold">{walletIsMissing ? t('walletMissingTitle') : t('walletErrorTitle')}</p>
@@ -200,223 +192,203 @@ export function DriverWalletTab({ user, language, isFlightActive = false }: Driv
         </div>
       </div>
 
-      {/* 3. Recharge Methods (Two Structured Columns) */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Left Section (Span 2): Digital Payment Channels & Receipt Upload */}
-        <div className="space-y-6 rounded-3xl border border-slate-800 bg-[#070c18] p-5 sm:p-6 shadow-xl lg:col-span-2">
-          {/* Step 1: Channels */}
-          <div>
-            <div className="flex items-center justify-between">
-              <h2 className="text-base font-black text-white">{t('selectPaymentChannel')}</h2>
-              <span className="text-xs text-slate-400">{t('refillTitle')}</span>
-            </div>
-            <p className="mt-1 text-xs text-slate-400">{t('refillHint')}</p>
-
-            <div className="mt-4 grid gap-2.5 sm:grid-cols-2">
-              {CAPTAIN_PAYMENT_CHANNELS.map((channelOption) => {
-                const channelNumber = districtPaymentInfo.channelNumbers[channelOption.id] || '';
-                const isSelected = selectedChannelId === channelOption.id;
-                const isCopied = copiedChannelId === channelOption.id;
-
-                return (
-                  <div
-                    key={channelOption.id}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => setSelectedChannelId(channelOption.id)}
-                    onKeyDown={(event) => {
-                      if (event.key !== 'Enter' && event.key !== ' ') return;
-                      setSelectedChannelId(channelOption.id);
-                    }}
-                    className={cn(
-                      "group relative rounded-2xl border p-3.5 text-right transition cursor-pointer",
-                      isSelected
-                        ? "border-emerald-400 bg-emerald-500/10 shadow-[0_0_15px_rgba(16,185,129,0.15)] ring-1 ring-emerald-400/30"
-                        : "border-slate-800 bg-black/40 hover:border-slate-700 hover:bg-slate-900/50"
-                    )}
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-black text-sm text-white">
-                        {language === 'ar' ? channelOption.labelAr : channelOption.labelEn}
-                      </span>
-                      <span
-                        className={cn(
-                          "h-2 w-2 rounded-full",
-                          isSelected ? "bg-emerald-400" : "bg-slate-700"
-                        )}
-                      />
-                    </div>
-                    <p className="mt-1 text-[11px] text-slate-400 line-clamp-1">
-                      {language === 'ar' ? channelOption.descriptionAr : channelOption.descriptionEn}
-                    </p>
-
-                    <div className="mt-2.5 flex items-center justify-between gap-2 rounded-xl border border-white/5 bg-black/60 px-2.5 py-1.5">
-                      <span className="truncate font-mono text-xs font-bold text-slate-200">
-                        {channelNumber}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          copyChannelNumber(channelOption.id, channelNumber);
-                        }}
-                        className={cn(
-                          "inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-bold transition",
-                          isCopied
-                            ? "bg-emerald-500/20 text-emerald-300"
-                            : "bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white"
-                        )}
-                        aria-label={t('copy')}
-                      >
-                        {isCopied ? (
-                          <>
-                            <Check className="h-3 w-3 text-emerald-400" />
-                            <span>{t('copied')}</span>
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="h-3 w-3" />
-                            <span>{t('copy')}</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            {!selectedChannel ? (
-              <p className="mt-2 text-xs font-semibold text-amber-300/80">
-                ⚠️ {t('chooseChannelHint')}
-              </p>
-            ) : null}
+      {/* 3. Digital Recharge Section */}
+      <div className="space-y-6 rounded-3xl border border-slate-800 bg-[#070c18] p-5 sm:p-7 shadow-xl">
+        {/* Step 1: Channels */}
+        <div>
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-black text-white">{t('selectPaymentChannel')}</h2>
+            <span className="text-xs text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full">
+              {t('refillTitle')}
+            </span>
           </div>
+          <p className="mt-1 text-xs text-slate-400">{t('refillHint')}</p>
 
-          {/* Step 2: Amount & Receipt Upload */}
-          <div className="border-t border-slate-800 pt-5 space-y-4">
-            <h2 className="text-base font-black text-white">{t('amountAndReceipt')}</h2>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            {CAPTAIN_PAYMENT_CHANNELS.map((channelOption) => {
+              const channelNumber = districtPaymentInfo.channelNumbers[channelOption.id] || '';
+              const isSelected = selectedChannelId === channelOption.id;
+              const isCopied = copiedChannelId === channelOption.id;
 
-            {/* Quick Amount Presets */}
-            <div className="flex flex-wrap gap-2">
-              {CAPTAIN_WALLET_AMOUNT_PRESETS.map((preset) => (
-                <button
-                  key={preset}
-                  type="button"
-                  onClick={() => setAmount(String(preset))}
+              return (
+                <div
+                  key={channelOption.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setSelectedChannelId(channelOption.id)}
+                  onKeyDown={(event) => {
+                    if (event.key !== 'Enter' && event.key !== ' ') return;
+                    setSelectedChannelId(channelOption.id);
+                  }}
                   className={cn(
-                    "rounded-xl border px-3.5 py-2 text-xs font-bold transition",
-                    amount === String(preset)
-                      ? "border-emerald-400 bg-emerald-500/15 text-[#14F5D5] shadow-sm"
-                      : "border-slate-800 bg-black/40 text-slate-300 hover:border-slate-700"
+                    "group relative rounded-2xl border p-3.5 text-right transition cursor-pointer",
+                    isSelected
+                      ? "border-emerald-400 bg-emerald-500/10 shadow-[0_0_15px_rgba(16,185,129,0.15)] ring-1 ring-emerald-400/30"
+                      : "border-slate-800 bg-black/40 hover:border-slate-700 hover:bg-slate-900/50"
                   )}
                 >
-                  {preset} {currencySymbol}
-                </button>
-              ))}
-            </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-black text-sm text-white">
+                      {language === 'ar' ? channelOption.labelAr : channelOption.labelEn}
+                    </span>
+                    <span
+                      className={cn(
+                        "h-2 w-2 rounded-full",
+                        isSelected ? "bg-emerald-400" : "bg-slate-700"
+                      )}
+                    />
+                  </div>
+                  <p className="mt-1 text-[11px] text-slate-400 line-clamp-1">
+                    {language === 'ar' ? channelOption.descriptionAr : channelOption.descriptionEn}
+                  </p>
 
-            {/* Amount input & Selected Channel indicator */}
-            <div className="grid gap-3 sm:grid-cols-2">
-              <input
-                value={amount}
-                onChange={(event) => setAmount(event.target.value)}
-                inputMode="decimal"
-                placeholder={t('amount')}
-                className="w-full rounded-2xl border border-slate-800 bg-black/50 px-4 py-3 text-sm font-bold text-white placeholder-slate-500 outline-none transition focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400"
-              />
-
-              <div className="flex items-center justify-between rounded-2xl border border-slate-800/80 bg-black/30 px-4 py-3 text-xs">
-                <span className="text-slate-400">{t('selectedChannelLabel')}</span>
-                <span className="font-bold text-[#14F5D5]">
-                  {selectedChannel
-                    ? (language === 'ar' ? selectedChannel.labelAr : selectedChannel.labelEn)
-                    : t('noChannelSelected')}
-                </span>
-              </div>
-            </div>
-
-            {/* Receipt File Upload */}
-            <label className="flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-700 bg-black/30 px-4 py-4 text-xs font-semibold text-slate-300 transition hover:border-emerald-400 hover:bg-slate-900/40">
-              {receiptFile ? (
-                <span className="inline-flex items-center gap-2 text-emerald-300">
-                  <Check className="h-4 w-4 text-emerald-400" />
-                  <span className="truncate max-w-xs">{receiptFile.name}</span>
-                  <span className="text-slate-400 text-[11px]">
-                    ({(receiptFile.size / 1024).toFixed(0)} KB)
-                  </span>
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-2">
-                  <Upload className="h-4 w-4 text-slate-400" />
-                  <span>{t('chooseImageHint')}</span>
-                </span>
-              )}
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(event) => setReceiptFile(event.target.files?.[0] || null)}
-              />
-            </label>
-
-            {/* Submit Receipt Button */}
-            <button
-              onClick={submitReceipt}
-              disabled={
-                wallet.loading ||
-                !receiptFile ||
-                !selectedChannel ||
-                !Number.isFinite(Number(amount)) ||
-                Number(amount) <= 0
-              }
-              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-emerald-500 to-[#14B8A6] px-5 py-3.5 text-sm font-black text-slate-950 shadow-lg shadow-emerald-500/20 transition hover:brightness-110 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              {wallet.loading ? (
-                <Loader2 className="h-4 w-4 animate-spin text-slate-950" />
-              ) : (
-                <ReceiptText className="h-4 w-4 text-slate-950" />
-              )}
-              <span>{t('sendReceipt')}</span>
-            </button>
+                  <div className="mt-2.5 flex items-center justify-between gap-2 rounded-xl border border-white/5 bg-black/60 px-2.5 py-1.5">
+                    <span className="truncate font-mono text-xs font-bold text-slate-200">
+                      {channelNumber}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        copyChannelNumber(channelOption.id, channelNumber);
+                      }}
+                      className={cn(
+                        "inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-bold transition",
+                        isCopied
+                          ? "bg-emerald-500/20 text-emerald-300"
+                          : "bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white"
+                      )}
+                      aria-label={t('copy')}
+                    >
+                      {isCopied ? (
+                        <>
+                          <Check className="h-3 w-3 text-emerald-400" />
+                          <span>{t('copied')}</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-3 w-3" />
+                          <span>{t('copy')}</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
+          {!selectedChannel ? (
+            <p className="mt-2.5 text-xs font-semibold text-amber-300/80">
+              ⚠️ {t('chooseChannelHint')}
+            </p>
+          ) : null}
         </div>
 
-        {/* Right Section (Span 1): Pay Cash to Local Financial Delegate */}
-        <div className="flex flex-col justify-between rounded-3xl border border-slate-800 bg-[#070c18] p-5 sm:p-6 shadow-xl space-y-6">
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 text-emerald-400">
-              <UserCheck className="h-5 w-5" />
-              <h2 className="text-base font-black text-white">{t('delegateTitle')}</h2>
-            </div>
-            <p className="text-xs text-slate-400 leading-relaxed">{t('delegateHint')}</p>
+        {/* Step 2: Amount & Receipt Upload */}
+        <div className="border-t border-slate-800 pt-5 space-y-4">
+          <h2 className="text-base font-black text-white">{t('amountAndReceipt')}</h2>
 
-            {/* Delegate Profile Card */}
-            <div className="rounded-2xl border border-white/5 bg-black/40 p-4 space-y-1.5">
-              <p className="text-sm font-black text-slate-200">
-                {districtPaymentInfo.delegateName}
-              </p>
-              <p className="text-xs text-emerald-400/90 font-medium">
-                {user?.district || t('noDistrict')}
+          {/* Amount input & Selected Channel indicator */}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <input
+              value={amount}
+              onChange={(event) => setAmount(event.target.value)}
+              inputMode="decimal"
+              placeholder={t('amount')}
+              className="w-full rounded-2xl border border-slate-800 bg-black/50 px-4 py-3.5 text-sm font-bold text-white placeholder-slate-500 outline-none transition focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400"
+            />
+
+            <div className="flex items-center justify-between rounded-2xl border border-slate-800/80 bg-black/30 px-4 py-3.5 text-xs">
+              <span className="text-slate-400">{t('selectedChannelLabel')}</span>
+              <span className="font-bold text-[#14F5D5]">
+                {selectedChannel
+                  ? (language === 'ar' ? selectedChannel.labelAr : selectedChannel.labelEn)
+                  : t('noChannelSelected')}
+              </span>
+            </div>
+          </div>
+
+          {/* Receipt File Upload */}
+          <label className="flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-700 bg-black/30 px-4 py-4 text-xs font-semibold text-slate-300 transition hover:border-emerald-400 hover:bg-slate-900/40">
+            {receiptFile ? (
+              <span className="inline-flex items-center gap-2 text-emerald-300">
+                <Check className="h-4 w-4 text-emerald-400" />
+                <span className="truncate max-w-xs">{receiptFile.name}</span>
+                <span className="text-slate-400 text-[11px]">
+                  ({(receiptFile.size / 1024).toFixed(0)} KB)
+                </span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-2">
+                <Upload className="h-4 w-4 text-slate-400" />
+                <span>{t('chooseImageHint')}</span>
+              </span>
+            )}
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(event) => setReceiptFile(event.target.files?.[0] || null)}
+            />
+          </label>
+
+          {/* Submit Receipt Button */}
+          <button
+            onClick={submitReceipt}
+            disabled={
+              wallet.loading ||
+              !receiptFile ||
+              !selectedChannel ||
+              !Number.isFinite(Number(amount)) ||
+              Number(amount) <= 0
+            }
+            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-emerald-500 to-[#14B8A6] px-5 py-4 text-sm font-black text-slate-950 shadow-lg shadow-emerald-500/20 transition hover:brightness-110 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {wallet.loading ? (
+              <Loader2 className="h-4 w-4 animate-spin text-slate-950" />
+            ) : (
+              <ReceiptText className="h-4 w-4 text-slate-950" />
+            )}
+            <span>{t('sendReceipt')}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* 4. Compact & Sleek Financial Delegate Card */}
+      <div className="rounded-3xl border border-slate-800/80 bg-gradient-to-r from-[#070c18] via-slate-900/70 to-[#070c18] p-4 sm:p-5 shadow-lg">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="rounded-2xl border border-emerald-500/25 bg-emerald-500/10 p-2.5 text-emerald-400 shrink-0">
+              <UserCheck className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-black text-white">{t('delegateTitle')}</h3>
+                <span className="text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                  {user?.district || t('noDistrict')}
+                </span>
+              </div>
+              <p className="mt-0.5 text-xs text-slate-400">
+                <span className="text-slate-200 font-bold">{districtPaymentInfo.delegateName}</span> · {t('delegateHint')}
               </p>
             </div>
           </div>
 
-          {/* Quick Action Buttons: Call & WhatsApp */}
-          <div className="space-y-2.5 pt-4">
+          <div className="flex items-center gap-2 shrink-0">
             <a
               href={`tel:${districtPaymentInfo.delegatePhone}`}
-              className="flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 py-3 text-xs font-bold text-slate-200 transition hover:bg-white/10"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-xs font-bold text-slate-200 transition hover:bg-white/10 active:scale-95"
             >
-              <Phone className="h-4 w-4 text-emerald-400" />
+              <Phone className="h-3.5 w-3.5 text-emerald-400" />
               <span>{t('delegateCall')}</span>
             </a>
             <a
               href={`https://wa.me/${districtPaymentInfo.delegatePhone}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 hover:bg-emerald-500 py-3 text-xs font-black text-white shadow-lg shadow-emerald-900/30 transition hover:brightness-105"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 px-4 py-2.5 text-xs font-black text-white shadow-md shadow-emerald-900/30 transition hover:brightness-105 active:scale-95"
             >
-              <MessageCircle className="h-4 w-4" />
+              <MessageCircle className="h-3.5 w-3.5" />
               <span>{t('delegateWhatsapp')}</span>
             </a>
           </div>
