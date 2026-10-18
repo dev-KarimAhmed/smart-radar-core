@@ -50,10 +50,11 @@ export async function GET(req: Request) {
     // 3.5. Fetch completed trips count and active requests in batch
     let completedTripsMap = new Map<string, number>();
     let activeRequestsMap = new Map<string, string>();
+    let consecutiveCancellationsMap = new Map<string, number>();
 
     if (profileIds.length > 0) {
       if (roleFilter === 'RIDER') {
-        const [completedRes, activeRes] = await Promise.all([
+        const [completedRes, activeRes, recentReqsRes] = await Promise.all([
           supabaseAdmin
             .from('ride_requests')
             .select('rider_id')
@@ -64,6 +65,12 @@ export async function GET(req: Request) {
             .select('rider_id, status')
             .in('rider_id', profileIds)
             .in('status', ['PENDING', 'ACCEPTED', 'ARRIVED', 'TRIP_ACTIVE', 'STARTED']),
+          supabaseAdmin
+            .from('ride_requests')
+            .select('rider_id, status, created_at')
+            .in('rider_id', profileIds)
+            .order('created_at', { ascending: false })
+            .limit(500),
         ]);
 
         for (const row of completedRes.data || []) {
@@ -75,6 +82,43 @@ export async function GET(req: Request) {
           if (row.rider_id) {
             activeRequestsMap.set(row.rider_id, row.status);
           }
+        }
+
+        // Group recent requests chronologically by rider
+        const riderRecentReqs = new Map<string, Array<{ status: string; created_at: string }>>();
+        for (const req of recentReqsRes.data || []) {
+          if (!req.rider_id) continue;
+          if (!riderRecentReqs.has(req.rider_id)) {
+            riderRecentReqs.set(req.rider_id, []);
+          }
+          riderRecentReqs.get(req.rider_id)!.push(req);
+        }
+
+        // Count consecutive cancellations from latest backwards until first completed trip or reset marker
+        for (const [rId, reqs] of riderRecentReqs.entries()) {
+          const profileRow = profiles.find(p => p.id === rId);
+          let lastResetTime = 0;
+          if (Array.isArray(profileRow?.rank_audit_log)) {
+            for (const log of profileRow.rank_audit_log) {
+              if (typeof log === 'string' && log.startsWith('RESET_PENALTIES_')) {
+                const ts = parseInt(log.replace('RESET_PENALTIES_', ''), 10);
+                if (ts > lastResetTime) lastResetTime = ts;
+              }
+            }
+          }
+
+          let cancellations = 0;
+          for (const req of reqs) {
+            if (lastResetTime > 0 && new Date(req.created_at).getTime() <= lastResetTime) {
+              break;
+            }
+            if (req.status === 'CANCELLED') {
+              cancellations++;
+            } else if (req.status === 'COMPLETED') {
+              break;
+            }
+          }
+          consecutiveCancellationsMap.set(rId, cancellations);
         }
       } else {
         const [capCompleted, capActive] = await Promise.all([
@@ -160,7 +204,9 @@ export async function GET(req: Request) {
         heart_count: Number(p.heart_count ?? 0),
         penalty_count: Number(p.penalty_count ?? 0),
         trust_score: Number(p.trust_score ?? p.trust_rating ?? 5.0),
-        consecutive_cancellations: Number(p.consecutive_cancellations ?? 0),
+        consecutive_cancellations: consecutiveCancellationsMap.has(p.id)
+          ? (consecutiveCancellationsMap.get(p.id) || 0)
+          : Number(p.consecutive_cancellations ?? 0),
         governorate: govName || 'عمّان',
         district: distName || 'المركز',
         governorate_id: p.governorate_id,
@@ -310,24 +356,44 @@ export async function POST(req: Request) {
           console.warn('[Admin API] update_status auth metadata update skipped:', authErr);
         }
 
-        // Push real-time notification to the captain
+        // Dissolve radar buoy and cancel any pending ride requests if suspended or banned
+        if (normalizedStatus === 'SUSPENDED' || normalizedStatus === 'BANNED') {
+          await supabaseAdmin
+            .from('ride_requests')
+            .update({
+              status: 'CANCELLED',
+              cancelled_at: new Date().toISOString(),
+            })
+            .eq('rider_id', userId)
+            .eq('status', 'PENDING');
+        }
+
+        // Push real-time notification to the user
         let notifTitle = 'تحديث في الحالة التشغيلية';
         let notifDesc = `قامت الإدارة بتحديث حالتك إلى: ${normalizedStatus}`;
         let notifType: 'admin_message' | 'warning' | 'urgent' = 'admin_message';
 
+        const isRider = originalRole === 'RIDER';
+
         if (normalizedStatus === 'ACTIVE') {
-          notifTitle = 'تم تنشيط حسابك على الرادار ⚡';
-          notifDesc = 'قامت إدارة المنظومة بتنشيط حسابك فورياً، وأصبحت متصلاً بالرادار وجاهزاً لاستقبال طلبات الركاب.';
+          notifTitle = isRider ? 'تم تنشيط حسابك على الرادار ⚡' : 'تم تنشيط حسابك على الرادار ⚡';
+          notifDesc = isRider
+            ? 'قامت إدارة المنظومة بتنشيط حسابك فورياً، وأصبحت جاهزاً لطلب الرحلات والتواصل مع الكباتن عبر الرادار.'
+            : 'قامت إدارة المنظومة بتنشيط حسابك فورياً، وأصبحت متصلاً بالرادار وجاهزاً لاستقبال طلبات الركاب.';
         } else if (normalizedStatus === 'IDLE') {
-          notifTitle = 'تم ضبط وضعك إلى خامل (جاهز) 🛑';
-          notifDesc = 'أنت الآن في وضع الجاهزية والخمول، يمكنك تفعيل الاتصال بالرادار متى شئت.';
+          notifTitle = isRider ? 'تم ضبط حسابك إلى وضع الجاهزية 🛑' : 'تم ضبط وضعك إلى خامل (جاهز) 🛑';
+          notifDesc = isRider
+            ? 'أنت الآن في وضع الجاهزية، يمكنك طلب الرحلات عبر الرادار في أي وقت.'
+            : 'أنت الآن في وضع الجاهزية والخمول، يمكنك تفعيل الاتصال بالرادار متى شئت.';
         } else if (normalizedStatus === 'SUSPENDED') {
-          notifTitle = 'تنبيه إداري: تم تعليق حسابك مؤقتاً ⚠️';
-          notifDesc = 'تم تعليق حسابك مؤقتاً من قبل إدارة العمليات. يرجى مراجعة الإدارة أو التواصل مع الدعم لفك التعليق.';
+          notifTitle = isRider ? 'تنبيه إداري: تم تعليق حساب الراكب مؤقتاً ⚠️' : 'تنبيه إداري: تم تعليق حسابك مؤقتاً ⚠️';
+          notifDesc = 'تم تعليق حسابك مؤقتاً من قبل إدارة العمليات لمراجعة النشاط أو المناعة السلوكية. يرجى مراجعة الإدارة أو التواصل مع الدعم لفك التعليق.';
           notifType = 'warning';
         } else if (normalizedStatus === 'BANNED') {
-          notifTitle = 'إشعار أمني: تم حظر حسابك نهائياً 🚫';
-          notifDesc = 'تم حظر حسابك نهائياً من قبل إدارة المنظومة لمخالفة المعايير التشغيلية والسيادية.';
+          notifTitle = isRider ? 'إشعار أمني: تم حظر حساب الراكب نهائياً 🚫' : 'إشعار أمني: تم حظر حسابك نهائياً 🚫';
+          notifDesc = isRider
+            ? 'تم حظر حسابك نهائياً من قبل إدارة المنظومة لمخالفة المعايير التشغيلية والسيادية. تم إيقاف إمكانية طلب الرحلات والاتصال بالرادار.'
+            : 'تم حظر حسابك نهائياً من قبل إدارة المنظومة لمخالفة المعايير التشغيلية والسيادية.';
           notifType = 'urgent';
         }
 
@@ -506,6 +572,7 @@ export async function POST(req: Request) {
         const originalRole = currProfile?.role || 'CAPTAIN';
         let currentLogs: string[] = Array.isArray(currProfile?.rank_audit_log) ? [...currProfile.rank_audit_log] : [];
         currentLogs = currentLogs.filter(l => l !== 'ACCOUNT_SUSPENDED');
+        currentLogs.push(`RESET_PENALTIES_${Date.now()}`);
 
         const updatePayload: Record<string, any> = {
           penalty_count: 0,

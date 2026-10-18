@@ -228,7 +228,7 @@ function setupRealtimeChannelIfNeeded(userId: string) {
               latestToastFn(
                 newRow.title,
                 newRow.description || '',
-                newRow.type === 'WALLET_ALERT' ? 'destructive' : 'default'
+                newRow.type === 'WALLET_ALERT' || newRow.type === 'urgent' || newRow.type === 'warning' ? 'destructive' : 'default'
               );
             }
 
