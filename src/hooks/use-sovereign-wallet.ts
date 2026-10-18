@@ -112,6 +112,49 @@ export function useSovereignWallet(user: User | null) {
   // Only decides whether the testing control is rendered. The RPC re-reads the same flag
   // server-side, so hiding the button is cosmetic — turning the flag off is what closes it.
   const [selfTopupEnabled, setSelfTopupEnabled] = useState(false);
+  const [radarHourPrice, setRadarHourPrice] = useState(1);
+
+  useEffect(() => {
+    let active = true;
+    async function resolveHourlyRate() {
+      try {
+        const countryId = user?.countryId || 1;
+        const { data } = await supabase
+          .from('countries')
+          .select('radar_hour_price')
+          .eq('id', countryId)
+          .maybeSingle();
+
+        let price = Number(data?.radar_hour_price) || 1;
+
+        const { data: flagRow } = await supabase
+          .from('app_flags')
+          .select('note')
+          .eq('flag', 'hourly_rates_matrix')
+          .maybeSingle();
+
+        if (flagRow?.note) {
+          try {
+            const matrix = JSON.parse(flagRow.note);
+            if (user?.district && matrix.districts?.[String(user.district)]) {
+              price = Number(matrix.districts[String(user.district)]);
+            } else if (user?.governorate && matrix.governorates?.[String(user.governorate)]) {
+              price = Number(matrix.governorates[String(user.governorate)]);
+            }
+          } catch {}
+        }
+
+        if (active) setRadarHourPrice(price > 0 ? price : 1);
+      } catch {
+        if (active) setRadarHourPrice(1);
+      }
+    }
+
+    void resolveHourlyRate();
+    return () => {
+      active = false;
+    };
+  }, [user?.countryId, user?.district, user?.governorate]);
 
   useEffect(() => {
     let active = true;
@@ -558,13 +601,18 @@ export function useSovereignWallet(user: User | null) {
 
   const isDriver = user?.role === 'driver';
   const balanceJD = serverWallet?.balance ?? 0;
-  const paidMinutesRemaining = serverWallet?.paidMinutesRemaining ?? 0;
+  const rawPaidMinutesRemaining = serverWallet?.paidMinutesRemaining ?? 0;
   const bonusMinutesRemaining = serverWallet?.bonusMinutesRemaining ?? 0;
-  const subscriptionHours = serverWallet?.subscriptionHours ?? Number(((paidMinutesRemaining + bonusMinutesRemaining) / 60).toFixed(3));
+  // Direct conversion formula from cash balance to equivalent radar minutes
+  const cashEquivalentMinutes = radarHourPrice > 0 ? Math.floor((balanceJD * 60) / radarHourPrice) : 0;
+  // Total paid minutes combines raw paid minutes plus direct cash-equivalent minutes
+  const paidMinutesRemaining = rawPaidMinutesRemaining + cashEquivalentMinutes;
+  const totalUsableMinutes = paidMinutesRemaining + bonusMinutesRemaining;
+  const subscriptionHours = Number((totalUsableMinutes / 60).toFixed(3));
   const activePackageName = serverWallet?.activePackageName || '';
   const timeBundleExpiresAt = serverWallet?.timeBundleExpiresAt || null;
   const hasActiveTimeBundle =
-    paidMinutesRemaining + bonusMinutesRemaining > 0
+    totalUsableMinutes > 0
     && (!timeBundleExpiresAt || Date.parse(timeBundleExpiresAt) > Date.now());
   // True when the captain has unconverted cash sitting in balance (legacy top-ups
   // before the cash→minutes migration). The wallet tab uses this to show a
@@ -592,8 +640,12 @@ export function useSovereignWallet(user: User | null) {
     isDriver,
     balanceJD,
     hasStrandedBalance,
+    radarHourPrice,
+    cashEquivalentMinutes,
+    rawPaidMinutesRemaining,
     paidMinutesRemaining,
     bonusMinutesRemaining,
+    totalUsableMinutes,
     subscriptionHours,
     activePackageName,
     timeBundleExpiresAt,
