@@ -203,11 +203,14 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
 
   const { riderProfile, systemMessages, currencyLabel } = useRiderProfileSummary(user, language, countryConfig, geolocation.locationStatus, geolocation.liveCurrencyCode);
 
+  // Only trigger open destination on initial transition when user explicitly requests ride from standby
+  const prevStandbyDismissedRef = React.useRef(isStandbyDismissed);
   React.useEffect(() => {
-    if (isStandbyDismissed && state.screen === 'IDLE_MAP') {
+    if (!prevStandbyDismissedRef.current && isStandbyDismissed) {
       dispatch({ type: 'OPEN_DESTINATION' });
     }
-  }, [isStandbyDismissed, state.screen, dispatch]);
+    prevStandbyDismissedRef.current = isStandbyDismissed;
+  }, [isStandbyDismissed, dispatch]);
 
   React.useEffect(() => {
     const handleExit = () => {
@@ -229,18 +232,21 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
 
   const handleCloseOrCancel = React.useCallback(async () => {
     if (state.requestId) {
-      await sendCancel.handleCancelRideRequest();
-    } else if (state.screen === 'DESTINATION_SELECTION' || state.screen === 'PURGE_LEDGER' || state.screen === 'FAVORITE_CAPTAINS') {
-      resetRideDraftState();
-      dispatch({ type: 'RETURN_TO_MAP' });
-    } else if (onExitRequestFlow) {
-      resetRideDraftState();
+      try {
+        await sendCancel.handleCancelRideRequest();
+      } catch (err) {
+        console.warn('[RiderView] error cancelling ride request:', err);
+      }
+    }
+    resetRideDraftState();
+    dispatch({ type: 'RESET_TO_IDLE' });
+    if (onExitRequestFlow) {
       onExitRequestFlow();
-    } else {
-      resetRideDraftState();
+    }
+    if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('exit-request-flow'));
     }
-  }, [dispatch, onExitRequestFlow, resetRideDraftState, sendCancel, state.requestId, state.screen]);
+  }, [dispatch, onExitRequestFlow, resetRideDraftState, sendCancel, state.requestId]);
 
   return (
     <>
