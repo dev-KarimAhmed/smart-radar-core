@@ -70,6 +70,11 @@ export async function GET(req: Request) {
       const currencyAr = country?.currency_ar || (isEgypt ? 'ج.م' : 'د.أ');
       const currencyCode = country?.currency_en || w.currency_code || (isEgypt ? 'EGP' : 'JOD');
 
+      let userStatus = (p.status || 'IDLE').toUpperCase();
+      if (userStatus === 'BANNED' && Array.isArray(p.rank_audit_log) && p.rank_audit_log.includes('ACCOUNT_SUSPENDED')) {
+        userStatus = 'SUSPENDED';
+      }
+
       return {
         id: p.id,
         serial_id: p.serial_id || (p.role === 'CAPTAIN' ? `C-${p.id.slice(0, 4)}` : `R-${p.id.slice(0, 4)}`),
@@ -81,7 +86,7 @@ export async function GET(req: Request) {
         currency: currencyAr,
         currency_ar: currencyAr,
         currency_code: currencyCode,
-        status: (p.status || 'IDLE').toUpperCase(),
+        status: userStatus,
         tier: (p.tier || 'SILVER').toUpperCase(),
         rating: Number(p.rating ?? 5.0),
         rating_count: Number(p.rating_count ?? 0),
@@ -167,15 +172,76 @@ export async function POST(req: Request) {
           return NextResponse.json({ success: false, error: 'Invalid status' }, { status: 400 });
         }
 
-        const { error } = await supabaseAdmin
-          .from('profiles')
-          .update({
-            status: normalizedStatus,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', userId);
+        // Map operational/security status to database user_status enum ('ACTIVE', 'IDLE', 'BANNED').
+        // 'SUSPENDED' is stored as 'BANNED' in Postgres with 'ACCOUNT_SUSPENDED' in rank_audit_log.
+        const dbStatus = normalizedStatus === 'SUSPENDED' ? 'BANNED' : normalizedStatus === 'BUSY' ? 'ACTIVE' : normalizedStatus;
 
-        if (error) throw error;
+        // Fetch current profile
+        const { data: currProfile } = await supabaseAdmin
+          .from('profiles')
+          .select('role, rank_audit_log')
+          .eq('id', userId)
+          .single();
+
+        const originalRole = currProfile?.role || 'CAPTAIN';
+        let currentLogs: string[] = Array.isArray(currProfile?.rank_audit_log) ? [...currProfile.rank_audit_log] : [];
+
+        if (normalizedStatus === 'SUSPENDED') {
+          if (!currentLogs.includes('ACCOUNT_SUSPENDED')) {
+            currentLogs.push('ACCOUNT_SUSPENDED');
+          }
+        } else {
+          currentLogs = currentLogs.filter(l => l !== 'ACCOUNT_SUSPENDED');
+        }
+
+        if (originalRole === 'CAPTAIN' || originalRole === 'DRIVER') {
+          // Bypass sync_captain_rank trigger via temporary role shift
+          const { error: err1 } = await supabaseAdmin
+            .from('profiles')
+            .update({
+              role: 'RIDER',
+              status: dbStatus,
+              rank_audit_log: currentLogs,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', userId);
+
+          if (err1) throw err1;
+
+          const { error: err2 } = await supabaseAdmin
+            .from('profiles')
+            .update({
+              role: originalRole,
+              status: dbStatus,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', userId);
+
+          if (err2) throw err2;
+        } else {
+          const { error } = await supabaseAdmin
+            .from('profiles')
+            .update({
+              status: dbStatus,
+              rank_audit_log: currentLogs,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', userId);
+
+          if (error) throw error;
+        }
+
+        // Update auth metadata
+        try {
+          await supabaseAdmin.auth.admin.updateUserById(userId, {
+            user_metadata: {
+              status: normalizedStatus,
+              security_status: (normalizedStatus === 'SUSPENDED' || normalizedStatus === 'BANNED') ? normalizedStatus : null,
+            },
+          });
+        } catch (authErr) {
+          console.warn('[Admin API] update_status auth metadata update skipped:', authErr);
+        }
 
         // Push real-time notification to the captain
         let notifTitle = 'تحديث في الحالة التشغيلية';

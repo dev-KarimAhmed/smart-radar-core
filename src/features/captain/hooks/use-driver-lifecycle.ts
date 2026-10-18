@@ -68,7 +68,12 @@ export function useDriverLifecycle(user: User | null) {
         },
         (payload) => {
           if (!mounted) return;
-          const rawStatus = String((payload.new as { status?: unknown }).status || '').toUpperCase();
+          const newRow = payload.new as { status?: unknown; rank_audit_log?: unknown };
+          let rawStatus = String(newRow.status || '').toUpperCase();
+          const logs = Array.isArray(newRow.rank_audit_log) ? newRow.rank_audit_log : [];
+          if (rawStatus === 'BANNED' && logs.includes('ACCOUNT_SUSPENDED')) {
+            rawStatus = 'SUSPENDED';
+          }
           if (rawStatus === 'SUSPENDED' || rawStatus === 'BANNED') {
             setAccountSecurityStatus(rawStatus);
             setDriverStatus('idle');
@@ -85,12 +90,17 @@ export function useDriverLifecycle(user: User | null) {
 
     void supabase
       .from('profiles')
-      .select('status')
+      .select('status, rank_audit_log')
       .eq('id', user.uid)
       .maybeSingle()
       .then(async ({ data, error }) => {
         if (!mounted || error) return;
-        const rawStatus = String((data as { status?: unknown } | null)?.status || '').toUpperCase();
+        const row = data as { status?: unknown; rank_audit_log?: unknown } | null;
+        let rawStatus = String(row?.status || '').toUpperCase();
+        const logs = Array.isArray(row?.rank_audit_log) ? row.rank_audit_log : [];
+        if (rawStatus === 'BANNED' && logs.includes('ACCOUNT_SUSPENDED')) {
+          rawStatus = 'SUSPENDED';
+        }
         if (rawStatus === 'SUSPENDED' || rawStatus === 'BANNED') {
           setAccountSecurityStatus(rawStatus as 'SUSPENDED' | 'BANNED');
           setDriverStatus('idle');
