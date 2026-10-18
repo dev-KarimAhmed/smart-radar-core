@@ -130,6 +130,16 @@ export function WalletManagementTab() {
   const { toast } = useToast();
   const [activeSubTab, setActiveSubTab] = useState<'receipts' | 'direct' | 'vouchers' | 'ledger' | 'rates'>('receipts');
 
+  useEffect(() => {
+    const handleSubtab = (e: any) => {
+      if (e.detail?.subtab) {
+        setActiveSubTab(e.detail.subtab);
+      }
+    };
+    window.addEventListener('admin-wallet-subtab', handleSubtab);
+    return () => window.removeEventListener('admin-wallet-subtab', handleSubtab);
+  }, []);
+
   // Loading & Data States
   const [loadingOverview, setLoadingOverview] = useState(true);
   const [loadingData, setLoadingData] = useState(false);

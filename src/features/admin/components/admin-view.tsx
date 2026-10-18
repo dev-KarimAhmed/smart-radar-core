@@ -973,6 +973,18 @@ export function AdminPulseOverview() {
 }
 
 export function AdminViewTab() {
+  const [activeTab, setActiveTab] = React.useState<string>('captains');
+
+  React.useEffect(() => {
+    const handleSwitch = (e: any) => {
+      if (e.detail?.tab) {
+        setActiveTab(e.detail.tab);
+      }
+    };
+    window.addEventListener('admin-switch-tab', handleSwitch);
+    return () => window.removeEventListener('admin-switch-tab', handleSwitch);
+  }, []);
+
   return (
     <div className="space-y-6 text-right font-sans" dir="rtl">
       {/* شريط الإدارة العلوي - الملف الشخصي، تغيير كلمة السر، تسجيل الخروج */}
@@ -982,7 +994,7 @@ export function AdminViewTab() {
       <AdminMasterKPIBar />
 
       {/* المنظومة الإدارية المنظمة */}
-      <Tabs defaultValue="captains" className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         {/* شريط التبويبات الرئيسي - تصميم أنيق ومتناسق */}
         <TabsList className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 bg-[#050A0F]/90 border border-white/10 p-2 rounded-2xl h-auto">
           <TabsTrigger

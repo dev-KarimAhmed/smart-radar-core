@@ -35,6 +35,7 @@ import {
 import { cn } from '@/lib/utils';
 import { clearSupabaseSessionCache } from '@/lib/supabase-auth';
 import { purgeTransientFrontendCache } from '@/hooks/use-auth';
+import { AdminNotificationCenter } from './admin-notification-center';
 
 export function AdminTopBar() {
   const { user } = useAuth();
@@ -212,6 +213,9 @@ export function AdminTopBar() {
 
         {/* Left Section: Action Buttons */}
         <div className="flex items-center gap-2.5 w-full md:w-auto justify-end flex-wrap">
+          {/* Sovereign Notification Center */}
+          <AdminNotificationCenter />
+
           {/* Change Password Button */}
           <Button
             type="button"
