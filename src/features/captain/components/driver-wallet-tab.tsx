@@ -2,90 +2,29 @@
 
 import React from 'react';
 import { useTranslations } from 'next-intl';
-import { Check, Copy, Loader2, MessageCircle, Phone, ReceiptText, Ticket, Upload, Wallet, Zap } from 'lucide-react';
+import {
+  Check,
+  Clock,
+  Copy,
+  Info,
+  Loader2,
+  MessageCircle,
+  Phone,
+  ReceiptText,
+  Sparkles,
+  Upload,
+  UserCheck,
+  Wallet,
+  Zap,
+} from 'lucide-react';
 import type { User } from '@/core/types';
 import { useSovereignWallet } from '@/hooks/use-sovereign-wallet';
-import { supabase } from '@/lib/supabase-client';
 import { cn } from '@/lib/utils';
 import {
   CAPTAIN_PAYMENT_CHANNELS,
   CAPTAIN_WALLET_AMOUNT_PRESETS,
   getCaptainDistrictPaymentInfo,
 } from '../lib/wallet-static-config';
-
-const styles = {
-  style61_1: "mx-auto max-w-5xl space-y-5 text-white",
-  style62_2: "rounded-3xl border border-emerald-500/20 bg-[#05080f] p-5",
-  style63_3: "flex flex-wrap items-start justify-between gap-4",
-  style65_4: "flex items-center gap-2 text-xs font-black text-[#14B8A6]",
-  style66_5: "mt-1 text-2xl font-black",
-  style67_6: "mt-2 text-sm text-slate-400",
-  style69_7: "h-8 w-8 shrink-0 text-emerald-300",
-  style70_1: "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-black",
-  style70_2: "bg-emerald-500/15 text-emerald-200 ring-1 ring-emerald-400/40",
-  style70_3: "bg-slate-800 text-slate-300",
-  style70_4: "h-1.5 w-1.5 rounded-full bg-current",
-  style72_8: "mt-5 grid gap-3 sm:grid-cols-3",
-  style81_9: "text-xl font-bold font-mono",
-  style91_11: "text-xl font-bold font-mono",
-  style96_1: "mt-3 inline-flex items-center gap-1.5 rounded-xl border border-[#14B8A6]/25 bg-[#14B8A6]/10 px-3 py-1.5 text-xs font-black text-[#14F5D5]",
-  style100_13: "mt-4 rounded-2xl border border-amber-500/25 bg-amber-500/10 p-4 text-sm leading-6 text-amber-100",
-  style101_14: "font-black",
-  style102_15: "mt-1 text-amber-100/80",
-  style104_16: "mt-2 font-mono text-[11px] text-amber-200/80",
-  style112_17: "grid gap-5 lg:grid-cols-2",
-  style113_18: "space-y-5 rounded-3xl border border-emerald-500/20 bg-[#05080f] p-5",
-  style114_19: "text-lg font-black",
-  style114_hint: "mt-1 text-xs leading-5 text-slate-400",
-  style115_20: "grid gap-2 sm:grid-cols-2",
-  style117_21: "rounded-2xl border p-3 text-right transition",
-  style117_active: "border-[#14B8A6] bg-[#14B8A6]/10",
-  style117_inactive: "border-slate-800 bg-black/45 hover:border-slate-600",
-  style118_22: "flex items-center justify-between gap-2",
-  style120_23: "font-black",
-  style121_24: "mt-0.5 text-[11px] text-slate-400",
-  style122_1: "mt-2 flex items-center justify-between gap-2 rounded-xl border border-white/10 bg-black/40 px-3 py-2",
-  style122_2: "truncate font-mono text-sm text-slate-200",
-  style125_25: "shrink-0 rounded-lg border border-white/10 p-1.5 text-emerald-300 hover:bg-white/10",
-  style128_26: "h-3.5 w-3.5",
-  style130_1: "mt-3 text-xs font-bold text-slate-300",
-  style140_28: "space-y-5 rounded-3xl border border-emerald-500/20 bg-[#05080f] p-5",
-  style141_29: "text-lg font-black",
-  style142_30: "space-y-3",
-  style145_1: "flex flex-wrap gap-2",
-  style145_2: "rounded-xl border px-3 py-2 text-sm font-black transition",
-  style145_active: "border-[#14B8A6] bg-[#14B8A6]/15 text-[#14F5D5]",
-  style145_inactive: "border-slate-700 bg-black/30 text-slate-300 hover:border-slate-500",
-  style148_31: "w-full rounded-2xl border border-slate-700 bg-black px-4 py-3 text-white outline-none focus:border-emerald-400",
-  style150_1: "rounded-2xl border border-slate-800 bg-black/30 p-3 text-sm",
-  style150_2: "text-slate-400",
-  style150_3: "mt-1 font-black text-[#14F5D5]",
-  style156_33: "flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-700 bg-black/45 px-4 py-4 text-sm text-slate-300",
-  style157_34: "h-4 w-4",
-  style159_35: "hidden",
-  style164_36: "inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#14B8A6] px-5 py-4 font-black text-[#06111f] disabled:cursor-not-allowed disabled:opacity-40",
-  style166_37: "h-5 w-5 animate-spin",
-  style166_38: "h-5 w-5",
-  style173_39: "space-y-4 rounded-3xl border border-emerald-500/20 bg-[#05080f] p-5",
-  style174_40: "text-lg font-black",
-  style174_hint: "mt-1 text-xs leading-5 text-slate-400",
-  style176_1: "flex items-center justify-between gap-3 rounded-2xl border border-slate-800 bg-black/45 p-4",
-  style177_1: "font-black",
-  style177_2: "mt-0.5 text-xs text-slate-400",
-  style179_1: "flex shrink-0 items-center gap-2",
-  style180_1: "inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs font-black text-slate-200 hover:bg-white/10",
-  style180_2: "inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-2 text-xs font-black text-white hover:bg-emerald-500",
-  style181_1: "h-3.5 w-3.5",
-  style190_39: "rounded-3xl border border-emerald-500/20 bg-[#05080f] p-5",
-  style191_29: "text-lg font-black",
-  style192_41: "mt-4 flex flex-col gap-3 sm:flex-row",
-  style193_42: "min-w-0 flex-1 rounded-2xl border border-slate-700 bg-black px-4 py-3 text-white outline-none focus:border-emerald-400",
-  style194_43: "inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-5 py-3 font-black text-white disabled:cursor-not-allowed disabled:opacity-40",
-  style195_44: "h-5 w-5",
-  style198_45: "rounded-2xl border border-emerald-500/15 bg-emerald-950/10 p-4",
-  style199_46: "text-xs text-slate-400",
-  style200_47: "mt-2 text-2xl font-black",
-} as const;
 
 interface DriverWalletTabProps {
   user: User | null;
@@ -104,11 +43,11 @@ export function DriverWalletTab({ user, language, isFlightActive = false }: Driv
   const walletIsReady = wallet.walletLoadState === 'ready';
   const walletIsMissing = wallet.walletLoadState === 'missing';
   const walletHasError = wallet.walletLoadState === 'error';
+
   const [amount, setAmount] = React.useState('');
   const [selectedChannelId, setSelectedChannelId] = React.useState<string | null>(null);
   const [copiedChannelId, setCopiedChannelId] = React.useState<string | null>(null);
   const [receiptFile, setReceiptFile] = React.useState<File | null>(null);
-  const [voucherCode, setVoucherCode] = React.useState('');
 
   const districtPaymentInfo = getCaptainDistrictPaymentInfo(user?.district);
   const selectedChannel = CAPTAIN_PAYMENT_CHANNELS.find((channel) => channel.id === selectedChannelId) || null;
@@ -134,266 +73,355 @@ export function DriverWalletTab({ user, language, isFlightActive = false }: Driv
     }
   };
 
-  const redeemVoucher = async () => {
-    const ok = await wallet.redeemVoucherCode(voucherCode);
-    if (ok) setVoucherCode('');
-  };
-
   const radarHourPrice = wallet.radarHourPrice || 1;
   const cashEquivalentMinutes = wallet.cashEquivalentMinutes || 0;
   const totalMinutes = wallet.totalUsableMinutes;
+  const bonusMinutes = wallet.bonusMinutesRemaining || 0;
   const currencySymbol = user?.currencyAr || user?.currencyEn || '';
 
   return (
-    <section className={styles.style61_1}>
-      <div className={styles.style62_2}>
-        <div className={styles.style63_3}>
-          <div>
-            <p className={styles.style65_4}>{t('badge')}</p>
-            <h1 className={styles.style66_5}>{t('title')}</h1>
-            <p className={styles.style67_6}>{t('subtitle')}</p>
-            <span className={cn(styles.style70_1, isFlightActive ? styles.style70_2 : styles.style70_3)}>
-              <span className={styles.style70_4} />
-              {isFlightActive ? t('flightActiveOn') : t('flightActiveOff')}
-            </span>
+    <div className="mx-auto max-w-5xl space-y-6 pb-12 text-white">
+      {/* 1. Header & Live Radar Status */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-bold text-emerald-300">
+            <Sparkles className="h-3.5 w-3.5 text-emerald-400" />
+            <span>{t('badge')}</span>
           </div>
-          <Wallet className={styles.style69_7} />
+          <h1 className="mt-2 text-2xl sm:text-3xl font-black text-white">{t('title')}</h1>
+          <p className="mt-1 text-xs sm:text-sm text-slate-400">{t('subtitle')}</p>
         </div>
 
-        {/* 3 Main Cards: Cash Balance, Hourly Rate, and Available Radar Time */}
-        <div className="mt-5 grid gap-3 sm:grid-cols-3">
-          <Metric
-            label={t('cashBalanceCard')}
-            value={walletIsReady ? <span className="font-mono text-2xl font-black text-amber-400">{wallet.balanceJD.toFixed(2)} {currencySymbol}</span> : wallet.walletLoaded ? '-' : '...'}
-          />
-          <Metric
-            label={t('hourlyRateCard')}
-            value={
-              radarHourPrice > 0 ? (
-                <div>
-                  <span className="font-mono text-2xl font-black text-emerald-400">
-                    {radarHourPrice.toFixed(2)} {currencySymbol}
-                  </span>
-                  <p className="mt-0.5 text-xs text-slate-300">
-                    / {t('perHour')} <span className="text-emerald-400/80">({ (radarHourPrice / 60).toFixed(3) } {currencySymbol}/{t('perMinute')})</span>
-                  </p>
-                </div>
-              ) : wallet.walletLoaded ? '-' : '...'
-            }
-          />
-          <Metric
-            label={t('radarTimeCard')}
-            value={
-              walletIsReady ? (
-                <span className="font-mono text-2xl font-black text-[#14F5D5]">
-                  {t('durationFormat', toHoursMinutes(totalMinutes))}
-                </span>
-              ) : wallet.walletLoaded ? '-' : '...'
-            }
-          />
+        <div className="flex items-center gap-3">
+          <span
+            className={cn(
+              "inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-bold transition",
+              isFlightActive
+                ? "bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-400/40"
+                : "bg-slate-800/80 text-slate-400 ring-1 ring-white/10"
+            )}
+          >
+            <span
+              className={cn(
+                "h-2 w-2 rounded-full",
+                isFlightActive ? "bg-emerald-400 animate-pulse" : "bg-slate-500"
+              )}
+            />
+            {isFlightActive ? t('flightActiveOn') : t('flightActiveOff')}
+          </span>
         </div>
+      </div>
 
-        {/* Direct Cash-to-Minutes Linkage & Lockstep Dual Deduction Explanation Card */}
-        <div className="mt-4 rounded-2xl border border-cyan-500/30 bg-gradient-to-br from-cyan-950/40 via-slate-900/60 to-slate-950/80 p-4 text-cyan-100 shadow-lg backdrop-blur-sm">
-          <div className="flex items-start gap-3">
-            <div className="mt-0.5 rounded-xl border border-cyan-400/40 bg-cyan-500/10 p-2 text-cyan-300">
-              <Zap className="h-5 w-5" />
+      {/* 2. Unified Hero Balance Card */}
+      <div className="relative overflow-hidden rounded-3xl border border-emerald-500/25 bg-gradient-to-br from-slate-900/95 via-[#071324] to-[#040812] p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
+        {/* Decorative background glows */}
+        <div className="pointer-events-none absolute -left-20 -top-20 h-56 w-56 rounded-full bg-emerald-500/15 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-20 -right-20 h-56 w-56 rounded-full bg-cyan-500/15 blur-3xl" />
+
+        <div className="relative space-y-6">
+          {/* Card Top Row: Label & Hourly Rate Pill */}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400">
+              <Wallet className="h-4 w-4 text-emerald-400" />
+              <span>{t('balance')}</span>
             </div>
-            <div className="flex-1 space-y-1.5">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <h3 className="text-sm font-bold text-white">
-                  {t('rateLinkingTitle')}
-                </h3>
-                {radarHourPrice > 0 ? (
-                  <span className="inline-flex items-center rounded-lg border border-cyan-400/30 bg-cyan-900/40 px-2.5 py-1 text-xs font-mono font-bold text-cyan-300">
-                    {t('currentRateBadge', {
-                      hourlyRate: radarHourPrice.toFixed(2),
-                      minuteRate: (radarHourPrice / 60).toFixed(3),
-                      currency: currencySymbol,
-                    })}
-                  </span>
-                ) : null}
+
+            {radarHourPrice > 0 ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-cyan-400/30 bg-cyan-950/60 px-3 py-1 text-xs font-mono font-bold text-cyan-300">
+                <Zap className="h-3.5 w-3.5 text-cyan-400" />
+                <span>
+                  {t('hourlyRateCard')}: {radarHourPrice.toFixed(2)} {currencySymbol}/ساعة
+                </span>
+                <span className="text-cyan-400/70 text-[11px]">
+                  ({(radarHourPrice / 60).toFixed(3)}/د)
+                </span>
+              </span>
+            ) : null}
+          </div>
+
+          {/* Main Balance & Radar Time Grid */}
+          <div className="grid gap-6 sm:grid-cols-2 items-center">
+            {/* Cash Balance Display */}
+            <div className="space-y-1">
+              <div className="flex items-baseline gap-2">
+                <span className="font-mono text-4xl sm:text-5xl font-black text-amber-400 tracking-tight">
+                  {walletIsReady ? wallet.balanceJD.toFixed(2) : wallet.walletLoaded ? '-' : '...'}
+                </span>
+                <span className="text-xl font-bold text-slate-300">{currencySymbol}</span>
               </div>
-              <p className="text-xs leading-relaxed text-slate-300">
-                {t('rateLinkingBody')}
+              <p className="text-xs text-slate-400">
+                {language === 'ar' ? 'الرصيد النقدي الفعلي في محفظتك' : 'Current wallet cash balance'}
               </p>
-              {radarHourPrice > 0 && walletIsReady ? (
-                <div className="mt-2 rounded-xl border border-slate-700/50 bg-slate-900/50 px-3 py-2 text-xs font-mono text-cyan-200">
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-400">{t('conversionFormula', { hourlyRate: radarHourPrice.toFixed(2) })}</span>
-                    <span className="font-bold text-emerald-400">
-                      {wallet.balanceJD.toFixed(2)} {currencySymbol} = {cashEquivalentMinutes} {t('perMinute')} ({toHoursMinutes(cashEquivalentMinutes).hours}h {toHoursMinutes(cashEquivalentMinutes).minutes}m)
+            </div>
+
+            {/* Equivalent Radar Time Display */}
+            <div className="sm:border-r sm:border-white/10 sm:pr-6 space-y-1">
+              <div className="flex items-center gap-3">
+                <div className="rounded-2xl border border-cyan-400/30 bg-cyan-500/10 p-2.5 text-cyan-300 shadow-[0_0_15px_rgba(20,245,213,0.15)]">
+                  <Clock className="h-6 w-6 text-[#14F5D5]" />
+                </div>
+                <div>
+                  <div className="font-mono text-2xl sm:text-3xl font-black text-[#14F5D5]">
+                    {walletIsReady ? t('durationFormat', toHoursMinutes(totalMinutes)) : '...'}
+                  </div>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-xs text-slate-400 font-mono">
+                      ({totalMinutes} {language === 'ar' ? 'دقيقة رادار' : 'radar mins'})
                     </span>
+                    {bonusMinutes > 0 ? (
+                      <span className="rounded-md border border-emerald-400/40 bg-emerald-500/15 px-2 py-0.5 text-[11px] font-bold text-emerald-300">
+                        +{bonusMinutes} {language === 'ar' ? 'مكافأة' : 'bonus'}
+                      </span>
+                    ) : null}
                   </div>
                 </div>
-              ) : null}
+              </div>
             </div>
           </div>
+
+          {/* Reassuring micro-explainer */}
+          <div className="flex items-center gap-2 rounded-2xl border border-cyan-500/20 bg-cyan-950/30 px-4 py-2.5 text-xs text-cyan-200/90 leading-relaxed">
+            <Info className="h-4 w-4 shrink-0 text-cyan-400" />
+            <span>{t('rateLinkingNote')}</span>
+          </div>
+
+          {walletIsReady && wallet.activePackageName ? (
+            <div className="inline-flex items-center gap-2 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-3.5 py-1.5 text-xs font-bold text-emerald-300">
+              <span>{t('activePackagePrefix')} {wallet.activePackageName}</span>
+            </div>
+          ) : null}
+
+          {walletIsMissing || walletHasError ? (
+            <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-xs text-amber-100">
+              <p className="font-bold">{walletIsMissing ? t('walletMissingTitle') : t('walletErrorTitle')}</p>
+              <p className="mt-1 text-amber-200/80">{walletIsMissing ? t('walletMissingBody') : t('walletErrorBody')}</p>
+            </div>
+          ) : null}
         </div>
+      </div>
 
-        {walletIsReady && wallet.activePackageName ? (
-          <div className={styles.style96_1}>{t('activePackagePrefix')} {wallet.activePackageName}</div>
-        ) : null}
+      {/* 3. Recharge Methods (Two Structured Columns) */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Left Section (Span 2): Digital Payment Channels & Receipt Upload */}
+        <div className="space-y-6 rounded-3xl border border-slate-800 bg-[#070c18] p-5 sm:p-6 shadow-xl lg:col-span-2">
+          {/* Step 1: Channels */}
+          <div>
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-black text-white">{t('selectPaymentChannel')}</h2>
+              <span className="text-xs text-slate-400">{t('refillTitle')}</span>
+            </div>
+            <p className="mt-1 text-xs text-slate-400">{t('refillHint')}</p>
 
-        {walletIsMissing || walletHasError ? (
-          <div className={styles.style100_13}>
-            <p className={styles.style101_14}>{walletIsMissing ? t('walletMissingTitle') : t('walletErrorTitle')}</p>
-            <p className={styles.style102_15}>{walletIsMissing ? t('walletMissingBody') : t('walletErrorBody')}</p>
-            {(process.env.NODE_ENV !== 'production') ? (
-              <p className={styles.style104_16}>
-                profile_id: {wallet.walletProfileId || '-'} {wallet.walletError ? ` / ${wallet.walletError}` : ''}
+            <div className="mt-4 grid gap-2.5 sm:grid-cols-2">
+              {CAPTAIN_PAYMENT_CHANNELS.map((channelOption) => {
+                const channelNumber = districtPaymentInfo.channelNumbers[channelOption.id] || '';
+                const isSelected = selectedChannelId === channelOption.id;
+                const isCopied = copiedChannelId === channelOption.id;
+
+                return (
+                  <div
+                    key={channelOption.id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setSelectedChannelId(channelOption.id)}
+                    onKeyDown={(event) => {
+                      if (event.key !== 'Enter' && event.key !== ' ') return;
+                      setSelectedChannelId(channelOption.id);
+                    }}
+                    className={cn(
+                      "group relative rounded-2xl border p-3.5 text-right transition cursor-pointer",
+                      isSelected
+                        ? "border-emerald-400 bg-emerald-500/10 shadow-[0_0_15px_rgba(16,185,129,0.15)] ring-1 ring-emerald-400/30"
+                        : "border-slate-800 bg-black/40 hover:border-slate-700 hover:bg-slate-900/50"
+                    )}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-black text-sm text-white">
+                        {language === 'ar' ? channelOption.labelAr : channelOption.labelEn}
+                      </span>
+                      <span
+                        className={cn(
+                          "h-2 w-2 rounded-full",
+                          isSelected ? "bg-emerald-400" : "bg-slate-700"
+                        )}
+                      />
+                    </div>
+                    <p className="mt-1 text-[11px] text-slate-400 line-clamp-1">
+                      {language === 'ar' ? channelOption.descriptionAr : channelOption.descriptionEn}
+                    </p>
+
+                    <div className="mt-2.5 flex items-center justify-between gap-2 rounded-xl border border-white/5 bg-black/60 px-2.5 py-1.5">
+                      <span className="truncate font-mono text-xs font-bold text-slate-200">
+                        {channelNumber}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          copyChannelNumber(channelOption.id, channelNumber);
+                        }}
+                        className={cn(
+                          "inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-bold transition",
+                          isCopied
+                            ? "bg-emerald-500/20 text-emerald-300"
+                            : "bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white"
+                        )}
+                        aria-label={t('copy')}
+                      >
+                        {isCopied ? (
+                          <>
+                            <Check className="h-3 w-3 text-emerald-400" />
+                            <span>{t('copied')}</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-3 w-3" />
+                            <span>{t('copy')}</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {!selectedChannel ? (
+              <p className="mt-2 text-xs font-semibold text-amber-300/80">
+                ⚠️ {t('chooseChannelHint')}
               </p>
             ) : null}
           </div>
-        ) : null}
-      </div>
 
-      <div className={styles.style112_17}>
-        <div className={styles.style113_18}>
-          <div>
-            <h2 className={styles.style114_19}>{t('refillTitle')}</h2>
-            <p className={styles.style114_hint}>{t('refillHint')}</p>
-          </div>
+          {/* Step 2: Amount & Receipt Upload */}
+          <div className="border-t border-slate-800 pt-5 space-y-4">
+            <h2 className="text-base font-black text-white">{t('amountAndReceipt')}</h2>
 
-          <div className={styles.style115_20}>
-            {CAPTAIN_PAYMENT_CHANNELS.map((channelOption) => {
-              const channelNumber = districtPaymentInfo.channelNumbers[channelOption.id] || '';
-              const isSelected = selectedChannelId === channelOption.id;
-              return (
-                <div
-                  key={channelOption.id}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => setSelectedChannelId(channelOption.id)}
-                  onKeyDown={(event) => {
-                    if (event.key !== 'Enter' && event.key !== ' ') return;
-                    setSelectedChannelId(channelOption.id);
-                  }}
-                  className={cn(styles.style117_21, isSelected ? styles.style117_active : styles.style117_inactive)}
-                >
-                  <div className={styles.style118_22}>
-                    <p className={styles.style120_23}>{language === 'ar' ? channelOption.labelAr : channelOption.labelEn}</p>
-                  </div>
-                  <p className={styles.style121_24}>{language === 'ar' ? channelOption.descriptionAr : channelOption.descriptionEn}</p>
-                  <div className={styles.style122_1}>
-                    <span className={styles.style122_2}>{channelNumber}</span>
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        copyChannelNumber(channelOption.id, channelNumber);
-                      }}
-                      className={styles.style125_25}
-                      aria-label={t('copy')}
-                    >
-                      {copiedChannelId === channelOption.id ? <Check className={styles.style128_26} /> : <Copy className={styles.style128_26} />}
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          {!selectedChannel ? <p className={styles.style130_1}>{t('chooseChannelHint')}</p> : null}
-
-          <h2 className={styles.style141_29}>{t('uploadReceipt')}</h2>
-          <div className={styles.style142_30}>
-            <div className={styles.style145_1}>
+            {/* Quick Amount Presets */}
+            <div className="flex flex-wrap gap-2">
               {CAPTAIN_WALLET_AMOUNT_PRESETS.map((preset) => (
                 <button
                   key={preset}
                   type="button"
                   onClick={() => setAmount(String(preset))}
-                  className={cn(styles.style145_2, amount === String(preset) ? styles.style145_active : styles.style145_inactive)}
+                  className={cn(
+                    "rounded-xl border px-3.5 py-2 text-xs font-bold transition",
+                    amount === String(preset)
+                      ? "border-emerald-400 bg-emerald-500/15 text-[#14F5D5] shadow-sm"
+                      : "border-slate-800 bg-black/40 text-slate-300 hover:border-slate-700"
+                  )}
                 >
-                  {preset} {user?.currencyAr || user?.currencyEn || ''}
+                  {preset} {currencySymbol}
                 </button>
               ))}
             </div>
-            <input
-              value={amount}
-              onChange={(event) => setAmount(event.target.value)}
-              inputMode="decimal"
-              placeholder={t('amount')}
-              className={styles.style148_31}
-            />
-            <div className={styles.style150_1}>
-              <span className={styles.style150_2}>{t('selectedChannelLabel')}</span>
-              <p className={styles.style150_3}>{selectedChannel ? (language === 'ar' ? selectedChannel.labelAr : selectedChannel.labelEn) : t('noChannelSelected')}</p>
+
+            {/* Amount input & Selected Channel indicator */}
+            <div className="grid gap-3 sm:grid-cols-2">
+              <input
+                value={amount}
+                onChange={(event) => setAmount(event.target.value)}
+                inputMode="decimal"
+                placeholder={t('amount')}
+                className="w-full rounded-2xl border border-slate-800 bg-black/50 px-4 py-3 text-sm font-bold text-white placeholder-slate-500 outline-none transition focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400"
+              />
+
+              <div className="flex items-center justify-between rounded-2xl border border-slate-800/80 bg-black/30 px-4 py-3 text-xs">
+                <span className="text-slate-400">{t('selectedChannelLabel')}</span>
+                <span className="font-bold text-[#14F5D5]">
+                  {selectedChannel
+                    ? (language === 'ar' ? selectedChannel.labelAr : selectedChannel.labelEn)
+                    : t('noChannelSelected')}
+                </span>
+              </div>
             </div>
-            <label className={styles.style156_33}>
-              <Upload className={styles.style157_34} />
-              {receiptFile?.name || t('chooseImage')}
-              <input type="file" accept="image/*" className={styles.style159_35} onChange={(event) => setReceiptFile(event.target.files?.[0] || null)} />
+
+            {/* Receipt File Upload */}
+            <label className="flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-700 bg-black/30 px-4 py-4 text-xs font-semibold text-slate-300 transition hover:border-emerald-400 hover:bg-slate-900/40">
+              {receiptFile ? (
+                <span className="inline-flex items-center gap-2 text-emerald-300">
+                  <Check className="h-4 w-4 text-emerald-400" />
+                  <span className="truncate max-w-xs">{receiptFile.name}</span>
+                  <span className="text-slate-400 text-[11px]">
+                    ({(receiptFile.size / 1024).toFixed(0)} KB)
+                  </span>
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-2">
+                  <Upload className="h-4 w-4 text-slate-400" />
+                  <span>{t('chooseImageHint')}</span>
+                </span>
+              )}
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(event) => setReceiptFile(event.target.files?.[0] || null)}
+              />
             </label>
+
+            {/* Submit Receipt Button */}
             <button
               onClick={submitReceipt}
-              disabled={wallet.loading || !receiptFile || !selectedChannel || !Number.isFinite(Number(amount)) || Number(amount) <= 0}
-              className={styles.style164_36}
+              disabled={
+                wallet.loading ||
+                !receiptFile ||
+                !selectedChannel ||
+                !Number.isFinite(Number(amount)) ||
+                Number(amount) <= 0
+              }
+              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-emerald-500 to-[#14B8A6] px-5 py-3.5 text-sm font-black text-slate-950 shadow-lg shadow-emerald-500/20 transition hover:brightness-110 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40"
             >
-              {wallet.loading ? <Loader2 className={styles.style166_37} /> : <ReceiptText className={styles.style166_38} />}
-              {t('sendReceipt')}
+              {wallet.loading ? (
+                <Loader2 className="h-4 w-4 animate-spin text-slate-950" />
+              ) : (
+                <ReceiptText className="h-4 w-4 text-slate-950" />
+              )}
+              <span>{t('sendReceipt')}</span>
             </button>
           </div>
         </div>
 
-        <div className={styles.style173_39}>
-          <div>
-            <h2 className={styles.style174_40}>{t('delegateTitle')}</h2>
-            <p className={styles.style174_hint}>{t('delegateHint')}</p>
+        {/* Right Section (Span 1): Pay Cash to Local Financial Delegate */}
+        <div className="flex flex-col justify-between rounded-3xl border border-slate-800 bg-[#070c18] p-5 sm:p-6 shadow-xl space-y-6">
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-emerald-400">
+              <UserCheck className="h-5 w-5" />
+              <h2 className="text-base font-black text-white">{t('delegateTitle')}</h2>
+            </div>
+            <p className="text-xs text-slate-400 leading-relaxed">{t('delegateHint')}</p>
+
+            {/* Delegate Profile Card */}
+            <div className="rounded-2xl border border-white/5 bg-black/40 p-4 space-y-1.5">
+              <p className="text-sm font-black text-slate-200">
+                {districtPaymentInfo.delegateName}
+              </p>
+              <p className="text-xs text-emerald-400/90 font-medium">
+                {user?.district || t('noDistrict')}
+              </p>
+            </div>
           </div>
-          <div className={styles.style176_1}>
-            <div>
-              <p className={styles.style177_1}>{districtPaymentInfo.delegateName}</p>
-              <p className={styles.style177_2}>{user?.district || t('noDistrict')}</p>
-            </div>
-            <div className={styles.style179_1}>
-              <a
-                href={`tel:${districtPaymentInfo.delegatePhone}`}
-                className={styles.style180_1}
-              >
-                <Phone className={styles.style181_1} />
-                {t('delegateCall')}
-              </a>
-              <a
-                href={`https://wa.me/${districtPaymentInfo.delegatePhone}`}
-                className={styles.style180_2}
-              >
-                <MessageCircle className={styles.style181_1} />
-                {t('delegateWhatsapp')}
-              </a>
-            </div>
+
+          {/* Quick Action Buttons: Call & WhatsApp */}
+          <div className="space-y-2.5 pt-4">
+            <a
+              href={`tel:${districtPaymentInfo.delegatePhone}`}
+              className="flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 py-3 text-xs font-bold text-slate-200 transition hover:bg-white/10"
+            >
+              <Phone className="h-4 w-4 text-emerald-400" />
+              <span>{t('delegateCall')}</span>
+            </a>
+            <a
+              href={`https://wa.me/${districtPaymentInfo.delegatePhone}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 hover:bg-emerald-500 py-3 text-xs font-black text-white shadow-lg shadow-emerald-900/30 transition hover:brightness-105"
+            >
+              <MessageCircle className="h-4 w-4" />
+              <span>{t('delegateWhatsapp')}</span>
+            </a>
           </div>
         </div>
       </div>
-
-      <div className={styles.style190_39}>
-        <h2 className={styles.style191_29}>{t('voucher')}</h2>
-        <div className={styles.style192_41}>
-          <input
-            value={voucherCode}
-            onChange={(event) => setVoucherCode(event.target.value)}
-            placeholder={t('voucherPlaceholder')}
-            className={styles.style193_42}
-          />
-          <button
-            onClick={redeemVoucher}
-            disabled={wallet.loading || !voucherCode.trim()}
-            className={styles.style194_43}
-          >
-            <Ticket className={styles.style195_44} />
-            {t('redeem')}
-          </button>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function Metric({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div className={styles.style198_45}>
-      <p className={styles.style199_46}>{label}</p>
-      <div className={styles.style200_47}>{value}</div>
     </div>
   );
 }
