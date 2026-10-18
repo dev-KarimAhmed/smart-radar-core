@@ -1,8 +1,20 @@
 'use client';
 
 import { useState } from 'react';
-import { useNotifications } from '@/shared/hooks/use-notifications';
-import { Bell, Check, Trash2, ListChecks, X } from 'lucide-react';
+import { useNotifications, type AppNotification } from '@/shared/hooks/use-notifications';
+import {
+  Bell,
+  Check,
+  Trash2,
+  ListChecks,
+  X,
+  MessageSquare,
+  ArrowRight,
+  ArrowLeft,
+  Wallet,
+  ShieldAlert,
+  Copy,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
@@ -10,7 +22,7 @@ import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 const styles = {
   root: 'flex flex-col h-full w-full max-w-3xl mx-auto space-y-4 pb-36 sm:pb-40',
   header: 'flex flex-wrap items-center justify-between gap-3',
-  title: 'text-2xl font-black text-white',
+  title: 'text-xl sm:text-2xl font-black text-white',
   headerActions: 'flex items-center gap-2 flex-wrap',
   selectModeBtn: 'border-white/10 text-slate-300 hover:bg-white/10 transition-all cursor-pointer',
   selectModeBtnActive: 'border-[#14B8A6]/40 text-[#14F5D5] bg-[#14B8A6]/10 hover:bg-[#14B8A6]/20 transition-all cursor-pointer',
@@ -43,7 +55,7 @@ const styles = {
   itemTitleUnread: 'text-white font-black',
   itemTitleRead: 'text-slate-300 font-medium',
   timestamp: 'text-xs text-slate-500 shrink-0',
-  description: 'text-sm text-slate-400 leading-relaxed break-words',
+  description: 'text-sm text-slate-400 leading-relaxed break-words line-clamp-2',
   unreadDot: 'mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-[#14F5D5] shadow-[0_0_8px_#14F5D5]',
   selectionBar: 'flex items-center justify-between gap-3 p-3 bg-white/5 border-b border-white/10 text-xs sm:text-sm font-bold text-slate-300',
   selectionCount: 'text-[#14F5D5] font-black',
@@ -71,12 +83,14 @@ function formatNotificationTime(timestamp: number, isArabic: boolean): string {
   }
 }
 
-export function NotificationsTab() {
-  const { isArabic } = useDashboardLanguage();
+export function NotificationsTab({ onClose }: { onClose?: () => void } = {}) {
+  const { isArabic, direction } = useDashboardLanguage();
   const { notifications, hasUnread, markAllAsRead, markAsRead, deleteNotifications } = useNotifications();
 
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [viewingNotification, setViewingNotification] = useState<AppNotification | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const allSelected = notifications.length > 0 && selectedIds.size === notifications.length;
 
@@ -117,12 +131,45 @@ export function NotificationsTab() {
     setIsSelectMode(false);
   };
 
+  const handleItemClick = (item: AppNotification) => {
+    if (isSelectMode) {
+      toggleItem(item.id);
+    } else {
+      if (!item.read) {
+        void markAsRead(item.id);
+      }
+      setViewingNotification(item);
+    }
+  };
+
   return (
     <div className={styles.root}>
       <div className={styles.header}>
-        <h1 className={styles.title}>
-          {isArabic ? 'التنبيهات' : 'Notifications'}
-        </h1>
+        <div className="flex items-center gap-2.5">
+          {onClose && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onClose}
+              className="border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 text-xs sm:text-sm font-bold cursor-pointer"
+            >
+              {isArabic ? (
+                <>
+                  <ArrowRight className="h-4 w-4 ml-1" />
+                  <span>العودة للرادار</span>
+                </>
+              ) : (
+                <>
+                  <ArrowLeft className="h-4 w-4 mr-1" />
+                  <span>Back to Radar</span>
+                </>
+              )}
+            </Button>
+          )}
+          <h1 className={styles.title}>
+            {isArabic ? 'التنبيهات' : 'Notifications'}
+          </h1>
+        </div>
 
         <div className={styles.headerActions}>
           {notifications.length > 0 && (
@@ -209,35 +256,29 @@ export function NotificationsTab() {
           <div className={styles.list}>
             {notifications.map((item) => {
               const isSelected = selectedIds.has(item.id);
+              const isMessage = item.type === 'admin_message' || item.type === 'message';
+              const isWalletCredit = item.type === 'WALLET_CREDIT';
+              const isWalletAlert = item.type === 'WALLET_ALERT';
 
               return (
                 <div
                   key={item.id}
                   role="button"
                   tabIndex={0}
-                  onClick={() => {
-                    if (isSelectMode) {
-                      toggleItem(item.id);
-                    } else if (!item.read) {
-                      void markAsRead(item.id);
-                    }
-                  }}
+                  onClick={() => handleItemClick(item)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
-                      if (isSelectMode) {
-                        toggleItem(item.id);
-                      } else if (!item.read) {
-                        void markAsRead(item.id);
-                      }
+                      handleItemClick(item);
                     }
                   }}
                   className={cn(
                     styles.item,
                     !item.read ? styles.itemUnread : styles.itemRead,
-                    isSelectMode && isSelected && styles.itemSelected
+                    isSelectMode && isSelected && styles.itemSelected,
+                    isMessage && !item.read && 'border-r-2 border-amber-400 bg-amber-500/5 hover:bg-amber-500/10'
                   )}
-                  title={!item.read && !isSelectMode ? (isArabic ? 'اضغط للتعليم كمقروء' : 'Click to mark as read') : undefined}
+                  title={!item.read && !isSelectMode ? (isArabic ? 'اضغط لعرض التفاصيل وتعيين كمقروء' : 'Click to view details') : (isArabic ? 'اضغط لعرض التفاصيل' : 'Click to view')}
                 >
                   <div className={styles.itemRow}>
                     {isSelectMode && (
@@ -254,22 +295,45 @@ export function NotificationsTab() {
                     <div
                       className={cn(
                         styles.iconWrap,
-                        !item.read ? styles.iconWrapUnread : styles.iconWrapRead
+                        isMessage
+                          ? 'bg-amber-500/20 text-amber-300'
+                          : isWalletCredit
+                          ? 'bg-emerald-500/20 text-emerald-300'
+                          : isWalletAlert
+                          ? 'bg-rose-500/20 text-rose-300'
+                          : !item.read
+                          ? styles.iconWrapUnread
+                          : styles.iconWrapRead
                       )}
                     >
-                      <Bell className={styles.bellIcon} />
+                      {isMessage ? (
+                        <MessageSquare className={styles.bellIcon} />
+                      ) : isWalletCredit ? (
+                        <Wallet className={styles.bellIcon} />
+                      ) : isWalletAlert ? (
+                        <ShieldAlert className={styles.bellIcon} />
+                      ) : (
+                        <Bell className={styles.bellIcon} />
+                      )}
                     </div>
 
                     <div className={styles.contentWrap}>
                       <div className={styles.titleRow}>
-                        <h3
-                          className={cn(
-                            styles.itemTitle,
-                            !item.read ? styles.itemTitleUnread : styles.itemTitleRead
+                        <div className="flex items-center gap-2 truncate">
+                          {isMessage && (
+                            <span className="shrink-0 rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-black text-amber-300 border border-amber-500/30">
+                              {isArabic ? 'رسالة' : 'Message'}
+                            </span>
                           )}
-                        >
-                          {item.title}
-                        </h3>
+                          <h3
+                            className={cn(
+                              styles.itemTitle,
+                              !item.read ? styles.itemTitleUnread : styles.itemTitleRead
+                            )}
+                          >
+                            {item.title}
+                          </h3>
+                        </div>
                         <span className={styles.timestamp}>
                           {formatNotificationTime(item.timestamp, isArabic)}
                         </span>
@@ -280,7 +344,10 @@ export function NotificationsTab() {
                     </div>
 
                     {!item.read && !isSelectMode && (
-                      <span className={styles.unreadDot} />
+                      <span className={cn(
+                        styles.unreadDot,
+                        isMessage && 'bg-amber-400 shadow-[0_0_8px_#f59e0b]'
+                      )} />
                     )}
                   </div>
                 </div>
@@ -289,6 +356,138 @@ export function NotificationsTab() {
           </div>
         )}
       </div>
+
+      {/* Pop-up Notification Detail Modal */}
+      {viewingNotification && (
+        <div
+          className="fixed inset-0 z-[500] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md animate-in fade-in duration-150"
+          onClick={() => setViewingNotification(null)}
+          dir={direction}
+        >
+          <div
+            className="relative w-full max-w-lg rounded-3xl border border-[#14B8A6]/30 bg-[#0B0F19] p-5 sm:p-6 shadow-2xl space-y-4 text-white animate-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-start justify-between gap-3 border-b border-white/10 pb-4">
+              <div className="flex items-center gap-3 min-w-0">
+                <div
+                  className={cn(
+                    "flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border shadow-inner",
+                    viewingNotification.type === 'admin_message' || viewingNotification.type === 'message'
+                      ? "border-amber-500/40 bg-amber-500/10 text-amber-300"
+                      : viewingNotification.type === 'WALLET_CREDIT'
+                      ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+                      : viewingNotification.type === 'WALLET_ALERT'
+                      ? "border-rose-500/40 bg-rose-500/10 text-rose-300"
+                      : "border-[#14B8A6]/40 bg-[#14B8A6]/10 text-[#14F5D5]"
+                  )}
+                >
+                  {viewingNotification.type === 'admin_message' || viewingNotification.type === 'message' ? (
+                    <MessageSquare className="h-6 w-6" />
+                  ) : viewingNotification.type === 'WALLET_CREDIT' ? (
+                    <Wallet className="h-6 w-6" />
+                  ) : viewingNotification.type === 'WALLET_ALERT' ? (
+                    <ShieldAlert className="h-6 w-6" />
+                  ) : (
+                    <Bell className="h-6 w-6" />
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-black uppercase tracking-wider mb-1",
+                      viewingNotification.type === 'admin_message' || viewingNotification.type === 'message'
+                        ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                        : viewingNotification.type === 'WALLET_CREDIT'
+                        ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                        : viewingNotification.type === 'WALLET_ALERT'
+                        ? "bg-rose-500/20 text-rose-300 border border-rose-500/30"
+                        : "bg-[#14B8A6]/20 text-[#14F5D5] border border-[#14B8A6]/30"
+                    )}
+                  >
+                    {viewingNotification.type === 'admin_message' || viewingNotification.type === 'message'
+                      ? (isArabic ? 'رسالة رسمية من الإدارة ✉️' : 'Admin Message ✉️')
+                      : viewingNotification.type === 'WALLET_CREDIT'
+                      ? (isArabic ? 'إيداع وشحن رصيد 💰' : 'Wallet Credit 💰')
+                      : viewingNotification.type === 'WALLET_ALERT'
+                      ? (isArabic ? 'تنبيه مالي ⚠️' : 'Wallet Alert ⚠️')
+                      : (isArabic ? 'إشعار من النظام 🔔' : 'System Notification 🔔')}
+                  </span>
+                  <p className="text-xs text-slate-400">
+                    {new Date(viewingNotification.timestamp).toLocaleString(isArabic ? 'ar-EG' : 'en-US', {
+                      dateStyle: 'medium',
+                      timeStyle: 'short',
+                    })}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setViewingNotification(null)}
+                className="rounded-xl border border-white/10 bg-white/5 p-2 text-slate-400 hover:bg-white/10 hover:text-white transition cursor-pointer"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="space-y-3 pt-1">
+              <h2 className="text-base sm:text-lg font-black text-white leading-snug">
+                {viewingNotification.title}
+              </h2>
+
+              <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-4 text-sm leading-relaxed text-slate-200 whitespace-pre-wrap break-words max-h-64 overflow-y-auto selection:bg-[#14B8A6]/30">
+                {viewingNotification.description}
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex items-center justify-between gap-3 pt-3 border-t border-white/10">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  const idToDelete = viewingNotification.id;
+                  setViewingNotification(null);
+                  await deleteNotifications([idToDelete]);
+                }}
+                className="border-rose-500/30 text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 text-xs sm:text-sm font-bold cursor-pointer"
+              >
+                <Trash2 className="h-4 w-4 mr-1.5" />
+                <span>{isArabic ? 'حذف الإشعار' : 'Delete'}</span>
+              </Button>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    void navigator.clipboard.writeText(
+                      `${viewingNotification.title}\n\n${viewingNotification.description}`
+                    );
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                  }}
+                  className="border-white/10 text-slate-300 hover:bg-white/10 text-xs sm:text-sm font-bold cursor-pointer"
+                >
+                  <Copy className="h-4 w-4 mr-1.5" />
+                  <span>{copied ? (isArabic ? 'تم النسخ ✓' : 'Copied ✓') : (isArabic ? 'نسخ النص' : 'Copy')}</span>
+                </Button>
+
+                <Button
+                  size="sm"
+                  onClick={() => setViewingNotification(null)}
+                  className="bg-[#14B8A6] text-[#06111f] hover:bg-[#14F5D5] text-xs sm:text-sm font-black cursor-pointer px-4"
+                >
+                  {isArabic ? 'إغلاق' : 'Close'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

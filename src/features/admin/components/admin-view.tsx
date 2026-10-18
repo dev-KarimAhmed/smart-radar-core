@@ -2,22 +2,16 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DriversManagementTab } from './admin/drivers-management-tab';
+import { AdminTopBar } from './admin/admin-top-bar';
 import { AdminMasterKPIBar } from './admin/admin-master-kpi-bar';
+import { WalletManagementTab } from './admin/wallet-management-tab';
 import { RidersManagementPanel } from './admin/riders-management-panel';
-import { SystemBroadcastPanel } from './admin/system-broadcast-panel';
-import { CapacityPricingPanel } from './admin/capacity-pricing-panel';
 import { AdminsManagementPanel } from './admin/admins-management-panel';
-import { AdsManagementTab } from './admin/ads-management-tab';
-import { DelegatesManagementTab } from './admin/delegates-management-tab';
-import { PasswordResetsTab } from './admin/password-resets-tab';
-import { KillSwitchPanel } from './admin/kill-switch-panel';
-import { FuelIndexPanel } from './admin/fuel-index-panel';
-import { PulseHeatmap } from '@/components/admin/pulse-heatmap';
-import { useMarketPulse } from '@/hooks/use-market-pulse';
-import { Shield, Megaphone, Users, Activity, UsersRound, ShieldAlert, CheckCircle2, KeyRound, Loader2, ArrowUpRight, TrendingUp, AlertTriangle, Radio, ShieldCheck, Cpu, Eye, AlertCircle, RefreshCw, Sparkles, Fingerprint, Terminal, Scale, Compass, Trash2, Gauge, DollarSign, Sliders, UserCheck } from 'lucide-react';
+import { Shield, Megaphone, Users, Activity, UsersRound, ShieldAlert, CheckCircle2, KeyRound, Loader2, ArrowUpRight, TrendingUp, AlertTriangle, Radio, ShieldCheck, Cpu, Eye, AlertCircle, RefreshCw, Sparkles, Fingerprint, Terminal, Scale, Compass, Trash2, Gauge, DollarSign, UserCheck, Wallet, Construction } from 'lucide-react';
 import React, { useState } from 'react';
 import { useAdminAds } from '@/hooks/use-admin-ads';
 import { supabase } from '@/lib/supabase-client';
+import { adminFetch } from '../lib/admin-api-client';
 import { SovereignErrorBoundary } from '@/components/sovereign-error-boundary';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -788,26 +782,20 @@ export function AdminPulseOverview() {
   const loadRealPulse = React.useCallback(async (showToast = false) => {
     setIsRefreshing(true);
     try {
-      const [driversRes, ridersRes] = await Promise.all([
-        supabase.from('profiles').select('id, status', { count: 'exact' }).eq('role', 'CAPTAIN'),
-        supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'RIDER'),
-      ]);
+      const res = await adminFetch('/api/admin/kpis');
+      const data = await res.json();
 
-      const allDrivers = driversRes.data || [];
-      const activeCount = allDrivers.filter((d: any) => {
-        const s = String(d.status || '').toLowerCase();
-        return s === 'active' || s === 'busy';
-      }).length;
+      if (data?.success && data?.stats) {
+        setTotalCaptains(data.stats.totalCaptains ?? 0);
+        setActiveCaptains(data.stats.activeCaptains ?? 0);
+        setTotalRiders(data.stats.totalRiders ?? 0);
 
-      setTotalCaptains(driversRes.count ?? allDrivers.length);
-      setActiveCaptains(activeCount);
-      setTotalRiders(ridersRes.count ?? 0);
-
-      if (showToast) {
-        toast({
-          title: "⚡ اكتمال التحديث اللحظي",
-          description: `تمت مزامنة بيانات الكباتن (${driversRes.count ?? allDrivers.length}) والركاب (${ridersRes.count ?? 0}) مباشرة من قاعدة البيانات.`,
-        });
+        if (showToast) {
+          toast({
+            title: "⚡ اكتمال التحديث اللحظي",
+            description: `تمت مزامنة بيانات الكباتن (${data.stats.totalCaptains}) والركاب (${data.stats.totalRiders}) مباشرة من قاعدة البيانات.`,
+          });
+        }
       }
     } catch (err) {
       console.warn('[Admin Pulse] Fetch error:', err);
@@ -984,17 +972,18 @@ export function AdminPulseOverview() {
 }
 
 export function AdminViewTab() {
-  const { pulseData, loadingPulse } = useMarketPulse(true);
-
   return (
     <div className="space-y-6 text-right font-sans" dir="rtl">
+      {/* شريط الإدارة العلوي - الملف الشخصي، تغيير كلمة السر، تسجيل الخروج */}
+      <AdminTopBar />
+
       {/* شريط الإحصائيات السيادية الموحد - Master Supervisor KPI Bar */}
       <AdminMasterKPIBar />
 
-      {/* المنظومة الإدارية المنظمة - 7 وحدات تشغيلية محكمة */}
+      {/* المنظومة الإدارية المنظمة */}
       <Tabs defaultValue="captains" className="space-y-6">
         {/* شريط التبويبات الرئيسي - تصميم أنيق ومتناسق */}
-        <TabsList className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 bg-[#050A0F]/90 border border-white/10 p-2 rounded-2xl h-auto">
+        <TabsList className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 bg-[#050A0F]/90 border border-white/10 p-2 rounded-2xl h-auto">
           <TabsTrigger
             value="captains"
             className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all data-[state=active]:bg-[#14B8A6] data-[state=active]:text-[#0B0F19] text-slate-300 hover:text-white"
@@ -1012,27 +1001,33 @@ export function AdminViewTab() {
           </TabsTrigger>
 
           <TabsTrigger
-            value="ads"
+            value="wallet"
             className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all data-[state=active]:bg-[#14B8A6] data-[state=active]:text-[#0B0F19] text-slate-300 hover:text-white"
+          >
+            <Wallet className="w-4 h-4" />
+            <span>المالية والشحن</span>
+          </TabsTrigger>
+
+          <TabsTrigger
+            value="ads"
+            className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-bold transition-all data-[state=active]:bg-[#14B8A6] data-[state=active]:text-[#0B0F19] text-slate-300 hover:text-white"
           >
             <Megaphone className="w-4 h-4" />
             <span>الإعلانات</span>
+            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+              تحت التأسيس
+            </span>
           </TabsTrigger>
 
           <TabsTrigger
             value="delegates"
-            className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all data-[state=active]:bg-[#14B8A6] data-[state=active]:text-[#0B0F19] text-slate-300 hover:text-white"
+            className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-bold transition-all data-[state=active]:bg-[#14B8A6] data-[state=active]:text-[#0B0F19] text-slate-300 hover:text-white"
           >
             <UsersRound className="w-4 h-4" />
             <span>المندوبين</span>
-          </TabsTrigger>
-
-          <TabsTrigger
-            value="broadcast"
-            className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all data-[state=active]:bg-[#14B8A6] data-[state=active]:text-[#0B0F19] text-slate-300 hover:text-white"
-          >
-            <Radio className="w-4 h-4" />
-            <span>البث والتعميم</span>
+            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+              تحت التأسيس
+            </span>
           </TabsTrigger>
 
           <TabsTrigger
@@ -1041,14 +1036,6 @@ export function AdminViewTab() {
           >
             <ShieldCheck className="w-4 h-4" />
             <span>المشرفين</span>
-          </TabsTrigger>
-
-          <TabsTrigger
-            value="controls"
-            className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all data-[state=active]:bg-[#14B8A6] data-[state=active]:text-[#0B0F19] text-slate-300 hover:text-white"
-          >
-            <Sliders className="w-4 h-4" />
-            <span>التحكم والإعدادات</span>
           </TabsTrigger>
         </TabsList>
 
@@ -1068,49 +1055,145 @@ export function AdminViewTab() {
           </SovereignErrorBoundary>
         </TabsContent>
 
+        {/* 3. المالية والشحن */}
+        <TabsContent value="wallet" className="space-y-6">
+          <SovereignErrorBoundary>
+            <WalletManagementTab />
+          </SovereignErrorBoundary>
+        </TabsContent>
+
         {/* 3. الإعلانات */}
         <TabsContent value="ads" className="space-y-6">
-          <SovereignErrorBoundary>
-            <div className="space-y-6">
-              <PendingAdsAuditPanel />
-              <AdsManagementTab />
+          <div className="relative overflow-hidden rounded-3xl border border-amber-500/20 bg-[#0B0F19]/90 p-8 sm:p-12 text-center shadow-2xl backdrop-blur-xl">
+            <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-96 h-96 bg-amber-500/10 blur-3xl pointer-events-none rounded-full" />
+            <div className="absolute -bottom-24 left-1/2 -translate-x-1/2 w-96 h-96 bg-teal-500/5 blur-3xl pointer-events-none rounded-full" />
+
+            <div className="relative z-10 max-w-2xl mx-auto flex flex-col items-center">
+              <div className="relative mb-6 flex h-20 w-20 items-center justify-center rounded-3xl border border-amber-500/40 bg-gradient-to-br from-amber-500/20 to-amber-500/5 text-amber-400 shadow-[0_0_35px_rgba(245,158,11,0.25)]">
+                <Construction className="h-10 w-10 animate-pulse" />
+                <span className="absolute -bottom-1 -right-1 flex h-4 w-4">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-4 w-4 bg-amber-500" />
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2 mb-3">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 border border-amber-500/30 px-3.5 py-1 text-xs font-black text-amber-300">
+                  🚧 هذه الشاشة تحت التأسيس
+                </span>
+                <span className="rounded-full bg-white/5 border border-white/10 px-3 py-1 text-xs font-mono text-slate-400 font-bold">
+                  UNDER CONSTRUCTION
+                </span>
+              </div>
+
+              <h2 className="text-2xl sm:text-3xl font-black text-white tracking-wide mb-3">
+                منظومة الإعلانات والنهر الإعلاني
+              </h2>
+
+              <p className="text-sm sm:text-base text-slate-300 leading-relaxed mb-8">
+                يجري حالياً العمل على تأسيس وبرمجة منظومة الإعلانات والنهر الإعلاني الذكي، والربط مع معايير صفرية التكلفة الحافة لضمان الأمان والتدقيق الآلي للحملات الإعلانية.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full text-right mb-8">
+                <div className="p-4 rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-md">
+                  <div className="flex items-center gap-2 text-amber-300 font-bold text-xs mb-1">
+                    <Megaphone className="w-4 h-4" />
+                    <span>الحملات الإعلانية</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400">إدارة البنرات والعروض الترويجية المستهدفة جغرافياً</p>
+                </div>
+                <div className="p-4 rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-md">
+                  <div className="flex items-center gap-2 text-teal-300 font-bold text-xs mb-1">
+                    <ShieldCheck className="w-4 h-4" />
+                    <span>التدقيق والاعتماد</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400">فحص أمني تلقائي للمحتوى والمواد الإعلانية قبل العرض</p>
+                </div>
+                <div className="p-4 rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-md">
+                  <div className="flex items-center gap-2 text-cyan-300 font-bold text-xs mb-1">
+                    <Activity className="w-4 h-4" />
+                    <span>إحصائيات المشاهدات</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400">تقارير دقيقة لنِسب النقر والظهور في واجهات الركاب</p>
+                </div>
+              </div>
+
+              <div className="inline-flex items-center gap-2 text-xs text-slate-400 bg-white/5 border border-white/10 px-4 py-2 rounded-xl">
+                <span className="h-2 w-2 rounded-full bg-amber-400 animate-ping" />
+                <span>الحالة: قيد البرمجة والتطوير • سيتم إطلاقها رسمياً في التحديث القادم</span>
+              </div>
             </div>
-          </SovereignErrorBoundary>
+          </div>
         </TabsContent>
 
         {/* 4. المندوبين */}
         <TabsContent value="delegates" className="space-y-6">
-          <SovereignErrorBoundary>
-            <DelegatesManagementTab />
-          </SovereignErrorBoundary>
-        </TabsContent>
+          <div className="relative overflow-hidden rounded-3xl border border-amber-500/20 bg-[#0B0F19]/90 p-8 sm:p-12 text-center shadow-2xl backdrop-blur-xl">
+            <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-96 h-96 bg-amber-500/10 blur-3xl pointer-events-none rounded-full" />
+            <div className="absolute -bottom-24 left-1/2 -translate-x-1/2 w-96 h-96 bg-indigo-500/5 blur-3xl pointer-events-none rounded-full" />
 
-        {/* 5. البث والتعميم */}
-        <TabsContent value="broadcast" className="space-y-6">
-          <SovereignErrorBoundary>
-            <SystemBroadcastPanel />
-          </SovereignErrorBoundary>
+            <div className="relative z-10 max-w-2xl mx-auto flex flex-col items-center">
+              <div className="relative mb-6 flex h-20 w-20 items-center justify-center rounded-3xl border border-amber-500/40 bg-gradient-to-br from-amber-500/20 to-amber-500/5 text-amber-400 shadow-[0_0_35px_rgba(245,158,11,0.25)]">
+                <Construction className="h-10 w-10 animate-pulse" />
+                <span className="absolute -bottom-1 -right-1 flex h-4 w-4">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-4 w-4 bg-amber-500" />
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2 mb-3">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 border border-amber-500/30 px-3.5 py-1 text-xs font-black text-amber-300">
+                  🚧 هذه الشاشة تحت التأسيس
+                </span>
+                <span className="rounded-full bg-white/5 border border-white/10 px-3 py-1 text-xs font-mono text-slate-400 font-bold">
+                  UNDER CONSTRUCTION
+                </span>
+              </div>
+
+              <h2 className="text-2xl sm:text-3xl font-black text-white tracking-wide mb-3">
+                منظومة المندوبين وإدارة الميدان
+              </h2>
+
+              <p className="text-sm sm:text-base text-slate-300 leading-relaxed mb-8">
+                يجري حالياً العمل على تأسيس وبرمجة منظومة مناديب الميدان، وإدارة الروابط السحرية وخطوط الاستحواذ الميداني وحساب العمولات التلقائية.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full text-right mb-8">
+                <div className="p-4 rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-md">
+                  <div className="flex items-center gap-2 text-indigo-300 font-bold text-xs mb-1">
+                    <UsersRound className="w-4 h-4" />
+                    <span>شبكة المناديب</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400">تجنيد واعتماد المناديب وتوزيع المهام الميدانية بالمحافظات</p>
+                </div>
+                <div className="p-4 rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-md">
+                  <div className="flex items-center gap-2 text-teal-300 font-bold text-xs mb-1">
+                    <Sparkles className="w-4 h-4" />
+                    <span>الروابط السحرية</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400">روابط ذكية للاستحواذ وتتبع تسجيل الكباتن والركاب بدقة</p>
+                </div>
+                <div className="p-4 rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-md">
+                  <div className="flex items-center gap-2 text-emerald-300 font-bold text-xs mb-1">
+                    <Wallet className="w-4 h-4" />
+                    <span>العمولات والتحصيلات</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400">محاسبة وتصفية أرباح المناديب آلياً وفق قاعدة الاستقرار</p>
+                </div>
+              </div>
+
+              <div className="inline-flex items-center gap-2 text-xs text-slate-400 bg-white/5 border border-white/10 px-4 py-2 rounded-xl">
+                <span className="h-2 w-2 rounded-full bg-amber-400 animate-ping" />
+                <span>الحالة: قيد البرمجة والتطوير • سيتم إطلاقها رسمياً في التحديث القادم</span>
+              </div>
+            </div>
+          </div>
         </TabsContent>
 
         {/* 6. المشرفين */}
         <TabsContent value="admins" className="space-y-6">
           <SovereignErrorBoundary>
             <AdminsManagementPanel />
-          </SovereignErrorBoundary>
-        </TabsContent>
-
-        {/* 7. التحكم والإعدادات المجمعة */}
-        <TabsContent value="controls" className="space-y-6">
-          <SovereignErrorBoundary>
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <KillSwitchPanel />
-                <FuelIndexPanel />
-              </div>
-              <CapacityPricingPanel />
-              <PasswordResetsTab />
-              <PulseHeatmap pulseData={pulseData} isLoading={loadingPulse} />
-            </div>
           </SovereignErrorBoundary>
         </TabsContent>
       </Tabs>

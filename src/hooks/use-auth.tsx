@@ -276,6 +276,9 @@ function AuthContent({ children }: { children: ReactNode }) {
     if (!(process.env.NODE_ENV !== 'production')) return;
     setUser(mockUser);
     setLoading(false);
+    if (typeof window !== 'undefined' && mockUser?.uid) {
+      window.localStorage.setItem('radar_admin_active_id', mockUser.uid);
+    }
   }, []);
 
   const logout = useCallback(async () => {
@@ -292,6 +295,10 @@ function AuthContent({ children }: { children: ReactNode }) {
     await cancelActiveRequestBeforeLogout(user);
     clearSupabaseSessionCache();
     purgeTransientFrontendCache();
+    if (typeof window !== 'undefined') {
+      window.localStorage.removeItem('radar_admin_active_id');
+      window.sessionStorage.removeItem('radar_admin_active_id');
+    }
     restorePreservedLanguage(preservedLanguage);
     setUser(null);
     try {
@@ -445,7 +452,7 @@ async function cancelActiveRequestBeforeLogout(user: SovereignUser | null) {
   }
 }
 
-function purgeTransientFrontendCache() {
+export function purgeTransientFrontendCache() {
   if (typeof window === 'undefined') return;
 
   const sessionKeys = [

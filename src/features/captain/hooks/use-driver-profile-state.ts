@@ -241,6 +241,42 @@ const [profile, setProfile] = React.useState<ProfileRow | null>(null);
     };
   }, [profileReloadToken, user?.name, user?.phone, user?.serial_id, user?.uid, user?.vehicle?.color, user?.vehicle?.make, user?.vehicle?.plate, user?.vehicle?.year, user?.subRole, user?.affiliation?.type, (user?.affiliation as any)?.name]);
 
+  // Real-time synchronization: reload profile immediately whenever admin updates tier, rating, or verification
+  React.useEffect(() => {
+    if (!user?.uid) return;
+    const channel = supabase
+      .channel(`driver-profile-realtime-${user.uid}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'profiles',
+          filter: `id=eq.${user.uid}`,
+        },
+        () => {
+          setProfileReloadToken((prev) => prev + 1);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'captain_profiles',
+          filter: `id=eq.${user.uid}`,
+        },
+        () => {
+          setProfileReloadToken((prev) => prev + 1);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void channel.unsubscribe();
+    };
+  }, [user?.uid]);
+
   const rating = firstNumber(profile?.trust_score, profile?.rating, profile?.trust_rating, user?.rating, 5);
   const normalizedRating = Math.max(0, Math.min(5, rating));
   const tier = getCaptainTier(profile, normalizedRating, t, user?.rank);

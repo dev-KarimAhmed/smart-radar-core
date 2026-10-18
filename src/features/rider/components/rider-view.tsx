@@ -20,12 +20,14 @@ import { useRideRequestStatusSync } from '../hooks/use-ride-request-status-sync'
 import { useSendCancelRideRequest } from '../hooks/use-send-cancel-ride-request';
 import { useTripCompletion } from '../hooks/use-trip-completion';
 import { useRiderProfileSummary } from '../hooks/use-rider-profile-summary';
+import { useRiderOperations } from '../hooks/use-rider-operations';
 import { buildRiderDestination } from '../services/rider-destination-normalizers';
 import { IdleMapScreen } from './idle-map-screen';
 import { RiderShellFrame } from './rider-shell-frame';
 import { RiderActiveScreen } from './rider-active-screen';
 import { RiderModals } from './rider-modals';
 import { RiderDashboard } from './rider-dashboard';
+import { supabase } from '@/lib/supabase-client';
 
 const styles = {
   adRiverWrapper: "hidden overflow-hidden rounded-[24px] border border-[#14B8A6]/15 bg-[#0B0F19]/88 shadow-2xl shadow-black/35 backdrop-blur-xl lg:block",
@@ -35,7 +37,28 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
   const { user } = useAuth();
   const { isArabic, language } = useDashboardLanguage();
   const { state, dispatch, showAdRiver } = useRiderDashboardMachine();
+  const riderOperations = useRiderOperations();
   useActiveTripReloadGuard(Boolean(state.requestId) && (state.screen === 'RECEIVING_OFFERS' || state.screen === 'TRIP_ACTIVE'));
+
+  // Sync rider online presence in profiles table
+  React.useEffect(() => {
+    if (!user?.uid || user.role !== 'rider') return;
+    if (riderOperations.accountSecurityStatus) return;
+
+    void supabase
+      .from('profiles')
+      .update({ status: 'ACTIVE', updated_at: new Date().toISOString() })
+      .eq('id', user.uid)
+      .neq('status', 'BANNED');
+
+    return () => {
+      void supabase
+        .from('profiles')
+        .update({ status: 'IDLE', updated_at: new Date().toISOString() })
+        .eq('id', user.uid)
+        .neq('status', 'BANNED');
+    };
+  }, [user?.uid, user?.role, riderOperations.accountSecurityStatus]);
 
   const lastKnown = getLastKnownLocation();
   const isInitialJordanCoords = lastKnown
@@ -194,6 +217,15 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
     window.addEventListener('exit-request-flow', handleExit);
     return () => window.removeEventListener('exit-request-flow', handleExit);
   }, [dispatch, resetRideDraftState]);
+
+  // Auto-dissolve active ride request / buoy if account becomes suspended or banned
+  React.useEffect(() => {
+    if (riderOperations.accountSecurityStatus && state.requestId) {
+      void sendCancel.handleCancelRideRequest();
+      resetRideDraftState();
+      dispatch({ type: 'RESET_TO_IDLE' });
+    }
+  }, [riderOperations.accountSecurityStatus, state.requestId, sendCancel, resetRideDraftState, dispatch]);
 
   const handleCloseOrCancel = React.useCallback(async () => {
     if (state.requestId) {

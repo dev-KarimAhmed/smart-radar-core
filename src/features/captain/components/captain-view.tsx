@@ -2,13 +2,14 @@
 
 import React from 'react';
 import { useTranslations } from 'next-intl';
-import { AlertTriangle, History, Languages, Loader2, LogOut, Map, ShieldAlert, User, Wallet, WifiOff, Download } from 'lucide-react';
+import { AlertTriangle, Bell, History, Languages, Loader2, LogOut, Map, ShieldAlert, User, Wallet, WifiOff, Download } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import type { Trip } from '@/core/types';
 import { useAuth } from '@/hooks/use-auth';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { supabase } from '@/lib/supabase-client';
 import { useActiveTripReloadGuard } from '@/shared/hooks/use-active-trip-reload-guard';
+import { useNotifications } from '@/shared/hooks/use-notifications';
 import { useDriverOperations } from '../hooks/use-driver-operations';
 import { useSovereignWallet } from '@/hooks/use-sovereign-wallet';
 import { useToast } from '@/hooks/use-toast';
@@ -91,12 +92,14 @@ const styles = {
 const RadarMapView = dynamic(() => import('./radar-map-view').then(m => m.RadarMapView), { ssr: false });
 const AdStage = dynamic(() => import('@/features/ads/ad-stage/contract').then((m) => m.AdStage), { ssr: false });
 const HistoryScreen = dynamic(() => import('@/features/account/history/contract').then((m) => m.HistoryTab), { ssr: false });
+const NotificationsScreen = dynamic(() => import('@/features/account/components/notifications-tab').then((m) => m.NotificationsTab), { ssr: false });
 
 export function DriverViewTab() {
   const { user, logout } = useAuth();
   const { toast } = useToast();
   const { language, direction, toggleLanguage } = useDashboardLanguage();
   const t = useTranslations('captainDashboard');
+  const { unreadCount, hasUnread } = useNotifications();
   const driverOps = useDriverOperations();
   const wallet = useSovereignWallet(user);
   const { isTimeTamperingDetected } = useDeviceTimeGuard();
@@ -272,6 +275,67 @@ export function DriverViewTab() {
     );
   }
 
+  if (driverOps.accountSecurityStatus === 'BANNED') {
+    return (
+      <div className={styles.lockScreenRoot} dir={direction}>
+        <div className="max-w-md space-y-4 rounded-3xl border border-rose-500/40 bg-[#160808] p-6 text-center text-white shadow-2xl">
+          <ShieldAlert className="mx-auto h-12 w-12 text-rose-500 animate-pulse" />
+          <h1 className="text-xl font-black text-rose-200">
+            {direction === 'rtl' ? 'حساب الكابتن محظور نهائياً 🚫' : 'Captain Account Banned 🚫'}
+          </h1>
+          <p className="text-xs leading-6 text-rose-100/80">
+            {direction === 'rtl'
+              ? 'تم حظر حسابك نهائياً من قبل إدارة المنظومة لمخالفة المعايير التشغيلية والسيادية. تم إيقاف استقبال الرحلات والاتصال بالرادار.'
+              : 'Your account has been permanently banned by platform administration due to policy violations.'}
+          </p>
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={() => void logout()}
+              className="inline-flex items-center justify-center rounded-2xl bg-rose-500/20 border border-rose-500/50 px-6 py-2.5 text-xs font-black text-rose-300 hover:bg-rose-500/30 transition shadow-lg cursor-pointer"
+            >
+              {direction === 'rtl' ? 'تسجيل الخروج' : 'Log Out'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (driverOps.accountSecurityStatus === 'SUSPENDED') {
+    return (
+      <div className={styles.lockScreenRoot} dir={direction}>
+        <div className="max-w-md space-y-4 rounded-3xl border border-amber-500/40 bg-[#171208] p-6 text-center text-white shadow-2xl">
+          <AlertTriangle className="mx-auto h-12 w-12 text-amber-500 animate-pulse" />
+          <h1 className="text-xl font-black text-amber-200">
+            {direction === 'rtl' ? 'حساب الكابتن معلق مؤقتاً ⚠️' : 'Captain Account Suspended ⚠️'}
+          </h1>
+          <p className="text-xs leading-6 text-amber-100/80">
+            {direction === 'rtl'
+              ? 'تم تعليق حسابك مؤقتاً من قبل إدارة العمليات. يرجى مراجعة إدارة المنظومة أو التواصل مع الدعم لفك التعليق وتنشيط الحساب.'
+              : 'Your account is temporarily suspended by platform administration. Please contact support.'}
+          </p>
+          <div className="flex items-center justify-center gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="inline-flex items-center justify-center rounded-2xl bg-amber-500/20 border border-amber-500/50 px-5 py-2.5 text-xs font-black text-amber-300 hover:bg-amber-500/30 transition shadow-lg cursor-pointer"
+            >
+              {direction === 'rtl' ? 'تحديث الحالة 🔄' : 'Refresh 🔄'}
+            </button>
+            <button
+              type="button"
+              onClick={() => void logout()}
+              className="inline-flex items-center justify-center rounded-2xl bg-white/5 border border-white/10 px-5 py-2.5 text-xs font-bold text-slate-300 hover:bg-white/10 transition cursor-pointer"
+            >
+              {direction === 'rtl' ? 'تسجيل الخروج' : 'Log Out'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const isActive = driverOps.driverStatus === 'active' || driverOps.driverStatus === 'busy';
   const walletIsReady = wallet.walletLoadState === 'ready';
   const paidMinutes = walletIsReady ? wallet.paidMinutesRemaining : 0;
@@ -366,6 +430,26 @@ export function DriverViewTab() {
                   <span className={styles.style186_22}>{direction === 'rtl' ? 'تثبيت' : 'Install'}</span>
                 </button>
               )}
+              <button
+                type="button"
+                onClick={() => dispatch({ type: 'OPEN_NOTIFICATIONS' })}
+                aria-label={t('notifications')}
+                title={t('notifications')}
+                className={cn(
+                  "relative inline-flex items-center gap-1.5 rounded-xl border px-2.5 py-2 transition sm:rounded-2xl sm:px-4 sm:py-3",
+                  screen === 'NOTIFICATIONS'
+                    ? "border-[#14B8A6]/50 bg-[#14B8A6]/20 text-[#14F5D5]"
+                    : "border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 hover:text-white"
+                )}
+              >
+                <Bell className="h-4 w-4" />
+                <span className={styles.style186_22}>{t('notifications')}</span>
+                {hasUnread && (
+                  <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-black text-white shadow-lg animate-pulse">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
+              </button>
               <button
                 type="button"
                 onClick={toggleLanguage}
@@ -524,6 +608,11 @@ export function DriverViewTab() {
         {/* ACTIVE_TRIP never reaches here — it returns above as its own full-screen surface. */}
 
         {screen === 'WALLET' ? <DriverWalletTab user={user} language={language} isFlightActive={isActive} /> : null}
+        {screen === 'NOTIFICATIONS' ? (
+          <div className="flex-1 rounded-3xl border border-emerald-500/20 bg-[#05080f] p-3 sm:p-6 shadow-2xl">
+            <NotificationsScreen onClose={() => dispatch({ type: 'OPEN_RADAR' })} />
+          </div>
+        ) : null}
         {screen === 'HISTORY' ? <HistoryScreen hideCaptainDiagnostics /> : null}
         {screen === 'PROFILE' ? <DriverProfileTab user={user} language={language} /> : null}
       </div>
@@ -593,20 +682,27 @@ function NavButton({
   icon,
   label,
   onClick,
+  badge,
 }: {
   active: boolean;
   icon: React.ReactNode;
   label: string;
   onClick: () => void;
+  badge?: number;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={cn(styles.style260_17, active ? styles.style261_18 : styles.style261_19)}
+      className={cn("relative", styles.style260_17, active ? styles.style261_18 : styles.style261_19)}
     >
       {icon}
       <span className={styles.style311_1}>{label}</span>
+      {typeof badge === 'number' && badge > 0 ? (
+        <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-black text-white shadow-md animate-pulse">
+          {badge > 99 ? '99+' : badge}
+        </span>
+      ) : null}
     </button>
   );
 }

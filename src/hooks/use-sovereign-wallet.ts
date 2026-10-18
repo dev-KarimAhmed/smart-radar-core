@@ -219,6 +219,15 @@ export function useSovereignWallet(user: User | null) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshIndex, user?.activePackageName, user?.bonusHoursRemaining, user?.paidHoursRemaining, user?.walletBalanceJD, userId]);
 
+  // Listen to cross-system notification wallet refresh event (e.g., when a receipt is approved or topped up)
+  useEffect(() => {
+    const handleWalletRefresh = () => {
+      refreshWallet();
+    };
+    window.addEventListener('radar-wallet-refresh', handleWalletRefresh);
+    return () => window.removeEventListener('radar-wallet-refresh', handleWalletRefresh);
+  }, [refreshWallet]);
+
   useEffect(() => {
     if (!userId || !isUuid(userId)) return;
 
@@ -320,13 +329,17 @@ export function useSovereignWallet(user: User | null) {
       });
       if (uploadError) throw uploadError;
 
+      const isEgypt = user?.countryId === 2 || String(user?.phone || '').startsWith('+20');
+      const resolvedCurrencyCode = user?.currencyEn || (isEgypt ? 'EGP' : 'JOD');
+      const resolvedCurrencyAr = user?.currencyAr || (isEgypt ? 'ج.م' : 'د.أ');
+
       const { error: insertError } = await supabase.from('wallet_transactions').insert({
         profile_id: userId,
         type: 'receipt',
         transaction_type: 'receipt',
         amount: input.amount,
-        currency_code: user?.currencyEn || null,
-        currency_ar: user?.currencyAr || null,
+        currency_code: resolvedCurrencyCode,
+        currency_ar: resolvedCurrencyAr,
         status: 'PENDING',
         description_ar: tAuto('receiptAwaitingReview'),
         payment_channel: input.channel,

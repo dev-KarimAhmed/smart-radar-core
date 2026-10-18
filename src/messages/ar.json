@@ -1176,6 +1176,7 @@
     "statusActivated": "تم تفعيل استقبال الطلبات.",
     "statusDeactivated": "تم إيقاف استقبال الطلبات.",
     "history": "سجل الرحلات",
+    "notifications": "الإشعارات",
     "pricePerKmModalTitle": "حدد سعر الكيلومتر",
     "pricePerKmModalBody": "قبل استخدام لوحة التحكم، يرجى تحديد سعر الكيلومتر الخاص بك. لا يمكن تخطي هذه الخطوة.",
     "pricePerKmModalCountryChangeTitle": "أنت الآن في دولة مختلفة",

@@ -11,6 +11,7 @@ import {
   createRideRequest,
 } from '../services/rider-server-marketplace';
 import { getLocalizedMarketplaceError } from '../services/rider-offer-presentation';
+import { useRiderOperations } from './use-rider-operations';
 import type { RiderDestination, RiderMachineAction, RiderMachineState } from '../state/rider-state-machine';
 import type { RiderLocation, RiderLocationStatus } from '../components/rider-map';
 
@@ -62,6 +63,7 @@ export function useSendCancelRideRequest(params: {
 
   const { toast } = useToast();
   const t = useTranslations('riderView');
+  const riderOps = useRiderOperations();
 
   const [isSendingRideRequest, setIsSendingRideRequest] = React.useState(false);
   const [isCancellingRideRequest, setIsCancellingRideRequest] = React.useState(false);
@@ -79,6 +81,19 @@ export function useSendCancelRideRequest(params: {
   }), [t]);
 
   const handleSendRequest = React.useCallback(async () => {
+    if (riderOps?.accountSecurityStatus) {
+      toast({
+        variant: 'destructive',
+        title: riderOps.accountSecurityStatus === 'BANNED'
+          ? (language === 'ar' ? 'الحساب محظور نهائياً 🚫' : 'Account Banned 🚫')
+          : (language === 'ar' ? 'الحساب معلق مؤقتاً ⚠️' : 'Account Suspended ⚠️'),
+        description: language === 'ar'
+          ? 'لا يمكن إرسال طلب رحلة، الحساب معلق أو محظور حالياً من قبل الإدارة.'
+          : 'Cannot create request: account is currently restricted by platform administration.',
+      });
+      return;
+    }
+
     if (locationStatus === 'denied') {
       toast({
         variant: 'destructive',
@@ -247,6 +262,7 @@ export function useSendCancelRideRequest(params: {
     t,
     toast,
     userId,
+    riderOps?.accountSecurityStatus,
   ]);
 
   const handleCancelRideRequest = React.useCallback(async () => {

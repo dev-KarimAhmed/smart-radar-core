@@ -1,10 +1,8 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase-client';
-import { db } from '@/lib/firebase';
-import { collection, getDocs, query, where } from 'firebase/firestore';
-import { Users, Car, Megaphone, UsersRound, Activity, ArrowUpRight } from 'lucide-react';
+import { adminFetch } from '@/features/admin/lib/admin-api-client';
+import { Users, Car, Megaphone, UsersRound, ArrowUpRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
 
@@ -19,7 +17,7 @@ interface KPIStats {
 }
 
 const styles = {
-  container: "grid grid-cols-2 lg:grid-cols-5 gap-3.5 mb-6 text-right",
+  container: "grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-6 text-right",
   card: "relative overflow-hidden rounded-2xl border border-white/10 bg-[#0B0F19]/95 p-4 transition-all duration-300 hover:border-white/20 shadow-xl backdrop-blur-xl",
   iconWrapper: "flex h-9 w-9 items-center justify-center rounded-xl",
   label: "mt-2.5 text-xs font-bold text-slate-300 tracking-wide",
@@ -46,43 +44,11 @@ export function AdminMasterKPIBar() {
 
     async function loadStats() {
       try {
-        const [driversRes, ridersRes, delegatesRes] = await Promise.all([
-          supabase.from('profiles').select('id, status', { count: 'exact' }).eq('role', 'CAPTAIN'),
-          supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'RIDER'),
-          supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'DELEGATE'),
-        ]);
+        const res = await adminFetch('/api/admin/kpis');
+        const data = await res.json();
 
-        let activeAdsCount = 0;
-        let pendingAdsCount = 0;
-
-        try {
-          const promosSnap = await getDocs(collection(db, 'promos'));
-          promosSnap.forEach((doc) => {
-            const data = doc.data();
-            const status = String(data.status || '').toLowerCase();
-            if (status === 'active') activeAdsCount++;
-            else if (status === 'pending') pendingAdsCount++;
-          });
-        } catch {
-          // Ignore ads count failure
-        }
-
-        if (isMounted) {
-          const allDrivers = driversRes.data || [];
-          const activeCount = allDrivers.filter((d: any) => {
-            const s = String(d.status || '').toLowerCase();
-            return s === 'active' || s === 'busy';
-          }).length;
-
-          setStats({
-            totalCaptains: driversRes.count ?? allDrivers.length,
-            activeCaptains: activeCount,
-            totalRiders: ridersRes.count ?? 0,
-            activeAds: activeAdsCount,
-            pendingAds: pendingAdsCount,
-            totalDelegates: delegatesRes.count ?? 0,
-            systemHealth: '100% مستقر',
-          });
+        if (isMounted && data?.success && data?.stats) {
+          setStats(data.stats);
         }
       } catch (err) {
         console.warn('[Admin KPI Bar] Fetch error:', err);
@@ -127,48 +93,38 @@ export function AdminMasterKPIBar() {
 
       {/* 3. الإعلانات */}
       <div className={styles.card}>
-        <div className={cn(styles.iconWrapper, "bg-amber-500/10 text-amber-400 border border-amber-500/20")}>
-          <Megaphone className="h-4 w-4" />
+        <div className="flex items-center justify-between">
+          <div className={cn(styles.iconWrapper, "bg-amber-500/10 text-amber-400 border border-amber-500/20")}>
+            <Megaphone className="h-4 w-4" />
+          </div>
+          <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[10px] font-bold text-amber-300">
+            تحت التأسيس
+          </span>
         </div>
         <p className={styles.label}>{t('ads')}</p>
         <div className={styles.valueContainer}>
           <span className={styles.mainValue}>{loading ? '...' : stats.activeAds}</span>
-          {stats.pendingAds > 0 ? (
-            <span className={cn(styles.subBadge, "bg-red-500/20 text-red-300 animate-pulse border-red-500/40")}>
-              {stats.pendingAds} معلق
-            </span>
-          ) : (
-            <span className={cn(styles.subBadge, "bg-slate-800/80 text-slate-300 border-slate-700")}>
-              0 معلق
-            </span>
-          )}
+          <span className={cn(styles.subBadge, "bg-amber-500/15 text-amber-300 border-amber-500/30")}>
+            قيد التطوير
+          </span>
         </div>
       </div>
 
       {/* 4. المندوبون */}
       <div className={styles.card}>
-        <div className={cn(styles.iconWrapper, "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20")}>
-          <UsersRound className="h-4 w-4" />
+        <div className="flex items-center justify-between">
+          <div className={cn(styles.iconWrapper, "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20")}>
+            <UsersRound className="h-4 w-4" />
+          </div>
+          <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[10px] font-bold text-amber-300">
+            تحت التأسيس
+          </span>
         </div>
         <p className={styles.label}>{t('delegates')}</p>
         <div className={styles.valueContainer}>
           <span className={styles.mainValue}>{loading ? '...' : stats.totalDelegates}</span>
-          <span className={cn(styles.subBadge, "bg-indigo-500/15 text-indigo-300 border-indigo-500/30")}>
-            الميدان
-          </span>
-        </div>
-      </div>
-
-      {/* 5. حالة النظام */}
-      <div className={styles.card}>
-        <div className={cn(styles.iconWrapper, "bg-teal-500/10 text-[#14F5D5] border border-teal-500/20")}>
-          <Activity className="h-4 w-4" />
-        </div>
-        <p className={styles.label}>{t('systemStatus')}</p>
-        <div className={styles.valueContainer}>
-          <span className="font-mono text-base font-bold text-[#14F5D5]">{stats.systemHealth}</span>
-          <span className={cn(styles.subBadge, "bg-teal-500/15 text-teal-300 border-teal-500/30")}>
-            الرادار الحافة
+          <span className={cn(styles.subBadge, "bg-amber-500/15 text-amber-300 border-amber-500/30")}>
+            قيد التطوير
           </span>
         </div>
       </div>
