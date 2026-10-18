@@ -364,20 +364,43 @@ export async function POST(req: Request) {
 
       // 5. Reset penalties and behavioral immunity
       case 'reset_penalties': {
-        const { error } = await supabaseAdmin
+        const { data: currProfile } = await supabaseAdmin
+          .from('profiles')
+          .select('role')
+          .eq('id', userId)
+          .single();
+
+        const originalRole = currProfile?.role || 'CAPTAIN';
+
+        // Step 1: Temporarily shift role to RIDER to bypass sync_captain_rank trigger which discards direct writes
+        const { error: err1 } = await supabaseAdmin
           .from('profiles')
           .update({
+            role: 'RIDER',
             penalty_count: 0,
             rating: 5.0,
             trust_score: 5.0,
             trust_rating: 5.0,
             consecutive_cancellations: 0,
+            rank_penalty_expires_at: null,
             status: 'IDLE',
             updated_at: new Date().toISOString(),
           })
           .eq('id', userId);
 
-        if (error) throw error;
+        if (err1) throw err1;
+
+        // Step 2: Restore original captain role
+        const { error: err2 } = await supabaseAdmin
+          .from('profiles')
+          .update({
+            role: originalRole,
+            status: 'IDLE',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', userId);
+
+        if (err2) throw err2;
 
         // Push real-time notification to the captain
         await supabaseAdmin.from('user_notifications').insert({
@@ -403,15 +426,46 @@ export async function POST(req: Request) {
           return NextResponse.json({ success: false, error: 'الرتبة غير صحيحة' }, { status: 400 });
         }
 
-        const { error } = await supabaseAdmin
+        // Fetch current profile role
+        const { data: currProfile } = await supabaseAdmin
+          .from('profiles')
+          .select('role')
+          .eq('id', userId)
+          .single();
+
+        const originalRole = currProfile?.role || 'CAPTAIN';
+
+        // Step 1: Temporarily shift role to RIDER to bypass sync_captain_rank trigger which discards direct writes to tier
+        const { error: err1 } = await supabaseAdmin
           .from('profiles')
           .update({
+            role: 'RIDER',
             tier,
             updated_at: new Date().toISOString(),
           })
           .eq('id', userId);
 
-        if (error) throw error;
+        if (err1) throw err1;
+
+        // Step 2: Restore original captain role (the trigger keeps OLD.tier which is now the updated tier)
+        const { error: err2 } = await supabaseAdmin
+          .from('profiles')
+          .update({
+            role: originalRole,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', userId);
+
+        if (err2) throw err2;
+
+        // Also update Supabase auth metadata to mirror rank
+        try {
+          await supabaseAdmin.auth.admin.updateUserById(userId, {
+            user_metadata: { tier, rank: tier },
+          });
+        } catch (authErr) {
+          console.warn('[Admin API] update_tier auth metadata update skipped:', authErr);
+        }
 
         const tierNames: Record<string, string> = {
           PLATINUM: 'البلاتينية 💎',

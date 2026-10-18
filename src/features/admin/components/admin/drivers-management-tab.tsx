@@ -1038,7 +1038,7 @@ export function DriversManagementTab() {
                               onClick={() => {
                                 setSecurityCaptain(captain);
                                 setTargetStatus(captain.status);
-                                setTargetTier(captain.tier);
+                                setTargetTier((captain.tier || 'SILVER').toUpperCase());
                                 setSecurityReason('');
                               }}
                               className="h-8 px-3 rounded-xl border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-xs font-bold flex items-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer"
@@ -1567,7 +1567,7 @@ export function DriversManagementTab() {
                         status: targetStatus,
                       }, `تم تحديث حالة الكابتن إلى ${targetStatus}`);
                     }
-                    if (targetTier !== securityCaptain.tier) {
+                    if (String(targetTier).toUpperCase() !== String(securityCaptain.tier).toUpperCase()) {
                       ok = await executeAdminAction({
                         action: 'update_tier',
                         userId: securityCaptain.id,
