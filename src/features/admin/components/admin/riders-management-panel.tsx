@@ -14,13 +14,10 @@ import {
   Phone,
   AlertTriangle,
   RotateCcw,
-  DollarSign,
   Eye,
   CheckCircle2,
   XCircle,
   RefreshCw,
-  Coins,
-  Wallet,
   AlertOctagon,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -88,15 +85,10 @@ export function RidersManagementPanel() {
   // Modals state
   const [inspectRider, setInspectRider] = useState<RiderUser | null>(null);
   const [securityRider, setSecurityRider] = useState<RiderUser | null>(null);
-  const [compensationRider, setCompensationRider] = useState<RiderUser | null>(null);
 
   // Security modal inputs
   const [targetStatus, setTargetStatus] = useState<string>('IDLE');
   const [submittingAction, setSubmittingAction] = useState(false);
-
-  // Compensation modal inputs
-  const [compensationAmount, setCompensationAmount] = useState<number>(1.0);
-  const [compensationReason, setCompensationReason] = useState<string>('تعويض عن إلغاء أو شكوى رحلة');
 
   const fetchRiders = useCallback(async (quiet = false) => {
     if (!quiet) setLoading(true);
@@ -269,7 +261,7 @@ export function RidersManagementPanel() {
             إدارة الركاب والمناعة السلوكية
           </h2>
           <p className="text-xs text-slate-400 mt-1">
-            متابعة هويات الركاب، جدار الحماية الجنائي وكبح الإلغاء المتتالي، والتعويضات المالية.
+            متابعة هويات الركاب، جدار الحماية الجنائي وكبح الإلغاء المتتالي.
           </p>
         </div>
 
@@ -414,7 +406,6 @@ export function RidersManagementPanel() {
                     <th className="py-4 px-4 font-black text-slate-200">الموقع الجغرافي</th>
                     <th className="py-4 px-4 font-black text-slate-200">مؤشر النزاهة (المناعة)</th>
                     <th className="py-4 px-4 font-black text-slate-200">الإلغاءات المتتالية</th>
-                    <th className="py-4 px-4 font-black text-slate-200">رصيد المحفظة</th>
                     <th className="py-4 px-4 font-black text-slate-200">الحالة</th>
                     <th className="py-4 px-4 font-black text-slate-200 text-center">إجراءات المشرف</th>
                   </tr>
@@ -477,20 +468,12 @@ export function RidersManagementPanel() {
                           )}
                         </td>
 
-                        {/* 5. Wallet balance */}
-                        <td className="py-4 px-4">
-                          <div className="inline-flex items-center gap-1.5 font-mono font-black text-slate-100 bg-black/60 border border-white/10 px-2.5 py-1 rounded-lg text-xs">
-                            <Wallet className="h-3.5 w-3.5 text-[#14B8A6]" />
-                            <span>{(rider.wallet?.balance ?? 0).toFixed(2)} {(rider as any).currency || (rider.wallet as any)?.currency_ar || (rider.phone?.startsWith('+20') ? 'ج.م' : 'د.أ')}</span>
-                          </div>
-                        </td>
-
-                        {/* 6. Status */}
+                        {/* 5. Status */}
                         <td className="py-4 px-4">
                           {getStatusBadge(rider.status)}
                         </td>
 
-                        {/* 7. Action buttons */}
+                        {/* 6. Action buttons */}
                         <td className="py-4 px-4 text-center">
                           <div className="flex items-center justify-center gap-2">
                             {/* Inspect */}
@@ -525,22 +508,6 @@ export function RidersManagementPanel() {
                             >
                               <ShieldAlert className="h-3.5 w-3.5" />
                               <span>أمان</span>
-                            </Button>
-
-                            {/* Wallet Compensation */}
-                            <Button
-                              type="button"
-                              size="sm"
-                              onClick={() => {
-                                setCompensationRider(rider);
-                                setCompensationAmount(1.0);
-                                setCompensationReason('تعويض إداري عن شكوى رحلة');
-                              }}
-                              className="h-8 px-3 rounded-xl border border-emerald-500/40 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 text-xs font-black flex items-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer"
-                              title="تعويض مالي مباشر في المحفظة"
-                            >
-                              <Coins className="h-3.5 w-3.5 text-emerald-400" />
-                              <span>تعويض</span>
                             </Button>
                           </div>
                         </td>
@@ -636,17 +603,6 @@ export function RidersManagementPanel() {
                     </span>
                   </div>
                 )}
-              </div>
-
-              {/* Wallet info */}
-              <div className="border border-white/10 bg-black/40 p-3.5 rounded-2xl flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2">
-                  <Wallet className="h-4 w-4 text-[#14B8A6]" />
-                  <span className="text-slate-300 font-bold">الرصيد المالي في المحفظة:</span>
-                </div>
-                <span className="text-base font-black text-white font-mono">
-                  {(inspectRider.wallet?.balance ?? 0).toFixed(2)} {(inspectRider as any).currency || (inspectRider.wallet as any)?.currency_ar || (inspectRider.phone?.startsWith('+20') ? 'ج.م' : 'د.أ')}
-                </span>
               </div>
 
               <DialogFooter className="flex items-center justify-end border-t border-white/10 pt-4">
@@ -762,114 +718,6 @@ export function RidersManagementPanel() {
                 >
                   {submittingAction ? <Loader2 className="h-4 w-4 animate-spin ml-1" /> : <ShieldCheck className="h-4 w-4 ml-1" />}
                   تأكيد تعديل الحالة
-                </Button>
-              </DialogFooter>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* ========================================================================= */}
-      {/* MODAL 3: Rider Wallet Direct Financial Compensation                       */}
-      {/* ========================================================================= */}
-      <Dialog open={!!compensationRider} onOpenChange={(open) => !open && setCompensationRider(null)}>
-        <DialogContent className="max-w-md bg-[#0B0F19] border border-emerald-500/40 text-white rounded-3xl p-6 text-right" dir="rtl">
-          {compensationRider && (
-            <div className="space-y-4">
-              <DialogHeader>
-                <DialogTitle className="text-lg font-black text-emerald-400 flex items-center gap-2">
-                  <Coins className="h-5 w-5 text-emerald-400" />
-                  إيداع رصيد تعويضي في محفظة الراكب
-                </DialogTitle>
-                <DialogDescription className="text-xs text-slate-400 mt-1">
-                  إيداع مبلغ نقدي مباشر لحل نزاع أو تعويض عن شكوى للراكب <span className="text-white font-bold">{compensationRider.full_name}</span>.
-                </DialogDescription>
-              </DialogHeader>
-
-              {/* Current balance */}
-              <div className="bg-black/60 border border-white/10 p-3 rounded-2xl flex items-center justify-between text-xs font-mono">
-                <span className="text-slate-400">الرصيد المتوفر حالياً:</span>
-                <span className="text-base font-black text-emerald-400">
-                  {(compensationRider.wallet?.balance ?? 0).toFixed(2)} {(compensationRider as any).currency || (compensationRider.wallet as any)?.currency_ar || (compensationRider.phone?.startsWith('+20') ? 'ج.م' : 'د.أ')}
-                </span>
-              </div>
-
-              {/* Quick Amount Options */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-300 block">اختر مبلغ التعويض السريع:</label>
-                <div className="grid grid-cols-4 gap-2 font-mono">
-                  {[1.0, 2.5, 5.0, 10.0].map((amt) => (
-                    <button
-                      key={amt}
-                      type="button"
-                      onClick={() => setCompensationAmount(amt)}
-                      className={cn(
-                        "py-2 rounded-xl border text-center font-bold transition text-xs",
-                        compensationAmount === amt
-                          ? "border-emerald-500 bg-emerald-500/20 text-emerald-400 font-black ring-1 ring-emerald-500/30"
-                          : "border-white/10 bg-black/40 text-slate-400 hover:text-white"
-                      )}
-                    >
-                      +{amt.toFixed(1)} {(compensationRider as any).currency || (compensationRider.wallet as any)?.currency_ar || (compensationRider.phone?.startsWith('+20') ? 'ج.م' : 'د.أ')}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Custom Amount */}
-              <div>
-                <label className="text-xs font-bold text-slate-300 block mb-1">
-                  أو أدخل مبلغاً مخصصاً ({(compensationRider as any).currency || (compensationRider.wallet as any)?.currency_ar || (compensationRider.phone?.startsWith('+20') ? 'ج.م' : 'د.أ')}):
-                </label>
-                <Input
-                  type="number"
-                  step="0.25"
-                  min="0.25"
-                  value={compensationAmount}
-                  onChange={(e) => setCompensationAmount(Number(e.target.value))}
-                  className="bg-black/60 border-white/10 text-white font-mono h-10 rounded-xl focus:border-emerald-500 text-right"
-                />
-              </div>
-
-              {/* Reason */}
-              <div>
-                <label className="text-xs font-bold text-slate-300 block mb-1">سبب التعويض / ملاحظات:</label>
-                <Input
-                  type="text"
-                  value={compensationReason}
-                  onChange={(e) => setCompensationReason(e.target.value)}
-                  placeholder="اكتب سبب التعويض للتدقيق المالي..."
-                  className="bg-black/60 border-white/10 text-white text-xs h-10 rounded-xl focus:border-emerald-500 text-right"
-                />
-              </div>
-
-              <DialogFooter className="flex items-center justify-between gap-3 border-t border-white/10 pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setCompensationRider(null)}
-                  className="border-white/10 text-slate-300 text-xs h-9 rounded-xl"
-                >
-                  إلغاء
-                </Button>
-
-                <Button
-                  type="button"
-                  disabled={submittingAction || compensationAmount <= 0}
-                  onClick={async () => {
-                    const riderCurr = (compensationRider as any).currency || (compensationRider.wallet as any)?.currency_ar || (compensationRider.phone?.startsWith('+20') ? 'ج.م' : 'د.أ');
-                    const ok = await executeAdminAction({
-                      action: 'adjust_balance',
-                      userId: compensationRider.id,
-                      amount: compensationAmount,
-                      note: compensationReason,
-                    }, `تم إيداع ${compensationAmount.toFixed(2)} ${riderCurr} في محفظة الراكب بنجاح.`);
-                    if (ok) setCompensationRider(null);
-                  }}
-                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs h-10 px-5 rounded-xl shadow-lg shadow-emerald-600/20"
-                >
-                  {submittingAction ? <Loader2 className="h-4 w-4 animate-spin ml-1" /> : <Coins className="h-4 w-4 ml-1" />}
-                  تأكيد الإيداع الفوري
                 </Button>
               </DialogFooter>
             </div>
