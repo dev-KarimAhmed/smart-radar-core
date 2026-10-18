@@ -3,7 +3,9 @@
 import React, { useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
+  Check,
   ChevronDown,
+  Copy,
   Eye,
   EyeOff,
   KeyRound,
@@ -463,22 +465,17 @@ export function PersonalStep() {
   const [resetEmail, setResetEmail] = useState('');
   const [resetSubmitting, setResetSubmitting] = useState(false);
   const [resetMessage, setResetMessage] = useState('');
-  const [resetRecoveryUrl, setResetRecoveryUrl] = useState('');
   const [resetError, setResetError] = useState('');
   const [emailError, setEmailError] = useState('');
 
-  // Password recovery files a request and returns the direct recoveryUrl to bypass any email delay or rate limits.
+  // Password recovery dispatches a secure reset link directly to the user's private email inbox.
   const submitPasswordRecovery = async () => {
     setResetSubmitting(true);
     setResetError('');
     setResetMessage('');
-    setResetRecoveryUrl('');
     try {
       const res = await requestPasswordRecovery(resetPhone, resetEmail);
       setResetMessage(res.message);
-      if (res.recoveryUrl) {
-        setResetRecoveryUrl(res.recoveryUrl);
-      }
     } catch (error) {
       setResetError(error instanceof Error ? error.message : tAuto('key_ae0a0345'));
     } finally {

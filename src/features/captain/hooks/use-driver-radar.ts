@@ -137,28 +137,7 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
       return false;
     }
 
-    const { data, error } = await supabase.rpc('get_captain_wallet_status');
-
-    if (error) {
-      if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver radar] wallet pre-check failed:', error);
-      setRadarLockMessage(tRef.current('radarWalletCheckFailed'));
-      return false;
-    }
-
-    const walletStatus = data as { has_active_bundle?: boolean; balance?: number; paid_minutes_remaining?: number; bonus_minutes_remaining?: number } | null;
-    const totalMinutes = Number(walletStatus?.paid_minutes_remaining || 0) + Number(walletStatus?.bonus_minutes_remaining || 0);
-    const hasActiveBundle = walletStatus?.has_active_bundle === true || totalMinutes > 0;
-    const cashBalance = Number(walletStatus?.balance || 0);
-
-    if (!hasActiveBundle) {
-      setRadarLockMessage(
-        cashBalance > 0
-          ? tRef.current('radarAllocationRequired')
-          : tRef.current('radarBundleRequired')
-      );
-      return false;
-    }
-
+    // Captain is allowed to be available and use radar freely even with zero balance
     setRadarLockMessage('');
     return true;
   }, []); // ✅ stable — reads uid/status/t from refs
