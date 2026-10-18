@@ -1,5 +1,41 @@
 import { supabaseAdmin } from './supabase-admin';
 
+export type AdminRank = 'GENERAL_ADMIN' | 'ASSISTANT_ADMIN';
+
+export const PRIMARY_SOVEREIGN_ADMIN_ID = '70b4a26f-10ac-4888-8df6-c3a5ad824b8a';
+export const PRIMARY_SOVEREIGN_ADMIN_PHONE = '+201551981922';
+
+export function getAdminRank(admin: any): AdminRank {
+  if (!admin) return 'ASSISTANT_ADMIN';
+
+  // Primary sovereign admin or dev default is always GENERAL_ADMIN
+  if (
+    admin.id === PRIMARY_SOVEREIGN_ADMIN_ID ||
+    admin.phone === PRIMARY_SOVEREIGN_ADMIN_PHONE ||
+    admin.id === 'dev-admin-001'
+  ) {
+    return 'GENERAL_ADMIN';
+  }
+
+  // Explicit property
+  if (admin.admin_rank === 'GENERAL_ADMIN') return 'GENERAL_ADMIN';
+  if (admin.admin_rank === 'ASSISTANT_ADMIN') return 'ASSISTANT_ADMIN';
+
+  // Check rank_audit_log array
+  const auditLog = admin.rank_audit_log;
+  if (Array.isArray(auditLog)) {
+    if (auditLog.includes('RANK_GENERAL_ADMIN')) return 'GENERAL_ADMIN';
+    if (auditLog.includes('RANK_ASSISTANT_ADMIN')) return 'ASSISTANT_ADMIN';
+  }
+
+  // Check user_metadata
+  const metaRank = admin.user_metadata?.admin_rank;
+  if (metaRank === 'GENERAL_ADMIN') return 'GENERAL_ADMIN';
+  if (metaRank === 'ASSISTANT_ADMIN') return 'ASSISTANT_ADMIN';
+
+  return 'ASSISTANT_ADMIN';
+}
+
 interface CachedAdmin {
   admin: any;
   expiresAt: number;
@@ -84,6 +120,8 @@ export async function verifyAdminCaller(req: Request) {
           const adminObj = {
             id: payload.sub,
             role: 'ADMIN',
+            admin_rank: getAdminRank({ id: payload.sub, phone: payload.phone, user_metadata: payload.user_metadata }),
+            user_metadata: payload.user_metadata,
             email: payload.email,
             phone: payload.phone,
             full_name: payload.user_metadata?.full_name || 'مشرف معتمد',

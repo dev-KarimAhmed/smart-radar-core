@@ -3659,6 +3659,25 @@
     "errPhone": "يرجى إدخال رقم هاتف صالح.",
     "errPassword": "كلمة المرور يجب ألا تقل عن 8 خانات.",
     "errGeneric": "حدث خطأ أثناء إنشاء الحساب.",
-    "successCreated": "تم إنشاء حساب المشرف بنجاح وتوثيقه في قاعدة البيانات."
+    "successCreated": "تم إنشاء حساب المشرف بنجاح وتوثيقه في قاعدة البيانات.",
+    "generalAdmin": "مشرف عام",
+    "assistantAdmin": "مشرف مساعد",
+    "adminRankLabel": "رتبة المشرف",
+    "generalAdminDesc": "صلاحيات سيادية كاملة (إضافة، تعديل الرتب، وحذف المشرفين)",
+    "assistantAdminDesc": "صلاحيات مقيدة (لا يستطيع إضافة أو حذف المشرفين)",
+    "colActions": "الإجراءات",
+    "changeRank": "تعديل الرتبة",
+    "promoteToGeneral": "ترقية إلى مشرف عام",
+    "demoteToAssistant": "تحويل إلى مشرف مساعد",
+    "deleteAdmin": "حذف المشرف",
+    "deleteConfirmTitle": "تأكيد حذف المشرف",
+    "deleteConfirmDesc": "هل أنت متأكد من رغبتك في حذف هذا المشرف نهائياً؟ سيتم إلغاء وصوله وحذف سجله من النظام.",
+    "cannotDeletePrimary": "لا يمكن حذف المشرف العام الأساسي للنظام.",
+    "cannotDeleteSelf": "لا يمكنك حذف حسابك الإداري الحالي.",
+    "noPermissionNotice": "حسابك برتبة \"مشرف مساعد\" — لا تملك صلاحية إضافة مشرفين جدد أو حذفهم أو تعديل رتبهم.",
+    "rankUpdatedSuccess": "تم تحديث رتبة المشرف بنجاح.",
+    "adminDeletedSuccess": "تم حذف المشرف بنجاح من النظام.",
+    "callerRankTitle": "رتبة حسابك",
+    "primaryTag": "أساسي"
   }
 }

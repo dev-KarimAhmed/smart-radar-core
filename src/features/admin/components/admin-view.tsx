@@ -7,7 +7,8 @@ import { AdminMasterKPIBar } from './admin/admin-master-kpi-bar';
 import { WalletManagementTab } from './admin/wallet-management-tab';
 import { RidersManagementPanel } from './admin/riders-management-panel';
 import { AdminsManagementPanel } from './admin/admins-management-panel';
-import { Shield, Megaphone, Users, Activity, UsersRound, ShieldAlert, CheckCircle2, KeyRound, Loader2, ArrowUpRight, TrendingUp, AlertTriangle, Radio, ShieldCheck, Cpu, Eye, AlertCircle, RefreshCw, Sparkles, Fingerprint, Terminal, Scale, Compass, Trash2, Gauge, DollarSign, UserCheck, Wallet, Construction } from 'lucide-react';
+import { HourlyRatesManagementPanel } from './admin/hourly-rates-management-panel';
+import { Shield, Megaphone, Users, Activity, UsersRound, ShieldAlert, CheckCircle2, KeyRound, Loader2, ArrowUpRight, TrendingUp, AlertTriangle, Radio, ShieldCheck, Cpu, Eye, AlertCircle, RefreshCw, Sparkles, Fingerprint, Terminal, Scale, Compass, Trash2, Gauge, DollarSign, UserCheck, Wallet, Construction, Clock } from 'lucide-react';
 import React, { useState } from 'react';
 import { useAdminAds } from '@/hooks/use-admin-ads';
 import { supabase } from '@/lib/supabase-client';
@@ -983,7 +984,7 @@ export function AdminViewTab() {
       {/* المنظومة الإدارية المنظمة */}
       <Tabs defaultValue="captains" className="space-y-6">
         {/* شريط التبويبات الرئيسي - تصميم أنيق ومتناسق */}
-        <TabsList className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 bg-[#050A0F]/90 border border-white/10 p-2 rounded-2xl h-auto">
+        <TabsList className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 bg-[#050A0F]/90 border border-white/10 p-2 rounded-2xl h-auto">
           <TabsTrigger
             value="captains"
             className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all data-[state=active]:bg-[#14B8A6] data-[state=active]:text-[#0B0F19] text-slate-300 hover:text-white"
@@ -1006,6 +1007,14 @@ export function AdminViewTab() {
           >
             <Wallet className="w-4 h-4" />
             <span>المالية والشحن</span>
+          </TabsTrigger>
+
+          <TabsTrigger
+            value="hourly_rates"
+            className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all data-[state=active]:bg-[#14B8A6] data-[state=active]:text-[#0B0F19] text-slate-300 hover:text-white"
+          >
+            <Clock className="w-4 h-4" />
+            <span>تسعير الساعة</span>
           </TabsTrigger>
 
           <TabsTrigger
@@ -1062,7 +1071,14 @@ export function AdminViewTab() {
           </SovereignErrorBoundary>
         </TabsContent>
 
-        {/* 3. الإعلانات */}
+        {/* 4. تسعير الساعة والمناطق */}
+        <TabsContent value="hourly_rates" className="space-y-6">
+          <SovereignErrorBoundary>
+            <HourlyRatesManagementPanel />
+          </SovereignErrorBoundary>
+        </TabsContent>
+
+        {/* 5. الإعلانات */}
         <TabsContent value="ads" className="space-y-6">
           <div className="relative overflow-hidden rounded-3xl border border-amber-500/20 bg-[#0B0F19]/90 p-8 sm:p-12 text-center shadow-2xl backdrop-blur-xl">
             <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-96 h-96 bg-amber-500/10 blur-3xl pointer-events-none rounded-full" />

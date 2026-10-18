@@ -29,6 +29,8 @@ import {
   CheckCircle2,
   User,
   ShieldAlert,
+  Crown,
+  Shield,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { clearSupabaseSessionCache } from '@/lib/supabase-auth';
@@ -37,6 +39,27 @@ import { purgeTransientFrontendCache } from '@/hooks/use-auth';
 export function AdminTopBar() {
   const { user } = useAuth();
   const { toast } = useToast();
+
+  const [adminRank, setAdminRank] = useState<'GENERAL_ADMIN' | 'ASSISTANT_ADMIN'>(() => {
+    if (user?.uid === '70b4a26f-10ac-4888-8df6-c3a5ad824b8a' || user?.phone === '+201551981922') {
+      return 'GENERAL_ADMIN';
+    }
+    return user?.adminRank || 'GENERAL_ADMIN';
+  });
+
+  React.useEffect(() => {
+    if (user?.adminRank) {
+      setAdminRank(user.adminRank);
+    }
+    adminFetch('/api/admin/list-admins')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.callerRank) {
+          setAdminRank(data.callerRank);
+        }
+      })
+      .catch(() => {});
+  }, [user]);
 
   // Dialog States
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
@@ -161,9 +184,17 @@ export function AdminTopBar() {
               <h2 className="text-base sm:text-lg font-black text-white tracking-wide">
                 {user?.name || 'مدير النظام السيادي'}
               </h2>
-              <Badge className="bg-teal-500/15 hover:bg-teal-500/20 text-teal-300 border border-teal-500/30 text-[11px] font-bold py-0.5 px-2">
-                مشرف عام
-              </Badge>
+              {adminRank === 'GENERAL_ADMIN' ? (
+                <Badge className="bg-amber-500/15 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[11px] font-black py-0.5 px-2 flex items-center gap-1 shadow-[0_0_12px_rgba(245,158,11,0.2)]">
+                  <Crown className="w-3 h-3 text-amber-400" />
+                  <span>مشرف عام</span>
+                </Badge>
+              ) : (
+                <Badge className="bg-cyan-500/15 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-[11px] font-bold py-0.5 px-2 flex items-center gap-1 shadow-[0_0_12px_rgba(6,182,212,0.15)]">
+                  <Shield className="w-3 h-3 text-cyan-400" />
+                  <span>مشرف مساعد</span>
+                </Badge>
+              )}
             </div>
             <p className="text-xs text-slate-400 font-mono flex items-center gap-1.5">
               <span>{user?.phone || user?.serial_id || 'UID: ' + (user?.uid ? user.uid.slice(0, 8) + '...' : 'المسؤول')}</span>

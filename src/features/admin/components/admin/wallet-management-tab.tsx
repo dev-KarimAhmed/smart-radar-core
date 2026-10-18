@@ -46,6 +46,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import { HourlyRatesManagementPanel } from './hourly-rates-management-panel';
 
 interface WalletOverview {
   totalCashBalance: number;
@@ -127,7 +128,7 @@ interface CaptainOption {
 
 export function WalletManagementTab() {
   const { toast } = useToast();
-  const [activeSubTab, setActiveSubTab] = useState<'receipts' | 'direct' | 'vouchers' | 'ledger'>('receipts');
+  const [activeSubTab, setActiveSubTab] = useState<'receipts' | 'direct' | 'vouchers' | 'ledger' | 'rates'>('receipts');
 
   // Loading & Data States
   const [loadingOverview, setLoadingOverview] = useState(true);
@@ -194,7 +195,8 @@ export function WalletManagementTab() {
   }, []);
 
   // Load Subtab Data
-  const loadSubTabData = useCallback(async (tab: 'receipts' | 'direct' | 'vouchers' | 'ledger') => {
+  const loadSubTabData = useCallback(async (tab: 'receipts' | 'direct' | 'vouchers' | 'ledger' | 'rates') => {
+    if (tab === 'rates') return;
     try {
       setLoadingData(true);
 
@@ -700,6 +702,21 @@ export function WalletManagementTab() {
           >
             <Layers className="w-4 h-4" />
             <span>سجل المعاملات</span>
+          </Button>
+
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => setActiveSubTab('rates')}
+            className={cn(
+              "py-2 px-3.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2",
+              activeSubTab === 'rates'
+                ? "bg-[#14B8A6] text-[#0B0F19] hover:bg-[#14B8A6]/90"
+                : "text-slate-300 hover:text-white hover:bg-white/5"
+            )}
+          >
+            <Clock className="w-4 h-4" />
+            <span>تسعير الساعة بالمناطق</span>
           </Button>
         </div>
 
@@ -1340,6 +1357,11 @@ export function WalletManagementTab() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {/* ----------------- SUBTAB 5: HOURLY RATES REGIONAL ----------------- */}
+      {activeSubTab === 'rates' && (
+        <HourlyRatesManagementPanel />
       )}
 
       {/* ========================================================================= */}

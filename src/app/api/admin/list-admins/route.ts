@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
-import { verifyAdminCaller } from '@/lib/admin-auth-verifier';
+import {
+  verifyAdminCaller,
+  getAdminRank,
+  PRIMARY_SOVEREIGN_ADMIN_ID,
+  PRIMARY_SOVEREIGN_ADMIN_PHONE,
+} from '@/lib/admin-auth-verifier';
 
 export async function GET(req: Request) {
   const admin = await verifyAdminCaller(req);
@@ -9,16 +14,38 @@ export async function GET(req: Request) {
   }
 
   try {
+    const callerRank = getAdminRank(admin);
 
     const { data: admins, error } = await supabaseAdmin
       .from('profiles')
-      .select('id, full_name, phone, email, status, created_at')
+      .select('id, full_name, phone, email, status, created_at, rank_audit_log')
       .eq('role', 'ADMIN')
       .order('created_at', { ascending: false });
 
     if (error) throw error;
 
-    return NextResponse.json({ success: true, admins: admins || [] });
+    const mappedAdmins = (admins || []).map((adm) => {
+      const rank = getAdminRank(adm);
+      const isPrimary = adm.id === PRIMARY_SOVEREIGN_ADMIN_ID || adm.phone === PRIMARY_SOVEREIGN_ADMIN_PHONE;
+      return {
+        id: adm.id,
+        full_name: adm.full_name,
+        phone: adm.phone,
+        email: adm.email,
+        status: adm.status,
+        created_at: adm.created_at,
+        admin_rank: rank,
+        admin_rank_label: rank === 'GENERAL_ADMIN' ? 'مشرف عام' : 'مشرف مساعد',
+        is_primary: isPrimary,
+      };
+    });
+
+    return NextResponse.json({
+      success: true,
+      admins: mappedAdmins,
+      callerRank,
+      callerId: admin.id,
+    });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error?.message || 'Failed' }, { status: 500 });
   }

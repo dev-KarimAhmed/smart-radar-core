@@ -3659,6 +3659,25 @@
     "errPhone": "Please enter a valid phone number.",
     "errPassword": "Password must be at least 8 characters.",
     "errGeneric": "An error occurred while creating the account.",
-    "successCreated": "Admin account successfully created and verified in the database."
+    "successCreated": "Admin account successfully created and verified in the database.",
+    "generalAdmin": "General Admin",
+    "assistantAdmin": "Assistant Admin",
+    "adminRankLabel": "Admin Rank",
+    "generalAdminDesc": "Full sovereign privileges (Add, edit ranks, and delete admins)",
+    "assistantAdminDesc": "Restricted privileges (Cannot add or delete admins)",
+    "colActions": "Actions",
+    "changeRank": "Change Rank",
+    "promoteToGeneral": "Promote to General Admin",
+    "demoteToAssistant": "Set to Assistant Admin",
+    "deleteAdmin": "Delete Admin",
+    "deleteConfirmTitle": "Confirm Admin Deletion",
+    "deleteConfirmDesc": "Are you sure you want to permanently delete this admin? Their access will be revoked.",
+    "cannotDeletePrimary": "Primary system general admin cannot be deleted.",
+    "cannotDeleteSelf": "You cannot delete your own admin account.",
+    "noPermissionNotice": "Your account has \"Assistant Admin\" rank — you do not have permission to add, delete, or modify admin ranks.",
+    "rankUpdatedSuccess": "Admin rank updated successfully.",
+    "adminDeletedSuccess": "Admin successfully deleted from the system.",
+    "callerRankTitle": "Your Rank",
+    "primaryTag": "Primary"
   }
 }

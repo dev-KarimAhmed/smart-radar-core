@@ -26,6 +26,7 @@ export interface User {
   heartCount?: number;
   penaltyCount?: number; 
   rank?: 'Platinum' | 'Gold' | 'Silver' | 'Bronze';
+  adminRank?: 'GENERAL_ADMIN' | 'ASSISTANT_ADMIN';
   avatar?: string;
   fcmTokens?: string[];
   deviceId?: string;
