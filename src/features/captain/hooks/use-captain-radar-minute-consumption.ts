@@ -57,16 +57,7 @@ export function useCaptainRadarMinuteConsumption({
         return;
       }
 
-      const result = data as { has_active_bundle?: boolean } | null;
-      if (result?.has_active_bundle === false && !exhaustedNotifiedRef.current) {
-        exhaustedNotifiedRef.current = true;
-        toastRef.current({
-          variant: 'destructive',
-          title: tRef.current('radarBundleExpiredTitle'),
-          description: tRef.current('radarBundleExpiredBody'),
-        });
-        onBundleExhaustedRef.current();
-      }
+      // Consume tick is tracked, but captain remains active even with zero minutes/balance
     } finally {
       inFlightRef.current = false;
     }

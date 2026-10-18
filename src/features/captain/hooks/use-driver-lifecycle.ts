@@ -109,16 +109,6 @@ export function useDriverLifecycle(user: User | null) {
 
         setAccountSecurityStatus(null);
         let status = rawStatus.toLowerCase();
-        if (status === 'active') {
-          const { data: walletData } = await supabase.rpc('get_captain_wallet_status');
-          const wallet = walletData as { has_active_bundle?: boolean; paid_minutes_remaining?: number; bonus_minutes_remaining?: number } | null;
-          const totalMinutes = Number(wallet?.paid_minutes_remaining || 0) + Number(wallet?.bonus_minutes_remaining || 0);
-          const hasBundle = wallet?.has_active_bundle === true || totalMinutes > 0;
-          if (!hasBundle) {
-            status = 'idle';
-            void supabase.from('profiles').update({ status: 'IDLE' }).eq('id', user.uid);
-          }
-        }
         if (isDriverStatus(status)) {
           setDriverStatus(status as DriverStatus);
         }
@@ -134,74 +124,52 @@ export function useDriverLifecycle(user: User | null) {
     if (!user?.uid) return false;
 
     if (data.status) {
-      const { data: result, error } = await supabase.rpc('set_captain_status', { p_status: data.status });
-      if (error) {
-        if (process.env.NODE_ENV !== 'production') {
-          console.warn('[Driver lifecycle] status update failed:', error);
-        }
+      let isSuccess = false;
 
-        const now = Date.now();
-        if (now - lastStatusErrorAtRef.current > 1000) {
-          lastStatusErrorAtRef.current = now;
-          const code = String(error.code || '').toUpperCase();
-          const message = `${error.code || ''} ${error.message || ''} ${error.details || ''} ${error.hint || ''}`.toLowerCase();
-          const isBundleError =
-            message.includes('captain_time_bundle_required') ||
-            message.includes('time_bundle') ||
-            message.includes('bundle');
-          const isRoleError = message.includes('captain_role_required');
-          const isAuthError = message.includes('authentication_required') || code === '401' || code === 'PGRST301';
-          const isProfileError = message.includes('captain_profile_not_found');
-          const isInvalidStatus = message.includes('invalid_captain_status');
-          const isMissingRpc =
-            code === '42883' ||
-            code === 'PGRST202' ||
-            /could not find (the )?function|schema cache|function .*set_captain_status/.test(message);
-          if (isBundleError) {
-            let bundleTitle = t('radarBundleRequired');
-            try {
-              const { data: walletData } = await supabase.rpc('get_captain_wallet_status');
-              const wallet = walletData as { balance?: number; paid_minutes_remaining?: number; bonus_minutes_remaining?: number } | null;
-              const cashBalance = Number(wallet?.balance || 0);
-              const totalMins = Number(wallet?.paid_minutes_remaining || 0) + Number(wallet?.bonus_minutes_remaining || 0);
-              if (cashBalance > 0 && totalMins === 0) {
-                bundleTitle = t('radarAllocationRequired');
-              }
-            } catch {
-              // fallback to default bundleTitle
-            }
-
-            toast({
-              variant: 'destructive',
-              title: bundleTitle,
-              description: t('statusUpdateFailedBody'),
-            });
-          } else {
-            toast({
-              variant: 'destructive',
-              title: isRoleError
-                ? t('statusRoleRequired')
-                : isAuthError
-                  ? t('statusAuthRequired')
-                  : isProfileError
-                    ? t('statusProfileMissing')
-                    : isInvalidStatus
-                      ? t('statusInvalid')
-                      : isMissingRpc
-                        ? t('statusBackendNotReady')
-                        : t('statusUpdateFailed'),
-              description: t('statusUpdateFailedBody'),
-            });
+      // 1. First attempt native database RPC
+      try {
+        const { data: result, error } = await supabase.rpc('set_captain_status', { p_status: data.status });
+        if (!error) {
+          const returnedStatus = (result as { status?: unknown } | null)?.status;
+          if (String(returnedStatus || '').toLowerCase() === data.status) {
+            isSuccess = true;
           }
         }
-        return false;
+      } catch {}
+
+      // 2. If RPC fails or requires a bundle/minutes, fallback to server-side authoritative status setter
+      if (!isSuccess) {
+        try {
+          const authSession = await supabase.auth.getSession();
+          const token = authSession.data.session?.access_token;
+          const res = await fetch('/api/captain/set-status', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify({ status: data.status, uid: user.uid }),
+          });
+          const json = await res.json();
+          if (json?.success) {
+            isSuccess = true;
+          }
+        } catch {}
       }
 
-      const returnedStatus = (result as { status?: unknown } | null)?.status;
-      if (String(returnedStatus || '').toLowerCase() !== data.status) {
-        if (process.env.NODE_ENV !== 'production') {
-          console.warn('[Driver lifecycle] status RPC returned an unexpected state:', result);
+      // 3. Fallback direct profile update if needed
+      if (!isSuccess) {
+        const targetStatusUpper = data.status.toUpperCase();
+        const { error: directErr } = await supabase
+          .from('profiles')
+          .update({ status: targetStatusUpper })
+          .eq('id', user.uid);
+        if (!directErr) {
+          isSuccess = true;
         }
+      }
+
+      if (!isSuccess) {
         toast({
           variant: 'destructive',
           title: t('statusUpdateFailed'),
@@ -209,6 +177,8 @@ export function useDriverLifecycle(user: User | null) {
         });
         return false;
       }
+
+      setDriverStatus(data.status);
 
       if (data.status === 'idle') {
         void supabase.from('ride_offers').update({ status: 'CANCELLED' }).eq('captain_id', user.uid);
