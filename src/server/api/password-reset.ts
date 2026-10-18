@@ -302,15 +302,18 @@ passwordResetRouter.post('/password-reset/request', async (req, res) => {
       detail: { route: 'email', targetEmail, redirectTo, actionLinkGenerated: Boolean(actionLink), emailSent },
     });
 
-    const message = emailSent
-      ? `تم إرسال رابط استعادة كلمة المرور بنجاح إلى (${targetEmail}). يمكنك فتح بريدك الإلكتروني أو الضغط مباشرة على زر المتابعة أدناه.`
-      : `تم تجهيز رابط استعادة كلمة المرور الفوري لحسابك بنجاح! يمكنك الآن الضغط على زر "تعيين كلمة المرور الآن مباشرة" بالأسفل للمتابعة فوراً.`;
+    if (!emailSent) {
+      return res.status(500).json({
+        success: false,
+        error: 'تعذّر إرسال بريد استعادة كلمة المرور في الوقت الحالي. يرجى المحاولة لاحقاً أو التواصل مع الدعم الفني.',
+      });
+    }
+
+    const message = `تم إرسال رابط استعادة كلمة المرور بنجاح إلى (${targetEmail}). يرجى فتح بريدك الإلكتروني (صندوق الوارد أو مجلد Spam) والضغط على الرابط لإعادة تعيين كلمة المرور.`;
 
     return res.json({
       success: true,
-      recoveryUrl: actionLink,
-      emailOtp,
-      emailSent,
+      emailSent: true,
       message,
     });
   } catch (error) {

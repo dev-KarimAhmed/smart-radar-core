@@ -77,8 +77,6 @@ export async function requestPasswordRecovery(phone: string, email?: string) {
     success?: boolean;
     message?: string;
     error?: string;
-    recoveryUrl?: string;
-    emailOtp?: string;
     emailSent?: boolean;
   }>(response);
   if (!response.ok || !payload.success) {
@@ -86,9 +84,7 @@ export async function requestPasswordRecovery(phone: string, email?: string) {
   }
   return {
     message: payload.message ?? '',
-    recoveryUrl: payload.recoveryUrl || '',
-    emailOtp: payload.emailOtp || '',
-    emailSent: payload.emailSent ?? false,
+    emailSent: payload.emailSent ?? true,
   };
 }
 
