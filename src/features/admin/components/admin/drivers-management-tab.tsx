@@ -1341,32 +1341,6 @@ export function DriversManagementTab() {
                       className="bg-black/60 border-white/10 text-white font-mono h-10 rounded-xl focus:border-[#14B8A6] text-right"
                     />
                   </div>
-
-                  {/* Extension days */}
-                  <div>
-                    <label className="text-xs font-bold text-slate-300 block mb-1">تمديد صلاحية الباقة:</label>
-                    <div className="grid grid-cols-3 gap-2 text-xs">
-                      {[
-                        { days: 30, label: '+30 يوماً' },
-                        { days: 60, label: '+60 يوماً' },
-                        { days: 90, label: '+90 يوماً' },
-                      ].map((opt) => (
-                        <button
-                          key={opt.days}
-                          type="button"
-                          onClick={() => setExtendDays(opt.days)}
-                          className={cn(
-                            "py-2 rounded-xl border font-bold text-center transition cursor-pointer",
-                            extendDays === opt.days
-                              ? "border-[#14B8A6] bg-[#14B8A6]/15 text-[#14B8A6]"
-                              : "border-white/10 bg-black/40 text-slate-400 hover:text-white"
-                          )}
-                        >
-                          {opt.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
                 </>
               ) : (
                 /* Topup Mode: Cash */
@@ -1955,32 +1929,6 @@ export function DriversManagementTab() {
                       placeholder="عدد الدقائق"
                     />
                     <span className="text-xs text-slate-400">دقيقة</span>
-                  </div>
-                </div>
-
-                <div className="space-y-1.5 pt-2 border-t border-white/5">
-                  <label className="text-[11px] font-bold text-slate-400">تمديد الصلاحية:</label>
-                  <div className="grid grid-cols-4 gap-1.5 text-xs font-mono">
-                    {[
-                      { d: 7, label: '7 أيام' },
-                      { d: 14, label: '14 يوم' },
-                      { d: 30, label: '30 يوم' },
-                      { d: 60, label: '60 يوم' },
-                    ].map((ed) => (
-                      <button
-                        key={ed.d}
-                        type="button"
-                        onClick={() => setBulkExtendDays(ed.d)}
-                        className={cn(
-                          "py-1.5 rounded-lg border text-center transition cursor-pointer text-[11px]",
-                          bulkExtendDays === ed.d
-                            ? "border-emerald-500 bg-emerald-500/20 text-emerald-300 font-bold"
-                            : "border-white/10 bg-black/40 text-slate-400 hover:text-white"
-                        )}
-                      >
-                        {ed.label}
-                      </button>
-                    ))}
                   </div>
                 </div>
               </div>
