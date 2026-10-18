@@ -150,9 +150,11 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { action, userId } = body || {};
+    const { action, userId, userIds, target, role = 'CAPTAIN' } = body || {};
 
-    if (!userId) {
+    const isBulkAction = action?.startsWith('bulk_');
+
+    if (!isBulkAction && !userId) {
       return NextResponse.json({ success: false, error: 'userId is required' }, { status: 400 });
     }
 
@@ -380,6 +382,196 @@ export async function POST(req: Request) {
           message: 'تم إرسال الرسالة إلى الكابتن بنجاح عبر الإشعار اللحظي.',
           notification: notif,
         });
+      }
+
+      // 9. Bulk send real-time notification to all or selected captains
+      case 'bulk_send_message': {
+        const { title, message, type } = body;
+        if (!message || !String(message).trim()) {
+          return NextResponse.json({ success: false, error: 'نص الرسالة مطلوب' }, { status: 400 });
+        }
+
+        const msgTitle = title && String(title).trim() ? String(title).trim() : 'رسالة من إدارة المنظومة';
+        const msgType = type || 'admin_message';
+
+        let targetIds: string[] = [];
+
+        if (Array.isArray(userIds) && userIds.length > 0) {
+          targetIds = userIds;
+        } else {
+          const { data: captainsData, error: capErr } = await supabaseAdmin
+            .from('profiles')
+            .select('id')
+            .eq('role', role);
+
+          if (capErr) throw capErr;
+          targetIds = (captainsData || []).map(c => c.id);
+        }
+
+        if (targetIds.length === 0) {
+          return NextResponse.json({ success: false, error: 'لم يتم العثور على أي كباتن لإرسال الإشعار إليهم' }, { status: 400 });
+        }
+
+        const notifications = targetIds.map(id => ({
+          user_id: id,
+          title: msgTitle,
+          description: String(message).trim(),
+          type: msgType,
+          is_read: false,
+          created_at: new Date().toISOString(),
+        }));
+
+        const CHUNK_SIZE = 500;
+        for (let i = 0; i < notifications.length; i += CHUNK_SIZE) {
+          const chunk = notifications.slice(i, i + CHUNK_SIZE);
+          const { error: insertErr } = await supabaseAdmin
+            .from('user_notifications')
+            .insert(chunk);
+          if (insertErr) throw insertErr;
+        }
+
+        return NextResponse.json({
+          success: true,
+          count: targetIds.length,
+          message: `تم إرسال الإشعار اللحظي بنجاح إلى (${targetIds.length}) مستخدم.`,
+        });
+      }
+
+      // 10. Bulk top-up minutes or cash balance to all or selected captains
+      case 'bulk_topup': {
+        const { topupType = 'minutes', minutes, extendDays = 30, amount } = body;
+
+        let targetIds: string[] = [];
+
+        if (Array.isArray(userIds) && userIds.length > 0) {
+          targetIds = userIds;
+        } else {
+          const { data: captainsData, error: capErr } = await supabaseAdmin
+            .from('profiles')
+            .select('id')
+            .eq('role', role);
+
+          if (capErr) throw capErr;
+          targetIds = (captainsData || []).map(c => c.id);
+        }
+
+        if (targetIds.length === 0) {
+          return NextResponse.json({ success: false, error: 'لم يتم العثور على كباتن لتنفيذ الشحن' }, { status: 400 });
+        }
+
+        const CHUNK_SIZE = 500;
+
+        if (topupType === 'minutes') {
+          const numMinutes = Number(minutes);
+          if (isNaN(numMinutes) || numMinutes <= 0) {
+            return NextResponse.json({ success: false, error: 'عدد الدقائق غير صحيح' }, { status: 400 });
+          }
+
+          const expiresAt = new Date();
+          expiresAt.setDate(expiresAt.getDate() + Number(extendDays || 30));
+
+          const { data: existingWallets, error: wErr } = await supabaseAdmin
+            .from('wallet_accounts')
+            .select('profile_id, paid_minutes_remaining, balance')
+            .in('profile_id', targetIds);
+
+          if (wErr) throw wErr;
+
+          const walletMap = new Map((existingWallets || []).map(w => [w.profile_id, w]));
+
+          const upsertRows = targetIds.map(id => {
+            const current = walletMap.get(id);
+            const currentMinutes = Number(current?.paid_minutes_remaining || 0);
+            return {
+              profile_id: id,
+              balance: Number(current?.balance || 0),
+              paid_minutes_remaining: currentMinutes + numMinutes,
+              time_bundle_expires_at: expiresAt.toISOString(),
+              active_package_name: `شحن جماعي (${numMinutes} دقيقة)`,
+              updated_at: new Date().toISOString(),
+            };
+          });
+
+          for (let i = 0; i < upsertRows.length; i += CHUNK_SIZE) {
+            const chunk = upsertRows.slice(i, i + CHUNK_SIZE);
+            const { error: upErr } = await supabaseAdmin
+              .from('wallet_accounts')
+              .upsert(chunk, { onConflict: 'profile_id' });
+            if (upErr) throw upErr;
+          }
+
+          const notifs = targetIds.map(id => ({
+            user_id: id,
+            title: '⚡ شحن دقائق رادار جماعي',
+            description: `تمت إضافة (${numMinutes}) دقيقة رادار لحسابك بنجاح من قبل إدارة المنظومة وتمديد الصلاحية لـ ${extendDays} يوماً.`,
+            type: 'deposit_confirmed',
+            is_read: false,
+            created_at: new Date().toISOString(),
+          }));
+
+          for (let i = 0; i < notifs.length; i += CHUNK_SIZE) {
+            const chunk = notifs.slice(i, i + CHUNK_SIZE);
+            await supabaseAdmin.from('user_notifications').insert(chunk);
+          }
+
+          return NextResponse.json({
+            success: true,
+            count: targetIds.length,
+            message: `تم شحن ${numMinutes} دقيقة رادار لـ (${targetIds.length}) كابتن بنجاح وإرسال إشعار لحظي لكل منهم.`,
+          });
+        } else {
+          const numAmount = Number(amount);
+          if (isNaN(numAmount) || numAmount === 0) {
+            return NextResponse.json({ success: false, error: 'المبلغ غير صحيح' }, { status: 400 });
+          }
+
+          const { data: existingWallets, error: wErr } = await supabaseAdmin
+            .from('wallet_accounts')
+            .select('profile_id, balance')
+            .in('profile_id', targetIds);
+
+          if (wErr) throw wErr;
+
+          const walletMap = new Map((existingWallets || []).map(w => [w.profile_id, w]));
+
+          const upsertRows = targetIds.map(id => {
+            const current = walletMap.get(id);
+            const currentBal = Number(current?.balance || 0);
+            return {
+              profile_id: id,
+              balance: Math.max(0, currentBal + numAmount),
+              updated_at: new Date().toISOString(),
+            };
+          });
+
+          for (let i = 0; i < upsertRows.length; i += CHUNK_SIZE) {
+            const chunk = upsertRows.slice(i, i + CHUNK_SIZE);
+            const { error: upErr } = await supabaseAdmin
+              .from('wallet_accounts')
+              .upsert(chunk, { onConflict: 'profile_id' });
+            if (upErr) throw upErr;
+          }
+
+          const notifs = targetIds.map(id => ({
+            user_id: id,
+            title: '💰 إيداع رصيد نقدي',
+            description: `تم إيداع مبلغ (${numAmount > 0 ? '+' : ''}${numAmount}) في محفظتك من قبل إدارة المنظومة.`,
+            type: 'deposit_confirmed',
+            is_read: false,
+            created_at: new Date().toISOString(),
+          }));
+
+          for (let i = 0; i < notifs.length; i += CHUNK_SIZE) {
+            const chunk = notifs.slice(i, i + CHUNK_SIZE);
+            await supabaseAdmin.from('user_notifications').insert(chunk);
+          }
+
+          return NextResponse.json({
+            success: true,
+            count: targetIds.length,
+            message: `تم تعديل الرصيد النقدي بمقدار (${numAmount}) لـ (${targetIds.length}) كابتن بنجاح.`,
+          });
+        }
       }
 
       default:

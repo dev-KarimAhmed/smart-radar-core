@@ -14,6 +14,7 @@ import {
   Clock,
   Car,
   CheckCircle2,
+  Check,
   XCircle,
   AlertTriangle,
   RotateCcw,
@@ -146,6 +147,27 @@ export function DriversManagementTab() {
   const [targetTier, setTargetTier] = useState<string>('SILVER');
   const [securityReason, setSecurityReason] = useState<string>('');
 
+  // Multi-selection state
+  const [selectedCaptainIds, setSelectedCaptainIds] = useState<Set<string>>(new Set());
+
+  // Bulk Modals state
+  const [isBulkTopupOpen, setIsBulkTopupOpen] = useState(false);
+  const [isBulkMessageOpen, setIsBulkMessageOpen] = useState(false);
+  const [bulkScope, setBulkScope] = useState<'all' | 'selected' | 'filtered'>('all');
+
+  // Bulk Topup inputs
+  const [bulkTopupType, setBulkTopupType] = useState<'minutes' | 'cash'>('minutes');
+  const [bulkMinutes, setBulkMinutes] = useState<number>(60);
+  const [bulkExtendDays, setBulkExtendDays] = useState<number>(30);
+  const [bulkCashAmount, setBulkCashAmount] = useState<number>(10);
+  const [submittingBulkTopup, setSubmittingBulkTopup] = useState(false);
+
+  // Bulk Message inputs
+  const [bulkMsgTitle, setBulkMsgTitle] = useState('إشعار من إدارة المنظومة');
+  const [bulkMsgBody, setBulkMsgBody] = useState('');
+  const [bulkMsgType, setBulkMsgType] = useState<'info' | 'admin_message' | 'warning' | 'urgent'>('admin_message');
+  const [submittingBulkMsg, setSubmittingBulkMsg] = useState(false);
+
   const fetchCaptains = useCallback(async (quiet = false) => {
     if (!quiet) setLoading(true);
     try {
@@ -246,6 +268,189 @@ export function DriversManagementTab() {
     return { total, active, pendingVerification, flagged };
   }, [captains]);
 
+  // Multi-selection helpers
+  const toggleSelectOne = (id: string) => {
+    setSelectedCaptainIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (filteredCaptains.length === 0) return;
+    const allFilteredSelected = filteredCaptains.every((c) => selectedCaptainIds.has(c.id));
+    if (allFilteredSelected) {
+      setSelectedCaptainIds((prev) => {
+        const next = new Set(prev);
+        filteredCaptains.forEach((c) => next.delete(c.id));
+        return next;
+      });
+    } else {
+      setSelectedCaptainIds((prev) => {
+        const next = new Set(prev);
+        filteredCaptains.forEach((c) => next.add(c.id));
+        return next;
+      });
+    }
+  };
+
+  const clearSelection = () => {
+    setSelectedCaptainIds(new Set());
+  };
+
+  const getTargetUserIds = (scope: 'all' | 'selected' | 'filtered'): string[] | undefined => {
+    if (scope === 'all') {
+      return undefined; // backend targets all captains in profiles
+    }
+    if (scope === 'selected') {
+      return Array.from(selectedCaptainIds);
+    }
+    if (scope === 'filtered') {
+      return filteredCaptains.map((c) => c.id);
+    }
+    return undefined;
+  };
+
+  const getTargetCount = (scope: 'all' | 'selected' | 'filtered'): number => {
+    if (scope === 'all') return captains.length;
+    if (scope === 'selected') return selectedCaptainIds.size;
+    if (scope === 'filtered') return filteredCaptains.length;
+    return 0;
+  };
+
+  const handleBulkTopup = async () => {
+    const targetIds = getTargetUserIds(bulkScope);
+    if (bulkScope === 'selected' && (!targetIds || targetIds.length === 0)) {
+      toast({
+        variant: 'destructive',
+        title: 'تنبيه',
+        description: 'يرجى تحديد كابتن واحد على الأقل أولاً.',
+      });
+      return;
+    }
+    if (bulkScope === 'filtered' && (!targetIds || targetIds.length === 0)) {
+      toast({
+        variant: 'destructive',
+        title: 'تنبيه',
+        description: 'لا يوجد كباتن مطابقين للفلاتر الحالية.',
+      });
+      return;
+    }
+
+    setSubmittingBulkTopup(true);
+    try {
+      const payload: Record<string, any> = {
+        action: 'bulk_topup',
+        topupType: bulkTopupType,
+        userIds: targetIds,
+      };
+
+      if (bulkTopupType === 'minutes') {
+        payload.minutes = bulkMinutes;
+        payload.extendDays = bulkExtendDays;
+      } else {
+        payload.amount = bulkCashAmount;
+      }
+
+      const res = await adminFetch('/api/admin/users', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+
+      const result = await res.json();
+      if (!res.ok || !result.success) {
+        throw new Error(result.error || 'فشلت عملية الشحن الجماعي');
+      }
+
+      toast({
+        title: '⚡ تم الشحن بنجاح',
+        description: result.message || 'تم تحديث أرصدة الكباتن وإشعارهم بنجاح.',
+      });
+
+      setIsBulkTopupOpen(false);
+      await fetchCaptains(true);
+    } catch (err: any) {
+      toast({
+        variant: 'destructive',
+        title: 'خطأ في الشحن الجماعي',
+        description: err.message || 'تعذر إتمام عملية الشحن الجماعي',
+      });
+    } finally {
+      setSubmittingBulkTopup(false);
+    }
+  };
+
+  const handleBulkSendMessage = async () => {
+    if (!bulkMsgBody.trim()) {
+      toast({
+        variant: 'destructive',
+        title: 'نص الرسالة مطلوب',
+        description: 'يرجى كتابة نص الإشعار قبل الإرسال.',
+      });
+      return;
+    }
+
+    const targetIds = getTargetUserIds(bulkScope);
+    if (bulkScope === 'selected' && (!targetIds || targetIds.length === 0)) {
+      toast({
+        variant: 'destructive',
+        title: 'تنبيه',
+        description: 'يرجى تحديد كابتن واحد على الأقل أولاً.',
+      });
+      return;
+    }
+    if (bulkScope === 'filtered' && (!targetIds || targetIds.length === 0)) {
+      toast({
+        variant: 'destructive',
+        title: 'تنبيه',
+        description: 'لا يوجد كباتن مطابقين للفلاتر الحالية.',
+      });
+      return;
+    }
+
+    setSubmittingBulkMsg(true);
+    try {
+      const payload: Record<string, any> = {
+        action: 'bulk_send_message',
+        title: bulkMsgTitle.trim(),
+        message: bulkMsgBody.trim(),
+        type: bulkMsgType,
+        userIds: targetIds,
+      };
+
+      const res = await adminFetch('/api/admin/users', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+
+      const result = await res.json();
+      if (!res.ok || !result.success) {
+        throw new Error(result.error || 'فشلت عملية إرسال الإشعار الجماعي');
+      }
+
+      toast({
+        title: '📢 تم إرسال الإشعار اللحظي',
+        description: result.message || 'تم بث الإشعار بنجاح إلى جميع الكباتن المحددين.',
+      });
+
+      setIsBulkMessageOpen(false);
+      setBulkMsgBody('');
+    } catch (err: any) {
+      toast({
+        variant: 'destructive',
+        title: 'خطأ في إرسال الإشعار الجماعي',
+        description: err.message || 'تعذر إرسال الإشعار الجماعي',
+      });
+    } finally {
+      setSubmittingBulkMsg(false);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'ACTIVE':
@@ -329,12 +534,40 @@ export function DriversManagementTab() {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Global Bulk Topup Button */}
+          <Button
+            type="button"
+            onClick={() => {
+              setBulkScope(selectedCaptainIds.size > 0 ? 'selected' : 'all');
+              setIsBulkTopupOpen(true);
+            }}
+            className="bg-[#14B8A6] hover:bg-[#2DD4BF] text-[#0B0F19] font-black text-xs h-10 px-3.5 rounded-xl flex items-center gap-1.5 shadow-lg shadow-[#14B8A6]/20 transition-all cursor-pointer active:scale-95"
+            title="شحن باقات دقائق أو رصيد نقدي لجميع الكباتن أو فئة محددة"
+          >
+            <Zap className="w-4 h-4" />
+            <span>شحن الأسطول</span>
+          </Button>
+
+          {/* Global Bulk Message / Notification Button */}
+          <Button
+            type="button"
+            onClick={() => {
+              setBulkScope(selectedCaptainIds.size > 0 ? 'selected' : 'all');
+              setIsBulkMessageOpen(true);
+            }}
+            className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs h-10 px-3.5 rounded-xl flex items-center gap-1.5 shadow-lg shadow-indigo-600/20 transition-all cursor-pointer active:scale-95"
+            title="بث إشعار وتوجيه إداري لحظي لجميع الكباتن أو فئة محددة"
+          >
+            <Send className="w-4 h-4 ml-0.5" />
+            <span>إشعار جماعي</span>
+          </Button>
+
           <Button
             type="button"
             variant="outline"
             onClick={() => fetchCaptains()}
             disabled={loading}
-            className="border-white/10 bg-white/5 hover:bg-white/10 text-slate-200 text-xs h-10 px-4 rounded-xl flex items-center gap-2"
+            className="border-white/10 bg-white/5 hover:bg-white/10 text-slate-200 text-xs h-10 px-4 rounded-xl flex items-center gap-2 cursor-pointer"
           >
             <RefreshCw className={cn("w-4 h-4 text-[#14B8A6]", loading && "animate-spin")} />
             <span>تحديث فوري</span>
@@ -496,6 +729,61 @@ export function DriversManagementTab() {
         </div>
       </div>
 
+      {/* Floating / Sticky Bulk Action Bar for Selected Captains */}
+      {selectedCaptainIds.size > 0 && (
+        <div className="sticky top-2 z-20 flex flex-wrap items-center justify-between gap-3 p-3.5 px-4 rounded-2xl bg-gradient-to-r from-[#14B8A6]/20 via-[#0B0F19]/95 to-indigo-950/40 border border-[#14B8A6]/40 shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-top-2">
+          <div className="flex items-center gap-3">
+            <span className="flex h-3 w-3 relative">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#14B8A6] opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-[#14B8A6]"></span>
+            </span>
+            <div className="text-xs">
+              <span className="font-bold text-white">تم تحديد </span>
+              <span className="font-black text-[#14B8A6] font-mono text-sm">{selectedCaptainIds.size}</span>
+              <span className="font-bold text-white"> كابتن من الأسطول</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => {
+                setBulkScope('selected');
+                setIsBulkTopupOpen(true);
+              }}
+              className="bg-[#14B8A6] hover:bg-[#2DD4BF] text-[#0B0F19] font-black text-xs h-8 px-3.5 rounded-xl flex items-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer"
+            >
+              <Zap className="w-3.5 h-3.5" />
+              <span>شحن للمحددين ({selectedCaptainIds.size})</span>
+            </Button>
+
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => {
+                setBulkScope('selected');
+                setIsBulkMessageOpen(true);
+              }}
+              className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs h-8 px-3.5 rounded-xl flex items-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer"
+            >
+              <Send className="w-3.5 h-3.5" />
+              <span>إشعار للمحددين ({selectedCaptainIds.size})</span>
+            </Button>
+
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={clearSelection}
+              className="border-white/20 bg-white/5 hover:bg-white/10 text-slate-300 text-xs h-8 px-3 rounded-xl transition-all cursor-pointer"
+            >
+              <span>إلغاء التحديد</span>
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* 4. Fleet Data Table */}
       <Card className={styles.tableCard}>
         <CardContent className="p-0">
@@ -515,6 +803,32 @@ export function DriversManagementTab() {
               <table className="w-full text-right text-xs">
                 <thead className={styles.tableHead}>
                   <tr>
+                    {/* Master Checkbox Header */}
+                    <th className="py-4 px-3 w-10 text-center">
+                      <button
+                        type="button"
+                        onClick={toggleSelectAll}
+                        className={cn(
+                          "w-4 h-4 rounded-md border flex items-center justify-center transition-all cursor-pointer mx-auto",
+                          filteredCaptains.length > 0 && filteredCaptains.every(c => selectedCaptainIds.has(c.id))
+                            ? "bg-[#14B8A6] border-[#14B8A6] text-[#0B0F19]"
+                            : filteredCaptains.some(c => selectedCaptainIds.has(c.id))
+                            ? "bg-[#14B8A6]/30 border-[#14B8A6] text-[#14B8A6]"
+                            : "border-white/20 bg-black/40 hover:border-white/40"
+                        )}
+                        title={
+                          filteredCaptains.length > 0 && filteredCaptains.every(c => selectedCaptainIds.has(c.id))
+                            ? "إلغاء تحديد الكل"
+                            : "تحديد جميع الكباتن الظاهرين"
+                        }
+                      >
+                        {filteredCaptains.length > 0 && filteredCaptains.every(c => selectedCaptainIds.has(c.id)) ? (
+                          <Check className="w-3 h-3 stroke-[3]" />
+                        ) : filteredCaptains.some(c => selectedCaptainIds.has(c.id)) ? (
+                          <div className="w-2 h-0.5 bg-[#14B8A6] rounded" />
+                        ) : null}
+                      </button>
+                    </th>
                     <th className="py-4 px-4 font-black text-slate-200">الكابتن والهوية</th>
                     <th className="py-4 px-4 font-black text-slate-200">المركبة واللوحة</th>
                     <th className="py-4 px-4 font-black text-slate-200">دقائق الرادار</th>
@@ -528,9 +842,32 @@ export function DriversManagementTab() {
                   {filteredCaptains.map((captain) => {
                     const rankTheme = getRankTheme(captain.tier?.toLowerCase() || 'silver');
                     const hasMinutes = captain.wallet.total_minutes > 0;
+                    const isSelected = selectedCaptainIds.has(captain.id);
 
                     return (
-                      <tr key={captain.id} className={styles.tableRow}>
+                      <tr
+                        key={captain.id}
+                        className={cn(
+                          styles.tableRow,
+                          isSelected && "bg-[#14B8A6]/[0.08] border-[#14B8A6]/30 hover:bg-[#14B8A6]/[0.12]"
+                        )}
+                      >
+                        {/* Row Checkbox */}
+                        <td className="py-4 px-3 text-center">
+                          <button
+                            type="button"
+                            onClick={() => toggleSelectOne(captain.id)}
+                            className={cn(
+                              "w-4 h-4 rounded-md border flex items-center justify-center transition-all cursor-pointer mx-auto",
+                              isSelected
+                                ? "bg-[#14B8A6] border-[#14B8A6] text-[#0B0F19]"
+                                : "border-white/20 bg-black/40 hover:border-white/40"
+                            )}
+                            title={isSelected ? "إلغاء التحديد" : "تحديد هذا الكابتن"}
+                          >
+                            {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                          </button>
+                        </td>
                         {/* 1. Identity */}
                         <td className="py-4 px-4">
                           <div className="flex items-center gap-3">
@@ -1457,6 +1794,485 @@ export function DriversManagementTab() {
               </DialogFooter>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ========================================================================= */}
+      {/* MODAL 5: Bulk Top-Up (Fleet / Selected / Filtered)                        */}
+      {/* ========================================================================= */}
+      <Dialog open={isBulkTopupOpen} onOpenChange={setIsBulkTopupOpen}>
+        <DialogContent className="max-w-lg bg-[#0B0F19] border border-[#14B8A6]/30 text-white rounded-3xl p-6 text-right" dir="rtl">
+          <div className="space-y-4">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-black text-white flex items-center gap-2">
+                <Zap className="h-5 w-5 text-[#14B8A6]" />
+                شحن الأسطول - باقات دقائق أو رصيد نقدي
+              </DialogTitle>
+              <DialogDescription className="text-xs text-slate-400 mt-1">
+                شحن فوري متزامن وتحديث المحافظ وبث إشعار لحظي للكباتن.
+              </DialogDescription>
+            </DialogHeader>
+
+            {/* Target Scope Selection */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-300">الفئة المستهدفة بالشحن:</label>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setBulkScope('all')}
+                  className={cn(
+                    "p-2.5 rounded-xl text-xs font-bold border transition-all text-center flex flex-col items-center gap-1 cursor-pointer",
+                    bulkScope === 'all'
+                      ? "bg-[#14B8A6]/20 border-[#14B8A6] text-[#14B8A6] shadow-sm ring-1 ring-[#14B8A6]/40"
+                      : "bg-black/40 border-white/10 text-slate-400 hover:text-white"
+                  )}
+                >
+                  <span>جميع الكباتن</span>
+                  <span className="text-[11px] font-mono opacity-80">({captains.length})</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setBulkScope('selected')}
+                  className={cn(
+                    "p-2.5 rounded-xl text-xs font-bold border transition-all text-center flex flex-col items-center gap-1 cursor-pointer",
+                    bulkScope === 'selected'
+                      ? "bg-[#14B8A6]/20 border-[#14B8A6] text-[#14B8A6] shadow-sm ring-1 ring-[#14B8A6]/40"
+                      : "bg-black/40 border-white/10 text-slate-400 hover:text-white"
+                  )}
+                >
+                  <span>المحددين يدوياً</span>
+                  <span className="text-[11px] font-mono opacity-80">({selectedCaptainIds.size})</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setBulkScope('filtered')}
+                  className={cn(
+                    "p-2.5 rounded-xl text-xs font-bold border transition-all text-center flex flex-col items-center gap-1 cursor-pointer",
+                    bulkScope === 'filtered'
+                      ? "bg-[#14B8A6]/20 border-[#14B8A6] text-[#14B8A6] shadow-sm ring-1 ring-[#14B8A6]/40"
+                      : "bg-black/40 border-white/10 text-slate-400 hover:text-white"
+                  )}
+                >
+                  <span>المطابقين للفلاتر</span>
+                  <span className="text-[11px] font-mono opacity-80">({filteredCaptains.length})</span>
+                </button>
+              </div>
+
+              {bulkScope === 'selected' && selectedCaptainIds.size === 0 && (
+                <p className="text-[11px] text-amber-400 bg-amber-500/10 border border-amber-500/20 p-2 rounded-xl mt-1.5">
+                  ⚠️ لم تحدد أي كابتن من الجدول بعد! يمكنك تحديد كباتن عبر المربعات في الجدول، أو اختيار (جميع الكباتن) أعلاه.
+                </p>
+              )}
+            </div>
+
+            {/* Topup Type Switch */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-300">نوع الشحن:</label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setBulkTopupType('minutes')}
+                  className={cn(
+                    "p-2.5 rounded-xl text-xs font-bold border transition flex items-center justify-center gap-2 cursor-pointer",
+                    bulkTopupType === 'minutes'
+                      ? "bg-emerald-500/20 border-emerald-500 text-emerald-300"
+                      : "border-white/10 bg-black/40 text-slate-400 hover:text-white"
+                  )}
+                >
+                  <Clock className="w-4 h-4 text-emerald-400" />
+                  <span>دقائق طيران الرادار</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setBulkTopupType('cash')}
+                  className={cn(
+                    "p-2.5 rounded-xl text-xs font-bold border transition flex items-center justify-center gap-2 cursor-pointer",
+                    bulkTopupType === 'cash'
+                      ? "bg-amber-500/20 border-amber-500 text-amber-300"
+                      : "border-white/10 bg-black/40 text-slate-400 hover:text-white"
+                  )}
+                >
+                  <DollarSign className="w-4 h-4 text-amber-400" />
+                  <span>رصيد مالي نقدي (Cash)</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Minutes inputs */}
+            {bulkTopupType === 'minutes' && (
+              <div className="space-y-3 bg-white/[0.02] border border-white/10 p-3.5 rounded-2xl">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-300">اختر عدد الدقائق للشحن:</label>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {[
+                      { m: 30, label: '+30 دقيقة' },
+                      { m: 60, label: '+ساعة (60)' },
+                      { m: 120, label: '+ساعتان' },
+                      { m: 300, label: '+5 ساعات' },
+                    ].map((p) => (
+                      <button
+                        key={p.m}
+                        type="button"
+                        onClick={() => setBulkMinutes(p.m)}
+                        className={cn(
+                          "py-2 rounded-xl text-xs font-mono font-bold border transition text-center cursor-pointer",
+                          bulkMinutes === p.m
+                            ? "bg-emerald-500/30 border-emerald-400 text-emerald-200"
+                            : "bg-black/50 border-white/10 text-slate-400 hover:text-white"
+                        )}
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="text-[11px] text-slate-400 shrink-0">أو إدخال مخصص:</span>
+                    <Input
+                      type="number"
+                      min="5"
+                      step="5"
+                      value={bulkMinutes}
+                      onChange={(e) => setBulkMinutes(Math.max(1, Number(e.target.value)))}
+                      className="bg-black/60 border-white/10 text-white font-mono h-9 rounded-xl focus:border-emerald-500 text-right text-xs"
+                      placeholder="عدد الدقائق"
+                    />
+                    <span className="text-xs text-slate-400">دقيقة</span>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5 pt-2 border-t border-white/5">
+                  <label className="text-[11px] font-bold text-slate-400">تمديد الصلاحية:</label>
+                  <div className="grid grid-cols-4 gap-1.5 text-xs font-mono">
+                    {[
+                      { d: 7, label: '7 أيام' },
+                      { d: 14, label: '14 يوم' },
+                      { d: 30, label: '30 يوم' },
+                      { d: 60, label: '60 يوم' },
+                    ].map((ed) => (
+                      <button
+                        key={ed.d}
+                        type="button"
+                        onClick={() => setBulkExtendDays(ed.d)}
+                        className={cn(
+                          "py-1.5 rounded-lg border text-center transition cursor-pointer text-[11px]",
+                          bulkExtendDays === ed.d
+                            ? "border-emerald-500 bg-emerald-500/20 text-emerald-300 font-bold"
+                            : "border-white/10 bg-black/40 text-slate-400 hover:text-white"
+                        )}
+                      >
+                        {ed.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Cash inputs */}
+            {bulkTopupType === 'cash' && (
+              <div className="space-y-3 bg-white/[0.02] border border-white/10 p-3.5 rounded-2xl">
+                <label className="text-xs font-bold text-slate-300">اختر المبلغ المراد إيداعه:</label>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {[5, 10, 20, 50].map((amt) => (
+                    <button
+                      key={amt}
+                      type="button"
+                      onClick={() => setBulkCashAmount(amt)}
+                      className={cn(
+                        "py-2 rounded-xl text-xs font-mono font-bold border transition text-center cursor-pointer",
+                        bulkCashAmount === amt
+                          ? "bg-amber-500/30 border-amber-400 text-amber-200"
+                          : "bg-black/50 border-white/10 text-slate-400 hover:text-white"
+                      )}
+                    >
+                      +{amt}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-2 mt-2">
+                  <span className="text-[11px] text-slate-400 shrink-0">أو إدخال مخصص:</span>
+                  <Input
+                    type="number"
+                    step="0.5"
+                    min="0.5"
+                    value={bulkCashAmount}
+                    onChange={(e) => setBulkCashAmount(Math.max(0.5, Number(e.target.value)))}
+                    className="bg-black/60 border-white/10 text-white font-mono h-9 rounded-xl focus:border-amber-500 text-right text-xs"
+                    placeholder="المبلغ"
+                  />
+                  <span className="text-xs text-slate-400">رصيد</span>
+                </div>
+              </div>
+            )}
+
+            {/* Impact Summary */}
+            <div className="bg-[#14B8A6]/10 border border-[#14B8A6]/30 p-3 rounded-2xl text-xs text-slate-300 space-y-1">
+              <div className="flex items-center gap-1.5 font-bold text-white">
+                <CheckCircle2 className="w-4 h-4 text-[#14B8A6]" />
+                <span>ملخص عملية الشحن:</span>
+              </div>
+              <p className="text-[11px] text-slate-300">
+                سيتم شحن{' '}
+                <span className="font-bold text-[#14B8A6] font-mono">
+                  {bulkTopupType === 'minutes' ? `${bulkMinutes} دقيقة طيران` : `${bulkCashAmount} رصيد نقدي`}
+                </span>{' '}
+                إلى{' '}
+                <span className="font-bold text-white font-mono">
+                  ({getTargetCount(bulkScope)})
+                </span>{' '}
+                كابتن، وتحديث محافظهم فوراً وبث إشعار لحظي لهواتفهم.
+              </p>
+            </div>
+
+            <DialogFooter className="flex items-center justify-between gap-3 border-t border-white/10 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsBulkTopupOpen(false)}
+                disabled={submittingBulkTopup}
+                className="border-white/10 text-slate-300 text-xs h-9 rounded-xl cursor-pointer"
+              >
+                إلغاء
+              </Button>
+
+              <Button
+                type="button"
+                disabled={
+                  submittingBulkTopup ||
+                  getTargetCount(bulkScope) === 0 ||
+                  (bulkTopupType === 'minutes' ? bulkMinutes <= 0 : bulkCashAmount <= 0)
+                }
+                onClick={handleBulkTopup}
+                className="bg-[#14B8A6] hover:bg-[#2DD4BF] text-[#0B0F19] font-black text-xs h-10 px-6 rounded-xl shadow-lg shadow-[#14B8A6]/20 flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer"
+              >
+                {submittingBulkTopup ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin ml-1" />
+                    جاري الشحن الجماعي...
+                  </>
+                ) : (
+                  <>
+                    <Zap className="h-4 w-4 ml-1" />
+                    تأكيد الشحن لـ ({getTargetCount(bulkScope)}) كابتن
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ========================================================================= */}
+      {/* MODAL 6: Bulk Send Message / Broadcast Notification                       */}
+      {/* ========================================================================= */}
+      <Dialog open={isBulkMessageOpen} onOpenChange={setIsBulkMessageOpen}>
+        <DialogContent className="max-w-lg bg-[#0B0F19] border border-indigo-500/40 text-white rounded-3xl p-6 text-right" dir="rtl">
+          <div className="space-y-4">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-black text-white flex items-center gap-2">
+                <Send className="h-5 w-5 text-indigo-400" />
+                بث إشعار وتوجيه جماعي للكباتن
+              </DialogTitle>
+              <DialogDescription className="text-xs text-slate-400 mt-1">
+                إرسال رسالة توجيهية أو إشعار فوري يظهر مباشرة كنافذة منبثقة ونغمة تنبيه في هواتف الكباتن.
+              </DialogDescription>
+            </DialogHeader>
+
+            {/* Target Scope Selection */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-300">الفئة المستهدفة بالإشعار:</label>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setBulkScope('all')}
+                  className={cn(
+                    "p-2.5 rounded-xl text-xs font-bold border transition-all text-center flex flex-col items-center gap-1 cursor-pointer",
+                    bulkScope === 'all'
+                      ? "bg-indigo-600/30 border-indigo-400 text-indigo-200 shadow-sm ring-1 ring-indigo-500/50"
+                      : "bg-black/40 border-white/10 text-slate-400 hover:text-white"
+                  )}
+                >
+                  <span>جميع الكباتن</span>
+                  <span className="text-[11px] font-mono opacity-80">({captains.length})</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setBulkScope('selected')}
+                  className={cn(
+                    "p-2.5 rounded-xl text-xs font-bold border transition-all text-center flex flex-col items-center gap-1 cursor-pointer",
+                    bulkScope === 'selected'
+                      ? "bg-indigo-600/30 border-indigo-400 text-indigo-200 shadow-sm ring-1 ring-indigo-500/50"
+                      : "bg-black/40 border-white/10 text-slate-400 hover:text-white"
+                  )}
+                >
+                  <span>المحددين يدوياً</span>
+                  <span className="text-[11px] font-mono opacity-80">({selectedCaptainIds.size})</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setBulkScope('filtered')}
+                  className={cn(
+                    "p-2.5 rounded-xl text-xs font-bold border transition-all text-center flex flex-col items-center gap-1 cursor-pointer",
+                    bulkScope === 'filtered'
+                      ? "bg-indigo-600/30 border-indigo-400 text-indigo-200 shadow-sm ring-1 ring-indigo-500/50"
+                      : "bg-black/40 border-white/10 text-slate-400 hover:text-white"
+                  )}
+                >
+                  <span>المطابقين للفلاتر</span>
+                  <span className="text-[11px] font-mono opacity-80">({filteredCaptains.length})</span>
+                </button>
+              </div>
+
+              {bulkScope === 'selected' && selectedCaptainIds.size === 0 && (
+                <p className="text-[11px] text-amber-400 bg-amber-500/10 border border-amber-500/20 p-2 rounded-xl mt-1.5">
+                  ⚠️ لم تحدد أي كابتن من الجدول بعد! يمكنك تحديد كباتن عبر المربعات في الجدول، أو اختيار (جميع الكباتن) أعلاه.
+                </p>
+              )}
+            </div>
+
+            {/* Message Type Selector */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-300">نوع الرسالة / الأولوية:</label>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setBulkMsgType('admin_message')}
+                  className={cn(
+                    "py-2 px-2.5 rounded-xl text-xs font-bold border transition-all text-center cursor-pointer",
+                    bulkMsgType === 'admin_message'
+                      ? "bg-teal-500/20 border-teal-500 text-teal-300 shadow-sm"
+                      : "bg-black/40 border-white/10 text-slate-400 hover:text-white"
+                  )}
+                >
+                  رسالة إدارية
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBulkMsgType('warning')}
+                  className={cn(
+                    "py-2 px-2.5 rounded-xl text-xs font-bold border transition-all text-center cursor-pointer",
+                    bulkMsgType === 'warning'
+                      ? "bg-amber-500/20 border-amber-500 text-amber-300 shadow-sm"
+                      : "bg-black/40 border-white/10 text-slate-400 hover:text-white"
+                  )}
+                >
+                  تنبيه تشغيلي
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBulkMsgType('urgent')}
+                  className={cn(
+                    "py-2 px-2.5 rounded-xl text-xs font-bold border transition-all text-center cursor-pointer",
+                    bulkMsgType === 'urgent'
+                      ? "bg-rose-500/20 border-rose-500 text-rose-300 shadow-sm"
+                      : "bg-black/40 border-white/10 text-slate-400 hover:text-white"
+                  )}
+                >
+                  إشعار عاجل
+                </button>
+              </div>
+            </div>
+
+            {/* Message Title */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-300">عنوان الإشعار:</label>
+              <Input
+                value={bulkMsgTitle}
+                onChange={(e) => setBulkMsgTitle(e.target.value)}
+                placeholder="عنوان الإشعار..."
+                className="bg-black/60 border-white/10 text-white text-xs h-9 rounded-xl focus:border-indigo-500 text-right"
+              />
+            </div>
+
+            {/* Fast Quick Templates */}
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold text-slate-400">قوالب جاهزة سريعة (بنقرة واحدة):</label>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  "بشرى سارة: تم شحن دقائق إضافية لحسابكم بمناسبة نهاية الأسبوع!",
+                  "تنبيه هام: يرجى تفعيل وضع الاتصال، الطلبات في منطقتك مرتفعة الآن!",
+                  "إشعار تشغيلي: يرجى التأكد من استقرار إشارة GPS وتحديث التطبيق لأحدث إصدار.",
+                  "شكر وتقدير: إدارة المنظومة تشكركم على التزامكم العالي وخدمتكم الممتازة.",
+                  "تنويه أمني: نذكركم بالالتزام بالتسعيرة الرسمية وعدم إلغاء الرحلات بعد قبولها."
+                ].map((tpl, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setBulkMsgBody(tpl)}
+                    className="text-[10px] bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 px-2.5 py-1 rounded-lg transition-colors text-right cursor-pointer"
+                  >
+                    {tpl.length > 35 ? tpl.slice(0, 35) + '...' : tpl}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Message Body */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-300">نص الرسالة المرسلة:</label>
+              <textarea
+                value={bulkMsgBody}
+                onChange={(e) => setBulkMsgBody(e.target.value)}
+                placeholder="اكتب التوجيه أو الإشعار لجميع الكباتن هنا..."
+                rows={4}
+                className="w-full bg-black/60 border border-white/10 text-white text-xs p-3 rounded-xl focus:border-indigo-500 outline-none resize-none text-right font-sans leading-relaxed"
+                required
+              />
+            </div>
+
+            {/* Broadcast Summary */}
+            <div className="bg-indigo-950/40 border border-indigo-500/30 p-3 rounded-2xl text-xs text-slate-300 space-y-1">
+              <div className="flex items-center gap-1.5 font-bold text-indigo-300">
+                <CheckCircle2 className="w-4 h-4 text-indigo-400" />
+                <span>ملخص البث اللحظي:</span>
+              </div>
+              <p className="text-[11px] text-slate-300">
+                سيتم بث هذا الإشعار اللحظي إلى{' '}
+                <span className="font-bold text-white font-mono">
+                  ({getTargetCount(bulkScope)})
+                </span>{' '}
+                كابتن فوراً، وسيظهر في شاشاتهم كنافذة منبثقة مع رنين الإشعار.
+              </p>
+            </div>
+
+            <DialogFooter className="flex items-center justify-between gap-3 border-t border-white/10 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsBulkMessageOpen(false)}
+                disabled={submittingBulkMsg}
+                className="border-white/10 text-slate-300 text-xs h-9 rounded-xl cursor-pointer"
+              >
+                إلغاء
+              </Button>
+
+              <Button
+                type="button"
+                disabled={submittingBulkMsg || getTargetCount(bulkScope) === 0 || !bulkMsgBody.trim()}
+                onClick={handleBulkSendMessage}
+                className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs h-10 px-6 rounded-xl shadow-lg shadow-indigo-600/20 flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer"
+              >
+                {submittingBulkMsg ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin ml-1" />
+                    جاري بث الإشعار...
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-4 w-4 ml-1" />
+                    بث الإشعار لـ ({getTargetCount(bulkScope)}) كابتن
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
