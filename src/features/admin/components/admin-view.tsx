@@ -1030,33 +1030,37 @@ export function AdminViewTab() {
           </TabsTrigger>
 
           <TabsTrigger
-            value="ads"
-            className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-bold transition-all data-[state=active]:bg-[#14B8A6] data-[state=active]:text-[#0B0F19] text-slate-300 hover:text-white"
-          >
-            <Megaphone className="w-4 h-4" />
-            <span>الإعلانات</span>
-            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
-              تحت التأسيس
-            </span>
-          </TabsTrigger>
-
-          <TabsTrigger
-            value="delegates"
-            className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-bold transition-all data-[state=active]:bg-[#14B8A6] data-[state=active]:text-[#0B0F19] text-slate-300 hover:text-white"
-          >
-            <UsersRound className="w-4 h-4" />
-            <span>المندوبين</span>
-            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
-              تحت التأسيس
-            </span>
-          </TabsTrigger>
-
-          <TabsTrigger
             value="admins"
             className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all data-[state=active]:bg-[#14B8A6] data-[state=active]:text-[#0B0F19] text-slate-300 hover:text-white"
           >
             <ShieldCheck className="w-4 h-4" />
             <span>المشرفين</span>
+          </TabsTrigger>
+
+          <TabsTrigger
+            value="ads"
+            disabled
+            className="flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-xs font-bold transition-all text-slate-500 cursor-not-allowed opacity-50 bg-black/20 hover:text-slate-500 pointer-events-none select-none border border-white/5"
+          >
+            <Megaphone className="w-4 h-4 text-slate-500" />
+            <span>الإعلانات</span>
+            <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 flex items-center gap-1 shadow-[0_0_8px_rgba(245,158,11,0.15)]">
+              <Construction className="w-2.5 h-2.5 text-amber-400" />
+              <span>قيد التطوير</span>
+            </span>
+          </TabsTrigger>
+
+          <TabsTrigger
+            value="delegates"
+            disabled
+            className="flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-xs font-bold transition-all text-slate-500 cursor-not-allowed opacity-50 bg-black/20 hover:text-slate-500 pointer-events-none select-none border border-white/5"
+          >
+            <UsersRound className="w-4 h-4 text-slate-500" />
+            <span>المندوبين</span>
+            <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 flex items-center gap-1 shadow-[0_0_8px_rgba(245,158,11,0.15)]">
+              <Construction className="w-2.5 h-2.5 text-amber-400" />
+              <span>قيد التطوير</span>
+            </span>
           </TabsTrigger>
         </TabsList>
 
