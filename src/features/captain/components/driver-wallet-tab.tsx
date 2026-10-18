@@ -11,7 +11,6 @@ import {
   MessageCircle,
   Phone,
   ReceiptText,
-  Sparkles,
   Upload,
   UserCheck,
   Wallet,
@@ -80,35 +79,10 @@ export function DriverWalletTab({ user, language, isFlightActive = false }: Driv
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 pb-12 text-white">
-      {/* 1. Header & Live Radar Status */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-bold text-emerald-300">
-            <Sparkles className="h-3.5 w-3.5 text-emerald-400" />
-            <span>{t('badge')}</span>
-          </div>
-          <h1 className="mt-2 text-2xl sm:text-3xl font-black text-white">{t('title')}</h1>
-          <p className="mt-1 text-xs sm:text-sm text-slate-400">{t('subtitle')}</p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <span
-            className={cn(
-              "inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-bold transition",
-              isFlightActive
-                ? "bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-400/40"
-                : "bg-slate-800/80 text-slate-400 ring-1 ring-white/10"
-            )}
-          >
-            <span
-              className={cn(
-                "h-2 w-2 rounded-full",
-                isFlightActive ? "bg-emerald-400 animate-pulse" : "bg-slate-500"
-              )}
-            />
-            {isFlightActive ? t('flightActiveOn') : t('flightActiveOff')}
-          </span>
-        </div>
+      {/* 1. Header */}
+      <div>
+        <h1 className="text-2xl sm:text-3xl font-black text-white">{t('title')}</h1>
+        <p className="mt-1 text-xs sm:text-sm text-slate-400">{t('subtitle')}</p>
       </div>
 
       {/* 2. Unified Hero Balance Card */}
