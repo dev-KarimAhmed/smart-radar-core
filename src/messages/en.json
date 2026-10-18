@@ -3568,7 +3568,7 @@
       "copySuccessDesc": "Share this link with passengers to mutually favorite each other",
       "copyErrorTitle": "Failed to copy link",
       "copyErrorDesc": "Please copy the link manually.",
-      "whatsAppShareMessage": "Join Smart Radar via my referral link to become one of my favorite riders with priority dispatch:\n{link}",
+      "whatsAppShareMessage": "Follow my presence in your area and enjoy the best service and priority:\n{link}",
       "modalTitle": "Your Referred Riders",
       "modalSubtitle": "List of riders who joined via your referral link.",
       "call": "Call",

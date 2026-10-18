@@ -19,6 +19,7 @@ const {
   storePendingCaptainReferral,
   getPendingCaptainReferral,
   clearPendingCaptainReferral,
+  claimCaptainReferral,
 } = await import('./captain-referral');
 
 // 1. URL Building
@@ -38,5 +39,10 @@ assert.equal(getPendingCaptainReferral(), 'C-9999');
 
 clearPendingCaptainReferral();
 assert.equal(getPendingCaptainReferral(), null);
+
+// 3. Validation
+const emptyClaim = await claimCaptainReferral('   ');
+assert.equal(emptyClaim.success, false);
+assert.equal(emptyClaim.error, 'missing_referral_ref');
 
 console.log('captain referral unit checks passed');
