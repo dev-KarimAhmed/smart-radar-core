@@ -465,29 +465,17 @@ export function PersonalStep() {
   const [resetEmail, setResetEmail] = useState('');
   const [resetSubmitting, setResetSubmitting] = useState(false);
   const [resetMessage, setResetMessage] = useState('');
-  const [resetRecoveryUrl, setResetRecoveryUrl] = useState('');
-  const [resetEmailOtp, setResetEmailOtp] = useState('');
-  const [copiedLink, setCopiedLink] = useState(false);
   const [resetError, setResetError] = useState('');
   const [emailError, setEmailError] = useState('');
 
-  // Password recovery files a request and returns the direct recoveryUrl to bypass any email delay or rate limits.
+  // Password recovery dispatches a secure reset link directly to the user's private email inbox.
   const submitPasswordRecovery = async () => {
     setResetSubmitting(true);
     setResetError('');
     setResetMessage('');
-    setResetRecoveryUrl('');
-    setResetEmailOtp('');
-    setCopiedLink(false);
     try {
       const res = await requestPasswordRecovery(resetPhone, resetEmail);
       setResetMessage(res.message);
-      if (res.recoveryUrl) {
-        setResetRecoveryUrl(res.recoveryUrl);
-      }
-      if (res.emailOtp) {
-        setResetEmailOtp(res.emailOtp);
-      }
     } catch (error) {
       setResetError(error instanceof Error ? error.message : tAuto('key_ae0a0345'));
     } finally {
@@ -520,9 +508,6 @@ export function PersonalStep() {
     setResetEmail('');
     setResetMessage('');
     setResetError('');
-    setResetRecoveryUrl('');
-    setResetEmailOtp('');
-    setCopiedLink(false);
     setResetOpen(true);
   };
 
@@ -842,98 +827,16 @@ export function PersonalStep() {
             ) : null}
             {resetError ? <p className={styles.resetError}>{resetError}</p> : null}
 
-            {resetRecoveryUrl ? (
-              <div className="mt-3 space-y-3 rounded-2xl border border-[#14B8A6]/40 bg-[#14B8A6]/10 p-4">
-                <div className="flex items-center gap-2 text-sm font-black text-[#14F5D5]">
-                  <Sparkles className="h-5 w-5 text-[#14B8A6] shrink-0" />
-                  <span>
-                    {isArabic
-                      ? 'رابط الاستعادة الفوري جاهز ⚡'
-                      : 'Instant Recovery Link Ready ⚡'}
-                  </span>
-                </div>
-
-                <p className="text-xs text-slate-300 leading-relaxed">
-                  {isArabic
-                    ? 'اضغط على الزر أدناه للانتقال وتعيين كلمة المرور الجديدة فوراً وبدون أي انتظار:'
-                    : 'Click below to proceed and set your new password immediately without waiting:'}
-                </p>
-
-                <a
-                  href={resetRecoveryUrl}
-                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#14B8A6] px-4 py-3 text-sm font-black text-[#04140F] shadow-[0_16px_45px_rgba(20,184,166,0.25)] transition hover:bg-[#2DD4BF] active:scale-[0.99]"
-                >
-                  <LockKeyhole className="h-4 w-4" />
-                  {isArabic ? 'تعيين كلمة المرور الآن مباشرة 🔒' : 'Reset Password Right Now 🔒'}
-                </a>
-
-                {resetEmailOtp ? (
-                  <div className="flex items-center justify-between rounded-xl bg-black/40 px-3 py-2 border border-white/5">
-                    <span className="text-xs text-slate-400">
-                      {isArabic ? 'رمز التحقق (OTP):' : 'Verification Code (OTP):'}
-                    </span>
-                    <span className="font-mono text-sm font-black text-[#14F5D5] tracking-widest">
-                      {resetEmailOtp}
-                    </span>
-                  </div>
-                ) : null}
-
-                <div className="flex items-center justify-between pt-1 text-xs">
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      try {
-                        await navigator.clipboard.writeText(resetRecoveryUrl);
-                        setCopiedLink(true);
-                        setTimeout(() => setCopiedLink(false), 2500);
-                      } catch {
-                        // ignore
-                      }
-                    }}
-                    className="inline-flex items-center gap-1.5 text-slate-400 hover:text-white transition"
-                  >
-                    {copiedLink ? (
-                      <>
-                        <Check className="h-3.5 w-3.5 text-emerald-400" />
-                        <span className="text-emerald-400 font-bold">
-                          {isArabic ? 'تم النسخ!' : 'Copied!'}
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-3.5 w-3.5 text-slate-400" />
-                        <span>
-                          {isArabic ? 'نسخ الرابط المباشر' : 'Copy direct link'}
-                        </span>
-                      </>
-                    )}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setResetRecoveryUrl('');
-                      setResetEmailOtp('');
-                      setResetMessage('');
-                    }}
-                    className="text-slate-400 hover:text-slate-200 underline transition"
-                  >
-                    {isArabic ? 'تجربة بريد آخر' : 'Use another email'}
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => void submitPasswordRecovery()}
-                disabled={resetSubmitting || !resetEmail.trim().includes('@')}
-                className={styles.resetSubmit}
-              >
-                {resetSubmitting
-                  ? (isArabic ? 'جاري التحقق والإنشاء…' : 'Generating…')
-                  : (isArabic ? 'إرسال رابط الاسترجاع' : 'Send recovery link')}
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => void submitPasswordRecovery()}
+              disabled={resetSubmitting || !resetEmail.trim().includes('@')}
+              className={styles.resetSubmit}
+            >
+              {resetSubmitting
+                ? (isArabic ? 'جاري الإرسال…' : 'Sending…')
+                : (isArabic ? 'إرسال رابط الاسترجاع' : 'Send recovery link')}
+            </button>
 
             {/* Kept as a way to chase a queued request, not as the mechanism itself. */}
             <div className={styles.style851_145}>

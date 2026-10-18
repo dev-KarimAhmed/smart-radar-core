@@ -89,7 +89,6 @@ export function RiderSecuritySection() {
   const [isSendingReset, setIsSendingReset] = useState(false);
   const [resetSuccess, setResetSuccess] = useState('');
   const [resetError, setResetError] = useState('');
-  const [directRecoveryUrl, setDirectRecoveryUrl] = useState('');
 
   const targetEmail = (inputEmail.trim() || currentEmail.trim()).toLowerCase();
 
@@ -142,7 +141,6 @@ export function RiderSecuritySection() {
     if (e) e.preventDefault();
     setResetSuccess('');
     setResetError('');
-    setDirectRecoveryUrl('');
 
     if (!targetEmail || !targetEmail.includes('@') || !targetEmail.includes('.')) {
       setResetError(t.emailErrorEmpty);
@@ -161,11 +159,6 @@ export function RiderSecuritySection() {
       }
 
       const res = await requestPasswordRecovery('', targetEmail);
-
-      if (res.recoveryUrl) {
-        setDirectRecoveryUrl(res.recoveryUrl);
-      }
-
       const successText = res.message || t.resetLinkSuccess(targetEmail);
       setResetSuccess(successText);
       toast({
@@ -358,29 +351,6 @@ export function RiderSecuritySection() {
             <div className="flex items-start gap-2.5 rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 p-3 text-xs font-bold leading-relaxed text-[#14F5D5]">
               <CheckCircle2 className="h-4 w-4 text-[#14F5D5] shrink-0 mt-0.5" />
               <span>{resetSuccess}</span>
-            </div>
-          ) : null}
-
-          {directRecoveryUrl ? (
-            <div className="space-y-2 rounded-2xl border border-[#14B8A6]/40 bg-[#14B8A6]/10 p-3.5">
-              <div className="flex items-center gap-2 text-xs font-black text-[#14F5D5]">
-                <Sparkles className="h-4 w-4 text-[#14B8A6]" />
-                <span>
-                  {isArabic ? 'رابط الاستعادة الفوري جاهز ومفعّل ⚡' : 'Instant Recovery Link Ready ⚡'}
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-300 leading-relaxed">
-                {isArabic
-                  ? 'يمكنك الضغط مباشرة أدناه لتعيين كلمة المرور فوراً وبدون انتظار:'
-                  : 'You can proceed directly below to change your password immediately:'}
-              </p>
-              <a
-                href={directRecoveryUrl}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#14B8A6] px-4 py-2.5 text-xs font-black text-[#04140F] shadow-md transition hover:bg-[#2DD4BF]"
-              >
-                <Lock className="h-3.5 w-3.5" />
-                {isArabic ? 'تعيين كلمة المرور الآن مباشرة 🔒' : 'Reset Password Right Now 🔒'}
-              </a>
             </div>
           ) : null}
 
