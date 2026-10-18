@@ -22,6 +22,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useTranslations } from "next-intl";
+import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 
 const styles = {
   style59_1: "bg-black/90 border border-amber-500/30 overflow-hidden relative shadow-[0_4px_20px_rgba(245,158,11,0.05)] rounded-2xl flex flex-col text-right",
@@ -974,6 +975,7 @@ export function AdminPulseOverview() {
 
 export function AdminViewTab() {
   const t = useTranslations('adminTabs');
+  const { direction, isArabic } = useDashboardLanguage();
   const [activeTab, setActiveTab] = React.useState<string>('captains');
 
   React.useEffect(() => {
@@ -987,7 +989,7 @@ export function AdminViewTab() {
   }, []);
 
   return (
-    <div className="space-y-6 text-right font-sans" dir="rtl">
+    <div className={cn("space-y-6 font-sans", isArabic ? "text-right" : "text-left")} dir={direction}>
       {/* شريط الإدارة العلوي - الملف الشخصي، تغيير كلمة السر، تسجيل الخروج */}
       <AdminTopBar />
 
@@ -1127,7 +1129,7 @@ export function AdminViewTab() {
                 {t('adsDesc')}
               </p>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full text-right mb-8">
+              <div className={cn("grid grid-cols-1 sm:grid-cols-3 gap-3 w-full mb-8", isArabic ? "text-right" : "text-left")}>
                 <div className="p-4 rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-md">
                   <div className="flex items-center gap-2 text-amber-300 font-bold text-xs mb-1">
                     <Megaphone className="w-4 h-4" />
@@ -1191,7 +1193,7 @@ export function AdminViewTab() {
                 {t('delegatesDesc')}
               </p>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full text-right mb-8">
+              <div className={cn("grid grid-cols-1 sm:grid-cols-3 gap-3 w-full mb-8", isArabic ? "text-right" : "text-left")}>
                 <div className="p-4 rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-md">
                   <div className="flex items-center gap-2 text-indigo-300 font-bold text-xs mb-1">
                     <UsersRound className="w-4 h-4" />

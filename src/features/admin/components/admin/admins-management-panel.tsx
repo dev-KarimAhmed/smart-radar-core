@@ -34,6 +34,8 @@ import {
 } from '@/components/ui/dialog';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/hooks/use-auth';
+import { useDashboardLanguage } from '@/shared/hooks/use-dashboard-language';
+import { cn } from '@/lib/utils';
 
 export const PRIMARY_SOVEREIGN_ADMIN_ID = '70b4a26f-10ac-4888-8df6-c3a5ad824b8a';
 export const PRIMARY_SOVEREIGN_ADMIN_PHONE = '+201551981922';
@@ -61,8 +63,8 @@ const styles = {
   formModal: "rounded-2xl border border-[#14B8A6]/30 bg-[#0B0F19]/95 p-5 shadow-2xl backdrop-blur-xl space-y-4 animate-in fade-in slide-in-from-top-3 duration-200",
   formTitle: "text-sm font-black text-white flex items-center justify-between border-b border-white/10 pb-3",
   formGrid: "grid grid-cols-1 gap-3 sm:grid-cols-3",
-  label: "block text-[11px] font-bold text-slate-300 mb-1 text-right",
-  input: "w-full min-h-10 rounded-xl border border-white/10 bg-black/50 px-3 text-xs font-semibold text-white outline-none focus:border-[#14B8A6] transition text-right",
+  label: "block text-[11px] font-bold text-slate-300 mb-1 text-start",
+  input: "w-full min-h-10 rounded-xl border border-white/10 bg-black/50 px-3 text-xs font-semibold text-white outline-none focus:border-[#14B8A6] transition text-start",
   tableCard: "rounded-2xl border border-white/10 bg-[#0B0F19]/90 overflow-hidden shadow-xl",
   tableHead: "border-b border-white/10 bg-black/40 text-slate-300 text-xs font-bold",
   tableRow: "border-b border-white/5 transition hover:bg-white/[0.02]",
@@ -73,6 +75,7 @@ const styles = {
 export function AdminsManagementPanel() {
   const t = useTranslations('adminAdmins');
   const tAuto = useTranslations('auto');
+  const { isArabic, direction } = useDashboardLanguage();
   const { user } = useAuth();
 
   const isCallerPrimary =
@@ -267,7 +270,7 @@ export function AdminsManagementPanel() {
   const assistantAdminsCount = Math.max(0, admins.length - generalAdminsCount);
 
   return (
-    <div className={styles.root} dir="rtl">
+    <div className={cn(styles.root, isArabic ? "text-right" : "text-left")} dir={direction}>
       {/* Top metrics summary */}
       <div className={styles.statsGrid}>
         <div className={styles.statCard}>
@@ -455,7 +458,7 @@ export function AdminsManagementPanel() {
               <button
                 type="button"
                 onClick={() => setAdminRank('ASSISTANT_ADMIN')}
-                className={`p-3.5 rounded-xl border text-right transition-all flex items-start gap-3 ${
+                className={`p-3.5 rounded-xl border text-start transition-all flex items-start gap-3 ${
                   adminRank === 'ASSISTANT_ADMIN'
                     ? 'border-cyan-500 bg-cyan-500/10 shadow-[0_0_15px_rgba(6,182,212,0.15)] ring-1 ring-cyan-500/50'
                     : 'border-white/10 bg-black/40 hover:border-white/20'
@@ -477,7 +480,7 @@ export function AdminsManagementPanel() {
               <button
                 type="button"
                 onClick={() => setAdminRank('GENERAL_ADMIN')}
-                className={`p-3.5 rounded-xl border text-right transition-all flex items-start gap-3 ${
+                className={`p-3.5 rounded-xl border text-start transition-all flex items-start gap-3 ${
                   adminRank === 'GENERAL_ADMIN'
                     ? 'border-amber-500 bg-amber-500/10 shadow-[0_0_15px_rgba(245,158,11,0.15)] ring-1 ring-amber-500/50'
                     : 'border-white/10 bg-black/40 hover:border-white/20'
@@ -534,7 +537,7 @@ export function AdminsManagementPanel() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-right text-xs">
+              <table className={cn("w-full text-xs", isArabic ? "text-right" : "text-left")}>
                 <thead className={styles.tableHead}>
                   <tr>
                     <th className="px-4 py-3">{t('colName')}</th>
@@ -608,7 +611,7 @@ export function AdminsManagementPanel() {
                         </td>
 
                         <td className="px-4 py-3 text-slate-400 text-[11px] font-mono">
-                          {admin.created_at ? new Date(admin.created_at).toLocaleDateString('ar-JO') : '-'}
+                          {admin.created_at ? new Date(admin.created_at).toLocaleDateString(isArabic ? 'ar-JO' : 'en-US') : '-'}
                         </td>
 
                         {/* Actions Column (General Admin only) */}
@@ -678,8 +681,8 @@ export function AdminsManagementPanel() {
 
       {/* Delete Admin Confirmation Modal */}
       <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <DialogContent className="sm:max-w-md bg-[#0B0F19] border border-rose-500/30 text-white shadow-2xl rounded-2xl" dir="rtl">
-          <DialogHeader className="text-right space-y-2">
+        <DialogContent className="sm:max-w-md bg-[#0B0F19] border border-rose-500/30 text-white shadow-2xl rounded-2xl" dir={direction}>
+          <DialogHeader className={cn("space-y-2", isArabic ? "text-right" : "text-left")}>
             <div className="flex items-center gap-2.5 text-rose-400">
               <div className="p-2 rounded-xl bg-rose-500/10 border border-rose-500/20">
                 <Trash2 className="w-5 h-5 text-rose-400" />
@@ -694,7 +697,7 @@ export function AdminsManagementPanel() {
           </DialogHeader>
 
           {deleteTarget && (
-            <div className="my-2 p-3 rounded-xl bg-black/50 border border-white/10 space-y-1.5 text-xs text-right">
+            <div className={cn("my-2 p-3 rounded-xl bg-black/50 border border-white/10 space-y-1.5 text-xs", isArabic ? "text-right" : "text-left")}>
               <p className="text-slate-400 font-medium">{t('targetAdminInfo')}</p>
               <div className="flex items-center justify-between pt-1">
                 <span className="font-bold text-white">{deleteTarget.full_name}</span>
@@ -718,12 +721,12 @@ export function AdminsManagementPanel() {
             >
               {deleting ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                  <Loader2 className={cn("w-4 h-4 animate-spin", isArabic ? "ml-2" : "mr-2")} />
                   {t('deleting')}
                 </>
               ) : (
                 <>
-                  <Trash2 className="w-4 h-4 ml-1.5" />
+                  <Trash2 className={cn("w-4 h-4", isArabic ? "ml-1.5" : "mr-1.5")} />
                   {t('confirmDelete')}
                 </>
               )}

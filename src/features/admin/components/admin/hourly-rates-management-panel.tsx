@@ -30,6 +30,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
+import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 
 interface CountryItem {
   id: number;
@@ -63,6 +64,7 @@ interface CustomRatesMatrix {
 export function HourlyRatesManagementPanel() {
   const t = useTranslations('hourlyRates');
   const { toast } = useToast();
+  const { direction, isArabic } = useDashboardLanguage();
 
   const [loading, setLoading] = useState(true);
   const [countries, setCountries] = useState<CountryItem[]>([]);
@@ -142,7 +144,7 @@ export function HourlyRatesManagementPanel() {
     };
   }, [countries, selectedCountryId]);
 
-  const currency = activeCountry.currency_ar;
+  const currency = isArabic ? activeCountry.currency_ar : (activeCountry.currency_en || 'JOD');
   const countryDefaultPrice = activeCountry.radar_hour_price || 1;
 
   // Toggle single governorate accordion
@@ -488,7 +490,7 @@ export function HourlyRatesManagementPanel() {
   }, [governorates, districts, selectedCountryId, customRates]);
 
   return (
-    <div className="space-y-6 text-right" dir="rtl">
+    <div className={cn("space-y-6", isArabic ? "text-right" : "text-left")} dir={direction}>
       {/* 1. Header & Summary Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {/* Metric: Base Rate */}
@@ -529,7 +531,7 @@ export function HourlyRatesManagementPanel() {
             <span className="text-2xl font-black text-white font-mono">
               {totalGovsInCountry}
             </span>
-            <span className="text-xs font-bold text-slate-400">{t('govBelongingTo', { country: activeCountry.name_ar })}</span>
+            <span className="text-xs font-bold text-slate-400">{t('govBelongingTo', { country: isArabic ? activeCountry.name_ar : (activeCountry.name_en || activeCountry.name_ar) })}</span>
           </div>
         </div>
 
@@ -576,8 +578,8 @@ export function HourlyRatesManagementPanel() {
                 )}
               >
                 <span>{c.country_code === 'JO' ? '🇯🇴' : '🇪🇬'}</span>
-                <span>{c.name_ar}</span>
-                <span className="text-[10px] opacity-75 font-mono">({c.currency_ar})</span>
+                <span>{isArabic ? c.name_ar : (c.name_en || c.name_ar)}</span>
+                <span className="text-[10px] opacity-75 font-mono">({isArabic ? c.currency_ar : (c.currency_en || c.currency_ar)})</span>
               </button>
             ))}
           </div>
@@ -739,8 +741,8 @@ export function HourlyRatesManagementPanel() {
 
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="text-sm font-black text-white">{gov.name_ar}</h3>
-                        <span className="text-[11px] text-slate-500 font-sans">({gov.name_en})</span>
+                        <h3 className="text-sm font-black text-white">{isArabic ? gov.name_ar : (gov.name_en || gov.name_ar)}</h3>
+                        <span className="text-[11px] text-slate-500 font-sans">({isArabic ? gov.name_en : gov.name_ar})</span>
                         {hasCustomGovPrice ? (
                           <Badge className="bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-bold py-0.5 px-2">
                             <Sparkles className="w-2.5 h-2.5 ml-1" />
@@ -851,7 +853,7 @@ export function HourlyRatesManagementPanel() {
                     <div className="flex items-center justify-between pb-3 mb-3 border-b border-white/5">
                       <p className="text-xs font-bold text-slate-400 flex items-center gap-1.5">
                         <ArrowDownRight className="h-3.5 w-3.5 text-teal-400" />
-                        <span>{t('districtsUnderGov', { gov: gov.name_ar, count: govDists.length })}</span>
+                        <span>{t('districtsUnderGov', { gov: isArabic ? gov.name_ar : (gov.name_en || gov.name_ar), count: govDists.length })}</span>
                       </p>
                       <span className="text-[11px] text-slate-500 font-medium">
                         {t('effectiveGovPrice')} <strong className="text-white font-mono">{effectiveGovPrice} {currency}</strong>
@@ -891,7 +893,7 @@ export function HourlyRatesManagementPanel() {
                               {/* District Name & Badge */}
                               <div className="min-w-0 flex-1">
                                 <p className="text-xs font-bold text-white truncate">
-                                  {dist.name_ar}
+                                  {isArabic ? dist.name_ar : (dist.name_en || dist.name_ar)}
                                 </p>
                                 <div className="flex items-center gap-1 mt-0.5">
                                   {hasCustomDistPrice ? (

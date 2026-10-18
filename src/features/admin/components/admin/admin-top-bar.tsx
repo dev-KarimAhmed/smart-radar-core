@@ -31,17 +31,20 @@ import {
   ShieldAlert,
   Crown,
   Shield,
+  Languages,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { clearSupabaseSessionCache } from '@/lib/supabase-auth';
 import { purgeTransientFrontendCache } from '@/hooks/use-auth';
 import { AdminNotificationCenter } from './admin-notification-center';
 import { useTranslations } from 'next-intl';
+import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 
 export function AdminTopBar() {
   const t = useTranslations('adminTopBar');
   const { user } = useAuth();
   const { toast } = useToast();
+  const { direction, isArabic, toggleLanguage } = useDashboardLanguage();
 
   const isSovereignPrimary =
     user?.uid === '70b4a26f-10ac-4888-8df6-c3a5ad824b8a' ||
@@ -190,7 +193,7 @@ export function AdminTopBar() {
             </span>
           </div>
 
-          <div className="space-y-1 text-right">
+          <div className={cn("space-y-1", isArabic ? "text-right" : "text-left")}>
             <div className="flex items-center gap-2 flex-wrap">
               <h2 className="text-base sm:text-lg font-black text-white tracking-wide">
                 {user?.name || t('sovereignAdmin')}
@@ -217,6 +220,17 @@ export function AdminTopBar() {
         <div className="flex items-center gap-2.5 w-full md:w-auto justify-end flex-wrap">
           {/* Sovereign Notification Center */}
           <AdminNotificationCenter />
+
+          {/* Language Switcher */}
+          <Button
+            type="button"
+            onClick={toggleLanguage}
+            title={t('switchLanguage')}
+            className="flex-1 sm:flex-initial bg-[#161F30] hover:bg-[#1C273C] text-cyan-300 hover:text-cyan-200 border border-cyan-500/30 hover:border-cyan-500/50 font-bold text-xs sm:text-sm py-2 px-3 sm:px-3.5 rounded-xl transition-all shadow-sm active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"
+          >
+            <Languages className="w-4 h-4 text-cyan-400" />
+            <span>{t('languageLabel')}</span>
+          </Button>
 
           {/* Change Password Button */}
           <Button
@@ -247,8 +261,8 @@ export function AdminTopBar() {
 
       {/* ================= Dialog: تغيير كلمة السر ================= */}
       <Dialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
-        <DialogContent className="sm:max-w-md bg-[#0B0F19] border border-teal-500/30 text-white shadow-2xl rounded-2xl" dir="rtl">
-          <DialogHeader className="text-right space-y-2">
+        <DialogContent className="sm:max-w-md bg-[#0B0F19] border border-teal-500/30 text-white shadow-2xl rounded-2xl" dir={direction}>
+          <DialogHeader className={cn("space-y-2", isArabic ? "text-right" : "text-left")}>
             <div className="flex items-center gap-2.5 text-teal-400">
               <div className="p-2 rounded-xl bg-teal-500/10 border border-teal-500/20">
                 <Lock className="w-5 h-5 text-teal-400" />
@@ -354,8 +368,8 @@ export function AdminTopBar() {
 
       {/* ================= Dialog: تأكيد تسجيل الخروج ================= */}
       <Dialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
-        <DialogContent className="sm:max-w-md bg-[#0B0F19] border border-rose-500/30 text-white shadow-2xl rounded-2xl" dir="rtl">
-          <DialogHeader className="text-right space-y-2">
+        <DialogContent className="sm:max-w-md bg-[#0B0F19] border border-rose-500/30 text-white shadow-2xl rounded-2xl" dir={direction}>
+          <DialogHeader className={cn("space-y-2", isArabic ? "text-right" : "text-left")}>
             <div className="flex items-center gap-2.5 text-rose-400">
               <div className="p-2 rounded-xl bg-rose-500/10 border border-rose-500/20">
                 <LogOut className="w-5 h-5 text-rose-400" />

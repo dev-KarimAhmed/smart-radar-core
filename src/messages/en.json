@@ -3728,7 +3728,9 @@
     "logoutDialogDesc": "Are you sure you want to log out? Your administrative session will be terminated and you will be redirected to the login screen.",
     "loggingOut": "Logging out...",
     "confirmLogout": "Confirm Logout",
-    "back": "Dismiss"
+    "back": "Dismiss",
+    "languageLabel": "العربية",
+    "switchLanguage": "Switch interface language to Arabic"
   },
   "adminNotifications": {
     "bellTitle": "Sovereign Notification & Alert Center",

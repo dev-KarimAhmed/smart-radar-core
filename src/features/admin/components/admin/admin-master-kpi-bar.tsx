@@ -5,6 +5,7 @@ import { adminFetch } from '@/features/admin/lib/admin-api-client';
 import { Users, Car, Megaphone, UsersRound, ArrowUpRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
+import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 
 interface KPIStats {
   totalCaptains: number;
@@ -17,7 +18,7 @@ interface KPIStats {
 }
 
 const styles = {
-  container: "grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-6 text-right",
+  container: "grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-6",
   card: "relative overflow-hidden rounded-2xl border border-white/10 bg-[#0B0F19]/95 p-4 transition-all duration-300 hover:border-white/20 shadow-xl backdrop-blur-xl",
   iconWrapper: "flex h-9 w-9 items-center justify-center rounded-xl",
   label: "mt-2.5 text-xs font-bold text-slate-300 tracking-wide",
@@ -28,6 +29,7 @@ const styles = {
 
 export function AdminMasterKPIBar() {
   const t = useTranslations('adminKPI');
+  const { direction, isArabic } = useDashboardLanguage();
   const [stats, setStats] = useState<KPIStats>({
     totalCaptains: 0,
     activeCaptains: 0,
@@ -62,7 +64,7 @@ export function AdminMasterKPIBar() {
   }, []);
 
   return (
-    <div className={styles.container} dir="rtl">
+    <div className={cn(styles.container, isArabic ? "text-right" : "text-left")} dir={direction}>
       {/* 1. السائقون */}
       <div className={styles.card}>
         <div className={cn(styles.iconWrapper, "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20")}>

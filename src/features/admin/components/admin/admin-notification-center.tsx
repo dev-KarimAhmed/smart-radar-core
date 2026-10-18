@@ -41,6 +41,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useTranslations } from 'next-intl';
+import { useDashboardLanguage } from '@/shared/hooks/use-dashboard-language';
+import { cn } from '@/lib/utils';
 
 export interface AdminNotificationItem {
   id: string;
@@ -111,6 +113,7 @@ function playNotificationChime() {
 
 export function AdminNotificationCenter() {
   const t = useTranslations('adminNotifications');
+  const { isArabic, direction } = useDashboardLanguage();
   const { toast } = useToast();
 
   const [isOpen, setIsOpen] = useState(false);
@@ -415,9 +418,9 @@ export function AdminNotificationCenter() {
 
       {/* ================= Main Notifications Center Dialog ================= */}
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="sm:max-w-2xl bg-[#0B0F19]/98 border border-teal-500/30 text-white shadow-2xl rounded-2xl p-0 overflow-hidden backdrop-blur-2xl max-h-[85vh] flex flex-col" dir="rtl">
+        <DialogContent className="sm:max-w-2xl bg-[#0B0F19]/98 border border-teal-500/30 text-white shadow-2xl rounded-2xl p-0 overflow-hidden backdrop-blur-2xl max-h-[85vh] flex flex-col" dir={direction}>
           {/* Header */}
-          <DialogHeader className="p-4 sm:p-5 border-b border-white/10 bg-black/40 text-right space-y-2">
+          <DialogHeader className={cn("p-4 sm:p-5 border-b border-white/10 bg-black/40 space-y-2", isArabic ? "text-right" : "text-left")}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="p-2 rounded-xl bg-teal-500/15 border border-teal-500/30 text-teal-400">
@@ -737,8 +740,8 @@ export function AdminNotificationCenter() {
       {/* ================= Quick Receipt Review Dialog ================= */}
       {reviewItem && (
         <Dialog open={Boolean(reviewItem)} onOpenChange={(open) => !open && setReviewItem(null)}>
-          <DialogContent className="sm:max-w-xl bg-[#0B0F19] border border-emerald-500/40 text-white shadow-2xl rounded-2xl p-5" dir="rtl">
-            <DialogHeader className="text-right space-y-1.5 border-b border-white/10 pb-3">
+          <DialogContent className="sm:max-w-xl bg-[#0B0F19] border border-emerald-500/40 text-white shadow-2xl rounded-2xl p-5" dir={direction}>
+            <DialogHeader className={cn("space-y-1.5 border-b border-white/10 pb-3", isArabic ? "text-right" : "text-left")}>
               <div className="flex items-center gap-2 text-emerald-400">
                 <ReceiptText className="w-5 h-5 text-emerald-400" />
                 <DialogTitle className="text-base sm:text-lg font-black text-white">
@@ -809,7 +812,7 @@ export function AdminNotificationCenter() {
               {/* Toggle Modes: Approval vs Rejection */}
               {!rejectMode ? (
                 <div className="space-y-3 pt-2">
-                  <Label className="text-xs font-bold text-slate-300 block text-right">
+                  <Label className={cn("text-xs font-bold text-slate-300 block", isArabic ? "text-right" : "text-left")}>
                     {t('creditMethodLabel')}
                   </Label>
                   <div className="grid grid-cols-2 gap-2">
@@ -819,7 +822,7 @@ export function AdminNotificationCenter() {
                         setCreditType('MINUTES');
                         setMinutesValue(Math.round((reviewItem.payload.amount || 0) * 60));
                       }}
-                      className={`p-2.5 rounded-xl border text-right transition-all ${
+                      className={`p-2.5 rounded-xl border text-start transition-all ${
                         creditType === 'MINUTES'
                           ? 'border-emerald-500 bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/50'
                           : 'border-white/10 bg-black/40 text-slate-400'
@@ -832,7 +835,7 @@ export function AdminNotificationCenter() {
                     <button
                       type="button"
                       onClick={() => setCreditType('CASH')}
-                      className={`p-2.5 rounded-xl border text-right transition-all ${
+                      className={`p-2.5 rounded-xl border text-start transition-all ${
                         creditType === 'CASH'
                           ? 'border-emerald-500 bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/50'
                           : 'border-white/10 bg-black/40 text-slate-400'
@@ -844,38 +847,38 @@ export function AdminNotificationCenter() {
                   </div>
 
                   {creditType === 'MINUTES' && (
-                    <div className="space-y-1 text-right">
+                    <div className={cn("space-y-1", isArabic ? "text-right" : "text-left")}>
                       <Label className="text-[11px] font-bold text-slate-400">{t('minutesCountLabel')}</Label>
                       <Input
                         type="number"
                         min="1"
                         value={minutesValue}
                         onChange={(e) => setMinutesValue(Number(e.target.value) || 0)}
-                        className="bg-black/60 border-white/10 text-white font-mono text-xs h-9 rounded-xl text-right"
+                        className="bg-black/60 border-white/10 text-white font-mono text-xs h-9 rounded-xl text-start"
                       />
                     </div>
                   )}
 
-                  <div className="space-y-1 text-right">
+                  <div className={cn("space-y-1", isArabic ? "text-right" : "text-left")}>
                     <Label className="text-[11px] font-bold text-slate-400">{t('adminNoteLabel')}</Label>
                     <Input
                       type="text"
                       placeholder={t('adminNotePlaceholder')}
                       value={adminNote}
                       onChange={(e) => setAdminNote(e.target.value)}
-                      className="bg-black/60 border-white/10 text-white text-xs h-9 rounded-xl text-right"
+                      className="bg-black/60 border-white/10 text-white text-xs h-9 rounded-xl text-start"
                     />
                   </div>
                 </div>
               ) : (
-                <div className="space-y-2 pt-2 text-right">
+                <div className={cn("space-y-2 pt-2", isArabic ? "text-right" : "text-left")}>
                   <Label className="text-xs font-bold text-rose-400 block">{t('rejectionReasonLabel')}</Label>
                   <Input
                     type="text"
                     placeholder={t('rejectionReasonPlaceholder')}
                     value={rejectionReason}
                     onChange={(e) => setRejectionReason(e.target.value)}
-                    className="bg-black/60 border-rose-500/40 focus:border-rose-500 text-white text-xs h-10 rounded-xl text-right"
+                    className="bg-black/60 border-rose-500/40 focus:border-rose-500 text-white text-xs h-10 rounded-xl text-start"
                     autoFocus
                   />
                   <p className="text-[10px] text-slate-400">{t('rejectionNotice')}</p>
@@ -894,12 +897,12 @@ export function AdminNotificationCenter() {
                   >
                     {processingAction ? (
                       <>
-                        <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                        <Loader2 className={cn("w-4 h-4 animate-spin", isArabic ? "ml-2" : "mr-2")} />
                         {t('approving')}
                       </>
                     ) : (
                       <>
-                        <CheckCircle2 className="w-4 h-4 ml-1.5" />
+                        <CheckCircle2 className={cn("w-4 h-4", isArabic ? "ml-1.5" : "mr-1.5")} />
                         {t('approveButton')}
                       </>
                     )}
@@ -925,12 +928,12 @@ export function AdminNotificationCenter() {
                   >
                     {processingAction ? (
                       <>
-                        <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                        <Loader2 className={cn("w-4 h-4 animate-spin", isArabic ? "ml-2" : "mr-2")} />
                         {t('rejecting')}
                       </>
                     ) : (
                       <>
-                        <XCircle className="w-4 h-4 ml-1.5" />
+                        <XCircle className={cn("w-4 h-4", isArabic ? "ml-1.5" : "mr-1.5")} />
                         {t('confirmRejectButton')}
                       </>
                     )}
