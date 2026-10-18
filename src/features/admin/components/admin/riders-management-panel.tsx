@@ -41,6 +41,8 @@ import {
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { useTranslations } from 'next-intl';
+import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 
 export interface RiderUser {
   id: string;
@@ -72,8 +74,8 @@ const styles = {
   kpiTitle: "text-xs font-bold text-slate-300 mb-1.5 flex items-center gap-1.5",
   kpiValue: "text-2xl font-black text-white font-mono",
   searchContainer: "relative w-full sm:w-80",
-  searchInput: "bg-black/70 border-white/15 text-white pl-3 pr-9 h-10 text-xs rounded-xl focus:border-[#14B8A6] text-right font-medium placeholder:text-slate-500",
-  searchIcon: "absolute right-3 top-3 h-4 w-4 text-slate-400",
+  searchInput: "bg-black/70 border-white/15 text-white px-9 h-10 text-xs rounded-xl focus:border-[#14B8A6] text-start font-medium placeholder:text-slate-500",
+  searchIcon: "absolute start-3 top-3 h-4 w-4 text-slate-400",
   tableCard: "rounded-2xl border border-white/10 bg-[#0B0F19]/95 overflow-hidden shadow-2xl backdrop-blur-xl",
   tableHead: "border-b border-white/10 bg-[#0F172A]/90 text-slate-200 text-xs font-black tracking-wide",
   tableRow: "border-b border-white/[0.06] transition-colors hover:bg-white/[0.03]",
@@ -82,6 +84,8 @@ const styles = {
 } as const;
 
 export function RidersManagementPanel() {
+  const t = useTranslations('adminRiders');
+  const { direction, isArabic } = useDashboardLanguage();
   const { toast } = useToast();
   const [riders, setRiders] = useState<RiderUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -98,7 +102,7 @@ export function RidersManagementPanel() {
 
   // Direct Message modal inputs
   const [messageRider, setMessageRider] = useState<RiderUser | null>(null);
-  const [messageTitle, setMessageTitle] = useState('رسالة من إدارة المنظومة');
+  const [messageTitle, setMessageTitle] = useState(isArabic ? 'رسالة من إدارة المنظومة' : 'Message from Platform Administration');
   const [messageBody, setMessageBody] = useState('');
   const [messageType, setMessageType] = useState<'info' | 'admin_message' | 'warning' | 'urgent'>('admin_message');
   const [submittingMessage, setSubmittingMessage] = useState(false);
@@ -106,7 +110,7 @@ export function RidersManagementPanel() {
   // Bulk Broadcast modal inputs
   const [isBulkMessageOpen, setIsBulkMessageOpen] = useState(false);
   const [bulkScope, setBulkScope] = useState<'all' | 'selected' | 'filtered'>('all');
-  const [bulkMsgTitle, setBulkMsgTitle] = useState('إشعار توجيهي من إدارة المنظومة');
+  const [bulkMsgTitle, setBulkMsgTitle] = useState(isArabic ? 'إشعار توجيهي من إدارة المنظومة' : 'Directive Notification from System Administration');
   const [bulkMsgBody, setBulkMsgBody] = useState('');
   const [bulkMsgType, setBulkMsgType] = useState<'info' | 'admin_message' | 'warning' | 'urgent'>('admin_message');
   const [submittingBulkMessage, setSubmittingBulkMessage] = useState(false);
@@ -123,19 +127,19 @@ export function RidersManagementPanel() {
       if (data?.success && Array.isArray(data.users)) {
         setRiders(data.users);
       } else {
-        throw new Error(data?.error || 'فشل تحميل بيانات الركاب');
+        throw new Error(data?.error || (isArabic ? 'فشل تحميل بيانات الركاب' : 'Failed to load riders data'));
       }
     } catch (err: any) {
       console.warn('[RidersManagementPanel] fetch error:', err);
       toast({
         variant: 'destructive',
-        title: 'خطأ استدعاء الركاب',
-        description: err.message || 'تعذر جلب بيانات الركاب من قاعدة البيانات',
+        title: isArabic ? 'خطأ استدعاء الركاب' : 'Riders Fetch Error',
+        description: err.message || (isArabic ? 'تعذر جلب بيانات الركاب من قاعدة البيانات' : 'Could not fetch riders from database'),
       });
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, isArabic]);
 
   useEffect(() => {
     void fetchRiders();
@@ -152,11 +156,11 @@ export function RidersManagementPanel() {
 
       const result = await res.json();
       if (!res.ok || !result.success) {
-        throw new Error(result.error || 'حدث خطأ أثناء معالجة الإجراء');
+        throw new Error(result.error || (isArabic ? 'حدث خطأ أثناء معالجة الإجراء' : 'An error occurred while processing action'));
       }
 
       toast({
-        title: '⚡ تم تنفيذ الإجراء بنجاح',
+        title: isArabic ? '⚡ تم تنفيذ الإجراء بنجاح' : '⚡ Action Executed Successfully',
         description: result.message || successMsg,
       });
 
@@ -165,8 +169,8 @@ export function RidersManagementPanel() {
     } catch (err: any) {
       toast({
         variant: 'destructive',
-        title: 'فشل العملية',
-        description: err.message || 'تعذر تطبيق الإجراء',
+        title: isArabic ? 'فشل العملية' : 'Operation Failed',
+        description: err.message || (isArabic ? 'تعذر تطبيق الإجراء' : 'Could not apply action'),
       });
       return false;
     } finally {
@@ -233,28 +237,28 @@ export function RidersManagementPanel() {
         return (
           <span className={cn(styles.statusBadge, "bg-emerald-500/15 text-emerald-300 border-emerald-500/30")}>
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            نشط بالرادار
+            {t('statusActiveBadge')}
           </span>
         );
       case 'BUSY':
         return (
           <span className={cn(styles.statusBadge, "bg-amber-500/15 text-amber-300 border-amber-500/30")}>
             <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-            في رحلة
+            {isArabic ? 'في رحلة' : 'On Trip'}
           </span>
         );
       case 'SUSPENDED':
         return (
           <span className={cn(styles.statusBadge, "bg-rose-500/15 text-rose-300 border-rose-500/30")}>
             <XCircle className="w-3.5 h-3.5 text-rose-400" />
-            موقوف مؤقتاً
+            {t('statusSuspendedBadge')}
           </span>
         );
       case 'BANNED':
         return (
           <span className={cn(styles.statusBadge, "bg-red-950/80 text-red-300 border-red-500/40")}>
             <ShieldAlert className="w-3.5 h-3.5 text-red-400" />
-            محظور نهائياً
+            {t('statusBannedBadge')}
           </span>
         );
       case 'IDLE':
@@ -262,7 +266,7 @@ export function RidersManagementPanel() {
         return (
           <span className={cn(styles.statusBadge, "bg-slate-800/80 text-slate-200 border-slate-700")}>
             <span className="w-2 h-2 rounded-full bg-slate-400" />
-            خامل
+            {t('statusIdleBadge')}
           </span>
         );
     }
@@ -274,7 +278,7 @@ export function RidersManagementPanel() {
         <span className="inline-flex items-center gap-1.5 font-mono font-bold text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-1 rounded-lg text-xs shadow-sm">
           <Star className="h-3.5 w-3.5 fill-emerald-400 text-emerald-400" />
           <span>{score.toFixed(1)}</span>
-          <span className="text-[10px] text-emerald-400/90 font-bold">(ممتاز)</span>
+          <span className="text-[10px] text-emerald-400/90 font-bold">{t('excellentTag')}</span>
         </span>
       );
     }
@@ -283,7 +287,7 @@ export function RidersManagementPanel() {
         <span className="inline-flex items-center gap-1.5 font-mono font-bold text-amber-300 bg-amber-500/15 border border-amber-500/30 px-2.5 py-1 rounded-lg text-xs shadow-sm">
           <AlertTriangle className="h-3.5 w-3.5 text-amber-400" />
           <span>{score.toFixed(1)}</span>
-          <span className="text-[10px] text-amber-400/90 font-bold">(إنذار)</span>
+          <span className="text-[10px] text-amber-400/90 font-bold">{t('warningTag')}</span>
         </span>
       );
     }
@@ -291,22 +295,22 @@ export function RidersManagementPanel() {
       <span className="inline-flex items-center gap-1.5 font-mono font-bold text-rose-300 bg-rose-500/20 border border-rose-500/40 px-2.5 py-1 rounded-lg text-xs shadow-sm animate-pulse">
         <AlertOctagon className="h-3.5 w-3.5 text-rose-400" />
         <span>{score.toFixed(1)}</span>
-        <span className="text-[10px] text-rose-300 font-bold">(خطر أمني)</span>
+        <span className="text-[10px] text-rose-300 font-bold">{t('criticalTag')}</span>
       </span>
     );
   };
 
   return (
-    <div className="space-y-6 text-right font-sans" dir="rtl">
+    <div className={cn("space-y-6 font-sans", isArabic ? "text-right" : "text-left")} dir={direction}>
       {/* 1. Header & Actions */}
       <div className={styles.header}>
         <div>
           <h2 className="text-xl font-black text-white flex items-center gap-2">
             <Users className="w-6 h-6 text-cyan-400" />
-            إدارة الركاب والمناعة السلوكية
+            {t('title')}
           </h2>
           <p className="text-xs text-slate-400 mt-1">
-            متابعة هويات الركاب، جدار الحماية الجنائي وكبح الإلغاء المتتالي.
+            {t('subtitle')}
           </p>
         </div>
 
@@ -319,10 +323,10 @@ export function RidersManagementPanel() {
               setIsBulkMessageOpen(true);
             }}
             className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs h-10 px-3.5 rounded-xl flex items-center gap-1.5 shadow-lg shadow-indigo-600/20 transition-all cursor-pointer active:scale-95"
-            title="بث إشعار وتوجيه إداري لحظي لجميع الركاب أو فئة محددة"
+            title={t('bulkMessageTooltip')}
           >
             <Send className="w-4 h-4 ml-0.5" />
-            <span>إشعار جماعي</span>
+            <span>{t('bulkMessageBtn')}</span>
           </Button>
 
           <Button
@@ -333,7 +337,7 @@ export function RidersManagementPanel() {
             className="border-white/10 bg-white/5 hover:bg-white/10 text-slate-200 text-xs h-10 px-4 rounded-xl flex items-center gap-2 cursor-pointer"
           >
             <RefreshCw className={cn("w-4 h-4 text-cyan-400", loading && "animate-spin")} />
-            <span>تحديث فوري</span>
+            <span>{t('refreshBtn')}</span>
           </Button>
         </div>
       </div>
@@ -344,50 +348,50 @@ export function RidersManagementPanel() {
           <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-500/5 blur-2xl rounded-full" />
           <p className={styles.kpiTitle}>
             <Users className="h-3.5 w-3.5 text-cyan-400" />
-            إجمالي الركاب المسجلين
+            {t('kpiTotal')}
           </p>
           <p className={styles.kpiValue}>{stats.total}</p>
-          <span className="text-[10px] text-slate-500 mt-1 block">حسابات نشطة بالمنصة</span>
+          <span className="text-[10px] text-slate-500 mt-1 block">{t('kpiTotalSub')}</span>
         </div>
 
         <div className={styles.kpiCard}>
           <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 blur-2xl rounded-full" />
           <p className={styles.kpiTitle}>
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse ml-1" />
-            النشطون بالرادار
+            {isArabic ? 'النشطون بالرادار' : 'Active on Radar'}
           </p>
           <p className={cn(styles.kpiValue, "text-emerald-400")}>{stats.online}</p>
-          <span className="text-[10px] text-slate-500 mt-1 block">متصلون ويطلبون الآن</span>
+          <span className="text-[10px] text-slate-500 mt-1 block">{isArabic ? 'متصلون ويطلبون الآن' : 'Online & requesting now'}</span>
         </div>
 
         <div className={styles.kpiCard}>
           <div className="absolute top-0 right-0 w-24 h-24 bg-teal-500/5 blur-2xl rounded-full" />
           <p className={styles.kpiTitle}>
             <CheckCircle2 className="h-3.5 w-3.5 text-[#14B8A6]" />
-            الرحلات المنفذة بنجاح
+            {isArabic ? 'الرحلات المنفذة بنجاح' : 'Completed Trips'}
           </p>
           <p className={cn(styles.kpiValue, "text-[#14B8A6]")}>{stats.completedTrips}</p>
-          <span className="text-[10px] text-slate-500 mt-1 block">إجمالي الرحلات المكتملة</span>
+          <span className="text-[10px] text-slate-500 mt-1 block">{isArabic ? 'إجمالي الرحلات المكتملة' : 'Total successful trips'}</span>
         </div>
 
         <div className={styles.kpiCard}>
           <div className="absolute top-0 right-0 w-24 h-24 bg-rose-500/5 blur-2xl rounded-full" />
           <p className={styles.kpiTitle}>
             <ShieldAlert className="h-3.5 w-3.5 text-rose-400" />
-            حسابات معلقة وموقوفة
+            {isArabic ? 'حسابات معلقة وموقوفة' : 'Suspended Accounts'}
           </p>
           <p className={cn(styles.kpiValue, "text-rose-400")}>{stats.suspended}</p>
-          <span className="text-[10px] text-slate-500 mt-1 block">ممنوعون من بث العوامة</span>
+          <span className="text-[10px] text-slate-500 mt-1 block">{isArabic ? 'ممنوعون من بث العوامة' : 'Blocked from radar beacon'}</span>
         </div>
 
         <div className={styles.kpiCard}>
           <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 blur-2xl rounded-full" />
           <p className={styles.kpiTitle}>
             <AlertTriangle className="h-3.5 w-3.5 text-amber-400" />
-            تحت الرقابة السلوكية
+            {isArabic ? 'تحت الرقابة السلوكية' : 'Under Behavioral Watch'}
           </p>
           <p className={cn(styles.kpiValue, "text-amber-400")}>{stats.atRisk}</p>
-          <span className="text-[10px] text-slate-500 mt-1 block">دون 4.2 أو تكرار الإلغاء</span>
+          <span className="text-[10px] text-slate-500 mt-1 block">{isArabic ? 'دون 4.2 أو تكرار الإلغاء' : 'Below 4.2 or high cancellations'}</span>
         </div>
       </div>
 
@@ -398,7 +402,7 @@ export function RidersManagementPanel() {
           <Input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="بحث بالاسم، الهاتف، R-1252، أو المدينة..."
+            placeholder={t('searchPlaceholder')}
             className={styles.searchInput}
           />
         </div>
@@ -407,39 +411,44 @@ export function RidersManagementPanel() {
         <div className="flex flex-wrap items-center gap-2">
           {/* Status filter */}
           <div className="flex items-center gap-1 bg-black/40 border border-white/10 rounded-xl p-1 text-[11px]">
-            <span className="text-slate-500 px-2 font-bold">الحالة:</span>
-            {['ALL', 'ACTIVE', 'IDLE', 'SUSPENDED'].map((st) => (
+            <span className="text-slate-500 px-2 font-bold">{t('filterStatus')}</span>
+            {[
+              { key: 'ALL', label: t('statusAll') },
+              { key: 'ACTIVE', label: t('statusActive') },
+              { key: 'IDLE', label: t('statusIdle') },
+              { key: 'SUSPENDED', label: t('statusSuspended') },
+            ].map((st) => (
               <button
-                key={st}
+                key={st.key}
                 type="button"
-                onClick={() => setStatusFilter(st)}
+                onClick={() => setStatusFilter(st.key)}
                 className={cn(
-                  "px-2.5 py-1 rounded-lg font-bold transition text-[11px]",
-                  statusFilter === st
+                  "px-2.5 py-1 rounded-lg font-bold transition text-[11px] cursor-pointer",
+                  statusFilter === st.key
                     ? "bg-cyan-500 text-black font-black"
                     : "text-slate-400 hover:text-white"
                 )}
               >
-                {st === 'ALL' ? 'الكل' : st === 'ACTIVE' ? 'نشط' : st === 'IDLE' ? 'جاهز' : 'معلق'}
+                {st.label}
               </button>
             ))}
           </div>
 
           {/* Immunity filter */}
           <div className="flex items-center gap-1 bg-black/40 border border-white/10 rounded-xl p-1 text-[11px]">
-            <span className="text-slate-500 px-2 font-bold">مؤشر النزاهة:</span>
+            <span className="text-slate-500 px-2 font-bold">{t('filterImmunity')}</span>
             {[
-              { key: 'ALL', label: 'الكل' },
-              { key: 'HIGH', label: 'عالي (4.5+)' },
-              { key: 'WARNING', label: 'إنذار (4.2-4.4)' },
-              { key: 'CRITICAL', label: 'خطر (<4.2)' },
+              { key: 'ALL', label: t('immunityAll') },
+              { key: 'HIGH', label: t('immunityExcellent') },
+              { key: 'WARNING', label: t('immunityWarning') },
+              { key: 'CRITICAL', label: t('immunityCritical') },
             ].map((f) => (
               <button
                 key={f.key}
                 type="button"
                 onClick={() => setImmunityFilter(f.key)}
                 className={cn(
-                  "px-2.5 py-1 rounded-lg font-bold transition text-[11px]",
+                  "px-2.5 py-1 rounded-lg font-bold transition text-[11px] cursor-pointer",
                   immunityFilter === f.key
                     ? "bg-cyan-500 text-black font-black"
                     : "text-slate-400 hover:text-white"
@@ -461,9 +470,7 @@ export function RidersManagementPanel() {
               <span className="relative inline-flex rounded-full h-3 w-3 bg-cyan-400"></span>
             </span>
             <div className="text-xs">
-              <span className="font-bold text-white">تم تحديد </span>
-              <span className="font-black text-cyan-400 font-mono text-sm">{selectedRiderIds.size}</span>
-              <span className="font-bold text-white"> راكب من القائمة</span>
+              <span className="font-bold text-white">{t('selectedRidersAlert', { count: selectedRiderIds.size })}</span>
             </div>
           </div>
 
@@ -478,7 +485,7 @@ export function RidersManagementPanel() {
               className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs h-8 px-3.5 rounded-xl flex items-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer"
             >
               <Send className="w-3.5 h-3.5 ml-0.5" />
-              <span>إشعار للمحددين ({selectedRiderIds.size})</span>
+              <span>{t('bulkMessageSelected', { count: selectedRiderIds.size })}</span>
             </Button>
 
             <Button
@@ -488,7 +495,7 @@ export function RidersManagementPanel() {
               onClick={() => setSelectedRiderIds(new Set())}
               className="border-white/20 bg-white/5 hover:bg-white/10 text-slate-300 text-xs h-8 px-3 rounded-xl transition-all cursor-pointer"
             >
-              <span>إلغاء التحديد</span>
+              <span>{t('clearSelection')}</span>
             </Button>
           </div>
         </div>
@@ -500,17 +507,17 @@ export function RidersManagementPanel() {
           {loading ? (
             <div className="flex min-h-64 flex-col items-center justify-center gap-3 text-slate-400">
               <Loader2 className="h-8 w-8 animate-spin text-cyan-400" />
-              <p className="text-xs font-bold">جاري استدعاء سجلات الركاب والمناعة السلوكية...</p>
+              <p className="text-xs font-bold">{t('loadingTable')}</p>
             </div>
           ) : filteredRiders.length === 0 ? (
             <div className="flex min-h-64 flex-col items-center justify-center gap-3 text-slate-400">
               <ShieldCheck className="h-10 w-10 text-slate-600" />
-              <p className="text-sm font-bold text-slate-300">لا يوجد ركاب مطابقين للبحث</p>
-              <p className="text-xs text-slate-500">جرّب تعديل الفلاتر أو إفراغ خانة البحث.</p>
+              <p className="text-sm font-bold text-slate-300">{t('noRidersFound')}</p>
+              <p className="text-xs text-slate-500">{t('noRidersFoundSub')}</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-right text-xs">
+              <table className={cn("w-full text-xs", isArabic ? "text-right" : "text-left")}>
                 <thead className={styles.tableHead}>
                   <tr>
                     <th className="py-4 px-3 w-10 text-center">
@@ -519,16 +526,16 @@ export function RidersManagementPanel() {
                         checked={filteredRiders.length > 0 && selectedRiderIds.size === filteredRiders.length}
                         onChange={handleSelectAll}
                         className="rounded border-white/20 bg-black/60 text-cyan-500 focus:ring-cyan-500 h-4 w-4 cursor-pointer"
-                        title="تحديد الكل"
+                        title={t('selectAll')}
                       />
                     </th>
-                    <th className="py-4 px-4 font-black text-slate-200">الراكب والهوية</th>
-                    <th className="py-4 px-4 font-black text-slate-200">الموقع الجغرافي</th>
-                    <th className="py-4 px-4 font-black text-slate-200">مؤشر النزاهة (المناعة)</th>
-                    <th className="py-4 px-4 font-black text-slate-200">الرحلات المنفذة</th>
-                    <th className="py-4 px-4 font-black text-slate-200">الإلغاءات المتتالية</th>
-                    <th className="py-4 px-4 font-black text-slate-200">الحالة</th>
-                    <th className="py-4 px-4 font-black text-slate-200 text-center">إجراءات المشرف</th>
+                    <th className="py-4 px-4 font-black text-slate-200">{t('colIdentity')}</th>
+                    <th className="py-4 px-4 font-black text-slate-200">{t('colLocation')}</th>
+                    <th className="py-4 px-4 font-black text-slate-200">{t('colImmunity')}</th>
+                    <th className="py-4 px-4 font-black text-slate-200">{t('colTrips')}</th>
+                    <th className="py-4 px-4 font-black text-slate-200">{t('colCancellations')}</th>
+                    <th className="py-4 px-4 font-black text-slate-200">{t('colStatus')}</th>
+                    <th className="py-4 px-4 font-black text-slate-200 text-center">{t('colActions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -544,6 +551,7 @@ export function RidersManagementPanel() {
                             checked={selectedRiderIds.has(rider.id)}
                             onChange={() => handleToggleSelect(rider.id)}
                             className="rounded border-white/20 bg-black/60 text-cyan-500 focus:ring-cyan-500 h-4 w-4 cursor-pointer"
+                            title={t('selectRider')}
                           />
                         </td>
 
@@ -552,7 +560,7 @@ export function RidersManagementPanel() {
                           <div className="flex items-center gap-3">
                             <Avatar className="h-10 w-10 border border-cyan-500/40 rounded-xl shadow-sm">
                               <AvatarFallback className="bg-cyan-500/15 text-cyan-400 font-black text-xs">
-                                {rider.full_name ? rider.full_name.substring(0, 2) : 'ر'}
+                                {rider.full_name ? rider.full_name.substring(0, 2) : 'R'}
                               </AvatarFallback>
                             </Avatar>
                             <div className="space-y-1">
@@ -592,7 +600,7 @@ export function RidersManagementPanel() {
                               : "bg-black/40 border-white/10 text-slate-400"
                           )}>
                             <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
-                            <span>{rider.completed_trips_count ?? 0} رحلة ناجحة</span>
+                            <span>{t('tripsCount', { count: rider.completed_trips_count ?? 0 })}</span>
                           </span>
                         </td>
 
@@ -605,10 +613,10 @@ export function RidersManagementPanel() {
                                 ? "bg-red-950/80 text-red-300 border-red-500/40"
                                 : "bg-amber-950/80 text-amber-300 border-amber-500/40"
                             )}>
-                              {rider.consecutive_cancellations} إلغاء متتالي ⚠️
+                              {t('cancellationsCount', { count: rider.consecutive_cancellations })} ⚠️
                             </Badge>
                           ) : (
-                            <span className="text-slate-400 font-mono text-xs font-semibold">0 إلغاء</span>
+                            <span className="text-slate-400 font-mono text-xs font-semibold">{t('cancellationsCount', { count: 0 })}</span>
                           )}
                         </td>
 
@@ -627,10 +635,10 @@ export function RidersManagementPanel() {
                               variant="outline"
                               onClick={() => setInspectRider(rider)}
                               className="h-8 px-3 rounded-xl border border-cyan-500/30 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 text-xs font-bold flex items-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer"
-                              title="عرض تفاصيل الراكب وسجل السلوك"
+                              title={t('btnInspectTooltip')}
                             >
                               <Eye className="h-3.5 w-3.5 text-cyan-400" />
-                              <span>ملف</span>
+                              <span>{t('btnInspect')}</span>
                             </Button>
 
                             {/* Security & Immunity Reset */}
@@ -648,10 +656,10 @@ export function RidersManagementPanel() {
                                   ? "border-rose-500/40 bg-rose-500/15 text-rose-300 hover:bg-rose-500/25"
                                   : "border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20"
                               )}
-                              title="إدارة النزاهة والحظر وتصفير العقوبات"
+                              title={t('btnSecurityTooltip')}
                             >
                               <ShieldAlert className="h-3.5 w-3.5" />
-                              <span>أمان</span>
+                              <span>{t('btnSecurity')}</span>
                             </Button>
 
                             {/* Direct Message / Notification */}
@@ -661,15 +669,15 @@ export function RidersManagementPanel() {
                               variant="outline"
                               onClick={() => {
                                 setMessageRider(rider);
-                                setMessageTitle('رسالة من إدارة المنظومة');
+                                setMessageTitle(isArabic ? 'رسالة من إدارة المنظومة' : 'Directive from Platform Administration');
                                 setMessageBody('');
                                 setMessageType('admin_message');
                               }}
                               className="h-8 px-3 rounded-xl border border-teal-500/30 bg-teal-500/10 hover:bg-teal-500/20 text-teal-300 text-xs font-bold flex items-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer"
-                              title="إرسال رسالة وتوجيه إداري فوري للراكب"
+                              title={t('btnMessageTooltip')}
                             >
                               <MessageSquare className="h-3.5 w-3.5 text-teal-400" />
-                              <span>مراسلة</span>
+                              <span>{t('btnMessage')}</span>
                             </Button>
                           </div>
                         </td>
@@ -684,10 +692,11 @@ export function RidersManagementPanel() {
       </Card>
 
       {/* ========================================================================= */}
+      {/* ========================================================================= */}
       {/* MODAL 1: Rider Full Profile & Behavioral Details                          */}
       {/* ========================================================================= */}
       <Dialog open={!!inspectRider} onOpenChange={(open) => !open && setInspectRider(null)}>
-        <DialogContent className="max-w-lg bg-[#0B0F19] border border-cyan-500/30 text-white rounded-3xl p-6 text-right" dir="rtl">
+        <DialogContent className={cn("max-w-lg bg-[#0B0F19] border border-cyan-500/30 text-white rounded-3xl p-6", isArabic ? "text-right" : "text-left")} dir={direction}>
           {inspectRider && (
             <div className="space-y-5">
               <DialogHeader>
@@ -706,7 +715,7 @@ export function RidersManagementPanel() {
                         </Badge>
                       </DialogTitle>
                       <DialogDescription className="text-xs text-slate-400 mt-0.5">
-                        حساب راكب مسجل | انضم في {new Date(inspectRider.created_at).toLocaleDateString('ar-JO')}
+                        {t('registeredDate', { date: new Date(inspectRider.created_at).toLocaleDateString(isArabic ? 'ar-JO' : 'en-US') })}
                       </DialogDescription>
                     </div>
                   </div>
@@ -719,11 +728,11 @@ export function RidersManagementPanel() {
               {/* Identity & Location */}
               <div className="grid grid-cols-2 gap-3 bg-black/40 border border-white/5 p-3.5 rounded-2xl text-xs">
                 <div>
-                  <span className="text-slate-500 block text-[10px] font-bold">رقم الهاتف الرسمي</span>
+                  <span className="text-slate-500 block text-[10px] font-bold">{t('officialPhone')}</span>
                   <span className="font-mono font-bold text-white block mt-0.5" dir="ltr">{inspectRider.phone}</span>
                 </div>
                 <div>
-                  <span className="text-slate-500 block text-[10px] font-bold">المحافظة واللواء</span>
+                  <span className="text-slate-500 block text-[10px] font-bold">{t('governorateDistrict')}</span>
                   <span className="font-bold text-white block mt-0.5">{inspectRider.governorate} - {inspectRider.district}</span>
                 </div>
               </div>
@@ -732,37 +741,37 @@ export function RidersManagementPanel() {
               <div className="border border-white/10 bg-[#161F30]/40 p-4 rounded-2xl space-y-3">
                 <h4 className="text-xs font-black text-white flex items-center gap-2">
                   <ShieldCheck className="h-4 w-4 text-cyan-400" />
-                  مؤشرات جدار الحماية الجنائي والنزاهة السلوكية
+                  {t('behavioralImmunityTitle')}
                 </h4>
 
                 <div className="grid grid-cols-3 gap-2.5 text-xs">
                   <div className="bg-black/40 p-3 rounded-xl border border-white/5">
-                    <span className="text-slate-500 block text-[10px]">الرحلات المنفذة بنجاح</span>
+                    <span className="text-slate-500 block text-[10px]">{t('successfulTrips')}</span>
                     <span className="text-lg font-black text-emerald-400 font-mono mt-0.5 block">
-                      {inspectRider.completed_trips_count ?? 0} رحلة
+                      {t('tripsCount', { count: inspectRider.completed_trips_count ?? 0 })}
                     </span>
                     <span className="text-[10px] text-slate-500 mt-0.5 block">
-                      {(inspectRider.completed_trips_count ?? 0) > 0 ? 'سجل رحلات مكتمل' : 'لا توجد رحلات منفذة'}
+                      {(inspectRider.completed_trips_count ?? 0) > 0 ? t('hasTripHistory') : t('noTripHistory')}
                     </span>
                   </div>
 
                   <div className="bg-black/40 p-3 rounded-xl border border-white/5">
-                    <span className="text-slate-500 block text-[10px]">مؤشر النزاهة السلوكية</span>
+                    <span className="text-slate-500 block text-[10px]">{t('trustScoreTitle')}</span>
                     <span className="text-lg font-black text-white font-mono mt-0.5 block">
                       {inspectRider.trust_score.toFixed(1)} / 5.0
                     </span>
                     <span className="text-[10px] text-slate-500 mt-0.5 block">
-                      {inspectRider.trust_score < 4.2 ? '⚠️ معرض للإسقاط والحظر' : '✅ سلوك سليم ومستقر'}
+                      {inspectRider.trust_score < 4.2 ? t('trustAtRisk') : t('trustHealthy')}
                     </span>
                   </div>
 
                   <div className="bg-black/40 p-3 rounded-xl border border-white/5">
-                    <span className="text-slate-500 block text-[10px]">الإلغاءات المتتالية</span>
+                    <span className="text-slate-500 block text-[10px]">{t('consecutiveCancellationsLabel')}</span>
                     <span className="text-lg font-black text-amber-400 font-mono mt-0.5 block">
-                      {inspectRider.consecutive_cancellations} طلبات
+                      {t('ordersUnit', { count: inspectRider.consecutive_cancellations })}
                     </span>
                     <span className="text-[10px] text-slate-500 mt-0.5 block">
-                      كبح النبض: 3 إلغاءات تخصم 0.5
+                      {t('pulseBrakeHint')}
                     </span>
                   </div>
                 </div>
@@ -771,7 +780,7 @@ export function RidersManagementPanel() {
                   <div className="p-3 bg-red-950/30 border border-red-500/30 rounded-xl text-xs text-rose-300 font-bold flex items-start gap-2">
                     <AlertOctagon className="h-4 w-4 text-rose-400 shrink-0 mt-0.5" />
                     <span>
-                      تنبيه سيادي: رصيد مناعة هذا الحساب هبط عن الحد الحرج (4.2). يوصى بإعادة التأهيل أو الحظر النهائي.
+                      {t('criticalImmunityAlert')}
                     </span>
                   </div>
                 )}
@@ -784,7 +793,7 @@ export function RidersManagementPanel() {
                   onClick={() => setInspectRider(null)}
                   className="border-white/10 text-slate-300 text-xs h-9 rounded-xl"
                 >
-                  إغلاق
+                  {t('close')}
                 </Button>
               </DialogFooter>
             </div>
@@ -796,28 +805,28 @@ export function RidersManagementPanel() {
       {/* MODAL 2: Rider Security, Status & Immunity Reset                          */}
       {/* ========================================================================= */}
       <Dialog open={!!securityRider} onOpenChange={(open) => !open && setSecurityRider(null)}>
-        <DialogContent className="max-w-md bg-[#0B0F19] border border-amber-500/40 text-white rounded-3xl p-6 text-right" dir="rtl">
+        <DialogContent className={cn("max-w-md bg-[#0B0F19] border border-amber-500/40 text-white rounded-3xl p-6", isArabic ? "text-right" : "text-left")} dir={direction}>
           {securityRider && (
             <div className="space-y-4">
               <DialogHeader>
                 <DialogTitle className="text-lg font-black text-amber-400 flex items-center gap-2">
                   <ShieldAlert className="h-5 w-5 text-amber-400" />
-                  إدارة الأمان والمناعة السلوكية
+                  {t('securityManageTitle')}
                 </DialogTitle>
                 <DialogDescription className="text-xs text-slate-400 mt-1">
-                  التحكم بحالة حساب الراكب <span className="text-white font-bold">{securityRider.full_name}</span> وإعادة التأهيل.
+                  {t('securityManageDesc', { name: securityRider.full_name })}
                 </DialogDescription>
               </DialogHeader>
 
               {/* Status Change Selector */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-300 block">تغيير حالة حساب الراكب:</label>
+                <label className="text-xs font-bold text-slate-300 block">{t('changeAccountStatus')}</label>
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   {[
-                    { st: 'ACTIVE', label: 'تنشيط فوري', cl: 'text-emerald-400 border-emerald-500/30' },
-                    { st: 'IDLE', label: 'خامل', cl: 'text-slate-300 border-slate-500/30' },
-                    { st: 'SUSPENDED', label: 'تعليق مؤقت', cl: 'text-amber-400 border-amber-500/30' },
-                    { st: 'BANNED', label: 'حظر قطعي نهائي', cl: 'text-rose-400 border-rose-500/30' },
+                    { st: 'ACTIVE', label: t('statusInstantActive'), cl: 'text-emerald-400 border-emerald-500/30' },
+                    { st: 'IDLE', label: t('statusIdleOpt'), cl: 'text-slate-300 border-slate-500/30' },
+                    { st: 'SUSPENDED', label: t('statusSuspendOpt'), cl: 'text-amber-400 border-amber-500/30' },
+                    { st: 'BANNED', label: t('statusBanOpt'), cl: 'text-rose-400 border-rose-500/30' },
                   ].map((s) => (
                     <button
                       key={s.st}
@@ -841,11 +850,11 @@ export function RidersManagementPanel() {
                 <div className="flex items-center justify-between">
                   <p className="text-xs font-black text-[#14B8A6] flex items-center gap-1.5">
                     <RotateCcw className="h-4 w-4" />
-                    إعادة التأهيل وتصفير العقوبات السلوكية
+                    {t('resetPenaltiesTitle')}
                   </p>
                 </div>
                 <p className="text-[11px] text-slate-400 leading-relaxed">
-                  يقوم هذا الإجراء بتصفير عداد الإلغاءات المتتالية وإعادة مؤشر النزاهة والمناعة إلى 5.0 نجوم كاملة، وتفعيل الحساب فوراً.
+                  {t('resetPenaltiesDesc')}
                 </p>
                 <Button
                   type="button"
@@ -855,13 +864,13 @@ export function RidersManagementPanel() {
                     const ok = await executeAdminAction({
                       action: 'reset_penalties',
                       userId: securityRider.id,
-                    }, 'تمت إعادة تأهيل الراكب وتصفير العقوبات بنجاح.');
+                    }, t('riderResetSuccess'));
                     if (ok) setSecurityRider(null);
                   }}
                   className="w-full bg-[#14B8A6] hover:bg-[#2DD4BF] text-[#0B0F19] text-xs font-black h-9 rounded-xl shadow-md shadow-[#14B8A6]/20 cursor-pointer"
                 >
-                  {submittingAction ? <Loader2 className="h-4 w-4 animate-spin ml-1" /> : <RotateCcw className="h-4 w-4 ml-1" />}
-                  تصفير العقوبات واستعادة النزاهة (5.0)
+                  {submittingAction ? <Loader2 className={cn("h-4 w-4 animate-spin", isArabic ? "ml-1" : "mr-1")} /> : <RotateCcw className={cn("h-4 w-4", isArabic ? "ml-1" : "mr-1")} />}
+                  {t('resetPenaltiesBtn')}
                 </Button>
               </div>
 
@@ -872,7 +881,7 @@ export function RidersManagementPanel() {
                   onClick={() => setSecurityRider(null)}
                   className="border-white/10 text-slate-300 text-xs h-9 rounded-xl"
                 >
-                  إلغاء
+                  {t('cancelBtn')}
                 </Button>
 
                 <Button
@@ -883,13 +892,13 @@ export function RidersManagementPanel() {
                       action: 'update_status',
                       userId: securityRider.id,
                       status: targetStatus,
-                    }, `تم تحديث حالة الراكب إلى ${targetStatus}`);
+                    }, t('riderStatusUpdateSuccess', { status: targetStatus }));
                     if (ok) setSecurityRider(null);
                   }}
                   className="bg-amber-500 hover:bg-amber-400 text-black font-black text-xs h-10 px-5 rounded-xl shadow-lg shadow-amber-500/20 cursor-pointer"
                 >
-                  {submittingAction ? <Loader2 className="h-4 w-4 animate-spin ml-1" /> : <ShieldCheck className="h-4 w-4 ml-1" />}
-                  تأكيد تعديل الحالة
+                  {submittingAction ? <Loader2 className={cn("h-4 w-4 animate-spin", isArabic ? "ml-1" : "mr-1")} /> : <ShieldCheck className={cn("h-4 w-4", isArabic ? "ml-1" : "mr-1")} />}
+                  {t('confirmStatusChange')}
                 </Button>
               </DialogFooter>
             </div>
@@ -901,7 +910,7 @@ export function RidersManagementPanel() {
       {/* MODAL 3: Send Direct Message & Notification to Rider                      */}
       {/* ========================================================================= */}
       <Dialog open={!!messageRider} onOpenChange={(open) => !open && setMessageRider(null)}>
-        <DialogContent className="max-w-lg bg-[#0B0F19] border border-teal-500/40 text-white rounded-3xl p-6 text-right shadow-2xl backdrop-blur-xl" dir="rtl">
+        <DialogContent className={cn("max-w-lg bg-[#0B0F19] border border-teal-500/40 text-white rounded-3xl p-6 shadow-2xl backdrop-blur-xl", isArabic ? "text-right" : "text-left")} dir={direction}>
           {messageRider && (
             <div className="space-y-4">
               <DialogHeader>
@@ -909,10 +918,10 @@ export function RidersManagementPanel() {
                   <div className="p-2 rounded-xl bg-teal-500/10 border border-teal-500/30">
                     <MessageSquare className="h-5 w-5 text-teal-400" />
                   </div>
-                  <span>إرسال رسالة وتوجيه إداري للراكب</span>
+                  <span>{t('directMessageTitle')}</span>
                 </DialogTitle>
                 <DialogDescription className="text-xs text-slate-400 mt-1">
-                  إرسال إشعار لحظي يظهر فوراً على شاشة هاتف الراكب وقائمة إشعاراته.
+                  {t('directMessageDesc')}
                 </DialogDescription>
               </DialogHeader>
 
@@ -921,7 +930,7 @@ export function RidersManagementPanel() {
                 <div className="flex items-center gap-3">
                   <Avatar className="h-10 w-10 border border-teal-500/40 rounded-xl">
                     <AvatarFallback className="bg-teal-500/20 text-teal-300 font-bold text-xs">
-                      {messageRider.full_name ? messageRider.full_name.substring(0, 2) : 'ر'}
+                      {messageRider.full_name ? messageRider.full_name.substring(0, 2) : 'R'}
                     </AvatarFallback>
                   </Avatar>
                   <div>
@@ -940,21 +949,21 @@ export function RidersManagementPanel() {
                 {/* Direct WhatsApp Action */}
                 {messageRider.phone && (
                   <a
-                    href={`https://wa.me/${messageRider.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`مرحباً ${messageRider.full_name}، نتواصل معك من إدارة تطبيق رادار الذكي.`)}`}
+                    href={`https://wa.me/${messageRider.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(t('whatsappGreeting', { name: messageRider.full_name }))}`}
                     target="_blank"
                     rel="noreferrer"
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 text-xs font-bold transition-all shrink-0 cursor-pointer"
-                    title="فتح محادثة واتساب فورية"
+                    title={t('openWhatsAppTitle')}
                   >
                     <MessageCircle className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>واتساب</span>
+                    <span>{t('whatsappBtn')}</span>
                   </a>
                 )}
               </div>
 
               {/* Message Type Selector */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-300">نوع الرسالة / الأولوية</label>
+                <label className="text-xs font-bold text-slate-300">{t('msgTypePriority')}</label>
                 <div className="grid grid-cols-3 gap-2">
                   <button
                     type="button"
@@ -966,7 +975,7 @@ export function RidersManagementPanel() {
                         : "bg-black/40 border-white/10 text-slate-400 hover:text-white"
                     )}
                   >
-                    رسالة إدارية
+                    {t('msgTypeAdmin')}
                   </button>
                   <button
                     type="button"
@@ -978,7 +987,7 @@ export function RidersManagementPanel() {
                         : "bg-black/40 border-white/10 text-slate-400 hover:text-white"
                     )}
                   >
-                    تنبيه تشغيلي
+                    {t('msgTypeWarning')}
                   </button>
                   <button
                     type="button"
@@ -990,38 +999,38 @@ export function RidersManagementPanel() {
                         : "bg-black/40 border-white/10 text-slate-400 hover:text-white"
                     )}
                   >
-                    إشعار عاجل
+                    {t('msgTypeUrgent')}
                   </button>
                 </div>
               </div>
 
               {/* Message Title */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-300">عنوان الرسالة / الإشعار</label>
+                <label className="text-xs font-bold text-slate-300">{t('msgTitleLabel')}</label>
                 <Input
                   value={messageTitle}
                   onChange={(e) => setMessageTitle(e.target.value)}
-                  placeholder="مثال: رسالة من إدارة المنظومة"
-                  className="bg-black/60 border-white/10 text-white text-xs h-9 rounded-xl focus:border-teal-500 text-right"
+                  placeholder={t('msgTitlePlaceholder')}
+                  className={cn("bg-black/60 border-white/10 text-white text-xs h-9 rounded-xl focus:border-teal-500", isArabic ? "text-right" : "text-left")}
                 />
               </div>
 
               {/* Fast Quick Templates */}
               <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-slate-400">نصوص سريعة جاهزة (بنقرة واحدة):</label>
+                <label className="text-[11px] font-bold text-slate-400">{t('quickTemplates')}</label>
                 <div className="flex flex-wrap gap-1.5">
                   {[
-                    "مرحباً بك في رادار الذكي! نتمنى لك تجربة رحلات ممتعة وآمنة دائماً.",
-                    "تنبيه إداري: نرجو الالتزام بعدم تكرار إلغاء الطلبات للحفاظ على مؤشر نزاهة حسابك.",
-                    "تمت إعادة تأهيل وتنشيط حسابك بنجاح، يمكنك الآن طلب الرحلات بشكل طبيعي.",
-                    "عروض وخصومات حصرية متوفرة الآن في منطقتك على رحلاتك القادمة.",
-                    "يرجى التأكد من تشغيل محدد الموقع (GPS) بدقة عالية لضمان سرعة استجابة الكباتن."
+                    t('tplRiderWelcome'),
+                    t('tplRiderCancellationWarning'),
+                    t('tplRiderRehabilitated'),
+                    t('tplRiderPromos'),
+                    t('tplRiderGpsAccuracy')
                   ].map((tpl, idx) => (
                     <button
                       key={idx}
                       type="button"
                       onClick={() => setMessageBody(tpl)}
-                      className="text-[10px] bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 px-2.5 py-1 rounded-lg transition-colors text-right cursor-pointer"
+                      className={cn("text-[10px] bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 px-2.5 py-1 rounded-lg transition-colors cursor-pointer", isArabic ? "text-right" : "text-left")}
                     >
                       {tpl.length > 35 ? tpl.slice(0, 35) + '...' : tpl}
                     </button>
@@ -1031,13 +1040,13 @@ export function RidersManagementPanel() {
 
               {/* Message Body */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-300">نص الرسالة المرسلة</label>
+                <label className="text-xs font-bold text-slate-300">{t('msgBodyLabel')}</label>
                 <textarea
                   value={messageBody}
                   onChange={(e) => setMessageBody(e.target.value)}
-                  placeholder="اكتب الرسالة أو التوجيه للراكب هنا..."
+                  placeholder={t('directMsgPlaceholder')}
                   rows={4}
-                  className="w-full bg-black/60 border border-white/10 text-white text-xs p-3 rounded-xl focus:border-teal-500 outline-none resize-none text-right font-sans leading-relaxed"
+                  className={cn("w-full bg-black/60 border border-white/10 text-white text-xs p-3 rounded-xl focus:border-teal-500 outline-none resize-none font-sans leading-relaxed", isArabic ? "text-right" : "text-left")}
                   required
                 />
               </div>
@@ -1050,7 +1059,7 @@ export function RidersManagementPanel() {
                   disabled={submittingMessage}
                   className="border-white/10 text-slate-300 text-xs h-9 rounded-xl"
                 >
-                  إلغاء
+                  {t('cancelBtn')}
                 </Button>
 
                 <Button
@@ -1065,7 +1074,7 @@ export function RidersManagementPanel() {
                         title: messageTitle.trim(),
                         message: messageBody.trim(),
                         type: messageType,
-                      }, 'تم إرسال الرسالة إلى الراكب بنجاح عبر الإشعار اللحظي.');
+                      }, t('directMsgSuccess'));
 
                       if (ok) {
                         setMessageRider(null);
@@ -1082,7 +1091,7 @@ export function RidersManagementPanel() {
                   ) : (
                     <Send className="w-3.5 h-3.5" />
                   )}
-                  <span>إرسال الرسالة الآن</span>
+                  <span>{t('sendDirectMsgNow')}</span>
                 </Button>
               </DialogFooter>
             </div>
@@ -1094,21 +1103,21 @@ export function RidersManagementPanel() {
       {/* MODAL 4: Bulk Send Message / Broadcast Notification to Riders             */}
       {/* ========================================================================= */}
       <Dialog open={isBulkMessageOpen} onOpenChange={setIsBulkMessageOpen}>
-        <DialogContent className="max-w-lg bg-[#0B0F19] border border-indigo-500/40 text-white rounded-3xl p-6 text-right shadow-2xl backdrop-blur-xl" dir="rtl">
+        <DialogContent className={cn("max-w-lg bg-[#0B0F19] border border-indigo-500/40 text-white rounded-3xl p-6 shadow-2xl backdrop-blur-xl", isArabic ? "text-right" : "text-left")} dir={direction}>
           <div className="space-y-4">
             <DialogHeader>
               <DialogTitle className="text-lg font-black text-white flex items-center gap-2">
                 <Send className="h-5 w-5 text-indigo-400" />
-                بث إشعار وتوجيه جماعي للركاب
+                {t('bulkBroadcastTitle')}
               </DialogTitle>
               <DialogDescription className="text-xs text-slate-400 mt-1">
-                إرسال رسالة توجيهية أو إشعار فوري يظهر مباشرة في هواتف الركاب وقائمة إشعاراتهم.
+                {t('bulkBroadcastSubtitle')}
               </DialogDescription>
             </DialogHeader>
 
             {/* Target Scope Selection */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-300">الفئة المستهدفة بالإشعار:</label>
+              <label className="text-xs font-bold text-slate-300">{t('targetScope')}</label>
               <div className="grid grid-cols-3 gap-2">
                 <button
                   type="button"
@@ -1120,7 +1129,7 @@ export function RidersManagementPanel() {
                       : "bg-black/40 border-white/10 text-slate-400 hover:text-white"
                   )}
                 >
-                  <span>جميع الركاب</span>
+                  <span>{t('scopeAllRiders')}</span>
                   <span className="text-[11px] font-mono opacity-80">({riders.length})</span>
                 </button>
 
@@ -1134,7 +1143,7 @@ export function RidersManagementPanel() {
                       : "bg-black/40 border-white/10 text-slate-400 hover:text-white"
                   )}
                 >
-                  <span>المحددين يدوياً</span>
+                  <span>{t('scopeSelectedRiders')}</span>
                   <span className="text-[11px] font-mono opacity-80">({selectedRiderIds.size})</span>
                 </button>
 
@@ -1148,21 +1157,21 @@ export function RidersManagementPanel() {
                       : "bg-black/40 border-white/10 text-slate-400 hover:text-white"
                   )}
                 >
-                  <span>المطابقين للفلاتر</span>
+                  <span>{t('scopeFilteredRiders')}</span>
                   <span className="text-[11px] font-mono opacity-80">({filteredRiders.length})</span>
                 </button>
               </div>
 
               {bulkScope === 'selected' && selectedRiderIds.size === 0 && (
                 <p className="text-[11px] text-amber-400 bg-amber-500/10 border border-amber-500/20 p-2 rounded-xl mt-1.5">
-                  ⚠️ لم تحدد أي راكب من الجدول بعد! يمكنك تحديد ركاب عبر المربعات في الجدول، أو اختيار (جميع الركاب) أعلاه.
+                  {t('bulkScopeWarning')}
                 </p>
               )}
             </div>
 
             {/* Message Type Selector */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-300">نوع الرسالة / الأولوية:</label>
+              <label className="text-xs font-bold text-slate-300">{t('msgTypePriority')}</label>
               <div className="grid grid-cols-3 gap-2">
                 <button
                   type="button"
@@ -1174,7 +1183,7 @@ export function RidersManagementPanel() {
                       : "bg-black/40 border-white/10 text-slate-400 hover:text-white"
                   )}
                 >
-                  رسالة إدارية
+                  {t('msgTypeAdmin')}
                 </button>
                 <button
                   type="button"
@@ -1186,7 +1195,7 @@ export function RidersManagementPanel() {
                       : "bg-black/40 border-white/10 text-slate-400 hover:text-white"
                   )}
                 >
-                  تنبيه تشغيلي
+                  {t('msgTypeWarning')}
                 </button>
                 <button
                   type="button"
@@ -1198,38 +1207,38 @@ export function RidersManagementPanel() {
                       : "bg-black/40 border-white/10 text-slate-400 hover:text-white"
                   )}
                 >
-                  إشعار عاجل
+                  {t('msgTypeUrgent')}
                 </button>
               </div>
             </div>
 
             {/* Message Title */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-300">عنوان الإشعار:</label>
+              <label className="text-xs font-bold text-slate-300">{t('bulkMsgTitleLabel')}</label>
               <Input
                 value={bulkMsgTitle}
                 onChange={(e) => setBulkMsgTitle(e.target.value)}
-                placeholder="عنوان الإشعار..."
-                className="bg-black/60 border-white/10 text-white text-xs h-9 rounded-xl focus:border-indigo-500 text-right"
+                placeholder={t('bulkMsgTitlePlaceholder')}
+                className={cn("bg-black/60 border-white/10 text-white text-xs h-9 rounded-xl focus:border-indigo-500", isArabic ? "text-right" : "text-left")}
               />
             </div>
 
             {/* Fast Quick Templates */}
             <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-slate-400">قوالب جاهزة سريعة (بنقرة واحدة):</label>
+              <label className="text-[11px] font-bold text-slate-400">{t('quickTemplates')}</label>
               <div className="flex flex-wrap gap-1.5">
                 {[
-                  "تحديث جديد في التطبيق: أصبح طلب الرحلات أسرع وأسهل الآن!",
-                  "عروض حصرية: خصومات مميزة على جميع المشاوير هذا الأسبوع.",
-                  "تنبيه: نرجو التأكد من دقة موقع الانطلاق على الخريطة لتسهيل وصول الكابتن.",
-                  "شكراً لثقتكم برادار الذكي - خدمة التوصيل الأسرع والأكثر أماناً.",
-                  "نتمنى لكم أسبوعاً سعيداً ورحلات موفقة وآمنة مع رادار الذكي."
+                  t('tplRiderUpdateReady'),
+                  t('tplRiderPromos'),
+                  t('tplRiderGpsAccuracy'),
+                  t('tplRiderThankYou'),
+                  t('tplRiderHaveGoodWeek')
                 ].map((tpl, idx) => (
                   <button
                     key={idx}
                     type="button"
                     onClick={() => setBulkMsgBody(tpl)}
-                    className="text-[10px] bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 px-2.5 py-1 rounded-lg transition-colors text-right cursor-pointer"
+                    className={cn("text-[10px] bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 px-2.5 py-1 rounded-lg transition-colors cursor-pointer", isArabic ? "text-right" : "text-left")}
                   >
                     {tpl.length > 35 ? tpl.slice(0, 35) + '...' : tpl}
                   </button>
@@ -1239,13 +1248,13 @@ export function RidersManagementPanel() {
 
             {/* Message Body */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-300">محتوى الإشعار:</label>
+              <label className="text-xs font-bold text-slate-300">{t('bulkMsgBodyLabel')}</label>
               <textarea
                 value={bulkMsgBody}
                 onChange={(e) => setBulkMsgBody(e.target.value)}
-                placeholder="اكتب نص الإشعار الجماعي الموجه للركاب هنا..."
+                placeholder={t('bulkMsgBodyPlaceholder')}
                 rows={4}
-                className="w-full bg-black/60 border border-white/10 text-white text-xs p-3 rounded-xl focus:border-indigo-500 outline-none resize-none text-right font-sans leading-relaxed"
+                className={cn("w-full bg-black/60 border border-white/10 text-white text-xs p-3 rounded-xl focus:border-indigo-500 outline-none resize-none font-sans leading-relaxed", isArabic ? "text-right" : "text-left")}
                 required
               />
             </div>
@@ -1258,7 +1267,7 @@ export function RidersManagementPanel() {
                 disabled={submittingBulkMessage}
                 className="border-white/10 text-slate-300 text-xs h-9 rounded-xl"
               >
-                إلغاء
+                {t('cancelBtn')}
               </Button>
 
               <Button
@@ -1281,7 +1290,7 @@ export function RidersManagementPanel() {
                       title: bulkMsgTitle.trim(),
                       message: bulkMsgBody.trim(),
                       type: bulkMsgType,
-                    }, 'تم بث الإشعار بنجاح إلى الركاب.');
+                    }, t('bulkBroadcastSuccess'));
 
                     if (ok) {
                       setIsBulkMessageOpen(false);
@@ -1299,7 +1308,7 @@ export function RidersManagementPanel() {
                 ) : (
                   <Send className="w-3.5 h-3.5" />
                 )}
-                <span>بث الإشعار الآن</span>
+                <span>{t('confirmBulkBroadcastNow')}</span>
               </Button>
             </DialogFooter>
           </div>

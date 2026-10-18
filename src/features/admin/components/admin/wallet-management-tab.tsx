@@ -46,6 +46,8 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import { useTranslations } from 'next-intl';
+import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { HourlyRatesManagementPanel } from './hourly-rates-management-panel';
 
 interface WalletOverview {
@@ -127,6 +129,8 @@ interface CaptainOption {
 }
 
 export function WalletManagementTab() {
+  const t = useTranslations('adminWallet');
+  const { direction, isArabic } = useDashboardLanguage();
   const { toast } = useToast();
   const [activeSubTab, setActiveSubTab] = useState<'receipts' | 'direct' | 'vouchers' | 'ledger' | 'rates'>('receipts');
 
@@ -164,7 +168,7 @@ export function WalletManagementTab() {
 
   // Receipt Message Modal State
   const [messageReceiptItem, setMessageReceiptItem] = useState<ReceiptItem | null>(null);
-  const [receiptMessageTitle, setReceiptMessageTitle] = useState('إشعار بخصوص إيصال الشحن');
+  const [receiptMessageTitle, setReceiptMessageTitle] = useState(isArabic ? 'إشعار بخصوص إيصال الشحن' : 'Notification Regarding Recharge Receipt');
   const [receiptMessageBody, setReceiptMessageBody] = useState('');
   const [receiptMessageType, setReceiptMessageType] = useState<'info' | 'admin_message' | 'warning' | 'urgent'>('admin_message');
   const [submittingReceiptMessage, setSubmittingReceiptMessage] = useState(false);
@@ -261,11 +265,11 @@ export function WalletManagementTab() {
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || 'فشل اعتماد الإيصال');
+        throw new Error(data.error || (isArabic ? 'فشل اعتماد الإيصال' : 'Failed to approve receipt'));
       }
 
       toast({
-        title: 'تم اعتماد الإيصال بنجاح',
+        title: isArabic ? 'تم اعتماد الإيصال بنجاح' : 'Receipt Approved Successfully',
         description: data.message,
       });
 
@@ -276,8 +280,8 @@ export function WalletManagementTab() {
     } catch (err: any) {
       console.error('[WalletTab] approve error:', err);
       toast({
-        title: 'خطأ في الاعتماد',
-        description: err.message || 'حدث خطأ أثناء اعتماد الإيصال',
+        title: isArabic ? 'خطأ في الاعتماد' : 'Approval Error',
+        description: err.message || (isArabic ? 'حدث خطأ أثناء اعتماد الإيصال' : 'An error occurred while approving receipt'),
         variant: 'destructive',
       });
     } finally {
@@ -295,17 +299,17 @@ export function WalletManagementTab() {
         body: JSON.stringify({
           action: 'reject_receipt',
           transactionId: receiptToReject.id,
-          reason: rejectReason || 'الإيصال غير واضح أو لم يتم استلام الحوالة',
+          reason: rejectReason || (isArabic ? 'الإيصال غير واضح أو لم يتم استلام الحوالة' : 'Receipt is unclear or transfer was not received'),
         }),
       });
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || 'فشل رفض الإيصال');
+        throw new Error(data.error || (isArabic ? 'فشل رفض الإيصال' : 'Failed to reject receipt'));
       }
 
       toast({
-        title: 'تم رفض الإيصال',
+        title: isArabic ? 'تم رفض الإيصال' : 'Receipt Rejected',
         description: data.message,
       });
 
@@ -316,8 +320,8 @@ export function WalletManagementTab() {
     } catch (err: any) {
       console.error('[WalletTab] reject error:', err);
       toast({
-        title: 'خطأ أثناء الرفض',
-        description: err.message || 'تعذر رفض الإيصال',
+        title: isArabic ? 'خطأ أثناء الرفض' : 'Rejection Error',
+        description: err.message || (isArabic ? 'تعذر رفض الإيصال' : 'Could not reject receipt'),
         variant: 'destructive',
       });
     } finally {
@@ -329,7 +333,11 @@ export function WalletManagementTab() {
   const handleDirectTopupSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedCaptain) {
-      toast({ variant: 'destructive', title: 'تنبيه', description: 'يرجى اختيار الكابتن المراد شحن حسابه' });
+      toast({
+        variant: 'destructive',
+        title: isArabic ? 'تنبيه' : 'Notice',
+        description: isArabic ? 'يرجى اختيار الكابتن المراد شحن حسابه' : 'Please select a captain to recharge',
+      });
       return;
     }
 
@@ -337,7 +345,11 @@ export function WalletManagementTab() {
     const minutesNum = Number(directMinutes) || 0;
 
     if (cashNum <= 0 && minutesNum <= 0) {
-      toast({ variant: 'destructive', title: 'بيانات غير كافية', description: 'يرجى إدخال مبلغ نقدي أو عدد دقائق للشحن' });
+      toast({
+        variant: 'destructive',
+        title: isArabic ? 'بيانات غير كافية' : 'Insufficient Data',
+        description: isArabic ? 'يرجى إدخال مبلغ نقدي أو عدد دقائق للشحن' : 'Please enter a cash amount or minutes to recharge',
+      });
       return;
     }
 
@@ -357,11 +369,11 @@ export function WalletManagementTab() {
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || 'فشلت عملية الشحن المباشر');
+        throw new Error(data.error || (isArabic ? 'فشلت عملية الشحن المباشر' : 'Direct top-up failed'));
       }
 
       toast({
-        title: 'تم الشحن بنجاح',
+        title: isArabic ? 'تم الشحن بنجاح' : 'Recharge Completed Successfully',
         description: data.message,
       });
 
@@ -375,8 +387,8 @@ export function WalletManagementTab() {
     } catch (err: any) {
       console.error('[WalletTab] directTopup error:', err);
       toast({
-        title: 'خطأ أثناء الشحن',
-        description: err.message || 'تعذر تنفيذ عملية الشحن المباشر',
+        title: isArabic ? 'خطأ أثناء الشحن' : 'Top-up Error',
+        description: err.message || (isArabic ? 'تعذر تنفيذ عملية الشحن المباشر' : 'Could not execute direct top-up'),
         variant: 'destructive',
       });
     } finally {
@@ -400,11 +412,11 @@ export function WalletManagementTab() {
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || 'فشل توليد القسائم');
+        throw new Error(data.error || (isArabic ? 'فشل توليد القسائم' : 'Failed to generate vouchers'));
       }
 
       toast({
-        title: 'تم توليد القسائم بنجاح',
+        title: isArabic ? 'تم توليد القسائم بنجاح' : 'Vouchers Generated Successfully',
         description: data.message,
       });
 
@@ -413,8 +425,8 @@ export function WalletManagementTab() {
     } catch (err: any) {
       console.error('[WalletTab] generate vouchers error:', err);
       toast({
-        title: 'خطأ في التوليد',
-        description: err.message || 'تعذر توليد القسائم',
+        title: isArabic ? 'خطأ في التوليد' : 'Generation Error',
+        description: err.message || (isArabic ? 'تعذر توليد القسائم' : 'Could not generate vouchers'),
         variant: 'destructive',
       });
     } finally {
@@ -438,19 +450,19 @@ export function WalletManagementTab() {
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || 'فشل تغيير حالة الشحن الذاتي');
+        throw new Error(data.error || (isArabic ? 'فشل تغيير حالة الشحن الذاتي' : 'Failed to toggle self top-up state'));
       }
 
       setOverview(prev => prev ? { ...prev, selfTopupEnabled: targetState } : null);
       toast({
-        title: 'تم تحديث الإعدادات',
+        title: isArabic ? 'تم تحديث الإعدادات' : 'Settings Updated',
         description: data.message,
       });
     } catch (err: any) {
       console.error('[WalletTab] toggle flag error:', err);
       toast({
-        title: 'خطأ',
-        description: err.message || 'تعذر تبديل حالة الشحن الذاتي',
+        title: isArabic ? 'خطأ' : 'Error',
+        description: err.message || (isArabic ? 'تعذر تبديل حالة الشحن الذاتي' : 'Could not toggle self top-up state'),
         variant: 'destructive',
       });
     } finally {
@@ -463,7 +475,10 @@ export function WalletManagementTab() {
     navigator.clipboard?.writeText(code);
     setCopiedCode(code);
     setTimeout(() => setCopiedCode(null), 2000);
-    toast({ title: 'تم نسخ الكود', description: code });
+    toast({
+      title: isArabic ? 'تم نسخ الكود' : 'Code Copied',
+      description: code,
+    });
   };
 
   // Filtered receipts
@@ -494,7 +509,7 @@ export function WalletManagementTab() {
   }, [vouchers, searchQuery]);
 
   return (
-    <div className="space-y-6 text-right font-sans" dir="rtl">
+    <div className={cn("space-y-6 font-sans", isArabic ? "text-right" : "text-left")} dir={direction}>
       {/* ========================================================================= */}
       {/* 1. FINANCIAL KPIS & QUICK METRICS BAR                                    */}
       {/* ========================================================================= */}
@@ -506,10 +521,10 @@ export function WalletManagementTab() {
               <DollarSign className="h-5 w-5" />
             </div>
             <Badge className="bg-amber-500/10 text-amber-400 border border-amber-500/30 text-[10px] font-mono">
-              سيولة الكباتن
+              {t('captainLiquidity')}
             </Badge>
           </div>
-          <div className="mt-2.5 text-xs font-bold text-slate-300">إجمالي الرصيد النقدي</div>
+          <div className="mt-2.5 text-xs font-bold text-slate-300">{t('totalCashBalance')}</div>
           <div className="mt-1">
             {loadingOverview ? (
               <span className="font-mono text-2xl font-black text-amber-400">...</span>
@@ -519,13 +534,13 @@ export function WalletManagementTab() {
                   <span className="font-mono text-xl font-black text-amber-400">
                     {overview?.jodBalance?.toFixed(2)}
                   </span>
-                  <span className="text-xs font-bold text-amber-500/80 font-sans">د.أ (الأردن)</span>
+                  <span className="text-xs font-bold text-amber-500/80 font-sans">{t('jodLabel')}</span>
                 </div>
                 <div className="flex items-baseline justify-between border-t border-white/5 pt-0.5">
                   <span className="font-mono text-base font-bold text-amber-300">
                     {overview?.egpBalance?.toFixed(2)}
                   </span>
-                  <span className="text-[11px] font-bold text-amber-400/70 font-sans">ج.م (مصر)</span>
+                  <span className="text-[11px] font-bold text-amber-400/70 font-sans">{t('egpLabel')}</span>
                 </div>
               </div>
             ) : (
@@ -536,7 +551,7 @@ export function WalletManagementTab() {
                     : overview?.egpBalance?.toFixed(2)) || overview?.totalCashBalance.toFixed(2) || '0.00'}
                 </span>
                 <span className="text-xs font-bold text-amber-500/80">
-                  {(overview?.egpBalance ?? 0) > 0 ? 'جنيه مصري (ج.م)' : 'دينار أردني (د.أ)'}
+                  {(overview?.egpBalance ?? 0) > 0 ? t('egpFull') : t('jodFull')}
                 </span>
               </div>
             )}
@@ -550,15 +565,15 @@ export function WalletManagementTab() {
               <Clock className="h-5 w-5" />
             </div>
             <Badge className="bg-teal-500/10 text-teal-400 border border-teal-500/30 text-[10px] font-mono">
-              {loadingOverview ? '...' : `≈ ${overview?.totalFlightHours || 0} ساعة`}
+              {loadingOverview ? '...' : t('flightHoursEst', { hours: overview?.totalFlightHours || 0 })}
             </Badge>
           </div>
-          <div className="mt-2.5 text-xs font-bold text-slate-300">دقائق الرادار المشحونة</div>
+          <div className="mt-2.5 text-xs font-bold text-slate-300">{t('flightMinutesLoaded')}</div>
           <div className="mt-1 flex items-baseline justify-between">
             <span className="font-mono text-2xl font-black text-teal-400">
               {loadingOverview ? '...' : `${overview?.totalPaidMinutes.toLocaleString() || '0'}`}
             </span>
-            <span className="text-xs font-bold text-teal-500/80">دقيقة طيران</span>
+            <span className="text-xs font-bold text-teal-500/80">{t('flightMinutesUnit')}</span>
           </div>
         </div>
 
@@ -580,15 +595,15 @@ export function WalletManagementTab() {
             </div>
             {(overview?.pendingReceiptsCount ?? 0) > 0 ? (
               <Badge className="bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[10px] font-bold">
-                يتطلب تدقيق
+                {t('immediateReview')}
               </Badge>
             ) : (
               <Badge className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px]">
-                مكتمل 100%
+                {t('allSettled')}
               </Badge>
             )}
           </div>
-          <div className="mt-2.5 text-xs font-bold text-slate-300">إيصالات الشحن المعلقة</div>
+          <div className="mt-2.5 text-xs font-bold text-slate-300">{t('pendingReceipts')}</div>
           <div className="mt-1 flex items-baseline justify-between">
             <span className={cn(
               "font-mono text-2xl font-black",
@@ -596,7 +611,7 @@ export function WalletManagementTab() {
             )}>
               {loadingOverview ? '...' : overview?.pendingReceiptsCount || 0}
             </span>
-            <span className="text-xs font-bold text-slate-500">إيصال بحاجة مراجعة</span>
+            <span className="text-xs font-bold text-slate-500">{t('receiptsNeedAudit')}</span>
           </div>
         </div>
 
@@ -619,7 +634,7 @@ export function WalletManagementTab() {
                     ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-300"
                     : "bg-white/5 border-white/10 text-slate-400"
                 )}
-                title="الشحن الذاتي التجريبي للكباتن من التطبيق"
+                title={t('selfTopupTooltip')}
               >
                 {togglingSelfTopup ? (
                   <Loader2 className="w-3 h-3 animate-spin" />
@@ -628,17 +643,17 @@ export function WalletManagementTab() {
                 ) : (
                   <ToggleLeft className="w-3.5 h-3.5 text-slate-500" />
                 )}
-                <span>الشحن الذاتي: {overview?.selfTopupEnabled ? 'مفعل' : 'معطل'}</span>
+                <span>{t('selfTopupLabel', { status: overview?.selfTopupEnabled ? t('enabled') : t('disabled') })}</span>
               </Button>
             </div>
-            <div className="mt-2.5 text-xs font-bold text-slate-300">قسائم الشحن المتاحة</div>
+            <div className="mt-2.5 text-xs font-bold text-slate-300">{t('vouchersAvailable')}</div>
           </div>
           <div className="mt-1 flex items-baseline justify-between">
             <span className="font-mono text-2xl font-black text-indigo-400">
               {loadingOverview ? '...' : overview?.unusedVouchersCount || 0}
             </span>
             <span className="text-xs font-bold text-slate-500">
-              من أصل {overview?.totalVouchersCount || 0} قسيمة
+              {t('vouchersOutOfTotal', { total: overview?.totalVouchersCount || 0 })}
             </span>
           </div>
         </div>
@@ -661,7 +676,7 @@ export function WalletManagementTab() {
             )}
           >
             <Receipt className="w-4 h-4" />
-            <span>إيصالات التحويل</span>
+            <span>{t('subtabReceipts')}</span>
             {(overview?.pendingReceiptsCount ?? 0) > 0 && (
               <span className="bg-rose-600 text-white text-[10px] font-black px-1.5 py-0.2 rounded-full">
                 {overview?.pendingReceiptsCount}
@@ -681,7 +696,7 @@ export function WalletManagementTab() {
             )}
           >
             <Zap className="w-4 h-4" />
-            <span>شحن مباشر لكابتن</span>
+            <span>{t('subtabDirectTopup')}</span>
           </Button>
 
           <Button
@@ -696,7 +711,7 @@ export function WalletManagementTab() {
             )}
           >
             <Ticket className="w-4 h-4" />
-            <span>قسائم وكروت الشحن</span>
+            <span>{t('subtabVouchers')}</span>
           </Button>
 
           <Button
@@ -711,7 +726,7 @@ export function WalletManagementTab() {
             )}
           >
             <Layers className="w-4 h-4" />
-            <span>سجل المعاملات</span>
+            <span>{t('subtabTransactions')}</span>
           </Button>
 
           <Button
@@ -726,7 +741,7 @@ export function WalletManagementTab() {
             )}
           >
             <Clock className="w-4 h-4" />
-            <span>تسعير الساعة بالمناطق</span>
+            <span>{t('subtabHourlyRates')}</span>
           </Button>
         </div>
 
@@ -742,7 +757,7 @@ export function WalletManagementTab() {
           className="border-white/10 text-slate-300 hover:bg-white/5 h-9 px-3 rounded-xl text-xs flex items-center gap-1.5"
         >
           <RefreshCw className={cn("w-3.5 h-3.5", (loadingData || loadingOverview) && "animate-spin text-teal-400")} />
-          <span>تحديث</span>
+          <span>{t('refresh')}</span>
         </Button>
       </div>
 
@@ -768,21 +783,21 @@ export function WalletManagementTab() {
                       : "bg-white/5 text-slate-400 hover:text-white border border-transparent"
                   )}
                 >
-                  {st === 'PENDING' && 'قيد المراجعة'}
-                  {st === 'ALL' && 'كافة الإيصالات'}
-                  {st === 'COMPLETED' && 'المقبولة'}
-                  {st === 'REJECTED' && 'المرفوضة'}
+                  {st === 'PENDING' && t('receiptFilterPending')}
+                  {st === 'ALL' && t('receiptFilterAll')}
+                  {st === 'COMPLETED' && t('receiptFilterApproved')}
+                  {st === 'REJECTED' && t('receiptFilterRejected')}
                 </button>
               ))}
             </div>
 
             <div className="relative w-full sm:w-72">
-              <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+              <Search className={cn("absolute top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400", isArabic ? "right-3" : "left-3")} />
               <Input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="بحث باسم الكابتن أو هاتفه أو القناة..."
-                className="bg-black/60 border-white/10 text-white text-xs h-9 pr-9 rounded-xl text-right"
+                placeholder={t('searchReceiptsPlaceholder')}
+                className={cn("bg-black/60 border-white/10 text-white text-xs h-9 rounded-xl", isArabic ? "pr-9 text-right" : "pl-9 text-left")}
               />
             </div>
           </div>
@@ -791,25 +806,25 @@ export function WalletManagementTab() {
           {loadingData ? (
             <div className="p-12 text-center bg-[#0B0F19]/60 rounded-3xl border border-white/5">
               <Loader2 className="w-8 h-8 animate-spin text-teal-400 mx-auto mb-3" />
-              <p className="text-slate-400 text-xs">جاري تحميل إيصالات الشحن...</p>
+              <p className="text-slate-400 text-xs">{t('loadingReceipts')}</p>
             </div>
           ) : filteredReceipts.length === 0 ? (
             <div className="p-12 text-center bg-[#0B0F19]/60 rounded-3xl border border-white/5 space-y-2">
               <CheckCircle2 className="w-10 h-10 text-emerald-400 mx-auto mb-2" />
-              <h3 className="text-base font-bold text-white">لا توجد إيصالات تطابق هذا الفلتر</h3>
-              <p className="text-xs text-slate-400">كافة الإيصالات المسجلة تمت معالجتها بدقة.</p>
+              <h3 className="text-base font-bold text-white">{t('noReceiptsMatch')}</h3>
+              <p className="text-xs text-slate-400">{t('noReceiptsMatchSub')}</p>
             </div>
           ) : (
             <div className="overflow-x-auto rounded-3xl border border-white/10 bg-[#0B0F19]/90 shadow-2xl backdrop-blur-xl">
-              <table className="w-full text-right text-xs">
+              <table className={cn("w-full text-xs", isArabic ? "text-right" : "text-left")}>
                 <thead>
                   <tr className="border-b border-white/10 bg-white/[0.02] text-slate-400">
-                    <th className="py-3.5 px-4 font-bold">الكابتن</th>
-                    <th className="py-3.5 px-4 font-bold">قناة الدفع والمبلغ</th>
-                    <th className="py-3.5 px-4 font-bold">صورة الإيصال</th>
-                    <th className="py-3.5 px-4 font-bold">تاريخ الإرسال</th>
-                    <th className="py-3.5 px-4 font-bold">الحالة</th>
-                    <th className="py-3.5 px-4 font-bold text-center">الإجراءات</th>
+                    <th className="py-3.5 px-4 font-bold">{t('colCaptain')}</th>
+                    <th className="py-3.5 px-4 font-bold">{t('colChannelAmount')}</th>
+                    <th className="py-3.5 px-4 font-bold">{t('colReceiptImage')}</th>
+                    <th className="py-3.5 px-4 font-bold">{t('colSentAt')}</th>
+                    <th className="py-3.5 px-4 font-bold">{t('colStatus')}</th>
+                    <th className="py-3.5 px-4 font-bold text-center">{t('colActions')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
@@ -820,7 +835,7 @@ export function WalletManagementTab() {
                         <div className="space-y-0.5">
                           <p className="font-bold text-white text-sm">{rcpt.captainName}</p>
                           <div className="flex items-center gap-2 text-[11px] font-mono text-slate-400">
-                            <span>{rcpt.captainPhone}</span>
+                            <span dir="ltr">{rcpt.captainPhone}</span>
                             <span>•</span>
                             <span className="text-teal-400">{rcpt.captainSerial}</span>
                           </div>
@@ -860,13 +875,13 @@ export function WalletManagementTab() {
                             </div>
                           </button>
                         ) : (
-                          <span className="text-slate-500 text-[11px]">لا يوجد مرفق</span>
+                          <span className="text-slate-500 text-[11px]">{t('noAttachment')}</span>
                         )}
                       </td>
 
                       {/* Date */}
                       <td className="py-3.5 px-4 font-mono text-slate-400 text-[11px]">
-                        {new Date(rcpt.createdAt).toLocaleString('ar', {
+                        {new Date(rcpt.createdAt).toLocaleString(isArabic ? 'ar-JO' : 'en-US', {
                           day: '2-digit',
                           month: '2-digit',
                           year: 'numeric',
@@ -879,17 +894,17 @@ export function WalletManagementTab() {
                       <td className="py-3.5 px-4">
                         {rcpt.status === 'PENDING' && (
                           <Badge className="bg-amber-500/15 text-amber-300 border border-amber-500/30 font-bold text-[10px]">
-                            قيد المراجعة
+                            {t('pendingBadge')}
                           </Badge>
                         )}
                         {rcpt.status === 'COMPLETED' && (
                           <Badge className="bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-bold text-[10px]">
-                            تم الاعتماد
+                            {t('approvedBadge')}
                           </Badge>
                         )}
                         {rcpt.status === 'REJECTED' && (
                           <Badge className="bg-rose-500/15 text-rose-300 border border-rose-500/30 font-bold text-[10px]">
-                            مرفوض
+                            {t('rejectedBadge')}
                           </Badge>
                         )}
                       </td>
@@ -911,7 +926,7 @@ export function WalletManagementTab() {
                                 className="h-8 px-2.5 rounded-xl bg-teal-500 hover:bg-teal-600 text-[#0B0F19] text-xs font-black flex items-center gap-1 shadow-sm active:scale-95"
                               >
                                 <CheckCircle2 className="w-3.5 h-3.5" />
-                                <span>موافقة</span>
+                                <span>{t('btnApprove')}</span>
                               </Button>
 
                               <Button
@@ -925,12 +940,12 @@ export function WalletManagementTab() {
                                 className="h-8 px-2.5 rounded-xl border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs font-bold flex items-center gap-1"
                               >
                                 <XCircle className="w-3.5 h-3.5" />
-                                <span>رفض</span>
+                                <span>{t('btnReject')}</span>
                               </Button>
                             </>
                           ) : (
                             <span className="text-[11px] text-slate-500 font-mono ml-2">
-                              {rcpt.metadata?.approved_by ? 'معتمد' : rcpt.metadata?.rejected_by ? 'مرفوض' : 'مكتمل'}
+                              {rcpt.metadata?.approved_by ? t('approvedBadge') : rcpt.metadata?.rejected_by ? t('rejectedBadge') : t('approvedBadge')}
                             </span>
                           )}
 
@@ -940,15 +955,15 @@ export function WalletManagementTab() {
                             variant="outline"
                             onClick={() => {
                               setMessageReceiptItem(rcpt);
-                              setReceiptMessageTitle('إشعار بخصوص إيصال الشحن');
+                              setReceiptMessageTitle(isArabic ? 'إشعار بخصوص إيصال الشحن' : 'Notification Regarding Recharge Receipt');
                               setReceiptMessageBody('');
                               setReceiptMessageType('admin_message');
                             }}
                             className="h-8 px-2.5 rounded-xl border-teal-500/30 bg-teal-500/10 hover:bg-teal-500/20 text-teal-300 text-xs font-bold flex items-center gap-1"
-                            title="إرسال رسالة وتنبيه للكابتن بخصوص هذا الإيصال"
+                            title={t('btnMessageTooltip')}
                           >
                             <MessageSquare className="w-3.5 h-3.5 text-teal-400" />
-                            <span>مراسلة</span>
+                            <span>{t('btnMessage')}</span>
                           </Button>
                         </div>
                       </td>
@@ -963,7 +978,7 @@ export function WalletManagementTab() {
 
       {/* ----------------- SUBTAB 2: DIRECT TOP-UP ----------------- */}
       {activeSubTab === 'direct' && (
-        <Card className="bg-[#0B0F19]/90 border border-teal-500/20 rounded-3xl p-6 text-white text-right shadow-2xl">
+        <Card className={cn("bg-[#0B0F19]/90 border border-teal-500/20 rounded-3xl p-6 text-white shadow-2xl", isArabic ? "text-right" : "text-left")}>
           <CardHeader className="p-0 mb-6">
             <div className="flex items-center gap-2.5 text-teal-400">
               <div className="p-2.5 rounded-xl bg-teal-500/10 border border-teal-500/20">
@@ -971,10 +986,10 @@ export function WalletManagementTab() {
               </div>
               <div>
                 <CardTitle className="text-lg font-black text-white">
-                  الشحن الإداري المباشر لأي كابتن
+                  {t('directTopupHeading')}
                 </CardTitle>
                 <CardDescription className="text-slate-400 text-xs mt-0.5">
-                  تغذية رصيد الكابتن فورياً بمبلغ نقدي (JD) أو دقائق رادار مع تمديد الصلاحية وإرسال إشعار فوري لهاتف الكابتن.
+                  {t('directTopupSubheading')}
                 </CardDescription>
               </div>
             </div>
@@ -984,7 +999,7 @@ export function WalletManagementTab() {
             {/* Step 1: Select Captain */}
             <div className="space-y-2">
               <Label className="text-xs font-bold text-slate-300">
-                اختر الكابتن المراد شحنه:
+                {t('selectCaptainLabel')}
               </Label>
               <div className="relative">
                 <select
@@ -993,11 +1008,11 @@ export function WalletManagementTab() {
                     const cap = captainsList.find(c => c.id === e.target.value) || null;
                     setSelectedCaptain(cap);
                   }}
-                  className="w-full h-11 bg-black/60 border border-white/10 focus:border-teal-500/50 rounded-xl px-3 text-white text-xs text-right outline-none cursor-pointer"
+                  className={cn("w-full h-11 bg-black/60 border border-white/10 focus:border-teal-500/50 rounded-xl px-3 text-white text-xs outline-none cursor-pointer", isArabic ? "text-right" : "text-left")}
                   required
                 >
                   <option value="" disabled className="bg-[#0B0F19] text-slate-400">
-                    {loadingCaptains ? 'جاري تحميل قائمة الكباتن...' : '-- اختر كابتن من القائمة --'}
+                    {loadingCaptains ? t('loadingCaptainsText') : t('chooseCaptainOption')}
                   </option>
                   {captainsList.map((c) => (
                     <option key={c.id} value={c.id} className="bg-[#0B0F19] text-white">
@@ -1011,15 +1026,15 @@ export function WalletManagementTab() {
               {selectedCaptain && (
                 <div className="grid grid-cols-2 gap-3 p-3.5 rounded-2xl bg-black/40 border border-teal-500/20 text-xs mt-2">
                   <div>
-                    <span className="text-slate-400 text-[11px] block">الرصيد النقدي الحالي:</span>
+                    <span className="text-slate-400 text-[11px] block">{t('currentCashBalance')}</span>
                     <span className="font-mono text-base font-black text-amber-400">
-                      {selectedCaptain.wallet?.balance?.toFixed(2) || '0.00'} {selectedCaptain.currency || (selectedCaptain.phone?.startsWith('+20') ? 'ج.م' : 'د.أ')}
+                      {selectedCaptain.wallet?.balance?.toFixed(2) || '0.00'} {selectedCaptain.currency || (selectedCaptain.phone?.startsWith('+20') ? (isArabic ? 'ج.م' : 'EGP') : (isArabic ? 'د.أ' : 'JOD'))}
                     </span>
                   </div>
                   <div>
-                    <span className="text-slate-400 text-[11px] block">دقائق الرادار المتبقية:</span>
+                    <span className="text-slate-400 text-[11px] block">{t('currentFlightMinutes')}</span>
                     <span className="font-mono text-base font-black text-teal-400">
-                      {selectedCaptain.wallet?.total_minutes || 0} دقيقة (≈ {((selectedCaptain.wallet?.total_minutes || 0) / 60).toFixed(1)} س)
+                      {t('minutesWithHours', { minutes: selectedCaptain.wallet?.total_minutes || 0, hours: (((selectedCaptain.wallet?.total_minutes || 0) / 60).toFixed(1)) })}
                     </span>
                   </div>
                 </div>
@@ -1032,9 +1047,9 @@ export function WalletManagementTab() {
               <div className="space-y-2.5 p-4 rounded-2xl bg-black/40 border border-white/5">
                 <div className="flex items-center justify-between">
                   <Label className="text-xs font-bold text-amber-300">
-                    1. شحن رصيد نقدي ({selectedCaptain ? (selectedCaptain.currency || (selectedCaptain.phone?.startsWith('+20') ? 'جنيه مصري ج.م' : 'دينار أردني د.أ')) : 'العملة المحلية'})
+                    {t('cashTopupOption', { currency: selectedCaptain ? (selectedCaptain.currency || (selectedCaptain.phone?.startsWith('+20') ? (isArabic ? 'ج.م' : 'EGP') : (isArabic ? 'د.أ' : 'JOD'))) : (isArabic ? 'العملة المحلية' : 'Local Currency') })}
                   </Label>
-                  <span className="text-[10px] text-slate-500">يضاف لمحفظة الكابتن</span>
+                  <span className="text-[10px] text-slate-500">{t('addedToWallet')}</span>
                 </div>
                 <div className="grid grid-cols-4 gap-2">
                   {['5', '10', '20', '50'].map((amt) => (
@@ -1049,7 +1064,7 @@ export function WalletManagementTab() {
                           : "border-white/10 bg-white/5 text-slate-300 hover:bg-white/10"
                       )}
                     >
-                      +{amt} {selectedCaptain ? (selectedCaptain.currency || (selectedCaptain.phone?.startsWith('+20') ? 'ج.م' : 'د.أ')) : 'د.أ'}
+                      +{amt} {selectedCaptain ? (selectedCaptain.currency || (selectedCaptain.phone?.startsWith('+20') ? (isArabic ? 'ج.م' : 'EGP') : (isArabic ? 'د.أ' : 'JOD'))) : (isArabic ? 'د.أ' : 'JOD')}
                     </button>
                   ))}
                 </div>
@@ -1059,8 +1074,8 @@ export function WalletManagementTab() {
                   min="0"
                   value={directCashAmount}
                   onChange={(e) => setDirectCashAmount(e.target.value)}
-                  placeholder={`المبلغ بـ ${selectedCaptain ? (selectedCaptain.currency || (selectedCaptain.phone?.startsWith('+20') ? 'الجنيه' : 'الدينار')) : 'العملة'}...`}
-                  className="bg-black/60 border-white/10 text-white font-mono text-sm h-10 rounded-xl focus:border-amber-500/50 text-right"
+                  placeholder={t('cashAmountPlaceholder', { currency: selectedCaptain ? (selectedCaptain.currency || (selectedCaptain.phone?.startsWith('+20') ? (isArabic ? 'الجنيه' : 'EGP') : (isArabic ? 'الدينار' : 'JOD'))) : (isArabic ? 'العملة' : 'Currency') })}
+                  className={cn("bg-black/60 border-white/10 text-white font-mono text-sm h-10 rounded-xl focus:border-amber-500/50", isArabic ? "text-right" : "text-left")}
                 />
               </div>
 
@@ -1068,16 +1083,16 @@ export function WalletManagementTab() {
               <div className="space-y-2.5 p-4 rounded-2xl bg-black/40 border border-white/5">
                 <div className="flex items-center justify-between">
                   <Label className="text-xs font-bold text-teal-300">
-                    2. شحن باقة دقائق طيران رادار
+                    {t('minutesTopupOption')}
                   </Label>
-                  <span className="text-[10px] text-slate-500">دقائق تشغيلية مباشرة</span>
+                  <span className="text-[10px] text-slate-500">{t('directMinutesSubtitle')}</span>
                 </div>
                 <div className="grid grid-cols-4 gap-2">
                   {[
-                    { m: '60', l: '+1 س' },
-                    { m: '300', l: '+5 س' },
-                    { m: '600', l: '+10 س' },
-                    { m: '1440', l: '+24 س' },
+                    { m: '60', l: isArabic ? '+1 س' : '+1 hr' },
+                    { m: '300', l: isArabic ? '+5 س' : '+5 hrs' },
+                    { m: '600', l: isArabic ? '+10 س' : '+10 hrs' },
+                    { m: '1440', l: isArabic ? '+24 س' : '+24 hrs' },
                   ].map((pkg) => (
                     <button
                       key={pkg.m}
@@ -1099,8 +1114,8 @@ export function WalletManagementTab() {
                   min="0"
                   value={directMinutes}
                   onChange={(e) => setDirectMinutes(e.target.value)}
-                  placeholder="عدد الدقائق (اختياري)..."
-                  className="bg-black/60 border-white/10 text-white font-mono text-sm h-10 rounded-xl focus:border-teal-500/50 text-right"
+                  placeholder={t('minutesPlaceholder')}
+                  className={cn("bg-black/60 border-white/10 text-white font-mono text-sm h-10 rounded-xl focus:border-teal-500/50", isArabic ? "text-right" : "text-left")}
                 />
               </div>
             </div>
@@ -1109,13 +1124,13 @@ export function WalletManagementTab() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-slate-300">
-                  تمديد صلاحية الباقة:
+                  {t('extendValidityLabel')}
                 </Label>
                 <div className="grid grid-cols-3 gap-2">
                   {[
-                    { days: 30, l: '+30 يوماً' },
-                    { days: 60, l: '+60 يوماً' },
-                    { days: 90, l: '+90 يوماً' },
+                    { days: 30, l: t('daysUnit', { days: 30 }) },
+                    { days: 60, l: t('daysUnit', { days: 60 }) },
+                    { days: 90, l: t('daysUnit', { days: 90 }) },
                   ].map((opt) => (
                     <button
                       key={opt.days}
@@ -1136,13 +1151,13 @@ export function WalletManagementTab() {
 
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-slate-300">
-                  ملاحظة إدارية (تظهر بسجل الكابتن):
+                  {t('adminNoteLabel')}
                 </Label>
                 <Input
                   value={directNote}
                   onChange={(e) => setDirectNote(e.target.value)}
-                  placeholder="مثال: شحن نقدي مباشر عبر المكتب..."
-                  className="bg-black/60 border-white/10 text-white text-xs h-10 rounded-xl text-right"
+                  placeholder={t('adminNotePlaceholder')}
+                  className={cn("bg-black/60 border-white/10 text-white text-xs h-10 rounded-xl", isArabic ? "text-right" : "text-left")}
                 />
               </div>
             </div>
@@ -1155,13 +1170,13 @@ export function WalletManagementTab() {
             >
               {submittingDirectTopup ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin ml-2" />
-                  جاري تنفيذ عملية الشحن...
+                  <Loader2 className={cn("w-4 h-4 animate-spin", isArabic ? "ml-2" : "mr-2")} />
+                  {t('processingTopup')}
                 </>
               ) : (
                 <>
-                  <Zap className="w-4 h-4 ml-1.5" />
-                  تأكيد الشحن الفوري للكابتن
+                  <Zap className={cn("w-4 h-4", isArabic ? "ml-1.5" : "mr-1.5")} />
+                  {t('confirmDirectTopupBtn')}
                 </>
               )}
             </Button>
@@ -1173,28 +1188,28 @@ export function WalletManagementTab() {
       {activeSubTab === 'vouchers' && (
         <div className="space-y-6">
           {/* Generator Form Card */}
-          <Card className="bg-[#0B0F19]/90 border border-indigo-500/20 rounded-3xl p-5 text-white shadow-2xl">
+          <Card className={cn("bg-[#0B0F19]/90 border border-indigo-500/20 rounded-3xl p-5 text-white shadow-2xl", isArabic ? "text-right" : "text-left")}>
             <CardHeader className="p-0 mb-4">
               <div className="flex items-center gap-2 text-indigo-400">
                 <Ticket className="w-5 h-5" />
                 <CardTitle className="text-base font-black text-white">
-                  توليد قسائم وكروت شحن رقمية جديدة (Vouchers)
+                  {t('vouchersHeading')}
                 </CardTitle>
               </div>
               <CardDescription className="text-slate-400 text-xs mt-1">
-                توليد كروت شحن بأكواد فريدة يمكن إرسالها للكباتن لشحن دقائق الرادار فورياً من تطبيقهم.
+                {t('vouchersSubheading')}
               </CardDescription>
             </CardHeader>
 
             <form onSubmit={handleGenerateVouchers} className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
-              <div className="space-y-1 text-right">
-                <Label className="text-xs font-bold text-slate-300">قيمة القسيمة (دقائق طيران):</Label>
+              <div className={cn("space-y-1", isArabic ? "text-right" : "text-left")}>
+                <Label className="text-xs font-bold text-slate-300">{t('voucherValueLabel')}</Label>
                 <div className="grid grid-cols-4 gap-1.5">
                   {[
-                    { m: 60, l: '1 س' },
-                    { m: 300, l: '5 س' },
-                    { m: 600, l: '10 س' },
-                    { m: 1440, l: 'يوم' },
+                    { m: 60, l: isArabic ? '1 س' : '1 hr' },
+                    { m: 300, l: isArabic ? '5 س' : '5 hrs' },
+                    { m: 600, l: isArabic ? '10 س' : '10 hrs' },
+                    { m: 1440, l: isArabic ? 'يوم' : '1 day' },
                   ].map((p) => (
                     <button
                       key={p.m}
@@ -1213,15 +1228,15 @@ export function WalletManagementTab() {
                 </div>
               </div>
 
-              <div className="space-y-1 text-right">
-                <Label className="text-xs font-bold text-slate-300">العدد المراد توليده:</Label>
+              <div className={cn("space-y-1", isArabic ? "text-right" : "text-left")}>
+                <Label className="text-xs font-bold text-slate-300">{t('voucherCountLabel')}</Label>
                 <Input
                   type="number"
                   min="1"
                   max="50"
                   value={voucherCount}
                   onChange={(e) => setVoucherCount(Number(e.target.value))}
-                  className="bg-black/60 border-white/10 text-white font-mono text-sm h-10 rounded-xl text-right"
+                  className={cn("bg-black/60 border-white/10 text-white font-mono text-sm h-10 rounded-xl", isArabic ? "text-right" : "text-left")}
                   required
                 />
               </div>
@@ -1233,13 +1248,13 @@ export function WalletManagementTab() {
               >
                 {generatingVouchers ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin ml-2" />
-                    جاري التوليد...
+                    <Loader2 className={cn("w-4 h-4 animate-spin", isArabic ? "ml-2" : "mr-2")} />
+                    {t('generatingCodes')}
                   </>
                 ) : (
                   <>
-                    <Sparkles className="w-4 h-4 ml-1.5" />
-                    توليد الأكواد الآن
+                    <Sparkles className={cn("w-4 h-4", isArabic ? "ml-1.5" : "mr-1.5")} />
+                    {t('generateCodesBtn')}
                   </>
                 )}
               </Button>
@@ -1248,15 +1263,15 @@ export function WalletManagementTab() {
 
           {/* Vouchers Table */}
           <div className="overflow-x-auto rounded-3xl border border-white/10 bg-[#0B0F19]/90 shadow-2xl backdrop-blur-xl">
-            <table className="w-full text-right text-xs">
+            <table className={cn("w-full text-xs", isArabic ? "text-right" : "text-left")}>
               <thead>
                 <tr className="border-b border-white/10 bg-white/[0.02] text-slate-400">
-                  <th className="py-3 px-4 font-bold">كود القسيمة</th>
-                  <th className="py-3 px-4 font-bold">القيمة بالدقائق</th>
-                  <th className="py-3 px-4 font-bold">الحالة</th>
-                  <th className="py-3 px-4 font-bold">مستخدم بواسطة</th>
-                  <th className="py-3 px-4 font-bold">تاريخ التوليد</th>
-                  <th className="py-3 px-4 font-bold text-center">نسخ</th>
+                  <th className="py-3 px-4 font-bold">{t('colVoucherCode')}</th>
+                  <th className="py-3 px-4 font-bold">{t('colMinutesValue')}</th>
+                  <th className="py-3 px-4 font-bold">{t('colVoucherStatus')}</th>
+                  <th className="py-3 px-4 font-bold">{t('colRedeemedBy')}</th>
+                  <th className="py-3 px-4 font-bold">{t('colCreatedAt')}</th>
+                  <th className="py-3 px-4 font-bold text-center">{t('colCopy')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
@@ -1266,16 +1281,16 @@ export function WalletManagementTab() {
                       {v.code}
                     </td>
                     <td className="py-3 px-4 font-mono font-bold text-white">
-                      {v.minutesValue} دقيقة <span className="text-slate-500 text-[10px]">({v.hoursValue} س)</span>
+                      {v.minutesValue} {t('flightMinutesUnit')} <span className="text-slate-500 text-[10px]">({v.hoursValue} {isArabic ? 'س' : 'hrs'})</span>
                     </td>
                     <td className="py-3 px-4">
                       {v.status === 'UNUSED' ? (
                         <Badge className="bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold">
-                          غير مستخدمة
+                          {t('voucherUnused')}
                         </Badge>
                       ) : (
                         <Badge className="bg-slate-800 text-slate-400 border border-slate-700 text-[10px]">
-                          تم الاستخدام
+                          {t('voucherRedeemed')}
                         </Badge>
                       )}
                     </td>
@@ -1283,14 +1298,14 @@ export function WalletManagementTab() {
                       {v.redeemedBy ? (
                         <div>
                           <p className="font-bold text-white text-xs">{v.redeemedBy.name}</p>
-                          <p className="font-mono text-[10px] text-slate-400">{v.redeemedBy.phone}</p>
+                          <p className="font-mono text-[10px] text-slate-400" dir="ltr">{v.redeemedBy.phone}</p>
                         </div>
                       ) : (
                         <span className="text-slate-500 text-[11px]">-</span>
                       )}
                     </td>
                     <td className="py-3 px-4 font-mono text-slate-400 text-[11px]">
-                      {new Date(v.createdAt).toLocaleDateString('ar')}
+                      {new Date(v.createdAt).toLocaleDateString(isArabic ? 'ar-JO' : 'en-US')}
                     </td>
                     <td className="py-3 px-4 text-center">
                       <Button
@@ -1299,7 +1314,7 @@ export function WalletManagementTab() {
                         variant="ghost"
                         onClick={() => handleCopyCode(v.code)}
                         className="h-8 px-2.5 rounded-lg border border-white/10 hover:bg-white/10 text-slate-300"
-                        title="نسخ كود القسيمة"
+                        title={t('copyCodeTooltip')}
                       >
                         {copiedCode === v.code ? (
                           <Check className="w-3.5 h-3.5 text-emerald-400" />
@@ -1319,15 +1334,15 @@ export function WalletManagementTab() {
       {/* ----------------- SUBTAB 4: FINANCIAL LEDGER ----------------- */}
       {activeSubTab === 'ledger' && (
         <div className="overflow-x-auto rounded-3xl border border-white/10 bg-[#0B0F19]/90 shadow-2xl backdrop-blur-xl">
-          <table className="w-full text-right text-xs">
+          <table className={cn("w-full text-xs", isArabic ? "text-right" : "text-left")}>
             <thead>
               <tr className="border-b border-white/10 bg-white/[0.02] text-slate-400">
-                <th className="py-3.5 px-4 font-bold">المستخدم</th>
-                <th className="py-3.5 px-4 font-bold">نوع المعاملة</th>
-                <th className="py-3.5 px-4 font-bold">المبلغ</th>
-                <th className="py-3.5 px-4 font-bold">الحالة</th>
-                <th className="py-3.5 px-4 font-bold">التفاصيل والبيان</th>
-                <th className="py-3.5 px-4 font-bold">الوقت</th>
+                <th className="py-3.5 px-4 font-bold">{t('colUser')}</th>
+                <th className="py-3.5 px-4 font-bold">{t('colTransactionType')}</th>
+                <th className="py-3.5 px-4 font-bold">{t('colLedgerAmount')}</th>
+                <th className="py-3.5 px-4 font-bold">{t('colLedgerStatus')}</th>
+                <th className="py-3.5 px-4 font-bold">{t('colLedgerDescription')}</th>
+                <th className="py-3.5 px-4 font-bold">{t('colLedgerTime')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
@@ -1335,7 +1350,7 @@ export function WalletManagementTab() {
                 <tr key={item.id} className="hover:bg-white/[0.02] transition-colors">
                   <td className="py-3 px-4">
                     <p className="font-bold text-white">{item.userName}</p>
-                    <p className="font-mono text-[10px] text-slate-400">{item.userPhone || item.userSerial}</p>
+                    <p className="font-mono text-[10px] text-slate-400" dir="ltr">{item.userPhone || item.userSerial}</p>
                   </td>
                   <td className="py-3 px-4 font-mono text-[11px] text-slate-300 capitalize">
                     {item.type}
@@ -1355,7 +1370,7 @@ export function WalletManagementTab() {
                     {item.description}
                   </td>
                   <td className="py-3 px-4 font-mono text-slate-400 text-[11px]">
-                    {new Date(item.createdAt).toLocaleString('ar', {
+                    {new Date(item.createdAt).toLocaleString(isArabic ? 'ar-JO' : 'en-US', {
                       day: '2-digit',
                       month: '2-digit',
                       hour: '2-digit',
@@ -1380,18 +1395,18 @@ export function WalletManagementTab() {
 
       {/* MODAL 1: Receipt Image Full Preview */}
       <Dialog open={!!selectedReceiptForPreview} onOpenChange={(open) => !open && setSelectedReceiptForPreview(null)}>
-        <DialogContent className="max-w-2xl bg-[#0B0F19] border border-white/10 text-white rounded-3xl p-6 text-right" dir="rtl">
+        <DialogContent className={cn("max-w-2xl bg-[#0B0F19] border border-white/10 text-white rounded-3xl p-6", isArabic ? "text-right" : "text-left")} dir={direction}>
           {selectedReceiptForPreview && (
             <div className="space-y-4">
               <DialogHeader>
                 <DialogTitle className="text-lg font-black text-white flex items-center justify-between">
-                  <span>إيصال تحويل: {selectedReceiptForPreview.captainName}</span>
+                  <span>{t('previewModalTitle', { name: selectedReceiptForPreview.captainName })}</span>
                   <span className="font-mono text-amber-400 font-bold">
                     {selectedReceiptForPreview.amount.toFixed(2)} {selectedReceiptForPreview.currency}
                   </span>
                 </DialogTitle>
                 <DialogDescription className="text-slate-400 text-xs">
-                  {selectedReceiptForPreview.channel} • {new Date(selectedReceiptForPreview.createdAt).toLocaleString('ar')}
+                  {selectedReceiptForPreview.channel} • {new Date(selectedReceiptForPreview.createdAt).toLocaleString(isArabic ? 'ar-JO' : 'en-US')}
                 </DialogDescription>
               </DialogHeader>
 
@@ -1403,7 +1418,7 @@ export function WalletManagementTab() {
                     className="max-h-[60vh] w-auto object-contain"
                   />
                 ) : (
-                  <div className="p-12 text-slate-500">لا تتوفر صورة للإيصال</div>
+                  <div className="p-12 text-slate-500">{t('noImageAvailable')}</div>
                 )}
               </div>
 
@@ -1414,7 +1429,7 @@ export function WalletManagementTab() {
                   onClick={() => setSelectedReceiptForPreview(null)}
                   className="border-white/10 text-slate-300 text-xs h-9 rounded-xl"
                 >
-                  إغلاق
+                  {t('close')}
                 </Button>
 
                 {selectedReceiptForPreview.status === 'PENDING' && (
@@ -1430,8 +1445,8 @@ export function WalletManagementTab() {
                       }}
                       className="bg-teal-500 hover:bg-teal-600 text-[#0B0F19] text-xs font-black h-9 rounded-xl"
                     >
-                      <CheckCircle2 className="w-3.5 h-3.5 ml-1" />
-                      اعتماد الإيصال
+                      <CheckCircle2 className={cn("w-3.5 h-3.5", isArabic ? "ml-1" : "mr-1")} />
+                      {t('approveReceipt')}
                     </Button>
                     <Button
                       type="button"
@@ -1443,8 +1458,8 @@ export function WalletManagementTab() {
                       }}
                       className="border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs font-bold h-9 rounded-xl"
                     >
-                      <XCircle className="w-3.5 h-3.5 ml-1" />
-                      رفض
+                      <XCircle className={cn("w-3.5 h-3.5", isArabic ? "ml-1" : "mr-1")} />
+                      {t('rejectReceipt')}
                     </Button>
                   </div>
                 )}
@@ -1456,77 +1471,78 @@ export function WalletManagementTab() {
 
       {/* MODAL 2: Approve Receipt */}
       <Dialog open={!!receiptToApprove} onOpenChange={(open) => !open && setReceiptToApprove(null)}>
-        <DialogContent className="max-w-md bg-[#0B0F19] border border-teal-500/30 text-white rounded-3xl p-6 text-right" dir="rtl">
+        <DialogContent className={cn("max-w-md bg-[#0B0F19] border border-teal-500/30 text-white rounded-3xl p-6", isArabic ? "text-right" : "text-left")} dir={direction}>
           {receiptToApprove && (
             <div className="space-y-4">
               <DialogHeader>
                 <DialogTitle className="text-lg font-black text-white flex items-center gap-2">
                   <CheckCircle2 className="w-5 h-5 text-teal-400" />
-                  اعتماد إيصال الشحن وتغذية الرصيد
+                  {t('approveModalTitle')}
                 </DialogTitle>
                 <DialogDescription className="text-slate-400 text-xs mt-1">
-                  الموافقة على تحويل الكابتن <span className="text-white font-bold">{receiptToApprove.captainName}</span> بمبلغ{' '}
-                  <span className="text-amber-400 font-mono font-bold">{receiptToApprove.amount.toFixed(2)} {receiptToApprove.currency}</span>.
+                  {t('approveModalDesc', { name: receiptToApprove.captainName, amount: receiptToApprove.amount.toFixed(2), currency: receiptToApprove.currency })}
                 </DialogDescription>
               </DialogHeader>
 
               {/* Credit Type Selector */}
               <div className="space-y-2">
-                <Label className="text-xs font-bold text-slate-300 block">طريقة إضافة الرصيد لحساب الكابتن:</Label>
+                <Label className="text-xs font-bold text-slate-300 block">{t('creditMethodLabel')}</Label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => setApproveCreditType('CASH')}
                     className={cn(
-                      "p-3 rounded-2xl border text-right transition cursor-pointer flex flex-col justify-between",
+                      "p-3 rounded-2xl border transition cursor-pointer flex flex-col justify-between",
+                      isArabic ? "text-right" : "text-left",
                       approveCreditType === 'CASH'
                         ? "border-amber-500 bg-amber-500/15 text-white"
                         : "border-white/10 bg-black/40 text-slate-400 hover:text-white"
                     )}
                   >
-                    <span className="font-bold text-xs text-amber-300">رصيد نقدي ({receiptToApprove.currency})</span>
-                    <span className="text-[10px] text-slate-400 mt-1">إيداع {receiptToApprove.amount} {receiptToApprove.currency} بالمحفظة</span>
+                    <span className="font-bold text-xs text-amber-300">{t('cashOptionTitle', { currency: receiptToApprove.currency })}</span>
+                    <span className="text-[10px] text-slate-400 mt-1">{t('cashOptionSub', { amount: receiptToApprove.amount, currency: receiptToApprove.currency })}</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setApproveCreditType('MINUTES')}
                     className={cn(
-                      "p-3 rounded-2xl border text-right transition cursor-pointer flex flex-col justify-between",
+                      "p-3 rounded-2xl border transition cursor-pointer flex flex-col justify-between",
+                      isArabic ? "text-right" : "text-left",
                       approveCreditType === 'MINUTES'
                         ? "border-teal-500 bg-teal-500/15 text-white"
                         : "border-white/10 bg-black/40 text-slate-400 hover:text-white"
                     )}
                   >
-                    <span className="font-bold text-xs text-teal-300">دقائق طيران رادار</span>
-                    <span className="text-[10px] text-slate-400 mt-1">تحويل مباشر لدقائق رادار</span>
+                    <span className="font-bold text-xs text-teal-300">{t('minutesOptionTitle')}</span>
+                    <span className="text-[10px] text-slate-400 mt-1">{t('minutesOptionSub')}</span>
                   </button>
                 </div>
               </div>
 
               {approveCreditType === 'MINUTES' && (
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-bold text-slate-300">عدد الدقائق المراد منحها:</Label>
+                  <Label className="text-xs font-bold text-slate-300">{t('minutesCountLabel')}</Label>
                   <Input
                     type="number"
                     min="1"
                     value={approveCustomMinutes}
                     onChange={(e) => setApproveCustomMinutes(Number(e.target.value))}
-                    className="bg-black/60 border-white/10 text-white font-mono text-sm h-10 rounded-xl text-right"
+                    className={cn("bg-black/60 border-white/10 text-white font-mono text-sm h-10 rounded-xl", isArabic ? "text-right" : "text-left")}
                   />
                   <span className="text-[10px] text-slate-400">
-                    يعادل تقريباً {(approveCustomMinutes / 60).toFixed(1)} ساعة طيران.
+                    {t('minutesHoursEquiv', { hours: (approveCustomMinutes / 60).toFixed(1) })}
                   </span>
                 </div>
               )}
 
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-300">ملاحظة تأكيدية (اختياري):</Label>
+                <Label className="text-xs font-bold text-slate-300">{t('confirmNoteLabel')}</Label>
                 <Input
                   value={approveAdminNote}
                   onChange={(e) => setApproveAdminNote(e.target.value)}
-                  placeholder="ملاحظات المشرف..."
-                  className="bg-black/60 border-white/10 text-white text-xs h-10 rounded-xl text-right"
+                  placeholder={t('adminNotePlaceholder2')}
+                  className={cn("bg-black/60 border-white/10 text-white text-xs h-10 rounded-xl", isArabic ? "text-right" : "text-left")}
                 />
               </div>
 
@@ -1538,7 +1554,7 @@ export function WalletManagementTab() {
                   disabled={submittingModalAction}
                   className="border-white/10 text-slate-300 text-xs h-10 rounded-xl"
                 >
-                  إلغاء
+                  {t('cancel')}
                 </Button>
 
                 <Button
@@ -1549,13 +1565,13 @@ export function WalletManagementTab() {
                 >
                   {submittingModalAction ? (
                     <>
-                      <Loader2 className="w-4 h-4 animate-spin ml-2" />
-                      جاري الاعتماد...
+                      <Loader2 className={cn("w-4 h-4 animate-spin", isArabic ? "ml-2" : "mr-2")} />
+                      {t('approving')}
                     </>
                   ) : (
                     <>
-                      <CheckCircle2 className="w-4 h-4 ml-1.5" />
-                      تأكيد الاعتماد والشحن
+                      <CheckCircle2 className={cn("w-4 h-4", isArabic ? "ml-1.5" : "mr-1.5")} />
+                      {t('confirmApproveBtn')}
                     </>
                   )}
                 </Button>
@@ -1567,27 +1583,26 @@ export function WalletManagementTab() {
 
       {/* MODAL 3: Reject Receipt */}
       <Dialog open={!!receiptToReject} onOpenChange={(open) => !open && setReceiptToReject(null)}>
-        <DialogContent className="max-w-md bg-[#0B0F19] border border-rose-500/30 text-white rounded-3xl p-6 text-right" dir="rtl">
+        <DialogContent className={cn("max-w-md bg-[#0B0F19] border border-rose-500/30 text-white rounded-3xl p-6", isArabic ? "text-right" : "text-left")} dir={direction}>
           {receiptToReject && (
             <div className="space-y-4">
               <DialogHeader>
                 <DialogTitle className="text-lg font-black text-white flex items-center gap-2">
                   <XCircle className="w-5 h-5 text-rose-400" />
-                  رفض إيصال الشحن
+                  {t('rejectModalTitle')}
                 </DialogTitle>
                 <DialogDescription className="text-slate-400 text-xs mt-1">
-                  رفض إيصال الكابتن <span className="text-white font-bold">{receiptToReject.captainName}</span> بمبلغ{' '}
-                  <span className="font-mono text-amber-400">{receiptToReject.amount.toFixed(2)} {receiptToReject.currency}</span>.
+                  {t('rejectModalDesc', { name: receiptToReject.captainName, amount: receiptToReject.amount.toFixed(2), currency: receiptToReject.currency })}
                 </DialogDescription>
               </DialogHeader>
 
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-300">سبب الرفض (يصل للكابتن كإشعار):</Label>
+                <Label className="text-xs font-bold text-slate-300">{t('rejectReasonLabel')}</Label>
                 <Input
                   value={rejectReason}
                   onChange={(e) => setRejectReason(e.target.value)}
-                  placeholder="مثال: صورة الإيصال غير واضحة، أو الحوالة لم تصل..."
-                  className="bg-black/60 border-white/10 text-white text-xs h-10 rounded-xl text-right"
+                  placeholder={t('rejectReasonDefault')}
+                  className={cn("bg-black/60 border-white/10 text-white text-xs h-10 rounded-xl", isArabic ? "text-right" : "text-left")}
                   required
                 />
               </div>
@@ -1600,7 +1615,7 @@ export function WalletManagementTab() {
                   disabled={submittingModalAction}
                   className="border-white/10 text-slate-300 text-xs h-10 rounded-xl"
                 >
-                  تراجع
+                  {t('back')}
                 </Button>
 
                 <Button
@@ -1611,13 +1626,13 @@ export function WalletManagementTab() {
                 >
                   {submittingModalAction ? (
                     <>
-                      <Loader2 className="w-4 h-4 animate-spin ml-2" />
-                      جاري الرفض...
+                      <Loader2 className={cn("w-4 h-4 animate-spin", isArabic ? "ml-2" : "mr-2")} />
+                      {t('rejecting')}
                     </>
                   ) : (
                     <>
-                      <XCircle className="w-4 h-4 ml-1.5" />
-                      تأكيد الرفض
+                      <XCircle className={cn("w-4 h-4", isArabic ? "ml-1.5" : "mr-1.5")} />
+                      {t('confirmRejectBtn')}
                     </>
                   )}
                 </Button>
@@ -1629,7 +1644,7 @@ export function WalletManagementTab() {
 
       {/* MODAL 4: Message Captain Regarding Receipt */}
       <Dialog open={!!messageReceiptItem} onOpenChange={(open) => !open && setMessageReceiptItem(null)}>
-        <DialogContent className="max-w-md bg-[#0B0F19] border border-teal-500/40 text-white rounded-3xl p-6 text-right shadow-2xl backdrop-blur-xl" dir="rtl">
+        <DialogContent className={cn("max-w-md bg-[#0B0F19] border border-teal-500/40 text-white rounded-3xl p-6 shadow-2xl backdrop-blur-xl", isArabic ? "text-right" : "text-left")} dir={direction}>
           {messageReceiptItem && (
             <div className="space-y-4">
               <DialogHeader>
@@ -1637,10 +1652,10 @@ export function WalletManagementTab() {
                   <div className="p-2 rounded-xl bg-teal-500/10 border border-teal-500/30">
                     <MessageSquare className="w-5 h-5 text-teal-400" />
                   </div>
-                  <span>إرسال رسالة للكابتن</span>
+                  <span>{t('msgCaptainTitle')}</span>
                 </DialogTitle>
                 <DialogDescription className="text-slate-400 text-xs mt-1">
-                  إرسال إشعار فوري للكابتن بخصوص إيصال الشحن أو التحويل المالي.
+                  {t('msgCaptainSubtitle')}
                 </DialogDescription>
               </DialogHeader>
 
@@ -1654,50 +1669,50 @@ export function WalletManagementTab() {
                     </Badge>
                   </div>
                   <p className="text-[11px] text-slate-400 font-mono mt-0.5">
-                    {messageReceiptItem.captainPhone} • {messageReceiptItem.amount} {messageReceiptItem.currency} ({messageReceiptItem.channel})
+                    <span dir="ltr">{messageReceiptItem.captainPhone}</span> • {messageReceiptItem.amount} {messageReceiptItem.currency} ({messageReceiptItem.channel})
                   </p>
                 </div>
 
                 {messageReceiptItem.captainPhone && (
                   <a
-                    href={`https://wa.me/${messageReceiptItem.captainPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`مرحباً كابتن ${messageReceiptItem.captainName}، بخصوص إيصال الشحن المرسل بقيمة ${messageReceiptItem.amount} ${messageReceiptItem.currency}...`)}`}
+                    href={`https://wa.me/${messageReceiptItem.captainPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(isArabic ? `مرحباً كابتن ${messageReceiptItem.captainName}، بخصوص إيصال الشحن المرسل بقيمة ${messageReceiptItem.amount} ${messageReceiptItem.currency}...` : `Hello Captain ${messageReceiptItem.captainName}, regarding the recharge receipt for ${messageReceiptItem.amount} ${messageReceiptItem.currency}...`)}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 text-xs font-bold transition-all shrink-0"
-                    title="فتح محادثة واتساب"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 text-xs font-bold transition-all shrink-0 cursor-pointer"
+                    title={t('openWhatsApp')}
                   >
                     <MessageCircle className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>واتساب</span>
+                    <span>{t('whatsapp')}</span>
                   </a>
                 )}
               </div>
 
               {/* Title input */}
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-300">عنوان الرسالة / الإشعار</Label>
+                <Label className="text-xs font-bold text-slate-300">{t('msgTitleLabel')}</Label>
                 <Input
                   value={receiptMessageTitle}
                   onChange={(e) => setReceiptMessageTitle(e.target.value)}
-                  placeholder="مثال: إشعار بخصوص إيصال الشحن"
-                  className="bg-black/60 border-white/10 text-white text-xs h-9 rounded-xl focus:border-teal-500 text-right"
+                  placeholder={t('msgTitleLabel')}
+                  className={cn("bg-black/60 border-white/10 text-white text-xs h-9 rounded-xl focus:border-teal-500", isArabic ? "text-right" : "text-left")}
                 />
               </div>
 
               {/* Fast Templates */}
               <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-slate-400">قوالب نصوص سريعة جاهزة:</label>
+                <label className="text-[11px] font-bold text-slate-400">{t('quickTemplates')}</label>
                 <div className="flex flex-wrap gap-1.5">
                   {[
-                    "يرجى إعادة رفع صورة إشعار التحويل بشكل أوضح تظهر كافة التفاصيل.",
-                    "لم نتمكن من مطابقة الرقم المرجعي للحوالة، يرجى تزويدنا به للتأكيد.",
-                    "تم استلام حوالتك بنجاح وجاري تدقيقها واعتماد الرصيد بمحفظتك.",
-                    "نرجو التأكد من إرسال الحوالة إلى الرقم المعتمد للمحفظة.",
+                    t('tplReuploadClearer'),
+                    t('tplProvideRefNumber'),
+                    t('tplReceiptUnderReview'),
+                    t('tplConfirmWalletNumber')
                   ].map((tpl, idx) => (
                     <button
                       key={idx}
                       type="button"
                       onClick={() => setReceiptMessageBody(tpl)}
-                      className="text-[10px] bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 px-2.5 py-1 rounded-lg transition-colors text-right"
+                      className={cn("text-[10px] bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 px-2.5 py-1 rounded-lg transition-colors cursor-pointer", isArabic ? "text-right" : "text-left")}
                     >
                       {tpl.length > 32 ? tpl.slice(0, 32) + '...' : tpl}
                     </button>
@@ -1707,13 +1722,13 @@ export function WalletManagementTab() {
 
               {/* Message body */}
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-300">نص الرسالة</Label>
+                <Label className="text-xs font-bold text-slate-300">{t('msgBodyLabel')}</Label>
                 <textarea
                   value={receiptMessageBody}
                   onChange={(e) => setReceiptMessageBody(e.target.value)}
-                  placeholder="اكتب التوجيه أو الاستفسار الموجه للكابتن هنا..."
+                  placeholder={t('msgBodyPlaceholder')}
                   rows={3}
-                  className="w-full bg-black/60 border border-white/10 text-white text-xs p-3 rounded-xl focus:border-teal-500 outline-none resize-none text-right font-sans leading-relaxed"
+                  className={cn("w-full bg-black/60 border border-white/10 text-white text-xs p-3 rounded-xl focus:border-teal-500 outline-none resize-none font-sans leading-relaxed", isArabic ? "text-right" : "text-left")}
                   required
                 />
               </div>
@@ -1726,7 +1741,7 @@ export function WalletManagementTab() {
                   disabled={submittingReceiptMessage}
                   className="border-white/10 text-slate-300 text-xs h-9 rounded-xl"
                 >
-                  إلغاء
+                  {t('cancel')}
                 </Button>
 
                 <Button
@@ -1748,12 +1763,12 @@ export function WalletManagementTab() {
 
                       const data = await res.json();
                       if (!res.ok || !data.success) {
-                        throw new Error(data.error || 'فشل إرسال الرسالة');
+                        throw new Error(data.error || (isArabic ? 'فشل إرسال الرسالة' : 'Failed to send message'));
                       }
 
                       toast({
-                        title: 'تم إرسال الرسالة بنجاح',
-                        description: data.message || 'تم إرسال الإشعار اللحظي إلى الكابتن.',
+                        title: isArabic ? 'تم إرسال الرسالة بنجاح' : 'Message Sent Successfully',
+                        description: data.message || (isArabic ? 'تم إرسال الإشعار اللحظي إلى الكابتن.' : 'Instant notification sent to captain.'),
                       });
 
                       setMessageReceiptItem(null);
@@ -1761,24 +1776,24 @@ export function WalletManagementTab() {
                     } catch (err: any) {
                       toast({
                         variant: 'destructive',
-                        title: 'خطأ أثناء الإرسال',
-                        description: err.message || 'تعذر إرسال الإشعار للكابتن',
+                        title: isArabic ? 'خطأ أثناء الإرسال' : 'Error Sending',
+                        description: err.message || (isArabic ? 'تعذر إرسال الإشعار للكابتن' : 'Could not send notification to captain'),
                       });
                     } finally {
                       setSubmittingReceiptMessage(false);
                     }
                   }}
-                  className="bg-teal-500 hover:bg-teal-600 text-[#0B0F19] font-black text-xs h-10 px-6 rounded-xl shadow-lg shadow-teal-500/20 flex items-center gap-1.5 active:scale-95 transition-all"
+                  className="bg-teal-500 hover:bg-teal-600 text-[#0B0F19] font-black text-xs h-10 px-6 rounded-xl shadow-lg shadow-teal-500/20 flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer"
                 >
                   {submittingReceiptMessage ? (
                     <>
-                      <Loader2 className="w-4 h-4 animate-spin ml-1" />
-                      جاري الإرسال...
+                      <Loader2 className={cn("w-4 h-4 animate-spin", isArabic ? "ml-1" : "mr-1")} />
+                      {t('sendingMsg')}
                     </>
                   ) : (
                     <>
-                      <Send className="w-4 h-4 ml-1" />
-                      إرسال الرسالة للكابتن
+                      <Send className={cn("w-4 h-4", isArabic ? "ml-1" : "mr-1")} />
+                      {t('sendMsgBtn')}
                     </>
                   )}
                 </Button>

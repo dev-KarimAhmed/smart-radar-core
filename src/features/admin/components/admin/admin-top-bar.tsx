@@ -75,6 +75,12 @@ export function AdminTopBar() {
       .catch(() => {});
   }, [user, isSovereignPrimary]);
 
+  const adminDisplayName = isSovereignPrimary
+    ? t('sovereignAdmin')
+    : !isArabic && user?.name && (/[\u0600-\u06FF]/.test(user.name) && (user.name.includes('المدير') || user.name.includes('سيادي')))
+    ? t('sovereignAdmin')
+    : user?.name || t('sovereignAdmin');
+
   // Dialog States
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
@@ -196,7 +202,7 @@ export function AdminTopBar() {
           <div className={cn("space-y-1", isArabic ? "text-right" : "text-left")}>
             <div className="flex items-center gap-2 flex-wrap">
               <h2 className="text-base sm:text-lg font-black text-white tracking-wide">
-                {user?.name || t('sovereignAdmin')}
+                {adminDisplayName}
               </h2>
               {adminRank === 'GENERAL_ADMIN' ? (
                 <Badge className="bg-amber-500/15 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[11px] font-black py-0.5 px-2 flex items-center gap-1 shadow-[0_0_12px_rgba(245,158,11,0.2)]">
@@ -285,7 +291,7 @@ export function AdminTopBar() {
             )}
 
             {/* حقل كلمة المرور الجديدة */}
-            <div className="space-y-1.5 text-right">
+            <div className={cn("space-y-1.5", isArabic ? "text-right" : "text-left")}>
               <Label className="text-xs font-bold text-slate-300">
                 {t('newPasswordLabel')}
               </Label>
@@ -295,7 +301,7 @@ export function AdminTopBar() {
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="bg-black/60 border-white/10 focus:border-teal-500/50 text-white text-sm h-11 rounded-xl pl-10 pr-3 font-mono text-right"
+                  className={cn("bg-black/60 border-white/10 focus:border-teal-500/50 text-white text-sm h-11 rounded-xl pl-10 pr-3 font-mono", isArabic ? "text-right" : "text-left")}
                   required
                 />
                 <button
@@ -310,7 +316,7 @@ export function AdminTopBar() {
             </div>
 
             {/* حقل تأكيد كلمة المرور */}
-            <div className="space-y-1.5 text-right">
+            <div className={cn("space-y-1.5", isArabic ? "text-right" : "text-left")}>
               <Label className="text-xs font-bold text-slate-300">
                 {t('confirmPasswordLabel')}
               </Label>
@@ -320,7 +326,7 @@ export function AdminTopBar() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="bg-black/60 border-white/10 focus:border-teal-500/50 text-white text-sm h-11 rounded-xl pl-10 pr-3 font-mono text-right"
+                  className={cn("bg-black/60 border-white/10 focus:border-teal-500/50 text-white text-sm h-11 rounded-xl pl-10 pr-3 font-mono", isArabic ? "text-right" : "text-left")}
                   required
                 />
                 <button
@@ -342,12 +348,12 @@ export function AdminTopBar() {
               >
                 {submittingPassword ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                    <Loader2 className={cn("w-4 h-4 animate-spin", isArabic ? "ml-2" : "mr-2")} />
                     {t('updating')}
                   </>
                 ) : (
                   <>
-                    <CheckCircle2 className="w-4 h-4 ml-1.5" />
+                    <CheckCircle2 className={cn("w-4 h-4", isArabic ? "ml-1.5" : "mr-1.5")} />
                     {t('savePassword')}
                   </>
                 )}
@@ -392,12 +398,12 @@ export function AdminTopBar() {
             >
               {loggingOut ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                  <Loader2 className={cn("w-4 h-4 animate-spin", isArabic ? "ml-2" : "mr-2")} />
                   {t('loggingOut')}
                 </>
               ) : (
                 <>
-                  <LogOut className="w-4 h-4 ml-1.5" />
+                  <LogOut className={cn("w-4 h-4", isArabic ? "ml-1.5" : "mr-1.5")} />
                   {t('confirmLogout')}
                 </>
               )}

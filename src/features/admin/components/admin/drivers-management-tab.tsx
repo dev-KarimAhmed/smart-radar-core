@@ -51,6 +51,8 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { getRankTheme } from '@/core/utils';
+import { useTranslations } from 'next-intl';
+import { useDashboardLanguage } from '@/shared/hooks/use-dashboard-language';
 
 export interface CaptainUser {
   id: string;
@@ -100,14 +102,11 @@ export interface CaptainUser {
   currency?: string;
 }
 
-export const getCaptainCurrency = (cap?: CaptainUser | null): string => {
-  if (!cap) return 'د.أ';
-  return (
-    (cap as any).currency ||
-    cap.wallet?.currency_ar ||
-    (cap.wallet?.currency_code === 'EGP' ? 'ج.م' : undefined) ||
-    (cap.phone?.startsWith('+20') ? 'ج.م' : 'د.أ')
-  );
+export const getCaptainCurrency = (cap?: CaptainUser | null, isArabic = true): string => {
+  if (!cap) return isArabic ? 'د.أ' : 'JOD';
+  const isEgypt = cap.wallet?.currency_code === 'EGP' || cap.phone?.startsWith('+20');
+  if (isEgypt) return isArabic ? 'ج.م' : 'EGP';
+  return isArabic ? 'د.أ' : 'JOD';
 };
 
 const styles = {
@@ -117,7 +116,7 @@ const styles = {
   kpiTitle: "text-xs font-bold text-slate-300 mb-1.5 flex items-center gap-1.5",
   kpiValue: "text-2xl font-black text-white font-mono",
   searchContainer: "relative w-full sm:w-80",
-  searchInput: "bg-black/70 border-white/15 text-white pl-3 pr-9 h-10 text-xs rounded-xl focus:border-[#14B8A6] text-right font-medium placeholder:text-slate-500",
+  searchInput: "bg-black/70 border-white/15 text-white pl-3 pr-9 h-10 text-xs rounded-xl focus:border-[#14B8A6] text-start font-medium placeholder:text-slate-500",
   searchIcon: "absolute right-3 top-3 h-4 w-4 text-slate-400",
   tableCard: "rounded-2xl border border-white/10 bg-[#0B0F19]/95 overflow-hidden shadow-2xl backdrop-blur-xl",
   tableHead: "border-b border-white/10 bg-[#0F172A]/90 text-slate-200 text-xs font-black tracking-wide",
@@ -127,6 +126,8 @@ const styles = {
 } as const;
 
 export function DriversManagementTab() {
+  const t = useTranslations('adminCaptains');
+  const { isArabic, direction } = useDashboardLanguage();
   const { toast } = useToast();
   const [captains, setCaptains] = useState<CaptainUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -469,28 +470,28 @@ export function DriversManagementTab() {
         return (
           <span className={cn(styles.statusBadge, "bg-emerald-500/15 text-emerald-300 border-emerald-500/30")}>
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            متصل بالرادار
+            {t('statusBadgeActive')}
           </span>
         );
       case 'BUSY':
         return (
           <span className={cn(styles.statusBadge, "bg-amber-500/15 text-amber-300 border-amber-500/30")}>
             <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-            في رحلة
+            {t('statusBadgeBusy')}
           </span>
         );
       case 'SUSPENDED':
         return (
           <span className={cn(styles.statusBadge, "bg-rose-500/15 text-rose-300 border-rose-500/30")}>
             <XCircle className="w-3.5 h-3.5 text-rose-400" />
-            موقوف مؤقتاً
+            {t('statusBadgeSuspended')}
           </span>
         );
       case 'BANNED':
         return (
           <span className={cn(styles.statusBadge, "bg-red-950/80 text-red-300 border-red-500/40")}>
             <ShieldAlert className="w-3.5 h-3.5 text-red-400" />
-            محظور نهائياً
+            {t('statusBadgeBanned')}
           </span>
         );
       case 'IDLE':
@@ -498,7 +499,7 @@ export function DriversManagementTab() {
         return (
           <span className={cn(styles.statusBadge, "bg-slate-800/80 text-slate-200 border-slate-700")}>
             <span className="w-2 h-2 rounded-full bg-slate-400" />
-            خامل
+            {t('statusBadgeIdle')}
           </span>
         );
     }
@@ -509,39 +510,39 @@ export function DriversManagementTab() {
       case 'APPROVED':
         return (
           <Badge className="bg-emerald-500/15 text-emerald-300 border border-emerald-500/40 text-xs font-bold px-2.5 py-1 shadow-sm">
-            <CheckCircle2 className="w-3.5 h-3.5 ml-1 text-emerald-400" />
-            معتمد وموثق رسمياً
+            <CheckCircle2 className={cn("w-3.5 h-3.5 text-emerald-400", isArabic ? "ml-1" : "mr-1")} />
+            {t('verBadgeApproved')}
           </Badge>
         );
       case 'REJECTED':
         return (
           <Badge className="bg-rose-500/15 text-rose-300 border border-rose-500/40 text-xs font-bold px-2.5 py-1 shadow-sm">
-            <XCircle className="w-3.5 h-3.5 ml-1 text-rose-400" />
-            مرفوض
+            <XCircle className={cn("w-3.5 h-3.5 text-rose-400", isArabic ? "ml-1" : "mr-1")} />
+            {t('verBadgeRejected')}
           </Badge>
         );
       case 'PENDING':
       default:
         return (
           <Badge className="bg-amber-500/15 text-amber-300 border border-amber-500/40 text-xs font-bold px-2.5 py-1 shadow-sm">
-            <AlertTriangle className="w-3.5 h-3.5 ml-1 text-amber-400" />
-            قبول تلقائي (غير معتمد يدوي)
+            <AlertTriangle className={cn("w-3.5 h-3.5 text-amber-400", isArabic ? "ml-1" : "mr-1")} />
+            {t('verBadgeAuto')}
           </Badge>
         );
     }
   };
 
   return (
-    <div className="space-y-6 text-right font-sans" dir="rtl">
+    <div className={cn("space-y-6 font-sans", isArabic ? "text-right" : "text-left")} dir={direction}>
       {/* 1. Header & Actions */}
       <div className={styles.header}>
         <div>
           <h2 className="text-xl font-black text-white flex items-center gap-2">
             <Users className="w-6 h-6 text-[#14B8A6]" />
-            برج المراقبة والتحكم بالأسطول
+            {t('title')}
           </h2>
           <p className="text-xs text-slate-400 mt-1">
-            إدارة متكاملة لهويات الكباتن، دقائق طيران الرادار، تدقيق المركبات، والحالات الأمنية.
+            {t('subtitle')}
           </p>
         </div>
 
@@ -554,10 +555,10 @@ export function DriversManagementTab() {
               setIsBulkTopupOpen(true);
             }}
             className="bg-[#14B8A6] hover:bg-[#2DD4BF] text-[#0B0F19] font-black text-xs h-10 px-3.5 rounded-xl flex items-center gap-1.5 shadow-lg shadow-[#14B8A6]/20 transition-all cursor-pointer active:scale-95"
-            title="شحن باقات دقائق أو رصيد نقدي لجميع الكباتن أو فئة محددة"
+            title={t('bulkTopupTooltip')}
           >
             <Zap className="w-4 h-4" />
-            <span>شحن الأسطول</span>
+            <span>{t('bulkTopupBtn')}</span>
           </Button>
 
           {/* Global Bulk Message / Notification Button */}
@@ -568,10 +569,10 @@ export function DriversManagementTab() {
               setIsBulkMessageOpen(true);
             }}
             className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs h-10 px-3.5 rounded-xl flex items-center gap-1.5 shadow-lg shadow-indigo-600/20 transition-all cursor-pointer active:scale-95"
-            title="بث إشعار وتوجيه إداري لحظي لجميع الكباتن أو فئة محددة"
+            title={t('bulkMessageTooltip')}
           >
-            <Send className="w-4 h-4 ml-0.5" />
-            <span>إشعار جماعي</span>
+            <Send className={cn("w-4 h-4", isArabic ? "ml-0.5" : "mr-0.5")} />
+            <span>{t('bulkMessageBtn')}</span>
           </Button>
 
           <Button
@@ -582,7 +583,7 @@ export function DriversManagementTab() {
             className="border-white/10 bg-white/5 hover:bg-white/10 text-slate-200 text-xs h-10 px-4 rounded-xl flex items-center gap-2 cursor-pointer"
           >
             <RefreshCw className={cn("w-4 h-4 text-[#14B8A6]", loading && "animate-spin")} />
-            <span>تحديث فوري</span>
+            <span>{t('refreshBtn')}</span>
           </Button>
         </div>
       </div>
@@ -593,40 +594,40 @@ export function DriversManagementTab() {
           <div className="absolute top-0 right-0 w-24 h-24 bg-[#14B8A6]/5 blur-2xl rounded-full" />
           <p className={styles.kpiTitle}>
             <Users className="h-3.5 w-3.5 text-[#14B8A6]" />
-            إجمالي الكباتن بالأسطول
+            {t('kpiTotal')}
           </p>
           <p className={styles.kpiValue}>{stats.total}</p>
-          <span className="text-[10px] text-slate-500 mt-1 block">مسجلون بالنظام</span>
+          <span className="text-[10px] text-slate-500 mt-1 block">{t('kpiTotalSub')}</span>
         </div>
 
         <div className={styles.kpiCard}>
           <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 blur-2xl rounded-full" />
           <p className={styles.kpiTitle}>
             <Zap className="h-3.5 w-3.5 text-emerald-400" />
-            نشط على الرادار الآن
+            {t('kpiActive')}
           </p>
           <p className={cn(styles.kpiValue, "text-emerald-400")}>{stats.active}</p>
-          <span className="text-[10px] text-slate-500 mt-1 block">جاهز لاستقبال الطلبات</span>
+          <span className="text-[10px] text-slate-500 mt-1 block">{t('kpiActiveSub')}</span>
         </div>
 
         <div className={styles.kpiCard}>
           <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 blur-2xl rounded-full" />
           <p className={styles.kpiTitle}>
             <AlertTriangle className="h-3.5 w-3.5 text-amber-400" />
-            بانتظار تدقيق الوثائق
+            {t('kpiPending')}
           </p>
           <p className={cn(styles.kpiValue, "text-amber-400")}>{stats.pendingVerification}</p>
-          <span className="text-[10px] text-slate-500 mt-1 block">مركبات ورخص جديدة</span>
+          <span className="text-[10px] text-slate-500 mt-1 block">{t('kpiPendingSub')}</span>
         </div>
 
         <div className={styles.kpiCard}>
           <div className="absolute top-0 right-0 w-24 h-24 bg-rose-500/5 blur-2xl rounded-full" />
           <p className={styles.kpiTitle}>
             <ShieldAlert className="h-3.5 w-3.5 text-rose-400" />
-            موقوف / مخالفات
+            {t('kpiFlagged')}
           </p>
           <p className={cn(styles.kpiValue, "text-rose-400")}>{stats.flagged}</p>
-          <span className="text-[10px] text-slate-500 mt-1 block">كوابح السوق أو حظر</span>
+          <span className="text-[10px] text-slate-500 mt-1 block">{t('kpiFlaggedSub')}</span>
         </div>
       </div>
 
@@ -637,7 +638,7 @@ export function DriversManagementTab() {
           <Input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="بحث بالاسم، الهاتف، C-1250، اللوحة..."
+            placeholder={t('searchPlaceholder')}
             className={styles.searchInput}
           />
         </div>
@@ -646,14 +647,14 @@ export function DriversManagementTab() {
         <div className="flex flex-wrap items-center gap-2">
           {/* Status filter */}
           <div className="flex items-center gap-1 bg-black/40 border border-white/10 rounded-xl p-1 text-[11px]">
-            <span className="text-slate-400 px-2 font-bold">الحالة:</span>
+            <span className="text-slate-400 px-2 font-bold">{t('filterStatus')}</span>
             {[
-              { key: 'ALL', label: 'الكل' },
-              { key: 'ACTIVE', label: 'نشط' },
-              { key: 'IDLE', label: 'خامل' },
-              { key: 'BUSY', label: 'في رحلة' },
-              { key: 'SUSPENDED', label: 'معلق' },
-              { key: 'BANNED', label: 'محظور' },
+              { key: 'ALL', label: t('statusAll') },
+              { key: 'ACTIVE', label: t('statusActive') },
+              { key: 'IDLE', label: t('statusIdle') },
+              { key: 'BUSY', label: t('statusBusy') },
+              { key: 'SUSPENDED', label: t('statusSuspended') },
+              { key: 'BANNED', label: t('statusBanned') },
             ].map((st) => (
               <button
                 key={st.key}
@@ -673,11 +674,11 @@ export function DriversManagementTab() {
 
           {/* Verification filter */}
           <div className="flex items-center gap-1 bg-black/40 border border-white/10 rounded-xl p-1 text-[11px]">
-            <span className="text-slate-400 px-2 font-bold">الاعتماد:</span>
+            <span className="text-slate-400 px-2 font-bold">{t('filterVerification')}</span>
             {[
-              { key: 'ALL', label: 'الكل' },
-              { key: 'APPROVED', label: 'معتمد' },
-              { key: 'PENDING', label: 'غير معتمد' },
+              { key: 'ALL', label: t('statusAll') },
+              { key: 'APPROVED', label: t('verApproved') },
+              { key: 'PENDING', label: t('verPending') },
             ].map((ver) => (
               <button
                 key={ver.key}
@@ -697,13 +698,13 @@ export function DriversManagementTab() {
 
           {/* Rank Tier filter */}
           <div className="flex items-center gap-1 bg-black/40 border border-white/10 rounded-xl p-1 text-[11px]">
-            <span className="text-slate-400 px-2 font-bold">الرتبة:</span>
+            <span className="text-slate-400 px-2 font-bold">{t('filterRank')}</span>
             {[
-              { key: 'ALL', label: 'الكل' },
-              { key: 'PLATINUM', label: 'بلاتيني' },
-              { key: 'GOLD', label: 'ذهبي' },
-              { key: 'SILVER', label: 'فضي' },
-              { key: 'BRONZE', label: 'برونزي' },
+              { key: 'ALL', label: t('statusAll') },
+              { key: 'PLATINUM', label: t('rankPlatinum') },
+              { key: 'GOLD', label: t('rankGold') },
+              { key: 'SILVER', label: t('rankSilver') },
+              { key: 'BRONZE', label: t('rankBronze') },
             ].map((rk) => (
               <button
                 key={rk.key}
@@ -732,10 +733,10 @@ export function DriversManagementTab() {
                 setSearchQuery('');
               }}
               className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-[11px] font-bold transition"
-              title="إعادة ضبط الفلاتر"
+              title={t('resetFiltersTooltip')}
             >
               <RotateCcw className="w-3 h-3 text-[#14B8A6]" />
-              <span>إعادة ضبط</span>
+              <span>{t('resetFilters')}</span>
             </button>
           )}
         </div>
@@ -749,10 +750,8 @@ export function DriversManagementTab() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#14B8A6] opacity-75"></span>
               <span className="relative inline-flex rounded-full h-3 w-3 bg-[#14B8A6]"></span>
             </span>
-            <div className="text-xs">
-              <span className="font-bold text-white">تم تحديد </span>
-              <span className="font-black text-[#14B8A6] font-mono text-sm">{selectedCaptainIds.size}</span>
-              <span className="font-bold text-white"> كابتن من الأسطول</span>
+            <div className="text-xs font-bold text-white">
+              {t('selectedCaptainAlert', { count: selectedCaptainIds.size })}
             </div>
           </div>
 
@@ -767,7 +766,7 @@ export function DriversManagementTab() {
               className="bg-[#14B8A6] hover:bg-[#2DD4BF] text-[#0B0F19] font-black text-xs h-8 px-3.5 rounded-xl flex items-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer"
             >
               <Zap className="w-3.5 h-3.5" />
-              <span>شحن للمحددين ({selectedCaptainIds.size})</span>
+              <span>{t('bulkTopupSelected', { count: selectedCaptainIds.size })}</span>
             </Button>
 
             <Button
@@ -780,7 +779,7 @@ export function DriversManagementTab() {
               className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs h-8 px-3.5 rounded-xl flex items-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer"
             >
               <Send className="w-3.5 h-3.5" />
-              <span>إشعار للمحددين ({selectedCaptainIds.size})</span>
+              <span>{t('bulkMessageSelected', { count: selectedCaptainIds.size })}</span>
             </Button>
 
             <Button
@@ -790,7 +789,7 @@ export function DriversManagementTab() {
               onClick={clearSelection}
               className="border-white/20 bg-white/5 hover:bg-white/10 text-slate-300 text-xs h-8 px-3 rounded-xl transition-all cursor-pointer"
             >
-              <span>إلغاء التحديد</span>
+              <span>{t('clearSelection')}</span>
             </Button>
           </div>
         </div>
@@ -802,17 +801,17 @@ export function DriversManagementTab() {
           {loading ? (
             <div className="flex min-h-64 flex-col items-center justify-center gap-3 text-slate-400">
               <Loader2 className="h-8 w-8 animate-spin text-[#14B8A6]" />
-              <p className="text-xs font-bold">جاري استدعاء برج مراقبة الأسطول والبيانات السيادية...</p>
+              <p className="text-xs font-bold">{t('loadingTable')}</p>
             </div>
           ) : filteredCaptains.length === 0 ? (
             <div className="flex min-h-64 flex-col items-center justify-center gap-3 text-slate-400">
               <Car className="h-10 w-10 text-slate-600" />
-              <p className="text-sm font-bold text-slate-300">لا يوجد كباتن مطابقين لمعايير البحث</p>
-              <p className="text-xs text-slate-500">جرّب تغيير فلاتر الحالة أو مسح نص البحث.</p>
+              <p className="text-sm font-bold text-slate-300">{t('noCaptainsFound')}</p>
+              <p className="text-xs text-slate-500">{t('noCaptainsFoundSub')}</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-right text-xs">
+              <table className={cn("w-full text-xs", isArabic ? "text-right" : "text-left")}>
                 <thead className={styles.tableHead}>
                   <tr>
                     {/* Master Checkbox Header */}
@@ -830,8 +829,8 @@ export function DriversManagementTab() {
                         )}
                         title={
                           filteredCaptains.length > 0 && filteredCaptains.every(c => selectedCaptainIds.has(c.id))
-                            ? "إلغاء تحديد الكل"
-                            : "تحديد جميع الكباتن الظاهرين"
+                            ? t('deselectAllTooltip')
+                            : t('selectAllTooltip')
                         }
                       >
                         {filteredCaptains.length > 0 && filteredCaptains.every(c => selectedCaptainIds.has(c.id)) ? (
@@ -841,13 +840,13 @@ export function DriversManagementTab() {
                         ) : null}
                       </button>
                     </th>
-                    <th className="py-4 px-4 font-black text-slate-200">الكابتن والهوية</th>
-                    <th className="py-4 px-4 font-black text-slate-200">المركبة واللوحة</th>
-                    <th className="py-4 px-4 font-black text-slate-200">دقائق الرادار</th>
-                    <th className="py-4 px-4 font-black text-slate-200">الرتبة والتقييم</th>
-                    <th className="py-4 px-4 font-black text-slate-200">حالة الاعتماد</th>
-                    <th className="py-4 px-4 font-black text-slate-200">الحالة التشغيلية</th>
-                    <th className="py-4 px-4 font-black text-slate-200 text-center">إجراءات المشرف</th>
+                    <th className="py-4 px-4 font-black text-slate-200">{t('colIdentity')}</th>
+                    <th className="py-4 px-4 font-black text-slate-200">{t('colVehicle')}</th>
+                    <th className="py-4 px-4 font-black text-slate-200">{t('colFlightMinutes')}</th>
+                    <th className="py-4 px-4 font-black text-slate-200">{t('colRankRating')}</th>
+                    <th className="py-4 px-4 font-black text-slate-200">{t('colVerification')}</th>
+                    <th className="py-4 px-4 font-black text-slate-200">{t('colOperational')}</th>
+                    <th className="py-4 px-4 font-black text-slate-200 text-center">{t('colActions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -875,7 +874,7 @@ export function DriversManagementTab() {
                                 ? "bg-[#14B8A6] border-[#14B8A6] text-[#0B0F19]"
                                 : "border-white/20 bg-black/40 hover:border-white/40"
                             )}
-                            title={isSelected ? "إلغاء التحديد" : "تحديد هذا الكابتن"}
+                            title={isSelected ? t('unselectCaptainTooltip') : t('selectCaptainTooltip')}
                           >
                             {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
                           </button>
@@ -885,7 +884,7 @@ export function DriversManagementTab() {
                           <div className="flex items-center gap-3">
                             <Avatar className="h-10 w-10 border border-[#14B8A6]/40 rounded-xl shadow-sm">
                               <AvatarFallback className="bg-[#14B8A6]/15 text-[#14B8A6] font-black text-xs">
-                                {captain.full_name ? captain.full_name.substring(0, 2) : 'ك'}
+                                {captain.full_name ? captain.full_name.substring(0, 2) : 'C'}
                               </AvatarFallback>
                             </Avatar>
                             <div className="space-y-1">
@@ -909,7 +908,7 @@ export function DriversManagementTab() {
                             <div className="flex items-center gap-2 font-bold text-white text-xs">
                               <Car className="h-4 w-4 text-[#14B8A6] shrink-0" />
                               <bdi className="font-black text-white text-xs tracking-wide">
-                                {captain.vehicle.brand || 'مركبة'} {captain.vehicle.model}
+                                {captain.vehicle.brand || t('vehicleDefault')} {captain.vehicle.model}
                               </bdi>
                               {captain.vehicle.year ? (
                                 <span className="font-mono text-[10px] text-cyan-300 bg-cyan-950/40 border border-cyan-500/30 px-1.5 py-0.5 rounded font-bold">
@@ -919,7 +918,7 @@ export function DriversManagementTab() {
                             </div>
                             <div className="flex items-center gap-2">
                               <span className="font-mono font-black text-[11px] bg-slate-900 border border-slate-700/80 px-2.5 py-0.5 rounded-md text-amber-300 tracking-wider inline-flex items-center gap-1 shadow-sm" dir="ltr">
-                                <span>{captain.vehicle.plate || 'بدون لوحة'}</span>
+                                <span>{captain.vehicle.plate || t('noPlate')}</span>
                               </span>
                               {captain.vehicle.color && (
                                 <span className="text-[11px] text-slate-300 font-bold bg-white/5 border border-white/10 px-2 py-0.5 rounded-md">
@@ -940,10 +939,10 @@ export function DriversManagementTab() {
                                   <span className="font-black text-sm text-emerald-400">
                                     {captain.wallet.total_minutes}
                                   </span>
-                                  <span className="text-xs font-bold text-slate-200">دقيقة</span>
+                                  <span className="text-xs font-bold text-slate-200">{t('minuteUnit')}</span>
                                 </div>
                                 <span className="text-[11px] font-bold text-emerald-400/90 font-mono block">
-                                  ≈ {(captain.wallet.total_minutes / 60).toFixed(1)} ساعة طيران
+                                  {t('flightHoursEst', { hours: (captain.wallet.total_minutes / 60).toFixed(1) })}
                                 </span>
                               </>
                             ) : (
@@ -951,18 +950,18 @@ export function DriversManagementTab() {
                                 <div className="flex items-center gap-1.5">
                                   <Clock className="h-4 w-4 text-rose-400" />
                                   <span className="font-black text-sm text-rose-400">0</span>
-                                  <span className="text-xs font-bold text-rose-300">دقيقة</span>
+                                  <span className="text-xs font-bold text-rose-300">{t('minuteUnit')}</span>
                                 </div>
                                 <span className="text-[10px] font-bold text-rose-300 bg-rose-500/15 border border-rose-500/30 px-1.5 py-0.5 rounded inline-block">
-                                  منتهي الدقائق
+                                  {t('minutesExpired')}
                                 </span>
                               </>
                             )}
 
                             {/* Cash Balance */}
                             <div className="flex items-center gap-1 text-[11px] font-mono text-amber-300 font-bold pt-1 border-t border-white/5">
-                              <span className="text-slate-400 text-[10px] font-normal">نقدي:</span>
-                              <span>{(captain.wallet.balance || 0).toFixed(2)} {getCaptainCurrency(captain)}</span>
+                              <span className="text-slate-400 text-[10px] font-normal">{t('cashPrefix')}</span>
+                              <span>{(captain.wallet.balance || 0).toFixed(2)} {getCaptainCurrency(captain, isArabic)}</span>
                             </div>
                           </div>
                         </td>
@@ -972,7 +971,7 @@ export function DriversManagementTab() {
                           <div className="space-y-1.5">
                             <div className="flex items-center gap-2">
                               <Badge variant="outline" className={cn("text-xs font-black px-2.5 py-0.5 rounded-lg border", rankTheme.bg, rankTheme.color, rankTheme.border, rankTheme.glow)}>
-                                {rankTheme.label}
+                                {isArabic ? rankTheme.label : (captain.tier || 'Silver')}
                               </Badge>
                               <div className="flex items-center gap-1 font-black font-mono text-amber-300 text-xs bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-lg">
                                 <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
@@ -981,7 +980,7 @@ export function DriversManagementTab() {
                             </div>
                             {captain.penalty_count > 0 && (
                               <Badge className="bg-rose-500/15 text-rose-300 border border-rose-500/40 text-[10px] font-bold">
-                                {captain.penalty_count} مخالفة مسجلة
+                                {t('penaltiesLogged', { count: captain.penalty_count })}
                               </Badge>
                             )}
                           </div>
@@ -1007,10 +1006,10 @@ export function DriversManagementTab() {
                               variant="outline"
                               onClick={() => setInspectCaptain(captain)}
                               className="h-8 px-3 rounded-xl border border-cyan-500/30 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 text-xs font-bold flex items-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer"
-                              title="عرض وتدقيق الملف والوثائق"
+                              title={t('btnInspectTooltip')}
                             >
                               <Eye className="h-3.5 w-3.5 text-cyan-400" />
-                              <span>تدقيق</span>
+                              <span>{t('btnInspect')}</span>
                             </Button>
 
                             {/* Top-up flight minutes */}
@@ -1024,10 +1023,10 @@ export function DriversManagementTab() {
                                 setCashBalanceToAdd(0);
                               }}
                               className="h-8 px-3 rounded-xl border border-emerald-500/40 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 text-xs font-black flex items-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer"
-                              title="شحن باقات دقائق الرادار"
+                              title={t('btnTopupTooltip')}
                             >
                               <Zap className="h-3.5 w-3.5 text-emerald-400" />
-                              <span>شحن</span>
+                              <span>{t('btnTopup')}</span>
                             </Button>
 
                             {/* Security & Anti-Cheat */}
@@ -1042,10 +1041,10 @@ export function DriversManagementTab() {
                                 setSecurityReason('');
                               }}
                               className="h-8 px-3 rounded-xl border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-xs font-bold flex items-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer"
-                              title="إدارة الحالة والأمان والمخالفات"
+                              title={t('btnSecurityTooltip')}
                             >
                               <ShieldAlert className="h-3.5 w-3.5 text-amber-400" />
-                              <span>أمان</span>
+                              <span>{t('btnSecurity')}</span>
                             </Button>
 
                             {/* Direct Message / Notification */}
@@ -1055,15 +1054,15 @@ export function DriversManagementTab() {
                               variant="outline"
                               onClick={() => {
                                 setMessageCaptain(captain);
-                                setMessageTitle('رسالة من إدارة المنظومة');
+                                setMessageTitle(t('msgSubjectDefault'));
                                 setMessageBody('');
                                 setMessageType('admin_message');
                               }}
                               className="h-8 px-3 rounded-xl border border-teal-500/30 bg-teal-500/10 hover:bg-teal-500/20 text-teal-300 text-xs font-bold flex items-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer"
-                              title="إرسال رسالة وتوجيه إداري فوري للكابتن"
+                              title={t('btnMessageTooltip')}
                             >
                               <MessageSquare className="h-3.5 w-3.5 text-teal-400" />
-                              <span>مراسلة</span>
+                              <span>{t('btnMessage')}</span>
                             </Button>
                           </div>
                         </td>
@@ -1081,7 +1080,7 @@ export function DriversManagementTab() {
       {/* MODAL 1: Inspect Captain Full Profile & Documents                         */}
       {/* ========================================================================= */}
       <Dialog open={!!inspectCaptain} onOpenChange={(open) => !open && setInspectCaptain(null)}>
-        <DialogContent className="max-w-2xl bg-[#0B0F19] border border-[#14B8A6]/30 text-white rounded-3xl p-6 text-right" dir="rtl">
+        <DialogContent className={cn("max-w-2xl bg-[#0B0F19] border border-[#14B8A6]/30 text-white rounded-3xl p-6", isArabic ? "text-right" : "text-left")} dir={direction}>
           {inspectCaptain && (
             <div className="space-y-5">
               <DialogHeader>
@@ -1100,7 +1099,7 @@ export function DriversManagementTab() {
                         </Badge>
                       </DialogTitle>
                       <DialogDescription className="text-xs text-slate-400 mt-0.5">
-                        كابتن بالأسطول | انضم بتاريخ {new Date(inspectCaptain.created_at).toLocaleDateString('ar-JO')}
+                        {t('joinedDate', { date: new Date(inspectCaptain.created_at).toLocaleDateString(isArabic ? 'ar-JO' : 'en-US') })}
                       </DialogDescription>
                     </div>
                   </div>
@@ -1113,15 +1112,15 @@ export function DriversManagementTab() {
               {/* Identity & Contact Details */}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-black/40 border border-white/5 p-3.5 rounded-2xl text-xs">
                 <div>
-                  <span className="text-slate-500 block text-[10px] font-bold">رقم الهاتف</span>
+                  <span className="text-slate-500 block text-[10px] font-bold">{t('phoneLabel')}</span>
                   <span className="font-mono font-bold text-white block mt-0.5" dir="ltr">{inspectCaptain.phone}</span>
                 </div>
                 <div>
-                  <span className="text-slate-500 block text-[10px] font-bold">الموقع الجغرافي</span>
+                  <span className="text-slate-500 block text-[10px] font-bold">{t('locationLabel')}</span>
                   <span className="font-bold text-white block mt-0.5">{inspectCaptain.governorate} - {inspectCaptain.district}</span>
                 </div>
                 <div>
-                  <span className="text-slate-500 block text-[10px] font-bold">البريد الإلكتروني</span>
+                  <span className="text-slate-500 block text-[10px] font-bold">{t('emailLabel')}</span>
                   <span className="font-mono text-slate-300 block mt-0.5 truncate">{inspectCaptain.email || '-'}</span>
                 </div>
               </div>
@@ -1131,28 +1130,28 @@ export function DriversManagementTab() {
                 <div className="flex items-center justify-between">
                   <h4 className="text-xs font-black text-white flex items-center gap-2">
                     <Car className="h-4 w-4 text-[#14B8A6]" />
-                    مواصفات وبيانات المركبة
+                    {t('vehicleSpecsTitle')}
                   </h4>
                   <span className="text-[10px] bg-black/60 px-2.5 py-0.5 rounded border border-white/10 text-cyan-400 font-bold">
-                    {inspectCaptain.vehicle.affiliation_type === 'office-taxi' ? 'مكتب تاكسي' : inspectCaptain.vehicle.affiliation_type === 'smart-app' ? 'تطبيق ذكي' : 'كابتن حر / مستقل'}
+                    {inspectCaptain.vehicle.affiliation_type === 'office-taxi' ? t('officeTaxi') : inspectCaptain.vehicle.affiliation_type === 'smart-app' ? t('smartApp') : t('independent')}
                   </span>
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
                   <div className="bg-black/40 p-2.5 rounded-xl border border-white/5">
-                    <span className="text-slate-500 block text-[10px]">المركبة</span>
+                    <span className="text-slate-500 block text-[10px]">{t('vehicleLabel')}</span>
                     <span className="font-bold text-white">{inspectCaptain.vehicle.brand} {inspectCaptain.vehicle.model}</span>
                   </div>
                   <div className="bg-black/40 p-2.5 rounded-xl border border-white/5">
-                    <span className="text-slate-500 block text-[10px]">سنة الصنع</span>
+                    <span className="text-slate-500 block text-[10px]">{t('manufacturingYear')}</span>
                     <span className="font-mono font-bold text-white">{inspectCaptain.vehicle.year || '-'}</span>
                   </div>
                   <div className="bg-black/40 p-2.5 rounded-xl border border-white/5">
-                    <span className="text-slate-500 block text-[10px]">رقم اللوحة</span>
+                    <span className="text-slate-500 block text-[10px]">{t('plateNumber')}</span>
                     <span className="font-mono font-bold text-amber-300">{inspectCaptain.vehicle.plate || '-'}</span>
                   </div>
                   <div className="bg-black/40 p-2.5 rounded-xl border border-white/5">
-                    <span className="text-slate-500 block text-[10px]">اللون</span>
+                    <span className="text-slate-500 block text-[10px]">{t('vehicleColor')}</span>
                     <span className="font-bold text-white">{inspectCaptain.vehicle.color || '-'}</span>
                   </div>
                 </div>
@@ -1162,16 +1161,16 @@ export function DriversManagementTab() {
               <div className="border border-white/10 bg-black/30 p-4 rounded-2xl space-y-3">
                 <h4 className="text-xs font-black text-white flex items-center gap-2">
                   <FileText className="h-4 w-4 text-cyan-400" />
-                  المستندات والوثائق المرفوعة
+                  {t('documentsTitle')}
                 </h4>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                   {/* Identity Document */}
                   <div className="border border-white/10 bg-[#0B0F19] p-3 rounded-xl flex items-center justify-between">
                     <div>
-                      <p className="font-bold text-white">الهوية الوطنية / الشخصية</p>
+                      <p className="font-bold text-white">{t('idCard')}</p>
                       <p className="text-[10px] text-slate-500">
-                        {inspectCaptain.documents.identity_url ? 'تم رفع المستند' : 'لم يتم الرفع بعد'}
+                        {inspectCaptain.documents.identity_url ? t('docUploaded') : t('docNotUploaded')}
                       </p>
                     </div>
                     {inspectCaptain.documents.identity_url ? (
@@ -1181,19 +1180,19 @@ export function DriversManagementTab() {
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 text-[11px] font-bold text-[#14B8A6] hover:underline"
                       >
-                        معاينة <ExternalLink className="h-3 w-3" />
+                        {t('docPreview')} <ExternalLink className="h-3 w-3" />
                       </a>
                     ) : (
-                      <span className="text-[10px] text-slate-600">غير متوفر</span>
+                      <span className="text-[10px] text-slate-600">{t('docUnavailable')}</span>
                     )}
                   </div>
 
                   {/* Driving License */}
                   <div className="border border-white/10 bg-[#0B0F19] p-3 rounded-xl flex items-center justify-between">
                     <div>
-                      <p className="font-bold text-white">رخصة القيادة الرسمية</p>
+                      <p className="font-bold text-white">{t('driverLicense')}</p>
                       <p className="text-[10px] text-slate-500">
-                        {inspectCaptain.documents.driving_license_url ? 'تم رفع المستند' : 'لم يتم الرفع بعد'}
+                        {inspectCaptain.documents.driving_license_url ? t('docUploaded') : t('docNotUploaded')}
                       </p>
                     </div>
                     {inspectCaptain.documents.driving_license_url ? (
@@ -1203,10 +1202,10 @@ export function DriversManagementTab() {
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 text-[11px] font-bold text-[#14B8A6] hover:underline"
                       >
-                        معاينة <ExternalLink className="h-3 w-3" />
+                        {t('docPreview')} <ExternalLink className="h-3 w-3" />
                       </a>
                     ) : (
-                      <span className="text-[10px] text-slate-600">غير متوفر</span>
+                      <span className="text-[10px] text-slate-600">{t('docUnavailable')}</span>
                     )}
                   </div>
                 </div>
@@ -1222,13 +1221,13 @@ export function DriversManagementTab() {
                       action: 'update_verification',
                       userId: inspectCaptain.id,
                       verificationStatus: 'APPROVED',
-                    }, 'تم اعتماد وتوثيق الكابتن بنجاح');
+                    }, isArabic ? 'تم اعتماد وتوثيق الكابتن بنجاح' : 'Captain successfully verified and approved');
                     if (ok) setInspectCaptain(null);
                   }}
                   className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs h-9 rounded-xl px-5 shadow-lg shadow-emerald-600/20"
                 >
                   {submittingAction ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4 ml-1" />}
-                  اعتماد الكابتن كلياً
+                  {t('approveCaptainFull')}
                 </Button>
               </DialogFooter>
             </div>
@@ -1240,30 +1239,30 @@ export function DriversManagementTab() {
       {/* MODAL 2: Radar Flight Minutes Allocation & Top-Up                         */}
       {/* ========================================================================= */}
       <Dialog open={!!topupCaptain} onOpenChange={(open) => !open && setTopupCaptain(null)}>
-        <DialogContent className="max-w-md bg-[#0B0F19] border border-[#14B8A6]/40 text-white rounded-3xl p-6 text-right" dir="rtl">
+        <DialogContent className={cn("max-w-md bg-[#0B0F19] border border-[#14B8A6]/40 text-white rounded-3xl p-6", isArabic ? "text-right" : "text-left")} dir={direction}>
           {topupCaptain && (
             <div className="space-y-4">
               <DialogHeader>
                 <DialogTitle className="text-lg font-black text-white flex items-center gap-2">
                   <Zap className="h-5 w-5 text-[#14B8A6]" />
-                  شحن رصيد وباقات الكابتن
+                  {t('topupTitle', { name: topupCaptain.full_name })}
                 </DialogTitle>
                 <DialogDescription className="text-xs text-slate-400 mt-1">
-                  تغذية حساب الكابتن <span className="text-white font-bold">{topupCaptain.full_name}</span> بدقائق طيران تشغيلية أو رصيد نقدي بالمحفظة.
+                  {t('topupDesc')}
                 </DialogDescription>
               </DialogHeader>
 
               {/* Current Wallet status */}
               <div className="bg-black/60 border border-white/10 p-3.5 rounded-2xl grid grid-cols-2 gap-3 text-xs font-mono">
                 <div>
-                  <span className="text-slate-500 text-[10px] block">دقائق الرادار المتبقية:</span>
-                  <span className="text-base font-black text-[#14B8A6]">{topupCaptain.wallet.total_minutes} دقيقة</span>
-                  <span className="text-[10px] text-slate-400 block">≈ {((topupCaptain.wallet.total_minutes || 0) / 60).toFixed(1)} س</span>
+                  <span className="text-slate-500 text-[10px] block">{t('remainingRadarMinutes')}</span>
+                  <span className="text-base font-black text-[#14B8A6]">{topupCaptain.wallet.total_minutes} {t('minuteUnit')}</span>
+                  <span className="text-[10px] text-slate-400 block">≈ {((topupCaptain.wallet.total_minutes || 0) / 60).toFixed(1)} {isArabic ? 'س' : 'h'}</span>
                 </div>
                 <div>
-                  <span className="text-slate-500 text-[10px] block">الرصيد النقدي الحالي:</span>
+                  <span className="text-slate-500 text-[10px] block">{t('currentCashBalance')}</span>
                   <span className="text-base font-black text-amber-400">
-                    {(topupCaptain.wallet.balance || 0).toFixed(2)} {getCaptainCurrency(topupCaptain)}
+                    {(topupCaptain.wallet.balance || 0).toFixed(2)} {getCaptainCurrency(topupCaptain, isArabic)}
                   </span>
                 </div>
               </div>
@@ -1281,7 +1280,7 @@ export function DriversManagementTab() {
                   )}
                 >
                   <Clock className="w-3.5 h-3.5" />
-                  <span>دقائق طيران الرادار</span>
+                  <span>{t('minutesMode')}</span>
                 </button>
 
                 <button
@@ -1295,7 +1294,7 @@ export function DriversManagementTab() {
                   )}
                 >
                   <DollarSign className="w-3.5 h-3.5" />
-                  <span>رصيد نقدي ({getCaptainCurrency(topupCaptain)})</span>
+                  <span>{t('cashMode')} ({getCaptainCurrency(topupCaptain, isArabic)})</span>
                 </button>
               </div>
 
@@ -1304,20 +1303,21 @@ export function DriversManagementTab() {
                 <>
                   {/* Quick Packages */}
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-300 block">اختر باقة دقائق سريعة:</label>
+                    <label className="text-xs font-bold text-slate-300 block">{t('quickMinutesPackLabel')}</label>
                     <div className="grid grid-cols-2 gap-2">
                       {[
-                        { m: 60, label: '+60 دقيقة', sub: 'ساعة رادار' },
-                        { m: 300, label: '+300 دقيقة', sub: '5 ساعات' },
-                        { m: 600, label: '+600 دقيقة', sub: '10 ساعات' },
-                        { m: 1440, label: '+1440 دقيقة', sub: '24 ساعة (يوم)' },
+                        { m: 60, label: `+60 ${t('minuteUnit')}`, sub: isArabic ? 'ساعة رادار' : '1 Flight Hour' },
+                        { m: 300, label: `+300 ${t('minuteUnit')}`, sub: isArabic ? '5 ساعات' : '5 Flight Hours' },
+                        { m: 600, label: `+600 ${t('minuteUnit')}`, sub: isArabic ? '10 ساعات' : '10 Flight Hours' },
+                        { m: 1440, label: `+1440 ${t('minuteUnit')}`, sub: isArabic ? '24 ساعة (يوم)' : '24 Hours (Full Day)' },
                       ].map((pkg) => (
                         <button
                           key={pkg.m}
                           type="button"
                           onClick={() => setMinutesToAdd(pkg.m)}
                           className={cn(
-                            "p-2.5 rounded-xl border text-right transition cursor-pointer flex flex-col justify-between",
+                            "p-2.5 rounded-xl border transition cursor-pointer flex flex-col justify-between",
+                            isArabic ? "text-right" : "text-left",
                             minutesToAdd === pkg.m
                               ? "border-[#14B8A6] bg-[#14B8A6]/10 text-white"
                               : "border-white/10 bg-white/5 text-slate-300 hover:bg-white/10"
@@ -1332,13 +1332,13 @@ export function DriversManagementTab() {
 
                   {/* Custom Minutes Input */}
                   <div>
-                    <label className="text-xs font-bold text-slate-300 block mb-1">أو أدخل عدد الدقائق يدوياً:</label>
+                    <label className="text-xs font-bold text-slate-300 block mb-1">{t('orEnterMinutesManually')}</label>
                     <Input
                       type="number"
                       min="1"
                       value={minutesToAdd}
                       onChange={(e) => setMinutesToAdd(Number(e.target.value))}
-                      className="bg-black/60 border-white/10 text-white font-mono h-10 rounded-xl focus:border-[#14B8A6] text-right"
+                      className={cn("bg-black/60 border-white/10 text-white font-mono h-10 rounded-xl focus:border-[#14B8A6]", isArabic ? "text-right" : "text-left")}
                     />
                   </div>
                 </>
@@ -1346,7 +1346,7 @@ export function DriversManagementTab() {
                 /* Topup Mode: Cash */
                 <div className="space-y-3">
                   <label className="text-xs font-bold text-slate-300 block">
-                    اختر مبلغ الشحن النقدي ({getCaptainCurrency(topupCaptain)}):
+                    {t('quickCashPackLabel', { currency: getCaptainCurrency(topupCaptain, isArabic) })}
                   </label>
                   <div className="grid grid-cols-4 gap-2">
                     {[5, 10, 20, 50].map((amt) => (
@@ -1361,14 +1361,14 @@ export function DriversManagementTab() {
                             : "border-white/10 bg-white/5 text-slate-300 hover:bg-white/10"
                         )}
                       >
-                        +{amt} {getCaptainCurrency(topupCaptain)}
+                        +{amt} {getCaptainCurrency(topupCaptain, isArabic)}
                       </button>
                     ))}
                   </div>
 
                   <div>
                     <label className="text-xs font-bold text-slate-300 block mb-1">
-                      أو أدخل المبلغ يدوياً ({getCaptainCurrency(topupCaptain)}):
+                      {t('orEnterCashManually', { currency: getCaptainCurrency(topupCaptain, isArabic) })}
                     </label>
                     <Input
                       type="number"
@@ -1376,7 +1376,7 @@ export function DriversManagementTab() {
                       min="0.5"
                       value={cashBalanceToAdd}
                       onChange={(e) => setCashBalanceToAdd(Number(e.target.value))}
-                      className="bg-black/60 border-white/10 text-white font-mono h-10 rounded-xl focus:border-amber-500 text-right"
+                      className={cn("bg-black/60 border-white/10 text-white font-mono h-10 rounded-xl focus:border-amber-500", isArabic ? "text-right" : "text-left")}
                     />
                   </div>
                 </div>
@@ -1389,28 +1389,28 @@ export function DriversManagementTab() {
                   onClick={() => setTopupCaptain(null)}
                   className="border-white/10 text-slate-300 text-xs h-9 rounded-xl cursor-pointer"
                 >
-                  إلغاء
+                  {t('cancelBtn')}
                 </Button>
 
                 <Button
                   type="button"
                   disabled={submittingAction || (topupMode === 'minutes' ? minutesToAdd <= 0 : cashBalanceToAdd <= 0)}
                   onClick={async () => {
-                    const capCurr = getCaptainCurrency(topupCaptain);
+                    const capCurr = getCaptainCurrency(topupCaptain, isArabic);
                     if (topupMode === 'minutes') {
                       const ok = await executeAdminAction({
                         action: 'topup_minutes',
                         userId: topupCaptain.id,
                         minutes: minutesToAdd,
                         extendDays,
-                      }, `تم شحن ${minutesToAdd} دقيقة رادار بنجاح.`);
+                      }, isArabic ? `تم شحن ${minutesToAdd} دقيقة رادار بنجاح.` : `Successfully added ${minutesToAdd} radar minutes.`);
                       if (ok) setTopupCaptain(null);
                     } else {
                       const ok = await executeAdminAction({
                         action: 'adjust_balance',
                         userId: topupCaptain.id,
                         amount: cashBalanceToAdd,
-                      }, `تم إيداع ${cashBalanceToAdd} ${capCurr} في محفظة الكابتن بنجاح.`);
+                      }, isArabic ? `تم إيداع ${cashBalanceToAdd} ${capCurr} في محفظة الكابتن بنجاح.` : `Successfully deposited ${cashBalanceToAdd} ${capCurr} into captain wallet.`);
                       if (ok) setTopupCaptain(null);
                     }
                   }}
@@ -1422,7 +1422,7 @@ export function DriversManagementTab() {
                   )}
                 >
                   {submittingAction ? <Loader2 className="h-4 w-4 animate-spin ml-1" /> : <Zap className="h-4 w-4 ml-1" />}
-                  {topupMode === 'minutes' ? 'تأكيد شحن الدقائق' : 'تأكيد الإيداع النقدي'}
+                  {topupMode === 'minutes' ? t('confirmMinutesTopup') : t('confirmCashDeposit')}
                 </Button>
               </DialogFooter>
             </div>
@@ -1434,28 +1434,28 @@ export function DriversManagementTab() {
       {/* MODAL 3: Status, Penalties & Sovereign Anti-Cheat                         */}
       {/* ========================================================================= */}
       <Dialog open={!!securityCaptain} onOpenChange={(open) => !open && setSecurityCaptain(null)}>
-        <DialogContent className="max-w-md bg-[#0B0F19] border border-amber-500/40 text-white rounded-3xl p-6 text-right" dir="rtl">
+        <DialogContent className={cn("max-w-md bg-[#0B0F19] border border-amber-500/40 text-white rounded-3xl p-6", isArabic ? "text-right" : "text-left")} dir={direction}>
           {securityCaptain && (
             <div className="space-y-4">
               <DialogHeader>
                 <DialogTitle className="text-lg font-black text-amber-400 flex items-center gap-2">
                   <ShieldAlert className="h-5 w-5 text-amber-400" />
-                  إدارة الحالة والأمان والمخالفات
+                  {t('securityModalTitle')}
                 </DialogTitle>
                 <DialogDescription className="text-xs text-slate-400 mt-1">
-                  التحكم بالرتبة السيادية، تصفير المخالفات، وفرض الإيقاف أو الحظر للكابتن <span className="text-white font-bold">{securityCaptain.full_name}</span>.
+                  {t('securityModalDesc', { name: securityCaptain.full_name })}
                 </DialogDescription>
               </DialogHeader>
 
               {/* Status Change Selector */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-300 block">تغيير الحالة التشغيلية:</label>
+                <label className="text-xs font-bold text-slate-300 block">{t('changeOperationalStatus')}</label>
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   {[
-                    { st: 'ACTIVE', label: 'تنشيط فوري', cl: 'text-emerald-400 border-emerald-500/30' },
-                    { st: 'IDLE', label: 'خامل', cl: 'text-slate-300 border-slate-500/30' },
-                    { st: 'SUSPENDED', label: 'تعليق مؤقت', cl: 'text-amber-400 border-amber-500/30' },
-                    { st: 'BANNED', label: 'حظر نهائي', cl: 'text-rose-400 border-rose-500/30' },
+                    { st: 'ACTIVE', label: t('activateNow'), cl: 'text-emerald-400 border-emerald-500/30' },
+                    { st: 'IDLE', label: t('statusIdle'), cl: 'text-slate-300 border-slate-500/30' },
+                    { st: 'SUSPENDED', label: t('freezeAction'), cl: 'text-amber-400 border-amber-500/30' },
+                    { st: 'BANNED', label: t('banAction'), cl: 'text-rose-400 border-rose-500/30' },
                   ].map((s) => (
                     <button
                       key={s.st}
@@ -1476,7 +1476,7 @@ export function DriversManagementTab() {
 
               {/* Change Sovereign Rank Tier */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-300 block">الرتبة السيادية (Tier):</label>
+                <label className="text-xs font-bold text-slate-300 block">{t('sovereignTier')}</label>
                 <div className="grid grid-cols-4 gap-1.5 text-xs font-mono">
                   {['BRONZE', 'SILVER', 'GOLD', 'PLATINUM'].map((tier) => (
                     <button
@@ -1499,9 +1499,9 @@ export function DriversManagementTab() {
               {/* One-click Reset Penalties */}
               <div className="bg-red-950/20 border border-red-500/20 p-3 rounded-2xl flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-bold text-rose-300">سجل المخالفات وكوابح السوق</p>
+                  <p className="text-xs font-bold text-rose-300">{t('penaltiesRecord')}</p>
                   <p className="text-[10px] text-slate-400">
-                    المسجل حالياً: <span className="font-bold text-amber-400 font-mono">{securityCaptain.penalty_count} مخالفة</span>
+                    {t('currentlyRecorded')} <span className="font-bold text-amber-400 font-mono">{t('penaltiesLogged', { count: securityCaptain.penalty_count })}</span>
                   </p>
                 </div>
                 <Button
@@ -1512,12 +1512,12 @@ export function DriversManagementTab() {
                     await executeAdminAction({
                       action: 'reset_penalties',
                       userId: securityCaptain.id,
-                    }, 'تم تصفير المخالفات وإعادة التقييم بنجاح.');
+                    }, isArabic ? 'تم تصفير المخالفات وإعادة التقييم بنجاح.' : 'Penalties successfully reset.');
                   }}
-                  className="bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 text-[11px] h-8 rounded-xl font-bold"
+                  className="bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 text-[11px] h-8 rounded-xl font-bold cursor-pointer"
                 >
                   <RotateCcw className="h-3 w-3 ml-1" />
-                  تصفير المخالفات
+                  {t('resetPenaltiesBtn')}
                 </Button>
               </div>
 
@@ -1525,8 +1525,8 @@ export function DriversManagementTab() {
               {securityCaptain.status === 'BUSY' && (
                 <div className="bg-amber-950/20 border border-amber-500/30 p-3 rounded-2xl flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-bold text-amber-300">فك تعليق رحلة الكابتن</p>
-                    <p className="text-[10px] text-slate-400">الكابتن عالق في وضع BUSY بسبب انقطاع شبكي</p>
+                    <p className="text-xs font-bold text-amber-300">{t('releaseStuckTripTitle')}</p>
+                    <p className="text-[10px] text-slate-400">{t('releaseStuckTripDesc')}</p>
                   </div>
                   <Button
                     type="button"
@@ -1536,11 +1536,11 @@ export function DriversManagementTab() {
                       await executeAdminAction({
                         action: 'force_clear_trip',
                         userId: securityCaptain.id,
-                      }, 'تم تحرير الكابتن وإعادته لوضع الجاهزية IDLE.');
+                      }, isArabic ? 'تم تحرير الكابتن وإعادته لوضع الجاهزية IDLE.' : 'Captain trip cleared, reverted to IDLE status.');
                     }}
-                    className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-[11px] h-8 rounded-xl font-bold"
+                    className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-[11px] h-8 rounded-xl font-bold cursor-pointer"
                   >
-                    فك التعليق
+                    {t('releaseStuckTripBtn')}
                   </Button>
                 </div>
               )}
@@ -1550,9 +1550,9 @@ export function DriversManagementTab() {
                   type="button"
                   variant="outline"
                   onClick={() => setSecurityCaptain(null)}
-                  className="border-white/10 text-slate-300 text-xs h-9 rounded-xl"
+                  className="border-white/10 text-slate-300 text-xs h-9 rounded-xl cursor-pointer"
                 >
-                  إلغاء
+                  {t('cancelBtn')}
                 </Button>
 
                 <Button
@@ -1565,21 +1565,21 @@ export function DriversManagementTab() {
                         action: 'update_status',
                         userId: securityCaptain.id,
                         status: targetStatus,
-                      }, `تم تحديث حالة الكابتن إلى ${targetStatus}`);
+                      }, isArabic ? `تم تحديث حالة الكابتن إلى ${targetStatus}` : `Captain status updated to ${targetStatus}`);
                     }
                     if (String(targetTier).toUpperCase() !== String(securityCaptain.tier).toUpperCase()) {
                       ok = await executeAdminAction({
                         action: 'update_tier',
                         userId: securityCaptain.id,
                         tier: targetTier,
-                      }, `تم ترقية الرتبة إلى ${targetTier}`);
+                      }, isArabic ? `تم ترقية الرتبة إلى ${targetTier}` : `Tier upgraded to ${targetTier}`);
                     }
                     if (ok) setSecurityCaptain(null);
                   }}
-                  className="bg-amber-500 hover:bg-amber-400 text-black font-black text-xs h-10 px-5 rounded-xl shadow-lg shadow-amber-500/20"
+                  className="bg-amber-500 hover:bg-amber-400 text-black font-black text-xs h-10 px-5 rounded-xl shadow-lg shadow-amber-500/20 cursor-pointer"
                 >
                   {submittingAction ? <Loader2 className="h-4 w-4 animate-spin ml-1" /> : <ShieldCheck className="h-4 w-4 ml-1" />}
-                  حفظ الإجراءات الأمنية
+                  {t('saveSecurityActions')}
                 </Button>
               </DialogFooter>
             </div>
@@ -1591,7 +1591,7 @@ export function DriversManagementTab() {
       {/* MODAL 4: Send Direct Message & Administrative Directive                   */}
       {/* ========================================================================= */}
       <Dialog open={!!messageCaptain} onOpenChange={(open) => !open && setMessageCaptain(null)}>
-        <DialogContent className="max-w-lg bg-[#0B0F19] border border-teal-500/40 text-white rounded-3xl p-6 text-right shadow-2xl backdrop-blur-xl" dir="rtl">
+        <DialogContent className={cn("max-w-lg bg-[#0B0F19] border border-teal-500/40 text-white rounded-3xl p-6 shadow-2xl backdrop-blur-xl", isArabic ? "text-right" : "text-left")} dir={direction}>
           {messageCaptain && (
             <div className="space-y-4">
               <DialogHeader>
@@ -1599,10 +1599,10 @@ export function DriversManagementTab() {
                   <div className="p-2 rounded-xl bg-teal-500/10 border border-teal-500/30">
                     <MessageSquare className="h-5 w-5 text-teal-400" />
                   </div>
-                  <span>إرسال رسالة وتوجيه إداري للكابتن</span>
+                  <span>{t('sendMessageModalTitle')}</span>
                 </DialogTitle>
                 <DialogDescription className="text-xs text-slate-400 mt-1">
-                  إرسال إشعار لحظي يظهر فوراً على شاشة الكابتن وقائمة إشعاراته.
+                  {t('sendMessageModalDesc')}
                 </DialogDescription>
               </DialogHeader>
 
@@ -1630,88 +1630,94 @@ export function DriversManagementTab() {
                 {/* Direct WhatsApp Action */}
                 {messageCaptain.phone && (
                   <a
-                    href={`https://wa.me/${messageCaptain.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`مرحباً كابتن ${messageCaptain.full_name}، نتواصل معك من إدارة رادار الذكي.`)}`}
+                    href={`https://wa.me/${messageCaptain.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(isArabic ? `مرحباً كابتن ${messageCaptain.full_name}، نتواصل معك من إدارة رادار الذكي.` : `Hello Captain ${messageCaptain.full_name}, contacting you from Smart Radar Administration.`)}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 text-xs font-bold transition-all shrink-0"
-                    title="فتح محادثة واتساب فورية"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 text-xs font-bold transition-all shrink-0 cursor-pointer"
+                    title={isArabic ? "فتح محادثة واتساب فورية" : "Open instant WhatsApp chat"}
                   >
                     <MessageCircle className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>واتساب</span>
+                    <span>{t('whatsappBtn')}</span>
                   </a>
                 )}
               </div>
 
               {/* Message Type Selector */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-300">نوع الرسالة / الأولوية</label>
+                <label className="text-xs font-bold text-slate-300">{t('msgTypePriority')}</label>
                 <div className="grid grid-cols-3 gap-2">
                   <button
                     type="button"
                     onClick={() => setMessageType('admin_message')}
                     className={cn(
-                      "py-2 px-2.5 rounded-xl text-xs font-bold border transition-all text-center",
+                      "py-2 px-2.5 rounded-xl text-xs font-bold border transition-all text-center cursor-pointer",
                       messageType === 'admin_message'
                         ? "bg-teal-500/20 border-teal-500/50 text-teal-300 shadow-sm"
                         : "bg-black/40 border-white/10 text-slate-400 hover:text-white"
                     )}
                   >
-                    رسالة إدارية
+                    {t('msgTypeAdmin')}
                   </button>
                   <button
                     type="button"
                     onClick={() => setMessageType('warning')}
                     className={cn(
-                      "py-2 px-2.5 rounded-xl text-xs font-bold border transition-all text-center",
+                      "py-2 px-2.5 rounded-xl text-xs font-bold border transition-all text-center cursor-pointer",
                       messageType === 'warning'
                         ? "bg-amber-500/20 border-amber-500/50 text-amber-300 shadow-sm"
                         : "bg-black/40 border-white/10 text-slate-400 hover:text-white"
                     )}
                   >
-                    تنبيه تشغيلي
+                    {t('msgTypeWarning')}
                   </button>
                   <button
                     type="button"
                     onClick={() => setMessageType('urgent')}
                     className={cn(
-                      "py-2 px-2.5 rounded-xl text-xs font-bold border transition-all text-center",
+                      "py-2 px-2.5 rounded-xl text-xs font-bold border transition-all text-center cursor-pointer",
                       messageType === 'urgent'
                         ? "bg-rose-500/20 border-rose-500/50 text-rose-300 shadow-sm"
                         : "bg-black/40 border-white/10 text-slate-400 hover:text-white"
                     )}
                   >
-                    إشعار عاجل
+                    {t('msgTypeUrgent')}
                   </button>
                 </div>
               </div>
 
               {/* Message Title */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-300">عنوان الرسالة / الإشعار</label>
+                <label className="text-xs font-bold text-slate-300">{t('msgSubjectLabel')}</label>
                 <Input
                   value={messageTitle}
                   onChange={(e) => setMessageTitle(e.target.value)}
-                  placeholder="مثال: رسالة من إدارة المنظومة"
-                  className="bg-black/60 border-white/10 text-white text-xs h-9 rounded-xl focus:border-teal-500 text-right"
+                  placeholder={t('msgTitlePlaceholder')}
+                  className={cn("bg-black/60 border-white/10 text-white text-xs h-9 rounded-xl focus:border-teal-500", isArabic ? "text-right" : "text-left")}
                 />
               </div>
 
               {/* Fast Quick Templates */}
               <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-slate-400">نصوص سريعة جاهزة (بنقرة واحدة):</label>
+                <label className="text-[11px] font-bold text-slate-400">{t('quickTemplatesLabel')}</label>
                 <div className="flex flex-wrap gap-1.5">
-                  {[
+                  {(isArabic ? [
                     "يرجى تجديد رخصة القيادة أو وثائق المركبة لتجنب تعليق الحساب.",
                     "تمت مراجعة حسابك واعتماد بياناتك ووثائقك بنجاح.",
                     "تنبيه إداري: نرجو الالتزام بعدم إلغاء الرحلات بعد قبولها لضمان استقرار حسابك.",
                     "شكر وتقدير من إدارة الرادار لأدائك المتميز والتزامك العالي.",
                     "يرجى التأكد من تشغيل محدد الموقع (GPS) بدقة عالية أثناء فترات العمل."
-                  ].map((tpl, idx) => (
+                  ] : [
+                    "Please renew driving license or vehicle documents to avoid account suspension.",
+                    "Your account has been audited and verified successfully.",
+                    "Administrative notice: Please avoid canceling accepted trips to preserve your account stability.",
+                    "Appreciation from Radar Administration for your exemplary service and commitment.",
+                    "Please ensure GPS high-accuracy mode is enabled during active duty."
+                  ]).map((tpl, idx) => (
                     <button
                       key={idx}
                       type="button"
                       onClick={() => setMessageBody(tpl)}
-                      className="text-[10px] bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 px-2.5 py-1 rounded-lg transition-colors text-right"
+                      className={cn("text-[10px] bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 px-2.5 py-1 rounded-lg transition-colors cursor-pointer", isArabic ? "text-right" : "text-left")}
                     >
                       {tpl.length > 35 ? tpl.slice(0, 35) + '...' : tpl}
                     </button>
@@ -1721,13 +1727,13 @@ export function DriversManagementTab() {
 
               {/* Message Body */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-300">نص الرسالة المرسلة</label>
+                <label className="text-xs font-bold text-slate-300">{t('msgContentLabel')}</label>
                 <textarea
                   value={messageBody}
                   onChange={(e) => setMessageBody(e.target.value)}
-                  placeholder="اكتب التوجيه أو الإشعار للكابتن هنا..."
+                  placeholder={t('msgBodyPlaceholder')}
                   rows={4}
-                  className="w-full bg-black/60 border border-white/10 text-white text-xs p-3 rounded-xl focus:border-teal-500 outline-none resize-none text-right font-sans leading-relaxed"
+                  className={cn("w-full bg-black/60 border border-white/10 text-white text-xs p-3 rounded-xl focus:border-teal-500 outline-none resize-none font-sans leading-relaxed", isArabic ? "text-right" : "text-left")}
                   required
                 />
               </div>
@@ -1738,9 +1744,9 @@ export function DriversManagementTab() {
                   variant="outline"
                   onClick={() => setMessageCaptain(null)}
                   disabled={submittingMessage}
-                  className="border-white/10 text-slate-300 text-xs h-9 rounded-xl"
+                  className="border-white/10 text-slate-300 text-xs h-9 rounded-xl cursor-pointer"
                 >
-                  إلغاء
+                  {t('cancelBtn')}
                 </Button>
 
                 <Button
@@ -1755,7 +1761,7 @@ export function DriversManagementTab() {
                         title: messageTitle.trim(),
                         message: messageBody.trim(),
                         type: messageType,
-                      }, 'تم إرسال الرسالة إلى الكابتن بنجاح عبر الإشعار اللحظي.');
+                      }, isArabic ? 'تم إرسال الرسالة إلى الكابتن بنجاح عبر الإشعار اللحظي.' : 'Notification sent to captain successfully.');
 
                       if (ok) {
                         setMessageCaptain(null);
@@ -1765,17 +1771,17 @@ export function DriversManagementTab() {
                       setSubmittingMessage(false);
                     }
                   }}
-                  className="bg-teal-500 hover:bg-teal-600 text-[#0B0F19] font-black text-xs h-10 px-6 rounded-xl shadow-lg shadow-teal-500/20 flex items-center gap-1.5 active:scale-95 transition-all"
+                  className="bg-teal-500 hover:bg-teal-600 text-[#0B0F19] font-black text-xs h-10 px-6 rounded-xl shadow-lg shadow-teal-500/20 flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer"
                 >
                   {submittingMessage ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin ml-1" />
-                      جاري الإرسال...
+                      {t('sending')}
                     </>
                   ) : (
                     <>
                       <Send className="h-4 w-4 ml-1" />
-                      إرسال الإشعار اللحظي
+                      {t('sendInstantNotification')}
                     </>
                   )}
                 </Button>
@@ -1789,21 +1795,21 @@ export function DriversManagementTab() {
       {/* MODAL 5: Bulk Top-Up (Fleet / Selected / Filtered)                        */}
       {/* ========================================================================= */}
       <Dialog open={isBulkTopupOpen} onOpenChange={setIsBulkTopupOpen}>
-        <DialogContent className="max-w-lg bg-[#0B0F19] border border-[#14B8A6]/30 text-white rounded-3xl p-6 text-right" dir="rtl">
+        <DialogContent className={cn("max-w-lg bg-[#0B0F19] border border-[#14B8A6]/30 text-white rounded-3xl p-6", isArabic ? "text-right" : "text-left")} dir={direction}>
           <div className="space-y-4">
             <DialogHeader>
               <DialogTitle className="text-lg font-black text-white flex items-center gap-2">
                 <Zap className="h-5 w-5 text-[#14B8A6]" />
-                شحن الأسطول - باقات دقائق أو رصيد نقدي
+                {t('bulkTopupTitle')}
               </DialogTitle>
               <DialogDescription className="text-xs text-slate-400 mt-1">
-                شحن فوري متزامن وتحديث المحافظ وبث إشعار لحظي للكباتن.
+                {t('bulkTopupSubtitle')}
               </DialogDescription>
             </DialogHeader>
 
             {/* Target Scope Selection */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-300">الفئة المستهدفة بالشحن:</label>
+              <label className="text-xs font-bold text-slate-300">{t('targetScopeLabel')}</label>
               <div className="grid grid-cols-3 gap-2">
                 <button
                   type="button"
@@ -1815,7 +1821,7 @@ export function DriversManagementTab() {
                       : "bg-black/40 border-white/10 text-slate-400 hover:text-white"
                   )}
                 >
-                  <span>جميع الكباتن</span>
+                  <span>{t('scopeAllCaptains')}</span>
                   <span className="text-[11px] font-mono opacity-80">({captains.length})</span>
                 </button>
 
@@ -1829,7 +1835,7 @@ export function DriversManagementTab() {
                       : "bg-black/40 border-white/10 text-slate-400 hover:text-white"
                   )}
                 >
-                  <span>المحددين يدوياً</span>
+                  <span>{t('scopeSelectedCaptains')}</span>
                   <span className="text-[11px] font-mono opacity-80">({selectedCaptainIds.size})</span>
                 </button>
 
@@ -1843,21 +1849,21 @@ export function DriversManagementTab() {
                       : "bg-black/40 border-white/10 text-slate-400 hover:text-white"
                   )}
                 >
-                  <span>المطابقين للفلاتر</span>
+                  <span>{t('scopeFilteredCaptains')}</span>
                   <span className="text-[11px] font-mono opacity-80">({filteredCaptains.length})</span>
                 </button>
               </div>
 
               {bulkScope === 'selected' && selectedCaptainIds.size === 0 && (
                 <p className="text-[11px] text-amber-400 bg-amber-500/10 border border-amber-500/20 p-2 rounded-xl mt-1.5">
-                  ⚠️ لم تحدد أي كابتن من الجدول بعد! يمكنك تحديد كباتن عبر المربعات في الجدول، أو اختيار (جميع الكباتن) أعلاه.
+                  {t('noCaptainsSelectedWarning')}
                 </p>
               )}
             </div>
 
             {/* Topup Type Switch */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-300">نوع الشحن:</label>
+              <label className="text-xs font-bold text-slate-300">{t('topupTypeLabel')}</label>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
@@ -1870,7 +1876,7 @@ export function DriversManagementTab() {
                   )}
                 >
                   <Clock className="w-4 h-4 text-emerald-400" />
-                  <span>دقائق طيران الرادار</span>
+                  <span>{t('radarMinutesType')}</span>
                 </button>
 
                 <button
@@ -1884,7 +1890,7 @@ export function DriversManagementTab() {
                   )}
                 >
                   <DollarSign className="w-4 h-4 text-amber-400" />
-                  <span>رصيد مالي نقدي (Cash)</span>
+                  <span>{t('cashBalanceType')}</span>
                 </button>
               </div>
             </div>
@@ -1893,13 +1899,13 @@ export function DriversManagementTab() {
             {bulkTopupType === 'minutes' && (
               <div className="space-y-3 bg-white/[0.02] border border-white/10 p-3.5 rounded-2xl">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-300">اختر عدد الدقائق للشحن:</label>
+                  <label className="text-xs font-bold text-slate-300">{t('chooseMinutesCount')}</label>
                   <div className="grid grid-cols-4 gap-1.5">
                     {[
-                      { m: 30, label: '+30 دقيقة' },
-                      { m: 60, label: '+ساعة (60)' },
-                      { m: 120, label: '+ساعتان' },
-                      { m: 300, label: '+5 ساعات' },
+                      { m: 30, label: `+30 ${t('minuteUnit')}` },
+                      { m: 60, label: `+60 ${t('minuteUnit')}` },
+                      { m: 120, label: `+120 ${t('minuteUnit')}` },
+                      { m: 300, label: `+300 ${t('minuteUnit')}` },
                     ].map((p) => (
                       <button
                         key={p.m}
@@ -1918,17 +1924,17 @@ export function DriversManagementTab() {
                   </div>
 
                   <div className="flex items-center gap-2 mt-2">
-                    <span className="text-[11px] text-slate-400 shrink-0">أو إدخال مخصص:</span>
+                    <span className="text-[11px] text-slate-400 shrink-0">{t('orCustomMinutes')}</span>
                     <Input
                       type="number"
                       min="5"
                       step="5"
                       value={bulkMinutes}
                       onChange={(e) => setBulkMinutes(Math.max(1, Number(e.target.value)))}
-                      className="bg-black/60 border-white/10 text-white font-mono h-9 rounded-xl focus:border-emerald-500 text-right text-xs"
-                      placeholder="عدد الدقائق"
+                      className={cn("bg-black/60 border-white/10 text-white font-mono h-9 rounded-xl focus:border-emerald-500 text-xs", isArabic ? "text-right" : "text-left")}
+                      placeholder={t('minuteUnit')}
                     />
-                    <span className="text-xs text-slate-400">دقيقة</span>
+                    <span className="text-xs text-slate-400">{t('minuteUnit')}</span>
                   </div>
                 </div>
               </div>
@@ -1937,7 +1943,7 @@ export function DriversManagementTab() {
             {/* Cash inputs */}
             {bulkTopupType === 'cash' && (
               <div className="space-y-3 bg-white/[0.02] border border-white/10 p-3.5 rounded-2xl">
-                <label className="text-xs font-bold text-slate-300">اختر المبلغ المراد إيداعه:</label>
+                <label className="text-xs font-bold text-slate-300">{t('chooseCashDeposit')}</label>
                 <div className="grid grid-cols-4 gap-1.5">
                   {[5, 10, 20, 50].map((amt) => (
                     <button
@@ -1957,17 +1963,16 @@ export function DriversManagementTab() {
                 </div>
 
                 <div className="flex items-center gap-2 mt-2">
-                  <span className="text-[11px] text-slate-400 shrink-0">أو إدخال مخصص:</span>
+                  <span className="text-[11px] text-slate-400 shrink-0">{t('orCustomCash')}</span>
                   <Input
                     type="number"
                     step="0.5"
                     min="0.5"
                     value={bulkCashAmount}
                     onChange={(e) => setBulkCashAmount(Math.max(0.5, Number(e.target.value)))}
-                    className="bg-black/60 border-white/10 text-white font-mono h-9 rounded-xl focus:border-amber-500 text-right text-xs"
-                    placeholder="المبلغ"
+                    className={cn("bg-black/60 border-white/10 text-white font-mono h-9 rounded-xl focus:border-amber-500 text-xs", isArabic ? "text-right" : "text-left")}
+                    placeholder="0.0"
                   />
-                  <span className="text-xs text-slate-400">رصيد</span>
                 </div>
               </div>
             )}
@@ -1976,18 +1981,13 @@ export function DriversManagementTab() {
             <div className="bg-[#14B8A6]/10 border border-[#14B8A6]/30 p-3 rounded-2xl text-xs text-slate-300 space-y-1">
               <div className="flex items-center gap-1.5 font-bold text-white">
                 <CheckCircle2 className="w-4 h-4 text-[#14B8A6]" />
-                <span>ملخص عملية الشحن:</span>
+                <span>{t('topupSummaryHeader')}</span>
               </div>
               <p className="text-[11px] text-slate-300">
-                سيتم شحن{' '}
-                <span className="font-bold text-[#14B8A6] font-mono">
-                  {bulkTopupType === 'minutes' ? `${bulkMinutes} دقيقة طيران` : `${bulkCashAmount} رصيد نقدي`}
-                </span>{' '}
-                إلى{' '}
-                <span className="font-bold text-white font-mono">
-                  ({getTargetCount(bulkScope)})
-                </span>{' '}
-                كابتن، وتحديث محافظهم فوراً وبث إشعار لحظي لهواتفهم.
+                {t('topupSummaryText', {
+                  amount: bulkTopupType === 'minutes' ? `${bulkMinutes} ${t('minuteUnit')}` : `${bulkCashAmount}`,
+                  count: getTargetCount(bulkScope),
+                })}
               </p>
             </div>
 
@@ -1999,7 +1999,7 @@ export function DriversManagementTab() {
                 disabled={submittingBulkTopup}
                 className="border-white/10 text-slate-300 text-xs h-9 rounded-xl cursor-pointer"
               >
-                إلغاء
+                {t('cancelBtn')}
               </Button>
 
               <Button
@@ -2015,12 +2015,12 @@ export function DriversManagementTab() {
                 {submittingBulkTopup ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin ml-1" />
-                    جاري الشحن الجماعي...
+                    {t('charging')}
                   </>
                 ) : (
                   <>
                     <Zap className="h-4 w-4 ml-1" />
-                    تأكيد الشحن لـ ({getTargetCount(bulkScope)}) كابتن
+                    {t('confirmBulkTopupBtn', { count: getTargetCount(bulkScope) })}
                   </>
                 )}
               </Button>
@@ -2033,21 +2033,21 @@ export function DriversManagementTab() {
       {/* MODAL 6: Bulk Send Message / Broadcast Notification                       */}
       {/* ========================================================================= */}
       <Dialog open={isBulkMessageOpen} onOpenChange={setIsBulkMessageOpen}>
-        <DialogContent className="max-w-lg bg-[#0B0F19] border border-indigo-500/40 text-white rounded-3xl p-6 text-right" dir="rtl">
+        <DialogContent className={cn("max-w-lg bg-[#0B0F19] border border-indigo-500/40 text-white rounded-3xl p-6", isArabic ? "text-right" : "text-left")} dir={direction}>
           <div className="space-y-4">
             <DialogHeader>
               <DialogTitle className="text-lg font-black text-white flex items-center gap-2">
                 <Send className="h-5 w-5 text-indigo-400" />
-                بث إشعار وتوجيه جماعي للكباتن
+                {t('bulkBroadcastHeader')}
               </DialogTitle>
               <DialogDescription className="text-xs text-slate-400 mt-1">
-                إرسال رسالة توجيهية أو إشعار فوري يظهر مباشرة كنافذة منبثقة ونغمة تنبيه في هواتف الكباتن.
+                {t('bulkBroadcastSubtitle')}
               </DialogDescription>
             </DialogHeader>
 
             {/* Target Scope Selection */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-300">الفئة المستهدفة بالإشعار:</label>
+              <label className="text-xs font-bold text-slate-300">{t('targetScopeMessageLabel')}</label>
               <div className="grid grid-cols-3 gap-2">
                 <button
                   type="button"
@@ -2059,7 +2059,7 @@ export function DriversManagementTab() {
                       : "bg-black/40 border-white/10 text-slate-400 hover:text-white"
                   )}
                 >
-                  <span>جميع الكباتن</span>
+                  <span>{t('scopeAllCaptains')}</span>
                   <span className="text-[11px] font-mono opacity-80">({captains.length})</span>
                 </button>
 
@@ -2073,7 +2073,7 @@ export function DriversManagementTab() {
                       : "bg-black/40 border-white/10 text-slate-400 hover:text-white"
                   )}
                 >
-                  <span>المحددين يدوياً</span>
+                  <span>{t('scopeSelectedCaptains')}</span>
                   <span className="text-[11px] font-mono opacity-80">({selectedCaptainIds.size})</span>
                 </button>
 
@@ -2087,21 +2087,21 @@ export function DriversManagementTab() {
                       : "bg-black/40 border-white/10 text-slate-400 hover:text-white"
                   )}
                 >
-                  <span>المطابقين للفلاتر</span>
+                  <span>{t('scopeFilteredCaptains')}</span>
                   <span className="text-[11px] font-mono opacity-80">({filteredCaptains.length})</span>
                 </button>
               </div>
 
               {bulkScope === 'selected' && selectedCaptainIds.size === 0 && (
                 <p className="text-[11px] text-amber-400 bg-amber-500/10 border border-amber-500/20 p-2 rounded-xl mt-1.5">
-                  ⚠️ لم تحدد أي كابتن من الجدول بعد! يمكنك تحديد كباتن عبر المربعات في الجدول، أو اختيار (جميع الكباتن) أعلاه.
+                  {t('noCaptainsSelectedWarning')}
                 </p>
               )}
             </div>
 
             {/* Message Type Selector */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-300">نوع الرسالة / الأولوية:</label>
+              <label className="text-xs font-bold text-slate-300">{t('msgTypePriority')}</label>
               <div className="grid grid-cols-3 gap-2">
                 <button
                   type="button"
@@ -2113,7 +2113,7 @@ export function DriversManagementTab() {
                       : "bg-black/40 border-white/10 text-slate-400 hover:text-white"
                   )}
                 >
-                  رسالة إدارية
+                  {t('msgTypeAdmin')}
                 </button>
                 <button
                   type="button"
@@ -2125,7 +2125,7 @@ export function DriversManagementTab() {
                       : "bg-black/40 border-white/10 text-slate-400 hover:text-white"
                   )}
                 >
-                  تنبيه تشغيلي
+                  {t('msgTypeWarning')}
                 </button>
                 <button
                   type="button"
@@ -2137,38 +2137,44 @@ export function DriversManagementTab() {
                       : "bg-black/40 border-white/10 text-slate-400 hover:text-white"
                   )}
                 >
-                  إشعار عاجل
+                  {t('msgTypeUrgent')}
                 </button>
               </div>
             </div>
 
             {/* Message Title */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-300">عنوان الإشعار:</label>
+              <label className="text-xs font-bold text-slate-300">{t('msgSubjectLabel')}</label>
               <Input
                 value={bulkMsgTitle}
                 onChange={(e) => setBulkMsgTitle(e.target.value)}
-                placeholder="عنوان الإشعار..."
-                className="bg-black/60 border-white/10 text-white text-xs h-9 rounded-xl focus:border-indigo-500 text-right"
+                placeholder={t('msgTitlePlaceholder')}
+                className={cn("bg-black/60 border-white/10 text-white text-xs h-9 rounded-xl focus:border-indigo-500", isArabic ? "text-right" : "text-left")}
               />
             </div>
 
             {/* Fast Quick Templates */}
             <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-slate-400">قوالب جاهزة سريعة (بنقرة واحدة):</label>
+              <label className="text-[11px] font-bold text-slate-400">{t('quickTemplatesLabel')}</label>
               <div className="flex flex-wrap gap-1.5">
-                {[
+                {(isArabic ? [
                   "بشرى سارة: تم شحن دقائق إضافية لحسابكم بمناسبة نهاية الأسبوع!",
                   "تنبيه هام: يرجى تفعيل وضع الاتصال، الطلبات في منطقتك مرتفعة الآن!",
                   "إشعار تشغيلي: يرجى التأكد من استقرار إشارة GPS وتحديث التطبيق لأحدث إصدار.",
                   "شكر وتقدير: إدارة المنظومة تشكركم على التزامكم العالي وخدمتكم الممتازة.",
                   "تنويه أمني: نذكركم بالالتزام بالتسعيرة الرسمية وعدم إلغاء الرحلات بعد قبولها."
-                ].map((tpl, idx) => (
+                ] : [
+                  "Good news: Extra flight minutes have been credited to your account for the weekend!",
+                  "Important alert: Please go online, order demand in your area is surging right now!",
+                  "Operational notice: Please ensure high GPS accuracy and update app to the latest version.",
+                  "Appreciation: System administration thanks you for your outstanding commitment and excellence.",
+                  "Security notice: Reminder to adhere to official fare formulas and avoid trip cancellations."
+                ]).map((tpl, idx) => (
                   <button
                     key={idx}
                     type="button"
                     onClick={() => setBulkMsgBody(tpl)}
-                    className="text-[10px] bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 px-2.5 py-1 rounded-lg transition-colors text-right cursor-pointer"
+                    className={cn("text-[10px] bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 px-2.5 py-1 rounded-lg transition-colors cursor-pointer", isArabic ? "text-right" : "text-left")}
                   >
                     {tpl.length > 35 ? tpl.slice(0, 35) + '...' : tpl}
                   </button>
@@ -2178,13 +2184,13 @@ export function DriversManagementTab() {
 
             {/* Message Body */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-300">نص الرسالة المرسلة:</label>
+              <label className="text-xs font-bold text-slate-300">{t('msgContentLabel')}</label>
               <textarea
                 value={bulkMsgBody}
                 onChange={(e) => setBulkMsgBody(e.target.value)}
-                placeholder="اكتب التوجيه أو الإشعار لجميع الكباتن هنا..."
+                placeholder={t('msgBodyPlaceholder')}
                 rows={4}
-                className="w-full bg-black/60 border border-white/10 text-white text-xs p-3 rounded-xl focus:border-indigo-500 outline-none resize-none text-right font-sans leading-relaxed"
+                className={cn("w-full bg-black/60 border border-white/10 text-white text-xs p-3 rounded-xl focus:border-indigo-500 outline-none resize-none font-sans leading-relaxed", isArabic ? "text-right" : "text-left")}
                 required
               />
             </div>
@@ -2193,14 +2199,10 @@ export function DriversManagementTab() {
             <div className="bg-indigo-950/40 border border-indigo-500/30 p-3 rounded-2xl text-xs text-slate-300 space-y-1">
               <div className="flex items-center gap-1.5 font-bold text-indigo-300">
                 <CheckCircle2 className="w-4 h-4 text-indigo-400" />
-                <span>ملخص البث اللحظي:</span>
+                <span>{t('broadcastSummaryHeader')}</span>
               </div>
               <p className="text-[11px] text-slate-300">
-                سيتم بث هذا الإشعار اللحظي إلى{' '}
-                <span className="font-bold text-white font-mono">
-                  ({getTargetCount(bulkScope)})
-                </span>{' '}
-                كابتن فوراً، وسيظهر في شاشاتهم كنافذة منبثقة مع رنين الإشعار.
+                {t('broadcastSummaryText', { count: getTargetCount(bulkScope) })}
               </p>
             </div>
 
@@ -2212,7 +2214,7 @@ export function DriversManagementTab() {
                 disabled={submittingBulkMsg}
                 className="border-white/10 text-slate-300 text-xs h-9 rounded-xl cursor-pointer"
               >
-                إلغاء
+                {t('cancelBtn')}
               </Button>
 
               <Button
@@ -2224,12 +2226,12 @@ export function DriversManagementTab() {
                 {submittingBulkMsg ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin ml-1" />
-                    جاري بث الإشعار...
+                    {t('sending')}
                   </>
                 ) : (
                   <>
                     <Send className="h-4 w-4 ml-1" />
-                    بث الإشعار لـ ({getTargetCount(bulkScope)}) كابتن
+                    {t('confirmBulkBroadcastBtn', { count: getTargetCount(bulkScope) })}
                   </>
                 )}
               </Button>
