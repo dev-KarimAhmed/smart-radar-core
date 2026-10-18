@@ -1219,6 +1219,8 @@
     "openWhatsAppTitle": "Open instant WhatsApp chat",
     "whatsappGreeting": "Hello {name}, contacting you from Smart Radar administration.",
     "bulkScopeWarning": "⚠️ No riders selected yet! Check boxes in the table, or choose (All Riders) above.",
+    "bulkMsgTitleLabel": "Bulk Broadcast Title:",
+    "bulkMsgBodyLabel": "Broadcast Message Content:",
     "bulkMsgTitlePlaceholder": "Notification title...",
     "bulkMsgBodyPlaceholder": "Write bulk notification body to riders here...",
     "confirmBulkBroadcastNow": "Broadcast Alert Now",
@@ -3866,7 +3868,9 @@
     "logoutDialogDesc": "Are you sure you want to log out? Your administrative session will be terminated and you will be redirected to the login screen.",
     "loggingOut": "Logging out...",
     "confirmLogout": "Confirm Logout",
-    "back": "Dismiss"
+    "back": "Dismiss",
+    "switchLanguage": "Switch Interface Language",
+    "languageLabel": "عربي / English"
   },
   "adminNotifications": {
     "bellTitle": "Sovereign Notification & Alert Center",
@@ -4301,6 +4305,7 @@
     "disabled": "Disabled",
     "vouchersOutOfTotal": "out of {total} vouchers",
     "receiptFilterAll": "All Receipts",
+    "receiptFilterPending": "Pending Review",
     "receiptFilterApproved": "Approved",
     "receiptFilterRejected": "Rejected",
     "loadingReceipts": "Loading recharge receipts...",

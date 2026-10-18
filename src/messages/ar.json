@@ -1219,6 +1219,8 @@
     "openWhatsAppTitle": "فتح محادثة واتساب فورية",
     "whatsappGreeting": "مرحباً {name}، نتواصل معك من إدارة تطبيق رادار الذكي.",
     "bulkScopeWarning": "⚠️ لم تحدد أي راكب من الجدول بعد! يمكنك تحديد ركاب عبر المربعات في الجدول، أو اختيار (جميع الركاب) أعلاه.",
+    "bulkMsgTitleLabel": "عنوان الإشعار الجماعي:",
+    "bulkMsgBodyLabel": "نص الإشعار الجماعي الموجه:",
     "bulkMsgTitlePlaceholder": "عنوان الإشعار...",
     "bulkMsgBodyPlaceholder": "اكتب نص الإشعار الجماعي الموجه للركاب هنا...",
     "confirmBulkBroadcastNow": "بث الإشعار الآن",
@@ -3866,7 +3868,9 @@
     "logoutDialogDesc": "هل أنت متأكد من رغبتك في تسجيل الخروج؟ سيتم إنهاء جلستك الإدارية الحالية وإعادتك إلى شاشة تسجيل الدخول.",
     "loggingOut": "جاري تسجيل الخروج...",
     "confirmLogout": "تأكيد الخروج",
-    "back": "تراجع"
+    "back": "تراجع",
+    "switchLanguage": "تبديل لغة الواجهة",
+    "languageLabel": "English / عربي"
   },
   "adminNotifications": {
     "bellTitle": "مركز الإشعارات والتنبيهات السيادية",
@@ -4301,6 +4305,7 @@
     "disabled": "معطل",
     "vouchersOutOfTotal": "من أصل {total} قسيمة",
     "receiptFilterAll": "كافة الإيصالات",
+    "receiptFilterPending": "بانتظار المراجعة",
     "receiptFilterApproved": "المقبولة",
     "receiptFilterRejected": "المرفوضة",
     "loadingReceipts": "جاري تحميل إيصالات الشحن...",
