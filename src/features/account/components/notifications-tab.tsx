@@ -14,6 +14,7 @@ import {
   Wallet,
   ShieldAlert,
   Copy,
+  UserCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -259,6 +260,7 @@ export function NotificationsTab({ onClose }: { onClose?: () => void } = {}) {
               const isMessage = item.type === 'admin_message' || item.type === 'message';
               const isWalletCredit = item.type === 'WALLET_CREDIT';
               const isWalletAlert = item.type === 'WALLET_ALERT';
+              const isReferral = item.type === 'referral';
 
               return (
                 <div
@@ -301,6 +303,8 @@ export function NotificationsTab({ onClose }: { onClose?: () => void } = {}) {
                           ? 'bg-emerald-500/20 text-emerald-300'
                           : isWalletAlert
                           ? 'bg-rose-500/20 text-rose-300'
+                          : isReferral
+                          ? 'bg-teal-500/20 text-[#14F5D5]'
                           : !item.read
                           ? styles.iconWrapUnread
                           : styles.iconWrapRead
@@ -312,6 +316,8 @@ export function NotificationsTab({ onClose }: { onClose?: () => void } = {}) {
                         <Wallet className={styles.bellIcon} />
                       ) : isWalletAlert ? (
                         <ShieldAlert className={styles.bellIcon} />
+                      ) : isReferral ? (
+                        <UserCheck className={styles.bellIcon} />
                       ) : (
                         <Bell className={styles.bellIcon} />
                       )}
@@ -323,6 +329,11 @@ export function NotificationsTab({ onClose }: { onClose?: () => void } = {}) {
                           {isMessage && (
                             <span className="shrink-0 rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-black text-amber-300 border border-amber-500/30">
                               {isArabic ? 'رسالة' : 'Message'}
+                            </span>
+                          )}
+                          {isReferral && (
+                            <span className="shrink-0 rounded bg-[#14B8A6]/20 px-1.5 py-0.5 text-[10px] font-black text-[#14F5D5] border border-[#14B8A6]/30">
+                              {isArabic ? 'إحالة جديدة' : 'New Referral'}
                             </span>
                           )}
                           <h3
@@ -389,6 +400,8 @@ export function NotificationsTab({ onClose }: { onClose?: () => void } = {}) {
                     <Wallet className="h-6 w-6" />
                   ) : viewingNotification.type === 'WALLET_ALERT' ? (
                     <ShieldAlert className="h-6 w-6" />
+                  ) : viewingNotification.type === 'referral' ? (
+                    <UserCheck className="h-6 w-6" />
                   ) : (
                     <Bell className="h-6 w-6" />
                   )}
@@ -403,6 +416,8 @@ export function NotificationsTab({ onClose }: { onClose?: () => void } = {}) {
                         ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
                         : viewingNotification.type === 'WALLET_ALERT'
                         ? "bg-rose-500/20 text-rose-300 border border-rose-500/30"
+                        : viewingNotification.type === 'referral'
+                        ? "bg-teal-500/20 text-[#14F5D5] border border-teal-500/30"
                         : "bg-[#14B8A6]/20 text-[#14F5D5] border border-[#14B8A6]/30"
                     )}
                   >
@@ -412,6 +427,8 @@ export function NotificationsTab({ onClose }: { onClose?: () => void } = {}) {
                       ? (isArabic ? 'إيداع وشحن رصيد 💰' : 'Wallet Credit 💰')
                       : viewingNotification.type === 'WALLET_ALERT'
                       ? (isArabic ? 'تنبيه مالي ⚠️' : 'Wallet Alert ⚠️')
+                      : viewingNotification.type === 'referral'
+                      ? (isArabic ? 'إحالة راكب جديد 👥' : 'New Rider Referral 👥')
                       : (isArabic ? 'إشعار من النظام 🔔' : 'System Notification 🔔')}
                   </span>
                   <p className="text-xs text-slate-400">

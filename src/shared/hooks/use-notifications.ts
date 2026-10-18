@@ -10,7 +10,7 @@ export interface AppNotification {
   description: string;
   timestamp: number;
   read: boolean;
-  type?: 'info' | 'offer' | 'trip' | 'system' | 'WALLET_CREDIT' | 'WALLET_ALERT' | 'admin_message' | string;
+  type?: 'info' | 'offer' | 'trip' | 'system' | 'WALLET_CREDIT' | 'WALLET_ALERT' | 'admin_message' | 'referral' | string;
 }
 
 const STORAGE_KEY = 'radar_user_notifications_v1';
@@ -244,6 +244,10 @@ function setupRealtimeChannelIfNeeded(userId: string) {
               String(newRow.id || '').includes('top')
             ) {
               window.dispatchEvent(new CustomEvent('radar-wallet-refresh'));
+            }
+
+            if (newRow.type === 'referral') {
+              window.dispatchEvent(new CustomEvent('radar_favorites_updated'));
             }
           }
         }

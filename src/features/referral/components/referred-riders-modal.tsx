@@ -97,7 +97,7 @@ export function ReferredRidersModal({
                 </div>
 
                 {/* Direct Call Action */}
-                <div className="flex items-center gap-1.5 shrink-0">
+                {/* <div className="flex items-center gap-1.5 shrink-0">
                   {rider.rider_phone && (
                     <a
                       href={formatTelUri(rider.rider_phone)}
@@ -108,7 +108,7 @@ export function ReferredRidersModal({
                       <span>{t('call')}</span>
                     </a>
                   )}
-                </div>
+                </div> */}
               </div>
             ))
           )}

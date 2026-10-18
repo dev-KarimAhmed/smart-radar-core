@@ -76,12 +76,13 @@ CREATE POLICY rider_reads_captain_favorited
 GRANT SELECT, INSERT, DELETE ON public.captain_favorite_riders TO authenticated;
 
 
--- 3. RPC: claim_captain_referral(p_captain_ref text)
+-- 3. RPC: claim_captain_referral(p_captain_ref text, p_rider_name text)
 -- Called when a rider joins via a captain's referral link.
 -- Enforces:
 --  - Looks up captain by serial_id or id (uuid).
 --  - Rejects if rider is already linked to another captain.
 --  - Adds captain to rider's favorites and rider to captain's favorites (mutual).
+--  - Dispatches notification to captain in user_notifications table.
 CREATE OR REPLACE FUNCTION public.claim_captain_referral(p_captain_ref text)
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -90,11 +91,13 @@ SET search_path = public
 AS $$
 DECLARE
   v_rider_id uuid := auth.uid();
+  v_rider_name text := trim(coalesce(p_rider_name, ''));
   v_captain RECORD;
   v_existing_captain_id uuid;
   v_existing_captain_name text;
   v_existing_captain_serial text;
   v_clean_ref text := trim(coalesce(p_captain_ref, ''));
+  v_notif_desc text;
 BEGIN
   IF v_rider_id IS NULL THEN
     RETURN jsonb_build_object('success', false, 'error', 'authentication_required');
@@ -178,6 +181,43 @@ BEGIN
   VALUES (v_captain.id, v_rider_id, now())
   ON CONFLICT (captain_id, rider_id) DO NOTHING;
 
+  -- 6. Retrieve rider's full_name if not provided
+  IF v_rider_name = '' THEN
+    SELECT coalesce(nullif(trim(full_name), ''), '')
+    INTO v_rider_name
+    FROM public.profiles
+    WHERE id = v_rider_id;
+  END IF;
+
+  -- 7. Dispatch notification to captain
+  IF v_rider_name <> '' THEN
+    v_notif_desc := 'انضم الراكب (' || v_rider_name || ') عبر رابط الإحالة الخاص بك وتمت إضافته إلى قائمة الركاب المفضلين لديك.';
+  ELSE
+    v_notif_desc := 'انضم راكب جديد عبر رابط الإحالة الخاص بك وتمت إضافته إلى قائمة الركاب المفضلين لديك.';
+  END IF;
+
+  INSERT INTO public.user_notifications (
+    id,
+    user_id,
+    title,
+    description,
+    type,
+    is_read,
+    created_at
+  )
+  VALUES (
+    'notif_ref_' || v_captain.id::text || '_' || v_rider_id::text,
+    v_captain.id,
+    'انضمام راكب جديد عبر رابط الإحالة 🎉',
+    v_notif_desc,
+    'referral',
+    false,
+    now()
+  )
+  ON CONFLICT (id) DO UPDATE
+  SET description = EXCLUDED.description,
+      title = EXCLUDED.title;
+
   RETURN jsonb_build_object(
     'success', true,
     'status', 'newly_linked',
@@ -190,6 +230,58 @@ END;
 $$;
 
 GRANT EXECUTE ON FUNCTION public.claim_captain_referral(text) TO authenticated;
+
+-- Trigger to ensure captain is notified on any referral record creation
+CREATE OR REPLACE FUNCTION public.notify_captain_on_new_referral()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_rider_name text;
+  v_notif_desc text;
+BEGIN
+  SELECT coalesce(nullif(trim(full_name), ''), '')
+  INTO v_rider_name
+  FROM public.profiles
+  WHERE id = NEW.rider_id;
+
+  IF v_rider_name <> '' THEN
+    v_notif_desc := 'انضم الراكب (' || v_rider_name || ') عبر رابط الإحالة الخاص بك وتمت إضافته إلى قائمة الركاب المفضلين لديك.';
+  ELSE
+    v_notif_desc := 'انضم راكب جديد عبر رابط الإحالة الخاص بك وتمت إضافته إلى قائمة الركاب المفضلين لديك.';
+  END IF;
+
+  INSERT INTO public.user_notifications (
+    id,
+    user_id,
+    title,
+    description,
+    type,
+    is_read,
+    created_at
+  )
+  VALUES (
+    'notif_ref_' || NEW.captain_id::text || '_' || NEW.rider_id::text,
+    NEW.captain_id,
+    'انضمام راكب جديد عبر رابط الإحالة 🎉',
+    v_notif_desc,
+    'referral',
+    false,
+    now()
+  )
+  ON CONFLICT (id) DO NOTHING;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_notify_captain_on_new_referral ON public.captain_rider_referrals;
+CREATE TRIGGER trg_notify_captain_on_new_referral
+AFTER INSERT ON public.captain_rider_referrals
+FOR EACH ROW
+EXECUTE FUNCTION public.notify_captain_on_new_referral();
 
 
 -- 4. RPC: remove_captain_referral()
