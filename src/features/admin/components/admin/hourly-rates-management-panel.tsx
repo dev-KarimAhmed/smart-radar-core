@@ -29,6 +29,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { useTranslations } from 'next-intl';
 
 interface CountryItem {
   id: number;
@@ -60,6 +61,7 @@ interface CustomRatesMatrix {
 }
 
 export function HourlyRatesManagementPanel() {
+  const t = useTranslations('hourlyRates');
   const { toast } = useToast();
 
   const [loading, setLoading] = useState(true);
@@ -114,14 +116,14 @@ export function HourlyRatesManagementPanel() {
     } catch (err) {
       console.error('[HourlyRatesPanel] load error:', err);
       toast({
-        title: 'خطأ في جلب الأسعار',
-        description: 'تعذر تحميل بيانات أسعار المحافظات والمناطق',
+        title: t('toastLoadErrorTitle'),
+        description: t('toastLoadErrorDesc'),
         variant: 'destructive',
       });
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, t]);
 
   useEffect(() => {
     void loadRatesData();
@@ -167,8 +169,8 @@ export function HourlyRatesManagementPanel() {
 
     if (numVal !== null && (isNaN(numVal) || numVal <= 0)) {
       toast({
-        title: 'قيمة غير صالحة',
-        description: 'يرجى إدخال سعر ساعة صحيح أكبر من صفر',
+        title: t('toastInvalidPriceTitle'),
+        description: t('toastInvalidPriceDesc'),
         variant: 'destructive',
       });
       return;
@@ -188,7 +190,7 @@ export function HourlyRatesManagementPanel() {
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || 'فشل تحديث سعر المحافظة');
+        throw new Error(data.error || t('toastGenericError'));
       }
 
       setCustomRates((prev) => {
@@ -202,13 +204,13 @@ export function HourlyRatesManagementPanel() {
       });
 
       toast({
-        title: 'تم حفظ السعر',
-        description: `تم تحديث سعر الساعة للمحافظة بنجاح (${numVal !== null ? `${numVal} ${currency}` : 'السعر الافتراضي للدولة'})`,
+        title: t('toastGovSavedTitle'),
+        description: t('toastGovSavedDesc', { price: numVal !== null ? `${numVal} ${currency}` : `${countryDefaultPrice} ${currency}` }),
       });
     } catch (err: any) {
       toast({
-        title: 'خطأ أثناء الحفظ',
-        description: err.message || 'تعذر حفظ سعر المحافظة',
+        title: t('toastGenericError'),
+        description: err.message || t('toastGenericError'),
         variant: 'destructive',
       });
     } finally {
@@ -231,7 +233,7 @@ export function HourlyRatesManagementPanel() {
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || 'فشل استعادة سعر المحافظة');
+        throw new Error(data.error || t('toastGenericError'));
       }
 
       setLocalGovInputs((prev) => {
@@ -247,12 +249,12 @@ export function HourlyRatesManagementPanel() {
       });
 
       toast({
-        title: 'تمت استعادة السعر الافتراضي',
-        description: `أصبحت المحافظة تتبع سعر الدولة الافتراضي (${countryDefaultPrice} ${currency})`,
+        title: t('toastGovResetTitle'),
+        description: t('toastGovResetDesc'),
       });
     } catch (err: any) {
       toast({
-        title: 'خطأ',
+        title: t('toastGenericError'),
         description: err.message,
         variant: 'destructive',
       });
@@ -268,8 +270,8 @@ export function HourlyRatesManagementPanel() {
 
     if (isNaN(numVal) || numVal <= 0) {
       toast({
-        title: 'قيمة غير صالحة',
-        description: 'يرجى إدخال سعر ساعة صحيح أولاً',
+        title: t('toastInvalidPriceTitle'),
+        description: t('toastInvalidPriceDesc'),
         variant: 'destructive',
       });
       return;
@@ -288,7 +290,7 @@ export function HourlyRatesManagementPanel() {
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || 'فشل تطبيق السعر على المناطق');
+        throw new Error(data.error || t('toastGenericError'));
       }
 
       // Update local state for all districts of this gov
@@ -314,12 +316,12 @@ export function HourlyRatesManagementPanel() {
       setExpandedGovs((prev) => ({ ...prev, [govId]: true }));
 
       toast({
-        title: 'تم التطبيق بنجاح ⚡',
-        description: `تم تعميم السعر (${numVal} ${currency}) على جميع مناطق هذه المحافظة (${relatedDists.length} منطقة)`,
+        title: t('toastApplyAllTitle'),
+        description: t('toastApplyAllDesc', { price: numVal, currency, count: relatedDists.length }),
       });
     } catch (err: any) {
       toast({
-        title: 'خطأ في التعميم',
+        title: t('toastGenericError'),
         description: err.message,
         variant: 'destructive',
       });
@@ -335,8 +337,8 @@ export function HourlyRatesManagementPanel() {
 
     if (numVal !== null && (isNaN(numVal) || numVal <= 0)) {
       toast({
-        title: 'قيمة غير صالحة',
-        description: 'يرجى إدخال سعر ساعة صحيح أكبر من صفر',
+        title: t('toastInvalidPriceTitle'),
+        description: t('toastInvalidPriceDesc'),
         variant: 'destructive',
       });
       return;
@@ -356,7 +358,7 @@ export function HourlyRatesManagementPanel() {
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || 'فشل تحديث سعر المنطقة');
+        throw new Error(data.error || t('toastGenericError'));
       }
 
       setCustomRates((prev) => {
@@ -370,12 +372,12 @@ export function HourlyRatesManagementPanel() {
       });
 
       toast({
-        title: 'تم حفظ سعر المنطقة',
-        description: `تم تحديث سعر المنطقة بنجاح (${numVal !== null ? `${numVal} ${currency}` : 'موروث تلقائياً'})`,
+        title: t('toastDistSavedTitle'),
+        description: t('toastDistSavedDesc', { price: numVal !== null ? `${numVal} ${currency}` : currency }),
       });
     } catch (err: any) {
       toast({
-        title: 'خطأ',
+        title: t('toastGenericError'),
         description: err.message,
         variant: 'destructive',
       });
@@ -400,7 +402,7 @@ export function HourlyRatesManagementPanel() {
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || 'فشل استعادة السعر');
+        throw new Error(data.error || t('toastGenericError'));
       }
 
       setLocalDistInputs((prev) => {
@@ -416,12 +418,12 @@ export function HourlyRatesManagementPanel() {
       });
 
       toast({
-        title: 'تمت إزالة التخصيص',
-        description: 'أصبحت المنطقة ترث سعر المحافظة / الدولة تلقائياً',
+        title: t('toastDistResetTitle'),
+        description: t('toastDistResetDesc'),
       });
     } catch (err: any) {
       toast({
-        title: 'خطأ',
+        title: t('toastGenericError'),
         description: err.message,
         variant: 'destructive',
       });
@@ -493,13 +495,13 @@ export function HourlyRatesManagementPanel() {
         <div className="rounded-2xl border border-teal-500/20 bg-[#161F30]/70 p-4 backdrop-blur-xl shadow-lg">
           <p className="text-[11px] font-bold text-slate-400 mb-1 flex items-center gap-1.5">
             <DollarSign className="h-3.5 w-3.5 text-teal-400" />
-            السعر العام للدولة
+            {t('metricBaseRate')}
           </p>
           <div className="flex items-baseline gap-2 mt-1">
             <span className="text-2xl font-black text-teal-300 font-mono">
               {countryDefaultPrice.toFixed(2)}
             </span>
-            <span className="text-xs font-bold text-slate-400">{currency} / ساعة</span>
+            <span className="text-xs font-bold text-slate-400">{currency}{t('hourSuffix')}</span>
           </div>
         </div>
 
@@ -507,13 +509,13 @@ export function HourlyRatesManagementPanel() {
         <div className="rounded-2xl border border-amber-500/20 bg-[#161F30]/70 p-4 backdrop-blur-xl shadow-lg">
           <p className="text-[11px] font-bold text-slate-400 mb-1 flex items-center gap-1.5">
             <Sparkles className="h-3.5 w-3.5 text-amber-400" />
-            المناطق ذات التسعير المخصص
+            {t('metricCustomZones')}
           </p>
           <div className="flex items-baseline gap-2 mt-1">
             <span className="text-2xl font-black text-amber-300 font-mono">
               {totalCustomZones}
             </span>
-            <span className="text-xs font-bold text-slate-400">محافظة ومنطقة</span>
+            <span className="text-xs font-bold text-slate-400">{t('govAndZoneUnit')}</span>
           </div>
         </div>
 
@@ -521,13 +523,13 @@ export function HourlyRatesManagementPanel() {
         <div className="rounded-2xl border border-white/10 bg-[#161F30]/70 p-4 backdrop-blur-xl shadow-lg">
           <p className="text-[11px] font-bold text-slate-400 mb-1 flex items-center gap-1.5">
             <MapPin className="h-3.5 w-3.5 text-cyan-400" />
-            إجمالي المحافظات
+            {t('metricGovs')}
           </p>
           <div className="flex items-baseline gap-2 mt-1">
             <span className="text-2xl font-black text-white font-mono">
               {totalGovsInCountry}
             </span>
-            <span className="text-xs font-bold text-slate-400">محافظة تابعة لـ {activeCountry.name_ar}</span>
+            <span className="text-xs font-bold text-slate-400">{t('govBelongingTo', { country: activeCountry.name_ar })}</span>
           </div>
         </div>
 
@@ -535,13 +537,13 @@ export function HourlyRatesManagementPanel() {
         <div className="rounded-2xl border border-white/10 bg-[#161F30]/70 p-4 backdrop-blur-xl shadow-lg">
           <p className="text-[11px] font-bold text-slate-400 mb-1 flex items-center gap-1.5">
             <Layers className="h-3.5 w-3.5 text-indigo-400" />
-            إجمالي المناطق والألوية
+            {t('metricDists')}
           </p>
           <div className="flex items-baseline gap-2 mt-1">
             <span className="text-2xl font-black text-white font-mono">
               {totalDistsInCountry}
             </span>
-            <span className="text-xs font-bold text-slate-400">منطقة جغرافية</span>
+            <span className="text-xs font-bold text-slate-400">{t('geoZoneUnit')}</span>
           </div>
         </div>
       </div>
@@ -552,10 +554,10 @@ export function HourlyRatesManagementPanel() {
           <div>
             <h2 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
               <Clock className="h-5 w-5 text-teal-400" />
-              <span>تسعير الساعة في المحافظات والمناطق</span>
+              <span>{t('title')}</span>
             </h2>
             <p className="text-xs text-slate-400 mt-1">
-              حدد سعر ساعة الرادار المعتمد لكل محافظة ومنطقة بسهولة. يرث النظام سعر الدولة تلقائياً ما لم يتم تخصيص سعر محدد.
+              {t('subtitle')}
             </p>
           </div>
 
@@ -589,7 +591,7 @@ export function HourlyRatesManagementPanel() {
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="ابحث عن أي محافظة أو لواء أو منطقة..."
+              placeholder={t('searchPlaceholder')}
               className="bg-black/50 border-white/10 text-white text-xs h-10 pr-9 pl-3 rounded-xl focus:border-teal-400"
             />
             {searchQuery && (
@@ -598,7 +600,7 @@ export function HourlyRatesManagementPanel() {
                 onClick={() => setSearchQuery('')}
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs"
               >
-                مسح
+                {t('clearSearch')}
               </button>
             )}
           </div>
@@ -617,7 +619,7 @@ export function HourlyRatesManagementPanel() {
                   : "bg-white/5 border-white/10 text-slate-400 hover:text-white"
               )}
             >
-              الكل ({filteredGovernorates.length})
+              {t('filterAll')} ({filteredGovernorates.length})
             </Button>
 
             <Button
@@ -633,7 +635,7 @@ export function HourlyRatesManagementPanel() {
               )}
             >
               <Sparkles className="h-3 w-3 text-amber-400" />
-              <span>مخصصة فقط</span>
+              <span>{t('filterCustomOnly')}</span>
             </Button>
 
             <Button
@@ -648,7 +650,7 @@ export function HourlyRatesManagementPanel() {
                   : "bg-white/5 border-white/10 text-slate-400 hover:text-white"
               )}
             >
-              الافتراضية فقط
+              {t('filterDefaultOnly')}
             </Button>
 
             <div className="h-6 w-px bg-white/10 mx-1 hidden sm:block" />
@@ -659,9 +661,9 @@ export function HourlyRatesManagementPanel() {
               variant="outline"
               onClick={() => expandAllGovs(true)}
               className="border-white/10 text-slate-300 hover:bg-white/5 h-9 px-2.5 rounded-xl text-[11px]"
-              title="فتح كل المحافظات"
+              title={t('expandAll')}
             >
-              توسيع الكل
+              {t('expandAll')}
             </Button>
 
             <Button
@@ -670,9 +672,9 @@ export function HourlyRatesManagementPanel() {
               variant="outline"
               onClick={() => expandAllGovs(false)}
               className="border-white/10 text-slate-300 hover:bg-white/5 h-9 px-2.5 rounded-xl text-[11px]"
-              title="طي كل المحافظات"
+              title={t('collapseAll')}
             >
-              طي الكل
+              {t('collapseAll')}
             </Button>
           </div>
         </div>
@@ -682,12 +684,12 @@ export function HourlyRatesManagementPanel() {
       {loading ? (
         <div className="flex min-h-64 flex-col items-center justify-center gap-3 text-slate-400 rounded-2xl border border-white/10 bg-[#0B0F19]/90 p-12">
           <Loader2 className="h-8 w-8 animate-spin text-teal-400" />
-          <p className="text-xs">جاري تحميل خريطة أسعار المحافظات والمناطق...</p>
+          <p className="text-xs">{t('loadingRates')}</p>
         </div>
       ) : filteredGovernorates.length === 0 ? (
         <div className="flex min-h-64 flex-col items-center justify-center gap-3 text-slate-400 rounded-2xl border border-white/10 bg-[#0B0F19]/90 p-12">
           <MapPin className="h-8 w-8 text-slate-600" />
-          <p className="text-xs">لم يتم العثور على أي محافظة أو منطقة تطابق البحث.</p>
+          <p className="text-xs">{t('emptySearchResult')}</p>
         </div>
       ) : (
         <div className="space-y-3.5">
@@ -742,16 +744,16 @@ export function HourlyRatesManagementPanel() {
                         {hasCustomGovPrice ? (
                           <Badge className="bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-bold py-0.5 px-2">
                             <Sparkles className="w-2.5 h-2.5 ml-1" />
-                            سعر مخصص للمحافظة
+                            {t('customGovBadge')}
                           </Badge>
                         ) : (
                           <Badge className="bg-slate-800 text-slate-300 border border-white/10 text-[10px] py-0.5 px-2">
-                            افتراضي ({countryDefaultPrice} {currency})
+                            {t('defaultGovBadge', { price: countryDefaultPrice, currency })}
                           </Badge>
                         )}
                       </div>
                       <p className="text-[11px] text-slate-400 mt-0.5">
-                        تضم <strong className="text-slate-200">{govDists.length}</strong> منطقة ولواء
+                        {t('containsCount', { count: govDists.length })}
                       </p>
                     </div>
                   </div>
@@ -760,7 +762,7 @@ export function HourlyRatesManagementPanel() {
                   <div className="flex items-center gap-2 flex-wrap justify-end">
                     {/* Price Input with Unit */}
                     <div className="flex items-center bg-black/60 rounded-xl border border-white/15 px-2.5 py-1 focus-within:border-teal-400 transition-all">
-                      <span className="text-xs text-slate-400 font-bold ml-1.5">سعر الساعة:</span>
+                      <span className="text-xs text-slate-400 font-bold ml-1.5">{t('hourPriceLabel')}</span>
                       <Input
                         type="number"
                         step="0.05"
@@ -790,7 +792,7 @@ export function HourlyRatesManagementPanel() {
                       ) : (
                         <Check className="h-3.5 w-3.5" />
                       )}
-                      <span>حفظ</span>
+                      <span>{t('saveBtn')}</span>
                     </Button>
 
                     {/* Quick Apply to ALL districts button */}
@@ -801,14 +803,14 @@ export function HourlyRatesManagementPanel() {
                       onClick={() => handleApplyToAllDistricts(gov.id)}
                       disabled={isGovSaving || isGovResetting || isApplyingAll}
                       className="h-8 px-2.5 rounded-xl border-amber-500/30 text-amber-300 hover:bg-amber-500/10 hover:text-amber-200 text-xs font-bold transition-all flex items-center gap-1"
-                      title="تعميم هذا السعر على كل مناطق وألوية المحافظة بضغطة زر واحدة"
+                      title={t('applyAllTitle')}
                     >
                       {isApplyingAll ? (
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
                       ) : (
                         <Zap className="h-3.5 w-3.5 text-amber-400" />
                       )}
-                      <span>تعميم للمناطق</span>
+                      <span>{t('applyAllBtn')}</span>
                     </Button>
 
                     {/* Reset Button (only if custom) */}
@@ -820,7 +822,7 @@ export function HourlyRatesManagementPanel() {
                         onClick={() => handleResetGovRate(gov.id)}
                         disabled={isGovSaving || isGovResetting || isApplyingAll}
                         className="h-8 w-8 p-0 rounded-xl text-rose-400 hover:text-rose-200 hover:bg-rose-500/10"
-                        title="استعادة السعر الافتراضي للدولة"
+                        title={t('resetGovTitle')}
                       >
                         {isGovResetting ? (
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -849,16 +851,16 @@ export function HourlyRatesManagementPanel() {
                     <div className="flex items-center justify-between pb-3 mb-3 border-b border-white/5">
                       <p className="text-xs font-bold text-slate-400 flex items-center gap-1.5">
                         <ArrowDownRight className="h-3.5 w-3.5 text-teal-400" />
-                        <span>مناطق وألوية محافظة {gov.name_ar} ({govDists.length} منطقة)</span>
+                        <span>{t('districtsUnderGov', { gov: gov.name_ar, count: govDists.length })}</span>
                       </p>
                       <span className="text-[11px] text-slate-500 font-medium">
-                        السعر الفعلي للمحافظة: <strong className="text-white font-mono">{effectiveGovPrice} {currency}</strong>
+                        {t('effectiveGovPrice')} <strong className="text-white font-mono">{effectiveGovPrice} {currency}</strong>
                       </span>
                     </div>
 
                     {govDists.length === 0 ? (
                       <p className="text-xs text-slate-500 text-center py-4">
-                        لا توجد مناطق مدرجة تحت هذه المحافظة حالياً.
+                        {t('noDistricts')}
                       </p>
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
@@ -899,7 +901,7 @@ export function HourlyRatesManagementPanel() {
                                     </span>
                                   ) : (
                                     <span className="text-[10px] text-slate-400 font-sans">
-                                      موروث ({effectiveGovPrice} {currency})
+                                      {t('inheritedBadge', { price: effectiveGovPrice, currency })}
                                     </span>
                                   )}
                                 </div>
@@ -927,7 +929,7 @@ export function HourlyRatesManagementPanel() {
                                   onClick={() => handleSaveDistrictRate(dist.id)}
                                   disabled={isDistSaving || isDistResetting}
                                   className="h-7 w-7 p-0 rounded-lg bg-teal-500 hover:bg-teal-400 text-[#0B0F19]"
-                                  title="حفظ سعر هذه المنطقة"
+                                  title={t('saveDistTitle')}
                                 >
                                   {isDistSaving ? (
                                     <Loader2 className="h-3 w-3 animate-spin" />
@@ -944,7 +946,7 @@ export function HourlyRatesManagementPanel() {
                                     onClick={() => handleResetDistrictRate(dist.id)}
                                     disabled={isDistSaving || isDistResetting}
                                     className="h-7 w-7 p-0 rounded-lg text-rose-400 hover:bg-rose-500/10"
-                                    title="إلغاء التخصيص وإعادة الوراثة من المحافظة"
+                                    title={t('resetDistTitle')}
                                   >
                                     {isDistResetting ? (
                                       <Loader2 className="h-3 w-3 animate-spin" />

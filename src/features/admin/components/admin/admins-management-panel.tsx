@@ -298,12 +298,12 @@ export function AdminsManagementPanel() {
             {isGeneralAdmin ? (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-black shadow-[0_0_15px_rgba(245,158,11,0.2)]">
                 <Crown className="h-4 w-4 text-amber-400" />
-                <span>{t('generalAdmin')} (كامل الصلاحيات)</span>
+                <span>{t('generalAdmin')} {t('fullPermissionsSuffix')}</span>
               </span>
             ) : (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-xs font-black shadow-[0_0_15px_rgba(6,182,212,0.2)]">
                 <Shield className="h-4 w-4 text-cyan-400" />
-                <span>{t('assistantAdmin')} (صلاحيات مقيدة)</span>
+                <span>{t('assistantAdmin')} {t('restrictedPermissionsSuffix')}</span>
               </span>
             )}
           </div>
@@ -362,7 +362,7 @@ export function AdminsManagementPanel() {
         ) : (
           <div className="inline-flex items-center gap-1.5 rounded-xl border border-slate-700/60 bg-slate-800/40 px-3 py-1.5 text-xs text-slate-400">
             <Shield className="h-3.5 w-3.5 text-cyan-400" />
-            <span>صلاحية حصرية للمشرف العام</span>
+            <span>{t('exclusiveGeneralAdminPermission')}</span>
           </div>
         )}
       </div>
@@ -467,7 +467,7 @@ export function AdminsManagementPanel() {
                 <div>
                   <div className="flex items-center gap-1.5">
                     <p className="text-xs font-bold text-white">{t('assistantAdmin')}</p>
-                    <Badge className="bg-cyan-500/20 text-cyan-300 border-none text-[9px] py-0 px-1.5">موصى به</Badge>
+                    <Badge className="bg-cyan-500/20 text-cyan-300 border-none text-[9px] py-0 px-1.5">{t('recommendedBadge')}</Badge>
                   </div>
                   <p className="text-[11px] text-slate-400 mt-0.5">{t('assistantAdminDesc')}</p>
                 </div>
@@ -489,7 +489,7 @@ export function AdminsManagementPanel() {
                 <div>
                   <div className="flex items-center gap-1.5">
                     <p className="text-xs font-bold text-white">{t('generalAdmin')}</p>
-                    <Badge className="bg-amber-500/20 text-amber-300 border-none text-[9px] py-0 px-1.5">سيادي</Badge>
+                    <Badge className="bg-amber-500/20 text-amber-300 border-none text-[9px] py-0 px-1.5">{t('sovereignBadge')}</Badge>
                   </div>
                   <p className="text-[11px] text-slate-400 mt-0.5">{t('generalAdminDesc')}</p>
                 </div>
@@ -570,7 +570,7 @@ export function AdminsManagementPanel() {
                               <div className="flex items-center gap-1.5">
                                 <p className="font-bold text-[#F8FAFC]">{admin.full_name || t('unnamed')}</p>
                                 {isCallerHimself && (
-                                  <Badge className="bg-teal-500/20 text-teal-300 border-none text-[9px] py-0 px-1 font-sans">أنت</Badge>
+                                  <Badge className="bg-teal-500/20 text-teal-300 border-none text-[9px] py-0 px-1 font-sans">{t('youTag')}</Badge>
                                 )}
                               </div>
                               <p className="text-[10px] text-slate-500 font-mono">{admin.id.slice(0, 8)}...</p>
@@ -635,18 +635,18 @@ export function AdminsManagementPanel() {
                                   ) : isTargetGeneral ? (
                                     <span className="flex items-center gap-1">
                                       <Shield className="h-3 w-3 text-cyan-400" />
-                                      <span>تحويل لمساعد</span>
+                                      <span>{t('demoteToAssistantBtn')}</span>
                                     </span>
                                   ) : (
                                     <span className="flex items-center gap-1">
                                       <ArrowUpRight className="h-3 w-3 text-amber-400" />
-                                      <span>ترقية لمشرف عام</span>
+                                      <span>{t('promoteToGeneralBtn')}</span>
                                     </span>
                                   )}
                                 </Button>
                               ) : (
                                 <span className="text-[10px] text-slate-500 font-sans px-2">
-                                  {admin.is_primary ? 'أساسي محمي' : '-'}
+                                  {admin.is_primary ? t('primaryProtected') : '-'}
                                 </span>
                               )}
 
@@ -695,13 +695,13 @@ export function AdminsManagementPanel() {
 
           {deleteTarget && (
             <div className="my-2 p-3 rounded-xl bg-black/50 border border-white/10 space-y-1.5 text-xs text-right">
-              <p className="text-slate-400 font-medium">بيانات المشرف المراد حذفه:</p>
+              <p className="text-slate-400 font-medium">{t('targetAdminInfo')}</p>
               <div className="flex items-center justify-between pt-1">
                 <span className="font-bold text-white">{deleteTarget.full_name}</span>
                 <span className="font-mono text-slate-300" dir="ltr">{deleteTarget.phone}</span>
               </div>
               <div className="flex items-center gap-1.5 pt-1 text-slate-400 text-[11px]">
-                <span>الرتبة:</span>
+                <span>{t('rankLabel')}</span>
                 <span className={deleteTarget.admin_rank === 'GENERAL_ADMIN' ? 'text-amber-300 font-bold' : 'text-cyan-300 font-bold'}>
                   {deleteTarget.admin_rank === 'GENERAL_ADMIN' ? t('generalAdmin') : t('assistantAdmin')}
                 </span>
@@ -719,12 +719,12 @@ export function AdminsManagementPanel() {
               {deleting ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin ml-2" />
-                  جاري الحذف...
+                  {t('deleting')}
                 </>
               ) : (
                 <>
                   <Trash2 className="w-4 h-4 ml-1.5" />
-                  تأكيد الحذف النهائي
+                  {t('confirmDelete')}
                 </>
               )}
             </Button>
@@ -735,7 +735,7 @@ export function AdminsManagementPanel() {
               disabled={deleting}
               className="border-white/10 text-slate-300 hover:bg-white/5 h-10 rounded-xl text-xs"
             >
-              إلغاء
+              {t('cancel')}
             </Button>
           </DialogFooter>
         </DialogContent>

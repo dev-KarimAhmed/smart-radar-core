@@ -68,8 +68,8 @@ export function SystemBroadcastPanel() {
           title,
           message,
           audience,
-          targetRegion: governorate === 'ALL' ? 'كافة المحافظات' : governorate,
-          sentAt: 'الآن',
+          targetRegion: governorate === 'ALL' ? t('allGovernorates') : governorate,
+          sentAt: t('justNow'),
         },
         ...prev,
       ]);
@@ -78,7 +78,7 @@ export function SystemBroadcastPanel() {
       setTitle('');
       setMessage('');
     } catch (err: any) {
-      toast({ variant: 'destructive', title: 'خطأ في الإرسال', description: err?.message || 'تعذر الإرسال' });
+      toast({ variant: 'destructive', title: t('sendErrorTitle'), description: err?.message || t('sendErrorDesc') });
     } finally {
       setSending(false);
     }
@@ -181,7 +181,7 @@ export function SystemBroadcastPanel() {
           {t('historyTitle')}
         </h3>
         {history.length === 0 ? (
-          <p className="text-xs text-slate-500 py-6 text-center font-bold">لا توجد تعميمات سابقة مرسلة حتى الآن.</p>
+          <p className="text-xs text-slate-500 py-6 text-center font-bold">{t('noHistory')}</p>
         ) : (
           <div className="space-y-3">
             {history.map((item) => (

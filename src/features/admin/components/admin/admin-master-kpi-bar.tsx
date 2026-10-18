@@ -35,7 +35,7 @@ export function AdminMasterKPIBar() {
     activeAds: 0,
     pendingAds: 0,
     totalDelegates: 0,
-    systemHealth: '100% مستقر',
+    systemHealth: '100%',
   });
   const [loading, setLoading] = useState(true);
 
@@ -86,7 +86,7 @@ export function AdminMasterKPIBar() {
         <div className={styles.valueContainer}>
           <span className={styles.mainValue}>{loading ? '...' : stats.totalRiders}</span>
           <span className={cn(styles.subBadge, "bg-cyan-500/15 text-cyan-300 border-cyan-500/30")}>
-            <ArrowUpRight className="h-2.5 w-2.5 ml-0.5" /> مسجل
+            <ArrowUpRight className="h-2.5 w-2.5 ml-0.5" /> {t('organic')}
           </span>
         </div>
       </div>
@@ -98,14 +98,14 @@ export function AdminMasterKPIBar() {
             <Megaphone className="h-4 w-4" />
           </div>
           <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[10px] font-bold text-amber-300">
-            تحت التأسيس
+            {t('underConstruction')}
           </span>
         </div>
         <p className={styles.label}>{t('ads')}</p>
         <div className={styles.valueContainer}>
           <span className={styles.mainValue}>{loading ? '...' : stats.activeAds}</span>
           <span className={cn(styles.subBadge, "bg-amber-500/15 text-amber-300 border-amber-500/30")}>
-            قيد التطوير
+            {t('underDevelopment')}
           </span>
         </div>
       </div>
@@ -117,14 +117,14 @@ export function AdminMasterKPIBar() {
             <UsersRound className="h-4 w-4" />
           </div>
           <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[10px] font-bold text-amber-300">
-            تحت التأسيس
+            {t('underConstruction')}
           </span>
         </div>
         <p className={styles.label}>{t('delegates')}</p>
         <div className={styles.valueContainer}>
           <span className={styles.mainValue}>{loading ? '...' : stats.totalDelegates}</span>
           <span className={cn(styles.subBadge, "bg-amber-500/15 text-amber-300 border-amber-500/30")}>
-            قيد التطوير
+            {t('underDevelopment')}
           </span>
         </div>
       </div>

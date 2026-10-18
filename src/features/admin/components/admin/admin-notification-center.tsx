@@ -40,6 +40,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useTranslations } from 'next-intl';
 
 export interface AdminNotificationItem {
   id: string;
@@ -109,6 +110,7 @@ function playNotificationChime() {
 }
 
 export function AdminNotificationCenter() {
+  const t = useTranslations('adminNotifications');
   const { toast } = useToast();
 
   const [isOpen, setIsOpen] = useState(false);
@@ -161,8 +163,8 @@ export function AdminNotificationCenter() {
           ) {
             playNotificationChime();
             toast({
-              title: '🔔 إشعار إداري جديد',
-              description: 'وصلت عمليات جديدة تتطلب مراجعة المشرف (إيصال شحن أو كابتن جديد).',
+              title: t('audioToastTitle'),
+              description: t('audioToastDesc', { count: newSummary.totalUnread }),
             });
           }
 
@@ -175,7 +177,7 @@ export function AdminNotificationCenter() {
     } finally {
       if (isManual) setLoading(false);
     }
-  }, [soundEnabled, toast]);
+  }, [soundEnabled, toast, t]);
 
   // Initial fetch and 25s polling pulse
   useEffect(() => {
@@ -199,8 +201,11 @@ export function AdminNotificationCenter() {
             if (soundEnabled) {
               playNotificationChime();
               toast({
-                title: '⚡ إيصال شحن جديد وصل للتو!',
-                description: `قام كابتن بإرسال إيصال بقيمة ${row.amount || ''} عبر ${row.payment_channel || 'قناة دفع'} وبانتظار اعتمادك.`,
+                title: t('toastNewReceiptTitle'),
+                description: t('toastNewReceiptDesc', {
+                  amount: row.amount || '',
+                  channel: row.payment_channel || t('defaultPaymentChannel'),
+                }),
               });
             }
             void fetchNotifications();
@@ -281,12 +286,12 @@ export function AdminNotificationCenter() {
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data?.error || 'فشل اعتماد الإيصال');
+        throw new Error(data?.error || t('toastApproveErrorDesc'));
       }
 
       toast({
-        title: 'تم اعتماد الإيصال بنجاح',
-        description: data.message || 'تمت تغذية حساب الكابتن وإرسال إشعار فوري له.',
+        title: t('toastApprovedTitle'),
+        description: data.message || t('toastApprovedDesc'),
       });
 
       // Optimistic update
@@ -307,8 +312,8 @@ export function AdminNotificationCenter() {
     } catch (err: any) {
       toast({
         variant: 'destructive',
-        title: 'خطأ في الاعتماد',
-        description: err.message || 'تعذر اعتماد الإيصال، يرجى المحاولة ثانية.',
+        title: t('toastApproveErrorTitle'),
+        description: err.message || t('toastApproveErrorDesc'),
       });
     } finally {
       setProcessingAction(false);
@@ -331,12 +336,12 @@ export function AdminNotificationCenter() {
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data?.error || 'فشل رفض الإيصال');
+        throw new Error(data?.error || t('toastRejectErrorDesc'));
       }
 
       toast({
-        title: 'تم رفض الإيصال',
-        description: 'تم تحديث المعاملة وإشعار الكابتن بسبب الرفض.',
+        title: t('toastRejectedTitle'),
+        description: t('toastRejectedDesc'),
       });
 
       // Optimistic update
@@ -357,8 +362,8 @@ export function AdminNotificationCenter() {
     } catch (err: any) {
       toast({
         variant: 'destructive',
-        title: 'خطأ في الرفض',
-        description: err.message || 'تعذر رفض الإيصال، يرجى المحاولة ثانية.',
+        title: t('toastRejectErrorTitle'),
+        description: err.message || t('toastRejectErrorDesc'),
       });
     } finally {
       setProcessingAction(false);
@@ -385,7 +390,7 @@ export function AdminNotificationCenter() {
             ? 'bg-amber-500/10 hover:bg-amber-500/20 border-amber-500/40 text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.2)]'
             : 'bg-[#161F30] hover:bg-[#1C273C] border-teal-500/20 text-slate-300 hover:text-white'
         }`}
-        title="مركز الإشعارات والتنبيهات السيادية"
+        title={t('bellTitle')}
       >
         <div className="relative">
           {hasUnread ? (
@@ -400,10 +405,10 @@ export function AdminNotificationCenter() {
             </span>
           )}
         </div>
-        <span className="hidden sm:inline">الإشعارات</span>
+        <span className="hidden sm:inline">{t('notifications')}</span>
         {hasUnread && (
           <Badge className="bg-amber-500/20 text-amber-300 border-none text-[10px] py-0 px-1.5 hidden md:inline-flex">
-            {summary.totalUnread} جديد
+            {summary.totalUnread} {t('newBadge')}
           </Badge>
         )}
       </Button>
@@ -420,15 +425,15 @@ export function AdminNotificationCenter() {
                 </div>
                 <div>
                   <DialogTitle className="text-base sm:text-lg font-black text-white flex items-center gap-2">
-                    <span>مركز الإشعارات والتنبيهات</span>
+                    <span>{t('title')}</span>
                     {hasUnread && (
                       <Badge className="bg-amber-500/20 text-amber-300 border-none text-[10px] font-black px-2 py-0.5">
-                        {summary.totalUnread} معلق
+                        {summary.totalUnread} {t('pendingBadge')}
                       </Badge>
                     )}
                   </DialogTitle>
                   <DialogDescription className="text-slate-400 text-xs">
-                    متابعة فورية لإيصالات الشحن وعمليات الكباتن والتنبيهات المباشرة.
+                    {t('subtitle')}
                   </DialogDescription>
                 </div>
               </div>
@@ -446,7 +451,7 @@ export function AdminNotificationCenter() {
                       ? 'border-teal-500/30 text-teal-300 bg-teal-500/10 hover:bg-teal-500/20'
                       : 'border-white/10 text-slate-500 bg-black/40 hover:text-white'
                   }`}
-                  title={soundEnabled ? 'كتم التنبيه الصوتي' : 'تفعيل التنبيه الصوتي'}
+                  title={soundEnabled ? t('muteSound') : t('enableSound')}
                 >
                   {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
                 </Button>
@@ -459,7 +464,7 @@ export function AdminNotificationCenter() {
                   disabled={loading}
                   onClick={() => fetchNotifications(true)}
                   className="h-8 w-8 p-0 rounded-lg border border-white/10 bg-black/40 text-slate-300 hover:text-teal-300 hover:bg-teal-500/10 transition-all"
-                  title="تحديث فوري"
+                  title={t('refresh')}
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-teal-400' : ''}`} />
                 </Button>
@@ -477,7 +482,7 @@ export function AdminNotificationCenter() {
                     : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 border border-white/5'
                 }`}
               >
-                <span>الكل</span>
+                <span>{t('tabAll')}</span>
                 <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${filterTab === 'ALL' ? 'bg-[#0B0F19]/20 text-[#0B0F19]' : 'bg-white/10 text-slate-300'}`}>
                   {summary.totalUnread}
                 </span>
@@ -493,7 +498,7 @@ export function AdminNotificationCenter() {
                 }`}
               >
                 <ReceiptText className="w-3.5 h-3.5" />
-                <span>إيصالات الشحن</span>
+                <span>{t('tabReceipts')}</span>
                 <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${filterTab === 'RECEIPT' ? 'bg-black/20 text-black' : 'bg-emerald-500/20 text-emerald-300'}`}>
                   {summary.pendingReceiptsCount}
                 </span>
@@ -509,7 +514,7 @@ export function AdminNotificationCenter() {
                 }`}
               >
                 <UserCheck className="w-3.5 h-3.5" />
-                <span>الكباتن الجدد</span>
+                <span>{t('tabCaptains')}</span>
                 <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${filterTab === 'CAPTAIN' ? 'bg-black/20 text-black' : 'bg-cyan-500/20 text-cyan-300'}`}>
                   {summary.pendingCaptainsCount}
                 </span>
@@ -525,7 +530,7 @@ export function AdminNotificationCenter() {
                 }`}
               >
                 <KeyRound className="w-3.5 h-3.5" />
-                <span>استرجاع كلمة السر</span>
+                <span>{t('tabResets')}</span>
                 <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${filterTab === 'PASSWORD_RESET' ? 'bg-black/20 text-black' : 'bg-amber-500/20 text-amber-300'}`}>
                   {summary.pendingResetsCount}
                 </span>
@@ -541,7 +546,7 @@ export function AdminNotificationCenter() {
                 }`}
               >
                 <AlertTriangle className="w-3.5 h-3.5" />
-                <span>تنبيهات النظام</span>
+                <span>{t('tabSystem')}</span>
               </button>
             </div>
           </DialogHeader>
@@ -551,7 +556,7 @@ export function AdminNotificationCenter() {
             {loading && notifications.length === 0 ? (
               <div className="flex min-h-52 flex-col items-center justify-center gap-2 text-slate-400">
                 <Loader2 className="h-6 w-6 animate-spin text-teal-400" />
-                <p className="text-xs">جاري تحديث سجل الإشعارات...</p>
+                <p className="text-xs">{t('loading')}</p>
               </div>
             ) : filteredNotifications.length === 0 ? (
               <div className="flex min-h-52 flex-col items-center justify-center gap-3 text-slate-400 p-6 text-center">
@@ -559,8 +564,8 @@ export function AdminNotificationCenter() {
                   <CheckCircle2 className="w-6 h-6" />
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-white">لا توجد إشعارات جديدة في هذا القسم</p>
-                  <p className="text-xs text-slate-500 mt-1">كل العمليات معالجة ومطابقة في هذا القسم بنجاح.</p>
+                  <p className="text-sm font-bold text-white">{t('emptyTitle')}</p>
+                  <p className="text-xs text-slate-500 mt-1">{t('emptyDesc')}</p>
                 </div>
               </div>
             ) : (
@@ -623,10 +628,10 @@ export function AdminNotificationCenter() {
                         {isReceipt && (
                           <div className="flex items-center gap-2 pt-1 flex-wrap">
                             <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-emerald-500/15 text-emerald-300 border border-emerald-500/25">
-                              المبلغ: {item.payload.amount} {item.payload.currency}
+                              {t('amount')}: {item.payload.amount} {item.payload.currency}
                             </span>
                             <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-white/5 text-slate-300 border border-white/10">
-                              القناة: {item.payload.channel}
+                              {t('channel')}: {item.payload.channel}
                             </span>
                             {item.payload.captainPhone && (
                               <span className="text-[10px] font-mono text-slate-400 bg-black/40 px-2 py-0.5 rounded-lg border border-white/5" dir="ltr">
@@ -640,7 +645,7 @@ export function AdminNotificationCenter() {
                           <div className="flex items-center gap-2 pt-1 flex-wrap">
                             {item.payload.plateNumber && (
                               <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-cyan-500/15 text-cyan-300 border border-cyan-500/25">
-                                لوحة: {item.payload.plateNumber}
+                                {t('plate')}: {item.payload.plateNumber}
                               </span>
                             )}
                             {item.payload.vehicleBrand && (
@@ -664,7 +669,7 @@ export function AdminNotificationCenter() {
                             className="bg-emerald-500 hover:bg-emerald-600 text-black font-black text-xs h-8 px-3 rounded-xl transition-all shadow-[0_0_12px_rgba(16,185,129,0.2)]"
                           >
                             <Eye className="w-3.5 h-3.5 ml-1" />
-                            <span>معاينة واعتماد</span>
+                            <span>{t('reviewAndApprove')}</span>
                           </Button>
 
                           <Button
@@ -673,7 +678,7 @@ export function AdminNotificationCenter() {
                             variant="outline"
                             onClick={() => handleNavigateToTab('wallet', 'receipts')}
                             className="border-white/10 hover:bg-white/10 text-slate-300 text-xs h-8 px-2.5 rounded-xl"
-                            title="الانتقال لصفحة الإيصالات"
+                            title={t('goToReceipts')}
                           >
                             <ArrowUpRight className="w-3.5 h-3.5" />
                           </Button>
@@ -688,7 +693,7 @@ export function AdminNotificationCenter() {
                           className="bg-cyan-500 hover:bg-cyan-600 text-black font-black text-xs h-8 px-3 rounded-xl transition-all shadow-[0_0_12px_rgba(6,182,212,0.2)]"
                         >
                           <UserCheck className="w-3.5 h-3.5 ml-1" />
-                          <span>مراجعة الكابتن</span>
+                          <span>{t('reviewCaptain')}</span>
                         </Button>
                       )}
 
@@ -700,7 +705,7 @@ export function AdminNotificationCenter() {
                           className="bg-amber-500 hover:bg-amber-600 text-black font-black text-xs h-8 px-3 rounded-xl transition-all"
                         >
                           <KeyRound className="w-3.5 h-3.5 ml-1" />
-                          <span>مراجعة الطلب</span>
+                          <span>{t('reviewRequest')}</span>
                         </Button>
                       )}
                     </div>
@@ -714,7 +719,7 @@ export function AdminNotificationCenter() {
           <DialogFooter className="p-3 sm:p-4 border-t border-white/10 bg-black/60 flex items-center justify-between sm:justify-between text-xs text-slate-400">
             <div className="flex items-center gap-1.5 text-[11px]">
               <Shield className="w-3.5 h-3.5 text-teal-400" />
-              <span>المحكم الرقمي — النبض الشبكي النشط</span>
+              <span>{t('footerDigitalJudge')}</span>
             </div>
             <Button
               type="button"
@@ -723,7 +728,7 @@ export function AdminNotificationCenter() {
               onClick={() => setIsOpen(false)}
               className="text-slate-400 hover:text-white h-8 px-3 rounded-xl"
             >
-              إغلاق
+              {t('close')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -737,11 +742,11 @@ export function AdminNotificationCenter() {
               <div className="flex items-center gap-2 text-emerald-400">
                 <ReceiptText className="w-5 h-5 text-emerald-400" />
                 <DialogTitle className="text-base sm:text-lg font-black text-white">
-                  معاينة واعتماد إيصال الشحن
+                  {t('reviewModalTitle')}
                 </DialogTitle>
               </div>
               <DialogDescription className="text-slate-400 text-xs">
-                مراجعة تفاصيل الحوالة وصورة الإيصال المرسلة من الكابتن.
+                {t('reviewModalDesc')}
               </DialogDescription>
             </DialogHeader>
 
@@ -751,7 +756,7 @@ export function AdminNotificationCenter() {
                 {reviewItem.payload.receiptImageUrl ? (
                   <img
                     src={reviewItem.payload.receiptImageUrl}
-                    alt="صورة الإيصال"
+                    alt={t('tabReceipts')}
                     className="max-h-72 w-full object-contain cursor-pointer hover:opacity-95 transition"
                     onClick={() => {
                       if (typeof window !== 'undefined' && reviewItem.payload.receiptImageUrl) {
@@ -762,7 +767,7 @@ export function AdminNotificationCenter() {
                 ) : (
                   <div className="flex flex-col items-center justify-center p-6 text-slate-500 text-xs gap-1">
                     <ReceiptText className="w-8 h-8 text-slate-600" />
-                    <span>لا توجد صورة مرفقة أو الرابط منتهي الصلاحية</span>
+                    <span>{t('noImage')}</span>
                   </div>
                 )}
 
@@ -774,7 +779,7 @@ export function AdminNotificationCenter() {
                     className="absolute top-2.5 left-2.5 bg-black/70 hover:bg-black text-white text-[10px] font-bold px-2 py-1 rounded-lg border border-white/20 flex items-center gap-1 backdrop-blur-md"
                   >
                     <ExternalLink className="w-3 h-3" />
-                    <span>فتح بالحجم الكامل</span>
+                    <span>{t('fullSize')}</span>
                   </a>
                 )}
               </div>
@@ -782,19 +787,19 @@ export function AdminNotificationCenter() {
               {/* Transaction & Captain Details Summary */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-3 rounded-xl bg-black/50 border border-white/5 text-xs font-mono">
                 <div>
-                  <span className="text-[10px] text-slate-400 block font-sans">الكابتن:</span>
+                  <span className="text-[10px] text-slate-400 block font-sans">{t('captainLabel')}</span>
                   <span className="font-bold text-white block truncate">{reviewItem.payload.captainName}</span>
                 </div>
                 <div>
-                  <span className="text-[10px] text-slate-400 block font-sans">الهاتف:</span>
+                  <span className="text-[10px] text-slate-400 block font-sans">{t('phoneLabel')}</span>
                   <span className="font-bold text-slate-300 block" dir="ltr">{reviewItem.payload.captainPhone}</span>
                 </div>
                 <div>
-                  <span className="text-[10px] text-slate-400 block font-sans">القناة:</span>
+                  <span className="text-[10px] text-slate-400 block font-sans">{t('channelLabel')}</span>
                   <span className="font-bold text-emerald-400 block">{reviewItem.payload.channel}</span>
                 </div>
                 <div>
-                  <span className="text-[10px] text-slate-400 block font-sans">المبلغ:</span>
+                  <span className="text-[10px] text-slate-400 block font-sans">{t('amountLabel')}</span>
                   <span className="font-bold text-amber-300 block text-sm">
                     {reviewItem.payload.amount} {reviewItem.payload.currency}
                   </span>
@@ -805,7 +810,7 @@ export function AdminNotificationCenter() {
               {!rejectMode ? (
                 <div className="space-y-3 pt-2">
                   <Label className="text-xs font-bold text-slate-300 block text-right">
-                    طريقة إضافة الرصيد لحساب الكابتن:
+                    {t('creditMethodLabel')}
                   </Label>
                   <div className="grid grid-cols-2 gap-2">
                     <button
@@ -820,8 +825,8 @@ export function AdminNotificationCenter() {
                           : 'border-white/10 bg-black/40 text-slate-400'
                       }`}
                     >
-                      <span className="text-xs font-bold block">دقائق رادار (طيران)</span>
-                      <span className="text-[10px] text-slate-400 mt-0.5 block">60 دقيقة لكل 1 {reviewItem.payload.currency}</span>
+                      <span className="text-xs font-bold block">{t('minutesOption')}</span>
+                      <span className="text-[10px] text-slate-400 mt-0.5 block">{t('minutesOptionDesc', { currency: reviewItem.payload.currency || '' })}</span>
                     </button>
 
                     <button
@@ -833,14 +838,14 @@ export function AdminNotificationCenter() {
                           : 'border-white/10 bg-black/40 text-slate-400'
                       }`}
                     >
-                      <span className="text-xs font-bold block">رصيد نقدي بالمحفظة</span>
-                      <span className="text-[10px] text-slate-400 mt-0.5 block">إيداع {reviewItem.payload.amount} {reviewItem.payload.currency} نقدياً</span>
+                      <span className="text-xs font-bold block">{t('cashOption')}</span>
+                      <span className="text-[10px] text-slate-400 mt-0.5 block">{t('cashOptionDesc', { amount: reviewItem.payload.amount || 0, currency: reviewItem.payload.currency || '' })}</span>
                     </button>
                   </div>
 
                   {creditType === 'MINUTES' && (
                     <div className="space-y-1 text-right">
-                      <Label className="text-[11px] font-bold text-slate-400">عدد الدقائق الممنوحة للكابتن:</Label>
+                      <Label className="text-[11px] font-bold text-slate-400">{t('minutesCountLabel')}</Label>
                       <Input
                         type="number"
                         min="1"
@@ -852,10 +857,10 @@ export function AdminNotificationCenter() {
                   )}
 
                   <div className="space-y-1 text-right">
-                    <Label className="text-[11px] font-bold text-slate-400">ملاحظة إدارية للكابتن (اختياري):</Label>
+                    <Label className="text-[11px] font-bold text-slate-400">{t('adminNoteLabel')}</Label>
                     <Input
                       type="text"
-                      placeholder="مثال: تم التأكد من وصول الحوالة واعتماد الرصيد"
+                      placeholder={t('adminNotePlaceholder')}
                       value={adminNote}
                       onChange={(e) => setAdminNote(e.target.value)}
                       className="bg-black/60 border-white/10 text-white text-xs h-9 rounded-xl text-right"
@@ -864,16 +869,16 @@ export function AdminNotificationCenter() {
                 </div>
               ) : (
                 <div className="space-y-2 pt-2 text-right">
-                  <Label className="text-xs font-bold text-rose-400 block">سبب رفض الإيصال:</Label>
+                  <Label className="text-xs font-bold text-rose-400 block">{t('rejectionReasonLabel')}</Label>
                   <Input
                     type="text"
-                    placeholder="مثال: الإيصال غير واضح أو الحوالة لم تصل على الرقم"
+                    placeholder={t('rejectionReasonPlaceholder')}
                     value={rejectionReason}
                     onChange={(e) => setRejectionReason(e.target.value)}
                     className="bg-black/60 border-rose-500/40 focus:border-rose-500 text-white text-xs h-10 rounded-xl text-right"
                     autoFocus
                   />
-                  <p className="text-[10px] text-slate-400">سيصل هذا السبب كإشعار فوري في تطبيق الكابتن.</p>
+                  <p className="text-[10px] text-slate-400">{t('rejectionNotice')}</p>
                 </div>
               )}
             </div>
@@ -890,12 +895,12 @@ export function AdminNotificationCenter() {
                     {processingAction ? (
                       <>
                         <Loader2 className="w-4 h-4 animate-spin ml-2" />
-                        جاري الاعتماد...
+                        {t('approving')}
                       </>
                     ) : (
                       <>
                         <CheckCircle2 className="w-4 h-4 ml-1.5" />
-                        اعتماد الإيصال وتغذية الحساب
+                        {t('approveButton')}
                       </>
                     )}
                   </Button>
@@ -907,7 +912,7 @@ export function AdminNotificationCenter() {
                     onClick={() => setRejectMode(true)}
                     className="border-rose-500/30 text-rose-400 hover:bg-rose-500/10 h-10 rounded-xl text-xs font-bold"
                   >
-                    رفض الإيصال
+                    {t('rejectButton')}
                   </Button>
                 </>
               ) : (
@@ -921,12 +926,12 @@ export function AdminNotificationCenter() {
                     {processingAction ? (
                       <>
                         <Loader2 className="w-4 h-4 animate-spin ml-2" />
-                        جاري الرفض...
+                        {t('rejecting')}
                       </>
                     ) : (
                       <>
                         <XCircle className="w-4 h-4 ml-1.5" />
-                        تأكيد رفض الإيصال
+                        {t('confirmRejectButton')}
                       </>
                     )}
                   </Button>
@@ -938,7 +943,7 @@ export function AdminNotificationCenter() {
                     onClick={() => setRejectMode(false)}
                     className="border-white/10 text-slate-300 hover:bg-white/5 h-10 rounded-xl text-xs"
                   >
-                    رجوع للاعتماد
+                    {t('backToApprove')}
                   </Button>
                 </>
               )}

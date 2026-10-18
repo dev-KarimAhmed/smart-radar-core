@@ -36,8 +36,10 @@ import { cn } from '@/lib/utils';
 import { clearSupabaseSessionCache } from '@/lib/supabase-auth';
 import { purgeTransientFrontendCache } from '@/hooks/use-auth';
 import { AdminNotificationCenter } from './admin-notification-center';
+import { useTranslations } from 'next-intl';
 
 export function AdminTopBar() {
+  const t = useTranslations('adminTopBar');
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -91,12 +93,12 @@ export function AdminTopBar() {
     setPasswordError(null);
 
     if (!newPassword || newPassword.length < 6) {
-      setPasswordError('كلمة المرور يجب ألا تقل عن 6 خانات أو أحرف');
+      setPasswordError(t('passwordLengthError'));
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setPasswordError('كلمتا المرور غير متطابقتين، يرجى التأكد وإعادة المحاولة');
+      setPasswordError(t('passwordMismatchError'));
       return;
     }
 
@@ -118,13 +120,13 @@ export function AdminTopBar() {
         });
 
         if (clientErr) {
-          throw new Error(data.error || clientErr.message || 'فشل تحديث كلمة المرور');
+          throw new Error(data.error || clientErr.message || t('passwordGenericError'));
         }
       }
 
       toast({
-        title: 'تم تحديث كلمة المرور',
-        description: 'تم تغيير كلمة المرور لحساب المشرف بنجاح.',
+        title: t('passwordSuccessTitle'),
+        description: t('passwordSuccessDesc'),
         variant: 'default',
       });
 
@@ -134,10 +136,10 @@ export function AdminTopBar() {
       setPasswordDialogOpen(false);
     } catch (err: any) {
       console.error('[AdminTopBar] Change password error:', err);
-      setPasswordError(err.message || 'حدث خطأ غير متوقع أثناء تغيير كلمة المرور');
+      setPasswordError(err.message || t('passwordGenericError'));
       toast({
-        title: 'خطأ في التحديث',
-        description: err.message || 'تعذر تغيير كلمة المرور.',
+        title: t('passwordErrorTitle'),
+        description: err.message || t('passwordGenericError'),
         variant: 'destructive',
       });
     } finally {
@@ -191,22 +193,22 @@ export function AdminTopBar() {
           <div className="space-y-1 text-right">
             <div className="flex items-center gap-2 flex-wrap">
               <h2 className="text-base sm:text-lg font-black text-white tracking-wide">
-                {user?.name || 'مدير النظام السيادي'}
+                {user?.name || t('sovereignAdmin')}
               </h2>
               {adminRank === 'GENERAL_ADMIN' ? (
                 <Badge className="bg-amber-500/15 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[11px] font-black py-0.5 px-2 flex items-center gap-1 shadow-[0_0_12px_rgba(245,158,11,0.2)]">
                   <Crown className="w-3 h-3 text-amber-400" />
-                  <span>مشرف عام</span>
+                  <span>{t('generalAdmin')}</span>
                 </Badge>
               ) : (
                 <Badge className="bg-cyan-500/15 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-[11px] font-bold py-0.5 px-2 flex items-center gap-1 shadow-[0_0_12px_rgba(6,182,212,0.15)]">
                   <Shield className="w-3 h-3 text-cyan-400" />
-                  <span>مشرف مساعد</span>
+                  <span>{t('assistantAdmin')}</span>
                 </Badge>
               )}
             </div>
             <p className="text-xs text-slate-400 font-mono flex items-center gap-1.5">
-              <span>{user?.phone || user?.serial_id || 'UID: ' + (user?.uid ? user.uid.slice(0, 8) + '...' : 'المسؤول')}</span>
+              <span>{user?.phone || user?.serial_id || 'UID: ' + (user?.uid ? user.uid.slice(0, 8) + '...' : t('officer'))}</span>
             </p>
           </div>
         </div>
@@ -228,7 +230,7 @@ export function AdminTopBar() {
             className="flex-1 sm:flex-initial bg-[#161F30] hover:bg-[#1C273C] text-teal-300 hover:text-teal-200 border border-teal-500/30 hover:border-teal-500/50 font-bold text-xs sm:text-sm py-2 px-4 rounded-xl transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2"
           >
             <KeyRound className="w-4 h-4 text-teal-400" />
-            <span>تغيير كلمة السر</span>
+            <span>{t('changePassword')}</span>
           </Button>
 
           {/* Logout Button */}
@@ -238,7 +240,7 @@ export function AdminTopBar() {
             className="flex-1 sm:flex-initial bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 border border-rose-500/30 hover:border-rose-500/50 font-bold text-xs sm:text-sm py-2 px-4 rounded-xl transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2"
           >
             <LogOut className="w-4 h-4 text-rose-400" />
-            <span>تسجيل الخروج</span>
+            <span>{t('logout')}</span>
           </Button>
         </div>
       </div>
@@ -252,11 +254,11 @@ export function AdminTopBar() {
                 <Lock className="w-5 h-5 text-teal-400" />
               </div>
               <DialogTitle className="text-lg font-black text-white">
-                تغيير كلمة مرور المشرف
+                {t('passwordDialogTitle')}
               </DialogTitle>
             </div>
             <DialogDescription className="text-slate-400 text-xs leading-relaxed">
-              قم بإدخال كلمة المرور الجديدة لحساب الإدارة. يفضل استخدام مزيج من الحروف والأرقام لضمان حماية النظام.
+              {t('passwordDialogDesc')}
             </DialogDescription>
           </DialogHeader>
 
@@ -271,7 +273,7 @@ export function AdminTopBar() {
             {/* حقل كلمة المرور الجديدة */}
             <div className="space-y-1.5 text-right">
               <Label className="text-xs font-bold text-slate-300">
-                كلمة المرور الجديدة (6 خانات على الأقل)
+                {t('newPasswordLabel')}
               </Label>
               <div className="relative">
                 <Input
@@ -296,7 +298,7 @@ export function AdminTopBar() {
             {/* حقل تأكيد كلمة المرور */}
             <div className="space-y-1.5 text-right">
               <Label className="text-xs font-bold text-slate-300">
-                تأكيد كلمة المرور الجديدة
+                {t('confirmPasswordLabel')}
               </Label>
               <div className="relative">
                 <Input
@@ -327,12 +329,12 @@ export function AdminTopBar() {
                 {submittingPassword ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin ml-2" />
-                    جاري التحديث...
+                    {t('updating')}
                   </>
                 ) : (
                   <>
                     <CheckCircle2 className="w-4 h-4 ml-1.5" />
-                    حفظ كلمة المرور
+                    {t('savePassword')}
                   </>
                 )}
               </Button>
@@ -343,7 +345,7 @@ export function AdminTopBar() {
                 disabled={submittingPassword}
                 className="border-white/10 text-slate-300 hover:bg-white/5 h-10 rounded-xl text-xs"
               >
-                إلغاء
+                {t('cancel')}
               </Button>
             </DialogFooter>
           </form>
@@ -359,11 +361,11 @@ export function AdminTopBar() {
                 <LogOut className="w-5 h-5 text-rose-400" />
               </div>
               <DialogTitle className="text-lg font-black text-white">
-                تسجيل الخروج من لوحة الإدارة
+                {t('logoutDialogTitle')}
               </DialogTitle>
             </div>
             <DialogDescription className="text-slate-400 text-xs leading-relaxed">
-              هل أنت متأكد من رغبتك في تسجيل الخروج؟ سيتم إنهاء جلستك الإدارية الحالية وإعادتك إلى شاشة تسجيل الدخول.
+              {t('logoutDialogDesc')}
             </DialogDescription>
           </DialogHeader>
 
@@ -377,12 +379,12 @@ export function AdminTopBar() {
               {loggingOut ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin ml-2" />
-                  جاري تسجيل الخروج...
+                  {t('loggingOut')}
                 </>
               ) : (
                 <>
                   <LogOut className="w-4 h-4 ml-1.5" />
-                  تأكيد الخروج
+                  {t('confirmLogout')}
                 </>
               )}
             </Button>
@@ -393,7 +395,7 @@ export function AdminTopBar() {
               disabled={loggingOut}
               className="border-white/10 text-slate-300 hover:bg-white/5 h-10 rounded-xl text-xs"
             >
-              تراجع
+              {t('back')}
             </Button>
           </DialogFooter>
         </DialogContent>

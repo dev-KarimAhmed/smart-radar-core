@@ -77,7 +77,7 @@ export function CapacityPricingPanel() {
 
       toast({ title: t('savedTitle'), description: t('savedDescription') });
     } catch (err: any) {
-      toast({ variant: 'destructive', title: 'خطأ', description: err?.message || 'فشل الحفظ' });
+      toast({ variant: 'destructive', title: t('errorTitle'), description: err?.message || t('saveFailed') });
     } finally {
       setSaving(false);
     }
