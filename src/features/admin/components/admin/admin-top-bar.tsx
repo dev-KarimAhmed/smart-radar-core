@@ -40,26 +40,34 @@ export function AdminTopBar() {
   const { user } = useAuth();
   const { toast } = useToast();
 
+  const isSovereignPrimary =
+    user?.uid === '70b4a26f-10ac-4888-8df6-c3a5ad824b8a' ||
+    user?.phone === '+201551981922';
+
   const [adminRank, setAdminRank] = useState<'GENERAL_ADMIN' | 'ASSISTANT_ADMIN'>(() => {
-    if (user?.uid === '70b4a26f-10ac-4888-8df6-c3a5ad824b8a' || user?.phone === '+201551981922') {
-      return 'GENERAL_ADMIN';
-    }
+    if (isSovereignPrimary) return 'GENERAL_ADMIN';
     return user?.adminRank || 'GENERAL_ADMIN';
   });
 
   React.useEffect(() => {
+    if (isSovereignPrimary) {
+      setAdminRank('GENERAL_ADMIN');
+      return;
+    }
     if (user?.adminRank) {
       setAdminRank(user.adminRank);
     }
     adminFetch('/api/admin/list-admins')
       .then((res) => res.json())
       .then((data) => {
-        if (data?.callerRank) {
+        if (isSovereignPrimary) {
+          setAdminRank('GENERAL_ADMIN');
+        } else if (data?.callerRank) {
           setAdminRank(data.callerRank);
         }
       })
       .catch(() => {});
-  }, [user]);
+  }, [user, isSovereignPrimary]);
 
   // Dialog States
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);

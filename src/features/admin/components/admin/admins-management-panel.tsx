@@ -33,6 +33,10 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { useTranslations } from 'next-intl';
+import { useAuth } from '@/hooks/use-auth';
+
+export const PRIMARY_SOVEREIGN_ADMIN_ID = '70b4a26f-10ac-4888-8df6-c3a5ad824b8a';
+export const PRIMARY_SOVEREIGN_ADMIN_PHONE = '+201551981922';
 
 export interface AdminProfile {
   id: string;
@@ -69,10 +73,20 @@ const styles = {
 export function AdminsManagementPanel() {
   const t = useTranslations('adminAdmins');
   const tAuto = useTranslations('auto');
+  const { user } = useAuth();
+
+  const isCallerPrimary =
+    user?.uid === PRIMARY_SOVEREIGN_ADMIN_ID ||
+    user?.phone === PRIMARY_SOVEREIGN_ADMIN_PHONE;
 
   const [admins, setAdmins] = useState<AdminProfile[]>([]);
-  const [callerRank, setCallerRank] = useState<'GENERAL_ADMIN' | 'ASSISTANT_ADMIN' | null>(null);
-  const [callerId, setCallerId] = useState<string | null>(null);
+  const [callerRank, setCallerRank] = useState<'GENERAL_ADMIN' | 'ASSISTANT_ADMIN' | null>(() => {
+    if (isCallerPrimary || user?.adminRank === 'GENERAL_ADMIN') {
+      return 'GENERAL_ADMIN';
+    }
+    return user?.adminRank || null;
+  });
+  const [callerId, setCallerId] = useState<string | null>(user?.uid || null);
   const [loading, setLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -92,7 +106,19 @@ export function AdminsManagementPanel() {
   const [deleteTarget, setDeleteTarget] = useState<AdminProfile | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  const isGeneralAdmin = callerRank === 'GENERAL_ADMIN';
+  const isGeneralAdmin =
+    callerRank === 'GENERAL_ADMIN' ||
+    isCallerPrimary ||
+    user?.adminRank === 'GENERAL_ADMIN';
+
+  useEffect(() => {
+    if (isCallerPrimary || user?.adminRank === 'GENERAL_ADMIN') {
+      setCallerRank('GENERAL_ADMIN');
+    }
+    if (user?.uid && !callerId) {
+      setCallerId(user.uid);
+    }
+  }, [isCallerPrimary, user?.adminRank, user?.uid, callerId]);
 
   const fetchAdmins = useCallback(async () => {
     try {
@@ -101,15 +127,23 @@ export function AdminsManagementPanel() {
       const data = await res.json();
       if (data?.success && Array.isArray(data.admins)) {
         setAdmins(data.admins);
-        if (data.callerRank) setCallerRank(data.callerRank);
-        if (data.callerId) setCallerId(data.callerId);
+        if (isCallerPrimary) {
+          setCallerRank('GENERAL_ADMIN');
+        } else if (data.callerRank) {
+          setCallerRank(data.callerRank);
+        }
+        if (data.callerId) {
+          setCallerId(data.callerId);
+        } else if (user?.uid) {
+          setCallerId(user.uid);
+        }
       }
     } catch (err) {
       console.error('[AdminsManagementPanel] fetch error:', err);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isCallerPrimary, user?.uid]);
 
   useEffect(() => {
     void fetchAdmins();
@@ -227,8 +261,10 @@ export function AdminsManagementPanel() {
     }
   };
 
-  const generalAdminsCount = admins.filter(a => a.admin_rank === 'GENERAL_ADMIN').length;
-  const assistantAdminsCount = admins.filter(a => a.admin_rank === 'ASSISTANT_ADMIN').length;
+  const generalAdminsCount = admins.filter(
+    a => a.admin_rank === 'GENERAL_ADMIN' || a.is_primary || a.id === PRIMARY_SOVEREIGN_ADMIN_ID || a.phone === PRIMARY_SOVEREIGN_ADMIN_PHONE
+  ).length;
+  const assistantAdminsCount = Math.max(0, admins.length - generalAdminsCount);
 
   return (
     <div className={styles.root} dir="rtl">
@@ -511,10 +547,17 @@ export function AdminsManagementPanel() {
                 </thead>
                 <tbody>
                   {admins.map((admin) => {
-                    const isTargetGeneral = admin.admin_rank === 'GENERAL_ADMIN';
-                    const isCallerHimself = admin.id === callerId;
-                    const canModify = isGeneralAdmin && !admin.is_primary;
-                    const canDelete = isGeneralAdmin && !admin.is_primary && !isCallerHimself;
+                    const isTargetPrimary =
+                      admin.is_primary ||
+                      admin.id === PRIMARY_SOVEREIGN_ADMIN_ID ||
+                      admin.phone === PRIMARY_SOVEREIGN_ADMIN_PHONE;
+                    const isTargetGeneral = admin.admin_rank === 'GENERAL_ADMIN' || isTargetPrimary;
+                    const isCallerHimself =
+                      admin.id === callerId ||
+                      (user?.uid && admin.id === user.uid) ||
+                      (user?.phone && admin.phone === user.phone);
+                    const canModify = isGeneralAdmin && !isTargetPrimary;
+                    const canDelete = isGeneralAdmin && !isTargetPrimary && !isCallerHimself;
 
                     return (
                       <tr key={admin.id} className={styles.tableRow}>
@@ -545,7 +588,7 @@ export function AdminsManagementPanel() {
                             <span className="inline-flex items-center gap-1.5 text-[11px] font-black text-amber-300 bg-amber-500/15 border border-amber-500/30 px-2.5 py-1 rounded-xl shadow-[0_0_12px_rgba(245,158,11,0.15)]">
                               <Crown className="h-3.5 w-3.5 text-amber-400" />
                               <span>{t('generalAdmin')}</span>
-                              {admin.is_primary && (
+                              {isTargetPrimary && (
                                 <span className="text-[9px] bg-amber-400/20 text-amber-200 px-1 py-0.2 rounded font-sans">{t('primaryTag')}</span>
                               )}
                             </span>
