@@ -432,48 +432,81 @@ export async function POST(req: Request) {
       case 'reset_penalties': {
         const { data: currProfile } = await supabaseAdmin
           .from('profiles')
-          .select('role')
+          .select('role, rank_audit_log')
           .eq('id', userId)
           .single();
 
         const originalRole = currProfile?.role || 'CAPTAIN';
+        let currentLogs: string[] = Array.isArray(currProfile?.rank_audit_log) ? [...currProfile.rank_audit_log] : [];
+        currentLogs = currentLogs.filter(l => l !== 'ACCOUNT_SUSPENDED');
 
-        // Step 1: Temporarily shift role to RIDER to bypass sync_captain_rank trigger which discards direct writes
-        const { error: err1 } = await supabaseAdmin
-          .from('profiles')
-          .update({
-            role: 'RIDER',
-            penalty_count: 0,
-            rating: 5.0,
-            trust_score: 5.0,
-            trust_rating: 5.0,
-            consecutive_cancellations: 0,
-            rank_penalty_expires_at: null,
-            status: 'IDLE',
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', userId);
+        const updatePayload: Record<string, any> = {
+          penalty_count: 0,
+          rating: 5.0,
+          trust_score: 5.0,
+          trust_rating: 5.0,
+          behavior_rating: 5.0,
+          rank_penalty_expires_at: null,
+          rank_audit_log: currentLogs,
+          status: 'IDLE',
+          updated_at: new Date().toISOString(),
+        };
 
-        if (err1) throw err1;
+        if (originalRole === 'CAPTAIN' || originalRole === 'DRIVER') {
+          // Temporarily shift role to RIDER to bypass sync_captain_rank trigger which discards direct writes
+          const { error: err1 } = await supabaseAdmin
+            .from('profiles')
+            .update({
+              role: 'RIDER',
+              ...updatePayload,
+            })
+            .eq('id', userId);
 
-        // Step 2: Restore original captain role
-        const { error: err2 } = await supabaseAdmin
-          .from('profiles')
-          .update({
-            role: originalRole,
-            status: 'IDLE',
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', userId);
+          if (err1) throw err1;
 
-        if (err2) throw err2;
+          // Restore original captain role
+          const { error: err2 } = await supabaseAdmin
+            .from('profiles')
+            .update({
+              role: originalRole,
+              status: 'IDLE',
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', userId);
 
-        // Push real-time notification to the captain
+          if (err2) throw err2;
+        } else {
+          // Direct update for RIDER or other roles
+          const { error } = await supabaseAdmin
+            .from('profiles')
+            .update(updatePayload)
+            .eq('id', userId);
+
+          if (error) throw error;
+        }
+
+        // Update auth metadata to clear suspended status
+        try {
+          await supabaseAdmin.auth.admin.updateUserById(userId, {
+            user_metadata: {
+              status: 'IDLE',
+              security_status: null,
+            },
+          });
+        } catch (authErr) {
+          console.warn('[Admin API] reset_penalties auth metadata update skipped:', authErr);
+        }
+
+        // Push real-time notification to the user
         await supabaseAdmin.from('user_notifications').insert({
           id: `notif_reset_penalties_${userId}_${Date.now()}`,
           user_id: userId,
-          title: 'سجل المخالفات وكوابح السوق 🛡️',
-          description: 'تمت مراجعة حسابك وتصفير سجل المخالفات بالكامل، واستعادة مؤشر الأمان والنزاهة السلوكية إلى 5.0 نجوم بنجاح.',
+          title: originalRole === 'CAPTAIN' || originalRole === 'DRIVER'
+            ? 'سجل المخالفات وكوابح السوق 🛡️'
+            : 'إعادة تأهيل الحساب والنزاهة السلوكية 🛡️',
+          description: originalRole === 'CAPTAIN' || originalRole === 'DRIVER'
+            ? 'تمت مراجعة حسابك وتصفير سجل المخالفات بالكامل، واستعادة مؤشر الأمان والنزاهة السلوكية إلى 5.0 نجوم بنجاح.'
+            : 'تمت إعادة تأهيل حسابك واستعادة مؤشر النزاهة والمناعة السلوكية إلى 5.0 نجوم كاملة وتصفير أي عقوبات سابقة بنجاح.',
           type: 'admin_message',
           is_read: false,
           created_at: new Date().toISOString(),
