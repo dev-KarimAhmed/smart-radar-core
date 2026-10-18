@@ -16,6 +16,7 @@ function isDriverStatus(value: unknown): value is DriverStatus {
 
 export function useDriverLifecycle(user: User | null) {
   const [driverStatus, setDriverStatus] = useState<DriverStatus>('idle');
+  const [accountSecurityStatus, setAccountSecurityStatus] = useState<'SUSPENDED' | 'BANNED' | null>(null);
   const [isDormancyWarningVisible, setWarning] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   // Bumped on every successful self-activation. Consumers use it to re-run whatever the
@@ -38,7 +39,14 @@ export function useDriverLifecycle(user: User | null) {
 
   useEffect(() => {
     if (user?.role === 'driver') {
-      setDriverStatus((user.status || 'idle') as DriverStatus);
+      const initialStatus = String(user.status || '').toUpperCase();
+      if (initialStatus === 'SUSPENDED' || initialStatus === 'BANNED') {
+        setAccountSecurityStatus(initialStatus as 'SUSPENDED' | 'BANNED');
+        setDriverStatus('idle');
+      } else {
+        setAccountSecurityStatus(null);
+        setDriverStatus((user.status || 'idle') as DriverStatus);
+      }
     }
   }, [user?.role, user?.status]);
 
@@ -60,9 +68,16 @@ export function useDriverLifecycle(user: User | null) {
         },
         (payload) => {
           if (!mounted) return;
-          const status = String((payload.new as { status?: unknown }).status || '').toLowerCase();
-          if (isDriverStatus(status)) {
-            setDriverStatus(status);
+          const rawStatus = String((payload.new as { status?: unknown }).status || '').toUpperCase();
+          if (rawStatus === 'SUSPENDED' || rawStatus === 'BANNED') {
+            setAccountSecurityStatus(rawStatus);
+            setDriverStatus('idle');
+          } else {
+            setAccountSecurityStatus(null);
+            const status = rawStatus.toLowerCase();
+            if (isDriverStatus(status)) {
+              setDriverStatus(status);
+            }
           }
         },
       )
@@ -75,7 +90,15 @@ export function useDriverLifecycle(user: User | null) {
       .maybeSingle()
       .then(async ({ data, error }) => {
         if (!mounted || error) return;
-        let status = String((data as { status?: unknown } | null)?.status || '').toLowerCase();
+        const rawStatus = String((data as { status?: unknown } | null)?.status || '').toUpperCase();
+        if (rawStatus === 'SUSPENDED' || rawStatus === 'BANNED') {
+          setAccountSecurityStatus(rawStatus as 'SUSPENDED' | 'BANNED');
+          setDriverStatus('idle');
+          return;
+        }
+
+        setAccountSecurityStatus(null);
+        let status = rawStatus.toLowerCase();
         if (status === 'active') {
           const { data: walletData } = await supabase.rpc('get_captain_wallet_status');
           const wallet = walletData as { has_active_bundle?: boolean; paid_minutes_remaining?: number; bonus_minutes_remaining?: number } | null;
@@ -264,6 +287,14 @@ export function useDriverLifecycle(user: User | null) {
   }, [clearTimers, driverStatus, resetDormancyTimer, user?.role]);
 
   const toggleDriverStatus = useCallback(async (desiredStatus: 'active' | 'idle') => {
+    if (accountSecurityStatus) {
+      toast({
+        variant: 'destructive',
+        title: accountSecurityStatus === 'BANNED' ? 'الحساب محظور نهائياً 🚫' : 'الحساب معلق مؤقتاً ⚠️',
+        description: 'لا يمكن تفعيل الاتصال بالرادار أثناء إيقاف أو تعليق الحساب من قبل الإدارة.',
+      });
+      return false;
+    }
     if (driverStatus === 'busy' || driverStatus === 'rating') return false;
     if (isTogglingRef.current) return false;
     isTogglingRef.current = true;
@@ -295,10 +326,11 @@ export function useDriverLifecycle(user: User | null) {
       isTogglingRef.current = false;
       setIsUpdatingStatus(false);
     }
-  }, [changeDriverStatus, driverStatus, t, updateDriverDoc, user?.uid]);
+  }, [accountSecurityStatus, changeDriverStatus, driverStatus, t, toast, updateDriverDoc, user?.uid]);
 
   return {
     driverStatus,
+    accountSecurityStatus,
     activationNonce,
     setDriverStatus: changeDriverStatus,
     isDormancyWarningVisible,

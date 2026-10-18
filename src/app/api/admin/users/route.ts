@@ -176,6 +176,38 @@ export async function POST(req: Request) {
           .eq('id', userId);
 
         if (error) throw error;
+
+        // Push real-time notification to the captain
+        let notifTitle = 'تحديث في الحالة التشغيلية';
+        let notifDesc = `قامت الإدارة بتحديث حالتك إلى: ${normalizedStatus}`;
+        let notifType: 'admin_message' | 'warning' | 'urgent' = 'admin_message';
+
+        if (normalizedStatus === 'ACTIVE') {
+          notifTitle = 'تم تنشيط حسابك على الرادار ⚡';
+          notifDesc = 'قامت إدارة المنظومة بتنشيط حسابك فورياً، وأصبحت متصلاً بالرادار وجاهزاً لاستقبال طلبات الركاب.';
+        } else if (normalizedStatus === 'IDLE') {
+          notifTitle = 'تم ضبط وضعك إلى خامل (جاهز) 🛑';
+          notifDesc = 'أنت الآن في وضع الجاهزية والخمول، يمكنك تفعيل الاتصال بالرادار متى شئت.';
+        } else if (normalizedStatus === 'SUSPENDED') {
+          notifTitle = 'تنبيه إداري: تم تعليق حسابك مؤقتاً ⚠️';
+          notifDesc = 'تم تعليق حسابك مؤقتاً من قبل إدارة العمليات. يرجى مراجعة الإدارة أو التواصل مع الدعم لفك التعليق.';
+          notifType = 'warning';
+        } else if (normalizedStatus === 'BANNED') {
+          notifTitle = 'إشعار أمني: تم حظر حسابك نهائياً 🚫';
+          notifDesc = 'تم حظر حسابك نهائياً من قبل إدارة المنظومة لمخالفة المعايير التشغيلية والسيادية.';
+          notifType = 'urgent';
+        }
+
+        await supabaseAdmin.from('user_notifications').insert({
+          id: `notif_status_${userId}_${Date.now()}`,
+          user_id: userId,
+          title: notifTitle,
+          description: notifDesc,
+          type: notifType,
+          is_read: false,
+          created_at: new Date().toISOString(),
+        });
+
         return NextResponse.json({ success: true, message: `تم تحديث الحالة إلى ${normalizedStatus}` });
       }
 
@@ -205,6 +237,16 @@ export async function POST(req: Request) {
             title: 'تهانينا يا كابتن! تم اعتماد وتوثيق حسابك رسمياً 🏆',
             description: 'تمت مراجعة وتدقيق هويتك ومستنداتك بنجاح من قبل إدارة المنظومة، ومُنحت شارة «كابتن موثق رسمياً ✓».',
             type: 'admin_message',
+            is_read: false,
+            created_at: new Date().toISOString(),
+          });
+        } else if (normStatus === 'REJECTED') {
+          await supabaseAdmin.from('user_notifications').insert({
+            id: `notif_verif_rej_${userId}_${Date.now()}`,
+            user_id: userId,
+            title: 'تنبيه: مراجعة وثائق الكابتن ⚠️',
+            description: reason || 'يرجى إعادة رفع وثائق واضحة ومطابقة للشروط والتعليمات لتأكيد اعتماد الحساب.',
+            type: 'warning',
             is_read: false,
             created_at: new Date().toISOString(),
           });
@@ -260,13 +302,24 @@ export async function POST(req: Request) {
           if (error) throw error;
         }
 
+        // Push real-time notification to the captain
+        await supabaseAdmin.from('user_notifications').insert({
+          id: `notif_topup_min_${userId}_${Date.now()}`,
+          user_id: userId,
+          title: 'شحن رصيد دقائق الرادار ⚡',
+          description: `تم شحن (${minutes}) دقيقة طيران رادار لحسابك بنجاح من قبل الإدارة. أصبحت الدقائق جاهزة للاستخدام الآن!`,
+          type: 'admin_message',
+          is_read: false,
+          created_at: new Date().toISOString(),
+        });
+
         return NextResponse.json({
           success: true,
           message: `تم شحن ${minutes} دقيقة رادار بنجاح وتمديد الصلاحية لـ ${extendDays} يوماً.`,
         });
       }
 
-      // 4. Adjust cash balance (JD)
+      // 4. Adjust cash balance (JD / EGP)
       case 'adjust_balance': {
         const amount = Number(body.amount);
         if (isNaN(amount)) {
@@ -291,9 +344,21 @@ export async function POST(req: Request) {
           }, { onConflict: 'profile_id' });
 
         if (error) throw error;
+
+        // Push real-time notification to the captain
+        await supabaseAdmin.from('user_notifications').insert({
+          id: `notif_adjust_bal_${userId}_${Date.now()}`,
+          user_id: userId,
+          title: 'إيداع نقدي في المحفظة 💰',
+          description: `تم إيداع مبلغ (${amount}) في محفظتك بنجاح من قبل الإدارة. الرصيد المالي الحالي: ${newBalance.toFixed(2)}.`,
+          type: 'admin_message',
+          is_read: false,
+          created_at: new Date().toISOString(),
+        });
+
         return NextResponse.json({
           success: true,
-          message: `تم تعديل الرصيد بمقدار ${amount > 0 ? '+' : ''}${amount} د.أ. الرصيد الحالي: ${newBalance.toFixed(2)} د.أ`,
+          message: `تم تعديل الرصيد بمقدار ${amount > 0 ? '+' : ''}${amount}. الرصيد الحالي: ${newBalance.toFixed(2)}`,
         });
       }
 
@@ -313,6 +378,18 @@ export async function POST(req: Request) {
           .eq('id', userId);
 
         if (error) throw error;
+
+        // Push real-time notification to the captain
+        await supabaseAdmin.from('user_notifications').insert({
+          id: `notif_reset_penalties_${userId}_${Date.now()}`,
+          user_id: userId,
+          title: 'سجل المخالفات وكوابح السوق 🛡️',
+          description: 'تمت مراجعة حسابك وتصفير سجل المخالفات بالكامل، واستعادة مؤشر الأمان والنزاهة السلوكية إلى 5.0 نجوم بنجاح.',
+          type: 'admin_message',
+          is_read: false,
+          created_at: new Date().toISOString(),
+        });
+
         return NextResponse.json({
           success: true,
           message: 'تم تصفير عداد المخالفات واستعادة مؤشر النزاهة السلوكية إلى 5.0 نجوم بنجاح.',
@@ -335,6 +412,25 @@ export async function POST(req: Request) {
           .eq('id', userId);
 
         if (error) throw error;
+
+        const tierNames: Record<string, string> = {
+          PLATINUM: 'البلاتينية 💎',
+          GOLD: 'الذهبية 🥇',
+          SILVER: 'الفضية 🥈',
+          BRONZE: 'البرونزية 🥉',
+        };
+
+        // Push real-time notification to the captain
+        await supabaseAdmin.from('user_notifications').insert({
+          id: `notif_tier_${userId}_${Date.now()}`,
+          user_id: userId,
+          title: `ترقية سيادية: أصبحت رتبتك ${tierNames[tier] || tier} 🏆`,
+          description: `تهانينا يا كابتن! قامت الإدارة بترقية رتبتك إلى (${tierNames[tier] || tier})، مما يمنحك مميزات تسعير وعروض أفضل على الرادار.`,
+          type: 'admin_message',
+          is_read: false,
+          created_at: new Date().toISOString(),
+        });
+
         return NextResponse.json({ success: true, message: `تم تحديث الرتبة إلى ${tier}` });
       }
 
@@ -349,6 +445,28 @@ export async function POST(req: Request) {
           .eq('id', userId);
 
         if (error) throw error;
+
+        // Also release and cancel any stuck active trip in ride_requests for this captain
+        await supabaseAdmin
+          .from('ride_requests')
+          .update({
+            status: 'CANCELLED',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('captain_id', userId)
+          .in('status', ['ACCEPTED', 'ARRIVED', 'IN_PROGRESS', 'PICKED_UP', 'STARTED']);
+
+        // Push real-time notification to the captain
+        await supabaseAdmin.from('user_notifications').insert({
+          id: `notif_clear_trip_${userId}_${Date.now()}`,
+          user_id: userId,
+          title: 'فك تعليق الرحلة ⚡',
+          description: 'تم فك تعليق رحلتك من قبل الإدارة وإعادتك لوضع الجاهزية (IDLE) لاستقبال طلبات جديدة.',
+          type: 'admin_message',
+          is_read: false,
+          created_at: new Date().toISOString(),
+        });
+
         return NextResponse.json({ success: true, message: 'تم فك تعليق الرحلة وإعادة الكابتن لوضع الجاهزية (IDLE).' });
       }
 

@@ -275,6 +275,67 @@ export function DriverViewTab() {
     );
   }
 
+  if (driverOps.accountSecurityStatus === 'BANNED') {
+    return (
+      <div className={styles.lockScreenRoot} dir={direction}>
+        <div className="max-w-md space-y-4 rounded-3xl border border-rose-500/40 bg-[#160808] p-6 text-center text-white shadow-2xl">
+          <ShieldAlert className="mx-auto h-12 w-12 text-rose-500 animate-pulse" />
+          <h1 className="text-xl font-black text-rose-200">
+            {direction === 'rtl' ? 'حساب الكابتن محظور نهائياً 🚫' : 'Captain Account Banned 🚫'}
+          </h1>
+          <p className="text-xs leading-6 text-rose-100/80">
+            {direction === 'rtl'
+              ? 'تم حظر حسابك نهائياً من قبل إدارة المنظومة لمخالفة المعايير التشغيلية والسيادية. تم إيقاف استقبال الرحلات والاتصال بالرادار.'
+              : 'Your account has been permanently banned by platform administration due to policy violations.'}
+          </p>
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={() => void logout()}
+              className="inline-flex items-center justify-center rounded-2xl bg-rose-500/20 border border-rose-500/50 px-6 py-2.5 text-xs font-black text-rose-300 hover:bg-rose-500/30 transition shadow-lg cursor-pointer"
+            >
+              {direction === 'rtl' ? 'تسجيل الخروج' : 'Log Out'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (driverOps.accountSecurityStatus === 'SUSPENDED') {
+    return (
+      <div className={styles.lockScreenRoot} dir={direction}>
+        <div className="max-w-md space-y-4 rounded-3xl border border-amber-500/40 bg-[#171208] p-6 text-center text-white shadow-2xl">
+          <AlertTriangle className="mx-auto h-12 w-12 text-amber-500 animate-pulse" />
+          <h1 className="text-xl font-black text-amber-200">
+            {direction === 'rtl' ? 'حساب الكابتن معلق مؤقتاً ⚠️' : 'Captain Account Suspended ⚠️'}
+          </h1>
+          <p className="text-xs leading-6 text-amber-100/80">
+            {direction === 'rtl'
+              ? 'تم تعليق حسابك مؤقتاً من قبل إدارة العمليات. يرجى مراجعة إدارة المنظومة أو التواصل مع الدعم لفك التعليق وتنشيط الحساب.'
+              : 'Your account is temporarily suspended by platform administration. Please contact support.'}
+          </p>
+          <div className="flex items-center justify-center gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="inline-flex items-center justify-center rounded-2xl bg-amber-500/20 border border-amber-500/50 px-5 py-2.5 text-xs font-black text-amber-300 hover:bg-amber-500/30 transition shadow-lg cursor-pointer"
+            >
+              {direction === 'rtl' ? 'تحديث الحالة 🔄' : 'Refresh 🔄'}
+            </button>
+            <button
+              type="button"
+              onClick={() => void logout()}
+              className="inline-flex items-center justify-center rounded-2xl bg-white/5 border border-white/10 px-5 py-2.5 text-xs font-bold text-slate-300 hover:bg-white/10 transition cursor-pointer"
+            >
+              {direction === 'rtl' ? 'تسجيل الخروج' : 'Log Out'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const isActive = driverOps.driverStatus === 'active' || driverOps.driverStatus === 'busy';
   const walletIsReady = wallet.walletLoadState === 'ready';
   const paidMinutes = walletIsReady ? wallet.paidMinutesRemaining : 0;

@@ -19,6 +19,7 @@ type DriverStatus = 'active' | 'idle' | 'busy' | 'rating';
 
 interface DriverOpsContextType {
   driverStatus: DriverStatus;
+  accountSecurityStatus?: 'SUSPENDED' | 'BANNED' | null;
   activeRequest: Trip | null;
   acceptedRider: RiderUser | null;
   handshakeAt: number | null;
@@ -66,6 +67,7 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
 
   const {
     driverStatus,
+    accountSecurityStatus,
     setDriverStatus,
     isDormancyWarningVisible,
     isUpdatingStatus,
@@ -226,8 +228,10 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
     currentH3Cell,
     isDisconnectionLockActive,
     radarLockMessage,
+    accountSecurityStatus,
   }), [
     acceptedRider,
+    accountSecurityStatus,
     activationNonce,
     activeRequest,
     cancelActiveTrip,
