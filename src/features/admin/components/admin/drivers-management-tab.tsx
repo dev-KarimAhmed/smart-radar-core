@@ -95,8 +95,20 @@ export interface CaptainUser {
     active_package_name: string | null;
     time_bundle_expires_at: string | null;
     currency_code: string;
+    currency_ar?: string;
   };
+  currency?: string;
 }
+
+export const getCaptainCurrency = (cap?: CaptainUser | null): string => {
+  if (!cap) return 'د.أ';
+  return (
+    (cap as any).currency ||
+    cap.wallet?.currency_ar ||
+    (cap.wallet?.currency_code === 'EGP' ? 'ج.م' : undefined) ||
+    (cap.phone?.startsWith('+20') ? 'ج.م' : 'د.أ')
+  );
+};
 
 const styles = {
   header: "flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-white/10",
@@ -950,7 +962,7 @@ export function DriversManagementTab() {
                             {/* Cash Balance */}
                             <div className="flex items-center gap-1 text-[11px] font-mono text-amber-300 font-bold pt-1 border-t border-white/5">
                               <span className="text-slate-400 text-[10px] font-normal">نقدي:</span>
-                              <span>{(captain.wallet.balance || 0).toFixed(2)} {(captain as any).currency || (captain.wallet as any)?.currency_ar || (captain.phone?.startsWith('+20') ? 'ج.م' : 'د.أ')}</span>
+                              <span>{(captain.wallet.balance || 0).toFixed(2)} {getCaptainCurrency(captain)}</span>
                             </div>
                           </div>
                         </td>
@@ -1251,7 +1263,7 @@ export function DriversManagementTab() {
                 <div>
                   <span className="text-slate-500 text-[10px] block">الرصيد النقدي الحالي:</span>
                   <span className="text-base font-black text-amber-400">
-                    {(topupCaptain.wallet.balance || 0).toFixed(2)} {(topupCaptain as any).currency || (topupCaptain.wallet as any)?.currency_ar || (topupCaptain.phone?.startsWith('+20') ? 'ج.م' : 'د.أ')}
+                    {(topupCaptain.wallet.balance || 0).toFixed(2)} {getCaptainCurrency(topupCaptain)}
                   </span>
                 </div>
               </div>
@@ -1262,7 +1274,7 @@ export function DriversManagementTab() {
                   type="button"
                   onClick={() => setTopupMode('minutes')}
                   className={cn(
-                    "py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5",
+                    "py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer",
                     topupMode === 'minutes'
                       ? "border-[#14B8A6] bg-[#14B8A6]/20 text-[#14B8A6]"
                       : "border-white/10 bg-black/40 text-slate-400 hover:text-white"
@@ -1276,14 +1288,14 @@ export function DriversManagementTab() {
                   type="button"
                   onClick={() => setTopupMode('cash')}
                   className={cn(
-                    "py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5",
+                    "py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer",
                     topupMode === 'cash'
                       ? "border-amber-500 bg-amber-500/20 text-amber-300"
                       : "border-white/10 bg-black/40 text-slate-400 hover:text-white"
                   )}
                 >
                   <DollarSign className="w-3.5 h-3.5" />
-                  <span>رصيد نقدي (JD)</span>
+                  <span>رصيد نقدي ({getCaptainCurrency(topupCaptain)})</span>
                 </button>
               </div>
 
@@ -1344,7 +1356,7 @@ export function DriversManagementTab() {
                           type="button"
                           onClick={() => setExtendDays(opt.days)}
                           className={cn(
-                            "py-2 rounded-xl border font-bold text-center transition",
+                            "py-2 rounded-xl border font-bold text-center transition cursor-pointer",
                             extendDays === opt.days
                               ? "border-[#14B8A6] bg-[#14B8A6]/15 text-[#14B8A6]"
                               : "border-white/10 bg-black/40 text-slate-400 hover:text-white"
@@ -1357,9 +1369,11 @@ export function DriversManagementTab() {
                   </div>
                 </>
               ) : (
-                /* Topup Mode: Cash JD */
+                /* Topup Mode: Cash */
                 <div className="space-y-3">
-                  <label className="text-xs font-bold text-slate-300 block">اختر مبلغ الشحن النقدي (دينار أردني):</label>
+                  <label className="text-xs font-bold text-slate-300 block">
+                    اختر مبلغ الشحن النقدي ({getCaptainCurrency(topupCaptain)}):
+                  </label>
                   <div className="grid grid-cols-4 gap-2">
                     {[5, 10, 20, 50].map((amt) => (
                       <button
@@ -1367,20 +1381,20 @@ export function DriversManagementTab() {
                         type="button"
                         onClick={() => setCashBalanceToAdd(amt)}
                         className={cn(
-                          "py-2 rounded-xl border text-xs font-mono font-bold transition",
+                          "py-2 rounded-xl border text-xs font-mono font-bold transition cursor-pointer",
                           cashBalanceToAdd === amt
                             ? "border-amber-500 bg-amber-500/20 text-amber-300"
                             : "border-white/10 bg-white/5 text-slate-300 hover:bg-white/10"
                         )}
                       >
-                        +{amt} {(topupCaptain as any).currency || (topupCaptain.wallet as any)?.currency_ar || (topupCaptain.phone?.startsWith('+20') ? 'ج.م' : 'د.أ')}
+                        +{amt} {getCaptainCurrency(topupCaptain)}
                       </button>
                     ))}
                   </div>
 
                   <div>
                     <label className="text-xs font-bold text-slate-300 block mb-1">
-                      أو أدخل المبلغ يدوياً ({(topupCaptain as any).currency || (topupCaptain.wallet as any)?.currency_ar || (topupCaptain.phone?.startsWith('+20') ? 'ج.م' : 'د.أ')}):
+                      أو أدخل المبلغ يدوياً ({getCaptainCurrency(topupCaptain)}):
                     </label>
                     <Input
                       type="number"
@@ -1399,7 +1413,7 @@ export function DriversManagementTab() {
                   type="button"
                   variant="outline"
                   onClick={() => setTopupCaptain(null)}
-                  className="border-white/10 text-slate-300 text-xs h-9 rounded-xl"
+                  className="border-white/10 text-slate-300 text-xs h-9 rounded-xl cursor-pointer"
                 >
                   إلغاء
                 </Button>
@@ -1408,7 +1422,7 @@ export function DriversManagementTab() {
                   type="button"
                   disabled={submittingAction || (topupMode === 'minutes' ? minutesToAdd <= 0 : cashBalanceToAdd <= 0)}
                   onClick={async () => {
-                    const capCurr = (topupCaptain as any).currency || (topupCaptain.wallet as any)?.currency_ar || (topupCaptain.phone?.startsWith('+20') ? 'ج.م' : 'د.أ');
+                    const capCurr = getCaptainCurrency(topupCaptain);
                     if (topupMode === 'minutes') {
                       const ok = await executeAdminAction({
                         action: 'topup_minutes',
@@ -1427,7 +1441,7 @@ export function DriversManagementTab() {
                     }
                   }}
                   className={cn(
-                    "font-black text-xs h-10 px-5 rounded-xl shadow-lg transition-all",
+                    "font-black text-xs h-10 px-5 rounded-xl shadow-lg transition-all cursor-pointer",
                     topupMode === 'minutes'
                       ? "bg-[#14B8A6] hover:bg-[#2DD4BF] text-[#0B0F19] shadow-[#14B8A6]/20"
                       : "bg-amber-500 hover:bg-amber-600 text-black shadow-amber-500/20"
