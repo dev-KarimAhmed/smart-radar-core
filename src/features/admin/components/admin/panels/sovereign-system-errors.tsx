@@ -4,9 +4,11 @@ import React, { useState, useMemo } from 'react';
 import { ShieldAlert, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { useTranslations } from 'next-intl';
 import { SOVEREIGN_ERR_DICTIONARY, SovereignErrorDefinition } from '@/core/config/sovereign-errors';
 
 export function SovereignSystemErrors() {
+  const t = useTranslations('adminSystemErrors');
   const [errorSearch, setErrorSearch] = useState('');
   const [errorCategory, setErrorCategory] = useState<string>('ALL');
   const [expandedErrorCode, setExpandedErrorCode] = useState<string | null>(null);
@@ -31,8 +33,8 @@ export function SovereignSystemErrors() {
             <ShieldAlert className="h-5 w-5" />
           </div>
           <div>
-            <h2 className="text-base font-black text-white">مستكشف الأخطاء الجنائية والسيادية</h2>
-            <p className="text-xs text-slate-400">قمرة المراقبة الإدارية لفحص وتحليل رموز الأخطاء التشغيلية للنظام</p>
+            <h2 className="text-base font-black text-white">{t('title')}</h2>
+            <p className="text-xs text-slate-400">{t('subtitle')}</p>
           </div>
         </div>
         <Badge variant="outline" className="border-red-500/40 bg-red-950/40 text-red-300 font-mono text-xs">
@@ -46,7 +48,7 @@ export function SovereignSystemErrors() {
           <Input
             value={errorSearch}
             onChange={(e) => setErrorSearch(e.target.value)}
-            placeholder="بحث برمز الخطأ أو الوصف..."
+            placeholder={t('searchPlaceholder')}
             className="h-10 pr-9 rounded-xl border-white/10 bg-black/50 text-xs font-bold text-white placeholder-slate-500"
           />
         </div>
@@ -84,8 +86,8 @@ export function SovereignSystemErrors() {
               <p className="text-[11px] text-slate-400 leading-snug">{err.description}</p>
               {isExpanded && (
                 <div className="mt-2 pt-2 border-t border-white/5 text-[10px] text-slate-300 font-mono space-y-1 bg-white/[0.02] p-2 rounded-lg">
-                  <p>الإجراء الموصى به: التحقق من سجل التدقيق ومراجعة الاتصال الحافة.</p>
-                  <p>مستوى الخطورة: حاسم (CRITICAL)</p>
+                  <p>{t('recommendedAction')}</p>
+                  <p>{t('criticalSeverity')}</p>
                 </div>
               )}
             </div>

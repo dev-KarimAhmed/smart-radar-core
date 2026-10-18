@@ -121,20 +121,47 @@ export function DriverWalletTab({ user, language, isFlightActive = false }: Driv
   const [radarHourPrice, setRadarHourPrice] = React.useState(0);
 
   React.useEffect(() => {
-    if (!user?.countryId) return;
     let active = true;
-    void supabase
-      .from('countries')
-      .select('radar_hour_price')
-      .eq('id', user.countryId)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (active) setRadarHourPrice(Number(data?.radar_hour_price) || 0);
-      });
+    async function resolveHourlyRate() {
+      try {
+        const countryId = user?.countryId || 1;
+        const { data } = await supabase
+          .from('countries')
+          .select('radar_hour_price')
+          .eq('id', countryId)
+          .maybeSingle();
+
+        let price = Number(data?.radar_hour_price) || 1;
+
+        // Check if regional matrix has custom price for user's district or governorate
+        const { data: flagRow } = await supabase
+          .from('app_flags')
+          .select('note')
+          .eq('flag', 'hourly_rates_matrix')
+          .maybeSingle();
+
+        if (flagRow?.note) {
+          try {
+            const matrix = JSON.parse(flagRow.note);
+            if (user?.district && matrix.districts?.[String(user.district)]) {
+              price = Number(matrix.districts[String(user.district)]);
+            } else if (user?.governorate && matrix.governorates?.[String(user.governorate)]) {
+              price = Number(matrix.governorates[String(user.governorate)]);
+            }
+          } catch {}
+        }
+
+        if (active) setRadarHourPrice(price);
+      } catch {
+        if (active) setRadarHourPrice(1);
+      }
+    }
+
+    void resolveHourlyRate();
     return () => {
       active = false;
     };
-  }, [user?.countryId]);
+  }, [user?.countryId, user?.district, user?.governorate]);
 
   const districtPaymentInfo = getCaptainDistrictPaymentInfo(user?.district);
   const selectedChannel = CAPTAIN_PAYMENT_CHANNELS.find((channel) => channel.id === selectedChannelId) || null;

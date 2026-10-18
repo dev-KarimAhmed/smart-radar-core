@@ -332,11 +332,20 @@ export function buildUserFromSupabaseAuth(authUser: User) {
     ? String(metadata.currency_en)
     : (isEgypt ? 'EGP' : 'JOD');
 
+  const adminRank: 'GENERAL_ADMIN' | 'ASSISTANT_ADMIN' | undefined = role === 'admin'
+    ? (metadata.admin_rank || metadata.adminRank || (
+        authUser.id === '70b4a26f-10ac-4888-8df6-c3a5ad824b8a' || phone === '+201551981922'
+          ? 'GENERAL_ADMIN'
+          : 'ASSISTANT_ADMIN'
+      ))
+    : undefined;
+
   return {
     uid: authUser.id,
     phone,
     role: role === 'rider' ? 'rider' : role,
     subRole,
+    adminRank,
     name: String(metadata.full_name || metadata.name || authUser.phone || ''),
     countryId,
     currencyAr,

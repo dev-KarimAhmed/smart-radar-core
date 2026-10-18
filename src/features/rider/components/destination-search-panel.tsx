@@ -168,7 +168,7 @@ export function DestinationSearchPanel({
           }}
           className={styles.confirmButton}
         >
-          <span>إعادة الطلب</span>
+          <span>{locationCopy('btn_reorder')}</span>
         </button>
       )}
 

@@ -7,7 +7,8 @@ import { AdminMasterKPIBar } from './admin/admin-master-kpi-bar';
 import { WalletManagementTab } from './admin/wallet-management-tab';
 import { RidersManagementPanel } from './admin/riders-management-panel';
 import { AdminsManagementPanel } from './admin/admins-management-panel';
-import { Shield, Megaphone, Users, Activity, UsersRound, ShieldAlert, CheckCircle2, KeyRound, Loader2, ArrowUpRight, TrendingUp, AlertTriangle, Radio, ShieldCheck, Cpu, Eye, AlertCircle, RefreshCw, Sparkles, Fingerprint, Terminal, Scale, Compass, Trash2, Gauge, DollarSign, UserCheck, Wallet, Construction } from 'lucide-react';
+import { HourlyRatesManagementPanel } from './admin/hourly-rates-management-panel';
+import { Shield, Megaphone, Users, Activity, UsersRound, ShieldAlert, CheckCircle2, KeyRound, Loader2, ArrowUpRight, TrendingUp, AlertTriangle, Radio, ShieldCheck, Cpu, Eye, AlertCircle, RefreshCw, Sparkles, Fingerprint, Terminal, Scale, Compass, Trash2, Gauge, DollarSign, UserCheck, Wallet, Construction, Clock } from 'lucide-react';
 import React, { useState } from 'react';
 import { useAdminAds } from '@/hooks/use-admin-ads';
 import { supabase } from '@/lib/supabase-client';
@@ -21,6 +22,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useTranslations } from "next-intl";
+import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 
 const styles = {
   style59_1: "bg-black/90 border border-amber-500/30 overflow-hidden relative shadow-[0_4px_20px_rgba(245,158,11,0.05)] rounded-2xl flex flex-col text-right",
@@ -972,8 +974,22 @@ export function AdminPulseOverview() {
 }
 
 export function AdminViewTab() {
+  const t = useTranslations('adminTabs');
+  const { direction, isArabic } = useDashboardLanguage();
+  const [activeTab, setActiveTab] = React.useState<string>('captains');
+
+  React.useEffect(() => {
+    const handleSwitch = (e: any) => {
+      if (e.detail?.tab) {
+        setActiveTab(e.detail.tab);
+      }
+    };
+    window.addEventListener('admin-switch-tab', handleSwitch);
+    return () => window.removeEventListener('admin-switch-tab', handleSwitch);
+  }, []);
+
   return (
-    <div className="space-y-6 text-right font-sans" dir="rtl">
+    <div className={cn("space-y-6 font-sans", isArabic ? "text-right" : "text-left")} dir={direction}>
       {/* شريط الإدارة العلوي - الملف الشخصي، تغيير كلمة السر، تسجيل الخروج */}
       <AdminTopBar />
 
@@ -981,15 +997,15 @@ export function AdminViewTab() {
       <AdminMasterKPIBar />
 
       {/* المنظومة الإدارية المنظمة */}
-      <Tabs defaultValue="captains" className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         {/* شريط التبويبات الرئيسي - تصميم أنيق ومتناسق */}
-        <TabsList className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 bg-[#050A0F]/90 border border-white/10 p-2 rounded-2xl h-auto">
+        <TabsList className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 bg-[#050A0F]/90 border border-white/10 p-2 rounded-2xl h-auto">
           <TabsTrigger
             value="captains"
             className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all data-[state=active]:bg-[#14B8A6] data-[state=active]:text-[#0B0F19] text-slate-300 hover:text-white"
           >
             <Users className="w-4 h-4" />
-            <span>الكباتن</span>
+            <span>{t('captains')}</span>
           </TabsTrigger>
 
           <TabsTrigger
@@ -997,7 +1013,7 @@ export function AdminViewTab() {
             className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all data-[state=active]:bg-[#14B8A6] data-[state=active]:text-[#0B0F19] text-slate-300 hover:text-white"
           >
             <UserCheck className="w-4 h-4" />
-            <span>الركاب</span>
+            <span>{t('riders')}</span>
           </TabsTrigger>
 
           <TabsTrigger
@@ -1005,29 +1021,15 @@ export function AdminViewTab() {
             className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all data-[state=active]:bg-[#14B8A6] data-[state=active]:text-[#0B0F19] text-slate-300 hover:text-white"
           >
             <Wallet className="w-4 h-4" />
-            <span>المالية والشحن</span>
+            <span>{t('wallet')}</span>
           </TabsTrigger>
 
           <TabsTrigger
-            value="ads"
-            className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-bold transition-all data-[state=active]:bg-[#14B8A6] data-[state=active]:text-[#0B0F19] text-slate-300 hover:text-white"
+            value="hourly_rates"
+            className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all data-[state=active]:bg-[#14B8A6] data-[state=active]:text-[#0B0F19] text-slate-300 hover:text-white"
           >
-            <Megaphone className="w-4 h-4" />
-            <span>الإعلانات</span>
-            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
-              تحت التأسيس
-            </span>
-          </TabsTrigger>
-
-          <TabsTrigger
-            value="delegates"
-            className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-bold transition-all data-[state=active]:bg-[#14B8A6] data-[state=active]:text-[#0B0F19] text-slate-300 hover:text-white"
-          >
-            <UsersRound className="w-4 h-4" />
-            <span>المندوبين</span>
-            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
-              تحت التأسيس
-            </span>
+            <Clock className="w-4 h-4" />
+            <span>{t('hourlyRates')}</span>
           </TabsTrigger>
 
           <TabsTrigger
@@ -1035,7 +1037,33 @@ export function AdminViewTab() {
             className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all data-[state=active]:bg-[#14B8A6] data-[state=active]:text-[#0B0F19] text-slate-300 hover:text-white"
           >
             <ShieldCheck className="w-4 h-4" />
-            <span>المشرفين</span>
+            <span>{t('admins')}</span>
+          </TabsTrigger>
+
+          <TabsTrigger
+            value="ads"
+            disabled
+            className="flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-xs font-bold transition-all text-slate-500 cursor-not-allowed opacity-50 bg-black/20 hover:text-slate-500 pointer-events-none select-none border border-white/5"
+          >
+            <Megaphone className="w-4 h-4 text-slate-500" />
+            <span>{t('ads')}</span>
+            <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 flex items-center gap-1 shadow-[0_0_8px_rgba(245,158,11,0.15)]">
+              <Construction className="w-2.5 h-2.5 text-amber-400" />
+              <span>{t('underDevelopment')}</span>
+            </span>
+          </TabsTrigger>
+
+          <TabsTrigger
+            value="delegates"
+            disabled
+            className="flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-xs font-bold transition-all text-slate-500 cursor-not-allowed opacity-50 bg-black/20 hover:text-slate-500 pointer-events-none select-none border border-white/5"
+          >
+            <UsersRound className="w-4 h-4 text-slate-500" />
+            <span>{t('delegates')}</span>
+            <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 flex items-center gap-1 shadow-[0_0_8px_rgba(245,158,11,0.15)]">
+              <Construction className="w-2.5 h-2.5 text-amber-400" />
+              <span>{t('underDevelopment')}</span>
+            </span>
           </TabsTrigger>
         </TabsList>
 
@@ -1062,7 +1090,14 @@ export function AdminViewTab() {
           </SovereignErrorBoundary>
         </TabsContent>
 
-        {/* 3. الإعلانات */}
+        {/* 4. تسعير الساعة والمناطق */}
+        <TabsContent value="hourly_rates" className="space-y-6">
+          <SovereignErrorBoundary>
+            <HourlyRatesManagementPanel />
+          </SovereignErrorBoundary>
+        </TabsContent>
+
+        {/* 5. الإعلانات */}
         <TabsContent value="ads" className="space-y-6">
           <div className="relative overflow-hidden rounded-3xl border border-amber-500/20 bg-[#0B0F19]/90 p-8 sm:p-12 text-center shadow-2xl backdrop-blur-xl">
             <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-96 h-96 bg-amber-500/10 blur-3xl pointer-events-none rounded-full" />
@@ -1079,48 +1114,48 @@ export function AdminViewTab() {
 
               <div className="flex items-center gap-2 mb-3">
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 border border-amber-500/30 px-3.5 py-1 text-xs font-black text-amber-300">
-                  🚧 هذه الشاشة تحت التأسيس
+                  {t('underConstructionBanner')}
                 </span>
                 <span className="rounded-full bg-white/5 border border-white/10 px-3 py-1 text-xs font-mono text-slate-400 font-bold">
-                  UNDER CONSTRUCTION
+                  {t('underConstructionTag')}
                 </span>
               </div>
 
               <h2 className="text-2xl sm:text-3xl font-black text-white tracking-wide mb-3">
-                منظومة الإعلانات والنهر الإعلاني
+                {t('adsTitle')}
               </h2>
 
               <p className="text-sm sm:text-base text-slate-300 leading-relaxed mb-8">
-                يجري حالياً العمل على تأسيس وبرمجة منظومة الإعلانات والنهر الإعلاني الذكي، والربط مع معايير صفرية التكلفة الحافة لضمان الأمان والتدقيق الآلي للحملات الإعلانية.
+                {t('adsDesc')}
               </p>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full text-right mb-8">
+              <div className={cn("grid grid-cols-1 sm:grid-cols-3 gap-3 w-full mb-8", isArabic ? "text-right" : "text-left")}>
                 <div className="p-4 rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-md">
                   <div className="flex items-center gap-2 text-amber-300 font-bold text-xs mb-1">
                     <Megaphone className="w-4 h-4" />
-                    <span>الحملات الإعلانية</span>
+                    <span>{t('campaignsBoxTitle')}</span>
                   </div>
-                  <p className="text-[11px] text-slate-400">إدارة البنرات والعروض الترويجية المستهدفة جغرافياً</p>
+                  <p className="text-[11px] text-slate-400">{t('campaignsBoxDesc')}</p>
                 </div>
                 <div className="p-4 rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-md">
                   <div className="flex items-center gap-2 text-teal-300 font-bold text-xs mb-1">
                     <ShieldCheck className="w-4 h-4" />
-                    <span>التدقيق والاعتماد</span>
+                    <span>{t('auditBoxTitle')}</span>
                   </div>
-                  <p className="text-[11px] text-slate-400">فحص أمني تلقائي للمحتوى والمواد الإعلانية قبل العرض</p>
+                  <p className="text-[11px] text-slate-400">{t('auditBoxDesc')}</p>
                 </div>
                 <div className="p-4 rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-md">
                   <div className="flex items-center gap-2 text-cyan-300 font-bold text-xs mb-1">
                     <Activity className="w-4 h-4" />
-                    <span>إحصائيات المشاهدات</span>
+                    <span>{t('statsBoxTitle')}</span>
                   </div>
-                  <p className="text-[11px] text-slate-400">تقارير دقيقة لنِسب النقر والظهور في واجهات الركاب</p>
+                  <p className="text-[11px] text-slate-400">{t('statsBoxDesc')}</p>
                 </div>
               </div>
 
               <div className="inline-flex items-center gap-2 text-xs text-slate-400 bg-white/5 border border-white/10 px-4 py-2 rounded-xl">
                 <span className="h-2 w-2 rounded-full bg-amber-400 animate-ping" />
-                <span>الحالة: قيد البرمجة والتطوير • سيتم إطلاقها رسمياً في التحديث القادم</span>
+                <span>{t('statusDeveloping')}</span>
               </div>
             </div>
           </div>
@@ -1143,48 +1178,48 @@ export function AdminViewTab() {
 
               <div className="flex items-center gap-2 mb-3">
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 border border-amber-500/30 px-3.5 py-1 text-xs font-black text-amber-300">
-                  🚧 هذه الشاشة تحت التأسيس
+                  {t('underConstructionBanner')}
                 </span>
                 <span className="rounded-full bg-white/5 border border-white/10 px-3 py-1 text-xs font-mono text-slate-400 font-bold">
-                  UNDER CONSTRUCTION
+                  {t('underConstructionTag')}
                 </span>
               </div>
 
               <h2 className="text-2xl sm:text-3xl font-black text-white tracking-wide mb-3">
-                منظومة المندوبين وإدارة الميدان
+                {t('delegatesTitle')}
               </h2>
 
               <p className="text-sm sm:text-base text-slate-300 leading-relaxed mb-8">
-                يجري حالياً العمل على تأسيس وبرمجة منظومة مناديب الميدان، وإدارة الروابط السحرية وخطوط الاستحواذ الميداني وحساب العمولات التلقائية.
+                {t('delegatesDesc')}
               </p>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full text-right mb-8">
+              <div className={cn("grid grid-cols-1 sm:grid-cols-3 gap-3 w-full mb-8", isArabic ? "text-right" : "text-left")}>
                 <div className="p-4 rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-md">
                   <div className="flex items-center gap-2 text-indigo-300 font-bold text-xs mb-1">
                     <UsersRound className="w-4 h-4" />
-                    <span>شبكة المناديب</span>
+                    <span>{t('referralsBoxTitle')}</span>
                   </div>
-                  <p className="text-[11px] text-slate-400">تجنيد واعتماد المناديب وتوزيع المهام الميدانية بالمحافظات</p>
+                  <p className="text-[11px] text-slate-400">{t('referralsBoxDesc')}</p>
                 </div>
                 <div className="p-4 rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-md">
                   <div className="flex items-center gap-2 text-teal-300 font-bold text-xs mb-1">
                     <Sparkles className="w-4 h-4" />
-                    <span>الروابط السحرية</span>
+                    <span>{t('commissionBoxTitle')}</span>
                   </div>
-                  <p className="text-[11px] text-slate-400">روابط ذكية للاستحواذ وتتبع تسجيل الكباتن والركاب بدقة</p>
+                  <p className="text-[11px] text-slate-400">{t('commissionBoxDesc')}</p>
                 </div>
                 <div className="p-4 rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-md">
                   <div className="flex items-center gap-2 text-emerald-300 font-bold text-xs mb-1">
                     <Wallet className="w-4 h-4" />
-                    <span>العمولات والتحصيلات</span>
+                    <span>{t('fieldTrackingBoxTitle')}</span>
                   </div>
-                  <p className="text-[11px] text-slate-400">محاسبة وتصفية أرباح المناديب آلياً وفق قاعدة الاستقرار</p>
+                  <p className="text-[11px] text-slate-400">{t('fieldTrackingBoxDesc')}</p>
                 </div>
               </div>
 
               <div className="inline-flex items-center gap-2 text-xs text-slate-400 bg-white/5 border border-white/10 px-4 py-2 rounded-xl">
                 <span className="h-2 w-2 rounded-full bg-amber-400 animate-ping" />
-                <span>الحالة: قيد البرمجة والتطوير • سيتم إطلاقها رسمياً في التحديث القادم</span>
+                <span>{t('statusDeveloping')}</span>
               </div>
             </div>
           </div>

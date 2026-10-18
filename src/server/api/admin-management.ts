@@ -111,9 +111,26 @@ adminManagementRouter.post('/admin/create-sub-admin', async (req: Request, res) 
   }
 });
 
+const PRIMARY_SOVEREIGN_ADMIN_ID = '70b4a26f-10ac-4888-8df6-c3a5ad824b8a';
+const PRIMARY_SOVEREIGN_ADMIN_PHONE = '+201551981922';
+
+function resolveAdminRank(adm: any): 'GENERAL_ADMIN' | 'ASSISTANT_ADMIN' {
+  if (!adm) return 'ASSISTANT_ADMIN';
+  if (adm.id === PRIMARY_SOVEREIGN_ADMIN_ID || adm.phone === PRIMARY_SOVEREIGN_ADMIN_PHONE) {
+    return 'GENERAL_ADMIN';
+  }
+  if (adm.admin_rank === 'GENERAL_ADMIN') return 'GENERAL_ADMIN';
+  if (adm.admin_rank === 'ASSISTANT_ADMIN') return 'ASSISTANT_ADMIN';
+  if (Array.isArray(adm.rank_audit_log)) {
+    if (adm.rank_audit_log.includes('RANK_GENERAL_ADMIN')) return 'GENERAL_ADMIN';
+    if (adm.rank_audit_log.includes('RANK_ASSISTANT_ADMIN')) return 'ASSISTANT_ADMIN';
+  }
+  return 'ASSISTANT_ADMIN';
+}
+
 /**
  * GET /api/admin/list-admins
- * Fetches all registered administrators from public.profiles.
+ * Fetches all registered administrators from public.profiles with ranks.
  * Protected by requireRole(['ADMIN', 'OWNER']).
  */
 adminManagementRouter.get('/admin/list-admins', async (req: Request, res) => {
@@ -129,7 +146,7 @@ adminManagementRouter.get('/admin/list-admins', async (req: Request, res) => {
 
   try {
     const response = await fetch(
-      `${config.url}/rest/v1/profiles?role=eq.ADMIN&select=id,full_name,phone,email,status,created_at&order=created_at.desc`,
+      `${config.url}/rest/v1/profiles?role=eq.ADMIN&select=id,full_name,phone,email,status,created_at,rank_audit_log&order=created_at.desc`,
       {
         headers: serviceHeaders(config.serviceKey),
       },
@@ -139,10 +156,36 @@ adminManagementRouter.get('/admin/list-admins', async (req: Request, res) => {
       return res.status(response.status).json({ success: false, error: 'تعذر جلب قائمة المشرفين من قاعدة البيانات.' });
     }
 
-    const admins = await response.json();
+    const rawAdmins = await response.json();
+    const adminsList = Array.isArray(rawAdmins) ? rawAdmins : [];
+
+    const mappedAdmins = adminsList.map((adm: any) => {
+      const isPrimary = adm.id === PRIMARY_SOVEREIGN_ADMIN_ID || adm.phone === PRIMARY_SOVEREIGN_ADMIN_PHONE;
+      const rank = isPrimary ? 'GENERAL_ADMIN' : resolveAdminRank(adm);
+      return {
+        id: adm.id,
+        full_name: adm.full_name,
+        phone: adm.phone,
+        email: adm.email,
+        status: adm.status,
+        created_at: adm.created_at,
+        admin_rank: rank,
+        admin_rank_label: rank === 'GENERAL_ADMIN' ? 'مشرف عام' : 'مشرف مساعد',
+        is_primary: isPrimary,
+      };
+    });
+
+    const callerId = authorized.caller.userId;
+    const callerAdmin = mappedAdmins.find((a: any) => a.id === callerId);
+    const callerRank = callerId === PRIMARY_SOVEREIGN_ADMIN_ID
+      ? 'GENERAL_ADMIN'
+      : (callerAdmin?.admin_rank || 'ASSISTANT_ADMIN');
+
     return res.json({
       success: true,
-      admins: Array.isArray(admins) ? admins : [],
+      admins: mappedAdmins,
+      callerRank,
+      callerId,
     });
   } catch (error: any) {
     console.error('[Admin Management Error - list-admins]:', error);
