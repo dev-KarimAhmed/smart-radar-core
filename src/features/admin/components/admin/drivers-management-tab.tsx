@@ -220,13 +220,18 @@ export function DriversManagementTab() {
         c.governorate.toLowerCase().includes(q);
 
       const matchesStatus =
-        statusFilter === 'ALL' || c.status === statusFilter;
+        statusFilter === 'ALL' ||
+        String(c.status || '').toUpperCase() === statusFilter.toUpperCase();
 
       const matchesVerification =
-        verificationFilter === 'ALL' || c.verification_status === verificationFilter;
+        verificationFilter === 'ALL' ||
+        (verificationFilter === 'APPROVED'
+          ? c.verification_status === 'APPROVED'
+          : c.verification_status !== 'APPROVED');
 
       const matchesRank =
-        rankFilter === 'ALL' || c.tier === rankFilter;
+        rankFilter === 'ALL' ||
+        String(c.tier || '').toUpperCase() === rankFilter.toUpperCase();
 
       return matchesSearch && matchesStatus && matchesVerification && matchesRank;
     });
@@ -381,7 +386,7 @@ export function DriversManagementTab() {
       </div>
 
       {/* 3. Search and Multi-filter Controls */}
-      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 bg-[#0B0F19]/90 border border-white/10 p-3.5 rounded-2xl">
+      <div className="flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-3 bg-[#0B0F19]/90 border border-white/10 p-3.5 rounded-2xl">
         <div className={styles.searchContainer}>
           <Search className={styles.searchIcon} />
           <Input
@@ -396,43 +401,98 @@ export function DriversManagementTab() {
         <div className="flex flex-wrap items-center gap-2">
           {/* Status filter */}
           <div className="flex items-center gap-1 bg-black/40 border border-white/10 rounded-xl p-1 text-[11px]">
-            <span className="text-slate-500 px-2 font-bold">الحالة:</span>
-            {['ALL', 'ACTIVE', 'IDLE', 'BUSY', 'SUSPENDED'].map((st) => (
+            <span className="text-slate-400 px-2 font-bold">الحالة:</span>
+            {[
+              { key: 'ALL', label: 'الكل' },
+              { key: 'ACTIVE', label: 'نشط' },
+              { key: 'IDLE', label: 'خامل' },
+              { key: 'BUSY', label: 'في رحلة' },
+              { key: 'SUSPENDED', label: 'معلق' },
+              { key: 'BANNED', label: 'محظور' },
+            ].map((st) => (
               <button
-                key={st}
+                key={st.key}
                 type="button"
-                onClick={() => setStatusFilter(st)}
+                onClick={() => setStatusFilter(st.key)}
                 className={cn(
                   "px-2.5 py-1 rounded-lg font-bold transition text-[11px]",
-                  statusFilter === st
+                  statusFilter === st.key
                     ? "bg-[#14B8A6] text-[#0B0F19]"
                     : "text-slate-400 hover:text-white"
                 )}
               >
-                {st === 'ALL' ? 'الكل' : st === 'ACTIVE' ? 'نشط' : st === 'IDLE' ? 'خامل' : st === 'BUSY' ? 'في رحلة' : 'معلق'}
+                {st.label}
               </button>
             ))}
           </div>
 
           {/* Verification filter */}
           <div className="flex items-center gap-1 bg-black/40 border border-white/10 rounded-xl p-1 text-[11px]">
-            <span className="text-slate-500 px-2 font-bold">الاعتماد:</span>
-            {['ALL', 'APPROVED', 'PENDING', 'REJECTED'].map((ver) => (
+            <span className="text-slate-400 px-2 font-bold">الاعتماد:</span>
+            {[
+              { key: 'ALL', label: 'الكل' },
+              { key: 'APPROVED', label: 'معتمد' },
+              { key: 'PENDING', label: 'غير معتمد' },
+            ].map((ver) => (
               <button
-                key={ver}
+                key={ver.key}
                 type="button"
-                onClick={() => setVerificationFilter(ver)}
+                onClick={() => setVerificationFilter(ver.key)}
                 className={cn(
                   "px-2.5 py-1 rounded-lg font-bold transition text-[11px]",
-                  verificationFilter === ver
+                  verificationFilter === ver.key
                     ? "bg-[#14B8A6] text-[#0B0F19]"
                     : "text-slate-400 hover:text-white"
                 )}
               >
-                {ver === 'ALL' ? 'الكل' : ver === 'APPROVED' ? 'معتمد' : ver === 'PENDING' ? 'قيد التدقيق' : 'مرفوض'}
+                {ver.label}
               </button>
             ))}
           </div>
+
+          {/* Rank Tier filter */}
+          <div className="flex items-center gap-1 bg-black/40 border border-white/10 rounded-xl p-1 text-[11px]">
+            <span className="text-slate-400 px-2 font-bold">الرتبة:</span>
+            {[
+              { key: 'ALL', label: 'الكل' },
+              { key: 'PLATINUM', label: 'بلاتيني' },
+              { key: 'GOLD', label: 'ذهبي' },
+              { key: 'SILVER', label: 'فضي' },
+              { key: 'BRONZE', label: 'برونزي' },
+            ].map((rk) => (
+              <button
+                key={rk.key}
+                type="button"
+                onClick={() => setRankFilter(rk.key)}
+                className={cn(
+                  "px-2.5 py-1 rounded-lg font-bold transition text-[11px]",
+                  rankFilter === rk.key
+                    ? "bg-[#14B8A6] text-[#0B0F19]"
+                    : "text-slate-400 hover:text-white"
+                )}
+              >
+                {rk.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Reset Filters button if any filter is active */}
+          {(statusFilter !== 'ALL' || verificationFilter !== 'ALL' || rankFilter !== 'ALL' || searchQuery.trim() !== '') && (
+            <button
+              type="button"
+              onClick={() => {
+                setStatusFilter('ALL');
+                setVerificationFilter('ALL');
+                setRankFilter('ALL');
+                setSearchQuery('');
+              }}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-[11px] font-bold transition"
+              title="إعادة ضبط الفلاتر"
+            >
+              <RotateCcw className="w-3 h-3 text-[#14B8A6]" />
+              <span>إعادة ضبط</span>
+            </button>
+          )}
         </div>
       </div>
 
