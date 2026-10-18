@@ -4,6 +4,7 @@ import React from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   CarTaxiFront,
+  Construction,
   Languages,
   Megaphone,
   ShieldCheck,
@@ -61,6 +62,7 @@ const copy = {
     ariaSwitch: 'تغيير اللغة إلى الإنجليزية',
     title: 'مرحبا بك في الرادار الذكي',
     subtitle: 'اختر نوع حسابك وكمل دخولك بسهولة',
+    underDevelopment: 'قيد التطوير',
     roles: {
       rider: {
         title: 'راكب',
@@ -70,6 +72,10 @@ const copy = {
         title: 'سائق',
         description: 'حدد سعرك، اشحن باقة الساعات، واستقبل الطلبات القريبة منك.',
       },
+      admin: {
+        title: 'مشرف',
+        description: 'ادخل لوحة المتابعة، راجع الحسابات، وتابع حركة النظام بهدوء.',
+      },
       advertiser: {
         title: 'معلن',
         description: 'اعمل إعلانات موجهة لمنطقتك، وتابع المشاهدات والنقرات بسهولة.',
@@ -78,10 +84,6 @@ const copy = {
         title: 'مندوب تسويق',
         description: 'سجل السائقين والمحلات، وتابع عمولتك من مكان واحد.',
       },
-      admin: {
-        title: 'مشرف',
-        description: 'ادخل لوحة المتابعة، راجع الحسابات، وتابع حركة النظام بهدوء.',
-      },
     },
   },
   en: {
@@ -89,6 +91,7 @@ const copy = {
     ariaSwitch: 'Switch language to Arabic',
     title: 'Welcome to Smart Radar',
     subtitle: 'Choose your account type and continue securely',
+    underDevelopment: 'Under Development',
     roles: {
       rider: {
         title: 'Rider',
@@ -98,6 +101,10 @@ const copy = {
         title: 'Captain',
         description: 'Set your own rates, top up your hourly package, and receive requests silently.',
       },
+      admin: {
+        title: 'Admin',
+        description: 'Open the control desk, review accounts, and keep system operations calm.',
+      },
       advertiser: {
         title: 'Advertiser',
         description: 'Launch hyper-local ads targeted to specific areas and track live metrics.',
@@ -106,27 +113,20 @@ const copy = {
         title: 'Delegate',
         description: 'Onboard drivers and shops in the field, and earn guaranteed commissions.',
       },
-      admin: {
-        title: 'Admin',
-        description: 'Open the control desk, review accounts, and keep system operations calm.',
-      },
     },
   },
 } as const;
 
-// Admin is intentionally excluded from this grid — the control-desk login is
-// only reachable from the separate radar-page landing site, not from the
-// public role picker. The route/component behind it (navigateAuth('admin'))
-// still exists for that link to work.
 const roleConfig: Array<{
   key: RoleKey;
   Icon: typeof UserRound;
+  disabled?: boolean;
 }> = [
   { key: 'rider', Icon: UserRound },
   { key: 'driver', Icon: CarTaxiFront },
-  { key: 'advertiser', Icon: Megaphone },
-  { key: 'delegate', Icon: Store },
   { key: 'admin', Icon: ShieldCheck },
+  { key: 'advertiser', Icon: Megaphone, disabled: true },
+  { key: 'delegate', Icon: Store, disabled: true },
 ];
 
 const demoUsers: Array<{
@@ -318,7 +318,7 @@ export function RoleStep() {
           className={cn(styles.style328_19, styles.style329_20)}
         >
           <AnimatePresence mode="popLayout" initial={false}>
-            {roleConfig.map(({ key, Icon }, index) => {
+            {roleConfig.map(({ key, Icon, disabled }, index) => {
               const role = content.roles[key];
 
               return (
@@ -326,26 +326,48 @@ export function RoleStep() {
                   layout
                   key={key}
                   type="button"
-                  onClick={() => handleRoleSelect(key)}
+                  disabled={disabled}
+                  aria-disabled={disabled}
+                  onClick={() => {
+                    if (!disabled) {
+                      handleRoleSelect(key);
+                    }
+                  }}
                   initial={{ opacity: 0, y: 24, scale: 0.96 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  animate={{ opacity: disabled ? 0.55 : 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 12, scale: 0.94 }}
                   transition={{ duration: 0.32, delay: index * 0.035, ease: 'easeOut' }}
-                  whileHover={{ scale: 1.05, y: -5 }}
-                  whileTap={{ scale: 0.985 }}
-                  className={cn(styles.style348_22, isArabic ? styles.style349_23 : styles.style349_24)}
+                  whileHover={disabled ? undefined : { scale: 1.05, y: -5 }}
+                  whileTap={disabled ? undefined : { scale: 0.985 }}
+                  className={cn(
+                    styles.style348_22,
+                    isArabic ? styles.style349_23 : styles.style349_24,
+                    disabled && "cursor-not-allowed opacity-55 bg-[#161F30]/30 border-white/5 hover:border-white/5 hover:shadow-none select-none pointer-events-none sm:pointer-events-auto"
+                  )}
                 >
                   <div className={styles.style352_25}>
-                    <span className={styles.style353_26}>
-                      <Icon aria-hidden="true" className={styles.style354_27} strokeWidth={1.8} />
-                    </span>
+                    <div className="flex w-full items-center justify-between gap-2">
+                      <span className={cn(
+                        styles.style353_26,
+                        disabled && "border-slate-700/40 bg-slate-800/30 text-slate-500 group-hover:border-slate-700/40 group-hover:bg-slate-800/30"
+                      )}>
+                        <Icon aria-hidden="true" className={styles.style354_27} strokeWidth={1.8} />
+                      </span>
 
-                    <span className={styles.style357_28}>
+                      {disabled && (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/15 px-2 py-0.5 text-[10px] font-black text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.15)]">
+                          <Construction className="h-3 w-3 text-amber-400" />
+                          <span>{content.underDevelopment}</span>
+                        </span>
+                      )}
+                    </div>
+
+                    <span className={cn(styles.style357_28, disabled && "text-slate-400")}>
                       {role.title}
                     </span>
                   </div>
 
-                  <span className={styles.style362_29}>
+                  <span className={cn(styles.style362_29, disabled && "text-slate-500")}>
                     {role.description}
                   </span>
                 </motion.button>
