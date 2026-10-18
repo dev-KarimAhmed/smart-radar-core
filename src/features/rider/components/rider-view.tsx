@@ -26,6 +26,7 @@ import { RiderShellFrame } from './rider-shell-frame';
 import { RiderActiveScreen } from './rider-active-screen';
 import { RiderModals } from './rider-modals';
 import { RiderDashboard } from './rider-dashboard';
+import { supabase } from '@/lib/supabase-client';
 
 const styles = {
   adRiverWrapper: "hidden overflow-hidden rounded-[24px] border border-[#14B8A6]/15 bg-[#0B0F19]/88 shadow-2xl shadow-black/35 backdrop-blur-xl lg:block",
@@ -36,6 +37,24 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
   const { isArabic, language } = useDashboardLanguage();
   const { state, dispatch, showAdRiver } = useRiderDashboardMachine();
   useActiveTripReloadGuard(Boolean(state.requestId) && (state.screen === 'RECEIVING_OFFERS' || state.screen === 'TRIP_ACTIVE'));
+
+  // Sync rider online presence in profiles table
+  React.useEffect(() => {
+    if (!user?.uid || user.role !== 'rider') return;
+    void supabase
+      .from('profiles')
+      .update({ status: 'ACTIVE', updated_at: new Date().toISOString() })
+      .eq('id', user.uid)
+      .neq('status', 'BANNED');
+
+    return () => {
+      void supabase
+        .from('profiles')
+        .update({ status: 'IDLE', updated_at: new Date().toISOString() })
+        .eq('id', user.uid)
+        .neq('status', 'BANNED');
+    };
+  }, [user?.uid, user?.role]);
 
   const lastKnown = getLastKnownLocation();
   const isInitialJordanCoords = lastKnown

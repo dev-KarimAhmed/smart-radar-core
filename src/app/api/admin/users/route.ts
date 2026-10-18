@@ -47,6 +47,62 @@ export async function GET(req: Request) {
       captainProfilesMap = new Map((caps || []).map(c => [c.id, c]));
     }
 
+    // 3.5. Fetch completed trips count and active requests in batch
+    let completedTripsMap = new Map<string, number>();
+    let activeRequestsMap = new Map<string, string>();
+
+    if (profileIds.length > 0) {
+      if (roleFilter === 'RIDER') {
+        const [completedRes, activeRes] = await Promise.all([
+          supabaseAdmin
+            .from('ride_requests')
+            .select('rider_id')
+            .in('rider_id', profileIds)
+            .eq('status', 'COMPLETED'),
+          supabaseAdmin
+            .from('ride_requests')
+            .select('rider_id, status')
+            .in('rider_id', profileIds)
+            .in('status', ['PENDING', 'ACCEPTED', 'ARRIVED', 'TRIP_ACTIVE', 'STARTED']),
+        ]);
+
+        for (const row of completedRes.data || []) {
+          if (row.rider_id) {
+            completedTripsMap.set(row.rider_id, (completedTripsMap.get(row.rider_id) || 0) + 1);
+          }
+        }
+        for (const row of activeRes.data || []) {
+          if (row.rider_id) {
+            activeRequestsMap.set(row.rider_id, row.status);
+          }
+        }
+      } else {
+        const [capCompleted, capActive] = await Promise.all([
+          supabaseAdmin
+            .from('ride_requests')
+            .select('accepted_captain_id')
+            .in('accepted_captain_id', profileIds)
+            .eq('status', 'COMPLETED'),
+          supabaseAdmin
+            .from('ride_requests')
+            .select('accepted_captain_id, status')
+            .in('accepted_captain_id', profileIds)
+            .in('status', ['ACCEPTED', 'ARRIVED', 'TRIP_ACTIVE', 'STARTED']),
+        ]);
+
+        for (const row of capCompleted.data || []) {
+          if (row.accepted_captain_id) {
+            completedTripsMap.set(row.accepted_captain_id, (completedTripsMap.get(row.accepted_captain_id) || 0) + 1);
+          }
+        }
+        for (const row of capActive.data || []) {
+          if (row.accepted_captain_id) {
+            activeRequestsMap.set(row.accepted_captain_id, row.status);
+          }
+        }
+      }
+    }
+
     // 4. Fetch governorate, district, and countries lookup tables
     const [govRes, distRes, countriesRes] = await Promise.all([
       supabaseAdmin.from('governorates').select('id, name_ar'),
@@ -75,6 +131,16 @@ export async function GET(req: Request) {
         userStatus = 'SUSPENDED';
       }
 
+      // Elevate operational status if user has active/ongoing ride request
+      if (userStatus !== 'BANNED' && userStatus !== 'SUSPENDED') {
+        const activeReq = activeRequestsMap.get(p.id);
+        if (activeReq === 'PENDING') {
+          userStatus = 'ACTIVE';
+        } else if (activeReq && ['ACCEPTED', 'ARRIVED', 'TRIP_ACTIVE', 'STARTED'].includes(activeReq)) {
+          userStatus = 'BUSY';
+        }
+      }
+
       return {
         id: p.id,
         serial_id: p.serial_id || (p.role === 'CAPTAIN' ? `C-${p.id.slice(0, 4)}` : `R-${p.id.slice(0, 4)}`),
@@ -87,6 +153,7 @@ export async function GET(req: Request) {
         currency_ar: currencyAr,
         currency_code: currencyCode,
         status: userStatus,
+        completed_trips_count: Number(completedTripsMap.get(p.id) || 0),
         tier: (p.tier || 'SILVER').toUpperCase(),
         rating: Number(p.rating ?? 5.0),
         rating_count: Number(p.rating_count ?? 0),
@@ -650,7 +717,7 @@ export async function POST(req: Request) {
 
         return NextResponse.json({
           success: true,
-          message: 'تم إرسال الرسالة إلى الكابتن بنجاح عبر الإشعار اللحظي.',
+          message: 'تم إرسال الرسالة بنجاح عبر الإشعار اللحظي.',
           notification: notif,
         });
       }
@@ -680,7 +747,7 @@ export async function POST(req: Request) {
         }
 
         if (targetIds.length === 0) {
-          return NextResponse.json({ success: false, error: 'لم يتم العثور على أي كباتن لإرسال الإشعار إليهم' }, { status: 400 });
+          return NextResponse.json({ success: false, error: 'لم يتم العثور على أي مستخدمين لإرسال الإشعار إليهم' }, { status: 400 });
         }
 
         const notifications = targetIds.map(id => ({
