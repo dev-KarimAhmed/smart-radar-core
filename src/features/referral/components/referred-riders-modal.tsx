@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import {
   Dialog,
@@ -9,9 +9,10 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { Users, Sparkles, UserCheck, Phone, Heart } from 'lucide-react';
+import { Users, Sparkles, UserCheck, Phone, Heart, FlaskConical } from 'lucide-react';
 import { formatTelUri } from '@/lib/utils';
 import type { ReferredRiderInfo } from '../services/captain-referral';
+import { InactivitySimulationPanel } from './inactivity-simulation-panel';
 
 interface ReferredRidersModalProps {
   open: boolean;
@@ -29,6 +30,8 @@ export function ReferredRidersModal({
   isArabic = true,
 }: ReferredRidersModalProps) {
   const t = useTranslations('referral.driverCard');
+  const tSim = useTranslations('referral.simulation');
+  const [showSimulation, setShowSimulation] = useState(false);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -45,19 +48,47 @@ export function ReferredRidersModal({
               <span>{t('modalTitle')}</span>
             </DialogTitle>
 
-
+            {/* Toggle Simulation Mode */}
+            <button
+              type="button"
+              onClick={() => setShowSimulation((v) => !v)}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                showSimulation
+                  ? 'border-amber-400 bg-amber-500/25 text-amber-200 shadow-sm shadow-amber-500/20'
+                  : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 hover:border-amber-500/40'
+              }`}
+              title={tSim('toggleTitle')}
+            >
+              <FlaskConical className="h-3.5 w-3.5 text-amber-400" />
+              <span>{tSim('toggleButton')}</span>
+            </button>
           </div>
           <DialogDescription className="text-xs text-slate-400 leading-relaxed font-sans">
             {t('modalSubtitle')}
           </DialogDescription>
         </DialogHeader>
 
+        {/* Simulation Panel */}
+        {showSimulation && (
+          <div className="pt-2">
+            <InactivitySimulationPanel
+              riders={riders}
+              onRefreshRiders={() => {
+                if (typeof window !== 'undefined') {
+                  window.dispatchEvent(new CustomEvent('radar_favorites_updated'));
+                }
+              }}
+              isArabic={isArabic}
+            />
+          </div>
+        )}
+
         {/* Riders List Body */}
         <div className="flex-1 overflow-y-auto py-3 space-y-2.5 pr-1 min-h-[140px] max-h-[55vh]">
           {loading ? (
             <div className="py-8 text-center text-xs text-slate-400">
               <Sparkles className="h-5 w-5 text-[#14F5D5] mx-auto mb-2 animate-pulse" />
-              <span>{isArabic ? 'جاري التحميل...' : 'Loading...'}</span>
+              <span>{t('loading')}</span>
             </div>
           ) : riders.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-5 flex items-center gap-3.5 my-4">
@@ -96,19 +127,37 @@ export function ReferredRidersModal({
                   </div>
                 </div>
 
-                {/* Direct Call Action */}
-                {/* <div className="flex items-center gap-1.5 shrink-0">
+                {/* Rider Activity Status & Action */}
+                <div className="flex items-center gap-2 shrink-0">
+                  {rider.is_active === false ? (
+                    <span
+                      className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold text-amber-300 shadow-sm"
+                      title={t('inactivityTooltip')}
+                    >
+                      <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
+                      <span>{t('inactiveRider', { days: rider.days_inactive || 10 })}</span>
+                    </span>
+                  ) : (
+                    <span
+                      className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-400 shadow-sm"
+                      title={t('activeTooltip')}
+                    >
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                      <span>{t('activeRider')}</span>
+                    </span>
+                  )}
+
                   {rider.rider_phone && (
                     <a
                       href={formatTelUri(rider.rider_phone)}
-                      className="inline-flex items-center justify-center gap-1.5 h-8 px-3.5 rounded-xl bg-gradient-to-r from-[#14B8A6] to-[#0ea5e9] text-slate-950 font-black text-[11px] hover:brightness-110 active:scale-[0.98] transition-all shadow-md shadow-teal-500/15"
+                      className="inline-flex items-center justify-center h-7 w-7 rounded-lg border border-teal-500/30 bg-teal-500/15 text-teal-300 hover:bg-teal-500/25 active:scale-95 transition-all"
+                      title={t('callRiderTooltip')}
                       style={{ textDecoration: 'none' }}
                     >
                       <Phone className="h-3 w-3 stroke-[2.5]" />
-                      <span>{t('call')}</span>
                     </a>
                   )}
-                </div> */}
+                </div>
               </div>
             ))
           )}

@@ -12,6 +12,7 @@ import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { useAdCampaigns } from '@/hooks/use-ad-campaigns';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase-client';
+import { recordRiderActivity } from '@/features/referral/services/captain-referral';
 
 const styles = {
   style384_1: "relative",
@@ -334,6 +335,19 @@ export function AdStage({
   }, [adsToUse]);
 
   useEffect(() => {
+    // Rider active ad engagement:
+    // If rider stays on AdStage for >= 10 seconds, record active interaction!
+    // (If they open and immediately close/leave within < 10 seconds, timer is cancelled).
+    if (audience === 'rider' || !audience) {
+      const timer = setTimeout(() => {
+        void recordRiderActivity('ad_watch');
+      }, 10000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [audience]);
+
+  useEffect(() => {
     const flushOnExit = () => flushAdEventBufferOnExit();
     window.addEventListener('beforeunload', flushOnExit);
     window.addEventListener('pagehide', flushOnExit);
@@ -599,6 +613,7 @@ export function AdStage({
     event.stopPropagation();
     setTakeoverAd(ad);
     enqueueAdEvent(ad, 'click');
+    void recordRiderActivity('ad_click');
   };
 
   const showNavigationShell = true;
