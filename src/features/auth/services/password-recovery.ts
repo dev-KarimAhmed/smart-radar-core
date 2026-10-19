@@ -77,16 +77,14 @@ export async function requestPasswordRecovery(phone: string, email?: string) {
     success?: boolean;
     message?: string;
     error?: string;
-    recoveryUrl?: string;
-    emailOtp?: string;
+    emailSent?: boolean;
   }>(response);
   if (!response.ok || !payload.success) {
     throw new Error(payload.error || 'تعذّر إرسال طلب الاسترجاع.');
   }
   return {
     message: payload.message ?? '',
-    recoveryUrl: payload.recoveryUrl || '',
-    emailOtp: payload.emailOtp || '',
+    emailSent: payload.emailSent ?? true,
   };
 }
 

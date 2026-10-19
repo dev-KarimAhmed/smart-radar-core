@@ -182,7 +182,7 @@ export function buildCaptainOfferFromOffer(
           offerRecord.driverAffiliation?.company_name,
           offerRecord.driverAffiliation?.name,
         );
-        return (name === 'مستقل' || name === 'كابتن مستقل') ? '' : name;
+        return (name === 'مستقل' || name === 'كابتن مستقل' || name === 'كابتن معلن مستقل') ? '' : name;
       })(),
       affiliation_label: getOfferAffiliationLabel(offer, labels),
       affiliation_type: firstDisplayString(offerRecord.driverAffiliation?.type, offer.captain?.affiliation_type, offerRecord.affiliation_type),

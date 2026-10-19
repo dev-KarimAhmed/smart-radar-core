@@ -25,6 +25,8 @@ import {
   CheckSquare,
   Square,
   MessageCircle,
+  Globe,
+  Languages,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -43,6 +45,8 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
+import { GeoFilterBar, GeoLookup } from './geo-filter-bar';
+import { requestTranslation } from '@/shared/utils/notification-i18n';
 
 export interface RiderUser {
   id: string;
@@ -57,6 +61,10 @@ export interface RiderUser {
   trust_score: number;
   consecutive_cancellations: number;
   completed_trips_count?: number;
+  country_id?: number;
+  country_name?: string;
+  governorate_id?: number;
+  district_id?: number;
   governorate: string;
   district: string;
   created_at: string;
@@ -93,6 +101,37 @@ export function RidersManagementPanel() {
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [immunityFilter, setImmunityFilter] = useState<string>('ALL');
 
+  // Geographic filtering state
+  const [selectedCountry, setSelectedCountry] = useState<string>('ALL');
+  const [selectedGovernorate, setSelectedGovernorate] = useState<string>('ALL');
+  const [selectedDistrict, setSelectedDistrict] = useState<string>('ALL');
+  const [geoLookup, setGeoLookup] = useState<GeoLookup>({
+    countries: [],
+    governorates: [],
+    districts: [],
+  });
+
+  const handleCountryChange = useCallback((val: string) => {
+    setSelectedCountry(val);
+    setSelectedGovernorate('ALL');
+    setSelectedDistrict('ALL');
+  }, []);
+
+  const handleGovernorateChange = useCallback((val: string) => {
+    setSelectedGovernorate(val);
+    setSelectedDistrict('ALL');
+  }, []);
+
+  const handleDistrictChange = useCallback((val: string) => {
+    setSelectedDistrict(val);
+  }, []);
+
+  const handleResetGeo = useCallback(() => {
+    setSelectedCountry('ALL');
+    setSelectedGovernorate('ALL');
+    setSelectedDistrict('ALL');
+  }, []);
+
   // Multi-selection state
   const [selectedRiderIds, setSelectedRiderIds] = useState<Set<string>>(new Set());
 
@@ -104,16 +143,70 @@ export function RidersManagementPanel() {
   const [messageRider, setMessageRider] = useState<RiderUser | null>(null);
   const [messageTitle, setMessageTitle] = useState(isArabic ? 'رسالة من إدارة المنظومة' : 'Message from Platform Administration');
   const [messageBody, setMessageBody] = useState('');
+  const [messageTitleEn, setMessageTitleEn] = useState('');
+  const [messageBodyEn, setMessageBodyEn] = useState('');
+  const [isTranslatingDirect, setIsTranslatingDirect] = useState(false);
   const [messageType, setMessageType] = useState<'info' | 'admin_message' | 'warning' | 'urgent'>('admin_message');
   const [submittingMessage, setSubmittingMessage] = useState(false);
+
+  const handleTranslateDirect = async () => {
+    setIsTranslatingDirect(true);
+    try {
+      const [tTitle, tBody] = await Promise.all([
+        messageTitle.trim() ? requestTranslation(messageTitle.trim(), 'en') : Promise.resolve(''),
+        messageBody.trim() ? requestTranslation(messageBody.trim(), 'en') : Promise.resolve(''),
+      ]);
+      setMessageTitleEn(tTitle);
+      setMessageBodyEn(tBody);
+      toast({
+        title: isArabic ? '🌐 تم إنشاء الترجمة الإنجليزية بنجاح' : '🌐 English Translation Generated',
+        description: isArabic ? 'يمكنك مراجعة النص الإنجليزي المترجم أو تعديله قبل الإرسال.' : 'You can review or edit the translated text before sending.',
+      });
+    } catch {
+      toast({
+        variant: 'destructive',
+        title: isArabic ? 'تعذر توليد الترجمة' : 'Translation Failed',
+        description: isArabic ? 'يرجى إدخال النص الإنجليزي يدوياً.' : 'Please enter English text manually.',
+      });
+    } finally {
+      setIsTranslatingDirect(false);
+    }
+  };
 
   // Bulk Broadcast modal inputs
   const [isBulkMessageOpen, setIsBulkMessageOpen] = useState(false);
   const [bulkScope, setBulkScope] = useState<'all' | 'selected' | 'filtered'>('all');
   const [bulkMsgTitle, setBulkMsgTitle] = useState(isArabic ? 'إشعار توجيهي من إدارة المنظومة' : 'Directive Notification from System Administration');
   const [bulkMsgBody, setBulkMsgBody] = useState('');
+  const [bulkMsgTitleEn, setBulkMsgTitleEn] = useState('');
+  const [bulkMsgBodyEn, setBulkMsgBodyEn] = useState('');
+  const [isTranslatingBulk, setIsTranslatingBulk] = useState(false);
   const [bulkMsgType, setBulkMsgType] = useState<'info' | 'admin_message' | 'warning' | 'urgent'>('admin_message');
   const [submittingBulkMessage, setSubmittingBulkMessage] = useState(false);
+
+  const handleTranslateBulk = async () => {
+    setIsTranslatingBulk(true);
+    try {
+      const [tTitle, tBody] = await Promise.all([
+        bulkMsgTitle.trim() ? requestTranslation(bulkMsgTitle.trim(), 'en') : Promise.resolve(''),
+        bulkMsgBody.trim() ? requestTranslation(bulkMsgBody.trim(), 'en') : Promise.resolve(''),
+      ]);
+      setBulkMsgTitleEn(tTitle);
+      setBulkMsgBodyEn(tBody);
+      toast({
+        title: isArabic ? '🌐 تم إنشاء الترجمة الإنجليزية بنجاح' : '🌐 English Translation Generated',
+        description: isArabic ? 'يمكنك مراجعة النص الإنجليزي المترجم أو تعديله قبل الإرسال.' : 'You can review or edit the translated text before sending.',
+      });
+    } catch {
+      toast({
+        variant: 'destructive',
+        title: isArabic ? 'تعذر توليد الترجمة' : 'Translation Failed',
+        description: isArabic ? 'يرجى إدخال النص الإنجليزي يدوياً.' : 'Please enter English text manually.',
+      });
+    } finally {
+      setIsTranslatingBulk(false);
+    }
+  };
 
   // Security modal inputs
   const [targetStatus, setTargetStatus] = useState<string>('IDLE');
@@ -126,15 +219,22 @@ export function RidersManagementPanel() {
       const data = await res.json();
       if (data?.success && Array.isArray(data.users)) {
         setRiders(data.users);
+        if (data.geo) {
+          setGeoLookup({
+            countries: Array.isArray(data.geo.countries) ? data.geo.countries : [],
+            governorates: Array.isArray(data.geo.governorates) ? data.geo.governorates : [],
+            districts: Array.isArray(data.geo.districts) ? data.geo.districts : [],
+          });
+        }
       } else {
-        throw new Error(data?.error || (isArabic ? 'فشل تحميل بيانات الركاب' : 'Failed to load riders data'));
+        throw new Error(data?.error || (isArabic ? 'فشل تحميل بيانات المستخدمين' : 'Failed to load riders data'));
       }
     } catch (err: any) {
       console.warn('[RidersManagementPanel] fetch error:', err);
       toast({
         variant: 'destructive',
-        title: isArabic ? 'خطأ استدعاء الركاب' : 'Riders Fetch Error',
-        description: err.message || (isArabic ? 'تعذر جلب بيانات الركاب من قاعدة البيانات' : 'Could not fetch riders from database'),
+        title: isArabic ? 'خطأ استدعاء المستخدمين' : 'Riders Fetch Error',
+        description: err.message || (isArabic ? 'تعذر جلب بيانات المستخدمين من قاعدة البيانات' : 'Could not fetch riders from database'),
       });
     } finally {
       setLoading(false);
@@ -187,8 +287,9 @@ export function RidersManagementPanel() {
         r.full_name.toLowerCase().includes(q) ||
         r.phone.toLowerCase().includes(q) ||
         r.serial_id.toLowerCase().includes(q) ||
-        r.governorate.toLowerCase().includes(q) ||
-        r.district.toLowerCase().includes(q);
+        (r.governorate && r.governorate.toLowerCase().includes(q)) ||
+        (r.district && r.district.toLowerCase().includes(q)) ||
+        (r.country_name && r.country_name.toLowerCase().includes(q));
 
       const matchesStatus =
         statusFilter === 'ALL' || r.status === statusFilter;
@@ -198,9 +299,46 @@ export function RidersManagementPanel() {
       else if (immunityFilter === 'WARNING') matchesImmunity = r.trust_score >= 4.2 && r.trust_score < 4.5;
       else if (immunityFilter === 'CRITICAL') matchesImmunity = r.trust_score < 4.2;
 
-      return matchesSearch && matchesStatus && matchesImmunity;
+      // Geo Filtering: Country
+      const targetCountry = geoLookup.countries.find((cntry) => String(cntry.id) === selectedCountry);
+      const matchesCountry =
+        selectedCountry === 'ALL' ||
+        r.country_id === Number(selectedCountry) ||
+        (targetCountry && (r.country_name === targetCountry.name_ar || (targetCountry.country_code && r.phone?.startsWith(targetCountry.country_code === 'EG' ? '+20' : '+962'))));
+
+      // Geo Filtering: Governorate
+      const targetGov = geoLookup.governorates.find((g) => String(g.id) === selectedGovernorate);
+      const matchesGov =
+        selectedGovernorate === 'ALL' ||
+        r.governorate_id === Number(selectedGovernorate) ||
+        (targetGov && r.governorate === targetGov.name_ar);
+
+      // Geo Filtering: District
+      const targetDist = geoLookup.districts.find((d) => String(d.id) === selectedDistrict);
+      const matchesDist =
+        selectedDistrict === 'ALL' ||
+        r.district_id === Number(selectedDistrict) ||
+        (targetDist && r.district === targetDist.name_ar);
+
+      return (
+        matchesSearch &&
+        matchesStatus &&
+        matchesImmunity &&
+        matchesCountry &&
+        matchesGov &&
+        matchesDist
+      );
     });
-  }, [riders, searchQuery, statusFilter, immunityFilter]);
+  }, [
+    riders,
+    searchQuery,
+    statusFilter,
+    immunityFilter,
+    selectedCountry,
+    selectedGovernorate,
+    selectedDistrict,
+    geoLookup,
+  ]);
 
   // Multi-selection helpers
   const handleSelectAll = () => {
@@ -396,69 +534,109 @@ export function RidersManagementPanel() {
       </div>
 
       {/* 3. Search and Multi-filter Controls */}
-      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 bg-[#0B0F19]/90 border border-white/10 p-3.5 rounded-2xl">
-        <div className={styles.searchContainer}>
-          <Search className={styles.searchIcon} />
-          <Input
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={t('searchPlaceholder')}
-            className={styles.searchInput}
-          />
-        </div>
-
-        {/* Filter Badges */}
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Status filter */}
-          <div className="flex items-center gap-1 bg-black/40 border border-white/10 rounded-xl p-1 text-[11px]">
-            <span className="text-slate-500 px-2 font-bold">{t('filterStatus')}</span>
-            {[
-              { key: 'ALL', label: t('statusAll') },
-              { key: 'ACTIVE', label: t('statusActive') },
-              { key: 'IDLE', label: t('statusIdle') },
-              { key: 'SUSPENDED', label: t('statusSuspended') },
-            ].map((st) => (
-              <button
-                key={st.key}
-                type="button"
-                onClick={() => setStatusFilter(st.key)}
-                className={cn(
-                  "px-2.5 py-1 rounded-lg font-bold transition text-[11px] cursor-pointer",
-                  statusFilter === st.key
-                    ? "bg-cyan-500 text-black font-black"
-                    : "text-slate-400 hover:text-white"
-                )}
-              >
-                {st.label}
-              </button>
-            ))}
+      <div className="space-y-2.5">
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 bg-[#0B0F19]/90 border border-white/10 p-3.5 rounded-2xl">
+          <div className={styles.searchContainer}>
+            <Search className={styles.searchIcon} />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={t('searchPlaceholder')}
+              className={styles.searchInput}
+            />
           </div>
 
-          {/* Immunity filter */}
-          <div className="flex items-center gap-1 bg-black/40 border border-white/10 rounded-xl p-1 text-[11px]">
-            <span className="text-slate-500 px-2 font-bold">{t('filterImmunity')}</span>
-            {[
-              { key: 'ALL', label: t('immunityAll') },
-              { key: 'HIGH', label: t('immunityExcellent') },
-              { key: 'WARNING', label: t('immunityWarning') },
-              { key: 'CRITICAL', label: t('immunityCritical') },
-            ].map((f) => (
+          {/* Filter Badges */}
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Status filter */}
+            <div className="flex items-center gap-1 bg-black/40 border border-white/10 rounded-xl p-1 text-[11px]">
+              <span className="text-slate-500 px-2 font-bold">{t('filterStatus')}</span>
+              {[
+                { key: 'ALL', label: t('statusAll') },
+                { key: 'ACTIVE', label: t('statusActive') },
+                { key: 'IDLE', label: t('statusIdle') },
+                { key: 'SUSPENDED', label: t('statusSuspended') },
+              ].map((st) => (
+                <button
+                  key={st.key}
+                  type="button"
+                  onClick={() => setStatusFilter(st.key)}
+                  className={cn(
+                    "px-2.5 py-1 rounded-lg font-bold transition text-[11px] cursor-pointer",
+                    statusFilter === st.key
+                      ? "bg-cyan-500 text-black font-black"
+                      : "text-slate-400 hover:text-white"
+                  )}
+                >
+                  {st.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Immunity filter */}
+            <div className="flex items-center gap-1 bg-black/40 border border-white/10 rounded-xl p-1 text-[11px]">
+              <span className="text-slate-500 px-2 font-bold">{t('filterImmunity')}</span>
+              {[
+                { key: 'ALL', label: t('immunityAll') },
+                { key: 'HIGH', label: t('immunityExcellent') },
+                { key: 'WARNING', label: t('immunityWarning') },
+                { key: 'CRITICAL', label: t('immunityCritical') },
+              ].map((f) => (
+                <button
+                  key={f.key}
+                  type="button"
+                  onClick={() => setImmunityFilter(f.key)}
+                  className={cn(
+                    "px-2.5 py-1 rounded-lg font-bold transition text-[11px] cursor-pointer",
+                    immunityFilter === f.key
+                      ? "bg-cyan-500 text-black font-black"
+                      : "text-slate-400 hover:text-white"
+                  )}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Reset Filters button if any filter is active */}
+            {(statusFilter !== 'ALL' ||
+              immunityFilter !== 'ALL' ||
+              selectedCountry !== 'ALL' ||
+              selectedGovernorate !== 'ALL' ||
+              selectedDistrict !== 'ALL' ||
+              searchQuery.trim() !== '') && (
               <button
-                key={f.key}
                 type="button"
-                onClick={() => setImmunityFilter(f.key)}
-                className={cn(
-                  "px-2.5 py-1 rounded-lg font-bold transition text-[11px] cursor-pointer",
-                  immunityFilter === f.key
-                    ? "bg-cyan-500 text-black font-black"
-                    : "text-slate-400 hover:text-white"
-                )}
+                onClick={() => {
+                  setStatusFilter('ALL');
+                  setImmunityFilter('ALL');
+                  setSelectedCountry('ALL');
+                  setSelectedGovernorate('ALL');
+                  setSelectedDistrict('ALL');
+                  setSearchQuery('');
+                }}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-[11px] font-bold transition cursor-pointer"
+                title={isArabic ? 'إعادة تعيين الفلاتر' : 'Reset Filters'}
               >
-                {f.label}
+                <RotateCcw className="w-3 h-3 text-cyan-400" />
+                <span>{isArabic ? 'إعادة تعيين' : 'Reset'}</span>
               </button>
-            ))}
+            )}
           </div>
         </div>
+
+        {/* Geographic Filtering Bar */}
+        <GeoFilterBar
+          geoLookup={geoLookup}
+          selectedCountry={selectedCountry}
+          selectedGovernorate={selectedGovernorate}
+          selectedDistrict={selectedDistrict}
+          onCountryChange={handleCountryChange}
+          onGovernorateChange={handleGovernorateChange}
+          onDistrictChange={handleDistrictChange}
+          onResetGeo={handleResetGeo}
+          isArabic={isArabic}
+        />
       </div>
 
       {/* Sticky Floating Action Bar for Selected Riders */}
@@ -580,9 +758,9 @@ export function RidersManagementPanel() {
 
                         {/* 2. Location */}
                         <td className="py-4 px-4">
-                          <span className="inline-flex items-center gap-1.5 text-slate-200 font-bold bg-white/5 border border-white/10 px-2.5 py-1 rounded-lg text-xs">
-                            <MapPin className="h-3.5 w-3.5 text-[#14B8A6]" />
-                            {rider.governorate} - {rider.district}
+                          <span className="inline-flex items-center gap-1.5 text-slate-200 font-bold bg-white/5 border border-white/10 px-2.5 py-1 rounded-lg text-xs" title={`${rider.country_name ? `${rider.country_name} • ` : ''}${rider.governorate} - ${rider.district}`}>
+                            <MapPin className="h-3.5 w-3.5 text-[#14B8A6] shrink-0" />
+                            {rider.country_name ? `${rider.country_name} • ` : ''}{rider.governorate} - {rider.district}
                           </span>
                         </td>
 
@@ -1040,14 +1218,60 @@ export function RidersManagementPanel() {
 
               {/* Message Body */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-300">{t('msgBodyLabel')}</label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-300">{t('msgBodyLabel')}</label>
+                  <button
+                    type="button"
+                    disabled={isTranslatingDirect || !messageBody.trim()}
+                    onClick={handleTranslateDirect}
+                    className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#14F5D5] bg-[#14B8A6]/10 hover:bg-[#14B8A6]/20 border border-[#14B8A6]/30 px-2 py-0.5 rounded-lg transition-all cursor-pointer disabled:opacity-40"
+                    title={isArabic ? 'توليد الترجمة الإنجليزية تلقائياً' : 'Auto-generate English translation'}
+                  >
+                    {isTranslatingDirect ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Globe className="w-3 h-3" />
+                    )}
+                    <span>{isArabic ? 'ترجمة تلقائية للإنجليزية' : 'Auto-Translate to English'}</span>
+                  </button>
+                </div>
                 <textarea
                   value={messageBody}
                   onChange={(e) => setMessageBody(e.target.value)}
                   placeholder={t('directMsgPlaceholder')}
-                  rows={4}
+                  rows={3}
                   className={cn("w-full bg-black/60 border border-white/10 text-white text-xs p-3 rounded-xl focus:border-teal-500 outline-none resize-none font-sans leading-relaxed", isArabic ? "text-right" : "text-left")}
                   required
+                />
+              </div>
+
+              {/* English Version (Optional / Auto-generated) */}
+              <div className="space-y-2 p-3 rounded-2xl bg-white/[0.02] border border-white/10">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-bold text-slate-300 flex items-center gap-1.5">
+                    <Globe className="w-3.5 h-3.5 text-[#14B8A6]" />
+                    <span>{isArabic ? 'النسخة الإنجليزية (تصل للمستخدم إذا كانت واجهته بالإنجليزية)' : 'English Version (Delivered if user UI is in English)'}</span>
+                  </label>
+                  {messageBodyEn && (
+                    <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/30 px-1.5 py-0.5 rounded">
+                      {isArabic ? 'مترجم ✓' : 'Ready ✓'}
+                    </span>
+                  )}
+                </div>
+                <Input
+                  value={messageTitleEn}
+                  onChange={(e) => setMessageTitleEn(e.target.value)}
+                  placeholder="English Subject (Optional, auto-generated)"
+                  className="bg-black/60 border-white/10 text-white text-xs h-8 rounded-lg focus:border-teal-500 text-left font-sans"
+                  dir="ltr"
+                />
+                <textarea
+                  value={messageBodyEn}
+                  onChange={(e) => setMessageBodyEn(e.target.value)}
+                  placeholder="English message content (Auto-fills when clicking 'Auto-Translate to English')"
+                  rows={2}
+                  className="w-full bg-black/60 border border-white/10 text-white text-xs p-2.5 rounded-lg focus:border-teal-500 outline-none resize-none font-sans leading-relaxed text-left"
+                  dir="ltr"
                 />
               </div>
 
@@ -1055,7 +1279,11 @@ export function RidersManagementPanel() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setMessageRider(null)}
+                  onClick={() => {
+                    setMessageRider(null);
+                    setMessageTitleEn('');
+                    setMessageBodyEn('');
+                  }}
                   disabled={submittingMessage}
                   className="border-white/10 text-slate-300 text-xs h-9 rounded-xl"
                 >
@@ -1073,12 +1301,16 @@ export function RidersManagementPanel() {
                         userId: messageRider.id,
                         title: messageTitle.trim(),
                         message: messageBody.trim(),
+                        titleEn: messageTitleEn.trim(),
+                        messageEn: messageBodyEn.trim(),
                         type: messageType,
                       }, t('directMsgSuccess'));
 
                       if (ok) {
                         setMessageRider(null);
                         setMessageBody('');
+                        setMessageTitleEn('');
+                        setMessageBodyEn('');
                       }
                     } finally {
                       setSubmittingMessage(false);
@@ -1248,14 +1480,60 @@ export function RidersManagementPanel() {
 
             {/* Message Body */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-300">{t('bulkMsgBodyLabel')}</label>
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-slate-300">{t('bulkMsgBodyLabel')}</label>
+                <button
+                  type="button"
+                  disabled={isTranslatingBulk || !bulkMsgBody.trim()}
+                  onClick={handleTranslateBulk}
+                  className="inline-flex items-center gap-1.5 text-[11px] font-bold text-indigo-300 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 px-2 py-0.5 rounded-lg transition-all cursor-pointer disabled:opacity-40"
+                  title={isArabic ? 'توليد الترجمة الإنجليزية تلقائياً' : 'Auto-generate English translation'}
+                >
+                  {isTranslatingBulk ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <Globe className="w-3 h-3" />
+                  )}
+                  <span>{isArabic ? 'ترجمة تلقائية للإنجليزية' : 'Auto-Translate to English'}</span>
+                </button>
+              </div>
               <textarea
                 value={bulkMsgBody}
                 onChange={(e) => setBulkMsgBody(e.target.value)}
                 placeholder={t('bulkMsgBodyPlaceholder')}
-                rows={4}
+                rows={3}
                 className={cn("w-full bg-black/60 border border-white/10 text-white text-xs p-3 rounded-xl focus:border-indigo-500 outline-none resize-none font-sans leading-relaxed", isArabic ? "text-right" : "text-left")}
                 required
+              />
+            </div>
+
+            {/* English Version (Optional / Auto-generated) */}
+            <div className="space-y-2 p-3 rounded-2xl bg-white/[0.02] border border-white/10">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-bold text-slate-300 flex items-center gap-1.5">
+                  <Globe className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>{isArabic ? 'النسخة الإنجليزية (تصل للمستخدم إذا كانت واجهته بالإنجليزية)' : 'English Version (Delivered if user UI is in English)'}</span>
+                </label>
+                {bulkMsgBodyEn && (
+                  <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/30 px-1.5 py-0.5 rounded">
+                    {isArabic ? 'مترجم ✓' : 'Ready ✓'}
+                  </span>
+                )}
+              </div>
+              <Input
+                value={bulkMsgTitleEn}
+                onChange={(e) => setBulkMsgTitleEn(e.target.value)}
+                placeholder="English Broadcast Subject (Optional, auto-generated)"
+                className="bg-black/60 border-white/10 text-white text-xs h-8 rounded-lg focus:border-indigo-500 text-left font-sans"
+                dir="ltr"
+              />
+              <textarea
+                value={bulkMsgBodyEn}
+                onChange={(e) => setBulkMsgBodyEn(e.target.value)}
+                placeholder="English broadcast message (Auto-fills when clicking 'Auto-Translate to English')"
+                rows={2}
+                className="w-full bg-black/60 border border-white/10 text-white text-xs p-2.5 rounded-lg focus:border-indigo-500 outline-none resize-none font-sans leading-relaxed text-left"
+                dir="ltr"
               />
             </div>
 
@@ -1263,7 +1541,11 @@ export function RidersManagementPanel() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setIsBulkMessageOpen(false)}
+                onClick={() => {
+                  setIsBulkMessageOpen(false);
+                  setBulkMsgTitleEn('');
+                  setBulkMsgBodyEn('');
+                }}
                 disabled={submittingBulkMessage}
                 className="border-white/10 text-slate-300 text-xs h-9 rounded-xl"
               >
@@ -1289,12 +1571,16 @@ export function RidersManagementPanel() {
                       userIds: targetIds.length > 0 ? targetIds : undefined,
                       title: bulkMsgTitle.trim(),
                       message: bulkMsgBody.trim(),
+                      titleEn: bulkMsgTitleEn.trim(),
+                      messageEn: bulkMsgBodyEn.trim(),
                       type: bulkMsgType,
                     }, t('bulkBroadcastSuccess'));
 
                     if (ok) {
                       setIsBulkMessageOpen(false);
                       setBulkMsgBody('');
+                      setBulkMsgTitleEn('');
+                      setBulkMsgBodyEn('');
                       setSelectedRiderIds(new Set());
                     }
                   } finally {

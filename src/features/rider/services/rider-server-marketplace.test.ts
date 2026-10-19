@@ -126,7 +126,7 @@ assert.deepEqual(insertedPayload, payload);
 
 assert.equal(
   mapRiderMarketplaceError({ message: 'permission denied for table ride_requests' }),
-  'تعذر إنشاء طلب الرحلة بسبب صلاحيات قاعدة البيانات. تأكد من تفعيل سياسة إدخال طلبات الرحلات للراكب.',
+  'تعذر إنشاء طلب الرحلة بسبب صلاحيات قاعدة البيانات. تأكد من تفعيل سياسة إدخال طلبات الرحلات للمستخدم.',
 );
 assert.equal(
   mapRiderMarketplaceError({ message: 'Failed to fetch' }),

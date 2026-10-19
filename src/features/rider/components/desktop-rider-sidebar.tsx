@@ -44,7 +44,7 @@ const styles = {
 
 const copy = {
   ar: {
-    fallbackName: 'راكب',
+    fallbackName: 'مستخدم',
     fallbackPhone: 'تطبيق الرحلات',
     logout: 'تسجيل الخروج',
     nav: { home: 'الرئيسية', history: 'رحلاتي', profile: 'حسابي', vault: 'الخزنة' },

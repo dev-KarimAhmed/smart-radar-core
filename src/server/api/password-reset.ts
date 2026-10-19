@@ -272,33 +272,49 @@ passwordResetRouter.post('/password-reset/request', async (req, res) => {
       }
     }
 
-    // 3. Fallback: Fire Supabase native recover email asynchronously in background if Resend was not used
+    // 3. Fallback: Fire Supabase native recover email if Resend was not used
+    let nativeRecoverDispatched = false;
     if (!emailSentViaResend) {
-      void (async () => {
-        try {
-          await fetch(`${config.url}/auth/v1/recover`, {
-            method: 'POST',
-            headers: serviceHeaders(config.serviceKey),
-            body: JSON.stringify({ email: targetEmail, redirect_to: redirectTo }),
-            signal: AbortSignal.timeout(8_000),
-          });
-        } catch (e) {
-          console.warn('[password-reset] Async recover email dispatch error:', e);
+      try {
+        const recoverRes = await fetch(`${config.url}/auth/v1/recover`, {
+          method: 'POST',
+          headers: serviceHeaders(config.serviceKey),
+          body: JSON.stringify({ email: targetEmail, redirect_to: redirectTo }),
+          signal: AbortSignal.timeout(4_000),
+        });
+        nativeRecoverDispatched = recoverRes.ok;
+        if (!recoverRes.ok) {
+          const recErr = await recoverRes.text().catch(() => '');
+          console.warn(`[password-reset] Supabase recover returned status ${recoverRes.status}:`, recErr);
+        } else {
+          console.info(`[password-reset] Native Supabase recover dispatched for ${targetEmail}`);
         }
-      })();
+      } catch (e) {
+        console.warn('[password-reset] Supabase recover fetch error:', e);
+      }
     }
+
+    const emailSent = emailSentViaResend || nativeRecoverDispatched;
 
     await auditReset(config, {
       profile_id: user.id,
       action: 'EMAIL_RECOVERY_SENT',
-      detail: { route: 'email', targetEmail, redirectTo, actionLinkGenerated: Boolean(actionLink) },
+      detail: { route: 'email', targetEmail, redirectTo, actionLinkGenerated: Boolean(actionLink), emailSent },
     });
+
+    if (!emailSent) {
+      return res.status(500).json({
+        success: false,
+        error: 'تعذّر إرسال بريد استعادة كلمة المرور في الوقت الحالي. يرجى المحاولة لاحقاً أو التواصل مع الدعم الفني.',
+      });
+    }
+
+    const message = `تم إرسال رابط استعادة كلمة المرور بنجاح إلى (${targetEmail}). يرجى فتح بريدك الإلكتروني (صندوق الوارد أو مجلد Spam) والضغط على الرابط لإعادة تعيين كلمة المرور.`;
 
     return res.json({
       success: true,
-      recoveryUrl: actionLink,
-      emailOtp,
-      message: `تم إرسال رابط استعادة كلمة المرور بنجاح إلى (${targetEmail}). يرجى فتح بريدك الإلكتروني (صندوق الوارد أو مجلد Spam) والضغط على الرابط لإعادة تعيين كلمة المرور.`,
+      emailSent: true,
+      message,
     });
   } catch (error) {
     console.error('[password-reset/request]', error);
@@ -654,11 +670,11 @@ passwordResetRouter.post('/password-reset/test-resend', async (req, res) => {
   try {
     const { Resend: ResendClient } = await import('resend');
     const client = new ResendClient(apiKey);
-    const fromEmail = process.env.RESEND_FROM_EMAIL?.trim() || 'الرادار الذكي <noreply@bynkcom.com>';
+    const fromEmail = process.env.RESEND_FROM_EMAIL?.trim() || 'بينكم - bynkcom <noreply@bynkcom.com>';
     const result = await client.emails.send({
       from: fromEmail,
       to,
-      subject: 'تجربة إرسال عبر Resend API | الرادار الذكي',
+      subject: 'تجربة إرسال عبر Resend API | بينكم - bynkcom',
       html: '<p dir="rtl">تهانينا! تم إرسال هذا الإيميل بنجاح وبسرعة فائقة عبر <strong>Resend API</strong> 🚀</p>',
     });
 

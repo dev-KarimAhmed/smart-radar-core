@@ -114,9 +114,9 @@ export const SovereignDemarcationCatalog = {
   sectors: Object.freeze<Record<SovereignSectorId, ISovereignSector>>({
     SECTOR_RIDER: {
       id: 'SECTOR_RIDER',
-      nameAr: 'قطاع الراكب',
+      nameAr: 'قطاع المستخدم',
       nameEn: 'Rider Sector',
-      descriptionAr: 'القطاع المعني بطلب الرحلات ومتابعة مزادات الكباتن والنبض البصري التركوازي صامت الخيارات.',
+      descriptionAr: 'القطاع المعني بطلب الرحلات ومتابعة مزادات الكباتن المعلنين والنبض البصري التركوازي صامت الخيارات.',
       descriptionEn: 'Responsible for ride requests, monitoring live captain auctions, and managing locally saved favorite captains.',
       frontend: {
         components: [
@@ -231,7 +231,7 @@ export const SovereignDemarcationCatalog = {
       id: 'SECTOR_ADVERTISER',
       nameAr: 'قطاع المعلن',
       nameEn: 'Advertiser Sector',
-      descriptionAr: 'قمرة المعلنين لرفع ومتابعة عروض الزيوت وصيانة المحرك وحقن تعويضات السعر المحروق للراكب لتوليد عائد ROI.',
+      descriptionAr: 'قمرة المعلنين لرفع ومتابعة عروض الزيوت وصيانة المحرك وحقن تعويضات السعر المحروق للمستخدم لتوليد عائد ROI.',
       descriptionEn: 'The corporate advertising center to serve maintenance offers and compensate riders in burnt-fare scenarios.',
       frontend: {
         components: [

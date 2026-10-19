@@ -166,7 +166,7 @@ export function useHistoryState() {
               completed_at: new Date(entry.completedAt).toISOString(),
               created_at: new Date(entry.completedAt).toISOString(),
               final_fare: entry.finalFare,
-              rider: { full_name: isArabic ? 'راكب محلي' : 'Local Rider', phone: '', rating: 5.0 },
+              rider: { full_name: isArabic ? 'مستخدم محلي' : 'Local Rider', phone: '', rating: 5.0 },
               destination_address_ar: (entry.destination && entry.destination !== 'Destination' && entry.destination !== 'غير متاح') ? entry.destination : '',
               pickup_address_ar: entry.pickup || '',
               trip_fare: entry.finalFare,
@@ -371,7 +371,7 @@ export function useHistoryState() {
                 created_at: new Date(entry.completedAt).toISOString(),
                 final_fare: entry.finalFare,
                 rider: {
-                  full_name: isArabic ? 'راكب محلي' : 'Local Rider',
+                  full_name: isArabic ? 'مستخدم محلي' : 'Local Rider',
                   phone: '',
                   rating: 5.0
                 },
@@ -578,7 +578,7 @@ export function useHistoryState() {
         riderId: trip.rider?.id || trip.rider_id || trip.metadata?.rider_id || trip.riderId || '',
         riderPhone: trip.rider?.phone || trip.rider_phone || '',
         serialId: trip.serial_id || trip.serialId || (trip.id ? ('T-' + String(trip.id).slice(0, 4).toUpperCase()) : 'T-TRIP'),
-        riderName: trip.rider?.full_name || trip.rider_name || trip.riderName || (isArabic ? 'راكب' : 'Rider'),
+        riderName: trip.rider?.full_name || trip.rider_name || trip.riderName || (isArabic ? 'مستخدم' : 'Rider'),
         pickup: cleanPickup,
         dropoff: cleanDropoff,
         earnedPrice: Number(trip.final_fare ?? trip.settled_fare ?? trip.final_price ?? trip.offer_price ?? trip.server_estimated_fare ?? trip.offerPrice ?? 0),

@@ -4,29 +4,25 @@ import dotenv from 'dotenv';
 import { Resend } from 'resend';
 
 function getResendClient(): Resend | null {
-  let apiKey = process.env.RESEND_API_KEY?.trim();
-  if (!apiKey || !apiKey.startsWith('re_')) {
-    try {
-      const envLocalPath = path.join(process.cwd(), '.env.local');
-      if (fs.existsSync(envLocalPath)) {
-        const parsed = dotenv.parse(fs.readFileSync(envLocalPath));
-        if (parsed.RESEND_API_KEY) {
-          process.env.RESEND_API_KEY = parsed.RESEND_API_KEY;
-          apiKey = parsed.RESEND_API_KEY.trim();
-        }
+  let apiKey = '';
+  try {
+    const envLocalPath = path.join(process.cwd(), '.env.local');
+    if (fs.existsSync(envLocalPath)) {
+      const parsed = dotenv.parse(fs.readFileSync(envLocalPath));
+      if (parsed.RESEND_API_KEY?.trim()) {
+        apiKey = parsed.RESEND_API_KEY.trim();
+        process.env.RESEND_API_KEY = apiKey;
       }
-    } catch {
-      // ignore
+      if (parsed.RESEND_FROM_EMAIL?.trim()) {
+        process.env.RESEND_FROM_EMAIL = parsed.RESEND_FROM_EMAIL.trim();
+      }
     }
+  } catch {
+    // ignore
   }
 
-  if (!apiKey || !apiKey.startsWith('re_')) {
-    try {
-      // Cloud/Railway fallback if env variable is not explicitly injected in host dashboard
-      apiKey = Buffer.from('cmVfVDJKZkxON2VfQWo4RFJnbmJGOGlqVGRYU0QxeWJNaHRw', 'base64').toString('utf8');
-    } catch {
-      // ignore
-    }
+  if (!apiKey) {
+    apiKey = process.env.RESEND_API_KEY?.trim() || '';
   }
 
   if (!apiKey || !apiKey.startsWith('re_')) {
@@ -45,13 +41,13 @@ export async function sendPasswordResetEmail(params: {
     return { success: false, error: 'RESEND_API_KEY is not configured or invalid' };
   }
 
-  const fromEmail = process.env.RESEND_FROM_EMAIL?.trim() || 'الرادار الذكي <noreply@bynkcom.com>';
+  const fromEmail = process.env.RESEND_FROM_EMAIL?.trim() || 'بينكم - bynkcom <noreply@bynkcom.com>';
 
   try {
     const { data, error } = await resend.emails.send({
       from: fromEmail,
       to: params.to,
-      subject: 'إعادة تعيين كلمة المرور | الرادار الذكي',
+      subject: 'إعادة تعيين كلمة المرور | بينكم - bynkcom',
       html: `
 <!DOCTYPE html>
 <html dir="rtl" lang="ar">
@@ -68,7 +64,7 @@ export async function sendPasswordResetEmail(params: {
           <tr>
             <td style="padding: 36px 32px 24px 32px; text-align: center; border-bottom: 1px solid rgba(255, 255, 255, 0.06);">
               <div style="display: inline-block; background: rgba(20, 184, 166, 0.15); border: 1px solid rgba(20, 184, 166, 0.3); border-radius: 16px; padding: 12px 24px;">
-                <span style="font-size: 20px; font-weight: 900; color: #14F5D5; letter-spacing: 0.5px;">⚡ الرادار الذكي</span>
+                <span style="font-size: 20px; font-weight: 900; color: #14F5D5; letter-spacing: 0.5px;">⚡ بينكم - bynkcom</span>
               </div>
             </td>
           </tr>
@@ -89,7 +85,7 @@ export async function sendPasswordResetEmail(params: {
           <tr>
             <td style="padding: 24px 32px; background-color: rgba(0, 0, 0, 0.2); text-align: center; border-top: 1px solid rgba(255, 255, 255, 0.06);">
               <p style="margin: 0; font-size: 12px; color: #475569;">
-                هذه الرسالة تم إرسالها آلياً لأغراض الأمان من منصة الرادار الذكي &copy; 2026
+                هذه الرسالة تم إرسالها آلياً لأغراض الأمان من منصة بينكم - bynkcom &copy; 2026
               </p>
             </td>
           </tr>

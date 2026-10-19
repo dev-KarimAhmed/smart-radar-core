@@ -81,7 +81,7 @@ export function BlockedCaptainsSection({ isArabic }: BlockedCaptainsSectionProps
               </p>
               <p className="text-[11px] text-slate-500 leading-relaxed mt-0.5">
                 {isArabic
-                  ? 'سجلك نظيف، لم تقم بحظر أي كابتن حتى الآن.'
+                  ? 'سجلك نظيف، لم تقم بحظر أي كابتن معلن حتى الآن.'
                   : 'Your account is clean, you have not blocked any captains yet.'}
               </p>
             </div>

@@ -128,7 +128,7 @@ export function PwaInstallBanner({ role: propRole }: PwaInstallBannerProps = {})
             <p className="text-[11px] font-semibold text-slate-300 leading-tight">
               {role === 'captain'
                 ? (isArabic
-                    ? 'تطبيق كابتن مستقل وخفيف دون استهلاك للمتجر والذاكرة'
+                    ? 'تطبيق كابتن معلن مستقل وخفيف دون استهلاك للمتجر والذاكرة'
                     : 'Standalone lightweight Captain PWA with zero app store bloat')
                 : (isArabic
                     ? 'تطبيق خفيف ومستقل بدون استهلاك للمتجر أو الذاكرة'

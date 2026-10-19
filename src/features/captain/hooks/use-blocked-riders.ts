@@ -32,7 +32,7 @@ export function useBlockedRiders(language: 'ar' | 'en' = 'ar') {
       if (!rpcError && Array.isArray(rpcData)) {
         const formatted: BlockedRiderItem[] = rpcData.map((row: any) => ({
           id: row.id,
-          name: row.name || (isArabic ? 'راكب محظور' : 'Blocked Rider'),
+          name: row.name || (isArabic ? 'مستخدم محظور' : 'Blocked Rider'),
           phone: row.phone || '',
           rating: Number(row.rating || 5),
           serialId: row.serial_id || '',
@@ -67,7 +67,7 @@ export function useBlockedRiders(language: 'ar' | 'en' = 'ar') {
         const prof = profileMap.get(id);
         return {
           id,
-          name: prof?.full_name || (isArabic ? 'راكب محظور' : 'Blocked Rider'),
+          name: prof?.full_name || (isArabic ? 'مستخدم محظور' : 'Blocked Rider'),
           phone: prof?.phone || '',
           rating: Number(prof?.rating || 5),
           serialId: prof?.serial_id || '',
@@ -131,8 +131,8 @@ export function useBlockedRiders(language: 'ar' | 'en' = 'ar') {
       }
 
       toast({
-        title: isArabic ? 'تم حظر الراكب' : 'Rider Blocked',
-        description: isArabic ? 'لن تظهر طلبات هذا الراكب في رادارك مجدداً.' : 'Rider requests will no longer appear on your radar.',
+        title: isArabic ? 'تم حظر المستخدم' : 'Rider Blocked',
+        description: isArabic ? 'لن تظهر طلبات هذا المستخدم في رادارك مجدداً.' : 'Rider requests will no longer appear on your radar.',
       });
 
       window.dispatchEvent(new CustomEvent('radar-user-blocked', { detail: { riderId } }));
@@ -140,8 +140,8 @@ export function useBlockedRiders(language: 'ar' | 'en' = 'ar') {
     } catch (err: any) {
       if (process.env.NODE_ENV !== 'production') console.error('[BlockedRiders] Block error:', err);
       toast({
-        title: isArabic ? 'تعذر حظر الراكب' : 'Failed to block',
-        description: err?.message || (isArabic ? 'حدث خطأ أثناء حظر الراكب.' : 'An error occurred while blocking.'),
+        title: isArabic ? 'تعذر حظر المستخدم' : 'Failed to block',
+        description: err?.message || (isArabic ? 'حدث خطأ أثناء حظر المستخدم.' : 'An error occurred while blocking.'),
         variant: 'destructive',
       });
     }
@@ -163,7 +163,7 @@ export function useBlockedRiders(language: 'ar' | 'en' = 'ar') {
 
       toast({
         title: isArabic ? 'تم إلغاء الحظر' : 'Unblock Successful',
-        description: isArabic ? 'تم إلغاء حظر هذا الراكب بنجاح وستظهر طلباته على رادارك.' : 'Rider unblocked successfully.',
+        description: isArabic ? 'تم إلغاء حظر هذا المستخدم بنجاح وستظهر طلباته على رادارك.' : 'Rider unblocked successfully.',
       });
 
       window.dispatchEvent(new CustomEvent('radar-user-unblocked', { detail: { riderId } }));

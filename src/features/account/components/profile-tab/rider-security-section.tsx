@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { CheckCircle2, Eye, EyeOff, Loader2, Lock, Mail, Send, ShieldCheck } from 'lucide-react';
+import { CheckCircle2, Eye, EyeOff, Loader2, Lock, Mail, Send, ShieldCheck, Sparkles } from 'lucide-react';
 import { supabase } from '@/lib/supabase-client';
 import { useRecoveryEmail } from '@/features/auth/hooks/use-recovery-email';
 import { requestPasswordRecovery } from '@/features/auth/services/password-recovery';
@@ -158,9 +158,8 @@ export function RiderSecuritySection() {
         }
       }
 
-      await requestPasswordRecovery('', targetEmail);
-
-      const successText = t.resetLinkSuccess(targetEmail);
+      const res = await requestPasswordRecovery('', targetEmail);
+      const successText = res.message || t.resetLinkSuccess(targetEmail);
       setResetSuccess(successText);
       toast({
         title: t.successTitle,

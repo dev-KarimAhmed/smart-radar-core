@@ -46,7 +46,7 @@ export function CaptainCancelledDialog({ isArabic, open, onRetry, onCancel }: Ca
           </DialogTitle>
           <DialogDescription className={styles.description}>
             {isArabic 
-              ? "قام الكابتن بإلغاء الرحلة. هل تود البحث عن كباتن آخرين لنفس الوجهة؟" 
+              ? "قام الكابتن المعلن بإلغاء الرحلة. هل تود البحث عن كباتن معلنين آخرين لنفس الوجهة؟" 
               : "The captain has cancelled the ride. Would you like to search for other captains for the same destination?"}
           </DialogDescription>
         </DialogHeader>

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { verifyAdminCaller } from '@/lib/admin-auth-verifier';
+import { encodeNotificationPayload } from '@/shared/utils/notification-i18n';
 
 export async function GET(req: Request) {
   const admin = await verifyAdminCaller(req);
@@ -149,9 +150,9 @@ export async function GET(req: Request) {
 
     // 4. Fetch governorate, district, and countries lookup tables
     const [govRes, distRes, countriesRes] = await Promise.all([
-      supabaseAdmin.from('governorates').select('id, name_ar'),
-      supabaseAdmin.from('districts').select('id, name_ar'),
-      supabaseAdmin.from('countries').select('id, currency_ar, currency_en, name_ar'),
+      supabaseAdmin.from('governorates').select('id, name_ar, country_id').order('id', { ascending: true }),
+      supabaseAdmin.from('districts').select('id, name_ar, governorate_id').order('id', { ascending: true }),
+      supabaseAdmin.from('countries').select('id, currency_ar, currency_en, name_ar, country_code').order('id', { ascending: true }),
     ]);
 
     const govMap = new Map((govRes.data || []).map(g => [g.id, g.name_ar]));
@@ -193,6 +194,7 @@ export async function GET(req: Request) {
         email: p.email || '',
         role: p.role,
         country_id: p.country_id,
+        country_name: country?.name_ar || (isEgypt ? 'مصر' : 'الأردن'),
         currency: currencyAr,
         currency_ar: currencyAr,
         currency_code: currencyCode,
@@ -246,7 +248,15 @@ export async function GET(req: Request) {
       };
     });
 
-    return NextResponse.json({ success: true, users });
+    return NextResponse.json({
+      success: true,
+      users,
+      geo: {
+        countries: (countriesRes.data || []).map(c => ({ id: c.id, name_ar: c.name_ar, country_code: c.country_code })),
+        governorates: (govRes.data || []).map(g => ({ id: g.id, name_ar: g.name_ar, country_id: g.country_id })),
+        districts: (distRes.data || []).map(d => ({ id: d.id, name_ar: d.name_ar, governorate_id: d.governorate_id })),
+      },
+    });
   } catch (error: any) {
     console.error('[Admin Users API] GET error:', error);
     return NextResponse.json({ success: false, error: error?.message || 'Failed to fetch users' }, { status: 500 });
@@ -378,19 +388,19 @@ export async function POST(req: Request) {
         if (normalizedStatus === 'ACTIVE') {
           notifTitle = isRider ? 'تم تنشيط حسابك على الرادار ⚡' : 'تم تنشيط حسابك على الرادار ⚡';
           notifDesc = isRider
-            ? 'قامت إدارة المنظومة بتنشيط حسابك فورياً، وأصبحت جاهزاً لطلب الرحلات والتواصل مع الكباتن عبر الرادار.'
-            : 'قامت إدارة المنظومة بتنشيط حسابك فورياً، وأصبحت متصلاً بالرادار وجاهزاً لاستقبال طلبات الركاب.';
+            ? 'قامت إدارة المنظومة بتنشيط حسابك فورياً، وأصبحت جاهزاً لطلب الرحلات والتواصل مع الكباتن المعلنين عبر الرادار.'
+            : 'قامت إدارة المنظومة بتنشيط حسابك فورياً، وأصبحت متصلاً بالرادار وجاهزاً لاستقبال طلبات المستخدمين.';
         } else if (normalizedStatus === 'IDLE') {
           notifTitle = isRider ? 'تم ضبط حسابك إلى وضع الجاهزية 🛑' : 'تم ضبط وضعك إلى خامل (جاهز) 🛑';
           notifDesc = isRider
             ? 'أنت الآن في وضع الجاهزية، يمكنك طلب الرحلات عبر الرادار في أي وقت.'
             : 'أنت الآن في وضع الجاهزية والخمول، يمكنك تفعيل الاتصال بالرادار متى شئت.';
         } else if (normalizedStatus === 'SUSPENDED') {
-          notifTitle = isRider ? 'تنبيه إداري: تم تعليق حساب الراكب مؤقتاً ⚠️' : 'تنبيه إداري: تم تعليق حسابك مؤقتاً ⚠️';
+          notifTitle = isRider ? 'تنبيه إداري: تم تعليق حساب المستخدم مؤقتاً ⚠️' : 'تنبيه إداري: تم تعليق حسابك مؤقتاً ⚠️';
           notifDesc = 'تم تعليق حسابك مؤقتاً من قبل إدارة العمليات لمراجعة النشاط أو المناعة السلوكية. يرجى مراجعة الإدارة أو التواصل مع الدعم لفك التعليق.';
           notifType = 'warning';
         } else if (normalizedStatus === 'BANNED') {
-          notifTitle = isRider ? 'إشعار أمني: تم حظر حساب الراكب نهائياً 🚫' : 'إشعار أمني: تم حظر حسابك نهائياً 🚫';
+          notifTitle = isRider ? 'إشعار أمني: تم حظر حساب المستخدم نهائياً 🚫' : 'إشعار أمني: تم حظر حسابك نهائياً 🚫';
           notifDesc = isRider
             ? 'تم حظر حسابك نهائياً من قبل إدارة المنظومة لمخالفة المعايير التشغيلية والسيادية. تم إيقاف إمكانية طلب الرحلات والاتصال بالرادار.'
             : 'تم حظر حسابك نهائياً من قبل إدارة المنظومة لمخالفة المعايير التشغيلية والسيادية.';
@@ -433,8 +443,8 @@ export async function POST(req: Request) {
           await supabaseAdmin.from('user_notifications').insert({
             id: `notif_verif_${userId}_${Date.now()}`,
             user_id: userId,
-            title: 'تهانينا يا كابتن! تم اعتماد وتوثيق حسابك رسمياً 🏆',
-            description: 'تمت مراجعة وتدقيق هويتك ومستنداتك بنجاح من قبل إدارة المنظومة، ومُنحت شارة «كابتن موثق رسمياً ✓».',
+            title: 'تهانينا يا كابتن معلن! تم اعتماد وتوثيق حسابك رسمياً 🏆',
+            description: 'تمت مراجعة وتدقيق هويتك ومستنداتك بنجاح من قبل إدارة المنظومة، ومُنحت شارة «كابتن معلن موثق رسمياً ✓».',
             type: 'admin_message',
             is_read: false,
             created_at: new Date().toISOString(),
@@ -443,7 +453,7 @@ export async function POST(req: Request) {
           await supabaseAdmin.from('user_notifications').insert({
             id: `notif_verif_rej_${userId}_${Date.now()}`,
             user_id: userId,
-            title: 'تنبيه: مراجعة وثائق الكابتن ⚠️',
+            title: 'تنبيه: مراجعة وثائق الكابتن المعلن ⚠️',
             description: reason || 'يرجى إعادة رفع وثائق واضحة ومطابقة للشروط والتعليمات لتأكيد اعتماد الحساب.',
             type: 'warning',
             is_read: false,
@@ -712,7 +722,7 @@ export async function POST(req: Request) {
           id: `notif_tier_${userId}_${Date.now()}`,
           user_id: userId,
           title: `ترقية سيادية: أصبحت رتبتك ${tierNames[tier] || tier} 🏆`,
-          description: `تهانينا يا كابتن! قامت الإدارة بترقية رتبتك إلى (${tierNames[tier] || tier})، مما يمنحك مميزات تسعير وعروض أفضل على الرادار.`,
+          description: `تهانينا يا كابتن معلن! قامت الإدارة بترقية رتبتك إلى (${tierNames[tier] || tier})، مما يمنحك مميزات تسعير وعروض أفضل على الرادار.`,
           type: 'admin_message',
           is_read: false,
           created_at: new Date().toISOString(),
@@ -754,25 +764,29 @@ export async function POST(req: Request) {
           created_at: new Date().toISOString(),
         });
 
-        return NextResponse.json({ success: true, message: 'تم فك تعليق الرحلة وإعادة الكابتن لوضع الجاهزية (IDLE).' });
+        return NextResponse.json({ success: true, message: 'تم فك تعليق الرحلة وإعادة الكابتن المعلن لوضع الجاهزية (IDLE).' });
       }
 
       // 8. Send direct real-time message/notification to user or captain
       case 'send_message': {
-        const { title, message, type } = body;
+        const { title, message, type, titleEn, messageEn, title_en, message_en } = body;
         if (!message || !String(message).trim()) {
           return NextResponse.json({ success: false, error: 'نص الرسالة مطلوب' }, { status: 400 });
         }
 
         const msgTitle = title && String(title).trim() ? String(title).trim() : 'رسالة من إدارة المنظومة';
         const msgType = type || 'admin_message';
+        const enTitle = (titleEn || title_en || '').trim();
+        const enMessage = (messageEn || message_en || '').trim();
+
+        const encodedPayload = encodeNotificationPayload(msgTitle, String(message).trim(), enTitle, enMessage);
 
         const { data: notif, error: notifErr } = await supabaseAdmin
           .from('user_notifications')
           .insert({
             user_id: userId,
-            title: msgTitle,
-            description: String(message).trim(),
+            title: encodedPayload.title,
+            description: encodedPayload.description,
             type: msgType,
             is_read: false,
             created_at: new Date().toISOString(),
@@ -791,13 +805,17 @@ export async function POST(req: Request) {
 
       // 9. Bulk send real-time notification to all or selected captains
       case 'bulk_send_message': {
-        const { title, message, type } = body;
+        const { title, message, type, titleEn, messageEn, title_en, message_en } = body;
         if (!message || !String(message).trim()) {
           return NextResponse.json({ success: false, error: 'نص الرسالة مطلوب' }, { status: 400 });
         }
 
         const msgTitle = title && String(title).trim() ? String(title).trim() : 'رسالة من إدارة المنظومة';
         const msgType = type || 'admin_message';
+        const enTitle = (titleEn || title_en || '').trim();
+        const enMessage = (messageEn || message_en || '').trim();
+
+        const encodedPayload = encodeNotificationPayload(msgTitle, String(message).trim(), enTitle, enMessage);
 
         let targetIds: string[] = [];
 
@@ -819,8 +837,8 @@ export async function POST(req: Request) {
 
         const notifications = targetIds.map(id => ({
           user_id: id,
-          title: msgTitle,
-          description: String(message).trim(),
+          title: encodedPayload.title,
+          description: encodedPayload.description,
           type: msgType,
           is_read: false,
           created_at: new Date().toISOString(),
@@ -922,7 +940,7 @@ export async function POST(req: Request) {
           return NextResponse.json({
             success: true,
             count: targetIds.length,
-            message: `تم شحن ${numMinutes} دقيقة رادار لـ (${targetIds.length}) كابتن بنجاح وإرسال إشعار لحظي لكل منهم.`,
+            message: `تم شحن ${numMinutes} دقيقة رادار لـ (${targetIds.length}) كابتن معلن بنجاح وإرسال إشعار لحظي لكل منهم.`,
           });
         } else {
           const numAmount = Number(amount);
@@ -974,7 +992,7 @@ export async function POST(req: Request) {
           return NextResponse.json({
             success: true,
             count: targetIds.length,
-            message: `تم تعديل الرصيد النقدي بمقدار (${numAmount}) لـ (${targetIds.length}) كابتن بنجاح.`,
+            message: `تم تعديل الرصيد النقدي بمقدار (${numAmount}) لـ (${targetIds.length}) كابتن معلن بنجاح.`,
           });
         }
       }

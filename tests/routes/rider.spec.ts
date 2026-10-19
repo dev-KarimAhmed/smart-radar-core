@@ -52,7 +52,7 @@ test('rider can open the restored account sidebar', async ({ page }) => {
   await page.goto('/rider');
   await page.getByRole('button', { name: 'فتح قائمة الحساب' }).click();
 
-  await expect(page.getByRole('navigation', { name: 'قائمة حساب الراكب' })).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'قائمة حساب المستخدم' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'تسجيل الخروج' })).toBeVisible();
 });
 
@@ -62,7 +62,7 @@ test('desktop rider dashboard preserves its original sidebar', async ({ page }) 
 
   await page.goto('/rider');
 
-  await expect(page.getByRole('complementary', { name: 'قائمة الراكب الرئيسية' })).toBeVisible();
+  await expect(page.getByRole('complementary', { name: 'قائمة المستخدم الرئيسية' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'اطلب رحلة' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'رحلاتي' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'تسجيل الخروج' })).toBeVisible();
@@ -76,14 +76,14 @@ test('reloading an authenticated rider shows loading before the rider page witho
     const observe = () => {
       const text = document.body?.innerText || '';
       if (text.includes('جاري التحقق من الجلسة') || text.includes('جاري تحميل المنصة')) phases.loading = true;
-      if (text.includes('مرحبا بك في الرادار الذكي')) phases.login = true;
+      if (text.includes('مرحبا بك في بينكم - bynkcom')) phases.login = true;
     };
     new MutationObserver(observe).observe(document, { childList: true, subtree: true });
   });
 
   await page.goto('/rider');
   await expect(page.locator('[data-rider-route]')).toBeVisible();
-  await expect(page.getByRole('complementary', { name: 'قائمة الراكب الرئيسية' })).toBeVisible();
+  await expect(page.getByRole('complementary', { name: 'قائمة المستخدم الرئيسية' })).toBeVisible();
 
   const phases = await page.evaluate(() => (
     window as typeof window & { __riderReloadPhases: { loading: boolean; login: boolean } }

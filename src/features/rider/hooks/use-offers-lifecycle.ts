@@ -71,7 +71,7 @@ export function useOffersLifecycle(
           firstSeenAtRef.current.set(offerId, nowTs);
 
           if (typeof window !== 'undefined') {
-            const captainName = offer.driverName || (language === 'ar' ? 'كابتن' : 'Captain');
+            const captainName = offer.driverName || (language === 'ar' ? 'كابتن معلن' : 'Captain');
             const price = offer.price ? `${offer.price} ج.م` : '';
             const eta = offer.pickup_eta_minutes ? ` (وصول خلال ${offer.pickup_eta_minutes} د)` : '';
 
@@ -79,9 +79,9 @@ export function useOffersLifecycle(
               new CustomEvent('app-notification', {
                 detail: {
                   id: `notif_offer_${offerId}`,
-                  title: language === 'ar' ? 'عرض كابتن جديد 🚗' : 'New Captain Offer 🚗',
+                  title: language === 'ar' ? 'عرض كابتن معلن جديد 🚗' : 'New Captain Offer 🚗',
                   description: language === 'ar'
-                    ? `وصلك عرض بقيمة ${price} من الكابتن ${captainName}${eta}`
+                    ? `وصلك عرض بقيمة ${price} من الكابتن المعلن ${captainName}${eta}`
                     : `Offer of ${price} received from ${captainName}${eta}`,
                   type: 'offer',
                 },
