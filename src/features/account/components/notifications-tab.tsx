@@ -15,6 +15,7 @@ import {
   ShieldAlert,
   Copy,
   UserCheck,
+  UserX,
   Globe,
   Languages,
   Loader2,
@@ -22,6 +23,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
+import { useTranslations } from 'next-intl';
 import { parseNotificationContent, requestTranslation } from '@/shared/utils/notification-i18n';
 
 const styles = {
@@ -89,6 +91,7 @@ function formatNotificationTime(timestamp: number, isArabic: boolean): string {
 }
 
 export function NotificationsTab({ onClose }: { onClose?: () => void } = {}) {
+  const tRef = useTranslations('referral.notifications');
   const { isArabic, direction } = useDashboardLanguage();
   const { notifications, hasUnread, markAllAsRead, markAsRead, deleteNotifications } = useNotifications();
 
@@ -269,6 +272,7 @@ export function NotificationsTab({ onClose }: { onClose?: () => void } = {}) {
               const isWalletCredit = item.type === 'WALLET_CREDIT';
               const isWalletAlert = item.type === 'WALLET_ALERT';
               const isReferral = item.type === 'referral';
+              const isReferralInactivity = item.type === 'referral_inactivity';
               const parsed = parseNotificationContent(item, isArabic);
 
               return (
@@ -287,7 +291,7 @@ export function NotificationsTab({ onClose }: { onClose?: () => void } = {}) {
                     styles.item,
                     !item.read ? styles.itemUnread : styles.itemRead,
                     isSelectMode && isSelected && styles.itemSelected,
-                    isMessage && !item.read && 'border-r-2 border-amber-400 bg-amber-500/5 hover:bg-amber-500/10'
+                    (isMessage || isReferralInactivity) && !item.read && 'border-r-2 border-amber-400 bg-amber-500/5 hover:bg-amber-500/10'
                   )}
                   title={!item.read && !isSelectMode ? (isArabic ? 'اضغط لعرض التفاصيل وتعيين كمقروء' : 'Click to view details') : (isArabic ? 'اضغط لعرض التفاصيل' : 'Click to view')}
                 >
@@ -306,7 +310,7 @@ export function NotificationsTab({ onClose }: { onClose?: () => void } = {}) {
                     <div
                       className={cn(
                         styles.iconWrap,
-                        isMessage
+                        isMessage || isReferralInactivity
                           ? 'bg-amber-500/20 text-amber-300'
                           : isWalletCredit
                           ? 'bg-emerald-500/20 text-emerald-300'
@@ -321,6 +325,8 @@ export function NotificationsTab({ onClose }: { onClose?: () => void } = {}) {
                     >
                       {isMessage ? (
                         <MessageSquare className={styles.bellIcon} />
+                      ) : isReferralInactivity ? (
+                        <UserX className={styles.bellIcon} />
                       ) : isWalletCredit ? (
                         <Wallet className={styles.bellIcon} />
                       ) : isWalletAlert ? (
@@ -338,6 +344,11 @@ export function NotificationsTab({ onClose }: { onClose?: () => void } = {}) {
                           {isMessage && (
                             <span className="shrink-0 rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-black text-amber-300 border border-amber-500/30">
                               {isArabic ? 'رسالة' : 'Message'}
+                            </span>
+                          )}
+                          {isReferralInactivity && (
+                            <span className="shrink-0 rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-black text-amber-300 border border-amber-500/30">
+                              {tRef('inactivityBadge')}
                             </span>
                           )}
                           {isReferral && (
@@ -405,6 +416,8 @@ export function NotificationsTab({ onClose }: { onClose?: () => void } = {}) {
                 >
                   {viewingNotification.type === 'admin_message' || viewingNotification.type === 'message' ? (
                     <MessageSquare className="h-6 w-6" />
+                  ) : viewingNotification.type === 'referral_inactivity' ? (
+                    <UserX className="h-6 w-6 text-amber-400" />
                   ) : viewingNotification.type === 'WALLET_CREDIT' ? (
                     <Wallet className="h-6 w-6" />
                   ) : viewingNotification.type === 'WALLET_ALERT' ? (
@@ -421,6 +434,8 @@ export function NotificationsTab({ onClose }: { onClose?: () => void } = {}) {
                       "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-black uppercase tracking-wider mb-1",
                       viewingNotification.type === 'admin_message' || viewingNotification.type === 'message'
                         ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                        : viewingNotification.type === 'referral_inactivity'
+                        ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
                         : viewingNotification.type === 'WALLET_CREDIT'
                         ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
                         : viewingNotification.type === 'WALLET_ALERT'
@@ -432,6 +447,8 @@ export function NotificationsTab({ onClose }: { onClose?: () => void } = {}) {
                   >
                     {viewingNotification.type === 'admin_message' || viewingNotification.type === 'message'
                       ? (isArabic ? 'رسالة رسمية من الإدارة ✉️' : 'Admin Message ✉️')
+                      : viewingNotification.type === 'referral_inactivity'
+                      ? tRef('inactivityDetailTitle')
                       : viewingNotification.type === 'WALLET_CREDIT'
                       ? (isArabic ? 'إيداع وشحن رصيد 💰' : 'Wallet Credit 💰')
                       : viewingNotification.type === 'WALLET_ALERT'
