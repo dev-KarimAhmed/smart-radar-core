@@ -270,7 +270,7 @@ function CaptainOfferCardBase({
       {/* 4. تفاصيل الوصول والمسافة */}
       <div className="mx-4 mt-3 grid grid-cols-3 overflow-hidden rounded-xl border border-white/[0.07] bg-black/30 sm:mx-5">
         <div className="px-2 py-2.5 text-center">
-          <span className="block text-[10px] font-bold leading-tight text-[#94A3B8]">{isArabic ? 'وصول الكابتن' : t('arrivesIn')}</span>
+          <span className="block text-[10px] font-bold leading-tight text-[#94A3B8]">{isArabic ? 'وصول الكابتن المعلن' : t('arrivesIn')}</span>
           <span className="mt-1 block text-sm sm:text-base font-black text-[#14F5D5]">{formatMinutes(offer.eta_minutes, language)}</span>
         </div>
         <div className="border-s border-white/[0.07] px-2 py-2.5 text-center">
@@ -318,7 +318,7 @@ function CaptainOfferCardBase({
           className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.04] px-3.5 text-xs font-black text-slate-200 transition hover:border-[#14B8A6]/35 hover:bg-[#14B8A6]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/60 cursor-pointer whitespace-nowrap"
           aria-expanded={isExpanded}
         >
-          <span>{isArabic ? 'معلومات الكابتن' : t('details')}</span>
+          <span>{isArabic ? 'معلومات الكابتن المعلن' : t('details')}</span>
           <ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform duration-300", isExpanded ? "rotate-180" : "")} />
         </button>
       </div>

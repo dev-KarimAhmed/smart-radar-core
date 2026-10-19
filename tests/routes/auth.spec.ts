@@ -15,7 +15,7 @@ test('registration deep link preserves role and switches language without reload
   await page.getByRole('button', { name: 'Switch language to Arabic' }).click();
 
   await expect(page.getByRole('button', { name: 'تغيير اللغة إلى الإنجليزية' })).toBeVisible();
-  await expect(page.getByText(/الرادار الذكي · كابتن/)).toBeVisible();
+  await expect(page.getByText(/بينكم - bynkcom · كابتن معلن/)).toBeVisible();
 });
 
 test('registration mode and dependent district choices remain interactive', async ({ page }) => {
@@ -36,7 +36,7 @@ test('rider login uses the canonical /rider path', async ({ page }) => {
   await page.goto('/');
 
   await page.getByRole('tab', { name: 'تسجيل الدخول' }).click();
-  await page.getByRole('button').filter({ hasText: 'راكب' }).click();
+  await page.getByRole('button').filter({ hasText: 'مستخدم' }).click();
 
   await expect(page).toHaveURL('/rider');
   await expect(page.getByRole('heading', { name: 'تسجيل الدخول' })).toBeVisible();

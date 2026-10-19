@@ -41,10 +41,10 @@ export function OfferCardCaptain({
   ).trim();
 
   const isOfficeTaxi = rawAffiliation === 'office-taxi' || rawAffiliation.includes('taxi') || (captain.vehicle_category || '').toLowerCase().includes('taxi');
-  const isIndependent = rawAffiliation === 'independent' || (!isOfficeTaxi && (rawAffiliation === '' && !rawCompany)) || (!isOfficeTaxi && (rawCompany === 'مستقل' || rawCompany === 'كابتن مستقل' || rawCompany.toLowerCase() === 'independent')) || (captain.company_name === 'مستقل');
+  const isIndependent = rawAffiliation === 'independent' || (!isOfficeTaxi && (rawAffiliation === '' && !rawCompany)) || (!isOfficeTaxi && (rawCompany === 'مستقل' || rawCompany === 'كابتن مستقل' || rawCompany === 'كابتن معلن مستقل' || rawCompany.toLowerCase() === 'independent')) || (captain.company_name === 'مستقل');
   const isSmartApp = !isOfficeTaxi && !isIndependent && (rawAffiliation === 'smart-app' || rawAffiliation.includes('app') || Boolean(rawCompany));
 
-  const cleanCompany = isIndependent || rawCompany === t('independentCaptain') || rawCompany.toLowerCase() === 'independent' || rawCompany === 'مستقل' || rawCompany === 'كابتن مستقل'
+  const cleanCompany = isIndependent || rawCompany === t('independentCaptain') || rawCompany.toLowerCase() === 'independent' || rawCompany === 'مستقل' || rawCompany === 'كابتن مستقل' || rawCompany === 'كابتن معلن مستقل'
     ? ''
     : rawCompany;
 
@@ -144,7 +144,7 @@ export function OfferCardCaptain({
             <div className="mt-3 rounded-xl border border-white/5 bg-black/20 p-3">
               <span className="mb-2.5 flex items-center gap-1.5 text-xs font-bold text-[#94A3B8]">
                 <Link2 className="h-3.5 w-3.5 text-[#14F5D5]" />
-                <span>{isArabic ? 'روابط الكابتن' : 'Captain Links'}</span>
+                <span>{isArabic ? 'روابط الكابتن المعلن' : 'Captain Links'}</span>
               </span>
               <div className="grid grid-cols-2 gap-2">
                 {facebookUrl ? (

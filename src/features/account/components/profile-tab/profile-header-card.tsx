@@ -114,7 +114,7 @@ export function ProfileHeaderCard({
               </div>
               <div className="flex flex-col">
                 <span className="text-xs font-black text-[#14F5D5] leading-none">
-                  {isArabic ? 'راكب جديد' : 'New Rider'}
+                  {isArabic ? 'مستخدم جديد' : 'New Rider'}
                 </span>
                 <span className="text-[10px] font-medium text-slate-400 mt-1 leading-none">
                   {isArabic ? 'بدون تقييم' : 'No ratings'}

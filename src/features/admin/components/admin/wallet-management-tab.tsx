@@ -31,6 +31,8 @@ import {
   Layers,
   MessageSquare,
   MessageCircle,
+  CreditCard,
+  UserCheck,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -49,6 +51,8 @@ import { cn } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { HourlyRatesManagementPanel } from './hourly-rates-management-panel';
+import { TransferChannelsPanel } from './panels/transfer-channels-panel';
+import { FinancialDelegatesPanel } from './panels/financial-delegates-panel';
 
 interface WalletOverview {
   totalCashBalance: number;
@@ -132,7 +136,7 @@ export function WalletManagementTab() {
   const t = useTranslations('adminWallet');
   const { direction, isArabic } = useDashboardLanguage();
   const { toast } = useToast();
-  const [activeSubTab, setActiveSubTab] = useState<'receipts' | 'direct' | 'vouchers' | 'ledger' | 'rates'>('receipts');
+  const [activeSubTab, setActiveSubTab] = useState<'receipts' | 'direct' | 'vouchers' | 'ledger' | 'rates' | 'channels' | 'delegates'>('receipts');
 
   useEffect(() => {
     const handleSubtab = (e: any) => {
@@ -209,8 +213,8 @@ export function WalletManagementTab() {
   }, []);
 
   // Load Subtab Data
-  const loadSubTabData = useCallback(async (tab: 'receipts' | 'direct' | 'vouchers' | 'ledger' | 'rates') => {
-    if (tab === 'rates') return;
+  const loadSubTabData = useCallback(async (tab: 'receipts' | 'direct' | 'vouchers' | 'ledger' | 'rates' | 'channels' | 'delegates') => {
+    if (tab === 'rates' || tab === 'channels' || tab === 'delegates') return;
     try {
       setLoadingData(true);
 
@@ -336,7 +340,7 @@ export function WalletManagementTab() {
       toast({
         variant: 'destructive',
         title: isArabic ? 'تنبيه' : 'Notice',
-        description: isArabic ? 'يرجى اختيار الكابتن المراد شحن حسابه' : 'Please select a captain to recharge',
+        description: isArabic ? 'يرجى اختيار الكابتن المعلن المراد شحن حسابه' : 'Please select a captain to recharge',
       });
       return;
     }
@@ -742,6 +746,36 @@ export function WalletManagementTab() {
           >
             <Clock className="w-4 h-4" />
             <span>{t('subtabHourlyRates')}</span>
+          </Button>
+
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => setActiveSubTab('channels')}
+            className={cn(
+              "py-2 px-3.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2",
+              activeSubTab === 'channels'
+                ? "bg-[#14B8A6] text-[#0B0F19] hover:bg-[#14B8A6]/90"
+                : "text-slate-300 hover:text-white hover:bg-white/5"
+            )}
+          >
+            <CreditCard className="w-4 h-4" />
+            <span>أرقام التحويل</span>
+          </Button>
+
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => setActiveSubTab('delegates')}
+            className={cn(
+              "py-2 px-3.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2",
+              activeSubTab === 'delegates'
+                ? "bg-[#14B8A6] text-[#0B0F19] hover:bg-[#14B8A6]/90"
+                : "text-slate-300 hover:text-white hover:bg-white/5"
+            )}
+          >
+            <UserCheck className="w-4 h-4" />
+            <span>المناديب المالية</span>
           </Button>
         </div>
 
@@ -1389,6 +1423,16 @@ export function WalletManagementTab() {
         <HourlyRatesManagementPanel />
       )}
 
+      {/* ----------------- SUBTAB 6: TRANSFER CHANNELS ----------------- */}
+      {activeSubTab === 'channels' && (
+        <TransferChannelsPanel />
+      )}
+
+      {/* ----------------- SUBTAB 7: FINANCIAL DELEGATES ----------------- */}
+      {activeSubTab === 'delegates' && (
+        <FinancialDelegatesPanel />
+      )}
+
       {/* ========================================================================= */}
       {/* 4. MODALS & PREVIEWS                                                      */}
       {/* ========================================================================= */}
@@ -1675,7 +1719,7 @@ export function WalletManagementTab() {
 
                 {messageReceiptItem.captainPhone && (
                   <a
-                    href={`https://wa.me/${messageReceiptItem.captainPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(isArabic ? `مرحباً كابتن ${messageReceiptItem.captainName}، بخصوص إيصال الشحن المرسل بقيمة ${messageReceiptItem.amount} ${messageReceiptItem.currency}...` : `Hello Captain ${messageReceiptItem.captainName}, regarding the recharge receipt for ${messageReceiptItem.amount} ${messageReceiptItem.currency}...`)}`}
+                    href={`https://wa.me/${messageReceiptItem.captainPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(isArabic ? `مرحباً كابتن معلن ${messageReceiptItem.captainName}، بخصوص إيصال الشحن المرسل بقيمة ${messageReceiptItem.amount} ${messageReceiptItem.currency}...` : `Hello Captain ${messageReceiptItem.captainName}, regarding the recharge receipt for ${messageReceiptItem.amount} ${messageReceiptItem.currency}...`)}`}
                     target="_blank"
                     rel="noreferrer"
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 text-xs font-bold transition-all shrink-0 cursor-pointer"
@@ -1768,7 +1812,7 @@ export function WalletManagementTab() {
 
                       toast({
                         title: isArabic ? 'تم إرسال الرسالة بنجاح' : 'Message Sent Successfully',
-                        description: data.message || (isArabic ? 'تم إرسال الإشعار اللحظي إلى الكابتن.' : 'Instant notification sent to captain.'),
+                        description: data.message || (isArabic ? 'تم إرسال الإشعار اللحظي إلى الكابتن المعلن.' : 'Instant notification sent to captain.'),
                       });
 
                       setMessageReceiptItem(null);
@@ -1777,7 +1821,7 @@ export function WalletManagementTab() {
                       toast({
                         variant: 'destructive',
                         title: isArabic ? 'خطأ أثناء الإرسال' : 'Error Sending',
-                        description: err.message || (isArabic ? 'تعذر إرسال الإشعار للكابتن' : 'Could not send notification to captain'),
+                        description: err.message || (isArabic ? 'تعذر إرسال الإشعار للكابتن المعلن' : 'Could not send notification to captain'),
                       });
                     } finally {
                       setSubmittingReceiptMessage(false);

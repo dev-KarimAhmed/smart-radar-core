@@ -207,8 +207,8 @@ type Lang = 'ar' | 'en';
 type AuthMode = 'register' | 'login';
 
 const roleLabels = {
-  rider: { ar: 'راكب', en: 'Rider' },
-  driver: { ar: 'سائق', en: 'Driver' },
+  rider: { ar: 'مستخدم', en: 'Rider' },
+  driver: { ar: 'كابتن معلن', en: 'Driver' },
   advertiser: { ar: 'معلن', en: 'Advertiser' },
   delegate: { ar: 'مندوب تسويق', en: 'Delegate' },
   admin: { ar: 'مشرف', en: 'Admin' },
@@ -218,7 +218,7 @@ const copy = {
   ar: {
     languageButton: 'English',
     languageAria: 'تغيير اللغة إلى الإنجليزية',
-    brand: 'الرادار الذكي',
+    brand: 'بينكم - bynkcom',
     registerTitle: 'حساب جديد',
     loginTitle: 'تسجيل الدخول',
     registerSubtitle: 'اكتب بياناتك مرة واحدة، وبعدها تدخل رحلاتك بسرعة.',
@@ -320,8 +320,8 @@ const copy = {
 } as const;
 
 const authRoleLabels = {
-  rider: { ar: 'راكب', en: 'Rider' },
-  driver: { ar: 'سائق', en: 'Driver' },
+  rider: { ar: 'مستخدم', en: 'Rider' },
+  driver: { ar: 'كابتن معلن', en: 'Driver' },
   advertiser: { ar: 'معلن', en: 'Advertiser' },
   delegate: { ar: 'مندوب تسويق', en: 'Delegate' },
   admin: { ar: 'مشرف', en: 'Admin' },
@@ -331,7 +331,7 @@ const authCopy = {
   ar: {
     languageButton: 'English',
     languageAria: 'تغيير اللغة إلى الإنجليزية',
-    brand: 'الرادار الذكي',
+    brand: 'بينكم - bynkcom',
     registerTitle: 'حساب جديد',
     loginTitle: 'تسجيل الدخول',
     registerSubtitle: 'اكتب بياناتك مرة واحدة، وبعدها تدخل حسابك بسرعة.',
@@ -898,7 +898,7 @@ function Field({
 
 function buildSupportWhatsappUrl(phone: string, fallbackLabel = 'غير محدد') {
   const supportPhone = getSupportPhone();
-  const message = `طلب إعادة تعيين كلمة مرور الراكب. رقم الحساب: ${phone || fallbackLabel}`;
+  const message = `طلب إعادة تعيين كلمة مرور المستخدم. رقم الحساب: ${phone || fallbackLabel}`;
 
   if (!supportPhone) {
     return `https://wa.me/?text=${encodeURIComponent(message)}`;

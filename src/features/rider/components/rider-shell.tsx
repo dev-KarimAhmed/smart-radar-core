@@ -119,7 +119,7 @@ export function RiderShell() {
           </div>
           <div className="space-y-2">
             <h1 className="text-xl font-black text-rose-200">
-              {dashboardLanguage.isArabic ? 'حساب الراكب محظور نهائياً 🚫' : 'Rider Account Permanently Banned 🚫'}
+              {dashboardLanguage.isArabic ? 'حساب المستخدم محظور نهائياً 🚫' : 'Rider Account Permanently Banned 🚫'}
             </h1>
             <p className="text-xs leading-6 text-rose-100/80">
               {dashboardLanguage.isArabic
@@ -150,7 +150,7 @@ export function RiderShell() {
           </div>
           <div className="space-y-2">
             <h1 className="text-xl font-black text-amber-200">
-              {dashboardLanguage.isArabic ? 'حساب الراكب معلق مؤقتاً ⚠️' : 'Rider Account Suspended ⚠️'}
+              {dashboardLanguage.isArabic ? 'حساب المستخدم معلق مؤقتاً ⚠️' : 'Rider Account Suspended ⚠️'}
             </h1>
             <p className="text-xs leading-6 text-amber-100/80">
               {dashboardLanguage.isArabic

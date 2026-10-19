@@ -163,7 +163,7 @@ export async function GET(req: Request) {
 
             const govName = profile.governorate_id ? govMap.get(profile.governorate_id) : 'عمّان';
             const distName = profile.district_id ? distMap.get(profile.district_id) : 'المركز';
-            const captainName = profile.full_name || cap.nickname || 'كابتن غير مسمّى';
+            const captainName = profile.full_name || cap.nickname || 'كابتن معلن غير مسمّى';
             const captainSerial = profile.serial_id || `C-${String(tx.profile_id).slice(0, 4)}`;
 
             return {
@@ -400,7 +400,7 @@ export async function POST(req: Request) {
 
           return NextResponse.json({
             success: true,
-            message: `تم اعتماد الإيصال وإضافة ${grantedMins} دقيقة رادار لحساب الكابتن بنجاح.`,
+            message: `تم اعتماد الإيصال وإضافة ${grantedMins} دقيقة رادار لحساب الكابتن المعلن بنجاح.`,
           });
         } else {
           // Credit as CASH (dynamically in captain currency)
@@ -443,7 +443,7 @@ export async function POST(req: Request) {
 
           return NextResponse.json({
             success: true,
-            message: `تم اعتماد الإيصال وإيداع ${amount.toFixed(2)} ${captainCurrency} في رصيد الكابتن بنجاح.`,
+            message: `تم اعتماد الإيصال وإيداع ${amount.toFixed(2)} ${captainCurrency} في رصيد الكابتن المعلن بنجاح.`,
           });
         }
       }
@@ -490,7 +490,7 @@ export async function POST(req: Request) {
 
         return NextResponse.json({
           success: true,
-          message: 'تم رفض الإيصال وإشعار الكابتن بالسبب.',
+          message: 'تم رفض الإيصال وإشعار الكابتن المعلن بالسبب.',
         });
       }
 
@@ -656,7 +656,7 @@ export async function POST(req: Request) {
 
         return NextResponse.json({
           success: true,
-          message: 'تم إرسال الرسالة إلى الكابتن بنجاح عبر الإشعار اللحظي.',
+          message: 'تم إرسال الرسالة إلى الكابتن المعلن بنجاح عبر الإشعار اللحظي.',
           notification: notif,
         });
       }

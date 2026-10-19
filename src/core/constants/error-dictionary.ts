@@ -9,7 +9,7 @@ export const SOVEREIGN_ERRORS = {
   AUTH_OPERATION_NOT_ALLOWED: 'تسجيل الدخول بهذه الطريقة غير مفعل حالياً.',
   AUTH_GENERIC_FAILURE: 'تعذر تسجيل الدخول. يرجى المحاولة مرة أخرى.',
   PHONE_OVERLAP_DETECTED: 'رقم الهاتف مسجل من قبل.',
-  NAME_DISTRICT_OVERLAP_DETECTED: 'يوجد كابتن بنفس الاسم في هذا اللواء. يرجى مراجعة البيانات.',
+  NAME_DISTRICT_OVERLAP_DETECTED: 'يوجد كابتن معلن بنفس الاسم في هذا اللواء. يرجى مراجعة البيانات.',
   AUTH_INTEGRITY_BREACH: 'بيانات الحساب غير مكتملة أو غير صحيحة.',
   SEAL_TIMEOUT: 'انتهت صلاحية الجلسة. يرجى المحاولة مرة أخرى.',
   SYBIL_ATTACK_DETECTED: 'لا يمكن استخدام نفس الجهاز لأكثر من نوع حساب مختلف.',

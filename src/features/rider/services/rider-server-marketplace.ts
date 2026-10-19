@@ -412,7 +412,7 @@ export function mapRiderMarketplaceError(error: unknown) {
     message.includes('permission denied') ||
     message.includes('permission')
   ) {
-    return 'تعذر إنشاء طلب الرحلة بسبب صلاحيات قاعدة البيانات. تأكد من تفعيل سياسة إدخال طلبات الرحلات للراكب.';
+    return 'تعذر إنشاء طلب الرحلة بسبب صلاحيات قاعدة البيانات. تأكد من تفعيل سياسة إدخال طلبات الرحلات للمستخدم.';
   }
 
   if (message.includes('jwt') || message.includes('auth') || message.includes('rider_id')) {
@@ -447,7 +447,7 @@ export function mapRiderMarketplaceError(error: unknown) {
   }
 
   if (message.includes('23503') || message.includes('foreign key') || message.includes('country_id')) {
-    return 'بيانات الدولة أو الراكب غير متطابقة مع قاعدة البيانات. حدّث الحساب أو اختر الوجهة مرة أخرى.';
+    return 'بيانات الدولة أو المستخدم غير متطابقة مع قاعدة البيانات. حدّث الحساب أو اختر الوجهة مرة أخرى.';
   }
 
   if (message.includes('23505') || message.includes('duplicate') || message.includes('active request')) {
@@ -511,6 +511,7 @@ function mapRideOfferRow(row: Record<string, unknown>): Offer | null {
   const isIndependentDriver = rawAffiliationType === 'independent'
     || rawCompany === 'مستقل'
     || rawCompany === 'كابتن مستقل'
+    || rawCompany === 'كابتن معلن مستقل'
     || rawCompany?.toLowerCase() === 'independent';
   const resolvedAffiliationType = isIndependentDriver
     ? 'independent'

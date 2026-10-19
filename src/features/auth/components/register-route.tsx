@@ -83,8 +83,8 @@ type AuthType = 'register' | 'login';
 type GovernorateKey = 'cairo' | 'giza' | 'sohag';
 
 const roleLabels = {
-  rider: { ar: 'راكب', en: 'Rider' },
-  captain: { ar: 'كابتن', en: 'Captain' },
+  rider: { ar: 'مستخدم', en: 'Rider' },
+  captain: { ar: 'كابتن معلن', en: 'Captain' },
   advertiser: { ar: 'معلن', en: 'Advertiser' },
   delegate: { ar: 'مندوب تسويق', en: 'Delegate' },
   admin: { ar: 'مشرف', en: 'Admin' },
@@ -131,10 +131,10 @@ const copy = {
   ar: {
     languageButton: 'English',
     languageAria: 'تغيير اللغة إلى الإنجليزية',
-    brand: 'الرادار الذكي',
-    riderContext: 'حساب الراكب',
-    registerTitle: 'حساب جديد للراكب',
-    loginTitle: 'تسجيل الدخول للراكب',
+    brand: 'بينكم - bynkcom',
+    riderContext: 'حساب المستخدم',
+    registerTitle: 'حساب جديد للمستخدم',
+    loginTitle: 'تسجيل الدخول للمستخدم',
     registerSubtitle: 'املأ بياناتك مرة واحدة، وبعدها تدخل رحلاتك بسرعة.',
     loginSubtitle: 'أدخل رقم الهاتف وكلمة المرور للمتابعة.',
     fullName: 'الاسم بالكامل',
@@ -149,8 +149,8 @@ const copy = {
     hidePassword: 'إخفاء كلمة المرور',
     login: 'تسجيل الدخول',
     register: 'إنشاء الحساب',
-    submitLogin: 'دخول الراكب',
-    submitRegister: 'ابدأ كراكب',
+    submitLogin: 'دخول المستخدم',
+    submitRegister: 'ابدأ كمستخدم',
     hasAccount: 'لديك حساب بالفعل؟',
     noAccount: 'لسه جديد؟',
     switchToLogin: 'سجل دخولك',

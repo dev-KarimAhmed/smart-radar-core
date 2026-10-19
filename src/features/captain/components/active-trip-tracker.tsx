@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React from 'react';
 import dynamic from 'next/dynamic';
@@ -11,6 +11,7 @@ import { SOVEREIGN_CONSTANTS } from '@/core/constants/sovereign-protocols';
 import { cn } from '@/lib/utils';
 import { useTripCountdown } from '@/shared/hooks/use-trip-countdown';
 import { getServerTime } from '@/lib/server-time';
+import { useTripMutualCancellation } from '@/shared/hooks/use-trip-mutual-cancellation';
 
 // MapLibre GL touches browser-only APIs at import time, so this must load
 // client-side only — same reason RadarMapView is dynamic-imported in
@@ -192,6 +193,34 @@ export function ActiveTripTracker({
   const pickupLocation = request.exactPickupCoords || request.obfuscatedPickupCoords || request.pickupCoords || null;
   const isEnRouteToDropoff = step === 'STARTED';
 
+  const tripDurationMinutes = Number(request.estimatedTime) > 0
+    ? Number(request.estimatedTime)
+    : (countdown.totalSeconds > 0 ? Math.round(countdown.totalSeconds / 60) : 5);
+  const totalTripSeconds = tripDurationMinutes * 60;
+
+  let elapsedTripSeconds = 0;
+  if (step === 'STARTED') {
+    if (countdown.phase === 'ON_TRIP' && countdown.hasCountdown) {
+      elapsedTripSeconds = countdown.isOverdue
+        ? totalTripSeconds + countdown.overdueSeconds
+        : Math.max(0, countdown.totalSeconds - countdown.remainingSeconds);
+    } else if (request.startedAtMs) {
+      elapsedTripSeconds = Math.max(0, Math.floor((getServerTime() - request.startedAtMs) / 1000));
+    }
+  }
+
+  const completionFraction = totalTripSeconds > 0 ? (elapsedTripSeconds / totalTripSeconds) : 0;
+  const isTripNinetyPercentComplete = step === 'STARTED' && (countdown.isOverdue || completionFraction >= 0.9);
+  const remainingSecondsUntilNinety = Math.max(0, Math.ceil(totalTripSeconds * 0.9 - elapsedTripSeconds));
+  const remainingMinutesUntilNinety = Math.ceil(remainingSecondsUntilNinety / 60);
+
+  const mutualCancel = useTripMutualCancellation({
+    requestId: request.id,
+    role: 'captain',
+    tripDurationMinutes,
+    onCancelledConfirmed: onCancelTrip,
+  });
+
   return (
     <section className={styles.style32_1}>
       <div className={styles.style33_2}>
@@ -309,17 +338,80 @@ export function ActiveTripTracker({
           label={t('start')}
           onClick={onStartTrip}
         />
-        <StepButton
-          active={step === 'STARTED'}
-          disabled={isCompleting || step !== 'STARTED'}
-          icon={isCompleting && step === 'STARTED' ? <Loader2 className={styles.style83_22} /> : <ShieldAlert className={styles.style83_23} />}
-          label={t('complete')}
-          onClick={onCompleteTrip}
-        />
+        {step === 'STARTED' && isTripNinetyPercentComplete ? (
+          <StepButton
+            active={true}
+            disabled={isCompleting}
+            icon={isCompleting ? <Loader2 className={styles.style83_22} /> : <ShieldAlert className={styles.style83_23} />}
+            label={t('complete')}
+            onClick={onCompleteTrip}
+          />
+        ) : step === 'STARTED' ? (
+          <div className="flex flex-col items-center justify-center gap-1 rounded-2xl border border-amber-500/25 bg-amber-500/[0.08] px-3 py-3 text-center">
+            <div className="flex items-center gap-1.5 text-xs font-black text-amber-300">
+              <Lock className="h-3.5 w-3.5" />
+              <span>إنهاء الرحلة مقفل</span>
+            </div>
+            <span className="text-[11px] font-bold text-slate-400">
+              يتاح بعد 90% (متبقي {remainingMinutesUntilNinety} د)
+            </span>
+          </div>
+        ) : (
+          <div className="flex items-center justify-center gap-1.5 rounded-2xl border border-white/5 bg-white/[0.02] px-3 py-3 text-center text-xs font-bold text-slate-600">
+            <Lock className="h-3.5 w-3.5 opacity-50" />
+            <span>إنهاء الرحلة (مقفل)</span>
+          </div>
+        )}
       </div>
 
       <div className={styles.cancelSection}>
-        {!isConfirmingCancel ? (
+        {mutualCancel.pendingRequestFrom === 'rider' ? (
+          <div className="space-y-3 rounded-2xl border-2 border-rose-500/50 bg-rose-950/40 p-4 shadow-xl">
+            <div className="flex items-center gap-2 text-rose-300 font-black text-sm">
+              <AlertOctagon className="h-5 w-5 text-rose-400 shrink-0" />
+              <span>المستخدم يطلب إلغاء هذه الرحلة!</span>
+            </div>
+            <p className="text-xs text-rose-100/90 leading-relaxed">
+              طلب المستخدم إلغاء الرحلة بالتوافق المشترك. هل توافق على إلغاء الرحلة؟
+            </p>
+            <div className="flex gap-2.5 pt-1">
+              <button
+                type="button"
+                disabled={mutualCancel.isProcessing || isCancelling}
+                onClick={mutualCancel.acceptCancel}
+                className="h-10 flex-1 rounded-xl bg-rose-600 hover:bg-rose-500 text-xs font-black text-white transition cursor-pointer disabled:opacity-50"
+              >
+                {mutualCancel.isProcessing || isCancelling ? 'جاري الإلغاء...' : 'موافق على الإلغاء'}
+              </button>
+              <button
+                type="button"
+                disabled={mutualCancel.isProcessing || isCancelling}
+                onClick={mutualCancel.declineCancel}
+                className="h-10 flex-1 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 transition cursor-pointer"
+              >
+                رفض الإلغاء
+              </button>
+            </div>
+          </div>
+        ) : mutualCancel.pendingRequestFrom === 'captain' ? (
+          <div className="space-y-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-center">
+            <div className="flex items-center justify-center gap-2 text-amber-300 font-bold text-sm">
+              <Loader2 className="h-4 w-4 animate-spin text-amber-400" />
+              <span>تم إرسال طلب إلغاء الرحلة... بانتظار موافقة المستخدم</span>
+            </div>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              يتطلب إلغاء الرحلة موافقة الطرفين. جاري انتظار رد المستخدم.
+            </p>
+            <button
+              type="button"
+              disabled={mutualCancel.isProcessing}
+              onClick={mutualCancel.revokeCancel}
+              className="h-9 px-4 rounded-lg border border-white/10 bg-white/5 text-xs font-bold text-white hover:bg-white/10"
+            >
+              تراجع عن طلب الإلغاء
+            </button>
+          </div>
+        ) : !isConfirmingCancel ? (
           <button
             type="button"
             disabled={isCompleting || isCancelling}
@@ -331,15 +423,20 @@ export function ActiveTripTracker({
           </button>
         ) : (
           <div className={styles.cancelConfirmWrap}>
-            <p className={styles.cancelConfirmText}>{t('cancelConfirmText')}</p>
+            <p className={styles.cancelConfirmText}>
+              يتطلب إلغاء الرحلة موافقة المستخدم. هل تود إرسال طلب الإلغاء؟
+            </p>
             <div className={styles.cancelConfirmActions}>
               <button
                 type="button"
-                disabled={isCancelling}
-                onClick={onCancelTrip}
+                disabled={isCancelling || mutualCancel.isProcessing}
+                onClick={async () => {
+                  setIsConfirmingCancel(false);
+                  await mutualCancel.requestCancel();
+                }}
                 className={styles.cancelConfirmButton}
               >
-                {isCancelling ? t('cancelling') : t('confirmCancelButton')}
+                إرسال طلب الإلغاء
               </button>
               <button
                 type="button"
