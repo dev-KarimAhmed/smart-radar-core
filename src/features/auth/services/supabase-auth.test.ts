@@ -53,6 +53,8 @@ assert.deepEqual(
     full_name: 'Demo Rider',
     phone: '+962790000000',
     country_id: 2,
+    currency_ar: 'ج.م',
+    currency_en: 'EGP',
     governorate_id: 1,
     district_id: 9,
   },

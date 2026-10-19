@@ -306,7 +306,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     setAuthMode('register');
     setPersonal((current) => ({
       ...current,
-      name: `راكب تجربة ${serial}`,
+      name: `مستخدم تجربة ${serial}`,
       phone: demoPhone,
       email: `test${serial}@example.com`,
       country: String(selectedCountry.id),

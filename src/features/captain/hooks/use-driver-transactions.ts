@@ -9,6 +9,8 @@ import { useTranslations } from 'next-intl';
 import { buildGoogleMapsUrl, isValidCoordinatePair, normalizeExternalMapUrl } from '../services/ride-location';
 import { generateWeeklyReport, type CaptainRankName } from '../services/captain-rank';
 import { toEpochMs } from '@/shared/services/trip-countdown';
+import { getServerTime } from '@/lib/server-time';
+import { setCaptainCancelCooldown } from '../services/captain-cancel-cooldown';
 
 type RideOfferRow = Record<string, unknown>;
 type RideRequestRow = Record<string, unknown>;
@@ -454,6 +456,21 @@ export function useDriverTransactions(
 
   const endTrip = useCallback(async () => {
     if (!activeRequest?.id || endingRef.current) return false;
+
+    // Guard: Trip cannot be ended before 90% of estimated duration
+    const startedAtMs = activeRequest.startedAtMs;
+    const estMinutes = Number(activeRequest.estimatedTime) > 0 ? Number(activeRequest.estimatedTime) : 5;
+    const totalTripSeconds = estMinutes * 60;
+    const elapsedSec = startedAtMs ? Math.max(0, Math.floor((getServerTime() - startedAtMs) / 1000)) : 0;
+    if (elapsedSec < totalTripSeconds * 0.9) {
+      toast({
+        title: 'لا يمكن إنهاء الرحلة الآن',
+        description: 'يتاح إنهاء الرحلة فقط بعد مرور 90% على الأقل من وقت الرحلة المقدر.',
+        variant: 'warning',
+      });
+      return false;
+    }
+
     endingRef.current = true;
     setIsEndingTrip(true);
 
@@ -521,6 +538,8 @@ export function useDriverTransactions(
     
     const tripId = activeRequest.id;
     selfCancelledTripId.current = tripId;
+    const tripDurationMinutes = Number(activeRequest.estimatedTime) > 0 ? Number(activeRequest.estimatedTime) : 15;
+    setCaptainCancelCooldown(tripDurationMinutes);
 
     try {
       const { error } = await supabase.rpc('captain_cancel_active_trip', {

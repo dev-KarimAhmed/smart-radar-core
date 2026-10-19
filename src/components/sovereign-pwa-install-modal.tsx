@@ -56,7 +56,7 @@ export function SovereignPwaInstallModal({
       num: 3,
       Icon: isCaptain ? Zap : Smartphone,
       title: isCaptain
-        ? (isArabic ? 'تشغيل كتطبيق كابتن مستقل' : 'Launch as Standalone Captain App')
+        ? (isArabic ? 'تشغيل كتطبيق كابتن معلن مستقل' : 'Launch as Standalone Captain App')
         : (isArabic ? 'تشغيل كتطبيق مستقل' : 'Launch as Standalone App'),
       desc: isCaptain
         ? (isArabic
@@ -76,7 +76,7 @@ export function SovereignPwaInstallModal({
             <ShieldCheck className={styles.titleIcon} />
             <span>
               {isCaptain
-                ? (isArabic ? 'تثبيت تطبيق الكابتن السيادي' : 'Install Sovereign Captain App')
+                ? (isArabic ? 'تثبيت تطبيق الكابتن المعلن السيادي' : 'Install Sovereign Captain App')
                 : (isArabic ? 'تثبيت التطبيق على جهازك' : 'Install Standalone App')}
             </span>
           </DialogTitle>

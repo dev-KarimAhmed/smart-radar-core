@@ -21,8 +21,8 @@ export const SOVEREIGN_CONSTANTS = {
   TRIP_LIFESPAN_EXTENSION_MIN: 30,    // Minutes to add when extending a trip's lifespan
 
   // 3. معايير الحصص والحدود (Quota)
-  QUOTA_MAX_DRIVERS_VISIBLE: 9,       // حصة الراكب: 9 كباتن كحد أقصى في المحيط والمزاد
-  QUOTA_MAX_RIDERS_VISIBLE: 9,        // حصة الكابتن: 9 طلبات ركاب كحد أقصى على الرادار
+  QUOTA_MAX_DRIVERS_VISIBLE: 9,       // حصة المستخدم: 9 كباتن معلنين كحد أقصى في المحيط والمزاد
+  QUOTA_MAX_RIDERS_VISIBLE: 9,        // حصة الكابتن المعلن: 9 طلبات مستخدمين كحد أقصى على الرادار
   RADAR_SCAN_LIMIT: 50,             // Max trips/drivers to query in a single go
 
   // 4. معايير السرعات والمحاكاة لسرعة النبض (V-Pulse Speeds & Simulation)

@@ -13,6 +13,7 @@ import {
   isValidCoordinatePair,
   normalizeExternalMapUrl,
 } from '../services/ride-location';
+import { getCaptainCancelCooldown, type CaptainCancelCooldownState } from '../services/captain-cancel-cooldown';
 
 const DRIVER_H3_RESOLUTION = 9;
 const RADAR_RING_SIZE = 5;
@@ -45,6 +46,7 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
   const countryConfig = useCountryConfig(user?.countryId);
   const [rawRequests, setRawRequests] = useState<Trip[]>([]);
   const [radarLockMessage, setRadarLockMessage] = useState('');
+  const [cancelCooldown, setCancelCooldown] = useState<CaptainCancelCooldownState>(() => getCaptainCancelCooldown());
   const previousRequestIdsRef = useRef<Set<string>>(new Set());
   const [profileAnchor, setProfileAnchor] = useState<RadarLocation | null>(null);
   const [rejectedTripIds, setRejectedTripIds] = useState<string[]>(() => {
@@ -56,6 +58,14 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
       return [];
     }
   });
+
+  useEffect(() => {
+    const handleCooldownChange = () => {
+      setCancelCooldown(getCaptainCancelCooldown());
+    };
+    window.addEventListener('captain-cancel-cooldown-changed', handleCooldownChange);
+    return () => window.removeEventListener('captain-cancel-cooldown-changed', handleCooldownChange);
+  }, []);
 
   // Cached real GPS location from previous session in this device to eliminate fallback jumps
   const [cachedGpsLocation] = useState<RadarLocation | null>(() => {
@@ -134,6 +144,11 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
     const status = driverStatusRef.current;
     if (!uid || status !== 'active') {
       setRadarLockMessage('');
+      return false;
+    }
+
+    const cooldown = getCaptainCancelCooldown();
+    if (cooldown.isActive) {
       return false;
     }
 
@@ -327,6 +342,18 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
     return () => window.clearInterval(intervalId);
   }, [driverStatus, fetchPendingRequests]);
 
+  useEffect(() => {
+    if (!cancelCooldown.isActive) return;
+    const interval = window.setInterval(() => {
+      const nextState = getCaptainCancelCooldown();
+      setCancelCooldown(nextState);
+      if (!nextState.isActive) {
+        void fetchPendingRequests();
+      }
+    }, 1000);
+    return () => window.clearInterval(interval);
+  }, [cancelCooldown.isActive, fetchPendingRequests]);
+
   const rejectRequest = useCallback((tripId: string) => {
     setRejectedTripIds((prev) => {
       const next = [...new Set([...prev, tripId])];
@@ -338,8 +365,9 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
   }, []);
 
   const requests = useMemo(() => {
+    if (cancelCooldown.isActive) return [];
     return rawRequests.filter((request) => !rejectedTripIds.includes(request.id));
-  }, [rawRequests, rejectedTripIds]);
+  }, [cancelCooldown.isActive, rawRequests, rejectedTripIds]);
 
   return {
     driverLocation: displayLocation,
@@ -385,7 +413,7 @@ function mapRideRequestToTrip(row: RideRequestRow): Trip | null {
     stringify(row.destination_address_ar) ||
     stringify(row.destination_address_en) ||
     stringify(row.destination_address) ||
-    'وجهة الراكب';
+    'وجهة المستخدم';
 
   const fare = toNumber(row.server_fare) ?? toNumber(row.server_estimated_fare);
   const destinationLat = toNumber(row.destination_lat);

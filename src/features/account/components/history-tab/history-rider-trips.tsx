@@ -334,7 +334,7 @@ export function HistoryRiderTrips({
                           className="inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-xl border border-emerald-500/40 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 hover:text-white font-black text-xs active:scale-[0.98] transition-all shadow-md shadow-emerald-500/10 cursor-pointer"
                         >
                           <Star className="h-3.5 w-3.5 fill-emerald-400 text-emerald-400" />
-                          <span>{t('rateCaptain') || (isArabic ? 'تقييم الكابتن' : 'Rate Captain')}</span>
+                          <span>{t('rateCaptain') || (isArabic ? 'تقييم الكابتن المعلن' : 'Rate Captain')}</span>
                         </button>
                       )}
 
@@ -345,7 +345,7 @@ export function HistoryRiderTrips({
                           className="inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-xl border border-emerald-500/40 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 hover:text-white font-black text-xs active:scale-[0.98] transition-all shadow-md shadow-emerald-500/10 cursor-pointer"
                         >
                           <Star className="h-3.5 w-3.5 fill-emerald-400 text-emerald-400" />
-                          <span>{t('rateCaptain') || (isArabic ? 'تقييم الكابتن' : 'Rate Captain')}</span>
+                          <span>{t('rateCaptain') || (isArabic ? 'تقييم الكابتن المعلن' : 'Rate Captain')}</span>
                         </button>
                       )}
 
@@ -357,7 +357,7 @@ export function HistoryRiderTrips({
                             className="inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-xl border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500 hover:text-white text-rose-300 font-bold text-xs transition-all cursor-pointer"
                           >
                             <ShieldCheck className="h-3.5 w-3.5" />
-                            <span>{isArabic ? 'إلغاء حظر الكابتن' : 'Unblock Captain'}</span>
+                            <span>{isArabic ? 'إلغاء حظر الكابتن المعلن' : 'Unblock Captain'}</span>
                           </button>
                         ) : confirmingBlockId === trip.tripId ? (
                           <div className="flex items-center gap-1.5">
@@ -383,11 +383,11 @@ export function HistoryRiderTrips({
                           <button
                             type="button"
                             onClick={() => setConfirmingBlockId(trip.tripId)}
-                            title={isArabic ? 'حظر هذا الكابتن' : 'Block Captain'}
+                            title={isArabic ? 'حظر هذا الكابتن المعلن' : 'Block Captain'}
                             className="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-xl border border-white/10 bg-white/5 hover:border-rose-500/40 hover:bg-rose-500/10 text-slate-400 hover:text-rose-400 text-xs font-bold transition-all cursor-pointer"
                           >
                             <Ban className="h-3.5 w-3.5" />
-                            <span>{isArabic ? 'حظر الكابتن' : 'Block'}</span>
+                            <span>{isArabic ? 'حظر الكابتن المعلن' : 'Block'}</span>
                           </button>
                         )
                       )}

@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { parseNotificationContent } from '@/shared/utils/notification-i18n';
+import { readStoredDashboardLanguage } from '@/lib/i18n/language-storage';
 
 export interface Toast {
   id: string;
@@ -20,8 +22,18 @@ export const toast = (options: {
   variant?: 'default' | 'destructive' | 'success' | 'warning' | 'info';
   duration?: number;
 }) => {
+  let title = options.title;
+  let description = options.description;
+
+  if (description && description.includes('<!--i18n:')) {
+    const isArabic = typeof window !== 'undefined' ? readStoredDashboardLanguage() === 'ar' : true;
+    const parsed = parseNotificationContent({ title, description }, isArabic);
+    title = parsed.title;
+    description = parsed.description;
+  }
+
   const id = Math.random().toString(36).substring(2, 9);
-  const newToast: Toast = { id, ...options };
+  const newToast: Toast = { ...options, id, title, description };
   
   // Limiting active notifications to keep UI clean and focused
   toastMemory = [newToast, ...toastMemory].slice(0, 3);

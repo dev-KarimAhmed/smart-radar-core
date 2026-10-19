@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback, useSyncExternalStore } from 'react';
 import { supabase } from '@/lib/supabase-client';
 import { useToast } from '@/hooks/use-toast';
+import { parseNotificationContent } from '@/shared/utils/notification-i18n';
+import { readStoredDashboardLanguage } from '@/lib/i18n/language-storage';
 
 export interface AppNotification {
   id: string;
@@ -224,10 +226,12 @@ function setupRealtimeChannelIfNeeded(userId: string) {
         if (payload.eventType === 'INSERT' && payload.new) {
           const newRow = payload.new as any;
           if (newRow?.title) {
+            const isArabic = typeof window !== 'undefined' ? readStoredDashboardLanguage() === 'ar' : true;
+            const parsed = parseNotificationContent(newRow, isArabic);
             if (latestToastFn) {
               latestToastFn(
-                newRow.title,
-                newRow.description || '',
+                parsed.title,
+                parsed.description,
                 newRow.type === 'WALLET_ALERT' || newRow.type === 'urgent' || newRow.type === 'warning' ? 'destructive' : 'default'
               );
             }

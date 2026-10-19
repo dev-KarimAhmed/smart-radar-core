@@ -146,7 +146,7 @@ export async function GET(req: Request) {
           }
         }
 
-        const captainName = prof.full_name || 'كابتن رادار';
+        const captainName = prof.full_name || 'كابتن معلن رادار';
         const captainPhone = prof.phone || '-';
         const channelName = tx.payment_channel || 'قناة دفع رقمية';
         const amountNum = Number(tx.amount || 0);
@@ -155,7 +155,7 @@ export async function GET(req: Request) {
           id: `rcpt_${tx.id}`,
           category: 'RECEIPT',
           title: `إيصال شحن جديد بحاجة للمراجعة (${amountNum} ${fallbackCurrency})`,
-          description: `أرسل الكابتن ${captainName} (${captainPhone}) إيصال شحن بقيمة ${amountNum} ${fallbackCurrency} عبر ${channelName}.`,
+          description: `أرسل الكابتن المعلن ${captainName} (${captainPhone}) إيصال شحن بقيمة ${amountNum} ${fallbackCurrency} عبر ${channelName}.`,
           createdAt: tx.created_at,
           severity: 'urgent',
           targetTab: 'wallet',
@@ -183,7 +183,7 @@ export async function GET(req: Request) {
     // Build captain verification notification items
     const captainItems: AdminNotificationItem[] = pendingCaptains.map((cap) => {
       const prof = profilesMap.get(cap.id) || {};
-      const captainName = prof.full_name || cap.nickname || 'كابتن جديد';
+      const captainName = prof.full_name || cap.nickname || 'كابتن معلن جديد';
       const captainPhone = prof.phone || '-';
       const vehicleDesc = [cap.vehicle_brand, cap.vehicle_model, cap.vehicle_color, cap.vehicle_year]
         .filter(Boolean)
@@ -192,8 +192,8 @@ export async function GET(req: Request) {
       return {
         id: `cap_${cap.id}`,
         category: 'CAPTAIN',
-        title: `كابتن جديد بانتظار مراجعة المستندات والتحقق`,
-        description: `انضم الكابتن ${captainName} (${captainPhone}) للأسطول وبانتظار اعتماد رخصة القيادة والسيارة.`,
+        title: `كابتن معلن جديد بانتظار مراجعة المستندات والتحقق`,
+        description: `انضم الكابتن المعلن ${captainName} (${captainPhone}) للأسطول وبانتظار اعتماد رخصة القيادة والسيارة.`,
         createdAt: cap.created_at || new Date().toISOString(),
         severity: 'warning',
         targetTab: 'captains',
@@ -369,7 +369,7 @@ export async function POST(req: Request) {
 
         return NextResponse.json({
           success: true,
-          message: `تم اعتماد الإيصال بنجاح وتخصيص ${grantedMins} دقيقة رادار للكابتن.`,
+          message: `تم اعتماد الإيصال بنجاح وتخصيص ${grantedMins} دقيقة رادار للكابتن المعلن.`,
         });
       } else {
         // Credit as CASH
@@ -410,7 +410,7 @@ export async function POST(req: Request) {
 
         return NextResponse.json({
           success: true,
-          message: `تم اعتماد الإيصال وإيداع ${amount.toFixed(2)} ${captainCurrency} في رصيد الكابتن.`,
+          message: `تم اعتماد الإيصال وإيداع ${amount.toFixed(2)} ${captainCurrency} في رصيد الكابتن المعلن.`,
         });
       }
     }
@@ -460,7 +460,7 @@ export async function POST(req: Request) {
 
       return NextResponse.json({
         success: true,
-        message: 'تم رفض الإيصال وإشعار الكابتن بسبب الرفض.',
+        message: 'تم رفض الإيصال وإشعار الكابتن المعلن بسبب الرفض.',
       });
     }
 

@@ -63,7 +63,7 @@ export function useReferralListener(isArabic = true) {
             toast({
               title: t('linkedSuccessTitle'),
               description: t('linkedSuccessDesc', {
-                captainName: res.captain_name.trim() || (isArabic ? 'كابتنك المعتمد' : 'Your Captain'),
+                captainName: res.captain_name.trim() || (isArabic ? 'كابتنك المعلن المعتمد' : 'Your Captain'),
               }),
             });
           }
@@ -93,7 +93,7 @@ export function useReferralListener(isArabic = true) {
         toast({
           title: t('linkedSuccessTitle'),
           description: t('linkedSuccessDesc', {
-            captainName: captainName.trim() || (isArabic ? 'كابتنك المعتمد' : 'Your Captain'),
+            captainName: captainName.trim() || (isArabic ? 'كابتنك المعلن المعتمد' : 'Your Captain'),
           }),
         });
       }

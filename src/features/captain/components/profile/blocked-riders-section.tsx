@@ -80,11 +80,11 @@ export function BlockedRidersSection({ isArabic }: BlockedRidersSectionProps) {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-bold text-slate-200">
-                  {isArabic ? 'لا يوجد ركاب محظورون حالياً' : 'No blocked riders currently'}
+                  {isArabic ? 'لا يوجد مستخدمون محظورون حالياً' : 'No blocked riders currently'}
                 </p>
                 <p className="text-[11px] text-slate-500 leading-relaxed mt-0.5">
                   {isArabic
-                    ? 'سجلك نظيف، لم تقم بحظر أي راكب حتى الآن.'
+                    ? 'سجلك نظيف، لم تقم بحظر أي مستخدم حتى الآن.'
                     : 'You have not blocked any riders yet.'}
                 </p>
               </div>

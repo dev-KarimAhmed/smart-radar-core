@@ -23,6 +23,7 @@ import {
   CAPTAIN_PAYMENT_CHANNELS,
   getCaptainDistrictPaymentInfo,
 } from '../lib/wallet-static-config';
+import type { PaymentTransferChannel, FinancialDelegate } from '@/features/admin/types/wallet-directory';
 
 interface DriverWalletTabProps {
   user: User | null;
@@ -47,8 +48,91 @@ export function DriverWalletTab({ user, language, isFlightActive = false }: Driv
   const [copiedChannelId, setCopiedChannelId] = React.useState<string | null>(null);
   const [receiptFile, setReceiptFile] = React.useState<File | null>(null);
 
+  // Dynamic Directory from Admin
+  const [dynamicChannels, setDynamicChannels] = React.useState<PaymentTransferChannel[]>([]);
+  const [dynamicDelegate, setDynamicDelegate] = React.useState<FinancialDelegate | null>(null);
+  const [isLoadingDirectory, setIsLoadingDirectory] = React.useState<boolean>(true);
+
   const districtPaymentInfo = getCaptainDistrictPaymentInfo(user?.district);
-  const selectedChannel = CAPTAIN_PAYMENT_CHANNELS.find((channel) => channel.id === selectedChannelId) || null;
+
+  React.useEffect(() => {
+    let isMounted = true;
+    const fetchDirectory = async () => {
+      try {
+        const params = new URLSearchParams();
+        if (user?.countryId) params.append('countryId', String(user.countryId));
+        if (user?.governorate) params.append('governorate', user.governorate);
+        if (user?.district) params.append('district', user.district);
+
+        const res = await fetch(`/api/captain/wallet-directory?${params.toString()}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (isMounted && data.success) {
+          if (Array.isArray(data.channels) && data.channels.length > 0) {
+            setDynamicChannels(data.channels);
+          }
+          if (data.delegate) {
+            setDynamicDelegate(data.delegate);
+          }
+        }
+      } catch (err) {
+        console.warn('[DriverWalletTab] Failed to fetch dynamic wallet directory, using fallback:', err);
+      } finally {
+        if (isMounted) setIsLoadingDirectory(false);
+      }
+    };
+
+    fetchDirectory();
+    return () => {
+      isMounted = false;
+    };
+  }, [user?.countryId, user?.governorate, user?.district]);
+
+  // Unified Effective Channels (Dynamic from DB with static fallback)
+  const effectiveChannels = React.useMemo(() => {
+    if (dynamicChannels.length > 0) {
+      return dynamicChannels.map((c) => ({
+        id: c.id,
+        labelAr: c.nameAr,
+        labelEn: c.nameEn,
+        descriptionAr: c.descriptionAr || '',
+        descriptionEn: c.descriptionEn || '',
+        accountNumber: c.accountNumber,
+        accountHolder: c.accountHolder,
+      }));
+    }
+    return CAPTAIN_PAYMENT_CHANNELS.map((channel) => ({
+      id: channel.id,
+      labelAr: channel.labelAr,
+      labelEn: channel.labelEn,
+      descriptionAr: channel.descriptionAr,
+      descriptionEn: channel.descriptionEn,
+      accountNumber: districtPaymentInfo.channelNumbers[channel.id] || '',
+      accountHolder: undefined,
+    }));
+  }, [dynamicChannels, districtPaymentInfo]);
+
+  const selectedChannel = effectiveChannels.find((channel) => channel.id === selectedChannelId) || null;
+
+  // Unified Effective Delegate (Dynamic from DB with static fallback)
+  const effectiveDelegate = React.useMemo(() => {
+    if (dynamicDelegate) {
+      return {
+        name: dynamicDelegate.name,
+        phone: dynamicDelegate.phone,
+        whatsapp: dynamicDelegate.whatsapp || dynamicDelegate.phone,
+        areaBadge: dynamicDelegate.districtName || dynamicDelegate.governorateName || user?.district || t('noDistrict'),
+        hint: dynamicDelegate.notes || t('delegateHint'),
+      };
+    }
+    return {
+      name: districtPaymentInfo.delegateName,
+      phone: districtPaymentInfo.delegatePhone,
+      whatsapp: districtPaymentInfo.delegatePhone,
+      areaBadge: user?.district || t('noDistrict'),
+      hint: t('delegateHint'),
+    };
+  }, [dynamicDelegate, districtPaymentInfo, user?.district, t]);
 
   const copyChannelNumber = (channelId: string, value: string) => {
     navigator.clipboard?.writeText(value);
@@ -179,8 +263,8 @@ export function DriverWalletTab({ user, language, isFlightActive = false }: Driv
           <p className="mt-1 text-xs text-slate-400">{t('refillHint')}</p>
 
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            {CAPTAIN_PAYMENT_CHANNELS.map((channelOption) => {
-              const channelNumber = districtPaymentInfo.channelNumbers[channelOption.id] || '';
+            {effectiveChannels.map((channelOption) => {
+              const channelNumber = channelOption.accountNumber || '';
               const isSelected = selectedChannelId === channelOption.id;
               const isCopied = copiedChannelId === channelOption.id;
 
@@ -212,8 +296,13 @@ export function DriverWalletTab({ user, language, isFlightActive = false }: Driv
                       )}
                     />
                   </div>
+                  {channelOption.accountHolder && (
+                    <span className="text-[10px] text-emerald-400/90 font-mono block mt-0.5">
+                      {channelOption.accountHolder}
+                    </span>
+                  )}
                   <p className="mt-1 text-[11px] text-slate-400 line-clamp-1">
-                    {language === 'ar' ? channelOption.descriptionAr : channelOption.descriptionEn}
+                    {language === 'ar' ? (channelOption.descriptionAr || '') : (channelOption.descriptionEn || channelOption.descriptionAr || '')}
                   </p>
 
                   <div className="mt-2.5 flex items-center justify-between gap-2 rounded-xl border border-white/5 bg-black/60 px-2.5 py-1.5">
@@ -339,25 +428,25 @@ export function DriverWalletTab({ user, language, isFlightActive = false }: Driv
               <div className="flex items-center gap-2">
                 <h3 className="text-sm font-black text-white">{t('delegateTitle')}</h3>
                 <span className="text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
-                  {user?.district || t('noDistrict')}
+                  {effectiveDelegate.areaBadge}
                 </span>
               </div>
               <p className="mt-0.5 text-xs text-slate-400">
-                <span className="text-slate-200 font-bold">{districtPaymentInfo.delegateName}</span> · {t('delegateHint')}
+                <span className="text-slate-200 font-bold">{effectiveDelegate.name}</span> · {effectiveDelegate.hint}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
             <a
-              href={`tel:${districtPaymentInfo.delegatePhone}`}
+              href={`tel:${effectiveDelegate.phone}`}
               className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-xs font-bold text-slate-200 transition hover:bg-white/10 active:scale-95"
             >
               <Phone className="h-3.5 w-3.5 text-emerald-400" />
               <span>{t('delegateCall')}</span>
             </a>
             <a
-              href={`https://wa.me/${districtPaymentInfo.delegatePhone}`}
+              href={`https://wa.me/${effectiveDelegate.whatsapp.replace(/[^0-9]/g, '')}`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 px-4 py-2.5 text-xs font-black text-white shadow-md shadow-emerald-900/30 transition hover:brightness-105 active:scale-95"

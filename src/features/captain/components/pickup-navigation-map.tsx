@@ -25,7 +25,7 @@ interface PickupNavigationMapProps {
 
 const mapCopy = {
   ar: {
-    badge: { pickup: 'مسار الوصول لنقطة الركوب', dropoff: 'مسار الوصول لوجهة الراكب' },
+    badge: { pickup: 'مسار الوصول لنقطة الركوب', dropoff: 'مسار الوصول لوجهة المستخدم' },
     recenter: 'العودة إلى موقعي',
     mapIssue: 'تعذر تحميل الخريطة. تحقق من الاتصال بالإنترنت.',
   },
