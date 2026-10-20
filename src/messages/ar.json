@@ -1375,6 +1375,8 @@
     "tariffModalConfirmTitle": "تأكيد التسعيرة قبل بدء العمل",
     "tariffModalConfirmBody": "هذه هي أسعارك الحالية. يمكنك تعديل أي قيمة، أو التأكيد والبدء في استقبال الطلبات.",
     "tariffModalConfirmAction": "تأكيد وبدء العمل",
+    "tariffModalBack": "رجوع",
+    "tariffModalClose": "إغلاق",
     "tariffModalMarketFloor": "متوسط السوق: {min} {currency}",
     "tariffModalMarketAverage": "متوسط السوق: {avg} {currency}",
     "tariffModalMarketAverageKm": "متوسط السوق: {avg} كم",

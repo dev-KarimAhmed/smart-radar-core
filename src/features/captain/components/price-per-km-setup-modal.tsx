@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useTranslations } from 'next-intl';
-import { ChevronDown } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ChevronDown, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   AlertDialog,
@@ -34,7 +34,9 @@ const styles = {
   currencyBadge: 'flex shrink-0 items-center rounded-2xl border border-emerald-500/25 bg-emerald-500/10 px-3 text-sm font-black text-emerald-300',
   error: 'text-sm font-bold text-rose-400 text-start',
   footer: 'sm:justify-start',
-  confirm: 'w-full bg-[#14B8A6] font-black text-[#06111f] hover:bg-[#14B8A6]/90 disabled:opacity-60',
+  confirm: 'w-full bg-[#14B8A6] font-black text-[#06111f] hover:bg-[#14B8A6]/90 disabled:opacity-60 transition cursor-pointer',
+  closeButton: 'absolute -top-1.5 end-0 flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-slate-300 transition-all hover:bg-white/15 hover:text-white cursor-pointer z-20 disabled:opacity-50',
+  backButton: 'inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-bold text-slate-300 transition hover:bg-white/10 hover:text-white disabled:opacity-50 cursor-pointer',
   // A distinct bordered/tinted card of its own — kept visually separate from the per-km and
   // per-min fields below rather than reading as one continuous block of four fields.
   shortDistancesSection: 'rounded-2xl border border-emerald-500/25 bg-emerald-500/5',
@@ -288,10 +290,29 @@ export function PricePerKmSetupModal({
       <AlertDialogContent
         className={styles.content}
         dir={direction}
-        onEscapeKeyDown={(event) => event.preventDefault()}
+        onEscapeKeyDown={(event) => {
+          if (onClose && !isSaving) {
+            onClose();
+          } else {
+            event.preventDefault();
+          }
+        }}
       >
-        <AlertDialogHeader>
-          <AlertDialogTitle className={styles.title}>
+        <AlertDialogHeader className="relative">
+          {onClose ? (
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isSaving}
+              aria-label={t('tariffModalClose')}
+              title={t('tariffModalClose')}
+              className={styles.closeButton}
+            >
+              <X className="h-4 w-4 sm:h-5 sm:w-5" />
+              <span className="sr-only">{t('tariffModalClose')}</span>
+            </button>
+          ) : null}
+          <AlertDialogTitle className={cn(styles.title, onClose && 'pe-10')}>
             {isCountryChange
               ? t('pricePerKmModalCountryChangeTitle')
               : isActivationConfirm
@@ -558,8 +579,32 @@ export function PricePerKmSetupModal({
 
         {error ? <p className={styles.error}>{error}</p> : null}
 
-        <AlertDialogFooter className={styles.footer}>
-          <AlertDialogAction disabled={isSaving} onClick={handleSave} className={styles.confirm}>
+        <AlertDialogFooter className="mt-4 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-2.5">
+          {onClose ? (
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isSaving}
+              className={styles.backButton}
+            >
+              {isArabic ? (
+                <>
+                  <ArrowRight className="h-4 w-4" />
+                  <span>{t('tariffModalBack')}</span>
+                </>
+              ) : (
+                <>
+                  <ArrowLeft className="h-4 w-4" />
+                  <span>{t('tariffModalBack')}</span>
+                </>
+              )}
+            </button>
+          ) : null}
+          <AlertDialogAction
+            disabled={isSaving}
+            onClick={handleSave}
+            className={cn(styles.confirm, onClose ? 'sm:flex-1' : 'w-full')}
+          >
             {isSaving
               ? t('pricePerKmModalSaving')
               : isActivationConfirm

@@ -248,6 +248,18 @@ export function usePricePerKmSetup(
     return { saved: true };
   }, [activationNonce, user]);
 
+  const [isDismissed, setIsDismissed] = React.useState(false);
+
+  // If activationNonce changes, reset dismissal so a fresh activation can re-prompt
+  React.useEffect(() => {
+    setIsDismissed(false);
+  }, [activationNonce]);
+
+  const dismissPriceSetup = React.useCallback(() => {
+    setConfirmedNonce(activationNonce);
+    setIsDismissed(true);
+  }, [activationNonce]);
+
   // Any missing component keeps the captain in the setup gate — a fare cannot be computed
   // from a partial tariff.
   const isTariffIncomplete =
@@ -256,10 +268,11 @@ export function usePricePerKmSetup(
   const needsActivationConfirm = activationNonce > confirmedNonce;
 
   return {
-    needsPriceSetup: isLoaded && (isTariffIncomplete || isInDifferentCountry || needsActivationConfirm),
+    needsPriceSetup: !isDismissed && isLoaded && (isTariffIncomplete || isInDifferentCountry || needsActivationConfirm),
     /** True when the tariff is already set and this is only a per-activation confirmation. */
     isActivationConfirm: needsActivationConfirm && !isTariffIncomplete && !isInDifferentCountry,
     currentTariff: tariff,
     saveTariff,
+    dismissPriceSetup,
   };
 }

@@ -1375,6 +1375,8 @@
     "tariffModalConfirmTitle": "Confirm your prices before you go online",
     "tariffModalConfirmBody": "These are your current prices. Change any of them if you want, or confirm and start receiving requests.",
     "tariffModalConfirmAction": "Confirm and go online",
+    "tariffModalBack": "Back",
+    "tariffModalClose": "Close",
     "tariffModalMarketFloor": "Market average: {min} {currency}",
     "tariffModalMarketAverage": "Market average: {avg} {currency}",
     "tariffModalMarketAverageKm": "Market average: {avg} km",

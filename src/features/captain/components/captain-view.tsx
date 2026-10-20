@@ -117,12 +117,20 @@ export function DriverViewTab() {
   const isInDifferentCountry = Boolean(
     liveCountryCode && countryConfig?.iso_code && liveCountryCode.toUpperCase() !== countryConfig.iso_code.toUpperCase(),
   );
-  const { needsPriceSetup, isActivationConfirm, currentTariff, saveTariff } = usePricePerKmSetup(
+  const { needsPriceSetup, isActivationConfirm, currentTariff, saveTariff, dismissPriceSetup } = usePricePerKmSetup(
     user,
     isInDifferentCountry,
     driverOps?.activationNonce ?? 0,
   );
   const [isManualPriceSetupOpen, setIsManualPriceSetupOpen] = React.useState(false);
+
+  const handleClosePriceSetup = React.useCallback(() => {
+    setIsManualPriceSetupOpen(false);
+    dismissPriceSetup();
+    if (needsPriceSetup && isActivationConfirm && driverOps?.driverStatus === 'active') {
+      void driverOps.toggleDriverStatus('idle');
+    }
+  }, [dismissPriceSetup, needsPriceSetup, isActivationConfirm, driverOps]);
   const { marketIndicator } = useCaptainMarketIndicator(user);
   const [state, dispatch] = React.useReducer(captainDashboardReducer, initialCaptainDashboardState);
   const [prefilledOfferPrice, setPrefilledOfferPrice] = React.useState<number | null>(null);
@@ -635,7 +643,7 @@ export function DriverViewTab() {
             if (res.saved) setIsManualPriceSetupOpen(false);
             return res;
           }}
-          onClose={() => setIsManualPriceSetupOpen(false)}
+          onClose={handleClosePriceSetup}
         />
       ) : null}
 
