@@ -704,8 +704,8 @@ function getCaptainTier(profile: ProfileRow | null, rating: number, t: TFunction
 
   if (rating >= 4.9) return { key: 'platinum', label: tierLabel('platinum', t) };
   if (rating >= 4.7) return { key: 'gold', label: tierLabel('gold', t) };
-  if (rating >= 4.4) return { key: 'silver', label: tierLabel('silver', t) };
-  return { key: 'bronze', label: tierLabel('bronze', t) };
+  if (rating >= 4.4) return { key: 'bronze', label: tierLabel('bronze', t) };
+  return { key: 'silver', label: tierLabel('silver', t) };
 }
 
 function normalizeTier(value: string) {

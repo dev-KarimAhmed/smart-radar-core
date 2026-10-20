@@ -665,7 +665,7 @@ export async function POST(req: Request) {
       // 6. Update captain tier (Rank)
       case 'update_tier': {
         const tier = String(body.tier).toUpperCase();
-        if (!['BRONZE', 'SILVER', 'GOLD', 'PLATINUM'].includes(tier)) {
+        if (!['PLATINUM', 'GOLD', 'BRONZE', 'SILVER'].includes(tier)) {
           return NextResponse.json({ success: false, error: 'الرتبة غير صحيحة' }, { status: 400 });
         }
 
@@ -713,8 +713,8 @@ export async function POST(req: Request) {
         const tierNames: Record<string, string> = {
           PLATINUM: 'البلاتينية 💎',
           GOLD: 'الذهبية 🥇',
-          SILVER: 'الفضية 🥈',
           BRONZE: 'البرونزية 🥉',
+          SILVER: 'الفضية 🥈',
         };
 
         // Push real-time notification to the captain

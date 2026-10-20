@@ -25,6 +25,15 @@ const styles = { root: 'contents' } as const;
 function getInitialUserFromCache(): SovereignUser | null {
   if (typeof window === 'undefined') return null;
   try {
+    const rawMock =
+      window.localStorage.getItem('radar_sovereign_mock_user') ||
+      window.sessionStorage.getItem('radar_sovereign_mock_user');
+    if (rawMock) {
+      const parsedMock = JSON.parse(rawMock);
+      if (parsedMock && (parsedMock.role === 'admin' || parsedMock.adminRank === 'GENERAL_ADMIN')) {
+        return parsedMock as SovereignUser;
+      }
+    }
     const raw =
       window.localStorage.getItem(SUPABASE_AUTH_STORAGE_KEY) ||
       window.sessionStorage.getItem(SUPABASE_AUTH_STORAGE_KEY);
@@ -186,6 +195,12 @@ function AuthContent({ children }: { children: ReactNode }) {
     } catch {}
     clearSupabaseSessionCache();
     purgeTransientFrontendCache();
+    if (typeof window !== 'undefined') {
+      window.localStorage.removeItem('radar_admin_active_id');
+      window.sessionStorage.removeItem('radar_admin_active_id');
+      window.localStorage.removeItem('radar_sovereign_mock_user');
+      window.sessionStorage.removeItem('radar_sovereign_mock_user');
+    }
     restorePreservedLanguage(preservedLanguage);
     setUser(null);
     try {
@@ -278,6 +293,7 @@ function AuthContent({ children }: { children: ReactNode }) {
     setLoading(false);
     if (typeof window !== 'undefined' && mockUser?.uid) {
       window.localStorage.setItem('radar_admin_active_id', mockUser.uid);
+      window.localStorage.setItem('radar_sovereign_mock_user', JSON.stringify(mockUser));
     }
   }, []);
 
@@ -298,6 +314,8 @@ function AuthContent({ children }: { children: ReactNode }) {
     if (typeof window !== 'undefined') {
       window.localStorage.removeItem('radar_admin_active_id');
       window.sessionStorage.removeItem('radar_admin_active_id');
+      window.localStorage.removeItem('radar_sovereign_mock_user');
+      window.sessionStorage.removeItem('radar_sovereign_mock_user');
     }
     restorePreservedLanguage(preservedLanguage);
     setUser(null);

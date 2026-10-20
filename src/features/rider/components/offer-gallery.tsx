@@ -53,9 +53,9 @@ export function OfferGallery({
           return aPrice - bPrice;
         }
 
-        const rankPriority: Record<string, number> = { PLATINUM: 4, GOLD: 3, SILVER: 2, BRONZE: 1 };
-        const aPriority = rankPriority[String(a.driverRank || a.tier || 'SILVER').toUpperCase()] || 2;
-        const bPriority = rankPriority[String(b.driverRank || b.tier || 'SILVER').toUpperCase()] || 2;
+        const rankPriority: Record<string, number> = { PLATINUM: 4, GOLD: 3, BRONZE: 2, SILVER: 1 };
+        const aPriority = rankPriority[String(a.driverRank || a.tier || 'SILVER').toUpperCase()] || 1;
+        const bPriority = rankPriority[String(b.driverRank || b.tier || 'SILVER').toUpperCase()] || 1;
         if (aPriority !== bPriority) return bPriority - aPriority;
 
         const aTime = Date.parse(a.created_at || (a as any).createdAt || '') || 0;

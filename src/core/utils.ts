@@ -3,10 +3,11 @@ export function calculateRiderRank(ratingSum?: number, ratingCount?: number): st
   const avg = ratingSum / ratingCount;
   if (avg >= 4.8) return 'Platinum';
   if (avg >= 4.3) return 'Gold';
+  if (avg >= 3.8) return 'Bronze';
   return 'Silver';
 }
 
-export function getRankTheme(rank?: 'Platinum' | 'Gold' | 'Silver' | 'Bronze' | string) {
+export function getRankTheme(rank?: 'Platinum' | 'Gold' | 'Bronze' | 'Silver' | string) {
   const normalized = String(rank || 'Silver').toLowerCase();
 
   switch (normalized) {
@@ -28,17 +29,7 @@ export function getRankTheme(rank?: 'Platinum' | 'Gold' | 'Silver' | 'Bronze' | 
         icon: 'ShieldAlert',
         label: 'ذهبي',
       };
-    case 'silver':
-      return {
-        bg: 'bg-slate-400/15',
-        color: 'text-slate-200',
-        border: 'border-slate-400/40',
-        glow: 'shadow-none',
-        icon: 'ShieldAlert',
-        label: 'فضي',
-      };
     case 'bronze':
-    default:
       return {
         bg: 'bg-amber-800/20',
         color: 'text-amber-300',
@@ -46,6 +37,16 @@ export function getRankTheme(rank?: 'Platinum' | 'Gold' | 'Silver' | 'Bronze' | 
         glow: 'shadow-none',
         icon: 'ShieldAlert',
         label: 'برونزي',
+      };
+    case 'silver':
+    default:
+      return {
+        bg: 'bg-slate-400/15',
+        color: 'text-slate-200',
+        border: 'border-slate-400/40',
+        glow: 'shadow-none',
+        icon: 'ShieldAlert',
+        label: 'فضي',
       };
   }
 }

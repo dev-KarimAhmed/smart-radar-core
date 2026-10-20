@@ -67,7 +67,7 @@ export interface CaptainUser {
   email: string;
   role: string;
   status: 'ACTIVE' | 'IDLE' | 'BUSY' | 'SUSPENDED' | 'BANNED';
-  tier: 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM';
+  tier: 'PLATINUM' | 'GOLD' | 'BRONZE' | 'SILVER';
   rating: number;
   rating_count: number;
   heart_count: number;
@@ -850,8 +850,8 @@ export function DriversManagementTab() {
                 { key: 'ALL', label: t('statusAll') },
                 { key: 'PLATINUM', label: t('rankPlatinum') },
                 { key: 'GOLD', label: t('rankGold') },
-                { key: 'SILVER', label: t('rankSilver') },
                 { key: 'BRONZE', label: t('rankBronze') },
+                { key: 'SILVER', label: t('rankSilver') },
               ].map((rk) => (
                 <button
                   key={rk.key}
@@ -1656,7 +1656,7 @@ export function DriversManagementTab() {
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-300 block">{t('sovereignTier')}</label>
                 <div className="grid grid-cols-4 gap-1.5 text-xs font-mono">
-                  {['BRONZE', 'SILVER', 'GOLD', 'PLATINUM'].map((tier) => (
+                  {['PLATINUM', 'GOLD', 'BRONZE', 'SILVER'].map((tier) => (
                     <button
                       key={tier}
                       type="button"

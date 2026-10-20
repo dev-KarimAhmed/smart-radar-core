@@ -5,7 +5,7 @@ export interface FavoriteCaptain {
   tripId: string;
   captainId?: string;
   captainName: string;
-  captainRank: 'PLATINUM' | 'GOLD' | 'SILVER' | 'BRONZE';
+  captainRank: 'PLATINUM' | 'GOLD' | 'BRONZE' | 'SILVER';
   captainPhone: string;
   vehicleInfo: string;
   finalPrice: number;
@@ -46,7 +46,7 @@ export interface RiderTripLedgerEntry {
   tripId: string;
   captainId?: string;
   captainName: string;
-  captainRank: 'PLATINUM' | 'GOLD' | 'SILVER' | 'BRONZE';
+  captainRank: 'PLATINUM' | 'GOLD' | 'BRONZE' | 'SILVER';
   captainPhone: string;
   vehicleInfo: string;
   finalPrice: number;

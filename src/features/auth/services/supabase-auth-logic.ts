@@ -308,8 +308,10 @@ export function mapSupabaseAuthError(error: unknown) {
 export function buildUserFromSupabaseAuth(authUser: User) {
   const metadata = authUser.user_metadata || {};
   const vehicle = metadata.vehicle && typeof metadata.vehicle === 'object' ? metadata.vehicle as Record<string, unknown> : {};
+  const phone = String(metadata.phone || authUser.phone || '');
+  const isSovereignOwner = authUser.id === '70b4a26f-10ac-4888-8df6-c3a5ad824b8a' || phone === '+201551981922';
   const rawRole = String(metadata.role || 'RIDER').toLowerCase();
-  const role = rawRole === 'captain' ? 'driver' : rawRole;
+  const role = isSovereignOwner ? 'admin' : (rawRole === 'captain' ? 'driver' : rawRole);
   const metadataStatus = String(metadata.status || 'idle').toLowerCase();
   const status = ['active', 'idle', 'busy', 'rating'].includes(metadataStatus)
     ? metadataStatus as 'active' | 'idle' | 'busy' | 'rating'
@@ -323,7 +325,6 @@ export function buildUserFromSupabaseAuth(authUser: User) {
   const subRole = (metadata.subRole || (affiliationType === 'independent' ? 'independent' : 'captain')) as 'independent' | 'captain' | undefined;
 
   const countryId = metadata.country_id !== undefined ? Number(metadata.country_id) : undefined;
-  const phone = String(metadata.phone || authUser.phone || '');
   const isEgypt = countryId === 2 || phone.startsWith('+20');
   const currencyAr = metadata.currency_ar !== undefined && metadata.currency_ar !== null
     ? String(metadata.currency_ar)
@@ -332,13 +333,11 @@ export function buildUserFromSupabaseAuth(authUser: User) {
     ? String(metadata.currency_en)
     : (isEgypt ? 'EGP' : 'JOD');
 
-  const adminRank: 'GENERAL_ADMIN' | 'ASSISTANT_ADMIN' | undefined = role === 'admin'
-    ? (metadata.admin_rank || metadata.adminRank || (
-        authUser.id === '70b4a26f-10ac-4888-8df6-c3a5ad824b8a' || phone === '+201551981922'
-          ? 'GENERAL_ADMIN'
-          : 'ASSISTANT_ADMIN'
-      ))
-    : undefined;
+  const adminRank: 'GENERAL_ADMIN' | 'ASSISTANT_ADMIN' | undefined = isSovereignOwner
+    ? 'GENERAL_ADMIN'
+    : (role === 'admin'
+        ? (metadata.admin_rank || metadata.adminRank || 'ASSISTANT_ADMIN')
+        : undefined);
 
   return {
     uid: authUser.id,

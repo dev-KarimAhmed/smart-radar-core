@@ -43,8 +43,8 @@ export const SOVEREIGN_CONSTANTS = {
   RANKING_RULES: {
     PLATINUM: { minRating: 4.8, minHearts: 50, name: 'Platinum' },
     GOLD: { minRating: 4.5, minHearts: 20, name: 'Gold' },
-    SILVER: { minRating: 4.0, minHearts: 0, name: 'Silver' },
-    BRONZE: { minRating: 0, minHearts: 0, name: 'Bronze' }
+    BRONZE: { minRating: 4.0, minHearts: 0, name: 'Bronze' },
+    SILVER: { minRating: 0, minHearts: 0, name: 'Silver' }
   },
 } as const;
 export type SovereignConstantsType = typeof SOVEREIGN_CONSTANTS;

@@ -1,4 +1,4 @@
-export type CaptainTier = 'PLATINUM' | 'GOLD' | 'SILVER' | 'BRONZE';
+export type CaptainTier = 'PLATINUM' | 'GOLD' | 'BRONZE' | 'SILVER';
 
 /**
  * The offer band, as two separate numbers per rank.
@@ -21,9 +21,7 @@ export const RANK_INCREASE_FACTOR: Record<CaptainTier, number> = {
   PLATINUM: 0.2,  // 1 - 20%
   GOLD: 0.1,      // 1 - 10%
   BRONZE: 0.05,   // 1 - 5%
-  // Granted less than BRONZE, the rank below it. Deliberate and confirmed by the product
-  // owner — recorded here so the next reader does not "correct" it as a typo.
-  SILVER: 0,      // 0%
+  SILVER: 0,      // 0% (Fourth & base tier)
 };
 
 /** The general no-warning line every rank gets, whatever their own allowance. */
