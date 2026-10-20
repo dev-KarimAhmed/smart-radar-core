@@ -321,7 +321,7 @@ export function ActiveTripTracker({
         />
       </div> */}
 
-      <div className={styles.style63_17}>
+      <div className={cn("mt-5 grid gap-3", step === 'STARTED' && isTripNinetyPercentComplete ? "md:grid-cols-3" : "md:grid-cols-2")}>
         <StepButton
           active={step === 'ACCEPTED'}
           done={['ARRIVED', 'STARTED'].includes(step)}
@@ -346,22 +346,7 @@ export function ActiveTripTracker({
             label={t('complete')}
             onClick={onCompleteTrip}
           />
-        ) : step === 'STARTED' ? (
-          <div className="flex flex-col items-center justify-center gap-1 rounded-2xl border border-amber-500/25 bg-amber-500/[0.08] px-3 py-3 text-center">
-            <div className="flex items-center gap-1.5 text-xs font-black text-amber-300">
-              <Lock className="h-3.5 w-3.5" />
-              <span>إنهاء الرحلة مقفل</span>
-            </div>
-            <span className="text-[11px] font-bold text-slate-400">
-              يتاح بعد 90% (متبقي {remainingMinutesUntilNinety} د)
-            </span>
-          </div>
-        ) : (
-          <div className="flex items-center justify-center gap-1.5 rounded-2xl border border-white/5 bg-white/[0.02] px-3 py-3 text-center text-xs font-bold text-slate-600">
-            <Lock className="h-3.5 w-3.5 opacity-50" />
-            <span>إنهاء الرحلة (مقفل)</span>
-          </div>
-        )}
+        ) : null}
       </div>
 
       <div className={styles.cancelSection}>
