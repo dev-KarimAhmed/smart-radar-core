@@ -94,8 +94,6 @@ const styles = {
   ownPendingDot: "relative inline-flex h-2 w-2 rounded-full bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.9)]",
   ownPendingText: "truncate font-black text-amber-100 text-xs tracking-tight whitespace-nowrap",
   infoFullWidth: "col-span-2",
-  seizeMarketBanner: "mb-3 flex items-center justify-between gap-2 rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-3.5 py-2 text-xs font-black text-[#5eead4] shadow-sm",
-  seizeMarketBadge: "flex h-5 items-center justify-center rounded-md border border-[#14B8A6]/40 bg-black/40 px-2 text-[10px] font-mono font-black text-[#14F5D5]",
   appPriceCard: "mt-3 rounded-2xl border border-amber-500/30 bg-gradient-to-b from-amber-500/[0.08] via-black/50 to-black/70 p-3 shadow-[0_4px_20px_rgba(0,0,0,0.4)] backdrop-blur-sm space-y-2.5",
   appPriceCardHeader: "flex items-center gap-2",
   appPriceCardBadge: "inline-flex items-center gap-1 rounded-lg border border-amber-400/30 bg-amber-500/15 px-2 py-0.5 text-[11px] font-black text-amber-300 shadow-sm shrink-0",
@@ -389,10 +387,6 @@ export function RadarMapView({
             <StateCard tone="empty" icon={<RadioTower className={styles.style215_30} />} title={copy.noRequestsTitle} body={copy.empty} />
           ) : (
             <div className={styles.style217_31}>
-              <div className={styles.seizeMarketBanner}>
-                <span>{copy.seizeMarket}</span>
-                <span className={styles.seizeMarketBadge}>{requests.length}/9</span>
-              </div>
               {requests.map((request) => {
                 const isOwnPendingOffer = pendingOfferRequestId === request.id;
                 const isBlockedByOtherPendingOffer = Boolean(pendingOfferRequestId) && !isOwnPendingOffer;

@@ -10,7 +10,7 @@ import { buildGoogleMapsUrl, isValidCoordinatePair, normalizeExternalMapUrl } fr
 import { generateWeeklyReport, type CaptainRankName } from '../services/captain-rank';
 import { toEpochMs } from '@/shared/services/trip-countdown';
 import { getServerTime } from '@/lib/server-time';
-import { setCaptainCancelCooldown } from '../services/captain-cancel-cooldown';
+import { setCaptainCancelCooldown, clearCaptainCancelCooldown } from '../services/captain-cancel-cooldown';
 
 type RideOfferRow = Record<string, unknown>;
 type RideRequestRow = Record<string, unknown>;
@@ -143,8 +143,19 @@ export function useDriverTransactions(
     setHandshakeAt(null);
     selfCancelledTripId.current = null;
     clearPendingOffer();
+    clearCaptainCancelCooldown();
     setDriverStatus?.('active');
-  }, [clearPendingOffer, setDriverStatus]);
+    if (captainId) {
+      void (async () => {
+        try {
+          await supabase.rpc('set_captain_status', { p_status: 'active' });
+        } catch {}
+        try {
+          await supabase.from('profiles').update({ status: 'ACTIVE' }).eq('id', captainId);
+        } catch {}
+      })();
+    }
+  }, [captainId, clearPendingOffer, setDriverStatus]);
 
   const loadAcceptedRequest = useCallback(async (requestId: string) => {
     const { data, error } = await supabase
@@ -457,17 +468,10 @@ export function useDriverTransactions(
   const endTrip = useCallback(async () => {
     if (!activeRequest?.id || endingRef.current) return false;
 
-    // Guard: Trip cannot be ended before 90% of estimated duration
+    // Guard: Prevent rapid accidental double-taps (at least 3 seconds)
     const startedAtMs = activeRequest.startedAtMs;
-    const estMinutes = Number(activeRequest.estimatedTime) > 0 ? Number(activeRequest.estimatedTime) : 5;
-    const totalTripSeconds = estMinutes * 60;
     const elapsedSec = startedAtMs ? Math.max(0, Math.floor((getServerTime() - startedAtMs) / 1000)) : 0;
-    if (elapsedSec < totalTripSeconds * 0.9) {
-      toast({
-        title: 'لا يمكن إنهاء الرحلة الآن',
-        description: 'يتاح إنهاء الرحلة فقط بعد مرور 90% على الأقل من وقت الرحلة المقدر.',
-        variant: 'warning',
-      });
+    if (startedAtMs && elapsedSec < 3) {
       return false;
     }
 
@@ -538,8 +542,8 @@ export function useDriverTransactions(
     
     const tripId = activeRequest.id;
     selfCancelledTripId.current = tripId;
-    const tripDurationMinutes = Number(activeRequest.estimatedTime) > 0 ? Number(activeRequest.estimatedTime) : 15;
-    setCaptainCancelCooldown(tripDurationMinutes);
+    // Set brief 10s cooldown rather than locking out the captain for 15 minutes
+    setCaptainCancelCooldown(0.16);
 
     try {
       const { error } = await supabase.rpc('captain_cancel_active_trip', {

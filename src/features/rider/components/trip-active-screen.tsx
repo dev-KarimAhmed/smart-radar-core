@@ -90,19 +90,19 @@ export function TripActiveScreen({
   const vehicleColor = resolveColorDisplayName(activeTrip.captain?.vehicle_color, isArabic ? 'ar' : 'en');
 
   const timerLabel = activeTripStatus === 'ARRIVED'
-    ? (isArabic ? 'الكابتن المعلن بانتظارك' : t('trip.driverArrivedTitle'))
+    ? (isArabic ? 'السائق بانتظارك' : t('trip.driverArrivedTitle'))
     : tripHasStarted
     ? (isArabic ? 'الوقت المتبقي للوصول' : t('trip.timeRemaining'))
     : (isArabic ? 'وقت الوصول المتوقع' : t('trip.driverArrival'));
 
   return (
     <div className={cn("space-y-3.5", isArabic ? "text-right" : "text-left")} dir={isArabic ? 'rtl' : 'ltr'}>
-      {/* 1. الترويسة الرئيسية: بيانات الكابتن والتايمر الواضح */}
+      {/* 1. الترويسة الرئيسية: بيانات السائق والتايمر الواضح */}
       <div className="relative overflow-hidden rounded-2xl border border-[#14B8A6]/30 bg-gradient-to-b from-[#0C1527] via-[#080E1C] to-[#040812] p-4 shadow-xl shadow-black/40">
         <div className="pointer-events-none absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-[#14F5D5]/60 to-transparent" />
 
         <div className="flex items-center justify-between gap-3">
-          {/* بيانات الكابتن وحالة المسار */}
+          {/* بيانات السائق وحالة المسار */}
           <div className="min-w-0 flex-1 space-y-1.5">
             {/* مؤشر الحالة الفعلي (بدون عبارة الرحلة بدأت) */}
             <div className="inline-flex items-center gap-1.5 rounded-full border border-[#14B8A6]/35 bg-[#14B8A6]/10 px-2.5 py-0.5 shadow-sm">
@@ -112,10 +112,10 @@ export function TripActiveScreen({
               </span>
               <span className="text-[10px] font-black text-[#14F5D5]">
                 {activeTripStatus === 'ARRIVED'
-                  ? (isArabic ? 'وصل الكابتن المعلن إلى موقعك' : t('trip.driverArrivedTitle'))
+                  ? (isArabic ? 'وصل السائق إلى موقعك' : t('trip.driverArrivedTitle'))
                   : tripHasStarted
                   ? (isArabic ? 'الرحلة جارية الآن' : t('trip.started'))
-                  : (isArabic ? 'الكابتن المعلن في الطريق إليك' : 'Captain on the way')}
+                  : (isArabic ? 'السائق في الطريق إليك' : 'Driver on the way')}
               </span>
             </div>
 

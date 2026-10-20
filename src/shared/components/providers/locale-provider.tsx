@@ -83,13 +83,23 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
     [applyLocale],
   );
 
+  const toggleLocale = useCallback(() => {
+    setLocaleState((current) => {
+      const next: AppLanguage = current === 'ar' ? 'en' : 'ar';
+      persistDashboardLanguage(next);
+      applyDocumentLanguage(next);
+      window.dispatchEvent(new CustomEvent(DASHBOARD_LANGUAGE_EVENT, { detail: next }));
+      return next;
+    });
+  }, []);
+
   const contextValue = useMemo<LocaleContextValue>(
     () => ({
       currentLocale: locale,
       setLocale,
-      toggleLocale: () => setLocale(locale === 'ar' ? 'en' : 'ar'),
+      toggleLocale,
     }),
-    [setLocale, locale],
+    [setLocale, toggleLocale, locale],
   );
 
   return (

@@ -15,14 +15,17 @@ export interface CaptainCancelCooldownState {
  */
 export function setCaptainCancelCooldown(durationMinutes: number) {
   if (typeof window === 'undefined') return;
-  const minutes = Math.max(1, Math.round(Number(durationMinutes) || 15));
-  const until = Date.now() + minutes * 60 * 1000;
+  const numMinutes = Number(durationMinutes);
+  const ms = numMinutes > 0 && numMinutes < 1
+    ? Math.max(5000, Math.round(numMinutes * 60 * 1000))
+    : Math.max(1, Math.round(numMinutes || 15)) * 60 * 1000;
+  const until = Date.now() + ms;
   try {
     localStorage.setItem(STORAGE_KEY_UNTIL, String(until));
-    localStorage.setItem(STORAGE_KEY_MINUTES, String(minutes));
+    localStorage.setItem(STORAGE_KEY_MINUTES, String(Math.max(1, Math.round(numMinutes || 1))));
     window.dispatchEvent(
       new CustomEvent('captain-cancel-cooldown-changed', {
-        detail: { until, minutes },
+        detail: { until, minutes: Math.max(1, Math.round(numMinutes || 1)) },
       }),
     );
   } catch {

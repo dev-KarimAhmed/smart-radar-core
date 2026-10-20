@@ -1311,7 +1311,7 @@
     "title": "Requests and trips",
     "online": "Online",
     "offline": "Offline",
-    "radar": "Radar",
+    "radar": "Map",
     "wallet": "Wallet",
     "profile": "Profile",
     "logout": "Log out",
@@ -3049,9 +3049,9 @@
     "key_0ae33a07": "السائقون المفضلون (EN)",
     "key_89b66bbd": "منصة وساطة مستقلة لطلب الرحلات (EN)",
     "key_5cbbdfd5": "قائمة المستخدم الرئيسية (EN)",
-    "key_60799d01": "التبديل إلى العربية (EN)",
-    "key_26b1b2b0": "العربية (EN)",
-    "key_b4dfa835": "ع (EN)",
+    "key_60799d01": "Switch to Arabic",
+    "key_26b1b2b0": "Arabic",
+    "key_b4dfa835": "عربي",
     "key_e8594184": "كم (EN)",
     "key_955d3cd2": "مسار هادئ (صامت) (EN)",
     "key_4dfff550": "مرحب بالحديث (EN)",
@@ -3941,7 +3941,7 @@
     "confirmLogout": "Confirm Logout",
     "back": "Dismiss",
     "switchLanguage": "Switch Interface Language",
-    "languageLabel": "عربي / English"
+    "languageLabel": "العربية"
   },
   "adminNotifications": {
     "bellTitle": "Sovereign Notification & Alert Center",

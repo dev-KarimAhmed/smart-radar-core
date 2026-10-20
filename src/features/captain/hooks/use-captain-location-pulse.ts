@@ -56,7 +56,14 @@ export function useCaptainLocationPulse({ user, driverStatus, location }: UseCap
           p_h3: h3Cell,
         });
 
-        if (fallback.error) throw fallback.error;
+        if (fallback.error && user?.uid) {
+          await supabase.from('profiles').update({
+            latitude: Number(location.lat),
+            longitude: Number(location.lng),
+            h3_cell: h3Cell,
+            last_location_update: new Date().toISOString(),
+          }).eq('id', user.uid);
+        }
       }
 
       setLastPulseAt(Date.now());

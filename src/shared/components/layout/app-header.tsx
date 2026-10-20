@@ -248,7 +248,19 @@ export function AppHeader({ sidebar }: { sidebar?: ReactNode }) {
           </div>
         )}
 
-        <div className={styles.spacer} />
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={toggleLanguage}
+            className="h-8 gap-1.5 rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-2.5 text-xs font-black text-[#14F5D5] hover:bg-[#14B8A6]/20 transition-all cursor-pointer"
+            title={isArabic ? 'Switch to English' : 'التبديل إلى العربية'}
+          >
+            <Languages className="h-3.5 w-3.5" />
+            <span>{isArabic ? 'EN' : 'عربي'}</span>
+          </Button>
+        </div>
       </header>
       {user && isCaptain ? <DriverCabin /> : null}
 

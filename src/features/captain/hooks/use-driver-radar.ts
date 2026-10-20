@@ -322,6 +322,13 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
           void fetchPendingRequests();
         },
       )
+      .on(
+        'broadcast',
+        { event: 'RIDE_REQUEST_CREATED' },
+        () => {
+          void fetchPendingRequests();
+        },
+      )
       .subscribe((status) => {
         if ((status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') && (process.env.NODE_ENV !== 'production')) {
           console.warn('[Driver radar] realtime channel issue:', status);
@@ -333,12 +340,12 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
     };
   }, [driverStatus, fetchPendingRequests, user?.uid]);
 
-  // Belt-and-suspenders poll every 10 seconds: cleans up expired requests and syncs radar
+  // Active radar polling every 2.5 seconds: fast, responsive updates for incoming requests
   useEffect(() => {
     if (driverStatus !== 'active') return;
     const intervalId = window.setInterval(() => {
       void fetchPendingRequests();
-    }, 10_000);
+    }, 2_500);
     return () => window.clearInterval(intervalId);
   }, [driverStatus, fetchPendingRequests]);
 
@@ -365,7 +372,10 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
   }, []);
 
   const requests = useMemo(() => {
-    if (cancelCooldown.isActive) return [];
+    if (cancelCooldown.isActive) {
+      const live = getCaptainCancelCooldown();
+      if (live.isActive) return [];
+    }
     return rawRequests.filter((request) => !rejectedTripIds.includes(request.id));
   }, [cancelCooldown.isActive, rawRequests, rejectedTripIds]);
 
