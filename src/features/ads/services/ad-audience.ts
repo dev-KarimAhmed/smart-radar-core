@@ -21,11 +21,11 @@ export function readAdAudience(row: Record<string, any> | null | undefined): AdA
  * Keeps only the campaigns belonging to `audience`. An undefined audience means
  * the host screen is not audience-scoped, so the whole pool passes through.
  */
-export function filterAdsByAudience<T extends { forDriver?: boolean }>(
+export function filterAdsByAudience<T extends Record<string, any>>(
   ads: T[],
   audience?: AdAudience,
 ): T[] {
   if (!audience) return ads;
 
-  return ads.filter((ad) => (ad?.forDriver === true ? 'captain' : 'rider') === audience);
+  return ads.filter((ad) => readAdAudience(ad) === audience);
 }
