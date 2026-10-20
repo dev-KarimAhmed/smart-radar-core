@@ -44,7 +44,6 @@ const styles = {
   style154_4: "mx-auto flex w-full max-w-[1800px] flex-col gap-4",
   style155_5: "flex flex-col gap-3 rounded-3xl border border-emerald-500/20 bg-[#05080f] p-3 sm:p-4",
   style156_1: "flex items-center justify-between gap-2",
-  style157_6: "text-[11px] font-black text-[#14B8A6] sm:text-xs",
   style158_7: "text-lg font-black sm:text-2xl",
   style160_8: "flex shrink-0 items-center gap-1.5 sm:gap-2",
   style163_1: "flex flex-wrap items-center gap-1.5 sm:gap-2",
@@ -412,7 +411,6 @@ export function DriverViewTab() {
         <header className={styles.style155_5}>
           <div className={styles.style156_1}>
             <div>
-              <p className={styles.style157_6}>{t('badge')}</p>
               <h1 className={styles.style158_7}>{t('title')}</h1>
             </div>
             <div className={styles.style160_8}>
