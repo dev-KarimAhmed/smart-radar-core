@@ -128,10 +128,14 @@ DECLARE
   v_target_captain uuid := coalesce(p_captain_id, auth.uid());
   v_record RECORD;
   v_notif_count integer := 0;
-  v_rider_name text;
+  v_rider_name_ar text;
+  v_rider_name_en text;
+  v_notif_desc_ar text;
+  v_notif_desc_en text;
   v_notif_desc text;
   v_notif_id text;
   v_days_inactive integer;
+  v_i18n_payload jsonb;
 BEGIN
   IF v_target_captain IS NULL THEN
     RETURN jsonb_build_object('success', false, 'error', 'captain_id_required');
@@ -154,12 +158,25 @@ BEGIN
       AND (r.last_inactivity_notified_at IS NULL OR r.last_inactivity_notified_at <= (now() - INTERVAL '10 days'))
   LOOP
     v_days_inactive := v_record.days_inactive;
-    v_rider_name := coalesce(nullif(trim(v_record.full_name), ''), 'المسجل برابطك');
+    v_rider_name_ar := coalesce(nullif(trim(v_record.full_name), ''), 'المسجل برابطك');
+    v_rider_name_en := coalesce(nullif(trim(v_record.full_name), ''), 'Referred Client');
 
-    -- Notification message formatted politely and clearly in Arabic:
-    -- Informs the captain that the rider is inactive, missing out on collecting points and tier promotion,
-    -- encouraging them to reconnect with the rider.
-    v_notif_desc := 'الراكب (' || v_rider_name || ') غير متفاعل منذ ' || v_days_inactive::text || ' يوماً. عدم تفاعله في طلب الرحلات أو مشاهدة الإعلانات يضيع عليك تجميع النقاط وترقية رتبتك! تواصل معه وشجعه على التفاعل والاستفادة من خدماتك.';
+    -- Dual-language notification payloads:
+    -- Arabic version
+    v_notif_desc_ar := 'العميل (' || v_rider_name_ar || ') غير متفاعل منذ ' || v_days_inactive::text || ' يوماً. عدم تفاعله في طلب الرحلات أو مشاهدة الإعلانات يضيع عليك تجميع النقاط وترقية رتبتك! تواصل معه وشجعه على التفاعل والاستفادة من خدماتك.';
+
+    -- English version
+    v_notif_desc_en := 'Client (' || v_rider_name_en || ') has been inactive for ' || v_days_inactive::text || ' days. Their lack of ride requests or ad engagements prevents you from earning points and upgrading your rank! Reach out and encourage them to use your services.';
+
+    -- Package into standard zero-cost i18n payload
+    v_i18n_payload := jsonb_build_object(
+      'title_ar', 'تنبيه عدم نشاط راكب ⚠️',
+      'body_ar', v_notif_desc_ar,
+      'title_en', 'Rider Inactivity Alert ⚠️',
+      'body_en', v_notif_desc_en
+    );
+
+    v_notif_desc := v_notif_desc_ar || E'\n\n<!--i18n:' || v_i18n_payload::text || '-->';
 
     v_notif_id := 'notif_inact_' || v_record.captain_id::text || '_' || v_record.rider_id::text || '_' || to_char(now(), 'YYYYMMDD');
 
