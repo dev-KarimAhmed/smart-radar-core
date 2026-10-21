@@ -33,7 +33,7 @@ function playAlertSound() {
 export function useTripMutualCancellation({
   requestId,
   role,
-  tripDurationMinutes = 15,
+  tripDurationMinutes = 20,
   onCancelledConfirmed,
 }: UseTripMutualCancellationProps): UseTripMutualCancellationReturn {
   const { toast } = useToast();
@@ -41,7 +41,7 @@ export function useTripMutualCancellation({
   const [isProcessing, setIsProcessing] = useState(false);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
-  const durationMinutes = Math.max(1, Math.round(Number(tripDurationMinutes) || 15));
+  const durationMinutes = Math.max(1, Math.round(Number(tripDurationMinutes) || 20));
 
   useEffect(() => {
     if (!requestId) {
@@ -96,11 +96,13 @@ export function useTripMutualCancellation({
           });
         }
       })
-      .on('broadcast', { event: 'ACCEPT_CANCEL' }, async () => {
+      .on('broadcast', { event: 'ACCEPT_CANCEL' }, async (payload) => {
         // Mutual cancellation confirmed by other party
         setPendingRequestFrom(null);
         if (role === 'captain') {
-          setCaptainCancelCooldown(durationMinutes);
+          const payloadMinutes = Number(payload.payload?.tripDurationMinutes);
+          const finalMinutes = payloadMinutes > 0 ? payloadMinutes : durationMinutes;
+          setCaptainCancelCooldown(finalMinutes);
         }
         try {
           if (onCancelledConfirmed) {
@@ -125,7 +127,7 @@ export function useTripMutualCancellation({
       await channelRef.current.send({
         type: 'broadcast',
         event: 'REQUEST_CANCEL',
-        payload: { fromRole: role, timestamp: Date.now() },
+        payload: { fromRole: role, tripDurationMinutes: durationMinutes, timestamp: Date.now() },
       });
       toast({
         title: 'تم إرسال طلب إلغاء الرحلة',
@@ -137,25 +139,25 @@ export function useTripMutualCancellation({
     } catch (err) {
       console.warn('[useTripMutualCancellation] requestCancel send failed:', err);
     }
-  }, [requestId, role, toast]);
+  }, [requestId, role, durationMinutes, toast]);
 
   const acceptCancel = useCallback(async () => {
     if (!requestId) return;
     setIsProcessing(true);
 
     try {
-      // 1. Broadcast agreement to other party
+      // 1. If captain, activate cooldown immediately for the cancelled trip's duration
+      if (role === 'captain') {
+        setCaptainCancelCooldown(durationMinutes);
+      }
+
+      // 2. Broadcast agreement to other party
       if (channelRef.current) {
         await channelRef.current.send({
           type: 'broadcast',
           event: 'ACCEPT_CANCEL',
-          payload: { fromRole: role, timestamp: Date.now() },
+          payload: { fromRole: role, tripDurationMinutes: durationMinutes, timestamp: Date.now() },
         });
-      }
-
-      // 2. If captain, activate cooldown for the cancelled trip's duration
-      if (role === 'captain') {
-        setCaptainCancelCooldown(durationMinutes);
       }
 
       // 3. Execute server-side cancellation via mutual-cancel API endpoint
@@ -163,7 +165,7 @@ export function useTripMutualCancellation({
         await fetch('/api/trip/mutual-cancel', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ requestId, cancelledByRole: role }),
+          body: JSON.stringify({ requestId, cancelledByRole: role, tripDurationMinutes: durationMinutes }),
         });
       } catch (apiErr) {
         console.warn('[useTripMutualCancellation] api mutual-cancel error:', apiErr);

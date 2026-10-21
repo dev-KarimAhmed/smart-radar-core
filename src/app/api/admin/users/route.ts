@@ -48,14 +48,15 @@ export async function GET(req: Request) {
       captainProfilesMap = new Map((caps || []).map(c => [c.id, c]));
     }
 
-    // 3.5. Fetch completed trips count and active requests in batch
+    // 3.5. Fetch completed trips count, active requests, and referral activity in batch
     let completedTripsMap = new Map<string, number>();
     let activeRequestsMap = new Map<string, string>();
     let consecutiveCancellationsMap = new Map<string, number>();
+    let referralMap = new Map<string, any>();
 
     if (profileIds.length > 0) {
       if (roleFilter === 'RIDER') {
-        const [completedRes, activeRes, recentReqsRes] = await Promise.all([
+        const [completedRes, activeRes, recentReqsRes, referralRes] = await Promise.all([
           supabaseAdmin
             .from('ride_requests')
             .select('rider_id')
@@ -72,6 +73,10 @@ export async function GET(req: Request) {
             .in('rider_id', profileIds)
             .order('created_at', { ascending: false })
             .limit(500),
+          supabaseAdmin
+            .from('captain_rider_referrals')
+            .select('id, rider_id, captain_id, last_interacted_at, last_inactivity_notified_at, created_at, profiles:captain_id(full_name, phone, serial_id)')
+            .in('rider_id', profileIds),
         ]);
 
         for (const row of completedRes.data || []) {
@@ -82,6 +87,11 @@ export async function GET(req: Request) {
         for (const row of activeRes.data || []) {
           if (row.rider_id) {
             activeRequestsMap.set(row.rider_id, row.status);
+          }
+        }
+        for (const row of referralRes.data || []) {
+          if (row.rider_id) {
+            referralMap.set(row.rider_id, row);
           }
         }
 
@@ -245,6 +255,22 @@ export async function GET(req: Request) {
           currency_code: currencyCode,
           currency_ar: currencyAr,
         },
+        referral_activity: {
+          has_referral: Boolean(referralMap.get(p.id)),
+          referral_id: referralMap.get(p.id)?.id || null,
+          captain_id: referralMap.get(p.id)?.captain_id || null,
+          captain_name: (referralMap.get(p.id)?.profiles as any)?.full_name || null,
+          captain_phone: (referralMap.get(p.id)?.profiles as any)?.phone || null,
+          captain_serial: (referralMap.get(p.id)?.profiles as any)?.serial_id || null,
+          last_interacted_at: referralMap.get(p.id)?.last_interacted_at || p.updated_at || p.created_at,
+          days_inactive: referralMap.get(p.id)
+            ? Math.max(0, Math.floor((Date.now() - new Date(referralMap.get(p.id).last_interacted_at || referralMap.get(p.id).created_at).getTime()) / (1000 * 60 * 60 * 24)))
+            : 0,
+          is_active: referralMap.get(p.id)
+            ? Math.max(0, Math.floor((Date.now() - new Date(referralMap.get(p.id).last_interacted_at || referralMap.get(p.id).created_at).getTime()) / (1000 * 60 * 60 * 24))) < 10
+            : true,
+          last_notified_at: referralMap.get(p.id)?.last_inactivity_notified_at || null,
+        },
       };
     });
 
@@ -280,9 +306,10 @@ export async function POST(req: Request) {
   try {
     const { action, userId, userIds, target, role = 'CAPTAIN' } = body || {};
 
-    const isBulkAction = action?.startsWith('bulk_');
+    const isBulkAction = action?.startsWith('bulk_') || action === 'run_inactivity_check';
+    const effectiveUserId = userId || body?.riderId;
 
-    if (!isBulkAction && !userId) {
+    if (!isBulkAction && !effectiveUserId) {
       return NextResponse.json({ success: false, error: 'userId is required' }, { status: 400 });
     }
 
@@ -995,6 +1022,115 @@ export async function POST(req: Request) {
             message: `تم تعديل الرصيد النقدي بمقدار (${numAmount}) لـ (${targetIds.length}) كابتن معلن بنجاح.`,
           });
         }
+      }
+
+      // 10. Simulate Rider Referral Inactivity / Activity
+      case 'simulate_rider_activity': {
+        const { riderId, daysAgo = 0, captainId } = body;
+        const targetRiderId = riderId || effectiveUserId;
+        if (!targetRiderId) {
+          return NextResponse.json({ success: false, error: 'riderId is required' }, { status: 400 });
+        }
+
+        // Check if referral exists
+        let { data: refRow } = await supabaseAdmin
+          .from('captain_rider_referrals')
+          .select('id, captain_id')
+          .eq('rider_id', targetRiderId)
+          .maybeSingle();
+
+        // If no referral exists, link to the provided captain or the first active captain
+        if (!refRow) {
+          let targetCaptainId = captainId;
+          if (!targetCaptainId) {
+            const { data: firstCap } = await supabaseAdmin
+              .from('profiles')
+              .select('id')
+              .eq('role', 'CAPTAIN')
+              .limit(1)
+              .maybeSingle();
+            targetCaptainId = firstCap?.id;
+          }
+
+          if (targetCaptainId) {
+            const { data: newRef, error: createRefErr } = await supabaseAdmin
+              .from('captain_rider_referrals')
+              .insert({
+                rider_id: targetRiderId,
+                captain_id: targetCaptainId,
+                last_interacted_at: new Date().toISOString(),
+              })
+              .select('id, captain_id')
+              .single();
+
+            if (!createRefErr && newRef) {
+              refRow = newRef;
+            }
+          }
+        }
+
+        const daysNum = Math.max(0, Number(daysAgo) || 0);
+        const newInteractedAt = daysNum <= 0
+          ? new Date().toISOString()
+          : new Date(Date.now() - daysNum * 24 * 60 * 60 * 1000).toISOString();
+
+        if (refRow?.id) {
+          const { error: updErr } = await supabaseAdmin
+            .from('captain_rider_referrals')
+            .update({
+              last_interacted_at: newInteractedAt,
+              last_inactivity_notified_at: null,
+            })
+            .eq('id', refRow.id);
+
+          if (updErr) throw updErr;
+        }
+
+        // Also touch profiles.updated_at
+        await supabaseAdmin
+          .from('profiles')
+          .update({
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', targetRiderId);
+
+        return NextResponse.json({
+          success: true,
+          message: daysNum <= 0
+            ? 'تم تنشيط الراكب واعتباره متفاعلاً اليوم بنجاح ⚡'
+            : `تمت محاكاة عدم نشاط الراكب منذ ${daysNum} يوماً بنجاح ⏳`,
+          simulatedDaysAgo: daysNum,
+          lastInteractedAt: newInteractedAt,
+          captainId: refRow?.captain_id || null,
+        });
+      }
+
+      // 11. Run Inactivity Sweep & Trigger Captain Notifications
+      case 'run_inactivity_check': {
+        const { captainId } = body;
+        let resData: any;
+        if (captainId) {
+          const { data, error } = await supabaseAdmin.rpc('check_captain_inactive_riders', {
+            p_captain_id: captainId,
+          });
+          if (error) throw error;
+          resData = data;
+        } else {
+          const { data, error } = await supabaseAdmin.rpc('check_and_notify_inactive_referred_riders');
+          if (error) throw error;
+          resData = data;
+        }
+
+        const count = resData?.notifications_dispatched || resData?.total_notifications_dispatched || 0;
+
+        return NextResponse.json({
+          success: true,
+          message: count > 0
+            ? `تم فحص عدم النشاط وإرسال (${count}) إشعار تنبيه للكباتن بنجاح 🚀`
+            : 'تم فحص عدم النشاط: لا توجد إشعارات جديدة مستحقة حالياً.',
+          data: resData,
+          notificationsDispatched: count,
+        });
       }
 
       default:

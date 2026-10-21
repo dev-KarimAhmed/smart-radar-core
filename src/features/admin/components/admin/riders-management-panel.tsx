@@ -27,6 +27,7 @@ import {
   MessageCircle,
   Globe,
   Languages,
+  FlaskConical,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -47,6 +48,7 @@ import { useTranslations } from 'next-intl';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { GeoFilterBar, GeoLookup } from './geo-filter-bar';
 import { requestTranslation } from '@/shared/utils/notification-i18n';
+import { AdminRiderInactivitySimulationPanel } from './admin-rider-inactivity-simulation-panel';
 
 export interface RiderUser {
   id: string;
@@ -72,6 +74,18 @@ export interface RiderUser {
   wallet: {
     balance: number;
     currency_code: string;
+  };
+  referral_activity?: {
+    has_referral: boolean;
+    referral_id?: string | null;
+    captain_id?: string | null;
+    captain_name?: string | null;
+    captain_phone?: string | null;
+    captain_serial?: string | null;
+    last_interacted_at?: string;
+    days_inactive?: number;
+    is_active?: boolean;
+    last_notified_at?: string | null;
   };
 }
 
@@ -138,6 +152,16 @@ export function RidersManagementPanel() {
   // Modals state
   const [inspectRider, setInspectRider] = useState<RiderUser | null>(null);
   const [securityRider, setSecurityRider] = useState<RiderUser | null>(null);
+
+  // Inactivity simulation state
+  const [isSimulationOpen, setIsSimulationOpen] = useState(false);
+  const [simulationRiderId, setSimulationRiderId] = useState<string | null>(null);
+
+  const handleOpenSimulationForRider = (rider: RiderUser) => {
+    setSimulationRiderId(rider.id);
+    setIsSimulationOpen(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   // Direct Message modal inputs
   const [messageRider, setMessageRider] = useState<RiderUser | null>(null);
@@ -453,6 +477,22 @@ export function RidersManagementPanel() {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Inactivity & Activity Simulation Toggle Button */}
+          <Button
+            type="button"
+            onClick={() => setIsSimulationOpen((prev) => !prev)}
+            className={cn(
+              "font-black text-xs h-10 px-3.5 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 shadow-md",
+              isSimulationOpen
+                ? "bg-amber-500 text-slate-950 border border-amber-400 shadow-amber-500/25 ring-1 ring-amber-400/50"
+                : "border border-amber-500/40 bg-amber-500/15 text-amber-300 hover:bg-amber-500/25"
+            )}
+            title={t('simulationSubtitle')}
+          >
+            <FlaskConical className="w-4 h-4" />
+            <span>{t('simulationToggleBtn')}</span>
+          </Button>
+
           {/* Global Bulk Message / Notification Button */}
           <Button
             type="button"
@@ -479,6 +519,18 @@ export function RidersManagementPanel() {
           </Button>
         </div>
       </div>
+
+      {/* Inactivity & Activity Simulation Panel */}
+      {isSimulationOpen && (
+        <AdminRiderInactivitySimulationPanel
+          riders={riders}
+          selectedRiderId={simulationRiderId}
+          onSelectRider={(id) => setSimulationRiderId(id)}
+          onRefresh={() => fetchRiders(true)}
+          onClose={() => setIsSimulationOpen(false)}
+          isArabic={isArabic}
+        />
+      )}
 
       {/* 2. KPI Summary Bar */}
       <div className={styles.kpiGrid}>
@@ -713,6 +765,7 @@ export function RidersManagementPanel() {
                     <th className="py-4 px-4 font-black text-slate-200">{t('colTrips')}</th>
                     <th className="py-4 px-4 font-black text-slate-200">{t('colCancellations')}</th>
                     <th className="py-4 px-4 font-black text-slate-200">{t('colStatus')}</th>
+                    <th className="py-4 px-4 font-black text-slate-200">{t('colActivity')}</th>
                     <th className="py-4 px-4 font-black text-slate-200 text-center">{t('colActions')}</th>
                   </tr>
                 </thead>
@@ -803,9 +856,51 @@ export function RidersManagementPanel() {
                           {getStatusBadge(rider.status)}
                         </td>
 
+                        {/* 6.5. Referral Activity & Engagement */}
+                        <td className="py-4 px-4">
+                          {rider.referral_activity ? (
+                            <div className="space-y-1">
+                              <Badge
+                                className={cn(
+                                  "text-[10px] font-black border shadow-sm",
+                                  !rider.referral_activity.is_active
+                                    ? "bg-amber-950/80 border-amber-500/40 text-amber-300"
+                                    : "bg-emerald-950/80 border-emerald-500/40 text-emerald-300"
+                                )}
+                              >
+                                {!rider.referral_activity.is_active
+                                  ? `${t('simulationInactiveBadge', { days: rider.referral_activity.days_inactive ?? 0 })} ⚠️`
+                                  : `${t('simulationActiveBadge')} 🟢`}
+                              </Badge>
+                              {rider.referral_activity.captain_name ? (
+                                <p className="text-[10px] text-slate-400 truncate max-w-[130px]" title={rider.referral_activity.captain_name}>
+                                  كابتن: {rider.referral_activity.captain_name}
+                                </p>
+                              ) : null}
+                            </div>
+                          ) : (
+                            <Badge variant="outline" className="text-[10px] border-white/10 text-slate-500 font-bold">
+                              {isArabic ? 'حر / غير محال' : 'Unlinked'}
+                            </Badge>
+                          )}
+                        </td>
+
                         {/* 7. Action buttons */}
                         <td className="py-4 px-4 text-center">
                           <div className="flex items-center justify-center gap-2">
+                            {/* Inactivity Simulation */}
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleOpenSimulationForRider(rider)}
+                              className="h-8 px-2.5 rounded-xl border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-xs font-bold flex items-center gap-1 shadow-sm active:scale-95 transition-all cursor-pointer"
+                              title={isArabic ? 'فتح لوحة المحاكاة لهذا الراكب' : 'Open simulation for this rider'}
+                            >
+                              <FlaskConical className="h-3.5 w-3.5 text-amber-400" />
+                              <span>{isArabic ? 'محاكاة 🧪' : 'Simulate 🧪'}</span>
+                            </Button>
+
                             {/* Inspect */}
                             <Button
                               type="button"

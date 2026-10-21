@@ -582,6 +582,7 @@ export function DriverViewTab() {
             bonusMinutes={bonusMinutes}
             currency={currency}
             radarLockMessage={driverOps.radarLockMessage}
+            cancelCooldown={driverOps.cancelCooldown}
             requests={driverOps.requests}
             pendingOfferRequestId={driverOps.pendingOfferRequestId}
             captainPricingMode={currentTariff?.pricingMode ?? null}

@@ -143,7 +143,6 @@ export function useDriverTransactions(
     setHandshakeAt(null);
     selfCancelledTripId.current = null;
     clearPendingOffer();
-    clearCaptainCancelCooldown();
     setDriverStatus?.('active');
     if (captainId) {
       void (async () => {
@@ -542,8 +541,17 @@ export function useDriverTransactions(
     
     const tripId = activeRequest.id;
     selfCancelledTripId.current = tripId;
-    // Set brief 10s cooldown rather than locking out the captain for 15 minutes
-    setCaptainCancelCooldown(0.16);
+    
+    // Set radar lockout equal to the estimated duration of the cancelled trip (e.g. 20 min)
+    const tripMinutes = Math.max(
+      1,
+      Number(activeRequest.estimatedTime) > 0
+        ? Math.round(Number(activeRequest.estimatedTime))
+        : Number(activeRequest.estimatedDistance) > 0
+          ? Math.max(5, Math.round(Number(activeRequest.estimatedDistance) * 2.5))
+          : 20
+    );
+    setCaptainCancelCooldown(tripMinutes);
 
     try {
       const { error } = await supabase.rpc('captain_cancel_active_trip', {

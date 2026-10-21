@@ -18,14 +18,17 @@ export function setCaptainCancelCooldown(durationMinutes: number) {
   const numMinutes = Number(durationMinutes);
   const ms = numMinutes > 0 && numMinutes < 1
     ? Math.max(5000, Math.round(numMinutes * 60 * 1000))
-    : Math.max(1, Math.round(numMinutes || 15)) * 60 * 1000;
+    : Math.max(1, Math.round(numMinutes || 20)) * 60 * 1000;
+  const effectiveMinutes = numMinutes > 0 && numMinutes < 1
+    ? 1
+    : Math.max(1, Math.round(numMinutes || 20));
   const until = Date.now() + ms;
   try {
     localStorage.setItem(STORAGE_KEY_UNTIL, String(until));
-    localStorage.setItem(STORAGE_KEY_MINUTES, String(Math.max(1, Math.round(numMinutes || 1))));
+    localStorage.setItem(STORAGE_KEY_MINUTES, String(effectiveMinutes));
     window.dispatchEvent(
       new CustomEvent('captain-cancel-cooldown-changed', {
-        detail: { until, minutes: Math.max(1, Math.round(numMinutes || 1)) },
+        detail: { until, minutes: effectiveMinutes },
       }),
     );
   } catch {
@@ -77,5 +80,20 @@ export function clearCaptainCancelCooldown() {
   } catch {
     // Ignore storage errors
   }
+}
+
+/**
+ * Formats seconds into human-readable MM:SS or HH:MM:SS for countdown display.
+ */
+export function formatSecondsToMMSS(totalSeconds: number): string {
+  if (!totalSeconds || totalSeconds <= 0) return '0:00';
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  if (m >= 60) {
+    const h = Math.floor(m / 60);
+    const remM = m % 60;
+    return `${h}:${remM.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  }
+  return `${m}:${s.toString().padStart(2, '0')}`;
 }
 

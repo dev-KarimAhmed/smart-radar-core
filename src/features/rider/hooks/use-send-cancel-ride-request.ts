@@ -222,7 +222,49 @@ export function useSendCancelRideRequest(params: {
         pricingPreference: pricingPreference || null,
       });
 
-      const request = await createRideRequest(supabase, payload);
+      let request;
+      try {
+        request = await createRideRequest(supabase, payload);
+      } catch (insertError: any) {
+        const errorMsg = String(insertError?.message || '') + String(insertError?.code || '') + String(insertError?.details || '');
+        const isDuplicateActive =
+          insertError?.code === '23505' ||
+          errorMsg.includes('unique_active_rider_request') ||
+          errorMsg.includes('duplicate');
+
+        if (isDuplicateActive && userId) {
+          try {
+            const { data: staleRows } = await (supabase as any)
+              .from('ride_requests')
+              .select('id, status')
+              .eq('rider_id', userId)
+              .in('status', ['PENDING', 'ACCEPTED', 'ARRIVED', 'TRIP_ACTIVE'])
+              .order('created_at', { ascending: false })
+              .limit(1);
+
+            const staleId = staleRows?.[0]?.id;
+            if (staleId) {
+              try {
+                await cancelRideRequest(supabase, staleId);
+              } catch {
+                await fetch('/api/trip/mutual-cancel', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ requestId: staleId, cancelledByRole: 'rider' }),
+                }).catch(() => {});
+              }
+              request = await createRideRequest(supabase, payload);
+            } else {
+              throw insertError;
+            }
+          } catch {
+            throw insertError;
+          }
+        } else {
+          throw insertError;
+        }
+      }
+
       dispatch({ type: 'SERVER_REQUEST_CREATED', requestId: request.id });
       dispatch({ type: 'SERVER_STATUS_RECEIVING_OFFERS' });
 

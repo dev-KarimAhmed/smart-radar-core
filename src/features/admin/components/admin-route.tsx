@@ -131,7 +131,7 @@ export function AdminRoute() {
 
   if (isAdmin) {
     return (
-      <main className={styles.root} data-admin-route>
+      <main className={styles.root} data-admin-route dir={direction}>
         <AdminWorkspace />
       </main>
     );

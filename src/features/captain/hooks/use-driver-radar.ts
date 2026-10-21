@@ -64,7 +64,11 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
       setCancelCooldown(getCaptainCancelCooldown());
     };
     window.addEventListener('captain-cancel-cooldown-changed', handleCooldownChange);
-    return () => window.removeEventListener('captain-cancel-cooldown-changed', handleCooldownChange);
+    window.addEventListener('storage', handleCooldownChange);
+    return () => {
+      window.removeEventListener('captain-cancel-cooldown-changed', handleCooldownChange);
+      window.removeEventListener('storage', handleCooldownChange);
+    };
   }, []);
 
   // Cached real GPS location from previous session in this device to eliminate fallback jumps
@@ -388,6 +392,7 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
     currentDistrict: user?.district || '',
     currentH3Cell,
     radarLockMessage,
+    cancelCooldown,
     isDisconnectionLockActive: false,
   };
 }

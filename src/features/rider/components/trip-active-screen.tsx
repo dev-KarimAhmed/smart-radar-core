@@ -55,9 +55,14 @@ export function TripActiveScreen({
   const activeTripStatus = String(activeTrip.status || '').toUpperCase();
   const tripHasStarted = isTripStartedStatus(activeTripStatus);
 
-  const tripDurationMinutes = Number(activeTrip.tripDurationMinutes) > 0
-    ? Number(activeTrip.tripDurationMinutes)
-    : (countdown?.totalSeconds ? Math.round(countdown.totalSeconds / 60) : 15);
+  const tripDurationMinutes = Math.max(
+    1,
+    Number(activeTrip.tripDurationMinutes) > 0
+      ? Math.round(Number(activeTrip.tripDurationMinutes))
+      : Number(activeTrip.distanceKm) > 0
+        ? Math.max(5, Math.round(Number(activeTrip.distanceKm) * 2.5))
+        : (countdown?.totalSeconds ? Math.round(countdown.totalSeconds / 60) : 20)
+  );
 
   const mutualCancel = useTripMutualCancellation({
     requestId: activeTrip.tripId,
@@ -325,14 +330,25 @@ export function TripActiveScreen({
             <span>{mutualCancel.isProcessing ? (isArabic ? 'جاري الإرسال...' : 'Sending...') : (isArabic ? 'طلب إلغاء الرحلة' : 'Request Cancellation')}</span>
           </button>
         ) : (
-          <button
-            type="button"
-            onClick={onEmergencyWhatsapp}
-            className="w-full flex items-center justify-center gap-2 h-12 bg-red-600/90 hover:bg-red-500 text-white font-black text-sm py-2.5 rounded-xl transition-all active:scale-[0.98] cursor-pointer shadow-lg shadow-red-600/25"
-          >
-            <ShieldCheck className="h-5 w-5 animate-pulse" />
-            <span>{t('emergency.sosButton')}</span>
-          </button>
+          <div className="space-y-2.5">
+            <button
+              type="button"
+              onClick={onEmergencyWhatsapp}
+              className="w-full flex items-center justify-center gap-2 h-12 bg-red-600/90 hover:bg-red-500 text-white font-black text-sm py-2.5 rounded-xl transition-all active:scale-[0.98] cursor-pointer shadow-lg shadow-red-600/25"
+            >
+              <ShieldCheck className="h-5 w-5 animate-pulse" />
+              <span>{t('emergency.sosButton')}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => void mutualCancel.requestCancel()}
+              disabled={isCancellingRideRequest || mutualCancel.isProcessing}
+              className="w-full flex items-center justify-center gap-2 h-10 rounded-xl border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 font-bold text-xs py-2 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50"
+            >
+              <X className="h-3.5 w-3.5 text-rose-400" />
+              <span>{mutualCancel.isProcessing ? (isArabic ? 'جاري الإرسال...' : 'Sending...') : (isArabic ? 'طلب إلغاء الرحلة بالتوافق' : 'Request Mutual Cancellation')}</span>
+            </button>
+          </div>
         )}
 
         {/* روابط السوشيال إن وجدت في الأسفل */}

@@ -4,6 +4,7 @@ import {
   setCaptainCancelCooldown,
   getCaptainCancelCooldown,
   clearCaptainCancelCooldown,
+  formatSecondsToMMSS,
 } from './captain-cancel-cooldown';
 
 // Mock localStorage for test environment
@@ -53,5 +54,13 @@ test('clearing captain cancel cooldown resets immediately', () => {
 
   clearCaptainCancelCooldown();
   assert.equal(getCaptainCancelCooldown().isActive, false);
+});
+
+test('formatSecondsToMMSS correctly formats minutes and seconds', () => {
+  assert.equal(formatSecondsToMMSS(0), '0:00');
+  assert.equal(formatSecondsToMMSS(45), '0:45');
+  assert.equal(formatSecondsToMMSS(1200), '20:00');
+  assert.equal(formatSecondsToMMSS(1199), '19:59');
+  assert.equal(formatSecondsToMMSS(3665), '1:01:05');
 });
 

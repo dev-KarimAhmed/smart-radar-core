@@ -193,9 +193,14 @@ export function ActiveTripTracker({
   const pickupLocation = request.exactPickupCoords || request.obfuscatedPickupCoords || request.pickupCoords || null;
   const isEnRouteToDropoff = step === 'STARTED';
 
-  const tripDurationMinutes = Number(request.estimatedTime) > 0
-    ? Number(request.estimatedTime)
-    : (countdown.totalSeconds > 0 ? Math.round(countdown.totalSeconds / 60) : 5);
+  const tripDurationMinutes = Math.max(
+    1,
+    Number(request.estimatedTime) > 0
+      ? Math.round(Number(request.estimatedTime))
+      : Number(request.estimatedDistance) > 0
+        ? Math.max(5, Math.round(Number(request.estimatedDistance) * 2.5))
+        : (countdown.totalSeconds > 0 ? Math.round(countdown.totalSeconds / 60) : 20)
+  );
   const totalTripSeconds = tripDurationMinutes * 60;
 
   let elapsedTripSeconds = 0;

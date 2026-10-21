@@ -37,6 +37,7 @@ import { useToast } from '@/hooks/use-toast';
 import { adminFetch } from '@/features/admin/lib/admin-api-client';
 import type { FinancialDelegate } from '@/features/admin/types/wallet-directory';
 import { cn } from '@/lib/utils';
+import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 
 interface GeoEntity {
   id: number;
@@ -47,6 +48,7 @@ interface GeoEntity {
 }
 
 export function FinancialDelegatesPanel() {
+  const { direction, isArabic } = useDashboardLanguage();
   const { toast } = useToast();
   const [delegates, setDelegates] = useState<FinancialDelegate[]>([]);
   const [countries, setCountries] = useState<GeoEntity[]>([]);
@@ -270,7 +272,7 @@ export function FinancialDelegatesPanel() {
   const coveredGovs = new Set(delegates.filter((d) => d.isActive && d.governorateName).map((d) => d.governorateName)).size;
 
   return (
-    <div className="space-y-6 text-right font-sans" dir="rtl">
+    <div className={cn("space-y-6 font-sans", isArabic ? "text-right" : "text-left")} dir={direction}>
       {/* 1. Header & Primary Controls */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/10 pb-5">
         <div>

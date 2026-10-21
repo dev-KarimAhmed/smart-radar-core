@@ -4,7 +4,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase-client';
 import type { AppLanguage } from '@/lib/i18n/simple-copy';
 import type { Offer } from '@/core/types';
-import { fetchRideOffers, subscribeToRideRequestStatus } from '../services/rider-server-marketplace';
+import { cancelRideRequest, fetchRideOffers, subscribeToRideRequestStatus } from '../services/rider-server-marketplace';
 import { getLocalizedMarketplaceError } from '../services/rider-offer-presentation';
 import type { RiderDestination, RiderMachineAction, RiderMachineState } from '../state/rider-state-machine';
 import { useTripCountdown } from '@/shared/hooks/use-trip-countdown';
@@ -113,6 +113,7 @@ export function useRideRequestStatusSync(params: {
         const now = Date.now();
         // If the request was created more than 180 seconds (3 minutes) ago, it is expired.
         if (createdAt > 0 && now - createdAt > 180000) {
+          void cancelRideRequest(supabase, requestId).catch(() => {});
           dispatch({ type: 'RESET_TO_IDLE' });
           return;
         }

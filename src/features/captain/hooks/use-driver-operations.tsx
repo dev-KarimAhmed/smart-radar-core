@@ -9,6 +9,7 @@ import { useCaptainLocationPulse } from './use-captain-location-pulse';
 import { useCaptainRadarMinuteConsumption } from './use-captain-radar-minute-consumption';
 import { useDriverTransactions } from './use-driver-transactions';
 import { sovereignEventBroker } from '@/lib/event-broker';
+import type { CaptainCancelCooldownState } from '../services/captain-cancel-cooldown';
 
 const styles = {
   root: "",
@@ -56,6 +57,7 @@ interface DriverOpsContextType {
   currentH3Cell?: string;
   isDisconnectionLockActive?: boolean;
   radarLockMessage?: string;
+  cancelCooldown?: CaptainCancelCooldownState;
 }
 
 export const DriverOperationsContext = createContext<DriverOpsContextType | undefined>(undefined);
@@ -104,6 +106,7 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
     currentH3Cell,
     isDisconnectionLockActive,
     radarLockMessage,
+    cancelCooldown,
   } = useDriverRadar(user, driverStatus);
 
   useCaptainLocationPulse({
@@ -228,6 +231,7 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
     currentH3Cell,
     isDisconnectionLockActive,
     radarLockMessage,
+    cancelCooldown,
     accountSecurityStatus,
   }), [
     acceptedRider,
@@ -235,6 +239,7 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
     activationNonce,
     activeRequest,
     cancelActiveTrip,
+    cancelCooldown,
     currentDistrict,
     currentH3Cell,
     driverLocation,

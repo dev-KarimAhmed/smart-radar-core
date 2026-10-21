@@ -30,6 +30,7 @@ import { RecenterMapButton } from '@/shared/components/map/recenter-map-button';
 import { estimateHaversineDistanceKm } from '../services/ride-location';
 import { estimatePickupMinutes } from '@/shared/services/trip-duration';
 import { RadarAntiCheatKernel } from '@/core/RadarAntiCheatKernel';
+import { type CaptainCancelCooldownState } from '../services/captain-cancel-cooldown';
 
 import { cn } from '@/lib/utils';
 const styles = {
@@ -122,6 +123,7 @@ interface RadarMapViewProps {
   bonusMinutes: number;
   currency?: string;
   radarLockMessage?: string;
+  cancelCooldown?: CaptainCancelCooldownState;
   requests: Trip[];
   pendingOfferRequestId?: string | null;
   captainPricingMode?: 'FREE' | 'APP' | 'TAXI' | null;
@@ -142,6 +144,7 @@ export function RadarMapView({
   bonusMinutes,
   currency = 'JOD',
   radarLockMessage,
+  cancelCooldown,
   requests,
   pendingOfferRequestId = null,
   captainPricingMode = null,
