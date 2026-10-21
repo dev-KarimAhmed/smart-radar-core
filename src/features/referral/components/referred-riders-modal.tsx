@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useTranslations } from 'next-intl';
 import {
   Dialog,
@@ -9,10 +9,9 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { Users, Sparkles, UserCheck, Phone, Heart, FlaskConical } from 'lucide-react';
+import { Users, Sparkles, UserCheck, Phone, Heart } from 'lucide-react';
 import { formatTelUri } from '@/lib/utils';
 import type { ReferredRiderInfo } from '../services/captain-referral';
-import { InactivitySimulationPanel } from './inactivity-simulation-panel';
 
 interface ReferredRidersModalProps {
   open: boolean;
@@ -30,8 +29,6 @@ export function ReferredRidersModal({
   isArabic = true,
 }: ReferredRidersModalProps) {
   const t = useTranslations('referral.driverCard');
-  const tSim = useTranslations('referral.simulation');
-  const [showSimulation, setShowSimulation] = useState(false);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -40,48 +37,16 @@ export function ReferredRidersModal({
         <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#14F5D5]/60 to-transparent" />
 
         <DialogHeader className="text-start space-y-1.5 pb-3 border-b border-white/5">
-          <div className="flex items-center justify-between gap-3">
-            <DialogTitle className="text-base font-black text-white flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-teal-500/30 bg-teal-500/15 text-[#14F5D5]">
-                <Users className="h-4 w-4" />
-              </div>
-              <span>{t('modalTitle')}</span>
-            </DialogTitle>
-
-            {/* Toggle Simulation Mode */}
-            <button
-              type="button"
-              onClick={() => setShowSimulation((v) => !v)}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
-                showSimulation
-                  ? 'border-amber-400 bg-amber-500/25 text-amber-200 shadow-sm shadow-amber-500/20'
-                  : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 hover:border-amber-500/40'
-              }`}
-              title={tSim('toggleTitle')}
-            >
-              <FlaskConical className="h-3.5 w-3.5 text-amber-400" />
-              <span>{tSim('toggleButton')}</span>
-            </button>
-          </div>
+          <DialogTitle className="text-base font-black text-white flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-teal-500/30 bg-teal-500/15 text-[#14F5D5]">
+              <Users className="h-4 w-4" />
+            </div>
+            <span>{t('modalTitle')}</span>
+          </DialogTitle>
           <DialogDescription className="text-xs text-slate-400 leading-relaxed font-sans">
             {t('modalSubtitle')}
           </DialogDescription>
         </DialogHeader>
-
-        {/* Simulation Panel */}
-        {showSimulation && (
-          <div className="pt-2">
-            <InactivitySimulationPanel
-              riders={riders}
-              onRefreshRiders={() => {
-                if (typeof window !== 'undefined') {
-                  window.dispatchEvent(new CustomEvent('radar_favorites_updated'));
-                }
-              }}
-              isArabic={isArabic}
-            />
-          </div>
-        )}
 
         {/* Riders List Body */}
         <div className="flex-1 overflow-y-auto py-3 space-y-2.5 pr-1 min-h-[140px] max-h-[55vh]">
