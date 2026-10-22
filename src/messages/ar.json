@@ -822,7 +822,7 @@
       "dialogDescription": "لم تقم بإضافة رقم واتساب للطوارئ بعد. أضف رقماً من بيانات الحساب لاستخدام زر SOS أثناء الرحلة.",
       "addNumber": "إضافة رقم",
       "cancel": "إلغاء",
-      "buttonTitle": "واتساب الطوارئ",
+      "buttonTitle": "تتبع/طوارئ واتساب مع الأقارب",
       "missingTitle": "جهة الطوارئ غير مضافة",
       "missingDescription": "أضف رقم واتساب للطوارئ من صفحة حسابك أولاً.",
       "unavailableTitle": "تعذر فتح واتساب",
@@ -833,7 +833,7 @@
       "messageCaptainLine": "السائق: {captainName}.",
       "messageDestinationLine": "الوجهة: {destination}.",
       "messageRequestLine": "رقم الطلب: {requestId}.",
-      "sosButton": "اتصال بالطوارئ",
+      "sosButton": "تتبع/طوارئ واتساب مع الأقارب",
       "sosToastTitle": "طوارئ وتتبع الرحلة",
       "sosToastDescription": "تم نسخ رابط تتبع الرحلة لمشاركته بأمان."
     },
