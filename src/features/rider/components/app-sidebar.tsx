@@ -1,6 +1,7 @@
-﻿'use client';
+'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { Archive, Bell, Clock, Download, Heart, History, Languages, LogOut, ShieldCheck, User, UserCircle, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -21,6 +22,7 @@ const styles = {
   header: 'flex shrink-0 items-center justify-between border-b border-white/[0.06] bg-[#060B18] p-5',
   role: 'border-[#14B8A6]/30 bg-[#14B8A6]/10 px-3 py-1 font-bold text-[#14B8A6] shadow-sm',
   brand: 'flex items-center gap-2',
+  brandLogo: 'h-8 w-auto object-contain drop-shadow-[0_0_12px_rgba(20,184,166,0.35)]',
   brandTitle: 'text-2xl font-black tracking-widest text-white drop-shadow-md',
   brandIcon: 'h-7 w-7 text-[#14B8A6]',
   close: 'h-10 w-10 rounded-full text-gray-400 hover:bg-white/10 hover:text-white',
@@ -122,8 +124,15 @@ export function AppSidebar({ isCritical = false }: { isCritical?: boolean } = {}
       <div className={styles.header}>
         <Badge className={styles.role} variant="outline">{tAuto('key_3c26d043')}</Badge>
         <div className={styles.brand}>
+          <Image
+            src="/icons/logo-header.png"
+            alt="Radar"
+            width={585}
+            height={152}
+            priority
+            className={styles.brandLogo}
+          />
           <h2 className={styles.brandTitle}>{tAuto('key_d9033ee1')}</h2>
-          <ShieldCheck className={styles.brandIcon} />
         </div>
         <SheetClose asChild>
           <Button aria-label={tAuto('key_f050ab3c')} className={styles.close} size="icon" variant="ghost">

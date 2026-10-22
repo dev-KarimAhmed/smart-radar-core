@@ -143,44 +143,46 @@ export function DriverReferralCard({ user, isArabic = true }: DriverReferralCard
         </p>
 
         {/* Link, Copy, and WhatsApp Action Box */}
-        <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-black/40 p-2 backdrop-blur-sm">
-          <div className="flex items-center gap-2 flex-1 min-w-0 px-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 rounded-2xl border border-white/10 bg-black/40 p-2.5 backdrop-blur-sm">
+          <div className="flex items-center gap-2 flex-1 min-w-0 overflow-hidden px-2 py-1.5 bg-white/[0.03] rounded-xl sm:bg-transparent">
             <Link2 className="h-4 w-4 text-teal-400 shrink-0" />
-            <span className="text-xs font-mono text-slate-200 truncate select-all" dir="ltr">
+            <span className="text-xs font-mono text-slate-200 truncate select-all min-w-0 block w-full" dir="ltr">
               {referralLink}
             </span>
           </div>
 
-          {/* Copy Button */}
-          <Button
-            type="button"
-            size="sm"
-            onClick={handleCopy}
-            className="shrink-0 h-8.5 px-3.5 rounded-xl border border-teal-500/30 bg-teal-500/15 text-[#14F5D5] hover:bg-teal-500/25 transition-all flex items-center gap-1.5 font-black text-xs cursor-pointer"
-          >
-            {copied ? (
-              <>
-                <Check className="h-3.5 w-3.5 text-emerald-400" />
-                <span>{t('copiedButton')}</span>
-              </>
-            ) : (
-              <>
-                <Copy className="h-3.5 w-3.5" />
-                <span>{t('copyButton')}</span>
-              </>
-            )}
-          </Button>
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Copy Button */}
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleCopy}
+              className="flex-1 sm:flex-none shrink-0 h-8.5 px-3.5 rounded-xl border border-teal-500/30 bg-teal-500/15 text-[#14F5D5] hover:bg-teal-500/25 transition-all flex items-center justify-center gap-1.5 font-black text-xs cursor-pointer"
+            >
+              {copied ? (
+                <>
+                  <Check className="h-3.5 w-3.5 text-emerald-400" />
+                  <span>{t('copiedButton')}</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="h-3.5 w-3.5" />
+                  <span>{t('copyButton')}</span>
+                </>
+              )}
+            </Button>
 
-          {/* WhatsApp Direct Share Button */}
-          <Button
-            type="button"
-            size="sm"
-            onClick={handleWhatsAppShare}
-            title={t('whatsAppTooltip')}
-            className="shrink-0 h-8.5 w-8.5 p-0 rounded-xl border border-emerald-500/30 bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 hover:text-emerald-300 transition-all flex items-center justify-center cursor-pointer shadow-sm hover:scale-105 active:scale-95"
-          >
-            <WhatsAppIcon className="h-4.5 w-4.5" />
-          </Button>
+            {/* WhatsApp Direct Share Button */}
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleWhatsAppShare}
+              title={t('whatsAppTooltip')}
+              className="shrink-0 h-8.5 w-8.5 p-0 rounded-xl border border-emerald-500/30 bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 hover:text-emerald-300 transition-all flex items-center justify-center cursor-pointer shadow-sm hover:scale-105 active:scale-95"
+            >
+              <WhatsAppIcon className="h-4.5 w-4.5" />
+            </Button>
+          </div>
         </div>
       </div>
 

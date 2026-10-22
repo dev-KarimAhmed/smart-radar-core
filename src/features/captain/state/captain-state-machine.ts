@@ -127,3 +127,13 @@ export function captainDashboardReducer(
       return state;
   }
 }
+
+export function getCaptainTripStepFromStatus(status: unknown): CaptainTripStep {
+  const normalized = String(status || '').toUpperCase();
+  if (normalized === 'ARRIVED') return 'ARRIVED';
+  if (normalized === 'TRIP_ACTIVE' || normalized === 'ACTIVE' || normalized === 'STARTED' || normalized === 'IN_PROGRESS') {
+    return 'STARTED';
+  }
+  if (normalized === 'COMPLETED') return 'COMPLETED';
+  return 'ACCEPTED';
+}

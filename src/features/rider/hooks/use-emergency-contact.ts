@@ -6,8 +6,47 @@ import { firstDisplayString, normalizeWhatsappContact } from '../services/rider-
 
 export interface EmergencyContactTripContext {
   captainName?: string;
+  captainPhone?: string;
+  captainSerial?: string;
+  vehicleModel?: string;
+  vehiclePlate?: string;
+  vehicleColor?: string;
   destinationLabel?: string;
   requestId?: string | null;
+  riderLocation?: { lat: number; lng: number };
+}
+
+function getCurrentCoordinates(fallback?: { lat: number; lng: number }): Promise<{ lat: number; lng: number } | undefined> {
+  if (typeof navigator === 'undefined' || !navigator.geolocation) {
+    return Promise.resolve(fallback);
+  }
+  return new Promise((resolve) => {
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (!settled) {
+        settled = true;
+        resolve(fallback);
+      }
+    }, 2500);
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        if (!settled) {
+          settled = true;
+          clearTimeout(timer);
+          resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        }
+      },
+      () => {
+        if (!settled) {
+          settled = true;
+          clearTimeout(timer);
+          resolve(fallback);
+        }
+      },
+      { timeout: 2000, enableHighAccuracy: true, maximumAge: 30000 }
+    );
+  });
 }
 
 export function useEmergencyContact(userId: string | undefined, tripContext: EmergencyContactTripContext) {
@@ -60,26 +99,68 @@ export function useEmergencyContact(userId: string | undefined, tripContext: Eme
     window.location.hash = '#profile';
   }, []);
 
-  const handleEmergencyWhatsapp = React.useCallback(() => {
+  const handleEmergencyWhatsapp = React.useCallback(async () => {
     const whatsapp = normalizeWhatsappContact(emergencyWhatsappContact);
     if (!whatsapp) {
       setShowEmergencyContactDialog(true);
       return;
     }
 
-    const captainName = firstDisplayString(tripContext.captainName);
-    const destination = firstDisplayString(tripContext.destinationLabel);
-    const shortRequestId = tripContext.requestId ? tripContext.requestId.slice(0, 8).toUpperCase() : '';
-    const defaultMessage = [
-      t('emergency.messageIntro'),
-      captainName ? t('emergency.messageCaptainLine', { captainName }) : '',
-      destination ? t('emergency.messageDestinationLine', { destination }) : '',
-      shortRequestId ? t('emergency.messageRequestLine', { requestId: shortRequestId }) : '',
-    ].filter(Boolean).join(' ');
+    const coords = await getCurrentCoordinates(tripContext.riderLocation);
+    const captainName = firstDisplayString(tripContext.captainName) || 'السائق';
+    const destination = firstDisplayString(tripContext.destinationLabel) || 'الوجهة المحددة';
+    const shortRequestId = tripContext.requestId ? tripContext.requestId.slice(0, 8).toUpperCase() : 'LIVE';
+    const vehicle = [tripContext.vehicleModel, tripContext.vehicleColor].filter(Boolean).join(' ') || '';
+    const plate = tripContext.vehiclePlate || '';
 
-    const message = encodeURIComponent(t('emergency.message') || defaultMessage);
-    window.location.href = `https://wa.me/${whatsapp}?text=${message}`;
-  }, [emergencyWhatsappContact, t, toast, tripContext.captainName, tripContext.destinationLabel, tripContext.requestId]);
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://bynkcom.com';
+    const query = new URLSearchParams({
+      trip: shortRequestId,
+      c: captainName,
+      ...(plate ? { p: plate } : {}),
+      ...(vehicle ? { v: vehicle } : {}),
+      ...(destination ? { d: destination } : {}),
+      ...(tripContext.captainPhone ? { ph: tripContext.captainPhone } : {}),
+      ...(coords ? { lat: coords.lat.toFixed(5), lng: coords.lng.toFixed(5) } : {}),
+    });
+    const trackUrl = `${origin}/track?${query.toString()}`;
+    const mapsUrl = coords ? `https://maps.google.com/?q=${coords.lat.toFixed(5)},${coords.lng.toFixed(5)}` : '';
+
+    const lines: string[] = [
+      '🚨 نداء طوارئ واستغاثة - تطبيق بينكم (bynkcom)',
+      'أنا في رحلة حالياً وبحاجة للمتابعة والمساعدة.',
+      '',
+      '🟢 رابط تتبع الرحلة حياً:',
+      trackUrl,
+    ];
+
+    if (mapsUrl) {
+      lines.push('', '📍 موقعي الحالي على الخريطة:', mapsUrl);
+    }
+
+    lines.push(
+      '',
+      '🚗 بيانات الرحلة:',
+      `• الكابتن: ${captainName}`,
+      plate ? `• اللوحة: ${plate}` : '',
+      vehicle ? `• السيارة: ${vehicle}` : '',
+      `• الوجهة: ${destination}`,
+      `• رقم الطلب: #${shortRequestId}`
+    );
+
+    const fullMessage = lines.filter((l) => l !== '').join('\n');
+
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      void navigator.clipboard.writeText(trackUrl).catch(() => {});
+    }
+
+    toast({
+      title: t('emergency.sosToastTitle'),
+      description: t('emergency.sosToastDescription'),
+    });
+
+    window.location.href = `https://wa.me/${whatsapp}?text=${encodeURIComponent(fullMessage)}`;
+  }, [emergencyWhatsappContact, t, toast, tripContext]);
 
   return {
     emergencyWhatsappContact,

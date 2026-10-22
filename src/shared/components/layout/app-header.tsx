@@ -1,6 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import Image from 'next/image';
 import { useState, useEffect, type ReactNode } from 'react';
 import {
   Bell,
@@ -68,7 +69,9 @@ const styles = {
   roundAction: 'h-10 w-10 rounded-full hover:bg-black/20',
   srOnly: 'sr-only',
   requestRideWrapper: 'absolute left-1/2 -translate-x-1/2 flex items-center justify-center',
-  requestRideButton: 'h-11 sm:h-12 gap-2.5 rounded-full border-2 border-[#14F5D5]/60 bg-gradient-to-r from-[#14B8A6] via-[#14F5D5] to-[#14B8A6] px-7 sm:px-9 text-base sm:text-lg font-black text-slate-950 shadow-[0_0_25px_rgba(20,245,213,0.5)] transition-all hover:scale-105 active:scale-95 cursor-pointer',
+  requestRideButton: 'h-11 sm:h-12 gap-2.5 rounded-full border-2 border-[#14F5D5]/60 bg-gradient-to-r from-[#14B8A6] via-[#14F5D5] to-[#14B8A6] px-5 sm:px-7 text-base sm:text-lg font-black text-slate-950 shadow-[0_0_25px_rgba(20,245,213,0.5)] transition-all hover:scale-105 active:scale-95 cursor-pointer',
+  btnLogo: 'h-6 sm:h-7 w-auto object-contain shrink-0',
+  headerCenterLogo: 'h-8 sm:h-9 w-auto object-contain drop-shadow-[0_0_12px_rgba(20,184,166,0.35)]',
 } as const;
 
 const pulseMap = {
@@ -226,7 +229,7 @@ export function AppHeader({ sidebar }: { sidebar?: ReactNode }) {
           </Sheet>
         ) : <div className={styles.spacer} />}
 
-        {user?.role === 'rider' && (
+        {user?.role === 'rider' ? (
           <div className={styles.requestRideWrapper}>
             <Button
               type="button"
@@ -243,8 +246,27 @@ export function AppHeader({ sidebar }: { sidebar?: ReactNode }) {
               }}
               className={styles.requestRideButton}
             >
+              <Image
+                src="/icons/logo-header.png"
+                alt="Radar"
+                width={585}
+                height={152}
+                priority
+                className={styles.btnLogo}
+              />
               <span>{isArabic ? 'اطلب رحلة' : 'Request Ride'}</span>
             </Button>
+          </div>
+        ) : (
+          <div className={styles.requestRideWrapper}>
+            <Image
+              src="/icons/logo-header.png"
+              alt="Radar"
+              width={585}
+              height={152}
+              priority
+              className={styles.headerCenterLogo}
+            />
           </div>
         )}
 
