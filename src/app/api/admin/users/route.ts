@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
-import { verifyAdminCaller } from '@/lib/admin-auth-verifier';
+import { verifyAdminCaller, hasAdminSectorAccess } from '@/lib/admin-auth-verifier';
 import { encodeNotificationPayload } from '@/shared/utils/notification-i18n';
 
 export async function GET(req: Request) {
@@ -11,6 +11,14 @@ export async function GET(req: Request) {
 
   const { searchParams } = new URL(req.url);
   const roleFilter = searchParams.get('role')?.toUpperCase() || 'CAPTAIN';
+  const targetSector = roleFilter === 'CAPTAIN' ? 'captains' : 'riders';
+
+  if (!hasAdminSectorAccess(admin, targetSector)) {
+    return NextResponse.json(
+      { success: false, error: 'غير مصرح: ليس لديك صلاحية الوصول لهذا القطاع' },
+      { status: 403 }
+    );
+  }
 
   try {
     const targetRole = roleFilter === 'CAPTAIN' ? 'CAPTAIN' : 'RIDER';
@@ -203,6 +211,7 @@ export async function GET(req: Request) {
         phone: p.phone || '',
         email: p.email || '',
         role: p.role,
+        preferred_language: p.preferred_language || 'ar',
         country_id: p.country_id,
         country_name: country?.name_ar || (isEgypt ? 'مصر' : 'الأردن'),
         currency: currencyAr,
@@ -794,7 +803,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ success: true, message: 'تم فك تعليق الرحلة وإعادة الكابتن المعلن لوضع الجاهزية (IDLE).' });
       }
 
-      // 8. Send direct real-time message/notification to user or captain
+      // 8. Send direct real-time message/notification to user or captain tailored by language
       case 'send_message': {
         const { title, message, type, titleEn, messageEn, title_en, message_en } = body;
         if (!message || !String(message).trim()) {
@@ -806,13 +815,27 @@ export async function POST(req: Request) {
         const enTitle = (titleEn || title_en || '').trim();
         const enMessage = (messageEn || message_en || '').trim();
 
-        const encodedPayload = encodeNotificationPayload(msgTitle, String(message).trim(), enTitle, enMessage);
+        // Fetch recipient's preferred_language
+        const { data: recipientProfile } = await supabaseAdmin
+          .from('profiles')
+          .select('preferred_language')
+          .eq('id', userId)
+          .maybeSingle();
+
+        const isEn = (recipientProfile?.preferred_language || '').toLowerCase() === 'en';
+        const userTitle = isEn && enTitle ? enTitle : msgTitle;
+        const encodedPayload = encodeNotificationPayload(
+          msgTitle,
+          String(message).trim(),
+          enTitle || msgTitle,
+          enMessage || String(message).trim()
+        );
 
         const { data: notif, error: notifErr } = await supabaseAdmin
           .from('user_notifications')
           .insert({
             user_id: userId,
-            title: encodedPayload.title,
+            title: userTitle,
             description: encodedPayload.description,
             type: msgType,
             is_read: false,
@@ -825,12 +848,12 @@ export async function POST(req: Request) {
 
         return NextResponse.json({
           success: true,
-          message: 'تم إرسال الرسالة بنجاح عبر الإشعار اللحظي.',
+          message: 'تم إرسال الرسالة بنجاح عبر الإشعار اللحظي وفق لغة الكابتن.',
           notification: notif,
         });
       }
 
-      // 9. Bulk send real-time notification to all or selected captains
+      // 9. Bulk send real-time notification to all or selected captains tailored by language
       case 'bulk_send_message': {
         const { title, message, type, titleEn, messageEn, title_en, message_en } = body;
         if (!message || !String(message).trim()) {
@@ -842,34 +865,49 @@ export async function POST(req: Request) {
         const enTitle = (titleEn || title_en || '').trim();
         const enMessage = (messageEn || message_en || '').trim();
 
-        const encodedPayload = encodeNotificationPayload(msgTitle, String(message).trim(), enTitle, enMessage);
-
-        let targetIds: string[] = [];
+        let targetProfiles: Array<{ id: string; preferred_language?: string }> = [];
 
         if (Array.isArray(userIds) && userIds.length > 0) {
-          targetIds = userIds;
+          const { data: usersData, error: uErr } = await supabaseAdmin
+            .from('profiles')
+            .select('id, preferred_language')
+            .in('id', userIds);
+
+          if (uErr) throw uErr;
+          targetProfiles = usersData || userIds.map((id) => ({ id, preferred_language: 'ar' }));
         } else {
           const { data: captainsData, error: capErr } = await supabaseAdmin
             .from('profiles')
-            .select('id')
+            .select('id, preferred_language')
             .eq('role', role);
 
           if (capErr) throw capErr;
-          targetIds = (captainsData || []).map(c => c.id);
+          targetProfiles = captainsData || [];
         }
 
-        if (targetIds.length === 0) {
+        if (targetProfiles.length === 0) {
           return NextResponse.json({ success: false, error: 'لم يتم العثور على أي مستخدمين لإرسال الإشعار إليهم' }, { status: 400 });
         }
 
-        const notifications = targetIds.map(id => ({
-          user_id: id,
-          title: encodedPayload.title,
-          description: encodedPayload.description,
-          type: msgType,
-          is_read: false,
-          created_at: new Date().toISOString(),
-        }));
+        const notifications = targetProfiles.map((p) => {
+          const isEn = (p.preferred_language || '').toLowerCase() === 'en';
+          const userTitle = isEn && enTitle ? enTitle : msgTitle;
+          const encodedPayload = encodeNotificationPayload(
+            msgTitle,
+            String(message).trim(),
+            enTitle || msgTitle,
+            enMessage || String(message).trim()
+          );
+
+          return {
+            user_id: p.id,
+            title: userTitle,
+            description: encodedPayload.description,
+            type: msgType,
+            is_read: false,
+            created_at: new Date().toISOString(),
+          };
+        });
 
         const CHUNK_SIZE = 500;
         for (let i = 0; i < notifications.length; i += CHUNK_SIZE) {
@@ -882,8 +920,29 @@ export async function POST(req: Request) {
 
         return NextResponse.json({
           success: true,
-          count: targetIds.length,
-          message: `تم إرسال الإشعار اللحظي بنجاح إلى (${targetIds.length}) مستخدم.`,
+          count: targetProfiles.length,
+          message: `تم إرسال الإشعار اللحظي بنجاح إلى (${targetProfiles.length}) مستخدم وفقاً للغة كل كابتن.`,
+        });
+      }
+
+      // Update captain or user preferred language
+      case 'update_language': {
+        const targetLang = String(body.language || 'ar').toLowerCase() === 'en' ? 'en' : 'ar';
+        const { error: langErr } = await supabaseAdmin
+          .from('profiles')
+          .update({
+            preferred_language: targetLang,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', userId);
+
+        if (langErr) throw langErr;
+
+        return NextResponse.json({
+          success: true,
+          userId,
+          preferred_language: targetLang,
+          message: targetLang === 'en' ? 'تم ضبط لغة الكابتن إلى الإنجليزية بنجاح.' : 'تم ضبط لغة الكابتن إلى العربية بنجاح.',
         });
       }
 

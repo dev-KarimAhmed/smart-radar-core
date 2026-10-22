@@ -19,6 +19,13 @@ import {
   ArrowUpRight,
   ShieldAlert,
   Info,
+  Sliders,
+  Check,
+  Car,
+  Wallet,
+  Clock,
+  UserCheck,
+  KeyRound,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -36,6 +43,7 @@ import { useTranslations } from 'next-intl';
 import { useAuth } from '@/hooks/use-auth';
 import { useDashboardLanguage } from '@/shared/hooks/use-dashboard-language';
 import { cn } from '@/lib/utils';
+import { ADMIN_SECTORS, ALL_SECTOR_IDS, AdminSectorId } from '@/features/admin/lib/admin-permissions';
 
 export const PRIMARY_SOVEREIGN_ADMIN_ID = '70b4a26f-10ac-4888-8df6-c3a5ad824b8a';
 export const PRIMARY_SOVEREIGN_ADMIN_PHONE = '+201551981922';
@@ -50,6 +58,7 @@ export interface AdminProfile {
   admin_rank?: 'GENERAL_ADMIN' | 'ASSISTANT_ADMIN';
   admin_rank_label?: string;
   is_primary?: boolean;
+  allowed_sectors?: string[];
 }
 
 const styles = {
@@ -99,9 +108,16 @@ export function AdminsManagementPanel() {
   const [phone, setPhone] = useState('+9627');
   const [password, setPassword] = useState('');
   const [adminRank, setAdminRank] = useState<'GENERAL_ADMIN' | 'ASSISTANT_ADMIN'>('ASSISTANT_ADMIN');
+  const [allowedSectors, setAllowedSectors] = useState<AdminSectorId[]>([...ALL_SECTOR_IDS]);
   const [showPassword, setShowPassword] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
+
+  // Edit Permissions Modal State
+  const [editPermissionsTarget, setEditPermissionsTarget] = useState<AdminProfile | null>(null);
+  const [editRank, setEditRank] = useState<'GENERAL_ADMIN' | 'ASSISTANT_ADMIN'>('ASSISTANT_ADMIN');
+  const [editSectors, setEditSectors] = useState<AdminSectorId[]>([...ALL_SECTOR_IDS]);
+  const [savingPermissions, setSavingPermissions] = useState(false);
 
   // Actions & Dialog state
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -181,6 +197,7 @@ export function AdminsManagementPanel() {
           phone: phone.trim(),
           password,
           adminRank,
+          allowedSectors: adminRank === 'GENERAL_ADMIN' ? [...ALL_SECTOR_IDS] : allowedSectors,
         }),
       });
 
@@ -194,6 +211,7 @@ export function AdminsManagementPanel() {
       setPhone('+9627');
       setPassword('');
       setAdminRank('ASSISTANT_ADMIN');
+      setAllowedSectors([...ALL_SECTOR_IDS]);
       await fetchAdmins();
       setTimeout(() => {
         setIsAdding(false);
@@ -203,6 +221,41 @@ export function AdminsManagementPanel() {
       setFormError(err.message || t('errGeneric'));
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  // Handle Save Admin Permissions & Rank
+  const handleSavePermissions = async () => {
+    if (!editPermissionsTarget || !isGeneralAdmin || editPermissionsTarget.is_primary) return;
+    try {
+      setSavingPermissions(true);
+      setActionFeedback(null);
+      const finalSectors = editRank === 'GENERAL_ADMIN' ? [...ALL_SECTOR_IDS] : editSectors;
+      const res = await adminFetch('/api/admin/update-admin-permissions', {
+        method: 'POST',
+        body: JSON.stringify({
+          adminId: editPermissionsTarget.id,
+          adminRank: editRank,
+          allowedSectors: finalSectors,
+        }),
+      });
+
+      const result = await res.json();
+      if (!res.ok || !result.success) {
+        throw new Error(result?.error || t('errGeneric'));
+      }
+
+      setActionFeedback({
+        type: 'success',
+        message: isArabic ? 'تم تحديث صلاحيات المشرف ورتبته بنجاح.' : 'Admin permissions updated successfully.',
+      });
+      setEditPermissionsTarget(null);
+      await fetchAdmins();
+      setTimeout(() => setActionFeedback(null), 3500);
+    } catch (err: any) {
+      setActionFeedback({ type: 'error', message: err.message || t('errGeneric') });
+    } finally {
+      setSavingPermissions(false);
     }
   };
 
@@ -500,6 +553,95 @@ export function AdminsManagementPanel() {
             </div>
           </div>
 
+          {/* Sector Permissions Selector */}
+          <div className="space-y-2.5 pt-3 border-t border-white/5">
+            <div className="flex items-center justify-between">
+              <label className={styles.label}>
+                {isArabic ? 'صلاحيات أزرار القطاعات المصرح بها لهذا المشرف:' : 'Authorized Sector Buttons Permissions:'}
+              </label>
+              {adminRank === 'ASSISTANT_ADMIN' && (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setAllowedSectors([...ALL_SECTOR_IDS])}
+                    className="text-[10px] text-teal-400 hover:text-teal-300 font-bold transition cursor-pointer"
+                  >
+                    {isArabic ? 'تحديد الكل' : 'Select All'}
+                  </button>
+                  <span className="text-slate-600">|</span>
+                  <button
+                    type="button"
+                    onClick={() => setAllowedSectors([])}
+                    className="text-[10px] text-slate-400 hover:text-slate-300 font-bold transition cursor-pointer"
+                  >
+                    {isArabic ? 'إلغاء التحديد' : 'Deselect All'}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {adminRank === 'GENERAL_ADMIN' ? (
+              <div className="p-3 rounded-xl border border-amber-500/20 bg-amber-500/5 text-amber-300 text-xs flex items-center gap-2 font-medium">
+                <Crown className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>
+                  {isArabic
+                    ? 'المشرف العام يمتلك تلقائياً صلاحيات سيادية كاملة للوصول لجميع القطاعات والأزرار دون استثناء.'
+                    : 'General Admin automatically possesses full sovereign access to all sectors and buttons.'}
+                </span>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {ADMIN_SECTORS.map((sector) => {
+                  const isChecked = allowedSectors.includes(sector.id as AdminSectorId);
+                  return (
+                    <button
+                      key={sector.id}
+                      type="button"
+                      onClick={() => {
+                        setAllowedSectors((prev) =>
+                          isChecked
+                            ? prev.filter((id) => id !== sector.id)
+                            : [...prev, sector.id as AdminSectorId]
+                        );
+                      }}
+                      className={cn(
+                        "p-2.5 rounded-xl border text-start transition flex items-center justify-between gap-2 cursor-pointer",
+                        isChecked
+                          ? "bg-teal-500/15 border-teal-500/50 text-white shadow-sm ring-1 ring-teal-500/30"
+                          : "bg-black/40 border-white/10 text-slate-400 hover:text-white hover:border-white/20"
+                      )}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div
+                          className={cn(
+                            "w-4 h-4 rounded-md border flex items-center justify-center transition-all",
+                            isChecked
+                              ? "bg-[#14B8A6] border-[#14B8A6] text-[#0B0F19]"
+                              : "border-white/20 bg-black/40"
+                          )}
+                        >
+                          {isChecked && <Check className="w-3 h-3 stroke-[3]" />}
+                        </div>
+                        <span className="text-xs font-bold">
+                          {isArabic ? sector.labelAr : sector.labelEn}
+                        </span>
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "text-[9px] font-mono",
+                          isChecked ? "border-teal-500/40 text-teal-300" : "border-white/10 text-slate-500"
+                        )}
+                      >
+                        {sector.id}
+                      </Badge>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
           <div className="flex justify-end pt-2">
             <button
               type="submit"
@@ -543,6 +685,7 @@ export function AdminsManagementPanel() {
                     <th className="px-4 py-3">{t('colName')}</th>
                     <th className="px-4 py-3">{t('colPhone')}</th>
                     <th className="px-4 py-3">{t('colRole')}</th>
+                    <th className="px-4 py-3">{isArabic ? 'صلاحيات القطاعات' : 'Sectors'}</th>
                     <th className="px-4 py-3">{t('colStatus')}</th>
                     <th className="px-4 py-3">{t('colDate')}</th>
                     {isGeneralAdmin && <th className="px-4 py-3 text-center">{t('colActions')}</th>}
@@ -603,6 +746,37 @@ export function AdminsManagementPanel() {
                           )}
                         </td>
 
+                        {/* Allowed Sectors Column */}
+                        <td className="px-4 py-3">
+                          {isTargetGeneral ? (
+                            <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-lg shadow-sm">
+                              <Crown className="w-3 h-3 text-amber-400" />
+                              <span>{isArabic ? 'كامل القطاعات (مشرف عام)' : 'All Sectors (General Admin)'}</span>
+                            </span>
+                          ) : (
+                            <div className="flex flex-wrap gap-1 max-w-[260px]">
+                              {Array.isArray(admin.allowed_sectors) && admin.allowed_sectors.length > 0 ? (
+                                admin.allowed_sectors.map((secId) => {
+                                  const secDef = ADMIN_SECTORS.find((s) => s.id === secId);
+                                  return (
+                                    <span
+                                      key={secId}
+                                      className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-teal-500/10 border border-teal-500/30 text-teal-300 inline-flex items-center gap-1"
+                                    >
+                                      <Check className="w-2.5 h-2.5 text-teal-400 stroke-[3]" />
+                                      <span>{isArabic ? secDef?.labelAr || secId : secDef?.labelEn || secId}</span>
+                                    </span>
+                                  );
+                                })
+                              ) : (
+                                <span className="text-[10px] text-rose-400 font-bold bg-rose-500/10 border border-rose-500/20 px-1.5 py-0.5 rounded">
+                                  {isArabic ? 'لا توجد قطاعات مصرحة' : 'No Authorized Sectors'}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </td>
+
                         <td className="px-4 py-3">
                           <span className={styles.statusBadge}>
                             <CheckCircle2 className="h-3 w-3" />
@@ -618,6 +792,29 @@ export function AdminsManagementPanel() {
                         {isGeneralAdmin && (
                           <td className="px-4 py-3">
                             <div className="flex items-center justify-center gap-1.5">
+                              {/* Edit Permissions & Rank Button */}
+                              {canModify && (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => {
+                                    setEditPermissionsTarget(admin);
+                                    const targetRank = admin.admin_rank || 'ASSISTANT_ADMIN';
+                                    setEditRank(targetRank);
+                                    const currentSectors = Array.isArray(admin.allowed_sectors) && admin.allowed_sectors.length > 0
+                                      ? (admin.allowed_sectors as AdminSectorId[])
+                                      : (targetRank === 'GENERAL_ADMIN' ? [...ALL_SECTOR_IDS] : ['captains', 'riders']);
+                                    setEditSectors(currentSectors);
+                                  }}
+                                  className="h-7 px-2.5 text-[10px] font-bold rounded-lg text-teal-300 hover:text-white hover:bg-teal-500/20 border border-teal-500/30 transition-all flex items-center gap-1 cursor-pointer"
+                                  title={isArabic ? 'تعديل صلاحيات القطاعات والرتبة' : 'Edit Sector Permissions & Rank'}
+                                >
+                                  <Sliders className="h-3 w-3 text-teal-400" />
+                                  <span>{isArabic ? 'الصلاحيات' : 'Permissions'}</span>
+                                </Button>
+                              )}
+
                               {/* Toggle Rank Button */}
                               {canModify ? (
                                 <Button
@@ -626,7 +823,7 @@ export function AdminsManagementPanel() {
                                   variant="ghost"
                                   disabled={actionLoading === admin.id}
                                   onClick={() => handleUpdateRank(admin, isTargetGeneral ? 'ASSISTANT_ADMIN' : 'GENERAL_ADMIN')}
-                                  className={`h-7 px-2.5 text-[10px] font-bold rounded-lg transition-all ${
+                                  className={`h-7 px-2 text-[10px] font-bold rounded-lg transition-all ${
                                     isTargetGeneral
                                       ? 'text-slate-300 hover:text-cyan-300 hover:bg-cyan-500/10 border border-white/10'
                                       : 'text-amber-300 hover:text-amber-200 hover:bg-amber-500/10 border border-amber-500/30'
@@ -737,6 +934,207 @@ export function AdminsManagementPanel() {
               onClick={() => setDeleteTarget(null)}
               disabled={deleting}
               className="border-white/10 text-slate-300 hover:bg-white/5 h-10 rounded-xl text-xs"
+            >
+              {t('cancel')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Permissions Modal */}
+      <Dialog open={!!editPermissionsTarget} onOpenChange={(open) => !open && setEditPermissionsTarget(null)}>
+        <DialogContent className="max-w-lg bg-[#0B0F19] border border-teal-500/30 text-white shadow-2xl rounded-2xl p-6" dir={direction}>
+          <DialogHeader className={cn("space-y-1.5", isArabic ? "text-right" : "text-left")}>
+            <div className="flex items-center gap-2 text-teal-400">
+              <div className="p-2 rounded-xl bg-teal-500/10 border border-teal-500/20">
+                <Sliders className="w-5 h-5 text-teal-400" />
+              </div>
+              <DialogTitle className="text-base font-black text-white">
+                {isArabic ? 'تعديل صلاحيات القطاعات والرتبة' : 'Edit Sector Permissions & Rank'}
+              </DialogTitle>
+            </div>
+            <DialogDescription className="text-slate-400 text-xs">
+              {isArabic
+                ? 'تحكم في أزرار القطاعات المصرح لهذا المشرف بالوصول إليها وإدارتها في لوحة التحكم.'
+                : 'Control which sector buttons this supervisor is authorized to access and manage.'}
+            </DialogDescription>
+          </DialogHeader>
+
+          {editPermissionsTarget && (
+            <div className="space-y-4 my-2">
+              {/* Target Admin Card */}
+              <div className="p-3 rounded-xl bg-black/50 border border-white/10 flex items-center justify-between text-xs">
+                <div>
+                  <p className="font-bold text-white text-sm">{editPermissionsTarget.full_name}</p>
+                  <p className="font-mono text-slate-400 text-[11px]" dir="ltr">{editPermissionsTarget.phone}</p>
+                </div>
+                <Badge
+                  variant="outline"
+                  className={editPermissionsTarget.admin_rank === 'GENERAL_ADMIN' ? 'border-amber-500/40 text-amber-300' : 'border-cyan-500/40 text-cyan-300'}
+                >
+                  {editPermissionsTarget.admin_rank === 'GENERAL_ADMIN' ? t('generalAdmin') : t('assistantAdmin')}
+                </Badge>
+              </div>
+
+              {/* Rank Selection */}
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-slate-300">{t('adminRankLabel')}</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditRank('ASSISTANT_ADMIN')}
+                    className={cn(
+                      "p-2.5 rounded-xl border text-start transition flex items-center gap-2 cursor-pointer",
+                      editRank === 'ASSISTANT_ADMIN'
+                        ? "bg-cyan-500/15 border-cyan-500 text-cyan-200 ring-1 ring-cyan-500/40"
+                        : "bg-black/40 border-white/10 text-slate-400 hover:text-white"
+                    )}
+                  >
+                    <Shield className="w-4 h-4 text-cyan-400" />
+                    <div>
+                      <p className="text-xs font-bold">{t('assistantAdmin')}</p>
+                      <p className="text-[10px] text-slate-400">{isArabic ? 'صلاحيات قطاعية محددة' : 'Custom sectors'}</p>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditRank('GENERAL_ADMIN');
+                      setEditSectors([...ALL_SECTOR_IDS]);
+                    }}
+                    className={cn(
+                      "p-2.5 rounded-xl border text-start transition flex items-center gap-2 cursor-pointer",
+                      editRank === 'GENERAL_ADMIN'
+                        ? "bg-amber-500/15 border-amber-500 text-amber-200 ring-1 ring-amber-500/40"
+                        : "bg-black/40 border-white/10 text-slate-400 hover:text-white"
+                    )}
+                  >
+                    <Crown className="w-4 h-4 text-amber-400" />
+                    <div>
+                      <p className="text-xs font-bold">{t('generalAdmin')}</p>
+                      <p className="text-[10px] text-slate-400">{isArabic ? 'كامل القطاعات' : 'Full access'}</p>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Sector Permissions Checklist */}
+              <div className="space-y-2 pt-2 border-t border-white/5">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-bold text-slate-300">
+                    {isArabic ? 'صلاحيات أزرار القطاعات:' : 'Sector Permissions:'}
+                  </label>
+                  {editRank === 'ASSISTANT_ADMIN' && (
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setEditSectors([...ALL_SECTOR_IDS])}
+                        className="text-[10px] text-teal-400 hover:text-teal-300 font-bold transition cursor-pointer"
+                      >
+                        {isArabic ? 'تحديد الكل' : 'Select All'}
+                      </button>
+                      <span className="text-slate-600">|</span>
+                      <button
+                        type="button"
+                        onClick={() => setEditSectors([])}
+                        className="text-[10px] text-slate-400 hover:text-slate-300 font-bold transition cursor-pointer"
+                      >
+                        {isArabic ? 'إلغاء التحديد' : 'Deselect All'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {editRank === 'GENERAL_ADMIN' ? (
+                  <div className="p-3 rounded-xl border border-amber-500/20 bg-amber-500/5 text-amber-300 text-xs flex items-center gap-2">
+                    <Crown className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span>
+                      {isArabic
+                        ? 'المشرف العام يملك وصولاً سيادياً كاملاً لجميع القطاعات تلقائياً.'
+                        : 'General Admin has full sovereign access to all sectors automatically.'}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2">
+                    {ADMIN_SECTORS.map((sector) => {
+                      const isChecked = editSectors.includes(sector.id as AdminSectorId);
+                      return (
+                        <button
+                          key={sector.id}
+                          type="button"
+                          onClick={() => {
+                            setEditSectors((prev) =>
+                              isChecked
+                                ? prev.filter((id) => id !== sector.id)
+                                : [...prev, sector.id as AdminSectorId]
+                            );
+                          }}
+                          className={cn(
+                            "p-2.5 rounded-xl border text-start transition flex items-center justify-between gap-2 cursor-pointer",
+                            isChecked
+                              ? "bg-teal-500/15 border-teal-500/50 text-white shadow-sm ring-1 ring-teal-500/30"
+                              : "bg-black/40 border-white/10 text-slate-400 hover:text-white"
+                          )}
+                        >
+                          <div className="flex items-center gap-2">
+                            <div
+                              className={cn(
+                                "w-4 h-4 rounded-md border flex items-center justify-center transition-all",
+                                isChecked
+                                  ? "bg-[#14B8A6] border-[#14B8A6] text-[#0B0F19]"
+                                  : "border-white/20 bg-black/40"
+                              )}
+                            >
+                              {isChecked && <Check className="w-3 h-3 stroke-[3]" />}
+                            </div>
+                            <span className="text-xs font-bold">
+                              {isArabic ? sector.labelAr : sector.labelEn}
+                            </span>
+                          </div>
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "text-[9px] font-mono",
+                              isChecked ? "border-teal-500/40 text-teal-300" : "border-white/10 text-slate-500"
+                            )}
+                          >
+                            {sector.id}
+                          </Badge>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="flex-row gap-2 sm:justify-start pt-3 border-t border-white/10">
+            <Button
+              type="button"
+              onClick={handleSavePermissions}
+              disabled={savingPermissions || !editPermissionsTarget}
+              className="flex-1 bg-teal-600 hover:bg-teal-500 text-white font-black text-xs sm:text-sm h-10 rounded-xl transition-all shadow-lg shadow-teal-950/40 cursor-pointer"
+            >
+              {savingPermissions ? (
+                <>
+                  <Loader2 className={cn("w-4 h-4 animate-spin", isArabic ? "ml-2" : "mr-2")} />
+                  {t('saving')}
+                </>
+              ) : (
+                <>
+                  <ShieldCheck className={cn("w-4 h-4", isArabic ? "ml-1.5" : "mr-1.5")} />
+                  <span>{isArabic ? 'حفظ الصلاحيات' : 'Save Permissions'}</span>
+                </>
+              )}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setEditPermissionsTarget(null)}
+              disabled={savingPermissions}
+              className="border-white/10 text-slate-300 hover:bg-white/5 h-10 rounded-xl text-xs cursor-pointer"
             >
               {t('cancel')}
             </Button>

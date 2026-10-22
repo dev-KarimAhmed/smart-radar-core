@@ -79,6 +79,7 @@ export interface CaptainUser {
   district_id?: number;
   governorate: string;
   district: string;
+  preferred_language?: string;
   created_at: string;
   vehicle: {
     brand: string;
@@ -144,6 +145,7 @@ export function DriversManagementTab() {
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [verificationFilter, setVerificationFilter] = useState<string>('ALL');
   const [rankFilter, setRankFilter] = useState<string>('ALL');
+  const [languageFilter, setLanguageFilter] = useState<'ALL' | 'ar' | 'en'>('ALL');
 
   // Geographic filtering state
   const [selectedCountry, setSelectedCountry] = useState<string>('ALL');
@@ -392,11 +394,16 @@ export function DriversManagementTab() {
         c.district_id === Number(selectedDistrict) ||
         (targetDist && c.district === targetDist.name_ar);
 
+      const matchesLanguage =
+        languageFilter === 'ALL' ||
+        (c.preferred_language || 'ar').toLowerCase() === languageFilter.toLowerCase();
+
       return (
         matchesSearch &&
         matchesStatus &&
         matchesVerification &&
         matchesRank &&
+        matchesLanguage &&
         matchesCountry &&
         matchesGov &&
         matchesDist
@@ -408,6 +415,7 @@ export function DriversManagementTab() {
     statusFilter,
     verificationFilter,
     rankFilter,
+    languageFilter,
     selectedCountry,
     selectedGovernorate,
     selectedDistrict,
@@ -869,10 +877,35 @@ export function DriversManagementTab() {
               ))}
             </div>
 
+            {/* 5. Language Filter */}
+            <div className="flex items-center gap-1 bg-black/40 p-1 rounded-xl border border-white/10">
+              <Languages className="w-3.5 h-3.5 text-[#14B8A6] mx-1 shrink-0" />
+              {[
+                { key: 'ALL', label: isArabic ? 'كل اللغات' : 'All' },
+                { key: 'ar', label: '🇸🇦 العربية' },
+                { key: 'en', label: '🇬🇧 English' },
+              ].map((lf) => (
+                <button
+                  key={lf.key}
+                  type="button"
+                  onClick={() => setLanguageFilter(lf.key as 'ALL' | 'ar' | 'en')}
+                  className={cn(
+                    "px-2.5 py-1 rounded-lg font-bold transition text-[11px] cursor-pointer",
+                    languageFilter === lf.key
+                      ? "bg-[#14B8A6] text-[#0B0F19]"
+                      : "text-slate-400 hover:text-white"
+                  )}
+                >
+                  {lf.label}
+                </button>
+              ))}
+            </div>
+
             {/* Reset Filters button if any filter is active */}
             {(statusFilter !== 'ALL' ||
               verificationFilter !== 'ALL' ||
               rankFilter !== 'ALL' ||
+              languageFilter !== 'ALL' ||
               selectedCountry !== 'ALL' ||
               selectedGovernorate !== 'ALL' ||
               selectedDistrict !== 'ALL' ||
@@ -883,6 +916,7 @@ export function DriversManagementTab() {
                   setStatusFilter('ALL');
                   setVerificationFilter('ALL');
                   setRankFilter('ALL');
+                  setLanguageFilter('ALL');
                   setSelectedCountry('ALL');
                   setSelectedGovernorate('ALL');
                   setSelectedDistrict('ALL');
@@ -1063,6 +1097,17 @@ export function DriversManagementTab() {
                                 <Badge variant="outline" className="font-mono text-[10px] font-bold bg-cyan-950/60 border-cyan-500/40 text-cyan-300 px-1.5 py-0.5 rounded-md">
                                   {captain.serial_id}
                                 </Badge>
+                                {(captain.preferred_language || 'ar').toLowerCase() === 'en' ? (
+                                  <Badge variant="outline" className="font-sans text-[9px] font-bold bg-blue-950/70 border-blue-500/40 text-blue-300 px-1.5 py-0 rounded flex items-center gap-1" title={isArabic ? 'لغة واجهة الكابتن: الإنجليزية' : 'Captain UI Language: English'}>
+                                    <span>🇬🇧</span>
+                                    <span>EN</span>
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="outline" className="font-sans text-[9px] font-bold bg-emerald-950/70 border-emerald-500/40 text-emerald-300 px-1.5 py-0 rounded flex items-center gap-1" title={isArabic ? 'لغة واجهة الكابتن: العربية' : 'Captain UI Language: Arabic'}>
+                                    <span>🇸🇦</span>
+                                    <span>AR</span>
+                                  </Badge>
+                                )}
                               </div>
                               <div className="flex items-center gap-1.5 text-slate-300 text-xs font-mono font-semibold" dir="ltr">
                                 <Phone className="h-3 w-3 text-[#14B8A6]" />
@@ -1799,9 +1844,22 @@ export function DriversManagementTab() {
                         {messageCaptain.serial_id}
                       </Badge>
                     </div>
-                    <p className="text-[11px] text-slate-400 font-mono mt-0.5">
-                      {messageCaptain.phone} • {messageCaptain.governorate}
-                    </p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-[11px] text-slate-400 font-mono">
+                        {messageCaptain.phone} • {messageCaptain.governorate}
+                      </span>
+                      {(messageCaptain.preferred_language || 'ar').toLowerCase() === 'en' ? (
+                        <Badge variant="outline" className="font-sans text-[10px] font-bold bg-blue-950/70 border-blue-500/40 text-blue-300 px-1.5 py-0 rounded flex items-center gap-1">
+                          <span>🇬🇧</span>
+                          <span>{isArabic ? 'الإنجليزية' : 'English'}</span>
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="font-sans text-[10px] font-bold bg-emerald-950/70 border-emerald-500/40 text-emerald-300 px-1.5 py-0 rounded flex items-center gap-1">
+                          <span>🇸🇦</span>
+                          <span>{isArabic ? 'العربية' : 'Arabic'}</span>
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -2470,15 +2528,42 @@ export function DriversManagementTab() {
             </div>
 
             {/* Broadcast Summary */}
-            <div className="bg-indigo-950/40 border border-indigo-500/30 p-3 rounded-2xl text-xs text-slate-300 space-y-1">
-              <div className="flex items-center gap-1.5 font-bold text-indigo-300">
-                <CheckCircle2 className="w-4 h-4 text-indigo-400" />
-                <span>{t('broadcastSummaryHeader')}</span>
-              </div>
-              <p className="text-[11px] text-slate-300">
-                {t('broadcastSummaryText', { count: getTargetCount(bulkScope) })}
-              </p>
-            </div>
+            {(() => {
+              const targetList = bulkScope === 'all'
+                ? captains
+                : bulkScope === 'selected'
+                  ? captains.filter(c => selectedCaptainIds.has(c.id))
+                  : filteredCaptains;
+              const enCount = targetList.filter(c => (c.preferred_language || 'ar').toLowerCase() === 'en').length;
+              const arCount = targetList.length - enCount;
+
+              return (
+                <div className="bg-indigo-950/40 border border-indigo-500/30 p-3 rounded-2xl text-xs text-slate-300 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 font-bold text-indigo-300">
+                      <CheckCircle2 className="w-4 h-4 text-indigo-400" />
+                      <span>{t('broadcastSummaryHeader')}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[10px] font-mono">
+                      <span className="bg-emerald-950/70 border border-emerald-500/40 text-emerald-300 px-2 py-0.5 rounded-lg font-bold">
+                        🇸🇦 {arCount} {isArabic ? 'عربية' : 'AR'}
+                      </span>
+                      <span className="bg-blue-950/70 border border-blue-500/40 text-blue-300 px-2 py-0.5 rounded-lg font-bold">
+                        🇬🇧 {enCount} {isArabic ? 'إنجليزية' : 'EN'}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-slate-300">
+                    {t('broadcastSummaryText', { count: getTargetCount(bulkScope) })}
+                  </p>
+                  <p className="text-[10px] text-indigo-200/90 bg-indigo-900/30 p-2 rounded-xl border border-indigo-500/20 leading-relaxed">
+                    ℹ️ {isArabic
+                      ? 'يتم إرسال الإشعار لكل كابتن وفق لغته المفضلة تلقائياً (النص العربي للكباتن باللغة العربية، والنص الإنجليزي للكباتن باللغة الإنجليزية).'
+                      : 'Each captain will receive the broadcast message in their own preferred language automatically.'}
+                  </p>
+                </div>
+              );
+            })()}
 
             <DialogFooter className="flex items-center justify-between gap-3 border-t border-white/10 pt-4">
               <Button

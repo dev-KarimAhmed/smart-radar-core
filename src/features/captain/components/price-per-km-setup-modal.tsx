@@ -171,6 +171,9 @@ export function PricePerKmSetupModal({
   const [pricePerKm, setPricePerKm] = React.useState(toInputValue(initialTariff?.pricePerKm));
   const [pricePerMin, setPricePerMin] = React.useState(toInputValue(initialTariff?.pricePerMin));
   const [includedKm, setIncludedKm] = React.useState(toInputValue(initialTariff?.includedKm ?? 0));
+  const numIncludedKm = parseFloat(includedKm) || 0;
+  const numBaseFare = parseFloat(baseFare) || 0;
+  const shortDistanceTotal = Math.round(numIncludedKm * numBaseFare * 100) / 100;
   const [isSaving, setIsSaving] = React.useState(false);
   const [error, setError] = React.useState('');
   const [shortDistancesError, setShortDistancesError] = React.useState('');
@@ -426,38 +429,21 @@ export function PricePerKmSetupModal({
               className={styles.shortDistancesToggle}
               aria-expanded={isShortDistancesOpen}
             >
-              {t('tariffModalShortDistancesToggle')}
-              <ChevronDown className={cn(styles.shortDistancesToggleIcon, isShortDistancesOpen ? styles.shortDistancesToggleIconOpen : '')} />
+              <span>{t('tariffModalShortDistancesToggle')}</span>
+              <div className="flex items-center gap-2.5">
+                {shortDistanceTotal > 0 ? (
+                  <span className="flex items-center justify-center min-w-[2.75rem] px-3 py-1 rounded-xl border-2 border-emerald-400 bg-emerald-500/25 text-white font-mono font-black text-base shadow-[0_0_12px_rgba(52,211,153,0.3)] tracking-wide">
+                    {shortDistanceTotal}
+                  </span>
+                ) : null}
+                <ChevronDown className={cn(styles.shortDistancesToggleIcon, isShortDistancesOpen ? styles.shortDistancesToggleIconOpen : '')} />
+              </div>
             </button>
 
             {isShortDistancesOpen ? (
             <div className={styles.shortDistancesFields}>
               {shortDistancesError ? <p className={styles.shortDistancesError}>{shortDistancesError}</p> : null}
-              <div className={styles.field}>
-                <label className={styles.fieldLabel}>{t('tariffModalBaseFareLabel')}</label>
-                <span className={styles.marketAverageLine}>
-                  {t('tariffModalMarketFloor', { min: minBaseFare.toFixed(2), currency: currency || '' })}
-                </span>
-                <span className={styles.fieldHint}>{t('tariffModalBaseFareHint')}</span>
-                <div className={styles.inputRow}>
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    min={minBaseFare}
-                    step="0.01"
-                    value={baseFare}
-                    onChange={(event) => setBaseFare(event.target.value)}
-                    placeholder={minBaseFare.toFixed(2)}
-                    disabled={isSaving}
-                    className={styles.input}
-                    autoFocus
-                  />
-                  {currency ? <span className={styles.currencyBadge}>{currency}</span> : null}
-                </div>
-              </div>
-
-              {/* Sits directly under the opening charge because it qualifies it: this is the
-                  distance that charge already covers. */}
+              {/* Distance included in opening charge comes first */}
               <div className={styles.field}>
                 <label className={styles.fieldLabel}>{t('tariffModalIncludedKmLabel')}</label>
                 {marketAverage ? (
@@ -479,6 +465,29 @@ export function PricePerKmSetupModal({
                     className={styles.input}
                   />
                   <span className={styles.currencyBadge}>{t('tariffModalKmUnit')}</span>
+                </div>
+              </div>
+
+              {/* Base fare (opening charge) comes second */}
+              <div className={styles.field}>
+                <label className={styles.fieldLabel}>{t('tariffModalBaseFareLabel')}</label>
+                <span className={styles.marketAverageLine}>
+                  {t('tariffModalMarketFloor', { min: minBaseFare.toFixed(2), currency: currency || '' })}
+                </span>
+                <span className={styles.fieldHint}>{t('tariffModalBaseFareHint')}</span>
+                <div className={styles.inputRow}>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min={minBaseFare}
+                    step="0.01"
+                    value={baseFare}
+                    onChange={(event) => setBaseFare(event.target.value)}
+                    placeholder={minBaseFare.toFixed(2)}
+                    disabled={isSaving}
+                    className={styles.input}
+                  />
+                  {currency ? <span className={styles.currencyBadge}>{currency}</span> : null}
                 </div>
               </div>
             </div>

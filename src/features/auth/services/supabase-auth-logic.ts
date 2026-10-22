@@ -339,12 +339,21 @@ export function buildUserFromSupabaseAuth(authUser: User) {
         ? (metadata.admin_rank || metadata.adminRank || 'ASSISTANT_ADMIN')
         : undefined);
 
+  const allowedSectors: string[] | undefined = isSovereignOwner || adminRank === 'GENERAL_ADMIN'
+    ? ['captains', 'riders', 'wallet', 'hourly_rates', 'delegates', 'admins']
+    : (Array.isArray(metadata.allowed_sectors)
+        ? metadata.allowed_sectors
+        : (Array.isArray(metadata.allowedSectors)
+            ? metadata.allowedSectors
+            : undefined));
+
   return {
     uid: authUser.id,
     phone,
     role: role === 'rider' ? 'rider' : role,
     subRole,
     adminRank,
+    allowedSectors,
     name: String(metadata.full_name || metadata.name || authUser.phone || ''),
     countryId,
     currencyAr,

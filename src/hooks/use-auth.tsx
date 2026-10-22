@@ -205,6 +205,9 @@ function AuthContent({ children }: { children: ReactNode }) {
     setUser(null);
     try {
       const { supabase } = await import('@/lib/supabase-client');
+      try {
+        supabase.removeAllChannels();
+      } catch {}
       await supabase.auth.signOut();
     } catch {
       setUser(null);
@@ -223,13 +226,14 @@ function AuthContent({ children }: { children: ReactNode }) {
     if (!user?.uid) return;
     let isMounted = true;
     let channel: any = null;
+    let channelPhone: any = null;
 
     let deviceId = '';
     if (typeof window !== 'undefined') {
-      deviceId = window.sessionStorage.getItem('radar_device_id') || '';
+      deviceId = window.localStorage.getItem('radar_device_id') || '';
       if (!deviceId) {
         deviceId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString();
-        window.sessionStorage.setItem('radar_device_id', deviceId);
+        window.localStorage.setItem('radar_device_id', deviceId);
       }
     }
     
@@ -238,54 +242,48 @@ function AuthContent({ children }: { children: ReactNode }) {
     import('@/lib/supabase-client').then(({ supabase }) => {
       if (!isMounted) return;
 
-      const channels: any[] = [];
-      const handleCheckActive = (payload: any, ch: any) => {
-        const foreignDeviceId = payload.payload?.deviceId;
-        if (foreignDeviceId && foreignDeviceId !== deviceId) {
-          ch.send({
-            type: 'broadcast',
-            event: 'session_active',
-            payload: { deviceId },
-          });
-        }
-      };
-
-      channel = supabase.channel('user-session-' + user.uid);
-      channel.on('broadcast', { event: 'check_active_session' }, (payload: any) => handleCheckActive(payload, channel));
-      channel.on('broadcast', { event: 'session_active' }, async (payload: any) => {
+      const handleForeignTakeover = (payload: any) => {
         const foreignDeviceId = payload.payload?.deviceId;
         if (foreignDeviceId && foreignDeviceId !== deviceId) {
           toast({
             variant: 'destructive',
-            title: 'الحساب قيد الاستخدام',
-            description: 'هذا الحساب مفتوح حالياً على جهاز آخر. لا يمكنك استخدامه حتى يتم تسجيل الخروج من الجهاز الآخر.',
+            title: 'تم تسجيل الدخول من جهاز آخر',
+            description: 'تم تسجيل الدخول إلى هذا الحساب من جهاز آخر، تم إنهاء هذه الجلسة.',
             duration: 10000,
           });
-          await forceKickout();
+          void forceKickout();
         }
-      });
+      };
+
+      channel = supabase.channel('user-session-' + user.uid);
+      channel.on('broadcast', { event: 'session_takeover' }, handleForeignTakeover);
       channel.subscribe((status: string) => {
         if (status === 'SUBSCRIBED') {
           channel.send({
             type: 'broadcast',
-            event: 'check_active_session',
+            event: 'session_takeover',
             payload: { deviceId },
           });
         }
       });
 
       if (phoneKey) {
-        const channelPhone = supabase.channel('user-session-phone-' + phoneKey);
-        channelPhone.on('broadcast', { event: 'check_active_session' }, (payload: any) => handleCheckActive(payload, channelPhone));
+        channelPhone = supabase.channel('user-session-phone-' + phoneKey);
+        channelPhone.on('broadcast', { event: 'session_takeover' }, handleForeignTakeover);
         channelPhone.subscribe();
       }
     });
     
     return () => {
       isMounted = false;
-      if (channel) channel.unsubscribe();
+      import('@/lib/supabase-client').then(({ supabase }) => {
+        try {
+          if (channel) supabase.removeChannel(channel);
+          if (channelPhone) supabase.removeChannel(channelPhone);
+        } catch {}
+      });
     };
-  }, [user?.uid, toast, forceKickout]);
+  }, [user?.uid, user?.phone, toast, forceKickout]);
 
   const loginAsMockUser = useCallback((mockUser: SovereignUser) => {
     if (!(process.env.NODE_ENV !== 'production')) return;
@@ -321,6 +319,9 @@ function AuthContent({ children }: { children: ReactNode }) {
     setUser(null);
     try {
       const { supabase } = await import('@/lib/supabase-client');
+      try {
+        supabase.removeAllChannels();
+      } catch {}
       await supabase.auth.signOut();
     } catch {
       setUser(null);

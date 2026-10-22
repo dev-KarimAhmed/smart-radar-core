@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { verifyAdminCaller, getAdminRank } from '@/lib/admin-auth-verifier';
+import { ALL_SECTOR_IDS } from '@/features/admin/lib/admin-permissions';
 
 export async function POST(req: Request) {
   const admin = await verifyAdminCaller(req);
@@ -17,13 +18,16 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { fullName, phone, password, adminRank } = await req.json();
+    const { fullName, phone, password, adminRank, allowedSectors } = await req.json();
     if (!fullName || !phone || !password) {
       return NextResponse.json({ success: false, error: 'جميع الحقول مطلوبة' }, { status: 400 });
     }
 
     const targetRank = adminRank === 'GENERAL_ADMIN' ? 'GENERAL_ADMIN' : 'ASSISTANT_ADMIN';
     const rankAuditValue = targetRank === 'GENERAL_ADMIN' ? 'RANK_GENERAL_ADMIN' : 'RANK_ASSISTANT_ADMIN';
+    const finalSectors = targetRank === 'GENERAL_ADMIN'
+      ? ALL_SECTOR_IDS
+      : (Array.isArray(allowedSectors) && allowedSectors.length > 0 ? allowedSectors : ['captains', 'riders']);
 
     // Create user via Admin API
     const { data: newUser, error: createErr } = await supabaseAdmin.auth.admin.createUser({
@@ -33,6 +37,7 @@ export async function POST(req: Request) {
       user_metadata: {
         role: 'ADMIN',
         admin_rank: targetRank,
+        allowed_sectors: finalSectors,
         full_name: fullName,
         phone,
         created_by_admin: admin.id,
@@ -51,6 +56,7 @@ export async function POST(req: Request) {
         full_name: fullName,
         phone,
         rank_audit_log: [rankAuditValue],
+        allowed_sectors: finalSectors,
         updated_at: new Date().toISOString(),
       });
     }
@@ -59,6 +65,7 @@ export async function POST(req: Request) {
       success: true,
       user: newUser.user,
       adminRank: targetRank,
+      allowedSectors: finalSectors,
     });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error?.message || 'فشل إنشاء حساب المشرف' }, { status: 500 });
