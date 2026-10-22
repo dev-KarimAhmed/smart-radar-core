@@ -83,7 +83,7 @@ export interface DestinationTripSummaryProps {
   isCaptainScanPreviewActive?: boolean;
   isLocationDisabled?: boolean;
   onEnableLocation?: () => void;
-  onSendRequest: () => void;
+  onSendRequest: (passengerCount?: number) => void;
 }
 
 export function DestinationTripSummary({
@@ -246,7 +246,7 @@ export function DestinationTripSummary({
           </button>
         ) : (
           <button
-            onClick={onSendRequest}
+            onClick={() => onSendRequest(riderCount)}
             disabled={isSubmitDisabled}
             className={cn(
               styles.submitButton,

@@ -54,7 +54,7 @@ export interface DestinationSelectionScreenProps {
   nearbyCaptainCount: number;
   onGovernorateChange: (governorateId: string) => void;
   onDistrictChange: (districtId: string) => void;
-  onSendRequest: () => void;
+  onSendRequest: (passengerCount?: number) => void;
   onResetDraft?: () => void;
   onCancelPreview?: () => void;
 }
@@ -311,7 +311,7 @@ export function DestinationSelectionScreen({
           isCaptainScanPreviewActive={isCaptainScanPreviewActive}
           isLocationDisabled={isLocationDisabled}
           onEnableLocation={handleRequestLocation}
-          onSendRequest={onSendRequest}
+          onSendRequest={(count) => onSendRequest(count ?? riderCount)}
         />
       )}
     </div>

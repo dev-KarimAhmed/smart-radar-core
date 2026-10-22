@@ -466,7 +466,7 @@ function mapRideRequestToTrip(row: RideRequestRow): Trip | null {
     riderFavoritedMe: row.rider_favorited_me === true,
     estimatedDistance: distanceKm ?? undefined,
     estimatedTime: storedDurationMinutes ?? (distanceKm ? Math.max(1, Math.round(distanceKm * 2.5)) : undefined),
-    seats: 1,
+    seats: toNumber(row.number_of_riders) ?? toNumber(row.seats) ?? toNumber((row as any).passengers) ?? 1,
     offerPrice: fare ?? undefined,
     createdAt: stringify(row.created_at),
     district: destinationLabel || originH3,
