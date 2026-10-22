@@ -24,6 +24,8 @@ import {
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { Trip } from '@/core/types';
+import { useAuth } from '@/hooks/use-auth';
+import { usePricePerKmSetup } from '../hooks/use-price-per-km-setup';
 import { DEFAULT_MAP_CENTER } from '@/shared/services/maplibre-runtime';
 import { useMaplibreInstance } from '@/shared/hooks/use-maplibre-instance';
 import { RecenterMapButton } from '@/shared/components/map/recenter-map-button';
@@ -127,6 +129,7 @@ interface RadarMapViewProps {
   requests: Trip[];
   pendingOfferRequestId?: string | null;
   captainPricingMode?: 'FREE' | 'APP' | 'TAXI' | null;
+  currentTariff?: any;
   isOfficeTaxi?: boolean;
   subRole?: string | null;
   onSelectRequest: (request: Trip, initialPrice?: string, pricingMode?: 'FREE' | 'APP' | 'TAXI') => void;
@@ -148,6 +151,7 @@ export function RadarMapView({
   requests,
   pendingOfferRequestId = null,
   captainPricingMode = null,
+  currentTariff = null,
   isOfficeTaxi = false,
   subRole = null,
   onSelectRequest,
@@ -155,6 +159,16 @@ export function RadarMapView({
   onSubmitDirectBid,
   onEditTariff,
 }: RadarMapViewProps) {
+  const { user } = useAuth();
+  const { currentTariff: hookTariff } = usePricePerKmSetup(user);
+  const activeTariff = currentTariff ?? hookTariff;
+
+  const [expandedCardIds, setExpandedCardIds] = React.useState<Record<string, boolean>>({});
+
+  const toggleCard = React.useCallback((id: string) => {
+    setExpandedCardIds((prev) => ({ ...prev, [id]: !prev[id] }));
+  }, []);
+
   const tAuto = useTranslations('auto');
   const copy = radarCopy[language];
   const t = useTranslations('captainPickup');
@@ -196,25 +210,31 @@ export function RadarMapView({
     const isIndependent = !isTaxi && !isApp && (captainPricingMode === 'FREE' || subRole === 'independent' || subRole === 'المستقل');
     const cardPricingMode: 'FREE' | 'APP' | 'TAXI' = isTaxi ? 'TAXI' : isApp ? 'APP' : 'FREE';
 
+    const calculatedCaptainPrice = calculateCaptainTripPrice(activeTariff, request);
+    const defaultPriceValue = calculatedCaptainPrice != null
+      ? calculatedCaptainPrice.toFixed(2)
+      : (request.offerPrice != null && request.offerPrice > 0 ? request.offerPrice.toFixed(2) : '');
+
     let priceNum: number | null = null;
-    const priceStr = directPrices[request.id]?.trim();
+    const priceStr = (directPrices[request.id] ?? defaultPriceValue)?.trim();
     const parsed = priceStr ? parseFloat(priceStr) : NaN;
 
     if (isTaxi) {
       priceNum = request.offerPrice != null && request.offerPrice > 0 ? request.offerPrice : null;
-    } else if (isApp || isIndependent) {
+    } else if (isApp) {
       if (priceStr && !isNaN(parsed) && parsed > 0) {
         priceNum = parsed;
       }
     } else {
-      // Radar / Free Mode: check typed/stepped price override or default calculated offerPrice
+      // Radar / Independent / Free Mode: check typed/stepped price override or default calculated tariff / market price
       if (priceStr && !isNaN(parsed) && parsed > 0) {
         priceNum = parsed;
+      } else if (calculatedCaptainPrice != null && calculatedCaptainPrice > 0) {
+        priceNum = calculatedCaptainPrice;
       } else if (request.offerPrice != null && request.offerPrice > 0) {
         priceNum = request.offerPrice;
       }
     }
-
 
     if (priceNum == null || priceNum <= 0) {
       setPriceErrors((prev) => ({ ...prev, [request.id]: true }));
@@ -228,7 +248,7 @@ export function RadarMapView({
       pricingMode: cardPricingMode,
     });
     setWaitSeconds('120');
-  }, [captainPricingMode, directPrices, isOfficeTaxi, subRole]);
+  }, [activeTariff, captainPricingMode, directPrices, isOfficeTaxi, subRole]);
 
   const handleConfirmSubmitBid = React.useCallback(async () => {
     if (!confirmModalTrip || !onSubmitDirectBid) return;
@@ -404,13 +424,31 @@ export function RadarMapView({
                 const googleMapsUrl = request.pickupGoogleMapsUrl || (pickupCoords?.lat && pickupCoords?.lng ? `https://www.google.com/maps/search/?api=1&query=${pickupCoords.lat},${pickupCoords.lng}` : null);
                 const riderPhoneNum = request.riderPhone || (request as any).riderPhoneNumber || (request as any).rider?.phone;
 
+                const isCardExpanded = Boolean(expandedCardIds[request.id]);
+
+                const dropoffCoords = request.dropoffCoords;
+                const destinationQuery = dropoffCoords?.lat && dropoffCoords?.lng
+                  ? `${dropoffCoords.lat},${dropoffCoords.lng}`
+                  : request.dropoff
+                    ? encodeURIComponent(request.dropoff)
+                    : null;
+
+                const routeGoogleMapsUrl = destinationQuery
+                  ? `https://www.google.com/maps/dir/?api=1&destination=${destinationQuery}${driverLocation?.lat && driverLocation?.lng ? `&origin=${driverLocation.lat},${driverLocation.lng}` : ''}`
+                  : (request.pickupGoogleMapsUrl || (pickupCoords?.lat && pickupCoords?.lng ? `https://www.google.com/maps/search/?api=1&query=${pickupCoords.lat},${pickupCoords.lng}` : null));
+
                 // Anti-dumping and price limit calculations for card
                 const baseMarketPrice = request.offerPrice != null && request.offerPrice > 0 ? request.offerPrice : null;
-                const rawPriceStr = directPrices[request.id];
+                const calculatedCaptainPrice = calculateCaptainTripPrice(activeTariff, request);
+                const defaultPriceValue = calculatedCaptainPrice != null
+                  ? calculatedCaptainPrice.toFixed(2)
+                  : (baseMarketPrice != null ? baseMarketPrice.toFixed(2) : '');
+
+                const rawPriceStr = directPrices[request.id] ?? defaultPriceValue;
                 const rawPriceNum = rawPriceStr != null && rawPriceStr.trim() !== '' ? parseFloat(rawPriceStr) : null;
                 const currentPrice = rawPriceNum != null && !isNaN(rawPriceNum) && rawPriceNum > 0
                   ? rawPriceNum
-                  : (baseMarketPrice ?? 0);
+                  : (calculatedCaptainPrice ?? baseMarketPrice ?? 0);
 
                 const marketBrake = (baseMarketPrice && baseMarketPrice > 0 && currentPrice > 0)
                   ? RadarAntiCheatKernel.enforceMarketBrakes(currentPrice, baseMarketPrice)
@@ -429,390 +467,464 @@ export function RadarMapView({
                       isOwnPendingOffer ? styles.cardPendingOffer : '',
                     )}
                   >
-                    {/* Destination Title & Header */}
-                    <div className={styles.style220_33}>
-                      <MapPin className={styles.style221_34} />
-                      <div className={styles.style222_35}>
-                        <h3 className={styles.style223_36}>{request.dropoff || copy.destination}</h3>
-                      </div>
-                    </div>
+                    {/* Destination Title & Header (Accordion Toggle) */}
+                    <div
+                      onClick={() => toggleCard(request.id)}
+                      className="flex items-start justify-between gap-2.5 cursor-pointer select-none"
+                      role="button"
+                      tabIndex={0}
+                      aria-expanded={isCardExpanded}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          toggleCard(request.id);
+                        }
+                      }}
+                    >
+                      <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                        <MapPin className={styles.style221_34} />
+                        <div className="min-w-0 flex-1">
+                          <h3 className={styles.style223_36}>{request.dropoff || copy.destination}</h3>
 
-                    {/* Rider Info (Rating, Trips, Favorite) */}
-                    <div className="mt-3 space-y-2 select-none" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-                      <div className="flex items-center justify-between text-xs sm:text-sm font-bold">
-                        <span className="text-slate-300">{copy.riderRatingLabel}</span>
-                        <span
-                          dir="ltr"
-                          className={cn(
-                            'font-black font-mono',
-                            request.riderRating != null && request.riderRating > 0 ? 'text-amber-400 text-sm sm:text-base' : 'text-slate-400 text-xs font-bold',
-                          )}
-                        >
-                          {request.riderRating != null && request.riderRating > 0
-                            ? `${request.riderRating % 1 === 0 ? request.riderRating.toFixed(0) : request.riderRating.toFixed(1)}/5`
-                            : copy.riderUnrated}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center justify-between text-xs sm:text-sm font-bold">
-                        <span className="text-slate-300">{copy.riderTripsLabel}</span>
-                        <span dir="ltr" className="font-black text-sm sm:text-base font-mono text-white">
-                          {request.riderCompletedTrips != null ? request.riderCompletedTrips : 0}
-                        </span>
-                      </div>
-
-                      {request.riderFavoritedMe && (
-                        <div className="flex items-center gap-1.5 text-xs font-black text-emerald-400 pt-1">
-                          <Heart className="h-3.5 w-3.5 shrink-0 fill-emerald-400 text-emerald-400 animate-pulse" />
-                          <span>{copy.riderFavoritedYou}</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Trip Info Grid (directly on the card) */}
-                    <div className={styles.style227_38} dir={language === 'ar' ? 'rtl' : 'ltr'}>
-                      <Info
-                        label={copy.pickupTime}
-                        value={t('minutesValue', { count: estimatePickupMinutes(pickupDistanceKm(driverLocation, request)) })}
-                      />
-                      <Info
-                        label={copy.tripDistance}
-                        value={request.estimatedDistance != null ? `${request.estimatedDistance.toFixed(1)} ${language === 'ar' ? tAuto('key_4171dde6') : 'km'}` : t('distanceUnavailable')}
-                      />
-                      <Info
-                        label={copy.marketFare}
-                        value={request.offerPrice != null ? `${request.offerPrice.toFixed(2)} ${currency}` : '—'}
-                      />
-                      <Info
-                        label={copy.requestTime}
-                        value={formatRequestTime(request.createdAt, language)}
-                      />
-                    </div>
-
-                    {/* PRICING INPUT / DISPLAY ON THE CARD */}
-                    {!isOwnPendingOffer && (
-                      <div className="mt-3.5 pt-3 border-t border-slate-800/80">
-                        {/* CASE 1: Smart App Mode (Uber etc.) - Input readOnly + Paste button only */}
-                        {isAppMode && (
-                          <div className={styles.appPriceCard} onClick={(e) => e.stopPropagation()}>
-                            <div className={styles.appPriceCardHeader} dir={language === 'ar' ? 'rtl' : 'ltr'}>
-                              <span className={styles.appPriceCardBadge}>
-                                📱 {copy.appModeBadge}
-                              </span>
-                              <span className={styles.appPriceCardNotice}>
-                                {copy.appModeInputNotice}
-                              </span>
-                            </div>
-
-                            <div className={styles.appPriceInputRow} dir={language === 'ar' ? 'rtl' : 'ltr'}>
-                              <div className={styles.appPriceInputGroup} dir="ltr">
-                                <input
-                                  type="text"
-                                  inputMode="decimal"
-                                  placeholder="0.00"
-                                  disabled={isBlockedByOtherPendingOffer}
-                                  value={directPrices[request.id] ?? ''}
-                                  onChange={(e) => {
-                                    const val = e.target.value.replace(/[^0-9.]/g, '');
-                                    const parts = val.split('.');
-                                    const cleanVal = parts.length > 2 ? `${parts[0]}.${parts.slice(1).join('')}` : val;
-                                    setDirectPrices((prev) => ({ ...prev, [request.id]: cleanVal }));
-                                    if (priceErrors[request.id]) setPriceErrors((prev) => ({ ...prev, [request.id]: false }));
-                                  }}
-                                  onWheel={(e) => (e.target as HTMLInputElement).blur()}
-                                  className={cn(
-                                    styles.appPriceInputField,
-                                    'text-amber-300 font-mono font-black',
-                                    isBlockedByOtherPendingOffer ? styles.appPriceInputDisabled : '',
-                                  )}
-                                  dir="ltr"
-                                />
-                                <span className={styles.appPriceCurrencyBadge}>{currency}</span>
-                              </div>
-
-                              <button
-                                type="button"
-                                onClick={() => void handlePastePrice(request.id)}
-                                disabled={isBlockedByOtherPendingOffer}
-                                className={styles.appPricePasteBtn}
-                                title={copy.pastePrice}
-                                dir={language === 'ar' ? 'rtl' : 'ltr'}
-                              >
-                                <ClipboardPaste className={styles.appPricePasteIcon} />
-                                <span>{copy.paste}</span>
-                              </button>
-                            </div>
-
-                            {priceErrors[request.id] ? (
-                              <p className={styles.appPriceInputError}>{copy.appModePriceRequired}</p>
-                            ) : null}
-                          </div>
-                        )}
-
-                        {/* CASE 2: Independent Mode (مستقل) - Stepper + Input directly on card */}
-                        {isIndependentMode && (
-                          <div className={styles.appPriceCard} onClick={(e) => e.stopPropagation()}>
-                            <div className={styles.appPriceCardHeader} dir={language === 'ar' ? 'rtl' : 'ltr'}>
-                              <span className={styles.appPriceCardBadge}>
-                                💼 {copy.independentBadge}
-                              </span>
-                              <span className={styles.appPriceCardNotice}>
-                                {copy.independentNotice}
-                              </span>
-                            </div>
-
-                            <div className="flex items-center gap-2 pt-1 w-full" dir="ltr">
-                              <button
-                                type="button"
-                                disabled={isBlockedByOtherPendingOffer}
-                                onClick={() => {
-                                  const stepVal = 0.5;
-                                  const nextVal = Math.max(0.1, Math.round((currentPrice - stepVal) * 100) / 100);
-                                  setDirectPrices((prev) => ({ ...prev, [request.id]: nextVal.toFixed(2) }));
-                                  if (priceErrors[request.id]) setPriceErrors((prev) => ({ ...prev, [request.id]: false }));
-                                }}
-                                className="flex h-11 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-700/80 bg-slate-900 text-slate-200 hover:bg-slate-800 active:scale-95 transition-all disabled:opacity-40 cursor-pointer shadow-sm"
-                              >
-                                <Minus className="h-4 w-4" />
-                              </button>
-
-                              <div
-                                className={cn(
-                                  styles.appPriceInputGroup,
-                                  'min-w-0 flex-1',
-                                  isDumpingCrimson ? '!border-rose-500/80 !bg-rose-950/40' : isDumpingAmber ? '!border-amber-500/80 !bg-amber-950/30' : '',
-                                )}
-                                dir="ltr"
-                              >
-                                <input
-                                  type="number"
-                                  step="0.01"
-                                  min="0.1"
-                                  placeholder="0.00"
-                                  disabled={isBlockedByOtherPendingOffer}
-                                  value={directPrices[request.id] ?? ''}
-                                  onChange={(e) => {
-                                    const val = e.target.value;
-                                    setDirectPrices((prev) => ({ ...prev, [request.id]: val }));
-                                    if (priceErrors[request.id]) {
-                                      setPriceErrors((prev) => ({ ...prev, [request.id]: false }));
-                                    }
-                                  }}
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                      e.preventDefault();
-                                      handleInitiateOffer(request);
-                                    }
-                                  }}
-                                  className={cn(
-                                    styles.appPriceInputField,
-                                    'font-mono font-black text-center text-base',
-                                    isBlockedByOtherPendingOffer ? styles.appPriceInputDisabled : '',
-                                    isDumpingCrimson ? '!text-rose-300' : isDumpingAmber ? '!text-amber-300' : '',
-                                  )}
-                                  dir="ltr"
-                                />
-                                <span className={styles.appPriceCurrencyBadge}>{currency}</span>
-                              </div>
-
-                              <button
-                                type="button"
-                                disabled={isBlockedByOtherPendingOffer}
-                                onClick={() => {
-                                  const stepVal = 0.5;
-                                  const nextVal = Math.round((currentPrice + stepVal) * 100) / 100;
-                                  setDirectPrices((prev) => ({ ...prev, [request.id]: nextVal.toFixed(2) }));
-                                  if (priceErrors[request.id]) setPriceErrors((prev) => ({ ...prev, [request.id]: false }));
-                                }}
-                                className="flex h-11 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-700/80 bg-slate-900 text-slate-200 hover:bg-slate-800 active:scale-95 transition-all disabled:opacity-40 cursor-pointer shadow-sm"
-                              >
-                                <Plus className="h-4 w-4" />
-                              </button>
-                            </div>
-
-                            {priceErrors[request.id] ? (
-                              <p className={styles.appPriceInputError}>{copy.independentPriceRequired}</p>
-                            ) : null}
-                          </div>
-                        )}
-
-                        {/* CASE 3: Radar / Free Mode (رادار) - Stepper + Input + Edit Setup Button */}
-                        {isRadarFreeMode && (
-                          <div className="rounded-2xl border border-emerald-500/30 bg-emerald-950/20 p-3 shadow-inner space-y-2" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-                            <div className="flex items-center justify-between gap-2.5">
-                              <span className="inline-flex items-center gap-1 text-xs font-black text-emerald-300 min-w-0 flex-1 leading-snug">
-                                📡 {copy.radarModeNotice}
-                              </span>
-                              {onEditTariff && (
-                                <button
-                                  type="button"
-                                  onClick={onEditTariff}
-                                  className="inline-flex shrink-0 items-center gap-1 rounded-md border border-emerald-400/40 bg-emerald-500/15 px-2 py-0.5 text-[11px] font-bold text-emerald-300 hover:bg-emerald-500/25 active:scale-95 transition-all cursor-pointer"
-                                >
-                                  <Edit3 className="h-3 w-3" />
-                                  <span>{copy.editTariffBtn}</span>
-                                </button>
+                          {/* Quick summary badges when card is closed (default) */}
+                          {!isCardExpanded && (
+                            <div className="flex flex-wrap items-center gap-1.5 mt-2" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                              {request.estimatedDistance != null && (
+                                <span className="inline-flex items-center gap-1 rounded-lg bg-slate-800/80 border border-slate-700/60 px-2 py-0.5 text-[11px] font-bold text-slate-200">
+                                  {formatLocalizedNumber(request.estimatedDistance.toFixed(1), language)} {language === 'ar' ? tAuto('key_4171dde6') : 'km'}
+                                </span>
                               )}
+                              {request.offerPrice != null && (
+                                <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 text-[11px] font-black text-emerald-300">
+                                  {formatLocalizedNumber(request.offerPrice.toFixed(2), language)} {currency}
+                                </span>
+                              )}
+                              <span className="inline-flex items-center gap-1 rounded-lg bg-white/5 border border-white/10 px-2 py-0.5 text-[10px] text-slate-400">
+                                {formatRequestTime(request.createdAt, language)}
+                              </span>
                             </div>
+                          )}
+                        </div>
+                      </div>
 
-                            <div className="flex items-center gap-2 pt-1 w-full" dir="ltr">
-                              <button
-                                type="button"
-                                disabled={isBlockedByOtherPendingOffer}
-                                onClick={() => {
-                                  const stepVal = 0.5;
-                                  const nextVal = Math.max(0.1, Math.round((currentPrice - stepVal) * 100) / 100);
-                                  setDirectPrices((prev) => ({ ...prev, [request.id]: nextVal.toFixed(2) }));
-                                  if (priceErrors[request.id]) setPriceErrors((prev) => ({ ...prev, [request.id]: false }));
-                                }}
-                                className="flex h-11 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-700/80 bg-slate-900 text-slate-200 hover:bg-slate-800 active:scale-95 transition-all disabled:opacity-40 cursor-pointer shadow-sm"
-                              >
-                                <Minus className="h-4 w-4" />
-                              </button>
-
-                              <div
-                                className={cn(
-                                  styles.appPriceInputGroup,
-                                  'min-w-0 flex-1',
-                                  isDumpingCrimson ? '!border-rose-500/80 !bg-rose-950/40' : isDumpingAmber ? '!border-amber-500/80 !bg-amber-950/30' : '',
-                                )}
-                                dir="ltr"
-                              >
-                                <input
-                                  type="number"
-                                  step="0.01"
-                                  min="0.1"
-                                  placeholder={baseMarketPrice ? baseMarketPrice.toFixed(2) : '0.00'}
-                                  disabled={isBlockedByOtherPendingOffer}
-                                  value={directPrices[request.id] ?? (baseMarketPrice ? baseMarketPrice.toFixed(2) : '')}
-                                  onChange={(e) => {
-                                    const val = e.target.value;
-                                    setDirectPrices((prev) => ({ ...prev, [request.id]: val }));
-                                    if (priceErrors[request.id]) {
-                                      setPriceErrors((prev) => ({ ...prev, [request.id]: false }));
-                                    }
-                                  }}
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                      e.preventDefault();
-                                      handleInitiateOffer(request);
-                                    }
-                                  }}
-                                  className={cn(
-                                    styles.appPriceInputField,
-                                    'font-mono font-black text-center text-base',
-                                    isBlockedByOtherPendingOffer ? styles.appPriceInputDisabled : '',
-                                    isDumpingCrimson ? '!text-rose-300' : isDumpingAmber ? '!text-amber-300' : '',
-                                  )}
-                                  dir="ltr"
-                                />
-                                <span className={styles.appPriceCurrencyBadge}>{currency}</span>
-                              </div>
-
-                              <button
-                                type="button"
-                                disabled={isBlockedByOtherPendingOffer}
-                                onClick={() => {
-                                  const stepVal = 0.5;
-                                  const nextVal = Math.round((currentPrice + stepVal) * 100) / 100;
-                                  setDirectPrices((prev) => ({ ...prev, [request.id]: nextVal.toFixed(2) }));
-                                  if (priceErrors[request.id]) setPriceErrors((prev) => ({ ...prev, [request.id]: false }));
-                                }}
-                                className="flex h-11 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-700/80 bg-slate-900 text-slate-200 hover:bg-slate-800 active:scale-95 transition-all disabled:opacity-40 cursor-pointer shadow-sm"
-                              >
-                                <Plus className="h-4 w-4" />
-                              </button>
-                            </div>
-                          </div>
+                      <div className="flex items-center gap-1.5 shrink-0 pt-0.5">
+                        {/* Route button in header so it's always accessible */}
+                        {routeGoogleMapsUrl && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.open(routeGoogleMapsUrl, '_blank', 'noopener,noreferrer');
+                            }}
+                            className="inline-flex items-center gap-1 rounded-xl border border-emerald-500/35 bg-emerald-500/15 hover:bg-emerald-500/25 active:scale-95 px-2.5 py-1 text-xs font-black text-emerald-300 shadow-sm transition-all cursor-pointer"
+                            title={copy.tripRoute}
+                            dir={language === 'ar' ? 'rtl' : 'ltr'}
+                          >
+                            <Route className="h-3.5 w-3.5 stroke-[2.5]" />
+                            <span className="hidden sm:inline">{copy.tripRoute}</span>
+                          </button>
                         )}
+                        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/5 text-slate-400 hover:text-white transition-colors">
+                          <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", isCardExpanded ? "rotate-180 text-emerald-400" : "")} />
+                        </div>
+                      </div>
+                    </div>
 
-                        {/* CASE 4: Taxi Mode (تاكسي) - Fixed Meter Fare Display (Read-Only) */}
-                        {isTaxiMode && (
-                          <div className={styles.taxiNoticeBanner} dir={language === 'ar' ? 'rtl' : 'ltr'}>
-                            <div className="flex items-center gap-1.5">
-                              <span className={styles.taxiNoticeIcon}>🚕</span>
-                              <span>{copy.taxiModeNotice}</span>
-                            </div>
-                            <span className="font-mono font-black text-sm text-amber-300" dir="ltr">
-                              {request.offerPrice != null ? `${request.offerPrice.toFixed(2)} ${currency}` : '—'}
+                    {/* IF OFFER PENDING: Show Status Banner even when closed */}
+                    {isOwnPendingOffer && (
+                      <div className={styles.ownPendingRow} dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                        <div className={styles.ownPendingBadge} title={copy.ownPendingOfferDesc}>
+                          <span className={styles.ownPendingPulseWrap}>
+                            <span className={styles.ownPendingPing} />
+                            <span className={styles.ownPendingDot} />
+                          </span>
+                          <Clock className={styles.ownPendingIcon} />
+                          <span className={styles.ownPendingText}>{copy.ownPendingOffer}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* DROPDOWN EXPANDED CONTENT */}
+                    {isCardExpanded && (
+                      <div className="mt-3.5 pt-3 border-t border-slate-800/80 animate-in fade-in duration-150">
+                        {/* Rider Info (Rating, Trips, Favorite) */}
+                        <div className="space-y-2 select-none" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                          <div className="flex items-center justify-between text-xs sm:text-sm font-bold">
+                            <span className="text-slate-300">{copy.riderRatingLabel}</span>
+                            <span
+                              dir="ltr"
+                              className={cn(
+                                'font-black font-mono',
+                                request.riderRating != null && request.riderRating > 0 ? 'text-amber-400 text-sm sm:text-base' : 'text-slate-400 text-xs font-bold',
+                              )}
+                            >
+                              {request.riderRating != null && request.riderRating > 0
+                                ? `${formatLocalizedNumber(request.riderRating % 1 === 0 ? request.riderRating.toFixed(0) : request.riderRating.toFixed(1), language)}/${formatLocalizedNumber('5', language)}`
+                                : copy.riderUnrated}
                             </span>
                           </div>
+
+                          <div className="flex items-center justify-between text-xs sm:text-sm font-bold">
+                            <span className="text-slate-300">{copy.riderTripsLabel}</span>
+                            <span dir="ltr" className="font-black text-sm sm:text-base font-mono text-white">
+                              {formatLocalizedNumber(request.riderCompletedTrips != null ? request.riderCompletedTrips : 0, language)}
+                            </span>
+                          </div>
+
+                          {request.riderFavoritedMe && (
+                            <div className="flex items-center gap-1.5 text-xs font-black text-emerald-400 pt-1">
+                              <Heart className="h-3.5 w-3.5 shrink-0 fill-emerald-400 text-emerald-400 animate-pulse" />
+                              <span>{copy.riderFavoritedYou}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Trip Info Grid (directly on the card) */}
+                        <div className={styles.style227_38} dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                          <Info
+                            label={copy.pickupTime}
+                            value={formatLocalizedNumber(t('minutesValue', { count: estimatePickupMinutes(pickupDistanceKm(driverLocation, request)) }), language)}
+                          />
+                          <Info
+                            label={copy.tripDistance}
+                            value={request.estimatedDistance != null ? `${formatLocalizedNumber(request.estimatedDistance.toFixed(1), language)} ${language === 'ar' ? tAuto('key_4171dde6') : 'km'}` : t('distanceUnavailable')}
+                          />
+                          <Info
+                            label={copy.marketFare}
+                            value={request.offerPrice != null ? `${formatLocalizedNumber(request.offerPrice.toFixed(2), language)} ${currency}` : '—'}
+                          />
+                          <Info
+                            label={copy.requestTime}
+                            value={formatRequestTime(request.createdAt, language)}
+                          />
+                        </div>
+
+                        {/* PRICING INPUT / DISPLAY ON THE CARD */}
+                        {!isOwnPendingOffer && (
+                          <div className="mt-3.5 pt-3 border-t border-slate-800/80">
+                            {/* CASE 1: Smart App Mode (Uber etc.) - Input readOnly + Paste button only */}
+                            {isAppMode && (
+                              <div className={styles.appPriceCard} onClick={(e) => e.stopPropagation()}>
+                                <div className={styles.appPriceCardHeader} dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                                  <span className={styles.appPriceCardBadge}>
+                                    📱 {copy.appModeBadge}
+                                  </span>
+                                  <span className={styles.appPriceCardNotice}>
+                                    {copy.appModeInputNotice}
+                                  </span>
+                                </div>
+
+                                <div className={styles.appPriceInputRow} dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                                  <div className={styles.appPriceInputGroup} dir="ltr">
+                                    <input
+                                      type="text"
+                                      inputMode="decimal"
+                                      placeholder="0.00"
+                                      disabled={isBlockedByOtherPendingOffer}
+                                      value={directPrices[request.id] ?? ''}
+                                      onChange={(e) => {
+                                        const val = e.target.value.replace(/[^0-9.]/g, '');
+                                        const parts = val.split('.');
+                                        const cleanVal = parts.length > 2 ? `${parts[0]}.${parts.slice(1).join('')}` : val;
+                                        setDirectPrices((prev) => ({ ...prev, [request.id]: cleanVal }));
+                                        if (priceErrors[request.id]) setPriceErrors((prev) => ({ ...prev, [request.id]: false }));
+                                      }}
+                                      onWheel={(e) => (e.target as HTMLInputElement).blur()}
+                                      className={cn(
+                                        styles.appPriceInputField,
+                                        'text-amber-300 font-mono font-black',
+                                        isBlockedByOtherPendingOffer ? styles.appPriceInputDisabled : '',
+                                      )}
+                                      dir="ltr"
+                                    />
+                                    <span className={styles.appPriceCurrencyBadge}>{currency}</span>
+                                  </div>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => void handlePastePrice(request.id)}
+                                    disabled={isBlockedByOtherPendingOffer}
+                                    className={styles.appPricePasteBtn}
+                                    title={copy.pastePrice}
+                                    dir={language === 'ar' ? 'rtl' : 'ltr'}
+                                  >
+                                    <ClipboardPaste className={styles.appPricePasteIcon} />
+                                    <span>{copy.paste}</span>
+                                  </button>
+                                </div>
+
+                                {priceErrors[request.id] ? (
+                                  <p className={styles.appPriceInputError}>{copy.appModePriceRequired}</p>
+                                ) : null}
+                              </div>
+                            )}
+
+                            {/* CASE 2: Independent Mode (مستقل) - Stepper + Input directly on card */}
+                            {isIndependentMode && (
+                              <div className={styles.appPriceCard} onClick={(e) => e.stopPropagation()}>
+                                <div className={styles.appPriceCardHeader} dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                                  <span className={styles.appPriceCardBadge}>
+                                    💼 {copy.independentBadge}
+                                  </span>
+                                  <span className={styles.appPriceCardNotice}>
+                                    {copy.independentNotice}
+                                  </span>
+                                </div>
+
+                                <div className="flex items-center gap-2 pt-1 w-full" dir="ltr">
+                                  <button
+                                    type="button"
+                                    disabled={isBlockedByOtherPendingOffer}
+                                    onClick={() => {
+                                      const stepVal = 0.5;
+                                      const nextVal = Math.max(0.1, Math.round((currentPrice - stepVal) * 100) / 100);
+                                      setDirectPrices((prev) => ({ ...prev, [request.id]: nextVal.toFixed(2) }));
+                                      if (priceErrors[request.id]) setPriceErrors((prev) => ({ ...prev, [request.id]: false }));
+                                    }}
+                                    className="flex h-11 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-700/80 bg-slate-900 text-slate-200 hover:bg-slate-800 active:scale-95 transition-all disabled:opacity-40 cursor-pointer shadow-sm"
+                                  >
+                                    <Minus className="h-4 w-4" />
+                                  </button>
+
+                                  <div
+                                    className={cn(
+                                      styles.appPriceInputGroup,
+                                      'min-w-0 flex-1',
+                                      isDumpingCrimson ? '!border-rose-500/80 !bg-rose-950/40' : isDumpingAmber ? '!border-amber-500/80 !bg-amber-950/30' : '',
+                                    )}
+                                    dir="ltr"
+                                  >
+                                    <input
+                                      type="number"
+                                      step="0.01"
+                                      min="0.1"
+                                      placeholder={defaultPriceValue || "0.00"}
+                                      disabled={isBlockedByOtherPendingOffer}
+                                      value={directPrices[request.id] ?? defaultPriceValue}
+                                      onChange={(e) => {
+                                        const val = e.target.value;
+                                        setDirectPrices((prev) => ({ ...prev, [request.id]: val }));
+                                        if (priceErrors[request.id]) {
+                                          setPriceErrors((prev) => ({ ...prev, [request.id]: false }));
+                                        }
+                                      }}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          e.preventDefault();
+                                          handleInitiateOffer(request);
+                                        }
+                                      }}
+                                      className={cn(
+                                        styles.appPriceInputField,
+                                        'font-mono font-black text-center text-base',
+                                        isBlockedByOtherPendingOffer ? styles.appPriceInputDisabled : '',
+                                        isDumpingCrimson ? '!text-rose-300' : isDumpingAmber ? '!text-amber-300' : '',
+                                      )}
+                                      dir="ltr"
+                                    />
+                                    <span className={styles.appPriceCurrencyBadge}>{currency}</span>
+                                  </div>
+
+                                  <button
+                                    type="button"
+                                    disabled={isBlockedByOtherPendingOffer}
+                                    onClick={() => {
+                                      const stepVal = 0.5;
+                                      const nextVal = Math.round((currentPrice + stepVal) * 100) / 100;
+                                      setDirectPrices((prev) => ({ ...prev, [request.id]: nextVal.toFixed(2) }));
+                                      if (priceErrors[request.id]) setPriceErrors((prev) => ({ ...prev, [request.id]: false }));
+                                    }}
+                                    className="flex h-11 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-700/80 bg-slate-900 text-slate-200 hover:bg-slate-800 active:scale-95 transition-all disabled:opacity-40 cursor-pointer shadow-sm"
+                                  >
+                                    <Plus className="h-4 w-4" />
+                                  </button>
+                                </div>
+
+                                {priceErrors[request.id] ? (
+                                  <p className={styles.appPriceInputError}>{copy.independentPriceRequired}</p>
+                                ) : null}
+                              </div>
+                            )}
+
+                            {/* CASE 3: Radar / Free Mode (رادار) - Stepper + Input + Edit Setup Button */}
+                            {isRadarFreeMode && (
+                              <div className="rounded-2xl border border-emerald-500/30 bg-emerald-950/20 p-3 shadow-inner space-y-2" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                                <div className="flex items-center justify-between gap-2.5">
+                                  <span className="inline-flex items-center gap-1 text-xs font-black text-emerald-300 min-w-0 flex-1 leading-snug">
+                                    📡 {copy.radarModeNotice}
+                                  </span>
+                                  {onEditTariff && (
+                                    <button
+                                      type="button"
+                                      onClick={onEditTariff}
+                                      className="inline-flex shrink-0 items-center gap-1 rounded-md border border-emerald-400/40 bg-emerald-500/15 px-2 py-0.5 text-[11px] font-bold text-emerald-300 hover:bg-emerald-500/25 active:scale-95 transition-all cursor-pointer"
+                                    >
+                                      <Edit3 className="h-3 w-3" />
+                                      <span>{copy.editTariffBtn}</span>
+                                    </button>
+                                  )}
+                                </div>
+
+                                <div className="flex items-center gap-2 pt-1 w-full" dir="ltr">
+                                  <button
+                                    type="button"
+                                    disabled={isBlockedByOtherPendingOffer}
+                                    onClick={() => {
+                                      const stepVal = 0.5;
+                                      const nextVal = Math.max(0.1, Math.round((currentPrice - stepVal) * 100) / 100);
+                                      setDirectPrices((prev) => ({ ...prev, [request.id]: nextVal.toFixed(2) }));
+                                      if (priceErrors[request.id]) setPriceErrors((prev) => ({ ...prev, [request.id]: false }));
+                                    }}
+                                    className="flex h-11 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-700/80 bg-slate-900 text-slate-200 hover:bg-slate-800 active:scale-95 transition-all disabled:opacity-40 cursor-pointer shadow-sm"
+                                  >
+                                    <Minus className="h-4 w-4" />
+                                  </button>
+
+                                  <div
+                                    className={cn(
+                                      styles.appPriceInputGroup,
+                                      'min-w-0 flex-1',
+                                      isDumpingCrimson ? '!border-rose-500/80 !bg-rose-950/40' : isDumpingAmber ? '!border-amber-500/80 !bg-amber-950/30' : '',
+                                    )}
+                                    dir="ltr"
+                                  >
+                                    <input
+                                      type="number"
+                                      step="0.01"
+                                      min="0.1"
+                                      placeholder={defaultPriceValue || (baseMarketPrice ? baseMarketPrice.toFixed(2) : '0.00')}
+                                      disabled={isBlockedByOtherPendingOffer}
+                                      value={directPrices[request.id] ?? defaultPriceValue}
+                                      onChange={(e) => {
+                                        const val = e.target.value;
+                                        setDirectPrices((prev) => ({ ...prev, [request.id]: val }));
+                                        if (priceErrors[request.id]) {
+                                          setPriceErrors((prev) => ({ ...prev, [request.id]: false }));
+                                        }
+                                      }}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          e.preventDefault();
+                                          handleInitiateOffer(request);
+                                        }
+                                      }}
+                                      className={cn(
+                                        styles.appPriceInputField,
+                                        'font-mono font-black text-center text-base',
+                                        isBlockedByOtherPendingOffer ? styles.appPriceInputDisabled : '',
+                                        isDumpingCrimson ? '!text-rose-300' : isDumpingAmber ? '!text-amber-300' : '',
+                                      )}
+                                      dir="ltr"
+                                    />
+                                    <span className={styles.appPriceCurrencyBadge}>{currency}</span>
+                                  </div>
+
+                                  <button
+                                    type="button"
+                                    disabled={isBlockedByOtherPendingOffer}
+                                    onClick={() => {
+                                      const stepVal = 0.5;
+                                      const nextVal = Math.round((currentPrice + stepVal) * 100) / 100;
+                                      setDirectPrices((prev) => ({ ...prev, [request.id]: nextVal.toFixed(2) }));
+                                      if (priceErrors[request.id]) setPriceErrors((prev) => ({ ...prev, [request.id]: false }));
+                                    }}
+                                    className="flex h-11 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-700/80 bg-slate-900 text-slate-200 hover:bg-slate-800 active:scale-95 transition-all disabled:opacity-40 cursor-pointer shadow-sm"
+                                  >
+                                    <Plus className="h-4 w-4" />
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* CASE 4: Taxi Mode (تاكسي) - Fixed Meter Fare Display (Read-Only) */}
+                            {isTaxiMode && (
+                              <div className={styles.taxiNoticeBanner} dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                                <div className="flex items-center gap-1.5">
+                                  <span className={styles.taxiNoticeIcon}>🚕</span>
+                                  <span>{copy.taxiModeNotice}</span>
+                                </div>
+                                <span className="font-mono font-black text-sm text-amber-300" dir="ltr">
+                                  {request.offerPrice != null ? `${formatLocalizedNumber(request.offerPrice.toFixed(2), language)} ${currency}` : '—'}
+                                </span>
+                              </div>
+                            )}
+
+                            {/* DYNAMIC ANTI-DUMPING / LIMIT ALERTS (Shown ONLY when breached) */}
+                            {isDumpingCrimson ? (
+                              <div className="mt-2.5 rounded-xl border border-rose-500/40 bg-rose-950/50 p-2.5 text-xs text-rose-200 space-y-2 animate-in fade-in duration-150" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                                <div className="flex items-start gap-2 font-bold">
+                                  <AlertTriangle className="h-4 w-4 shrink-0 text-rose-400 mt-0.5" />
+                                  <span>{copy.dumpingCrimsonMsg}</span>
+                                </div>
+                                {floorPrice > 0 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setDirectPrices((prev) => ({ ...prev, [request.id]: floorPrice.toFixed(2) }));
+                                      if (priceErrors[request.id]) setPriceErrors((prev) => ({ ...prev, [request.id]: false }));
+                                    }}
+                                    className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-rose-400/40 bg-rose-500/20 py-1.5 px-3 text-xs font-black text-rose-200 hover:bg-rose-500/30 active:scale-95 transition-all cursor-pointer"
+                                  >
+                                    <Sparkles className="h-3.5 w-3.5 text-amber-300" />
+                                    <span>{copy.applyFloorBtn} ({formatLocalizedNumber(floorPrice.toFixed(2), language)} {currency})</span>
+                                  </button>
+                                )}
+                              </div>
+                            ) : isDumpingAmber ? (
+                              <div className="mt-2.5 flex items-center gap-2 rounded-xl border border-amber-500/40 bg-amber-950/40 p-2.5 text-xs font-bold text-amber-200 animate-in fade-in duration-150" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                                <AlertTriangle className="h-4 w-4 shrink-0 text-amber-400" />
+                                <span>{copy.dumpingAmberMsg}</span>
+                              </div>
+                            ) : isUpperWarn ? (
+                              <div className="mt-2.5 flex items-center gap-2 rounded-xl border border-amber-500/40 bg-amber-950/40 p-2.5 text-xs font-bold text-amber-200 animate-in fade-in duration-150" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                                <AlertTriangle className="h-4 w-4 shrink-0 text-amber-400" />
+                                <span>{copy.upperWarnMsg}</span>
+                              </div>
+                            ) : null}
+                          </div>
                         )}
 
-                        {/* DYNAMIC ANTI-DUMPING / LIMIT ALERTS (Shown ONLY when breached) */}
-                        {isDumpingCrimson ? (
-                          <div className="mt-2.5 rounded-xl border border-rose-500/40 bg-rose-950/50 p-2.5 text-xs text-rose-200 space-y-2 animate-in fade-in duration-150" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-                            <div className="flex items-start gap-2 font-bold">
-                              <AlertTriangle className="h-4 w-4 shrink-0 text-rose-400 mt-0.5" />
-                              <span>{copy.dumpingCrimsonMsg}</span>
-                            </div>
-                            {floorPrice > 0 && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setDirectPrices((prev) => ({ ...prev, [request.id]: floorPrice.toFixed(2) }));
-                                  if (priceErrors[request.id]) setPriceErrors((prev) => ({ ...prev, [request.id]: false }));
-                                }}
-                                className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-rose-400/40 bg-rose-500/20 py-1.5 px-3 text-xs font-black text-rose-200 hover:bg-rose-500/30 active:scale-95 transition-all cursor-pointer"
-                              >
-                                <Sparkles className="h-3.5 w-3.5 text-amber-300" />
-                                <span>{copy.applyFloorBtn} ({floorPrice.toFixed(2)} {currency})</span>
-                              </button>
-                            )}
+                        {isBlockedByOtherPendingOffer ? (
+                          <div className={styles.blockedPendingBanner} dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                            <Clock className={styles.blockedPendingIcon} />
+                            <span>{copy.blockedPendingOfferHint}</span>
                           </div>
-                        ) : isDumpingAmber ? (
-                          <div className="mt-2.5 flex items-center gap-2 rounded-xl border border-amber-500/40 bg-amber-950/40 p-2.5 text-xs font-bold text-amber-200 animate-in fade-in duration-150" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-                            <AlertTriangle className="h-4 w-4 shrink-0 text-amber-400" />
-                            <span>{copy.dumpingAmberMsg}</span>
-                          </div>
-                        ) : isUpperWarn ? (
-                          <div className="mt-2.5 flex items-center gap-2 rounded-xl border border-amber-500/40 bg-amber-950/40 p-2.5 text-xs font-bold text-amber-200 animate-in fade-in duration-150" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-                            <AlertTriangle className="h-4 w-4 shrink-0 text-amber-400" />
-                            <span>{copy.upperWarnMsg}</span>
+                        ) : null}
+
+                        {/* Submit Offer Button */}
+                        {!isOwnPendingOffer ? (
+                          <div className={styles.style231_39} dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                            <button
+                              type="button"
+                              onClick={() => handleInitiateOffer(request)}
+                              disabled={isBlockedByOtherPendingOffer || isSubmittingThisRequest}
+                              title={isBlockedByOtherPendingOffer ? copy.blockedPendingOfferHint : undefined}
+                              className={cn(
+                                styles.style232_40,
+                                (isBlockedByOtherPendingOffer || isSubmittingThisRequest) ? styles.pendingOfferDisabled : '',
+                                isDumpingCrimson ? '!border-rose-500/80' : isDumpingAmber ? '!border-amber-500/80' : '',
+                              )}
+                              dir={language === 'ar' ? 'rtl' : 'ltr'}
+                            >
+                              {isSubmittingThisRequest ? (
+                                <Loader2 className={styles.submitSpinner} />
+                              ) : (
+                                <Route className={styles.style233_41} />
+                              )}
+                              <span>{copy.submitDirect}</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => onIgnoreRequest(request.id)}
+                              className={styles.style236_42}
+                              dir={language === 'ar' ? 'rtl' : 'ltr'}
+                            >
+                              {copy.ignore}
+                            </button>
                           </div>
                         ) : null}
                       </div>
                     )}
-
-                    {isBlockedByOtherPendingOffer ? (
-                      <div className={styles.blockedPendingBanner} dir={language === 'ar' ? 'rtl' : 'ltr'}>
-                        <Clock className={styles.blockedPendingIcon} />
-                        <span>{copy.blockedPendingOfferHint}</span>
-                      </div>
-                    ) : null}
-
-                    {/* Submit Offer Button */}
-                    {!isOwnPendingOffer ? (
-                      <div className={styles.style231_39} dir={language === 'ar' ? 'rtl' : 'ltr'}>
-                        <button
-                          type="button"
-                          onClick={() => handleInitiateOffer(request)}
-                          disabled={isBlockedByOtherPendingOffer || isSubmittingThisRequest}
-                          title={isBlockedByOtherPendingOffer ? copy.blockedPendingOfferHint : undefined}
-                          className={cn(
-                            styles.style232_40,
-                            (isBlockedByOtherPendingOffer || isSubmittingThisRequest) ? styles.pendingOfferDisabled : '',
-                            isDumpingCrimson ? '!border-rose-500/80' : isDumpingAmber ? '!border-amber-500/80' : '',
-                          )}
-                          dir={language === 'ar' ? 'rtl' : 'ltr'}
-                        >
-                          {isSubmittingThisRequest ? (
-                            <Loader2 className={styles.submitSpinner} />
-                          ) : (
-                            <Route className={styles.style233_41} />
-                          )}
-                          <span>{copy.submitDirect}</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => onIgnoreRequest(request.id)}
-                          className={styles.style236_42}
-                          dir={language === 'ar' ? 'rtl' : 'ltr'}
-                        >
-                          {copy.ignore}
-                        </button>
-                      </div>
-                    ) : null}
 
                     {/* IF OFFER PENDING: Show Status Banner only */}
                     {isOwnPendingOffer ? (
@@ -1005,13 +1117,54 @@ function pickupDistanceKm(driverLocation: { lat: number; lng: number } | null, r
   );
 }
 
+function formatLocalizedNumber(value: number | string | null | undefined, language: 'ar' | 'en'): string {
+  if (value == null) return '';
+  const str = String(value);
+  if (language !== 'ar') {
+    return str.replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)));
+  }
+  const arabicDigits = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+  return str.replace(/[0-9]/g, (d) => arabicDigits[Number(d)]);
+}
+
+function calculateCaptainTripPrice(
+  tariff: any,
+  trip: Trip
+): number | null {
+  if (!tariff) return null;
+  const baseFare = Number(tariff.baseFare);
+  const perKm = Number(tariff.pricePerKm);
+  const perMin = Number(tariff.pricePerMin);
+  const includedKm = Number(tariff.includedKm ?? 0);
+
+  if (!Number.isFinite(baseFare) || baseFare <= 0) return null;
+
+  const distanceKm = trip.estimatedDistance != null && trip.estimatedDistance > 0
+    ? trip.estimatedDistance
+    : 0;
+  const billableKm = Math.max(0, distanceKm - (Number.isFinite(includedKm) ? includedKm : 0));
+  const minutes = trip.estimatedTime != null && trip.estimatedTime > 0
+    ? trip.estimatedTime
+    : Math.round(distanceKm * 2);
+
+  const kmCost = billableKm * (Number.isFinite(perKm) && perKm > 0 ? perKm : 0);
+  const minCost = minutes * (Number.isFinite(perMin) && perMin > 0 ? perMin : 0);
+
+  const total = Math.round((baseFare + kmCost + minCost) * 100) / 100;
+  return total > 0 ? total : null;
+}
+
 function formatRequestTime(isoString: string | undefined | null, language: 'ar' | 'en') {
   if (!isoString) return '-';
   try {
     const d = new Date(isoString);
     if (isNaN(d.getTime())) return '-';
-    const locale = language === 'ar' ? 'ar-EG' : 'en-US';
-    return new Intl.DateTimeFormat(locale, { hour: 'numeric', minute: '2-digit' }).format(d);
+    if (language === 'ar') {
+      const formatted = new Intl.DateTimeFormat('ar-EG', { hour: 'numeric', minute: '2-digit' }).format(d);
+      return formatLocalizedNumber(formatted, 'ar');
+    }
+    const formatted = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' }).format(d);
+    return formatLocalizedNumber(formatted, 'en');
   } catch {
     return '-';
   }
@@ -1092,6 +1245,7 @@ const radarCopy = {
     cancel: 'إلغاء',
     callRider: 'اتصال بالمستخدم',
     openPickupMap: 'فتح الموقع في خرائط جوجل',
+    tripRoute: 'مسار الرحلة',
     dumpingAmberMsg: '⚠️ تنبيه: السعر منخفض (أقل من سعر السوق بنسبة 10% إلى 14.9%)، وقد يؤثر على تقييمك ورتبتك.',
     dumpingCrimsonMsg: '🛑 تنبيه: السعر أقل من سعر السوق بأكثر من 15% (سعر محروق قد يؤثر على تقييمك ورتبتك).',
     upperWarnMsg: '⚠️ تنبيه: السعر أعلى من النطاق المعتمد (+15% فما فوق).',
@@ -1155,6 +1309,7 @@ const radarCopy = {
     cancel: 'Cancel',
     callRider: 'Call Rider',
     openPickupMap: 'Open in Google Maps',
+    tripRoute: 'Trip Route',
     dumpingAmberMsg: '⚠️ Warning: Price is below market average (10% - 14.9% below), which may affect your rating.',
     dumpingCrimsonMsg: '🛑 Warning: Price is more than 15% below market average (may affect your evaluation and rating).',
     upperWarnMsg: '⚠️ Warning: Price exceeds allowed band (+15% or above).',

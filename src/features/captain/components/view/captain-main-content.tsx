@@ -118,6 +118,7 @@ export function CaptainMainContent({
           requests={driverOps.requests}
           pendingOfferRequestId={driverOps.pendingOfferRequestId}
           captainPricingMode={currentTariff?.pricingMode ?? null}
+          currentTariff={currentTariff}
           isOfficeTaxi={user?.affiliation?.type === 'office-taxi'}
           subRole={user?.subRole}
           onSelectRequest={onSelectRequest}
