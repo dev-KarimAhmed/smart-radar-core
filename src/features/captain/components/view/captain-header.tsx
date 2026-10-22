@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Image from 'next/image';
-import { Bell, Download, History, Languages, Loader2, LogOut, User, Wallet } from 'lucide-react';
+import { Bell, History, Languages, Loader2, LogOut, User, Wallet } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import type { CaptainScreen } from '../../state/captain-state-machine';
@@ -51,13 +51,13 @@ export interface CaptainHeaderProps {
   isUpdatingStatus: boolean;
   unreadCount: number;
   hasUnread: boolean;
-  canShowInstallButton: boolean;
-  canPromptNative: boolean;
+  canShowInstallButton?: boolean;
+  canPromptNative?: boolean;
   marketIndicator: any;
   onToggleStatus: () => void;
   onOpenNotifications: () => void;
-  onOpenInstall: () => void;
-  onTriggerNativeInstall: () => void;
+  onOpenInstall?: () => void;
+  onTriggerNativeInstall?: () => void;
   onToggleLanguage: () => void;
   onLogout: () => void;
   onOpenWallet: () => void;
@@ -74,13 +74,9 @@ export function CaptainHeader({
   isUpdatingStatus,
   unreadCount,
   hasUnread,
-  canShowInstallButton,
-  canPromptNative,
   marketIndicator,
   onToggleStatus,
   onOpenNotifications,
-  onOpenInstall,
-  onTriggerNativeInstall,
   onToggleLanguage,
   onLogout,
   onOpenWallet,
@@ -106,20 +102,6 @@ export function CaptainHeader({
           </div>
         </div>
         <div className={styles.actionsWrap}>
-          {canShowInstallButton && (
-            <button
-              type="button"
-              onClick={() => {
-                if (canPromptNative) onTriggerNativeInstall();
-                else onOpenInstall();
-              }}
-              title={direction === 'rtl' ? 'تثبيت التطبيق' : 'Install App'}
-              className={styles.installBtn}
-            >
-              <Download className={styles.actionIcon} />
-              <span className={styles.actionLabel}>{direction === 'rtl' ? 'تثبيت' : 'Install'}</span>
-            </button>
-          )}
           <button
             type="button"
             onClick={onOpenNotifications}

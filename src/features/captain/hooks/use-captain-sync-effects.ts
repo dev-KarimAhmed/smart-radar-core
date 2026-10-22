@@ -54,6 +54,13 @@ export function useCaptainSyncEffects({
     if (state.screen === 'ACTIVE_TRIP') dispatch({ type: 'TRIP_COMPLETED' });
   }, [driverOps, driverOps?.activeRequest, state.screen, state.selectedRequest?.id, state.tripStep, dispatch]);
 
+  // Sync pending offer state with driverOps
+  React.useEffect(() => {
+    if (state.tripStep === 'OFFER_SUBMITTED' && !driverOps?.pendingOfferRequestId && !driverOps?.activeRequest) {
+      dispatch({ type: 'OFFER_CANCELLED' });
+    }
+  }, [state.tripStep, driverOps?.pendingOfferRequestId, driverOps?.activeRequest, dispatch]);
+
   // Check bidding request still pending
   React.useEffect(() => {
     if (state.screen !== 'BIDDING' || !state.selectedRequest?.id) return;
