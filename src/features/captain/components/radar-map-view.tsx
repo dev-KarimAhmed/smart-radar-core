@@ -425,6 +425,7 @@ export function RadarMapView({
                 const riderPhoneNum = request.riderPhone || (request as any).riderPhoneNumber || (request as any).rider?.phone;
 
                 const isCardExpanded = Boolean(expandedCardIds[request.id]);
+                const passengersCount = request.seats || (request as any).number_of_riders || (request as any).passengers || 1;
 
                 const dropoffCoords = request.dropoffCoords;
                 const destinationQuery = dropoffCoords?.lat && dropoffCoords?.lng
@@ -443,6 +444,7 @@ export function RadarMapView({
                 const defaultPriceValue = calculatedCaptainPrice != null
                   ? calculatedCaptainPrice.toFixed(2)
                   : (baseMarketPrice != null ? baseMarketPrice.toFixed(2) : '');
+                const captainPriceForCard = defaultPriceValue || '0.00';
 
                 const rawPriceStr = directPrices[request.id] ?? defaultPriceValue;
                 const rawPriceNum = rawPriceStr != null && rawPriceStr.trim() !== '' ? parseFloat(rawPriceStr) : null;
@@ -470,7 +472,7 @@ export function RadarMapView({
                     {/* Destination Title & Header (Accordion Toggle) */}
                     <div
                       onClick={() => toggleCard(request.id)}
-                      className="flex items-start justify-between gap-2.5 cursor-pointer select-none"
+                      className="cursor-pointer select-none"
                       role="button"
                       tabIndex={0}
                       aria-expanded={isCardExpanded}
@@ -481,53 +483,75 @@ export function RadarMapView({
                         }
                       }}
                     >
-                      <div className="flex items-start gap-2.5 min-w-0 flex-1">
-                        <MapPin className={styles.style221_34} />
-                        <div className="min-w-0 flex-1">
-                          <h3 className={styles.style223_36}>{request.dropoff || copy.destination}</h3>
+                      {/* Top Row: MapPin + Destination Address + Chevron */}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                          <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#14F5D5]/20 to-[#14B8A6]/5 border border-[#14F5D5]/30 text-[#14F5D5] shadow-[0_0_10px_rgba(20,245,213,0.2)]">
+                            <MapPin className="h-4 w-4 drop-shadow-[0_0_6px_rgba(20,245,213,0.5)]" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <h3 className="line-clamp-2 text-sm sm:text-base font-black text-white tracking-wide leading-snug pt-0.5">
+                              {request.dropoff || copy.destination}
+                            </h3>
+                          </div>
+                        </div>
 
-                          {/* Quick summary badges when card is closed (default) */}
-                          {!isCardExpanded && (
-                            <div className="flex flex-wrap items-center gap-1.5 mt-2" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-                              {request.estimatedDistance != null && (
-                                <span className="inline-flex items-center gap-1 rounded-lg bg-slate-800/80 border border-slate-700/60 px-2 py-0.5 text-[11px] font-bold text-slate-200">
-                                  {formatLocalizedNumber(request.estimatedDistance.toFixed(1), language)} {language === 'ar' ? tAuto('key_4171dde6') : 'km'}
-                                </span>
-                              )}
-                              {request.offerPrice != null && (
-                                <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 text-[11px] font-black text-emerald-300">
-                                  {formatLocalizedNumber(request.offerPrice.toFixed(2), language)} {currency}
-                                </span>
-                              )}
-                              <span className="inline-flex items-center gap-1 rounded-lg bg-white/5 border border-white/10 px-2 py-0.5 text-[10px] text-slate-400">
-                                {formatRequestTime(request.createdAt, language)}
-                              </span>
-                            </div>
+                        <div className="flex items-center gap-1.5 shrink-0 pt-0.5">
+                          {isCardExpanded && routeGoogleMapsUrl && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                window.open(routeGoogleMapsUrl, '_blank', 'noopener,noreferrer');
+                              }}
+                              className="inline-flex items-center gap-1 rounded-xl border border-[#14B8A6]/40 bg-[#14B8A6]/15 hover:bg-[#14B8A6]/25 active:scale-95 px-2.5 py-1 text-xs font-black text-[#14F5D5] shadow-sm transition-all cursor-pointer"
+                              title={copy.tripRoute}
+                              dir={language === 'ar' ? 'rtl' : 'ltr'}
+                            >
+                              <Route className="h-3.5 w-3.5 stroke-[2.5]" />
+                              <span>{copy.tripRoute}</span>
+                            </button>
+                          )}
+                          <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white transition-all">
+                            <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", isCardExpanded ? "rotate-180 text-emerald-400" : "")} />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* When Closed: ONLY Two Pieces of Info (His Price + Trip Route) arranged in a Premium Bar */}
+                      {!isCardExpanded && (
+                        <div className="flex items-center justify-between gap-2.5 mt-3 pt-2.5 border-t border-emerald-500/15" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                          {/* 1. His Tariff Price (تسعيرته هو) */}
+                          <div className="inline-flex items-center gap-2 rounded-xl border border-emerald-400/40 bg-gradient-to-r from-emerald-500/20 via-teal-500/15 to-emerald-500/20 px-3.5 py-1.5 shadow-[0_0_12px_rgba(16,185,129,0.18)]">
+                            <span className="text-xs font-bold text-emerald-300/90">
+                              {language === 'ar' ? 'تسعيرتك:' : 'Your Fare:'}
+                            </span>
+                            <span className="font-mono font-black text-base sm:text-lg text-white tracking-tight">
+                              {formatLocalizedNumber(captainPriceForCard, language)}
+                            </span>
+                            <span className="text-xs font-black text-emerald-300">
+                              {currency}
+                            </span>
+                          </div>
+
+                          {/* 2. Route Button (مسار الرحلة) */}
+                          {routeGoogleMapsUrl && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                window.open(routeGoogleMapsUrl, '_blank', 'noopener,noreferrer');
+                              }}
+                              className="inline-flex items-center gap-1.5 rounded-xl border border-[#14B8A6]/60 bg-gradient-to-r from-[#14F5D5]/20 via-[#14B8A6]/20 to-[#0d9488]/20 hover:from-[#14F5D5]/30 hover:to-[#0d9488]/30 active:scale-95 px-3.5 py-1.5 text-xs sm:text-sm font-black text-[#14F5D5] shadow-[0_0_14px_rgba(20,245,213,0.25)] transition-all cursor-pointer"
+                              title={copy.tripRoute}
+                              dir={language === 'ar' ? 'rtl' : 'ltr'}
+                            >
+                              <Route className="h-4 w-4 stroke-[2.5]" />
+                              <span>{copy.tripRoute}</span>
+                            </button>
                           )}
                         </div>
-                      </div>
-
-                      <div className="flex items-center gap-1.5 shrink-0 pt-0.5">
-                        {/* Route button in header so it's always accessible */}
-                        {routeGoogleMapsUrl && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              window.open(routeGoogleMapsUrl, '_blank', 'noopener,noreferrer');
-                            }}
-                            className="inline-flex items-center gap-1 rounded-xl border border-emerald-500/35 bg-emerald-500/15 hover:bg-emerald-500/25 active:scale-95 px-2.5 py-1 text-xs font-black text-emerald-300 shadow-sm transition-all cursor-pointer"
-                            title={copy.tripRoute}
-                            dir={language === 'ar' ? 'rtl' : 'ltr'}
-                          >
-                            <Route className="h-3.5 w-3.5 stroke-[2.5]" />
-                            <span className="hidden sm:inline">{copy.tripRoute}</span>
-                          </button>
-                        )}
-                        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/5 text-slate-400 hover:text-white transition-colors">
-                          <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", isCardExpanded ? "rotate-180 text-emerald-400" : "")} />
-                        </div>
-                      </div>
+                      )}
                     </div>
 
                     {/* IF OFFER PENDING: Show Status Banner even when closed */}
@@ -594,8 +618,8 @@ export function RadarMapView({
                             value={request.offerPrice != null ? `${formatLocalizedNumber(request.offerPrice.toFixed(2), language)} ${currency}` : '—'}
                           />
                           <Info
-                            label={copy.requestTime}
-                            value={formatRequestTime(request.createdAt, language)}
+                            label={copy.passengersCount}
+                            value={`${formatLocalizedNumber(passengersCount, language)} ${language === 'ar' ? (passengersCount === 1 ? 'راكب' : passengersCount === 2 ? 'راكبان' : passengersCount <= 10 ? 'ركاب' : 'راكب') : (passengersCount === 1 ? 'passenger' : 'passengers')}`}
                           />
                         </div>
 
@@ -1209,6 +1233,7 @@ const radarCopy = {
     pickupTime: 'الوقت حتى تصل للمستخدم',
     tripDistance: 'مسافة الرحلة',
     requestTime: 'وقت الطلب',
+    passengersCount: 'عدد الركاب',
     ratingPrefix: 'تقييم',
     riderRatingLabel: 'تقييم المستخدم',
     riderTripsLabel: 'رحلات المستخدم',
@@ -1273,6 +1298,7 @@ const radarCopy = {
     pickupTime: 'Time to reach the rider',
     tripDistance: 'Trip distance',
     requestTime: 'Request time',
+    passengersCount: 'Passengers',
     ratingPrefix: 'Rating',
     riderRatingLabel: 'Rider rating',
     riderTripsLabel: 'Rider trips',

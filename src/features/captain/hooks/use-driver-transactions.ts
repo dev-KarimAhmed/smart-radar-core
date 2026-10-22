@@ -727,6 +727,7 @@ function mapRideRequestToTrip(row: RideRequestRow | null): Trip | null {
     pricingPreference: (['APP', 'TAXI', 'FREE'].includes(String(row.pricing_preference || '').toUpperCase())
       ? String(row.pricing_preference).toUpperCase() as 'APP' | 'TAXI' | 'FREE'
       : null),
+    seats: toNumber(row.number_of_riders) ?? toNumber(row.seats) ?? 1,
   };
 }
 
