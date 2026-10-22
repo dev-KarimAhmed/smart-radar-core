@@ -29,6 +29,8 @@ interface DriverOpsContextType {
   resetDormancyTimer: () => void;
   submitOffer: (payload: { tripId: string; offerPrice: number; waitSeconds: number; pricingMode?: 'FREE' | 'APP' | 'TAXI' }) => Promise<boolean>;
   isSubmittingOffer: boolean;
+  cancelOffer: (tripId?: string) => Promise<boolean>;
+  isCancellingOffer: boolean;
   markArrivedAtPickup: () => Promise<boolean>;
   startTrip: () => Promise<boolean>;
   isUpdatingTripStep: boolean;
@@ -132,6 +134,8 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
     pendingOfferRequestId,
     submitOffer: rawSubmitOffer,
     isSubmittingOffer,
+    cancelOffer: rawCancelOffer,
+    isCancellingOffer,
     markArrivedAtPickup: rawMarkArrivedAtPickup,
     startTrip: rawStartTrip,
     isUpdatingTripStep,
@@ -148,6 +152,10 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
   const submitOffer = useCallback(async (payload: { tripId: string; offerPrice: number; waitSeconds: number; pricingMode?: 'FREE' | 'APP' | 'TAXI' }) => {
     return rawSubmitOffer(payload);
   }, [rawSubmitOffer]);
+
+  const cancelOffer = useCallback(async (tripId?: string) => {
+    return rawCancelOffer(tripId);
+  }, [rawCancelOffer]);
 
   const markArrivedAtPickup = useCallback(async () => {
     return rawMarkArrivedAtPickup();
@@ -205,6 +213,8 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
     resetDormancyTimer,
     submitOffer,
     isSubmittingOffer,
+    cancelOffer,
+    isCancellingOffer,
     markArrivedAtPickup,
     startTrip,
     isUpdatingTripStep,
@@ -240,6 +250,7 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
     activeRequest,
     cancelActiveTrip,
     cancelCooldown,
+    cancelOffer,
     currentDistrict,
     currentH3Cell,
     driverLocation,
@@ -248,6 +259,7 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
     endTrip,
     handshakeAt,
     pendingOfferRequestId,
+    isCancellingOffer,
     isCancellingTrip,
     isDisconnectionLockActive,
     isDormancyWarningVisible,

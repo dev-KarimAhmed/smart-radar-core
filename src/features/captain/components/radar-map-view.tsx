@@ -96,6 +96,8 @@ const styles = {
   ownPendingPing: "absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75",
   ownPendingDot: "relative inline-flex h-2 w-2 rounded-full bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.9)]",
   ownPendingText: "truncate font-black text-amber-100 text-xs tracking-tight whitespace-nowrap",
+  cancelOfferBtn: "inline-flex items-center justify-center gap-1.5 rounded-xl border border-rose-500/50 bg-gradient-to-r from-rose-500/20 via-rose-600/15 to-rose-500/20 hover:from-rose-500/30 hover:to-rose-600/30 active:scale-95 h-10 px-3 text-xs font-black text-rose-200 shadow-[0_0_12px_rgba(244,63,94,0.18)] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0",
+  cancelOfferBtnFull: "w-full flex items-center justify-center gap-2 rounded-xl border border-rose-500/50 bg-gradient-to-r from-rose-500/20 via-rose-600/15 to-rose-500/20 hover:from-rose-500/30 hover:to-rose-600/30 active:scale-95 h-11 px-4 text-xs sm:text-sm font-black text-rose-100 shadow-[0_0_16px_rgba(244,63,94,0.22)] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed",
   infoFullWidth: "col-span-2",
   appPriceCard: "mt-3 rounded-2xl border border-amber-500/30 bg-gradient-to-b from-amber-500/[0.08] via-black/50 to-black/70 p-3 shadow-[0_4px_20px_rgba(0,0,0,0.4)] backdrop-blur-sm space-y-2.5",
   appPriceCardHeader: "flex items-center gap-2",
@@ -128,6 +130,8 @@ interface RadarMapViewProps {
   cancelCooldown?: CaptainCancelCooldownState;
   requests: Trip[];
   pendingOfferRequestId?: string | null;
+  onCancelOffer?: (tripId: string) => Promise<boolean | void>;
+  isCancellingOffer?: boolean;
   captainPricingMode?: 'FREE' | 'APP' | 'TAXI' | null;
   currentTariff?: any;
   isOfficeTaxi?: boolean;
@@ -150,6 +154,8 @@ export function RadarMapView({
   cancelCooldown,
   requests,
   pendingOfferRequestId = null,
+  onCancelOffer,
+  isCancellingOffer = false,
   captainPricingMode = null,
   currentTariff = null,
   isOfficeTaxi = false,
@@ -164,6 +170,17 @@ export function RadarMapView({
   const activeTariff = currentTariff ?? hookTariff;
 
   const [expandedCardIds, setExpandedCardIds] = React.useState<Record<string, boolean>>({});
+  const [cancellingRequestId, setCancellingRequestId] = React.useState<string | null>(null);
+
+  const handleCancelOffer = React.useCallback(async (requestId: string) => {
+    if (cancellingRequestId || isCancellingOffer || !onCancelOffer) return;
+    setCancellingRequestId(requestId);
+    try {
+      await onCancelOffer(requestId);
+    } finally {
+      setCancellingRequestId(null);
+    }
+  }, [cancellingRequestId, isCancellingOffer, onCancelOffer]);
 
   const toggleCard = React.useCallback((id: string) => {
     setExpandedCardIds((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -554,20 +571,6 @@ export function RadarMapView({
                       )}
                     </div>
 
-                    {/* IF OFFER PENDING: Show Status Banner even when closed */}
-                    {isOwnPendingOffer && (
-                      <div className={styles.ownPendingRow} dir={language === 'ar' ? 'rtl' : 'ltr'}>
-                        <div className={styles.ownPendingBadge} title={copy.ownPendingOfferDesc}>
-                          <span className={styles.ownPendingPulseWrap}>
-                            <span className={styles.ownPendingPing} />
-                            <span className={styles.ownPendingDot} />
-                          </span>
-                          <Clock className={styles.ownPendingIcon} />
-                          <span className={styles.ownPendingText}>{copy.ownPendingOffer}</span>
-                        </div>
-                      </div>
-                    )}
-
                     {/* DROPDOWN EXPANDED CONTENT */}
                     {isCardExpanded && (
                       <div className="mt-3.5 pt-3 border-t border-slate-800/80 animate-in fade-in duration-150">
@@ -950,7 +953,7 @@ export function RadarMapView({
                       </div>
                     )}
 
-                    {/* IF OFFER PENDING: Show Status Banner only */}
+                    {/* IF OFFER PENDING: Show Status Banner and Full Width Cancel Button */}
                     {isOwnPendingOffer ? (
                       <div className={styles.ownPendingRow} dir={language === 'ar' ? 'rtl' : 'ltr'}>
                         <div className={styles.ownPendingBadge} title={copy.ownPendingOfferDesc}>
@@ -961,6 +964,23 @@ export function RadarMapView({
                           <Clock className={styles.ownPendingIcon} />
                           <span className={styles.ownPendingText}>{copy.ownPendingOffer}</span>
                         </div>
+                        {onCancelOffer && (
+                          <button
+                            type="button"
+                            onClick={() => void handleCancelOffer(request.id)}
+                            disabled={Boolean(cancellingRequestId) || isCancellingOffer}
+                            className={styles.cancelOfferBtnFull}
+                            title={copy.cancelOfferTitle}
+                            dir={language === 'ar' ? 'rtl' : 'ltr'}
+                          >
+                            {cancellingRequestId === request.id || isCancellingOffer ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <X className="h-4 w-4 stroke-[2.5]" />
+                            )}
+                            <span>{cancellingRequestId === request.id || isCancellingOffer ? copy.cancellingOffer : copy.cancelOffer}</span>
+                          </button>
+                        )}
                       </div>
                     ) : null}
                   </article>
@@ -1247,6 +1267,9 @@ const radarCopy = {
     blockedPendingOfferHint: 'لديك عرض قيد الانتظار لطلب آخر — انتظر رد المستخدم للمتابعة',
     ownPendingOffer: 'عرضك قيد الانتظار',
     ownPendingOfferDesc: 'عرضك قيد الانتظار — بانتظار رد المستخدم',
+    cancelOffer: 'إلغاء العرض',
+    cancelOfferTitle: 'إلغاء هذا العرض والعودة لاستقبال العروض الأخرى',
+    cancellingOffer: 'جارٍ إلغاء العرض...',
     ignore: 'تجاهل',
     seizeMarket: 'اقـتـنص فرصتك من السوق',
     marketFare: 'متوسط سعر السوق',
@@ -1312,6 +1335,9 @@ const radarCopy = {
     blockedPendingOfferHint: 'You have a pending offer on another trip — wait for rider response',
     ownPendingOffer: 'Offer pending',
     ownPendingOfferDesc: 'Your offer is pending — waiting for the rider to respond',
+    cancelOffer: 'Cancel offer',
+    cancelOfferTitle: 'Cancel this offer and unlock other requests',
+    cancellingOffer: 'Cancelling...',
     ignore: 'Ignore',
     seizeMarket: 'Seize your market opportunity',
     marketFare: 'Market Average Fare',

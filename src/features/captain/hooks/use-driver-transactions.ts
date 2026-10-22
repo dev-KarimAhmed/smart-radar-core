@@ -72,12 +72,14 @@ export function useDriverTransactions(
   const [pendingOfferRequestId, setPendingOfferRequestId] = useState<string | null>(null);
   const pendingOfferTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isSubmittingOffer, setIsSubmittingOffer] = useState(false);
+  const [isCancellingOffer, setIsCancellingOffer] = useState(false);
   const [isUpdatingTripStep, setIsUpdatingTripStep] = useState(false);
   const [isEndingTrip, setIsEndingTrip] = useState(false);
   const [isCancellingTrip, setIsCancellingTrip] = useState(false);
   const [isRatingRider, setIsRatingRider] = useState(false);
   const [isRequestingReport, setIsRequestingReport] = useState(false);
   const submittingRef = useRef(false);
+  const cancellingOfferRef = useRef(false);
   const updatingStepRef = useRef(false);
   const endingRef = useRef(false);
   const cancellingRef = useRef(false);
@@ -398,6 +400,94 @@ export function useDriverTransactions(
     }
   }, [captainId, pendingOfferRequestId, toast]);
 
+  const cancelOffer = useCallback(async (tripId?: string | null) => {
+    const targetRequestId = tripId || pendingOfferRequestId;
+    if (!targetRequestId || !captainId) return false;
+    if (cancellingOfferRef.current) return false;
+
+    cancellingOfferRef.current = true;
+    setIsCancellingOffer(true);
+
+    try {
+      // 1. Try API route first (runs with admin privileges and checks accept status)
+      const token = (await supabase.auth.getSession()).data.session?.access_token;
+      let apiSuccess = false;
+
+      try {
+        const res = await fetch('/api/captain/cancel-offer', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ requestId: targetRequestId, uid: captainId }),
+        });
+
+        const data = await res.json();
+        if (res.status === 409 || data.error === 'offer_already_accepted') {
+          toast({
+            variant: 'destructive',
+            title: t('offerAlreadyAcceptedTitle'),
+            description: t('offerAlreadyAcceptedDesc'),
+          });
+          clearPendingOffer();
+          return false;
+        }
+
+        if (res.ok && data.success) {
+          apiSuccess = true;
+        }
+      } catch (e) {
+        if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver transactions] cancel-offer API route error, falling back to direct:', e);
+      }
+
+      // 2. Fallback to RPC or direct delete if API route was unreachable
+      if (!apiSuccess) {
+        const { error: rpcErr } = await supabase.rpc('cancel_ride_offer', {
+          p_request_id: targetRequestId,
+        });
+
+        if (rpcErr) {
+          if (rpcErr.message?.includes('offer_already_accepted')) {
+            toast({
+              variant: 'destructive',
+              title: t('offerAlreadyAcceptedTitle'),
+              description: t('offerAlreadyAcceptedDesc'),
+            });
+            clearPendingOffer();
+            return false;
+          }
+          // Direct delete as last-mile fallback
+          await supabase
+            .from('ride_offers')
+            .delete()
+            .eq('request_id', targetRequestId)
+            .eq('captain_id', captainId);
+        }
+      }
+
+      // 3. Clear local pending state
+      clearPendingOffer();
+
+      toast({
+        title: t('offerCancelledTitle'),
+        description: t('offerCancelledDesc'),
+      });
+      return true;
+    } catch (error: any) {
+      if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver transactions] cancel offer failed:', error);
+      toast({
+        variant: 'destructive',
+        title: t('offerCancelFailedTitle'),
+        description: t('offerCancelFailedDesc'),
+      });
+      return false;
+    } finally {
+      cancellingOfferRef.current = false;
+      setIsCancellingOffer(false);
+    }
+  }, [captainId, clearPendingOffer, pendingOfferRequestId, t, toast]);
+
   const markArrivedAtPickup = useCallback(async () => {
     if (!activeRequest?.id || updatingStepRef.current) return false;
     updatingStepRef.current = true;
@@ -651,6 +741,8 @@ export function useDriverTransactions(
     pendingOfferRequestId,
     submitOffer,
     isSubmittingOffer,
+    cancelOffer,
+    isCancellingOffer,
     markArrivedAtPickup,
     startTrip,
     isUpdatingTripStep,
@@ -666,8 +758,10 @@ export function useDriverTransactions(
     activeRequest,
     acceptedRider,
     cancelActiveTrip,
+    cancelOffer,
     endTrip,
     handshakeAt,
+    isCancellingOffer,
     isCancellingTrip,
     isEndingTrip,
     isRatingRider,
