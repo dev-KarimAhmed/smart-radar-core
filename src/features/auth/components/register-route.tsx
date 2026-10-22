@@ -11,6 +11,7 @@ import {
   UserRound,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { useEffect, useMemo, useState } from 'react';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import {
@@ -32,7 +33,8 @@ const styles = {
   style177_7: "relative z-10 flex min-h-screen w-full items-center justify-center px-0 py-0 sm:px-6 sm:py-10",
   style178_8: "flex h-screen w-full max-w-md flex-col justify-center rounded-none border border-white/5 bg-[#161F30]/70 p-6 shadow-2xl backdrop-blur-xl sm:my-12 sm:h-auto sm:min-h-0 sm:rounded-3xl sm:p-8",
   style179_9: "mb-7 text-center",
-  style180_10: "mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 text-[#14B8A6] shadow-[0_0_30px_rgba(20,184,166,0.18)]",
+  style180_10: "mx-auto mb-4 flex items-center justify-center",
+  brandLogoImg: "h-14 sm:h-16 w-auto object-contain drop-shadow-[0_4px_20px_rgba(20,184,166,0.35)] select-none",
   style181_11: "h-7 w-7",
   style183_12: "text-sm font-bold text-[#14B8A6]",
   style194_13: "mt-3 text-3xl font-black tracking-normal text-[#F8FAFC]",
@@ -244,7 +246,14 @@ export function RegisterRoute({
         <div className={styles.style178_8}>
           <header className={styles.style179_9}>
             <div className={styles.style180_10}>
-              <ShieldCheck className={styles.style181_11} aria-hidden="true" />
+              <Image
+                src="/icons/logo-header.png"
+                alt="Radar"
+                width={585}
+                height={152}
+                priority
+                className={styles.brandLogoImg}
+              />
             </div>
             <p className={styles.style183_12}>
               {t.brand} · {roleName || t.riderContext}

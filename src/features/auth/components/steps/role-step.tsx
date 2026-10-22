@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   CarTaxiFront,
@@ -26,9 +27,10 @@ const styles = {
   style275_6: "h-4 w-4 text-[#14B8A6]",
   style279_7: "relative z-10 mx-auto flex min-h-dvh w-full max-w-6xl flex-col px-4 pb-20 pt-24 sm:px-6 sm:pb-24 sm:pt-28 lg:px-8 xl:justify-center",
   style280_8: "mx-auto flex max-w-3xl flex-col items-center text-center",
-  style281_9: "flex h-14 w-14 items-center justify-center rounded-2xl border border-[#14B8A6]/35 bg-[#14B8A6]/10 text-[#14B8A6] shadow-[0_0_32px_rgba(20,184,166,0.18)] sm:h-16 sm:w-16",
+  style281_9: "mx-auto mb-4 flex items-center justify-center",
+  brandLogoImg: "h-24 sm:h-28 md:h-32 w-auto object-contain drop-shadow-[0_6px_30px_rgba(20,184,166,0.45)] select-none transition-transform duration-300 hover:scale-105",
   style282_10: "h-7 w-7",
-  style285_11: "mt-6 max-w-3xl text-balance text-4xl font-black leading-tight tracking-normal text-[#F8FAFC] sm:text-5xl lg:text-7xl",
+  style285_11: " max-w-3xl text-balance text-4xl font-black leading-tight tracking-normal text-[#F8FAFC] sm:text-5xl lg:text-7xl",
   style289_12: "mt-4 text-lg font-semibold leading-8 text-[#94A3B8] sm:text-xl",
   style328_19: "mx-auto mt-10 grid w-full max-w-6xl grid-cols-1 gap-4 md:grid-cols-2 lg:gap-6",
   style329_20: "lg:grid-cols-5",
@@ -122,12 +124,12 @@ const roleConfig: Array<{
   Icon: typeof UserRound;
   disabled?: boolean;
 }> = [
-  { key: 'rider', Icon: UserRound },
-  { key: 'driver', Icon: CarTaxiFront },
-  { key: 'admin', Icon: ShieldCheck },
-  { key: 'advertiser', Icon: Megaphone, disabled: true },
-  { key: 'delegate', Icon: Store, disabled: true },
-];
+    { key: 'rider', Icon: UserRound },
+    { key: 'driver', Icon: CarTaxiFront },
+    { key: 'admin', Icon: ShieldCheck },
+    { key: 'advertiser', Icon: Megaphone, disabled: true },
+    { key: 'delegate', Icon: Store, disabled: true },
+  ];
 
 const demoUsers: Array<{
   role: User['role'];
@@ -135,119 +137,119 @@ const demoUsers: Array<{
   description: string;
   user: User;
 }> = [
-  {
-    role: 'rider',
-    label: 'Rider demo',
-    description: 'Requests, wallet, ride history',
-    user: {
-      uid: 'demo-rider-001',
-      serial_id: 'P-1001',
-      phone: '+962790000001',
+    {
       role: 'rider',
-      name: 'Demo Rider',
-      countryId: 1,
-      currencyAr: 'د.أ',
-      currencyEn: 'JOD',
-      governorate: 'عمّان',
-      district: 'الجامعة',
-      isBufferActive: false,
-      rating: 5,
-      walletBalanceJD: 42.5,
-      ratingSum: 48,
-      ratingCount: 10,
-      favoriteDrivers: ['demo-driver-001'],
+      label: 'Rider demo',
+      description: 'Requests, wallet, ride history',
+      user: {
+        uid: 'demo-rider-001',
+        serial_id: 'P-1001',
+        phone: '+962790000001',
+        role: 'rider',
+        name: 'Demo Rider',
+        countryId: 1,
+        currencyAr: 'د.أ',
+        currencyEn: 'JOD',
+        governorate: 'عمّان',
+        district: 'الجامعة',
+        isBufferActive: false,
+        rating: 5,
+        walletBalanceJD: 42.5,
+        ratingSum: 48,
+        ratingCount: 10,
+        favoriteDrivers: ['demo-driver-001'],
+      },
     },
-  },
-  {
-    role: 'driver',
-    label: 'Captain demo',
-    description: 'Driver radar, pricing, hours',
-    user: {
-      uid: 'demo-driver-001',
-      serial_id: 'D-1001',
-      phone: '+962790000002',
+    {
       role: 'driver',
-      name: 'Demo Captain',
-      governorate: 'عمّان',
-      district: 'الجامعة',
-      status: 'idle',
-      isBufferActive: false,
-      rating: 4.9,
-      rank: 'Gold',
-      paidHoursRemaining: 540,
-      bonusHoursRemaining: 60,
-      subscriptionHours: 10,
-      walletBalanceJD: 128,
-      vehicle: {
-        year: 2023,
-        plate: '77-12345',
-        make: 'Toyota Corolla Hybrid',
-        color: 'White',
-      },
-      affiliation: {
-        type: 'independent',
-        name: 'مستقل',
+      label: 'Captain demo',
+      description: 'Driver radar, pricing, hours',
+      user: {
+        uid: 'demo-driver-001',
+        serial_id: 'D-1001',
+        phone: '+962790000002',
+        role: 'driver',
+        name: 'Demo Captain',
+        governorate: 'عمّان',
+        district: 'الجامعة',
+        status: 'idle',
+        isBufferActive: false,
+        rating: 4.9,
+        rank: 'Gold',
+        paidHoursRemaining: 540,
+        bonusHoursRemaining: 60,
+        subscriptionHours: 10,
+        walletBalanceJD: 128,
+        vehicle: {
+          year: 2023,
+          plate: '77-12345',
+          make: 'Toyota Corolla Hybrid',
+          color: 'White',
+        },
+        affiliation: {
+          type: 'independent',
+          name: 'مستقل',
+        },
       },
     },
-  },
-  {
-    role: 'advertiser',
-    label: 'Advertiser demo',
-    description: 'Campaign portal and ad tools',
-    user: {
-      uid: 'demo-advertiser-001',
-      serial_id: 'A-1001',
-      phone: '+962790000003',
+    {
       role: 'advertiser',
-      name: 'Demo Advertiser',
-      governorate: 'عمّان',
-      district: 'الجامعة',
-      isBufferActive: false,
-      rating: 5,
-      walletBalanceJD: 250,
-      companyName: 'Smart Radar Ads',
-      commercialRegister: 'CR-88294-A',
-      adLicense: 'LIC-990-2026',
-      businessType: 'commercial',
+      label: 'Advertiser demo',
+      description: 'Campaign portal and ad tools',
+      user: {
+        uid: 'demo-advertiser-001',
+        serial_id: 'A-1001',
+        phone: '+962790000003',
+        role: 'advertiser',
+        name: 'Demo Advertiser',
+        governorate: 'عمّان',
+        district: 'الجامعة',
+        isBufferActive: false,
+        rating: 5,
+        walletBalanceJD: 250,
+        companyName: 'Smart Radar Ads',
+        commercialRegister: 'CR-88294-A',
+        adLicense: 'LIC-990-2026',
+        businessType: 'commercial',
+      },
     },
-  },
-  {
-    role: 'delegate',
-    label: 'Delegate demo',
-    description: 'Field onboarding cockpit',
-    user: {
-      uid: 'demo-delegate-001',
-      serial_id: 'M-1001',
-      phone: '+962790000004',
+    {
       role: 'delegate',
-      name: 'Demo Delegate',
-      governorate: 'عمّان',
-      district: 'وادي السير',
-      isBufferActive: false,
-      rating: 4.8,
-      referralCode: 'RAD-JOR-777',
-      referredCount: 142,
-      pendingDues: 85.5,
-      walletBalanceJD: 85.5,
+      label: 'Delegate demo',
+      description: 'Field onboarding cockpit',
+      user: {
+        uid: 'demo-delegate-001',
+        serial_id: 'M-1001',
+        phone: '+962790000004',
+        role: 'delegate',
+        name: 'Demo Delegate',
+        governorate: 'عمّان',
+        district: 'وادي السير',
+        isBufferActive: false,
+        rating: 4.8,
+        referralCode: 'RAD-JOR-777',
+        referredCount: 142,
+        pendingDues: 85.5,
+        walletBalanceJD: 85.5,
+      },
     },
-  },
-  {
-    role: 'admin',
-    label: 'Admin demo',
-    description: 'Owner control dashboard',
-    user: {
-      uid: 'demo-admin-001',
-      serial_id: 'S-1001',
-      phone: '+962790000005',
+    {
       role: 'admin',
-      name: 'Demo Admin',
-      governorate: 'عمّان',
-      district: 'الجامعة',
-      isBufferActive: false,
-      rating: 5,
+      label: 'Admin demo',
+      description: 'Owner control dashboard',
+      user: {
+        uid: 'demo-admin-001',
+        serial_id: 'S-1001',
+        phone: '+962790000005',
+        role: 'admin',
+        name: 'Demo Admin',
+        governorate: 'عمّان',
+        district: 'الجامعة',
+        isBufferActive: false,
+        rating: 5,
+      },
     },
-  },
-];
+  ];
 
 export function RoleStep() {
   const { setRole, lang, setLang } = useRegistration();
@@ -301,7 +303,14 @@ export function RoleStep() {
       <section className={styles.style279_7}>
         <div className={styles.style280_8}>
           <div className={styles.style281_9}>
-            <ShieldCheck aria-hidden="true" className={styles.style282_10} strokeWidth={1.8} />
+            <Image
+              src="/icons/logo-header.png"
+              alt="Radar"
+              width={585}
+              height={152}
+              priority
+              className={styles.brandLogoImg}
+            />
           </div>
 
           <h1 className={styles.style285_11}>

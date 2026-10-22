@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import Image from 'next/image';
 
 import { UserCheck, Car, Key, Megaphone, Users } from 'lucide-react';
 import { RegistrationProvider, useRegistration } from '../hooks/use-registration';
@@ -17,7 +18,8 @@ const styles = {
   style130_2: "absolute w-[500px] h-[500px] bg-[#14B8A6]/5 rounded-full blur-[120px] top-1/4 left-1/4 pointer-events-none",
   style131_3: "absolute w-[400px] h-[400px] bg-[#3B82F6]/5 rounded-full blur-[100px] bottom-1/4 right-1/4 pointer-events-none",
   style134_4: "w-full max-w-md bg-[#161F30]/85 border border-white/10 hover:border-[#14B8A6]/30 transition-all duration-500 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl relative z-10 shadow-[0_20px_50px_rgba(0,0,0,0.6)]",
-  style137_5: "text-center mb-8 select-none",
+  logoImage: "mx-auto h-16 sm:h-20 w-auto object-contain cursor-pointer active:scale-95 transition-transform drop-shadow-[0_4px_25px_rgba(20,184,166,0.35)] select-none",
+  style137_5: "text-center mb-8 select-none flex items-center justify-center",
   style138_6: "flex items-center justify-center gap-2 tracking-wide cursor-pointer active:scale-95 transition-transform",
   style140_7: "text-3xl font-light text-[#3B82F6] font-mono lowercase",
   style143_8: "relative w-8 h-8 flex items-center justify-center bg-[#14B8A6] rotate-45 rounded-[4px] shadow-[0_0_15px_rgba(20,184,166,0.3)]",
@@ -182,27 +184,14 @@ function LoginOrchestrator() {
         
         {/* Logo */}
         <div className={styles.style137_5} onClick={handleLogoTap}>
-          <div className={styles.style138_6}>
-            {/* Brand text */}
-            <span className={styles.style140_7}>byn</span>
-            
-            {/* Brand mark */}
-            <div className={styles.style143_8}>
-              <span className={styles.style144_9}>K</span>
-            </div>
-            
-            {/* Domain text */}
-            <div className={styles.style148_10}>
-              <span className={styles.style149_11}>International</span>
-              <span className={styles.style150_12}>com</span>
-            </div>
-          </div>
-          
-          {/* Subtitle */}
-          <div className={styles.style155_13}>
-            <span>Travel</span>
-            <span>Booking</span>
-          </div>
+          <Image
+            src="/icons/logo-header.png"
+            alt="Radar"
+            width={585}
+            height={152}
+            priority
+            className={styles.logoImage}
+          />
         </div>
 
         {/* Step title */}

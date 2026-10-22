@@ -313,14 +313,14 @@ export function NotificationsTab({ onClose }: { onClose?: () => void } = {}) {
                         isMessage || isReferralInactivity
                           ? 'bg-amber-500/20 text-amber-300'
                           : isWalletCredit
-                          ? 'bg-emerald-500/20 text-emerald-300'
-                          : isWalletAlert
-                          ? 'bg-rose-500/20 text-rose-300'
-                          : isReferral
-                          ? 'bg-teal-500/20 text-[#14F5D5]'
-                          : !item.read
-                          ? styles.iconWrapUnread
-                          : styles.iconWrapRead
+                            ? 'bg-emerald-500/20 text-emerald-300'
+                            : isWalletAlert
+                              ? 'bg-rose-500/20 text-rose-300'
+                              : isReferral
+                                ? 'bg-teal-500/20 text-[#14F5D5]'
+                                : !item.read
+                                  ? styles.iconWrapUnread
+                                  : styles.iconWrapRead
                       )}
                     >
                       {isMessage ? (
@@ -408,10 +408,10 @@ export function NotificationsTab({ onClose }: { onClose?: () => void } = {}) {
                     viewingNotification.type === 'admin_message' || viewingNotification.type === 'message'
                       ? "border-amber-500/40 bg-amber-500/10 text-amber-300"
                       : viewingNotification.type === 'WALLET_CREDIT'
-                      ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
-                      : viewingNotification.type === 'WALLET_ALERT'
-                      ? "border-rose-500/40 bg-rose-500/10 text-rose-300"
-                      : "border-[#14B8A6]/40 bg-[#14B8A6]/10 text-[#14F5D5]"
+                        ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+                        : viewingNotification.type === 'WALLET_ALERT'
+                          ? "border-rose-500/40 bg-rose-500/10 text-rose-300"
+                          : "border-[#14B8A6]/40 bg-[#14B8A6]/10 text-[#14F5D5]"
                   )}
                 >
                   {viewingNotification.type === 'admin_message' || viewingNotification.type === 'message' ? (
@@ -435,27 +435,27 @@ export function NotificationsTab({ onClose }: { onClose?: () => void } = {}) {
                       viewingNotification.type === 'admin_message' || viewingNotification.type === 'message'
                         ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
                         : viewingNotification.type === 'referral_inactivity'
-                        ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                        : viewingNotification.type === 'WALLET_CREDIT'
-                        ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                        : viewingNotification.type === 'WALLET_ALERT'
-                        ? "bg-rose-500/20 text-rose-300 border border-rose-500/30"
-                        : viewingNotification.type === 'referral'
-                        ? "bg-teal-500/20 text-[#14F5D5] border border-teal-500/30"
-                        : "bg-[#14B8A6]/20 text-[#14F5D5] border border-[#14B8A6]/30"
+                          ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                          : viewingNotification.type === 'WALLET_CREDIT'
+                            ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                            : viewingNotification.type === 'WALLET_ALERT'
+                              ? "bg-rose-500/20 text-rose-300 border border-rose-500/30"
+                              : viewingNotification.type === 'referral'
+                                ? "bg-teal-500/20 text-[#14F5D5] border border-teal-500/30"
+                                : "bg-[#14B8A6]/20 text-[#14F5D5] border border-[#14B8A6]/30"
                     )}
                   >
                     {viewingNotification.type === 'admin_message' || viewingNotification.type === 'message'
                       ? (isArabic ? 'رسالة رسمية من الإدارة ✉️' : 'Admin Message ✉️')
                       : viewingNotification.type === 'referral_inactivity'
-                      ? tRef('inactivityDetailTitle')
-                      : viewingNotification.type === 'WALLET_CREDIT'
-                      ? (isArabic ? 'إيداع وشحن رصيد 💰' : 'Wallet Credit 💰')
-                      : viewingNotification.type === 'WALLET_ALERT'
-                      ? (isArabic ? 'تنبيه مالي ⚠️' : 'Wallet Alert ⚠️')
-                      : viewingNotification.type === 'referral'
-                      ? (isArabic ? 'إحالة مستخدم جديد 👥' : 'New Rider Referral 👥')
-                      : (isArabic ? 'إشعار من النظام 🔔' : 'System Notification 🔔')}
+                        ? tRef('inactivityDetailTitle')
+                        : viewingNotification.type === 'WALLET_CREDIT'
+                          ? (isArabic ? 'إيداع وشحن رصيد 💰' : 'Wallet Credit 💰')
+                          : viewingNotification.type === 'WALLET_ALERT'
+                            ? (isArabic ? 'تنبيه مالي ⚠️' : 'Wallet Alert ⚠️')
+                            : viewingNotification.type === 'referral'
+                              ? (isArabic ? 'إحالة مستخدم جديد 👥' : 'New Rider Referral 👥')
+                              : (isArabic ? 'إشعار من النظام 🔔' : 'System Notification 🔔')}
                   </span>
                   <p className="text-xs text-slate-400">
                     {new Date(viewingNotification.timestamp).toLocaleString(isArabic ? 'ar-EG' : 'en-US', {

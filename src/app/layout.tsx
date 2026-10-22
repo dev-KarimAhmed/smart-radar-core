@@ -34,10 +34,23 @@ export async function generateMetadata(): Promise<Metadata> {
     manifest: '/manifest.json',
     icons: {
       icon: [
-        { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
-        { url: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+        { url: '/icons/logo-square.png?v=3', sizes: '256x256', type: 'image/png' },
+        { url: '/icons/logo-header.png?v=3', sizes: 'any', type: 'image/png' },
       ],
-      apple: '/icons/icon-192.png',
+      apple: '/icons/logo-square.png?v=3',
+      shortcut: '/icons/logo-square.png?v=3',
+    },
+    openGraph: {
+      title: tAuto('appTitle'),
+      description: tAuto('appDescription'),
+      images: [
+        {
+          url: '/icons/logo-header.png',
+          width: 512,
+          height: 512,
+          alt: 'Radar',
+        },
+      ],
     },
     appleWebApp: {
       capable: true,
