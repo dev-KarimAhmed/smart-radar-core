@@ -208,6 +208,20 @@ export function DriverWalletTab({ user, language, isFlightActive = false }: Driv
     if (!captainId) return;
     void fetchReceipts(true);
 
+    const handleRefresh = () => {
+      void fetchReceipts(false);
+    };
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        void fetchReceipts(false);
+      }
+    };
+
+    window.addEventListener('radar-wallet-refresh', handleRefresh);
+    window.addEventListener('focus', handleRefresh);
+    document.addEventListener('visibilitychange', handleVisibility);
+
     const channel = supabase
       .channel(`captain-receipts-history-${captainId}`)
       .on(
@@ -222,9 +236,16 @@ export function DriverWalletTab({ user, language, isFlightActive = false }: Driv
           void fetchReceipts(false);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          void fetchReceipts(false);
+        }
+      });
 
     return () => {
+      window.removeEventListener('radar-wallet-refresh', handleRefresh);
+      window.removeEventListener('focus', handleRefresh);
+      document.removeEventListener('visibilitychange', handleVisibility);
       void channel.unsubscribe();
     };
   }, [fetchReceipts, captainId]);
