@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { AlertTriangle, WifiOff } from 'lucide-react';
+import { AlertTriangle, Clock, Loader2, WifiOff, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 const styles = {
@@ -21,6 +21,12 @@ const styles = {
   connectionIcon: 'h-5 w-5 shrink-0 text-slate-300',
   connectionTitle: 'text-sm font-black',
   connectionBody: 'mt-0.5 text-xs leading-5 text-slate-300/80',
+  pendingOfferBanner: 'flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-500/40 bg-gradient-to-r from-amber-950/80 via-amber-900/60 to-amber-950/80 p-3.5 shadow-lg shadow-amber-950/30 backdrop-blur-md',
+  pendingOfferText: 'flex items-center gap-2.5 text-xs font-bold text-amber-200 min-w-0 flex-1',
+  pulseContainerAmber: 'relative flex h-2.5 w-2.5 shrink-0',
+  pulsePingAmber: 'absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75',
+  pulseCoreAmber: 'relative inline-flex h-2.5 w-2.5 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.9)]',
+  cancelOfferBtn: 'inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-rose-500/50 bg-rose-500/20 px-3.5 py-1.5 text-xs font-black text-rose-200 transition hover:bg-rose-500/35 hover:border-rose-400 active:scale-95 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_12px_rgba(244,63,94,0.18)]',
 } as const;
 
 export interface CaptainBannersProps {
@@ -30,8 +36,11 @@ export interface CaptainBannersProps {
   isDormancyWarningVisible: boolean;
   isOffline: boolean;
   isReconnecting: boolean;
+  pendingOfferRequestId?: string | null;
+  isCancellingOffer?: boolean;
   onReturnToTrip: () => void;
   onResetDormancy: () => void;
+  onCancelOffer?: (tripId?: string) => Promise<boolean> | void;
 }
 
 export function CaptainBanners({
@@ -41,8 +50,11 @@ export function CaptainBanners({
   isDormancyWarningVisible,
   isOffline,
   isReconnecting,
+  pendingOfferRequestId = null,
+  isCancellingOffer = false,
   onReturnToTrip,
   onResetDormancy,
+  onCancelOffer,
 }: CaptainBannersProps) {
   const t = useTranslations('captainDashboard');
 
@@ -64,6 +76,41 @@ export function CaptainBanners({
           >
             {direction === 'rtl' ? 'العودة للرحلة' : 'Return to trip'}
           </button>
+        </div>
+      ) : null}
+
+      {pendingOfferRequestId && !hasActiveRequest ? (
+        <div className={styles.pendingOfferBanner} dir={direction}>
+          <div className={styles.pendingOfferText}>
+            <span className={styles.pulseContainerAmber}>
+              <span className={styles.pulsePingAmber} />
+              <span className={styles.pulseCoreAmber} />
+            </span>
+            <div className="flex flex-col min-w-0">
+              <span className="font-black text-white text-xs sm:text-sm">
+                {direction === 'rtl' ? 'عرضك قيد الانتظار' : 'Offer submitted & pending'}
+              </span>
+              <span className="text-[11px] text-amber-200/90 leading-tight">
+                {direction === 'rtl' ? 'بانتظار موافقة الراكب على عرضك — يمكنك إلغاؤه في أي وقت' : 'Waiting for rider response — you can cancel anytime'}
+              </span>
+            </div>
+          </div>
+          {onCancelOffer ? (
+            <button
+              type="button"
+              onClick={() => void onCancelOffer(pendingOfferRequestId)}
+              disabled={isCancellingOffer}
+              className={styles.cancelOfferBtn}
+              title={direction === 'rtl' ? 'إلغاء العرض والعودة للرادار' : 'Cancel offer and return to radar'}
+            >
+              {isCancellingOffer ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <X className="h-3.5 w-3.5 stroke-[2.5]" />
+              )}
+              <span>{direction === 'rtl' ? (isCancellingOffer ? 'جارٍ الإلغاء...' : 'إلغاء العرض') : (isCancellingOffer ? 'Cancelling...' : 'Cancel Offer')}</span>
+            </button>
+          ) : null}
         </div>
       ) : null}
 
