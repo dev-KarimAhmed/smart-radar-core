@@ -103,7 +103,7 @@ export function PwaInstallBanner({ role: propRole }: PwaInstallBannerProps = {})
       className={cn(
         "fixed bottom-20 lg:bottom-6 z-[160] rounded-2xl border border-[#14B8A6]/30 bg-[#0B0F19]/95 p-4 shadow-[0_20px_50px_rgba(0,0,0,0.8)] backdrop-blur-xl text-white transition-all duration-300",
         "inset-x-3 sm:inset-x-auto sm:max-w-md",
-        "lg:start-[312px] lg:end-auto"
+        role === 'captain' ? "sm:end-6 sm:start-auto" : "lg:start-[312px] lg:end-auto"
       )}
       style={{
         zIndex: 160,

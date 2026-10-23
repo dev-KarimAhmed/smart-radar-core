@@ -127,20 +127,20 @@ export function useEmergencyContact(userId: string | undefined, tripContext: Eme
     const mapsUrl = coords ? `https://maps.google.com/?q=${coords.lat.toFixed(5)},${coords.lng.toFixed(5)}` : '';
 
     const lines: string[] = [
-      '🚨 نداء طوارئ واستغاثة - تطبيق بينكم (bynkcom)',
+      '\u{1F6A8} نداء طوارئ واستغاثة - تطبيق بينكم (bynkcom)',
       'أنا في رحلة حالياً وبحاجة للمتابعة والمساعدة.',
       '',
-      '🟢 رابط تتبع الرحلة حياً:',
+      '\u{1F7E2} رابط تتبع الرحلة حياً:',
       trackUrl,
     ];
 
     if (mapsUrl) {
-      lines.push('', '📍 موقعي الحالي على الخريطة:', mapsUrl);
+      lines.push('', '\u{1F4CD} موقعي الحالي على الخريطة:', mapsUrl);
     }
 
     lines.push(
       '',
-      '🚗 بيانات الرحلة:',
+      '\u{1F697} بيانات الرحلة:',
       `• الكابتن: ${captainName}`,
       plate ? `• اللوحة: ${plate}` : '',
       vehicle ? `• السيارة: ${vehicle}` : '',
@@ -151,7 +151,7 @@ export function useEmergencyContact(userId: string | undefined, tripContext: Eme
     const fullMessage = lines.filter((l) => l !== '').join('\n');
 
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      void navigator.clipboard.writeText(trackUrl).catch(() => {});
+      void navigator.clipboard.writeText(fullMessage).catch(() => {});
     }
 
     toast({
@@ -159,7 +159,14 @@ export function useEmergencyContact(userId: string | undefined, tripContext: Eme
       description: t('emergency.sosToastDescription'),
     });
 
-    window.location.href = `https://wa.me/${whatsapp}?text=${encodeURIComponent(fullMessage)}`;
+    const encodedMessage = encodeURIComponent(fullMessage);
+    const whatsappUrl = `https://api.whatsapp.com/send?phone=${whatsapp}&text=${encodedMessage}`;
+    if (typeof window !== 'undefined') {
+      const newTab = window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+      if (!newTab || newTab.closed || typeof newTab.closed === 'undefined') {
+        window.location.href = whatsappUrl;
+      }
+    }
   }, [emergencyWhatsappContact, t, toast, tripContext]);
 
   return {
