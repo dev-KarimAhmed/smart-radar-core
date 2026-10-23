@@ -2,13 +2,13 @@ import React from 'react';
 import { Car } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Panel, Field, EditableField, styles } from './driver-profile-shared';
-import { resolveColorDisplayName } from '@/shared/services/color-name';
+import { resolveColorDisplayName, colorNameToHex, hexToColorName } from '@/shared/services/color-name';
 
 export function DriverVehiclePanel({ state, language }: { state: any, language: 'ar' | 'en' }) {
   const t = useTranslations('captainProfile');
   const {
     vehiclePlate, setVehiclePlate, vehicleMake, setVehicleMake,
-    vehicleModel, setVehicleModel, vehicleColor, vehicleYear, setVehicleYear,
+    vehicleModel, setVehicleModel, vehicleColor, setVehicleColor, vehicleYear, setVehicleYear,
     businessName, setBusinessName, companyCode, setCompanyCode,
     officePhone, setOfficePhone,
     sideId, setSideId, facebookUrl, setFacebookUrl, instagramUrl, setInstagramUrl,
@@ -74,8 +74,32 @@ export function DriverVehiclePanel({ state, language }: { state: any, language: 
           >
             <input value={vehicleModel} onChange={(event) => setVehicleModel(event.target.value)} className={styles.editingInput} />
           </EditableField>
-          {/* Fixed at registration — never editable from the account. */}
-          <Field label={t('color')} value={vehicleColor ? resolveColorDisplayName(vehicleColor, language) : t('notProvided')} />
+          <EditableField
+            label={t('color')}
+            value={vehicleColor ? resolveColorDisplayName(vehicleColor, language) : t('notProvided')}
+            originalValue={savedSnapshotRef.current.vehicleColor ? resolveColorDisplayName(savedSnapshotRef.current.vehicleColor, language) : t('notProvided')}
+            isEditing={isFieldEditing('vehicleColor')}
+            isSaving={isSaving}
+            onEdit={() => startEditingField('vehicleColor')}
+            onSave={handleFieldSave}
+            onCancel={() => { setVehicleColor(savedSnapshotRef.current.vehicleColor); stopEditingField('vehicleColor'); }}
+          >
+            <div className="flex items-center gap-2">
+              <input
+                type="color"
+                value={colorNameToHex(vehicleColor) || '#ffffff'}
+                onChange={(event) => setVehicleColor(hexToColorName(event.target.value, language))}
+                className="h-9 w-12 rounded-lg cursor-pointer border border-white/20 bg-transparent p-0.5 shrink-0"
+                title={language === 'ar' ? 'اختر اللون' : 'Pick Color'}
+              />
+              <input
+                value={vehicleColor}
+                onChange={(event) => setVehicleColor(event.target.value)}
+                placeholder={language === 'ar' ? 'أدخل لون السيارة...' : 'Enter vehicle color...'}
+                className={styles.editingInput}
+              />
+            </div>
+          </EditableField>
           <EditableField
             label={t('year')}
             value={firstString(vehicleYear, t('notProvided'))}

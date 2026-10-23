@@ -280,6 +280,15 @@ export function RadarMapView({
     }
   }, [confirmModalTrip, onSubmitDirectBid, waitSeconds]);
 
+  const sortedRequests = React.useMemo(() => {
+    if (!pendingOfferRequestId || !requests.length) return requests;
+    return [...requests].sort((a, b) => {
+      if (a.id === pendingOfferRequestId) return -1;
+      if (b.id === pendingOfferRequestId) return 1;
+      return 0;
+    });
+  }, [requests, pendingOfferRequestId]);
+
   const visibleLocation = driverLocation || DEFAULT_MAP_CENTER;
   const totalMinutes = paidMinutes + bonusMinutes;
 
@@ -427,7 +436,7 @@ export function RadarMapView({
             <StateCard tone="empty" icon={<RadioTower className={styles.style215_30} />} title={copy.noRequestsTitle} body={copy.empty} />
           ) : (
             <div className={styles.style217_31}>
-              {requests.map((request) => {
+              {sortedRequests.map((request) => {
                 const isOwnPendingOffer = pendingOfferRequestId === request.id;
                 const isBlockedByOtherPendingOffer = Boolean(pendingOfferRequestId) && !isOwnPendingOffer;
                 const isTaxiMode = isOfficeTaxi || request.pricingPreference === 'TAXI';

@@ -171,6 +171,9 @@ export function DriverViewTab() {
           isDormancyWarningVisible={driverOps.isDormancyWarningVisible}
           isOffline={isOffline}
           isReconnecting={isReconnecting}
+          pendingOfferRequestId={driverOps.pendingOfferRequestId}
+          isCancellingOffer={driverOps.isCancellingOffer}
+          onCancelOffer={driverOps.cancelOffer}
           onReturnToTrip={() => dispatch({ type: 'OPEN_RADAR' })}
           onResetDormancy={() => driverOps.resetDormancyTimer()}
         />

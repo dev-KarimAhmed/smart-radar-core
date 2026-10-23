@@ -609,7 +609,7 @@ const [profile, setProfile] = React.useState<ProfileRow | null>(null);
     profile, fullName, setFullName, nickname, setNickname, phone, setPhone,
     nationalIdNumber, licenseNumber, vehiclePlate, setVehiclePlate,
     vehicleMake, setVehicleMake, vehicleModel, setVehicleModel,
-    vehicleColor, vehicleYear, setVehicleYear, businessName, setBusinessName,
+    vehicleColor, setVehicleColor, vehicleYear, setVehicleYear, businessName, setBusinessName,
     officePhone, setOfficePhone, sideId, setSideId, companyCode, setCompanyCode,
     facebookUrl, setFacebookUrl, instagramUrl, setInstagramUrl,
     baseFare, setBaseFare, pricePerKm, setPricePerKm, pricePerMin, setPricePerMin,
