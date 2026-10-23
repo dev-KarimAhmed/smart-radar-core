@@ -2,8 +2,9 @@
 
 import React from 'react';
 import { useTranslations } from 'next-intl';
-import { Eye, EyeOff, Lock, Mail, MapPin, Phone, UserRound } from 'lucide-react';
+import { Check, Eye, EyeOff, Lock, Mail, MapPin, Phone, UserRound } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 import { AppSelect } from '@/shared/components/ui/app-select';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import {
@@ -325,16 +326,45 @@ export function CaptainPersonalStep({
           inputMode="email"
           placeholder={t('emailPlaceholder')}
           value={values.email}
-          onChange={(e) => handleFieldChange('email', e.target.value)}
+          onChange={(e) => {
+            const val = e.target.value;
+            handleFieldChange('email', val);
+            const clean = val.trim();
+            if (!clean) {
+              setErrors((curr) => ({ ...curr, email: isArabic ? 'البريد الإلكتروني مطلوب لتفعيل الحساب' : 'Email is required' }));
+            } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean)) {
+              setErrors((curr) => ({ ...curr, email: isArabic ? 'يرجى إدخال بريد إلكتروني صحيح (مثل: name@example.com)' : 'Please enter a valid email address' }));
+            } else {
+              setErrors((curr) => {
+                const next = { ...curr };
+                delete next.email;
+                return next;
+              });
+            }
+          }}
           onBlur={() => {
-            if (values.email?.trim()) {
+            if (values.email?.trim() && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim())) {
               void checkEmailUniqueness(values.email);
             }
           }}
-          className={styles.input}
+          className={cn(
+            styles.input,
+            errors.email
+              ? '!border-rose-500/70 focus:!border-rose-500'
+              : values.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim())
+                ? '!border-emerald-500/70 focus:!border-emerald-500'
+                : ''
+          )}
           required
         />
-        {errors.email ? <p className={styles.error}>{errors.email}</p> : null}
+        {errors.email ? (
+          <p className={styles.error}>{errors.email}</p>
+        ) : values.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim()) ? (
+          <p className="text-emerald-400 mt-1 font-bold text-[10px] animate-in fade-in duration-150 flex items-center gap-1">
+            <Check className="h-3 w-3 inline stroke-[2.5]" />
+            <span>{isArabic ? 'صيغة البريد الإلكتروني صحيحة' : 'Valid email format'}</span>
+          </p>
+        ) : null}
       </div>
 
       <div className={styles.fieldRow}>

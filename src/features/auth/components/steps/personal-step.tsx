@@ -777,15 +777,36 @@ export function PersonalStep() {
                     placeholder={t.emailPlaceholder}
                     value={personal.email}
                     onChange={(event) => {
-                      setPersonal({ ...personal, email: event.target.value });
-                      if (emailError) setEmailError('');
+                      const val = event.target.value;
+                      setPersonal({ ...personal, email: val });
+                      const cleanVal = val.trim();
+                      if (!cleanVal) {
+                        setEmailError(isArabic ? 'البريد الإلكتروني مطلوب لتفعيل الحساب' : 'Email is required');
+                      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanVal)) {
+                        setEmailError(isArabic ? 'يرجى إدخال بريد إلكتروني صحيح (مثل: name@example.com)' : 'Please enter a valid email address');
+                      } else {
+                        setEmailError('');
+                      }
                     }}
-                    className={cn(styles.input, styles.style642_83, emailError && 'border-rose-500/50')}
+                    className={cn(
+                      styles.input,
+                      styles.style642_83,
+                      emailError
+                        ? '!border-rose-500/70 focus:!border-rose-500'
+                        : personal.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(personal.email.trim())
+                          ? '!border-emerald-500/70 focus:!border-emerald-500'
+                          : ''
+                    )}
                     autoComplete="email"
                   />
                   {emailError ? (
-                    <p className={cn(isArabic ? styles.style646_84 : styles.style646_85, 'text-rose-400 mt-1 font-bold text-[10px]')}>
+                    <p className={cn(isArabic ? styles.style646_84 : styles.style646_85, 'text-rose-400 mt-1 font-bold text-[10px] animate-in fade-in duration-150')}>
                       {emailError}
+                    </p>
+                  ) : personal.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(personal.email.trim()) ? (
+                    <p className={cn(isArabic ? styles.style646_84 : styles.style646_85, 'text-emerald-400 mt-1 font-bold text-[10px] animate-in fade-in duration-150 flex items-center gap-1')}>
+                      <Check className="h-3 w-3 inline stroke-[2.5]" />
+                      <span>{isArabic ? 'صيغة البريد الإلكتروني صحيحة' : 'Valid email format'}</span>
                     </p>
                   ) : null}
                 </Field>
