@@ -92,6 +92,7 @@ assert.deepEqual(payload, {
   country_id: 2,
   status: 'PENDING',
   pricing_preference: null,
+  number_of_riders: 1,
 });
 
 let insertedPayload: unknown = null;

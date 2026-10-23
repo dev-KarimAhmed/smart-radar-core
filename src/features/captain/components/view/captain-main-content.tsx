@@ -117,7 +117,10 @@ export function CaptainMainContent({
           cancelCooldown={driverOps.cancelCooldown}
           requests={driverOps.requests}
           pendingOfferRequestId={driverOps.pendingOfferRequestId}
+          onCancelOffer={driverOps.cancelOffer}
+          isCancellingOffer={driverOps.isCancellingOffer}
           captainPricingMode={currentTariff?.pricingMode ?? null}
+          currentTariff={currentTariff}
           isOfficeTaxi={user?.affiliation?.type === 'office-taxi'}
           subRole={user?.subRole}
           onSelectRequest={onSelectRequest}

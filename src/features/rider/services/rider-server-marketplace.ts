@@ -70,6 +70,7 @@ export interface RideRequestInsertInput {
   routeDurationMinutes?: number;
   countryId: number;
   pricingPreference?: 'FREE' | 'APP' | 'TAXI' | null;
+  numberOfRiders?: number;
 }
 
 export interface RideRequestInsertPayload {
@@ -89,6 +90,7 @@ export interface RideRequestInsertPayload {
   country_id: number;
   status: 'PENDING';
   pricing_preference?: 'FREE' | 'APP' | 'TAXI' | null;
+  number_of_riders?: number;
 }
 
 export interface RideRequestRow {
@@ -170,6 +172,7 @@ export function buildRideRequestInsertPayload(input: RideRequestInsertInput): Ri
     country_id: toStrictPositiveInteger(input.countryId, 'country_id'),
     status: 'PENDING',
     pricing_preference: input.pricingPreference || null,
+    number_of_riders: input.numberOfRiders && input.numberOfRiders >= 1 ? Math.min(Math.max(1, Math.round(input.numberOfRiders)), 10) : 1,
   };
 }
 

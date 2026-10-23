@@ -53,13 +53,13 @@ export interface CaptainHeaderProps {
   isUpdatingStatus: boolean;
   unreadCount: number;
   hasUnread: boolean;
-  canShowInstallButton: boolean;
-  canPromptNative: boolean;
+  canShowInstallButton?: boolean;
+  canPromptNative?: boolean;
   marketIndicator: any;
   onToggleStatus: () => void;
   onOpenNotifications: () => void;
-  onOpenInstall: () => void;
-  onTriggerNativeInstall: () => void;
+  onOpenInstall?: () => void;
+  onTriggerNativeInstall?: () => void;
   onToggleLanguage: () => void;
   onLogout: () => void;
   onOpenWallet: () => void;
@@ -158,8 +158,8 @@ export function CaptainHeader({
             <button
               type="button"
               onClick={() => {
-                if (canPromptNative) onTriggerNativeInstall();
-                else onOpenInstall();
+                if (canPromptNative) onTriggerNativeInstall?.();
+                else onOpenInstall?.();
               }}
               title={direction === 'rtl' ? 'تثبيت التطبيق' : 'Install App'}
               className={styles.installBtn}

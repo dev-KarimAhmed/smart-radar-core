@@ -208,6 +208,20 @@ export function DriverWalletTab({ user, language, isFlightActive = false }: Driv
     if (!captainId) return;
     void fetchReceipts(true);
 
+    const handleRefresh = () => {
+      void fetchReceipts(false);
+    };
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        void fetchReceipts(false);
+      }
+    };
+
+    window.addEventListener('radar-wallet-refresh', handleRefresh);
+    window.addEventListener('focus', handleRefresh);
+    document.addEventListener('visibilitychange', handleVisibility);
+
     const channel = supabase
       .channel(`captain-receipts-history-${captainId}`)
       .on(
@@ -222,9 +236,16 @@ export function DriverWalletTab({ user, language, isFlightActive = false }: Driv
           void fetchReceipts(false);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          void fetchReceipts(false);
+        }
+      });
 
     return () => {
+      window.removeEventListener('radar-wallet-refresh', handleRefresh);
+      window.removeEventListener('focus', handleRefresh);
+      document.removeEventListener('visibilitychange', handleVisibility);
       void channel.unsubscribe();
     };
   }, [fetchReceipts, captainId]);
@@ -402,37 +423,39 @@ export function DriverWalletTab({ user, language, isFlightActive = false }: Driv
                     {language === 'ar' ? (channelOption.descriptionAr || '') : (channelOption.descriptionEn || channelOption.descriptionAr || '')}
                   </p>
 
-                  <div className="mt-2.5 flex items-center justify-between gap-2 rounded-xl border border-white/5 bg-black/60 px-2.5 py-1.5">
-                    <span className="truncate font-mono text-xs font-bold text-slate-200">
-                      {channelNumber}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        copyChannelNumber(channelOption.id, channelNumber);
-                      }}
-                      className={cn(
-                        "inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-bold transition",
-                        isCopied
-                          ? "bg-emerald-500/20 text-emerald-300"
-                          : "bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white"
-                      )}
-                      aria-label={t('copy')}
-                    >
-                      {isCopied ? (
-                        <>
-                          <Check className="h-3 w-3 text-emerald-400" />
-                          <span>{t('copied')}</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="h-3 w-3" />
-                          <span>{t('copy')}</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
+                  {isSelected && channelNumber ? (
+                    <div className="mt-2.5 flex items-center justify-between gap-2 rounded-xl border border-white/5 bg-black/60 px-2.5 py-1.5 animate-in fade-in duration-150">
+                      <span className="truncate font-mono text-xs font-bold text-slate-200">
+                        {channelNumber}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          copyChannelNumber(channelOption.id, channelNumber);
+                        }}
+                        className={cn(
+                          "inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-bold transition",
+                          isCopied
+                            ? "bg-emerald-500/20 text-emerald-300"
+                            : "bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white"
+                        )}
+                        aria-label={t('copy')}
+                      >
+                        {isCopied ? (
+                          <>
+                            <Check className="h-3 w-3 text-emerald-400" />
+                            <span>{t('copied')}</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-3 w-3" />
+                            <span>{t('copy')}</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  ) : null}
                 </div>
               );
             })}

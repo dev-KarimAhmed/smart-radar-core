@@ -80,7 +80,7 @@ export function useSendCancelRideRequest(params: {
     generic: t('errors.generic'),
   }), [t]);
 
-  const handleSendRequest = React.useCallback(async () => {
+  const handleSendRequest = React.useCallback(async (explicitRiderCount?: number) => {
     if (riderOps?.accountSecurityStatus) {
       toast({
         variant: 'destructive',
@@ -115,21 +115,29 @@ export function useSendCancelRideRequest(params: {
       return;
     }
 
-    let effectiveRiderCount = riderCount;
-    if (!effectiveRiderCount || effectiveRiderCount < 1) {
-      if (typeof window !== 'undefined') {
+    let liveStorageCount = 0;
+    if (typeof window !== 'undefined') {
+      try {
         const stored = window.localStorage.getItem('radar_rider_passenger_count');
         const parsed = stored ? parseInt(stored, 10) : 0;
-        if (parsed >= 1) effectiveRiderCount = parsed;
-      }
+        if (Number.isFinite(parsed) && parsed >= 1) liveStorageCount = parsed;
+      } catch {}
     }
 
-    // When retrying or if destination was already confirmed, never block the rider for passenger count: fallback to at least 1
-    if ((state.screen === 'RECEIVING_OFFERS' || Boolean(state.destination)) && (!effectiveRiderCount || effectiveRiderCount < 1)) {
+    let effectiveRiderCount = (typeof explicitRiderCount === 'number' && explicitRiderCount >= 1)
+      ? explicitRiderCount
+      : (typeof riderCount === 'number' && riderCount >= 1)
+        ? riderCount
+        : (liveStorageCount >= 1)
+          ? liveStorageCount
+          : 0;
+
+    // Only when retrying from an already-active offer search, fallback to 1 so retry doesn't stall:
+    if (state.screen === 'RECEIVING_OFFERS' && effectiveRiderCount < 1) {
       effectiveRiderCount = 1;
     }
 
-    if (effectiveRiderCount !== undefined && effectiveRiderCount < 1) {
+    if (effectiveRiderCount < 1) {
       toast({
         variant: 'destructive',
         title: t('request.passengersMissingTitle'),
@@ -138,7 +146,7 @@ export function useSendCancelRideRequest(params: {
       return;
     }
 
-    if (effectiveRiderCount && effectiveRiderCount >= 1 && typeof window !== 'undefined') {
+    if (typeof window !== 'undefined') {
       try {
         window.localStorage.setItem('radar_rider_passenger_count', String(effectiveRiderCount));
       } catch {}
@@ -220,6 +228,7 @@ export function useSendCancelRideRequest(params: {
         routeDurationMinutes: currentRouteEstimate?.durationMinutes ?? Math.max(1, Math.ceil((effectiveDraftDestination.fareQuote?.estimatedRoadDistanceKm ?? 2) * 1.5)),
         countryId,
         pricingPreference: pricingPreference || null,
+        numberOfRiders: effectiveRiderCount,
       });
 
       let request;
