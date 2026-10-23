@@ -79,9 +79,13 @@ export function CaptainBanners({
         </div>
       ) : null}
 
-      {pendingOfferRequestId && !hasActiveRequest ? (
+      {pendingOfferRequestId && !hasActiveRequest && screen !== 'RADAR_MAP' ? (
         <div className={styles.pendingOfferBanner} dir={direction}>
-          <div className={styles.pendingOfferText}>
+          <div
+            className={`${styles.pendingOfferText} cursor-pointer hover:opacity-90 transition-opacity`}
+            onClick={onReturnToTrip}
+            title={direction === 'rtl' ? 'العودة إلى الخريطة' : 'Return to map'}
+          >
             <span className={styles.pulseContainerAmber}>
               <span className={styles.pulsePingAmber} />
               <span className={styles.pulseCoreAmber} />
@@ -98,7 +102,10 @@ export function CaptainBanners({
           {onCancelOffer ? (
             <button
               type="button"
-              onClick={() => void onCancelOffer(pendingOfferRequestId)}
+              onClick={(e) => {
+                e.stopPropagation();
+                void onCancelOffer(pendingOfferRequestId);
+              }}
               disabled={isCancellingOffer}
               className={styles.cancelOfferBtn}
               title={direction === 'rtl' ? 'إلغاء العرض والعودة للرادار' : 'Cancel offer and return to radar'}
