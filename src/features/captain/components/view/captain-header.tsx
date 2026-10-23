@@ -161,11 +161,11 @@ export function CaptainHeader({
                 if (canPromptNative) onTriggerNativeInstall?.();
                 else onOpenInstall?.();
               }}
-              title={direction === 'rtl' ? 'تثبيت التطبيق' : 'Install App'}
+              title={t('installApp')}
               className={styles.installBtn}
             >
               <Download className={styles.actionIcon} />
-              <span className={styles.actionLabel}>{direction === 'rtl' ? 'تثبيت' : 'Install'}</span>
+              <span className={styles.actionLabel}>{t('install')}</span>
             </button>
           )}
         </div>

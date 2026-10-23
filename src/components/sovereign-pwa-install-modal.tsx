@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   Compass,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -55,6 +56,7 @@ export function SovereignPwaInstallModal({
   isArabic = true,
   role = 'rider',
 }: SovereignPwaInstallModalProps) {
+  const t = useTranslations('pwaInstall');
   const isCaptain = role === 'captain';
   const [platform, setPlatform] = useState<PlatformEnvironment>(() => detectPlatform());
   const [activeIosBrowser, setActiveIosBrowser] = useState<'safari' | 'chrome'>('safari');
@@ -78,26 +80,20 @@ export function SovereignPwaInstallModal({
           {
             num: 1,
             Icon: MoreHorizontal,
-            title: isArabic ? 'اضغط على زر القائمة (•••)' : 'Tap Menu (•••)',
-            desc: isArabic
-              ? 'في أسفل شاشة Chrome (أو أيقونة المشاركة في شريط العناوين بالأعلى).'
-              : 'At the bottom bar of Chrome (or the Share icon in the top address bar).',
+            title: t('chromeStep1Title'),
+            desc: t('chromeStep1Desc'),
           },
           {
             num: 2,
             Icon: PlusSquare,
-            title: isArabic ? 'اختر "إضافة إلى الشاشة الرئيسية"' : 'Select "Add to Home Screen"',
-            desc: isArabic
-              ? 'مرر للأسفل في القائمة واضغط على "Add to Home Screen" أو "إضافة إلى الشاشة الرئيسية".'
-              : 'Scroll down the menu options and tap "Add to Home Screen".',
+            title: t('chromeStep2Title'),
+            desc: t('chromeStep2Desc'),
           },
           {
             num: 3,
             Icon: isCaptain ? Zap : Smartphone,
-            title: isArabic ? 'اضغط "إضافة" (Add) بالأعلى' : 'Tap "Add" in Top Corner',
-            desc: isArabic
-              ? 'سيظهر التطبيق كأيقونة مستقلة على شاشة هاتفك فوراً.'
-              : 'The app icon will immediately appear on your iPhone home screen.',
+            title: t('chromeStep3Title'),
+            desc: t('chromeStep3Desc'),
           },
         ];
       }
@@ -107,26 +103,20 @@ export function SovereignPwaInstallModal({
         {
           num: 1,
           Icon: Share,
-          title: isArabic ? 'اضغط على زر المشاركة (Share)' : 'Tap the Share Button',
-          desc: isArabic
-            ? 'في منتصف الشريط السفلي لمتصفح Safari (أيقونة المربع وسهم لأعلى ⎋).'
-            : 'At the bottom toolbar of Safari (the square with an arrow pointing up).',
+          title: t('safariStep1Title'),
+          desc: t('safariStep1Desc'),
         },
         {
           num: 2,
           Icon: PlusSquare,
-          title: isArabic ? 'إضافة إلى الشاشة الرئيسية' : 'Add to Home Screen',
-          desc: isArabic
-            ? 'مرر لأسفل القائمة واضغط على "إضافة إلى الشاشة الرئيسية" (Add to Home Screen).'
-            : 'Scroll down and tap "Add to Home Screen".',
+          title: t('safariStep2Title'),
+          desc: t('safariStep2Desc'),
         },
         {
           num: 3,
           Icon: isCaptain ? Zap : Smartphone,
-          title: isArabic ? 'اضغط "إضافة" (Add) في الزاوية' : 'Tap "Add" in the Corner',
-          desc: isArabic
-            ? 'اضغط "إضافة" في أعلى الزاوية لتثبيت التطبيق على الشاشة الرئيسية.'
-            : 'Tap "Add" in the top corner to complete installation.',
+          title: t('safariStep3Title'),
+          desc: t('safariStep3Desc'),
         },
       ];
     }
@@ -136,20 +126,20 @@ export function SovereignPwaInstallModal({
       {
         num: 1,
         Icon: MoreHorizontal,
-        title: isArabic ? 'قائمة المتصفح (⋮)' : 'Browser Menu (⋮)',
-        desc: isArabic ? 'اضغط على زر القائمة في زاوية المتصفح.' : 'Click the browser menu in the top corner.',
+        title: t('otherStep1Title'),
+        desc: t('otherStep1Desc'),
       },
       {
         num: 2,
         Icon: PlusSquare,
-        title: isArabic ? 'تثبيت التطبيق' : 'Install App',
-        desc: isArabic ? 'اختر "تثبيت التطبيق" أو "إضافة إلى الشاشة الرئيسية".' : 'Select "Install App" or "Add to Home Screen".',
+        title: t('otherStep2Title'),
+        desc: t('otherStep2Desc'),
       },
       {
         num: 3,
         Icon: isCaptain ? Zap : Smartphone,
-        title: isArabic ? 'التشغيل المستقل' : 'Launch Standalone',
-        desc: isArabic ? 'افتح التطبيق من شاشتك للعمل بكامل الشاشة وبأسرع استجابة.' : 'Open from home screen for instant standalone full-screen experience.',
+        title: t('otherStep3Title'),
+        desc: t('otherStep3Desc'),
       },
     ];
   };
@@ -163,29 +153,15 @@ export function SovereignPwaInstallModal({
           {isIOS && (
             <div className={styles.iosBadge}>
               <Apple className="h-3.5 w-3.5" />
-              <span>{isArabic ? 'تثبيت على أجهزة iPhone / iOS' : 'iPhone / iOS Installation'}</span>
+              <span>{t('iosBadge')}</span>
             </div>
           )}
           <DialogTitle className={styles.title}>
             <ShieldCheck className={styles.titleIcon} />
-            <span>
-              {isCaptain
-                ? (isArabic ? 'تثبيت تطبيق الكابتن المستقل' : 'Install Sovereign Captain App')
-                : (isArabic ? 'تثبيت التطبيق على جهازك' : 'Install Standalone App')}
-            </span>
+            <span>{isCaptain ? t('titleCaptain') : t('titleRider')}</span>
           </DialogTitle>
           <DialogDescription className={styles.description}>
-            {isIOS
-              ? (isArabic
-                  ? 'يتطلب نظام iOS إضافة التطبيق إلى شاشتك الرئيسية يدوياً للتشغيل بملء الشاشة بدون شريط المتصفح.'
-                  : 'iOS requires adding the app to your Home Screen manually to run in full-screen standalone mode.')
-              : (isCaptain
-                  ? (isArabic
-                      ? 'تشغيل فوري بملء الشاشة، استلام إشعارات الطلبات اللحظية، وأعلى ثبات للملاحة.'
-                      : 'Instant launch, real-time trip alerts, and maximum navigation reliability.')
-                  : (isArabic
-                      ? 'احصل على سرعة إقلاع فورية وإشعارات حية دون استهلاك باقة الإنترنت.'
-                      : 'Fast instant launch, live offers radar, and standalone full-screen experience.'))}
+            {isIOS ? t('descIos') : isCaptain ? t('descCaptain') : t('descRider')}
           </DialogDescription>
         </DialogHeader>
 
@@ -197,7 +173,7 @@ export function SovereignPwaInstallModal({
               className={cn(styles.tabBtn, activeIosBrowser === 'safari' ? styles.tabActive : styles.tabIdle)}
             >
               <Compass className="h-3.5 w-3.5" />
-              <span>Safari</span>
+              <span>{t('tabSafari')}</span>
             </button>
             <button
               type="button"
@@ -205,7 +181,7 @@ export function SovereignPwaInstallModal({
               className={cn(styles.tabBtn, activeIosBrowser === 'chrome' ? styles.tabActive : styles.tabIdle)}
             >
               <MoreHorizontal className="h-3.5 w-3.5" />
-              <span>Chrome</span>
+              <span>{t('tabChrome')}</span>
             </button>
           </div>
         )}
@@ -232,11 +208,7 @@ export function SovereignPwaInstallModal({
 
         <div className={styles.tipBox}>
           <CheckCircle2 className={styles.tipIcon} />
-          <span>
-            {isArabic
-              ? 'بمجرد التثبيت، افتح التطبيق من الشاشة الرئيسية ليتم تشغيله كتطبيق مستقل وسيختفي زر التثبيت تلقائياً.'
-              : 'Once added, launch from your Home Screen for a native standalone experience; the install button will disappear automatically.'}
-          </span>
+          <span>{t('tip')}</span>
         </div>
 
         <Button
@@ -244,7 +216,7 @@ export function SovereignPwaInstallModal({
           onClick={onClose}
           className={styles.closeButton}
         >
-          {isArabic ? 'حسناً، فهمت الخطوات' : 'Got it, thanks'}
+          {t('confirmBtn')}
         </Button>
       </DialogContent>
     </Dialog>
