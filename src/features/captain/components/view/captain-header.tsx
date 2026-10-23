@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Image from 'next/image';
-import { Bell, Download, History, Languages, Loader2, LogOut, User, Wallet } from 'lucide-react';
+import { Bell, History, Languages, Loader2, LogOut, User, Wallet } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import type { CaptainScreen } from '../../state/captain-state-machine';
@@ -17,7 +17,6 @@ const styles = {
   marketWrapMobile: 'flex items-center justify-center sm:hidden',
   marketWrapDesktop: 'hidden sm:flex sm:justify-center sm:items-center',
   actionsWrap: 'grid grid-cols-3 gap-2 w-full sm:flex sm:w-auto sm:items-center sm:justify-end',
-  installBtn: 'col-span-3 sm:col-auto sm:order-2 inline-flex items-center justify-center gap-1.5 rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-2.5 py-2 text-[#14F5D5] transition hover:bg-[#14B8A6]/20 sm:rounded-2xl sm:px-4 sm:py-3 w-full sm:w-auto',
   actionIcon: 'h-4 w-4 shrink-0',
   logoutIcon: 'h-4 w-4 shrink-0 rotate-180',
   actionLabel: 'text-xs font-black sm:text-sm',
@@ -52,13 +51,9 @@ export interface CaptainHeaderProps {
   isUpdatingStatus: boolean;
   unreadCount: number;
   hasUnread: boolean;
-  canShowInstallButton?: boolean;
-  canPromptNative?: boolean;
   marketIndicator: any;
   onToggleStatus: () => void;
   onOpenNotifications: () => void;
-  onOpenInstall?: () => void;
-  onTriggerNativeInstall?: () => void;
   onToggleLanguage: () => void;
   onLogout: () => void;
   onOpenWallet: () => void;
@@ -75,13 +70,9 @@ export function CaptainHeader({
   isUpdatingStatus,
   unreadCount,
   hasUnread,
-  canShowInstallButton,
-  canPromptNative,
   marketIndicator,
   onToggleStatus,
   onOpenNotifications,
-  onOpenInstall,
-  onTriggerNativeInstall,
   onToggleLanguage,
   onLogout,
   onOpenWallet,
@@ -91,7 +82,6 @@ export function CaptainHeader({
   const t = useTranslations('captainDashboard');
 
   const isRtl = direction === 'rtl';
-  const installText = t('install') && !t('install').includes('captainDashboard') ? t('install') : (isRtl ? 'تثبيت' : 'Install');
   return (
     <header className={styles.headerCard}>
       {/* 1. الصف الأول: اللوجو يميناً، قوة السوق في المنتصف للموبايل والويب، وصف الإجراءات يساراً */}
@@ -154,20 +144,6 @@ export function CaptainHeader({
             <LogOut className={styles.logoutIcon} />
             <span className={styles.actionLabel}>{t('logout')}</span>
           </button>
-          {canShowInstallButton && (
-            <button
-              type="button"
-              onClick={() => {
-                if (canPromptNative) onTriggerNativeInstall?.();
-                else onOpenInstall?.();
-              }}
-              title={isRtl ? 'تثبيت التطبيق' : 'Install App'}
-              className={styles.installBtn}
-            >
-              <Download className={styles.actionIcon} />
-              <span className={styles.actionLabel}>{installText}</span>
-            </button>
-          )}
         </div>
       </div>
 

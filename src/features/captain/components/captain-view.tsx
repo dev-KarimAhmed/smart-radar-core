@@ -150,13 +150,9 @@ export function DriverViewTab() {
           isUpdatingStatus={driverOps.isUpdatingStatus}
           unreadCount={unreadCount}
           hasUnread={hasUnread}
-          canShowInstallButton={canShowInstallButton}
-          canPromptNative={canPromptNative}
           marketIndicator={marketIndicator}
           onToggleStatus={() => void driverOps.toggleDriverStatus(isActive ? 'idle' : 'active')}
           onOpenNotifications={() => dispatch({ type: 'OPEN_NOTIFICATIONS' })}
-          onOpenInstall={() => setIsInstallModalOpen(true)}
-          onTriggerNativeInstall={() => void triggerNativeInstall()}
           onToggleLanguage={toggleLanguage}
           onLogout={() => void logout()}
           onOpenWallet={() => dispatch({ type: 'OPEN_WALLET' })}

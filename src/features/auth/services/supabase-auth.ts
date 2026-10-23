@@ -185,12 +185,20 @@ export async function signInRiderWithPhone(input: RiderSupabaseSignInInput) {
 
   if (error) throw error;
 
-  // STRICT REQUIREMENT: Block unconfirmed email accounts from logging in
-  if (data.user && !data.user.email_confirmed_at) {
+  // Grandfathering: Accounts created before the email verification rollout (or legacy phone-only accounts)
+  // are permanently exempt from email confirmation blocking to prevent existing users from being locked out.
+  const userEmail = data.user?.email || (data.user?.user_metadata?.email as string | undefined);
+  const userCreatedAtMs = data.user?.created_at ? new Date(data.user.created_at).getTime() : 0;
+  // Cutoff timestamp for email verification rollout: Oct 23, 2026 15:30:00 UTC (1792769400000 ms)
+  const isPreFeatureAccount = userCreatedAtMs > 0 && userCreatedAtMs < 1792769400000;
+  const isPhoneOnlyAccount = !userEmail || !userEmail.includes('@');
+  const requiresEmailConfirmation = !isPreFeatureAccount && !isPhoneOnlyAccount;
+
+  if (data.user && requiresEmailConfirmation && !data.user.email_confirmed_at) {
     await supabase.auth.signOut();
     clearSupabaseSessionCache();
     const unconfirmedErr = new Error('email_not_confirmed');
-    (unconfirmedErr as any).email = data.user.email || data.user.user_metadata?.email;
+    (unconfirmedErr as any).email = userEmail;
     (unconfirmedErr as any).phone = validation.phone;
     throw unconfirmedErr;
   }
