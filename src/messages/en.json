@@ -49,7 +49,9 @@
     "whatsapp": "WhatsApp",
     "openMap": "Open map",
     "addCampaign": "Add campaign",
-    "addDemoData": "Add demo data"
+    "addDemoData": "Add demo data",
+    "install": "Install",
+    "installApp": "Install App"
   },
   "status": {
     "active": "Active",
@@ -1445,7 +1447,9 @@
     "key_02958076": "Key_02958076",
     "key_b2d7fc61": "Key_b2d7fc61",
     "key_94359bb8": "Key_94359bb8",
-    "key_b9568e86": "Key_b9568e86"
+    "key_b9568e86": "Key_b9568e86",
+    "install": "Install",
+    "installApp": "Install App"
   },
   "captainPickup": {
     "tripsValue": "{count, plural, =0 {Trips: 0} one {Trips: # trip} other {Trips: # trips}}",
