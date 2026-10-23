@@ -11,11 +11,10 @@ import { MarketStatusIndicator } from '../market-status-indicator';
 const styles = {
   headerCard: 'flex flex-col gap-3 rounded-3xl border border-emerald-500/20 bg-[#05080f] p-3 sm:p-4',
   topRow: 'flex flex-col gap-2.5 sm:grid sm:grid-cols-3 sm:items-center sm:gap-3',
-  brandRow: 'flex items-center justify-between w-full sm:w-auto',
-  logoWrap: 'flex items-center justify-start shrink-0',
-  logoImage: 'h-7 sm:h-8 w-auto object-contain',
-  mobileSpacer: 'w-[85px] shrink-0 sm:hidden',
-  marketWrapMobile: 'flex flex-1 justify-center sm:hidden',
+  brandRow: 'relative flex items-center justify-center w-full min-h-[34px] sm:w-auto sm:justify-start',
+  logoWrap: 'absolute start-0 flex items-center shrink-0 z-10',
+  logoImage: 'h-6 sm:h-8 w-auto object-contain',
+  marketWrapMobile: 'flex items-center justify-center sm:hidden',
   marketWrapDesktop: 'hidden sm:flex sm:justify-center sm:items-center',
   actionsWrap: 'grid grid-cols-3 gap-2 w-full sm:flex sm:w-auto sm:items-center sm:justify-end',
   installBtn: 'col-span-3 sm:col-auto sm:order-2 inline-flex items-center justify-center gap-1.5 rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-2.5 py-2 text-[#14F5D5] transition hover:bg-[#14B8A6]/20 sm:rounded-2xl sm:px-4 sm:py-3 w-full sm:w-auto',
@@ -91,6 +90,8 @@ export function CaptainHeader({
 }: CaptainHeaderProps) {
   const t = useTranslations('captainDashboard');
 
+  const isRtl = direction === 'rtl';
+  const installText = t('install') && !t('install').includes('captainDashboard') ? t('install') : (isRtl ? 'تثبيت' : 'Install');
   return (
     <header className={styles.headerCard}>
       {/* 1. الصف الأول: اللوجو يميناً، قوة السوق في المنتصف للموبايل والويب، وصف الإجراءات يساراً */}
@@ -100,8 +101,8 @@ export function CaptainHeader({
             <Image
               src="/icons/logo-header.png"
               alt="Radar"
-              width={130}
-              height={34}
+              width={110}
+              height={28}
               priority
               className={styles.logoImage}
             />
@@ -109,7 +110,6 @@ export function CaptainHeader({
           <div className={styles.marketWrapMobile}>
             <MarketStatusIndicator indicator={marketIndicator} size="compact" />
           </div>
-          <div className={styles.mobileSpacer} />
         </div>
 
         <div className={styles.marketWrapDesktop}>
@@ -161,11 +161,11 @@ export function CaptainHeader({
                 if (canPromptNative) onTriggerNativeInstall?.();
                 else onOpenInstall?.();
               }}
-              title={t('installApp')}
+              title={isRtl ? 'تثبيت التطبيق' : 'Install App'}
               className={styles.installBtn}
             >
               <Download className={styles.actionIcon} />
-              <span className={styles.actionLabel}>{t('install')}</span>
+              <span className={styles.actionLabel}>{installText}</span>
             </button>
           )}
         </div>
