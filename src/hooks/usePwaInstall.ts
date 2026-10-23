@@ -28,6 +28,9 @@ export function usePwaInstall(role: 'rider' | 'captain' = 'rider') {
   const [isDismissed, setIsDismissed] = useState<boolean>(true); // default true until client mounts
   const [isAppInstalled, setIsAppInstalled] = useState<boolean>(false);
 
+  const roleInstalledKey = `${STORAGE_INSTALLED_KEY}_${role}`;
+  const roleDismissKey = `${STORAGE_DISMISS_KEY}_${role}`;
+
   // Initialize and check local storage & installed related apps
   useEffect(() => {
     const env = detectPlatform();
@@ -41,8 +44,9 @@ export function usePwaInstall(role: 'rider' | 'captain' = 'rider') {
     }
 
     try {
-      const storedInstalled = localStorage.getItem(STORAGE_INSTALLED_KEY);
-      if (storedInstalled === 'true') {
+      const storedGlobal = localStorage.getItem(STORAGE_INSTALLED_KEY);
+      const storedRole = localStorage.getItem(roleInstalledKey);
+      if ((storedGlobal === 'true' || storedRole === 'true') && !env.isIOS) {
         setIsAppInstalled(true);
       }
     } catch {
@@ -56,6 +60,7 @@ export function usePwaInstall(role: 'rider' | 'captain' = 'rider') {
           if (Array.isArray(relatedApps) && relatedApps.length > 0) {
             setIsAppInstalled(true);
             try {
+              localStorage.setItem(roleInstalledKey, 'true');
               localStorage.setItem(STORAGE_INSTALLED_KEY, 'true');
             } catch {
               // silent
@@ -66,7 +71,7 @@ export function usePwaInstall(role: 'rider' | 'captain' = 'rider') {
     }
 
     try {
-      const dismissedUntil = localStorage.getItem(STORAGE_DISMISS_KEY);
+      const dismissedUntil = localStorage.getItem(roleDismissKey);
       if (dismissedUntil && Number(dismissedUntil) > Date.now()) {
         setIsDismissed(true);
       } else {
@@ -75,7 +80,7 @@ export function usePwaInstall(role: 'rider' | 'captain' = 'rider') {
     } catch {
       setIsDismissed(false);
     }
-  }, [role]);
+  }, [role, roleDismissKey, roleInstalledKey]);
 
   // Update guidance whenever platformEnv or role changes
   useEffect(() => {
@@ -96,6 +101,7 @@ export function usePwaInstall(role: 'rider' | 'captain' = 'rider') {
       setIsDismissed(true);
       setIsAppInstalled(true);
       try {
+        localStorage.setItem(roleInstalledKey, 'true');
         localStorage.setItem(STORAGE_INSTALLED_KEY, 'true');
       } catch {
         // silent
@@ -110,7 +116,7 @@ export function usePwaInstall(role: 'rider' | 'captain' = 'rider') {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
     };
-  }, []);
+  }, [roleInstalledKey]);
 
   const triggerNativeInstall = useCallback(async (): Promise<boolean> => {
     if (!deferredPrompt) return false;
@@ -122,6 +128,7 @@ export function usePwaInstall(role: 'rider' | 'captain' = 'rider') {
         setIsDismissed(true);
         setIsAppInstalled(true);
         try {
+          localStorage.setItem(roleInstalledKey, 'true');
           localStorage.setItem(STORAGE_INSTALLED_KEY, 'true');
         } catch {
           // silent
@@ -132,30 +139,32 @@ export function usePwaInstall(role: 'rider' | 'captain' = 'rider') {
       console.warn('[PWA Install Error]', err);
     }
     return false;
-  }, [deferredPrompt]);
+  }, [deferredPrompt, roleInstalledKey]);
 
   const dismissBanner = useCallback((days: number = DEFAULT_DISMISS_DAYS) => {
     const expireTime = Date.now() + days * 24 * 60 * 60 * 1000;
     try {
-      localStorage.setItem(STORAGE_DISMISS_KEY, String(expireTime));
+      localStorage.setItem(roleDismissKey, String(expireTime));
     } catch {
       // silent
     }
     setIsDismissed(true);
-  }, []);
+  }, [roleDismissKey]);
 
   const resetDismissal = useCallback(() => {
     try {
+      localStorage.removeItem(roleDismissKey);
       localStorage.removeItem(STORAGE_DISMISS_KEY);
     } catch {
       // silent
     }
     setIsDismissed(false);
-  }, []);
+  }, [roleDismissKey]);
 
   const canPromptNative = Boolean(deferredPrompt);
-  const isInstalled = platformEnv.isStandalone || isAppInstalled;
-  // On Chromium (desktop/android), if app is installed or cannot prompt natively, hide install button. On iOS, allow showing guidance.
+  // On iOS, standalone mode is the true indicator; on desktop/android, check standalone or recorded/native install
+  const isInstalled = platformEnv.isStandalone || (!platformEnv.isIOS && isAppInstalled);
+  // Hide install button if already installed, or if native prompt is unavailable on Chromium (which occurs when already installed)
   const canShowInstallButton = !isInstalled && (platformEnv.isIOS || canPromptNative);
 
   return {
