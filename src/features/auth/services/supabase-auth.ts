@@ -34,18 +34,46 @@ export async function signUpRiderWithPhone(input: RiderSupabaseSignUpInput) {
 
   setSupabaseRememberSession(input.rememberMe ?? shouldRememberSupabaseSession());
 
-  const { supabase } = await import('@/lib/supabase-client');
-  const { data, error } = await supabase.auth.signUp({
-    phone: validation.phone,
-    password: input.password,
-    options: {
-      data: metadata,
-    },
+  const response = await fetch('/api/auth/register', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      phone: validation.phone,
+      password: input.password,
+      fullName: input.fullName,
+      email: input.email?.trim().toLowerCase(),
+      role: input.role || 'RIDER',
+      countryId: input.countryId,
+      governorateId: input.governorateId,
+      districtId: input.districtId,
+      captainProfile: input.captainProfile || null,
+    }),
   });
 
-  if (error) throw error;
-  cacheSupabaseSession(data.session);
-  return data;
+  let resData: any = null;
+  try {
+    resData = await response.json();
+  } catch {
+    throw new Error('حدث خطأ في استجابة الخادم أثناء إنشاء الحساب. حاول مرة أخرى.');
+  }
+  if (!response.ok || !resData?.success) {
+    throw new Error(resData?.error || 'فشل إنشاء الحساب. حاول مرة أخرى.');
+  }
+
+  return {
+    user: {
+      id: resData.userId,
+      email: resData.email,
+      phone: validation.phone,
+      user_metadata: metadata as unknown as Record<string, unknown>,
+      email_confirmed_at: null,
+      identities: [{ id: resData.userId }],
+    },
+    session: null,
+    needsEmailConfirmation: true,
+    email: resData.email,
+    message: resData.message,
+  };
 }
 
 export interface CaptainSignUpInput extends Omit<RiderSupabaseSignUpInput, 'role' | 'captainProfile'> {
@@ -157,6 +185,16 @@ export async function signInRiderWithPhone(input: RiderSupabaseSignInInput) {
 
   if (error) throw error;
 
+  // STRICT REQUIREMENT: Block unconfirmed email accounts from logging in
+  if (data.user && !data.user.email_confirmed_at) {
+    await supabase.auth.signOut();
+    clearSupabaseSessionCache();
+    const unconfirmedErr = new Error('email_not_confirmed');
+    (unconfirmedErr as any).email = data.user.email || data.user.user_metadata?.email;
+    (unconfirmedErr as any).phone = validation.phone;
+    throw unconfirmedErr;
+  }
+
   if (input.expectedRole && data.user) {
     const rawRole = (data.user.user_metadata?.role as string) || 'RIDER';
     const userRole = rawRole.toUpperCase();
@@ -191,4 +229,31 @@ export function clearSupabaseSessionCache() {
   localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
   sessionStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
   clearSupabaseAuthStorage();
+}
+
+
+export async function verifyEmailOtpCode(params: {
+  code: string;
+  email?: string;
+  phone?: string;
+  userId?: string;
+}): Promise<{ success: boolean; error?: string; message?: string }> {
+  const response = await fetch('/api/auth/verify-code', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  });
+
+  let resData: any = null;
+  try {
+    resData = await response.json();
+  } catch {
+    throw new Error('حدث خطأ في استجابة الخادم أثناء التحقق من الكود.');
+  }
+
+  if (!response.ok || !resData?.success) {
+    throw new Error(resData?.error || 'كود التفعيل غير صحيح أو انتهت صلاحيته.');
+  }
+
+  return resData;
 }
