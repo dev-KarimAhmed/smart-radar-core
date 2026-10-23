@@ -99,7 +99,9 @@
     "goOffline": "Stop receiving requests",
     "submitOffer": "Submit offer",
     "offerSent": "Your offer was sent to the rider.",
-    "noBalance": "Not enough balance. Please recharge your wallet."
+    "noBalance": "Not enough balance. Please recharge your wallet.",
+    "install": "Install",
+    "installApp": "Install App"
   },
   "ads": {
     "adRiverTitle": "Nearby ads",
@@ -4503,5 +4505,35 @@
     "msgBodyPlaceholder": "Write directive or inquiry for captain here...",
     "sendMsgBtn": "Send Message to Captain",
     "sendingMsg": "Sending..."
+  },
+  "pwaInstall": {
+    "iosBadge": "iPhone / iOS Installation",
+    "titleCaptain": "Install Sovereign Captain App",
+    "titleRider": "Install Standalone App",
+    "descIos": "iOS requires adding the app to your Home Screen manually to run in full-screen standalone mode.",
+    "descCaptain": "Instant launch, real-time trip alerts, and maximum navigation reliability.",
+    "descRider": "Fast instant launch, live offers radar, and standalone full-screen experience.",
+    "tabSafari": "Safari",
+    "tabChrome": "Chrome",
+    "chromeStep1Title": "Tap Menu (•••)",
+    "chromeStep1Desc": "At the bottom bar of Chrome (or the Share icon in the top address bar).",
+    "chromeStep2Title": "Select \"Add to Home Screen\"",
+    "chromeStep2Desc": "Scroll down the menu options and tap \"Add to Home Screen\".",
+    "chromeStep3Title": "Tap \"Add\" in Top Corner",
+    "chromeStep3Desc": "The app icon will immediately appear on your iPhone home screen.",
+    "safariStep1Title": "Tap the Share Button",
+    "safariStep1Desc": "At the bottom toolbar of Safari (the square with an arrow pointing up).",
+    "safariStep2Title": "Add to Home Screen",
+    "safariStep2Desc": "Scroll down and tap \"Add to Home Screen\".",
+    "safariStep3Title": "Tap \"Add\" in the Corner",
+    "safariStep3Desc": "Tap \"Add\" in the top corner to complete installation.",
+    "otherStep1Title": "Browser Menu (⋮)",
+    "otherStep1Desc": "Click the browser menu in the top corner.",
+    "otherStep2Title": "Install App",
+    "otherStep2Desc": "Select \"Install App\" or \"Add to Home Screen\".",
+    "otherStep3Title": "Launch Standalone",
+    "otherStep3Desc": "Open from home screen for instant standalone full-screen experience.",
+    "tip": "Once added, launch from your Home Screen for a native standalone experience; the install button will disappear automatically.",
+    "confirmBtn": "Got it, thanks"
   }
 }
