@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/features/auth/contract';
 import LoginPage from '@/features/auth/components/login-page';
@@ -21,10 +21,11 @@ const styles = {
 } as const;
 
 export default function HomePage() {
-    const tAuto = useTranslations('auto');
-    const t = useTranslations('auto');
+  const tAuto = useTranslations('auto');
   const { loading, user } = useAuth();
   const router = useRouter();
+  const hasRedirectedRef = useRef(false);
+
   const isRecoveryIntent =
     typeof window !== 'undefined' &&
     ((window.location.hash &&
@@ -42,6 +43,16 @@ export default function HomePage() {
     user.role === 'advertiser' ||
     user.role === 'delegate'
   );
+
+  // Eager prefetch target route to accelerate transition
+  useEffect(() => {
+    if (!user) return;
+    if (user.role === 'driver') router.prefetch('/captain');
+    else if (user.role === 'rider') router.prefetch('/rider');
+    else if (user.role === 'admin') router.prefetch('/admin');
+    else if (user.role === 'advertiser') router.prefetch('/advertiser/dashboard');
+    else if (user.role === 'delegate') router.prefetch('/delegate');
+  }, [router, user]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -71,21 +82,33 @@ export default function HomePage() {
         return;
       }
     }
-    if (loading || !user) return;
+    if (loading || !user || hasRedirectedRef.current) return;
+    hasRedirectedRef.current = true;
     const search = typeof window !== 'undefined' ? window.location.search : '';
     if (user.role === 'driver') router.replace(`/captain${search}`);
-    if (user.role === 'rider') router.replace(`/rider${search}`);
-    if (user.role === 'admin') router.replace(`/admin${search}`);
-    if (user.role === 'advertiser') router.replace(`/advertiser/dashboard${search}`);
-    if (user.role === 'delegate') router.replace(`/delegate${search}`);
+    else if (user.role === 'rider') router.replace(`/rider${search}`);
+    else if (user.role === 'admin') router.replace(`/admin${search}`);
+    else if (user.role === 'advertiser') router.replace(`/advertiser/dashboard${search}`);
+    else if (user.role === 'delegate') router.replace(`/delegate${search}`);
   }, [loading, router, user]);
+
+  const loadingSubtitle = useMemo(() => {
+    if (isRedirecting) {
+      if (user?.role === 'driver') return 'جاري فتح منصة الكابتن...';
+      if (user?.role === 'rider') return 'جاري فتح منصة الراكب...';
+      if (user?.role === 'admin') return 'جاري فتح لوحة التحكم...';
+      if (user?.role === 'advertiser') return 'جاري فتح منصة المعلن...';
+      if (user?.role === 'delegate') return 'جاري فتح منصة المندوب...';
+    }
+    return tAuto('key_7588d11e');
+  }, [isRedirecting, user?.role, tAuto]);
 
   if (loading || isRedirecting) {
     return (
       <div className={styles.loadingRoot}>
         <div className={styles.loadingIconFrame}><div className={styles.loadingIcon} /></div>
         <div className={styles.loadingTitle}>{tAuto('key_74d1106b')}</div>
-        <div className={styles.loadingBody}>{tAuto('key_7588d11e')}</div>
+        <div className={styles.loadingBody}>{loadingSubtitle}</div>
       </div>
     );
   }

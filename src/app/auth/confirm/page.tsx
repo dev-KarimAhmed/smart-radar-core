@@ -94,7 +94,7 @@ function ConfirmContent() {
         <div className="flex items-center justify-center gap-2">
           <Image
             src="/icons/logo-header.png"
-            alt="الرادار الذكي"
+            alt="بينكم - bynkcom"
             width={180}
             height={50}
             priority

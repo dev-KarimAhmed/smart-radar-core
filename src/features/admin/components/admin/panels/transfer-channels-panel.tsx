@@ -490,7 +490,7 @@ export function TransferChannelsPanel() {
               <Input
                 value={formData.accountHolder}
                 onChange={(e) => setFormData({ ...formData, accountHolder: e.target.value })}
-                placeholder="مثال: شركة الرادار الذكي"
+                placeholder="مثال: شركة بينكم"
                 className="bg-black/60 border-slate-700 text-white text-xs h-10 rounded-xl"
               />
             </div>

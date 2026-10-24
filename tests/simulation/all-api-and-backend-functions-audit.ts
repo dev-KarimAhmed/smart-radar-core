@@ -140,7 +140,7 @@ async function runComprehensiveApiAndBackendAudit() {
   await audit('1. واجهات الخرائط والترجمة', 'POST /api/translate - ترجمة مصفوفة نصوص دفعة واحدة (Batch)', async () => {
     const req = makeReq('https://bynkcom.com/api/translate', {
       method: 'POST',
-      body: { texts: ['الرادار الذكي', 'الراكب'], targetLang: 'en' },
+      body: { texts: ['بينكم', 'الراكب'], targetLang: 'en' },
     });
     const res = await postTranslate(req);
     assert.equal(res.status, 200);

@@ -9,7 +9,7 @@ test.beforeEach(async ({ page }) => {
 test('registration deep link preserves role and switches language without reloading', async ({ page }) => {
   await page.goto('/register?role=captain&lang=en');
 
-  await expect(page.getByText(/Smart Radar · Captain/)).toBeVisible();
+  await expect(page.getByText(/bynkcom · Captain/)).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Create Rider Account' })).toBeVisible();
 
   await page.getByRole('button', { name: 'Switch language to Arabic' }).click();

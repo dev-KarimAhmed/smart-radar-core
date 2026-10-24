@@ -1,8 +1,8 @@
 {
-  "appTitle": "Smart Radar",
-  "appDescription": "Smart Radar Platform for Transportation and Advertising",
+  "appTitle": "bynkcom",
+  "appDescription": "bynkcom Platform for Transportation and Advertising",
   "meta": {
-    "appName": "Smart Radar",
+    "appName": "bynkcom",
     "language": "Language",
     "arabic": "Arabic",
     "english": "English",
@@ -879,7 +879,7 @@
     }
   },
   "captainOnboarding": {
-    "brand": "Smart Radar · Captain account",
+    "brand": "bynkcom · Captain account",
     "title": "Create a captain account",
     "subtitle": "Add your details once, then start receiving ride requests quickly.",
     "languageButton": "العربية",
@@ -1269,7 +1269,7 @@
     "sendDirectMsgNow": "Send Message Now",
     "directMsgSuccess": "Message sent successfully to rider via instant notification.",
     "openWhatsAppTitle": "Open instant WhatsApp chat",
-    "whatsappGreeting": "Hello {name}, contacting you from Smart Radar administration.",
+    "whatsappGreeting": "Hello {name}, contacting you from bynkcom administration.",
     "bulkScopeWarning": "⚠️ No riders selected yet! Check boxes in the table, or choose (All Riders) above.",
     "bulkMsgTitleLabel": "Bulk Broadcast Title:",
     "bulkMsgBodyLabel": "Broadcast Message Content:",
@@ -1277,14 +1277,14 @@
     "bulkMsgBodyPlaceholder": "Write bulk notification body to riders here...",
     "confirmBulkBroadcastNow": "Broadcast Alert Now",
     "bulkBroadcastSuccess": "Notification broadcasted successfully to riders.",
-    "tplRiderWelcome": "Welcome to Smart Radar! We wish you safe and pleasant rides always.",
+    "tplRiderWelcome": "Welcome to bynkcom! We wish you safe and pleasant rides always.",
     "tplRiderCancellationWarning": "Admin Notice: Please avoid consecutive cancellations to maintain your account trust score.",
     "tplRiderRehabilitated": "Your account has been rehabilitated and activated successfully. You can now request rides normally.",
     "tplRiderPromos": "Exclusive discounts and offers are now available in your area for your upcoming rides.",
     "tplRiderGpsAccuracy": "Please ensure high-accuracy GPS is enabled to ensure faster driver pickup response.",
     "tplRiderUpdateReady": "New App Update: Requesting rides is now faster and easier than ever!",
-    "tplRiderThankYou": "Thank you for choosing Smart Radar - Jordan's fastest and safest transport network.",
-    "tplRiderHaveGoodWeek": "Wishing you a wonderful week and safe journeys with Smart Radar."
+    "tplRiderThankYou": "Thank you for choosing bynkcom - Jordan's fastest and safest transport network.",
+    "tplRiderHaveGoodWeek": "Wishing you a wonderful week and safe journeys with bynkcom."
   },
   "adminBroadcast": {
     "title": "System Broadcast & Announcements",
@@ -1846,7 +1846,7 @@
     "availabilityStatus": "Driver Availability Status",
     "supplyHigh": "🔴 Supply Momentum: High & Available",
     "demandHigh": "⚠️ High Demand: Requires Large Sedan",
-    "integrityTitle": "Smart Radar Field Integrity",
+    "integrityTitle": "bynkcom Field Integrity",
     "integrityDesc": "Under the Zero Distraction and Zero Cloud Charter (SC55), Radar refrains from displaying maps to riders (technical blindness) or exceeding 1.5 km radius. Dimensions are computed frozen at zero commission.",
     "suspended": "Service is temporarily suspended by official directive",
     "sending": "Sending request...",

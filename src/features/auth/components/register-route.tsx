@@ -157,12 +157,12 @@ const copy = {
     noAccount: 'لسه جديد؟',
     switchToLogin: 'سجل دخولك',
     switchToRegister: 'اعمل حساب جديد',
-    ticker: ['رحلات أقرب', 'دخول آمن', 'اختيار واضح', 'رادار ذكي V5.5', 'تجربة موبايل سهلة'],
+    ticker: ['رحلات أقرب', 'دخول آمن', 'اختيار واضح', 'بينكم V5.5', 'تجربة موبايل سهلة'],
   },
   en: {
     languageButton: 'العربية',
     languageAria: 'Switch language to Arabic',
-    brand: 'Smart Radar',
+    brand: 'bynkcom',
     riderContext: 'Rider Account',
     registerTitle: 'Create Rider Account',
     loginTitle: 'Rider Login',
@@ -186,7 +186,7 @@ const copy = {
     noAccount: 'New here?',
     switchToLogin: 'Login',
     switchToRegister: 'Create an account',
-    ticker: ['Closer rides', 'Secure access', 'Clear choice', 'Smart Radar V5.5', 'Easy mobile flow'],
+    ticker: ['Closer rides', 'Secure access', 'Clear choice', 'bynkcom V5.5', 'Easy mobile flow'],
   },
 } as const;
 

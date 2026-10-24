@@ -270,12 +270,12 @@ const copy = {
     switchToLogin: 'سجل دخولك',
     switchToRegister: 'اعمل حساب جديد',
     back: 'العودة لاختيار نوع الحساب',
-    ticker: ['رحلات أقرب', 'دخول آمن', 'اختيار واضح', 'رادار ذكي V5.5', 'تجربة موبايل سهلة'],
+    ticker: ['رحلات أقرب', 'دخول آمن', 'اختيار واضح', 'بينكم V5.5', 'تجربة موبايل سهلة'],
   },
   en: {
     languageButton: 'العربية',
     languageAria: 'Switch language to Arabic',
-    brand: 'Smart Radar',
+    brand: 'bynkcom',
     registerTitle: 'Create Account',
     loginTitle: 'Login',
     registerSubtitle: 'Add your details once, then reach your rides faster.',
@@ -321,7 +321,7 @@ const copy = {
     switchToLogin: 'Login',
     switchToRegister: 'Create an account',
     back: 'Back to account type',
-    ticker: ['Closer rides', 'Secure access', 'Clear choice', 'Smart Radar V5.5', 'Easy mobile flow'],
+    ticker: ['Closer rides', 'Secure access', 'Clear choice', 'bynkcom V5.5', 'Easy mobile flow'],
   },
 } as const;
 
@@ -383,12 +383,12 @@ const authCopy = {
     switchToLogin: 'سجل دخولك',
     switchToRegister: 'اعمل حساب جديد',
     back: 'العودة لاختيار نوع الحساب',
-    ticker: ['رحلات أقرب', 'دخول آمن', 'اختيار واضح', 'رادار ذكي V5.5', 'تجربة موبايل سهلة'],
+    ticker: ['رحلات أقرب', 'دخول آمن', 'اختيار واضح', 'بينكم V5.5', 'تجربة موبايل سهلة'],
   },
   en: {
     languageButton: 'العربية',
     languageAria: 'Switch language to Arabic',
-    brand: 'Smart Radar',
+    brand: 'bynkcom',
     registerTitle: 'Create Account',
     loginTitle: 'Login',
     registerSubtitle: 'Add your details once, then reach your rides faster.',
@@ -434,7 +434,7 @@ const authCopy = {
     switchToLogin: 'Login',
     switchToRegister: 'Create an account',
     back: 'Back to account type',
-    ticker: ['Closer rides', 'Secure access', 'Clear choice', 'Smart Radar V5.5', 'Easy mobile flow'],
+    ticker: ['Closer rides', 'Secure access', 'Clear choice', 'bynkcom V5.5', 'Easy mobile flow'],
   },
 } as const;
 

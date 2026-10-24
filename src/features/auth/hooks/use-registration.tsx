@@ -499,8 +499,8 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
       color: 'black',
       plate: `TEST-${plateSuffix}`,
       year: '2022',
-      companyName: 'Smart Radar',
-      officeName: 'Smart Radar Test Office',
+      companyName: 'bynkcom',
+      officeName: 'مكتب بينكم التجريبي',
       officePhone: demoPhone,
       sideId: `D-${plateSuffix}`,
     }));

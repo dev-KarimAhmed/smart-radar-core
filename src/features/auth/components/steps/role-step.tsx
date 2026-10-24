@@ -91,7 +91,7 @@ const copy = {
   en: {
     switchLabel: 'العربية',
     ariaSwitch: 'Switch language to Arabic',
-    title: 'Welcome to Smart Radar',
+    title: 'Welcome to bynkcom',
     subtitle: 'Choose your account type and continue securely',
     underDevelopment: 'Under Development',
     roles: {
@@ -207,7 +207,7 @@ const demoUsers: Array<{
         isBufferActive: false,
         rating: 5,
         walletBalanceJD: 250,
-        companyName: 'Smart Radar Ads',
+        companyName: 'bynkcom Ads',
         commercialRegister: 'CR-88294-A',
         adLicense: 'LIC-990-2026',
         businessType: 'commercial',
