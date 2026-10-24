@@ -11,7 +11,7 @@ import {
   clearSupabaseSessionCache,
 } from '@/lib/supabase-auth';
 import { hasStoredSupabaseAuthSession, SUPABASE_AUTH_STORAGE_KEY } from '@/features/auth/services/supabase-auth-storage';
-import { DASHBOARD_LANGUAGE_KEY, useDashboardLanguage } from './use-dashboard-language';
+import { DASHBOARD_LANGUAGE_KEY, DASHBOARD_LANGUAGE_EVENT, useDashboardLanguage } from './use-dashboard-language';
 import { useToast } from './use-toast';
 import { syncServerTime } from '@/lib/server-time';
 
@@ -284,6 +284,51 @@ function AuthContent({ children }: { children: ReactNode }) {
       });
     };
   }, [user?.uid, user?.phone, toast, forceKickout]);
+
+  // Keep preferred_language in profiles synced with active device/user language choice
+  useEffect(() => {
+    if (!user?.uid) return;
+
+    const syncLanguageToProfile = async (targetLang: 'ar' | 'en') => {
+      try {
+        const { supabase } = await import('@/lib/supabase-client');
+        await supabase
+          .from('profiles')
+          .update({ preferred_language: targetLang })
+          .eq('id', user.uid);
+      } catch (err) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn('[useAuth] Failed to sync preferred_language:', err);
+        }
+      }
+    };
+
+    // 1. Initial sync on mount if local preference exists
+    const stored = typeof window !== 'undefined'
+      ? (window.localStorage.getItem(DASHBOARD_LANGUAGE_KEY) as 'ar' | 'en' | null)
+      : null;
+    if (stored === 'en' || stored === 'ar') {
+      void syncLanguageToProfile(stored);
+    }
+
+    // 2. Realtime listener for whenever language toggle is pressed
+    const handleLangChange = (event: Event) => {
+      const detail = (event as CustomEvent<'ar' | 'en'>).detail;
+      if (detail === 'en' || detail === 'ar') {
+        void syncLanguageToProfile(detail);
+      }
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener(DASHBOARD_LANGUAGE_EVENT, handleLangChange);
+    }
+
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener(DASHBOARD_LANGUAGE_EVENT, handleLangChange);
+      }
+    };
+  }, [user?.uid]);
 
   const loginAsMockUser = useCallback((mockUser: SovereignUser) => {
     if (!(process.env.NODE_ENV !== 'production')) return;

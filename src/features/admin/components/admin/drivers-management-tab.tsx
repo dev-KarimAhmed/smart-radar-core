@@ -618,6 +618,45 @@ export function DriversManagementTab() {
     }
   };
 
+
+  const handleToggleCaptainLanguage = async (captainId: string, currentLang?: string) => {
+    const nextLang = (currentLang || 'ar').toLowerCase() === 'en' ? 'ar' : 'en';
+    // Optimistic update in table
+    setCaptains((prev) =>
+      prev.map((c) => (c.id === captainId ? { ...c, preferred_language: nextLang } : c))
+    );
+    try {
+      const res = await adminFetch('/api/admin/users', {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'update_language',
+          userId: captainId,
+          language: nextLang,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to update captain language');
+      }
+      toast({
+        title: isArabic ? 'تم تحديث لغة الكابتن' : 'Language updated',
+        description: isArabic
+          ? `تم ضبط لغة الكابتن إلى ${nextLang === 'en' ? 'الإنجليزية 🇬🇧' : 'العربية 🇸🇦'}`
+          : `Captain language set to ${nextLang === 'en' ? 'English 🇬🇧' : 'Arabic 🇸🇦'}`,
+      });
+    } catch (err: any) {
+      toast({
+        variant: 'destructive',
+        title: isArabic ? 'تعذر تحديث لغة الكابتن' : 'Failed to update captain language',
+        description: err?.message || (isArabic ? 'حدث خطأ' : 'An error occurred'),
+      });
+      // Revert
+      setCaptains((prev) =>
+        prev.map((c) => (c.id === captainId ? { ...c, preferred_language: currentLang || 'ar' } : c))
+      );
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'ACTIVE':
@@ -1097,17 +1136,27 @@ export function DriversManagementTab() {
                                 <Badge variant="outline" className="font-mono text-[10px] font-bold bg-cyan-950/60 border-cyan-500/40 text-cyan-300 px-1.5 py-0.5 rounded-md">
                                   {captain.serial_id}
                                 </Badge>
-                                {(captain.preferred_language || 'ar').toLowerCase() === 'en' ? (
-                                  <Badge variant="outline" className="font-sans text-[9px] font-bold bg-blue-950/70 border-blue-500/40 text-blue-300 px-1.5 py-0 rounded flex items-center gap-1" title={isArabic ? 'لغة واجهة الكابتن: الإنجليزية' : 'Captain UI Language: English'}>
-                                    <span>🇬🇧</span>
-                                    <span>EN</span>
-                                  </Badge>
-                                ) : (
-                                  <Badge variant="outline" className="font-sans text-[9px] font-bold bg-emerald-950/70 border-emerald-500/40 text-emerald-300 px-1.5 py-0 rounded flex items-center gap-1" title={isArabic ? 'لغة واجهة الكابتن: العربية' : 'Captain UI Language: Arabic'}>
-                                    <span>🇸🇦</span>
-                                    <span>AR</span>
-                                  </Badge>
-                                )}
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    void handleToggleCaptainLanguage(captain.id, captain.preferred_language);
+                                  }}
+                                  className="cursor-pointer transition-transform hover:scale-105 active:scale-95 inline-flex"
+                                  title={isArabic ? 'اضغط لتغيير لغة الكابتن (عربي / English)' : 'Click to toggle captain language (AR / EN)'}
+                                >
+                                  {(captain.preferred_language || 'ar').toLowerCase() === 'en' ? (
+                                    <Badge variant="outline" className="font-sans text-[9px] font-bold bg-blue-950/70 border-blue-500/40 text-blue-300 px-1.5 py-0 rounded flex items-center gap-1 hover:border-blue-400 hover:bg-blue-900/60 transition-colors">
+                                      <span>🇬🇧</span>
+                                      <span>EN</span>
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="outline" className="font-sans text-[9px] font-bold bg-emerald-950/70 border-emerald-500/40 text-emerald-300 px-1.5 py-0 rounded flex items-center gap-1 hover:border-emerald-400 hover:bg-emerald-900/60 transition-colors">
+                                      <span>🇸🇦</span>
+                                      <span>AR</span>
+                                    </Badge>
+                                  )}
+                                </button>
                               </div>
                               <div className="flex items-center gap-1.5 text-slate-300 text-xs font-mono font-semibold" dir="ltr">
                                 <Phone className="h-3 w-3 text-[#14B8A6]" />
