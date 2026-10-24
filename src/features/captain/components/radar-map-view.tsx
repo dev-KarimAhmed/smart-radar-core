@@ -530,7 +530,7 @@ export function RadarMapView({
                                 e.stopPropagation();
                                 window.open(routeGoogleMapsUrl, '_blank', 'noopener,noreferrer');
                               }}
-                              className="inline-flex items-center gap-1 rounded-xl border border-[#14B8A6]/40 bg-[#14B8A6]/15 hover:bg-[#14B8A6]/25 active:scale-95 px-2.5 py-1 text-xs font-black text-[#14F5D5] shadow-sm transition-all cursor-pointer"
+                              className="inline-flex items-center gap-1 rounded-xl border border-orange-500/50 bg-orange-500/15 hover:bg-orange-500/25 active:scale-95 px-2.5 py-1 text-xs font-black text-orange-400 hover:text-orange-300 shadow-[0_0_10px_rgba(249,115,22,0.2)] transition-all cursor-pointer"
                               title={copy.tripRoute}
                               dir={language === 'ar' ? 'rtl' : 'ltr'}
                             >
@@ -568,7 +568,7 @@ export function RadarMapView({
                                 e.stopPropagation();
                                 window.open(routeGoogleMapsUrl, '_blank', 'noopener,noreferrer');
                               }}
-                              className="inline-flex items-center gap-1.5 rounded-xl border border-[#14B8A6]/60 bg-gradient-to-r from-[#14F5D5]/20 via-[#14B8A6]/20 to-[#0d9488]/20 hover:from-[#14F5D5]/30 hover:to-[#0d9488]/30 active:scale-95 px-3.5 py-1.5 text-xs sm:text-sm font-black text-[#14F5D5] shadow-[0_0_14px_rgba(20,245,213,0.25)] transition-all cursor-pointer"
+                              className="inline-flex items-center gap-1.5 rounded-xl border border-orange-500/60 bg-gradient-to-r from-orange-500/25 via-amber-500/20 to-orange-600/25 hover:from-orange-500/35 hover:via-amber-500/30 hover:to-orange-600/35 active:scale-95 px-3.5 py-1.5 text-xs sm:text-sm font-black text-orange-300 shadow-[0_0_14px_rgba(249,115,22,0.25)] transition-all cursor-pointer"
                               title={copy.tripRoute}
                               dir={language === 'ar' ? 'rtl' : 'ltr'}
                             >
