@@ -59,30 +59,79 @@ export async function GET(req: Request) {
 
     const activeDelegates = delegates.filter((d) => d.isActive && (!d.countryId || d.countryId === countryId));
 
-    // Resolve best match delegate
+    // Resolve best match delegate ONLY if matching the captain's district or governorate
     let matchedDelegate: FinancialDelegate | null = null;
 
+    // 2a. Match by District (by ID or by Name)
     if (district) {
-      const cleanDist = district.toLowerCase();
-      matchedDelegate = activeDelegates.find(
-        (d) => d.districtName && (d.districtName.toLowerCase().includes(cleanDist) || cleanDist.includes(d.districtName.toLowerCase()))
-      ) || null;
+      const isNumericDist = /^\d+$/.test(district);
+      const distId = isNumericDist ? Number(district) : null;
+      const districtNames: string[] = [];
+
+      if (isNumericDist && distId) {
+        try {
+          const { data: distRow } = await supabaseAdmin
+            .from('districts')
+            .select('name_ar, name_en')
+            .eq('id', distId)
+            .maybeSingle();
+          if (distRow) {
+            if (distRow.name_ar) districtNames.push(distRow.name_ar.trim().toLowerCase());
+            if (distRow.name_en) districtNames.push(distRow.name_en.trim().toLowerCase());
+          }
+        } catch {}
+      } else {
+        districtNames.push(district.toLowerCase());
+      }
+
+      matchedDelegate = activeDelegates.find((d) => {
+        // Direct ID match
+        if (distId && d.districtId === distId) return true;
+        // Name match
+        if (d.districtName) {
+          const dName = d.districtName.trim().toLowerCase();
+          return districtNames.some((n) => dName.includes(n) || n.includes(dName));
+        }
+        return false;
+      }) || null;
     }
 
+    // 2b. If no district match, match by Governorate (by ID or by Name)
     if (!matchedDelegate && governorate) {
-      const cleanGov = governorate.toLowerCase();
-      matchedDelegate = activeDelegates.find(
-        (d) => d.governorateName && (d.governorateName.toLowerCase().includes(cleanGov) || cleanGov.includes(d.governorateName.toLowerCase()))
-      ) || null;
+      const isNumericGov = /^\d+$/.test(governorate);
+      const govId = isNumericGov ? Number(governorate) : null;
+      const govNames: string[] = [];
+
+      if (isNumericGov && govId) {
+        try {
+          const { data: govRow } = await supabaseAdmin
+            .from('governorates')
+            .select('name_ar, name_en')
+            .eq('id', govId)
+            .maybeSingle();
+          if (govRow) {
+            if (govRow.name_ar) govNames.push(govRow.name_ar.trim().toLowerCase());
+            if (govRow.name_en) govNames.push(govRow.name_en.trim().toLowerCase());
+          }
+        } catch {}
+      } else {
+        govNames.push(governorate.toLowerCase());
+      }
+
+      matchedDelegate = activeDelegates.find((d) => {
+        // Direct ID match
+        if (govId && d.governorateId === govId) return true;
+        // Name match
+        if (d.governorateName) {
+          const gName = d.governorateName.trim().toLowerCase();
+          return govNames.some((n) => gName.includes(n) || n.includes(gName));
+        }
+        return false;
+      }) || null;
     }
 
-    if (!matchedDelegate) {
-      // General or fallback delegate
-      matchedDelegate = activeDelegates.find((d) => !d.districtName && !d.governorateName)
-        || activeDelegates.find((d) => d.name.includes('العام'))
-        || activeDelegates[0]
-        || null;
-    }
+    // If no match was found for captain's district or governorate, matchedDelegate remains null!
+    // No fallback to general or random delegates.
 
     return NextResponse.json({
       success: true,

@@ -116,9 +116,7 @@ export function DriverWalletTab({ user, language, isFlightActive = false }: Driv
           if (Array.isArray(data.channels) && data.channels.length > 0) {
             setDynamicChannels(data.channels);
           }
-          if (data.delegate) {
-            setDynamicDelegate(data.delegate);
-          }
+          setDynamicDelegate(data.delegate || null);
         }
       } catch (err) {
         console.warn('[DriverWalletTab] Failed to fetch dynamic wallet directory, using fallback:', err);
@@ -159,25 +157,23 @@ export function DriverWalletTab({ user, language, isFlightActive = false }: Driv
 
   const selectedChannel = effectiveChannels.find((channel) => channel.id === selectedChannelId) || null;
 
-  // Unified Effective Delegate (Dynamic from DB with static fallback)
+  // Unified Effective Delegate: Only present if a real delegate is assigned to the captain's governorate or district
   const effectiveDelegate = React.useMemo(() => {
-    if (dynamicDelegate) {
-      return {
-        name: dynamicDelegate.name,
-        phone: dynamicDelegate.phone,
-        whatsapp: dynamicDelegate.whatsapp || dynamicDelegate.phone,
-        areaBadge: dynamicDelegate.districtName || dynamicDelegate.governorateName || user?.district || t('noDistrict'),
-        hint: dynamicDelegate.notes || t('delegateHint'),
-      };
+    if (!dynamicDelegate) {
+      return null;
+    }
+    // Safety check: must have contact number
+    if (!dynamicDelegate.phone && !dynamicDelegate.whatsapp) {
+      return null;
     }
     return {
-      name: districtPaymentInfo.delegateName,
-      phone: districtPaymentInfo.delegatePhone,
-      whatsapp: districtPaymentInfo.delegatePhone,
-      areaBadge: user?.district || t('noDistrict'),
-      hint: t('delegateHint'),
+      name: dynamicDelegate.name,
+      phone: dynamicDelegate.phone,
+      whatsapp: dynamicDelegate.whatsapp || dynamicDelegate.phone,
+      areaBadge: dynamicDelegate.districtName || dynamicDelegate.governorateName || undefined,
+      hint: dynamicDelegate.notes || t('delegateHint'),
     };
-  }, [dynamicDelegate, districtPaymentInfo, user?.district, t]);
+  }, [dynamicDelegate, t]);
 
   // Receipts History (Last 5)
   const [receiptsHistory, setReceiptsHistory] = React.useState<CaptainReceiptItem[]>([]);
@@ -771,46 +767,55 @@ export function DriverWalletTab({ user, language, isFlightActive = false }: Driv
         )}
       </div>
 
-      {/* 5. Compact & Sleek Financial Delegate Card */}
-      <div className="rounded-3xl border border-slate-800/80 bg-gradient-to-r from-[#070c18] via-slate-900/70 to-[#070c18] p-4 sm:p-5 shadow-lg">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="rounded-2xl border border-emerald-500/25 bg-emerald-500/10 p-2.5 text-emerald-400 shrink-0">
-              <UserCheck className="h-5 w-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-black text-white">{t('delegateTitle')}</h3>
-                <span className="text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
-                  {effectiveDelegate.areaBadge}
-                </span>
+      {/* 5. Compact & Sleek Financial Delegate Card (Only visible if a real delegate exists for captain's area) */}
+      {effectiveDelegate && (
+        <div className="rounded-3xl border border-slate-800/80 bg-gradient-to-r from-[#070c18] via-slate-900/70 to-[#070c18] p-4 sm:p-5 shadow-lg">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="rounded-2xl border border-emerald-500/25 bg-emerald-500/10 p-2.5 text-emerald-400 shrink-0">
+                <UserCheck className="h-5 w-5" />
               </div>
-              <p className="mt-0.5 text-xs text-slate-400">
-                <span className="text-slate-200 font-bold">{effectiveDelegate.name}</span> · {effectiveDelegate.hint}
-              </p>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-black text-white">{t('delegateTitle')}</h3>
+                  {effectiveDelegate.areaBadge && (
+                    <span className="text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                      {effectiveDelegate.areaBadge}
+                    </span>
+                  )}
+                </div>
+                <p className="mt-0.5 text-xs text-slate-400">
+                  <span className="text-slate-200 font-bold">{effectiveDelegate.name}</span>
+                  {effectiveDelegate.hint ? ` · ${effectiveDelegate.hint}` : ''}
+                </p>
+              </div>
             </div>
-          </div>
 
-          <div className="flex items-center gap-2 shrink-0">
-            <a
-              href={`tel:${effectiveDelegate.phone}`}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-xs font-bold text-slate-200 transition hover:bg-white/10 active:scale-95"
-            >
-              <Phone className="h-3.5 w-3.5 text-emerald-400" />
-              <span>{t('delegateCall')}</span>
-            </a>
-            <a
-              href={`https://wa.me/${effectiveDelegate.whatsapp.replace(/[^0-9]/g, '')}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 px-4 py-2.5 text-xs font-black text-white shadow-md shadow-emerald-900/30 transition hover:brightness-105 active:scale-95"
-            >
-              <MessageCircle className="h-3.5 w-3.5" />
-              <span>{t('delegateWhatsapp')}</span>
-            </a>
+            <div className="flex items-center gap-2 shrink-0">
+              {effectiveDelegate.phone && (
+                <a
+                  href={`tel:${effectiveDelegate.phone}`}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-xs font-bold text-slate-200 transition hover:bg-white/10 active:scale-95"
+                >
+                  <Phone className="h-3.5 w-3.5 text-emerald-400" />
+                  <span>{t('delegateCall')}</span>
+                </a>
+              )}
+              {effectiveDelegate.whatsapp && (
+                <a
+                  href={`https://wa.me/${effectiveDelegate.whatsapp.replace(/[^0-9]/g, '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 px-4 py-2.5 text-xs font-black text-white shadow-md shadow-emerald-900/30 transition hover:brightness-105 active:scale-95"
+                >
+                  <MessageCircle className="h-3.5 w-3.5" />
+                  <span>{t('delegateWhatsapp')}</span>
+                </a>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* 6. Receipt Image Lightbox Modal */}
       {previewReceipt && (

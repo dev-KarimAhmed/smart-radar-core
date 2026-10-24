@@ -114,17 +114,5 @@ export const DEFAULT_FINANCIAL_DELEGATES: FinancialDelegate[] = [
     isActive: true,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'delegate-general',
-    name: 'المندوب المالي العام',
-    phone: '962790000000',
-    whatsapp: '962790000000',
-    countryId: 1,
-    notes: 'خدمة العملاء والشحن المالي المركزي لكافة المحافظات والمناطق',
-    isActive: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
+  }
 ];
-
