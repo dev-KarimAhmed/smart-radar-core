@@ -342,6 +342,19 @@ export function CaptainTripAdsViewer({ captainId, isArabic = true }: CaptainTrip
   // مدة الحركة للنهر
   const riverDurationSeconds = CAPTAIN_ADS_CONFIG.SPEED_DURATIONS[speed] || CAPTAIN_ADS_CONFIG.SPEED_DURATIONS.normal;
 
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    const target = e.currentTarget;
+    const src = target.src || '';
+    if (src.includes('/storage/v1/object/public/captain-documents/')) {
+      const path = src.split('/storage/v1/object/public/captain-documents/')[1]?.replace(/^\/+/, '');
+      if (path) {
+        target.src = `/api/captain/ads/image?bucket=captain-documents&path=${encodeURIComponent(path)}`;
+        return;
+      }
+    }
+    target.style.opacity = '0';
+  };
+
   const riverAds = useMemo(() => {
     if (ads.length === 0) return [];
     // نضمن أن نصف المسار (المجموعة الأولى) يغطي أي شاشة فائقة العرض (10 كروت على الأقل)
@@ -490,6 +503,7 @@ export function CaptainTripAdsViewer({ captainId, isArabic = true }: CaptainTrip
                 src={currentAd.imageUrl}
                 alt={caption || 'Ad Image'}
                 className={styles.adImage}
+                onError={handleImageError}
               />
               <div className={styles.zoomOverlay}>
                 <Maximize2 className={styles.zoomIcon} />
@@ -585,7 +599,12 @@ export function CaptainTripAdsViewer({ captainId, isArabic = true }: CaptainTrip
                       title={t('clickToEnlarge')}
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={ad.imageUrl} alt={adCaption || 'Ad'} className={styles.adImage} />
+                      <img
+                        src={ad.imageUrl}
+                        alt={adCaption || 'Ad'}
+                        className={styles.adImage}
+                        onError={handleImageError}
+                      />
                       <div className={styles.zoomOverlay}>
                         <Maximize2 className={styles.zoomIcon} />
                       </div>
@@ -647,6 +666,7 @@ export function CaptainTripAdsViewer({ captainId, isArabic = true }: CaptainTrip
                   src={lightboxAd.imageUrl}
                   alt={lightboxAd.caption || 'Enlarged Ad'}
                   className={styles.lightboxImage}
+                  onError={handleImageError}
                 />
               </div>
 
