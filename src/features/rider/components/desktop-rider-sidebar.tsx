@@ -48,7 +48,7 @@ const copy = {
     fallbackPhone: 'تطبيق الرحلات',
     logout: 'تسجيل الخروج',
     nav: { home: 'الرئيسية', history: 'رحلاتي', profile: 'حسابي', vault: 'الخزنة' },
-    notifications: 'التنبيهات',
+    notifications: 'الإشعارات',
     requestRide: 'اطلب رحلة',
   },
   en: {
@@ -93,7 +93,7 @@ export function DesktopRiderSidebar({
 }) {
   const tAuto = useTranslations('auto');
   const { isArabic, toggleLanguage } = useDashboardLanguage();
-  const { hasUnread } = useNotifications();
+  const { hasUnread, unreadCount } = useNotifications();
   const { canShowInstallButton, canPromptNative, triggerNativeInstall } = usePwaInstall('rider');
   const [isInstallModalOpen, setIsInstallModalOpen] = React.useState(false);
   const text = copy[language];
@@ -168,9 +168,8 @@ export function DesktopRiderSidebar({
           <div className={styles.notificationBadgeContainer}>
             <Bell className={styles.notificationIcon} />
             {hasUnread && (
-              <span className={styles.notificationBadgeDot}>
-                <span className={styles.notificationBadgePing} />
-                <span className={styles.notificationBadgeInner} />
+              <span className="ms-2 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-black text-white shadow-lg animate-pulse">
+                {unreadCount > 99 ? '99+' : unreadCount}
               </span>
             )}
           </div>

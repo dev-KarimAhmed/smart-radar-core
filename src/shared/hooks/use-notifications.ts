@@ -40,8 +40,8 @@ function initStoreIfNeeded(): void {
     const initial: AppNotification[] = [
       {
         id: 'welcome-radar',
-        title: 'مرحباً بك في رادار',
-        description: 'تم تفعيل حسابك بنجاح. رادارك الذكي جاهز لمطابقة أفضل العروض في منطقتك.',
+        title: 'مرحباً بك في منصة بينكم',
+        description: 'تم تفعيل حسابك بنجاح. حسابك جاهز لمطابقة أفضل العروض في منطقتك.',
         timestamp: Date.now(),
         read: false,
         type: 'system',

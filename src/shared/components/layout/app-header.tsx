@@ -188,6 +188,25 @@ export function AppHeader({ sidebar }: { sidebar?: ReactNode }) {
   const { notifications, unreadCount, hasUnread, markAllAsRead } = useNotifications();
   const { isStandalone, canPromptNative, triggerNativeInstall, platformEnv } = usePwaInstall(isCaptain ? 'captain' : 'rider');
   const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
+  const [currentHash, setCurrentHash] = useState(() => (typeof window !== 'undefined' ? window.location.hash || '#' : '#'));
+
+  useEffect(() => {
+    const handleHash = () => setCurrentHash(window.location.hash || '#');
+    window.addEventListener('hashchange', handleHash);
+    return () => window.removeEventListener('hashchange', handleHash);
+  }, []);
+
+  const isNotificationsActive = currentHash === '#notifications';
+
+  const handleToggleNotifications = () => {
+    if (typeof window !== 'undefined') {
+      if (window.location.hash === '#notifications') {
+        window.location.hash = '#';
+      } else {
+        window.location.hash = '#notifications';
+      }
+    }
+  };
 
 
   useEffect(() => {
@@ -199,7 +218,27 @@ export function AppHeader({ sidebar }: { sidebar?: ReactNode }) {
   return (
     <div className={styles.root}>
       <header className={cn(styles.primary, "relative")}>
-        {sidebar && user ? (
+        {user?.role === 'rider' ? (
+          <button
+            type="button"
+            onClick={handleToggleNotifications}
+            aria-label={isArabic ? 'الإشعارات' : 'Notifications'}
+            title={isArabic ? 'الإشعارات' : 'Notifications'}
+            className={cn(
+              "relative inline-flex items-center justify-center rounded-xl border h-9 w-9 sm:h-10 sm:w-10 transition cursor-pointer shrink-0",
+              isNotificationsActive
+                ? "border-[#14B8A6]/50 bg-[#14B8A6]/20 text-[#14F5D5] shadow-[0_0_15px_rgba(20,245,213,0.25)]"
+                : "border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 hover:text-white"
+            )}
+          >
+            <Bell className="h-4 w-4 sm:h-4.5 sm:w-4.5" />
+            {hasUnread && (
+              <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-black text-white shadow-lg animate-pulse">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
+          </button>
+        ) : sidebar && user ? (
           <Sheet>
             <SheetTrigger asChild>
               <Button

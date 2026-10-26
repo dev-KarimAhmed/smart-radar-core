@@ -36,8 +36,8 @@ import { type CaptainCancelCooldownState } from '../services/captain-cancel-cool
 
 import { cn } from '@/lib/utils';
 const styles = {
-  style144_1: "grid min-h-[calc(100vh-11rem)] gap-4 lg:grid-cols-[minmax(0,1fr)_420px]",
-  style145_2: "order-2 relative min-h-[520px] overflow-hidden rounded-3xl border border-emerald-500/20 bg-[#05080f] text-white shadow-2xl shadow-black/30 lg:order-none lg:min-h-[calc(100vh-11rem)]",
+  style144_1: "grid min-h-[calc(100vh-11rem)] gap-3 sm:gap-4 lg:grid-cols-[minmax(0,1fr)_420px] w-full min-w-0 max-w-full",
+  style145_2: "order-2 relative min-w-0 w-full min-h-[320px] sm:min-h-[440px] overflow-hidden rounded-2xl sm:rounded-3xl border border-emerald-500/20 bg-[#05080f] text-white shadow-2xl shadow-black/30 lg:order-none lg:min-h-[calc(100vh-11rem)]",
   style146_3: "absolute inset-0 z-0 bg-[#0B0F19]",
   style147_4: "absolute inset-0 z-[1] overflow-hidden bg-[radial-gradient(circle_at_center,rgba(20,184,166,0.18),transparent_38%),linear-gradient(135deg,rgba(20,184,166,0.08)_0_25%,transparent_25%_50%,rgba(20,184,166,0.06)_50%_75%,transparent_75%)] bg-[length:auto,38px_38px]",
   style148_5: "absolute left-1/2 top-1/2 grid h-11 w-11 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-2xl border-2 border-[#06111f] bg-[#14B8A6] text-[#06111f] shadow-[0_0_0_18px_rgba(20,184,166,0.12),0_0_60px_rgba(20,184,166,0.35)]",
@@ -45,40 +45,40 @@ const styles = {
   style163_7: "absolute inset-0 z-[2]",
   style164_8: "h-full w-full bg-transparent",
   style166_9: "pointer-events-none absolute inset-0 z-[3] bg-[radial-gradient(circle_at_center,transparent_44%,rgba(11,15,25,0.32)_100%)]",
-  style168_10: "absolute left-4 right-4 top-4 z-20 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-500/20 bg-[#0B0F19]/92 px-4 py-3 shadow-xl backdrop-blur",
+  style168_10: "absolute left-2.5 right-2.5 sm:left-4 sm:right-4 top-2.5 sm:top-4 z-20 flex flex-wrap items-center justify-between gap-2 sm:gap-3 rounded-2xl border border-emerald-500/20 bg-[#0B0F19]/92 px-3 py-2 sm:px-4 sm:py-3 shadow-xl backdrop-blur",
   style170_11: "text-xs font-black text-[#14B8A6]",
   style171_12: "text-sm font-bold text-slate-200",
   style173_13: "flex flex-wrap items-center gap-2 text-xs font-bold",
-  style174_14: "inline-flex items-center gap-1 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-1 text-emerald-200",
+  style174_14: "inline-flex items-center gap-1 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 text-[11px] sm:text-xs text-emerald-200 shrink-0",
   style175_15: "h-3.5 w-3.5",
   style182_16: "absolute left-4 right-4 top-24 z-20 rounded-2xl border border-emerald-500/20 bg-[#0B0F19]/92 p-4 text-sm font-bold text-slate-200 shadow-2xl backdrop-blur md:left-auto md:max-w-md",
   style183_17: "text-[#14B8A6]",
   style184_18: "mt-1 text-xs leading-5 text-slate-400",
   style185_19: "mt-2 text-[11px] font-black text-emerald-200",
   style192_20: "absolute bottom-5 left-5 z-20 rounded-2xl border border-emerald-500/25 bg-[#0B0F19]/95 p-4 text-emerald-300 shadow-2xl transition hover:border-emerald-300",
-  style201_22: "order-1 flex max-h-[560px] flex-col rounded-3xl border border-emerald-500/20 bg-[#05080f] p-4 text-white shadow-2xl shadow-black/30 lg:order-none lg:max-h-[calc(100vh-11rem)]",
+  style201_22: "order-1 flex flex-col min-w-0 w-full rounded-2xl sm:rounded-3xl border border-emerald-500/20 bg-[#05080f] p-2.5 sm:p-4 text-white shadow-2xl shadow-black/30 lg:order-none lg:max-h-[calc(100vh-11rem)]",
   style202_23: "flex items-center justify-between gap-3 border-b border-white/10 pb-4",
   style204_24: "text-xs font-black text-[#14B8A6]",
   style205_25: "mt-1 text-2xl font-black",
   style206_26: "mt-1 text-xs leading-5 text-slate-400",
   style208_27: "rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-black text-emerald-300",
-  style211_28: "mt-4 flex-1 overflow-y-auto pr-1",
+  style211_28: "mt-3 sm:mt-4 flex-1 w-full min-w-0 lg:overflow-y-auto pr-0 lg:pr-1",
   style213_29: "h-8 w-8",
   style215_30: "h-8 w-8",
-  style217_31: "space-y-3",
-  style219_32: "relative rounded-2xl border border-emerald-500/20 bg-[#0B0F19]/90 p-4 shadow-xl shadow-black/40 backdrop-blur transition-all duration-200 hover:border-emerald-500/40",
+  style217_31: "space-y-2.5 sm:space-y-3 w-full min-w-0",
+  style219_32: "relative w-full min-w-0 rounded-2xl border border-emerald-500/20 bg-[#0B0F19]/90 p-2.5 sm:p-4 shadow-xl shadow-black/40 backdrop-blur transition-all duration-200 hover:border-emerald-500/40 overflow-hidden",
   style220_33: "flex items-start gap-3",
   style221_34: "mt-0.5 h-5 w-5 shrink-0 text-[#14F5D5] drop-shadow-[0_0_8px_rgba(20,245,213,0.5)]",
   style222_35: "min-w-0 flex-1",
   style223_36: "line-clamp-2 text-base font-black text-white tracking-wide leading-snug",
-  style227_38: "mt-3.5 grid grid-cols-2 gap-2 text-xs",
-  style231_39: "mt-3 flex items-stretch gap-2",
-  style232_40: "inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-[#14F5D5] via-[#14B8A6] to-[#0d9488] px-3 h-11 text-xs sm:text-sm font-black text-[#031518] shadow-[0_4px_18px_rgba(20,245,213,0.35)] hover:brightness-110 active:scale-[0.98] transition-all whitespace-nowrap",
+  style227_38: "mt-3 sm:mt-3.5 grid grid-cols-2 gap-1.5 sm:gap-2 text-xs w-full min-w-0",
+  style231_39: "mt-3 flex items-stretch gap-1.5 sm:gap-2",
+  style232_40: "inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-[#14F5D5] via-[#14B8A6] to-[#0d9488] px-2.5 sm:px-3 h-11 text-xs sm:text-sm font-black text-[#031518] shadow-[0_4px_18px_rgba(20,245,213,0.35)] hover:brightness-110 active:scale-[0.98] transition-all whitespace-nowrap",
   style233_41: "h-4 w-4 stroke-[2.5] shrink-0",
-  style236_42: "inline-flex shrink-0 items-center justify-center rounded-xl border border-slate-700/80 bg-slate-900/70 px-3.5 h-11 text-xs font-bold text-slate-300 shadow-sm hover:border-rose-500/40 hover:bg-rose-500/15 hover:text-rose-200 active:scale-[0.98] transition-all whitespace-nowrap",
-  style252_43: "rounded-xl border border-slate-700/60 bg-slate-900/70 p-2.5 shadow-inner transition hover:border-slate-600/80",
-  style253_44: "text-[11px] font-semibold text-slate-400",
-  style254_45: "mt-1 text-sm font-black text-white tracking-tight",
+  style236_42: "inline-flex shrink-0 items-center justify-center rounded-xl border border-slate-700/80 bg-slate-900/70 px-2.5 sm:px-3.5 h-11 text-xs font-bold text-slate-300 shadow-sm hover:border-rose-500/40 hover:bg-rose-500/15 hover:text-rose-200 active:scale-[0.98] transition-all whitespace-nowrap",
+  style252_43: "rounded-xl border border-slate-700/60 bg-slate-900/70 p-2 sm:p-2.5 shadow-inner transition hover:border-slate-600/80 min-w-0 overflow-hidden",
+  style253_44: "text-[10px] sm:text-[11px] font-semibold text-slate-400 truncate",
+  style254_45: "mt-0.5 sm:mt-1 text-xs sm:text-sm font-black text-white tracking-tight truncate",
   style275_46: "flex min-h-[280px] flex-col items-center justify-center rounded-2xl p-6 text-center",
   style276_47: "text-amber-300",
   style276_48: "text-emerald-400/70",
@@ -99,14 +99,14 @@ const styles = {
   cancelOfferBtn: "inline-flex items-center justify-center gap-1.5 rounded-xl border border-rose-500/50 bg-gradient-to-r from-rose-500/20 via-rose-600/15 to-rose-500/20 hover:from-rose-500/30 hover:to-rose-600/30 active:scale-95 h-10 px-3 text-xs font-black text-rose-200 shadow-[0_0_12px_rgba(244,63,94,0.18)] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0",
   cancelOfferBtnFull: "w-full flex items-center justify-center gap-2 rounded-xl border border-rose-500/50 bg-gradient-to-r from-rose-500/20 via-rose-600/15 to-rose-500/20 hover:from-rose-500/30 hover:to-rose-600/30 active:scale-95 h-11 px-4 text-xs sm:text-sm font-black text-rose-100 shadow-[0_0_16px_rgba(244,63,94,0.22)] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed",
   infoFullWidth: "col-span-2",
-  appPriceCard: "mt-3 rounded-2xl border border-amber-500/30 bg-gradient-to-b from-amber-500/[0.08] via-black/50 to-black/70 p-3 shadow-[0_4px_20px_rgba(0,0,0,0.4)] backdrop-blur-sm space-y-2.5",
-  appPriceCardHeader: "flex items-center gap-2",
+  appPriceCard: "mt-3 rounded-2xl border border-amber-500/30 bg-gradient-to-b from-amber-500/[0.08] via-black/50 to-black/70 p-2.5 sm:p-3 shadow-[0_4px_20px_rgba(0,0,0,0.4)] backdrop-blur-sm space-y-2 w-full min-w-0 overflow-hidden",
+  appPriceCardHeader: "flex flex-wrap items-center gap-1.5 sm:gap-2",
   appPriceCardBadge: "inline-flex items-center gap-1 rounded-lg border border-amber-400/30 bg-amber-500/15 px-2 py-0.5 text-[11px] font-black text-amber-300 shadow-sm shrink-0",
   appPriceCardNotice: "text-xs font-medium text-slate-300 min-w-0 flex-1",
   appPriceInputRow: "flex items-center gap-2 pt-0.5",
   appPriceInputGroup: "relative flex flex-1 items-center h-11 rounded-xl border border-amber-400/40 bg-black/70 shadow-inner focus-within:border-amber-400 focus-within:ring-2 focus-within:ring-amber-400/20 transition-all overflow-hidden",
-  appPriceInputField: "flex-1 min-w-0 h-full bg-transparent px-3 text-start font-mono text-base sm:text-lg font-black text-amber-100 placeholder:text-amber-500/30 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
-  appPriceCurrencyBadge: "px-3 h-full flex items-center justify-center text-xs font-mono font-black text-amber-400/80 bg-amber-500/5 select-none border-s border-white/10 shrink-0",
+  appPriceInputField: "flex-1 min-w-0 h-full bg-transparent px-2.5 sm:px-3 text-start font-mono text-sm sm:text-lg font-black text-amber-100 placeholder:text-amber-500/30 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
+  appPriceCurrencyBadge: "px-2 sm:px-3 h-full flex items-center justify-center text-[11px] sm:text-xs font-mono font-black text-amber-400/80 bg-amber-500/5 select-none border-s border-white/10 shrink-0",
   appPriceInputDisabled: "opacity-50 cursor-not-allowed",
   appPricePasteBtn: "h-11 px-3.5 inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl border border-amber-400/50 bg-amber-500/15 text-xs font-black text-amber-300 shadow-sm transition-all hover:bg-amber-400/25 hover:border-amber-400/70 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap",
   appPricePasteIcon: "h-4 w-4 shrink-0 text-amber-300",
@@ -543,7 +543,7 @@ export function RadarMapView({
                             dir={language === 'ar' ? 'rtl' : 'ltr'}
                           >
                             <Route className="h-4 w-4 shrink-0 stroke-[2.5]" />
-                            <span>{copy.tripRoute}</span>
+                            <span className="truncate min-w-0">{copy.tripRoute}</span>
                           </button>
                         </div>
                       )}
@@ -589,14 +589,15 @@ export function RadarMapView({
                       <div className="mt-3.5 pt-3 border-t border-slate-800/80 animate-in fade-in duration-150">
                         {/* Rider Info (Rating, Trips, Favorite) */}
                         <div className="space-y-2 select-none" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-                          <div className="flex items-center justify-between text-xs sm:text-sm font-bold">
-                            <span className="text-slate-300">{copy.riderRatingLabel}</span>
+                          <div className="flex items-center justify-between gap-2 text-[11px] sm:text-sm font-bold">
+                            <span className="text-slate-300 shrink-0">{copy.riderRatingLabel}</span>
                             <span
                               dir="ltr"
                               className={cn(
-                                'font-black font-mono',
-                                request.riderRating != null && request.riderRating > 0 ? 'text-amber-400 text-sm sm:text-base' : 'text-slate-400 text-xs font-bold',
+                                'font-black font-mono truncate text-end min-w-0',
+                                request.riderRating != null && request.riderRating > 0 ? 'text-amber-400 text-xs sm:text-base' : 'text-slate-400 text-[11px] sm:text-xs font-bold',
                               )}
+                              title={request.riderRating != null && request.riderRating > 0 ? `${request.riderRating}/5` : copy.riderUnrated}
                             >
                               {request.riderRating != null && request.riderRating > 0
                                 ? `${formatLocalizedNumber(request.riderRating % 1 === 0 ? request.riderRating.toFixed(0) : request.riderRating.toFixed(1), language)}/${formatLocalizedNumber('5', language)}`
@@ -604,9 +605,9 @@ export function RadarMapView({
                             </span>
                           </div>
 
-                          <div className="flex items-center justify-between text-xs sm:text-sm font-bold">
-                            <span className="text-slate-300">{copy.riderTripsLabel}</span>
-                            <span dir="ltr" className="font-black text-sm sm:text-base font-mono text-white">
+                          <div className="flex items-center justify-between gap-2 text-[11px] sm:text-sm font-bold">
+                            <span className="text-slate-300 shrink-0">{copy.riderTripsLabel}</span>
+                            <span dir="ltr" className="font-black text-xs sm:text-base font-mono text-white shrink-0">
                               {formatLocalizedNumber(request.riderCompletedTrips != null ? request.riderCompletedTrips : 0, language)}
                             </span>
                           </div>
@@ -711,7 +712,7 @@ export function RadarMapView({
                                   </span>
                                 </div>
 
-                                <div className="flex items-center gap-2 pt-1 w-full" dir="ltr">
+                                <div className="flex items-center gap-1.5 sm:gap-2 pt-1 w-full" dir="ltr">
                                   <button
                                     type="button"
                                     disabled={isBlockedByOtherPendingOffer}
@@ -721,7 +722,7 @@ export function RadarMapView({
                                       setDirectPrices((prev) => ({ ...prev, [request.id]: nextVal.toFixed(2) }));
                                       if (priceErrors[request.id]) setPriceErrors((prev) => ({ ...prev, [request.id]: false }));
                                     }}
-                                    className="flex h-11 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-700/80 bg-slate-900 text-slate-200 hover:bg-slate-800 active:scale-95 transition-all disabled:opacity-40 cursor-pointer shadow-sm"
+                                    className="flex h-10 w-9 sm:h-11 sm:w-10 shrink-0 items-center justify-center rounded-xl border border-slate-700/80 bg-slate-900 text-slate-200 hover:bg-slate-800 active:scale-95 transition-all disabled:opacity-40 cursor-pointer shadow-sm"
                                   >
                                     <Minus className="h-4 w-4" />
                                   </button>
@@ -774,7 +775,7 @@ export function RadarMapView({
                                       setDirectPrices((prev) => ({ ...prev, [request.id]: nextVal.toFixed(2) }));
                                       if (priceErrors[request.id]) setPriceErrors((prev) => ({ ...prev, [request.id]: false }));
                                     }}
-                                    className="flex h-11 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-700/80 bg-slate-900 text-slate-200 hover:bg-slate-800 active:scale-95 transition-all disabled:opacity-40 cursor-pointer shadow-sm"
+                                    className="flex h-10 w-9 sm:h-11 sm:w-10 shrink-0 items-center justify-center rounded-xl border border-slate-700/80 bg-slate-900 text-slate-200 hover:bg-slate-800 active:scale-95 transition-all disabled:opacity-40 cursor-pointer shadow-sm"
                                   >
                                     <Plus className="h-4 w-4" />
                                   </button>
@@ -805,7 +806,7 @@ export function RadarMapView({
                                   )}
                                 </div>
 
-                                <div className="flex items-center gap-2 pt-1 w-full" dir="ltr">
+                                <div className="flex items-center gap-1.5 sm:gap-2 pt-1 w-full" dir="ltr">
                                   <button
                                     type="button"
                                     disabled={isBlockedByOtherPendingOffer}
@@ -815,7 +816,7 @@ export function RadarMapView({
                                       setDirectPrices((prev) => ({ ...prev, [request.id]: nextVal.toFixed(2) }));
                                       if (priceErrors[request.id]) setPriceErrors((prev) => ({ ...prev, [request.id]: false }));
                                     }}
-                                    className="flex h-11 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-700/80 bg-slate-900 text-slate-200 hover:bg-slate-800 active:scale-95 transition-all disabled:opacity-40 cursor-pointer shadow-sm"
+                                    className="flex h-10 w-9 sm:h-11 sm:w-10 shrink-0 items-center justify-center rounded-xl border border-slate-700/80 bg-slate-900 text-slate-200 hover:bg-slate-800 active:scale-95 transition-all disabled:opacity-40 cursor-pointer shadow-sm"
                                   >
                                     <Minus className="h-4 w-4" />
                                   </button>
@@ -868,7 +869,7 @@ export function RadarMapView({
                                       setDirectPrices((prev) => ({ ...prev, [request.id]: nextVal.toFixed(2) }));
                                       if (priceErrors[request.id]) setPriceErrors((prev) => ({ ...prev, [request.id]: false }));
                                     }}
-                                    className="flex h-11 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-700/80 bg-slate-900 text-slate-200 hover:bg-slate-800 active:scale-95 transition-all disabled:opacity-40 cursor-pointer shadow-sm"
+                                    className="flex h-10 w-9 sm:h-11 sm:w-10 shrink-0 items-center justify-center rounded-xl border border-slate-700/80 bg-slate-900 text-slate-200 hover:bg-slate-800 active:scale-95 transition-all disabled:opacity-40 cursor-pointer shadow-sm"
                                   >
                                     <Plus className="h-4 w-4" />
                                   </button>
@@ -951,7 +952,7 @@ export function RadarMapView({
                               ) : (
                                 <Route className={styles.style233_41} />
                               )}
-                              <span>{copy.submitDirect}</span>
+                              <span className="truncate">{copy.submitDirect}</span>
                             </button>
                             <button
                               type="button"

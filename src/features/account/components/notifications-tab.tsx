@@ -23,11 +23,12 @@ import {
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
+import { useAuth } from '@/hooks/use-auth';
 import { useTranslations } from 'next-intl';
 import { parseNotificationContent, requestTranslation } from '@/shared/utils/notification-i18n';
 
 const styles = {
-  root: 'flex flex-col h-full w-full max-w-3xl mx-auto space-y-4 pb-36 sm:pb-40',
+  root: 'flex flex-col w-full max-w-3xl mx-auto space-y-4 px-3 sm:px-4 pb-32 sm:pb-36',
   header: 'flex flex-wrap items-center justify-between gap-3',
   title: 'text-xl sm:text-2xl font-black text-white',
   headerActions: 'flex items-center gap-2 flex-wrap',
@@ -38,7 +39,7 @@ const styles = {
   selectAllBtn: 'border-white/10 text-slate-300 hover:bg-white/10 transition-all cursor-pointer text-xs sm:text-sm',
   deleteSelectedBtn: 'border-rose-500/40 text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 transition-all cursor-pointer text-xs sm:text-sm',
   deleteSelectedBtnDisabled: 'opacity-50 cursor-not-allowed border-white/5 text-slate-500 bg-transparent',
-  container: 'flex-1 rounded-2xl border border-white/10 bg-[#0B0F19]/60 overflow-hidden shadow-xl backdrop-blur-sm',
+  container: 'w-full rounded-2xl border border-white/10 bg-[#0B0F19]/60 shadow-xl backdrop-blur-sm overflow-hidden',
   emptyState: 'flex flex-col items-center justify-center h-64 text-center p-6',
   emptyIcon: 'h-12 w-12 text-slate-600 mb-4',
   emptyText: 'text-slate-400 font-bold',
@@ -92,6 +93,7 @@ function formatNotificationTime(timestamp: number, isArabic: boolean): string {
 
 export function NotificationsTab({ onClose }: { onClose?: () => void } = {}) {
   const tRef = useTranslations('referral.notifications');
+  const { user, isCaptain } = useAuth();
   const { isArabic, direction } = useDashboardLanguage();
   const { notifications, hasUnread, markAllAsRead, markAsRead, deleteNotifications } = useNotifications();
 
@@ -163,23 +165,23 @@ export function NotificationsTab({ onClose }: { onClose?: () => void } = {}) {
               variant="outline"
               size="sm"
               onClick={onClose}
-              className="border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 text-xs sm:text-sm font-bold cursor-pointer"
+              className="border-2 border-orange-500/80 bg-gradient-to-r from-orange-500/25 via-amber-500/20 to-orange-600/25 text-orange-300 hover:text-white shadow-[0_0_15px_rgba(249,115,22,0.35)] text-xs sm:text-sm font-bold cursor-pointer transition-all active:scale-95"
             >
               {isArabic ? (
                 <>
                   <ArrowRight className="h-4 w-4 ml-1" />
-                  <span>العودة للرادار</span>
+                  <span>{isCaptain ? 'العودة للرادار' : 'العودة للرئيسية'}</span>
                 </>
               ) : (
                 <>
                   <ArrowLeft className="h-4 w-4 mr-1" />
-                  <span>Back to Radar</span>
+                  <span>{isCaptain ? 'Back to Radar' : 'Back to Home'}</span>
                 </>
               )}
             </Button>
           )}
           <h1 className={styles.title}>
-            {isArabic ? 'التنبيهات' : 'Notifications'}
+            {isArabic ? 'الإشعارات' : 'Notifications'}
           </h1>
         </div>
 

@@ -32,8 +32,8 @@ import { CaptainMainContent } from './view/captain-main-content';
 import { CaptainModals } from './view/captain-modals';
 
 const styles = {
-  root: 'min-h-screen w-full max-w-full overflow-x-hidden bg-[#0B0F19] p-3 pb-24 text-white sm:pb-12 md:p-5',
-  inner: 'mx-auto flex w-full max-w-[1800px] min-w-0 flex-col gap-4',
+  root: 'min-h-screen w-full max-w-full overflow-x-hidden bg-[#0B0F19] p-2.5 pb-24 text-white sm:p-3 sm:pb-12 md:p-5',
+  inner: 'mx-auto flex w-full max-w-[1800px] min-w-0 flex-col gap-3 sm:gap-4',
   loading: 'flex min-h-[60vh] items-center justify-center text-slate-400',
   loadingIcon: 'mr-2 h-5 w-5 animate-spin',
 } as const;
