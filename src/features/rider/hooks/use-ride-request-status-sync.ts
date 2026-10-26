@@ -217,21 +217,11 @@ export function useRideRequestStatusSync(params: {
         }
       },
       (error) => {
-        toast({
-          variant: 'destructive',
-          title: t('request.updateFailedTitle'),
-          description: getLocalizedMarketplaceError(error, language, {
-            permissionDenied: t('errors.permissionDenied'),
-            authRequired: t('errors.authRequired'),
-            network: t('errors.network'),
-            fareCalculation: t('errors.fareCalculation'),
-            missingColumns: t('errors.missingColumns'),
-            invalidStatus: t('errors.invalidStatus'),
-            foreignKeyMismatch: t('errors.foreignKeyMismatch'),
-            duplicateActive: t('errors.duplicateActive'),
-            generic: t('errors.generic'),
-          }),
-        });
+        // Do not pop up destructive toasts on transient websocket reconnects during page navigation.
+        // The background reconciler (reconcile) below guarantees safety and state sync.
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn('[Rider status sync] Realtime subscription notice:', error);
+        }
       },
     );
   }, [dispatch, language, state.requestId, t, toast]);

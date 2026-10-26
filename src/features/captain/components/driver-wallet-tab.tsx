@@ -33,6 +33,7 @@ import {
   CAPTAIN_PAYMENT_CHANNELS,
   getCaptainDistrictPaymentInfo,
 } from '../lib/wallet-static-config';
+import { CaptainAdsSeatsManager } from './captain-ads-seats-manager';
 import type { PaymentTransferChannel, FinancialDelegate } from '@/features/admin/types/wallet-directory';
 
 export interface CaptainReceiptItem {
@@ -532,6 +533,9 @@ export function DriverWalletTab({ user, language, isFlightActive = false }: Driv
           </button>
         </div>
       </div>
+
+      {/* 3.5. Captain Promotional Ad Seats Manager */}
+      <CaptainAdsSeatsManager user={user} language={language} />
 
       {/* 4. Last 5 Receipts History Section (Collapsible Dropdown Menu) */}
       <div

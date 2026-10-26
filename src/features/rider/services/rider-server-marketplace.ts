@@ -341,6 +341,13 @@ export function subscribeToRideRequestStatus(
 
     const maybeChannel = channel as { unsubscribe?: () => Promise<unknown> | unknown };
     void maybeChannel.unsubscribe?.();
+    if (typeof (client as any)?.removeChannel === 'function') {
+      try {
+        void (client as any).removeChannel(channel);
+      } catch {
+        // Channel already removed
+      }
+    }
   };
 }
 
@@ -385,6 +392,13 @@ export function subscribeToRideOffers(
 
     const maybeChannel = channel as { unsubscribe?: () => Promise<unknown> | unknown };
     void maybeChannel.unsubscribe?.();
+    if (typeof (client as any)?.removeChannel === 'function') {
+      try {
+        void (client as any).removeChannel(channel);
+      } catch {
+        // Channel already removed
+      }
+    }
   };
 }
 
