@@ -410,11 +410,6 @@ export function DriverWalletTab({ user, language, isFlightActive = false }: Driv
                       )}
                     />
                   </div>
-                  {channelOption.accountHolder && (
-                    <span className="text-[10px] text-emerald-400/90 font-mono block mt-0.5">
-                      {channelOption.accountHolder}
-                    </span>
-                  )}
                   <p className="mt-1 text-[11px] text-slate-400 line-clamp-1">
                     {language === 'ar' ? (channelOption.descriptionAr || '') : (channelOption.descriptionEn || channelOption.descriptionAr || '')}
                   </p>

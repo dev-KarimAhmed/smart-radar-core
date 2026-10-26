@@ -1989,13 +1989,13 @@ export function DriversManagementTab() {
                     "يرجى تجديد رخصة القيادة أو وثائق المركبة لتجنب تعليق الحساب.",
                     "تمت مراجعة حسابك واعتماد بياناتك ووثائقك بنجاح.",
                     "تنبيه إداري: نرجو الالتزام بعدم إلغاء الرحلات بعد قبولها لضمان استقرار حسابك.",
-                    "شكر وتقدير من إدارة الرادار لأدائك المتميز والتزامك العالي.",
+                    "شكر وتقدير من إدارة بينكم لأدائك المتميز والتزامك العالي.",
                     "يرجى التأكد من تشغيل محدد الموقع (GPS) بدقة عالية أثناء فترات العمل."
                   ] : [
                     "Please renew driving license or vehicle documents to avoid account suspension.",
                     "Your account has been audited and verified successfully.",
                     "Administrative notice: Please avoid canceling accepted trips to preserve your account stability.",
-                    "Appreciation from Radar Administration for your exemplary service and commitment.",
+                    "Appreciation from byncom Administration for your exemplary service and commitment.",
                     "Please ensure GPS high-accuracy mode is enabled during active duty."
                   ]).map((tpl, idx) => (
                     <button

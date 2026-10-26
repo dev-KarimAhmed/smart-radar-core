@@ -6,8 +6,8 @@ import { useTranslations } from 'next-intl';
 
 const styles = {
   returnHomeBar: 'flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-[#070e1c]/90 p-3 sm:p-4 backdrop-blur-xl shadow-lg',
-  returnHomeButton: 'inline-flex items-center gap-2 rounded-xl border border-emerald-400/40 bg-emerald-500/15 hover:bg-emerald-500/25 px-4 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm font-black text-emerald-300 transition-all shadow-md active:scale-95 cursor-pointer',
-  returnHomeIcon: 'h-4 w-4 text-emerald-400',
+  returnHomeButton: 'inline-flex items-center gap-2 rounded-xl border-2 border-orange-500/80 bg-gradient-to-r from-orange-500/25 via-amber-500/20 to-orange-600/25 hover:from-orange-500/40 hover:via-amber-500/35 hover:to-orange-600/40 px-4 py-2 sm:px-5 sm:py-2.5 text-xs sm:text-sm font-black text-orange-300 hover:text-white shadow-[0_0_20px_rgba(249,115,22,0.35)] transition-all active:scale-95 cursor-pointer',
+  returnHomeIcon: 'h-4 w-4 sm:h-4.5 sm:w-4.5 text-orange-400 stroke-[2.5]',
   returnHomeCurrentTab: 'flex items-center gap-2 text-xs font-bold text-slate-300',
   returnHomeTabLabel: 'flex items-center gap-1.5 text-slate-200',
   returnHomeTabIcon: 'h-4 w-4 text-[#14F5D5]',
