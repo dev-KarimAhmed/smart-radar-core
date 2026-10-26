@@ -767,6 +767,19 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
         });
       }
 
+      const isAccountInUse = `${(error as any)?.message || ''}`.includes('account_in_use') || `${(error as any)?.message || ''}`.includes('قيد الاستخدام');
+      if (isAccountInUse) {
+        toast({
+          variant: 'destructive',
+          title: lang === 'ar' ? 'الحساب قيد الاستخدام حالياً' : 'Account Already In Use',
+          description: lang === 'ar'
+            ? 'هذا الحساب مفتوح حالياً على جهاز آخر. لا يمكنك تسجيل الدخول حتى يتم تسجيل الخروج من الجهاز الآخر.'
+            : 'This account is currently active on another device. You cannot log in until it is logged out from the other device.',
+          duration: 8000,
+        });
+        return;
+      }
+
       const isUnconfirmed = (error as any)?.message === 'email_not_confirmed' || `${(error as any)?.message || ''}`.includes('email_not_confirmed');
       if (isUnconfirmed) {
         setAwaitingConfirmationEmail(personal.email?.trim() || (error as any)?.email || null);

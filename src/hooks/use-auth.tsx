@@ -227,6 +227,8 @@ function AuthContent({ children }: { children: ReactNode }) {
     let isMounted = true;
     let channel: any = null;
     let channelPhone: any = null;
+    let channelPhoneDigits: any = null;
+    let channelEmail: any = null;
 
     let deviceId = '';
     if (typeof window !== 'undefined') {
@@ -238,9 +240,22 @@ function AuthContent({ children }: { children: ReactNode }) {
     }
     
     const phoneKey = user.phone ? user.phone.trim().replace(/[\s()-]/g, '') : '';
+    const phoneDigits = user.phone ? user.phone.trim().replace(/\D/g, '') : '';
+    const emailKey = (user as any).email ? String((user as any).email).trim().toLowerCase() : '';
 
     import('@/lib/supabase-client').then(({ supabase }) => {
       if (!isMounted) return;
+
+      const handleCheckActive = (payload: any, ch: any) => {
+        const foreignDeviceId = payload.payload?.deviceId;
+        if (foreignDeviceId && foreignDeviceId !== deviceId) {
+          ch.send({
+            type: 'broadcast',
+            event: 'session_active',
+            payload: { deviceId },
+          });
+        }
+      };
 
       const handleForeignTakeover = (payload: any) => {
         const foreignDeviceId = payload.payload?.deviceId;
@@ -256,6 +271,7 @@ function AuthContent({ children }: { children: ReactNode }) {
       };
 
       channel = supabase.channel('user-session-' + user.uid);
+      channel.on('broadcast', { event: 'check_active_session' }, (payload: any) => handleCheckActive(payload, channel));
       channel.on('broadcast', { event: 'session_takeover' }, handleForeignTakeover);
       channel.subscribe((status: string) => {
         if (status === 'SUBSCRIBED') {
@@ -267,10 +283,25 @@ function AuthContent({ children }: { children: ReactNode }) {
         }
       });
 
-      if (phoneKey) {
+      if (phoneDigits) {
+        channelPhoneDigits = supabase.channel('user-session-phone-' + phoneDigits);
+        channelPhoneDigits.on('broadcast', { event: 'check_active_session' }, (payload: any) => handleCheckActive(payload, channelPhoneDigits));
+        channelPhoneDigits.on('broadcast', { event: 'session_takeover' }, handleForeignTakeover);
+        channelPhoneDigits.subscribe();
+      }
+
+      if (phoneKey && phoneKey !== phoneDigits) {
         channelPhone = supabase.channel('user-session-phone-' + phoneKey);
+        channelPhone.on('broadcast', { event: 'check_active_session' }, (payload: any) => handleCheckActive(payload, channelPhone));
         channelPhone.on('broadcast', { event: 'session_takeover' }, handleForeignTakeover);
         channelPhone.subscribe();
+      }
+
+      if (emailKey) {
+        channelEmail = supabase.channel('user-session-email-' + emailKey);
+        channelEmail.on('broadcast', { event: 'check_active_session' }, (payload: any) => handleCheckActive(payload, channelEmail));
+        channelEmail.on('broadcast', { event: 'session_takeover' }, handleForeignTakeover);
+        channelEmail.subscribe();
       }
     });
     
@@ -279,11 +310,13 @@ function AuthContent({ children }: { children: ReactNode }) {
       import('@/lib/supabase-client').then(({ supabase }) => {
         try {
           if (channel) supabase.removeChannel(channel);
+          if (channelPhoneDigits) supabase.removeChannel(channelPhoneDigits);
           if (channelPhone) supabase.removeChannel(channelPhone);
+          if (channelEmail) supabase.removeChannel(channelEmail);
         } catch {}
       });
     };
-  }, [user?.uid, user?.phone, toast, forceKickout]);
+  }, [user?.uid, user?.phone, (user as any)?.email, toast, forceKickout]);
 
   // Keep preferred_language in profiles synced with active device/user language choice
   useEffect(() => {

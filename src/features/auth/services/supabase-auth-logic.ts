@@ -153,6 +153,9 @@ export function mapSupabaseAuthError(error: unknown) {
 
   if (candidateMsg) {
     const rawMsg = candidateMsg.trim();
+    if (rawMsg.includes('account_in_use') || rawMsg.includes('قيد الاستخدام')) {
+      return 'الحساب قيد الاستخدام حالياً على جهاز آخر. لا يمكنك تسجيل الدخول حتى يتم الخروج من الجهاز الآخر.';
+    }
     if (/[\u0600-\u06FF]/.test(rawMsg)) {
       if (!rawMsg.includes('duplicate key') && !rawMsg.includes('Database error') && !rawMsg.includes('syntax error')) {
         return rawMsg;

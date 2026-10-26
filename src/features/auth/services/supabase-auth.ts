@@ -156,9 +156,58 @@ async function syncCaptainProfileFromAuthUser(
   if (error) throw error;
 }
 
-export async function checkAccountInUseByPhone(_supabase: any, _phone: string, _currentDeviceId: string): Promise<boolean> {
-  // Always return false: Login is never blocked beforehand. Active session takeover is handled gracefully post-login.
-  return false;
+export async function checkAccountInUse(supabase: any, identifier: string, currentDeviceId: string): Promise<boolean> {
+  if (typeof window === 'undefined') return false;
+  const isEmail = identifier.includes('@');
+  const cleanId = isEmail
+    ? identifier.trim().toLowerCase()
+    : identifier.trim().replace(/\D/g, '');
+
+  if (!cleanId) return false;
+
+  const channelName = (isEmail ? 'user-session-email-' : 'user-session-phone-') + cleanId;
+
+  return new Promise((resolve) => {
+    let resolved = false;
+
+    const channel = supabase.channel(channelName);
+
+    const timer = setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        try {
+          void supabase.removeChannel(channel);
+        } catch {}
+        resolve(false);
+      }
+    }, 650);
+
+    channel.on('broadcast', { event: 'session_active' }, (payload: any) => {
+      const foreignDeviceId = payload.payload?.deviceId;
+      if (foreignDeviceId && foreignDeviceId !== currentDeviceId && !resolved) {
+        resolved = true;
+        clearTimeout(timer);
+        try {
+          void supabase.removeChannel(channel);
+        } catch {}
+        resolve(true);
+      }
+    });
+
+    channel.subscribe((status: string) => {
+      if (status === 'SUBSCRIBED') {
+        channel.send({
+          type: 'broadcast',
+          event: 'check_active_session',
+          payload: { deviceId: currentDeviceId },
+        });
+      }
+    });
+  });
+}
+
+export async function checkAccountInUseByPhone(supabase: any, phone: string, currentDeviceId: string): Promise<boolean> {
+  return checkAccountInUse(supabase, phone, currentDeviceId);
 }
 
 export async function signInRiderWithPhone(input: RiderSupabaseSignInInput) {
@@ -174,6 +223,13 @@ export async function signInRiderWithPhone(input: RiderSupabaseSignInInput) {
       currentDeviceId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString();
       window.localStorage.setItem('radar_device_id', currentDeviceId);
     }
+  }
+
+  // فحص حتمي أحادي الجلسة (Single Session Gate):
+  // إذا كان الحساب مفتوحاً بالفعل ونشطاً على جهاز آخر، يتم منع تسجيل الدخول فوراً
+  const inUse = await checkAccountInUseByPhone(supabase, validation.phone, currentDeviceId);
+  if (inUse) {
+    throw new Error('account_in_use:الحساب قيد الاستخدام حالياً على جهاز آخر.');
   }
 
   setSupabaseRememberSession(input.rememberMe ?? shouldRememberSupabaseSession());
