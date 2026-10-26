@@ -22,6 +22,7 @@ import type { RiderActiveTrip } from '../state/rider-state-machine';
 import type { TripCountdown } from '@/shared/services/trip-countdown';
 import { useWakeLock } from '@/hooks/use-wake-lock';
 import { useTripMutualCancellation } from '@/shared/hooks/use-trip-mutual-cancellation';
+import { CaptainTripAdsViewer } from './captain-trip-ads-viewer';
 
 export interface TripActiveScreenProps {
   isArabic: boolean;
@@ -150,6 +151,14 @@ export function TripActiveScreen({
           </div>
         </div>
       </div>
+
+      {/* 1.5. إعلانات الكابتن الترويجية - تظهر في شاشة التفاصيل وتختفي فور بدء الرحلة */}
+      {!tripHasStarted && (activeTrip.captainId || (activeTrip.captain as any)?.id || (activeTrip as any)?.driverId) ? (
+        <CaptainTripAdsViewer
+          captainId={activeTrip.captainId || (activeTrip.captain as any)?.id || (activeTrip as any)?.driverId || ''}
+          isArabic={isArabic}
+        />
+      ) : null}
 
       {/* 2. بطاقة الوجهة المتجه إليها - تظهر كاملة بدون أي اقتطاع تحت أي ظرف */}
       <div className="relative overflow-hidden rounded-2xl border border-[#14B8A6]/30 bg-gradient-to-r from-[#14B8A6]/15 via-[#081324] to-[#040812] p-4 shadow-lg shadow-black/20">

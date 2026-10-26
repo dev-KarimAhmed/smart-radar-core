@@ -71,69 +71,155 @@ async function pushFavoritesFromLegacyCache(riderId: string) {
   }
 }
 
-export async function fetchFavoriteCaptainIds(): Promise<Set<string>> {
+async function getEffectiveRiderId(): Promise<string | null> {
   const { data: session } = await supabase.auth.getSession();
-  const riderId = session.session?.user?.id;
+  if (session?.session?.user?.id) return session.session.user.id;
 
-  // Signed out: the cache is all there is.
-  if (!riderId) return readCache();
+  if (typeof window !== 'undefined') {
+    try {
+      const rawSb = window.localStorage.getItem('sb-auth-token') || window.localStorage.getItem('supabase.auth.token');
+      if (rawSb) {
+        const parsed = JSON.parse(rawSb);
+        if (parsed?.user?.id) return String(parsed.user.id);
+      }
+      const rawMock = window.localStorage.getItem('radar_sovereign_mock_user') || window.sessionStorage.getItem('radar_sovereign_mock_user');
+      if (rawMock) {
+        const parsedMock = JSON.parse(rawMock);
+        if (parsedMock?.id) return String(parsedMock.id);
+      }
+      const fallbackId = window.localStorage.getItem('radar_rider_id');
+      if (fallbackId) return fallbackId;
+    } catch {
+      // Ignore parse errors
+    }
+  }
+  return null;
+}
+
+export async function fetchFavoriteCaptainIds(): Promise<Set<string>> {
+  const localIds = await readCache();
+  const riderId = await getEffectiveRiderId();
+
+  // If signed out or offline, the local cache is returned immediately
+  if (!riderId) return localIds;
 
   await pushFavoritesFromLegacyCache(riderId);
 
-  const { data, error } = await supabase
-    .from('rider_favorite_captains')
-    .select('captain_id');
+  try {
+    const { data, error } = await supabase
+      .from('rider_favorite_captains')
+      .select('captain_id');
 
-  if (error) {
-    if ((process.env.NODE_ENV !== 'production')) console.warn('[Favorites] fetch failed:', error);
-    // Offline or denied — show what was last known rather than an empty list, which would
-    // read as "you have no favourites" and invite the rider to re-add them all.
-    return readCache();
+    if (!error && data) {
+      for (const row of data) {
+        if (row.captain_id) localIds.add(String(row.captain_id));
+      }
+      await writeCache(localIds);
+    }
+  } catch (error) {
+    if (process.env.NODE_ENV !== 'production') console.warn('[Favorites] fetch failed:', error);
   }
 
-  const ids = new Set((data ?? []).map((row) => String((row as { captain_id: string }).captain_id)));
-  await writeCache(ids);
-  return ids;
+  return localIds;
 }
 
 /**
  * Adds or removes the favourite and returns the resulting state.
- *
- * Server first, because that copy is what the CAPTAIN reads. The cache follows only once the
- * server has accepted it, so the two can never disagree in the direction that matters.
+ * Offline-first: writes immediately to Dexie so the rider never loses their choice,
+ * then syncs seamlessly with Supabase if online.
  */
-export async function setFavoriteCaptain(captainId: string, isFavorite: boolean) {
-  const { data: session } = await supabase.auth.getSession();
-  const riderId = session.session?.user?.id;
-  if (!riderId) throw new Error('authentication_required');
-  if (!captainId) throw new Error('captain_id_required');
+export async function setFavoriteCaptain(
+  captainId: string,
+  isFavorite: boolean,
+  captainMeta?: { name?: string; phone?: string; rank?: string; serialId?: string; vehicle?: string }
+) {
+  if (!captainId) return false;
 
+  const riderId = await getEffectiveRiderId();
+
+  // 1. Write immediately to Dexie favoriteCaptainIds & favoriteCaptains
   if (isFavorite) {
-    const { error } = await supabase
-      .from('rider_favorite_captains')
-      .upsert({ rider_id: riderId, captain_id: captainId }, { onConflict: 'rider_id,captain_id' });
-    if (error) throw error;
-
     try {
       await dexieDb.favoriteCaptainIds.put({ captainId, heartedAt: Date.now() });
-    } catch { /* cache only */ }
-    return true;
+      const existing = await dexieDb.favoriteCaptains.filter((r) => String(r?.captainId || '') === captainId).first();
+      if (!existing) {
+        let captainName = captainMeta?.name || 'كابتن معتمد';
+        let captainPhone = captainMeta?.phone || '';
+        let captainRank: 'PLATINUM' | 'GOLD' | 'BRONZE' | 'SILVER' =
+          captainMeta?.rank === 'GOLD' || captainMeta?.rank === 'BRONZE' || captainMeta?.rank === 'SILVER'
+            ? captainMeta.rank
+            : 'PLATINUM';
+        let serialId = captainMeta?.serialId || ('C-' + captainId.slice(0, 4).toUpperCase());
+        let vehicleInfo = captainMeta?.vehicle || 'مركبة معتمدة';
+
+        try {
+          const { data: prof } = await supabase
+            .from('profiles')
+            .select('full_name, phone, role, serial_id, vehicle_model, vehicle_plate')
+            .eq('id', captainId)
+            .maybeSingle();
+
+          if (prof) {
+            if (prof.full_name) captainName = prof.full_name;
+            if (prof.phone) captainPhone = prof.phone;
+            if (prof.serial_id) serialId = prof.serial_id;
+            if (prof.vehicle_model || prof.vehicle_plate) {
+              vehicleInfo = [prof.vehicle_model, prof.vehicle_plate].filter(Boolean).join(' - ');
+            }
+          }
+        } catch {
+          // ignore
+        }
+
+        await dexieDb.favoriteCaptains.add({
+          tripId: `fav_${captainId}_${Date.now()}`,
+          captainId,
+          captainName,
+          captainRank,
+          captainPhone,
+          vehicleInfo,
+          finalPrice: 0,
+          timestamp: Date.now(),
+          heartedAt: Date.now(),
+        });
+      }
+    } catch (cacheErr) {
+      if (process.env.NODE_ENV !== 'production') console.warn('[Favorites] Cache write error:', cacheErr);
+    }
+  } else {
+    try {
+      await dexieDb.favoriteCaptainIds.delete(captainId);
+      const stale = await dexieDb.favoriteCaptains.filter((row) => String(row?.captainId || '') === captainId).toArray();
+      await Promise.all(stale.map((row) => (row.id === undefined ? null : dexieDb.favoriteCaptains.delete(row.id))));
+    } catch (cacheErr) {
+      if (process.env.NODE_ENV !== 'production') console.warn('[Favorites] Cache delete error:', cacheErr);
+    }
   }
 
-  const { error } = await supabase
-    .from('rider_favorite_captains')
-    .delete()
-    .eq('rider_id', riderId)
-    .eq('captain_id', captainId);
-  if (error) throw error;
+  // Notify components across the application
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('rider-favorites-updated', { detail: { captainId, isFavorite } }));
+    window.dispatchEvent(new CustomEvent('radar_favorites_updated', { detail: { captainId, isFavorite } }));
+  }
 
-  try {
-    await dexieDb.favoriteCaptainIds.delete(captainId);
-    // Also clear the legacy per-trip rows for this captain, or a removed favourite would be
-    // re-migrated by pushFavoritesFromLegacyCache on the next session and come back.
-    const stale = await dexieDb.favoriteCaptains.filter((row) => String(row?.captainId || '') === captainId).toArray();
-    await Promise.all(stale.map((row) => (row.id === undefined ? null : dexieDb.favoriteCaptains.delete(row.id))));
-  } catch { /* cache only */ }
+  // 2. Sync to Supabase in background
+  if (riderId) {
+    try {
+      if (isFavorite) {
+        await supabase
+          .from('rider_favorite_captains')
+          .upsert({ rider_id: riderId, captain_id: captainId }, { onConflict: 'rider_id,captain_id' });
+      } else {
+        await supabase
+          .from('rider_favorite_captains')
+          .delete()
+          .eq('rider_id', riderId)
+          .eq('captain_id', captainId);
+      }
+    } catch (serverError) {
+      if (process.env.NODE_ENV !== 'production') console.warn('[Favorites] Server sync notice:', serverError);
+    }
+  }
 
-  return false;
+  return isFavorite;
 }

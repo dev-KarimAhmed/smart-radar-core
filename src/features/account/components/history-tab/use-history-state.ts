@@ -40,6 +40,7 @@ export function useHistoryState() {
   // Captain ids, from the server. Keyed by captain so one favourite covers every trip with
   // them ظ¤ the Dexie list above is keyed by trip and cannot answer that question.
   const [favoriteCaptainIds, setFavoriteCaptainIds] = useState<Set<string>>(new Set());
+  const [dexieFavorites, setDexieFavorites] = useState<any[]>([]);
   const [linkedCaptain, setLinkedCaptain] = useState<LinkedCaptainInfo | null>(null);
   const [sovereignLogs, setSovereignLogs] = useState<any[]>([]);
   const [realTrips, setRealTrips] = useState<any[]>([]);
@@ -85,6 +86,13 @@ export function useHistoryState() {
         }
       }
       setFavoriteCaptainIds(ids);
+
+      try {
+        const stored = await dexieDb.favoriteCaptains.toArray();
+        setDexieFavorites(stored || []);
+      } catch {
+        // ignore
+      }
     } catch (e) {
       console.error('Failed to load favorites:', e);
     }
@@ -139,9 +147,11 @@ export function useHistoryState() {
 
     window.addEventListener('sovereign-log-added', handleLogAdded);
     window.addEventListener('radar_favorites_updated', handleFavoritesUpdated);
+    window.addEventListener('rider-favorites-updated', handleFavoritesUpdated);
     return () => {
       window.removeEventListener('sovereign-log-added', handleLogAdded);
       window.removeEventListener('radar_favorites_updated', handleFavoritesUpdated);
+      window.removeEventListener('rider-favorites-updated', handleFavoritesUpdated);
     };
   }, [user, isCaptain, isPassenger]);
 
@@ -531,6 +541,27 @@ export function useHistoryState() {
       }
     }
 
+    // If the rider has favorited captains from ad showcase or local cache that haven't completed a trip yet:
+    for (const fav of dexieFavorites) {
+      const captainId = String(fav.captainId || '');
+      if (!captainId || !favoriteCaptainIds.has(captainId)) continue;
+      if (!byCaptain.has(captainId)) {
+        const isReferred = Boolean(linkedCaptain?.is_linked && linkedCaptain.captain_id === captainId);
+        byCaptain.set(captainId, {
+          tripId: fav.tripId || `fav_${captainId}`,
+          captainId,
+          serialId: fav.serialId || ('C-' + captainId.slice(0, 4).toUpperCase()),
+          captainName: fav.captainName || (isArabic ? 'كابتن معتمد' : 'Verified Captain'),
+          captainRank: fav.captainRank || 'PLATINUM',
+          captainPhone: fav.captainPhone || '',
+          vehicleInfo: fav.vehicleInfo || (isArabic ? 'مركبة معتمدة' : 'Verified Vehicle'),
+          finalPrice: fav.finalPrice || 0,
+          timestamp: fav.timestamp || Date.now(),
+          isReferredCaptain: isReferred,
+        } as any);
+      }
+    }
+
     // If the rider is linked to a captain via referral who is not in trips yet, but is favorited:
     if (
       linkedCaptain?.is_linked &&
@@ -552,6 +583,25 @@ export function useHistoryState() {
       } as any);
     }
 
+    // Fallback for any captainId in favoriteCaptainIds that has not yet had details filled:
+    for (const captainId of favoriteCaptainIds) {
+      if (!byCaptain.has(captainId)) {
+        const isReferred = Boolean(linkedCaptain?.is_linked && linkedCaptain.captain_id === captainId);
+        byCaptain.set(captainId, {
+          tripId: `fav_${captainId}`,
+          captainId,
+          serialId: 'C-' + captainId.slice(0, 4).toUpperCase(),
+          captainName: isArabic ? 'كابتن معتمد' : 'Verified Captain',
+          captainRank: 'PLATINUM',
+          captainPhone: '',
+          vehicleInfo: isArabic ? 'مركبة معتمدة' : 'Verified Vehicle',
+          finalPrice: 0,
+          timestamp: Date.now(),
+          isReferredCaptain: isReferred,
+        } as any);
+      }
+    }
+
     // Spread the whole trip: the "remove" button in the list calls toggleFavorite, which
     // takes a HistoricalTrip. `id` is added because the list keys on it.
     return [...byCaptain.entries()].map(([captainId, trip]) => ({
@@ -559,7 +609,7 @@ export function useHistoryState() {
       id: captainId,
       captainId,
     }));
-  }, [favoriteCaptainIds, riderHistoricalTrips, linkedCaptain, tRef]);
+  }, [favoriteCaptainIds, dexieFavorites, riderHistoricalTrips, linkedCaptain, tRef, isArabic]);
 
   const captainHistoricalTrips = useMemo(() => {
     const combinedReal = realTrips.map(trip => {

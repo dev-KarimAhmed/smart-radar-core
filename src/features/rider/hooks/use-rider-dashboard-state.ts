@@ -78,6 +78,12 @@ export function useRiderDashboardState(
 
   useEffect(() => {
     loadFavorites();
+
+    const onFavUpdate = () => {
+      void loadFavorites();
+    };
+    window.addEventListener('rider-favorites-updated', onFavUpdate);
+    return () => window.removeEventListener('rider-favorites-updated', onFavUpdate);
   }, []);
 
   useEffect(() => {
