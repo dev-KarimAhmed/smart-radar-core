@@ -284,6 +284,19 @@ export function CaptainAdsSeatsManager({ user, language = 'ar' }: CaptainAdsSeat
     await refreshAds();
   };
 
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    const target = e.currentTarget;
+    const src = target.src || '';
+    if (src.includes('/storage/v1/object/public/captain-documents/')) {
+      const path = src.split('/storage/v1/object/public/captain-documents/')[1]?.replace(/^\/+/, '');
+      if (path) {
+        target.src = `/api/captain/ads/image?bucket=captain-documents&path=${encodeURIComponent(path)}`;
+        return;
+      }
+    }
+    target.style.opacity = '0';
+  };
+
   const nextSeatNumber = ads.length > 0 ? Math.max(...ads.map((a) => a.seatNumber)) + 1 : 1;
   const captionLength = caption.length;
   const charCountColorStyle =
@@ -365,6 +378,7 @@ export function CaptainAdsSeatsManager({ user, language = 'ar' }: CaptainAdsSeat
                   src={ad.imageUrl}
                   alt={ad.caption || t('promotionalAd')}
                   className={styles.adImageThumbnail}
+                  onError={handleImageError}
                 />
               </div>
 
@@ -466,7 +480,12 @@ export function CaptainAdsSeatsManager({ user, language = 'ar' }: CaptainAdsSeat
                     {imageUrl ? (
                       <div className={styles.imagePreviewWrapper}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={imageUrl} alt={t('livePreviewTitle')} className={styles.imagePreviewImg} />
+                        <img
+                          src={imageUrl}
+                          alt={t('livePreviewTitle')}
+                          className={styles.imagePreviewImg}
+                          onError={handleImageError}
+                        />
                         <label htmlFor={fileInputId} className={styles.imagePreviewChangeBtn}>
                           <Upload className={styles.uploadMiniIcon} />
                           <span>{t('changeImage')}</span>

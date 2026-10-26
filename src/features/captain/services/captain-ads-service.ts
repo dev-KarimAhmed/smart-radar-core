@@ -79,6 +79,17 @@ export function convertImageFileToDataUrl(file: File): Promise<string> {
   });
 }
 
+export function normalizeCaptainAdImageUrl(url?: string): string {
+  if (!url || typeof url !== 'string') return '';
+  if (url.includes('/storage/v1/object/public/captain-documents/')) {
+    const path = url.split('/storage/v1/object/public/captain-documents/')[1]?.replace(/^\/+/, '');
+    if (path) {
+      return `/api/captain/ads/image?bucket=captain-documents&path=${encodeURIComponent(path)}`;
+    }
+  }
+  return url;
+}
+
 function getCacheKey(captainId: string): string {
   const safeId = captainId ? captainId.trim() : 'default_captain';
   return `cached_captain_ads_${safeId}`;
@@ -111,7 +122,12 @@ export async function fetchCaptainAds(captainId: string): Promise<CaptainAdItem[
     if (res.ok) {
       const data = await res.json();
       if (data.success && Array.isArray(data.ads)) {
-        const realAds = data.ads.filter((a: any) => !String(a?.id || '').startsWith('seed-ad-'));
+        const realAds = data.ads
+          .filter((a: any) => !String(a?.id || '').startsWith('seed-ad-'))
+          .map((a: any) => ({
+            ...a,
+            imageUrl: normalizeCaptainAdImageUrl(a.imageUrl),
+          }));
         if (typeof window !== 'undefined') {
           sessionStorage.setItem(getCacheKey(captainId), JSON.stringify(realAds));
         }
@@ -138,7 +154,12 @@ export function getCaptainAds(captainId: string): CaptainAdItem[] {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
         // تنقية وتجاهل أي إعلانات تجريبية تيست
-        return parsed.filter((item) => !String(item?.id || '').startsWith('seed-ad-'));
+        return parsed
+          .filter((item) => !String(item?.id || '').startsWith('seed-ad-'))
+          .map((item) => ({
+            ...item,
+            imageUrl: normalizeCaptainAdImageUrl(item.imageUrl),
+          }));
       }
     }
   } catch {}

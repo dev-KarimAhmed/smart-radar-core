@@ -11,6 +11,31 @@ function isUuid(value: string): boolean {
 // ذاكرة مساندة بالسيرفر في حال تعذر الاتصال بجدول Supabase قبل تطبيق الـ Migration
 const inMemoryFallbackStore = new Map<string, any[]>();
 
+async function resolveAdImageUrl(url: string): Promise<string> {
+  if (!url || typeof url !== 'string') return url;
+
+  // إذا كان الرابط هو رابط عام مكسور لسلة captain-documents الخاصة
+  if (url.includes('/storage/v1/object/public/captain-documents/')) {
+    const parts = url.split('/storage/v1/object/public/captain-documents/');
+    const cleanPath = parts[1]?.replace(/^\/+/, '');
+    if (cleanPath) {
+      try {
+        const { data: signData } = await supabaseAdmin.storage
+          .from('captain-documents')
+          .createSignedUrl(cleanPath, 60 * 60 * 24 * 7);
+        if (signData?.signedUrl) {
+          return signData.signedUrl;
+        }
+      } catch (err) {
+        console.warn('[Captain Ads API] Sign URL fallback:', err);
+      }
+      return `/api/captain/ads/image?bucket=captain-documents&path=${encodeURIComponent(cleanPath)}`;
+    }
+  }
+
+  return url;
+}
+
 /**
  * جلب جميع إعلانات الكابتن من الباك إند
  * يمكن لأي راكب يقبل عرض الكابتن استدعاء هذا الرابط لجلب إعلاناته
@@ -36,17 +61,19 @@ export async function GET(req: Request) {
         .order('seat_number', { ascending: true });
 
       if (!fetchErr && Array.isArray(rows)) {
-        const formatted = rows.map((r) => ({
-          id: r.id,
-          captainId: r.captain_id,
-          seatNumber: r.seat_number,
-          seatLabel: r.seat_label || 'إعلان ترويجي',
-          imageUrl: r.image_url,
-          caption: r.caption || undefined,
-          status: r.status || 'ACTIVE',
-          createdAt: new Date(r.created_at).getTime(),
-          updatedAt: new Date(r.updated_at).getTime(),
-        }));
+        const formatted = await Promise.all(
+          rows.map(async (r) => ({
+            id: r.id,
+            captainId: r.captain_id,
+            seatNumber: r.seat_number,
+            seatLabel: r.seat_label || 'إعلان ترويجي',
+            imageUrl: await resolveAdImageUrl(r.image_url),
+            caption: r.caption || undefined,
+            status: r.status || 'ACTIVE',
+            createdAt: new Date(r.created_at).getTime(),
+            updatedAt: new Date(r.updated_at).getTime(),
+          }))
+        );
         return NextResponse.json({ success: true, ads: formatted });
       }
     } catch (dbErr) {
@@ -55,7 +82,13 @@ export async function GET(req: Request) {
 
     // 2. استخدام الذاكرة المساندة بالسيرفر كـ Fallback فوري
     const fallbackList = inMemoryFallbackStore.get(captainId) || [];
-    return NextResponse.json({ success: true, ads: fallbackList });
+    const formattedFallback = await Promise.all(
+      fallbackList.map(async (ad) => ({
+        ...ad,
+        imageUrl: await resolveAdImageUrl(ad.imageUrl),
+      }))
+    );
+    return NextResponse.json({ success: true, ads: formattedFallback });
   } catch (error: any) {
     console.error('[Captain Ads API GET Error]:', error);
     return NextResponse.json(
@@ -97,7 +130,7 @@ export async function POST(req: Request) {
 
     let uploadedImageUrl = imageUrl;
 
-    // إذا كانت الصورة Data URL كبيرة وكان UUID متاحاً، يمكن محاولة رفعها لمخزن Supabase Storage
+    // إذا كانت الصورة Data URL كبيرة وكان UUID متاحاً، يتم رفعها لسلة التخزين المناسبة
     if (typeof imageUrl === 'string' && imageUrl.startsWith('data:image/') && isUuid(captainId)) {
       try {
         const matches = imageUrl.match(/^data:(image\/[a-zA-Z+]+);base64,(.+)$/);
@@ -108,21 +141,61 @@ export async function POST(req: Request) {
           const ext = contentType.split('/')[1] || 'png';
           const filePath = `${captainId}/seat_${seatNumber}_${Date.now()}.${ext}`;
 
-          const { error: uploadErr } = await supabaseAdmin.storage
-            .from('captain-documents')
-            .upload(filePath, buffer, {
-              contentType,
-              upsert: true,
-            });
+          let uploadSuccess = false;
 
-          if (!uploadErr) {
-            const { data: publicUrlData } = supabaseAdmin.storage
-              .from('captain-documents')
-              .getPublicUrl(filePath);
+          // أولاً: محاولة الرفع إلى سلة إعلانات الكباتن العامة captain-ads
+          try {
+            const { error: uploadAdsErr } = await supabaseAdmin.storage
+              .from('captain-ads')
+              .upload(filePath, buffer, {
+                contentType,
+                upsert: true,
+              });
 
-            if (publicUrlData?.publicUrl) {
-              uploadedImageUrl = publicUrlData.publicUrl;
+            if (!uploadAdsErr) {
+              const { data: publicUrlData } = supabaseAdmin.storage
+                .from('captain-ads')
+                .getPublicUrl(filePath);
+
+              if (publicUrlData?.publicUrl) {
+                uploadedImageUrl = publicUrlData.publicUrl;
+                uploadSuccess = true;
+              }
             }
+          } catch (adsErr) {
+            console.warn('[Captain Ads API] Upload to captain-ads failed:', adsErr);
+          }
+
+          // ثانياً: بديل مساند في حال عدم جاهزية سلة captain-ads - الرفع إلى captain-documents برابط موقع أو بروكسي
+          if (!uploadSuccess) {
+            try {
+              const { error: uploadDocsErr } = await supabaseAdmin.storage
+                .from('captain-documents')
+                .upload(filePath, buffer, {
+                  contentType,
+                  upsert: true,
+                });
+
+              if (!uploadDocsErr) {
+                const { data: signData } = await supabaseAdmin.storage
+                  .from('captain-documents')
+                  .createSignedUrl(filePath, 60 * 60 * 24 * 365);
+
+                if (signData?.signedUrl) {
+                  uploadedImageUrl = signData.signedUrl;
+                  uploadSuccess = true;
+                } else {
+                  uploadedImageUrl = `/api/captain/ads/image?bucket=captain-documents&path=${encodeURIComponent(filePath)}`;
+                  uploadSuccess = true;
+                }
+              }
+            } catch (docsErr) {
+              console.warn('[Captain Ads API] Upload to captain-documents failed:', docsErr);
+            }
+          }
+
+          if (!uploadSuccess) {
+            console.warn('[Captain Ads API] Storage upload fallback to direct URL (Base64)');
           }
         }
       } catch (storageErr) {
