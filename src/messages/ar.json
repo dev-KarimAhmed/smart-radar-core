@@ -1453,10 +1453,10 @@
   },
   "captainPickup": {
     "tripsValue": "{count, plural, =0 {عدد الرحلات 0} one {عدد الرحلات رحلة واحدة} two {عدد الرحلات رحلتان} few {عدد الرحلات # رحلات} many {عدد الرحلات # رحلة} other {عدد الرحلات # رحلة}}",
-    "pickupLocation": "موقع الالتقاط",
-    "pickupApproximate": "الموقع التقريبي قبل قبول الطلب",
-    "pickupExact": "موقع الالتقاط الدقيق",
-    "openPickupMap": "فتح موقع الالتقاط",
+    "pickupLocation": "موقع الالتقاء",
+    "pickupApproximate": "موقع الالتقاء التقريبي",
+    "pickupExact": "موقع الالتقاء الدقيق",
+    "openPickupMap": "فتح موقع الالتقاء",
     "distanceUnavailable": "غير متاح",
     "minutesValue": "{count, plural, =0 {أقل من دقيقة} one {دقيقة واحدة} two {دقيقتان} few {# دقائق} many {# دقيقة} other {# دقيقة}}",
     "key_4171dde6": "Key_4171dde6"
@@ -1688,7 +1688,13 @@
       "ARRIVED": "وصلت",
       "STARTED": "جارية",
       "COMPLETED": "مكتملة"
-    }
+    },
+    "tripInProgressTitle": "الرحلة جارية نحو الوجهة",
+    "tripNinetyNotice": "سيظهر زر إنهاء الرحلة تلقائياً بعد مرور 90% من الوقت المقدر للرحلة.",
+    "tripMinutesRemaining": "متبقي {minutes} دقيقة تقريباً لظهور زر الإنهاء",
+    "tripReadyToCompleteNotice": "✓ تم إنجاز مسار الرحلة بنجاح. اضغط أعلاه لإنهاء الرحلة وتوثيق أرباحك في المحفظة.",
+    "openDestinationMap": "فتح مسار الوجهة في الخرائط",
+    "arrivedStatus": "تم الوصول · بانتظار بدء الرحلة"
   },
   "transactions": {
     "useNewScreenTitle": "استخدم شاشة طلب الرحلة الجديدة",

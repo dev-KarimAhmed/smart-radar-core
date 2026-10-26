@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 import { useTripCountdown } from '@/shared/hooks/use-trip-countdown';
 import { getServerTime } from '@/lib/server-time';
 import { useTripMutualCancellation } from '@/shared/hooks/use-trip-mutual-cancellation';
+import { isMapsLink } from '@/shared/services/google-maps-location';
 
 // MapLibre GL touches browser-only APIs at import time, so this must load
 // client-side only — same reason RadarMapView is dynamic-imported in
@@ -219,6 +220,40 @@ export function ActiveTripTracker({
   const remainingSecondsUntilNinety = Math.max(0, Math.ceil(totalTripSeconds * 0.9 - elapsedTripSeconds));
   const remainingMinutesUntilNinety = Math.ceil(remainingSecondsUntilNinety / 60);
 
+  const dropoffCoords = request.dropoffCoords;
+  const rawDropoff = request.dropoff?.trim();
+  const isDropoffRawLink = Boolean(rawDropoff && isMapsLink(rawDropoff));
+
+  const destinationGoogleMapsUrl = isDropoffRawLink
+    ? rawDropoff
+    : ((request as any).dropoffGoogleMapsUrl || (dropoffCoords?.lat && dropoffCoords?.lng
+      ? `https://www.google.com/maps/dir/?api=1&destination=${dropoffCoords.lat},${dropoffCoords.lng}${driverLocation?.lat && driverLocation?.lng ? `&origin=${driverLocation.lat},${driverLocation.lng}` : ''}`
+      : rawDropoff
+        ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(rawDropoff)}${driverLocation?.lat && driverLocation?.lng ? `&origin=${driverLocation.lat},${driverLocation.lng}` : ''}`
+        : null));
+
+  const rawPickup = request.pickupLabel?.trim();
+  const isPickupRawLink = Boolean(rawPickup && isMapsLink(rawPickup));
+
+  const pickupGoogleMapsUrl = request.pickupGoogleMapsUrl
+    ? request.pickupGoogleMapsUrl
+    : isPickupRawLink
+      ? rawPickup
+      : (pickupLocation?.lat && pickupLocation?.lng
+        ? `https://www.google.com/maps/dir/?api=1&destination=${pickupLocation.lat},${pickupLocation.lng}${driverLocation?.lat && driverLocation?.lng ? `&origin=${driverLocation.lat},${driverLocation.lng}` : ''}`
+        : null);
+
+  const handleStartTrip = () => {
+    if (destinationGoogleMapsUrl) {
+      try {
+        window.open(destinationGoogleMapsUrl, '_blank', 'noopener,noreferrer');
+      } catch (e) {
+        console.warn('[ActiveTripTracker] Failed to open Google Maps on start:', e);
+      }
+    }
+    onStartTrip();
+  };
+
   const mutualCancel = useTripMutualCancellation({
     requestId: request.id,
     role: 'captain',
@@ -232,7 +267,13 @@ export function ActiveTripTracker({
         <div>
           <p className={styles.style35_3}>{t('badge')}</p>
           <h1 className={styles.style36_4}>{t('title')}</h1>
-          <p className={styles.style37_5}>{t('subtitle')}</p>
+          <p className={styles.style37_5}>
+            {step === 'ACCEPTED'
+              ? (language === 'ar' ? 'توجه إلى موقع الالتقاء بالراكب، ثم اضغط على زر تأكيد الوصول فور بلوغك النقطة.' : 'Navigate to the rendezvous point and confirm your arrival.')
+              : step === 'ARRIVED'
+                ? (language === 'ar' ? 'أنت الآن في نقطة الالتقاء. بانتظار صعود الراكب بالمركبة للبدء.' : 'You have arrived. Waiting for the rider to board, then start the trip.')
+                : (language === 'ar' ? 'الرحلة جارية نحو الوجهة. انطلق بأمان وفق مسار الخريطة المعتمد.' : 'Trip is in progress. Drive safely to destination.')}
+          </p>
         </div>
         <span className={styles.style39_6}>
           {t(`steps.${step}`)}
@@ -241,14 +282,28 @@ export function ActiveTripTracker({
 
       <div className={styles.style44_7}>
         <div className={styles.style45_8}>
-          <p className={styles.style46_9}>{t('destination')}</p>
+          <div className="flex items-center justify-between gap-2">
+            <p className={styles.style46_9}>{t('destination')}</p>
+            {destinationGoogleMapsUrl && (step === 'STARTED' || step === 'ARRIVED') && (
+              <a
+                href={destinationGoogleMapsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-[11px] font-bold text-cyan-400 hover:text-cyan-300 transition"
+              >
+                <ExternalLink className="h-3 w-3" />
+                <span>{language === 'ar' ? 'فتح مسار الخريطة' : 'Open in Maps'}</span>
+              </a>
+            )}
+          </div>
           <h2 className={styles.style47_10}>{request.dropoff || t('unknownDestination')}</h2>
         </div>
 
+        {/* Rider Card: Shows Call button ONLY when ACCEPTED; When ARRIVED or STARTED, shows rider name ONLY */}
         <div className={styles.style51_12}>
-          <p className={styles.style52_13}>{t('rider')}</p>
+          <p className={styles.style52_13}>{step === 'ACCEPTED' ? t('rider') : (language === 'ar' ? 'الراكب' : 'Rider')}</p>
           <h2 className={styles.style53_14}>{rider?.name || request.riderName || t('riderFallback')}</h2>
-          {(rider?.phone || request.riderPhone || (request as any).riderPhoneNumber) ? (
+          {step === 'ACCEPTED' && (rider?.phone || request.riderPhone || (request as any).riderPhoneNumber) ? (
             <a href={`tel:${rider?.phone || request.riderPhone || (request as any).riderPhoneNumber}`} className={styles.style55_15}>
               <Phone className={styles.style56_16} />
               <span>{t('callRider')}</span>
@@ -257,34 +312,38 @@ export function ActiveTripTracker({
         </div>
       </div>
 
-      <div className={styles.pickupCard}>
-        <div className={styles.pickupCardRow}>
-          <div className={styles.pickupCardInfo}>
-            <p className={styles.pickupCardLabel}>
-              <MapPin className={styles.pickupCardIcon} aria-hidden="true" />
-              {pickupT('pickupLocation')}
-            </p>
-            <p className={styles.pickupCardValue}>
-              {request.pickupLabel || pickupT('pickupLocation')}
-            </p>
-            <p className={styles.pickupCardHint}>
-              {request.pickupLocationIsApproximate ? pickupT('pickupApproximate') : pickupT('pickupExact')}
-            </p>
+      {/* Rendezvous Card (كارد موقع الالتقاء): Visible ONLY when ACCEPTED; disappears immediately when arrived */}
+      {step === 'ACCEPTED' && (
+        <div className={styles.pickupCard}>
+          <div className={styles.pickupCardRow}>
+            <div className={styles.pickupCardInfo}>
+              <p className={styles.pickupCardLabel}>
+                <MapPin className={styles.pickupCardIcon} aria-hidden="true" />
+                {pickupT('pickupLocation')}
+              </p>
+              <p className={styles.pickupCardValue}>
+                {request.pickupLabel || pickupT('pickupLocation')}
+              </p>
+              <p className={styles.pickupCardHint}>
+                {request.pickupLocationIsApproximate ? pickupT('pickupApproximate') : pickupT('pickupExact')}
+              </p>
+            </div>
+            {pickupGoogleMapsUrl ? (
+              <a
+                href={pickupGoogleMapsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.pickupCardLink}
+              >
+                <ExternalLink className={styles.pickupCardLinkIcon} aria-hidden="true" />
+                {pickupT('openPickupMap')}
+              </a>
+            ) : null}
           </div>
-          {(request.pickupGoogleMapsUrl || pickupLocation) ? (
-            <a
-              href={request.pickupGoogleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${pickupLocation?.lat},${pickupLocation?.lng}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={styles.pickupCardLink}
-            >
-              <ExternalLink className={styles.pickupCardLinkIcon} aria-hidden="true" />
-              {pickupT('openPickupMap')}
-            </a>
-          ) : null}
         </div>
-      </div>
+      )}
 
+      {/* Stats Row */}
       <div className={cn("mt-4 grid gap-4", step === 'STARTED' ? "md:grid-cols-3" : "md:grid-cols-2")}>
         <div className={styles.style96_1}>
           <p className={styles.style97_1}>
@@ -294,64 +353,147 @@ export function ActiveTripTracker({
           <p className={styles.style99_1}>{Number(request.offerPrice || 0).toFixed(2)} {currency}</p>
         </div>
 
-        <div className={cn(styles.style100_1, pickupIsZero && !pickupIsArrived && 'border-amber-500/50 bg-amber-500/10')}>
-          <p className={cn(styles.style101_1, pickupIsZero && !pickupIsArrived && 'text-amber-300')}>
-            <Clock className={styles.style102_1} />
-            {t('pickupEta')}
-          </p>
-          <p className={cn(styles.style103_1, pickupIsZero && !pickupIsArrived && 'text-amber-300 animate-pulse')}>
-            {pickupDisplay}
-          </p>
-        </div>
-
-        {step === 'STARTED' ? (
-          <div className={styles.style100_1}>
-            <p className={styles.style101_1}>
+        {step === 'ACCEPTED' && (
+          <div className={cn(styles.style100_1, pickupIsZero && !pickupIsArrived && 'border-amber-500/50 bg-amber-500/10')}>
+            <p className={cn(styles.style101_1, pickupIsZero && !pickupIsArrived && 'text-amber-300')}>
               <Clock className={styles.style102_1} />
-              {t('tripElapsed')}
+              {t('pickupEta')}
             </p>
-            <p className={styles.style103_1}>
-              {tripDisplay}
+            <p className={cn(styles.style103_1, pickupIsZero && !pickupIsArrived && 'text-amber-300 animate-pulse')}>
+              {pickupDisplay}
             </p>
           </div>
-        ) : null}
+        )}
+
+        {step === 'ARRIVED' && (
+          <div className={cn(styles.style100_1, 'border-emerald-500/30 bg-emerald-500/10')}>
+            <p className="flex items-center gap-1.5 text-xs text-emerald-300 font-bold">
+              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+              {language === 'ar' ? 'حالة التواجد' : 'Status'}
+            </p>
+            <p className="mt-1 text-sm sm:text-base font-black text-white">
+              {t('arrivedStatus')}
+            </p>
+          </div>
+        )}
+
+        {step === 'STARTED' && (
+          <>
+            <div className={styles.style100_1}>
+              <p className={styles.style101_1}>
+                <Clock className={styles.style102_1} />
+                {t('tripElapsed')}
+              </p>
+              <p className={styles.style103_1}>
+                {tripDisplay}
+              </p>
+            </div>
+            <div className={styles.style100_1}>
+              <p className={styles.style101_1}>
+                <Navigation className={styles.style102_1} />
+                {language === 'ar' ? 'المدة التقديرية' : 'Estimated Time'}
+              </p>
+              <p className={styles.style103_1}>
+                {tripDurationMinutes} {language === 'ar' ? 'دقيقة' : 'min'}
+              </p>
+            </div>
+          </>
+        )}
       </div>
 
-      {/* <div className={styles.style90_1}>
-        <PickupNavigationMap
-          language={language}
-          driverLocation={driverLocation}
-          pickupLocation={navigationTarget}
-          mode={navigationMode}
-        />
-      </div> */}
-
-      <div className={cn("mt-5 grid gap-3", step === 'STARTED' && isTripNinetyPercentComplete ? "md:grid-cols-3" : "md:grid-cols-2")}>
-        <StepButton
-          active={step === 'ACCEPTED'}
-          done={['ARRIVED', 'STARTED'].includes(step)}
-          disabled={isCompleting || step !== 'ACCEPTED'}
-          icon={isCompleting && step === 'ACCEPTED' ? <Loader2 className={styles.style68_18} /> : <Navigation className={styles.style68_19} />}
-          label={t('arrived')}
-          onClick={onArrived}
-        />
-        <StepButton
-          active={step === 'ARRIVED'}
-          done={step === 'STARTED'}
-          disabled={isCompleting || step !== 'ARRIVED'}
-          icon={isCompleting && step === 'ARRIVED' ? <Loader2 className={styles.style76_20} /> : <CheckCircle2 className={styles.style76_21} />}
-          label={t('start')}
-          onClick={onStartTrip}
-        />
-        {step === 'STARTED' && isTripNinetyPercentComplete ? (
-          <StepButton
-            active={true}
+      {/* Dynamic Focused Action Steps (اي خطوة تنتهي تختفي تلقائياً) */}
+      <div className="mt-5">
+        {/* STEP 1: ACCEPTED -> Only show 'وصلت لنقطة الركوب' */}
+        {step === 'ACCEPTED' && (
+          <button
+            type="button"
+            onClick={onArrived}
             disabled={isCompleting}
-            icon={isCompleting ? <Loader2 className={styles.style83_22} /> : <ShieldAlert className={styles.style83_23} />}
-            label={t('complete')}
-            onClick={onCompleteTrip}
-          />
-        ) : null}
+            className="w-full flex items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-500 hover:brightness-110 active:scale-[0.98] py-4 text-base font-black text-slate-950 shadow-[0_4px_24px_rgba(20,245,213,0.35)] transition-all cursor-pointer disabled:opacity-50"
+          >
+            {isCompleting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Navigation className="h-5 w-5 stroke-[2.5]" />}
+            <span>{t('arrived')}</span>
+          </button>
+        )}
+
+        {/* STEP 2: ARRIVED -> 'وصلت' disappeared! Only show 'بدء الرحلة' which opens Google Maps on click */}
+        {step === 'ARRIVED' && (
+          <button
+            type="button"
+            onClick={handleStartTrip}
+            disabled={isCompleting}
+            className="w-full flex items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-r from-cyan-500 via-teal-500 to-emerald-500 hover:brightness-110 active:scale-[0.98] py-4 text-base font-black text-slate-950 shadow-[0_4px_24px_rgba(20,245,213,0.4)] transition-all cursor-pointer disabled:opacity-50"
+          >
+            {isCompleting ? <Loader2 className="h-5 w-5 animate-spin" /> : <CheckCircle2 className="h-5 w-5 stroke-[2.5]" />}
+            <span>{t('start')}</span>
+          </button>
+        )}
+
+        {/* STEP 3: STARTED -> 'بدء الرحلة' disappeared! */}
+        {step === 'STARTED' && (
+          <div>
+            {!isTripNinetyPercentComplete ? (
+              /* Case 3A: Under 90% -> Explanatory card with progress bar */
+              <div className="rounded-2xl border border-cyan-500/25 bg-gradient-to-br from-cyan-950/30 via-slate-900/60 to-black/50 p-4 sm:p-5 shadow-xl">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-400">
+                      <Clock className="h-5 w-5 animate-pulse" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-black text-white">{t('tripInProgressTitle')}</h3>
+                      <p className="mt-0.5 text-xs text-slate-300 leading-relaxed">
+                        {t('tripNinetyNotice')}
+                      </p>
+                    </div>
+                  </div>
+
+                  {destinationGoogleMapsUrl && (
+                    <a
+                      href={destinationGoogleMapsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl border border-cyan-500/30 bg-cyan-500/10 hover:bg-cyan-500/20 px-3.5 py-2 text-xs font-black text-cyan-200 transition"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                      <span>{t('openDestinationMap')}</span>
+                    </a>
+                  )}
+                </div>
+
+                {/* Progress bar to 90% */}
+                <div className="mt-3.5 space-y-1.5">
+                  <div className="flex justify-between text-[11px] font-bold text-slate-400">
+                    <span>{t('tripMinutesRemaining', { minutes: remainingMinutesUntilNinety })}</span>
+                    <span className="font-mono text-cyan-300">{Math.min(90, Math.round(completionFraction * 100))}% / 90%</span>
+                  </div>
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-slate-800">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-emerald-400 transition-all duration-500"
+                      style={{ width: `${Math.min(100, (completionFraction / 0.9) * 100)}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* Case 3B: Reached 90% -> Complete Trip button */
+              <div className="space-y-2.5 animate-in fade-in zoom-in-95 duration-200">
+                <button
+                  type="button"
+                  onClick={onCompleteTrip}
+                  disabled={isCompleting}
+                  className="w-full flex items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-400 hover:brightness-110 active:scale-[0.98] py-4 text-base font-black text-slate-950 shadow-[0_4px_24px_rgba(16,185,129,0.45)] transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {isCompleting ? <Loader2 className="h-5 w-5 animate-spin" /> : <ShieldAlert className="h-5 w-5 stroke-[2.5]" />}
+                  <span>{t('complete')}</span>
+                </button>
+                <p className="text-center text-xs text-emerald-300/80 font-bold">
+                  {t('tripReadyToCompleteNotice')}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className={styles.cancelSection}>

@@ -522,45 +522,49 @@ export function RadarMapView({
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-1.5 shrink-0 pt-0.5">
-                          {isCardExpanded && routeGoogleMapsUrl && (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                window.open(routeGoogleMapsUrl, '_blank', 'noopener,noreferrer');
-                              }}
-                              className="inline-flex items-center gap-1 rounded-xl border border-orange-500/50 bg-orange-500/15 hover:bg-orange-500/25 active:scale-95 px-2.5 py-1 text-xs font-black text-orange-400 hover:text-orange-300 shadow-[0_0_10px_rgba(249,115,22,0.2)] transition-all cursor-pointer"
-                              title={copy.tripRoute}
-                              dir={language === 'ar' ? 'rtl' : 'ltr'}
-                            >
-                              <Route className="h-3.5 w-3.5 stroke-[2.5]" />
-                              <span>{copy.tripRoute}</span>
-                            </button>
-                          )}
+                        <div className="flex items-center shrink-0 pt-0.5">
                           <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white transition-all">
                             <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", isCardExpanded ? "rotate-180 text-emerald-400" : "")} />
                           </div>
                         </div>
                       </div>
 
-                      {/* When Closed: ONLY Two Pieces of Info (His Price + Trip Route) arranged in a Premium Bar */}
+                      {/* When Open: Route Button under the title (larger and prominent) */}
+                      {isCardExpanded && routeGoogleMapsUrl && (
+                        <div className="mt-2.5" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.open(routeGoogleMapsUrl, '_blank', 'noopener,noreferrer');
+                            }}
+                            className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-orange-500/60 bg-gradient-to-r from-orange-500/25 via-amber-500/20 to-orange-600/25 hover:from-orange-500/35 hover:via-amber-500/30 hover:to-orange-600/35 active:scale-95 px-4 py-2.5 text-xs sm:text-sm font-black text-orange-300 hover:text-orange-200 shadow-[0_0_14px_rgba(249,115,22,0.25)] transition-all cursor-pointer"
+                            title={copy.tripRoute}
+                            dir={language === 'ar' ? 'rtl' : 'ltr'}
+                          >
+                            <Route className="h-4 w-4 shrink-0 stroke-[2.5]" />
+                            <span>{copy.tripRoute}</span>
+                          </button>
+                        </div>
+                      )}
+
+                      {/* When Closed: ONLY Two Pieces of Info (His Price + Trip Route) Equal in Size & Fully Visible */}
                       {!isCardExpanded && (
-                        <div className="flex items-center justify-between gap-2.5 mt-3 pt-2.5 border-t border-emerald-500/15" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-                          {/* 1. His Tariff Price (تسعيرته هو) */}
-                          <div className="inline-flex items-center gap-2 rounded-xl border border-emerald-400/40 bg-gradient-to-r from-emerald-500/20 via-teal-500/15 to-emerald-500/20 px-3.5 py-1.5 shadow-[0_0_12px_rgba(16,185,129,0.18)]">
-                            <span className="text-xs font-bold text-emerald-300/90">
-                              {language === 'ar' ? 'تسعيرتك:' : 'Your Fare:'}
+                        <div className="grid grid-cols-2 gap-2 sm:gap-2.5 mt-3 pt-2.5 border-t border-emerald-500/15" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                          {/* 1. His Tariff Price (سعرك) */}
+                          <div className={cn("flex items-center justify-center gap-1.5 sm:gap-2 rounded-xl border border-emerald-400/40 bg-gradient-to-r from-emerald-500/20 via-teal-500/15 to-emerald-500/20 px-2 sm:px-3 py-2 shadow-[0_0_12px_rgba(16,185,129,0.18)] min-w-0 overflow-hidden", !routeGoogleMapsUrl ? "col-span-2" : "")}>
+                            <span className="text-[11px] sm:text-xs font-bold text-emerald-300/90 shrink-0 whitespace-nowrap">
+                              {copy.yourFareShort}
                             </span>
-                            <span className="font-mono font-black text-base sm:text-lg text-white tracking-tight">
+                            <span className="font-mono font-black text-xs sm:text-sm text-white tracking-tight shrink-0 whitespace-nowrap">
                               {formatLocalizedNumber(captainPriceForCard, language)}
                             </span>
-                            <span className="text-xs font-black text-emerald-300">
+                            <span className="text-[10px] sm:text-xs font-black text-emerald-300 shrink-0 whitespace-nowrap">
                               {currency}
                             </span>
                           </div>
 
-                          {/* 2. Route Button (مسار الرحلة) */}
+                          {/* 2. Route Button (فحص الإحداثيات - Equal Width & Height) */}
                           {routeGoogleMapsUrl && (
                             <button
                               type="button"
@@ -568,12 +572,12 @@ export function RadarMapView({
                                 e.stopPropagation();
                                 window.open(routeGoogleMapsUrl, '_blank', 'noopener,noreferrer');
                               }}
-                              className="inline-flex items-center gap-1.5 rounded-xl border border-orange-500/60 bg-gradient-to-r from-orange-500/25 via-amber-500/20 to-orange-600/25 hover:from-orange-500/35 hover:via-amber-500/30 hover:to-orange-600/35 active:scale-95 px-3.5 py-1.5 text-xs sm:text-sm font-black text-orange-300 shadow-[0_0_14px_rgba(249,115,22,0.25)] transition-all cursor-pointer"
+                              className="flex items-center justify-center gap-1.5 rounded-xl border border-orange-500/60 bg-gradient-to-r from-orange-500/25 via-amber-500/20 to-orange-600/25 hover:from-orange-500/35 hover:via-amber-500/30 hover:to-orange-600/35 active:scale-95 px-2 sm:px-3 py-2 text-[11px] sm:text-xs font-black text-orange-300 shadow-[0_0_14px_rgba(249,115,22,0.25)] transition-all cursor-pointer min-w-0 overflow-hidden"
                               title={copy.tripRoute}
                               dir={language === 'ar' ? 'rtl' : 'ltr'}
                             >
-                              <Route className="h-4 w-4 stroke-[2.5]" />
-                              <span>{copy.tripRoute}</span>
+                              <Route className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 stroke-[2.5]" />
+                              <span className="whitespace-nowrap shrink-0">{copy.tripRouteShort}</span>
                             </button>
                           )}
                         </div>
@@ -1302,7 +1306,9 @@ const radarCopy = {
     cancel: 'إلغاء',
     callRider: 'اتصال بالمستخدم',
     openPickupMap: 'فتح الموقع في خرائط جوجل',
-    tripRoute: 'مسار الرحلة',
+    tripRoute: 'التحقق من احداثيات الرحلة',
+    tripRouteShort: 'فحص الإحداثيات',
+    yourFareShort: 'سعرك:',
     dumpingAmberMsg: '⚠️ تنبيه: السعر منخفض (أقل من سعر السوق بنسبة 10% إلى 14.9%)، وقد يؤثر على تقييمك ورتبتك.',
     dumpingCrimsonMsg: '🛑 تنبيه: السعر أقل من سعر السوق بأكثر من 15% (سعر محروق قد يؤثر على تقييمك ورتبتك).',
     upperWarnMsg: '⚠️ تنبيه: السعر أعلى من النطاق المعتمد (+15% فما فوق).',
@@ -1370,7 +1376,9 @@ const radarCopy = {
     cancel: 'Cancel',
     callRider: 'Call Rider',
     openPickupMap: 'Open in Google Maps',
-    tripRoute: 'Trip Route',
+    tripRoute: 'Verify trip coordinates',
+    tripRouteShort: 'Check Coordinates',
+    yourFareShort: 'Fare:',
     dumpingAmberMsg: '⚠️ Warning: Price is below market average (10% - 14.9% below), which may affect your rating.',
     dumpingCrimsonMsg: '🛑 Warning: Price is more than 15% below market average (may affect your evaluation and rating).',
     upperWarnMsg: '⚠️ Warning: Price exceeds allowed band (+15% or above).',

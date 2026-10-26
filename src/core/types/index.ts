@@ -128,6 +128,8 @@ export interface Trip {
   riderRatingCount?: number;
   riderCompletedTrips?: number;
   riderFavoritedMe?: boolean;
+  cancel_requested_by?: 'rider' | 'captain' | null;
+  cancel_request_time?: string | null;
 }
 
 export interface Offer {

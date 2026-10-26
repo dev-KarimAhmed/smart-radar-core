@@ -1453,10 +1453,10 @@
   },
   "captainPickup": {
     "tripsValue": "{count, plural, =0 {Trips: 0} one {Trips: # trip} other {Trips: # trips}}",
-    "pickupLocation": "Pickup location",
-    "pickupApproximate": "Approximate area before acceptance",
-    "pickupExact": "Exact pickup location",
-    "openPickupMap": "Open pickup map",
+    "pickupLocation": "Rendezvous location",
+    "pickupApproximate": "Approximate rendezvous area",
+    "pickupExact": "Exact rendezvous location",
+    "openPickupMap": "Open rendezvous map",
     "distanceUnavailable": "Unavailable",
     "minutesValue": "{count, plural, one {# min} other {# min}}",
     "key_4171dde6": "Key_4171dde6"
@@ -1688,7 +1688,13 @@
       "ARRIVED": "Arrived",
       "STARTED": "In progress",
       "COMPLETED": "Completed"
-    }
+    },
+    "tripInProgressTitle": "Trip in progress to destination",
+    "tripNinetyNotice": "The complete trip button will appear automatically after 90% of the estimated trip time has passed.",
+    "tripMinutesRemaining": "Approximately {minutes} min remaining until complete button appears",
+    "tripReadyToCompleteNotice": "✓ Trip route completed successfully. Tap above to complete trip and record earnings.",
+    "openDestinationMap": "Open Destination in Maps",
+    "arrivedStatus": "Arrived at pickup · Ready to start"
   },
   "transactions": {
     "useNewScreenTitle": "Use the new ride request screen",
