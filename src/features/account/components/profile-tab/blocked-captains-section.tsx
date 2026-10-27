@@ -43,10 +43,10 @@ export function BlockedCaptainsSection({ isArabic }: BlockedCaptainsSectionProps
             </div>
             <div className="min-w-0">
               <CardTitle className="text-base font-black text-white flex items-center gap-2">
-                {t('blockedCaptains')}
+                {isArabic ? 'كباتن معلنين فقدوا مصداقية إعلانهم' : t('blockedCaptains')}
               </CardTitle>
               <CardDescription className="text-xs text-slate-400 mt-0.5 leading-relaxed truncate">
-                {t('blockedCaptainsDesc')}
+                {isArabic ? 'قائمة بمن لا ترغب التعامل معهم' : t('blockedCaptainsDesc')}
               </CardDescription>
             </div>
           </div>

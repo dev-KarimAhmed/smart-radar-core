@@ -65,22 +65,39 @@ export function HistoryTab({ hideCaptainDiagnostics = false }: HistoryTabProps =
   );
 
   if (isPassenger) {
+    const hasTrips = Boolean(riderHistoricalTrips && riderHistoricalTrips.length > 0);
+
     return (
       <div className={cn(styles.style857_16, !isArabic && "font-sans")} dir={isArabic ? 'rtl' : 'ltr'}>
+        {/* Step 2: Screen Title & 72-Hour Purge Rule */}
         <Card className="relative overflow-hidden rounded-3xl border border-[#14B8A6]/20 bg-[#0B0F19]/90 shadow-2xl backdrop-blur-xl text-white">
           <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#14F5D5]/60 to-transparent" />
           <CardContent className="p-4 sm:p-5">
             <div className="space-y-1">
               <h2 className="text-lg font-black text-white flex items-center gap-2.5">
                 <History className="h-5 w-5 text-[#14F5D5]" />
-                {t('title')}
+                {isArabic ? 'سجلي مع إعلانات الكباتين:' : t('title')}
               </h2>
               <p className="text-xs text-slate-400 leading-relaxed font-sans">
-                {t('subtitle')}
+                {isArabic
+                  ? 'يتم حذف السجل في تتابع الأقدم كل 72 ساعة.'
+                  : t('subtitle')}
               </p>
             </div>
           </CardContent>
         </Card>
+
+        {/* Step 2: "بينكم تشكرك" Card - HIDE WHEN NO TRIPS, SHOW WHEN TRIPS EXIST */}
+        {hasTrips && (
+          <div className="rounded-2xl border border-[#14B8A6]/30 bg-gradient-to-r from-[#14B8A6]/10 via-[#0B0F19] to-[#14B8A6]/10 p-4 text-center shadow-lg shadow-black/20 animate-in fade-in duration-200">
+            <p className="text-sm font-black text-white">
+              <span className="text-[#14F5D5] font-black drop-shadow-[0_0_8px_rgba(20,245,213,0.4)]">بينكم</span>{' '}
+              {isArabic
+                ? 'تشكرك على تكملة نشاطك مع المعلنين'
+                : 'thanks you for completing your activity with advertisers'}
+            </p>
+          </div>
+        )}
 
         <HistoryRiderTrips
           riderHistoricalTrips={riderHistoricalTrips}

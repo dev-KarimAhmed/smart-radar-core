@@ -59,10 +59,10 @@ export function HistoryFavoriteCaptains({
             </div>
             <div className="min-w-0">
               <CardTitle className="text-base font-black text-white flex items-center gap-2">
-                {t('savedCaptainsTitle')}
+                {isArabic ? 'كباتن مفضلون' : t('savedCaptainsTitle')}
               </CardTitle>
               <CardDescription className="text-xs text-slate-400 mt-0.5 leading-relaxed truncate">
-                {t('savedCaptainsDesc')}
+                {isArabic ? 'حازوا على رضاك واضفتهم الى قائمة المفضلون' : t('savedCaptainsDesc')}
               </CardDescription>
             </div>
           </div>
@@ -83,14 +83,7 @@ export function HistoryFavoriteCaptains({
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-bold text-slate-300">
-                {t('noSavedCaptains')}
-              </p>
-              <p className="text-[11px] text-slate-500 leading-relaxed mt-0.5">
-                {isArabic ? (
-                  <>{tAuto('key_258a9b0d')} <strong className="text-[#14F5D5]">{tAuto('key_31002ea0')}</strong> {tAuto('key_e8de888f')}</>
-                ) : (
-                  <>Click the <strong className="text-[#14F5D5]">heart</strong> icon on any completed trip to add the driver to your favorites.</>
-                )}
+                {isArabic ? 'لم تقم بحفظ أي كابتن معلن في المفضلة بعد' : t('noSavedCaptains')}
               </p>
             </div>
           </div>

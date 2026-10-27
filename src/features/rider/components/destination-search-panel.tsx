@@ -1,7 +1,10 @@
 'use client';
 
-import { AlertTriangle, ExternalLink, Loader2, MapPin } from 'lucide-react';
+import React from 'react';
+import { ChevronDown, Loader2, MapPin } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
+import { cn } from '@/lib/utils';
 import type { RoadRouteEstimate } from '@/lib/road-route';
 import type { useDestinationTextSearch } from '../hooks/use-destination-text-search';
 import type { useDestinationMapPicker } from '../hooks/use-destination-map-picker';
@@ -11,17 +14,15 @@ import { DestinationSearchResults } from './destination-search-results';
 
 const styles = {
   section: "space-y-3 rounded-2xl border border-white/10 bg-[#111827]/80 p-3 shadow-lg shadow-black/15",
-  step1Header: "mb-2.5 flex items-start gap-2.5",
+  step1Header: "mb-1 flex items-start gap-2.5",
   stepBadge: "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#14B8A6]/15 text-xs font-black text-[#14F5D5]",
   stepTitle: "text-xs font-black text-white",
   stepHelper: "mt-1 text-[11px] leading-relaxed text-slate-400",
-  searchButton: "flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#14B8A6] px-4 text-sm font-black text-[#031315] transition hover:bg-[#2DD4BF] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#14F5D5] disabled:cursor-not-allowed disabled:opacity-50",
-  searchButtonIcon: "h-4 w-4",
   step2Wrapper: "border-t border-white/8 pt-3",
-  step2Header: "mb-2.5 flex items-start gap-2.5",
-  confirmButton: "flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-[#14B8A6]/35 bg-[#14B8A6]/12 px-4 text-xs font-black text-[#BFFCF2] transition-all duration-300 hover:bg-[#14B8A6]/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#14F5D5] disabled:cursor-not-allowed disabled:opacity-60",
-  confirmButtonLoadingIcon: "h-5 w-5 animate-spin",
-  confirmButtonIcon: "h-5 w-5",
+  step2Header: "mb-2 flex items-start gap-2.5",
+  confirmButton: "flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-[#14B8A6]/35 bg-[#14B8A6]/12 px-3 py-2.5 text-[11px] font-bold text-[#BFFCF2] transition-all duration-300 hover:bg-[#14B8A6]/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#14F5D5] disabled:cursor-not-allowed disabled:opacity-60",
+  confirmButtonLoadingIcon: "h-4 w-4 animate-spin",
+  confirmButtonIcon: "h-4 w-4 text-[#14F5D5] shrink-0",
 } as const;
 
 export interface DestinationSearchPanelProps {
@@ -47,40 +48,30 @@ export function DestinationSearchPanel({
   onCancelPreview,
 }: DestinationSearchPanelProps) {
   const locationCopy = useTranslations('location');
+  const { isArabic } = useDashboardLanguage();
+  const [isAccordionOpen, setIsAccordionOpen] = React.useState(true);
 
   return (
     <section className={styles.section}>
       {!isCaptainScanPreviewActive ? (
         <>
+          {/* Step 1: Destination point guidance */}
           <div>
             <div className={styles.step1Header}>
               <span className={styles.stepBadge}>1</span>
               <div>
-                <p className={styles.stepTitle}>{locationCopy('step_search_title')}</p>
+                <p className={styles.stepTitle}>{isArabic ? '1. حدد نقطة وصولك' : locationCopy('step_search_title')}</p>
                 <p className={styles.stepHelper}>{locationCopy('step_search_helper')}</p>
               </div>
             </div>
-            <a
-              href={mapPicker.googleMapsUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => mapPicker.handleOpenGoogleMapsSearch(e)}
-              aria-label={locationCopy('btn_open_google_maps')}
-              title={locationCopy('btn_open_google_maps')}
-              className={styles.searchButton}
-            >
-              <ExternalLink className={styles.searchButtonIcon} />
-              <span>
-                {locationCopy('btn_open_google_maps')}
-              </span>
-            </a>
           </div>
 
+          {/* Step 2: Lock coordinates & share with captain */}
           <div className={styles.step2Wrapper}>
             <div className={styles.step2Header}>
               <span className={styles.stepBadge}>2</span>
               <div>
-                <p className={styles.stepTitle}>{locationCopy('step_confirm_title')}</p>
+                <p className={styles.stepTitle}>{isArabic ? '2. شارك الإحداثيات' : locationCopy('step_confirm_title')}</p>
                 <p className={styles.stepHelper}>{locationCopy('step_confirm_helper')}</p>
               </div>
             </div>
@@ -90,64 +81,57 @@ export function DestinationSearchPanel({
               disabled={clipboard.isReadingClipboardLocation}
               className={styles.confirmButton}
             >
-              {clipboard.isReadingClipboardLocation ? <Loader2 className={styles.confirmButtonLoadingIcon} /> : <MapPin className={styles.confirmButtonIcon} />}
-              <span>
+              {clipboard.isReadingClipboardLocation ? (
+                <Loader2 className={styles.confirmButtonLoadingIcon} />
+              ) : (
+                <MapPin className={styles.confirmButtonIcon} />
+              )}
+              <span className="text-[11px] font-bold leading-tight">
                 {clipboard.isReadingClipboardLocation
                   ? locationCopy('status_reading_clipboard')
-                  : locationCopy('btn_confirm_and_calculate')}
+                  : (isArabic ? 'اضغط وقفل الإحداثيات وشاركه مع مقدم الخدمة (الكابتن)' : locationCopy('btn_confirm_and_calculate'))}
               </span>
             </button>
+          </div>
 
+          {/* Sovereign Dropdown Warning Accordion matching the client's design */}
+          <div className="mt-3 overflow-hidden rounded-xl border border-amber-500/70 bg-[#0B0F19] shadow-lg shadow-black/40" dir={isArabic ? 'rtl' : 'ltr'}>
             <button
               type="button"
-              onClick={() => clipboard.setShowManualPasteInput((prev) => !prev)}
-              className="mt-2 block w-full text-center text-[11px] font-bold text-[#14F5D5] transition hover:underline cursor-pointer"
+              onClick={() => setIsAccordionOpen((prev) => !prev)}
+              className="flex w-full items-center justify-between bg-[#120708] px-3.5 py-2.5 transition hover:bg-[#1a0b0d] cursor-pointer select-none"
             >
-              {clipboard.showManualPasteInput
-                ? locationCopy('btn_hide_manual_paste')
-                : locationCopy('btn_paste_manually')}
+              {/* Red Warning Pill on the far right (in RTL) */}
+              <span className="inline-flex items-center justify-center rounded-full bg-red-600 px-4 py-0.5 text-xs font-black text-white shadow-[0_0_12px_rgba(220,38,38,0.7)] tracking-wider">
+                {isArabic ? 'تنبيه' : 'Alert'}
+              </span>
+
+              {/* Yellow Chevron on the far left (in RTL) */}
+              <ChevronDown
+                className={cn(
+                  "h-4 w-4 text-yellow-400 font-black transition-transform duration-200 shrink-0",
+                  isAccordionOpen && "rotate-180"
+                )}
+              />
             </button>
 
-            {clipboard.showManualPasteInput && (
-              <div className="mt-2.5 space-y-2 rounded-xl border border-[#14B8A6]/25 bg-[#0B0F19]/90 p-2.5 shadow-inner">
-                {clipboard.clipboardPermissionDenied && (
-                  <div className="flex items-start gap-1.5 text-[11px] font-medium leading-tight text-amber-300">
-                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                    <span>{locationCopy('err_clipboard_permission_denied_hint')}</span>
-                  </div>
-                )}
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={clipboard.manualPasteText}
-                    onChange={(e) => clipboard.setManualPasteText(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && clipboard.manualPasteText.trim()) {
-                        e.preventDefault();
-                        clipboard.handleConfirmClipboardLocation(clipboard.manualPasteText.trim());
-                      }
-                    }}
-                    placeholder={locationCopy('placeholder_paste_link')}
-                    className="h-10 flex-1 rounded-lg border border-white/10 bg-black/40 px-3 text-xs text-white placeholder-slate-500 transition focus:border-[#14B8A6] focus:outline-none"
-                    dir="ltr"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (clipboard.manualPasteText.trim()) {
-                        clipboard.handleConfirmClipboardLocation(clipboard.manualPasteText.trim());
-                      }
-                    }}
-                    disabled={!clipboard.manualPasteText.trim() || clipboard.isReadingClipboardLocation}
-                    className="h-10 shrink-0 rounded-lg bg-[#14B8A6] px-3.5 text-xs font-black text-[#031315] transition hover:bg-[#2DD4BF] disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
-                  >
-                    {clipboard.isReadingClipboardLocation ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      locationCopy('btn_confirm_pasted_link')
-                    )}
-                  </button>
-                </div>
+            {isAccordionOpen && (
+              <div className="border-t border-amber-500/40 bg-[#3B0707] px-4 py-3.5 text-center space-y-1 animate-in fade-in duration-150">
+                <p className="text-xs sm:text-sm font-black text-yellow-400 leading-tight">
+                  {isArabic ? 'النظام يحقق نتائج 90 % من الدقة' : 'The system achieves 90% accuracy results'}
+                </p>
+                <p className="text-xs font-bold text-yellow-300/95 leading-tight">
+                  {isArabic ? 'تجنبا للخلاف مع المعلن' : 'To avoid disputes with the advertiser'}
+                </p>
+                <p className="text-xs font-bold text-yellow-300/90 leading-tight">
+                  {isArabic ? 'إذا رغبت' : 'If you wish'}
+                </p>
+                <p className="text-xs font-black text-yellow-400 leading-tight">
+                  {isArabic ? 'وتحقق من الاحداثيات خرائط جوجل' : 'and verify coordinates from Google Maps'}
+                </p>
+                <p className="text-xs font-black text-yellow-400 leading-none">
+                  ..
+                </p>
               </div>
             )}
           </div>

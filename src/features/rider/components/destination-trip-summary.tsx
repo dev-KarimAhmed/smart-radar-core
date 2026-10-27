@@ -9,7 +9,6 @@ import {
   Navigation,
   Plus,
   Route,
-  Search,
   Users,
 } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
@@ -19,20 +18,6 @@ import { DestinationSummaryCard } from './destination-summary-card';
 
 const styles = {
   dataError: "rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs leading-relaxed text-rose-200",
-  scanRow: "grid grid-cols-12 gap-2.5",
-  scanCard: "col-span-8 flex items-center gap-2.5 rounded-xl border border-[#14B8A6]/25 bg-[#0B1220] p-3 shadow-lg shadow-black/15 min-w-0",
-  scanIconWrapper: "relative flex h-9 w-9 shrink-0 items-center justify-center",
-  scanPing1: "absolute h-8 w-8 animate-ping rounded-full border border-[#14B8A6]/50",
-  scanPing2: "absolute h-5 w-5 animate-ping rounded-full border border-[#14F5D5]/40 [animation-delay:180ms]",
-  scanPulse: "absolute h-5 w-5 animate-pulse rounded-full bg-[#14B8A6]/20",
-  scanIcon: "relative z-10 h-4 w-4 text-[#14F5D5]",
-  scanText: "min-w-0 text-start",
-  scanTitle: "text-xs font-black text-white leading-snug",
-  captainCountCard: "col-span-4 flex flex-col items-center justify-center rounded-xl border border-[#14B8A6]/25 bg-[#0B1220] p-2 text-center shadow-lg shadow-black/15 min-w-0",
-  captainCountIconWrap: "flex h-6 w-6 items-center justify-center rounded-lg bg-[#14B8A6]/15 text-[#14F5D5]",
-  captainCountIcon: "h-3.5 w-3.5",
-  captainCountLabel: "mt-1 line-clamp-2 text-[9px] font-black leading-tight text-slate-300",
-  captainCountValue: "mt-0.5 font-mono text-base sm:text-lg font-black text-[#14F5D5]",
   passengerRow: "flex items-center justify-between rounded-xl border border-white/8 bg-[#0B1220] p-3 shadow-lg shadow-black/15 transition-colors",
   passengerRowAttention: "border-amber-500/40 bg-amber-500/[0.04]",
   passengerLabelWrap: "flex items-center gap-2.5",
@@ -118,6 +103,7 @@ export function DestinationTripSummary({
   const t = useTranslations('riderView');
   const locale = useLocale();
   const isArabic = locale === 'ar';
+
   const isPassengerCountZero = riderCount <= 0;
   const isSubmitDisabled =
     isSendingRideRequest ||
@@ -136,7 +122,7 @@ export function DestinationTripSummary({
         </div>
       ) : null}
 
-      {/* 1. ملخص الرحلة (Trip Summary Card) - ABOVE the scanning card */}
+      {/* 1. ملخص الرحلة (Trip Summary Card) */}
       <DestinationSummaryCard
         destinationReady={destinationReady}
         isServerFareLoading={isServerFareLoading}
@@ -151,44 +137,9 @@ export function DestinationTripSummary({
         nearbyCaptainCount={nearbyCaptainCount}
       />
 
-      {/* 2. جاري البحث عن سائقين + عدد السائقين المتاحين - SIDE BY SIDE */}
-      {isCaptainScanPreviewActive ? (
-        <div className={styles.scanRow}>
-          <div className={styles.scanCard} role="status">
-            <div className={styles.scanIconWrapper}>
-              {nearbyCaptainCount === 0 ? (
-                <>
-                  <span className={styles.scanPing1} />
-                  <span className={styles.scanPing2} />
-                </>
-              ) : null}
-              <span className={styles.scanPulse} />
-              <Search className={styles.scanIcon} />
-            </div>
-            <div className={styles.scanText}>
-              <p className={styles.scanTitle}>
-                {nearbyCaptainCount > 0
-                  ? locationCopy('captains_found', { count: nearbyCaptainCount })
-                  : locationCopy('status_scanning_captains')}
-              </p>
-            </div>
-          </div>
+      {/* Step 4: Page 5 - Hidden pre-request scan row per client requirement (حذف الحقول / إخفاء) */}
 
-          <div className={styles.captainCountCard} role="status">
-            <span className={styles.captainCountIconWrap}>
-              <Users className={styles.captainCountIcon} />
-            </span>
-            <span className={styles.captainCountLabel}>
-              {locationCopy('nearby_captains_label')}
-            </span>
-            <strong className={styles.captainCountValue}>
-              {nearbyCaptainCount}
-            </strong>
-          </div>
-        </div>
-      ) : null}
-
-      {/* 3. عدد الركاب (Passenger Stepper) */}
+      {/* 2. عدد الركاب (Passenger Stepper) */}
       <div className={cn(styles.passengerRow, isPassengerCountZero && styles.passengerRowAttention)}>
         <div className={styles.passengerLabelWrap}>
           <span className={styles.passengerIcon}>
@@ -233,7 +184,7 @@ export function DestinationTripSummary({
         </div>
       )}
 
-      {/* 4. اطلب الآن (Submit Button) */}
+      {/* 3. اطلب الآن (Submit Button) */}
       <div className={styles.submitWrapper}>
         {isLocationDisabled ? (
           <button

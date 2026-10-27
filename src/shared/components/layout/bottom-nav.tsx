@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { Archive, History, Home, User, Wallet } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
+import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { cn } from '@/lib/utils';
 
 const styles = {
@@ -21,6 +22,7 @@ const styles = {
 export function BottomNav() {
   const [hash, setHash] = useState(typeof window !== 'undefined' ? window.location.hash || '#' : '#');
   const { user, isSovereign } = useAuth();
+  const { isArabic } = useDashboardLanguage();
   const { toast } = useToast();
   const t = useTranslations('nav');
   const tErrors = useTranslations('errors');
@@ -61,7 +63,7 @@ export function BottomNav() {
 
   const navItems = [
     { href: '#', icon: Home, label: t('home') },
-    { href: '#history', icon: History, label: t('history') },
+    { href: '#history', icon: History, label: isPassenger ? (isArabic ? 'سجلي مع معلن' : 'My Log') : t('history') },
     { href: '#vault', icon: Archive, label: t('vault') },
     ...(!isPassenger ? [{ href: '#wallet', icon: Wallet, label: t('wallet') }] : []),
     { href: '#profile', icon: User, label: t('profile') },

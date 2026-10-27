@@ -126,10 +126,13 @@ function CaptainOfferCardBase({
       dir={isArabic ? 'rtl' : 'ltr'}
       className={cn(styles.style136_1, isPreferred ? styles.style137_2 : styles.style137_3)}
     >
-      {/* 1. اسم الكابتن والتقييم والكود في الأعلى بشكل أنيق وبدون صندوق الأفاتار الضخم */}
+      {/* 1. اسم الكابتن والتقييم - حذف الرتبة وفق الصفحة 8 */}
       <div className="p-4 pb-0 sm:p-5 sm:pb-0">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0 flex-wrap">
+            <span className="text-xs font-bold text-slate-400">
+              {isArabic ? 'المعلن' : 'Advertiser'}
+            </span>
             <h3 dir="auto" className="text-xl sm:text-2xl font-black text-[#F8FAFC] truncate">
               {captainName}
             </h3>
@@ -147,22 +150,13 @@ function CaptainOfferCardBase({
             ) : null}
           </div>
 
-          {/* الرقم التسلسلي للكابتن */}
-          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-[#14B8A6]/30 bg-[#14B8A6]/12 px-2.5 py-1 font-mono text-xs font-black text-[#14F5D5] shadow-sm">
-            <span className="text-[10px] font-bold text-slate-400">{isArabic ? 'كود:' : 'ID:'}</span>
-            <span>#{captainSerial}</span>
-          </span>
-        </div>
-
-        {/* سطر التقييم والرتبة متقابلين على الطرفين */}
-        <div className="mt-2.5 flex items-center justify-between gap-2 text-xs">
-          {/* جانب التقييم */}
-          <div className="flex items-center gap-2">
+          {/* تقييم خدماته (5/5) ★ */}
+          <div className="flex items-center gap-2 shrink-0">
             <span className="inline-flex items-center gap-1.5 rounded-lg border border-amber-400/25 bg-amber-400/10 px-2.5 py-1 text-xs font-black text-amber-300 shadow-sm">
-              <span className="text-[10px] font-bold text-slate-300">{isArabic ? 'التقييم:' : 'Rating:'}</span>
+              <span className="text-[10px] font-bold text-slate-300">{isArabic ? 'تقييم خدماته:' : 'Rating:'}</span>
               <span className="flex items-center gap-1 font-mono">
                 <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.7)]" />
-                <span>{rating}.0</span>
+                <span>({rating}/5)</span>
               </span>
             </span>
             {completedTrips > 0 ? (
@@ -171,12 +165,6 @@ function CaptainOfferCardBase({
               </span>
             ) : null}
           </div>
-
-          {/* جانب الرتبة على الطرف الآخر */}
-          <span className="inline-flex items-center gap-1.5 rounded-lg border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-2.5 py-1 text-xs font-black text-[#14F5D5] shadow-sm">
-            <span className="text-[10px] font-bold text-slate-400">{isArabic ? 'الرتبة:' : 'Rank:'}</span>
-            <span>{rankLabel}</span>
-          </span>
         </div>
       </div>
 
@@ -188,7 +176,7 @@ function CaptainOfferCardBase({
           </div>
           <div className="min-w-0 flex-1">
             <span className="block text-[10px] font-black uppercase tracking-wider text-[#14F5D5]/80 mb-0.5">
-              {isArabic ? 'الوجهة المطلوبة' : 'Destination'}
+              {isArabic ? 'يقدم عرض نقلكم إلى' : 'Offers ride to'}
             </span>
             <p className="text-xs sm:text-sm font-black text-white leading-relaxed break-words whitespace-normal" dir="auto">
               {offer.destination_label || (offer as any).destinationLabel}
@@ -318,7 +306,7 @@ function CaptainOfferCardBase({
           className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.04] px-3.5 text-xs font-black text-slate-200 transition hover:border-[#14B8A6]/35 hover:bg-[#14B8A6]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/60 cursor-pointer whitespace-nowrap"
           aria-expanded={isExpanded}
         >
-          <span>{isArabic ? 'معلومات الكابتن المعلن' : t('details')}</span>
+          <span>{isArabic ? 'تعرف على المعلن' : 'About Advertiser'}</span>
           <ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform duration-300", isExpanded ? "rotate-180" : "")} />
         </button>
       </div>

@@ -63,8 +63,8 @@ test('desktop rider dashboard preserves its original sidebar', async ({ page }) 
   await page.goto('/rider');
 
   await expect(page.getByRole('complementary', { name: 'قائمة المستخدم الرئيسية' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'اطلب رحلة' })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'رحلاتي' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /ابحث واطلب|اطلب رحلة/ })).toBeVisible();
+  await expect(page.getByRole('link', { name: /سجلي مع معلن|رحلاتي/ })).toBeVisible();
   await expect(page.getByRole('button', { name: 'تسجيل الخروج' })).toBeVisible();
 });
 

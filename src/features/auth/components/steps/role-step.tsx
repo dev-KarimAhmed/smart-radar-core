@@ -68,7 +68,7 @@ const copy = {
     roles: {
       rider: {
         title: 'مستخدم',
-        description: 'اطلب رحلتك وشوف الكباتن المعلنين القريبين منك، وحافظ على أمان حسابك.',
+        description: 'ابحث عن عروض الكابتين المعلنين في محيطك وختار العرض المناسب',
       },
       driver: {
         title: 'كابتن معلن',
@@ -97,7 +97,7 @@ const copy = {
     roles: {
       rider: {
         title: 'Rider',
-        description: 'Request your ride, view nearby drivers, and secure your account with a trust score.',
+        description: 'Search for advertiser captains in your area and choose the best offer.',
       },
       driver: {
         title: 'Captain',

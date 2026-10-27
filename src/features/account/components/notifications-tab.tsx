@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useNotifications, type AppNotification } from '@/shared/hooks/use-notifications';
+import { highlightBrand } from '@/shared/components/brand-highlight';
 import {
   Bell,
   Check,
@@ -220,6 +221,28 @@ export function NotificationsTab({ onClose }: { onClose?: () => void } = {}) {
       </div>
 
       <div className={styles.container}>
+        {/* Page 2 Sovereign Welcome Banner */}
+        <div data-step1="sovereign-welcome-banner-step1" className="mb-4 flex items-center justify-between rounded-2xl border border-[#14B8A6]/30 bg-[#060B18]/95 p-3.5 shadow-lg shadow-black/25">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 text-[#14F5D5]">
+              <Bell className="h-4 w-4" />
+            </div>
+            <p className="text-sm font-black text-white">
+              {isArabic ? (
+                <>
+                  شبكة <span className="text-[#14F5D5] font-black drop-shadow-[0_0_8px_rgba(20,245,213,0.4)]">بينكم</span> للإعلان الرقمي
+                </>
+              ) : (
+                <>
+                  <span className="text-[#14F5D5] font-black">Bynkcom</span> Digital Ad Network
+                </>
+              )}
+            </p>
+          </div>
+          <span className="text-xs font-bold text-[#14B8A6]">
+            {isArabic ? 'ترحب بك' : 'Welcomes you'}
+          </span>
+        </div>
         {/* Selection Bar in Select Mode */}
         {isSelectMode && notifications.length > 0 && (
           <div className={styles.selectionBar}>
@@ -364,7 +387,7 @@ export function NotificationsTab({ onClose }: { onClose?: () => void } = {}) {
                               !item.read ? styles.itemTitleUnread : styles.itemTitleRead
                             )}
                           >
-                            {parsed.title}
+                            {highlightBrand(parsed.title)}
                           </h3>
                         </div>
                         <span className={styles.timestamp}>
@@ -372,7 +395,7 @@ export function NotificationsTab({ onClose }: { onClose?: () => void } = {}) {
                         </span>
                       </div>
                       <p className={styles.description}>
-                        {parsed.description}
+                        {highlightBrand(parsed.description)}
                       </p>
                     </div>
 
@@ -497,7 +520,7 @@ export function NotificationsTab({ onClose }: { onClose?: () => void } = {}) {
                   <div className="space-y-3 pt-1">
                     <div className="flex items-start justify-between gap-2">
                       <h2 className="text-base sm:text-lg font-black text-white leading-snug">
-                        {displayTitle}
+                        {highlightBrand(displayTitle)}
                       </h2>
                       {parsedModal?.hasTranslation && (
                         <span className="shrink-0 text-[10px] font-bold text-[#14F5D5] bg-[#14B8A6]/15 border border-[#14B8A6]/30 px-2 py-0.5 rounded-full">
@@ -507,7 +530,7 @@ export function NotificationsTab({ onClose }: { onClose?: () => void } = {}) {
                     </div>
 
                     <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-4 text-sm leading-relaxed text-slate-200 whitespace-pre-wrap break-words max-h-64 overflow-y-auto selection:bg-[#14B8A6]/30">
-                      {displayDesc}
+                      {highlightBrand(displayDesc)}
                     </div>
                   </div>
 
@@ -575,7 +598,7 @@ export function NotificationsTab({ onClose }: { onClose?: () => void } = {}) {
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          void navigator.clipboard.writeText(`${displayTitle}\n\n${displayDesc}`);
+                          void navigator.clipboard.writeText(`${highlightBrand(displayTitle)}\n\n${highlightBrand(displayDesc)}`);
                           setCopied(true);
                           setTimeout(() => setCopied(false), 2000);
                         }}

@@ -293,7 +293,7 @@ export function AppHeader({ sidebar }: { sidebar?: ReactNode }) {
                 priority
                 className={styles.btnLogo}
               />
-              <span>{isArabic ? 'اطلب رحلة' : 'Request Ride'}</span>
+              <span>{isArabic ? 'ابحث واطلب' : 'Search & Request'}</span>
             </Button>
           </div>
         ) : (

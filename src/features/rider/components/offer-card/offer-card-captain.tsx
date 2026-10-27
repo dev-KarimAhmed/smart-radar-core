@@ -95,6 +95,11 @@ export function OfferCardCaptain({
   const lastVehicleDetailField = hasVehicleCategory ? 'category' : hasVehicleYear ? 'year' : 'plate';
   const vehicleDetailTrailingSpansFull = vehicleDetailFieldCount % 2 !== 0;
 
+  const captainSerial = captain.serial_number
+    || (captain as any)?.serial
+    || captain.id?.slice(0, 8).toUpperCase()
+    || '---';
+
   return (
     <div className={styles.sectionWrap}>
       <SectionHeader
@@ -103,6 +108,16 @@ export function OfferCardCaptain({
       />
       <div className={styles.collapsibleSectionBody}>
         <div className={styles.sectionCard}>
+          {/* رقم تسلسل المعلن في النظام وفق الصفحة 8 */}
+          <div className="mb-3.5 flex items-center justify-between rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-3.5 py-2.5 shadow-sm">
+            <span className="text-xs font-bold text-slate-300">
+              {isArabic ? 'رقم تسلسل المعلن في النظام:' : 'Advertiser System Serial:'}
+            </span>
+            <span className="font-mono text-sm font-black text-[#14F5D5] tracking-wider">
+              #{captainSerial}
+            </span>
+          </div>
+
           <div className={styles.vehicleGrid}>
             <InfoRow icon={<Car className={styles.vehicleRowIcon} />} label={t('vehicle')} value={vehicleModelLabel} />
             <InfoRow label={t('color')} value={vehicleColorLabel} />

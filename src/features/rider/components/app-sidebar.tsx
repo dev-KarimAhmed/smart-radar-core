@@ -132,7 +132,17 @@ export function AppSidebar({ isCritical = false }: { isCritical?: boolean } = {}
             priority
             className={styles.brandLogo}
           />
-          <h2 className={styles.brandTitle}>{tAuto('key_d9033ee1')}</h2>
+          <h2 className="text-sm font-black text-white">
+            {isArabic ? (
+              <>
+                شبكة <span className="text-[#14F5D5] font-black drop-shadow-[0_0_8px_rgba(20,245,213,0.35)]">بينكم</span> للإعلان الرقمي
+              </>
+            ) : (
+              <>
+                <span className="text-[#14F5D5] font-black">Bynkcom</span> Ad Network
+              </>
+            )}
+          </h2>
         </div>
         <SheetClose asChild>
           <Button aria-label={tAuto('key_f050ab3c')} className={styles.close} size="icon" variant="ghost">
@@ -144,8 +154,9 @@ export function AppSidebar({ isCritical = false }: { isCritical?: boolean } = {}
       <ScrollArea className={styles.scroll} type="scroll">
         <div className={styles.profile}>
           <div className={styles.avatar}><UserCircle className={styles.avatarIcon} /></div>
-          <h3 className={styles.name}>{user.name || tAuto('key_f38edfd8')}</h3>
+          <h3 className={styles.name}>{user.name || (isArabic ? 'مستخدم' : 'Rider')}</h3>
           <p className={styles.phone}>{user.phone}</p>
+
 
           {/* Controls inside Sidebar: Language Switch & Install App */}
           <div className="mt-4 flex items-center justify-center gap-2 flex-wrap px-4">
@@ -213,7 +224,7 @@ export function AppSidebar({ isCritical = false }: { isCritical?: boolean } = {}
               variant="ghost"
               onClick={() => { window.location.hash = '#notifications'; document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); }}
             >
-              <span className={styles.operationText}>{tAuto('key_d9de8840')}</span>
+              <span className={styles.operationText}>{isArabic ? 'التنبيهات' : 'Notifications'}</span>
               <div className="relative flex items-center gap-2">
                 <Bell className={styles.operationIcon} />
                 {hasUnread && (
@@ -233,7 +244,7 @@ export function AppSidebar({ isCritical = false }: { isCritical?: boolean } = {}
                 href="#history"
               >
                 <Button className={styles.operationButton} variant="ghost">
-                  <span className={styles.operationText}>{tAuto('key_894f7524')}</span>
+                  <span className={styles.operationText}>{isArabic ? 'سجلي مع معلن' : 'My Log with Advertiser'}</span>
                   <History className={styles.operationIcon} />
                 </Button>
               </a>
@@ -245,7 +256,7 @@ export function AppSidebar({ isCritical = false }: { isCritical?: boolean } = {}
                 href="#vault"
               >
                 <Button className={styles.operationButton} variant="ghost">
-                  <span className={styles.operationText}>{tAuto('key_0ae33a07')}</span>
+                  <span className={styles.operationText}>{isArabic ? 'الخزنة' : 'Vault'}</span>
                   <Archive className={styles.operationIcon} />
                 </Button>
               </a>

@@ -166,7 +166,11 @@ export function HistoryRiderTrips({
         ) : riderHistoricalTrips.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-6 text-center flex flex-col items-center justify-center gap-2.5 my-2">
             <AlertCircle className="h-8 w-8 text-slate-500" />
-            <p className="text-xs font-semibold text-slate-400">{t('noTrips')}</p>
+            <p className="text-xs font-semibold text-slate-400">
+              {isArabic
+                ? 'انت لم تتفاعل مع إعلانات الكباتن آخر 72 ساعة.'
+                : t('noTrips')}
+            </p>
           </div>
         ) : (
           <div className="space-y-3">

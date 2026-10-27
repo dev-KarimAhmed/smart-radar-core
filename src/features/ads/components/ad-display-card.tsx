@@ -4,6 +4,7 @@ import React from 'react';
 import { Heart, Zap } from 'lucide-react';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { cn } from '@/lib/utils';
+import { highlightBrand } from '@/shared/components/brand-highlight';
 
 const styles = {
   style87_1: "group relative isolate flex h-[360px] w-full cursor-pointer select-none flex-col justify-end overflow-hidden rounded-[28px] border border-cyan-400/10 bg-[#0B0F19] p-5 text-right shadow-[0_24px_70px_rgba(0,0,0,0.5)] transition-all duration-300 hover:border-[#14B8A6]/45 hover:shadow-[0_26px_80px_rgba(20,184,166,0.18)]",
@@ -168,10 +169,10 @@ export function AdDisplayCard({
       <div className={styles.style142_18}>
         <div className={styles.style143_19}>
           <h3 className={styles.style144_20}>
-            {title}
+            {highlightBrand(title)}
           </h3>
           <p className={styles.style147_21}>
-            {description}
+            {highlightBrand(description)}
           </p>
         </div>
 

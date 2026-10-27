@@ -39,10 +39,18 @@ function initStoreIfNeeded(): void {
 
     const initial: AppNotification[] = [
       {
-        id: 'welcome-radar',
-        title: 'مرحباً بك في منصة بينكم',
-        description: 'تم تفعيل حسابك بنجاح. حسابك جاهز لمطابقة أفضل العروض في منطقتك.',
-        timestamp: Date.now(),
+        id: 'welcome-activation',
+        title: 'تم تنشيط حسابك ...',
+        description: 'قامت إدارة المنظومة بتنشيط حسابك. يمكنك التعرف على ما تبثه شبكة بينكم من إعلانات الأسواق.',
+        timestamp: Date.now() - 1800000,
+        read: false,
+        type: 'message',
+      },
+      {
+        id: 'app-update-bync',
+        title: 'أخبار شبكة بينكم للإعلان الرقمي',
+        description: 'قامت بينكم بتحديث التطبيق وأصبح الاستفادة من الإعلانات أسرع وأسهل.',
+        timestamp: Date.now() - 3600000,
         read: false,
         type: 'system',
       },
