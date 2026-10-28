@@ -242,7 +242,7 @@ export function useRideRequestStatusSync(params: {
     const reconcile = async () => {
       const { data, error } = await supabase
         .from('ride_requests')
-        .select('id,status,completed_at,cancelled_at,accepted_offer_id,accepted_captain_id,final_fare,arrived_at,started_at,created_at,cancel_requested_by')
+        .select('id,status,completed_at,cancelled_at,accepted_offer_id,accepted_captain_id,final_fare,accepted_at,arrived_at,started_at,pickup_eta_minutes,estimated_duration_minutes,created_at,cancel_requested_by,cancel_request_time')
         .eq('id', state.requestId!)
         .maybeSingle();
 
@@ -264,14 +264,34 @@ export function useRideRequestStatusSync(params: {
         || status === 'ACTIVE'
         || status === 'IN_PROGRESS'
       ) {
-        if (state.screen !== 'TRIP_ACTIVE') {
+        const currentActiveStatus = state.activeTrip?.status?.toUpperCase();
+        const hasStatusChanged = currentActiveStatus !== status;
+        const hasArrivalChanged = Boolean(row.arrived_at) && !state.activeTrip?.arrivedAtMs;
+        const hasStartChanged = Boolean(row.started_at) && !state.activeTrip?.startedAtMs;
+        const hasCancelRequestChanged = (row.cancel_requested_by ?? null) !== (state.activeTrip?.cancel_requested_by ?? null);
+
+        if (state.screen !== 'TRIP_ACTIVE' || hasStatusChanged || hasArrivalChanged || hasStartChanged || hasCancelRequestChanged) {
           dispatch({
             type: 'SERVER_STATUS_ACCEPTED',
             row: {
               ...row,
+              accepted_offer_id: row.accepted_offer_id || state.pendingAcceptedOfferId,
               selected_offer_id: row.selected_offer_id || row.accepted_offer_id || state.pendingAcceptedOfferId,
             },
           });
+          if (status === 'ARRIVED' && announcedArrivalForRef.current !== state.requestId) {
+            announcedArrivalForRef.current = state.requestId;
+            const arrivalToast = toast({
+              title: t('trip.driverArrivedTitle'),
+              description: t('trip.driverArrivedNote'),
+              variant: 'success',
+              duration: 15000,
+            });
+            arrivalToastDismissRef.current = arrivalToast?.dismiss || null;
+            try {
+              navigator.vibrate?.([120, 60, 120]);
+            } catch {}
+          }
         }
       } else if (status === 'COMPLETED') {
         arrivalToastDismissRef.current?.();

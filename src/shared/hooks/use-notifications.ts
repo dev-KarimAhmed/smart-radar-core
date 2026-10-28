@@ -15,52 +15,99 @@ export interface AppNotification {
   type?: 'info' | 'offer' | 'trip' | 'system' | 'WALLET_CREDIT' | 'WALLET_ALERT' | 'admin_message' | 'referral' | string;
 }
 
-const STORAGE_KEY = 'radar_user_notifications_v1';
+const LEGACY_STORAGE_KEY = 'radar_user_notifications_v1';
+
+export function getNotificationStorageKey(userId: string | null): string | null {
+  if (!userId) return null;
+  return `radar_user_notifications_${userId}`;
+}
 
 // --- Singleton Memory Store ---
 let memoryNotifications: AppNotification[] = [];
+let currentStoreUserId: string | null = null;
 let isStoreInitialized = false;
 let isStoreLoaded = false;
 const storeListeners = new Set<() => void>();
 
-function initStoreIfNeeded(): void {
-  if (isStoreInitialized || typeof window === 'undefined') return;
-  isStoreInitialized = true;
+export function getInitialUserId(): string | null {
+  if (typeof window === 'undefined') return null;
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw =
+      window.localStorage.getItem('radar_supabase_auth_session') ||
+      window.sessionStorage.getItem('radar_supabase_auth_session');
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        memoryNotifications = parsed;
-        isStoreLoaded = true;
-        return;
-      }
+      if (parsed?.user?.id) return String(parsed.user.id);
     }
+  } catch {}
+  return null;
+}
 
-    const initial: AppNotification[] = [
-      {
-        id: 'welcome-activation',
-        title: 'تم تنشيط حسابك ...',
-        description: 'قامت إدارة المنظومة بتنشيط حسابك. يمكنك التعرف على ما تبثه شبكة بينكم من إعلانات الأسواق.',
-        timestamp: Date.now() - 1800000,
-        read: false,
-        type: 'message',
-      },
-      {
-        id: 'app-update-bync',
-        title: 'أخبار شبكة بينكم للإعلان الرقمي',
-        description: 'قامت بينكم بتحديث التطبيق وأصبح الاستفادة من الإعلانات أسرع وأسهل.',
-        timestamp: Date.now() - 3600000,
-        read: false,
-        type: 'system',
-      },
-    ];
-    memoryNotifications = initial;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(initial));
-    isStoreLoaded = true;
-  } catch {
-    isStoreLoaded = true;
+function purgeLegacyStorage(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.removeItem(LEGACY_STORAGE_KEY);
+  } catch {}
+}
+
+export function switchStoreUser(newUserId: string | null): void {
+  purgeLegacyStorage();
+
+  if (currentStoreUserId === newUserId && isStoreInitialized) {
+    return;
   }
+
+  currentStoreUserId = newUserId;
+  isStoreInitialized = true;
+
+  if (!newUserId) {
+    memoryNotifications = [];
+    isStoreLoaded = true;
+    notifyStoreListeners();
+    return;
+  }
+
+  if (typeof window !== 'undefined') {
+    try {
+      const storageKey = getNotificationStorageKey(newUserId);
+      const raw = storageKey ? localStorage.getItem(storageKey) : null;
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          memoryNotifications = parsed;
+          isStoreLoaded = true;
+          notifyStoreListeners();
+          return;
+        }
+      }
+    } catch {}
+  }
+
+  // New user or no cached notifications: starts cleanly with 0 notifications
+  memoryNotifications = [];
+  isStoreLoaded = true;
+  notifyStoreListeners();
+}
+
+export function clearNotificationMemoryStore(): void {
+  purgeLegacyStorage();
+  if (typeof window !== 'undefined' && currentStoreUserId) {
+    try {
+      const key = getNotificationStorageKey(currentStoreUserId);
+      if (key) localStorage.removeItem(key);
+    } catch {}
+  }
+  memoryNotifications = [];
+  currentStoreUserId = null;
+  isStoreInitialized = true;
+  isStoreLoaded = true;
+  notifyStoreListeners();
+}
+
+function initStoreIfNeeded(explicitUserId?: string | null): void {
+  if (isStoreInitialized || typeof window === 'undefined') return;
+  const targetUserId = explicitUserId !== undefined ? explicitUserId : getInitialUserId();
+  switchStoreUser(targetUserId);
 }
 
 function notifyStoreListeners(): void {
@@ -69,12 +116,16 @@ function notifyStoreListeners(): void {
   }
 }
 
-function updateStore(newItems: AppNotification[]): void {
+function updateStore(newItems: AppNotification[], targetUserId?: string | null): void {
+  const uid = targetUserId || currentStoreUserId;
   memoryNotifications = newItems;
   isStoreLoaded = true;
-  if (typeof window !== 'undefined') {
+  if (typeof window !== 'undefined' && uid) {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(newItems));
+      const storageKey = getNotificationStorageKey(uid);
+      if (storageKey) {
+        localStorage.setItem(storageKey, JSON.stringify(newItems));
+      }
     } catch {}
   }
   notifyStoreListeners();
@@ -100,36 +151,32 @@ function getServerSnapshot(): AppNotification[] {
 // Multi-tab storage sync
 if (typeof window !== 'undefined') {
   window.addEventListener('storage', (e) => {
-    if (e.key === STORAGE_KEY && e.newValue) {
-      try {
-        const parsed = JSON.parse(e.newValue);
-        if (Array.isArray(parsed)) {
-          memoryNotifications = parsed;
-          notifyStoreListeners();
-        }
-      } catch {}
+    if (!currentStoreUserId) return;
+    const currentKey = getNotificationStorageKey(currentStoreUserId);
+    if (!currentKey) return;
+
+    if (e.key === currentKey) {
+      if (e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (Array.isArray(parsed)) {
+            memoryNotifications = parsed;
+            notifyStoreListeners();
+          }
+        } catch {}
+      } else {
+        memoryNotifications = [];
+        notifyStoreListeners();
+      }
     }
   });
-}
-
-function getInitialUserId(): string | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    const raw =
-      window.localStorage.getItem('radar_supabase_auth_session') ||
-      window.sessionStorage.getItem('radar_supabase_auth_session');
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (parsed?.user?.id) return String(parsed.user.id);
-    }
-  } catch {}
-  return null;
 }
 
 let isGlobalFetching = false;
 let lastFetchTimestamp = 0;
 
-async function fetchRemoteNotificationsGlobal(currentUserId: string): Promise<void> {
+async function fetchRemoteNotificationsGlobal(targetUserId: string): Promise<void> {
+  if (!targetUserId) return;
   const now = Date.now();
   if (isGlobalFetching || now - lastFetchTimestamp < 1500) return;
   isGlobalFetching = true;
@@ -139,7 +186,7 @@ async function fetchRemoteNotificationsGlobal(currentUserId: string): Promise<vo
     const { data, error } = await supabase
       .from('user_notifications')
       .select('id, title, description, is_read, type, created_at')
-      .eq('user_id', currentUserId)
+      .eq('user_id', targetUserId)
       .order('created_at', { ascending: false })
       .limit(50);
 
@@ -147,6 +194,9 @@ async function fetchRemoteNotificationsGlobal(currentUserId: string): Promise<vo
       if (process.env.NODE_ENV !== 'production') console.warn('[useNotifications] fetch error:', error);
       return;
     }
+
+    // If the active user changed while request was in-flight, discard response
+    if (currentStoreUserId !== targetUserId) return;
 
     const remoteItems: AppNotification[] = Array.isArray(data)
       ? data.map((row: any) => ({
@@ -162,41 +212,23 @@ async function fetchRemoteNotificationsGlobal(currentUserId: string): Promise<vo
     const map = new Map<string, AppNotification>();
     remoteItems.forEach((item) => map.set(item.id, item));
 
-    // Preserve any local items not yet in remote DB
-    memoryNotifications.forEach((item) => {
-      if (!map.has(item.id)) {
-        map.set(item.id, item);
-      }
-    });
-
-    if (map.size === 0) {
-      const welcomeNotif: AppNotification = {
-        id: 'welcome-radar',
-        title: 'مرحباً بك في رادار',
-        description: 'تم تفعيل حسابك بنجاح. رادارك الذكي جاهز لمطابقة أفضل العروض في منطقتك.',
-        timestamp: Date.now(),
-        read: false,
-        type: 'system',
-      };
-      map.set(welcomeNotif.id, welcomeNotif);
-      void supabase.from('user_notifications').upsert(
-        {
-          id: welcomeNotif.id,
-          user_id: currentUserId,
-          title: welcomeNotif.title,
-          description: welcomeNotif.description,
-          type: welcomeNotif.type,
-          is_read: false,
-        },
-        { onConflict: 'id' }
-      );
+    // Preserve any local items for this same user not yet in remote DB
+    if (currentStoreUserId === targetUserId) {
+      memoryNotifications.forEach((item) => {
+        if (!map.has(item.id)) {
+          map.set(item.id, item);
+        }
+      });
     }
+
+    // New accounts start with exactly 0 notifications!
+    // No hardcoded dummy welcome notifications inserted.
 
     const merged = Array.from(map.values())
       .sort((a, b) => b.timestamp - a.timestamp)
       .slice(0, 50);
 
-    updateStore(merged);
+    updateStore(merged, targetUserId);
   } catch (err) {
     if (process.env.NODE_ENV !== 'production') console.warn('[useNotifications] fetch exception:', err);
   } finally {
@@ -209,7 +241,16 @@ let activeRealtimeUserId: string | null = null;
 let activeChannel: any = null;
 let latestToastFn: ((title: string, desc?: string, variant?: 'default' | 'destructive') => void) | null = null;
 
-function setupRealtimeChannelIfNeeded(userId: string) {
+function setupRealtimeChannelIfNeeded(userId: string | null): void {
+  if (!userId) {
+    if (activeChannel) {
+      void supabase.removeChannel(activeChannel);
+      activeChannel = null;
+    }
+    activeRealtimeUserId = null;
+    return;
+  }
+
   if (activeRealtimeUserId === userId && activeChannel) return;
 
   if (activeChannel) {
@@ -290,20 +331,35 @@ export function useNotifications() {
     let isMounted = true;
 
     supabase.auth.getSession().then(({ data }) => {
-      if (isMounted && data?.session?.user?.id) {
-        setUserId(data.session.user.id);
+      if (!isMounted) return;
+      const uid = data?.session?.user?.id ?? null;
+      setUserId(uid);
+      switchStoreUser(uid);
+      setupRealtimeChannelIfNeeded(uid);
+      if (uid) {
+        void fetchRemoteNotificationsGlobal(uid);
       }
     });
 
     supabase.auth.getUser().then(({ data }) => {
-      if (isMounted && data?.user?.id) {
-        setUserId(data.user.id);
+      if (!isMounted) return;
+      if (data?.user?.id) {
+        const uid = data.user.id;
+        setUserId(uid);
+        switchStoreUser(uid);
+        setupRealtimeChannelIfNeeded(uid);
+        void fetchRemoteNotificationsGlobal(uid);
       }
     });
 
-    const { data: authSub } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (isMounted) {
-        setUserId(session?.user?.id || getInitialUserId());
+    const { data: authSub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!isMounted) return;
+      const uid = session?.user?.id ?? (event === 'SIGNED_OUT' ? null : getInitialUserId());
+      setUserId(uid);
+      switchStoreUser(uid);
+      setupRealtimeChannelIfNeeded(uid);
+      if (uid) {
+        void fetchRemoteNotificationsGlobal(uid);
       }
     });
 
@@ -313,21 +369,11 @@ export function useNotifications() {
     };
   }, []);
 
-  // Fetch when user ID is available
-  useEffect(() => {
-    if (userId) {
-      void fetchRemoteNotificationsGlobal(userId);
-    }
-  }, [userId]);
-
-  // Realtime channel listener
-  useEffect(() => {
-    if (!userId) return;
-    setupRealtimeChannelIfNeeded(userId);
-  }, [userId]);
-
   // Add notification
   const addNotification = useCallback((item: Omit<AppNotification, 'timestamp' | 'read'> & { id?: string; read?: boolean }) => {
+    const targetUserId = userId || currentStoreUserId || getInitialUserId();
+    if (!targetUserId) return;
+
     const notifId = item.id || `notif_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
     const newNotif: AppNotification = {
       ...item,
@@ -338,28 +384,25 @@ export function useNotifications() {
 
     const filtered = memoryNotifications.filter((n) => n.id !== notifId);
     const updated = [newNotif, ...filtered].slice(0, 50);
-    updateStore(updated);
+    updateStore(updated, targetUserId);
 
-    const targetUserId = userId || getInitialUserId();
-    if (targetUserId) {
-      void supabase.from('user_notifications').upsert({
-        id: newNotif.id,
-        user_id: targetUserId,
-        title: newNotif.title,
-        description: newNotif.description,
-        type: newNotif.type || 'system',
-        is_read: newNotif.read,
-        created_at: new Date(newNotif.timestamp).toISOString(),
-      }, { onConflict: 'id' });
-    }
+    void supabase.from('user_notifications').upsert({
+      id: newNotif.id,
+      user_id: targetUserId,
+      title: newNotif.title,
+      description: newNotif.description,
+      type: newNotif.type || 'system',
+      is_read: newNotif.read,
+      created_at: new Date(newNotif.timestamp).toISOString(),
+    }, { onConflict: 'id' });
   }, [userId]);
 
   // Mark single notification as read
   const markAsRead = useCallback(async (notificationId: string) => {
+    const targetUserId = userId || currentStoreUserId || getInitialUserId();
     const updated = memoryNotifications.map((n) => (n.id === notificationId ? { ...n, read: true } : n));
-    updateStore(updated);
+    updateStore(updated, targetUserId);
 
-    const targetUserId = userId || getInitialUserId();
     if (!targetUserId) return;
 
     try {
@@ -378,10 +421,10 @@ export function useNotifications() {
 
   // Mark all notifications as read
   const markAllAsRead = useCallback(async () => {
+    const targetUserId = userId || currentStoreUserId || getInitialUserId();
     const updated = memoryNotifications.map((n) => ({ ...n, read: true }));
-    updateStore(updated);
+    updateStore(updated, targetUserId);
 
-    const targetUserId = userId || getInitialUserId();
     if (!targetUserId) return;
 
     try {
@@ -401,11 +444,11 @@ export function useNotifications() {
   // Delete specific notifications (single or bulk)
   const deleteNotifications = useCallback(async (idsToDelete: string[]) => {
     if (!idsToDelete || idsToDelete.length === 0) return;
+    const targetUserId = userId || currentStoreUserId || getInitialUserId();
     const deleteSet = new Set(idsToDelete);
     const updated = memoryNotifications.filter((n) => !deleteSet.has(n.id));
-    updateStore(updated);
+    updateStore(updated, targetUserId);
 
-    const targetUserId = userId || getInitialUserId();
     if (!targetUserId) return;
 
     try {
@@ -424,9 +467,9 @@ export function useNotifications() {
 
   // Clear all
   const clearAll = useCallback(async () => {
-    updateStore([]);
+    const targetUserId = userId || currentStoreUserId || getInitialUserId();
+    updateStore([], targetUserId);
 
-    const targetUserId = userId || getInitialUserId();
     if (!targetUserId) return;
 
     try {
@@ -466,7 +509,7 @@ export function useNotifications() {
     clearAll,
     isLoaded: isStoreLoaded,
     refreshNotifications: () => {
-      const targetUserId = userId || getInitialUserId();
+      const targetUserId = userId || currentStoreUserId || getInitialUserId();
       if (targetUserId) void fetchRemoteNotificationsGlobal(targetUserId);
     },
   };

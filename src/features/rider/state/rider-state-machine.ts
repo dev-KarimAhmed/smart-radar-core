@@ -207,6 +207,7 @@ function buildDestinationFromRow(
 }
 
 function buildActiveTrip(state: RiderMachineState, acceptedRow: Record<string, unknown>): RiderActiveTrip | null {
+  const existing = state.activeTrip;
   const acceptedOfferId =
     firstString(acceptedRow.accepted_offer_id, acceptedRow.offer_id, acceptedRow.selected_offer_id) ||
     state.pendingAcceptedOfferId;
@@ -222,23 +223,24 @@ function buildActiveTrip(state: RiderMachineState, acceptedRow: Record<string, u
     offer.driverId === acceptedCaptainId
   ));
 
-  if (!selectedOffer && !acceptedCaptainId) return null;
+  if (!selectedOffer && !acceptedCaptainId && !existing) return null;
 
   const vehicle = selectedOffer?.driverVehicle || {};
   const distanceKm = state.destination?.fareQuote?.estimatedRoadDistanceKm
     ?? firstNumber(acceptedRow.estimated_distance_km, acceptedRow.route_distance_km)
+    ?? existing?.distanceKm
     ?? 0;
   const estimatedTripMinutes = firstNumber(
     acceptedRow.estimated_duration_minutes,
     acceptedRow.route_duration_minutes,
     acceptedRow.trip_duration_minutes
-  ) ?? Math.max(1, Math.ceil((distanceKm || 2) * 1.5));
+  ) ?? existing?.tripDurationMinutes ?? Math.max(1, Math.ceil((distanceKm || 2) * 1.5));
 
   const rowCaptain = (acceptedRow.captain || acceptedRow.captain_profile) as Record<string, any> | undefined;
 
   return {
-    tripId: firstString(acceptedRow.trip_id, acceptedRow.active_trip_id, acceptedRow.id) || state.requestId || '',
-    captainId: selectedOffer?.driverId || acceptedCaptainId || '',
+    tripId: firstString(acceptedRow.trip_id, acceptedRow.active_trip_id, acceptedRow.id) || existing?.tripId || state.requestId || '',
+    captainId: selectedOffer?.driverId || acceptedCaptainId || existing?.captainId || '',
     captainName:
       selectedOffer?.captain?.full_name ||
       selectedOffer?.captain?.nickname ||
@@ -246,15 +248,17 @@ function buildActiveTrip(state: RiderMachineState, acceptedRow: Record<string, u
       rowCaptain?.nickname ||
       selectedOffer?.driverName ||
       firstString(acceptedRow.driver_name, acceptedRow.captain_name) ||
+      existing?.captainName ||
       'السائق',
     captainSerial:
       selectedOffer?.driverName ||
       firstString(acceptedRow.driver_serial, acceptedRow.captain_serial, acceptedRow.driver_name, acceptedRow.captain_name) ||
       acceptedCaptainId ||
+      existing?.captainSerial ||
       'السائق',
-    captainPhone: selectedOffer?.driverAffiliation?.phone || firstString(acceptedRow.driver_phone, acceptedRow.captain_phone, acceptedRow.phone) || '',
-    vehicleType: vehicle.type || `${vehicle.make || 'سيارة'} ${vehicle.color || ''}`.trim(),
-    vehiclePlate: vehicle.plate || firstString(acceptedRow.vehicle_plate, acceptedRow.plate) || 'غير متاح',
+    captainPhone: selectedOffer?.driverAffiliation?.phone || firstString(acceptedRow.driver_phone, acceptedRow.captain_phone, acceptedRow.phone) || existing?.captainPhone || '',
+    vehicleType: vehicle.type || `${vehicle.make || 'سيارة'} ${vehicle.color || ''}`.trim() || existing?.vehicleType || 'سيارة',
+    vehiclePlate: vehicle.plate || firstString(acceptedRow.vehicle_plate, acceptedRow.plate) || existing?.vehiclePlate || 'غير متاح',
     finalPrice:
       firstNumber(
         acceptedRow.final_fare,
@@ -265,24 +269,25 @@ function buildActiveTrip(state: RiderMachineState, acceptedRow: Record<string, u
       ) ??
       (selectedOffer?.price === -1
         ? state.destination?.serverEstimatedFare ?? 0
-        : selectedOffer?.price ?? state.destination?.serverEstimatedFare ?? 0),
+        : selectedOffer?.price ?? state.destination?.serverEstimatedFare ?? existing?.finalPrice ?? 0),
     destinationLabel: state.destination?.label
       || firstString(acceptedRow.destination_address_ar, acceptedRow.destination_address, acceptedRow.destination_address_en)
+      || existing?.destinationLabel
       || 'وجهة',
     distanceKm,
-    originCell: state.destination?.originCell ?? state.destination?.fareQuote?.originCell,
-    destinationCell: state.destination?.destinationCell ?? state.destination?.fareQuote?.destinationCell,
-    tortuosityFactor: state.destination?.fareQuote?.tortuosityFactor,
-    etaSeconds: Math.round(estimatedTripMinutes * 60),
-    startedAt: Date.now(),
-    acceptedAtMs: toEpochMs(acceptedRow.accepted_at),
-    arrivedAtMs: toEpochMs(acceptedRow.arrived_at),
-    startedAtMs: toEpochMs(acceptedRow.started_at),
-    pickupEtaMinutes: firstNumber(acceptedRow.pickup_eta_minutes, selectedOffer?.pickup_eta_minutes) ?? undefined,
+    originCell: state.destination?.originCell ?? state.destination?.fareQuote?.originCell ?? existing?.originCell,
+    destinationCell: state.destination?.destinationCell ?? state.destination?.fareQuote?.destinationCell ?? existing?.destinationCell,
+    tortuosityFactor: state.destination?.fareQuote?.tortuosityFactor ?? existing?.tortuosityFactor,
+    etaSeconds: Math.round(estimatedTripMinutes * 60) || existing?.etaSeconds || 120,
+    startedAt: existing?.startedAt ?? Date.now(),
+    acceptedAtMs: toEpochMs(acceptedRow.accepted_at) ?? existing?.acceptedAtMs,
+    arrivedAtMs: toEpochMs(acceptedRow.arrived_at) ?? existing?.arrivedAtMs,
+    startedAtMs: toEpochMs(acceptedRow.started_at) ?? existing?.startedAtMs,
+    pickupEtaMinutes: firstNumber(acceptedRow.pickup_eta_minutes, selectedOffer?.pickup_eta_minutes) ?? existing?.pickupEtaMinutes,
     tripDurationMinutes: estimatedTripMinutes,
-    captain: selectedOffer?.captain || rowCaptain || null,
-    status: String(acceptedRow.status || 'ACCEPTED').toUpperCase(),
-    cancel_requested_by: (acceptedRow.cancel_requested_by as any) || null,
+    captain: selectedOffer?.captain || rowCaptain || existing?.captain || null,
+    status: String(acceptedRow.status || existing?.status || 'ACCEPTED').toUpperCase(),
+    cancel_requested_by: (acceptedRow.cancel_requested_by as any) ?? existing?.cancel_requested_by ?? null,
   };
 }
 

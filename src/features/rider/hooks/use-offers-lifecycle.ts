@@ -110,6 +110,12 @@ export function useOffersLifecycle(
     };
     void runRefresh();
 
+    const intervalId = window.setInterval(() => void runRefresh(), 2_500);
+    const onVisible = () => { if (document.visibilityState === 'visible') void runRefresh(); };
+    const onFocus = () => void runRefresh();
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', onFocus);
+
     const unsubscribe = subscribeToRideOffers(
       supabase,
       state.requestId,
@@ -121,6 +127,9 @@ export function useOffersLifecycle(
 
     return () => {
       isMounted = false; // لا يجوز بعد الإلغاء
+      window.clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', onFocus);
       unsubscribe();
     };
   }, [refreshOffers, state.requestCancelledAt, state.requestId, state.screen]);

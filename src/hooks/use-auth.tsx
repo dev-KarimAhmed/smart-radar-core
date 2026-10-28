@@ -167,6 +167,9 @@ function AuthContent({ children }: { children: ReactNode }) {
           setUser(buildUserFromSupabaseAuth(session.user) as SovereignUser);
         } else if (_event === 'SIGNED_OUT') {
           setUser(null);
+          void import('@/shared/hooks/use-notifications').then(({ clearNotificationMemoryStore }) => {
+            clearNotificationMemoryStore();
+          }).catch(() => {});
         }
         finishBootstrap();
       });
@@ -387,6 +390,10 @@ function AuthContent({ children }: { children: ReactNode }) {
     await cancelActiveRequestBeforeLogout(user);
     clearSupabaseSessionCache();
     purgeTransientFrontendCache();
+    try {
+      const { clearNotificationMemoryStore } = await import('@/shared/hooks/use-notifications');
+      clearNotificationMemoryStore();
+    } catch {}
     if (typeof window !== 'undefined') {
       window.localStorage.removeItem('radar_admin_active_id');
       window.sessionStorage.removeItem('radar_admin_active_id');
@@ -563,6 +570,7 @@ export function purgeTransientFrontendCache() {
   const localKeys = [
     'sovereign_gps_local_buffer',
     'radar_rider_local_reports',
+    'radar_user_notifications_v1',
   ];
 
   for (const key of sessionKeys) {
@@ -572,6 +580,21 @@ export function purgeTransientFrontendCache() {
   for (const key of localKeys) {
     window.localStorage.removeItem(key);
   }
+
+  try {
+    for (let i = window.localStorage.length - 1; i >= 0; i--) {
+      const key = window.localStorage.key(i);
+      if (key && (key.startsWith('radar_user_notifications_') || key === 'radar_user_notifications_v1')) {
+        window.localStorage.removeItem(key);
+      }
+    }
+  } catch {}
+
+  try {
+    void import('@/shared/hooks/use-notifications').then(({ clearNotificationMemoryStore }) => {
+      clearNotificationMemoryStore();
+    }).catch(() => {});
+  } catch {}
 }
 
 function restorePreservedLanguage(language: string | null) {

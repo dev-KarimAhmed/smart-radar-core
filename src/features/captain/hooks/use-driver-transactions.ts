@@ -110,6 +110,27 @@ export function useDriverTransactions(
     let isCancelled = false;
 
     const checkStillPending = async () => {
+      // 1. Check if the rider accepted this captain's offer directly on ride_requests
+      const { data: myAccepted } = await supabase
+        .from('ride_requests')
+        .select('id, status, accepted_captain_id')
+        .eq('id', pendingOfferRequestId)
+        .eq('accepted_captain_id', captainId)
+        .maybeSingle();
+
+      if (isCancelled) return;
+
+      if (myAccepted && String(myAccepted.status || '').toUpperCase() === 'ACCEPTED') {
+        clearPendingOffer();
+        try {
+          await loadAcceptedRequest(pendingOfferRequestId);
+        } catch (e) {
+          if (process.env.NODE_ENV !== 'production') console.warn('[Driver transactions] loadAcceptedRequest error:', e);
+        }
+        return;
+      }
+
+      // 2. If not accepted by this captain, check if still pending in the open radar
       const { data, error } = await supabase
         .from('captain_radar_requests')
         .select('id, created_at')
@@ -206,6 +227,56 @@ export function useDriverTransactions(
   useEffect(() => {
     if (!activeRequest?.id) return;
 
+    let cancelled = false;
+
+    const reconcileActiveTrip = async () => {
+      const { data, error } = await supabase
+        .from('ride_requests')
+        .select('*')
+        .eq('id', activeRequest.id)
+        .maybeSingle();
+
+      if (cancelled || error || !data) return;
+
+      const row = data as RideRequestRow;
+      const status = String(row.status || '').toUpperCase();
+
+      if (status === 'COMPLETED' || status === 'CANCELLED') {
+        if (status === 'CANCELLED' && selfCancelledTripId.current !== activeRequest.id) {
+          toast({
+            title: t('tripCancelledTitle'),
+            description: t('tripCancelledDesc'),
+            variant: 'warning',
+            duration: 12000,
+          });
+        }
+        cleanUpAndReset();
+        return;
+      }
+
+      const nextTrip = mapRideRequestToTrip(row);
+      if (nextTrip && !cancelled) {
+        setActiveReq((prev) => {
+          if (!prev) return nextTrip;
+          if (
+            prev.status !== nextTrip.status ||
+            prev.arrivedAtMs !== nextTrip.arrivedAtMs ||
+            prev.startedAtMs !== nextTrip.startedAtMs ||
+            prev.cancel_requested_by !== nextTrip.cancel_requested_by
+          ) {
+            return nextTrip;
+          }
+          return prev;
+        });
+      }
+    };
+
+    const interval = window.setInterval(() => void reconcileActiveTrip(), 3_000);
+    const onVisible = () => { if (document.visibilityState === 'visible') void reconcileActiveTrip(); };
+    const onFocus = () => void reconcileActiveTrip();
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', onFocus);
+
     const channel = supabase
       .channel(`driver-request-status-${activeRequest.id}`)
       .on(
@@ -241,9 +312,13 @@ export function useDriverTransactions(
       .subscribe();
 
     return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+      document.removeEventListener('focus', onFocus);
       void channel.unsubscribe();
     };
-  }, [activeRequest?.id, cleanUpAndReset]);
+  }, [activeRequest?.id, cleanUpAndReset, t, toast]);
 
   useEffect(() => {
     if (!captainId) return;
