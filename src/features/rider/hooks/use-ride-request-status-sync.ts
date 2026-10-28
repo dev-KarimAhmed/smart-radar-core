@@ -242,7 +242,7 @@ export function useRideRequestStatusSync(params: {
     const reconcile = async () => {
       const { data, error } = await supabase
         .from('ride_requests')
-        .select('id,status,completed_at,cancelled_at,accepted_offer_id,selected_offer_id,created_at')
+        .select('id,status,completed_at,cancelled_at,accepted_offer_id,selected_offer_id,created_at,cancel_requested_by')
         .eq('id', state.requestId!)
         .maybeSingle();
 

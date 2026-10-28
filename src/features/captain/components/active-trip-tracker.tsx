@@ -258,6 +258,7 @@ export function ActiveTripTracker({
     requestId: request.id,
     role: 'captain',
     tripDurationMinutes,
+    initialCancelRequestedBy: request.cancel_requested_by,
     onCancelledConfirmed: onCancelTrip,
   });
 

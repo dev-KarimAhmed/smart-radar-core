@@ -51,7 +51,7 @@ export async function POST(req: Request) {
     // 1. Fetch current trip to verify existence and cancellable status
     const { data: requestRow, error: fetchErr } = await supabaseAdmin
       .from('ride_requests')
-      .select('id, status, accepted_captain_id, rider_id, estimated_duration_minutes, route_duration_minutes, cancel_requested_by')
+      .select('id, status, accepted_captain_id, rider_id, estimated_duration_minutes, cancel_requested_by')
       .eq('id', requestId)
       .maybeSingle();
 

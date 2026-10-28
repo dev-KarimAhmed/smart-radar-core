@@ -255,7 +255,25 @@ function CaptainOfferCardBase({
         </div>
       ) : null}
 
-      {/* 4. تفاصيل الوصول والمسافة */}
+      {/* 4. كارد السعر ونوع التسعير فوق تفاصيل الوصول والمسافة */}
+      <div className="mx-4 mt-3 flex items-center justify-between rounded-xl border border-[#14B8A6]/35 bg-gradient-to-r from-[#14B8A6]/15 via-[#081324] to-[#040812] px-4 py-3 shadow-md sm:mx-5">
+        {/* السعر على اليمين في RTL */}
+        <div className="flex items-baseline gap-1.5" dir="ltr">
+          <strong className="text-2xl sm:text-3xl font-black leading-none text-[#14F5D5] font-mono drop-shadow-[0_0_10px_rgba(20,245,213,0.35)]">
+            {finalFare.toFixed(2)}
+          </strong>
+          <span className="text-xs sm:text-sm font-black text-[#14F5D5]">{currencyCode}</span>
+        </div>
+
+        {/* نوع التسعير (سعر حر / ...) على اليسار في RTL */}
+        <div className="shrink-0">
+          <span className="text-xs sm:text-sm font-black text-[#14F5D5] tracking-wide">
+            {pricingLabel}
+          </span>
+        </div>
+      </div>
+
+      {/* 5. تفاصيل الوصول والمسافة */}
       <div className="mx-4 mt-3 grid grid-cols-3 overflow-hidden rounded-xl border border-white/[0.07] bg-black/30 sm:mx-5">
         <div className="px-2 py-2.5 text-center">
           <span className="block text-[10px] font-bold leading-tight text-[#94A3B8]">{isArabic ? 'وصول الكابتن المعلن' : t('arrivesIn')}</span>
@@ -268,24 +286,6 @@ function CaptainOfferCardBase({
         <div className="border-s border-white/[0.07] px-2 py-2.5 text-center">
           <span className="block text-[10px] font-bold leading-tight text-[#94A3B8]">{t('tripDistance')}</span>
           <span className="mt-1 block text-sm sm:text-base font-black text-white">{Number(tripDistance || 0).toFixed(1)} {t('km')}</span>
-        </div>
-      </div>
-
-      {/* 5. سطر السعر ونوع التسعير بنفس ديزاين المستخدم (سعر تطبيق / اوبر بجانب السعر وتحتهما خط فاصل) */}
-      <div className="mx-4 mt-3.5 sm:mx-5 pb-2.5 border-b border-[#D5BF76]/70 flex items-center justify-between gap-3">
-        {/* السعر على اليمين في RTL */}
-        <div className="flex items-baseline gap-1.5" dir="ltr">
-          <strong className="text-xl sm:text-2xl font-black leading-none text-[#14F5D5] font-mono">
-            {finalFare.toFixed(2)}
-          </strong>
-          <span className="text-xs sm:text-sm font-black text-[#14F5D5]">{currencyCode}</span>
-        </div>
-
-        {/* نوع التسعير كنص صريح بدون صندوق على اليسار في RTL */}
-        <div className="shrink-0">
-          <span className="text-xs sm:text-sm font-black text-[#14F5D5] tracking-wide">
-            {pricingLabel}
-          </span>
         </div>
       </div>
 

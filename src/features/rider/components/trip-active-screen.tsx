@@ -69,6 +69,7 @@ export function TripActiveScreen({
     requestId: activeTrip.tripId,
     role: 'rider',
     tripDurationMinutes,
+    initialCancelRequestedBy: activeTrip.cancel_requested_by,
     onCancelledConfirmed: onCancelRideRequest,
   });
 
@@ -193,7 +194,7 @@ export function TripActiveScreen({
               {isArabic ? 'عليك التحقق من لوحة السيارة' : 'Verify vehicle plate before boarding'}
             </h4>
             <p className="text-[10px] sm:text-xs font-bold text-amber-200/80 mt-0.5">
-              {isArabic ? 'لأمانك، تأكد من مطابقة رقم اللوحة ونوع السيارة ولونها قبل الركوب' : 'For your safety, match the plate, model, and color before boarding'}
+              {isArabic ? 'تحقق من مصداقية البيانات المعروضة في الخدمة' : 'Verify the authenticity of the data displayed in the service'}
             </p>
           </div>
         </div>
@@ -245,7 +246,7 @@ export function TripActiveScreen({
             {isArabic ? 'تكلفة الرحلة النهائية' : t('trip.finalCost')}
           </span>
           <span className="block text-[10px] font-bold text-[#14F5D5]/80 mt-0.5">
-            {isArabic ? 'سعر ثابت ومؤكد شامل الرحلة' : 'Fixed guaranteed fare'}
+            {isArabic ? 'المعلن ملتزم بقيمة العرض المقدم' : 'The advertiser is committed to the submitted offer'}
           </span>
         </div>
         <div className="text-end" dir="ltr">
@@ -336,7 +337,7 @@ export function TripActiveScreen({
             className="w-full flex items-center justify-center gap-2 h-12 rounded-xl border border-rose-500/40 bg-rose-500/15 hover:bg-rose-500/25 text-rose-200 font-black text-sm py-2.5 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 shadow-md shadow-rose-500/10"
           >
             <X className="h-4 w-4 text-rose-400" />
-            <span>{mutualCancel.isProcessing ? (isArabic ? 'جاري الإرسال...' : 'Sending...') : (isArabic ? 'طلب إلغاء الرحلة' : 'Request Cancellation')}</span>
+            <span>{mutualCancel.isProcessing ? (isArabic ? 'جاري الإرسال...' : 'Sending...') : (isArabic ? 'طلب إلغاء الرحلة ×' : 'Request Trip Cancellation ×')}</span>
           </button>
         ) : (
           <div className="space-y-2.5">

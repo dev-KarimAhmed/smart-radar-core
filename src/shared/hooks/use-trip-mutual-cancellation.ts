@@ -9,6 +9,7 @@ export interface UseTripMutualCancellationProps {
   requestId?: string;
   role: 'rider' | 'captain';
   tripDurationMinutes?: number;
+  initialCancelRequestedBy?: 'rider' | 'captain' | null;
   onCancelledConfirmed?: () => Promise<void> | void;
 }
 
@@ -34,10 +35,20 @@ export function useTripMutualCancellation({
   requestId,
   role,
   tripDurationMinutes = 20,
+  initialCancelRequestedBy = null,
   onCancelledConfirmed,
 }: UseTripMutualCancellationProps): UseTripMutualCancellationReturn {
   const { toast } = useToast();
-  const [pendingRequestFrom, setPendingRequestFrom] = useState<'rider' | 'captain' | null>(null);
+  const [pendingRequestFrom, setPendingRequestFrom] = useState<'rider' | 'captain' | null>(
+    initialCancelRequestedBy || null
+  );
+
+  useEffect(() => {
+    if (initialCancelRequestedBy !== undefined) {
+      setPendingRequestFrom(initialCancelRequestedBy);
+    }
+  }, [initialCancelRequestedBy]);
+
   const [isProcessing, setIsProcessing] = useState(false);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
