@@ -25,7 +25,7 @@ export const ADMIN_SECTORS: AdminSectorConfig[] = [
     id: 'wallet',
     labelAr: 'المحفظة والشحن',
     labelEn: 'Wallet & Recharge',
-    descriptionAr: 'شحن الأرصدة، باقات دقائق الطيران، والتحويلات المالية',
+    descriptionAr: 'شحن الأرصدة، باقات الدقائق، والتحويلات المالية',
     iconName: 'Wallet',
   },
   {

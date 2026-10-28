@@ -1,47 +1,40 @@
 'use client';
 
 import React from 'react';
-import {
-  Sparkles,
-  Image as ImageIcon,
-  Phone,
-  MessageSquare,
-  MapPin,
-  ShieldCheck,
-  CheckCircle,
-  Loader2,
-  AlertTriangle,
-} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { jordanGovernorates, getDistrictsByGovernorate } from '@/lib/data';
+import { ShieldCheck, CheckCircle, Loader2 } from 'lucide-react';
+import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
+import { cn } from '@/lib/utils';
 
 interface AdvertiserCampaignWizardProps {
   step: number;
-  setStep: (s: number) => void;
+  setStep: (step: number) => void;
   title: string;
-  setTitle: (t: string) => void;
+  setTitle: (val: string) => void;
   description: string;
-  setDescription: (d: string) => void;
+  setDescription: (val: string) => void;
   governorate: string;
-  setGovernorate: (g: string) => void;
+  setGovernorate: (val: string) => void;
   district: string;
-  setDistrict: (d: string) => void;
+  setDistrict: (val: string) => void;
+  jordanGovernorates?: string[];
   districts: string[];
+  getDistrictsByGovernorate?: (gov: string) => string[];
   posterUrl: string;
-  setPosterUrl: (u: string) => void;
+  setPosterUrl: (val: string) => void;
   whatsapp: string;
-  setWhatsapp: (w: string) => void;
+  setWhatsapp: (val: string) => void;
   phone: string;
-  setPhone: (p: string) => void;
+  setPhone: (val: string) => void;
   geoLoc: string;
-  setGeoLoc: (l: string) => void;
+  setGeoLoc: (val: string) => void;
   buttonText: string;
-  setButtonText: (b: string) => void;
+  setButtonText: (val: string) => void;
   targetImpressions: number;
-  setTargetImpressions: (i: number) => void;
-  currentPackage: any;
+  setTargetImpressions: (val: number) => void;
+  currentPackage?: any;
   calculatedCost: number;
   advertiserBalance: number;
   isSimulatingAudit: boolean;
@@ -51,6 +44,77 @@ interface AdvertiserCampaignWizardProps {
   onLaunchAudit: () => void;
   onReset: () => void;
 }
+
+const copy = {
+  ar: {
+    steps: [
+      { num: 1, label: 'البيانات والاستهداف' },
+      { num: 2, label: 'الوسائط والاستحواذ' },
+      { num: 3, label: 'الفحص السيادي والإطلاق' },
+    ],
+    campaignTitle: 'عنوان الحملة الإعلانية',
+    campaignTitlePh: 'مثال: خصم 20% على طلبات الصيانة الميدانية...',
+    descriptionLabel: 'وصف الإعلان الجذاب',
+    descriptionPh: 'اكتب رسالتك التسويقية الموجهة للركاب والكباتن...',
+    targetGov: 'المحافظة المستهدفة',
+    targetDistrict: 'اللواء / المنطقة',
+    nextToMedia: 'متابعة إلى روابط الاستحواذ ⬅',
+    titleRequiredAlert: 'يرجى كتابة عنوان الحملة أولاً',
+    posterUrlLabel: 'رابط صورة البوستر أو الفيديو',
+    posterUrlPh: 'https://... رابط صورة البوستر بجودة عالية',
+    whatsappLabel: 'رقم الواتساب للاستحواذ المباشر',
+    phoneLabel: 'رقم الاتصال الهاتفي السريع',
+    geoLocLabel: 'رابط خرائط جوجل أو صفحة الهبوط',
+    buttonTextLabel: 'نص زر التفاعل (Call to Action)',
+    buttonTextPh: 'تواصل واحجز الآن 🚀',
+    targetImpressionsLabel: 'عدد المشاهدات المستهدفة',
+    impressionsUnit: 'ظهور',
+    totalCost: 'التكلفة الإجمالية للحملة:',
+    currency: 'د.أ',
+    currentBalance: 'رصيدك الحالي:',
+    backStep: '➡ العودة للخطوة السابقة',
+    launchAuditBtn: 'بدء الفحص الجنائي والإطلاق السيادي 🛡️',
+    auditEngineHeader: 'محرك التحقق الجنائي السيادي [SCR-AD-INTEGRITY-112]',
+    auditRunning: 'جاري إكمال بروتوكولات التدقيق ومطابقة السجل...',
+    auditSuccessTitle: 'تم إطلاق الحملة وتوزيعها جغرافياً بنجاح!',
+    auditSuccessDesc: (dist: string) => `الحملة أصبحت نشطة وتظهر للركاب والكباتن في نطاق ${dist}، وتم خصم التكلفة مسبقاً من رصيدك السيادي.`,
+    backToDashboard: 'العودة للوحة الإعلانات الرئيسية',
+  },
+  en: {
+    steps: [
+      { num: 1, label: 'Targeting & Info' },
+      { num: 2, label: 'Media & Action' },
+      { num: 3, label: 'Audit & Launch' },
+    ],
+    campaignTitle: 'Campaign Headline',
+    campaignTitlePh: 'e.g. 20% off on express vehicle maintenance...',
+    descriptionLabel: 'Engaging Ad Description',
+    descriptionPh: 'Write your marketing message targeted to riders and captains...',
+    targetGov: 'Target Governorate',
+    targetDistrict: 'District / Area',
+    nextToMedia: 'Proceed to Actions & Links ➡',
+    titleRequiredAlert: 'Please enter a campaign headline first',
+    posterUrlLabel: 'Poster Image or Video Link',
+    posterUrlPh: 'https://... High quality image URL',
+    whatsappLabel: 'WhatsApp Direct Action Number',
+    phoneLabel: 'Direct Call Phone Number',
+    geoLocLabel: 'Google Maps or Landing Page URL',
+    buttonTextLabel: 'Call to Action Button Text',
+    buttonTextPh: 'Contact & Book Now 🚀',
+    targetImpressionsLabel: 'Target Impressions',
+    impressionsUnit: 'views',
+    totalCost: 'Total Campaign Cost:',
+    currency: 'JOD',
+    currentBalance: 'Current Balance:',
+    backStep: '⬅ Back to Previous Step',
+    launchAuditBtn: 'Start Forensic Audit & Sovereign Launch 🛡️',
+    auditEngineHeader: 'Forensic Sovereign Audit Engine [SCR-AD-INTEGRITY-112]',
+    auditRunning: 'Executing audit protocols and verifying ledger compliance...',
+    auditSuccessTitle: 'Campaign Launched & Geographically Distributed!',
+    auditSuccessDesc: (dist: string) => `The campaign is now live for riders and captains in ${dist}, with cost pre-deducted from your balance.`,
+    backToDashboard: 'Back to Advertiser Dashboard',
+  },
+} as const;
 
 export function AdvertiserCampaignWizard({
   step,
@@ -63,7 +127,9 @@ export function AdvertiserCampaignWizard({
   setGovernorate,
   district,
   setDistrict,
+  jordanGovernorates = ['عمّان', 'إربد', 'الزرقاء', 'البلقاء', 'العقبة', 'مادبا', 'جرش', 'عجلون', 'المفرق', 'الكرك', 'الطفيلة', 'معان'],
   districts,
+  getDistrictsByGovernorate = () => [],
   posterUrl,
   setPosterUrl,
   whatsapp,
@@ -76,7 +142,6 @@ export function AdvertiserCampaignWizard({
   setButtonText,
   targetImpressions,
   setTargetImpressions,
-  currentPackage,
   calculatedCost,
   advertiserBalance,
   isSimulatingAudit,
@@ -86,15 +151,14 @@ export function AdvertiserCampaignWizard({
   onLaunchAudit,
   onReset,
 }: AdvertiserCampaignWizardProps) {
+  const { isArabic, direction } = useDashboardLanguage();
+  const t = copy[isArabic ? 'ar' : 'en'];
+
   return (
-    <div className="rounded-2xl border border-emerald-500/20 bg-[#070b14] p-5 space-y-5">
+    <div className={cn("rounded-2xl border border-emerald-500/20 bg-[#070b14] p-5 space-y-5 font-sans", isArabic ? "text-right" : "text-left")} dir={direction}>
       {/* Wizard Progress Steps Indicator */}
       <div className="flex items-center justify-between border-b border-white/10 pb-4">
-        {[
-          { num: 1, label: 'البيانات والاستهداف' },
-          { num: 2, label: 'الوسائط والاستحواذ' },
-          { num: 3, label: 'الفحص السيادي والإطلاق' },
-        ].map((s) => (
+        {t.steps.map((s) => (
           <div
             key={s.num}
             className={`flex items-center gap-2 ${
@@ -125,29 +189,29 @@ export function AdvertiserCampaignWizard({
       {step === 1 && (
         <div className="space-y-4 animate-in fade-in duration-200">
           <div className="space-y-1.5">
-            <Label className="text-xs font-bold text-slate-300">عنوان الحملة الإعلانية</Label>
+            <Label className="text-xs font-bold text-slate-300">{t.campaignTitle}</Label>
             <Input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="مثال: خصم 20% على طلبات الصيانة الميدانية..."
+              placeholder={t.campaignTitlePh}
               className="h-11 rounded-xl border-white/10 bg-black/40 text-sm font-bold text-white placeholder-slate-500"
             />
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs font-bold text-slate-300">وصف الإعلان الجذاب</Label>
+            <Label className="text-xs font-bold text-slate-300">{t.descriptionLabel}</Label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
-              placeholder="اكتب رسالتك التسويقية الموجهة للركاب والكباتن..."
+              placeholder={t.descriptionPh}
               className="w-full rounded-xl border border-white/10 bg-black/40 p-3 text-sm font-bold text-white placeholder-slate-500 outline-none focus:border-emerald-500"
             />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-slate-300">المحافظة المستهدفة</Label>
+              <Label className="text-xs font-bold text-slate-300">{t.targetGov}</Label>
               <select
                 value={governorate}
                 onChange={(e) => {
@@ -166,7 +230,7 @@ export function AdvertiserCampaignWizard({
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-slate-300">اللواء / المنطقة</Label>
+              <Label className="text-xs font-bold text-slate-300">{t.targetDistrict}</Label>
               <select
                 value={district}
                 onChange={(e) => setDistrict(e.target.value)}
@@ -186,14 +250,14 @@ export function AdvertiserCampaignWizard({
               type="button"
               onClick={() => {
                 if (!title) {
-                  alert('يرجى كتابة عنوان الحملة أولاً');
+                  alert(t.titleRequiredAlert);
                   return;
                 }
                 setStep(2);
               }}
               className="h-11 px-6 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs"
             >
-              متابعة إلى روابط الاستحواذ ⬅
+              {t.nextToMedia}
             </Button>
           </div>
         </div>
@@ -203,18 +267,18 @@ export function AdvertiserCampaignWizard({
       {step === 2 && (
         <div className="space-y-4 animate-in fade-in duration-200">
           <div className="space-y-1.5">
-            <Label className="text-xs font-bold text-slate-300">رابط صورة البوستر أو الفيديو</Label>
+            <Label className="text-xs font-bold text-slate-300">{t.posterUrlLabel}</Label>
             <Input
               value={posterUrl}
               onChange={(e) => setPosterUrl(e.target.value)}
-              placeholder="https://... رابط صورة البوستر بجودة عالية"
+              placeholder={t.posterUrlPh}
               className="h-11 rounded-xl border-white/10 bg-black/40 text-sm font-bold text-white placeholder-slate-500 font-mono text-left"
             />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-slate-300">رقم الواتساب للاستحواذ المباشر</Label>
+              <Label className="text-xs font-bold text-slate-300">{t.whatsappLabel}</Label>
               <Input
                 value={whatsapp}
                 onChange={(e) => setWhatsapp(e.target.value)}
@@ -224,7 +288,7 @@ export function AdvertiserCampaignWizard({
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-slate-300">رقم الاتصال الهاتفي السريع</Label>
+              <Label className="text-xs font-bold text-slate-300">{t.phoneLabel}</Label>
               <Input
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
@@ -236,7 +300,7 @@ export function AdvertiserCampaignWizard({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-slate-300">رابط خرائط جوجل أو صفحة الهبوط</Label>
+              <Label className="text-xs font-bold text-slate-300">{t.geoLocLabel}</Label>
               <Input
                 value={geoLoc}
                 onChange={(e) => setGeoLoc(e.target.value)}
@@ -246,18 +310,18 @@ export function AdvertiserCampaignWizard({
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-slate-300">نص زر التفاعل (Call to Action)</Label>
+              <Label className="text-xs font-bold text-slate-300">{t.buttonTextLabel}</Label>
               <Input
                 value={buttonText}
                 onChange={(e) => setButtonText(e.target.value)}
-                placeholder="تواصل واحجز الآن 🚀"
+                placeholder={t.buttonTextPh}
                 className="h-11 rounded-xl border-white/10 bg-black/40 text-sm font-bold text-white placeholder-slate-500"
               />
             </div>
           </div>
 
           <div className="space-y-1.5 pt-2">
-            <Label className="text-xs font-bold text-slate-300">عدد المشاهدات المستهدفة</Label>
+            <Label className="text-xs font-bold text-slate-300">{t.targetImpressionsLabel}</Label>
             <div className="flex items-center gap-3">
               <input
                 type="range"
@@ -269,7 +333,7 @@ export function AdvertiserCampaignWizard({
                 className="flex-1 accent-emerald-500"
               />
               <span className="w-24 text-center font-mono font-black text-emerald-400 bg-black/50 p-2 rounded-xl border border-white/10 text-xs">
-                {targetImpressions.toLocaleString()} ظهور
+                {targetImpressions.toLocaleString()} {t.impressionsUnit}
               </span>
             </div>
           </div>
@@ -277,13 +341,13 @@ export function AdvertiserCampaignWizard({
           {/* Cost Summary Preview */}
           <div className="rounded-xl border border-emerald-500/20 bg-emerald-950/30 p-3.5 flex items-center justify-between">
             <div>
-              <p className="text-xs text-slate-400 font-bold">التكلفة الإجمالية للحملة:</p>
+              <p className="text-xs text-slate-400 font-bold">{t.totalCost}</p>
               <p className="text-xl font-black text-emerald-300 font-mono">
-                {calculatedCost.toFixed(2)} د.أ
+                {calculatedCost.toFixed(2)} {t.currency}
               </p>
             </div>
             <div className="text-left text-[11px] font-bold text-slate-400 font-mono">
-              رصيدك الحالي: {advertiserBalance.toFixed(2)} د.أ
+              {t.currentBalance} {advertiserBalance.toFixed(2)} {t.currency}
             </div>
           </div>
 
@@ -294,14 +358,14 @@ export function AdvertiserCampaignWizard({
               onClick={() => setStep(1)}
               className="h-11 rounded-xl text-slate-400 hover:text-white"
             >
-              ➡ العودة للخطوة السابقة
+              {t.backStep}
             </Button>
             <Button
               type="button"
               onClick={onLaunchAudit}
               className="h-11 px-6 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs shadow-lg shadow-emerald-500/20"
             >
-              بدء الفحص الجنائي والإطلاق السيادي 🛡️
+              {t.launchAuditBtn}
             </Button>
           </div>
         </div>
@@ -315,7 +379,7 @@ export function AdvertiserCampaignWizard({
               <div className="flex items-center gap-2">
                 <ShieldCheck className="h-5 w-5 text-emerald-400" />
                 <h4 className="text-xs font-black text-white">
-                  محرك التحقق الجنائي السيادي [SCR-AD-INTEGRITY-112]
+                  {t.auditEngineHeader}
                 </h4>
               </div>
               <span className="text-xs font-mono font-black text-emerald-400">
@@ -341,7 +405,7 @@ export function AdvertiserCampaignWizard({
               {isSimulatingAudit && (
                 <div className="flex items-center gap-2 text-slate-400 pt-1">
                   <Loader2 className="h-3.5 w-3.5 animate-spin text-emerald-400" />
-                  <span>جاري إكمال بروتوكولات التدقيق ومطابقة السجل...</span>
+                  <span>{t.auditRunning}</span>
                 </div>
               )}
             </div>
@@ -350,10 +414,10 @@ export function AdvertiserCampaignWizard({
               <div className="rounded-xl border border-emerald-500/40 bg-emerald-950/40 p-4 text-center space-y-2">
                 <CheckCircle className="h-8 w-8 text-emerald-400 mx-auto" />
                 <h3 className="text-sm font-black text-white">
-                  تم إطلاق الحملة وتوزيعها جغرافياً بنجاح!
+                  {t.auditSuccessTitle}
                 </h3>
                 <p className="text-xs text-slate-300 leading-relaxed">
-                  الحملة أصبحت نشطة وتظهر للركاب والكباتن في نطاق {district}، وتم خصم التكلفة مسبقاً من رصيدك السيادي.
+                  {t.auditSuccessDesc(district)}
                 </p>
                 <div className="pt-2">
                   <Button
@@ -361,7 +425,7 @@ export function AdvertiserCampaignWizard({
                     onClick={onReset}
                     className="h-10 px-5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs"
                   >
-                    العودة للوحة الإعلانات الرئيسية
+                    {t.backToDashboard}
                   </Button>
                 </div>
               </div>

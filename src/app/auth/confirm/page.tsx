@@ -80,11 +80,13 @@ function ConfirmContent() {
     };
   }, [searchParams]);
 
+  const langParam = searchParams?.get('lang') || 'ar';
+  const isArabic = langParam !== 'en';
   const roleParam = searchParams?.get('role') || '';
   const loginUrl = roleParam === 'captain' || roleParam === 'driver' ? '/login/driver' : '/';
 
   return (
-    <div className="relative min-h-screen bg-[#070B14] flex flex-col justify-center items-center p-4 overflow-hidden font-sans text-slate-100" dir="rtl">
+    <div className="relative min-h-screen bg-[#070B14] flex flex-col justify-center items-center p-4 overflow-hidden font-sans text-slate-100" dir={isArabic ? "rtl" : "ltr"}>
       {/* Background ambient glow */}
       <div className="pointer-events-none absolute w-[500px] h-[500px] bg-[#14B8A6]/10 rounded-full blur-[140px] top-1/4 left-1/4" />
       <div className="pointer-events-none absolute w-[400px] h-[400px] bg-[#3B82F6]/10 rounded-full blur-[120px] bottom-1/4 right-1/4" />
@@ -107,8 +109,8 @@ function ConfirmContent() {
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#14B8A6]/15 border border-[#14B8A6]/30 text-[#14F5D5]">
               <Loader2 className="h-8 w-8 animate-spin" />
             </div>
-            <h1 className="text-xl font-black text-white">جارٍ التحقق من تأكيد حسابك...</h1>
-            <p className="text-sm text-slate-400">يرجى الانتظار لحظة بينما نقوم بتفعيل حسابك.</p>
+            <h1 className="text-xl font-black text-white">{isArabic ? "جارٍ التحقق من تأكيد حسابك..." : "Verifying account confirmation..."}</h1>
+            <p className="text-sm text-slate-400">{isArabic ? "يرجى الانتظار لحظة بينما نقوم بتفعيل حسابك." : "Please wait a moment while we activate your account."}</p>
           </div>
         )}
 
@@ -120,10 +122,10 @@ function ConfirmContent() {
 
             <div className="space-y-2">
               <h1 className="text-2xl font-black text-white tracking-tight">
-                {status === 'already' ? 'حسابك مؤكد ومفعل بالفعل!' : '🎉 تم تأكيد حسابك بنجاح!'}
+                {status === 'already' ? (isArabic ? 'حسابك مؤكد ومفعل بالفعل!' : 'Your account is already verified!') : (isArabic ? '🎉 تم تأكيد حسابك بنجاح!' : '🎉 Account confirmed successfully!')}
               </h1>
               <p className="text-sm leading-relaxed text-slate-300">
-                تم التحقق من بريدك الإلكتروني بنجاح، وأصبح حسابك مفعل وجاهز للاستخدام بالكامل.
+                {isArabic ? 'تم التحقق من بريدك الإلكتروني بنجاح، وأصبح حسابك مفعل وجاهز للاستخدام بالكامل.' : 'Your email has been verified successfully. Your account is active and ready to use.'}
               </p>
             </div>
 
@@ -132,7 +134,7 @@ function ConfirmContent() {
                 href={loginUrl}
                 className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#14F5D5] to-[#14B8A6] px-6 py-4 text-base font-black text-[#04140F] shadow-[0_10px_30px_rgba(20,184,166,0.35)] transition-all hover:brightness-110 active:scale-95 cursor-pointer"
               >
-                <span>تسجيل الدخول الآن</span>
+                <span>{isArabic ? 'تسجيل الدخول الآن' : 'Log In Now'}</span>
                 <ArrowRight className="h-5 w-5" />
               </Link>
             </div>
@@ -146,9 +148,9 @@ function ConfirmContent() {
             </div>
 
             <div className="space-y-2">
-              <h1 className="text-xl font-black text-white">رابط التأكيد غير صالح أو منتهي</h1>
+              <h1 className="text-xl font-black text-white">{isArabic ? "رابط التأكيد غير صالح أو منتهي" : "Confirmation link is invalid or expired"}</h1>
               <p className="text-sm leading-relaxed text-slate-300">
-                {errorMessage || 'قد يكون رابط التأكيد انتهت صلاحيته أو تم استخدامه مسبقاً.'}
+                {errorMessage || (isArabic ? 'قد يكون رابط التأكيد انتهت صلاحيته أو تم استخدامه مسبقاً.' : 'The confirmation link may have expired or already been used.')}
               </p>
             </div>
 
@@ -157,7 +159,7 @@ function ConfirmContent() {
                 href={loginUrl}
                 className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-6 py-3.5 text-sm font-black text-white hover:bg-white/10 transition-all cursor-pointer"
               >
-                <span>الانتقال لتسجيل الدخول</span>
+                <span>{isArabic ? 'الانتقال لتسجيل الدخول' : 'Go to Login'}</span>
               </Link>
             </div>
           </div>
@@ -165,7 +167,7 @@ function ConfirmContent() {
 
         <div className="pt-4 border-t border-white/5 flex items-center justify-center gap-1.5 text-xs text-slate-500">
           <ShieldCheck className="h-4 w-4 text-[#14B8A6]" />
-          <span>منظومة الحماية والأمان الموحدة — بينكم &copy; 2026</span>
+          <span>{isArabic ? 'منظومة الحماية والأمان الموحدة — بينكم © 2026' : 'Unified Security & Safety System — Bynkcom © 2026'}</span>
         </div>
       </div>
     </div>

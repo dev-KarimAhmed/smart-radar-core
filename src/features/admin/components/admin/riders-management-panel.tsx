@@ -134,11 +134,27 @@ export function RidersManagementPanel() {
   const handleGovernorateChange = useCallback((val: string) => {
     setSelectedGovernorate(val);
     setSelectedDistrict('ALL');
-  }, []);
+    if (val !== 'ALL') {
+      const gov = geoLookup.governorates.find((g) => String(g.id) === val);
+      if (gov) {
+        setSelectedCountry(String(gov.country_id));
+      }
+    }
+  }, [geoLookup.governorates]);
 
   const handleDistrictChange = useCallback((val: string) => {
     setSelectedDistrict(val);
-  }, []);
+    if (val !== 'ALL') {
+      const dist = geoLookup.districts.find((d) => String(d.id) === val);
+      if (dist) {
+        const gov = geoLookup.governorates.find((g) => g.id === dist.governorate_id);
+        if (gov) {
+          setSelectedGovernorate(String(gov.id));
+          setSelectedCountry(String(gov.country_id));
+        }
+      }
+    }
+  }, [geoLookup.districts, geoLookup.governorates]);
 
   const handleResetGeo = useCallback(() => {
     setSelectedCountry('ALL');

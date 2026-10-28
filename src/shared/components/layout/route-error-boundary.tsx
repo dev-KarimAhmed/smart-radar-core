@@ -42,19 +42,25 @@ export class RouteErrorBoundary extends Component<RouteErrorBoundaryProps, Route
   public render() {
     if (!this.state.hasError) return this.props.children;
 
+    const isArabic = typeof document !== 'undefined'
+      ? document.documentElement.lang !== 'en' && document.documentElement.dir !== 'ltr'
+      : true;
+
     return (
-      <div className={styles.root}>
+      <div className={styles.root} dir={isArabic ? 'rtl' : 'ltr'}>
         <Card className={styles.card}>
           <CardHeader className={styles.header}>
             <ShieldAlert className={styles.icon} aria-hidden="true" />
-            <CardTitle>عذراً، حدث خطأ غير متوقع</CardTitle>
+            <CardTitle>{isArabic ? 'عذراً، حدث خطأ غير متوقع' : 'Sorry, an unexpected error occurred'}</CardTitle>
             <CardDescription className={styles.description}>
               {getSovereignErrorMessage(this.state.error || { code: 'SYS_COMPONENT_CRASH' })}
             </CardDescription>
           </CardHeader>
           <CardContent className={styles.content}>
             <p className={styles.body}>
-              نواجه مشكلة مؤقتة في تحميل هذا الجزء. يرجى إعادة المحاولة مرة أخرى، وبقية الخدمات تعمل بشكل طبيعي.
+              {isArabic
+                ? 'نواجه مشكلة مؤقتة في تحميل هذا الجزء. يرجى إعادة المحاولة مرة أخرى، وبقية الخدمات تعمل بشكل طبيعي.'
+                : 'We are experiencing a temporary issue loading this section. Please try again; all other services remain operational.'}
             </p>
             {this.state.error && (
               <div className="mt-4 p-3 bg-black/80 rounded-xl text-left font-mono text-xs text-red-300 overflow-auto max-h-60 whitespace-pre-wrap select-all border border-red-500/30">
@@ -68,7 +74,7 @@ export class RouteErrorBoundary extends Component<RouteErrorBoundaryProps, Route
                 onClick={() => this.setState({ hasError: false, error: null })}
                 className="px-4 py-2 rounded-xl bg-destructive hover:bg-destructive/80 text-white text-xs font-bold transition-all cursor-pointer"
               >
-                إعادة المحاولة
+                {isArabic ? 'إعادة المحاولة' : 'Try Again'}
               </button>
             </div>
           </CardContent>

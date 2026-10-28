@@ -1,23 +1,22 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   UserCheck,
   Plus,
   Edit2,
   Trash2,
+  Check,
   Phone,
   MessageCircle,
-  MapPin,
-  Check,
   Loader2,
   AlertTriangle,
   RefreshCw,
   Search,
-  Filter,
-  ShieldCheck,
-  Layers,
+  MapPin,
   Building,
+  Power,
+  ShieldCheck,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -35,32 +34,187 @@ import {
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { adminFetch } from '@/features/admin/lib/admin-api-client';
-import type { FinancialDelegate } from '@/features/admin/types/wallet-directory';
-import { cn } from '@/lib/utils';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
+import { cn } from '@/lib/utils';
 
-interface GeoEntity {
-  id: number;
-  name_ar: string;
-  name_en?: string;
-  country_id?: number;
-  governorate_id?: number;
+export interface FinancialDelegate {
+  id: string;
+  name: string;
+  phone: string;
+  whatsapp?: string | null;
+  countryId?: number | null;
+  governorateId?: number | null;
+  governorateName?: string | null;
+  districtId?: number | null;
+  districtName?: string | null;
+  notes?: string | null;
+  isActive: boolean;
+  createdAt?: string;
 }
 
+const copy = {
+  ar: {
+    title: 'المناديب المالية وشحن الرصيد (بناءً على المحافظة والمنطقة)',
+    subtitle: 'إضافة وتعديل وحذف أرقام المناديب المالية الميدانيين وتعيين تغطيتهم الجغرافية لكل محافظة أو منطقة لظهورها التلقائي للكابتن.',
+    refresh: 'تحديث',
+    addNew: 'إضافة مندوب مالي جديد',
+    totalDelegates: 'إجمالي المناديب المسجلين',
+    activeDelegates: 'المناديب الفاعلون (يظهرون للكباتن)',
+    coveredGovs: 'المحافظات المغطاة',
+    govsUnit: 'محافظات',
+    searchPh: 'بحث بالاسم، الهاتف، المحافظة...',
+    allCountries: 'كل الدول',
+    jordan: 'الأردن',
+    egypt: 'مصر',
+    allGovs: 'كل المحافظات',
+    loading: 'جاري تحميل دليل المناديب المالية...',
+    emptySearch: 'لا توجد مناديب تطابق معايير البحث',
+    emptySearchDesc: 'اضغط على زر "إضافة مندوب مالي جديد" لإضافة مندوب لمنطقة أو محافظة معينة.',
+    addNow: 'إضافة مندوب الآن',
+    districtLabel: 'منطقة:',
+    govLabel: 'محافظة:',
+    generalDelegate: 'مندوب عام لكافة المناطق',
+    active: 'مفعل',
+    inactive: 'معطل',
+    phoneLabel: 'رقم الهاتف والتواصل:',
+    call: 'اتصال',
+    whatsapp: 'واتساب',
+    directCall: 'اتصال مباشر',
+    whatsappChat: 'محادثة واتساب',
+    toggleAria: 'تفعيل أو تعطيل المندوب',
+    visibleToCaptain: 'ظاهر في بطاقة الكابتن',
+    hiddenFromCaptain: 'مخفي',
+    edit: 'تعديل',
+    delete: 'حذف',
+    editModalTitle: 'تعديل بيانات المندوب المالي',
+    addModalTitle: 'إضافة مندوب مالي جديد',
+    modalDesc: 'عيّن المندوب ومحافظته أو منطقته ليظهر تلقائياً لكباتن تلك المنطقة في بطاقة الشحن المالي.',
+    delegateName: 'اسم المندوب المالي *',
+    delegateNamePh: 'مثال: أبو محمد - مندوب وادي السير',
+    phoneInput: 'رقم الهاتف (للاتصال) *',
+    whatsappInput: 'رقم الواتساب',
+    whatsappPh: 'نفس الهاتف إن ترك فارغاً',
+    country: 'الدولة',
+    jordanOption: 'الأردن (Jordan)',
+    egyptOption: 'مصر (Egypt)',
+    gov: 'المحافظة',
+    allGovsOption: 'عام (كل المحافظات)',
+    district: 'المنطقة / اللواء',
+    wholeGovOption: 'كامل المحافظة',
+    notesLabel: 'ملاحظات / ساعات العمل والتواجد',
+    notesPh: 'مثال: متواجد يومياً من 10 صباحاً حتى 10 مساءً للشحن المباشر نقداً.',
+    activateNow: 'تفعيل المندوب فوراً لكباتن المنطقة',
+    saveUpdate: 'تحديث وحفظ',
+    addDelegate: 'إضافة المندوب',
+    cancel: 'إلغاء',
+    confirmDeleteTitle: 'تأكيد حذف المندوب المالي',
+    confirmDeleteDesc: (name: string) => `هل أنت متأكد من حذف المندوب "${name}"؟ لن يظهر في بطاقة التواصل لكباتن منطقته.`,
+    confirmDeleteBtn: 'نعم، حذف المندوب',
+    back: 'تراجع',
+    fetchFailTitle: 'فشل جلب المناديب',
+    networkErrorTitle: 'خطأ شبكي',
+    networkErrorDesc: 'تعذر الاتصال بالخادم',
+    incompleteDataTitle: 'بيانات غير مكتملة',
+    incompleteDataDesc: 'يرجى إدخال اسم المندوب ورقم هاتفه',
+    opSuccess: 'نجاح العملية',
+    saveFailTitle: 'فشل الحفظ',
+    errorTitle: 'خطأ',
+    saveErrorDesc: 'حدث خطأ أثناء حفظ التغييرات',
+    updated: 'تم التحديث',
+    toggleError: 'تعذر تعديل حالة المندوب',
+    deleted: 'تم الحذف',
+    deleteFail: 'فشل الحذف',
+    deleteError: 'تعذر حذف المندوب',
+  },
+  en: {
+    title: 'Financial Delegates & Cash Recharge (By Governorate & Sector)',
+    subtitle: 'Manage on-field financial delegates and their geographic coverage for automatic display in captain recharge vouchers.',
+    refresh: 'Refresh',
+    addNew: 'Add New Financial Delegate',
+    totalDelegates: 'Total Registered Delegates',
+    activeDelegates: 'Active Delegates (Visible to Captains)',
+    coveredGovs: 'Covered Governorates',
+    govsUnit: 'governorates',
+    searchPh: 'Search by name, phone, governorate...',
+    allCountries: 'All Countries',
+    jordan: 'Jordan',
+    egypt: 'Egypt',
+    allGovs: 'All Governorates',
+    loading: 'Loading financial delegates directory...',
+    emptySearch: 'No delegates match search criteria',
+    emptySearchDesc: 'Click "Add New Financial Delegate" to assign a delegate to a specific sector or city.',
+    addNow: 'Add Delegate Now',
+    districtLabel: 'District:',
+    govLabel: 'Gov:',
+    generalDelegate: 'Universal Delegate (All Regions)',
+    active: 'Active',
+    inactive: 'Inactive',
+    phoneLabel: 'Phone & Contact:',
+    call: 'Call',
+    whatsapp: 'WhatsApp',
+    directCall: 'Direct Phone Call',
+    whatsappChat: 'WhatsApp Chat',
+    toggleAria: 'Toggle delegate status',
+    visibleToCaptain: 'Visible to Captains',
+    hiddenFromCaptain: 'Hidden',
+    edit: 'Edit',
+    delete: 'Delete',
+    editModalTitle: 'Edit Financial Delegate',
+    addModalTitle: 'Add New Financial Delegate',
+    modalDesc: 'Assign delegate and target coverage area to appear automatically for local captains.',
+    delegateName: 'Delegate Full Name *',
+    delegateNamePh: 'e.g. Abu Mohammad - Wadi Al Seer Agent',
+    phoneInput: 'Phone Number (Calls) *',
+    whatsappInput: 'WhatsApp Number',
+    whatsappPh: 'Same as phone if left empty',
+    country: 'Country',
+    jordanOption: 'Jordan (Jordan)',
+    egyptOption: 'Egypt (Egypt)',
+    gov: 'Governorate',
+    allGovsOption: 'Universal (All Governorates)',
+    district: 'District / Area',
+    wholeGovOption: 'Entire Governorate',
+    notesLabel: 'Notes / Working Hours & Location',
+    notesPh: 'e.g. Available daily 10 AM to 10 PM for direct cash recharge.',
+    activateNow: 'Activate delegate immediately for captains',
+    saveUpdate: 'Save Changes',
+    addDelegate: 'Add Delegate',
+    cancel: 'Cancel',
+    confirmDeleteTitle: 'Confirm Delegate Deletion',
+    confirmDeleteDesc: (name: string) => `Are you sure you want to delete delegate "${name}"? They will no longer appear for local captains.`,
+    confirmDeleteBtn: 'Yes, Delete Delegate',
+    back: 'Go Back',
+    fetchFailTitle: 'Failed to load delegates',
+    networkErrorTitle: 'Network Error',
+    networkErrorDesc: 'Could not reach server',
+    incompleteDataTitle: 'Incomplete Details',
+    incompleteDataDesc: 'Please enter delegate name and phone number',
+    opSuccess: 'Operation Successful',
+    saveFailTitle: 'Save Failed',
+    errorTitle: 'Error',
+    saveErrorDesc: 'An error occurred while saving changes',
+    updated: 'Updated',
+    toggleError: 'Could not toggle delegate status',
+    deleted: 'Deleted',
+    deleteFail: 'Deletion Failed',
+    deleteError: 'Could not delete delegate',
+  },
+} as const;
+
 export function FinancialDelegatesPanel() {
-  const { direction, isArabic } = useDashboardLanguage();
+  const { isArabic, direction } = useDashboardLanguage();
+  const t = copy[isArabic ? 'ar' : 'en'];
   const { toast } = useToast();
   const [delegates, setDelegates] = useState<FinancialDelegate[]>([]);
-  const [countries, setCountries] = useState<GeoEntity[]>([]);
-  const [governorates, setGovernorates] = useState<GeoEntity[]>([]);
-  const [districts, setDistricts] = useState<GeoEntity[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-
-  // Filters
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCountryFilter, setSelectedCountryFilter] = useState<string>('all');
-  const [selectedGovFilter, setSelectedGovFilter] = useState<string>('all');
+  const [selectedCountryFilter, setSelectedCountryFilter] = useState('all');
+  const [selectedGovFilter, setSelectedGovFilter] = useState('all');
+
+  // Directory Data
+  const [governorates, setGovernorates] = useState<Array<{ id: number; name_ar: string; country_id: number }>>([]);
+  const [districts, setDistricts] = useState<Array<{ id: number; name_ar: string; governorate_id: number }>>([]);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -82,29 +236,41 @@ export function FinancialDelegatesPanel() {
   const [deleteTarget, setDeleteTarget] = useState<FinancialDelegate | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Fetch Directory (Govs & Districts)
+  const fetchDirectory = useCallback(async () => {
+    try {
+      const res = await adminFetch('/api/admin/financial-delegates?type=directory');
+      const data = await res.json();
+      if (data.success) {
+        if (Array.isArray(data.governorates)) setGovernorates(data.governorates);
+        if (Array.isArray(data.districts)) setDistricts(data.districts);
+      }
+    } catch {
+      // Non-blocking
+    }
+  }, []);
+
   const fetchDelegates = useCallback(async () => {
     setLoading(true);
     try {
       const res = await adminFetch('/api/admin/financial-delegates');
       const data = await res.json();
-      if (data.success) {
-        setDelegates(data.delegates || []);
-        setCountries(data.countries || []);
-        setGovernorates(data.governorates || []);
-        setDistricts(data.districts || []);
+      if (data.success && Array.isArray(data.delegates)) {
+        setDelegates(data.delegates);
       } else {
-        toast({ title: 'فشل جلب المناديب', description: data.error, variant: 'destructive' });
+        toast({ title: t.fetchFailTitle, description: data.error, variant: 'destructive' });
       }
     } catch {
-      toast({ title: 'خطأ شبكي', description: 'تعذر الاتصال بالخادم', variant: 'destructive' });
+      toast({ title: t.networkErrorTitle, description: t.networkErrorDesc, variant: 'destructive' });
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [t, toast]);
 
   useEffect(() => {
+    void fetchDirectory();
     void fetchDelegates();
-  }, [fetchDelegates]);
+  }, [fetchDirectory, fetchDelegates]);
 
   const handleOpenAdd = () => {
     setEditingDelegate(null);
@@ -128,7 +294,7 @@ export function FinancialDelegatesPanel() {
     setFormData({
       name: delegate.name,
       phone: delegate.phone,
-      whatsapp: delegate.whatsapp || delegate.phone,
+      whatsapp: delegate.whatsapp || '',
       countryId: delegate.countryId ? String(delegate.countryId) : '1',
       governorateId: delegate.governorateId ? String(delegate.governorateId) : '',
       governorateName: delegate.governorateName || '',
@@ -140,65 +306,46 @@ export function FinancialDelegatesPanel() {
     setIsModalOpen(true);
   };
 
-  // Filtered Governorates based on selected form country
-  const formGovernorates = useMemo(() => {
-    const cId = Number(formData.countryId);
-    if (!cId) return governorates;
-    return governorates.filter((g) => g.country_id === cId);
-  }, [governorates, formData.countryId]);
-
-  // Filtered Districts based on selected form governorate
-  const formDistricts = useMemo(() => {
-    const gId = Number(formData.governorateId);
-    if (!gId) return [];
-    return districts.filter((d) => d.governorate_id === gId);
-  }, [districts, formData.governorateId]);
-
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name.trim() || !formData.phone.trim()) {
-      toast({ title: 'بيانات غير مكتملة', description: 'يرجى إدخال اسم المندوب ورقم هاتفه', variant: 'destructive' });
+      toast({ title: t.incompleteDataTitle, description: t.incompleteDataDesc, variant: 'destructive' });
       return;
     }
 
     setSaving(true);
     try {
-      const action = editingDelegate ? 'update' : 'create';
       const payload = {
-        action,
         id: editingDelegate?.id,
-        name: formData.name,
-        phone: formData.phone,
-        whatsapp: formData.whatsapp || formData.phone,
-        countryId: Number(formData.countryId) || 1,
+        name: formData.name.trim(),
+        phone: formData.phone.trim().replace(/^\+/, ''),
+        whatsapp: formData.whatsapp.trim() ? formData.whatsapp.trim().replace(/^\+/, '') : null,
+        countryId: formData.countryId ? Number(formData.countryId) : 1,
         governorateId: formData.governorateId ? Number(formData.governorateId) : null,
-        governorateName: formData.governorateName || undefined,
+        governorateName: formData.governorateName.trim() || null,
         districtId: formData.districtId ? Number(formData.districtId) : null,
-        districtName: formData.districtName || undefined,
-        notes: formData.notes,
+        districtName: formData.districtName.trim() || null,
+        notes: formData.notes.trim() || null,
         isActive: formData.isActive,
       };
 
+      const method = editingDelegate ? 'PUT' : 'POST';
       const res = await adminFetch('/api/admin/financial-delegates', {
-        method: 'POST',
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      const data = await res.json();
 
+      const data = await res.json();
       if (data.success) {
-        toast({ title: 'نجاح العملية', description: data.message, variant: 'success' });
+        toast({ title: t.opSuccess, description: data.message, variant: 'default' });
         setIsModalOpen(false);
-        if (Array.isArray(data.delegates)) {
-          setDelegates(data.delegates);
-        } else {
-          void fetchDelegates();
-        }
+        void fetchDelegates();
       } else {
-        toast({ title: 'فشل الحفظ', description: data.error, variant: 'destructive' });
+        toast({ title: t.saveFailTitle, description: data.error, variant: 'destructive' });
       }
     } catch {
-      toast({ title: 'خطأ', description: 'حدث خطأ أثناء حفظ التغييرات', variant: 'destructive' });
+      toast({ title: t.errorTitle, description: t.saveErrorDesc, variant: 'destructive' });
     } finally {
       setSaving(false);
     }
@@ -207,17 +354,21 @@ export function FinancialDelegatesPanel() {
   const handleToggle = async (delegate: FinancialDelegate) => {
     try {
       const res = await adminFetch('/api/admin/financial-delegates', {
-        method: 'POST',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'toggle', id: delegate.id }),
+        body: JSON.stringify({ id: delegate.id, isActive: !delegate.isActive }),
       });
       const data = await res.json();
-      if (data.success && Array.isArray(data.delegates)) {
-        setDelegates(data.delegates);
-        toast({ title: 'تم التحديث', description: data.message });
+      if (data.success) {
+        toast({ title: t.updated, description: data.message });
+        setDelegates((prev) =>
+          prev.map((d) => (d.id === delegate.id ? { ...d, isActive: !delegate.isActive } : d))
+        );
+      } else {
+        toast({ title: t.errorTitle, description: t.toggleError, variant: 'destructive' });
       }
     } catch {
-      toast({ title: 'خطأ', description: 'تعذر تعديل حالة المندوب', variant: 'destructive' });
+      toast({ title: t.networkErrorTitle, description: t.networkErrorDesc, variant: 'destructive' });
     }
   };
 
@@ -225,48 +376,48 @@ export function FinancialDelegatesPanel() {
     if (!deleteTarget) return;
     setIsDeleting(true);
     try {
-      const res = await adminFetch('/api/admin/financial-delegates', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'delete', id: deleteTarget.id }),
+      const res = await adminFetch(`/api/admin/financial-delegates?id=${deleteTarget.id}`, {
+        method: 'DELETE',
       });
       const data = await res.json();
-      if (data.success && Array.isArray(data.delegates)) {
-        setDelegates(data.delegates);
-        toast({ title: 'تم الحذف', description: data.message });
+      if (data.success) {
+        toast({ title: t.deleted, description: data.message });
+        setDelegates((prev) => prev.filter((d) => d.id !== deleteTarget.id));
         setDeleteTarget(null);
       } else {
-        toast({ title: 'فشل الحذف', description: data.error, variant: 'destructive' });
+        toast({ title: t.deleteFail, description: data.error, variant: 'destructive' });
       }
     } catch {
-      toast({ title: 'خطأ', description: 'تعذر حذف المندوب', variant: 'destructive' });
+      toast({ title: t.errorTitle, description: t.deleteError, variant: 'destructive' });
     } finally {
       setIsDeleting(false);
     }
   };
 
-  // Filter delegates list
-  const filteredDelegates = useMemo(() => {
-    return delegates.filter((d) => {
-      if (selectedCountryFilter !== 'all') {
-        const cId = Number(selectedCountryFilter);
-        if (d.countryId && d.countryId !== cId) return false;
-      }
-      if (selectedGovFilter !== 'all') {
-        const gId = Number(selectedGovFilter);
-        if (d.governorateId && d.governorateId !== gId) return false;
-      }
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase().trim();
-        const inName = d.name.toLowerCase().includes(q);
-        const inPhone = d.phone.includes(q);
-        const inGov = (d.governorateName || '').toLowerCase().includes(q);
-        const inDist = (d.districtName || '').toLowerCase().includes(q);
-        return inName || inPhone || inGov || inDist;
-      }
-      return true;
-    });
-  }, [delegates, selectedCountryFilter, selectedGovFilter, searchQuery]);
+  // Filtered List
+  const filteredDelegates = delegates.filter((d) => {
+    const matchesSearch =
+      d.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      d.phone.includes(searchQuery) ||
+      (d.governorateName && d.governorateName.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (d.districtName && d.districtName.toLowerCase().includes(searchQuery.toLowerCase()));
+
+    const matchesCountry =
+      selectedCountryFilter === 'all' || String(d.countryId) === selectedCountryFilter;
+
+    const matchesGov =
+      selectedGovFilter === 'all' || String(d.governorateId) === selectedGovFilter;
+
+    return matchesSearch && matchesCountry && matchesGov;
+  });
+
+  const formGovernorates = governorates.filter(
+    (g) => g.country_id === Number(formData.countryId)
+  );
+
+  const formDistricts = districts.filter(
+    (d) => String(d.governorate_id) === formData.governorateId
+  );
 
   const activeCount = delegates.filter((d) => d.isActive).length;
   const coveredGovs = new Set(delegates.filter((d) => d.isActive && d.governorateName).map((d) => d.governorateName)).size;
@@ -278,10 +429,10 @@ export function FinancialDelegatesPanel() {
         <div>
           <h2 className="text-xl sm:text-2xl font-black text-white flex items-center gap-2.5">
             <UserCheck className="w-6 h-6 text-emerald-400" />
-            <span>المناديب المالية وشحن الرصيد (بناءً على المحافظة والمنطقة)</span>
+            <span>{t.title}</span>
           </h2>
           <p className="text-xs sm:text-sm text-slate-400 mt-1">
-            إضافة وتعديل وحذف أرقام المناديب المالية الميدانيين وتعيين تغطيتهم الجغرافية لكل محافظة أو منطقة لظهورها التلقائي للكابتن.
+            {t.subtitle}
           </p>
         </div>
 
@@ -293,8 +444,8 @@ export function FinancialDelegatesPanel() {
             disabled={loading}
             className="h-10 px-3.5 border-white/10 bg-white/5 hover:bg-white/10 text-slate-200 text-xs font-bold rounded-xl"
           >
-            <RefreshCw className={cn("w-4 h-4 ml-1.5", loading && "animate-spin text-emerald-400")} />
-            <span>تحديث</span>
+            <RefreshCw className={cn("w-4 h-4", isArabic ? "ml-1.5" : "mr-1.5", loading && "animate-spin text-emerald-400")} />
+            <span>{t.refresh}</span>
           </Button>
 
           <Button
@@ -303,7 +454,7 @@ export function FinancialDelegatesPanel() {
             className="h-10 px-4 bg-gradient-to-r from-emerald-600 to-teal-500 hover:brightness-110 text-white font-black text-xs rounded-xl shadow-lg shadow-emerald-600/25 flex items-center gap-1.5 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            <span>إضافة مندوب مالي جديد</span>
+            <span>{t.addNew}</span>
           </Button>
         </div>
       </div>
@@ -312,7 +463,7 @@ export function FinancialDelegatesPanel() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
         <div className="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-400">إجمالي المناديب المسجلين</span>
+            <span className="text-xs font-bold text-slate-400">{t.totalDelegates}</span>
             <UserCheck className="w-4 h-4 text-cyan-400" />
           </div>
           <p className="mt-2 text-2xl font-mono font-black text-white">{delegates.length}</p>
@@ -320,7 +471,7 @@ export function FinancialDelegatesPanel() {
 
         <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-emerald-400">المناديب الفاعلون (يظهرون للكباتن)</span>
+            <span className="text-xs font-bold text-emerald-400">{t.activeDelegates}</span>
             <ShieldCheck className="w-4 h-4 text-emerald-400" />
           </div>
           <p className="mt-2 text-2xl font-mono font-black text-emerald-300">{activeCount}</p>
@@ -328,22 +479,22 @@ export function FinancialDelegatesPanel() {
 
         <div className="rounded-2xl border border-indigo-500/20 bg-indigo-500/5 p-4">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-indigo-300">المحافظات المغطاة</span>
+            <span className="text-xs font-bold text-indigo-300">{t.coveredGovs}</span>
             <MapPin className="w-4 h-4 text-indigo-400" />
           </div>
-          <p className="mt-2 text-2xl font-mono font-black text-indigo-200">{coveredGovs} محافظات</p>
+          <p className="mt-2 text-2xl font-mono font-black text-indigo-200">{coveredGovs} {t.govsUnit}</p>
         </div>
       </div>
 
       {/* 3. Search and Filters Bar */}
       <div className="flex flex-col sm:flex-row gap-3 items-center justify-between bg-black/40 border border-white/5 p-3 rounded-2xl">
         <div className="relative w-full sm:w-72">
-          <Search className="w-4 h-4 text-slate-500 absolute right-3 top-1/2 -translate-y-1/2" />
+          <Search className={cn("w-4 h-4 text-slate-500 absolute top-1/2 -translate-y-1/2", isArabic ? "right-3" : "left-3")} />
           <Input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="بحث بالاسم، الهاتف، المحافظة..."
-            className="bg-black/60 border-slate-800 text-white text-xs h-9 pr-9 pl-3 rounded-xl"
+            placeholder={t.searchPh}
+            className={cn("bg-black/60 border-slate-800 text-white text-xs h-9 rounded-xl", isArabic ? "pr-9 pl-3" : "pl-9 pr-3")}
           />
         </div>
 
@@ -356,9 +507,9 @@ export function FinancialDelegatesPanel() {
             }}
             className="bg-black/60 border border-slate-800 text-white text-xs h-9 rounded-xl px-3 outline-none"
           >
-            <option value="all">كل الدول</option>
-            <option value="1">الأردن</option>
-            <option value="2">مصر</option>
+            <option value="all">{t.allCountries}</option>
+            <option value="1">{t.jordan}</option>
+            <option value="2">{t.egypt}</option>
           </select>
 
           <select
@@ -366,7 +517,7 @@ export function FinancialDelegatesPanel() {
             onChange={(e) => setSelectedGovFilter(e.target.value)}
             className="bg-black/60 border border-slate-800 text-white text-xs h-9 rounded-xl px-3 outline-none"
           >
-            <option value="all">كل المحافظات</option>
+            <option value="all">{t.allGovs}</option>
             {governorates
               .filter((g) => selectedCountryFilter === 'all' || g.country_id === Number(selectedCountryFilter))
               .map((g) => (
@@ -382,20 +533,20 @@ export function FinancialDelegatesPanel() {
       {loading ? (
         <div className="rounded-2xl border border-white/10 bg-black/40 p-12 text-center">
           <Loader2 className="w-8 h-8 animate-spin text-emerald-400 mx-auto" />
-          <p className="mt-3 text-xs text-slate-400 font-bold">جاري تحميل دليل المناديب المالية...</p>
+          <p className="mt-3 text-xs text-slate-400 font-bold">{t.loading}</p>
         </div>
       ) : filteredDelegates.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] p-12 text-center">
           <UserCheck className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-          <h3 className="text-base font-black text-white">لا توجد مناديب تطابق معايير البحث</h3>
-          <p className="text-xs text-slate-400 mt-1">اضغط على زر "إضافة مندوب مالي جديد" لإضافة مندوب لمنطقة أو محافظة معينة.</p>
+          <h3 className="text-base font-black text-white">{t.emptySearch}</h3>
+          <p className="text-xs text-slate-400 mt-1">{t.emptySearchDesc}</p>
           <Button
             type="button"
             onClick={handleOpenAdd}
             className="mt-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs h-9 px-4 rounded-xl"
           >
-            <Plus className="w-4 h-4 ml-1" />
-            <span>إضافة مندوب الآن</span>
+            <Plus className={cn("w-4 h-4", isArabic ? "ml-1" : "mr-1")} />
+            <span>{t.addNow}</span>
           </Button>
         </div>
       ) : (
@@ -422,18 +573,18 @@ export function FinancialDelegatesPanel() {
                         {delegate.districtName ? (
                           <Badge variant="outline" className="text-[11px] font-bold border-emerald-500/30 bg-emerald-500/10 text-emerald-300 flex items-center gap-1">
                             <MapPin className="w-3 h-3 text-emerald-400" />
-                            <span>منطقة: {delegate.districtName}</span>
+                            <span>{t.districtLabel} {delegate.districtName}</span>
                           </Badge>
                         ) : null}
                         {delegate.governorateName ? (
                           <Badge variant="outline" className="text-[11px] font-bold border-cyan-500/30 bg-cyan-950/40 text-cyan-300 flex items-center gap-1">
                             <Building className="w-3 h-3 text-cyan-400" />
-                            <span>محافظة: {delegate.governorateName}</span>
+                            <span>{t.govLabel} {delegate.governorateName}</span>
                           </Badge>
                         ) : null}
                         {!hasSpecificGeo ? (
                           <Badge variant="outline" className="text-[11px] font-bold border-indigo-500/30 bg-indigo-950/40 text-indigo-300">
-                            مندوب عام لكافة المناطق
+                            {t.generalDelegate}
                           </Badge>
                         ) : null}
                       </div>
@@ -448,14 +599,14 @@ export function FinancialDelegatesPanel() {
                           : "bg-slate-800 text-slate-400 border-slate-700"
                       )}
                     >
-                      {delegate.isActive ? 'مفعل' : 'معطل'}
+                      {delegate.isActive ? t.active : t.inactive}
                     </Badge>
                   </div>
 
                   {/* Phone & Contact Test Buttons */}
                   <div className="mt-4 flex items-center justify-between gap-2 rounded-xl border border-white/10 bg-black/60 px-3.5 py-2.5">
                     <div className="min-w-0">
-                      <span className="text-[10px] text-slate-400 block font-bold">رقم الهاتف والتواصل:</span>
+                      <span className="text-[10px] text-slate-400 block font-bold">{t.phoneLabel}</span>
                       <strong className="font-mono text-sm font-black text-amber-300 block truncate" dir="ltr">
                         +{delegate.phone}
                       </strong>
@@ -465,20 +616,20 @@ export function FinancialDelegatesPanel() {
                       <a
                         href={`tel:${delegate.phone}`}
                         className="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 px-2.5 py-1.5 text-xs font-bold text-slate-200 transition"
-                        title="اتصال مباشر"
+                        title={t.directCall}
                       >
                         <Phone className="w-3.5 h-3.5 text-emerald-400" />
-                        <span>اتصال</span>
+                        <span>{t.call}</span>
                       </a>
                       <a
                         href={`https://wa.me/${delegate.whatsapp || delegate.phone}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 px-2.5 py-1.5 text-xs font-black text-white transition shadow-sm"
-                        title="محادثة واتساب"
+                        title={t.whatsappChat}
                       >
                         <MessageCircle className="w-3.5 h-3.5" />
-                        <span>واتساب</span>
+                        <span>{t.whatsapp}</span>
                       </a>
                     </div>
                   </div>
@@ -497,9 +648,9 @@ export function FinancialDelegatesPanel() {
                     <Switch
                       checked={delegate.isActive}
                       onCheckedChange={() => void handleToggle(delegate)}
-                      aria-label="تفعيل أو تعطيل المندوب"
+                      aria-label={t.toggleAria}
                     />
-                    <span className="text-xs text-slate-400">{delegate.isActive ? 'ظاهر في بطاقة الكابتن' : 'مخفي'}</span>
+                    <span className="text-xs text-slate-400">{delegate.isActive ? t.visibleToCaptain : t.hiddenFromCaptain}</span>
                   </div>
 
                   <div className="flex items-center gap-2">
@@ -510,8 +661,8 @@ export function FinancialDelegatesPanel() {
                       onClick={() => handleOpenEdit(delegate)}
                       className="h-8 px-2.5 rounded-lg text-xs font-bold text-slate-300 hover:bg-white/10 hover:text-white"
                     >
-                      <Edit2 className="w-3.5 h-3.5 ml-1" />
-                      <span>تعديل</span>
+                      <Edit2 className={cn("w-3.5 h-3.5", isArabic ? "ml-1" : "mr-1")} />
+                      <span>{t.edit}</span>
                     </Button>
 
                     <Button
@@ -521,8 +672,8 @@ export function FinancialDelegatesPanel() {
                       onClick={() => setDeleteTarget(delegate)}
                       className="h-8 px-2.5 rounded-lg text-xs font-bold text-rose-400 hover:bg-rose-950/40 hover:text-rose-300"
                     >
-                      <Trash2 className="w-3.5 h-3.5 ml-1" />
-                      <span>حذف</span>
+                      <Trash2 className={cn("w-3.5 h-3.5", isArabic ? "ml-1" : "mr-1")} />
+                      <span>{t.delete}</span>
                     </Button>
                   </div>
                 </div>
@@ -534,32 +685,32 @@ export function FinancialDelegatesPanel() {
 
       {/* 5. Add / Edit Delegate Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-md bg-[#080E1C] border border-slate-800 text-white p-6 rounded-3xl" dir="rtl">
-          <DialogHeader className="text-right">
+        <DialogContent className="max-w-md bg-[#080E1C] border border-slate-800 text-white p-6 rounded-3xl" dir={direction}>
+          <DialogHeader className={isArabic ? "text-right" : "text-left"}>
             <DialogTitle className="text-lg font-black text-white flex items-center gap-2">
               <UserCheck className="w-5 h-5 text-emerald-400" />
-              <span>{editingDelegate ? 'تعديل بيانات المندوب المالي' : 'إضافة مندوب مالي جديد'}</span>
+              <span>{editingDelegate ? t.editModalTitle : t.addModalTitle}</span>
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-400">
-              عيّن المندوب ومحافظته أو منطقته ليظهر تلقائياً لكباتن تلك المنطقة في بطاقة الشحن المالي.
+              {t.modalDesc}
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleSave} className="space-y-4 mt-3">
-            <div className="space-y-1.5 text-right">
-              <Label className="text-xs font-bold text-slate-300">اسم المندوب المالي *</Label>
+            <div className={cn("space-y-1.5", isArabic ? "text-right" : "text-left")}>
+              <Label className="text-xs font-bold text-slate-300">{t.delegateName}</Label>
               <Input
                 required
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="مثال: أبو محمد - مندوب وادي السير"
+                placeholder={t.delegateNamePh}
                 className="bg-black/60 border-slate-700 text-white text-xs h-10 rounded-xl"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5 text-right">
-                <Label className="text-xs font-bold text-slate-300">رقم الهاتف (للاتصال) *</Label>
+              <div className={cn("space-y-1.5", isArabic ? "text-right" : "text-left")}>
+                <Label className="text-xs font-bold text-slate-300">{t.phoneInput}</Label>
                 <Input
                   required
                   value={formData.phone}
@@ -570,20 +721,20 @@ export function FinancialDelegatesPanel() {
                 />
               </div>
 
-              <div className="space-y-1.5 text-right">
-                <Label className="text-xs font-bold text-slate-300">رقم الواتساب</Label>
+              <div className={cn("space-y-1.5", isArabic ? "text-right" : "text-left")}>
+                <Label className="text-xs font-bold text-slate-300">{t.whatsappInput}</Label>
                 <Input
                   value={formData.whatsapp}
                   onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
-                  placeholder="نفس الهاتف إن ترك فارغاً"
+                  placeholder={t.whatsappPh}
                   className="bg-black/60 border-slate-700 text-white font-mono text-xs h-10 rounded-xl"
                   dir="ltr"
                 />
               </div>
             </div>
 
-            <div className="space-y-1.5 text-right">
-              <Label className="text-xs font-bold text-slate-300">الدولة</Label>
+            <div className={cn("space-y-1.5", isArabic ? "text-right" : "text-left")}>
+              <Label className="text-xs font-bold text-slate-300">{t.country}</Label>
               <select
                 value={formData.countryId}
                 onChange={(e) => {
@@ -599,14 +750,14 @@ export function FinancialDelegatesPanel() {
                 }}
                 className="w-full bg-black/60 border border-slate-700 text-white text-xs h-10 rounded-xl px-3 outline-none"
               >
-                <option value="1">الأردن (Jordan)</option>
-                <option value="2">مصر (Egypt)</option>
+                <option value="1">{t.jordanOption}</option>
+                <option value="2">{t.egyptOption}</option>
               </select>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5 text-right">
-                <Label className="text-xs font-bold text-slate-300">المحافظة</Label>
+              <div className={cn("space-y-1.5", isArabic ? "text-right" : "text-left")}>
+                <Label className="text-xs font-bold text-slate-300">{t.gov}</Label>
                 <select
                   value={formData.governorateId}
                   onChange={(e) => {
@@ -622,7 +773,7 @@ export function FinancialDelegatesPanel() {
                   }}
                   className="w-full bg-black/60 border border-slate-700 text-white text-xs h-10 rounded-xl px-3 outline-none"
                 >
-                  <option value="">عام (كل المحافظات)</option>
+                  <option value="">{t.allGovsOption}</option>
                   {formGovernorates.map((g) => (
                     <option key={g.id} value={String(g.id)}>
                       {g.name_ar}
@@ -631,8 +782,8 @@ export function FinancialDelegatesPanel() {
                 </select>
               </div>
 
-              <div className="space-y-1.5 text-right">
-                <Label className="text-xs font-bold text-slate-300">المنطقة / اللواء</Label>
+              <div className={cn("space-y-1.5", isArabic ? "text-right" : "text-left")}>
+                <Label className="text-xs font-bold text-slate-300">{t.district}</Label>
                 <select
                   value={formData.districtId}
                   disabled={!formData.governorateId}
@@ -647,7 +798,7 @@ export function FinancialDelegatesPanel() {
                   }}
                   className="w-full bg-black/60 border border-slate-700 text-white text-xs h-10 rounded-xl px-3 outline-none disabled:opacity-40"
                 >
-                  <option value="">كامل المحافظة</option>
+                  <option value="">{t.wholeGovOption}</option>
                   {formDistricts.map((d) => (
                     <option key={d.id} value={String(d.id)}>
                       {d.name_ar}
@@ -657,19 +808,19 @@ export function FinancialDelegatesPanel() {
               </div>
             </div>
 
-            <div className="space-y-1.5 text-right">
-              <Label className="text-xs font-bold text-slate-300">ملاحظات / ساعات العمل والتواجد</Label>
+            <div className={cn("space-y-1.5", isArabic ? "text-right" : "text-left")}>
+              <Label className="text-xs font-bold text-slate-300">{t.notesLabel}</Label>
               <textarea
                 rows={2}
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                placeholder="مثال: متواجد يومياً من 10 صباحاً حتى 10 مساءً للشحن المباشر نقداً."
+                placeholder={t.notesPh}
                 className="w-full bg-black/60 border border-slate-700 text-white text-xs p-3 rounded-xl outline-none"
               />
             </div>
 
             <div className="flex items-center justify-between border border-white/10 bg-white/[0.03] p-3 rounded-xl">
-              <span className="text-xs font-bold text-slate-200">تفعيل المندوب فوراً لكباتن المنطقة</span>
+              <span className="text-xs font-bold text-slate-200">{t.activateNow}</span>
               <Switch
                 checked={formData.isActive}
                 onCheckedChange={(val) => setFormData({ ...formData, isActive: val })}
@@ -682,8 +833,8 @@ export function FinancialDelegatesPanel() {
                 disabled={saving}
                 className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs h-10 px-6 rounded-xl flex items-center gap-1.5"
               >
-                {saving ? <Loader2 className="w-4 h-4 animate-spin ml-1" /> : <Check className="w-4 h-4 ml-1" />}
-                <span>{editingDelegate ? 'تحديث وحفظ' : 'إضافة المندوب'}</span>
+                {saving ? <Loader2 className={cn("w-4 h-4 animate-spin", isArabic ? "ml-1" : "mr-1")} /> : <Check className={cn("w-4 h-4", isArabic ? "ml-1" : "mr-1")} />}
+                <span>{editingDelegate ? t.saveUpdate : t.addDelegate}</span>
               </Button>
               <Button
                 type="button"
@@ -691,7 +842,7 @@ export function FinancialDelegatesPanel() {
                 onClick={() => setIsModalOpen(false)}
                 className="text-slate-400 hover:text-white text-xs h-10 rounded-xl"
               >
-                إلغاء
+                {t.cancel}
               </Button>
             </DialogFooter>
           </form>
@@ -700,14 +851,14 @@ export function FinancialDelegatesPanel() {
 
       {/* 6. Delete Confirmation Modal */}
       <Dialog open={Boolean(deleteTarget)} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <DialogContent className="max-w-sm bg-[#0B0F19] border border-rose-500/30 text-white p-6 rounded-3xl" dir="rtl">
-          <DialogHeader className="text-right">
+        <DialogContent className="max-w-sm bg-[#0B0F19] border border-rose-500/30 text-white p-6 rounded-3xl" dir={direction}>
+          <DialogHeader className={isArabic ? "text-right" : "text-left"}>
             <DialogTitle className="text-base font-black text-rose-400 flex items-center gap-2">
               <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0" />
-              <span>تأكيد حذف المندوب المالي</span>
+              <span>{t.confirmDeleteTitle}</span>
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-300 leading-relaxed mt-2">
-              هل أنت متأكد من حذف المندوب <strong className="text-white">"{deleteTarget?.name}"</strong>؟ لن يظهر في بطاقة التواصل لكباتن منطقته.
+              {t.confirmDeleteDesc(deleteTarget?.name || '')}
             </DialogDescription>
           </DialogHeader>
 
@@ -718,8 +869,8 @@ export function FinancialDelegatesPanel() {
               onClick={handleDelete}
               className="bg-rose-600 hover:bg-rose-500 text-white font-black text-xs h-10 px-5 rounded-xl flex items-center gap-1.5"
             >
-              {isDeleting ? <Loader2 className="w-4 h-4 animate-spin ml-1" /> : <Trash2 className="w-4 h-4 ml-1" />}
-              <span>نعم، حذف المندوب</span>
+              {isDeleting ? <Loader2 className={cn("w-4 h-4 animate-spin", isArabic ? "ml-1" : "mr-1")} /> : <Trash2 className={cn("w-4 h-4", isArabic ? "ml-1" : "mr-1")} />}
+              <span>{t.confirmDeleteBtn}</span>
             </Button>
             <Button
               type="button"
@@ -728,7 +879,7 @@ export function FinancialDelegatesPanel() {
               onClick={() => setDeleteTarget(null)}
               className="text-slate-400 hover:text-white text-xs h-10 rounded-xl"
             >
-              تراجع
+              {t.back}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -736,4 +887,3 @@ export function FinancialDelegatesPanel() {
     </div>
   );
 }
-

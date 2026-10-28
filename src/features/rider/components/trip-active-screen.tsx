@@ -190,9 +190,6 @@ export function TripActiveScreen({
             <ShieldAlert className="h-5 w-5 text-amber-400 animate-pulse" />
           </div>
           <div>
-            <h4 className="text-base sm:text-lg font-black text-amber-300 leading-tight">
-              {isArabic ? 'عليك التحقق من لوحة السيارة' : 'Verify vehicle plate before boarding'}
-            </h4>
             <p className="text-[10px] sm:text-xs font-bold text-amber-200/80 mt-0.5">
               {isArabic ? 'تحقق من مصداقية البيانات المعروضة في الخدمة' : 'Verify the authenticity of the data displayed in the service'}
             </p>

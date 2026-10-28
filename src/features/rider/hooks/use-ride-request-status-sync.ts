@@ -242,9 +242,13 @@ export function useRideRequestStatusSync(params: {
     const reconcile = async () => {
       const { data, error } = await supabase
         .from('ride_requests')
-        .select('id,status,completed_at,cancelled_at,accepted_offer_id,selected_offer_id,created_at,cancel_requested_by')
+        .select('id,status,completed_at,cancelled_at,accepted_offer_id,accepted_captain_id,final_fare,arrived_at,started_at,created_at,cancel_requested_by')
         .eq('id', state.requestId!)
         .maybeSingle();
+
+      if (error && process.env.NODE_ENV !== 'production') {
+        console.warn('[Rider status sync] reconcile error:', error);
+      }
 
       if (cancelled || error || !data) return;
 
@@ -283,9 +287,14 @@ export function useRideRequestStatusSync(params: {
     // Once straight away: if the event was missed while the tab was hidden, the rider should
     // not have to wait a whole interval after coming back.
     void reconcile();
-    const interval = window.setInterval(() => void reconcile(), 15_000);
+    const pollIntervalMs = (state.screen === 'TRIP_ACTIVE' || state.screen === 'RECEIVING_OFFERS') ? 3_000 : 10_000;
+    const interval = window.setInterval(() => void reconcile(), pollIntervalMs);
     const onVisible = () => { if (document.visibilityState === 'visible') void reconcile(); };
+    const onFocus = () => void reconcile();
+    const onOnline = () => void reconcile();
     document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', onFocus);
+    window.addEventListener('online', onOnline);
 
     return () => {
       cancelled = true;
@@ -293,6 +302,8 @@ export function useRideRequestStatusSync(params: {
       arrivalToastDismissRef.current = null;
       window.clearInterval(interval);
       document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', onFocus);
+      window.removeEventListener('online', onOnline);
     };
   }, [dispatch, state.pendingAcceptedOfferId, state.requestId, state.screen]);
 

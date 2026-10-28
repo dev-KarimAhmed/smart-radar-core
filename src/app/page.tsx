@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/features/auth/contract';
 import LoginPage from '@/features/auth/components/login-page';
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { storePendingCaptainReferral, clearPendingCaptainReferral, removeReferralParamFromUrl } from '@/features/referral/services/captain-referral';
 
 const styles = {
@@ -22,6 +22,8 @@ const styles = {
 
 export default function HomePage() {
   const tAuto = useTranslations('auto');
+  const locale = useLocale();
+  const isArabic = locale === 'ar';
   const { loading, user } = useAuth();
   const router = useRouter();
   const hasRedirectedRef = useRef(false);
@@ -106,11 +108,11 @@ export default function HomePage() {
 
   const loadingSubtitle = useMemo(() => {
     if (isRedirecting) {
-      if (user?.role === 'driver') return 'جاري فتح منصة الكابتن...';
-      if (user?.role === 'rider') return 'جاري فتح منصة الراكب...';
-      if (user?.role === 'admin') return 'جاري فتح لوحة التحكم...';
-      if (user?.role === 'advertiser') return 'جاري فتح منصة المعلن...';
-      if (user?.role === 'delegate') return 'جاري فتح منصة المندوب...';
+      if (user?.role === 'driver') return isArabic ? 'جاري فتح منصة الكابتن...' : 'Opening Captain Portal...';
+      if (user?.role === 'rider') return isArabic ? 'جاري فتح منصة الراكب...' : 'Opening Rider Portal...';
+      if (user?.role === 'admin') return isArabic ? 'جاري فتح لوحة التحكم...' : 'Opening Admin Dashboard...';
+      if (user?.role === 'advertiser') return isArabic ? 'جاري فتح منصة المعلن...' : 'Opening Advertiser Portal...';
+      if (user?.role === 'delegate') return isArabic ? 'جاري فتح منصة المندوب...' : 'Opening Delegate Portal...';
     }
     return tAuto('key_7588d11e');
   }, [isRedirecting, user?.role, tAuto]);

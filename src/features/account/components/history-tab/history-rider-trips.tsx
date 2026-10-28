@@ -236,9 +236,9 @@ export function HistoryRiderTrips({
                               ? "border-[#14B8A6]/50 bg-[#14B8A6]/20 text-[#14F5D5] shadow-[0_0_10px_rgba(20,245,213,0.15)]"
                               : "border-white/10 bg-white/5 text-slate-300 hover:border-[#14B8A6]/30 hover:text-[#14F5D5] hover:bg-[#14B8A6]/10"
                           )}
-                          title={isExpanded ? (t('hideRoute') || 'إخفاء المسار') : (t('showRoute') || 'عرض المسار')}
+                          title={isExpanded ? (t('hideRoute') || (isArabic ? 'إخفاء المسار' : 'Hide Route')) : (t('showRoute') || (isArabic ? 'عرض المسار' : 'Show Route'))}
                         >
-                          <span>{t('route') || 'المسار'}</span>
+                          <span>{t('route') || (isArabic ? 'المسار' : 'Route')}</span>
                           <ChevronDown className={cn("h-3.5 w-3.5 transition-transform duration-200", isExpanded && "rotate-180")} />
                         </button>
                       </div>
@@ -261,7 +261,7 @@ export function HistoryRiderTrips({
                       <div className="flex items-center justify-between border-b border-white/5 pb-2">
                         <div className="flex items-center gap-1.5 font-bold text-[#14F5D5] text-[11px]">
                           <Navigation className="h-3.5 w-3.5 text-[#14F5D5]" />
-                          <span>{t('routeDetails') || 'مسار الرحلة'}</span>
+                          <span>{t('routeDetails') || (isArabic ? 'مسار الرحلة' : 'Trip Route')}</span>
                         </div>
                         {trip.distanceKm && (
                           <span className="text-[10px] font-mono font-black text-slate-200 bg-black/50 border border-teal-500/20 px-2 py-0.5 rounded-md">
@@ -276,7 +276,7 @@ export function HistoryRiderTrips({
                           <div className="h-2 w-2 rounded-full bg-emerald-400 mt-1 shrink-0 ring-2 ring-emerald-400/20" />
                           <div className="min-w-0 flex-1">
                             <span className="text-[10px] font-bold text-slate-400 block">
-                              {t('pickupPoint') || 'نقطة الانطلاق'}:
+                              {t('pickupPoint') || (isArabic ? 'نقطة الانطلاق' : 'Pickup Point')}:
                             </span>
                             <span className="text-xs font-medium text-white break-words">
                               {trip.pickupAddress && trip.pickupAddress !== 'موقعي الحالي'
@@ -291,7 +291,7 @@ export function HistoryRiderTrips({
                           <div className="h-2 w-2 rounded-full bg-cyan-400 mt-1 shrink-0 ring-2 ring-cyan-400/20" />
                           <div className="min-w-0 flex-1">
                             <span className="text-[10px] font-bold text-slate-400 block">
-                              {t('dropoffPoint') || 'الوجهة'}:
+                              {t('dropoffPoint') || (isArabic ? 'الوجهة' : 'Dropoff Point')}:
                             </span>
                             <span className="text-xs font-medium text-white break-words">
                               {trip.destinationAddress && trip.destinationAddress !== 'رحلة سابقة' && trip.destinationAddress !== 'غير محدد'
@@ -311,7 +311,7 @@ export function HistoryRiderTrips({
                             className="inline-flex items-center gap-1.5 text-[10px] font-bold text-[#14F5D5] hover:underline"
                           >
                             <ExternalLink className="h-3 w-3" />
-                            <span>{t('viewOnMap') || 'عرض على الخريطة'}</span>
+                            <span>{t('viewOnMap') || (isArabic ? 'عرض على الخريطة' : 'View on Map')}</span>
                           </a>
                         </div>
                       )}

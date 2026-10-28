@@ -5,7 +5,10 @@ import { Globe, Building2, MapPin, X } from 'lucide-react';
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
@@ -48,6 +51,16 @@ export interface GeoFilterBarProps {
   className?: string;
 }
 
+const getCountryFlag = (country?: { name_ar?: string; country_code?: string } | null) => {
+  if (!country) return '📍';
+  const code = (country.country_code || '').toUpperCase();
+  const name = country.name_ar || '';
+  if (code === 'JO' || name.includes('أردن') || name.includes('Jordan')) return '🇯🇴';
+  if (code === 'EG' || name.includes('مصر') || name.includes('Egypt')) return '🇪🇬';
+  if (code === 'SA' || name.includes('سعودية')) return '🇸🇦';
+  return '📍';
+};
+
 export function GeoFilterBar({
   geoLookup,
   selectedCountry,
@@ -70,6 +83,15 @@ export function GeoFilterBar({
       { id: 2, name_ar: 'مصر', country_code: 'EG' },
     ];
   }, [geoLookup.countries]);
+
+  // Map governorate_id -> country_id
+  const govCountryMap = useMemo(() => {
+    const map = new Map<number, number>();
+    (geoLookup.governorates || []).forEach((g) => {
+      map.set(g.id, g.country_id);
+    });
+    return map;
+  }, [geoLookup.governorates]);
 
   // Filtered governorates based on selected country
   const filteredGovernorates = useMemo(() => {
@@ -95,6 +117,31 @@ export function GeoFilterBar({
     return geoLookup.districts;
   }, [geoLookup.districts, selectedGovernorate, selectedCountry, filteredGovernorates]);
 
+  // Group governorates by country
+  const groupedGovernorates = useMemo(() => {
+    return countries
+      .map((c) => ({
+        country: c,
+        flag: getCountryFlag(c),
+        governorates: filteredGovernorates.filter((g) => g.country_id === c.id),
+      }))
+      .filter((group) => group.governorates.length > 0);
+  }, [countries, filteredGovernorates]);
+
+  // Group districts by country
+  const groupedDistricts = useMemo(() => {
+    return countries
+      .map((c) => ({
+        country: c,
+        flag: getCountryFlag(c),
+        districts: filteredDistricts.filter((d) => {
+          const cId = govCountryMap.get(d.governorate_id);
+          return cId === c.id;
+        }),
+      }))
+      .filter((group) => group.districts.length > 0);
+  }, [countries, filteredDistricts, govCountryMap]);
+
   const isGeoActive =
     selectedCountry !== 'ALL' ||
     selectedGovernorate !== 'ALL' ||
@@ -112,8 +159,44 @@ export function GeoFilterBar({
         <span>{isArabic ? 'الفلترة الجغرافية:' : 'Geo Filter:'}</span>
       </div>
 
-      {/* 1. Country Selector */}
-      <div className="w-36 sm:w-40 shrink-0">
+      {/* 0. Quick Country Switcher Tabs (Segmented pills) */}
+      <div className="flex items-center bg-[#070B14] p-1 rounded-xl border border-white/10 shrink-0 gap-1 shadow-inner">
+        <button
+          type="button"
+          onClick={() => onCountryChange('ALL')}
+          className={cn(
+            "px-2.5 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer",
+            selectedCountry === 'ALL'
+              ? "bg-[#14B8A6] text-slate-950 font-black shadow-md shadow-[#14B8A6]/20"
+              : "text-slate-400 hover:text-white hover:bg-white/5"
+          )}
+        >
+          {isArabic ? '🌍 كل الدول' : '🌍 All'}
+        </button>
+        {countries.map((c) => {
+          const isSelected = selectedCountry === String(c.id);
+          const flag = getCountryFlag(c);
+          return (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => onCountryChange(String(c.id))}
+              className={cn(
+                "px-2.5 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer",
+                isSelected
+                  ? "bg-[#14B8A6] text-slate-950 font-black shadow-md shadow-[#14B8A6]/20"
+                  : "text-slate-300 hover:text-white hover:bg-white/5"
+              )}
+            >
+              <span className="text-sm">{flag}</span>
+              <span>{c.name_ar}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* 1. Country Selector Dropdown */}
+      <div className="w-32 sm:w-36 shrink-0">
         <Select
           value={selectedCountry}
           onValueChange={(val) => {
@@ -136,19 +219,14 @@ export function GeoFilterBar({
                 value={String(c.id)}
                 className="text-xs font-bold cursor-pointer"
               >
-                {c.name_ar === 'مصر' || c.country_code === 'EG'
-                  ? '🇪🇬 '
-                  : c.name_ar === 'الأردن' || c.country_code === 'JO'
-                  ? '🇯🇴 '
-                  : '📍 '}
-                {c.name_ar}
+                {getCountryFlag(c)} {c.name_ar}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
 
-      {/* 2. Governorate Selector */}
+      {/* 2. Governorate Selector (Separated by country groups) */}
       <div className="w-36 sm:w-44 shrink-0">
         <Select
           value={selectedGovernorate}
@@ -162,25 +240,46 @@ export function GeoFilterBar({
               <SelectValue placeholder={isArabic ? 'كل المحافظات' : 'All Governorates'} />
             </div>
           </SelectTrigger>
-          <SelectContent className="bg-[#0B0F19] text-white border-white/10 max-h-60 z-[100]">
-            <SelectItem value="ALL" className="text-xs font-bold cursor-pointer">
+          <SelectContent className="bg-[#0B0F19] text-white border-white/10 max-h-72 z-[100] overflow-y-auto">
+            <SelectItem value="ALL" className="text-xs font-bold cursor-pointer text-cyan-300">
               {isArabic ? '🏛️ كل المحافظات' : '🏛️ All Governorates'}
             </SelectItem>
-            {filteredGovernorates.map((g) => (
-              <SelectItem
-                key={g.id}
-                value={String(g.id)}
-                className="text-xs font-bold cursor-pointer"
-              >
-                {g.name_ar}
-              </SelectItem>
+            {groupedGovernorates.map((group, idx) => (
+              <React.Fragment key={group.country.id}>
+                {idx > 0 && <SelectSeparator className="my-1.5 bg-white/10" />}
+                <SelectGroup>
+                  <SelectLabel className="px-3 py-1.5 text-[11px] font-black tracking-wide text-cyan-300 bg-white/[0.04] rounded-md mx-1 my-1 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5">
+                      <span>{group.flag}</span>
+                      <span>
+                        {isArabic
+                          ? `محافظات ${group.country.name_ar}`
+                          : `${group.country.name_ar} Governorates`}
+                      </span>
+                    </span>
+                    <span className="text-[10px] font-mono text-slate-400">({group.governorates.length})</span>
+                  </SelectLabel>
+                  {group.governorates.map((g) => (
+                    <SelectItem
+                      key={g.id}
+                      value={String(g.id)}
+                      className="text-xs font-bold cursor-pointer pr-4"
+                    >
+                      <span className="flex items-center gap-1.5">
+                        <span className="text-[10px] opacity-60">{group.flag}</span>
+                        <span>{g.name_ar}</span>
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </React.Fragment>
             ))}
           </SelectContent>
         </Select>
       </div>
 
-      {/* 3. District / Region Selector */}
-      <div className="w-36 sm:w-44 shrink-0">
+      {/* 3. District / Region Selector (Cleanly Separated by Jordan and Egypt!) */}
+      <div className="w-36 sm:w-48 shrink-0">
         <Select
           value={selectedDistrict}
           onValueChange={(val) => {
@@ -193,18 +292,39 @@ export function GeoFilterBar({
               <SelectValue placeholder={isArabic ? 'كل المناطق' : 'All Districts'} />
             </div>
           </SelectTrigger>
-          <SelectContent className="bg-[#0B0F19] text-white border-white/10 max-h-60 z-[100]">
-            <SelectItem value="ALL" className="text-xs font-bold cursor-pointer">
+          <SelectContent className="bg-[#0B0F19] text-white border-white/10 max-h-72 z-[100] overflow-y-auto">
+            <SelectItem value="ALL" className="text-xs font-bold cursor-pointer text-cyan-300">
               {isArabic ? '📍 كل المناطق' : '📍 All Districts'}
             </SelectItem>
-            {filteredDistricts.map((d) => (
-              <SelectItem
-                key={d.id}
-                value={String(d.id)}
-                className="text-xs font-bold cursor-pointer"
-              >
-                {d.name_ar}
-              </SelectItem>
+            {groupedDistricts.map((group, idx) => (
+              <React.Fragment key={group.country.id}>
+                {idx > 0 && <SelectSeparator className="my-1.5 bg-white/10" />}
+                <SelectGroup>
+                  <SelectLabel className="px-3 py-1.5 text-[11px] font-black tracking-wide text-emerald-400 bg-white/[0.04] rounded-md mx-1 my-1 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5">
+                      <span>{group.flag}</span>
+                      <span>
+                        {isArabic
+                          ? `مناطق ${group.country.name_ar}`
+                          : `${group.country.name_ar} Districts`}
+                      </span>
+                    </span>
+                    <span className="text-[10px] font-mono text-slate-400">({group.districts.length})</span>
+                  </SelectLabel>
+                  {group.districts.map((d) => (
+                    <SelectItem
+                      key={d.id}
+                      value={String(d.id)}
+                      className="text-xs font-bold cursor-pointer pr-4"
+                    >
+                      <span className="flex items-center gap-1.5">
+                        <span className="text-[10px] opacity-60">{group.flag}</span>
+                        <span>{d.name_ar}</span>
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </React.Fragment>
             ))}
           </SelectContent>
         </Select>
@@ -225,4 +345,3 @@ export function GeoFilterBar({
     </div>
   );
 }
-
