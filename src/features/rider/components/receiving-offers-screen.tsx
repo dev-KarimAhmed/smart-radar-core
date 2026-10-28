@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { MapPin, Radio, ShieldCheck, X } from 'lucide-react';
+import { MapPin, Radio, ShieldCheck, Users, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { getServerTime } from '@/lib/server-time';
 import type { AppLanguage } from '@/lib/i18n/simple-copy';
@@ -356,17 +356,52 @@ export function ReceivingOffersScreen({
             </div>
           </div>
 
-          {/* Step 5: Page 6 - Bottom Offer Count & [اكتفي افتح] Beveled Gold Button */}
-          <div className="relative z-10 mt-5 flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-[#060D19]/90 px-3.5 py-3 shadow-lg">
-            <div className="text-start">
-              <span className="block text-[11px] font-bold text-slate-300">
-                {isArabic ? 'عدد العروض القادمة من المعلنين' : 'Offers from advertisers'}
-              </span>
-              <span className="mt-0.5 block text-sm sm:text-base font-black text-[#14F5D5]">
-                {state.offers.length} {isArabic ? (state.offers.length === 1 ? 'كابتن' : 'كباتن') : 'Captains'}
-              </span>
+          {/* Step 5: Page 6 - Bottom Offer Count & [معاينة العروض] Radar-Themed Action Card */}
+          <div className="relative z-10 mt-5 rounded-2xl border border-[#14B8A6]/30 bg-gradient-to-b from-[#091527] via-[#060D19] to-[#040814] p-3.5 sm:p-4 shadow-xl shadow-black/60 space-y-3">
+            {/* Top Stat Row: Clean label & Live glowing pill badge */}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-[#14B8A6]/15 text-[#14F5D5]">
+                  <Users className="h-3.5 w-3.5 text-[#14F5D5]" />
+                </div>
+                <span className="text-xs sm:text-sm font-bold text-slate-200 truncate">
+                  {isArabic ? 'عدد العروض القادمة من المعلنين' : 'Offers from advertisers'}
+                </span>
+              </div>
+
+              {/* High-Tech Glowing Pill Badge - Never wraps */}
+              <div
+                className={cn(
+                  "inline-flex items-center gap-2 rounded-full px-3 py-1 font-mono text-xs sm:text-sm font-black shrink-0 transition-all duration-300 select-none",
+                  state.offers.length > 0
+                    ? "border border-[#14F5D5]/50 bg-[#14F5D5]/15 text-[#14F5D5] shadow-[0_0_12px_rgba(20,245,213,0.3)]"
+                    : "border-white/10 bg-white/5 text-slate-400"
+                )}
+              >
+                <span className="relative flex h-2 w-2 shrink-0">
+                  {state.offers.length > 0 ? (
+                    <>
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#14F5D5] opacity-75" />
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-[#14F5D5]" />
+                    </>
+                  ) : (
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-slate-500" />
+                  )}
+                </span>
+                <span className="whitespace-nowrap">
+                  {state.offers.length}{' '}
+                  {isArabic
+                    ? state.offers.length === 1
+                      ? 'كابتن'
+                      : 'كباتن'
+                    : state.offers.length === 1
+                    ? 'Captain'
+                    : 'Captains'}
+                </span>
+              </div>
             </div>
 
+            {/* Radar Pulsing Button - Full width, comfortable tap target, beautifully centered */}
             <button
               type="button"
               onClick={() => {
@@ -376,12 +411,63 @@ export function ReceivingOffersScreen({
               }}
               disabled={state.offers.length === 0}
               className={cn(
-                "relative inline-flex items-center justify-center px-5 py-2.5 rounded-lg font-black text-xs sm:text-sm tracking-wide transition-all select-none cursor-pointer",
-                "border-2 border-[#D4AF37] bg-gradient-to-b from-[#2A2B2E] via-[#1B1C1E] to-[#0E0F10] text-[#FFDF78] shadow-[inset_0_1px_1px_rgba(255,255,255,0.3),inset_0_-2px_4px_rgba(0,0,0,0.8),0_4px_12px_rgba(0,0,0,0.5)] active:scale-95",
-                state.offers.length === 0 && "opacity-40 cursor-not-allowed border-slate-600 text-slate-500 shadow-none"
+                "relative group overflow-hidden w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl font-black text-xs sm:text-sm transition-all duration-300 select-none",
+                state.offers.length > 0
+                  ? "border border-[#14F5D5] bg-gradient-to-r from-[#0E2238] via-[#0A1A2E] to-[#05101E] text-white shadow-[0_0_24px_rgba(20,245,213,0.4)] hover:shadow-[0_0_32px_rgba(20,245,213,0.65)] hover:border-[#14F5D5] hover:scale-[1.01] active:scale-[0.98] cursor-pointer"
+                  : "border border-white/10 bg-[#060D19]/80 text-slate-400 opacity-60 cursor-not-allowed shadow-none"
               )}
             >
-              {isArabic ? 'اكتفي افتح' : 'Open Offers'}
+              {/* Animated Radar Pulse Rings (when offers available) */}
+              {state.offers.length > 0 && (
+                <>
+                  <span className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#14F5D5]/15 via-[#14B8A6]/10 to-transparent" />
+                  <span className="pointer-events-none absolute -inset-1 rounded-xl border border-[#14F5D5]/40 animate-pulse" />
+                </>
+              )}
+
+              {/* Radar Icon squircle with concentric ripple rings matching image 2 */}
+              <div className="relative flex h-7 w-7 items-center justify-center shrink-0">
+                {state.offers.length > 0 ? (
+                  <>
+                    <span className="absolute inset-0 rounded-full border border-[#14F5D5]/40 animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite]" />
+                    <span className="absolute -inset-1 rounded-full border border-[#14F5D5]/20 animate-pulse" />
+                  </>
+                ) : null}
+                <div
+                  className={cn(
+                    "relative flex h-6 w-6 items-center justify-center rounded-lg border transition-colors",
+                    state.offers.length > 0
+                      ? "border-[#14F5D5]/60 bg-[#14B8A6]/20 text-[#14F5D5] shadow-[0_0_10px_rgba(20,245,213,0.4)]"
+                      : "border-white/10 bg-white/5 text-slate-500"
+                  )}
+                >
+                  <Radio
+                    className={cn(
+                      "h-3.5 w-3.5",
+                      state.offers.length > 0 && "animate-pulse text-[#14F5D5]"
+                    )}
+                  />
+                </div>
+              </div>
+
+              {/* Button Text */}
+              <span
+                className={cn(
+                  "relative z-10 font-black tracking-wide whitespace-nowrap",
+                  state.offers.length > 0
+                    ? "text-white drop-shadow-[0_0_8px_rgba(20,245,213,0.4)]"
+                    : "text-slate-400"
+                )}
+              >
+                {isArabic ? 'معاينة العروض' : 'Preview Offers'}
+              </span>
+
+              {/* Offer Count Badge inside button */}
+              {state.offers.length > 0 && (
+                <span className="relative z-10 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#14F5D5] px-1.5 text-[11px] font-black text-[#040C17] font-mono shadow-[0_0_10px_rgba(20,245,213,0.5)]">
+                  {state.offers.length}
+                </span>
+              )}
             </button>
           </div>
 
